@@ -525,15 +525,7 @@ export function MessageView() {
     }
     if (condition.startTimeMs === 0) delete condition.startTimeMs
     if (condition.endTimeMs === 0) delete condition.endTimeMs
-    const hasCondition =
-      Boolean(condition.messageId) ||
-      Boolean(condition.messageKey) ||
-      Boolean(condition.startTimeMs) ||
-      Boolean(condition.endTimeMs)
-    if (!hasCondition) {
-      toast.info('请至少输入 Message ID、Key 或时间范围后再查询')
-      return
-    }
+
 
     const requestSeq = ++requestSeqRef.current
     try {
@@ -955,12 +947,12 @@ export function MessageView() {
 
       {/* 全屏 Body 弹层 */}
       {selectedMessage && bodyFullscreenOpen && (
-        <div className="fixed inset-0 z-50 flex flex-col bg-background/95 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="消息体全屏">
-          <div className="flex shrink-0 items-center justify-between border-b border-border/40 px-4 py-2">
-            <span className="text-sm font-medium text-foreground">消息体</span>
+        <div className="fixed inset-0 z-50 flex flex-col bg-background" role="dialog" aria-modal="true" aria-label="消息体全屏">
+          <div className="flex shrink-0 items-center justify-between border-b px-4 py-3">
+            <span className="text-sm font-medium">消息体</span>
             <div className="flex items-center gap-2">
-              <button type="button" onClick={() => copyBody(selectedMessage.body ?? '')} className="rounded-md border border-border/40 px-2 py-1.5 text-xs hover:bg-accent">复制</button>
-              <button type="button" onClick={() => setBodyFullscreenOpen(false)} className="rounded-md border border-border/40 px-2 py-1.5 text-xs hover:bg-accent">关闭</button>
+              <button type="button" onClick={() => copyBody(selectedMessage.body ?? '')} className="rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-accent">复制</button>
+              <button type="button" onClick={() => setBodyFullscreenOpen(false)} className="rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-accent">关闭</button>
             </div>
           </div>
           {payloadPreview.truncated && (
@@ -968,7 +960,7 @@ export function MessageView() {
               当前全屏视图同样遵循预览阈值，仅展示前 {settings.maxPayloadRenderBytes} 字节。
             </div>
           )}
-          <pre className="flex-1 overflow-auto p-4 font-mono text-xs text-foreground whitespace-pre-wrap wrap-break-word scroll-thin">
+          <pre className="flex-1 overflow-auto m-4 p-4 rounded-md border bg-muted/50 font-mono text-sm text-foreground whitespace-pre-wrap wrap-break-word scroll-thin">
             {bodyViewMode === 'hex'
               ? toHexView(payloadPreview.text)
               : bodyViewMode === 'json'

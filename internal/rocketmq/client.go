@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	admin "github.com/codermast/rocketmq-admin-go"
+	admin "github.com/amigoer/rocketmq-admin-go"
 )
 
 // AdminClientManager 管理 Admin 客户端

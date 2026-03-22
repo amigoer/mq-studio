@@ -7,7 +7,7 @@ import (
 
 	"rocket-leaf/internal/rocketmq"
 
-	admin "github.com/codermast/rocketmq-admin-go"
+	admin "github.com/amigoer/rocketmq-admin-go"
 )
 
 // executeWithClientRetry 使用默认客户端执行请求，遇到网络断连时自动重连并重试一次

@@ -8,7 +8,7 @@ import (
 	"rocket-leaf/internal/model"
 	"rocket-leaf/internal/rocketmq"
 
-	admin "github.com/codermast/rocketmq-admin-go"
+	admin "github.com/amigoer/rocketmq-admin-go"
 )
 
 // ConsumerService 消费者组服务

@@ -13,7 +13,7 @@ import (
 	rocketmqClient "github.com/apache/rocketmq-client-go/v2"
 	"github.com/apache/rocketmq-client-go/v2/primitive"
 	"github.com/apache/rocketmq-client-go/v2/producer"
-	admin "github.com/codermast/rocketmq-admin-go"
+	admin "github.com/amigoer/rocketmq-admin-go"
 )
 
 // MessageService 消息查询服务
@@ -41,8 +41,7 @@ func (s *MessageService) QueryMessages(topic string, key string, maxResults int,
 		return nil, fmt.Errorf("获取客户端失败: %w", err)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), s.settingsService.GetRequestTimeout())
-	defer cancel()
+
 
 	if maxResults <= 0 {
 		maxResults = s.settingsService.GetFetchLimit()
@@ -55,54 +54,81 @@ func (s *MessageService) QueryMessages(topic string, key string, maxResults int,
 	}
 
 	result := make([]*model.MessageItem, 0)
+	trimmedKey := strings.TrimSpace(key)
+
+	// 统一使用时间范围浏览（RocketMQ 的 Key 索引查询不够可靠）
+	// 如果有 Key 过滤条件，多拉取一些消息以确保过滤后有足够结果
+	fetchNum := maxResults
+	if trimmedKey != "" {
+		fetchNum = maxResults * 8
+		if fetchNum < 512 {
+			fetchNum = 512
+		}
+	}
+
+	timeCtx, timeCancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer timeCancel()
 	err = executeWithClientRetry(client, func(retryClient *admin.Client) error {
-		msgs, callErr := retryClient.QueryMessage(ctx, topic, key, maxResults, startTime, endTime)
+		msgs, callErr := retryClient.QueryMessageByTime(timeCtx, topic, startTime, endTime, fetchNum)
 		if callErr != nil {
 			return callErr
 		}
 
 		tmpResult := make([]*model.MessageItem, 0, len(msgs))
 		for _, msg := range msgs {
-			// MessageExt 使用 Properties map 获取 Tags 和 Keys
-			tags := ""
-			keys := ""
-			if msg.Properties != nil {
-				if t, ok := msg.Properties["TAGS"]; ok {
-					tags = t
-				}
-				if k, ok := msg.Properties["KEYS"]; ok {
-					keys = k
+			// 如果指定了 Key，只保留包含该 Key 的消息
+			if trimmedKey != "" {
+				msgKeys, _ := msg.Properties["KEYS"]
+				if !strings.Contains(msgKeys, trimmedKey) {
+					continue
 				}
 			}
-
-			item := &model.MessageItem{
-				ID:             s.getNextID(),
-				Topic:          msg.Topic,
-				MessageID:      msg.MsgId,
-				Tags:           tags,
-				Keys:           keys,
-				QueueID:        msg.QueueId,
-				QueueOffset:    msg.QueueOffset,
-				StoreHost:      msg.StoreHost,
-				BornHost:       msg.BornHost,
-				StoreTime:      time.Unix(msg.StoreTimestamp/1000, 0).Format("2006-01-02 15:04:05"),
-				StoreTimestamp: msg.StoreTimestamp,
-				Body:           string(msg.Body),
-				Properties:     msg.Properties,
-				Status:         model.MsgNormal,
+			tmpResult = append(tmpResult, s.convertMessageExt(msg))
+			if len(tmpResult) >= maxResults {
+				break
 			}
-
-			tmpResult = append(tmpResult, item)
 		}
 
 		result = tmpResult
 		return nil
 	})
+
 	if err != nil {
 		return nil, fmt.Errorf("查询消息失败: %w", err)
 	}
 
 	return result, nil
+}
+
+// convertMessageExt 将 admin.MessageExt 转换为 model.MessageItem
+func (s *MessageService) convertMessageExt(msg *admin.MessageExt) *model.MessageItem {
+	tags := ""
+	keys := ""
+	if msg.Properties != nil {
+		if t, ok := msg.Properties["TAGS"]; ok {
+			tags = t
+		}
+		if k, ok := msg.Properties["KEYS"]; ok {
+			keys = k
+		}
+	}
+
+	return &model.MessageItem{
+		ID:             s.getNextID(),
+		Topic:          msg.Topic,
+		MessageID:      msg.MsgId,
+		Tags:           tags,
+		Keys:           keys,
+		QueueID:        msg.QueueId,
+		QueueOffset:    msg.QueueOffset,
+		StoreHost:      msg.StoreHost,
+		BornHost:       msg.BornHost,
+		StoreTime:      time.Unix(msg.StoreTimestamp/1000, 0).Format("2006-01-02 15:04:05"),
+		StoreTimestamp: msg.StoreTimestamp,
+		Body:           string(msg.Body),
+		Properties:     msg.Properties,
+		Status:         model.MsgNormal,
+	}
 }
 
 // QueryMessageByID 按消息 ID 查询消息
@@ -122,34 +148,7 @@ func (s *MessageService) QueryMessageByID(topic string, msgID string) (*model.Me
 			return callErr
 		}
 
-		tags := ""
-		keys := ""
-		if msg.Properties != nil {
-			if t, ok := msg.Properties["TAGS"]; ok {
-				tags = t
-			}
-			if k, ok := msg.Properties["KEYS"]; ok {
-				keys = k
-			}
-		}
-
-		item = &model.MessageItem{
-			ID:             s.getNextID(),
-			Topic:          msg.Topic,
-			MessageID:      msg.MsgId,
-			Tags:           tags,
-			Keys:           keys,
-			QueueID:        msg.QueueId,
-			QueueOffset:    msg.QueueOffset,
-			StoreHost:      msg.StoreHost,
-			BornHost:       msg.BornHost,
-			StoreTime:      time.Unix(msg.StoreTimestamp/1000, 0).Format("2006-01-02 15:04:05"),
-			StoreTimestamp: msg.StoreTimestamp,
-			Body:           string(msg.Body),
-			Properties:     msg.Properties,
-			Status:         model.MsgNormal,
-		}
-
+		item = s.convertMessageExt(msg)
 		return nil
 	})
 	if err != nil {

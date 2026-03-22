@@ -9,7 +9,7 @@ import (
 	"rocket-leaf/internal/model"
 	"rocket-leaf/internal/rocketmq"
 
-	admin "github.com/codermast/rocketmq-admin-go"
+	admin "github.com/amigoer/rocketmq-admin-go"
 )
 
 // TopicService Topic 管理服务
