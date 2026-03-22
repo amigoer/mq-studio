@@ -34,6 +34,17 @@ Rocket-Leaf is a **local desktop app** for connecting to and managing RocketMQ c
 | **Messages** | Query by Topic / Key / MessageId, inspect details, send test messages, and view traces |
 | **Monitoring** | Check cluster health, producer and consumer TPS, and backlog status |
 
+## Screenshots
+
+| | |
+|---|---|
+| ![Connection Management](docs/images/screenshot-connections.png) | ![Topics](docs/images/screenshot-topics.png) |
+| Connection Management | Topics |
+| ![Consumer Groups](docs/images/screenshot-consumers.png) | ![Message Query](docs/images/screenshot-messages.png) |
+| Consumer Groups | Message Query |
+| ![Cluster Monitoring](docs/images/screenshot-cluster.png) | ![Settings](docs/images/screenshot-settings.png) |
+| Cluster Monitoring | Settings |
+
 ## Downloads
 
 Download the package or executable for your platform from [Releases](https://github.com/codermast/rocket-leaf/releases).

@@ -34,6 +34,32 @@ Rocket-Leaf 是一个**本地桌面应用**，用来连接和管理 RocketMQ 集
 | **消息** | 按 Topic / Key / MessageId 查询，查看详情，发送测试消息，追踪消息链路 |
 | **监控** | 查看集群状态、生产消费 TPS 和堆积情况 |
 
+## 界面预览
+
+### 连接管理
+
+![连接管理](docs/images/image%20copy%205.png)
+
+### 主题管理
+
+![主题管理](docs/images/image%20copy%201.png)
+
+### 消费者组
+
+![消费者组](docs/images/image%20copy%202.png)
+
+### 消息查询
+
+![消息查询](docs/images/image%20copy%203.png)
+
+### 集群
+
+![集群](docs/images/image%20copy%204.png)
+
+### 设置
+
+![设置](docs/images/image%20copy%206.png)
+
 ## 下载与安装
 
 从 [Releases](https://github.com/codermast/rocket-leaf/releases) 下载对应平台的安装包或可执行文件。
