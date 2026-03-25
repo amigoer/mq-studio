@@ -63,18 +63,26 @@ export function IconSidebar({
     const buttonClass = cn(
       'flex h-10 w-10 items-center justify-center rounded-md text-muted-foreground transition-[background-color,color] duration-200 ease-out',
       isActive ? 'bg-accent text-accent-foreground' : 'hover:bg-accent',
-      disabled && 'pointer-events-none opacity-50'
+      disabled && 'opacity-40 cursor-not-allowed'
     )
+
+    // 禁用时显示"请先连接集群"提示，正常时显示功能名称
+    const tooltipLabel = disabled ? '请先连接集群' : label
 
     const content = (
       <>
         <Icon className="h-5 w-5" />
         {hoveredId === id && (
           <span
-            className="absolute left-full top-1/2 z-50 ml-2 -translate-y-1/2 whitespace-nowrap rounded-md border border-border/50 bg-card px-2 py-1.5 text-xs text-card-foreground shadow-sm"
+            className={cn(
+              'absolute left-full top-1/2 z-50 ml-2 -translate-y-1/2 whitespace-nowrap rounded-md border px-3 py-2 text-base shadow-sm',
+              disabled
+                ? 'border-orange-500/30 bg-orange-50 text-orange-700 dark:border-orange-400/30 dark:bg-orange-950/80 dark:text-orange-300'
+                : 'border-border/50 bg-card text-card-foreground'
+            )}
             role="tooltip"
           >
-            {label}
+            {tooltipLabel}
           </span>
         )}
       </>
@@ -101,12 +109,12 @@ export function IconSidebar({
         ) : (
           <button
             type="button"
-            disabled={disabled}
-            onClick={() => onSelect(id)}
-            onMouseEnter={() => !disabled && handleEnter(id)}
+            onClick={() => !disabled && onSelect(id)}
+            onMouseEnter={() => handleEnter(id)}
             onMouseLeave={handleLeave}
             className={buttonClass}
-            aria-label={label}
+            aria-label={disabled ? '请先连接集群' : label}
+            aria-disabled={disabled || undefined}
             aria-current={isActive ? 'page' : undefined}
           >
             {content}

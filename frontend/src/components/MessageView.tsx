@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef, type ReactNode } from 'react'
 import { toast } from 'sonner'
-import { Search, Loader2, Copy, CalendarIcon, Maximize2, Send } from 'lucide-react'
+import { Search, Loader2, Copy, CalendarIcon, Maximize2, Send, X } from 'lucide-react'
 import { format } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
 import { cn, formatErrorMessage } from '@/lib/utils'
@@ -230,7 +230,7 @@ function DateTimePicker({
           aria-labelledby={labelId}
           title={displayText || placeholder}
           className={cn(
-            'flex h-9 w-full items-center justify-between gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground',
+            'flex h-8 w-full items-center justify-between gap-2 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground placeholder:text-muted-foreground',
             'hover:bg-muted/30 focus:outline-none focus:ring-1 focus:ring-ring focus:ring-offset-0'
           )}
         >
@@ -354,7 +354,7 @@ function TopicCombobox({
           onBlur={() => setTimeout(() => setOpen(false), 150)}
           placeholder={placeholder}
           title={placeholder}
-          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-mono"
+          className="h-8 w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-mono"
           aria-labelledby={labelId}
           aria-expanded="true"
           aria-autocomplete="list"
@@ -374,7 +374,7 @@ function TopicCombobox({
           onBlur={() => setTimeout(() => setOpen(false), 150)}
           placeholder={placeholder}
           title={placeholder}
-          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-mono"
+          className="h-8 w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-mono"
           aria-labelledby={labelId}
           aria-expanded="false"
           aria-autocomplete="list"
@@ -596,13 +596,14 @@ export function MessageView() {
 
   return (
     <div className="flex h-full flex-col">
-      {/* 紧凑单行 Toolbar */}
-      <div className="shrink-0 flex items-center gap-2 border-b border-border/40 px-3 py-2 -[--wails-draggable:drag]">
-        {clusterName && (
-          <span className="shrink-0 text-xs text-muted-foreground">{clusterName}</span>
-        )}
-        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-          <div className="w-36 shrink-0 [&_input]:h-8 [&_input]:py-1.5 [&_input]:text-xs">
+      {/* 搜索工具栏 */}
+      <div className="shrink-0 border-b border-border/40 bg-muted/10 px-4 py-2.5 space-y-2">
+        {/* 第一行：Topic + ID + Key */}
+        <div className="flex items-center gap-2.5">
+          {clusterName && (
+            <span className="shrink-0 rounded-full bg-muted/60 px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">{clusterName}</span>
+          )}
+          <div className="w-48 shrink-0">
             <TopicCombobox
               id="msg-topic"
               labelId="msg-topic-label"
@@ -618,7 +619,7 @@ export function MessageView() {
             value={messageId}
             onChange={(e) => setMessageId(e.target.value)}
             placeholder="Message ID"
-            className="h-8 w-40 shrink-0 rounded-md border border-border/40 bg-background px-2.5 text-xs font-mono"
+            className="h-8 w-56 shrink-0 rounded-md border border-border/40 bg-background px-2.5 text-xs font-mono transition-colors focus:outline-none focus:ring-1 focus:ring-ring"
             aria-label="Message ID"
           />
           <input
@@ -627,25 +628,29 @@ export function MessageView() {
             value={messageKey}
             onChange={(e) => setMessageKey(e.target.value)}
             placeholder="Key"
-            className="h-8 w-28 shrink-0 rounded-md border border-border/40 bg-background px-2.5 text-xs font-mono"
+            className="h-8 w-40 shrink-0 rounded-md border border-border/40 bg-background px-2.5 text-xs font-mono transition-colors focus:outline-none focus:ring-1 focus:ring-ring"
             aria-label="Message Key"
           />
-          <div className="w-32 shrink-0">
+        </div>
+        {/* 第二行：时间 + 条数 + 查询 + 发送 */}
+        <div className="flex items-center gap-2.5">
+          <div className="w-44 shrink-0">
             <DateTimePicker
               id="msg-start"
               labelId="msg-start-label"
               value={startTimeInput}
               onChange={setStartTimeInput}
-              placeholder="开始"
+              placeholder="开始时间"
             />
           </div>
-          <div className="w-32 shrink-0">
+          <span className="shrink-0 text-[10px] text-muted-foreground/60">—</span>
+          <div className="w-44 shrink-0">
             <DateTimePicker
               id="msg-end"
               labelId="msg-end-label"
               value={endTimeInput}
               onChange={setEndTimeInput}
-              placeholder="结束"
+              placeholder="结束时间"
             />
           </div>
           <input
@@ -655,18 +660,19 @@ export function MessageView() {
             max={128}
             value={maxResults}
             onChange={(e) => setMaxResults(Number(e.target.value) || DEFAULT_MAX_RESULTS)}
-            className="h-8 w-14 shrink-0 rounded-md border border-border/40 bg-background px-2 text-center text-xs"
+            className="h-8 w-16 shrink-0 rounded-md border border-border/40 bg-background px-2 text-center text-xs transition-colors focus:outline-none focus:ring-1 focus:ring-ring"
             aria-label="条数"
           />
           <button
             type="button"
             onClick={runConditionQuery}
             disabled={isLoading}
-            className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md bg-primary px-2.5 text-xs text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+            className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md bg-primary px-3.5 text-xs font-medium text-primary-foreground shadow-sm transition-all hover:bg-primary/90 active:scale-[0.97] disabled:opacity-50"
           >
             {isLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
             查询
           </button>
+          <div className="h-5 w-px shrink-0 bg-border/30" />
           <button
             type="button"
             onClick={() => {
@@ -674,12 +680,12 @@ export function MessageView() {
               if (!sendTopic && selectedTopic) setSendTopic(selectedTopic)
             }}
             className={cn(
-              'inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-border/40 px-2.5 text-xs transition-colors hover:bg-accent',
+              'inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-border/40 px-2.5 text-xs font-medium transition-all hover:bg-accent active:scale-[0.97]',
               showSendPanel && 'bg-accent text-accent-foreground'
             )}
           >
             <Send className="h-3.5 w-3.5" />
-            发送
+            发送消息
           </button>
         </div>
       </div>
@@ -689,44 +695,63 @@ export function MessageView() {
         </div>
       )}
 
-      {/* 发送消息面板 */}
+      {/* 发送消息模态框 */}
       {showSendPanel && (
-        <div className="shrink-0 border-b border-border/40 px-3 py-2.5 bg-muted/20">
-          <div className="space-y-2">
-            <div className="flex min-w-0 flex-wrap items-center gap-2">
-              <div className="w-36 shrink-0 [&_input]:h-8 [&_input]:py-1.5 [&_input]:text-xs">
-                <TopicCombobox
-                  id="send-topic"
-                  labelId="send-topic-label"
-                  value={sendTopic}
-                  onChange={setSendTopic}
-                  options={topicOptions}
-                  placeholder="Topic"
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[2px]"
+          onClick={(e) => { if (e.target === e.currentTarget) setShowSendPanel(false) }}
+          role="dialog"
+          aria-modal="true"
+          aria-label="发送消息"
+        >
+          <div className="w-full max-w-lg rounded-lg border border-border/40 bg-background shadow-xl">
+            {/* 标题栏 */}
+            <div className="flex items-center justify-between border-b border-border/40 px-4 py-3">
+              <span className="text-sm font-medium">发送消息</span>
+              <button
+                type="button"
+                onClick={() => setShowSendPanel(false)}
+                className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                aria-label="关闭"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            {/* 表单 */}
+            <div className="space-y-3 p-4">
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                <div className="w-48 shrink-0 [&_input]:h-9 [&_input]:py-2 [&_input]:text-sm">
+                  <TopicCombobox
+                    id="send-topic"
+                    labelId="send-topic-label"
+                    value={sendTopic}
+                    onChange={setSendTopic}
+                    options={topicOptions}
+                    placeholder="Topic"
+                  />
+                </div>
+                <input
+                  type="text"
+                  value={sendTags}
+                  onChange={(e) => setSendTags(e.target.value)}
+                  placeholder="Tags"
+                  className="h-9 w-28 shrink-0 rounded-md border border-border/40 bg-background px-2.5 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-ring"
+                  aria-label="Tags"
+                />
+                <input
+                  type="text"
+                  value={sendKeys}
+                  onChange={(e) => setSendKeys(e.target.value)}
+                  placeholder="Keys"
+                  className="h-9 w-28 shrink-0 rounded-md border border-border/40 bg-background px-2.5 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-ring"
+                  aria-label="Keys"
                 />
               </div>
-              <input
-                type="text"
-                value={sendTags}
-                onChange={(e) => setSendTags(e.target.value)}
-                placeholder="Tags"
-                className="h-8 w-24 shrink-0 rounded-md border border-border/40 bg-background px-2.5 text-xs font-mono"
-                aria-label="Tags"
-              />
-              <input
-                type="text"
-                value={sendKeys}
-                onChange={(e) => setSendKeys(e.target.value)}
-                placeholder="Keys"
-                className="h-8 w-24 shrink-0 rounded-md border border-border/40 bg-background px-2.5 text-xs font-mono"
-                aria-label="Keys"
-              />
-            </div>
-            <div className="flex items-end gap-2">
               <textarea
                 value={sendBody}
                 onChange={(e) => setSendBody(e.target.value)}
                 placeholder="消息内容，支持多行输入；按 Ctrl/Cmd + Enter 快速发送"
-                className="min-h-24 min-w-0 flex-1 rounded-md border border-border/40 bg-background px-3 py-2 text-xs font-mono leading-5"
+                className="min-h-32 w-full rounded-md border border-border/40 bg-background px-3 py-2.5 text-sm font-mono leading-5 focus:outline-none focus:ring-1 focus:ring-ring"
                 aria-label="消息内容"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
@@ -735,13 +760,23 @@ export function MessageView() {
                   }
                 }}
               />
+            </div>
+            {/* 底部按钮 */}
+            <div className="flex items-center justify-end gap-2 border-t border-border/40 px-4 py-3">
+              <button
+                type="button"
+                onClick={() => setShowSendPanel(false)}
+                className="inline-flex h-9 items-center rounded-md border border-border/40 px-3.5 text-sm font-medium transition-colors hover:bg-accent"
+              >
+                取消
+              </button>
               <button
                 type="button"
                 onClick={handleSendMessage}
                 disabled={isSending}
-                className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md bg-emerald-600 px-3 text-xs text-white hover:bg-emerald-700 disabled:opacity-50"
+                className="inline-flex h-9 items-center gap-1.5 rounded-md bg-emerald-600 px-3.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-emerald-700 active:scale-[0.97] disabled:opacity-50"
               >
-                {isSending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                 发送
               </button>
             </div>
@@ -752,7 +787,7 @@ export function MessageView() {
       {/* 主内容区：Resizable 左右分栏 */}
       <div className="min-h-0 flex-1">
         <ResizablePanelGroup direction="horizontal" className="h-full" defaultLayout={{ 'msg-list': 40, 'msg-inspector': 60 }}>
-          <ResizablePanel id="msg-list" defaultSize={40} minSize={25} className="flex flex-col min-w-0">
+          <ResizablePanel id="msg-list" defaultSize={40} minSize={240} collapsible={false} className="flex flex-col min-w-0">
             <div className="shrink-0 border-b border-border/40 px-3 py-1.5">
               <span className="text-xs text-muted-foreground">
                 {messages.length > 0 ? `共 ${messages.length} 条` : '消息列表'}
@@ -821,7 +856,7 @@ export function MessageView() {
             </div>
           </ResizablePanel>
           <ResizableHandle withHandle />
-          <ResizablePanel id="msg-inspector" defaultSize={60} minSize={30} className="flex flex-col min-w-0">
+          <ResizablePanel id="msg-inspector" defaultSize={60} minSize={320} collapsible={false} className="flex flex-col min-w-0">
             <div className="shrink-0 border-b border-border/40 px-3 py-1.5">
               <span className="text-xs text-muted-foreground">消息详情</span>
             </div>
