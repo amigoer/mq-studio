@@ -41,6 +41,14 @@ type MessageQueryParams struct {
 	MaxResults int    `json:"maxResults"` // 最大返回数量
 }
 
+// MessageTrackItem 消息轨迹
+type MessageTrackItem struct {
+	ConsumerGroup string `json:"consumerGroup"` // 消费者组
+	TrackType     string `json:"trackType"`     // 轨迹类型: CONSUMED / NOT_CONSUME_YET / CONSUMED_BUT_FILTERED / UNKNOWN
+	ConsumeStatus string `json:"consumeStatus"` // 消费状态描述
+	ExceptionDesc string `json:"exceptionDesc"` // 异常描述
+}
+
 // ResendMessageRequest 消息重投请求
 type ResendMessageRequest struct {
 	Topic      string `json:"topic"`      // Topic 名称

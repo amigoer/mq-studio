@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"rocket-leaf/internal/crypto"
 	"rocket-leaf/internal/model"
 )
 
@@ -63,13 +64,38 @@ func (s *SettingsService) loadFromFile() error {
 		return err
 	}
 
+	// 解密敏感字段（兼容未加密的旧数据）
+	if loaded.GlobalAccessKey != "" {
+		if decrypted, decErr := crypto.Decrypt(loaded.GlobalAccessKey, "globalAccessKey"); decErr == nil {
+			loaded.GlobalAccessKey = decrypted
+		}
+	}
+	if loaded.GlobalSecretKey != "" {
+		if decrypted, decErr := crypto.Decrypt(loaded.GlobalSecretKey, "globalSecretKey"); decErr == nil {
+			loaded.GlobalSecretKey = decrypted
+		}
+	}
+
 	s.settings = loaded
 	return nil
 }
 
 // saveToFileLocked 将设置持久化到文件（调用方需持有写锁）
 func (s *SettingsService) saveToFileLocked() error {
-	data, err := json.MarshalIndent(s.settings, "", "  ")
+	// 复制设置并加密敏感字段后再写入文件
+	toSave := *s.settings
+	if toSave.GlobalAccessKey != "" {
+		if encrypted, encErr := crypto.Encrypt(toSave.GlobalAccessKey, "globalAccessKey"); encErr == nil {
+			toSave.GlobalAccessKey = encrypted
+		}
+	}
+	if toSave.GlobalSecretKey != "" {
+		if encrypted, encErr := crypto.Encrypt(toSave.GlobalSecretKey, "globalSecretKey"); encErr == nil {
+			toSave.GlobalSecretKey = encrypted
+		}
+	}
+
+	data, err := json.MarshalIndent(&toSave, "", "  ")
 	if err != nil {
 		return err
 	}
