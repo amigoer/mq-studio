@@ -1,5 +1,5 @@
 import * as MessageService from '../../bindings/rocket-leaf/internal/service/messageservice.js'
-import type { MessageItem } from '../../bindings/rocket-leaf/internal/model/models.js'
+import type { MessageItem, MessageTrackItem } from '../../bindings/rocket-leaf/internal/model/models.js'
 
 /** 是否使用 Mock（无 Wails 环境或需离线预览时设为 true） */
 const USE_MOCK = false
@@ -119,6 +119,19 @@ export async function resendMessage(
     return await MessageService.ResendMessage(consumerGroup, clientID, topic, msgID)
   } catch (e) {
     console.error('ResendMessage', e)
+    throw e
+  }
+}
+
+export async function getMessageTrack(
+  topic: string,
+  msgID: string
+): Promise<MessageTrackItem[]> {
+  try {
+    const raw = await MessageService.GetMessageTrack(topic, msgID)
+    return raw.filter((m): m is MessageTrackItem => m != null)
+  } catch (e) {
+    console.error('GetMessageTrack', e)
     throw e
   }
 }
