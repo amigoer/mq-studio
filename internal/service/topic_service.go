@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 	"sync/atomic"
 
@@ -398,10 +399,31 @@ func (s *TopicService) GetTopicStats(topic string) (map[string]interface{}, erro
 
 		var totalMinOffset, totalMaxOffset int64
 		queueCount := len(stats.OffsetTable)
-		for _, offset := range stats.OffsetTable {
+
+		queues := make([]map[string]interface{}, 0, queueCount)
+		for mqKey, offset := range stats.OffsetTable {
 			totalMinOffset += offset.MinOffset
 			totalMaxOffset += offset.MaxOffset
+
+			brokerName, queueId := parseMQKey(mqKey)
+			queues = append(queues, map[string]interface{}{
+				"brokerName": brokerName,
+				"queueId":    queueId,
+				"minOffset":  offset.MinOffset,
+				"maxOffset":  offset.MaxOffset,
+				"messages":   offset.MaxOffset - offset.MinOffset,
+				"lastUpdate": offset.LastUpdateTimestamp,
+			})
 		}
+
+		sort.Slice(queues, func(i, j int) bool {
+			bi := queues[i]["brokerName"].(string)
+			bj := queues[j]["brokerName"].(string)
+			if bi != bj {
+				return bi < bj
+			}
+			return queues[i]["queueId"].(int) < queues[j]["queueId"].(int)
+		})
 
 		result = map[string]interface{}{
 			"topic":          topic,
@@ -409,6 +431,7 @@ func (s *TopicService) GetTopicStats(topic string) (map[string]interface{}, erro
 			"totalMinOffset": totalMinOffset,
 			"totalMaxOffset": totalMaxOffset,
 			"totalMessages":  totalMaxOffset - totalMinOffset,
+			"queues":         queues,
 		}
 		return nil
 	})
@@ -445,4 +468,24 @@ func isSystemTopic(topic string) bool {
 	}
 
 	return false
+}
+
+// parseMQKey 从 MessageQueue 序列化字符串中解析 brokerName 和 queueId
+// 格式: "MessageQueue [topic=xxx, brokerName=broker-a, queueId=0]"
+func parseMQKey(key string) (string, int) {
+	brokerName := ""
+	queueId := 0
+	if idx := strings.Index(key, "brokerName="); idx >= 0 {
+		s := key[idx+len("brokerName="):]
+		if end := strings.IndexAny(s, ",]"); end >= 0 {
+			brokerName = strings.TrimSpace(s[:end])
+		}
+	}
+	if idx := strings.Index(key, "queueId="); idx >= 0 {
+		s := key[idx+len("queueId="):]
+		if end := strings.IndexAny(s, ",]"); end >= 0 {
+			fmt.Sscanf(strings.TrimSpace(s[:end]), "%d", &queueId)
+		}
+	}
+	return brokerName, queueId
 }

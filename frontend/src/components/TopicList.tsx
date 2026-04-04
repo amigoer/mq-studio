@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { toast } from 'sonner'
-import { RefreshCw, Plus, Search, X, Trash2, Loader2, AlertTriangle, BarChart3, Pencil } from 'lucide-react'
+import { RefreshCw, Plus, Search, X, Trash2, Loader2, AlertTriangle, BarChart3, Pencil, ChevronDown } from 'lucide-react'
 import { cn, formatErrorMessage } from '@/lib/utils'
 import type { TopicItem } from '../../bindings/rocket-leaf/internal/model/models.js'
 import { TopicPerm } from '../../bindings/rocket-leaf/internal/model/models.js'
@@ -10,19 +10,38 @@ import * as clusterApi from '@/api/cluster'
 const TOOLTIP_DELAY_MS = 150
 const MIN_SPIN_MS = 400
 
+type QueueStat = {
+  brokerName: string
+  queueId: number
+  minOffset: number
+  maxOffset: number
+  messages: number
+  lastUpdate: number
+}
+
 type TopicStats = {
   queueCount: number
   totalMinOffset: number
   totalMaxOffset: number
   totalMessages: number
+  queues: QueueStat[]
 }
 
 function parseTopicStats(data: Record<string, unknown>): TopicStats {
+  const rawQueues = Array.isArray(data.queues) ? data.queues : []
   return {
     queueCount: typeof data.queueCount === 'number' ? data.queueCount : 0,
     totalMinOffset: typeof data.totalMinOffset === 'number' ? data.totalMinOffset : 0,
     totalMaxOffset: typeof data.totalMaxOffset === 'number' ? data.totalMaxOffset : 0,
     totalMessages: typeof data.totalMessages === 'number' ? data.totalMessages : 0,
+    queues: rawQueues.map((q: Record<string, unknown>) => ({
+      brokerName: typeof q.brokerName === 'string' ? q.brokerName : '',
+      queueId: typeof q.queueId === 'number' ? q.queueId : 0,
+      minOffset: typeof q.minOffset === 'number' ? q.minOffset : 0,
+      maxOffset: typeof q.maxOffset === 'number' ? q.maxOffset : 0,
+      messages: typeof q.messages === 'number' ? q.messages : 0,
+      lastUpdate: typeof q.lastUpdate === 'number' ? q.lastUpdate : 0,
+    })),
   }
 }
 
@@ -61,6 +80,7 @@ export function TopicList({ list, loading, error, onRefresh }: Props) {
   const [brokerOptionsLoading, setBrokerOptionsLoading] = useState(false)
   const [stats, setStats] = useState<TopicStats | null>(null)
   const [statsLoading, setStatsLoading] = useState(false)
+  const [queueDetailExpanded, setQueueDetailExpanded] = useState(false)
   const [deleteConfirmTopic, setDeleteConfirmTopic] = useState<string | null>(null)
   const [deletingTopic, setDeletingTopic] = useState<string | null>(null)
   const [editOpen, setEditOpen] = useState(false)
@@ -98,6 +118,7 @@ export function TopicList({ list, loading, error, onRefresh }: Props) {
       setDetail(null)
       setDetailError(null)
       setStats(null)
+      setQueueDetailExpanded(false)
       return
     }
     let cancelled = false
@@ -438,20 +459,60 @@ export function TopicList({ list, loading, error, onRefresh }: Props) {
                         <Loader2 className="h-4 w-4 animate-spin" />
                       </div>
                     ) : stats ? (
-                      <div className="grid grid-cols-3 gap-2">
-                        <div className="rounded-md border border-border/40 bg-card px-3 py-2">
-                          <div className="text-[11px] text-muted-foreground">消息队列</div>
-                          <div className="mt-1 text-sm font-medium text-foreground">{stats.queueCount}</div>
+                      <>
+                        <div className="grid grid-cols-3 gap-2">
+                          <div className="rounded-md border border-border/40 bg-card px-3 py-2">
+                            <div className="text-[11px] text-muted-foreground">消息队列</div>
+                            <div className="mt-1 text-sm font-medium text-foreground">{stats.queueCount}</div>
+                          </div>
+                          <div className="rounded-md border border-border/40 bg-card px-3 py-2">
+                            <div className="text-[11px] text-muted-foreground">最大偏移</div>
+                            <div className="mt-1 text-sm font-medium text-foreground">{formatNumber(stats.totalMaxOffset)}</div>
+                          </div>
+                          <div className="rounded-md border border-border/40 bg-card px-3 py-2">
+                            <div className="text-[11px] text-muted-foreground">消息总量</div>
+                            <div className="mt-1 text-sm font-medium text-foreground">{formatNumber(stats.totalMessages)}</div>
+                          </div>
                         </div>
-                        <div className="rounded-md border border-border/40 bg-card px-3 py-2">
-                          <div className="text-[11px] text-muted-foreground">最大偏移</div>
-                          <div className="mt-1 text-sm font-medium text-foreground">{formatNumber(stats.totalMaxOffset)}</div>
-                        </div>
-                        <div className="rounded-md border border-border/40 bg-card px-3 py-2">
-                          <div className="text-[11px] text-muted-foreground">消息总量</div>
-                          <div className="mt-1 text-sm font-medium text-foreground">{formatNumber(stats.totalMessages)}</div>
-                        </div>
-                      </div>
+                        {stats.queues.length > 0 && (
+                          <div className="mt-3">
+                            <button
+                              type="button"
+                              onClick={() => setQueueDetailExpanded(!queueDetailExpanded)}
+                              className="flex w-full items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+                            >
+                              <span>队列明细</span>
+                              <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', queueDetailExpanded && 'rotate-180')} />
+                            </button>
+                            {queueDetailExpanded && (
+                              <div className="mt-2 overflow-x-auto rounded-md border border-border/40">
+                                <table className="w-full min-w-[320px] text-xs">
+                                  <thead>
+                                    <tr className="border-b border-border/40 bg-muted/30">
+                                      <th className="px-2 py-1.5 text-left font-medium text-foreground">Broker</th>
+                                      <th className="px-2 py-1.5 text-right font-medium text-foreground">QueueID</th>
+                                      <th className="px-2 py-1.5 text-right font-medium text-foreground">Min</th>
+                                      <th className="px-2 py-1.5 text-right font-medium text-foreground">Max</th>
+                                      <th className="px-2 py-1.5 text-right font-medium text-foreground">消息量</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {stats.queues.map((q, i) => (
+                                      <tr key={i} className="border-b border-border/30 last:border-0">
+                                        <td className="px-2 py-1.5 font-mono text-foreground">{q.brokerName}</td>
+                                        <td className="px-2 py-1.5 text-right font-mono text-muted-foreground">{q.queueId}</td>
+                                        <td className="px-2 py-1.5 text-right font-mono text-muted-foreground">{formatNumber(q.minOffset)}</td>
+                                        <td className="px-2 py-1.5 text-right font-mono text-muted-foreground">{formatNumber(q.maxOffset)}</td>
+                                        <td className="px-2 py-1.5 text-right font-mono text-foreground">{formatNumber(q.messages)}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </>
                     ) : (
                       <p className="text-xs text-muted-foreground">暂无统计数据</p>
                     )}
