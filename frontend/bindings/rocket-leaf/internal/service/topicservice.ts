@@ -29,6 +29,15 @@ export function DeleteTopic(topic: string, clusterName: string): $CancellablePro
 }
 
 /**
+ * GetAllTopics 获取所有 Topic 列表（含系统 Topic）
+ */
+export function GetAllTopics(): $CancellablePromise<(model$0.TopicItem | null)[]> {
+    return $Call.ByID(2226136997).then(($result: any) => {
+        return $$createType2($result);
+    });
+}
+
+/**
  * GetTopicDetail 获取 Topic 详情
  */
 export function GetTopicDetail(topicName: string): $CancellablePromise<model$0.TopicItem | null> {
@@ -42,7 +51,7 @@ export function GetTopicDetail(topicName: string): $CancellablePromise<model$0.T
  */
 export function GetTopicRoute(topicName: string): $CancellablePromise<model$0.TopicRouteItem[]> {
     return $Call.ByID(72765298, topicName).then(($result: any) => {
-        return $$createType3($result);
+        return $$createType4($result);
     });
 }
 
@@ -51,7 +60,7 @@ export function GetTopicRoute(topicName: string): $CancellablePromise<model$0.To
  */
 export function GetTopicStats(topic: string): $CancellablePromise<{ [_ in string]?: any }> {
     return $Call.ByID(3741851472, topic).then(($result: any) => {
-        return $$createType4($result);
+        return $$createType5($result);
     });
 }
 
@@ -67,7 +76,7 @@ export function GetTopicTotal(): $CancellablePromise<number> {
  */
 export function GetTopics(): $CancellablePromise<(model$0.TopicItem | null)[]> {
     return $Call.ByID(2552409270).then(($result: any) => {
-        return $$createType5($result);
+        return $$createType2($result);
     });
 }
 
@@ -76,7 +85,7 @@ export function GetTopics(): $CancellablePromise<(model$0.TopicItem | null)[]> {
  */
 export function GetTopicsByCluster(clusterName: string): $CancellablePromise<(model$0.TopicItem | null)[]> {
     return $Call.ByID(3041396751, clusterName).then(($result: any) => {
-        return $$createType5($result);
+        return $$createType2($result);
     });
 }
 
@@ -90,7 +99,7 @@ export function UpdateTopic(topic: string, brokerAddr: string, readQueue: number
 // Private type creation functions
 const $$createType0 = model$0.TopicItem.createFrom;
 const $$createType1 = $Create.Nullable($$createType0);
-const $$createType2 = model$0.TopicRouteItem.createFrom;
-const $$createType3 = $Create.Array($$createType2);
-const $$createType4 = $Create.Map($Create.Any, $Create.Any);
-const $$createType5 = $Create.Array($$createType1);
+const $$createType2 = $Create.Array($$createType1);
+const $$createType3 = model$0.TopicRouteItem.createFrom;
+const $$createType4 = $Create.Array($$createType3);
+const $$createType5 = $Create.Map($Create.Any, $Create.Any);

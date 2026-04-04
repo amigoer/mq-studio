@@ -10,6 +10,15 @@ export async function getTopics(): Promise<(TopicItem | null)[]> {
   }
 }
 
+export async function getAllTopics(): Promise<(TopicItem | null)[]> {
+  try {
+    return await TopicService.GetAllTopics()
+  } catch (e) {
+    console.error('GetAllTopics', e)
+    throw e
+  }
+}
+
 export async function getTopicDetail(topicName: string): Promise<TopicItem | null> {
   try {
     return await TopicService.GetTopicDetail(topicName)

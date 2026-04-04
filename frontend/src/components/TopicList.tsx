@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { toast } from 'sonner'
-import { RefreshCw, Plus, Search, X, Trash2, Loader2, AlertTriangle, BarChart3, Pencil, ChevronDown, Filter } from 'lucide-react'
+import { RefreshCw, Plus, Search, X, Trash2, Loader2, AlertTriangle, BarChart3, Pencil, ChevronDown, Filter, Eye, EyeOff } from 'lucide-react'
 import { cn, formatErrorMessage } from '@/lib/utils'
 import type { TopicItem } from '../../bindings/rocket-leaf/internal/model/models.js'
 import { TopicPerm } from '../../bindings/rocket-leaf/internal/model/models.js'
@@ -68,6 +68,9 @@ const PERM_OPTIONS: { value: TopicPerm; label: string }[] = [
 export function TopicList({ list, loading, error, onRefresh }: Props) {
   const [searchQuery, setSearchQuery] = useState('')
   const [clusterFilter, setClusterFilter] = useState<string>('')
+  const [showSystem, setShowSystem] = useState(false)
+  const [systemTopics, setSystemTopics] = useState<TopicItem[]>([])
+  const [systemLoading, setSystemLoading] = useState(false)
   const [showTooltip, setShowTooltip] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null)
@@ -95,9 +98,28 @@ export function TopicList({ list, loading, error, onRefresh }: Props) {
 
   const isSpinning = loading || refreshing
 
-  const clusterNames = Array.from(new Set(list.map((t) => t.cluster ?? '').filter(Boolean))).sort()
+  // 切换系统 Topic 时加载
+  useEffect(() => {
+    if (!showSystem) { setSystemTopics([]); return }
+    let cancelled = false
+    setSystemLoading(true)
+    topicApi.getAllTopics()
+      .then((data) => {
+        if (cancelled) return
+        const all = data.filter((t): t is TopicItem => t != null)
+        // 仅保留系统 Topic（不在 list 中的）
+        const userTopicSet = new Set(list.map((t) => t.topic ?? ''))
+        setSystemTopics(all.filter((t) => !userTopicSet.has(t.topic ?? '')))
+      })
+      .catch(() => { if (!cancelled) setSystemTopics([]) })
+      .finally(() => { if (!cancelled) setSystemLoading(false) })
+    return () => { cancelled = true }
+  }, [showSystem, list])
 
-  const filteredList = list.filter((t) => {
+  const combinedList = showSystem ? [...list, ...systemTopics] : list
+  const clusterNames = Array.from(new Set(combinedList.map((t) => t.cluster ?? '').filter(Boolean))).sort()
+
+  const filteredList = combinedList.filter((t) => {
     if (clusterFilter && (t.cluster ?? '') !== clusterFilter) return false
     if (searchQuery.trim() && !(t.topic ?? '').toLowerCase().includes(searchQuery.trim().toLowerCase())) return false
     return true
@@ -297,6 +319,18 @@ export function TopicList({ list, loading, error, onRefresh }: Props) {
           <div className="flex items-center gap-1">
             <button
               type="button"
+              onClick={() => setShowSystem(!showSystem)}
+              className={cn(
+                'flex h-8 w-8 items-center justify-center rounded-md transition-colors',
+                showSystem ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-accent hover:text-foreground'
+              )}
+              aria-label={showSystem ? '隐藏系统 Topic' : '显示系统 Topic'}
+              title={showSystem ? '隐藏系统 Topic' : '显示系统 Topic'}
+            >
+              {systemLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : showSystem ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+            </button>
+            <button
+              type="button"
               onClick={() => {
                 setCreateError(null)
                 setCreateOpen(true)
@@ -389,7 +423,12 @@ export function TopicList({ list, loading, error, onRefresh }: Props) {
                   )}
                 >
                   <div className="min-w-0 flex-1">
-                    <span className="text-sm font-medium text-foreground">{t.topic}</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm font-medium text-foreground truncate">{t.topic}</span>
+                      {(t.description === '系统') && (
+                        <span className="shrink-0 rounded bg-amber-500/10 px-1 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-400">系统</span>
+                      )}
+                    </div>
                     {(t.readQueue ?? -1) >= 0 && (t.writeQueue ?? -1) >= 0 ? (
                       <span className="ml-2 text-xs text-muted-foreground">
                         读 {t.readQueue} / 写 {t.writeQueue}
