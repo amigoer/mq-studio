@@ -34,6 +34,15 @@ export function GetMessageTrack(topic: string, msgID: string): $CancellablePromi
 }
 
 /**
+ * QueryDLQMessages 查询消费者组的死信队列消息
+ */
+export function QueryDLQMessages(groupName: string, maxResults: number): $CancellablePromise<(model$0.MessageItem | null)[]> {
+    return $Call.ByID(1071131889, groupName, maxResults).then(($result: any) => {
+        return $$createType5($result);
+    });
+}
+
+/**
  * QueryMessageByID 按消息 ID 查询消息
  */
 export function QueryMessageByID(topic: string, msgID: string): $CancellablePromise<model$0.MessageItem | null> {
@@ -45,8 +54,17 @@ export function QueryMessageByID(topic: string, msgID: string): $CancellableProm
 /**
  * QueryMessages 查询消息，startTime/endTime 为 Unix 毫秒时间戳，0 表示不限制
  */
-export function QueryMessages(topic: string, key: string, maxResults: number, startTime: number, endTime: number): $CancellablePromise<(model$0.MessageItem | null)[]> {
-    return $Call.ByID(1433538526, topic, key, maxResults, startTime, endTime).then(($result: any) => {
+export function QueryMessages(topic: string, key: string, tag: string, maxResults: number, startTime: number, endTime: number): $CancellablePromise<(model$0.MessageItem | null)[]> {
+    return $Call.ByID(1433538526, topic, key, tag, maxResults, startTime, endTime).then(($result: any) => {
+        return $$createType5($result);
+    });
+}
+
+/**
+ * QueryRetryMessages 查询消费者组的重试队列消息
+ */
+export function QueryRetryMessages(groupName: string, maxResults: number): $CancellablePromise<(model$0.MessageItem | null)[]> {
+    return $Call.ByID(2529028236, groupName, maxResults).then(($result: any) => {
         return $$createType5($result);
     });
 }
@@ -59,10 +77,10 @@ export function ResendMessage(consumerGroup: string, clientID: string, topic: st
 }
 
 /**
- * SendMessage 发送消息到指定 Topic
+ * SendMessage 发送消息到指定 Topic，delayLevel 0 表示不延迟，1-18 对应 RocketMQ 延迟等级
  */
-export function SendMessage(topic: string, tags: string, keys: string, body: string): $CancellablePromise<string> {
-    return $Call.ByID(1221390803, topic, tags, keys, body);
+export function SendMessage(topic: string, tags: string, keys: string, body: string, delayLevel: number): $CancellablePromise<string> {
+    return $Call.ByID(1221390803, topic, tags, keys, body, delayLevel);
 }
 
 // Private type creation functions

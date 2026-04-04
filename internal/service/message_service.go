@@ -35,7 +35,7 @@ func (s *MessageService) getNextID() int {
 }
 
 // QueryMessages 查询消息，startTime/endTime 为 Unix 毫秒时间戳，0 表示不限制
-func (s *MessageService) QueryMessages(topic string, key string, maxResults int, startTime, endTime int64) ([]*model.MessageItem, error) {
+func (s *MessageService) QueryMessages(topic string, key string, tag string, maxResults int, startTime, endTime int64) ([]*model.MessageItem, error) {
 	client, err := rocketmq.GetClientManager().GetDefaultClient()
 	if err != nil {
 		return nil, fmt.Errorf("获取客户端失败: %w", err)
@@ -55,11 +55,12 @@ func (s *MessageService) QueryMessages(topic string, key string, maxResults int,
 
 	result := make([]*model.MessageItem, 0)
 	trimmedKey := strings.TrimSpace(key)
+	trimmedTag := strings.TrimSpace(tag)
 
 	// 统一使用时间范围浏览（RocketMQ 的 Key 索引查询不够可靠）
-	// 如果有 Key 过滤条件，多拉取一些消息以确保过滤后有足够结果
+	// 如果有 Key/Tag 过滤条件，多拉取一些消息以确保过滤后有足够结果
 	fetchNum := maxResults
-	if trimmedKey != "" {
+	if trimmedKey != "" || trimmedTag != "" {
 		fetchNum = maxResults * 8
 		if fetchNum < 512 {
 			fetchNum = 512
@@ -80,6 +81,13 @@ func (s *MessageService) QueryMessages(topic string, key string, maxResults int,
 			if trimmedKey != "" {
 				msgKeys, _ := msg.Properties["KEYS"]
 				if !strings.Contains(msgKeys, trimmedKey) {
+					continue
+				}
+			}
+			// 如果指定了 Tag，只保留匹配该 Tag 的消息
+			if trimmedTag != "" {
+				msgTags, _ := msg.Properties["TAGS"]
+				if !strings.Contains(msgTags, trimmedTag) {
 					continue
 				}
 			}
@@ -289,8 +297,20 @@ func (s *MessageService) ResendMessage(consumerGroup string, clientID string, to
 	return result, nil
 }
 
-// SendMessage 发送消息到指定 Topic
-func (s *MessageService) SendMessage(topic string, tags string, keys string, body string) (string, error) {
+// QueryDLQMessages 查询消费者组的死信队列消息
+func (s *MessageService) QueryDLQMessages(groupName string, maxResults int) ([]*model.MessageItem, error) {
+	dlqTopic := "%DLQ%" + groupName
+	return s.QueryMessages(dlqTopic, "", "", maxResults, 0, 0)
+}
+
+// QueryRetryMessages 查询消费者组的重试队列消息
+func (s *MessageService) QueryRetryMessages(groupName string, maxResults int) ([]*model.MessageItem, error) {
+	retryTopic := "%RETRY%" + groupName
+	return s.QueryMessages(retryTopic, "", "", maxResults, 0, 0)
+}
+
+// SendMessage 发送消息到指定 Topic，delayLevel 0 表示不延迟，1-18 对应 RocketMQ 延迟等级
+func (s *MessageService) SendMessage(topic string, tags string, keys string, body string, delayLevel int) (string, error) {
 	topic = strings.TrimSpace(topic)
 	if topic == "" {
 		return "", fmt.Errorf("发送消息失败: Topic 不能为空")
@@ -330,6 +350,9 @@ func (s *MessageService) SendMessage(topic string, tags string, keys string, bod
 	}
 	if keys != "" {
 		msg.WithKeys([]string{keys})
+	}
+	if delayLevel > 0 {
+		msg.WithDelayTimeLevel(delayLevel)
 	}
 
 	result, err := p.SendSync(context.Background(), msg)

@@ -71,6 +71,13 @@ export function ResetOffset(group: string, topic: string, timestamp: number, for
     return $Call.ByID(1452742991, group, topic, timestamp, force);
 }
 
+/**
+ * UpdateConsumerGroup 更新消费者组配置
+ */
+export function UpdateConsumerGroup(group: string, brokerAddr: string, consumeMode: string, maxRetry: number): $CancellablePromise<void> {
+    return $Call.ByID(955620743, group, brokerAddr, consumeMode, maxRetry);
+}
+
 // Private type creation functions
 const $$createType0 = $Create.Map($Create.Any, $Create.Any);
 const $$createType1 = model$0.GroupClient.createFrom;
