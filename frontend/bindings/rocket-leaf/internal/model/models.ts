@@ -87,6 +87,12 @@ export class AppSettings {
     "proxyPort": string;
 
     /**
+     * 监控与告警
+     * 消费积压告警阈值(0=关闭)
+     */
+    "lagAlertThreshold": number;
+
+    /**
      * 消息与显示
      * 时区: "local" | "utc"
      */
@@ -158,6 +164,9 @@ export class AppSettings {
         }
         if (!("proxyPort" in $$source)) {
             this["proxyPort"] = "";
+        }
+        if (!("lagAlertThreshold" in $$source)) {
+            this["lagAlertThreshold"] = 0;
         }
         if (!("timezone" in $$source)) {
             this["timezone"] = "";

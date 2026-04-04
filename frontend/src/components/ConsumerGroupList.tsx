@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react'
 import { toast } from 'sonner'
 import { RefreshCw, Search, X, Trash2, Loader2, AlertTriangle, BarChart3, RotateCcw, Pencil, Skull, RotateCw, ChevronDown, Copy, Plus } from 'lucide-react'
 import { cn, formatErrorMessage } from '@/lib/utils'
+import { useSettings } from '@/hooks/useSettings'
 import type { ConsumerGroupItem, MessageItem } from '../../bindings/rocket-leaf/internal/model/models.js'
 import { GroupStatus, ConsumeMode } from '../../bindings/rocket-leaf/internal/model/models.js'
 
@@ -86,6 +87,8 @@ function MessageCard({ msg }: { msg: MessageItem }) {
 }
 
 export function ConsumerGroupList({ list, loading, error, onRefresh }: Props) {
+  const { settings } = useSettings()
+  const lagThreshold = settings.lagAlertThreshold ?? 0
   const [searchQuery, setSearchQuery] = useState('')
   const [showTooltip, setShowTooltip] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
@@ -484,7 +487,13 @@ export function ConsumerGroupList({ list, loading, error, onRefresh }: Props) {
                       <span>{consumeModeLabel(g.consumeMode)}</span>
                       <span>在线 {g.onlineClients ?? 0}</span>
                       <span>Topic {g.topicCount ?? 0}</span>
-                      {(g.lag ?? 0) > 0 && <span>堆积 {g.lag}</span>}
+                      {(g.lag ?? 0) > 0 && (
+                        <span className={cn(
+                          lagThreshold > 0 && (g.lag ?? 0) >= lagThreshold && 'text-destructive font-medium'
+                        )}>
+                          {lagThreshold > 0 && (g.lag ?? 0) >= lagThreshold && '⚠ '}堆积 {g.lag}
+                        </span>
+                      )}
                     </div>
                   </div>
                   <button
@@ -566,9 +575,22 @@ export function ConsumerGroupList({ list, loading, error, onRefresh }: Props) {
                           <div className="text-[11px] text-muted-foreground">消费 TPS</div>
                           <div className="mt-1 text-sm font-medium text-foreground">{stats?.consumeTps ?? 0}</div>
                         </div>
-                        <div className="rounded-md border border-border/40 bg-card px-3 py-2">
-                          <div className="text-[11px] text-muted-foreground">总堆积</div>
-                          <div className="mt-1 text-sm font-medium text-foreground">{stats?.diffTotal ?? 0}</div>
+                        <div className={cn(
+                          'rounded-md border px-3 py-2',
+                          lagThreshold > 0 && (stats?.diffTotal ?? 0) >= lagThreshold
+                            ? 'border-destructive/50 bg-destructive/5'
+                            : 'border-border/40 bg-card'
+                        )}>
+                          <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                            总堆积
+                            {lagThreshold > 0 && (stats?.diffTotal ?? 0) >= lagThreshold && (
+                              <AlertTriangle className="h-3 w-3 text-destructive" />
+                            )}
+                          </div>
+                          <div className={cn(
+                            'mt-1 text-sm font-medium',
+                            lagThreshold > 0 && (stats?.diffTotal ?? 0) >= lagThreshold ? 'text-destructive' : 'text-foreground'
+                          )}>{stats?.diffTotal ?? 0}</div>
                         </div>
                       </div>
                     )}
