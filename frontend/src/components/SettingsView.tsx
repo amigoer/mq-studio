@@ -14,7 +14,6 @@ import {
   Network,
   MessageSquare,
   Settings,
-  Database,
   Info,
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -107,14 +106,13 @@ const PROXY_TYPE_OPTIONS: { value: ProxyType; label: string }[] = [
   { value: 'socks5', label: 'SOCKS5' },
 ]
 
-export type SettingsTabId = 'general' | 'connection' | 'message' | 'data' | 'about'
+export type SettingsTabId = 'general' | 'connection' | 'message' | 'about'
 
 const SETTINGS_NAV: { id: SettingsTabId; label: string; icon: React.ElementType }[] = [
   { id: 'general', label: '通用设置', icon: Settings },
   { id: 'connection', label: '连接与网络', icon: Network },
   { id: 'message', label: '消息与显示', icon: MessageSquare },
-  { id: 'data', label: '数据与缓存', icon: Database },
-  { id: 'about', label: '关于与更新', icon: Info },
+  { id: 'about', label: '关于与数据', icon: Info },
 ]
 
 function Row({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
@@ -179,14 +177,14 @@ function Toggle({
       title={title}
       onClick={() => onChange(!checked)}
       className={cn(
-        'relative inline-flex h-[26px] w-[46px] shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200',
+        'relative inline-flex h-[30px] w-[52px] shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200',
         checked ? 'bg-success' : 'bg-muted-foreground/30'
       )}
     >
       <span
         className={cn(
-          'pointer-events-none block h-[22px] w-[22px] rounded-full bg-white shadow-sm transition-transform duration-200',
-          checked ? 'translate-x-[22px]' : 'translate-x-[2px]'
+          'pointer-events-none block h-[24px] w-[24px] rounded-full bg-white shadow-sm transition-transform duration-200',
+          checked ? 'translate-x-[25px]' : 'translate-x-[3px]'
         )}
       />
     </button>
@@ -596,45 +594,6 @@ export function SettingsView() {
             </div>
           )}
 
-          {activeTab === 'data' && (
-            <div>
-          <div className="flex flex-wrap gap-2 p-3">
-            <button
-              type="button"
-              onClick={handleExport}
-              className="flex items-center gap-2 rounded-md border border-border/50 bg-background px-3 py-2 text-sm text-foreground hover:bg-accent/50 transition-colors"
-            >
-              <Download className="h-4 w-4" />
-              导出配置
-            </button>
-            <button
-              type="button"
-              onClick={handleImport}
-              className="flex items-center gap-2 rounded-md border border-border/50 bg-background px-3 py-2 text-sm text-foreground hover:bg-accent/50 transition-colors"
-            >
-              <Upload className="h-4 w-4" />
-              导入配置
-            </button>
-            <button
-              type="button"
-              onClick={handleClearCache}
-              className="flex items-center gap-2 rounded-md border border-destructive/50 bg-background px-3 py-2 text-sm text-destructive hover:bg-destructive/10 transition-colors"
-            >
-              <Trash2 className="h-4 w-4" />
-              清理缓存
-            </button>
-            <button
-              type="button"
-              onClick={handleResetSettings}
-              className="flex items-center gap-2 rounded-md border border-destructive/50 bg-background px-3 py-2 text-sm text-destructive hover:bg-destructive/10 transition-colors"
-            >
-              <RotateCcw className="h-4 w-4" />
-              恢复默认设置
-            </button>
-          </div>
-            </div>
-          )}
-
           {activeTab === 'about' && (
             <div className="space-y-5">
           {/* App Info Card */}
@@ -706,6 +665,45 @@ export function SettingsView() {
                   </code>
                 </button>
               ))}
+            </div>
+          </div>
+
+          {/* Data Management */}
+          <div>
+            <h3 className="text-sm font-semibold text-foreground">数据管理</h3>
+            <div className="mt-3 flex flex-wrap gap-2.5">
+              <button
+                type="button"
+                onClick={handleExport}
+                className="flex h-10 items-center gap-2 rounded-lg border border-border/50 bg-background px-4 text-sm text-foreground hover:bg-accent/50 transition-colors"
+              >
+                <Download className="h-4 w-4" />
+                导出配置
+              </button>
+              <button
+                type="button"
+                onClick={handleImport}
+                className="flex h-10 items-center gap-2 rounded-lg border border-border/50 bg-background px-4 text-sm text-foreground hover:bg-accent/50 transition-colors"
+              >
+                <Upload className="h-4 w-4" />
+                导入配置
+              </button>
+              <button
+                type="button"
+                onClick={handleClearCache}
+                className="flex h-10 items-center gap-2 rounded-lg border border-destructive/50 bg-background px-4 text-sm text-destructive hover:bg-destructive/10 transition-colors"
+              >
+                <Trash2 className="h-4 w-4" />
+                清理缓存
+              </button>
+              <button
+                type="button"
+                onClick={handleResetSettings}
+                className="flex h-10 items-center gap-2 rounded-lg border border-destructive/50 bg-background px-4 text-sm text-destructive hover:bg-destructive/10 transition-colors"
+              >
+                <RotateCcw className="h-4 w-4" />
+                恢复默认设置
+              </button>
             </div>
           </div>
             </div>
