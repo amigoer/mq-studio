@@ -256,11 +256,6 @@ func (s *ClusterService) GetClusterSummary() (*model.ClusterSummary, error) {
 	return summary, nil
 }
 
-// RefreshBrokerStats 刷新 Broker 统计信息
-func (s *ClusterService) RefreshBrokerStats(brokerAddr string) (*model.BrokerNode, error) {
-	return s.GetBrokerDetail(brokerAddr)
-}
-
 // 辅助函数
 func parseIntSafe(s string) int {
 	var result int

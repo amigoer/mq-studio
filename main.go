@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"rocket-leaf/internal/crypto"
 	"rocket-leaf/internal/rocketmq"
-	"time"
 
 	"rocket-leaf/internal/service"
 
@@ -33,11 +32,6 @@ var (
 )
 
 func init() {
-	// Register a custom event whose associated data type is string.
-	// This is not required, but the binding generator will pick up registered events
-	// and provide a strongly typed JS/TS API for them.
-	application.RegisterEvent[string]("time")
-
 	// 初始化加密密钥（在加载任何配置之前）
 	configDir, err := os.UserConfigDir()
 	if err == nil {
@@ -113,16 +107,6 @@ func main() {
 		BackgroundColour: application.NewRGBA(0, 0, 0, 0), // 将背景色设为全透明
 		URL:              "/",
 	})
-
-	// Create a goroutine that emits an event containing the current time every second.
-	// The frontend can listen to this event and update the UI accordingly.
-	go func() {
-		for {
-			now := time.Now().Format(time.RFC1123)
-			app.Event.Emit("time", now)
-			time.Sleep(time.Second)
-		}
-	}()
 
 	// Run the application. This blocks until the application has been exited.
 	err := app.Run()
