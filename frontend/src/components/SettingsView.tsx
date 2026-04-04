@@ -29,6 +29,7 @@ import {
   type FetchLimit,
 } from '@/hooks/useSettings'
 
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import logoUrl from '@/assets/logo.png'
 
 const APP_VERSION = __APP_VERSION__
@@ -192,6 +193,11 @@ function Toggle({
 export function SettingsView() {
   const [activeTab, setActiveTab] = useState<SettingsTabId>('general')
   const { settings, setSetting, resetAllSettings, loading } = useSettings()
+  const [confirmAction, setConfirmAction] = useState<{
+    title: string
+    description: string
+    onConfirm: () => void
+  } | null>(null)
 
   const copyPath = useCallback(async (path: string) => {
     try {
@@ -236,7 +242,7 @@ export function SettingsView() {
     }
     input.click()
   }, [])
-  const handleClearCache = useCallback(async () => {
+  const doClearCache = useCallback(async () => {
     try {
       const { clearCache } = await import('@/api/settings')
       await clearCache()
@@ -245,7 +251,15 @@ export function SettingsView() {
       toast.error('清理缓存失败')
     }
   }, [])
-  const handleResetSettings = useCallback(async () => {
+  const handleClearCache = useCallback(() => {
+    setConfirmAction({
+      title: '清理缓存',
+      description: '确定要清理所有缓存数据吗？此操作不可撤销。',
+      onConfirm: () => { setConfirmAction(null); doClearCache() },
+    })
+  }, [doClearCache])
+
+  const doResetSettings = useCallback(async () => {
     try {
       await resetAllSettings()
       toast.success('已恢复默认设置')
@@ -253,6 +267,13 @@ export function SettingsView() {
       toast.error('恢复默认设置失败')
     }
   }, [resetAllSettings])
+  const handleResetSettings = useCallback(() => {
+    setConfirmAction({
+      title: '恢复默认设置',
+      description: '确定要将所有设置恢复为默认值吗？当前的自定义设置将全部丢失。',
+      onConfirm: () => { setConfirmAction(null); doResetSettings() },
+    })
+  }, [doResetSettings])
   const handleCheckUpdate = useCallback(() => {
     Browser.OpenURL(GITHUB_RELEASES_URL)
       .catch(() => window.open(GITHUB_RELEASES_URL, '_blank', 'noopener,noreferrer'))
@@ -660,6 +681,17 @@ export function SettingsView() {
           </fieldset>
         </main>
       </div>
+
+      <ConfirmDialog
+        open={confirmAction !== null}
+        title={confirmAction?.title ?? ''}
+        description={confirmAction?.description ?? ''}
+        confirmText="确认"
+        cancelText="取消"
+        variant="destructive"
+        onConfirm={confirmAction?.onConfirm ?? (() => {})}
+        onCancel={() => setConfirmAction(null)}
+      />
     </div>
   )
 }
