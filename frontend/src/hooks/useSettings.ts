@@ -39,6 +39,7 @@ export interface FrontendSettings {
   timezone: Timezone
   timestampFormat: TimestampFormat
   autoFormatJson: boolean
+  lagAlertThreshold: number
   maxPayloadRenderBytes: number
   fetchLimit: FetchLimit
 }
@@ -59,6 +60,7 @@ const DEFAULTS: FrontendSettings = {
   proxyType: 'http',
   proxyHost: '',
   proxyPort: '',
+  lagAlertThreshold: 10000,
   timezone: 'local',
   timestampFormat: 'datetime',
   autoFormatJson: true,
@@ -87,6 +89,7 @@ function toFrontend(s: AppSettings): FrontendSettings {
     proxyType: (s.proxyType as ProxyType) || DEFAULTS.proxyType,
     proxyHost: s.proxyHost ?? '',
     proxyPort: s.proxyPort ?? '',
+    lagAlertThreshold: typeof s.lagAlertThreshold === 'number' ? s.lagAlertThreshold : DEFAULTS.lagAlertThreshold,
     timezone: (s.timezone as Timezone) || DEFAULTS.timezone,
     timestampFormat: (s.timestampFormat as TimestampFormat) || DEFAULTS.timestampFormat,
     autoFormatJson: s.autoFormatJson ?? DEFAULTS.autoFormatJson,

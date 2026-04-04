@@ -577,6 +577,18 @@ export function SettingsView() {
               className="w-20 h-10 rounded-md border border-border/50 bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-border"
             />
           </Row>
+          <Row label="消费积压告警阈值" hint="当消费组堆积消息超过此值时显示告警，设为 0 关闭">
+            <input
+              type="number"
+              min={0}
+              step={1000}
+              value={settings.lagAlertThreshold ?? 0}
+              onChange={(e) => setSetting('lagAlertThreshold', Number(e.target.value) || 0)}
+              title="积压告警阈值"
+              aria-label="积压告警阈值"
+              className="w-24 h-10 rounded-md border border-border/50 bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-border"
+            />
+          </Row>
           <Row label="单页拉取数量" hint="每次查询 Topic、消费组的数量上限">
             <select
               value={settings.fetchLimit}

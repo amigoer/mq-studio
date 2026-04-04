@@ -22,6 +22,9 @@ type AppSettings struct {
 	ProxyHost       string `json:"proxyHost"`        // 代理地址
 	ProxyPort       string `json:"proxyPort"`        // 代理端口
 
+	// 监控与告警
+	LagAlertThreshold int `json:"lagAlertThreshold"` // 消费积压告警阈值(0=关闭)
+
 	// 消息与显示
 	Timezone              string `json:"timezone"`              // 时区: "local" | "utc"
 	TimestampFormat       string `json:"timestampFormat"`       // 时间戳格式: "datetime" | "ms"
@@ -48,6 +51,7 @@ func DefaultSettings() *AppSettings {
 		ProxyType:             "http",
 		ProxyHost:             "",
 		ProxyPort:             "",
+		LagAlertThreshold:     10000,
 		Timezone:              "local",
 		TimestampFormat:       "datetime",
 		AutoFormatJson:        true,
