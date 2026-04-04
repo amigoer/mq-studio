@@ -52,6 +52,15 @@ export async function createTopic(
   }
 }
 
+export async function getTopicStats(topicName: string): Promise<Record<string, unknown>> {
+  try {
+    return (await TopicService.GetTopicStats(topicName)) as Record<string, unknown>
+  } catch (e) {
+    console.error('GetTopicStats', e)
+    throw e
+  }
+}
+
 export async function deleteTopic(topic: string, clusterName: string): Promise<void> {
   try {
     await TopicService.DeleteTopic(topic, clusterName)
