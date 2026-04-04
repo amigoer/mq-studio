@@ -32,3 +32,5 @@ build/android/app/build/
 .cursorrules
 .DS_Store
 **/.DS_Store
+
+.claude/
