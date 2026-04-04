@@ -168,10 +168,11 @@ export async function sendMessage(
   topic: string,
   tags: string,
   keys: string,
-  body: string
+  body: string,
+  delayLevel = 0
 ): Promise<string> {
   try {
-    return await MessageService.SendMessage(topic, tags, keys, body)
+    return await MessageService.SendMessage(topic, tags, keys, body, delayLevel)
   } catch (e) {
     console.error('SendMessage', e)
     throw e

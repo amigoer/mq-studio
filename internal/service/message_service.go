@@ -300,17 +300,17 @@ func (s *MessageService) ResendMessage(consumerGroup string, clientID string, to
 // QueryDLQMessages 查询消费者组的死信队列消息
 func (s *MessageService) QueryDLQMessages(groupName string, maxResults int) ([]*model.MessageItem, error) {
 	dlqTopic := "%DLQ%" + groupName
-	return s.QueryMessages(dlqTopic, "", maxResults, 0, 0)
+	return s.QueryMessages(dlqTopic, "", "", maxResults, 0, 0)
 }
 
 // QueryRetryMessages 查询消费者组的重试队列消息
 func (s *MessageService) QueryRetryMessages(groupName string, maxResults int) ([]*model.MessageItem, error) {
 	retryTopic := "%RETRY%" + groupName
-	return s.QueryMessages(retryTopic, "", maxResults, 0, 0)
+	return s.QueryMessages(retryTopic, "", "", maxResults, 0, 0)
 }
 
-// SendMessage ��送消息到指定 Topic
-func (s *MessageService) SendMessage(topic string, tags string, keys string, body string) (string, error) {
+// SendMessage 发送消息到指定 Topic，delayLevel 0 表示不延迟，1-18 对应 RocketMQ 延迟等级
+func (s *MessageService) SendMessage(topic string, tags string, keys string, body string, delayLevel int) (string, error) {
 	topic = strings.TrimSpace(topic)
 	if topic == "" {
 		return "", fmt.Errorf("发送消息失败: Topic 不能为空")
@@ -350,6 +350,9 @@ func (s *MessageService) SendMessage(topic string, tags string, keys string, bod
 	}
 	if keys != "" {
 		msg.WithKeys([]string{keys})
+	}
+	if delayLevel > 0 {
+		msg.WithDelayTimeLevel(delayLevel)
 	}
 
 	result, err := p.SendSync(context.Background(), msg)
