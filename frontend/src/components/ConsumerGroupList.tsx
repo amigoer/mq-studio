@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { toast } from 'sonner'
-import { RefreshCw, Search, X, Trash2, Loader2, AlertTriangle, BarChart3, RotateCcw, Pencil, Skull, RotateCw, ChevronDown, Copy } from 'lucide-react'
+import { RefreshCw, Search, X, Trash2, Loader2, AlertTriangle, BarChart3, RotateCcw, Pencil, Skull, RotateCw, ChevronDown, Copy, Plus } from 'lucide-react'
 import { cn, formatErrorMessage } from '@/lib/utils'
 import type { ConsumerGroupItem, MessageItem } from '../../bindings/rocket-leaf/internal/model/models.js'
 import { GroupStatus, ConsumeMode } from '../../bindings/rocket-leaf/internal/model/models.js'
@@ -10,6 +10,7 @@ const CONSUME_MODE_OPTIONS: { value: ConsumeMode; label: string }[] = [
   { value: ConsumeMode.ModeBroadcasting, label: '广播 (Broadcasting)' },
 ]
 import * as consumerApi from '@/api/consumer'
+import * as clusterApi from '@/api/cluster'
 import { queryDLQMessages, queryRetryMessages } from '@/api/message'
 
 const TOOLTIP_DELAY_MS = 150
@@ -113,6 +114,11 @@ export function ConsumerGroupList({ list, loading, error, onRefresh }: Props) {
   const [retryMessages, setRetryMessages] = useState<MessageItem[]>([])
   const [retryLoading, setRetryLoading] = useState(false)
   const [retryExpanded, setRetryExpanded] = useState(false)
+  const [createOpen, setCreateOpen] = useState(false)
+  const [createSubmitting, setCreateSubmitting] = useState(false)
+  const [createError, setCreateError] = useState<string | null>(null)
+  const [brokerOptions, setBrokerOptions] = useState<string[]>([])
+  const [brokerOptionsLoading, setBrokerOptionsLoading] = useState(false)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const spinEndRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -313,6 +319,55 @@ export function ConsumerGroupList({ list, loading, error, onRefresh }: Props) {
     [onRefresh, selectedGroup]
   )
 
+  useEffect(() => {
+    if (!createOpen) return
+    let cancelled = false
+    setBrokerOptionsLoading(true)
+    clusterApi.getBrokers()
+      .then((brokers) => {
+        if (cancelled) return
+        const addrs = brokers
+          .filter((b): b is NonNullable<typeof b> => b != null && (b.address ?? '').trim() !== '')
+          .map((b) => b.address!.trim())
+        setBrokerOptions(Array.from(new Set(addrs)))
+      })
+      .catch(() => { if (!cancelled) setBrokerOptions([]) })
+      .finally(() => { if (!cancelled) setBrokerOptionsLoading(false) })
+    return () => { cancelled = true }
+  }, [createOpen])
+
+  const handleCreateSubmit = useCallback(
+    async (e: React.FormEvent<HTMLFormElement>) => {
+      e.preventDefault()
+      const form = e.currentTarget
+      const group = (form.querySelector('[name="group"]') as HTMLInputElement)?.value?.trim()
+      const brokerAddr = (form.querySelector('[name="brokerAddr"]') as HTMLInputElement)?.value?.trim()
+      const consumeMode = (form.querySelector('[name="consumeMode"]') as HTMLSelectElement)?.value ?? ConsumeMode.ModeClustering
+      const maxRetry = Number((form.querySelector('[name="maxRetry"]') as HTMLInputElement)?.value) || 16
+      if (!group) {
+        setCreateError('请输入消费者组名称')
+        return
+      }
+      if (!brokerAddr) {
+        setCreateError('请选择 Broker 地址')
+        return
+      }
+      setCreateSubmitting(true)
+      setCreateError(null)
+      try {
+        await consumerApi.createConsumerGroup(group, brokerAddr, consumeMode, maxRetry)
+        toast.success('创建成功')
+        setCreateOpen(false)
+        onRefresh()
+      } catch (err) {
+        setCreateError(err instanceof Error ? err.message : String(err))
+      } finally {
+        setCreateSubmitting(false)
+      }
+    },
+    [onRefresh]
+  )
+
   const statusLabel = (status: GroupStatus) => {
     switch (status) {
       case GroupStatus.GroupOnline:
@@ -342,28 +397,39 @@ export function ConsumerGroupList({ list, loading, error, onRefresh }: Props) {
       <div className="flex shrink-0 flex-col gap-3 border-b border-border/40 px-5 py-3.5">
         <div className="flex items-center justify-between gap-2">
           <h1 className="text-sm font-semibold text-foreground">消费者组</h1>
-          <div className="relative">
+          <div className="flex items-center gap-1">
             <button
               type="button"
-              onClick={handleRefresh}
-              disabled={isSpinning}
-              onMouseEnter={onEnter}
-              onMouseLeave={onLeave}
-              className={cn(
-                'flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-50'
-              )}
-              aria-label="刷新"
+              onClick={() => { setCreateError(null); setCreateOpen(true) }}
+              className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              aria-label="新建消费者组"
+              title="新建消费者组"
             >
-              <RefreshCw className={cn('h-4 w-4', isSpinning && 'animate-spin')} />
+              <Plus className="h-4 w-4" />
             </button>
-            {showTooltip && (
-              <span
-                className="absolute right-full top-1/2 mr-2 -translate-y-1/2 whitespace-nowrap rounded-md border border-border/50 bg-card px-2 py-1.5 text-xs text-card-foreground shadow-sm"
-                role="tooltip"
+            <div className="relative">
+              <button
+                type="button"
+                onClick={handleRefresh}
+                disabled={isSpinning}
+                onMouseEnter={onEnter}
+                onMouseLeave={onLeave}
+                className={cn(
+                  'flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-50'
+                )}
+                aria-label="刷新"
               >
-                刷新
-              </span>
-            )}
+                <RefreshCw className={cn('h-4 w-4', isSpinning && 'animate-spin')} />
+              </button>
+              {showTooltip && (
+                <span
+                  className="absolute right-full top-1/2 mr-2 -translate-y-1/2 whitespace-nowrap rounded-md border border-border/50 bg-card px-2 py-1.5 text-xs text-card-foreground shadow-sm"
+                  role="tooltip"
+                >
+                  刷新
+                </span>
+              )}
+            </div>
           </div>
         </div>
         <div className="relative">
@@ -926,6 +992,120 @@ export function ConsumerGroupList({ list, loading, error, onRefresh }: Props) {
                 )}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {createOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+          onClick={() => !createSubmitting && setCreateOpen(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="create-consumer-title"
+        >
+          <div
+            className="w-full max-w-md rounded-md border border-border/50 bg-card p-4 shadow-sm"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 id="create-consumer-title" className="text-sm font-medium text-card-foreground">
+              新建消费者组
+            </h2>
+            <p className="mt-1 text-xs text-muted-foreground">在指定 Broker 上创建新的消费者组</p>
+            {createError && (
+              <div className="mt-2 rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                {createError}
+              </div>
+            )}
+            <form onSubmit={handleCreateSubmit} className="mt-4 space-y-3">
+              <div>
+                <label htmlFor="create-cg-group" className="mb-1 block text-xs text-muted-foreground">消费者组名称</label>
+                <input
+                  id="create-cg-group"
+                  name="group"
+                  type="text"
+                  placeholder="例如：my_consumer_group"
+                  autoFocus
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+                />
+              </div>
+              <div>
+                <label htmlFor="create-cg-broker" className="mb-1 block text-xs text-muted-foreground">Broker 地址</label>
+                {brokerOptionsLoading ? (
+                  <div className="flex items-center gap-2 py-2 text-xs text-muted-foreground">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    加载 Broker 列表…
+                  </div>
+                ) : brokerOptions.length > 0 ? (
+                  <select
+                    id="create-cg-broker"
+                    name="brokerAddr"
+                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  >
+                    {brokerOptions.map((addr) => (
+                      <option key={addr} value={addr}>{addr}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    id="create-cg-broker"
+                    name="brokerAddr"
+                    type="text"
+                    placeholder="例如：127.0.0.1:10911"
+                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+                  />
+                )}
+              </div>
+              <div>
+                <label htmlFor="create-cg-mode" className="mb-1 block text-xs text-muted-foreground">消费模式</label>
+                <select
+                  id="create-cg-mode"
+                  name="consumeMode"
+                  defaultValue={ConsumeMode.ModeClustering}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  {CONSUME_MODE_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="create-cg-retry" className="mb-1 block text-xs text-muted-foreground">最大重试次数</label>
+                <input
+                  id="create-cg-retry"
+                  name="maxRetry"
+                  type="number"
+                  min={0}
+                  max={100}
+                  defaultValue={16}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setCreateOpen(false)}
+                  disabled={createSubmitting}
+                  className="rounded-md border border-border/50 px-3 py-1.5 text-sm text-muted-foreground hover:bg-accent disabled:opacity-50"
+                >
+                  取消
+                </button>
+                <button
+                  type="submit"
+                  disabled={createSubmitting}
+                  className="rounded-md bg-primary px-3 py-1.5 text-sm text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                >
+                  {createSubmitting ? (
+                    <>
+                      <Loader2 className="mr-1.5 inline h-4 w-4 animate-spin" aria-hidden />
+                      创建中…
+                    </>
+                  ) : (
+                    '创建'
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
