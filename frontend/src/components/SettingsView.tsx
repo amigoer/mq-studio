@@ -404,6 +404,7 @@ export function SettingsView() {
               step={1000}
               value={settings.connectTimeoutMs}
               onChange={(e) => setSetting('connectTimeoutMs', Number(e.target.value) || 3000)}
+              onBlur={() => setSetting('connectTimeoutMs', Math.max(1000, Math.min(30000, settings.connectTimeoutMs)))}
               title="连接超时"
               aria-label="连接超时毫秒"
               className="w-20 h-10 rounded-md border border-border/50 bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-border"
@@ -417,6 +418,7 @@ export function SettingsView() {
               step={1000}
               value={settings.requestTimeoutMs}
               onChange={(e) => setSetting('requestTimeoutMs', Number(e.target.value) || 5000)}
+              onBlur={() => setSetting('requestTimeoutMs', Math.max(1000, Math.min(60000, settings.requestTimeoutMs)))}
               title="请求超时"
               aria-label="请求超时毫秒"
               className="w-20 h-10 rounded-md border border-border/50 bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-border"
@@ -475,7 +477,14 @@ export function SettingsView() {
                 <input
                   type="text"
                   value={settings.proxyPort}
-                  onChange={(e) => setSetting('proxyPort', e.target.value)}
+                  onChange={(e) => setSetting('proxyPort', e.target.value.replace(/\D/g, ''))}
+                  onBlur={() => {
+                    const port = Number(settings.proxyPort)
+                    if (settings.proxyPort && (port < 1 || port > 65535)) {
+                      setSetting('proxyPort', '')
+                      toast.error('端口范围 1-65535')
+                    }
+                  }}
                   placeholder="port"
                   className="w-20 h-10 rounded-md border border-border/50 bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-border"
                 />
@@ -521,6 +530,10 @@ export function SettingsView() {
               onChange={(e) =>
                 setSetting('maxPayloadRenderBytes', (Number(e.target.value) || 500) * 1024)
               }
+              onBlur={() => {
+                const kb = Math.round(settings.maxPayloadRenderBytes / 1024)
+                setSetting('maxPayloadRenderBytes', Math.max(64, Math.min(4096, kb)) * 1024)
+              }}
               title="消息截断阈值"
               aria-label="消息截断阈值 KB"
               className="w-20 h-10 rounded-md border border-border/50 bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-border"
