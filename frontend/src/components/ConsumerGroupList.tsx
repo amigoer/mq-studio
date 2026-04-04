@@ -1,10 +1,11 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { toast } from 'sonner'
-import { RefreshCw, Search, X, Trash2, Loader2, AlertTriangle, BarChart3, RotateCcw } from 'lucide-react'
+import { RefreshCw, Search, X, Trash2, Loader2, AlertTriangle, BarChart3, RotateCcw, Skull, RotateCw, ChevronDown, Copy } from 'lucide-react'
 import { cn, formatErrorMessage } from '@/lib/utils'
-import type { ConsumerGroupItem } from '../../bindings/rocket-leaf/internal/model/models.js'
+import type { ConsumerGroupItem, MessageItem } from '../../bindings/rocket-leaf/internal/model/models.js'
 import { GroupStatus, ConsumeMode } from '../../bindings/rocket-leaf/internal/model/models.js'
 import * as consumerApi from '@/api/consumer'
+import { queryDLQMessages, queryRetryMessages } from '@/api/message'
 
 const TOOLTIP_DELAY_MS = 150
 const MIN_SPIN_MS = 400
@@ -40,6 +41,44 @@ function parseConsumeStats(data: Record<string, unknown>): ConsumeStats {
   }
 }
 
+function MessageCard({ msg }: { msg: MessageItem }) {
+  const copyId = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation()
+    navigator.clipboard.writeText(msg.messageId ?? '').then(() => toast.success('已复制 Message ID')).catch(() => toast.error('复制失败'))
+  }, [msg.messageId])
+
+  const bodyPreview = (() => {
+    const body = msg.body ?? ''
+    if (body.length <= 80) return body
+    return body.slice(0, 80) + '…'
+  })()
+
+  return (
+    <div className="rounded-md border border-border/40 bg-background/60 p-2.5">
+      <div className="flex items-center gap-1.5">
+        <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-foreground" title={msg.messageId ?? ''}>
+          {msg.messageId ?? '-'}
+        </span>
+        <button
+          type="button"
+          onClick={copyId}
+          className="shrink-0 rounded p-0.5 text-muted-foreground hover:text-foreground transition-colors"
+          title="复制 ID"
+        >
+          <Copy className="h-3 w-3" />
+        </button>
+      </div>
+      <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px] text-muted-foreground">
+        {msg.tags && <span className="rounded bg-muted/60 px-1 py-0.5">{msg.tags}</span>}
+        {msg.storeTime && <span>{msg.storeTime}</span>}
+      </div>
+      {bodyPreview && (
+        <p className="mt-1.5 break-all font-mono text-[10px] leading-relaxed text-muted-foreground/80 line-clamp-2">{bodyPreview}</p>
+      )}
+    </div>
+  )
+}
+
 export function ConsumerGroupList({ list, loading, error, onRefresh }: Props) {
   const [searchQuery, setSearchQuery] = useState('')
   const [showTooltip, setShowTooltip] = useState(false)
@@ -58,6 +97,12 @@ export function ConsumerGroupList({ list, loading, error, onRefresh }: Props) {
   const [resetTimestamp, setResetTimestamp] = useState(getDefaultResetTimeValue())
   const [resetForce, setResetForce] = useState(false)
   const [resetSubmitting, setResetSubmitting] = useState(false)
+  const [dlqMessages, setDlqMessages] = useState<MessageItem[]>([])
+  const [dlqLoading, setDlqLoading] = useState(false)
+  const [dlqExpanded, setDlqExpanded] = useState(false)
+  const [retryMessages, setRetryMessages] = useState<MessageItem[]>([])
+  const [retryLoading, setRetryLoading] = useState(false)
+  const [retryExpanded, setRetryExpanded] = useState(false)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const spinEndRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -115,12 +160,40 @@ export function ConsumerGroupList({ list, loading, error, onRefresh }: Props) {
     }
   }, [])
 
+  const loadDlqMessages = useCallback(async (groupName: string) => {
+    setDlqLoading(true)
+    try {
+      const msgs = await queryDLQMessages(groupName, 32)
+      setDlqMessages(msgs)
+    } catch {
+      setDlqMessages([])
+    } finally {
+      setDlqLoading(false)
+    }
+  }, [])
+
+  const loadRetryMessages = useCallback(async (groupName: string) => {
+    setRetryLoading(true)
+    try {
+      const msgs = await queryRetryMessages(groupName, 32)
+      setRetryMessages(msgs)
+    } catch {
+      setRetryMessages([])
+    } finally {
+      setRetryLoading(false)
+    }
+  }, [])
+
   useEffect(() => {
     if (!selectedGroup) {
       setDetail(null)
       setDetailError(null)
       setStats(null)
       setStatsError(null)
+      setDlqMessages([])
+      setDlqExpanded(false)
+      setRetryMessages([])
+      setRetryExpanded(false)
       return
     }
 
@@ -459,6 +532,106 @@ export function ConsumerGroupList({ list, loading, error, onRefresh }: Props) {
                       </div>
                     </div>
                   )}
+
+                  {/* 死信队列 */}
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const next = !dlqExpanded
+                        setDlqExpanded(next)
+                        if (next && dlqMessages.length === 0 && !dlqLoading && selectedGroup) {
+                          void loadDlqMessages(selectedGroup)
+                        }
+                      }}
+                      className="flex w-full items-center gap-2 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <Skull className="h-3.5 w-3.5 shrink-0 text-destructive/70" />
+                      <span>死信队列</span>
+                      {dlqMessages.length > 0 && (
+                        <span className="rounded-full bg-destructive/10 px-1.5 py-0.5 text-[10px] text-destructive">{dlqMessages.length}</span>
+                      )}
+                      <ChevronDown className={cn('ml-auto h-3.5 w-3.5 transition-transform', dlqExpanded && 'rotate-180')} />
+                    </button>
+                    {dlqExpanded && (
+                      <div className="mt-2">
+                        {dlqLoading ? (
+                          <div className="flex items-center justify-center py-3 text-muted-foreground">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          </div>
+                        ) : dlqMessages.length === 0 ? (
+                          <p className="rounded-md border border-border/40 px-3 py-2 text-xs text-muted-foreground">暂无死信消息</p>
+                        ) : (
+                          <div className="space-y-1.5 max-h-[280px] overflow-y-auto scroll-thin">
+                            {dlqMessages.map((msg) => (
+                              <MessageCard key={msg.messageId} msg={msg} />
+                            ))}
+                          </div>
+                        )}
+                        {dlqMessages.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => selectedGroup && loadDlqMessages(selectedGroup)}
+                            disabled={dlqLoading}
+                            className="mt-2 flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+                          >
+                            <RefreshCw className={cn('h-3 w-3', dlqLoading && 'animate-spin')} />
+                            刷新
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 重试队列 */}
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const next = !retryExpanded
+                        setRetryExpanded(next)
+                        if (next && retryMessages.length === 0 && !retryLoading && selectedGroup) {
+                          void loadRetryMessages(selectedGroup)
+                        }
+                      }}
+                      className="flex w-full items-center gap-2 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <RotateCw className="h-3.5 w-3.5 shrink-0 text-amber-500/70" />
+                      <span>重试队列</span>
+                      {retryMessages.length > 0 && (
+                        <span className="rounded-full bg-amber-500/10 px-1.5 py-0.5 text-[10px] text-amber-600 dark:text-amber-400">{retryMessages.length}</span>
+                      )}
+                      <ChevronDown className={cn('ml-auto h-3.5 w-3.5 transition-transform', retryExpanded && 'rotate-180')} />
+                    </button>
+                    {retryExpanded && (
+                      <div className="mt-2">
+                        {retryLoading ? (
+                          <div className="flex items-center justify-center py-3 text-muted-foreground">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          </div>
+                        ) : retryMessages.length === 0 ? (
+                          <p className="rounded-md border border-border/40 px-3 py-2 text-xs text-muted-foreground">暂无重试消息</p>
+                        ) : (
+                          <div className="space-y-1.5 max-h-[280px] overflow-y-auto scroll-thin">
+                            {retryMessages.map((msg) => (
+                              <MessageCard key={msg.messageId} msg={msg} />
+                            ))}
+                          </div>
+                        )}
+                        {retryMessages.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => selectedGroup && loadRetryMessages(selectedGroup)}
+                            disabled={retryLoading}
+                            className="mt-2 flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+                          >
+                            <RefreshCw className={cn('h-3 w-3', retryLoading && 'animate-spin')} />
+                            刷新
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               ) : null}
             </div>

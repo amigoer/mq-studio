@@ -136,6 +136,32 @@ export async function getMessageTrack(
   }
 }
 
+/**
+ * 查询消费者组的死信队列消息
+ */
+export async function queryDLQMessages(groupName: string, maxResults = 32): Promise<MessageItem[]> {
+  try {
+    const raw = await MessageService.QueryDLQMessages(groupName, maxResults)
+    return raw.filter((m): m is MessageItem => m != null)
+  } catch (e) {
+    console.error('QueryDLQMessages', e)
+    throw e
+  }
+}
+
+/**
+ * 查询消费者组的重试队列消息
+ */
+export async function queryRetryMessages(groupName: string, maxResults = 32): Promise<MessageItem[]> {
+  try {
+    const raw = await MessageService.QueryRetryMessages(groupName, maxResults)
+    return raw.filter((m): m is MessageItem => m != null)
+  } catch (e) {
+    console.error('QueryRetryMessages', e)
+    throw e
+  }
+}
+
 export async function sendMessage(
   topic: string,
   tags: string,
