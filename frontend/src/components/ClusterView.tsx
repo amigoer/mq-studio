@@ -4,27 +4,102 @@ import { cn, formatErrorMessage } from '@/lib/utils'
 import type { BrokerNode, ClusterInfo } from '../../bindings/rocket-leaf/internal/model/models.js'
 import { BrokerRole, NodeStatus } from '../../bindings/rocket-leaf/internal/model/models.js'
 import * as clusterApi from '@/api/cluster'
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from 'recharts'
 
 const MIN_SPIN_MS = 400
 const TPS_POLL_INTERVAL = 5000
-const TPS_HISTORY_SIZE = 30
+const TPS_HISTORY_SIZE = 60
 
 function formatMetric(value?: number | null): string {
   if (value == null || value < 0) return '—'
   return String(value)
 }
 
-type TpsPoint = { tpsIn: number; tpsOut: number }
+type TpsPoint = { time: string; tpsIn: number; tpsOut: number }
 
-function Sparkline({ data, color, height = 32 }: { data: number[]; color: string; height?: number }) {
+function formatTime(date: Date): string {
+  return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}:${String(date.getSeconds()).padStart(2, '0')}`
+}
+
+function TpsChart({ data }: { data: TpsPoint[] }) {
   if (data.length < 2) return null
-  const max = Math.max(...data, 1)
-  const w = 160
-  const points = data.map((v, i) => `${(i / (data.length - 1)) * w},${height - (v / max) * (height - 4) - 2}`).join(' ')
+
   return (
-    <svg width={w} height={height} className="shrink-0" aria-hidden>
-      <polyline fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" points={points} />
-    </svg>
+    <div className="rounded-md border border-border/40 bg-background/60 p-3">
+      <p className="mb-1.5 text-[11px] text-muted-foreground">
+        TPS 趋势（{data.length} 采样点，每 5s）
+      </p>
+      <ResponsiveContainer width="100%" height={160}>
+        <LineChart data={data} margin={{ top: 4, right: 8, bottom: 0, left: -12 }}>
+          <CartesianGrid
+            strokeDasharray="3 3"
+            stroke="hsl(var(--border))"
+            opacity={0.6}
+          />
+          <XAxis
+            dataKey="time"
+            tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+            tickLine={false}
+            axisLine={{ stroke: 'hsl(var(--border))' }}
+            interval="preserveStartEnd"
+            minTickGap={40}
+          />
+          <YAxis
+            tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+            tickLine={false}
+            axisLine={false}
+            allowDecimals={false}
+            width={40}
+          />
+          <Tooltip
+            contentStyle={{
+              backgroundColor: 'hsl(var(--card))',
+              border: '1px solid hsl(var(--border))',
+              borderRadius: '6px',
+              fontSize: '12px',
+              padding: '6px 10px',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+            }}
+            labelStyle={{ color: 'hsl(var(--muted-foreground))', marginBottom: 2 }}
+            itemStyle={{ padding: 0 }}
+          />
+          <Legend
+            iconType="plainline"
+            iconSize={12}
+            wrapperStyle={{ fontSize: '11px', paddingTop: '4px' }}
+          />
+          <Line
+            type="monotone"
+            dataKey="tpsIn"
+            name="TPS 入"
+            stroke="hsl(var(--primary))"
+            strokeWidth={2}
+            dot={false}
+            activeDot={{ r: 3, strokeWidth: 0 }}
+            isAnimationActive={false}
+          />
+          <Line
+            type="monotone"
+            dataKey="tpsOut"
+            name="TPS 出"
+            stroke="hsl(142 71% 45%)"
+            strokeWidth={2}
+            dot={false}
+            activeDot={{ r: 3, strokeWidth: 0 }}
+            isAnimationActive={false}
+          />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
   )
 }
 
@@ -86,7 +161,11 @@ export function ClusterView() {
         if (!cancelled) {
           setDetail(data ?? null)
           if (data) {
-            setTpsHistory([{ tpsIn: data.tpsIn ?? 0, tpsOut: data.tpsOut ?? 0 }])
+            setTpsHistory([{
+              time: formatTime(new Date()),
+              tpsIn: data.tpsIn ?? 0,
+              tpsOut: data.tpsOut ?? 0,
+            }])
           }
         }
       })
@@ -111,7 +190,11 @@ export function ClusterView() {
         if (data) {
           setDetail(data)
           setTpsHistory((prev) => {
-            const next = [...prev, { tpsIn: data.tpsIn ?? 0, tpsOut: data.tpsOut ?? 0 }]
+            const next = [...prev, {
+              time: formatTime(new Date()),
+              tpsIn: data.tpsIn ?? 0,
+              tpsOut: data.tpsOut ?? 0,
+            }]
             return next.length > TPS_HISTORY_SIZE ? next.slice(-TPS_HISTORY_SIZE) : next
           })
         }
@@ -286,7 +369,7 @@ export function ClusterView() {
 
         {/* Broker 详情抽屉 */}
         {selectedBroker && (
-          <div className="flex w-[clamp(280px,32vw,380px)] shrink-0 flex-col border-l border-border/40 bg-card">
+          <div className="flex w-[clamp(320px,36vw,440px)] shrink-0 flex-col border-l border-border/40 bg-card">
             <div className="flex shrink-0 items-center justify-between border-b border-border/30 px-3 py-2.5">
               <span className="truncate text-sm font-medium text-foreground">Broker 详情</span>
               <button
@@ -330,46 +413,37 @@ export function ClusterView() {
                       <span className="text-muted-foreground">TPS 入 / 出：</span>
                       <span className="tabular-nums text-foreground">{formatMetric(effectiveDetail.tpsIn)} / {formatMetric(effectiveDetail.tpsOut)}</span>
                     </p>
-                    {tpsHistory.length >= 2 && (
-                      <div className="rounded-md border border-border/40 bg-background/60 p-2.5">
-                        <p className="mb-2 text-[11px] text-muted-foreground">TPS 趋势（{tpsHistory.length} 采样点，每 5s）</p>
-                        <div className="flex items-center gap-3">
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-1.5">
-                              <span className="inline-block h-[2px] w-3 rounded bg-primary" />
-                              <span className="text-[10px] text-muted-foreground">入</span>
-                            </div>
-                            <Sparkline data={tpsHistory.map((p) => p.tpsIn)} color="hsl(var(--primary))" />
-                          </div>
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-1.5">
-                              <span className="inline-block h-[2px] w-3 rounded bg-emerald-500" />
-                              <span className="text-[10px] text-muted-foreground">出</span>
-                            </div>
-                            <Sparkline data={tpsHistory.map((p) => p.tpsOut)} color="hsl(142 71% 45%)" />
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    {(effectiveDetail.commitLogDiskUsage ?? 0) > 0 && (
-                      <p>
-                        <span className="text-muted-foreground">CommitLog 磁盘：</span>
-                        <span className="text-foreground">{effectiveDetail.commitLogDiskUsage}%</span>
-                      </p>
-                    )}
-                    {(effectiveDetail.consumeQueueDiskUsage ?? 0) > 0 && (
-                      <p>
-                        <span className="text-muted-foreground">ConsumeQueue 磁盘：</span>
-                        <span className="text-foreground">{effectiveDetail.consumeQueueDiskUsage}%</span>
-                      </p>
-                    )}
-                    {effectiveDetail.lastUpdate && (
-                      <p>
-                        <span className="text-muted-foreground">更新时间：</span>
-                        <span className="text-muted-foreground">{effectiveDetail.lastUpdate}</span>
-                      </p>
-                    )}
+                    <p>
+                      <span className="text-muted-foreground">今日消息入 / 出：</span>
+                      <span className="tabular-nums text-foreground">
+                        {effectiveDetail.msgInToday != null && effectiveDetail.msgInToday >= 0 ? effectiveDetail.msgInToday.toLocaleString() : '—'}
+                        {' / '}
+                        {effectiveDetail.msgOutToday != null && effectiveDetail.msgOutToday >= 0 ? effectiveDetail.msgOutToday.toLocaleString() : '—'}
+                      </span>
+                    </p>
                   </div>
+
+                  {/* TPS 折线图 */}
+                  <TpsChart data={tpsHistory} />
+
+                  {(effectiveDetail.commitLogDiskUsage ?? 0) > 0 && (
+                    <p>
+                      <span className="text-muted-foreground">CommitLog 磁盘：</span>
+                      <span className="text-foreground">{effectiveDetail.commitLogDiskUsage}%</span>
+                    </p>
+                  )}
+                  {(effectiveDetail.consumeQueueDiskUsage ?? 0) > 0 && (
+                    <p>
+                      <span className="text-muted-foreground">ConsumeQueue 磁盘：</span>
+                      <span className="text-foreground">{effectiveDetail.consumeQueueDiskUsage}%</span>
+                    </p>
+                  )}
+                  {effectiveDetail.lastUpdate && (
+                    <p>
+                      <span className="text-muted-foreground">更新时间：</span>
+                      <span className="text-muted-foreground">{effectiveDetail.lastUpdate}</span>
+                    </p>
+                  )}
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground">未获取到详情</p>
