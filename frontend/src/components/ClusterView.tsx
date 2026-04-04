@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { RefreshCw, Loader2, X } from 'lucide-react'
 import { cn, formatErrorMessage } from '@/lib/utils'
 import type { BrokerNode, ClusterInfo } from '../../bindings/rocket-leaf/internal/model/models.js'
@@ -6,10 +6,26 @@ import { BrokerRole, NodeStatus } from '../../bindings/rocket-leaf/internal/mode
 import * as clusterApi from '@/api/cluster'
 
 const MIN_SPIN_MS = 400
+const TPS_POLL_INTERVAL = 5000
+const TPS_HISTORY_SIZE = 30
 
 function formatMetric(value?: number | null): string {
   if (value == null || value < 0) return '—'
   return String(value)
+}
+
+type TpsPoint = { tpsIn: number; tpsOut: number }
+
+function Sparkline({ data, color, height = 32 }: { data: number[]; color: string; height?: number }) {
+  if (data.length < 2) return null
+  const max = Math.max(...data, 1)
+  const w = 160
+  const points = data.map((v, i) => `${(i / (data.length - 1)) * w},${height - (v / max) * (height - 4) - 2}`).join(' ')
+  return (
+    <svg width={w} height={height} className="shrink-0" aria-hidden>
+      <polyline fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" points={points} />
+    </svg>
+  )
 }
 
 export function ClusterView() {
@@ -20,6 +36,8 @@ export function ClusterView() {
   const [selectedBroker, setSelectedBroker] = useState<BrokerNode | null>(null)
   const [detail, setDetail] = useState<BrokerNode | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
+  const [tpsHistory, setTpsHistory] = useState<TpsPoint[]>([])
+  const tpsPollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const brokers = (info?.brokers ?? []).filter((b): b is BrokerNode => b != null)
   const isSpinning = loading || refreshing
@@ -57,6 +75,7 @@ export function ClusterView() {
   useEffect(() => {
     if (!selectedBroker?.address) {
       setDetail(null)
+      setTpsHistory([])
       return
     }
     let cancelled = false
@@ -64,7 +83,12 @@ export function ClusterView() {
     clusterApi
       .getBrokerDetail(selectedBroker.address)
       .then((data) => {
-        if (!cancelled) setDetail(data ?? null)
+        if (!cancelled) {
+          setDetail(data ?? null)
+          if (data) {
+            setTpsHistory([{ tpsIn: data.tpsIn ?? 0, tpsOut: data.tpsOut ?? 0 }])
+          }
+        }
       })
       .catch(() => {
         if (!cancelled) setDetail(null)
@@ -74,6 +98,27 @@ export function ClusterView() {
       })
     return () => {
       cancelled = true
+    }
+  }, [selectedBroker?.address])
+
+  // TPS 自动轮询
+  useEffect(() => {
+    if (tpsPollRef.current) clearInterval(tpsPollRef.current)
+    const addr = selectedBroker?.address
+    if (!addr) return
+    tpsPollRef.current = setInterval(() => {
+      clusterApi.getBrokerDetail(addr).then((data) => {
+        if (data) {
+          setDetail(data)
+          setTpsHistory((prev) => {
+            const next = [...prev, { tpsIn: data.tpsIn ?? 0, tpsOut: data.tpsOut ?? 0 }]
+            return next.length > TPS_HISTORY_SIZE ? next.slice(-TPS_HISTORY_SIZE) : next
+          })
+        }
+      }).catch(() => {})
+    }, TPS_POLL_INTERVAL)
+    return () => {
+      if (tpsPollRef.current) clearInterval(tpsPollRef.current)
     }
   }, [selectedBroker?.address])
 
@@ -285,6 +330,27 @@ export function ClusterView() {
                       <span className="text-muted-foreground">TPS 入 / 出：</span>
                       <span className="tabular-nums text-foreground">{formatMetric(effectiveDetail.tpsIn)} / {formatMetric(effectiveDetail.tpsOut)}</span>
                     </p>
+                    {tpsHistory.length >= 2 && (
+                      <div className="rounded-md border border-border/40 bg-background/60 p-2.5">
+                        <p className="mb-2 text-[11px] text-muted-foreground">TPS 趋势（{tpsHistory.length} 采样点，每 5s）</p>
+                        <div className="flex items-center gap-3">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-1.5">
+                              <span className="inline-block h-[2px] w-3 rounded bg-primary" />
+                              <span className="text-[10px] text-muted-foreground">入</span>
+                            </div>
+                            <Sparkline data={tpsHistory.map((p) => p.tpsIn)} color="hsl(var(--primary))" />
+                          </div>
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-1.5">
+                              <span className="inline-block h-[2px] w-3 rounded bg-emerald-500" />
+                              <span className="text-[10px] text-muted-foreground">出</span>
+                            </div>
+                            <Sparkline data={tpsHistory.map((p) => p.tpsOut)} color="hsl(142 71% 45%)" />
+                          </div>
+                        </div>
+                      </div>
+                    )}
                     {(effectiveDetail.commitLogDiskUsage ?? 0) > 0 && (
                       <p>
                         <span className="text-muted-foreground">CommitLog 磁盘：</span>
