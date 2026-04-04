@@ -438,6 +438,7 @@ export function MessageView() {
   const [selectedTopic, setSelectedTopic] = useState('')
   const [messageId, setMessageId] = useState('')
   const [messageKey, setMessageKey] = useState('')
+  const [messageTag, setMessageTag] = useState('')
   const [startTimeInput, setStartTimeInput] = useState('')
   const [endTimeInput, setEndTimeInput] = useState('')
   const [maxResults, setMaxResults] = useState(DEFAULT_MAX_RESULTS)
@@ -524,6 +525,7 @@ export function MessageView() {
     const condition: QueryCondition = {
       messageId: messageId.trim() || undefined,
       messageKey: messageKey.trim() || undefined,
+      messageTag: messageTag.trim() || undefined,
       startTimeMs: fromDatetimeLocalInput(startTimeInput) || undefined,
       endTimeMs: fromDatetimeLocalInput(endTimeInput) || undefined,
     }
@@ -557,7 +559,7 @@ export function MessageView() {
     } finally {
       setIsLoading(false)
     }
-  }, [selectedTopic, messageId, messageKey, maxResults, startTimeInput, endTimeInput])
+  }, [selectedTopic, messageId, messageKey, messageTag, maxResults, startTimeInput, endTimeInput])
 
   const copyMessageId = useCallback((e: React.MouseEvent, id: string) => {
     e.stopPropagation()
@@ -632,8 +634,17 @@ export function MessageView() {
             value={messageKey}
             onChange={(e) => setMessageKey(e.target.value)}
             placeholder="Key"
-            className="h-8 w-40 shrink-0 rounded-md border border-border/40 bg-background px-2.5 text-xs font-mono transition-colors focus:outline-none focus:ring-1 focus:ring-ring"
+            className="h-8 w-36 shrink-0 rounded-md border border-border/40 bg-background px-2.5 text-xs font-mono transition-colors focus:outline-none focus:ring-1 focus:ring-ring"
             aria-label="Message Key"
+          />
+          <input
+            id="msg-tag"
+            type="text"
+            value={messageTag}
+            onChange={(e) => setMessageTag(e.target.value)}
+            placeholder="Tag"
+            className="h-8 w-36 shrink-0 rounded-md border border-border/40 bg-background px-2.5 text-xs font-mono transition-colors focus:outline-none focus:ring-1 focus:ring-ring"
+            aria-label="Message Tag"
           />
         </div>
         {/* 第二行：时间 + 条数 + 查询 + 发送 */}

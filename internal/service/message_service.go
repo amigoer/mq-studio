@@ -35,7 +35,7 @@ func (s *MessageService) getNextID() int {
 }
 
 // QueryMessages 查询消息，startTime/endTime 为 Unix 毫秒时间戳，0 表示不限制
-func (s *MessageService) QueryMessages(topic string, key string, maxResults int, startTime, endTime int64) ([]*model.MessageItem, error) {
+func (s *MessageService) QueryMessages(topic string, key string, tag string, maxResults int, startTime, endTime int64) ([]*model.MessageItem, error) {
 	client, err := rocketmq.GetClientManager().GetDefaultClient()
 	if err != nil {
 		return nil, fmt.Errorf("获取客户端失败: %w", err)
@@ -55,11 +55,12 @@ func (s *MessageService) QueryMessages(topic string, key string, maxResults int,
 
 	result := make([]*model.MessageItem, 0)
 	trimmedKey := strings.TrimSpace(key)
+	trimmedTag := strings.TrimSpace(tag)
 
 	// 统一使用时间范围浏览（RocketMQ 的 Key 索引查询不够可靠）
-	// 如果有 Key 过滤条件，多拉取一些消息以确保过滤后有足够结果
+	// 如果有 Key/Tag 过滤条件，多拉取一些消息以确保过滤后有足够结果
 	fetchNum := maxResults
-	if trimmedKey != "" {
+	if trimmedKey != "" || trimmedTag != "" {
 		fetchNum = maxResults * 8
 		if fetchNum < 512 {
 			fetchNum = 512
@@ -80,6 +81,13 @@ func (s *MessageService) QueryMessages(topic string, key string, maxResults int,
 			if trimmedKey != "" {
 				msgKeys, _ := msg.Properties["KEYS"]
 				if !strings.Contains(msgKeys, trimmedKey) {
+					continue
+				}
+			}
+			// 如果指定了 Tag，只保留匹配该 Tag 的消息
+			if trimmedTag != "" {
+				msgTags, _ := msg.Properties["TAGS"]
+				if !strings.Contains(msgTags, trimmedTag) {
 					continue
 				}
 			}
