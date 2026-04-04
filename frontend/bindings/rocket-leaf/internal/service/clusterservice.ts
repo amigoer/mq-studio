@@ -59,15 +59,6 @@ export function GetNameServers(): $CancellablePromise<(model$0.NameServerNode | 
     });
 }
 
-/**
- * RefreshBrokerStats 刷新 Broker 统计信息
- */
-export function RefreshBrokerStats(brokerAddr: string): $CancellablePromise<model$0.BrokerNode | null> {
-    return $Call.ByID(1816574962, brokerAddr).then(($result: any) => {
-        return $$createType1($result);
-    });
-}
-
 // Private type creation functions
 const $$createType0 = model$0.BrokerNode.createFrom;
 const $$createType1 = $Create.Nullable($$createType0);

@@ -17,7 +17,6 @@ type MessageItem struct {
 	MessageID      string            `json:"messageId"`      // 消息ID
 	Tags           string            `json:"tags"`           // 消息标签
 	Keys           string            `json:"keys"`           // 消息Keys
-	ProducerGroup  string            `json:"producerGroup"`  // 生产者组
 	QueueID        int               `json:"queueId"`        // 队列ID
 	QueueOffset    int64             `json:"queueOffset"`    // 队列偏移
 	StoreHost      string            `json:"storeHost"`      // 存储节点

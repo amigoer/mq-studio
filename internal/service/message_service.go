@@ -166,11 +166,6 @@ func (s *MessageService) QueryMessageByID(topic string, msgID string) (*model.Me
 	return item, nil
 }
 
-// GetMessageDetail 获取消息详情
-func (s *MessageService) GetMessageDetail(topic string, msgID string) (*model.MessageItem, error) {
-	return s.QueryMessageByID(topic, msgID)
-}
-
 // GetMessageTrack 获取消息轨迹
 // 通过查询订阅该 Topic 的消费者组，逐一检查消费进度来判断消息是否已被消费
 func (s *MessageService) GetMessageTrack(topic string, msgID string) ([]*model.MessageTrackItem, error) {

@@ -998,11 +998,6 @@ export class MessageItem {
     "keys": string;
 
     /**
-     * 生产者组
-     */
-    "producerGroup": string;
-
-    /**
      * 队列ID
      */
     "queueId": number;
@@ -1072,9 +1067,6 @@ export class MessageItem {
         if (!("keys" in $$source)) {
             this["keys"] = "";
         }
-        if (!("producerGroup" in $$source)) {
-            this["producerGroup"] = "";
-        }
         if (!("queueId" in $$source)) {
             this["queueId"] = 0;
         }
@@ -1113,10 +1105,10 @@ export class MessageItem {
      * Creates a new MessageItem instance from a string or object.
      */
     static createFrom($$source: any = {}): MessageItem {
-        const $$createField16_0 = $$createType9;
+        const $$createField15_0 = $$createType9;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("properties" in $$parsedSource) {
-            $$parsedSource["properties"] = $$createField16_0($$parsedSource["properties"]);
+            $$parsedSource["properties"] = $$createField15_0($$parsedSource["properties"]);
         }
         return new MessageItem($$parsedSource as Partial<MessageItem>);
     }

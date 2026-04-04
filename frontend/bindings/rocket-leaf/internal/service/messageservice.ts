@@ -15,21 +15,12 @@ import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Cr
 import * as model$0 from "../model/models.js";
 
 /**
- * GetMessageDetail 获取消息详情
- */
-export function GetMessageDetail(topic: string, msgID: string): $CancellablePromise<model$0.MessageItem | null> {
-    return $Call.ByID(826218736, topic, msgID).then(($result: any) => {
-        return $$createType1($result);
-    });
-}
-
-/**
  * GetMessageTrack 获取消息轨迹
  * 通过查询订阅该 Topic 的消费者组，逐一检查消费进度来判断消息是否已被消费
  */
 export function GetMessageTrack(topic: string, msgID: string): $CancellablePromise<(model$0.MessageTrackItem | null)[]> {
     return $Call.ByID(3455367192, topic, msgID).then(($result: any) => {
-        return $$createType4($result);
+        return $$createType2($result);
     });
 }
 
@@ -47,7 +38,7 @@ export function QueryDLQMessages(groupName: string, maxResults: number): $Cancel
  */
 export function QueryMessageByID(topic: string, msgID: string): $CancellablePromise<model$0.MessageItem | null> {
     return $Call.ByID(2698022101, topic, msgID).then(($result: any) => {
-        return $$createType1($result);
+        return $$createType4($result);
     });
 }
 
@@ -84,9 +75,9 @@ export function SendMessage(topic: string, tags: string, keys: string, body: str
 }
 
 // Private type creation functions
-const $$createType0 = model$0.MessageItem.createFrom;
+const $$createType0 = model$0.MessageTrackItem.createFrom;
 const $$createType1 = $Create.Nullable($$createType0);
-const $$createType2 = model$0.MessageTrackItem.createFrom;
-const $$createType3 = $Create.Nullable($$createType2);
-const $$createType4 = $Create.Array($$createType3);
-const $$createType5 = $Create.Array($$createType1);
+const $$createType2 = $Create.Array($$createType1);
+const $$createType3 = model$0.MessageItem.createFrom;
+const $$createType4 = $Create.Nullable($$createType3);
+const $$createType5 = $Create.Array($$createType4);

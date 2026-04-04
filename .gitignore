@@ -10,6 +10,7 @@ node_modules/
 # Wails generated runtime artifacts
 build/darwin/frontend/
 build/linux/appimage/build/
+build/linux/appimage/rocket-leaf
 build/windows/nsis/MicrosoftEdgeWebview2Setup.exe
 
 # Apple / Xcode local artifacts

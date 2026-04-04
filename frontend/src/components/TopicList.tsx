@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { toast } from 'sonner'
-import { RefreshCw, Plus, Search, X, Trash2, Loader2, AlertTriangle, BarChart3 } from 'lucide-react'
+import { RefreshCw, Plus, Search, X, Trash2, Loader2, AlertTriangle, BarChart3, Pencil } from 'lucide-react'
 import { cn, formatErrorMessage } from '@/lib/utils'
 import type { TopicItem } from '../../bindings/rocket-leaf/internal/model/models.js'
 import { TopicPerm } from '../../bindings/rocket-leaf/internal/model/models.js'

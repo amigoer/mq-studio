@@ -1,5 +1,5 @@
 import * as ConsumerService from '../../bindings/rocket-leaf/internal/service/consumerservice.js'
-import type { ConsumerGroupItem, GroupClient } from '../../bindings/rocket-leaf/internal/model/models.js'
+import type { ConsumerGroupItem } from '../../bindings/rocket-leaf/internal/model/models.js'
 
 export async function getConsumerGroups(): Promise<(ConsumerGroupItem | null)[]> {
   try {
@@ -19,34 +19,11 @@ export async function getConsumerGroupDetail(groupName: string): Promise<Consume
   }
 }
 
-export async function getConsumerClients(groupName: string): Promise<GroupClient[]> {
-  try {
-    return await ConsumerService.GetConsumerClients(groupName)
-  } catch (e) {
-    console.error('GetConsumerClients', e)
-    throw e
-  }
-}
-
 export async function getConsumeStats(groupName: string): Promise<Record<string, unknown>> {
   try {
     return (await ConsumerService.GetConsumeStats(groupName)) as Record<string, unknown>
   } catch (e) {
     console.error('GetConsumeStats', e)
-    throw e
-  }
-}
-
-export async function createConsumerGroup(
-  group: string,
-  brokerAddr: string,
-  consumeMode: string,
-  maxRetry: number
-): Promise<void> {
-  try {
-    await ConsumerService.CreateConsumerGroup(group, brokerAddr, consumeMode, maxRetry)
-  } catch (e) {
-    console.error('CreateConsumerGroup', e)
     throw e
   }
 }
