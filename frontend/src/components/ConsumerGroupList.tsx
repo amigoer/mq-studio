@@ -620,22 +620,26 @@ export function ConsumerGroupList({ list, loading, error, onRefresh }: Props) {
                   )}
                   {detail.clients != null && detail.clients.length > 0 && (
                     <div>
-                      <h3 className="mb-2 text-xs font-medium text-muted-foreground">客户端</h3>
+                      <h3 className="mb-2 text-xs font-medium text-muted-foreground">客户端（{detail.clients.length}）</h3>
                       <div className="overflow-x-auto rounded-md border border-border/40">
-                        <table className="w-full min-w-[240px] text-xs">
+                        <table className="w-full min-w-[360px] text-xs">
                           <thead>
                             <tr className="border-b border-border/40 bg-muted/30">
                               <th className="px-2 py-1.5 text-left font-medium text-foreground">ClientID</th>
                               <th className="px-2 py-1.5 text-left font-medium text-foreground">IP</th>
+                              <th className="px-2 py-1.5 text-left font-medium text-foreground">版本</th>
+                              <th className="px-2 py-1.5 text-left font-medium text-foreground">最后心跳</th>
                             </tr>
                           </thead>
                           <tbody>
                             {detail.clients.map((c, i) => (
                               <tr key={i} className="border-b border-border/30 last:border-0">
-                                <td className="max-w-[140px] truncate px-2 py-1.5 font-mono text-foreground" title={c.clientId ?? ''}>
+                                <td className="max-w-[120px] truncate px-2 py-1.5 font-mono text-foreground" title={c.clientId ?? ''}>
                                   {c.clientId ?? '-'}
                                 </td>
                                 <td className="px-2 py-1.5 font-mono text-muted-foreground">{c.ip ?? '-'}</td>
+                                <td className="px-2 py-1.5 text-muted-foreground">{c.version ?? '-'}</td>
+                                <td className="px-2 py-1.5 text-muted-foreground whitespace-nowrap">{c.lastHeartbeat ?? '-'}</td>
                               </tr>
                             ))}
                           </tbody>
