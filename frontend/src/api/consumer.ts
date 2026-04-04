@@ -51,6 +51,20 @@ export async function createConsumerGroup(
   }
 }
 
+export async function updateConsumerGroup(
+  group: string,
+  brokerAddr: string,
+  consumeMode: string,
+  maxRetry: number
+): Promise<void> {
+  try {
+    await ConsumerService.UpdateConsumerGroup(group, brokerAddr, consumeMode, maxRetry)
+  } catch (e) {
+    console.error('UpdateConsumerGroup', e)
+    throw e
+  }
+}
+
 export async function deleteConsumerGroup(group: string, brokerAddr: string): Promise<void> {
   try {
     await ConsumerService.DeleteConsumerGroup(group, brokerAddr)
