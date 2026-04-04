@@ -1,9 +1,14 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { toast } from 'sonner'
-import { RefreshCw, Search, X, Trash2, Loader2, AlertTriangle, BarChart3, RotateCcw, Skull, RotateCw, ChevronDown, Copy } from 'lucide-react'
+import { RefreshCw, Search, X, Trash2, Loader2, AlertTriangle, BarChart3, RotateCcw, Pencil } from 'lucide-react'
 import { cn, formatErrorMessage } from '@/lib/utils'
 import type { ConsumerGroupItem, MessageItem } from '../../bindings/rocket-leaf/internal/model/models.js'
 import { GroupStatus, ConsumeMode } from '../../bindings/rocket-leaf/internal/model/models.js'
+
+const CONSUME_MODE_OPTIONS: { value: ConsumeMode; label: string }[] = [
+  { value: ConsumeMode.ModeClustering, label: '集群 (Clustering)' },
+  { value: ConsumeMode.ModeBroadcasting, label: '广播 (Broadcasting)' },
+]
 import * as consumerApi from '@/api/consumer'
 import { queryDLQMessages, queryRetryMessages } from '@/api/message'
 
@@ -92,6 +97,11 @@ export function ConsumerGroupList({ list, loading, error, onRefresh }: Props) {
   const [statsError, setStatsError] = useState<string | null>(null)
   const [deleteConfirmGroup, setDeleteConfirmGroup] = useState<string | null>(null)
   const [deletingGroup, setDeletingGroup] = useState<string | null>(null)
+  const [editOpen, setEditOpen] = useState(false)
+  const [editSubmitting, setEditSubmitting] = useState(false)
+  const [editError, setEditError] = useState<string | null>(null)
+  const [editConsumeMode, setEditConsumeMode] = useState<string>(ConsumeMode.ModeClustering)
+  const [editMaxRetry, setEditMaxRetry] = useState(16)
   const [resetDialogOpen, setResetDialogOpen] = useState(false)
   const [resetTopic, setResetTopic] = useState('')
   const [resetTimestamp, setResetTimestamp] = useState(getDefaultResetTimeValue())
@@ -228,6 +238,31 @@ export function ConsumerGroupList({ list, loading, error, onRefresh }: Props) {
     setResetForce(false)
     setResetDialogOpen(true)
   }, [detail])
+
+  const handleOpenEdit = useCallback(() => {
+    if (!detail) return
+    setEditConsumeMode(detail.consumeMode ?? ConsumeMode.ModeClustering)
+    setEditMaxRetry(detail.maxRetry ?? 16)
+    setEditError(null)
+    setEditOpen(true)
+  }, [detail])
+
+  const handleEditSubmit = useCallback(async () => {
+    if (!selectedGroup) return
+    setEditSubmitting(true)
+    setEditError(null)
+    try {
+      await consumerApi.updateConsumerGroup(selectedGroup, '', editConsumeMode, editMaxRetry)
+      toast.success('消费者组配置已更新')
+      setEditOpen(false)
+      void loadDetail(selectedGroup)
+      onRefresh()
+    } catch (err) {
+      setEditError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setEditSubmitting(false)
+    }
+  }, [selectedGroup, editConsumeMode, editMaxRetry, loadDetail, onRefresh])
 
   const handleResetOffset = useCallback(async () => {
     if (!selectedGroup) {
@@ -409,6 +444,16 @@ export function ConsumerGroupList({ list, loading, error, onRefresh }: Props) {
             <div className="flex shrink-0 items-center justify-between border-b border-border/30 px-3 py-2.5">
               <span className="truncate text-sm font-medium text-foreground">消费者组详情</span>
               <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={handleOpenEdit}
+                  disabled={detailLoading || detail == null}
+                  className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-50"
+                  aria-label="编辑配置"
+                  title="编辑配置"
+                >
+                  <Pencil className="h-4 w-4" />
+                </button>
                 <button
                   type="button"
                   onClick={handleOpenResetDialog}
@@ -638,6 +683,88 @@ export function ConsumerGroupList({ list, loading, error, onRefresh }: Props) {
           </div>
         )}
       </div>
+
+      {editOpen && selectedGroup && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+          onClick={() => !editSubmitting && setEditOpen(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="edit-consumer-title"
+        >
+          <div
+            className="w-full max-w-md rounded-md border border-border/50 bg-card p-4 shadow-sm"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 id="edit-consumer-title" className="text-sm font-medium text-card-foreground">
+              编辑消费者组配置
+            </h2>
+            <p className="mt-1 text-xs text-muted-foreground">
+              修改「<span className="font-mono text-foreground">{selectedGroup}</span>」的消费模式和重试次数
+            </p>
+            {editError && (
+              <div className="mt-2 rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                {editError}
+              </div>
+            )}
+            <div className="mt-4 space-y-3">
+              <div>
+                <label id="edit-consumer-mode-label" className="mb-1 block text-xs text-muted-foreground">消费模式</label>
+                <select
+                  value={editConsumeMode}
+                  onChange={(e) => setEditConsumeMode(e.target.value)}
+                  aria-labelledby="edit-consumer-mode-label"
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  {CONSUME_MODE_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label id="edit-consumer-retry-label" className="mb-1 block text-xs text-muted-foreground">最大重试次数</label>
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={editMaxRetry}
+                  onChange={(e) => setEditMaxRetry(Number(e.target.value) || 0)}
+                  onBlur={() => setEditMaxRetry(Math.max(0, Math.min(100, editMaxRetry)))}
+                  aria-labelledby="edit-consumer-retry-label"
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                />
+              </div>
+            </div>
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setEditOpen(false)}
+                disabled={editSubmitting}
+                className="rounded-md border border-border/50 px-3 py-1.5 text-sm text-muted-foreground hover:bg-accent disabled:opacity-50"
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleEditSubmit()}
+                disabled={editSubmitting}
+                className="rounded-md bg-primary px-3 py-1.5 text-sm text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+              >
+                {editSubmitting ? (
+                  <>
+                    <Loader2 className="mr-1.5 inline h-4 w-4 animate-spin" aria-hidden />
+                    保存中…
+                  </>
+                ) : (
+                  '保存'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {deleteConfirmGroup && (
         <div

@@ -267,6 +267,48 @@ func (s *ConsumerService) CreateConsumerGroup(group string, brokerAddr string, c
 	return nil
 }
 
+// UpdateConsumerGroup 更新消费者组配置
+func (s *ConsumerService) UpdateConsumerGroup(group string, brokerAddr string, consumeMode string, maxRetry int) error {
+	client, err := rocketmq.GetClientManager().GetDefaultClient()
+	if err != nil {
+		return fmt.Errorf("获取客户端失败: %w", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), s.settingsService.GetRequestTimeout())
+	defer cancel()
+
+	// 先查询所有 master broker 地址
+	candidates, resolveErr := s.resolveMasterBrokerAddrs(ctx, client, brokerAddr)
+	if resolveErr != nil {
+		return fmt.Errorf("更新消费者组失败: %w", resolveErr)
+	}
+
+	config := admin.SubscriptionGroupConfig{
+		GroupName:              group,
+		ConsumeEnable:          true,
+		ConsumeFromMinEnable:   true,
+		ConsumeBroadcastEnable: consumeMode == string(model.ModeBroadcasting),
+		RetryMaxTimes:          maxRetry,
+	}
+
+	var lastErr error
+	for _, addr := range candidates {
+		callErr := executeWithClientRetry(client, func(retryClient *admin.Client) error {
+			return retryClient.CreateSubscriptionGroup(ctx, addr, config)
+		})
+		if callErr == nil {
+			return nil
+		}
+		lastErr = callErr
+	}
+
+	if lastErr != nil {
+		return fmt.Errorf("更新消费者组失败: %w", lastErr)
+	}
+
+	return fmt.Errorf("更新消费者组失败: 未找到可用 Broker")
+}
+
 // DeleteConsumerGroup 删除消费者组
 func (s *ConsumerService) DeleteConsumerGroup(group string, brokerAddr string) error {
 	client, err := rocketmq.GetClientManager().GetDefaultClient()
