@@ -333,56 +333,72 @@ export function SettingsView() {
             </select>
           </Row>
           <Row label="界面字体">
-            <div className="flex items-center gap-2">
-              <select
-                value={UI_FONT_OPTIONS.some((o) => o.value === settings.uiFont) ? settings.uiFont : '__custom__'}
-                onChange={(e) => {
-                  if (e.target.value !== '__custom__') setSetting('uiFont', e.target.value)
-                }}
-                title="界面字体"
-                className="h-10 rounded-md border border-border/50 bg-background px-3 text-[0.9375rem] text-foreground focus:outline-none focus:ring-1 focus:ring-border min-w-[260px]"
-              >
-                {UI_FONT_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
-                ))}
+            <div>
+              <div className="flex items-center gap-2">
+                <select
+                  value={UI_FONT_OPTIONS.some((o) => o.value === settings.uiFont) ? settings.uiFont : '__custom__'}
+                  onChange={(e) => {
+                    if (e.target.value !== '__custom__') setSetting('uiFont', e.target.value)
+                  }}
+                  title="界面字体"
+                  className="h-10 rounded-md border border-border/50 bg-background px-3 text-[0.9375rem] text-foreground focus:outline-none focus:ring-1 focus:ring-border min-w-[260px]"
+                >
+                  {UI_FONT_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                  {!UI_FONT_OPTIONS.some((o) => o.value === settings.uiFont) && (
+                    <option value="__custom__">自定义</option>
+                  )}
+                </select>
                 {!UI_FONT_OPTIONS.some((o) => o.value === settings.uiFont) && (
-                  <option value="__custom__">自定义</option>
+                  <input
+                    value={settings.uiFont}
+                    onChange={(e) => setSetting('uiFont', e.target.value)}
+                    placeholder="输入字体名称"
+                    className="h-10 rounded-md border border-border/50 bg-background px-3 text-[0.9375rem] text-foreground focus:outline-none focus:ring-1 focus:ring-border w-[160px]"
+                  />
                 )}
-              </select>
-              {!UI_FONT_OPTIONS.some((o) => o.value === settings.uiFont) && (
-                <input
-                  value={settings.uiFont}
-                  onChange={(e) => setSetting('uiFont', e.target.value)}
-                  placeholder="输入字体名称"
-                  className="h-10 rounded-md border border-border/50 bg-background px-3 text-[0.9375rem] text-foreground focus:outline-none focus:ring-1 focus:ring-border w-[160px]"
-                />
-              )}
+              </div>
+              <p
+                className="mt-1.5 text-xs text-muted-foreground"
+                style={{ fontFamily: settings.uiFont === 'system' ? undefined : `"${settings.uiFont}"` }}
+              >
+                预览：Rocket-Leaf 轻量级管理客户端 ABCDabcd 1234
+              </p>
             </div>
           </Row>
           <Row label="代码字体 (Monospace)">
-            <div className="flex items-center gap-2">
-              <select
-                value={MONOSPACE_FONTS.includes(settings.monospaceFont) ? settings.monospaceFont : '__custom__'}
-                onChange={(e) => {
-                  if (e.target.value === '__custom__') setSetting('monospaceFont', '')
-                  else setSetting('monospaceFont', e.target.value)
-                }}
-                title="代码字体"
-                className="h-10 rounded-md border border-border/50 bg-background px-3 text-[0.9375rem] text-foreground focus:outline-none focus:ring-1 focus:ring-border min-w-[260px]"
+            <div>
+              <div className="flex items-center gap-2">
+                <select
+                  value={MONOSPACE_FONTS.includes(settings.monospaceFont) ? settings.monospaceFont : '__custom__'}
+                  onChange={(e) => {
+                    if (e.target.value === '__custom__') setSetting('monospaceFont', '')
+                    else setSetting('monospaceFont', e.target.value)
+                  }}
+                  title="代码字体"
+                  className="h-10 rounded-md border border-border/50 bg-background px-3 text-[0.9375rem] text-foreground focus:outline-none focus:ring-1 focus:ring-border min-w-[260px]"
+                >
+                  {MONOSPACE_FONTS.map((f) => (
+                    <option key={f} value={f}>{f}</option>
+                  ))}
+                  <option value="__custom__">自定义</option>
+                </select>
+                {!MONOSPACE_FONTS.includes(settings.monospaceFont) && (
+                  <input
+                    value={settings.monospaceFont}
+                    onChange={(e) => setSetting('monospaceFont', e.target.value)}
+                    placeholder="输入字体名称"
+                    className="h-10 rounded-md border border-border/50 bg-background px-3 text-[0.9375rem] text-foreground focus:outline-none focus:ring-1 focus:ring-border w-[160px]"
+                  />
+                )}
+              </div>
+              <p
+                className="mt-1.5 text-xs text-muted-foreground"
+                style={{ fontFamily: `"${settings.monospaceFont}", monospace` }}
               >
-                {MONOSPACE_FONTS.map((f) => (
-                  <option key={f} value={f}>{f}</option>
-                ))}
-                <option value="__custom__">自定义</option>
-              </select>
-              {!MONOSPACE_FONTS.includes(settings.monospaceFont) && (
-                <input
-                  value={settings.monospaceFont}
-                  onChange={(e) => setSetting('monospaceFont', e.target.value)}
-                  placeholder="输入字体名称"
-                  className="h-10 rounded-md border border-border/50 bg-background px-3 text-[0.9375rem] text-foreground focus:outline-none focus:ring-1 focus:ring-border w-[160px]"
-                />
-              )}
+                {'预览：{"topic":"test","msgId":"0A0104"}'}
+              </p>
             </div>
           </Row>
           <Row label="启动时自动连接上次集群">
