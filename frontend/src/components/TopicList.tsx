@@ -186,9 +186,9 @@ export function TopicList({ list, loading, error, onRefresh }: Props) {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex shrink-0 flex-col gap-3 border-b border-border/40 px-4 py-3">
+      <div className="flex shrink-0 flex-col gap-3 border-b border-border/40 px-5 py-3.5">
         <div className="flex items-center justify-between gap-2">
-          <h1 className="text-sm font-medium text-foreground">主题</h1>
+          <h1 className="text-sm font-semibold text-foreground">主题</h1>
           <div className="flex items-center gap-1">
             <button
               type="button"

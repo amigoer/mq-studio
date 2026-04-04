@@ -107,8 +107,8 @@ export function ClusterView() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex shrink-0 items-center justify-between border-b border-border/40 px-4 py-3">
-        <h1 className="text-sm font-medium text-foreground">集群</h1>
+      <div className="flex shrink-0 items-center justify-between border-b border-border/40 px-5 py-3.5">
+        <h1 className="text-sm font-semibold text-foreground">集群</h1>
         <button
           type="button"
           onClick={handleRefresh}

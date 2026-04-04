@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	"rocket-leaf/internal/crypto"
 	"rocket-leaf/internal/model"
 	"rocket-leaf/internal/rocketmq"
 )
@@ -139,6 +140,18 @@ func (s *ConnectionService) loadConnectionsFromFile() error {
 			current.TimeoutSec = defaultConnectionTimeout
 		}
 
+		// 解密敏感字段（兼容未加密的旧数据）
+		if current.AccessKey != "" {
+			if decrypted, decErr := crypto.Decrypt(current.AccessKey, "accessKey"); decErr == nil {
+				current.AccessKey = decrypted
+			}
+		}
+		if current.SecretKey != "" {
+			if decrypted, decErr := crypto.Decrypt(current.SecretKey, "secretKey"); decErr == nil {
+				current.SecretKey = decrypted
+			}
+		}
+
 		enableACL, accessKey, secretKey, err := normalizeACLConfig(current.EnableACL, current.AccessKey, current.SecretKey)
 		if err != nil {
 			enableACL = false
@@ -184,6 +197,17 @@ func (s *ConnectionService) saveConnectionsLocked() error {
 			continue
 		}
 		connCopy := *conn
+		// 加密敏感字段后再写入文件
+		if connCopy.AccessKey != "" {
+			if encrypted, encErr := crypto.Encrypt(connCopy.AccessKey, "accessKey"); encErr == nil {
+				connCopy.AccessKey = encrypted
+			}
+		}
+		if connCopy.SecretKey != "" {
+			if encrypted, encErr := crypto.Encrypt(connCopy.SecretKey, "secretKey"); encErr == nil {
+				connCopy.SecretKey = encrypted
+			}
+		}
 		connections = append(connections, &connCopy)
 	}
 

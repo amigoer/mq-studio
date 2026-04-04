@@ -3,6 +3,9 @@ package main
 import (
 	"embed"
 	"log"
+	"os"
+	"path/filepath"
+	"rocket-leaf/internal/crypto"
 	"rocket-leaf/internal/rocketmq"
 	"time"
 
@@ -34,6 +37,14 @@ func init() {
 	// This is not required, but the binding generator will pick up registered events
 	// and provide a strongly typed JS/TS API for them.
 	application.RegisterEvent[string]("time")
+
+	// 初始化加密密钥（在加载任何配置之前）
+	configDir, err := os.UserConfigDir()
+	if err == nil {
+		if initErr := crypto.InitKey(filepath.Join(configDir, "rocket-leaf")); initErr != nil {
+			log.Printf("[main] 初始化加密密钥失败: %v", initErr)
+		}
+	}
 
 	// 初始化后端服务（settingsService 最先，其他 service 依赖它）
 	settingsService = service.NewSettingsService()
@@ -83,12 +94,12 @@ func main() {
 	// 'URL' is the URL that will be loaded into the webview.
 	app.Window.NewWithOptions(application.WebviewWindowOptions{
 		Title:     "Rocket Leaf",
-		Width:     1024,
-		Height:    750,
+		Width:     1152,
+		Height:    780,
 		MinWidth:  1024,
 		MinHeight: 750,
 		Mac: application.MacWindow{
-			InvisibleTitleBarHeight: 30,
+			InvisibleTitleBarHeight: 32,
 			TitleBar: application.MacTitleBar{
 				Hide:               false,
 				HideTitle:          true,

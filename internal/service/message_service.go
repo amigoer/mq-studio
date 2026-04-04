@@ -164,10 +164,103 @@ func (s *MessageService) GetMessageDetail(topic string, msgID string) (*model.Me
 }
 
 // GetMessageTrack 获取消息轨迹
-// 注意：rocketmq-admin-go 库当前版本暂不支持 MessageTrackDetail
-func (s *MessageService) GetMessageTrack(topic string, msgID string) ([]map[string]interface{}, error) {
-	// TODO: 待 rocketmq-admin-go 库支持后实现
-	return []map[string]interface{}{}, nil
+// 通过查询订阅该 Topic 的消费者组，逐一检查消费进度来判断消息是否已被消费
+func (s *MessageService) GetMessageTrack(topic string, msgID string) ([]*model.MessageTrackItem, error) {
+	client, err := rocketmq.GetClientManager().GetDefaultClient()
+	if err != nil {
+		return nil, fmt.Errorf("获取客户端失败: %w", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), s.settingsService.GetRequestTimeout())
+	defer cancel()
+
+	// 1. 获取订阅该 Topic 的所有消费者组
+	var groups []string
+	err = executeWithClientRetry(client, func(retryClient *admin.Client) error {
+		result, callErr := retryClient.QueryTopicConsumeByWho(ctx, topic)
+		if callErr != nil {
+			return callErr
+		}
+		groups = result
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("查询消费者组失败: %w", err)
+	}
+
+	tracks := make([]*model.MessageTrackItem, 0, len(groups))
+
+	// 2. 逐个消费者组检查消费状态
+	for _, group := range groups {
+		if isSystemGroup(group) {
+			continue
+		}
+
+		track := &model.MessageTrackItem{
+			ConsumerGroup: group,
+			TrackType:     "UNKNOWN",
+			ConsumeStatus: "未知",
+		}
+
+		// 检查消费者组是否在线
+		checkCtx, checkCancel := context.WithTimeout(context.Background(), s.settingsService.GetRequestTimeout())
+		err = executeWithClientRetry(client, func(retryClient *admin.Client) error {
+			connInfo, callErr := retryClient.ExamineConsumerConnectionInfo(checkCtx, group)
+			if callErr != nil {
+				track.TrackType = "NOT_ONLINE"
+				track.ConsumeStatus = "消费者不在线"
+				track.ExceptionDesc = callErr.Error()
+				return nil
+			}
+
+			if connInfo == nil || len(connInfo.ConnectionSet) == 0 {
+				track.TrackType = "NOT_ONLINE"
+				track.ConsumeStatus = "消费者不在线"
+				return nil
+			}
+
+			// 消费者在线，检查消费进度
+			stats, statsErr := retryClient.ExamineConsumeStats(checkCtx, group)
+			if statsErr != nil {
+				track.TrackType = "UNKNOWN"
+				track.ConsumeStatus = "无法获取消费进度"
+				track.ExceptionDesc = statsErr.Error()
+				return nil
+			}
+
+			// 检查该 Topic 下各队列的消费偏移量
+			// OffsetTable 的 key 是序列化的 MessageQueue 字符串，包含 topic 名称
+			consumed := false
+			hasTopicQueue := false
+			for mqKey, offset := range stats.OffsetTable {
+				if !strings.Contains(mqKey, topic) {
+					continue
+				}
+				hasTopicQueue = true
+				if offset.ConsumerOffset >= offset.BrokerOffset {
+					consumed = true
+				}
+			}
+
+			if !hasTopicQueue {
+				track.TrackType = "NOT_CONSUME_YET"
+				track.ConsumeStatus = "未订阅该 Topic"
+			} else if consumed {
+				track.TrackType = "CONSUMED"
+				track.ConsumeStatus = "已消费"
+			} else {
+				track.TrackType = "NOT_CONSUME_YET"
+				track.ConsumeStatus = "未消费"
+			}
+
+			return nil
+		})
+		checkCancel()
+
+		tracks = append(tracks, track)
+	}
+
+	return tracks, nil
 }
 
 // ResendMessage 重投消息

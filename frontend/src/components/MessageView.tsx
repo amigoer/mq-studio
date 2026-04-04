@@ -454,6 +454,8 @@ export function MessageView() {
   const [sendKeys, setSendKeys] = useState('')
   const [sendBody, setSendBody] = useState('')
   const [isSending, setIsSending] = useState(false)
+  const [trackItems, setTrackItems] = useState<{ consumerGroup: string; trackType: string; consumeStatus: string; exceptionDesc: string }[]>([])
+  const [trackLoading, setTrackLoading] = useState(false)
   const requestSeqRef = useRef(0)
 
   useEffect(() => {
@@ -463,6 +465,8 @@ export function MessageView() {
       setBodyViewMode(shouldFormatJSON ? 'json' : 'raw')
       setBodyFormatted(shouldFormatJSON ? formatJSONString(selectedMessage.body ?? '') : null)
     }
+    setTrackItems([])
+    setTrackLoading(false)
   }, [selectedMessage, settings.autoFormatJson])
 
   useEffect(() => {
@@ -883,6 +887,15 @@ export function MessageView() {
                     <TabsList className="h-8 w-full justify-start rounded-md bg-muted/30 p-0.5">
                       <TabsTrigger value="body" className="text-xs">Body</TabsTrigger>
                       <TabsTrigger value="properties" className="text-xs">Properties</TabsTrigger>
+                      <TabsTrigger value="trace" className="text-xs" onClick={() => {
+                        if (selectedMessage && trackItems.length === 0 && !trackLoading) {
+                          setTrackLoading(true)
+                          messageApi.getMessageTrack(selectedMessage.topic, selectedMessage.messageId)
+                            .then(setTrackItems)
+                            .catch((e) => toast.error(formatErrorMessage(e)))
+                            .finally(() => setTrackLoading(false))
+                        }
+                      }}>Trace</TabsTrigger>
                     </TabsList>
                     <TabsContent value="body" className="mt-2">
                       <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
@@ -966,6 +979,38 @@ export function MessageView() {
                         )
                       })() : (
                         <p className="py-4 text-center text-xs text-muted-foreground">无属性</p>
+                      )}
+                    </TabsContent>
+                    <TabsContent value="trace" className="mt-2">
+                      {trackLoading ? (
+                        <div className="flex items-center justify-center py-6">
+                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                          <span className="ml-2 text-xs text-muted-foreground">加载轨迹中...</span>
+                        </div>
+                      ) : trackItems.length > 0 ? (
+                        <div className="space-y-2">
+                          {trackItems.map((item, idx) => (
+                            <div key={idx} className="rounded-md border border-border/40 bg-muted/20 px-3 py-2.5 text-xs">
+                              <div className="flex items-center justify-between gap-2 mb-1">
+                                <span className="font-medium text-foreground truncate">{item.consumerGroup}</span>
+                                <span className={cn(
+                                  'shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium',
+                                  item.trackType === 'CONSUMED' && 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400',
+                                  item.trackType === 'NOT_CONSUME_YET' && 'bg-amber-500/15 text-amber-700 dark:text-amber-400',
+                                  item.trackType === 'NOT_ONLINE' && 'bg-red-500/15 text-red-700 dark:text-red-400',
+                                  (item.trackType === 'UNKNOWN' || !['CONSUMED', 'NOT_CONSUME_YET', 'NOT_ONLINE'].includes(item.trackType)) && 'bg-muted text-muted-foreground',
+                                )}>
+                                  {item.consumeStatus}
+                                </span>
+                              </div>
+                              {item.exceptionDesc && (
+                                <p className="text-[10px] text-muted-foreground truncate" title={item.exceptionDesc}>{item.exceptionDesc}</p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="py-4 text-center text-xs text-muted-foreground">无消费轨迹</p>
                       )}
                     </TabsContent>
                   </Tabs>

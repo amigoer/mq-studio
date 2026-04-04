@@ -249,8 +249,8 @@ export function SettingsView() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="shrink-0 border-b border-border/40 px-4 py-3">
-        <h1 className="text-sm font-medium text-foreground">设置</h1>
+      <div className="shrink-0 border-b border-border/40 px-5 py-3.5">
+        <h1 className="text-sm font-semibold text-foreground">设置</h1>
       </div>
       <div className="flex min-h-0 flex-1">
         <nav className="w-44 shrink-0 border-r border-border/40 bg-muted/20 py-2">

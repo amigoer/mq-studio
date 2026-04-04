@@ -40,15 +40,15 @@ export function OverviewView({ connections, topicCount, consumerGroupCount = 0, 
 
   return (
     <div className="flex h-full flex-col">
-      <div className="shrink-0 border-b border-border/40 px-4 py-3">
-        <h1 className="text-sm font-medium text-foreground">概览</h1>
+      <div className="shrink-0 border-b border-border/40 px-5 py-3.5">
+        <h1 className="text-sm font-semibold text-foreground">概览</h1>
       </div>
-      <div className="flex-1 overflow-y-auto scroll-thin p-4">
-        <div className="mx-auto max-w-2xl space-y-6">
+      <div className="flex-1 overflow-y-auto scroll-thin p-5">
+        <div className="mx-auto max-w-3xl space-y-8">
           {/* 当前连接 */}
           <section>
-            <h2 className="mb-2 text-xs font-medium text-muted-foreground">当前连接</h2>
-            <div className="rounded-md border border-border/40 bg-card p-4">
+            <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">当前连接</h2>
+            <div className="rounded-lg border border-border/40 bg-card p-5 shadow-sm">
               {currentConn ? (
                 <div className="flex items-start gap-3">
                   <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
@@ -88,12 +88,12 @@ export function OverviewView({ connections, topicCount, consumerGroupCount = 0, 
 
           {/* 数据概览 */}
           <section>
-            <h2 className="mb-2 text-xs font-medium text-muted-foreground">数据概览</h2>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">数据概览</h2>
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
               <button
                 type="button"
                 onClick={() => onSelectNav('topics')}
-                className="rounded-md border border-border/40 bg-card px-4 py-3 text-left transition-colors hover:border-primary/50 hover:bg-accent/50"
+                className="rounded-lg border border-border/40 bg-card px-5 py-4 text-left shadow-sm transition-colors hover:border-primary/50 hover:bg-accent/50"
               >
                 <p className="text-2xl font-semibold tabular-nums text-foreground">{topicCount}</p>
                 <p className="mt-0.5 text-xs text-muted-foreground">Topic</p>
@@ -101,7 +101,7 @@ export function OverviewView({ connections, topicCount, consumerGroupCount = 0, 
               <button
                 type="button"
                 onClick={() => onSelectNav('consumers')}
-                className="rounded-md border border-border/40 bg-card px-4 py-3 text-left transition-colors hover:border-primary/50 hover:bg-accent/50"
+                className="rounded-lg border border-border/40 bg-card px-5 py-4 text-left shadow-sm transition-colors hover:border-primary/50 hover:bg-accent/50"
               >
                 <p className="text-2xl font-semibold tabular-nums text-foreground">{consumerGroupCount}</p>
                 <p className="mt-0.5 text-xs text-muted-foreground">消费者组</p>
@@ -109,7 +109,7 @@ export function OverviewView({ connections, topicCount, consumerGroupCount = 0, 
               <button
                 type="button"
                 onClick={() => onSelectNav('messages')}
-                className="rounded-md border border-border/40 bg-card px-4 py-3 text-left transition-colors hover:border-primary/50 hover:bg-accent/50"
+                className="rounded-lg border border-border/40 bg-card px-5 py-4 text-left shadow-sm transition-colors hover:border-primary/50 hover:bg-accent/50"
               >
                 <p className="text-2xl font-semibold tabular-nums text-muted-foreground">—</p>
                 <p className="mt-0.5 text-xs text-muted-foreground">消息</p>
@@ -118,7 +118,7 @@ export function OverviewView({ connections, topicCount, consumerGroupCount = 0, 
               <button
                 type="button"
                 onClick={() => onSelectNav('cluster')}
-                className="rounded-md border border-border/40 bg-card px-4 py-3 text-left transition-colors hover:border-primary/50 hover:bg-accent/50"
+                className="rounded-lg border border-border/40 bg-card px-5 py-4 text-left shadow-sm transition-colors hover:border-primary/50 hover:bg-accent/50"
               >
                 <p className="text-2xl font-semibold tabular-nums text-foreground">
                   {clusterBrokerCount !== null ? clusterBrokerCount : '—'}
@@ -131,15 +131,15 @@ export function OverviewView({ connections, topicCount, consumerGroupCount = 0, 
 
           {/* 快捷入口 */}
           <section>
-            <h2 className="mb-2 text-xs font-medium text-muted-foreground">快捷入口</h2>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">快捷入口</h2>
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
               {SHORTCUTS.map(({ id, icon: Icon, label, description }) => (
                 <button
                   key={id}
                   type="button"
                   onClick={() => onSelectNav(id)}
                   className={cn(
-                    'flex flex-col items-start gap-2 rounded-md border border-border/40 bg-card p-4 text-left transition-colors hover:border-primary/50 hover:bg-accent/50'
+                    'flex flex-col items-start gap-3 rounded-lg border border-border/40 bg-card p-5 text-left shadow-sm transition-colors hover:border-primary/50 hover:bg-accent/50'
                   )}
                 >
                   <span className="flex h-9 w-9 items-center justify-center rounded-md bg-muted/80 text-muted-foreground">
