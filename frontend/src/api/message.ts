@@ -116,6 +116,23 @@ export async function queryRetryMessages(groupName: string, maxResults = 32): Pr
   }
 }
 
+/**
+ * 重投消息到指定消费者组（直接投递）
+ */
+export async function resendMessage(
+  consumerGroup: string,
+  clientID: string,
+  topic: string,
+  msgID: string
+): Promise<string> {
+  try {
+    return await MessageService.ResendMessage(consumerGroup, clientID, topic, msgID)
+  } catch (e) {
+    console.error('ResendMessage', e)
+    throw e
+  }
+}
+
 export async function sendMessage(
   topic: string,
   tags: string,

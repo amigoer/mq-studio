@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef, type ReactNode } from 'react'
 import { toast } from 'sonner'
-import { Search, Loader2, Copy, CalendarIcon, Maximize2, Send, X } from 'lucide-react'
+import { Search, Loader2, Copy, CalendarIcon, Maximize2, Send, X, RotateCw } from 'lucide-react'
 import { format } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
 import { cn, formatErrorMessage } from '@/lib/utils'
@@ -481,6 +481,7 @@ export function MessageView() {
   const [isSending, setIsSending] = useState(false)
   const [trackItems, setTrackItems] = useState<{ consumerGroup: string; trackType: string; consumeStatus: string; exceptionDesc: string }[]>([])
   const [trackLoading, setTrackLoading] = useState(false)
+  const [resendingGroup, setResendingGroup] = useState<string | null>(null)
   const requestSeqRef = useRef(0)
 
   useEffect(() => {
@@ -615,6 +616,19 @@ export function MessageView() {
       setIsSending(false)
     }
   }, [sendTopic, selectedTopic, sendTags, sendKeys, sendBody, sendDelayLevel])
+
+  const handleResendMessage = useCallback(async (consumerGroup: string) => {
+    if (!selectedMessage) return
+    setResendingGroup(consumerGroup)
+    try {
+      const result = await messageApi.resendMessage(consumerGroup, '', selectedMessage.topic, selectedMessage.messageId)
+      toast.success(result || '重投成功')
+    } catch (e) {
+      toast.error(formatErrorMessage(e))
+    } finally {
+      setResendingGroup(null)
+    }
+  }, [selectedMessage])
 
   const selectedBody = selectedMessage?.body ?? ''
   const payloadPreview = getPayloadPreview(selectedBody, settings.maxPayloadRenderBytes)
@@ -1039,15 +1053,30 @@ export function MessageView() {
                             <div key={idx} className="rounded-md border border-border/40 bg-muted/20 px-3 py-2.5 text-xs">
                               <div className="flex items-center justify-between gap-2 mb-1">
                                 <span className="font-medium text-foreground truncate">{item.consumerGroup}</span>
-                                <span className={cn(
-                                  'shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium',
-                                  item.trackType === 'CONSUMED' && 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400',
-                                  item.trackType === 'NOT_CONSUME_YET' && 'bg-amber-500/15 text-amber-700 dark:text-amber-400',
-                                  item.trackType === 'NOT_ONLINE' && 'bg-red-500/15 text-red-700 dark:text-red-400',
-                                  (item.trackType === 'UNKNOWN' || !['CONSUMED', 'NOT_CONSUME_YET', 'NOT_ONLINE'].includes(item.trackType)) && 'bg-muted text-muted-foreground',
-                                )}>
-                                  {item.consumeStatus}
-                                </span>
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleResendMessage(item.consumerGroup)}
+                                    disabled={resendingGroup !== null}
+                                    className="rounded px-1.5 py-0.5 text-[10px] font-medium text-primary hover:bg-primary/10 disabled:opacity-50 transition-colors"
+                                    title="重投到该消费者组"
+                                  >
+                                    {resendingGroup === item.consumerGroup ? (
+                                      <Loader2 className="h-3 w-3 animate-spin" />
+                                    ) : (
+                                      <RotateCw className="h-3 w-3" />
+                                    )}
+                                  </button>
+                                  <span className={cn(
+                                    'rounded px-1.5 py-0.5 text-[10px] font-medium',
+                                    item.trackType === 'CONSUMED' && 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400',
+                                    item.trackType === 'NOT_CONSUME_YET' && 'bg-amber-500/15 text-amber-700 dark:text-amber-400',
+                                    item.trackType === 'NOT_ONLINE' && 'bg-red-500/15 text-red-700 dark:text-red-400',
+                                    (item.trackType === 'UNKNOWN' || !['CONSUMED', 'NOT_CONSUME_YET', 'NOT_ONLINE'].includes(item.trackType)) && 'bg-muted text-muted-foreground',
+                                  )}>
+                                    {item.consumeStatus}
+                                  </span>
+                                </div>
                               </div>
                               {item.exceptionDesc && (
                                 <p className="text-[10px] text-muted-foreground truncate" title={item.exceptionDesc}>{item.exceptionDesc}</p>
