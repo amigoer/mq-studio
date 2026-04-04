@@ -297,7 +297,19 @@ func (s *MessageService) ResendMessage(consumerGroup string, clientID string, to
 	return result, nil
 }
 
-// SendMessage 发送消息到指定 Topic
+// QueryDLQMessages 查询消费者组的死信队列消息
+func (s *MessageService) QueryDLQMessages(groupName string, maxResults int) ([]*model.MessageItem, error) {
+	dlqTopic := "%DLQ%" + groupName
+	return s.QueryMessages(dlqTopic, "", maxResults, 0, 0)
+}
+
+// QueryRetryMessages 查询消费者组的重试队列消息
+func (s *MessageService) QueryRetryMessages(groupName string, maxResults int) ([]*model.MessageItem, error) {
+	retryTopic := "%RETRY%" + groupName
+	return s.QueryMessages(retryTopic, "", maxResults, 0, 0)
+}
+
+// SendMessage ��送消息到指定 Topic
 func (s *MessageService) SendMessage(topic string, tags string, keys string, body string) (string, error) {
 	topic = strings.TrimSpace(topic)
 	if topic == "" {

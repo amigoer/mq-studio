@@ -34,6 +34,15 @@ export function GetMessageTrack(topic: string, msgID: string): $CancellablePromi
 }
 
 /**
+ * QueryDLQMessages 查询消费者组的死信队列消息
+ */
+export function QueryDLQMessages(groupName: string, maxResults: number): $CancellablePromise<(model$0.MessageItem | null)[]> {
+    return $Call.ByID(1071131889, groupName, maxResults).then(($result: any) => {
+        return $$createType5($result);
+    });
+}
+
+/**
  * QueryMessageByID 按消息 ID 查询消息
  */
 export function QueryMessageByID(topic: string, msgID: string): $CancellablePromise<model$0.MessageItem | null> {
@@ -52,6 +61,15 @@ export function QueryMessages(topic: string, key: string, tag: string, maxResult
 }
 
 /**
+ * QueryRetryMessages 查询消费者组的重试队列消息
+ */
+export function QueryRetryMessages(groupName: string, maxResults: number): $CancellablePromise<(model$0.MessageItem | null)[]> {
+    return $Call.ByID(2529028236, groupName, maxResults).then(($result: any) => {
+        return $$createType5($result);
+    });
+}
+
+/**
  * ResendMessage 重投消息
  */
 export function ResendMessage(consumerGroup: string, clientID: string, topic: string, msgID: string): $CancellablePromise<string> {
@@ -59,7 +77,7 @@ export function ResendMessage(consumerGroup: string, clientID: string, topic: st
 }
 
 /**
- * SendMessage 发送消息到指定 Topic
+ * SendMessage ��送消息到指定 Topic
  */
 export function SendMessage(topic: string, tags: string, keys: string, body: string): $CancellablePromise<string> {
     return $Call.ByID(1221390803, topic, tags, keys, body);
