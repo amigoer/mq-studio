@@ -17,6 +17,29 @@ import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/componen
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 const DEFAULT_MAX_RESULTS = 32
+
+const DELAY_LEVEL_OPTIONS = [
+  { value: 0, label: '不延迟' },
+  { value: 1, label: '1s' },
+  { value: 2, label: '5s' },
+  { value: 3, label: '10s' },
+  { value: 4, label: '30s' },
+  { value: 5, label: '1m' },
+  { value: 6, label: '2m' },
+  { value: 7, label: '3m' },
+  { value: 8, label: '4m' },
+  { value: 9, label: '5m' },
+  { value: 10, label: '6m' },
+  { value: 11, label: '7m' },
+  { value: 12, label: '8m' },
+  { value: 13, label: '9m' },
+  { value: 14, label: '10m' },
+  { value: 15, label: '20m' },
+  { value: 16, label: '30m' },
+  { value: 17, label: '1h' },
+  { value: 18, label: '2h' },
+]
+
 const textEncoder = new TextEncoder()
 const textDecoder = new TextDecoder()
 
@@ -454,6 +477,7 @@ export function MessageView() {
   const [sendTags, setSendTags] = useState('')
   const [sendKeys, setSendKeys] = useState('')
   const [sendBody, setSendBody] = useState('')
+  const [sendDelayLevel, setSendDelayLevel] = useState(0)
   const [isSending, setIsSending] = useState(false)
   const [trackItems, setTrackItems] = useState<{ consumerGroup: string; trackType: string; consumeStatus: string; exceptionDesc: string }[]>([])
   const [trackLoading, setTrackLoading] = useState(false)
@@ -582,7 +606,7 @@ export function MessageView() {
     }
     setIsSending(true)
     try {
-      const result = await messageApi.sendMessage(t, sendTags.trim(), sendKeys.trim(), sendBody)
+      const result = await messageApi.sendMessage(t, sendTags.trim(), sendKeys.trim(), sendBody, sendDelayLevel)
       toast.success(result)
       setSendBody('')
     } catch (e) {
@@ -590,7 +614,7 @@ export function MessageView() {
     } finally {
       setIsSending(false)
     }
-  }, [sendTopic, selectedTopic, sendTags, sendKeys, sendBody])
+  }, [sendTopic, selectedTopic, sendTags, sendKeys, sendBody, sendDelayLevel])
 
   const selectedBody = selectedMessage?.body ?? ''
   const payloadPreview = getPayloadPreview(selectedBody, settings.maxPayloadRenderBytes)
@@ -761,6 +785,17 @@ export function MessageView() {
                   className="h-9 w-28 shrink-0 rounded-md border border-border/40 bg-background px-2.5 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-ring"
                   aria-label="Keys"
                 />
+                <select
+                  value={sendDelayLevel}
+                  onChange={(e) => setSendDelayLevel(Number(e.target.value))}
+                  className="h-9 shrink-0 rounded-md border border-border/40 bg-background px-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                  aria-label="延迟等级"
+                  title="延迟等级"
+                >
+                  {DELAY_LEVEL_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
               </div>
               <textarea
                 value={sendBody}

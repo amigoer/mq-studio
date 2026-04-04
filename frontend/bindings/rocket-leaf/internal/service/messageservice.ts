@@ -77,10 +77,10 @@ export function ResendMessage(consumerGroup: string, clientID: string, topic: st
 }
 
 /**
- * SendMessage ��送消息到指定 Topic
+ * SendMessage 发送消息到指定 Topic，delayLevel 0 表示不延迟，1-18 对应 RocketMQ 延迟等级
  */
-export function SendMessage(topic: string, tags: string, keys: string, body: string): $CancellablePromise<string> {
-    return $Call.ByID(1221390803, topic, tags, keys, body);
+export function SendMessage(topic: string, tags: string, keys: string, body: string, delayLevel: number): $CancellablePromise<string> {
+    return $Call.ByID(1221390803, topic, tags, keys, body, delayLevel);
 }
 
 // Private type creation functions
