@@ -82,6 +82,18 @@ func (s *SettingsService) loadFromFile() error {
 		}
 	}
 
+	// 解密敏感字段（兼容未加密的旧数据）
+	if loaded.GlobalAccessKey != "" {
+		if decrypted, decErr := crypto.Decrypt(loaded.GlobalAccessKey, "globalAccessKey"); decErr == nil {
+			loaded.GlobalAccessKey = decrypted
+		}
+	}
+	if loaded.GlobalSecretKey != "" {
+		if decrypted, decErr := crypto.Decrypt(loaded.GlobalSecretKey, "globalSecretKey"); decErr == nil {
+			loaded.GlobalSecretKey = decrypted
+		}
+	}
+
 	s.settings = loaded
 	return nil
 }
