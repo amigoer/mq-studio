@@ -61,7 +61,13 @@ func (s *SettingsService) loadFromFile() error {
 	// 先用默认值填充，再覆盖已保存的字段
 	loaded := model.DefaultSettings()
 	if err := json.Unmarshal(data, loaded); err != nil {
-		return err
+		// 兼容旧格式（fontSize 从 string 改为 int），忽略类型不匹配的错误
+		log.Printf("[SettingsService] 解析设置文件(部分字段可能使用旧格式): %v", err)
+	}
+
+	// 规范化 fontSize：确保在有效范围内
+	if loaded.FontSize < 12 || loaded.FontSize > 18 {
+		loaded.FontSize = 14
 	}
 
 	// 解密敏感字段（兼容未加密的旧数据）

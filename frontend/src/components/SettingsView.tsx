@@ -26,7 +26,6 @@ import { useTheme, type ThemeMode } from '@/hooks/useTheme'
 import {
   useSettings,
   type Language,
-  type FontSize,
   type Timezone,
   type TimestampFormat,
   type ProxyType,
@@ -51,13 +50,18 @@ const LANGUAGE_OPTIONS: { value: Language; label: string }[] = [
   { value: 'zh', label: '中文（简体）' },
 ]
 
-const FONT_SIZE_OPTIONS: { value: FontSize; label: string }[] = [
-  { value: 'small', label: '小' },
-  { value: 'medium', label: '中' },
-  { value: 'large', label: '大' },
+const FONT_SIZE_OPTIONS = [12, 13, 14, 15, 16, 17, 18]
+
+const UI_FONT_OPTIONS = [
+  { value: 'system', label: '跟随系统' },
+  { value: 'PingFang SC', label: '苹方 (PingFang SC)' },
+  { value: 'Microsoft YaHei', label: '微软雅黑' },
+  { value: 'Noto Sans SC', label: 'Noto Sans SC' },
+  { value: 'Inter', label: 'Inter' },
+  { value: 'Helvetica Neue', label: 'Helvetica Neue' },
 ]
 
-const MONOSPACE_FONTS = ['JetBrains Mono', 'Fira Code', 'Source Code Pro', 'Consolas', 'Monaco']
+const MONOSPACE_FONTS = ['JetBrains Mono', 'Fira Code', 'Source Code Pro', 'Cascadia Code', 'Consolas', 'Monaco', 'Menlo']
 
 const DATA_PATHS: { platform: string; path: string; icon: React.ElementType }[] = [
   { platform: 'macOS', path: '~/Library/Application Support/rocket-leaf/', icon: Laptop },
@@ -93,8 +97,8 @@ const SETTINGS_NAV: { id: SettingsTabId; label: string; icon: React.ElementType 
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-4 py-2">
-      <span className="w-40 shrink-0 text-sm text-foreground">{label}</span>
+    <div className="flex items-center gap-6 py-4">
+      <span className="w-44 shrink-0 text-[0.9375rem] text-foreground">{label}</span>
       <div className="shrink-0">{children}</div>
     </div>
   )
@@ -120,7 +124,7 @@ function Select<T extends string>({
       title={title}
       aria-label={title}
       className={cn(
-        'rounded-md border border-border/50 bg-background px-2 py-1.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-border',
+        'rounded-md border border-border/50 bg-background px-3 py-2 text-[0.9375rem] text-foreground focus:outline-none focus:ring-1 focus:ring-border',
         className
       )}
     >
@@ -253,20 +257,20 @@ export function SettingsView() {
         <h1 className="text-sm font-semibold text-foreground">设置</h1>
       </div>
       <div className="flex min-h-0 flex-1">
-        <nav className="w-44 shrink-0 border-r border-border/40 bg-muted/20 py-2">
+        <nav className="w-48 shrink-0 border-r border-border/40 bg-muted/20 py-2">
           {SETTINGS_NAV.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               type="button"
               onClick={() => setActiveTab(id)}
               className={cn(
-                'flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors',
+                'flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-[0.9375rem] transition-colors',
                 activeTab === id
                   ? 'border-l-2 border-foreground/80 bg-accent/50 text-foreground'
                   : 'border-l-2 border-transparent text-muted-foreground hover:bg-accent/30 hover:text-foreground'
               )}
             >
-              <Icon className="h-4 w-4 shrink-0" />
+              <Icon className="h-[18px] w-[18px] shrink-0" />
               {label}
             </button>
           ))}
@@ -305,31 +309,74 @@ export function SettingsView() {
               value={settings.language}
               options={LANGUAGE_OPTIONS}
               onChange={(v) => setSetting('language', v)}
-              className="min-w-[120px]"
+              className="min-w-[260px]"
               title="多语言"
             />
           </Row>
           <Row label="界面字体大小">
-            <Select
-              value={settings.fontSize}
-              options={FONT_SIZE_OPTIONS}
-              onChange={(v) => setSetting('fontSize', v)}
-              title="界面字体大小"
-            />
-          </Row>
-          <Row label="代码字体 (Monospace)">
             <select
-              value={settings.monospaceFont}
-              onChange={(e) => setSetting('monospaceFont', e.target.value)}
-              title="代码字体"
-              className="rounded-md border border-border/50 bg-background px-2 py-1.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-border min-w-[140px]"
+              value={settings.fontSize}
+              onChange={(e) => setSetting('fontSize', Number(e.target.value))}
+              title="界面字体大小"
+              className="rounded-md border border-border/50 bg-background px-3 py-2 text-[0.9375rem] text-foreground focus:outline-none focus:ring-1 focus:ring-border min-w-[260px]"
             >
-              {MONOSPACE_FONTS.map((f) => (
-                <option key={f} value={f}>
-                  {f}
-                </option>
+              {FONT_SIZE_OPTIONS.map((s) => (
+                <option key={s} value={s}>{s}px</option>
               ))}
             </select>
+          </Row>
+          <Row label="界面字体">
+            <div className="flex items-center gap-2">
+              <select
+                value={UI_FONT_OPTIONS.some((o) => o.value === settings.uiFont) ? settings.uiFont : '__custom__'}
+                onChange={(e) => {
+                  if (e.target.value !== '__custom__') setSetting('uiFont', e.target.value)
+                }}
+                title="界面字体"
+                className="rounded-md border border-border/50 bg-background px-3 py-2 text-[0.9375rem] text-foreground focus:outline-none focus:ring-1 focus:ring-border min-w-[260px]"
+              >
+                {UI_FONT_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+                {!UI_FONT_OPTIONS.some((o) => o.value === settings.uiFont) && (
+                  <option value="__custom__">自定义</option>
+                )}
+              </select>
+              {!UI_FONT_OPTIONS.some((o) => o.value === settings.uiFont) && (
+                <input
+                  value={settings.uiFont}
+                  onChange={(e) => setSetting('uiFont', e.target.value)}
+                  placeholder="输入字体名称"
+                  className="rounded-md border border-border/50 bg-background px-3 py-2 text-[0.9375rem] text-foreground focus:outline-none focus:ring-1 focus:ring-border w-[160px]"
+                />
+              )}
+            </div>
+          </Row>
+          <Row label="代码字体 (Monospace)">
+            <div className="flex items-center gap-2">
+              <select
+                value={MONOSPACE_FONTS.includes(settings.monospaceFont) ? settings.monospaceFont : '__custom__'}
+                onChange={(e) => {
+                  if (e.target.value === '__custom__') setSetting('monospaceFont', '')
+                  else setSetting('monospaceFont', e.target.value)
+                }}
+                title="代码字体"
+                className="rounded-md border border-border/50 bg-background px-3 py-2 text-[0.9375rem] text-foreground focus:outline-none focus:ring-1 focus:ring-border min-w-[260px]"
+              >
+                {MONOSPACE_FONTS.map((f) => (
+                  <option key={f} value={f}>{f}</option>
+                ))}
+                <option value="__custom__">自定义</option>
+              </select>
+              {!MONOSPACE_FONTS.includes(settings.monospaceFont) && (
+                <input
+                  value={settings.monospaceFont}
+                  onChange={(e) => setSetting('monospaceFont', e.target.value)}
+                  placeholder="输入字体名称"
+                  className="rounded-md border border-border/50 bg-background px-3 py-2 text-[0.9375rem] text-foreground focus:outline-none focus:ring-1 focus:ring-border w-[160px]"
+                />
+              )}
+            </div>
           </Row>
           <Row label="启动时自动连接上次集群">
             <Toggle
