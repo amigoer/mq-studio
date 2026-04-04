@@ -194,8 +194,8 @@ export function ConnectionManagement({ list, loading, error, onRefresh, onConnec
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex shrink-0 items-center justify-between border-b border-border/40 px-4 py-3">
-        <h1 className="text-sm font-medium text-foreground">连接管理</h1>
+      <div className="flex shrink-0 items-center justify-between border-b border-border/40 px-5 py-3.5">
+        <h1 className="text-sm font-semibold text-foreground">连接管理</h1>
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -231,17 +231,28 @@ export function ConnectionManagement({ list, loading, error, onRefresh, onConnec
         ) : list.length === 0 ? (
           <p className="text-sm text-muted-foreground">暂无连接，点击「添加连接」创建。</p>
         ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,360px))] gap-4">
             {list.map((c, index) => {
               const isOnlyDefault = c.isDefault && list.findIndex((x) => x.isDefault) === index
               return (
               <article
                 key={c.id}
-                onClick={() => {
+                onClick={async () => {
+                  if (connectingId !== null || testingId !== null) return
                   if (c.status === ConnectionStatus.StatusOnline) {
                     onSelectConnection?.(c.id)
                   } else {
-                    onConnect(c.id)
+                    // 先测试连通性，成功后再连接
+                    setTestingId(c.id)
+                    try {
+                      await connectionApi.testConnection(c.id)
+                      onConnect(c.id)
+                    } catch (e) {
+                      toast.error(`连接失败: ${formatErrorMessage(e)}`)
+                      onRefresh()
+                    } finally {
+                      setTestingId(null)
+                    }
                   }
                 }}
                 className={cn(

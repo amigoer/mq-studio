@@ -25,7 +25,7 @@
     --border: 240 5.9% 90%;
     --input: 240 5.9% 90%;
     --ring: 240 5.9% 10%;
-    --radius: 0.375rem;
+    --radius: 0.5rem;
   }
 
   .dark {
@@ -60,6 +60,7 @@ body {
   min-height: 100vh;
   background: hsl(var(--background));
   color: hsl(var(--foreground));
+  font-family: var(--app-ui-font, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif);
   -webkit-user-select: none;
   user-select: none;
 }
@@ -117,4 +118,78 @@ textarea,
 .scroll-thin::-webkit-scrollbar-thumb {
   background: hsl(var(--border));
   border-radius: 3px;
+}
+
+/* Sonner toast 颜色主题 */
+[data-sonner-toast][data-type="success"] {
+  background: #ecfdf5 !important;
+  border-color: #a7f3d0 !important;
+  color: #065f46 !important;
+}
+[data-sonner-toast][data-type="success"] [data-icon] svg {
+  color: #059669 !important;
+}
+
+[data-sonner-toast][data-type="error"] {
+  background: #fef2f2 !important;
+  border-color: #fecaca !important;
+  color: #991b1b !important;
+}
+[data-sonner-toast][data-type="error"] [data-icon] svg {
+  color: #dc2626 !important;
+}
+
+[data-sonner-toast][data-type="warning"] {
+  background: #fffbeb !important;
+  border-color: #fde68a !important;
+  color: #92400e !important;
+}
+[data-sonner-toast][data-type="warning"] [data-icon] svg {
+  color: #d97706 !important;
+}
+
+[data-sonner-toast][data-type="info"] {
+  background: #eff6ff !important;
+  border-color: #bfdbfe !important;
+  color: #1e40af !important;
+}
+[data-sonner-toast][data-type="info"] [data-icon] svg {
+  color: #2563eb !important;
+}
+
+/* 深色模式 */
+.dark [data-sonner-toast][data-type="success"] {
+  background: #052e16 !important;
+  border-color: #065f4680 !important;
+  color: #a7f3d0 !important;
+}
+.dark [data-sonner-toast][data-type="success"] [data-icon] svg {
+  color: #34d399 !important;
+}
+
+.dark [data-sonner-toast][data-type="error"] {
+  background: #450a0a !important;
+  border-color: #991b1b80 !important;
+  color: #fecaca !important;
+}
+.dark [data-sonner-toast][data-type="error"] [data-icon] svg {
+  color: #f87171 !important;
+}
+
+.dark [data-sonner-toast][data-type="warning"] {
+  background: #451a03 !important;
+  border-color: #92400e80 !important;
+  color: #fde68a !important;
+}
+.dark [data-sonner-toast][data-type="warning"] [data-icon] svg {
+  color: #fbbf24 !important;
+}
+
+.dark [data-sonner-toast][data-type="info"] {
+  background: #172554 !important;
+  border-color: #1e40af80 !important;
+  color: #bfdbfe !important;
+}
+.dark [data-sonner-toast][data-type="info"] [data-icon] svg {
+  color: #60a5fa !important;
 }

@@ -154,7 +154,11 @@ function App(): React.ReactElement {
           {renderContent()}
         </main>
       </div>
-      <Toaster position="bottom-right" closeButton style={{ '--width': '260px' } as React.CSSProperties} />
+      <Toaster
+        position="top-center"
+        closeButton
+        style={{ '--width': '360px' } as React.CSSProperties}
+      />
     </div>
   )
 }

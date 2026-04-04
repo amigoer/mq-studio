@@ -47,7 +47,7 @@ export function TitleBar() {
   return (
     <header
       className={cn(
-        'flex h-10 shrink-0 select-none items-center gap-2 border-b border-border/50 bg-background px-3',
+        'flex h-12 shrink-0 select-none items-center gap-2.5 border-b border-border/50 bg-background px-4',
         '[--wails-draggable:drag]',
         mac && 'pl-[72px]'
       )}

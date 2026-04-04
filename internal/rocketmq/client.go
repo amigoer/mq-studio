@@ -4,6 +4,7 @@ package rocketmq
 import (
 	"context"
 	"fmt"
+	"log"
 	"strings"
 	"sync"
 	"time"
@@ -115,6 +116,16 @@ func (m *AdminClientManager) CreateClient(nameServer string, timeout time.Durati
 		return nil, fmt.Errorf("启动客户端失败: %w", err)
 	}
 
+	// 验证连接可用性：尝试获取集群信息
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	if _, err := client.ExamineBrokerClusterInfo(ctx); err != nil {
+		client.Close()
+		return nil, fmt.Errorf("无法连接到 NameServer: %w", err)
+	}
+
+	log.Printf("[ClientManager] 连接 NameServer 成功: %s", nameServer)
 	m.clients[nameServer] = client
 	return client, nil
 }
