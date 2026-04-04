@@ -28,6 +28,20 @@ export async function getConsumeStats(groupName: string): Promise<Record<string,
   }
 }
 
+export async function createConsumerGroup(
+  group: string,
+  brokerAddr: string,
+  consumeMode: string,
+  maxRetry: number
+): Promise<void> {
+  try {
+    await ConsumerService.CreateConsumerGroup(group, brokerAddr, consumeMode, maxRetry)
+  } catch (e) {
+    console.error('CreateConsumerGroup', e)
+    throw e
+  }
+}
+
 export async function updateConsumerGroup(
   group: string,
   brokerAddr: string,
