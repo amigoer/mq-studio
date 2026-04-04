@@ -389,14 +389,31 @@ func (s *TopicService) GetTopicStats(topic string) (map[string]interface{}, erro
 	ctx, cancel := context.WithTimeout(context.Background(), s.settingsService.GetRequestTimeout())
 	defer cancel()
 
-	stats, err := client.ExamineTopicStats(ctx, topic)
+	var result map[string]interface{}
+	err = executeWithClientRetry(client, func(retryClient *admin.Client) error {
+		stats, callErr := retryClient.ExamineTopicStats(ctx, topic)
+		if callErr != nil {
+			return callErr
+		}
+
+		var totalMinOffset, totalMaxOffset int64
+		queueCount := len(stats.OffsetTable)
+		for _, offset := range stats.OffsetTable {
+			totalMinOffset += offset.MinOffset
+			totalMaxOffset += offset.MaxOffset
+		}
+
+		result = map[string]interface{}{
+			"topic":          topic,
+			"queueCount":     queueCount,
+			"totalMinOffset": totalMinOffset,
+			"totalMaxOffset": totalMaxOffset,
+			"totalMessages":  totalMaxOffset - totalMinOffset,
+		}
+		return nil
+	})
 	if err != nil {
 		return nil, fmt.Errorf("获取 Topic 统计失败: %w", err)
-	}
-
-	result := map[string]interface{}{
-		"topic": topic,
-		"stats": stats,
 	}
 
 	return result, nil

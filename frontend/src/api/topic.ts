@@ -52,17 +52,11 @@ export async function createTopic(
   }
 }
 
-export async function updateTopic(
-  topic: string,
-  brokerAddr: string,
-  readQueue: number,
-  writeQueue: number,
-  perm: string
-): Promise<void> {
+export async function getTopicStats(topicName: string): Promise<Record<string, unknown>> {
   try {
-    await TopicService.UpdateTopic(topic, brokerAddr, readQueue, writeQueue, perm)
+    return (await TopicService.GetTopicStats(topicName)) as Record<string, unknown>
   } catch (e) {
-    console.error('UpdateTopic', e)
+    console.error('GetTopicStats', e)
     throw e
   }
 }

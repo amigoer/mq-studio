@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { toast } from 'sonner'
-import { RefreshCw, Plus, Search, X, Trash2, Loader2, AlertTriangle, Pencil } from 'lucide-react'
+import { RefreshCw, Plus, Search, X, Trash2, Loader2, AlertTriangle, BarChart3 } from 'lucide-react'
 import { cn, formatErrorMessage } from '@/lib/utils'
 import type { TopicItem } from '../../bindings/rocket-leaf/internal/model/models.js'
 import { TopicPerm } from '../../bindings/rocket-leaf/internal/model/models.js'
@@ -9,6 +9,28 @@ import * as clusterApi from '@/api/cluster'
 
 const TOOLTIP_DELAY_MS = 150
 const MIN_SPIN_MS = 400
+
+type TopicStats = {
+  queueCount: number
+  totalMinOffset: number
+  totalMaxOffset: number
+  totalMessages: number
+}
+
+function parseTopicStats(data: Record<string, unknown>): TopicStats {
+  return {
+    queueCount: typeof data.queueCount === 'number' ? data.queueCount : 0,
+    totalMinOffset: typeof data.totalMinOffset === 'number' ? data.totalMinOffset : 0,
+    totalMaxOffset: typeof data.totalMaxOffset === 'number' ? data.totalMaxOffset : 0,
+    totalMessages: typeof data.totalMessages === 'number' ? data.totalMessages : 0,
+  }
+}
+
+function formatNumber(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`
+  return String(n)
+}
 
 type Props = {
   list: TopicItem[]
@@ -37,6 +59,8 @@ export function TopicList({ list, loading, error, onRefresh }: Props) {
   const [createError, setCreateError] = useState<string | null>(null)
   const [brokerOptions, setBrokerOptions] = useState<string[]>([])
   const [brokerOptionsLoading, setBrokerOptionsLoading] = useState(false)
+  const [stats, setStats] = useState<TopicStats | null>(null)
+  const [statsLoading, setStatsLoading] = useState(false)
   const [deleteConfirmTopic, setDeleteConfirmTopic] = useState<string | null>(null)
   const [deletingTopic, setDeletingTopic] = useState<string | null>(null)
   const [editOpen, setEditOpen] = useState(false)
@@ -73,11 +97,13 @@ export function TopicList({ list, loading, error, onRefresh }: Props) {
     if (!selectedTopic) {
       setDetail(null)
       setDetailError(null)
+      setStats(null)
       return
     }
     let cancelled = false
     setDetailLoading(true)
     setDetailError(null)
+    setStatsLoading(true)
     topicApi
       .getTopicDetail(selectedTopic)
       .then((data) => {
@@ -94,6 +120,17 @@ export function TopicList({ list, loading, error, onRefresh }: Props) {
       })
       .finally(() => {
         if (!cancelled) setDetailLoading(false)
+      })
+    topicApi
+      .getTopicStats(selectedTopic)
+      .then((data) => {
+        if (!cancelled) setStats(parseTopicStats(data))
+      })
+      .catch(() => {
+        if (!cancelled) setStats(null)
+      })
+      .finally(() => {
+        if (!cancelled) setStatsLoading(false)
       })
     return () => {
       cancelled = true
@@ -388,6 +425,35 @@ export function TopicList({ list, loading, error, onRefresh }: Props) {
                         <span className="text-muted-foreground">权限：</span>
                         <span className="text-foreground">{detail.perm}</span>
                       </p>
+                    )}
+                  </div>
+                  {/* 统计信息 */}
+                  <div className="rounded-md border border-border/40 bg-background/60 p-3">
+                    <div className="mb-3 flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                      <BarChart3 className="h-3.5 w-3.5" />
+                      <span>统计</span>
+                    </div>
+                    {statsLoading ? (
+                      <div className="flex items-center justify-center py-4 text-muted-foreground">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      </div>
+                    ) : stats ? (
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="rounded-md border border-border/40 bg-card px-3 py-2">
+                          <div className="text-[11px] text-muted-foreground">消息队列</div>
+                          <div className="mt-1 text-sm font-medium text-foreground">{stats.queueCount}</div>
+                        </div>
+                        <div className="rounded-md border border-border/40 bg-card px-3 py-2">
+                          <div className="text-[11px] text-muted-foreground">最大偏移</div>
+                          <div className="mt-1 text-sm font-medium text-foreground">{formatNumber(stats.totalMaxOffset)}</div>
+                        </div>
+                        <div className="rounded-md border border-border/40 bg-card px-3 py-2">
+                          <div className="text-[11px] text-muted-foreground">消息总量</div>
+                          <div className="mt-1 text-sm font-medium text-foreground">{formatNumber(stats.totalMessages)}</div>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">暂无统计数据</p>
                     )}
                   </div>
                   {detail.routes != null && detail.routes.length > 0 && (
