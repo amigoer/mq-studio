@@ -117,10 +117,13 @@ const SETTINGS_NAV: { id: SettingsTabId; label: string; icon: React.ElementType 
   { id: 'about', label: '关于与更新', icon: Info },
 ]
 
-function Row({ label, children }: { label: string; children: React.ReactNode }) {
+function Row({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
     <div className="flex items-center gap-6 py-2.5">
-      <span className="w-44 shrink-0 text-[0.9375rem] text-foreground">{label}</span>
+      <div className="w-44 shrink-0">
+        <span className="text-[0.9375rem] text-foreground">{label}</span>
+        {hint && <p className="mt-0.5 text-xs text-muted-foreground/70">{hint}</p>}
+      </div>
       <div className="shrink-0">{children}</div>
     </div>
   )
@@ -380,7 +383,7 @@ export function SettingsView() {
               )}
             </div>
           </Row>
-          <Row label="代码字体 (Monospace)">
+          <Row label="代码字体 (Monospace)" hint="消息内容、JSON 等使用的等宽字体">
             <div className="flex items-center gap-2">
               <select
                 value={MONOSPACE_FONTS.includes(settings.monospaceFont) ? settings.monospaceFont : '__custom__'}
@@ -406,7 +409,7 @@ export function SettingsView() {
               )}
             </div>
           </Row>
-          <Row label="启动时自动连接上次集群">
+          <Row label="启动时自动连接上次集群" hint="启动应用后自动连接上次使用的集群">
             <Toggle
               checked={settings.autoConnectLast}
               onChange={(v) => setSetting('autoConnectLast', v)}
@@ -417,7 +420,7 @@ export function SettingsView() {
 
           {activeTab === 'connection' && (
             <div>
-          <Row label="连接超时 (ms)">
+          <Row label="连接超时 (ms)" hint="建立 NameServer 连接的最大等待时间">
             <input
               type="number"
               min={1000}
@@ -430,7 +433,7 @@ export function SettingsView() {
               className="w-20 h-10 rounded-md border border-border/50 bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-border"
             />
           </Row>
-          <Row label="请求超时 (ms)">
+          <Row label="请求超时 (ms)" hint="查询 Topic、消费组等操作的超时时间">
             <input
               type="number"
               min={1000}
@@ -443,7 +446,7 @@ export function SettingsView() {
               className="w-20 h-10 rounded-md border border-border/50 bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-border"
             />
           </Row>
-          <Row label="默认 AccessKey">
+          <Row label="默认 AccessKey" hint="新建连接时自动填充，加密存储">
             <input
               type="text"
               value={settings.globalAccessKey}
@@ -452,7 +455,7 @@ export function SettingsView() {
               className="w-48 h-10 rounded-md border border-border/50 bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-border"
             />
           </Row>
-          <Row label="默认 SecretKey">
+          <Row label="默认 SecretKey" hint="新建连接时自动填充，加密存储">
             <input
               type="password"
               value={settings.globalSecretKey}
@@ -461,7 +464,7 @@ export function SettingsView() {
               className="w-48 h-10 rounded-md border border-border/50 bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-border"
             />
           </Row>
-          <Row label="跳过 TLS 校验">
+          <Row label="跳过 TLS 校验" hint="跳过服务端证书验证，仅限测试环境">
             <Toggle
               checked={settings.skipTlsVerify}
               onChange={(v) => setSetting('skipTlsVerify', v)}
@@ -527,13 +530,13 @@ export function SettingsView() {
               title="时间戳格式"
             />
           </Row>
-          <Row label="JSON 自动格式化">
+          <Row label="JSON 自动格式化" hint="查看消息时自动美化 JSON 内容">
             <Toggle
               checked={settings.autoFormatJson}
               onChange={(v) => setSetting('autoFormatJson', v)}
             />
           </Row>
-          <Row label="消息截断阈值 (KB)">
+          <Row label="消息截断阈值 (KB)" hint="超过此大小的消息内容将被截断显示">
             <input
               type="number"
               min={64}
@@ -547,7 +550,7 @@ export function SettingsView() {
               className="w-20 h-10 rounded-md border border-border/50 bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-border"
             />
           </Row>
-          <Row label="单页拉取数量">
+          <Row label="单页拉取数量" hint="每次查询 Topic、消费组的数量上限">
             <select
               value={settings.fetchLimit}
               onChange={(e) => setSetting('fetchLimit', Number(e.target.value) as FetchLimit)}
