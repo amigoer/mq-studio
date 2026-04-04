@@ -61,7 +61,7 @@ export function IconSidebar({
     const isActive = active === id
 
     const buttonClass = cn(
-      'flex h-10 w-10 items-center justify-center rounded-md text-muted-foreground transition-[background-color,color] duration-200 ease-out',
+      'flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground transition-[background-color,color] duration-200 ease-out',
       isActive ? 'bg-accent text-accent-foreground' : 'hover:bg-accent',
       disabled && 'opacity-40 cursor-not-allowed'
     )
@@ -71,7 +71,7 @@ export function IconSidebar({
 
     const content = (
       <>
-        <Icon className="h-5 w-5" />
+        <Icon className="h-[22px] w-[22px]" />
         {hoveredId === id && (
           <span
             className={cn(
@@ -125,11 +125,11 @@ export function IconSidebar({
   }
 
   return (
-    <aside className="flex w-14 shrink-0 flex-col border-r border-border/40 bg-muted/30 transition-[background-color,border-color] duration-200 ease-out">
-      <nav className="flex flex-1 flex-col gap-0.5 p-1.5">
+    <aside className="flex w-16 shrink-0 flex-col border-r border-border/40 bg-muted/30 transition-[background-color,border-color] duration-200 ease-out">
+      <nav className="flex flex-1 flex-col items-center gap-1 p-2">
         {MAIN_NAV.map((item) => renderItem(item))}
       </nav>
-      <nav className="flex flex-col gap-0.5 border-t border-border/40 p-1.5">
+      <nav className="flex flex-col items-center gap-1 border-t border-border/40 p-2">
         {BOTTOM_NAV.map((item) => renderItem(item, true))}
       </nav>
     </aside>
