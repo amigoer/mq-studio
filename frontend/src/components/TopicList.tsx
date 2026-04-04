@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { toast } from 'sonner'
-import { RefreshCw, Plus, Search, X, Trash2, Loader2, AlertTriangle } from 'lucide-react'
+import { RefreshCw, Plus, Search, X, Trash2, Loader2, AlertTriangle, Pencil } from 'lucide-react'
 import { cn, formatErrorMessage } from '@/lib/utils'
 import type { TopicItem } from '../../bindings/rocket-leaf/internal/model/models.js'
 import { TopicPerm } from '../../bindings/rocket-leaf/internal/model/models.js'
@@ -39,6 +39,12 @@ export function TopicList({ list, loading, error, onRefresh }: Props) {
   const [brokerOptionsLoading, setBrokerOptionsLoading] = useState(false)
   const [deleteConfirmTopic, setDeleteConfirmTopic] = useState<string | null>(null)
   const [deletingTopic, setDeletingTopic] = useState<string | null>(null)
+  const [editOpen, setEditOpen] = useState(false)
+  const [editSubmitting, setEditSubmitting] = useState(false)
+  const [editError, setEditError] = useState<string | null>(null)
+  const [editReadQueue, setEditReadQueue] = useState(4)
+  const [editWriteQueue, setEditWriteQueue] = useState(4)
+  const [editPerm, setEditPerm] = useState<string>(TopicPerm.PermRW)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const spinEndRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -164,6 +170,42 @@ export function TopicList({ list, loading, error, onRefresh }: Props) {
     },
     [onRefresh]
   )
+
+  const handleOpenEdit = useCallback(() => {
+    if (!detail) return
+    setEditReadQueue(detail.readQueue ?? 4)
+    setEditWriteQueue(detail.writeQueue ?? 4)
+    setEditPerm(detail.perm ?? TopicPerm.PermRW)
+    setEditError(null)
+    setEditOpen(true)
+  }, [detail])
+
+  const handleEditSubmit = useCallback(async () => {
+    if (!detail || !detail.topic) return
+    // Need a broker address to update; use the first route's brokerAddr
+    const brokerAddr = detail.routes?.[0]?.brokerAddr
+    if (!brokerAddr) {
+      setEditError('未找到 Broker 地址，无法更新')
+      return
+    }
+    setEditSubmitting(true)
+    setEditError(null)
+    try {
+      await topicApi.updateTopic(detail.topic, brokerAddr, editReadQueue, editWriteQueue, editPerm)
+      toast.success('Topic 配置已更新')
+      setEditOpen(false)
+      // Refresh detail
+      setDetailLoading(true)
+      const updated = await topicApi.getTopicDetail(detail.topic)
+      setDetail(updated ?? null)
+      setDetailLoading(false)
+      onRefresh()
+    } catch (err) {
+      setEditError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setEditSubmitting(false)
+    }
+  }, [detail, editReadQueue, editWriteQueue, editPerm, onRefresh])
 
   const handleDeleteConfirm = useCallback(
     async (topic: string) => {
@@ -296,14 +338,26 @@ export function TopicList({ list, loading, error, onRefresh }: Props) {
           <div className="flex w-[clamp(280px,32vw,380px)] shrink-0 flex-col border-l border-border/40 bg-card">
             <div className="flex shrink-0 items-center justify-between border-b border-border/30 px-3 py-2.5">
               <span className="truncate text-sm font-medium text-foreground">Topic 详情</span>
-              <button
-                type="button"
-                onClick={() => setSelectedTopic(null)}
-                className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                aria-label="关闭"
-              >
-                <X className="h-4 w-4" />
-              </button>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={handleOpenEdit}
+                  disabled={detailLoading || detail == null}
+                  className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-50"
+                  aria-label="编辑配置"
+                  title="编辑配置"
+                >
+                  <Pencil className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedTopic(null)}
+                  className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                  aria-label="关闭"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
             </div>
             <div className="flex-1 overflow-y-auto scroll-thin p-3">
               {detailLoading ? (
@@ -490,6 +544,99 @@ export function TopicList({ list, loading, error, onRefresh }: Props) {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {editOpen && detail && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+          onClick={() => !editSubmitting && setEditOpen(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="edit-topic-title"
+        >
+          <div
+            className="w-full max-w-md rounded-md border border-border/50 bg-card p-4 shadow-sm"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 id="edit-topic-title" className="text-sm font-medium text-card-foreground">
+              编辑 Topic 配置
+            </h2>
+            <p className="mt-1 text-xs text-muted-foreground">
+              修改「<span className="font-mono text-foreground">{detail.topic}</span>」的队列数和权限
+            </p>
+            {editError && (
+              <div className="mt-2 rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                {editError}
+              </div>
+            )}
+            <div className="mt-4 space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label id="edit-topic-read-label" className="mb-1 block text-xs text-muted-foreground">读队列数</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={editReadQueue}
+                    onChange={(e) => setEditReadQueue(Number(e.target.value) || 1)}
+                    aria-labelledby="edit-topic-read-label"
+                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  />
+                </div>
+                <div>
+                  <label id="edit-topic-write-label" className="mb-1 block text-xs text-muted-foreground">写队列数</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={editWriteQueue}
+                    onChange={(e) => setEditWriteQueue(Number(e.target.value) || 1)}
+                    aria-labelledby="edit-topic-write-label"
+                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  />
+                </div>
+              </div>
+              <div>
+                <label id="edit-topic-perm-label" className="mb-1 block text-xs text-muted-foreground">权限</label>
+                <select
+                  value={editPerm}
+                  onChange={(e) => setEditPerm(e.target.value)}
+                  aria-labelledby="edit-topic-perm-label"
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  {PERM_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setEditOpen(false)}
+                disabled={editSubmitting}
+                className="rounded-md border border-border/50 px-3 py-1.5 text-sm text-muted-foreground hover:bg-accent disabled:opacity-50"
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleEditSubmit()}
+                disabled={editSubmitting}
+                className="rounded-md bg-primary px-3 py-1.5 text-sm text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+              >
+                {editSubmitting ? (
+                  <>
+                    <Loader2 className="mr-1.5 inline h-4 w-4 animate-spin" aria-hidden />
+                    保存中…
+                  </>
+                ) : (
+                  '保存'
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}
