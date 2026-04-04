@@ -52,6 +52,21 @@ export async function createTopic(
   }
 }
 
+export async function updateTopic(
+  topic: string,
+  brokerAddr: string,
+  readQueue: number,
+  writeQueue: number,
+  perm: string
+): Promise<void> {
+  try {
+    await TopicService.UpdateTopic(topic, brokerAddr, readQueue, writeQueue, perm)
+  } catch (e) {
+    console.error('UpdateTopic', e)
+    throw e
+  }
+}
+
 export async function deleteTopic(topic: string, clusterName: string): Promise<void> {
   try {
     await TopicService.DeleteTopic(topic, clusterName)

@@ -30,7 +30,7 @@ export async function fetchLatestMessages(topic: string, limit: number): Promise
     return Array.from({ length: Math.min(limit, LATEST_MOCK_SIZE) }, (_, i) => mockMessageItem(topic, i))
   }
   try {
-    const raw = await MessageService.QueryMessages(topic, '', limit, 0, 0)
+    const raw = await MessageService.QueryMessages(topic, '', '', limit, 0, 0)
     return raw.filter((m): m is MessageItem => m != null)
   } catch (e) {
     console.error('fetchLatestMessages', e)
@@ -41,6 +41,7 @@ export async function fetchLatestMessages(topic: string, limit: number): Promise
 export interface QueryCondition {
   messageId?: string
   messageKey?: string
+  messageTag?: string
   startTimeMs?: number
   endTimeMs?: number
 }
@@ -53,7 +54,7 @@ export async function queryMessagesByCondition(
   condition: QueryCondition,
   maxResults = 32
 ): Promise<MessageItem[]> {
-  const { messageId, messageKey = '', startTimeMs = 0, endTimeMs = 0 } = condition
+  const { messageId, messageKey = '', messageTag = '', startTimeMs = 0, endTimeMs = 0 } = condition
   if (USE_MOCK) {
     await new Promise((r) => setTimeout(r, 500))
     if (messageId?.trim()) {
@@ -68,7 +69,7 @@ export async function queryMessagesByCondition(
       const one = await MessageService.QueryMessageByID(topic, messageId.trim())
       return one ? [one] : []
     }
-    const raw = await MessageService.QueryMessages(topic, messageKey.trim(), maxResults, startTimeMs, endTimeMs)
+    const raw = await MessageService.QueryMessages(topic, messageKey.trim(), messageTag.trim(), maxResults, startTimeMs, endTimeMs)
     return raw.filter((m): m is MessageItem => m != null)
   } catch (e) {
     console.error('queryMessagesByCondition', e)
@@ -79,12 +80,13 @@ export async function queryMessagesByCondition(
 export async function queryMessages(
   topic: string,
   key: string,
+  tag: string,
   maxResults: number,
   startTimeMs = 0,
   endTimeMs = 0
 ): Promise<(MessageItem | null)[]> {
   try {
-    return await MessageService.QueryMessages(topic, key, maxResults, startTimeMs, endTimeMs)
+    return await MessageService.QueryMessages(topic, key, tag, maxResults, startTimeMs, endTimeMs)
   } catch (e) {
     console.error('QueryMessages', e)
     throw e
@@ -132,6 +134,32 @@ export async function getMessageTrack(
     return raw.filter((m): m is MessageTrackItem => m != null)
   } catch (e) {
     console.error('GetMessageTrack', e)
+    throw e
+  }
+}
+
+/**
+ * 查询消费者组的死信队列消息
+ */
+export async function queryDLQMessages(groupName: string, maxResults = 32): Promise<MessageItem[]> {
+  try {
+    const raw = await MessageService.QueryDLQMessages(groupName, maxResults)
+    return raw.filter((m): m is MessageItem => m != null)
+  } catch (e) {
+    console.error('QueryDLQMessages', e)
+    throw e
+  }
+}
+
+/**
+ * 查询消费者组的重试队列消息
+ */
+export async function queryRetryMessages(groupName: string, maxResults = 32): Promise<MessageItem[]> {
+  try {
+    const raw = await MessageService.QueryRetryMessages(groupName, maxResults)
+    return raw.filter((m): m is MessageItem => m != null)
+  } catch (e) {
+    console.error('QueryRetryMessages', e)
     throw e
   }
 }
