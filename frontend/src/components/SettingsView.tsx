@@ -93,8 +93,8 @@ const SETTINGS_NAV: { id: SettingsTabId; label: string; icon: React.ElementType 
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-4 py-2">
-      <span className="w-40 shrink-0 text-sm text-foreground">{label}</span>
+    <div className="flex items-center gap-6 py-3">
+      <span className="w-44 shrink-0 text-[0.9375rem] text-foreground">{label}</span>
       <div className="shrink-0">{children}</div>
     </div>
   )
@@ -120,7 +120,7 @@ function Select<T extends string>({
       title={title}
       aria-label={title}
       className={cn(
-        'rounded-md border border-border/50 bg-background px-2 py-1.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-border',
+        'rounded-md border border-border/50 bg-background px-2.5 py-1.5 text-[0.9375rem] text-foreground focus:outline-none focus:ring-1 focus:ring-border',
         className
       )}
     >
@@ -253,20 +253,20 @@ export function SettingsView() {
         <h1 className="text-sm font-semibold text-foreground">设置</h1>
       </div>
       <div className="flex min-h-0 flex-1">
-        <nav className="w-44 shrink-0 border-r border-border/40 bg-muted/20 py-2">
+        <nav className="w-48 shrink-0 border-r border-border/40 bg-muted/20 py-2">
           {SETTINGS_NAV.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               type="button"
               onClick={() => setActiveTab(id)}
               className={cn(
-                'flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors',
+                'flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-[0.9375rem] transition-colors',
                 activeTab === id
                   ? 'border-l-2 border-foreground/80 bg-accent/50 text-foreground'
                   : 'border-l-2 border-transparent text-muted-foreground hover:bg-accent/30 hover:text-foreground'
               )}
             >
-              <Icon className="h-4 w-4 shrink-0" />
+              <Icon className="h-[18px] w-[18px] shrink-0" />
               {label}
             </button>
           ))}
