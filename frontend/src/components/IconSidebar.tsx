@@ -3,7 +3,7 @@ import { Home, LayoutGrid, Users, Mail, BarChart3, Server, Github, Settings } fr
 import { Browser } from '@wailsio/runtime'
 import { cn } from '@/lib/utils'
 
-const GITHUB_URL = 'https://github.com/codermast/rocket-leaf'
+const GITHUB_URL = 'https://github.com/amigoer/rocket-leaf'
 
 export type NavId = 'home' | 'topics' | 'consumers' | 'messages' | 'cluster' | 'connections' | 'settings' | 'github'
 
