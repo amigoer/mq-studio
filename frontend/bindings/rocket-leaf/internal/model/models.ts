@@ -11,6 +11,11 @@ import { Create as $Create } from "@wailsio/runtime";
 export class AppSettings {
     /**
      * 通用设置
+     * 主题: "system" | "light" | "dark"
+     */
+    "theme": string;
+
+    /**
      * 语言: "en" | "zh"
      */
     "language": string;
@@ -109,6 +114,9 @@ export class AppSettings {
 
     /** Creates a new AppSettings instance. */
     constructor($$source: Partial<AppSettings> = {}) {
+        if (!("theme" in $$source)) {
+            this["theme"] = "";
+        }
         if (!("language" in $$source)) {
             this["language"] = "";
         }
