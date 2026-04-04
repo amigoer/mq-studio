@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
-import { LayoutGrid, Users, Mail, BarChart3, Server, CircleDot } from 'lucide-react'
+import { LayoutGrid, Users, Mail, BarChart3, Server, CircleDot, HardDrive } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { Connection } from '../../bindings/rocket-leaf/internal/model/models.js'
+import type { Connection, ClusterSummary } from '../../bindings/rocket-leaf/internal/model/models.js'
 import { ConnectionStatus } from '../../bindings/rocket-leaf/internal/model/models.js'
 import type { NavId } from './IconSidebar'
 import * as clusterApi from '@/api/cluster'
@@ -23,17 +23,14 @@ const SHORTCUTS: { id: NavId; icon: React.ElementType; label: string; descriptio
 export function OverviewView({ connections, topicCount, consumerGroupCount = 0, onSelectNav }: Props) {
   const currentConn = connections.find((c) => c.status === ConnectionStatus.StatusOnline)
   const defaultConn = connections.find((c) => c.isDefault)
-  const [clusterBrokerCount, setClusterBrokerCount] = useState<number | null>(null)
+  const [summary, setSummary] = useState<ClusterSummary | null>(null)
 
   useEffect(() => {
     let cancelled = false
-    clusterApi.getClusterInfo().then((info) => {
-      if (!cancelled && info != null) {
-        const total = info.totalBrokers ?? (info.brokers?.filter(Boolean).length ?? 0)
-        setClusterBrokerCount(total)
-      }
+    clusterApi.getClusterSummary().then((data) => {
+      if (!cancelled) setSummary(data)
     }).catch(() => {
-      if (!cancelled) setClusterBrokerCount(null)
+      if (!cancelled) setSummary(null)
     })
     return () => { cancelled = true }
   }, [])
@@ -108,23 +105,28 @@ export function OverviewView({ connections, topicCount, consumerGroupCount = 0, 
               </button>
               <button
                 type="button"
-                onClick={() => onSelectNav('messages')}
+                onClick={() => onSelectNav('cluster')}
                 className="rounded-lg border border-border/40 bg-card px-5 py-4 text-left shadow-sm transition-colors hover:border-primary/50 hover:bg-accent/50"
               >
-                <p className="text-2xl font-semibold tabular-nums text-muted-foreground">—</p>
-                <p className="mt-0.5 text-xs text-muted-foreground">消息</p>
-                <p className="mt-1 text-[10px] text-muted-foreground/80">按 Topic 查询</p>
+                <p className="text-2xl font-semibold tabular-nums text-foreground">
+                  {summary ? `${summary.onlineBrokers}/${summary.totalBrokers}` : '—'}
+                </p>
+                <p className="mt-0.5 text-xs text-muted-foreground">Broker</p>
+                <p className="mt-1 text-[10px] text-muted-foreground/80">在线 / 总数</p>
               </button>
               <button
                 type="button"
                 onClick={() => onSelectNav('cluster')}
                 className="rounded-lg border border-border/40 bg-card px-5 py-4 text-left shadow-sm transition-colors hover:border-primary/50 hover:bg-accent/50"
               >
-                <p className="text-2xl font-semibold tabular-nums text-foreground">
-                  {clusterBrokerCount !== null ? clusterBrokerCount : '—'}
-                </p>
-                <p className="mt-0.5 text-xs text-muted-foreground">集群</p>
-                <p className="mt-1 text-[10px] text-muted-foreground/80">Broker 数</p>
+                <div className="flex items-baseline gap-1.5">
+                  <p className="text-2xl font-semibold tabular-nums text-foreground">
+                    {summary ? `${summary.avgDiskUsage}%` : '—'}
+                  </p>
+                  <HardDrive className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <p className="mt-0.5 text-xs text-muted-foreground">磁盘使用</p>
+                <p className="mt-1 text-[10px] text-muted-foreground/80">集群平均</p>
               </button>
             </div>
           </section>
