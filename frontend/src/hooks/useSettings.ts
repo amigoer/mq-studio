@@ -11,6 +11,7 @@ import {
 import { getSettings, updateSettings, resetSettings as apiResetSettings } from '@/api/settings'
 import type { AppSettings } from '@/api/settings'
 
+export type ThemeMode = 'system' | 'light' | 'dark'
 export type Language = 'en' | 'zh'
 export type FontSize = number
 export type Timezone = 'local' | 'utc'
@@ -20,6 +21,7 @@ export type FetchLimit = 32 | 64 | 128
 
 // 前端使用的设置接口（与后端 AppSettings 字段一致）
 export interface FrontendSettings {
+  theme: ThemeMode
   language: Language
   fontSize: FontSize
   uiFont: string
@@ -42,6 +44,7 @@ export interface FrontendSettings {
 }
 
 const DEFAULTS: FrontendSettings = {
+  theme: 'system',
   language: 'zh',
   fontSize: 14,
   uiFont: 'system',
@@ -69,6 +72,7 @@ const MAX_FONT_SIZE = 18
 // 将后端返回的 AppSettings 转为前端类型
 function toFrontend(s: AppSettings): FrontendSettings {
   return {
+    theme: (['system', 'light', 'dark'].includes(s.theme) ? s.theme : DEFAULTS.theme) as ThemeMode,
     language: (s.language as Language) || DEFAULTS.language,
     fontSize: (typeof s.fontSize === 'number' && s.fontSize >= 12 && s.fontSize <= 18) ? s.fontSize : DEFAULTS.fontSize,
     uiFont: s.uiFont || DEFAULTS.uiFont,
@@ -101,37 +105,67 @@ type SettingsContextValue = {
   setSetting: <K extends keyof FrontendSettings>(key: K, value: FrontendSettings[K]) => void
   resetAllSettings: () => Promise<void>
   loading: boolean
+  effectiveDark: boolean
 }
 
 const SettingsContext = createContext<SettingsContextValue | null>(null)
 
 const SYSTEM_FONT_STACK = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif'
 
+function getSystemDark(): boolean {
+  if (typeof window === 'undefined') return false
+  return window.matchMedia('(prefers-color-scheme: dark)').matches
+}
+
+function applyTheme(mode: ThemeMode) {
+  const dark = mode === 'system' ? getSystemDark() : mode === 'dark'
+  document.documentElement.classList.toggle('dark', dark)
+}
+
 function applySettingsToDocument(settings: FrontendSettings) {
   const root = document.documentElement
+
+  // 主题
+  applyTheme(settings.theme)
+
+  // 字体大小
   const size = Math.max(MIN_FONT_SIZE, Math.min(MAX_FONT_SIZE, settings.fontSize))
   root.style.setProperty('--app-font-size', `${size}px`)
+
+  // UI 字体
   const uiFont = settings.uiFont.trim()
   root.style.setProperty(
     '--app-ui-font',
     !uiFont || uiFont === 'system' ? SYSTEM_FONT_STACK : `"${uiFont}", ${SYSTEM_FONT_STACK}`
   )
+
+  // 等宽字体
   root.style.setProperty('--app-monospace-font', settings.monospaceFont.trim() || DEFAULTS.monospaceFont)
+
+  // 语言
   root.lang = settings.language === 'en' ? 'en' : 'zh-CN'
 }
 
 function useSettingsStore(): SettingsContextValue {
   const [settings, setSettingsState] = useState<FrontendSettings>(DEFAULTS)
   const [loading, setLoading] = useState(true)
+  const [effectiveDark, setEffectiveDark] = useState(() => getSystemDark())
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // 组件挂载时从后端加载设置
+  // 组件挂载时从后端加载设置，并迁移 localStorage 中的旧主题数据
   useEffect(() => {
     let cancelled = false
     getSettings()
       .then((result) => {
         if (!cancelled && result) {
-          setSettingsState(toFrontend(result))
+          const frontend = toFrontend(result)
+          // 迁移旧 localStorage 主题到后端
+          const legacyTheme = localStorage.getItem('rocket-leaf-theme')
+          if (legacyTheme && ['light', 'dark', 'system'].includes(legacyTheme) && frontend.theme === 'system') {
+            frontend.theme = legacyTheme as ThemeMode
+            localStorage.removeItem('rocket-leaf-theme')
+          }
+          setSettingsState(frontend)
         }
       })
       .catch(() => {
@@ -147,7 +181,20 @@ function useSettingsStore(): SettingsContextValue {
 
   useEffect(() => {
     applySettingsToDocument(settings)
+    setEffectiveDark(settings.theme === 'system' ? getSystemDark() : settings.theme === 'dark')
   }, [settings])
+
+  // 监听系统主题变化（仅在 theme === 'system' 时响应）
+  useEffect(() => {
+    if (settings.theme !== 'system') return
+    const mq = window.matchMedia('(prefers-color-scheme: dark)')
+    const handler = () => {
+      applyTheme('system')
+      setEffectiveDark(mq.matches)
+    }
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [settings.theme])
 
   // 防抖保存到后端
   const saveToBackend = useCallback((newSettings: FrontendSettings) => {
@@ -181,7 +228,7 @@ function useSettingsStore(): SettingsContextValue {
     }
   }, [])
 
-  return { settings, setSetting, resetAllSettings, loading }
+  return { settings, setSetting, resetAllSettings, loading, effectiveDark }
 }
 
 export function SettingsProvider({ children }: { children: ReactNode }) {

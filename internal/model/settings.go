@@ -4,6 +4,7 @@ package model
 // AppSettings 应用设置
 type AppSettings struct {
 	// 通用设置
+	Theme           string `json:"theme"`           // 主题: "system" | "light" | "dark"
 	Language        string `json:"language"`        // 语言: "en" | "zh"
 	FontSize        int    `json:"fontSize"`        // 字体大小(px): 12-18
 	UIFont          string `json:"uiFont"`          // 界面字体
@@ -32,6 +33,7 @@ type AppSettings struct {
 // DefaultSettings 返回默认设置
 func DefaultSettings() *AppSettings {
 	return &AppSettings{
+		Theme:                "system",
 		Language:              "zh",
 		FontSize:              14,
 		UIFont:                "system",
