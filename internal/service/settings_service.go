@@ -58,28 +58,38 @@ func (s *SettingsService) loadFromFile() error {
 		return err
 	}
 
-	// 先用默认值填充，再覆盖已保存的字段
+	// 先尝试用 map 解析，手动处理 fontSize 兼容（string → int）
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		log.Printf("[SettingsService] 解析设置文件失败: %v", err)
+		return nil
+	}
+
+	// 如果 fontSize 是旧格式的字符串（如 "medium"），替换为默认数值
+	if rawFS, ok := raw["fontSize"]; ok {
+		var strVal string
+		if json.Unmarshal(rawFS, &strVal) == nil {
+			// 旧格式字符串，映射为数值
+			mapping := map[string]int{"small": 12, "medium": 14, "large": 16}
+			size := 14
+			if v, found := mapping[strVal]; found {
+				size = v
+			}
+			raw["fontSize"], _ = json.Marshal(size)
+			log.Printf("[SettingsService] 已将旧格式 fontSize %q 转换为 %d", strVal, size)
+		}
+	}
+
+	// 重新序列化后解析到结构体
+	fixedData, _ := json.Marshal(raw)
 	loaded := model.DefaultSettings()
-	if err := json.Unmarshal(data, loaded); err != nil {
-		// 兼容旧格式（fontSize 从 string 改为 int），忽略类型不匹配的错误
-		log.Printf("[SettingsService] 解析设置文件(部分字段可能使用旧格式): %v", err)
+	if err := json.Unmarshal(fixedData, loaded); err != nil {
+		log.Printf("[SettingsService] 解析设置失败: %v", err)
 	}
 
 	// 规范化 fontSize：确保在有效范围内
 	if loaded.FontSize < 12 || loaded.FontSize > 18 {
 		loaded.FontSize = 14
-	}
-
-	// 解密敏感字段（兼容未加密的旧数据）
-	if loaded.GlobalAccessKey != "" {
-		if decrypted, decErr := crypto.Decrypt(loaded.GlobalAccessKey, "globalAccessKey"); decErr == nil {
-			loaded.GlobalAccessKey = decrypted
-		}
-	}
-	if loaded.GlobalSecretKey != "" {
-		if decrypted, decErr := crypto.Decrypt(loaded.GlobalSecretKey, "globalSecretKey"); decErr == nil {
-			loaded.GlobalSecretKey = decrypted
-		}
 	}
 
 	// 解密敏感字段（兼容未加密的旧数据）
