@@ -28,5 +28,7 @@ build/android/app/build/
 # IDE / OS files
 .idea/
 .vscode/
+.cursor/
+.cursorrules
 .DS_Store
 **/.DS_Store
