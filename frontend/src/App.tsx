@@ -11,6 +11,7 @@ import { ConsumerGroupList } from '@/components/ConsumerGroupList'
 import { MessageView } from '@/components/MessageView'
 import { ClusterView } from '@/components/ClusterView'
 import { SettingsView } from '@/components/SettingsView'
+import { AclView } from '@/components/AclView'
 import { useConnections } from '@/hooks/useConnections'
 import { useTopics } from '@/hooks/useTopics'
 import { useConsumerGroups } from '@/hooks/useConsumerGroups'
@@ -134,6 +135,8 @@ function App(): React.ReactElement {
         return <MessageView />
       case 'cluster':
         return <ClusterView />
+      case 'acl':
+        return <AclView />
       case 'settings':
         return <SettingsView />
       default:
@@ -148,7 +151,7 @@ function App(): React.ReactElement {
         <IconSidebar
           active={activeNav}
           onSelect={setActiveNav}
-          disabledIds={!hasConnected ? ['topics', 'consumers', 'messages', 'cluster'] : []}
+          disabledIds={!hasConnected ? ['topics', 'consumers', 'messages', 'cluster', 'acl'] : []}
         />
         <main className="min-w-0 flex-1 overflow-hidden border-border/40">
           {renderContent()}
