@@ -1,11 +1,11 @@
 import { useState, useRef, useCallback } from 'react'
-import { Home, LayoutGrid, Users, Mail, BarChart3, Server, Github, Settings } from 'lucide-react'
+import { Home, LayoutGrid, Users, Mail, BarChart3, Server, Github, Settings, Shield } from 'lucide-react'
 import { Browser } from '@wailsio/runtime'
 import { cn } from '@/lib/utils'
 
 const GITHUB_URL = 'https://github.com/amigoer/rocket-leaf'
 
-export type NavId = 'home' | 'topics' | 'consumers' | 'messages' | 'cluster' | 'connections' | 'settings' | 'github'
+export type NavId = 'home' | 'topics' | 'consumers' | 'messages' | 'cluster' | 'acl' | 'connections' | 'settings' | 'github'
 
 const TOOLTIP_DELAY_MS = 150
 
@@ -15,6 +15,7 @@ const MAIN_NAV: { id: NavId; icon: React.ElementType; label: string; href?: stri
   { id: 'consumers', icon: Users, label: '消费者组' },
   { id: 'messages', icon: Mail, label: '消息' },
   { id: 'cluster', icon: BarChart3, label: '集群' },
+  { id: 'acl', icon: Shield, label: 'ACL 管理' },
   { id: 'connections', icon: Server, label: '连接管理' },
 ]
 
