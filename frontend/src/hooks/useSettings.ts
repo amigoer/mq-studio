@@ -12,7 +12,7 @@ import { getSettings, updateSettings, resetSettings as apiResetSettings } from '
 import type { AppSettings } from '@/api/settings'
 
 export type Language = 'en' | 'zh'
-export type FontSize = 'small' | 'medium' | 'large'
+export type FontSize = number
 export type Timezone = 'local' | 'utc'
 export type TimestampFormat = 'datetime' | 'ms'
 export type ProxyType = 'http' | 'socks5'
@@ -22,6 +22,7 @@ export type FetchLimit = 32 | 64 | 128
 export interface FrontendSettings {
   language: Language
   fontSize: FontSize
+  uiFont: string
   monospaceFont: string
   autoConnectLast: boolean
   connectTimeoutMs: number
@@ -42,7 +43,8 @@ export interface FrontendSettings {
 
 const DEFAULTS: FrontendSettings = {
   language: 'zh',
-  fontSize: 'medium',
+  fontSize: 14,
+  uiFont: 'system',
   monospaceFont: 'JetBrains Mono',
   autoConnectLast: true,
   connectTimeoutMs: 3000,
@@ -61,17 +63,15 @@ const DEFAULTS: FrontendSettings = {
   fetchLimit: 64,
 }
 
-const FONT_SIZE_MAP: Record<FontSize, string> = {
-  small: '13px',
-  medium: '14px',
-  large: '16px',
-}
+const MIN_FONT_SIZE = 12
+const MAX_FONT_SIZE = 18
 
 // 将后端返回的 AppSettings 转为前端类型
 function toFrontend(s: AppSettings): FrontendSettings {
   return {
     language: (s.language as Language) || DEFAULTS.language,
-    fontSize: (s.fontSize as FontSize) || DEFAULTS.fontSize,
+    fontSize: (typeof s.fontSize === 'number' && s.fontSize >= 12 && s.fontSize <= 18) ? s.fontSize : DEFAULTS.fontSize,
+    uiFont: s.uiFont || DEFAULTS.uiFont,
     monospaceFont: s.monospaceFont || DEFAULTS.monospaceFont,
     autoConnectLast: s.autoConnectLast ?? DEFAULTS.autoConnectLast,
     connectTimeoutMs: s.connectTimeoutMs || DEFAULTS.connectTimeoutMs,
@@ -105,9 +105,17 @@ type SettingsContextValue = {
 
 const SettingsContext = createContext<SettingsContextValue | null>(null)
 
+const SYSTEM_FONT_STACK = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif'
+
 function applySettingsToDocument(settings: FrontendSettings) {
   const root = document.documentElement
-  root.style.setProperty('--app-font-size', FONT_SIZE_MAP[settings.fontSize] ?? FONT_SIZE_MAP.medium)
+  const size = Math.max(MIN_FONT_SIZE, Math.min(MAX_FONT_SIZE, settings.fontSize))
+  root.style.setProperty('--app-font-size', `${size}px`)
+  const uiFont = settings.uiFont.trim()
+  root.style.setProperty(
+    '--app-ui-font',
+    !uiFont || uiFont === 'system' ? SYSTEM_FONT_STACK : `"${uiFont}", ${SYSTEM_FONT_STACK}`
+  )
   root.style.setProperty('--app-monospace-font', settings.monospaceFont.trim() || DEFAULTS.monospaceFont)
   root.lang = settings.language === 'en' ? 'en' : 'zh-CN'
 }

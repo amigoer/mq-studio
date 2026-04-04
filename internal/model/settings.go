@@ -5,7 +5,8 @@ package model
 type AppSettings struct {
 	// 通用设置
 	Language        string `json:"language"`        // 语言: "en" | "zh"
-	FontSize        string `json:"fontSize"`        // 字体大小: "small" | "medium" | "large"
+	FontSize        int    `json:"fontSize"`        // 字体大小(px): 12-18
+	UIFont          string `json:"uiFont"`          // 界面字体
 	MonospaceFont   string `json:"monospaceFont"`   // 等宽字体
 	AutoConnectLast bool   `json:"autoConnectLast"` // 启动时自动连接上次集群
 
@@ -32,7 +33,8 @@ type AppSettings struct {
 func DefaultSettings() *AppSettings {
 	return &AppSettings{
 		Language:              "zh",
-		FontSize:              "medium",
+		FontSize:              14,
+		UIFont:                "system",
 		MonospaceFont:         "JetBrains Mono",
 		AutoConnectLast:       true,
 		ConnectTimeoutMs:      3000,
