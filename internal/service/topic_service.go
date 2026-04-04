@@ -76,6 +76,48 @@ func (s *TopicService) GetTopics() ([]*model.TopicItem, error) {
 	return result, nil
 }
 
+// GetAllTopics 获取所有 Topic 列表（含系统 Topic）
+func (s *TopicService) GetAllTopics() ([]*model.TopicItem, error) {
+	client, err := rocketmq.GetClientManager().GetDefaultClient()
+	if err != nil {
+		return []*model.TopicItem{}, nil
+	}
+
+	result := make([]*model.TopicItem, 0)
+	err = executeWithClientRetry(client, func(retryClient *admin.Client) error {
+		ctx, cancel := context.WithTimeout(context.Background(), s.settingsService.GetRequestTimeout())
+		defer cancel()
+
+		topicList, callErr := retryClient.FetchAllTopicList(ctx)
+		if callErr != nil {
+			return callErr
+		}
+
+		tmpResult := make([]*model.TopicItem, 0, len(topicList.TopicList))
+		for _, topic := range topicList.TopicList {
+			item := &model.TopicItem{
+				ID:          s.getNextID(),
+				Topic:       topic,
+				ReadQueue:   -1,
+				WriteQueue:  -1,
+				LastUpdated: formatNow(),
+			}
+			if isSystemTopic(topic) {
+				item.Description = "系统"
+			}
+			tmpResult = append(tmpResult, item)
+		}
+
+		result = tmpResult
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("获取 Topic 列表失败: %w", err)
+	}
+
+	return result, nil
+}
+
 // GetTopicTotal 获取 Topic 总数（排除系统 Topic）
 func (s *TopicService) GetTopicTotal() (int, error) {
 	client, err := rocketmq.GetClientManager().GetDefaultClient()
