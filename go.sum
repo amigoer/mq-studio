@@ -8,8 +8,8 @@ github.com/ProtonMail/go-crypto v1.3.0 h1:ILq8+Sf5If5DCpHQp4PbZdS1J7HDFRXz/+xKBi
 github.com/ProtonMail/go-crypto v1.3.0/go.mod h1:9whxjD8Rbs29b4XWbB8irEcE8KHMqaR2e7GWU1R+/PE=
 github.com/adrg/xdg v0.5.3 h1:xRnxJXne7+oWDatRhR1JLnvuccuIeCoBu2rtuLqQB78=
 github.com/adrg/xdg v0.5.3/go.mod h1:nlTsY+NNiCBGCK2tpm09vRqfVzrc2fLmXGpBLF0zlTQ=
-github.com/amigoer/rocketmq-admin-go v1.0.2 h1:hjHo7FljQV79MsoMZthln+7Iy/DDCvWjM9lEkwhKguo=
-github.com/amigoer/rocketmq-admin-go v1.0.2/go.mod h1:I/N1RG6IvNEP2APjKh66Tg7YbZyW9aetiEEl8ziuYPs=
+github.com/amigoer/rocketmq-admin-go v1.1.0 h1:E4ga3ShosYD9aWMmQRYZLgkpMMJdOyio6DdK27fA9bI=
+github.com/amigoer/rocketmq-admin-go v1.1.0/go.mod h1:I/N1RG6IvNEP2APjKh66Tg7YbZyW9aetiEEl8ziuYPs=
 github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be h1:9AeTilPcZAjCFIImctFaOjnTIavg87rW78vTPkQqLI8=
 github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be/go.mod h1:ySMOLuWl6zY27l47sB3qLNK6tF2fkHG55UZxx8oIVo4=
 github.com/apache/rocketmq-client-go/v2 v2.1.2 h1:yt73olKe5N6894Dbm+ojRf/JPiP0cxfDNNffKwhpJVg=

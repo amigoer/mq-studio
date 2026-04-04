@@ -6,179 +6,38 @@
 import { Create as $Create } from "@wailsio/runtime";
 
 /**
- * AclPolicy ACL 策略
+ * AclVersionInfo ACL 配置版本信息
  */
-export class AclPolicy {
-    /**
-     * 资源（Topic、Group）
-     */
-    "resource": string;
+export class AclVersionInfo {
+    "brokerAddr": string;
+    "brokerName": string;
+    "clusterName": string;
+    "version": string;
 
-    /**
-     * 操作（PUB、SUB）
-     */
-    "actions": string[];
-
-    /**
-     * 效果（ALLOW、DENY）
-     */
-    "effect": string;
-
-    /**
-     * 来源 IP 限制
-     */
-    "sourceIps": string[];
-
-    /**
-     * 决策
-     */
-    "decision": string;
-
-    /** Creates a new AclPolicy instance. */
-    constructor($$source: Partial<AclPolicy> = {}) {
-        if (!("resource" in $$source)) {
-            this["resource"] = "";
+    /** Creates a new AclVersionInfo instance. */
+    constructor($$source: Partial<AclVersionInfo> = {}) {
+        if (!("brokerAddr" in $$source)) {
+            this["brokerAddr"] = "";
         }
-        if (!("actions" in $$source)) {
-            this["actions"] = [];
+        if (!("brokerName" in $$source)) {
+            this["brokerName"] = "";
         }
-        if (!("effect" in $$source)) {
-            this["effect"] = "";
+        if (!("clusterName" in $$source)) {
+            this["clusterName"] = "";
         }
-        if (!("sourceIps" in $$source)) {
-            this["sourceIps"] = [];
-        }
-        if (!("decision" in $$source)) {
-            this["decision"] = "";
+        if (!("version" in $$source)) {
+            this["version"] = "";
         }
 
         Object.assign(this, $$source);
     }
 
     /**
-     * Creates a new AclPolicy instance from a string or object.
+     * Creates a new AclVersionInfo instance from a string or object.
      */
-    static createFrom($$source: any = {}): AclPolicy {
-        const $$createField1_0 = $$createType0;
-        const $$createField3_0 = $$createType0;
+    static createFrom($$source: any = {}): AclVersionInfo {
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-        if ("actions" in $$parsedSource) {
-            $$parsedSource["actions"] = $$createField1_0($$parsedSource["actions"]);
-        }
-        if ("sourceIps" in $$parsedSource) {
-            $$parsedSource["sourceIps"] = $$createField3_0($$parsedSource["sourceIps"]);
-        }
-        return new AclPolicy($$parsedSource as Partial<AclPolicy>);
-    }
-}
-
-/**
- * AclRule ACL 规则
- */
-export class AclRule {
-    /**
-     * 主体（用户或组）
-     */
-    "subject": string;
-
-    /**
-     * 策略列表
-     */
-    "policies": AclPolicy[];
-
-    /**
-     * 描述
-     */
-    "description": string;
-
-    /** Creates a new AclRule instance. */
-    constructor($$source: Partial<AclRule> = {}) {
-        if (!("subject" in $$source)) {
-            this["subject"] = "";
-        }
-        if (!("policies" in $$source)) {
-            this["policies"] = [];
-        }
-        if (!("description" in $$source)) {
-            this["description"] = "";
-        }
-
-        Object.assign(this, $$source);
-    }
-
-    /**
-     * Creates a new AclRule instance from a string or object.
-     */
-    static createFrom($$source: any = {}): AclRule {
-        const $$createField1_0 = $$createType2;
-        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-        if ("policies" in $$parsedSource) {
-            $$parsedSource["policies"] = $$createField1_0($$parsedSource["policies"]);
-        }
-        return new AclRule($$parsedSource as Partial<AclRule>);
-    }
-}
-
-/**
- * AclUser ACL 用户信息
- */
-export class AclUser {
-    /**
-     * 用户名
-     */
-    "username": string;
-
-    /**
-     * 密码
-     */
-    "password": string;
-
-    /**
-     * 用户类型
-     */
-    "userType": string;
-
-    /**
-     * 用户状态
-     */
-    "userStatus": string;
-
-    /**
-     * 权限列表
-     */
-    "permissions": string[];
-
-    /** Creates a new AclUser instance. */
-    constructor($$source: Partial<AclUser> = {}) {
-        if (!("username" in $$source)) {
-            this["username"] = "";
-        }
-        if (!("password" in $$source)) {
-            this["password"] = "";
-        }
-        if (!("userType" in $$source)) {
-            this["userType"] = "";
-        }
-        if (!("userStatus" in $$source)) {
-            this["userStatus"] = "";
-        }
-        if (!("permissions" in $$source)) {
-            this["permissions"] = [];
-        }
-
-        Object.assign(this, $$source);
-    }
-
-    /**
-     * Creates a new AclUser instance from a string or object.
-     */
-    static createFrom($$source: any = {}): AclUser {
-        const $$createField4_0 = $$createType0;
-        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-        if ("permissions" in $$parsedSource) {
-            $$parsedSource["permissions"] = $$createField4_0($$parsedSource["permissions"]);
-        }
-        return new AclUser($$parsedSource as Partial<AclUser>);
+        return new AclVersionInfo($$parsedSource as Partial<AclVersionInfo>);
     }
 }
 
@@ -555,8 +414,8 @@ export class BrokerNode {
      * Creates a new BrokerNode instance from a string or object.
      */
     static createFrom($$source: any = {}): BrokerNode {
-        const $$createField13_0 = $$createType3;
-        const $$createField14_0 = $$createType3;
+        const $$createField13_0 = $$createType0;
+        const $$createField14_0 = $$createType0;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("tpsInHistory" in $$parsedSource) {
             $$parsedSource["tpsInHistory"] = $$createField13_0($$parsedSource["tpsInHistory"]);
@@ -659,8 +518,8 @@ export class ClusterInfo {
      * Creates a new ClusterInfo instance from a string or object.
      */
     static createFrom($$source: any = {}): ClusterInfo {
-        const $$createField6_0 = $$createType0;
-        const $$createField7_0 = $$createType6;
+        const $$createField6_0 = $$createType1;
+        const $$createField7_0 = $$createType4;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("nameServers" in $$parsedSource) {
             $$parsedSource["nameServers"] = $$createField6_0($$parsedSource["nameServers"]);
@@ -1028,8 +887,8 @@ export class ConsumerGroupItem {
      * Creates a new ConsumerGroupItem instance from a string or object.
      */
     static createFrom($$source: any = {}): ConsumerGroupItem {
-        const $$createField13_0 = $$createType8;
-        const $$createField14_0 = $$createType10;
+        const $$createField13_0 = $$createType6;
+        const $$createField14_0 = $$createType8;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("subscriptions" in $$parsedSource) {
             $$parsedSource["subscriptions"] = $$createField13_0($$parsedSource["subscriptions"]);
@@ -1291,7 +1150,7 @@ export class MessageItem {
      * Creates a new MessageItem instance from a string or object.
      */
     static createFrom($$source: any = {}): MessageItem {
-        const $$createField15_0 = $$createType11;
+        const $$createField15_0 = $$createType9;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("properties" in $$parsedSource) {
             $$parsedSource["properties"] = $$createField15_0($$parsedSource["properties"]);
@@ -1564,7 +1423,7 @@ export class TopicItem {
      * Creates a new TopicItem instance from a string or object.
      */
     static createFrom($$source: any = {}): TopicItem {
-        const $$createField12_0 = $$createType13;
+        const $$createField12_0 = $$createType11;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("routes" in $$parsedSource) {
             $$parsedSource["routes"] = $$createField12_0($$parsedSource["routes"]);
@@ -1663,16 +1522,14 @@ export class TopicRouteItem {
 
 // Private type creation functions
 const $$createType0 = $Create.Array($Create.Any);
-const $$createType1 = AclPolicy.createFrom;
-const $$createType2 = $Create.Array($$createType1);
-const $$createType3 = $Create.Array($Create.Any);
-const $$createType4 = BrokerNode.createFrom;
-const $$createType5 = $Create.Nullable($$createType4);
+const $$createType1 = $Create.Array($Create.Any);
+const $$createType2 = BrokerNode.createFrom;
+const $$createType3 = $Create.Nullable($$createType2);
+const $$createType4 = $Create.Array($$createType3);
+const $$createType5 = GroupSubscription.createFrom;
 const $$createType6 = $Create.Array($$createType5);
-const $$createType7 = GroupSubscription.createFrom;
+const $$createType7 = GroupClient.createFrom;
 const $$createType8 = $Create.Array($$createType7);
-const $$createType9 = GroupClient.createFrom;
-const $$createType10 = $Create.Array($$createType9);
-const $$createType11 = $Create.Map($Create.Any, $Create.Any);
-const $$createType12 = TopicRouteItem.createFrom;
-const $$createType13 = $Create.Array($$createType12);
+const $$createType9 = $Create.Map($Create.Any, $Create.Any);
+const $$createType10 = TopicRouteItem.createFrom;
+const $$createType11 = $Create.Array($$createType10);

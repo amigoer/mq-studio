@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"rocket-leaf/internal/model"
 	"rocket-leaf/internal/rocketmq"
@@ -49,44 +50,72 @@ func (s *AclService) getBrokerAddr() (string, *admin.Client, error) {
 	return "", nil, fmt.Errorf("未找到可用的 Master Broker")
 }
 
-// ListUsers 列出所有 ACL 用户
-func (s *AclService) ListUsers() ([]*model.AclUser, error) {
+// GetAclEnabled 检查 Broker 是否启用 ACL
+func (s *AclService) GetAclEnabled() (bool, error) {
+	brokerAddr, client, err := s.getBrokerAddr()
+	if err != nil {
+		return false, err
+	}
+
+	var enabled bool
+	err = executeWithClientRetry(client, func(retryClient *admin.Client) error {
+		ctx, cancel := context.WithTimeout(context.Background(), s.settingsService.GetRequestTimeout())
+		defer cancel()
+
+		config, callErr := retryClient.GetBrokerConfig(ctx, brokerAddr)
+		if callErr != nil {
+			return callErr
+		}
+
+		enabled = strings.EqualFold(config["aclEnable"], "true")
+		return nil
+	})
+
+	if err != nil {
+		return false, fmt.Errorf("获取 Broker 配置失败: %w", err)
+	}
+	return enabled, nil
+}
+
+// GetAclVersion 获取 ACL 配置版本信息
+func (s *AclService) GetAclVersion() (*model.AclVersionInfo, error) {
 	brokerAddr, client, err := s.getBrokerAddr()
 	if err != nil {
 		return nil, err
 	}
 
-	var result []*model.AclUser
+	var result *model.AclVersionInfo
 	err = executeWithClientRetry(client, func(retryClient *admin.Client) error {
 		ctx, cancel := context.WithTimeout(context.Background(), s.settingsService.GetRequestTimeout())
 		defer cancel()
 
-		userList, callErr := retryClient.ListUser(ctx, brokerAddr)
+		info, callErr := retryClient.GetBrokerClusterAclInfo(ctx, brokerAddr)
 		if callErr != nil {
 			return callErr
 		}
 
-		result = make([]*model.AclUser, 0, len(userList.Users))
-		for _, u := range userList.Users {
-			result = append(result, &model.AclUser{
-				Username:    u.Username,
-				Password:    u.Password,
-				UserType:    u.UserType,
-				UserStatus:  u.UserStatus,
-				Permissions: u.Permissions,
-			})
+		result = &model.AclVersionInfo{
+			BrokerAddr:  info.BrokerAddr,
+			BrokerName:  info.BrokerName,
+			ClusterName: info.ClusterName,
+			Version:     info.Version,
 		}
 		return nil
 	})
 
 	if err != nil {
-		return nil, fmt.Errorf("获取用户列表失败: %w", err)
+		return nil, fmt.Errorf("获取 ACL 版本信息失败: %w", err)
 	}
 	return result, nil
 }
 
-// CreateUser 创建 ACL 用户
-func (s *AclService) CreateUser(username, password, userType string) error {
+// CreateOrUpdateAccessConfig 创建或更新 ACL 访问配置
+func (s *AclService) CreateOrUpdateAccessConfig(
+	accessKey, secretKey, whiteRemoteAddress string,
+	isAdmin bool,
+	defaultTopicPerm, defaultGroupPerm string,
+	topicPerms, groupPerms []string,
+) error {
 	brokerAddr, client, err := s.getBrokerAddr()
 	if err != nil {
 		return err
@@ -96,16 +125,21 @@ func (s *AclService) CreateUser(username, password, userType string) error {
 		ctx, cancel := context.WithTimeout(context.Background(), s.settingsService.GetRequestTimeout())
 		defer cancel()
 
-		return retryClient.CreateUser(ctx, brokerAddr, admin.UserInfo{
-			Username: username,
-			Password: password,
-			UserType: userType,
+		return retryClient.UpdatePlainAccessConfig(ctx, brokerAddr, admin.PlainAccessConfig{
+			AccessKey:          accessKey,
+			SecretKey:          secretKey,
+			WhiteRemoteAddress: whiteRemoteAddress,
+			Admin:              isAdmin,
+			DefaultTopicPerm:   defaultTopicPerm,
+			DefaultGroupPerm:   defaultGroupPerm,
+			TopicPerms:         topicPerms,
+			GroupPerms:         groupPerms,
 		})
 	})
 }
 
-// UpdateUser 更新 ACL 用户
-func (s *AclService) UpdateUser(username, password, userType, userStatus string) error {
+// DeleteAccessConfig 删除 ACL 访问配置
+func (s *AclService) DeleteAccessConfig(accessKey string) error {
 	brokerAddr, client, err := s.getBrokerAddr()
 	if err != nil {
 		return err
@@ -115,17 +149,12 @@ func (s *AclService) UpdateUser(username, password, userType, userStatus string)
 		ctx, cancel := context.WithTimeout(context.Background(), s.settingsService.GetRequestTimeout())
 		defer cancel()
 
-		return retryClient.UpdateUser(ctx, brokerAddr, admin.UserInfo{
-			Username:   username,
-			Password:   password,
-			UserType:   userType,
-			UserStatus: userStatus,
-		})
+		return retryClient.DeletePlainAccessConfig(ctx, brokerAddr, accessKey)
 	})
 }
 
-// DeleteUser 删除 ACL 用户
-func (s *AclService) DeleteUser(username string) error {
+// UpdateGlobalWhiteAddrs 更新全局白名单地址
+func (s *AclService) UpdateGlobalWhiteAddrs(addrs []string) error {
 	brokerAddr, client, err := s.getBrokerAddr()
 	if err != nil {
 		return err
@@ -135,95 +164,6 @@ func (s *AclService) DeleteUser(username string) error {
 		ctx, cancel := context.WithTimeout(context.Background(), s.settingsService.GetRequestTimeout())
 		defer cancel()
 
-		return retryClient.DeleteUser(ctx, brokerAddr, username)
-	})
-}
-
-// ListAcls 列出所有 ACL 规则
-func (s *AclService) ListAcls() ([]*model.AclRule, error) {
-	brokerAddr, client, err := s.getBrokerAddr()
-	if err != nil {
-		return nil, err
-	}
-
-	var result []*model.AclRule
-	err = executeWithClientRetry(client, func(retryClient *admin.Client) error {
-		ctx, cancel := context.WithTimeout(context.Background(), s.settingsService.GetRequestTimeout())
-		defer cancel()
-
-		aclList, callErr := retryClient.ListAcl(ctx, brokerAddr)
-		if callErr != nil {
-			return callErr
-		}
-
-		result = make([]*model.AclRule, 0, len(aclList.Acls))
-		for _, a := range aclList.Acls {
-			policies := make([]model.AclPolicy, 0, len(a.Policies))
-			for _, p := range a.Policies {
-				policies = append(policies, model.AclPolicy{
-					Resource:  p.Resource,
-					Actions:   p.Actions,
-					Effect:    p.Effect,
-					SourceIPs: p.SourceIPs,
-					Decision:  p.Decision,
-				})
-			}
-			result = append(result, &model.AclRule{
-				Subject:     a.Subject,
-				Policies:    policies,
-				Description: a.Description,
-			})
-		}
-		return nil
-	})
-
-	if err != nil {
-		return nil, fmt.Errorf("获取 ACL 列表失败: %w", err)
-	}
-	return result, nil
-}
-
-// CreateAcl 创建 ACL 规则
-func (s *AclService) CreateAcl(subject string, policies []model.AclPolicy, description string) error {
-	brokerAddr, client, err := s.getBrokerAddr()
-	if err != nil {
-		return err
-	}
-
-	adminPolicies := make([]admin.AclPolicy, 0, len(policies))
-	for _, p := range policies {
-		adminPolicies = append(adminPolicies, admin.AclPolicy{
-			Resource:  p.Resource,
-			Actions:   p.Actions,
-			Effect:    p.Effect,
-			SourceIPs: p.SourceIPs,
-			Decision:  p.Decision,
-		})
-	}
-
-	return executeWithClientRetry(client, func(retryClient *admin.Client) error {
-		ctx, cancel := context.WithTimeout(context.Background(), s.settingsService.GetRequestTimeout())
-		defer cancel()
-
-		return retryClient.CreateAcl(ctx, brokerAddr, admin.AclInfo{
-			Subject:     subject,
-			Policies:    adminPolicies,
-			Description: description,
-		})
-	})
-}
-
-// DeleteAcl 删除 ACL 规则
-func (s *AclService) DeleteAcl(subject string) error {
-	brokerAddr, client, err := s.getBrokerAddr()
-	if err != nil {
-		return err
-	}
-
-	return executeWithClientRetry(client, func(retryClient *admin.Client) error {
-		ctx, cancel := context.WithTimeout(context.Background(), s.settingsService.GetRequestTimeout())
-		defer cancel()
-
-		return retryClient.DeleteAcl(ctx, brokerAddr, subject)
+		return retryClient.UpdateGlobalWhiteAddrsConfig(ctx, brokerAddr, addrs, "")
 	})
 }

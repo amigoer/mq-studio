@@ -15,62 +15,42 @@ import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Cr
 import * as model$0 from "../model/models.js";
 
 /**
- * CreateAcl 创建 ACL 规则
+ * CreateOrUpdateAccessConfig 创建或更新 ACL 访问配置
  */
-export function CreateAcl(subject: string, policies: model$0.AclPolicy[], description: string): $CancellablePromise<void> {
-    return $Call.ByID(2893345411, subject, policies, description);
+export function CreateOrUpdateAccessConfig(accessKey: string, secretKey: string, whiteRemoteAddress: string, isAdmin: boolean, defaultTopicPerm: string, defaultGroupPerm: string, topicPerms: string[], groupPerms: string[]): $CancellablePromise<void> {
+    return $Call.ByID(4221023897, accessKey, secretKey, whiteRemoteAddress, isAdmin, defaultTopicPerm, defaultGroupPerm, topicPerms, groupPerms);
 }
 
 /**
- * CreateUser 创建 ACL 用户
+ * DeleteAccessConfig 删除 ACL 访问配置
  */
-export function CreateUser(username: string, password: string, userType: string): $CancellablePromise<void> {
-    return $Call.ByID(2984243154, username, password, userType);
+export function DeleteAccessConfig(accessKey: string): $CancellablePromise<void> {
+    return $Call.ByID(3087561186, accessKey);
 }
 
 /**
- * DeleteAcl 删除 ACL 规则
+ * GetAclEnabled 检查 Broker 是否启用 ACL
  */
-export function DeleteAcl(subject: string): $CancellablePromise<void> {
-    return $Call.ByID(4232056006, subject);
+export function GetAclEnabled(): $CancellablePromise<boolean> {
+    return $Call.ByID(3015424318);
 }
 
 /**
- * DeleteUser 删除 ACL 用户
+ * GetAclVersion 获取 ACL 配置版本信息
  */
-export function DeleteUser(username: string): $CancellablePromise<void> {
-    return $Call.ByID(2349313253, username);
-}
-
-/**
- * ListAcls 列出所有 ACL 规则
- */
-export function ListAcls(): $CancellablePromise<(model$0.AclRule | null)[]> {
-    return $Call.ByID(1958552460).then(($result: any) => {
-        return $$createType2($result);
+export function GetAclVersion(): $CancellablePromise<model$0.AclVersionInfo | null> {
+    return $Call.ByID(1963108919).then(($result: any) => {
+        return $$createType1($result);
     });
 }
 
 /**
- * ListUsers 列出所有 ACL 用户
+ * UpdateGlobalWhiteAddrs 更新全局白名单地址
  */
-export function ListUsers(): $CancellablePromise<(model$0.AclUser | null)[]> {
-    return $Call.ByID(3010979359).then(($result: any) => {
-        return $$createType5($result);
-    });
-}
-
-/**
- * UpdateUser 更新 ACL 用户
- */
-export function UpdateUser(username: string, password: string, userType: string, userStatus: string): $CancellablePromise<void> {
-    return $Call.ByID(3803420895, username, password, userType, userStatus);
+export function UpdateGlobalWhiteAddrs(addrs: string[]): $CancellablePromise<void> {
+    return $Call.ByID(3005303316, addrs);
 }
 
 // Private type creation functions
-const $$createType0 = model$0.AclRule.createFrom;
+const $$createType0 = model$0.AclVersionInfo.createFrom;
 const $$createType1 = $Create.Nullable($$createType0);
-const $$createType2 = $Create.Array($$createType1);
-const $$createType3 = model$0.AclUser.createFrom;
-const $$createType4 = $Create.Nullable($$createType3);
-const $$createType5 = $Create.Array($$createType4);
