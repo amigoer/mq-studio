@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { toast } from 'sonner'
-import { RefreshCw, Plus, Search, X, Trash2, Loader2, AlertTriangle, BarChart3, Pencil, ChevronDown } from 'lucide-react'
+import { RefreshCw, Plus, Search, X, Trash2, Loader2, AlertTriangle, BarChart3, Pencil, ChevronDown, Filter } from 'lucide-react'
 import { cn, formatErrorMessage } from '@/lib/utils'
 import type { TopicItem } from '../../bindings/rocket-leaf/internal/model/models.js'
 import { TopicPerm } from '../../bindings/rocket-leaf/internal/model/models.js'
@@ -67,6 +67,7 @@ const PERM_OPTIONS: { value: TopicPerm; label: string }[] = [
 
 export function TopicList({ list, loading, error, onRefresh }: Props) {
   const [searchQuery, setSearchQuery] = useState('')
+  const [clusterFilter, setClusterFilter] = useState<string>('')
   const [showTooltip, setShowTooltip] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null)
@@ -94,9 +95,13 @@ export function TopicList({ list, loading, error, onRefresh }: Props) {
 
   const isSpinning = loading || refreshing
 
-  const filteredList = searchQuery.trim()
-    ? list.filter((t) => (t.topic ?? '').toLowerCase().includes(searchQuery.trim().toLowerCase()))
-    : list
+  const clusterNames = Array.from(new Set(list.map((t) => t.cluster ?? '').filter(Boolean))).sort()
+
+  const filteredList = list.filter((t) => {
+    if (clusterFilter && (t.cluster ?? '') !== clusterFilter) return false
+    if (searchQuery.trim() && !(t.topic ?? '').toLowerCase().includes(searchQuery.trim().toLowerCase())) return false
+    return true
+  })
 
   useEffect(() => {
     if (!loading && refreshing) {
@@ -326,16 +331,37 @@ export function TopicList({ list, loading, error, onRefresh }: Props) {
             </div>
           </div>
         </div>
-        <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="搜索 Topic…"
-            className="w-full rounded-md border border-border/40 bg-background py-1.5 pl-8 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
-            aria-label="搜索 Topic"
-          />
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="搜索 Topic…"
+              className="w-full rounded-md border border-border/40 bg-background py-1.5 pl-8 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+              aria-label="搜索 Topic"
+            />
+          </div>
+          {clusterNames.length > 1 && (
+            <div className="relative shrink-0">
+              <Filter className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden />
+              <select
+                value={clusterFilter}
+                onChange={(e) => setClusterFilter(e.target.value)}
+                className={cn(
+                  'appearance-none rounded-md border border-border/40 bg-background py-1.5 pl-7 pr-6 text-xs transition-colors focus:outline-none focus:ring-1 focus:ring-primary/50',
+                  clusterFilter ? 'text-foreground' : 'text-muted-foreground'
+                )}
+                aria-label="按集群筛选"
+              >
+                <option value="">全部集群</option>
+                {clusterNames.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
       </div>
 
