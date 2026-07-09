@@ -14,6 +14,7 @@ import { useSettings } from '@/hooks/useSettings'
 import { useDelayedUnmount } from '@/hooks/useDelayedUnmount'
 import * as messageApi from '@/api/message'
 import { formatErrorMessage } from '@/lib/utils'
+import { formatMessageTime, truncatePayload } from '@/lib/time'
 import { SlidingTabs } from '@/components/SlidingTabs'
 import { OfflineEmpty } from '@/components/OfflineEmpty'
 import { ErrorBanner } from '@/components/ErrorBanner'
@@ -387,7 +388,11 @@ export function MessagesScreen() {
                           {m.queueId}
                         </td>
                         <td className="font-mono-design rl-muted text-[12px]">
-                          {m.storeTime || '—'}
+                          {formatMessageTime(
+                            m.storeTimestamp || m.storeTime,
+                            settings.timezone,
+                            settings.timestampFormat,
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -471,7 +476,14 @@ function MessageDetailPanel({
     }
   }, [tab, track, msg.messageId, msg.topic])
 
-  const formattedBody = settings.autoFormatJson !== false ? tryFormatJSON(msg.body) : msg.body
+  const payload = truncatePayload(msg.body || '', settings.maxPayloadRenderBytes || 512 * 1024)
+  const formattedBody =
+    settings.autoFormatJson !== false ? tryFormatJSON(payload.text) : payload.text
+  const displayStoreTime = formatMessageTime(
+    msg.storeTimestamp || msg.storeTime,
+    settings.timezone,
+    settings.timestampFormat,
+  )
 
   const propEntries = Object.entries(msg.properties || {}).filter(
     ([, v]) => v !== undefined && v !== '',
@@ -572,12 +584,10 @@ function MessageDetailPanel({
               <div className="v font-mono-design text-[12px]">{msg.storeHost}</div>
             </div>
           )}
-          {msg.storeTime && (
-            <div className="rl-detail-row">
-              <div className="k">{t('messages.detail.storeTime')}</div>
-              <div className="v font-mono-design text-[12px]">{msg.storeTime}</div>
-            </div>
-          )}
+          <div className="rl-detail-row">
+            <div className="k">{t('messages.detail.storeTime')}</div>
+            <div className="v font-mono-design text-[12px]">{displayStoreTime}</div>
+          </div>
           {msg.status && (
             <div className="rl-detail-row">
               <div className="k">{t('messages.detail.status')}</div>
@@ -603,6 +613,14 @@ function MessageDetailPanel({
                 {t('messages.detail.actions.copyBody')}
               </button>
             </div>
+            {payload.truncated && (
+              <div className="rl-muted mb-2 text-[11px]" style={{ lineHeight: 1.5 }}>
+                {t('messages.detail.bodyTruncated', {
+                  shown: Math.round(settings.maxPayloadRenderBytes / 1024),
+                  total: Math.round(payload.originalBytes / 1024),
+                })}
+              </div>
+            )}
             <JSONView src={formattedBody} maxHeight={300} />
           </>
         )}

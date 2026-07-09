@@ -186,6 +186,14 @@ func (s *SettingsService) GetAutoConnectLast() bool {
 	return s.settings.AutoConnectLast
 }
 
+// GetGlobalACLCredentials 返回设置中的全局 AccessKey/SecretKey（明文）。
+// 当连接未单独配置 ACL 时，Connect 会回退使用它们。
+func (s *SettingsService) GetGlobalACLCredentials() (accessKey, secretKey string) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.settings.GlobalAccessKey, s.settings.GlobalSecretKey
+}
+
 // GetSettings 获取全部设置
 func (s *SettingsService) GetSettings() *model.AppSettings {
 	s.mu.RLock()

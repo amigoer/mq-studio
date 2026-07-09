@@ -141,10 +141,15 @@
 
 ### 工程
 
-- [ ] 后端 service 单元测试与关键 mock
+- [x] 后端关键单测起步（crypto 加解密、连接 ACL 凭证回退）
+- [ ] 后端 service 更全面单测与 Admin mock
 - [ ] 前端关键路径测试（连接门禁、错误 toast 等）
-- [ ] 清理 `components/*View` 等历史 UI，避免双实现
+- [x] 清理 redesign 前历史 `*View` UI（已删除）
 - [ ] 文档与 CI 对「仅 amd64/arm64、无 universal」等发布矩阵的持续对齐
+- [x] 设置项诚实化：全局 ACL 凭证回退已接线；代理/TLS 在 UI 标明暂未支持
+- [x] 消息时区/时间格式/大消息截断按设置生效
+- [x] 检查更新对比 GitHub latest release
+- [x] Topic 详情订阅组列表；ACL 写入型能力说明；告警规则本机启停
 
 ### 探索（未排期）
 

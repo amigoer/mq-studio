@@ -9,13 +9,19 @@ import type { NavId } from '../Sidebar'
 import { RefreshButton, usePageRefresh } from '@/components/RefreshButton'
 import { SlidingTabs } from '@/components/SlidingTabs'
 import { OfflineEmpty } from '@/components/OfflineEmpty'
+import {
+  type AlertRuleKey,
+  type AlertRulePrefs,
+  loadAlertRules,
+  saveAlertRules,
+} from '@/lib/alertRules'
 
 type Severity = 'crit' | 'warn' | 'info'
 
 interface AlertEntry {
   key: string
   severity: Severity
-  ruleKey: string
+  ruleKey: AlertRuleKey
   title: string
   desc: string
   since?: string
@@ -34,31 +40,42 @@ export function AlertsScreen({ onNavigate }: AlertsScreenProps) {
   const lagThreshold = settings.lagAlertThreshold || 10000
 
   const [tab, setTab] = useState<'active' | 'rules'>('active')
+  const [rules, setRules] = useState<AlertRulePrefs>(() => loadAlertRules())
   const doRefresh = useCallback(() => refresh({ silent: true }), [refresh])
   const { spinning: isRefreshing, refresh: handleRefresh } = usePageRefresh(doRefresh)
 
   const hasOnline = data.activeConnection?.status === 'online'
 
+  const toggleRule = useCallback((key: AlertRuleKey) => {
+    setRules((prev) => {
+      const next = { ...prev, [key]: !prev[key] }
+      saveAlertRules(next)
+      return next
+    })
+  }, [])
+
   const alerts = useMemo<AlertEntry[]>(() => {
     if (!hasOnline) return []
     const out: AlertEntry[] = []
     // Offline brokers — critical
-    for (const b of data.brokers) {
-      if (b.status === 'offline') {
-        out.push({
-          key: `broker-off-${b.brokerName}-${b.brokerId}`,
-          severity: 'crit',
-          ruleKey: 'brokerOffline',
-          title: t('alerts.rule.brokerOffline'),
-          desc: `${b.brokerName}${b.brokerId !== 0 ? `-${b.brokerId}` : ''} (${b.address || '—'})`,
-          since: b.lastUpdate || undefined,
-        })
+    if (rules.brokerOffline) {
+      for (const b of data.brokers) {
+        if (b.status === 'offline') {
+          out.push({
+            key: `broker-off-${b.brokerName}-${b.brokerId}`,
+            severity: 'crit',
+            ruleKey: 'brokerOffline',
+            title: t('alerts.rule.brokerOffline'),
+            desc: `${b.brokerName}${b.brokerId !== 0 ? `-${b.brokerId}` : ''} (${b.address || '—'})`,
+            since: b.lastUpdate || undefined,
+          })
+        }
       }
     }
     // Consumer groups: high lag + offline groups
     for (const g of data.consumerGroups) {
       const lag = Number(g.lag ?? 0)
-      if (lag > lagThreshold && (g.onlineClients ?? 0) === 0) {
+      if (rules.groupOffline && lag > lagThreshold && (g.onlineClients ?? 0) === 0) {
         out.push({
           key: `group-off-${g.group}`,
           severity: 'crit',
@@ -67,7 +84,7 @@ export function AlertsScreen({ onNavigate }: AlertsScreenProps) {
           desc: `${g.group} · lag ${lag.toLocaleString()}`,
           since: g.lastUpdate || undefined,
         })
-      } else if (lag > lagThreshold) {
+      } else if (rules.groupLag && lag > lagThreshold) {
         out.push({
           key: `group-lag-${g.group}`,
           severity: 'warn',
@@ -77,7 +94,7 @@ export function AlertsScreen({ onNavigate }: AlertsScreenProps) {
           since: g.lastUpdate || undefined,
         })
       }
-      if ((g.dlq ?? 0) > 0) {
+      if (rules.dlqGrowth && (g.dlq ?? 0) > 0) {
         out.push({
           key: `dlq-${g.group}`,
           severity: 'info',
@@ -88,21 +105,23 @@ export function AlertsScreen({ onNavigate }: AlertsScreenProps) {
       }
     }
     // Disk usage warnings
-    for (const b of data.brokers) {
-      const usage = Number(b.commitLogDiskUsage ?? 0)
-      if (usage >= DISK_THRESHOLD) {
-        out.push({
-          key: `disk-${b.brokerName}-${b.brokerId}`,
-          severity: usage >= 90 ? 'crit' : 'warn',
-          ruleKey: 'diskUsage',
-          title: t('alerts.rule.diskUsage'),
-          desc: `${b.brokerName}${b.brokerId !== 0 ? `-${b.brokerId}` : ''} · ${Math.round(usage)}%`,
-          since: b.lastUpdate || undefined,
-        })
+    if (rules.diskUsage) {
+      for (const b of data.brokers) {
+        const usage = Number(b.commitLogDiskUsage ?? 0)
+        if (usage >= DISK_THRESHOLD) {
+          out.push({
+            key: `disk-${b.brokerName}-${b.brokerId}`,
+            severity: usage >= 90 ? 'crit' : 'warn',
+            ruleKey: 'diskUsage',
+            title: t('alerts.rule.diskUsage'),
+            desc: `${b.brokerName}${b.brokerId !== 0 ? `-${b.brokerId}` : ''} · ${Math.round(usage)}%`,
+            since: b.lastUpdate || undefined,
+          })
+        }
       }
     }
     return out.sort((a, b) => severityWeight(b.severity) - severityWeight(a.severity))
-  }, [hasOnline, data, lagThreshold, t])
+  }, [hasOnline, data, lagThreshold, t, rules])
 
   const subtitle = !hasOnline
     ? t('alerts.subtitleNoConn')
@@ -133,7 +152,12 @@ export function AlertsScreen({ onNavigate }: AlertsScreenProps) {
         ) : tab === 'active' ? (
           <ActiveAlerts alerts={alerts} loading={loading} />
         ) : (
-          <RulesPanel lagThreshold={lagThreshold} onOpenSettings={() => onNavigate?.('settings')} />
+          <RulesPanel
+            lagThreshold={lagThreshold}
+            rules={rules}
+            onToggle={toggleRule}
+            onOpenSettings={() => onNavigate?.('settings')}
+          />
         )}
       </div>
     </div>
@@ -204,9 +228,13 @@ function ActiveAlerts({ alerts, loading }: { alerts: AlertEntry[]; loading: bool
 
 function RulesPanel({
   lagThreshold,
+  rules,
+  onToggle,
   onOpenSettings,
 }: {
   lagThreshold: number
+  rules: AlertRulePrefs
+  onToggle: (key: AlertRuleKey) => void
   onOpenSettings: () => void
 }) {
   const { t } = useTranslation()
@@ -215,6 +243,9 @@ function RulesPanel({
       <div className="text-[13px] font-medium">{t('alerts.rules.title')}</div>
       <div className="rl-muted mt-1 text-[12px]" style={{ lineHeight: 1.5 }}>
         {t('alerts.rules.desc')}
+      </div>
+      <div className="rl-muted mt-2 text-[11px]" style={{ lineHeight: 1.5 }}>
+        {t('alerts.rules.localOnlyNote')}
       </div>
 
       <div className="mt-4 grid gap-3" style={{ gridTemplateColumns: '1fr 1fr' }}>
@@ -249,25 +280,36 @@ function RulesPanel({
       </div>
       <div>
         {(['brokerOffline', 'groupOffline', 'groupLag', 'diskUsage', 'dlqGrowth'] as const).map(
-          (k, i) => (
-            <div
-              key={k}
-              className="flex items-center gap-3"
-              style={{
-                padding: '10px 0',
-                borderTop: i ? '1px solid hsl(var(--border))' : undefined,
-              }}
-            >
-              {severityIcon(
-                k === 'brokerOffline' || k === 'groupOffline'
-                  ? 'crit'
-                  : k === 'groupLag' || k === 'diskUsage'
-                    ? 'warn'
-                    : 'info',
-              )}
-              <span className="flex-1 text-[13px]">{t(`alerts.rule.${k}`)}</span>
-            </div>
-          ),
+          (k, i) => {
+            const on = rules[k]
+            return (
+              <div
+                key={k}
+                className="flex items-center gap-3"
+                style={{
+                  padding: '10px 0',
+                  borderTop: i ? '1px solid hsl(var(--border))' : undefined,
+                }}
+              >
+                {severityIcon(
+                  k === 'brokerOffline' || k === 'groupOffline'
+                    ? 'crit'
+                    : k === 'groupLag' || k === 'diskUsage'
+                      ? 'warn'
+                      : 'info',
+                )}
+                <span className="flex-1 text-[13px]">{t(`alerts.rule.${k}`)}</span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={on}
+                  className={'rl-switch ' + (on ? 'on' : '')}
+                  onClick={() => onToggle(k)}
+                  title={on ? t('alerts.rules.enabled') : t('alerts.rules.disabled')}
+                />
+              </div>
+            )
+          },
         )}
       </div>
 

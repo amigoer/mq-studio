@@ -11,6 +11,7 @@ import {
 import { PageHeader } from '../shell'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useTopics } from '@/hooks/useTopics'
+import { useConsumers } from '@/hooks/useConsumers'
 import { useCluster } from '@/hooks/useCluster'
 import { useDelayedUnmount } from '@/hooks/useDelayedUnmount'
 import * as topicApi from '@/api/topic'
@@ -465,7 +466,14 @@ function TopicDetailPanel({
   onDelete: (t: TopicItem) => void
 }) {
   const { t } = useTranslation()
+  const { groups: consumerGroups, loading: groupsLoading } = useConsumers()
   const [tab, setTab] = useState<'info' | 'routes' | 'groups'>('info')
+
+  const relatedGroups = useMemo(() => {
+    if (!topic) return []
+    const name = topic.topic
+    return consumerGroups.filter((g) => (g.subscriptions || []).some((s) => s.topic === name))
+  }, [consumerGroups, topic])
 
   const asideClass = 'scroll-thin rl-detail-panel' + (exiting ? ' exiting' : '')
 
@@ -649,12 +657,57 @@ function TopicDetailPanel({
 
         {tab === 'groups' && (
           <div className="mt-4">
-            <div className="rl-card" style={{ padding: 16, textAlign: 'center' }}>
-              <div className="rl-muted text-[12px]">
-                {t('topics.detail.groupsTitle')} · {topic.consumerGroups}
+            {groupsLoading && relatedGroups.length === 0 ? (
+              <div className="rl-muted flex items-center justify-center gap-2 py-8 text-[12px]">
+                <Spinner size={14} />
+                {t('common.loading')}
               </div>
-              <div className="rl-muted mt-1 text-[11px]">{t('topics.detail.groupsEmpty')}</div>
-            </div>
+            ) : relatedGroups.length === 0 ? (
+              <div className="rl-card" style={{ padding: 16, textAlign: 'center' }}>
+                <div className="rl-muted text-[12px]">{t('topics.detail.groupsEmpty')}</div>
+              </div>
+            ) : (
+              <div className="rl-card overflow-hidden">
+                <div
+                  className="rl-muted px-3.5 py-2 text-[11px]"
+                  style={{ borderBottom: '1px solid hsl(var(--border))' }}
+                >
+                  {t('topics.detail.groupsTitle')} · {relatedGroups.length}
+                </div>
+                {relatedGroups.map((g, i) => (
+                  <div
+                    key={g.group}
+                    className="flex items-center justify-between gap-2"
+                    style={{
+                      padding: '10px 14px',
+                      borderTop: i ? '1px solid hsl(var(--border))' : undefined,
+                    }}
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="font-mono-design truncate text-[12px] font-medium">
+                        {g.group}
+                      </div>
+                      <div className="rl-muted mt-0.5 text-[11px]">
+                        {t('common.instances', { count: g.onlineClients ?? 0 })}
+                        {' · '}
+                        lag {(g.lag ?? 0).toLocaleString()}
+                      </div>
+                    </div>
+                    <span
+                      className={
+                        g.status === 'online'
+                          ? 'rl-badge rl-badge-success'
+                          : g.status === 'warning'
+                            ? 'rl-badge rl-badge-warn'
+                            : 'rl-badge rl-badge-outline'
+                      }
+                    >
+                      {g.status || '—'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 

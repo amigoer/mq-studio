@@ -314,7 +314,7 @@ export function EmptyStateScreen({ onAddConnection }: { onAddConnection?: () => 
               <button
                 type="button"
                 className="rl-muted flex items-center gap-1 text-[12px] hover:text-foreground"
-                onClick={() => openExternal(`${GITHUB_URL}#readme`)}
+                onClick={() => openExternal(`${GITHUB_URL}#features`)}
               >
                 <Lock size={12} />
                 {t('emptyState.links.acl')}
@@ -322,10 +322,10 @@ export function EmptyStateScreen({ onAddConnection }: { onAddConnection?: () => 
               <button
                 type="button"
                 className="rl-muted flex items-center gap-1 text-[12px] hover:text-foreground"
-                onClick={() => openExternal(`${GITHUB_URL}#readme`)}
+                onClick={() => openExternal(`${GITHUB_URL}/blob/main/docs/ARCHITECTURE.md`)}
               >
                 <Shield size={12} />
-                {t('emptyState.links.tls')}
+                {t('emptyState.links.docs')}
               </button>
               <button
                 type="button"

@@ -60,6 +60,14 @@ export function GetFetchLimit(): $CancellablePromise<number> {
 }
 
 /**
+ * GetGlobalACLCredentials 返回设置中的全局 AccessKey/SecretKey（明文）。
+ * 当连接未单独配置 ACL 时，Connect 会回退使用它们。
+ */
+export function GetGlobalACLCredentials(): $CancellablePromise<[string, string]> {
+    return $Call.ByID(1708972469);
+}
+
+/**
  * GetRequestTimeout 获取请求超时时间
  */
 export function GetRequestTimeout(): $CancellablePromise<time$0.Duration> {

@@ -30,7 +30,6 @@ import {
   type Language,
   type Timezone,
   type TimestampFormat,
-  type ProxyType,
   type FetchLimit,
 } from '@/hooks/useSettings'
 import { useUIPrefs } from '@/hooks/useUIPrefs'
@@ -46,6 +45,26 @@ const APP_VERSION = __APP_VERSION__
 const GITHUB_URL = 'https://github.com/amigoer/rocket-leaf'
 const GITHUB_ISSUES_URL = 'https://github.com/amigoer/rocket-leaf/issues'
 const GITHUB_RELEASES_URL = 'https://github.com/amigoer/rocket-leaf/releases/latest'
+
+/** Compare dotted versions; returns -1 if a<b, 0 if equal, 1 if a>b. */
+function compareSemver(a: string, b: string): number {
+  const pa = a
+    .replace(/^v/i, '')
+    .split(/[.+-]/)
+    .map((x) => parseInt(x, 10) || 0)
+  const pb = b
+    .replace(/^v/i, '')
+    .split(/[.+-]/)
+    .map((x) => parseInt(x, 10) || 0)
+  const n = Math.max(pa.length, pb.length)
+  for (let i = 0; i < n; i++) {
+    const da = pa[i] ?? 0
+    const db = pb[i] ?? 0
+    if (da < db) return -1
+    if (da > db) return 1
+  }
+  return 0
+}
 
 type SectionId = 'appearance' | 'general' | 'fonts' | 'message' | 'proxy' | 'data' | 'about'
 
@@ -78,11 +97,6 @@ const THEMES: { mode: ThemeMode; nameKey: string; descKey: string }[] = [
 ]
 
 const FETCH_LIMITS: FetchLimit[] = [32, 64, 128]
-
-const PROXY_TYPE_OPTIONS: { value: ProxyType; label: string }[] = [
-  { value: 'http', label: 'HTTP' },
-  { value: 'socks5', label: 'SOCKS5' },
-]
 
 const LANGUAGE_OPTIONS: { value: Language; label: string }[] = [
   { value: 'zh', label: '简体中文' },
@@ -674,7 +688,11 @@ function ProxyPanel() {
             onChange={(e) => setSetting('globalAccessKey', e.target.value)}
           />
         </SettingsRow>
-        <SettingsRow title={t('settings.proxy.sk')} hint={t('settings.proxy.skHint')}>
+        <SettingsRow
+          title={t('settings.proxy.sk')}
+          hint={t('settings.proxy.skHint')}
+          bordered={false}
+        >
           <input
             type="password"
             className="rl-input font-mono-design"
@@ -684,81 +702,25 @@ function ProxyPanel() {
             onChange={(e) => setSetting('globalSecretKey', e.target.value)}
           />
         </SettingsRow>
-        <SettingsRow
-          title={t('settings.proxy.skipTls')}
-          hint={t('settings.proxy.skipTlsHint')}
-          bordered={false}
-        >
-          <Switch
-            on={settings.skipTlsVerify}
-            onClick={() => setSetting('skipTlsVerify', !settings.skipTlsVerify)}
-          />
-        </SettingsRow>
       </div>
 
       <div className="rl-section-label" style={{ marginTop: 24 }}>
-        {t('settings.proxy.httpProxy')}
+        {t('settings.proxy.advanced')}
       </div>
       <div className="rl-card">
-        <SettingsRow title={t('settings.proxy.enable')} hint={t('settings.proxy.enableHint')}>
-          <Switch
-            on={settings.proxyEnabled}
-            onClick={() => setSetting('proxyEnabled', !settings.proxyEnabled)}
-          />
+        <div className="rl-muted text-[12px]" style={{ padding: '12px 16px', lineHeight: 1.55 }}>
+          {t('settings.proxy.unsupportedNote')}
+        </div>
+        <SettingsRow title={t('settings.proxy.skipTls')} hint={t('settings.proxy.skipTlsHint')}>
+          <span className="rl-badge rl-badge-outline">{t('settings.proxy.notAvailable')}</span>
         </SettingsRow>
-        {settings.proxyEnabled && (
-          <>
-            <SettingsRow title={t('settings.proxy.type')}>
-              <select
-                className="rl-select"
-                style={{ width: 140 }}
-                value={settings.proxyType}
-                onChange={(e) => setSetting('proxyType', e.target.value as ProxyType)}
-              >
-                {PROXY_TYPE_OPTIONS.map((p) => (
-                  <option key={p.value} value={p.value}>
-                    {p.label}
-                  </option>
-                ))}
-              </select>
-            </SettingsRow>
-            <SettingsRow title={t('settings.proxy.host')}>
-              <input
-                type="text"
-                className="rl-input font-mono-design"
-                style={{ width: 200 }}
-                value={settings.proxyHost}
-                placeholder="host"
-                onChange={(e) => setSetting('proxyHost', e.target.value)}
-              />
-            </SettingsRow>
-            <SettingsRow title={t('settings.proxy.port')} bordered={false}>
-              <input
-                type="text"
-                className="rl-input font-mono-design"
-                style={{ width: 120 }}
-                value={settings.proxyPort}
-                placeholder="port"
-                onChange={(e) => setSetting('proxyPort', e.target.value.replace(/\D/g, ''))}
-                onBlur={() => {
-                  const port = Number(settings.proxyPort)
-                  if (settings.proxyPort && (port < 1 || port > 65535)) {
-                    setSetting('proxyPort', '')
-                    toast.error(t('settings.proxy.portRangeError'))
-                  }
-                }}
-              />
-            </SettingsRow>
-          </>
-        )}
-        {!settings.proxyEnabled && (
-          <div
-            className="rl-muted text-[12px]"
-            style={{ padding: '12px 16px', borderTop: '1px solid hsl(var(--border))' }}
-          >
-            {t('settings.proxy.disabledNote')}
-          </div>
-        )}
+        <SettingsRow
+          title={t('settings.proxy.enable')}
+          hint={t('settings.proxy.enableHint')}
+          bordered={false}
+        >
+          <span className="rl-badge rl-badge-outline">{t('settings.proxy.notAvailable')}</span>
+        </SettingsRow>
       </div>
     </>
   )
@@ -1039,11 +1001,53 @@ export function SettingsScreen() {
     })
   }, [resetAllSettings, t])
 
-  const handleCheckUpdate = useCallback(() => {
-    Browser.OpenURL(GITHUB_RELEASES_URL).catch(() =>
-      window.open(GITHUB_RELEASES_URL, '_blank', 'noopener,noreferrer'),
-    )
-  }, [])
+  const handleCheckUpdate = useCallback(async () => {
+    const openReleases = () =>
+      Browser.OpenURL(GITHUB_RELEASES_URL).catch(() =>
+        window.open(GITHUB_RELEASES_URL, '_blank', 'noopener,noreferrer'),
+      )
+    try {
+      const res = await fetch('https://api.github.com/repos/amigoer/rocket-leaf/releases/latest', {
+        headers: { Accept: 'application/vnd.github+json' },
+      })
+      if (!res.ok) {
+        toast.info(t('settings.about.updateCheckFailed'), {
+          description: t('settings.about.openReleasesHint'),
+          action: { label: t('settings.about.openReleases'), onClick: () => void openReleases() },
+        })
+        return
+      }
+      const data = (await res.json()) as { tag_name?: string; html_url?: string }
+      const latest = (data.tag_name || '').replace(/^v/i, '')
+      const current = APP_VERSION.replace(/^v/i, '')
+      if (!latest) {
+        toast.info(t('settings.about.updateCheckFailed'))
+        return
+      }
+      const cmp = compareSemver(current, latest)
+      if (cmp < 0) {
+        toast.message(t('settings.about.updateAvailable', { version: latest }), {
+          description: t('settings.about.updateAvailableHint'),
+          action: {
+            label: t('settings.about.openReleases'),
+            onClick: () => {
+              const url = data.html_url || GITHUB_RELEASES_URL
+              Browser.OpenURL(url).catch(() => window.open(url, '_blank', 'noopener,noreferrer'))
+            },
+          },
+        })
+      } else if (cmp === 0) {
+        toast.success(t('settings.about.upToDate', { version: current }))
+      } else {
+        toast.info(t('settings.about.aheadOfRelease', { current, latest }))
+      }
+    } catch {
+      toast.info(t('settings.about.updateCheckFailed'), {
+        description: t('settings.about.openReleasesHint'),
+        action: { label: t('settings.about.openReleases'), onClick: () => void openReleases() },
+      })
+    }
+  }, [t])
 
   const currentSection = SECTIONS.find((s) => s.id === activeSection) ?? SECTIONS[0]!
 

@@ -414,9 +414,7 @@ func (s *ConnectionService) TestConnection(id int) (string, error) {
 	}
 	nameServer := conn.NameServer
 	timeout := s.getConnectTimeout(conn)
-	enableACL := conn.EnableACL
-	accessKey := conn.AccessKey
-	secretKey := conn.SecretKey
+	enableACL, accessKey, secretKey := s.resolveACLCredentials(conn)
 	s.mu.Unlock()
 
 	// 测试连接
@@ -449,6 +447,21 @@ func (s *ConnectionService) getConnectTimeout(conn *model.Connection) time.Durat
 		return s.settingsService.GetConnectTimeout()
 	}
 	return time.Duration(defaultConnectionTimeout) * time.Second
+}
+
+// resolveACLCredentials 解析连接 ACL：优先连接自身凭证；
+// 连接未启用 ACL 时，回退到设置中的全局 AccessKey/SecretKey。
+func (s *ConnectionService) resolveACLCredentials(conn *model.Connection) (enableACL bool, accessKey, secretKey string) {
+	if conn.EnableACL {
+		return true, conn.AccessKey, conn.SecretKey
+	}
+	if s.settingsService != nil {
+		gak, gsk := s.settingsService.GetGlobalACLCredentials()
+		if strings.TrimSpace(gak) != "" && strings.TrimSpace(gsk) != "" {
+			return true, gak, gsk
+		}
+	}
+	return false, "", ""
 }
 
 // SetDefaultConnection 设置默认连接
@@ -524,12 +537,13 @@ func (s *ConnectionService) ConnectDefault() error {
 	}
 
 	timeout := s.getConnectTimeout(defaultConn)
+	enableACL, accessKey, secretKey := s.resolveACLCredentials(defaultConn)
 	_, err := rocketmq.GetClientManager().CreateClient(
 		defaultConn.NameServer,
 		timeout,
-		defaultConn.EnableACL,
-		defaultConn.AccessKey,
-		defaultConn.SecretKey,
+		enableACL,
+		accessKey,
+		secretKey,
 	)
 	if err != nil {
 		return err
@@ -549,9 +563,7 @@ func (s *ConnectionService) Connect(id int) error {
 	}
 	nameServer := conn.NameServer
 	timeout := s.getConnectTimeout(conn)
-	enableACL := conn.EnableACL
-	accessKey := conn.AccessKey
-	secretKey := conn.SecretKey
+	enableACL, accessKey, secretKey := s.resolveACLCredentials(conn)
 	// 收集需要关掉的其它 NameServer 客户端
 	otherNameServers := make([]string, 0)
 	for _, c := range s.connections {

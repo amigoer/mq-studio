@@ -190,6 +190,17 @@ export function AclScreen() {
           <OfflineEmpty message={t('acl.subtitleNoConn')} />
         ) : (
           <div style={{ maxWidth: 1280 }}>
+            <div
+              className="rl-card mb-4 text-[12px]"
+              style={{
+                padding: '10px 14px',
+                lineHeight: 1.55,
+                background: 'hsl(var(--muted) / 0.45)',
+              }}
+            >
+              <span className="font-medium">{t('acl.limitationsTitle')}</span>
+              <span className="rl-muted"> {t('acl.limitationsDesc')}</span>
+            </div>
             {/* Status */}
             <div className="rl-card mb-5 flex items-center gap-3" style={{ padding: 16 }}>
               {statusLoading ? (
