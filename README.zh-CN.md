@@ -18,89 +18,125 @@
 
 ## 这是什么？
 
-Rocket-Leaf 是一个**本地桌面应用**，用来连接和管理 RocketMQ 集群。你可以用它查看 Topic、消费者组、消息详情和监控状态，也可以发送测试消息，而不需要额外部署 Web 控制台或暴露管理端口。
+Rocket-Leaf 是一个**本地桌面应用**，用来连接和管理 RocketMQ 集群。你可以查看 Topic、消费者组、消息详情和集群状态，也可以发送测试消息，而不需要额外部署 Web 控制台或暴露管理端口。
 
 - **开箱即用**：下载后即可直接运行
 - **跨平台**：支持 Windows、macOS、Linux
-- **数据保存在本地**：连接配置保存在当前设备，便于备份和迁移
+- **数据保存在本地**：连接配置与设置保存在当前设备，便于备份和迁移
 
 ## 功能概览
 
-| 能力         | 说明                                                                  |
-| ------------ | --------------------------------------------------------------------- |
-| **连接管理** | 添加多个集群连接，一键切换，配置本地保存                              |
-| **Topic**    | 列表、搜索、详情查看，以及创建和删除                                  |
-| **消费者组** | 查看列表、消费进度、重置位点和订阅关系                                |
-| **消息**     | 按 Topic / Key / MessageId 查询，查看详情，发送测试消息，追踪消息链路 |
-| **监控**     | 查看集群状态、生产消费 TPS 和堆积情况                                 |
+| 能力         | 说明                                                                    |
+| ------------ | ----------------------------------------------------------------------- |
+| **概览**     | 集群快照、生产/消费 TPS、堆积汇总与快捷入口                             |
+| **连接管理** | 多集群、默认连接、ACL 凭证、本地持久化与敏感字段加密                    |
+| **Topic**    | 列表、搜索、路由/统计、创建/更新/删除                                   |
+| **消费者组** | 列表、消费进度、客户端、重置位点、组配置增删改                          |
+| **消息**     | 按 Topic / Key / Tag / MessageId / 时间查询，轨迹、重发、DLQ 与重试队列 |
+| **生产者**   | 发送测试消息（Tag、Key、Body、延时级别）                                |
+| **集群**     | Broker、NameServer、运行时指标与吞吐趋势                                |
+| **告警**     | 基于实时数据与阈值的客户端规则（如堆积、磁盘）                          |
+| **ACL**      | AccessConfig 与全局白名单（需 Broker 支持相关管理接口）                 |
+| **设置**     | 主题、语言（中/英）、超时、展示选项、配置导入导出                       |
 
 ## 界面预览
 
-### 连接管理
+|                                                     |                                                  |
+| --------------------------------------------------- | ------------------------------------------------ |
+| ![连接管理](docs/images/screenshot-connections.png) | ![Topic](docs/images/screenshot-topics.png)      |
+| 连接管理                                            | Topic                                            |
+| ![消费者组](docs/images/screenshot-consumers.png)   | ![消息查询](docs/images/screenshot-messages.png) |
+| 消费者组                                            | 消息查询                                         |
+| ![集群](docs/images/screenshot-cluster.png)         | ![设置](docs/images/screenshot-settings.png)     |
+| 集群                                                | 设置                                             |
 
-![连接管理](docs/images/image%20copy%205.png)
+## 技术栈
 
-### 主题管理
+| 层级   | 技术                                                                   |
+| ------ | ---------------------------------------------------------------------- |
+| 桌面壳 | [Wails v3](https://wails.io/)                                          |
+| 后端   | Go + [rocketmq-admin-go](https://github.com/amigoer/rocketmq-admin-go) |
+| 前端   | React 18、TypeScript、Vite、Tailwind CSS                               |
+| 存储   | 用户配置目录下的本地 JSON（敏感字段 AES-256-GCM）                      |
 
-![主题管理](docs/images/image%20copy%201.png)
-
-### 消费者组
-
-![消费者组](docs/images/image%20copy%202.png)
-
-### 消息查询
-
-![消息查询](docs/images/image%20copy%203.png)
-
-### 集群
-
-![集群](docs/images/image%20copy%204.png)
-
-### 设置
-
-![设置](docs/images/image%20copy%206.png)
+详情：[架构说明](docs/ARCHITECTURE.md) · [路线图](docs/ROADMAP.md)
 
 ## 下载与安装
 
-从 [Releases](https://github.com/codermast/rocket-leaf/releases) 下载对应平台的安装包或可执行文件。
+从 [Releases](https://github.com/amigoer/rocket-leaf/releases) 下载对应平台的安装包或可执行文件。
 
 ### macOS
 
-- **Intel Mac**：`rocket-leaf-macos-amd64.app.zip`
-- **Apple Silicon / M 系列 Mac**：`rocket-leaf-macos-arm64.app.zip`
-- **不确定机型时**：`rocket-leaf-macos-universal.app.zip`
+- **Intel Mac**：`rocket-leaf-macos-amd64` / `.app.zip`（具体文件名以 Release 为准）
+- **Apple Silicon / M 系列**：`rocket-leaf-macos-arm64` / `.app.zip`
 
 ### Windows
 
-- **x64**：安装包和便携可执行文件
-- **ARM64**：安装包和便携可执行文件
+- **x64** / **ARM64**：安装包和/或便携可执行文件（以 CI 发布产物为准）
 
 ### Linux
 
-- **x64 / ARM64**：提供 AppImage、`.deb`、`.rpm`、`.pkg.tar.zst` 等格式（按构建结果提供）
+- **x64 / ARM64**：AppImage、`.deb`、`.rpm`、`.pkg.tar.zst` 等（按构建结果提供）
 
 ## 快速开始
 
-1. 打开应用，在首页点击 `Add Connection`。
-2. 填写集群信息：`NameServer` 地址为必填项；如果集群开启鉴权，再填写账号和密码。
-3. 保存并连接。连接成功后，就可以在侧边栏使用 Topic、消费者组、消息查询等功能。
+1. 打开应用，进入 **连接管理**（或从概览添加连接）。
+2. 填写集群信息：`NameServer` 为必填；若集群开启 ACL，再填写 AccessKey / SecretKey。
+3. 保存并 **连接**。之后可在侧边栏使用 Topic、消费者组、消息、生产者、集群、ACL 等功能。
 
-连接配置会保存在本机，下次打开时会自动显示。
+连接配置与设置会保存在本机。
 
 <details>
-<summary>连接数据存储位置</summary>
+<summary>本地数据存储位置</summary>
 
-- **macOS**: `~/Library/Application Support/rocket-leaf/connections.json`
-- **Linux**: `~/.config/rocket-leaf/connections.json`
-- **Windows**: `%AppData%\rocket-leaf\connections.json`
+位于系统用户配置目录下的 `rocket-leaf/`：
+
+| 文件               | 用途             |
+| ------------------ | ---------------- |
+| `connections.json` | 连接配置         |
+| `settings.json`    | 应用设置         |
+| `secret.key`       | 敏感字段加密密钥 |
+
+常见路径：
+
+- **macOS**: `~/Library/Application Support/rocket-leaf/`
+- **Linux**: `~/.config/rocket-leaf/`
+- **Windows**: `%AppData%\rocket-leaf\`
 
 </details>
 
+## 开发
+
+依赖：Go（见 `go.mod`）、Node.js 20+、[Task](https://taskfile.dev/)、Wails v3 CLI。
+
+```bash
+npm install
+npm --prefix frontend install
+
+# 桌面开发（Wails + Vite）
+task dev
+
+# 当前平台构建 / 打包
+task build
+task package
+
+# 格式化与类型检查
+npm run check
+```
+
+可选本地辅助脚本（需可访问的 NameServer）：
+
+```bash
+go run ./scripts/seed-data [nameServer] [duration_sec] [rate_per_sec]
+go run ./scripts/inspect-cluster ...
+```
+
 ## 路线图与参与开发
 
-- 功能规划见 [路线图](docs/ROADMAP.md)
-- 欢迎提交 Issue 和 PR。当前技术栈与项目结构可参考 [架构说明](docs/ARCHITECTURE.md)
+- 功能状态与后续规划：[路线图](docs/ROADMAP.md)
+- 技术栈与目录结构：[架构说明](docs/ARCHITECTURE.md)
+- 欢迎提交 Issue 和 PR
 
 ## 许可证
 
-[MIT](LICENSE) · Made with love by [CoderMast](https://github.com/codermast)
+[MIT](LICENSE) · [amigoer/rocket-leaf](https://github.com/amigoer/rocket-leaf)

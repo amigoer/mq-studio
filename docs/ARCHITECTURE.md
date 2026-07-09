@@ -1,35 +1,43 @@
-# 🏗 Rocket-Leaf 技术架构
+# Rocket-Leaf 技术架构
 
-本文档描述 Rocket-Leaf 项目的技术架构设计。
+本文档描述 **当前代码库** 的技术架构，与实现保持同步。若实现变更，请同步更新本文档。
 
 ---
 
 ## 架构概览
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                        Rocket-Leaf                          │
-├─────────────────────────────────────────────────────────────┤
-│                      Frontend (Vue 3)                       │
-│  ┌─────────┐  ┌──────────┐  ┌─────────┐  ┌──────────────┐  │
-│  │  Views  │  │Components│  │ Stores  │  │   Services   │  │
-│  └────┬────┘  └────┬─────┘  └────┬────┘  └──────┬───────┘  │
-│       └────────────┴─────────────┴───────────────┘          │
+┌──────────────────────────────────────────────────────────────┐
+│                         Rocket-Leaf                          │
+├──────────────────────────────────────────────────────────────┤
+│  Frontend (React 18 + TypeScript)                            │
+│  ┌──────────┐  ┌─────────┐  ┌────────┐  ┌─────────────────┐ │
+│  │ redesign │  │  hooks  │  │  api   │  │ i18n (en / zh)  │ │
+│  │ screens  │  │ Context │  │ 薄封装  │  │                 │ │
+│  └────┬─────┘  └────┬────┘  └───┬────┘  └────────┬────────┘ │
+│       └─────────────┴───────────┴─────────────────┘          │
 │                           │                                  │
-│                     Wails Runtime                           │
+│              Wails 3 bindings + runtime                      │
 │                           │                                  │
-├───────────────────────────┼─────────────────────────────────┤
-│                      Backend (Go)                           │
-│  ┌─────────────┐  ┌──────────────┐  ┌───────────────────┐  │
-│  │   Services  │  │    Models    │  │    Storage        │  │
-│  └──────┬──────┘  └──────────────┘  └─────────┬─────────┘  │
-│         │                                      │            │
-│  ┌──────┴──────┐                      ┌───────┴─────────┐  │
-│  │  RocketMQ   │                      │  SQLite/JSON    │  │
-│  │   Client    │                      │                 │  │
-│  └─────────────┘                      └─────────────────┘  │
-└─────────────────────────────────────────────────────────────┘
+├───────────────────────────┼──────────────────────────────────┤
+│  Backend (Go)             │                                  │
+│  ┌────────────────┐  ┌────┴───────────┐  ┌────────────────┐ │
+│  │ internal/      │  │ internal/      │  │ internal/      │ │
+│  │ service/*      │  │ rocketmq      │  │ crypto         │ │
+│  │ (Wails 服务)   │→ │ ClientManager │  │ AES-256-GCM    │ │
+│  └────────────────┘  └───────┬───────┘  └────────────────┘ │
+│  ┌────────────────┐          │          ┌────────────────┐ │
+│  │ internal/model │          │          │ 本地 JSON 文件  │ │
+│  │ (DTO)          │          ▼          │ connections /  │ │
+│  └────────────────┘  rocketmq-admin-go  │ settings / key │ │
+│                      rocketmq-client-go └────────────────┘ │
+└──────────────────────────────────────────────────────────────┘
 ```
+
+应用形态：
+
+- **桌面客户端**（默认）：Wails v3 嵌入前端静态资源，系统 WebView 渲染 UI
+- **可选 server / Docker 模式**：无 GUI 的 HTTP 服务形态（见根目录 `Taskfile.yml` 的 `build:server`、`run:docker` 等任务）
 
 ---
 
@@ -37,186 +45,293 @@
 
 ### 前端
 
-| 技术       | 用途     | 理由                     |
-| ---------- | -------- | ------------------------ |
-| Vue 3      | UI 框架  | 渐进式框架，开发体验好   |
-| TypeScript | 开发语言 | 类型安全，减少运行时错误 |
-| Naive UI   | 组件库   | 美观现代，Vue 3 原生支持 |
-| Pinia      | 状态管理 | Vue 3 官方推荐           |
-| Vite       | 构建工具 | 极快的开发体验           |
+| 技术                       | 用途             | 说明                                |
+| -------------------------- | ---------------- | ----------------------------------- |
+| React 18                   | UI 框架          | 实际界面实现                        |
+| TypeScript                 | 语言             | 类型安全                            |
+| Vite 7                     | 构建与开发服务器 | Wails dev 联动                      |
+| Tailwind CSS 4             | 样式             | 设计系统与暗色主题                  |
+| Radix UI + shadcn 风格组件 | 基础交互组件     | `components/ui/*`                   |
+| lucide-react               | 图标             | 侧栏与页面图标                      |
+| i18next / react-i18next    | 国际化           | `en` / `zh`                         |
+| recharts                   | 图表             | 吞吐等趋势展示                      |
+| sonner                     | Toast            | 操作反馈                            |
+| @wailsio/runtime           | 桌面运行时       | 窗口、打开外链等                    |
+| Wails 生成 bindings        | 调用 Go          | `frontend/bindings/rocket-leaf/...` |
 
 ### 后端
 
-| 技术              | 用途      | 理由                     |
-| ----------------- | --------- | ------------------------ |
-| Go                | 开发语言  | 高性能，适合 Wails       |
-| Wails 3           | 桌面框架  | 轻量、现代的桌面开发方案 |
-| rocketmq-admin-go | MQ 客户端 | Go 原生 RocketMQ 管理库  |
-| SQLite            | 本地存储  | 轻量级嵌入式数据库       |
+| 技术                                    | 用途                 | 说明                           |
+| --------------------------------------- | -------------------- | ------------------------------ |
+| Go（见 `go.mod`）                       | 后端语言             | 业务与 Admin 调用              |
+| Wails v3                                | 桌面框架             | 服务绑定 + 资源嵌入            |
+| github.com/amigoer/rocketmq-admin-go    | RocketMQ Admin       | Topic / 消费者 / 消息 / ACL 等 |
+| github.com/apache/rocketmq-client-go/v2 | 生产与部分客户端能力 | 发送消息等                     |
+| 本地 JSON                               | 配置持久化           | 非 SQLite                      |
+| AES-256-GCM                             | 敏感字段加密         | AccessKey / SecretKey          |
+
+### 工程与发布
+
+| 技术                     | 用途                                          |
+| ------------------------ | --------------------------------------------- |
+| Taskfile                 | `task dev` / `task build` / `task package` 等 |
+| GitHub Actions           | 跨平台构建与 Release                          |
+| husky + prettier + gofmt | 提交前格式化与检查                            |
+| `npm run check`          | format / gofmt / go vet / frontend type-check |
 
 ---
 
-## 目录结构设计
+## 目录结构（与仓库一致）
 
 ```
 rocket-leaf/
-├── build/                      # 构建配置与资源
-│   ├── appicon.png             # 应用图标
-│   ├── darwin/                 # macOS 配置
-│   ├── windows/                # Windows 配置
-│   └── linux/                  # Linux 配置
+├── main.go                         # 应用入口：初始化 crypto / services，注册 Wails Service
+├── go.mod / go.sum
+├── Taskfile.yml                    # 聚合各平台构建任务
+├── package.json                    # 根级脚本（format、check、husky）
+├── README.md / README.zh-CN.md
 │
-├── docs/                       # 项目文档
-│   ├── ROADMAP.md              # 路线图
-│   └── ARCHITECTURE.md         # 架构文档
+├── docs/
+│   ├── ARCHITECTURE.md             # 本文档
+│   ├── ROADMAP.md                  # 功能状态与后续规划
+│   └── images/                     # README 截图与 logo
 │
-├── frontend/                   # 前端代码
-│   ├── src/
-│   │   ├── assets/             # 静态资源
-│   │   ├── components/         # 公共组件
-│   │   │   ├── common/         # 通用组件
-│   │   │   ├── layout/         # 布局组件
-│   │   │   └── rocketmq/       # RocketMQ 相关组件
-│   │   ├── views/              # 页面视图
-│   │   │   ├── home/           # 首页
-│   │   │   ├── topic/          # Topic 管理
-│   │   │   ├── consumer/       # 消费者组
-│   │   │   ├── message/        # 消息管理
-│   │   │   └── monitor/        # 监控统计
-│   │   ├── stores/             # Pinia 状态
-│   │   │   ├── connection.ts   # 连接状态
-│   │   │   ├── topic.ts        # Topic 状态
-│   │   │   └── settings.ts     # 设置状态
-│   │   ├── services/           # 服务层（调用 Go）
-│   │   ├── router/             # 路由配置
-│   │   ├── utils/              # 工具函数
-│   │   ├── types/              # TypeScript 类型
-│   │   ├── App.vue             # 根组件
-│   │   └── main.ts             # 入口文件
-│   ├── index.html
+├── internal/
+│   ├── crypto/                     # AES-256-GCM，密钥 secret.key
+│   ├── model/                      # 前后端共享 DTO（连接、Topic、消息、设置等）
+│   ├── rocketmq/
+│   │   └── client.go               # AdminClientManager：客户端池、默认连接、懒初始化
+│   └── service/                    # Wails 暴露的业务服务
+│       ├── connection_service.go
+│       ├── cluster_service.go
+│       ├── topic_service.go
+│       ├── consumer_service.go
+│       ├── message_service.go
+│       ├── settings_service.go
+│       ├── acl_service.go
+│       └── client_retry.go         # 断线自动重连并重试一次
+│
+├── frontend/
 │   ├── package.json
-│   ├── tsconfig.json
-│   └── vite.config.ts
+│   ├── vite.config.ts
+│   ├── index.html
+│   ├── bindings/                   # Wails 生成的 TS 绑定（勿手改业务逻辑）
+│   ├── dist/                       # 构建产物（嵌入 Go 二进制）
+│   └── src/
+│       ├── main.tsx                # React 入口
+│       ├── App.tsx                 # 壳：TitleBar + Sidebar + 页面切换
+│       ├── api/                    # 对 bindings 的薄封装
+│       ├── hooks/                  # 数据与 UI 状态（Context / hooks）
+│       ├── redesign/               # 当前主 UI
+│       │   ├── TitleBar.tsx
+│       │   ├── Sidebar.tsx
+│       │   ├── shell.tsx
+│       │   └── screens/            # Overview / Topics / Consumers / ...
+│       ├── components/             # 通用组件 + 部分历史视图（Spinner、ui 等仍在用）
+│       ├── i18n/                   # 语言包
+│       └── lib/utils.ts
 │
-├── internal/                   # Go 内部包
-│   ├── rocketmq/               # RocketMQ 交互
-│   │   ├── client.go           # 客户端封装
-│   │   ├── topic.go            # Topic 操作
-│   │   ├── consumer.go         # 消费者组操作
-│   │   └── message.go          # 消息操作
-│   ├── storage/                # 数据存储
-│   │   ├── connection.go       # 连接配置存储
-│   │   ├── settings.go         # 设置存储
-│   │   └── crypto.go           # 加密工具
-│   └── models/                 # 数据模型
-│       ├── connection.go       # 连接模型
-│       ├── topic.go            # Topic 模型
-│       └── message.go          # 消息模型
+├── build/                          # 各平台打包资源与 Taskfile
+│   ├── config.yml                  # Wails 应用元数据与 dev_mode
+│   ├── darwin/ / windows/ / linux/
+│   ├── android/ / ios/             # 移动端脚手架（非桌面主路径）
+│   └── docker/
 │
-├── services/                   # Wails 服务（暴露给前端）
-│   ├── connection_service.go   # 连接服务
-│   ├── topic_service.go        # Topic 服务
-│   ├── consumer_service.go     # 消费者服务
-│   ├── message_service.go      # 消息服务
-│   └── monitor_service.go      # 监控服务
+├── scripts/                        # 本地调试辅助
+│   ├── seed-data/                  # 灌流量演示
+│   ├── produce/                    # 发消息
+│   ├── inspect-cluster/            # 查看集群
+│   └── check-gofmt.sh
 │
-├── main.go                     # 应用入口
-├── go.mod
-├── go.sum
-└── README.md
+└── .github/workflows/
+    ├── build-test.yml              # 跨平台构建
+    └── release.yml                 # 发布
 ```
+
+---
+
+## 后端服务与职责
+
+`main.go` 在 `init` 中创建服务实例，并在 Wails `Services` 中注册。前端通过生成的 bindings 调用导出方法。
+
+| 服务                | 主要能力                                                                        |
+| ------------------- | ------------------------------------------------------------------------------- |
+| `ConnectionService` | 连接 CRUD、测试、连接/断开、默认连接、JSON 持久化（敏感字段加密）               |
+| `ClusterService`    | 集群信息、Broker 列表与运行时指标、NameServer、摘要、TPS 历史采样               |
+| `TopicService`      | Topic 列表/详情/路由/统计、创建/更新/删除                                       |
+| `ConsumerService`   | 消费者组列表/详情、消费进度、重置 Offset、客户端列表、组的增删改                |
+| `MessageService`    | 按 Topic/Key/Tag/时间查询、按 MsgID 查询、轨迹、重发、DLQ/Retry、发送（含延时） |
+| `SettingsService`   | 应用设置读写、导入/导出、清缓存；超时与拉取限制等供其他服务读取                 |
+| `AclService`        | ACL 开关/版本、AccessConfig 增删改、全局白名单                                  |
+
+### RocketMQ 客户端管理
+
+`internal/rocketmq.AdminClientManager`：
+
+- 按 NameServer 地址缓存 Admin 客户端
+- 支持 **默认连接** 与 **懒初始化**（业务首次访问时通过 `ConnectionService.ConnectDefault` 建立）
+- 应用退出时 `CloseAll()` 释放资源
+- 服务层 `executeWithClientRetry` 在可重试网络错误时移除旧客户端并重连重试一次
 
 ---
 
 ## 前后端通信
 
-Wails 3 提供了前后端通信的机制：
+### Go 侧
 
-### Go 服务暴露
+服务方法导出后，Wails 生成 TypeScript 绑定，例如：
 
 ```go
-// services/connection_service.go
-type ConnectionService struct {
-    storage *storage.ConnectionStorage
-}
-
-// TestConnection 测试连接
-func (s *ConnectionService) TestConnection(config ConnectionConfig) error {
-    // ...
-}
-
-// GetConnections 获取所有连接
-func (s *ConnectionService) GetConnections() ([]Connection, error) {
-    // ...
-}
+// internal/service/connection_service.go
+func (s *ConnectionService) GetConnections() []*model.Connection { ... }
+func (s *ConnectionService) Connect(id int) error { ... }
 ```
 
-### 前端调用
+### 前端调用链
+
+```
+Screen (redesign/screens/*)
+  → hooks/* / 直接 api/*
+    → frontend/src/api/*.ts
+      → frontend/bindings/rocket-leaf/internal/service/*
+        → Go Service 方法
+```
+
+示例：
 
 ```typescript
-// frontend/src/services/connection.ts
-import { ConnectionService } from '@wailsio/runtime'
+// frontend/src/api/connection.ts
+import * as ConnectionService from '../../bindings/rocket-leaf/internal/service/connectionservice.js'
 
-export async function testConnection(config: ConnectionConfig) {
-  return await ConnectionService.TestConnection(config)
+export async function getConnections() {
+  return await ConnectionService.GetConnections()
 }
 ```
+
+页面导航不使用 React Router：`App.tsx` 用 `activeNav` 状态切换 `redesign/screens/*`。未连接时，除 Overview / Connections / Settings 外展示空状态，并禁用相关侧栏项。
 
 ---
 
 ## 数据存储
 
-### 连接配置
+配置目录名：`rocket-leaf`（`os.UserConfigDir()` 下）。
 
-存储在本地 SQLite 数据库或 JSON 文件中：
+| 文件               | 内容                                     |
+| ------------------ | ---------------------------------------- |
+| `connections.json` | 连接列表（AccessKey/SecretKey 加密存储） |
+| `settings.json`    | 主题、语言、超时、告警阈值、消息展示等   |
+| `secret.key`       | AES 主密钥（首次启动生成，权限 0600）    |
+
+典型路径：
+
+| 平台    | 目录                                         |
+| ------- | -------------------------------------------- |
+| macOS   | `~/Library/Application Support/rocket-leaf/` |
+| Linux   | `~/.config/rocket-leaf/`                     |
+| Windows | `%AppData%\rocket-leaf\`                     |
+
+### 敏感信息
+
+- `internal/crypto`：AES-256-GCM，密文带 `ENC:` 前缀
+- 字段级密钥由主密钥派生
+- 空字符串不加密
+
+### 连接模型（摘要）
 
 ```json
 {
   "connections": [
     {
-      "id": "uuid",
+      "id": 1,
       "name": "生产环境",
-      "nameservers": ["192.168.1.100:9876"],
-      "accessKey": "encrypted_value",
-      "secretKey": "encrypted_value",
-      "timeout": 3000,
-      "createdAt": "2026-02-07T12:00:00Z"
+      "env": "生产",
+      "nameServer": "192.168.1.100:9876",
+      "timeoutSec": 5,
+      "enableACL": true,
+      "accessKey": "ENC:...",
+      "secretKey": "ENC:...",
+      "status": "offline",
+      "isDefault": true,
+      "remark": ""
     }
   ]
 }
 ```
 
-### 敏感信息加密
-
-使用 AES-256-GCM 加密敏感字段（AccessKey、SecretKey）。
-
 ---
 
-## 主题系统
+## 前端界面结构
 
-使用 CSS 变量实现主题切换：
+侧栏导航（`redesign/Sidebar.tsx`）：
 
-```css
-:root {
-  --bg-primary: #ffffff;
-  --bg-secondary: #f5f5f5;
-  --text-primary: #333333;
-  --accent-color: #18a058;
-}
+| NavId         | 屏幕              | 说明                             |
+| ------------- | ----------------- | -------------------------------- |
+| `home`        | OverviewScreen    | 吞吐概览、统计卡片、快捷入口     |
+| `topics`      | TopicsScreen      | Topic 管理                       |
+| `consumers`   | ConsumersScreen   | 消费者组                         |
+| `messages`    | MessagesScreen    | 消息查询                         |
+| `producer`    | ProducerScreen    | 发送测试消息                     |
+| `cluster`     | ClusterScreen     | 集群与 Broker                    |
+| `alerts`      | AlertsScreen      | 基于概览数据与阈值的本地告警列表 |
+| `acl`         | AclScreen         | ACL 配置                         |
+| `connections` | ConnectionsScreen | 连接管理                         |
+| `settings`    | SettingsScreen    | 应用设置                         |
 
-[data-theme='dark'] {
-  --bg-primary: #1a1a1a;
-  --bg-secondary: #262626;
-  --text-primary: #e0e0e0;
-  --accent-color: #63e2b7;
-}
-```
+说明：
+
+- **Alerts** 为前端根据 Overview / 设置中的 `lagAlertThreshold` 等规则派生，不是独立告警后端
+- `components/*View.tsx` 等为历史视图；主路径以 `redesign/` 为准，部分通用件（如 `Spinner`、`ui/*`）仍被 redesign 复用
+
+### 主题与 i18n
+
+- 主题：`settings.theme` 为 `system` | `light` | `dark`，配合 CSS / Tailwind 变量
+- 语言：`settings.language` 为 `en` | `zh`，文案在 `frontend/src/i18n/locales/`
 
 ---
 
 ## 安全考虑
 
-1. **敏感数据加密** - AccessKey/SecretKey 本地加密存储
-2. **本地运行** - 无需暴露管理端口到公网
-3. **权限最小化** - 按需申请系统权限
-4. **更新检查** - 支持安全更新通知
+1. **敏感数据加密**：连接与全局设置中的密钥类字段本地加密
+2. **本地运行**：不强制公网暴露管理端口
+3. **配置导入导出**：经 `SettingsService` 统一处理，便于备份迁移
+4. **ACL 写操作**：前端对覆盖白名单等危险操作要求二次确认
+
+---
+
+## 开发与构建入口
+
+```bash
+# 桌面开发（Wails + Vite）
+task dev
+
+# 当前平台构建 / 打包
+task build
+task package
+
+# 质量检查
+npm run check
+
+# 仅前端
+cd frontend && npm install && npm run dev
+cd frontend && npm run build
+```
+
+辅助脚本（需可访问的 NameServer）：
+
+```bash
+go run ./scripts/seed-data [nameServer] [duration_sec] [rate_per_sec]
+go run ./scripts/produce ...
+go run ./scripts/inspect-cluster ...
+```
+
+---
+
+## 维护约定
+
+更新代码时若涉及下列变更，请同步改本文档与 `docs/ROADMAP.md`：
+
+- 技术栈（框架、状态管理、存储介质）
+- 目录布局或主 UI 入口（`redesign` 等）
+- Wails 注册的 Service 列表与对外能力
+- 本地配置文件路径或加密方案
+- 发布产物形态（平台、包格式）
