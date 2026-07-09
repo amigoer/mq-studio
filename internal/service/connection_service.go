@@ -538,7 +538,8 @@ func (s *ConnectionService) ConnectDefault() error {
 	return rocketmq.GetClientManager().SetDefaultConnection(defaultConn.NameServer)
 }
 
-// Connect 连接指定连接
+// Connect 连接指定连接，并将其设为当前活动（默认）客户端。
+// 同一时间只保留一个 online 连接，避免 UI 显示 A 而 Admin 实际走 B。
 func (s *ConnectionService) Connect(id int) error {
 	s.mu.RLock()
 	conn, exists := s.connections[id]
@@ -551,6 +552,13 @@ func (s *ConnectionService) Connect(id int) error {
 	enableACL := conn.EnableACL
 	accessKey := conn.AccessKey
 	secretKey := conn.SecretKey
+	// 收集需要关掉的其它 NameServer 客户端
+	otherNameServers := make([]string, 0)
+	for _, c := range s.connections {
+		if c.ID != id && c.NameServer != "" && c.NameServer != nameServer {
+			otherNameServers = append(otherNameServers, c.NameServer)
+		}
+	}
 	s.mu.RUnlock()
 
 	_, err := rocketmq.GetClientManager().CreateClient(nameServer, timeout, enableACL, accessKey, secretKey)
@@ -558,13 +566,35 @@ func (s *ConnectionService) Connect(id int) error {
 		return err
 	}
 
-	// 更新连接状态
-	s.mu.Lock()
-	if conn, exists := s.connections[id]; exists {
-		conn.Status = model.StatusOnline
-		conn.LastCheck = formatNow()
+	// 关闭其它连接的 Admin 客户端，防止 GetDefaultClient 仍指向旧集群
+	manager := rocketmq.GetClientManager()
+	for _, ns := range otherNameServers {
+		manager.RemoveClient(ns)
 	}
+
+	// 设为默认客户端（业务服务一律走这里）
+	if err := manager.SetDefaultConnection(nameServer); err != nil {
+		return err
+	}
+
+	// 同步持久化状态：当前 online + default，其余 offline 且非 default
+	s.mu.Lock()
+	now := formatNow()
+	for _, c := range s.connections {
+		if c.ID == id {
+			c.Status = model.StatusOnline
+			c.LastCheck = now
+			c.IsDefault = true
+		} else {
+			c.Status = model.StatusOffline
+			c.IsDefault = false
+		}
+	}
+	saveErr := s.saveConnectionsLocked()
 	s.mu.Unlock()
+	if saveErr != nil {
+		log.Printf("[ConnectionService] 连接成功但保存状态失败: %v", saveErr)
+	}
 
 	return nil
 }

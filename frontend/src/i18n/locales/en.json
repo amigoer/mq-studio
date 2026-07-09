@@ -35,7 +35,58 @@
     "exitApp": "Quit application",
     "exitAppConfirm": "Quit Rocket-Leaf?",
     "exit": "Quit",
-    "connectFirst": "Connect to a cluster first"
+    "connectFirst": "Connect to a cluster first",
+    "docs": "Docs"
+  },
+  "emptyState": {
+    "title": "Overview",
+    "subtitle": "Not connected · add a NameServer first",
+    "badge": "Not connected",
+    "supportNote": "RocketMQ 4.x / 5.x · runs locally · no server required",
+    "heroTitle": "Connect to your first NameServer",
+    "heroDesc": "After you add a NameServer you can browse topics, consumer groups, messages, and cluster health. All config stays on this machine.",
+    "addConnection": "Add connection",
+    "importFromFile": "Import from file",
+    "quickStart": "Quick start",
+    "workflow": "How it works",
+    "samples": {
+      "local": {
+        "name": "Local dev",
+        "desc": "NameServer on this machine"
+      },
+      "docker": {
+        "name": "Docker Compose",
+        "desc": "NameServer on the container network"
+      },
+      "paste": {
+        "name": "Paste address…",
+        "desc": "Add quickly from the clipboard"
+      }
+    },
+    "steps": {
+      "1": {
+        "title": "Add NameServer",
+        "desc": "Enter host:port. ACL and TLS are optional. Config is stored locally only."
+      },
+      "2": {
+        "title": "Pick cluster",
+        "desc": "Rocket-Leaf discovers brokers and organizes them by environment."
+      },
+      "3": {
+        "title": "Manage topics & consume",
+        "desc": "Create topics, query messages, reset offsets, and track message trails."
+      }
+    },
+    "links": {
+      "github": "GitHub",
+      "acl": "ACL guide",
+      "tls": "TLS guide",
+      "faq": "FAQ"
+    },
+    "footer": "Local data · nothing is uploaded",
+    "importSuccess": "Config imported. Restart the app to apply.",
+    "importError": "Failed to import config",
+    "clipboardEmpty": "Clipboard is empty — open a blank connection form"
   },
   "nav": {
     "home": "Overview",
@@ -48,17 +99,29 @@
     "acl": "ACL & Audit",
     "connections": "Connections",
     "settings": "Settings",
-    "github": "GitHub"
+    "github": "GitHub",
+    "groupBrowse": "Resources",
+    "groupOps": "Ops"
   },
   "titlebar": {
-    "aiAssistant": "AI Assistant"
+    "aiAssistant": "AI Assistant",
+    "noCluster": "No cluster",
+    "connectedHint": "Connected to {{name}} · click to switch",
+    "offlineHint": "Not connected · click to choose a connection",
+    "switchConnection": "Switch connection",
+    "noConnections": "No connections yet",
+    "manageConnections": "Manage connections…"
   },
   "overview": {
     "title": "Overview",
-    "subtitleConnected": "{{cluster}} · refreshed at {{time}}",
-    "subtitleNoConn": "Not connected · open Connections to add a cluster",
+    "subtitleConnected": "{{cluster}} · {{time}}",
+    "subtitleNoConn": "Not connected",
     "loadError": "Failed to load overview: {{message}}",
     "disconnectSuccess": "Disconnected from {{cluster}}",
+    "issues": {
+      "title": "Needs attention",
+      "count": "{{count}} items"
+    },
     "throughput": {
       "title": "Live throughput",
       "subtitle": "Last 60 minutes · 1-min samples",
@@ -136,7 +199,7 @@
     "subtitle": "{{count}} topics",
     "subtitleFiltered": "{{count}} of {{total}} topics",
     "subtitleNoConn": "Not connected · open Connections first",
-    "searchPlaceholder": "Search topic name or description…",
+    "searchPlaceholder": "Search topics…",
     "filterAll": "All",
     "filterNormal": "Normal",
     "filterFifo": "FIFO",
@@ -149,15 +212,19 @@
       "queues": "Queues (R/W)",
       "perm": "Perm",
       "groups": "Groups",
-      "tpsIn": "Inbound TPS"
+      "tpsIn": "Inbound TPS",
+      "open": "",
+      "view": "Open",
+      "viewing": "Open"
     },
     "empty": "No topics",
+    "emptyHint": "Internal system topics are hidden. Create a topic, or filter Retry / DLQ",
     "loadError": "Failed to load topics: {{message}}",
     "type": {
-      "normal": "NORMAL",
+      "normal": "Normal",
       "fifo": "FIFO",
-      "delay": "DELAY",
-      "retry": "RETRY",
+      "delay": "Delay",
+      "retry": "Retry",
       "dlq": "DLQ"
     },
     "perm": {
@@ -437,6 +504,7 @@
     "historyEmpty": "No sends yet",
     "validateTopic": "Pick a topic",
     "validateBody": "Body cannot be empty",
+    "invalidJson": "Invalid JSON",
     "sendSuccess": "Message sent",
     "sendError": "Send failed"
   },
@@ -595,8 +663,13 @@
     "envTest": "Test",
     "envDev": "Development",
     "envSelect": "Choose environment",
-    "nameServer": "NameServer addresses",
-    "nameServerHint": "Multiple addresses separated by ; or whitespace",
+    "nameServer": "NameServer",
+    "host": "Host / IP",
+    "port": "Port",
+    "hostPlaceholder": "127.0.0.1 or namesrv.example.com",
+    "addNameServer": "Add address",
+    "nameServerHint": "Host and port are separate; default port is 9876. Add more rows for extra NameServers",
+    "validatePort": "Port must be a number between 1 and 65535",
     "timeout": "Connect timeout",
     "timeoutUnit": "s",
     "enableAcl": "Enable ACL",
@@ -605,18 +678,25 @@
     "sk": "SecretKey",
     "remark": "Notes",
     "remarkPlaceholder": "Optional",
-    "test": "Test connection",
+    "test": "Test connectivity",
     "testing": "Testing…",
     "testSuccess": "Connection test successful",
     "testFail": "Connection test failed",
     "connect": "Connect",
+    "saveAndConnect": "Save & connect",
+    "saveOnly": "Save only",
     "disconnect": "Disconnect",
     "connectSuccess": "Connected to {{name}}",
     "disconnectSuccess": "Disconnected from {{name}}",
+    "connectHint": "Edit then click Save & connect — no separate steps",
+    "connectHintNew": "Fill in NameServer, then Save & connect",
+    "connectHintOnline": "Connected. Save edits, or disconnect and reconnect",
+    "unsaved": "Unsaved",
+    "advanced": "Advanced",
     "setDefault": "Set as default",
     "setDefaultSuccess": "{{name}} is now the default",
     "create": "Create",
-    "save": "Save changes",
+    "save": "Save",
     "createSuccess": "Connection {{name}} created",
     "saveSuccess": "Connection {{name}} saved",
     "deleteBtn": "Delete connection",
@@ -634,7 +714,7 @@
     "section": {
       "appearance": {
         "label": "Appearance",
-        "subtitle": "Theme, accent and density"
+        "subtitle": "Theme and motion preferences"
       },
       "general": {
         "label": "General",
@@ -671,17 +751,6 @@
         "system": "System",
         "systemDesc": "Auto switch"
       },
-      "accent": "Accent color",
-      "accentNames": {
-        "default": "Default",
-        "blue": "Blue",
-        "green": "Green",
-        "orange": "Orange",
-        "red": "Red",
-        "purple": "Purple",
-        "cyan": "Cyan"
-      },
-      "accentHint": "Accent applies to buttons, links and focus rings. Pick \"Default\" to revert to the theme color.",
       "a11y": "Animations & accessibility",
       "animations": "Interface animations",
       "animationsHint": "Page transitions, panel open/close, etc.",

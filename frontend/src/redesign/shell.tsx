@@ -1,44 +1,22 @@
 import type { ReactNode } from 'react'
-import { cn } from '@/lib/utils'
 
 export function PageHeader({
   title,
   subtitle,
   children,
-  tabs,
-  activeTab,
-  onTabChange,
 }: {
   title: string
   subtitle?: string
   children?: ReactNode
-  tabs?: string[]
-  activeTab?: string
-  onTabChange?: (t: string) => void
 }) {
   return (
-    <>
-      <div className="rl-page-header">
-        <div>
-          <div className="rl-page-title">{title}</div>
-          {subtitle && <div className="rl-page-subtitle">{subtitle}</div>}
-        </div>
-        <div className="right">{children}</div>
+    <div className="rl-page-header">
+      <div className="min-w-0">
+        <div className="rl-page-title">{title}</div>
+        {subtitle && <div className="rl-page-subtitle">{subtitle}</div>}
       </div>
-      {tabs && (
-        <div className="rl-utabs">
-          {tabs.map((t) => (
-            <div
-              key={t}
-              className={cn('utab', t === activeTab && 'active')}
-              onClick={() => onTabChange?.(t)}
-            >
-              {t}
-            </div>
-          ))}
-        </div>
-      )}
-    </>
+      {children && <div className="right">{children}</div>}
+    </div>
   )
 }
 

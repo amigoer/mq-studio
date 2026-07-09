@@ -1,10 +1,25 @@
-import { useMemo, useState, useCallback, useEffect } from 'react'
-import { Minus, Square, SquareMinus, X, Sparkles } from 'lucide-react'
+import { useMemo, useState, useCallback, useEffect, useRef } from 'react'
+import {
+  Check,
+  ChevronDown,
+  Minus,
+  Plus,
+  Settings2,
+  Square,
+  SquareMinus,
+  Unlink,
+  X,
+} from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { cn } from '@/lib/utils'
+import { toast } from 'sonner'
+import { cn, formatErrorMessage } from '@/lib/utils'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { Spinner } from '@/components/Spinner'
+import { useConnections } from '@/hooks/useConnections'
+import * as connectionApi from '@/api/connection'
 import { Window } from '@wailsio/runtime'
 import logoUrl from '@/assets/logo.png'
+import type { Connection } from '../../bindings/rocket-leaf/internal/model/models.js'
 
 function isMac(): boolean {
   if (typeof navigator === 'undefined') return false
@@ -12,16 +27,23 @@ function isMac(): boolean {
 }
 
 export function TitleBar({
-  connected = 'prod-cluster-01',
-  aiEnabled = true,
+  connected = null,
+  onOpenConnections,
 }: {
   connected?: string | null
-  aiEnabled?: boolean
+  onOpenConnections?: () => void
 }) {
   const { t } = useTranslation()
   const mac = useMemo(isMac, [])
+  const { list, refresh } = useConnections()
   const [isMaximised, setIsMaximised] = useState(false)
   const [showCloseConfirm, setShowCloseConfirm] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [busyId, setBusyId] = useState<number | null>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  const online = Boolean(connected)
+  const active = list.find((c) => c.status === 'online') ?? null
 
   const refreshMaximised = useCallback(async () => {
     try {
@@ -36,6 +58,23 @@ export function TitleBar({
     refreshMaximised()
   }, [refreshMaximised])
 
+  // Close dropdown on outside click / Escape
+  useEffect(() => {
+    if (!menuOpen) return
+    const onDoc = (e: MouseEvent) => {
+      if (!menuRef.current?.contains(e.target as Node)) setMenuOpen(false)
+    }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMenuOpen(false)
+    }
+    document.addEventListener('mousedown', onDoc)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onDoc)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [menuOpen])
+
   const handleMinimise = useCallback(() => {
     Window.Minimise().catch(() => {})
   }, [])
@@ -45,42 +84,156 @@ export function TitleBar({
       .catch(() => {})
   }, [refreshMaximised])
 
+  const switchTo = async (conn: Connection) => {
+    if (conn.status === 'online') {
+      setMenuOpen(false)
+      return
+    }
+    setBusyId(conn.id)
+    try {
+      // Disconnect any currently online profiles first
+      for (const c of list) {
+        if (c.status === 'online' && c.id !== conn.id) {
+          await connectionApi.disconnect(c.id)
+        }
+      }
+      await connectionApi.connect(conn.id)
+      toast.success(t('connections.connectSuccess', { name: conn.name }), {
+        id: 'titlebar-conn',
+      })
+      await refresh()
+      setMenuOpen(false)
+    } catch (e) {
+      toast.error(formatErrorMessage(e), { id: 'titlebar-conn' })
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  const handleDisconnectActive = async () => {
+    if (!active) return
+    setBusyId(active.id)
+    try {
+      await connectionApi.disconnect(active.id)
+      toast.success(t('connections.disconnectSuccess', { name: active.name }), {
+        id: 'titlebar-conn',
+      })
+      await refresh()
+      setMenuOpen(false)
+    } catch (e) {
+      toast.error(formatErrorMessage(e), { id: 'titlebar-conn' })
+    } finally {
+      setBusyId(null)
+    }
+  }
+
   const winBtnClass =
-    'flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground [--wails-draggable:no-drag]'
+    'flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground [--wails-draggable:no-drag]'
   const closeBtnClass =
-    'flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/15 hover:text-destructive [--wails-draggable:no-drag]'
+    'flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/15 hover:text-destructive [--wails-draggable:no-drag]'
 
   return (
     <>
-      <header
-        className={cn('rl-title-bar [--wails-draggable:drag]', mac ? '' : '!pl-3')}
-        style={mac ? undefined : { paddingLeft: 12 }}
-      >
+      <header className={cn('rl-title-bar [--wails-draggable:drag]', !mac && 'rl-title-bar--win')}>
         <img src={logoUrl} alt="" className="logo-img" aria-hidden />
         <div className="title">{t('app.name')}</div>
-        <div className="rl-muted" style={{ fontSize: 11 }}>
-          — {t('app.tagline')}
-        </div>
         <div className="rl-titlebar-spacer" />
-        {aiEnabled && (
-          <button className="rl-ai-pill [--wails-draggable:no-drag]" type="button">
-            <span className="ai-spark">
-              <Sparkles size={13} />
+
+        <div className="conn-menu-wrap [--wails-draggable:no-drag]" ref={menuRef}>
+          <button
+            type="button"
+            className={cn('conn-pill', online ? 'online' : 'offline', menuOpen && 'open')}
+            onClick={() => setMenuOpen((v) => !v)}
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
+            title={
+              online ? t('titlebar.connectedHint', { name: connected }) : t('titlebar.offlineHint')
+            }
+          >
+            <span className="dot" aria-hidden />
+            <span className="conn-status">
+              {online ? t('common.connected') : t('common.offline')}
             </span>
-            <span>{t('titlebar.aiAssistant')}</span>
-            <span className="kbd-mini">⌘K</span>
+            <span className="conn-sep" aria-hidden />
+            <span className="conn-name">{online ? connected : t('titlebar.noCluster')}</span>
+            <ChevronDown size={12} className={cn('conn-chevron', menuOpen && 'open')} aria-hidden />
           </button>
-        )}
-        {connected && (
-          <div className="conn-pill">
-            <span className="dot" />
-            <span className="font-mono-design" style={{ fontSize: 11 }}>
-              {connected}
-            </span>
-          </div>
-        )}
+
+          {menuOpen && (
+            <div className="conn-menu" role="menu">
+              <div className="conn-menu-label">{t('titlebar.switchConnection')}</div>
+              {list.length === 0 ? (
+                <div className="conn-menu-empty">{t('titlebar.noConnections')}</div>
+              ) : (
+                list.map((c) => {
+                  const isOnline = c.status === 'online'
+                  const busy = busyId === c.id
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      role="menuitem"
+                      className={cn('conn-menu-item', isOnline && 'active')}
+                      disabled={busyId != null}
+                      onClick={() => void switchTo(c)}
+                    >
+                      <span className={cn('item-dot', isOnline ? 'on' : 'off')} aria-hidden />
+                      <span className="item-body">
+                        <span className="item-name">
+                          {c.name}
+                          {c.isDefault && (
+                            <span className="item-default">{t('connections.default')}</span>
+                          )}
+                        </span>
+                        <span className="item-addr font-mono-design">
+                          {(c.nameServer || '').split(/[;\s,]+/)[0] || '—'}
+                        </span>
+                      </span>
+                      {busy ? (
+                        <Spinner size={12} />
+                      ) : isOnline ? (
+                        <Check size={13} className="item-check" />
+                      ) : null}
+                    </button>
+                  )
+                })
+              )}
+
+              <div className="conn-menu-sep" />
+
+              {active && (
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="conn-menu-item danger"
+                  disabled={busyId != null}
+                  onClick={() => void handleDisconnectActive()}
+                >
+                  {busyId === active.id ? <Spinner size={12} /> : <Unlink size={13} />}
+                  <span>{t('connections.disconnect')}</span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                role="menuitem"
+                className="conn-menu-item"
+                onClick={() => {
+                  setMenuOpen(false)
+                  onOpenConnections?.()
+                }}
+              >
+                {list.length === 0 ? <Plus size={13} /> : <Settings2 size={13} />}
+                <span>
+                  {list.length === 0 ? t('connections.addFirst') : t('titlebar.manageConnections')}
+                </span>
+              </button>
+            </div>
+          )}
+        </div>
+
         {!mac && (
-          <div className="flex shrink-0 items-center gap-0.5" style={{ marginLeft: 8 }}>
+          <div className="flex shrink-0 items-center gap-0.5 [--wails-draggable:no-drag]">
             <button
               type="button"
               onClick={handleMinimise}

@@ -1,13 +1,14 @@
-import { useMemo, useState } from 'react'
-import { AlertCircle, AlertTriangle, Info, PlugZap, Settings, RefreshCw } from 'lucide-react'
+import { useCallback, useMemo, useState } from 'react'
+import { AlertCircle, AlertTriangle, Info, Settings } from 'lucide-react'
 import { Spinner } from '@/components/Spinner'
 import { useTranslation } from 'react-i18next'
-import { toast } from 'sonner'
 import { PageHeader } from '../shell'
 import { useOverview } from '@/hooks/useOverview'
 import { useSettings } from '@/hooks/useSettings'
 import type { NavId } from '../Sidebar'
-import { formatErrorMessage } from '@/lib/utils'
+import { RefreshButton, usePageRefresh } from '@/components/RefreshButton'
+import { SlidingTabs } from '@/components/SlidingTabs'
+import { OfflineEmpty } from '@/components/OfflineEmpty'
 
 type Severity = 'crit' | 'warn' | 'info'
 
@@ -28,11 +29,13 @@ const DISK_THRESHOLD = 75
 
 export function AlertsScreen({ onNavigate }: AlertsScreenProps) {
   const { t } = useTranslation()
-  const { data, refresh, refreshing, loading } = useOverview()
+  const { data, refresh, loading } = useOverview()
   const { settings } = useSettings()
   const lagThreshold = settings.lagAlertThreshold || 10000
 
   const [tab, setTab] = useState<'active' | 'rules'>('active')
+  const doRefresh = useCallback(() => refresh({ silent: true }), [refresh])
+  const { spinning: isRefreshing, refresh: handleRefresh } = usePageRefresh(doRefresh)
 
   const hasOnline = data.activeConnection?.status === 'online'
 
@@ -86,9 +89,7 @@ export function AlertsScreen({ onNavigate }: AlertsScreenProps) {
     }
     // Disk usage warnings
     for (const b of data.brokers) {
-      const usage = Number(
-        (b as unknown as { commitLogDiskUsage?: number }).commitLogDiskUsage ?? 0,
-      )
+      const usage = Number(b.commitLogDiskUsage ?? 0)
       if (usage >= DISK_THRESHOLD) {
         out.push({
           key: `disk-${b.brokerName}-${b.brokerId}`,
@@ -103,47 +104,32 @@ export function AlertsScreen({ onNavigate }: AlertsScreenProps) {
     return out.sort((a, b) => severityWeight(b.severity) - severityWeight(a.severity))
   }, [hasOnline, data, lagThreshold, t])
 
-  const handleRefresh = async () => {
-    try {
-      await refresh()
-      toast.success(t('common.refreshed'))
-    } catch (e) {
-      toast.error(formatErrorMessage(e))
-    }
-  }
-
   const subtitle = !hasOnline
     ? t('alerts.subtitleNoConn')
     : t('alerts.subtitle', { count: alerts.length })
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <PageHeader
-        title={t('alerts.title')}
-        subtitle={subtitle}
-        tabs={[t('alerts.tabs.active'), t('alerts.tabs.rules')]}
-        activeTab={tab === 'active' ? t('alerts.tabs.active') : t('alerts.tabs.rules')}
-        onTabChange={(label) => setTab(label === t('alerts.tabs.active') ? 'active' : 'rules')}
-      >
-        <button
-          className="rl-btn rl-btn-outline rl-btn-icon rl-btn-sm"
-          onClick={handleRefresh}
-          disabled={refreshing || !hasOnline}
-          title={t('common.refresh')}
-        >
-          {refreshing ? <Spinner size={14} /> : <RefreshCw size={14} />}
-        </button>
+      <PageHeader title={t('alerts.title')} subtitle={subtitle}>
+        <RefreshButton spinning={isRefreshing} disabled={!hasOnline} onClick={handleRefresh} />
       </PageHeader>
+
+      {hasOnline && (
+        <div className="flex items-center gap-1 border-b border-border px-4 py-2">
+          <SlidingTabs
+            value={tab}
+            onChange={setTab}
+            items={[
+              { key: 'active', label: t('alerts.tabs.active') },
+              { key: 'rules', label: t('alerts.tabs.rules') },
+            ]}
+          />
+        </div>
+      )}
 
       <div className="scroll-thin min-h-0 flex-1 overflow-auto" style={{ padding: 20 }}>
         {!hasOnline ? (
-          <div
-            className="rl-muted flex flex-col items-center justify-center text-center"
-            style={{ minHeight: 240 }}
-          >
-            <PlugZap size={32} className="mb-3 opacity-40" />
-            <div className="text-[13px]">{t('alerts.subtitleNoConn')}</div>
-          </div>
+          <OfflineEmpty message={t('alerts.subtitleNoConn')} />
         ) : tab === 'active' ? (
           <ActiveAlerts alerts={alerts} loading={loading} />
         ) : (
@@ -160,8 +146,8 @@ function severityWeight(s: Severity): number {
 
 function severityIcon(s: Severity) {
   if (s === 'crit') return <AlertCircle size={13} style={{ color: 'hsl(var(--destructive))' }} />
-  if (s === 'warn') return <AlertTriangle size={13} style={{ color: 'hsl(28 80% 45%)' }} />
-  return <Info size={13} style={{ color: 'hsl(217 80% 50%)' }} />
+  if (s === 'warn') return <AlertTriangle size={13} style={{ color: 'hsl(var(--warning))' }} />
+  return <Info size={13} style={{ color: 'hsl(var(--info))' }} />
 }
 
 function ActiveAlerts({ alerts, loading }: { alerts: AlertEntry[]; loading: boolean }) {

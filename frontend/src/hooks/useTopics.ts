@@ -16,8 +16,9 @@ export function useTopics() {
   const [error, setError] = useState<string | null>(null)
   const cancelledRef = useRef(false)
 
-  const refresh = useCallback(async () => {
-    setRefreshing(true)
+  const refresh = useCallback(async (opts?: { silent?: boolean }) => {
+    const silent = opts?.silent === true
+    if (!silent) setRefreshing(true)
     setError(null)
     try {
       const raw = await topicApi.getTopics()
@@ -31,7 +32,7 @@ export function useTopics() {
     } finally {
       if (!cancelledRef.current) {
         setLoading(false)
-        setRefreshing(false)
+        if (!silent) setRefreshing(false)
       }
     }
   }, [])
@@ -46,7 +47,7 @@ export function useTopics() {
       }
     }
     void refresh()
-    const id = window.setInterval(refresh, AUTO_REFRESH_MS)
+    const id = window.setInterval(() => void refresh({ silent: true }), AUTO_REFRESH_MS)
     return () => {
       cancelledRef.current = true
       window.clearInterval(id)

@@ -24,7 +24,8 @@ export function AddConnection(name: string, env: string, nameServer: string, tim
 }
 
 /**
- * Connect 连接指定连接
+ * Connect 连接指定连接，并将其设为当前活动（默认）客户端。
+ * 同一时间只保留一个 online 连接，避免 UI 显示 A 而 Admin 实际走 B。
  */
 export function Connect(id: number): $CancellablePromise<void> {
     return $Call.ByID(1510905961, id);

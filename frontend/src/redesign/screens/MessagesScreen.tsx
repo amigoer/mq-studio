@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Search, Copy, X, Send, GitBranch, PlugZap, AlertCircle, Check } from 'lucide-react'
+import { Search, Copy, X, Send, GitBranch, Check } from 'lucide-react'
 import { Spinner } from '@/components/Spinner'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -14,6 +14,9 @@ import { useSettings } from '@/hooks/useSettings'
 import { useDelayedUnmount } from '@/hooks/useDelayedUnmount'
 import * as messageApi from '@/api/message'
 import { formatErrorMessage } from '@/lib/utils'
+import { SlidingTabs } from '@/components/SlidingTabs'
+import { OfflineEmpty } from '@/components/OfflineEmpty'
+import { ErrorBanner } from '@/components/ErrorBanner'
 
 type TabKey = 'topic' | 'msgid' | 'retry' | 'dlq'
 
@@ -168,32 +171,30 @@ export function MessagesScreen() {
       <PageHeader
         title={t('messages.title')}
         subtitle={!hasOnline ? t('messages.subtitleNoConn') : undefined}
-        tabs={[
-          t('messages.tabs.topic'),
-          t('messages.tabs.msgid'),
-          t('messages.tabs.retry'),
-          t('messages.tabs.dlq'),
-        ]}
-        activeTab={t(`messages.tabs.${tab}`)}
-        onTabChange={(label) => {
-          if (label === t('messages.tabs.topic')) setTab('topic')
-          else if (label === t('messages.tabs.msgid')) setTab('msgid')
-          else if (label === t('messages.tabs.retry')) setTab('retry')
-          else setTab('dlq')
-          setResults([])
-          setError(null)
-          setHasSearched(false)
-        }}
       />
 
-      {!hasOnline ? (
-        <div
-          className="rl-muted flex flex-col items-center justify-center text-center"
-          style={{ flex: 1, padding: 40 }}
-        >
-          <PlugZap size={32} className="mb-3 opacity-40" />
-          <div className="text-[13px]">{t('messages.subtitleNoConn')}</div>
+      {hasOnline && (
+        <div className="flex items-center gap-1 border-b border-border px-4 py-2">
+          <SlidingTabs
+            value={tab}
+            onChange={(key) => {
+              setTab(key)
+              setResults([])
+              setError(null)
+              setHasSearched(false)
+            }}
+            items={[
+              { key: 'topic', label: t('messages.tabs.topic') },
+              { key: 'msgid', label: t('messages.tabs.msgid') },
+              { key: 'retry', label: t('messages.tabs.retry') },
+              { key: 'dlq', label: t('messages.tabs.dlq') },
+            ]}
+          />
         </div>
+      )}
+
+      {!hasOnline ? (
+        <OfflineEmpty message={t('messages.subtitleNoConn')} className="flex-1" />
       ) : (
         <>
           {/* Query bar */}
@@ -307,22 +308,7 @@ export function MessagesScreen() {
             )}
           </div>
 
-          {error && (
-            <div
-              className="flex items-center gap-2"
-              style={{
-                margin: 16,
-                padding: '10px 14px',
-                borderRadius: 8,
-                background: 'hsl(0 84% 96%)',
-                color: 'hsl(0 70% 35%)',
-                border: '1px solid hsl(0 84% 80%)',
-              }}
-            >
-              <AlertCircle size={14} />
-              <span className="text-[12px]">{error}</span>
-            </div>
-          )}
+          {error && <ErrorBanner message={error} />}
 
           <div className="flex min-h-0 flex-1 overflow-hidden">
             <div
@@ -529,13 +515,16 @@ function MessageDetailPanel({
           }}
         >
           {(['body', 'properties', 'track'] as const).map((k) => (
-            <div
+            <button
               key={k}
+              type="button"
+              role="tab"
+              aria-selected={tab === k}
               className={'utab ' + (tab === k ? 'active' : '')}
               onClick={() => setTab(k)}
             >
               {t(`messages.detail.tabs.${k}`)}
-            </div>
+            </button>
           ))}
         </div>
 

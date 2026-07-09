@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react'
+import { PageTransition } from '@/components/PageTransition'
 import {
   Sun,
   Settings as SettingsIcon,
@@ -7,7 +8,6 @@ import {
   Globe,
   Database,
   Info,
-  Folder,
   Check,
   Download,
   Upload,
@@ -18,6 +18,8 @@ import {
   ExternalLink,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import type { IconType } from 'react-icons'
+import { FaApple, FaLinux, FaWindows } from 'react-icons/fa'
 import { Browser, Dialogs } from '@wailsio/runtime'
 import { toast } from 'sonner'
 import { useTranslation } from 'react-i18next'
@@ -31,7 +33,7 @@ import {
   type ProxyType,
   type FetchLimit,
 } from '@/hooks/useSettings'
-import { useUIPrefs, type AccentKey } from '@/hooks/useUIPrefs'
+import { useUIPrefs } from '@/hooks/useUIPrefs'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import logoUrl from '@/assets/logo.png'
 import {
@@ -55,16 +57,6 @@ const SECTIONS: { id: SectionId; icon: LucideIcon }[] = [
   { id: 'proxy', icon: Globe },
   { id: 'data', icon: Database },
   { id: 'about', icon: Info },
-]
-
-const ACCENT_COLORS: { key: AccentKey; c: string }[] = [
-  { key: 'default', c: '#0a0a0a' },
-  { key: 'blue', c: '#2563eb' },
-  { key: 'green', c: '#16a34a' },
-  { key: 'orange', c: '#ea580c' },
-  { key: 'red', c: '#dc2626' },
-  { key: 'purple', c: '#9333ea' },
-  { key: 'cyan', c: '#0891b2' },
 ]
 
 const THEMES: { mode: ThemeMode; nameKey: string; descKey: string }[] = [
@@ -97,10 +89,26 @@ const LANGUAGE_OPTIONS: { value: Language; label: string }[] = [
   { value: 'en', label: 'English' },
 ]
 
-const DATA_PATHS: { platform: string; path: string }[] = [
-  { platform: 'macOS', path: '~/Library/Application Support/rocket-leaf/' },
-  { platform: 'Linux', path: '~/.config/rocket-leaf/' },
-  { platform: 'Windows', path: '%AppData%\\rocket-leaf\\' },
+const DATA_PATHS: {
+  platform: string
+  path: string
+  Icon: IconType
+}[] = [
+  {
+    platform: 'macOS',
+    path: '~/Library/Application Support/rocket-leaf/',
+    Icon: FaApple,
+  },
+  {
+    platform: 'Linux',
+    path: '~/.config/rocket-leaf/',
+    Icon: FaLinux,
+  },
+  {
+    platform: 'Windows',
+    path: '%AppData%\\rocket-leaf\\',
+    Icon: FaWindows,
+  },
 ]
 
 const MIN_FONT_SIZE = 12
@@ -194,10 +202,12 @@ function SettingsRow({
 }) {
   return (
     <div
-      className="flex items-center justify-between p-4"
-      style={bordered ? { borderBottom: '1px solid hsl(var(--border))' } : undefined}
+      className={
+        'flex items-center justify-between gap-4 px-4 py-3' +
+        (bordered ? ' border-b border-border' : '')
+      }
     >
-      <div className="min-w-0 flex-1 pr-4">
+      <div className="min-w-0 flex-1 pr-2">
         <div className="text-[13px] font-medium">{title}</div>
         {hint && <div className="rl-muted mt-1 text-[12px]">{hint}</div>}
       </div>
@@ -223,7 +233,7 @@ function Switch({ on, onClick }: { on: boolean; onClick: () => void }) {
 function AppearancePanel() {
   const { t } = useTranslation()
   const { settings, setSetting } = useSettings()
-  const { prefs, setAccent, setAnimations, setReduceTransparency, setHighContrast } = useUIPrefs()
+  const { prefs, setAnimations, setReduceTransparency, setHighContrast } = useUIPrefs()
   return (
     <>
       <div className="rl-section-label" style={{ marginTop: 0 }}>
@@ -301,53 +311,6 @@ function AppearancePanel() {
             </div>
           )
         })}
-      </div>
-
-      <div className="rl-section-label" style={{ marginTop: 24 }}>
-        {t('settings.appearance.accent')}
-      </div>
-      <div className="rl-card" style={{ padding: 16 }}>
-        <div className="flex flex-wrap items-center gap-2">
-          {ACCENT_COLORS.map((c) => {
-            const active = prefs.accent === c.key
-            return (
-              <button
-                type="button"
-                key={c.key}
-                onClick={() => setAccent(c.key)}
-                aria-pressed={active}
-                className="flex cursor-pointer flex-col items-center gap-1 border-0 bg-transparent p-0"
-                style={{ width: 48 }}
-              >
-                <div
-                  style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 999,
-                    background: c.c,
-                    border: active ? '2px solid hsl(var(--foreground))' : '2px solid transparent',
-                    outline: active ? '2px solid hsl(var(--background))' : 'none',
-                    outlineOffset: -4,
-                    display: 'grid',
-                    placeItems: 'center',
-                    color: 'white',
-                  }}
-                >
-                  {active && <Check size={14} strokeWidth={3} />}
-                </div>
-                <span
-                  className="text-[12px]"
-                  style={{
-                    color: active ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
-                  }}
-                >
-                  {t(`settings.appearance.accentNames.${c.key}`)}
-                </span>
-              </button>
-            )
-          })}
-        </div>
-        <div className="rl-muted mt-3 text-[12px]">{t('settings.appearance.accentHint')}</div>
       </div>
 
       <div className="rl-section-label" style={{ marginTop: 24 }}>
@@ -829,26 +792,29 @@ function DataPanel({
         {t('settings.data.storage')}
       </div>
       <div className="rl-card overflow-hidden">
-        {DATA_PATHS.map((p, i) => (
-          <div
-            key={p.platform}
-            className="flex cursor-pointer items-center gap-3 hover:bg-muted/40"
-            style={{
-              padding: '10px 16px',
-              borderTop: i ? '1px solid hsl(var(--border))' : undefined,
-            }}
-            onClick={() => copyPath(p.path)}
-          >
-            <Folder size={14} className="rl-muted" />
-            <span className="text-[13px] font-medium" style={{ width: 80 }}>
-              {p.platform}
-            </span>
-            <code className="font-mono-design rl-muted min-w-0 flex-1 truncate text-[12px]">
-              {p.path}
-            </code>
-            <span className="rl-muted text-[11px]">{t('settings.data.clickToCopy')}</span>
-          </div>
-        ))}
+        {DATA_PATHS.map((p, i) => {
+          const Icon = p.Icon
+          return (
+            <div
+              key={p.platform}
+              className="flex cursor-pointer items-center gap-3 hover:bg-muted/40"
+              style={{
+                padding: '10px 16px',
+                borderTop: i ? '1px solid hsl(var(--border))' : undefined,
+              }}
+              onClick={() => copyPath(p.path)}
+            >
+              <Icon size={14} className="rl-muted shrink-0" aria-hidden />
+              <span className="text-[13px] font-medium" style={{ width: 80 }}>
+                {p.platform}
+              </span>
+              <code className="font-mono-design rl-muted min-w-0 flex-1 truncate text-[12px]">
+                {p.path}
+              </code>
+              <span className="rl-muted text-[11px]">{t('settings.data.clickToCopy')}</span>
+            </div>
+          )
+        })}
       </div>
 
       <div className="rl-section-label" style={{ marginTop: 24 }}>
@@ -1085,61 +1051,49 @@ export function SettingsScreen() {
     <div className="flex h-full min-h-0 flex-col">
       <PageHeader title={t('settings.title')} />
       <div className="flex min-h-0 flex-1 overflow-hidden">
-        <aside
-          className="rl-subtle-bg"
-          style={{
-            width: 220,
-            borderRight: '1px solid hsl(var(--border))',
-            padding: '12px 0',
-            flexShrink: 0,
-          }}
-        >
+        <aside className="rl-settings-aside">
           {SECTIONS.map((s) => {
             const active = s.id === activeSection
             return (
-              <div
+              <button
                 key={s.id}
-                className="flex items-center gap-2"
+                type="button"
+                className={'rl-nav-item' + (active ? ' active' : '')}
                 onClick={() => setActiveSection(s.id)}
-                style={{
-                  padding: '8px 16px',
-                  fontSize: 13,
-                  color: active ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
-                  background: active ? 'hsl(var(--accent))' : 'transparent',
-                  cursor: 'pointer',
-                  borderLeft: active ? '2px solid hsl(var(--foreground))' : '2px solid transparent',
-                }}
               >
-                <s.icon size={14} />
-                {t(`settings.section.${s.id}.label`)}
-              </div>
+                <s.icon size={15} strokeWidth={1.75} className="rl-nav-icon" />
+                <span className="rl-nav-label">{t(`settings.section.${s.id}.label`)}</span>
+              </button>
             )
           })}
         </aside>
 
-        <div className="scroll-thin min-w-0 flex-1 overflow-auto p-6">
-          <div className="mb-5 flex items-center justify-between">
-            <div>
-              <div className="text-[16px] font-semibold">
-                {t(`settings.section.${currentSection.id}.label`)}
+        <div className="rl-settings-content scroll-thin">
+          <PageTransition
+            transitionKey={activeSection}
+            variant="panel"
+            className="rl-settings-content-inner"
+          >
+            <div className="mb-5 flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="text-[15px] font-semibold tracking-tight">
+                  {t(`settings.section.${currentSection.id}.label`)}
+                </div>
+                <div className="rl-muted mt-1 text-[12px]">
+                  {t(`settings.section.${currentSection.id}.subtitle`)}
+                </div>
               </div>
-              <div className="rl-muted mt-1 text-[12px]">
-                {t(`settings.section.${currentSection.id}.subtitle`)}
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="rl-muted text-[12px]">
+              <span className="rl-muted shrink-0 text-[12px]">
                 {loading ? t('settings.loading') : t('settings.autoSaved')}
               </span>
             </div>
-          </div>
 
-          <fieldset
-            disabled={loading}
-            aria-busy={loading}
-            style={{ border: 'none', padding: 0, margin: 0, opacity: loading ? 0.6 : 1 }}
-          >
-            <div style={{ maxWidth: 760 }}>
+            <fieldset
+              disabled={loading}
+              aria-busy={loading}
+              className="m-0 border-0 p-0"
+              style={{ opacity: loading ? 0.6 : 1 }}
+            >
               {activeSection === 'appearance' && <AppearancePanel />}
               {activeSection === 'general' && <GeneralPanel />}
               {activeSection === 'fonts' && <FontsPanel />}
@@ -1158,8 +1112,8 @@ export function SettingsScreen() {
                   onResetSettings={handleResetSettings}
                 />
               )}
-            </div>
-          </fieldset>
+            </fieldset>
+          </PageTransition>
         </div>
       </div>
 

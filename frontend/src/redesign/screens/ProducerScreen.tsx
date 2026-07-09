@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Send, RotateCcw, X, PlugZap, Check, AlertCircle } from 'lucide-react'
+import { Send, RotateCcw, X, Check, AlertCircle } from 'lucide-react'
 import { Spinner } from '@/components/Spinner'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -7,6 +7,7 @@ import { PageHeader } from '../shell'
 import { useTopics } from '@/hooks/useTopics'
 import * as messageApi from '@/api/message'
 import { formatErrorMessage } from '@/lib/utils'
+import { OfflineEmpty } from '@/components/OfflineEmpty'
 
 const SAMPLE_BODY = `{
   "orderId": "ORD-20250812-08472",
@@ -65,7 +66,7 @@ export function ProducerScreen() {
       const parsed = JSON.parse(body)
       setBody(JSON.stringify(parsed, null, 2))
     } catch {
-      toast.error('Invalid JSON')
+      toast.error(t('producer.invalidJson'))
     }
   }
 
@@ -125,13 +126,7 @@ export function ProducerScreen() {
 
       <div className="min-h-0 flex-1 overflow-hidden">
         {!hasOnline ? (
-          <div
-            className="rl-muted flex flex-col items-center justify-center text-center"
-            style={{ height: '100%', padding: 40 }}
-          >
-            <PlugZap size={32} className="mb-3 opacity-40" />
-            <div className="text-[13px]">{t('producer.subtitleNoConn')}</div>
-          </div>
+          <OfflineEmpty message={t('producer.subtitleNoConn')} className="h-full" />
         ) : (
           <div className="grid h-full" style={{ gridTemplateColumns: '1fr 380px' }}>
             <div className="scroll-thin min-w-0 overflow-auto" style={{ padding: 24 }}>

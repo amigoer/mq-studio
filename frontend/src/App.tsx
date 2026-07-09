@@ -14,6 +14,7 @@ import { AclScreen } from '@/redesign/screens/AclScreen'
 import { ConnectionsScreen } from '@/redesign/screens/ConnectionsScreen'
 import { SettingsScreen } from '@/redesign/screens/SettingsScreen'
 import { EmptyStateScreen } from '@/redesign/screens/EmptyStateScreen'
+import { PageTransition } from '@/components/PageTransition'
 import { useConnections } from '@/hooks/useConnections'
 
 function App(): React.ReactElement {
@@ -22,13 +23,13 @@ function App(): React.ReactElement {
   const activeConn = connections.find((c) => c.status === 'online') ?? null
   const hasConnected = activeConn != null
 
+  const gated =
+    !hasConnected && activeNav !== 'connections' && activeNav !== 'settings' && activeNav !== 'home'
+
+  const contentKey = gated ? `empty-${activeNav}` : activeNav
+
   const renderContent = () => {
-    if (
-      !hasConnected &&
-      activeNav !== 'connections' &&
-      activeNav !== 'settings' &&
-      activeNav !== 'home'
-    ) {
+    if (gated) {
       return <EmptyStateScreen onAddConnection={() => setActiveNav('connections')} />
     }
     switch (activeNav) {
@@ -59,7 +60,10 @@ function App(): React.ReactElement {
 
   return (
     <div className="flex h-screen flex-col bg-background text-foreground">
-      <TitleBar connected={activeConn?.name ?? null} />
+      <TitleBar
+        connected={activeConn?.name ?? null}
+        onOpenConnections={() => setActiveNav('connections')}
+      />
       <div className="flex min-h-0 flex-1">
         <Sidebar
           active={activeNav}
@@ -70,11 +74,18 @@ function App(): React.ReactElement {
               : []
           }
         />
-        <main className="rl-app-bg min-w-0 flex-1 overflow-hidden">{renderContent()}</main>
+        <main className="rl-app-bg min-h-0 min-w-0 flex-1 overflow-hidden">
+          <PageTransition transitionKey={contentKey} variant="page">
+            {renderContent()}
+          </PageTransition>
+        </main>
       </div>
       <Toaster
         position="top-center"
         closeButton
+        toastOptions={{
+          className: 'rl-toast',
+        }}
         style={{ '--width': '360px' } as React.CSSProperties}
       />
     </div>

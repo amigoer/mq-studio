@@ -1,9 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 
-export type AccentKey = 'default' | 'blue' | 'green' | 'orange' | 'red' | 'purple' | 'cyan'
-
 export interface UIPrefs {
-  accent: AccentKey
   animations: boolean
   reduceTransparency: boolean
   highContrast: boolean
@@ -12,21 +9,20 @@ export interface UIPrefs {
 const STORAGE_KEY = 'rocket-leaf:ui-prefs'
 
 const DEFAULTS: UIPrefs = {
-  accent: 'default',
   animations: true,
   reduceTransparency: false,
   highContrast: false,
 }
 
-// HSL values for each accent (used as `--primary` / `--ring`)
-const ACCENT_HSL: Record<Exclude<AccentKey, 'default'>, { primary: string; primaryFg: string }> = {
-  blue: { primary: '217 91% 60%', primaryFg: '0 0% 100%' },
-  green: { primary: '142 71% 38%', primaryFg: '0 0% 100%' },
-  orange: { primary: '21 90% 48%', primaryFg: '0 0% 100%' },
-  red: { primary: '0 72% 51%', primaryFg: '0 0% 100%' },
-  purple: { primary: '271 81% 56%', primaryFg: '0 0% 100%' },
-  cyan: { primary: '188 91% 37%', primaryFg: '0 0% 100%' },
-}
+/** CSS vars formerly overridden by the accent-color picker */
+const LEGACY_ACCENT_CSS_VARS = [
+  '--primary',
+  '--primary-foreground',
+  '--ring',
+  '--accent',
+  '--accent-foreground',
+  '--sidebar-active',
+] as const
 
 function loadPrefs(): UIPrefs {
   if (typeof window === 'undefined') return { ...DEFAULTS }
@@ -35,7 +31,6 @@ function loadPrefs(): UIPrefs {
     if (!raw) return { ...DEFAULTS }
     const parsed = JSON.parse(raw) as Partial<UIPrefs>
     return {
-      accent: (parsed.accent as AccentKey) || DEFAULTS.accent,
       animations: typeof parsed.animations === 'boolean' ? parsed.animations : DEFAULTS.animations,
       reduceTransparency:
         typeof parsed.reduceTransparency === 'boolean'
@@ -49,24 +44,15 @@ function loadPrefs(): UIPrefs {
   }
 }
 
-function applyAccent(accent: AccentKey) {
+function clearLegacyAccent() {
   const root = document.documentElement
-  if (accent === 'default') {
-    root.style.removeProperty('--primary')
-    root.style.removeProperty('--primary-foreground')
-    root.style.removeProperty('--ring')
-  } else {
-    const v = ACCENT_HSL[accent]
-    root.style.setProperty('--primary', v.primary)
-    root.style.setProperty('--primary-foreground', v.primaryFg)
-    root.style.setProperty('--ring', v.primary)
-  }
-  root.setAttribute('data-accent', accent)
+  for (const v of LEGACY_ACCENT_CSS_VARS) root.style.removeProperty(v)
+  root.removeAttribute('data-accent')
 }
 
 function applyPrefs(p: UIPrefs) {
   const root = document.documentElement
-  applyAccent(p.accent)
+  clearLegacyAccent()
   root.setAttribute('data-animations', p.animations ? 'on' : 'off')
   root.classList.toggle('rl-reduce-transparency', p.reduceTransparency)
   root.classList.toggle('rl-high-contrast', p.highContrast)
@@ -78,15 +64,12 @@ export function useUIPrefs() {
   useEffect(() => {
     applyPrefs(prefs)
     try {
+      // Persist without legacy `accent` field
       localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs))
     } catch {
       // storage may be unavailable; preferences only affect current session
     }
   }, [prefs])
-
-  const setAccent = useCallback((accent: AccentKey) => {
-    setPrefs((prev) => ({ ...prev, accent }))
-  }, [])
 
   const setAnimations = useCallback((animations: boolean) => {
     setPrefs((prev) => ({ ...prev, animations }))
@@ -102,7 +85,6 @@ export function useUIPrefs() {
 
   return {
     prefs,
-    setAccent,
     setAnimations,
     setReduceTransparency,
     setHighContrast,

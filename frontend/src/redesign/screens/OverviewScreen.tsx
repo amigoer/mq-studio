@@ -1,22 +1,5 @@
-import { useMemo } from 'react'
-import {
-  RefreshCw,
-  Unlink,
-  LayoutGrid,
-  Users,
-  Server,
-  Inbox,
-  Tag,
-  AlertCircle,
-  Send,
-  Search,
-  Plus,
-  RotateCcw,
-  ChevronRight,
-  Sparkles,
-  PlugZap,
-} from 'lucide-react'
-import { Spinner } from '@/components/Spinner'
+import { useCallback, useMemo } from 'react'
+import { Unlink, AlertCircle, LayoutGrid, Users, Server, Inbox } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type {
   BrokerNode,
@@ -31,10 +14,11 @@ import * as connectionApi from '@/api/connection'
 import { toast } from 'sonner'
 import type { NavId } from '../Sidebar'
 import { formatErrorMessage } from '@/lib/utils'
+import { RefreshButton, usePageRefresh } from '@/components/RefreshButton'
+import { OfflineEmpty } from '@/components/OfflineEmpty'
+import { ErrorBanner } from '@/components/ErrorBanner'
 
 const HISTORY_BUCKETS = 60
-
-// ---------- helpers ----------
 
 function formatTps(n: number): string {
   if (!Number.isFinite(n) || n <= 0) return '0'
@@ -62,7 +46,6 @@ function aggregateHistory(
   brokers: BrokerNode[],
   field: 'tpsInHistory' | 'tpsOutHistory',
 ): number[] {
-  // Use the longest history available; sum each index across brokers.
   const histories = brokers
     .map((b) => (b[field] ?? []) as number[])
     .filter((h) => Array.isArray(h) && h.length > 0)
@@ -78,25 +61,23 @@ function aggregateHistory(
   return out
 }
 
-interface AIFinding {
+interface Issue {
   key: string
   severity: 'high' | 'med' | 'low'
   title: string
-  desc: React.ReactNode
+  desc: string
 }
 
-function buildFindings(
+function buildIssues(
   data: OverviewSnapshot,
   lagThreshold: number,
   t: (key: string, opts?: Record<string, unknown>) => string,
-): AIFinding[] {
-  const findings: AIFinding[] = []
+): Issue[] {
+  const issues: Issue[] = []
   const effectiveThreshold = Math.max(1, lagThreshold)
 
-  // Offline brokers — high
-  const offlineBrokers = data.brokers.filter((b) => b.status === 'offline')
-  for (const b of offlineBrokers.slice(0, 2)) {
-    findings.push({
+  for (const b of data.brokers.filter((x) => x.status === 'offline').slice(0, 2)) {
+    issues.push({
       key: `broker-off-${b.brokerName}`,
       severity: 'high',
       title: t('overview.ai.findings.brokerOfflineTitle', { broker: b.brokerName }),
@@ -104,15 +85,14 @@ function buildFindings(
     })
   }
 
-  // Consumer groups: heavy lag w/o instances OR heavy lag with instances
-  const sortedGroupsByLag = [...data.consumerGroups].sort(
+  const sortedByLag = [...data.consumerGroups].sort(
     (a, b) => Number(b.lag ?? 0) - Number(a.lag ?? 0),
   )
-  const noInstance = sortedGroupsByLag.find(
+  const noInstance = sortedByLag.find(
     (g) => Number(g.lag ?? 0) > effectiveThreshold && (g.onlineClients ?? 0) === 0,
   )
   if (noInstance) {
-    findings.push({
+    issues.push({
       key: `group-off-${noInstance.group}`,
       severity: 'high',
       title: t('overview.ai.findings.offlineGroupTitle', { group: noInstance.group }),
@@ -121,14 +101,15 @@ function buildFindings(
       }),
     })
   }
-  const withInstance = sortedGroupsByLag.find(
+
+  const withInstance = sortedByLag.find(
     (g) =>
       Number(g.lag ?? 0) > effectiveThreshold &&
       (g.onlineClients ?? 0) > 0 &&
       g.group !== noInstance?.group,
   )
   if (withInstance) {
-    findings.push({
+    issues.push({
       key: `group-lag-${withInstance.group}`,
       severity: 'high',
       title: t('overview.ai.findings.highLagTitle', {
@@ -141,17 +122,12 @@ function buildFindings(
     })
   }
 
-  // Disk usage warning — med
   const heavyDisk = [...data.brokers]
-    .filter((b) => Number((b as unknown as { diskUsage?: number }).diskUsage ?? 0) >= 75)
-    .sort(
-      (a, b) =>
-        Number((b as unknown as { diskUsage?: number }).diskUsage ?? 0) -
-        Number((a as unknown as { diskUsage?: number }).diskUsage ?? 0),
-    )[0]
+    .filter((b) => Number(b.commitLogDiskUsage ?? 0) >= 75)
+    .sort((a, b) => Number(b.commitLogDiskUsage ?? 0) - Number(a.commitLogDiskUsage ?? 0))[0]
   if (heavyDisk) {
-    const usage = Number((heavyDisk as unknown as { diskUsage?: number }).diskUsage ?? 0)
-    findings.push({
+    const usage = Math.round(Number(heavyDisk.commitLogDiskUsage ?? 0))
+    issues.push({
       key: `disk-${heavyDisk.brokerName}`,
       severity: 'med',
       title: t('overview.ai.findings.diskTitle', { broker: heavyDisk.brokerName, usage }),
@@ -159,24 +135,8 @@ function buildFindings(
     })
   }
 
-  // Idle topics — low (no inbound and no consumers in a while)
-  const idleTopics = data.topics.filter(
-    (tp) => (tp.tpsIn ?? 0) === 0 && (tp.consumerGroups ?? 0) === 0,
-  )
-  if (idleTopics.length >= 3) {
-    const sample = idleTopics.slice(0, 3).map((tp) => tp.topic)
-    findings.push({
-      key: 'idle-topics',
-      severity: 'low',
-      title: t('overview.ai.findings.idleTopicTitle', { count: idleTopics.length }),
-      desc: t('overview.ai.findings.idleTopicDesc', { names: sample.join('、') }),
-    })
-  }
-
-  return findings.slice(0, 4)
+  return issues.slice(0, 4)
 }
-
-// ---------- main component ----------
 
 interface OverviewScreenProps {
   onNavigate?: (id: NavId) => void
@@ -184,10 +144,16 @@ interface OverviewScreenProps {
 
 export function OverviewScreen({ onNavigate }: OverviewScreenProps) {
   const { t } = useTranslation()
-  const { data, loading, refreshing, error, refresh } = useOverview()
+  const { data, loading, error, refresh } = useOverview()
   const { refresh: refreshConnections } = useConnections()
   const { settings } = useSettings()
   const lagThreshold = settings.lagAlertThreshold || 10000
+
+  const doRefresh = useCallback(
+    () => Promise.all([refresh({ silent: true }), refreshConnections()]),
+    [refresh, refreshConnections],
+  )
+  const { spinning: isRefreshing, refresh: handleRefresh } = usePageRefresh(doRefresh)
 
   const cluster = data.cluster
   const conn = data.activeConnection
@@ -197,23 +163,19 @@ export function OverviewScreen({ onNavigate }: OverviewScreenProps) {
     () => data.consumerGroups.reduce((s, g) => s + Number(g.lag ?? 0), 0),
     [data.consumerGroups],
   )
-
   const onlineGroups = useMemo(
     () => data.consumerGroups.filter((g) => (g.onlineClients ?? 0) > 0).length,
     [data.consumerGroups],
   )
-
   const onlineBrokerCount = data.brokers.filter((b) => b.status === 'online').length
   const totalBrokerCount = data.brokers.length || cluster?.totalBrokers || 0
-  const masterCount = data.brokers.filter((b) => String(b.role).toUpperCase() === 'MASTER').length
-  const slaveCount = data.brokers.filter((b) => String(b.role).toUpperCase() === 'SLAVE').length
 
   const activeTopics = useMemo<TopicItem[]>(
     () =>
       [...data.topics]
         .filter((tp) => (tp.tpsIn ?? 0) > 0)
         .sort((a, b) => (b.tpsIn ?? 0) - (a.tpsIn ?? 0))
-        .slice(0, 5),
+        .slice(0, 6),
     [data.topics],
   )
   const maxTopicTps = activeTopics[0]?.tpsIn ?? 0
@@ -223,12 +185,11 @@ export function OverviewScreen({ onNavigate }: OverviewScreenProps) {
       [...data.consumerGroups]
         .filter((g) => Number(g.lag ?? 0) > lagThreshold)
         .sort((a, b) => Number(b.lag ?? 0) - Number(a.lag ?? 0))
-        .slice(0, 5),
+        .slice(0, 6),
     [data.consumerGroups, lagThreshold],
   )
 
-  const findings = useMemo(() => buildFindings(data, lagThreshold, t), [data, lagThreshold, t])
-
+  const issues = useMemo(() => buildIssues(data, lagThreshold, t), [data, lagThreshold, t])
   const tpsInSeries = useMemo(() => aggregateHistory(data.brokers, 'tpsInHistory'), [data.brokers])
   const tpsOutSeries = useMemo(
     () => aggregateHistory(data.brokers, 'tpsOutHistory'),
@@ -248,32 +209,23 @@ export function OverviewScreen({ onNavigate }: OverviewScreenProps) {
     }
   }
 
-  const handleRefresh = async () => {
-    try {
-      await Promise.all([refresh(), refreshConnections()])
-      toast.success(t('common.refreshed'))
-    } catch (e) {
-      toast.error(formatErrorMessage(e))
-    }
-  }
-
-  const subtitle =
-    isOnline && conn
-      ? t('overview.subtitleConnected', { cluster: conn.name, time: formatTime(data.lastUpdated) })
-      : t('overview.subtitleNoConn')
+  const subtitle = isOnline
+    ? t('overview.subtitleConnected', {
+        cluster: conn?.name ?? '',
+        time: formatTime(data.lastUpdated),
+      })
+    : t('overview.subtitleNoConn')
 
   return (
     <div className="flex h-full min-h-0 flex-col">
       <PageHeader title={t('overview.title')} subtitle={subtitle}>
-        <button
-          className="rl-btn rl-btn-ghost rl-btn-sm"
+        <RefreshButton
+          variant="ghost"
+          label={t('common.refresh')}
+          size={13}
+          spinning={isRefreshing}
           onClick={handleRefresh}
-          disabled={refreshing}
-          title={t('common.refresh')}
-        >
-          {refreshing ? <Spinner size={13} /> : <RefreshCw size={13} />}
-          {t('common.refresh')}
-        </button>
+        />
         {isOnline && conn && (
           <button className="rl-btn rl-btn-outline rl-btn-sm" onClick={handleDisconnect}>
             <Unlink size={13} />
@@ -282,129 +234,226 @@ export function OverviewScreen({ onNavigate }: OverviewScreenProps) {
         )}
       </PageHeader>
 
-      <div className="scroll-thin min-h-0 flex-1 overflow-auto p-5">
-        {error && isOnline && (
-          <div
-            className="rl-card mb-4 flex items-center gap-2"
-            style={{
-              padding: '10px 14px',
-              background: 'hsl(0 84% 96%)',
-              color: 'hsl(0 70% 35%)',
-              borderColor: 'hsl(0 84% 80%)',
-            }}
-          >
-            <AlertCircle size={14} />
-            <span className="text-[12px]">{t('overview.loadError', { message: error })}</span>
-          </div>
-        )}
-        <div className="grid items-start gap-4" style={{ gridTemplateColumns: '1fr 320px' }}>
-          {/* LEFT */}
-          <div className="flex flex-col gap-4">
-            <AIDiagnoseCard findings={findings} loading={loading} onRefresh={handleRefresh} />
+      <div className="scroll-thin min-h-0 flex-1 overflow-auto px-5 py-4">
+        {!isOnline ? (
+          <OfflineEmpty
+            message={t('overview.current.noConnection')}
+            actionLabel={t('overview.current.goToConnections')}
+            onAction={() => onNavigate?.('connections')}
+          />
+        ) : (
+          <div className="mx-auto flex max-w-5xl flex-col gap-4">
+            {error && (
+              <ErrorBanner className="m-0" message={t('overview.loadError', { message: error })} />
+            )}
 
             {/* KPI strip */}
-            <div className="grid gap-2.5" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
-              <KpiStat
+            <div className="grid grid-cols-4 gap-2.5">
+              <Kpi
+                icon={LayoutGrid}
                 label={t('overview.stat.topics')}
                 value={(data.topics.length || cluster?.totalTopics || 0).toLocaleString()}
-                sub={t('overview.stat.topicSummary', { active: activeTopics.length })}
-                icon={LayoutGrid}
+                hint={t('overview.stat.topicSummary', { active: activeTopics.length })}
               />
-              <KpiStat
+              <Kpi
+                icon={Users}
                 label={t('overview.stat.consumers')}
                 value={(data.consumerGroups.length || cluster?.totalGroups || 0).toLocaleString()}
-                sub={t('overview.stat.consumersSummary', {
+                hint={t('overview.stat.consumersSummary', {
                   online: onlineGroups,
-                  offline: data.consumerGroups.length - onlineGroups,
+                  offline: Math.max(0, data.consumerGroups.length - onlineGroups),
                 })}
-                icon={Users}
               />
-              <KpiStat
+              <Kpi
+                icon={Server}
                 label={t('overview.stat.broker')}
-                value={`${onlineBrokerCount} / ${totalBrokerCount || onlineBrokerCount}`}
-                sub={
+                value={`${onlineBrokerCount}/${totalBrokerCount || onlineBrokerCount}`}
+                hint={
                   onlineBrokerCount === totalBrokerCount && totalBrokerCount > 0
                     ? t('overview.stat.brokerSummary_all', {
-                        master: masterCount,
-                        slave: slaveCount,
+                        master: data.brokers.filter((b) =>
+                          String(b.role).toUpperCase().startsWith('M'),
+                        ).length,
+                        slave: data.brokers.filter((b) =>
+                          String(b.role).toUpperCase().startsWith('S'),
+                        ).length,
                       })
                     : t('overview.stat.brokerSummary_partial', {
                         online: onlineBrokerCount,
                         total: totalBrokerCount,
                       })
                 }
-                icon={Server}
               />
-              <KpiStat
+              <Kpi
+                icon={Inbox}
                 label={t('overview.stat.lag')}
                 value={formatLag(totalLag)}
-                sub={
+                hint={
                   lagAlerts.length === 0
                     ? t('overview.stat.lagSummary_zero')
                     : t('overview.stat.lagSummary', { count: lagAlerts.length })
                 }
-                icon={Inbox}
               />
             </div>
 
-            {/* Throughput chart */}
+            {/* Issues — only when needed */}
+            {issues.length > 0 && (
+              <section>
+                <div className="mb-2 flex items-center justify-between">
+                  <div className="text-[12px] font-medium">{t('overview.issues.title')}</div>
+                  <span className="rl-muted text-[11px]">
+                    {t('overview.issues.count', { count: issues.length })}
+                  </span>
+                </div>
+                <div className="rl-issue-list">
+                  {issues.map((issue) => (
+                    <div key={issue.key} className="rl-issue-row">
+                      <span className={`rl-issue-sev ${issue.severity}`} />
+                      <div className="min-w-0">
+                        <div className="rl-issue-title">{issue.title}</div>
+                        <div className="rl-issue-desc">{issue.desc}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* Throughput */}
             <ThroughputCard
               prod={tpsInSeries}
               cons={tpsOutSeries}
               currentIn={currentTpsIn}
               currentOut={currentTpsOut}
+              loading={loading}
             />
 
-            {/* Two-col cards */}
-            <div className="grid gap-3" style={{ gridTemplateColumns: '1fr 1fr' }}>
-              <ActiveTopicsCard topics={activeTopics} maxTps={maxTopicTps} />
-              <LagAlertsCard
-                alerts={lagAlerts}
-                threshold={lagThreshold}
-                totalGroups={data.consumerGroups.length}
-              />
+            {/* Two lists */}
+            <div className="grid grid-cols-2 gap-3">
+              <ListCard
+                title={t('overview.active.title')}
+                subtitle={t('overview.active.subtitle')}
+                empty={t('overview.active.empty')}
+                onViewAll={() => onNavigate?.('topics')}
+              >
+                {activeTopics.map((topic) => {
+                  const tps = topic.tpsIn ?? 0
+                  const pct =
+                    maxTopicTps > 0 ? Math.max(4, Math.round((tps / maxTopicTps) * 100)) : 0
+                  return (
+                    <div key={topic.topic} className="flex items-center gap-2.5 px-3 py-2">
+                      <span className="font-mono-design min-w-0 flex-1 truncate text-[12px]">
+                        {topic.topic}
+                      </span>
+                      <div className="rl-progress" style={{ width: 56 }}>
+                        <div className="bar" style={{ width: `${pct}%` }} />
+                      </div>
+                      <span className="font-mono-design rl-tabular rl-muted w-14 text-right text-[11.5px]">
+                        {formatTps(tps)}/s
+                      </span>
+                    </div>
+                  )
+                })}
+              </ListCard>
+
+              <ListCard
+                title={t('overview.lag.title')}
+                subtitle={t('overview.lag.subtitle', {
+                  threshold: lagThreshold.toLocaleString(),
+                })}
+                empty={t('overview.lag.empty')}
+                badge={lagAlerts.length > 0 ? String(lagAlerts.length) : undefined}
+                onViewAll={() => onNavigate?.('consumers')}
+              >
+                {lagAlerts.map((g) => {
+                  const lag = Number(g.lag ?? 0)
+                  const danger = lag > lagThreshold * 5
+                  return (
+                    <div key={g.group} className="flex items-center gap-2.5 px-3 py-2">
+                      <AlertCircle
+                        size={12}
+                        className={danger ? 'text-destructive' : 'text-amber-600'}
+                      />
+                      <span className="font-mono-design min-w-0 flex-1 truncate text-[12px]">
+                        {g.group}
+                      </span>
+                      <span className={`rl-badge ${danger ? 'rl-badge-danger' : 'rl-badge-warn'}`}>
+                        +{lag.toLocaleString()}
+                      </span>
+                    </div>
+                  )
+                })}
+              </ListCard>
             </div>
-          </div>
 
-          {/* RIGHT */}
-          <div className="flex flex-col gap-4">
-            <CurrentConnectionCard
-              conn={isOnline ? conn : null}
-              cluster={cluster}
-              onNavigate={onNavigate}
-            />
-            <BrokerStatusCard brokers={data.brokers} />
-            <QuickActionsCard onNavigate={onNavigate} />
+            {/* Brokers compact */}
+            {data.brokers.length > 0 && (
+              <section className="rl-card overflow-hidden">
+                <div className="flex items-center justify-between border-b border-border px-3 py-2.5">
+                  <div className="text-[12px] font-medium">{t('overview.broker.title')}</div>
+                  <button
+                    type="button"
+                    className="rl-muted text-[11.5px] hover:text-foreground"
+                    onClick={() => onNavigate?.('cluster')}
+                  >
+                    {t('common.viewAll')} →
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-1.5 p-3">
+                  {[...data.brokers]
+                    .sort(
+                      (a, b) => a.brokerName.localeCompare(b.brokerName) || a.brokerId - b.brokerId,
+                    )
+                    .slice(0, 12)
+                    .map((b) => {
+                      const online = b.status === 'online'
+                      const label = `${b.brokerName}${b.brokerId !== 0 ? `-${b.brokerId}` : ''}`
+                      return (
+                        <span
+                          key={`${b.brokerName}-${b.brokerId}`}
+                          className="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-1 text-[11.5px]"
+                        >
+                          <span
+                            className="h-1.5 w-1.5 rounded-full"
+                            style={{
+                              background: online
+                                ? 'hsl(var(--success))'
+                                : 'hsl(var(--destructive))',
+                            }}
+                          />
+                          <span className="font-mono-design">{label}</span>
+                        </span>
+                      )
+                    })}
+                </div>
+              </section>
+            )}
           </div>
-        </div>
+        )}
       </div>
     </div>
   )
 }
 
-// ---------- subcomponents ----------
-
-function KpiStat({
+function Kpi({
+  icon: Icon,
   label,
   value,
-  sub,
-  icon: Icon,
+  hint,
 }: {
+  icon: typeof LayoutGrid
   label: string
   value: string
-  sub: string
-  icon: typeof LayoutGrid
+  hint: string
 }) {
   return (
-    <div className="rl-stat" style={{ padding: 14 }}>
+    <div className="rl-stat">
       <div className="flex items-center justify-between">
-        <span className="rl-muted text-[12px]">{label}</span>
-        <Icon size={14} className="rl-muted" />
+        <span className="label">{label}</span>
+        <Icon size={13} className="text-muted-foreground opacity-70" />
       </div>
-      <div className="value" style={{ fontSize: 24, marginTop: 6 }}>
-        {value}
-      </div>
-      <div className="rl-muted mt-1 text-[12px]">{sub}</div>
+      <div className="value">{value}</div>
+      <div className="rl-muted mt-1 text-[11px] leading-snug">{hint}</div>
     </div>
   )
 }
@@ -414,55 +463,47 @@ function ThroughputCard({
   cons,
   currentIn,
   currentOut,
+  loading,
 }: {
   prod: number[]
   cons: number[]
   currentIn: number
   currentOut: number
+  loading: boolean
 }) {
   const { t } = useTranslation()
   const hasData = prod.length > 0 || cons.length > 0
   const peak = Math.max(...prod, ...cons, 1)
   const len = Math.max(prod.length, cons.length, 1)
   const x = (i: number) => (i / Math.max(len - 1, 1)) * 800
-  const y = (v: number) => 200 - (v / peak) * 180 - 10
+  const y = (v: number) => 120 - (v / peak) * 100 - 8
   const lineFor = (series: number[]) => series.map((v, i) => `${x(i)},${y(v)}`).join(' ')
-  const polyFor = (series: number[]) => `0,200 ${lineFor(series)} ${x(series.length - 1)},200`
+  const polyFor = (series: number[]) =>
+    series.length ? `0,120 ${lineFor(series)} ${x(series.length - 1)},120` : ''
+
   return (
-    <div className="rl-card" style={{ padding: 16 }}>
-      <div className="mb-3 flex items-center justify-between">
+    <div className="rl-card p-3.5">
+      <div className="mb-2.5 flex items-center justify-between gap-3">
         <div>
-          <div className="text-[13px] font-medium">{t('overview.throughput.title')}</div>
-          <div className="rl-muted mt-1 text-[12px]">{t('overview.throughput.subtitle')}</div>
+          <div className="text-[12px] font-medium">{t('overview.throughput.title')}</div>
+          <div className="rl-muted mt-0.5 text-[11px]">{t('overview.throughput.subtitle')}</div>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <span
-              style={{ width: 8, height: 8, borderRadius: 2, background: 'hsl(142 50% 38%)' }}
-            />
-            <span className="rl-muted text-[12px]">{t('overview.throughput.produce')}</span>
-            <span className="font-mono-design rl-tabular text-[12px]">
-              {formatTps(currentIn)}/s
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span
-              style={{ width: 8, height: 8, borderRadius: 2, background: 'hsl(217 80% 50%)' }}
-            />
-            <span className="rl-muted text-[12px]">{t('overview.throughput.consume')}</span>
-            <span className="font-mono-design rl-tabular text-[12px]">
-              {formatTps(currentOut)}/s
-            </span>
-          </div>
+        <div className="flex items-center gap-3">
+          <Legend
+            color="hsl(var(--success))"
+            label={t('overview.throughput.produce')}
+            value={currentIn}
+          />
+          <Legend
+            color="hsl(var(--info))"
+            label={t('overview.throughput.consume')}
+            value={currentOut}
+          />
         </div>
       </div>
       {hasData ? (
-        <svg
-          viewBox="0 0 800 200"
-          preserveAspectRatio="none"
-          style={{ width: '100%', height: 180 }}
-        >
-          {[40, 80, 120, 160].map((yy) => (
+        <svg viewBox="0 0 800 120" preserveAspectRatio="none" className="h-[110px] w-full">
+          {[30, 60, 90].map((yy) => (
             <line
               key={yy}
               x1={0}
@@ -470,16 +511,16 @@ function ThroughputCard({
               x2={800}
               y2={yy}
               stroke="hsl(var(--border))"
-              strokeDasharray="3 3"
+              strokeDasharray="2 4"
             />
           ))}
           {prod.length > 0 && (
             <>
-              <polygon points={polyFor(prod)} fill="hsl(142 50% 38%)" opacity={0.06} />
+              <polygon points={polyFor(prod)} fill="hsl(var(--success))" opacity={0.06} />
               <polyline
                 points={lineFor(prod)}
                 fill="none"
-                stroke="hsl(142 50% 38%)"
+                stroke="hsl(var(--success))"
                 strokeWidth={1.5}
               />
             </>
@@ -488,369 +529,71 @@ function ThroughputCard({
             <polyline
               points={lineFor(cons)}
               fill="none"
-              stroke="hsl(217 80% 50%)"
+              stroke="hsl(var(--info))"
               strokeWidth={1.5}
             />
           )}
         </svg>
       ) : (
-        <div
-          className="rl-muted flex items-center justify-center text-[12px]"
-          style={{ height: 180 }}
-        >
-          {t('overview.throughput.noData')}
+        <div className="rl-muted flex h-[110px] items-center justify-center text-[12px]">
+          {loading ? t('common.loading') : t('overview.throughput.noData')}
         </div>
       )}
     </div>
   )
 }
 
-function ActiveTopicsCard({ topics, maxTps }: { topics: TopicItem[]; maxTps: number }) {
-  const { t } = useTranslation()
+function Legend({ color, label, value }: { color: string; label: string; value: number }) {
   return (
-    <div className="rl-card overflow-hidden">
-      <div className="flex items-center justify-between p-4 pb-3">
-        <div>
-          <div className="text-[13px] font-medium">{t('overview.active.title')}</div>
-          <div className="rl-muted mt-1 text-[12px]">{t('overview.active.subtitle')}</div>
-        </div>
-        <span className="rl-muted text-[12px]">{t('common.viewAll')} →</span>
-      </div>
-      <div style={{ borderTop: '1px solid hsl(var(--border))' }}>
-        {topics.length === 0 ? (
-          <div className="rl-muted text-[12px]" style={{ padding: '14px 16px' }}>
-            {t('overview.active.empty')}
-          </div>
-        ) : (
-          topics.map((topic, i) => {
-            const tps = topic.tpsIn ?? 0
-            const pct = maxTps > 0 ? Math.max(2, Math.round((tps / maxTps) * 100)) : 0
-            return (
-              <div
-                key={topic.topic}
-                className="flex items-center gap-3"
-                style={{
-                  padding: '10px 16px',
-                  borderTop: i ? '1px solid hsl(var(--border))' : undefined,
-                }}
-              >
-                <Tag size={12} className="rl-muted" />
-                <span className="font-mono-design flex-1 truncate text-[12px]">{topic.topic}</span>
-                <div className="rl-progress" style={{ width: 80 }}>
-                  <div
-                    className="bar"
-                    style={{ width: pct + '%', background: 'hsl(217 60% 55%)' }}
-                  />
-                </div>
-                <span
-                  className="font-mono-design rl-tabular rl-muted text-[12px]"
-                  style={{ width: 70, textAlign: 'right' }}
-                >
-                  {formatTps(tps)}/s
-                </span>
-              </div>
-            )
-          })
-        )}
-      </div>
+    <div className="flex items-center gap-1.5">
+      <span className="h-1.5 w-1.5 rounded-sm" style={{ background: color }} />
+      <span className="rl-muted text-[11px]">{label}</span>
+      <span className="font-mono-design rl-tabular text-[11.5px]">{formatTps(value)}/s</span>
     </div>
   )
 }
 
-function LagAlertsCard({
-  alerts,
-  threshold,
-  totalGroups,
+function ListCard({
+  title,
+  subtitle,
+  empty,
+  badge,
+  onViewAll,
+  children,
 }: {
-  alerts: ConsumerGroupItem[]
-  threshold: number
-  totalGroups: number
+  title: string
+  subtitle: string
+  empty: string
+  badge?: string
+  onViewAll?: () => void
+  children: React.ReactNode
 }) {
   const { t } = useTranslation()
-  const others = Math.max(0, totalGroups - alerts.length)
+  const items = Array.isArray(children) ? children : children ? [children] : []
+  const hasItems = items.filter(Boolean).length > 0
+
   return (
     <div className="rl-card overflow-hidden">
-      <div className="flex items-center justify-between p-4 pb-3">
-        <div>
-          <div className="text-[13px] font-medium">{t('overview.lag.title')}</div>
-          <div className="rl-muted mt-1 text-[12px]">
-            {t('overview.lag.subtitle', { threshold: threshold.toLocaleString() })}
+      <div className="flex items-start justify-between gap-2 border-b border-border px-3 py-2.5">
+        <div className="min-w-0">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[12px] font-medium">{title}</span>
+            {badge && <span className="rl-badge rl-badge-danger">{badge}</span>}
           </div>
+          <div className="rl-muted mt-0.5 text-[11px]">{subtitle}</div>
         </div>
-        {alerts.length > 0 && <span className="rl-badge rl-badge-danger">{alerts.length}</span>}
-      </div>
-      <div style={{ borderTop: '1px solid hsl(var(--border))' }}>
-        {alerts.length === 0 ? (
-          <div className="rl-muted text-[12px]" style={{ padding: '14px 16px' }}>
-            {t('overview.lag.empty')}
-          </div>
-        ) : (
-          alerts.map((g, i) => {
-            const lag = Number(g.lag ?? 0)
-            const danger = lag > threshold * 5
-            return (
-              <div
-                key={g.group}
-                className="flex items-center gap-3"
-                style={{
-                  padding: '10px 16px',
-                  borderTop: i ? '1px solid hsl(var(--border))' : undefined,
-                }}
-              >
-                <AlertCircle
-                  size={13}
-                  style={{ color: danger ? 'hsl(var(--destructive))' : 'hsl(28 80% 45%)' }}
-                />
-                <span className="font-mono-design flex-1 truncate text-[12px]">{g.group}</span>
-                <span className={'rl-badge ' + (danger ? 'rl-badge-danger' : 'rl-badge-warn')}>
-                  +{lag.toLocaleString()}
-                </span>
-              </div>
-            )
-          })
-        )}
-        {alerts.length > 0 && (
-          <div
-            className="rl-muted flex items-center gap-3"
-            style={{ padding: '10px 16px', borderTop: '1px solid hsl(var(--border))' }}
-          >
-            <span className="text-[12px]">{t('overview.lag.rest', { count: others })}</span>
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
-function CurrentConnectionCard({
-  conn,
-  cluster,
-  onNavigate,
-}: {
-  conn: { name: string; nameServer: string; env: string } | null
-  cluster: { clusterName: string } | null
-  onNavigate?: (id: NavId) => void
-}) {
-  const { t } = useTranslation()
-  if (!conn) {
-    return (
-      <div className="rl-card" style={{ padding: 16 }}>
-        <div className="rl-muted text-[12px]">{t('overview.current.title')}</div>
-        <div className="mt-3 flex items-center gap-2">
-          <PlugZap size={14} className="rl-muted" />
-          <span className="text-[13px]">{t('overview.current.noConnection')}</span>
-        </div>
-        <button
-          className="rl-btn rl-btn-outline rl-btn-sm mt-3"
-          style={{ width: '100%', justifyContent: 'center' }}
-          onClick={() => onNavigate?.('connections')}
-        >
-          {t('overview.current.goToConnections')}
-        </button>
-      </div>
-    )
-  }
-  const addrs = conn.nameServer.split(/[;,\s]+/).filter(Boolean)
-  return (
-    <div className="rl-card" style={{ padding: 16 }}>
-      <div className="rl-muted text-[12px]">{t('overview.current.title')}</div>
-      <div className="mt-2 flex items-center gap-2">
-        <span className="font-medium">{conn.name}</span>
-        <span className="rl-badge rl-badge-success">
-          <span style={{ width: 5, height: 5, borderRadius: 999, background: 'currentColor' }} />
-          {t('common.connected')}
-        </span>
-      </div>
-      <div
-        className="font-mono-design rl-muted mt-2 text-[12px]"
-        style={{ wordBreak: 'break-all', lineHeight: 1.6 }}
-      >
-        {addrs.map((a, i) => (
-          <div key={i}>{a}</div>
-        ))}
-      </div>
-      <div
-        className="mt-3 flex flex-wrap gap-2"
-        style={{ paddingTop: 12, borderTop: '1px dashed hsl(var(--border))' }}
-      >
-        {conn.env && <span className="rl-badge rl-badge-outline">{conn.env}</span>}
-        {cluster?.clusterName && (
-          <span className="rl-badge rl-badge-outline">{cluster.clusterName}</span>
-        )}
-      </div>
-    </div>
-  )
-}
-
-function BrokerStatusCard({ brokers }: { brokers: BrokerNode[] }) {
-  const { t } = useTranslation()
-  const online = brokers.filter((b) => b.status === 'online').length
-  const subtitle =
-    brokers.length === 0
-      ? ''
-      : online === brokers.length
-        ? t('overview.broker.subtitle', { count: brokers.length })
-        : t('overview.broker.subtitle_partial', { online, total: brokers.length })
-  const sortedBrokers = [...brokers]
-    .sort((a, b) => a.brokerName.localeCompare(b.brokerName) || a.brokerId - b.brokerId)
-    .slice(0, 6)
-  return (
-    <div className="rl-card overflow-hidden">
-      <div className="p-4 pb-3">
-        <div className="text-[13px] font-medium">{t('overview.broker.title')}</div>
-        {subtitle && <div className="rl-muted mt-1 text-[12px]">{subtitle}</div>}
-      </div>
-      <div style={{ borderTop: '1px solid hsl(var(--border))' }}>
-        {sortedBrokers.length === 0 ? (
-          <div className="rl-muted text-[12px]" style={{ padding: '14px 16px' }}>
-            {t('overview.broker.empty')}
-          </div>
-        ) : (
-          sortedBrokers.map((b, i) => {
-            const isOnline = b.status === 'online'
-            const role = (b.role || '').toString().toUpperCase()
-            const label = `${b.brokerName}${b.brokerId !== 0 ? `-${b.brokerId}` : ''}`
-            const usage = Number((b as unknown as { diskUsage?: number }).diskUsage ?? 0)
-            return (
-              <div
-                key={`${b.brokerName}-${b.brokerId}`}
-                className="flex items-center gap-2"
-                style={{
-                  padding: '8px 16px',
-                  borderTop: i ? '1px solid hsl(var(--border))' : undefined,
-                }}
-              >
-                <span
-                  style={{
-                    width: 6,
-                    height: 6,
-                    borderRadius: 999,
-                    background: isOnline ? 'hsl(var(--success))' : 'hsl(var(--destructive))',
-                    flexShrink: 0,
-                  }}
-                />
-                <span className="font-mono-design flex-1 truncate text-[12px]">{label}</span>
-                {role && (
-                  <span className="rl-badge rl-badge-outline" style={{ height: 18, fontSize: 10 }}>
-                    {role.startsWith('M') ? 'M' : 'S'}
-                  </span>
-                )}
-                {usage > 0 && (
-                  <span
-                    className="font-mono-design rl-tabular rl-muted text-[12px]"
-                    style={{ width: 40, textAlign: 'right' }}
-                  >
-                    {usage}%
-                  </span>
-                )}
-              </div>
-            )
-          })
-        )}
-      </div>
-    </div>
-  )
-}
-
-function QuickActionsCard({ onNavigate }: { onNavigate?: (id: NavId) => void }) {
-  const { t } = useTranslation()
-  const actions: { icon: typeof Send; label: string; nav: NavId }[] = [
-    { icon: Send, label: t('overview.shortcut.send'), nav: 'producer' },
-    { icon: Search, label: t('overview.shortcut.search'), nav: 'messages' },
-    { icon: Plus, label: t('overview.shortcut.create'), nav: 'topics' },
-    { icon: RotateCcw, label: t('overview.shortcut.reset'), nav: 'consumers' },
-  ]
-  return (
-    <div className="rl-card overflow-hidden">
-      <div className="p-4 pb-3">
-        <div className="text-[13px] font-medium">{t('overview.shortcut.title')}</div>
-      </div>
-      <div style={{ borderTop: '1px solid hsl(var(--border))' }}>
-        {actions.map((a, i) => (
+        {onViewAll && (
           <button
-            key={a.label}
             type="button"
-            className="flex w-full items-center gap-2 border-0 bg-transparent text-left hover:bg-muted/40"
-            style={{
-              padding: '10px 16px',
-              borderTop: i ? '1px solid hsl(var(--border))' : undefined,
-              cursor: 'pointer',
-            }}
-            onClick={() => onNavigate?.(a.nav)}
+            className="rl-muted shrink-0 text-[11.5px] hover:text-foreground"
+            onClick={onViewAll}
           >
-            <a.icon size={13} className="rl-muted" />
-            <span className="flex-1 text-[13px]">{a.label}</span>
-            <ChevronRight size={12} className="rl-muted" />
+            {t('common.viewAll')}
           </button>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-function AIDiagnoseCard({
-  findings,
-  loading,
-  onRefresh,
-}: {
-  findings: AIFinding[]
-  loading: boolean
-  onRefresh: () => void
-}) {
-  const { t } = useTranslation()
-  return (
-    <div className="rl-ai-diag-card">
-      <div className="rl-ai-diag-head">
-        <div
-          style={{
-            width: 22,
-            height: 22,
-            borderRadius: 5,
-            background: 'hsl(var(--muted))',
-            display: 'grid',
-            placeItems: 'center',
-            color: 'hsl(240 6% 25%)',
-          }}
-        >
-          <Sparkles size={12} />
-        </div>
-        <div className="flex-1">
-          <div className="text-[13px] font-semibold">{t('overview.ai.title')}</div>
-          <div className="rl-muted text-[12px]">
-            {findings.length === 0 && !loading
-              ? t('overview.ai.subtitleEmpty')
-              : t('overview.ai.subtitle')}
-          </div>
-        </div>
-        <button className="rl-btn rl-btn-ghost rl-btn-sm" onClick={onRefresh} disabled={loading}>
-          {loading ? <Spinner size={12} /> : null}
-          {t('overview.ai.reanalyze')}
-        </button>
-        <button className="rl-btn rl-btn-outline rl-btn-sm">
-          <Sparkles size={12} />
-          {t('overview.ai.chat')}
-        </button>
-      </div>
-
-      <div>
-        {findings.length === 0 ? (
-          <div className="rl-muted text-[12px]" style={{ padding: '12px 0' }}>
-            {t('overview.ai.empty')}
-          </div>
-        ) : (
-          findings.map((f) => (
-            <div key={f.key} className={'rl-ai-finding ' + f.severity}>
-              <div className="ai-sev" />
-              <div className="rl-ai-finding-body">
-                <div className="flex items-center justify-between">
-                  <div className="rl-ai-finding-title">{f.title}</div>
-                  <span className="rl-muted text-[12px]">{t(`overview.ai.${f.severity}`)}</span>
-                </div>
-                <div className="rl-ai-finding-desc">{f.desc}</div>
-              </div>
-            </div>
-          ))
         )}
+      </div>
+      <div className="divide-y divide-border">
+        {hasItems ? children : <div className="rl-muted px-3 py-3 text-[12px]">{empty}</div>}
       </div>
     </div>
   )

@@ -35,7 +35,58 @@
     "exitApp": "退出应用",
     "exitAppConfirm": "确定要关闭 Rocket-Leaf 吗？",
     "exit": "退出",
-    "connectFirst": "请先连接集群"
+    "connectFirst": "请先连接集群",
+    "docs": "文档"
+  },
+  "emptyState": {
+    "title": "概览",
+    "subtitle": "未连接 · 请先添加 NameServer",
+    "badge": "未连接",
+    "supportNote": "支持 RocketMQ 4.x / 5.x · 本地运行 · 无服务端",
+    "heroTitle": "连接到你的第一个 NameServer",
+    "heroDesc": "配置 NameServer 地址后即可访问 Topic、消费者组、消息查询与集群监控。所有配置仅保存在本地。",
+    "addConnection": "添加连接",
+    "importFromFile": "从文件导入",
+    "quickStart": "快速开始",
+    "workflow": "使用流程",
+    "samples": {
+      "local": {
+        "name": "本地开发",
+        "desc": "运行在本机的 NameServer"
+      },
+      "docker": {
+        "name": "Docker Compose",
+        "desc": "容器网络内的 NameServer"
+      },
+      "paste": {
+        "name": "粘贴地址…",
+        "desc": "从剪贴板快速添加"
+      }
+    },
+    "steps": {
+      "1": {
+        "title": "添加 NameServer",
+        "desc": "填写 host:port，可选启用 ACL 与 TLS。配置仅保存在本地。"
+      },
+      "2": {
+        "title": "选择集群与命名空间",
+        "desc": "Rocket-Leaf 自动发现 Broker，按环境组织视图。"
+      },
+      "3": {
+        "title": "管理 Topic 与消费",
+        "desc": "创建、查询、回溯消费位点，跟踪消息轨迹。"
+      }
+    },
+    "links": {
+      "github": "GitHub",
+      "acl": "ACL 配置指南",
+      "tls": "TLS 配置指南",
+      "faq": "常见问题"
+    },
+    "footer": "本地数据 · 不上传任何信息",
+    "importSuccess": "配置已导入，重启应用后生效",
+    "importError": "导入配置失败",
+    "clipboardEmpty": "剪贴板为空，已打开空白连接表单"
   },
   "nav": {
     "home": "概览",
@@ -48,17 +99,29 @@
     "acl": "权限与审计",
     "connections": "连接",
     "settings": "设置",
-    "github": "GitHub"
+    "github": "GitHub",
+    "groupBrowse": "资源",
+    "groupOps": "运维"
   },
   "titlebar": {
-    "aiAssistant": "AI 助手"
+    "aiAssistant": "AI 助手",
+    "noCluster": "未选择集群",
+    "connectedHint": "当前连接：{{name}} · 点击切换连接",
+    "offlineHint": "尚未连接 · 点击选择连接",
+    "switchConnection": "切换连接",
+    "noConnections": "还没有连接配置",
+    "manageConnections": "管理连接…"
   },
   "overview": {
     "title": "概览",
-    "subtitleConnected": "{{cluster}} · 实时刷新于 {{time}}",
-    "subtitleNoConn": "未连接 · 请先在「连接」页面建立连接",
+    "subtitleConnected": "{{cluster}} · {{time}}",
+    "subtitleNoConn": "未连接集群",
     "loadError": "加载概览数据失败：{{message}}",
     "disconnectSuccess": "已断开 {{cluster}}",
+    "issues": {
+      "title": "需要关注",
+      "count": "{{count}} 项"
+    },
     "throughput": {
       "title": "实时吞吐",
       "subtitle": "最近 60 分钟 · 每分钟采样",
@@ -136,7 +199,7 @@
     "subtitle": "{{count}} 个 Topic",
     "subtitleFiltered": "{{count}} 个 Topic（共 {{total}} 个）",
     "subtitleNoConn": "未连接 · 请先在「连接」页面建立连接",
-    "searchPlaceholder": "搜索 Topic、备注…",
+    "searchPlaceholder": "搜索 Topic…",
     "filterAll": "全部",
     "filterNormal": "普通",
     "filterFifo": "顺序",
@@ -149,16 +212,20 @@
       "queues": "队列 (R/W)",
       "perm": "权限",
       "groups": "消费组",
-      "tpsIn": "入流量"
+      "tpsIn": "入流量",
+      "open": "",
+      "view": "详情",
+      "viewing": "查看中"
     },
     "empty": "暂无 Topic",
+    "emptyHint": "系统内部 Topic 已隐藏。可新建业务 Topic，或切换筛选查看重试 / 死信",
     "loadError": "加载 Topic 列表失败：{{message}}",
     "type": {
-      "normal": "NORMAL",
-      "fifo": "FIFO",
-      "delay": "DELAY",
-      "retry": "RETRY",
-      "dlq": "DLQ"
+      "normal": "普通",
+      "fifo": "顺序",
+      "delay": "延迟",
+      "retry": "重试",
+      "dlq": "死信"
     },
     "perm": {
       "rw": "读写",
@@ -437,6 +504,7 @@
     "historyEmpty": "暂无发送记录",
     "validateTopic": "请选择 Topic",
     "validateBody": "请输入消息体",
+    "invalidJson": "JSON 格式无效",
     "sendSuccess": "消息已发送",
     "sendError": "发送失败"
   },
@@ -595,8 +663,13 @@
     "envTest": "测试",
     "envDev": "开发",
     "envSelect": "选择环境",
-    "nameServer": "NameServer 地址",
-    "nameServerHint": "多个地址用 ; 或空格分隔",
+    "nameServer": "NameServer",
+    "host": "主机 / IP",
+    "port": "端口",
+    "hostPlaceholder": "127.0.0.1 或 namesrv.example.com",
+    "addNameServer": "添加地址",
+    "nameServerHint": "主机与端口分开填写，默认端口 9876；可添加多个 NameServer",
+    "validatePort": "端口须为 1–65535 的数字",
     "timeout": "连接超时",
     "timeoutUnit": "秒",
     "enableAcl": "启用 ACL 认证",
@@ -605,18 +678,25 @@
     "sk": "SecretKey",
     "remark": "备注",
     "remarkPlaceholder": "可选",
-    "test": "测试连接",
+    "test": "测试连通性",
     "testing": "测试中…",
     "testSuccess": "连接测试成功",
     "testFail": "连接测试失败",
     "connect": "连接",
+    "saveAndConnect": "保存并连接",
+    "saveOnly": "仅保存",
     "disconnect": "断开",
     "connectSuccess": "已连接 {{name}}",
     "disconnectSuccess": "已断开 {{name}}",
+    "connectHint": "修改后点「保存并连接」即可，无需分步操作",
+    "connectHintNew": "填好 NameServer 后点「保存并连接」",
+    "connectHintOnline": "当前已连接。修改配置后可先保存，或断开后重新连接",
+    "unsaved": "未保存",
+    "advanced": "高级选项",
     "setDefault": "设为默认",
     "setDefaultSuccess": "已将 {{name}} 设为默认",
     "create": "创建连接",
-    "save": "保存修改",
+    "save": "保存",
     "createSuccess": "已创建连接 {{name}}",
     "saveSuccess": "已保存连接 {{name}}",
     "deleteBtn": "删除连接",
@@ -634,7 +714,7 @@
     "section": {
       "appearance": {
         "label": "外观",
-        "subtitle": "主题、强调色与界面密度"
+        "subtitle": "主题与界面动效"
       },
       "general": {
         "label": "通用",
@@ -671,17 +751,6 @@
         "system": "跟随系统",
         "systemDesc": "自动切换"
       },
-      "accent": "强调色",
-      "accentNames": {
-        "default": "默认",
-        "blue": "蓝",
-        "green": "绿",
-        "orange": "橙",
-        "red": "红",
-        "purple": "紫",
-        "cyan": "青"
-      },
-      "accentHint": "强调色应用于按钮、链接与焦点环。选择「默认」恢复主题色。",
       "a11y": "动效与可访问性",
       "animations": "界面过渡动画",
       "animationsHint": "页面切换、面板展开等过渡效果",

@@ -12,72 +12,130 @@ import {
   AlertCircle,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
+import { Dialogs } from '@wailsio/runtime'
 import { PageHeader } from '../shell'
+import { setConnectionPrefill } from '@/lib/connectionPrefill'
+import { importAllConfigFromFile } from '@/api/settings'
+import { formatErrorMessage } from '@/lib/utils'
+
+const GITHUB_URL = 'https://github.com/amigoer/rocket-leaf'
+const DOCS_URL = 'https://github.com/amigoer/rocket-leaf#readme'
+
+type SampleKey = 'local' | 'docker' | 'paste'
 
 const SAMPLES: {
-  name: string
+  key: SampleKey
   host: string
   env: string
-  desc: string
   icon: LucideIcon
   ghost?: boolean
 }[] = [
   {
-    name: '本地开发',
+    key: 'local',
     host: '127.0.0.1:9876',
     env: 'DEV',
-    desc: '运行在本机的 NameServer',
     icon: HardDrive,
   },
   {
-    name: 'Docker Compose',
+    key: 'docker',
     host: 'rocketmq:9876',
     env: 'DEV',
-    desc: '容器网络内的 NameServer',
     icon: Box,
   },
   {
-    name: '粘贴地址…',
+    key: 'paste',
     host: 'host:9876;host2:9876',
     env: '—',
-    desc: '从剪贴板快速添加',
     icon: Plus,
     ghost: true,
   },
 ]
 
-const STEPS = [
-  {
-    n: '01',
-    title: '添加 NameServer',
-    desc: '填写 host:port，可选启用 ACL 与 TLS。配置仅保存在本地。',
-    icon: Server,
-  },
-  {
-    n: '02',
-    title: '选择集群与命名空间',
-    desc: 'Rocket-Leaf 自动发现 Broker，按环境组织视图。',
-    icon: Layers,
-  },
-  {
-    n: '03',
-    title: '管理 Topic 与消费',
-    desc: '创建、查询、回溯消费位点，跟踪消息轨迹。',
-    icon: Activity,
-  },
-]
+const STEP_ICONS = [Server, Layers, Activity] as const
 
 export function EmptyStateScreen({ onAddConnection }: { onAddConnection?: () => void }) {
+  const { t } = useTranslation()
+
+  const openNew = (prefill?: {
+    name?: string
+    host?: string
+    port?: string
+    nameServer?: string
+  }) => {
+    if (prefill) setConnectionPrefill(prefill)
+    else setConnectionPrefill({})
+    onAddConnection?.()
+  }
+
+  const handleSample = async (key: SampleKey) => {
+    if (key === 'paste') {
+      try {
+        const text = (await navigator.clipboard.readText()).trim()
+        if (text) {
+          openNew({ nameServer: text, name: t('emptyState.samples.paste.name') })
+          return
+        }
+        toast.info(t('emptyState.clipboardEmpty'))
+      } catch {
+        toast.info(t('emptyState.clipboardEmpty'))
+      }
+      openNew({})
+      return
+    }
+    if (key === 'local') {
+      openNew({
+        name: t('emptyState.samples.local.name'),
+        host: '127.0.0.1',
+        port: '9876',
+      })
+      return
+    }
+    if (key === 'docker') {
+      openNew({
+        name: t('emptyState.samples.docker.name'),
+        host: 'rocketmq',
+        port: '9876',
+      })
+    }
+  }
+
+  const handleImport = async () => {
+    let chosen: string | string[]
+    try {
+      chosen = await Dialogs.OpenFile({
+        Title: t('emptyState.importFromFile'),
+        Filters: [{ DisplayName: 'JSON', Pattern: '*.json' }],
+      })
+    } catch (e) {
+      toast.error(t('emptyState.importError'), { description: formatErrorMessage(e) })
+      return
+    }
+    const path = Array.isArray(chosen) ? chosen[0] : chosen
+    if (!path) return
+    try {
+      await importAllConfigFromFile(path)
+      toast.success(t('emptyState.importSuccess'), { description: path })
+    } catch (e) {
+      toast.error(t('emptyState.importError'), { description: formatErrorMessage(e) })
+    }
+  }
+
+  const openExternal = (url: string) => {
+    window.open(url, '_blank', 'noopener,noreferrer')
+  }
+
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <PageHeader title="概览" subtitle="未连接 · 请先添加 NameServer">
-        <button className="rl-btn rl-btn-ghost rl-btn-sm">
+      <PageHeader title={t('emptyState.title')} subtitle={t('emptyState.subtitle')}>
+        <button className="rl-btn rl-btn-ghost rl-btn-sm" onClick={() => openExternal(DOCS_URL)}>
           <Github size={13} />
-          文档
+          {t('common.docs')}
         </button>
-        <button className="rl-btn rl-btn-primary rl-btn-sm" onClick={onAddConnection}>
+        <button className="rl-btn rl-btn-primary rl-btn-sm" onClick={() => openNew()}>
           <Plus size={13} />
-          添加连接
+          {t('emptyState.addConnection')}
         </button>
       </PageHeader>
 
@@ -115,11 +173,9 @@ export function EmptyStateScreen({ onAddConnection }: { onAddConnection?: () => 
                         background: 'hsl(var(--muted-foreground))',
                       }}
                     />
-                    未连接
+                    {t('emptyState.badge')}
                   </span>
-                  <span className="rl-muted text-[12px]">
-                    支持 RocketMQ 4.x / 5.x · 本地运行 · 无服务端
-                  </span>
+                  <span className="rl-muted text-[12px]">{t('emptyState.supportNote')}</span>
                 </div>
                 <div
                   style={{
@@ -129,47 +185,48 @@ export function EmptyStateScreen({ onAddConnection }: { onAddConnection?: () => 
                     lineHeight: 1.3,
                   }}
                 >
-                  连接到你的第一个 NameServer
+                  {t('emptyState.heroTitle')}
                 </div>
                 <div
                   className="rl-muted mt-1.5 text-[12px]"
                   style={{ maxWidth: 520, lineHeight: 1.6 }}
                 >
-                  配置 NameServer 地址后即可访问
-                  Topic、消费者组、消息查询与集群监控。所有配置仅保存在本地。
+                  {t('emptyState.heroDesc')}
                 </div>
                 <div className="mt-3 flex gap-2">
-                  <button className="rl-btn rl-btn-primary rl-btn-sm" onClick={onAddConnection}>
+                  <button className="rl-btn rl-btn-primary rl-btn-sm" onClick={() => openNew()}>
                     <Plus size={13} />
-                    添加连接
+                    {t('emptyState.addConnection')}
                   </button>
-                  <button className="rl-btn rl-btn-outline rl-btn-sm">
+                  <button className="rl-btn rl-btn-outline rl-btn-sm" onClick={handleImport}>
                     <Download size={12} />
-                    从文件导入
+                    {t('emptyState.importFromFile')}
                   </button>
                 </div>
               </div>
 
               <div style={{ width: 200, flexShrink: 0, display: 'grid', placeItems: 'center' }}>
-                <EmptySchematic />
+                <EmptySchematic notConfigured={t('emptyState.badge')} />
               </div>
             </div>
           </div>
 
           {/* Quick start */}
           <div className="rl-section-label" style={{ marginTop: 20 }}>
-            快速开始
+            {t('emptyState.quickStart')}
           </div>
           <div className="grid gap-2.5" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
             {SAMPLES.map((s) => (
-              <div
-                key={s.name}
-                className="rl-card cursor-pointer"
+              <button
+                key={s.key}
+                type="button"
+                className="rl-card cursor-pointer text-left transition-colors hover:border-primary/40"
                 style={{
                   padding: 14,
                   borderStyle: s.ghost ? 'dashed' : 'solid',
                   background: s.ghost ? 'transparent' : 'hsl(var(--card))',
                 }}
+                onClick={() => void handleSample(s.key)}
               >
                 <div className="flex items-center gap-2">
                   <div
@@ -185,7 +242,9 @@ export function EmptyStateScreen({ onAddConnection }: { onAddConnection?: () => 
                   >
                     <s.icon size={13} className="rl-muted" />
                   </div>
-                  <span className="text-[13px] font-medium">{s.name}</span>
+                  <span className="text-[13px] font-medium">
+                    {t(`emptyState.samples.${s.key}.name`)}
+                  </span>
                   {!s.ghost && (
                     <span
                       className="rl-badge rl-badge-outline"
@@ -197,39 +256,44 @@ export function EmptyStateScreen({ onAddConnection }: { onAddConnection?: () => 
                 </div>
                 <div className="font-mono-design rl-muted mt-2 truncate text-[12px]">{s.host}</div>
                 <div className="rl-muted mt-2 text-[12px]" style={{ lineHeight: 1.5 }}>
-                  {s.desc}
+                  {t(`emptyState.samples.${s.key}.desc`)}
                 </div>
-              </div>
+              </button>
             ))}
           </div>
 
           {/* Three-step flow */}
           <div className="rl-section-label" style={{ marginTop: 20 }}>
-            使用流程
+            {t('emptyState.workflow')}
           </div>
           <div className="rl-card" style={{ padding: 0 }}>
             <div className="grid" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
-              {STEPS.map((step, i) => (
-                <div
-                  key={step.n}
-                  style={{
-                    padding: 14,
-                    borderRight: i < 2 ? '1px solid hsl(var(--border))' : 'none',
-                  }}
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono-design rl-muted rl-tabular text-[12px]">
-                      {step.n}
-                    </span>
-                    <span style={{ flex: 1, height: 1, background: 'hsl(var(--border))' }} />
-                    <step.icon size={13} className="rl-muted" />
+              {STEP_ICONS.map((Icon, i) => {
+                const n = String(i + 1) as '1' | '2' | '3'
+                return (
+                  <div
+                    key={n}
+                    style={{
+                      padding: 14,
+                      borderRight: i < 2 ? '1px solid hsl(var(--border))' : 'none',
+                    }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono-design rl-muted rl-tabular text-[12px]">
+                        {`0${n}`}
+                      </span>
+                      <span style={{ flex: 1, height: 1, background: 'hsl(var(--border))' }} />
+                      <Icon size={13} className="rl-muted" />
+                    </div>
+                    <div className="mt-2 text-[13px] font-medium">
+                      {t(`emptyState.steps.${n}.title`)}
+                    </div>
+                    <div className="rl-muted mt-1 text-[12px]" style={{ lineHeight: 1.55 }}>
+                      {t(`emptyState.steps.${n}.desc`)}
+                    </div>
                   </div>
-                  <div className="mt-2 text-[13px] font-medium">{step.title}</div>
-                  <div className="rl-muted mt-1 text-[12px]" style={{ lineHeight: 1.55 }}>
-                    {step.desc}
-                  </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
 
@@ -239,36 +303,40 @@ export function EmptyStateScreen({ onAddConnection }: { onAddConnection?: () => 
             style={{ paddingTop: 12, borderTop: '1px solid hsl(var(--border))' }}
           >
             <div className="flex items-center gap-4">
-              <a
-                className="rl-muted flex items-center gap-1 text-[12px]"
-                style={{ textDecoration: 'none' }}
+              <button
+                type="button"
+                className="rl-muted flex items-center gap-1 text-[12px] hover:text-foreground"
+                onClick={() => openExternal(GITHUB_URL)}
               >
                 <Github size={12} />
-                GitHub
-              </a>
-              <a
-                className="rl-muted flex items-center gap-1 text-[12px]"
-                style={{ textDecoration: 'none' }}
+                {t('emptyState.links.github')}
+              </button>
+              <button
+                type="button"
+                className="rl-muted flex items-center gap-1 text-[12px] hover:text-foreground"
+                onClick={() => openExternal(`${GITHUB_URL}#readme`)}
               >
                 <Lock size={12} />
-                ACL 配置指南
-              </a>
-              <a
-                className="rl-muted flex items-center gap-1 text-[12px]"
-                style={{ textDecoration: 'none' }}
+                {t('emptyState.links.acl')}
+              </button>
+              <button
+                type="button"
+                className="rl-muted flex items-center gap-1 text-[12px] hover:text-foreground"
+                onClick={() => openExternal(`${GITHUB_URL}#readme`)}
               >
                 <Shield size={12} />
-                TLS 配置指南
-              </a>
-              <a
-                className="rl-muted flex items-center gap-1 text-[12px]"
-                style={{ textDecoration: 'none' }}
+                {t('emptyState.links.tls')}
+              </button>
+              <button
+                type="button"
+                className="rl-muted flex items-center gap-1 text-[12px] hover:text-foreground"
+                onClick={() => openExternal(`${GITHUB_URL}/issues`)}
               >
                 <AlertCircle size={12} />
-                常见问题
-              </a>
+                {t('emptyState.links.faq')}
+              </button>
             </div>
-            <div className="rl-muted text-[12px]">v1.4.2 · 本地数据 · 不上传任何信息</div>
+            <div className="rl-muted text-[12px]">{t('emptyState.footer')}</div>
           </div>
         </div>
       </div>
@@ -276,7 +344,7 @@ export function EmptyStateScreen({ onAddConnection }: { onAddConnection?: () => 
   )
 }
 
-function EmptySchematic() {
+function EmptySchematic({ notConfigured }: { notConfigured: string }) {
   return (
     <svg width={220} height={160} viewBox="0 0 220 160" fill="none" style={{ display: 'block' }}>
       <defs>
@@ -285,7 +353,6 @@ function EmptySchematic() {
         </pattern>
       </defs>
 
-      {/* Client */}
       <g>
         <rect
           x={6}
@@ -328,7 +395,6 @@ function EmptySchematic() {
         </text>
       </g>
 
-      {/* Connection line */}
       <line
         x1={62}
         y1={80}
@@ -349,7 +415,6 @@ function EmptySchematic() {
         opacity={0.4}
       />
 
-      {/* NameServer slot */}
       <rect
         x={92}
         y={64}
@@ -375,15 +440,14 @@ function EmptySchematic() {
         x={109}
         y={91}
         textAnchor="middle"
-        fontSize={6}
+        fontSize={5.5}
         fontFamily="ui-sans-serif, system-ui"
         fill="hsl(var(--muted-foreground))"
         opacity={0.7}
       >
-        未配置
+        {notConfigured}
       </text>
 
-      {/* Broker cluster */}
       <g opacity={0.4}>
         {[40, 69, 98].map((y) => (
           <g key={y}>
@@ -438,7 +502,7 @@ function EmptySchematic() {
         fontFamily="ui-sans-serif"
         opacity={0.55}
       >
-        Broker 集群
+        Broker
       </text>
     </svg>
   )

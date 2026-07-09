@@ -1,5 +1,17 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Search, Plus, Server, Check, Unlink, PlugZap, Trash2, Wifi, Star } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import {
+  Search,
+  Plus,
+  Check,
+  Unlink,
+  PlugZap,
+  Trash2,
+  Wifi,
+  Star,
+  ChevronDown,
+  ChevronRight,
+  X,
+} from 'lucide-react'
 import { Spinner } from '@/components/Spinner'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -7,19 +19,30 @@ import { PageHeader } from '../shell'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useConnections } from '@/hooks/useConnections'
 import * as connectionApi from '@/api/connection'
-import { formatErrorMessage } from '@/lib/utils'
+import { formatErrorMessage, cn } from '@/lib/utils'
 import {
   ConnectionEnv,
   type Connection,
 } from '../../../bindings/rocket-leaf/internal/model/models.js'
+import {
+  hasConnectionPrefill,
+  takeConnectionPrefill,
+  type ConnectionPrefill,
+} from '@/lib/connectionPrefill'
 
 const NEW_FORM_ID = -1
+const DEFAULT_NS_PORT = '9876'
+
+interface NsEntry {
+  host: string
+  port: string
+}
 
 interface FormState {
   id: number
   name: string
   env: ConnectionEnv
-  nameServer: string
+  nsEntries: NsEntry[]
   timeoutSec: number
   enableACL: boolean
   accessKey: string
@@ -27,11 +50,46 @@ interface FormState {
   remark: string
 }
 
+function parseNameServers(raw: string): NsEntry[] {
+  const parts = String(raw || '')
+    .split(/[;\s,]+/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+  if (parts.length === 0) return [{ host: '', port: DEFAULT_NS_PORT }]
+  return parts.map((p) => {
+    // [ipv6]:port
+    if (p.startsWith('[')) {
+      const m = p.match(/^\[([^\]]+)\](?::(\d+))?$/)
+      if (m) return { host: m[1] ?? '', port: m[2] || DEFAULT_NS_PORT }
+    }
+    const lastColon = p.lastIndexOf(':')
+    if (lastColon > 0 && /^\d+$/.test(p.slice(lastColon + 1))) {
+      return { host: p.slice(0, lastColon), port: p.slice(lastColon + 1) }
+    }
+    return { host: p, port: DEFAULT_NS_PORT }
+  })
+}
+
+function joinNameServers(entries: NsEntry[]): string {
+  return entries
+    .map((e) => {
+      const host = e.host.trim()
+      if (!host) return ''
+      const port = (e.port.trim() || DEFAULT_NS_PORT).replace(/\D/g, '') || DEFAULT_NS_PORT
+      if (host.includes(':') && !host.startsWith('[')) {
+        return `[${host}]:${port}`
+      }
+      return `${host}:${port}`
+    })
+    .filter(Boolean)
+    .join(';')
+}
+
 const EMPTY_FORM: FormState = {
   id: NEW_FORM_ID,
   name: '',
   env: ConnectionEnv.EnvTest,
-  nameServer: '',
+  nsEntries: [{ host: '', port: DEFAULT_NS_PORT }],
   timeoutSec: 5,
   enableACL: false,
   accessKey: '',
@@ -44,13 +102,31 @@ function fromConnection(c: Connection): FormState {
     id: c.id,
     name: c.name,
     env: c.env,
-    nameServer: c.nameServer,
+    nsEntries: parseNameServers(c.nameServer),
     timeoutSec: c.timeoutSec || 5,
     enableACL: c.enableACL,
     accessKey: c.accessKey,
     secretKey: c.secretKey,
     remark: c.remark,
   }
+}
+
+function formFromPrefill(prefill: ConnectionPrefill): FormState {
+  let nsEntries: NsEntry[] = [{ host: '', port: DEFAULT_NS_PORT }]
+  if (prefill.nameServer?.trim()) {
+    nsEntries = parseNameServers(prefill.nameServer)
+  } else if (prefill.host?.trim()) {
+    nsEntries = [{ host: prefill.host.trim(), port: prefill.port?.trim() || DEFAULT_NS_PORT }]
+  }
+  return {
+    ...EMPTY_FORM,
+    name: prefill.name?.trim() || '',
+    nsEntries,
+  }
+}
+
+function updateNsEntry(entries: NsEntry[], index: number, patch: Partial<NsEntry>): NsEntry[] {
+  return entries.map((e, i) => (i === index ? { ...e, ...patch } : e))
 }
 
 export function ConnectionsScreen() {
@@ -61,19 +137,35 @@ export function ConnectionsScreen() {
   const [search, setSearch] = useState('')
   const [form, setForm] = useState<FormState>(EMPTY_FORM)
   const [originalForm, setOriginalForm] = useState<FormState>(EMPTY_FORM)
-  const [busy, setBusy] = useState<'test' | 'connect' | 'disconnect' | 'save' | 'delete' | null>(
-    null,
-  )
+  const [busy, setBusy] = useState<
+    'test' | 'connect' | 'disconnect' | 'save' | 'delete' | 'row-connect' | 'row-disconnect' | null
+  >(null)
+  const [busyId, setBusyId] = useState<number | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<Connection | null>(null)
+  const [advancedOpen, setAdvancedOpen] = useState(false)
+  // Guards against React Strict Mode double-effect wiping a just-applied prefill
+  const newFormCycle = useRef(0)
+  const appliedNewCycle = useRef(-1)
 
-  // Auto-select first connection on mount
+  const openNewForm = () => {
+    newFormCycle.current += 1
+    setSelectedId(NEW_FORM_ID)
+  }
+
+  // Prefill from EmptyState quick-start samples (sessionStorage)
   useEffect(() => {
-    if (selectedId == null && list.length > 0) {
+    if (hasConnectionPrefill()) {
+      openNewForm()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only handoff
+  }, [])
+
+  useEffect(() => {
+    if (selectedId == null && list.length > 0 && !hasConnectionPrefill()) {
       setSelectedId(list[0]!.id)
     }
   }, [list, selectedId])
 
-  // Sync form with the selected connection
   const selected = useMemo<Connection | null>(
     () => (selectedId == null ? null : (list.find((c) => c.id === selectedId) ?? null)),
     [list, selectedId],
@@ -81,14 +173,25 @@ export function ConnectionsScreen() {
 
   useEffect(() => {
     if (selectedId === NEW_FORM_ID) {
-      setForm(EMPTY_FORM)
-      setOriginalForm(EMPTY_FORM)
+      if (appliedNewCycle.current === newFormCycle.current) return
+      appliedNewCycle.current = newFormCycle.current
+      const prefill = takeConnectionPrefill()
+      if (prefill) {
+        setForm(formFromPrefill(prefill))
+        // Mark dirty relative to empty so Save is enabled when prefilled
+        setOriginalForm(EMPTY_FORM)
+      } else {
+        setForm(EMPTY_FORM)
+        setOriginalForm(EMPTY_FORM)
+      }
+      setAdvancedOpen(false)
       return
     }
     if (selected) {
       const next = fromConnection(selected)
       setForm(next)
       setOriginalForm(next)
+      setAdvancedOpen(selected.enableACL || selected.timeoutSec !== 5 || !!selected.remark)
     }
   }, [selected, selectedId])
 
@@ -98,7 +201,6 @@ export function ConnectionsScreen() {
     [form, originalForm],
   )
 
-  // Search filter
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
     if (!q) return list
@@ -110,62 +212,79 @@ export function ConnectionsScreen() {
     )
   }, [list, search])
 
-  // ---------- handlers ----------
+  const showSearch = list.length >= 5
 
-  const validate = (): string | null => {
-    if (!form.name.trim()) return t('connections.validateName')
-    if (!form.nameServer.trim()) return t('connections.validateNameServer')
-    if (form.enableACL && (!form.accessKey.trim() || !form.secretKey.trim())) {
+  const validate = (f: FormState = form): string | null => {
+    if (!f.name.trim()) return t('connections.validateName')
+    const joined = joinNameServers(f.nsEntries)
+    if (!joined) return t('connections.validateNameServer')
+    for (const e of f.nsEntries) {
+      if (!e.host.trim()) continue
+      const port = Number(e.port.trim() || DEFAULT_NS_PORT)
+      if (!Number.isFinite(port) || port < 1 || port > 65535) {
+        return t('connections.validatePort')
+      }
+    }
+    if (f.enableACL && (!f.accessKey.trim() || !f.secretKey.trim())) {
       return t('connections.validateAcl')
     }
     return null
   }
 
-  const handleNew = () => {
-    setSelectedId(NEW_FORM_ID)
-  }
+  const handleNew = () => openNewForm()
+  const handleSelect = (c: Connection) => setSelectedId(c.id)
 
-  const handleSelect = (c: Connection) => {
-    setSelectedId(c.id)
-  }
-
-  const handleSave = async () => {
+  /** Persist form; returns connection id or null on failure */
+  const persistForm = async (opts?: { quiet?: boolean }): Promise<number | null> => {
     const err = validate()
     if (err) {
       toast.error(err)
-      return
+      return null
     }
+    const nameServer = joinNameServers(form.nsEntries)
+    if (isNew) {
+      const created = await connectionApi.addConnection(
+        form.name.trim(),
+        form.env,
+        nameServer,
+        form.timeoutSec,
+        form.enableACL,
+        form.accessKey.trim(),
+        form.secretKey,
+        form.remark.trim(),
+      )
+      if (!created) return null
+      if (!opts?.quiet) {
+        toast.success(t('connections.createSuccess', { name: form.name.trim() }))
+      }
+      await refresh()
+      setSelectedId(created.id)
+      return created.id
+    }
+    if (dirty) {
+      await connectionApi.updateConnection(
+        form.id,
+        form.name.trim(),
+        form.env,
+        nameServer,
+        form.timeoutSec,
+        form.enableACL,
+        form.accessKey.trim(),
+        form.secretKey,
+        form.remark.trim(),
+      )
+      if (!opts?.quiet) {
+        toast.success(t('connections.saveSuccess', { name: form.name.trim() }))
+      }
+      await refresh()
+    }
+    return form.id
+  }
+
+  const handleSaveOnly = async () => {
     setBusy('save')
     try {
-      if (isNew) {
-        const created = await connectionApi.addConnection(
-          form.name.trim(),
-          form.env,
-          form.nameServer.trim(),
-          form.timeoutSec,
-          form.enableACL,
-          form.accessKey.trim(),
-          form.secretKey,
-          form.remark.trim(),
-        )
-        toast.success(t('connections.createSuccess', { name: form.name.trim() }))
-        await refresh()
-        if (created) setSelectedId(created.id)
-      } else {
-        await connectionApi.updateConnection(
-          form.id,
-          form.name.trim(),
-          form.env,
-          form.nameServer.trim(),
-          form.timeoutSec,
-          form.enableACL,
-          form.accessKey.trim(),
-          form.secretKey,
-          form.remark.trim(),
-        )
-        toast.success(t('connections.saveSuccess', { name: form.name.trim() }))
-        await refresh()
-      }
+      await persistForm()
     } catch (e) {
       toast.error(formatErrorMessage(e))
     } finally {
@@ -173,36 +292,36 @@ export function ConnectionsScreen() {
     }
   }
 
-  const handleTest = async () => {
-    if (isNew || !selected) return
-    setBusy('test')
-    try {
-      const result = await connectionApi.testConnection(selected.id)
-      toast.success(t('connections.testSuccess'), { description: result })
-    } catch (e) {
-      toast.error(t('connections.testFail'), {
-        description: formatErrorMessage(e),
-      })
-    } finally {
-      setBusy(null)
-    }
-  }
-
-  const handleConnect = async () => {
-    if (isNew || !selected) return
+  /** Primary path: save if needed, then connect. Optionally promote to default. */
+  const handleConnectPrimary = async () => {
     setBusy('connect')
     try {
-      await connectionApi.connect(selected.id)
-      toast.success(t('connections.connectSuccess', { name: selected.name }))
+      const id = await persistForm({ quiet: true })
+      if (id == null) return
+
+      await connectionApi.connect(id)
+      const conn = (await connectionApi.getConnections()).find((c) => c && c.id === id)
+      if (conn && !conn.isDefault) {
+        try {
+          await connectionApi.setDefaultConnection(id)
+        } catch {
+          // non-fatal: already connected
+        }
+      }
+      toast.success(
+        t('connections.connectSuccess', { name: form.name.trim() || conn?.name || String(id) }),
+      )
       await refresh()
+      setSelectedId(id)
     } catch (e) {
       toast.error(formatErrorMessage(e))
+      await refresh()
     } finally {
       setBusy(null)
     }
   }
 
-  const handleDisconnect = async () => {
+  const handleDisconnectPrimary = async () => {
     if (isNew || !selected) return
     setBusy('disconnect')
     try {
@@ -216,9 +335,70 @@ export function ConnectionsScreen() {
     }
   }
 
+  /** List row: connect saved profile as-is (no form merge). */
+  const handleRowConnect = async (c: Connection, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setBusy('row-connect')
+    setBusyId(c.id)
+    try {
+      await connectionApi.connect(c.id)
+      if (!c.isDefault) {
+        try {
+          await connectionApi.setDefaultConnection(c.id)
+        } catch {
+          // ignore
+        }
+      }
+      toast.success(t('connections.connectSuccess', { name: c.name }))
+      setSelectedId(c.id)
+      await refresh()
+    } catch (err) {
+      toast.error(formatErrorMessage(err))
+    } finally {
+      setBusy(null)
+      setBusyId(null)
+    }
+  }
+
+  const handleRowDisconnect = async (c: Connection, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setBusy('row-disconnect')
+    setBusyId(c.id)
+    try {
+      await connectionApi.disconnect(c.id)
+      toast.success(t('connections.disconnectSuccess', { name: c.name }))
+      await refresh()
+    } catch (err) {
+      toast.error(formatErrorMessage(err))
+    } finally {
+      setBusy(null)
+      setBusyId(null)
+    }
+  }
+
+  const handleTest = async () => {
+    setBusy('test')
+    try {
+      // Need a saved id; auto-save dirty/new first
+      const id = await persistForm({ quiet: true })
+      if (id == null) return
+      const result = await connectionApi.testConnection(id)
+      toast.success(t('connections.testSuccess'), { description: result })
+      await refresh()
+    } catch (e) {
+      toast.error(t('connections.testFail'), { description: formatErrorMessage(e) })
+    } finally {
+      setBusy(null)
+    }
+  }
+
   const handleSetDefault = async () => {
     if (isNew || !selected) return
     try {
+      if (dirty) {
+        const id = await persistForm({ quiet: true })
+        if (id == null) return
+      }
       await connectionApi.setDefaultConnection(selected.id)
       toast.success(t('connections.setDefaultSuccess', { name: selected.name }))
       await refresh()
@@ -234,7 +414,6 @@ export function ConnectionsScreen() {
       await connectionApi.deleteConnection(confirmDelete.id)
       toast.success(t('connections.deleteSuccess'))
       setConfirmDelete(null)
-      // Pick another connection or jump back to "select hint"
       const remaining = list.filter((c) => c.id !== confirmDelete.id)
       setSelectedId(remaining[0]?.id ?? null)
       await refresh()
@@ -245,9 +424,9 @@ export function ConnectionsScreen() {
     }
   }
 
-  // ---------- render ----------
-
   const isOnline = selected?.status === 'online'
+  const primaryBusy = busy === 'connect' || busy === 'disconnect' || busy === 'save'
+  const anyBusy = busy != null
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -255,17 +434,19 @@ export function ConnectionsScreen() {
         title={t('connections.title')}
         subtitle={t('connections.subtitle', { count: list.length })}
       >
-        <div className="rl-search-input" style={{ width: 220 }}>
-          <span className="icon">
-            <Search size={14} />
-          </span>
-          <input
-            className="rl-input"
-            placeholder={t('connections.searchPlaceholder')}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
+        {showSearch && (
+          <div className="rl-search-input" style={{ width: 180 }}>
+            <span className="icon">
+              <Search size={13} />
+            </span>
+            <input
+              className="rl-input"
+              placeholder={t('connections.searchPlaceholder')}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+        )}
         <button className="rl-btn rl-btn-primary rl-btn-sm" onClick={handleNew}>
           <Plus size={13} />
           {t('common.create')}
@@ -274,94 +455,77 @@ export function ConnectionsScreen() {
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
         {/* List */}
-        <div
-          className="scroll-thin"
-          style={{
-            width: 380,
-            borderRight: '1px solid hsl(var(--border))',
-            overflow: 'auto',
-            background: 'hsl(var(--background))',
-          }}
-        >
-          {loading && list.length === 0 ? (
-            <div
-              className="rl-muted flex items-center justify-center"
-              style={{ padding: 32, gap: 8 }}
-            >
-              <Spinner size={14} />
-              <span className="text-[12px]">{t('common.loading')}</span>
-            </div>
-          ) : filtered.length === 0 ? (
-            <div className="rl-muted text-center" style={{ padding: 40 }}>
-              <PlugZap size={28} className="mx-auto mb-3 opacity-40" />
-              <div className="text-[13px]">{t('connections.empty')}</div>
-              <div className="mt-1 text-[12px]">{t('connections.emptyHint')}</div>
-            </div>
-          ) : (
-            filtered.map((c) => {
-              const active = selectedId === c.id
-              const online = c.status === 'online'
-              return (
-                <div
-                  key={c.id}
-                  className={'flex items-center gap-3'}
-                  style={{
-                    padding: '14px 16px',
-                    borderBottom: '1px solid hsl(var(--border))',
-                    background: active ? 'hsl(var(--accent))' : 'transparent',
-                    cursor: 'pointer',
-                    borderLeft: active
-                      ? '2px solid hsl(var(--foreground))'
-                      : '2px solid transparent',
-                  }}
-                  onClick={() => handleSelect(c)}
-                >
+        <div className="scroll-thin flex w-[280px] shrink-0 flex-col border-r border-border bg-background">
+          <div className="min-h-0 flex-1 overflow-auto">
+            {loading && list.length === 0 ? (
+              <div className="rl-muted flex items-center justify-center gap-2 p-8">
+                <Spinner size={14} />
+                <span className="text-[12px]">{t('common.loading')}</span>
+              </div>
+            ) : filtered.length === 0 ? (
+              <div className="rl-muted px-4 py-10 text-center">
+                <div className="text-[12.5px]">{t('connections.empty')}</div>
+                <div className="mt-1 text-[11.5px]">{t('connections.emptyHint')}</div>
+              </div>
+            ) : (
+              filtered.map((c) => {
+                const active = selectedId === c.id
+                const online = c.status === 'online'
+                const rowBusy =
+                  busyId === c.id && (busy === 'row-connect' || busy === 'row-disconnect')
+                return (
                   <div
-                    className="rl-conn-icon"
-                    style={{
-                      width: 32,
-                      height: 32,
-                      background: online ? 'hsl(142 50% 38% / 0.1)' : 'hsl(var(--muted))',
-                      color: online ? 'hsl(142 60% 28%)' : 'hsl(var(--muted-foreground))',
-                    }}
+                    key={c.id}
+                    className={cn('rl-conn-row group', active && 'active')}
+                    onClick={() => handleSelect(c)}
                   >
-                    <Server size={15} />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="truncate text-[13px] font-medium">{c.name}</span>
-                      {c.isDefault && <Check size={11} className="rl-muted" />}
-                    </div>
-                    <div className="font-mono-design rl-muted mt-1 truncate text-[12px]">
-                      {(c.nameServer || '').split(/[;\s,]+/)[0] || '—'}
-                    </div>
-                  </div>
-                  <div className="flex flex-col items-center gap-1">
-                    {c.env && (
-                      <span
-                        className="rl-badge rl-badge-outline"
-                        style={{ height: 18, fontSize: 10 }}
-                      >
-                        {c.env}
-                      </span>
-                    )}
                     <span
+                      className="h-1.5 w-1.5 shrink-0 rounded-full"
                       style={{
-                        width: 6,
-                        height: 6,
-                        borderRadius: 999,
-                        background: online ? 'hsl(var(--success))' : 'hsl(var(--border))',
+                        background: online
+                          ? 'hsl(var(--success))'
+                          : 'hsl(var(--muted-foreground) / 0.35)',
                       }}
                     />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className="truncate text-[12.5px] font-medium">{c.name}</span>
+                        {c.isDefault && (
+                          <span className="rl-muted shrink-0 text-[10px]">
+                            {t('connections.default')}
+                          </span>
+                        )}
+                      </div>
+                      <div className="font-mono-design rl-muted mt-0.5 truncate text-[11px]">
+                        {(c.nameServer || '').split(/[;\s,]+/)[0] || '—'}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className={cn(
+                        'rl-btn rl-btn-sm shrink-0 px-2',
+                        online ? 'rl-btn-outline' : 'rl-btn-primary',
+                      )}
+                      disabled={anyBusy}
+                      title={online ? t('connections.disconnect') : t('connections.connect')}
+                      onClick={(e) => (online ? handleRowDisconnect(c, e) : handleRowConnect(c, e))}
+                    >
+                      {rowBusy ? (
+                        <Spinner size={12} />
+                      ) : online ? (
+                        <Unlink size={12} />
+                      ) : (
+                        <PlugZap size={12} />
+                      )}
+                    </button>
                   </div>
-                </div>
-              )
-            })
-          )}
-          <div style={{ padding: 12, borderBottom: '1px solid hsl(var(--border))' }}>
+                )
+              })
+            )}
+          </div>
+          <div className="border-t border-border p-2">
             <button
-              className="rl-btn rl-btn-outline rl-btn-sm"
-              style={{ width: '100%', justifyContent: 'center' }}
+              className="rl-btn rl-btn-outline rl-btn-sm w-full justify-center"
               onClick={handleNew}
             >
               <Plus size={13} />
@@ -370,121 +534,82 @@ export function ConnectionsScreen() {
           </div>
         </div>
 
-        {/* Detail / form */}
-        <div className="scroll-thin min-w-0 flex-1 overflow-auto" style={{ padding: 24 }}>
+        {/* Detail */}
+        <div className="scroll-thin min-w-0 flex-1 overflow-auto p-5">
           {selectedId == null ? (
-            <div
-              className="rl-muted flex flex-col items-center justify-center text-center"
-              style={{ minHeight: 240 }}
-            >
-              <PlugZap size={32} className="mb-3 opacity-40" />
-              <div className="text-[13px]">{t('connections.selectHint')}</div>
+            <div className="rl-muted flex min-h-[200px] flex-col items-center justify-center text-center">
+              <PlugZap size={22} className="mb-2 opacity-40" />
+              <div className="text-[12.5px]">{t('connections.selectHint')}</div>
             </div>
           ) : (
-            <div style={{ maxWidth: 640 }}>
-              {/* Header */}
-              <div className="mb-2 flex items-center gap-3">
-                <div
-                  className="rl-conn-icon"
-                  style={{
-                    width: 44,
-                    height: 44,
-                    background: isOnline ? 'hsl(142 50% 38% / 0.1)' : 'hsl(var(--muted))',
-                    color: isOnline ? 'hsl(142 60% 28%)' : 'hsl(var(--muted-foreground))',
-                  }}
-                >
-                  <Server size={20} />
-                </div>
-                <div className="flex-1">
+            <div className="mx-auto max-w-lg">
+              {/* Header + primary action */}
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-[16px] font-semibold">
+                    <h2 className="truncate text-[15px] font-semibold tracking-tight">
                       {isNew ? t('connections.newTitle') : selected?.name || form.name}
-                    </span>
-                    {!isNew && selected && (
-                      <>
-                        {isOnline ? (
-                          <span className="rl-badge rl-badge-success">
-                            <span
-                              style={{
-                                width: 5,
-                                height: 5,
-                                borderRadius: 999,
-                                background: 'currentColor',
-                              }}
-                            />
-                            {t('common.connected')}
-                          </span>
-                        ) : (
-                          <span className="rl-badge rl-badge-outline">{t('common.offline')}</span>
-                        )}
-                        {selected.isDefault && (
-                          <span className="rl-badge">
-                            <Check size={10} />
-                            {t('connections.default')}
-                          </span>
-                        )}
-                      </>
+                    </h2>
+                    {!isNew &&
+                      selected &&
+                      (isOnline ? (
+                        <span className="rl-badge rl-badge-success">
+                          <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                          {t('common.connected')}
+                        </span>
+                      ) : (
+                        <span className="rl-badge rl-badge-outline">{t('common.offline')}</span>
+                      ))}
+                    {dirty && !isNew && (
+                      <span className="rl-muted text-[11px]">{t('connections.unsaved')}</span>
                     )}
                   </div>
-                  {!isNew && selected?.lastCheck && (
-                    <div className="rl-muted mt-1 text-[12px]">
-                      {t('connections.lastCheck', { time: selected.lastCheck })}
-                    </div>
+                  <div className="rl-muted mt-1 text-[11.5px]">
+                    {isNew
+                      ? t('connections.connectHintNew')
+                      : isOnline
+                        ? t('connections.connectHintOnline')
+                        : t('connections.connectHint')}
+                  </div>
+                </div>
+                <div className="flex shrink-0 items-center gap-1.5">
+                  {isOnline && !isNew ? (
+                    <button
+                      className="rl-btn rl-btn-outline rl-btn-sm"
+                      onClick={handleDisconnectPrimary}
+                      disabled={primaryBusy}
+                    >
+                      {busy === 'disconnect' ? <Spinner size={13} /> : <Unlink size={13} />}
+                      {t('connections.disconnect')}
+                    </button>
+                  ) : (
+                    <button
+                      className="rl-btn rl-btn-primary rl-btn-sm"
+                      onClick={handleConnectPrimary}
+                      disabled={primaryBusy}
+                    >
+                      {busy === 'connect' ? <Spinner size={13} /> : <PlugZap size={13} />}
+                      {isNew
+                        ? t('connections.saveAndConnect')
+                        : dirty
+                          ? t('connections.saveAndConnect')
+                          : t('connections.connect')}
+                    </button>
                   )}
                 </div>
-                {!isNew && selected && (
-                  <div className="flex gap-2">
-                    {isOnline ? (
-                      <button
-                        className="rl-btn rl-btn-outline rl-btn-sm"
-                        onClick={handleDisconnect}
-                        disabled={busy === 'disconnect'}
-                      >
-                        {busy === 'disconnect' ? <Spinner size={13} /> : <Unlink size={13} />}
-                        {t('connections.disconnect')}
-                      </button>
-                    ) : (
-                      <button
-                        className="rl-btn rl-btn-primary rl-btn-sm"
-                        onClick={handleConnect}
-                        disabled={busy === 'connect'}
-                      >
-                        {busy === 'connect' ? <Spinner size={13} /> : <PlugZap size={13} />}
-                        {t('connections.connect')}
-                      </button>
-                    )}
-                    {!selected.isDefault && (
-                      <button
-                        className="rl-btn rl-btn-outline rl-btn-sm"
-                        onClick={handleSetDefault}
-                      >
-                        <Star size={13} />
-                        {t('connections.setDefault')}
-                      </button>
-                    )}
-                  </div>
-                )}
               </div>
 
-              <div className="rl-section-label" style={{ marginTop: 24 }}>
-                {t('connections.config')}
-              </div>
-              <div className="rl-card" style={{ padding: 20 }}>
-                <div className="grid gap-3.5" style={{ gridTemplateColumns: '1fr 1fr' }}>
-                  <div>
-                    <div className="rl-muted mb-2 text-[12px]">
-                      {t('connections.name')}{' '}
-                      <span style={{ color: 'hsl(var(--destructive))' }}>*</span>
-                    </div>
+              <div className="rl-card p-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label={t('connections.name')} required>
                     <input
                       className="rl-input"
                       placeholder={t('connections.namePlaceholder')}
                       value={form.name}
                       onChange={(e) => setForm({ ...form, name: e.target.value })}
                     />
-                  </div>
-                  <div>
-                    <div className="rl-muted mb-2 text-[12px]">{t('connections.env')}</div>
+                  </Field>
+                  <Field label={t('connections.env')}>
                     <select
                       className="rl-select"
                       value={form.env}
@@ -498,125 +623,215 @@ export function ConnectionsScreen() {
                         {t('connections.envDev')}
                       </option>
                     </select>
-                  </div>
-                  <div style={{ gridColumn: '1 / -1' }}>
-                    <div className="rl-muted mb-2 text-[12px]">
-                      {t('connections.nameServer')}{' '}
-                      <span style={{ color: 'hsl(var(--destructive))' }}>*</span>
-                    </div>
-                    <input
-                      className="rl-input font-mono-design"
-                      placeholder="10.20.30.41:9876;10.20.30.42:9876"
-                      value={form.nameServer}
-                      onChange={(e) => setForm({ ...form, nameServer: e.target.value })}
-                    />
-                    <div className="rl-muted mt-1 text-[11px]">
-                      {t('connections.nameServerHint')}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="rl-muted mb-2 text-[12px]">{t('connections.timeout')}</div>
-                    <div className="flex items-center gap-2">
-                      <input
-                        className="rl-input"
-                        type="number"
-                        min={1}
-                        max={300}
-                        value={form.timeoutSec}
-                        onChange={(e) =>
-                          setForm({ ...form, timeoutSec: Number(e.target.value) || 1 })
-                        }
-                      />
-                      <span className="rl-muted text-[12px]">{t('connections.timeoutUnit')}</span>
-                    </div>
-                  </div>
-                  <div
-                    style={{
-                      gridColumn: '1 / -1',
-                      paddingTop: 12,
-                      borderTop: '1px solid hsl(var(--border))',
-                    }}
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0">
-                        <div className="text-[13px] font-medium">{t('connections.enableAcl')}</div>
-                        <div className="rl-muted mt-1 text-[12px]">
-                          {t('connections.enableAclHint')}
-                        </div>
+                  </Field>
+                  <div className="col-span-2">
+                    <div className="mb-1.5 flex items-center justify-between gap-2">
+                      <div className="rl-muted text-[11.5px]">
+                        {t('connections.nameServer')}
+                        <span className="text-destructive"> *</span>
                       </div>
                       <button
                         type="button"
-                        role="switch"
-                        aria-checked={form.enableACL}
-                        onClick={() => setForm({ ...form, enableACL: !form.enableACL })}
-                        className={'rl-switch ' + (form.enableACL ? 'on' : '')}
-                      />
+                        className="rl-btn rl-btn-ghost rl-btn-sm h-6 px-1.5 text-[11px] text-muted-foreground"
+                        onClick={() =>
+                          setForm({
+                            ...form,
+                            nsEntries: [...form.nsEntries, { host: '', port: DEFAULT_NS_PORT }],
+                          })
+                        }
+                      >
+                        <Plus size={12} />
+                        {t('connections.addNameServer')}
+                      </button>
                     </div>
-                    {form.enableACL && (
-                      <div className="mt-3 grid gap-3" style={{ gridTemplateColumns: '1fr 1fr' }}>
-                        <div>
-                          <div className="rl-muted mb-2 text-[12px]">{t('connections.ak')}</div>
+                    <div className="flex flex-col gap-2">
+                      {form.nsEntries.map((entry, index) => (
+                        <div key={index} className="flex items-center gap-2">
+                          <div className="min-w-0 flex-1">
+                            <input
+                              className="rl-input font-mono-design"
+                              placeholder={t('connections.hostPlaceholder')}
+                              value={entry.host}
+                              onChange={(e) =>
+                                setForm({
+                                  ...form,
+                                  nsEntries: updateNsEntry(form.nsEntries, index, {
+                                    host: e.target.value,
+                                  }),
+                                })
+                              }
+                              aria-label={t('connections.host')}
+                            />
+                          </div>
+                          <span className="rl-muted shrink-0 select-none text-[12px]">:</span>
                           <input
-                            className="rl-input font-mono-design"
-                            value={form.accessKey}
-                            onChange={(e) => setForm({ ...form, accessKey: e.target.value })}
+                            className="rl-input font-mono-design shrink-0 text-center"
+                            style={{ width: 92, minWidth: 92, maxWidth: 92 }}
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            maxLength={5}
+                            placeholder={DEFAULT_NS_PORT}
+                            value={entry.port}
+                            onChange={(e) =>
+                              setForm({
+                                ...form,
+                                nsEntries: updateNsEntry(form.nsEntries, index, {
+                                  port: e.target.value.replace(/\D/g, '').slice(0, 5),
+                                }),
+                              })
+                            }
+                            aria-label={t('connections.port')}
                           />
+                          {form.nsEntries.length > 1 && (
+                            <button
+                              type="button"
+                              className="rl-btn rl-btn-ghost rl-btn-icon rl-btn-sm shrink-0 text-muted-foreground"
+                              title={t('common.delete')}
+                              onClick={() =>
+                                setForm({
+                                  ...form,
+                                  nsEntries: form.nsEntries.filter((_, i) => i !== index),
+                                })
+                              }
+                            >
+                              <X size={13} />
+                            </button>
+                          )}
                         </div>
-                        <div>
-                          <div className="rl-muted mb-2 text-[12px]">{t('connections.sk')}</div>
-                          <input
-                            className="rl-input font-mono-design"
-                            type="password"
-                            value={form.secretKey}
-                            onChange={(e) => setForm({ ...form, secretKey: e.target.value })}
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  <div style={{ gridColumn: '1 / -1' }}>
-                    <div className="rl-muted mb-2 text-[12px]">{t('connections.remark')}</div>
-                    <input
-                      className="rl-input"
-                      placeholder={t('connections.remarkPlaceholder')}
-                      value={form.remark}
-                      onChange={(e) => setForm({ ...form, remark: e.target.value })}
-                    />
+                      ))}
+                    </div>
+                    <div className="rl-muted mt-1.5 text-[11px]">
+                      {t('connections.nameServerHint')}
+                    </div>
                   </div>
                 </div>
-                <div
-                  className="mt-5 flex flex-wrap gap-2"
-                  style={{ paddingTop: 16, borderTop: '1px solid hsl(var(--border))' }}
+
+                {/* Advanced (timeout / ACL / remark) */}
+                <button
+                  type="button"
+                  className="rl-muted mt-4 flex w-full items-center gap-1 border-0 bg-transparent p-0 text-left text-[12px] hover:text-foreground"
+                  onClick={() => setAdvancedOpen((v) => !v)}
                 >
-                  {!isNew && (
+                  {advancedOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                  {t('connections.advanced')}
+                </button>
+                {advancedOpen && (
+                  <div className="mt-3 grid grid-cols-2 gap-3 border-t border-border pt-3">
+                    <Field label={t('connections.timeout')}>
+                      <div className="flex items-center gap-2">
+                        <input
+                          className="rl-input"
+                          type="number"
+                          min={1}
+                          max={300}
+                          value={form.timeoutSec}
+                          onChange={(e) =>
+                            setForm({ ...form, timeoutSec: Number(e.target.value) || 1 })
+                          }
+                        />
+                        <span className="rl-muted shrink-0 text-[12px]">
+                          {t('connections.timeoutUnit')}
+                        </span>
+                      </div>
+                    </Field>
+                    <div className="col-span-2">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="min-w-0">
+                          <div className="text-[12.5px] font-medium">
+                            {t('connections.enableAcl')}
+                          </div>
+                          <div className="rl-muted mt-0.5 text-[11.5px]">
+                            {t('connections.enableAclHint')}
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={form.enableACL}
+                          onClick={() => setForm({ ...form, enableACL: !form.enableACL })}
+                          className={cn('rl-switch', form.enableACL && 'on')}
+                        />
+                      </div>
+                      {form.enableACL && (
+                        <div className="mt-3 grid grid-cols-2 gap-3">
+                          <Field label={t('connections.ak')}>
+                            <input
+                              className="rl-input font-mono-design"
+                              value={form.accessKey}
+                              onChange={(e) => setForm({ ...form, accessKey: e.target.value })}
+                            />
+                          </Field>
+                          <Field label={t('connections.sk')}>
+                            <input
+                              className="rl-input font-mono-design"
+                              type="password"
+                              value={form.secretKey}
+                              onChange={(e) => setForm({ ...form, secretKey: e.target.value })}
+                            />
+                          </Field>
+                        </div>
+                      )}
+                    </div>
+                    <div className="col-span-2">
+                      <Field label={t('connections.remark')}>
+                        <input
+                          className="rl-input"
+                          placeholder={t('connections.remarkPlaceholder')}
+                          value={form.remark}
+                          onChange={(e) => setForm({ ...form, remark: e.target.value })}
+                        />
+                      </Field>
+                    </div>
+                  </div>
+                )}
+
+                {/* Secondary actions */}
+                <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-border pt-3">
+                  <button
+                    type="button"
+                    className="rl-btn rl-btn-ghost rl-btn-sm text-muted-foreground"
+                    onClick={handleTest}
+                    disabled={anyBusy}
+                  >
+                    {busy === 'test' ? <Spinner size={12} /> : <Wifi size={12} />}
+                    {busy === 'test' ? t('connections.testing') : t('connections.test')}
+                  </button>
+                  {!isNew && selected && !selected.isDefault && (
                     <button
-                      className="rl-btn rl-btn-outline rl-btn-sm"
-                      onClick={handleTest}
-                      disabled={busy === 'test'}
+                      type="button"
+                      className="rl-btn rl-btn-ghost rl-btn-sm text-muted-foreground"
+                      onClick={handleSetDefault}
+                      disabled={anyBusy}
                     >
-                      {busy === 'test' ? <Spinner size={13} /> : <Wifi size={13} />}
-                      {busy === 'test' ? t('connections.testing') : t('connections.test')}
+                      <Star size={12} />
+                      {t('connections.setDefault')}
                     </button>
                   )}
                   {!isNew && selected && (
                     <button
-                      className="rl-btn rl-btn-ghost rl-btn-sm"
-                      style={{ color: 'hsl(var(--destructive))' }}
+                      type="button"
+                      className="rl-btn rl-btn-ghost rl-btn-sm text-destructive"
                       onClick={() => setConfirmDelete(selected)}
+                      disabled={anyBusy}
                     >
-                      <Trash2 size={13} />
-                      {t('connections.deleteBtn')}
+                      <Trash2 size={12} />
+                      {t('common.delete')}
                     </button>
                   )}
-                  <div style={{ marginLeft: 'auto' }} />
-                  <button
-                    className="rl-btn rl-btn-primary rl-btn-sm"
-                    onClick={handleSave}
-                    disabled={busy === 'save' || (!isNew && !dirty)}
-                  >
-                    {busy === 'save' ? <Spinner size={13} /> : <Check size={13} />}
-                    {isNew ? t('connections.create') : t('connections.save')}
-                  </button>
+                  <div className="ml-auto" />
+                  {/* Save only when dirty and not using connect as save path, or when online (edit without reconnect) */}
+                  {(dirty || isNew) && (
+                    <button
+                      type="button"
+                      className="rl-btn rl-btn-outline rl-btn-sm"
+                      onClick={handleSaveOnly}
+                      disabled={anyBusy || (!isNew && !dirty)}
+                    >
+                      {busy === 'save' ? <Spinner size={12} /> : <Check size={12} />}
+                      {isNew ? t('connections.saveOnly') : t('connections.save')}
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -634,6 +849,26 @@ export function ConnectionsScreen() {
         onConfirm={handleDelete}
         onCancel={() => setConfirmDelete(null)}
       />
+    </div>
+  )
+}
+
+function Field({
+  label,
+  required,
+  children,
+}: {
+  label: string
+  required?: boolean
+  children: React.ReactNode
+}) {
+  return (
+    <div>
+      <div className="rl-muted mb-1.5 text-[11.5px]">
+        {label}
+        {required && <span className="text-destructive"> *</span>}
+      </div>
+      {children}
     </div>
   )
 }

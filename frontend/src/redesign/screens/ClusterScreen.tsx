@@ -1,21 +1,14 @@
-import { useMemo, useState } from 'react'
-import {
-  RefreshCw,
-  CircleDot,
-  Activity,
-  HardDrive,
-  LayoutGrid,
-  AlertCircle,
-  Server,
-  PlugZap,
-} from 'lucide-react'
+import { useCallback, useMemo, useState } from 'react'
+import { CircleDot, Activity, HardDrive, LayoutGrid, Server } from 'lucide-react'
 import { Spinner } from '@/components/Spinner'
 import { useTranslation } from 'react-i18next'
-import { toast } from 'sonner'
 import type { BrokerNode } from '../../../bindings/rocket-leaf/internal/model/models.js'
 import { PageHeader } from '../shell'
 import { useCluster } from '@/hooks/useCluster'
-import { formatErrorMessage } from '@/lib/utils'
+import { RefreshButton, usePageRefresh } from '@/components/RefreshButton'
+import { SlidingTabs } from '@/components/SlidingTabs'
+import { OfflineEmpty } from '@/components/OfflineEmpty'
+import { ErrorBanner } from '@/components/ErrorBanner'
 
 const HISTORY_LEN = 60
 
@@ -47,7 +40,7 @@ function formatTps(n: number): string {
 
 export function ClusterScreen() {
   const { t } = useTranslation()
-  const { data, loading, refreshing, error, refresh, hasOnline } = useCluster()
+  const { data, loading, error, refresh, hasOnline } = useCluster()
   const [activeTab, setActiveTab] = useState<'overview' | 'broker' | 'nameserver'>('overview')
 
   const cluster = data.cluster
@@ -65,8 +58,8 @@ export function ClusterScreen() {
     onlineCount === 0
       ? 'hsl(var(--destructive))'
       : onlineCount === totalCount
-        ? 'hsl(142 60% 28%)'
-        : 'hsl(28 80% 35%)'
+        ? 'hsl(var(--success))'
+        : 'hsl(var(--warning))'
 
   const totalTpsIn = brokers.reduce((s, b) => s + (b.tpsIn ?? 0), 0)
   const totalTpsOut = brokers.reduce((s, b) => s + (b.tpsOut ?? 0), 0)
@@ -98,14 +91,8 @@ export function ClusterScreen() {
     [brokers],
   )
 
-  const handleRefresh = async () => {
-    try {
-      await refresh()
-      toast.success(t('common.refreshed'))
-    } catch (e) {
-      toast.error(formatErrorMessage(e))
-    }
-  }
+  const doRefresh = useCallback(() => refresh({ silent: true }), [refresh])
+  const { spinning: isRefreshing, refresh: handleRefresh } = usePageRefresh(doRefresh)
 
   const subtitle = !hasOnline
     ? t('cluster.subtitleNoConn')
@@ -117,57 +104,34 @@ export function ClusterScreen() {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <PageHeader
-        title={t('cluster.title')}
-        subtitle={subtitle}
-        tabs={[t('cluster.tabs.overview'), t('cluster.tabs.broker'), t('cluster.tabs.nameserver')]}
-        activeTab={
-          activeTab === 'overview'
-            ? t('cluster.tabs.overview')
-            : activeTab === 'broker'
-              ? t('cluster.tabs.broker')
-              : t('cluster.tabs.nameserver')
-        }
-        onTabChange={(label) => {
-          if (label === t('cluster.tabs.overview')) setActiveTab('overview')
-          else if (label === t('cluster.tabs.broker')) setActiveTab('broker')
-          else setActiveTab('nameserver')
-        }}
-      >
-        <button
-          className="rl-btn rl-btn-outline rl-btn-icon rl-btn-sm"
-          onClick={handleRefresh}
-          disabled={refreshing || !hasOnline}
-          title={t('common.refresh')}
-        >
-          {refreshing ? <Spinner size={14} /> : <RefreshCw size={14} />}
-        </button>
+      <PageHeader title={t('cluster.title')} subtitle={subtitle}>
+        <RefreshButton spinning={isRefreshing} disabled={!hasOnline} onClick={handleRefresh} />
       </PageHeader>
+
+      {hasOnline && (
+        <div className="flex items-center gap-1 border-b border-border px-4 py-2">
+          <SlidingTabs
+            value={activeTab}
+            onChange={setActiveTab}
+            items={[
+              { key: 'overview', label: t('cluster.tabs.overview') },
+              { key: 'broker', label: t('cluster.tabs.broker') },
+              { key: 'nameserver', label: t('cluster.tabs.nameserver') },
+            ]}
+          />
+        </div>
+      )}
 
       <div className="scroll-thin min-h-0 flex-1 overflow-auto p-5">
         {!hasOnline ? (
-          <div
-            className="rl-muted flex flex-col items-center justify-center text-center"
-            style={{ minHeight: 240 }}
-          >
-            <PlugZap size={32} className="mb-3 opacity-40" />
-            <div className="text-[13px]">{t('cluster.subtitleNoConn')}</div>
-          </div>
+          <OfflineEmpty message={t('cluster.subtitleNoConn')} />
         ) : (
           <>
             {error && (
-              <div
-                className="rl-card mb-4 flex items-center gap-2"
-                style={{
-                  padding: '10px 14px',
-                  background: 'hsl(0 84% 96%)',
-                  color: 'hsl(0 70% 35%)',
-                  borderColor: 'hsl(0 84% 80%)',
-                }}
-              >
-                <AlertCircle size={14} />
-                <span className="text-[12px]">{t('cluster.loadError', { message: error })}</span>
-              </div>
+              <ErrorBanner
+                className="mb-4 ml-0 mr-0 mt-0"
+                message={t('cluster.loadError', { message: error })}
+              />
             )}
 
             {loading && brokers.length === 0 ? (
@@ -248,7 +212,7 @@ export function ClusterScreen() {
                           width: 8,
                           height: 8,
                           borderRadius: 2,
-                          background: 'hsl(142 50% 38%)',
+                          background: 'hsl(var(--success))',
                         }}
                       />
                       <span className="text-[12px]">{t('overview.throughput.produce')}</span>
@@ -262,7 +226,7 @@ export function ClusterScreen() {
                           width: 8,
                           height: 8,
                           borderRadius: 2,
-                          background: 'hsl(217 80% 50%)',
+                          background: 'hsl(var(--info))',
                         }}
                       />
                       <span className="text-[12px]">{t('overview.throughput.consume')}</span>
@@ -292,7 +256,7 @@ export function ClusterScreen() {
                         <polyline
                           points={lineFor(tpsInSeries)}
                           fill="none"
-                          stroke="hsl(142 50% 38%)"
+                          stroke="hsl(var(--success))"
                           strokeWidth={1.5}
                         />
                       )}
@@ -300,7 +264,7 @@ export function ClusterScreen() {
                         <polyline
                           points={lineFor(tpsOutSeries)}
                           fill="none"
-                          stroke="hsl(217 80% 50%)"
+                          stroke="hsl(var(--info))"
                           strokeWidth={1.5}
                         />
                       )}

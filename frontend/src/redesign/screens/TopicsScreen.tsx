@@ -1,17 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import {
-  Search,
-  RefreshCw,
-  Plus,
-  Tag,
-  X,
-  Server,
-  Edit,
-  Trash2,
-  AlertCircle,
-  PlugZap,
-  Check,
-} from 'lucide-react'
+import { Search, Plus, Tag, X, Server, Edit, Trash2, Check, ChevronRight } from 'lucide-react'
 import { Spinner } from '@/components/Spinner'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -27,18 +15,56 @@ import { useCluster } from '@/hooks/useCluster'
 import { useDelayedUnmount } from '@/hooks/useDelayedUnmount'
 import * as topicApi from '@/api/topic'
 import { formatErrorMessage } from '@/lib/utils'
+import { RefreshButton, usePageRefresh } from '@/components/RefreshButton'
+import { SlidingTabs } from '@/components/SlidingTabs'
+import { OfflineEmpty } from '@/components/OfflineEmpty'
+import { ErrorBanner } from '@/components/ErrorBanner'
 
 type TypeFilter = 'all' | 'normal' | 'fifo' | 'delay' | 'retry' | 'dlq'
+type TopicKind = 'normal' | 'fifo' | 'delay' | 'retry' | 'dlq'
 
 const RETRY_PREFIX = '%RETRY%'
 const DLQ_PREFIX = '%DLQ%'
 
 interface DerivedTopic {
   raw: TopicItem
-  kind: 'normal' | 'fifo' | 'delay' | 'retry' | 'dlq'
+  kind: TopicKind
+  system: boolean
 }
 
-function classifyTopic(t: TopicItem): DerivedTopic['kind'] {
+/** Frontend safety net — backend also filters most system topics. */
+function isLikelySystemTopic(name: string): boolean {
+  const n = name.trim()
+  if (!n) return true
+  if (n.startsWith(RETRY_PREFIX) || n.startsWith(DLQ_PREFIX)) return false
+  if (n.startsWith('RETRY%') || n.startsWith('DLQ%')) return false
+  if (n.startsWith('%')) return true
+  const u = n.toUpperCase()
+  const l = n.toLowerCase()
+  return (
+    u.startsWith('RMQ_SYS_') ||
+    l.startsWith('rmq_sys_') ||
+    u.startsWith('SCHEDULE_TOPIC') ||
+    n.startsWith('DefaultHeartBeat') ||
+    u.includes('_REPLY_TOPIC') ||
+    u.endsWith('REPLY_TOPIC') ||
+    u.includes('WHEEL_TIMER') ||
+    u.includes('REVIVE_LOG') ||
+    u.includes('SYNC_BROKER_MEMBER') ||
+    u.includes('ROCKSDB') ||
+    u.includes('TRANS_HALF') ||
+    [
+      'TBW102',
+      'BenchmarkTest',
+      'DefaultCluster',
+      'OFFSET_MOVED_EVENT',
+      'SELF_TEST_TOPIC',
+      'DefaultHeartBeatSyncerTopic',
+    ].includes(n)
+  )
+}
+
+function classifyTopic(t: TopicItem): TopicKind {
   if (t.topic.startsWith(RETRY_PREFIX) || t.topic.startsWith('RETRY%')) return 'retry'
   if (t.topic.startsWith(DLQ_PREFIX) || t.topic.startsWith('DLQ%')) return 'dlq'
   if (t.messageType === TopicMessageType.MessageTypeFIFO) return 'fifo'
@@ -47,10 +73,18 @@ function classifyTopic(t: TopicItem): DerivedTopic['kind'] {
 }
 
 function formatTps(n: number): string {
-  if (!n || !Number.isFinite(n)) return '—'
+  if (!n || !Number.isFinite(n) || n < 0) return '—'
   if (n >= 10000) return `${(n / 1000).toFixed(1)}k/s`
   if (n >= 1000) return `${(n / 1000).toFixed(2)}k/s`
   return `${Math.round(n)}/s`
+}
+
+/** List API often returns -1 before detail/route load. */
+function formatQueues(read: number, write: number): string {
+  if (read < 0 && write < 0) return '—'
+  if (read < 0) return `— / ${write}`
+  if (write < 0) return `${read} / —`
+  return `${read} / ${write}`
 }
 
 function permLabel(p: TopicPerm, t: (k: string) => string): string {
@@ -64,28 +98,32 @@ function permLabel(p: TopicPerm, t: (k: string) => string): string {
     case TopicPerm.PermDeny:
       return t('topics.perm.deny')
     default:
-      return p || '—'
+      return p ? String(p) : '—'
   }
 }
 
-function typeBadgeClass(kind: DerivedTopic['kind']): string {
+function typeBadgeClass(kind: TopicKind): string {
   switch (kind) {
     case 'fifo':
-      return 'rl-badge rl-badge-warn'
+      return 'rl-badge rl-badge-topic-fifo'
     case 'delay':
-      return 'rl-badge rl-badge-info'
+      return 'rl-badge rl-badge-topic-delay'
     case 'retry':
-      return 'rl-badge rl-badge-outline'
+      return 'rl-badge rl-badge-topic-retry'
     case 'dlq':
-      return 'rl-badge rl-badge-danger'
+      return 'rl-badge rl-badge-topic-dlq'
     default:
-      return 'rl-badge'
+      return 'rl-badge rl-badge-topic-normal'
   }
+}
+
+function typeLabel(kind: TopicKind, t: (k: string) => string): string {
+  return t(`topics.type.${kind}`)
 }
 
 export function TopicsScreen() {
   const { t } = useTranslation()
-  const { topics, loading, refreshing, error, refresh, hasOnline } = useTopics()
+  const { topics, loading, error, refresh, hasOnline } = useTopics()
   const { data: clusterData } = useCluster()
 
   const [search, setSearch] = useState('')
@@ -100,23 +138,50 @@ export function TopicsScreen() {
   const [deleting, setDeleting] = useState(false)
 
   const derived = useMemo<DerivedTopic[]>(
-    () => topics.map((raw) => ({ raw, kind: classifyTopic(raw) })),
+    () =>
+      topics.map((raw) => ({
+        raw,
+        kind: classifyTopic(raw),
+        system: isLikelySystemTopic(raw.topic),
+      })),
     [topics],
   )
 
+  const counts = useMemo(() => {
+    const c = { all: 0, normal: 0, fifo: 0, delay: 0, retry: 0, dlq: 0 }
+    for (const d of derived) {
+      if (d.system) continue
+      c.all++
+      c[d.kind]++
+    }
+    return c
+  }, [derived])
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
-    return derived.filter((d) => {
-      if (typeFilter !== 'all' && d.kind !== typeFilter) return false
-      if (
-        q &&
-        !d.raw.topic.toLowerCase().includes(q) &&
-        !(d.raw.description || '').toLowerCase().includes(q)
-      ) {
-        return false
-      }
-      return true
-    })
+    return derived
+      .filter((d) => {
+        // Hide internal system topics unless looking at retry/dlq intentionally
+        if (d.system && d.kind !== 'retry' && d.kind !== 'dlq') return false
+        if (typeFilter !== 'all' && d.kind !== typeFilter) return false
+        if (
+          q &&
+          !d.raw.topic.toLowerCase().includes(q) &&
+          !(d.raw.description || '').toLowerCase().includes(q)
+        ) {
+          return false
+        }
+        return true
+      })
+      .sort((a, b) => {
+        // Business topics first, then retry/dlq; alpha within group
+        const rank = (k: TopicKind) =>
+          k === 'normal' || k === 'fifo' || k === 'delay' ? 0 : k === 'retry' ? 1 : 2
+        const ra = rank(a.kind)
+        const rb = rank(b.kind)
+        if (ra !== rb) return ra - rb
+        return a.raw.topic.localeCompare(b.raw.topic)
+      })
   }, [derived, search, typeFilter])
 
   const dismissPanel = useCallback(() => {
@@ -171,14 +236,8 @@ export function TopicsScreen() {
     }
   }, [selectedName, topics.length]) // re-run when list refreshes too
 
-  const handleRefresh = async () => {
-    try {
-      await refresh()
-      toast.success(t('common.refreshed'))
-    } catch (e) {
-      toast.error(formatErrorMessage(e))
-    }
-  }
+  const doRefresh = useCallback(() => refresh({ silent: true }), [refresh])
+  const { spinning: isRefreshing, refresh: handleRefresh } = usePageRefresh(doRefresh)
 
   const handleDelete = async () => {
     if (!confirmDelete) return
@@ -198,16 +257,25 @@ export function TopicsScreen() {
 
   const subtitle = !hasOnline
     ? t('topics.subtitleNoConn')
-    : filtered.length === topics.length
-      ? t('topics.subtitle', { count: topics.length })
-      : t('topics.subtitleFiltered', { count: filtered.length, total: topics.length })
+    : search.trim() || typeFilter !== 'all'
+      ? t('topics.subtitleFiltered', { count: filtered.length, total: counts.all })
+      : t('topics.subtitle', { count: filtered.length })
+
+  const filters: { key: TypeFilter; labelKey: string; count: number }[] = [
+    { key: 'all', labelKey: 'topics.filterAll', count: counts.all },
+    { key: 'normal', labelKey: 'topics.filterNormal', count: counts.normal },
+    { key: 'fifo', labelKey: 'topics.filterFifo', count: counts.fifo },
+    { key: 'delay', labelKey: 'topics.filterDelay', count: counts.delay },
+    { key: 'retry', labelKey: 'topics.filterRetry', count: counts.retry },
+    { key: 'dlq', labelKey: 'topics.filterDlq', count: counts.dlq },
+  ]
 
   return (
     <div className="flex h-full min-h-0 flex-col">
       <PageHeader title={t('topics.title')} subtitle={subtitle}>
-        <div className="rl-search-input" style={{ width: 240 }}>
+        <div className="rl-search-input" style={{ width: 220 }}>
           <span className="icon">
-            <Search size={14} />
+            <Search size={13} />
           </span>
           <input
             className="rl-input"
@@ -216,14 +284,7 @@ export function TopicsScreen() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <button
-          className="rl-btn rl-btn-outline rl-btn-icon rl-btn-sm"
-          onClick={handleRefresh}
-          disabled={refreshing || !hasOnline}
-          title={t('common.refresh')}
-        >
-          {refreshing ? <Spinner size={14} /> : <RefreshCw size={14} />}
-        </button>
+        <RefreshButton spinning={isRefreshing} disabled={!hasOnline} onClick={handleRefresh} />
         <button
           className="rl-btn rl-btn-primary rl-btn-sm"
           onClick={() => setEditorOpen({ mode: 'create' })}
@@ -234,38 +295,17 @@ export function TopicsScreen() {
         </button>
       </PageHeader>
 
-      {/* Type filter chips */}
       {hasOnline && (
-        <div
-          className="flex items-center gap-2"
-          style={{
-            padding: '8px 20px',
-            borderBottom: '1px solid hsl(var(--border))',
-            background: 'hsl(var(--background))',
-          }}
-        >
-          {(
-            [
-              ['all', 'topics.filterAll'],
-              ['normal', 'topics.filterNormal'],
-              ['fifo', 'topics.filterFifo'],
-              ['delay', 'topics.filterDelay'],
-              ['retry', 'topics.filterRetry'],
-              ['dlq', 'topics.filterDlq'],
-            ] as const
-          ).map(([k, key]) => (
-            <button
-              key={k}
-              type="button"
-              className={
-                'rl-btn rl-btn-sm ' + (typeFilter === k ? 'rl-btn-primary' : 'rl-btn-ghost')
-              }
-              style={{ height: 24 }}
-              onClick={() => setTypeFilter(k)}
-            >
-              {t(key)}
-            </button>
-          ))}
+        <div className="flex items-center gap-1 border-b border-border px-4 py-2">
+          <SlidingTabs
+            value={typeFilter}
+            onChange={setTypeFilter}
+            items={filters.map((f) => ({
+              key: f.key,
+              label: t(f.labelKey),
+              count: f.count,
+            }))}
+          />
         </div>
       )}
 
@@ -275,97 +315,90 @@ export function TopicsScreen() {
           onClick={handleListBackgroundClick}
         >
           {!hasOnline ? (
-            <div
-              className="rl-muted flex flex-col items-center justify-center text-center"
-              style={{ minHeight: 240, padding: 40 }}
-            >
-              <PlugZap size={32} className="mb-3 opacity-40" />
-              <div className="text-[13px]">{t('topics.subtitleNoConn')}</div>
-            </div>
+            <OfflineEmpty message={t('topics.subtitleNoConn')} />
           ) : loading && topics.length === 0 ? (
-            <div
-              className="rl-muted flex items-center justify-center"
-              style={{ padding: 60, gap: 8 }}
-            >
+            <div className="rl-muted flex items-center justify-center gap-2 p-16">
               <Spinner size={14} />
               <span className="text-[12px]">{t('common.loading')}</span>
             </div>
           ) : (
             <>
-              {error && (
-                <div
-                  className="flex items-center gap-2"
-                  style={{
-                    margin: 16,
-                    padding: '10px 14px',
-                    borderRadius: 8,
-                    background: 'hsl(0 84% 96%)',
-                    color: 'hsl(0 70% 35%)',
-                    border: '1px solid hsl(0 84% 80%)',
-                  }}
-                >
-                  <AlertCircle size={14} />
-                  <span className="text-[12px]">{t('topics.loadError', { message: error })}</span>
-                </div>
-              )}
+              {error && <ErrorBanner message={t('topics.loadError', { message: error })} />}
               {filtered.length === 0 ? (
-                <div className="rl-muted text-center" style={{ padding: 40, fontSize: 12 }}>
-                  {t('topics.empty')}
+                <div className="rl-muted flex min-h-[200px] flex-col items-center justify-center gap-2 p-10 text-center">
+                  <Tag size={22} className="opacity-35" />
+                  <div className="text-[13px]">{t('topics.empty')}</div>
+                  <div className="text-[11.5px]">{t('topics.emptyHint')}</div>
+                  {typeFilter === 'all' && !search.trim() && (
+                    <button
+                      className="rl-btn rl-btn-primary rl-btn-sm mt-2"
+                      onClick={() => setEditorOpen({ mode: 'create' })}
+                    >
+                      <Plus size={13} />
+                      {t('common.create')}
+                    </button>
+                  )}
                 </div>
               ) : (
-                <table className="rl-table">
+                <table className="rl-table rl-table-topics">
                   <thead>
                     <tr>
-                      <th style={{ width: 32 }} />
                       <th>{t('topics.table.name')}</th>
-                      <th style={{ width: 110 }}>{t('topics.table.type')}</th>
-                      <th style={{ width: 110 }} className="rl-tabular">
-                        {t('topics.table.queues')}
-                      </th>
-                      <th style={{ width: 90 }}>{t('topics.table.perm')}</th>
-                      <th style={{ width: 90 }} className="rl-tabular">
-                        {t('topics.table.groups')}
-                      </th>
-                      <th style={{ width: 110 }} className="rl-tabular">
-                        {t('topics.table.tpsIn')}
-                      </th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filtered.map(({ raw, kind }) => (
-                      <tr
-                        key={raw.topic}
-                        className={selectedName === raw.topic ? 'selected' : ''}
-                        onClick={() => setSelectedName(raw.topic)}
-                        style={{ cursor: 'pointer' }}
-                      >
-                        <td>
-                          <Tag size={14} className="rl-muted" />
-                        </td>
-                        <td>
-                          <div className="font-mono-design">{raw.topic}</div>
-                          {raw.description && (
-                            <div
-                              className="rl-muted mt-0.5 truncate text-[11px]"
-                              style={{ maxWidth: 320 }}
-                            >
-                              {raw.description}
+                    {filtered.map(({ raw, kind }) => {
+                      const selected = selectedName === raw.topic
+                      return (
+                        <tr
+                          key={raw.topic}
+                          className={selected ? 'selected' : ''}
+                          onClick={() => setSelectedName(raw.topic)}
+                        >
+                          <td>
+                            <div className="flex min-w-0 items-center gap-2.5">
+                              <span
+                                className={
+                                  'h-1.5 w-1.5 shrink-0 rounded-full ' +
+                                  (kind === 'dlq'
+                                    ? 'bg-[hsl(var(--destructive))]'
+                                    : kind === 'retry'
+                                      ? 'bg-[hsl(var(--warning))]'
+                                      : kind === 'fifo'
+                                        ? 'bg-[hsl(var(--warning))]'
+                                        : kind === 'delay'
+                                          ? 'bg-[hsl(var(--info))]'
+                                          : 'bg-[hsl(var(--muted-foreground)/0.35)]')
+                                }
+                              />
+                              <div className="min-w-0 flex-1">
+                                <div className="flex min-w-0 items-center gap-2">
+                                  <span className="font-mono-design truncate text-[12.5px] font-medium tracking-tight">
+                                    {raw.topic}
+                                  </span>
+                                  <span className={typeBadgeClass(kind) + ' shrink-0'}>
+                                    {typeLabel(kind, t)}
+                                  </span>
+                                </div>
+                                {raw.description && (
+                                  <div className="rl-muted mt-0.5 truncate text-[11px]">
+                                    {raw.description}
+                                  </div>
+                                )}
+                              </div>
+                              <ChevronRight
+                                size={14}
+                                className={
+                                  'rl-muted shrink-0 transition-opacity ' +
+                                  (selected ? 'opacity-70' : 'opacity-35')
+                                }
+                                aria-hidden
+                              />
                             </div>
-                          )}
-                        </td>
-                        <td>
-                          <span className={typeBadgeClass(kind)}>{t(`topics.type.${kind}`)}</span>
-                        </td>
-                        <td className="rl-tabular">
-                          {raw.readQueue} / {raw.writeQueue}
-                        </td>
-                        <td>
-                          <span className="rl-muted text-[12px]">{permLabel(raw.perm, t)}</span>
-                        </td>
-                        <td className="rl-tabular">{raw.consumerGroups || 0}</td>
-                        <td className="rl-tabular rl-muted">{formatTps(raw.tpsIn)}</td>
-                      </tr>
-                    ))}
+                          </td>
+                        </tr>
+                      )
+                    })}
                   </tbody>
                 </table>
               )}
@@ -458,29 +491,36 @@ function TopicDetailPanel({
   if (!topic) return null
 
   const kind = classifyTopic(topic)
-  const totalQueue = topic.readQueue + topic.writeQueue
+  const queueLabel = formatQueues(topic.readQueue, topic.writeQueue)
+  const totalQueue =
+    topic.readQueue >= 0 && topic.writeQueue >= 0 ? topic.readQueue + topic.writeQueue : null
 
   return (
     <aside
       className={asideClass}
       style={{
-        width: 380,
+        width: 360,
         borderLeft: '1px solid hsl(var(--border))',
         overflow: 'auto',
         background: 'hsl(var(--background))',
       }}
     >
-      <div style={{ padding: 20 }}>
-        <div className="flex items-center justify-between gap-2">
-          <div className="font-mono-design truncate font-semibold">{topic.topic}</div>
+      <div style={{ padding: 16 }}>
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <div className="font-mono-design truncate text-[14px] font-semibold tracking-tight">
+              {topic.topic}
+            </div>
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
+              <span className={typeBadgeClass(kind)}>{typeLabel(kind, t)}</span>
+              {topic.perm && (
+                <span className="rl-badge rl-badge-outline">{permLabel(topic.perm, t)}</span>
+              )}
+            </div>
+          </div>
           <button className="rl-btn rl-btn-ghost rl-btn-icon rl-btn-sm shrink-0" onClick={onClose}>
             <X size={14} />
           </button>
-        </div>
-        <div className="mt-2 flex flex-wrap gap-2">
-          <span className={typeBadgeClass(kind)}>{t(`topics.type.${kind}`)}</span>
-          <span className="rl-badge rl-badge-outline">{permLabel(topic.perm, t)}</span>
-          {topic.tpsIn > 0 && <span className="rl-badge rl-badge-success">活跃</span>}
         </div>
 
         <div
@@ -494,46 +534,42 @@ function TopicDetailPanel({
           }}
         >
           {(['info', 'routes', 'groups'] as const).map((k) => (
-            <div
+            <button
               key={k}
+              type="button"
+              role="tab"
+              aria-selected={tab === k}
               className={'utab ' + (tab === k ? 'active' : '')}
               onClick={() => setTab(k)}
             >
               {t(`topics.detail.tabs.${k}`)}
-            </div>
+            </button>
           ))}
         </div>
 
         {tab === 'info' && (
           <>
-            <div className="mt-4 grid gap-2" style={{ gridTemplateColumns: '1fr 1fr' }}>
-              <div className="rl-card" style={{ padding: 12 }}>
-                <div className="rl-muted text-[12px]">{t('topics.detail.stat.tpsIn')}</div>
-                <div className="rl-tabular mt-1 text-[16px] font-semibold">
-                  {formatTps(topic.tpsIn)}
-                </div>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <div className="rl-stat">
+                <div className="label">{t('topics.detail.stat.queues')}</div>
+                <div className="value text-[18px]">{totalQueue != null ? totalQueue : '—'}</div>
+                <div className="rl-muted mt-0.5 text-[11px]">{queueLabel}</div>
               </div>
-              <div className="rl-card" style={{ padding: 12 }}>
-                <div className="rl-muted text-[12px]">{t('topics.detail.stat.tpsOut')}</div>
-                <div className="rl-tabular mt-1 text-[16px] font-semibold">
-                  {formatTps(topic.tpsOut)}
-                </div>
+              <div className="rl-stat">
+                <div className="label">{t('topics.detail.stat.groups')}</div>
+                <div className="value text-[18px]">{topic.consumerGroups || 0}</div>
               </div>
-              <div className="rl-card" style={{ padding: 12 }}>
-                <div className="rl-muted text-[12px]">{t('topics.detail.stat.groups')}</div>
-                <div className="rl-tabular mt-1 text-[16px] font-semibold">
-                  {topic.consumerGroups}
-                </div>
+              <div className="rl-stat">
+                <div className="label">{t('topics.detail.stat.tpsIn')}</div>
+                <div className="value text-[16px]">{formatTps(topic.tpsIn)}</div>
               </div>
-              <div className="rl-card" style={{ padding: 12 }}>
-                <div className="rl-muted text-[12px]">{t('topics.detail.stat.queues')}</div>
-                <div className="rl-tabular mt-1 text-[16px] font-semibold">{totalQueue}</div>
+              <div className="rl-stat">
+                <div className="label">{t('topics.detail.stat.tpsOut')}</div>
+                <div className="value text-[16px]">{formatTps(topic.tpsOut)}</div>
               </div>
             </div>
 
-            <div className="rl-section-label" style={{ marginTop: 20 }}>
-              {t('topics.detail.info')}
-            </div>
+            <div className="rl-section-label mt-4">{t('topics.detail.info')}</div>
             <div>
               {topic.cluster && (
                 <div className="rl-detail-row">
@@ -543,7 +579,7 @@ function TopicDetailPanel({
               )}
               <div className="rl-detail-row">
                 <div className="k">{t('topics.detail.infoType')}</div>
-                <div className="v">{t(`topics.type.${kind}`)}</div>
+                <div className="v">{typeLabel(kind, t)}</div>
               </div>
               <div className="rl-detail-row">
                 <div className="k">{t('topics.detail.infoPerm')}</div>
@@ -551,13 +587,7 @@ function TopicDetailPanel({
               </div>
               <div className="rl-detail-row">
                 <div className="k">{t('topics.detail.infoQueues')}</div>
-                <div className="v rl-tabular">
-                  {topic.readQueue} / {topic.writeQueue}
-                </div>
-              </div>
-              <div className="rl-detail-row">
-                <div className="k">{t('topics.detail.infoGroups')}</div>
-                <div className="v rl-tabular">{topic.consumerGroups}</div>
+                <div className="v rl-tabular">{queueLabel}</div>
               </div>
               {topic.lastUpdated && (
                 <div className="rl-detail-row">

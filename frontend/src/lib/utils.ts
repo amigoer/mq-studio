@@ -55,6 +55,24 @@ function extractMessageString(value: unknown): string | null {
   return null
 }
 
+/**
+ * Ensure a promise takes at least `minMs` so loading UI does not flash off.
+ * Used for refresh buttons and other short async actions.
+ */
+export async function withMinDuration<T>(promise: Promise<T>, minMs = 600): Promise<T> {
+  const started = Date.now()
+  try {
+    return await promise
+  } finally {
+    const left = minMs - (Date.now() - started)
+    if (left > 0) {
+      await new Promise<void>((resolve) => {
+        window.setTimeout(resolve, left)
+      })
+    }
+  }
+}
+
 /** 将后端/运行时错误转为用户可读文案，避免直接展示 JSON */
 export function formatErrorMessage(e: unknown): string {
   const fromObj = extractMessageString(e)

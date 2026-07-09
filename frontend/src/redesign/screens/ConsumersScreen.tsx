@@ -1,17 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+
 import {
   Search,
-  RefreshCw,
   AlertCircle,
   Users,
   X,
   Tag,
   RotateCcw,
   Edit,
-  PlugZap,
   Plus,
   Check,
   Trash2,
+  ChevronRight,
 } from 'lucide-react'
 import { Spinner } from '@/components/Spinner'
 import { useTranslation } from 'react-i18next'
@@ -28,6 +28,10 @@ import { useCluster } from '@/hooks/useCluster'
 import { useDelayedUnmount } from '@/hooks/useDelayedUnmount'
 import * as consumerApi from '@/api/consumer'
 import { formatErrorMessage } from '@/lib/utils'
+import { RefreshButton, usePageRefresh } from '@/components/RefreshButton'
+import { SlidingTabs } from '@/components/SlidingTabs'
+import { OfflineEmpty } from '@/components/OfflineEmpty'
+import { ErrorBanner } from '@/components/ErrorBanner'
 
 type StatusFilter = 'all' | 'online' | 'warning' | 'offline'
 
@@ -53,7 +57,7 @@ function statusBadgeClass(status: string): string {
 
 export function ConsumersScreen() {
   const { t } = useTranslation()
-  const { groups, loading, refreshing, error, refresh, hasOnline } = useConsumers()
+  const { groups, loading, error, refresh, hasOnline } = useConsumers()
   const { data: clusterData } = useCluster()
 
   const [search, setSearch] = useState('')
@@ -65,6 +69,16 @@ export function ConsumersScreen() {
   const [resetTarget, setResetTarget] = useState<ConsumerGroupItem | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<ConsumerGroupItem | null>(null)
   const [deleting, setDeleting] = useState(false)
+
+  const counts = useMemo(() => {
+    const c = { all: groups.length, online: 0, warning: 0, offline: 0 }
+    for (const g of groups) {
+      if (g.status === 'online') c.online++
+      else if (g.status === 'warning') c.warning++
+      else if (g.status === 'offline') c.offline++
+    }
+    return c
+  }, [groups])
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -112,14 +126,8 @@ export function ConsumersScreen() {
   }, [selected])
   const renderedSelected = selected ?? pinnedSelected
 
-  const handleRefresh = async () => {
-    try {
-      await refresh()
-      toast.success(t('common.refreshed'))
-    } catch (e) {
-      toast.error(formatErrorMessage(e))
-    }
-  }
+  const doRefresh = useCallback(() => refresh({ silent: true }), [refresh])
+  const { spinning: isRefreshing, refresh: handleRefresh } = usePageRefresh(doRefresh)
 
   const handleDelete = async () => {
     if (!confirmDelete) return
@@ -165,14 +173,7 @@ export function ConsumersScreen() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <button
-          className="rl-btn rl-btn-outline rl-btn-icon rl-btn-sm"
-          onClick={handleRefresh}
-          disabled={refreshing || !hasOnline}
-          title={t('common.refresh')}
-        >
-          {refreshing ? <Spinner size={14} /> : <RefreshCw size={14} />}
-        </button>
+        <RefreshButton spinning={isRefreshing} disabled={!hasOnline} onClick={handleRefresh} />
         <button
           className="rl-btn rl-btn-primary rl-btn-sm"
           onClick={() => setEditorOpen({ mode: 'create' })}
@@ -184,34 +185,33 @@ export function ConsumersScreen() {
       </PageHeader>
 
       {hasOnline && (
-        <div
-          className="flex items-center gap-2"
-          style={{
-            padding: '8px 20px',
-            borderBottom: '1px solid hsl(var(--border))',
-            background: 'hsl(var(--background))',
-          }}
-        >
-          {(
-            [
-              ['all', 'consumers.filterAll'],
-              ['online', 'consumers.filterOnline'],
-              ['warning', 'consumers.filterWarning'],
-              ['offline', 'consumers.filterOffline'],
-            ] as const
-          ).map(([k, key]) => (
-            <button
-              key={k}
-              type="button"
-              className={
-                'rl-btn rl-btn-sm ' + (statusFilter === k ? 'rl-btn-primary' : 'rl-btn-ghost')
-              }
-              style={{ height: 24 }}
-              onClick={() => setStatusFilter(k)}
-            >
-              {t(key)}
-            </button>
-          ))}
+        <div className="flex items-center gap-1 border-b border-border px-4 py-2">
+          <SlidingTabs
+            value={statusFilter}
+            onChange={setStatusFilter}
+            items={[
+              {
+                key: 'all',
+                label: t('consumers.filterAll'),
+                count: counts.all,
+              },
+              {
+                key: 'online',
+                label: t('consumers.filterOnline'),
+                count: counts.online,
+              },
+              {
+                key: 'warning',
+                label: t('consumers.filterWarning'),
+                count: counts.warning,
+              },
+              {
+                key: 'offline',
+                label: t('consumers.filterOffline'),
+                count: counts.offline,
+              },
+            ]}
+          />
         </div>
       )}
 
@@ -221,13 +221,7 @@ export function ConsumersScreen() {
           onClick={handleListBackgroundClick}
         >
           {!hasOnline ? (
-            <div
-              className="rl-muted flex flex-col items-center justify-center text-center"
-              style={{ minHeight: 240, padding: 40 }}
-            >
-              <PlugZap size={32} className="mb-3 opacity-40" />
-              <div className="text-[13px]">{t('consumers.subtitleNoConn')}</div>
-            </div>
+            <OfflineEmpty message={t('consumers.subtitleNoConn')} />
           ) : loading && groups.length === 0 ? (
             <div
               className="rl-muted flex items-center justify-center"
@@ -238,40 +232,19 @@ export function ConsumersScreen() {
             </div>
           ) : (
             <>
-              {error && (
-                <div
-                  className="flex items-center gap-2"
-                  style={{
-                    margin: 16,
-                    padding: '10px 14px',
-                    borderRadius: 8,
-                    background: 'hsl(0 84% 96%)',
-                    color: 'hsl(0 70% 35%)',
-                    border: '1px solid hsl(0 84% 80%)',
-                  }}
-                >
-                  <AlertCircle size={14} />
-                  <span className="text-[12px]">
-                    {t('consumers.loadError', { message: error })}
-                  </span>
-                </div>
-              )}
+              {error && <ErrorBanner message={t('consumers.loadError', { message: error })} />}
               {filtered.length === 0 ? (
                 <div className="rl-muted text-center" style={{ padding: 40, fontSize: 12 }}>
                   {t('consumers.empty')}
                 </div>
               ) : (
-                <table className="rl-table">
+                <table className="rl-table rl-table-consumers">
                   <thead>
                     <tr>
                       <th>{t('consumers.table.name')}</th>
-                      <th>{t('consumers.table.topic')}</th>
-                      <th style={{ width: 130 }}>{t('consumers.table.model')}</th>
-                      <th style={{ width: 100 }}>{t('consumers.table.status')}</th>
-                      <th style={{ width: 90, textAlign: 'right' }}>
-                        {t('consumers.table.instances')}
-                      </th>
-                      <th style={{ width: 130, textAlign: 'right' }}>{t('consumers.table.lag')}</th>
+                      <th className="col-metric">{t('consumers.table.instances')}</th>
+                      <th className="col-metric">{t('consumers.table.lag')}</th>
+                      <th className="col-chevron" aria-hidden />
                     </tr>
                   </thead>
                   <tbody>
@@ -279,65 +252,74 @@ export function ConsumersScreen() {
                       const subTopic =
                         g.subscriptions[0]?.topic ||
                         (g.topicCount > 0 ? `${g.topicCount} topics` : '—')
+                      const selected = selectedName === g.group
+                      const statusText =
+                        g.status === 'online'
+                          ? t('common.online')
+                          : g.status === 'warning'
+                            ? t('consumers.filterWarning')
+                            : t('common.offline')
                       return (
                         <tr
                           key={g.group}
-                          className={selectedName === g.group ? 'selected' : ''}
+                          className={selected ? 'selected' : ''}
                           onClick={() => setSelectedName(g.group)}
-                          style={{ cursor: 'pointer' }}
                         >
                           <td>
-                            <div className="font-mono-design">{g.group}</div>
+                            <div className="flex min-w-0 items-start gap-2.5">
+                              <span
+                                className={
+                                  'mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ' +
+                                  (g.status === 'online'
+                                    ? 'bg-[hsl(var(--success))]'
+                                    : g.status === 'warning'
+                                      ? 'bg-[hsl(var(--warning))]'
+                                      : g.status === 'offline'
+                                        ? 'bg-[hsl(var(--destructive)/0.55)]'
+                                        : 'bg-[hsl(var(--muted-foreground)/0.35)]')
+                                }
+                              />
+                              <div className="min-w-0 flex-1">
+                                <div className="flex min-w-0 flex-wrap items-center gap-2">
+                                  <span className="font-mono-design truncate text-[12.5px] font-medium tracking-tight">
+                                    {g.group}
+                                  </span>
+                                  <span className={statusBadgeClass(g.status) + ' shrink-0'}>
+                                    {statusText}
+                                  </span>
+                                  {g.consumeMode && (
+                                    <span className="rl-badge rl-badge-outline shrink-0">
+                                      {g.consumeMode}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="font-mono-design rl-muted mt-0.5 truncate text-[11px]">
+                                  {subTopic}
+                                </div>
+                              </div>
+                            </div>
                           </td>
-                          <td>
-                            <span className="font-mono-design rl-muted text-[13px]">
-                              {subTopic}
-                            </span>
-                          </td>
-                          <td>
-                            <span className="rl-badge rl-badge-outline">
-                              {g.consumeMode || '—'}
-                            </span>
-                          </td>
-                          <td>
-                            <span className={statusBadgeClass(g.status)}>
-                              {g.status === 'online' ? (
-                                <>
-                                  <span
-                                    style={{
-                                      width: 5,
-                                      height: 5,
-                                      borderRadius: 999,
-                                      background: 'currentColor',
-                                    }}
-                                  />
-                                  {t('common.online')}
-                                </>
-                              ) : g.status === 'warning' ? (
-                                t('consumers.filterWarning')
-                              ) : (
-                                t('common.offline')
-                              )}
-                            </span>
-                          </td>
-                          <td className="rl-tabular" style={{ textAlign: 'right' }}>
-                            {g.onlineClients}
-                          </td>
+                          <td className="col-metric rl-tabular">{g.onlineClients}</td>
                           <td
-                            className={'rl-tabular ' + (g.lag > 1000 ? '' : 'rl-muted')}
-                            style={{ textAlign: 'right' }}
+                            className={
+                              'col-metric rl-tabular ' +
+                              (g.lag > 1000 ? 'text-destructive' : 'rl-muted')
+                            }
                           >
                             {g.lag > 1000 && (
-                              <AlertCircle
-                                size={11}
-                                style={{
-                                  display: 'inline',
-                                  marginRight: 3,
-                                  color: 'hsl(var(--destructive))',
-                                }}
-                              />
+                              <AlertCircle size={11} className="mr-1 inline-block align-[-1px]" />
                             )}
                             {g.lag.toLocaleString()}
+                          </td>
+                          <td className="col-chevron">
+                            <ChevronRight
+                              size={14}
+                              className={
+                                'rl-muted transition-opacity ' +
+                                (selected ? 'opacity-70' : 'opacity-35')
+                              }
+                              aria-hidden
+                            />
                           </td>
                         </tr>
                       )
@@ -473,14 +455,21 @@ function GroupDetailPanel({
         }}
       >
         {(['overview', 'subscriptions', 'instances', 'config'] as const).map((k) => (
-          <div key={k} className={'utab ' + (tab === k ? 'active' : '')} onClick={() => setTab(k)}>
+          <button
+            key={k}
+            type="button"
+            role="tab"
+            aria-selected={tab === k}
+            className={'utab ' + (tab === k ? 'active' : '')}
+            onClick={() => setTab(k)}
+          >
             {t(`consumers.tabs.${k === 'subscriptions' ? 'subscriptions' : k}`)}
             {k === 'instances' && (
               <span className="rl-muted" style={{ marginLeft: 4 }}>
                 {group.onlineClients}
               </span>
             )}
-          </div>
+          </button>
         ))}
       </div>
 
@@ -506,14 +495,14 @@ function GroupDetailPanel({
                 <div className="flex items-center gap-1">
                   <div className="rl-muted text-[12px]">{t('consumers.stat.lag')}</div>
                   {group.lag > 1000 && (
-                    <AlertCircle size={10} style={{ color: 'hsl(28 80% 45%)' }} />
+                    <AlertCircle size={10} style={{ color: 'hsl(var(--warning))' }} />
                   )}
                 </div>
                 <div
                   className="rl-tabular mt-1 font-semibold"
                   style={{
                     fontSize: 18,
-                    color: group.lag > 1000 ? 'hsl(28 80% 38%)' : undefined,
+                    color: group.lag > 1000 ? 'hsl(var(--warning))' : undefined,
                   }}
                 >
                   {group.lag.toLocaleString()}

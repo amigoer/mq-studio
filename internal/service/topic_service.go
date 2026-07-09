@@ -484,28 +484,60 @@ func (s *TopicService) GetTopicStats(topic string) (map[string]interface{}, erro
 	return result, nil
 }
 
-// 判断是否为系统 Topic
+// 判断是否为系统 Topic（列表默认隐藏）
+// 保留 %RETRY% / %DLQ%（运维常需查看），其余内部 Topic 过滤掉。
 func isSystemTopic(topic string) bool {
-	systemTopics := []string{
-		"SCHEDULE_TOPIC_XXXX",
-		"RMQ_SYS_TRANS_HALF_TOPIC",
-		"RMQ_SYS_TRACE_TOPIC",
-		"RMQ_SYS_TRANS_OP_HALF_TOPIC",
-		"TRANS_CHECK_MAX_TIME_TOPIC",
-		"SELF_TEST_TOPIC",
-		"TBW102",
-		"BenchmarkTest",
-		"DefaultCluster",
-		"OFFSET_MOVED_EVENT",
+	topic = strings.TrimSpace(topic)
+	if topic == "" {
+		return true
 	}
 
-	for _, st := range systemTopics {
-		if topic == st {
-			return true
-		}
+	// 重试 / 死信队列：业务相关，不过滤
+	if strings.HasPrefix(topic, "%RETRY%") ||
+		strings.HasPrefix(topic, "%DLQ%") ||
+		strings.HasPrefix(topic, "RETRY%") ||
+		strings.HasPrefix(topic, "DLQ%") {
+		return false
 	}
 
-	if len(topic) > 0 && topic[0] == '%' {
+	// 其它 % 前缀（内部命名）
+	if topic[0] == '%' {
+		return true
+	}
+
+	lower := strings.ToLower(topic)
+	upper := strings.ToUpper(topic)
+
+	switch {
+	case strings.HasPrefix(upper, "RMQ_SYS_"),
+		strings.HasPrefix(lower, "rmq_sys_"),
+		strings.HasPrefix(upper, "SCHEDULE_TOPIC"),
+		strings.HasPrefix(topic, "DefaultHeartBeat"),
+		strings.Contains(upper, "_REPLY_TOPIC"),
+		strings.HasSuffix(upper, "REPLY_TOPIC"),
+		strings.Contains(upper, "WHEEL_TIMER"),
+		strings.Contains(upper, "REVIVE_LOG"),
+		strings.Contains(upper, "SYNC_BROKER_MEMBER"),
+		strings.Contains(upper, "ROCKSDB"),
+		strings.Contains(upper, "TRANS_HALF"),
+		strings.Contains(upper, "TRANS_OP_HALF"):
+		return true
+	}
+
+	exact := map[string]struct{}{
+		"SCHEDULE_TOPIC_XXXX":         {},
+		"RMQ_SYS_TRANS_HALF_TOPIC":    {},
+		"RMQ_SYS_TRACE_TOPIC":         {},
+		"RMQ_SYS_TRANS_OP_HALF_TOPIC": {},
+		"TRANS_CHECK_MAX_TIME_TOPIC":  {},
+		"SELF_TEST_TOPIC":             {},
+		"TBW102":                      {},
+		"BenchmarkTest":               {},
+		"DefaultCluster":              {},
+		"OFFSET_MOVED_EVENT":          {},
+		"DefaultHeartBeatSyncerTopic": {},
+	}
+	if _, ok := exact[topic]; ok {
 		return true
 	}
 

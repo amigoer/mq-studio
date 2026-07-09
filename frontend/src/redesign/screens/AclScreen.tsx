@@ -1,16 +1,5 @@
-import { useEffect, useState } from 'react'
-import {
-  RefreshCw,
-  Key,
-  Plus,
-  X,
-  PlugZap,
-  Check,
-  Trash2,
-  AlertCircle,
-  ShieldCheck,
-  ShieldOff,
-} from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
+import { Key, Plus, X, Check, Trash2, AlertCircle, ShieldCheck, ShieldOff } from 'lucide-react'
 import { Spinner } from '@/components/Spinner'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -20,6 +9,8 @@ import { useConnections } from '@/hooks/useConnections'
 import * as aclApi from '@/api/acl'
 import type { AclVersionInfo } from '@/api/acl'
 import { formatErrorMessage } from '@/lib/utils'
+import { RefreshButton, usePageRefresh } from '@/components/RefreshButton'
+import { OfflineEmpty } from '@/components/OfflineEmpty'
 
 const PERMS = ['DENY', 'PUB', 'SUB', 'PUB|SUB'] as const
 
@@ -33,7 +24,10 @@ function parsePermLines(text: string): string[] {
 export function AclScreen() {
   const { t } = useTranslation()
   const { list: connections } = useConnections()
-  const hasOnline = connections.some((c) => c.status === 'online')
+  const activeConn = connections.find((c) => c.status === 'online') ?? null
+  const hasOnline = activeConn != null
+  // When the active cluster changes, status must be reloaded even if still "online"
+  const activeKey = activeConn ? `${activeConn.id}:${activeConn.nameServer}` : ''
 
   // Status
   const [enabled, setEnabled] = useState<boolean | null>(null)
@@ -68,32 +62,36 @@ export function AclScreen() {
   const [whiteSaving, setWhiteSaving] = useState(false)
   const [confirmReplaceWhite, setConfirmReplaceWhite] = useState(false)
 
-  const refreshStatus = async () => {
-    setStatusLoading(true)
+  const refreshStatus = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setStatusLoading(true)
     setStatusError(null)
     try {
-      const [enabled, ver] = await Promise.all([
+      const [en, ver] = await Promise.all([
         aclApi.getAclEnabled(),
         aclApi.getAclVersion().catch(() => null),
       ])
-      setEnabled(enabled)
+      setEnabled(en)
       setVersion(ver)
     } catch (e) {
       setStatusError(formatErrorMessage(e))
     } finally {
-      setStatusLoading(false)
+      if (!opts?.silent) setStatusLoading(false)
     }
-  }
+  }, [])
+
+  const doRefresh = useCallback(() => refreshStatus({ silent: true }), [refreshStatus])
+  const { spinning: isRefreshing, refresh: handleRefresh } = usePageRefresh(doRefresh)
 
   useEffect(() => {
     if (!hasOnline) {
       setEnabled(null)
       setVersion(null)
+      setStatusError(null)
       setStatusLoading(false)
       return
     }
     void refreshStatus()
-  }, [hasOnline])
+  }, [hasOnline, activeKey, refreshStatus])
 
   const handleSave = async () => {
     if (!ak.trim()) {
@@ -180,25 +178,16 @@ export function AclScreen() {
         title={t('acl.title')}
         subtitle={!hasOnline ? t('acl.subtitleNoConn') : t('acl.subtitle')}
       >
-        <button
-          className="rl-btn rl-btn-outline rl-btn-icon rl-btn-sm"
-          onClick={() => void refreshStatus()}
-          disabled={statusLoading || !hasOnline}
-          title={t('common.refresh')}
-        >
-          {statusLoading ? <Spinner size={14} /> : <RefreshCw size={14} />}
-        </button>
+        <RefreshButton
+          spinning={isRefreshing}
+          disabled={!hasOnline || statusLoading}
+          onClick={handleRefresh}
+        />
       </PageHeader>
 
       <div className="scroll-thin min-h-0 flex-1 overflow-auto p-5">
         {!hasOnline ? (
-          <div
-            className="rl-muted flex flex-col items-center justify-center text-center"
-            style={{ minHeight: 240 }}
-          >
-            <PlugZap size={32} className="mb-3 opacity-40" />
-            <div className="text-[13px]">{t('acl.subtitleNoConn')}</div>
-          </div>
+          <OfflineEmpty message={t('acl.subtitleNoConn')} />
         ) : (
           <div style={{ maxWidth: 1280 }}>
             {/* Status */}
@@ -206,7 +195,7 @@ export function AclScreen() {
               {statusLoading ? (
                 <Spinner size={18} className="rl-muted shrink-0" />
               ) : enabled ? (
-                <ShieldCheck size={20} style={{ color: 'hsl(142 60% 28%)', flexShrink: 0 }} />
+                <ShieldCheck size={20} style={{ color: 'hsl(var(--success))', flexShrink: 0 }} />
               ) : (
                 <ShieldOff size={20} className="rl-muted shrink-0" />
               )}
