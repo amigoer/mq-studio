@@ -1,4 +1,4 @@
-import { useCallback, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { useLayoutEffect, useMemo, useRef, type ReactNode } from 'react'
 import { cn } from '@/lib/utils'
 
 export interface SlidingTabItem<T extends string = string> {
@@ -9,6 +9,10 @@ export interface SlidingTabItem<T extends string = string> {
 
 /**
  * Segmented control with a sliding pill indicator.
+ *
+ * Animation only runs when the selected `value` changes. Open/mount and
+ * count-driven width changes snap instantly so the pill never "fills"
+ * from left to right on page entry.
  */
 export function SlidingTabs<T extends string>({
   items,
@@ -22,45 +26,89 @@ export function SlidingTabs<T extends string>({
   className?: string
 }) {
   const rootRef = useRef<HTMLDivElement>(null)
+  const pillRef = useRef<HTMLDivElement>(null)
   const btnRefs = useRef<Map<string, HTMLButtonElement>>(new Map())
-  const [indicator, setIndicator] = useState({ left: 0, width: 0, ready: false })
+  const prevValueRef = useRef(value)
+  const placedRef = useRef(false)
 
-  const measure = useCallback(() => {
-    const root = rootRef.current
-    const btn = btnRefs.current.get(value)
-    if (!root || !btn) return
-    const rootRect = root.getBoundingClientRect()
-    const btnRect = btn.getBoundingClientRect()
-    setIndicator({
-      left: btnRect.left - rootRect.left,
-      width: btnRect.width,
-      ready: true,
-    })
-  }, [value])
+  // Parent screens often rebuild `items` every render; key content so we only
+  // re-measure when labels/counts actually change.
+  const itemsKey = useMemo(
+    () =>
+      items
+        .map(
+          (item) =>
+            `${item.key}\0${item.count ?? ''}\0${typeof item.label === 'string' ? item.label : ''}`,
+        )
+        .join('\n'),
+    [items],
+  )
 
   useLayoutEffect(() => {
-    measure()
-  }, [measure, items])
+    const root = rootRef.current
+    const pill = pillRef.current
+    const btn = btnRefs.current.get(value)
+    if (!root || !pill || !btn) return
+
+    const rootRect = root.getBoundingClientRect()
+    const btnRect = btn.getBoundingClientRect()
+    const left = btnRect.left - rootRect.left
+    const width = btnRect.width
+
+    const valueChanged = prevValueRef.current !== value
+    prevValueRef.current = value
+    // Animate only for real tab switches after the pill has been placed once.
+    const animate = valueChanged && placedRef.current
+
+    if (!animate) {
+      // Snap: disable transitions for this layout write so width/left changes
+      // from mount or count updates never interpolate.
+      pill.style.transition = 'none'
+      pill.style.transform = `translateX(${left}px)`
+      pill.style.width = `${width}px`
+      pill.style.opacity = '1'
+      // Force the browser to commit the un-transitioned style before any later
+      // animated update (e.g. user clicks another tab in the same frame).
+      void pill.offsetWidth
+      pill.style.removeProperty('transition')
+      placedRef.current = true
+      return
+    }
+
+    pill.style.removeProperty('transition')
+    pill.style.transform = `translateX(${left}px)`
+    pill.style.width = `${width}px`
+    pill.style.opacity = '1'
+  }, [value, itemsKey])
 
   useLayoutEffect(() => {
     const root = rootRef.current
     if (!root || typeof ResizeObserver === 'undefined') return
-    const ro = new ResizeObserver(() => measure())
+
+    const snapToActive = () => {
+      const pill = pillRef.current
+      const btn = btnRefs.current.get(prevValueRef.current)
+      if (!root || !pill || !btn) return
+      const rootRect = root.getBoundingClientRect()
+      const btnRect = btn.getBoundingClientRect()
+      pill.style.transition = 'none'
+      pill.style.transform = `translateX(${btnRect.left - rootRect.left}px)`
+      pill.style.width = `${btnRect.width}px`
+      pill.style.opacity = '1'
+      void pill.offsetWidth
+      pill.style.removeProperty('transition')
+      placedRef.current = true
+    }
+
+    const ro = new ResizeObserver(() => snapToActive())
     ro.observe(root)
     for (const btn of btnRefs.current.values()) ro.observe(btn)
     return () => ro.disconnect()
-  }, [measure, items])
+  }, [itemsKey])
 
   return (
     <div ref={rootRef} className={cn('rl-tabs rl-tabs-sliding', className)} role="tablist">
-      <div
-        className={cn('rl-tabs-indicator', indicator.ready && 'ready')}
-        style={{
-          transform: `translateX(${indicator.left}px)`,
-          width: indicator.width,
-        }}
-        aria-hidden
-      />
+      <div ref={pillRef} className="rl-tabs-indicator" aria-hidden />
       {items.map((item) => {
         const active = item.key === value
         return (
