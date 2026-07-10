@@ -81,10 +81,10 @@ Download the package or executable for your platform from [Releases](https://git
 ## Quick Start
 
 1. Launch the app and open **Connections** (or add a connection from Overview).
-2. Enter cluster details: **NameServer** is required; fill AccessKey/SecretKey if ACL is enabled.
+2. Enter cluster details: **NameServer** is required (multiple addresses can be separated by `;`, `,`, or whitespace); fill AccessKey/SecretKey if ACL is enabled.
 3. Save and **Connect**. Use Topics, Consumers, Messages, Producer, Cluster, and ACL from the sidebar.
 
-Connection profiles and settings are stored locally.
+Connection profiles and settings are stored locally. Local credentials are encrypted at rest. A full configuration export contains plaintext credentials for cross-device migration, so treat the exported JSON as a sensitive file.
 
 <details>
 <summary>Local data locations</summary>

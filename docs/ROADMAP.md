@@ -43,8 +43,10 @@
 - [x] 列表：添加 / 编辑 / 删除 / 设为默认
 - [x] 测试连接、连接 / 断开、在线状态
 - [x] 默认连接与业务侧懒初始化
+- [x] 启动自动连接、多 NameServer（`;`、`,` 或空白分隔）与客户端原子替换
 - [x] 本地 `connections.json` 持久化
 - [x] AccessKey / SecretKey AES-256-GCM 加密
+- [x] 全量配置跨设备导出、原子导入回滚与运行时热加载
 
 **实现位置**：`internal/service/connection_service.go`、`internal/crypto`、`redesign/screens/ConnectionsScreen.tsx`
 
@@ -141,7 +143,7 @@
 
 ### 工程
 
-- [x] 后端关键单测起步（crypto 加解密、连接 ACL 凭证回退）
+- [x] 后端关键单测起步（crypto、连接 ACL/多 NameServer、配置导入、消息键与队列键解析）
 - [ ] 后端 service 更全面单测与 Admin mock
 - [ ] 前端关键路径测试（连接门禁、错误 toast 等）
 - [x] 清理 redesign 前历史 `*View` UI（已删除）
