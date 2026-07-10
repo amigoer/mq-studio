@@ -63,7 +63,7 @@ export function QueryRetryMessages(groupName: string, maxResults: number): $Canc
 }
 
 /**
- * ResendMessage 重投消息
+ * ResendMessage 将原消息内容作为新消息重新发布。
  */
 export function ResendMessage(consumerGroup: string, clientID: string, topic: string, msgID: string): $CancellablePromise<string> {
     return $Call.ByID(1358375348, consumerGroup, clientID, topic, msgID);

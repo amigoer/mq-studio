@@ -94,7 +94,7 @@ export async function queryRetryMessages(
 }
 
 /**
- * 重投消息到指定消费者组（直接投递）
+ * 将原消息内容重新发布到原 Topic。
  */
 export async function resendMessage(
   consumerGroup: string,
