@@ -39,17 +39,6 @@ Rocket-Leaf 是一个**本地桌面应用**，用来连接和管理 RocketMQ 集
 | **ACL**      | AccessConfig 与全局白名单（需 Broker 支持相关管理接口）                 |
 | **设置**     | 主题、语言（中/英）、超时、展示选项、配置导入导出                       |
 
-## 界面预览
-
-|                                                     |                                                  |
-| --------------------------------------------------- | ------------------------------------------------ |
-| ![连接管理](docs/images/screenshot-connections.png) | ![Topic](docs/images/screenshot-topics.png)      |
-| 连接管理                                            | Topic                                            |
-| ![消费者组](docs/images/screenshot-consumers.png)   | ![消息查询](docs/images/screenshot-messages.png) |
-| 消费者组                                            | 消息查询                                         |
-| ![集群](docs/images/screenshot-cluster.png)         | ![设置](docs/images/screenshot-settings.png)     |
-| 集群                                                | 设置                                             |
-
 ## 技术栈
 
 | 层级   | 技术                                                                   |

@@ -39,17 +39,6 @@ Rocket-Leaf is a **local desktop app** for connecting to and managing RocketMQ c
 | **ACL**                   | Access configs and global whitelist (when the broker supports ACL admin APIs)             |
 | **Settings**              | Theme, language (en/zh), timeouts, display options, import/export config                  |
 
-## Screenshots
-
-|                                                                  |                                                       |
-| ---------------------------------------------------------------- | ----------------------------------------------------- |
-| ![Connection Management](docs/images/screenshot-connections.png) | ![Topics](docs/images/screenshot-topics.png)          |
-| Connection Management                                            | Topics                                                |
-| ![Consumer Groups](docs/images/screenshot-consumers.png)         | ![Message Query](docs/images/screenshot-messages.png) |
-| Consumer Groups                                                  | Message Query                                         |
-| ![Cluster Monitoring](docs/images/screenshot-cluster.png)        | ![Settings](docs/images/screenshot-settings.png)      |
-| Cluster Monitoring                                               | Settings                                              |
-
 ## Stack
 
 | Layer         | Tech                                                                   |
