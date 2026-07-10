@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"strconv"
@@ -44,7 +45,7 @@ func NewClusterService(connService *ConnectionService, settingsService *Settings
 // recordBrokerTPS 把当前 TPS 追加到该 broker 的滚动历史并把历史回写到 broker
 // 对象，方便前端在没有专门的历史接口时也能直接画图。
 func (s *ClusterService) recordBrokerTPS(broker *model.BrokerNode) {
-	if broker == nil || broker.Address == "" {
+	if broker == nil || broker.Address == "" || broker.Status != model.NodeOnline || broker.TpsIn < 0 || broker.TpsOut < 0 {
 		return
 	}
 	s.historyMu.Lock()
@@ -147,7 +148,7 @@ func (s *ClusterService) GetClusterInfo() (*model.ClusterInfo, error) {
 					BrokerID:   brokerIDInt,
 					Role:       role,
 					Address:    addr,
-					Status:     model.NodeOnline,
+					Status:     model.NodeWarning,
 					Topics:     -1,
 					Groups:     -1,
 					TpsIn:      -1,
@@ -161,7 +162,6 @@ func (s *ClusterService) GetClusterInfo() (*model.ClusterInfo, error) {
 		}
 
 		tmpResult.TotalBrokers = len(tmpResult.Brokers)
-		tmpResult.OnlineBrokers = len(tmpResult.Brokers)
 
 		// 最佳努力：为每个 broker 补齐 runtime 字段（版本号、TPS、磁盘等），
 		// 让 Cluster 屏幕的 KPI 卡片和 broker 列表能显示真实数据。
@@ -169,19 +169,38 @@ func (s *ClusterService) GetClusterInfo() (*model.ClusterInfo, error) {
 		// 失败的单个 broker 仅丢失 runtime 字段，不影响整体返回。
 		diskSum := 0
 		diskCount := 0
+		onlineCount := 0
+		semaphore := make(chan struct{}, 6)
+		var runtimeWG sync.WaitGroup
 		for _, broker := range tmpResult.Brokers {
-			brokerCtx, brokerCancel := context.WithTimeout(
-				context.Background(),
-				s.settingsService.GetRequestTimeout(),
-			)
-			s.enrichBrokerRuntimeStats(brokerCtx, retryClient, broker)
-			brokerCancel()
+			if broker == nil {
+				continue
+			}
+			runtimeWG.Add(1)
+			go func(node *model.BrokerNode) {
+				defer runtimeWG.Done()
+				semaphore <- struct{}{}
+				defer func() { <-semaphore }()
+				brokerCtx, brokerCancel := context.WithTimeout(
+					context.Background(),
+					s.settingsService.GetRequestTimeout(),
+				)
+				defer brokerCancel()
+				s.enrichBrokerRuntimeStats(brokerCtx, retryClient, node)
+			}(broker)
+		}
+		runtimeWG.Wait()
+		for _, broker := range tmpResult.Brokers {
 			s.recordBrokerTPS(broker)
+			if broker.Status == model.NodeOnline {
+				onlineCount++
+			}
 			if broker.CommitLogDiskUsage > 0 {
 				diskSum += broker.CommitLogDiskUsage
 				diskCount++
 			}
 		}
+		tmpResult.OnlineBrokers = onlineCount
 		if diskCount > 0 {
 			tmpResult.AvgDiskUsage = diskSum / diskCount
 		}
@@ -189,7 +208,8 @@ func (s *ClusterService) GetClusterInfo() (*model.ClusterInfo, error) {
 		// 最佳努力：补齐 Topic 与 ConsumerGroup 总数，使 Overview / Cluster
 		// 屏幕的 KPI 卡片即便在不单独拉列表的页面也能显示真实数字。
 		// 这两个调用失败不影响 broker 信息返回。
-		if topicList, topicErr := retryClient.FetchAllTopicList(ctx); topicErr == nil && topicList != nil {
+		topicCtx, topicCancel := context.WithTimeout(context.Background(), s.settingsService.GetRequestTimeout())
+		if topicList, topicErr := retryClient.FetchAllTopicList(topicCtx); topicErr == nil && topicList != nil {
 			count := 0
 			for _, topic := range topicList.TopicList {
 				if !isSystemTopic(topic) {
@@ -198,6 +218,7 @@ func (s *ClusterService) GetClusterInfo() (*model.ClusterInfo, error) {
 			}
 			tmpResult.TotalTopics = count
 		}
+		topicCancel()
 
 		groupSet := make(map[string]struct{})
 		for _, brokerData := range clusterInfo.BrokerAddrTable {
@@ -208,7 +229,9 @@ func (s *ClusterService) GetClusterInfo() (*model.ClusterInfo, error) {
 			if !ok {
 				continue
 			}
-			subGroups, groupErr := retryClient.GetAllSubscriptionGroup(ctx, masterAddr)
+			groupCtx, groupCancel := context.WithTimeout(context.Background(), s.settingsService.GetRequestTimeout())
+			subGroups, groupErr := retryClient.GetAllSubscriptionGroup(groupCtx, masterAddr)
+			groupCancel()
 			if groupErr != nil || subGroups == nil {
 				continue
 			}
@@ -250,7 +273,7 @@ func (s *ClusterService) GetBrokerDetail(brokerAddr string) (*model.BrokerNode, 
 
 	broker := &model.BrokerNode{
 		Address:    brokerAddr,
-		Status:     model.NodeOnline,
+		Status:     model.NodeWarning,
 		Topics:     -1,
 		Groups:     -1,
 		TpsIn:      -1,
@@ -276,13 +299,11 @@ func (s *ClusterService) GetBrokerDetail(brokerAddr string) (*model.BrokerNode, 
 		}
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), s.settingsService.GetRequestTimeout())
-	defer cancel()
-
-	err = executeWithClientRetry(client, func(retryClient *admin.Client) error {
+	err = executeWithClientRetryTimeout(client, s.settingsService.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
 		if statsErr := s.applyBrokerRuntimeStats(ctx, retryClient, broker); statsErr != nil {
 			return statsErr
 		}
+		broker.Status = model.NodeOnline
 		return nil
 	})
 	if err != nil {
@@ -301,7 +322,14 @@ func (s *ClusterService) enrichBrokerRuntimeStats(ctx context.Context, client *a
 	}
 	if err := s.applyBrokerRuntimeStats(ctx, client, broker); err != nil {
 		log.Printf("enrichBrokerRuntimeStats(%s): %v", broker.Address, err)
+		if isRetryableNetworkError(err) {
+			broker.Status = model.NodeOffline
+		} else {
+			broker.Status = model.NodeWarning
+		}
+		return
 	}
+	broker.Status = model.NodeOnline
 }
 
 // applyBrokerRuntimeStats 拉取 broker runtime 统计并写入字段。
@@ -312,7 +340,7 @@ func (s *ClusterService) applyBrokerRuntimeStats(ctx context.Context, client *ad
 		return err
 	}
 	if stats == nil || stats.Table == nil {
-		return nil
+		return errors.New("Broker 返回空运行时统计")
 	}
 	if version, ok := stats.Table["brokerVersionDesc"]; ok {
 		broker.Version = version
@@ -372,12 +400,22 @@ func (s *ClusterService) GetClusterSummary() (*model.ClusterSummary, error) {
 	}
 
 	summary := &model.ClusterSummary{
-		TotalClusters:  1,
-		TotalBrokers:   clusterInfo.TotalBrokers,
-		OnlineBrokers:  clusterInfo.OnlineBrokers,
-		WarningBrokers: 0,
-		OfflineBrokers: 0,
-		AvgDiskUsage:   clusterInfo.AvgDiskUsage,
+		TotalClusters: 1,
+		TotalBrokers:  clusterInfo.TotalBrokers,
+		AvgDiskUsage:  clusterInfo.AvgDiskUsage,
+	}
+	for _, broker := range clusterInfo.Brokers {
+		if broker == nil {
+			continue
+		}
+		switch broker.Status {
+		case model.NodeOnline:
+			summary.OnlineBrokers++
+		case model.NodeWarning:
+			summary.WarningBrokers++
+		case model.NodeOffline:
+			summary.OfflineBrokers++
+		}
 	}
 
 	return summary, nil

@@ -46,10 +46,18 @@ func (s *AclService) getBrokerAddr() (string, *admin.Client, error) {
 		return "", nil, fmt.Errorf("未连接集群: %w", err)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), s.settingsService.GetRequestTimeout())
-	defer cancel()
-
-	clusterInfo, err := client.ExamineBrokerClusterInfo(ctx)
+	var (
+		clusterInfo  *admin.ClusterInfo
+		activeClient = client
+	)
+	err = executeWithClientRetryTimeout(client, s.settingsService.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
+		var callErr error
+		clusterInfo, callErr = retryClient.ExamineBrokerClusterInfo(ctx)
+		if callErr == nil {
+			activeClient = retryClient
+		}
+		return callErr
+	})
 	if err != nil {
 		return "", nil, fmt.Errorf("获取集群信息失败: %w", err)
 	}
@@ -59,7 +67,7 @@ func (s *AclService) getBrokerAddr() (string, *admin.Client, error) {
 			continue
 		}
 		if addr, ok := brokerData.BrokerAddrs["0"]; ok && addr != "" {
-			return addr, client, nil
+			return addr, activeClient, nil
 		}
 	}
 

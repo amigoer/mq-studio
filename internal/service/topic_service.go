@@ -2,10 +2,13 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sort"
 	"strings"
+	"sync"
 	"sync/atomic"
+	"time"
 
 	"rocket-leaf/internal/model"
 	"rocket-leaf/internal/rocketmq"
@@ -60,6 +63,7 @@ func (s *TopicService) GetTopics() ([]*model.TopicItem, error) {
 				Topic:       topic,
 				ReadQueue:   -1,
 				WriteQueue:  -1,
+				MessageType: model.MessageTypeNormal,
 				LastUpdated: formatNow(),
 			}
 
@@ -100,6 +104,7 @@ func (s *TopicService) GetAllTopics() ([]*model.TopicItem, error) {
 				Topic:       topic,
 				ReadQueue:   -1,
 				WriteQueue:  -1,
+				MessageType: model.MessageTypeNormal,
 				LastUpdated: formatNow(),
 			}
 			if isSystemTopic(topic) {
@@ -183,6 +188,7 @@ func (s *TopicService) GetTopicsByCluster(clusterName string) ([]*model.TopicIte
 				Cluster:     clusterName,
 				ReadQueue:   -1,
 				WriteQueue:  -1,
+				MessageType: model.MessageTypeNormal,
 				LastUpdated: formatNow(),
 			}
 
@@ -206,11 +212,8 @@ func (s *TopicService) GetTopicDetail(topicName string) (*model.TopicItem, error
 		return nil, fmt.Errorf("获取客户端失败: %w", err)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), s.settingsService.GetRequestTimeout())
-	defer cancel()
-
 	var item *model.TopicItem
-	err = executeWithClientRetry(client, func(retryClient *admin.Client) error {
+	err = executeWithClientRetryTimeout(client, s.settingsService.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
 		routeInfo, callErr := retryClient.ExamineTopicRouteInfo(ctx, topicName)
 		if callErr != nil {
 			return callErr
@@ -219,8 +222,12 @@ func (s *TopicService) GetTopicDetail(topicName string) (*model.TopicItem, error
 		tmpItem := &model.TopicItem{
 			ID:          s.getNextID(),
 			Topic:       topicName,
+			MessageType: model.MessageTypeNormal,
 			Routes:      make([]model.TopicRouteItem, 0),
 			LastUpdated: formatNow(),
+		}
+		if strings.TrimSpace(routeInfo.OrderTopicConf) != "" {
+			tmpItem.MessageType = model.MessageTypeFIFO
 		}
 
 		totalReadQueue := 0
@@ -298,9 +305,13 @@ func (s *TopicService) CreateTopic(topic string, brokerAddr string, readQueue in
 	if writeQueue <= 0 {
 		writeQueue = 4
 	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), s.settingsService.GetRequestTimeout())
-	defer cancel()
+	if readQueue > 1024 || writeQueue > 1024 {
+		return fmt.Errorf("创建 Topic 失败: 队列数不能超过 1024")
+	}
+	if perm != string(model.PermRW) && perm != string(model.PermR) &&
+		perm != string(model.PermW) && perm != string(model.PermDeny) {
+		return fmt.Errorf("创建 Topic 失败: 不支持的权限 %q", perm)
+	}
 
 	// 使用 CreateTopic 方法
 	config := admin.TopicConfig{
@@ -311,7 +322,7 @@ func (s *TopicService) CreateTopic(topic string, brokerAddr string, readQueue in
 		TopicFilterType: "SINGLE_TAG",
 	}
 
-	err = executeWithClientRetry(client, func(retryClient *admin.Client) error {
+	err = executeWithClientRetryTimeout(client, s.settingsService.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
 		return retryClient.CreateTopic(ctx, brokerAddr, config)
 	})
 	if err != nil {
@@ -424,37 +435,34 @@ func (s *TopicService) DeleteTopic(topic string, clusterName string) error {
 
 // GetTopicStats 获取 Topic 统计信息
 func (s *TopicService) GetTopicStats(topic string) (map[string]interface{}, error) {
+	topic = strings.TrimSpace(topic)
+	if topic == "" {
+		return nil, fmt.Errorf("获取 Topic 统计失败: Topic 名称不能为空")
+	}
 	client, err := rocketmq.GetClientManager().GetDefaultClient()
 	if err != nil {
 		return nil, fmt.Errorf("获取客户端失败: %w", err)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), s.settingsService.GetRequestTimeout())
-	defer cancel()
-
 	var result map[string]interface{}
-	err = executeWithClientRetry(client, func(retryClient *admin.Client) error {
-		stats, callErr := retryClient.ExamineTopicStats(ctx, topic)
+	err = executeWithClientRetryTimeout(client, s.settingsService.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
+		offsets, callErr := collectTopicQueueOffsets(ctx, retryClient, topic)
 		if callErr != nil {
 			return callErr
 		}
-
 		var totalMinOffset, totalMaxOffset int64
-		queueCount := len(stats.OffsetTable)
-
-		queues := make([]map[string]interface{}, 0, queueCount)
-		for mqKey, offset := range stats.OffsetTable {
+		queues := make([]map[string]interface{}, 0, len(offsets))
+		for _, offset := range offsets {
 			totalMinOffset += offset.MinOffset
 			totalMaxOffset += offset.MaxOffset
 
-			brokerName, queueId := parseMQKey(mqKey)
 			queues = append(queues, map[string]interface{}{
-				"brokerName": brokerName,
-				"queueId":    queueId,
+				"brokerName": offset.BrokerName,
+				"queueId":    offset.QueueID,
 				"minOffset":  offset.MinOffset,
 				"maxOffset":  offset.MaxOffset,
 				"messages":   offset.MaxOffset - offset.MinOffset,
-				"lastUpdate": offset.LastUpdateTimestamp,
+				"lastUpdate": int64(0),
 			})
 		}
 
@@ -469,7 +477,7 @@ func (s *TopicService) GetTopicStats(topic string) (map[string]interface{}, erro
 
 		result = map[string]interface{}{
 			"topic":          topic,
-			"queueCount":     queueCount,
+			"queueCount":     len(queues),
 			"totalMinOffset": totalMinOffset,
 			"totalMaxOffset": totalMaxOffset,
 			"totalMessages":  totalMaxOffset - totalMinOffset,
@@ -482,6 +490,127 @@ func (s *TopicService) GetTopicStats(topic string) (map[string]interface{}, erro
 	}
 
 	return result, nil
+}
+
+type topicQueueOffset struct {
+	BrokerName string
+	QueueID    int
+	MinOffset  int64
+	MaxOffset  int64
+}
+
+// collectTopicQueueOffsets 查询 Topic 路由中的所有读队列，而不是依赖只读取
+// 第一个 Broker 的 ExamineTopicStats。任一队列失败即返回错误，避免用部分数据
+// 冒充完整统计。
+func collectTopicQueueOffsets(ctx context.Context, client *admin.Client, topic string) ([]topicQueueOffset, error) {
+	route, err := client.ExamineTopicRouteInfo(ctx, topic)
+	if err != nil {
+		return nil, err
+	}
+	if route == nil {
+		return nil, fmt.Errorf("Topic 路由为空")
+	}
+
+	brokerAddrs := make(map[string]string, len(route.BrokerDatas))
+	for _, broker := range route.BrokerDatas {
+		if broker == nil {
+			continue
+		}
+		addr := broker.BrokerAddrs["0"]
+		if addr == "" {
+			for _, candidate := range broker.BrokerAddrs {
+				if candidate != "" {
+					addr = candidate
+					break
+				}
+			}
+		}
+		if addr != "" {
+			brokerAddrs[broker.BrokerName] = addr
+		}
+	}
+
+	type queueTarget struct {
+		brokerName string
+		brokerAddr string
+		queueID    int
+	}
+	targets := make([]queueTarget, 0)
+	for _, queueData := range route.QueueDatas {
+		if queueData == nil || queueData.ReadQueueNums <= 0 {
+			continue
+		}
+		addr := brokerAddrs[queueData.BrokerName]
+		if addr == "" {
+			return nil, fmt.Errorf("Broker %s 缺少可用地址", queueData.BrokerName)
+		}
+		for queueID := 0; queueID < queueData.ReadQueueNums; queueID++ {
+			targets = append(targets, queueTarget{
+				brokerName: queueData.BrokerName,
+				brokerAddr: addr,
+				queueID:    queueID,
+			})
+		}
+	}
+	if len(targets) == 0 {
+		return []topicQueueOffset{}, nil
+	}
+
+	type queueResult struct {
+		offset topicQueueOffset
+		err    error
+	}
+	results := make([]queueResult, len(targets))
+	semaphore := make(chan struct{}, 6)
+	var wg sync.WaitGroup
+	for index, target := range targets {
+		wg.Add(1)
+		go func(i int, current queueTarget) {
+			defer wg.Done()
+			select {
+			case semaphore <- struct{}{}:
+				defer func() { <-semaphore }()
+			case <-ctx.Done():
+				results[i].err = ctx.Err()
+				return
+			}
+			minOffset, minErr := client.SearchOffset(ctx, current.brokerAddr, topic, current.queueID, 0)
+			if minErr != nil {
+				results[i].err = minErr
+				return
+			}
+			maxOffset, maxErr := client.SearchOffset(
+				ctx,
+				current.brokerAddr,
+				topic,
+				current.queueID,
+				time.Now().Add(time.Minute).UnixMilli(),
+			)
+			if maxErr != nil {
+				results[i].err = maxErr
+				return
+			}
+			if maxOffset < minOffset {
+				maxOffset = minOffset
+			}
+			results[i].offset = topicQueueOffset{
+				BrokerName: current.brokerName,
+				QueueID:    current.queueID,
+				MinOffset:  minOffset,
+				MaxOffset:  maxOffset,
+			}
+		}(index, target)
+	}
+	wg.Wait()
+
+	offsets := make([]topicQueueOffset, 0, len(results))
+	for _, result := range results {
+		if result.err != nil {
+			return nil, result.err
+		}
+		offsets = append(offsets, result.offset)
+	}
+	return offsets, nil
 }
 
 // 判断是否为系统 Topic（列表默认隐藏）
@@ -547,6 +676,13 @@ func isSystemTopic(topic string) bool {
 // parseMQKey 从 MessageQueue 序列化字符串中解析 brokerName 和 queueId
 // 格式: "MessageQueue [topic=xxx, brokerName=broker-a, queueId=0]"
 func parseMQKey(key string) (string, int) {
+	var parsed struct {
+		BrokerName string `json:"brokerName"`
+		QueueID    int    `json:"queueId"`
+	}
+	if json.Unmarshal([]byte(key), &parsed) == nil && parsed.BrokerName != "" {
+		return parsed.BrokerName, parsed.QueueID
+	}
 	brokerName := ""
 	queueId := 0
 	if idx := strings.Index(key, "brokerName="); idx >= 0 {
@@ -559,6 +695,14 @@ func parseMQKey(key string) (string, int) {
 		s := key[idx+len("queueId="):]
 		if end := strings.IndexAny(s, ",]"); end >= 0 {
 			fmt.Sscanf(strings.TrimSpace(s[:end]), "%d", &queueId)
+		}
+	}
+	if brokerName == "" {
+		parts := strings.Split(key, "-")
+		if len(parts) >= 2 {
+			if _, err := fmt.Sscanf(parts[len(parts)-1], "%d", &queueId); err == nil {
+				brokerName = strings.Join(parts[:len(parts)-1], "-")
+			}
 		}
 	}
 	return brokerName, queueId
