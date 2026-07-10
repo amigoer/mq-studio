@@ -72,3 +72,22 @@ func TestDecryptPlaintextPassthrough(t *testing.T) {
 		t.Fatalf("got %q", got)
 	}
 }
+
+func TestCorruptedKeyIsNotOverwritten(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, keyFileName)
+	original := []byte("not-a-valid-key")
+	if err := os.WriteFile(path, original, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := getOrCreateKey(dir); err == nil {
+		t.Fatal("损坏的密钥必须返回错误")
+	}
+	after, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(after) != string(original) {
+		t.Fatalf("损坏密钥不应被覆盖: got %q", after)
+	}
+}

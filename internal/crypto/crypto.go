@@ -37,9 +37,13 @@ func getOrCreateKey(configDir string) ([]byte, error) {
 	data, err := os.ReadFile(keyPath)
 	if err == nil {
 		decoded, decErr := base64.StdEncoding.DecodeString(strings.TrimSpace(string(data)))
-		if decErr == nil && len(decoded) == 32 {
-			return decoded, nil
+		if decErr != nil || len(decoded) != 32 {
+			return nil, fmt.Errorf("密钥文件损坏，请从备份恢复或重新配置凭据: %s", keyPath)
 		}
+		return decoded, nil
+	}
+	if !errors.Is(err, os.ErrNotExist) {
+		return nil, fmt.Errorf("读取密钥失败: %w", err)
 	}
 
 	// 生成新密钥
@@ -53,7 +57,17 @@ func getOrCreateKey(configDir string) ([]byte, error) {
 	}
 
 	encoded := base64.StdEncoding.EncodeToString(key)
-	if err := os.WriteFile(keyPath, []byte(encoded), 0o600); err != nil {
+	file, err := os.OpenFile(keyPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+	if err != nil {
+		return nil, fmt.Errorf("保存密钥失败: %w", err)
+	}
+	if _, err := file.WriteString(encoded); err != nil {
+		_ = file.Close()
+		_ = os.Remove(keyPath)
+		return nil, fmt.Errorf("保存密钥失败: %w", err)
+	}
+	if err := file.Close(); err != nil {
+		_ = os.Remove(keyPath)
 		return nil, fmt.Errorf("保存密钥失败: %w", err)
 	}
 
