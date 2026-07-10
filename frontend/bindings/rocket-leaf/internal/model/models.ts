@@ -129,6 +129,16 @@ export class AppSettings {
     "lagAlertThreshold": number;
 
     /**
+     * CommitLog 磁盘告警阈值百分比(0=关闭)
+     */
+    "diskAlertThreshold": number;
+
+    /**
+     * 新告警时系统通知
+     */
+    "desktopNotifications": boolean;
+
+    /**
      * 消息与显示
      * 时区: "local" | "utc"
      */
@@ -203,6 +213,12 @@ export class AppSettings {
         }
         if (!("lagAlertThreshold" in $$source)) {
             this["lagAlertThreshold"] = 0;
+        }
+        if (!("diskAlertThreshold" in $$source)) {
+            this["diskAlertThreshold"] = 0;
+        }
+        if (!("desktopNotifications" in $$source)) {
+            this["desktopNotifications"] = false;
         }
         if (!("timezone" in $$source)) {
             this["timezone"] = "";

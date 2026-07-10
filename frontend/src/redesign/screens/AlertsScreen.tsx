@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AlertCircle, AlertTriangle, Info, Settings } from 'lucide-react'
 import { Spinner } from '@/components/Spinner'
 import { useTranslation } from 'react-i18next'
@@ -31,16 +31,16 @@ interface AlertsScreenProps {
   onNavigate?: (id: NavId) => void
 }
 
-const DISK_THRESHOLD = 75
-
 export function AlertsScreen({ onNavigate }: AlertsScreenProps) {
   const { t } = useTranslation()
   const { data, refresh, loading } = useOverview()
   const { settings } = useSettings()
   const lagThreshold = settings.lagAlertThreshold ?? 10000
+  const diskThreshold = settings.diskAlertThreshold ?? 75
 
   const [tab, setTab] = useState<'active' | 'rules'>('active')
   const [rules, setRules] = useState<AlertRulePrefs>(() => loadAlertRules())
+  const knownAlertKeysRef = useRef<Set<string> | null>(null)
   const doRefresh = useCallback(() => refresh({ silent: true }), [refresh])
   const { spinning: isRefreshing, refresh: handleRefresh } = usePageRefresh(doRefresh)
 
@@ -111,23 +111,48 @@ export function AlertsScreen({ onNavigate }: AlertsScreenProps) {
       }
     }
     // Disk usage warnings
-    if (rules.diskUsage) {
+    if (rules.diskUsage && diskThreshold > 0) {
       for (const b of data.brokers) {
         const usage = Number(b.commitLogDiskUsage ?? 0)
-        if (usage >= DISK_THRESHOLD) {
+        if (usage >= diskThreshold) {
           out.push({
             key: `disk-${b.brokerName}-${b.brokerId}`,
-            severity: usage >= 90 ? 'crit' : 'warn',
+            severity: usage >= Math.min(100, diskThreshold + 15) ? 'crit' : 'warn',
             ruleKey: 'diskUsage',
             title: t('alerts.rule.diskUsage'),
-            desc: `${b.brokerName}${b.brokerId !== 0 ? `-${b.brokerId}` : ''} · ${Math.round(usage)}%`,
+            desc: `${b.brokerName}${b.brokerId !== 0 ? `-${b.brokerId}` : ''} · ${Math.round(usage)}% ≥ ${diskThreshold}%`,
             since: b.lastUpdate || undefined,
           })
         }
       }
     }
     return out.sort((a, b) => severityWeight(b.severity) - severityWeight(a.severity))
-  }, [hasOnline, data, lagThreshold, t, rules])
+  }, [hasOnline, data, lagThreshold, diskThreshold, t, rules])
+
+  // Desktop notification when new alerts appear (not on first baseline snapshot).
+  useEffect(() => {
+    if (!settings.desktopNotifications) return
+    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return
+    const keys = new Set(alerts.map((a) => a.key))
+    const prev = knownAlertKeysRef.current
+    if (prev == null) {
+      knownAlertKeysRef.current = keys
+      return
+    }
+    const fresh = alerts.filter((a) => !prev.has(a.key))
+    knownAlertKeysRef.current = keys
+    const head = fresh[0]
+    if (!head) return
+    const extra = fresh.length > 1 ? ` (+${fresh.length - 1})` : ''
+    try {
+      new Notification(`${head.title}${extra}`, {
+        body: head.desc,
+        tag: 'rocket-leaf-alerts',
+      })
+    } catch {
+      // WebView may reject Notification construction.
+    }
+  }, [alerts, settings.desktopNotifications])
 
   const subtitle = !hasOnline
     ? t('alerts.subtitleNoConn')
@@ -163,6 +188,7 @@ export function AlertsScreen({ onNavigate }: AlertsScreenProps) {
         ) : (
           <RulesPanel
             lagThreshold={lagThreshold}
+            diskThreshold={diskThreshold}
             rules={rules}
             onToggle={toggleRule}
             onOpenSettings={() => onNavigate?.('settings')}
@@ -237,11 +263,13 @@ function ActiveAlerts({ alerts, loading }: { alerts: AlertEntry[]; loading: bool
 
 function RulesPanel({
   lagThreshold,
+  diskThreshold,
   rules,
   onToggle,
   onOpenSettings,
 }: {
   lagThreshold: number
+  diskThreshold: number
   rules: AlertRulePrefs
   onToggle: (key: AlertRuleKey) => void
   onOpenSettings: () => void
@@ -267,7 +295,9 @@ function RulesPanel({
         >
           <div className="rl-muted text-[12px]">{t('alerts.rules.lagThreshold')}</div>
           <div className="rl-tabular mt-1 text-[18px] font-semibold">
-            {t('alerts.rules.lagThresholdValue', { n: lagThreshold.toLocaleString() })}
+            {lagThreshold <= 0
+              ? t('alerts.rules.thresholdOff')
+              : t('alerts.rules.lagThresholdValue', { n: lagThreshold.toLocaleString() })}
           </div>
         </div>
         <div
@@ -279,7 +309,9 @@ function RulesPanel({
         >
           <div className="rl-muted text-[12px]">{t('alerts.rules.diskThreshold')}</div>
           <div className="rl-tabular mt-1 text-[18px] font-semibold">
-            {t('alerts.rules.diskThresholdValue', { n: DISK_THRESHOLD })}
+            {diskThreshold <= 0
+              ? t('alerts.rules.thresholdOff')
+              : t('alerts.rules.diskThresholdValue', { n: diskThreshold })}
           </div>
         </div>
       </div>

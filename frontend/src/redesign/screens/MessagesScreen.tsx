@@ -14,7 +14,13 @@ import { useSettings } from '@/hooks/useSettings'
 import { useDelayedUnmount } from '@/hooks/useDelayedUnmount'
 import * as messageApi from '@/api/message'
 import { formatErrorMessage } from '@/lib/utils'
-import { formatMessageTime, truncatePayload } from '@/lib/time'
+import {
+  detectBodyKind,
+  formatMessageTime,
+  toHexDump,
+  truncatePayload,
+  type BodyPreviewKind,
+} from '@/lib/time'
 import { SlidingTabs } from '@/components/SlidingTabs'
 import { OfflineEmpty } from '@/components/OfflineEmpty'
 import { ErrorBanner } from '@/components/ErrorBanner'
@@ -455,6 +461,7 @@ function MessageDetailPanel({
   const { t } = useTranslation()
   const { settings } = useSettings()
   const [tab, setTab] = useState<'body' | 'properties' | 'track'>('body')
+  const [bodyMode, setBodyMode] = useState<'auto' | 'raw' | 'hex'>('auto')
   const [track, setTrack] = useState<MessageTrackItem[] | null>(null)
   const [trackLoading, setTrackLoading] = useState(false)
   const [trackError, setTrackError] = useState<string | null>(null)
@@ -462,6 +469,7 @@ function MessageDetailPanel({
   // Reset to body tab when message changes
   useEffect(() => {
     setTab('body')
+    setBodyMode('auto')
     setTrack(null)
     setTrackError(null)
   }, [msg.messageId])
@@ -489,8 +497,19 @@ function MessageDetailPanel({
   }, [tab, track, msg.messageId, msg.topic])
 
   const payload = truncatePayload(msg.body || '', settings.maxPayloadRenderBytes || 512 * 1024)
-  const formattedBody =
-    settings.autoFormatJson !== false ? tryFormatJSON(payload.text) : payload.text
+  const detectedKind: BodyPreviewKind = detectBodyKind(payload.text)
+  const displayBody = (() => {
+    if (bodyMode === 'hex' || (bodyMode === 'auto' && detectedKind === 'binary')) {
+      return toHexDump(payload.text)
+    }
+    if (bodyMode === 'auto' && detectedKind === 'json' && settings.autoFormatJson !== false) {
+      return tryFormatJSON(payload.text)
+    }
+    if (bodyMode === 'auto' && settings.autoFormatJson !== false) {
+      return tryFormatJSON(payload.text)
+    }
+    return payload.text
+  })()
   const displayStoreTime = formatMessageTime(
     msg.storeTimestamp || msg.storeTime,
     settings.timezone,
@@ -616,14 +635,37 @@ function MessageDetailPanel({
 
         {tab === 'body' && (
           <>
-            <div className="mb-2 mt-5 flex items-center justify-between" style={{ marginTop: 20 }}>
-              <div className="rl-section-label" style={{ marginBottom: 0 }}>
-                {t('messages.detail.bodyTitle')}
+            <div
+              className="mb-2 mt-5 flex items-center justify-between gap-2"
+              style={{ marginTop: 20 }}
+            >
+              <div className="flex min-w-0 items-center gap-2">
+                <div className="rl-section-label" style={{ marginBottom: 0 }}>
+                  {t('messages.detail.bodyTitle')}
+                </div>
+                <span className="rl-badge rl-badge-outline text-[10px]">
+                  {t(`messages.detail.bodyKind.${detectedKind}`)}
+                </span>
               </div>
-              <button className="rl-btn rl-btn-ghost rl-btn-sm" onClick={() => onCopy(msg.body)}>
-                <Copy size={12} />
-                {t('messages.detail.actions.copyBody')}
-              </button>
+              <div className="flex shrink-0 items-center gap-1">
+                {(['auto', 'raw', 'hex'] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    className={
+                      'rl-btn rl-btn-ghost rl-btn-sm h-6 px-1.5 text-[11px] ' +
+                      (bodyMode === mode ? 'text-foreground' : 'text-muted-foreground')
+                    }
+                    onClick={() => setBodyMode(mode)}
+                  >
+                    {t(`messages.detail.bodyMode.${mode}`)}
+                  </button>
+                ))}
+                <button className="rl-btn rl-btn-ghost rl-btn-sm" onClick={() => onCopy(msg.body)}>
+                  <Copy size={12} />
+                  {t('messages.detail.actions.copyBody')}
+                </button>
+              </div>
             </div>
             {payload.truncated && (
               <div className="rl-muted mb-2 text-[11px]" style={{ lineHeight: 1.5 }}>
@@ -633,7 +675,7 @@ function MessageDetailPanel({
                 })}
               </div>
             )}
-            <JSONView src={formattedBody} maxHeight={300} />
+            <JSONView src={displayBody} maxHeight={300} />
           </>
         )}
 

@@ -23,7 +23,9 @@ type AppSettings struct {
 	ProxyPort        string `json:"proxyPort"`        // 代理端口
 
 	// 监控与告警
-	LagAlertThreshold int `json:"lagAlertThreshold"` // 消费积压告警阈值(0=关闭)
+	LagAlertThreshold    int  `json:"lagAlertThreshold"`    // 消费积压告警阈值(0=关闭)
+	DiskAlertThreshold   int  `json:"diskAlertThreshold"`   // CommitLog 磁盘告警阈值百分比(0=关闭)
+	DesktopNotifications bool `json:"desktopNotifications"` // 新告警时系统通知
 
 	// 消息与显示
 	Timezone              string `json:"timezone"`              // 时区: "local" | "utc"
@@ -52,6 +54,8 @@ func DefaultSettings() *AppSettings {
 		ProxyHost:             "",
 		ProxyPort:             "",
 		LagAlertThreshold:     10000,
+		DiskAlertThreshold:    75,
+		DesktopNotifications:  false,
 		Timezone:              "local",
 		TimestampFormat:       "datetime",
 		AutoFormatJson:        true,

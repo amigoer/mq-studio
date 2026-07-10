@@ -57,6 +57,53 @@ export function formatMessageTime(
   }
 }
 
+/** Detect a reasonable body preview mode for the message detail panel. */
+export type BodyPreviewKind = 'json' | 'text' | 'binary'
+
+export function detectBodyKind(body: string): BodyPreviewKind {
+  const s = body.trim()
+  if (!s) return 'text'
+  if ((s.startsWith('{') && s.endsWith('}')) || (s.startsWith('[') && s.endsWith(']'))) {
+    try {
+      JSON.parse(s)
+      return 'json'
+    } catch {
+      // fall through
+    }
+  }
+  // High ratio of non-printable bytes → treat as binary-ish for hex dump.
+  let nonPrintable = 0
+  const sample = s.slice(0, Math.min(s.length, 512))
+  for (let i = 0; i < sample.length; i++) {
+    const c = sample.charCodeAt(i)
+    if (c < 9 || (c > 13 && c < 32) || c === 0xfffd) nonPrintable++
+  }
+  if (sample.length > 0 && nonPrintable / sample.length > 0.15) return 'binary'
+  return 'text'
+}
+
+/** Classic hex dump (16 bytes/line) for binary-ish payloads. */
+export function toHexDump(body: string, maxBytes = 4096): string {
+  const bytes = new TextEncoder().encode(body)
+  const limit = Math.min(bytes.length, maxBytes)
+  const lines: string[] = []
+  for (let i = 0; i < limit; i += 16) {
+    const slice = bytes.subarray(i, Math.min(i + 16, limit))
+    const hex = Array.from(slice)
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join(' ')
+      .padEnd(16 * 3 - 1, ' ')
+    const ascii = Array.from(slice)
+      .map((b) => (b >= 32 && b < 127 ? String.fromCharCode(b) : '.'))
+      .join('')
+    lines.push(`${i.toString(16).padStart(8, '0')}  ${hex}  |${ascii}|`)
+  }
+  if (bytes.length > limit) {
+    lines.push(`… (${bytes.length - limit} more bytes)`)
+  }
+  return lines.join('\n')
+}
+
 /** Truncate large message bodies for safe rendering. */
 export function truncatePayload(
   body: string,

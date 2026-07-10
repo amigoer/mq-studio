@@ -71,10 +71,12 @@ interface Issue {
 function buildIssues(
   data: OverviewSnapshot,
   lagThreshold: number,
+  diskThreshold: number,
   t: (key: string, opts?: Record<string, unknown>) => string,
 ): Issue[] {
   const issues: Issue[] = []
   const effectiveThreshold = Math.max(0, lagThreshold)
+  const effectiveDisk = Math.max(0, diskThreshold)
 
   for (const b of data.brokers.filter((x) => x.status === 'offline').slice(0, 2)) {
     issues.push({
@@ -131,17 +133,19 @@ function buildIssues(
     })
   }
 
-  const heavyDisk = [...data.brokers]
-    .filter((b) => Number(b.commitLogDiskUsage ?? 0) >= 75)
-    .sort((a, b) => Number(b.commitLogDiskUsage ?? 0) - Number(a.commitLogDiskUsage ?? 0))[0]
-  if (heavyDisk) {
-    const usage = Math.round(Number(heavyDisk.commitLogDiskUsage ?? 0))
-    issues.push({
-      key: `disk-${heavyDisk.brokerName}`,
-      severity: 'med',
-      title: t('overview.ai.findings.diskTitle', { broker: heavyDisk.brokerName, usage }),
-      desc: t('overview.ai.findings.diskDesc'),
-    })
+  if (effectiveDisk > 0) {
+    const heavyDisk = [...data.brokers]
+      .filter((b) => Number(b.commitLogDiskUsage ?? 0) >= effectiveDisk)
+      .sort((a, b) => Number(b.commitLogDiskUsage ?? 0) - Number(a.commitLogDiskUsage ?? 0))[0]
+    if (heavyDisk) {
+      const usage = Math.round(Number(heavyDisk.commitLogDiskUsage ?? 0))
+      issues.push({
+        key: `disk-${heavyDisk.brokerName}`,
+        severity: 'med',
+        title: t('overview.ai.findings.diskTitle', { broker: heavyDisk.brokerName, usage }),
+        desc: t('overview.ai.findings.diskDesc', { threshold: effectiveDisk }),
+      })
+    }
   }
 
   return issues.slice(0, 4)
@@ -157,6 +161,7 @@ export function OverviewScreen({ onNavigate }: OverviewScreenProps) {
   const { list: connections, refresh: refreshConnections } = useConnections()
   const { settings } = useSettings()
   const lagThreshold = settings.lagAlertThreshold ?? 10000
+  const diskThreshold = settings.diskAlertThreshold ?? 75
 
   const doRefresh = useCallback(
     () => Promise.all([refresh({ silent: true }), refreshConnections()]),
@@ -213,7 +218,10 @@ export function OverviewScreen({ onNavigate }: OverviewScreenProps) {
     [data.consumerGroups, lagThreshold],
   )
 
-  const issues = useMemo(() => buildIssues(data, lagThreshold, t), [data, lagThreshold, t])
+  const issues = useMemo(
+    () => buildIssues(data, lagThreshold, diskThreshold, t),
+    [data, lagThreshold, diskThreshold, t],
+  )
   const tpsInSeries = useMemo(() => aggregateHistory(data.brokers, 'tpsInHistory'), [data.brokers])
   const tpsOutSeries = useMemo(
     () => aggregateHistory(data.brokers, 'tpsOutHistory'),

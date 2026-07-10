@@ -159,7 +159,7 @@
         "offlineGroupTitle": "{{group}} 当前无在线实例",
         "offlineGroupDesc": "积压 {{lag}} 条消息但无客户端消费。请确认消费者已启动。",
         "diskTitle": "{{broker}} 磁盘水位 {{usage}}%",
-        "diskDesc": "已超过 75% 阈值。建议扩容或清理过期消息以避免触发只读。",
+        "diskDesc": "已达到或超过 {{threshold}}% 阈值。建议扩容或清理过期消息以避免触发只读。",
         "brokerOfflineTitle": "Broker {{broker}} 已离线",
         "brokerOfflineDesc": "请检查节点状态与网络连通性，及时恢复以保证集群可用性。",
         "idleTopicTitle": "{{count}} 个 Topic 长期无消息",
@@ -438,6 +438,16 @@
       "retryTimes": "重试次数",
       "bodyTitle": "消息体",
       "bodyTruncated": "消息体过大，仅显示前 {{shown}} KB（共 {{total}} KB）。可在设置中调整截断阈值。",
+      "bodyMode": {
+        "auto": "自动",
+        "raw": "原文",
+        "hex": "十六进制"
+      },
+      "bodyKind": {
+        "json": "JSON",
+        "text": "文本",
+        "binary": "二进制"
+      },
       "propsEmpty": "暂无消息属性",
       "trackTitle": "消费轨迹",
       "trackEmpty": "暂无消费轨迹",
@@ -584,6 +594,7 @@
       "lagThresholdValue": "{{n}} 条",
       "diskThreshold": "磁盘使用阈值",
       "diskThresholdValue": "{{n}}%",
+      "thresholdOff": "已关闭",
       "openSettings": "前往设置"
     }
   },
@@ -809,7 +820,12 @@
       "alertThresholds": "告警阈值",
       "lagAlert": "消费积压告警",
       "lagAlertHint": "当消费组堆积消息超过此值时显示告警，设为 0 关闭",
-      "lagAlertUnit": "条"
+      "lagAlertUnit": "条",
+      "diskAlert": "磁盘水位告警",
+      "diskAlertHint": "CommitLog 磁盘使用率达到此百分比时告警，设为 0 关闭",
+      "diskAlertUnit": "%",
+      "desktopNotifications": "系统通知",
+      "desktopNotificationsHint": "出现新告警时发送桌面通知（需系统授权）"
     },
     "proxy": {
       "timeout": "连接超时",

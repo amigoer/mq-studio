@@ -605,7 +605,6 @@ function MessagePanel() {
         <SettingsRow
           title={t('settings.message.lagAlert')}
           hint={t('settings.message.lagAlertHint')}
-          bordered={false}
         >
           <input
             type="number"
@@ -617,6 +616,51 @@ function MessagePanel() {
             onChange={(e) => setSetting('lagAlertThreshold', Number(e.target.value) || 0)}
           />
           <span className="rl-muted text-[12px]">{t('settings.message.lagAlertUnit')}</span>
+        </SettingsRow>
+        <SettingsRow
+          title={t('settings.message.diskAlert')}
+          hint={t('settings.message.diskAlertHint')}
+        >
+          <input
+            type="number"
+            className="rl-input"
+            style={{ width: 100 }}
+            min={0}
+            max={100}
+            step={5}
+            value={settings.diskAlertThreshold}
+            onChange={(e) => {
+              const n = Number(e.target.value)
+              setSetting(
+                'diskAlertThreshold',
+                Number.isFinite(n) ? Math.min(100, Math.max(0, n)) : 0,
+              )
+            }}
+          />
+          <span className="rl-muted text-[12px]">{t('settings.message.diskAlertUnit')}</span>
+        </SettingsRow>
+        <SettingsRow
+          title={t('settings.message.desktopNotifications')}
+          hint={t('settings.message.desktopNotificationsHint')}
+          bordered={false}
+        >
+          <Switch
+            on={settings.desktopNotifications}
+            onClick={() => {
+              const next = !settings.desktopNotifications
+              if (
+                next &&
+                typeof Notification !== 'undefined' &&
+                Notification.permission === 'default'
+              ) {
+                void Notification.requestPermission().then((perm) => {
+                  setSetting('desktopNotifications', perm === 'granted')
+                })
+                return
+              }
+              setSetting('desktopNotifications', next)
+            }}
+          />
         </SettingsRow>
       </div>
     </>

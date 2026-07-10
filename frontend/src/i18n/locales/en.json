@@ -159,7 +159,7 @@
         "offlineGroupTitle": "{{group}} has no online instance",
         "offlineGroupDesc": "{{lag}} messages backlogged with no client. Make sure the consumer is running.",
         "diskTitle": "{{broker}} disk usage {{usage}}%",
-        "diskDesc": "Above the 75% threshold. Consider scaling up or purging old messages before it goes read-only.",
+        "diskDesc": "At or above the {{threshold}}% threshold. Consider scaling up or purging old messages before it goes read-only.",
         "brokerOfflineTitle": "Broker {{broker}} is offline",
         "brokerOfflineDesc": "Verify node status and network connectivity to keep the cluster available.",
         "idleTopicTitle": "{{count}} topic(s) with no recent traffic",
@@ -438,6 +438,16 @@
       "retryTimes": "Retries",
       "bodyTitle": "Body",
       "bodyTruncated": "Body is large — showing first {{shown}} KB of {{total}} KB. Adjust the limit in Settings.",
+      "bodyMode": {
+        "auto": "Auto",
+        "raw": "Raw",
+        "hex": "Hex"
+      },
+      "bodyKind": {
+        "json": "JSON",
+        "text": "Text",
+        "binary": "Binary"
+      },
       "propsEmpty": "No message properties",
       "trackTitle": "Consumption track",
       "trackEmpty": "No track data",
@@ -584,6 +594,7 @@
       "lagThresholdValue": "{{n}} messages",
       "diskThreshold": "Disk usage threshold",
       "diskThresholdValue": "{{n}}%",
+      "thresholdOff": "Off",
       "openSettings": "Open settings"
     }
   },
@@ -809,7 +820,12 @@
       "alertThresholds": "Alert thresholds",
       "lagAlert": "Consumer lag alert",
       "lagAlertHint": "Show alert when group lag exceeds this value. 0 disables.",
-      "lagAlertUnit": "msgs"
+      "lagAlertUnit": "msgs",
+      "diskAlert": "Disk usage alert",
+      "diskAlertHint": "Alert when CommitLog disk usage reaches this percent. 0 disables.",
+      "diskAlertUnit": "%",
+      "desktopNotifications": "Desktop notifications",
+      "desktopNotificationsHint": "Notify when new alerts appear (requires OS permission)"
     },
     "proxy": {
       "timeout": "Timeouts",

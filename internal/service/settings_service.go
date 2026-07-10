@@ -74,6 +74,12 @@ func normalizeSettings(settings model.AppSettings) model.AppSettings {
 	if settings.LagAlertThreshold < 0 {
 		settings.LagAlertThreshold = 0
 	}
+	if settings.DiskAlertThreshold < 0 {
+		settings.DiskAlertThreshold = 0
+	}
+	if settings.DiskAlertThreshold > 100 {
+		settings.DiskAlertThreshold = 100
+	}
 	if settings.Timezone != "local" && settings.Timezone != "utc" {
 		settings.Timezone = defaults.Timezone
 	}
