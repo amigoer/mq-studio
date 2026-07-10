@@ -63,20 +63,20 @@ Rocket-Leaf 是一个**本地桌面应用**，用来连接和管理 RocketMQ 集
 
 ## 下载与安装
 
-从 [Releases](https://github.com/amigoer/rocket-leaf/releases) 下载对应平台的安装包或可执行文件。
+从 [Releases](https://github.com/amigoer/rocket-leaf/releases) **按自己的系统只下一个文件**：
 
-### macOS
+| 平台                              | 下载文件                                  |
+| --------------------------------- | ----------------------------------------- |
+| **macOS Apple Silicon（M 系列）** | `rocket-leaf-macos-arm64.app.zip`         |
+| **macOS Intel**                   | `rocket-leaf-macos-amd64.app.zip`         |
+| **Windows x64**                   | `rocket-leaf-windows-amd64-installer.exe` |
+| **Windows ARM64**                 | `rocket-leaf-windows-arm64-installer.exe` |
+| **Linux x64**                     | `rocket-leaf-linux-amd64.AppImage`        |
+| **Linux ARM64**                   | `rocket-leaf-linux-arm64.AppImage`        |
 
-- **Intel Mac**：`rocket-leaf-macos-amd64` / `.app.zip`（具体文件名以 Release 为准）
-- **Apple Silicon / M 系列**：`rocket-leaf-macos-arm64` / `.app.zip`
-
-### Windows
-
-- **x64** / **ARM64**：安装包和/或便携可执行文件（以 CI 发布产物为准）
-
-### Linux
-
-- **x64 / ARM64**：AppImage、`.deb`、`.rpm`、`.pkg.tar.zst` 等（按构建结果提供）
+- **macOS**：解压后拖到「应用程序」；若被拦截，可右键 → 打开。
+- **Windows**：运行安装包即可。
+- **Linux**：`chmod +x rocket-leaf-linux-*.AppImage && ./rocket-leaf-linux-*.AppImage`
 
 ## 快速开始
 

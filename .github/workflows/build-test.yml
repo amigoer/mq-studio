@@ -86,14 +86,19 @@ jobs:
 
       - name: Normalize Linux artifact names
         shell: bash
+        # End-user downloads only: AppImage (portable desktop package).
+        # Skip bare binaries and distro-specific packages (.deb/.rpm/.pkg) to
+        # keep the Release page unambiguous.
         run: |
           mkdir -p release-artifacts/linux-${{ matrix.arch }}
           shopt -s nullglob
-          for file in bin/*.AppImage; do cp -v "$file" "release-artifacts/linux-${{ matrix.arch }}/rocket-leaf-linux-${{ matrix.arch }}.AppImage"; done
-          for file in bin/*.deb; do cp -v "$file" "release-artifacts/linux-${{ matrix.arch }}/rocket-leaf-linux-${{ matrix.arch }}.deb"; done
-          for file in bin/*.rpm; do cp -v "$file" "release-artifacts/linux-${{ matrix.arch }}/rocket-leaf-linux-${{ matrix.arch }}.rpm"; done
-          for file in bin/*.pkg.tar.zst; do cp -v "$file" "release-artifacts/linux-${{ matrix.arch }}/rocket-leaf-linux-${{ matrix.arch }}.pkg.tar.zst"; done
-          if [ -f bin/rocket-leaf ]; then cp -v bin/rocket-leaf "release-artifacts/linux-${{ matrix.arch }}/rocket-leaf-linux-${{ matrix.arch }}"; fi
+          appimages=(bin/*.AppImage)
+          if [ ${#appimages[@]} -eq 0 ]; then
+            echo "Expected AppImage in bin/ but none found" >&2
+            ls -la bin/ || true
+            exit 1
+          fi
+          cp -v "${appimages[0]}" "release-artifacts/linux-${{ matrix.arch }}/rocket-leaf-linux-${{ matrix.arch }}.AppImage"
 
       - name: Upload Linux artifacts
         if: always()
@@ -101,7 +106,7 @@ jobs:
         with:
           name: build-test-linux-${{ matrix.arch }}
           path: release-artifacts/linux-${{ matrix.arch }}/*
-          if-no-files-found: ignore
+          if-no-files-found: error
 
   build-macos:
     name: macOS Build Test (${{ matrix.target }})
@@ -167,14 +172,15 @@ jobs:
 
       - name: Normalize macOS artifact names
         shell: bash
+        # End-user downloads only: .app.zip (double-clickable app bundle).
         run: |
           mkdir -p release-artifacts/${{ matrix.artifact_dir }}
-          if [ -f bin/rocket-leaf ]; then
-            cp -v bin/rocket-leaf "release-artifacts/${{ matrix.artifact_dir }}/rocket-leaf-macos-${{ matrix.target }}"
+          if [ ! -d bin/rocket-leaf.app ]; then
+            echo "Expected bin/rocket-leaf.app but it was not built" >&2
+            ls -la bin/ || true
+            exit 1
           fi
-          if [ -d bin/rocket-leaf.app ]; then
-            ditto -c -k --sequesterRsrc --keepParent "bin/rocket-leaf.app" "release-artifacts/${{ matrix.artifact_dir }}/rocket-leaf-macos-${{ matrix.target }}.app.zip"
-          fi
+          ditto -c -k --sequesterRsrc --keepParent "bin/rocket-leaf.app" "release-artifacts/${{ matrix.artifact_dir }}/rocket-leaf-macos-${{ matrix.target }}.app.zip"
 
       - name: Upload macOS artifacts
         if: always()
@@ -182,7 +188,7 @@ jobs:
         with:
           name: ${{ matrix.artifact_name }}
           path: release-artifacts/${{ matrix.artifact_dir }}/*
-          if-no-files-found: ignore
+          if-no-files-found: error
 
   build-windows:
     name: Windows Build Test (${{ matrix.arch }})
@@ -239,17 +245,16 @@ jobs:
 
       - name: Normalize Windows artifact names
         shell: powershell
+        # End-user downloads only: NSIS installer (no portable .exe / MSIX clutter).
         run: |
           New-Item -ItemType Directory -Force -Path "release-artifacts/windows-${{ matrix.arch }}" | Out-Null
-          if (Test-Path 'bin/rocket-leaf.exe') {
-            Copy-Item 'bin/rocket-leaf.exe' "release-artifacts/windows-${{ matrix.arch }}/rocket-leaf-windows-${{ matrix.arch }}.exe" -Force
+          $installer = Get-ChildItem 'bin' -Filter 'rocket-leaf-*-installer.exe' -File -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $installer) {
+            Write-Error "Expected NSIS installer in bin/ but none found"
+            Get-ChildItem 'bin' -ErrorAction SilentlyContinue | Format-Table Name, Length
+            exit 1
           }
-          Get-ChildItem 'bin' -Filter 'rocket-leaf-*-installer.exe' -File -ErrorAction SilentlyContinue | Select-Object -First 1 | ForEach-Object {
-            Copy-Item $_.FullName "release-artifacts/windows-${{ matrix.arch }}/rocket-leaf-windows-${{ matrix.arch }}-installer.exe" -Force
-          }
-          Get-ChildItem 'bin' -Filter 'rocket-leaf-*.msix' -File -ErrorAction SilentlyContinue | Select-Object -First 1 | ForEach-Object {
-            Copy-Item $_.FullName "release-artifacts/windows-${{ matrix.arch }}/rocket-leaf-windows-${{ matrix.arch }}.msix" -Force
-          }
+          Copy-Item $installer.FullName "release-artifacts/windows-${{ matrix.arch }}/rocket-leaf-windows-${{ matrix.arch }}-installer.exe" -Force
 
       - name: Upload Windows artifacts
         if: always()
@@ -257,7 +262,7 @@ jobs:
         with:
           name: build-test-windows-${{ matrix.arch }}
           path: release-artifacts/windows-${{ matrix.arch }}/*
-          if-no-files-found: ignore
+          if-no-files-found: error
 
   release-metadata:
     name: Prepare Release Metadata
@@ -278,24 +283,25 @@ jobs:
           ## Release
           Production release for **${{ github.ref_name }}**.
 
-          ## Downloads
-          ### macOS
-          - Intel Macs: `rocket-leaf-macos-amd64.app.zip`
-            Recommended for Intel-based Macs.
-          - Apple Silicon Macs: `rocket-leaf-macos-arm64.app.zip`
-            Recommended for M-series Macs.
+          ## Downloads (pick one for your machine)
 
-          ### Windows
-          - x64 Installer: `rocket-leaf-windows-amd64-installer.exe`
-          - ARM64 Installer: `rocket-leaf-windows-arm64-installer.exe`
+          | Platform | Download |
+          | -------- | -------- |
+          | **macOS Apple Silicon (M1/M2/M3…)** | `rocket-leaf-macos-arm64.app.zip` |
+          | **macOS Intel** | `rocket-leaf-macos-amd64.app.zip` |
+          | **Windows x64** | `rocket-leaf-windows-amd64-installer.exe` |
+          | **Windows ARM64** | `rocket-leaf-windows-arm64-installer.exe` |
+          | **Linux x64** | `rocket-leaf-linux-amd64.AppImage` |
+          | **Linux ARM64** | `rocket-leaf-linux-arm64.AppImage` |
 
-          ### Linux
-          - x64: `rocket-leaf-linux-amd64.AppImage`, `rocket-leaf-linux-amd64.deb`, `rocket-leaf-linux-amd64.rpm`, `rocket-leaf-linux-amd64.pkg.tar.zst`
-          - ARM64: `rocket-leaf-linux-arm64.AppImage`, `rocket-leaf-linux-arm64.deb`, `rocket-leaf-linux-arm64.rpm`, `rocket-leaf-linux-arm64.pkg.tar.zst`
+          ### How to install
+          - **macOS**: unzip, drag `Rocket Leaf` into Applications, open it (right-click → Open the first time if Gatekeeper blocks).
+          - **Windows**: run the installer.
+          - **Linux**: `chmod +x` the AppImage, then run it.
 
           ## Notes
-          - This release is published automatically after cross-platform build verification succeeds.
-          - macOS, Windows, and Linux are all validated in both amd64 and arm64 variants.
+          - Each platform ships a single recommended package so the asset list stays short.
+          - Builds are produced for amd64 and arm64 on macOS, Windows, and Linux.
           - Checksums are not published yet.
           EOF
 

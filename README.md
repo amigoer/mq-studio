@@ -63,20 +63,20 @@ Details: [Architecture](docs/ARCHITECTURE.md) · [Roadmap](docs/ROADMAP.md)
 
 ## Downloads
 
-Download the package or executable for your platform from [Releases](https://github.com/amigoer/rocket-leaf/releases).
+Download **one** package for your machine from [Releases](https://github.com/amigoer/rocket-leaf/releases):
 
-### macOS
+| Platform                            | File                                      |
+| ----------------------------------- | ----------------------------------------- |
+| **macOS Apple Silicon (M1/M2/M3…)** | `rocket-leaf-macos-arm64.app.zip`         |
+| **macOS Intel**                     | `rocket-leaf-macos-amd64.app.zip`         |
+| **Windows x64**                     | `rocket-leaf-windows-amd64-installer.exe` |
+| **Windows ARM64**                   | `rocket-leaf-windows-arm64-installer.exe` |
+| **Linux x64**                       | `rocket-leaf-linux-amd64.AppImage`        |
+| **Linux ARM64**                     | `rocket-leaf-linux-arm64.AppImage`        |
 
-- **Intel Macs**: `rocket-leaf-macos-amd64` / `.app.zip` (artifact names may vary by release)
-- **Apple Silicon Macs**: `rocket-leaf-macos-arm64` / `.app.zip`
-
-### Windows
-
-- **x64** and **ARM64**: installer and/or portable executable when published by CI
-
-### Linux
-
-- **x64 / ARM64**: AppImage, `.deb`, `.rpm`, and `.pkg.tar.zst` when available
+- **macOS**: unzip → drag into Applications → open (use right-click → Open the first time if needed).
+- **Windows**: run the installer.
+- **Linux**: `chmod +x rocket-leaf-linux-*.AppImage && ./rocket-leaf-linux-*.AppImage`
 
 ## Quick Start
 
