@@ -1,131 +1,113 @@
 # Rocket-Leaf
 
 <p align="center">
-  <img src="docs/images/logo.png" alt="Rocket-Leaf Logo" width="180">
+  <img src="docs/images/logo.png" alt="Rocket-Leaf" width="160">
 </p>
 
 <p align="center">
-  <strong>A lightweight, polished desktop client for RocketMQ</strong>
+  <strong>A local desktop client for RocketMQ</strong><br>
+  Browse topics, consumers, and messages without a web console.
 </p>
 
 <p align="center">
-  Windows · macOS · Linux
+  Windows · macOS · Linux &nbsp;·&nbsp;
+  <a href="README.zh-CN.md">简体中文</a> &nbsp;·&nbsp;
+  <a href="https://github.com/amigoer/rocket-leaf/releases">Releases</a>
 </p>
 
-<p align="center">
-  <a href="README.zh-CN.md">简体中文</a>
-</p>
+---
 
-## What is Rocket-Leaf?
+## Why Rocket-Leaf?
 
-Rocket-Leaf is a **local desktop app** for connecting to and managing RocketMQ clusters. It helps you inspect topics, monitor consumers, query messages, and send test messages without deploying a web console or exposing management ports.
+- **Local-first** — runs on your machine; no server to deploy, no management port to expose
+- **Day-to-day ops** — connections, topics, consumer groups, message query, produce, cluster health
+- **Private by default** — profiles and settings stay on disk; secrets encrypted at rest
 
-- **Ready to use**: download and launch directly
-- **Cross-platform**: available on Windows, macOS, and Linux
-- **Local-first data**: connection profiles and settings stay on your machine and are easy to back up
+Supports RocketMQ **4.x / 5.x** (via Admin APIs). UI language: **English / 中文**.
 
 ## Features
 
-| Capability                | Description                                                                               |
-| ------------------------- | ----------------------------------------------------------------------------------------- |
-| **Overview**              | Cluster snapshot, produce/consume TPS, lag summary, and quick actions                     |
-| **Connection Management** | Multiple clusters, default connection, ACL credentials, local persistence with encryption |
-| **Topics**                | Browse, search, inspect route/stats, create, update, and delete                           |
-| **Consumer Groups**       | List groups, offsets, clients, reset progress, create/update/delete group config          |
-| **Messages**              | Query by Topic / Key / Tag / MessageId / time range, traces, resend, DLQ & retry          |
-| **Producer**              | Send test messages with tags, keys, body, and delay levels                                |
-| **Cluster**               | Brokers, NameServers, runtime stats, and throughput trends                                |
-| **Alerts**                | Client-side rules (e.g. lag / disk thresholds) based on live cluster data                 |
-| **ACL**                   | Access configs and global whitelist (when the broker supports ACL admin APIs)             |
-| **Settings**              | Theme, language (en/zh), timeouts, display options, import/export config                  |
+| Area            | What you can do                                                            |
+| --------------- | -------------------------------------------------------------------------- |
+| **Connections** | Multi-cluster profiles, default + auto-connect, multi-NameServer, ACL keys |
+| **Overview**    | TPS, lag, broker health, shortcuts into other screens                      |
+| **Topics**      | List / filter / detail / route stats; create, update, delete               |
+| **Consumers**   | Groups, clients, lag; reset offset; group config CRUD                      |
+| **Messages**    | Query by topic, key, tag, message ID, time; traces; resend; DLQ / retry    |
+| **Producer**    | Send test messages (tag, key, body, delay level)                           |
+| **Cluster**     | Brokers, NameServers, runtime metrics, throughput trends                   |
+| **Alerts**      | Client-side rules (lag, disk, …) from live data                            |
+| **ACL**         | Access configs and global whitelist (when the broker supports it)          |
+| **Settings**    | Theme, fonts, timeouts, import / export full config                        |
 
-## Stack
+## Download
 
-| Layer         | Tech                                                                   |
-| ------------- | ---------------------------------------------------------------------- |
-| Desktop shell | [Wails v3](https://wails.io/)                                          |
-| Backend       | Go + [rocketmq-admin-go](https://github.com/amigoer/rocketmq-admin-go) |
-| Frontend      | React 18, TypeScript, Vite, Tailwind CSS                               |
-| Storage       | Local JSON under the user config dir (AES-256-GCM for secrets)         |
+Get the **latest release** and download **one** file for your machine:
 
-Details: [Architecture](docs/ARCHITECTURE.md) · [Roadmap](docs/ROADMAP.md)
+| Platform                        | File                                      |
+| ------------------------------- | ----------------------------------------- |
+| macOS Apple Silicon (M1/M2/M3…) | `rocket-leaf-macos-arm64.app.zip`         |
+| macOS Intel                     | `rocket-leaf-macos-amd64.app.zip`         |
+| Windows x64                     | `rocket-leaf-windows-amd64-installer.exe` |
+| Windows ARM64                   | `rocket-leaf-windows-arm64-installer.exe` |
+| Linux x64                       | `rocket-leaf-linux-amd64.AppImage`        |
+| Linux ARM64                     | `rocket-leaf-linux-arm64.AppImage`        |
 
-## Downloads
+**Install**
 
-Download **one** package for your machine from [Releases](https://github.com/amigoer/rocket-leaf/releases):
+- **macOS** — unzip → drag into Applications → open (right-click → Open the first time if Gatekeeper blocks)
+- **Windows** — run the installer
+- **Linux** — `chmod +x rocket-leaf-linux-*.AppImage && ./rocket-leaf-linux-*.AppImage`
 
-| Platform                            | File                                      |
-| ----------------------------------- | ----------------------------------------- |
-| **macOS Apple Silicon (M1/M2/M3…)** | `rocket-leaf-macos-arm64.app.zip`         |
-| **macOS Intel**                     | `rocket-leaf-macos-amd64.app.zip`         |
-| **Windows x64**                     | `rocket-leaf-windows-amd64-installer.exe` |
-| **Windows ARM64**                   | `rocket-leaf-windows-arm64-installer.exe` |
-| **Linux x64**                       | `rocket-leaf-linux-amd64.AppImage`        |
-| **Linux ARM64**                     | `rocket-leaf-linux-arm64.AppImage`        |
+## Quick start
 
-- **macOS**: unzip → drag into Applications → open (use right-click → Open the first time if needed).
-- **Windows**: run the installer.
-- **Linux**: `chmod +x rocket-leaf-linux-*.AppImage && ./rocket-leaf-linux-*.AppImage`
+1. Open the app → **Connections** (or add a connection from Overview).
+2. Set **NameServer** (required). Separate multiple addresses with `;`, `,`, or spaces. Add AccessKey / SecretKey if ACL is on.
+3. **Save** → **Connect**, then use Topics, Consumers, Messages, and the rest from the sidebar.
 
-## Quick Start
+### Data on disk
 
-1. Launch the app and open **Connections** (or add a connection from Overview).
-2. Enter cluster details: **NameServer** is required (multiple addresses can be separated by `;`, `,`, or whitespace); fill AccessKey/SecretKey if ACL is enabled.
-3. Save and **Connect**. Use Topics, Consumers, Messages, Producer, Cluster, and ACL from the sidebar.
+Everything is stored under the OS user config directory in `rocket-leaf/`:
 
-Connection profiles and settings are stored locally. Local credentials are encrypted at rest. A full configuration export contains plaintext credentials for cross-device migration, so treat the exported JSON as a sensitive file.
+| File               | Purpose                          |
+| ------------------ | -------------------------------- |
+| `connections.json` | Connection profiles              |
+| `settings.json`    | App settings                     |
+| `secret.key`       | Local encryption key for secrets |
 
-<details>
-<summary>Local data locations</summary>
+Typical paths: macOS `~/Library/Application Support/rocket-leaf/` · Linux `~/.config/rocket-leaf/` · Windows `%AppData%\rocket-leaf\`
 
-Under the OS user config directory, folder `rocket-leaf/`:
-
-| File               | Purpose                             |
-| ------------------ | ----------------------------------- |
-| `connections.json` | Connection profiles                 |
-| `settings.json`    | App settings                        |
-| `secret.key`       | Encryption key for sensitive fields |
-
-Typical paths:
-
-- **macOS**: `~/Library/Application Support/rocket-leaf/`
-- **Linux**: `~/.config/rocket-leaf/`
-- **Windows**: `%AppData%\rocket-leaf\`
-
-</details>
+Credentials are **encrypted at rest**. A full config **export** is for migration and contains **plaintext** secrets — treat that JSON as sensitive (file mode `0600` when written by the app).
 
 ## Development
 
-Prerequisites: Go (see `go.mod`), Node.js 20+, [Task](https://taskfile.dev/), Wails v3 CLI.
+**Prerequisites:** Go (see `go.mod`), Node.js 20+, [Task](https://taskfile.dev/), [Wails v3](https://wails.io/) CLI.
 
 ```bash
-# Install frontend deps (also run from repo root scripts as needed)
 npm install
 npm --prefix frontend install
 
-# Desktop dev (Wails + Vite)
-task dev
-
-# Build / package for current OS
-task build
-task package
-
-# Lint / format / type-check
-npm run check
+task dev          # desktop + Vite hot reload
+task build        # build for current OS
+task package      # platform package
+npm run check     # format, gofmt, vet, type-check
 ```
 
-Optional local helpers (need a reachable NameServer):
+Optional helpers (need a reachable NameServer):
 
 ```bash
 go run ./scripts/seed-data [nameServer] [duration_sec] [rate_per_sec]
 go run ./scripts/inspect-cluster ...
 ```
 
-## Roadmap and Contributing
+## Docs
 
-- Status and next steps: [Roadmap](docs/ROADMAP.md)
-- Stack and layout: [Architecture](docs/ARCHITECTURE.md)
-- Issues and pull requests are welcome
+| Doc                                  | Content                       |
+| ------------------------------------ | ----------------------------- |
+| [Architecture](docs/ARCHITECTURE.md) | Stack, layout, security notes |
+| [Roadmap](docs/ROADMAP.md)           | What’s done and what’s next   |
+
+Issues and PRs are welcome.
 
 ## License
 
