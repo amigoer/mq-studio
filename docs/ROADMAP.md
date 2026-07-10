@@ -105,10 +105,12 @@
 - [ ] 多连接并行监控仪表盘
 - [ ] 消息体更多结构化预览（如 Protobuf schema、压缩 payload 解压）
 
-### 工程（未做）
+### 工程
 
-- [ ] 后端 service 层更全面单测 + Admin mock
-- [ ] 前端关键路径测试（连接门禁、toast、告警规则）
+- [x] 后端 service / model / rocketmq 纯逻辑与持久化单测（连接 CRUD、设置往返、消息/Topic 解析、ACL 错误码等）
+- [x] 前端纯函数单测（payload 预览、错误文案、告警规则本地存储；`vitest`）
+- [ ] 后端依赖 Admin 的集成测试 / mock 集群
+- [ ] 前端组件与 E2E（连接门禁、toast 等）
 - [ ] Linux 打包仅编 AppImage、加强 Docker 缓存以缩短 CI（可选优化）
 
 ### 探索（未排期）

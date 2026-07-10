@@ -9,7 +9,10 @@
     "go:fmt:check": "sh scripts/check-gofmt.sh",
     "go:vet": "go vet ./...",
     "frontend:type-check": "npm --prefix frontend run type-check",
-    "check": "npm run format:check && npm run go:fmt:check && npm run go:vet && npm run frontend:type-check"
+    "test": "go test ./... && npm --prefix frontend test",
+    "test:go": "go test ./...",
+    "test:frontend": "npm --prefix frontend test",
+    "check": "npm run format:check && npm run go:fmt:check && npm run go:vet && npm run frontend:type-check && npm test"
   },
   "devDependencies": {
     "husky": "^9.1.7",

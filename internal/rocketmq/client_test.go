@@ -12,6 +12,19 @@ func TestParseNameServers(t *testing.T) {
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("ParseNameServers() = %#v, want %#v", got, want)
 	}
+	if len(ParseNameServers("   ")) != 0 {
+		t.Fatal("空白输入应得到空列表")
+	}
+	if len(ParseNameServers("a,a,a")) != 1 {
+		t.Fatal("应去重")
+	}
+}
+
+func TestAdminClientManagerSetDefaultMissingClient(t *testing.T) {
+	m := GetClientManager()
+	if err := m.SetDefaultConnection("__missing_client_for_unit_test__:9876"); err == nil {
+		t.Fatal("不存在的客户端设为默认应失败")
+	}
 }
 
 func TestSameClientConfig(t *testing.T) {

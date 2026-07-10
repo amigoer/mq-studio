@@ -15,6 +15,32 @@ func TestContainsExactMessageKey(t *testing.T) {
 	if containsExactMessageKey("order-10 trace-2", "order-1") {
 		t.Fatal("不得使用子串误匹配 Key")
 	}
+	if !containsExactMessageKey("solo", "solo") {
+		t.Fatal("单 key 应匹配")
+	}
+	if containsExactMessageKey("", "x") {
+		t.Fatal("空 keys 不应匹配")
+	}
+}
+
+func TestQueryMessageByIDValidation(t *testing.T) {
+	s := NewMessageService(nil)
+	if _, err := s.QueryMessageByID("", "id"); err == nil {
+		t.Fatal("空 topic 应失败")
+	}
+	if _, err := s.QueryMessageByID("t", "  "); err == nil {
+		t.Fatal("空 msg id 应失败")
+	}
+}
+
+func TestQueryMessagesValidation(t *testing.T) {
+	s := NewMessageService(nil)
+	if _, err := s.QueryMessages("", "", "", 10, 0, 0); err == nil {
+		t.Fatal("空 topic 应失败")
+	}
+	if _, err := s.QueryMessages("t", "", "", 10, 200, 100); err == nil {
+		t.Fatal("开始晚于结束应失败")
+	}
 }
 
 func TestConvertRetryMessageMetadata(t *testing.T) {

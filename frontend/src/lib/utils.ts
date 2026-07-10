@@ -67,7 +67,7 @@ export async function withMinDuration<T>(promise: Promise<T>, minMs = 600): Prom
     const left = minMs - (Date.now() - started)
     if (left > 0) {
       await new Promise<void>((resolve) => {
-        window.setTimeout(resolve, left)
+        globalThis.setTimeout(resolve, left)
       })
     }
   }
