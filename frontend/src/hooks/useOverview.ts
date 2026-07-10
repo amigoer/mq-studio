@@ -68,20 +68,18 @@ export function useOverview() {
       }
 
       // Connected: fetch cluster-wide data in parallel.
-      const [clusterResult, brokersResult, topicsResult, consumersResult] =
-        await Promise.allSettled([
-          clusterApi.getClusterInfo(),
-          clusterApi.getBrokers(),
-          topicApi.getTopics(),
-          consumerApi.getConsumerGroups(),
-        ])
+      const [clusterResult, topicsResult, consumersResult] = await Promise.allSettled([
+        clusterApi.getClusterInfo(),
+        topicApi.getTopics(),
+        consumerApi.getConsumerGroups(),
+      ])
       if (cancelledRef.current) return
 
       const next: OverviewSnapshot = {
         cluster: clusterResult.status === 'fulfilled' ? clusterResult.value : null,
         brokers:
-          brokersResult.status === 'fulfilled'
-            ? (brokersResult.value.filter(Boolean) as BrokerNode[])
+          clusterResult.status === 'fulfilled'
+            ? (clusterResult.value?.brokers?.filter(Boolean) as BrokerNode[])
             : [],
         topics:
           topicsResult.status === 'fulfilled'
@@ -97,7 +95,7 @@ export function useOverview() {
       setData(next)
 
       // Surface first failure as a soft error, keep what we got.
-      const firstFailure = [clusterResult, brokersResult, topicsResult, consumersResult].find(
+      const firstFailure = [clusterResult, topicsResult, consumersResult].find(
         (r) => r.status === 'rejected',
       )
       if (firstFailure && firstFailure.status === 'rejected') {

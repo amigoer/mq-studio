@@ -46,7 +46,19 @@ function useConnectionsState(): ConnectionsContextValue {
 
   useEffect(() => {
     cancelledRef.current = false
-    void refresh()
+
+    // 后端启动时会把持久化状态重置为 offline；先执行默认连接恢复，
+    // 再读取列表，确保“启动时自动连接”设置真正反映到 UI。
+    const bootstrap = async () => {
+      try {
+        await connectionApi.connectDefault()
+      } catch {
+        // 自动连接失败时保留离线状态，用户仍可在连接页手动重试。
+      } finally {
+        await refresh()
+      }
+    }
+    void bootstrap()
     const id = window.setInterval(refresh, POLL_INTERVAL_MS)
     return () => {
       cancelledRef.current = true

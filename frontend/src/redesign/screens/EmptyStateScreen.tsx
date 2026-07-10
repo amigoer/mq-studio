@@ -18,6 +18,9 @@ import { Dialogs } from '@wailsio/runtime'
 import { PageHeader } from '../shell'
 import { setConnectionPrefill } from '@/lib/connectionPrefill'
 import { importAllConfigFromFile } from '@/api/settings'
+import * as connectionApi from '@/api/connection'
+import { useConnections } from '@/hooks/useConnections'
+import { useSettings } from '@/hooks/useSettings'
 import { formatErrorMessage } from '@/lib/utils'
 
 const GITHUB_URL = 'https://github.com/amigoer/rocket-leaf'
@@ -57,6 +60,8 @@ const STEP_ICONS = [Server, Layers, Activity] as const
 
 export function EmptyStateScreen({ onAddConnection }: { onAddConnection?: () => void }) {
   const { t } = useTranslation()
+  const { refresh: refreshConnections } = useConnections()
+  const { reloadSettings, settlePendingSaves } = useSettings()
 
   const openNew = (prefill?: {
     name?: string
@@ -115,7 +120,11 @@ export function EmptyStateScreen({ onAddConnection }: { onAddConnection?: () => 
     const path = Array.isArray(chosen) ? chosen[0] : chosen
     if (!path) return
     try {
+      await settlePendingSaves()
       await importAllConfigFromFile(path)
+      await reloadSettings()
+      await connectionApi.connectDefault()
+      await refreshConnections()
       toast.success(t('emptyState.importSuccess'), { description: path })
     } catch (e) {
       toast.error(t('emptyState.importError'), { description: formatErrorMessage(e) })

@@ -33,6 +33,8 @@ import {
   type FetchLimit,
 } from '@/hooks/useSettings'
 import { useUIPrefs } from '@/hooks/useUIPrefs'
+import { useConnections } from '@/hooks/useConnections'
+import * as connectionApi from '@/api/connection'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import logoUrl from '@/assets/logo.png'
 import {
@@ -915,14 +917,15 @@ function AboutPanel({
 export function SettingsScreen() {
   const { t } = useTranslation()
   const [activeSection, setActiveSection] = useState<SectionId>('appearance')
-  const { resetAllSettings, loading } = useSettings()
+  const { resetAllSettings, reloadSettings, settlePendingSaves, loading } = useSettings()
+  const { refresh: refreshConnections } = useConnections()
   const [confirmAction, setConfirmAction] = useState<{
     title: string
     description: string
     onConfirm: () => void
   } | null>(null)
 
-  const handleExport = useCallback(async () => {
+  const doExport = useCallback(async () => {
     const defaultName = `rocket-leaf-config-${new Date().toISOString().slice(0, 10)}.json`
     let chosen: string
     try {
@@ -937,12 +940,24 @@ export function SettingsScreen() {
     }
     if (!chosen) return // user cancelled
     try {
+      await settlePendingSaves()
       const savedPath = await exportAllConfigToFile(chosen)
       toast.success(t('settings.data.exportSuccess'), { description: savedPath })
     } catch {
       toast.error(t('settings.data.exportError'))
     }
-  }, [t])
+  }, [settlePendingSaves, t])
+
+  const handleExport = useCallback(() => {
+    setConfirmAction({
+      title: t('settings.data.exportConfirmTitle'),
+      description: t('settings.data.exportConfirmDesc'),
+      onConfirm: () => {
+        setConfirmAction(null)
+        void doExport()
+      },
+    })
+  }, [doExport, t])
 
   const handleImport = useCallback(async () => {
     let chosen: string | string[]
@@ -958,12 +973,16 @@ export function SettingsScreen() {
     const path = Array.isArray(chosen) ? chosen[0] : chosen
     if (!path) return // user cancelled
     try {
+      await settlePendingSaves()
       await importAllConfigFromFile(path)
+      await reloadSettings()
+      await connectionApi.connectDefault()
+      await refreshConnections()
       toast.success(t('settings.data.importSuccess'), { description: path })
     } catch {
       toast.error(t('settings.data.importError'))
     }
-  }, [t])
+  }, [refreshConnections, reloadSettings, settlePendingSaves, t])
 
   const doClearCache = useCallback(async () => {
     try {

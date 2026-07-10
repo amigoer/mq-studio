@@ -33,25 +33,20 @@ export function useCluster() {
     if (!silent) setRefreshing(true)
     setError(null)
     try {
-      const [clusterResult, brokersResult] = await Promise.allSettled([
-        clusterApi.getClusterInfo(),
-        clusterApi.getBrokers(),
-      ])
+      // GetClusterInfo 已包含完整 brokers；避免再调用内部同样执行一次
+      // GetClusterInfo 的 GetBrokers，减少 Broker 压力并防止 TPS 历史重复采样。
+      const cluster = await clusterApi.getClusterInfo()
       if (cancelledRef.current) return
       setData({
-        cluster: clusterResult.status === 'fulfilled' ? clusterResult.value : null,
-        brokers:
-          brokersResult.status === 'fulfilled'
-            ? (brokersResult.value.filter(Boolean) as BrokerNode[])
-            : [],
+        cluster,
+        brokers: (cluster?.brokers?.filter(Boolean) as BrokerNode[]) ?? [],
         lastUpdated: new Date(),
       })
-      const failure = [clusterResult, brokersResult].find((r) => r.status === 'rejected')
-      if (failure && failure.status === 'rejected') {
-        setError(formatErrorMessage(failure.reason))
-      }
     } catch (e) {
-      if (!cancelledRef.current) setError(formatErrorMessage(e))
+      if (!cancelledRef.current) {
+        setError(formatErrorMessage(e))
+        setData(EMPTY)
+      }
     } finally {
       if (!cancelledRef.current) {
         setLoading(false)

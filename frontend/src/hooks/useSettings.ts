@@ -112,6 +112,8 @@ type SettingsContextValue = {
   settings: FrontendSettings
   setSetting: <K extends keyof FrontendSettings>(key: K, value: FrontendSettings[K]) => void
   resetAllSettings: () => Promise<void>
+  reloadSettings: () => Promise<void>
+  settlePendingSaves: () => Promise<void>
   loading: boolean
   effectiveDark: boolean
 }
@@ -164,6 +166,8 @@ function useSettingsStore(): SettingsContextValue {
   const [loading, setLoading] = useState(true)
   const [effectiveDark, setEffectiveDark] = useState(() => getSystemDark())
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const pendingSettingsRef = useRef<FrontendSettings | null>(null)
+  const saveChainRef = useRef<Promise<void>>(Promise.resolve())
 
   // 组件挂载时从后端加载设置，并迁移 localStorage 中的旧主题数据
   useEffect(() => {
@@ -213,17 +217,50 @@ function useSettingsStore(): SettingsContextValue {
     return () => mq.removeEventListener('change', handler)
   }, [settings.theme])
 
+  const enqueueSave = useCallback((next: FrontendSettings) => {
+    // 所有写入严格串行，防止较早请求后完成并覆盖较新的设置。
+    const operation = saveChainRef.current
+      .catch(() => undefined)
+      .then(async () => {
+        await updateSettings(toBackend(next))
+      })
+    saveChainRef.current = operation
+    void operation.catch((err) => console.error('保存设置失败:', err))
+    return operation
+  }, [])
+
   // 防抖保存到后端
-  const saveToBackend = useCallback((newSettings: FrontendSettings) => {
+  const saveToBackend = useCallback(
+    (newSettings: FrontendSettings) => {
+      pendingSettingsRef.current = newSettings
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+      saveTimerRef.current = setTimeout(() => {
+        saveTimerRef.current = null
+        const pending = pendingSettingsRef.current
+        pendingSettingsRef.current = null
+        if (pending) void enqueueSave(pending)
+      }, 300)
+    },
+    [enqueueSave],
+  )
+
+  const settlePendingSaves = useCallback(async () => {
     if (saveTimerRef.current) {
       clearTimeout(saveTimerRef.current)
+      saveTimerRef.current = null
     }
-    saveTimerRef.current = setTimeout(() => {
-      updateSettings(toBackend(newSettings)).catch((err) => {
-        console.error('保存设置失败:', err)
-      })
-    }, 300)
-  }, [])
+    const pending = pendingSettingsRef.current
+    pendingSettingsRef.current = null
+    if (pending) enqueueSave(pending)
+    await saveChainRef.current
+  }, [enqueueSave])
+
+  useEffect(
+    () => () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    },
+    [],
+  )
 
   const setSetting = useCallback(
     <K extends keyof FrontendSettings>(key: K, value: FrontendSettings[K]) => {
@@ -238,6 +275,8 @@ function useSettingsStore(): SettingsContextValue {
 
   const resetAllSettings = useCallback(async () => {
     try {
+      // 确保重置是最后一次写入，避免 300ms 防抖保存把旧设置覆盖回来。
+      await settlePendingSaves()
       const result = await apiResetSettings()
       if (result) {
         setSettingsState(toFrontend(result))
@@ -246,9 +285,22 @@ function useSettingsStore(): SettingsContextValue {
       console.error('重置设置失败:', err)
       throw err
     }
+  }, [settlePendingSaves])
+
+  const reloadSettings = useCallback(async () => {
+    const result = await getSettings()
+    if (result) setSettingsState(toFrontend(result))
   }, [])
 
-  return { settings, setSetting, resetAllSettings, loading, effectiveDark }
+  return {
+    settings,
+    setSetting,
+    resetAllSettings,
+    reloadSettings,
+    settlePendingSaves,
+    loading,
+    effectiveDark,
+  }
 }
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
