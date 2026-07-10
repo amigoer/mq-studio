@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Search, Copy, X, Send, GitBranch, Check } from 'lucide-react'
 import { Spinner } from '@/components/Spinner'
 import { useTranslation } from 'react-i18next'
@@ -18,6 +18,7 @@ import { formatMessageTime, truncatePayload } from '@/lib/time'
 import { SlidingTabs } from '@/components/SlidingTabs'
 import { OfflineEmpty } from '@/components/OfflineEmpty'
 import { ErrorBanner } from '@/components/ErrorBanner'
+import type { NavId } from '../Sidebar'
 
 type TabKey = 'topic' | 'msgid' | 'retry' | 'dlq'
 
@@ -29,7 +30,7 @@ function tryFormatJSON(s: string): string {
   }
 }
 
-export function MessagesScreen() {
+export function MessagesScreen({ onNavigate }: { onNavigate?: (id: NavId) => void }) {
   const { t } = useTranslation()
   const { topics, hasOnline } = useTopics()
   const { groups: consumerGroups } = useConsumers()
@@ -51,6 +52,7 @@ export function MessagesScreen() {
   const [searching, setSearching] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [hasSearched, setHasSearched] = useState(false)
+  const searchRequestRef = useRef(0)
 
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [resendTarget, setResendTarget] = useState<MessageItem | null>(null)
@@ -101,6 +103,7 @@ export function MessagesScreen() {
   }
 
   const handleSearch = async () => {
+    const requestId = ++searchRequestRef.current
     setError(null)
     setHasSearched(true)
     if (tab === 'topic' || tab === 'msgid') {
@@ -125,6 +128,14 @@ export function MessagesScreen() {
       if (tab === 'topic') {
         const beginMs = beginAt ? new Date(beginAt).getTime() : 0
         const endMs = endAt ? new Date(endAt).getTime() : 0
+        if (
+          (beginAt && Number.isNaN(beginMs)) ||
+          (endAt && Number.isNaN(endMs)) ||
+          (beginMs > 0 && endMs > 0 && beginMs > endMs)
+        ) {
+          setError(t('messages.form.validateTimeRange'))
+          return
+        }
         next = await messageApi.queryMessagesByCondition(
           topic,
           {
@@ -142,6 +153,7 @@ export function MessagesScreen() {
       } else if (tab === 'dlq') {
         next = await messageApi.queryDLQMessages(group, limit)
       }
+      if (requestId !== searchRequestRef.current) return
       setResults(next)
       // Keep the detail panel closed after a new query — the user
       // opens it explicitly by clicking a row.
@@ -150,11 +162,12 @@ export function MessagesScreen() {
         toast.info(t('messages.empty'))
       }
     } catch (e) {
+      if (requestId !== searchRequestRef.current) return
       const msg = formatErrorMessage(e)
       setError(msg)
       toast.error(t('messages.queryError', { message: msg }))
     } finally {
-      setSearching(false)
+      if (requestId === searchRequestRef.current) setSearching(false)
     }
   }
 
@@ -179,6 +192,7 @@ export function MessagesScreen() {
           <SlidingTabs
             value={tab}
             onChange={(key) => {
+              searchRequestRef.current += 1
               setTab(key)
               setResults([])
               setError(null)
@@ -195,7 +209,11 @@ export function MessagesScreen() {
       )}
 
       {!hasOnline ? (
-        <OfflineEmpty message={t('messages.subtitleNoConn')} className="flex-1" />
+        <OfflineEmpty
+          message={t('messages.subtitleNoConn')}
+          className="flex-1"
+          onAction={() => onNavigate?.('connections')}
+        />
       ) : (
         <>
           {/* Query bar */}
@@ -414,13 +432,7 @@ export function MessagesScreen() {
         </>
       )}
 
-      {resendTarget && (
-        <ResendDialog
-          msg={resendTarget}
-          groups={sortedGroups}
-          onClose={() => setResendTarget(null)}
-        />
-      )}
+      {resendTarget && <ResendDialog msg={resendTarget} onClose={() => setResendTarget(null)} />}
     </div>
   )
 }
@@ -731,29 +743,18 @@ function MessageDetailPanel({
 
 // ---------- Resend dialog ----------
 
-function ResendDialog({
-  msg,
-  groups,
-  onClose,
-}: {
-  msg: MessageItem
-  groups: string[]
-  onClose: () => void
-}) {
+function ResendDialog({ msg, onClose }: { msg: MessageItem; onClose: () => void }) {
   const { t } = useTranslation()
-  const [group, setGroup] = useState(groups[0] ?? '')
-  const [clientId, setClientId] = useState<string>('')
   const [busy, setBusy] = useState(false)
+  const targetTopic = msg.properties?.RETRY_TOPIC || msg.properties?.REAL_TOPIC || msg.topic
 
   const handleResend = async () => {
-    if (!group) {
-      toast.error(t('messages.form.validateGroup'))
-      return
-    }
     setBusy(true)
     try {
-      const result = await messageApi.resendMessage(group, clientId, msg.topic, msg.messageId)
-      toast.success(t('messages.detail.resendSuccess', { group }), { description: result })
+      const result = await messageApi.resendMessage('', '', msg.topic, msg.messageId)
+      toast.success(t('messages.detail.resendSuccess', { topic: targetTopic }), {
+        description: result,
+      })
       onClose()
     } catch (e) {
       toast.error(t('messages.detail.resendError'), {
@@ -775,37 +776,9 @@ function ResendDialog({
         className="w-full max-w-sm rounded-xl border border-border/50 bg-background p-6 shadow-lg"
       >
         <h2 className="text-base font-semibold">{t('messages.detail.resendTitle')}</h2>
-        <p className="rl-muted mt-2 text-[12px]">{t('messages.detail.resendDesc')}</p>
-        <div className="mt-4 grid gap-3.5">
-          <div>
-            <div className="rl-muted mb-2 text-[12px]">{t('messages.form.group')}</div>
-            {groups.length === 0 ? (
-              <div className="rl-muted text-[12px]" style={{ padding: 8 }}>
-                {t('messages.form.noGroups')}
-              </div>
-            ) : (
-              <select
-                className="rl-select"
-                value={group}
-                onChange={(e) => setGroup(e.target.value)}
-              >
-                {groups.map((g) => (
-                  <option key={g} value={g}>
-                    {g}
-                  </option>
-                ))}
-              </select>
-            )}
-          </div>
-          <div>
-            <div className="rl-muted mb-2 text-[12px]">Client ID (optional)</div>
-            <input
-              className="rl-input font-mono-design"
-              value={clientId}
-              onChange={(e) => setClientId(e.target.value)}
-            />
-          </div>
-        </div>
+        <p className="rl-muted mt-2 text-[12px]">
+          {t('messages.detail.resendDesc', { topic: targetTopic })}
+        </p>
         <div className="mt-5 flex justify-end gap-2.5">
           <button
             type="button"
@@ -819,7 +792,7 @@ function ResendDialog({
             type="button"
             className="rl-btn rl-btn-primary rl-btn-sm"
             onClick={handleResend}
-            disabled={busy || !group}
+            disabled={busy}
           >
             {busy ? <Spinner size={13} /> : <Check size={13} />}
             {t('messages.detail.resendSubmit')}
