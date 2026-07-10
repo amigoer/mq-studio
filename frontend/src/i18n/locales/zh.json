@@ -20,6 +20,7 @@
     "all": "全部",
     "online": "在线",
     "offline": "离线",
+    "warning": "状态未知",
     "connected": "已连接",
     "disconnect": "断开",
     "selectFile": "选择文件",
@@ -36,6 +37,7 @@
     "exitAppConfirm": "确定要关闭 Rocket-Leaf 吗？",
     "exit": "退出",
     "connectFirst": "请先连接集群",
+    "goToConnections": "前往连接管理",
     "docs": "文档"
   },
   "emptyState": {
@@ -84,7 +86,7 @@
       "faq": "常见问题"
     },
     "footer": "本地数据 · 不上传任何信息",
-    "importSuccess": "配置已导入，重启应用后生效",
+    "importSuccess": "配置已导入并生效",
     "importError": "导入配置失败",
     "clipboardEmpty": "剪贴板为空，已打开空白连接表单"
   },
@@ -135,7 +137,7 @@
       "broker": "Broker",
       "lag": "消息积压",
       "topicSummary": "活跃 {{active}}",
-      "consumersSummary": "在线 {{online}} · 离线 {{offline}}",
+      "consumersSummary": "在线 {{online}} · 离线 {{offline}} · 未知 {{unknown}}",
       "brokerSummary_all": "{{master}} 主 + {{slave}} 备 · 全部在线",
       "brokerSummary_partial": "在线 {{online}} / {{total}}",
       "lagSummary": "{{count}} 个 Group 异常",
@@ -165,9 +167,9 @@
       }
     },
     "active": {
-      "title": "活跃 Topic",
-      "subtitle": "按入流量排序",
-      "empty": "暂无入流流量数据"
+      "title": "Topic 概览",
+      "subtitle": "优先展示有入流量数据的 Topic",
+      "empty": "暂无 Topic"
     },
     "lag": {
       "title": "堆积告警",
@@ -401,7 +403,8 @@
       "searching": "查询中…",
       "validateTopic": "请选择 Topic",
       "validateGroup": "请选择消费者组",
-      "validateMsgId": "请输入 Message ID"
+      "validateMsgId": "请输入 Message ID",
+      "validateTimeRange": "时间范围无效，开始时间不能晚于结束时间"
     },
     "table": {
       "msgId": "Message ID",
@@ -448,15 +451,15 @@
         "copyId": "复制 ID",
         "copyBody": "复制消息体",
         "track": "查看轨迹",
-        "resend": "重投到 Group"
+        "resend": "重新发布"
       },
       "copySuccess": "已复制",
       "copyError": "复制失败",
-      "resendTitle": "重投消息",
-      "resendDesc": "选择要重投到的消费者组",
-      "resendSubmit": "重投",
-      "resendSuccess": "已重投到 {{group}}",
-      "resendError": "重投失败"
+      "resendTitle": "重新发布消息",
+      "resendDesc": "将原消息内容作为新消息发布到 Topic {{topic}}。所有订阅组都会按各自进度接收。",
+      "resendSubmit": "重新发布",
+      "resendSuccess": "已重新发布到 {{topic}}",
+      "resendError": "重新发布失败"
     }
   },
   "producer": {
@@ -561,7 +564,7 @@
       "groupOffline": "消费者组无在线实例",
       "groupLag": "消费组持续堆积",
       "diskUsage": "磁盘水位偏高",
-      "dlqGrowth": "死信新增"
+      "dlqGrowth": "死信队列非空"
     },
     "tabs": {
       "active": "活跃告警",
@@ -841,12 +844,14 @@
       "copyError": "复制失败",
       "ioSection": "导入与导出",
       "exportTitle": "导出全部配置",
-      "exportHint": "导出连接、ACL、应用设置为 JSON 文件",
+      "exportHint": "导出连接、ACL、应用设置；文件包含明文凭据，请妥善保管",
+      "exportConfirmTitle": "导出包含敏感凭据的配置？",
+      "exportConfirmDesc": "导出文件将包含明文 AccessKey 和 SecretKey，以支持跨设备迁移。请仅保存到可信位置并限制文件访问权限。",
       "importTitle": "导入配置",
-      "importHint": "从 JSON 文件恢复，重启应用后生效",
+      "importHint": "从 JSON 文件恢复并立即重新加载连接与设置",
       "exportSuccess": "配置已导出",
       "exportError": "导出配置失败",
-      "importSuccess": "配置已导入，重启应用后生效",
+      "importSuccess": "配置已导入并生效",
       "importError": "导入配置失败",
       "cleanup": "清理",
       "clearCache": "清理缓存",

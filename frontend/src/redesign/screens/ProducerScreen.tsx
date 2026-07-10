@@ -8,6 +8,7 @@ import { useTopics } from '@/hooks/useTopics'
 import * as messageApi from '@/api/message'
 import { formatErrorMessage } from '@/lib/utils'
 import { OfflineEmpty } from '@/components/OfflineEmpty'
+import type { NavId } from '../Sidebar'
 
 const SAMPLE_BODY = `{
   "orderId": "ORD-20250812-08472",
@@ -40,7 +41,7 @@ function formatTime(d: Date): string {
   })
 }
 
-export function ProducerScreen() {
+export function ProducerScreen({ onNavigate }: { onNavigate?: (id: NavId) => void }) {
   const { t } = useTranslation()
   const { topics, hasOnline } = useTopics()
 
@@ -126,7 +127,11 @@ export function ProducerScreen() {
 
       <div className="min-h-0 flex-1 overflow-hidden">
         {!hasOnline ? (
-          <OfflineEmpty message={t('producer.subtitleNoConn')} className="h-full" />
+          <OfflineEmpty
+            message={t('producer.subtitleNoConn')}
+            className="h-full"
+            onAction={() => onNavigate?.('connections')}
+          />
         ) : (
           <div className="grid h-full" style={{ gridTemplateColumns: '1fr 380px' }}>
             <div className="scroll-thin min-w-0 overflow-auto" style={{ padding: 24 }}>

@@ -14,6 +14,8 @@ export function OfflineEmpty({
   className?: string
 }) {
   const { t } = useTranslation()
+  const label = actionLabel ?? t('common.goToConnections')
+
   return (
     <div
       className={cn(
@@ -27,9 +29,9 @@ export function OfflineEmpty({
       <div className="text-[13px] font-medium text-foreground/80">
         {message ?? t('common.connectFirst')}
       </div>
-      {onAction && actionLabel && (
-        <button className="rl-btn rl-btn-primary rl-btn-sm mt-4" onClick={onAction}>
-          {actionLabel}
+      {onAction && (
+        <button type="button" className="rl-btn rl-btn-primary rl-btn-sm mt-4" onClick={onAction}>
+          {label}
         </button>
       )}
     </div>

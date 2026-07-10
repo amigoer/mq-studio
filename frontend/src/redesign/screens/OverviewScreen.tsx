@@ -74,7 +74,7 @@ function buildIssues(
   t: (key: string, opts?: Record<string, unknown>) => string,
 ): Issue[] {
   const issues: Issue[] = []
-  const effectiveThreshold = Math.max(1, lagThreshold)
+  const effectiveThreshold = Math.max(0, lagThreshold)
 
   for (const b of data.brokers.filter((x) => x.status === 'offline').slice(0, 2)) {
     issues.push({
@@ -88,9 +88,15 @@ function buildIssues(
   const sortedByLag = [...data.consumerGroups].sort(
     (a, b) => Number(b.lag ?? 0) - Number(a.lag ?? 0),
   )
-  const noInstance = sortedByLag.find(
-    (g) => Number(g.lag ?? 0) > effectiveThreshold && (g.onlineClients ?? 0) === 0,
-  )
+  const noInstance =
+    effectiveThreshold > 0
+      ? sortedByLag.find(
+          (g) =>
+            g.status === 'offline' &&
+            Number(g.lag ?? 0) > effectiveThreshold &&
+            (g.onlineClients ?? 0) === 0,
+        )
+      : undefined
   if (noInstance) {
     issues.push({
       key: `group-off-${noInstance.group}`,
@@ -102,12 +108,15 @@ function buildIssues(
     })
   }
 
-  const withInstance = sortedByLag.find(
-    (g) =>
-      Number(g.lag ?? 0) > effectiveThreshold &&
-      (g.onlineClients ?? 0) > 0 &&
-      g.group !== noInstance?.group,
-  )
+  const withInstance =
+    effectiveThreshold > 0
+      ? sortedByLag.find(
+          (g) =>
+            Number(g.lag ?? 0) > effectiveThreshold &&
+            (g.onlineClients ?? 0) > 0 &&
+            g.group !== noInstance?.group,
+        )
+      : undefined
   if (withInstance) {
     issues.push({
       key: `group-lag-${withInstance.group}`,
@@ -147,7 +156,7 @@ export function OverviewScreen({ onNavigate }: OverviewScreenProps) {
   const { data, loading, error, refresh } = useOverview()
   const { refresh: refreshConnections } = useConnections()
   const { settings } = useSettings()
-  const lagThreshold = settings.lagAlertThreshold || 10000
+  const lagThreshold = settings.lagAlertThreshold ?? 10000
 
   const doRefresh = useCallback(
     () => Promise.all([refresh({ silent: true }), refreshConnections()]),
@@ -160,11 +169,19 @@ export function OverviewScreen({ onNavigate }: OverviewScreenProps) {
   const isOnline = conn?.status === 'online'
 
   const totalLag = useMemo(
-    () => data.consumerGroups.reduce((s, g) => s + Number(g.lag ?? 0), 0),
+    () =>
+      data.consumerGroups.reduce((sum, group) => {
+        const lag = Number(group.lag ?? -1)
+        return sum + (lag >= 0 ? lag : 0)
+      }, 0),
     [data.consumerGroups],
   )
   const onlineGroups = useMemo(
-    () => data.consumerGroups.filter((g) => (g.onlineClients ?? 0) > 0).length,
+    () => data.consumerGroups.filter((g) => g.status === 'online').length,
+    [data.consumerGroups],
+  )
+  const offlineGroups = useMemo(
+    () => data.consumerGroups.filter((g) => g.status === 'offline').length,
     [data.consumerGroups],
   )
   const onlineBrokerCount = data.brokers.filter((b) => b.status === 'online').length
@@ -173,8 +190,7 @@ export function OverviewScreen({ onNavigate }: OverviewScreenProps) {
   const activeTopics = useMemo<TopicItem[]>(
     () =>
       [...data.topics]
-        .filter((tp) => (tp.tpsIn ?? 0) > 0)
-        .sort((a, b) => (b.tpsIn ?? 0) - (a.tpsIn ?? 0))
+        .sort((a, b) => (b.tpsIn ?? 0) - (a.tpsIn ?? 0) || a.topic.localeCompare(b.topic))
         .slice(0, 6),
     [data.topics],
   )
@@ -182,10 +198,12 @@ export function OverviewScreen({ onNavigate }: OverviewScreenProps) {
 
   const lagAlerts = useMemo<ConsumerGroupItem[]>(
     () =>
-      [...data.consumerGroups]
-        .filter((g) => Number(g.lag ?? 0) > lagThreshold)
-        .sort((a, b) => Number(b.lag ?? 0) - Number(a.lag ?? 0))
-        .slice(0, 6),
+      lagThreshold <= 0
+        ? []
+        : [...data.consumerGroups]
+            .filter((g) => Number(g.lag ?? 0) > lagThreshold)
+            .sort((a, b) => Number(b.lag ?? 0) - Number(a.lag ?? 0))
+            .slice(0, 6),
     [data.consumerGroups, lagThreshold],
   )
 
@@ -238,7 +256,6 @@ export function OverviewScreen({ onNavigate }: OverviewScreenProps) {
         {!isOnline ? (
           <OfflineEmpty
             message={t('overview.current.noConnection')}
-            actionLabel={t('overview.current.goToConnections')}
             onAction={() => onNavigate?.('connections')}
           />
         ) : (
@@ -261,7 +278,8 @@ export function OverviewScreen({ onNavigate }: OverviewScreenProps) {
                 value={(data.consumerGroups.length || cluster?.totalGroups || 0).toLocaleString()}
                 hint={t('overview.stat.consumersSummary', {
                   online: onlineGroups,
-                  offline: Math.max(0, data.consumerGroups.length - onlineGroups),
+                  offline: offlineGroups,
+                  unknown: Math.max(0, data.consumerGroups.length - onlineGroups - offlineGroups),
                 })}
               />
               <Kpi
@@ -345,11 +363,13 @@ export function OverviewScreen({ onNavigate }: OverviewScreenProps) {
                       <span className="font-mono-design min-w-0 flex-1 truncate text-[12px]">
                         {topic.topic}
                       </span>
-                      <div className="rl-progress" style={{ width: 56 }}>
-                        <div className="bar" style={{ width: `${pct}%` }} />
-                      </div>
+                      {maxTopicTps > 0 && (
+                        <div className="rl-progress" style={{ width: 56 }}>
+                          <div className="bar" style={{ width: `${pct}%` }} />
+                        </div>
+                      )}
                       <span className="font-mono-design rl-tabular rl-muted w-14 text-right text-[11.5px]">
-                        {formatTps(tps)}/s
+                        {maxTopicTps > 0 ? `${formatTps(tps)}/s` : '—'}
                       </span>
                     </div>
                   )
@@ -407,6 +427,7 @@ export function OverviewScreen({ onNavigate }: OverviewScreenProps) {
                     .slice(0, 12)
                     .map((b) => {
                       const online = b.status === 'online'
+                      const warning = b.status === 'warning'
                       const label = `${b.brokerName}${b.brokerId !== 0 ? `-${b.brokerId}` : ''}`
                       return (
                         <span
@@ -418,7 +439,9 @@ export function OverviewScreen({ onNavigate }: OverviewScreenProps) {
                             style={{
                               background: online
                                 ? 'hsl(var(--success))'
-                                : 'hsl(var(--destructive))',
+                                : warning
+                                  ? 'hsl(var(--warning))'
+                                  : 'hsl(var(--destructive))',
                             }}
                           />
                           <span className="font-mono-design">{label}</span>

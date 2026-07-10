@@ -20,8 +20,9 @@ import { RefreshButton, usePageRefresh } from '@/components/RefreshButton'
 import { SlidingTabs } from '@/components/SlidingTabs'
 import { OfflineEmpty } from '@/components/OfflineEmpty'
 import { ErrorBanner } from '@/components/ErrorBanner'
+import type { NavId } from '../Sidebar'
 
-type TypeFilter = 'all' | 'normal' | 'fifo' | 'delay' | 'retry' | 'dlq'
+type TypeFilter = 'all' | 'normal' | 'retry' | 'dlq'
 type TopicKind = 'normal' | 'fifo' | 'delay' | 'retry' | 'dlq'
 
 const RETRY_PREFIX = '%RETRY%'
@@ -122,7 +123,7 @@ function typeLabel(kind: TopicKind, t: (k: string) => string): string {
   return t(`topics.type.${kind}`)
 }
 
-export function TopicsScreen() {
+export function TopicsScreen({ onNavigate }: { onNavigate?: (id: NavId) => void }) {
   const { t } = useTranslation()
   const { topics, loading, error, refresh, hasOnline } = useTopics()
   const { data: clusterData } = useCluster()
@@ -265,8 +266,6 @@ export function TopicsScreen() {
   const filters: { key: TypeFilter; labelKey: string; count: number }[] = [
     { key: 'all', labelKey: 'topics.filterAll', count: counts.all },
     { key: 'normal', labelKey: 'topics.filterNormal', count: counts.normal },
-    { key: 'fifo', labelKey: 'topics.filterFifo', count: counts.fifo },
-    { key: 'delay', labelKey: 'topics.filterDelay', count: counts.delay },
     { key: 'retry', labelKey: 'topics.filterRetry', count: counts.retry },
     { key: 'dlq', labelKey: 'topics.filterDlq', count: counts.dlq },
   ]
@@ -316,7 +315,10 @@ export function TopicsScreen() {
           onClick={handleListBackgroundClick}
         >
           {!hasOnline ? (
-            <OfflineEmpty message={t('topics.subtitleNoConn')} />
+            <OfflineEmpty
+              message={t('topics.subtitleNoConn')}
+              onAction={() => onNavigate?.('connections')}
+            />
           ) : loading && topics.length === 0 ? (
             <div className="rl-muted flex items-center justify-center gap-2 p-16">
               <Spinner size={14} />

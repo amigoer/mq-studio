@@ -37,7 +37,7 @@ export function AlertsScreen({ onNavigate }: AlertsScreenProps) {
   const { t } = useTranslation()
   const { data, refresh, loading } = useOverview()
   const { settings } = useSettings()
-  const lagThreshold = settings.lagAlertThreshold || 10000
+  const lagThreshold = settings.lagAlertThreshold ?? 10000
 
   const [tab, setTab] = useState<'active' | 'rules'>('active')
   const [rules, setRules] = useState<AlertRulePrefs>(() => loadAlertRules())
@@ -75,7 +75,13 @@ export function AlertsScreen({ onNavigate }: AlertsScreenProps) {
     // Consumer groups: high lag + offline groups
     for (const g of data.consumerGroups) {
       const lag = Number(g.lag ?? 0)
-      if (rules.groupOffline && lag > lagThreshold && (g.onlineClients ?? 0) === 0) {
+      if (
+        lagThreshold > 0 &&
+        rules.groupOffline &&
+        g.status === 'offline' &&
+        lag > lagThreshold &&
+        (g.onlineClients ?? 0) === 0
+      ) {
         out.push({
           key: `group-off-${g.group}`,
           severity: 'crit',
@@ -84,7 +90,7 @@ export function AlertsScreen({ onNavigate }: AlertsScreenProps) {
           desc: `${g.group} · lag ${lag.toLocaleString()}`,
           since: g.lastUpdate || undefined,
         })
-      } else if (rules.groupLag && lag > lagThreshold) {
+      } else if (lagThreshold > 0 && rules.groupLag && lag > lagThreshold) {
         out.push({
           key: `group-lag-${g.group}`,
           severity: 'warn',
@@ -148,7 +154,10 @@ export function AlertsScreen({ onNavigate }: AlertsScreenProps) {
 
       <div className="scroll-thin min-h-0 flex-1 overflow-auto" style={{ padding: 20 }}>
         {!hasOnline ? (
-          <OfflineEmpty message={t('alerts.subtitleNoConn')} />
+          <OfflineEmpty
+            message={t('alerts.subtitleNoConn')}
+            onAction={() => onNavigate?.('connections')}
+          />
         ) : tab === 'active' ? (
           <ActiveAlerts alerts={alerts} loading={loading} />
         ) : (

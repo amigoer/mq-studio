@@ -36,19 +36,19 @@ function App(): React.ReactElement {
       case 'home':
         return <OverviewScreen onNavigate={setActiveNav} />
       case 'topics':
-        return <TopicsScreen />
+        return <TopicsScreen onNavigate={setActiveNav} />
       case 'consumers':
-        return <ConsumersScreen />
+        return <ConsumersScreen onNavigate={setActiveNav} />
       case 'messages':
-        return <MessagesScreen />
+        return <MessagesScreen onNavigate={setActiveNav} />
       case 'producer':
-        return <ProducerScreen />
+        return <ProducerScreen onNavigate={setActiveNav} />
       case 'cluster':
-        return <ClusterScreen />
+        return <ClusterScreen onNavigate={setActiveNav} />
       case 'alerts':
         return <AlertsScreen onNavigate={setActiveNav} />
       case 'acl':
-        return <AclScreen />
+        return <AclScreen onNavigate={setActiveNav} />
       case 'connections':
         return <ConnectionsScreen />
       case 'settings':

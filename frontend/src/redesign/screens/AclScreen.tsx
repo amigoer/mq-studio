@@ -11,6 +11,7 @@ import type { AclVersionInfo } from '@/api/acl'
 import { formatErrorMessage } from '@/lib/utils'
 import { RefreshButton, usePageRefresh } from '@/components/RefreshButton'
 import { OfflineEmpty } from '@/components/OfflineEmpty'
+import type { NavId } from '../Sidebar'
 
 const PERMS = ['DENY', 'PUB', 'SUB', 'PUB|SUB'] as const
 
@@ -21,7 +22,7 @@ function parsePermLines(text: string): string[] {
     .filter((s) => s.length > 0)
 }
 
-export function AclScreen() {
+export function AclScreen({ onNavigate }: { onNavigate?: (id: NavId) => void }) {
   const { t } = useTranslation()
   const { list: connections } = useConnections()
   const activeConn = connections.find((c) => c.status === 'online') ?? null
@@ -187,7 +188,10 @@ export function AclScreen() {
 
       <div className="scroll-thin min-h-0 flex-1 overflow-auto p-5">
         {!hasOnline ? (
-          <OfflineEmpty message={t('acl.subtitleNoConn')} />
+          <OfflineEmpty
+            message={t('acl.subtitleNoConn')}
+            onAction={() => onNavigate?.('connections')}
+          />
         ) : (
           <div style={{ maxWidth: 1280 }}>
             <div

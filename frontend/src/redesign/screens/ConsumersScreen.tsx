@@ -32,6 +32,7 @@ import { RefreshButton, usePageRefresh } from '@/components/RefreshButton'
 import { SlidingTabs } from '@/components/SlidingTabs'
 import { OfflineEmpty } from '@/components/OfflineEmpty'
 import { ErrorBanner } from '@/components/ErrorBanner'
+import type { NavId } from '../Sidebar'
 
 type StatusFilter = 'all' | 'online' | 'warning' | 'offline'
 
@@ -40,6 +41,10 @@ function formatTps(n: number): string {
   if (n >= 10000) return `${(n / 1000).toFixed(1)}k`
   if (n >= 1000) return `${(n / 1000).toFixed(2)}k`
   return Math.round(n).toLocaleString()
+}
+
+function formatMetric(n: number): string {
+  return Number.isFinite(n) && n >= 0 ? n.toLocaleString() : '—'
 }
 
 function statusBadgeClass(status: string): string {
@@ -55,7 +60,7 @@ function statusBadgeClass(status: string): string {
   }
 }
 
-export function ConsumersScreen() {
+export function ConsumersScreen({ onNavigate }: { onNavigate?: (id: NavId) => void }) {
   const { t } = useTranslation()
   const { groups, loading, error, refresh, hasOnline } = useConsumers()
   const { data: clusterData } = useCluster()
@@ -221,7 +226,10 @@ export function ConsumersScreen() {
           onClick={handleListBackgroundClick}
         >
           {!hasOnline ? (
-            <OfflineEmpty message={t('consumers.subtitleNoConn')} />
+            <OfflineEmpty
+              message={t('consumers.subtitleNoConn')}
+              onAction={() => onNavigate?.('connections')}
+            />
           ) : loading && groups.length === 0 ? (
             <div
               className="rl-muted flex items-center justify-center"
@@ -309,7 +317,7 @@ export function ConsumersScreen() {
                             {g.lag > 1000 && (
                               <AlertCircle size={11} className="mr-1 inline-block align-[-1px]" />
                             )}
-                            {g.lag.toLocaleString()}
+                            {formatMetric(g.lag)}
                           </td>
                           <td className="col-chevron">
                             <ChevronRight
@@ -505,7 +513,7 @@ function GroupDetailPanel({
                     color: group.lag > 1000 ? 'hsl(var(--warning))' : undefined,
                   }}
                 >
-                  {group.lag.toLocaleString()}
+                  {formatMetric(group.lag)}
                 </div>
               </div>
               <div style={{ padding: '12px 14px', borderLeft: '1px solid hsl(var(--border))' }}>

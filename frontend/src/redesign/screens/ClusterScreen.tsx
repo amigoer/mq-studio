@@ -9,6 +9,7 @@ import { RefreshButton, usePageRefresh } from '@/components/RefreshButton'
 import { SlidingTabs } from '@/components/SlidingTabs'
 import { OfflineEmpty } from '@/components/OfflineEmpty'
 import { ErrorBanner } from '@/components/ErrorBanner'
+import type { NavId } from '../Sidebar'
 
 const HISTORY_LEN = 60
 
@@ -38,7 +39,7 @@ function formatTps(n: number): string {
   return Math.round(n).toLocaleString()
 }
 
-export function ClusterScreen() {
+export function ClusterScreen({ onNavigate }: { onNavigate?: (id: NavId) => void }) {
   const { t } = useTranslation()
   const { data, loading, error, refresh, hasOnline } = useCluster()
   const [activeTab, setActiveTab] = useState<'overview' | 'broker' | 'nameserver'>('overview')
@@ -47,22 +48,29 @@ export function ClusterScreen() {
   const brokers = data.brokers
 
   const onlineCount = brokers.filter((b) => b.status === 'online').length
+  const offlineCount = brokers.filter((b) => b.status === 'offline').length
   const totalCount = brokers.length || cluster?.totalBrokers || 0
   const healthLabel = useMemo(() => {
     if (totalCount === 0) return t('cluster.stat.healthOffline')
     if (onlineCount === totalCount) return t('cluster.stat.healthHealthy')
-    if (onlineCount === 0) return t('cluster.stat.healthOffline')
+    if (offlineCount === totalCount) return t('cluster.stat.healthOffline')
     return t('cluster.stat.healthDegraded')
-  }, [onlineCount, totalCount, t])
+  }, [offlineCount, onlineCount, totalCount, t])
   const healthColor =
-    onlineCount === 0
+    totalCount === 0 || offlineCount === totalCount
       ? 'hsl(var(--destructive))'
       : onlineCount === totalCount
         ? 'hsl(var(--success))'
         : 'hsl(var(--warning))'
 
-  const totalTpsIn = brokers.reduce((s, b) => s + (b.tpsIn ?? 0), 0)
-  const totalTpsOut = brokers.reduce((s, b) => s + (b.tpsOut ?? 0), 0)
+  const totalTpsIn = brokers.reduce(
+    (s, b) => s + (b.status === 'online' && (b.tpsIn ?? -1) >= 0 ? b.tpsIn : 0),
+    0,
+  )
+  const totalTpsOut = brokers.reduce(
+    (s, b) => s + (b.status === 'online' && (b.tpsOut ?? -1) >= 0 ? b.tpsOut : 0),
+    0,
+  )
   const totalTps = totalTpsIn + totalTpsOut
   const avgDisk =
     cluster?.avgDiskUsage ??
@@ -124,7 +132,10 @@ export function ClusterScreen() {
 
       <div className="scroll-thin min-h-0 flex-1 overflow-auto p-5">
         {!hasOnline ? (
-          <OfflineEmpty message={t('cluster.subtitleNoConn')} />
+          <OfflineEmpty
+            message={t('cluster.subtitleNoConn')}
+            onAction={() => onNavigate?.('connections')}
+          />
         ) : (
           <>
             {error && (
@@ -323,6 +334,7 @@ function BrokerTable({ brokers }: { brokers: BrokerNode[] }) {
         <tbody>
           {brokers.map((b) => {
             const isOnline = b.status === 'online'
+            const isWarning = b.status === 'warning'
             const role = String(b.role || '').toUpperCase()
             const isMaster = role === 'MASTER'
             const disk = Math.round(b.commitLogDiskUsage ?? 0)
@@ -349,18 +361,33 @@ function BrokerTable({ brokers }: { brokers: BrokerNode[] }) {
                   {isOnline ? `${formatTps(b.tpsIn)} / ${formatTps(b.tpsOut)}` : '—'}
                 </td>
                 <td>
-                  <div className="flex items-center gap-2">
-                    <div className="rl-progress flex-1" style={{ maxWidth: 120 }}>
-                      <div className="bar" style={{ width: `${disk}%` }} />
+                  {isOnline ? (
+                    <div className="flex items-center gap-2">
+                      <div className="rl-progress flex-1" style={{ maxWidth: 120 }}>
+                        <div className="bar" style={{ width: `${disk}%` }} />
+                      </div>
+                      <span className="rl-tabular rl-muted text-[12px]">{disk}%</span>
                     </div>
-                    <span className="rl-tabular rl-muted text-[12px]">{disk}%</span>
-                  </div>
+                  ) : (
+                    <span className="rl-muted text-[12px]">—</span>
+                  )}
                 </td>
                 <td>
                   <span
-                    className={'rl-badge ' + (isOnline ? 'rl-badge-success' : 'rl-badge-outline')}
+                    className={
+                      'rl-badge ' +
+                      (isOnline
+                        ? 'rl-badge-success'
+                        : isWarning
+                          ? 'rl-badge-warn'
+                          : 'rl-badge-outline')
+                    }
                   >
-                    {isOnline ? t('common.online') : t('common.offline')}
+                    {isOnline
+                      ? t('common.online')
+                      : isWarning
+                        ? t('common.warning')
+                        : t('common.offline')}
                   </span>
                 </td>
               </tr>

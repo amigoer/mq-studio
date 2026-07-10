@@ -20,6 +20,7 @@
     "all": "All",
     "online": "Online",
     "offline": "Offline",
+    "warning": "Unknown",
     "connected": "Connected",
     "disconnect": "Disconnect",
     "selectFile": "Choose file",
@@ -36,6 +37,7 @@
     "exitAppConfirm": "Quit Rocket-Leaf?",
     "exit": "Quit",
     "connectFirst": "Connect to a cluster first",
+    "goToConnections": "Go to Connections",
     "docs": "Docs"
   },
   "emptyState": {
@@ -84,7 +86,7 @@
       "faq": "FAQ"
     },
     "footer": "Local data · nothing is uploaded",
-    "importSuccess": "Config imported. Restart the app to apply.",
+    "importSuccess": "Configuration imported and applied",
     "importError": "Failed to import config",
     "clipboardEmpty": "Clipboard is empty — open a blank connection form"
   },
@@ -135,7 +137,7 @@
       "broker": "Brokers",
       "lag": "Total lag",
       "topicSummary": "{{active}} active",
-      "consumersSummary": "{{online}} online · {{offline}} offline",
+      "consumersSummary": "{{online}} online · {{offline}} offline · {{unknown}} unknown",
       "brokerSummary_all": "{{master}} master + {{slave}} slave · all online",
       "brokerSummary_partial": "{{online}} / {{total}} online",
       "lagSummary": "{{count}} group(s) abnormal",
@@ -165,9 +167,9 @@
       }
     },
     "active": {
-      "title": "Active topics",
-      "subtitle": "Sorted by inbound traffic",
-      "empty": "No inbound traffic data yet"
+      "title": "Topic overview",
+      "subtitle": "Topics with inbound traffic are shown first",
+      "empty": "No topics"
     },
     "lag": {
       "title": "Lag alerts",
@@ -401,7 +403,8 @@
       "searching": "Searching…",
       "validateTopic": "Pick a topic",
       "validateGroup": "Pick a group",
-      "validateMsgId": "Enter the Message ID"
+      "validateMsgId": "Enter the Message ID",
+      "validateTimeRange": "Invalid time range: the start must not be later than the end"
     },
     "table": {
       "msgId": "Message ID",
@@ -448,15 +451,15 @@
         "copyId": "Copy ID",
         "copyBody": "Copy body",
         "track": "View track",
-        "resend": "Resend to group"
+        "resend": "Republish"
       },
       "copySuccess": "Copied",
       "copyError": "Copy failed",
-      "resendTitle": "Resend message",
-      "resendDesc": "Pick the consumer group to resend to",
-      "resendSubmit": "Resend",
-      "resendSuccess": "Resent to {{group}}",
-      "resendError": "Resend failed"
+      "resendTitle": "Republish message",
+      "resendDesc": "Publish the original payload as a new message to topic {{topic}}. Every subscribing group may receive it according to its own progress.",
+      "resendSubmit": "Republish",
+      "resendSuccess": "Republished to {{topic}}",
+      "resendError": "Republish failed"
     }
   },
   "producer": {
@@ -561,7 +564,7 @@
       "groupOffline": "Consumer group has no online instances",
       "groupLag": "Consumer group lag",
       "diskUsage": "Broker disk usage",
-      "dlqGrowth": "Dead letters growing"
+      "dlqGrowth": "Dead-letter queue not empty"
     },
     "tabs": {
       "active": "Active",
@@ -841,12 +844,14 @@
       "copyError": "Copy failed",
       "ioSection": "Import & export",
       "exportTitle": "Export all configuration",
-      "exportHint": "Export connections, ACL and app settings as JSON",
+      "exportHint": "Export connections, ACL and settings. The file contains plaintext credentials; keep it secure",
+      "exportConfirmTitle": "Export configuration with credentials?",
+      "exportConfirmDesc": "The export contains plaintext AccessKey and SecretKey values for cross-device migration. Save it only to a trusted location with restricted access.",
       "importTitle": "Import configuration",
-      "importHint": "Restore from a JSON file. Restart to apply.",
+      "importHint": "Restore from JSON and reload connections and settings immediately",
       "exportSuccess": "Configuration exported",
       "exportError": "Export failed",
-      "importSuccess": "Configuration imported. Restart to apply.",
+      "importSuccess": "Configuration imported and applied",
       "importError": "Import failed",
       "cleanup": "Cleanup",
       "clearCache": "Clear cache",
