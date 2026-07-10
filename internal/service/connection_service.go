@@ -35,6 +35,7 @@ type ConnectionService struct {
 	nextID          int                       // 下一个连接ID
 	dataFilePath    string                    // 连接配置持久化文件路径
 	settingsService *SettingsService          // 设置服务
+	reconnectReload bool                      // 热重载失败后，回滚重载仍需恢复在线连接
 }
 
 // NewConnectionService 创建连接管理服务
@@ -49,8 +50,54 @@ func NewConnectionService(settingsService *SettingsService) *ConnectionService {
 	if err := service.loadConnectionsFromFile(); err != nil {
 		log.Printf("[ConnectionService] 加载连接配置失败: %v", err)
 	}
+	if settingsService != nil {
+		settingsService.setConnectionReloader(service.reloadConnections)
+	}
 
 	return service
+}
+
+// reloadConnections 从磁盘热重载连接配置，并关闭仍引用旧配置的客户端。
+func (s *ConnectionService) reloadConnections() error {
+	s.mu.RLock()
+	shouldReconnect := s.reconnectReload
+	for _, conn := range s.connections {
+		if conn != nil && conn.Status == model.StatusOnline {
+			shouldReconnect = true
+			break
+		}
+	}
+	s.mu.RUnlock()
+
+	s.mu.Lock()
+	if err := s.loadConnectionsFromFile(); err != nil {
+		s.mu.Unlock()
+		return err
+	}
+	s.reconnectReload = shouldReconnect
+	s.mu.Unlock()
+	rocketmq.GetClientManager().CloseAll()
+	if shouldReconnect {
+		s.mu.RLock()
+		defaultID := 0
+		for _, conn := range s.connections {
+			if conn != nil && conn.IsDefault {
+				defaultID = conn.ID
+				break
+			}
+		}
+		s.mu.RUnlock()
+		if defaultID != 0 {
+			if err := s.Connect(defaultID); err != nil {
+				// 保留标志；若调用方回滚磁盘文件，下一次重载会恢复原连接。
+				return err
+			}
+		}
+	}
+	s.mu.Lock()
+	s.reconnectReload = false
+	s.mu.Unlock()
+	return nil
 }
 
 func resolveConnectionDataFilePath() string {
@@ -95,6 +142,21 @@ func normalizeTimeoutSec(timeoutSec int) int {
 	}
 
 	return timeoutSec
+}
+
+func validateConnectionFields(name, nameServer string, timeoutSec int) (string, string, error) {
+	name = strings.TrimSpace(name)
+	nameServer = strings.TrimSpace(nameServer)
+	if name == "" {
+		return "", "", fmt.Errorf("连接名称不能为空")
+	}
+	if len(rocketmq.ParseNameServers(nameServer)) == 0 {
+		return "", "", fmt.Errorf("NameServer 地址不能为空")
+	}
+	if timeoutSec < 0 || timeoutSec > 300 {
+		return "", "", fmt.Errorf("连接超时必须在 1-300 秒之间")
+	}
+	return name, nameServer, nil
 }
 
 func (s *ConnectionService) loadConnectionsFromFile() error {
@@ -142,14 +204,18 @@ func (s *ConnectionService) loadConnectionsFromFile() error {
 
 		// 解密敏感字段（兼容未加密的旧数据）
 		if current.AccessKey != "" {
-			if decrypted, decErr := crypto.Decrypt(current.AccessKey, "accessKey"); decErr == nil {
-				current.AccessKey = decrypted
+			decrypted, decErr := crypto.Decrypt(current.AccessKey, "accessKey")
+			if decErr != nil {
+				return fmt.Errorf("解密连接 %q 的 AccessKey 失败: %w", current.Name, decErr)
 			}
+			current.AccessKey = decrypted
 		}
 		if current.SecretKey != "" {
-			if decrypted, decErr := crypto.Decrypt(current.SecretKey, "secretKey"); decErr == nil {
-				current.SecretKey = decrypted
+			decrypted, decErr := crypto.Decrypt(current.SecretKey, "secretKey")
+			if decErr != nil {
+				return fmt.Errorf("解密连接 %q 的 SecretKey 失败: %w", current.Name, decErr)
 			}
+			current.SecretKey = decrypted
 		}
 
 		enableACL, accessKey, secretKey, err := normalizeACLConfig(current.EnableACL, current.AccessKey, current.SecretKey)
@@ -199,14 +265,18 @@ func (s *ConnectionService) saveConnectionsLocked() error {
 		connCopy := *conn
 		// 加密敏感字段后再写入文件
 		if connCopy.AccessKey != "" {
-			if encrypted, encErr := crypto.Encrypt(connCopy.AccessKey, "accessKey"); encErr == nil {
-				connCopy.AccessKey = encrypted
+			encrypted, encErr := crypto.Encrypt(connCopy.AccessKey, "accessKey")
+			if encErr != nil {
+				return fmt.Errorf("加密 AccessKey 失败: %w", encErr)
 			}
+			connCopy.AccessKey = encrypted
 		}
 		if connCopy.SecretKey != "" {
-			if encrypted, encErr := crypto.Encrypt(connCopy.SecretKey, "secretKey"); encErr == nil {
-				connCopy.SecretKey = encrypted
+			encrypted, encErr := crypto.Encrypt(connCopy.SecretKey, "secretKey")
+			if encErr != nil {
+				return fmt.Errorf("加密 SecretKey 失败: %w", encErr)
 			}
+			connCopy.SecretKey = encrypted
 		}
 		connections = append(connections, &connCopy)
 	}
@@ -220,21 +290,7 @@ func (s *ConnectionService) saveConnectionsLocked() error {
 		return err
 	}
 
-	if err := os.MkdirAll(filepath.Dir(s.dataFilePath), 0o755); err != nil {
-		return err
-	}
-
-	tempFilePath := s.dataFilePath + ".tmp"
-	if err := os.WriteFile(tempFilePath, data, 0o600); err != nil {
-		return err
-	}
-
-	if err := os.Rename(tempFilePath, s.dataFilePath); err != nil {
-		_ = os.Remove(tempFilePath)
-		return err
-	}
-
-	return nil
+	return writeAtomicFile(s.dataFilePath, data)
 }
 
 // formatNow 格式化当前时间
@@ -249,8 +305,13 @@ func (s *ConnectionService) GetConnections() []*model.Connection {
 
 	result := make([]*model.Connection, 0, len(s.connections))
 	for _, conn := range s.connections {
-		result = append(result, conn)
+		if conn == nil {
+			continue
+		}
+		connCopy := *conn
+		result = append(result, &connCopy)
 	}
+	sort.Slice(result, func(i, j int) bool { return result[i].ID < result[j].ID })
 	return result
 }
 
@@ -263,18 +324,24 @@ func (s *ConnectionService) GetConnection(id int) (*model.Connection, error) {
 	if !exists {
 		return nil, fmt.Errorf("连接不存在: %d", id)
 	}
-	return conn, nil
+	connCopy := *conn
+	return &connCopy, nil
 }
 
 // AddConnection 添加新连接
 func (s *ConnectionService) AddConnection(name string, env string, nameServer string, timeoutSec int, enableACL bool, accessKey string, secretKey string, remark string) (*model.Connection, error) {
+	var err error
+	name, nameServer, err = validateConnectionFields(name, nameServer, timeoutSec)
+	if err != nil {
+		return nil, err
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	// 验证环境类型
 	connEnv := normalizeConnectionEnv(model.ConnectionEnv(env))
 
-	enableACL, accessKey, secretKey, err := normalizeACLConfig(enableACL, accessKey, secretKey)
+	enableACL, accessKey, secretKey, err = normalizeACLConfig(enableACL, accessKey, secretKey)
 	if err != nil {
 		return nil, err
 	}
@@ -305,30 +372,35 @@ func (s *ConnectionService) AddConnection(name string, env string, nameServer st
 	}
 	s.nextID++
 
-	return conn, nil
+	connCopy := *conn
+	return &connCopy, nil
 }
 
 // UpdateConnection 更新连接配置
 func (s *ConnectionService) UpdateConnection(id int, name string, env string, nameServer string, timeoutSec int, enableACL bool, accessKey string, secretKey string, remark string) (*model.Connection, error) {
+	var err error
+	name, nameServer, err = validateConnectionFields(name, nameServer, timeoutSec)
+	if err != nil {
+		return nil, err
+	}
 	s.mu.Lock()
-	defer s.mu.Unlock()
 
 	conn, exists := s.connections[id]
 	if !exists {
+		s.mu.Unlock()
 		return nil, fmt.Errorf("连接不存在: %d", id)
 	}
 
-	oldNameServer := conn.NameServer
+	oldConn := *conn
 
 	// 验证环境类型
 	connEnv := normalizeConnectionEnv(model.ConnectionEnv(env))
 
-	enableACL, accessKey, secretKey, err := normalizeACLConfig(enableACL, accessKey, secretKey)
+	enableACL, accessKey, secretKey, err = normalizeACLConfig(enableACL, accessKey, secretKey)
 	if err != nil {
+		s.mu.Unlock()
 		return nil, err
 	}
-
-	oldConn := *conn
 
 	conn.Name = name
 	conn.Env = connEnv
@@ -338,18 +410,33 @@ func (s *ConnectionService) UpdateConnection(id int, name string, env string, na
 	conn.AccessKey = accessKey
 	conn.SecretKey = secretKey
 	conn.Remark = remark
+	clientConfigChanged := oldConn.NameServer != conn.NameServer ||
+		oldConn.TimeoutSec != conn.TimeoutSec ||
+		oldConn.EnableACL != conn.EnableACL ||
+		oldConn.AccessKey != conn.AccessKey ||
+		oldConn.SecretKey != conn.SecretKey
+	wasOnline := oldConn.Status == model.StatusOnline
+	if clientConfigChanged {
+		conn.Status = model.StatusOffline
+	}
 
 	if err := s.saveConnectionsLocked(); err != nil {
 		*conn = oldConn
+		s.mu.Unlock()
 		return nil, fmt.Errorf("保存连接配置失败: %w", err)
 	}
+	result := *conn
+	s.mu.Unlock()
 
-	// 如果 NameServer 地址变更，需要移除旧客户端
-	if oldNameServer != nameServer {
-		rocketmq.GetClientManager().RemoveClient(oldNameServer)
+	if clientConfigChanged && wasOnline {
+		rocketmq.GetClientManager().RemoveClient(oldConn.NameServer)
+		if err := s.Connect(id); err != nil {
+			return &result, fmt.Errorf("连接配置已保存，但使用新配置重连失败: %w", err)
+		}
+		return s.GetConnection(id)
 	}
 
-	return conn, nil
+	return &result, nil
 }
 
 // DeleteConnection 删除连接
@@ -398,8 +485,10 @@ func (s *ConnectionService) DeleteConnection(id int) error {
 		return fmt.Errorf("保存连接配置失败: %w", err)
 	}
 
-	// 移除客户端
-	rocketmq.GetClientManager().RemoveClient(nameServer)
+	// 只有实际在线的配置才拥有客户端；删除同 NameServer 的离线配置不能误伤活动连接。
+	if deletedConn.Status == model.StatusOnline {
+		rocketmq.GetClientManager().RemoveClient(nameServer)
+	}
 
 	return nil
 }
@@ -427,12 +516,9 @@ func (s *ConnectionService) TestConnection(id int) (string, error) {
 	if conn, exists := s.connections[id]; exists {
 		conn.LastCheck = formatNow()
 		if err == nil {
-			conn.Status = model.StatusOnline
 			return "online", nil
-		} else {
-			conn.Status = model.StatusOffline
-			return "offline", err
 		}
+		return "offline", err
 	}
 
 	return "offline", err
@@ -474,8 +560,14 @@ func (s *ConnectionService) SetDefaultConnection(id int) error {
 		return fmt.Errorf("连接不存在: %d", id)
 	}
 
+	manager := rocketmq.GetClientManager()
+	_, clientExistsErr := manager.GetClient(conn.NameServer)
+	clientExists := clientExistsErr == nil
 	if conn.IsDefault {
-		return rocketmq.GetClientManager().SetDefaultConnection(conn.NameServer)
+		if clientExists {
+			return manager.SetDefaultConnection(conn.NameServer)
+		}
+		return nil
 	}
 
 	previousDefaultNameServer := ""
@@ -486,8 +578,12 @@ func (s *ConnectionService) SetDefaultConnection(id int) error {
 		}
 	}
 
-	if err := rocketmq.GetClientManager().SetDefaultConnection(conn.NameServer); err != nil {
-		return err
+	runtimeDefaultChanged := false
+	if clientExists {
+		if err := manager.SetDefaultConnection(conn.NameServer); err != nil {
+			return err
+		}
+		runtimeDefaultChanged = true
 	}
 
 	// 取消其他连接的默认状态
@@ -504,8 +600,8 @@ func (s *ConnectionService) SetDefaultConnection(id int) error {
 				c.IsDefault = true
 			}
 		}
-		if previousDefaultNameServer != "" && previousDefaultNameServer != conn.NameServer {
-			if resetErr := rocketmq.GetClientManager().SetDefaultConnection(previousDefaultNameServer); resetErr != nil {
+		if runtimeDefaultChanged && previousDefaultNameServer != "" && previousDefaultNameServer != conn.NameServer {
+			if resetErr := manager.SetDefaultConnection(previousDefaultNameServer); resetErr != nil {
 				log.Printf("[ConnectionService] 回滚默认连接失败: %v", resetErr)
 			}
 		}
@@ -523,33 +619,19 @@ func (s *ConnectionService) ConnectDefault() error {
 	}
 
 	s.mu.RLock()
-	var defaultConn *model.Connection
+	defaultID := 0
 	for _, conn := range s.connections {
 		if conn.IsDefault {
-			defaultConn = conn
+			defaultID = conn.ID
 			break
 		}
 	}
 	s.mu.RUnlock()
 
-	if defaultConn == nil {
-		return fmt.Errorf("无默认连接配置")
+	if defaultID == 0 {
+		return nil
 	}
-
-	timeout := s.getConnectTimeout(defaultConn)
-	enableACL, accessKey, secretKey := s.resolveACLCredentials(defaultConn)
-	_, err := rocketmq.GetClientManager().CreateClient(
-		defaultConn.NameServer,
-		timeout,
-		enableACL,
-		accessKey,
-		secretKey,
-	)
-	if err != nil {
-		return err
-	}
-
-	return rocketmq.GetClientManager().SetDefaultConnection(defaultConn.NameServer)
+	return s.Connect(defaultID)
 }
 
 // Connect 连接指定连接，并将其设为当前活动（默认）客户端。
@@ -605,7 +687,7 @@ func (s *ConnectionService) Connect(id int) error {
 	saveErr := s.saveConnectionsLocked()
 	s.mu.Unlock()
 	if saveErr != nil {
-		log.Printf("[ConnectionService] 连接成功但保存状态失败: %v", saveErr)
+		return fmt.Errorf("连接成功，但保存默认连接状态失败: %w", saveErr)
 	}
 
 	return nil
@@ -621,9 +703,12 @@ func (s *ConnectionService) Disconnect(id int) error {
 	}
 	nameServer := conn.NameServer
 	wasDefault := conn.IsDefault
+	wasOnline := conn.Status == model.StatusOnline
 	s.mu.Unlock()
 
-	rocketmq.GetClientManager().RemoveClient(nameServer)
+	if wasOnline {
+		rocketmq.GetClientManager().RemoveClient(nameServer)
+	}
 
 	s.mu.Lock()
 	if c, ok := s.connections[id]; ok {
