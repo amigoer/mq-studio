@@ -154,7 +154,7 @@ interface OverviewScreenProps {
 export function OverviewScreen({ onNavigate }: OverviewScreenProps) {
   const { t } = useTranslation()
   const { data, loading, error, refresh } = useOverview()
-  const { refresh: refreshConnections } = useConnections()
+  const { list: connections, refresh: refreshConnections } = useConnections()
   const { settings } = useSettings()
   const lagThreshold = settings.lagAlertThreshold ?? 10000
 
@@ -165,7 +165,13 @@ export function OverviewScreen({ onNavigate }: OverviewScreenProps) {
   const { spinning: isRefreshing, refresh: handleRefresh } = usePageRefresh(doRefresh)
 
   const cluster = data.cluster
-  const conn = data.activeConnection
+  // Title bar / sidebar use shared connection state; derive online from the same
+  // source so the home page cannot stay on Offline empty after auto-connect.
+  const conn =
+    connections.find((c) => c.status === 'online') ??
+    data.activeConnection ??
+    connections.find((c) => c.isDefault) ??
+    null
   const isOnline = conn?.status === 'online'
 
   const totalLag = useMemo(
