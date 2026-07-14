@@ -1,0 +1,682 @@
+openapi: 3.1.0
+info:
+  title: Rocket Leaf Private Desktop API
+  version: 2.0.0
+  description: Electron 主进程与本地 rocket-leafd 之间的私有回环接口，不作为公共 API 发布。
+servers:
+  - url: http://127.0.0.1:{port}/v1
+    variables:
+      port: { default: '0' }
+security:
+  - bearerAuth: []
+paths:
+  /health:
+    get: { operationId: getHealth, responses: { '200': { description: OK } } }
+  /shutdown:
+    post: { operationId: shutdown, responses: { '202': { description: Accepted } } }
+  /connections:
+    get:
+      operationId: listConnections
+      responses:
+        '200':
+          {
+            description: OK,
+            content:
+              {
+                application/json:
+                  { schema: { type: array, items: { $ref: '#/components/schemas/Connection' } } },
+              },
+          }
+    post:
+      operationId: addConnection
+      requestBody:
+        {
+          required: true,
+          content:
+            { application/json: { schema: { $ref: '#/components/schemas/ConnectionInput' } } },
+        }
+      responses:
+        {
+          '201':
+            {
+              description: Created,
+              content:
+                { application/json: { schema: { $ref: '#/components/schemas/Connection' } } },
+            },
+        }
+  /connections/{id}:
+    parameters: [{ name: id, in: path, required: true, schema: { type: integer } }]
+    put:
+      operationId: updateConnection
+      requestBody:
+        {
+          required: true,
+          content:
+            { application/json: { schema: { $ref: '#/components/schemas/ConnectionInput' } } },
+        }
+      responses:
+        {
+          '200':
+            {
+              description: OK,
+              content:
+                { application/json: { schema: { $ref: '#/components/schemas/Connection' } } },
+            },
+        }
+    delete: { operationId: deleteConnection, responses: { '204': { description: Deleted } } }
+  /connections/{id}/connect:
+    post:
+      {
+        operationId: connect,
+        parameters: [{ name: id, in: path, required: true, schema: { type: integer } }],
+        responses: { '204': { description: Connected } },
+      }
+  /connections/{id}/disconnect:
+    post:
+      {
+        operationId: disconnect,
+        parameters: [{ name: id, in: path, required: true, schema: { type: integer } }],
+        responses: { '204': { description: Disconnected } },
+      }
+  /connections/{id}/default:
+    post:
+      {
+        operationId: setDefaultConnection,
+        parameters: [{ name: id, in: path, required: true, schema: { type: integer } }],
+        responses: { '204': { description: Updated } },
+      }
+  /connections/{id}/test:
+    post:
+      {
+        operationId: testConnection,
+        parameters: [{ name: id, in: path, required: true, schema: { type: integer } }],
+        responses: { '200': { description: OK } },
+      }
+  /connections/connect-default:
+    post: { operationId: connectDefault, responses: { '204': { description: Connected } } }
+  /settings:
+    get:
+      {
+        operationId: getSettings,
+        responses:
+          {
+            '200':
+              {
+                description: OK,
+                content:
+                  { application/json: { schema: { $ref: '#/components/schemas/AppSettings' } } },
+              },
+          },
+      }
+    put:
+      operationId: updateSettings
+      requestBody:
+        {
+          required: true,
+          content: { application/json: { schema: { $ref: '#/components/schemas/AppSettings' } } },
+        }
+      responses:
+        {
+          '200':
+            {
+              description: OK,
+              content:
+                { application/json: { schema: { $ref: '#/components/schemas/AppSettings' } } },
+            },
+        }
+  /settings/reset:
+    post: { operationId: resetSettings, responses: { '200': { description: OK } } }
+  /settings/clear-cache:
+    post: { operationId: clearCache, responses: { '204': { description: Cleared } } }
+  /settings/export:
+    get: { operationId: exportConfig, responses: { '200': { description: OK } } }
+  /settings/import:
+    post: { operationId: importConfig, responses: { '204': { description: Imported } } }
+  /cluster:
+    get:
+      {
+        operationId: getClusterInfo,
+        responses:
+          {
+            '200':
+              {
+                description: OK,
+                content:
+                  { application/json: { schema: { $ref: '#/components/schemas/ClusterInfo' } } },
+              },
+          },
+      }
+  /cluster/summary:
+    get:
+      {
+        operationId: getClusterSummary,
+        responses:
+          {
+            '200':
+              {
+                description: OK,
+                content:
+                  { application/json: { schema: { $ref: '#/components/schemas/ClusterSummary' } } },
+              },
+          },
+      }
+  /cluster/brokers:
+    get:
+      {
+        operationId: getBrokers,
+        responses:
+          {
+            '200':
+              {
+                description: OK,
+                content:
+                  {
+                    application/json:
+                      {
+                        schema: { type: array, items: { $ref: '#/components/schemas/BrokerNode' } },
+                      },
+                  },
+              },
+          },
+      }
+  /cluster/brokers/detail:
+    get:
+      {
+        operationId: getBrokerDetail,
+        responses:
+          {
+            '200':
+              {
+                description: OK,
+                content:
+                  { application/json: { schema: { $ref: '#/components/schemas/BrokerNode' } } },
+              },
+          },
+      }
+  /topics:
+    get:
+      {
+        operationId: listTopics,
+        responses:
+          {
+            '200':
+              {
+                description: OK,
+                content:
+                  {
+                    application/json:
+                      {
+                        schema: { type: array, items: { $ref: '#/components/schemas/TopicItem' } },
+                      },
+                  },
+              },
+          },
+      }
+    post: { operationId: createTopic, responses: { '204': { description: Created } } }
+    put: { operationId: updateTopic, responses: { '204': { description: Updated } } }
+    delete: { operationId: deleteTopic, responses: { '204': { description: Deleted } } }
+  /topics/detail:
+    get:
+      {
+        operationId: getTopicDetail,
+        responses:
+          {
+            '200':
+              {
+                description: OK,
+                content:
+                  { application/json: { schema: { $ref: '#/components/schemas/TopicItem' } } },
+              },
+          },
+      }
+  /topics/stats:
+    get: { operationId: getTopicStats, responses: { '200': { description: OK } } }
+  /consumers:
+    get:
+      {
+        operationId: listConsumers,
+        responses:
+          {
+            '200':
+              {
+                description: OK,
+                content:
+                  {
+                    application/json:
+                      {
+                        schema:
+                          {
+                            type: array,
+                            items: { $ref: '#/components/schemas/ConsumerGroupItem' },
+                          },
+                      },
+                  },
+              },
+          },
+      }
+    post: { operationId: createConsumer, responses: { '204': { description: Created } } }
+    put: { operationId: updateConsumer, responses: { '204': { description: Updated } } }
+    delete: { operationId: deleteConsumer, responses: { '204': { description: Deleted } } }
+  /consumers/detail:
+    get:
+      {
+        operationId: getConsumerDetail,
+        responses:
+          {
+            '200':
+              {
+                description: OK,
+                content:
+                  {
+                    application/json:
+                      { schema: { $ref: '#/components/schemas/ConsumerGroupItem' } },
+                  },
+              },
+          },
+      }
+  /consumers/stats:
+    get: { operationId: getConsumerStats, responses: { '200': { description: OK } } }
+  /consumers/reset-offset:
+    post: { operationId: resetOffset, responses: { '204': { description: Reset } } }
+  /messages:
+    get:
+      {
+        operationId: queryMessages,
+        responses:
+          {
+            '200':
+              {
+                description: OK,
+                content:
+                  {
+                    application/json:
+                      {
+                        schema:
+                          { type: array, items: { $ref: '#/components/schemas/MessageItem' } },
+                      },
+                  },
+              },
+          },
+      }
+  /messages/by-id:
+    get:
+      {
+        operationId: queryMessageById,
+        responses:
+          {
+            '200':
+              {
+                description: OK,
+                content:
+                  { application/json: { schema: { $ref: '#/components/schemas/MessageItem' } } },
+              },
+          },
+      }
+  /messages/track:
+    get:
+      {
+        operationId: getMessageTrack,
+        responses:
+          {
+            '200':
+              {
+                description: OK,
+                content:
+                  {
+                    application/json:
+                      {
+                        schema:
+                          { type: array, items: { $ref: '#/components/schemas/MessageTrackItem' } },
+                      },
+                  },
+              },
+          },
+      }
+  /messages/dlq:
+    get: { operationId: queryDlqMessages, responses: { '200': { description: OK } } }
+  /messages/retry:
+    get: { operationId: queryRetryMessages, responses: { '200': { description: OK } } }
+  /messages/resend:
+    post: { operationId: resendMessage, responses: { '200': { description: Sent } } }
+  /messages/send:
+    post: { operationId: sendMessage, responses: { '200': { description: Sent } } }
+  /acl/enabled:
+    get: { operationId: getAclEnabled, responses: { '200': { description: OK } } }
+  /acl/version:
+    get:
+      {
+        operationId: getAclVersion,
+        responses:
+          {
+            '200':
+              {
+                description: OK,
+                content:
+                  { application/json: { schema: { $ref: '#/components/schemas/AclVersionInfo' } } },
+              },
+          },
+      }
+  /acl/access-config:
+    put: { operationId: updateAccessConfig, responses: { '204': { description: Updated } } }
+    delete: { operationId: deleteAccessConfig, responses: { '204': { description: Deleted } } }
+  /acl/global-white-addrs:
+    put: { operationId: updateGlobalWhiteAddrs, responses: { '204': { description: Updated } } }
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer }
+  schemas:
+    APIError:
+      type: object
+      required: [code, message, requestId]
+      properties:
+        code: { type: string }
+        message: { type: string }
+        requestId: { type: string }
+        details: { type: object, additionalProperties: true }
+    ConnectionInput:
+      type: object
+      required: [name, env, nameServer, timeoutSec, enableACL, accessKey, secretKey, remark]
+      properties:
+        name: { type: string }
+        env: { type: string, enum: [生产, 测试, 开发] }
+        nameServer: { type: string }
+        timeoutSec: { type: integer }
+        enableACL: { type: boolean }
+        accessKey: { type: string }
+        secretKey: { type: string }
+        remark: { type: string }
+        credentialsMode: { type: string, enum: [preserve, replace, clear] }
+    Connection:
+      allOf:
+        - $ref: '#/components/schemas/ConnectionInput'
+        - type: object
+          required: [id, status, lastCheck, isDefault, accessKeyConfigured, secretKeyConfigured]
+          properties:
+            id: { type: integer }
+            status: { type: string, enum: [online, offline] }
+            lastCheck: { type: string }
+            isDefault: { type: boolean }
+            accessKeyConfigured: { type: boolean }
+            secretKeyConfigured: { type: boolean }
+    AppSettings:
+      type: object
+      required:
+        [
+          theme,
+          language,
+          fontSize,
+          uiFont,
+          monospaceFont,
+          autoConnectLast,
+          connectTimeoutMs,
+          requestTimeoutMs,
+          globalAccessKey,
+          globalSecretKey,
+          skipTlsVerify,
+          proxyEnabled,
+          proxyType,
+          proxyHost,
+          proxyPort,
+          lagAlertThreshold,
+          diskAlertThreshold,
+          desktopNotifications,
+          timezone,
+          timestampFormat,
+          autoFormatJson,
+          maxPayloadRenderBytes,
+          fetchLimit,
+        ]
+      properties:
+        theme: { type: string }
+        language: { type: string }
+        fontSize: { type: integer }
+        uiFont: { type: string }
+        monospaceFont: { type: string }
+        autoConnectLast: { type: boolean }
+        connectTimeoutMs: { type: integer }
+        requestTimeoutMs: { type: integer }
+        globalAccessKey: { type: string }
+        globalSecretKey: { type: string }
+        globalAccessKeyConfigured: { type: boolean }
+        globalSecretKeyConfigured: { type: boolean }
+        globalCredentialsMode: { type: string, enum: [preserve, replace, clear] }
+        skipTlsVerify: { type: boolean }
+        proxyEnabled: { type: boolean }
+        proxyType: { type: string }
+        proxyHost: { type: string }
+        proxyPort: { type: string }
+        lagAlertThreshold: { type: integer }
+        diskAlertThreshold: { type: integer }
+        desktopNotifications: { type: boolean }
+        timezone: { type: string }
+        timestampFormat: { type: string }
+        autoFormatJson: { type: boolean }
+        maxPayloadRenderBytes: { type: integer }
+        fetchLimit: { type: integer }
+    AclVersionInfo:
+      type: object
+      required: [brokerAddr, brokerName, clusterName, version]
+      properties:
+        brokerAddr: { type: string }
+        brokerName: { type: string }
+        clusterName: { type: string }
+        version: { type: string }
+    BrokerNode:
+      type: object
+      required:
+        [
+          id,
+          cluster,
+          brokerName,
+          brokerId,
+          role,
+          address,
+          haAddress,
+          version,
+          status,
+          topics,
+          groups,
+          tpsIn,
+          tpsOut,
+          tpsInHistory,
+          tpsOutHistory,
+          msgInToday,
+          msgOutToday,
+          commitLogDiskUsage,
+          consumeQueueDiskUsage,
+          lastUpdate,
+          remark,
+        ]
+      properties:
+        id: { type: integer }
+        cluster: { type: string }
+        brokerName: { type: string }
+        brokerId: { type: integer }
+        role: { type: string, enum: [MASTER, SLAVE] }
+        address: { type: string }
+        haAddress: { type: string }
+        version: { type: string }
+        status: { type: string, enum: [online, warning, offline] }
+        topics: { type: integer }
+        groups: { type: integer }
+        tpsIn: { type: integer }
+        tpsOut: { type: integer }
+        tpsInHistory: { type: array, items: { type: integer } }
+        tpsOutHistory: { type: array, items: { type: integer } }
+        msgInToday: { type: integer, format: int64 }
+        msgOutToday: { type: integer, format: int64 }
+        commitLogDiskUsage: { type: integer }
+        consumeQueueDiskUsage: { type: integer }
+        lastUpdate: { type: string }
+        remark: { type: string }
+    ClusterInfo:
+      type: object
+      required:
+        [
+          clusterName,
+          totalBrokers,
+          onlineBrokers,
+          totalTopics,
+          totalGroups,
+          avgDiskUsage,
+          nameServers,
+          brokers,
+        ]
+      properties:
+        clusterName: { type: string }
+        totalBrokers: { type: integer }
+        onlineBrokers: { type: integer }
+        totalTopics: { type: integer }
+        totalGroups: { type: integer }
+        avgDiskUsage: { type: integer }
+        nameServers: { type: array, items: { type: string } }
+        brokers: { type: array, items: { $ref: '#/components/schemas/BrokerNode' } }
+    ClusterSummary:
+      type: object
+      required:
+        [totalClusters, totalBrokers, onlineBrokers, warningBrokers, offlineBrokers, avgDiskUsage]
+      properties:
+        totalClusters: { type: integer }
+        totalBrokers: { type: integer }
+        onlineBrokers: { type: integer }
+        warningBrokers: { type: integer }
+        offlineBrokers: { type: integer }
+        avgDiskUsage: { type: integer }
+    TopicRouteItem:
+      type: object
+      required: [broker, brokerAddr, readQueue, writeQueue, perm]
+      properties:
+        broker: { type: string }
+        brokerAddr: { type: string }
+        readQueue: { type: integer }
+        writeQueue: { type: integer }
+        perm: { type: string, enum: [RW, R, W, DENY] }
+    TopicItem:
+      type: object
+      required:
+        [
+          id,
+          topic,
+          cluster,
+          readQueue,
+          writeQueue,
+          perm,
+          messageType,
+          consumerGroups,
+          tpsIn,
+          tpsOut,
+          lastUpdated,
+          description,
+          routes,
+        ]
+      properties:
+        id: { type: integer }
+        topic: { type: string }
+        cluster: { type: string }
+        readQueue: { type: integer }
+        writeQueue: { type: integer }
+        perm: { type: string, enum: [RW, R, W, DENY] }
+        messageType: { type: string, enum: [Normal, FIFO, Delay] }
+        consumerGroups: { type: integer }
+        tpsIn: { type: integer }
+        tpsOut: { type: integer }
+        lastUpdated: { type: string }
+        description: { type: string }
+        routes: { type: array, items: { $ref: '#/components/schemas/TopicRouteItem' } }
+    GroupSubscription:
+      type: object
+      required: [topic, expression, consumeTps]
+      properties:
+        { topic: { type: string }, expression: { type: string }, consumeTps: { type: integer } }
+    GroupClient:
+      type: object
+      required: [clientId, ip, version, lastHeartbeat]
+      properties:
+        {
+          clientId: { type: string },
+          ip: { type: string },
+          version: { type: string },
+          lastHeartbeat: { type: string },
+        }
+    ConsumerGroupItem:
+      type: object
+      required:
+        [
+          id,
+          group,
+          cluster,
+          consumeMode,
+          status,
+          onlineClients,
+          topicCount,
+          lag,
+          retryQps,
+          dlq,
+          maxRetry,
+          lastUpdate,
+          remark,
+          subscriptions,
+          clients,
+        ]
+      properties:
+        id: { type: integer }
+        group: { type: string }
+        cluster: { type: string }
+        consumeMode: { type: string, enum: [CLUSTERING, BROADCASTING] }
+        status: { type: string, enum: [online, warning, offline] }
+        onlineClients: { type: integer }
+        topicCount: { type: integer }
+        lag: { type: integer, format: int64 }
+        retryQps: { type: integer }
+        dlq: { type: integer }
+        maxRetry: { type: integer }
+        lastUpdate: { type: string }
+        remark: { type: string }
+        subscriptions: { type: array, items: { $ref: '#/components/schemas/GroupSubscription' } }
+        clients: { type: array, items: { $ref: '#/components/schemas/GroupClient' } }
+    MessageItem:
+      type: object
+      required:
+        [
+          id,
+          cluster,
+          topic,
+          messageId,
+          tags,
+          keys,
+          queueId,
+          queueOffset,
+          storeHost,
+          bornHost,
+          storeTime,
+          storeTimestamp,
+          status,
+          retryTimes,
+          body,
+          properties,
+        ]
+      properties:
+        id: { type: integer }
+        cluster: { type: string }
+        topic: { type: string }
+        messageId: { type: string }
+        tags: { type: string }
+        keys: { type: string }
+        queueId: { type: integer }
+        queueOffset: { type: integer, format: int64 }
+        storeHost: { type: string }
+        bornHost: { type: string }
+        storeTime: { type: string }
+        storeTimestamp: { type: integer, format: int64 }
+        status: { type: string, enum: [normal, retry, dlq] }
+        retryTimes: { type: integer }
+        body: { type: string }
+        properties: { type: object, additionalProperties: { type: string } }
+    MessageTrackItem:
+      type: object
+      required: [consumerGroup, trackType, consumeStatus, exceptionDesc]
+      properties:
+        consumerGroup: { type: string }
+        trackType: { type: string }
+        consumeStatus: { type: string }
+        exceptionDesc: { type: string }
