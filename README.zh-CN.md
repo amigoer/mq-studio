@@ -1,114 +1,54 @@
-# Rocket-Leaf
+# Rocket Leaf
 
 <p align="center">
-  <img src="docs/images/logo.png" alt="Rocket-Leaf" width="160">
+  <img src="desktop/src/renderer/assets/logo.png" alt="Rocket Leaf" width="160">
 </p>
 
-<p align="center">
-  <strong>本地运行的 RocketMQ 桌面客户端</strong><br>
-  管理 Topic、消费者与消息，无需额外部署 Web 控制台。
-</p>
+RocketMQ 4.x / 5.x 跨平台桌面管理客户端，支持 macOS、Windows 和 Linux。应用采用 Electron 桌面进程与 Go 本地守护进程协作，用户安装和启动的仍然是一个完整应用。
 
-<p align="center">
-  Windows · macOS · Linux &nbsp;·&nbsp;
-  <a href="README.md">English</a> &nbsp;·&nbsp;
-  <a href="https://github.com/amigoer/rocket-leaf/releases">Releases</a>
-</p>
+## 主要能力
 
----
+- 多集群连接、NameServer 与 ACL 凭证管理
+- Topic、消费者组、消息查询、消息轨迹、重投和试发
+- Broker、NameServer、吞吐与堆积状态查看
+- ACL 配置、客户端告警、主题与字体设置
+- 本地配置导入导出和 Electron 自动更新
 
-## 为什么用 Rocket-Leaf？
-
-- **本地优先** — 安装即用，不用部署服务端，也不必暴露管理端口
-- **日常运维** — 连接、Topic、消费组、消息查询、试发、集群健康
-- **数据在本机** — 配置与设置只存在当前设备；密钥本地加密存储
-
-支持 RocketMQ **4.x / 5.x**（Admin API）。界面语言：**中文 / English**。
-
-## 功能
-
-| 模块         | 能力                                                                |
-| ------------ | ------------------------------------------------------------------- |
-| **连接**     | 多集群、默认连接 / 启动自动连接、多 NameServer、ACL 凭证            |
-| **概览**     | TPS、堆积、Broker 状态与快捷入口                                    |
-| **Topic**    | 列表 / 筛选 / 详情与路由；创建、更新、删除                          |
-| **消费者组** | 组与客户端、堆积；重置位点；组配置增删改                            |
-| **消息**     | 按 Topic / Key / Tag / MessageId / 时间查询；轨迹；重发；DLQ / 重试 |
-| **生产者**   | 试发（Tag、Key、Body、延时级别）                                    |
-| **集群**     | Broker、NameServer、运行时指标与吞吐趋势                            |
-| **告警**     | 基于实时数据的客户端规则（堆积、磁盘等）                            |
-| **ACL**      | AccessConfig 与全局白名单（需 Broker 支持相关接口）                 |
-| **设置**     | 主题、字体、超时、配置导入 / 导出                                   |
-
-## 下载
-
-打开 **[Releases](https://github.com/amigoer/rocket-leaf/releases)**，按系统 **只下一个文件**：
-
-| 平台                          | 文件                                      |
-| ----------------------------- | ----------------------------------------- |
-| macOS Apple Silicon（M 系列） | `rocket-leaf-macos-arm64.app.zip`         |
-| macOS Intel                   | `rocket-leaf-macos-amd64.app.zip`         |
-| Windows x64                   | `rocket-leaf-windows-amd64-installer.exe` |
-| Windows ARM64                 | `rocket-leaf-windows-arm64-installer.exe` |
-| Linux x64                     | `rocket-leaf-linux-amd64.AppImage`        |
-| Linux ARM64                   | `rocket-leaf-linux-arm64.AppImage`        |
-
-**安装方式**
-
-- **macOS** — 解压 → 拖到「应用程序」→ 打开（若被拦截：右键 → 打开）
-- **Windows** — 运行安装包
-- **Linux** — `chmod +x rocket-leaf-linux-*.AppImage && ./rocket-leaf-linux-*.AppImage`
-
-## 快速开始
-
-1. 打开应用 → **连接**（或从概览添加连接）。
-2. 填写 **NameServer**（必填）。多个地址可用 `;`、`,` 或空格分隔。若开启 ACL，再填 AccessKey / SecretKey。
-3. **保存** → **连接**，然后从侧边栏使用 Topic、消费者、消息等功能。
-
-### 本地数据
-
-数据在系统用户配置目录下的 `rocket-leaf/`：
-
-| 文件               | 用途             |
-| ------------------ | ---------------- |
-| `connections.json` | 连接配置         |
-| `settings.json`    | 应用设置         |
-| `secret.key`       | 敏感字段加密密钥 |
-
-常见路径：macOS `~/Library/Application Support/rocket-leaf/` · Linux `~/.config/rocket-leaf/` · Windows `%AppData%\rocket-leaf\`
-
-凭证在本地 **加密存储**。全量配置 **导出** 用于跨设备迁移，文件中含 **明文** 密钥，请按敏感文件保管（应用写入时权限为 `0600`）。
+所有数据继续保存在操作系统用户配置目录的 `rocket-leaf/` 下。连接和全局凭证使用本地 AES-256-GCM 密钥加密；导出的迁移文件包含明文凭证，应作为敏感文件保管。
 
 ## 开发
 
-**依赖：** Go（见 `go.mod`）、Node.js 20+、[Task](https://taskfile.dev/)、[Wails v3](https://wails.io/) CLI。
+依赖 Go 1.25、Node.js 22 和 npm。
 
 ```bash
 npm install
-npm --prefix frontend install
+npm install --prefix desktop
 
-task dev          # 桌面开发 + 前端热更新
-task build        # 当前平台构建
-task package      # 打包
-npm run check     # 格式化 / gofmt / vet / 类型检查
+npm run dev             # Electron + Vite，开发时自动 go run daemon
+npm run generate:api    # 根据 OpenAPI 生成 TypeScript 类型
+npm run build           # 构建当前平台 daemon 与 Electron
+npm run package         # 生成当前平台安装包
+npm run check           # 格式、Go、TypeScript、测试与契约检查
 ```
 
-可选脚本（需可访问的 NameServer）：
+后端可独立运行和测试：
 
 ```bash
-go run ./scripts/seed-data [nameServer] [duration_sec] [rate_per_sec]
-go run ./scripts/inspect-cluster ...
+cd daemon
+go test ./...
+go run ./cmd/rocket-leafd
 ```
 
-## 文档
+`rocket-leafd` 不是公共服务。它只监听随机回环端口，必须由 Electron 通过 stdin 注入一次性令牌后启动。
 
-| 文档                             | 内容                   |
-| -------------------------------- | ---------------------- |
-| [架构说明](docs/ARCHITECTURE.md) | 技术栈、目录与安全说明 |
-| [路线图](docs/ROADMAP.md)        | 已完成与后续规划       |
+## 目录
 
-欢迎提交 Issue 与 PR。
+```text
+desktop/             Electron Main、Preload、React Renderer 与打包配置
+daemon/              Go 守护进程及 RocketMQ 业务实现
+contracts/           两个进程之间的 OpenAPI 契约
+scripts/             构建、代码生成与发布编排
+release/             本地安装包产物（不提交）
+```
 
-## 许可证
-
-[MIT](LICENSE) · [amigoer/rocket-leaf](https://github.com/amigoer/rocket-leaf)
+详细设计见 [架构说明](docs/ARCHITECTURE.md) 和 [路线图](docs/ROADMAP.md)。

@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs'
 import { join, normalize, relative } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { app, BrowserWindow, dialog, net, protocol } from 'electron'
-import { autoUpdater } from 'electron-updater'
+import electronUpdater from 'electron-updater'
 import { DaemonSupervisor } from './daemon-supervisor'
 import { openAllowedExternal, registerIPC, unregisterIPC } from './ipc'
 
@@ -11,6 +11,7 @@ protocol.registerSchemesAsPrivileged([
 ])
 
 const supervisor = new DaemonSupervisor()
+const { autoUpdater } = electronUpdater
 let mainWindow: BrowserWindow | null = null
 let shutdownStarted = false
 
@@ -41,7 +42,7 @@ function createWindow(): BrowserWindow {
     titleBarStyle: mac ? 'hidden' : 'default',
     trafficLightPosition: mac ? { x: 16, y: 17 } : undefined,
     webPreferences: {
-      preload: join(__dirname, '../preload/index.mjs'),
+      preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,

@@ -14,7 +14,12 @@ export default defineConfig({
   },
   preload: {
     plugins: [externalizeDepsPlugin()],
-    build: { outDir: 'out/preload' },
+    build: {
+      outDir: 'out/preload',
+      rollupOptions: {
+        output: { format: 'cjs', entryFileNames: 'index.js' },
+      },
+    },
   },
   renderer: {
     root: fileURLToPath(new URL('./src/renderer', import.meta.url)),

@@ -1,313 +1,82 @@
-name: Cross-Platform Build Test
+name: Electron v2 Build Test
 
 on:
   push:
-    tags:
-      - 'v*'
+  pull_request:
   workflow_dispatch:
 
 permissions:
   contents: read
 
-env:
-  WAILS_VERSION: v3.0.0-alpha.71
-  NODE_VERSION: '20'
-
 jobs:
-  build-linux:
-    name: Linux Build Test (${{ matrix.arch }})
+  quality:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        arch: [amd64, arm64]
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Go
-        uses: actions/setup-go@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
         with:
-          go-version-file: go.mod
-          cache: true
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+          go-version-file: daemon/go.mod
+          cache-dependency-path: daemon/go.sum
+      - uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version: '22'
           cache: npm
-          cache-dependency-path: frontend/package-lock.json
+          cache-dependency-path: |
+            package-lock.json
+            desktop/package-lock.json
+      - run: npm ci
+      - run: npm ci --prefix desktop
+      - run: npm run check
 
-      - name: Cache build tools
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/go/bin/task
-            ~/go/bin/wails3
-          key: ${{ runner.os }}-tools-${{ env.WAILS_VERSION }}
-
-      - name: Install Linux build dependencies
-        shell: bash
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            build-essential \
-            pkg-config \
-            libgtk-3-dev \
-            libwebkit2gtk-4.1-dev \
-            patchelf \
-            fakeroot \
-            rpm
-
-      - name: Install Task and Wails CLI
-        shell: bash
-        run: |
-          if [ ! -x "$(go env GOPATH)/bin/task" ]; then
-            go install github.com/go-task/task/v3/cmd/task@latest
-          fi
-          if [ ! -x "$(go env GOPATH)/bin/wails3" ]; then
-            go install github.com/wailsapp/wails/v3/cmd/wails3@${WAILS_VERSION}
-          fi
-          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
-
-      - name: Prepare Docker environment
-        shell: bash
-        run: |
-          wails3 task setup:docker
-
-      - name: Package Linux app
-        shell: bash
-        run: |
-          if [ "${{ matrix.arch }}" = "arm64" ]; then
-            wails3 package GOOS=linux GOARCH=arm64
-          else
-            wails3 package GOOS=linux GOARCH=amd64
-          fi
-
-      - name: Normalize Linux artifact names
-        shell: bash
-        # End-user downloads only: AppImage (portable desktop package).
-        # Skip bare binaries and distro-specific packages (.deb/.rpm/.pkg) to
-        # keep the Release page unambiguous.
-        run: |
-          mkdir -p release-artifacts/linux-${{ matrix.arch }}
-          shopt -s nullglob
-          appimages=(bin/*.AppImage)
-          if [ ${#appimages[@]} -eq 0 ]; then
-            echo "Expected AppImage in bin/ but none found" >&2
-            ls -la bin/ || true
-            exit 1
-          fi
-          cp -v "${appimages[0]}" "release-artifacts/linux-${{ matrix.arch }}/rocket-leaf-linux-${{ matrix.arch }}.AppImage"
-
-      - name: Upload Linux artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-test-linux-${{ matrix.arch }}
-          path: release-artifacts/linux-${{ matrix.arch }}/*
-          if-no-files-found: error
-
-  build-macos:
-    name: macOS Build Test (${{ matrix.target }})
-    runs-on: macos-latest
+  package:
+    needs: quality
     strategy:
       fail-fast: false
       matrix:
         include:
-          - target: amd64
-            task: darwin:package
-            arch: amd64
-            artifact_dir: macos-amd64
-            artifact_name: build-test-macos-amd64
-          - target: arm64
-            task: darwin:package
+          - runner: macos-latest
+            platform: mac
+            arch: x64
+          - runner: macos-latest
+            platform: mac
             arch: arm64
-            artifact_dir: macos-arm64
-            artifact_name: build-test-macos-arm64
+          - runner: windows-latest
+            platform: win
+            arch: x64
+          - runner: windows-latest
+            platform: win
+            arch: arm64
+          - runner: ubuntu-latest
+            platform: linux
+            arch: x64
+          - runner: ubuntu-latest
+            platform: linux
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Go
-        uses: actions/setup-go@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
         with:
-          go-version-file: go.mod
-          cache: true
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+          go-version-file: daemon/go.mod
+          cache-dependency-path: daemon/go.sum
+      - uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version: '22'
           cache: npm
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Cache build tools
-        uses: actions/cache@v4
+          cache-dependency-path: desktop/package-lock.json
+      - run: npm ci --prefix desktop
+      - name: Build target daemon
+        shell: bash
+        run: sh scripts/build-daemon.sh ${{ matrix.platform }} ${{ matrix.arch }}
+      - name: Build unsigned internal package
+        shell: bash
+        run: cd desktop && npx electron-builder --${{ matrix.platform }} --${{ matrix.arch }} --publish never
+      - uses: actions/upload-artifact@v4
         with:
+          name: rocket-leaf-${{ matrix.platform }}-${{ matrix.arch }}
           path: |
-            ~/go/bin/task
-            ~/go/bin/wails3
-          key: ${{ runner.os }}-tools-${{ env.WAILS_VERSION }}
-
-      - name: Install Task and Wails CLI
-        shell: bash
-        run: |
-          if [ ! -x "$(go env GOPATH)/bin/task" ]; then
-            go install github.com/go-task/task/v3/cmd/task@latest
-          fi
-          if [ ! -x "$(go env GOPATH)/bin/wails3" ]; then
-            go install github.com/wailsapp/wails/v3/cmd/wails3@${WAILS_VERSION}
-          fi
-          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
-
-      - name: Package macOS app
-        shell: bash
-        run: |
-          if [ -n "${{ matrix.arch }}" ]; then
-            task ${{ matrix.task }} ARCH=${{ matrix.arch }}
-          else
-            task ${{ matrix.task }}
-          fi
-
-      - name: Normalize macOS artifact names
-        shell: bash
-        # End-user downloads only: .app.zip (double-clickable app bundle).
-        run: |
-          mkdir -p release-artifacts/${{ matrix.artifact_dir }}
-          if [ ! -d bin/rocket-leaf.app ]; then
-            echo "Expected bin/rocket-leaf.app but it was not built" >&2
-            ls -la bin/ || true
-            exit 1
-          fi
-          ditto -c -k --sequesterRsrc --keepParent "bin/rocket-leaf.app" "release-artifacts/${{ matrix.artifact_dir }}/rocket-leaf-macos-${{ matrix.target }}.app.zip"
-
-      - name: Upload macOS artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.artifact_name }}
-          path: release-artifacts/${{ matrix.artifact_dir }}/*
-          if-no-files-found: error
-
-  build-windows:
-    name: Windows Build Test (${{ matrix.arch }})
-    runs-on: windows-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        arch: [amd64, arm64]
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
-          cache: true
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Cache build tools
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/go/bin/task.exe
-            ~/go/bin/wails3.exe
-          key: ${{ runner.os }}-tools-${{ env.WAILS_VERSION }}
-
-      - name: Install NSIS
-        shell: powershell
-        run: |
-          choco install nsis -y --no-progress
-          "C:\Program Files (x86)\NSIS" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-
-      - name: Install Task and Wails CLI
-        shell: powershell
-        run: |
-          if (-not (Test-Path "$(go env GOPATH)\bin\task.exe")) {
-            go install github.com/go-task/task/v3/cmd/task@latest
-          }
-          if (-not (Test-Path "$(go env GOPATH)\bin\wails3.exe")) {
-            go install github.com/wailsapp/wails/v3/cmd/wails3@${env:WAILS_VERSION}
-          }
-          "$(go env GOPATH)\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-
-      - name: Package Windows app
-        shell: powershell
-        run: task windows:package ARCH=${{ matrix.arch }}
-
-      - name: Normalize Windows artifact names
-        shell: powershell
-        # End-user downloads only: NSIS installer (no portable .exe / MSIX clutter).
-        run: |
-          New-Item -ItemType Directory -Force -Path "release-artifacts/windows-${{ matrix.arch }}" | Out-Null
-          $installer = Get-ChildItem 'bin' -Filter 'rocket-leaf-*-installer.exe' -File -ErrorAction SilentlyContinue | Select-Object -First 1
-          if (-not $installer) {
-            Write-Error "Expected NSIS installer in bin/ but none found"
-            Get-ChildItem 'bin' -ErrorAction SilentlyContinue | Format-Table Name, Length
-            exit 1
-          }
-          Copy-Item $installer.FullName "release-artifacts/windows-${{ matrix.arch }}/rocket-leaf-windows-${{ matrix.arch }}-installer.exe" -Force
-
-      - name: Upload Windows artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-test-windows-${{ matrix.arch }}
-          path: release-artifacts/windows-${{ matrix.arch }}/*
-          if-no-files-found: error
-
-  release-metadata:
-    name: Prepare Release Metadata
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-    needs:
-      - build-linux
-      - build-macos
-      - build-windows
-    steps:
-      - name: Generate release metadata
-        shell: bash
-        run: |
-          mkdir -p release-metadata
-          printf '%s' '${{ github.ref_name }}' > release-metadata/tag.txt
-          printf '%s' '${{ github.sha }}' > release-metadata/sha.txt
-          cat > release-metadata/body.md <<'EOF'
-          ## Release
-          Production release for **${{ github.ref_name }}**.
-
-          ## Downloads (pick one for your machine)
-
-          | Platform | Download |
-          | -------- | -------- |
-          | **macOS Apple Silicon (M1/M2/M3…)** | `rocket-leaf-macos-arm64.app.zip` |
-          | **macOS Intel** | `rocket-leaf-macos-amd64.app.zip` |
-          | **Windows x64** | `rocket-leaf-windows-amd64-installer.exe` |
-          | **Windows ARM64** | `rocket-leaf-windows-arm64-installer.exe` |
-          | **Linux x64** | `rocket-leaf-linux-amd64.AppImage` |
-          | **Linux ARM64** | `rocket-leaf-linux-arm64.AppImage` |
-
-          ### How to install
-          - **macOS**: unzip, drag `Rocket Leaf` into Applications, open it (right-click → Open the first time if Gatekeeper blocks).
-          - **Windows**: run the installer.
-          - **Linux**: `chmod +x` the AppImage, then run it.
-
-          ## Notes
-          - Each platform ships a single recommended package so the asset list stays short.
-          - Builds are produced for amd64 and arm64 on macOS, Windows, and Linux.
-          - Checksums are not published yet.
-          EOF
-
-      - name: Upload release metadata
-        uses: actions/upload-artifact@v4
-        with:
-          name: release-metadata
-          path: release-metadata/*
+            release/*
+            !release/*-unpacked/**
           if-no-files-found: error

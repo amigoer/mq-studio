@@ -3,7 +3,9 @@ import { BrowserWindow, dialog, ipcMain, shell } from 'electron'
 import type { BackendCall } from '../shared/bridge'
 import { executeBackendCall } from './backend-operations'
 import type { DaemonSupervisor } from './daemon-supervisor'
-import { autoUpdater } from 'electron-updater'
+import electronUpdater from 'electron-updater'
+
+const { autoUpdater } = electronUpdater
 
 const allowedExternalHosts = new Set(['github.com', 'api.github.com'])
 

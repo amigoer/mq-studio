@@ -10,5 +10,5 @@
   "endOfLine": "lf",
   "plugins": ["prettier-plugin-tailwindcss"],
   "tailwindFunctions": ["clsx", "cn", "cva", "tw"],
-  "tailwindConfig": "./frontend/tailwind.config.js"
+  "tailwindConfig": "./desktop/tailwind.config.js"
 }
