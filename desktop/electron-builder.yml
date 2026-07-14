@@ -1,0 +1,39 @@
+appId: com.rocketleaf.app
+productName: Rocket Leaf
+artifactName: ${productName}-${version}-${os}-${arch}.${ext}
+directories:
+  output: ../release
+  buildResources: resources
+files:
+  - out/**/*
+  - package.json
+asar: true
+extraResources:
+  - from: resources/bin/${os}/${arch}
+    to: bin
+    filter:
+      - rocket-leafd*
+mac:
+  category: public.app-category.developer-tools
+  icon: resources/icon.icns
+  target:
+    - dmg
+    - zip
+  hardenedRuntime: true
+  gatekeeperAssess: false
+win:
+  icon: resources/icon.ico
+  target:
+    - nsis
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+linux:
+  icon: resources/icon.png
+  category: Development
+  target:
+    - AppImage
+publish:
+  provider: github
+  owner: amigoer
+  repo: rocket-leaf

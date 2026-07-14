@@ -1,30 +1,10 @@
-# Task / build output
-.task
-bin/
-
-# Frontend build artifacts
-frontend/dist/
-frontend/node_modules/
+# Build output
+daemon/dist/
+desktop/out/
+desktop/resources/bin/
+desktop/node_modules/
+release/
 node_modules/
-
-# Wails generated runtime artifacts
-build/darwin/frontend/
-build/linux/appimage/build/
-build/linux/appimage/rocket-leaf
-build/windows/nsis/MicrosoftEdgeWebview2Setup.exe
-
-# Apple / Xcode local artifacts
-DerivedData/
-*.xcuserstate
-*.xcworkspace/xcuserdata/
-*.xcodeproj/xcuserdata/
-*.xcuserdatad/
-
-# Android local artifacts
-.gradle/
-build/android/.gradle/
-build/android/local.properties
-build/android/app/build/
 
 # IDE / OS files
 .idea/
@@ -36,6 +16,6 @@ build/android/app/build/
 
 .claude/
 
-# Stray script binaries from `go build ./scripts/...`
+# Stray script binaries
 /seed-data
 /inspect-cluster
