@@ -131,6 +131,8 @@ jobs:
                   --publish never \
                   -c.mac.notarize=true
               else
+                unset CSC_LINK CSC_KEY_PASSWORD
+                unset APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID
                 CSC_IDENTITY_AUTO_DISCOVERY=false \
                   npx electron-builder \
                     --mac --x64 --arm64 \
@@ -144,6 +146,7 @@ jobs:
                   --win --x64 --arm64 \
                   --publish never
               else
+                unset CSC_LINK CSC_KEY_PASSWORD
                 CSC_IDENTITY_AUTO_DISCOVERY=false \
                   npx electron-builder \
                     --win --x64 --arm64 \
