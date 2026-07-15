@@ -1,0 +1,95 @@
+import { useState } from 'react'
+import type React from 'react'
+import { Toaster } from 'sonner'
+import { TitleBar } from '@/layout/TitleBar'
+import { Sidebar, type NavId } from '@/layout/Sidebar'
+import { OverviewPage } from '@/pages/OverviewPage'
+import { TopicsPage } from '@/pages/TopicsPage'
+import { ConsumersPage } from '@/pages/ConsumersPage'
+import { MessagesPage } from '@/pages/MessagesPage'
+import { ProducerPage } from '@/pages/ProducerPage'
+import { ClusterPage } from '@/pages/ClusterPage'
+import { AlertsPage } from '@/pages/AlertsPage'
+import { AclPage } from '@/pages/AclPage'
+import { ConnectionsPage } from '@/pages/ConnectionsPage'
+import { SettingsPage } from '@/pages/SettingsPage'
+import { EmptyStatePage } from '@/pages/EmptyStatePage'
+import { PageTransition } from '@/components/PageTransition'
+import { useConnections } from '@/hooks/useConnections'
+
+function App(): React.ReactElement {
+  const [activeNav, setActiveNav] = useState<NavId>('home')
+  const { active: activeConn, activeKey } = useConnections()
+  const hasConnected = activeConn != null
+
+  const gated =
+    !hasConnected && activeNav !== 'connections' && activeNav !== 'settings' && activeNav !== 'home'
+
+  // 切换集群时强制重建当前业务页，避免筛选条件、选中项和异步结果跨集群泄漏。
+  const contentKey = gated ? `empty-${activeNav}-${activeKey}` : `${activeNav}-${activeKey}`
+
+  const renderContent = () => {
+    if (gated) {
+      return <EmptyStatePage onAddConnection={() => setActiveNav('connections')} />
+    }
+    switch (activeNav) {
+      case 'home':
+        return <OverviewPage onNavigate={setActiveNav} />
+      case 'topics':
+        return <TopicsPage onNavigate={setActiveNav} />
+      case 'consumers':
+        return <ConsumersPage onNavigate={setActiveNav} />
+      case 'messages':
+        return <MessagesPage onNavigate={setActiveNav} />
+      case 'producer':
+        return <ProducerPage onNavigate={setActiveNav} />
+      case 'cluster':
+        return <ClusterPage onNavigate={setActiveNav} />
+      case 'alerts':
+        return <AlertsPage onNavigate={setActiveNav} />
+      case 'acl':
+        return <AclPage onNavigate={setActiveNav} />
+      case 'connections':
+        return <ConnectionsPage />
+      case 'settings':
+        return <SettingsPage />
+      default:
+        return <OverviewPage onNavigate={setActiveNav} />
+    }
+  }
+
+  return (
+    <div className="flex h-screen flex-col bg-background text-foreground">
+      <TitleBar
+        connected={activeConn?.name ?? null}
+        onOpenConnections={() => setActiveNav('connections')}
+      />
+      <div className="flex min-h-0 flex-1 bg-background">
+        <Sidebar
+          active={activeNav}
+          onSelect={setActiveNav}
+          disabledIds={
+            !hasConnected
+              ? ['topics', 'consumers', 'messages', 'producer', 'cluster', 'alerts', 'acl']
+              : []
+          }
+        />
+        <main className="min-h-0 min-w-0 flex-1 overflow-hidden bg-background">
+          <PageTransition transitionKey={contentKey} variant="page">
+            {renderContent()}
+          </PageTransition>
+        </main>
+      </div>
+      <Toaster
+        position="top-center"
+        closeButton
+        toastOptions={{
+          className: 'rl-toast',
+        }}
+        style={{ '--width': '360px' } as React.CSSProperties}
+      />
+    </div>
+  )
+}
+
+export default App

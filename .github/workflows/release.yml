@@ -1,74 +1,169 @@
-name: Publish GitHub Release
+# Build signed Electron installers for all platforms and publish a GitHub Release.
+#
+# Required repository secrets (environment: release):
+#   MACOS_CSC_LINK / MACOS_CSC_KEY_PASSWORD
+#   APPLE_ID / APPLE_APP_SPECIFIC_PASSWORD / APPLE_TEAM_ID
+#   WINDOWS_CSC_LINK / WINDOWS_CSC_KEY_PASSWORD
+name: Release
 
 on:
-  workflow_run:
-    workflows:
-      - Cross-Platform Build Test
-    types:
-      - completed
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: SemVer tag, for example v2.0.0
+        required: true
+        type: string
+
+concurrency:
+  group: release-${{ inputs.tag }}
+  cancel-in-progress: false
 
 permissions:
   contents: read
 
+env:
+  ELECTRON_CACHE: ${{ github.workspace }}/.cache/electron
+  ELECTRON_BUILDER_CACHE: ${{ github.workspace }}/.cache/electron-builder
+
 jobs:
-  release:
-    name: Create and Publish Release
-    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+  package:
+    name: Package (${{ matrix.platform }})
+    environment: release
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-latest
+            platform: mac
+          - runner: windows-latest
+            platform: win
+          - runner: ubuntu-latest
+            platform: linux
+    runs-on: ${{ matrix.runner }}
+    env:
+      CSC_LINK: ${{ matrix.platform == 'mac' && secrets.MACOS_CSC_LINK || matrix.platform == 'win' && secrets.WINDOWS_CSC_LINK || '' }}
+      CSC_KEY_PASSWORD: ${{ matrix.platform == 'mac' && secrets.MACOS_CSC_KEY_PASSWORD || matrix.platform == 'win' && secrets.WINDOWS_CSC_KEY_PASSWORD || '' }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag }}
+
+      - name: Validate tag and signing credentials
+        shell: bash
+        run: |
+          set -eu
+          echo '${{ inputs.tag }}' | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'
+          if [ '${{ matrix.platform }}' = mac ]; then
+            test -n "${CSC_LINK:-}"
+            test -n "${CSC_KEY_PASSWORD:-}"
+            test -n "${APPLE_ID:-}"
+            test -n "${APPLE_APP_SPECIFIC_PASSWORD:-}"
+            test -n "${APPLE_TEAM_ID:-}"
+          fi
+          if [ '${{ matrix.platform }}' = win ]; then
+            test -n "${CSC_LINK:-}"
+            test -n "${CSC_KEY_PASSWORD:-}"
+          fi
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: daemon/go.mod
+          cache-dependency-path: daemon/go.sum
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+
+      - name: Install Linux packaging dependencies
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libopenjp2-tools \
+            rpm \
+            xvfb
+
+      - name: Install desktop dependencies
+        run: npm ci --prefix desktop
+
+      - name: Build Go daemons (x64 + arm64)
+        shell: bash
+        run: |
+          sh scripts/build-daemon.sh ${{ matrix.platform }} x64
+          sh scripts/build-daemon.sh ${{ matrix.platform }} arm64
+
+      - name: Build Electron main / preload / renderer
+        run: npm --prefix desktop run build
+
+      - name: Package signed installers
+        shell: bash
+        run: |
+          set -eu
+          cd desktop
+          case '${{ matrix.platform }}' in
+            mac)
+              npx electron-builder \
+                --mac --x64 --arm64 \
+                --publish never \
+                -c.mac.notarize=true
+              ;;
+            win)
+              npx electron-builder \
+                --win --x64 --arm64 \
+                --publish never
+              ;;
+            linux)
+              # Linux AppImage is not code-signed with Apple/Windows certs.
+              CSC_IDENTITY_AUTO_DISCOVERY=false \
+                npx electron-builder \
+                  --linux --x64 --arm64 \
+                  --publish never
+              ;;
+          esac
+
+      - name: Upload signed artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: signed-${{ matrix.platform }}
+          path: |
+            release/*
+            !release/*-unpacked/**
+            !release/mac/**
+            !release/mac-arm64/**
+            !release/mac-universal/**
+            !release/win-unpacked/**
+            !release/win-arm64-unpacked/**
+            !release/linux-unpacked/**
+            !release/linux-arm64-unpacked/**
+          if-no-files-found: error
+
+  publish:
+    name: Publish GitHub Release
+    needs: package
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - name: Download build artifacts
-        uses: dawidd6/action-download-artifact@v3
+      - name: Download all platform artifacts
+        uses: actions/download-artifact@v8
         with:
-          run_id: ${{ github.event.workflow_run.id }}
           path: release-files
-          if_no_artifact_found: fail
+          pattern: signed-*
+          merge-multiple: true
 
-      - name: Verify release metadata exists
-        shell: bash
-        run: |
-          test -f release-files/release-metadata/tag.txt
-          test -f release-files/release-metadata/sha.txt
-          test -f release-files/release-metadata/body.md
-
-      - name: Read release metadata
-        id: meta
-        shell: bash
-        run: |
-          TAG_NAME=$(cat release-files/release-metadata/tag.txt)
-          TARGET_SHA=$(cat release-files/release-metadata/sha.txt)
-          BODY_FILE=release-files/release-metadata/body.md
-          if [[ ! "$TAG_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Invalid tag: $TAG_NAME" >&2
-            exit 1
-          fi
-          echo "tag_name=$TAG_NAME" >> "$GITHUB_OUTPUT"
-          echo "target_sha=$TARGET_SHA" >> "$GITHUB_OUTPUT"
-          {
-            echo 'release_body<<EOF'
-            cat "$BODY_FILE"
-            echo EOF
-          } >> "$GITHUB_OUTPUT"
-
-      - name: List release artifacts
-        shell: bash
-        run: |
-          echo "Files to be published:"
-          find release-files -type f | sort
+      - name: List release files
+        run: find release-files -type f | sort
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.meta.outputs.tag_name }}
-          name: ${{ steps.meta.outputs.tag_name }}
-          target_commitish: ${{ steps.meta.outputs.target_sha }}
-          body: ${{ steps.meta.outputs.release_body }}
+          tag_name: ${{ inputs.tag }}
+          name: Rocket Leaf ${{ inputs.tag }}
           generate_release_notes: true
-          files: |
-            release-files/build-test-linux-amd64/*
-            release-files/build-test-linux-arm64/*
-            release-files/build-test-macos-amd64/*
-            release-files/build-test-macos-arm64/*
-            release-files/build-test-windows-amd64/*
-            release-files/build-test-windows-arm64/*
+          files: release-files/*
+          fail_on_unmatched_files: true

@@ -1,0 +1,208 @@
+@import 'tailwindcss';
+@import './styles/app.css';
+
+@config "../../tailwind.config.js";
+
+@layer base {
+  /*
+   * Pure-white desktop shell (newapi / shadcn-inspired).
+   * Hierarchy:
+   *   --background  pure white canvas
+   *   --card        pure white elevated surfaces
+   *   --sidebar     pure white chrome (no gray wash)
+   *   --muted       near-white for subtle fills only
+   *   --border      very light hairline
+   */
+  :root {
+    --app-font-size: 13px;
+    --app-monospace-font: 'JetBrains Mono';
+
+    --background: 0 0% 100%;
+    --foreground: 0 0% 9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 9%;
+
+    --primary: 0 0% 9%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 0 0% 98%;
+    --secondary-foreground: 0 0% 9%;
+
+    --muted: 0 0% 98%;
+    --muted-foreground: 0 0% 40%;
+
+    --accent: 0 0% 97%;
+    --accent-foreground: 0 0% 9%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 152 55% 36%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 32 95% 44%;
+    --warning-foreground: 0 0% 100%;
+
+    --info: 217 91% 50%;
+    --info-foreground: 0 0% 100%;
+
+    --border: 0 0% 92%;
+    --input: 0 0% 92%;
+    --ring: 0 0% 9%;
+    --radius: 0.75rem;
+
+    /* Chrome: pure white — no gray cast */
+    --surface: 0 0% 100%;
+    --sidebar: 0 0% 100%;
+    --sidebar-active: 0 0% 96%;
+  }
+
+  .dark {
+    --background: 0 0% 7%;
+    --foreground: 0 0% 98%;
+
+    --card: 0 0% 9%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 0 0% 9%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 0 0% 98%;
+    --primary-foreground: 0 0% 9%;
+
+    --secondary: 0 0% 12%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 0 0% 12%;
+    --muted-foreground: 0 0% 64%;
+
+    --accent: 0 0% 14%;
+    --accent-foreground: 0 0% 98%;
+
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 152 50% 40%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 32 90% 48%;
+    --warning-foreground: 0 0% 100%;
+
+    --info: 217 80% 58%;
+    --info-foreground: 0 0% 100%;
+
+    --border: 0 0% 16%;
+    --input: 0 0% 16%;
+    --ring: 0 0% 84%;
+
+    --surface: 0 0% 9%;
+    --sidebar: 0 0% 8%;
+    --sidebar-active: 0 0% 14%;
+  }
+
+  * {
+    border-color: hsl(var(--border));
+  }
+}
+
+html {
+  font-size: var(--app-font-size);
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: var(
+    --app-ui-font,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    'Helvetica Neue',
+    Arial,
+    'Noto Sans',
+    sans-serif
+  );
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* 输入框、文本域内仍可选中以便编辑与复制 */
+input,
+textarea,
+[contenteditable='true'] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+#root {
+  min-height: 100vh;
+  background: hsl(var(--background));
+}
+
+@layer utilities {
+  .font-mono {
+    font-family:
+      var(--app-monospace-font), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+      'Liberation Mono', 'Courier New', monospace;
+  }
+}
+
+/* 客户端风格：取消网页式蓝色选中高亮 */
+::selection {
+  background: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+}
+
+/* 局部滚动条：极细 */
+@supports (scrollbar-width: thin) {
+  .scroll-thin {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+}
+
+.scroll-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.scroll-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scroll-thin::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 999px;
+}
+
+/* Sonner — pure white cards */
+[data-sonner-toaster] [data-sonner-toast] {
+  background: hsl(var(--card)) !important;
+  border: 1px solid hsl(var(--border)) !important;
+  color: hsl(var(--foreground)) !important;
+  box-shadow:
+    0 8px 30px hsl(0 0% 0% / 0.06),
+    0 1px 2px hsl(0 0% 0% / 0.04) !important;
+  border-radius: calc(var(--radius) + 2px) !important;
+}
+[data-sonner-toast][data-type='success'] [data-icon] svg {
+  color: hsl(var(--success)) !important;
+}
+[data-sonner-toast][data-type='error'] [data-icon] svg {
+  color: hsl(var(--destructive)) !important;
+}
+[data-sonner-toast][data-type='warning'] [data-icon] svg {
+  color: hsl(var(--warning)) !important;
+}
+[data-sonner-toast][data-type='info'] [data-icon] svg {
+  color: hsl(var(--info)) !important;
+}

@@ -1,0 +1,906 @@
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Search, Plus, Tag, X, Server, Edit, Trash2, Check, ChevronRight } from 'lucide-react'
+import { Spinner } from '@/components/Spinner'
+import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
+import { TopicMessageType, TopicPerm, type TopicItem } from '@generated/models'
+import { PageHeader } from '@/components/PageHeader'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { useTopics } from '@/hooks/useTopics'
+import { useConsumers } from '@/hooks/useConsumers'
+import { useCluster } from '@/hooks/useCluster'
+import { useDelayedUnmount } from '@/hooks/useDelayedUnmount'
+import * as topicApi from '@/api/topic'
+import { formatErrorMessage } from '@/lib/utils'
+import { RefreshButton, usePageRefresh } from '@/components/RefreshButton'
+import { SlidingTabs } from '@/components/SlidingTabs'
+import { OfflineEmpty } from '@/components/OfflineEmpty'
+import { ErrorBanner } from '@/components/ErrorBanner'
+import type { NavId } from '@/layout/Sidebar'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Select } from '@/components/ui/select'
+import { Badge } from '@/components/ui/badge'
+import { Card } from '@/components/ui/card'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+
+type TypeFilter = 'all' | 'normal' | 'retry' | 'dlq'
+type TopicKind = 'normal' | 'fifo' | 'delay' | 'retry' | 'dlq'
+
+const RETRY_PREFIX = '%RETRY%'
+const DLQ_PREFIX = '%DLQ%'
+
+interface DerivedTopic {
+  raw: TopicItem
+  kind: TopicKind
+  system: boolean
+}
+
+/** Frontend safety net — backend also filters most system topics. */
+function isLikelySystemTopic(name: string): boolean {
+  const n = name.trim()
+  if (!n) return true
+  if (n.startsWith(RETRY_PREFIX) || n.startsWith(DLQ_PREFIX)) return false
+  if (n.startsWith('RETRY%') || n.startsWith('DLQ%')) return false
+  if (n.startsWith('%')) return true
+  const u = n.toUpperCase()
+  const l = n.toLowerCase()
+  return (
+    u.startsWith('RMQ_SYS_') ||
+    l.startsWith('rmq_sys_') ||
+    u.startsWith('SCHEDULE_TOPIC') ||
+    n.startsWith('DefaultHeartBeat') ||
+    u.includes('_REPLY_TOPIC') ||
+    u.endsWith('REPLY_TOPIC') ||
+    u.includes('WHEEL_TIMER') ||
+    u.includes('REVIVE_LOG') ||
+    u.includes('SYNC_BROKER_MEMBER') ||
+    u.includes('ROCKSDB') ||
+    u.includes('TRANS_HALF') ||
+    [
+      'TBW102',
+      'BenchmarkTest',
+      'DefaultCluster',
+      'OFFSET_MOVED_EVENT',
+      'SELF_TEST_TOPIC',
+      'DefaultHeartBeatSyncerTopic',
+    ].includes(n)
+  )
+}
+
+function classifyTopic(t: TopicItem): TopicKind {
+  if (t.topic.startsWith(RETRY_PREFIX) || t.topic.startsWith('RETRY%')) return 'retry'
+  if (t.topic.startsWith(DLQ_PREFIX) || t.topic.startsWith('DLQ%')) return 'dlq'
+  if (t.messageType === TopicMessageType.FIFO) return 'fifo'
+  if (t.messageType === TopicMessageType.Delay) return 'delay'
+  return 'normal'
+}
+
+function formatTps(n: number): string {
+  if (!n || !Number.isFinite(n) || n < 0) return '—'
+  if (n >= 10000) return `${(n / 1000).toFixed(1)}k/s`
+  if (n >= 1000) return `${(n / 1000).toFixed(2)}k/s`
+  return `${Math.round(n)}/s`
+}
+
+/** List API often returns -1 before detail/route load. */
+function formatQueues(read: number, write: number): string {
+  if (read < 0 && write < 0) return '—'
+  if (read < 0) return `— / ${write}`
+  if (write < 0) return `${read} / —`
+  return `${read} / ${write}`
+}
+
+function permLabel(p: TopicPerm, t: (k: string) => string): string {
+  switch (p) {
+    case TopicPerm.ReadWrite:
+      return t('topics.perm.rw')
+    case TopicPerm.ReadOnly:
+      return t('topics.perm.r')
+    case TopicPerm.WriteOnly:
+      return t('topics.perm.w')
+    case TopicPerm.Deny:
+      return t('topics.perm.deny')
+    default:
+      return p ? String(p) : '—'
+  }
+}
+
+function typeBadgeClass(kind: TopicKind): string {
+  // Topic-type colors stay as utility classes on Badge.
+  switch (kind) {
+    case 'fifo':
+      return 'rl-badge-topic-fifo'
+    case 'delay':
+      return 'rl-badge-topic-delay'
+    case 'retry':
+      return 'rl-badge-topic-retry'
+    case 'dlq':
+      return 'rl-badge-topic-dlq'
+    default:
+      return 'rl-badge-topic-normal'
+  }
+}
+
+function typeLabel(kind: TopicKind, t: (k: string) => string): string {
+  return t(`topics.type.${kind}`)
+}
+
+export function TopicsPage({ onNavigate }: { onNavigate?: (id: NavId) => void }) {
+  const { t } = useTranslation()
+  const { topics, loading, error, refresh, hasOnline } = useTopics()
+  const { data: clusterData } = useCluster()
+
+  const [search, setSearch] = useState('')
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>('all')
+  const [selectedName, setSelectedName] = useState<string | null>(null)
+  const [detail, setDetail] = useState<TopicItem | null>(null)
+  const [detailLoading, setDetailLoading] = useState(false)
+  const [editorOpen, setEditorOpen] = useState<
+    { mode: 'create' } | { mode: 'edit'; topic: TopicItem } | null
+  >(null)
+  const [confirmDelete, setConfirmDelete] = useState<TopicItem | null>(null)
+  const [deleting, setDeleting] = useState(false)
+
+  const derived = useMemo<DerivedTopic[]>(
+    () =>
+      topics.map((raw) => ({
+        raw,
+        kind: classifyTopic(raw),
+        system: isLikelySystemTopic(raw.topic),
+      })),
+    [topics],
+  )
+
+  const counts = useMemo(() => {
+    const c = { all: 0, normal: 0, fifo: 0, delay: 0, retry: 0, dlq: 0 }
+    for (const d of derived) {
+      if (d.system) continue
+      c.all++
+      c[d.kind]++
+    }
+    return c
+  }, [derived])
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    return derived
+      .filter((d) => {
+        // Hide internal system topics unless looking at retry/dlq intentionally
+        if (d.system && d.kind !== 'retry' && d.kind !== 'dlq') return false
+        if (typeFilter !== 'all' && d.kind !== typeFilter) return false
+        if (
+          q &&
+          !d.raw.topic.toLowerCase().includes(q) &&
+          !(d.raw.description || '').toLowerCase().includes(q)
+        ) {
+          return false
+        }
+        return true
+      })
+      .sort((a, b) => {
+        // Business topics first, then retry/dlq; alpha within group
+        const rank = (k: TopicKind) =>
+          k === 'normal' || k === 'fifo' || k === 'delay' ? 0 : k === 'retry' ? 1 : 2
+        const ra = rank(a.kind)
+        const rb = rank(b.kind)
+        if (ra !== rb) return ra - rb
+        return a.raw.topic.localeCompare(b.raw.topic)
+      })
+  }, [derived, search, typeFilter])
+
+  const dismissPanel = useCallback(() => {
+    setSelectedName(null)
+  }, [])
+
+  const panelMount = useDelayedUnmount(!!(hasOnline && selectedName))
+  // Keep the displayed item alive during the exit animation.
+  const [pinnedDetail, setPinnedDetail] = useState<TopicItem | null>(null)
+  useEffect(() => {
+    if (detail) setPinnedDetail(detail)
+  }, [detail])
+
+  // Esc closes the detail panel
+  useEffect(() => {
+    if (!selectedName) return
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') dismissPanel()
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [selectedName, dismissPanel])
+
+  // Clicking the list pane outside any row closes the panel
+  const handleListBackgroundClick = (e: React.MouseEvent) => {
+    if (!selectedName) return
+    if ((e.target as HTMLElement).closest('tr')) return
+    dismissPanel()
+  }
+
+  // When selected name changes, fetch detail (with routes)
+  useEffect(() => {
+    let cancelled = false
+    if (!selectedName) {
+      setDetail(null)
+      return
+    }
+    setDetailLoading(true)
+    topicApi
+      .getTopicDetail(selectedName)
+      .then((d) => {
+        if (!cancelled) setDetail(d)
+      })
+      .catch((e) => {
+        if (!cancelled) {
+          setDetail(null)
+          toast.error(formatErrorMessage(e))
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setDetailLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [selectedName, topics]) // 列表刷新（包括同数量内容更新）后同步详情
+
+  const doRefresh = useCallback(() => refresh({ silent: true }), [refresh])
+  const { spinning: isRefreshing, refresh: handleRefresh } = usePageRefresh(doRefresh)
+
+  const handleDelete = async () => {
+    if (!confirmDelete) return
+    setDeleting(true)
+    try {
+      await topicApi.deleteTopic(confirmDelete.topic, confirmDelete.cluster || '')
+      toast.success(t('topics.create.deleteSuccess'))
+      setConfirmDelete(null)
+      if (selectedName === confirmDelete.topic) setSelectedName(null)
+      await refresh()
+    } catch (e) {
+      toast.error(formatErrorMessage(e))
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  const subtitle = !hasOnline
+    ? t('topics.subtitleNoConn')
+    : search.trim() || typeFilter !== 'all'
+      ? t('topics.subtitleFiltered', { count: filtered.length, total: counts.all })
+      : t('topics.subtitle', { count: filtered.length })
+
+  const filters: { key: TypeFilter; labelKey: string; count: number }[] = [
+    { key: 'all', labelKey: 'topics.filterAll', count: counts.all },
+    { key: 'normal', labelKey: 'topics.filterNormal', count: counts.normal },
+    { key: 'retry', labelKey: 'topics.filterRetry', count: counts.retry },
+    { key: 'dlq', labelKey: 'topics.filterDlq', count: counts.dlq },
+  ]
+
+  return (
+    <div className="flex h-full min-h-0 flex-col">
+      <PageHeader title={t('topics.title')} subtitle={subtitle}>
+        <div className="relative" style={{ width: 220 }}>
+          <span className="pointer-events-none absolute left-2.5 top-1/2 z-[1] -translate-y-1/2 text-muted-foreground">
+            <Search size={13} />
+          </span>
+          <Input
+            className="pl-8"
+            placeholder={t('topics.searchPlaceholder')}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <RefreshButton spinning={isRefreshing} disabled={!hasOnline} onClick={handleRefresh} />
+        <Button variant="default" size="sm"
+          onClick={() => setEditorOpen({ mode: 'create' })}
+          disabled={!hasOnline}
+        >
+          <Plus size={13} />
+          {t('common.create')}
+        </Button>
+      </PageHeader>
+
+      {hasOnline && (
+        <div className="flex items-center gap-1 border-b border-border px-4 py-2">
+          <SlidingTabs
+            value={typeFilter}
+            onChange={setTypeFilter}
+            items={filters.map((f) => ({
+              key: f.key,
+              label: t(f.labelKey),
+              count: f.count,
+            }))}
+          />
+        </div>
+      )}
+
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        <div
+          className="scroll-thin min-w-0 flex-1 overflow-auto"
+          onClick={handleListBackgroundClick}
+        >
+          {!hasOnline ? (
+            <OfflineEmpty
+              message={t('topics.subtitleNoConn')}
+              onAction={() => onNavigate?.('connections')}
+            />
+          ) : loading && topics.length === 0 ? (
+            <div className="text-muted-foreground flex items-center justify-center gap-2 p-16">
+              <Spinner size={14} />
+              <span className="text-[12px]">{t('common.loading')}</span>
+            </div>
+          ) : (
+            <>
+              {error && <ErrorBanner message={t('topics.loadError', { message: error })} />}
+              {filtered.length === 0 ? (
+                <div className="text-muted-foreground flex min-h-[200px] flex-col items-center justify-center gap-2 p-10 text-center">
+                  <Tag size={22} className="opacity-35" />
+                  <div className="text-[13px]">{t('topics.empty')}</div>
+                  <div className="text-[11.5px]">{t('topics.emptyHint')}</div>
+                  {typeFilter === 'all' && !search.trim() && (
+                    <Button variant="default" size="sm"
+                      className="mt-2"
+                      onClick={() => setEditorOpen({ mode: 'create' })}
+                    >
+                      <Plus size={13} />
+                      {t('common.create')}
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <Table className="rl-table-topics">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{t('topics.table.name')}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filtered.map(({ raw, kind }) => {
+                      const selected = selectedName === raw.topic
+                      return (
+                        <TableRow
+                          key={raw.topic}
+                          className={selected ? 'selected' : ''}
+                          onClick={() => setSelectedName(raw.topic)}
+                        >
+                          <TableCell>
+                            <div className="flex min-w-0 items-center gap-2.5">
+                              <span
+                                className={
+                                  'h-1.5 w-1.5 shrink-0 rounded-full ' +
+                                  (kind === 'dlq'
+                                    ? 'bg-[hsl(var(--destructive))]'
+                                    : kind === 'retry'
+                                      ? 'bg-[hsl(var(--warning))]'
+                                      : kind === 'fifo'
+                                        ? 'bg-[hsl(var(--warning))]'
+                                        : kind === 'delay'
+                                          ? 'bg-[hsl(var(--info))]'
+                                          : 'bg-[hsl(var(--muted-foreground)/0.35)]')
+                                }
+                              />
+                              <div className="min-w-0 flex-1">
+                                <div className="flex min-w-0 items-center gap-2">
+                                  <span className="font-mono-design truncate text-[12.5px] font-medium tracking-tight">
+                                    {raw.topic}
+                                  </span>
+                                  <Badge
+                                    variant="outline"
+                                    className={typeBadgeClass(kind) + ' shrink-0'}
+                                  >
+                                    {typeLabel(kind, t)}
+                                  </Badge>
+                                </div>
+                                {raw.description && (
+                                  <div className="text-muted-foreground mt-0.5 truncate text-[11px]">
+                                    {raw.description}
+                                  </div>
+                                )}
+                              </div>
+                              <ChevronRight
+                                size={14}
+                                className={
+                                  'text-muted-foreground shrink-0 transition-opacity ' +
+                                  (selected ? 'opacity-70' : 'opacity-35')
+                                }
+                                aria-hidden
+                              />
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
+                  </TableBody>
+                </Table>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Detail panel */}
+        {panelMount.shouldRender && (
+          <TopicDetailPanel
+            topic={detail ?? pinnedDetail}
+            loading={detailLoading && !detail && !pinnedDetail}
+            exiting={panelMount.exiting}
+            onClose={dismissPanel}
+            onEdit={(tp) => setEditorOpen({ mode: 'edit', topic: tp })}
+            onDelete={(tp) => setConfirmDelete(tp)}
+          />
+        )}
+      </div>
+
+      {/* Editor modal */}
+      {editorOpen && (
+        <TopicEditor
+          mode={editorOpen.mode}
+          initial={editorOpen.mode === 'edit' ? editorOpen.topic : null}
+          brokers={clusterData.brokers}
+          onClose={() => setEditorOpen(null)}
+          onSaved={async () => {
+            setEditorOpen(null)
+            await refresh()
+          }}
+        />
+      )}
+
+      <ConfirmDialog
+        open={confirmDelete != null}
+        title={t('topics.detail.actions.delete')}
+        description={t('topics.detail.deleteConfirm', { name: confirmDelete?.topic ?? '' })}
+        confirmText={deleting ? t('common.loading') : t('common.delete')}
+        cancelText={t('common.cancel')}
+        variant="destructive"
+        onConfirm={handleDelete}
+        onCancel={() => !deleting && setConfirmDelete(null)}
+      />
+    </div>
+  )
+}
+
+// ---------- Detail Panel ----------
+
+function TopicDetailPanel({
+  topic,
+  loading,
+  exiting,
+  onClose,
+  onEdit,
+  onDelete,
+}: {
+  topic: TopicItem | null
+  loading: boolean
+  exiting: boolean
+  onClose: () => void
+  onEdit: (t: TopicItem) => void
+  onDelete: (t: TopicItem) => void
+}) {
+  const { t } = useTranslation()
+  const { groups: consumerGroups, loading: groupsLoading } = useConsumers()
+  const [tab, setTab] = useState<'info' | 'routes' | 'groups'>('info')
+
+  const relatedGroups = useMemo(() => {
+    if (!topic) return []
+    const name = topic.topic
+    return consumerGroups.filter((g) => (g.subscriptions || []).some((s) => s.topic === name))
+  }, [consumerGroups, topic])
+
+  const asideClass = 'scroll-thin detail-panel' + (exiting ? ' exiting' : '')
+
+  if (loading && !topic) {
+    return (
+      <aside
+        className={asideClass}
+        style={{
+          width: 380,
+          borderLeft: '1px solid hsl(var(--border))',
+          overflow: 'auto',
+          background: 'hsl(var(--background))',
+        }}
+      >
+        <div className="text-muted-foreground flex items-center justify-center" style={{ padding: 60, gap: 8 }}>
+          <Spinner size={14} />
+          <span className="text-[12px]">{t('common.loading')}</span>
+        </div>
+      </aside>
+    )
+  }
+
+  if (!topic) return null
+
+  const kind = classifyTopic(topic)
+  const queueLabel = formatQueues(topic.readQueue, topic.writeQueue)
+  const totalQueue =
+    topic.readQueue >= 0 && topic.writeQueue >= 0 ? topic.readQueue + topic.writeQueue : null
+
+  return (
+    <aside
+      className={asideClass}
+      style={{
+        width: 360,
+        borderLeft: '1px solid hsl(var(--border))',
+        overflow: 'auto',
+        background: 'hsl(var(--background))',
+      }}
+    >
+      <div style={{ padding: 16 }}>
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <div className="font-mono-design truncate text-[14px] font-semibold tracking-tight">
+              {topic.topic}
+            </div>
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
+              <Badge variant="outline" className={typeBadgeClass(kind)}>
+                {typeLabel(kind, t)}
+              </Badge>
+              {topic.perm && (
+                <Badge variant="outline">{permLabel(topic.perm, t)}</Badge>
+              )}
+            </div>
+          </div>
+          <Button variant="ghost" size="icon-sm" className="shrink-0" onClick={onClose}>
+            <X size={14} />
+          </Button>
+        </div>
+
+        <div
+          className="utabs"
+          style={{
+            marginTop: 16,
+            marginLeft: -20,
+            marginRight: -20,
+            paddingLeft: 20,
+            paddingRight: 20,
+          }}
+        >
+          {(['info', 'routes', 'groups'] as const).map((k) => (
+            <button
+              key={k}
+              type="button"
+              role="tab"
+              aria-selected={tab === k}
+              className={'utab ' + (tab === k ? 'active' : '')}
+              onClick={() => setTab(k)}
+            >
+              {t(`topics.detail.tabs.${k}`)}
+            </button>
+          ))}
+        </div>
+
+        {tab === 'info' && (
+          <>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <div className="rounded-xl border border-border/80 bg-card p-3.5 shadow-card">
+                <div className="flex items-center gap-1.5 text-[11.5px] text-muted-foreground">{t('topics.detail.stat.queues')}</div>
+                <div className="mt-1 font-semibold tracking-tight tabular-nums leading-tight text-[18px]">{totalQueue != null ? totalQueue : '—'}</div>
+                <div className="text-muted-foreground mt-0.5 text-[11px]">{queueLabel}</div>
+              </div>
+              <div className="rounded-xl border border-border/80 bg-card p-3.5 shadow-card">
+                <div className="flex items-center gap-1.5 text-[11.5px] text-muted-foreground">{t('topics.detail.stat.groups')}</div>
+                <div className="mt-1 font-semibold tracking-tight tabular-nums leading-tight text-[18px]">{topic.consumerGroups || 0}</div>
+              </div>
+              <div className="rounded-xl border border-border/80 bg-card p-3.5 shadow-card">
+                <div className="flex items-center gap-1.5 text-[11.5px] text-muted-foreground">{t('topics.detail.stat.tpsIn')}</div>
+                <div className="mt-1 font-semibold tracking-tight tabular-nums leading-tight text-[16px]">{formatTps(topic.tpsIn)}</div>
+              </div>
+              <div className="rounded-xl border border-border/80 bg-card p-3.5 shadow-card">
+                <div className="flex items-center gap-1.5 text-[11.5px] text-muted-foreground">{t('topics.detail.stat.tpsOut')}</div>
+                <div className="mt-1 font-semibold tracking-tight tabular-nums leading-tight text-[16px]">{formatTps(topic.tpsOut)}</div>
+              </div>
+            </div>
+
+            <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground mt-4">{t('topics.detail.info')}</div>
+            <div>
+              {topic.cluster && (
+                <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-[13px] last:border-b-0">
+                  <div className="text-muted-foreground">{t('topics.detail.infoCluster')}</div>
+                  <div className="text-foreground">{topic.cluster}</div>
+                </div>
+              )}
+              <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-[13px] last:border-b-0">
+                <div className="text-muted-foreground">{t('topics.detail.infoType')}</div>
+                <div className="text-foreground">{typeLabel(kind, t)}</div>
+              </div>
+              <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-[13px] last:border-b-0">
+                <div className="text-muted-foreground">{t('topics.detail.infoPerm')}</div>
+                <div className="text-foreground">{permLabel(topic.perm, t)}</div>
+              </div>
+              <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-[13px] last:border-b-0">
+                <div className="text-muted-foreground">{t('topics.detail.infoQueues')}</div>
+                <div className="text-foreground tabular-nums">{queueLabel}</div>
+              </div>
+              {topic.lastUpdated && (
+                <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-[13px] last:border-b-0">
+                  <div className="text-muted-foreground">{t('topics.detail.infoUpdated')}</div>
+                  <div className="text-foreground font-mono-design text-[12px]">{topic.lastUpdated}</div>
+                </div>
+              )}
+              {topic.description && (
+                <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-[13px] last:border-b-0">
+                  <div className="text-muted-foreground">{t('topics.detail.infoDesc')}</div>
+                  <div className="text-foreground">{topic.description}</div>
+                </div>
+              )}
+            </div>
+          </>
+        )}
+
+        {tab === 'routes' && (
+          <div className="mt-4">
+            {topic.routes.length === 0 ? (
+              <div className="text-muted-foreground text-[12px]" style={{ padding: 16, textAlign: 'center' }}>
+                {t('topics.detail.routesEmpty')}
+              </div>
+            ) : (
+              <Card className="overflow-hidden">
+                {topic.routes.map((r, i) => (
+                  <div
+                    key={`${r.broker}-${r.brokerAddr}`}
+                    className="flex items-center justify-between"
+                    style={{
+                      padding: '10px 14px',
+                      borderTop: i ? '1px solid hsl(var(--border))' : undefined,
+                    }}
+                  >
+                    <div className="flex min-w-0 flex-1 items-center gap-2">
+                      <Server size={13} className="text-muted-foreground" />
+                      <span className="font-mono-design truncate text-[12px]">{r.broker}</span>
+                    </div>
+                    <div className="flex shrink-0 gap-1">
+                      <Badge variant="outline"
+                        style={{ height: 18, fontSize: 10 }}
+                      >
+                        R {r.readQueue}
+                      </Badge>
+                      <Badge variant="outline"
+                        style={{ height: 18, fontSize: 10 }}
+                      >
+                        W {r.writeQueue}
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+              </Card>
+            )}
+          </div>
+        )}
+
+        {tab === 'groups' && (
+          <div className="mt-4">
+            {groupsLoading && relatedGroups.length === 0 ? (
+              <div className="text-muted-foreground flex items-center justify-center gap-2 py-8 text-[12px]">
+                <Spinner size={14} />
+                {t('common.loading')}
+              </div>
+            ) : relatedGroups.length === 0 ? (
+              <Card style={{ padding: 16, textAlign: 'center' }}>
+                <div className="text-muted-foreground text-[12px]">{t('topics.detail.groupsEmpty')}</div>
+              </Card>
+            ) : (
+              <Card className="overflow-hidden">
+                <div
+                  className="text-muted-foreground px-3.5 py-2 text-[11px]"
+                  style={{ borderBottom: '1px solid hsl(var(--border))' }}
+                >
+                  {t('topics.detail.groupsTitle')} · {relatedGroups.length}
+                </div>
+                {relatedGroups.map((g, i) => (
+                  <div
+                    key={g.group}
+                    className="flex items-center justify-between gap-2"
+                    style={{
+                      padding: '10px 14px',
+                      borderTop: i ? '1px solid hsl(var(--border))' : undefined,
+                    }}
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="font-mono-design truncate text-[12px] font-medium">
+                        {g.group}
+                      </div>
+                      <div className="text-muted-foreground mt-0.5 text-[11px]">
+                        {t('common.instances', { count: g.onlineClients ?? 0 })}
+                        {' · '}
+                        lag {(g.lag ?? 0).toLocaleString()}
+                      </div>
+                    </div>
+                    <Badge
+                      variant={
+                        g.status === 'online'
+                          ? 'success'
+                          : g.status === 'warning'
+                            ? 'warning'
+                            : 'outline'
+                      }
+                    >
+                      {g.status || '—'}
+                    </Badge>
+                  </div>
+                ))}
+              </Card>
+            )}
+          </div>
+        )}
+
+        <div className="mt-5 flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={() => onEdit(topic)}>
+            <Edit size={13} />
+            {t('topics.detail.actions.edit')}
+          </Button>
+          <Button variant="ghost" size="sm"
+            style={{ marginLeft: 'auto', color: 'hsl(var(--destructive))' }}
+            onClick={() => onDelete(topic)}
+          >
+            <Trash2 size={13} />
+          </Button>
+        </div>
+      </div>
+    </aside>
+  )
+}
+
+// ---------- Editor Modal ----------
+
+function TopicEditor({
+  mode,
+  initial,
+  brokers,
+  onClose,
+  onSaved,
+}: {
+  mode: 'create' | 'edit'
+  initial: TopicItem | null
+  brokers: import('@generated/models').BrokerNode[]
+  onClose: () => void
+  onSaved: () => void | Promise<void>
+}) {
+  const { t } = useTranslation()
+  const masterBrokers = useMemo(
+    () =>
+      brokers.filter(
+        (b) => String(b.role).toUpperCase() === 'MASTER' && b.status === 'online' && b.address,
+      ),
+    [brokers],
+  )
+
+  const [name, setName] = useState(initial?.topic ?? '')
+  const [brokerAddr, setBrokerAddr] = useState<string>(
+    initial?.routes?.[0]?.brokerAddr || masterBrokers[0]?.address || '',
+  )
+  const [readQueue, setReadQueue] = useState<number>(initial?.readQueue ?? 8)
+  const [writeQueue, setWriteQueue] = useState<number>(initial?.writeQueue ?? 8)
+  const [perm, setPerm] = useState<TopicPerm>(initial?.perm ?? TopicPerm.ReadWrite)
+  const [busy, setBusy] = useState(false)
+
+  const isEdit = mode === 'edit'
+
+  const handleSubmit = async () => {
+    if (!name.trim()) {
+      toast.error(t('topics.create.namePlaceholder'))
+      return
+    }
+    if (!brokerAddr) {
+      toast.error(t('topics.create.noBrokers'))
+      return
+    }
+    setBusy(true)
+    try {
+      if (isEdit) {
+        await topicApi.updateTopic(name.trim(), brokerAddr, readQueue, writeQueue, perm)
+        toast.success(t('topics.create.saveSuccess', { name: name.trim() }))
+      } else {
+        await topicApi.createTopic(name.trim(), brokerAddr, readQueue, writeQueue, perm)
+        toast.success(t('topics.create.createSuccess', { name: name.trim() }))
+      }
+      await onSaved()
+    } catch (e) {
+      toast.error(formatErrorMessage(e))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        className="w-full max-w-md rounded-xl border border-border/50 bg-background p-6 shadow-lg"
+      >
+        <h2 className="text-base font-semibold">
+          {isEdit ? t('topics.create.edit') : t('topics.create.title')}
+        </h2>
+        <div className="mt-4 grid gap-3.5" style={{ gridTemplateColumns: '1fr' }}>
+          <div>
+            <div className="text-muted-foreground mb-2 text-[12px]">
+              {t('topics.create.name')} <span style={{ color: 'hsl(var(--destructive))' }}>*</span>
+            </div>
+            <Input
+              className="font-mono-design"
+              placeholder={t('topics.create.namePlaceholder')}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              disabled={isEdit}
+            />
+          </div>
+          <div>
+            <div className="text-muted-foreground mb-2 text-[12px]">
+              {t('topics.create.broker')}{' '}
+              <span style={{ color: 'hsl(var(--destructive))' }}>*</span>
+            </div>
+            {masterBrokers.length === 0 ? (
+              <div className="text-muted-foreground text-[12px]" style={{ padding: 8 }}>
+                {t('topics.create.noBrokers')}
+              </div>
+            ) : (
+              <Select
+                value={brokerAddr}
+                onChange={(e) => setBrokerAddr(e.target.value)}
+              >
+                {masterBrokers.map((b) => (
+                  <option key={b.address} value={b.address}>
+                    {b.brokerName} · {b.address}
+                  </option>
+                ))}
+              </Select>
+            )}
+            <div className="text-muted-foreground mt-1 text-[11px]">{t('topics.create.brokerHint')}</div>
+          </div>
+          <div className="grid gap-3.5" style={{ gridTemplateColumns: '1fr 1fr' }}>
+            <div>
+              <div className="text-muted-foreground mb-2 text-[12px]">{t('topics.create.readQueue')}</div>
+              <Input
+                type="number"
+                min={1}
+                max={64}
+                value={readQueue}
+                onChange={(e) => setReadQueue(Number(e.target.value) || 1)}
+              />
+            </div>
+            <div>
+              <div className="text-muted-foreground mb-2 text-[12px]">{t('topics.create.writeQueue')}</div>
+              <Input
+                type="number"
+                min={1}
+                max={64}
+                value={writeQueue}
+                onChange={(e) => setWriteQueue(Number(e.target.value) || 1)}
+              />
+            </div>
+          </div>
+          <div>
+            <div className="text-muted-foreground mb-2 text-[12px]">{t('topics.create.perm')}</div>
+            <Select
+              value={perm}
+              onChange={(e) => setPerm(e.target.value as TopicPerm)}
+            >
+              <option value={TopicPerm.ReadWrite}>{t('topics.perm.rw')}</option>
+              <option value={TopicPerm.ReadOnly}>{t('topics.perm.r')}</option>
+              <option value={TopicPerm.WriteOnly}>{t('topics.perm.w')}</option>
+              <option value={TopicPerm.Deny}>{t('topics.perm.deny')}</option>
+            </Select>
+          </div>
+        </div>
+        <div className="mt-5 flex justify-end gap-2.5">
+          <Button variant="outline" size="sm"
+            type="button"
+            onClick={onClose}
+            disabled={busy}
+          >
+            {t('common.cancel')}
+          </Button>
+          <Button variant="default" size="sm"
+            type="button"
+            onClick={handleSubmit}
+            disabled={busy || masterBrokers.length === 0}
+          >
+            {busy ? <Spinner size={13} /> : <Check size={13} />}
+            {isEdit ? t('topics.create.save') : t('topics.create.submit')}
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
