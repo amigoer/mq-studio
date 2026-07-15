@@ -20,6 +20,18 @@ RocketMQ 4.x / 5.x 跨平台桌面管理客户端，支持 macOS、Windows 和 L
 
 依赖 Go 1.25、Node.js 22 和 npm。
 
+推荐通过根目录 Makefile 使用统一入口：
+
+```bash
+make help              # 查看全部命令
+make install           # 安装依赖
+make dev               # 启动开发环境
+make build             # 构建 daemon 与 Electron
+make test              # 单元测试与 daemon 冒烟测试
+make check             # 完整静态检查与基础测试
+make package           # 生成当前平台内部测试安装包
+```
+
 ```bash
 npm install
 npm install --prefix desktop
@@ -44,9 +56,11 @@ go run ./cmd/rocket-leafd
 ### OrbStack RocketMQ 端到端测试
 
 ```bash
-npm run e2e:up
-npm run test:e2e
-npm run e2e:down
+make e2e-up             # 启动并保留环境
+make test-e2e           # 对已运行的环境执行测试
+make e2e-down           # 手动停止并清理
+
+make e2e                # 启动、测试并自动清理
 ```
 
 测试会启动真实 Electron、随行 Go daemon 和 RocketMQ 5.3.2，覆盖连接、集群发现、
