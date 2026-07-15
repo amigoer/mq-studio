@@ -1,7 +1,7 @@
 # Rocket-Leaf
 
 <p align="center">
-  <img src="docs/images/logo.png" alt="Rocket-Leaf" width="160">
+  <img src="desktop/src/renderer/assets/logo.png" alt="Rocket-Leaf" width="160">
 </p>
 
 <p align="center">
