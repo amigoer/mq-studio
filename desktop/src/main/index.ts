@@ -5,6 +5,7 @@ import { app, BrowserWindow, dialog, nativeImage, net, protocol } from 'electron
 import electronUpdater from 'electron-updater'
 import { DaemonSupervisor } from './daemon-supervisor'
 import { openAllowedExternal, registerIPC, unregisterIPC } from './ipc'
+import { isReleaseInstall } from './release-install'
 
 protocol.registerSchemesAsPrivileged([
   { scheme: 'app', privileges: { standard: true, secure: true, supportFetchAPI: true } },
@@ -185,11 +186,7 @@ app.whenReady().then(async () => {
     })
     if (result.response === 0) void ensureDaemonReady(mainWindow)
   })
-  // Temporary macOS .app bundles used for local icons also report isPackaged=true.
-  // Only enable updater when the real install layout is present.
-  if (app.isPackaged && existsSync(join(process.resourcesPath, 'app-update.yml'))) {
-    configureUpdater(mainWindow)
-  }
+  if (isReleaseInstall()) configureUpdater(mainWindow)
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

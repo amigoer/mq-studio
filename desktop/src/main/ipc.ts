@@ -1,8 +1,9 @@
 import { stat, readFile, writeFile } from 'node:fs/promises'
-import { BrowserWindow, dialog, ipcMain, shell, app } from 'electron'
+import { BrowserWindow, dialog, ipcMain, shell } from 'electron'
 import type { BackendCall } from '../shared/bridge'
 import { executeBackendCall } from './operations'
 import { MAX_IMPORT_BYTES, type DaemonSupervisor } from './daemon-supervisor'
+import { isReleaseInstall } from './release-install'
 import electronUpdater from 'electron-updater'
 
 const { autoUpdater } = electronUpdater
@@ -25,7 +26,9 @@ function trustedSender(url: string): boolean {
     return true
   }
   // electron-vite may load with trailing slash differences or query-less origin.
-  if (!app.isPackaged) {
+  // Temporary macOS .app bundles look packaged; still allow local Vite origins when
+  // ELECTRON_RENDERER_URL is set or when not a real release install.
+  if (devURL || !isReleaseInstall()) {
     try {
       const parsed = new URL(url)
       if (
@@ -105,15 +108,17 @@ export function registerIPC(window: BrowserWindow, supervisor: DaemonSupervisor)
   })
 
   handle('updater:check', async () => {
-    if (!app.isPackaged) return null
+    if (!isReleaseInstall()) {
+      throw new Error('当前为开发/本地运行环境，不支持应用内更新检查')
+    }
     return autoUpdater.checkForUpdates()
   })
   handle('updater:download', async () => {
-    if (!app.isPackaged) throw new Error('开发模式不支持下载更新')
+    if (!isReleaseInstall()) throw new Error('当前环境不支持下载更新')
     return autoUpdater.downloadUpdate()
   })
   handle('updater:install', async () => {
-    if (!app.isPackaged) throw new Error('开发模式不支持安装更新')
+    if (!isReleaseInstall()) throw new Error('当前环境不支持安装更新')
     autoUpdater.quitAndInstall()
   })
 }
