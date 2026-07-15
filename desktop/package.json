@@ -13,6 +13,7 @@
     "type-check": "tsc -p tsconfig.node.json --noEmit && tsc -p tsconfig.app.json --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:e2e": "npm run build && playwright test",
     "generate:api": "openapi-typescript ../contracts/openapi.yaml -o src/generated/schema.ts",
     "package": "npm run build && electron-builder --publish never"
   },
@@ -45,6 +46,7 @@
     "@types/node": "^22.10.1",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
+    "@playwright/test": "^1.55.0",
     "@vitejs/plugin-react": "^4.3.4",
     "electron": "^38.2.1",
     "electron-builder": "^26.0.12",

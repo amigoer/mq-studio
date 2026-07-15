@@ -41,6 +41,18 @@ go run ./cmd/rocket-leafd
 
 `rocket-leafd` 不是公共服务。它只监听随机回环端口，必须由 Electron 通过 stdin 注入一次性令牌后启动。
 
+### OrbStack RocketMQ 端到端测试
+
+```bash
+npm run e2e:up
+npm run test:e2e
+npm run e2e:down
+```
+
+测试会启动真实 Electron、随行 Go daemon 和 RocketMQ 5.3.2，覆盖连接、集群发现、
+Topic 创建、消息发送、Key 查询及消息详情回查。Electron 使用临时用户目录，不会修改
+本机已有的 Rocket Leaf 配置。
+
 ## 目录
 
 ```text

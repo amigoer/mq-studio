@@ -82,6 +82,13 @@ func (s *MessageService) QueryMessages(topic string, key string, tag string, max
 		if trimmedKey != "" && trimmedTag == "" {
 			// 仅按 Key 查询时使用 Broker 索引。
 			msgs, callErr = retryClient.QueryMessage(ctx, topic, trimmedKey, maxResults, startTime, endTime)
+			if callErr == nil && len(msgs) == 0 {
+				// 新写入消息的哈希索引存在短暂可见性延迟；索引未命中时
+				// 扫描时间窗内的队列并做精确 Key 匹配，避免返回假空结果。
+				msgs, callErr = queryMessagesNewest(
+					ctx, retryClient, topic, trimmedKey, "", maxResults, startTime, endTime,
+				)
+			}
 		} else {
 			// 无 Key 或同时带 Tag 时按队列从后向前扫描。底层 QueryMessageByTime
 			// 从时间窗起点返回最早一批，既不符合“最新消息”预期，也会让本地过滤漏报。
@@ -335,11 +342,15 @@ func (s *MessageService) convertMessageExt(msg *admin.MessageExt) *model.Message
 	} else if strings.HasPrefix(msg.Topic, "%RETRY%") || strings.HasPrefix(msg.Topic, "RETRY%") {
 		status = model.MsgRetry
 	}
+	messageID := strings.TrimSpace(msg.MsgId)
+	if messageID == "" {
+		messageID = msg.OffsetMsgId
+	}
 
 	return &model.MessageItem{
 		ID:             s.getNextID(),
 		Topic:          msg.Topic,
-		MessageID:      msg.MsgId,
+		MessageID:      messageID,
 		Tags:           tags,
 		Keys:           keys,
 		QueueID:        msg.QueueId,
@@ -369,22 +380,61 @@ func (s *MessageService) QueryMessageByID(topic string, msgID string) (*model.Me
 
 	var item *model.MessageItem
 	err = executeWithClientRetryTimeout(client, s.settingsService.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
-		msg, callErr := retryClient.ViewMessage(ctx, topic, msgID)
-		if callErr != nil {
-			return callErr
-		}
-		if msg == nil {
-			return fmt.Errorf("消息不存在")
+		msg, viewErr := retryClient.ViewMessage(ctx, topic, msgID)
+		if viewErr == nil && msg != nil {
+			item = s.convertMessageExt(msg)
+			return nil
 		}
 
-		item = s.convertMessageExt(msg)
-		return nil
+		// RocketMQ 5 的 ViewMessageById 使用 OffsetMsgID 定位，而部分旧管理
+		// 客户端仍发送 msgId 请求头。直接查看失败时按客户端 MsgID（UNIQ_KEY）
+		// 查询 Broker 索引，兼容两种服务端行为。
+		messages, queryErr := retryClient.QueryMessage(ctx, topic, msgID, 64, 0, time.Now().UnixMilli())
+		if queryErr != nil {
+			if viewErr != nil {
+				return fmt.Errorf("直接查看失败: %v；索引回查失败: %w", viewErr, queryErr)
+			}
+			return queryErr
+		}
+		for _, candidate := range messages {
+			if messageMatchesID(candidate, msgID) {
+				item = s.convertMessageExt(candidate)
+				return nil
+			}
+		}
+
+		// RocketMQ 5 的消息索引在新消息写入后可能暂时不可见。管理界面的
+		// 详情入口通常来自最近消息列表，因此扫描各队列最近 1000 条作为
+		// 最后一层兼容兜底，并同时支持客户端 MsgID 与 OffsetMsgID。
+		recent, scanErr := queryMessagesNewest(
+			ctx, retryClient, topic, "", "", 1000, 0, time.Now().UnixMilli(),
+		)
+		if scanErr != nil {
+			return fmt.Errorf("未找到消息: %s；最近消息扫描失败: %w", msgID, scanErr)
+		}
+		for _, candidate := range recent {
+			if messageMatchesID(candidate, msgID) {
+				item = s.convertMessageExt(candidate)
+				return nil
+			}
+		}
+		return fmt.Errorf("未找到消息: %s", msgID)
 	})
 	if err != nil {
 		return nil, fmt.Errorf("查询消息失败: %w", err)
 	}
 
 	return item, nil
+}
+
+func messageMatchesID(message *admin.MessageExt, messageID string) bool {
+	if message == nil {
+		return false
+	}
+	if message.MsgId == messageID || message.OffsetMsgId == messageID {
+		return true
+	}
+	return message.Properties[primitive.PropertyUniqueClientMessageIdKeyIndex] == messageID
 }
 
 // GetMessageTrack 获取消息轨迹
@@ -665,5 +715,10 @@ func (s *MessageService) SendMessage(topic string, tags string, keys string, bod
 		return "", fmt.Errorf("发送消息失败: %w", err)
 	}
 
-	return fmt.Sprintf("发送成功, MsgID: %s", result.MsgID), nil
+	// HTTP 契约返回 RocketMQ 标准客户端 MsgID；成功文案由桌面端展示。
+	messageID := strings.TrimSpace(result.MsgID)
+	if messageID == "" {
+		messageID = result.OffsetMsgID
+	}
+	return messageID, nil
 }

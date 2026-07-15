@@ -57,6 +57,41 @@ func TestConvertRetryMessageMetadata(t *testing.T) {
 	}
 }
 
+func TestConvertMessageExtPrefersClientMessageID(t *testing.T) {
+	service := NewMessageService(nil)
+	item := service.convertMessageExt(&admin.MessageExt{
+		MsgId:       "client-message-id",
+		OffsetMsgId: "offset-message-id",
+	})
+	if item.MessageID != "client-message-id" {
+		t.Fatalf("MessageID = %q, want client-message-id", item.MessageID)
+	}
+}
+
+func TestConvertMessageExtFallsBackToOffsetMessageID(t *testing.T) {
+	service := NewMessageService(nil)
+	item := service.convertMessageExt(&admin.MessageExt{OffsetMsgId: "offset-message-id"})
+	if item.MessageID != "offset-message-id" {
+		t.Fatalf("MessageID = %q, want offset-message-id", item.MessageID)
+	}
+}
+
+func TestMessageMatchesID(t *testing.T) {
+	message := &admin.MessageExt{
+		MsgId:       "client-id",
+		OffsetMsgId: "offset-id",
+		Properties:  map[string]string{"UNIQ_KEY": "unique-id"},
+	}
+	for _, id := range []string{"client-id", "offset-id", "unique-id"} {
+		if !messageMatchesID(message, id) {
+			t.Fatalf("应匹配消息 ID %q", id)
+		}
+	}
+	if messageMatchesID(message, "other-id") {
+		t.Fatal("不应匹配无关消息 ID")
+	}
+}
+
 func TestMatchesMessageQueueKey(t *testing.T) {
 	tests := []struct {
 		name string

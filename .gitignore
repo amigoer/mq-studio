@@ -3,6 +3,8 @@ daemon/dist/
 desktop/out/
 desktop/resources/bin/
 desktop/node_modules/
+desktop/playwright-report/
+desktop/test-results/
 release/
 node_modules/
 

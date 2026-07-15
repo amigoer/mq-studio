@@ -19,6 +19,9 @@
     "test:go": "cd daemon && go test ./...",
     "test:desktop": "npm --prefix desktop test",
     "test:daemon-smoke": "node scripts/smoke-daemon.mjs",
+    "test:e2e": "npm run build:daemon && npm --prefix desktop run test:e2e",
+    "e2e:up": "docker compose -f tests/e2e/rocketmq/compose.yaml up -d --wait",
+    "e2e:down": "docker compose -f tests/e2e/rocketmq/compose.yaml down -v",
     "check:contract": "sh scripts/check-contract.sh",
     "check": "npm run format:check && npm run go:fmt:check && npm run go:vet && npm run desktop:type-check && npm test && npm run check:contract"
   },
