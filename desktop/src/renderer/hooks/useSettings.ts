@@ -32,6 +32,8 @@ export interface FrontendSettings {
   requestTimeoutMs: number
   globalAccessKey: string
   globalSecretKey: string
+  globalAccessKeyConfigured: boolean
+  globalSecretKeyConfigured: boolean
   skipTlsVerify: boolean
   proxyEnabled: boolean
   proxyType: ProxyType
@@ -58,6 +60,8 @@ const DEFAULTS: FrontendSettings = {
   requestTimeoutMs: 5000,
   globalAccessKey: '',
   globalSecretKey: '',
+  globalAccessKeyConfigured: false,
+  globalSecretKeyConfigured: false,
   skipTlsVerify: false,
   proxyEnabled: false,
   proxyType: 'http',
@@ -92,6 +96,8 @@ function toFrontend(s: AppSettings): FrontendSettings {
     requestTimeoutMs: s.requestTimeoutMs || DEFAULTS.requestTimeoutMs,
     globalAccessKey: s.globalAccessKey ?? '',
     globalSecretKey: s.globalSecretKey ?? '',
+    globalAccessKeyConfigured: s.globalAccessKeyConfigured ?? false,
+    globalSecretKeyConfigured: s.globalSecretKeyConfigured ?? false,
     skipTlsVerify: s.skipTlsVerify ?? false,
     proxyEnabled: s.proxyEnabled ?? false,
     proxyType: (s.proxyType as ProxyType) || DEFAULTS.proxyType,
@@ -112,7 +118,12 @@ function toFrontend(s: AppSettings): FrontendSettings {
 
 // 将前端设置转为后端 AppSettings 格式（plain object）
 function toBackend(s: FrontendSettings): AppSettings {
-  return { ...s } as unknown as AppSettings
+  const {
+    globalAccessKeyConfigured: _accessConfigured,
+    globalSecretKeyConfigured: _secretConfigured,
+    ...settings
+  } = s
+  return settings as unknown as AppSettings
 }
 
 type SettingsContextValue = {
@@ -121,6 +132,8 @@ type SettingsContextValue = {
   resetAllSettings: () => Promise<void>
   reloadSettings: () => Promise<void>
   settlePendingSaves: () => Promise<void>
+  saveGlobalCredentials: (accessKey: string, secretKey: string) => Promise<void>
+  clearGlobalCredentials: () => Promise<void>
   loading: boolean
   effectiveDark: boolean
 }
@@ -172,6 +185,7 @@ function applySettingsToDocument(settings: FrontendSettings) {
 
 function useSettingsStore(): SettingsContextValue {
   const [settings, setSettingsState] = useState<FrontendSettings>(DEFAULTS)
+  const settingsRef = useRef<FrontendSettings>(DEFAULTS)
   const [loading, setLoading] = useState(true)
   const [effectiveDark, setEffectiveDark] = useState(() => getSystemDark())
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -210,6 +224,7 @@ function useSettingsStore(): SettingsContextValue {
   }, [])
 
   useEffect(() => {
+    settingsRef.current = settings
     applySettingsToDocument(settings)
     setEffectiveDark(settings.theme === 'system' ? getSystemDark() : settings.theme === 'dark')
   }, [settings])
@@ -232,7 +247,7 @@ function useSettingsStore(): SettingsContextValue {
     const operation = saveChainRef.current
       .catch(() => undefined)
       .then(async () => {
-        await updateSettings(toBackend(next))
+        await updateSettings(toBackend(next), 'preserve')
       })
     saveChainRef.current = operation
     void operation.catch((err) => console.error('保存设置失败:', err))
@@ -302,12 +317,53 @@ function useSettingsStore(): SettingsContextValue {
     if (result) setSettingsState(toFrontend(result))
   }, [])
 
+  const saveGlobalCredentials = useCallback(
+    async (accessKey: string, secretKey: string) => {
+      const trimmedAccessKey = accessKey.trim()
+      if (!trimmedAccessKey || !secretKey.trim()) {
+        throw new Error('AccessKey 和 SecretKey 必须同时填写')
+      }
+      await settlePendingSaves()
+      const next = {
+        ...settingsRef.current,
+        globalAccessKey: trimmedAccessKey,
+        globalSecretKey: secretKey,
+      }
+      const operation = saveChainRef.current
+        .catch(() => undefined)
+        .then(() => updateSettings(toBackend(next), 'replace'))
+      saveChainRef.current = operation.then(
+        () => undefined,
+        () => undefined,
+      )
+      const result = await operation
+      setSettingsState(toFrontend(result))
+    },
+    [settlePendingSaves],
+  )
+
+  const clearGlobalCredentials = useCallback(async () => {
+    await settlePendingSaves()
+    const next = { ...settingsRef.current, globalAccessKey: '', globalSecretKey: '' }
+    const operation = saveChainRef.current
+      .catch(() => undefined)
+      .then(() => updateSettings(toBackend(next), 'clear'))
+    saveChainRef.current = operation.then(
+      () => undefined,
+      () => undefined,
+    )
+    const result = await operation
+    setSettingsState(toFrontend(result))
+  }, [settlePendingSaves])
+
   return {
     settings,
     setSetting,
     resetAllSettings,
     reloadSettings,
     settlePendingSaves,
+    saveGlobalCredentials,
+    clearGlobalCredentials,
     loading,
     effectiveDark,
   }

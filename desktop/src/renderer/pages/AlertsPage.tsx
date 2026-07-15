@@ -1,35 +1,18 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { AlertCircle, AlertTriangle, Info, Settings } from 'lucide-react'
 import { Spinner } from '@/components/Spinner'
 import { useTranslation } from 'react-i18next'
 import { PageHeader } from '@/components/PageHeader'
-import { useOverview } from '@/hooks/useOverview'
-import { useSettings } from '@/hooks/useSettings'
+import { useAlerts, type AlertEntry, type AlertSeverity } from '@/hooks/useAlerts'
 import type { NavId } from '@/layout/Sidebar'
 import { RefreshButton, usePageRefresh } from '@/components/RefreshButton'
 import { SlidingTabs } from '@/components/SlidingTabs'
 import { OfflineEmpty } from '@/components/OfflineEmpty'
-import {
-  type AlertRuleKey,
-  type AlertRulePrefs,
-  loadAlertRules,
-  saveAlertRules,
-} from '@/lib/alertRules'
+import { type AlertRuleKey, type AlertRulePrefs } from '@/lib/alertRules'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
 import { Card } from '@/components/ui/card'
-
-type Severity = 'crit' | 'warn' | 'info'
-
-interface AlertEntry {
-  key: string
-  severity: Severity
-  ruleKey: AlertRuleKey
-  title: string
-  desc: string
-  since?: string
-}
 
 interface AlertsPageProps {
   onNavigate?: (id: NavId) => void
@@ -37,126 +20,11 @@ interface AlertsPageProps {
 
 export function AlertsPage({ onNavigate }: AlertsPageProps) {
   const { t } = useTranslation()
-  const { data, refresh, loading } = useOverview()
-  const { settings } = useSettings()
-  const lagThreshold = settings.lagAlertThreshold ?? 10000
-  const diskThreshold = settings.diskAlertThreshold ?? 75
-
+  const { alerts, rules, toggleRule, refresh, loading, hasOnline, lagThreshold, diskThreshold } =
+    useAlerts()
   const [tab, setTab] = useState<'active' | 'rules'>('active')
-  const [rules, setRules] = useState<AlertRulePrefs>(() => loadAlertRules())
-  const knownAlertKeysRef = useRef<Set<string> | null>(null)
   const doRefresh = useCallback(() => refresh({ silent: true }), [refresh])
   const { spinning: isRefreshing, refresh: handleRefresh } = usePageRefresh(doRefresh)
-
-  const hasOnline = data.activeConnection?.status === 'online'
-
-  const toggleRule = useCallback((key: AlertRuleKey) => {
-    setRules((prev) => {
-      const next = { ...prev, [key]: !prev[key] }
-      saveAlertRules(next)
-      return next
-    })
-  }, [])
-
-  const alerts = useMemo<AlertEntry[]>(() => {
-    if (!hasOnline) return []
-    const out: AlertEntry[] = []
-    // Offline brokers — critical
-    if (rules.brokerOffline) {
-      for (const b of data.brokers) {
-        if (b.status === 'offline') {
-          out.push({
-            key: `broker-off-${b.brokerName}-${b.brokerId}`,
-            severity: 'crit',
-            ruleKey: 'brokerOffline',
-            title: t('alerts.rule.brokerOffline'),
-            desc: `${b.brokerName}${b.brokerId !== 0 ? `-${b.brokerId}` : ''} (${b.address || '—'})`,
-            since: b.lastUpdate || undefined,
-          })
-        }
-      }
-    }
-    // Consumer groups: high lag + offline groups
-    for (const g of data.consumerGroups) {
-      const lag = Number(g.lag ?? 0)
-      if (
-        lagThreshold > 0 &&
-        rules.groupOffline &&
-        g.status === 'offline' &&
-        lag > lagThreshold &&
-        (g.onlineClients ?? 0) === 0
-      ) {
-        out.push({
-          key: `group-off-${g.group}`,
-          severity: 'crit',
-          ruleKey: 'groupOffline',
-          title: t('alerts.rule.groupOffline'),
-          desc: `${g.group} · lag ${lag.toLocaleString()}`,
-          since: g.lastUpdate || undefined,
-        })
-      } else if (lagThreshold > 0 && rules.groupLag && lag > lagThreshold) {
-        out.push({
-          key: `group-lag-${g.group}`,
-          severity: 'warn',
-          ruleKey: 'groupLag',
-          title: t('alerts.rule.groupLag'),
-          desc: `${g.group} · lag ${lag.toLocaleString()} > ${lagThreshold.toLocaleString()}`,
-          since: g.lastUpdate || undefined,
-        })
-      }
-      if (rules.dlqGrowth && (g.dlq ?? 0) > 0) {
-        out.push({
-          key: `dlq-${g.group}`,
-          severity: 'info',
-          ruleKey: 'dlqGrowth',
-          title: t('alerts.rule.dlqGrowth'),
-          desc: `${g.group} · ${g.dlq} dead letters`,
-        })
-      }
-    }
-    // Disk usage warnings
-    if (rules.diskUsage && diskThreshold > 0) {
-      for (const b of data.brokers) {
-        const usage = Number(b.commitLogDiskUsage ?? 0)
-        if (usage >= diskThreshold) {
-          out.push({
-            key: `disk-${b.brokerName}-${b.brokerId}`,
-            severity: usage >= Math.min(100, diskThreshold + 15) ? 'crit' : 'warn',
-            ruleKey: 'diskUsage',
-            title: t('alerts.rule.diskUsage'),
-            desc: `${b.brokerName}${b.brokerId !== 0 ? `-${b.brokerId}` : ''} · ${Math.round(usage)}% ≥ ${diskThreshold}%`,
-            since: b.lastUpdate || undefined,
-          })
-        }
-      }
-    }
-    return out.sort((a, b) => severityWeight(b.severity) - severityWeight(a.severity))
-  }, [hasOnline, data, lagThreshold, diskThreshold, t, rules])
-
-  // Desktop notification when new alerts appear (not on first baseline snapshot).
-  useEffect(() => {
-    if (!settings.desktopNotifications) return
-    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return
-    const keys = new Set(alerts.map((a) => a.key))
-    const prev = knownAlertKeysRef.current
-    if (prev == null) {
-      knownAlertKeysRef.current = keys
-      return
-    }
-    const fresh = alerts.filter((a) => !prev.has(a.key))
-    knownAlertKeysRef.current = keys
-    const head = fresh[0]
-    if (!head) return
-    const extra = fresh.length > 1 ? ` (+${fresh.length - 1})` : ''
-    try {
-      new Notification(`${head.title}${extra}`, {
-        body: head.desc,
-        tag: 'rocket-leaf-alerts',
-      })
-    } catch {
-      // WebView may reject Notification construction.
-    }
-  }, [alerts, settings.desktopNotifications])
 
   const subtitle = !hasOnline
     ? t('alerts.subtitleNoConn')
@@ -203,11 +71,7 @@ export function AlertsPage({ onNavigate }: AlertsPageProps) {
   )
 }
 
-function severityWeight(s: Severity): number {
-  return s === 'crit' ? 3 : s === 'warn' ? 2 : 1
-}
-
-function severityIcon(s: Severity) {
+function severityIcon(s: AlertSeverity) {
   if (s === 'crit') return <AlertCircle size={13} style={{ color: 'hsl(var(--destructive))' }} />
   if (s === 'warn') return <AlertTriangle size={13} style={{ color: 'hsl(var(--warning))' }} />
   return <Info size={13} style={{ color: 'hsl(var(--info))' }} />

@@ -50,6 +50,8 @@ interface FormState {
   enableACL: boolean
   accessKey: string
   secretKey: string
+  accessKeyConfigured: boolean
+  secretKeyConfigured: boolean
   remark: string
 }
 
@@ -97,6 +99,8 @@ const EMPTY_FORM: FormState = {
   enableACL: false,
   accessKey: '',
   secretKey: '',
+  accessKeyConfigured: false,
+  secretKeyConfigured: false,
   remark: '',
 }
 
@@ -110,6 +114,8 @@ function fromConnection(c: Connection): FormState {
     enableACL: c.enableACL,
     accessKey: c.accessKey,
     secretKey: c.secretKey,
+    accessKeyConfigured: c.accessKeyConfigured,
+    secretKeyConfigured: c.secretKeyConfigured,
     remark: c.remark,
   }
 }
@@ -228,8 +234,16 @@ export function ConnectionsPage() {
         return t('connections.validatePort')
       }
     }
-    if (f.enableACL && (!f.accessKey.trim() || !f.secretKey.trim())) {
-      return t('connections.validateAcl')
+    if (f.enableACL) {
+      const accessKey = f.accessKey.trim()
+      const secretKey = f.secretKey.trim()
+      const replacingCredentials = accessKey !== '' || secretKey !== ''
+      if (
+        (replacingCredentials && (!accessKey || !secretKey)) ||
+        (!replacingCredentials && (!f.accessKeyConfigured || !f.secretKeyConfigured))
+      ) {
+        return t('connections.validateAcl')
+      }
     }
     return null
   }
@@ -753,6 +767,7 @@ export function ConnectionsPage() {
                             <Input
                               className="font-mono-design"
                               value={form.accessKey}
+                              placeholder={form.accessKeyConfigured ? '••••••••' : t('connections.ak')}
                               onChange={(e) => setForm({ ...form, accessKey: e.target.value })}
                             />
                           </Field>
@@ -761,6 +776,7 @@ export function ConnectionsPage() {
                               className="font-mono-design"
                               type="password"
                               value={form.secretKey}
+                              placeholder={form.secretKeyConfigured ? '••••••••' : t('connections.sk')}
                               onChange={(e) => setForm({ ...form, secretKey: e.target.value })}
                             />
                           </Field>

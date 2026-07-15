@@ -19,16 +19,19 @@ const EMPTY: ClusterSnapshot = {
 }
 
 export function useCluster() {
-  const { list } = useConnections()
-  const hasOnline = list.some((c) => c.status === 'online')
+  const { active, activeKey } = useConnections()
+  const hasOnline = active != null
 
   const [data, setData] = useState<ClusterSnapshot>(EMPTY)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const cancelledRef = useRef(false)
+  const requestGenerationRef = useRef(0)
 
   const refresh = useCallback(async (opts?: { silent?: boolean }) => {
+    if (cancelledRef.current) return
+    const generation = requestGenerationRef.current
     const silent = opts?.silent === true
     if (!silent) setRefreshing(true)
     setError(null)
@@ -36,19 +39,19 @@ export function useCluster() {
       // GetClusterInfo 已包含完整 brokers；避免再调用内部同样执行一次
       // GetClusterInfo 的 GetBrokers，减少 Broker 压力并防止 TPS 历史重复采样。
       const cluster = await clusterApi.getClusterInfo()
-      if (cancelledRef.current) return
+      if (cancelledRef.current || generation !== requestGenerationRef.current) return
       setData({
         cluster,
         brokers: (cluster?.brokers?.filter(Boolean) as BrokerNode[]) ?? [],
         lastUpdated: new Date(),
       })
     } catch (e) {
-      if (!cancelledRef.current) {
+      if (!cancelledRef.current && generation === requestGenerationRef.current) {
         setError(formatErrorMessage(e))
         setData(EMPTY)
       }
     } finally {
-      if (!cancelledRef.current) {
+      if (!cancelledRef.current && generation === requestGenerationRef.current) {
         setLoading(false)
         if (!silent) setRefreshing(false)
       }
@@ -57,20 +60,26 @@ export function useCluster() {
 
   useEffect(() => {
     cancelledRef.current = false
+    requestGenerationRef.current += 1
     if (!hasOnline) {
       setData(EMPTY)
       setLoading(false)
       return () => {
         cancelledRef.current = true
+        requestGenerationRef.current += 1
       }
     }
+    setData(EMPTY)
+    setLoading(true)
+    setRefreshing(false)
     void refresh()
     const id = window.setInterval(() => void refresh({ silent: true }), AUTO_REFRESH_MS)
     return () => {
       cancelledRef.current = true
+      requestGenerationRef.current += 1
       window.clearInterval(id)
     }
-  }, [hasOnline, refresh])
+  }, [hasOnline, activeKey, refresh])
 
   return { data, loading, refreshing, error, refresh, hasOnline }
 }

@@ -19,14 +19,14 @@ import { useConnections } from '@/hooks/useConnections'
 
 function App(): React.ReactElement {
   const [activeNav, setActiveNav] = useState<NavId>('home')
-  const { list: connections } = useConnections()
-  const activeConn = connections.find((c) => c.status === 'online') ?? null
+  const { active: activeConn, activeKey } = useConnections()
   const hasConnected = activeConn != null
 
   const gated =
     !hasConnected && activeNav !== 'connections' && activeNav !== 'settings' && activeNav !== 'home'
 
-  const contentKey = gated ? `empty-${activeNav}` : activeNav
+  // 切换集群时强制重建当前业务页，避免筛选条件、选中项和异步结果跨集群泄漏。
+  const contentKey = gated ? `empty-${activeNav}-${activeKey}` : `${activeNav}-${activeKey}`
 
   const renderContent = () => {
     if (gated) {

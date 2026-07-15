@@ -231,7 +231,10 @@ export function TopicsPage({ onNavigate }: { onNavigate?: (id: NavId) => void })
         if (!cancelled) setDetail(d)
       })
       .catch((e) => {
-        if (!cancelled) toast.error(formatErrorMessage(e))
+        if (!cancelled) {
+          setDetail(null)
+          toast.error(formatErrorMessage(e))
+        }
       })
       .finally(() => {
         if (!cancelled) setDetailLoading(false)
@@ -239,7 +242,7 @@ export function TopicsPage({ onNavigate }: { onNavigate?: (id: NavId) => void })
     return () => {
       cancelled = true
     }
-  }, [selectedName, topics.length]) // re-run when list refreshes too
+  }, [selectedName, topics]) // 列表刷新（包括同数量内容更新）后同步详情
 
   const doRefresh = useCallback(() => refresh({ silent: true }), [refresh])
   const { spinning: isRefreshing, refresh: handleRefresh } = usePageRefresh(doRefresh)

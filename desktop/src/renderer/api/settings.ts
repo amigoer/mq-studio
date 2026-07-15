@@ -3,10 +3,13 @@ import { callBackend } from './client'
 
 export type { AppSettings }
 
+export type GlobalCredentialsMode = 'preserve' | 'replace' | 'clear'
+
 export const getSettings = (): Promise<AppSettings> => callBackend('settings.get')
-export function updateSettings(settings: AppSettings): Promise<AppSettings> {
-  const globalCredentialsMode =
-    settings.globalAccessKey || settings.globalSecretKey ? 'replace' : 'preserve'
+export function updateSettings(
+  settings: AppSettings,
+  globalCredentialsMode: GlobalCredentialsMode = 'preserve',
+): Promise<AppSettings> {
   return callBackend('settings.update', { ...settings, globalCredentialsMode })
 }
 export const resetSettings = (): Promise<AppSettings> => callBackend('settings.reset')

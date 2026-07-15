@@ -97,11 +97,12 @@ export function TitleBar({
       toast.success(t('connections.connectSuccess', { name: conn.name }), {
         id: 'titlebar-conn',
       })
-      await refresh()
       setMenuOpen(false)
     } catch (e) {
       toast.error(formatErrorMessage(e), { id: 'titlebar-conn' })
     } finally {
+      // 断开旧连接后即使新连接失败，也必须同步真实状态。
+      await refresh().catch(() => undefined)
       setBusyId(null)
     }
   }

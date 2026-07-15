@@ -1,6 +1,6 @@
 import { stat, readFile, writeFile } from 'node:fs/promises'
 import { BrowserWindow, dialog, ipcMain, shell } from 'electron'
-import type { BackendCall } from '../shared/bridge'
+import type { BackendCall, UpdateCheckResult } from '../shared/bridge'
 import { executeBackendCall } from './operations'
 import { MAX_IMPORT_BYTES, type DaemonSupervisor } from './daemon-supervisor'
 import { isReleaseInstall } from './release-install'
@@ -118,7 +118,12 @@ export function registerIPC(
     if (!isReleaseInstall()) {
       throw new Error('当前为开发/本地运行环境，不支持应用内更新检查')
     }
-    return autoUpdater.checkForUpdates()
+    const result = await autoUpdater.checkForUpdates()
+    const response: UpdateCheckResult = {
+      updateAvailable: result?.isUpdateAvailable ?? false,
+      version: result?.updateInfo.version,
+    }
+    return response
   })
   handle('updater:download', async () => {
     if (!isReleaseInstall()) throw new Error('当前环境不支持下载更新')

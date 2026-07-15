@@ -16,7 +16,9 @@ import (
 	"github.com/amigoer/rocket-leaf/daemon/internal/model"
 )
 
-const maxRequestBody = 2 << 20
+// Electron 允许导入 5 MiB 配置；再包进 {"content":"..."} 时引号和反斜杠
+// 会被转义，最坏接近两倍，因此为私有 API 预留 12 MiB 上限。
+const maxRequestBody = 12 << 20
 
 type handler struct {
 	services *app.Services
@@ -388,6 +390,10 @@ func (h *handler) updateSettings(w stdhttp.ResponseWriter, r *stdhttp.Request) {
 	case "clear":
 		input.GlobalAccessKey, input.GlobalSecretKey = "", ""
 	case "replace":
+		if strings.TrimSpace(input.GlobalAccessKey) == "" || strings.TrimSpace(input.GlobalSecretKey) == "" {
+			writeError(w, r, stdhttp.StatusBadRequest, "INVALID_REQUEST", "AccessKey 和 SecretKey 必须同时填写", nil)
+			return
+		}
 	default:
 		writeError(w, r, stdhttp.StatusBadRequest, "INVALID_REQUEST", "全局凭证更新模式无效", nil)
 		return

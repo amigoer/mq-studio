@@ -63,8 +63,11 @@ export function useOverview() {
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const cancelledRef = useRef(false)
+  const requestGenerationRef = useRef(0)
 
   const refresh = useCallback(async (opts?: { silent?: boolean }) => {
+    if (cancelledRef.current) return
+    const generation = requestGenerationRef.current
     const silent = opts?.silent === true
     if (!silent) setRefreshing(true)
     setError(null)
@@ -89,11 +92,15 @@ export function useOverview() {
         topicApi.getTopics(),
         consumerApi.getConsumerGroups(),
       ])
-      if (cancelledRef.current) return
+      if (cancelledRef.current || generation !== requestGenerationRef.current) return
 
       // Re-read in case the user switched connection mid-flight.
       const stillActive = activeRef.current
-      if (!stillActive || stillActive.status !== 'online' || stillActive.id !== active.id) {
+      if (
+        !stillActive ||
+        stillActive.status !== 'online' ||
+        connectionKeyOf(stillActive) !== connectionKeyOf(active)
+      ) {
         return
       }
 
@@ -123,9 +130,11 @@ export function useOverview() {
         setError(formatErrorMessage(firstFailure.reason))
       }
     } catch (e) {
-      if (!cancelledRef.current) setError(formatErrorMessage(e))
+      if (!cancelledRef.current && generation === requestGenerationRef.current) {
+        setError(formatErrorMessage(e))
+      }
     } finally {
-      if (!cancelledRef.current) {
+      if (!cancelledRef.current && generation === requestGenerationRef.current) {
         setLoading(false)
         if (!silent) setRefreshing(false)
       }
@@ -136,6 +145,12 @@ export function useOverview() {
   // connections list poll, which only produces new object references).
   useEffect(() => {
     cancelledRef.current = false
+    requestGenerationRef.current += 1
+    setData({
+      ...EMPTY,
+      activeConnection: activeRef.current,
+    })
+    setRefreshing(false)
     // Going online after bootstrap connectDefault should show loading, not a
     // stale "not connected" empty state.
     if (isOnlineRef.current) setLoading(true)
@@ -143,6 +158,7 @@ export function useOverview() {
     const id = window.setInterval(() => void refresh({ silent: true }), AUTO_REFRESH_MS)
     return () => {
       cancelledRef.current = true
+      requestGenerationRef.current += 1
       window.clearInterval(id)
     }
   }, [refresh, connectionKey])

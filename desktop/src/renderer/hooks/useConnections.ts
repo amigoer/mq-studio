@@ -16,6 +16,8 @@ const POLL_INTERVAL_MS = 30_000
 
 interface ConnectionsContextValue {
   list: Connection[]
+  active: Connection | null
+  activeKey: string
   loading: boolean
   error: string | null
   refresh: () => Promise<void>
@@ -66,8 +68,13 @@ function useConnectionsState(): ConnectionsContextValue {
     }
   }, [refresh])
 
+  const connections = list.filter(Boolean) as Connection[]
+  const active = connections.find((connection) => connection.status === 'online') ?? null
+
   return {
-    list: list.filter(Boolean) as Connection[],
+    list: connections,
+    active,
+    activeKey: active ? `${active.id}:${active.nameServer}` : 'offline',
     loading,
     error,
     refresh,

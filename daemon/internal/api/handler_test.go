@@ -56,6 +56,34 @@ func TestRedactConnectionNeverReturnsCredentials(t *testing.T) {
 	}
 }
 
+func TestRedactSettingsReportsCredentialStateWithoutSecrets(t *testing.T) {
+	view := redactSettings(&model.AppSettings{
+		GlobalAccessKey: "global-ak",
+		GlobalSecretKey: "global-sk",
+	})
+	if view.GlobalAccessKey != "" || view.GlobalSecretKey != "" {
+		t.Fatal("全局凭证不得返回给渲染进程")
+	}
+	if !view.GlobalAccessKeyConfigured || !view.GlobalSecretKeyConfigured {
+		t.Fatal("应返回全局凭证已配置状态")
+	}
+}
+
+func TestDecodeJSONAcceptsWrappedImportLargerThanTwoMiB(t *testing.T) {
+	payload := `{"content":"` + strings.Repeat("a", 3<<20) + `"}`
+	request := httptest.NewRequest(stdhttp.MethodPost, "/v1/settings/import", strings.NewReader(payload))
+	recorder := httptest.NewRecorder()
+	var input struct {
+		Content string `json:"content"`
+	}
+	if !decodeJSON(recorder, request, &input) {
+		t.Fatalf("3 MiB 导入包装请求应被接受，status=%d body=%s", recorder.Code, recorder.Body.String())
+	}
+	if len(input.Content) != 3<<20 {
+		t.Fatalf("content length = %d, want %d", len(input.Content), 3<<20)
+	}
+}
+
 func BenchmarkAuthenticatedHealth(b *testing.B) {
 	handler := NewHandler(nil, "test-token", func() {})
 	b.ResetTimer()

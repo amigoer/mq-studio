@@ -22,6 +22,9 @@ interface APIError {
 
 const PROTOCOL_VERSION = 1
 const START_TIMEOUT_MS = 10_000
+// daemon 内部的 requestTimeoutMs 是单次 RocketMQ 调用上限；一个聚合请求
+// 可能包含多次调用，因此主进程只设置更宽松的端到端保险上限。
+const REQUEST_TIMEOUT_MS = 6 * 60_000
 const RESTART_DELAYS = [1_000, 2_000, 5_000]
 const MAX_IMPORT_BYTES = 5 * 1024 * 1024
 
@@ -92,7 +95,7 @@ export class DaemonSupervisor extends EventEmitter {
       new Promise<void>((resolveExit) => child.once('exit', () => resolveExit())),
       new Promise<void>((resolveTimeout) => setTimeout(resolveTimeout, 5_000)),
     ])
-    if (child.exitCode === null && !child.killed) child.kill('SIGKILL')
+    if (child.exitCode === null) child.kill('SIGKILL')
     this.child = null
     this.ready = null
     this.token = ''
@@ -102,7 +105,7 @@ export class DaemonSupervisor extends EventEmitter {
   async request<T = unknown>(method: string, path: string, body?: unknown): Promise<T> {
     if (!this.ready || !this.token) throw new BackendError('后端服务尚未就绪', 'BACKEND_NOT_READY')
     const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 30_000)
+    const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
     try {
       const response = await fetch(`http://127.0.0.1:${this.ready.port}${path}`, {
         method,
@@ -144,44 +147,61 @@ export class DaemonSupervisor extends EventEmitter {
       console.error(`[rocket-leafd] ${chunk.toString().trimEnd()}`),
     )
 
-    const ready = await new Promise<ReadyMessage>((resolveReady, rejectReady) => {
-      const timeout = setTimeout(() => rejectReady(new Error('后端服务启动超时')), START_TIMEOUT_MS)
-      const lines = createInterface({ input: child.stdout })
-      const fail = (error: Error) => {
-        clearTimeout(timeout)
-        lines.close()
-        rejectReady(error)
-      }
-      const exitedBeforeReady = (code: number | null) =>
-        fail(new Error(`后端服务在就绪前退出（${code ?? 'unknown'}）`))
-      child.once('error', fail)
-      child.once('exit', exitedBeforeReady)
-      lines.once('line', (line) => {
-        try {
-          const message = JSON.parse(line) as ReadyMessage
-          if (message.protocolVersion !== PROTOCOL_VERSION) {
-            throw new Error(
-              `后端协议版本不匹配（期望 ${PROTOCOL_VERSION}，实际 ${String(message.protocolVersion)}）`,
-            )
-          }
-          if (!Number.isInteger(message.port) || message.port < 1 || message.port > 65535) {
-            throw new Error(`后端端口无效: ${String(message.port)}`)
-          }
-          const expectedVersion = app.getVersion()
-          if (message.appVersion && message.appVersion !== expectedVersion) {
-            console.warn(
-              `[daemon] 版本不一致: desktop=${expectedVersion} daemon=${message.appVersion}（仅警告，不阻止启动）`,
-            )
-          }
-          clearTimeout(timeout)
+    let ready: ReadyMessage
+    try {
+      ready = await new Promise<ReadyMessage>((resolveReady, rejectReady) => {
+        let settled = false
+        const lines = createInterface({ input: child.stdout })
+        let timeout: ReturnType<typeof setTimeout> | null = null
+        let fail = (_error: Error): void => undefined
+        const exitedBeforeReady = (code: number | null) =>
+          fail(new Error(`后端服务在就绪前退出（${code ?? 'unknown'}）`))
+        const cleanup = () => {
+          if (timeout) clearTimeout(timeout)
+          lines.close()
           child.removeListener('error', fail)
           child.removeListener('exit', exitedBeforeReady)
-          resolveReady(message)
-        } catch (error) {
-          fail(error instanceof Error ? error : new Error('后端就绪消息无效'))
         }
+        fail = (error: Error) => {
+          if (settled) return
+          settled = true
+          cleanup()
+          rejectReady(error)
+        }
+        timeout = setTimeout(() => fail(new Error('后端服务启动超时')), START_TIMEOUT_MS)
+        child.once('error', fail)
+        child.once('exit', exitedBeforeReady)
+        lines.once('line', (line) => {
+          try {
+            const message = JSON.parse(line) as ReadyMessage
+            if (message.protocolVersion !== PROTOCOL_VERSION) {
+              throw new Error(
+                `后端协议版本不匹配（期望 ${PROTOCOL_VERSION}，实际 ${String(message.protocolVersion)}）`,
+              )
+            }
+            if (!Number.isInteger(message.port) || message.port < 1 || message.port > 65535) {
+              throw new Error(`后端端口无效: ${String(message.port)}`)
+            }
+            const expectedVersion = app.getVersion()
+            if (message.appVersion && message.appVersion !== expectedVersion) {
+              console.warn(
+                `[daemon] 版本不一致: desktop=${expectedVersion} daemon=${message.appVersion}（仅警告，不阻止启动）`,
+              )
+            }
+            if (settled) return
+            settled = true
+            cleanup()
+            resolveReady(message)
+          } catch (error) {
+            fail(error instanceof Error ? error : new Error('后端就绪消息无效'))
+          }
+        })
       })
-    })
+    } catch (error) {
+      await this.terminateChild(child)
+      if (this.child === child) this.child = null
+      throw error
+    }
 
     this.ready = ready
     this.restartCount = 0
@@ -194,6 +214,36 @@ export class DaemonSupervisor extends EventEmitter {
       }
       if (!this.stopping) void this.restart()
     })
+  }
+
+  private async terminateChild(child: ChildProcessWithoutNullStreams): Promise<void> {
+    try {
+      child.stdin.end()
+    } catch {
+      /* ignore */
+    }
+    if (child.exitCode !== null) return
+    const exited = new Promise<void>((resolveExit) => child.once('exit', () => resolveExit()))
+    try {
+      child.kill()
+    } catch {
+      return
+    }
+    await Promise.race([
+      exited,
+      new Promise<void>((resolveTimeout) => setTimeout(resolveTimeout, 1_000)),
+    ])
+    if (child.exitCode === null) {
+      try {
+        child.kill('SIGKILL')
+      } catch {
+        /* ignore */
+      }
+      await Promise.race([
+        exited,
+        new Promise<void>((resolveTimeout) => setTimeout(resolveTimeout, 1_000)),
+      ])
+    }
   }
 
   private async restart(): Promise<void> {

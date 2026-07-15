@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { PageTransition } from '@/components/PageTransition'
 import {
   Sun,
@@ -620,7 +620,45 @@ function MessagePanel() {
 
 function ProxyPanel() {
   const { t } = useTranslation()
-  const { settings, setSetting } = useSettings()
+  const { settings, setSetting, saveGlobalCredentials, clearGlobalCredentials } = useSettings()
+  const [accessKey, setAccessKey] = useState('')
+  const [secretKey, setSecretKey] = useState('')
+  const [credentialsBusy, setCredentialsBusy] = useState<'save' | 'clear' | null>(null)
+  const credentialsConfigured =
+    settings.globalAccessKeyConfigured && settings.globalSecretKeyConfigured
+
+  useEffect(() => {
+    setAccessKey('')
+    setSecretKey('')
+  }, [settings.globalAccessKeyConfigured, settings.globalSecretKeyConfigured])
+
+  const handleSaveCredentials = async () => {
+    if (!accessKey.trim() || !secretKey.trim()) {
+      toast.error(t('settings.proxy.credentialsPairRequired'))
+      return
+    }
+    setCredentialsBusy('save')
+    try {
+      await saveGlobalCredentials(accessKey, secretKey)
+      toast.success(t('settings.proxy.credentialsSaved'))
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t('settings.proxy.credentialsSaveError'))
+    } finally {
+      setCredentialsBusy(null)
+    }
+  }
+
+  const handleClearCredentials = async () => {
+    setCredentialsBusy('clear')
+    try {
+      await clearGlobalCredentials()
+      toast.success(t('settings.proxy.credentialsCleared'))
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t('settings.proxy.credentialsClearError'))
+    } finally {
+      setCredentialsBusy(null)
+    }
+  }
   return (
     <>
       <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 0 }}>
@@ -671,6 +709,11 @@ function ProxyPanel() {
 
       <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 24 }}>
         {t('settings.proxy.credentials')}
+        <Badge variant="outline" className="ml-2 normal-case tracking-normal">
+          {credentialsConfigured
+            ? t('settings.proxy.credentialsConfigured')
+            : t('settings.proxy.credentialsNotConfigured')}
+        </Badge>
       </div>
       <Card>
         <SettingsRow title={t('settings.proxy.ak')} hint={t('settings.proxy.akHint')}>
@@ -678,25 +721,55 @@ function ProxyPanel() {
             type="text"
             className="font-mono-design"
             style={{ width: 240 }}
-            value={settings.globalAccessKey}
-            placeholder={t('settings.proxy.akPlaceholder')}
-            onChange={(e) => setSetting('globalAccessKey', e.target.value)}
+            value={accessKey}
+            placeholder={
+              credentialsConfigured
+                ? t('settings.proxy.credentialsReplacePlaceholder')
+                : t('settings.proxy.akPlaceholder')
+            }
+            onChange={(e) => setAccessKey(e.target.value)}
           />
         </SettingsRow>
         <SettingsRow
           title={t('settings.proxy.sk')}
           hint={t('settings.proxy.skHint')}
-          bordered={false}
         >
           <Input
             type="password"
             className="font-mono-design"
             style={{ width: 240 }}
-            value={settings.globalSecretKey}
-            placeholder={t('settings.proxy.akPlaceholder')}
-            onChange={(e) => setSetting('globalSecretKey', e.target.value)}
+            value={secretKey}
+            placeholder={
+              credentialsConfigured
+                ? t('settings.proxy.credentialsReplacePlaceholder')
+                : t('settings.proxy.skPlaceholder')
+            }
+            onChange={(e) => setSecretKey(e.target.value)}
           />
         </SettingsRow>
+        <div className="flex justify-end gap-2 px-4 py-3">
+          {credentialsConfigured && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={credentialsBusy != null}
+              onClick={() => void handleClearCredentials()}
+            >
+              {t('settings.proxy.clearCredentials')}
+            </Button>
+          )}
+          <Button
+            type="button"
+            size="sm"
+            disabled={credentialsBusy != null || !accessKey.trim() || !secretKey.trim()}
+            onClick={() => void handleSaveCredentials()}
+          >
+            {credentialsConfigured
+              ? t('settings.proxy.replaceCredentials')
+              : t('settings.proxy.saveCredentials')}
+          </Button>
+        </div>
       </Card>
 
       <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 24 }}>
@@ -988,8 +1061,12 @@ export function SettingsPage() {
 
   const handleCheckUpdate = useCallback(async () => {
     try {
-      await window.rocketLeaf.updater.check()
-      toast.info(t('settings.about.upToDate', { version: APP_VERSION }))
+      const result = await window.rocketLeaf.updater.check()
+      if (result.updateAvailable) {
+        toast.info(t('settings.about.updateAvailable', { version: result.version ?? '' }))
+      } else {
+        toast.info(t('settings.about.upToDate', { version: APP_VERSION }))
+      }
     } catch {
       toast.info(t('settings.about.updateCheckFailed'), {
         description: t('settings.about.openReleasesHint'),

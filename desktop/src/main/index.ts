@@ -117,7 +117,7 @@ function createWindow(): BrowserWindow {
 
 function configureUpdater(window: BrowserWindow): void {
   autoUpdater.autoDownload = false
-  autoUpdater.autoInstallOnAppQuit = false
+  autoUpdater.autoInstallOnAppQuit = true
   autoUpdater.on('error', (error) => console.error('[updater]', error))
   autoUpdater.on('update-available', async (info) => {
     const result = await dialog.showMessageBox(window, {
@@ -137,7 +137,7 @@ function configureUpdater(window: BrowserWindow): void {
       title: '更新已下载',
       message: `Rocket Leaf ${info.version} 已准备完成`,
       detail: '是否立即重启并安装更新？',
-      buttons: ['立即重启', '下次启动时安装'],
+      buttons: ['立即重启', '退出应用时安装'],
       defaultId: 0,
       cancelId: 1,
     })

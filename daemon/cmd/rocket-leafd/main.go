@@ -82,9 +82,10 @@ func run() error {
 		Handler:           handler,
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       60 * time.Second,
-		WriteTimeout:      60 * time.Second,
-		IdleTimeout:       30 * time.Second,
-		MaxHeaderBytes:    1 << 20,
+		// 聚合接口可能顺序执行多次受 requestTimeoutMs 约束的 RocketMQ 调用。
+		WriteTimeout:   5 * time.Minute,
+		IdleTimeout:    30 * time.Second,
+		MaxHeaderBytes: 1 << 20,
 	}
 	serveErr := make(chan error, 1)
 	go func() {
