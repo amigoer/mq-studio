@@ -15,6 +15,10 @@ import {
   loadAlertRules,
   saveAlertRules,
 } from '@/lib/alertRules'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Switch } from '@/components/ui/switch'
+import { Card } from '@/components/ui/card'
 
 type Severity = 'crit' | 'warn' | 'info'
 
@@ -213,7 +217,7 @@ function ActiveAlerts({ alerts, loading }: { alerts: AlertEntry[]; loading: bool
   const { t } = useTranslation()
   if (loading && alerts.length === 0) {
     return (
-      <div className="rl-muted flex items-center justify-center" style={{ padding: 60, gap: 8 }}>
+      <div className="text-muted-foreground flex items-center justify-center" style={{ padding: 60, gap: 8 }}>
         <Spinner size={14} />
         <span className="text-[12px]">{t('common.loading')}</span>
       </div>
@@ -221,16 +225,16 @@ function ActiveAlerts({ alerts, loading }: { alerts: AlertEntry[]; loading: bool
   }
   if (alerts.length === 0) {
     return (
-      <div
-        className="rl-card rl-muted text-center text-[12px]"
+      <Card
+        className="text-muted-foreground text-center text-[12px]"
         style={{ padding: 32, maxWidth: 760 }}
       >
         {t('alerts.active.empty')}
-      </div>
+      </Card>
     )
   }
   return (
-    <div className="rl-card overflow-hidden" style={{ maxWidth: 760 }}>
+    <Card className="overflow-hidden" style={{ maxWidth: 760 }}>
       {alerts.map((a, i) => (
         <div
           key={a.key}
@@ -242,22 +246,22 @@ function ActiveAlerts({ alerts, loading }: { alerts: AlertEntry[]; loading: bool
           <div className="flex items-center gap-2">
             {severityIcon(a.severity)}
             <span className="text-[13px] font-medium">{a.title}</span>
-            <span className="rl-badge rl-badge-outline" style={{ marginLeft: 4 }}>
+            <Badge variant="outline" style={{ marginLeft: 4 }}>
               {t(`alerts.level.${a.severity}`)}
-            </span>
+            </Badge>
             <span className="flex-1" />
             {a.since && (
-              <span className="font-mono-design rl-muted rl-tabular text-[11px]">
+              <span className="font-mono-design text-muted-foreground tabular-nums text-[11px]">
                 {t('alerts.active.since', { time: a.since })}
               </span>
             )}
           </div>
-          <div className="rl-muted font-mono-design mt-1 text-[12px]" style={{ lineHeight: 1.5 }}>
+          <div className="text-muted-foreground font-mono-design mt-1 text-[12px]" style={{ lineHeight: 1.5 }}>
             {a.desc}
           </div>
         </div>
       ))}
-    </div>
+    </Card>
   )
 }
 
@@ -276,12 +280,12 @@ function RulesPanel({
 }) {
   const { t } = useTranslation()
   return (
-    <div className="rl-card" style={{ padding: 20, maxWidth: 760 }}>
+    <Card style={{ padding: 20, maxWidth: 760 }}>
       <div className="text-[13px] font-medium">{t('alerts.rules.title')}</div>
-      <div className="rl-muted mt-1 text-[12px]" style={{ lineHeight: 1.5 }}>
+      <div className="text-muted-foreground mt-1 text-[12px]" style={{ lineHeight: 1.5 }}>
         {t('alerts.rules.desc')}
       </div>
-      <div className="rl-muted mt-2 text-[11px]" style={{ lineHeight: 1.5 }}>
+      <div className="text-muted-foreground mt-2 text-[11px]" style={{ lineHeight: 1.5 }}>
         {t('alerts.rules.localOnlyNote')}
       </div>
 
@@ -293,8 +297,8 @@ function RulesPanel({
             borderRadius: 8,
           }}
         >
-          <div className="rl-muted text-[12px]">{t('alerts.rules.lagThreshold')}</div>
-          <div className="rl-tabular mt-1 text-[18px] font-semibold">
+          <div className="text-muted-foreground text-[12px]">{t('alerts.rules.lagThreshold')}</div>
+          <div className="tabular-nums mt-1 text-[18px] font-semibold">
             {lagThreshold <= 0
               ? t('alerts.rules.thresholdOff')
               : t('alerts.rules.lagThresholdValue', { n: lagThreshold.toLocaleString() })}
@@ -307,8 +311,8 @@ function RulesPanel({
             borderRadius: 8,
           }}
         >
-          <div className="rl-muted text-[12px]">{t('alerts.rules.diskThreshold')}</div>
-          <div className="rl-tabular mt-1 text-[18px] font-semibold">
+          <div className="text-muted-foreground text-[12px]">{t('alerts.rules.diskThreshold')}</div>
+          <div className="tabular-nums mt-1 text-[18px] font-semibold">
             {diskThreshold <= 0
               ? t('alerts.rules.thresholdOff')
               : t('alerts.rules.diskThresholdValue', { n: diskThreshold })}
@@ -316,7 +320,7 @@ function RulesPanel({
         </div>
       </div>
 
-      <div className="rl-section-label" style={{ marginTop: 20 }}>
+      <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 20 }}>
         {t('alerts.tabs.rules')}
       </div>
       <div>
@@ -340,12 +344,9 @@ function RulesPanel({
                       : 'info',
                 )}
                 <span className="flex-1 text-[13px]">{t(`alerts.rule.${k}`)}</span>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={on}
-                  className={'rl-switch ' + (on ? 'on' : '')}
-                  onClick={() => onToggle(k)}
+                <Switch
+                  checked={on}
+                  onCheckedChange={() => onToggle(k)}
                   title={on ? t('alerts.rules.enabled') : t('alerts.rules.disabled')}
                 />
               </div>
@@ -358,11 +359,11 @@ function RulesPanel({
         className="mt-4 flex justify-end"
         style={{ paddingTop: 12, borderTop: '1px solid hsl(var(--border))' }}
       >
-        <button className="rl-btn rl-btn-outline rl-btn-sm" onClick={onOpenSettings}>
+        <Button variant="outline" size="sm" onClick={onOpenSettings}>
           <Settings size={13} />
           {t('alerts.rules.openSettings')}
-        </button>
+        </Button>
       </div>
-    </div>
+    </Card>
   )
 }

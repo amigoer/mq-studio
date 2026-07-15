@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs'
 import { join, normalize, relative } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { app, BrowserWindow, dialog, nativeImage, net, protocol } from 'electron'
+import { app, BrowserWindow, dialog, nativeImage, nativeTheme, net, protocol } from 'electron'
 import electronUpdater from 'electron-updater'
 import { DaemonSupervisor } from './daemon-supervisor'
 import { openAllowedExternal, registerIPC, unregisterIPC } from './ipc'
@@ -14,10 +14,30 @@ protocol.registerSchemesAsPrivileged([
 const APPLICATION_NAME = 'Rocket Leaf'
 app.setName(APPLICATION_NAME)
 
+/** Match renderer tokens: light --background 100%, dark --background 7%. */
+const WINDOW_BG_LIGHT = '#ffffff'
+const WINDOW_BG_DARK = '#121212'
+
 const supervisor = new DaemonSupervisor()
 const { autoUpdater } = electronUpdater
 let mainWindow: BrowserWindow | null = null
 let shutdownStarted = false
+/** Last appearance applied from renderer (overrides system until next report). */
+let preferredDark: boolean | null = null
+
+function isDarkAppearance(): boolean {
+  return preferredDark ?? nativeTheme.shouldUseDarkColors
+}
+
+function windowBackgroundColor(): string {
+  return isDarkAppearance() ? WINDOW_BG_DARK : WINDOW_BG_LIGHT
+}
+
+function applyWindowAppearance(window?: BrowserWindow | null): void {
+  const target = window ?? mainWindow
+  if (!target || target.isDestroyed()) return
+  target.setBackgroundColor(windowBackgroundColor())
+}
 
 function applicationIconPath(): string | undefined {
   const iconPath = app.isPackaged
@@ -56,11 +76,12 @@ function createWindow(): BrowserWindow {
     minWidth: 1024,
     minHeight: 750,
     show: false,
-    backgroundColor: '#f7f8fa',
+    backgroundColor: windowBackgroundColor(),
     icon: applicationIconPath(),
     frame: mac,
     titleBarStyle: mac ? 'hidden' : 'default',
-    trafficLightPosition: mac ? { x: 16, y: 17 } : undefined,
+    // Vertically center traffic lights in the 52px title bar (radius ≈ 7 → y ≈ 18).
+    trafficLightPosition: mac ? { x: 16, y: 18 } : undefined,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
@@ -167,11 +188,21 @@ app.whenReady().then(async () => {
   registerApplicationProtocol()
   configureApplicationIcon()
 
+  // Keep native chrome in sync when OS appearance changes and app uses system theme.
+  nativeTheme.on('updated', () => {
+    if (preferredDark === null) applyWindowAppearance()
+  })
+
   const started = await ensureDaemonReady(null)
   if (!started) return
 
   mainWindow = createWindow()
-  registerIPC(mainWindow, supervisor)
+  registerIPC(mainWindow, supervisor, {
+    onAppearanceChange: (dark) => {
+      preferredDark = dark
+      applyWindowAppearance()
+    },
+  })
   supervisor.on('state', (state) => mainWindow?.webContents.send('daemon:state-changed', state))
   supervisor.on('failed', async (error: unknown) => {
     const result = await showDaemonError(mainWindow, {
@@ -192,7 +223,12 @@ app.whenReady().then(async () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       mainWindow = createWindow()
       unregisterIPC()
-      registerIPC(mainWindow, supervisor)
+      registerIPC(mainWindow, supervisor, {
+        onAppearanceChange: (dark) => {
+          preferredDark = dark
+          applyWindowAppearance()
+        },
+      })
     }
   })
 })

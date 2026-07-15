@@ -12,6 +12,11 @@ import { formatErrorMessage } from '@/lib/utils'
 import { RefreshButton, usePageRefresh } from '@/components/RefreshButton'
 import { OfflineEmpty } from '@/components/OfflineEmpty'
 import type { NavId } from '@/layout/Sidebar'
+import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/textarea'
+import { Input } from '@/components/ui/input'
+import { Select } from '@/components/ui/select'
+import { Card } from '@/components/ui/card'
 
 const PERMS = ['DENY', 'PUB', 'SUB', 'PUB|SUB'] as const
 
@@ -194,8 +199,8 @@ export function AclPage({ onNavigate }: { onNavigate?: (id: NavId) => void }) {
           />
         ) : (
           <div style={{ maxWidth: 1280 }}>
-            <div
-              className="rl-card mb-4 text-[12px]"
+            <Card
+              className="mb-4 text-[12px]"
               style={{
                 padding: '10px 14px',
                 lineHeight: 1.55,
@@ -203,16 +208,16 @@ export function AclPage({ onNavigate }: { onNavigate?: (id: NavId) => void }) {
               }}
             >
               <span className="font-medium">{t('acl.limitationsTitle')}</span>
-              <span className="rl-muted"> {t('acl.limitationsDesc')}</span>
-            </div>
+              <span className="text-muted-foreground"> {t('acl.limitationsDesc')}</span>
+            </Card>
             {/* Status */}
-            <div className="rl-card mb-5 flex items-center gap-3" style={{ padding: 16 }}>
+            <Card className="mb-5 flex items-center gap-3" style={{ padding: 16 }}>
               {statusLoading ? (
-                <Spinner size={18} className="rl-muted shrink-0" />
+                <Spinner size={18} className="text-muted-foreground shrink-0" />
               ) : enabled ? (
                 <ShieldCheck size={20} style={{ color: 'hsl(var(--success))', flexShrink: 0 }} />
               ) : (
-                <ShieldOff size={20} className="rl-muted shrink-0" />
+                <ShieldOff size={20} className="text-muted-foreground shrink-0" />
               )}
               <div className="min-w-0 flex-1">
                 <div className="text-[13px] font-medium">
@@ -223,7 +228,7 @@ export function AclPage({ onNavigate }: { onNavigate?: (id: NavId) => void }) {
                       : t('acl.status.disabled')}
                 </div>
                 {version && (
-                  <div className="rl-muted mt-1 flex flex-wrap gap-3 text-[12px]">
+                  <div className="text-muted-foreground mt-1 flex flex-wrap gap-3 text-[12px]">
                     <span className="font-mono-design">
                       {t('acl.status.broker', { addr: version.brokerAddr || '—' })}
                     </span>
@@ -244,7 +249,7 @@ export function AclPage({ onNavigate }: { onNavigate?: (id: NavId) => void }) {
                   </div>
                 )}
               </div>
-            </div>
+            </Card>
 
             {/* 双栏布局：账号配置主表单留在左侧主区，
                 删除/全局白名单这类辅助操作折到右边窄列。
@@ -252,29 +257,29 @@ export function AclPage({ onNavigate }: { onNavigate?: (id: NavId) => void }) {
             <div className="grid grid-cols-1 gap-5 lg:grid-cols-[3fr_2fr]">
               <div>
                 {/* Access config form */}
-                <div className="rl-section-label">{t('acl.form.title')}</div>
-                <div className="rl-card" style={{ padding: 20 }}>
-                  <div className="rl-muted mb-4 text-[12px]">{t('acl.form.subtitle')}</div>
+                <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{t('acl.form.title')}</div>
+                <Card style={{ padding: 20 }}>
+                  <div className="text-muted-foreground mb-4 text-[12px]">{t('acl.form.subtitle')}</div>
                   <div className="grid gap-3.5" style={{ gridTemplateColumns: '1fr 1fr' }}>
                     <div>
-                      <div className="rl-muted mb-2 text-[12px]">
+                      <div className="text-muted-foreground mb-2 text-[12px]">
                         {t('acl.form.ak')}{' '}
                         <span style={{ color: 'hsl(var(--destructive))' }}>*</span>
                       </div>
-                      <input
-                        className="rl-input font-mono-design"
+                      <Input
+                        className="font-mono-design"
                         placeholder={t('acl.form.akPlaceholder')}
                         value={ak}
                         onChange={(e) => setAk(e.target.value)}
                       />
                     </div>
                     <div>
-                      <div className="rl-muted mb-2 text-[12px]">
+                      <div className="text-muted-foreground mb-2 text-[12px]">
                         {t('acl.form.sk')}{' '}
                         <span style={{ color: 'hsl(var(--destructive))' }}>*</span>
                       </div>
-                      <input
-                        className="rl-input font-mono-design"
+                      <Input
+                        className="font-mono-design"
                         type="password"
                         placeholder={t('acl.form.skPlaceholder')}
                         value={sk}
@@ -282,20 +287,19 @@ export function AclPage({ onNavigate }: { onNavigate?: (id: NavId) => void }) {
                       />
                     </div>
                     <div style={{ gridColumn: '1 / -1' }}>
-                      <div className="rl-muted mb-2 text-[12px]">{t('acl.form.whiteIp')}</div>
-                      <input
-                        className="rl-input font-mono-design"
+                      <div className="text-muted-foreground mb-2 text-[12px]">{t('acl.form.whiteIp')}</div>
+                      <Input
+                        className="font-mono-design"
                         placeholder={t('acl.form.whiteIpPlaceholder')}
                         value={whiteIp}
                         onChange={(e) => setWhiteIp(e.target.value)}
                       />
                     </div>
                     <div>
-                      <div className="rl-muted mb-2 text-[12px]">
+                      <div className="text-muted-foreground mb-2 text-[12px]">
                         {t('acl.form.defaultTopicPerm')}
                       </div>
-                      <select
-                        className="rl-select"
+                      <Select
                         value={defaultTopicPerm}
                         onChange={(e) =>
                           setDefaultTopicPerm(e.target.value as (typeof PERMS)[number])
@@ -306,14 +310,13 @@ export function AclPage({ onNavigate }: { onNavigate?: (id: NavId) => void }) {
                             {p}
                           </option>
                         ))}
-                      </select>
+                      </Select>
                     </div>
                     <div>
-                      <div className="rl-muted mb-2 text-[12px]">
+                      <div className="text-muted-foreground mb-2 text-[12px]">
                         {t('acl.form.defaultGroupPerm')}
                       </div>
-                      <select
-                        className="rl-select"
+                      <Select
                         value={defaultGroupPerm}
                         onChange={(e) =>
                           setDefaultGroupPerm(e.target.value as (typeof PERMS)[number])
@@ -324,7 +327,7 @@ export function AclPage({ onNavigate }: { onNavigate?: (id: NavId) => void }) {
                             {p}
                           </option>
                         ))}
-                      </select>
+                      </Select>
                     </div>
                     <div style={{ gridColumn: '1 / -1' }}>
                       <label
@@ -337,44 +340,30 @@ export function AclPage({ onNavigate }: { onNavigate?: (id: NavId) => void }) {
                           onChange={(e) => setAdmin(e.target.checked)}
                         />
                         <span>{t('acl.form.admin')}</span>
-                        <span className="rl-muted text-[12px]">· {t('acl.form.adminHint')}</span>
+                        <span className="text-muted-foreground text-[12px]">· {t('acl.form.adminHint')}</span>
                       </label>
                     </div>
                     <div style={{ gridColumn: '1 / -1' }}>
-                      <div className="rl-muted mb-2 text-[12px]">{t('acl.form.topicPerms')}</div>
-                      <textarea
-                        className="rl-input font-mono-design"
-                        style={{
-                          width: '100%',
-                          minHeight: 80,
-                          padding: 10,
-                          fontSize: 12,
-                          resize: 'vertical',
-                        }}
+                      <div className="text-muted-foreground mb-2 text-[12px]">{t('acl.form.topicPerms')}</div>
+                      <Textarea
+                        className="min-h-[80px] font-mono-design text-[12px]"
                         placeholder="ORDER_TOPIC=PUB|SUB&#10;AUDIT_LOG=PUB"
                         value={topicPerms}
                         onChange={(e) => setTopicPerms(e.target.value)}
                       />
-                      <div className="rl-muted mt-1 text-[11px]">
+                      <div className="text-muted-foreground mt-1 text-[11px]">
                         {t('acl.form.topicPermsHint')}
                       </div>
                     </div>
                     <div style={{ gridColumn: '1 / -1' }}>
-                      <div className="rl-muted mb-2 text-[12px]">{t('acl.form.groupPerms')}</div>
-                      <textarea
-                        className="rl-input font-mono-design"
-                        style={{
-                          width: '100%',
-                          minHeight: 60,
-                          padding: 10,
-                          fontSize: 12,
-                          resize: 'vertical',
-                        }}
+                      <div className="text-muted-foreground mb-2 text-[12px]">{t('acl.form.groupPerms')}</div>
+                      <Textarea
+                        className="min-h-[60px] font-mono-design text-[12px]"
                         placeholder="GID_ADMIN=SUB"
                         value={groupPerms}
                         onChange={(e) => setGroupPerms(e.target.value)}
                       />
-                      <div className="rl-muted mt-1 text-[11px]">
+                      <div className="text-muted-foreground mt-1 text-[11px]">
                         {t('acl.form.groupPermsHint')}
                       </div>
                     </div>
@@ -383,51 +372,49 @@ export function AclPage({ onNavigate }: { onNavigate?: (id: NavId) => void }) {
                     className="mt-5 flex justify-end"
                     style={{ paddingTop: 16, borderTop: '1px solid hsl(var(--border))' }}
                   >
-                    <button
-                      className="rl-btn rl-btn-primary rl-btn-sm"
+                    <Button variant="default" size="sm"
                       onClick={handleSave}
                       disabled={saving}
                     >
                       {saving ? <Spinner size={13} /> : <Check size={13} />}
                       {saving ? t('acl.form.saving') : t('acl.form.submit')}
-                    </button>
+                    </Button>
                   </div>
-                </div>
+                </Card>
               </div>
               <div className="flex flex-col gap-5">
                 <div>
                   {/* Delete by AK */}
-                  <div className="rl-section-label">{t('acl.delete.title')}</div>
-                  <div className="rl-card" style={{ padding: 20 }}>
-                    <div className="rl-muted mb-3 text-[12px]">{t('acl.delete.subtitle')}</div>
+                  <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{t('acl.delete.title')}</div>
+                  <Card style={{ padding: 20 }}>
+                    <div className="text-muted-foreground mb-3 text-[12px]">{t('acl.delete.subtitle')}</div>
                     <div className="flex gap-2">
-                      <input
-                        className="rl-input font-mono-design"
+                      <Input
+                        className="font-mono-design"
                         placeholder={t('acl.form.akPlaceholder')}
                         value={deleteAk}
                         onChange={(e) => setDeleteAk(e.target.value)}
                         style={{ flex: 1 }}
                       />
-                      <button
-                        className="rl-btn rl-btn-outline rl-btn-sm"
+                      <Button variant="outline" size="sm"
                         style={{ color: 'hsl(var(--destructive))' }}
                         onClick={() => deleteAk.trim() && setConfirmDelete(deleteAk.trim())}
                         disabled={!deleteAk.trim()}
                       >
                         <Trash2 size={13} />
                         {t('acl.delete.submit')}
-                      </button>
+                      </Button>
                     </div>
-                  </div>
+                  </Card>
                 </div>
                 <div>
                   {/* Global white list */}
-                  <div className="rl-section-label">{t('acl.globalWhite.title')}</div>
-                  <div className="rl-card" style={{ padding: 20 }}>
-                    <div className="rl-muted mb-3 text-[12px]">{t('acl.globalWhite.subtitle')}</div>
+                  <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{t('acl.globalWhite.title')}</div>
+                  <Card style={{ padding: 20 }}>
+                    <div className="text-muted-foreground mb-3 text-[12px]">{t('acl.globalWhite.subtitle')}</div>
                     <div className="flex flex-col gap-2">
                       {whiteList.length === 0 ? (
-                        <div className="rl-muted text-[12px]" style={{ padding: '8px 0' }}>
+                        <div className="text-muted-foreground text-[12px]" style={{ padding: '8px 0' }}>
                           {t('acl.globalWhite.empty')}
                         </div>
                       ) : (
@@ -443,36 +430,34 @@ export function AclPage({ onNavigate }: { onNavigate?: (id: NavId) => void }) {
                             }}
                           >
                             <span className="font-mono-design text-[12px]">
-                              <Key size={11} className="rl-muted mr-2 inline" />
+                              <Key size={11} className="text-muted-foreground mr-2 inline" />
                               {ip}
                             </span>
-                            <button
-                              className="rl-btn rl-btn-ghost rl-btn-icon rl-btn-sm"
+                            <Button variant="ghost" size="icon-sm"
                               onClick={() => handleRemoveWhite(ip)}
                             >
                               <X size={12} />
-                            </button>
+                            </Button>
                           </div>
                         ))
                       )}
                     </div>
                     <div className="mt-3 flex gap-2">
-                      <input
-                        className="rl-input font-mono-design"
+                      <Input
+                        className="font-mono-design"
                         placeholder={t('acl.globalWhite.addPlaceholder')}
                         value={whiteInput}
                         onChange={(e) => setWhiteInput(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleAddWhite()}
                         style={{ flex: 1 }}
                       />
-                      <button
-                        className="rl-btn rl-btn-outline rl-btn-sm"
+                      <Button variant="outline" size="sm"
                         onClick={handleAddWhite}
                         disabled={!whiteInput.trim()}
                       >
                         <Plus size={13} />
                         {t('acl.globalWhite.add')}
-                      </button>
+                      </Button>
                     </div>
                     <div
                       className="mt-4"
@@ -491,17 +476,16 @@ export function AclPage({ onNavigate }: { onNavigate?: (id: NavId) => void }) {
                         <span>{t('acl.globalWhite.warning')}</span>
                       </div>
                       <div className="flex justify-end">
-                        <button
-                          className="rl-btn rl-btn-destructive rl-btn-sm"
+                        <Button variant="destructive" size="sm"
                           onClick={handleSaveWhite}
                           disabled={whiteSaving}
                         >
                           {whiteSaving ? <Spinner size={13} /> : <Check size={13} />}
                           {whiteSaving ? t('acl.globalWhite.saving') : t('acl.globalWhite.save')}
-                        </button>
+                        </Button>
                       </div>
                     </div>
-                  </div>
+                  </Card>
                 </div>
               </div>
             </div>

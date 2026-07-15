@@ -21,6 +21,9 @@ import * as connectionApi from '@/api/connection'
 import { useConnections } from '@/hooks/useConnections'
 import { useSettings } from '@/hooks/useSettings'
 import { formatErrorMessage } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Card } from '@/components/ui/card'
 
 const GITHUB_URL = 'https://github.com/amigoer/rocket-leaf'
 const DOCS_URL = 'https://github.com/amigoer/rocket-leaf#readme'
@@ -126,20 +129,20 @@ export function EmptyStatePage({ onAddConnection }: { onAddConnection?: () => vo
   return (
     <div className="flex h-full min-h-0 flex-col">
       <PageHeader title={t('emptyState.title')} subtitle={t('emptyState.subtitle')}>
-        <button className="rl-btn rl-btn-ghost rl-btn-sm" onClick={() => openExternal(DOCS_URL)}>
+        <Button variant="ghost" size="sm" onClick={() => openExternal(DOCS_URL)}>
           <Github size={13} />
           {t('common.docs')}
-        </button>
-        <button className="rl-btn rl-btn-primary rl-btn-sm" onClick={() => openNew()}>
+        </Button>
+        <Button variant="default" size="sm" onClick={() => openNew()}>
           <Plus size={13} />
           {t('emptyState.addConnection')}
-        </button>
+        </Button>
       </PageHeader>
 
       <div className="scroll-thin min-h-0 flex-1 overflow-auto">
         <div style={{ maxWidth: 960, margin: '0 auto', padding: '20px 20px 32px' }}>
           {/* Hero */}
-          <div className="rl-card" style={{ position: 'relative', overflow: 'hidden', padding: 0 }}>
+          <Card style={{ position: 'relative', overflow: 'hidden', padding: 0 }}>
             <div
               aria-hidden
               style={{
@@ -161,7 +164,7 @@ export function EmptyStatePage({ onAddConnection }: { onAddConnection?: () => vo
             >
               <div className="min-w-0 flex-1">
                 <div className="mb-2 flex items-center gap-2">
-                  <span className="rl-badge rl-badge-outline" style={{ height: 19 }}>
+                  <Badge variant="outline" className="h-[19px]">
                     <span
                       style={{
                         width: 6,
@@ -171,8 +174,8 @@ export function EmptyStatePage({ onAddConnection }: { onAddConnection?: () => vo
                       }}
                     />
                     {t('emptyState.badge')}
-                  </span>
-                  <span className="rl-muted text-[12px]">{t('emptyState.supportNote')}</span>
+                  </Badge>
+                  <span className="text-muted-foreground text-[12px]">{t('emptyState.supportNote')}</span>
                 </div>
                 <div
                   style={{
@@ -185,20 +188,20 @@ export function EmptyStatePage({ onAddConnection }: { onAddConnection?: () => vo
                   {t('emptyState.heroTitle')}
                 </div>
                 <div
-                  className="rl-muted mt-1.5 text-[12px]"
+                  className="text-muted-foreground mt-1.5 text-[12px]"
                   style={{ maxWidth: 520, lineHeight: 1.6 }}
                 >
                   {t('emptyState.heroDesc')}
                 </div>
                 <div className="mt-3 flex gap-2">
-                  <button className="rl-btn rl-btn-primary rl-btn-sm" onClick={() => openNew()}>
+                  <Button variant="default" size="sm" onClick={() => openNew()}>
                     <Plus size={13} />
                     {t('emptyState.addConnection')}
-                  </button>
-                  <button className="rl-btn rl-btn-outline rl-btn-sm" onClick={handleImport}>
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={handleImport}>
                     <Download size={12} />
                     {t('emptyState.importFromFile')}
-                  </button>
+                  </Button>
                 </div>
               </div>
 
@@ -206,10 +209,10 @@ export function EmptyStatePage({ onAddConnection }: { onAddConnection?: () => vo
                 <EmptySchematic notConfigured={t('emptyState.badge')} />
               </div>
             </div>
-          </div>
+          </Card>
 
           {/* Quick start */}
-          <div className="rl-section-label" style={{ marginTop: 20 }}>
+          <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 20 }}>
             {t('emptyState.quickStart')}
           </div>
           <div className="grid gap-2.5" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
@@ -217,11 +220,10 @@ export function EmptyStatePage({ onAddConnection }: { onAddConnection?: () => vo
               <button
                 key={s.key}
                 type="button"
-                className="rl-card cursor-pointer text-left transition-colors hover:border-primary/40"
+                className="cursor-pointer rounded-xl border border-border/80 bg-card p-3.5 text-left shadow-card transition-colors hover:border-primary/40"
                 style={{
-                  padding: 14,
                   borderStyle: s.ghost ? 'dashed' : 'solid',
-                  background: s.ghost ? 'transparent' : 'hsl(var(--card))',
+                  background: s.ghost ? 'transparent' : undefined,
                 }}
                 onClick={() => void handleSample(s.key)}
               >
@@ -237,22 +239,21 @@ export function EmptyStatePage({ onAddConnection }: { onAddConnection?: () => vo
                       placeItems: 'center',
                     }}
                   >
-                    <s.icon size={13} className="rl-muted" />
+                    <s.icon size={13} className="text-muted-foreground" />
                   </div>
                   <span className="text-[13px] font-medium">
                     {t(`emptyState.samples.${s.key}.name`)}
                   </span>
                   {!s.ghost && (
-                    <span
-                      className="rl-badge rl-badge-outline"
+                    <Badge variant="outline"
                       style={{ height: 17, fontSize: 10, marginLeft: 'auto' }}
                     >
                       {s.env}
-                    </span>
+                    </Badge>
                   )}
                 </div>
-                <div className="font-mono-design rl-muted mt-2 truncate text-[12px]">{s.host}</div>
-                <div className="rl-muted mt-2 text-[12px]" style={{ lineHeight: 1.5 }}>
+                <div className="font-mono-design text-muted-foreground mt-2 truncate text-[12px]">{s.host}</div>
+                <div className="text-muted-foreground mt-2 text-[12px]" style={{ lineHeight: 1.5 }}>
                   {t(`emptyState.samples.${s.key}.desc`)}
                 </div>
               </button>
@@ -260,10 +261,10 @@ export function EmptyStatePage({ onAddConnection }: { onAddConnection?: () => vo
           </div>
 
           {/* Three-step flow */}
-          <div className="rl-section-label" style={{ marginTop: 20 }}>
+          <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 20 }}>
             {t('emptyState.workflow')}
           </div>
-          <div className="rl-card" style={{ padding: 0 }}>
+          <Card style={{ padding: 0 }}>
             <div className="grid" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
               {STEP_ICONS.map((Icon, i) => {
                 const n = String(i + 1) as '1' | '2' | '3'
@@ -276,23 +277,23 @@ export function EmptyStatePage({ onAddConnection }: { onAddConnection?: () => vo
                     }}
                   >
                     <div className="flex items-center gap-2">
-                      <span className="font-mono-design rl-muted rl-tabular text-[12px]">
+                      <span className="font-mono-design text-muted-foreground tabular-nums text-[12px]">
                         {`0${n}`}
                       </span>
                       <span style={{ flex: 1, height: 1, background: 'hsl(var(--border))' }} />
-                      <Icon size={13} className="rl-muted" />
+                      <Icon size={13} className="text-muted-foreground" />
                     </div>
                     <div className="mt-2 text-[13px] font-medium">
                       {t(`emptyState.steps.${n}.title`)}
                     </div>
-                    <div className="rl-muted mt-1 text-[12px]" style={{ lineHeight: 1.55 }}>
+                    <div className="text-muted-foreground mt-1 text-[12px]" style={{ lineHeight: 1.55 }}>
                       {t(`emptyState.steps.${n}.desc`)}
                     </div>
                   </div>
                 )
               })}
             </div>
-          </div>
+          </Card>
 
           {/* Footer */}
           <div
@@ -302,7 +303,7 @@ export function EmptyStatePage({ onAddConnection }: { onAddConnection?: () => vo
             <div className="flex items-center gap-4">
               <button
                 type="button"
-                className="rl-muted flex items-center gap-1 text-[12px] hover:text-foreground"
+                className="text-muted-foreground flex items-center gap-1 text-[12px] hover:text-foreground"
                 onClick={() => openExternal(GITHUB_URL)}
               >
                 <Github size={12} />
@@ -310,7 +311,7 @@ export function EmptyStatePage({ onAddConnection }: { onAddConnection?: () => vo
               </button>
               <button
                 type="button"
-                className="rl-muted flex items-center gap-1 text-[12px] hover:text-foreground"
+                className="text-muted-foreground flex items-center gap-1 text-[12px] hover:text-foreground"
                 onClick={() => openExternal(`${GITHUB_URL}#features`)}
               >
                 <Lock size={12} />
@@ -318,7 +319,7 @@ export function EmptyStatePage({ onAddConnection }: { onAddConnection?: () => vo
               </button>
               <button
                 type="button"
-                className="rl-muted flex items-center gap-1 text-[12px] hover:text-foreground"
+                className="text-muted-foreground flex items-center gap-1 text-[12px] hover:text-foreground"
                 onClick={() => openExternal(`${GITHUB_URL}/blob/main/docs/ARCHITECTURE.md`)}
               >
                 <Shield size={12} />
@@ -326,14 +327,14 @@ export function EmptyStatePage({ onAddConnection }: { onAddConnection?: () => vo
               </button>
               <button
                 type="button"
-                className="rl-muted flex items-center gap-1 text-[12px] hover:text-foreground"
+                className="text-muted-foreground flex items-center gap-1 text-[12px] hover:text-foreground"
                 onClick={() => openExternal(`${GITHUB_URL}/issues`)}
               >
                 <AlertCircle size={12} />
                 {t('emptyState.links.faq')}
               </button>
             </div>
-            <div className="rl-muted text-[12px]">{t('emptyState.footer')}</div>
+            <div className="text-muted-foreground text-[12px]">{t('emptyState.footer')}</div>
           </div>
         </div>
       </div>

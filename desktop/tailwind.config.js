@@ -23,11 +23,22 @@ export default {
         muted: { DEFAULT: 'hsl(var(--muted))', foreground: 'hsl(var(--muted-foreground))' },
         accent: { DEFAULT: 'hsl(var(--accent))', foreground: 'hsl(var(--accent-foreground))' },
         card: { DEFAULT: 'hsl(var(--card))', foreground: 'hsl(var(--card-foreground))' },
+        popover: { DEFAULT: 'hsl(var(--popover))', foreground: 'hsl(var(--popover-foreground))' },
+        sidebar: {
+          DEFAULT: 'hsl(var(--sidebar))',
+          active: 'hsl(var(--sidebar-active))',
+        },
+        surface: 'hsl(var(--surface))',
       },
       borderRadius: {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
+        xl: 'calc(var(--radius) + 4px)',
+      },
+      boxShadow: {
+        card: '0 1px 2px hsl(0 0% 0% / 0.04), 0 4px 16px hsl(0 0% 0% / 0.03)',
+        'card-hover': '0 1px 2px hsl(0 0% 0% / 0.05), 0 8px 24px hsl(0 0% 0% / 0.05)',
       },
     },
   },

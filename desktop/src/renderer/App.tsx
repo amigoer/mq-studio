@@ -64,7 +64,7 @@ function App(): React.ReactElement {
         connected={activeConn?.name ?? null}
         onOpenConnections={() => setActiveNav('connections')}
       />
-      <div className="flex min-h-0 flex-1">
+      <div className="flex min-h-0 flex-1 bg-background">
         <Sidebar
           active={activeNav}
           onSelect={setActiveNav}
@@ -74,7 +74,7 @@ function App(): React.ReactElement {
               : []
           }
         />
-        <main className="rl-app-bg min-h-0 min-w-0 flex-1 overflow-hidden">
+        <main className="min-h-0 min-w-0 flex-1 overflow-hidden bg-background">
           <PageTransition transitionKey={contentKey} variant="page">
             {renderContent()}
           </PageTransition>

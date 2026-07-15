@@ -9,6 +9,11 @@ import * as messageApi from '@/api/message'
 import { formatErrorMessage } from '@/lib/utils'
 import { OfflineEmpty } from '@/components/OfflineEmpty'
 import type { NavId } from '@/layout/Sidebar'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Select } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
+import { Card } from '@/components/ui/card'
 
 const SAMPLE_BODY = `{
   "orderId": "ORD-20250812-08472",
@@ -136,21 +141,21 @@ export function ProducerPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
           <div className="grid h-full" style={{ gridTemplateColumns: '1fr 380px' }}>
             <div className="scroll-thin min-w-0 overflow-auto" style={{ padding: 24 }}>
               <div style={{ maxWidth: 720 }}>
-                <div className="rl-section-label">{t('producer.target')}</div>
-                <div className="rl-card" style={{ padding: 16 }}>
+                <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{t('producer.target')}</div>
+                <Card style={{ padding: 16 }}>
                   <div className="grid gap-3.5" style={{ gridTemplateColumns: '1fr 1fr' }}>
                     <div style={{ gridColumn: '1 / -1' }}>
-                      <div className="rl-muted mb-2 text-[12px]">
+                      <div className="text-muted-foreground mb-2 text-[12px]">
                         {t('producer.topic')}{' '}
                         <span style={{ color: 'hsl(var(--destructive))' }}>*</span>
                       </div>
                       {sendableTopics.length === 0 ? (
-                        <div className="rl-muted text-[12px]" style={{ padding: 8 }}>
+                        <div className="text-muted-foreground text-[12px]" style={{ padding: 8 }}>
                           {t('producer.noTopics')}
                         </div>
                       ) : (
-                        <select
-                          className="rl-select font-mono-design"
+                        <Select
+                          className="font-mono-design"
                           value={topic}
                           onChange={(e) => setTopic(e.target.value)}
                         >
@@ -160,37 +165,36 @@ export function ProducerPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
                               {tp}
                             </option>
                           ))}
-                        </select>
+                        </Select>
                       )}
                     </div>
                     <div>
-                      <div className="rl-muted mb-2 text-[12px]">
+                      <div className="text-muted-foreground mb-2 text-[12px]">
                         {t('producer.tag')}{' '}
-                        <span className="rl-muted">{t('producer.tagOptional')}</span>
+                        <span className="text-muted-foreground">{t('producer.tagOptional')}</span>
                       </div>
-                      <input
-                        className="rl-input font-mono-design"
+                      <Input
+                        className="font-mono-design"
                         placeholder={t('producer.tagPlaceholder')}
                         value={tag}
                         onChange={(e) => setTag(e.target.value)}
                       />
                     </div>
                     <div>
-                      <div className="rl-muted mb-2 text-[12px]">
+                      <div className="text-muted-foreground mb-2 text-[12px]">
                         {t('producer.key')}{' '}
-                        <span className="rl-muted">{t('producer.tagOptional')}</span>
+                        <span className="text-muted-foreground">{t('producer.tagOptional')}</span>
                       </div>
-                      <input
-                        className="rl-input font-mono-design"
+                      <Input
+                        className="font-mono-design"
                         placeholder={t('producer.keyPlaceholder')}
                         value={key}
                         onChange={(e) => setKey(e.target.value)}
                       />
                     </div>
                     <div>
-                      <div className="rl-muted mb-2 text-[12px]">{t('producer.delay')}</div>
-                      <select
-                        className="rl-select"
+                      <div className="text-muted-foreground mb-2 text-[12px]">{t('producer.delay')}</div>
+                      <Select
                         value={delay}
                         onChange={(e) => setDelay(Number(e.target.value))}
                       >
@@ -199,58 +203,48 @@ export function ProducerPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
                             {t(`producer.delayLevels.${lv}` as const)}
                           </option>
                         ))}
-                      </select>
+                      </Select>
                     </div>
                   </div>
-                </div>
+                </Card>
 
                 <div className="mb-2 mt-5 flex items-center justify-between">
-                  <div className="rl-section-label" style={{ marginBottom: 0 }}>
+                  <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginBottom: 0 }}>
                     {t('producer.body')}
                   </div>
                   <div className="flex gap-1">
-                    <button
-                      className="rl-btn rl-btn-ghost rl-btn-sm"
+                    <Button variant="ghost" size="sm"
                       onClick={() => setBody(SAMPLE_BODY)}
                     >
                       {t('producer.loadSample')}
-                    </button>
-                    <button
-                      className="rl-btn rl-btn-ghost rl-btn-sm"
+                    </Button>
+                    <Button variant="ghost" size="sm"
                       onClick={handleFormat}
                       disabled={!body.trim()}
                     >
                       {t('producer.format')}
-                    </button>
+                    </Button>
                   </div>
                 </div>
-                <textarea
-                  className="rl-input font-mono-design"
-                  style={{
-                    width: '100%',
-                    minHeight: 220,
-                    padding: 12,
-                    fontSize: 12,
-                    resize: 'vertical',
-                  }}
+                <Textarea
+                  className="min-h-[220px] font-mono-design text-[12px]"
                   placeholder='{"hello":"world"}'
                   value={body}
                   onChange={(e) => setBody(e.target.value)}
                 />
 
                 <div className="mt-5 flex gap-2">
-                  <button
-                    className="rl-btn rl-btn-primary"
+                  <Button variant="default" size="default"
                     onClick={handleSend}
                     disabled={busy || !topic || !body.trim()}
                   >
                     {busy ? <Spinner size={13} /> : <Send size={13} />}
                     {busy ? t('producer.sending') : t('producer.send')}
-                  </button>
-                  <button className="rl-btn rl-btn-ghost" onClick={handleReset} disabled={busy}>
+                  </Button>
+                  <Button variant="ghost" size="default" onClick={handleReset} disabled={busy}>
                     <RotateCcw size={13} />
                     {t('producer.reset')}
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>
@@ -270,10 +264,10 @@ export function ProducerPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
                 }}
               >
                 <div className="text-[13px] font-medium">{t('producer.history')}</div>
-                <div className="rl-muted mt-1 text-[12px]">{t('producer.historyHint')}</div>
+                <div className="text-muted-foreground mt-1 text-[12px]">{t('producer.historyHint')}</div>
               </div>
               {history.length === 0 ? (
-                <div className="rl-muted text-[12px]" style={{ padding: 24, textAlign: 'center' }}>
+                <div className="text-muted-foreground text-[12px]" style={{ padding: 24, textAlign: 'center' }}>
                   {t('producer.historyEmpty')}
                 </div>
               ) : (
@@ -291,7 +285,7 @@ export function ProducerPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
                       ) : (
                         <X size={11} style={{ color: 'hsl(var(--destructive))' }} />
                       )}
-                      <span className="font-mono-design rl-muted rl-tabular text-[12px]">
+                      <span className="font-mono-design text-muted-foreground tabular-nums text-[12px]">
                         {h.time}
                       </span>
                       <span
@@ -303,7 +297,7 @@ export function ProducerPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
                     </div>
                     {h.ok ? (
                       <div
-                        className="font-mono-design rl-muted mt-1 truncate text-[11px]"
+                        className="font-mono-design text-muted-foreground mt-1 truncate text-[11px]"
                         title={h.result}
                       >
                         {h.result}
@@ -318,7 +312,7 @@ export function ProducerPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
                       </div>
                     )}
                     {(h.tag || h.key || h.delay > 0) && (
-                      <div className="rl-muted mt-1 flex flex-wrap gap-2 text-[11px]">
+                      <div className="text-muted-foreground mt-1 flex flex-wrap gap-2 text-[11px]">
                         {h.tag && <span>tag: {h.tag}</span>}
                         {h.key && <span>key: {h.key}</span>}
                         {h.delay > 0 && <span>delay: L{h.delay}</span>}

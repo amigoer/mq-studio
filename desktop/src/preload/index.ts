@@ -13,6 +13,7 @@ const bridge: RocketLeafBridge = {
       ipcRenderer.on('window:maximized-changed', handler)
       return () => ipcRenderer.removeListener('window:maximized-changed', handler)
     },
+    setAppearance: (dark) => ipcRenderer.invoke('window:set-appearance', dark),
   },
   shell: { openExternal: (url) => ipcRenderer.invoke('shell:open-external', url) },
   dialogs: {

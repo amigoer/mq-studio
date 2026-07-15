@@ -32,7 +32,7 @@ export function JsonView({
   if (!lineNumbers) {
     return (
       <pre
-        className="rl-json-view"
+        className="json-view"
         style={{ maxHeight, ...style }}
         dangerouslySetInnerHTML={{ __html: html }}
       />
@@ -41,7 +41,7 @@ export function JsonView({
   const lines = src.split('\n')
   const codeLines = html.split('\n')
   return (
-    <div className="rl-json-view with-lines" style={{ maxHeight, ...style }}>
+    <div className="json-view with-lines" style={{ maxHeight, ...style }}>
       <div className="ln-col">
         {lines.map((_, i) => (
           <div key={i}>{i + 1}</div>

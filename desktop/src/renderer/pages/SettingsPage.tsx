@@ -41,6 +41,12 @@ import {
   importAllConfigFromFile,
   clearCache as clearCacheApi,
 } from '@/api/settings'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Switch } from '@/components/ui/switch'
+import { Select } from '@/components/ui/select'
+import { Badge } from '@/components/ui/badge'
+import { Card } from '@/components/ui/card'
 
 const APP_VERSION = __APP_VERSION__
 const GITHUB_URL = 'https://github.com/amigoer/rocket-leaf'
@@ -204,22 +210,10 @@ function SettingsRow({
     >
       <div className="min-w-0 flex-1 pr-2">
         <div className="text-[13px] font-medium">{title}</div>
-        {hint && <div className="rl-muted mt-1 text-[12px]">{hint}</div>}
+        {hint && <div className="text-muted-foreground mt-1 text-[12px]">{hint}</div>}
       </div>
       <div className="flex shrink-0 items-center gap-2">{children}</div>
     </div>
-  )
-}
-
-function Switch({ on, onClick }: { on: boolean; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={on}
-      onClick={onClick}
-      className={'rl-switch ' + (on ? 'on' : '')}
-    />
   )
 }
 
@@ -231,7 +225,7 @@ function AppearancePanel() {
   const { prefs, setAnimations, setReduceTransparency, setHighContrast } = useUIPrefs()
   return (
     <>
-      <div className="rl-section-label" style={{ marginTop: 0 }}>
+      <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 0 }}>
         {t('settings.appearance.theme')}
       </div>
       <div className="grid gap-2.5" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
@@ -239,9 +233,8 @@ function AppearancePanel() {
           const active = settings.theme === th.mode
           const palette = th.mode === 'dark' ? DARK_P : LIGHT_P
           return (
-            <div
+            <Card
               key={th.mode}
-              className="rl-card"
               onClick={() => setSetting('theme', th.mode)}
               style={{
                 padding: 0,
@@ -283,7 +276,7 @@ function AppearancePanel() {
                   <div className="text-[13px] font-medium" style={{ lineHeight: 1.2 }}>
                     {t(th.nameKey)}
                   </div>
-                  <div className="rl-muted text-[12px]" style={{ marginTop: 2 }}>
+                  <div className="text-muted-foreground text-[12px]" style={{ marginTop: 2 }}>
                     {t(th.descKey)}
                   </div>
                 </div>
@@ -303,38 +296,35 @@ function AppearancePanel() {
                   {active && <Check size={10} strokeWidth={3} />}
                 </div>
               </div>
-            </div>
+            </Card>
           )
         })}
       </div>
 
-      <div className="rl-section-label" style={{ marginTop: 24 }}>
+      <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 24 }}>
         {t('settings.appearance.a11y')}
       </div>
-      <div className="rl-card">
+      <Card>
         <SettingsRow
           title={t('settings.appearance.animations')}
           hint={t('settings.appearance.animationsHint')}
         >
-          <Switch on={prefs.animations} onClick={() => setAnimations(!prefs.animations)} />
+          <Switch checked={prefs.animations} onCheckedChange={() => setAnimations(!prefs.animations)} />
         </SettingsRow>
         <SettingsRow
           title={t('settings.appearance.reduceTransparency')}
           hint={t('settings.appearance.reduceTransparencyHint')}
         >
-          <Switch
-            on={prefs.reduceTransparency}
-            onClick={() => setReduceTransparency(!prefs.reduceTransparency)}
-          />
+          <Switch checked={prefs.reduceTransparency} onCheckedChange={() => setReduceTransparency(!prefs.reduceTransparency)} />
         </SettingsRow>
         <SettingsRow
           title={t('settings.appearance.highContrast')}
           hint={t('settings.appearance.highContrastHint')}
           bordered={false}
         >
-          <Switch on={prefs.highContrast} onClick={() => setHighContrast(!prefs.highContrast)} />
+          <Switch checked={prefs.highContrast} onCheckedChange={() => setHighContrast(!prefs.highContrast)} />
         </SettingsRow>
-      </div>
+      </Card>
     </>
   )
 }
@@ -344,16 +334,15 @@ function GeneralPanel() {
   const { settings, setSetting } = useSettings()
   return (
     <>
-      <div className="rl-section-label" style={{ marginTop: 0 }}>
+      <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 0 }}>
         {t('settings.general.languageRegion')}
       </div>
-      <div className="rl-card">
+      <Card>
         <SettingsRow
           title={t('settings.general.language')}
           hint={t('settings.general.languageHint')}
         >
-          <select
-            className="rl-select"
+          <Select
             style={{ width: 200 }}
             value={settings.language}
             onChange={(e) => setSetting('language', e.target.value as Language)}
@@ -363,40 +352,36 @@ function GeneralPanel() {
                 {l.label}
               </option>
             ))}
-          </select>
+          </Select>
         </SettingsRow>
         <SettingsRow
           title={t('settings.general.timezone')}
           hint={t('settings.general.timezoneHint')}
           bordered={false}
         >
-          <select
-            className="rl-select"
+          <Select
             style={{ width: 200 }}
             value={settings.timezone}
             onChange={(e) => setSetting('timezone', e.target.value as Timezone)}
           >
             <option value="local">{t('settings.general.tzLocal')}</option>
             <option value="utc">{t('settings.general.tzUtc')}</option>
-          </select>
+          </Select>
         </SettingsRow>
-      </div>
+      </Card>
 
-      <div className="rl-section-label" style={{ marginTop: 24 }}>
+      <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 24 }}>
         {t('settings.general.startup')}
       </div>
-      <div className="rl-card">
+      <Card>
         <SettingsRow
           title={t('settings.general.autoConnect')}
           hint={t('settings.general.autoConnectHint')}
           bordered={false}
         >
-          <Switch
-            on={settings.autoConnectLast}
-            onClick={() => setSetting('autoConnectLast', !settings.autoConnectLast)}
-          />
+          <Switch checked={settings.autoConnectLast} onCheckedChange={() => setSetting('autoConnectLast', !settings.autoConnectLast)} />
         </SettingsRow>
-      </div>
+      </Card>
     </>
   )
 }
@@ -412,35 +397,32 @@ function FontsPanel() {
 
   return (
     <>
-      <div className="rl-section-label" style={{ marginTop: 0 }}>
+      <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 0 }}>
         {t('settings.fonts.fontsTypography')}
       </div>
-      <div className="rl-card">
+      <Card>
         <SettingsRow title={t('settings.fonts.fontSize')} hint={t('settings.fonts.fontSizeHint')}>
-          <button
-            className="rl-btn rl-btn-outline rl-btn-icon rl-btn-sm"
+          <Button variant="outline" size="icon-sm"
             onClick={() => handleFontSizeChange(-1)}
             disabled={settings.fontSize <= MIN_FONT_SIZE}
           >
             −
-          </button>
+          </Button>
           <span
-            className="font-mono-design rl-tabular text-[13px]"
+            className="font-mono-design tabular-nums text-[13px]"
             style={{ width: 40, textAlign: 'center' }}
           >
             {settings.fontSize}px
           </span>
-          <button
-            className="rl-btn rl-btn-outline rl-btn-icon rl-btn-sm"
+          <Button variant="outline" size="icon-sm"
             onClick={() => handleFontSizeChange(1)}
             disabled={settings.fontSize >= MAX_FONT_SIZE}
           >
             +
-          </button>
+          </Button>
         </SettingsRow>
         <SettingsRow title={t('settings.fonts.uiFont')} hint={t('settings.fonts.uiFontHint')}>
-          <select
-            className="rl-select"
+          <Select
             style={{ width: 200 }}
             value={settings.uiFont}
             onChange={(e) => setSetting('uiFont', e.target.value)}
@@ -451,15 +433,14 @@ function FontsPanel() {
             <option value="Microsoft YaHei">Microsoft YaHei</option>
             <option value="Noto Sans SC">Noto Sans SC</option>
             <option value="HarmonyOS Sans">HarmonyOS Sans</option>
-          </select>
+          </Select>
         </SettingsRow>
         <SettingsRow
           title={t('settings.fonts.monospaceFont')}
           hint={t('settings.fonts.monospaceFontHint')}
           bordered={false}
         >
-          <select
-            className="rl-select"
+          <Select
             style={{ width: 200 }}
             value={settings.monospaceFont}
             onChange={(e) => setSetting('monospaceFont', e.target.value)}
@@ -471,45 +452,44 @@ function FontsPanel() {
             <option value="Menlo">Menlo</option>
             <option value="Consolas">Consolas</option>
             <option value="system">{t('settings.fonts.systemDefault')}</option>
-          </select>
+          </Select>
         </SettingsRow>
-      </div>
+      </Card>
 
-      <div className="rl-section-label" style={{ marginTop: 24 }}>
+      <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 24 }}>
         {t('settings.fonts.timeDisplay')}
       </div>
-      <div className="rl-card">
+      <Card>
         <SettingsRow
           title={t('settings.fonts.timeFormat')}
           hint={t('settings.fonts.timeFormatHint')}
           bordered={false}
         >
-          <select
-            className="rl-select"
+          <Select
             style={{ width: 200 }}
             value={settings.timestampFormat}
             onChange={(e) => setSetting('timestampFormat', e.target.value as TimestampFormat)}
           >
             <option value="datetime">{t('settings.fonts.tsDatetime')}</option>
             <option value="ms">{t('settings.fonts.tsMs')}</option>
-          </select>
+          </Select>
         </SettingsRow>
-      </div>
+      </Card>
 
-      <div className="rl-section-label" style={{ marginTop: 24 }}>
+      <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 24 }}>
         {t('settings.fonts.preview')}
       </div>
-      <div className="rl-card" style={{ padding: 16 }}>
+      <Card style={{ padding: 16 }}>
         <div className="text-[13px]" style={{ fontSize: settings.fontSize }}>
           {t('settings.fonts.previewSample')}
         </div>
         <div
-          className="font-mono-design rl-muted mt-2 text-[12px]"
+          className="font-mono-design text-muted-foreground mt-2 text-[12px]"
           style={{ fontFamily: `"${settings.monospaceFont}", ui-monospace, monospace` }}
         >
           {'msgId: AC1A0F23000078A4F0B8C1234E2F0001'}
         </div>
-      </div>
+      </Card>
     </>
   )
 }
@@ -520,16 +500,15 @@ function MessagePanel() {
   const payloadKB = Math.round(settings.maxPayloadRenderBytes / 1024)
   return (
     <>
-      <div className="rl-section-label" style={{ marginTop: 0 }}>
+      <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 0 }}>
         {t('settings.message.defaults')}
       </div>
-      <div className="rl-card">
+      <Card>
         <SettingsRow
           title={t('settings.message.fetchLimit')}
           hint={t('settings.message.fetchLimitHint')}
         >
-          <select
-            className="rl-select"
+          <Select
             style={{ width: 140 }}
             value={settings.fetchLimit}
             onChange={(e) => setSetting('fetchLimit', Number(e.target.value) as FetchLimit)}
@@ -539,25 +518,21 @@ function MessagePanel() {
                 {t('settings.message.fetchUnit', { count: n })}
               </option>
             ))}
-          </select>
+          </Select>
         </SettingsRow>
         <SettingsRow
           title={t('settings.message.autoFormatJson')}
           hint={t('settings.message.autoFormatJsonHint')}
         >
-          <Switch
-            on={settings.autoFormatJson}
-            onClick={() => setSetting('autoFormatJson', !settings.autoFormatJson)}
-          />
+          <Switch checked={settings.autoFormatJson} onCheckedChange={() => setSetting('autoFormatJson', !settings.autoFormatJson)} />
         </SettingsRow>
         <SettingsRow
           title={t('settings.message.payloadLimit')}
           hint={t('settings.message.payloadLimitHint')}
           bordered={false}
         >
-          <input
+          <Input
             type="number"
-            className="rl-input"
             style={{ width: 100 }}
             min={64}
             max={4096}
@@ -573,36 +548,34 @@ function MessagePanel() {
               setSetting('maxPayloadRenderBytes', kb * 1024)
             }}
           />
-          <span className="rl-muted text-[12px]">KB</span>
+          <span className="text-muted-foreground text-[12px]">KB</span>
         </SettingsRow>
-      </div>
+      </Card>
 
-      <div className="rl-section-label" style={{ marginTop: 24 }}>
+      <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 24 }}>
         {t('settings.message.alertThresholds')}
       </div>
-      <div className="rl-card">
+      <Card>
         <SettingsRow
           title={t('settings.message.lagAlert')}
           hint={t('settings.message.lagAlertHint')}
         >
-          <input
+          <Input
             type="number"
-            className="rl-input"
             style={{ width: 120 }}
             min={0}
             step={1000}
             value={settings.lagAlertThreshold}
             onChange={(e) => setSetting('lagAlertThreshold', Number(e.target.value) || 0)}
           />
-          <span className="rl-muted text-[12px]">{t('settings.message.lagAlertUnit')}</span>
+          <span className="text-muted-foreground text-[12px]">{t('settings.message.lagAlertUnit')}</span>
         </SettingsRow>
         <SettingsRow
           title={t('settings.message.diskAlert')}
           hint={t('settings.message.diskAlertHint')}
         >
-          <input
+          <Input
             type="number"
-            className="rl-input"
             style={{ width: 100 }}
             min={0}
             max={100}
@@ -616,7 +589,7 @@ function MessagePanel() {
               )
             }}
           />
-          <span className="rl-muted text-[12px]">{t('settings.message.diskAlertUnit')}</span>
+          <span className="text-muted-foreground text-[12px]">{t('settings.message.diskAlertUnit')}</span>
         </SettingsRow>
         <SettingsRow
           title={t('settings.message.desktopNotifications')}
@@ -624,9 +597,8 @@ function MessagePanel() {
           bordered={false}
         >
           <Switch
-            on={settings.desktopNotifications}
-            onClick={() => {
-              const next = !settings.desktopNotifications
+            checked={settings.desktopNotifications}
+            onCheckedChange={(next) => {
               if (
                 next &&
                 typeof Notification !== 'undefined' &&
@@ -641,7 +613,7 @@ function MessagePanel() {
             }}
           />
         </SettingsRow>
-      </div>
+      </Card>
     </>
   )
 }
@@ -651,14 +623,13 @@ function ProxyPanel() {
   const { settings, setSetting } = useSettings()
   return (
     <>
-      <div className="rl-section-label" style={{ marginTop: 0 }}>
+      <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 0 }}>
         {t('settings.proxy.timeout')}
       </div>
-      <div className="rl-card">
+      <Card>
         <SettingsRow title={t('settings.proxy.connect')} hint={t('settings.proxy.connectHint')}>
-          <input
+          <Input
             type="number"
-            className="rl-input"
             style={{ width: 100 }}
             min={1000}
             max={30000}
@@ -672,16 +643,15 @@ function ProxyPanel() {
               )
             }
           />
-          <span className="rl-muted text-[12px]">ms</span>
+          <span className="text-muted-foreground text-[12px]">ms</span>
         </SettingsRow>
         <SettingsRow
           title={t('settings.proxy.request')}
           hint={t('settings.proxy.requestHint')}
           bordered={false}
         >
-          <input
+          <Input
             type="number"
-            className="rl-input"
             style={{ width: 100 }}
             min={1000}
             max={60000}
@@ -695,18 +665,18 @@ function ProxyPanel() {
               )
             }
           />
-          <span className="rl-muted text-[12px]">ms</span>
+          <span className="text-muted-foreground text-[12px]">ms</span>
         </SettingsRow>
-      </div>
+      </Card>
 
-      <div className="rl-section-label" style={{ marginTop: 24 }}>
+      <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 24 }}>
         {t('settings.proxy.credentials')}
       </div>
-      <div className="rl-card">
+      <Card>
         <SettingsRow title={t('settings.proxy.ak')} hint={t('settings.proxy.akHint')}>
-          <input
+          <Input
             type="text"
-            className="rl-input font-mono-design"
+            className="font-mono-design"
             style={{ width: 240 }}
             value={settings.globalAccessKey}
             placeholder={t('settings.proxy.akPlaceholder')}
@@ -718,35 +688,35 @@ function ProxyPanel() {
           hint={t('settings.proxy.skHint')}
           bordered={false}
         >
-          <input
+          <Input
             type="password"
-            className="rl-input font-mono-design"
+            className="font-mono-design"
             style={{ width: 240 }}
             value={settings.globalSecretKey}
             placeholder={t('settings.proxy.akPlaceholder')}
             onChange={(e) => setSetting('globalSecretKey', e.target.value)}
           />
         </SettingsRow>
-      </div>
+      </Card>
 
-      <div className="rl-section-label" style={{ marginTop: 24 }}>
+      <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 24 }}>
         {t('settings.proxy.advanced')}
       </div>
-      <div className="rl-card">
-        <div className="rl-muted text-[12px]" style={{ padding: '12px 16px', lineHeight: 1.55 }}>
+      <Card>
+        <div className="text-muted-foreground text-[12px]" style={{ padding: '12px 16px', lineHeight: 1.55 }}>
           {t('settings.proxy.unsupportedNote')}
         </div>
         <SettingsRow title={t('settings.proxy.skipTls')} hint={t('settings.proxy.skipTlsHint')}>
-          <span className="rl-badge rl-badge-outline">{t('settings.proxy.notAvailable')}</span>
+          <Badge variant="outline">{t('settings.proxy.notAvailable')}</Badge>
         </SettingsRow>
         <SettingsRow
           title={t('settings.proxy.enable')}
           hint={t('settings.proxy.enableHint')}
           bordered={false}
         >
-          <span className="rl-badge rl-badge-outline">{t('settings.proxy.notAvailable')}</span>
+          <Badge variant="outline">{t('settings.proxy.notAvailable')}</Badge>
         </SettingsRow>
-      </div>
+      </Card>
     </>
   )
 }
@@ -775,10 +745,10 @@ function DataPanel({
 
   return (
     <>
-      <div className="rl-section-label" style={{ marginTop: 0 }}>
+      <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 0 }}>
         {t('settings.data.storage')}
       </div>
-      <div className="rl-card overflow-hidden">
+      <Card className="overflow-hidden">
         {DATA_PATHS.map((p, i) => {
           const Icon = p.Icon
           return (
@@ -791,52 +761,51 @@ function DataPanel({
               }}
               onClick={() => copyPath(p.path)}
             >
-              <Icon size={14} className="rl-muted shrink-0" aria-hidden />
+              <Icon size={14} className="text-muted-foreground shrink-0" aria-hidden />
               <span className="text-[13px] font-medium" style={{ width: 80 }}>
                 {p.platform}
               </span>
-              <code className="font-mono-design rl-muted min-w-0 flex-1 truncate text-[12px]">
+              <code className="font-mono-design text-muted-foreground min-w-0 flex-1 truncate text-[12px]">
                 {p.path}
               </code>
-              <span className="rl-muted text-[11px]">{t('settings.data.clickToCopy')}</span>
+              <span className="text-muted-foreground text-[11px]">{t('settings.data.clickToCopy')}</span>
             </div>
           )
         })}
-      </div>
+      </Card>
 
-      <div className="rl-section-label" style={{ marginTop: 24 }}>
+      <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 24 }}>
         {t('settings.data.ioSection')}
       </div>
-      <div className="rl-card">
+      <Card>
         <SettingsRow title={t('settings.data.exportTitle')} hint={t('settings.data.exportHint')}>
-          <button className="rl-btn rl-btn-outline rl-btn-sm" onClick={onExport}>
+          <Button variant="outline" size="sm" onClick={onExport}>
             <Download size={13} />
             {t('common.export')}
-          </button>
+          </Button>
         </SettingsRow>
         <SettingsRow
           title={t('settings.data.importTitle')}
           hint={t('settings.data.importHint')}
           bordered={false}
         >
-          <button className="rl-btn rl-btn-outline rl-btn-sm" onClick={onImport}>
+          <Button variant="outline" size="sm" onClick={onImport}>
             <Upload size={13} />
             {t('common.selectFile')}
-          </button>
+          </Button>
         </SettingsRow>
-      </div>
+      </Card>
 
-      <div className="rl-section-label" style={{ marginTop: 24 }}>
+      <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 24 }}>
         {t('settings.data.cleanup')}
       </div>
-      <div className="rl-card">
+      <Card>
         <SettingsRow
           title={t('settings.data.clearCache')}
           hint={t('settings.data.clearCacheHint')}
           bordered={false}
         >
-          <button
-            className="rl-btn rl-btn-outline rl-btn-sm"
+          <Button variant="outline" size="sm"
             style={{
               color: 'hsl(var(--destructive))',
               borderColor: 'hsl(var(--destructive) / 0.5)',
@@ -845,9 +814,9 @@ function DataPanel({
           >
             <Trash2 size={13} />
             {t('settings.data.clearCache')}
-          </button>
+          </Button>
         </SettingsRow>
-      </div>
+      </Card>
     </>
   )
 }
@@ -864,7 +833,7 @@ function AboutPanel({
 
   return (
     <>
-      <div className="rl-card" style={{ padding: 20 }}>
+      <Card style={{ padding: 20 }}>
         <div className="flex items-start gap-4">
           <img
             src={logoUrl}
@@ -875,50 +844,48 @@ function AboutPanel({
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <h2 className="text-[16px] font-semibold">{t('app.name')}</h2>
-              <span className="rl-badge rl-badge-outline">v{APP_VERSION}</span>
+              <Badge variant="outline">v{APP_VERSION}</Badge>
             </div>
-            <p className="rl-muted mt-1 text-[13px]" style={{ lineHeight: 1.6 }}>
+            <p className="text-muted-foreground mt-1 text-[13px]" style={{ lineHeight: 1.6 }}>
               {t('settings.about.descriptionZh')}
             </p>
-            <p className="rl-muted text-[12px]" style={{ lineHeight: 1.6 }}>
+            <p className="text-muted-foreground text-[12px]" style={{ lineHeight: 1.6 }}>
               {t('settings.about.descriptionEn')}
             </p>
           </div>
         </div>
-      </div>
+      </Card>
 
-      <div className="rl-section-label" style={{ marginTop: 20 }}>
+      <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 20 }}>
         {t('settings.about.resources')}
       </div>
       <div className="flex flex-wrap gap-2">
-        <button className="rl-btn rl-btn-outline rl-btn-sm" onClick={onCheckUpdate}>
+        <Button variant="outline" size="sm" onClick={onCheckUpdate}>
           <RefreshCw size={13} />
           {t('settings.about.checkUpdate')}
-        </button>
-        <button className="rl-btn rl-btn-outline rl-btn-sm" onClick={() => openLink(GITHUB_URL)}>
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => openLink(GITHUB_URL)}>
           <Github size={13} />
           GitHub
-        </button>
-        <button
-          className="rl-btn rl-btn-outline rl-btn-sm"
+        </Button>
+        <Button variant="outline" size="sm"
           onClick={() => openLink(GITHUB_ISSUES_URL)}
         >
           <ExternalLink size={13} />
           {t('settings.about.openIssue')}
-        </button>
+        </Button>
       </div>
 
-      <div className="rl-section-label" style={{ marginTop: 20 }}>
+      <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 20 }}>
         {t('settings.about.preferences')}
       </div>
-      <div className="rl-card">
+      <Card>
         <SettingsRow
           title={t('settings.about.resetTitle')}
           hint={t('settings.about.resetHint')}
           bordered={false}
         >
-          <button
-            className="rl-btn rl-btn-outline rl-btn-sm"
+          <Button variant="outline" size="sm"
             style={{
               color: 'hsl(var(--destructive))',
               borderColor: 'hsl(var(--destructive) / 0.5)',
@@ -927,9 +894,9 @@ function AboutPanel({
           >
             <RotateCcw size={13} />
             {t('settings.about.reset')}
-          </button>
+          </Button>
         </SettingsRow>
-      </div>
+      </Card>
     </>
   )
 }
@@ -1040,39 +1007,46 @@ export function SettingsPage() {
     <div className="flex h-full min-h-0 flex-col">
       <PageHeader title={t('settings.title')} />
       <div className="flex min-h-0 flex-1 overflow-hidden">
-        <aside className="rl-settings-aside">
+        <aside className="flex w-[200px] shrink-0 flex-col gap-0.5 overflow-y-auto border-r border-border bg-background p-2.5 gap-0.5">
           {SECTIONS.map((s) => {
             const active = s.id === activeSection
             return (
-              <button
+              <Button
                 key={s.id}
                 type="button"
-                className={'rl-nav-item' + (active ? ' active' : '')}
+                variant="ghost"
+                size="sm"
+                className={
+                  'h-8 w-full justify-start gap-2 rounded-lg px-2.5 font-normal text-muted-foreground shadow-none ' +
+                  (active
+                    ? 'bg-accent font-medium text-foreground'
+                    : 'hover:bg-accent/70 hover:text-foreground')
+                }
                 onClick={() => setActiveSection(s.id)}
               >
-                <s.icon size={15} strokeWidth={1.75} className="rl-nav-icon" />
-                <span className="rl-nav-label">{t(`settings.section.${s.id}.label`)}</span>
-              </button>
+                <s.icon size={15} strokeWidth={active ? 2 : 1.75} className="shrink-0 opacity-80" />
+                <span className="truncate">{t(`settings.section.${s.id}.label`)}</span>
+              </Button>
             )
           })}
         </aside>
 
-        <div className="rl-settings-content scroll-thin">
+        <div className="min-w-0 flex-1 overflow-auto bg-background px-6 py-5 scroll-thin">
           <PageTransition
             transitionKey={activeSection}
             variant="panel"
-            className="rl-settings-content-inner"
+            className="max-w-[720px]"
           >
             <div className="mb-5 flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="text-[15px] font-semibold tracking-tight">
                   {t(`settings.section.${currentSection.id}.label`)}
                 </div>
-                <div className="rl-muted mt-1 text-[12px]">
+                <div className="text-muted-foreground mt-1 text-[12px]">
                   {t(`settings.section.${currentSection.id}.subtitle`)}
                 </div>
               </div>
-              <span className="rl-muted shrink-0 text-[12px]">
+              <span className="text-muted-foreground shrink-0 text-[12px]">
                 {loading ? t('settings.loading') : t('settings.autoSaved')}
               </span>
             </div>

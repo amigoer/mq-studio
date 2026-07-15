@@ -9,10 +9,13 @@ import { useConnections } from '@/hooks/useConnections'
 import * as connectionApi from '@/api/connection'
 import { toast } from 'sonner'
 import type { NavId } from '@/layout/Sidebar'
-import { formatErrorMessage } from '@/lib/utils'
+import { cn, formatErrorMessage } from '@/lib/utils'
 import { RefreshButton, usePageRefresh } from '@/components/RefreshButton'
 import { OfflineEmpty } from '@/components/OfflineEmpty'
 import { ErrorBanner } from '@/components/ErrorBanner'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Card } from '@/components/ui/card'
 
 const HISTORY_BUCKETS = 60
 
@@ -255,10 +258,10 @@ export function OverviewPage({ onNavigate }: OverviewPageProps) {
           onClick={handleRefresh}
         />
         {isOnline && conn && (
-          <button className="rl-btn rl-btn-outline rl-btn-sm" onClick={handleDisconnect}>
+          <Button variant="outline" size="sm" onClick={handleDisconnect}>
             <Unlink size={13} />
             {t('common.disconnect')}
-          </button>
+          </Button>
         )}
       </PageHeader>
 
@@ -329,17 +332,17 @@ export function OverviewPage({ onNavigate }: OverviewPageProps) {
               <section>
                 <div className="mb-2 flex items-center justify-between">
                   <div className="text-[12px] font-medium">{t('overview.issues.title')}</div>
-                  <span className="rl-muted text-[11px]">
+                  <span className="text-muted-foreground text-[11px]">
                     {t('overview.issues.count', { count: issues.length })}
                   </span>
                 </div>
-                <div className="rl-issue-list">
+                <div className="overflow-hidden rounded-xl border border-border/90 bg-card shadow-sm">
                   {issues.map((issue) => (
-                    <div key={issue.key} className="rl-issue-row">
-                      <span className={`rl-issue-sev ${issue.severity}`} />
+                    <div key={issue.key} className="flex items-start gap-2.5 border-t border-border px-3 py-2.5 first:border-t-0">
+                      <span className={cn("mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full", issue.severity === "high" && "bg-destructive", issue.severity === "med" && "bg-amber-500", issue.severity === "low" && "bg-muted-foreground")} />
                       <div className="min-w-0">
-                        <div className="rl-issue-title">{issue.title}</div>
-                        <div className="rl-issue-desc">{issue.desc}</div>
+                        <div className="text-[12.5px] font-medium leading-snug">{issue.title}</div>
+                        <div className="mt-0.5 text-[11.5px] leading-snug text-muted-foreground">{issue.desc}</div>
                       </div>
                     </div>
                   ))}
@@ -374,11 +377,11 @@ export function OverviewPage({ onNavigate }: OverviewPageProps) {
                         {topic.topic}
                       </span>
                       {maxTopicTps > 0 && (
-                        <div className="rl-progress" style={{ width: 56 }}>
-                          <div className="bar" style={{ width: `${pct}%` }} />
+                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted" style={{ width: 56 }}>
+                          <div className="h-full rounded-full bg-foreground" style={{ width: `${pct}%` }} />
                         </div>
                       )}
-                      <span className="font-mono-design rl-tabular rl-muted w-14 text-right text-[11.5px]">
+                      <span className="font-mono-design tabular-nums text-muted-foreground w-14 text-right text-[11.5px]">
                         {maxTopicTps > 0 ? `${formatTps(tps)}/s` : '—'}
                       </span>
                     </div>
@@ -407,9 +410,9 @@ export function OverviewPage({ onNavigate }: OverviewPageProps) {
                       <span className="font-mono-design min-w-0 flex-1 truncate text-[12px]">
                         {g.group}
                       </span>
-                      <span className={`rl-badge ${danger ? 'rl-badge-danger' : 'rl-badge-warn'}`}>
+                      <Badge variant={danger ? 'destructive' : 'warning'}>
                         +{lag.toLocaleString()}
-                      </span>
+                      </Badge>
                     </div>
                   )
                 })}
@@ -418,12 +421,12 @@ export function OverviewPage({ onNavigate }: OverviewPageProps) {
 
             {/* Brokers compact */}
             {data.brokers.length > 0 && (
-              <section className="rl-card overflow-hidden">
+              <Card className="overflow-hidden">
                 <div className="flex items-center justify-between border-b border-border px-3 py-2.5">
                   <div className="text-[12px] font-medium">{t('overview.broker.title')}</div>
                   <button
                     type="button"
-                    className="rl-muted text-[11.5px] hover:text-foreground"
+                    className="text-muted-foreground text-[11.5px] hover:text-foreground"
                     onClick={() => onNavigate?.('cluster')}
                   >
                     {t('common.viewAll')} →
@@ -459,7 +462,7 @@ export function OverviewPage({ onNavigate }: OverviewPageProps) {
                       )
                     })}
                 </div>
-              </section>
+              </Card>
             )}
           </div>
         )}
@@ -480,13 +483,13 @@ function Kpi({
   hint: string
 }) {
   return (
-    <div className="rl-stat">
+    <div className="rounded-xl border border-border/80 bg-card p-3.5 shadow-card">
       <div className="flex items-center justify-between">
-        <span className="label">{label}</span>
+        <span className="flex items-center gap-1.5 text-[11.5px] text-muted-foreground">{label}</span>
         <Icon size={13} className="text-muted-foreground opacity-70" />
       </div>
-      <div className="value">{value}</div>
-      <div className="rl-muted mt-1 text-[11px] leading-snug">{hint}</div>
+      <div className="mt-1 text-[20px] font-semibold tracking-tight tabular-nums leading-tight">{value}</div>
+      <div className="text-muted-foreground mt-1 text-[11px] leading-snug">{hint}</div>
     </div>
   )
 }
@@ -515,11 +518,11 @@ function ThroughputCard({
     series.length ? `0,120 ${lineFor(series)} ${x(series.length - 1)},120` : ''
 
   return (
-    <div className="rl-card p-3.5">
+    <Card className="p-3.5">
       <div className="mb-2.5 flex items-center justify-between gap-3">
         <div>
           <div className="text-[12px] font-medium">{t('overview.throughput.title')}</div>
-          <div className="rl-muted mt-0.5 text-[11px]">{t('overview.throughput.subtitle')}</div>
+          <div className="text-muted-foreground mt-0.5 text-[11px]">{t('overview.throughput.subtitle')}</div>
         </div>
         <div className="flex items-center gap-3">
           <Legend
@@ -568,11 +571,11 @@ function ThroughputCard({
           )}
         </svg>
       ) : (
-        <div className="rl-muted flex h-[110px] items-center justify-center text-[12px]">
+        <div className="text-muted-foreground flex h-[110px] items-center justify-center text-[12px]">
           {loading ? t('common.loading') : t('overview.throughput.noData')}
         </div>
       )}
-    </div>
+    </Card>
   )
 }
 
@@ -580,8 +583,8 @@ function Legend({ color, label, value }: { color: string; label: string; value: 
   return (
     <div className="flex items-center gap-1.5">
       <span className="h-1.5 w-1.5 rounded-sm" style={{ background: color }} />
-      <span className="rl-muted text-[11px]">{label}</span>
-      <span className="font-mono-design rl-tabular text-[11.5px]">{formatTps(value)}/s</span>
+      <span className="text-muted-foreground text-[11px]">{label}</span>
+      <span className="font-mono-design tabular-nums text-[11.5px]">{formatTps(value)}/s</span>
     </div>
   )
 }
@@ -606,19 +609,19 @@ function ListCard({
   const hasItems = items.filter(Boolean).length > 0
 
   return (
-    <div className="rl-card overflow-hidden">
+    <Card className="overflow-hidden">
       <div className="flex items-start justify-between gap-2 border-b border-border px-3 py-2.5">
         <div className="min-w-0">
           <div className="flex items-center gap-1.5">
             <span className="text-[12px] font-medium">{title}</span>
-            {badge && <span className="rl-badge rl-badge-danger">{badge}</span>}
+            {badge && <Badge variant="destructive">{badge}</Badge>}
           </div>
-          <div className="rl-muted mt-0.5 text-[11px]">{subtitle}</div>
+          <div className="text-muted-foreground mt-0.5 text-[11px]">{subtitle}</div>
         </div>
         {onViewAll && (
           <button
             type="button"
-            className="rl-muted shrink-0 text-[11.5px] hover:text-foreground"
+            className="text-muted-foreground shrink-0 text-[11.5px] hover:text-foreground"
             onClick={onViewAll}
           >
             {t('common.viewAll')}
@@ -626,8 +629,8 @@ function ListCard({
         )}
       </div>
       <div className="divide-y divide-border">
-        {hasItems ? children : <div className="rl-muted px-3 py-3 text-[12px]">{empty}</div>}
+        {hasItems ? children : <div className="text-muted-foreground px-3 py-3 text-[12px]">{empty}</div>}
       </div>
-    </div>
+    </Card>
   )
 }

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { useCallback, useState } from 'react'
 import { cn, formatErrorMessage, withMinDuration } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
 
 /** One full turn ≈ this duration; keep in sync with `.rl-refresh-spin` in styles/app.css */
 export const REFRESH_SPIN_MS = 700
@@ -39,13 +40,11 @@ export function RefreshButton({
   const tip = title ?? t('common.refresh')
 
   return (
-    <button
+    <Button
       type="button"
-      className={cn(
-        'rl-btn rl-btn-sm',
-        variant === 'icon' ? 'rl-btn-outline rl-btn-icon' : 'rl-btn-ghost',
-        className,
-      )}
+      variant={variant === 'icon' ? 'outline' : 'ghost'}
+      size={variant === 'icon' ? 'icon-sm' : 'sm'}
+      className={className}
       onClick={() => void onClick?.()}
       disabled={disabled || spinning}
       title={tip}
@@ -54,7 +53,7 @@ export function RefreshButton({
     >
       <RefreshCw size={size} className={cn('rl-refresh-icon', spinning && 'rl-refresh-spin')} />
       {label}
-    </button>
+    </Button>
   )
 }
 

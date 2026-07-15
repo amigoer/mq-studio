@@ -17,6 +17,12 @@ import { SlidingTabs } from '@/components/SlidingTabs'
 import { OfflineEmpty } from '@/components/OfflineEmpty'
 import { ErrorBanner } from '@/components/ErrorBanner'
 import type { NavId } from '@/layout/Sidebar'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Select } from '@/components/ui/select'
+import { Badge } from '@/components/ui/badge'
+import { Card } from '@/components/ui/card'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 
 type TypeFilter = 'all' | 'normal' | 'retry' | 'dlq'
 type TopicKind = 'normal' | 'fifo' | 'delay' | 'retry' | 'dlq'
@@ -101,17 +107,18 @@ function permLabel(p: TopicPerm, t: (k: string) => string): string {
 }
 
 function typeBadgeClass(kind: TopicKind): string {
+  // Topic-type colors stay as utility classes on Badge.
   switch (kind) {
     case 'fifo':
-      return 'rl-badge rl-badge-topic-fifo'
+      return 'rl-badge-topic-fifo'
     case 'delay':
-      return 'rl-badge rl-badge-topic-delay'
+      return 'rl-badge-topic-delay'
     case 'retry':
-      return 'rl-badge rl-badge-topic-retry'
+      return 'rl-badge-topic-retry'
     case 'dlq':
-      return 'rl-badge rl-badge-topic-dlq'
+      return 'rl-badge-topic-dlq'
     default:
-      return 'rl-badge rl-badge-topic-normal'
+      return 'rl-badge-topic-normal'
   }
 }
 
@@ -269,26 +276,25 @@ export function TopicsPage({ onNavigate }: { onNavigate?: (id: NavId) => void })
   return (
     <div className="flex h-full min-h-0 flex-col">
       <PageHeader title={t('topics.title')} subtitle={subtitle}>
-        <div className="rl-search-input" style={{ width: 220 }}>
-          <span className="icon">
+        <div className="relative" style={{ width: 220 }}>
+          <span className="pointer-events-none absolute left-2.5 top-1/2 z-[1] -translate-y-1/2 text-muted-foreground">
             <Search size={13} />
           </span>
-          <input
-            className="rl-input"
+          <Input
+            className="pl-8"
             placeholder={t('topics.searchPlaceholder')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
         <RefreshButton spinning={isRefreshing} disabled={!hasOnline} onClick={handleRefresh} />
-        <button
-          className="rl-btn rl-btn-primary rl-btn-sm"
+        <Button variant="default" size="sm"
           onClick={() => setEditorOpen({ mode: 'create' })}
           disabled={!hasOnline}
         >
           <Plus size={13} />
           {t('common.create')}
-        </button>
+        </Button>
       </PageHeader>
 
       {hasOnline && (
@@ -316,7 +322,7 @@ export function TopicsPage({ onNavigate }: { onNavigate?: (id: NavId) => void })
               onAction={() => onNavigate?.('connections')}
             />
           ) : loading && topics.length === 0 ? (
-            <div className="rl-muted flex items-center justify-center gap-2 p-16">
+            <div className="text-muted-foreground flex items-center justify-center gap-2 p-16">
               <Spinner size={14} />
               <span className="text-[12px]">{t('common.loading')}</span>
             </div>
@@ -324,37 +330,37 @@ export function TopicsPage({ onNavigate }: { onNavigate?: (id: NavId) => void })
             <>
               {error && <ErrorBanner message={t('topics.loadError', { message: error })} />}
               {filtered.length === 0 ? (
-                <div className="rl-muted flex min-h-[200px] flex-col items-center justify-center gap-2 p-10 text-center">
+                <div className="text-muted-foreground flex min-h-[200px] flex-col items-center justify-center gap-2 p-10 text-center">
                   <Tag size={22} className="opacity-35" />
                   <div className="text-[13px]">{t('topics.empty')}</div>
                   <div className="text-[11.5px]">{t('topics.emptyHint')}</div>
                   {typeFilter === 'all' && !search.trim() && (
-                    <button
-                      className="rl-btn rl-btn-primary rl-btn-sm mt-2"
+                    <Button variant="default" size="sm"
+                      className="mt-2"
                       onClick={() => setEditorOpen({ mode: 'create' })}
                     >
                       <Plus size={13} />
                       {t('common.create')}
-                    </button>
+                    </Button>
                   )}
                 </div>
               ) : (
-                <table className="rl-table rl-table-topics">
-                  <thead>
-                    <tr>
-                      <th>{t('topics.table.name')}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+                <Table className="rl-table-topics">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{t('topics.table.name')}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
                     {filtered.map(({ raw, kind }) => {
                       const selected = selectedName === raw.topic
                       return (
-                        <tr
+                        <TableRow
                           key={raw.topic}
                           className={selected ? 'selected' : ''}
                           onClick={() => setSelectedName(raw.topic)}
                         >
-                          <td>
+                          <TableCell>
                             <div className="flex min-w-0 items-center gap-2.5">
                               <span
                                 className={
@@ -375,12 +381,15 @@ export function TopicsPage({ onNavigate }: { onNavigate?: (id: NavId) => void })
                                   <span className="font-mono-design truncate text-[12.5px] font-medium tracking-tight">
                                     {raw.topic}
                                   </span>
-                                  <span className={typeBadgeClass(kind) + ' shrink-0'}>
+                                  <Badge
+                                    variant="outline"
+                                    className={typeBadgeClass(kind) + ' shrink-0'}
+                                  >
                                     {typeLabel(kind, t)}
-                                  </span>
+                                  </Badge>
                                 </div>
                                 {raw.description && (
-                                  <div className="rl-muted mt-0.5 truncate text-[11px]">
+                                  <div className="text-muted-foreground mt-0.5 truncate text-[11px]">
                                     {raw.description}
                                   </div>
                                 )}
@@ -388,18 +397,18 @@ export function TopicsPage({ onNavigate }: { onNavigate?: (id: NavId) => void })
                               <ChevronRight
                                 size={14}
                                 className={
-                                  'rl-muted shrink-0 transition-opacity ' +
+                                  'text-muted-foreground shrink-0 transition-opacity ' +
                                   (selected ? 'opacity-70' : 'opacity-35')
                                 }
                                 aria-hidden
                               />
                             </div>
-                          </td>
-                        </tr>
+                          </TableCell>
+                        </TableRow>
                       )
                     })}
-                  </tbody>
-                </table>
+                  </TableBody>
+                </Table>
               )}
             </>
           )}
@@ -473,7 +482,7 @@ function TopicDetailPanel({
     return consumerGroups.filter((g) => (g.subscriptions || []).some((s) => s.topic === name))
   }, [consumerGroups, topic])
 
-  const asideClass = 'scroll-thin rl-detail-panel' + (exiting ? ' exiting' : '')
+  const asideClass = 'scroll-thin detail-panel' + (exiting ? ' exiting' : '')
 
   if (loading && !topic) {
     return (
@@ -486,7 +495,7 @@ function TopicDetailPanel({
           background: 'hsl(var(--background))',
         }}
       >
-        <div className="rl-muted flex items-center justify-center" style={{ padding: 60, gap: 8 }}>
+        <div className="text-muted-foreground flex items-center justify-center" style={{ padding: 60, gap: 8 }}>
           <Spinner size={14} />
           <span className="text-[12px]">{t('common.loading')}</span>
         </div>
@@ -518,19 +527,21 @@ function TopicDetailPanel({
               {topic.topic}
             </div>
             <div className="mt-1.5 flex flex-wrap gap-1.5">
-              <span className={typeBadgeClass(kind)}>{typeLabel(kind, t)}</span>
+              <Badge variant="outline" className={typeBadgeClass(kind)}>
+                {typeLabel(kind, t)}
+              </Badge>
               {topic.perm && (
-                <span className="rl-badge rl-badge-outline">{permLabel(topic.perm, t)}</span>
+                <Badge variant="outline">{permLabel(topic.perm, t)}</Badge>
               )}
             </div>
           </div>
-          <button className="rl-btn rl-btn-ghost rl-btn-icon rl-btn-sm shrink-0" onClick={onClose}>
+          <Button variant="ghost" size="icon-sm" className="shrink-0" onClick={onClose}>
             <X size={14} />
-          </button>
+          </Button>
         </div>
 
         <div
-          className="rl-utabs"
+          className="utabs"
           style={{
             marginTop: 16,
             marginLeft: -20,
@@ -556,55 +567,55 @@ function TopicDetailPanel({
         {tab === 'info' && (
           <>
             <div className="mt-3 grid grid-cols-2 gap-2">
-              <div className="rl-stat">
-                <div className="label">{t('topics.detail.stat.queues')}</div>
-                <div className="value text-[18px]">{totalQueue != null ? totalQueue : '—'}</div>
-                <div className="rl-muted mt-0.5 text-[11px]">{queueLabel}</div>
+              <div className="rounded-xl border border-border/80 bg-card p-3.5 shadow-card">
+                <div className="flex items-center gap-1.5 text-[11.5px] text-muted-foreground">{t('topics.detail.stat.queues')}</div>
+                <div className="mt-1 font-semibold tracking-tight tabular-nums leading-tight text-[18px]">{totalQueue != null ? totalQueue : '—'}</div>
+                <div className="text-muted-foreground mt-0.5 text-[11px]">{queueLabel}</div>
               </div>
-              <div className="rl-stat">
-                <div className="label">{t('topics.detail.stat.groups')}</div>
-                <div className="value text-[18px]">{topic.consumerGroups || 0}</div>
+              <div className="rounded-xl border border-border/80 bg-card p-3.5 shadow-card">
+                <div className="flex items-center gap-1.5 text-[11.5px] text-muted-foreground">{t('topics.detail.stat.groups')}</div>
+                <div className="mt-1 font-semibold tracking-tight tabular-nums leading-tight text-[18px]">{topic.consumerGroups || 0}</div>
               </div>
-              <div className="rl-stat">
-                <div className="label">{t('topics.detail.stat.tpsIn')}</div>
-                <div className="value text-[16px]">{formatTps(topic.tpsIn)}</div>
+              <div className="rounded-xl border border-border/80 bg-card p-3.5 shadow-card">
+                <div className="flex items-center gap-1.5 text-[11.5px] text-muted-foreground">{t('topics.detail.stat.tpsIn')}</div>
+                <div className="mt-1 font-semibold tracking-tight tabular-nums leading-tight text-[16px]">{formatTps(topic.tpsIn)}</div>
               </div>
-              <div className="rl-stat">
-                <div className="label">{t('topics.detail.stat.tpsOut')}</div>
-                <div className="value text-[16px]">{formatTps(topic.tpsOut)}</div>
+              <div className="rounded-xl border border-border/80 bg-card p-3.5 shadow-card">
+                <div className="flex items-center gap-1.5 text-[11.5px] text-muted-foreground">{t('topics.detail.stat.tpsOut')}</div>
+                <div className="mt-1 font-semibold tracking-tight tabular-nums leading-tight text-[16px]">{formatTps(topic.tpsOut)}</div>
               </div>
             </div>
 
-            <div className="rl-section-label mt-4">{t('topics.detail.info')}</div>
+            <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground mt-4">{t('topics.detail.info')}</div>
             <div>
               {topic.cluster && (
-                <div className="rl-detail-row">
-                  <div className="k">{t('topics.detail.infoCluster')}</div>
-                  <div className="v">{topic.cluster}</div>
+                <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-[13px] last:border-b-0">
+                  <div className="text-muted-foreground">{t('topics.detail.infoCluster')}</div>
+                  <div className="text-foreground">{topic.cluster}</div>
                 </div>
               )}
-              <div className="rl-detail-row">
-                <div className="k">{t('topics.detail.infoType')}</div>
-                <div className="v">{typeLabel(kind, t)}</div>
+              <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-[13px] last:border-b-0">
+                <div className="text-muted-foreground">{t('topics.detail.infoType')}</div>
+                <div className="text-foreground">{typeLabel(kind, t)}</div>
               </div>
-              <div className="rl-detail-row">
-                <div className="k">{t('topics.detail.infoPerm')}</div>
-                <div className="v">{permLabel(topic.perm, t)}</div>
+              <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-[13px] last:border-b-0">
+                <div className="text-muted-foreground">{t('topics.detail.infoPerm')}</div>
+                <div className="text-foreground">{permLabel(topic.perm, t)}</div>
               </div>
-              <div className="rl-detail-row">
-                <div className="k">{t('topics.detail.infoQueues')}</div>
-                <div className="v rl-tabular">{queueLabel}</div>
+              <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-[13px] last:border-b-0">
+                <div className="text-muted-foreground">{t('topics.detail.infoQueues')}</div>
+                <div className="text-foreground tabular-nums">{queueLabel}</div>
               </div>
               {topic.lastUpdated && (
-                <div className="rl-detail-row">
-                  <div className="k">{t('topics.detail.infoUpdated')}</div>
-                  <div className="v font-mono-design text-[12px]">{topic.lastUpdated}</div>
+                <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-[13px] last:border-b-0">
+                  <div className="text-muted-foreground">{t('topics.detail.infoUpdated')}</div>
+                  <div className="text-foreground font-mono-design text-[12px]">{topic.lastUpdated}</div>
                 </div>
               )}
               {topic.description && (
-                <div className="rl-detail-row">
-                  <div className="k">{t('topics.detail.infoDesc')}</div>
-                  <div className="v">{topic.description}</div>
+                <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-[13px] last:border-b-0">
+                  <div className="text-muted-foreground">{t('topics.detail.infoDesc')}</div>
+                  <div className="text-foreground">{topic.description}</div>
                 </div>
               )}
             </div>
@@ -614,11 +625,11 @@ function TopicDetailPanel({
         {tab === 'routes' && (
           <div className="mt-4">
             {topic.routes.length === 0 ? (
-              <div className="rl-muted text-[12px]" style={{ padding: 16, textAlign: 'center' }}>
+              <div className="text-muted-foreground text-[12px]" style={{ padding: 16, textAlign: 'center' }}>
                 {t('topics.detail.routesEmpty')}
               </div>
             ) : (
-              <div className="rl-card overflow-hidden">
+              <Card className="overflow-hidden">
                 {topic.routes.map((r, i) => (
                   <div
                     key={`${r.broker}-${r.brokerAddr}`}
@@ -629,26 +640,24 @@ function TopicDetailPanel({
                     }}
                   >
                     <div className="flex min-w-0 flex-1 items-center gap-2">
-                      <Server size={13} className="rl-muted" />
+                      <Server size={13} className="text-muted-foreground" />
                       <span className="font-mono-design truncate text-[12px]">{r.broker}</span>
                     </div>
                     <div className="flex shrink-0 gap-1">
-                      <span
-                        className="rl-badge rl-badge-outline"
+                      <Badge variant="outline"
                         style={{ height: 18, fontSize: 10 }}
                       >
                         R {r.readQueue}
-                      </span>
-                      <span
-                        className="rl-badge rl-badge-outline"
+                      </Badge>
+                      <Badge variant="outline"
                         style={{ height: 18, fontSize: 10 }}
                       >
                         W {r.writeQueue}
-                      </span>
+                      </Badge>
                     </div>
                   </div>
                 ))}
-              </div>
+              </Card>
             )}
           </div>
         )}
@@ -656,18 +665,18 @@ function TopicDetailPanel({
         {tab === 'groups' && (
           <div className="mt-4">
             {groupsLoading && relatedGroups.length === 0 ? (
-              <div className="rl-muted flex items-center justify-center gap-2 py-8 text-[12px]">
+              <div className="text-muted-foreground flex items-center justify-center gap-2 py-8 text-[12px]">
                 <Spinner size={14} />
                 {t('common.loading')}
               </div>
             ) : relatedGroups.length === 0 ? (
-              <div className="rl-card" style={{ padding: 16, textAlign: 'center' }}>
-                <div className="rl-muted text-[12px]">{t('topics.detail.groupsEmpty')}</div>
-              </div>
+              <Card style={{ padding: 16, textAlign: 'center' }}>
+                <div className="text-muted-foreground text-[12px]">{t('topics.detail.groupsEmpty')}</div>
+              </Card>
             ) : (
-              <div className="rl-card overflow-hidden">
+              <Card className="overflow-hidden">
                 <div
-                  className="rl-muted px-3.5 py-2 text-[11px]"
+                  className="text-muted-foreground px-3.5 py-2 text-[11px]"
                   style={{ borderBottom: '1px solid hsl(var(--border))' }}
                 >
                   {t('topics.detail.groupsTitle')} · {relatedGroups.length}
@@ -685,42 +694,41 @@ function TopicDetailPanel({
                       <div className="font-mono-design truncate text-[12px] font-medium">
                         {g.group}
                       </div>
-                      <div className="rl-muted mt-0.5 text-[11px]">
+                      <div className="text-muted-foreground mt-0.5 text-[11px]">
                         {t('common.instances', { count: g.onlineClients ?? 0 })}
                         {' · '}
                         lag {(g.lag ?? 0).toLocaleString()}
                       </div>
                     </div>
-                    <span
-                      className={
+                    <Badge
+                      variant={
                         g.status === 'online'
-                          ? 'rl-badge rl-badge-success'
+                          ? 'success'
                           : g.status === 'warning'
-                            ? 'rl-badge rl-badge-warn'
-                            : 'rl-badge rl-badge-outline'
+                            ? 'warning'
+                            : 'outline'
                       }
                     >
                       {g.status || '—'}
-                    </span>
+                    </Badge>
                   </div>
                 ))}
-              </div>
+              </Card>
             )}
           </div>
         )}
 
         <div className="mt-5 flex flex-wrap gap-2">
-          <button className="rl-btn rl-btn-outline rl-btn-sm" onClick={() => onEdit(topic)}>
+          <Button variant="outline" size="sm" onClick={() => onEdit(topic)}>
             <Edit size={13} />
             {t('topics.detail.actions.edit')}
-          </button>
-          <button
-            className="rl-btn rl-btn-ghost rl-btn-sm"
+          </Button>
+          <Button variant="ghost" size="sm"
             style={{ marginLeft: 'auto', color: 'hsl(var(--destructive))' }}
             onClick={() => onDelete(topic)}
           >
             <Trash2 size={13} />
-          </button>
+          </Button>
         </div>
       </div>
     </aside>
@@ -803,11 +811,11 @@ function TopicEditor({
         </h2>
         <div className="mt-4 grid gap-3.5" style={{ gridTemplateColumns: '1fr' }}>
           <div>
-            <div className="rl-muted mb-2 text-[12px]">
+            <div className="text-muted-foreground mb-2 text-[12px]">
               {t('topics.create.name')} <span style={{ color: 'hsl(var(--destructive))' }}>*</span>
             </div>
-            <input
-              className="rl-input font-mono-design"
+            <Input
+              className="font-mono-design"
               placeholder={t('topics.create.namePlaceholder')}
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -815,17 +823,16 @@ function TopicEditor({
             />
           </div>
           <div>
-            <div className="rl-muted mb-2 text-[12px]">
+            <div className="text-muted-foreground mb-2 text-[12px]">
               {t('topics.create.broker')}{' '}
               <span style={{ color: 'hsl(var(--destructive))' }}>*</span>
             </div>
             {masterBrokers.length === 0 ? (
-              <div className="rl-muted text-[12px]" style={{ padding: 8 }}>
+              <div className="text-muted-foreground text-[12px]" style={{ padding: 8 }}>
                 {t('topics.create.noBrokers')}
               </div>
             ) : (
-              <select
-                className="rl-select"
+              <Select
                 value={brokerAddr}
                 onChange={(e) => setBrokerAddr(e.target.value)}
               >
@@ -834,15 +841,14 @@ function TopicEditor({
                     {b.brokerName} · {b.address}
                   </option>
                 ))}
-              </select>
+              </Select>
             )}
-            <div className="rl-muted mt-1 text-[11px]">{t('topics.create.brokerHint')}</div>
+            <div className="text-muted-foreground mt-1 text-[11px]">{t('topics.create.brokerHint')}</div>
           </div>
           <div className="grid gap-3.5" style={{ gridTemplateColumns: '1fr 1fr' }}>
             <div>
-              <div className="rl-muted mb-2 text-[12px]">{t('topics.create.readQueue')}</div>
-              <input
-                className="rl-input"
+              <div className="text-muted-foreground mb-2 text-[12px]">{t('topics.create.readQueue')}</div>
+              <Input
                 type="number"
                 min={1}
                 max={64}
@@ -851,9 +857,8 @@ function TopicEditor({
               />
             </div>
             <div>
-              <div className="rl-muted mb-2 text-[12px]">{t('topics.create.writeQueue')}</div>
-              <input
-                className="rl-input"
+              <div className="text-muted-foreground mb-2 text-[12px]">{t('topics.create.writeQueue')}</div>
+              <Input
                 type="number"
                 min={1}
                 max={64}
@@ -863,9 +868,8 @@ function TopicEditor({
             </div>
           </div>
           <div>
-            <div className="rl-muted mb-2 text-[12px]">{t('topics.create.perm')}</div>
-            <select
-              className="rl-select"
+            <div className="text-muted-foreground mb-2 text-[12px]">{t('topics.create.perm')}</div>
+            <Select
               value={perm}
               onChange={(e) => setPerm(e.target.value as TopicPerm)}
             >
@@ -873,27 +877,25 @@ function TopicEditor({
               <option value={TopicPerm.ReadOnly}>{t('topics.perm.r')}</option>
               <option value={TopicPerm.WriteOnly}>{t('topics.perm.w')}</option>
               <option value={TopicPerm.Deny}>{t('topics.perm.deny')}</option>
-            </select>
+            </Select>
           </div>
         </div>
         <div className="mt-5 flex justify-end gap-2.5">
-          <button
+          <Button variant="outline" size="sm"
             type="button"
-            className="rl-btn rl-btn-outline rl-btn-sm"
             onClick={onClose}
             disabled={busy}
           >
             {t('common.cancel')}
-          </button>
-          <button
+          </Button>
+          <Button variant="default" size="sm"
             type="button"
-            className="rl-btn rl-btn-primary rl-btn-sm"
             onClick={handleSubmit}
             disabled={busy || masterBrokers.length === 0}
           >
             {busy ? <Spinner size={13} /> : <Check size={13} />}
             {isEdit ? t('topics.create.save') : t('topics.create.submit')}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

@@ -138,6 +138,8 @@ function getSystemDark(): boolean {
 function applyTheme(mode: ThemeMode) {
   const dark = mode === 'system' ? getSystemDark() : mode === 'dark'
   document.documentElement.classList.toggle('dark', dark)
+  // Keep Electron window chrome (avoids white hairline under macOS traffic lights).
+  void window.rocketLeaf?.window.setAppearance(dark).catch(() => {})
 }
 
 function applySettingsToDocument(settings: FrontendSettings) {
@@ -219,6 +221,7 @@ function useSettingsStore(): SettingsContextValue {
     const handler = () => {
       applyTheme('system')
       setEffectiveDark(mq.matches)
+      void window.rocketLeaf?.window.setAppearance(mq.matches).catch(() => {})
     }
     mq.addEventListener('change', handler)
     return () => mq.removeEventListener('change', handler)

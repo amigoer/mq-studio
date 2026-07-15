@@ -133,7 +133,7 @@ export function TitleBar({
       <header className={cn('rl-title-bar app-region-drag', !mac && 'rl-title-bar--win')}>
         <img src={logoUrl} alt="" className="logo-img" aria-hidden />
         <div className="title">{t('app.name')}</div>
-        <div className="rl-titlebar-spacer" />
+        <div className="flex-1" />
 
         <div className="conn-menu-wrap app-region-no-drag" ref={menuRef}>
           <button

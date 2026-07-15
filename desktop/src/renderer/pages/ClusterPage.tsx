@@ -10,6 +10,9 @@ import { SlidingTabs } from '@/components/SlidingTabs'
 import { OfflineEmpty } from '@/components/OfflineEmpty'
 import { ErrorBanner } from '@/components/ErrorBanner'
 import type { NavId } from '@/layout/Sidebar'
+import { Badge } from '@/components/ui/badge'
+import { Card } from '@/components/ui/card'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 
 const HISTORY_LEN = 60
 
@@ -147,7 +150,7 @@ export function ClusterPage({ onNavigate }: { onNavigate?: (id: NavId) => void }
 
             {loading && brokers.length === 0 ? (
               <div
-                className="rl-muted flex items-center justify-center"
+                className="text-muted-foreground flex items-center justify-center"
                 style={{ padding: 60, gap: 8 }}
               >
                 <Spinner size={14} />
@@ -157,65 +160,65 @@ export function ClusterPage({ onNavigate }: { onNavigate?: (id: NavId) => void }
               <>
                 {/* Top stats */}
                 <div className="grid gap-2.5" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
-                  <div className="rl-stat" style={{ padding: 14 }}>
+                  <div className="rounded-xl border border-border/80 bg-card p-3.5 shadow-card" style={{ padding: 14 }}>
                     <div className="flex items-center justify-between">
-                      <span className="rl-muted text-[12px]">{t('cluster.stat.health')}</span>
+                      <span className="text-muted-foreground text-[12px]">{t('cluster.stat.health')}</span>
                       <CircleDot size={13} style={{ color: healthColor }} />
                     </div>
                     <div
-                      className="value"
+                      className="mt-1 text-[20px] font-semibold tracking-tight tabular-nums leading-tight"
                       style={{ fontSize: 22, color: healthColor, marginTop: 6 }}
                     >
                       {healthLabel}
                     </div>
-                    <div className="rl-muted mt-1 text-[12px]">
+                    <div className="text-muted-foreground mt-1 text-[12px]">
                       {t('cluster.stat.healthSummary', {
                         online: onlineCount,
                         total: totalCount || onlineCount,
                       })}
                     </div>
                   </div>
-                  <div className="rl-stat" style={{ padding: 14 }}>
+                  <div className="rounded-xl border border-border/80 bg-card p-3.5 shadow-card" style={{ padding: 14 }}>
                     <div className="flex items-center justify-between">
-                      <span className="rl-muted text-[12px]">{t('cluster.stat.tps')}</span>
-                      <Activity size={13} className="rl-muted" />
+                      <span className="text-muted-foreground text-[12px]">{t('cluster.stat.tps')}</span>
+                      <Activity size={13} className="text-muted-foreground" />
                     </div>
-                    <div className="value rl-tabular" style={{ fontSize: 22, marginTop: 6 }}>
+                    <div className="mt-1 font-semibold tracking-tight tabular-nums leading-tight tabular-nums" style={{ fontSize: 22, marginTop: 6 }}>
                       {formatTps(totalTps)}
                     </div>
-                    <div className="rl-muted mt-1 text-[12px]">{t('cluster.stat.tpsSubtitle')}</div>
+                    <div className="text-muted-foreground mt-1 text-[12px]">{t('cluster.stat.tpsSubtitle')}</div>
                   </div>
-                  <div className="rl-stat" style={{ padding: 14 }}>
+                  <div className="rounded-xl border border-border/80 bg-card p-3.5 shadow-card" style={{ padding: 14 }}>
                     <div className="flex items-center justify-between">
-                      <span className="rl-muted text-[12px]">{t('cluster.stat.disk')}</span>
-                      <HardDrive size={13} className="rl-muted" />
+                      <span className="text-muted-foreground text-[12px]">{t('cluster.stat.disk')}</span>
+                      <HardDrive size={13} className="text-muted-foreground" />
                     </div>
-                    <div className="value rl-tabular" style={{ fontSize: 22, marginTop: 6 }}>
+                    <div className="mt-1 font-semibold tracking-tight tabular-nums leading-tight tabular-nums" style={{ fontSize: 22, marginTop: 6 }}>
                       {Math.round(avgDisk)}%
                     </div>
-                    <div className="rl-progress mt-2">
-                      <div className="bar" style={{ width: `${Math.round(avgDisk)}%` }} />
+                    <div className="h-1.5 overflow-hidden rounded-full bg-muted mt-2">
+                      <div className="h-full rounded-full bg-foreground" style={{ width: `${Math.round(avgDisk)}%` }} />
                     </div>
                   </div>
-                  <div className="rl-stat" style={{ padding: 14 }}>
+                  <div className="rounded-xl border border-border/80 bg-card p-3.5 shadow-card" style={{ padding: 14 }}>
                     <div className="flex items-center justify-between">
-                      <span className="rl-muted text-[12px]">{t('cluster.stat.topics')}</span>
-                      <LayoutGrid size={13} className="rl-muted" />
+                      <span className="text-muted-foreground text-[12px]">{t('cluster.stat.topics')}</span>
+                      <LayoutGrid size={13} className="text-muted-foreground" />
                     </div>
-                    <div className="value rl-tabular" style={{ fontSize: 22, marginTop: 6 }}>
+                    <div className="mt-1 font-semibold tracking-tight tabular-nums leading-tight tabular-nums" style={{ fontSize: 22, marginTop: 6 }}>
                       {totalTopics.toLocaleString()}
                     </div>
-                    <div className="rl-muted mt-1 text-[12px]">
+                    <div className="text-muted-foreground mt-1 text-[12px]">
                       {t('cluster.stat.topicsSubtitle', { groups: totalGroups })}
                     </div>
                   </div>
                 </div>
 
                 {/* Throughput chart */}
-                <div className="rl-section-label" style={{ marginTop: 24 }}>
+                <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 24 }}>
                   {t('cluster.throughput')}
                 </div>
-                <div className="rl-card" style={{ padding: 16 }}>
+                <Card style={{ padding: 16 }}>
                   <div className="mb-3 flex items-center gap-4">
                     <div className="flex items-center gap-2">
                       <span
@@ -227,7 +230,7 @@ export function ClusterPage({ onNavigate }: { onNavigate?: (id: NavId) => void }
                         }}
                       />
                       <span className="text-[12px]">{t('overview.throughput.produce')}</span>
-                      <span className="font-mono-design rl-tabular text-[12px]">
+                      <span className="font-mono-design tabular-nums text-[12px]">
                         {formatTps(totalTpsIn)}/s
                       </span>
                     </div>
@@ -241,7 +244,7 @@ export function ClusterPage({ onNavigate }: { onNavigate?: (id: NavId) => void }
                         }}
                       />
                       <span className="text-[12px]">{t('overview.throughput.consume')}</span>
-                      <span className="font-mono-design rl-tabular text-[12px]">
+                      <span className="font-mono-design tabular-nums text-[12px]">
                         {formatTps(totalTpsOut)}/s
                       </span>
                     </div>
@@ -282,16 +285,16 @@ export function ClusterPage({ onNavigate }: { onNavigate?: (id: NavId) => void }
                     </svg>
                   ) : (
                     <div
-                      className="rl-muted flex items-center justify-center text-[12px]"
+                      className="text-muted-foreground flex items-center justify-center text-[12px]"
                       style={{ height: 200 }}
                     >
                       {t('overview.throughput.noData')}
                     </div>
                   )}
-                </div>
+                </Card>
 
                 {/* Brokers */}
-                <div className="rl-section-label" style={{ marginTop: 24 }}>
+                <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 24 }}>
                   {t('cluster.brokerList')}
                 </div>
                 <BrokerTable brokers={sortedBrokers} />
@@ -312,26 +315,26 @@ function BrokerTable({ brokers }: { brokers: BrokerNode[] }) {
   const { t } = useTranslation()
   if (brokers.length === 0) {
     return (
-      <div className="rl-card rl-muted text-[12px]" style={{ padding: 24, textAlign: 'center' }}>
+      <Card className="text-muted-foreground text-[12px]" style={{ padding: 24, textAlign: 'center' }}>
         {t('cluster.brokerEmpty')}
-      </div>
+      </Card>
     )
   }
   return (
-    <div className="rl-card overflow-hidden">
-      <table className="rl-table">
-        <thead>
-          <tr>
-            <th>{t('cluster.brokerTable.name')}</th>
-            <th>{t('cluster.brokerTable.role')}</th>
-            <th>{t('cluster.brokerTable.address')}</th>
-            <th>{t('cluster.brokerTable.version')}</th>
-            <th style={{ textAlign: 'right' }}>{t('cluster.brokerTable.tps')}</th>
-            <th style={{ width: 200 }}>{t('cluster.brokerTable.disk')}</th>
-            <th style={{ width: 100 }}>{t('cluster.brokerTable.status')}</th>
-          </tr>
-        </thead>
-        <tbody>
+    <Card className="overflow-hidden">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>{t('cluster.brokerTable.name')}</TableHead>
+            <TableHead>{t('cluster.brokerTable.role')}</TableHead>
+            <TableHead>{t('cluster.brokerTable.address')}</TableHead>
+            <TableHead>{t('cluster.brokerTable.version')}</TableHead>
+            <TableHead style={{ textAlign: 'right' }}>{t('cluster.brokerTable.tps')}</TableHead>
+            <TableHead style={{ width: 200 }}>{t('cluster.brokerTable.disk')}</TableHead>
+            <TableHead style={{ width: 100 }}>{t('cluster.brokerTable.status')}</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {brokers.map((b) => {
             const isOnline = b.status === 'online'
             const isWarning = b.status === 'warning'
@@ -339,63 +342,52 @@ function BrokerTable({ brokers }: { brokers: BrokerNode[] }) {
             const isMaster = role === 'MASTER'
             const disk = Math.round(b.commitLogDiskUsage ?? 0)
             return (
-              <tr key={`${b.brokerName}-${b.brokerId}`}>
-                <td>
+              <TableRow key={`${b.brokerName}-${b.brokerId}`}>
+                <TableCell>
                   <div className="font-mono-design">
                     {b.brokerName}
                     {b.brokerId !== 0 ? `-${b.brokerId}` : ''}
                   </div>
-                </td>
-                <td>
-                  <span className={'rl-badge ' + (isMaster ? 'rl-badge-info' : 'rl-badge-outline')}>
-                    {role || '—'}
-                  </span>
-                </td>
-                <td>
-                  <span className="font-mono-design rl-muted text-[12px]">{b.address || '—'}</span>
-                </td>
-                <td>
-                  <span className="rl-muted text-[12px]">{b.version || '—'}</span>
-                </td>
-                <td className="font-mono-design text-[12px]" style={{ textAlign: 'right' }}>
+                </TableCell>
+                <TableCell>
+                  <Badge variant={isMaster ? 'info' : 'outline'}>{role || '—'}</Badge>
+                </TableCell>
+                <TableCell>
+                  <span className="font-mono-design text-muted-foreground text-[12px]">{b.address || '—'}</span>
+                </TableCell>
+                <TableCell>
+                  <span className="text-muted-foreground text-[12px]">{b.version || '—'}</span>
+                </TableCell>
+                <TableCell className="font-mono-design text-[12px]" style={{ textAlign: 'right' }}>
                   {isOnline ? `${formatTps(b.tpsIn)} / ${formatTps(b.tpsOut)}` : '—'}
-                </td>
-                <td>
+                </TableCell>
+                <TableCell>
                   {isOnline ? (
                     <div className="flex items-center gap-2">
-                      <div className="rl-progress flex-1" style={{ maxWidth: 120 }}>
-                        <div className="bar" style={{ width: `${disk}%` }} />
+                      <div className="h-1.5 overflow-hidden rounded-full bg-muted flex-1" style={{ maxWidth: 120 }}>
+                        <div className="h-full rounded-full bg-foreground" style={{ width: `${disk}%` }} />
                       </div>
-                      <span className="rl-tabular rl-muted text-[12px]">{disk}%</span>
+                      <span className="tabular-nums text-muted-foreground text-[12px]">{disk}%</span>
                     </div>
                   ) : (
-                    <span className="rl-muted text-[12px]">—</span>
+                    <span className="text-muted-foreground text-[12px]">—</span>
                   )}
-                </td>
-                <td>
-                  <span
-                    className={
-                      'rl-badge ' +
-                      (isOnline
-                        ? 'rl-badge-success'
-                        : isWarning
-                          ? 'rl-badge-warn'
-                          : 'rl-badge-outline')
-                    }
-                  >
+                </TableCell>
+                <TableCell>
+                  <Badge variant={isOnline ? 'success' : isWarning ? 'warning' : 'outline'}>
                     {isOnline
                       ? t('common.online')
                       : isWarning
                         ? t('common.warning')
                         : t('common.offline')}
-                  </span>
-                </td>
-              </tr>
+                  </Badge>
+                </TableCell>
+              </TableRow>
             )
           })}
-        </tbody>
-      </table>
-    </div>
+        </TableBody>
+      </Table>
+    </Card>
   )
 }
 
@@ -403,13 +395,13 @@ function NameServerList({ servers }: { servers: string[] }) {
   const { t } = useTranslation()
   if (servers.length === 0) {
     return (
-      <div className="rl-card rl-muted text-[12px]" style={{ padding: 24, textAlign: 'center' }}>
+      <Card className="text-muted-foreground text-[12px]" style={{ padding: 24, textAlign: 'center' }}>
         {t('cluster.nameserverEmpty')}
-      </div>
+      </Card>
     )
   }
   return (
-    <div className="rl-card overflow-hidden">
+    <Card className="overflow-hidden">
       {servers.map((s, i) => (
         <div
           key={s}
@@ -419,11 +411,11 @@ function NameServerList({ servers }: { servers: string[] }) {
             borderTop: i ? '1px solid hsl(var(--border))' : undefined,
           }}
         >
-          <Server size={14} className="rl-muted" />
+          <Server size={14} className="text-muted-foreground" />
           <span className="font-mono-design flex-1 text-[12px]">{s}</span>
-          <span className="rl-badge rl-badge-success">{t('common.online')}</span>
+          <Badge variant="success">{t('common.online')}</Badge>
         </div>
       ))}
-    </div>
+    </Card>
   )
 }

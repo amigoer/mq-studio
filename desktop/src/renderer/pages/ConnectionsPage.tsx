@@ -26,6 +26,12 @@ import {
   takeConnectionPrefill,
   type ConnectionPrefill,
 } from '@/lib/connectionPrefill'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Select } from '@/components/ui/select'
+import { Badge } from '@/components/ui/badge'
+import { Switch } from '@/components/ui/switch'
+import { Card } from '@/components/ui/card'
 
 const NEW_FORM_ID = -1
 const DEFAULT_NS_PORT = '9876'
@@ -432,22 +438,22 @@ export function ConnectionsPage() {
         subtitle={t('connections.subtitle', { count: list.length })}
       >
         {showSearch && (
-          <div className="rl-search-input" style={{ width: 180 }}>
-            <span className="icon">
+          <div className="relative" style={{ width: 180 }}>
+            <span className="pointer-events-none absolute left-2.5 top-1/2 z-[1] -translate-y-1/2 text-muted-foreground">
               <Search size={13} />
             </span>
-            <input
-              className="rl-input"
+            <Input
+              className="pl-8"
               placeholder={t('connections.searchPlaceholder')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
         )}
-        <button className="rl-btn rl-btn-primary rl-btn-sm" onClick={handleNew}>
+        <Button variant="default" size="sm" onClick={handleNew}>
           <Plus size={13} />
           {t('common.create')}
-        </button>
+        </Button>
       </PageHeader>
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
@@ -455,12 +461,12 @@ export function ConnectionsPage() {
         <div className="scroll-thin flex w-[280px] shrink-0 flex-col border-r border-border bg-background">
           <div className="min-h-0 flex-1 overflow-auto">
             {loading && list.length === 0 ? (
-              <div className="rl-muted flex items-center justify-center gap-2 p-8">
+              <div className="text-muted-foreground flex items-center justify-center gap-2 p-8">
                 <Spinner size={14} />
                 <span className="text-[12px]">{t('common.loading')}</span>
               </div>
             ) : filtered.length === 0 ? (
-              <div className="rl-muted px-4 py-10 text-center">
+              <div className="text-muted-foreground px-4 py-10 text-center">
                 <div className="text-[12.5px]">{t('connections.empty')}</div>
                 <div className="mt-1 text-[11.5px]">{t('connections.emptyHint')}</div>
               </div>
@@ -473,7 +479,7 @@ export function ConnectionsPage() {
                 return (
                   <div
                     key={c.id}
-                    className={cn('rl-conn-row group', active && 'active')}
+                    className={cn("group flex cursor-pointer items-center gap-2.5 border-b border-border border-l-2 border-l-transparent px-3 py-2.5 transition-colors hover:bg-accent/70", active && "border-l-foreground bg-accent")}
                     onClick={() => handleSelect(c)}
                   >
                     <span
@@ -488,21 +494,20 @@ export function ConnectionsPage() {
                       <div className="flex items-center gap-1.5">
                         <span className="truncate text-[12.5px] font-medium">{c.name}</span>
                         {c.isDefault && (
-                          <span className="rl-muted shrink-0 text-[10px]">
+                          <span className="text-muted-foreground shrink-0 text-[10px]">
                             {t('connections.default')}
                           </span>
                         )}
                       </div>
-                      <div className="font-mono-design rl-muted mt-0.5 truncate text-[11px]">
+                      <div className="font-mono-design text-muted-foreground mt-0.5 truncate text-[11px]">
                         {(c.nameServer || '').split(/[;\s,]+/)[0] || '—'}
                       </div>
                     </div>
-                    <button
+                    <Button
                       type="button"
-                      className={cn(
-                        'rl-btn rl-btn-sm shrink-0 px-2',
-                        online ? 'rl-btn-outline' : 'rl-btn-primary',
-                      )}
+                      variant={online ? 'outline' : 'default'}
+                      size="sm"
+                      className="shrink-0 px-2"
                       disabled={anyBusy}
                       title={online ? t('connections.disconnect') : t('connections.connect')}
                       onClick={(e) => (online ? handleRowDisconnect(c, e) : handleRowConnect(c, e))}
@@ -514,27 +519,27 @@ export function ConnectionsPage() {
                       ) : (
                         <PlugZap size={12} />
                       )}
-                    </button>
+                    </Button>
                   </div>
                 )
               })
             )}
           </div>
           <div className="border-t border-border p-2">
-            <button
-              className="rl-btn rl-btn-outline rl-btn-sm w-full justify-center"
+            <Button variant="outline" size="sm"
+              className="w-full justify-center"
               onClick={handleNew}
             >
               <Plus size={13} />
               {list.length === 0 ? t('connections.addFirst') : t('connections.newConnection')}
-            </button>
+            </Button>
           </div>
         </div>
 
         {/* Detail */}
         <div className="scroll-thin min-w-0 flex-1 overflow-auto p-5">
           {selectedId == null ? (
-            <div className="rl-muted flex min-h-[200px] flex-col items-center justify-center text-center">
+            <div className="text-muted-foreground flex min-h-[200px] flex-col items-center justify-center text-center">
               <PlugZap size={22} className="mb-2 opacity-40" />
               <div className="text-[12.5px]">{t('connections.selectHint')}</div>
             </div>
@@ -550,18 +555,18 @@ export function ConnectionsPage() {
                     {!isNew &&
                       selected &&
                       (isOnline ? (
-                        <span className="rl-badge rl-badge-success">
+                        <Badge variant="success">
                           <span className="h-1.5 w-1.5 rounded-full bg-current" />
                           {t('common.connected')}
-                        </span>
+                        </Badge>
                       ) : (
-                        <span className="rl-badge rl-badge-outline">{t('common.offline')}</span>
+                        <Badge variant="outline">{t('common.offline')}</Badge>
                       ))}
                     {dirty && !isNew && (
-                      <span className="rl-muted text-[11px]">{t('connections.unsaved')}</span>
+                      <span className="text-muted-foreground text-[11px]">{t('connections.unsaved')}</span>
                     )}
                   </div>
-                  <div className="rl-muted mt-1 text-[11.5px]">
+                  <div className="text-muted-foreground mt-1 text-[11.5px]">
                     {isNew
                       ? t('connections.connectHintNew')
                       : isOnline
@@ -571,17 +576,15 @@ export function ConnectionsPage() {
                 </div>
                 <div className="flex shrink-0 items-center gap-1.5">
                   {isOnline && !isNew ? (
-                    <button
-                      className="rl-btn rl-btn-outline rl-btn-sm"
+                    <Button variant="outline" size="sm"
                       onClick={handleDisconnectPrimary}
                       disabled={primaryBusy}
                     >
                       {busy === 'disconnect' ? <Spinner size={13} /> : <Unlink size={13} />}
                       {t('connections.disconnect')}
-                    </button>
+                    </Button>
                   ) : (
-                    <button
-                      className="rl-btn rl-btn-primary rl-btn-sm"
+                    <Button variant="default" size="sm"
                       onClick={handleConnectPrimary}
                       disabled={primaryBusy}
                     >
@@ -591,24 +594,22 @@ export function ConnectionsPage() {
                         : dirty
                           ? t('connections.saveAndConnect')
                           : t('connections.connect')}
-                    </button>
+                    </Button>
                   )}
                 </div>
               </div>
 
-              <div className="rl-card p-4">
+              <Card className="p-4">
                 <div className="grid grid-cols-2 gap-3">
                   <Field label={t('connections.name')} required>
-                    <input
-                      className="rl-input"
+                    <Input
                       placeholder={t('connections.namePlaceholder')}
                       value={form.name}
                       onChange={(e) => setForm({ ...form, name: e.target.value })}
                     />
                   </Field>
                   <Field label={t('connections.env')}>
-                    <select
-                      className="rl-select"
+                    <Select
                       value={form.env}
                       onChange={(e) => setForm({ ...form, env: e.target.value as ConnectionEnv })}
                     >
@@ -619,17 +620,17 @@ export function ConnectionsPage() {
                       <option value={ConnectionEnv.Development}>
                         {t('connections.envDev')}
                       </option>
-                    </select>
+                    </Select>
                   </Field>
                   <div className="col-span-2">
                     <div className="mb-1.5 flex items-center justify-between gap-2">
-                      <div className="rl-muted text-[11.5px]">
+                      <div className="text-muted-foreground text-[11.5px]">
                         {t('connections.nameServer')}
                         <span className="text-destructive"> *</span>
                       </div>
-                      <button
+                      <Button variant="ghost" size="sm"
                         type="button"
-                        className="rl-btn rl-btn-ghost rl-btn-sm h-6 px-1.5 text-[11px] text-muted-foreground"
+                        className="h-6 px-1.5 text-[11px] text-muted-foreground"
                         onClick={() =>
                           setForm({
                             ...form,
@@ -639,14 +640,14 @@ export function ConnectionsPage() {
                       >
                         <Plus size={12} />
                         {t('connections.addNameServer')}
-                      </button>
+                      </Button>
                     </div>
                     <div className="flex flex-col gap-2">
                       {form.nsEntries.map((entry, index) => (
                         <div key={index} className="flex items-center gap-2">
                           <div className="min-w-0 flex-1">
-                            <input
-                              className="rl-input font-mono-design"
+                            <Input
+                              className="font-mono-design"
                               placeholder={t('connections.hostPlaceholder')}
                               value={entry.host}
                               onChange={(e) =>
@@ -660,9 +661,9 @@ export function ConnectionsPage() {
                               aria-label={t('connections.host')}
                             />
                           </div>
-                          <span className="rl-muted shrink-0 select-none text-[12px]">:</span>
-                          <input
-                            className="rl-input font-mono-design shrink-0 text-center"
+                          <span className="text-muted-foreground shrink-0 select-none text-[12px]">:</span>
+                          <Input
+                            className="font-mono-design shrink-0 text-center"
                             style={{ width: 92, minWidth: 92, maxWidth: 92 }}
                             type="text"
                             inputMode="numeric"
@@ -681,9 +682,9 @@ export function ConnectionsPage() {
                             aria-label={t('connections.port')}
                           />
                           {form.nsEntries.length > 1 && (
-                            <button
+                            <Button variant="ghost" size="icon-sm"
                               type="button"
-                              className="rl-btn rl-btn-ghost rl-btn-icon rl-btn-sm shrink-0 text-muted-foreground"
+                              className="shrink-0 text-muted-foreground"
                               title={t('common.delete')}
                               onClick={() =>
                                 setForm({
@@ -693,12 +694,12 @@ export function ConnectionsPage() {
                               }
                             >
                               <X size={13} />
-                            </button>
+                            </Button>
                           )}
                         </div>
                       ))}
                     </div>
-                    <div className="rl-muted mt-1.5 text-[11px]">
+                    <div className="text-muted-foreground mt-1.5 text-[11px]">
                       {t('connections.nameServerHint')}
                     </div>
                   </div>
@@ -707,7 +708,7 @@ export function ConnectionsPage() {
                 {/* Advanced (timeout / ACL / remark) */}
                 <button
                   type="button"
-                  className="rl-muted mt-4 flex w-full items-center gap-1 border-0 bg-transparent p-0 text-left text-[12px] hover:text-foreground"
+                  className="text-muted-foreground mt-4 flex w-full items-center gap-1 border-0 bg-transparent p-0 text-left text-[12px] hover:text-foreground"
                   onClick={() => setAdvancedOpen((v) => !v)}
                 >
                   {advancedOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
@@ -717,8 +718,7 @@ export function ConnectionsPage() {
                   <div className="mt-3 grid grid-cols-2 gap-3 border-t border-border pt-3">
                     <Field label={t('connections.timeout')}>
                       <div className="flex items-center gap-2">
-                        <input
-                          className="rl-input"
+                        <Input
                           type="number"
                           min={1}
                           max={300}
@@ -727,7 +727,7 @@ export function ConnectionsPage() {
                             setForm({ ...form, timeoutSec: Number(e.target.value) || 1 })
                           }
                         />
-                        <span className="rl-muted shrink-0 text-[12px]">
+                        <span className="text-muted-foreground shrink-0 text-[12px]">
                           {t('connections.timeoutUnit')}
                         </span>
                       </div>
@@ -738,30 +738,27 @@ export function ConnectionsPage() {
                           <div className="text-[12.5px] font-medium">
                             {t('connections.enableAcl')}
                           </div>
-                          <div className="rl-muted mt-0.5 text-[11.5px]">
+                          <div className="text-muted-foreground mt-0.5 text-[11.5px]">
                             {t('connections.enableAclHint')}
                           </div>
                         </div>
-                        <button
-                          type="button"
-                          role="switch"
-                          aria-checked={form.enableACL}
-                          onClick={() => setForm({ ...form, enableACL: !form.enableACL })}
-                          className={cn('rl-switch', form.enableACL && 'on')}
+                        <Switch
+                          checked={form.enableACL}
+                          onCheckedChange={(v) => setForm({ ...form, enableACL: v })}
                         />
                       </div>
                       {form.enableACL && (
                         <div className="mt-3 grid grid-cols-2 gap-3">
                           <Field label={t('connections.ak')}>
-                            <input
-                              className="rl-input font-mono-design"
+                            <Input
+                              className="font-mono-design"
                               value={form.accessKey}
                               onChange={(e) => setForm({ ...form, accessKey: e.target.value })}
                             />
                           </Field>
                           <Field label={t('connections.sk')}>
-                            <input
-                              className="rl-input font-mono-design"
+                            <Input
+                              className="font-mono-design"
                               type="password"
                               value={form.secretKey}
                               onChange={(e) => setForm({ ...form, secretKey: e.target.value })}
@@ -772,8 +769,7 @@ export function ConnectionsPage() {
                     </div>
                     <div className="col-span-2">
                       <Field label={t('connections.remark')}>
-                        <input
-                          className="rl-input"
+                        <Input
                           placeholder={t('connections.remarkPlaceholder')}
                           value={form.remark}
                           onChange={(e) => setForm({ ...form, remark: e.target.value })}
@@ -785,52 +781,51 @@ export function ConnectionsPage() {
 
                 {/* Secondary actions */}
                 <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-border pt-3">
-                  <button
+                  <Button variant="ghost" size="sm"
                     type="button"
-                    className="rl-btn rl-btn-ghost rl-btn-sm text-muted-foreground"
+                    className="text-muted-foreground"
                     onClick={handleTest}
                     disabled={anyBusy}
                   >
                     {busy === 'test' ? <Spinner size={12} /> : <Wifi size={12} />}
                     {busy === 'test' ? t('connections.testing') : t('connections.test')}
-                  </button>
+                  </Button>
                   {!isNew && selected && !selected.isDefault && (
-                    <button
+                    <Button variant="ghost" size="sm"
                       type="button"
-                      className="rl-btn rl-btn-ghost rl-btn-sm text-muted-foreground"
+                      className="text-muted-foreground"
                       onClick={handleSetDefault}
                       disabled={anyBusy}
                     >
                       <Star size={12} />
                       {t('connections.setDefault')}
-                    </button>
+                    </Button>
                   )}
                   {!isNew && selected && (
-                    <button
+                    <Button variant="ghost" size="sm"
                       type="button"
-                      className="rl-btn rl-btn-ghost rl-btn-sm text-destructive"
+                      className="text-destructive"
                       onClick={() => setConfirmDelete(selected)}
                       disabled={anyBusy}
                     >
                       <Trash2 size={12} />
                       {t('common.delete')}
-                    </button>
+                    </Button>
                   )}
                   <div className="ml-auto" />
                   {/* Save only when dirty and not using connect as save path, or when online (edit without reconnect) */}
                   {(dirty || isNew) && (
-                    <button
+                    <Button variant="outline" size="sm"
                       type="button"
-                      className="rl-btn rl-btn-outline rl-btn-sm"
                       onClick={handleSaveOnly}
                       disabled={anyBusy || (!isNew && !dirty)}
                     >
                       {busy === 'save' ? <Spinner size={12} /> : <Check size={12} />}
                       {isNew ? t('connections.saveOnly') : t('connections.save')}
-                    </button>
+                    </Button>
                   )}
                 </div>
-              </div>
+              </Card>
             </div>
           )}
         </div>
@@ -861,7 +856,7 @@ function Field({
 }) {
   return (
     <div>
-      <div className="rl-muted mb-1.5 text-[11.5px]">
+      <div className="text-muted-foreground mb-1.5 text-[11.5px]">
         {label}
         {required && <span className="text-destructive"> *</span>}
       </div>

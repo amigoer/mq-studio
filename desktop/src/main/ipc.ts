@@ -54,7 +54,11 @@ function trustedSender(url: string): boolean {
   return false
 }
 
-export function registerIPC(window: BrowserWindow, supervisor: DaemonSupervisor): void {
+export function registerIPC(
+  window: BrowserWindow,
+  supervisor: DaemonSupervisor,
+  options?: { onAppearanceChange?: (dark: boolean) => void },
+): void {
   const handle = (channel: string, listener: Parameters<typeof ipcMain.handle>[1]) => {
     ipcMain.handle(channel, (event, ...args) => {
       const senderURL = event.senderFrame?.url ?? event.sender.getURL()
@@ -69,6 +73,9 @@ export function registerIPC(window: BrowserWindow, supervisor: DaemonSupervisor)
   )
   handle('window:close', () => window.close())
   handle('window:is-maximized', () => window.isMaximized())
+  handle('window:set-appearance', (_event, dark: unknown) => {
+    options?.onAppearanceChange?.(Boolean(dark))
+  })
   handle('daemon:state', () => supervisor.state)
   handle('backend:call', (_event, call: BackendCall) => executeBackendCall(supervisor, call))
 
@@ -129,6 +136,7 @@ export function unregisterIPC(): void {
     'window:toggle-maximize',
     'window:close',
     'window:is-maximized',
+    'window:set-appearance',
     'daemon:state',
     'backend:call',
     'shell:open-external',

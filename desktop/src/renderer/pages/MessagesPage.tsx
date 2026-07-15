@@ -23,6 +23,12 @@ import { SlidingTabs } from '@/components/SlidingTabs'
 import { OfflineEmpty } from '@/components/OfflineEmpty'
 import { ErrorBanner } from '@/components/ErrorBanner'
 import type { NavId } from '@/layout/Sidebar'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Select } from '@/components/ui/select'
+import { Badge } from '@/components/ui/badge'
+import { Card } from '@/components/ui/card'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 
 type TabKey = 'topic' | 'msgid' | 'retry' | 'dlq'
 
@@ -229,8 +235,8 @@ export function MessagesPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
             }}
           >
             {(tab === 'topic' || tab === 'msgid') && (
-              <select
-                className="rl-select font-mono-design"
+              <Select
+                className="font-mono-design"
                 style={{ width: 220 }}
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
@@ -241,11 +247,11 @@ export function MessagesPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
                     {tp}
                   </option>
                 ))}
-              </select>
+              </Select>
             )}
             {(tab === 'retry' || tab === 'dlq') && (
-              <select
-                className="rl-select font-mono-design"
+              <Select
+                className="font-mono-design"
                 style={{ width: 240 }}
                 value={group}
                 onChange={(e) => setGroup(e.target.value)}
@@ -256,13 +262,13 @@ export function MessagesPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
                     {g}
                   </option>
                 ))}
-              </select>
+              </Select>
             )}
 
             {tab === 'topic' && (
               <>
-                <input
-                  className="rl-input font-mono-design"
+                <Input
+                  className="font-mono-design"
                   type="datetime-local"
                   placeholder={t('messages.form.begin')}
                   style={{ width: 200 }}
@@ -270,8 +276,8 @@ export function MessagesPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
                   onChange={(e) => setBeginAt(e.target.value)}
                   title={t('messages.form.begin')}
                 />
-                <input
-                  className="rl-input font-mono-design"
+                <Input
+                  className="font-mono-design"
                   type="datetime-local"
                   placeholder={t('messages.form.end')}
                   style={{ width: 200 }}
@@ -279,15 +285,13 @@ export function MessagesPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
                   onChange={(e) => setEndAt(e.target.value)}
                   title={t('messages.form.end')}
                 />
-                <input
-                  className="rl-input"
+                <Input
                   placeholder={t('messages.form.key')}
                   style={{ width: 140 }}
                   value={keyFilter}
                   onChange={(e) => setKeyFilter(e.target.value)}
                 />
-                <input
-                  className="rl-input"
+                <Input
                   placeholder={t('messages.form.tag')}
                   style={{ width: 120 }}
                   value={tagFilter}
@@ -296,8 +300,8 @@ export function MessagesPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
               </>
             )}
             {tab === 'msgid' && (
-              <input
-                className="rl-input font-mono-design"
+              <Input
+                className="font-mono-design"
                 placeholder={t('messages.form.msgIdPlaceholder')}
                 style={{ flex: 1, minWidth: 240 }}
                 value={msgId}
@@ -305,8 +309,7 @@ export function MessagesPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
               />
             )}
             {(tab === 'topic' || tab === 'retry' || tab === 'dlq') && (
-              <input
-                className="rl-input"
+              <Input
                 type="number"
                 min={1}
                 max={500}
@@ -316,16 +319,15 @@ export function MessagesPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
                 title={t('messages.form.limit')}
               />
             )}
-            <button
-              className="rl-btn rl-btn-primary rl-btn-sm"
+            <Button variant="default" size="sm"
               onClick={handleSearch}
               disabled={searching}
             >
               {searching ? <Spinner size={13} /> : <Search size={13} />}
               {searching ? t('messages.form.searching') : t('messages.form.search')}
-            </button>
+            </Button>
             {hasSearched && !searching && results.length > 0 && (
-              <div className="rl-muted ml-auto text-[12px]">
+              <div className="text-muted-foreground ml-auto text-[12px]">
                 {t('messages.summary', { count: results.length })}
               </div>
             )}
@@ -340,41 +342,41 @@ export function MessagesPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
             >
               {searching && results.length === 0 ? (
                 <div
-                  className="rl-muted flex items-center justify-center"
+                  className="text-muted-foreground flex items-center justify-center"
                   style={{ padding: 60, gap: 8 }}
                 >
                   <Spinner size={14} />
                   <span className="text-[12px]">{t('messages.form.searching')}</span>
                 </div>
               ) : !hasSearched ? (
-                <div className="rl-muted text-center" style={{ padding: 60, fontSize: 12 }}>
+                <div className="text-muted-foreground text-center" style={{ padding: 60, fontSize: 12 }}>
                   {t('messages.form.search')} →
                 </div>
               ) : results.length === 0 ? (
-                <div className="rl-muted text-center" style={{ padding: 60, fontSize: 12 }}>
+                <div className="text-muted-foreground text-center" style={{ padding: 60, fontSize: 12 }}>
                   {t('messages.empty')}
                 </div>
               ) : (
-                <table className="rl-table">
-                  <thead>
-                    <tr>
-                      <th style={{ width: 200 }}>{t('messages.table.msgId')}</th>
-                      <th style={{ width: 110 }}>{t('messages.table.tag')}</th>
-                      <th style={{ width: 180 }}>{t('messages.table.key')}</th>
-                      <th>{t('messages.table.preview')}</th>
-                      <th style={{ width: 70, textAlign: 'right' }}>{t('messages.table.queue')}</th>
-                      <th style={{ width: 170 }}>{t('messages.table.storeTime')}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead style={{ width: 200 }}>{t('messages.table.msgId')}</TableHead>
+                      <TableHead style={{ width: 110 }}>{t('messages.table.tag')}</TableHead>
+                      <TableHead style={{ width: 180 }}>{t('messages.table.key')}</TableHead>
+                      <TableHead>{t('messages.table.preview')}</TableHead>
+                      <TableHead style={{ width: 70, textAlign: 'right' }}>{t('messages.table.queue')}</TableHead>
+                      <TableHead style={{ width: 170 }}>{t('messages.table.storeTime')}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
                     {results.map((m) => (
-                      <tr
+                      <TableRow
                         key={m.messageId}
                         className={selectedId === m.messageId ? 'selected' : ''}
                         onClick={() => setSelectedId(m.messageId)}
                         style={{ cursor: 'pointer' }}
                       >
-                        <td>
+                        <TableCell>
                           <div
                             className="font-mono-design truncate text-[12px]"
                             style={{ maxWidth: 180 }}
@@ -382,20 +384,20 @@ export function MessagesPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
                           >
                             {m.messageId.slice(0, 24)}…
                           </div>
-                        </td>
-                        <td>
+                        </TableCell>
+                        <TableCell>
                           {m.tags ? (
-                            <span className="rl-badge rl-badge-outline">{m.tags}</span>
+                            <Badge variant="outline">{m.tags}</Badge>
                           ) : (
-                            <span className="rl-muted text-[12px]">—</span>
+                            <span className="text-muted-foreground text-[12px]">—</span>
                           )}
-                        </td>
-                        <td>
+                        </TableCell>
+                        <TableCell>
                           <span className="font-mono-design text-[12px]">{m.keys || '—'}</span>
-                        </td>
-                        <td>
+                        </TableCell>
+                        <TableCell>
                           <div
-                            className="font-mono-design rl-muted text-[12px]"
+                            className="font-mono-design text-muted-foreground text-[12px]"
                             style={{
                               maxWidth: 280,
                               overflow: 'hidden',
@@ -405,21 +407,21 @@ export function MessagesPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
                           >
                             {m.body}
                           </div>
-                        </td>
-                        <td style={{ textAlign: 'right' }} className="rl-tabular rl-muted">
+                        </TableCell>
+                        <TableCell style={{ textAlign: 'right' }} className="tabular-nums text-muted-foreground">
                           {m.queueId}
-                        </td>
-                        <td className="font-mono-design rl-muted text-[12px]">
+                        </TableCell>
+                        <TableCell className="font-mono-design text-muted-foreground text-[12px]">
                           {formatMessageTime(
                             m.storeTimestamp || m.storeTime,
                             settings.timezone,
                             settings.timestampFormat,
                           )}
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     ))}
-                  </tbody>
-                </table>
+                  </TableBody>
+                </Table>
               )}
             </div>
 
@@ -520,7 +522,7 @@ function MessageDetailPanel({
 
   return (
     <aside
-      className={'scroll-thin rl-detail-panel' + (exiting ? ' exiting' : '')}
+      className={'scroll-thin detail-panel' + (exiting ? ' exiting' : '')}
       style={{
         width: 460,
         borderLeft: '1px solid hsl(var(--border))',
@@ -532,21 +534,20 @@ function MessageDetailPanel({
         <div className="flex items-center justify-between gap-2">
           <div className="truncate font-semibold">{t('messages.detail.title')}</div>
           <div className="flex shrink-0 gap-1">
-            <button
-              className="rl-btn rl-btn-ghost rl-btn-icon rl-btn-sm"
+            <Button variant="ghost" size="icon-sm"
               onClick={() => onCopy(msg.messageId)}
               title={t('messages.detail.actions.copyId')}
             >
               <Copy size={13} />
-            </button>
-            <button className="rl-btn rl-btn-ghost rl-btn-icon rl-btn-sm" onClick={onClose}>
+            </Button>
+            <Button variant="ghost" size="icon-sm" onClick={onClose}>
               <X size={14} />
-            </button>
+            </Button>
           </div>
         </div>
 
         <div
-          className="rl-utabs"
+          className="utabs"
           style={{
             marginTop: 12,
             marginLeft: -20,
@@ -569,64 +570,64 @@ function MessageDetailPanel({
           ))}
         </div>
 
-        <div className="rl-section-label" style={{ marginTop: 16 }}>
+        <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 16 }}>
           {t('messages.detail.info')}
         </div>
         <div>
-          <div className="rl-detail-row">
-            <div className="k">{t('messages.detail.msgId')}</div>
-            <div className="v font-mono-design break-all text-[12px]">{msg.messageId}</div>
+          <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-[13px] last:border-b-0">
+            <div className="text-muted-foreground">{t('messages.detail.msgId')}</div>
+            <div className="text-foreground font-mono-design break-all text-[12px]">{msg.messageId}</div>
           </div>
-          <div className="rl-detail-row">
-            <div className="k">{t('messages.detail.topic')}</div>
-            <div className="v font-mono-design text-[12px]">{msg.topic}</div>
+          <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-[13px] last:border-b-0">
+            <div className="text-muted-foreground">{t('messages.detail.topic')}</div>
+            <div className="text-foreground font-mono-design text-[12px]">{msg.topic}</div>
           </div>
           {msg.tags && (
-            <div className="rl-detail-row">
-              <div className="k">{t('messages.detail.tag')}</div>
-              <div className="v">{msg.tags}</div>
+            <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-[13px] last:border-b-0">
+              <div className="text-muted-foreground">{t('messages.detail.tag')}</div>
+              <div className="text-foreground">{msg.tags}</div>
             </div>
           )}
           {msg.keys && (
-            <div className="rl-detail-row">
-              <div className="k">{t('messages.detail.key')}</div>
-              <div className="v font-mono-design text-[12px]">{msg.keys}</div>
+            <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-[13px] last:border-b-0">
+              <div className="text-muted-foreground">{t('messages.detail.key')}</div>
+              <div className="text-foreground font-mono-design text-[12px]">{msg.keys}</div>
             </div>
           )}
-          <div className="rl-detail-row">
-            <div className="k">{t('messages.detail.queue')}</div>
-            <div className="v rl-tabular">{msg.queueId}</div>
+          <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-[13px] last:border-b-0">
+            <div className="text-muted-foreground">{t('messages.detail.queue')}</div>
+            <div className="text-foreground tabular-nums">{msg.queueId}</div>
           </div>
-          <div className="rl-detail-row">
-            <div className="k">{t('messages.detail.queueOffset')}</div>
-            <div className="v rl-tabular">{msg.queueOffset}</div>
+          <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-[13px] last:border-b-0">
+            <div className="text-muted-foreground">{t('messages.detail.queueOffset')}</div>
+            <div className="text-foreground tabular-nums">{msg.queueOffset}</div>
           </div>
           {msg.bornHost && (
-            <div className="rl-detail-row">
-              <div className="k">{t('messages.detail.bornHost')}</div>
-              <div className="v font-mono-design text-[12px]">{msg.bornHost}</div>
+            <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-[13px] last:border-b-0">
+              <div className="text-muted-foreground">{t('messages.detail.bornHost')}</div>
+              <div className="text-foreground font-mono-design text-[12px]">{msg.bornHost}</div>
             </div>
           )}
           {msg.storeHost && (
-            <div className="rl-detail-row">
-              <div className="k">{t('messages.detail.storeHost')}</div>
-              <div className="v font-mono-design text-[12px]">{msg.storeHost}</div>
+            <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-[13px] last:border-b-0">
+              <div className="text-muted-foreground">{t('messages.detail.storeHost')}</div>
+              <div className="text-foreground font-mono-design text-[12px]">{msg.storeHost}</div>
             </div>
           )}
-          <div className="rl-detail-row">
-            <div className="k">{t('messages.detail.storeTime')}</div>
-            <div className="v font-mono-design text-[12px]">{displayStoreTime}</div>
+          <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-[13px] last:border-b-0">
+            <div className="text-muted-foreground">{t('messages.detail.storeTime')}</div>
+            <div className="text-foreground font-mono-design text-[12px]">{displayStoreTime}</div>
           </div>
           {msg.status && (
-            <div className="rl-detail-row">
-              <div className="k">{t('messages.detail.status')}</div>
-              <div className="v">{msg.status}</div>
+            <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-[13px] last:border-b-0">
+              <div className="text-muted-foreground">{t('messages.detail.status')}</div>
+              <div className="text-foreground">{msg.status}</div>
             </div>
           )}
           {msg.retryTimes > 0 && (
-            <div className="rl-detail-row">
-              <div className="k">{t('messages.detail.retryTimes')}</div>
-              <div className="v rl-tabular">{msg.retryTimes}</div>
+            <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-[13px] last:border-b-0">
+              <div className="text-muted-foreground">{t('messages.detail.retryTimes')}</div>
+              <div className="text-foreground tabular-nums">{msg.retryTimes}</div>
             </div>
           )}
         </div>
@@ -638,35 +639,37 @@ function MessageDetailPanel({
               style={{ marginTop: 20 }}
             >
               <div className="flex min-w-0 items-center gap-2">
-                <div className="rl-section-label" style={{ marginBottom: 0 }}>
+                <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginBottom: 0 }}>
                   {t('messages.detail.bodyTitle')}
                 </div>
-                <span className="rl-badge rl-badge-outline text-[10px]">
+                <Badge variant="outline" className="text-[10px]">
                   {t(`messages.detail.bodyKind.${detectedKind}`)}
-                </span>
+                </Badge>
               </div>
               <div className="flex shrink-0 items-center gap-1">
                 {(['auto', 'raw', 'hex'] as const).map((mode) => (
-                  <button
+                  <Button
                     key={mode}
                     type="button"
+                    variant="ghost"
+                    size="sm"
                     className={
-                      'rl-btn rl-btn-ghost rl-btn-sm h-6 px-1.5 text-[11px] ' +
+                      'h-6 px-1.5 text-[11px] ' +
                       (bodyMode === mode ? 'text-foreground' : 'text-muted-foreground')
                     }
                     onClick={() => setBodyMode(mode)}
                   >
                     {t(`messages.detail.bodyMode.${mode}`)}
-                  </button>
+                  </Button>
                 ))}
-                <button className="rl-btn rl-btn-ghost rl-btn-sm" onClick={() => onCopy(msg.body)}>
+                <Button variant="ghost" size="sm" onClick={() => onCopy(msg.body)}>
                   <Copy size={12} />
                   {t('messages.detail.actions.copyBody')}
-                </button>
+                </Button>
               </div>
             </div>
             {payload.truncated && (
-              <div className="rl-muted mb-2 text-[11px]" style={{ lineHeight: 1.5 }}>
+              <div className="text-muted-foreground mb-2 text-[11px]" style={{ lineHeight: 1.5 }}>
                 {t('messages.detail.bodyTruncated', {
                   shown: Math.round(settings.maxPayloadRenderBytes / 1024),
                   total: Math.round(payload.originalBytes / 1024),
@@ -680,15 +683,15 @@ function MessageDetailPanel({
         {tab === 'properties' && (
           <div className="mt-4">
             {propEntries.length === 0 ? (
-              <div className="rl-muted text-[12px]" style={{ padding: 16, textAlign: 'center' }}>
+              <div className="text-muted-foreground text-[12px]" style={{ padding: 16, textAlign: 'center' }}>
                 {t('messages.detail.propsEmpty')}
               </div>
             ) : (
               <div>
                 {propEntries.map(([k, v]) => (
-                  <div className="rl-detail-row" key={k}>
+                  <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-[13px] last:border-b-0" key={k}>
                     <div className="k font-mono-design">{k}</div>
-                    <div className="v font-mono-design break-all text-[12px]">{String(v)}</div>
+                    <div className="text-foreground font-mono-design break-all text-[12px]">{String(v)}</div>
                   </div>
                 ))}
               </div>
@@ -698,10 +701,10 @@ function MessageDetailPanel({
 
         {tab === 'track' && (
           <div className="mt-4">
-            <div className="rl-section-label">{t('messages.detail.trackTitle')}</div>
+            <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{t('messages.detail.trackTitle')}</div>
             {trackLoading ? (
               <div
-                className="rl-muted flex items-center justify-center"
+                className="text-muted-foreground flex items-center justify-center"
                 style={{ padding: 24, gap: 8 }}
               >
                 <Spinner size={14} />
@@ -715,11 +718,11 @@ function MessageDetailPanel({
                 {t('messages.detail.trackError')}: {trackError}
               </div>
             ) : !track || track.length === 0 ? (
-              <div className="rl-muted text-[12px]" style={{ padding: 16, textAlign: 'center' }}>
+              <div className="text-muted-foreground text-[12px]" style={{ padding: 16, textAlign: 'center' }}>
                 {t('messages.detail.trackEmpty')}
               </div>
             ) : (
-              <div className="rl-card overflow-hidden">
+              <Card className="overflow-hidden">
                 {track.map((tr, i) => (
                   <div
                     key={`${tr.consumerGroup}-${i}`}
@@ -729,27 +732,26 @@ function MessageDetailPanel({
                     }}
                   >
                     <div className="flex items-center gap-2">
-                      <GitBranch size={11} className="rl-muted" />
+                      <GitBranch size={11} className="text-muted-foreground" />
                       <span className="font-mono-design flex-1 text-[12px]">
                         {tr.consumerGroup}
                       </span>
                       {tr.trackType && (
-                        <span
-                          className={
-                            'rl-badge ' +
-                            (tr.trackType === 'CONSUMED'
-                              ? 'rl-badge-success'
+                        <Badge
+                          variant={
+                            tr.trackType === 'CONSUMED'
+                              ? 'success'
                               : tr.trackType === 'NOT_CONSUME_YET'
-                                ? 'rl-badge-warn'
-                                : 'rl-badge-outline')
+                                ? 'warning'
+                                : 'outline'
                           }
                         >
                           {tr.trackType}
-                        </span>
+                        </Badge>
                       )}
                     </div>
                     {tr.consumeStatus && (
-                      <div className="rl-muted mt-1 text-[12px]">{tr.consumeStatus}</div>
+                      <div className="text-muted-foreground mt-1 text-[12px]">{tr.consumeStatus}</div>
                     )}
                     {tr.exceptionDesc && (
                       <div
@@ -761,20 +763,20 @@ function MessageDetailPanel({
                     )}
                   </div>
                 ))}
-              </div>
+              </Card>
             )}
           </div>
         )}
 
         <div className="mt-6 flex flex-wrap gap-2">
-          <button className="rl-btn rl-btn-outline rl-btn-sm" onClick={onResend}>
+          <Button variant="outline" size="sm" onClick={onResend}>
             <Send size={13} />
             {t('messages.detail.actions.resend')}
-          </button>
-          <button className="rl-btn rl-btn-outline rl-btn-sm" onClick={() => setTab('track')}>
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setTab('track')}>
             <GitBranch size={13} />
             {t('messages.detail.actions.track')}
-          </button>
+          </Button>
         </div>
       </div>
     </aside>
@@ -816,27 +818,25 @@ function ResendDialog({ msg, onClose }: { msg: MessageItem; onClose: () => void 
         className="w-full max-w-sm rounded-xl border border-border/50 bg-background p-6 shadow-lg"
       >
         <h2 className="text-base font-semibold">{t('messages.detail.resendTitle')}</h2>
-        <p className="rl-muted mt-2 text-[12px]">
+        <p className="text-muted-foreground mt-2 text-[12px]">
           {t('messages.detail.resendDesc', { topic: targetTopic })}
         </p>
         <div className="mt-5 flex justify-end gap-2.5">
-          <button
+          <Button variant="outline" size="sm"
             type="button"
-            className="rl-btn rl-btn-outline rl-btn-sm"
             onClick={onClose}
             disabled={busy}
           >
             {t('common.cancel')}
-          </button>
-          <button
+          </Button>
+          <Button variant="default" size="sm"
             type="button"
-            className="rl-btn rl-btn-primary rl-btn-sm"
             onClick={handleResend}
             disabled={busy}
           >
             {busy ? <Spinner size={13} /> : <Check size={13} />}
             {t('messages.detail.resendSubmit')}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

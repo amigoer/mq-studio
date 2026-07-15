@@ -1,6 +1,7 @@
 import { PlugZap } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
 
 export function OfflineEmpty({
   message,
@@ -19,7 +20,7 @@ export function OfflineEmpty({
   return (
     <div
       className={cn(
-        'rl-muted flex min-h-[240px] flex-col items-center justify-center p-10 text-center',
+        'text-muted-foreground flex min-h-[240px] flex-col items-center justify-center p-10 text-center',
         className,
       )}
     >
@@ -30,9 +31,9 @@ export function OfflineEmpty({
         {message ?? t('common.connectFirst')}
       </div>
       {onAction && (
-        <button type="button" className="rl-btn rl-btn-primary rl-btn-sm mt-4" onClick={onAction}>
+        <Button variant="default" size="sm" type="button" className="mt-4" onClick={onAction}>
           {label}
-        </button>
+        </Button>
       )}
     </div>
   )

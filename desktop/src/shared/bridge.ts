@@ -58,6 +58,8 @@ export interface RocketLeafBridge {
     close(): Promise<void>
     isMaximized(): Promise<boolean>
     onMaximizedChange(listener: (maximized: boolean) => void): () => void
+    /** Sync native window chrome with renderer light/dark appearance. */
+    setAppearance(dark: boolean): Promise<void>
   }
   shell: { openExternal(url: string): Promise<void> }
   dialogs: {

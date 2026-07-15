@@ -15,6 +15,8 @@ import {
 import type { LucideIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Separator } from '@/components/ui/separator'
 
 const GITHUB_URL = 'https://github.com/amigoer/rocket-leaf'
 
@@ -81,18 +83,24 @@ export function Sidebar({
     const isActive = active === id
 
     return (
-      <button
+      <Button
         key={id}
         type="button"
-        className={cn('rl-nav-item', isActive && 'active', disabled && 'disabled')}
+        variant="ghost"
+        size="sm"
+        disabled={disabled}
         title={disabled ? t('common.connectFirst') : label}
         aria-current={isActive ? 'page' : undefined}
-        aria-disabled={disabled || undefined}
         onClick={() => !disabled && onSelect(id)}
+        className={cn(
+          'h-8 w-full justify-start gap-2 rounded-lg px-2.5 font-normal text-muted-foreground shadow-none',
+          isActive && 'bg-accent font-medium text-foreground',
+          !isActive && 'hover:bg-accent/70 hover:text-foreground',
+        )}
       >
-        <Icon size={15} strokeWidth={1.75} className="rl-nav-icon" />
-        <span className="rl-nav-label">{label}</span>
-      </button>
+        <Icon size={15} strokeWidth={isActive ? 2 : 1.75} className="shrink-0 opacity-80" />
+        <span className="truncate">{label}</span>
+      </Button>
     )
   }
 
@@ -101,25 +109,34 @@ export function Sidebar({
   }
 
   return (
-    <aside className="rl-sidebar">
-      <nav className="rl-sidebar-nav">
+    <aside className="flex w-[200px] shrink-0 flex-col border-r border-border/80 bg-background">
+      <nav className="scroll-thin flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-2.5 py-3">
         {GROUPS.map((group, gi) => (
           <Fragment key={gi}>
-            {group.labelKey ? (
-              <div className="rl-nav-group-label">{t(group.labelKey)}</div>
-            ) : gi > 0 ? (
-              <div className="rl-nav-gap" />
-            ) : null}
-            <div className="rl-nav-group">{group.items.map(renderItem)}</div>
+            <div className="flex flex-col gap-0.5">
+              {group.labelKey ? (
+                <div className="px-2.5 pb-1 pt-0.5 text-[10.5px] font-semibold uppercase tracking-[0.06em] text-muted-foreground/80">
+                  {t(group.labelKey)}
+                </div>
+              ) : null}
+              {group.items.map(renderItem)}
+            </div>
           </Fragment>
         ))}
       </nav>
-      <div className="rl-sidebar-footer">
-        <div className="rl-nav-divider" />
-        <button type="button" className="rl-nav-item" title={t('nav.github')} onClick={openGitHub}>
-          <Github size={15} strokeWidth={1.75} className="rl-nav-icon" />
-          <span className="rl-nav-label">{t('nav.github')}</span>
-        </button>
+      <div className="px-2.5 pb-3 pt-1">
+        <Separator className="mb-2" />
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          title={t('nav.github')}
+          onClick={openGitHub}
+          className="h-8 w-full justify-start gap-2 rounded-lg px-2.5 font-normal text-muted-foreground shadow-none hover:bg-accent/70 hover:text-foreground"
+        >
+          <Github size={15} strokeWidth={1.75} className="shrink-0 opacity-80" />
+          <span className="truncate">{t('nav.github')}</span>
+        </Button>
         {BOTTOM.map(renderItem)}
       </div>
     </aside>
