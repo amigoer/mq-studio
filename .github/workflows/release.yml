@@ -47,7 +47,7 @@ jobs:
       APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.tag }}
 
@@ -68,12 +68,12 @@ jobs:
             test -n "${CSC_KEY_PASSWORD:-}"
           fi
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version-file: daemon/go.mod
           cache-dependency-path: daemon/go.sum
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: npm
@@ -127,7 +127,7 @@ jobs:
           esac
 
       - name: Upload signed artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: signed-${{ matrix.platform }}
           path: |
@@ -150,7 +150,7 @@ jobs:
       contents: write
     steps:
       - name: Download all platform artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: release-files
           pattern: signed-*

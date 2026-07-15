@@ -23,14 +23,14 @@ jobs:
     name: Quality
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version-file: daemon/go.mod
           cache-dependency-path: daemon/go.sum
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: npm
@@ -76,14 +76,14 @@ jobs:
       # Internal CI packages are unsigned.
       CSC_IDENTITY_AUTO_DISCOVERY: 'false'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version-file: daemon/go.mod
           cache-dependency-path: daemon/go.sum
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: npm
@@ -118,7 +118,7 @@ jobs:
             --publish never
 
       - name: Upload installers
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: rocket-leaf-${{ matrix.platform }}-${{ matrix.arch }}
           path: |
