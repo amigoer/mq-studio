@@ -1,7 +1,7 @@
 # Rocket-Leaf
 
 <p align="center">
-  <img src="desktop/src/renderer/assets/logo.png" alt="Rocket-Leaf" width="160">
+  <img src="desktop/src/renderer/assets/logo.png" alt="Rocket-Leaf" width="150">
 </p>
 
 <p align="center">
@@ -10,103 +10,75 @@
 </p>
 
 <p align="center">
-  Windows · macOS · Linux &nbsp;·&nbsp;
-  <a href="README.md">English</a> &nbsp;·&nbsp;
-  <a href="https://github.com/amigoer/rocket-leaf/releases">Releases</a>
+  <a href="https://github.com/amigoer/rocket-leaf/releases/latest"><img src="https://img.shields.io/github/v/release/amigoer/rocket-leaf?style=flat-square&label=release" alt="最新版本"></a>
+  <a href="https://github.com/amigoer/rocket-leaf/releases"><img src="https://img.shields.io/github/downloads/amigoer/rocket-leaf/total?style=flat-square&label=downloads" alt="下载量"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/amigoer/rocket-leaf?style=flat-square" alt="许可证"></a>
+  <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-39404A?style=flat-square" alt="支持平台">
+  <img src="https://img.shields.io/badge/RocketMQ-4.x%20%7C%205.x-FF6A00?style=flat-square" alt="RocketMQ 4.x 与 5.x">
+</p>
+
+<p align="center">
+  <a href="README.md">English</a> ·
+  <a href="https://github.com/amigoer/rocket-leaf/releases">下载</a> ·
+  <a href="docs/ARCHITECTURE.md">文档</a>
 </p>
 
 ---
 
 ## 为什么用 Rocket-Leaf？
 
-- **本地优先** — Electron 应用与内置 Go 守护进程都在本机运行，无需部署服务端
-- **集中运维** — 在一个应用内管理连接、Topic、消费者、消息、ACL 与集群健康
-- **安全设计** — 渲染进程运行在沙箱中，守护进程只接受带认证的本机回环请求，敏感信息加密存储
-- **跨平台** — 提供 macOS、Windows 与 Linux 安装包
-
-通过 Admin API 支持 RocketMQ **4.x / 5.x**。ACL 与部分高级操作是否可用，取决于 Broker 版本和配置。界面语言：**中文 / English**。
+- **安装即用** — 不需要部署服务端或 Web 控制台
+- **专注日常运维** — 一个桌面应用覆盖常用 RocketMQ 操作
+- **数据留在本机** — 配置保存在当前设备，凭证加密存储
+- **跨平台与双语** — 支持 macOS、Windows、Linux 以及中英文界面
 
 ## 功能
 
-| 模块         | 能力                                                                                   |
-| ------------ | -------------------------------------------------------------------------------------- |
-| **连接**     | 多集群配置、默认连接与启动自动连接、多 NameServer、连接级及全局 ACL 凭证              |
-| **概览**     | 集群统计、Broker 健康、消费堆积与常用操作快捷入口                                     |
-| **Topic**    | 搜索、路由与统计查看，以及创建、更新、删除                                             |
-| **消费者组** | 查看组、客户端、订阅与堆积；编辑配置；重置位点；处理重试与死信消息                    |
-| **消息**     | 按 Topic、Key、Tag、Message ID、时间查询；查看内容与轨迹；重发                         |
-| **生产者**   | 发送测试消息，支持 Tag、Key、自定义消息体与延时级别                                   |
-| **集群**     | 查看 Broker、NameServer、运行时指标与吞吐趋势                                         |
-| **告警**     | 基于实时数据检测 Broker、消费者、堆积、死信与磁盘状态，并可发送桌面通知               |
-| **ACL**      | 在 Broker 支持时管理访问配置与全局白名单                                              |
-| **设置**     | 主题、语言、字体、时区、超时、全局凭证、配置导入导出与应用更新                        |
+| 模块 | 能力 |
+| --- | --- |
+| **连接** | 管理多个集群、NameServer、自动连接与 ACL 凭证 |
+| **Topic 与消息** | 创建和查看 Topic；查询、追踪、重发与生产消息 |
+| **消费者** | 查看消费组、客户端、订阅与堆积；重置位点；处理重试与死信消息 |
+| **集群与告警** | 监控 Broker、运行指标、吞吐、堆积、磁盘状态与桌面告警 |
+| **管理能力** | 管理消费者配置、Topic 配置、ACL 与全局白名单 |
+| **个性化** | 切换主题与语言、自定义显示、导入或导出配置 |
+
+通过 Admin API 支持 RocketMQ **4.x / 5.x**。ACL 与部分高级操作是否可用，取决于 Broker 版本和配置。
 
 ## 下载
 
-打开 **[Releases](https://github.com/amigoer/rocket-leaf/releases)**，选择与你的系统匹配的安装包：
+前往 **[GitHub Releases](https://github.com/amigoer/rocket-leaf/releases)** 下载最新版本：
 
-| 平台                          | 安装包                  |
-| ----------------------------- | ----------------------- |
-| macOS Apple Silicon（M 系列） | ARM64 `.dmg` 或 `.zip`  |
-| macOS Intel                   | x64 `.dmg` 或 `.zip`    |
-| Windows x64 / ARM64           | NSIS 安装包（`.exe`）   |
-| Linux x64 / ARM64             | `.AppImage`             |
-
-**安装方式**
-
-- **macOS** — 打开 DMG，将 Rocket Leaf 拖入「应用程序」；也可以直接解压 ZIP
-- **Windows** — 运行安装包并按向导完成安装
-- **Linux** — 为 AppImage 添加执行权限后运行：`chmod +x "Rocket Leaf"-*.AppImage`
+| 平台 | 安装包 |
+| --- | --- |
+| macOS Apple Silicon / Intel | `.dmg` 或 `.zip` |
+| Windows x64 / ARM64 | `.exe` 安装包 |
+| Linux x64 / ARM64 | `.AppImage` |
 
 ## 快速开始
 
-1. 打开 Rocket Leaf，进入 **连接**。
-2. 新建连接并至少填写一个 **NameServer** 地址；多个地址可用 `;`、`,` 或空格分隔。
-3. 需要 ACL 时填写当前连接的凭证，或者在 **设置** 中配置可复用的全局凭证。
-4. 保存并连接，然后从侧边栏使用 Topic、消费者、消息、生产者、集群、告警与 ACL 等功能。
+1. 打开 Rocket Leaf，新建连接。
+2. 填写一个或多个 NameServer 地址，需要时添加 ACL 凭证。
+3. 保存并连接，然后从侧边栏选择需要的功能。
 
-### 本地数据
-
-应用数据保存在系统用户配置目录下的 `rocket-leaf/` 中：
-
-| 文件               | 用途                         |
-| ------------------ | ---------------------------- |
-| `connections.json` | 连接配置                     |
-| `settings.json`    | 应用设置与全局凭证           |
-| `secret.key`       | 用于加密敏感字段的本地密钥   |
-
-常见路径：macOS `~/Library/Application Support/rocket-leaf/` · Linux `~/.config/rocket-leaf/` · Windows `%AppData%\rocket-leaf\`
-
-凭证在本地 **加密存储**，保存后不会再暴露给渲染进程。全量配置 **导出** 主要用于迁移，其中包含 **明文密钥**，请按敏感文件妥善保管。在操作系统支持时，应用写出的文件权限为 `0600`。
+连接与设置保存在本机用户配置目录中。导出的配置包含明文凭证，请作为敏感文件妥善保管。
 
 ## 开发
 
-**依赖：** Go 1.25+（见 `daemon/go.mod`）、Node.js `^20.19.0 || >=22.12.0`、npm。只有端到端测试需要 Docker。
+需要 Go 1.25+、Node.js 20+ 与 npm。
 
 ```bash
 npm install
 npm install --prefix desktop
-
-make dev       # Electron 开发模式，同时启动 Go 守护进程
-make build     # 构建守护进程与桌面应用
-make package   # 为当前平台生成安装包
-make check     # 格式检查、vet、类型检查、测试与 API 契约校验
-make e2e       # 使用 Docker 测试集群运行端到端测试
+make dev
 ```
 
-React 渲染进程不能直接访问 Node.js。Electron preload 只暴露受限的 IPC 接口，主进程通过带认证的本机回环 HTTP 与 `rocket-leafd` 通信。TypeScript API 类型由 `contracts/openapi.yaml` 生成。
-
-运行 `make help` 可以查看全部可用命令。
+使用 `make check` 运行项目检查，使用 `make package` 生成安装包，使用 `make help` 查看全部命令。
 
 ## 文档
 
-| 文档                             | 内容                         |
-| -------------------------------- | ---------------------------- |
-| [架构说明](docs/ARCHITECTURE.md) | 组件、进程边界与安全设计     |
-| [路线图](docs/ROADMAP.md)        | 已完成内容与后续改进计划     |
-
-欢迎提交 Issue 与 PR。
+[架构说明](docs/ARCHITECTURE.md) · [路线图](docs/ROADMAP.md)
 
 ## 许可证
 
-[MIT](LICENSE) · [amigoer/rocket-leaf](https://github.com/amigoer/rocket-leaf)
+[MIT](LICENSE) © [amigoer](https://github.com/amigoer)
