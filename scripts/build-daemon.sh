@@ -34,7 +34,9 @@ case "$electron_arch" in
 esac
 
 # Keep daemon appVersion in sync with the Electron package version.
-app_version="$(node -p "require('$repo_root/desktop/package.json').version")"
+# Use a relative path after cd so Node works on Windows Git Bash runners,
+# where $repo_root is a Unix path like /d/a/... that native Node cannot open.
+app_version="$(cd "$repo_root" && node -p "require('./desktop/package.json').version")"
 if [ -z "$app_version" ]; then
   echo "无法读取 desktop/package.json 中的 version。" >&2
   exit 1
