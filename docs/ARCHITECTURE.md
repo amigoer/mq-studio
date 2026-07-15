@@ -1,37 +1,65 @@
-# Rocket Leaf v2 架构
+# Rocket Leaf Architecture
 
-## 进程边界
+## Process boundaries
 
 ```text
-React Renderer（无 Node 权限）
+React Renderer (no Node access)
         │ contextBridge
 Electron Preload
-        │ 受限 IPC 操作
-Electron Main ── 窗口 / 对话框 / 外链 / 自动更新
-        │ Bearer Token + 回环 HTTP
+        │ restricted IPC operations
+Electron Main ── window / dialogs / external links / auto-update
+        │ Bearer token + loopback HTTP
 rocket-leafd
         │
-RocketMQ Admin API / 本地配置与加密存储
+RocketMQ Admin API / local encrypted settings
 ```
 
-Electron Main 是操作系统能力和后端进程的唯一所有者。Renderer 不接触 Node.js、IPC 原语、daemon 端口、认证令牌、任意文件路径或导出的明文配置。
+Electron Main owns OS capabilities and the backend process. The Renderer never touches Node.js, raw IPC primitives, the daemon port, auth tokens, arbitrary file paths, or exported plaintext config.
 
-## Daemon 启动协议
+## Daemon startup protocol
 
-1. Electron 生成 32 字节随机令牌并启动 `rocket-leafd`。
-2. 令牌以单行 JSON 写入 stdin，不出现在命令行和日志中。
-3. daemon 监听 `127.0.0.1:0`，通过 stdout 返回协议版本、端口、PID 和应用版本。
-4. 每个 `/v1` 请求必须携带 Bearer Token；错误统一返回 `code`、`message`、`requestId` 和可选 `details`。
-5. Electron 退出时调用关闭接口并等待五秒；stdin 提前关闭也会使 daemon 退出，防止孤儿进程。
+1. Electron generates a 32-byte random token and starts `rocket-leafd`.
+2. The token is written as a single-line JSON object on stdin (never on the command line or logs).
+3. The daemon listens on `127.0.0.1:0` and prints protocol version, port, PID, and app version on stdout.
+4. Every `/v1` request must include the Bearer token. Errors return `code`, `message`, `requestId`, and optional `details`.
+5. On Electron exit the main process calls the shutdown API and waits up to five seconds; closing stdin also terminates the daemon to avoid orphans.
 
-## 接口和数据安全
+## API and data safety
 
-- `contracts/openapi.yaml` 是唯一跨进程契约，TypeScript 类型生成到 `desktop/src/generated/`。
-- 保存过的 AccessKey 和 SecretKey 永不返回 Renderer，只返回 `Configured` 状态。
-- 更新连接或全局设置时明确使用 `preserve`、`replace`、`clear` 三种凭证模式。
-- 配置文件路径和内容只在 Electron Main 与 daemon 之间流转。
-- 生产页面通过 `app://rocket-leaf` 加载，启用上下文隔离、沙箱、CSP、导航限制和外链域名白名单。
+- `contracts/openapi.yaml` is the single cross-process contract. TypeScript types are generated into `desktop/src/generated/`.
+- Saved AccessKey / SecretKey values are never returned to the Renderer; only a configured flag is exposed.
+- Connection and settings updates use explicit credential modes: `preserve`, `replace`, and `clear`.
+- Config paths and contents only move between Electron Main and the daemon.
+- Production UI is served from `app://rocket-leaf` with context isolation, sandbox, CSP, navigation limits, and an external-link host allowlist.
 
-## 构建边界
+## Repository layout
 
-`desktop/` 与 `daemon/` 拥有各自依赖和测试。发布脚本按目标平台编译一个 Go 二进制，并由 Electron Builder 作为 ASAR 外的 `extraResources/bin` 打入同一个安装包。应用 ID 保持 `com.rocketleaf.app`，本地数据目录保持 `rocket-leaf`，因此 v1 数据无需迁移。
+```text
+desktop/                 Electron application
+  src/main/              Main process (window, daemon supervisor, IPC)
+  src/preload/           contextBridge surface
+  src/renderer/          React UI
+    api/                 Renderer → Main backend calls
+    components/          Shared UI components
+    hooks/               React hooks / providers
+    layout/              Title bar and sidebar chrome
+    pages/               Feature pages
+    styles/              Global CSS and early theme bootstrap
+  src/shared/            Types shared by main and preload
+  src/generated/         OpenAPI-generated types
+daemon/                  Go module (github.com/amigoer/rocket-leaf/daemon)
+  cmd/rocket-leafd/      Process entrypoint
+  internal/api/          Private loopback HTTP API
+  internal/app/          Service wiring
+  internal/service/      Domain services
+  internal/model/        Domain models
+  internal/rocketmq/     RocketMQ client adapter
+  internal/crypto/       Local encryption helpers
+contracts/               OpenAPI contract
+scripts/                 Build, run, icons, smoke tests
+tests/e2e/               Shared RocketMQ e2e environment
+```
+
+## Build boundary
+
+`desktop/` and `daemon/` keep separate dependencies and tests. Release packaging compiles one Go binary per target platform and embeds it outside the ASAR as `extraResources/bin`. The app id stays `com.rocketleaf.app` and the user data directory stays `rocket-leaf`, so v1 local data remains compatible.

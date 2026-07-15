@@ -5,6 +5,7 @@ desktop/resources/bin/
 desktop/node_modules/
 desktop/playwright-report/
 desktop/test-results/
+desktop/*.tsbuildinfo
 release/
 node_modules/
 
@@ -17,7 +18,3 @@ node_modules/
 **/.DS_Store
 
 .claude/
-
-# Stray script binaries
-/seed-data
-/inspect-cluster

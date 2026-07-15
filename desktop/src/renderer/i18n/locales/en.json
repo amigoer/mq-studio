@@ -878,8 +878,8 @@
       "clearCacheError": "Clear cache failed"
     },
     "about": {
-      "descriptionZh": "一款基于 Wails 构建的轻量级、跨平台 RocketMQ 管理客户端。",
-      "descriptionEn": "A lightweight, cross-platform RocketMQ client built with Go and Wails.",
+      "descriptionZh": "跨平台 RocketMQ 桌面管理客户端，基于 Electron 与本地 Go daemon。",
+      "descriptionEn": "A cross-platform RocketMQ desktop client built with Electron and a local Go daemon.",
       "resources": "Resources",
       "checkUpdate": "Check for updates",
       "upToDate": "You are on the latest version v{{version}}",

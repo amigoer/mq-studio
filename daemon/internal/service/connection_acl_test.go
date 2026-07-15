@@ -3,7 +3,7 @@ package service
 import (
 	"testing"
 
-	"rocket-leaf/internal/model"
+	"github.com/amigoer/rocket-leaf/daemon/internal/model"
 )
 
 func TestResolveACLCredentials_ConnectionWins(t *testing.T) {

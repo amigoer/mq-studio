@@ -16,39 +16,41 @@ export type TopicRouteItem = components['schemas']['TopicRouteItem']
 
 export type BrokerRole = BrokerNode['role']
 export type NodeStatus = BrokerNode['status']
+
+/** Connection environment labels stored in settings. */
 export const ConnectionEnv = {
-  $zero: '',
-  EnvProduction: '生产',
-  EnvTest: '测试',
-  EnvDevelopment: '开发',
+  Production: '生产',
+  Test: '测试',
+  Development: '开发',
 } as const
 export type ConnectionEnv = Connection['env']
+
 export const ConnectionStatus = {
-  $zero: '',
-  StatusOnline: 'online',
-  StatusOffline: 'offline',
+  Online: 'online',
+  Offline: 'offline',
 } as const
 export type ConnectionStatus = Connection['status']
+
 export const ConsumeMode = {
-  $zero: '',
-  ModeClustering: 'CLUSTERING',
-  ModeBroadcasting: 'BROADCASTING',
+  Clustering: 'CLUSTERING',
+  Broadcasting: 'BROADCASTING',
 } as const
 export type ConsumeMode = ConsumerGroupItem['consumeMode']
+
 export type GroupStatus = ConsumerGroupItem['status']
 export type MessageStatus = MessageItem['status']
+
 export const TopicPerm = {
-  $zero: '',
-  PermRW: 'RW',
-  PermR: 'R',
-  PermW: 'W',
-  PermDeny: 'DENY',
+  ReadWrite: 'RW',
+  ReadOnly: 'R',
+  WriteOnly: 'W',
+  Deny: 'DENY',
 } as const
 export type TopicPerm = TopicItem['perm']
+
 export const TopicMessageType = {
-  $zero: '',
-  MessageTypeNormal: 'Normal',
-  MessageTypeFIFO: 'FIFO',
-  MessageTypeDelay: 'Delay',
+  Normal: 'Normal',
+  FIFO: 'FIFO',
+  Delay: 'Delay',
 } as const
 export type TopicMessageType = TopicItem['messageType']

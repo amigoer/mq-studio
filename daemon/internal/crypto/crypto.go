@@ -4,6 +4,7 @@ package crypto
 import (
 	"crypto/aes"
 	"crypto/cipher"
+	"crypto/hkdf"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
@@ -21,6 +22,8 @@ const (
 	encryptedPrefix = "ENC:"
 	// keyFileName 存储加密密钥的文件名
 	keyFileName = "secret.key"
+	// hkdfInfoPrefix namespaces field-level keys under HKDF.
+	hkdfInfoPrefix = "rocket-leaf/field/"
 )
 
 var (
@@ -52,9 +55,11 @@ func getOrCreateKey(configDir string) ([]byte, error) {
 		return nil, fmt.Errorf("生成密钥失败: %w", err)
 	}
 
-	if err := os.MkdirAll(configDir, 0o755); err != nil {
+	// Restrict the config directory so secret.key is not in a world-traversable path.
+	if err := os.MkdirAll(configDir, 0o700); err != nil {
 		return nil, fmt.Errorf("创建密钥目录失败: %w", err)
 	}
+	_ = os.Chmod(configDir, 0o700)
 
 	encoded := base64.StdEncoding.EncodeToString(key)
 	file, err := os.OpenFile(keyPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
@@ -82,12 +87,29 @@ func InitKey(configDir string) error {
 	return globalKeyErr
 }
 
-// deriveFieldKey 从主密钥派生字段级密钥（使用 SHA-256）
-func deriveFieldKey(masterKey []byte, field string) []byte {
+// deriveFieldKey derives a per-field AES key with HKDF-SHA256.
+func deriveFieldKey(masterKey []byte, field string) ([]byte, error) {
+	return hkdf.Key(sha256.New, masterKey, nil, hkdfInfoPrefix+field, 32)
+}
+
+// deriveFieldKeyLegacy is the pre-HKDF derivation kept for decrypting existing data.
+func deriveFieldKeyLegacy(masterKey []byte, field string) []byte {
 	h := sha256.New()
 	h.Write(masterKey)
 	h.Write([]byte(field))
 	return h.Sum(nil)
+}
+
+func openGCM(key []byte) (cipher.AEAD, error) {
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, fmt.Errorf("创建加密器失败: %w", err)
+	}
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, fmt.Errorf("创建 GCM 失败: %w", err)
+	}
+	return gcm, nil
 }
 
 // Encrypt 加密明文字符串，返回带前缀的 Base64 密文
@@ -100,16 +122,14 @@ func Encrypt(plaintext string, field string) (string, error) {
 		return "", errors.New("加密密钥未初始化")
 	}
 
-	key := deriveFieldKey(globalKey, field)
-
-	block, err := aes.NewCipher(key)
+	key, err := deriveFieldKey(globalKey, field)
 	if err != nil {
-		return "", fmt.Errorf("创建加密器失败: %w", err)
+		return "", fmt.Errorf("派生字段密钥失败: %w", err)
 	}
 
-	gcm, err := cipher.NewGCM(block)
+	gcm, err := openGCM(key)
 	if err != nil {
-		return "", fmt.Errorf("创建 GCM 失败: %w", err)
+		return "", err
 	}
 
 	nonce := make([]byte, gcm.NonceSize())
@@ -119,6 +139,23 @@ func Encrypt(plaintext string, field string) (string, error) {
 
 	ciphertext := gcm.Seal(nonce, nonce, []byte(plaintext), nil)
 	return encryptedPrefix + base64.StdEncoding.EncodeToString(ciphertext), nil
+}
+
+func decryptWithKey(data []byte, key []byte) (string, error) {
+	gcm, err := openGCM(key)
+	if err != nil {
+		return "", err
+	}
+	nonceSize := gcm.NonceSize()
+	if len(data) < nonceSize {
+		return "", errors.New("密文数据过短")
+	}
+	nonce, sealed := data[:nonceSize], data[nonceSize:]
+	plaintext, err := gcm.Open(nil, nonce, sealed, nil)
+	if err != nil {
+		return "", fmt.Errorf("解密失败: %w", err)
+	}
+	return string(plaintext), nil
 }
 
 // Decrypt 解密密文字符串
@@ -140,30 +177,13 @@ func Decrypt(ciphertext string, field string) (string, error) {
 		return "", fmt.Errorf("解码密文失败: %w", err)
 	}
 
-	key := deriveFieldKey(globalKey, field)
-
-	block, err := aes.NewCipher(key)
-	if err != nil {
-		return "", fmt.Errorf("创建解密器失败: %w", err)
+	// Prefer HKDF; fall back to legacy SHA-256(master||field) for existing installs.
+	if key, err := deriveFieldKey(globalKey, field); err == nil {
+		if plain, err := decryptWithKey(data, key); err == nil {
+			return plain, nil
+		}
 	}
-
-	gcm, err := cipher.NewGCM(block)
-	if err != nil {
-		return "", fmt.Errorf("创建 GCM 失败: %w", err)
-	}
-
-	nonceSize := gcm.NonceSize()
-	if len(data) < nonceSize {
-		return "", errors.New("密文数据过短")
-	}
-
-	nonce, sealed := data[:nonceSize], data[nonceSize:]
-	plaintext, err := gcm.Open(nil, nonce, sealed, nil)
-	if err != nil {
-		return "", fmt.Errorf("解密失败: %w", err)
-	}
-
-	return string(plaintext), nil
+	return decryptWithKey(data, deriveFieldKeyLegacy(globalKey, field))
 }
 
 // IsEncrypted 判断字符串是否已加密

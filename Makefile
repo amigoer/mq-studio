@@ -6,7 +6,7 @@ SHELL := /bin/sh
 TARGET_OS ?=
 TARGET_ARCH ?=
 
-.PHONY: help install install-ci generate dev run format \
+.PHONY: help install install-ci generate icons dev run \
 	build build-daemon build-daemon-all build-desktop package \
 	test test-go test-desktop test-smoke test-e2e test-all \
 	e2e e2e-up e2e-down check ci clean
@@ -25,14 +25,14 @@ install-ci: ## 使用锁文件安装依赖（CI）
 generate: ## 根据 OpenAPI 生成桌面端 TypeScript 类型
 	npm run generate:api
 
+icons: ## 从主图生成带平台安全边距的 PNG、ICNS 与 ICO 图标
+	sh scripts/generate-icons.sh
+
 dev: ## 启动 Electron 开发环境与 Go daemon
-	npm run dev
+	sh scripts/run-electron.sh dev
 
 run: build ## 构建并临时运行 Electron 应用，退出后不保留应用进程
-	sh scripts/run-current.sh
-
-format: ## 格式化 TypeScript、React、JSON、Markdown 和 Go
-	npm run format
+	sh scripts/run-electron.sh run
 
 build: build-daemon build-desktop ## 构建当前平台 daemon 与 Electron
 
@@ -40,13 +40,17 @@ build-daemon: ## 构建 daemon；可传 TARGET_OS 与 TARGET_ARCH
 	sh scripts/build-daemon.sh $(TARGET_OS) $(TARGET_ARCH)
 
 build-daemon-all: ## 构建 macOS、Windows、Linux 的 x64/arm64 daemon
-	sh scripts/build-all-daemons.sh
+	@for os in mac win linux; do \
+		for arch in x64 arm64; do \
+			sh scripts/build-daemon.sh $$os $$arch; \
+		done; \
+	done
 
 build-desktop: ## 类型检查并构建 Electron Main、Preload 与 Renderer
 	npm run build:desktop
 
 package: ## 构建当前平台内部测试安装包
-	npm run package
+	sh scripts/package.sh
 
 test: ## 运行 Go、桌面端单元测试及 daemon 冒烟测试
 	npm test
@@ -81,7 +85,7 @@ e2e: ## 启动 RocketMQ、执行 E2E，并在结束后自动清理
 
 test-all: test e2e ## 运行单元、冒烟和完整端到端测试
 
-check: ## 运行格式、Go vet、类型、测试与 OpenAPI 漂移检查
+check: ## 运行 Go vet、类型、测试与 OpenAPI 漂移检查
 	npm run check
 
 ci: install-ci check ## 执行不含 Docker E2E 的 CI 基础检查

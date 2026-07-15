@@ -1,6 +1,9 @@
 package crypto
 
 import (
+	"crypto/rand"
+	"encoding/base64"
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
@@ -89,5 +92,37 @@ func TestCorruptedKeyIsNotOverwritten(t *testing.T) {
 	}
 	if string(after) != string(original) {
 		t.Fatalf("损坏密钥不应被覆盖: got %q", after)
+	}
+}
+
+func TestDecryptLegacyFieldKey(t *testing.T) {
+	dir := t.TempDir()
+	key, err := getOrCreateKey(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	prev := globalKey
+	globalKey = key
+	t.Cleanup(func() { globalKey = prev })
+
+	// Encrypt with the legacy SHA-256(master||field) derivation.
+	legacyKey := deriveFieldKeyLegacy(key, "accessKey")
+	gcm, err := openGCM(legacyKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	nonce := make([]byte, gcm.NonceSize())
+	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
+		t.Fatal(err)
+	}
+	sealed := gcm.Seal(nonce, nonce, []byte("legacy-secret"), nil)
+	ciphertext := encryptedPrefix + base64.StdEncoding.EncodeToString(sealed)
+
+	got, err := Decrypt(ciphertext, "accessKey")
+	if err != nil {
+		t.Fatalf("Decrypt legacy: %v", err)
+	}
+	if got != "legacy-secret" {
+		t.Fatalf("got %q", got)
 	}
 }

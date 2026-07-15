@@ -1,4 +1,4 @@
-module rocket-leaf
+module github.com/amigoer/rocket-leaf/daemon
 
 go 1.25.0
 

@@ -5,7 +5,7 @@ type Variant = 'page' | 'panel' | 'fade'
 
 /**
  * Lightweight enter animation when `transitionKey` changes.
- * Respects [data-animations='off'] via design.css.
+ * Respects [data-animations='off'] via styles/app.css.
  */
 export function PageTransition({
   transitionKey,

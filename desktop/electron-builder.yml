@@ -13,6 +13,8 @@ extraResources:
     to: bin
     filter:
       - rocket-leafd*
+  - from: resources/icon.png
+    to: icon.png
 mac:
   category: public.app-category.developer-tools
   icon: resources/icon.icns
@@ -21,6 +23,9 @@ mac:
     - zip
   hardenedRuntime: true
   gatekeeperAssess: false
+  # Enabled explicitly by the Release workflow (-c.mac.notarize=true) when Apple credentials are present.
+  notarize: false
+
 win:
   icon: resources/icon.ico
   target:

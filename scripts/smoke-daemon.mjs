@@ -1,15 +1,23 @@
 import { randomBytes } from 'node:crypto'
 import { spawn } from 'node:child_process'
 import { createInterface } from 'node:readline'
+import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, resolve } from 'node:path'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+const packageVersion = JSON.parse(
+  readFileSync(resolve(root, 'desktop/package.json'), 'utf8'),
+).version
 const token = randomBytes(32).toString('base64url')
 const child = spawn('go', ['run', './cmd/rocket-leafd'], {
   cwd: resolve(root, 'daemon'),
   stdio: ['pipe', 'pipe', 'pipe'],
-  env: { ...process.env, GOCACHE: '/tmp/rocket-leaf-go-build' },
+  env: {
+    ...process.env,
+    GOCACHE: '/tmp/rocket-leaf-go-build',
+    ROCKET_LEAF_PARENT_PID: String(process.pid),
+  },
 })
 child.stdin.write(`${JSON.stringify({ token })}\n`)
 
@@ -34,8 +42,13 @@ const ready = await Promise.race([
   ),
 ])
 
-if (ready.protocolVersion !== 1 || ready.appVersion !== '2.0.0' || !Number.isInteger(ready.port)) {
+if (ready.protocolVersion !== 1 || !Number.isInteger(ready.port) || ready.port < 1) {
   throw new Error(`daemon 就绪信息无效: ${JSON.stringify(ready)}`)
+}
+if (ready.appVersion && ready.appVersion !== packageVersion) {
+  console.warn(
+    `警告: daemon appVersion=${ready.appVersion} 与 desktop version=${packageVersion} 不一致（go run 使用默认值属预期）`,
+  )
 }
 
 const unauthorized = await fetch(`http://127.0.0.1:${ready.port}/v1/health`)
@@ -45,6 +58,12 @@ const health = await fetch(`http://127.0.0.1:${ready.port}/v1/health`, {
   headers: { Authorization: `Bearer ${token}` },
 })
 if (!health.ok || (await health.json()).status !== 'ok') throw new Error('daemon 健康检查失败')
+
+// Wrong token must still fail (constant-time path).
+const wrong = await fetch(`http://127.0.0.1:${ready.port}/v1/health`, {
+  headers: { Authorization: `Bearer ${token.slice(0, -1)}x` },
+})
+if (wrong.status !== 401) throw new Error(`错误令牌状态应为 401，实际为 ${wrong.status}`)
 
 child.stdin.end()
 await Promise.race([

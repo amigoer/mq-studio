@@ -5,8 +5,8 @@ import (
 	"sync"
 	"testing"
 
-	"rocket-leaf/internal/crypto"
-	"rocket-leaf/internal/model"
+	"github.com/amigoer/rocket-leaf/daemon/internal/crypto"
+	"github.com/amigoer/rocket-leaf/daemon/internal/model"
 )
 
 var initTestCryptoOnce sync.Once

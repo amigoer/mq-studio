@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"rocket-leaf/internal/model"
+	"github.com/amigoer/rocket-leaf/daemon/internal/model"
 
 	admin "github.com/amigoer/rocketmq-admin-go"
 	"github.com/amigoer/rocketmq-admin-go/protocol/remoting"

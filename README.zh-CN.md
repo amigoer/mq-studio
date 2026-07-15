@@ -31,6 +31,7 @@ make build             # 构建 daemon 与 Electron
 make test              # 单元测试与 daemon 冒烟测试
 make check             # 完整静态检查与基础测试
 make package           # 生成当前平台内部测试安装包
+make icons             # 从 icon-source.png 重新生成各平台图标
 ```
 
 ```bash
@@ -54,7 +55,7 @@ go run ./cmd/rocket-leafd
 
 `rocket-leafd` 不是公共服务。它只监听随机回环端口，必须由 Electron 通过 stdin 注入一次性令牌后启动。
 
-### OrbStack RocketMQ 端到端测试
+### RocketMQ 端到端测试
 
 ```bash
 make e2e-up             # 启动并保留环境
@@ -68,14 +69,65 @@ make e2e                # 启动、测试并自动清理
 Topic 创建、消息发送、Key 查询及消息详情回查。Electron 使用临时用户目录，不会修改
 本机已有的 Rocket Leaf 配置。
 
-## 目录
+## 目录结构
 
 ```text
-desktop/             Electron Main、Preload、React Renderer 与打包配置
-daemon/              Go 守护进程及 RocketMQ 业务实现
-contracts/           两个进程之间的 OpenAPI 契约
-scripts/             构建、代码生成与发布编排
-release/             本地安装包产物（不提交）
+desktop/                 Electron 应用
+  src/main/              主进程（窗口、daemon 托管、IPC）
+  src/preload/           contextBridge 暴露面
+  src/renderer/          React 界面
+    api/                 渲染进程后端调用
+    components/          通用组件
+    hooks/               Hooks / Provider
+    layout/              标题栏与侧边栏
+    pages/               业务页面
+    styles/              全局样式与主题预加载
+  src/shared/            main / preload 共享类型
+  src/generated/         OpenAPI 生成类型
+daemon/                  Go 模块 (github.com/amigoer/rocket-leaf/daemon)
+  cmd/rocket-leafd/      进程入口
+  internal/api/          私有回环 HTTP API
+  internal/app/          服务组装
+  internal/service/      领域服务
+  internal/model/        领域模型
+  internal/rocketmq/     RocketMQ 客户端适配
+  internal/crypto/       本地加密
+contracts/               OpenAPI 契约
+scripts/                 构建、启动、图标、冒烟测试
+tests/e2e/               共享 RocketMQ 端到端环境
+docs/                    架构与路线图
+release/                 本地安装包产物（不提交）
+```
+
+### scripts/
+
+| 脚本 | 作用 |
+| --- | --- |
+| `run-electron.sh` | 统一启动：`dev` / `run`（含 macOS 临时应用包准备） |
+| `build-daemon.sh` | 按平台/架构编译 daemon 到 `desktop/resources/bin` |
+| `package.sh` | 构建并打当前平台内部测试安装包 |
+| `generate-icons.sh` | 从 `desktop/resources/icon-source.png` 生成 PNG/ICNS/ICO |
+| `generate-icns.mjs` | 图标脚本内部使用的 ICNS 转换 |
+| `smoke-daemon.mjs` | daemon 启动、鉴权与退出冒烟测试 |
+
+## CI 与发布
+
+GitHub Actions 已按 Electron + Go daemon 配置：
+
+| Workflow | 触发 | 作用 |
+| --- | --- | --- |
+| [CI](.github/workflows/ci.yml) | push / PR | 质量检查，并构建各平台**未签名**安装包产物 |
+| [Release](.github/workflows/release.yml) | 手动 `workflow_dispatch` | 按 tag 构建签名包并创建 GitHub Release |
+
+Release 需要在 GitHub Environment `release` 中配置密钥：
+
+- macOS：`MACOS_CSC_LINK`、`MACOS_CSC_KEY_PASSWORD`、`APPLE_ID`、`APPLE_APP_SPECIFIC_PASSWORD`、`APPLE_TEAM_ID`
+- Windows：`WINDOWS_CSC_LINK`、`WINDOWS_CSC_KEY_PASSWORD`
+
+本地打包：
+
+```bash
+make package   # 当前平台、未签名内部测试包 → release/
 ```
 
 详细设计见 [架构说明](docs/ARCHITECTURE.md) 和 [路线图](docs/ROADMAP.md)。

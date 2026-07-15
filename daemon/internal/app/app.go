@@ -6,9 +6,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"rocket-leaf/internal/crypto"
-	"rocket-leaf/internal/rocketmq"
-	"rocket-leaf/internal/service"
+	"github.com/amigoer/rocket-leaf/daemon/internal/crypto"
+	"github.com/amigoer/rocket-leaf/daemon/internal/rocketmq"
+	"github.com/amigoer/rocket-leaf/daemon/internal/service"
 )
 
 // Services 汇总 HTTP 传输层所需的业务服务。

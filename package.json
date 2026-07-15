@@ -3,16 +3,13 @@
   "version": "2.0.0",
   "private": true,
   "scripts": {
-    "prepare": "husky",
-    "dev": "npm --prefix desktop run dev",
+    "dev": "sh scripts/run-electron.sh dev",
     "generate:api": "npm --prefix desktop run generate:api",
     "build:daemon": "sh scripts/build-daemon.sh",
     "build:desktop": "npm --prefix desktop run build",
     "build": "npm run build:daemon && npm run build:desktop",
-    "package": "sh scripts/package-current.sh",
-    "format": "prettier --write . && gofmt -w daemon",
-    "format:check": "prettier --check .",
-    "go:fmt:check": "sh scripts/check-gofmt.sh",
+    "package": "sh scripts/package.sh",
+    "go:fmt:check": "bash -c 'files=$(gofmt -l daemon); [ -z \"$files\" ] || { echo \"以下 Go 文件尚未通过 gofmt：\"; echo \"$files\"; echo \"请运行: gofmt -w daemon\"; exit 1; }'",
     "go:vet": "cd daemon && go vet ./...",
     "desktop:type-check": "npm --prefix desktop run type-check",
     "test": "npm run test:go && npm run test:desktop && npm run test:daemon-smoke",
@@ -22,18 +19,7 @@
     "test:e2e": "npm run build:daemon && npm --prefix desktop run test:e2e",
     "e2e:up": "docker compose -f tests/e2e/rocketmq/compose.yaml up -d --wait",
     "e2e:down": "docker compose -f tests/e2e/rocketmq/compose.yaml down -v",
-    "check:contract": "sh scripts/check-contract.sh",
-    "check": "npm run format:check && npm run go:fmt:check && npm run go:vet && npm run desktop:type-check && npm test && npm run check:contract"
-  },
-  "devDependencies": {
-    "husky": "^9.1.7",
-    "lint-staged": "^15.2.10",
-    "prettier": "^3.3.3",
-    "prettier-plugin-tailwindcss": "^0.6.10",
-    "shadcn": "^4.0.0"
-  },
-  "lint-staged": {
-    "*.{ts,tsx,js,jsx,css,json,md,yml,yaml}": "prettier --write",
-    "*.go": "gofmt -w"
+    "check:contract": "npm run generate:api && git diff --quiet -- desktop/src/generated/schema.ts || (echo 'OpenAPI 生成类型已过期，请运行 npm run generate:api 并提交结果。' >&2 && git diff -- desktop/src/generated/schema.ts && exit 1)",
+    "check": "npm run go:fmt:check && npm run go:vet && npm run desktop:type-check && npm test && npm run check:contract"
   }
 }

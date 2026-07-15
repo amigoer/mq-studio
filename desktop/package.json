@@ -1,13 +1,14 @@
 {
   "name": "rocket-leaf-desktop",
+  "productName": "Rocket Leaf",
   "version": "2.0.0",
-  "description": "RocketMQ 跨平台桌面管理客户端",
+  "description": "Cross-platform RocketMQ desktop client",
   "author": "amigoer",
   "private": true,
   "type": "module",
   "main": "out/main/index.js",
   "scripts": {
-    "dev": "electron-vite dev",
+    "dev": "sh ../scripts/run-electron.sh dev",
     "build": "npm run type-check && electron-vite build",
     "preview": "electron-vite preview",
     "type-check": "tsc -p tsconfig.node.json --noEmit && tsc -p tsconfig.app.json --noEmit",

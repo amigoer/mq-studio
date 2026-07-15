@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs'
 import { join, normalize, relative } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { app, BrowserWindow, dialog, net, protocol } from 'electron'
+import { app, BrowserWindow, dialog, nativeImage, net, protocol } from 'electron'
 import electronUpdater from 'electron-updater'
 import { DaemonSupervisor } from './daemon-supervisor'
 import { openAllowedExternal, registerIPC, unregisterIPC } from './ipc'
@@ -10,10 +10,28 @@ protocol.registerSchemesAsPrivileged([
   { scheme: 'app', privileges: { standard: true, secure: true, supportFetchAPI: true } },
 ])
 
+const APPLICATION_NAME = 'Rocket Leaf'
+app.setName(APPLICATION_NAME)
+
 const supervisor = new DaemonSupervisor()
 const { autoUpdater } = electronUpdater
 let mainWindow: BrowserWindow | null = null
 let shutdownStarted = false
+
+function applicationIconPath(): string | undefined {
+  const iconPath = app.isPackaged
+    ? join(process.resourcesPath, 'icon.png')
+    : join(app.getAppPath(), 'resources', 'icon.png')
+  return existsSync(iconPath) ? iconPath : undefined
+}
+
+function configureApplicationIcon(): void {
+  if (process.platform !== 'darwin' || !app.dock) return
+  const iconPath = applicationIconPath()
+  if (!iconPath) return
+  const icon = nativeImage.createFromPath(iconPath)
+  if (!icon.isEmpty()) app.dock.setIcon(icon)
+}
 
 function registerApplicationProtocol(): void {
   const rendererRoot = join(__dirname, '../renderer')
@@ -31,13 +49,14 @@ function registerApplicationProtocol(): void {
 function createWindow(): BrowserWindow {
   const mac = process.platform === 'darwin'
   const window = new BrowserWindow({
-    title: 'Rocket Leaf',
+    title: APPLICATION_NAME,
     width: 1152,
     height: 780,
     minWidth: 1024,
     minHeight: 750,
     show: false,
     backgroundColor: '#f7f8fa',
+    icon: applicationIconPath(),
     frame: mac,
     titleBarStyle: mac ? 'hidden' : 'default',
     trafficLightPosition: mac ? { x: 16, y: 17 } : undefined,
@@ -108,17 +127,69 @@ function configureUpdater(window: BrowserWindow): void {
   )
 }
 
-app.whenReady().then(async () => {
-  registerApplicationProtocol()
+function formatError(error: unknown): string {
+  if (error instanceof Error) return error.message
+  return String(error)
+}
+
+async function showDaemonError(
+  window: BrowserWindow | null,
+  options: Electron.MessageBoxOptions,
+): Promise<Electron.MessageBoxReturnValue> {
+  const parent = window && !window.isDestroyed() ? window : null
+  return parent ? dialog.showMessageBox(parent, options) : dialog.showMessageBox(options)
+}
+
+async function ensureDaemonReady(window: BrowserWindow | null): Promise<boolean> {
   try {
     await supervisor.start()
+    return true
   } catch (error) {
     console.error('[daemon] 启动失败', error)
+    const result = await showDaemonError(window, {
+      type: 'error',
+      title: '后端服务启动失败',
+      message: 'Rocket Leaf 本地守护进程未能启动',
+      detail: `${formatError(error)}\n\n可重试启动，或退出应用。`,
+      buttons: ['重试', '退出'],
+      defaultId: 0,
+      cancelId: 1,
+      noLink: true,
+    })
+    if (result.response === 0) return ensureDaemonReady(window)
+    app.quit()
+    return false
   }
+}
+
+app.whenReady().then(async () => {
+  registerApplicationProtocol()
+  configureApplicationIcon()
+
+  const started = await ensureDaemonReady(null)
+  if (!started) return
+
   mainWindow = createWindow()
   registerIPC(mainWindow, supervisor)
   supervisor.on('state', (state) => mainWindow?.webContents.send('daemon:state-changed', state))
-  if (app.isPackaged) configureUpdater(mainWindow)
+  supervisor.on('failed', async (error: unknown) => {
+    const result = await showDaemonError(mainWindow, {
+      type: 'error',
+      title: '后端服务已停止',
+      message: '本地守护进程反复退出，已停止自动恢复',
+      detail: formatError(error),
+      buttons: ['重新启动后端', '忽略'],
+      defaultId: 0,
+      cancelId: 1,
+      noLink: true,
+    })
+    if (result.response === 0) void ensureDaemonReady(mainWindow)
+  })
+  // Temporary macOS .app bundles used for local icons also report isPackaged=true.
+  // Only enable updater when the real install layout is present.
+  if (app.isPackaged && existsSync(join(process.resourcesPath, 'app-update.yml'))) {
+    configureUpdater(mainWindow)
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

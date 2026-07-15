@@ -1,19 +1,19 @@
 import { useState } from 'react'
 import type React from 'react'
 import { Toaster } from 'sonner'
-import { TitleBar } from '@/redesign/TitleBar'
-import { Sidebar, type NavId } from '@/redesign/Sidebar'
-import { OverviewScreen } from '@/redesign/screens/OverviewScreen'
-import { TopicsScreen } from '@/redesign/screens/TopicsScreen'
-import { ConsumersScreen } from '@/redesign/screens/ConsumersScreen'
-import { MessagesScreen } from '@/redesign/screens/MessagesScreen'
-import { ProducerScreen } from '@/redesign/screens/ProducerScreen'
-import { ClusterScreen } from '@/redesign/screens/ClusterScreen'
-import { AlertsScreen } from '@/redesign/screens/AlertsScreen'
-import { AclScreen } from '@/redesign/screens/AclScreen'
-import { ConnectionsScreen } from '@/redesign/screens/ConnectionsScreen'
-import { SettingsScreen } from '@/redesign/screens/SettingsScreen'
-import { EmptyStateScreen } from '@/redesign/screens/EmptyStateScreen'
+import { TitleBar } from '@/layout/TitleBar'
+import { Sidebar, type NavId } from '@/layout/Sidebar'
+import { OverviewPage } from '@/pages/OverviewPage'
+import { TopicsPage } from '@/pages/TopicsPage'
+import { ConsumersPage } from '@/pages/ConsumersPage'
+import { MessagesPage } from '@/pages/MessagesPage'
+import { ProducerPage } from '@/pages/ProducerPage'
+import { ClusterPage } from '@/pages/ClusterPage'
+import { AlertsPage } from '@/pages/AlertsPage'
+import { AclPage } from '@/pages/AclPage'
+import { ConnectionsPage } from '@/pages/ConnectionsPage'
+import { SettingsPage } from '@/pages/SettingsPage'
+import { EmptyStatePage } from '@/pages/EmptyStatePage'
 import { PageTransition } from '@/components/PageTransition'
 import { useConnections } from '@/hooks/useConnections'
 
@@ -30,31 +30,31 @@ function App(): React.ReactElement {
 
   const renderContent = () => {
     if (gated) {
-      return <EmptyStateScreen onAddConnection={() => setActiveNav('connections')} />
+      return <EmptyStatePage onAddConnection={() => setActiveNav('connections')} />
     }
     switch (activeNav) {
       case 'home':
-        return <OverviewScreen onNavigate={setActiveNav} />
+        return <OverviewPage onNavigate={setActiveNav} />
       case 'topics':
-        return <TopicsScreen onNavigate={setActiveNav} />
+        return <TopicsPage onNavigate={setActiveNav} />
       case 'consumers':
-        return <ConsumersScreen onNavigate={setActiveNav} />
+        return <ConsumersPage onNavigate={setActiveNav} />
       case 'messages':
-        return <MessagesScreen onNavigate={setActiveNav} />
+        return <MessagesPage onNavigate={setActiveNav} />
       case 'producer':
-        return <ProducerScreen onNavigate={setActiveNav} />
+        return <ProducerPage onNavigate={setActiveNav} />
       case 'cluster':
-        return <ClusterScreen onNavigate={setActiveNav} />
+        return <ClusterPage onNavigate={setActiveNav} />
       case 'alerts':
-        return <AlertsScreen onNavigate={setActiveNav} />
+        return <AlertsPage onNavigate={setActiveNav} />
       case 'acl':
-        return <AclScreen onNavigate={setActiveNav} />
+        return <AclPage onNavigate={setActiveNav} />
       case 'connections':
-        return <ConnectionsScreen />
+        return <ConnectionsPage />
       case 'settings':
-        return <SettingsScreen />
+        return <SettingsPage />
       default:
-        return <OverviewScreen onNavigate={setActiveNav} />
+        return <OverviewPage onNavigate={setActiveNav} />
     }
   }
 

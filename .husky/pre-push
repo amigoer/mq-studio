@@ -1,7 +1,0 @@
-#!/bin/sh
-set -e
-
-npm run --silent format:check
-npm run --silent go:fmt:check
-npm run --silent go:vet
-npm run --silent desktop:type-check

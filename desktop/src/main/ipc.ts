@@ -1,8 +1,8 @@
-import { readFile, writeFile } from 'node:fs/promises'
-import { BrowserWindow, dialog, ipcMain, shell } from 'electron'
+import { stat, readFile, writeFile } from 'node:fs/promises'
+import { BrowserWindow, dialog, ipcMain, shell, app } from 'electron'
 import type { BackendCall } from '../shared/bridge'
-import { executeBackendCall } from './backend-operations'
-import type { DaemonSupervisor } from './daemon-supervisor'
+import { executeBackendCall } from './operations'
+import { MAX_IMPORT_BYTES, type DaemonSupervisor } from './daemon-supervisor'
 import electronUpdater from 'electron-updater'
 
 const { autoUpdater } = electronUpdater
@@ -19,11 +19,36 @@ export async function openAllowedExternal(value: unknown): Promise<void> {
 }
 
 function trustedSender(url: string): boolean {
-  return (
-    url.startsWith('app://rocket-leaf/') ||
-    url.startsWith('http://localhost:') ||
-    url.startsWith('http://127.0.0.1:')
-  )
+  if (url.startsWith('app://rocket-leaf/')) return true
+  const devURL = process.env.ELECTRON_RENDERER_URL
+  if (devURL && (url === devURL || url.startsWith(`${devURL}/`) || url.startsWith(devURL))) {
+    return true
+  }
+  // electron-vite may load with trailing slash differences or query-less origin.
+  if (!app.isPackaged) {
+    try {
+      const parsed = new URL(url)
+      if (
+        (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1') &&
+        (parsed.protocol === 'http:' || parsed.protocol === 'https:')
+      ) {
+        // Only accept common Vite/electron-vite dev ports, not arbitrary local services.
+        const port = parsed.port || (parsed.protocol === 'https:' ? '443' : '80')
+        const allowedPorts = new Set(['5173', '5174', '4173', '3000', '8080'])
+        if (devURL) {
+          try {
+            allowedPorts.add(new URL(devURL).port || '5173')
+          } catch {
+            /* ignore */
+          }
+        }
+        return allowedPorts.has(port)
+      }
+    } catch {
+      return false
+    }
+  }
+  return false
 }
 
 export function registerIPC(window: BrowserWindow, supervisor: DaemonSupervisor): void {
@@ -69,14 +94,28 @@ export function registerIPC(window: BrowserWindow, supervisor: DaemonSupervisor)
     })
     const filePath = result.filePaths[0]
     if (result.canceled || !filePath) return null
+    const info = await stat(filePath)
+    if (!info.isFile()) throw new Error('请选择有效的配置文件')
+    if (info.size > MAX_IMPORT_BYTES) {
+      throw new Error(`配置文件过大（上限 ${Math.floor(MAX_IMPORT_BYTES / 1024 / 1024)} MB）`)
+    }
     const content = await readFile(filePath, 'utf8')
     await supervisor.request('POST', '/v1/settings/import', { content })
     return filePath
   })
 
-  handle('updater:check', () => autoUpdater.checkForUpdates())
-  handle('updater:download', () => autoUpdater.downloadUpdate())
-  handle('updater:install', () => autoUpdater.quitAndInstall())
+  handle('updater:check', async () => {
+    if (!app.isPackaged) return null
+    return autoUpdater.checkForUpdates()
+  })
+  handle('updater:download', async () => {
+    if (!app.isPackaged) throw new Error('开发模式不支持下载更新')
+    return autoUpdater.downloadUpdate()
+  })
+  handle('updater:install', async () => {
+    if (!app.isPackaged) throw new Error('开发模式不支持安装更新')
+    autoUpdater.quitAndInstall()
+  })
 }
 
 export function unregisterIPC(): void {

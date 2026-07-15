@@ -4,7 +4,7 @@ import { toast } from 'sonner'
 import { useCallback, useState } from 'react'
 import { cn, formatErrorMessage, withMinDuration } from '@/lib/utils'
 
-/** One full turn ≈ this duration; keep in sync with `.rl-refresh-spin` in design.css */
+/** One full turn ≈ this duration; keep in sync with `.rl-refresh-spin` in styles/app.css */
 export const REFRESH_SPIN_MS = 700
 
 export interface RefreshButtonProps {

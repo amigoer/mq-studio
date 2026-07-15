@@ -12,16 +12,19 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
 
-	"rocket-leaf/internal/app"
-	transport "rocket-leaf/internal/transport/http"
+	"github.com/amigoer/rocket-leaf/daemon/internal/api"
+	"github.com/amigoer/rocket-leaf/daemon/internal/app"
 )
 
 const protocolVersion = 1
 
+// appVersion is injected at build time via -ldflags "-X main.appVersion=...".
+// Default matches desktop/package.json for local go run / smoke tests.
 var appVersion = "2.0.0"
 
 type startupConfig struct {
@@ -69,7 +72,7 @@ func run() error {
 	defer listener.Close()
 
 	shutdownRequested := make(chan struct{}, 1)
-	handler := transport.NewHandler(services, config.Token, func() {
+	handler := api.NewHandler(services, config.Token, func() {
 		select {
 		case shutdownRequested <- struct{}{}:
 		default:
@@ -78,7 +81,10 @@ func run() error {
 	server := &http.Server{
 		Handler:           handler,
 		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       60 * time.Second,
+		WriteTimeout:      60 * time.Second,
 		IdleTimeout:       30 * time.Second,
+		MaxHeaderBytes:    1 << 20,
 	}
 	serveErr := make(chan error, 1)
 	go func() {
@@ -88,6 +94,7 @@ func run() error {
 	}()
 
 	port := listener.Addr().(*net.TCPAddr).Port
+	// stdout is the startup protocol channel: only one JSON ready line, ever.
 	if err := json.NewEncoder(os.Stdout).Encode(readyMessage{
 		ProtocolVersion: protocolVersion,
 		Port:            port,
@@ -102,12 +109,16 @@ func run() error {
 		_, _ = io.Copy(io.Discard, reader)
 		close(parentGone)
 	}()
+
+	parentDead := watchParentProcess()
+
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
 	defer signal.Stop(signals)
 
 	select {
 	case <-parentGone:
+	case <-parentDead:
 	case <-signals:
 	case <-shutdownRequested:
 	case err := <-serveErr:
@@ -117,4 +128,29 @@ func run() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	return server.Shutdown(ctx)
+}
+
+// watchParentProcess exits the wait when the Electron parent disappears.
+// Primary signal is stdin EOF (parentGone); this is a backup using ROCKET_LEAF_PARENT_PID.
+func watchParentProcess() <-chan struct{} {
+	done := make(chan struct{})
+	raw := strings.TrimSpace(os.Getenv("ROCKET_LEAF_PARENT_PID"))
+	if raw == "" {
+		return done
+	}
+	pid, err := strconv.Atoi(raw)
+	if err != nil || pid <= 0 {
+		return done
+	}
+	go func() {
+		ticker := time.NewTicker(2 * time.Second)
+		defer ticker.Stop()
+		for range ticker.C {
+			if !processAlive(pid) {
+				close(done)
+				return
+			}
+		}
+	}()
+	return done
 }

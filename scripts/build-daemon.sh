@@ -1,6 +1,9 @@
 #!/bin/sh
 set -eu
 
+script_dir="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+repo_root="$(dirname "$script_dir")"
+
 electron_os=${1:-}
 electron_arch=${2:-}
 
@@ -30,10 +33,23 @@ case "$electron_arch" in
   *) echo "不支持的架构: $electron_arch" >&2; exit 1 ;;
 esac
 
+# Keep daemon appVersion in sync with the Electron package version.
+app_version="$(node -p "require('$repo_root/desktop/package.json').version")"
+if [ -z "$app_version" ]; then
+  echo "无法读取 desktop/package.json 中的 version。" >&2
+  exit 1
+fi
+
 suffix=""
 if [ "$goos" = windows ]; then suffix=".exe"; fi
 output="desktop/resources/bin/$electron_os/$electron_arch/rocket-leafd$suffix"
 mkdir -p "$(dirname "$output")"
 
-(cd daemon && CGO_ENABLED=0 GOOS="$goos" GOARCH="$goarch" go build -trimpath -ldflags "-s -w -X main.appVersion=2.0.0" -o "../$output" ./cmd/rocket-leafd)
-echo "已生成 $output"
+(
+  cd "$repo_root/daemon" &&
+    CGO_ENABLED=0 GOOS="$goos" GOARCH="$goarch" \
+      go build -trimpath \
+      -ldflags "-s -w -X main.appVersion=$app_version" \
+      -o "../$output" ./cmd/rocket-leafd
+)
+echo "已生成 $output (appVersion=$app_version)"
