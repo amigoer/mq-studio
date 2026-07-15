@@ -1,16 +1,17 @@
-# Build signed Electron installers for all platforms and publish a GitHub Release.
+# Build Electron installers for all platforms and publish a GitHub Release.
 #
-# Required repository secrets (environment: release):
+# Optional signing secrets (environment: release):
 #   MACOS_CSC_LINK / MACOS_CSC_KEY_PASSWORD
 #   APPLE_ID / APPLE_APP_SPECIFIC_PASSWORD / APPLE_TEAM_ID
 #   WINDOWS_CSC_LINK / WINDOWS_CSC_KEY_PASSWORD
+# When a platform's credentials are incomplete, that platform is packaged unsigned.
 name: Release
 
 on:
   workflow_dispatch:
     inputs:
       tag:
-        description: SemVer tag, for example v2.0.0
+        description: SemVer tag, for example v1.4.0
         required: true
         type: string
 
@@ -51,22 +52,39 @@ jobs:
         with:
           ref: ${{ inputs.tag }}
 
-      - name: Validate tag and signing credentials
+      - name: Validate tag
         shell: bash
         run: |
           set -eu
           echo '${{ inputs.tag }}' | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'
-          if [ '${{ matrix.platform }}' = mac ]; then
-            test -n "${CSC_LINK:-}"
-            test -n "${CSC_KEY_PASSWORD:-}"
-            test -n "${APPLE_ID:-}"
-            test -n "${APPLE_APP_SPECIFIC_PASSWORD:-}"
-            test -n "${APPLE_TEAM_ID:-}"
-          fi
-          if [ '${{ matrix.platform }}' = win ]; then
-            test -n "${CSC_LINK:-}"
-            test -n "${CSC_KEY_PASSWORD:-}"
-          fi
+
+      - name: Select signing mode
+        id: signing
+        shell: bash
+        run: |
+          set -eu
+          enabled=false
+          case '${{ matrix.platform }}' in
+            mac)
+              if [ -n "${CSC_LINK:-}" ] && \
+                 [ -n "${CSC_KEY_PASSWORD:-}" ] && \
+                 [ -n "${APPLE_ID:-}" ] && \
+                 [ -n "${APPLE_APP_SPECIFIC_PASSWORD:-}" ] && \
+                 [ -n "${APPLE_TEAM_ID:-}" ]; then
+                enabled=true
+              else
+                echo '::warning::macOS signing credentials are incomplete; packaging unsigned installers.'
+              fi
+              ;;
+            win)
+              if [ -n "${CSC_LINK:-}" ] && [ -n "${CSC_KEY_PASSWORD:-}" ]; then
+                enabled=true
+              else
+                echo '::warning::Windows signing credentials are incomplete; packaging unsigned installers.'
+              fi
+              ;;
+          esac
+          echo "enabled=${enabled}" >> "$GITHUB_OUTPUT"
 
       - uses: actions/setup-go@v6
         with:
@@ -100,22 +118,37 @@ jobs:
       - name: Build Electron main / preload / renderer
         run: npm --prefix desktop run build
 
-      - name: Package signed installers
+      - name: Package installers
         shell: bash
         run: |
           set -eu
           cd desktop
           case '${{ matrix.platform }}' in
             mac)
-              npx electron-builder \
-                --mac --x64 --arm64 \
-                --publish never \
-                -c.mac.notarize=true
+              if [ '${{ steps.signing.outputs.enabled }}' = true ]; then
+                npx electron-builder \
+                  --mac --x64 --arm64 \
+                  --publish never \
+                  -c.mac.notarize=true
+              else
+                CSC_IDENTITY_AUTO_DISCOVERY=false \
+                  npx electron-builder \
+                    --mac --x64 --arm64 \
+                    --publish never \
+                    -c.mac.notarize=false
+              fi
               ;;
             win)
-              npx electron-builder \
-                --win --x64 --arm64 \
-                --publish never
+              if [ '${{ steps.signing.outputs.enabled }}' = true ]; then
+                npx electron-builder \
+                  --win --x64 --arm64 \
+                  --publish never
+              else
+                CSC_IDENTITY_AUTO_DISCOVERY=false \
+                  npx electron-builder \
+                    --win --x64 --arm64 \
+                    --publish never
+              fi
               ;;
             linux)
               # Linux AppImage is not code-signed with Apple/Windows certs.
@@ -126,10 +159,10 @@ jobs:
               ;;
           esac
 
-      - name: Upload signed artifacts
+      - name: Upload artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: signed-${{ matrix.platform }}
+          name: installers-${{ matrix.platform }}
           path: |
             release/*
             !release/*-unpacked/**
@@ -153,7 +186,7 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           path: release-files
-          pattern: signed-*
+          pattern: installers-*
           merge-multiple: true
 
       - name: List release files
