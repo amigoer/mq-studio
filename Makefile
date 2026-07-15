@@ -6,7 +6,7 @@ SHELL := /bin/sh
 TARGET_OS ?=
 TARGET_ARCH ?=
 
-.PHONY: help install install-ci generate dev format \
+.PHONY: help install install-ci generate dev run format \
 	build build-daemon build-daemon-all build-desktop package \
 	test test-go test-desktop test-smoke test-e2e test-all \
 	e2e e2e-up e2e-down check ci clean
@@ -27,6 +27,9 @@ generate: ## 根据 OpenAPI 生成桌面端 TypeScript 类型
 
 dev: ## 启动 Electron 开发环境与 Go daemon
 	npm run dev
+
+run: build ## 构建并临时运行 Electron 应用，退出后不保留应用进程
+	sh scripts/run-current.sh
 
 format: ## 格式化 TypeScript、React、JSON、Markdown 和 Go
 	npm run format

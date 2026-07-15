@@ -26,6 +26,7 @@ RocketMQ 4.x / 5.x 跨平台桌面管理客户端，支持 macOS、Windows 和 L
 make help              # 查看全部命令
 make install           # 安装依赖
 make dev               # 启动开发环境
+make run               # 构建并临时运行，不生成安装包
 make build             # 构建 daemon 与 Electron
 make test              # 单元测试与 daemon 冒烟测试
 make check             # 完整静态检查与基础测试
