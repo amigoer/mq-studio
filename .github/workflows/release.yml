@@ -168,6 +168,7 @@ jobs:
           name: installers-${{ matrix.platform }}
           path: |
             release/*
+            !release/builder-debug.yml
             !release/*-unpacked/**
             !release/mac/**
             !release/mac-arm64/**
