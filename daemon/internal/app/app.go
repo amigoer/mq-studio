@@ -3,45 +3,52 @@ package app
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 
 	"github.com/amigoer/rocket-leaf/daemon/internal/crypto"
 	"github.com/amigoer/rocket-leaf/daemon/internal/rocketmq"
-	"github.com/amigoer/rocket-leaf/daemon/internal/service"
+	"github.com/amigoer/rocket-leaf/daemon/internal/service/acl"
+	"github.com/amigoer/rocket-leaf/daemon/internal/service/cluster"
+	"github.com/amigoer/rocket-leaf/daemon/internal/service/configuration"
+	"github.com/amigoer/rocket-leaf/daemon/internal/service/connection"
+	"github.com/amigoer/rocket-leaf/daemon/internal/service/consumer"
+	"github.com/amigoer/rocket-leaf/daemon/internal/service/message"
+	"github.com/amigoer/rocket-leaf/daemon/internal/service/settings"
+	"github.com/amigoer/rocket-leaf/daemon/internal/service/topic"
+	"github.com/amigoer/rocket-leaf/daemon/internal/storage/layout"
 )
 
 // Services aggregates business services required by the HTTP transport layer.
 type Services struct {
-	Connections *service.ConnectionService
-	Cluster     *service.ClusterService
-	Topics      *service.TopicService
-	Consumers   *service.ConsumerService
-	Messages    *service.MessageService
-	Settings    *service.SettingsService
-	ACL         *service.AclService
+	Connections *connection.Service
+	Cluster     *cluster.Service
+	Topics      *topic.Service
+	Consumers   *consumer.Service
+	Messages    *message.Service
+	Settings    *configuration.Service
+	ACL         *acl.Service
 }
 
 // New initializes the local encryption key and assembles all business services.
 func New() (*Services, error) {
-	configDir, err := os.UserConfigDir()
+	paths, err := layout.Default()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get user config directory: %w", err)
+		return nil, err
 	}
-	if err := crypto.InitKey(filepath.Join(configDir, "rocket-leaf")); err != nil {
+	if err := crypto.InitKey(paths.Directory); err != nil {
 		return nil, fmt.Errorf("failed to initialize local encryption key: %w", err)
 	}
 
-	settings := service.NewSettingsService()
-	connections := service.NewConnectionService(settings)
+	settingsService := settings.New(paths.SettingsFile)
+	connections := connection.New(paths.ConnectionsFile, settingsService)
+	configurationService := configuration.New(paths, settingsService, connections)
 	services := &Services{
 		Connections: connections,
-		Cluster:     service.NewClusterService(connections, settings),
-		Topics:      service.NewTopicService(settings),
-		Consumers:   service.NewConsumerService(settings),
-		Messages:    service.NewMessageService(settings),
-		Settings:    settings,
-		ACL:         service.NewAclService(settings),
+		Cluster:     cluster.New(settingsService),
+		Topics:      topic.New(settingsService),
+		Consumers:   consumer.New(settingsService),
+		Messages:    message.New(settingsService),
+		Settings:    configurationService,
+		ACL:         acl.New(settingsService),
 	}
 	rocketmq.GetClientManager().SetDefaultClientInitializer(connections.ConnectDefault)
 	return services, nil
