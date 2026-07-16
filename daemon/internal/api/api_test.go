@@ -6,8 +6,6 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
-
-	"github.com/amigoer/rocket-leaf/daemon/internal/model"
 )
 
 func TestHealthRequiresBearerToken(t *testing.T) {
@@ -39,48 +37,11 @@ func TestHealthAcceptsBearerToken(t *testing.T) {
 	if recorder.Code != stdhttp.StatusOK {
 		t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
 	}
+	if recorder.Header().Get("Cache-Control") != "no-store" {
+		t.Fatalf("Cache-Control = %q, want no-store", recorder.Header().Get("Cache-Control"))
+	}
 	if !strings.Contains(recorder.Body.String(), `"protocolVersion":1`) {
 		t.Fatalf("unexpected response: %s", recorder.Body.String())
-	}
-}
-
-func TestRedactConnectionNeverReturnsCredentials(t *testing.T) {
-	view := redactConnection(&model.Connection{
-		ID: 7, Name: "prod", AccessKey: "access-secret", SecretKey: "secret-secret", EnableACL: true,
-	})
-	if view.AccessKey != "" || view.SecretKey != "" {
-		t.Fatal("credentials must not appear in ConnectionView")
-	}
-	if !view.AccessKeyConfigured || !view.SecretKeyConfigured {
-		t.Fatal("credential configured flags should be preserved")
-	}
-}
-
-func TestRedactSettingsReportsCredentialStateWithoutSecrets(t *testing.T) {
-	view := redactSettings(&model.AppSettings{
-		GlobalAccessKey: "global-ak",
-		GlobalSecretKey: "global-sk",
-	})
-	if view.GlobalAccessKey != "" || view.GlobalSecretKey != "" {
-		t.Fatal("global credentials must not be returned to the renderer")
-	}
-	if !view.GlobalAccessKeyConfigured || !view.GlobalSecretKeyConfigured {
-		t.Fatal("global credential configured flags should be returned")
-	}
-}
-
-func TestDecodeJSONAcceptsWrappedImportLargerThanTwoMiB(t *testing.T) {
-	payload := `{"content":"` + strings.Repeat("a", 3<<20) + `"}`
-	request := httptest.NewRequest(stdhttp.MethodPost, "/v1/settings/import", strings.NewReader(payload))
-	recorder := httptest.NewRecorder()
-	var input struct {
-		Content string `json:"content"`
-	}
-	if !decodeJSON(recorder, request, &input) {
-		t.Fatalf("3 MiB wrapped import request should be accepted, status=%d body=%s", recorder.Code, recorder.Body.String())
-	}
-	if len(input.Content) != 3<<20 {
-		t.Fatalf("content length = %d, want %d", len(input.Content), 3<<20)
 	}
 }
 

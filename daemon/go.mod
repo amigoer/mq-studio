@@ -5,6 +5,8 @@ go 1.25.0
 require (
 	github.com/amigoer/rocketmq-admin-go v1.1.0
 	github.com/apache/rocketmq-client-go/v2 v2.1.2
+	golang.org/x/sys v0.42.0
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
@@ -22,7 +24,6 @@ require (
 	github.com/tidwall/match v1.2.0 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
-	golang.org/x/sys v0.42.0 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	stathat.com/c/consistent v1.0.0 // indirect
 )

@@ -7,6 +7,19 @@ import (
 	"github.com/amigoer/rocket-leaf/daemon/internal/model"
 )
 
+type settingsService interface {
+	GetSettings() *model.AppSettings
+	UpdateSettings(model.AppSettings) (*model.AppSettings, error)
+	ResetSettings() (*model.AppSettings, error)
+	ClearCache() error
+	ExportAllConfig() (string, error)
+	ImportAllConfig(string) error
+}
+
+type settingsHandler struct {
+	service settingsService
+}
+
 type settingsView struct {
 	model.AppSettings
 	GlobalAccessKeyConfigured bool `json:"globalAccessKeyConfigured"`
@@ -18,13 +31,8 @@ type settingsUpdateRequest struct {
 	GlobalCredentialsMode string `json:"globalCredentialsMode"`
 }
 
-func (h *handler) registerSettingsRoutes(mux *stdhttp.ServeMux) {
-	mux.HandleFunc("GET /v1/settings", h.getSettings)
-	mux.HandleFunc("PUT /v1/settings", h.updateSettings)
-	mux.HandleFunc("POST /v1/settings/reset", h.resetSettings)
-	mux.HandleFunc("POST /v1/settings/clear-cache", h.clearCache)
-	mux.HandleFunc("GET /v1/settings/export", h.exportConfig)
-	mux.HandleFunc("POST /v1/settings/import", h.importConfig)
+type importConfigRequest struct {
+	Content string `json:"content"`
 }
 
 func redactSettings(settings *model.AppSettings) *settingsView {
@@ -39,16 +47,16 @@ func redactSettings(settings *model.AppSettings) *settingsView {
 	return &settingsView{AppSettings: view, GlobalAccessKeyConfigured: accessConfigured, GlobalSecretKeyConfigured: secretConfigured}
 }
 
-func (h *handler) getSettings(w stdhttp.ResponseWriter, _ *stdhttp.Request) {
-	writeJSON(w, stdhttp.StatusOK, redactSettings(h.services.Settings.GetSettings()))
+func (h settingsHandler) getSettings(w stdhttp.ResponseWriter, _ *stdhttp.Request) {
+	writeJSON(w, stdhttp.StatusOK, redactSettings(h.service.GetSettings()))
 }
 
-func (h *handler) updateSettings(w stdhttp.ResponseWriter, r *stdhttp.Request) {
+func (h settingsHandler) updateSettings(w stdhttp.ResponseWriter, r *stdhttp.Request) {
 	var input settingsUpdateRequest
 	if !decodeJSON(w, r, &input) {
 		return
 	}
-	current := h.services.Settings.GetSettings()
+	current := h.service.GetSettings()
 	switch input.GlobalCredentialsMode {
 	case "preserve", "":
 		if input.GlobalAccessKey == "" && input.GlobalSecretKey == "" {
@@ -66,7 +74,7 @@ func (h *handler) updateSettings(w stdhttp.ResponseWriter, r *stdhttp.Request) {
 		writeError(w, r, stdhttp.StatusBadRequest, "INVALID_REQUEST", "invalid global credentials mode", nil)
 		return
 	}
-	settings, err := h.services.Settings.UpdateSettings(input.AppSettings)
+	settings, err := h.service.UpdateSettings(input.AppSettings)
 	if err != nil {
 		serviceError(w, r, err)
 		return
@@ -74,8 +82,8 @@ func (h *handler) updateSettings(w stdhttp.ResponseWriter, r *stdhttp.Request) {
 	writeJSON(w, stdhttp.StatusOK, redactSettings(settings))
 }
 
-func (h *handler) resetSettings(w stdhttp.ResponseWriter, r *stdhttp.Request) {
-	settings, err := h.services.Settings.ResetSettings()
+func (h settingsHandler) resetSettings(w stdhttp.ResponseWriter, r *stdhttp.Request) {
+	settings, err := h.service.ResetSettings()
 	if err != nil {
 		serviceError(w, r, err)
 		return
@@ -83,16 +91,16 @@ func (h *handler) resetSettings(w stdhttp.ResponseWriter, r *stdhttp.Request) {
 	writeJSON(w, stdhttp.StatusOK, redactSettings(settings))
 }
 
-func (h *handler) clearCache(w stdhttp.ResponseWriter, r *stdhttp.Request) {
-	if err := h.services.Settings.ClearCache(); err != nil {
+func (h settingsHandler) clearCache(w stdhttp.ResponseWriter, r *stdhttp.Request) {
+	if err := h.service.ClearCache(); err != nil {
 		serviceError(w, r, err)
 		return
 	}
 	writeJSON(w, stdhttp.StatusNoContent, nil)
 }
 
-func (h *handler) exportConfig(w stdhttp.ResponseWriter, r *stdhttp.Request) {
-	content, err := h.services.Settings.ExportAllConfig()
+func (h settingsHandler) exportConfig(w stdhttp.ResponseWriter, r *stdhttp.Request) {
+	content, err := h.service.ExportAllConfig()
 	if err != nil {
 		serviceError(w, r, err)
 		return
@@ -100,14 +108,12 @@ func (h *handler) exportConfig(w stdhttp.ResponseWriter, r *stdhttp.Request) {
 	writeJSON(w, stdhttp.StatusOK, map[string]string{"content": content})
 }
 
-func (h *handler) importConfig(w stdhttp.ResponseWriter, r *stdhttp.Request) {
-	var input struct {
-		Content string `json:"content"`
-	}
+func (h settingsHandler) importConfig(w stdhttp.ResponseWriter, r *stdhttp.Request) {
+	var input importConfigRequest
 	if !decodeJSON(w, r, &input) {
 		return
 	}
-	if err := h.services.Settings.ImportAllConfig(input.Content); err != nil {
+	if err := h.service.ImportAllConfig(input.Content); err != nil {
 		serviceError(w, r, err)
 		return
 	}
