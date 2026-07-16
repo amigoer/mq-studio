@@ -72,12 +72,26 @@ func run() error {
 	defer listener.Close()
 
 	shutdownRequested := make(chan struct{}, 1)
-	handler := api.NewHandler(services, config.Token, func() {
-		select {
-		case shutdownRequested <- struct{}{}:
-		default:
-		}
-	})
+	handler := api.NewHandler(
+		api.Dependencies{
+			Connections: services.Connections,
+			Settings:    services.Settings,
+			Cluster:     services.Cluster,
+			Topics:      services.Topics,
+			Consumers:   services.Consumers,
+			Messages:    services.Messages,
+			ACL:         services.ACL,
+		},
+		api.Config{
+			Token: config.Token,
+			Shutdown: func() {
+				select {
+				case shutdownRequested <- struct{}{}:
+				default:
+				}
+			},
+		},
+	)
 	server := &http.Server{
 		Handler:           handler,
 		ReadHeaderTimeout: 5 * time.Second,
