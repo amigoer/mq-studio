@@ -51,7 +51,7 @@
 
 | 平台 | 安装包 |
 | --- | --- |
-| macOS Apple Silicon / Intel | `.dmg` 或 `.zip` |
+| macOS Apple Silicon / Intel | `.dmg` |
 | Windows x64 / ARM64 | `.exe` 安装包 |
 | Linux x64 / ARM64 | `.AppImage` |
 

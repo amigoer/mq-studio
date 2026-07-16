@@ -167,16 +167,12 @@ jobs:
         with:
           name: installers-${{ matrix.platform }}
           path: |
-            release/*
-            !release/builder-debug.yml
-            !release/*-unpacked/**
-            !release/mac/**
-            !release/mac-arm64/**
-            !release/mac-universal/**
-            !release/win-unpacked/**
-            !release/win-arm64-unpacked/**
-            !release/linux-unpacked/**
-            !release/linux-arm64-unpacked/**
+            release/*-mac-arm64.dmg
+            release/*-mac-x64.dmg
+            release/*-win-arm64.exe
+            release/*-win-x64.exe
+            release/*-linux-arm64.AppImage
+            release/*-linux-x86_64.AppImage
           if-no-files-found: error
 
   publish:

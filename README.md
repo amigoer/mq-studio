@@ -51,7 +51,7 @@ Download the latest package from **[GitHub Releases](https://github.com/amigoer/
 
 | Platform | Package |
 | --- | --- |
-| macOS Apple Silicon / Intel | `.dmg` or `.zip` |
+| macOS Apple Silicon / Intel | `.dmg` |
 | Windows x64 / ARM64 | `.exe` installer |
 | Linux x64 / ARM64 | `.AppImage` |
 
