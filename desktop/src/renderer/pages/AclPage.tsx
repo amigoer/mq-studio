@@ -251,9 +251,9 @@ export function AclPage({ onNavigate }: { onNavigate?: (id: NavId) => void }) {
               </div>
             </Card>
 
-            {/* 双栏布局：账号配置主表单留在左侧主区，
-                删除/全局白名单这类辅助操作折到右边窄列。
-                lg 以下退回单栏，避免窄窗口下表单被挤压。 */}
+            {/* Two-column layout: account config form stays in the left main area;
+                delete / global whitelist and other secondary actions fold into a narrow right column.
+                Below lg, collapse to a single column so the form is not squeezed in narrow windows. */}
             <div className="grid grid-cols-1 gap-5 lg:grid-cols-[3fr_2fr]">
               <div>
                 {/* Access config form */}

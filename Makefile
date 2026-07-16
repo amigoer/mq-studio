@@ -2,7 +2,7 @@ SHELL := /bin/sh
 .DEFAULT_GOAL := help
 .NOTPARALLEL:
 
-# 可选交叉编译参数，例如：make build-daemon TARGET_OS=linux TARGET_ARCH=arm64
+# Optional cross-compilation parameters, for example: make build-daemon TARGET_OS=linux TARGET_ARCH=arm64
 TARGET_OS ?=
 TARGET_ARCH ?=
 
@@ -11,69 +11,69 @@ TARGET_ARCH ?=
 	test test-go test-desktop test-smoke test-e2e test-all \
 	e2e e2e-up e2e-down check ci clean
 
-help: ## 显示所有可用目标
+help: ## Show all available targets
 	@awk 'BEGIN { FS = ":.*## " } /^[a-zA-Z0-9_.-]+:.*## / { printf "  %-20s %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
 
-install: ## 安装根目录与 Electron 桌面端依赖
+install: ## Install root and Electron desktop dependencies
 	npm install
 	npm install --prefix desktop
 
-install-ci: ## 使用锁文件安装依赖（CI）
+install-ci: ## Install dependencies from lockfiles (CI)
 	npm ci
 	npm ci --prefix desktop
 
-generate: ## 根据 OpenAPI 生成桌面端 TypeScript 类型
+generate: ## Generate desktop TypeScript types from OpenAPI
 	npm run generate:api
 
-icons: ## 从主图生成带平台安全边距的 PNG、ICNS 与 ICO 图标
+icons: ## Generate PNG, ICNS, and ICO icons with platform-safe padding from the source image
 	sh scripts/generate-icons.sh
 
-dev: ## 启动 Electron 开发环境与 Go daemon
+dev: ## Start the Electron development environment and Go daemon
 	sh scripts/run-electron.sh dev
 
-run: build ## 构建并临时运行 Electron 应用，退出后不保留应用进程
+run: build ## Build and run the Electron app temporarily, leaving no app process after exit
 	sh scripts/run-electron.sh run
 
-build: build-daemon build-desktop ## 构建当前平台 daemon 与 Electron
+build: build-daemon build-desktop ## Build the daemon and Electron app for the current platform
 
-build-daemon: ## 构建 daemon；可传 TARGET_OS 与 TARGET_ARCH
+build-daemon: ## Build the daemon; TARGET_OS and TARGET_ARCH are optional
 	sh scripts/build-daemon.sh $(TARGET_OS) $(TARGET_ARCH)
 
-build-daemon-all: ## 构建 macOS、Windows、Linux 的 x64/arm64 daemon
+build-daemon-all: ## Build x64 and arm64 daemons for macOS, Windows, and Linux
 	@for os in mac win linux; do \
 		for arch in x64 arm64; do \
 			sh scripts/build-daemon.sh $$os $$arch; \
 		done; \
 	done
 
-build-desktop: ## 类型检查并构建 Electron Main、Preload 与 Renderer
+build-desktop: ## Type-check and build the Electron Main, Preload, and Renderer processes
 	npm run build:desktop
 
-package: ## 构建当前平台内部测试安装包
+package: ## Build an internal test installer for the current platform
 	sh scripts/package.sh
 
-test: ## 运行 Go、桌面端单元测试及 daemon 冒烟测试
+test: ## Run Go and desktop unit tests plus the daemon smoke test
 	npm test
 
-test-go: ## 运行全部 Go 测试
+test-go: ## Run all Go tests
 	npm run test:go
 
-test-desktop: ## 运行 Electron Main 与 Renderer 单元测试
+test-desktop: ## Run Electron Main and Renderer unit tests
 	npm run test:desktop
 
-test-smoke: ## 运行 daemon 启动、鉴权和退出冒烟测试
+test-smoke: ## Run the daemon startup, authentication, and shutdown smoke test
 	npm run test:daemon-smoke
 
-test-e2e: ## 对已运行的 RocketMQ 执行 Electron 端到端测试
+test-e2e: ## Run Electron end-to-end tests against a running RocketMQ instance
 	npm run test:e2e
 
-e2e-up: ## 使用 OrbStack/Docker 启动 RocketMQ 5.3.2
+e2e-up: ## Start RocketMQ 5.3.2 with OrbStack or Docker
 	npm run e2e:up
 
-e2e-down: ## 停止 RocketMQ E2E 环境并删除测试卷
+e2e-down: ## Stop the RocketMQ E2E environment and remove test volumes
 	npm run e2e:down
 
-e2e: ## 启动 RocketMQ、执行 E2E，并在结束后自动清理
+e2e: ## Start RocketMQ, run E2E tests, and clean up automatically
 	@set -eu; \
 		cleanup() { \
 			trap - EXIT INT TERM; \
@@ -83,12 +83,12 @@ e2e: ## 启动 RocketMQ、执行 E2E，并在结束后自动清理
 		$(MAKE) --no-print-directory e2e-up; \
 		$(MAKE) --no-print-directory test-e2e
 
-test-all: test e2e ## 运行单元、冒烟和完整端到端测试
+test-all: test e2e ## Run unit, smoke, and full end-to-end tests
 
-check: ## 运行 Go vet、类型、测试与 OpenAPI 漂移检查
+check: ## Run Go vet, type checks, tests, and OpenAPI drift checks
 	npm run check
 
-ci: install-ci check ## 执行不含 Docker E2E 的 CI 基础检查
+ci: install-ci check ## Run baseline CI checks without Docker E2E tests
 
-clean: ## 删除 daemon、Electron 与安装包构建产物
+clean: ## Remove daemon, Electron, and installer build artifacts
 	rm -rf daemon/dist desktop/out desktop/resources/bin release

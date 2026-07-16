@@ -9,7 +9,7 @@ function fakeSupervisor() {
 }
 
 describe('executeBackendCall', () => {
-  it('只把白名单操作映射为固定后端路径', async () => {
+  it('only maps allowlisted operations to fixed backend paths', async () => {
     const { supervisor, request } = fakeSupervisor()
     await executeBackendCall(supervisor, {
       operation: 'messages.byId',
@@ -22,10 +22,10 @@ describe('executeBackendCall', () => {
     )
   })
 
-  it('拒绝 Renderer 构造的任意操作名', async () => {
+  it('rejects arbitrary operation names constructed by the renderer', async () => {
     const { supervisor, request } = fakeSupervisor()
     const call = { operation: 'system.exec' } as unknown as BackendCall
-    await expect(executeBackendCall(supervisor, call)).rejects.toThrow('不允许的后端操作')
+    await expect(executeBackendCall(supervisor, call)).rejects.toThrow('backend operation not allowed')
     expect(request).not.toHaveBeenCalled()
   })
 })

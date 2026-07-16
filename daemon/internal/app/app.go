@@ -1,4 +1,4 @@
-// Package app 负责守护进程业务服务的装配与生命周期管理。
+// Package app assembles daemon business services and manages their lifecycle.
 package app
 
 import (
@@ -11,7 +11,7 @@ import (
 	"github.com/amigoer/rocket-leaf/daemon/internal/service"
 )
 
-// Services 汇总 HTTP 传输层所需的业务服务。
+// Services aggregates business services required by the HTTP transport layer.
 type Services struct {
 	Connections *service.ConnectionService
 	Cluster     *service.ClusterService
@@ -22,14 +22,14 @@ type Services struct {
 	ACL         *service.AclService
 }
 
-// New 初始化本地加密密钥并装配全部业务服务。
+// New initializes the local encryption key and assembles all business services.
 func New() (*Services, error) {
 	configDir, err := os.UserConfigDir()
 	if err != nil {
-		return nil, fmt.Errorf("获取用户配置目录失败: %w", err)
+		return nil, fmt.Errorf("failed to get user config directory: %w", err)
 	}
 	if err := crypto.InitKey(filepath.Join(configDir, "rocket-leaf")); err != nil {
-		return nil, fmt.Errorf("初始化本地加密密钥失败: %w", err)
+		return nil, fmt.Errorf("failed to initialize local encryption key: %w", err)
 	}
 
 	settings := service.NewSettingsService()
@@ -47,7 +47,7 @@ func New() (*Services, error) {
 	return services, nil
 }
 
-// Close 释放全部 RocketMQ 客户端。
+// Close releases all RocketMQ clients.
 func (s *Services) Close() {
 	rocketmq.GetClientManager().CloseAll()
 }

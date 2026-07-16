@@ -8,7 +8,7 @@ const require = createRequire(import.meta.url)
 const { convertIcon } = require('../desktop/node_modules/app-builder-lib/out/util/iconConverter.js')
 
 const [source, destination] = process.argv.slice(2)
-if (!source || !destination) throw new Error('请提供 PNG 输入和 ICNS 输出路径')
+if (!source || !destination) throw new Error('provide a PNG input path and ICNS output path')
 
 const outputDirectory = await mkdtemp(join(tmpdir(), 'rocket-leaf-icns-'))
 try {

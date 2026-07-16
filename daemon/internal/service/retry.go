@@ -13,12 +13,13 @@ import (
 	admin "github.com/amigoer/rocketmq-admin-go"
 )
 
-// 多个并行指标请求可能同时发现同一个旧客户端断线。串行化重连判定，
-// 避免后到的请求把先到请求刚创建好的客户端再次关闭。
+// Multiple concurrent metric requests may detect the same stale client disconnecting.
+// Serialize reconnection decisions so a later request cannot close a client just created by an earlier one.
 var clientRetryMu sync.Mutex
 
-// executeWithClientRetryTimeout 为每次尝试创建独立的超时上下文。
-// 不能在重试之间复用 context：首次超时后旧 context 已经取消，重试会立即失败。
+// executeWithClientRetryTimeout creates an independent timeout context for each attempt.
+// A context cannot be reused across retries: after the first timeout it is canceled,
+// which would cause the retry to fail immediately.
 func executeWithClientRetryTimeout(
 	client *admin.Client,
 	timeout time.Duration,
@@ -31,7 +32,7 @@ func executeWithClientRetryTimeout(
 	})
 }
 
-// executeWithClientRetry 使用默认客户端执行请求，遇到网络断连时自动重连并重试一次
+// executeWithClientRetry executes a request with the default client and reconnects once on a network disconnect.
 func executeWithClientRetry(client *admin.Client, call func(*admin.Client) error) error {
 	err := call(client)
 	if err == nil {
@@ -50,14 +51,14 @@ func executeWithClientRetry(client *admin.Client, call func(*admin.Client) error
 
 	log.Printf("[Service] 检测到连接异常，准备重连默认连接并重试: %v", err)
 	clientRetryMu.Lock()
-	// 其它请求可能已经完成重连。此时直接复用新客户端，不再重复替换。
+	// Another request may already have reconnected. Reuse its client instead of replacing it again.
 	if current, currentErr := manager.GetClient(defaultNameServer); currentErr == nil && current != client {
 		clientRetryMu.Unlock()
 		return call(current)
 	}
 
 	config, configErr := manager.GetDefaultClientConfig()
-	// 移除旧默认客户端，触发后续懒加载重新建立连接
+	// Remove the stale default client so the connection is recreated lazily.
 	manager.RemoveClient(defaultNameServer)
 
 	var (

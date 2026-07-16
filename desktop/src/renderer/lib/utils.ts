@@ -5,7 +5,7 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-/** 从对象中取 message / Message 字段 */
+/** Read message / Message from an object. */
 function getMessageFromObject(obj: Record<string, unknown>): string | null {
   const msg = obj['message'] ?? obj['Message']
   if (typeof msg === 'string') {
@@ -15,14 +15,14 @@ function getMessageFromObject(obj: Record<string, unknown>): string | null {
   return null
 }
 
-/** 从 JSON 或带 message 的对象中取出可读文案，绝不返回整段 JSON */
+/** Extract a readable message from JSON or a message-bearing object; never return the raw JSON blob. */
 function extractMessageString(value: unknown): string | null {
   if (value == null) return null
 
   if (typeof value === 'object' && value !== null) {
     const fromObj = getMessageFromObject(value as Record<string, unknown>)
     if (fromObj) {
-      // 若取出的仍是 JSON 字符串，再解析一层
+      // If the extracted value is still a JSON string, parse one more level.
       if (fromObj.trim().startsWith('{')) {
         try {
           const parsed = JSON.parse(fromObj) as { message?: string }
@@ -47,7 +47,7 @@ function extractMessageString(value: unknown): string | null {
           return t !== '' ? t : null
         }
       } catch {
-        // 非 JSON
+        // Not JSON
       }
     }
     return trimmed !== '' ? trimmed : null
@@ -73,7 +73,7 @@ export async function withMinDuration<T>(promise: Promise<T>, minMs = 600): Prom
   }
 }
 
-/** 将后端/运行时错误转为用户可读文案，避免直接展示 JSON */
+/** Turn backend/runtime errors into user-readable text without showing raw JSON. */
 export function formatErrorMessage(e: unknown): string {
   const fromObj = extractMessageString(e)
   if (fromObj) return fromObj
@@ -86,12 +86,12 @@ export function formatErrorMessage(e: unknown): string {
       const parsed = extractMessageString(msg)
       if (parsed) return parsed
     }
-    return msg || '操作失败'
+    return msg || 'Operation failed'
   }
 
   const s = String(e)
   const fromStr = extractMessageString(s)
   if (fromStr) return fromStr
-  if (s === '[object Object]') return '操作失败'
+  if (s === '[object Object]') return 'Operation failed'
   return s
 }

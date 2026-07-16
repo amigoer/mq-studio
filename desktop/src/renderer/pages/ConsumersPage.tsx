@@ -433,7 +433,7 @@ function GroupDetailPanel({
           <div className="flex min-w-0 flex-1 items-center gap-2">
             <Users size={15} className="text-muted-foreground" />
             <span className="font-mono-design truncate font-semibold">{group.group}</span>
-            {group.lag > 1000 && <Badge variant="warning" className="shrink-0">堆积</Badge>}
+            {group.lag > 1000 && <Badge variant="warning" className="shrink-0">{t('consumers.table.lag')}</Badge>}
           </div>
           <Button variant="ghost" size="icon-sm" onClick={onClose}>
             <X size={14} />

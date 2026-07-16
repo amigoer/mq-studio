@@ -135,7 +135,7 @@ body {
   user-select: none;
 }
 
-/* 输入框、文本域内仍可选中以便编辑与复制 */
+/* Keep inputs and textareas selectable for editing and copy */
 input,
 textarea,
 [contenteditable='true'] {
@@ -156,13 +156,13 @@ textarea,
   }
 }
 
-/* 客户端风格：取消网页式蓝色选中高亮 */
+/* Client-app style: drop the default browser blue selection highlight */
 ::selection {
   background: hsl(var(--accent));
   color: hsl(var(--accent-foreground));
 }
 
-/* 局部滚动条：极细 */
+/* Local thin scrollbars */
 @supports (scrollbar-width: thin) {
   .scroll-thin {
     scrollbar-width: thin;

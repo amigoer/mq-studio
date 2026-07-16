@@ -1,6 +1,6 @@
 package model
 
-// TopicPerm Topic 权限
+// TopicPerm is the Topic permission.
 type TopicPerm string
 
 const (
@@ -10,7 +10,7 @@ const (
 	PermDeny TopicPerm = "DENY"
 )
 
-// TopicMessageType 消息类型
+// TopicMessageType is the message type.
 type TopicMessageType string
 
 const (
@@ -19,61 +19,61 @@ const (
 	MessageTypeDelay  TopicMessageType = "Delay"
 )
 
-// TopicRouteItem Topic 路由条目
+// TopicRouteItem is a Topic route entry.
 type TopicRouteItem struct {
-	Broker     string    `json:"broker"`     // Broker 名称
-	BrokerAddr string    `json:"brokerAddr"` // Broker 地址
-	ReadQueue  int       `json:"readQueue"`  // 读队列数
-	WriteQueue int       `json:"writeQueue"` // 写队列数
-	Perm       TopicPerm `json:"perm"`       // 权限
+	Broker     string    `json:"broker"`     // Broker name
+	BrokerAddr string    `json:"brokerAddr"` // Broker address
+	ReadQueue  int       `json:"readQueue"`  // Read queue count
+	WriteQueue int       `json:"writeQueue"` // Write queue count
+	Perm       TopicPerm `json:"perm"`       // Permission
 }
 
-// TopicItem Topic 信息
+// TopicItem holds Topic information.
 type TopicItem struct {
 	ID             int              `json:"id"`             // Topic ID
-	Topic          string           `json:"topic"`          // Topic 名称
-	Cluster        string           `json:"cluster"`        // 所属集群
-	ReadQueue      int              `json:"readQueue"`      // 读队列数
-	WriteQueue     int              `json:"writeQueue"`     // 写队列数
-	Perm           TopicPerm        `json:"perm"`           // 权限
-	MessageType    TopicMessageType `json:"messageType"`    // 消息类型
-	ConsumerGroups int              `json:"consumerGroups"` // 消费者组数量
-	TpsIn          int              `json:"tpsIn"`          // 入流 TPS
-	TpsOut         int              `json:"tpsOut"`         // 出流 TPS
-	LastUpdated    string           `json:"lastUpdated"`    // 最后更新时间
-	Description    string           `json:"description"`    // 描述
-	Routes         []TopicRouteItem `json:"routes"`         // 路由信息
+	Topic          string           `json:"topic"`          // Topic name
+	Cluster        string           `json:"cluster"`        // Cluster name
+	ReadQueue      int              `json:"readQueue"`      // Read queue count
+	WriteQueue     int              `json:"writeQueue"`     // Write queue count
+	Perm           TopicPerm        `json:"perm"`           // Permission
+	MessageType    TopicMessageType `json:"messageType"`    // Message type
+	ConsumerGroups int              `json:"consumerGroups"` // Consumer group count
+	TpsIn          int              `json:"tpsIn"`          // Inbound TPS
+	TpsOut         int              `json:"tpsOut"`         // Outbound TPS
+	LastUpdated    string           `json:"lastUpdated"`    // Last update time
+	Description    string           `json:"description"`    // Description
+	Routes         []TopicRouteItem `json:"routes"`         // Route information
 }
 
-// TopicConfig Topic 创建/更新配置
+// TopicConfig holds Topic create/update configuration.
 type TopicConfig struct {
-	Topic       string           `json:"topic"`       // Topic 名称
-	Cluster     string           `json:"cluster"`     // 集群名称
-	BrokerAddr  string           `json:"brokerAddr"`  // Broker 地址
-	ReadQueue   int              `json:"readQueue"`   // 读队列数
-	WriteQueue  int              `json:"writeQueue"`  // 写队列数
-	Perm        TopicPerm        `json:"perm"`        // 权限
-	MessageType TopicMessageType `json:"messageType"` // 消息类型
-	Description string           `json:"description"` // 描述
+	Topic       string           `json:"topic"`       // Topic name
+	Cluster     string           `json:"cluster"`     // Cluster name
+	BrokerAddr  string           `json:"brokerAddr"`  // Broker address
+	ReadQueue   int              `json:"readQueue"`   // Read queue count
+	WriteQueue  int              `json:"writeQueue"`  // Write queue count
+	Perm        TopicPerm        `json:"perm"`        // Permission
+	MessageType TopicMessageType `json:"messageType"` // Message type
+	Description string           `json:"description"` // Description
 }
 
-// PermToInt 将权限转换为整数
+// PermToInt converts a permission to its integer code.
 func PermToInt(perm TopicPerm) int {
 	switch perm {
 	case PermRW:
-		return 6 // 读写权限
+		return 6 // Read-write
 	case PermR:
-		return 4 // 只读
+		return 4 // Read-only
 	case PermW:
-		return 2 // 只写
+		return 2 // Write-only
 	case PermDeny:
-		return 0 // 禁止
+		return 0 // Denied
 	default:
 		return 6
 	}
 }
 
-// IntToPerm 将整数转换为权限
+// IntToPerm converts an integer code to a permission.
 func IntToPerm(perm int) TopicPerm {
 	switch perm {
 	case 6:

@@ -24,9 +24,9 @@ func TestPermToIntAndBack(t *testing.T) {
 
 func TestPermDefaults(t *testing.T) {
 	if PermToInt(TopicPerm("unknown")) != 6 {
-		t.Fatal("未知权限应回落为读写 6")
+		t.Fatal("unknown permission should fall back to read-write 6")
 	}
 	if IntToPerm(99) != PermRW {
-		t.Fatal("未知整数权限应回落为读写")
+		t.Fatal("unknown integer permission should fall back to read-write")
 	}
 }

@@ -1,6 +1,6 @@
 package model
 
-// AclVersionInfo ACL 配置版本信息
+// AclVersionInfo holds ACL config version information.
 type AclVersionInfo struct {
 	BrokerAddr  string `json:"brokerAddr"`
 	BrokerName  string `json:"brokerName"`

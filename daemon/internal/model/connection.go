@@ -1,16 +1,16 @@
-// Package model 定义应用程序的数据模型
+// Package model defines the application's data models.
 package model
 
-// ConnectionEnv 连接环境类型
+// ConnectionEnv is the connection environment type.
 type ConnectionEnv string
 
 const (
-	EnvProduction  ConnectionEnv = "生产"
-	EnvTest        ConnectionEnv = "测试"
-	EnvDevelopment ConnectionEnv = "开发"
+	EnvProduction  ConnectionEnv = "production"
+	EnvTest        ConnectionEnv = "test"
+	EnvDevelopment ConnectionEnv = "development"
 )
 
-// ConnectionStatus 连接状态
+// ConnectionStatus is the connection status.
 type ConnectionStatus string
 
 const (
@@ -18,18 +18,18 @@ const (
 	StatusOffline ConnectionStatus = "offline"
 )
 
-// Connection 连接配置
+// Connection holds connection configuration.
 type Connection struct {
-	ID         int              `json:"id"`         // 连接ID
-	Name       string           `json:"name"`       // 连接名称
-	Env        ConnectionEnv    `json:"env"`        // 环境类型
-	NameServer string           `json:"nameServer"` // NameServer 地址
-	TimeoutSec int              `json:"timeoutSec"` // 超时时间(秒)
-	EnableACL  bool             `json:"enableACL"`  // 是否启用 ACL 认证
+	ID         int              `json:"id"`         // Connection ID
+	Name       string           `json:"name"`       // Connection name
+	Env        ConnectionEnv    `json:"env"`        // Environment type
+	NameServer string           `json:"nameServer"` // NameServer address
+	TimeoutSec int              `json:"timeoutSec"` // Timeout in seconds
+	EnableACL  bool             `json:"enableACL"`  // Whether ACL authentication is enabled
 	AccessKey  string           `json:"accessKey"`  // ACL AccessKey
 	SecretKey  string           `json:"secretKey"`  // ACL SecretKey
-	Status     ConnectionStatus `json:"status"`     // 连接状态
-	LastCheck  string           `json:"lastCheck"`  // 最近检测时间
-	IsDefault  bool             `json:"isDefault"`  // 是否默认连接
-	Remark     string           `json:"remark"`     // 备注
+	Status     ConnectionStatus `json:"status"`     // Connection status
+	LastCheck  string           `json:"lastCheck"`  // Last health-check time
+	IsDefault  bool             `json:"isDefault"`  // Whether this is the default connection
+	Remark     string           `json:"remark"`     // Remark
 }

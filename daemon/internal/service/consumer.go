@@ -15,13 +15,13 @@ import (
 	admin "github.com/amigoer/rocketmq-admin-go"
 )
 
-// ConsumerService 消费者组服务
+// ConsumerService manages consumer groups.
 type ConsumerService struct {
 	nextID          int64
 	settingsService *SettingsService
 }
 
-// NewConsumerService 创建消费者组服务
+// NewConsumerService creates a consumer group service.
 func NewConsumerService(settingsService *SettingsService) *ConsumerService {
 	return &ConsumerService{
 		nextID:          1,
@@ -33,11 +33,11 @@ func (s *ConsumerService) getNextID() int {
 	return int(atomic.AddInt64(&s.nextID, 1))
 }
 
-// GetConsumerGroups 获取所有消费者组列表
+// GetConsumerGroups returns all consumer groups.
 func (s *ConsumerService) GetConsumerGroups() ([]*model.ConsumerGroupItem, error) {
 	client, err := rocketmq.GetClientManager().GetDefaultClient()
 	if err != nil {
-		// 无连接时返回空列表
+		// Return an empty list when no connection is available.
 		return []*model.ConsumerGroupItem{}, nil
 	}
 
@@ -248,7 +248,7 @@ func (s *ConsumerService) enrichConsumerGroup(client *admin.Client, item *model.
 	item.LastUpdate = formatNow()
 }
 
-// GetConsumerGroupDetail 获取消费者组详情
+// GetConsumerGroupDetail returns details for a consumer group.
 func (s *ConsumerService) GetConsumerGroupDetail(groupName string) (*model.ConsumerGroupItem, error) {
 	groupName = strings.TrimSpace(groupName)
 	if groupName == "" {
@@ -284,17 +284,17 @@ func (s *ConsumerService) GetConsumerGroupDetail(groupName string) (*model.Consu
 	return item, nil
 }
 
-// GetConsumeStats 获取消费统计信息
+// GetConsumeStats returns consumption statistics.
 func (s *ConsumerService) GetConsumeStats(groupName string) (map[string]interface{}, error) {
 	client, err := rocketmq.GetClientManager().GetDefaultClient()
 	if err != nil {
 		return nil, fmt.Errorf("获取客户端失败: %w", err)
 	}
 
-	// ExamineConsumeStats 只有一个参数
+	// ExamineConsumeStats accepts only one argument.
 	result := map[string]interface{}{}
 	err = executeWithClientRetryTimeout(client, s.settingsService.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
-		// ExamineConsumeStats 只有一个参数
+		// ExamineConsumeStats accepts only one argument.
 		stats, callErr := retryClient.ExamineConsumeStats(ctx, groupName)
 		if callErr != nil {
 			return callErr
@@ -303,7 +303,7 @@ func (s *ConsumerService) GetConsumeStats(groupName string) (map[string]interfac
 			return fmt.Errorf("Broker 返回空消费统计")
 		}
 
-		// 计算总延迟
+		// Calculate the total lag.
 		var totalDiff int64
 		for _, offset := range stats.OffsetTable {
 			if offset == nil {
@@ -328,7 +328,7 @@ func (s *ConsumerService) GetConsumeStats(groupName string) (map[string]interfac
 	return result, nil
 }
 
-// CreateConsumerGroup 创建消费者组
+// CreateConsumerGroup creates a consumer group.
 func (s *ConsumerService) CreateConsumerGroup(group string, brokerAddr string, consumeMode string, maxRetry int) error {
 	client, err := rocketmq.GetClientManager().GetDefaultClient()
 	if err != nil {
@@ -344,7 +344,7 @@ func (s *ConsumerService) CreateConsumerGroup(group string, brokerAddr string, c
 		return fmt.Errorf("创建消费者组失败: %w", err)
 	}
 
-	// 使用 CreateSubscriptionGroup
+	// Create the group through CreateSubscriptionGroup.
 	config := admin.SubscriptionGroupConfig{
 		GroupName:              group,
 		ConsumeEnable:          true,
@@ -356,7 +356,7 @@ func (s *ConsumerService) CreateConsumerGroup(group string, brokerAddr string, c
 	return s.applySubscriptionGroupConfig(client, candidates, config, "创建")
 }
 
-// UpdateConsumerGroup 更新消费者组配置
+// UpdateConsumerGroup updates a consumer group configuration.
 func (s *ConsumerService) UpdateConsumerGroup(group string, brokerAddr string, consumeMode string, maxRetry int) error {
 	client, err := rocketmq.GetClientManager().GetDefaultClient()
 	if err != nil {
@@ -368,7 +368,7 @@ func (s *ConsumerService) UpdateConsumerGroup(group string, brokerAddr string, c
 		return err
 	}
 
-	// 先查询所有 master broker 地址
+	// Resolve all master broker addresses first.
 	candidates, resolveErr := s.resolveMasterBrokerAddrs(client, brokerAddr)
 	if resolveErr != nil {
 		return fmt.Errorf("更新消费者组失败: %w", resolveErr)
@@ -385,7 +385,7 @@ func (s *ConsumerService) UpdateConsumerGroup(group string, brokerAddr string, c
 	return s.applySubscriptionGroupConfig(client, candidates, config, "更新")
 }
 
-// DeleteConsumerGroup 删除消费者组
+// DeleteConsumerGroup deletes a consumer group.
 func (s *ConsumerService) DeleteConsumerGroup(group string, brokerAddr string) error {
 	client, err := rocketmq.GetClientManager().GetDefaultClient()
 	if err != nil {
@@ -417,7 +417,7 @@ func (s *ConsumerService) DeleteConsumerGroup(group string, brokerAddr string) e
 	return nil
 }
 
-// ResetOffset 重置消费位点
+// ResetOffset resets consumer offsets.
 func (s *ConsumerService) ResetOffset(group string, topic string, timestamp int64, force bool) error {
 	client, err := rocketmq.GetClientManager().GetDefaultClient()
 	if err != nil {
@@ -444,7 +444,7 @@ func (s *ConsumerService) ResetOffset(group string, topic string, timestamp int6
 	return nil
 }
 
-// GetConsumerClients 获取消费者客户端列表
+// GetConsumerClients returns the clients for a consumer group.
 func (s *ConsumerService) GetConsumerClients(groupName string) ([]model.GroupClient, error) {
 	detail, err := s.GetConsumerGroupDetail(groupName)
 	if err != nil {
@@ -453,7 +453,7 @@ func (s *ConsumerService) GetConsumerClients(groupName string) ([]model.GroupCli
 	return detail.Clients, nil
 }
 
-// 判断是否为系统消费者组
+// isSystemGroup reports whether a consumer group is reserved for system use.
 func isSystemGroup(group string) bool {
 	systemGroups := []string{
 		"CID_ONSAPI_OWNER",

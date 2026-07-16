@@ -101,7 +101,7 @@ export function TitleBar({
     } catch (e) {
       toast.error(formatErrorMessage(e), { id: 'titlebar-conn' })
     } finally {
-      // 断开旧连接后即使新连接失败，也必须同步真实状态。
+      // After disconnecting the previous connection, always sync real state even if the new connect fails.
       await refresh().catch(() => undefined)
       setBusyId(null)
     }

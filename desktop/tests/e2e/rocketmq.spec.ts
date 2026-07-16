@@ -77,7 +77,7 @@ async function waitFor<T>(action: () => Promise<T>, predicate: (value: T) => boo
     }
     await new Promise((resolveDelay) => setTimeout(resolveDelay, 1_000))
   }
-  throw lastError ?? new Error(`等待条件超时，最后结果：${JSON.stringify(lastValue)}`)
+  throw lastError ?? new Error(`wait condition timed out, last value: ${JSON.stringify(lastValue)}`)
 }
 
 test.beforeAll(async () => {
@@ -101,7 +101,7 @@ test.beforeAll(async () => {
       .poll(() => page.evaluate(() => window.rocketLeaf.daemon.state()), { timeout: 20_000 })
       .toBe('ready')
   } catch (error) {
-    throw new Error(`Electron daemon 未就绪：\n${electronLogs.join('')}`, { cause: error })
+    throw new Error(`Electron daemon not ready:\n${electronLogs.join('')}`, { cause: error })
   }
 })
 
@@ -110,10 +110,10 @@ test.afterAll(async () => {
   await rm(testHome, { recursive: true, force: true })
 })
 
-test('Electron 安全桥可以完成 RocketMQ 核心业务闭环', async () => {
+test('Electron security bridge can complete RocketMQ core business loop', async () => {
   const created = await backend<Connection>('connections.add', {
     name: 'OrbStack RocketMQ',
-    env: '测试',
+    env: 'test',
     nameServer: '127.0.0.1:9876',
     timeoutSec: 10,
     enableACL: false,

@@ -758,7 +758,7 @@
 .dark .json-view .br {
   color: hsl(240 4% 60%);
 }
-/* Electron 自定义标题栏只允许空白区域拖动，交互控件必须显式禁用拖动。 */
+/* Electron custom title bar: only empty regions are draggable; interactive controls must opt out. */
 .app-region-drag {
   -webkit-app-region: drag;
 }

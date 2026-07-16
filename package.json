@@ -9,7 +9,7 @@
     "build:desktop": "npm --prefix desktop run build",
     "build": "npm run build:daemon && npm run build:desktop",
     "package": "sh scripts/package.sh",
-    "go:fmt:check": "bash -c 'files=$(gofmt -l daemon); [ -z \"$files\" ] || { echo \"以下 Go 文件尚未通过 gofmt：\"; echo \"$files\"; echo \"请运行: gofmt -w daemon\"; exit 1; }'",
+    "go:fmt:check": "bash -c 'files=$(gofmt -l daemon); [ -z \"$files\" ] || { echo \"The following Go files are not gofmt-clean:\"; echo \"$files\"; echo \"Run: gofmt -w daemon\"; exit 1; }'",
     "go:vet": "cd daemon && go vet ./...",
     "desktop:type-check": "npm --prefix desktop run type-check",
     "test": "npm run test:go && npm run test:desktop && npm run test:daemon-smoke",
@@ -19,7 +19,7 @@
     "test:e2e": "npm run build:daemon && npm --prefix desktop run test:e2e",
     "e2e:up": "docker compose -f tests/e2e/rocketmq/compose.yaml up -d --wait",
     "e2e:down": "docker compose -f tests/e2e/rocketmq/compose.yaml down -v",
-    "check:contract": "npm run generate:api && git diff --quiet -- desktop/src/generated/schema.ts || (echo 'OpenAPI 生成类型已过期，请运行 npm run generate:api 并提交结果。' >&2 && git diff -- desktop/src/generated/schema.ts && exit 1)",
+    "check:contract": "npm run generate:api && git diff --quiet -- desktop/src/generated/schema.ts || (echo 'OpenAPI generated types are stale; run npm run generate:api and commit the result.' >&2 && git diff -- desktop/src/generated/schema.ts && exit 1)",
     "check": "npm run go:fmt:check && npm run go:vet && npm run desktop:type-check && npm test && npm run check:contract"
   }
 }

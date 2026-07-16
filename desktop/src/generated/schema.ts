@@ -597,7 +597,7 @@ export interface components {
         ConnectionInput: {
             name: string;
             /** @enum {string} */
-            env: "生产" | "测试" | "开发";
+            env: "production" | "test" | "development";
             nameServer: string;
             timeoutSec: number;
             enableACL: boolean;

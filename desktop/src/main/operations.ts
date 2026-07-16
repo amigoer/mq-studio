@@ -115,9 +115,9 @@ export async function executeBackendCall(
   call: BackendCall,
 ): Promise<unknown> {
   if (!call || typeof call !== 'object' || typeof call.operation !== 'string')
-    throw new Error('后端调用参数无效')
+    throw new Error('invalid backend call arguments')
   const factory = operations[call.operation]
-  if (!factory) throw new Error('不允许的后端操作')
+  if (!factory) throw new Error('backend operation not allowed')
   const payload = call.payload && typeof call.payload === 'object' ? call.payload : {}
   const request = factory(payload)
   return supervisor.request(request.method, request.path, request.body)

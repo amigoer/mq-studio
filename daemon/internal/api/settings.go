@@ -59,11 +59,11 @@ func (h *handler) updateSettings(w stdhttp.ResponseWriter, r *stdhttp.Request) {
 		input.GlobalAccessKey, input.GlobalSecretKey = "", ""
 	case "replace":
 		if strings.TrimSpace(input.GlobalAccessKey) == "" || strings.TrimSpace(input.GlobalSecretKey) == "" {
-			writeError(w, r, stdhttp.StatusBadRequest, "INVALID_REQUEST", "AccessKey 和 SecretKey 必须同时填写", nil)
+			writeError(w, r, stdhttp.StatusBadRequest, "INVALID_REQUEST", "AccessKey and SecretKey must both be provided", nil)
 			return
 		}
 	default:
-		writeError(w, r, stdhttp.StatusBadRequest, "INVALID_REQUEST", "全局凭证更新模式无效", nil)
+		writeError(w, r, stdhttp.StatusBadRequest, "INVALID_REQUEST", "invalid global credentials mode", nil)
 		return
 	}
 	settings, err := h.services.Settings.UpdateSettings(input.AppSettings)

@@ -242,7 +242,7 @@ export function TopicsPage({ onNavigate }: { onNavigate?: (id: NavId) => void })
     return () => {
       cancelled = true
     }
-  }, [selectedName, topics]) // 列表刷新（包括同数量内容更新）后同步详情
+  }, [selectedName, topics]) // Sync detail after list refresh (including same-count content updates)
 
   const doRefresh = useCallback(() => refresh({ silent: true }), [refresh])
   const { spinning: isRefreshing, refresh: handleRefresh } = usePageRefresh(doRefresh)

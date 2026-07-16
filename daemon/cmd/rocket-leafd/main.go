@@ -49,14 +49,14 @@ func run() error {
 	reader := bufio.NewReader(os.Stdin)
 	line, err := reader.ReadBytes('\n')
 	if err != nil {
-		return fmt.Errorf("读取启动配置失败: %w", err)
+		return fmt.Errorf("failed to read startup config: %w", err)
 	}
 	var config startupConfig
 	if err := json.Unmarshal(line, &config); err != nil {
-		return fmt.Errorf("解析启动配置失败: %w", err)
+		return fmt.Errorf("failed to parse startup config: %w", err)
 	}
 	if len(strings.TrimSpace(config.Token)) < 32 {
-		return errors.New("启动令牌不符合安全要求")
+		return errors.New("startup token does not meet security requirements")
 	}
 
 	services, err := app.New()
@@ -67,7 +67,7 @@ func run() error {
 
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
-		return fmt.Errorf("监听回环端口失败: %w", err)
+		return fmt.Errorf("failed to listen on loopback port: %w", err)
 	}
 	defer listener.Close()
 
@@ -82,7 +82,8 @@ func run() error {
 		Handler:           handler,
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       60 * time.Second,
-		// 聚合接口可能顺序执行多次受 requestTimeoutMs 约束的 RocketMQ 调用。
+		// Aggregate endpoints may sequentially run multiple RocketMQ calls
+		// each constrained by requestTimeoutMs.
 		WriteTimeout:   5 * time.Minute,
 		IdleTimeout:    30 * time.Second,
 		MaxHeaderBytes: 1 << 20,
@@ -102,7 +103,7 @@ func run() error {
 		PID:             os.Getpid(),
 		AppVersion:      appVersion,
 	}); err != nil {
-		return fmt.Errorf("输出就绪消息失败: %w", err)
+		return fmt.Errorf("failed to write ready message: %w", err)
 	}
 
 	parentGone := make(chan struct{})
@@ -123,7 +124,7 @@ func run() error {
 	case <-signals:
 	case <-shutdownRequested:
 	case err := <-serveErr:
-		return fmt.Errorf("HTTP 服务异常退出: %w", err)
+		return fmt.Errorf("HTTP server exited unexpectedly: %w", err)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

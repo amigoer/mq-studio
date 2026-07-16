@@ -13,9 +13,9 @@ import (
 	"github.com/amigoer/rocketmq-admin-go/protocol/remoting"
 )
 
-// isRequestCodeNotSupported 判断错误是否为 broker 上的 "request type X not
-// supported" —— 对应 RemotingSysResponseCode.REQUEST_CODE_NOT_SUPPORTED (3)。
-// 老版本 broker 不支持新的 admin RPC 时会返回这个码。
+// isRequestCodeNotSupported reports whether the broker returned "request type X not supported",
+// which corresponds to RemotingSysResponseCode.REQUEST_CODE_NOT_SUPPORTED (3).
+// Older brokers return this code when they do not support a newer admin RPC.
 func isRequestCodeNotSupported(err error) bool {
 	if err == nil {
 		return false
@@ -27,19 +27,19 @@ func isRequestCodeNotSupported(err error) bool {
 	return false
 }
 
-// AclService ACL 管理服务
+// AclService provides ACL management operations.
 type AclService struct {
 	settingsService *SettingsService
 }
 
-// NewAclService 创建 ACL 管理服务
+// NewAclService creates an ACL service.
 func NewAclService(settingsService *SettingsService) *AclService {
 	return &AclService{
 		settingsService: settingsService,
 	}
 }
 
-// getBrokerAddr 获取第一个可用的 Master Broker 地址
+// getBrokerAddr returns the address of the first available master broker.
 func (s *AclService) getBrokerAddr() (string, *admin.Client, error) {
 	client, err := rocketmq.GetClientManager().GetDefaultClient()
 	if err != nil {
@@ -74,7 +74,7 @@ func (s *AclService) getBrokerAddr() (string, *admin.Client, error) {
 	return "", nil, fmt.Errorf("未找到可用的 Master Broker")
 }
 
-// GetAclEnabled 检查 Broker 是否启用 ACL
+// GetAclEnabled reports whether ACL is enabled on the broker.
 func (s *AclService) GetAclEnabled() (bool, error) {
 	brokerAddr, client, err := s.getBrokerAddr()
 	if err != nil {
@@ -101,7 +101,7 @@ func (s *AclService) GetAclEnabled() (bool, error) {
 	return enabled, nil
 }
 
-// GetAclVersion 获取 ACL 配置版本信息
+// GetAclVersion returns ACL configuration version information.
 func (s *AclService) GetAclVersion() (*model.AclVersionInfo, error) {
 	brokerAddr, client, err := s.getBrokerAddr()
 	if err != nil {
@@ -127,9 +127,9 @@ func (s *AclService) GetAclVersion() (*model.AclVersionInfo, error) {
 		return nil
 	})
 
-	// 老 broker（未启用 ACL 或不支持该 RPC）会返回 "request code 52 not supported"。
-	// 这是预期内的能力差异——返回 nil 让前端走"无版本信息"的空状态，不再
-	// 记录错误日志。
+	// Older brokers with ACL disabled or without this RPC return "request code 52 not supported".
+	// This is an expected capability difference. Return nil so the UI displays its empty
+	// "no version information" state without logging an error.
 	if err != nil && isRequestCodeNotSupported(err) {
 		return nil, nil
 	}
@@ -139,7 +139,7 @@ func (s *AclService) GetAclVersion() (*model.AclVersionInfo, error) {
 	return result, nil
 }
 
-// CreateOrUpdateAccessConfig 创建或更新 ACL 访问配置
+// CreateOrUpdateAccessConfig creates or updates an ACL access configuration.
 func (s *AclService) CreateOrUpdateAccessConfig(
 	accessKey, secretKey, whiteRemoteAddress string,
 	isAdmin bool,
@@ -168,7 +168,7 @@ func (s *AclService) CreateOrUpdateAccessConfig(
 	})
 }
 
-// DeleteAccessConfig 删除 ACL 访问配置
+// DeleteAccessConfig deletes an ACL access configuration.
 func (s *AclService) DeleteAccessConfig(accessKey string) error {
 	brokerAddr, client, err := s.getBrokerAddr()
 	if err != nil {
@@ -183,7 +183,7 @@ func (s *AclService) DeleteAccessConfig(accessKey string) error {
 	})
 }
 
-// UpdateGlobalWhiteAddrs 更新全局白名单地址
+// UpdateGlobalWhiteAddrs updates the global address allowlist.
 func (s *AclService) UpdateGlobalWhiteAddrs(addrs []string) error {
 	brokerAddr, client, err := s.getBrokerAddr()
 	if err != nil {

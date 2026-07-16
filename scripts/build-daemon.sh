@@ -25,12 +25,12 @@ case "$electron_os" in
   mac) goos=darwin ;;
   win) goos=windows ;;
   linux) goos=linux ;;
-  *) echo "不支持的平台: $electron_os" >&2; exit 1 ;;
+  *) echo "unsupported platform: $electron_os" >&2; exit 1 ;;
 esac
 case "$electron_arch" in
   x64) goarch=amd64 ;;
   arm64) goarch=arm64 ;;
-  *) echo "不支持的架构: $electron_arch" >&2; exit 1 ;;
+  *) echo "unsupported architecture: $electron_arch" >&2; exit 1 ;;
 esac
 
 # Keep daemon appVersion in sync with the Electron package version.
@@ -38,7 +38,7 @@ esac
 # where $repo_root is a Unix path like /d/a/... that native Node cannot open.
 app_version="$(cd "$repo_root" && node -p "require('./desktop/package.json').version")"
 if [ -z "$app_version" ]; then
-  echo "无法读取 desktop/package.json 中的 version。" >&2
+  echo "failed to read version from desktop/package.json." >&2
   exit 1
 fi
 
@@ -54,4 +54,4 @@ mkdir -p "$(dirname "$output")"
       -ldflags "-s -w -X main.appVersion=$app_version" \
       -o "../$output" ./cmd/rocket-leafd
 )
-echo "已生成 $output (appVersion=$app_version)"
+echo "generated $output (appVersion=$app_version)"

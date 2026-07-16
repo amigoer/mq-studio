@@ -16,13 +16,13 @@ import (
 	admin "github.com/amigoer/rocketmq-admin-go"
 )
 
-// TopicService Topic 管理服务
+// TopicService manages topics.
 type TopicService struct {
 	nextID          int64
 	settingsService *SettingsService
 }
 
-// NewTopicService 创建 Topic 管理服务
+// NewTopicService creates a topic management service.
 func NewTopicService(settingsService *SettingsService) *TopicService {
 	return &TopicService{
 		nextID:          1,
@@ -34,11 +34,11 @@ func (s *TopicService) getNextID() int {
 	return int(atomic.AddInt64(&s.nextID, 1))
 }
 
-// GetTopics 获取所有 Topic 列表
+// GetTopics returns all non-system topics.
 func (s *TopicService) GetTopics() ([]*model.TopicItem, error) {
 	client, err := rocketmq.GetClientManager().GetDefaultClient()
 	if err != nil {
-		// 无连接时返回空列表
+		// Return an empty list when no connection is available.
 		return []*model.TopicItem{}, nil
 	}
 
@@ -80,7 +80,7 @@ func (s *TopicService) GetTopics() ([]*model.TopicItem, error) {
 	return result, nil
 }
 
-// GetAllTopics 获取所有 Topic 列表（含系统 Topic）
+// GetAllTopics returns all topics, including system topics.
 func (s *TopicService) GetAllTopics() ([]*model.TopicItem, error) {
 	client, err := rocketmq.GetClientManager().GetDefaultClient()
 	if err != nil {
@@ -123,11 +123,11 @@ func (s *TopicService) GetAllTopics() ([]*model.TopicItem, error) {
 	return result, nil
 }
 
-// GetTopicTotal 获取 Topic 总数（排除系统 Topic）
+// GetTopicTotal returns the number of non-system topics.
 func (s *TopicService) GetTopicTotal() (int, error) {
 	client, err := rocketmq.GetClientManager().GetDefaultClient()
 	if err != nil {
-		// 无连接时返回 0
+		// Return zero when no connection is available.
 		return 0, nil
 	}
 
@@ -159,7 +159,7 @@ func (s *TopicService) GetTopicTotal() (int, error) {
 	return total, nil
 }
 
-// GetTopicsByCluster 按集群获取 Topic 列表
+// GetTopicsByCluster returns topics for a cluster.
 func (s *TopicService) GetTopicsByCluster(clusterName string) ([]*model.TopicItem, error) {
 	client, err := rocketmq.GetClientManager().GetDefaultClient()
 	if err != nil {
@@ -205,7 +205,7 @@ func (s *TopicService) GetTopicsByCluster(clusterName string) ([]*model.TopicIte
 	return result, nil
 }
 
-// GetTopicDetail 获取 Topic 详情
+// GetTopicDetail returns details for a topic.
 func (s *TopicService) GetTopicDetail(topicName string) (*model.TopicItem, error) {
 	client, err := rocketmq.GetClientManager().GetDefaultClient()
 	if err != nil {
@@ -241,7 +241,7 @@ func (s *TopicService) GetTopicDetail(topicName string) (*model.TopicItem, error
 				Perm:       model.IntToPerm(queueData.Perm),
 			}
 
-			// BrokerAddrs 是 map[string]string，key 是 "0" 表示 master
+			// BrokerAddrs is a map[string]string whose "0" key identifies the master.
 			for _, brokerData := range routeInfo.BrokerDatas {
 				if brokerData.BrokerName == queueData.BrokerName {
 					if addr, ok := brokerData.BrokerAddrs["0"]; ok {
@@ -275,7 +275,7 @@ func (s *TopicService) GetTopicDetail(topicName string) (*model.TopicItem, error
 	return item, nil
 }
 
-// GetTopicRoute 获取 Topic 路由信息
+// GetTopicRoute returns routing information for a topic.
 func (s *TopicService) GetTopicRoute(topicName string) ([]model.TopicRouteItem, error) {
 	detail, err := s.GetTopicDetail(topicName)
 	if err != nil {
@@ -284,7 +284,7 @@ func (s *TopicService) GetTopicRoute(topicName string) ([]model.TopicRouteItem, 
 	return detail.Routes, nil
 }
 
-// CreateTopic 创建 Topic
+// CreateTopic creates a topic.
 func (s *TopicService) CreateTopic(topic string, brokerAddr string, readQueue int, writeQueue int, perm string) error {
 	client, err := rocketmq.GetClientManager().GetDefaultClient()
 	if err != nil {
@@ -313,7 +313,7 @@ func (s *TopicService) CreateTopic(topic string, brokerAddr string, readQueue in
 		return fmt.Errorf("创建 Topic 失败: 不支持的权限 %q", perm)
 	}
 
-	// 使用 CreateTopic 方法
+	// Create the topic through the admin client's CreateTopic method.
 	config := admin.TopicConfig{
 		TopicName:       topic,
 		ReadQueueNums:   readQueue,
@@ -332,12 +332,12 @@ func (s *TopicService) CreateTopic(topic string, brokerAddr string, readQueue in
 	return nil
 }
 
-// UpdateTopic 更新 Topic 配置
+// UpdateTopic updates a topic configuration.
 func (s *TopicService) UpdateTopic(topic string, brokerAddr string, readQueue int, writeQueue int, perm string) error {
 	return s.CreateTopic(topic, brokerAddr, readQueue, writeQueue, perm)
 }
 
-// DeleteTopic 删除 Topic
+// DeleteTopic deletes a topic.
 func (s *TopicService) DeleteTopic(topic string, clusterName string) error {
 	client, err := rocketmq.GetClientManager().GetDefaultClient()
 	if err != nil {
@@ -433,7 +433,7 @@ func (s *TopicService) DeleteTopic(topic string, clusterName string) error {
 	return fmt.Errorf("删除 Topic 失败: 未能在集群 %s 中删除", strings.Join(clusterCandidates, ", "))
 }
 
-// GetTopicStats 获取 Topic 统计信息
+// GetTopicStats returns statistics for a topic.
 func (s *TopicService) GetTopicStats(topic string) (map[string]interface{}, error) {
 	topic = strings.TrimSpace(topic)
 	if topic == "" {
@@ -499,9 +499,9 @@ type topicQueueOffset struct {
 	MaxOffset  int64
 }
 
-// collectTopicQueueOffsets 查询 Topic 路由中的所有读队列，而不是依赖只读取
-// 第一个 Broker 的 ExamineTopicStats。任一队列失败即返回错误，避免用部分数据
-// 冒充完整统计。
+// collectTopicQueueOffsets queries every readable queue in the topic route
+// instead of relying on ExamineTopicStats for only the first broker. It returns
+// an error if any queue fails so partial data is never presented as complete.
 func collectTopicQueueOffsets(ctx context.Context, client *admin.Client, topic string) ([]topicQueueOffset, error) {
 	route, err := client.ExamineTopicRouteInfo(ctx, topic)
 	if err != nil {
@@ -613,15 +613,15 @@ func collectTopicQueueOffsets(ctx context.Context, client *admin.Client, topic s
 	return offsets, nil
 }
 
-// 判断是否为系统 Topic（列表默认隐藏）
-// 保留 %RETRY% / %DLQ%（运维常需查看），其余内部 Topic 过滤掉。
+// isSystemTopic reports whether a topic is internal and hidden from the default
+// list. Retry and dead-letter topics remain visible for operational use.
 func isSystemTopic(topic string) bool {
 	topic = strings.TrimSpace(topic)
 	if topic == "" {
 		return true
 	}
 
-	// 重试 / 死信队列：业务相关，不过滤
+	// Retry and dead-letter queues are business-related and remain visible.
 	if strings.HasPrefix(topic, "%RETRY%") ||
 		strings.HasPrefix(topic, "%DLQ%") ||
 		strings.HasPrefix(topic, "RETRY%") ||
@@ -629,7 +629,7 @@ func isSystemTopic(topic string) bool {
 		return false
 	}
 
-	// 其它 % 前缀（内部命名）
+	// Other names with a percent prefix are internal.
 	if topic[0] == '%' {
 		return true
 	}
@@ -673,8 +673,8 @@ func isSystemTopic(topic string) bool {
 	return false
 }
 
-// parseMQKey 从 MessageQueue 序列化字符串中解析 brokerName 和 queueId
-// 格式: "MessageQueue [topic=xxx, brokerName=broker-a, queueId=0]"
+// parseMQKey extracts brokerName and queueId from a serialized MessageQueue.
+// Format: "MessageQueue [topic=xxx, brokerName=broker-a, queueId=0]".
 func parseMQKey(key string) (string, int) {
 	var parsed struct {
 		BrokerName string `json:"brokerName"`

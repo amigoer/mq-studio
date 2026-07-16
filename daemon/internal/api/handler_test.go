@@ -22,7 +22,7 @@ func TestHealthRequiresBearerToken(t *testing.T) {
 	}
 	var response apiError
 	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
-		t.Fatalf("解析错误响应失败: %v", err)
+		t.Fatalf("failed to parse error response: %v", err)
 	}
 	if response.Code != "UNAUTHORIZED" || response.RequestID != "request-1" {
 		t.Fatalf("unexpected error response: %+v", response)
@@ -49,10 +49,10 @@ func TestRedactConnectionNeverReturnsCredentials(t *testing.T) {
 		ID: 7, Name: "prod", AccessKey: "access-secret", SecretKey: "secret-secret", EnableACL: true,
 	})
 	if view.AccessKey != "" || view.SecretKey != "" {
-		t.Fatal("凭证不得进入 ConnectionView")
+		t.Fatal("credentials must not appear in ConnectionView")
 	}
 	if !view.AccessKeyConfigured || !view.SecretKeyConfigured {
-		t.Fatal("应保留凭证已配置状态")
+		t.Fatal("credential configured flags should be preserved")
 	}
 }
 
@@ -62,10 +62,10 @@ func TestRedactSettingsReportsCredentialStateWithoutSecrets(t *testing.T) {
 		GlobalSecretKey: "global-sk",
 	})
 	if view.GlobalAccessKey != "" || view.GlobalSecretKey != "" {
-		t.Fatal("全局凭证不得返回给渲染进程")
+		t.Fatal("global credentials must not be returned to the renderer")
 	}
 	if !view.GlobalAccessKeyConfigured || !view.GlobalSecretKeyConfigured {
-		t.Fatal("应返回全局凭证已配置状态")
+		t.Fatal("global credential configured flags should be returned")
 	}
 }
 
@@ -77,7 +77,7 @@ func TestDecodeJSONAcceptsWrappedImportLargerThanTwoMiB(t *testing.T) {
 		Content string `json:"content"`
 	}
 	if !decodeJSON(recorder, request, &input) {
-		t.Fatalf("3 MiB 导入包装请求应被接受，status=%d body=%s", recorder.Code, recorder.Body.String())
+		t.Fatalf("3 MiB wrapped import request should be accepted, status=%d body=%s", recorder.Code, recorder.Body.String())
 	}
 	if len(input.Content) != 3<<20 {
 		t.Fatalf("content length = %d, want %d", len(input.Content), 3<<20)

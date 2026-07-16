@@ -5,7 +5,7 @@ import "testing"
 func TestDefaultSettingsSaneBounds(t *testing.T) {
 	s := DefaultSettings()
 	if s == nil {
-		t.Fatal("DefaultSettings 不应返回 nil")
+		t.Fatal("DefaultSettings should not return nil")
 	}
 	if s.Theme != "system" {
 		t.Fatalf("theme = %q", s.Theme)

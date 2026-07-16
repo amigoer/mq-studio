@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: Rocket Leaf Private Desktop API
   version: 2.0.0
-  description: Electron 主进程与本地 rocket-leafd 之间的私有回环接口，不作为公共 API 发布。
+  description: Private loopback API between the Electron main process and local rocket-leafd; not published as a public API.
 servers:
   - url: http://127.0.0.1:{port}/v1
     variables:
@@ -378,7 +378,7 @@ components:
       required: [name, env, nameServer, timeoutSec, enableACL, accessKey, secretKey, remark]
       properties:
         name: { type: string }
-        env: { type: string, enum: [生产, 测试, 开发] }
+        env: { type: string, enum: [production, test, development] }
         nameServer: { type: string }
         timeoutSec: { type: integer }
         enableACL: { type: boolean }

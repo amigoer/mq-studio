@@ -14,17 +14,17 @@ import (
 	admin "github.com/amigoer/rocketmq-admin-go"
 )
 
-// brokerTPSHistory 单 broker 的滚动 TPS 历史，最大 tpsHistoryLen 个采样。
+// brokerTPSHistory stores a rolling TPS history for one broker, up to tpsHistoryLen samples.
 type brokerTPSHistory struct {
 	tpsIn  []int
 	tpsOut []int
 }
 
-// tpsHistoryLen 决定吞吐趋势图能回放的采样深度；前端按 30s 拉一次时
-// 60 个采样约等于 30 分钟。
+// tpsHistoryLen controls the sample depth available to the throughput trend chart.
+// At a 30-second polling interval, 60 samples represent about 30 minutes.
 const tpsHistoryLen = 60
 
-// ClusterService 集群状态服务
+// ClusterService provides cluster status operations.
 type ClusterService struct {
 	connectionService *ConnectionService
 	settingsService   *SettingsService
@@ -33,7 +33,7 @@ type ClusterService struct {
 	history   map[string]*brokerTPSHistory // key: broker address
 }
 
-// NewClusterService 创建集群状态服务
+// NewClusterService creates a cluster status service.
 func NewClusterService(connService *ConnectionService, settingsService *SettingsService) *ClusterService {
 	return &ClusterService{
 		connectionService: connService,
@@ -42,8 +42,8 @@ func NewClusterService(connService *ConnectionService, settingsService *Settings
 	}
 }
 
-// recordBrokerTPS 把当前 TPS 追加到该 broker 的滚动历史并把历史回写到 broker
-// 对象，方便前端在没有专门的历史接口时也能直接画图。
+// recordBrokerTPS appends the current TPS values to the broker's rolling history
+// and copies the history back to the broker so the UI can chart it without a dedicated history endpoint.
 func (s *ClusterService) recordBrokerTPS(broker *model.BrokerNode) {
 	if broker == nil || broker.Address == "" || broker.Status != model.NodeOnline || broker.TpsIn < 0 || broker.TpsOut < 0 {
 		return
@@ -57,12 +57,12 @@ func (s *ClusterService) recordBrokerTPS(broker *model.BrokerNode) {
 	}
 	h.tpsIn = appendCapped(h.tpsIn, broker.TpsIn, tpsHistoryLen)
 	h.tpsOut = appendCapped(h.tpsOut, broker.TpsOut, tpsHistoryLen)
-	// 拷贝出去防止后续追加污染前端拿到的切片。
+	// Copy the slices so later appends cannot mutate data already returned to the UI.
 	broker.TpsInHistory = append([]int(nil), h.tpsIn...)
 	broker.TpsOutHistory = append([]int(nil), h.tpsOut...)
 }
 
-// appendCapped 追加并裁剪保持 cap 上限的切片。
+// appendCapped appends a value and trims the slice to the given maximum length.
 func appendCapped(arr []int, v int, cap int) []int {
 	arr = append(arr, v)
 	if len(arr) > cap {
@@ -71,11 +71,11 @@ func appendCapped(arr []int, v int, cap int) []int {
 	return arr
 }
 
-// GetClusterInfo 获取集群信息
+// GetClusterInfo returns cluster information.
 func (s *ClusterService) GetClusterInfo() (*model.ClusterInfo, error) {
 	client, err := rocketmq.GetClientManager().GetDefaultClient()
 	if err != nil {
-		// 无连接时返回空数据
+		// Return empty data when there is no active connection.
 		return &model.ClusterInfo{
 			Brokers:     make([]*model.BrokerNode, 0),
 			NameServers: make([]string, 0),
@@ -163,10 +163,10 @@ func (s *ClusterService) GetClusterInfo() (*model.ClusterInfo, error) {
 
 		tmpResult.TotalBrokers = len(tmpResult.Brokers)
 
-		// 最佳努力：为每个 broker 补齐 runtime 字段（版本号、TPS、磁盘等），
-		// 让 Cluster 屏幕的 KPI 卡片和 broker 列表能显示真实数据。
-		// 每个 broker 用独立的 ctx，避免共享 ctx 的剩余预算被前面的调用耗尽；
-		// 失败的单个 broker 仅丢失 runtime 字段，不影响整体返回。
+		// Best effort: populate each broker's runtime fields, such as version, TPS,
+		// and disk usage, so the Cluster KPI cards and broker list show real data.
+		// Give each broker its own context so earlier calls cannot consume a shared
+		// timeout budget. A failed broker only loses its runtime fields and does not affect the overall response.
 		diskSum := 0
 		diskCount := 0
 		onlineCount := 0
@@ -205,9 +205,9 @@ func (s *ClusterService) GetClusterInfo() (*model.ClusterInfo, error) {
 			tmpResult.AvgDiskUsage = diskSum / diskCount
 		}
 
-		// 最佳努力：补齐 Topic 与 ConsumerGroup 总数，使 Overview / Cluster
-		// 屏幕的 KPI 卡片即便在不单独拉列表的页面也能显示真实数字。
-		// 这两个调用失败不影响 broker 信息返回。
+		// Best effort: populate the total Topic and ConsumerGroup counts so the Overview
+		// and Cluster KPI cards show real values even on pages that do not fetch the lists separately.
+		// Failures in these two calls do not prevent broker information from being returned.
 		topicCtx, topicCancel := context.WithTimeout(context.Background(), s.settingsService.GetRequestTimeout())
 		if topicList, topicErr := retryClient.FetchAllTopicList(topicCtx); topicErr == nil && topicList != nil {
 			count := 0
@@ -255,7 +255,7 @@ func (s *ClusterService) GetClusterInfo() (*model.ClusterInfo, error) {
 	return result, nil
 }
 
-// GetBrokers 获取 Broker 列表
+// GetBrokers returns the broker list.
 func (s *ClusterService) GetBrokers() ([]*model.BrokerNode, error) {
 	clusterInfo, err := s.GetClusterInfo()
 	if err != nil {
@@ -264,7 +264,7 @@ func (s *ClusterService) GetBrokers() ([]*model.BrokerNode, error) {
 	return clusterInfo.Brokers, nil
 }
 
-// GetBrokerDetail 获取 Broker 详情
+// GetBrokerDetail returns details for a broker.
 func (s *ClusterService) GetBrokerDetail(brokerAddr string) (*model.BrokerNode, error) {
 	client, err := rocketmq.GetClientManager().GetDefaultClient()
 	if err != nil {
@@ -313,9 +313,9 @@ func (s *ClusterService) GetBrokerDetail(brokerAddr string) (*model.BrokerNode, 
 	return broker, nil
 }
 
-// enrichBrokerRuntimeStats 静默地补齐 broker 的 runtime 字段。
-// 区别于 applyBrokerRuntimeStats: 失败时不返回错误，让 GetClusterInfo
-// 在批量补齐时跳过单个失败的 broker 而不影响整体。失败原因记录到日志。
+// enrichBrokerRuntimeStats silently populates a broker's runtime fields.
+// Unlike applyBrokerRuntimeStats, it logs errors instead of returning them so
+// GetClusterInfo can skip an individual failed broker during bulk enrichment.
 func (s *ClusterService) enrichBrokerRuntimeStats(ctx context.Context, client *admin.Client, broker *model.BrokerNode) {
 	if broker == nil || broker.Address == "" {
 		return
@@ -332,8 +332,8 @@ func (s *ClusterService) enrichBrokerRuntimeStats(ctx context.Context, client *a
 	broker.Status = model.NodeOnline
 }
 
-// applyBrokerRuntimeStats 拉取 broker runtime 统计并写入字段。
-// 网络错误等会返回 error，由调用方决定是否传播。
+// applyBrokerRuntimeStats fetches broker runtime statistics and populates the broker fields.
+// It returns network and other errors so the caller can decide whether to propagate them.
 func (s *ClusterService) applyBrokerRuntimeStats(ctx context.Context, client *admin.Client, broker *model.BrokerNode) error {
 	stats, err := client.FetchBrokerRuntimeStats(ctx, broker.Address)
 	if err != nil {
@@ -345,8 +345,9 @@ func (s *ClusterService) applyBrokerRuntimeStats(ctx context.Context, client *ad
 	if version, ok := stats.Table["brokerVersionDesc"]; ok {
 		broker.Version = version
 	}
-	// putTps / getTransferredTps 形如 "0.0 0.0 0.0"（当前/5分钟均/15分钟均），
-	// 取第一个数值并按 float 解析（之前用 parseIntSafe 会把 "0.5" 截成 0）。
+	// putTps and getTransferredTps use the form "0.0 0.0 0.0"
+	// (current/5-minute average/15-minute average). Parse the first value as a float;
+	// parseIntSafe would truncate a value such as "0.5" to zero.
 	if tpsIn, ok := stats.Table["putTps"]; ok {
 		broker.TpsIn = int(parseFloatSafe(extractFirstValue(tpsIn)))
 	}
@@ -368,11 +369,11 @@ func (s *ClusterService) applyBrokerRuntimeStats(ctx context.Context, client *ad
 	return nil
 }
 
-// GetNameServers 获取 NameServer 列表
+// GetNameServers returns the NameServer list.
 func (s *ClusterService) GetNameServers() ([]*model.NameServerNode, error) {
 	client, err := rocketmq.GetClientManager().GetDefaultClient()
 	if err != nil {
-		// 无连接时返回空数据
+		// Return empty data when there is no active connection.
 		return []*model.NameServerNode{}, nil
 	}
 
@@ -392,7 +393,7 @@ func (s *ClusterService) GetNameServers() ([]*model.NameServerNode, error) {
 	return result, nil
 }
 
-// GetClusterSummary 获取集群概览统计
+// GetClusterSummary returns aggregate cluster statistics.
 func (s *ClusterService) GetClusterSummary() (*model.ClusterSummary, error) {
 	clusterInfo, err := s.GetClusterInfo()
 	if err != nil {
@@ -421,7 +422,7 @@ func (s *ClusterService) GetClusterSummary() (*model.ClusterSummary, error) {
 	return summary, nil
 }
 
-// 辅助函数
+// Parsing helpers.
 func parseIntSafe(s string) int {
 	var result int
 	fmt.Sscanf(s, "%d", &result)

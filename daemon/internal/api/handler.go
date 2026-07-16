@@ -1,4 +1,4 @@
-// Package api 提供仅供 Electron 主进程访问的私有回环 HTTP API。
+// Package api provides a private loopback HTTP API for the Electron main process only.
 package api
 
 import (
@@ -15,8 +15,9 @@ import (
 	"github.com/amigoer/rocket-leaf/daemon/internal/app"
 )
 
-// Electron 允许导入 5 MiB 配置；再包进 {"content":"..."} 时引号和反斜杠
-// 会被转义，最坏接近两倍，因此为私有 API 预留 12 MiB 上限。
+// Electron allows importing up to 5 MiB of config; when wrapped in {"content":"..."},
+// quotes and backslashes are escaped and can nearly double the size, so the private
+// API uses a 12 MiB body limit.
 const maxRequestBody = 12 << 20
 
 type handler struct {
@@ -32,7 +33,7 @@ type apiError struct {
 	Details   map[string]any `json:"details,omitempty"`
 }
 
-// NewHandler 构造带鉴权和故障隔离的私有 API。
+// NewHandler constructs a private API with authentication and panic isolation.
 func NewHandler(services *app.Services, token string, shutdown func()) stdhttp.Handler {
 	h := &handler{services: services, token: token, shutdown: shutdown}
 	mux := stdhttp.NewServeMux()
@@ -52,7 +53,7 @@ func (h *handler) authenticate(next stdhttp.Handler) stdhttp.Handler {
 	return stdhttp.HandlerFunc(func(w stdhttp.ResponseWriter, r *stdhttp.Request) {
 		provided := []byte(r.Header.Get("Authorization"))
 		if subtle.ConstantTimeCompare(provided, expected) != 1 {
-			writeError(w, r, stdhttp.StatusUnauthorized, "UNAUTHORIZED", "未授权访问", nil)
+			writeError(w, r, stdhttp.StatusUnauthorized, "UNAUTHORIZED", "unauthorized", nil)
 			return
 		}
 		w.Header().Set("Cache-Control", "no-store")
@@ -64,7 +65,7 @@ func (h *handler) recoverPanic(next stdhttp.Handler) stdhttp.Handler {
 	return stdhttp.HandlerFunc(func(w stdhttp.ResponseWriter, r *stdhttp.Request) {
 		defer func() {
 			if recover() != nil {
-				writeError(w, r, stdhttp.StatusInternalServerError, "INTERNAL_ERROR", "服务内部错误", nil)
+				writeError(w, r, stdhttp.StatusInternalServerError, "INTERNAL_ERROR", "internal server error", nil)
 			}
 		}()
 		next.ServeHTTP(w, r)
@@ -103,11 +104,11 @@ func decodeJSON(w stdhttp.ResponseWriter, r *stdhttp.Request, value any) bool {
 	decoder := json.NewDecoder(r.Body)
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(value); err != nil {
-		writeError(w, r, stdhttp.StatusBadRequest, "INVALID_REQUEST", "请求参数格式错误", nil)
+		writeError(w, r, stdhttp.StatusBadRequest, "INVALID_REQUEST", "invalid request body", nil)
 		return false
 	}
 	if err := decoder.Decode(&struct{}{}); !errors.Is(err, io.EOF) {
-		writeError(w, r, stdhttp.StatusBadRequest, "INVALID_REQUEST", "请求只能包含一个 JSON 对象", nil)
+		writeError(w, r, stdhttp.StatusBadRequest, "INVALID_REQUEST", "request must contain a single JSON object", nil)
 		return false
 	}
 	return true
@@ -116,7 +117,7 @@ func decodeJSON(w stdhttp.ResponseWriter, r *stdhttp.Request, value any) bool {
 func intPath(w stdhttp.ResponseWriter, r *stdhttp.Request) (int, bool) {
 	id, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil || id <= 0 {
-		writeError(w, r, stdhttp.StatusBadRequest, "INVALID_REQUEST", "连接 ID 无效", nil)
+		writeError(w, r, stdhttp.StatusBadRequest, "INVALID_REQUEST", "invalid connection id", nil)
 		return 0, false
 	}
 	return id, true

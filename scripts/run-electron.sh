@@ -1,12 +1,12 @@
 #!/bin/sh
-# 统一 Electron 启动入口：
-#   sh scripts/run-electron.sh dev   # 开发（electron-vite）
-#   sh scripts/run-electron.sh run   # 使用已构建产物临时运行
+# Unified Electron launch entry:
+#   sh scripts/run-electron.sh dev   # development (electron-vite)
+#   sh scripts/run-electron.sh run   # run from built artifacts temporarily
 set -eu
 
 mode="${1:-}"
 if [ "$mode" != "dev" ] && [ "$mode" != "run" ]; then
-  echo "用法: sh scripts/run-electron.sh <dev|run>" >&2
+  echo "usage: sh scripts/run-electron.sh <dev|run>" >&2
   exit 1
 fi
 
@@ -28,19 +28,19 @@ platform_info() {
   if [ "$platform" = win ]; then suffix=".exe"; fi
 }
 
-# 为 macOS 开发/临时运行准备带应用名和图标的 Electron.app，并 ad-hoc 重签。
-# 必须完整复制（不可 symlink Frameworks），否则签名校验失败会直接 Trace/BPT trap。
+# For macOS dev/temporary runs, prepare an Electron.app with app name and icon, then ad-hoc re-sign.
+# Must fully copy (do not symlink Frameworks), or signature checks fail with Trace/BPT trap.
 prepare_macos_app() {
   destination="${1:?}"
   source_app="$desktop_dir/node_modules/electron/dist/Electron.app"
   icon_icns="$desktop_dir/resources/icon.icns"
 
   if [ ! -d "$source_app" ]; then
-    echo "未找到 Electron.app，请先运行 make install。" >&2
+    echo "Electron.app not found; run make install first." >&2
     exit 1
   fi
   if [ ! -f "$icon_icns" ]; then
-    echo "未找到应用图标 $icon_icns，可先运行 make icons。" >&2
+    echo "app icon not found at $icon_icns; run make icons first." >&2
     exit 1
   fi
 
@@ -102,13 +102,13 @@ run_built() {
   platform_info
   daemon_path="$desktop_dir/resources/bin/$platform/$arch/rocket-leafd$suffix"
   if [ ! -f "$daemon_path" ]; then
-    echo "未找到当前平台 daemon，请先运行 make build。" >&2
+    echo "daemon for current platform not found; run make build first." >&2
     exit 1
   fi
 
   cd "$desktop_dir"
   export ROCKET_LEAF_DAEMON_PATH="$daemon_path"
-  # 通过 electron CLI 启动，避免临时 .app 误启用 updater。
+  # Launch via electron CLI so a temporary .app does not enable the updater by mistake.
   if [ "$(uname -s)" = Darwin ]; then
     with_macos_app ./node_modules/.bin/electron .
   else

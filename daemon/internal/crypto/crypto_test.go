@@ -84,14 +84,14 @@ func TestCorruptedKeyIsNotOverwritten(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err := getOrCreateKey(dir); err == nil {
-		t.Fatal("损坏的密钥必须返回错误")
+		t.Fatal("corrupted key must return an error")
 	}
 	after, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if string(after) != string(original) {
-		t.Fatalf("损坏密钥不应被覆盖: got %q", after)
+		t.Fatalf("corrupted key must not be overwritten: got %q", after)
 	}
 }
 

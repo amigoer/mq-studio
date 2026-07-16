@@ -49,13 +49,13 @@ function useConnectionsState(): ConnectionsContextValue {
   useEffect(() => {
     cancelledRef.current = false
 
-    // 后端启动时会把持久化状态重置为 offline；先执行默认连接恢复，
-    // 再读取列表，确保“启动时自动连接”设置真正反映到 UI。
+    // On backend start, persisted state is reset to offline; restore the default connection
+    // first, then load the list so "auto-connect on launch" is reflected in the UI.
     const bootstrap = async () => {
       try {
         await connectionApi.connectDefault()
       } catch {
-        // 自动连接失败时保留离线状态，用户仍可在连接页手动重试。
+        // Keep offline on auto-connect failure; the user can retry from the Connections page.
       } finally {
         await refresh()
       }

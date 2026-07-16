@@ -25,7 +25,7 @@ function App(): React.ReactElement {
   const gated =
     !hasConnected && activeNav !== 'connections' && activeNav !== 'settings' && activeNav !== 'home'
 
-  // 切换集群时强制重建当前业务页，避免筛选条件、选中项和异步结果跨集群泄漏。
+  // Force-remount the current page on cluster switch so filters, selection, and in-flight results cannot leak across clusters.
   const contentKey = gated ? `empty-${activeNav}-${activeKey}` : `${activeNav}-${activeKey}`
 
   const renderContent = () => {

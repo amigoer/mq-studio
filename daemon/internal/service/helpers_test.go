@@ -78,7 +78,8 @@ func TestValidateConnectionFields(t *testing.T) {
 	if err == nil {
 		t.Fatal("超时过大应失败")
 	}
-	// 0 会在后续 normalizeTimeoutSec 中变为默认值，校验仅拒绝负值与 >300
+	// A zero value is replaced with the default by normalizeTimeoutSec later;
+	// validation only rejects negative values and values greater than 300.
 	name, ns, err := validateConnectionFields("  prod  ", " ns:9876;ns2:9876 ", 0)
 	if err != nil || name != "prod" || ns != "ns:9876;ns2:9876" {
 		t.Fatalf("合法输入失败: %v %q %q", err, name, ns)

@@ -11,10 +11,10 @@ const { autoUpdater } = electronUpdater
 const allowedExternalHosts = new Set(['github.com', 'api.github.com'])
 
 export async function openAllowedExternal(value: unknown): Promise<void> {
-  if (typeof value !== 'string') throw new Error('外部链接无效')
+  if (typeof value !== 'string') throw new Error('invalid external link')
   const url = new URL(value)
   if (url.protocol !== 'https:' || !allowedExternalHosts.has(url.hostname)) {
-    throw new Error('不允许打开此外部链接')
+    throw new Error('opening this external link is not allowed')
   }
   await shell.openExternal(url.toString())
 }
@@ -62,7 +62,7 @@ export function registerIPC(
   const handle = (channel: string, listener: Parameters<typeof ipcMain.handle>[1]) => {
     ipcMain.handle(channel, (event, ...args) => {
       const senderURL = event.senderFrame?.url ?? event.sender.getURL()
-      if (!trustedSender(senderURL)) throw new Error('拒绝来自未知页面的 IPC 调用')
+      if (!trustedSender(senderURL)) throw new Error('IPC call from untrusted page rejected')
       return listener(event, ...args)
     })
   }
@@ -86,7 +86,7 @@ export function registerIPC(
   handle('dialogs:export-config', async () => {
     const date = new Date().toISOString().slice(0, 10)
     const result = await dialog.showSaveDialog(window, {
-      title: '导出 Rocket Leaf 配置',
+      title: 'Export Rocket Leaf config',
       defaultPath: `rocket-leaf-config-${date}.json`,
       filters: [{ name: 'JSON', extensions: ['json'] }],
     })
@@ -98,16 +98,16 @@ export function registerIPC(
 
   handle('dialogs:import-config', async () => {
     const result = await dialog.showOpenDialog(window, {
-      title: '导入 Rocket Leaf 配置',
+      title: 'Import Rocket Leaf config',
       properties: ['openFile'],
       filters: [{ name: 'JSON', extensions: ['json'] }],
     })
     const filePath = result.filePaths[0]
     if (result.canceled || !filePath) return null
     const info = await stat(filePath)
-    if (!info.isFile()) throw new Error('请选择有效的配置文件')
+    if (!info.isFile()) throw new Error('please select a valid config file')
     if (info.size > MAX_IMPORT_BYTES) {
-      throw new Error(`配置文件过大（上限 ${Math.floor(MAX_IMPORT_BYTES / 1024 / 1024)} MB）`)
+      throw new Error(`config file too large (limit ${Math.floor(MAX_IMPORT_BYTES / 1024 / 1024)} MB)`)
     }
     const content = await readFile(filePath, 'utf8')
     await supervisor.request('POST', '/v1/settings/import', { content })
@@ -116,7 +116,7 @@ export function registerIPC(
 
   handle('updater:check', async () => {
     if (!isReleaseInstall()) {
-      throw new Error('当前为开发/本地运行环境，不支持应用内更新检查')
+      throw new Error('in-app update check is not supported in development/local runs')
     }
     const result = await autoUpdater.checkForUpdates()
     const response: UpdateCheckResult = {
@@ -126,11 +126,11 @@ export function registerIPC(
     return response
   })
   handle('updater:download', async () => {
-    if (!isReleaseInstall()) throw new Error('当前环境不支持下载更新')
+    if (!isReleaseInstall()) throw new Error('downloading updates is not supported in this environment')
     return autoUpdater.downloadUpdate()
   })
   handle('updater:install', async () => {
-    if (!isReleaseInstall()) throw new Error('当前环境不支持安装更新')
+    if (!isReleaseInstall()) throw new Error('installing updates is not supported in this environment')
     autoUpdater.quitAndInstall()
   })
 }

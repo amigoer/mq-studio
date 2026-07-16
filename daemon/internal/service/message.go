@@ -21,13 +21,13 @@ import (
 	"github.com/apache/rocketmq-client-go/v2/producer"
 )
 
-// MessageService 消息查询服务
+// MessageService provides message query operations.
 type MessageService struct {
 	nextID          int64
 	settingsService *SettingsService
 }
 
-// NewMessageService 创建消息查询服务
+// NewMessageService creates a message query service.
 func NewMessageService(settingsService *SettingsService) *MessageService {
 	return &MessageService{
 		nextID:          1,
@@ -39,7 +39,8 @@ func (s *MessageService) getNextID() int {
 	return int(atomic.AddInt64(&s.nextID, 1))
 }
 
-// QueryMessages 查询消息，startTime/endTime 为 Unix 毫秒时间戳，0 表示不限制
+// QueryMessages queries messages. startTime and endTime are Unix timestamps in
+// milliseconds; zero means the corresponding boundary is unrestricted.
 func (s *MessageService) QueryMessages(topic string, key string, tag string, maxResults int, startTime, endTime int64) ([]*model.MessageItem, error) {
 	client, err := rocketmq.GetClientManager().GetDefaultClient()
 	if err != nil {
@@ -80,18 +81,21 @@ func (s *MessageService) QueryMessages(topic string, key string, tag string, max
 			callErr error
 		)
 		if trimmedKey != "" && trimmedTag == "" {
-			// 仅按 Key 查询时使用 Broker 索引。
+			// Use the broker index only for key-only queries.
 			msgs, callErr = retryClient.QueryMessage(ctx, topic, trimmedKey, maxResults, startTime, endTime)
 			if callErr == nil && len(msgs) == 0 {
-				// 新写入消息的哈希索引存在短暂可见性延迟；索引未命中时
-				// 扫描时间窗内的队列并做精确 Key 匹配，避免返回假空结果。
+				// Hash indexes for newly written messages have a short visibility delay.
+				// If the index misses, scan queues in the time window and match the key
+				// exactly to avoid returning a false empty result.
 				msgs, callErr = queryMessagesNewest(
 					ctx, retryClient, topic, trimmedKey, "", maxResults, startTime, endTime,
 				)
 			}
 		} else {
-			// 无 Key 或同时带 Tag 时按队列从后向前扫描。底层 QueryMessageByTime
-			// 从时间窗起点返回最早一批，既不符合“最新消息”预期，也会让本地过滤漏报。
+			// Scan each queue backward when no key is supplied or a tag is also
+			// present. QueryMessageByTime returns the earliest batch from the start
+			// of the window, which neither satisfies "newest messages" semantics nor
+			// prevents local filters from missing matches.
 			msgs, callErr = queryMessagesNewest(ctx, retryClient, topic, trimmedKey, trimmedTag, maxResults, startTime, endTime)
 		}
 		if callErr != nil {
@@ -149,9 +153,11 @@ type messageQueueScan struct {
 	queueID    int
 }
 
-// queryMessagesNewest 从每个读队列的时间窗末端向前扫描，直到该队列找到足够
-// 的匹配消息或到达时间窗起点。每个队列最多保留 maxResults 条，因此合并后取
-// 全局最新 maxResults 条时不会漏掉候选；扫描超时会返回错误而不是伪装成空结果。
+// queryMessagesNewest scans backward from the end of each readable queue's
+// time window until it finds enough matching messages or reaches the start.
+// Each queue retains at most maxResults entries, so selecting the global newest
+// maxResults after merging cannot omit a candidate. A timeout is returned as an
+// error rather than disguised as an empty result.
 func queryMessagesNewest(
 	ctx context.Context,
 	client *admin.Client,
@@ -264,8 +270,9 @@ func scanMessageQueueNewest(
 		return []*admin.MessageExt{}, nil
 	}
 
-	// SearchOffset 返回目标时间附近的偏移；+1 后可覆盖恰好等于 endTime 的消息，
-	// 最终仍由时间戳过滤保证边界准确。
+	// SearchOffset returns an offset near the target time. Adding one includes
+	// messages exactly at endTime, while timestamp filtering still enforces the
+	// precise boundary.
 	upper := endOffset + 1
 	matches := make([]*admin.MessageExt, 0, maxResults)
 	for upper > startOffset && len(matches) < maxResults {
@@ -320,7 +327,7 @@ func containsExactMessageKey(rawKeys, wanted string) bool {
 	return false
 }
 
-// convertMessageExt 将 admin.MessageExt 转换为 model.MessageItem
+// convertMessageExt converts an admin.MessageExt into a model.MessageItem.
 func (s *MessageService) convertMessageExt(msg *admin.MessageExt) *model.MessageItem {
 	tags := ""
 	keys := ""
@@ -366,7 +373,7 @@ func (s *MessageService) convertMessageExt(msg *admin.MessageExt) *model.Message
 	}
 }
 
-// QueryMessageByID 按消息 ID 查询消息
+// QueryMessageByID returns a message by ID.
 func (s *MessageService) QueryMessageByID(topic string, msgID string) (*model.MessageItem, error) {
 	topic = strings.TrimSpace(topic)
 	msgID = strings.TrimSpace(msgID)
@@ -394,16 +401,18 @@ func (s *MessageService) QueryMessageByID(topic string, msgID string) (*model.Me
 	return item, nil
 }
 
-// findMessageByID 统一消息详情与轨迹查询的 MsgID 兼容策略。
+// findMessageByID applies a shared MsgID compatibility strategy to message
+// detail and tracking queries.
 func findMessageByID(ctx context.Context, client *admin.Client, topic, msgID string) (*admin.MessageExt, error) {
 	message, viewErr := client.ViewMessage(ctx, topic, msgID)
 	if viewErr == nil && message != nil {
 		return message, nil
 	}
 
-	// RocketMQ 5 的 ViewMessageById 使用 OffsetMsgID 定位，而部分旧管理
-	// 客户端仍发送 msgId 请求头。直接查看失败时按客户端 MsgID（UNIQ_KEY）
-	// 查询 Broker 索引，兼容两种服务端行为。
+	// RocketMQ 5 ViewMessageById locates messages by OffsetMsgID, while some
+	// older admin clients still send the msgId request header. If direct lookup
+	// fails, query the broker index by client MsgID (UNIQ_KEY) to support both
+	// server behaviors.
 	messages, queryErr := client.QueryMessage(ctx, topic, msgID, 64, 0, time.Now().UnixMilli())
 	if queryErr != nil {
 		if viewErr != nil {
@@ -417,7 +426,8 @@ func findMessageByID(ctx context.Context, client *admin.Client, topic, msgID str
 		}
 	}
 
-	// 消息索引可能暂时不可见，扫描最近消息作为最后一层兜底。
+	// The message index may not be visible yet, so scan recent messages as a
+	// final fallback.
 	recent, scanErr := queryMessagesNewest(
 		ctx, client, topic, "", "", 1000, 0, time.Now().UnixMilli(),
 	)
@@ -442,8 +452,9 @@ func messageMatchesID(message *admin.MessageExt, messageID string) bool {
 	return message.Properties[primitive.PropertyUniqueClientMessageIdKeyIndex] == messageID
 }
 
-// GetMessageTrack 获取消息轨迹
-// 通过查询订阅该 Topic 的消费者组，逐一检查消费进度来判断消息是否已被消费
+// GetMessageTrack returns message tracking information. It finds the consumer
+// groups subscribed to the topic and checks each group's progress to determine
+// whether the message has been consumed.
 func (s *MessageService) GetMessageTrack(topic string, msgID string) ([]*model.MessageTrackItem, error) {
 	topic = strings.TrimSpace(topic)
 	msgID = strings.TrimSpace(msgID)
@@ -471,7 +482,7 @@ func (s *MessageService) GetMessageTrack(topic string, msgID string) ([]*model.M
 		message.BrokerName = s.resolveMessageBrokerName(client, message)
 	}
 
-	// 1. 获取订阅该 Topic 的所有消费者组
+	// 1. Find all consumer groups subscribed to the topic.
 	var groups []string
 	err = executeWithClientRetryTimeout(client, s.settingsService.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
 		result, callErr := retryClient.QueryTopicConsumeByWho(ctx, topic)
@@ -487,7 +498,7 @@ func (s *MessageService) GetMessageTrack(topic string, msgID string) ([]*model.M
 
 	tracks := make([]*model.MessageTrackItem, 0, len(groups))
 
-	// 2. 逐个消费者组检查消费状态
+	// 2. Check the consumption status for each consumer group.
 	for _, group := range groups {
 		if isSystemGroup(group) {
 			continue
@@ -599,10 +610,11 @@ func extractQueueKeyField(key, field string) string {
 	return strings.TrimSpace(value)
 }
 
-// ResendMessage 将原消息内容作为新消息重新发布。
+// ResendMessage republishes the original content as a new message.
 func (s *MessageService) ResendMessage(consumerGroup string, clientID string, topic string, msgID string) (string, error) {
-	// 保留旧绑定参数以兼容现有前端；真正的“重投”是重新发布原消息，
-	// 不再误用必须依赖在线 clientID 的 ConsumeMessageDirectly。
+	// Keep the legacy binding parameters for compatibility with the existing UI.
+	// A true resend republishes the original message instead of misusing
+	// ConsumeMessageDirectly, which requires an online clientID.
 	_ = consumerGroup
 	_ = clientID
 	item, err := s.QueryMessageByID(topic, msgID)
@@ -624,8 +636,9 @@ func (s *MessageService) ResendMessage(consumerGroup string, clientID string, to
 	return s.SendMessage(targetTopic, item.Tags, item.Keys, item.Body, 0)
 }
 
-// QueryDLQMessages 查询消费者组的死信队列消息。
-// 当 DLQ Topic 还未被创建（说明这个组从未产生过死信）时，返回空列表而非报错。
+// QueryDLQMessages returns dead-letter messages for a consumer group. It returns
+// an empty list if the DLQ topic has not been created, which means the group has
+// never produced a dead-letter message.
 func (s *MessageService) QueryDLQMessages(groupName string, maxResults int) ([]*model.MessageItem, error) {
 	groupName = strings.TrimSpace(groupName)
 	if groupName == "" {
@@ -639,8 +652,9 @@ func (s *MessageService) QueryDLQMessages(groupName string, maxResults int) ([]*
 	return msgs, err
 }
 
-// QueryRetryMessages 查询消费者组的重试队列消息。
-// 当重试 Topic 还未被创建（说明这个组从未产生过重试）时，返回空列表而非报错。
+// QueryRetryMessages returns retry messages for a consumer group. It returns an
+// empty list if the retry topic has not been created, which means the group has
+// never produced a retry message.
 func (s *MessageService) QueryRetryMessages(groupName string, maxResults int) ([]*model.MessageItem, error) {
 	groupName = strings.TrimSpace(groupName)
 	if groupName == "" {
@@ -654,7 +668,8 @@ func (s *MessageService) QueryRetryMessages(groupName string, maxResults int) ([
 	return msgs, err
 }
 
-// SendMessage 发送消息到指定 Topic，delayLevel 0 表示不延迟，1-18 对应 RocketMQ 延迟等级
+// SendMessage sends a message to the specified topic. A delayLevel of zero
+// means no delay; values from 1 through 18 map to RocketMQ delay levels.
 func (s *MessageService) SendMessage(topic string, tags string, keys string, body string, delayLevel int) (string, error) {
 	topic = strings.TrimSpace(topic)
 	if topic == "" {
@@ -667,7 +682,7 @@ func (s *MessageService) SendMessage(topic string, tags string, keys string, bod
 		return "", fmt.Errorf("发送消息失败: 延迟等级必须在 0-18 之间")
 	}
 
-	// 获取默认连接的 NameServer 地址
+	// Get the NameServer addresses from the default connection.
 	manager := rocketmq.GetClientManager()
 	if _, err := manager.GetDefaultClient(); err != nil {
 		return "", fmt.Errorf("发送消息失败: %w", err)
@@ -677,7 +692,7 @@ func (s *MessageService) SendMessage(topic string, tags string, keys string, bod
 		return "", fmt.Errorf("发送消息失败: %w", err)
 	}
 
-	// 创建 Producer
+	// Create the producer.
 	producerOptions := []producer.Option{
 		producer.WithNameServer(clientConfig.NameServers),
 		producer.WithRetry(2),
@@ -720,7 +735,8 @@ func (s *MessageService) SendMessage(topic string, tags string, keys string, bod
 		return "", fmt.Errorf("发送消息失败: %w", err)
 	}
 
-	// HTTP 契约返回 RocketMQ 标准客户端 MsgID；成功文案由桌面端展示。
+	// The HTTP contract returns the standard RocketMQ client MsgID; the desktop
+	// client presents the success message.
 	messageID := strings.TrimSpace(result.MsgID)
 	if messageID == "" {
 		messageID = result.OffsetMsgID

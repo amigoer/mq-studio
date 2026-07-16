@@ -20,7 +20,7 @@ export type TimestampFormat = 'datetime' | 'ms'
 export type ProxyType = 'http' | 'socks5'
 export type FetchLimit = 32 | 64 | 128
 
-// 前端使用的设置接口（与后端 AppSettings 字段一致）
+// Frontend settings shape (aligned with backend AppSettings fields)
 export interface FrontendSettings {
   theme: ThemeMode
   language: Language
@@ -80,7 +80,7 @@ const DEFAULTS: FrontendSettings = {
 const MIN_FONT_SIZE = 12
 const MAX_FONT_SIZE = 18
 
-// 将后端返回的 AppSettings 转为前端类型
+// Map backend AppSettings to the frontend type
 function toFrontend(s: AppSettings): FrontendSettings {
   return {
     theme: (['system', 'light', 'dark'].includes(s.theme) ? s.theme : DEFAULTS.theme) as ThemeMode,
@@ -116,7 +116,7 @@ function toFrontend(s: AppSettings): FrontendSettings {
   }
 }
 
-// 将前端设置转为后端 AppSettings 格式（plain object）
+// Map frontend settings to backend AppSettings (plain object)
 function toBackend(s: FrontendSettings): AppSettings {
   const {
     globalAccessKeyConfigured: _accessConfigured,
@@ -158,27 +158,27 @@ function applyTheme(mode: ThemeMode) {
 function applySettingsToDocument(settings: FrontendSettings) {
   const root = document.documentElement
 
-  // 主题
+  // Theme
   applyTheme(settings.theme)
 
-  // 字体大小
+  // Font size
   const size = Math.max(MIN_FONT_SIZE, Math.min(MAX_FONT_SIZE, settings.fontSize))
   root.style.setProperty('--app-font-size', `${size}px`)
 
-  // UI 字体
+  // UI font
   const uiFont = settings.uiFont.trim()
   root.style.setProperty(
     '--app-ui-font',
     !uiFont || uiFont === 'system' ? SYSTEM_FONT_STACK : `"${uiFont}", ${SYSTEM_FONT_STACK}`,
   )
 
-  // 等宽字体
+  // Monospace font
   root.style.setProperty(
     '--app-monospace-font',
     settings.monospaceFont.trim() || DEFAULTS.monospaceFont,
   )
 
-  // 语言
+  // Language
   root.lang = settings.language === 'en' ? 'en' : 'zh-CN'
   setI18nLanguage(settings.language as SupportedLanguage)
 }
@@ -192,14 +192,14 @@ function useSettingsStore(): SettingsContextValue {
   const pendingSettingsRef = useRef<FrontendSettings | null>(null)
   const saveChainRef = useRef<Promise<void>>(Promise.resolve())
 
-  // 组件挂载时从后端加载设置，并迁移 localStorage 中的旧主题数据
+  // Load settings from backend on mount and migrate legacy theme from localStorage
   useEffect(() => {
     let cancelled = false
     getSettings()
       .then((result) => {
         if (!cancelled && result) {
           const frontend = toFrontend(result)
-          // 迁移旧 localStorage 主题到后端
+          // Migrate legacy localStorage theme to the backend
           const legacyTheme = localStorage.getItem('rocket-leaf-theme')
           if (
             legacyTheme &&
@@ -213,7 +213,7 @@ function useSettingsStore(): SettingsContextValue {
         }
       })
       .catch(() => {
-        // 后端不可用时使用默认值
+        // Fall back to defaults when backend is unavailable
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -229,7 +229,7 @@ function useSettingsStore(): SettingsContextValue {
     setEffectiveDark(settings.theme === 'system' ? getSystemDark() : settings.theme === 'dark')
   }, [settings])
 
-  // 监听系统主题变化（仅在 theme === 'system' 时响应）
+  // Listen for system theme changes (only when theme === 'system')
   useEffect(() => {
     if (settings.theme !== 'system') return
     const mq = window.matchMedia('(prefers-color-scheme: dark)')
@@ -243,18 +243,18 @@ function useSettingsStore(): SettingsContextValue {
   }, [settings.theme])
 
   const enqueueSave = useCallback((next: FrontendSettings) => {
-    // 所有写入严格串行，防止较早请求后完成并覆盖较新的设置。
+    // Serialize all writes so an earlier request cannot finish later and overwrite newer settings.
     const operation = saveChainRef.current
       .catch(() => undefined)
       .then(async () => {
         await updateSettings(toBackend(next), 'preserve')
       })
     saveChainRef.current = operation
-    void operation.catch((err) => console.error('保存设置失败:', err))
+    void operation.catch((err) => console.error('Failed to save settings:', err))
     return operation
   }, [])
 
-  // 防抖保存到后端
+  // Debounced save to backend
   const saveToBackend = useCallback(
     (newSettings: FrontendSettings) => {
       pendingSettingsRef.current = newSettings
@@ -300,14 +300,14 @@ function useSettingsStore(): SettingsContextValue {
 
   const resetAllSettings = useCallback(async () => {
     try {
-      // 确保重置是最后一次写入，避免 300ms 防抖保存把旧设置覆盖回来。
+      // Ensure reset is the last write so a pending 300ms debounced save cannot restore old settings.
       await settlePendingSaves()
       const result = await apiResetSettings()
       if (result) {
         setSettingsState(toFrontend(result))
       }
     } catch (err) {
-      console.error('重置设置失败:', err)
+      console.error('Failed to reset settings:', err)
       throw err
     }
   }, [settlePendingSaves])
@@ -321,7 +321,7 @@ function useSettingsStore(): SettingsContextValue {
     async (accessKey: string, secretKey: string) => {
       const trimmedAccessKey = accessKey.trim()
       if (!trimmedAccessKey || !secretKey.trim()) {
-        throw new Error('AccessKey 和 SecretKey 必须同时填写')
+        throw new Error('AccessKey and SecretKey must both be provided')
       }
       await settlePendingSaves()
       const next = {
@@ -377,7 +377,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 export function useSettings() {
   const context = useContext(SettingsContext)
   if (context == null) {
-    throw new Error('useSettings 必须在 SettingsProvider 内使用')
+    throw new Error('useSettings must be used within SettingsProvider')
   }
   return context
 }

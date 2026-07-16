@@ -112,7 +112,7 @@ func (h *handler) updateConnection(w stdhttp.ResponseWriter, r *stdhttp.Request)
 		input.EnableACL, accessKey, secretKey = false, "", ""
 	case "replace":
 	default:
-		writeError(w, r, stdhttp.StatusBadRequest, "INVALID_REQUEST", "凭证更新模式无效", nil)
+		writeError(w, r, stdhttp.StatusBadRequest, "INVALID_REQUEST", "invalid credentials mode", nil)
 		return
 	}
 	connection, err := h.services.Connections.UpdateConnection(id, input.Name, input.Env, input.NameServer, input.TimeoutSec, input.EnableACL, accessKey, secretKey, input.Remark)

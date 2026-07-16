@@ -1,4 +1,4 @@
-// Package rocketmq 封装 RocketMQ Admin 客户端
+// Package rocketmq wraps the RocketMQ Admin client.
 package rocketmq
 
 import (
@@ -13,18 +13,18 @@ import (
 	admin "github.com/amigoer/rocketmq-admin-go"
 )
 
-// AdminClientManager 管理 Admin 客户端
+// AdminClientManager manages Admin clients.
 type AdminClientManager struct {
 	mu                       sync.RWMutex
 	createMu                 sync.Mutex
-	clients                  map[string]*admin.Client // key: nameServer 地址
-	configs                  map[string]ClientConfig  // key: nameServer 原始配置
-	defaultConn              string                   // 默认连接的 NameServer 地址
-	defaultClientInitializer func() error             // 默认连接初始化器（懒连接）
+	clients                  map[string]*admin.Client // key: NameServer address
+	configs                  map[string]ClientConfig  // key: original NameServer configuration
+	defaultConn              string                   // NameServer address of the default connection
+	defaultClientInitializer func() error             // lazy initializer for the default connection
 }
 
-// ClientConfig 是创建 Admin 客户端时使用的完整连接参数。
-// Producer 等额外客户端必须复用这些参数，避免 ACL 或多 NameServer 配置丢失。
+// ClientConfig contains the complete connection parameters used to create an Admin client.
+// Additional clients, such as producers, must reuse these parameters to preserve ACL and multi-NameServer settings.
 type ClientConfig struct {
 	NameServers []string
 	Timeout     time.Duration
@@ -33,13 +33,13 @@ type ClientConfig struct {
 	SecretKey   string
 }
 
-// 全局客户端管理器
+// Global client manager.
 var clientManager = &AdminClientManager{
 	clients: make(map[string]*admin.Client),
 	configs: make(map[string]ClientConfig),
 }
 
-// ParseNameServers 把用户配置中的分号、逗号或空白分隔地址转换为客户端地址列表。
+// ParseNameServers converts semicolon-, comma-, or whitespace-delimited addresses into a client address list.
 func ParseNameServers(raw string) []string {
 	parts := strings.FieldsFunc(raw, func(r rune) bool {
 		return r == ';' || r == ',' || r == ' ' || r == '\t' || r == '\r' || r == '\n'
@@ -68,19 +68,19 @@ func sameClientConfig(a, b ClientConfig) bool {
 		slices.Equal(a.NameServers, b.NameServers)
 }
 
-// GetClientManager 获取客户端管理器实例
+// GetClientManager returns the client manager instance.
 func GetClientManager() *AdminClientManager {
 	return clientManager
 }
 
-// SetDefaultClientInitializer 设置默认连接初始化器
+// SetDefaultClientInitializer sets the initializer for the default connection.
 func (m *AdminClientManager) SetDefaultClientInitializer(initializer func() error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.defaultClientInitializer = initializer
 }
 
-// GetClient 获取指定 NameServer 的客户端
+// GetClient returns the client for the specified NameServer.
 func (m *AdminClientManager) GetClient(nameServer string) (*admin.Client, error) {
 	m.mu.RLock()
 	client, exists := m.clients[nameServer]
@@ -93,7 +93,7 @@ func (m *AdminClientManager) GetClient(nameServer string) (*admin.Client, error)
 	return nil, fmt.Errorf("客户端未初始化: %s", nameServer)
 }
 
-// GetDefaultClient 获取默认连接的客户端
+// GetDefaultClient returns the client for the default connection.
 func (m *AdminClientManager) GetDefaultClient() (*admin.Client, error) {
 	m.mu.RLock()
 	defaultConn := m.defaultConn
@@ -126,7 +126,7 @@ func (m *AdminClientManager) GetDefaultClient() (*admin.Client, error) {
 	return nil, fmt.Errorf("默认连接客户端不存在: %s", defaultConn)
 }
 
-// CreateClient 创建新的 Admin 客户端
+// CreateClient creates a new Admin client.
 func (m *AdminClientManager) CreateClient(nameServer string, timeout time.Duration, enableACL bool, accessKey string, secretKey string) (*admin.Client, error) {
 	nameServers := ParseNameServers(nameServer)
 	if len(nameServers) == 0 {
@@ -140,8 +140,8 @@ func (m *AdminClientManager) CreateClient(nameServer string, timeout time.Durati
 		SecretKey:   strings.TrimSpace(secretKey),
 	}
 
-	// 串行化创建过程，避免多个懒初始化请求互相关闭刚创建的客户端。
-	// 网络握手期间不持有 m.mu，已有客户端仍可继续处理读请求。
+	// Serialize client creation so concurrent lazy-initialization requests do not close one another's newly created clients.
+	// Do not hold m.mu during the network handshake, allowing existing clients to continue serving read requests.
 	m.createMu.Lock()
 	defer m.createMu.Unlock()
 
@@ -165,19 +165,19 @@ func (m *AdminClientManager) CreateClient(nameServer string, timeout time.Durati
 		options = append(options, admin.WithACL(config.AccessKey, config.SecretKey))
 	}
 
-	// 创建新客户端
+	// Create a new client.
 	client, err := admin.NewClient(options...)
 	if err != nil {
 		return nil, fmt.Errorf("创建客户端失败: %w", err)
 	}
 
-	// 启动客户端
+	// Start the client.
 	if err := client.Start(); err != nil {
 		client.Close()
 		return nil, fmt.Errorf("启动客户端失败: %w", err)
 	}
 
-	// 验证连接可用性：尝试获取集群信息
+	// Verify the connection by attempting to retrieve cluster information.
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
@@ -204,7 +204,7 @@ func (m *AdminClientManager) CreateClient(nameServer string, timeout time.Durati
 	return client, nil
 }
 
-// RemoveClient 移除并关闭客户端
+// RemoveClient removes and closes a client.
 func (m *AdminClientManager) RemoveClient(nameServer string) {
 	m.createMu.Lock()
 	defer m.createMu.Unlock()
@@ -217,13 +217,13 @@ func (m *AdminClientManager) RemoveClient(nameServer string) {
 	}
 	delete(m.configs, nameServer)
 
-	// 如果移除的是默认连接，清空默认连接
+	// Clear the default connection when it is removed.
 	if m.defaultConn == nameServer {
 		m.defaultConn = ""
 	}
 }
 
-// GetDefaultClientConfig 返回默认客户端的完整连接参数副本。
+// GetDefaultClientConfig returns a copy of the default client's complete connection parameters.
 func (m *AdminClientManager) GetDefaultClientConfig() (ClientConfig, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -238,7 +238,7 @@ func (m *AdminClientManager) GetDefaultClientConfig() (ClientConfig, error) {
 	return config, nil
 }
 
-// SetDefaultConnection 设置默认连接
+// SetDefaultConnection sets the default connection.
 func (m *AdminClientManager) SetDefaultConnection(nameServer string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -251,14 +251,14 @@ func (m *AdminClientManager) SetDefaultConnection(nameServer string) error {
 	return nil
 }
 
-// GetDefaultConnection 获取默认连接地址
+// GetDefaultConnection returns the default connection address.
 func (m *AdminClientManager) GetDefaultConnection() string {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	return m.defaultConn
 }
 
-// TestConnection 测试连接是否可用
+// TestConnection checks whether a connection is available.
 func (m *AdminClientManager) TestConnection(nameServer string, timeout time.Duration, enableACL bool, accessKey string, secretKey string) error {
 	nameServers := ParseNameServers(nameServer)
 	if len(nameServers) == 0 {
@@ -276,7 +276,7 @@ func (m *AdminClientManager) TestConnection(nameServer string, timeout time.Dura
 		options = append(options, admin.WithACL(accessKey, secretKey))
 	}
 
-	// 创建临时客户端测试连接
+	// Create a temporary client to test the connection.
 	client, err := admin.NewClient(options...)
 	if err != nil {
 		return fmt.Errorf("创建测试客户端失败: %w", err)
@@ -287,7 +287,7 @@ func (m *AdminClientManager) TestConnection(nameServer string, timeout time.Dura
 		return fmt.Errorf("启动测试客户端失败: %w", err)
 	}
 
-	// 尝试获取集群信息来验证连接
+	// Attempt to retrieve cluster information to verify the connection.
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
@@ -299,7 +299,7 @@ func (m *AdminClientManager) TestConnection(nameServer string, timeout time.Dura
 	return nil
 }
 
-// CloseAll 关闭所有客户端
+// CloseAll closes all clients.
 func (m *AdminClientManager) CloseAll() {
 	m.createMu.Lock()
 	defer m.createMu.Unlock()

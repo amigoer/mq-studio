@@ -1,5 +1,5 @@
 #!/bin/sh
-# 构建当前平台 daemon、桌面端，并打出内部测试安装包到 release/
+# Build current-platform daemon and desktop app, then produce an internal test installer under release/
 set -eu
 
 script_dir="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"

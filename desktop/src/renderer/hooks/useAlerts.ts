@@ -141,7 +141,7 @@ function useAlertsState(): AlertsContextValue {
     return out.sort((left, right) => severityWeight(right.severity) - severityWeight(left.severity))
   }, [data, diskThreshold, hasOnline, lagThreshold, rules, t])
 
-  // Provider 常驻在页面导航之外，因此告警轮询和桌面通知不会依赖告警页是否打开。
+  // Provider lives outside page navigation, so alert polling and desktop notifications do not depend on the alerts page being open.
   useEffect(() => {
     const keys = new Set(alerts.map((alert) => alert.key))
     if (baselineConnectionRef.current !== connectionKey) {
@@ -164,7 +164,7 @@ function useAlertsState(): AlertsContextValue {
         tag: `rocket-leaf-alerts-${connectionKey}`,
       })
     } catch {
-      // 某些 WebView 环境会拒绝构造 Notification。
+      // Some WebView environments reject constructing Notification.
     }
   }, [alerts, connectionKey, settings.desktopNotifications])
 

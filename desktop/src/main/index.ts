@@ -122,10 +122,10 @@ function configureUpdater(window: BrowserWindow): void {
   autoUpdater.on('update-available', async (info) => {
     const result = await dialog.showMessageBox(window, {
       type: 'info',
-      title: '发现新版本',
-      message: `Rocket Leaf ${info.version} 已发布`,
-      detail: '是否现在下载更新？下载完成后会再次询问是否重启。',
-      buttons: ['下载更新', '稍后提醒'],
+      title: 'Update available',
+      message: `Rocket Leaf ${info.version} has been released`,
+      detail: 'Download the update now? You will be asked again to restart after the download finishes.',
+      buttons: ['Download update', 'Remind me later'],
       defaultId: 0,
       cancelId: 1,
     })
@@ -134,10 +134,10 @@ function configureUpdater(window: BrowserWindow): void {
   autoUpdater.on('update-downloaded', async (info) => {
     const result = await dialog.showMessageBox(window, {
       type: 'info',
-      title: '更新已下载',
-      message: `Rocket Leaf ${info.version} 已准备完成`,
-      detail: '是否立即重启并安装更新？',
-      buttons: ['立即重启', '退出应用时安装'],
+      title: 'Update downloaded',
+      message: `Rocket Leaf ${info.version} is ready`,
+      detail: 'Restart now to install the update?',
+      buttons: ['Restart now', 'Install on quit'],
       defaultId: 0,
       cancelId: 1,
     })
@@ -167,13 +167,13 @@ async function ensureDaemonReady(window: BrowserWindow | null): Promise<boolean>
     await supervisor.start()
     return true
   } catch (error) {
-    console.error('[daemon] 启动失败', error)
+    console.error('[daemon] failed to start', error)
     const result = await showDaemonError(window, {
       type: 'error',
-      title: '后端服务启动失败',
-      message: 'Rocket Leaf 本地守护进程未能启动',
-      detail: `${formatError(error)}\n\n可重试启动，或退出应用。`,
-      buttons: ['重试', '退出'],
+      title: 'Backend service failed to start',
+      message: 'Rocket Leaf local daemon could not start',
+      detail: `${formatError(error)}\n\nYou can retry startup, or quit the app.`,
+      buttons: ['Retry', 'Quit'],
       defaultId: 0,
       cancelId: 1,
       noLink: true,
@@ -207,10 +207,10 @@ app.whenReady().then(async () => {
   supervisor.on('failed', async (error: unknown) => {
     const result = await showDaemonError(mainWindow, {
       type: 'error',
-      title: '后端服务已停止',
-      message: '本地守护进程反复退出，已停止自动恢复',
+      title: 'Backend service stopped',
+      message: 'Local daemon kept exiting; automatic recovery has stopped',
       detail: formatError(error),
-      buttons: ['重新启动后端', '忽略'],
+      buttons: ['Restart backend', 'Ignore'],
       defaultId: 0,
       cancelId: 1,
       noLink: true,

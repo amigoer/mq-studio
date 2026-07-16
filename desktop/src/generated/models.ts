@@ -19,9 +19,9 @@ export type NodeStatus = BrokerNode['status']
 
 /** Connection environment labels stored in settings. */
 export const ConnectionEnv = {
-  Production: '生产',
-  Test: '测试',
-  Development: '开发',
+  Production: 'production',
+  Test: 'test',
+  Development: 'development',
 } as const
 export type ConnectionEnv = Connection['env']
 

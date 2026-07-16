@@ -36,8 +36,8 @@ export function useCluster() {
     if (!silent) setRefreshing(true)
     setError(null)
     try {
-      // GetClusterInfo 已包含完整 brokers；避免再调用内部同样执行一次
-      // GetClusterInfo 的 GetBrokers，减少 Broker 压力并防止 TPS 历史重复采样。
+      // GetClusterInfo already includes full brokers; skip GetBrokers (which runs GetClusterInfo
+      // again) to reduce broker load and avoid double-sampling TPS history.
       const cluster = await clusterApi.getClusterInfo()
       if (cancelledRef.current || generation !== requestGenerationRef.current) return
       setData({

@@ -16,15 +16,15 @@ export function ConfirmDialog({
   open,
   title,
   description,
-  confirmText = '确认',
-  cancelText = '取消',
+  confirmText = 'Confirm',
+  cancelText = 'Cancel',
   variant = 'default',
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
   const dialogRef = useRef<HTMLDivElement>(null)
 
-  // ESC 关闭
+  // Close on Escape
   useEffect(() => {
     if (!open) return
     const handler = (e: KeyboardEvent) => {
@@ -34,7 +34,7 @@ export function ConfirmDialog({
     return () => document.removeEventListener('keydown', handler)
   }, [open, onCancel])
 
-  // 打开时聚焦取消按钮（安全默认）
+  // Focus the cancel button on open (safer default)
   useEffect(() => {
     if (open) dialogRef.current?.querySelector<HTMLButtonElement>('[data-cancel]')?.focus()
   }, [open])

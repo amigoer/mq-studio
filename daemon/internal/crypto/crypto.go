@@ -1,4 +1,4 @@
-// Package crypto 提供 AES-256-GCM 加密/解密功能，用于保护敏感配置字段
+// Package crypto provides AES-256-GCM encryption/decryption for sensitive config fields.
 package crypto
 
 import (
@@ -18,9 +18,9 @@ import (
 )
 
 const (
-	// encryptedPrefix 标识加密后的字符串，用于区分明文和密文
+	// encryptedPrefix marks encrypted strings so plaintext and ciphertext can be distinguished.
 	encryptedPrefix = "ENC:"
-	// keyFileName 存储加密密钥的文件名
+	// keyFileName is the filename used to store the encryption key.
 	keyFileName = "secret.key"
 	// hkdfInfoPrefix namespaces field-level keys under HKDF.
 	hkdfInfoPrefix = "rocket-leaf/field/"
@@ -32,8 +32,8 @@ var (
 	globalKeyErr  error
 )
 
-// getOrCreateKey 获取或生成 256 位加密主密钥
-// 密钥持久化在配置目录下，首次运行时自动生成
+// getOrCreateKey gets or generates a 256-bit master encryption key.
+// The key is persisted under the config directory and generated on first run.
 func getOrCreateKey(configDir string) ([]byte, error) {
 	keyPath := filepath.Join(configDir, keyFileName)
 
@@ -41,45 +41,45 @@ func getOrCreateKey(configDir string) ([]byte, error) {
 	if err == nil {
 		decoded, decErr := base64.StdEncoding.DecodeString(strings.TrimSpace(string(data)))
 		if decErr != nil || len(decoded) != 32 {
-			return nil, fmt.Errorf("密钥文件损坏，请从备份恢复或重新配置凭据: %s", keyPath)
+			return nil, fmt.Errorf("key file is corrupted; restore from backup or reconfigure credentials: %s", keyPath)
 		}
 		return decoded, nil
 	}
 	if !errors.Is(err, os.ErrNotExist) {
-		return nil, fmt.Errorf("读取密钥失败: %w", err)
+		return nil, fmt.Errorf("failed to read key: %w", err)
 	}
 
-	// 生成新密钥
+	// Generate a new key.
 	key := make([]byte, 32)
 	if _, err := io.ReadFull(rand.Reader, key); err != nil {
-		return nil, fmt.Errorf("生成密钥失败: %w", err)
+		return nil, fmt.Errorf("failed to generate key: %w", err)
 	}
 
 	// Restrict the config directory so secret.key is not in a world-traversable path.
 	if err := os.MkdirAll(configDir, 0o700); err != nil {
-		return nil, fmt.Errorf("创建密钥目录失败: %w", err)
+		return nil, fmt.Errorf("failed to create key directory: %w", err)
 	}
 	_ = os.Chmod(configDir, 0o700)
 
 	encoded := base64.StdEncoding.EncodeToString(key)
 	file, err := os.OpenFile(keyPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
 	if err != nil {
-		return nil, fmt.Errorf("保存密钥失败: %w", err)
+		return nil, fmt.Errorf("failed to save key: %w", err)
 	}
 	if _, err := file.WriteString(encoded); err != nil {
 		_ = file.Close()
 		_ = os.Remove(keyPath)
-		return nil, fmt.Errorf("保存密钥失败: %w", err)
+		return nil, fmt.Errorf("failed to save key: %w", err)
 	}
 	if err := file.Close(); err != nil {
 		_ = os.Remove(keyPath)
-		return nil, fmt.Errorf("保存密钥失败: %w", err)
+		return nil, fmt.Errorf("failed to save key: %w", err)
 	}
 
 	return key, nil
 }
 
-// InitKey 初始化全局加密密钥，应在应用启动时调用
+// InitKey initializes the global encryption key; call it at application startup.
 func InitKey(configDir string) error {
 	globalKeyOnce.Do(func() {
 		globalKey, globalKeyErr = getOrCreateKey(configDir)
@@ -103,28 +103,28 @@ func deriveFieldKeyLegacy(masterKey []byte, field string) []byte {
 func openGCM(key []byte) (cipher.AEAD, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
-		return nil, fmt.Errorf("创建加密器失败: %w", err)
+		return nil, fmt.Errorf("failed to create cipher: %w", err)
 	}
 	gcm, err := cipher.NewGCM(block)
 	if err != nil {
-		return nil, fmt.Errorf("创建 GCM 失败: %w", err)
+		return nil, fmt.Errorf("failed to create GCM: %w", err)
 	}
 	return gcm, nil
 }
 
-// Encrypt 加密明文字符串，返回带前缀的 Base64 密文
-// 空字符串不加密，直接返回空字符串
+// Encrypt encrypts a plaintext string and returns Base64 ciphertext with the ENC: prefix.
+// Empty strings are not encrypted and are returned as empty strings.
 func Encrypt(plaintext string, field string) (string, error) {
 	if plaintext == "" {
 		return "", nil
 	}
 	if globalKey == nil {
-		return "", errors.New("加密密钥未初始化")
+		return "", errors.New("encryption key is not initialized")
 	}
 
 	key, err := deriveFieldKey(globalKey, field)
 	if err != nil {
-		return "", fmt.Errorf("派生字段密钥失败: %w", err)
+		return "", fmt.Errorf("failed to derive field key: %w", err)
 	}
 
 	gcm, err := openGCM(key)
@@ -134,7 +134,7 @@ func Encrypt(plaintext string, field string) (string, error) {
 
 	nonce := make([]byte, gcm.NonceSize())
 	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
-		return "", fmt.Errorf("生成 nonce 失败: %w", err)
+		return "", fmt.Errorf("failed to generate nonce: %w", err)
 	}
 
 	ciphertext := gcm.Seal(nonce, nonce, []byte(plaintext), nil)
@@ -148,33 +148,33 @@ func decryptWithKey(data []byte, key []byte) (string, error) {
 	}
 	nonceSize := gcm.NonceSize()
 	if len(data) < nonceSize {
-		return "", errors.New("密文数据过短")
+		return "", errors.New("ciphertext is too short")
 	}
 	nonce, sealed := data[:nonceSize], data[nonceSize:]
 	plaintext, err := gcm.Open(nil, nonce, sealed, nil)
 	if err != nil {
-		return "", fmt.Errorf("解密失败: %w", err)
+		return "", fmt.Errorf("decryption failed: %w", err)
 	}
 	return string(plaintext), nil
 }
 
-// Decrypt 解密密文字符串
-// 如果不是加密格式（无 ENC: 前缀），视为明文直接返回（兼容旧数据）
+// Decrypt decrypts a ciphertext string.
+// Strings without the ENC: prefix are treated as plaintext and returned as-is (legacy data).
 func Decrypt(ciphertext string, field string) (string, error) {
 	if ciphertext == "" {
 		return "", nil
 	}
 	if !strings.HasPrefix(ciphertext, encryptedPrefix) {
-		// 兼容未加密的旧数据
+		// Compatible with unencrypted legacy data.
 		return ciphertext, nil
 	}
 	if globalKey == nil {
-		return "", errors.New("加密密钥未初始化")
+		return "", errors.New("encryption key is not initialized")
 	}
 
 	data, err := base64.StdEncoding.DecodeString(ciphertext[len(encryptedPrefix):])
 	if err != nil {
-		return "", fmt.Errorf("解码密文失败: %w", err)
+		return "", fmt.Errorf("failed to decode ciphertext: %w", err)
 	}
 
 	// Prefer HKDF; fall back to legacy SHA-256(master||field) for existing installs.
@@ -186,7 +186,7 @@ func Decrypt(ciphertext string, field string) (string, error) {
 	return decryptWithKey(data, deriveFieldKeyLegacy(globalKey, field))
 }
 
-// IsEncrypted 判断字符串是否已加密
+// IsEncrypted reports whether the string is encrypted.
 func IsEncrypted(s string) bool {
 	return strings.HasPrefix(s, encryptedPrefix)
 }

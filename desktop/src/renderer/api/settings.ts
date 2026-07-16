@@ -15,7 +15,7 @@ export function updateSettings(
 export const resetSettings = (): Promise<AppSettings> => callBackend('settings.reset')
 export const clearCache = (): Promise<void> => callBackend('settings.clearCache')
 
-// 文件路径与明文配置只在 Electron 主进程中流转。
+// File paths and plaintext config stay in the Electron main process only.
 export const exportAllConfigToFile = (): Promise<string | null> =>
   window.rocketLeaf.dialogs.exportConfig()
 export const importAllConfigFromFile = (): Promise<string | null> =>

@@ -1,41 +1,41 @@
-// Package model 定义应用程序的数据模型
+// Package model defines the application's data models.
 package model
 
-// AppSettings 应用设置
+// AppSettings holds application settings.
 type AppSettings struct {
-	// 通用设置
-	Theme           string `json:"theme"`           // 主题: "system" | "light" | "dark"
-	Language        string `json:"language"`        // 语言: "en" | "zh"
-	FontSize        int    `json:"fontSize"`        // 字体大小(px): 12-18
-	UIFont          string `json:"uiFont"`          // 界面字体
-	MonospaceFont   string `json:"monospaceFont"`   // 等宽字体
-	AutoConnectLast bool   `json:"autoConnectLast"` // 启动时自动连接上次集群
+	// General
+	Theme           string `json:"theme"`           // Theme: "system" | "light" | "dark"
+	Language        string `json:"language"`        // Language: "en" | "zh"
+	FontSize        int    `json:"fontSize"`        // Font size (px): 12-18
+	UIFont          string `json:"uiFont"`          // UI font
+	MonospaceFont   string `json:"monospaceFont"`   // Monospace font
+	AutoConnectLast bool   `json:"autoConnectLast"` // Auto-connect to last cluster on startup
 
-	// 连接与网络
-	ConnectTimeoutMs int    `json:"connectTimeoutMs"` // 连接超时(ms)
-	RequestTimeoutMs int    `json:"requestTimeoutMs"` // 请求超时(ms)
-	GlobalAccessKey  string `json:"globalAccessKey"`  // 默认 AccessKey
-	GlobalSecretKey  string `json:"globalSecretKey"`  // 默认 SecretKey
-	SkipTlsVerify    bool   `json:"skipTlsVerify"`    // 跳过 TLS 校验
-	ProxyEnabled     bool   `json:"proxyEnabled"`     // 启用代理
-	ProxyType        string `json:"proxyType"`        // 代理类型: "http" | "socks5"
-	ProxyHost        string `json:"proxyHost"`        // 代理地址
-	ProxyPort        string `json:"proxyPort"`        // 代理端口
+	// Connection and network
+	ConnectTimeoutMs int    `json:"connectTimeoutMs"` // Connect timeout (ms)
+	RequestTimeoutMs int    `json:"requestTimeoutMs"` // Request timeout (ms)
+	GlobalAccessKey  string `json:"globalAccessKey"`  // Default AccessKey
+	GlobalSecretKey  string `json:"globalSecretKey"`  // Default SecretKey
+	SkipTlsVerify    bool   `json:"skipTlsVerify"`    // Skip TLS verification
+	ProxyEnabled     bool   `json:"proxyEnabled"`     // Enable proxy
+	ProxyType        string `json:"proxyType"`        // Proxy type: "http" | "socks5"
+	ProxyHost        string `json:"proxyHost"`        // Proxy host
+	ProxyPort        string `json:"proxyPort"`        // Proxy port
 
-	// 监控与告警
-	LagAlertThreshold    int  `json:"lagAlertThreshold"`    // 消费积压告警阈值(0=关闭)
-	DiskAlertThreshold   int  `json:"diskAlertThreshold"`   // CommitLog 磁盘告警阈值百分比(0=关闭)
-	DesktopNotifications bool `json:"desktopNotifications"` // 新告警时系统通知
+	// Monitoring and alerts
+	LagAlertThreshold    int  `json:"lagAlertThreshold"`    // Consumer lag alert threshold (0=disabled)
+	DiskAlertThreshold   int  `json:"diskAlertThreshold"`   // CommitLog disk alert threshold percent (0=disabled)
+	DesktopNotifications bool `json:"desktopNotifications"` // System notification on new alerts
 
-	// 消息与显示
-	Timezone              string `json:"timezone"`              // 时区: "local" | "utc"
-	TimestampFormat       string `json:"timestampFormat"`       // 时间戳格式: "datetime" | "ms"
-	AutoFormatJson        bool   `json:"autoFormatJson"`        // JSON 自动格式化
-	MaxPayloadRenderBytes int    `json:"maxPayloadRenderBytes"` // 消息截断阈值(字节)
-	FetchLimit            int    `json:"fetchLimit"`            // 单页拉取数量
+	// Messages and display
+	Timezone              string `json:"timezone"`              // Timezone: "local" | "utc"
+	TimestampFormat       string `json:"timestampFormat"`       // Timestamp format: "datetime" | "ms"
+	AutoFormatJson        bool   `json:"autoFormatJson"`        // Auto-format JSON
+	MaxPayloadRenderBytes int    `json:"maxPayloadRenderBytes"` // Message truncation threshold (bytes)
+	FetchLimit            int    `json:"fetchLimit"`            // Page fetch size
 }
 
-// DefaultSettings 返回默认设置
+// DefaultSettings returns the default settings.
 func DefaultSettings() *AppSettings {
 	return &AppSettings{
 		Theme:                 "system",

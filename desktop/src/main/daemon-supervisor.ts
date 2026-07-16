@@ -22,8 +22,8 @@ interface APIError {
 
 const PROTOCOL_VERSION = 1
 const START_TIMEOUT_MS = 10_000
-// daemon 内部的 requestTimeoutMs 是单次 RocketMQ 调用上限；一个聚合请求
-// 可能包含多次调用，因此主进程只设置更宽松的端到端保险上限。
+// Daemon requestTimeoutMs caps a single RocketMQ call; an aggregated request
+// may issue multiple calls, so main process uses a looser end-to-end safety limit.
 const REQUEST_TIMEOUT_MS = 6 * 60_000
 const RESTART_DELAYS = [1_000, 2_000, 5_000]
 const MAX_IMPORT_BYTES = 5 * 1024 * 1024
@@ -103,7 +103,7 @@ export class DaemonSupervisor extends EventEmitter {
   }
 
   async request<T = unknown>(method: string, path: string, body?: unknown): Promise<T> {
-    if (!this.ready || !this.token) throw new BackendError('后端服务尚未就绪', 'BACKEND_NOT_READY')
+    if (!this.ready || !this.token) throw new BackendError('backend service is not ready', 'BACKEND_NOT_READY')
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
     try {
@@ -120,7 +120,7 @@ export class DaemonSupervisor extends EventEmitter {
       if (!response.ok) {
         const error = (await response.json().catch(() => ({}))) as APIError
         throw new BackendError(
-          error.message ?? `后端请求失败（${response.status}）`,
+          error.message ?? `backend request failed (${response.status})`,
           error.code,
           error.requestId,
         )
@@ -155,7 +155,7 @@ export class DaemonSupervisor extends EventEmitter {
         let timeout: ReturnType<typeof setTimeout> | null = null
         let fail = (_error: Error): void => undefined
         const exitedBeforeReady = (code: number | null) =>
-          fail(new Error(`后端服务在就绪前退出（${code ?? 'unknown'}）`))
+          fail(new Error(`backend service exited before ready (${code ?? 'unknown'})`))
         const cleanup = () => {
           if (timeout) clearTimeout(timeout)
           lines.close()
@@ -168,7 +168,7 @@ export class DaemonSupervisor extends EventEmitter {
           cleanup()
           rejectReady(error)
         }
-        timeout = setTimeout(() => fail(new Error('后端服务启动超时')), START_TIMEOUT_MS)
+        timeout = setTimeout(() => fail(new Error('backend service start timed out')), START_TIMEOUT_MS)
         child.once('error', fail)
         child.once('exit', exitedBeforeReady)
         lines.once('line', (line) => {
@@ -176,16 +176,16 @@ export class DaemonSupervisor extends EventEmitter {
             const message = JSON.parse(line) as ReadyMessage
             if (message.protocolVersion !== PROTOCOL_VERSION) {
               throw new Error(
-                `后端协议版本不匹配（期望 ${PROTOCOL_VERSION}，实际 ${String(message.protocolVersion)}）`,
+                `backend protocol version mismatch (expected ${PROTOCOL_VERSION}, got ${String(message.protocolVersion)})`,
               )
             }
             if (!Number.isInteger(message.port) || message.port < 1 || message.port > 65535) {
-              throw new Error(`后端端口无效: ${String(message.port)}`)
+              throw new Error(`invalid backend port: ${String(message.port)}`)
             }
             const expectedVersion = app.getVersion()
             if (message.appVersion && message.appVersion !== expectedVersion) {
               console.warn(
-                `[daemon] 版本不一致: desktop=${expectedVersion} daemon=${message.appVersion}（仅警告，不阻止启动）`,
+                `[daemon] version mismatch: desktop=${expectedVersion} daemon=${message.appVersion} (warning only; not blocking start)`,
               )
             }
             if (settled) return
@@ -193,7 +193,7 @@ export class DaemonSupervisor extends EventEmitter {
             cleanup()
             resolveReady(message)
           } catch (error) {
-            fail(error instanceof Error ? error : new Error('后端就绪消息无效'))
+            fail(error instanceof Error ? error : new Error('invalid backend ready message'))
           }
         })
       })
@@ -249,7 +249,7 @@ export class DaemonSupervisor extends EventEmitter {
   private async restart(): Promise<void> {
     if (this.restartCount >= RESTART_DELAYS.length) {
       this.setState('failed')
-      this.emit('failed', new Error('后端服务反复退出，已停止自动重启'))
+      this.emit('failed', new Error('backend service kept exiting; auto-restart stopped'))
       return
     }
     this.setState('restarting')
@@ -259,7 +259,7 @@ export class DaemonSupervisor extends EventEmitter {
     try {
       await this.spawnOnce()
     } catch (error) {
-      console.error('[daemon] 重启失败', error)
+      console.error('[daemon] restart failed', error)
       await this.restart()
     }
   }
@@ -275,7 +275,7 @@ export class DaemonSupervisor extends EventEmitter {
     if (process.env.ROCKET_LEAF_DAEMON_PATH) {
       const override = resolve(process.env.ROCKET_LEAF_DAEMON_PATH)
       if (!existsSync(override)) {
-        throw new Error(`ROCKET_LEAF_DAEMON_PATH 不存在: ${override}`)
+        throw new Error(`ROCKET_LEAF_DAEMON_PATH does not exist: ${override}`)
       }
       return { command: override, args: [] }
     }
@@ -308,7 +308,7 @@ export class DaemonSupervisor extends EventEmitter {
     }
 
     throw new Error(
-      `未找到 rocket-leafd 可执行文件。请先运行 make build-daemon，或设置 ROCKET_LEAF_DAEMON_PATH。\n已尝试:\n${candidates.map((c) => `  - ${c}`).join('\n')}`,
+      `rocket-leafd executable not found. Run make build-daemon first, or set ROCKET_LEAF_DAEMON_PATH.\nTried:\n${candidates.map((c) => `  - ${c}`).join('\n')}`,
     )
   }
 

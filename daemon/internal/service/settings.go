@@ -1,4 +1,4 @@
-// Package service 提供业务服务层
+// Package service provides the business service layer.
 package service
 
 import (
@@ -19,7 +19,7 @@ import (
 
 const settingsDataFileName = "settings.json"
 
-// SettingsService 设置管理服务
+// SettingsService manages application settings.
 type SettingsService struct {
 	mu                 sync.RWMutex
 	settings           *model.AppSettings
@@ -27,7 +27,7 @@ type SettingsService struct {
 	connectionReloader func() error
 }
 
-// NewSettingsService 创建设置管理服务
+// NewSettingsService creates a settings service.
 func NewSettingsService() *SettingsService {
 	svc := &SettingsService{
 		settings:     model.DefaultSettings(),
@@ -41,7 +41,7 @@ func NewSettingsService() *SettingsService {
 	return svc
 }
 
-// setConnectionReloader 注册配置导入后的连接热重载回调。
+// setConnectionReloader registers the callback used to hot-reload connections after a configuration import.
 func (s *SettingsService) setConnectionReloader(reloader func() error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -108,7 +108,7 @@ func resolveSettingsDataFilePath() string {
 	return filepath.Join(configDir, appConfigDirName, settingsDataFileName)
 }
 
-// loadFromFile 从文件加载设置
+// loadFromFile loads settings from disk.
 func (s *SettingsService) loadFromFile() error {
 	data, err := os.ReadFile(s.dataFilePath)
 	if err != nil {
@@ -118,18 +118,18 @@ func (s *SettingsService) loadFromFile() error {
 		return err
 	}
 
-	// 先尝试用 map 解析，手动处理 fontSize 兼容（string → int）
+	// Decode into a map first to handle legacy string-to-integer fontSize conversion manually.
 	var raw map[string]json.RawMessage
 	if err := json.Unmarshal(data, &raw); err != nil {
 		log.Printf("[SettingsService] 解析设置文件失败: %v", err)
 		return nil
 	}
 
-	// 如果 fontSize 是旧格式的字符串（如 "medium"），替换为默认数值
+	// Replace a legacy string fontSize, such as "medium", with its numeric value.
 	if rawFS, ok := raw["fontSize"]; ok {
 		var strVal string
 		if json.Unmarshal(rawFS, &strVal) == nil {
-			// 旧格式字符串，映射为数值
+			// Map the legacy string value to a number.
 			mapping := map[string]int{"small": 12, "medium": 14, "large": 16}
 			size := 14
 			if v, found := mapping[strVal]; found {
@@ -140,14 +140,14 @@ func (s *SettingsService) loadFromFile() error {
 		}
 	}
 
-	// 重新序列化后解析到结构体
+	// Re-encode the normalized map and decode it into the settings structure.
 	fixedData, _ := json.Marshal(raw)
 	loaded := model.DefaultSettings()
 	if err := json.Unmarshal(fixedData, loaded); err != nil {
 		log.Printf("[SettingsService] 解析设置失败: %v", err)
 	}
 
-	// 解密敏感字段（兼容未加密的旧数据）
+	// Decrypt sensitive fields while remaining compatible with legacy unencrypted data.
 	if loaded.GlobalAccessKey != "" {
 		decrypted, decErr := crypto.Decrypt(loaded.GlobalAccessKey, "globalAccessKey")
 		if decErr != nil {
@@ -187,7 +187,7 @@ func marshalSettingsForDisk(settings model.AppSettings) ([]byte, error) {
 	return json.MarshalIndent(&toSave, "", "  ")
 }
 
-// saveToFileLocked 将设置持久化到文件（调用方需持有写锁）
+// saveToFileLocked persists settings to disk. The caller must hold the write lock.
 func (s *SettingsService) saveToFileLocked() error {
 	data, err := marshalSettingsForDisk(*s.settings)
 	if err != nil {
@@ -196,7 +196,7 @@ func (s *SettingsService) saveToFileLocked() error {
 	return writeAtomicFile(s.dataFilePath, data)
 }
 
-// GetConnectTimeout 获取连接超时时间
+// GetConnectTimeout returns the connection timeout.
 func (s *SettingsService) GetConnectTimeout() time.Duration {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -207,7 +207,7 @@ func (s *SettingsService) GetConnectTimeout() time.Duration {
 	return time.Duration(ms) * time.Millisecond
 }
 
-// GetRequestTimeout 获取请求超时时间
+// GetRequestTimeout returns the request timeout.
 func (s *SettingsService) GetRequestTimeout() time.Duration {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -218,7 +218,7 @@ func (s *SettingsService) GetRequestTimeout() time.Duration {
 	return time.Duration(ms) * time.Millisecond
 }
 
-// GetFetchLimit 获取单页拉取数量
+// GetFetchLimit returns the per-page fetch limit.
 func (s *SettingsService) GetFetchLimit() int {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -229,32 +229,32 @@ func (s *SettingsService) GetFetchLimit() int {
 	return limit
 }
 
-// GetAutoConnectLast 获取是否自动连接上次集群
+// GetAutoConnectLast reports whether the last-used cluster should be connected automatically.
 func (s *SettingsService) GetAutoConnectLast() bool {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.settings.AutoConnectLast
 }
 
-// GetGlobalACLCredentials 返回设置中的全局 AccessKey/SecretKey（明文）。
-// 当连接未单独配置 ACL 时，Connect 会回退使用它们。
+// GetGlobalACLCredentials returns the global AccessKey and SecretKey in plaintext.
+// Connect falls back to these credentials when a connection has no dedicated ACL configuration.
 func (s *SettingsService) GetGlobalACLCredentials() (accessKey, secretKey string) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.settings.GlobalAccessKey, s.settings.GlobalSecretKey
 }
 
-// GetSettings 获取全部设置
+// GetSettings returns all settings.
 func (s *SettingsService) GetSettings() *model.AppSettings {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	// 返回副本
+	// Return a copy.
 	copy := *s.settings
 	return &copy
 }
 
-// UpdateSettings 更新全部设置并持久化
+// UpdateSettings replaces all settings and persists them.
 func (s *SettingsService) UpdateSettings(settings model.AppSettings) (*model.AppSettings, error) {
 	s.mu.Lock()
 
@@ -281,7 +281,7 @@ func (s *SettingsService) UpdateSettings(settings model.AppSettings) (*model.App
 	return &copy, nil
 }
 
-// ResetSettings 重置为默认设置
+// ResetSettings restores the default settings.
 func (s *SettingsService) ResetSettings() (*model.AppSettings, error) {
 	s.mu.Lock()
 
@@ -306,14 +306,14 @@ func (s *SettingsService) ResetSettings() (*model.AppSettings, error) {
 	return &copy, nil
 }
 
-// ExportAllConfig 导出全部配置（设置 + 连接）为 JSON 字符串
+// ExportAllConfig exports all settings and connections as a JSON string.
 func (s *SettingsService) ExportAllConfig() (string, error) {
 	s.mu.RLock()
 	settingsCopy := *s.settings
 	s.mu.RUnlock()
 
-	// 导出文件用于跨设备迁移，因此连接凭据需要先用本机密钥解密。
-	// 文件会以 0600 写入，并通过 containsSecrets 明确标记其敏感性。
+	// Export files support cross-device migration, so connection credentials must first be
+	// decrypted with the local key. Files are written with mode 0600 and explicitly marked sensitive by containsSecrets.
 	connFilePath := filepath.Join(filepath.Dir(s.dataFilePath), connectionDataFileName)
 	connections := connectionStore{Connections: make([]*model.Connection, 0)}
 	connData, err := os.ReadFile(connFilePath)
@@ -352,7 +352,7 @@ func (s *SettingsService) ExportAllConfig() (string, error) {
 func decodeConnectionStore(data []byte, decryptCredentials bool) (connectionStore, error) {
 	var store connectionStore
 	if err := json.Unmarshal(data, &store); err != nil {
-		// 兼容极早期直接导出数组的格式。
+		// Support the earliest export format, which stored the array directly.
 		var list []*model.Connection
 		if listErr := json.Unmarshal(data, &list); listErr != nil {
 			return connectionStore{}, err
@@ -439,7 +439,8 @@ func writeAtomicFile(path string, data []byte) error {
 		return err
 	}
 	tmp := file.Name()
-	// 临时文件可能来自旧版本并具有更宽权限，显式收紧后再写入敏感数据。
+	// A temporary file may come from an older version with broader permissions;
+	// tighten them explicitly before writing sensitive data.
 	if err := file.Chmod(0o600); err != nil {
 		_ = file.Close()
 		_ = os.Remove(tmp)
@@ -492,7 +493,7 @@ func restoreFile(path string, snapshot fileSnapshot) error {
 	return writeAtomicFile(path, snapshot.data)
 }
 
-// ExportAllConfigToFile 将全部配置写入指定文件路径，返回最终落盘的绝对路径
+// ExportAllConfigToFile writes all configuration to the target path and returns its final absolute path.
 func (s *SettingsService) ExportAllConfigToFile(targetPath string) (string, error) {
 	targetPath = strings.TrimSpace(targetPath)
 	if targetPath == "" {
@@ -528,7 +529,7 @@ func (s *SettingsService) ExportAllConfigToFile(targetPath string) (string, erro
 	return abs, nil
 }
 
-// ImportAllConfigFromFile 从指定路径读取并导入全部配置
+// ImportAllConfigFromFile reads and imports all configuration from the given path.
 func (s *SettingsService) ImportAllConfigFromFile(sourcePath string) error {
 	sourcePath = strings.TrimSpace(sourcePath)
 	if sourcePath == "" {
@@ -542,7 +543,7 @@ func (s *SettingsService) ImportAllConfigFromFile(sourcePath string) error {
 	return s.ImportAllConfig(string(data))
 }
 
-// ImportAllConfig 导入全部配置
+// ImportAllConfig imports all configuration.
 func (s *SettingsService) ImportAllConfig(jsonStr string) error {
 	var importData struct {
 		Version     int                `json:"version"`
@@ -575,8 +576,9 @@ func (s *SettingsService) ImportAllConfig(jsonStr string) error {
 		}
 	}
 	if len(importData.Connections) > 0 && string(importData.Connections) != "null" {
-		// v1 直接嵌入本机 connections.json，因此凭据通常还是 ENC: 密文；
-		// v2 导出的是可迁移明文。按版本区分，避免把真实以 ENC: 开头的凭据误判为密文。
+		// Version 1 embedded the local connections.json directly, so credentials are usually
+		// still ENC: ciphertext. Version 2 exports portable plaintext. Distinguish by version
+		// to avoid treating a real credential beginning with ENC: as ciphertext.
 		store, err := decodeConnectionStore(importData.Connections, importData.Version < 2)
 		if err != nil {
 			return fmt.Errorf("解析连接配置失败: %w", err)
@@ -651,13 +653,13 @@ func (s *SettingsService) ImportAllConfig(jsonStr string) error {
 	return nil
 }
 
-// ClearCache 清理缓存（重置临时数据）
+// ClearCache removes temporary data.
 func (s *SettingsService) ClearCache() error {
-	// 清理配置目录下的临时文件
+	// Remove temporary files from the configuration directory.
 	configDir := filepath.Dir(s.dataFilePath)
 	entries, err := os.ReadDir(configDir)
 	if err != nil {
-		return nil // 目录不存在时忽略
+		return nil // Ignore a missing directory.
 	}
 
 	for _, entry := range entries {

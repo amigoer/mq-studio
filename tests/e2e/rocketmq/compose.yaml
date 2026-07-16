@@ -10,8 +10,8 @@ services:
 
   broker:
     image: apache/rocketmq:5.3.2
-    # 官方镜像以非 root 用户运行，但 OrbStack 创建的命名卷默认归 root 所有。
-    # 该容器仅用于本地隔离测试，使用 root 保证 Broker 可以初始化存储目录。
+    # Official image runs as non-root, but named volumes created by OrbStack are root-owned by default.
+    # This container is for local isolated tests only; run as root so the broker can initialize store dirs.
     user: root
     command: sh mqbroker -n namesrv:9876 -c /etc/rocketmq/broker.conf
     depends_on:
