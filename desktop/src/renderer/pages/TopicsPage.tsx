@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Search, Plus, Tag, X, Server, Edit, Trash2, Check, ChevronRight } from 'lucide-react'
+import { Search, Plus, Tag, X, Server, Edit, Trash2, Check, ChevronRight, Send } from 'lucide-react'
 import { Spinner } from '@/components/Spinner'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -11,7 +11,7 @@ import { useConsumers } from '@/hooks/useConsumers'
 import { useCluster } from '@/hooks/useCluster'
 import { useDelayedUnmount } from '@/hooks/useDelayedUnmount'
 import * as topicApi from '@/api/topic'
-import { formatErrorMessage } from '@/lib/utils'
+import { cn, formatErrorMessage } from '@/lib/utils'
 import { RefreshButton, usePageRefresh } from '@/components/RefreshButton'
 import { SlidingTabs } from '@/components/SlidingTabs'
 import { OfflineEmpty } from '@/components/OfflineEmpty'
@@ -22,10 +22,12 @@ import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 
 type TypeFilter = 'all' | 'normal' | 'retry' | 'dlq'
 type TopicKind = 'normal' | 'fifo' | 'delay' | 'retry' | 'dlq'
+
+/** Shared grid template for the topics table header + rows. */
+const TOPIC_COLS = 'minmax(0,1fr) 88px 64px 96px 72px 28px'
 
 const RETRY_PREFIX = '%RETRY%'
 const DLQ_PREFIX = '%DLQ%'
@@ -213,7 +215,7 @@ export function TopicsPage({ onNavigate }: { onNavigate?: (id: NavId) => void })
   // Clicking the list pane outside any row closes the panel
   const handleListBackgroundClick = (e: React.MouseEvent) => {
     if (!selectedName) return
-    if ((e.target as HTMLElement).closest('tr')) return
+    if ((e.target as HTMLElement).closest('[data-topic-row]')) return
     dismissPanel()
   }
 
@@ -279,17 +281,6 @@ export function TopicsPage({ onNavigate }: { onNavigate?: (id: NavId) => void })
   return (
     <div className="flex h-full min-h-0 flex-col">
       <PageHeader title={t('topics.title')} subtitle={subtitle}>
-        <div className="relative" style={{ width: 220 }}>
-          <span className="pointer-events-none absolute left-2.5 top-1/2 z-[1] -translate-y-1/2 text-muted-foreground">
-            <Search size={13} />
-          </span>
-          <Input
-            className="pl-8"
-            placeholder={t('topics.searchPlaceholder')}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
         <RefreshButton spinning={isRefreshing} disabled={!hasOnline} onClick={handleRefresh} />
         <Button variant="default" size="sm"
           onClick={() => setEditorOpen({ mode: 'create' })}
@@ -301,7 +292,18 @@ export function TopicsPage({ onNavigate }: { onNavigate?: (id: NavId) => void })
       </PageHeader>
 
       {hasOnline && (
-        <div className="flex items-center gap-1 border-b border-border px-4 py-2">
+        <div className="flex items-center gap-2.5 border-b border-border/80 px-5 py-3">
+          <div className="relative" style={{ width: 260 }}>
+            <span className="pointer-events-none absolute left-2.5 top-1/2 z-[1] -translate-y-1/2 text-muted-foreground">
+              <Search size={13} />
+            </span>
+            <Input
+              className="pl-8"
+              placeholder={t('topics.searchPlaceholder')}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
           <SlidingTabs
             value={typeFilter}
             onChange={setTypeFilter}
@@ -311,6 +313,10 @@ export function TopicsPage({ onNavigate }: { onNavigate?: (id: NavId) => void })
               count: f.count,
             }))}
           />
+          <div className="flex-1" />
+          <span className="text-muted-foreground shrink-0 text-[11.5px] tabular-nums">
+            {t('topics.resultCount', { count: filtered.length })}
+          </span>
         </div>
       )}
 
@@ -348,70 +354,66 @@ export function TopicsPage({ onNavigate }: { onNavigate?: (id: NavId) => void })
                   )}
                 </div>
               ) : (
-                <Table className="rl-table-topics">
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>{t('topics.table.name')}</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
+                <div className="px-5 pb-5 pt-3">
+                  <div
+                    className="overflow-hidden rounded-xl border border-border/80 bg-card shadow-card"
+                    style={{ minWidth: 640 }}
+                  >
+                    <div
+                      className="text-muted-foreground grid items-center gap-2 border-b border-border px-3.5 py-2 text-[11px] font-medium"
+                      style={{ gridTemplateColumns: TOPIC_COLS }}
+                    >
+                      <span>{t('topics.table.name')}</span>
+                      <span className="text-right">{t('topics.table.queues')}</span>
+                      <span>{t('topics.table.perm')}</span>
+                      <span>{t('topics.table.tpsIn')}</span>
+                      <span className="text-right">{t('topics.table.groups')}</span>
+                      <span />
+                    </div>
                     {filtered.map(({ raw, kind }) => {
                       const selected = selectedName === raw.topic
                       return (
-                        <TableRow
+                        <div
                           key={raw.topic}
-                          className={selected ? 'selected' : ''}
+                          data-topic-row
                           onClick={() => setSelectedName(raw.topic)}
+                          className={cn(
+                            'grid cursor-pointer items-center gap-2 border-t border-border px-3.5 py-2.5 transition-colors hover:bg-muted',
+                            selected && 'bg-accent hover:bg-accent',
+                          )}
+                          style={{ gridTemplateColumns: TOPIC_COLS }}
                         >
-                          <TableCell>
-                            <div className="flex min-w-0 items-center gap-2.5">
-                              <span
-                                className={
-                                  'h-1.5 w-1.5 shrink-0 rounded-full ' +
-                                  (kind === 'dlq'
-                                    ? 'bg-[hsl(var(--destructive))]'
-                                    : kind === 'retry'
-                                      ? 'bg-[hsl(var(--warning))]'
-                                      : kind === 'fifo'
-                                        ? 'bg-[hsl(var(--warning))]'
-                                        : kind === 'delay'
-                                          ? 'bg-[hsl(var(--info))]'
-                                          : 'bg-[hsl(var(--muted-foreground)/0.35)]')
-                                }
-                              />
-                              <div className="min-w-0 flex-1">
-                                <div className="flex min-w-0 items-center gap-2">
-                                  <span className="font-mono-design truncate text-[12.5px] font-medium tracking-tight">
-                                    {raw.topic}
-                                  </span>
-                                  <Badge
-                                    variant="outline"
-                                    className={typeBadgeClass(kind) + ' shrink-0'}
-                                  >
-                                    {typeLabel(kind, t)}
-                                  </Badge>
-                                </div>
-                                {raw.description && (
-                                  <div className="text-muted-foreground mt-0.5 truncate text-[11px]">
-                                    {raw.description}
-                                  </div>
-                                )}
-                              </div>
-                              <ChevronRight
-                                size={14}
-                                className={
-                                  'text-muted-foreground shrink-0 transition-opacity ' +
-                                  (selected ? 'opacity-70' : 'opacity-35')
-                                }
-                                aria-hidden
-                              />
-                            </div>
-                          </TableCell>
-                        </TableRow>
+                          <div className="flex min-w-0 items-center gap-2">
+                            <span className="font-mono-design truncate text-[12px]">{raw.topic}</span>
+                            <Badge variant="outline" className={typeBadgeClass(kind) + ' shrink-0'}>
+                              {typeLabel(kind, t)}
+                            </Badge>
+                          </div>
+                          <span className="font-mono-design text-right text-[12px] tabular-nums">
+                            {formatQueues(raw.readQueue, raw.writeQueue)}
+                          </span>
+                          <span className="text-muted-foreground text-[11.5px]">
+                            {permLabel(raw.perm, t)}
+                          </span>
+                          <span className="font-mono-design text-muted-foreground text-[11.5px] tabular-nums">
+                            {formatTps(raw.tpsIn)}
+                          </span>
+                          <span className="font-mono-design text-muted-foreground text-right text-[12px] tabular-nums">
+                            {raw.consumerGroups || 0}
+                          </span>
+                          <ChevronRight
+                            size={14}
+                            className={cn(
+                              'text-muted-foreground shrink-0 justify-self-end transition-opacity',
+                              selected ? 'opacity-70' : 'opacity-50',
+                            )}
+                            aria-hidden
+                          />
+                        </div>
                       )
                     })}
-                  </TableBody>
-                </Table>
+                  </div>
+                </div>
               )}
             </>
           )}
@@ -426,6 +428,8 @@ export function TopicsPage({ onNavigate }: { onNavigate?: (id: NavId) => void })
             onClose={dismissPanel}
             onEdit={(tp) => setEditorOpen({ mode: 'edit', topic: tp })}
             onDelete={(tp) => setConfirmDelete(tp)}
+            onSend={() => onNavigate?.('producer')}
+            onBrowse={() => onNavigate?.('messages')}
           />
         )}
       </div>
@@ -467,6 +471,8 @@ function TopicDetailPanel({
   onClose,
   onEdit,
   onDelete,
+  onSend,
+  onBrowse,
 }: {
   topic: TopicItem | null
   loading: boolean
@@ -474,6 +480,8 @@ function TopicDetailPanel({
   onClose: () => void
   onEdit: (t: TopicItem) => void
   onDelete: (t: TopicItem) => void
+  onSend: (t: TopicItem) => void
+  onBrowse: (t: TopicItem) => void
 }) {
   const { t } = useTranslation()
   const { groups: consumerGroups, loading: groupsLoading } = useConsumers()
@@ -721,17 +729,32 @@ function TopicDetailPanel({
           </div>
         )}
 
-        <div className="mt-5 flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" onClick={() => onEdit(topic)}>
-            <Edit size={13} />
-            {t('topics.detail.actions.edit')}
-          </Button>
-          <Button variant="ghost" size="sm"
-            style={{ marginLeft: 'auto', color: 'hsl(var(--destructive))' }}
-            onClick={() => onDelete(topic)}
-          >
-            <Trash2 size={13} />
-          </Button>
+        <div className="mt-5 flex flex-col gap-2">
+          <div className="flex gap-2">
+            <Button variant="default" size="sm" className="flex-1" onClick={() => onSend(topic)}>
+              <Send size={13} />
+              {t('topics.detail.actions.send')}
+            </Button>
+            <Button variant="outline" size="sm" className="flex-1" onClick={() => onBrowse(topic)}>
+              {t('topics.detail.actions.messages')}
+            </Button>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" className="flex-1" onClick={() => onEdit(topic)}>
+              <Edit size={13} />
+              {t('topics.detail.actions.edit')}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="flex-1"
+              style={{ color: 'hsl(var(--destructive))' }}
+              onClick={() => onDelete(topic)}
+            >
+              <Trash2 size={13} />
+              {t('topics.detail.actions.delete')}
+            </Button>
+          </div>
         </div>
       </div>
     </aside>

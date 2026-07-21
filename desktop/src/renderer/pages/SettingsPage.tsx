@@ -48,7 +48,6 @@ import { Select } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 
-const APP_VERSION = __APP_VERSION__
 const GITHUB_URL = 'https://github.com/amigoer/rocket-leaf'
 const GITHUB_ISSUES_URL = 'https://github.com/amigoer/rocket-leaf/issues'
 const GITHUB_RELEASES_URL = 'https://github.com/amigoer/rocket-leaf/releases/latest'
@@ -236,6 +235,7 @@ function AppearancePanel() {
             <Card
               key={th.mode}
               onClick={() => setSetting('theme', th.mode)}
+              className="transition-transform duration-150 hover:-translate-y-px"
               style={{
                 padding: 0,
                 overflow: 'hidden',
@@ -895,14 +895,18 @@ function DataPanel({
 }
 
 function AboutPanel({
+  version,
   onCheckUpdate,
   onResetSettings,
 }: {
+  version: string | null
   onCheckUpdate: () => void
   onResetSettings: () => void
 }) {
   const { t } = useTranslation()
   const openLink = (url: string) => window.rocketLeaf.shell.openExternal(url).catch(() => {})
+  const versionLabel =
+    version === null ? '…' : version ? `v${version}` : t('settings.about.versionUnavailable')
 
   return (
     <>
@@ -917,7 +921,7 @@ function AboutPanel({
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <h2 className="text-[16px] font-semibold">{t('app.name')}</h2>
-              <Badge variant="outline">v{APP_VERSION}</Badge>
+              <Badge variant="outline">{versionLabel}</Badge>
             </div>
             <p className="text-muted-foreground mt-1 text-[13px]" style={{ lineHeight: 1.6 }}>
               {t('settings.about.descriptionZh')}
@@ -979,6 +983,7 @@ function AboutPanel({
 export function SettingsPage() {
   const { t } = useTranslation()
   const [activeSection, setActiveSection] = useState<SectionId>('appearance')
+  const [appVersion, setAppVersion] = useState<string | null>(null)
   const { resetAllSettings, reloadSettings, settlePendingSaves, loading } = useSettings()
   const { refresh: refreshConnections } = useConnections()
   const [confirmAction, setConfirmAction] = useState<{
@@ -986,6 +991,22 @@ export function SettingsPage() {
     description: string
     onConfirm: () => void
   } | null>(null)
+
+  useEffect(() => {
+    let disposed = false
+    void window.rocketLeaf.app
+      .getInfo()
+      .then((info) => {
+        if (!disposed) setAppVersion(info.version)
+      })
+      .catch((error) => {
+        console.error('[settings] failed to load application version', error)
+        if (!disposed) setAppVersion('')
+      })
+    return () => {
+      disposed = true
+    }
+  }, [])
 
   const doExport = useCallback(async () => {
     try {
@@ -1062,10 +1083,26 @@ export function SettingsPage() {
   const handleCheckUpdate = useCallback(async () => {
     try {
       const result = await window.rocketLeaf.updater.check()
-      if (result.updateAvailable) {
-        toast.info(t('settings.about.updateAvailable', { version: result.version ?? '' }))
+      setAppVersion(result.currentVersion)
+      const openReleases = {
+        label: t('settings.about.openReleases'),
+        onClick: () => void window.rocketLeaf.shell.openExternal(GITHUB_RELEASES_URL),
+      }
+      if (result.status === 'available') {
+        toast.info(t('settings.about.updateAvailable', { version: result.latestVersion }), {
+          description: t('settings.about.updateAvailableHint'),
+          action: openReleases,
+        })
+      } else if (result.status === 'ahead') {
+        toast.info(
+          t('settings.about.aheadOfRelease', {
+            current: result.currentVersion,
+            latest: result.latestVersion,
+          }),
+          { action: openReleases },
+        )
       } else {
-        toast.info(t('settings.about.upToDate', { version: APP_VERSION }))
+        toast.info(t('settings.about.upToDate', { version: result.currentVersion }))
       }
     } catch {
       toast.info(t('settings.about.updateCheckFailed'), {
@@ -1148,6 +1185,7 @@ export function SettingsPage() {
               )}
               {activeSection === 'about' && (
                 <AboutPanel
+                  version={appVersion}
                   onCheckUpdate={handleCheckUpdate}
                   onResetSettings={handleResetSettings}
                 />

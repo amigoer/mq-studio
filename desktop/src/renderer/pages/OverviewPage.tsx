@@ -1,5 +1,16 @@
 import { useCallback, useMemo } from 'react'
-import { Unlink, AlertCircle, LayoutGrid, Users, Server, Inbox } from 'lucide-react'
+import {
+  Unlink,
+  AlertCircle,
+  LayoutGrid,
+  Users,
+  Server,
+  Inbox,
+  Send,
+  Search,
+  Plus,
+  RotateCcw,
+} from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { BrokerNode, ConsumerGroupItem, TopicItem } from '@generated/models'
 import { PageHeader } from '@/components/PageHeader'
@@ -350,6 +361,30 @@ export function OverviewPage({ onNavigate }: OverviewPageProps) {
               </section>
             )}
 
+            {/* Quick actions */}
+            <div className="grid grid-cols-4 gap-2.5">
+              <QuickAction
+                icon={Send}
+                label={t('overview.shortcut.send')}
+                onClick={() => onNavigate?.('producer')}
+              />
+              <QuickAction
+                icon={Search}
+                label={t('overview.shortcut.search')}
+                onClick={() => onNavigate?.('messages')}
+              />
+              <QuickAction
+                icon={Plus}
+                label={t('overview.shortcut.create')}
+                onClick={() => onNavigate?.('topics')}
+              />
+              <QuickAction
+                icon={RotateCcw}
+                label={t('overview.shortcut.reset')}
+                onClick={() => onNavigate?.('consumers')}
+              />
+            </div>
+
             {/* Throughput */}
             <ThroughputCard
               prod={tpsInSeries}
@@ -357,6 +392,7 @@ export function OverviewPage({ onNavigate }: OverviewPageProps) {
               currentIn={currentTpsIn}
               currentOut={currentTpsOut}
               loading={loading}
+              refreshing={isRefreshing}
             />
 
             {/* Two lists */}
@@ -442,10 +478,18 @@ export function OverviewPage({ onNavigate }: OverviewPageProps) {
                       const online = b.status === 'online'
                       const warning = b.status === 'warning'
                       const label = `${b.brokerName}${b.brokerId !== 0 ? `-${b.brokerId}` : ''}`
+                      const upperRole = String(b.role ?? '').toUpperCase()
+                      const roleLabel = upperRole.startsWith('M')
+                        ? 'master'
+                        : upperRole.startsWith('S')
+                          ? 'slave'
+                          : b.brokerId === 0
+                            ? 'master'
+                            : 'slave'
                       return (
                         <span
                           key={`${b.brokerName}-${b.brokerId}`}
-                          className="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-1 text-[11.5px]"
+                          className="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-1 text-[11.5px] transition-colors hover:bg-muted"
                         >
                           <span
                             className="h-1.5 w-1.5 rounded-full"
@@ -458,6 +502,7 @@ export function OverviewPage({ onNavigate }: OverviewPageProps) {
                             }}
                           />
                           <span className="font-mono-design">{label}</span>
+                          <span className="text-muted-foreground text-[10.5px]">{roleLabel}</span>
                         </span>
                       )
                     })}
@@ -483,14 +528,35 @@ function Kpi({
   hint: string
 }) {
   return (
-    <div className="rounded-xl border border-border/80 bg-card p-3.5 shadow-card">
+    <div className="rounded-xl border border-border/80 bg-card p-3.5 shadow-card transition-[box-shadow,transform] duration-200 hover:-translate-y-px hover:shadow-[0_1px_2px_hsl(0_0%_0%/0.05),0_8px_24px_hsl(0_0%_0%/0.05)]">
       <div className="flex items-center justify-between">
         <span className="flex items-center gap-1.5 text-[11.5px] text-muted-foreground">{label}</span>
         <Icon size={13} className="text-muted-foreground opacity-70" />
       </div>
-      <div className="mt-1 text-[20px] font-semibold tracking-tight tabular-nums leading-tight">{value}</div>
+      <div className="mt-1 text-[21px] font-semibold leading-tight tracking-[-0.02em] tabular-nums">{value}</div>
       <div className="text-muted-foreground mt-1 text-[11px] leading-snug">{hint}</div>
     </div>
+  )
+}
+
+function QuickAction({
+  icon: Icon,
+  label,
+  onClick,
+}: {
+  icon: typeof LayoutGrid
+  label: string
+  onClick?: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex h-[34px] items-center justify-center gap-1.5 rounded-[10px] border border-border/80 bg-card text-[12px] font-medium shadow-card transition-[background-color,transform] hover:bg-accent active:scale-[0.98]"
+    >
+      <Icon size={13} className="text-muted-foreground" />
+      {label}
+    </button>
   )
 }
 
@@ -500,12 +566,14 @@ function ThroughputCard({
   currentIn,
   currentOut,
   loading,
+  refreshing,
 }: {
   prod: number[]
   cons: number[]
   currentIn: number
   currentOut: number
   loading: boolean
+  refreshing?: boolean
 }) {
   const { t } = useTranslation()
   const hasData = prod.length > 0 || cons.length > 0
@@ -518,7 +586,7 @@ function ThroughputCard({
     series.length ? `0,120 ${lineFor(series)} ${x(series.length - 1)},120` : ''
 
   return (
-    <Card className="p-3.5">
+    <Card className="relative overflow-hidden p-3.5">
       <div className="mb-2.5 flex items-center justify-between gap-3">
         <div>
           <div className="text-[12px] font-medium">{t('overview.throughput.title')}</div>
@@ -552,12 +620,19 @@ function ThroughputCard({
           ))}
           {prod.length > 0 && (
             <>
-              <polygon points={polyFor(prod)} fill="hsl(var(--success))" opacity={0.06} />
+              <polygon points={polyFor(prod)} fill="hsl(var(--success))" opacity={0.07} />
               <polyline
                 points={lineFor(prod)}
                 fill="none"
                 stroke="hsl(var(--success))"
                 strokeWidth={1.5}
+                strokeLinejoin="round"
+              />
+              <circle
+                cx={x(prod.length - 1)}
+                cy={y(prod[prod.length - 1] ?? 0)}
+                r={3}
+                fill="hsl(var(--success))"
               />
             </>
           )}
@@ -567,6 +642,7 @@ function ThroughputCard({
               fill="none"
               stroke="hsl(var(--info))"
               strokeWidth={1.5}
+              strokeLinejoin="round"
             />
           )}
         </svg>
@@ -575,6 +651,7 @@ function ThroughputCard({
           {loading ? t('common.loading') : t('overview.throughput.noData')}
         </div>
       )}
+      {refreshing && hasData && <div className="rl-shimmer-overlay" />}
     </Card>
   )
 }

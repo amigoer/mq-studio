@@ -1,12 +1,10 @@
 import { stat, readFile, writeFile } from 'node:fs/promises'
-import { BrowserWindow, dialog, ipcMain, shell } from 'electron'
-import type { BackendCall, UpdateCheckResult } from '../shared/bridge'
+import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
+import type { AppInfo, BackendCall, UpdateCheckResult } from '../shared/bridge'
 import { executeBackendCall } from './operations'
 import { MAX_IMPORT_BYTES, type DaemonSupervisor } from './daemon-supervisor'
 import { isReleaseInstall } from './release-install'
-import electronUpdater from 'electron-updater'
-
-const { autoUpdater } = electronUpdater
+import { checkLatestRelease } from './update-check'
 
 const allowedExternalHosts = new Set(['github.com', 'api.github.com'])
 
@@ -67,6 +65,7 @@ export function registerIPC(
     })
   }
 
+  handle('app:get-info', (): AppInfo => ({ version: app.getVersion() }))
   handle('window:minimize', () => window.minimize())
   handle('window:toggle-maximize', () =>
     window.isMaximized() ? window.unmaximize() : window.maximize(),
@@ -114,29 +113,15 @@ export function registerIPC(
     return filePath
   })
 
-  handle('updater:check', async () => {
-    if (!isReleaseInstall()) {
-      throw new Error('in-app update check is not supported in development/local runs')
-    }
-    const result = await autoUpdater.checkForUpdates()
-    const response: UpdateCheckResult = {
-      updateAvailable: result?.isUpdateAvailable ?? false,
-      version: result?.updateInfo.version,
-    }
-    return response
-  })
-  handle('updater:download', async () => {
-    if (!isReleaseInstall()) throw new Error('downloading updates is not supported in this environment')
-    return autoUpdater.downloadUpdate()
-  })
-  handle('updater:install', async () => {
-    if (!isReleaseInstall()) throw new Error('installing updates is not supported in this environment')
-    autoUpdater.quitAndInstall()
-  })
+  handle(
+    'updater:check',
+    (): Promise<UpdateCheckResult> => checkLatestRelease(app.getVersion()),
+  )
 }
 
 export function unregisterIPC(): void {
   for (const channel of [
+    'app:get-info',
     'window:minimize',
     'window:toggle-maximize',
     'window:close',
@@ -148,8 +133,6 @@ export function unregisterIPC(): void {
     'dialogs:export-config',
     'dialogs:import-config',
     'updater:check',
-    'updater:download',
-    'updater:install',
   ])
     ipcMain.removeHandler(channel)
 }

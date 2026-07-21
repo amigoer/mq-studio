@@ -200,6 +200,7 @@
     "title": "主题",
     "subtitle": "{{count}} 个 Topic",
     "subtitleFiltered": "{{count}} 个 Topic（共 {{total}} 个）",
+    "resultCount": "{{count}} 个主题",
     "subtitleNoConn": "未连接 · 请先在「连接」页面建立连接",
     "searchPlaceholder": "搜索 Topic…",
     "filterAll": "全部",
@@ -289,6 +290,7 @@
     "title": "消费者组",
     "subtitle": "{{count}} 个 Group",
     "subtitleFiltered": "{{count}} 个 Group（共 {{total}} 个）",
+    "resultCount": "{{count}} 个消费组",
     "subtitleNoConn": "未连接 · 请先在「连接」页面建立连接",
     "searchPlaceholder": "搜索 Group、订阅 Topic…",
     "filterAll": "全部",
@@ -687,6 +689,7 @@
     "host": "主机 / IP",
     "port": "端口",
     "hostPlaceholder": "127.0.0.1 或 namesrv.example.com",
+    "hostInvalid": "请输入合法的 IP 地址或主机名",
     "addNameServer": "添加地址",
     "nameServerHint": "主机与端口分开填写，默认端口 9876；可添加多个 NameServer",
     "validatePort": "端口须为 1–65535 的数字",
@@ -806,7 +809,7 @@
       "tsDatetime": "YYYY-MM-DD HH:mm:ss",
       "tsMs": "毫秒时间戳",
       "preview": "预览",
-      "previewSample": "示例文本：Rocket-Leaf 轻量级 RocketMQ 管理客户端 ABCDabcd 1234"
+      "previewSample": "示例文本：Rocket-Leaf · RocketMQ 桌面客户端 ABCDabcd 1234"
     },
     "message": {
       "defaults": "消息查询默认值",
@@ -890,9 +893,10 @@
       "clearCacheError": "清理缓存失败"
     },
     "about": {
-      "descriptionZh": "跨平台 RocketMQ 桌面管理客户端，基于 Electron 与本地 Go daemon。",
-      "descriptionEn": "A cross-platform RocketMQ desktop client built with Electron and a local Go daemon.",
+      "descriptionZh": "本地优先的 RocketMQ 桌面客户端，无需额外部署控制台，即可管理集群、Topic、消费者与消息。",
+      "descriptionEn": "A local-first desktop client for RocketMQ. Manage clusters, topics, consumers, and messages without deploying a separate console.",
       "resources": "资源",
+      "versionUnavailable": "版本不可用",
       "checkUpdate": "检查更新",
       "upToDate": "已是最新版本 v{{version}}",
       "updateAvailable": "发现新版本 v{{version}}",

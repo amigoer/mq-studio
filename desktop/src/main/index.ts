@@ -2,10 +2,10 @@ import { existsSync } from 'node:fs'
 import { join, normalize, relative } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { app, BrowserWindow, dialog, nativeImage, nativeTheme, net, protocol } from 'electron'
-import electronUpdater from 'electron-updater'
 import { DaemonSupervisor } from './daemon-supervisor'
 import { openAllowedExternal, registerIPC, unregisterIPC } from './ipc'
 import { isReleaseInstall } from './release-install'
+import { checkLatestRelease, GITHUB_RELEASES_URL } from './update-check'
 
 protocol.registerSchemesAsPrivileged([
   { scheme: 'app', privileges: { standard: true, secure: true, supportFetchAPI: true } },
@@ -19,7 +19,6 @@ const WINDOW_BG_LIGHT = '#ffffff'
 const WINDOW_BG_DARK = '#121212'
 
 const supervisor = new DaemonSupervisor()
-const { autoUpdater } = electronUpdater
 let mainWindow: BrowserWindow | null = null
 let shutdownStarted = false
 /** Last appearance applied from renderer (overrides system until next report). */
@@ -115,36 +114,24 @@ function createWindow(): BrowserWindow {
   return window
 }
 
-function configureUpdater(window: BrowserWindow): void {
-  autoUpdater.autoDownload = false
-  autoUpdater.autoInstallOnAppQuit = true
-  autoUpdater.on('error', (error) => console.error('[updater]', error))
-  autoUpdater.on('update-available', async (info) => {
-    const result = await dialog.showMessageBox(window, {
-      type: 'info',
-      title: 'Update available',
-      message: `Rocket Leaf ${info.version} has been released`,
-      detail: 'Download the update now? You will be asked again to restart after the download finishes.',
-      buttons: ['Download update', 'Remind me later'],
-      defaultId: 0,
-      cancelId: 1,
-    })
-    if (result.response === 0) await autoUpdater.downloadUpdate()
-  })
-  autoUpdater.on('update-downloaded', async (info) => {
-    const result = await dialog.showMessageBox(window, {
-      type: 'info',
-      title: 'Update downloaded',
-      message: `Rocket Leaf ${info.version} is ready`,
-      detail: 'Restart now to install the update?',
-      buttons: ['Restart now', 'Install on quit'],
-      defaultId: 0,
-      cancelId: 1,
-    })
-    if (result.response === 0) autoUpdater.quitAndInstall()
-  })
+function configureUpdateCheck(window: BrowserWindow): void {
   setTimeout(
-    () => void autoUpdater.checkForUpdates().catch((error) => console.error('[updater]', error)),
+    () =>
+      void checkLatestRelease(app.getVersion())
+        .then(async (result) => {
+          if (result.status !== 'available' || window.isDestroyed()) return
+          const response = await dialog.showMessageBox(window, {
+            type: 'info',
+            title: 'Update available',
+            message: `Rocket Leaf ${result.latestVersion} has been released`,
+            detail: 'Open GitHub Releases to download the installer for your platform.',
+            buttons: ['Open Releases', 'Remind me later'],
+            defaultId: 0,
+            cancelId: 1,
+          })
+          if (response.response === 0) await openAllowedExternal(GITHUB_RELEASES_URL)
+        })
+        .catch((error) => console.error('[update-check]', error)),
     3_000,
   )
 }
@@ -217,7 +204,7 @@ app.whenReady().then(async () => {
     })
     if (result.response === 0) void ensureDaemonReady(mainWindow)
   })
-  if (isReleaseInstall()) configureUpdater(mainWindow)
+  if (isReleaseInstall()) configureUpdateCheck(mainWindow)
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

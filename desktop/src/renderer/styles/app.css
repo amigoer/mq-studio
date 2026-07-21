@@ -653,6 +653,38 @@
   }
 }
 
+/* Shimmer sweep — refresh overlays and loading skeletons. */
+@keyframes rl-shimmer {
+  from {
+    background-position: -400px 0;
+  }
+  to {
+    background-position: 400px 0;
+  }
+}
+.rl-shimmer-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 30%, hsl(0 0% 50% / 0.06) 50%, transparent 70%);
+  background-size: 800px 100%;
+  animation: rl-shimmer 900ms linear infinite;
+  pointer-events: none;
+}
+.rl-shimmer-line {
+  background: linear-gradient(
+    100deg,
+    hsl(var(--muted)) 40%,
+    hsl(var(--accent)) 50%,
+    hsl(var(--muted)) 60%
+  );
+  background-size: 800px 100%;
+  animation: rl-shimmer 1.1s linear infinite;
+}
+[data-animations='off'] .rl-shimmer-overlay,
+[data-animations='off'] .rl-shimmer-line {
+  animation: none;
+}
+
 /* ===== Detail-panel transitions ===== */
 
 /* Slide-in from the right when the panel mounts. */

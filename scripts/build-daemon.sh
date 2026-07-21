@@ -54,4 +54,8 @@ mkdir -p "$(dirname "$output")"
       -ldflags "-s -w -X main.appVersion=$app_version" \
       -o "../$output" ./cmd/rocket-leafd
 )
+(
+  cd "$repo_root" &&
+    node scripts/daemon-build-metadata.cjs write "$electron_os" "$electron_arch" "$app_version"
+)
 echo "generated $output (appVersion=$app_version)"

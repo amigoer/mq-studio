@@ -6,7 +6,9 @@ directories:
   buildResources: resources
 files:
   - out/**/*
+  - '!out/build-metadata.json'
   - package.json
+beforePack: scripts/build-integrity.cjs
 asar: true
 extraResources:
   - from: resources/bin/${os}/${arch}

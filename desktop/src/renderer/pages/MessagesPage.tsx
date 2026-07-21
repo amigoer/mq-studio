@@ -227,13 +227,7 @@ export function MessagesPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
       ) : (
         <>
           {/* Query bar */}
-          <div
-            className="flex flex-wrap items-center gap-2 px-6 py-3"
-            style={{
-              borderBottom: '1px solid hsl(var(--border))',
-              background: 'hsl(var(--background))',
-            }}
-          >
+          <div className="mx-5 mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-border/80 bg-card p-3 shadow-card">
             {(tab === 'topic' || tab === 'msgid') && (
               <Select
                 className="font-mono-design"
@@ -337,7 +331,7 @@ export function MessagesPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
 
           <div className="flex min-h-0 flex-1 overflow-hidden">
             <div
-              className="scroll-thin min-w-0 flex-1 overflow-auto"
+              className="scroll-thin min-w-0 flex-1 overflow-auto px-5 py-3"
               onClick={handleListBackgroundClick}
             >
               {searching && results.length === 0 ? (
@@ -357,6 +351,7 @@ export function MessagesPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
                   {t('messages.empty')}
                 </div>
               ) : (
+                <Card className="overflow-hidden">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -422,6 +417,7 @@ export function MessagesPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
                     ))}
                   </TableBody>
                 </Table>
+                </Card>
               )}
             </div>
 

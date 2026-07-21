@@ -55,6 +55,54 @@ interface FormState {
   remark: string
 }
 
+/**
+ * Keep only characters that can legally appear in a NameServer host —
+ * hostname / IPv4 / IPv6 literal. Strips spaces, CJK, and other junk as
+ * the user types so the field cannot hold an unparseable address.
+ */
+function sanitizeHost(raw: string): string {
+  return raw.replace(/[^0-9A-Za-z.:_\-[\]]/g, '')
+}
+
+function isIPv4(s: string): boolean {
+  const m = s.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/)
+  if (!m) return false
+  return m.slice(1, 5).every((o) => Number(o) <= 255)
+}
+
+function isIPv6(s: string): boolean {
+  const inner = s.replace(/^\[/, '').replace(/\]$/, '')
+  if (!inner.includes(':')) return false
+  if ((inner.match(/::/g) ?? []).length > 1) return false
+  const groups = inner.split(':')
+  const nonEmpty = groups.filter((g) => g !== '')
+  if (nonEmpty.some((g) => !/^[0-9a-fA-F]{1,4}$/.test(g))) return false
+  return inner.includes('::') ? nonEmpty.length <= 7 : groups.length === 8
+}
+
+function isHostname(s: string): boolean {
+  if (s.length > 253) return false
+  const host = s.endsWith('.') ? s.slice(0, -1) : s
+  if (!host) return false
+  return host
+    .split('.')
+    .every((label) => /^[A-Za-z0-9_](?:[A-Za-z0-9_-]{0,61}[A-Za-z0-9_])?$/.test(label))
+}
+
+/**
+ * A NameServer host is valid when it is a real IPv4, an IPv6 literal, or a
+ * hostname / domain. A string of only digits and dots must be a valid IPv4 —
+ * this is what rejects near-misses like "192.168.2123" instead of accepting
+ * them as an all-numeric hostname.
+ */
+function isValidNsHost(raw: string): boolean {
+  const s = raw.trim()
+  if (!s) return false
+  if (s.startsWith('[') || s.includes(':')) return isIPv6(s)
+  if (/^[\d.]+$/.test(s)) return isIPv4(s)
+  return isHostname(s)
+}
+
 function parseNameServers(raw: string): NsEntry[] {
   const parts = String(raw || '')
     .split(/[;\s,]+/)
@@ -138,6 +186,28 @@ function updateNsEntry(entries: NsEntry[], index: number, patch: Partial<NsEntry
   return entries.map((e, i) => (i === index ? { ...e, ...patch } : e))
 }
 
+function EnvBadge({ env }: { env: ConnectionEnv }) {
+  const { t } = useTranslation()
+  const meta = {
+    production: { token: 'destructive', labelKey: 'connections.envProd' },
+    test: { token: 'warning', labelKey: 'connections.envTest' },
+    development: { token: 'info', labelKey: 'connections.envDev' },
+  } as const
+  const m = meta[env] ?? meta.development
+  return (
+    <span
+      className="inline-flex shrink-0 items-center rounded px-1 text-[10px] font-medium"
+      style={{
+        background: `hsl(var(--${m.token}) / 0.1)`,
+        color: `hsl(var(--${m.token}))`,
+        border: `1px solid hsl(var(--${m.token}) / 0.28)`,
+      }}
+    >
+      {t(m.labelKey)}
+    </span>
+  )
+}
+
 export function ConnectionsPage() {
   const { t } = useTranslation()
   const { list, loading, refresh } = useConnections()
@@ -152,6 +222,8 @@ export function ConnectionsPage() {
   const [busyId, setBusyId] = useState<number | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<Connection | null>(null)
   const [advancedOpen, setAdvancedOpen] = useState(false)
+  // NameServer host inputs flagged invalid on blur (keyed by entry index).
+  const [hostErrors, setHostErrors] = useState<Record<number, boolean>>({})
   // Guards against React Strict Mode double-effect wiping a just-applied prefill
   const newFormCycle = useRef(0)
   const appliedNewCycle = useRef(-1)
@@ -181,6 +253,8 @@ export function ConnectionsPage() {
   )
 
   useEffect(() => {
+    // Clear stale validation flags whenever the edited connection changes.
+    setHostErrors({})
     if (selectedId === NEW_FORM_ID) {
       if (appliedNewCycle.current === newFormCycle.current) return
       appliedNewCycle.current = newFormCycle.current
@@ -472,8 +546,8 @@ export function ConnectionsPage() {
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
         {/* List */}
-        <div className="scroll-thin flex w-[280px] shrink-0 flex-col border-r border-border bg-background">
-          <div className="min-h-0 flex-1 overflow-auto">
+        <div className="scroll-thin flex w-[272px] shrink-0 flex-col border-r border-border bg-background">
+          <div className="scroll-thin min-h-0 flex-1 overflow-auto p-3">
             {loading && list.length === 0 ? (
               <div className="text-muted-foreground flex items-center justify-center gap-2 p-8">
                 <Spinner size={14} />
@@ -483,70 +557,77 @@ export function ConnectionsPage() {
               <div className="text-muted-foreground px-4 py-10 text-center">
                 <div className="text-[12.5px]">{t('connections.empty')}</div>
                 <div className="mt-1 text-[11.5px]">{t('connections.emptyHint')}</div>
+                <Button variant="outline" size="sm" className="mt-3" onClick={handleNew}>
+                  <Plus size={13} />
+                  {t('connections.addFirst')}
+                </Button>
               </div>
             ) : (
-              filtered.map((c) => {
-                const active = selectedId === c.id
-                const online = c.status === 'online'
-                const rowBusy =
-                  busyId === c.id && (busy === 'row-connect' || busy === 'row-disconnect')
-                return (
-                  <div
-                    key={c.id}
-                    className={cn("group flex cursor-pointer items-center gap-2.5 border-b border-border border-l-2 border-l-transparent px-3 py-2.5 transition-colors hover:bg-accent/70", active && "border-l-foreground bg-accent")}
-                    onClick={() => handleSelect(c)}
-                  >
-                    <span
-                      className="h-1.5 w-1.5 shrink-0 rounded-full"
-                      style={{
-                        background: online
-                          ? 'hsl(var(--success))'
-                          : 'hsl(var(--muted-foreground) / 0.35)',
-                      }}
-                    />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5">
-                        <span className="truncate text-[12.5px] font-medium">{c.name}</span>
+              <div className="flex flex-col gap-2">
+                {filtered.map((c) => {
+                  const active = selectedId === c.id
+                  const online = c.status === 'online'
+                  const rowBusy =
+                    busyId === c.id && (busy === 'row-connect' || busy === 'row-disconnect')
+                  return (
+                    <div
+                      key={c.id}
+                      className={cn(
+                        'group flex cursor-pointer flex-col gap-1 rounded-[10px] border px-3 py-2.5 transition-colors',
+                        active
+                          ? 'border-foreground/30 bg-accent'
+                          : 'border-border hover:bg-accent/70',
+                      )}
+                      onClick={() => handleSelect(c)}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="h-[7px] w-[7px] shrink-0 rounded-full"
+                          style={{
+                            background: online
+                              ? 'hsl(var(--success))'
+                              : 'hsl(var(--muted-foreground) / 0.35)',
+                          }}
+                        />
+                        <span className="min-w-0 flex-1 truncate text-[12.5px] font-medium">
+                          {c.name}
+                        </span>
                         {c.isDefault && (
-                          <span className="text-muted-foreground shrink-0 text-[10px]">
+                          <span className="text-muted-foreground shrink-0 rounded border border-border px-1 text-[10px]">
                             {t('connections.default')}
                           </span>
                         )}
+                        <Button
+                          type="button"
+                          variant={online ? 'outline' : 'default'}
+                          size="sm"
+                          className="h-6 shrink-0 px-2"
+                          disabled={anyBusy}
+                          title={online ? t('connections.disconnect') : t('connections.connect')}
+                          onClick={(e) =>
+                            online ? handleRowDisconnect(c, e) : handleRowConnect(c, e)
+                          }
+                        >
+                          {rowBusy ? (
+                            <Spinner size={12} />
+                          ) : online ? (
+                            <Unlink size={12} />
+                          ) : (
+                            <PlugZap size={12} />
+                          )}
+                        </Button>
                       </div>
-                      <div className="font-mono-design text-muted-foreground mt-0.5 truncate text-[11px]">
-                        {(c.nameServer || '').split(/[;\s,]+/)[0] || '—'}
+                      <div className="flex items-center gap-1.5 pl-[15px]">
+                        <EnvBadge env={c.env} />
+                        <span className="font-mono-design text-muted-foreground min-w-0 truncate text-[10.5px]">
+                          {c.nameServer || '—'}
+                        </span>
                       </div>
                     </div>
-                    <Button
-                      type="button"
-                      variant={online ? 'outline' : 'default'}
-                      size="sm"
-                      className="shrink-0 px-2"
-                      disabled={anyBusy}
-                      title={online ? t('connections.disconnect') : t('connections.connect')}
-                      onClick={(e) => (online ? handleRowDisconnect(c, e) : handleRowConnect(c, e))}
-                    >
-                      {rowBusy ? (
-                        <Spinner size={12} />
-                      ) : online ? (
-                        <Unlink size={12} />
-                      ) : (
-                        <PlugZap size={12} />
-                      )}
-                    </Button>
-                  </div>
-                )
-              })
+                  )
+                })}
+              </div>
             )}
-          </div>
-          <div className="border-t border-border p-2">
-            <Button variant="outline" size="sm"
-              className="w-full justify-center"
-              onClick={handleNew}
-            >
-              <Plus size={13} />
-              {list.length === 0 ? t('connections.addFirst') : t('connections.newConnection')}
-            </Button>
           </div>
         </div>
 
@@ -658,57 +739,84 @@ export function ConnectionsPage() {
                     </div>
                     <div className="flex flex-col gap-2">
                       {form.nsEntries.map((entry, index) => (
-                        <div key={index} className="flex items-center gap-2">
-                          <div className="min-w-0 flex-1">
+                        <div key={index} className="flex flex-col gap-1">
+                          <div className="flex items-center gap-2">
+                            <div className="min-w-0 flex-1">
+                              <Input
+                                className={cn(
+                                  'font-mono-design',
+                                  hostErrors[index] &&
+                                    'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/25',
+                                )}
+                                placeholder={t('connections.hostPlaceholder')}
+                                value={entry.host}
+                                maxLength={253}
+                                spellCheck={false}
+                                autoComplete="off"
+                                aria-invalid={hostErrors[index] || undefined}
+                                onChange={(e) => {
+                                  if (hostErrors[index]) {
+                                    setHostErrors((prev) => ({ ...prev, [index]: false }))
+                                  }
+                                  setForm({
+                                    ...form,
+                                    nsEntries: updateNsEntry(form.nsEntries, index, {
+                                      host: sanitizeHost(e.target.value),
+                                    }),
+                                  })
+                                }}
+                                onBlur={() =>
+                                  setHostErrors((prev) => ({
+                                    ...prev,
+                                    [index]: entry.host.trim() !== '' && !isValidNsHost(entry.host),
+                                  }))
+                                }
+                                aria-label={t('connections.host')}
+                              />
+                            </div>
+                            <span className="text-muted-foreground shrink-0 select-none text-[12px]">
+                              :
+                            </span>
                             <Input
-                              className="font-mono-design"
-                              placeholder={t('connections.hostPlaceholder')}
-                              value={entry.host}
+                              className="font-mono-design shrink-0 text-center"
+                              style={{ width: 92, minWidth: 92, maxWidth: 92 }}
+                              type="text"
+                              inputMode="numeric"
+                              pattern="[0-9]*"
+                              maxLength={5}
+                              placeholder={DEFAULT_NS_PORT}
+                              value={entry.port}
                               onChange={(e) =>
                                 setForm({
                                   ...form,
                                   nsEntries: updateNsEntry(form.nsEntries, index, {
-                                    host: e.target.value,
+                                    port: e.target.value.replace(/\D/g, '').slice(0, 5),
                                   }),
                                 })
                               }
-                              aria-label={t('connections.host')}
+                              aria-label={t('connections.port')}
                             />
+                            {form.nsEntries.length > 1 && (
+                              <Button variant="ghost" size="icon-sm"
+                                type="button"
+                                className="shrink-0 text-muted-foreground"
+                                title={t('common.delete')}
+                                onClick={() => {
+                                  setHostErrors({})
+                                  setForm({
+                                    ...form,
+                                    nsEntries: form.nsEntries.filter((_, i) => i !== index),
+                                  })
+                                }}
+                              >
+                                <X size={13} />
+                              </Button>
+                            )}
                           </div>
-                          <span className="text-muted-foreground shrink-0 select-none text-[12px]">:</span>
-                          <Input
-                            className="font-mono-design shrink-0 text-center"
-                            style={{ width: 92, minWidth: 92, maxWidth: 92 }}
-                            type="text"
-                            inputMode="numeric"
-                            pattern="[0-9]*"
-                            maxLength={5}
-                            placeholder={DEFAULT_NS_PORT}
-                            value={entry.port}
-                            onChange={(e) =>
-                              setForm({
-                                ...form,
-                                nsEntries: updateNsEntry(form.nsEntries, index, {
-                                  port: e.target.value.replace(/\D/g, '').slice(0, 5),
-                                }),
-                              })
-                            }
-                            aria-label={t('connections.port')}
-                          />
-                          {form.nsEntries.length > 1 && (
-                            <Button variant="ghost" size="icon-sm"
-                              type="button"
-                              className="shrink-0 text-muted-foreground"
-                              title={t('common.delete')}
-                              onClick={() =>
-                                setForm({
-                                  ...form,
-                                  nsEntries: form.nsEntries.filter((_, i) => i !== index),
-                                })
-                              }
-                            >
-                              <X size={13} />
-                            </Button>
+                          {hostErrors[index] && (
+                            <span className="text-destructive text-[11px]">
+                              {t('connections.hostInvalid')}
+                            </span>
                           )}
                         </div>
                       ))}

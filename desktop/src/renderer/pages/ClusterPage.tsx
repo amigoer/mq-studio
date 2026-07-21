@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState, type ReactNode } from 'react'
 import { CircleDot, Activity, HardDrive, LayoutGrid, Server } from 'lucide-react'
 import { Spinner } from '@/components/Spinner'
 import { useTranslation } from 'react-i18next'
@@ -160,58 +160,46 @@ export function ClusterPage({ onNavigate }: { onNavigate?: (id: NavId) => void }
               <>
                 {/* Top stats */}
                 <div className="grid gap-2.5" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
-                  <div className="rounded-xl border border-border/80 bg-card p-3.5 shadow-card" style={{ padding: 14 }}>
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground text-[12px]">{t('cluster.stat.health')}</span>
-                      <CircleDot size={13} style={{ color: healthColor }} />
-                    </div>
-                    <div
-                      className="mt-1 text-[20px] font-semibold tracking-tight tabular-nums leading-tight"
-                      style={{ fontSize: 22, color: healthColor, marginTop: 6 }}
-                    >
-                      {healthLabel}
-                    </div>
-                    <div className="text-muted-foreground mt-1 text-[12px]">
+                  <ClusterKpi
+                    label={t('cluster.stat.health')}
+                    icon={CircleDot}
+                    iconColor={healthColor}
+                    value={healthLabel}
+                    valueColor={healthColor}
+                  >
+                    <div className="text-muted-foreground mt-1 text-[11px]">
                       {t('cluster.stat.healthSummary', {
                         online: onlineCount,
                         total: totalCount || onlineCount,
                       })}
                     </div>
-                  </div>
-                  <div className="rounded-xl border border-border/80 bg-card p-3.5 shadow-card" style={{ padding: 14 }}>
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground text-[12px]">{t('cluster.stat.tps')}</span>
-                      <Activity size={13} className="text-muted-foreground" />
+                  </ClusterKpi>
+                  <ClusterKpi label={t('cluster.stat.tps')} icon={Activity} value={formatTps(totalTps)}>
+                    <div className="text-muted-foreground mt-1 text-[11px]">
+                      {t('cluster.stat.tpsSubtitle')}
                     </div>
-                    <div className="mt-1 font-semibold tracking-tight tabular-nums leading-tight tabular-nums" style={{ fontSize: 22, marginTop: 6 }}>
-                      {formatTps(totalTps)}
+                  </ClusterKpi>
+                  <ClusterKpi
+                    label={t('cluster.stat.disk')}
+                    icon={HardDrive}
+                    value={`${Math.round(avgDisk)}%`}
+                  >
+                    <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
+                      <div
+                        className="h-full rounded-full bg-foreground transition-[width] duration-500"
+                        style={{ width: `${Math.round(avgDisk)}%` }}
+                      />
                     </div>
-                    <div className="text-muted-foreground mt-1 text-[12px]">{t('cluster.stat.tpsSubtitle')}</div>
-                  </div>
-                  <div className="rounded-xl border border-border/80 bg-card p-3.5 shadow-card" style={{ padding: 14 }}>
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground text-[12px]">{t('cluster.stat.disk')}</span>
-                      <HardDrive size={13} className="text-muted-foreground" />
-                    </div>
-                    <div className="mt-1 font-semibold tracking-tight tabular-nums leading-tight tabular-nums" style={{ fontSize: 22, marginTop: 6 }}>
-                      {Math.round(avgDisk)}%
-                    </div>
-                    <div className="h-1.5 overflow-hidden rounded-full bg-muted mt-2">
-                      <div className="h-full rounded-full bg-foreground" style={{ width: `${Math.round(avgDisk)}%` }} />
-                    </div>
-                  </div>
-                  <div className="rounded-xl border border-border/80 bg-card p-3.5 shadow-card" style={{ padding: 14 }}>
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground text-[12px]">{t('cluster.stat.topics')}</span>
-                      <LayoutGrid size={13} className="text-muted-foreground" />
-                    </div>
-                    <div className="mt-1 font-semibold tracking-tight tabular-nums leading-tight tabular-nums" style={{ fontSize: 22, marginTop: 6 }}>
-                      {totalTopics.toLocaleString()}
-                    </div>
-                    <div className="text-muted-foreground mt-1 text-[12px]">
+                  </ClusterKpi>
+                  <ClusterKpi
+                    label={t('cluster.stat.topics')}
+                    icon={LayoutGrid}
+                    value={totalTopics.toLocaleString()}
+                  >
+                    <div className="text-muted-foreground mt-1 text-[11px]">
                       {t('cluster.stat.topicsSubtitle', { groups: totalGroups })}
                     </div>
-                  </div>
+                  </ClusterKpi>
                 </div>
 
                 {/* Throughput chart */}
@@ -307,6 +295,42 @@ export function ClusterPage({ onNavigate }: { onNavigate?: (id: NavId) => void }
           </>
         )}
       </div>
+    </div>
+  )
+}
+
+function ClusterKpi({
+  label,
+  icon: Icon,
+  iconColor,
+  value,
+  valueColor,
+  children,
+}: {
+  label: string
+  icon: typeof CircleDot
+  iconColor?: string
+  value: string
+  valueColor?: string
+  children?: ReactNode
+}) {
+  return (
+    <div className="rounded-xl border border-border/80 bg-card p-3.5 shadow-card transition-[box-shadow,transform] duration-200 hover:-translate-y-px hover:shadow-[0_1px_2px_hsl(0_0%_0%/0.05),0_8px_24px_hsl(0_0%_0%/0.05)]">
+      <div className="flex items-center justify-between">
+        <span className="text-muted-foreground text-[11.5px]">{label}</span>
+        <Icon
+          size={13}
+          className={iconColor ? undefined : 'text-muted-foreground opacity-70'}
+          style={iconColor ? { color: iconColor } : undefined}
+        />
+      </div>
+      <div
+        className="mt-1.5 text-[21px] font-semibold leading-tight tracking-[-0.02em] tabular-nums"
+        style={valueColor ? { color: valueColor } : undefined}
+      >
+        {value}
+      </div>
+      {children}
     </div>
   )
 }

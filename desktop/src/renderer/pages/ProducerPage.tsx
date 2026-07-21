@@ -138,189 +138,170 @@ export function ProducerPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
             onAction={() => onNavigate?.('connections')}
           />
         ) : (
-          <div className="grid h-full" style={{ gridTemplateColumns: '1fr 380px' }}>
-            <div className="scroll-thin min-w-0 overflow-auto" style={{ padding: 24 }}>
-              <div style={{ maxWidth: 720 }}>
-                <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{t('producer.target')}</div>
-                <Card style={{ padding: 16 }}>
-                  <div className="grid gap-3.5" style={{ gridTemplateColumns: '1fr 1fr' }}>
-                    <div style={{ gridColumn: '1 / -1' }}>
-                      <div className="text-muted-foreground mb-2 text-[12px]">
-                        {t('producer.topic')}{' '}
-                        <span style={{ color: 'hsl(var(--destructive))' }}>*</span>
-                      </div>
-                      {sendableTopics.length === 0 ? (
-                        <div className="text-muted-foreground text-[12px]" style={{ padding: 8 }}>
-                          {t('producer.noTopics')}
-                        </div>
-                      ) : (
-                        <Select
-                          className="font-mono-design"
-                          value={topic}
-                          onChange={(e) => setTopic(e.target.value)}
-                        >
-                          <option value="">{t('producer.topicPlaceholder')}</option>
-                          {sendableTopics.map((tp) => (
-                            <option key={tp} value={tp}>
-                              {tp}
-                            </option>
-                          ))}
-                        </Select>
-                      )}
-                    </div>
-                    <div>
-                      <div className="text-muted-foreground mb-2 text-[12px]">
-                        {t('producer.tag')}{' '}
-                        <span className="text-muted-foreground">{t('producer.tagOptional')}</span>
-                      </div>
-                      <Input
-                        className="font-mono-design"
-                        placeholder={t('producer.tagPlaceholder')}
-                        value={tag}
-                        onChange={(e) => setTag(e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <div className="text-muted-foreground mb-2 text-[12px]">
-                        {t('producer.key')}{' '}
-                        <span className="text-muted-foreground">{t('producer.tagOptional')}</span>
-                      </div>
-                      <Input
-                        className="font-mono-design"
-                        placeholder={t('producer.keyPlaceholder')}
-                        value={key}
-                        onChange={(e) => setKey(e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <div className="text-muted-foreground mb-2 text-[12px]">{t('producer.delay')}</div>
-                      <Select
-                        value={delay}
-                        onChange={(e) => setDelay(Number(e.target.value))}
-                      >
-                        {DELAY_LEVELS.map((lv) => (
-                          <option key={lv} value={lv}>
-                            {t(`producer.delayLevels.${lv}` as const)}
-                          </option>
-                        ))}
-                      </Select>
-                    </div>
-                  </div>
-                </Card>
-
-                <div className="mb-2 mt-5 flex items-center justify-between">
-                  <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginBottom: 0 }}>
-                    {t('producer.body')}
-                  </div>
-                  <div className="flex gap-1">
-                    <Button variant="ghost" size="sm"
-                      onClick={() => setBody(SAMPLE_BODY)}
+          <div className="scroll-thin h-full overflow-auto px-5 py-4">
+            <div
+              className="mx-auto grid max-w-[1020px] items-start gap-3.5"
+              style={{ gridTemplateColumns: 'minmax(0,1.25fr) minmax(0,1fr)' }}
+            >
+              {/* Compose */}
+              <Card className="flex flex-col gap-3 p-4">
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-muted-foreground text-[11px] font-medium">
+                    {t('producer.topic')} <span style={{ color: 'hsl(var(--destructive))' }}>*</span>
+                  </span>
+                  {sendableTopics.length === 0 ? (
+                    <div className="text-muted-foreground text-[12px]">{t('producer.noTopics')}</div>
+                  ) : (
+                    <Select
+                      className="font-mono-design"
+                      value={topic}
+                      onChange={(e) => setTopic(e.target.value)}
                     >
+                      <option value="">{t('producer.topicPlaceholder')}</option>
+                      {sendableTopics.map((tp) => (
+                        <option key={tp} value={tp}>
+                          {tp}
+                        </option>
+                      ))}
+                    </Select>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-muted-foreground text-[11px] font-medium">
+                      {t('producer.tag')}
+                    </span>
+                    <Input
+                      className="font-mono-design"
+                      placeholder={t('producer.tagPlaceholder')}
+                      value={tag}
+                      onChange={(e) => setTag(e.target.value)}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-muted-foreground text-[11px] font-medium">
+                      {t('producer.key')}
+                    </span>
+                    <Input
+                      className="font-mono-design"
+                      placeholder={t('producer.keyPlaceholder')}
+                      value={key}
+                      onChange={(e) => setKey(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-muted-foreground text-[11px] font-medium">
+                    {t('producer.delay')}
+                  </span>
+                  <Select value={delay} onChange={(e) => setDelay(Number(e.target.value))}>
+                    {DELAY_LEVELS.map((lv) => (
+                      <option key={lv} value={lv}>
+                        {t(`producer.delayLevels.${lv}` as const)}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground text-[11px] font-medium">
+                      {t('producer.body')}
+                    </span>
+                    <span className="flex-1" />
+                    <Button variant="ghost" size="sm" onClick={() => setBody(SAMPLE_BODY)}>
                       {t('producer.loadSample')}
                     </Button>
-                    <Button variant="ghost" size="sm"
-                      onClick={handleFormat}
-                      disabled={!body.trim()}
-                    >
+                    <Button variant="ghost" size="sm" onClick={handleFormat} disabled={!body.trim()}>
                       {t('producer.format')}
                     </Button>
                   </div>
+                  <Textarea
+                    className="min-h-[180px] font-mono-design text-[12px]"
+                    placeholder="{ }"
+                    value={body}
+                    onChange={(e) => setBody(e.target.value)}
+                  />
                 </div>
-                <Textarea
-                  className="min-h-[220px] font-mono-design text-[12px]"
-                  placeholder='{"hello":"world"}'
-                  value={body}
-                  onChange={(e) => setBody(e.target.value)}
-                />
 
-                <div className="mt-5 flex gap-2">
-                  <Button variant="default" size="default"
+                <div className="flex items-center gap-2">
+                  <Button variant="ghost" size="sm" onClick={handleReset} disabled={busy}>
+                    <RotateCcw size={13} />
+                    {t('producer.reset')}
+                  </Button>
+                  <span className="flex-1" />
+                  <Button
+                    variant="default"
+                    size="sm"
                     onClick={handleSend}
                     disabled={busy || !topic || !body.trim()}
                   >
                     {busy ? <Spinner size={13} /> : <Send size={13} />}
                     {busy ? t('producer.sending') : t('producer.send')}
                   </Button>
-                  <Button variant="ghost" size="default" onClick={handleReset} disabled={busy}>
-                    <RotateCcw size={13} />
-                    {t('producer.reset')}
-                  </Button>
                 </div>
-              </div>
-            </div>
+              </Card>
 
-            {/* History */}
-            <div
-              className="scroll-thin overflow-auto"
-              style={{
-                borderLeft: '1px solid hsl(var(--border))',
-                background: 'hsl(var(--background))',
-              }}
-            >
-              <div
-                style={{
-                  padding: '12px 14px',
-                  borderBottom: '1px solid hsl(var(--border))',
-                }}
-              >
-                <div className="text-[13px] font-medium">{t('producer.history')}</div>
-                <div className="text-muted-foreground mt-1 text-[12px]">{t('producer.historyHint')}</div>
-              </div>
-              {history.length === 0 ? (
-                <div className="text-muted-foreground text-[12px]" style={{ padding: 24, textAlign: 'center' }}>
-                  {t('producer.historyEmpty')}
+              {/* History */}
+              <Card className="overflow-hidden">
+                <div className="flex items-center justify-between border-b border-border px-3 py-2.5">
+                  <span className="text-[12px] font-medium">{t('producer.history')}</span>
+                  <span className="text-muted-foreground text-[11px]">
+                    {t('producer.historyHint')}
+                  </span>
                 </div>
-              ) : (
-                history.map((h, i) => (
-                  <div
-                    key={i}
-                    style={{
-                      padding: '10px 14px',
-                      borderBottom: '1px solid hsl(var(--border))',
-                    }}
-                  >
-                    <div className="flex items-center gap-2">
-                      {h.ok ? (
-                        <Check size={11} style={{ color: 'hsl(var(--success))' }} />
-                      ) : (
-                        <X size={11} style={{ color: 'hsl(var(--destructive))' }} />
-                      )}
-                      <span className="font-mono-design text-muted-foreground tabular-nums text-[12px]">
-                        {h.time}
-                      </span>
-                      <span
-                        className="font-mono-design flex-1 truncate text-[12px]"
-                        title={h.topic}
-                      >
-                        {h.topic}
-                      </span>
-                    </div>
-                    {h.ok ? (
-                      <div
-                        className="font-mono-design text-muted-foreground mt-1 truncate text-[11px]"
-                        title={h.result}
-                      >
-                        {h.result}
-                      </div>
-                    ) : (
-                      <div
-                        className="mt-1 flex items-start gap-1 text-[11px]"
-                        style={{ color: 'hsl(var(--destructive))' }}
-                      >
-                        <AlertCircle size={10} className="mt-0.5 shrink-0" />
-                        <span className="break-all">{h.error}</span>
-                      </div>
-                    )}
-                    {(h.tag || h.key || h.delay > 0) && (
-                      <div className="text-muted-foreground mt-1 flex flex-wrap gap-2 text-[11px]">
-                        {h.tag && <span>tag: {h.tag}</span>}
-                        {h.key && <span>key: {h.key}</span>}
-                        {h.delay > 0 && <span>delay: L{h.delay}</span>}
-                      </div>
-                    )}
+                {history.length === 0 ? (
+                  <div className="text-muted-foreground px-3 py-9 text-center text-[12px]">
+                    {t('producer.historyEmpty')}
                   </div>
-                ))
-              )}
+                ) : (
+                  history.map((h, i) => (
+                    <div
+                      key={i}
+                      className="flex flex-col gap-1 border-t border-border px-3 py-2.5 first:border-t-0"
+                    >
+                      <div className="flex items-center gap-2">
+                        {h.ok ? (
+                          <Check size={11} style={{ color: 'hsl(var(--success))' }} />
+                        ) : (
+                          <X size={11} style={{ color: 'hsl(var(--destructive))' }} />
+                        )}
+                        <span className="font-mono-design flex-1 truncate text-[12px]" title={h.topic}>
+                          {h.topic}
+                        </span>
+                        <span className="font-mono-design text-muted-foreground text-[11px] tabular-nums">
+                          {h.time}
+                        </span>
+                      </div>
+                      {h.ok ? (
+                        <div
+                          className="font-mono-design text-muted-foreground truncate pl-[19px] text-[10.5px]"
+                          title={h.result}
+                        >
+                          {h.result}
+                        </div>
+                      ) : (
+                        <div
+                          className="flex items-start gap-1 pl-[19px] text-[11px]"
+                          style={{ color: 'hsl(var(--destructive))' }}
+                        >
+                          <AlertCircle size={10} className="mt-0.5 shrink-0" />
+                          <span className="break-all">{h.error}</span>
+                        </div>
+                      )}
+                      {(h.tag || h.key || h.delay > 0) && (
+                        <div className="text-muted-foreground flex flex-wrap gap-2 pl-[19px] text-[10.5px]">
+                          {h.tag && <span>tag: {h.tag}</span>}
+                          {h.key && <span>key: {h.key}</span>}
+                          {h.delay > 0 && <span>delay: L{h.delay}</span>}
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
+              </Card>
             </div>
           </div>
         )}

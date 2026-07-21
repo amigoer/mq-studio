@@ -24,8 +24,8 @@ import (
 const protocolVersion = 1
 
 // appVersion is injected at build time via -ldflags "-X main.appVersion=...".
-// Default matches desktop/package.json for local go run / smoke tests.
-var appVersion = "2.0.0"
+// The development fallback is intentionally not a release version.
+var appVersion = "dev"
 
 type startupConfig struct {
 	Token string `json:"token"`

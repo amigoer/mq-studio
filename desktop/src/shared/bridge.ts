@@ -50,13 +50,23 @@ export interface BackendCall {
 
 export type DaemonState = 'stopped' | 'starting' | 'ready' | 'restarting' | 'failed'
 
+export type UpdateStatus = 'available' | 'current' | 'ahead'
+
 export interface UpdateCheckResult {
-  updateAvailable: boolean
-  version?: string
+  status: UpdateStatus
+  currentVersion: string
+  latestVersion: string
+}
+
+export interface AppInfo {
+  version: string
 }
 
 export interface RocketLeafBridge {
   platform: NodeJS.Platform
+  app: {
+    getInfo(): Promise<AppInfo>
+  }
   window: {
     minimize(): Promise<void>
     toggleMaximize(): Promise<void>
@@ -73,8 +83,6 @@ export interface RocketLeafBridge {
   }
   updater: {
     check(): Promise<UpdateCheckResult>
-    download(): Promise<void>
-    install(): Promise<void>
   }
   daemon: {
     state(): Promise<DaemonState>

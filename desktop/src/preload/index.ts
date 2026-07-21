@@ -3,6 +3,9 @@ import type { BackendCall, DaemonState, RocketLeafBridge } from '../shared/bridg
 
 const bridge: RocketLeafBridge = {
   platform: process.platform,
+  app: {
+    getInfo: () => ipcRenderer.invoke('app:get-info'),
+  },
   window: {
     minimize: () => ipcRenderer.invoke('window:minimize'),
     toggleMaximize: () => ipcRenderer.invoke('window:toggle-maximize'),
@@ -22,8 +25,6 @@ const bridge: RocketLeafBridge = {
   },
   updater: {
     check: () => ipcRenderer.invoke('updater:check'),
-    download: () => ipcRenderer.invoke('updater:download'),
-    install: () => ipcRenderer.invoke('updater:install'),
   },
   daemon: {
     state: () => ipcRenderer.invoke('daemon:state'),

@@ -200,6 +200,7 @@
     "title": "Topics",
     "subtitle": "{{count}} topics",
     "subtitleFiltered": "{{count}} of {{total}} topics",
+    "resultCount": "{{count}} topics",
     "subtitleNoConn": "Not connected · open Connections first",
     "searchPlaceholder": "Search topics…",
     "filterAll": "All",
@@ -289,6 +290,7 @@
     "title": "Consumer groups",
     "subtitle": "{{count}} groups",
     "subtitleFiltered": "{{count}} of {{total}} groups",
+    "resultCount": "{{count}} groups",
     "subtitleNoConn": "Not connected · open Connections first",
     "searchPlaceholder": "Search group or subscribed topic…",
     "filterAll": "All",
@@ -687,6 +689,7 @@
     "host": "Host / IP",
     "port": "Port",
     "hostPlaceholder": "127.0.0.1 or namesrv.example.com",
+    "hostInvalid": "Enter a valid IP address or hostname",
     "addNameServer": "Add address",
     "nameServerHint": "Host and port are separate; default port is 9876. Add more rows for extra NameServers",
     "validatePort": "Port must be a number between 1 and 65535",
@@ -806,7 +809,7 @@
       "tsDatetime": "YYYY-MM-DD HH:mm:ss",
       "tsMs": "Milliseconds",
       "preview": "Preview",
-      "previewSample": "Sample: Rocket-Leaf — a lightweight RocketMQ client. ABCDabcd 1234"
+      "previewSample": "Sample: Rocket-Leaf · RocketMQ desktop client. ABCDabcd 1234"
     },
     "message": {
       "defaults": "Query defaults",
@@ -890,9 +893,10 @@
       "clearCacheError": "Clear cache failed"
     },
     "about": {
-      "descriptionZh": "跨平台 RocketMQ 桌面管理客户端，基于 Electron 与本地 Go daemon。",
-      "descriptionEn": "A cross-platform RocketMQ desktop client built with Electron and a local Go daemon.",
+      "descriptionZh": "本地优先的 RocketMQ 桌面客户端，无需额外部署控制台，即可管理集群、Topic、消费者与消息。",
+      "descriptionEn": "A local-first desktop client for RocketMQ. Manage clusters, topics, consumers, and messages without deploying a separate console.",
       "resources": "Resources",
+      "versionUnavailable": "Version unavailable",
       "checkUpdate": "Check for updates",
       "upToDate": "You are on the latest version v{{version}}",
       "updateAvailable": "Update available: v{{version}}",

@@ -6,6 +6,7 @@ import { type ChildProcessWithoutNullStreams, spawn } from 'node:child_process'
 import { app } from 'electron'
 import { EventEmitter } from 'node:events'
 import type { DaemonState } from '../shared/bridge'
+import { isReleaseInstall } from './release-install'
 
 interface ReadyMessage {
   protocolVersion: number
@@ -183,9 +184,21 @@ export class DaemonSupervisor extends EventEmitter {
               throw new Error(`invalid backend port: ${String(message.port)}`)
             }
             const expectedVersion = app.getVersion()
-            if (message.appVersion && message.appVersion !== expectedVersion) {
+            const daemonVersion =
+              typeof message.appVersion === 'string' ? message.appVersion.trim() : ''
+            if (!daemonVersion) {
+              if (isReleaseInstall()) {
+                throw new Error('backend did not report an application version')
+              }
+              console.warn('[daemon] backend did not report an application version')
+            } else if (daemonVersion !== expectedVersion) {
+              if (isReleaseInstall()) {
+                throw new Error(
+                  `backend version mismatch (desktop=${expectedVersion}, daemon=${daemonVersion})`,
+                )
+              }
               console.warn(
-                `[daemon] version mismatch: desktop=${expectedVersion} daemon=${message.appVersion} (warning only; not blocking start)`,
+                `[daemon] version mismatch: desktop=${expectedVersion} daemon=${daemonVersion} (warning only; not blocking start)`,
               )
             }
             if (settled) return

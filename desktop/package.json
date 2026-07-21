@@ -2,21 +2,21 @@
   "name": "rocket-leaf-desktop",
   "productName": "Rocket Leaf",
   "version": "1.4.0",
-  "description": "Cross-platform RocketMQ desktop client",
+  "description": "Local-first desktop client for RocketMQ",
   "author": "amigoer",
   "private": true,
   "type": "module",
   "main": "out/main/index.js",
   "scripts": {
     "dev": "sh ../scripts/run-electron.sh dev",
-    "build": "npm run type-check && electron-vite build",
+    "build": "npm run type-check && electron-vite build && node scripts/build-integrity.cjs write",
     "preview": "electron-vite preview",
     "type-check": "tsc -p tsconfig.node.json --noEmit && tsc -p tsconfig.app.json --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "npm run build && playwright test",
     "generate:api": "openapi-typescript ../contracts/openapi.yaml -o src/generated/schema.ts",
-    "package": "npm run build && electron-builder --publish never"
+    "package": "sh ../scripts/build-daemon.sh && npm run build && electron-builder --publish never"
   },
   "dependencies": {
     "@radix-ui/react-label": "^2.1.11",
@@ -29,7 +29,6 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
-    "electron-updater": "^6.6.2",
     "i18next": "^26.0.9",
     "lucide-react": "^0.577.0",
     "postcss": "^8.5.8",

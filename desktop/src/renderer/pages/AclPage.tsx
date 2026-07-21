@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
 import { Card } from '@/components/ui/card'
 
 const PERMS = ['DENY', 'PUB', 'SUB', 'PUB|SUB'] as const
@@ -199,19 +200,18 @@ export function AclPage({ onNavigate }: { onNavigate?: (id: NavId) => void }) {
           />
         ) : (
           <div style={{ maxWidth: 1280 }}>
-            <Card
-              className="mb-4 text-[12px]"
-              style={{
-                padding: '10px 14px',
-                lineHeight: 1.55,
-                background: 'hsl(var(--muted) / 0.45)',
-              }}
+            {/* Status banner */}
+            <div
+              className="mb-4 flex items-center gap-3 rounded-xl border px-3.5 py-3"
+              style={
+                enabled
+                  ? {
+                      borderColor: 'hsl(var(--success) / 0.28)',
+                      background: 'hsl(var(--success) / 0.06)',
+                    }
+                  : { borderColor: 'hsl(var(--border))', background: 'hsl(var(--card))' }
+              }
             >
-              <span className="font-medium">{t('acl.limitationsTitle')}</span>
-              <span className="text-muted-foreground"> {t('acl.limitationsDesc')}</span>
-            </Card>
-            {/* Status */}
-            <Card className="mb-5 flex items-center gap-3" style={{ padding: 16 }}>
               {statusLoading ? (
                 <Spinner size={18} className="text-muted-foreground shrink-0" />
               ) : enabled ? (
@@ -220,7 +220,10 @@ export function AclPage({ onNavigate }: { onNavigate?: (id: NavId) => void }) {
                 <ShieldOff size={20} className="text-muted-foreground shrink-0" />
               )}
               <div className="min-w-0 flex-1">
-                <div className="text-[13px] font-medium">
+                <div
+                  className="text-[12.5px] font-semibold"
+                  style={enabled ? { color: 'hsl(var(--success))' } : undefined}
+                >
                   {statusLoading
                     ? t('acl.status.loading')
                     : enabled
@@ -228,7 +231,7 @@ export function AclPage({ onNavigate }: { onNavigate?: (id: NavId) => void }) {
                       : t('acl.status.disabled')}
                 </div>
                 {version && (
-                  <div className="text-muted-foreground mt-1 flex flex-wrap gap-3 text-[12px]">
+                  <div className="text-muted-foreground mt-1 flex flex-wrap gap-3 text-[11px]">
                     <span className="font-mono-design">
                       {t('acl.status.broker', { addr: version.brokerAddr || '—' })}
                     </span>
@@ -249,6 +252,28 @@ export function AclPage({ onNavigate }: { onNavigate?: (id: NavId) => void }) {
                   </div>
                 )}
               </div>
+              {enabled && !statusLoading && (
+                <span
+                  className="h-[7px] w-[7px] shrink-0 rounded-full"
+                  style={{
+                    background: 'hsl(var(--success))',
+                    animation: 'rl-conn-pulse 2.2s ease-in-out infinite',
+                  }}
+                />
+              )}
+            </div>
+
+            {/* Limitations note */}
+            <Card
+              className="mb-5 text-[12px]"
+              style={{
+                padding: '10px 14px',
+                lineHeight: 1.55,
+                background: 'hsl(var(--muted) / 0.45)',
+              }}
+            >
+              <span className="font-medium">{t('acl.limitationsTitle')}</span>
+              <span className="text-muted-foreground"> {t('acl.limitationsDesc')}</span>
             </Card>
 
             {/* Two-column layout: account config form stays in the left main area;
@@ -329,19 +354,14 @@ export function AclPage({ onNavigate }: { onNavigate?: (id: NavId) => void }) {
                         ))}
                       </Select>
                     </div>
-                    <div style={{ gridColumn: '1 / -1' }}>
-                      <label
-                        className="flex items-center gap-2 text-[13px]"
-                        style={{ cursor: 'pointer' }}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={admin}
-                          onChange={(e) => setAdmin(e.target.checked)}
-                        />
-                        <span>{t('acl.form.admin')}</span>
-                        <span className="text-muted-foreground text-[12px]">· {t('acl.form.adminHint')}</span>
-                      </label>
+                    <div style={{ gridColumn: '1 / -1' }} className="flex items-start gap-2.5">
+                      <Switch checked={admin} onCheckedChange={setAdmin} className="mt-0.5 shrink-0" />
+                      <div>
+                        <div className="text-[12.5px] font-medium">{t('acl.form.admin')}</div>
+                        <div className="text-muted-foreground mt-0.5 text-[11px]">
+                          {t('acl.form.adminHint')}
+                        </div>
+                      </div>
                     </div>
                     <div style={{ gridColumn: '1 / -1' }}>
                       <div className="text-muted-foreground mb-2 text-[12px]">{t('acl.form.topicPerms')}</div>

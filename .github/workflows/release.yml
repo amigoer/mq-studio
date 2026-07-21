@@ -27,8 +27,39 @@ env:
   ELECTRON_BUILDER_CACHE: ${{ github.workspace }}/.cache/electron-builder
 
 jobs:
+  resolve:
+    name: Resolve release source
+    runs-on: ubuntu-latest
+    outputs:
+      commit: ${{ steps.resolve.outputs.commit }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: refs/tags/${{ inputs.tag }}
+          fetch-depth: 0
+
+      - name: Validate and resolve tag
+        id: resolve
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          set -eu
+          if ! [[ "$RELEASE_TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "invalid release tag: $RELEASE_TAG" >&2
+            exit 1
+          fi
+          tag_commit="$(git rev-parse "refs/tags/${RELEASE_TAG}^{commit}")"
+          head_commit="$(git rev-parse HEAD)"
+          if [ "$head_commit" != "$tag_commit" ]; then
+            echo "checked out commit does not match $RELEASE_TAG" >&2
+            exit 1
+          fi
+          echo "commit=$tag_commit" >> "$GITHUB_OUTPUT"
+
   package:
     name: Package (${{ matrix.platform }})
+    needs: resolve
     environment: release
     strategy:
       fail-fast: false
@@ -50,13 +81,23 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.tag }}
+          ref: ${{ needs.resolve.outputs.commit }}
+          fetch-depth: 0
 
-      - name: Validate tag
+      - name: Verify release source
         shell: bash
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+          EXPECTED_COMMIT: ${{ needs.resolve.outputs.commit }}
         run: |
           set -eu
-          echo '${{ inputs.tag }}' | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'
+          git fetch --force --no-tags origin "refs/tags/$RELEASE_TAG:refs/tags/$RELEASE_TAG"
+          tag_commit="$(git rev-parse "refs/tags/${RELEASE_TAG}^{commit}")"
+          head_commit="$(git rev-parse HEAD)"
+          if [ "$head_commit" != "$EXPECTED_COMMIT" ] || [ "$tag_commit" != "$EXPECTED_COMMIT" ]; then
+            echo "release tag moved after source resolution" >&2
+            exit 1
+          fi
 
       - name: Select signing mode
         id: signing
@@ -96,6 +137,11 @@ jobs:
           node-version: '22'
           cache: npm
           cache-dependency-path: desktop/package-lock.json
+
+      - name: Validate release version
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: npm run check:version
 
       - name: Install Linux packaging dependencies
         if: matrix.platform == 'linux'
@@ -177,11 +223,30 @@ jobs:
 
   publish:
     name: Publish GitHub Release
-    needs: package
+    needs: [resolve, package]
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.resolve.outputs.commit }}
+          fetch-depth: 0
+
+      - name: Verify release tag is unchanged
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+          EXPECTED_COMMIT: ${{ needs.resolve.outputs.commit }}
+        run: |
+          set -eu
+          git fetch --force --no-tags origin "refs/tags/$RELEASE_TAG:refs/tags/$RELEASE_TAG"
+          tag_commit="$(git rev-parse "refs/tags/${RELEASE_TAG}^{commit}")"
+          if [ "$tag_commit" != "$EXPECTED_COMMIT" ]; then
+            echo "release tag moved during packaging" >&2
+            exit 1
+          fi
+
       - name: Download all platform artifacts
         uses: actions/download-artifact@v8
         with:
@@ -196,6 +261,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.tag }}
+          target_commitish: ${{ needs.resolve.outputs.commit }}
           name: Rocket Leaf ${{ inputs.tag }}
           generate_release_notes: true
           files: release-files/*

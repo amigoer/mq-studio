@@ -10,7 +10,6 @@ import { SlidingTabs } from '@/components/SlidingTabs'
 import { OfflineEmpty } from '@/components/OfflineEmpty'
 import { type AlertRuleKey, type AlertRulePrefs } from '@/lib/alertRules'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
 import { Card } from '@/components/ui/card'
 
@@ -77,6 +76,23 @@ function severityIcon(s: AlertSeverity) {
   return <Info size={13} style={{ color: 'hsl(var(--info))' }} />
 }
 
+function LevelBadge({ severity }: { severity: AlertSeverity }) {
+  const { t } = useTranslation()
+  const token = severity === 'crit' ? 'destructive' : severity === 'warn' ? 'warning' : 'info'
+  return (
+    <span
+      className="inline-flex h-[17px] shrink-0 items-center rounded-[5px] px-1.5 text-[10.5px] font-semibold uppercase"
+      style={{
+        background: `hsl(var(--${token}) / 0.1)`,
+        color: `hsl(var(--${token}))`,
+        border: `1px solid hsl(var(--${token}) / 0.28)`,
+      }}
+    >
+      {t(`alerts.level.${severity}`)}
+    </span>
+  )
+}
+
 function ActiveAlerts({ alerts, loading }: { alerts: AlertEntry[]; loading: boolean }) {
   const { t } = useTranslation()
   if (loading && alerts.length === 0) {
@@ -90,39 +106,36 @@ function ActiveAlerts({ alerts, loading }: { alerts: AlertEntry[]; loading: bool
   if (alerts.length === 0) {
     return (
       <Card
-        className="text-muted-foreground text-center text-[12px]"
-        style={{ padding: 32, maxWidth: 760 }}
+        className="text-muted-foreground mx-auto text-center text-[12px]"
+        style={{ padding: 32, maxWidth: 860 }}
       >
         {t('alerts.active.empty')}
       </Card>
     )
   }
   return (
-    <Card className="overflow-hidden" style={{ maxWidth: 760 }}>
+    <Card className="mx-auto overflow-hidden" style={{ maxWidth: 860 }}>
       {alerts.map((a, i) => (
         <div
           key={a.key}
+          className="flex items-start gap-2.5 transition-colors hover:bg-muted"
           style={{
-            padding: '12px 16px',
+            padding: '11px 14px',
             borderTop: i ? '1px solid hsl(var(--border))' : undefined,
           }}
         >
-          <div className="flex items-center gap-2">
-            {severityIcon(a.severity)}
-            <span className="text-[13px] font-medium">{a.title}</span>
-            <Badge variant="outline" style={{ marginLeft: 4 }}>
-              {t(`alerts.level.${a.severity}`)}
-            </Badge>
-            <span className="flex-1" />
-            {a.since && (
-              <span className="font-mono-design text-muted-foreground tabular-nums text-[11px]">
-                {t('alerts.active.since', { time: a.since })}
-              </span>
-            )}
+          <span className="mt-px">
+            <LevelBadge severity={a.severity} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="text-[12.5px] font-medium leading-snug">{a.title}</div>
+            <div className="text-muted-foreground mt-0.5 text-[11.5px] leading-snug">{a.desc}</div>
           </div>
-          <div className="text-muted-foreground font-mono-design mt-1 text-[12px]" style={{ lineHeight: 1.5 }}>
-            {a.desc}
-          </div>
+          {a.since && (
+            <span className="font-mono-design text-muted-foreground shrink-0 text-[11px] tabular-nums">
+              {t('alerts.active.since', { time: a.since })}
+            </span>
+          )}
         </div>
       ))}
     </Card>
@@ -144,7 +157,7 @@ function RulesPanel({
 }) {
   const { t } = useTranslation()
   return (
-    <Card style={{ padding: 20, maxWidth: 760 }}>
+    <Card className="mx-auto" style={{ padding: 20, maxWidth: 860 }}>
       <div className="text-[13px] font-medium">{t('alerts.rules.title')}</div>
       <div className="text-muted-foreground mt-1 text-[12px]" style={{ lineHeight: 1.5 }}>
         {t('alerts.rules.desc')}

@@ -23,7 +23,7 @@ import { useConsumers } from '@/hooks/useConsumers'
 import { useCluster } from '@/hooks/useCluster'
 import { useDelayedUnmount } from '@/hooks/useDelayedUnmount'
 import * as consumerApi from '@/api/consumer'
-import { formatErrorMessage } from '@/lib/utils'
+import { cn, formatErrorMessage } from '@/lib/utils'
 import { RefreshButton, usePageRefresh } from '@/components/RefreshButton'
 import { SlidingTabs } from '@/components/SlidingTabs'
 import { OfflineEmpty } from '@/components/OfflineEmpty'
@@ -34,9 +34,11 @@ import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 
 type StatusFilter = 'all' | 'online' | 'warning' | 'offline'
+
+/** Shared grid template for the consumer-group table header + rows. */
+const GROUP_COLS = 'minmax(0,1.1fr) minmax(0,1fr) 96px 76px 56px 88px 28px'
 
 function formatTps(n: number): string {
   if (!n || !Number.isFinite(n)) return '0'
@@ -47,21 +49,6 @@ function formatTps(n: number): string {
 
 function formatMetric(n: number): string {
   return Number.isFinite(n) && n >= 0 ? n.toLocaleString() : '—'
-}
-
-function statusBadgeVariant(
-  status: string,
-): 'success' | 'warning' | 'destructive' | 'outline' {
-  switch (status) {
-    case 'online':
-      return 'success'
-    case 'warning':
-      return 'warning'
-    case 'offline':
-      return 'destructive'
-    default:
-      return 'outline'
-  }
 }
 
 export function ConsumersPage({ onNavigate }: { onNavigate?: (id: NavId) => void }) {
@@ -119,7 +106,7 @@ export function ConsumersPage({ onNavigate }: { onNavigate?: (id: NavId) => void
   // Clicking the list pane outside any row also closes the panel
   const handleListBackgroundClick = (e: React.MouseEvent) => {
     if (!selectedName) return
-    if ((e.target as HTMLElement).closest('tr')) return
+    if ((e.target as HTMLElement).closest('[data-consumer-row]')) return
     dismissPanel()
   }
 
@@ -171,17 +158,6 @@ export function ConsumersPage({ onNavigate }: { onNavigate?: (id: NavId) => void
   return (
     <div className="flex h-full min-h-0 flex-col">
       <PageHeader title={t('consumers.title')} subtitle={subtitle}>
-        <div className="relative" style={{ width: 240 }}>
-          <span className="pointer-events-none absolute left-2.5 top-1/2 z-[1] -translate-y-1/2 text-muted-foreground">
-            <Search size={14} />
-          </span>
-          <Input
-            className="pl-8"
-            placeholder={t('consumers.searchPlaceholder')}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
         <RefreshButton spinning={isRefreshing} disabled={!hasOnline} onClick={handleRefresh} />
         <Button variant="default" size="sm"
           onClick={() => setEditorOpen({ mode: 'create' })}
@@ -193,7 +169,18 @@ export function ConsumersPage({ onNavigate }: { onNavigate?: (id: NavId) => void
       </PageHeader>
 
       {hasOnline && (
-        <div className="flex items-center gap-1 border-b border-border px-4 py-2">
+        <div className="flex items-center gap-2.5 border-b border-border/80 px-5 py-3">
+          <div className="relative" style={{ width: 260 }}>
+            <span className="pointer-events-none absolute left-2.5 top-1/2 z-[1] -translate-y-1/2 text-muted-foreground">
+              <Search size={13} />
+            </span>
+            <Input
+              className="pl-8"
+              placeholder={t('consumers.searchPlaceholder')}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
           <SlidingTabs
             value={statusFilter}
             onChange={setStatusFilter}
@@ -220,6 +207,10 @@ export function ConsumersPage({ onNavigate }: { onNavigate?: (id: NavId) => void
               },
             ]}
           />
+          <div className="flex-1" />
+          <span className="text-muted-foreground shrink-0 text-[11.5px] tabular-nums">
+            {t('consumers.resultCount', { count: filtered.length })}
+          </span>
         </div>
       )}
 
@@ -249,16 +240,23 @@ export function ConsumersPage({ onNavigate }: { onNavigate?: (id: NavId) => void
                   {t('consumers.empty')}
                 </div>
               ) : (
-                <Table className="rl-table-consumers">
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>{t('consumers.table.name')}</TableHead>
-                      <TableHead className="col-metric">{t('consumers.table.instances')}</TableHead>
-                      <TableHead className="col-metric">{t('consumers.table.lag')}</TableHead>
-                      <TableHead className="col-chevron" aria-hidden />
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
+                <div className="px-5 pb-5 pt-3">
+                  <div
+                    className="overflow-hidden rounded-xl border border-border/80 bg-card shadow-card"
+                    style={{ minWidth: 720 }}
+                  >
+                    <div
+                      className="text-muted-foreground grid items-center gap-2 border-b border-border px-3.5 py-2 text-[11px] font-medium"
+                      style={{ gridTemplateColumns: GROUP_COLS }}
+                    >
+                      <span>{t('consumers.table.name')}</span>
+                      <span>{t('consumers.table.topic')}</span>
+                      <span>{t('consumers.table.model')}</span>
+                      <span>{t('consumers.table.status')}</span>
+                      <span className="text-right">{t('consumers.table.instances')}</span>
+                      <span className="text-right">{t('consumers.table.lag')}</span>
+                      <span />
+                    </div>
                     {filtered.map((g) => {
                       const subTopic =
                         g.subscriptions[0]?.topic ||
@@ -271,72 +269,62 @@ export function ConsumersPage({ onNavigate }: { onNavigate?: (id: NavId) => void
                             ? t('consumers.filterWarning')
                             : t('common.offline')
                       return (
-                        <TableRow
+                        <div
                           key={g.group}
-                          className={selected ? 'selected' : ''}
+                          data-consumer-row
                           onClick={() => setSelectedName(g.group)}
+                          className={cn(
+                            'grid cursor-pointer items-center gap-2 border-t border-border px-3.5 py-2.5 transition-colors hover:bg-muted',
+                            selected && 'bg-accent hover:bg-accent',
+                          )}
+                          style={{ gridTemplateColumns: GROUP_COLS }}
                         >
-                          <TableCell>
-                            <div className="flex min-w-0 items-start gap-2.5">
-                              <span
-                                className={
-                                  'mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ' +
-                                  (g.status === 'online'
-                                    ? 'bg-[hsl(var(--success))]'
-                                    : g.status === 'warning'
-                                      ? 'bg-[hsl(var(--warning))]'
-                                      : g.status === 'offline'
-                                        ? 'bg-[hsl(var(--destructive)/0.55)]'
-                                        : 'bg-[hsl(var(--muted-foreground)/0.35)]')
-                                }
-                              />
-                              <div className="min-w-0 flex-1">
-                                <div className="flex min-w-0 flex-wrap items-center gap-2">
-                                  <span className="font-mono-design truncate text-[12.5px] font-medium tracking-tight">
-                                    {g.group}
-                                  </span>
-                                  <Badge variant={statusBadgeVariant(g.status)} className="shrink-0">
-                                    {statusText}
-                                  </Badge>
-                                  {g.consumeMode && (
-                                    <Badge variant="outline" className="shrink-0">
-                                      {g.consumeMode}
-                                    </Badge>
-                                  )}
-                                </div>
-                                <div className="font-mono-design text-muted-foreground mt-0.5 truncate text-[11px]">
-                                  {subTopic}
-                                </div>
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell className="col-metric tabular-nums">{g.onlineClients}</TableCell>
-                          <TableCell
-                            className={
-                              'col-metric tabular-nums ' +
-                              (g.lag > 1000 ? 'text-destructive' : 'text-muted-foreground')
-                            }
-                          >
-                            {g.lag > 1000 && (
-                              <AlertCircle size={11} className="mr-1 inline-block align-[-1px]" />
-                            )}
-                            {formatMetric(g.lag)}
-                          </TableCell>
-                          <TableCell className="col-chevron">
-                            <ChevronRight
-                              size={14}
-                              className={
-                                'text-muted-foreground transition-opacity ' +
-                                (selected ? 'opacity-70' : 'opacity-35')
-                              }
-                              aria-hidden
+                          <span className="font-mono-design truncate text-[12px]">{g.group}</span>
+                          <span className="text-muted-foreground truncate text-[11.5px]">
+                            {subTopic}
+                          </span>
+                          <span className="font-mono-design text-muted-foreground truncate text-[10.5px]">
+                            {g.consumeMode || '—'}
+                          </span>
+                          <span className="inline-flex min-w-0 items-center gap-1.5 text-[11.5px]">
+                            <span
+                              className={cn(
+                                'h-1.5 w-1.5 shrink-0 rounded-full',
+                                g.status === 'online'
+                                  ? 'bg-[hsl(var(--success))]'
+                                  : g.status === 'warning'
+                                    ? 'bg-[hsl(var(--warning))]'
+                                    : g.status === 'offline'
+                                      ? 'bg-[hsl(var(--destructive)/0.55)]'
+                                      : 'bg-[hsl(var(--muted-foreground)/0.35)]',
+                              )}
                             />
-                          </TableCell>
-                        </TableRow>
+                            <span className="truncate">{statusText}</span>
+                          </span>
+                          <span className="font-mono-design text-right text-[12px] tabular-nums">
+                            {g.onlineClients}
+                          </span>
+                          <span
+                            className={cn(
+                              'font-mono-design text-right text-[12px] tabular-nums',
+                              g.lag > 1000 ? 'text-destructive' : 'text-muted-foreground',
+                            )}
+                          >
+                            {formatMetric(g.lag)}
+                          </span>
+                          <ChevronRight
+                            size={14}
+                            className={cn(
+                              'text-muted-foreground shrink-0 justify-self-end transition-opacity',
+                              selected ? 'opacity-70' : 'opacity-50',
+                            )}
+                            aria-hidden
+                          />
+                        </div>
                       )
                     })}
-                  </TableBody>
-                </Table>
+                  </div>
+                </div>
               )}
             </>
           )}
