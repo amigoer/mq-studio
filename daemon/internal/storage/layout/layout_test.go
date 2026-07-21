@@ -14,6 +14,9 @@ func TestInBuildsAllPersistentPaths(t *testing.T) {
 	if paths.ConnectionsFile != filepath.Join(directory, "connections.json") {
 		t.Fatalf("connections path = %q", paths.ConnectionsFile)
 	}
+	if paths.TPSHistoryFile != filepath.Join(directory, "tps-history.json") {
+		t.Fatalf("TPS history path = %q", paths.TPSHistoryFile)
+	}
 	if paths.SecretKeyFile != filepath.Join(directory, "secret.key") {
 		t.Fatalf("secret key path = %q", paths.SecretKeyFile)
 	}

@@ -478,6 +478,7 @@ components:
           groups,
           tpsIn,
           tpsOut,
+          tpsHistoryTimestamps,
           tpsInHistory,
           tpsOutHistory,
           msgInToday,
@@ -501,6 +502,7 @@ components:
         groups: { type: integer }
         tpsIn: { type: integer }
         tpsOut: { type: integer }
+        tpsHistoryTimestamps: { type: array, items: { type: integer, format: int64 } }
         tpsInHistory: { type: array, items: { type: integer } }
         tpsOutHistory: { type: array, items: { type: integer } }
         msgInToday: { type: integer, format: int64 }

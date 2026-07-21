@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useState, type MouseEvent } from 'react'
 import {
   Unlink,
   AlertCircle,
@@ -12,7 +12,7 @@ import {
   RotateCcw,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import type { BrokerNode, ConsumerGroupItem, TopicItem } from '@generated/models'
+import type { ConsumerGroupItem, TopicItem } from '@generated/models'
 import { PageHeader } from '@/components/PageHeader'
 import { useOverview, type OverviewSnapshot } from '@/hooks/useOverview'
 import { useSettings } from '@/hooks/useSettings'
@@ -21,14 +21,17 @@ import * as connectionApi from '@/api/connection'
 import { toast } from 'sonner'
 import type { NavId } from '@/layout/Sidebar'
 import { cn, formatErrorMessage } from '@/lib/utils'
+import {
+  aggregateThroughputHistory,
+  continuousHistoryRanges,
+  throughputWindow,
+} from '@/lib/throughputHistory'
 import { RefreshButton, usePageRefresh } from '@/components/RefreshButton'
 import { OfflineEmpty } from '@/components/OfflineEmpty'
 import { ErrorBanner } from '@/components/ErrorBanner'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
-
-const HISTORY_BUCKETS = 60
 
 function formatTps(n: number): string {
   if (!Number.isFinite(n) || n <= 0) return '0'
@@ -50,25 +53,6 @@ function formatTime(d: Date | null): string {
     second: '2-digit',
     hour12: false,
   })
-}
-
-function aggregateHistory(
-  brokers: BrokerNode[],
-  field: 'tpsInHistory' | 'tpsOutHistory',
-): number[] {
-  const histories = brokers
-    .map((b) => (b[field] ?? []) as number[])
-    .filter((h) => Array.isArray(h) && h.length > 0)
-  if (histories.length === 0) return []
-  const len = Math.min(HISTORY_BUCKETS, Math.max(...histories.map((h) => h.length)))
-  const out = new Array<number>(len).fill(0)
-  for (const h of histories) {
-    const offset = Math.max(0, h.length - len)
-    for (let i = 0; i < len; i++) {
-      out[i] = (out[i] ?? 0) + (h[offset + i] ?? 0)
-    }
-  }
-  return out
 }
 
 interface Issue {
@@ -172,6 +156,12 @@ export function OverviewPage({ onNavigate }: OverviewPageProps) {
   const { settings } = useSettings()
   const lagThreshold = settings.lagAlertThreshold ?? 10000
   const diskThreshold = settings.diskAlertThreshold ?? 75
+  const [now, setNow] = useState(() => new Date())
+
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(new Date()), 1000)
+    return () => window.clearInterval(id)
+  }, [])
 
   const doRefresh = useCallback(
     () => Promise.all([refresh({ silent: true }), refreshConnections()]),
@@ -232,13 +222,18 @@ export function OverviewPage({ onNavigate }: OverviewPageProps) {
     () => buildIssues(data, lagThreshold, diskThreshold, t),
     [data, lagThreshold, diskThreshold, t],
   )
-  const tpsInSeries = useMemo(() => aggregateHistory(data.brokers, 'tpsInHistory'), [data.brokers])
-  const tpsOutSeries = useMemo(
-    () => aggregateHistory(data.brokers, 'tpsOutHistory'),
+  const throughputHistory = useMemo(
+    () => aggregateThroughputHistory(data.brokers),
     [data.brokers],
   )
-  const currentTpsIn = data.brokers.reduce((s, b) => s + (b.tpsIn ?? 0), 0)
-  const currentTpsOut = data.brokers.reduce((s, b) => s + (b.tpsOut ?? 0), 0)
+  const currentTpsIn = data.brokers.reduce(
+    (sum, broker) => sum + Math.max(0, broker.tpsIn ?? 0),
+    0,
+  )
+  const currentTpsOut = data.brokers.reduce(
+    (sum, broker) => sum + Math.max(0, broker.tpsOut ?? 0),
+    0,
+  )
 
   const handleDisconnect = async () => {
     if (!conn) return
@@ -254,7 +249,7 @@ export function OverviewPage({ onNavigate }: OverviewPageProps) {
   const subtitle = isOnline
     ? t('overview.subtitleConnected', {
         cluster: conn?.name ?? '',
-        time: formatTime(data.lastUpdated),
+        time: formatTime(now),
       })
     : t('overview.subtitleNoConn')
 
@@ -387,8 +382,9 @@ export function OverviewPage({ onNavigate }: OverviewPageProps) {
 
             {/* Throughput */}
             <ThroughputCard
-              prod={tpsInSeries}
-              cons={tpsOutSeries}
+              timestamps={throughputHistory.timestamps}
+              prod={throughputHistory.inbound}
+              cons={throughputHistory.outbound}
               currentIn={currentTpsIn}
               currentOut={currentTpsOut}
               loading={loading}
@@ -561,6 +557,7 @@ function QuickAction({
 }
 
 function ThroughputCard({
+  timestamps,
   prod,
   cons,
   currentIn,
@@ -568,6 +565,7 @@ function ThroughputCard({
   loading,
   refreshing,
 }: {
+  timestamps: number[]
   prod: number[]
   cons: number[]
   currentIn: number
@@ -576,14 +574,49 @@ function ThroughputCard({
   refreshing?: boolean
 }) {
   const { t } = useTranslation()
-  const hasData = prod.length > 0 || cons.length > 0
+  const [hover, setHover] = useState<{ index: number } | null>(null)
+  const hasData = timestamps.length > 0 && (prod.length > 0 || cons.length > 0)
   const peak = Math.max(...prod, ...cons, 1)
-  const len = Math.max(prod.length, cons.length, 1)
-  const x = (i: number) => (i / Math.max(len - 1, 1)) * 800
+  const window = throughputWindow()
+  const xForTimestamp = (timestamp: number) =>
+    ((timestamp - window.start) / Math.max(window.end - window.start, 1)) * 800
+  const x = (index: number) => xForTimestamp(timestamps[index] ?? window.end)
   const y = (v: number) => 120 - (v / peak) * 100 - 8
-  const lineFor = (series: number[]) => series.map((v, i) => `${x(i)},${y(v)}`).join(' ')
-  const polyFor = (series: number[]) =>
-    series.length ? `0,120 ${lineFor(series)} ${x(series.length - 1)},120` : ''
+  const ranges = continuousHistoryRanges(timestamps)
+  const lineFor = (series: number[], start: number, end: number) =>
+    series
+      .slice(start, end + 1)
+      .map((value, offset) => `${x(start + offset)},${y(value)}`)
+      .join(' ')
+  const polyFor = (series: number[], start: number, end: number) =>
+    `${x(start)},120 ${lineFor(series, start, end)} ${x(end)},120`
+
+  const hoverIndex = hover && hover.index < timestamps.length ? hover.index : null
+  const hoverProd = hoverIndex != null ? (prod[hoverIndex] ?? 0) : currentIn
+  const hoverCons = hoverIndex != null ? (cons[hoverIndex] ?? 0) : currentOut
+  const hoverAgo =
+    hoverIndex == null
+      ? 0
+      : Math.max(0, Math.round((Date.now() - (timestamps[hoverIndex] ?? Date.now())) / 60_000))
+  const guideX = hoverIndex != null ? x(hoverIndex) : null
+  const guideRatio = guideX == null ? 0 : Math.min(1, Math.max(0, guideX / 800))
+
+  const onChartMove = (event: MouseEvent<HTMLDivElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect()
+    if (rect.width <= 0 || timestamps.length === 0) return
+    const ratio = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width))
+    const targetTimestamp = window.start + ratio * (window.end - window.start)
+    let nearestIndex = 0
+    for (let index = 1; index < timestamps.length; index++) {
+      if (
+        Math.abs((timestamps[index] ?? window.end) - targetTimestamp) <
+        Math.abs((timestamps[nearestIndex] ?? window.end) - targetTimestamp)
+      ) {
+        nearestIndex = index
+      }
+    }
+    setHover({ index: nearestIndex })
+  }
 
   return (
     <Card className="relative overflow-hidden p-3.5">
@@ -596,56 +629,149 @@ function ThroughputCard({
           <Legend
             color="hsl(var(--success))"
             label={t('overview.throughput.produce')}
-            value={currentIn}
+            value={hoverProd}
           />
           <Legend
             color="hsl(var(--info))"
             label={t('overview.throughput.consume')}
-            value={currentOut}
+            value={hoverCons}
           />
         </div>
       </div>
       {hasData ? (
-        <svg viewBox="0 0 800 120" preserveAspectRatio="none" className="h-[110px] w-full">
-          {[30, 60, 90].map((yy) => (
-            <line
-              key={yy}
-              x1={0}
-              y1={yy}
-              x2={800}
-              y2={yy}
-              stroke="hsl(var(--border))"
-              strokeDasharray="2 4"
-            />
-          ))}
-          {prod.length > 0 && (
-            <>
-              <polygon points={polyFor(prod)} fill="hsl(var(--success))" opacity={0.07} />
-              <polyline
-                points={lineFor(prod)}
-                fill="none"
-                stroke="hsl(var(--success))"
-                strokeWidth={1.5}
-                strokeLinejoin="round"
+        <div
+          className="relative h-[110px] w-full cursor-crosshair"
+          onMouseMove={onChartMove}
+          onMouseLeave={() => setHover(null)}
+        >
+          <svg
+            viewBox="0 0 800 120"
+            preserveAspectRatio="none"
+            className="pointer-events-none h-full w-full"
+          >
+            {[30, 60, 90].map((yy) => (
+              <line
+                key={yy}
+                x1={0}
+                y1={yy}
+                x2={800}
+                y2={yy}
+                stroke="hsl(var(--border))"
+                strokeDasharray="2 4"
               />
+            ))}
+            {prod.length > 0 &&
+              ranges.map((range) => (
+                <g key={`prod-${range.start}`}>
+                  {range.end > range.start && (
+                    <polygon
+                      points={polyFor(prod, range.start, range.end)}
+                      fill="hsl(var(--success))"
+                      opacity={0.07}
+                    />
+                  )}
+                  <polyline
+                    points={lineFor(prod, range.start, range.end)}
+                    fill="none"
+                    stroke="hsl(var(--success))"
+                    strokeWidth={1.5}
+                    strokeLinejoin="round"
+                  />
+                  {range.start === range.end && (
+                    <circle
+                      cx={x(range.start)}
+                      cy={y(prod[range.start] ?? 0)}
+                      r={2.5}
+                      fill="hsl(var(--success))"
+                    />
+                  )}
+                </g>
+              ))}
+            {prod.length > 0 && (
               <circle
                 cx={x(prod.length - 1)}
                 cy={y(prod[prod.length - 1] ?? 0)}
                 r={3}
                 fill="hsl(var(--success))"
               />
-            </>
+            )}
+            {cons.length > 0 &&
+              ranges.map((range) => (
+                <g key={`cons-${range.start}`}>
+                  <polyline
+                    points={lineFor(cons, range.start, range.end)}
+                    fill="none"
+                    stroke="hsl(var(--info))"
+                    strokeWidth={1.5}
+                    strokeLinejoin="round"
+                  />
+                  {range.start === range.end && (
+                    <circle
+                      cx={x(range.start)}
+                      cy={y(cons[range.start] ?? 0)}
+                      r={2.5}
+                      fill="hsl(var(--info))"
+                    />
+                  )}
+                </g>
+              ))}
+            {guideX != null && (
+              <>
+                <line
+                  x1={guideX}
+                  y1={0}
+                  x2={guideX}
+                  y2={120}
+                  stroke="hsl(var(--foreground))"
+                  strokeOpacity={0.22}
+                  strokeWidth={1}
+                />
+                {prod.length > 0 && hoverIndex != null && (
+                  <circle
+                    cx={guideX}
+                    cy={y(prod[hoverIndex] ?? 0)}
+                    r={3.5}
+                    fill="hsl(var(--success))"
+                    stroke="hsl(var(--card))"
+                    strokeWidth={1.5}
+                  />
+                )}
+                {cons.length > 0 && hoverIndex != null && (
+                  <circle
+                    cx={guideX}
+                    cy={y(cons[hoverIndex] ?? 0)}
+                    r={3.5}
+                    fill="hsl(var(--info))"
+                    stroke="hsl(var(--card))"
+                    strokeWidth={1.5}
+                  />
+                )}
+              </>
+            )}
+          </svg>
+          {hoverIndex != null && (
+            <div
+              className="bg-popover text-popover-foreground pointer-events-none absolute top-1 z-10 min-w-[118px] rounded-md border px-2.5 py-1.5 shadow-sm"
+              style={{
+                left: `clamp(0px, calc(${guideRatio * 100}% - 60px), calc(100% - 124px))`,
+              }}
+            >
+              <div className="text-muted-foreground mb-1 text-[10.5px]">
+                {hoverAgo <= 0
+                  ? t('overview.throughput.hoverNow')
+                  : t('overview.throughput.hoverAgo', { n: hoverAgo })}
+              </div>
+              <div className="flex items-center justify-between gap-3 text-[11px]">
+                <span className="text-muted-foreground">{t('overview.throughput.produce')}</span>
+                <span className="font-mono-design tabular-nums">{formatTps(hoverProd)}/s</span>
+              </div>
+              <div className="mt-0.5 flex items-center justify-between gap-3 text-[11px]">
+                <span className="text-muted-foreground">{t('overview.throughput.consume')}</span>
+                <span className="font-mono-design tabular-nums">{formatTps(hoverCons)}/s</span>
+              </div>
+            </div>
           )}
-          {cons.length > 0 && (
-            <polyline
-              points={lineFor(cons)}
-              fill="none"
-              stroke="hsl(var(--info))"
-              strokeWidth={1.5}
-              strokeLinejoin="round"
-            />
-          )}
-        </svg>
+        </div>
       ) : (
         <div className="text-muted-foreground flex h-[110px] items-center justify-center text-[12px]">
           {loading ? t('common.loading') : t('overview.throughput.noData')}

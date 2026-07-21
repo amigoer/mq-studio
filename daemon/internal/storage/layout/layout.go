@@ -14,6 +14,7 @@ type Layout struct {
 	Directory       string
 	SettingsFile    string
 	ConnectionsFile string
+	TPSHistoryFile  string
 	SecretKeyFile   string
 }
 
@@ -32,6 +33,7 @@ func In(directory string) Layout {
 		Directory:       directory,
 		SettingsFile:    filepath.Join(directory, "settings.json"),
 		ConnectionsFile: filepath.Join(directory, "connections.json"),
+		TPSHistoryFile:  filepath.Join(directory, "tps-history.json"),
 		SecretKeyFile:   filepath.Join(directory, "secret.key"),
 	}
 }

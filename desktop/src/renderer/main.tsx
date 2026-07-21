@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import App from './App'
 import { SettingsProvider } from '@/hooks/useSettings'
 import { ConnectionsProvider } from '@/hooks/useConnections'
+import { OverviewProvider } from '@/hooks/useOverview'
 import { AlertsProvider } from '@/hooks/useAlerts'
 import { bootstrapUIPrefs } from '@/hooks/useUIPrefs'
 import '@/i18n'
@@ -14,9 +15,11 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <SettingsProvider>
       <ConnectionsProvider>
-        <AlertsProvider>
-          <App />
-        </AlertsProvider>
+        <OverviewProvider>
+          <AlertsProvider>
+            <App />
+          </AlertsProvider>
+        </OverviewProvider>
       </ConnectionsProvider>
     </SettingsProvider>
   </React.StrictMode>,

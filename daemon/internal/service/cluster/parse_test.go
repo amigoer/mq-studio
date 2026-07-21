@@ -18,8 +18,4 @@ func TestParseHelpers(t *testing.T) {
 	if extractFirstValue("solo") != "solo" {
 		t.Fatal("extractFirstValue whole")
 	}
-	values := appendCapped([]int{1, 2, 3}, 4, 3)
-	if len(values) != 3 || values[0] != 2 || values[2] != 4 {
-		t.Fatalf("appendCapped = %#v", values)
-	}
 }

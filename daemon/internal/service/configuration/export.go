@@ -58,7 +58,12 @@ func (s *Service) ExportAllConfigToFile(targetPath string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("解析目标文件路径失败: %w", err)
 	}
-	for _, reservedPath := range []string{s.layout.SettingsFile, s.layout.ConnectionsFile, s.layout.SecretKeyFile} {
+	for _, reservedPath := range []string{
+		s.layout.SettingsFile,
+		s.layout.ConnectionsFile,
+		s.layout.TPSHistoryFile,
+		s.layout.SecretKeyFile,
+	} {
 		reservedAbsolute, reservedErr := filepath.Abs(reservedPath)
 		if reservedErr != nil {
 			return "", fmt.Errorf("解析应用配置路径失败: %w", reservedErr)

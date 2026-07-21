@@ -1,4 +1,14 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  createContext,
+  createElement,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react'
 import type {
   BrokerNode,
   ClusterInfo,
@@ -32,6 +42,16 @@ const EMPTY: OverviewSnapshot = {
   lastUpdated: null,
 }
 
+interface OverviewContextValue {
+  data: OverviewSnapshot
+  loading: boolean
+  refreshing: boolean
+  error: string | null
+  refresh: (opts?: { silent?: boolean }) => Promise<void>
+}
+
+const OverviewContext = createContext<OverviewContextValue | null>(null)
+
 /** Prefer the live online connection; fall back to default for offline display. */
 function pickActiveConnection(list: Connection[]): Connection | null {
   const online = list.find((c) => c.status === 'online')
@@ -44,7 +64,7 @@ function connectionKeyOf(conn: Connection | null): string {
   return `${conn.id}:${conn.nameServer}:${conn.status}`
 }
 
-export function useOverview() {
+function useOverviewState(): OverviewContextValue {
   const { list } = useConnections()
   // Shared connection state is the source of truth. Overview used to re-fetch
   // connections on its own and race bootstrap connectDefault(), which left the
@@ -64,11 +84,18 @@ export function useOverview() {
   const [error, setError] = useState<string | null>(null)
   const cancelledRef = useRef(false)
   const requestGenerationRef = useRef(0)
+  const inFlightRef = useRef(false)
 
   const refresh = useCallback(async (opts?: { silent?: boolean }) => {
     if (cancelledRef.current) return
-    const generation = requestGenerationRef.current
     const silent = opts?.silent === true
+    // Avoid stacking behind a slow consumers.list (main-process timeout is minutes).
+    if (inFlightRef.current) {
+      if (!silent) setRefreshing(true)
+      return
+    }
+
+    const generation = requestGenerationRef.current
     if (!silent) setRefreshing(true)
     setError(null)
 
@@ -85,16 +112,20 @@ export function useOverview() {
         return
       }
 
-      // Connected: fetch cluster-wide data in parallel.
-      // GetClusterInfo already embeds brokers — avoid a second GetBrokers call.
-      const [clusterResult, topicsResult, consumersResult] = await Promise.allSettled([
-        clusterApi.getClusterInfo(),
-        topicApi.getTopics(),
-        consumerApi.getConsumerGroups(),
+      inFlightRef.current = true
+
+      // Kick off all three, but commit cluster/topics as soon as they settle so the
+      // subtitle clock and live TPS keep moving even when consumer enrichment is slow.
+      const clusterPromise = clusterApi.getClusterInfo()
+      const topicsPromise = topicApi.getTopics()
+      const consumersPromise = consumerApi.getConsumerGroups()
+
+      const [clusterResult, topicsResult] = await Promise.allSettled([
+        clusterPromise,
+        topicsPromise,
       ])
       if (cancelledRef.current || generation !== requestGenerationRef.current) return
 
-      // Re-read in case the user switched connection mid-flight.
       const stillActive = activeRef.current
       if (
         !stillActive ||
@@ -104,27 +135,47 @@ export function useOverview() {
         return
       }
 
-      const next: OverviewSnapshot = {
-        cluster: clusterResult.status === 'fulfilled' ? clusterResult.value : null,
+      setData((prev) => ({
+        cluster: clusterResult.status === 'fulfilled' ? clusterResult.value : prev.cluster,
         brokers:
           clusterResult.status === 'fulfilled'
             ? ((clusterResult.value?.brokers?.filter(Boolean) as BrokerNode[]) ?? [])
-            : [],
+            : prev.brokers,
         topics:
           topicsResult.status === 'fulfilled'
             ? (topicsResult.value.filter(Boolean) as TopicItem[])
-            : [],
+            : prev.topics,
+        consumerGroups: prev.consumerGroups,
+        activeConnection: stillActive,
+        lastUpdated: new Date(),
+      }))
+
+      const consumersResult = await Promise.allSettled([consumersPromise]).then(
+        (results) => results[0]!,
+      )
+      if (cancelledRef.current || generation !== requestGenerationRef.current) return
+
+      const activeAfterConsumers = activeRef.current
+      if (
+        !activeAfterConsumers ||
+        activeAfterConsumers.status !== 'online' ||
+        connectionKeyOf(activeAfterConsumers) !== connectionKeyOf(active)
+      ) {
+        return
+      }
+
+      setData((prev) => ({
+        ...prev,
         consumerGroups:
           consumersResult.status === 'fulfilled'
             ? (consumersResult.value.filter(Boolean) as ConsumerGroupItem[])
-            : [],
-        activeConnection: stillActive,
+            : prev.consumerGroups,
+        activeConnection: activeAfterConsumers,
         lastUpdated: new Date(),
-      }
-      setData(next)
+      }))
 
       const firstFailure = [clusterResult, topicsResult, consumersResult].find(
-        (r) => r.status === 'rejected',
+        (result) => result.status === 'rejected',
       )
       if (firstFailure && firstFailure.status === 'rejected') {
         setError(formatErrorMessage(firstFailure.reason))
@@ -134,9 +185,10 @@ export function useOverview() {
         setError(formatErrorMessage(e))
       }
     } finally {
-      if (!cancelledRef.current && generation === requestGenerationRef.current) {
+      if (generation === requestGenerationRef.current) {
+        inFlightRef.current = false
         setLoading(false)
-        if (!silent) setRefreshing(false)
+        setRefreshing(false)
       }
     }
   }, [])
@@ -146,6 +198,7 @@ export function useOverview() {
   useEffect(() => {
     cancelledRef.current = false
     requestGenerationRef.current += 1
+    inFlightRef.current = false
     setData({
       ...EMPTY,
       activeConnection: activeRef.current,
@@ -159,6 +212,7 @@ export function useOverview() {
     return () => {
       cancelledRef.current = true
       requestGenerationRef.current += 1
+      inFlightRef.current = false
       window.clearInterval(id)
     }
   }, [refresh, connectionKey])
@@ -176,4 +230,17 @@ export function useOverview() {
   }, [activeConnection])
 
   return { data, loading, refreshing, error, refresh }
+}
+
+export function OverviewProvider({ children }: { children: ReactNode }) {
+  return createElement(OverviewContext.Provider, { value: useOverviewState() }, children)
+}
+
+/** Shared overview snapshot + poller. Must be used within OverviewProvider. */
+export function useOverview(): OverviewContextValue {
+  const context = useContext(OverviewContext)
+  if (!context) {
+    throw new Error('useOverview must be used within OverviewProvider')
+  }
+  return context
 }

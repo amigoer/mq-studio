@@ -667,6 +667,7 @@ export interface components {
             groups: number;
             tpsIn: number;
             tpsOut: number;
+            tpsHistoryTimestamps: number[];
             tpsInHistory: number[];
             tpsOutHistory: number[];
             /** Format: int64 */

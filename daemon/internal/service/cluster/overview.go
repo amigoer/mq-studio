@@ -141,7 +141,6 @@ func (s *Service) enrichBrokers(client *admin.Client, result *model.ClusterInfo)
 	diskSum := 0
 	diskCount := 0
 	for _, broker := range result.Brokers {
-		s.recordBrokerTPS(broker)
 		if broker.Status == model.NodeOnline {
 			result.OnlineBrokers++
 		}
@@ -153,6 +152,7 @@ func (s *Service) enrichBrokers(client *admin.Client, result *model.ClusterInfo)
 	if diskCount > 0 {
 		result.AvgDiskUsage = diskSum / diskCount
 	}
+	s.recordBrokerTPS(client.GetNameServerAddressList(), result.Brokers)
 }
 
 // enrichResourceTotals adds best-effort topic and consumer-group totals.

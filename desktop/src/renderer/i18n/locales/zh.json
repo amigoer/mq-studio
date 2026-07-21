@@ -129,7 +129,9 @@
       "subtitle": "最近 60 分钟 · 每分钟采样",
       "produce": "生产",
       "consume": "消费",
-      "noData": "暂无吞吐采样数据"
+      "noData": "暂无吞吐采样数据",
+      "hoverAgo": "{{n}} 分钟前",
+      "hoverNow": "当前"
     },
     "stat": {
       "topics": "Topic",

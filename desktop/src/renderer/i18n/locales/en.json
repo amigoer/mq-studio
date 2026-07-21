@@ -129,7 +129,9 @@
       "subtitle": "Last 60 minutes · 1-min samples",
       "produce": "Produce",
       "consume": "Consume",
-      "noData": "No throughput samples yet"
+      "noData": "No throughput samples yet",
+      "hoverAgo": "{{n}} min ago",
+      "hoverNow": "Now"
     },
     "stat": {
       "topics": "Topics",

@@ -42,6 +42,7 @@ type BrokerNode struct {
 	Groups                int        `json:"groups"`                // Consumer group count
 	TpsIn                 int        `json:"tpsIn"`                 // Inbound TPS
 	TpsOut                int        `json:"tpsOut"`                // Outbound TPS
+	TpsHistoryTimestamps  []int64    `json:"tpsHistoryTimestamps"`  // Unix-second timestamps for TPS history
 	TpsInHistory          []int      `json:"tpsInHistory"`          // Inbound TPS history
 	TpsOutHistory         []int      `json:"tpsOutHistory"`         // Outbound TPS history
 	MsgInToday            int64      `json:"msgInToday"`            // Messages in today

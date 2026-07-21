@@ -13,27 +13,11 @@ import type { NavId } from '@/layout/Sidebar'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
-
-const HISTORY_LEN = 60
-
-function aggregateHistory(
-  brokers: BrokerNode[],
-  field: 'tpsInHistory' | 'tpsOutHistory',
-): number[] {
-  const histories = brokers
-    .map((b) => (b[field] ?? []) as number[])
-    .filter((h) => Array.isArray(h) && h.length > 0)
-  if (histories.length === 0) return []
-  const len = Math.min(HISTORY_LEN, Math.max(...histories.map((h) => h.length)))
-  const out = new Array<number>(len).fill(0)
-  for (const h of histories) {
-    const offset = Math.max(0, h.length - len)
-    for (let i = 0; i < len; i++) {
-      out[i] = (out[i] ?? 0) + (h[offset + i] ?? 0)
-    }
-  }
-  return out
-}
+import {
+  aggregateThroughputHistory,
+  continuousHistoryRanges,
+  throughputWindow,
+} from '@/lib/throughputHistory'
 
 function formatTps(n: number): string {
   if (!Number.isFinite(n) || n <= 0) return '0'
@@ -83,13 +67,22 @@ export function ClusterPage({ onNavigate }: { onNavigate?: (id: NavId) => void }
   const totalTopics = cluster?.totalTopics ?? 0
   const totalGroups = cluster?.totalGroups ?? 0
 
-  const tpsInSeries = useMemo(() => aggregateHistory(brokers, 'tpsInHistory'), [brokers])
-  const tpsOutSeries = useMemo(() => aggregateHistory(brokers, 'tpsOutHistory'), [brokers])
+  const throughputHistory = useMemo(() => aggregateThroughputHistory(brokers), [brokers])
+  const tpsInSeries = throughputHistory.inbound
+  const tpsOutSeries = throughputHistory.outbound
+  const historyRanges = continuousHistoryRanges(throughputHistory.timestamps)
   const peak = Math.max(...tpsInSeries, ...tpsOutSeries, 1)
-  const len = Math.max(tpsInSeries.length, tpsOutSeries.length, 1)
-  const x = (i: number) => (i / Math.max(len - 1, 1)) * 800
+  const historyWindow = throughputWindow()
+  const x = (index: number) =>
+    (((throughputHistory.timestamps[index] ?? historyWindow.end) - historyWindow.start) /
+      Math.max(historyWindow.end - historyWindow.start, 1)) *
+    800
   const y = (v: number) => 200 - (v / peak) * 180 - 10
-  const lineFor = (series: number[]) => series.map((v, i) => `${x(i)},${y(v)}`).join(' ')
+  const lineFor = (series: number[], start: number, end: number) =>
+    series
+      .slice(start, end + 1)
+      .map((value, offset) => `${x(start + offset)},${y(value)}`)
+      .join(' ')
 
   const sortedBrokers = useMemo(
     () =>
@@ -254,22 +247,44 @@ export function ClusterPage({ onNavigate }: { onNavigate?: (id: NavId) => void }
                           strokeDasharray="3 3"
                         />
                       ))}
-                      {tpsInSeries.length > 0 && (
-                        <polyline
-                          points={lineFor(tpsInSeries)}
-                          fill="none"
-                          stroke="hsl(var(--success))"
-                          strokeWidth={1.5}
-                        />
-                      )}
-                      {tpsOutSeries.length > 0 && (
-                        <polyline
-                          points={lineFor(tpsOutSeries)}
-                          fill="none"
-                          stroke="hsl(var(--info))"
-                          strokeWidth={1.5}
-                        />
-                      )}
+                      {tpsInSeries.length > 0 &&
+                        historyRanges.map((range) => (
+                          <g key={`in-${range.start}`}>
+                            <polyline
+                              points={lineFor(tpsInSeries, range.start, range.end)}
+                              fill="none"
+                              stroke="hsl(var(--success))"
+                              strokeWidth={1.5}
+                            />
+                            {range.start === range.end && (
+                              <circle
+                                cx={x(range.start)}
+                                cy={y(tpsInSeries[range.start] ?? 0)}
+                                r={2.5}
+                                fill="hsl(var(--success))"
+                              />
+                            )}
+                          </g>
+                        ))}
+                      {tpsOutSeries.length > 0 &&
+                        historyRanges.map((range) => (
+                          <g key={`out-${range.start}`}>
+                            <polyline
+                              points={lineFor(tpsOutSeries, range.start, range.end)}
+                              fill="none"
+                              stroke="hsl(var(--info))"
+                              strokeWidth={1.5}
+                            />
+                            {range.start === range.end && (
+                              <circle
+                                cx={x(range.start)}
+                                cy={y(tpsOutSeries[range.start] ?? 0)}
+                                r={2.5}
+                                fill="hsl(var(--info))"
+                              />
+                            )}
+                          </g>
+                        ))}
                     </svg>
                   ) : (
                     <div

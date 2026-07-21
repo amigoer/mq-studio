@@ -43,7 +43,7 @@ func New() (*Services, error) {
 	configurationService := configuration.New(paths, settingsService, connections)
 	services := &Services{
 		Connections: connections,
-		Cluster:     cluster.New(settingsService),
+		Cluster:     cluster.New(paths.TPSHistoryFile, settingsService),
 		Topics:      topic.New(settingsService),
 		Consumers:   consumer.New(settingsService),
 		Messages:    message.New(settingsService),
