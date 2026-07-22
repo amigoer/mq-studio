@@ -25,6 +25,14 @@
 
 ---
 
+<p align="center">
+  <a href="docs/images/overview.png">
+    <img src="docs/images/overview.png" alt="Rocket-Leaf overview dashboard">
+  </a>
+  <br>
+  <sub>Live cluster health, throughput, consumer lag, and broker status in one view.</sub>
+</p>
+
 ## Why Rocket-Leaf?
 
 - **Ready to use** — no server or web console to deploy
@@ -44,6 +52,33 @@
 | **Personalization** | Switch theme and language, customize display, and import or export configuration |
 
 Supports RocketMQ **4.x / 5.x** through Admin APIs. ACL and some advanced operations depend on the broker version and configuration.
+
+## Product tour
+
+Select any screenshot to open it at full resolution.
+
+<table>
+  <tr>
+    <td width="50%" align="center">
+      <a href="docs/images/topics.png"><img src="docs/images/topics.png" alt="Topic management"></a>
+      <br><sub><strong>Topic operations</strong> — Inspect queues, routing, and subscriptions.</sub>
+    </td>
+    <td width="50%" align="center">
+      <a href="docs/images/consumers.png"><img src="docs/images/consumers.png" alt="Consumer group details"></a>
+      <br><sub><strong>Consumer diagnostics</strong> — Track clients, subscriptions, TPS, and lag.</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center">
+      <a href="docs/images/messages.png"><img src="docs/images/messages.png" alt="Message query and details"></a>
+      <br><sub><strong>Message inspection</strong> — Query messages and inspect body, properties, and traces.</sub>
+    </td>
+    <td width="50%" align="center">
+      <a href="docs/images/cluster.png"><img src="docs/images/cluster.png" alt="Cluster monitoring"></a>
+      <br><sub><strong>Cluster monitoring</strong> — Follow health, throughput, brokers, and disk usage.</sub>
+    </td>
+  </tr>
+</table>
 
 ## Download
 

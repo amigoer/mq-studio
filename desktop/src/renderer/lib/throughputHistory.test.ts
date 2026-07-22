@@ -48,6 +48,19 @@ describe('aggregateThroughputHistory', () => {
     ])
   })
 
+  it('bridges one missed sample but preserves longer collection gaps', () => {
+    const timestamps = [
+      NOW - 5 * THROUGHPUT_SAMPLE_MS,
+      NOW - 3 * THROUGHPUT_SAMPLE_MS,
+      NOW,
+    ]
+
+    expect(continuousHistoryRanges(timestamps)).toEqual([
+      { start: 0, end: 1 },
+      { start: 2, end: 2 },
+    ])
+  })
+
   it('supports history returned by an older daemon without timestamps', () => {
     const legacy = broker([], [4, 7], [2, 3])
     const history = aggregateThroughputHistory([legacy], NOW)

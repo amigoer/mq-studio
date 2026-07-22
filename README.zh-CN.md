@@ -25,6 +25,14 @@
 
 ---
 
+<p align="center">
+  <a href="docs/images/overview.png">
+    <img src="docs/images/overview.png" alt="Rocket-Leaf 概览仪表盘">
+  </a>
+  <br>
+  <sub>在一个页面查看集群健康、实时吞吐、消费堆积与 Broker 状态。</sub>
+</p>
+
 ## 为什么用 Rocket-Leaf？
 
 - **安装即用** — 不需要部署服务端或 Web 控制台
@@ -44,6 +52,33 @@
 | **个性化** | 切换主题与语言、自定义显示、导入或导出配置 |
 
 通过 Admin API 支持 RocketMQ **4.x / 5.x**。ACL 与部分高级操作是否可用，取决于 Broker 版本和配置。
+
+## 产品一览
+
+点击任意截图可查看完整尺寸原图。
+
+<table>
+  <tr>
+    <td width="50%" align="center">
+      <a href="docs/images/topics.png"><img src="docs/images/topics.png" alt="Topic 管理"></a>
+      <br><sub><strong>Topic 操作</strong> — 查看队列、路由与订阅关系。</sub>
+    </td>
+    <td width="50%" align="center">
+      <a href="docs/images/consumers.png"><img src="docs/images/consumers.png" alt="消费者组详情"></a>
+      <br><sub><strong>消费诊断</strong> — 跟踪客户端、订阅、TPS 与消息堆积。</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center">
+      <a href="docs/images/messages.png"><img src="docs/images/messages.png" alt="消息查询与详情"></a>
+      <br><sub><strong>消息检查</strong> — 查询消息并查看消息体、属性与轨迹。</sub>
+    </td>
+    <td width="50%" align="center">
+      <a href="docs/images/cluster.png"><img src="docs/images/cluster.png" alt="集群监控"></a>
+      <br><sub><strong>集群监控</strong> — 查看健康状态、吞吐、Broker 与磁盘使用率。</sub>
+    </td>
+  </tr>
+</table>
 
 ## 下载
 

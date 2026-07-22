@@ -2,6 +2,7 @@ import type { BrokerNode } from '@generated/models'
 
 export const THROUGHPUT_HISTORY_MINUTES = 60
 export const THROUGHPUT_SAMPLE_MS = 60_000
+const THROUGHPUT_CONTINUOUS_GAP_MS = THROUGHPUT_SAMPLE_MS * 2
 
 export interface ThroughputHistory {
   timestamps: number[]
@@ -54,7 +55,7 @@ export function aggregateThroughputHistory(
 
 export function continuousHistoryRanges(
   timestamps: number[],
-  maxGap: number = THROUGHPUT_SAMPLE_MS * 1.5,
+  maxGap: number = THROUGHPUT_CONTINUOUS_GAP_MS,
 ): Array<{ start: number; end: number }> {
   if (timestamps.length === 0) return []
   const ranges: Array<{ start: number; end: number }> = []
