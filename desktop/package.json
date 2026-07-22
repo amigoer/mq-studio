@@ -1,7 +1,7 @@
 {
   "name": "rocket-leaf-desktop",
   "productName": "Rocket Leaf",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "Local-first desktop client for RocketMQ",
   "author": "amigoer",
   "private": true,
