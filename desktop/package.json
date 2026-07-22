@@ -5,6 +5,7 @@
   "description": "Local-first desktop client for RocketMQ",
   "author": "amigoer",
   "private": true,
+  "license": "Apache-2.0",
   "type": "module",
   "main": "out/main/index.js",
   "scripts": {

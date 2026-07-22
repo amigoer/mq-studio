@@ -116,4 +116,4 @@ make dev
 
 ## 许可证
 
-[MIT](LICENSE) © [amigoer](https://github.com/amigoer)
+[Apache-2.0](LICENSE) © 2026 [amigoer](https://github.com/amigoer)

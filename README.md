@@ -116,4 +116,4 @@ Use `make check` to run project checks, `make package` to create an installer, a
 
 ## License
 
-[MIT](LICENSE) © [amigoer](https://github.com/amigoer)
+[Apache-2.0](LICENSE) © 2026 [amigoer](https://github.com/amigoer)

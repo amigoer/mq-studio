@@ -2,6 +2,7 @@
   "name": "rocket-leaf",
   "version": "1.4.0",
   "private": true,
+  "license": "Apache-2.0",
   "scripts": {
     "dev": "sh scripts/run-electron.sh dev",
     "generate:api": "npm --prefix desktop run generate:api",
