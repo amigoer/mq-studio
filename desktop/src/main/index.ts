@@ -79,8 +79,8 @@ function createWindow(): BrowserWindow {
     icon: applicationIconPath(),
     frame: mac,
     titleBarStyle: mac ? 'hidden' : 'default',
-    // Vertically center traffic lights in the 52px title bar (radius ≈ 7 → y ≈ 18).
-    trafficLightPosition: mac ? { x: 16, y: 18 } : undefined,
+    // Vertically center traffic lights in the 44px title bar (radius ≈ 7 → y ≈ 14).
+    trafficLightPosition: mac ? { x: 16, y: 14 } : undefined,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,

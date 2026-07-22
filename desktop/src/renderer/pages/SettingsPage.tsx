@@ -221,7 +221,7 @@ function SettingsRow({
 function AppearancePanel() {
   const { t } = useTranslation()
   const { settings, setSetting } = useSettings()
-  const { prefs, setAnimations, setReduceTransparency, setHighContrast } = useUIPrefs()
+  const { prefs, setAnimations } = useUIPrefs()
   return (
     <>
       <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 0 }}>
@@ -308,21 +308,9 @@ function AppearancePanel() {
         <SettingsRow
           title={t('settings.appearance.animations')}
           hint={t('settings.appearance.animationsHint')}
-        >
-          <Switch checked={prefs.animations} onCheckedChange={() => setAnimations(!prefs.animations)} />
-        </SettingsRow>
-        <SettingsRow
-          title={t('settings.appearance.reduceTransparency')}
-          hint={t('settings.appearance.reduceTransparencyHint')}
-        >
-          <Switch checked={prefs.reduceTransparency} onCheckedChange={() => setReduceTransparency(!prefs.reduceTransparency)} />
-        </SettingsRow>
-        <SettingsRow
-          title={t('settings.appearance.highContrast')}
-          hint={t('settings.appearance.highContrastHint')}
           bordered={false}
         >
-          <Switch checked={prefs.highContrast} onCheckedChange={() => setHighContrast(!prefs.highContrast)} />
+          <Switch checked={prefs.animations} onCheckedChange={() => setAnimations(!prefs.animations)} />
         </SettingsRow>
       </Card>
     </>
@@ -909,60 +897,58 @@ function AboutPanel({
     version === null ? '…' : version ? `v${version}` : t('settings.about.versionUnavailable')
 
   return (
-    <>
-      <Card style={{ padding: 20 }}>
-        <div className="flex items-start gap-4">
+    <div className="flex flex-col gap-4">
+      {/* Identity + resource actions in one compact card (matches design). */}
+      <Card style={{ padding: 18 }}>
+        <div className="flex items-start gap-3.5">
           <img
             src={logoUrl}
             alt=""
-            className="h-14 w-14 shrink-0 rounded-xl object-contain"
+            className="h-9 w-9 shrink-0 rounded-lg object-contain"
             aria-hidden
           />
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <h2 className="text-[16px] font-semibold">{t('app.name')}</h2>
-              <Badge variant="outline">{versionLabel}</Badge>
+            <div className="flex items-baseline gap-2">
+              <h2 className="text-[15px] font-semibold">{t('app.name')}</h2>
+              <span className="font-mono-design text-muted-foreground text-[11.5px]">
+                {versionLabel}
+              </span>
             </div>
-            <p className="text-muted-foreground mt-1 text-[13px]" style={{ lineHeight: 1.6 }}>
+            <p className="text-muted-foreground mt-1 text-[12px]" style={{ lineHeight: 1.55 }}>
               {t('settings.about.descriptionZh')}
             </p>
-            <p className="text-muted-foreground text-[12px]" style={{ lineHeight: 1.6 }}>
+            <p className="text-muted-foreground text-[11.5px]" style={{ lineHeight: 1.5 }}>
               {t('settings.about.descriptionEn')}
             </p>
           </div>
         </div>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Button variant="default" size="sm" onClick={onCheckUpdate}>
+            <RefreshCw size={13} />
+            {t('settings.about.checkUpdate')}
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => openLink(GITHUB_URL)}>
+            <Github size={13} />
+            GitHub
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => openLink(GITHUB_ISSUES_URL)}>
+            <ExternalLink size={13} />
+            {t('settings.about.openIssue')}
+          </Button>
+        </div>
       </Card>
 
-      <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 20 }}>
-        {t('settings.about.resources')}
-      </div>
-      <div className="flex flex-wrap gap-2">
-        <Button variant="outline" size="sm" onClick={onCheckUpdate}>
-          <RefreshCw size={13} />
-          {t('settings.about.checkUpdate')}
-        </Button>
-        <Button variant="outline" size="sm" onClick={() => openLink(GITHUB_URL)}>
-          <Github size={13} />
-          GitHub
-        </Button>
-        <Button variant="outline" size="sm"
-          onClick={() => openLink(GITHUB_ISSUES_URL)}
-        >
-          <ExternalLink size={13} />
-          {t('settings.about.openIssue')}
-        </Button>
-      </div>
-
-      <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 20 }}>
-        {t('settings.about.preferences')}
-      </div>
-      <Card>
-        <SettingsRow
-          title={t('settings.about.resetTitle')}
-          hint={t('settings.about.resetHint')}
-          bordered={false}
-        >
+      {/* Reset — compact standalone row, no section header. */}
+      <Card style={{ padding: '12px 16px' }}>
+        <div className="flex items-center gap-4">
+          <div className="min-w-0 flex-1">
+            <div className="text-[12.5px] font-medium">{t('settings.about.resetTitle')}</div>
+            <div className="text-muted-foreground mt-0.5 text-[11.5px]">
+              {t('settings.about.resetHint')}
+            </div>
+          </div>
           <Button variant="outline" size="sm"
+            className="shrink-0"
             style={{
               color: 'hsl(var(--destructive))',
               borderColor: 'hsl(var(--destructive) / 0.5)',
@@ -972,9 +958,9 @@ function AboutPanel({
             <RotateCcw size={13} />
             {t('settings.about.reset')}
           </Button>
-        </SettingsRow>
+        </div>
       </Card>
-    </>
+    </div>
   )
 }
 

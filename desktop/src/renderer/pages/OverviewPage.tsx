@@ -396,29 +396,43 @@ export function OverviewPage({ onNavigate }: OverviewPageProps) {
               <ListCard
                 title={t('overview.active.title')}
                 subtitle={t('overview.active.subtitle')}
-                empty={t('overview.active.empty')}
+                empty={
+                  data.topics.length === 0
+                    ? t('overview.active.empty')
+                    : t('overview.active.noTraffic')
+                }
                 onViewAll={() => onNavigate?.('topics')}
               >
-                {activeTopics.map((topic) => {
-                  const tps = topic.tpsIn ?? 0
-                  const pct =
-                    maxTopicTps > 0 ? Math.max(4, Math.round((tps / maxTopicTps) * 100)) : 0
-                  return (
-                    <div key={topic.topic} className="flex items-center gap-2.5 px-3 py-2">
-                      <span className="font-mono-design min-w-0 flex-1 truncate text-[12px]">
-                        {topic.topic}
-                      </span>
-                      {maxTopicTps > 0 && (
-                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted" style={{ width: 56 }}>
-                          <div className="h-full rounded-full bg-foreground" style={{ width: `${pct}%` }} />
+                {/* Only render rows when at least one topic has inbound traffic;
+                    otherwise fall back to the ListCard empty state instead of a
+                    list of bare "—" placeholders. */}
+                {maxTopicTps > 0
+                  ? activeTopics.map((topic) => {
+                      const tps = topic.tpsIn ?? 0
+                      const pct = Math.max(4, Math.round((tps / maxTopicTps) * 100))
+                      return (
+                        <div key={topic.topic} className="flex items-center gap-2.5 px-3 py-2">
+                          <span className="font-mono-design min-w-0 flex-1 truncate text-[12px]">
+                            {topic.topic}
+                          </span>
+                          <div
+                            className="h-1.5 shrink-0 overflow-hidden rounded-full bg-muted"
+                            style={{ width: 56 }}
+                          >
+                            {tps > 0 && (
+                              <div
+                                className="h-full rounded-full bg-success"
+                                style={{ width: `${pct}%` }}
+                              />
+                            )}
+                          </div>
+                          <span className="font-mono-design tabular-nums text-muted-foreground w-14 text-right text-[11.5px]">
+                            {tps > 0 ? `${formatTps(tps)}/s` : '—'}
+                          </span>
                         </div>
-                      )}
-                      <span className="font-mono-design tabular-nums text-muted-foreground w-14 text-right text-[11.5px]">
-                        {maxTopicTps > 0 ? `${formatTps(tps)}/s` : '—'}
-                      </span>
-                    </div>
-                  )
-                })}
+                      )
+                    })
+                  : null}
               </ListCard>
 
               <ListCard

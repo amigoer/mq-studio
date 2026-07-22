@@ -2,16 +2,12 @@ import { useCallback, useEffect, useState } from 'react'
 
 export interface UIPrefs {
   animations: boolean
-  reduceTransparency: boolean
-  highContrast: boolean
 }
 
 const STORAGE_KEY = 'rocket-leaf:ui-prefs'
 
 const DEFAULTS: UIPrefs = {
   animations: true,
-  reduceTransparency: false,
-  highContrast: false,
 }
 
 /** CSS vars formerly overridden by the accent-color picker */
@@ -32,12 +28,6 @@ function loadPrefs(): UIPrefs {
     const parsed = JSON.parse(raw) as Partial<UIPrefs>
     return {
       animations: typeof parsed.animations === 'boolean' ? parsed.animations : DEFAULTS.animations,
-      reduceTransparency:
-        typeof parsed.reduceTransparency === 'boolean'
-          ? parsed.reduceTransparency
-          : DEFAULTS.reduceTransparency,
-      highContrast:
-        typeof parsed.highContrast === 'boolean' ? parsed.highContrast : DEFAULTS.highContrast,
     }
   } catch {
     return { ...DEFAULTS }
@@ -54,8 +44,6 @@ function applyPrefs(p: UIPrefs) {
   const root = document.documentElement
   clearLegacyAccent()
   root.setAttribute('data-animations', p.animations ? 'on' : 'off')
-  root.classList.toggle('rl-reduce-transparency', p.reduceTransparency)
-  root.classList.toggle('rl-high-contrast', p.highContrast)
 }
 
 export function useUIPrefs() {
@@ -75,19 +63,9 @@ export function useUIPrefs() {
     setPrefs((prev) => ({ ...prev, animations }))
   }, [])
 
-  const setReduceTransparency = useCallback((reduceTransparency: boolean) => {
-    setPrefs((prev) => ({ ...prev, reduceTransparency }))
-  }, [])
-
-  const setHighContrast = useCallback((highContrast: boolean) => {
-    setPrefs((prev) => ({ ...prev, highContrast }))
-  }, [])
-
   return {
     prefs,
     setAnimations,
-    setReduceTransparency,
-    setHighContrast,
   }
 }
 

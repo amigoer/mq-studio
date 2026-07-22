@@ -11,9 +11,11 @@ import {
   Server,
   Settings,
   Github,
+  ExternalLink,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
@@ -105,7 +107,9 @@ export function Sidebar({
   }
 
   const openGitHub = () => {
-    window.rocketLeaf.shell.openExternal(GITHUB_URL).catch(() => {})
+    window.rocketLeaf.shell.openExternal(GITHUB_URL).catch(() => {
+      toast.error(t('nav.githubOpenFailed'))
+    })
   }
 
   return (
@@ -130,12 +134,17 @@ export function Sidebar({
           type="button"
           variant="ghost"
           size="sm"
-          title={t('nav.github')}
+          title={t('nav.githubHint')}
           onClick={openGitHub}
-          className="h-8 w-full justify-start gap-2 rounded-lg px-2.5 font-normal text-muted-foreground shadow-none hover:bg-accent/70 hover:text-foreground"
+          className="group h-8 w-full justify-start gap-2 rounded-lg px-2.5 font-normal text-muted-foreground shadow-none hover:bg-accent/70 hover:text-foreground"
         >
           <Github size={15} strokeWidth={1.75} className="shrink-0 opacity-80" />
           <span className="truncate">{t('nav.github')}</span>
+          <ExternalLink
+            size={12}
+            aria-hidden
+            className="ml-auto shrink-0 opacity-40 transition-opacity group-hover:opacity-70"
+          />
         </Button>
         {BOTTOM.map(renderItem)}
       </div>

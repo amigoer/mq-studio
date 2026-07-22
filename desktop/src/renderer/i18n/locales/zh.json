@@ -102,6 +102,8 @@
     "connections": "连接",
     "settings": "设置",
     "github": "GitHub",
+    "githubHint": "在浏览器中打开 GitHub 仓库",
+    "githubOpenFailed": "无法打开 GitHub，请检查默认浏览器",
     "groupBrowse": "资源",
     "groupOps": "运维"
   },
@@ -171,7 +173,8 @@
     "active": {
       "title": "Topic 概览",
       "subtitle": "优先展示有入流量数据的 Topic",
-      "empty": "暂无 Topic"
+      "empty": "暂无 Topic",
+      "noTraffic": "暂无入流量数据"
     },
     "lag": {
       "title": "堆积告警",
@@ -618,6 +621,9 @@
     "form": {
       "title": "账号配置",
       "subtitle": "创建或更新一个 AccessKey；如已存在则覆盖原配置",
+      "advanced": "按资源覆写权限",
+      "advancedHint": "可选 · 为指定 Topic / Group 单独设权，覆盖上面的默认值",
+      "adminActive": "管理员账号拥有全部 Topic / Group 权限，无需再单独配置。",
       "ak": "AccessKey",
       "akPlaceholder": "唯一标识",
       "sk": "SecretKey",
@@ -778,11 +784,7 @@
       },
       "a11y": "动效与可访问性",
       "animations": "界面过渡动画",
-      "animationsHint": "页面切换、面板展开等过渡效果",
-      "reduceTransparency": "减少透明效果",
-      "reduceTransparencyHint": "关闭背景模糊与半透明面板",
-      "highContrast": "高对比度",
-      "highContrastHint": "增强边框与文本对比度"
+      "animationsHint": "页面切换、面板展开等过渡效果"
     },
     "general": {
       "languageRegion": "语言与区域",
@@ -897,7 +899,6 @@
     "about": {
       "descriptionZh": "本地优先的 RocketMQ 桌面客户端，无需额外部署控制台，即可管理集群、Topic、消费者与消息。",
       "descriptionEn": "A local-first desktop client for RocketMQ. Manage clusters, topics, consumers, and messages without deploying a separate console.",
-      "resources": "资源",
       "versionUnavailable": "版本不可用",
       "checkUpdate": "检查更新",
       "upToDate": "已是最新版本 v{{version}}",
@@ -908,7 +909,6 @@
       "openReleasesHint": "可手动打开 Releases 页面",
       "openReleases": "打开 Releases",
       "openIssue": "提交 Issue",
-      "preferences": "偏好设置",
       "resetTitle": "恢复默认设置",
       "resetHint": "将所有设置恢复为初始值（不影响连接）",
       "reset": "恢复默认",

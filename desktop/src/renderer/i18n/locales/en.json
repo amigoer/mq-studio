@@ -102,6 +102,8 @@
     "connections": "Connections",
     "settings": "Settings",
     "github": "GitHub",
+    "githubHint": "Open the GitHub repo in your browser",
+    "githubOpenFailed": "Couldn't open GitHub — check your default browser",
     "groupBrowse": "Resources",
     "groupOps": "Ops"
   },
@@ -171,7 +173,8 @@
     "active": {
       "title": "Topic overview",
       "subtitle": "Topics with inbound traffic are shown first",
-      "empty": "No topics"
+      "empty": "No topics",
+      "noTraffic": "No inbound traffic data"
     },
     "lag": {
       "title": "Lag alerts",
@@ -618,6 +621,9 @@
     "form": {
       "title": "Access config",
       "subtitle": "Create or update an AccessKey; existing entries are overwritten",
+      "advanced": "Per-resource permission overrides",
+      "advancedHint": "Optional · set permissions for specific topics or groups, overriding the defaults above",
+      "adminActive": "Admin accounts have full topic and group permissions — no per-resource config needed.",
       "ak": "AccessKey",
       "akPlaceholder": "Unique identifier",
       "sk": "SecretKey",
@@ -778,11 +784,7 @@
       },
       "a11y": "Animations & accessibility",
       "animations": "Interface animations",
-      "animationsHint": "Page transitions, panel open/close, etc.",
-      "reduceTransparency": "Reduce transparency",
-      "reduceTransparencyHint": "Disable backdrop blur and translucent panels",
-      "highContrast": "High contrast",
-      "highContrastHint": "Strengthen border and text contrast"
+      "animationsHint": "Page transitions, panel open/close, etc."
     },
     "general": {
       "languageRegion": "Language & region",
@@ -897,7 +899,6 @@
     "about": {
       "descriptionZh": "本地优先的 RocketMQ 桌面客户端，无需额外部署控制台，即可管理集群、Topic、消费者与消息。",
       "descriptionEn": "A local-first desktop client for RocketMQ. Manage clusters, topics, consumers, and messages without deploying a separate console.",
-      "resources": "Resources",
       "versionUnavailable": "Version unavailable",
       "checkUpdate": "Check for updates",
       "upToDate": "You are on the latest version v{{version}}",
@@ -908,7 +909,6 @@
       "openReleasesHint": "You can open the Releases page manually",
       "openReleases": "Open Releases",
       "openIssue": "Open issue",
-      "preferences": "Preferences",
       "resetTitle": "Reset to defaults",
       "resetHint": "Reset all settings to defaults (does not affect connections)",
       "reset": "Reset",

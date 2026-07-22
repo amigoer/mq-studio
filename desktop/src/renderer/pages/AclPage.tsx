@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Key, Plus, X, Check, Trash2, AlertCircle, ShieldCheck, ShieldOff } from 'lucide-react'
+import { Key, Plus, X, Check, Trash2, AlertCircle, ShieldCheck, ShieldOff, ChevronRight } from 'lucide-react'
 import { Spinner } from '@/components/Spinner'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -8,7 +8,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useConnections } from '@/hooks/useConnections'
 import * as aclApi from '@/api/acl'
 import type { AclVersionInfo } from '@/api/acl'
-import { formatErrorMessage } from '@/lib/utils'
+import { cn, formatErrorMessage } from '@/lib/utils'
 import { RefreshButton, usePageRefresh } from '@/components/RefreshButton'
 import { OfflineEmpty } from '@/components/OfflineEmpty'
 import type { NavId } from '@/layout/Sidebar'
@@ -51,6 +51,7 @@ export function AclPage({ onNavigate }: { onNavigate?: (id: NavId) => void }) {
   const [defaultGroupPerm, setDefaultGroupPerm] = useState<(typeof PERMS)[number]>('SUB')
   const [topicPerms, setTopicPerms] = useState('')
   const [groupPerms, setGroupPerms] = useState('')
+  const [showAdvanced, setShowAdvanced] = useState(false)
   const [saving, setSaving] = useState(false)
 
   // Delete by AK
@@ -179,6 +180,10 @@ export function AclPage({ onNavigate }: { onNavigate?: (id: NavId) => void }) {
     }
   }
 
+  // Number of per-resource overrides currently entered — shown as a badge on
+  // the collapsed "advanced" toggle so hidden entries are never a surprise.
+  const overrideCount = parsePermLines(topicPerms).length + parsePermLines(groupPerms).length
+
   return (
     <div className="flex h-full min-h-0 flex-col">
       <PageHeader
@@ -276,15 +281,18 @@ export function AclPage({ onNavigate }: { onNavigate?: (id: NavId) => void }) {
               <span className="text-muted-foreground"> {t('acl.limitationsDesc')}</span>
             </Card>
 
-            {/* Two-column layout: account config form stays in the left main area;
-                delete / global whitelist and other secondary actions fold into a narrow right column.
-                Below lg, collapse to a single column so the form is not squeezed in narrow windows. */}
-            <div className="grid grid-cols-1 gap-5 lg:grid-cols-[3fr_2fr]">
-              <div>
+            {/* Two-column layout fills the width: the account create/update
+                form on the left, the two secondary actions (delete by AK and
+                the destructive global allow-list replace) stacked on the right.
+                Collapses to one column below lg. */}
+            <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+              <div className="flex flex-col gap-5">
                 {/* Access config form */}
-                <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{t('acl.form.title')}</div>
                 <Card style={{ padding: 20 }}>
-                  <div className="text-muted-foreground mb-4 text-[12px]">{t('acl.form.subtitle')}</div>
+                  <div className="mb-4">
+                    <div className="text-[13px] font-semibold">{t('acl.form.title')}</div>
+                    <div className="text-muted-foreground mt-0.5 text-[12px]">{t('acl.form.subtitle')}</div>
+                  </div>
                   <div className="grid gap-3.5" style={{ gridTemplateColumns: '1fr 1fr' }}>
                     <div>
                       <div className="text-muted-foreground mb-2 text-[12px]">
@@ -320,41 +328,13 @@ export function AclPage({ onNavigate }: { onNavigate?: (id: NavId) => void }) {
                         onChange={(e) => setWhiteIp(e.target.value)}
                       />
                     </div>
-                    <div>
-                      <div className="text-muted-foreground mb-2 text-[12px]">
-                        {t('acl.form.defaultTopicPerm')}
-                      </div>
-                      <Select
-                        value={defaultTopicPerm}
-                        onChange={(e) =>
-                          setDefaultTopicPerm(e.target.value as (typeof PERMS)[number])
-                        }
-                      >
-                        {PERMS.map((p) => (
-                          <option key={p} value={p}>
-                            {p}
-                          </option>
-                        ))}
-                      </Select>
-                    </div>
-                    <div>
-                      <div className="text-muted-foreground mb-2 text-[12px]">
-                        {t('acl.form.defaultGroupPerm')}
-                      </div>
-                      <Select
-                        value={defaultGroupPerm}
-                        onChange={(e) =>
-                          setDefaultGroupPerm(e.target.value as (typeof PERMS)[number])
-                        }
-                      >
-                        {PERMS.map((p) => (
-                          <option key={p} value={p}>
-                            {p}
-                          </option>
-                        ))}
-                      </Select>
-                    </div>
-                    <div style={{ gridColumn: '1 / -1' }} className="flex items-start gap-2.5">
+
+                    {/* Admin toggle. When on, this account has all permissions,
+                        so the per-resource permission controls below are hidden. */}
+                    <div
+                      style={{ gridColumn: '1 / -1' }}
+                      className="flex items-start gap-2.5 rounded-lg border border-border/70 px-3 py-2.5"
+                    >
                       <Switch checked={admin} onCheckedChange={setAdmin} className="mt-0.5 shrink-0" />
                       <div>
                         <div className="text-[12.5px] font-medium">{t('acl.form.admin')}</div>
@@ -363,30 +343,111 @@ export function AclPage({ onNavigate }: { onNavigate?: (id: NavId) => void }) {
                         </div>
                       </div>
                     </div>
-                    <div style={{ gridColumn: '1 / -1' }}>
-                      <div className="text-muted-foreground mb-2 text-[12px]">{t('acl.form.topicPerms')}</div>
-                      <Textarea
-                        className="min-h-[80px] font-mono-design text-[12px]"
-                        placeholder="ORDER_TOPIC=PUB|SUB&#10;AUDIT_LOG=PUB"
-                        value={topicPerms}
-                        onChange={(e) => setTopicPerms(e.target.value)}
-                      />
-                      <div className="text-muted-foreground mt-1 text-[11px]">
-                        {t('acl.form.topicPermsHint')}
+
+                    {admin ? (
+                      <div
+                        style={{ gridColumn: '1 / -1' }}
+                        className="text-muted-foreground flex items-center gap-2 text-[11.5px]"
+                      >
+                        <ShieldCheck size={13} style={{ color: 'hsl(var(--success))' }} className="shrink-0" />
+                        <span>{t('acl.form.adminActive')}</span>
                       </div>
-                    </div>
-                    <div style={{ gridColumn: '1 / -1' }}>
-                      <div className="text-muted-foreground mb-2 text-[12px]">{t('acl.form.groupPerms')}</div>
-                      <Textarea
-                        className="min-h-[60px] font-mono-design text-[12px]"
-                        placeholder="GID_ADMIN=SUB"
-                        value={groupPerms}
-                        onChange={(e) => setGroupPerms(e.target.value)}
-                      />
-                      <div className="text-muted-foreground mt-1 text-[11px]">
-                        {t('acl.form.groupPermsHint')}
-                      </div>
-                    </div>
+                    ) : (
+                      <>
+                        <div>
+                          <div className="text-muted-foreground mb-2 text-[12px]">
+                            {t('acl.form.defaultTopicPerm')}
+                          </div>
+                          <Select
+                            value={defaultTopicPerm}
+                            onChange={(e) =>
+                              setDefaultTopicPerm(e.target.value as (typeof PERMS)[number])
+                            }
+                          >
+                            {PERMS.map((p) => (
+                              <option key={p} value={p}>
+                                {p}
+                              </option>
+                            ))}
+                          </Select>
+                        </div>
+                        <div>
+                          <div className="text-muted-foreground mb-2 text-[12px]">
+                            {t('acl.form.defaultGroupPerm')}
+                          </div>
+                          <Select
+                            value={defaultGroupPerm}
+                            onChange={(e) =>
+                              setDefaultGroupPerm(e.target.value as (typeof PERMS)[number])
+                            }
+                          >
+                            {PERMS.map((p) => (
+                              <option key={p} value={p}>
+                                {p}
+                              </option>
+                            ))}
+                          </Select>
+                        </div>
+
+                        {/* Advanced: per-resource overrides, collapsed by default
+                            since most accounts only need the defaults above. */}
+                        <div style={{ gridColumn: '1 / -1' }}>
+                          <button
+                            type="button"
+                            onClick={() => setShowAdvanced((v) => !v)}
+                            className="text-muted-foreground hover:text-foreground -mx-1 flex w-full items-center gap-1.5 rounded-md px-1 py-1 text-left text-[12px] transition-colors"
+                          >
+                            <ChevronRight
+                              size={14}
+                              className={cn('shrink-0 transition-transform', showAdvanced && 'rotate-90')}
+                            />
+                            <span className="font-medium">{t('acl.form.advanced')}</span>
+                            {overrideCount > 0 && (
+                              <span
+                                className="ml-1 rounded-full px-1.5 text-[10px] font-semibold tabular-nums"
+                                style={{
+                                  background: 'hsl(var(--primary) / 0.12)',
+                                  color: 'hsl(var(--primary))',
+                                }}
+                              >
+                                {overrideCount}
+                              </span>
+                            )}
+                            <span className="text-muted-foreground/70 ml-auto text-[11px]">
+                              {t('acl.form.advancedHint')}
+                            </span>
+                          </button>
+                          {showAdvanced && (
+                            <div className="mt-3 grid gap-3.5">
+                              <div>
+                                <div className="text-muted-foreground mb-2 text-[12px]">{t('acl.form.topicPerms')}</div>
+                                <Textarea
+                                  className="min-h-[76px] font-mono-design text-[12px]"
+                                  placeholder="ORDER_TOPIC=PUB|SUB&#10;AUDIT_LOG=PUB"
+                                  value={topicPerms}
+                                  onChange={(e) => setTopicPerms(e.target.value)}
+                                />
+                                <div className="text-muted-foreground mt-1 text-[11px]">
+                                  {t('acl.form.topicPermsHint')}
+                                </div>
+                              </div>
+                              <div>
+                                <div className="text-muted-foreground mb-2 text-[12px]">{t('acl.form.groupPerms')}</div>
+                                <Textarea
+                                  className="min-h-[56px] font-mono-design text-[12px]"
+                                  placeholder="GID_ADMIN=SUB"
+                                  value={groupPerms}
+                                  onChange={(e) => setGroupPerms(e.target.value)}
+                                />
+                                <div className="text-muted-foreground mt-1 text-[11px]">
+                                  {t('acl.form.groupPermsHint')}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </>
+                    )}
                   </div>
                   <div
                     className="mt-5 flex justify-end"
@@ -402,111 +463,116 @@ export function AclPage({ onNavigate }: { onNavigate?: (id: NavId) => void }) {
                   </div>
                 </Card>
               </div>
+
+              {/* Right column: secondary write actions */}
               <div className="flex flex-col gap-5">
-                <div>
-                  {/* Delete by AK */}
-                  <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{t('acl.delete.title')}</div>
-                  <Card style={{ padding: 20 }}>
-                    <div className="text-muted-foreground mb-3 text-[12px]">{t('acl.delete.subtitle')}</div>
-                    <div className="flex gap-2">
-                      <Input
-                        className="font-mono-design"
-                        placeholder={t('acl.form.akPlaceholder')}
-                        value={deleteAk}
-                        onChange={(e) => setDeleteAk(e.target.value)}
-                        style={{ flex: 1 }}
-                      />
-                      <Button variant="outline" size="sm"
-                        style={{ color: 'hsl(var(--destructive))' }}
-                        onClick={() => deleteAk.trim() && setConfirmDelete(deleteAk.trim())}
-                        disabled={!deleteAk.trim()}
-                      >
-                        <Trash2 size={13} />
-                        {t('acl.delete.submit')}
-                      </Button>
-                    </div>
-                  </Card>
-                </div>
-                <div>
-                  {/* Global white list */}
-                  <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{t('acl.globalWhite.title')}</div>
-                  <Card style={{ padding: 20 }}>
-                    <div className="text-muted-foreground mb-3 text-[12px]">{t('acl.globalWhite.subtitle')}</div>
-                    <div className="flex flex-col gap-2">
-                      {whiteList.length === 0 ? (
-                        <div className="text-muted-foreground text-[12px]" style={{ padding: '8px 0' }}>
-                          {t('acl.globalWhite.empty')}
-                        </div>
-                      ) : (
-                        whiteList.map((ip) => (
-                          <div
-                            key={ip}
-                            className="flex items-center justify-between"
-                            style={{
-                              padding: '6px 10px',
-                              border: '1px solid hsl(var(--border))',
-                              borderRadius: 6,
-                              background: 'hsl(var(--background))',
-                            }}
-                          >
-                            <span className="font-mono-design text-[12px]">
-                              <Key size={11} className="text-muted-foreground mr-2 inline" />
-                              {ip}
-                            </span>
-                            <Button variant="ghost" size="icon-sm"
-                              onClick={() => handleRemoveWhite(ip)}
-                            >
-                              <X size={12} />
-                            </Button>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                    <div className="mt-3 flex gap-2">
-                      <Input
-                        className="font-mono-design"
-                        placeholder={t('acl.globalWhite.addPlaceholder')}
-                        value={whiteInput}
-                        onChange={(e) => setWhiteInput(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleAddWhite()}
-                        style={{ flex: 1 }}
-                      />
-                      <Button variant="outline" size="sm"
-                        onClick={handleAddWhite}
-                        disabled={!whiteInput.trim()}
-                      >
-                        <Plus size={13} />
-                        {t('acl.globalWhite.add')}
-                      </Button>
-                    </div>
-                    <div
-                      className="mt-4"
-                      style={{ paddingTop: 12, borderTop: '1px solid hsl(var(--border))' }}
+                {/* Delete by AK — de-emphasized danger action. */}
+                <Card
+                  style={{ padding: 20, borderColor: 'hsl(var(--destructive) / 0.28)' }}
+                >
+                  <div className="mb-3">
+                    <div className="text-[13px] font-semibold">{t('acl.delete.title')}</div>
+                    <div className="text-muted-foreground mt-0.5 text-[12px]">{t('acl.delete.subtitle')}</div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Input
+                      className="font-mono-design"
+                      placeholder={t('acl.form.akPlaceholder')}
+                      value={deleteAk}
+                      onChange={(e) => setDeleteAk(e.target.value)}
+                      style={{ flex: 1 }}
+                    />
+                    <Button variant="outline" size="sm"
+                      style={{ color: 'hsl(var(--destructive))' }}
+                      onClick={() => deleteAk.trim() && setConfirmDelete(deleteAk.trim())}
+                      disabled={!deleteAk.trim()}
                     >
-                      <div
-                        className="mb-3 flex items-start gap-2 text-[12px]"
-                        style={{
-                          padding: '8px 10px',
-                          borderRadius: 6,
-                          background: 'hsl(var(--destructive) / 0.08)',
-                          color: 'hsl(var(--destructive))',
-                        }}
-                      >
-                        <AlertCircle size={14} className="mt-0.5 shrink-0" />
-                        <span>{t('acl.globalWhite.warning')}</span>
+                      <Trash2 size={13} />
+                      {t('acl.delete.submit')}
+                    </Button>
+                  </div>
+                </Card>
+
+                {/* Global white list */}
+                <Card style={{ padding: 20 }}>
+                  <div className="mb-3">
+                    <div className="text-[13px] font-semibold">{t('acl.globalWhite.title')}</div>
+                    <div className="text-muted-foreground mt-0.5 text-[12px]">{t('acl.globalWhite.subtitle')}</div>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    {whiteList.length === 0 ? (
+                      <div className="text-muted-foreground text-[12px]" style={{ padding: '8px 0' }}>
+                        {t('acl.globalWhite.empty')}
                       </div>
-                      <div className="flex justify-end">
-                        <Button variant="destructive" size="sm"
-                          onClick={handleSaveWhite}
-                          disabled={whiteSaving}
+                    ) : (
+                      whiteList.map((ip) => (
+                        <div
+                          key={ip}
+                          className="flex items-center justify-between"
+                          style={{
+                            padding: '6px 10px',
+                            border: '1px solid hsl(var(--border))',
+                            borderRadius: 6,
+                            background: 'hsl(var(--background))',
+                          }}
                         >
-                          {whiteSaving ? <Spinner size={13} /> : <Check size={13} />}
-                          {whiteSaving ? t('acl.globalWhite.saving') : t('acl.globalWhite.save')}
-                        </Button>
-                      </div>
+                          <span className="font-mono-design text-[12px]">
+                            <Key size={11} className="text-muted-foreground mr-2 inline" />
+                            {ip}
+                          </span>
+                          <Button variant="ghost" size="icon-sm"
+                            onClick={() => handleRemoveWhite(ip)}
+                          >
+                            <X size={12} />
+                          </Button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                  <div className="mt-3 flex gap-2">
+                    <Input
+                      className="font-mono-design"
+                      placeholder={t('acl.globalWhite.addPlaceholder')}
+                      value={whiteInput}
+                      onChange={(e) => setWhiteInput(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleAddWhite()}
+                      style={{ flex: 1 }}
+                    />
+                    <Button variant="outline" size="sm"
+                      onClick={handleAddWhite}
+                      disabled={!whiteInput.trim()}
+                    >
+                      <Plus size={13} />
+                      {t('acl.globalWhite.add')}
+                    </Button>
+                  </div>
+                  <div
+                    className="mt-4"
+                    style={{ paddingTop: 12, borderTop: '1px solid hsl(var(--border))' }}
+                  >
+                    <div
+                      className="mb-3 flex items-start gap-2 text-[12px]"
+                      style={{
+                        padding: '8px 10px',
+                        borderRadius: 6,
+                        background: 'hsl(var(--destructive) / 0.08)',
+                        color: 'hsl(var(--destructive))',
+                      }}
+                    >
+                      <AlertCircle size={14} className="mt-0.5 shrink-0" />
+                      <span>{t('acl.globalWhite.warning')}</span>
                     </div>
-                  </Card>
-                </div>
+                    <div className="flex justify-end">
+                      <Button variant="destructive" size="sm"
+                        onClick={handleSaveWhite}
+                        disabled={whiteSaving}
+                      >
+                        {whiteSaving ? <Spinner size={13} /> : <Check size={13} />}
+                        {whiteSaving ? t('acl.globalWhite.saving') : t('acl.globalWhite.save')}
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
               </div>
             </div>
           </div>
