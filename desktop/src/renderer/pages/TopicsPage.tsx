@@ -78,19 +78,36 @@ function classifyTopic(t: TopicItem): TopicKind {
   return 'normal'
 }
 
+/** Negative means the brokers never reported the metric — not "idle". */
 function formatTps(n: number): string {
-  if (!n || !Number.isFinite(n) || n < 0) return '—'
+  if (!Number.isFinite(n) || n < 0) return '—'
   if (n >= 10000) return `${(n / 1000).toFixed(1)}k/s`
   if (n >= 1000) return `${(n / 1000).toFixed(2)}k/s`
   return `${Math.round(n)}/s`
 }
 
-/** List API often returns -1 before detail/route load. */
+/** Same convention as formatTps: -1 is unknown, 0 is a real measurement. */
+function formatCount(n: number): string {
+  if (!Number.isFinite(n) || n < 0) return '—'
+  return String(n)
+}
+
+/** List API returns -1 for any field the brokers did not answer for. */
 function formatQueues(read: number, write: number): string {
   if (read < 0 && write < 0) return '—'
   if (read < 0) return `— / ${write}`
   if (write < 0) return `${read} / —`
   return `${read} / ${write}`
+}
+
+/**
+ * "普通" covers every business topic, ordered and delayed included, so the tab
+ * counts always add up to the "全部" total.
+ */
+function matchesFilter(kind: TopicKind, filter: TypeFilter): boolean {
+  if (filter === 'all') return true
+  if (filter === 'normal') return kind === 'normal' || kind === 'fifo' || kind === 'delay'
+  return kind === filter
 }
 
 function permLabel(p: TopicPerm, t: (k: string) => string): string {
@@ -155,11 +172,13 @@ export function TopicsPage({ onNavigate }: { onNavigate?: (id: NavId) => void })
   )
 
   const counts = useMemo(() => {
-    const c = { all: 0, normal: 0, fifo: 0, delay: 0, retry: 0, dlq: 0 }
+    const c = { all: 0, normal: 0, retry: 0, dlq: 0 }
     for (const d of derived) {
       if (d.system) continue
       c.all++
-      c[d.kind]++
+      if (d.kind === 'retry') c.retry++
+      else if (d.kind === 'dlq') c.dlq++
+      else c.normal++
     }
     return c
   }, [derived])
@@ -170,7 +189,7 @@ export function TopicsPage({ onNavigate }: { onNavigate?: (id: NavId) => void })
       .filter((d) => {
         // Hide internal system topics unless looking at retry/dlq intentionally
         if (d.system && d.kind !== 'retry' && d.kind !== 'dlq') return false
-        if (typeFilter !== 'all' && d.kind !== typeFilter) return false
+        if (!matchesFilter(d.kind, typeFilter)) return false
         if (
           q &&
           !d.raw.topic.toLowerCase().includes(q) &&
@@ -399,7 +418,7 @@ export function TopicsPage({ onNavigate }: { onNavigate?: (id: NavId) => void })
                             {formatTps(raw.tpsIn)}
                           </span>
                           <span className="font-mono-design text-muted-foreground text-right text-[12px] tabular-nums">
-                            {raw.consumerGroups || 0}
+                            {formatCount(raw.consumerGroups)}
                           </span>
                           <ChevronRight
                             size={14}
@@ -518,8 +537,14 @@ function TopicDetailPanel({
 
   const kind = classifyTopic(topic)
   const queueLabel = formatQueues(topic.readQueue, topic.writeQueue)
-  const totalQueue =
-    topic.readQueue >= 0 && topic.writeQueue >= 0 ? topic.readQueue + topic.writeQueue : null
+  // Routes carry each broker's own queue counts. The stat reports the number of
+  // readable queues across the cluster; the sub-label keeps the per-broker R/W
+  // setting, which is what the edit form writes back.
+  const totalQueue = topic.routes.length
+    ? topic.routes.reduce((sum, r) => sum + Math.max(0, r.readQueue), 0)
+    : topic.readQueue >= 0
+      ? topic.readQueue
+      : null
 
   return (
     <aside
@@ -585,7 +610,7 @@ function TopicDetailPanel({
               </div>
               <div className="rounded-xl border border-border/80 bg-card p-3.5 shadow-card">
                 <div className="flex items-center gap-1.5 text-[11.5px] text-muted-foreground">{t('topics.detail.stat.groups')}</div>
-                <div className="mt-1 font-semibold tracking-tight tabular-nums leading-tight text-[18px]">{topic.consumerGroups || 0}</div>
+                <div className="mt-1 font-semibold tracking-tight tabular-nums leading-tight text-[18px]">{formatCount(topic.consumerGroups)}</div>
               </div>
               <div className="rounded-xl border border-border/80 bg-card p-3.5 shadow-card">
                 <div className="flex items-center gap-1.5 text-[11.5px] text-muted-foreground">{t('topics.detail.stat.tpsIn')}</div>
@@ -763,6 +788,27 @@ function TopicDetailPanel({
 
 // ---------- Editor Modal ----------
 
+const DEFAULT_QUEUE_COUNT = 8
+
+/**
+ * Queue counts live in each broker's own topic config, so the form must show
+ * the numbers belonging to the broker it is about to write to. Falling back to
+ * the topic-level summary keeps create mode and route-less items working.
+ */
+function queuesForBroker(
+  topic: TopicItem | null,
+  address: string,
+): { read: number; write: number } {
+  const route = topic?.routes?.find((r) => r.brokerAddr === address)
+  if (route) return { read: route.readQueue, write: route.writeQueue }
+  const read = topic?.readQueue ?? -1
+  const write = topic?.writeQueue ?? -1
+  return {
+    read: read > 0 ? read : DEFAULT_QUEUE_COUNT,
+    write: write > 0 ? write : DEFAULT_QUEUE_COUNT,
+  }
+}
+
 function TopicEditor({
   mode,
   initial,
@@ -785,16 +831,44 @@ function TopicEditor({
     [brokers],
   )
 
-  const [name, setName] = useState(initial?.topic ?? '')
-  const [brokerAddr, setBrokerAddr] = useState<string>(
-    initial?.routes?.[0]?.brokerAddr || masterBrokers[0]?.address || '',
-  )
-  const [readQueue, setReadQueue] = useState<number>(initial?.readQueue ?? 8)
-  const [writeQueue, setWriteQueue] = useState<number>(initial?.writeQueue ?? 8)
-  const [perm, setPerm] = useState<TopicPerm>(initial?.perm ?? TopicPerm.ReadWrite)
-  const [busy, setBusy] = useState(false)
+  // The submit only ever targets one broker, so preselect a broker that the
+  // select can actually show. Cluster data loads asynchronously, which is why
+  // this is recomputed rather than captured once at mount.
+  const defaultBroker = useMemo(() => {
+    const options = masterBrokers.map((b) => b.address)
+    const routed = (initial?.routes ?? [])
+      .map((r) => r.brokerAddr)
+      .find((address) => address && options.includes(address))
+    return routed || options[0] || ''
+  }, [initial, masterBrokers])
 
   const isEdit = mode === 'edit'
+
+  const [name, setName] = useState(initial?.topic ?? '')
+  const [brokerAddr, setBrokerAddr] = useState<string>(defaultBroker)
+  const [readQueue, setReadQueue] = useState<number>(() => queuesForBroker(initial, defaultBroker).read)
+  const [writeQueue, setWriteQueue] = useState<number>(
+    () => queuesForBroker(initial, defaultBroker).write,
+  )
+  const [perm, setPerm] = useState<TopicPerm>(initial?.perm || TopicPerm.ReadWrite)
+  const [busy, setBusy] = useState(false)
+
+  // Never leave the form holding an address the select cannot display, or the
+  // user would be submitting a broker other than the one shown.
+  useEffect(() => {
+    setBrokerAddr((current) =>
+      current && masterBrokers.some((b) => b.address === current) ? current : defaultBroker,
+    )
+  }, [defaultBroker, masterBrokers])
+
+  // Queue counts are a per-broker setting. Re-read them whenever the target
+  // broker changes, so saving cannot copy one broker's numbers onto another.
+  useEffect(() => {
+    if (!isEdit) return
+    const queues = queuesForBroker(initial, brokerAddr)
+    setReadQueue(queues.read)
+    setWriteQueue(queues.write)
+  }, [isEdit, initial, brokerAddr])
 
   const handleSubmit = async () => {
     if (!name.trim()) {

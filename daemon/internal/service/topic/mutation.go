@@ -14,6 +14,19 @@ import (
 
 // CreateTopic creates a topic.
 func (s *Service) CreateTopic(topicName string, brokerAddress string, readQueue int, writeQueue int, permission string) error {
+	return s.applyTopicConfig("创建", topicName, brokerAddress, readQueue, writeQueue, permission)
+}
+
+// UpdateTopic updates a topic configuration. RocketMQ has no separate update
+// command: the broker upserts whatever configuration it is handed.
+func (s *Service) UpdateTopic(topicName string, brokerAddress string, readQueue int, writeQueue int, permission string) error {
+	return s.applyTopicConfig("更新", topicName, brokerAddress, readQueue, writeQueue, permission)
+}
+
+// applyTopicConfig writes a topic configuration to one broker. The queue counts
+// are that broker's own setting, so callers must pass the value for the broker
+// they selected rather than a cluster-wide total.
+func (s *Service) applyTopicConfig(action string, topicName string, brokerAddress string, readQueue int, writeQueue int, permission string) error {
 	client, err := rocketmq.GetClientManager().GetDefaultClient()
 	if err != nil {
 		return fmt.Errorf("获取客户端失败: %w", err)
@@ -22,10 +35,10 @@ func (s *Service) CreateTopic(topicName string, brokerAddress string, readQueue 
 	topicName = strings.TrimSpace(topicName)
 	brokerAddress = strings.TrimSpace(brokerAddress)
 	if topicName == "" {
-		return fmt.Errorf("创建 Topic 失败: Topic 名称不能为空")
+		return fmt.Errorf("%s Topic 失败: Topic 名称不能为空", action)
 	}
 	if brokerAddress == "" {
-		return fmt.Errorf("创建 Topic 失败: Broker 地址不能为空，请先连接集群并选择可用 Broker")
+		return fmt.Errorf("%s Topic 失败: Broker 地址不能为空，请先连接集群并选择可用 Broker", action)
 	}
 	if readQueue <= 0 {
 		readQueue = 4
@@ -34,11 +47,11 @@ func (s *Service) CreateTopic(topicName string, brokerAddress string, readQueue 
 		writeQueue = 4
 	}
 	if readQueue > 1024 || writeQueue > 1024 {
-		return fmt.Errorf("创建 Topic 失败: 队列数不能超过 1024")
+		return fmt.Errorf("%s Topic 失败: 队列数不能超过 1024", action)
 	}
 	if permission != string(model.PermRW) && permission != string(model.PermR) &&
 		permission != string(model.PermW) && permission != string(model.PermDeny) {
-		return fmt.Errorf("创建 Topic 失败: 不支持的权限 %q", permission)
+		return fmt.Errorf("%s Topic 失败: 不支持的权限 %q", action, permission)
 	}
 
 	config := admin.TopicConfig{
@@ -52,14 +65,9 @@ func (s *Service) CreateTopic(topicName string, brokerAddress string, readQueue 
 		return retryClient.CreateTopic(ctx, brokerAddress, config)
 	})
 	if err != nil {
-		return fmt.Errorf("创建 Topic 失败: %w", err)
+		return fmt.Errorf("%s Topic 失败: %w", action, err)
 	}
 	return nil
-}
-
-// UpdateTopic updates a topic configuration.
-func (s *Service) UpdateTopic(topicName string, brokerAddress string, readQueue int, writeQueue int, permission string) error {
-	return s.CreateTopic(topicName, brokerAddress, readQueue, writeQueue, permission)
 }
 
 // DeleteTopic deletes a topic.

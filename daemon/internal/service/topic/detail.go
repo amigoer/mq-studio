@@ -3,12 +3,12 @@ package topic
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/amigoer/rocket-leaf/daemon/internal/model"
 	"github.com/amigoer/rocket-leaf/daemon/internal/rocketmq"
 	"github.com/amigoer/rocket-leaf/daemon/internal/service/internal/mqexec"
-	"github.com/amigoer/rocket-leaf/daemon/internal/service/internal/timestamp"
 
 	admin "github.com/amigoer/rocketmq-admin-go"
 )
@@ -21,19 +21,17 @@ func (s *Service) GetTopicDetail(topicName string) (*model.TopicItem, error) {
 	}
 
 	var item *model.TopicItem
+	var working *admin.Client
 	err = mqexec.WithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
+		working = retryClient
+
 		routeInfo, callErr := retryClient.ExamineTopicRouteInfo(ctx, topicName)
 		if callErr != nil {
 			return callErr
 		}
 
-		detail := &model.TopicItem{
-			ID:          s.getNextID(),
-			Topic:       topicName,
-			MessageType: model.MessageTypeNormal,
-			Routes:      make([]model.TopicRouteItem, 0),
-			LastUpdated: timestamp.Now(),
-		}
+		detail := s.newTopicItem(topicName)
+		detail.Routes = make([]model.TopicRouteItem, 0)
 		if strings.TrimSpace(routeInfo.OrderTopicConf) != "" {
 			detail.MessageType = model.MessageTypeFIFO
 		}
@@ -59,11 +57,21 @@ func (s *Service) GetTopicDetail(topicName string) (*model.TopicItem, error) {
 			}
 
 			detail.Routes = append(detail.Routes, route)
-			detail.ReadQueue += queueData.ReadQueueNums
-			detail.WriteQueue += queueData.WriteQueueNums
 		}
+
+		// The name server returns routes in map order. Sort them so the entry
+		// promoted to the topic-level summary is stable across refreshes.
+		sort.Slice(detail.Routes, func(left, right int) bool {
+			return detail.Routes[left].Broker < detail.Routes[right].Broker
+		})
 		if len(detail.Routes) > 0 {
-			detail.Perm = detail.Routes[0].Perm
+			// Queue counts are per-broker configuration, not a cluster total:
+			// the edit form writes this value back to a single broker, so
+			// summing the routes here would multiply the queues on save.
+			primary := detail.Routes[0]
+			detail.ReadQueue = primary.ReadQueue
+			detail.WriteQueue = primary.WriteQueue
+			detail.Perm = primary.Perm
 		}
 		item = detail
 		return nil
@@ -71,6 +79,8 @@ func (s *Service) GetTopicDetail(topicName string) (*model.TopicItem, error) {
 	if err != nil {
 		return nil, fmt.Errorf("获取 Topic 路由信息失败: %w", err)
 	}
+
+	s.enrichTopicDetail(working, item)
 	return item, nil
 }
 
