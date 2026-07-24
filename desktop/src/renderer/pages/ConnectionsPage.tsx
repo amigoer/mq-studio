@@ -227,6 +227,13 @@ export function ConnectionsPage() {
   // Guards against React Strict Mode double-effect wiping a just-applied prefill
   const newFormCycle = useRef(0)
   const appliedNewCycle = useRef(-1)
+  // Which connection the form currently holds. useConnections re-polls every
+  // 30s and hands back fresh objects, so hydration keys off this instead of the
+  // selected object's identity — otherwise the poll would overwrite whatever
+  // the user is typing.
+  const hydratedRef = useRef<{ id: number; token: number } | null>(null)
+  // Bumped after a save so the form deliberately re-reads the stored record.
+  const [resyncToken, setResyncToken] = useState(0)
 
   const openNewForm = () => {
     newFormCycle.current += 1
@@ -253,11 +260,12 @@ export function ConnectionsPage() {
   )
 
   useEffect(() => {
-    // Clear stale validation flags whenever the edited connection changes.
-    setHostErrors({})
     if (selectedId === NEW_FORM_ID) {
       if (appliedNewCycle.current === newFormCycle.current) return
       appliedNewCycle.current = newFormCycle.current
+      hydratedRef.current = { id: NEW_FORM_ID, token: resyncToken }
+      // Clear stale validation flags whenever the edited connection changes.
+      setHostErrors({})
       const prefill = takeConnectionPrefill()
       if (prefill) {
         setForm(formFromPrefill(prefill))
@@ -270,13 +278,18 @@ export function ConnectionsPage() {
       setAdvancedOpen(false)
       return
     }
-    if (selected) {
-      const next = fromConnection(selected)
-      setForm(next)
-      setOriginalForm(next)
-      setAdvancedOpen(selected.enableACL || selected.timeoutSec !== 5 || !!selected.remark)
-    }
-  }, [selected, selectedId])
+    if (!selected) return
+    const hydrated = hydratedRef.current
+    // Same connection, same save generation: the list just re-polled and the
+    // form is already showing this record (possibly with unsaved edits).
+    if (hydrated && hydrated.id === selected.id && hydrated.token === resyncToken) return
+    hydratedRef.current = { id: selected.id, token: resyncToken }
+    setHostErrors({})
+    const next = fromConnection(selected)
+    setForm(next)
+    setOriginalForm(next)
+    setAdvancedOpen(selected.enableACL || selected.timeoutSec !== 5 || !!selected.remark)
+  }, [selected, selectedId, resyncToken])
 
   const isNew = selectedId === NEW_FORM_ID
   const dirty = useMemo(
@@ -368,6 +381,9 @@ export function ConnectionsPage() {
         toast.success(t('connections.saveSuccess', { name: form.name.trim() }))
       }
       await refresh()
+      // The edit landed, so re-reading the stored record is wanted here: it
+      // picks up server-side normalisation and clears the dirty state.
+      setResyncToken((token) => token + 1)
     }
     return form.id
   }
