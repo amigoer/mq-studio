@@ -13,6 +13,23 @@ import (
 	admin "github.com/amigoer/rocketmq-admin-go"
 )
 
+// newTopicItem creates a list entry holding only what the name server returned.
+// Everything the brokers own starts unknown so a failed enrichment shows "—"
+// instead of an invented zero.
+func (s *Service) newTopicItem(topicName string) *model.TopicItem {
+	return &model.TopicItem{
+		ID:             s.getNextID(),
+		Topic:          topicName,
+		ReadQueue:      unknownMetric,
+		WriteQueue:     unknownMetric,
+		MessageType:    model.MessageTypeNormal,
+		ConsumerGroups: unknownMetric,
+		TpsIn:          unknownMetric,
+		TpsOut:         unknownMetric,
+		LastUpdated:    timestamp.Now(),
+	}
+}
+
 // GetTopics returns all non-system topics.
 func (s *Service) GetTopics() ([]*model.TopicItem, error) {
 	client, err := rocketmq.GetClientManager().GetDefaultClient()
@@ -21,9 +38,10 @@ func (s *Service) GetTopics() ([]*model.TopicItem, error) {
 	}
 
 	result := make([]*model.TopicItem, 0)
-	err = mqexec.Do(client, func(retryClient *admin.Client) error {
-		ctx, cancel := context.WithTimeout(context.Background(), s.settings.GetRequestTimeout())
-		defer cancel()
+	// mqexec may swap in a reconnected client; enrichment must use that one.
+	var working *admin.Client
+	err = mqexec.WithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
+		working = retryClient
 
 		topicList, callErr := retryClient.FetchAllTopicList(ctx)
 		if callErr != nil {
@@ -35,14 +53,7 @@ func (s *Service) GetTopics() ([]*model.TopicItem, error) {
 			if resource.IsSystemTopic(topicName) {
 				continue
 			}
-			topics = append(topics, &model.TopicItem{
-				ID:          s.getNextID(),
-				Topic:       topicName,
-				ReadQueue:   -1,
-				WriteQueue:  -1,
-				MessageType: model.MessageTypeNormal,
-				LastUpdated: timestamp.Now(),
-			})
+			topics = append(topics, s.newTopicItem(topicName))
 		}
 		result = topics
 		return nil
@@ -50,6 +61,8 @@ func (s *Service) GetTopics() ([]*model.TopicItem, error) {
 	if err != nil {
 		return nil, fmt.Errorf("获取 Topic 列表失败: %w", err)
 	}
+
+	s.enrichTopics(working, result)
 	return result, nil
 }
 
@@ -61,9 +74,9 @@ func (s *Service) GetAllTopics() ([]*model.TopicItem, error) {
 	}
 
 	result := make([]*model.TopicItem, 0)
-	err = mqexec.Do(client, func(retryClient *admin.Client) error {
-		ctx, cancel := context.WithTimeout(context.Background(), s.settings.GetRequestTimeout())
-		defer cancel()
+	var working *admin.Client
+	err = mqexec.WithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
+		working = retryClient
 
 		topicList, callErr := retryClient.FetchAllTopicList(ctx)
 		if callErr != nil {
@@ -72,14 +85,7 @@ func (s *Service) GetAllTopics() ([]*model.TopicItem, error) {
 
 		topics := make([]*model.TopicItem, 0, len(topicList.TopicList))
 		for _, topicName := range topicList.TopicList {
-			item := &model.TopicItem{
-				ID:          s.getNextID(),
-				Topic:       topicName,
-				ReadQueue:   -1,
-				WriteQueue:  -1,
-				MessageType: model.MessageTypeNormal,
-				LastUpdated: timestamp.Now(),
-			}
+			item := s.newTopicItem(topicName)
 			if resource.IsSystemTopic(topicName) {
 				item.Description = "系统"
 			}
@@ -91,6 +97,8 @@ func (s *Service) GetAllTopics() ([]*model.TopicItem, error) {
 	if err != nil {
 		return nil, fmt.Errorf("获取 Topic 列表失败: %w", err)
 	}
+
+	s.enrichTopics(working, result)
 	return result, nil
 }
 
@@ -134,9 +142,9 @@ func (s *Service) GetTopicsByCluster(clusterName string) ([]*model.TopicItem, er
 	}
 
 	result := make([]*model.TopicItem, 0)
-	err = mqexec.Do(client, func(retryClient *admin.Client) error {
-		ctx, cancel := context.WithTimeout(context.Background(), s.settings.GetRequestTimeout())
-		defer cancel()
+	var working *admin.Client
+	err = mqexec.WithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
+		working = retryClient
 
 		topicList, callErr := retryClient.FetchTopicsByCluster(ctx, clusterName)
 		if callErr != nil {
@@ -148,15 +156,9 @@ func (s *Service) GetTopicsByCluster(clusterName string) ([]*model.TopicItem, er
 			if resource.IsSystemTopic(topicName) {
 				continue
 			}
-			topics = append(topics, &model.TopicItem{
-				ID:          s.getNextID(),
-				Topic:       topicName,
-				Cluster:     clusterName,
-				ReadQueue:   -1,
-				WriteQueue:  -1,
-				MessageType: model.MessageTypeNormal,
-				LastUpdated: timestamp.Now(),
-			})
+			item := s.newTopicItem(topicName)
+			item.Cluster = clusterName
+			topics = append(topics, item)
 		}
 		result = topics
 		return nil
@@ -164,5 +166,7 @@ func (s *Service) GetTopicsByCluster(clusterName string) ([]*model.TopicItem, er
 	if err != nil {
 		return nil, fmt.Errorf("获取集群 Topic 列表失败: %w", err)
 	}
+
+	s.enrichTopics(working, result)
 	return result, nil
 }
