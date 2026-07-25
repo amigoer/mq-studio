@@ -519,7 +519,7 @@ function TopicDetailPanel({
       <aside
         className={asideClass}
         style={{
-          width: 380,
+          width: 360,
           borderLeft: '1px solid hsl(var(--border))',
           overflow: 'auto',
           background: 'hsl(var(--background))',
@@ -556,7 +556,7 @@ function TopicDetailPanel({
         background: 'hsl(var(--background))',
       }}
     >
-      <div style={{ padding: 16 }}>
+      <div style={{ padding: 20 }}>
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <div className="font-mono-design truncate text-[14px] font-semibold tracking-tight">

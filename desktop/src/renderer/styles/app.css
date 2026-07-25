@@ -314,72 +314,6 @@
   border-color: hsl(0 40% 28%);
 }
 
-/* Topics list — name + type badge inline, no far-right orphan columns */
-.rl-table-topics {
-  table-layout: fixed;
-  width: 100%;
-}
-.rl-table-topics thead th {
-  padding: 8px 16px;
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.02em;
-  text-transform: none;
-}
-.rl-table-topics tbody td {
-  padding: 10px 16px;
-}
-.rl-table-topics tbody tr {
-  cursor: pointer;
-}
-.rl-table-topics tbody tr:hover {
-  background: hsl(var(--muted) / 0.55);
-}
-.rl-table-topics tbody tr.selected {
-  background: hsl(var(--accent));
-}
-.rl-table-topics tbody tr:hover svg {
-  opacity: 0.7;
-}
-
-/* Consumers list — compact metrics that never get clipped */
-.rl-table-consumers {
-  table-layout: fixed;
-  width: 100%;
-}
-.rl-table-consumers thead th {
-  padding: 8px 12px;
-  font-size: 11px;
-  font-weight: 500;
-}
-.rl-table-consumers tbody td {
-  padding: 10px 12px;
-  vertical-align: middle;
-}
-.rl-table-consumers tbody tr {
-  cursor: pointer;
-}
-.rl-table-consumers tbody tr:hover {
-  background: hsl(var(--muted) / 0.55);
-}
-.rl-table-consumers tbody tr.selected {
-  background: hsl(var(--accent));
-}
-.rl-table-consumers .col-metric {
-  width: 72px;
-  text-align: right;
-  white-space: nowrap;
-}
-.rl-table-consumers .col-chevron {
-  width: 28px;
-  padding-left: 0;
-  padding-right: 10px;
-  text-align: right;
-}
-.rl-table-consumers tbody tr:hover .col-chevron svg {
-  opacity: 0.7;
-}
-
 /* Tabs (segmented pill) */
 .rl-tabs {
   display: inline-flex;
@@ -409,12 +343,6 @@
 }
 .rl-tabs .tab:hover {
   color: hsl(var(--foreground));
-}
-/* Static active (non-sliding consumers) */
-.rl-tabs:not(.rl-tabs-sliding) .tab.active {
-  background: hsl(var(--background));
-  color: hsl(var(--foreground));
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
 }
 /* Sliding pill indicator */
 .rl-tabs-sliding .tab.active {

@@ -9,7 +9,6 @@
    * Hierarchy:
    *   --background  pure white canvas
    *   --card        pure white elevated surfaces
-   *   --sidebar     pure white chrome (no gray wash)
    *   --muted       near-white for subtle fills only
    *   --border      very light hairline
    */
@@ -55,9 +54,6 @@
     --ring: 0 0% 9%;
     --radius: 0.75rem;
 
-    /* Chrome: pure white — no gray cast */
-    --surface: 0 0% 100%;
-    --sidebar: 0 0% 100%;
     --sidebar-active: 0 0% 96%;
   }
 
@@ -99,8 +95,6 @@
     --input: 0 0% 16%;
     --ring: 0 0% 84%;
 
-    --surface: 0 0% 9%;
-    --sidebar: 0 0% 8%;
     --sidebar-active: 0 0% 14%;
   }
 
@@ -131,16 +125,27 @@ body {
   );
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  -webkit-user-select: none;
-  user-select: none;
-}
-
-/* Keep inputs and textareas selectable for editing and copy */
-input,
-textarea,
-[contenteditable='true'] {
+  /*
+   * Content text stays selectable — this is an ops tool, and topic names,
+   * broker addresses, client ids and message ids all need to be copyable.
+   * Chrome and controls opt back out below so the app still feels native.
+   */
   -webkit-user-select: text;
   user-select: text;
+}
+
+/* App chrome and controls: not selectable, so drags and clicks never start a selection. */
+.rl-title-bar,
+.rl-title-bar *,
+button,
+[role='tab'],
+[role='menuitem'],
+[role='switch'],
+[role='combobox'],
+label,
+th {
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 #root {
@@ -148,18 +153,16 @@ textarea,
   background: hsl(var(--background));
 }
 
-@layer utilities {
-  .font-mono {
-    font-family:
-      var(--app-monospace-font), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-      'Liberation Mono', 'Courier New', monospace;
-  }
-}
-
-/* Client-app style: drop the default browser blue selection highlight */
+/*
+ * Client-app style: no browser blue, but the highlight still has to be
+ * clearly visible on a pure-white canvas. Only the background is set so
+ * selected text keeps whatever colour it already had.
+ */
 ::selection {
-  background: hsl(var(--accent));
-  color: hsl(var(--accent-foreground));
+  background: hsl(var(--success) / 0.22);
+}
+.dark ::selection {
+  background: hsl(var(--success) / 0.32);
 }
 
 /* Local thin scrollbars */
