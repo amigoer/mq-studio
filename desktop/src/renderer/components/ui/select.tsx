@@ -101,7 +101,7 @@ const Select = React.forwardRef<HTMLButtonElement, SelectProps>(function Select(
           role="combobox"
           aria-expanded={open}
           className={cn(
-            'group flex h-8 w-full items-center justify-between gap-2 rounded-lg border border-input bg-background px-2.5 py-1 text-[12.5px] text-foreground shadow-sm outline-none transition-colors focus-visible:border-ring/40 focus-visible:ring-2 focus-visible:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-50 data-[state=open]:border-ring/40 data-[state=open]:ring-2 data-[state=open]:ring-ring/20',
+            'group flex h-8 w-full items-center justify-between gap-2 rounded-lg border border-input bg-background px-2.5 py-1 text-fs-125 text-foreground shadow-sm outline-none transition-colors focus-visible:border-ring/40 focus-visible:ring-2 focus-visible:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-50 data-[state=open]:border-ring/40 data-[state=open]:ring-2 data-[state=open]:ring-ring/20',
             className,
           )}
           style={style}
@@ -171,7 +171,7 @@ const Select = React.forwardRef<HTMLButtonElement, SelectProps>(function Select(
                 disabled={o.disabled}
                 onClick={() => emit(o.value)}
                 className={cn(
-                  'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[12.5px] outline-none transition-colors hover:bg-accent focus-visible:bg-accent disabled:pointer-events-none disabled:opacity-50',
+                  'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-fs-125 outline-none transition-colors hover:bg-accent focus-visible:bg-accent disabled:pointer-events-none disabled:opacity-50',
                   active && 'bg-accent/70 font-medium',
                 )}
               >

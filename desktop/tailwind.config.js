@@ -25,6 +25,29 @@ export default {
         card: { DEFAULT: 'hsl(var(--card))', foreground: 'hsl(var(--card-foreground))' },
         popover: { DEFAULT: 'hsl(var(--popover))', foreground: 'hsl(var(--popover-foreground))' },
       },
+      /*
+       * Type scale, named after the design's pixel value at the default
+       * 13px root (`--app-font-size`). Expressed in rem so the Settings
+       * font-size control actually resizes text — with hardcoded px it only
+       * grew the rem-based spacing around text that never changed.
+       *
+       * Keep names and values in lockstep: `fs-N` must equal N / 13 rem.
+       * `fs-105` etc. are the half-steps the design uses (10.5px).
+       */
+      fontSize: {
+        'fs-10': '0.7692rem',
+        'fs-105': '0.8077rem',
+        'fs-11': '0.8462rem',
+        'fs-115': '0.8846rem',
+        'fs-12': '0.9231rem',
+        'fs-125': '0.9615rem',
+        'fs-13': '1rem',
+        'fs-14': '1.0769rem',
+        'fs-15': '1.1538rem',
+        'fs-16': '1.2308rem',
+        'fs-18': '1.3846rem',
+        'fs-21': '1.6154rem',
+      },
       borderRadius: {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',

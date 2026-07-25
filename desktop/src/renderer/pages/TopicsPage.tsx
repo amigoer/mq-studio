@@ -6,12 +6,14 @@ import { toast } from 'sonner'
 import { TopicMessageType, TopicPerm, type TopicItem } from '@generated/models'
 import { PageHeader } from '@/components/PageHeader'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { Modal } from '@/components/ui/modal'
 import { useTopics } from '@/hooks/useTopics'
 import { useConsumers } from '@/hooks/useConsumers'
 import { useCluster } from '@/hooks/useCluster'
 import { useDelayedUnmount } from '@/hooks/useDelayedUnmount'
 import * as topicApi from '@/api/topic'
 import { cn, formatErrorMessage } from '@/lib/utils'
+import { activatableRowProps, ROW_FOCUS_CLASS } from '@/lib/a11y'
 import { RefreshButton, usePageRefresh } from '@/components/RefreshButton'
 import { SlidingTabs } from '@/components/SlidingTabs'
 import { OfflineEmpty } from '@/components/OfflineEmpty'
@@ -333,7 +335,7 @@ export function TopicsPage({ onNavigate }: { onNavigate?: (id: NavId) => void })
             }))}
           />
           <div className="flex-1" />
-          <span className="text-muted-foreground shrink-0 text-[11.5px] tabular-nums">
+          <span className="text-muted-foreground shrink-0 text-fs-115 tabular-nums">
             {t('topics.resultCount', { count: filtered.length })}
           </span>
         </div>
@@ -352,7 +354,7 @@ export function TopicsPage({ onNavigate }: { onNavigate?: (id: NavId) => void })
           ) : loading && topics.length === 0 ? (
             <div className="text-muted-foreground flex items-center justify-center gap-2 p-16">
               <Spinner size={14} />
-              <span className="text-[12px]">{t('common.loading')}</span>
+              <span className="text-fs-12">{t('common.loading')}</span>
             </div>
           ) : (
             <>
@@ -360,8 +362,8 @@ export function TopicsPage({ onNavigate }: { onNavigate?: (id: NavId) => void })
               {filtered.length === 0 ? (
                 <div className="text-muted-foreground flex min-h-[200px] flex-col items-center justify-center gap-2 p-10 text-center">
                   <Tag size={22} className="opacity-35" />
-                  <div className="text-[13px]">{t('topics.empty')}</div>
-                  <div className="text-[11.5px]">{t('topics.emptyHint')}</div>
+                  <div className="text-fs-13">{t('topics.empty')}</div>
+                  <div className="text-fs-115">{t('topics.emptyHint')}</div>
                   {typeFilter === 'all' && !search.trim() && (
                     <Button variant="default" size="sm"
                       className="mt-2"
@@ -379,7 +381,7 @@ export function TopicsPage({ onNavigate }: { onNavigate?: (id: NavId) => void })
                     style={{ minWidth: 640 }}
                   >
                     <div
-                      className="text-muted-foreground grid items-center gap-2 border-b border-border px-3.5 py-2 text-[11px] font-medium"
+                      className="text-muted-foreground grid items-center gap-2 border-b border-border px-3.5 py-2 text-fs-11 font-medium"
                       style={{ gridTemplateColumns: TOPIC_COLS }}
                     >
                       <span>{t('topics.table.name')}</span>
@@ -395,29 +397,33 @@ export function TopicsPage({ onNavigate }: { onNavigate?: (id: NavId) => void })
                         <div
                           key={raw.topic}
                           data-topic-row
+                          role="button"
+                          aria-current={selected || undefined}
                           onClick={() => setSelectedName(raw.topic)}
+                          {...activatableRowProps(() => setSelectedName(raw.topic))}
                           className={cn(
                             'grid cursor-pointer items-center gap-2 border-t border-border px-3.5 py-2.5 transition-colors hover:bg-muted',
+                            ROW_FOCUS_CLASS,
                             selected && 'bg-accent hover:bg-accent',
                           )}
                           style={{ gridTemplateColumns: TOPIC_COLS }}
                         >
                           <div className="flex min-w-0 items-center gap-2">
-                            <span className="font-mono-design truncate text-[12px]">{raw.topic}</span>
+                            <span className="font-mono-design truncate text-fs-12">{raw.topic}</span>
                             <Badge variant="outline" className={typeBadgeClass(kind) + ' shrink-0'}>
                               {typeLabel(kind, t)}
                             </Badge>
                           </div>
-                          <span className="font-mono-design text-right text-[12px] tabular-nums">
+                          <span className="font-mono-design text-right text-fs-12 tabular-nums">
                             {formatQueues(raw.readQueue, raw.writeQueue)}
                           </span>
-                          <span className="text-muted-foreground text-[11.5px]">
+                          <span className="text-muted-foreground text-fs-115">
                             {permLabel(raw.perm, t)}
                           </span>
-                          <span className="font-mono-design text-muted-foreground text-[11.5px] tabular-nums">
+                          <span className="font-mono-design text-muted-foreground text-fs-115 tabular-nums">
                             {formatTps(raw.tpsIn)}
                           </span>
-                          <span className="font-mono-design text-muted-foreground text-right text-[12px] tabular-nums">
+                          <span className="font-mono-design text-muted-foreground text-right text-fs-12 tabular-nums">
                             {formatCount(raw.consumerGroups)}
                           </span>
                           <ChevronRight
@@ -527,7 +533,7 @@ function TopicDetailPanel({
       >
         <div className="text-muted-foreground flex items-center justify-center" style={{ padding: 60, gap: 8 }}>
           <Spinner size={14} />
-          <span className="text-[12px]">{t('common.loading')}</span>
+          <span className="text-fs-12">{t('common.loading')}</span>
         </div>
       </aside>
     )
@@ -559,7 +565,7 @@ function TopicDetailPanel({
       <div style={{ padding: 20 }}>
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <div className="font-mono-design truncate text-[14px] font-semibold tracking-tight">
+            <div className="font-mono-design truncate text-fs-14 font-semibold tracking-tight">
               {topic.topic}
             </div>
             <div className="mt-1.5 flex flex-wrap gap-1.5">
@@ -604,52 +610,52 @@ function TopicDetailPanel({
           <>
             <div className="mt-3 grid grid-cols-2 gap-2">
               <div className="rounded-xl border border-border/80 bg-card p-3.5 shadow-card">
-                <div className="flex items-center gap-1.5 text-[11.5px] text-muted-foreground">{t('topics.detail.stat.queues')}</div>
-                <div className="mt-1 font-semibold tracking-tight tabular-nums leading-tight text-[18px]">{totalQueue != null ? totalQueue : '—'}</div>
-                <div className="text-muted-foreground mt-0.5 text-[11px]">{queueLabel}</div>
+                <div className="flex items-center gap-1.5 text-fs-115 text-muted-foreground">{t('topics.detail.stat.queues')}</div>
+                <div className="mt-1 font-semibold tracking-tight tabular-nums leading-tight text-fs-18">{totalQueue != null ? totalQueue : '—'}</div>
+                <div className="text-muted-foreground mt-0.5 text-fs-11">{queueLabel}</div>
               </div>
               <div className="rounded-xl border border-border/80 bg-card p-3.5 shadow-card">
-                <div className="flex items-center gap-1.5 text-[11.5px] text-muted-foreground">{t('topics.detail.stat.groups')}</div>
-                <div className="mt-1 font-semibold tracking-tight tabular-nums leading-tight text-[18px]">{formatCount(topic.consumerGroups)}</div>
+                <div className="flex items-center gap-1.5 text-fs-115 text-muted-foreground">{t('topics.detail.stat.groups')}</div>
+                <div className="mt-1 font-semibold tracking-tight tabular-nums leading-tight text-fs-18">{formatCount(topic.consumerGroups)}</div>
               </div>
               <div className="rounded-xl border border-border/80 bg-card p-3.5 shadow-card">
-                <div className="flex items-center gap-1.5 text-[11.5px] text-muted-foreground">{t('topics.detail.stat.tpsIn')}</div>
-                <div className="mt-1 font-semibold tracking-tight tabular-nums leading-tight text-[16px]">{formatTps(topic.tpsIn)}</div>
+                <div className="flex items-center gap-1.5 text-fs-115 text-muted-foreground">{t('topics.detail.stat.tpsIn')}</div>
+                <div className="mt-1 font-semibold tracking-tight tabular-nums leading-tight text-fs-16">{formatTps(topic.tpsIn)}</div>
               </div>
               <div className="rounded-xl border border-border/80 bg-card p-3.5 shadow-card">
-                <div className="flex items-center gap-1.5 text-[11.5px] text-muted-foreground">{t('topics.detail.stat.tpsOut')}</div>
-                <div className="mt-1 font-semibold tracking-tight tabular-nums leading-tight text-[16px]">{formatTps(topic.tpsOut)}</div>
+                <div className="flex items-center gap-1.5 text-fs-115 text-muted-foreground">{t('topics.detail.stat.tpsOut')}</div>
+                <div className="mt-1 font-semibold tracking-tight tabular-nums leading-tight text-fs-16">{formatTps(topic.tpsOut)}</div>
               </div>
             </div>
 
-            <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground mt-4">{t('topics.detail.info')}</div>
+            <div className="mb-2.5 text-fs-11 font-semibold uppercase tracking-[0.08em] text-muted-foreground mt-4">{t('topics.detail.info')}</div>
             <div>
               {topic.cluster && (
-                <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-[13px] last:border-b-0">
+                <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-fs-13 last:border-b-0">
                   <div className="text-muted-foreground">{t('topics.detail.infoCluster')}</div>
                   <div className="text-foreground">{topic.cluster}</div>
                 </div>
               )}
-              <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-[13px] last:border-b-0">
+              <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-fs-13 last:border-b-0">
                 <div className="text-muted-foreground">{t('topics.detail.infoType')}</div>
                 <div className="text-foreground">{typeLabel(kind, t)}</div>
               </div>
-              <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-[13px] last:border-b-0">
+              <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-fs-13 last:border-b-0">
                 <div className="text-muted-foreground">{t('topics.detail.infoPerm')}</div>
                 <div className="text-foreground">{permLabel(topic.perm, t)}</div>
               </div>
-              <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-[13px] last:border-b-0">
+              <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-fs-13 last:border-b-0">
                 <div className="text-muted-foreground">{t('topics.detail.infoQueues')}</div>
                 <div className="text-foreground tabular-nums">{queueLabel}</div>
               </div>
               {topic.lastUpdated && (
-                <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-[13px] last:border-b-0">
+                <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-fs-13 last:border-b-0">
                   <div className="text-muted-foreground">{t('topics.detail.infoUpdated')}</div>
-                  <div className="text-foreground font-mono-design text-[12px]">{topic.lastUpdated}</div>
+                  <div className="text-foreground font-mono-design text-fs-12">{topic.lastUpdated}</div>
                 </div>
               )}
               {topic.description && (
-                <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-[13px] last:border-b-0">
+                <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-fs-13 last:border-b-0">
                   <div className="text-muted-foreground">{t('topics.detail.infoDesc')}</div>
                   <div className="text-foreground">{topic.description}</div>
                 </div>
@@ -661,7 +667,7 @@ function TopicDetailPanel({
         {tab === 'routes' && (
           <div className="mt-4">
             {topic.routes.length === 0 ? (
-              <div className="text-muted-foreground text-[12px]" style={{ padding: 16, textAlign: 'center' }}>
+              <div className="text-muted-foreground text-fs-12" style={{ padding: 16, textAlign: 'center' }}>
                 {t('topics.detail.routesEmpty')}
               </div>
             ) : (
@@ -677,17 +683,13 @@ function TopicDetailPanel({
                   >
                     <div className="flex min-w-0 flex-1 items-center gap-2">
                       <Server size={13} className="text-muted-foreground" />
-                      <span className="font-mono-design truncate text-[12px]">{r.broker}</span>
+                      <span className="font-mono-design truncate text-fs-12">{r.broker}</span>
                     </div>
                     <div className="flex shrink-0 gap-1">
-                      <Badge variant="outline"
-                        style={{ height: 18, fontSize: 10 }}
-                      >
+                      <Badge variant="outline" className="text-fs-10">
                         R {r.readQueue}
                       </Badge>
-                      <Badge variant="outline"
-                        style={{ height: 18, fontSize: 10 }}
-                      >
+                      <Badge variant="outline" className="text-fs-10">
                         W {r.writeQueue}
                       </Badge>
                     </div>
@@ -701,18 +703,18 @@ function TopicDetailPanel({
         {tab === 'groups' && (
           <div className="mt-4">
             {groupsLoading && relatedGroups.length === 0 ? (
-              <div className="text-muted-foreground flex items-center justify-center gap-2 py-8 text-[12px]">
+              <div className="text-muted-foreground flex items-center justify-center gap-2 py-8 text-fs-12">
                 <Spinner size={14} />
                 {t('common.loading')}
               </div>
             ) : relatedGroups.length === 0 ? (
               <Card style={{ padding: 16, textAlign: 'center' }}>
-                <div className="text-muted-foreground text-[12px]">{t('topics.detail.groupsEmpty')}</div>
+                <div className="text-muted-foreground text-fs-12">{t('topics.detail.groupsEmpty')}</div>
               </Card>
             ) : (
               <Card className="overflow-hidden">
                 <div
-                  className="text-muted-foreground px-3.5 py-2 text-[11px]"
+                  className="text-muted-foreground px-3.5 py-2 text-fs-11"
                   style={{ borderBottom: '1px solid hsl(var(--border))' }}
                 >
                   {t('topics.detail.groupsTitle')} · {relatedGroups.length}
@@ -727,10 +729,10 @@ function TopicDetailPanel({
                     }}
                   >
                     <div className="min-w-0 flex-1">
-                      <div className="font-mono-design truncate text-[12px] font-medium">
+                      <div className="font-mono-design truncate text-fs-12 font-medium">
                         {g.group}
                       </div>
-                      <div className="text-muted-foreground mt-0.5 text-[11px]">
+                      <div className="text-muted-foreground mt-0.5 text-fs-11">
                         {t('common.instances', { count: g.onlineClients ?? 0 })}
                         {' · '}
                         lag {(g.lag ?? 0).toLocaleString()}
@@ -897,98 +899,19 @@ function TopicEditor({
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        className="w-full max-w-md rounded-xl border border-border/50 bg-background p-6 shadow-lg"
-      >
-        <h2 className="text-base font-semibold">
-          {isEdit ? t('topics.create.edit') : t('topics.create.title')}
-        </h2>
-        <div className="mt-4 grid gap-3.5" style={{ gridTemplateColumns: '1fr' }}>
-          <div>
-            <div className="text-muted-foreground mb-2 text-[12px]">
-              {t('topics.create.name')} <span style={{ color: 'hsl(var(--destructive))' }}>*</span>
-            </div>
-            <Input
-              className="font-mono-design"
-              placeholder={t('topics.create.namePlaceholder')}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              disabled={isEdit}
-            />
-          </div>
-          <div>
-            <div className="text-muted-foreground mb-2 text-[12px]">
-              {t('topics.create.broker')}{' '}
-              <span style={{ color: 'hsl(var(--destructive))' }}>*</span>
-            </div>
-            {masterBrokers.length === 0 ? (
-              <div className="text-muted-foreground text-[12px]" style={{ padding: 8 }}>
-                {t('topics.create.noBrokers')}
-              </div>
-            ) : (
-              <Select
-                value={brokerAddr}
-                onChange={(e) => setBrokerAddr(e.target.value)}
-              >
-                {masterBrokers.map((b) => (
-                  <option key={b.address} value={b.address}>
-                    {b.brokerName} · {b.address}
-                  </option>
-                ))}
-              </Select>
-            )}
-            <div className="text-muted-foreground mt-1 text-[11px]">{t('topics.create.brokerHint')}</div>
-          </div>
-          <div className="grid gap-3.5" style={{ gridTemplateColumns: '1fr 1fr' }}>
-            <div>
-              <div className="text-muted-foreground mb-2 text-[12px]">{t('topics.create.readQueue')}</div>
-              <Input
-                type="number"
-                min={1}
-                max={64}
-                value={readQueue}
-                onChange={(e) => setReadQueue(Number(e.target.value) || 1)}
-              />
-            </div>
-            <div>
-              <div className="text-muted-foreground mb-2 text-[12px]">{t('topics.create.writeQueue')}</div>
-              <Input
-                type="number"
-                min={1}
-                max={64}
-                value={writeQueue}
-                onChange={(e) => setWriteQueue(Number(e.target.value) || 1)}
-              />
-            </div>
-          </div>
-          <div>
-            <div className="text-muted-foreground mb-2 text-[12px]">{t('topics.create.perm')}</div>
-            <Select
-              value={perm}
-              onChange={(e) => setPerm(e.target.value as TopicPerm)}
-            >
-              <option value={TopicPerm.ReadWrite}>{t('topics.perm.rw')}</option>
-              <option value={TopicPerm.ReadOnly}>{t('topics.perm.r')}</option>
-              <option value={TopicPerm.WriteOnly}>{t('topics.perm.w')}</option>
-              <option value={TopicPerm.Deny}>{t('topics.perm.deny')}</option>
-            </Select>
-          </div>
-        </div>
-        <div className="mt-5 flex justify-end gap-2.5">
-          <Button variant="outline" size="sm"
-            type="button"
-            onClick={onClose}
-            disabled={busy}
-          >
+    <Modal
+      open
+      title={isEdit ? t('topics.create.edit') : t('topics.create.title')}
+      dismissible={!busy}
+      onClose={onClose}
+      footer={
+        <>
+          <Button variant="outline" size="sm" type="button" onClick={onClose} disabled={busy}>
             {t('common.cancel')}
           </Button>
-          <Button variant="default" size="sm"
+          <Button
+            variant="default"
+            size="sm"
             type="button"
             onClick={handleSubmit}
             disabled={busy || masterBrokers.length === 0}
@@ -996,8 +919,80 @@ function TopicEditor({
             {busy ? <Spinner size={13} /> : <Check size={13} />}
             {isEdit ? t('topics.create.save') : t('topics.create.submit')}
           </Button>
+        </>
+      }
+    >
+      <div className="mt-4 grid gap-3.5">
+        <div>
+          <div className="text-muted-foreground mb-2 text-fs-12">
+            {t('topics.create.name')} <span style={{ color: 'hsl(var(--destructive))' }}>*</span>
+          </div>
+          <Input
+            className="font-mono-design"
+            placeholder={t('topics.create.namePlaceholder')}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            disabled={isEdit}
+          />
+        </div>
+        <div>
+          <div className="text-muted-foreground mb-2 text-fs-12">
+            {t('topics.create.broker')}{' '}
+            <span style={{ color: 'hsl(var(--destructive))' }}>*</span>
+          </div>
+          {masterBrokers.length === 0 ? (
+            <div className="text-muted-foreground text-fs-12" style={{ padding: 8 }}>
+              {t('topics.create.noBrokers')}
+            </div>
+          ) : (
+            <Select
+              value={brokerAddr}
+              onChange={(e) => setBrokerAddr(e.target.value)}
+            >
+              {masterBrokers.map((b) => (
+                <option key={b.address} value={b.address}>
+                  {b.brokerName} · {b.address}
+                </option>
+              ))}
+            </Select>
+          )}
+          <div className="text-muted-foreground mt-1 text-fs-11">{t('topics.create.brokerHint')}</div>
+        </div>
+        <div className="grid gap-3.5" style={{ gridTemplateColumns: '1fr 1fr' }}>
+          <div>
+            <div className="text-muted-foreground mb-2 text-fs-12">{t('topics.create.readQueue')}</div>
+            <Input
+              type="number"
+              min={1}
+              max={64}
+              value={readQueue}
+              onChange={(e) => setReadQueue(Number(e.target.value) || 1)}
+            />
+          </div>
+          <div>
+            <div className="text-muted-foreground mb-2 text-fs-12">{t('topics.create.writeQueue')}</div>
+            <Input
+              type="number"
+              min={1}
+              max={64}
+              value={writeQueue}
+              onChange={(e) => setWriteQueue(Number(e.target.value) || 1)}
+            />
+          </div>
+        </div>
+        <div>
+          <div className="text-muted-foreground mb-2 text-fs-12">{t('topics.create.perm')}</div>
+          <Select
+            value={perm}
+            onChange={(e) => setPerm(e.target.value as TopicPerm)}
+          >
+            <option value={TopicPerm.ReadWrite}>{t('topics.perm.rw')}</option>
+            <option value={TopicPerm.ReadOnly}>{t('topics.perm.r')}</option>
+            <option value={TopicPerm.WriteOnly}>{t('topics.perm.w')}</option>
+            <option value={TopicPerm.Deny}>{t('topics.perm.deny')}</option>
+          </Select>
         </div>
       </div>
-    </div>
+    </Modal>
   )
 }

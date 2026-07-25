@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest'
-import { formatErrorMessage, withMinDuration } from './utils'
+import { cn, formatErrorMessage, withMinDuration } from './utils'
+
+describe('cn', () => {
+  it('keeps only the last size from the custom fs-* scale', () => {
+    expect(cn('text-fs-11', 'text-fs-13')).toBe('text-fs-13')
+  })
+
+  it('does not confuse a size token with a text colour', () => {
+    expect(cn('text-fs-12', 'text-muted-foreground')).toBe('text-fs-12 text-muted-foreground')
+  })
+})
 
 describe('formatErrorMessage', () => {
   it('reads message field from objects', () => {

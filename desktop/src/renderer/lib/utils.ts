@@ -1,5 +1,34 @@
 import { clsx, type ClassValue } from 'clsx'
-import { twMerge } from 'tailwind-merge'
+import { extendTailwindMerge } from 'tailwind-merge'
+
+/**
+ * The `fs-*` type scale from tailwind.config.js. tailwind-merge cannot infer
+ * custom scale names, and would file `text-fs-12` under text-*colour* — so two
+ * competing sizes would both survive a merge and stylesheet order, not class
+ * order, would decide the winner. Registering them keeps `cn()` honest.
+ */
+const FONT_SIZE_TOKENS = [
+  'fs-10',
+  'fs-105',
+  'fs-11',
+  'fs-115',
+  'fs-12',
+  'fs-125',
+  'fs-13',
+  'fs-14',
+  'fs-15',
+  'fs-16',
+  'fs-18',
+  'fs-21',
+] as const
+
+const twMerge = extendTailwindMerge({
+  extend: {
+    classGroups: {
+      'font-size': [{ text: [...FONT_SIZE_TOKENS] }],
+    },
+  },
+})
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))

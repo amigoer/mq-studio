@@ -147,7 +147,7 @@ export function ClusterPage({ onNavigate }: { onNavigate?: (id: NavId) => void }
                 style={{ padding: 60, gap: 8 }}
               >
                 <Spinner size={14} />
-                <span className="text-[12px]">{t('common.loading')}</span>
+                <span className="text-fs-12">{t('common.loading')}</span>
               </div>
             ) : activeTab === 'overview' ? (
               <>
@@ -160,7 +160,7 @@ export function ClusterPage({ onNavigate }: { onNavigate?: (id: NavId) => void }
                     value={healthLabel}
                     valueColor={healthColor}
                   >
-                    <div className="text-muted-foreground mt-1 text-[11px]">
+                    <div className="text-muted-foreground mt-1 text-fs-11">
                       {t('cluster.stat.healthSummary', {
                         online: onlineCount,
                         total: totalCount || onlineCount,
@@ -168,7 +168,7 @@ export function ClusterPage({ onNavigate }: { onNavigate?: (id: NavId) => void }
                     </div>
                   </ClusterKpi>
                   <ClusterKpi label={t('cluster.stat.tps')} icon={Activity} value={formatTps(totalTps)}>
-                    <div className="text-muted-foreground mt-1 text-[11px]">
+                    <div className="text-muted-foreground mt-1 text-fs-11">
                       {t('cluster.stat.tpsSubtitle')}
                     </div>
                   </ClusterKpi>
@@ -189,14 +189,14 @@ export function ClusterPage({ onNavigate }: { onNavigate?: (id: NavId) => void }
                     icon={LayoutGrid}
                     value={totalTopics.toLocaleString()}
                   >
-                    <div className="text-muted-foreground mt-1 text-[11px]">
+                    <div className="text-muted-foreground mt-1 text-fs-11">
                       {t('cluster.stat.topicsSubtitle', { groups: totalGroups })}
                     </div>
                   </ClusterKpi>
                 </div>
 
                 {/* Throughput chart */}
-                <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 24 }}>
+                <div className="mb-2.5 text-fs-11 font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 24 }}>
                   {t('cluster.throughput')}
                 </div>
                 <Card style={{ padding: 16 }}>
@@ -210,8 +210,8 @@ export function ClusterPage({ onNavigate }: { onNavigate?: (id: NavId) => void }
                           background: 'hsl(var(--success))',
                         }}
                       />
-                      <span className="text-[12px]">{t('overview.throughput.produce')}</span>
-                      <span className="font-mono-design tabular-nums text-[12px]">
+                      <span className="text-fs-12">{t('overview.throughput.produce')}</span>
+                      <span className="font-mono-design tabular-nums text-fs-12">
                         {formatTps(totalTpsIn)}/s
                       </span>
                     </div>
@@ -224,8 +224,8 @@ export function ClusterPage({ onNavigate }: { onNavigate?: (id: NavId) => void }
                           background: 'hsl(var(--info))',
                         }}
                       />
-                      <span className="text-[12px]">{t('overview.throughput.consume')}</span>
-                      <span className="font-mono-design tabular-nums text-[12px]">
+                      <span className="text-fs-12">{t('overview.throughput.consume')}</span>
+                      <span className="font-mono-design tabular-nums text-fs-12">
                         {formatTps(totalTpsOut)}/s
                       </span>
                     </div>
@@ -288,7 +288,7 @@ export function ClusterPage({ onNavigate }: { onNavigate?: (id: NavId) => void }
                     </svg>
                   ) : (
                     <div
-                      className="text-muted-foreground flex items-center justify-center text-[12px]"
+                      className="text-muted-foreground flex items-center justify-center text-fs-12"
                       style={{ height: 200 }}
                     >
                       {t('overview.throughput.noData')}
@@ -297,7 +297,7 @@ export function ClusterPage({ onNavigate }: { onNavigate?: (id: NavId) => void }
                 </Card>
 
                 {/* Brokers */}
-                <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 24 }}>
+                <div className="mb-2.5 text-fs-11 font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 24 }}>
                   {t('cluster.brokerList')}
                 </div>
                 <BrokerTable brokers={sortedBrokers} />
@@ -332,7 +332,7 @@ function ClusterKpi({
   return (
     <div className="rounded-xl border border-border/80 bg-card p-3.5 shadow-card transition-[box-shadow,transform] duration-200 hover:-translate-y-px hover:shadow-[0_1px_2px_hsl(0_0%_0%/0.05),0_8px_24px_hsl(0_0%_0%/0.05)]">
       <div className="flex items-center justify-between">
-        <span className="text-muted-foreground text-[11.5px]">{label}</span>
+        <span className="text-muted-foreground text-fs-115">{label}</span>
         <Icon
           size={13}
           className={iconColor ? undefined : 'text-muted-foreground opacity-70'}
@@ -340,7 +340,7 @@ function ClusterKpi({
         />
       </div>
       <div
-        className="mt-1.5 text-[21px] font-semibold leading-tight tracking-[-0.02em] tabular-nums"
+        className="mt-1.5 text-fs-21 font-semibold leading-tight tracking-[-0.02em] tabular-nums"
         style={valueColor ? { color: valueColor } : undefined}
       >
         {value}
@@ -354,7 +354,7 @@ function BrokerTable({ brokers }: { brokers: BrokerNode[] }) {
   const { t } = useTranslation()
   if (brokers.length === 0) {
     return (
-      <Card className="text-muted-foreground text-[12px]" style={{ padding: 24, textAlign: 'center' }}>
+      <Card className="text-muted-foreground text-fs-12" style={{ padding: 24, textAlign: 'center' }}>
         {t('cluster.brokerEmpty')}
       </Card>
     )
@@ -392,12 +392,12 @@ function BrokerTable({ brokers }: { brokers: BrokerNode[] }) {
                   <Badge variant={isMaster ? 'info' : 'outline'}>{role || '—'}</Badge>
                 </TableCell>
                 <TableCell>
-                  <span className="font-mono-design text-muted-foreground text-[12px]">{b.address || '—'}</span>
+                  <span className="font-mono-design text-muted-foreground text-fs-12">{b.address || '—'}</span>
                 </TableCell>
                 <TableCell>
-                  <span className="text-muted-foreground text-[12px]">{b.version || '—'}</span>
+                  <span className="text-muted-foreground text-fs-12">{b.version || '—'}</span>
                 </TableCell>
-                <TableCell className="font-mono-design text-[12px]" style={{ textAlign: 'right' }}>
+                <TableCell className="font-mono-design text-fs-12" style={{ textAlign: 'right' }}>
                   {isOnline ? `${formatTps(b.tpsIn)} / ${formatTps(b.tpsOut)}` : '—'}
                 </TableCell>
                 <TableCell>
@@ -406,10 +406,10 @@ function BrokerTable({ brokers }: { brokers: BrokerNode[] }) {
                       <div className="h-1.5 overflow-hidden rounded-full bg-muted flex-1" style={{ maxWidth: 120 }}>
                         <div className="h-full rounded-full bg-foreground" style={{ width: `${disk}%` }} />
                       </div>
-                      <span className="tabular-nums text-muted-foreground text-[12px]">{disk}%</span>
+                      <span className="tabular-nums text-muted-foreground text-fs-12">{disk}%</span>
                     </div>
                   ) : (
-                    <span className="text-muted-foreground text-[12px]">—</span>
+                    <span className="text-muted-foreground text-fs-12">—</span>
                   )}
                 </TableCell>
                 <TableCell>
@@ -434,7 +434,7 @@ function NameServerList({ servers }: { servers: string[] }) {
   const { t } = useTranslation()
   if (servers.length === 0) {
     return (
-      <Card className="text-muted-foreground text-[12px]" style={{ padding: 24, textAlign: 'center' }}>
+      <Card className="text-muted-foreground text-fs-12" style={{ padding: 24, textAlign: 'center' }}>
         {t('cluster.nameserverEmpty')}
       </Card>
     )
@@ -451,7 +451,7 @@ function NameServerList({ servers }: { servers: string[] }) {
           }}
         >
           <Server size={14} className="text-muted-foreground" />
-          <span className="font-mono-design flex-1 text-[12px]">{s}</span>
+          <span className="font-mono-design flex-1 text-fs-12">{s}</span>
           <Badge variant="success">{t('common.online')}</Badge>
         </div>
       ))}

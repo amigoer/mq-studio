@@ -12,6 +12,7 @@ import { useSettings } from '@/hooks/useSettings'
 import { useDelayedUnmount } from '@/hooks/useDelayedUnmount'
 import * as messageApi from '@/api/message'
 import { formatErrorMessage } from '@/lib/utils'
+import { activatableRowProps, ROW_FOCUS_CLASS } from '@/lib/a11y'
 import {
   detectBodyKind,
   formatMessageTime,
@@ -28,6 +29,7 @@ import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
+import { Modal } from '@/components/ui/modal'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 
 type TabKey = 'topic' | 'msgid' | 'retry' | 'dlq'
@@ -321,7 +323,7 @@ export function MessagesPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
               {searching ? t('messages.form.searching') : t('messages.form.search')}
             </Button>
             {hasSearched && !searching && results.length > 0 && (
-              <div className="text-muted-foreground ml-auto text-[12px]">
+              <div className="text-muted-foreground ml-auto text-fs-12">
                 {t('messages.summary', { count: results.length })}
               </div>
             )}
@@ -340,14 +342,14 @@ export function MessagesPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
                   style={{ padding: 60, gap: 8 }}
                 >
                   <Spinner size={14} />
-                  <span className="text-[12px]">{t('messages.form.searching')}</span>
+                  <span className="text-fs-12">{t('messages.form.searching')}</span>
                 </div>
               ) : !hasSearched ? (
-                <div className="text-muted-foreground text-center" style={{ padding: 60, fontSize: 12 }}>
+                <div className="text-muted-foreground text-center text-fs-12" style={{ padding: 60 }}>
                   {t('messages.form.search')} →
                 </div>
               ) : results.length === 0 ? (
-                <div className="text-muted-foreground text-center" style={{ padding: 60, fontSize: 12 }}>
+                <div className="text-muted-foreground text-center text-fs-12" style={{ padding: 60 }}>
                   {t('messages.empty')}
                 </div>
               ) : (
@@ -367,13 +369,20 @@ export function MessagesPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
                     {results.map((m) => (
                       <TableRow
                         key={m.messageId}
-                        className={selectedId === m.messageId ? 'selected' : ''}
+                        // A real <tr> keeps its row role; only the keyboard
+                        // behaviour is borrowed from a button. The row used to
+                        // carry a bare `selected` class that no stylesheet ever
+                        // matched, so selection was invisible here.
+                        data-state={selectedId === m.messageId ? 'selected' : undefined}
+                        aria-selected={selectedId === m.messageId}
+                        className={ROW_FOCUS_CLASS}
                         onClick={() => setSelectedId(m.messageId)}
+                        {...activatableRowProps(() => setSelectedId(m.messageId))}
                         style={{ cursor: 'pointer' }}
                       >
                         <TableCell>
                           <div
-                            className="font-mono-design truncate text-[12px]"
+                            className="font-mono-design truncate text-fs-12"
                             style={{ maxWidth: 180 }}
                             title={m.messageId}
                           >
@@ -384,15 +393,15 @@ export function MessagesPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
                           {m.tags ? (
                             <Badge variant="outline">{m.tags}</Badge>
                           ) : (
-                            <span className="text-muted-foreground text-[12px]">—</span>
+                            <span className="text-muted-foreground text-fs-12">—</span>
                           )}
                         </TableCell>
                         <TableCell>
-                          <span className="font-mono-design text-[12px]">{m.keys || '—'}</span>
+                          <span className="font-mono-design text-fs-12">{m.keys || '—'}</span>
                         </TableCell>
                         <TableCell>
                           <div
-                            className="font-mono-design text-muted-foreground text-[12px]"
+                            className="font-mono-design text-muted-foreground text-fs-12"
                             style={{
                               maxWidth: 280,
                               overflow: 'hidden',
@@ -406,7 +415,7 @@ export function MessagesPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
                         <TableCell style={{ textAlign: 'right' }} className="tabular-nums text-muted-foreground">
                           {m.queueId}
                         </TableCell>
-                        <TableCell className="font-mono-design text-muted-foreground text-[12px]">
+                        <TableCell className="font-mono-design text-muted-foreground text-fs-12">
                           {formatMessageTime(
                             m.storeTimestamp || m.storeTime,
                             settings.timezone,
@@ -566,62 +575,62 @@ function MessageDetailPanel({
           ))}
         </div>
 
-        <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 16 }}>
+        <div className="mb-2.5 text-fs-11 font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 16 }}>
           {t('messages.detail.info')}
         </div>
         <div>
-          <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-[13px] last:border-b-0">
+          <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-fs-13 last:border-b-0">
             <div className="text-muted-foreground">{t('messages.detail.msgId')}</div>
-            <div className="text-foreground font-mono-design break-all text-[12px]">{msg.messageId}</div>
+            <div className="text-foreground font-mono-design break-all text-fs-12">{msg.messageId}</div>
           </div>
-          <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-[13px] last:border-b-0">
+          <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-fs-13 last:border-b-0">
             <div className="text-muted-foreground">{t('messages.detail.topic')}</div>
-            <div className="text-foreground font-mono-design text-[12px]">{msg.topic}</div>
+            <div className="text-foreground font-mono-design text-fs-12">{msg.topic}</div>
           </div>
           {msg.tags && (
-            <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-[13px] last:border-b-0">
+            <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-fs-13 last:border-b-0">
               <div className="text-muted-foreground">{t('messages.detail.tag')}</div>
               <div className="text-foreground">{msg.tags}</div>
             </div>
           )}
           {msg.keys && (
-            <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-[13px] last:border-b-0">
+            <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-fs-13 last:border-b-0">
               <div className="text-muted-foreground">{t('messages.detail.key')}</div>
-              <div className="text-foreground font-mono-design text-[12px]">{msg.keys}</div>
+              <div className="text-foreground font-mono-design text-fs-12">{msg.keys}</div>
             </div>
           )}
-          <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-[13px] last:border-b-0">
+          <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-fs-13 last:border-b-0">
             <div className="text-muted-foreground">{t('messages.detail.queue')}</div>
             <div className="text-foreground tabular-nums">{msg.queueId}</div>
           </div>
-          <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-[13px] last:border-b-0">
+          <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-fs-13 last:border-b-0">
             <div className="text-muted-foreground">{t('messages.detail.queueOffset')}</div>
             <div className="text-foreground tabular-nums">{msg.queueOffset}</div>
           </div>
           {msg.bornHost && (
-            <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-[13px] last:border-b-0">
+            <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-fs-13 last:border-b-0">
               <div className="text-muted-foreground">{t('messages.detail.bornHost')}</div>
-              <div className="text-foreground font-mono-design text-[12px]">{msg.bornHost}</div>
+              <div className="text-foreground font-mono-design text-fs-12">{msg.bornHost}</div>
             </div>
           )}
           {msg.storeHost && (
-            <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-[13px] last:border-b-0">
+            <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-fs-13 last:border-b-0">
               <div className="text-muted-foreground">{t('messages.detail.storeHost')}</div>
-              <div className="text-foreground font-mono-design text-[12px]">{msg.storeHost}</div>
+              <div className="text-foreground font-mono-design text-fs-12">{msg.storeHost}</div>
             </div>
           )}
-          <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-[13px] last:border-b-0">
+          <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-fs-13 last:border-b-0">
             <div className="text-muted-foreground">{t('messages.detail.storeTime')}</div>
-            <div className="text-foreground font-mono-design text-[12px]">{displayStoreTime}</div>
+            <div className="text-foreground font-mono-design text-fs-12">{displayStoreTime}</div>
           </div>
           {msg.status && (
-            <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-[13px] last:border-b-0">
+            <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-fs-13 last:border-b-0">
               <div className="text-muted-foreground">{t('messages.detail.status')}</div>
               <div className="text-foreground">{msg.status}</div>
             </div>
           )}
           {msg.retryTimes > 0 && (
-            <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-[13px] last:border-b-0">
+            <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-fs-13 last:border-b-0">
               <div className="text-muted-foreground">{t('messages.detail.retryTimes')}</div>
               <div className="text-foreground tabular-nums">{msg.retryTimes}</div>
             </div>
@@ -635,10 +644,10 @@ function MessageDetailPanel({
               style={{ marginTop: 20 }}
             >
               <div className="flex min-w-0 items-center gap-2">
-                <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginBottom: 0 }}>
+                <div className="mb-2.5 text-fs-11 font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginBottom: 0 }}>
                   {t('messages.detail.bodyTitle')}
                 </div>
-                <Badge variant="outline" className="text-[10px]">
+                <Badge variant="outline" className="text-fs-10">
                   {t(`messages.detail.bodyKind.${detectedKind}`)}
                 </Badge>
               </div>
@@ -650,7 +659,7 @@ function MessageDetailPanel({
                     variant="ghost"
                     size="sm"
                     className={
-                      'h-6 px-1.5 text-[11px] ' +
+                      'h-6 px-1.5 text-fs-11 ' +
                       (bodyMode === mode ? 'text-foreground' : 'text-muted-foreground')
                     }
                     onClick={() => setBodyMode(mode)}
@@ -665,7 +674,7 @@ function MessageDetailPanel({
               </div>
             </div>
             {payload.truncated && (
-              <div className="text-muted-foreground mb-2 text-[11px]" style={{ lineHeight: 1.5 }}>
+              <div className="text-muted-foreground mb-2 text-fs-11" style={{ lineHeight: 1.5 }}>
                 {t('messages.detail.bodyTruncated', {
                   shown: Math.round(settings.maxPayloadRenderBytes / 1024),
                   total: Math.round(payload.originalBytes / 1024),
@@ -679,15 +688,15 @@ function MessageDetailPanel({
         {tab === 'properties' && (
           <div className="mt-4">
             {propEntries.length === 0 ? (
-              <div className="text-muted-foreground text-[12px]" style={{ padding: 16, textAlign: 'center' }}>
+              <div className="text-muted-foreground text-fs-12" style={{ padding: 16, textAlign: 'center' }}>
                 {t('messages.detail.propsEmpty')}
               </div>
             ) : (
               <div>
                 {propEntries.map(([k, v]) => (
-                  <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-[13px] last:border-b-0" key={k}>
+                  <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-fs-13 last:border-b-0" key={k}>
                     <div className="k font-mono-design">{k}</div>
-                    <div className="text-foreground font-mono-design break-all text-[12px]">{String(v)}</div>
+                    <div className="text-foreground font-mono-design break-all text-fs-12">{String(v)}</div>
                   </div>
                 ))}
               </div>
@@ -697,24 +706,24 @@ function MessageDetailPanel({
 
         {tab === 'track' && (
           <div className="mt-4">
-            <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{t('messages.detail.trackTitle')}</div>
+            <div className="mb-2.5 text-fs-11 font-semibold uppercase tracking-[0.08em] text-muted-foreground">{t('messages.detail.trackTitle')}</div>
             {trackLoading ? (
               <div
                 className="text-muted-foreground flex items-center justify-center"
                 style={{ padding: 24, gap: 8 }}
               >
                 <Spinner size={14} />
-                <span className="text-[12px]">{t('messages.detail.trackLoading')}</span>
+                <span className="text-fs-12">{t('messages.detail.trackLoading')}</span>
               </div>
             ) : trackError ? (
               <div
-                className="text-[12px]"
+                className="text-fs-12"
                 style={{ padding: 16, color: 'hsl(var(--destructive))' }}
               >
                 {t('messages.detail.trackError')}: {trackError}
               </div>
             ) : !track || track.length === 0 ? (
-              <div className="text-muted-foreground text-[12px]" style={{ padding: 16, textAlign: 'center' }}>
+              <div className="text-muted-foreground text-fs-12" style={{ padding: 16, textAlign: 'center' }}>
                 {t('messages.detail.trackEmpty')}
               </div>
             ) : (
@@ -729,7 +738,7 @@ function MessageDetailPanel({
                   >
                     <div className="flex items-center gap-2">
                       <GitBranch size={11} className="text-muted-foreground" />
-                      <span className="font-mono-design flex-1 text-[12px]">
+                      <span className="font-mono-design flex-1 text-fs-12">
                         {tr.consumerGroup}
                       </span>
                       {tr.trackType && (
@@ -747,11 +756,11 @@ function MessageDetailPanel({
                       )}
                     </div>
                     {tr.consumeStatus && (
-                      <div className="text-muted-foreground mt-1 text-[12px]">{tr.consumeStatus}</div>
+                      <div className="text-muted-foreground mt-1 text-fs-12">{tr.consumeStatus}</div>
                     )}
                     {tr.exceptionDesc && (
                       <div
-                        className="mt-1 text-[11px]"
+                        className="mt-1 text-fs-11"
                         style={{ color: 'hsl(var(--destructive))' }}
                       >
                         {tr.exceptionDesc}
@@ -804,37 +813,24 @@ function ResendDialog({ msg, onClose }: { msg: MessageItem; onClose: () => void 
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        className="w-full max-w-sm rounded-xl border border-border/50 bg-background p-6 shadow-lg"
-      >
-        <h2 className="text-base font-semibold">{t('messages.detail.resendTitle')}</h2>
-        <p className="text-muted-foreground mt-2 text-[12px]">
-          {t('messages.detail.resendDesc', { topic: targetTopic })}
-        </p>
-        <div className="mt-5 flex justify-end gap-2.5">
-          <Button variant="outline" size="sm"
-            type="button"
-            onClick={onClose}
-            disabled={busy}
-          >
+    <Modal
+      open
+      size="sm"
+      title={t('messages.detail.resendTitle')}
+      description={t('messages.detail.resendDesc', { topic: targetTopic })}
+      dismissible={!busy}
+      onClose={onClose}
+      footer={
+        <>
+          <Button variant="outline" size="sm" type="button" onClick={onClose} disabled={busy}>
             {t('common.cancel')}
           </Button>
-          <Button variant="default" size="sm"
-            type="button"
-            onClick={handleResend}
-            disabled={busy}
-          >
+          <Button variant="default" size="sm" type="button" onClick={handleResend} disabled={busy}>
             {busy ? <Spinner size={13} /> : <Check size={13} />}
             {t('messages.detail.resendSubmit')}
           </Button>
-        </div>
-      </div>
-    </div>
+        </>
+      }
+    />
   )
 }

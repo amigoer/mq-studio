@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef } from 'react'
-import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Modal } from '@/components/ui/modal'
 
 interface ConfirmDialogProps {
   open: boolean
@@ -22,74 +22,30 @@ export function ConfirmDialog({
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
-  const dialogRef = useRef<HTMLDivElement>(null)
-
-  // Close on Escape
-  useEffect(() => {
-    if (!open) return
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onCancel()
-    }
-    document.addEventListener('keydown', handler)
-    return () => document.removeEventListener('keydown', handler)
-  }, [open, onCancel])
-
-  // Focus the cancel button on open (safer default)
-  useEffect(() => {
-    if (open) dialogRef.current?.querySelector<HTMLButtonElement>('[data-cancel]')?.focus()
-  }, [open])
-
-  const handleBackdropClick = useCallback(
-    (e: React.MouseEvent) => {
-      if (e.target === e.currentTarget) onCancel()
-    },
-    [onCancel],
-  )
-
-  if (!open) return null
-
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
-      onClick={handleBackdropClick}
-    >
-      <div
-        ref={dialogRef}
-        role="alertdialog"
-        aria-modal="true"
-        aria-labelledby="confirm-title"
-        aria-describedby="confirm-desc"
-        className="w-full max-w-sm rounded-xl border border-border/50 bg-background p-6 shadow-lg duration-150 animate-in fade-in zoom-in-95"
-      >
-        <h2 id="confirm-title" className="text-base font-semibold text-foreground">
-          {title}
-        </h2>
-        <p id="confirm-desc" className="mt-2 text-sm leading-relaxed text-muted-foreground">
-          {description}
-        </p>
-        <div className="mt-5 flex justify-end gap-2.5">
-          <button
-            type="button"
-            data-cancel
-            onClick={onCancel}
-            className="h-9 rounded-lg border border-border/50 bg-background px-4 text-sm text-foreground transition-colors hover:bg-accent/50"
-          >
+    <Modal
+      open={open}
+      role="alertdialog"
+      size="sm"
+      title={title}
+      description={description}
+      onClose={onCancel}
+      footer={
+        <>
+          {/* Cancel takes initial focus: the safer default for a destructive prompt. */}
+          <Button variant="outline" size="sm" type="button" data-autofocus onClick={onCancel}>
             {cancelText}
-          </button>
-          <button
+          </Button>
+          <Button
+            variant={variant === 'destructive' ? 'destructive' : 'default'}
+            size="sm"
             type="button"
             onClick={onConfirm}
-            className={cn(
-              'h-9 rounded-lg px-4 text-sm font-medium transition-colors',
-              variant === 'destructive'
-                ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90'
-                : 'bg-primary text-primary-foreground hover:bg-primary/90',
-            )}
           >
             {confirmText}
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+        </>
+      }
+    />
   )
 }

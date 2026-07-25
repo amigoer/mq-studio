@@ -32,6 +32,8 @@ import {
   type FetchLimit,
 } from '@/hooks/useSettings'
 import { useUIPrefs } from '@/hooks/useUIPrefs'
+import { cn } from '@/lib/utils'
+import { activatableRowProps, ROW_FOCUS_CLASS } from '@/lib/a11y'
 import { useConnections } from '@/hooks/useConnections'
 import * as connectionApi from '@/api/connection'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
@@ -208,8 +210,8 @@ function SettingsRow({
       }
     >
       <div className="min-w-0 flex-1 pr-2">
-        <div className="text-[13px] font-medium">{title}</div>
-        {hint && <div className="text-muted-foreground mt-1 text-[12px]">{hint}</div>}
+        <div className="text-fs-13 font-medium">{title}</div>
+        {hint && <div className="text-muted-foreground mt-1 text-fs-12">{hint}</div>}
       </div>
       <div className="flex shrink-0 items-center gap-2">{children}</div>
     </div>
@@ -224,7 +226,7 @@ function AppearancePanel() {
   const { prefs, setAnimations } = useUIPrefs()
   return (
     <>
-      <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 0 }}>
+      <div className="mb-2.5 text-fs-11 font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 0 }}>
         {t('settings.appearance.theme')}
       </div>
       <div className="grid gap-2.5" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
@@ -273,10 +275,10 @@ function AppearancePanel() {
               </div>
               <div className="flex items-center justify-between" style={{ padding: '10px 12px' }}>
                 <div>
-                  <div className="text-[13px] font-medium" style={{ lineHeight: 1.2 }}>
+                  <div className="text-fs-13 font-medium" style={{ lineHeight: 1.2 }}>
                     {t(th.nameKey)}
                   </div>
-                  <div className="text-muted-foreground text-[12px]" style={{ marginTop: 2 }}>
+                  <div className="text-muted-foreground text-fs-12" style={{ marginTop: 2 }}>
                     {t(th.descKey)}
                   </div>
                 </div>
@@ -301,7 +303,7 @@ function AppearancePanel() {
         })}
       </div>
 
-      <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 24 }}>
+      <div className="mb-2.5 text-fs-11 font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 24 }}>
         {t('settings.appearance.a11y')}
       </div>
       <Card>
@@ -322,7 +324,7 @@ function GeneralPanel() {
   const { settings, setSetting } = useSettings()
   return (
     <>
-      <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 0 }}>
+      <div className="mb-2.5 text-fs-11 font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 0 }}>
         {t('settings.general.languageRegion')}
       </div>
       <Card>
@@ -358,7 +360,7 @@ function GeneralPanel() {
         </SettingsRow>
       </Card>
 
-      <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 24 }}>
+      <div className="mb-2.5 text-fs-11 font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 24 }}>
         {t('settings.general.startup')}
       </div>
       <Card>
@@ -385,7 +387,7 @@ function FontsPanel() {
 
   return (
     <>
-      <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 0 }}>
+      <div className="mb-2.5 text-fs-11 font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 0 }}>
         {t('settings.fonts.fontsTypography')}
       </div>
       <Card>
@@ -397,7 +399,7 @@ function FontsPanel() {
             −
           </Button>
           <span
-            className="font-mono-design tabular-nums text-[13px]"
+            className="font-mono-design tabular-nums text-fs-13"
             style={{ width: 40, textAlign: 'center' }}
           >
             {settings.fontSize}px
@@ -444,7 +446,7 @@ function FontsPanel() {
         </SettingsRow>
       </Card>
 
-      <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 24 }}>
+      <div className="mb-2.5 text-fs-11 font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 24 }}>
         {t('settings.fonts.timeDisplay')}
       </div>
       <Card>
@@ -464,15 +466,15 @@ function FontsPanel() {
         </SettingsRow>
       </Card>
 
-      <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 24 }}>
+      <div className="mb-2.5 text-fs-11 font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 24 }}>
         {t('settings.fonts.preview')}
       </div>
       <Card style={{ padding: 16 }}>
-        <div className="text-[13px]" style={{ fontSize: settings.fontSize }}>
+        <div className="text-fs-13" style={{ fontSize: settings.fontSize }}>
           {t('settings.fonts.previewSample')}
         </div>
         <div
-          className="font-mono-design text-muted-foreground mt-2 text-[12px]"
+          className="font-mono-design text-muted-foreground mt-2 text-fs-12"
           style={{ fontFamily: `"${settings.monospaceFont}", ui-monospace, monospace` }}
         >
           {'msgId: AC1A0F23000078A4F0B8C1234E2F0001'}
@@ -488,7 +490,7 @@ function MessagePanel() {
   const payloadKB = Math.round(settings.maxPayloadRenderBytes / 1024)
   return (
     <>
-      <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 0 }}>
+      <div className="mb-2.5 text-fs-11 font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 0 }}>
         {t('settings.message.defaults')}
       </div>
       <Card>
@@ -536,11 +538,11 @@ function MessagePanel() {
               setSetting('maxPayloadRenderBytes', kb * 1024)
             }}
           />
-          <span className="text-muted-foreground text-[12px]">KB</span>
+          <span className="text-muted-foreground text-fs-12">KB</span>
         </SettingsRow>
       </Card>
 
-      <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 24 }}>
+      <div className="mb-2.5 text-fs-11 font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 24 }}>
         {t('settings.message.alertThresholds')}
       </div>
       <Card>
@@ -556,7 +558,7 @@ function MessagePanel() {
             value={settings.lagAlertThreshold}
             onChange={(e) => setSetting('lagAlertThreshold', Number(e.target.value) || 0)}
           />
-          <span className="text-muted-foreground text-[12px]">{t('settings.message.lagAlertUnit')}</span>
+          <span className="text-muted-foreground text-fs-12">{t('settings.message.lagAlertUnit')}</span>
         </SettingsRow>
         <SettingsRow
           title={t('settings.message.diskAlert')}
@@ -577,7 +579,7 @@ function MessagePanel() {
               )
             }}
           />
-          <span className="text-muted-foreground text-[12px]">{t('settings.message.diskAlertUnit')}</span>
+          <span className="text-muted-foreground text-fs-12">{t('settings.message.diskAlertUnit')}</span>
         </SettingsRow>
         <SettingsRow
           title={t('settings.message.desktopNotifications')}
@@ -649,7 +651,7 @@ function ProxyPanel() {
   }
   return (
     <>
-      <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 0 }}>
+      <div className="mb-2.5 text-fs-11 font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 0 }}>
         {t('settings.proxy.timeout')}
       </div>
       <Card>
@@ -669,7 +671,7 @@ function ProxyPanel() {
               )
             }
           />
-          <span className="text-muted-foreground text-[12px]">ms</span>
+          <span className="text-muted-foreground text-fs-12">ms</span>
         </SettingsRow>
         <SettingsRow
           title={t('settings.proxy.request')}
@@ -691,11 +693,11 @@ function ProxyPanel() {
               )
             }
           />
-          <span className="text-muted-foreground text-[12px]">ms</span>
+          <span className="text-muted-foreground text-fs-12">ms</span>
         </SettingsRow>
       </Card>
 
-      <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 24 }}>
+      <div className="mb-2.5 text-fs-11 font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 24 }}>
         {t('settings.proxy.credentials')}
         <Badge variant="outline" className="ml-2 normal-case tracking-normal">
           {credentialsConfigured
@@ -760,11 +762,11 @@ function ProxyPanel() {
         </div>
       </Card>
 
-      <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 24 }}>
+      <div className="mb-2.5 text-fs-11 font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 24 }}>
         {t('settings.proxy.advanced')}
       </div>
       <Card>
-        <div className="text-muted-foreground text-[12px]" style={{ padding: '12px 16px', lineHeight: 1.55 }}>
+        <div className="text-muted-foreground text-fs-12" style={{ padding: '12px 16px', lineHeight: 1.55 }}>
           {t('settings.proxy.unsupportedNote')}
         </div>
         <SettingsRow title={t('settings.proxy.skipTls')} hint={t('settings.proxy.skipTlsHint')}>
@@ -806,7 +808,7 @@ function DataPanel({
 
   return (
     <>
-      <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 0 }}>
+      <div className="mb-2.5 text-fs-11 font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 0 }}>
         {t('settings.data.storage')}
       </div>
       <Card className="overflow-hidden">
@@ -815,27 +817,30 @@ function DataPanel({
           return (
             <div
               key={p.platform}
-              className="flex cursor-pointer items-center gap-3 hover:bg-muted/40"
+              role="button"
+              aria-label={`${p.platform} ${p.path}`}
+              className={cn('flex cursor-pointer items-center gap-3 hover:bg-muted/40', ROW_FOCUS_CLASS)}
               style={{
                 padding: '10px 16px',
                 borderTop: i ? '1px solid hsl(var(--border))' : undefined,
               }}
               onClick={() => copyPath(p.path)}
+              {...activatableRowProps(() => void copyPath(p.path))}
             >
               <Icon size={14} className="text-muted-foreground shrink-0" aria-hidden />
-              <span className="text-[13px] font-medium" style={{ width: 80 }}>
+              <span className="text-fs-13 font-medium" style={{ width: 80 }}>
                 {p.platform}
               </span>
-              <code className="font-mono-design text-muted-foreground min-w-0 flex-1 truncate text-[12px]">
+              <code className="font-mono-design text-muted-foreground min-w-0 flex-1 truncate text-fs-12">
                 {p.path}
               </code>
-              <span className="text-muted-foreground text-[11px]">{t('settings.data.clickToCopy')}</span>
+              <span className="text-muted-foreground text-fs-11">{t('settings.data.clickToCopy')}</span>
             </div>
           )
         })}
       </Card>
 
-      <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 24 }}>
+      <div className="mb-2.5 text-fs-11 font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 24 }}>
         {t('settings.data.ioSection')}
       </div>
       <Card>
@@ -857,7 +862,7 @@ function DataPanel({
         </SettingsRow>
       </Card>
 
-      <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 24 }}>
+      <div className="mb-2.5 text-fs-11 font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 24 }}>
         {t('settings.data.cleanup')}
       </div>
       <Card>
@@ -909,15 +914,15 @@ function AboutPanel({
           />
           <div className="min-w-0 flex-1">
             <div className="flex items-baseline gap-2">
-              <h2 className="text-[15px] font-semibold">{t('app.name')}</h2>
-              <span className="font-mono-design text-muted-foreground text-[11.5px]">
+              <h2 className="text-fs-15 font-semibold">{t('app.name')}</h2>
+              <span className="font-mono-design text-muted-foreground text-fs-115">
                 {versionLabel}
               </span>
             </div>
-            <p className="text-muted-foreground mt-1 text-[12px]" style={{ lineHeight: 1.55 }}>
+            <p className="text-muted-foreground mt-1 text-fs-12" style={{ lineHeight: 1.55 }}>
               {t('settings.about.descriptionZh')}
             </p>
-            <p className="text-muted-foreground text-[11.5px]" style={{ lineHeight: 1.5 }}>
+            <p className="text-muted-foreground text-fs-115" style={{ lineHeight: 1.5 }}>
               {t('settings.about.descriptionEn')}
             </p>
           </div>
@@ -942,8 +947,8 @@ function AboutPanel({
       <Card style={{ padding: '12px 16px' }}>
         <div className="flex items-center gap-4">
           <div className="min-w-0 flex-1">
-            <div className="text-[12.5px] font-medium">{t('settings.about.resetTitle')}</div>
-            <div className="text-muted-foreground mt-0.5 text-[11.5px]">
+            <div className="text-fs-125 font-medium">{t('settings.about.resetTitle')}</div>
+            <div className="text-muted-foreground mt-0.5 text-fs-115">
               {t('settings.about.resetHint')}
             </div>
           </div>
@@ -1139,14 +1144,14 @@ export function SettingsPage() {
           >
             <div className="mb-5 flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <div className="text-[15px] font-semibold tracking-tight">
+                <div className="text-fs-15 font-semibold tracking-tight">
                   {t(`settings.section.${currentSection.id}.label`)}
                 </div>
-                <div className="text-muted-foreground mt-1 text-[12px]">
+                <div className="text-muted-foreground mt-1 text-fs-12">
                   {t(`settings.section.${currentSection.id}.subtitle`)}
                 </div>
               </div>
-              <span className="text-muted-foreground shrink-0 text-[12px]">
+              <span className="text-muted-foreground shrink-0 text-fs-12">
                 {loading ? t('settings.loading') : t('settings.autoSaved')}
               </span>
             </div>

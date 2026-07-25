@@ -12,7 +12,7 @@ export function ErrorBanner({ message, className }: { message: string; className
       role="alert"
     >
       <AlertCircle size={14} className="shrink-0" />
-      <span className="min-w-0 text-[12px] leading-snug">{message}</span>
+      <span className="min-w-0 text-fs-12 leading-snug">{message}</span>
     </div>
   )
 }

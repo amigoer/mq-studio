@@ -175,20 +175,16 @@ export function EmptyStatePage({ onAddConnection }: { onAddConnection?: () => vo
                     />
                     {t('emptyState.badge')}
                   </Badge>
-                  <span className="text-muted-foreground text-[12px]">{t('emptyState.supportNote')}</span>
+                  <span className="text-muted-foreground text-fs-12">{t('emptyState.supportNote')}</span>
                 </div>
                 <div
-                  style={{
-                    fontSize: 18,
-                    fontWeight: 600,
-                    letterSpacing: '-0.01em',
-                    lineHeight: 1.3,
-                  }}
+                  className="text-fs-18 font-semibold"
+                  style={{ letterSpacing: '-0.01em', lineHeight: 1.3 }}
                 >
                   {t('emptyState.heroTitle')}
                 </div>
                 <div
-                  className="text-muted-foreground mt-1.5 text-[12px]"
+                  className="text-muted-foreground mt-1.5 text-fs-12"
                   style={{ maxWidth: 520, lineHeight: 1.6 }}
                 >
                   {t('emptyState.heroDesc')}
@@ -212,7 +208,7 @@ export function EmptyStatePage({ onAddConnection }: { onAddConnection?: () => vo
           </Card>
 
           {/* Quick start */}
-          <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 20 }}>
+          <div className="mb-2.5 text-fs-11 font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 20 }}>
             {t('emptyState.quickStart')}
           </div>
           <div className="grid gap-2.5" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
@@ -241,19 +237,17 @@ export function EmptyStatePage({ onAddConnection }: { onAddConnection?: () => vo
                   >
                     <s.icon size={13} className="text-muted-foreground" />
                   </div>
-                  <span className="text-[13px] font-medium">
+                  <span className="text-fs-13 font-medium">
                     {t(`emptyState.samples.${s.key}.name`)}
                   </span>
                   {!s.ghost && (
-                    <Badge variant="outline"
-                      style={{ height: 17, fontSize: 10, marginLeft: 'auto' }}
-                    >
+                    <Badge variant="outline" className="text-fs-10" style={{ marginLeft: 'auto' }}>
                       {s.env}
                     </Badge>
                   )}
                 </div>
-                <div className="font-mono-design text-muted-foreground mt-2 truncate text-[12px]">{s.host}</div>
-                <div className="text-muted-foreground mt-2 text-[12px]" style={{ lineHeight: 1.5 }}>
+                <div className="font-mono-design text-muted-foreground mt-2 truncate text-fs-12">{s.host}</div>
+                <div className="text-muted-foreground mt-2 text-fs-12" style={{ lineHeight: 1.5 }}>
                   {t(`emptyState.samples.${s.key}.desc`)}
                 </div>
               </button>
@@ -261,7 +255,7 @@ export function EmptyStatePage({ onAddConnection }: { onAddConnection?: () => vo
           </div>
 
           {/* Three-step flow */}
-          <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 20 }}>
+          <div className="mb-2.5 text-fs-11 font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 20 }}>
             {t('emptyState.workflow')}
           </div>
           <Card style={{ padding: 0 }}>
@@ -277,16 +271,16 @@ export function EmptyStatePage({ onAddConnection }: { onAddConnection?: () => vo
                     }}
                   >
                     <div className="flex items-center gap-2">
-                      <span className="font-mono-design text-muted-foreground tabular-nums text-[12px]">
+                      <span className="font-mono-design text-muted-foreground tabular-nums text-fs-12">
                         {`0${n}`}
                       </span>
                       <span style={{ flex: 1, height: 1, background: 'hsl(var(--border))' }} />
                       <Icon size={13} className="text-muted-foreground" />
                     </div>
-                    <div className="mt-2 text-[13px] font-medium">
+                    <div className="mt-2 text-fs-13 font-medium">
                       {t(`emptyState.steps.${n}.title`)}
                     </div>
-                    <div className="text-muted-foreground mt-1 text-[12px]" style={{ lineHeight: 1.55 }}>
+                    <div className="text-muted-foreground mt-1 text-fs-12" style={{ lineHeight: 1.55 }}>
                       {t(`emptyState.steps.${n}.desc`)}
                     </div>
                   </div>
@@ -303,7 +297,7 @@ export function EmptyStatePage({ onAddConnection }: { onAddConnection?: () => vo
             <div className="flex items-center gap-4">
               <button
                 type="button"
-                className="text-muted-foreground flex items-center gap-1 text-[12px] hover:text-foreground"
+                className="text-muted-foreground flex items-center gap-1 text-fs-12 hover:text-foreground"
                 onClick={() => openExternal(GITHUB_URL)}
               >
                 <Github size={12} />
@@ -311,7 +305,7 @@ export function EmptyStatePage({ onAddConnection }: { onAddConnection?: () => vo
               </button>
               <button
                 type="button"
-                className="text-muted-foreground flex items-center gap-1 text-[12px] hover:text-foreground"
+                className="text-muted-foreground flex items-center gap-1 text-fs-12 hover:text-foreground"
                 onClick={() => openExternal(`${GITHUB_URL}#features`)}
               >
                 <Lock size={12} />
@@ -319,7 +313,7 @@ export function EmptyStatePage({ onAddConnection }: { onAddConnection?: () => vo
               </button>
               <button
                 type="button"
-                className="text-muted-foreground flex items-center gap-1 text-[12px] hover:text-foreground"
+                className="text-muted-foreground flex items-center gap-1 text-fs-12 hover:text-foreground"
                 onClick={() => openExternal(`${GITHUB_URL}/blob/main/docs/ARCHITECTURE.md`)}
               >
                 <Shield size={12} />
@@ -327,14 +321,14 @@ export function EmptyStatePage({ onAddConnection }: { onAddConnection?: () => vo
               </button>
               <button
                 type="button"
-                className="text-muted-foreground flex items-center gap-1 text-[12px] hover:text-foreground"
+                className="text-muted-foreground flex items-center gap-1 text-fs-12 hover:text-foreground"
                 onClick={() => openExternal(`${GITHUB_URL}/issues`)}
               >
                 <AlertCircle size={12} />
                 {t('emptyState.links.faq')}
               </button>
             </div>
-            <div className="text-muted-foreground text-[12px]">{t('emptyState.footer')}</div>
+            <div className="text-muted-foreground text-fs-12">{t('emptyState.footer')}</div>
           </div>
         </div>
       </div>

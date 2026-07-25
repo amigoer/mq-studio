@@ -20,9 +20,9 @@ export function PageHeader({
       )}
     >
       <div className="min-w-0">
-        <div className="text-[15px] font-semibold tracking-tight text-foreground">{title}</div>
+        <div className="text-fs-15 font-semibold tracking-tight text-foreground">{title}</div>
         {subtitle ? (
-          <div className="mt-0.5 text-[12px] leading-snug text-muted-foreground">{subtitle}</div>
+          <div className="mt-0.5 text-fs-12 leading-snug text-muted-foreground">{subtitle}</div>
         ) : null}
       </div>
       {children ? <div className="flex shrink-0 items-center gap-2">{children}</div> : null}

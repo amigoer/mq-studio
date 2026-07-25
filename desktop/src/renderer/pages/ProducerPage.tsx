@@ -146,11 +146,11 @@ export function ProducerPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
               {/* Compose */}
               <Card className="flex flex-col gap-3 p-4">
                 <div className="flex flex-col gap-1.5">
-                  <span className="text-muted-foreground text-[11px] font-medium">
+                  <span className="text-muted-foreground text-fs-11 font-medium">
                     {t('producer.topic')} <span style={{ color: 'hsl(var(--destructive))' }}>*</span>
                   </span>
                   {sendableTopics.length === 0 ? (
-                    <div className="text-muted-foreground text-[12px]">{t('producer.noTopics')}</div>
+                    <div className="text-muted-foreground text-fs-12">{t('producer.noTopics')}</div>
                   ) : (
                     <Select
                       className="font-mono-design"
@@ -169,7 +169,7 @@ export function ProducerPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
 
                 <div className="grid grid-cols-2 gap-2.5">
                   <div className="flex flex-col gap-1.5">
-                    <span className="text-muted-foreground text-[11px] font-medium">
+                    <span className="text-muted-foreground text-fs-11 font-medium">
                       {t('producer.tag')}
                     </span>
                     <Input
@@ -180,7 +180,7 @@ export function ProducerPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
                     />
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <span className="text-muted-foreground text-[11px] font-medium">
+                    <span className="text-muted-foreground text-fs-11 font-medium">
                       {t('producer.key')}
                     </span>
                     <Input
@@ -193,7 +193,7 @@ export function ProducerPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <span className="text-muted-foreground text-[11px] font-medium">
+                  <span className="text-muted-foreground text-fs-11 font-medium">
                     {t('producer.delay')}
                   </span>
                   <Select value={delay} onChange={(e) => setDelay(Number(e.target.value))}>
@@ -207,7 +207,7 @@ export function ProducerPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
 
                 <div className="flex flex-col gap-1.5">
                   <div className="flex items-center gap-2">
-                    <span className="text-muted-foreground text-[11px] font-medium">
+                    <span className="text-muted-foreground text-fs-11 font-medium">
                       {t('producer.body')}
                     </span>
                     <span className="flex-1" />
@@ -219,7 +219,7 @@ export function ProducerPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
                     </Button>
                   </div>
                   <Textarea
-                    className="min-h-[180px] font-mono-design text-[12px]"
+                    className="min-h-[180px] font-mono-design text-fs-12"
                     placeholder="{ }"
                     value={body}
                     onChange={(e) => setBody(e.target.value)}
@@ -247,13 +247,13 @@ export function ProducerPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
               {/* History */}
               <Card className="overflow-hidden">
                 <div className="flex items-center justify-between border-b border-border px-3 py-2.5">
-                  <span className="text-[12px] font-medium">{t('producer.history')}</span>
-                  <span className="text-muted-foreground text-[11px]">
+                  <span className="text-fs-12 font-medium">{t('producer.history')}</span>
+                  <span className="text-muted-foreground text-fs-11">
                     {t('producer.historyHint')}
                   </span>
                 </div>
                 {history.length === 0 ? (
-                  <div className="text-muted-foreground px-3 py-9 text-center text-[12px]">
+                  <div className="text-muted-foreground px-3 py-9 text-center text-fs-12">
                     {t('producer.historyEmpty')}
                   </div>
                 ) : (
@@ -268,23 +268,23 @@ export function ProducerPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
                         ) : (
                           <X size={11} style={{ color: 'hsl(var(--destructive))' }} />
                         )}
-                        <span className="font-mono-design flex-1 truncate text-[12px]" title={h.topic}>
+                        <span className="font-mono-design flex-1 truncate text-fs-12" title={h.topic}>
                           {h.topic}
                         </span>
-                        <span className="font-mono-design text-muted-foreground text-[11px] tabular-nums">
+                        <span className="font-mono-design text-muted-foreground text-fs-11 tabular-nums">
                           {h.time}
                         </span>
                       </div>
                       {h.ok ? (
                         <div
-                          className="font-mono-design text-muted-foreground truncate pl-[19px] text-[10.5px]"
+                          className="font-mono-design text-muted-foreground truncate pl-[19px] text-fs-105"
                           title={h.result}
                         >
                           {h.result}
                         </div>
                       ) : (
                         <div
-                          className="flex items-start gap-1 pl-[19px] text-[11px]"
+                          className="flex items-start gap-1 pl-[19px] text-fs-11"
                           style={{ color: 'hsl(var(--destructive))' }}
                         >
                           <AlertCircle size={10} className="mt-0.5 shrink-0" />
@@ -292,7 +292,7 @@ export function ProducerPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
                         </div>
                       )}
                       {(h.tag || h.key || h.delay > 0) && (
-                        <div className="text-muted-foreground flex flex-wrap gap-2 pl-[19px] text-[10.5px]">
+                        <div className="text-muted-foreground flex flex-wrap gap-2 pl-[19px] text-fs-105">
                           {h.tag && <span>tag: {h.tag}</span>}
                           {h.key && <span>key: {h.key}</span>}
                           {h.delay > 0 && <span>delay: L{h.delay}</span>}

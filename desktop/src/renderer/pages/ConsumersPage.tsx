@@ -19,11 +19,13 @@ import { toast } from 'sonner'
 import { ConsumeMode, type ConsumerGroupItem, type GroupSubscription } from '@generated/models'
 import { PageHeader } from '@/components/PageHeader'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { Modal } from '@/components/ui/modal'
 import { useConsumers } from '@/hooks/useConsumers'
 import { useCluster } from '@/hooks/useCluster'
 import { useDelayedUnmount } from '@/hooks/useDelayedUnmount'
 import * as consumerApi from '@/api/consumer'
 import { cn, formatErrorMessage } from '@/lib/utils'
+import { activatableRowProps, ROW_FOCUS_CLASS } from '@/lib/a11y'
 import { RefreshButton, usePageRefresh } from '@/components/RefreshButton'
 import { SlidingTabs } from '@/components/SlidingTabs'
 import { OfflineEmpty } from '@/components/OfflineEmpty'
@@ -208,7 +210,7 @@ export function ConsumersPage({ onNavigate }: { onNavigate?: (id: NavId) => void
             ]}
           />
           <div className="flex-1" />
-          <span className="text-muted-foreground shrink-0 text-[11.5px] tabular-nums">
+          <span className="text-muted-foreground shrink-0 text-fs-115 tabular-nums">
             {t('consumers.resultCount', { count: filtered.length })}
           </span>
         </div>
@@ -230,13 +232,13 @@ export function ConsumersPage({ onNavigate }: { onNavigate?: (id: NavId) => void
               style={{ padding: 60, gap: 8 }}
             >
               <Spinner size={14} />
-              <span className="text-[12px]">{t('common.loading')}</span>
+              <span className="text-fs-12">{t('common.loading')}</span>
             </div>
           ) : (
             <>
               {error && <ErrorBanner message={t('consumers.loadError', { message: error })} />}
               {filtered.length === 0 ? (
-                <div className="text-muted-foreground text-center" style={{ padding: 40, fontSize: 12 }}>
+                <div className="text-muted-foreground text-center text-fs-12" style={{ padding: 40 }}>
                   {t('consumers.empty')}
                 </div>
               ) : (
@@ -246,7 +248,7 @@ export function ConsumersPage({ onNavigate }: { onNavigate?: (id: NavId) => void
                     style={{ minWidth: 720 }}
                   >
                     <div
-                      className="text-muted-foreground grid items-center gap-2 border-b border-border px-3.5 py-2 text-[11px] font-medium"
+                      className="text-muted-foreground grid items-center gap-2 border-b border-border px-3.5 py-2 text-fs-11 font-medium"
                       style={{ gridTemplateColumns: GROUP_COLS }}
                     >
                       <span>{t('consumers.table.name')}</span>
@@ -272,21 +274,25 @@ export function ConsumersPage({ onNavigate }: { onNavigate?: (id: NavId) => void
                         <div
                           key={g.group}
                           data-consumer-row
+                          role="button"
+                          aria-current={selected || undefined}
                           onClick={() => setSelectedName(g.group)}
+                          {...activatableRowProps(() => setSelectedName(g.group))}
                           className={cn(
                             'grid cursor-pointer items-center gap-2 border-t border-border px-3.5 py-2.5 transition-colors hover:bg-muted',
+                            ROW_FOCUS_CLASS,
                             selected && 'bg-accent hover:bg-accent',
                           )}
                           style={{ gridTemplateColumns: GROUP_COLS }}
                         >
-                          <span className="font-mono-design truncate text-[12px]">{g.group}</span>
-                          <span className="text-muted-foreground truncate text-[11.5px]">
+                          <span className="font-mono-design truncate text-fs-12">{g.group}</span>
+                          <span className="text-muted-foreground truncate text-fs-115">
                             {subTopic}
                           </span>
-                          <span className="font-mono-design text-muted-foreground truncate text-[10.5px]">
+                          <span className="font-mono-design text-muted-foreground truncate text-fs-105">
                             {g.consumeMode || '—'}
                           </span>
-                          <span className="inline-flex min-w-0 items-center gap-1.5 text-[11.5px]">
+                          <span className="inline-flex min-w-0 items-center gap-1.5 text-fs-115">
                             <span
                               className={cn(
                                 'h-1.5 w-1.5 shrink-0 rounded-full',
@@ -301,12 +307,12 @@ export function ConsumersPage({ onNavigate }: { onNavigate?: (id: NavId) => void
                             />
                             <span className="truncate">{statusText}</span>
                           </span>
-                          <span className="font-mono-design text-right text-[12px] tabular-nums">
+                          <span className="font-mono-design text-right text-fs-12 tabular-nums">
                             {g.onlineClients}
                           </span>
                           <span
                             className={cn(
-                              'font-mono-design text-right text-[12px] tabular-nums',
+                              'font-mono-design text-right text-fs-12 tabular-nums',
                               g.lag > 1000 ? 'text-destructive' : 'text-muted-foreground',
                             )}
                           >
@@ -427,7 +433,7 @@ function GroupDetailPanel({
             <X size={14} />
           </Button>
         </div>
-        <div className="text-muted-foreground mt-2 flex flex-wrap items-center gap-2 text-[12px]">
+        <div className="text-muted-foreground mt-2 flex flex-wrap items-center gap-2 text-fs-12">
           <Tag size={11} />
           <span>
             {group.topicCount} {t('topics.title')}
@@ -485,42 +491,39 @@ function GroupDetailPanel({
               }}
             >
               <div style={{ padding: '12px 14px' }}>
-                <div className="text-muted-foreground text-[12px]">{t('consumers.stat.instances')}</div>
-                <div className="tabular-nums mt-1 font-semibold" style={{ fontSize: 18 }}>
+                <div className="text-muted-foreground text-fs-12">{t('consumers.stat.instances')}</div>
+                <div className="tabular-nums mt-1 text-fs-18 font-semibold">
                   {group.onlineClients}
                 </div>
               </div>
               <div style={{ padding: '12px 14px', borderLeft: '1px solid hsl(var(--border))' }}>
                 <div className="flex items-center gap-1">
-                  <div className="text-muted-foreground text-[12px]">{t('consumers.stat.lag')}</div>
+                  <div className="text-muted-foreground text-fs-12">{t('consumers.stat.lag')}</div>
                   {group.lag > 1000 && (
                     <AlertCircle size={10} style={{ color: 'hsl(var(--warning))' }} />
                   )}
                 </div>
                 <div
-                  className="tabular-nums mt-1 font-semibold"
-                  style={{
-                    fontSize: 18,
-                    color: group.lag > 1000 ? 'hsl(var(--warning))' : undefined,
-                  }}
+                  className="tabular-nums mt-1 text-fs-18 font-semibold"
+                  style={{ color: group.lag > 1000 ? 'hsl(var(--warning))' : undefined }}
                 >
                   {formatMetric(group.lag)}
                 </div>
               </div>
               <div style={{ padding: '12px 14px', borderLeft: '1px solid hsl(var(--border))' }}>
-                <div className="text-muted-foreground text-[12px]">{t('consumers.stat.tps')}</div>
+                <div className="text-muted-foreground text-fs-12">{t('consumers.stat.tps')}</div>
                 <div className="mt-1 flex items-center gap-1">
-                  <span className="tabular-nums font-semibold" style={{ fontSize: 18 }}>
+                  <span className="tabular-nums text-fs-18 font-semibold">
                     {formatTps(tps)}
                   </span>
-                  <span className="text-muted-foreground text-[12px]" style={{ marginBottom: 1 }}>
+                  <span className="text-muted-foreground text-fs-12" style={{ marginBottom: 1 }}>
                     /s
                   </span>
                 </div>
               </div>
             </div>
 
-            <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 20 }}>
+            <div className="mb-2.5 text-fs-11 font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 20 }}>
               {t('consumers.detail.subscriptions')}
             </div>
             <SubscriptionList subs={group.subscriptions} />
@@ -529,7 +532,7 @@ function GroupDetailPanel({
 
         {tab === 'subscriptions' && (
           <>
-            <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 4 }}>
+            <div className="mb-2.5 text-fs-11 font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 4 }}>
               {t('consumers.detail.subscriptions')}
             </div>
             <SubscriptionList subs={group.subscriptions} />
@@ -538,11 +541,11 @@ function GroupDetailPanel({
 
         {tab === 'instances' && (
           <>
-            <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 4 }}>
+            <div className="mb-2.5 text-fs-11 font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 4 }}>
               {t('consumers.detail.instances')}
             </div>
             {group.clients.length === 0 ? (
-              <div className="text-muted-foreground text-[12px]" style={{ padding: 16, textAlign: 'center' }}>
+              <div className="text-muted-foreground text-fs-12" style={{ padding: 16, textAlign: 'center' }}>
                 {t('consumers.detail.instancesEmpty')}
               </div>
             ) : (
@@ -556,17 +559,15 @@ function GroupDetailPanel({
                     }}
                   >
                     <div className="flex items-center justify-between">
-                      <span className="font-mono-design truncate text-[12px]">{c.clientId}</span>
+                      <span className="font-mono-design truncate text-fs-12">{c.clientId}</span>
                       {c.version && (
-                        <Badge variant="outline"
-                          style={{ height: 18, fontSize: 10 }}
-                        >
+                        <Badge variant="outline" className="text-fs-10">
                           {c.version}
                         </Badge>
                       )}
                     </div>
                     <div
-                      className="text-muted-foreground mt-1 flex items-center gap-2 text-[11px]"
+                      className="text-muted-foreground mt-1 flex items-center gap-2 text-fs-11"
                       style={{ fontFamily: 'monospace' }}
                     >
                       <span>{c.ip}</span>
@@ -586,28 +587,28 @@ function GroupDetailPanel({
 
         {tab === 'config' && (
           <>
-            <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 4 }}>
+            <div className="mb-2.5 text-fs-11 font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 4 }}>
               {t('consumers.detail.config')}
             </div>
             <div>
-              <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-[13px] last:border-b-0">
+              <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-fs-13 last:border-b-0">
                 <div className="text-muted-foreground">{t('consumers.detail.configMode')}</div>
                 <div className="text-foreground">{group.consumeMode || '—'}</div>
               </div>
-              <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-[13px] last:border-b-0">
+              <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-fs-13 last:border-b-0">
                 <div className="text-muted-foreground">{t('consumers.detail.configMaxRetry')}</div>
                 <div className="text-foreground tabular-nums">{group.maxRetry}</div>
               </div>
               {group.cluster && (
-                <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-[13px] last:border-b-0">
+                <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-fs-13 last:border-b-0">
                   <div className="text-muted-foreground">{t('consumers.detail.configCluster')}</div>
                   <div className="text-foreground">{group.cluster}</div>
                 </div>
               )}
               {group.lastUpdate && (
-                <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-[13px] last:border-b-0">
+                <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-fs-13 last:border-b-0">
                   <div className="text-muted-foreground">{t('consumers.detail.configLastUpdate')}</div>
-                  <div className="text-foreground font-mono-design text-[12px]">{group.lastUpdate}</div>
+                  <div className="text-foreground font-mono-design text-fs-12">{group.lastUpdate}</div>
                 </div>
               )}
             </div>
@@ -645,7 +646,7 @@ function SubscriptionList({ subs }: { subs: GroupSubscription[] }) {
   const { t } = useTranslation()
   if (subs.length === 0) {
     return (
-      <div className="text-muted-foreground text-[12px]" style={{ padding: 16, textAlign: 'center' }}>
+      <div className="text-muted-foreground text-fs-12" style={{ padding: 16, textAlign: 'center' }}>
         {t('consumers.detail.subscriptionsEmpty')}
       </div>
     )
@@ -662,10 +663,10 @@ function SubscriptionList({ subs }: { subs: GroupSubscription[] }) {
           }}
         >
           <Tag size={12} className="text-muted-foreground" />
-          <span className="font-mono-design flex-1 truncate text-[13px]">{s.topic}</span>
+          <span className="font-mono-design flex-1 truncate text-fs-13">{s.topic}</span>
           {s.expression && s.expression !== '*' && (
             <span
-              className="font-mono-design text-muted-foreground text-[11px]"
+              className="font-mono-design text-muted-foreground text-fs-11"
               title="Tag filter"
               style={{ maxWidth: 120 }}
             >
@@ -673,7 +674,7 @@ function SubscriptionList({ subs }: { subs: GroupSubscription[] }) {
             </span>
           )}
           {s.consumeTps > 0 && (
-            <span className="font-mono-design tabular-nums text-muted-foreground text-[12px]">
+            <span className="font-mono-design tabular-nums text-muted-foreground text-fs-12">
               {formatTps(s.consumeTps)}/s
             </span>
           )}
@@ -729,95 +730,84 @@ function ResetOffsetDialog({
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        className="w-full max-w-md rounded-xl border border-border/50 bg-background p-6 shadow-lg"
-      >
-        <h2 className="text-base font-semibold">{t('consumers.reset.title')}</h2>
-        <div className="mt-4 grid gap-3.5">
-          <div>
-            <div className="text-muted-foreground mb-2 text-[12px]">{t('consumers.reset.topic')}</div>
-            {group.subscriptions.length === 0 ? (
-              <Input
-                className="font-mono-design"
-                value={topic}
-                onChange={(e) => setTopic(e.target.value)}
-              />
-            ) : (
-              <Select
-                value={topic}
-                onChange={(e) => setTopic(e.target.value)}
-              >
-                {group.subscriptions.map((s) => (
-                  <option key={s.topic} value={s.topic}>
-                    {s.topic}
-                  </option>
-                ))}
-              </Select>
-            )}
-          </div>
-          <div>
-            <div className="text-muted-foreground mb-2 text-[12px]">{t('consumers.reset.time')}</div>
-            <div className="flex flex-col gap-2">
-              <label className="flex items-center gap-2 text-[13px]" style={{ cursor: 'pointer' }}>
-                <input type="radio" checked={mode === 'now'} onChange={() => setMode('now')} />
-                {t('consumers.reset.timeNow')}
-              </label>
-              <label className="flex items-center gap-2 text-[13px]" style={{ cursor: 'pointer' }}>
-                <input
-                  type="radio"
-                  checked={mode === 'earliest'}
-                  onChange={() => setMode('earliest')}
-                />
-                {t('consumers.reset.timeEarliest')}
-              </label>
-              <label className="flex items-center gap-2 text-[13px]" style={{ cursor: 'pointer' }}>
-                <input
-                  type="radio"
-                  checked={mode === 'custom'}
-                  onChange={() => setMode('custom')}
-                />
-                {t('consumers.reset.timeCustom')}
-              </label>
-              {mode === 'custom' && (
-                <Input
-                  className="font-mono-design"
-                  type="datetime-local"
-                  value={custom}
-                  onChange={(e) => setCustom(e.target.value)}
-                />
-              )}
-            </div>
-          </div>
-          <label className="flex items-center gap-2 text-[13px]" style={{ cursor: 'pointer' }}>
-            <input type="checkbox" checked={force} onChange={(e) => setForce(e.target.checked)} />
-            {t('consumers.reset.force')}
-          </label>
-        </div>
-        <div className="mt-5 flex justify-end gap-2.5">
-          <Button variant="outline" size="sm"
-            type="button"
-            onClick={onClose}
-            disabled={busy}
-          >
+    <Modal
+      open
+      title={t('consumers.reset.title')}
+      dismissible={!busy}
+      onClose={onClose}
+      footer={
+        <>
+          <Button variant="outline" size="sm" type="button" onClick={onClose} disabled={busy}>
             {t('common.cancel')}
           </Button>
-          <Button variant="default" size="sm"
-            type="button"
-            onClick={handleSubmit}
-            disabled={busy}
-          >
+          <Button variant="default" size="sm" type="button" onClick={handleSubmit} disabled={busy}>
             {busy ? <Spinner size={13} /> : <RotateCcw size={13} />}
             {t('consumers.reset.submit')}
           </Button>
+        </>
+      }
+    >
+      <div className="mt-4 grid gap-3.5">
+        <div>
+          <div className="text-muted-foreground mb-2 text-fs-12">{t('consumers.reset.topic')}</div>
+          {group.subscriptions.length === 0 ? (
+            <Input
+              className="font-mono-design"
+              value={topic}
+              onChange={(e) => setTopic(e.target.value)}
+            />
+          ) : (
+            <Select
+              value={topic}
+              onChange={(e) => setTopic(e.target.value)}
+            >
+              {group.subscriptions.map((s) => (
+                <option key={s.topic} value={s.topic}>
+                  {s.topic}
+                </option>
+              ))}
+            </Select>
+          )}
         </div>
+        <div>
+          <div className="text-muted-foreground mb-2 text-fs-12">{t('consumers.reset.time')}</div>
+          <div className="flex flex-col gap-2">
+            <label className="flex items-center gap-2 text-fs-13" style={{ cursor: 'pointer' }}>
+              <input type="radio" checked={mode === 'now'} onChange={() => setMode('now')} />
+              {t('consumers.reset.timeNow')}
+            </label>
+            <label className="flex items-center gap-2 text-fs-13" style={{ cursor: 'pointer' }}>
+              <input
+                type="radio"
+                checked={mode === 'earliest'}
+                onChange={() => setMode('earliest')}
+              />
+              {t('consumers.reset.timeEarliest')}
+            </label>
+            <label className="flex items-center gap-2 text-fs-13" style={{ cursor: 'pointer' }}>
+              <input
+                type="radio"
+                checked={mode === 'custom'}
+                onChange={() => setMode('custom')}
+              />
+              {t('consumers.reset.timeCustom')}
+            </label>
+            {mode === 'custom' && (
+              <Input
+                className="font-mono-design"
+                type="datetime-local"
+                value={custom}
+                onChange={(e) => setCustom(e.target.value)}
+              />
+            )}
+          </div>
+        </div>
+        <label className="flex items-center gap-2 text-fs-13" style={{ cursor: 'pointer' }}>
+          <input type="checkbox" checked={force} onChange={(e) => setForce(e.target.checked)} />
+          {t('consumers.reset.force')}
+        </label>
       </div>
-    </div>
+    </Modal>
   )
 }
 
@@ -882,89 +872,19 @@ function GroupEditor({
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        className="w-full max-w-md rounded-xl border border-border/50 bg-background p-6 shadow-lg"
-      >
-        <h2 className="text-base font-semibold">
-          {isEdit ? t('consumers.edit.title') : t('consumers.edit.createTitle')}
-        </h2>
-        <div className="mt-4 grid gap-3.5">
-          <div>
-            <div className="text-muted-foreground mb-2 text-[12px]">
-              {t('consumers.edit.name')} <span style={{ color: 'hsl(var(--destructive))' }}>*</span>
-            </div>
-            <Input
-              className="font-mono-design"
-              placeholder={t('consumers.edit.namePlaceholder')}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              disabled={isEdit}
-            />
-          </div>
-          <div>
-            <div className="text-muted-foreground mb-2 text-[12px]">
-              {t('consumers.edit.broker')}{' '}
-              <span style={{ color: 'hsl(var(--destructive))' }}>*</span>
-            </div>
-            {masterBrokers.length === 0 ? (
-              <div className="text-muted-foreground text-[12px]" style={{ padding: 8 }}>
-                {t('consumers.edit.noBrokers')}
-              </div>
-            ) : (
-              <Select
-                value={brokerAddr}
-                onChange={(e) => setBrokerAddr(e.target.value)}
-              >
-                {masterBrokers.map((b) => (
-                  <option key={b.address} value={b.address}>
-                    {b.brokerName} · {b.address}
-                  </option>
-                ))}
-              </Select>
-            )}
-            <div className="text-muted-foreground mt-1 text-[11px]">{t('consumers.edit.brokerHint')}</div>
-          </div>
-          <div>
-            <div className="text-muted-foreground mb-2 text-[12px]">{t('consumers.edit.mode')}</div>
-            <Select
-              value={consumeMode}
-              onChange={(e) => setConsumeMode(e.target.value as ConsumeMode)}
-            >
-              <option value={ConsumeMode.Clustering}>
-                {t('consumers.detail.modeClustering')}
-              </option>
-              <option value={ConsumeMode.Broadcasting}>
-                {t('consumers.detail.modeBroadcasting')}
-              </option>
-            </Select>
-            <div className="text-muted-foreground mt-1 text-[11px]">{t('consumers.edit.modeHint')}</div>
-          </div>
-          <div>
-            <div className="text-muted-foreground mb-2 text-[12px]">{t('consumers.edit.maxRetry')}</div>
-            <Input
-              type="number"
-              min={0}
-              max={64}
-              value={maxRetry}
-              onChange={(e) => setMaxRetry(Number(e.target.value) || 0)}
-            />
-          </div>
-        </div>
-        <div className="mt-5 flex justify-end gap-2.5">
-          <Button variant="outline" size="sm"
-            type="button"
-            onClick={onClose}
-            disabled={busy}
-          >
+    <Modal
+      open
+      title={isEdit ? t('consumers.edit.title') : t('consumers.edit.createTitle')}
+      dismissible={!busy}
+      onClose={onClose}
+      footer={
+        <>
+          <Button variant="outline" size="sm" type="button" onClick={onClose} disabled={busy}>
             {t('common.cancel')}
           </Button>
-          <Button variant="default" size="sm"
+          <Button
+            variant="default"
+            size="sm"
             type="button"
             onClick={handleSubmit}
             disabled={busy || masterBrokers.length === 0}
@@ -972,8 +892,71 @@ function GroupEditor({
             {busy ? <Spinner size={13} /> : <Check size={13} />}
             {isEdit ? t('consumers.edit.submit') : t('consumers.edit.createSubmit')}
           </Button>
+        </>
+      }
+    >
+      <div className="mt-4 grid gap-3.5">
+        <div>
+          <div className="text-muted-foreground mb-2 text-fs-12">
+            {t('consumers.edit.name')} <span style={{ color: 'hsl(var(--destructive))' }}>*</span>
+          </div>
+          <Input
+            className="font-mono-design"
+            placeholder={t('consumers.edit.namePlaceholder')}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            disabled={isEdit}
+          />
+        </div>
+        <div>
+          <div className="text-muted-foreground mb-2 text-fs-12">
+            {t('consumers.edit.broker')}{' '}
+            <span style={{ color: 'hsl(var(--destructive))' }}>*</span>
+          </div>
+          {masterBrokers.length === 0 ? (
+            <div className="text-muted-foreground text-fs-12" style={{ padding: 8 }}>
+              {t('consumers.edit.noBrokers')}
+            </div>
+          ) : (
+            <Select
+              value={brokerAddr}
+              onChange={(e) => setBrokerAddr(e.target.value)}
+            >
+              {masterBrokers.map((b) => (
+                <option key={b.address} value={b.address}>
+                  {b.brokerName} · {b.address}
+                </option>
+              ))}
+            </Select>
+          )}
+          <div className="text-muted-foreground mt-1 text-fs-11">{t('consumers.edit.brokerHint')}</div>
+        </div>
+        <div>
+          <div className="text-muted-foreground mb-2 text-fs-12">{t('consumers.edit.mode')}</div>
+          <Select
+            value={consumeMode}
+            onChange={(e) => setConsumeMode(e.target.value as ConsumeMode)}
+          >
+            <option value={ConsumeMode.Clustering}>
+              {t('consumers.detail.modeClustering')}
+            </option>
+            <option value={ConsumeMode.Broadcasting}>
+              {t('consumers.detail.modeBroadcasting')}
+            </option>
+          </Select>
+          <div className="text-muted-foreground mt-1 text-fs-11">{t('consumers.edit.modeHint')}</div>
+        </div>
+        <div>
+          <div className="text-muted-foreground mb-2 text-fs-12">{t('consumers.edit.maxRetry')}</div>
+          <Input
+            type="number"
+            min={0}
+            max={64}
+            value={maxRetry}
+            onChange={(e) => setMaxRetry(Number(e.target.value) || 0)}
+          />
         </div>
       </div>
-    </div>
+    </Modal>
   )
 }

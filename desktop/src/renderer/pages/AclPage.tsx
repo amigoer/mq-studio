@@ -226,7 +226,7 @@ export function AclPage({ onNavigate }: { onNavigate?: (id: NavId) => void }) {
               )}
               <div className="min-w-0 flex-1">
                 <div
-                  className="text-[12.5px] font-semibold"
+                  className="text-fs-125 font-semibold"
                   style={enabled ? { color: 'hsl(var(--success))' } : undefined}
                 >
                   {statusLoading
@@ -236,7 +236,7 @@ export function AclPage({ onNavigate }: { onNavigate?: (id: NavId) => void }) {
                       : t('acl.status.disabled')}
                 </div>
                 {version && (
-                  <div className="text-muted-foreground mt-1 flex flex-wrap gap-3 text-[11px]">
+                  <div className="text-muted-foreground mt-1 flex flex-wrap gap-3 text-fs-11">
                     <span className="font-mono-design">
                       {t('acl.status.broker', { addr: version.brokerAddr || '—' })}
                     </span>
@@ -249,7 +249,7 @@ export function AclPage({ onNavigate }: { onNavigate?: (id: NavId) => void }) {
                 )}
                 {statusError && (
                   <div
-                    className="mt-1 flex items-center gap-1 text-[11px]"
+                    className="mt-1 flex items-center gap-1 text-fs-11"
                     style={{ color: 'hsl(var(--destructive))' }}
                   >
                     <AlertCircle size={11} />
@@ -270,7 +270,7 @@ export function AclPage({ onNavigate }: { onNavigate?: (id: NavId) => void }) {
 
             {/* Limitations note */}
             <Card
-              className="mb-5 text-[12px]"
+              className="mb-5 text-fs-12"
               style={{
                 padding: '10px 14px',
                 lineHeight: 1.55,
@@ -290,12 +290,12 @@ export function AclPage({ onNavigate }: { onNavigate?: (id: NavId) => void }) {
                 {/* Access config form */}
                 <Card style={{ padding: 20 }}>
                   <div className="mb-4">
-                    <div className="text-[13px] font-semibold">{t('acl.form.title')}</div>
-                    <div className="text-muted-foreground mt-0.5 text-[12px]">{t('acl.form.subtitle')}</div>
+                    <div className="text-fs-13 font-semibold">{t('acl.form.title')}</div>
+                    <div className="text-muted-foreground mt-0.5 text-fs-12">{t('acl.form.subtitle')}</div>
                   </div>
                   <div className="grid gap-3.5" style={{ gridTemplateColumns: '1fr 1fr' }}>
                     <div>
-                      <div className="text-muted-foreground mb-2 text-[12px]">
+                      <div className="text-muted-foreground mb-2 text-fs-12">
                         {t('acl.form.ak')}{' '}
                         <span style={{ color: 'hsl(var(--destructive))' }}>*</span>
                       </div>
@@ -307,7 +307,7 @@ export function AclPage({ onNavigate }: { onNavigate?: (id: NavId) => void }) {
                       />
                     </div>
                     <div>
-                      <div className="text-muted-foreground mb-2 text-[12px]">
+                      <div className="text-muted-foreground mb-2 text-fs-12">
                         {t('acl.form.sk')}{' '}
                         <span style={{ color: 'hsl(var(--destructive))' }}>*</span>
                       </div>
@@ -320,7 +320,7 @@ export function AclPage({ onNavigate }: { onNavigate?: (id: NavId) => void }) {
                       />
                     </div>
                     <div style={{ gridColumn: '1 / -1' }}>
-                      <div className="text-muted-foreground mb-2 text-[12px]">{t('acl.form.whiteIp')}</div>
+                      <div className="text-muted-foreground mb-2 text-fs-12">{t('acl.form.whiteIp')}</div>
                       <Input
                         className="font-mono-design"
                         placeholder={t('acl.form.whiteIpPlaceholder')}
@@ -337,8 +337,8 @@ export function AclPage({ onNavigate }: { onNavigate?: (id: NavId) => void }) {
                     >
                       <Switch checked={admin} onCheckedChange={setAdmin} className="mt-0.5 shrink-0" />
                       <div>
-                        <div className="text-[12.5px] font-medium">{t('acl.form.admin')}</div>
-                        <div className="text-muted-foreground mt-0.5 text-[11px]">
+                        <div className="text-fs-125 font-medium">{t('acl.form.admin')}</div>
+                        <div className="text-muted-foreground mt-0.5 text-fs-11">
                           {t('acl.form.adminHint')}
                         </div>
                       </div>
@@ -347,7 +347,7 @@ export function AclPage({ onNavigate }: { onNavigate?: (id: NavId) => void }) {
                     {admin ? (
                       <div
                         style={{ gridColumn: '1 / -1' }}
-                        className="text-muted-foreground flex items-center gap-2 text-[11.5px]"
+                        className="text-muted-foreground flex items-center gap-2 text-fs-115"
                       >
                         <ShieldCheck size={13} style={{ color: 'hsl(var(--success))' }} className="shrink-0" />
                         <span>{t('acl.form.adminActive')}</span>
@@ -355,7 +355,7 @@ export function AclPage({ onNavigate }: { onNavigate?: (id: NavId) => void }) {
                     ) : (
                       <>
                         <div>
-                          <div className="text-muted-foreground mb-2 text-[12px]">
+                          <div className="text-muted-foreground mb-2 text-fs-12">
                             {t('acl.form.defaultTopicPerm')}
                           </div>
                           <Select
@@ -372,7 +372,7 @@ export function AclPage({ onNavigate }: { onNavigate?: (id: NavId) => void }) {
                           </Select>
                         </div>
                         <div>
-                          <div className="text-muted-foreground mb-2 text-[12px]">
+                          <div className="text-muted-foreground mb-2 text-fs-12">
                             {t('acl.form.defaultGroupPerm')}
                           </div>
                           <Select
@@ -395,7 +395,7 @@ export function AclPage({ onNavigate }: { onNavigate?: (id: NavId) => void }) {
                           <button
                             type="button"
                             onClick={() => setShowAdvanced((v) => !v)}
-                            className="text-muted-foreground hover:text-foreground -mx-1 flex w-full items-center gap-1.5 rounded-md px-1 py-1 text-left text-[12px] transition-colors"
+                            className="text-muted-foreground hover:text-foreground -mx-1 flex w-full items-center gap-1.5 rounded-md px-1 py-1 text-left text-fs-12 transition-colors"
                           >
                             <ChevronRight
                               size={14}
@@ -404,7 +404,7 @@ export function AclPage({ onNavigate }: { onNavigate?: (id: NavId) => void }) {
                             <span className="font-medium">{t('acl.form.advanced')}</span>
                             {overrideCount > 0 && (
                               <span
-                                className="ml-1 rounded-full px-1.5 text-[10px] font-semibold tabular-nums"
+                                className="ml-1 rounded-full px-1.5 text-fs-10 font-semibold tabular-nums"
                                 style={{
                                   background: 'hsl(var(--primary) / 0.12)',
                                   color: 'hsl(var(--primary))',
@@ -413,33 +413,33 @@ export function AclPage({ onNavigate }: { onNavigate?: (id: NavId) => void }) {
                                 {overrideCount}
                               </span>
                             )}
-                            <span className="text-muted-foreground/70 ml-auto text-[11px]">
+                            <span className="text-muted-foreground/70 ml-auto text-fs-11">
                               {t('acl.form.advancedHint')}
                             </span>
                           </button>
                           {showAdvanced && (
                             <div className="mt-3 grid gap-3.5">
                               <div>
-                                <div className="text-muted-foreground mb-2 text-[12px]">{t('acl.form.topicPerms')}</div>
+                                <div className="text-muted-foreground mb-2 text-fs-12">{t('acl.form.topicPerms')}</div>
                                 <Textarea
-                                  className="min-h-[76px] font-mono-design text-[12px]"
+                                  className="min-h-[76px] font-mono-design text-fs-12"
                                   placeholder="ORDER_TOPIC=PUB|SUB&#10;AUDIT_LOG=PUB"
                                   value={topicPerms}
                                   onChange={(e) => setTopicPerms(e.target.value)}
                                 />
-                                <div className="text-muted-foreground mt-1 text-[11px]">
+                                <div className="text-muted-foreground mt-1 text-fs-11">
                                   {t('acl.form.topicPermsHint')}
                                 </div>
                               </div>
                               <div>
-                                <div className="text-muted-foreground mb-2 text-[12px]">{t('acl.form.groupPerms')}</div>
+                                <div className="text-muted-foreground mb-2 text-fs-12">{t('acl.form.groupPerms')}</div>
                                 <Textarea
-                                  className="min-h-[56px] font-mono-design text-[12px]"
+                                  className="min-h-[56px] font-mono-design text-fs-12"
                                   placeholder="GID_ADMIN=SUB"
                                   value={groupPerms}
                                   onChange={(e) => setGroupPerms(e.target.value)}
                                 />
-                                <div className="text-muted-foreground mt-1 text-[11px]">
+                                <div className="text-muted-foreground mt-1 text-fs-11">
                                   {t('acl.form.groupPermsHint')}
                                 </div>
                               </div>
@@ -471,8 +471,8 @@ export function AclPage({ onNavigate }: { onNavigate?: (id: NavId) => void }) {
                   style={{ padding: 20, borderColor: 'hsl(var(--destructive) / 0.28)' }}
                 >
                   <div className="mb-3">
-                    <div className="text-[13px] font-semibold">{t('acl.delete.title')}</div>
-                    <div className="text-muted-foreground mt-0.5 text-[12px]">{t('acl.delete.subtitle')}</div>
+                    <div className="text-fs-13 font-semibold">{t('acl.delete.title')}</div>
+                    <div className="text-muted-foreground mt-0.5 text-fs-12">{t('acl.delete.subtitle')}</div>
                   </div>
                   <div className="flex gap-2">
                     <Input
@@ -496,12 +496,12 @@ export function AclPage({ onNavigate }: { onNavigate?: (id: NavId) => void }) {
                 {/* Global white list */}
                 <Card style={{ padding: 20 }}>
                   <div className="mb-3">
-                    <div className="text-[13px] font-semibold">{t('acl.globalWhite.title')}</div>
-                    <div className="text-muted-foreground mt-0.5 text-[12px]">{t('acl.globalWhite.subtitle')}</div>
+                    <div className="text-fs-13 font-semibold">{t('acl.globalWhite.title')}</div>
+                    <div className="text-muted-foreground mt-0.5 text-fs-12">{t('acl.globalWhite.subtitle')}</div>
                   </div>
                   <div className="flex flex-col gap-2">
                     {whiteList.length === 0 ? (
-                      <div className="text-muted-foreground text-[12px]" style={{ padding: '8px 0' }}>
+                      <div className="text-muted-foreground text-fs-12" style={{ padding: '8px 0' }}>
                         {t('acl.globalWhite.empty')}
                       </div>
                     ) : (
@@ -516,7 +516,7 @@ export function AclPage({ onNavigate }: { onNavigate?: (id: NavId) => void }) {
                             background: 'hsl(var(--background))',
                           }}
                         >
-                          <span className="font-mono-design text-[12px]">
+                          <span className="font-mono-design text-fs-12">
                             <Key size={11} className="text-muted-foreground mr-2 inline" />
                             {ip}
                           </span>
@@ -551,7 +551,7 @@ export function AclPage({ onNavigate }: { onNavigate?: (id: NavId) => void }) {
                     style={{ paddingTop: 12, borderTop: '1px solid hsl(var(--border))' }}
                   >
                     <div
-                      className="mb-3 flex items-start gap-2 text-[12px]"
+                      className="mb-3 flex items-start gap-2 text-fs-12"
                       style={{
                         padding: '8px 10px',
                         borderRadius: 6,

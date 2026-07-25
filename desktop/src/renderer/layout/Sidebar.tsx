@@ -119,7 +119,7 @@ export function Sidebar({
           <Fragment key={gi}>
             <div className="flex flex-col gap-0.5">
               {group.labelKey ? (
-                <div className="px-2.5 pb-1 pt-0.5 text-[10.5px] font-semibold uppercase tracking-[0.06em] text-muted-foreground/80">
+                <div className="px-2.5 pb-1 pt-0.5 text-fs-105 font-semibold uppercase tracking-[0.06em] text-muted-foreground/80">
                   {t(group.labelKey)}
                 </div>
               ) : null}

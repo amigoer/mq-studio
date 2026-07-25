@@ -20,6 +20,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useConnections } from '@/hooks/useConnections'
 import * as connectionApi from '@/api/connection'
 import { formatErrorMessage, cn } from '@/lib/utils'
+import { activatableRowProps, ROW_FOCUS_CLASS } from '@/lib/a11y'
 import { ConnectionEnv, type Connection } from '@generated/models'
 import {
   hasConnectionPrefill,
@@ -196,7 +197,7 @@ function EnvBadge({ env }: { env: ConnectionEnv }) {
   const m = meta[env] ?? meta.development
   return (
     <span
-      className="inline-flex shrink-0 items-center rounded px-1 text-[10px] font-medium"
+      className="inline-flex shrink-0 items-center rounded px-1 text-fs-10 font-medium"
       style={{
         background: `hsl(var(--${m.token}) / 0.1)`,
         color: `hsl(var(--${m.token}))`,
@@ -567,12 +568,12 @@ export function ConnectionsPage() {
             {loading && list.length === 0 ? (
               <div className="text-muted-foreground flex items-center justify-center gap-2 p-8">
                 <Spinner size={14} />
-                <span className="text-[12px]">{t('common.loading')}</span>
+                <span className="text-fs-12">{t('common.loading')}</span>
               </div>
             ) : filtered.length === 0 ? (
               <div className="text-muted-foreground px-4 py-10 text-center">
-                <div className="text-[12.5px]">{t('connections.empty')}</div>
-                <div className="mt-1 text-[11.5px]">{t('connections.emptyHint')}</div>
+                <div className="text-fs-125">{t('connections.empty')}</div>
+                <div className="mt-1 text-fs-115">{t('connections.emptyHint')}</div>
                 <Button variant="outline" size="sm" className="mt-3" onClick={handleNew}>
                   <Plus size={13} />
                   {t('connections.addFirst')}
@@ -588,13 +589,17 @@ export function ConnectionsPage() {
                   return (
                     <div
                       key={c.id}
+                      role="button"
+                      aria-current={active || undefined}
                       className={cn(
                         'group flex cursor-pointer flex-col gap-1 rounded-[10px] border px-3 py-2.5 transition-colors',
+                        ROW_FOCUS_CLASS,
                         active
                           ? 'border-foreground/30 bg-accent'
                           : 'border-border hover:bg-accent/70',
                       )}
                       onClick={() => handleSelect(c)}
+                      {...activatableRowProps(() => handleSelect(c))}
                     >
                       <div className="flex items-center gap-2">
                         <span
@@ -605,11 +610,11 @@ export function ConnectionsPage() {
                               : 'hsl(var(--muted-foreground) / 0.35)',
                           }}
                         />
-                        <span className="min-w-0 flex-1 truncate text-[12.5px] font-medium">
+                        <span className="min-w-0 flex-1 truncate text-fs-125 font-medium">
                           {c.name}
                         </span>
                         {c.isDefault && (
-                          <span className="text-muted-foreground shrink-0 rounded border border-border px-1 text-[10px]">
+                          <span className="text-muted-foreground shrink-0 rounded border border-border px-1 text-fs-10">
                             {t('connections.default')}
                           </span>
                         )}
@@ -635,7 +640,7 @@ export function ConnectionsPage() {
                       </div>
                       <div className="flex items-center gap-1.5 pl-[15px]">
                         <EnvBadge env={c.env} />
-                        <span className="font-mono-design text-muted-foreground min-w-0 truncate text-[10.5px]">
+                        <span className="font-mono-design text-muted-foreground min-w-0 truncate text-fs-105">
                           {c.nameServer || '—'}
                         </span>
                       </div>
@@ -652,7 +657,7 @@ export function ConnectionsPage() {
           {selectedId == null ? (
             <div className="text-muted-foreground flex min-h-[200px] flex-col items-center justify-center text-center">
               <PlugZap size={22} className="mb-2 opacity-40" />
-              <div className="text-[12.5px]">{t('connections.selectHint')}</div>
+              <div className="text-fs-125">{t('connections.selectHint')}</div>
             </div>
           ) : (
             <div className="mx-auto max-w-lg">
@@ -660,7 +665,7 @@ export function ConnectionsPage() {
               <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h2 className="truncate text-[15px] font-semibold tracking-tight">
+                    <h2 className="truncate text-fs-15 font-semibold tracking-tight">
                       {isNew ? t('connections.newTitle') : selected?.name || form.name}
                     </h2>
                     {!isNew &&
@@ -674,10 +679,10 @@ export function ConnectionsPage() {
                         <Badge variant="outline">{t('common.offline')}</Badge>
                       ))}
                     {dirty && !isNew && (
-                      <span className="text-muted-foreground text-[11px]">{t('connections.unsaved')}</span>
+                      <span className="text-muted-foreground text-fs-11">{t('connections.unsaved')}</span>
                     )}
                   </div>
-                  <div className="text-muted-foreground mt-1 text-[11.5px]">
+                  <div className="text-muted-foreground mt-1 text-fs-115">
                     {isNew
                       ? t('connections.connectHintNew')
                       : isOnline
@@ -735,13 +740,13 @@ export function ConnectionsPage() {
                   </Field>
                   <div className="col-span-2">
                     <div className="mb-1.5 flex items-center justify-between gap-2">
-                      <div className="text-muted-foreground text-[11.5px]">
+                      <div className="text-muted-foreground text-fs-115">
                         {t('connections.nameServer')}
                         <span className="text-destructive"> *</span>
                       </div>
                       <Button variant="ghost" size="sm"
                         type="button"
-                        className="h-6 px-1.5 text-[11px] text-muted-foreground"
+                        className="h-6 px-1.5 text-fs-11 text-muted-foreground"
                         onClick={() =>
                           setForm({
                             ...form,
@@ -790,7 +795,7 @@ export function ConnectionsPage() {
                                 aria-label={t('connections.host')}
                               />
                             </div>
-                            <span className="text-muted-foreground shrink-0 select-none text-[12px]">
+                            <span className="text-muted-foreground shrink-0 select-none text-fs-12">
                               :
                             </span>
                             <Input
@@ -830,14 +835,14 @@ export function ConnectionsPage() {
                             )}
                           </div>
                           {hostErrors[index] && (
-                            <span className="text-destructive text-[11px]">
+                            <span className="text-destructive text-fs-11">
                               {t('connections.hostInvalid')}
                             </span>
                           )}
                         </div>
                       ))}
                     </div>
-                    <div className="text-muted-foreground mt-1.5 text-[11px]">
+                    <div className="text-muted-foreground mt-1.5 text-fs-11">
                       {t('connections.nameServerHint')}
                     </div>
                   </div>
@@ -846,7 +851,7 @@ export function ConnectionsPage() {
                 {/* Advanced (timeout / ACL / remark) */}
                 <button
                   type="button"
-                  className="text-muted-foreground mt-4 flex w-full items-center gap-1 border-0 bg-transparent p-0 text-left text-[12px] hover:text-foreground"
+                  className="text-muted-foreground mt-4 flex w-full items-center gap-1 border-0 bg-transparent p-0 text-left text-fs-12 hover:text-foreground"
                   onClick={() => setAdvancedOpen((v) => !v)}
                 >
                   {advancedOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
@@ -865,7 +870,7 @@ export function ConnectionsPage() {
                             setForm({ ...form, timeoutSec: Number(e.target.value) || 1 })
                           }
                         />
-                        <span className="text-muted-foreground shrink-0 text-[12px]">
+                        <span className="text-muted-foreground shrink-0 text-fs-12">
                           {t('connections.timeoutUnit')}
                         </span>
                       </div>
@@ -873,10 +878,10 @@ export function ConnectionsPage() {
                     <div className="col-span-2">
                       <div className="flex items-start justify-between gap-4">
                         <div className="min-w-0">
-                          <div className="text-[12.5px] font-medium">
+                          <div className="text-fs-125 font-medium">
                             {t('connections.enableAcl')}
                           </div>
-                          <div className="text-muted-foreground mt-0.5 text-[11.5px]">
+                          <div className="text-muted-foreground mt-0.5 text-fs-115">
                             {t('connections.enableAclHint')}
                           </div>
                         </div>
@@ -996,7 +1001,7 @@ function Field({
 }) {
   return (
     <div>
-      <div className="text-muted-foreground mb-1.5 text-[11.5px]">
+      <div className="text-muted-foreground mb-1.5 text-fs-115">
         {label}
         {required && <span className="text-destructive"> *</span>}
       </div>

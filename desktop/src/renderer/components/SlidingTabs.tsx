@@ -126,7 +126,7 @@ export function SlidingTabs<T extends string>({
           >
             {item.label}
             {typeof item.count === 'number' && item.count > 0 && (
-              <span className="text-muted-foreground font-mono-design text-[11px] tabular-nums">
+              <span className="text-muted-foreground font-mono-design text-fs-11 tabular-nums">
                 {item.count}
               </span>
             )}

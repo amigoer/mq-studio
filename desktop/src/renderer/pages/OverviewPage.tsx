@@ -337,8 +337,8 @@ export function OverviewPage({ onNavigate }: OverviewPageProps) {
             {issues.length > 0 && (
               <section>
                 <div className="mb-2 flex items-center justify-between">
-                  <div className="text-[12px] font-medium">{t('overview.issues.title')}</div>
-                  <span className="text-muted-foreground text-[11px]">
+                  <div className="text-fs-12 font-medium">{t('overview.issues.title')}</div>
+                  <span className="text-muted-foreground text-fs-11">
                     {t('overview.issues.count', { count: issues.length })}
                   </span>
                 </div>
@@ -347,8 +347,8 @@ export function OverviewPage({ onNavigate }: OverviewPageProps) {
                     <div key={issue.key} className="flex items-start gap-2.5 border-t border-border px-3 py-2.5 first:border-t-0">
                       <span className={cn("mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full", issue.severity === "high" && "bg-destructive", issue.severity === "med" && "bg-amber-500", issue.severity === "low" && "bg-muted-foreground")} />
                       <div className="min-w-0">
-                        <div className="text-[12.5px] font-medium leading-snug">{issue.title}</div>
-                        <div className="mt-0.5 text-[11.5px] leading-snug text-muted-foreground">{issue.desc}</div>
+                        <div className="text-fs-125 font-medium leading-snug">{issue.title}</div>
+                        <div className="mt-0.5 text-fs-115 leading-snug text-muted-foreground">{issue.desc}</div>
                       </div>
                     </div>
                   ))}
@@ -412,7 +412,7 @@ export function OverviewPage({ onNavigate }: OverviewPageProps) {
                       const pct = Math.max(4, Math.round((tps / maxTopicTps) * 100))
                       return (
                         <div key={topic.topic} className="flex items-center gap-2.5 px-3 py-2">
-                          <span className="font-mono-design min-w-0 flex-1 truncate text-[12px]">
+                          <span className="font-mono-design min-w-0 flex-1 truncate text-fs-12">
                             {topic.topic}
                           </span>
                           <div
@@ -426,7 +426,7 @@ export function OverviewPage({ onNavigate }: OverviewPageProps) {
                               />
                             )}
                           </div>
-                          <span className="font-mono-design tabular-nums text-muted-foreground w-14 text-right text-[11.5px]">
+                          <span className="font-mono-design tabular-nums text-muted-foreground w-14 text-right text-fs-115">
                             {tps > 0 ? `${formatTps(tps)}/s` : '—'}
                           </span>
                         </div>
@@ -453,7 +453,7 @@ export function OverviewPage({ onNavigate }: OverviewPageProps) {
                         size={12}
                         className={danger ? 'text-destructive' : 'text-amber-600'}
                       />
-                      <span className="font-mono-design min-w-0 flex-1 truncate text-[12px]">
+                      <span className="font-mono-design min-w-0 flex-1 truncate text-fs-12">
                         {g.group}
                       </span>
                       <Badge variant={danger ? 'destructive' : 'warning'}>
@@ -469,10 +469,10 @@ export function OverviewPage({ onNavigate }: OverviewPageProps) {
             {data.brokers.length > 0 && (
               <Card className="overflow-hidden">
                 <div className="flex items-center justify-between border-b border-border px-3 py-2.5">
-                  <div className="text-[12px] font-medium">{t('overview.broker.title')}</div>
+                  <div className="text-fs-12 font-medium">{t('overview.broker.title')}</div>
                   <button
                     type="button"
-                    className="text-muted-foreground text-[11.5px] hover:text-foreground"
+                    className="text-muted-foreground text-fs-115 hover:text-foreground"
                     onClick={() => onNavigate?.('cluster')}
                   >
                     {t('common.viewAll')} →
@@ -499,7 +499,7 @@ export function OverviewPage({ onNavigate }: OverviewPageProps) {
                       return (
                         <span
                           key={`${b.brokerName}-${b.brokerId}`}
-                          className="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-1 text-[11.5px] transition-colors hover:bg-muted"
+                          className="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-1 text-fs-115 transition-colors hover:bg-muted"
                         >
                           <span
                             className="h-1.5 w-1.5 rounded-full"
@@ -512,7 +512,7 @@ export function OverviewPage({ onNavigate }: OverviewPageProps) {
                             }}
                           />
                           <span className="font-mono-design">{label}</span>
-                          <span className="text-muted-foreground text-[10.5px]">{roleLabel}</span>
+                          <span className="text-muted-foreground text-fs-105">{roleLabel}</span>
                         </span>
                       )
                     })}
@@ -540,11 +540,11 @@ function Kpi({
   return (
     <div className="rounded-xl border border-border/80 bg-card p-3.5 shadow-card transition-[box-shadow,transform] duration-200 hover:-translate-y-px hover:shadow-[0_1px_2px_hsl(0_0%_0%/0.05),0_8px_24px_hsl(0_0%_0%/0.05)]">
       <div className="flex items-center justify-between">
-        <span className="flex items-center gap-1.5 text-[11.5px] text-muted-foreground">{label}</span>
+        <span className="flex items-center gap-1.5 text-fs-115 text-muted-foreground">{label}</span>
         <Icon size={13} className="text-muted-foreground opacity-70" />
       </div>
-      <div className="mt-1 text-[21px] font-semibold leading-tight tracking-[-0.02em] tabular-nums">{value}</div>
-      <div className="text-muted-foreground mt-1 text-[11px] leading-snug">{hint}</div>
+      <div className="mt-1 text-fs-21 font-semibold leading-tight tracking-[-0.02em] tabular-nums">{value}</div>
+      <div className="text-muted-foreground mt-1 text-fs-11 leading-snug">{hint}</div>
     </div>
   )
 }
@@ -562,7 +562,7 @@ function QuickAction({
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex h-[34px] items-center justify-center gap-1.5 rounded-[10px] border border-border/80 bg-card text-[12px] font-medium shadow-card transition-[background-color,transform] hover:bg-accent active:scale-[0.98]"
+      className="inline-flex h-[34px] items-center justify-center gap-1.5 rounded-[10px] border border-border/80 bg-card text-fs-12 font-medium shadow-card transition-[background-color,transform] hover:bg-accent active:scale-[0.98]"
     >
       <Icon size={13} className="text-muted-foreground" />
       {label}
@@ -636,8 +636,8 @@ function ThroughputCard({
     <Card className="relative overflow-hidden p-3.5">
       <div className="mb-2.5 flex items-center justify-between gap-3">
         <div>
-          <div className="text-[12px] font-medium">{t('overview.throughput.title')}</div>
-          <div className="text-muted-foreground mt-0.5 text-[11px]">{t('overview.throughput.subtitle')}</div>
+          <div className="text-fs-12 font-medium">{t('overview.throughput.title')}</div>
+          <div className="text-muted-foreground mt-0.5 text-fs-11">{t('overview.throughput.subtitle')}</div>
         </div>
         <div className="flex items-center gap-3">
           <Legend
@@ -770,16 +770,16 @@ function ThroughputCard({
                 left: `clamp(0px, calc(${guideRatio * 100}% - 60px), calc(100% - 124px))`,
               }}
             >
-              <div className="text-muted-foreground mb-1 text-[10.5px]">
+              <div className="text-muted-foreground mb-1 text-fs-105">
                 {hoverAgo <= 0
                   ? t('overview.throughput.hoverNow')
                   : t('overview.throughput.hoverAgo', { n: hoverAgo })}
               </div>
-              <div className="flex items-center justify-between gap-3 text-[11px]">
+              <div className="flex items-center justify-between gap-3 text-fs-11">
                 <span className="text-muted-foreground">{t('overview.throughput.produce')}</span>
                 <span className="font-mono-design tabular-nums">{formatTps(hoverProd)}/s</span>
               </div>
-              <div className="mt-0.5 flex items-center justify-between gap-3 text-[11px]">
+              <div className="mt-0.5 flex items-center justify-between gap-3 text-fs-11">
                 <span className="text-muted-foreground">{t('overview.throughput.consume')}</span>
                 <span className="font-mono-design tabular-nums">{formatTps(hoverCons)}/s</span>
               </div>
@@ -787,7 +787,7 @@ function ThroughputCard({
           )}
         </div>
       ) : (
-        <div className="text-muted-foreground flex h-[110px] items-center justify-center text-[12px]">
+        <div className="text-muted-foreground flex h-[110px] items-center justify-center text-fs-12">
           {loading ? t('common.loading') : t('overview.throughput.noData')}
         </div>
       )}
@@ -800,8 +800,8 @@ function Legend({ color, label, value }: { color: string; label: string; value: 
   return (
     <div className="flex items-center gap-1.5">
       <span className="h-1.5 w-1.5 rounded-sm" style={{ background: color }} />
-      <span className="text-muted-foreground text-[11px]">{label}</span>
-      <span className="font-mono-design tabular-nums text-[11.5px]">{formatTps(value)}/s</span>
+      <span className="text-muted-foreground text-fs-11">{label}</span>
+      <span className="font-mono-design tabular-nums text-fs-115">{formatTps(value)}/s</span>
     </div>
   )
 }
@@ -830,15 +830,15 @@ function ListCard({
       <div className="flex items-start justify-between gap-2 border-b border-border px-3 py-2.5">
         <div className="min-w-0">
           <div className="flex items-center gap-1.5">
-            <span className="text-[12px] font-medium">{title}</span>
+            <span className="text-fs-12 font-medium">{title}</span>
             {badge && <Badge variant="destructive">{badge}</Badge>}
           </div>
-          <div className="text-muted-foreground mt-0.5 text-[11px]">{subtitle}</div>
+          <div className="text-muted-foreground mt-0.5 text-fs-11">{subtitle}</div>
         </div>
         {onViewAll && (
           <button
             type="button"
-            className="text-muted-foreground shrink-0 text-[11.5px] hover:text-foreground"
+            className="text-muted-foreground shrink-0 text-fs-115 hover:text-foreground"
             onClick={onViewAll}
           >
             {t('common.viewAll')}
@@ -846,7 +846,7 @@ function ListCard({
         )}
       </div>
       <div className="divide-y divide-border">
-        {hasItems ? children : <div className="text-muted-foreground px-3 py-3 text-[12px]">{empty}</div>}
+        {hasItems ? children : <div className="text-muted-foreground px-3 py-3 text-fs-12">{empty}</div>}
       </div>
     </Card>
   )

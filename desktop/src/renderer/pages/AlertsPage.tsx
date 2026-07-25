@@ -81,7 +81,7 @@ function LevelBadge({ severity }: { severity: AlertSeverity }) {
   const token = severity === 'crit' ? 'destructive' : severity === 'warn' ? 'warning' : 'info'
   return (
     <span
-      className="inline-flex h-[17px] shrink-0 items-center rounded-[5px] px-1.5 text-[10.5px] font-semibold uppercase"
+      className="inline-flex h-[17px] shrink-0 items-center rounded-[5px] px-1.5 text-fs-105 font-semibold uppercase"
       style={{
         background: `hsl(var(--${token}) / 0.1)`,
         color: `hsl(var(--${token}))`,
@@ -99,14 +99,14 @@ function ActiveAlerts({ alerts, loading }: { alerts: AlertEntry[]; loading: bool
     return (
       <div className="text-muted-foreground flex items-center justify-center" style={{ padding: 60, gap: 8 }}>
         <Spinner size={14} />
-        <span className="text-[12px]">{t('common.loading')}</span>
+        <span className="text-fs-12">{t('common.loading')}</span>
       </div>
     )
   }
   if (alerts.length === 0) {
     return (
       <Card
-        className="text-muted-foreground mx-auto text-center text-[12px]"
+        className="text-muted-foreground mx-auto text-center text-fs-12"
         style={{ padding: 32, maxWidth: 860 }}
       >
         {t('alerts.active.empty')}
@@ -128,11 +128,11 @@ function ActiveAlerts({ alerts, loading }: { alerts: AlertEntry[]; loading: bool
             <LevelBadge severity={a.severity} />
           </span>
           <div className="min-w-0 flex-1">
-            <div className="text-[12.5px] font-medium leading-snug">{a.title}</div>
-            <div className="text-muted-foreground mt-0.5 text-[11.5px] leading-snug">{a.desc}</div>
+            <div className="text-fs-125 font-medium leading-snug">{a.title}</div>
+            <div className="text-muted-foreground mt-0.5 text-fs-115 leading-snug">{a.desc}</div>
           </div>
           {a.since && (
-            <span className="font-mono-design text-muted-foreground shrink-0 text-[11px] tabular-nums">
+            <span className="font-mono-design text-muted-foreground shrink-0 text-fs-11 tabular-nums">
               {t('alerts.active.since', { time: a.since })}
             </span>
           )}
@@ -158,11 +158,11 @@ function RulesPanel({
   const { t } = useTranslation()
   return (
     <Card className="mx-auto" style={{ padding: 20, maxWidth: 860 }}>
-      <div className="text-[13px] font-medium">{t('alerts.rules.title')}</div>
-      <div className="text-muted-foreground mt-1 text-[12px]" style={{ lineHeight: 1.5 }}>
+      <div className="text-fs-13 font-medium">{t('alerts.rules.title')}</div>
+      <div className="text-muted-foreground mt-1 text-fs-12" style={{ lineHeight: 1.5 }}>
         {t('alerts.rules.desc')}
       </div>
-      <div className="text-muted-foreground mt-2 text-[11px]" style={{ lineHeight: 1.5 }}>
+      <div className="text-muted-foreground mt-2 text-fs-11" style={{ lineHeight: 1.5 }}>
         {t('alerts.rules.localOnlyNote')}
       </div>
 
@@ -174,8 +174,8 @@ function RulesPanel({
             borderRadius: 8,
           }}
         >
-          <div className="text-muted-foreground text-[12px]">{t('alerts.rules.lagThreshold')}</div>
-          <div className="tabular-nums mt-1 text-[18px] font-semibold">
+          <div className="text-muted-foreground text-fs-12">{t('alerts.rules.lagThreshold')}</div>
+          <div className="tabular-nums mt-1 text-fs-18 font-semibold">
             {lagThreshold <= 0
               ? t('alerts.rules.thresholdOff')
               : t('alerts.rules.lagThresholdValue', { n: lagThreshold.toLocaleString() })}
@@ -188,8 +188,8 @@ function RulesPanel({
             borderRadius: 8,
           }}
         >
-          <div className="text-muted-foreground text-[12px]">{t('alerts.rules.diskThreshold')}</div>
-          <div className="tabular-nums mt-1 text-[18px] font-semibold">
+          <div className="text-muted-foreground text-fs-12">{t('alerts.rules.diskThreshold')}</div>
+          <div className="tabular-nums mt-1 text-fs-18 font-semibold">
             {diskThreshold <= 0
               ? t('alerts.rules.thresholdOff')
               : t('alerts.rules.diskThresholdValue', { n: diskThreshold })}
@@ -197,7 +197,7 @@ function RulesPanel({
         </div>
       </div>
 
-      <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 20 }}>
+      <div className="mb-2.5 text-fs-11 font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 20 }}>
         {t('alerts.tabs.rules')}
       </div>
       <div>
@@ -220,7 +220,7 @@ function RulesPanel({
                       ? 'warn'
                       : 'info',
                 )}
-                <span className="flex-1 text-[13px]">{t(`alerts.rule.${k}`)}</span>
+                <span className="flex-1 text-fs-13">{t(`alerts.rule.${k}`)}</span>
                 <Switch
                   checked={on}
                   onCheckedChange={() => onToggle(k)}

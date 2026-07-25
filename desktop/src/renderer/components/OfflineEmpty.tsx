@@ -27,7 +27,7 @@ export function OfflineEmpty({
       <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full border border-border">
         <PlugZap size={18} className="opacity-50" />
       </div>
-      <div className="text-[13px] font-medium text-foreground/80">
+      <div className="text-fs-13 font-medium text-foreground/80">
         {message ?? t('common.connectFirst')}
       </div>
       {onAction && (
