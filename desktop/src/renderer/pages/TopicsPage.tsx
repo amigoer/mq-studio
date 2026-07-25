@@ -5,6 +5,12 @@ import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { TopicMessageType, TopicPerm, type TopicItem } from '@generated/models'
 import { PageHeader } from '@/components/PageHeader'
+import { PageBody, PageToolbar } from '@/components/PageLayout'
+import { DetailPanel } from '@/components/DetailPanel'
+import { SectionLabel } from '@/components/SectionLabel'
+import { StatCard } from '@/components/StatCard'
+import { InfoRow } from '@/components/InfoRow'
+import { formatCount, formatQueues, formatRateWithUnit } from '@/lib/format'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Modal } from '@/components/ui/modal'
 import { useTopics } from '@/hooks/useTopics'
@@ -16,6 +22,7 @@ import { cn, formatErrorMessage } from '@/lib/utils'
 import { activatableRowProps, ROW_FOCUS_CLASS } from '@/lib/a11y'
 import { RefreshButton, usePageRefresh } from '@/components/RefreshButton'
 import { SlidingTabs } from '@/components/SlidingTabs'
+import { EmptyState } from '@/components/EmptyState'
 import { OfflineEmpty } from '@/components/OfflineEmpty'
 import { ErrorBanner } from '@/components/ErrorBanner'
 import type { NavId } from '@/layout/Sidebar'
@@ -29,7 +36,7 @@ type TypeFilter = 'all' | 'normal' | 'retry' | 'dlq'
 type TopicKind = 'normal' | 'fifo' | 'delay' | 'retry' | 'dlq'
 
 /** Shared grid template for the topics table header + rows. */
-const TOPIC_COLS = 'minmax(0,1fr) 88px 64px 96px 72px 28px'
+const TOPIC_COLS = 'minmax(0,1fr) 6.77rem 4.92rem 7.38rem 5.54rem 2.15rem'
 
 const RETRY_PREFIX = '%RETRY%'
 const DLQ_PREFIX = '%DLQ%'
@@ -78,28 +85,6 @@ function classifyTopic(t: TopicItem): TopicKind {
   if (t.messageType === TopicMessageType.FIFO) return 'fifo'
   if (t.messageType === TopicMessageType.Delay) return 'delay'
   return 'normal'
-}
-
-/** Negative means the brokers never reported the metric — not "idle". */
-function formatTps(n: number): string {
-  if (!Number.isFinite(n) || n < 0) return '—'
-  if (n >= 10000) return `${(n / 1000).toFixed(1)}k/s`
-  if (n >= 1000) return `${(n / 1000).toFixed(2)}k/s`
-  return `${Math.round(n)}/s`
-}
-
-/** Same convention as formatTps: -1 is unknown, 0 is a real measurement. */
-function formatCount(n: number): string {
-  if (!Number.isFinite(n) || n < 0) return '—'
-  return String(n)
-}
-
-/** List API returns -1 for any field the brokers did not answer for. */
-function formatQueues(read: number, write: number): string {
-  if (read < 0 && write < 0) return '—'
-  if (read < 0) return `— / ${write}`
-  if (write < 0) return `${read} / —`
-  return `${read} / ${write}`
 }
 
 /**
@@ -313,8 +298,8 @@ export function TopicsPage({ onNavigate }: { onNavigate?: (id: NavId) => void })
       </PageHeader>
 
       {hasOnline && (
-        <div className="flex items-center gap-2.5 border-b border-border/80 px-5 py-3">
-          <div className="relative" style={{ width: 260 }}>
+        <PageToolbar>
+          <div className="relative" style={{ width: '20rem' }}>
             <span className="pointer-events-none absolute left-2.5 top-1/2 z-[1] -translate-y-1/2 text-muted-foreground">
               <Search size={13} />
             </span>
@@ -338,14 +323,11 @@ export function TopicsPage({ onNavigate }: { onNavigate?: (id: NavId) => void })
           <span className="text-muted-foreground shrink-0 text-fs-115 tabular-nums">
             {t('topics.resultCount', { count: filtered.length })}
           </span>
-        </div>
+        </PageToolbar>
       )}
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
-        <div
-          className="scroll-thin min-w-0 flex-1 overflow-auto"
-          onClick={handleListBackgroundClick}
-        >
+        <PageBody onClick={handleListBackgroundClick}>
           {!hasOnline ? (
             <OfflineEmpty
               message={t('topics.subtitleNoConn')}
@@ -360,89 +342,84 @@ export function TopicsPage({ onNavigate }: { onNavigate?: (id: NavId) => void })
             <>
               {error && <ErrorBanner message={t('topics.loadError', { message: error })} />}
               {filtered.length === 0 ? (
-                <div className="text-muted-foreground flex min-h-[200px] flex-col items-center justify-center gap-2 p-10 text-center">
-                  <Tag size={22} className="opacity-35" />
-                  <div className="text-fs-13">{t('topics.empty')}</div>
-                  <div className="text-fs-115">{t('topics.emptyHint')}</div>
-                  {typeFilter === 'all' && !search.trim() && (
-                    <Button variant="default" size="sm"
-                      className="mt-2"
-                      onClick={() => setEditorOpen({ mode: 'create' })}
-                    >
-                      <Plus size={13} />
-                      {t('common.create')}
-                    </Button>
-                  )}
-                </div>
+                <EmptyState
+                  icon={Tag}
+                  title={t('topics.empty')}
+                  description={t('topics.emptyHint')}
+                  actionLabel={t('common.create')}
+                  onAction={
+                    typeFilter === 'all' && !search.trim()
+                      ? () => setEditorOpen({ mode: 'create' })
+                      : undefined
+                  }
+                />
               ) : (
-                <div className="px-5 pb-5 pt-3">
+                <div
+                  className="overflow-hidden rounded-xl border border-border/80 bg-card shadow-card"
+                  style={{ minWidth: '49.23rem' }}
+                >
                   <div
-                    className="overflow-hidden rounded-xl border border-border/80 bg-card shadow-card"
-                    style={{ minWidth: 640 }}
+                    className="text-muted-foreground grid items-center gap-2 border-b border-border px-3.5 py-2 text-fs-11 font-medium"
+                    style={{ gridTemplateColumns: TOPIC_COLS }}
                   >
-                    <div
-                      className="text-muted-foreground grid items-center gap-2 border-b border-border px-3.5 py-2 text-fs-11 font-medium"
-                      style={{ gridTemplateColumns: TOPIC_COLS }}
-                    >
-                      <span>{t('topics.table.name')}</span>
-                      <span className="text-right">{t('topics.table.queues')}</span>
-                      <span>{t('topics.table.perm')}</span>
-                      <span>{t('topics.table.tpsIn')}</span>
-                      <span className="text-right">{t('topics.table.groups')}</span>
-                      <span />
-                    </div>
-                    {filtered.map(({ raw, kind }) => {
-                      const selected = selectedName === raw.topic
-                      return (
-                        <div
-                          key={raw.topic}
-                          data-topic-row
-                          role="button"
-                          aria-current={selected || undefined}
-                          onClick={() => setSelectedName(raw.topic)}
-                          {...activatableRowProps(() => setSelectedName(raw.topic))}
-                          className={cn(
-                            'grid cursor-pointer items-center gap-2 border-t border-border px-3.5 py-2.5 transition-colors hover:bg-muted',
-                            ROW_FOCUS_CLASS,
-                            selected && 'bg-accent hover:bg-accent',
-                          )}
-                          style={{ gridTemplateColumns: TOPIC_COLS }}
-                        >
-                          <div className="flex min-w-0 items-center gap-2">
-                            <span className="font-mono-design truncate text-fs-12">{raw.topic}</span>
-                            <Badge variant="outline" className={typeBadgeClass(kind) + ' shrink-0'}>
-                              {typeLabel(kind, t)}
-                            </Badge>
-                          </div>
-                          <span className="font-mono-design text-right text-fs-12 tabular-nums">
-                            {formatQueues(raw.readQueue, raw.writeQueue)}
-                          </span>
-                          <span className="text-muted-foreground text-fs-115">
-                            {permLabel(raw.perm, t)}
-                          </span>
-                          <span className="font-mono-design text-muted-foreground text-fs-115 tabular-nums">
-                            {formatTps(raw.tpsIn)}
-                          </span>
-                          <span className="font-mono-design text-muted-foreground text-right text-fs-12 tabular-nums">
-                            {formatCount(raw.consumerGroups)}
-                          </span>
-                          <ChevronRight
-                            size={14}
-                            className={cn(
-                              'text-muted-foreground shrink-0 justify-self-end transition-opacity',
-                              selected ? 'opacity-70' : 'opacity-50',
-                            )}
-                            aria-hidden
-                          />
-                        </div>
-                      )
-                    })}
+                    <span>{t('topics.table.name')}</span>
+                    <span className="text-right">{t('topics.table.queues')}</span>
+                    <span>{t('topics.table.perm')}</span>
+                    <span>{t('topics.table.tpsIn')}</span>
+                    <span className="text-right">{t('topics.table.groups')}</span>
+                    <span />
                   </div>
+                  {filtered.map(({ raw, kind }) => {
+                    const selected = selectedName === raw.topic
+                    return (
+                      <div
+                        key={raw.topic}
+                        data-topic-row
+                        role="button"
+                        aria-current={selected || undefined}
+                        onClick={() => setSelectedName(raw.topic)}
+                        {...activatableRowProps(() => setSelectedName(raw.topic))}
+                        className={cn(
+                          'grid cursor-pointer items-center gap-2 border-t border-border px-3.5 py-2.5 transition-colors hover:bg-muted',
+                          ROW_FOCUS_CLASS,
+                          selected && 'bg-accent hover:bg-accent',
+                        )}
+                        style={{ gridTemplateColumns: TOPIC_COLS }}
+                      >
+                        <div className="flex min-w-0 items-center gap-2">
+                          <span className="font-mono-design truncate text-fs-12">{raw.topic}</span>
+                          <Badge variant="outline" className={typeBadgeClass(kind) + ' shrink-0'}>
+                            {typeLabel(kind, t)}
+                          </Badge>
+                        </div>
+                        <span className="font-mono-design text-right text-fs-12 tabular-nums">
+                          {formatQueues(raw.readQueue, raw.writeQueue)}
+                        </span>
+                        <span className="text-muted-foreground text-fs-115">
+                          {permLabel(raw.perm, t)}
+                        </span>
+                        <span className="font-mono-design text-muted-foreground text-fs-115 tabular-nums">
+                          {formatRateWithUnit(raw.tpsIn)}
+                        </span>
+                        <span className="font-mono-design text-muted-foreground text-right text-fs-12 tabular-nums">
+                          {formatCount(raw.consumerGroups)}
+                        </span>
+                        <ChevronRight
+                          size={14}
+                          className={cn(
+                            'text-muted-foreground shrink-0 justify-self-end transition-opacity',
+                            selected ? 'opacity-70' : 'opacity-50',
+                          )}
+                          aria-hidden
+                        />
+                      </div>
+                    )
+                  })}
                 </div>
               )}
             </>
           )}
-        </div>
+        </PageBody>
 
         {/* Detail panel */}
         {panelMount.shouldRender && (
@@ -518,24 +495,17 @@ function TopicDetailPanel({
     return consumerGroups.filter((g) => (g.subscriptions || []).some((s) => s.topic === name))
   }, [consumerGroups, topic])
 
-  const asideClass = 'scroll-thin detail-panel' + (exiting ? ' exiting' : '')
-
   if (loading && !topic) {
     return (
-      <aside
-        className={asideClass}
-        style={{
-          width: 360,
-          borderLeft: '1px solid hsl(var(--border))',
-          overflow: 'auto',
-          background: 'hsl(var(--background))',
-        }}
+      <DetailPanel
+        exiting={exiting}
+        ariaLabel={t('topics.title')}
       >
         <div className="text-muted-foreground flex items-center justify-center" style={{ padding: 60, gap: 8 }}>
           <Spinner size={14} />
           <span className="text-fs-12">{t('common.loading')}</span>
         </div>
-      </aside>
+      </DetailPanel>
     )
   }
 
@@ -553,14 +523,9 @@ function TopicDetailPanel({
       : null
 
   return (
-    <aside
-      className={asideClass}
-      style={{
-        width: 360,
-        borderLeft: '1px solid hsl(var(--border))',
-        overflow: 'auto',
-        background: 'hsl(var(--background))',
-      }}
+    <DetailPanel
+      exiting={exiting}
+      ariaLabel={topic.topic}
     >
       <div style={{ padding: 20 }}>
         <div className="flex items-start justify-between gap-2">
@@ -609,56 +574,25 @@ function TopicDetailPanel({
         {tab === 'info' && (
           <>
             <div className="mt-3 grid grid-cols-2 gap-2">
-              <div className="rounded-xl border border-border/80 bg-card p-3.5 shadow-card">
-                <div className="flex items-center gap-1.5 text-fs-115 text-muted-foreground">{t('topics.detail.stat.queues')}</div>
-                <div className="mt-1 font-semibold tracking-tight tabular-nums leading-tight text-fs-18">{totalQueue != null ? totalQueue : '—'}</div>
-                <div className="text-muted-foreground mt-0.5 text-fs-11">{queueLabel}</div>
-              </div>
-              <div className="rounded-xl border border-border/80 bg-card p-3.5 shadow-card">
-                <div className="flex items-center gap-1.5 text-fs-115 text-muted-foreground">{t('topics.detail.stat.groups')}</div>
-                <div className="mt-1 font-semibold tracking-tight tabular-nums leading-tight text-fs-18">{formatCount(topic.consumerGroups)}</div>
-              </div>
-              <div className="rounded-xl border border-border/80 bg-card p-3.5 shadow-card">
-                <div className="flex items-center gap-1.5 text-fs-115 text-muted-foreground">{t('topics.detail.stat.tpsIn')}</div>
-                <div className="mt-1 font-semibold tracking-tight tabular-nums leading-tight text-fs-16">{formatTps(topic.tpsIn)}</div>
-              </div>
-              <div className="rounded-xl border border-border/80 bg-card p-3.5 shadow-card">
-                <div className="flex items-center gap-1.5 text-fs-115 text-muted-foreground">{t('topics.detail.stat.tpsOut')}</div>
-                <div className="mt-1 font-semibold tracking-tight tabular-nums leading-tight text-fs-16">{formatTps(topic.tpsOut)}</div>
-              </div>
+              <StatCard label={t('topics.detail.stat.queues')} value={totalQueue != null ? totalQueue : '—'} valueClassName="text-fs-18" hint={queueLabel} />
+              <StatCard label={t('topics.detail.stat.groups')} value={formatCount(topic.consumerGroups)} valueClassName="text-fs-18" />
+              <StatCard label={t('topics.detail.stat.tpsIn')} value={formatRateWithUnit(topic.tpsIn)} valueClassName="text-fs-16" />
+              <StatCard label={t('topics.detail.stat.tpsOut')} value={formatRateWithUnit(topic.tpsOut)} valueClassName="text-fs-16" />
             </div>
 
-            <div className="mb-2.5 text-fs-11 font-semibold uppercase tracking-[0.08em] text-muted-foreground mt-4">{t('topics.detail.info')}</div>
+            <SectionLabel>{t('topics.detail.info')}</SectionLabel>
             <div>
               {topic.cluster && (
-                <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-fs-13 last:border-b-0">
-                  <div className="text-muted-foreground">{t('topics.detail.infoCluster')}</div>
-                  <div className="text-foreground">{topic.cluster}</div>
-                </div>
+                <InfoRow label={t('topics.detail.infoCluster')}>{topic.cluster}</InfoRow>
               )}
-              <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-fs-13 last:border-b-0">
-                <div className="text-muted-foreground">{t('topics.detail.infoType')}</div>
-                <div className="text-foreground">{typeLabel(kind, t)}</div>
-              </div>
-              <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-fs-13 last:border-b-0">
-                <div className="text-muted-foreground">{t('topics.detail.infoPerm')}</div>
-                <div className="text-foreground">{permLabel(topic.perm, t)}</div>
-              </div>
-              <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-fs-13 last:border-b-0">
-                <div className="text-muted-foreground">{t('topics.detail.infoQueues')}</div>
-                <div className="text-foreground tabular-nums">{queueLabel}</div>
-              </div>
+              <InfoRow label={t('topics.detail.infoType')}>{typeLabel(kind, t)}</InfoRow>
+              <InfoRow label={t('topics.detail.infoPerm')}>{permLabel(topic.perm, t)}</InfoRow>
+              <InfoRow label={t('topics.detail.infoQueues')} valueClassName="tabular-nums">{queueLabel}</InfoRow>
               {topic.lastUpdated && (
-                <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-fs-13 last:border-b-0">
-                  <div className="text-muted-foreground">{t('topics.detail.infoUpdated')}</div>
-                  <div className="text-foreground font-mono-design text-fs-12">{topic.lastUpdated}</div>
-                </div>
+                <InfoRow label={t('topics.detail.infoUpdated')} mono>{topic.lastUpdated}</InfoRow>
               )}
               {topic.description && (
-                <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-fs-13 last:border-b-0">
-                  <div className="text-muted-foreground">{t('topics.detail.infoDesc')}</div>
-                  <div className="text-foreground">{topic.description}</div>
-                </div>
+                <InfoRow label={t('topics.detail.infoDesc')}>{topic.description}</InfoRow>
               )}
             </div>
           </>
@@ -667,9 +601,7 @@ function TopicDetailPanel({
         {tab === 'routes' && (
           <div className="mt-4">
             {topic.routes.length === 0 ? (
-              <div className="text-muted-foreground text-fs-12" style={{ padding: 16, textAlign: 'center' }}>
-                {t('topics.detail.routesEmpty')}
-              </div>
+              <EmptyState compact title={t('topics.detail.routesEmpty')} />
             ) : (
               <Card className="overflow-hidden">
                 {topic.routes.map((r, i) => (
@@ -708,8 +640,8 @@ function TopicDetailPanel({
                 {t('common.loading')}
               </div>
             ) : relatedGroups.length === 0 ? (
-              <Card style={{ padding: 16, textAlign: 'center' }}>
-                <div className="text-muted-foreground text-fs-12">{t('topics.detail.groupsEmpty')}</div>
+              <Card>
+                <EmptyState compact title={t('topics.detail.groupsEmpty')} />
               </Card>
             ) : (
               <Card className="overflow-hidden">
@@ -784,7 +716,7 @@ function TopicDetailPanel({
           </div>
         </div>
       </div>
-    </aside>
+    </DetailPanel>
   )
 }
 

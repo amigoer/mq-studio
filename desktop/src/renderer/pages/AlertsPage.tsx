@@ -1,12 +1,15 @@
 import { useCallback, useState } from 'react'
-import { AlertCircle, AlertTriangle, Info, Settings } from 'lucide-react'
+import { AlertCircle, AlertTriangle, BellOff, Info, Settings } from 'lucide-react'
 import { Spinner } from '@/components/Spinner'
 import { useTranslation } from 'react-i18next'
 import { PageHeader } from '@/components/PageHeader'
+import { PageBody, PageToolbar } from '@/components/PageLayout'
+import { SectionLabel } from '@/components/SectionLabel'
 import { useAlerts, type AlertEntry, type AlertSeverity } from '@/hooks/useAlerts'
 import type { NavId } from '@/layout/Sidebar'
 import { RefreshButton, usePageRefresh } from '@/components/RefreshButton'
 import { SlidingTabs } from '@/components/SlidingTabs'
+import { EmptyState } from '@/components/EmptyState'
 import { OfflineEmpty } from '@/components/OfflineEmpty'
 import { type AlertRuleKey, type AlertRulePrefs } from '@/lib/alertRules'
 import { Button } from '@/components/ui/button'
@@ -36,7 +39,7 @@ export function AlertsPage({ onNavigate }: AlertsPageProps) {
       </PageHeader>
 
       {hasOnline && (
-        <div className="flex items-center gap-1 border-b border-border px-4 py-2">
+        <PageToolbar>
           <SlidingTabs
             value={tab}
             onChange={setTab}
@@ -45,10 +48,10 @@ export function AlertsPage({ onNavigate }: AlertsPageProps) {
               { key: 'rules', label: t('alerts.tabs.rules') },
             ]}
           />
-        </div>
+        </PageToolbar>
       )}
 
-      <div className="scroll-thin min-h-0 flex-1 overflow-auto" style={{ padding: 20 }}>
+      <PageBody width="content">
         {!hasOnline ? (
           <OfflineEmpty
             message={t('alerts.subtitleNoConn')}
@@ -65,7 +68,7 @@ export function AlertsPage({ onNavigate }: AlertsPageProps) {
             onOpenSettings={() => onNavigate?.('settings')}
           />
         )}
-      </div>
+      </PageBody>
     </div>
   )
 }
@@ -81,7 +84,7 @@ function LevelBadge({ severity }: { severity: AlertSeverity }) {
   const token = severity === 'crit' ? 'destructive' : severity === 'warn' ? 'warning' : 'info'
   return (
     <span
-      className="inline-flex h-[17px] shrink-0 items-center rounded-[5px] px-1.5 text-fs-105 font-semibold uppercase"
+      className="inline-flex h-[1.31rem] shrink-0 items-center rounded-[5px] px-1.5 text-fs-105 font-semibold uppercase"
       style={{
         background: `hsl(var(--${token}) / 0.1)`,
         color: `hsl(var(--${token}))`,
@@ -105,16 +108,13 @@ function ActiveAlerts({ alerts, loading }: { alerts: AlertEntry[]; loading: bool
   }
   if (alerts.length === 0) {
     return (
-      <Card
-        className="text-muted-foreground mx-auto text-center text-fs-12"
-        style={{ padding: 32, maxWidth: 860 }}
-      >
-        {t('alerts.active.empty')}
+      <Card>
+        <EmptyState icon={BellOff} title={t('alerts.active.empty')} />
       </Card>
     )
   }
   return (
-    <Card className="mx-auto overflow-hidden" style={{ maxWidth: 860 }}>
+    <Card className="overflow-hidden">
       {alerts.map((a, i) => (
         <div
           key={a.key}
@@ -157,7 +157,7 @@ function RulesPanel({
 }) {
   const { t } = useTranslation()
   return (
-    <Card className="mx-auto" style={{ padding: 20, maxWidth: 860 }}>
+    <Card style={{ padding: 20 }}>
       <div className="text-fs-13 font-medium">{t('alerts.rules.title')}</div>
       <div className="text-muted-foreground mt-1 text-fs-12" style={{ lineHeight: 1.5 }}>
         {t('alerts.rules.desc')}
@@ -197,9 +197,7 @@ function RulesPanel({
         </div>
       </div>
 
-      <div className="mb-2.5 text-fs-11 font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 20 }}>
-        {t('alerts.tabs.rules')}
-      </div>
+      <SectionLabel>{t('alerts.tabs.rules')}</SectionLabel>
       <div>
         {(['brokerOffline', 'groupOffline', 'groupLag', 'diskUsage', 'dlqGrowth'] as const).map(
           (k, i) => {

@@ -14,6 +14,9 @@ import {
 import { useTranslation } from 'react-i18next'
 import type { ConsumerGroupItem, TopicItem } from '@generated/models'
 import { PageHeader } from '@/components/PageHeader'
+import { PageBody } from '@/components/PageLayout'
+import { StatCard } from '@/components/StatCard'
+import { formatCompactCount, formatRate } from '@/lib/format'
 import { useOverview, type OverviewSnapshot } from '@/hooks/useOverview'
 import { useSettings } from '@/hooks/useSettings'
 import { useConnections } from '@/hooks/useConnections'
@@ -32,18 +35,6 @@ import { ErrorBanner } from '@/components/ErrorBanner'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
-
-function formatTps(n: number): string {
-  if (!Number.isFinite(n) || n <= 0) return '0'
-  if (n >= 10000) return `${(n / 1000).toFixed(1)}k`
-  if (n >= 1000) return `${(n / 1000).toFixed(2)}k`
-  return String(Math.round(n))
-}
-
-function formatLag(n: number): string {
-  if (n >= 10000) return `${(n / 1000).toFixed(1)}k`
-  return n.toLocaleString()
-}
 
 function formatTime(d: Date | null): string {
   if (!d) return '—'
@@ -271,27 +262,29 @@ export function OverviewPage({ onNavigate }: OverviewPageProps) {
         )}
       </PageHeader>
 
-      <div className="scroll-thin min-h-0 flex-1 overflow-auto px-5 py-4">
+      <PageBody width="wide">
         {!isOnline ? (
           <OfflineEmpty
             message={t('overview.current.noConnection')}
             onAction={() => onNavigate?.('connections')}
           />
         ) : (
-          <div className="mx-auto flex max-w-5xl flex-col gap-4">
+          <div className="flex flex-col gap-4">
             {error && (
               <ErrorBanner className="m-0" message={t('overview.loadError', { message: error })} />
             )}
 
             {/* KPI strip */}
             <div className="grid grid-cols-4 gap-2.5">
-              <Kpi
+              <StatCard
+                hoverLift
                 icon={LayoutGrid}
                 label={t('overview.stat.topics')}
                 value={(data.topics.length || cluster?.totalTopics || 0).toLocaleString()}
                 hint={t('overview.stat.topicSummary', { active: activeTopics.length })}
               />
-              <Kpi
+              <StatCard
+                hoverLift
                 icon={Users}
                 label={t('overview.stat.consumers')}
                 value={(data.consumerGroups.length || cluster?.totalGroups || 0).toLocaleString()}
@@ -301,7 +294,8 @@ export function OverviewPage({ onNavigate }: OverviewPageProps) {
                   unknown: Math.max(0, data.consumerGroups.length - onlineGroups - offlineGroups),
                 })}
               />
-              <Kpi
+              <StatCard
+                hoverLift
                 icon={Server}
                 label={t('overview.stat.broker')}
                 value={`${onlineBrokerCount}/${totalBrokerCount || onlineBrokerCount}`}
@@ -321,10 +315,11 @@ export function OverviewPage({ onNavigate }: OverviewPageProps) {
                       })
                 }
               />
-              <Kpi
+              <StatCard
+                hoverLift
                 icon={Inbox}
                 label={t('overview.stat.lag')}
-                value={formatLag(totalLag)}
+                value={formatCompactCount(totalLag)}
                 hint={
                   lagAlerts.length === 0
                     ? t('overview.stat.lagSummary_zero')
@@ -417,7 +412,7 @@ export function OverviewPage({ onNavigate }: OverviewPageProps) {
                           </span>
                           <div
                             className="h-1.5 shrink-0 overflow-hidden rounded-full bg-muted"
-                            style={{ width: 56 }}
+                            style={{ width: '4.31rem' }}
                           >
                             {tps > 0 && (
                               <div
@@ -427,7 +422,7 @@ export function OverviewPage({ onNavigate }: OverviewPageProps) {
                             )}
                           </div>
                           <span className="font-mono-design tabular-nums text-muted-foreground w-14 text-right text-fs-115">
-                            {tps > 0 ? `${formatTps(tps)}/s` : '—'}
+                            {tps > 0 ? `${formatRate(tps)}/s` : '—'}
                           </span>
                         </div>
                       )
@@ -521,30 +516,7 @@ export function OverviewPage({ onNavigate }: OverviewPageProps) {
             )}
           </div>
         )}
-      </div>
-    </div>
-  )
-}
-
-function Kpi({
-  icon: Icon,
-  label,
-  value,
-  hint,
-}: {
-  icon: typeof LayoutGrid
-  label: string
-  value: string
-  hint: string
-}) {
-  return (
-    <div className="rounded-xl border border-border/80 bg-card p-3.5 shadow-card transition-[box-shadow,transform] duration-200 hover:-translate-y-px hover:shadow-[0_1px_2px_hsl(0_0%_0%/0.05),0_8px_24px_hsl(0_0%_0%/0.05)]">
-      <div className="flex items-center justify-between">
-        <span className="flex items-center gap-1.5 text-fs-115 text-muted-foreground">{label}</span>
-        <Icon size={13} className="text-muted-foreground opacity-70" />
-      </div>
-      <div className="mt-1 text-fs-21 font-semibold leading-tight tracking-[-0.02em] tabular-nums">{value}</div>
-      <div className="text-muted-foreground mt-1 text-fs-11 leading-snug">{hint}</div>
+      </PageBody>
     </div>
   )
 }
@@ -562,7 +534,7 @@ function QuickAction({
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex h-[34px] items-center justify-center gap-1.5 rounded-[10px] border border-border/80 bg-card text-fs-12 font-medium shadow-card transition-[background-color,transform] hover:bg-accent active:scale-[0.98]"
+      className="inline-flex h-[2.62rem] items-center justify-center gap-1.5 rounded-[10px] border border-border/80 bg-card text-fs-12 font-medium shadow-card transition-[background-color,transform] hover:bg-accent active:scale-[0.98]"
     >
       <Icon size={13} className="text-muted-foreground" />
       {label}
@@ -654,7 +626,7 @@ function ThroughputCard({
       </div>
       {hasData ? (
         <div
-          className="relative h-[110px] w-full cursor-crosshair"
+          className="relative h-[8.46rem] w-full cursor-crosshair"
           onMouseMove={onChartMove}
           onMouseLeave={() => setHover(null)}
         >
@@ -765,7 +737,7 @@ function ThroughputCard({
           </svg>
           {hoverIndex != null && (
             <div
-              className="bg-popover text-popover-foreground pointer-events-none absolute top-1 z-10 min-w-[118px] rounded-md border px-2.5 py-1.5 shadow-sm"
+              className="bg-popover text-popover-foreground pointer-events-none absolute top-1 z-10 min-w-[9.08rem] rounded-md border px-2.5 py-1.5 shadow-sm"
               style={{
                 left: `clamp(0px, calc(${guideRatio * 100}% - 60px), calc(100% - 124px))`,
               }}
@@ -777,17 +749,17 @@ function ThroughputCard({
               </div>
               <div className="flex items-center justify-between gap-3 text-fs-11">
                 <span className="text-muted-foreground">{t('overview.throughput.produce')}</span>
-                <span className="font-mono-design tabular-nums">{formatTps(hoverProd)}/s</span>
+                <span className="font-mono-design tabular-nums">{formatRate(hoverProd)}/s</span>
               </div>
               <div className="mt-0.5 flex items-center justify-between gap-3 text-fs-11">
                 <span className="text-muted-foreground">{t('overview.throughput.consume')}</span>
-                <span className="font-mono-design tabular-nums">{formatTps(hoverCons)}/s</span>
+                <span className="font-mono-design tabular-nums">{formatRate(hoverCons)}/s</span>
               </div>
             </div>
           )}
         </div>
       ) : (
-        <div className="text-muted-foreground flex h-[110px] items-center justify-center text-fs-12">
+        <div className="text-muted-foreground flex h-[8.46rem] items-center justify-center text-fs-12">
           {loading ? t('common.loading') : t('overview.throughput.noData')}
         </div>
       )}
@@ -801,7 +773,7 @@ function Legend({ color, label, value }: { color: string; label: string; value: 
     <div className="flex items-center gap-1.5">
       <span className="h-1.5 w-1.5 rounded-sm" style={{ background: color }} />
       <span className="text-muted-foreground text-fs-11">{label}</span>
-      <span className="font-mono-design tabular-nums text-fs-115">{formatTps(value)}/s</span>
+      <span className="font-mono-design tabular-nums text-fs-115">{formatRate(value)}/s</span>
     </div>
   )
 }

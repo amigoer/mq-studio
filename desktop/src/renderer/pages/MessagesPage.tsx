@@ -5,6 +5,10 @@ import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import type { MessageItem, MessageTrackItem } from '@generated/models'
 import { PageHeader } from '@/components/PageHeader'
+import { PageBody, PageToolbar } from '@/components/PageLayout'
+import { DetailPanel } from '@/components/DetailPanel'
+import { SectionLabel } from '@/components/SectionLabel'
+import { InfoRow } from '@/components/InfoRow'
 import { JsonView } from '@/components/JsonView'
 import { useTopics } from '@/hooks/useTopics'
 import { useConsumers } from '@/hooks/useConsumers'
@@ -21,6 +25,7 @@ import {
   type BodyPreviewKind,
 } from '@/lib/time'
 import { SlidingTabs } from '@/components/SlidingTabs'
+import { EmptyState } from '@/components/EmptyState'
 import { OfflineEmpty } from '@/components/OfflineEmpty'
 import { ErrorBanner } from '@/components/ErrorBanner'
 import type { NavId } from '@/layout/Sidebar'
@@ -200,7 +205,7 @@ export function MessagesPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
       />
 
       {hasOnline && (
-        <div className="flex items-center gap-1 border-b border-border px-4 py-2">
+        <PageToolbar>
           <SlidingTabs
             value={tab}
             onChange={(key) => {
@@ -217,7 +222,7 @@ export function MessagesPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
               { key: 'dlq', label: t('messages.tabs.dlq') },
             ]}
           />
-        </div>
+        </PageToolbar>
       )}
 
       {!hasOnline ? (
@@ -233,7 +238,7 @@ export function MessagesPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
             {(tab === 'topic' || tab === 'msgid') && (
               <Select
                 className="font-mono-design"
-                style={{ width: 220 }}
+                style={{ width: '16.92rem' }}
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
               >
@@ -248,7 +253,7 @@ export function MessagesPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
             {(tab === 'retry' || tab === 'dlq') && (
               <Select
                 className="font-mono-design"
-                style={{ width: 240 }}
+                style={{ width: '18.46rem' }}
                 value={group}
                 onChange={(e) => setGroup(e.target.value)}
               >
@@ -267,7 +272,7 @@ export function MessagesPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
                   className="font-mono-design"
                   type="datetime-local"
                   placeholder={t('messages.form.begin')}
-                  style={{ width: 200 }}
+                  style={{ width: '15.38rem' }}
                   value={beginAt}
                   onChange={(e) => setBeginAt(e.target.value)}
                   title={t('messages.form.begin')}
@@ -276,20 +281,20 @@ export function MessagesPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
                   className="font-mono-design"
                   type="datetime-local"
                   placeholder={t('messages.form.end')}
-                  style={{ width: 200 }}
+                  style={{ width: '15.38rem' }}
                   value={endAt}
                   onChange={(e) => setEndAt(e.target.value)}
                   title={t('messages.form.end')}
                 />
                 <Input
                   placeholder={t('messages.form.key')}
-                  style={{ width: 140 }}
+                  style={{ width: '10.77rem' }}
                   value={keyFilter}
                   onChange={(e) => setKeyFilter(e.target.value)}
                 />
                 <Input
                   placeholder={t('messages.form.tag')}
-                  style={{ width: 120 }}
+                  style={{ width: '9.23rem' }}
                   value={tagFilter}
                   onChange={(e) => setTagFilter(e.target.value)}
                 />
@@ -299,7 +304,7 @@ export function MessagesPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
               <Input
                 className="font-mono-design"
                 placeholder={t('messages.form.msgIdPlaceholder')}
-                style={{ flex: 1, minWidth: 240 }}
+                style={{ flex: 1, minWidth: '18.46rem' }}
                 value={msgId}
                 onChange={(e) => setMsgId(e.target.value)}
               />
@@ -309,7 +314,7 @@ export function MessagesPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
                 type="number"
                 min={1}
                 max={500}
-                style={{ width: 90 }}
+                style={{ width: '6.92rem' }}
                 value={limit}
                 onChange={(e) => setLimit(Number(e.target.value) || 32)}
                 title={t('messages.form.limit')}
@@ -332,10 +337,7 @@ export function MessagesPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
           {error && <ErrorBanner message={error} />}
 
           <div className="flex min-h-0 flex-1 overflow-hidden">
-            <div
-              className="scroll-thin min-w-0 flex-1 overflow-auto px-5 py-3"
-              onClick={handleListBackgroundClick}
-            >
+            <PageBody onClick={handleListBackgroundClick}>
               {searching && results.length === 0 ? (
                 <div
                   className="text-muted-foreground flex items-center justify-center"
@@ -345,24 +347,24 @@ export function MessagesPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
                   <span className="text-fs-12">{t('messages.form.searching')}</span>
                 </div>
               ) : !hasSearched ? (
-                <div className="text-muted-foreground text-center text-fs-12" style={{ padding: 60 }}>
-                  {t('messages.form.search')} →
-                </div>
+                <EmptyState
+                  icon={Search}
+                  title={t('messages.emptyPromptTitle')}
+                  description={t('messages.emptyPromptHint')}
+                />
               ) : results.length === 0 ? (
-                <div className="text-muted-foreground text-center text-fs-12" style={{ padding: 60 }}>
-                  {t('messages.empty')}
-                </div>
+                <EmptyState icon={Search} title={t('messages.empty')} />
               ) : (
                 <Card className="overflow-hidden">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead style={{ width: 200 }}>{t('messages.table.msgId')}</TableHead>
-                      <TableHead style={{ width: 110 }}>{t('messages.table.tag')}</TableHead>
-                      <TableHead style={{ width: 180 }}>{t('messages.table.key')}</TableHead>
+                      <TableHead style={{ width: '15.38rem' }}>{t('messages.table.msgId')}</TableHead>
+                      <TableHead style={{ width: '8.46rem' }}>{t('messages.table.tag')}</TableHead>
+                      <TableHead style={{ width: '13.85rem' }}>{t('messages.table.key')}</TableHead>
                       <TableHead>{t('messages.table.preview')}</TableHead>
-                      <TableHead style={{ width: 70, textAlign: 'right' }}>{t('messages.table.queue')}</TableHead>
-                      <TableHead style={{ width: 170 }}>{t('messages.table.storeTime')}</TableHead>
+                      <TableHead style={{ width: '5.38rem', textAlign: 'right' }}>{t('messages.table.queue')}</TableHead>
+                      <TableHead style={{ width: '13.08rem' }}>{t('messages.table.storeTime')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -383,7 +385,7 @@ export function MessagesPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
                         <TableCell>
                           <div
                             className="font-mono-design truncate text-fs-12"
-                            style={{ maxWidth: 180 }}
+                            style={{ maxWidth: '13.85rem' }}
                             title={m.messageId}
                           >
                             {m.messageId.slice(0, 24)}…
@@ -403,7 +405,7 @@ export function MessagesPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
                           <div
                             className="font-mono-design text-muted-foreground text-fs-12"
                             style={{
-                              maxWidth: 280,
+                              maxWidth: '21.54rem',
                               overflow: 'hidden',
                               textOverflow: 'ellipsis',
                               whiteSpace: 'nowrap',
@@ -428,7 +430,7 @@ export function MessagesPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
                 </Table>
                 </Card>
               )}
-            </div>
+            </PageBody>
 
             {panelMount.shouldRender && renderedSelected && (
               <MessageDetailPanel
@@ -526,14 +528,9 @@ function MessageDetailPanel({
   )
 
   return (
-    <aside
-      className={'scroll-thin detail-panel' + (exiting ? ' exiting' : '')}
-      style={{
-        width: 460,
-        borderLeft: '1px solid hsl(var(--border))',
-        overflow: 'auto',
-        background: 'hsl(var(--background))',
-      }}
+    <DetailPanel
+      exiting={exiting}
+      ariaLabel={t('messages.detail.title')}
     >
       <div style={{ padding: 20 }}>
         <div className="flex items-center justify-between gap-2">
@@ -575,65 +572,30 @@ function MessageDetailPanel({
           ))}
         </div>
 
-        <div className="mb-2.5 text-fs-11 font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 16 }}>
-          {t('messages.detail.info')}
-        </div>
+        <SectionLabel>{t('messages.detail.info')}</SectionLabel>
         <div>
-          <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-fs-13 last:border-b-0">
-            <div className="text-muted-foreground">{t('messages.detail.msgId')}</div>
-            <div className="text-foreground font-mono-design break-all text-fs-12">{msg.messageId}</div>
-          </div>
-          <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-fs-13 last:border-b-0">
-            <div className="text-muted-foreground">{t('messages.detail.topic')}</div>
-            <div className="text-foreground font-mono-design text-fs-12">{msg.topic}</div>
-          </div>
+          <InfoRow label={t('messages.detail.msgId')} mono valueClassName="break-all">{msg.messageId}</InfoRow>
+          <InfoRow label={t('messages.detail.topic')} mono>{msg.topic}</InfoRow>
           {msg.tags && (
-            <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-fs-13 last:border-b-0">
-              <div className="text-muted-foreground">{t('messages.detail.tag')}</div>
-              <div className="text-foreground">{msg.tags}</div>
-            </div>
+            <InfoRow label={t('messages.detail.tag')}>{msg.tags}</InfoRow>
           )}
           {msg.keys && (
-            <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-fs-13 last:border-b-0">
-              <div className="text-muted-foreground">{t('messages.detail.key')}</div>
-              <div className="text-foreground font-mono-design text-fs-12">{msg.keys}</div>
-            </div>
+            <InfoRow label={t('messages.detail.key')} mono>{msg.keys}</InfoRow>
           )}
-          <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-fs-13 last:border-b-0">
-            <div className="text-muted-foreground">{t('messages.detail.queue')}</div>
-            <div className="text-foreground tabular-nums">{msg.queueId}</div>
-          </div>
-          <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-fs-13 last:border-b-0">
-            <div className="text-muted-foreground">{t('messages.detail.queueOffset')}</div>
-            <div className="text-foreground tabular-nums">{msg.queueOffset}</div>
-          </div>
+          <InfoRow label={t('messages.detail.queue')} valueClassName="tabular-nums">{msg.queueId}</InfoRow>
+          <InfoRow label={t('messages.detail.queueOffset')} valueClassName="tabular-nums">{msg.queueOffset}</InfoRow>
           {msg.bornHost && (
-            <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-fs-13 last:border-b-0">
-              <div className="text-muted-foreground">{t('messages.detail.bornHost')}</div>
-              <div className="text-foreground font-mono-design text-fs-12">{msg.bornHost}</div>
-            </div>
+            <InfoRow label={t('messages.detail.bornHost')} mono>{msg.bornHost}</InfoRow>
           )}
           {msg.storeHost && (
-            <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-fs-13 last:border-b-0">
-              <div className="text-muted-foreground">{t('messages.detail.storeHost')}</div>
-              <div className="text-foreground font-mono-design text-fs-12">{msg.storeHost}</div>
-            </div>
+            <InfoRow label={t('messages.detail.storeHost')} mono>{msg.storeHost}</InfoRow>
           )}
-          <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-fs-13 last:border-b-0">
-            <div className="text-muted-foreground">{t('messages.detail.storeTime')}</div>
-            <div className="text-foreground font-mono-design text-fs-12">{displayStoreTime}</div>
-          </div>
+          <InfoRow label={t('messages.detail.storeTime')} mono>{displayStoreTime}</InfoRow>
           {msg.status && (
-            <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-fs-13 last:border-b-0">
-              <div className="text-muted-foreground">{t('messages.detail.status')}</div>
-              <div className="text-foreground">{msg.status}</div>
-            </div>
+            <InfoRow label={t('messages.detail.status')}>{msg.status}</InfoRow>
           )}
           {msg.retryTimes > 0 && (
-            <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-fs-13 last:border-b-0">
-              <div className="text-muted-foreground">{t('messages.detail.retryTimes')}</div>
-              <div className="text-foreground tabular-nums">{msg.retryTimes}</div>
-            </div>
+            <InfoRow label={t('messages.detail.retryTimes')} valueClassName="tabular-nums">{msg.retryTimes}</InfoRow>
           )}
         </div>
 
@@ -644,9 +606,7 @@ function MessageDetailPanel({
               style={{ marginTop: 20 }}
             >
               <div className="flex min-w-0 items-center gap-2">
-                <div className="mb-2.5 text-fs-11 font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginBottom: 0 }}>
-                  {t('messages.detail.bodyTitle')}
-                </div>
+                <SectionLabel first className="mb-0">{t('messages.detail.bodyTitle')}</SectionLabel>
                 <Badge variant="outline" className="text-fs-10">
                   {t(`messages.detail.bodyKind.${detectedKind}`)}
                 </Badge>
@@ -688,16 +648,11 @@ function MessageDetailPanel({
         {tab === 'properties' && (
           <div className="mt-4">
             {propEntries.length === 0 ? (
-              <div className="text-muted-foreground text-fs-12" style={{ padding: 16, textAlign: 'center' }}>
-                {t('messages.detail.propsEmpty')}
-              </div>
+              <EmptyState compact title={t('messages.detail.propsEmpty')} />
             ) : (
               <div>
                 {propEntries.map(([k, v]) => (
-                  <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-fs-13 last:border-b-0" key={k}>
-                    <div className="k font-mono-design">{k}</div>
-                    <div className="text-foreground font-mono-design break-all text-fs-12">{String(v)}</div>
-                  </div>
+                  <InfoRow key={k} label={<span className="font-mono-design">{k}</span>} mono valueClassName="break-all">{String(v)}</InfoRow>
                 ))}
               </div>
             )}
@@ -706,7 +661,7 @@ function MessageDetailPanel({
 
         {tab === 'track' && (
           <div className="mt-4">
-            <div className="mb-2.5 text-fs-11 font-semibold uppercase tracking-[0.08em] text-muted-foreground">{t('messages.detail.trackTitle')}</div>
+            <SectionLabel>{t('messages.detail.trackTitle')}</SectionLabel>
             {trackLoading ? (
               <div
                 className="text-muted-foreground flex items-center justify-center"
@@ -723,9 +678,7 @@ function MessageDetailPanel({
                 {t('messages.detail.trackError')}: {trackError}
               </div>
             ) : !track || track.length === 0 ? (
-              <div className="text-muted-foreground text-fs-12" style={{ padding: 16, textAlign: 'center' }}>
-                {t('messages.detail.trackEmpty')}
-              </div>
+              <EmptyState compact title={t('messages.detail.trackEmpty')} />
             ) : (
               <Card className="overflow-hidden">
                 {track.map((tr, i) => (
@@ -784,7 +737,7 @@ function MessageDetailPanel({
           </Button>
         </div>
       </div>
-    </aside>
+    </DetailPanel>
   )
 }
 

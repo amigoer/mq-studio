@@ -15,6 +15,8 @@ import type { LucideIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { PageHeader } from '@/components/PageHeader'
+import { PageBody } from '@/components/PageLayout'
+import { SectionLabel } from '@/components/SectionLabel'
 import { setConnectionPrefill } from '@/lib/connectionPrefill'
 import { importAllConfigFromFile } from '@/api/settings'
 import * as connectionApi from '@/api/connection'
@@ -139,8 +141,8 @@ export function EmptyStatePage({ onAddConnection }: { onAddConnection?: () => vo
         </Button>
       </PageHeader>
 
-      <div className="scroll-thin min-h-0 flex-1 overflow-auto">
-        <div style={{ maxWidth: 960, margin: '0 auto', padding: '20px 20px 32px' }}>
+      <PageBody width="wide">
+        <div className="pb-3">
           {/* Hero */}
           <Card style={{ position: 'relative', overflow: 'hidden', padding: 0 }}>
             <div
@@ -164,7 +166,7 @@ export function EmptyStatePage({ onAddConnection }: { onAddConnection?: () => vo
             >
               <div className="min-w-0 flex-1">
                 <div className="mb-2 flex items-center gap-2">
-                  <Badge variant="outline" className="h-[19px]">
+                  <Badge variant="outline" className="h-[1.46rem]">
                     <span
                       style={{
                         width: 6,
@@ -185,7 +187,7 @@ export function EmptyStatePage({ onAddConnection }: { onAddConnection?: () => vo
                 </div>
                 <div
                   className="text-muted-foreground mt-1.5 text-fs-12"
-                  style={{ maxWidth: 520, lineHeight: 1.6 }}
+                  style={{ maxWidth: '40rem', lineHeight: 1.6 }}
                 >
                   {t('emptyState.heroDesc')}
                 </div>
@@ -201,16 +203,14 @@ export function EmptyStatePage({ onAddConnection }: { onAddConnection?: () => vo
                 </div>
               </div>
 
-              <div style={{ width: 200, flexShrink: 0, display: 'grid', placeItems: 'center' }}>
+              <div style={{ width: '15.38rem', flexShrink: 0, display: 'grid', placeItems: 'center' }}>
                 <EmptySchematic notConfigured={t('emptyState.badge')} />
               </div>
             </div>
           </Card>
 
           {/* Quick start */}
-          <div className="mb-2.5 text-fs-11 font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 20 }}>
-            {t('emptyState.quickStart')}
-          </div>
+          <SectionLabel>{t('emptyState.quickStart')}</SectionLabel>
           <div className="grid gap-2.5" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
             {SAMPLES.map((s) => (
               <button
@@ -255,9 +255,7 @@ export function EmptyStatePage({ onAddConnection }: { onAddConnection?: () => vo
           </div>
 
           {/* Three-step flow */}
-          <div className="mb-2.5 text-fs-11 font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 20 }}>
-            {t('emptyState.workflow')}
-          </div>
+          <SectionLabel>{t('emptyState.workflow')}</SectionLabel>
           <Card style={{ padding: 0 }}>
             <div className="grid" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
               {STEP_ICONS.map((Icon, i) => {
@@ -331,7 +329,7 @@ export function EmptyStatePage({ onAddConnection }: { onAddConnection?: () => vo
             <div className="text-muted-foreground text-fs-12">{t('emptyState.footer')}</div>
           </div>
         </div>
-      </div>
+      </PageBody>
     </div>
   )
 }

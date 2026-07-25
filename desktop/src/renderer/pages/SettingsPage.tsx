@@ -23,6 +23,8 @@ import { FaApple, FaLinux, FaWindows } from 'react-icons/fa'
 import { toast } from 'sonner'
 import { useTranslation } from 'react-i18next'
 import { PageHeader } from '@/components/PageHeader'
+import { PageBody } from '@/components/PageLayout'
+import { SectionLabel } from '@/components/SectionLabel'
 import {
   useSettings,
   type ThemeMode,
@@ -226,9 +228,7 @@ function AppearancePanel() {
   const { prefs, setAnimations } = useUIPrefs()
   return (
     <>
-      <div className="mb-2.5 text-fs-11 font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 0 }}>
-        {t('settings.appearance.theme')}
-      </div>
+      <SectionLabel first>{t('settings.appearance.theme')}</SectionLabel>
       <div className="grid gap-2.5" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
         {THEMES.map((th) => {
           const active = settings.theme === th.mode
@@ -303,9 +303,7 @@ function AppearancePanel() {
         })}
       </div>
 
-      <div className="mb-2.5 text-fs-11 font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 24 }}>
-        {t('settings.appearance.a11y')}
-      </div>
+      <SectionLabel>{t('settings.appearance.a11y')}</SectionLabel>
       <Card>
         <SettingsRow
           title={t('settings.appearance.animations')}
@@ -324,16 +322,14 @@ function GeneralPanel() {
   const { settings, setSetting } = useSettings()
   return (
     <>
-      <div className="mb-2.5 text-fs-11 font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 0 }}>
-        {t('settings.general.languageRegion')}
-      </div>
+      <SectionLabel first>{t('settings.general.languageRegion')}</SectionLabel>
       <Card>
         <SettingsRow
           title={t('settings.general.language')}
           hint={t('settings.general.languageHint')}
         >
           <Select
-            style={{ width: 200 }}
+            style={{ width: '15.38rem' }}
             value={settings.language}
             onChange={(e) => setSetting('language', e.target.value as Language)}
           >
@@ -350,7 +346,7 @@ function GeneralPanel() {
           bordered={false}
         >
           <Select
-            style={{ width: 200 }}
+            style={{ width: '15.38rem' }}
             value={settings.timezone}
             onChange={(e) => setSetting('timezone', e.target.value as Timezone)}
           >
@@ -360,9 +356,7 @@ function GeneralPanel() {
         </SettingsRow>
       </Card>
 
-      <div className="mb-2.5 text-fs-11 font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 24 }}>
-        {t('settings.general.startup')}
-      </div>
+      <SectionLabel>{t('settings.general.startup')}</SectionLabel>
       <Card>
         <SettingsRow
           title={t('settings.general.autoConnect')}
@@ -387,9 +381,7 @@ function FontsPanel() {
 
   return (
     <>
-      <div className="mb-2.5 text-fs-11 font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 0 }}>
-        {t('settings.fonts.fontsTypography')}
-      </div>
+      <SectionLabel first>{t('settings.fonts.fontsTypography')}</SectionLabel>
       <Card>
         <SettingsRow title={t('settings.fonts.fontSize')} hint={t('settings.fonts.fontSizeHint')}>
           <Button variant="outline" size="icon-sm"
@@ -400,7 +392,7 @@ function FontsPanel() {
           </Button>
           <span
             className="font-mono-design tabular-nums text-fs-13"
-            style={{ width: 40, textAlign: 'center' }}
+            style={{ width: '3.08rem', textAlign: 'center' }}
           >
             {settings.fontSize}px
           </span>
@@ -413,7 +405,7 @@ function FontsPanel() {
         </SettingsRow>
         <SettingsRow title={t('settings.fonts.uiFont')} hint={t('settings.fonts.uiFontHint')}>
           <Select
-            style={{ width: 200 }}
+            style={{ width: '15.38rem' }}
             value={settings.uiFont}
             onChange={(e) => setSetting('uiFont', e.target.value)}
           >
@@ -431,7 +423,7 @@ function FontsPanel() {
           bordered={false}
         >
           <Select
-            style={{ width: 200 }}
+            style={{ width: '15.38rem' }}
             value={settings.monospaceFont}
             onChange={(e) => setSetting('monospaceFont', e.target.value)}
           >
@@ -446,9 +438,7 @@ function FontsPanel() {
         </SettingsRow>
       </Card>
 
-      <div className="mb-2.5 text-fs-11 font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 24 }}>
-        {t('settings.fonts.timeDisplay')}
-      </div>
+      <SectionLabel>{t('settings.fonts.timeDisplay')}</SectionLabel>
       <Card>
         <SettingsRow
           title={t('settings.fonts.timeFormat')}
@@ -456,7 +446,7 @@ function FontsPanel() {
           bordered={false}
         >
           <Select
-            style={{ width: 200 }}
+            style={{ width: '15.38rem' }}
             value={settings.timestampFormat}
             onChange={(e) => setSetting('timestampFormat', e.target.value as TimestampFormat)}
           >
@@ -466,9 +456,7 @@ function FontsPanel() {
         </SettingsRow>
       </Card>
 
-      <div className="mb-2.5 text-fs-11 font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 24 }}>
-        {t('settings.fonts.preview')}
-      </div>
+      <SectionLabel>{t('settings.fonts.preview')}</SectionLabel>
       <Card style={{ padding: 16 }}>
         <div className="text-fs-13" style={{ fontSize: settings.fontSize }}>
           {t('settings.fonts.previewSample')}
@@ -490,16 +478,14 @@ function MessagePanel() {
   const payloadKB = Math.round(settings.maxPayloadRenderBytes / 1024)
   return (
     <>
-      <div className="mb-2.5 text-fs-11 font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 0 }}>
-        {t('settings.message.defaults')}
-      </div>
+      <SectionLabel first>{t('settings.message.defaults')}</SectionLabel>
       <Card>
         <SettingsRow
           title={t('settings.message.fetchLimit')}
           hint={t('settings.message.fetchLimitHint')}
         >
           <Select
-            style={{ width: 140 }}
+            style={{ width: '10.77rem' }}
             value={settings.fetchLimit}
             onChange={(e) => setSetting('fetchLimit', Number(e.target.value) as FetchLimit)}
           >
@@ -523,7 +509,7 @@ function MessagePanel() {
         >
           <Input
             type="number"
-            style={{ width: 100 }}
+            style={{ width: '7.69rem' }}
             min={64}
             max={4096}
             value={payloadKB}
@@ -542,9 +528,7 @@ function MessagePanel() {
         </SettingsRow>
       </Card>
 
-      <div className="mb-2.5 text-fs-11 font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 24 }}>
-        {t('settings.message.alertThresholds')}
-      </div>
+      <SectionLabel>{t('settings.message.alertThresholds')}</SectionLabel>
       <Card>
         <SettingsRow
           title={t('settings.message.lagAlert')}
@@ -552,7 +536,7 @@ function MessagePanel() {
         >
           <Input
             type="number"
-            style={{ width: 120 }}
+            style={{ width: '9.23rem' }}
             min={0}
             step={1000}
             value={settings.lagAlertThreshold}
@@ -566,7 +550,7 @@ function MessagePanel() {
         >
           <Input
             type="number"
-            style={{ width: 100 }}
+            style={{ width: '7.69rem' }}
             min={0}
             max={100}
             step={5}
@@ -651,14 +635,12 @@ function ProxyPanel() {
   }
   return (
     <>
-      <div className="mb-2.5 text-fs-11 font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 0 }}>
-        {t('settings.proxy.timeout')}
-      </div>
+      <SectionLabel first>{t('settings.proxy.timeout')}</SectionLabel>
       <Card>
         <SettingsRow title={t('settings.proxy.connect')} hint={t('settings.proxy.connectHint')}>
           <Input
             type="number"
-            style={{ width: 100 }}
+            style={{ width: '7.69rem' }}
             min={1000}
             max={30000}
             step={1000}
@@ -680,7 +662,7 @@ function ProxyPanel() {
         >
           <Input
             type="number"
-            style={{ width: 100 }}
+            style={{ width: '7.69rem' }}
             min={1000}
             max={60000}
             step={1000}
@@ -697,20 +679,18 @@ function ProxyPanel() {
         </SettingsRow>
       </Card>
 
-      <div className="mb-2.5 text-fs-11 font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 24 }}>
-        {t('settings.proxy.credentials')}
+      <SectionLabel>{t('settings.proxy.credentials')}
         <Badge variant="outline" className="ml-2 normal-case tracking-normal">
           {credentialsConfigured
             ? t('settings.proxy.credentialsConfigured')
             : t('settings.proxy.credentialsNotConfigured')}
-        </Badge>
-      </div>
+        </Badge></SectionLabel>
       <Card>
         <SettingsRow title={t('settings.proxy.ak')} hint={t('settings.proxy.akHint')}>
           <Input
             type="text"
             className="font-mono-design"
-            style={{ width: 240 }}
+            style={{ width: '18.46rem' }}
             value={accessKey}
             placeholder={
               credentialsConfigured
@@ -727,7 +707,7 @@ function ProxyPanel() {
           <Input
             type="password"
             className="font-mono-design"
-            style={{ width: 240 }}
+            style={{ width: '18.46rem' }}
             value={secretKey}
             placeholder={
               credentialsConfigured
@@ -762,9 +742,7 @@ function ProxyPanel() {
         </div>
       </Card>
 
-      <div className="mb-2.5 text-fs-11 font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 24 }}>
-        {t('settings.proxy.advanced')}
-      </div>
+      <SectionLabel>{t('settings.proxy.advanced')}</SectionLabel>
       <Card>
         <div className="text-muted-foreground text-fs-12" style={{ padding: '12px 16px', lineHeight: 1.55 }}>
           {t('settings.proxy.unsupportedNote')}
@@ -808,9 +786,7 @@ function DataPanel({
 
   return (
     <>
-      <div className="mb-2.5 text-fs-11 font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 0 }}>
-        {t('settings.data.storage')}
-      </div>
+      <SectionLabel first>{t('settings.data.storage')}</SectionLabel>
       <Card className="overflow-hidden">
         {DATA_PATHS.map((p, i) => {
           const Icon = p.Icon
@@ -828,7 +804,7 @@ function DataPanel({
               {...activatableRowProps(() => void copyPath(p.path))}
             >
               <Icon size={14} className="text-muted-foreground shrink-0" aria-hidden />
-              <span className="text-fs-13 font-medium" style={{ width: 80 }}>
+              <span className="text-fs-13 font-medium" style={{ width: '6.15rem' }}>
                 {p.platform}
               </span>
               <code className="font-mono-design text-muted-foreground min-w-0 flex-1 truncate text-fs-12">
@@ -840,9 +816,7 @@ function DataPanel({
         })}
       </Card>
 
-      <div className="mb-2.5 text-fs-11 font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 24 }}>
-        {t('settings.data.ioSection')}
-      </div>
+      <SectionLabel>{t('settings.data.ioSection')}</SectionLabel>
       <Card>
         <SettingsRow title={t('settings.data.exportTitle')} hint={t('settings.data.exportHint')}>
           <Button variant="outline" size="sm" onClick={onExport}>
@@ -862,9 +836,7 @@ function DataPanel({
         </SettingsRow>
       </Card>
 
-      <div className="mb-2.5 text-fs-11 font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 24 }}>
-        {t('settings.data.cleanup')}
-      </div>
+      <SectionLabel>{t('settings.data.cleanup')}</SectionLabel>
       <Card>
         <SettingsRow
           title={t('settings.data.clearCache')}
@@ -1112,7 +1084,7 @@ export function SettingsPage() {
     <div className="flex h-full min-h-0 flex-col">
       <PageHeader title={t('settings.title')} />
       <div className="flex min-h-0 flex-1 overflow-hidden">
-        <aside className="flex w-[200px] shrink-0 flex-col gap-0.5 overflow-y-auto border-r border-border bg-background p-2.5 gap-0.5">
+        <aside className="flex w-[15.38rem] shrink-0 flex-col gap-0.5 overflow-y-auto border-r border-border bg-background p-2.5 gap-0.5">
           {SECTIONS.map((s) => {
             const active = s.id === activeSection
             return (
@@ -1136,11 +1108,10 @@ export function SettingsPage() {
           })}
         </aside>
 
-        <div className="min-w-0 flex-1 overflow-auto bg-background px-6 py-5 scroll-thin">
+        <PageBody width="content" className="bg-background">
           <PageTransition
             transitionKey={activeSection}
             variant="panel"
-            className="max-w-[720px]"
           >
             <div className="mb-5 flex items-start justify-between gap-3">
               <div className="min-w-0">
@@ -1183,7 +1154,7 @@ export function SettingsPage() {
               )}
             </fieldset>
           </PageTransition>
-        </div>
+        </PageBody>
       </div>
 
       <ConfirmDialog

@@ -4,6 +4,7 @@ import { Spinner } from '@/components/Spinner'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { PageHeader } from '@/components/PageHeader'
+import { PageBody } from '@/components/PageLayout'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useConnections } from '@/hooks/useConnections'
 import * as aclApi from '@/api/acl'
@@ -197,14 +198,14 @@ export function AclPage({ onNavigate }: { onNavigate?: (id: NavId) => void }) {
         />
       </PageHeader>
 
-      <div className="scroll-thin min-h-0 flex-1 overflow-auto p-5">
+      <PageBody width="wide">
         {!hasOnline ? (
           <OfflineEmpty
             message={t('acl.subtitleNoConn')}
             onAction={() => onNavigate?.('connections')}
           />
         ) : (
-          <div style={{ maxWidth: 1280 }}>
+          <div>
             {/* Status banner */}
             <div
               className="mb-4 flex items-center gap-3 rounded-xl border px-3.5 py-3"
@@ -422,7 +423,7 @@ export function AclPage({ onNavigate }: { onNavigate?: (id: NavId) => void }) {
                               <div>
                                 <div className="text-muted-foreground mb-2 text-fs-12">{t('acl.form.topicPerms')}</div>
                                 <Textarea
-                                  className="min-h-[76px] font-mono-design text-fs-12"
+                                  className="min-h-[5.85rem] font-mono-design text-fs-12"
                                   placeholder="ORDER_TOPIC=PUB|SUB&#10;AUDIT_LOG=PUB"
                                   value={topicPerms}
                                   onChange={(e) => setTopicPerms(e.target.value)}
@@ -434,7 +435,7 @@ export function AclPage({ onNavigate }: { onNavigate?: (id: NavId) => void }) {
                               <div>
                                 <div className="text-muted-foreground mb-2 text-fs-12">{t('acl.form.groupPerms')}</div>
                                 <Textarea
-                                  className="min-h-[56px] font-mono-design text-fs-12"
+                                  className="min-h-[4.31rem] font-mono-design text-fs-12"
                                   placeholder="GID_ADMIN=SUB"
                                   value={groupPerms}
                                   onChange={(e) => setGroupPerms(e.target.value)}
@@ -577,7 +578,7 @@ export function AclPage({ onNavigate }: { onNavigate?: (id: NavId) => void }) {
             </div>
           </div>
         )}
-      </div>
+      </PageBody>
 
       <ConfirmDialog
         open={confirmDelete != null}

@@ -4,9 +4,11 @@ import { Spinner } from '@/components/Spinner'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { PageHeader } from '@/components/PageHeader'
+import { PageBody } from '@/components/PageLayout'
 import { useTopics } from '@/hooks/useTopics'
 import * as messageApi from '@/api/message'
 import { formatErrorMessage } from '@/lib/utils'
+import { EmptyState } from '@/components/EmptyState'
 import { OfflineEmpty } from '@/components/OfflineEmpty'
 import type { NavId } from '@/layout/Sidebar'
 import { Button } from '@/components/ui/button'
@@ -138,9 +140,9 @@ export function ProducerPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
             onAction={() => onNavigate?.('connections')}
           />
         ) : (
-          <div className="scroll-thin h-full overflow-auto px-5 py-4">
+          <PageBody width="wide">
             <div
-              className="mx-auto grid max-w-[1020px] items-start gap-3.5"
+              className="grid items-start gap-3.5"
               style={{ gridTemplateColumns: 'minmax(0,1.25fr) minmax(0,1fr)' }}
             >
               {/* Compose */}
@@ -219,7 +221,7 @@ export function ProducerPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
                     </Button>
                   </div>
                   <Textarea
-                    className="min-h-[180px] font-mono-design text-fs-12"
+                    className="min-h-[13.85rem] font-mono-design text-fs-12"
                     placeholder="{ }"
                     value={body}
                     onChange={(e) => setBody(e.target.value)}
@@ -253,9 +255,7 @@ export function ProducerPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
                   </span>
                 </div>
                 {history.length === 0 ? (
-                  <div className="text-muted-foreground px-3 py-9 text-center text-fs-12">
-                    {t('producer.historyEmpty')}
-                  </div>
+                  <EmptyState compact className="py-9" title={t('producer.historyEmpty')} />
                 ) : (
                   history.map((h, i) => (
                     <div
@@ -303,7 +303,7 @@ export function ProducerPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
                 )}
               </Card>
             </div>
-          </div>
+          </PageBody>
         )}
       </div>
     </div>

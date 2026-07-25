@@ -113,7 +113,7 @@ export function Sidebar({
   }
 
   return (
-    <aside className="flex w-[200px] shrink-0 select-none flex-col border-r border-border/80 bg-background">
+    <aside className="flex w-[15.38rem] shrink-0 select-none flex-col border-r border-border/80 bg-background">
       <nav className="scroll-thin flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-2.5 py-3">
         {GROUPS.map((group, gi) => (
           <Fragment key={gi}>

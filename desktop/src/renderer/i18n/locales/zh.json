@@ -423,6 +423,8 @@
     },
     "summary": "共 {{count}} 条结果",
     "empty": "未找到匹配的消息",
+    "emptyPromptTitle": "搜索消息",
+    "emptyPromptHint": "选择 Topic 或消费组，设置条件后开始查询",
     "queryError": "查询失败：{{message}}",
     "detail": {
       "title": "消息详情",

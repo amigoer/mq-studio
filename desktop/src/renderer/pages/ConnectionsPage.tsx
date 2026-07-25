@@ -16,6 +16,8 @@ import { Spinner } from '@/components/Spinner'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { PageHeader } from '@/components/PageHeader'
+import { EmptyState } from '@/components/EmptyState'
+import { PageBody } from '@/components/PageLayout'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useConnections } from '@/hooks/useConnections'
 import * as connectionApi from '@/api/connection'
@@ -543,7 +545,7 @@ export function ConnectionsPage() {
         subtitle={t('connections.subtitle', { count: list.length })}
       >
         {showSearch && (
-          <div className="relative" style={{ width: 180 }}>
+          <div className="relative" style={{ width: '13.85rem' }}>
             <span className="pointer-events-none absolute left-2.5 top-1/2 z-[1] -translate-y-1/2 text-muted-foreground">
               <Search size={13} />
             </span>
@@ -563,7 +565,7 @@ export function ConnectionsPage() {
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
         {/* List */}
-        <div className="scroll-thin flex w-[272px] shrink-0 flex-col border-r border-border bg-background">
+        <div className="scroll-thin flex w-[20.92rem] shrink-0 flex-col border-r border-border bg-background">
           <div className="scroll-thin min-h-0 flex-1 overflow-auto p-3">
             {loading && list.length === 0 ? (
               <div className="text-muted-foreground flex items-center justify-center gap-2 p-8">
@@ -571,14 +573,12 @@ export function ConnectionsPage() {
                 <span className="text-fs-12">{t('common.loading')}</span>
               </div>
             ) : filtered.length === 0 ? (
-              <div className="text-muted-foreground px-4 py-10 text-center">
-                <div className="text-fs-125">{t('connections.empty')}</div>
-                <div className="mt-1 text-fs-115">{t('connections.emptyHint')}</div>
-                <Button variant="outline" size="sm" className="mt-3" onClick={handleNew}>
-                  <Plus size={13} />
-                  {t('connections.addFirst')}
-                </Button>
-              </div>
+              <EmptyState
+                title={t('connections.empty')}
+                description={t('connections.emptyHint')}
+                actionLabel={t('connections.addFirst')}
+                onAction={handleNew}
+              />
             ) : (
               <div className="flex flex-col gap-2">
                 {filtered.map((c) => {
@@ -653,14 +653,11 @@ export function ConnectionsPage() {
         </div>
 
         {/* Detail */}
-        <div className="scroll-thin min-w-0 flex-1 overflow-auto p-5">
+        <PageBody width="form">
           {selectedId == null ? (
-            <div className="text-muted-foreground flex min-h-[200px] flex-col items-center justify-center text-center">
-              <PlugZap size={22} className="mb-2 opacity-40" />
-              <div className="text-fs-125">{t('connections.selectHint')}</div>
-            </div>
+            <EmptyState icon={PlugZap} title={t('connections.selectHint')} />
           ) : (
-            <div className="mx-auto max-w-lg">
+            <div>
               {/* Header + primary action */}
               <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                 <div className="min-w-0">
@@ -800,7 +797,7 @@ export function ConnectionsPage() {
                             </span>
                             <Input
                               className="font-mono-design shrink-0 text-center"
-                              style={{ width: 92, minWidth: 92, maxWidth: 92 }}
+                              style={{ width: '7.08rem', minWidth: '7.08rem', maxWidth: '7.08rem' }}
                               type="text"
                               inputMode="numeric"
                               pattern="[0-9]*"
@@ -973,7 +970,7 @@ export function ConnectionsPage() {
               </Card>
             </div>
           )}
-        </div>
+        </PageBody>
       </div>
 
       <ConfirmDialog

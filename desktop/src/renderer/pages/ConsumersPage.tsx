@@ -18,6 +18,11 @@ import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { ConsumeMode, type ConsumerGroupItem, type GroupSubscription } from '@generated/models'
 import { PageHeader } from '@/components/PageHeader'
+import { PageBody, PageToolbar } from '@/components/PageLayout'
+import { DetailPanel } from '@/components/DetailPanel'
+import { SectionLabel } from '@/components/SectionLabel'
+import { InfoRow } from '@/components/InfoRow'
+import { formatCount, formatRate } from '@/lib/format'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Modal } from '@/components/ui/modal'
 import { useConsumers } from '@/hooks/useConsumers'
@@ -28,6 +33,7 @@ import { cn, formatErrorMessage } from '@/lib/utils'
 import { activatableRowProps, ROW_FOCUS_CLASS } from '@/lib/a11y'
 import { RefreshButton, usePageRefresh } from '@/components/RefreshButton'
 import { SlidingTabs } from '@/components/SlidingTabs'
+import { EmptyState } from '@/components/EmptyState'
 import { OfflineEmpty } from '@/components/OfflineEmpty'
 import { ErrorBanner } from '@/components/ErrorBanner'
 import type { NavId } from '@/layout/Sidebar'
@@ -40,18 +46,7 @@ import { Card } from '@/components/ui/card'
 type StatusFilter = 'all' | 'online' | 'warning' | 'offline'
 
 /** Shared grid template for the consumer-group table header + rows. */
-const GROUP_COLS = 'minmax(0,1.1fr) minmax(0,1fr) 96px 76px 56px 88px 28px'
-
-function formatTps(n: number): string {
-  if (!n || !Number.isFinite(n)) return '0'
-  if (n >= 10000) return `${(n / 1000).toFixed(1)}k`
-  if (n >= 1000) return `${(n / 1000).toFixed(2)}k`
-  return Math.round(n).toLocaleString()
-}
-
-function formatMetric(n: number): string {
-  return Number.isFinite(n) && n >= 0 ? n.toLocaleString() : '—'
-}
+const GROUP_COLS = 'minmax(0,1.1fr) minmax(0,1fr) 7.38rem 5.85rem 4.31rem 6.77rem 2.15rem'
 
 export function ConsumersPage({ onNavigate }: { onNavigate?: (id: NavId) => void }) {
   const { t } = useTranslation()
@@ -171,8 +166,8 @@ export function ConsumersPage({ onNavigate }: { onNavigate?: (id: NavId) => void
       </PageHeader>
 
       {hasOnline && (
-        <div className="flex items-center gap-2.5 border-b border-border/80 px-5 py-3">
-          <div className="relative" style={{ width: 260 }}>
+        <PageToolbar>
+          <div className="relative" style={{ width: '20rem' }}>
             <span className="pointer-events-none absolute left-2.5 top-1/2 z-[1] -translate-y-1/2 text-muted-foreground">
               <Search size={13} />
             </span>
@@ -213,14 +208,11 @@ export function ConsumersPage({ onNavigate }: { onNavigate?: (id: NavId) => void
           <span className="text-muted-foreground shrink-0 text-fs-115 tabular-nums">
             {t('consumers.resultCount', { count: filtered.length })}
           </span>
-        </div>
+        </PageToolbar>
       )}
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
-        <div
-          className="scroll-thin min-w-0 flex-1 overflow-auto"
-          onClick={handleListBackgroundClick}
-        >
+        <PageBody onClick={handleListBackgroundClick}>
           {!hasOnline ? (
             <OfflineEmpty
               message={t('consumers.subtitleNoConn')}
@@ -238,103 +230,99 @@ export function ConsumersPage({ onNavigate }: { onNavigate?: (id: NavId) => void
             <>
               {error && <ErrorBanner message={t('consumers.loadError', { message: error })} />}
               {filtered.length === 0 ? (
-                <div className="text-muted-foreground text-center text-fs-12" style={{ padding: 40 }}>
-                  {t('consumers.empty')}
-                </div>
+                <EmptyState icon={Users} title={t('consumers.empty')} />
               ) : (
-                <div className="px-5 pb-5 pt-3">
+                <div
+                  className="overflow-hidden rounded-xl border border-border/80 bg-card shadow-card"
+                  style={{ minWidth: '55.38rem' }}
+                >
                   <div
-                    className="overflow-hidden rounded-xl border border-border/80 bg-card shadow-card"
-                    style={{ minWidth: 720 }}
+                    className="text-muted-foreground grid items-center gap-2 border-b border-border px-3.5 py-2 text-fs-11 font-medium"
+                    style={{ gridTemplateColumns: GROUP_COLS }}
                   >
-                    <div
-                      className="text-muted-foreground grid items-center gap-2 border-b border-border px-3.5 py-2 text-fs-11 font-medium"
-                      style={{ gridTemplateColumns: GROUP_COLS }}
-                    >
-                      <span>{t('consumers.table.name')}</span>
-                      <span>{t('consumers.table.topic')}</span>
-                      <span>{t('consumers.table.model')}</span>
-                      <span>{t('consumers.table.status')}</span>
-                      <span className="text-right">{t('consumers.table.instances')}</span>
-                      <span className="text-right">{t('consumers.table.lag')}</span>
-                      <span />
-                    </div>
-                    {filtered.map((g) => {
-                      const subTopic =
-                        g.subscriptions[0]?.topic ||
-                        (g.topicCount > 0 ? `${g.topicCount} topics` : '—')
-                      const selected = selectedName === g.group
-                      const statusText =
-                        g.status === 'online'
-                          ? t('common.online')
-                          : g.status === 'warning'
-                            ? t('consumers.filterWarning')
-                            : t('common.offline')
-                      return (
-                        <div
-                          key={g.group}
-                          data-consumer-row
-                          role="button"
-                          aria-current={selected || undefined}
-                          onClick={() => setSelectedName(g.group)}
-                          {...activatableRowProps(() => setSelectedName(g.group))}
-                          className={cn(
-                            'grid cursor-pointer items-center gap-2 border-t border-border px-3.5 py-2.5 transition-colors hover:bg-muted',
-                            ROW_FOCUS_CLASS,
-                            selected && 'bg-accent hover:bg-accent',
-                          )}
-                          style={{ gridTemplateColumns: GROUP_COLS }}
-                        >
-                          <span className="font-mono-design truncate text-fs-12">{g.group}</span>
-                          <span className="text-muted-foreground truncate text-fs-115">
-                            {subTopic}
-                          </span>
-                          <span className="font-mono-design text-muted-foreground truncate text-fs-105">
-                            {g.consumeMode || '—'}
-                          </span>
-                          <span className="inline-flex min-w-0 items-center gap-1.5 text-fs-115">
-                            <span
-                              className={cn(
-                                'h-1.5 w-1.5 shrink-0 rounded-full',
-                                g.status === 'online'
-                                  ? 'bg-[hsl(var(--success))]'
-                                  : g.status === 'warning'
-                                    ? 'bg-[hsl(var(--warning))]'
-                                    : g.status === 'offline'
-                                      ? 'bg-[hsl(var(--destructive)/0.55)]'
-                                      : 'bg-[hsl(var(--muted-foreground)/0.35)]',
-                              )}
-                            />
-                            <span className="truncate">{statusText}</span>
-                          </span>
-                          <span className="font-mono-design text-right text-fs-12 tabular-nums">
-                            {g.onlineClients}
-                          </span>
+                    <span>{t('consumers.table.name')}</span>
+                    <span>{t('consumers.table.topic')}</span>
+                    <span>{t('consumers.table.model')}</span>
+                    <span>{t('consumers.table.status')}</span>
+                    <span className="text-right">{t('consumers.table.instances')}</span>
+                    <span className="text-right">{t('consumers.table.lag')}</span>
+                    <span />
+                  </div>
+                  {filtered.map((g) => {
+                    const subTopic =
+                      g.subscriptions[0]?.topic ||
+                      (g.topicCount > 0 ? `${g.topicCount} topics` : '—')
+                    const selected = selectedName === g.group
+                    const statusText =
+                      g.status === 'online'
+                        ? t('common.online')
+                        : g.status === 'warning'
+                          ? t('consumers.filterWarning')
+                          : t('common.offline')
+                    return (
+                      <div
+                        key={g.group}
+                        data-consumer-row
+                        role="button"
+                        aria-current={selected || undefined}
+                        onClick={() => setSelectedName(g.group)}
+                        {...activatableRowProps(() => setSelectedName(g.group))}
+                        className={cn(
+                          'grid cursor-pointer items-center gap-2 border-t border-border px-3.5 py-2.5 transition-colors hover:bg-muted',
+                          ROW_FOCUS_CLASS,
+                          selected && 'bg-accent hover:bg-accent',
+                        )}
+                        style={{ gridTemplateColumns: GROUP_COLS }}
+                      >
+                        <span className="font-mono-design truncate text-fs-12">{g.group}</span>
+                        <span className="text-muted-foreground truncate text-fs-115">
+                          {subTopic}
+                        </span>
+                        <span className="font-mono-design text-muted-foreground truncate text-fs-105">
+                          {g.consumeMode || '—'}
+                        </span>
+                        <span className="inline-flex min-w-0 items-center gap-1.5 text-fs-115">
                           <span
                             className={cn(
-                              'font-mono-design text-right text-fs-12 tabular-nums',
-                              g.lag > 1000 ? 'text-destructive' : 'text-muted-foreground',
+                              'h-1.5 w-1.5 shrink-0 rounded-full',
+                              g.status === 'online'
+                                ? 'bg-[hsl(var(--success))]'
+                                : g.status === 'warning'
+                                  ? 'bg-[hsl(var(--warning))]'
+                                  : g.status === 'offline'
+                                    ? 'bg-[hsl(var(--destructive)/0.55)]'
+                                    : 'bg-[hsl(var(--muted-foreground)/0.35)]',
                             )}
-                          >
-                            {formatMetric(g.lag)}
-                          </span>
-                          <ChevronRight
-                            size={14}
-                            className={cn(
-                              'text-muted-foreground shrink-0 justify-self-end transition-opacity',
-                              selected ? 'opacity-70' : 'opacity-50',
-                            )}
-                            aria-hidden
                           />
-                        </div>
-                      )
-                    })}
-                  </div>
+                          <span className="truncate">{statusText}</span>
+                        </span>
+                        <span className="font-mono-design text-right text-fs-12 tabular-nums">
+                          {g.onlineClients}
+                        </span>
+                        <span
+                          className={cn(
+                            'font-mono-design text-right text-fs-12 tabular-nums',
+                            g.lag > 1000 ? 'text-destructive' : 'text-muted-foreground',
+                          )}
+                        >
+                          {formatCount(g.lag)}
+                        </span>
+                        <ChevronRight
+                          size={14}
+                          className={cn(
+                            'text-muted-foreground shrink-0 justify-self-end transition-opacity',
+                            selected ? 'opacity-70' : 'opacity-50',
+                          )}
+                          aria-hidden
+                        />
+                      </div>
+                    )
+                  })}
                 </div>
               )}
             </>
           )}
-        </div>
+        </PageBody>
 
         {panelMount.shouldRender && renderedSelected && (
           <GroupDetailPanel
@@ -411,16 +399,10 @@ function GroupDetailPanel({
   )
 
   return (
-    <aside
-      className={'scroll-thin detail-panel' + (exiting ? ' exiting' : '')}
-      style={{
-        width: 420,
-        borderLeft: '1px solid hsl(var(--border))',
-        overflow: 'auto',
-        background: 'hsl(var(--background))',
-        display: 'flex',
-        flexDirection: 'column',
-      }}
+    <DetailPanel
+      exiting={exiting}
+      ariaLabel={group.group}
+      layout="column"
     >
       <div style={{ padding: '16px 20px', borderBottom: '1px solid hsl(var(--border))' }}>
         <div className="flex items-center justify-between">
@@ -507,14 +489,14 @@ function GroupDetailPanel({
                   className="tabular-nums mt-1 text-fs-18 font-semibold"
                   style={{ color: group.lag > 1000 ? 'hsl(var(--warning))' : undefined }}
                 >
-                  {formatMetric(group.lag)}
+                  {formatCount(group.lag)}
                 </div>
               </div>
               <div style={{ padding: '12px 14px', borderLeft: '1px solid hsl(var(--border))' }}>
                 <div className="text-muted-foreground text-fs-12">{t('consumers.stat.tps')}</div>
                 <div className="mt-1 flex items-center gap-1">
                   <span className="tabular-nums text-fs-18 font-semibold">
-                    {formatTps(tps)}
+                    {formatRate(tps)}
                   </span>
                   <span className="text-muted-foreground text-fs-12" style={{ marginBottom: 1 }}>
                     /s
@@ -523,31 +505,23 @@ function GroupDetailPanel({
               </div>
             </div>
 
-            <div className="mb-2.5 text-fs-11 font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 20 }}>
-              {t('consumers.detail.subscriptions')}
-            </div>
+            <SectionLabel>{t('consumers.detail.subscriptions')}</SectionLabel>
             <SubscriptionList subs={group.subscriptions} />
           </>
         )}
 
         {tab === 'subscriptions' && (
           <>
-            <div className="mb-2.5 text-fs-11 font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 4 }}>
-              {t('consumers.detail.subscriptions')}
-            </div>
+            <SectionLabel first>{t('consumers.detail.subscriptions')}</SectionLabel>
             <SubscriptionList subs={group.subscriptions} />
           </>
         )}
 
         {tab === 'instances' && (
           <>
-            <div className="mb-2.5 text-fs-11 font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 4 }}>
-              {t('consumers.detail.instances')}
-            </div>
+            <SectionLabel first>{t('consumers.detail.instances')}</SectionLabel>
             {group.clients.length === 0 ? (
-              <div className="text-muted-foreground text-fs-12" style={{ padding: 16, textAlign: 'center' }}>
-                {t('consumers.detail.instancesEmpty')}
-              </div>
+              <EmptyState compact title={t('consumers.detail.instancesEmpty')} />
             ) : (
               <Card className="overflow-hidden">
                 {group.clients.map((c, i) => (
@@ -587,29 +561,15 @@ function GroupDetailPanel({
 
         {tab === 'config' && (
           <>
-            <div className="mb-2.5 text-fs-11 font-semibold uppercase tracking-[0.08em] text-muted-foreground" style={{ marginTop: 4 }}>
-              {t('consumers.detail.config')}
-            </div>
+            <SectionLabel first>{t('consumers.detail.config')}</SectionLabel>
             <div>
-              <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-fs-13 last:border-b-0">
-                <div className="text-muted-foreground">{t('consumers.detail.configMode')}</div>
-                <div className="text-foreground">{group.consumeMode || '—'}</div>
-              </div>
-              <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-fs-13 last:border-b-0">
-                <div className="text-muted-foreground">{t('consumers.detail.configMaxRetry')}</div>
-                <div className="text-foreground tabular-nums">{group.maxRetry}</div>
-              </div>
+              <InfoRow label={t('consumers.detail.configMode')}>{group.consumeMode || '—'}</InfoRow>
+              <InfoRow label={t('consumers.detail.configMaxRetry')} valueClassName="tabular-nums">{group.maxRetry}</InfoRow>
               {group.cluster && (
-                <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-fs-13 last:border-b-0">
-                  <div className="text-muted-foreground">{t('consumers.detail.configCluster')}</div>
-                  <div className="text-foreground">{group.cluster}</div>
-                </div>
+                <InfoRow label={t('consumers.detail.configCluster')}>{group.cluster}</InfoRow>
               )}
               {group.lastUpdate && (
-                <div className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-border py-2 text-fs-13 last:border-b-0">
-                  <div className="text-muted-foreground">{t('consumers.detail.configLastUpdate')}</div>
-                  <div className="text-foreground font-mono-design text-fs-12">{group.lastUpdate}</div>
-                </div>
+                <InfoRow label={t('consumers.detail.configLastUpdate')} mono>{group.lastUpdate}</InfoRow>
               )}
             </div>
           </>
@@ -638,7 +598,7 @@ function GroupDetailPanel({
           <Trash2 size={14} />
         </Button>
       </div>
-    </aside>
+    </DetailPanel>
   )
 }
 
@@ -646,9 +606,7 @@ function SubscriptionList({ subs }: { subs: GroupSubscription[] }) {
   const { t } = useTranslation()
   if (subs.length === 0) {
     return (
-      <div className="text-muted-foreground text-fs-12" style={{ padding: 16, textAlign: 'center' }}>
-        {t('consumers.detail.subscriptionsEmpty')}
-      </div>
+      <EmptyState compact title={t('consumers.detail.subscriptionsEmpty')} />
     )
   }
   return (
@@ -668,14 +626,14 @@ function SubscriptionList({ subs }: { subs: GroupSubscription[] }) {
             <span
               className="font-mono-design text-muted-foreground text-fs-11"
               title="Tag filter"
-              style={{ maxWidth: 120 }}
+              style={{ maxWidth: '9.23rem' }}
             >
               {s.expression}
             </span>
           )}
           {s.consumeTps > 0 && (
             <span className="font-mono-design tabular-nums text-muted-foreground text-fs-12">
-              {formatTps(s.consumeTps)}/s
+              {formatRate(s.consumeTps)}/s
             </span>
           )}
         </div>

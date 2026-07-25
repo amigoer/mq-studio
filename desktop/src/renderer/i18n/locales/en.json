@@ -423,6 +423,8 @@
     },
     "summary": "{{count}} results",
     "empty": "No messages matched",
+    "emptyPromptTitle": "Search messages",
+    "emptyPromptHint": "Pick a topic or consumer group, set your filters, then run the query",
     "queryError": "Query failed: {{message}}",
     "detail": {
       "title": "Message detail",
