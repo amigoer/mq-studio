@@ -192,22 +192,15 @@ function updateNsEntry(entries: NsEntry[], index: number, patch: Partial<NsEntry
 function EnvBadge({ env }: { env: ConnectionEnv }) {
   const { t } = useTranslation()
   const meta = {
-    production: { token: 'destructive', labelKey: 'connections.envProd' },
-    test: { token: 'warning', labelKey: 'connections.envTest' },
-    development: { token: 'info', labelKey: 'connections.envDev' },
+    production: { variant: 'destructive', labelKey: 'connections.envProd' },
+    test: { variant: 'warning', labelKey: 'connections.envTest' },
+    development: { variant: 'info', labelKey: 'connections.envDev' },
   } as const
   const m = meta[env] ?? meta.development
   return (
-    <span
-      className="inline-flex shrink-0 items-center rounded px-1 text-fs-10 font-medium"
-      style={{
-        background: `hsl(var(--${m.token}) / 0.1)`,
-        color: `hsl(var(--${m.token}))`,
-        border: `1px solid hsl(var(--${m.token}) / 0.28)`,
-      }}
-    >
+    <Badge variant={m.variant} uppercase>
       {t(m.labelKey)}
-    </span>
+    </Badge>
   )
 }
 
@@ -614,9 +607,9 @@ export function ConnectionsPage() {
                           {c.name}
                         </span>
                         {c.isDefault && (
-                          <span className="text-muted-foreground shrink-0 rounded border border-border px-1 text-fs-10">
+                          <Badge variant="outline" uppercase className="text-muted-foreground">
                             {t('connections.default')}
-                          </span>
+                          </Badge>
                         )}
                         <Button
                           type="button"

@@ -106,8 +106,37 @@ export function SlidingTabs<T extends string>({
     return () => ro.disconnect()
   }, [itemsKey])
 
+  // Arrow-key navigation with a roving tabindex, per the ARIA tabs pattern.
+  const select = (index: number) => {
+    const count = items.length
+    if (count === 0) return
+    const item = items[((index % count) + count) % count]
+    if (!item) return
+    onChange(item.key)
+    btnRefs.current.get(item.key)?.focus()
+  }
+
+  const onKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    const current = items.findIndex((item) => item.key === value)
+    const moves: Record<string, number | undefined> = {
+      ArrowRight: current + 1,
+      ArrowLeft: current - 1,
+      Home: 0,
+      End: items.length - 1,
+    }
+    const next = moves[event.key]
+    if (next === undefined) return
+    event.preventDefault()
+    select(next)
+  }
+
   return (
-    <div ref={rootRef} className={cn('rl-tabs rl-tabs-sliding', className)} role="tablist">
+    <div
+      ref={rootRef}
+      className={cn('rl-tabs rl-tabs-sliding', className)}
+      role="tablist"
+      onKeyDown={onKeyDown}
+    >
       <div ref={pillRef} className="rl-tabs-indicator" aria-hidden />
       {items.map((item) => {
         const active = item.key === value
@@ -117,6 +146,7 @@ export function SlidingTabs<T extends string>({
             type="button"
             role="tab"
             aria-selected={active}
+            tabIndex={active ? 0 : -1}
             ref={(el) => {
               if (el) btnRefs.current.set(item.key, el)
               else btnRefs.current.delete(item.key)

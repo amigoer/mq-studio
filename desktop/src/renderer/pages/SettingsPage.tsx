@@ -3,8 +3,8 @@ import { PageTransition } from '@/components/PageTransition'
 import {
   Sun,
   Settings as SettingsIcon,
-  PanelLeft,
-  Search,
+  Type,
+  MessageSquare,
   Globe,
   Database,
   Info,
@@ -24,6 +24,7 @@ import { toast } from 'sonner'
 import { useTranslation } from 'react-i18next'
 import { PageHeader } from '@/components/PageHeader'
 import { PageBody } from '@/components/PageLayout'
+import { navItemClass } from '@/layout/Sidebar'
 import { SectionLabel } from '@/components/SectionLabel'
 import {
   useSettings,
@@ -61,8 +62,8 @@ type SectionId = 'appearance' | 'general' | 'fonts' | 'message' | 'proxy' | 'dat
 const SECTIONS: { id: SectionId; icon: LucideIcon }[] = [
   { id: 'appearance', icon: Sun },
   { id: 'general', icon: SettingsIcon },
-  { id: 'fonts', icon: PanelLeft },
-  { id: 'message', icon: Search },
+  { id: 'fonts', icon: Type },
+  { id: 'message', icon: MessageSquare },
   { id: 'proxy', icon: Globe },
   { id: 'data', icon: Database },
   { id: 'about', icon: Info },
@@ -1093,15 +1094,14 @@ export function SettingsPage() {
                 type="button"
                 variant="ghost"
                 size="sm"
-                className={
-                  'h-8 w-full justify-start gap-2 rounded-lg px-2.5 font-normal text-muted-foreground shadow-none ' +
-                  (active
-                    ? 'bg-accent font-medium text-foreground'
-                    : 'hover:bg-accent/70 hover:text-foreground')
-                }
+                className={navItemClass(active)}
                 onClick={() => setActiveSection(s.id)}
               >
-                <s.icon size={15} strokeWidth={active ? 2 : 1.75} className="shrink-0 opacity-80" />
+                <s.icon
+                  size={15}
+                  strokeWidth={active ? 2 : 1.75}
+                  className={cn('shrink-0', active ? 'opacity-100' : 'opacity-80')}
+                />
                 <span className="truncate">{t(`settings.section.${s.id}.label`)}</span>
               </Button>
             )

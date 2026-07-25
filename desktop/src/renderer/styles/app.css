@@ -344,6 +344,11 @@
 .rl-tabs .tab:hover {
   color: hsl(var(--foreground));
 }
+.rl-tabs .tab:focus-visible {
+  outline: none;
+  color: hsl(var(--foreground));
+  box-shadow: inset 0 0 0 2px hsl(var(--ring) / 0.35);
+}
 /* Sliding pill indicator */
 .rl-tabs-sliding .tab.active {
   background: transparent;
@@ -375,13 +380,20 @@
 
 /* Underline tabs */
 .utabs {
+  /* Matches the detail panels' 20px body inset at the default font size. */
+  --rl-panel-inset: 1.54rem;
   display: flex;
   align-items: center;
   gap: 24px;
   border-bottom: 1px solid hsl(var(--border));
   height: 40px;
-  padding: 0 24px;
+  padding: 0 var(--rl-panel-inset);
   flex-shrink: 0;
+}
+/* Pull the underline out to the panel edge when the strip sits inside the body. */
+.utabs-bleed {
+  margin-left: calc(-1 * var(--rl-panel-inset));
+  margin-right: calc(-1 * var(--rl-panel-inset));
 }
 .utabs .utab {
   height: 100%;

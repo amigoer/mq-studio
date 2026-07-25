@@ -18,6 +18,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
+import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 
 const PERMS = ['DENY', 'PUB', 'SUB', 'PUB|SUB'] as const
@@ -404,17 +405,11 @@ export function AclPage({ onNavigate }: { onNavigate?: (id: NavId) => void }) {
                             />
                             <span className="font-medium">{t('acl.form.advanced')}</span>
                             {overrideCount > 0 && (
-                              <span
-                                className="ml-1 rounded-full px-1.5 text-fs-10 font-semibold tabular-nums"
-                                style={{
-                                  background: 'hsl(var(--primary) / 0.12)',
-                                  color: 'hsl(var(--primary))',
-                                }}
-                              >
+                              <Badge variant="secondary" className="ml-1 tabular-nums">
                                 {overrideCount}
-                              </span>
+                              </Badge>
                             )}
-                            <span className="text-muted-foreground/70 ml-auto text-fs-11">
+                            <span className="text-muted-foreground ml-auto text-fs-11">
                               {t('acl.form.advancedHint')}
                             </span>
                           </button>

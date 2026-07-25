@@ -25,6 +25,7 @@ import {
   type BodyPreviewKind,
 } from '@/lib/time'
 import { SlidingTabs } from '@/components/SlidingTabs'
+import { UnderlineTabs } from '@/components/UnderlineTabs'
 import { EmptyState } from '@/components/EmptyState'
 import { OfflineEmpty } from '@/components/OfflineEmpty'
 import { ErrorBanner } from '@/components/ErrorBanner'
@@ -548,29 +549,16 @@ function MessageDetailPanel({
           </div>
         </div>
 
-        <div
-          className="utabs"
-          style={{
-            marginTop: 12,
-            marginLeft: -20,
-            marginRight: -20,
-            paddingLeft: 20,
-            paddingRight: 20,
-          }}
-        >
-          {(['body', 'properties', 'track'] as const).map((k) => (
-            <button
-              key={k}
-              type="button"
-              role="tab"
-              aria-selected={tab === k}
-              className={'utab ' + (tab === k ? 'active' : '')}
-              onClick={() => setTab(k)}
-            >
-              {t(`messages.detail.tabs.${k}`)}
-            </button>
-          ))}
-        </div>
+        <UnderlineTabs
+          bleed
+          className="mt-3"
+          value={tab}
+          onChange={setTab}
+          items={(['body', 'properties', 'track'] as const).map((k) => ({
+            key: k,
+            label: t(`messages.detail.tabs.${k}`),
+          }))}
+        />
 
         <SectionLabel>{t('messages.detail.info')}</SectionLabel>
         <div>

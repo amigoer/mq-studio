@@ -152,7 +152,6 @@ export function ClusterPage({ onNavigate }: { onNavigate?: (id: NavId) => void }
                 {/* Top stats */}
                 <div className="grid gap-2.5" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
                   <StatCard
-                    hoverLift
                     label={t('cluster.stat.health')}
                     icon={CircleDot}
                     iconColor={healthColor}
@@ -160,11 +159,10 @@ export function ClusterPage({ onNavigate }: { onNavigate?: (id: NavId) => void }
                     valueColor={healthColor}
                     hint={t('cluster.stat.healthSummary', { online: onlineCount, total: totalCount || onlineCount, })}
                   />
-                  <StatCard hoverLift label={t('cluster.stat.tps')} icon={Activity} value={formatRate(totalTps)}
+                  <StatCard label={t('cluster.stat.tps')} icon={Activity} value={formatRate(totalTps)}
                     hint={t('cluster.stat.tpsSubtitle')}
                   />
                   <StatCard
-                    hoverLift
                     label={t('cluster.stat.disk')}
                     icon={HardDrive}
                     value={`${Math.round(avgDisk)}%`}
@@ -177,7 +175,6 @@ export function ClusterPage({ onNavigate }: { onNavigate?: (id: NavId) => void }
                     </div>
                   </StatCard>
                   <StatCard
-                    hoverLift
                     label={t('cluster.stat.topics')}
                     icon={LayoutGrid}
                     value={totalTopics.toLocaleString()}
@@ -283,10 +280,6 @@ export function ClusterPage({ onNavigate }: { onNavigate?: (id: NavId) => void }
                     </div>
                   )}
                 </Card>
-
-                {/* Brokers */}
-                <SectionLabel>{t('cluster.brokerList')}</SectionLabel>
-                <BrokerTable brokers={sortedBrokers} />
               </>
             ) : activeTab === 'broker' ? (
               <BrokerTable brokers={sortedBrokers} />

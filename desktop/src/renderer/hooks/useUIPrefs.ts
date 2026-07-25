@@ -6,8 +6,18 @@ export interface UIPrefs {
 
 const STORAGE_KEY = 'rocket-leaf:ui-prefs'
 
-const DEFAULTS: UIPrefs = {
-  animations: true,
+/**
+ * Nothing stored yet: follow the OS. Someone who has asked their system to
+ * reduce motion should not have to find this toggle. An explicit choice is
+ * persisted and wins from then on.
+ */
+function systemPrefersReducedMotion(): boolean {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+}
+
+function defaults(): UIPrefs {
+  return { animations: !systemPrefersReducedMotion() }
 }
 
 /** CSS vars formerly overridden by the accent-color picker */
@@ -21,16 +31,17 @@ const LEGACY_ACCENT_CSS_VARS = [
 ] as const
 
 function loadPrefs(): UIPrefs {
-  if (typeof window === 'undefined') return { ...DEFAULTS }
+  if (typeof window === 'undefined') return defaults()
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return { ...DEFAULTS }
+    if (!raw) return defaults()
     const parsed = JSON.parse(raw) as Partial<UIPrefs>
     return {
-      animations: typeof parsed.animations === 'boolean' ? parsed.animations : DEFAULTS.animations,
+      animations:
+        typeof parsed.animations === 'boolean' ? parsed.animations : defaults().animations,
     }
   } catch {
-    return { ...DEFAULTS }
+    return defaults()
   }
 }
 

@@ -118,7 +118,7 @@
   },
   "overview": {
     "title": "Overview",
-    "subtitleConnected": "{{cluster}} · {{time}}",
+    "subtitleConnected": "{{cluster}} · updated {{time}}",
     "subtitleNoConn": "Not connected",
     "loadError": "Failed to load overview: {{message}}",
     "disconnectSuccess": "Disconnected from {{cluster}}",
@@ -556,7 +556,6 @@
       "topicsSubtitle": "{{groups}} consumer groups"
     },
     "throughput": "Throughput · last 60 min",
-    "brokerList": "Brokers",
     "brokerEmpty": "No broker data",
     "brokerTable": {
       "name": "Broker",

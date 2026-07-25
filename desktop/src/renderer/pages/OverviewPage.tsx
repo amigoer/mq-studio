@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type MouseEvent } from 'react'
+import { useCallback, useMemo, useState, type MouseEvent } from 'react'
 import {
   Unlink,
   AlertCircle,
@@ -147,13 +147,6 @@ export function OverviewPage({ onNavigate }: OverviewPageProps) {
   const { settings } = useSettings()
   const lagThreshold = settings.lagAlertThreshold ?? 10000
   const diskThreshold = settings.diskAlertThreshold ?? 75
-  const [now, setNow] = useState(() => new Date())
-
-  useEffect(() => {
-    const id = window.setInterval(() => setNow(new Date()), 1000)
-    return () => window.clearInterval(id)
-  }, [])
-
   const doRefresh = useCallback(
     () => Promise.all([refresh({ silent: true }), refreshConnections()]),
     [refresh, refreshConnections],
@@ -240,7 +233,9 @@ export function OverviewPage({ onNavigate }: OverviewPageProps) {
   const subtitle = isOnline
     ? t('overview.subtitleConnected', {
         cluster: conn?.name ?? '',
-        time: formatTime(now),
+        // The fetch timestamp, not the wall clock: a ticking clock here read as
+        // "this data is live", and it also re-rendered the page every second.
+        time: formatTime(data.lastUpdated),
       })
     : t('overview.subtitleNoConn')
 
@@ -277,14 +272,12 @@ export function OverviewPage({ onNavigate }: OverviewPageProps) {
             {/* KPI strip */}
             <div className="grid grid-cols-4 gap-2.5">
               <StatCard
-                hoverLift
                 icon={LayoutGrid}
                 label={t('overview.stat.topics')}
                 value={(data.topics.length || cluster?.totalTopics || 0).toLocaleString()}
                 hint={t('overview.stat.topicSummary', { active: activeTopics.length })}
               />
               <StatCard
-                hoverLift
                 icon={Users}
                 label={t('overview.stat.consumers')}
                 value={(data.consumerGroups.length || cluster?.totalGroups || 0).toLocaleString()}
@@ -295,7 +288,6 @@ export function OverviewPage({ onNavigate }: OverviewPageProps) {
                 })}
               />
               <StatCard
-                hoverLift
                 icon={Server}
                 label={t('overview.stat.broker')}
                 value={`${onlineBrokerCount}/${totalBrokerCount || onlineBrokerCount}`}
@@ -316,7 +308,6 @@ export function OverviewPage({ onNavigate }: OverviewPageProps) {
                 }
               />
               <StatCard
-                hoverLift
                 icon={Inbox}
                 label={t('overview.stat.lag')}
                 value={formatCompactCount(totalLag)}
@@ -340,7 +331,7 @@ export function OverviewPage({ onNavigate }: OverviewPageProps) {
                 <div className="overflow-hidden rounded-xl border border-border/90 bg-card shadow-sm">
                   {issues.map((issue) => (
                     <div key={issue.key} className="flex items-start gap-2.5 border-t border-border px-3 py-2.5 first:border-t-0">
-                      <span className={cn("mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full", issue.severity === "high" && "bg-destructive", issue.severity === "med" && "bg-amber-500", issue.severity === "low" && "bg-muted-foreground")} />
+                      <span className={cn("mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full", issue.severity === "high" && "bg-destructive", issue.severity === "med" && "bg-warning", issue.severity === "low" && "bg-muted-foreground")} />
                       <div className="min-w-0">
                         <div className="text-fs-125 font-medium leading-snug">{issue.title}</div>
                         <div className="mt-0.5 text-fs-115 leading-snug text-muted-foreground">{issue.desc}</div>
@@ -446,7 +437,7 @@ export function OverviewPage({ onNavigate }: OverviewPageProps) {
                     <div key={g.group} className="flex items-center gap-2.5 px-3 py-2">
                       <AlertCircle
                         size={12}
-                        className={danger ? 'text-destructive' : 'text-amber-600'}
+                        className={danger ? 'text-destructive' : 'text-warning'}
                       />
                       <span className="font-mono-design min-w-0 flex-1 truncate text-fs-12">
                         {g.group}

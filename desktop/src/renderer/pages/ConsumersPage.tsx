@@ -33,6 +33,7 @@ import { cn, formatErrorMessage } from '@/lib/utils'
 import { activatableRowProps, ROW_FOCUS_CLASS } from '@/lib/a11y'
 import { RefreshButton, usePageRefresh } from '@/components/RefreshButton'
 import { SlidingTabs } from '@/components/SlidingTabs'
+import { UnderlineTabs } from '@/components/UnderlineTabs'
 import { EmptyState } from '@/components/EmptyState'
 import { OfflineEmpty } from '@/components/OfflineEmpty'
 import { ErrorBanner } from '@/components/ErrorBanner'
@@ -433,32 +434,15 @@ function GroupDetailPanel({
         </div>
       </div>
 
-      <div
-        className="utabs"
-        style={{
-          paddingLeft: 20,
-          paddingRight: 20,
-          borderBottom: '1px solid hsl(var(--border))',
-        }}
-      >
-        {(['overview', 'subscriptions', 'instances', 'config'] as const).map((k) => (
-          <button
-            key={k}
-            type="button"
-            role="tab"
-            aria-selected={tab === k}
-            className={'utab ' + (tab === k ? 'active' : '')}
-            onClick={() => setTab(k)}
-          >
-            {t(`consumers.tabs.${k === 'subscriptions' ? 'subscriptions' : k}`)}
-            {k === 'instances' && (
-              <span className="text-muted-foreground" style={{ marginLeft: 4 }}>
-                {group.onlineClients}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
+      <UnderlineTabs
+        value={tab}
+        onChange={setTab}
+        items={(['overview', 'subscriptions', 'instances', 'config'] as const).map((k) => ({
+          key: k,
+          label: t(`consumers.tabs.${k}`),
+          count: k === 'instances' ? group.onlineClients : undefined,
+        }))}
+      />
 
       <div className="scroll-thin min-h-0 flex-1 overflow-auto" style={{ padding: '16px 20px' }}>
         {tab === 'overview' && (

@@ -14,6 +14,7 @@ import { OfflineEmpty } from '@/components/OfflineEmpty'
 import { type AlertRuleKey, type AlertRulePrefs } from '@/lib/alertRules'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
+import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 
 interface AlertsPageProps {
@@ -81,18 +82,11 @@ function severityIcon(s: AlertSeverity) {
 
 function LevelBadge({ severity }: { severity: AlertSeverity }) {
   const { t } = useTranslation()
-  const token = severity === 'crit' ? 'destructive' : severity === 'warn' ? 'warning' : 'info'
+  const variant = severity === 'crit' ? 'destructive' : severity === 'warn' ? 'warning' : 'info'
   return (
-    <span
-      className="inline-flex h-[1.31rem] shrink-0 items-center rounded-[5px] px-1.5 text-fs-105 font-semibold uppercase"
-      style={{
-        background: `hsl(var(--${token}) / 0.1)`,
-        color: `hsl(var(--${token}))`,
-        border: `1px solid hsl(var(--${token}) / 0.28)`,
-      }}
-    >
+    <Badge variant={variant} uppercase>
       {t(`alerts.level.${severity}`)}
-    </span>
+    </Badge>
   )
 }
 

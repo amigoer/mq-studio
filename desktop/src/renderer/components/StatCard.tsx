@@ -19,8 +19,6 @@ export function StatCard({
   valueClassName,
   hint,
   children,
-  /** Overview-style KPI tiles lift on hover; static panel stats do not. */
-  hoverLift,
   className,
 }: {
   label: ReactNode
@@ -31,15 +29,14 @@ export function StatCard({
   valueClassName?: string
   hint?: ReactNode
   children?: ReactNode
-  hoverLift?: boolean
   className?: string
 }) {
   return (
     <div
       className={cn(
+        // No hover lift: these cards are not clickable, and the lift read as a
+        // promise that they were.
         'rounded-xl border border-border/80 bg-card p-3.5 shadow-card',
-        hoverLift &&
-          'transition-[box-shadow,transform] duration-200 hover:-translate-y-px hover:shadow-card-hover',
         className,
       )}
     >

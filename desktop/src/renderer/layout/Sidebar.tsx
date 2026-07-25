@@ -67,6 +67,22 @@ const GROUPS: NavGroup[] = [
 
 const BOTTOM: NavItem[] = [{ id: 'settings', icon: Settings, labelKey: 'nav.settings' }]
 
+/**
+ * Shared by this rail and the Settings section rail.
+ *
+ * The selected item used to be `bg-accent` alone — 97% grey on a pure-white
+ * canvas, a 3% step that was effectively invisible. It now carries a brand-green
+ * tint plus a left indicator, so the current page reads at a glance.
+ */
+export function navItemClass(isActive: boolean): string {
+  return cn(
+    'relative h-8 w-full justify-start gap-2 rounded-lg px-2.5 font-normal text-muted-foreground shadow-none',
+    isActive
+      ? 'bg-success/10 font-medium text-foreground before:absolute before:left-0 before:top-1/2 before:h-1/2 before:w-[2px] before:-translate-y-1/2 before:rounded-full before:bg-success'
+      : 'hover:bg-accent hover:text-foreground',
+  )
+}
+
 export function Sidebar({
   active,
   onSelect,
@@ -94,13 +110,13 @@ export function Sidebar({
         title={disabled ? t('common.connectFirst') : label}
         aria-current={isActive ? 'page' : undefined}
         onClick={() => !disabled && onSelect(id)}
-        className={cn(
-          'h-8 w-full justify-start gap-2 rounded-lg px-2.5 font-normal text-muted-foreground shadow-none',
-          isActive && 'bg-accent font-medium text-foreground',
-          !isActive && 'hover:bg-accent/70 hover:text-foreground',
-        )}
+        className={navItemClass(isActive)}
       >
-        <Icon size={15} strokeWidth={isActive ? 2 : 1.75} className="shrink-0 opacity-80" />
+        <Icon
+          size={15}
+          strokeWidth={isActive ? 2 : 1.75}
+          className={cn('shrink-0', isActive ? 'opacity-100' : 'opacity-80')}
+        />
         <span className="truncate">{label}</span>
       </Button>
     )
@@ -119,7 +135,7 @@ export function Sidebar({
           <Fragment key={gi}>
             <div className="flex flex-col gap-0.5">
               {group.labelKey ? (
-                <div className="px-2.5 pb-1 pt-0.5 text-fs-105 font-semibold uppercase tracking-[0.06em] text-muted-foreground/80">
+                <div className="px-2.5 pb-1 pt-0.5 text-fs-105 font-semibold uppercase tracking-[0.06em] text-muted-foreground">
                   {t(group.labelKey)}
                 </div>
               ) : null}
@@ -136,7 +152,7 @@ export function Sidebar({
           size="sm"
           title={t('nav.githubHint')}
           onClick={openGitHub}
-          className="group h-8 w-full justify-start gap-2 rounded-lg px-2.5 font-normal text-muted-foreground shadow-none hover:bg-accent/70 hover:text-foreground"
+          className={cn('group', navItemClass(false))}
         >
           <Github size={15} strokeWidth={1.75} className="shrink-0 opacity-80" />
           <span className="truncate">{t('nav.github')}</span>

@@ -22,6 +22,7 @@ import { cn, formatErrorMessage } from '@/lib/utils'
 import { activatableRowProps, ROW_FOCUS_CLASS } from '@/lib/a11y'
 import { RefreshButton, usePageRefresh } from '@/components/RefreshButton'
 import { SlidingTabs } from '@/components/SlidingTabs'
+import { UnderlineTabs } from '@/components/UnderlineTabs'
 import { EmptyState } from '@/components/EmptyState'
 import { OfflineEmpty } from '@/components/OfflineEmpty'
 import { ErrorBanner } from '@/components/ErrorBanner'
@@ -547,29 +548,16 @@ function TopicDetailPanel({
           </Button>
         </div>
 
-        <div
-          className="utabs"
-          style={{
-            marginTop: 16,
-            marginLeft: -20,
-            marginRight: -20,
-            paddingLeft: 20,
-            paddingRight: 20,
-          }}
-        >
-          {(['info', 'routes', 'groups'] as const).map((k) => (
-            <button
-              key={k}
-              type="button"
-              role="tab"
-              aria-selected={tab === k}
-              className={'utab ' + (tab === k ? 'active' : '')}
-              onClick={() => setTab(k)}
-            >
-              {t(`topics.detail.tabs.${k}`)}
-            </button>
-          ))}
-        </div>
+        <UnderlineTabs
+          bleed
+          className="mt-4"
+          value={tab}
+          onChange={setTab}
+          items={(['info', 'routes', 'groups'] as const).map((k) => ({
+            key: k,
+            label: t(`topics.detail.tabs.${k}`),
+          }))}
+        />
 
         {tab === 'info' && (
           <>

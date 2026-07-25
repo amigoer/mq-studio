@@ -29,6 +29,8 @@ const SAMPLE_BODY = `{
 }`
 
 interface HistoryEntry {
+  /** Entries are prepended, so an array index would re-key every existing row. */
+  id: number
   ok: boolean
   topic: string
   tag: string
@@ -63,6 +65,7 @@ export function ProducerPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
   const [busy, setBusy] = useState(false)
   const [history, setHistory] = useState<HistoryEntry[]>([])
   const [scope, setScope] = useState(() => loadProducerScope(activeKey))
+  const nextHistoryId = useRef(0)
   const restoredKeyRef = useRef<string | null>(null)
 
   const sendableTopics = useMemo(
@@ -131,6 +134,7 @@ export function ProducerPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
     try {
       const result = await messageApi.sendMessage(topic, tag, key, body, delay)
       const entry: HistoryEntry = {
+        id: nextHistoryId.current++,
         ok: true,
         topic,
         tag,
@@ -145,6 +149,7 @@ export function ProducerPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
     } catch (e) {
       const msg = formatErrorMessage(e)
       const entry: HistoryEntry = {
+        id: nextHistoryId.current++,
         ok: false,
         topic,
         tag,
@@ -312,9 +317,9 @@ export function ProducerPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
                 {history.length === 0 ? (
                   <EmptyState compact className="py-9" title={t('producer.historyEmpty')} />
                 ) : (
-                  history.map((h, i) => (
+                  history.map((h) => (
                     <div
-                      key={i}
+                      key={h.id}
                       className="flex flex-col gap-1 border-t border-border px-3 py-2.5 first:border-t-0"
                     >
                       <div className="flex items-center gap-2">

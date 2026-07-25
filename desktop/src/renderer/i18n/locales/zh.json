@@ -118,7 +118,7 @@
   },
   "overview": {
     "title": "概览",
-    "subtitleConnected": "{{cluster}} · {{time}}",
+    "subtitleConnected": "{{cluster}} · 数据更新于 {{time}}",
     "subtitleNoConn": "未连接集群",
     "loadError": "加载概览数据失败：{{message}}",
     "disconnectSuccess": "已断开 {{cluster}}",
@@ -556,7 +556,6 @@
       "topicsSubtitle": "{{groups}} 个消费组"
     },
     "throughput": "吞吐趋势 · 最近 60 分钟",
-    "brokerList": "Broker 列表",
     "brokerEmpty": "暂无 Broker 数据",
     "brokerTable": {
       "name": "Broker",
