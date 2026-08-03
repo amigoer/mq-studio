@@ -522,6 +522,8 @@
     "send": "发送",
     "sending": "发送中…",
     "reset": "重置",
+    "resetTitle": "清空表单，并删除该 Topic 已保存的内容",
+    "draftRestored": "已保存该 Topic 上次发送的内容",
     "history": "最近发送",
     "historyHint": "仅本会话保留",
     "historyEmpty": "暂无发送记录",

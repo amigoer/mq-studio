@@ -522,6 +522,8 @@
     "send": "Send",
     "sending": "Sending…",
     "reset": "Reset",
+    "resetTitle": "Clear the form and delete this topic's saved content",
+    "draftRestored": "The last message sent to this topic is saved",
     "history": "Recent sends",
     "historyHint": "Kept only for this session",
     "historyEmpty": "No sends yet",

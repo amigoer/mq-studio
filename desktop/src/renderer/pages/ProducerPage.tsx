@@ -1,12 +1,14 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Send, RotateCcw, X, Check, AlertCircle } from 'lucide-react'
 import { Spinner } from '@/components/Spinner'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { PageHeader } from '@/components/PageHeader'
 import { PageBody } from '@/components/PageLayout'
+import { useConnections } from '@/hooks/useConnections'
 import { useTopics } from '@/hooks/useTopics'
 import * as messageApi from '@/api/message'
+import { clearProducerDraft, loadProducerScope, saveProducerDraft } from '@/lib/producerDrafts'
 import { formatErrorMessage } from '@/lib/utils'
 import { EmptyState } from '@/components/EmptyState'
 import { OfflineEmpty } from '@/components/OfflineEmpty'
@@ -51,6 +53,7 @@ function formatTime(d: Date): string {
 export function ProducerPage({ onNavigate }: { onNavigate?: (id: NavId) => void }) {
   const { t } = useTranslation()
   const { topics, hasOnline } = useTopics()
+  const { activeKey } = useConnections()
 
   const [topic, setTopic] = useState<string>('')
   const [tag, setTag] = useState('')
@@ -59,6 +62,8 @@ export function ProducerPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
   const [body, setBody] = useState('')
   const [busy, setBusy] = useState(false)
   const [history, setHistory] = useState<HistoryEntry[]>([])
+  const [scope, setScope] = useState(() => loadProducerScope(activeKey))
+  const restoredKeyRef = useRef<string | null>(null)
 
   const sendableTopics = useMemo(
     () =>
@@ -68,6 +73,41 @@ export function ProducerPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
         .sort(),
     [topics],
   )
+
+  // Restore the last topic sent to on this connection, once per connection. Waits for the topic
+  // list so a topic that no longer exists on the cluster is never forced into the select.
+  // The page unmounts on navigation, so the refill runs again each time it is reopened.
+  useEffect(() => {
+    if (restoredKeyRef.current === activeKey || sendableTopics.length === 0) return
+    restoredKeyRef.current = activeKey
+    const restored = loadProducerScope(activeKey)
+    setScope(restored)
+    if (!restored.lastTopic || !sendableTopics.includes(restored.lastTopic)) {
+      // Drop a selection carried over from the previous connection — the select has no
+      // matching option for it, so it would silently send to a topic that is not shown.
+      setTopic((current) => (sendableTopics.includes(current) ? current : ''))
+      return
+    }
+    setTopic(restored.lastTopic)
+    const draft = restored.drafts[restored.lastTopic]
+    if (!draft) return
+    setTag(draft.tag)
+    setKey(draft.key)
+    setDelay(draft.delay)
+    setBody(draft.body)
+  }, [activeKey, sendableTopics])
+
+  const handleTopicChange = (next: string) => {
+    setTopic(next)
+    const draft = next ? scope.drafts[next] : undefined
+    // Leave the form untouched when the topic has nothing saved, so writing the body
+    // first and picking the topic afterwards still works.
+    if (!draft) return
+    setTag(draft.tag)
+    setKey(draft.key)
+    setDelay(draft.delay)
+    setBody(draft.body)
+  }
 
   const handleFormat = () => {
     try {
@@ -100,6 +140,7 @@ export function ProducerPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
         result,
       }
       setHistory((h) => [entry, ...h].slice(0, 50))
+      setScope(saveProducerDraft(activeKey, topic, { tag, key, delay, body }))
       toast.success(t('producer.sendSuccess'), { description: result })
     } catch (e) {
       const msg = formatErrorMessage(e)
@@ -124,6 +165,9 @@ export function ProducerPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
     setKey('')
     setDelay(0)
     setBody('')
+    // Also forget the saved content, otherwise leaving and returning would bring it back
+    // and the reset would look like it never happened.
+    if (topic) setScope(clearProducerDraft(activeKey, topic))
   }
 
   const subtitle = !hasOnline ? t('producer.subtitleNoConn') : t('producer.subtitle')
@@ -157,7 +201,7 @@ export function ProducerPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
                     <Select
                       className="font-mono-design"
                       value={topic}
-                      onChange={(e) => setTopic(e.target.value)}
+                      onChange={(e) => handleTopicChange(e.target.value)}
                     >
                       <option value="">{t('producer.topicPlaceholder')}</option>
                       {sendableTopics.map((tp) => (
@@ -166,6 +210,11 @@ export function ProducerPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
                         </option>
                       ))}
                     </Select>
+                  )}
+                  {topic && scope.drafts[topic] && (
+                    <span className="text-muted-foreground text-fs-105">
+                      {t('producer.draftRestored')}
+                    </span>
                   )}
                 </div>
 
@@ -229,7 +278,13 @@ export function ProducerPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="sm" onClick={handleReset} disabled={busy}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleReset}
+                    disabled={busy}
+                    title={t('producer.resetTitle')}
+                  >
                     <RotateCcw size={13} />
                     {t('producer.reset')}
                   </Button>
