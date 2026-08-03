@@ -66,13 +66,15 @@ prepare_macos_app() {
   codesign --force --deep --sign - "$destination" >/dev/null
 }
 
+# macOS ties privacy grants to a bundle's path plus its code signature. A fresh mktemp
+# path per run made every launch look like a different app, so the Local Network grant
+# never stuck and connections to a LAN NameServer failed with EHOSTUNREACH ("no route to
+# host"). Keep the bundle at a stable path and leave it in place between runs; the ad-hoc
+# signature over identical content is reproducible, so the grant survives.
 with_macos_app() {
-  temp_root="$(mktemp -d "${TMPDIR:-/tmp}/rocket-leaf-electron.XXXXXX")"
-  app_bundle="$temp_root/Rocket Leaf.app"
-  cleanup() {
-    rm -rf "$temp_root"
-  }
-  trap cleanup EXIT INT TERM
+  app_root="${TMPDIR:-/tmp}/rocket-leaf-electron-dev"
+  app_bundle="$app_root/Rocket Leaf.app"
+  mkdir -p "$app_root"
   prepare_macos_app "$app_bundle"
   export ELECTRON_EXEC_PATH="$app_bundle/Contents/MacOS/Rocket Leaf"
   "$@"
