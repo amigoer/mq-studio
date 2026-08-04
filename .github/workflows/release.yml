@@ -68,14 +68,32 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # macOS and Windows cross-compile between architectures on one
+          # runner; Linux needs cgo, so each architecture builds natively.
           - runner: macos-latest
-            target: mac-universal
+            target: mac-amd64
+            os: mac
+            arch: amd64
+          - runner: macos-latest
+            target: mac-arm64
+            os: mac
+            arch: arm64
           - runner: windows-latest
-            target: windows
+            target: windows-amd64
+            os: windows
+            arch: amd64
+          - runner: windows-latest
+            target: windows-arm64
+            os: windows
+            arch: arm64
           - runner: ubuntu-latest
             target: linux-amd64
+            os: linux
+            arch: amd64
           - runner: ubuntu-24.04-arm
             target: linux-arm64
+            os: linux
+            arch: arm64
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v7
@@ -109,6 +127,29 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
+      # Building the CLI links against GTK and WebKit, so the libraries have
+      # to be present before it is installed.
+      - name: Install Linux build dependencies
+        if: matrix.os == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            pkg-config \
+            libgtk-3-dev \
+            libwebkit2gtk-4.1-dev \
+            rpm \
+            file
+
+      # Chocolatey does not export makensis to later steps, so add it here.
+      - name: Install NSIS
+        if: matrix.os == 'windows'
+        shell: bash
+        run: |
+          set -eu
+          choco install nsis -y --no-progress
+          echo "C:\Program Files (x86)\NSIS" >> "$GITHUB_PATH"
+
       # The CLI bundles Task, so no separate Task install is needed.
       - name: Install the Wails CLI
         shell: bash
@@ -124,33 +165,21 @@ jobs:
           RELEASE_TAG: ${{ inputs.tag }}
         run: npm run check:version
 
-      - name: Install Linux build dependencies
-        if: startsWith(matrix.target, 'linux')
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            build-essential \
-            pkg-config \
-            libgtk-3-dev \
-            libwebkit2gtk-4.1-dev \
-            rpm \
-            file
-
-      - name: Install NSIS
-        if: matrix.target == 'windows'
-        shell: bash
-        run: choco install nsis -y --no-progress
-
       - name: Install frontend dependencies
         run: npm ci --prefix frontend
 
-      - name: Package macOS universal bundle
-        if: matrix.target == 'mac-universal'
+      # ARCH has to be an environment variable throughout: a Task CLI variable
+      # does not reach the nested build and syso tasks, which would then
+      # silently build the runner's own architecture instead.
+      - name: Package the macOS bundle
+        if: matrix.os == 'mac'
         shell: bash
-        run: wails3 task darwin:package:universal
+        env:
+          ARCH: ${{ matrix.arch }}
+        run: wails3 task darwin:package
 
       - name: Sign and notarise the macOS bundle
-        if: matrix.target == 'mac-universal'
+        if: matrix.os == 'mac'
         shell: bash
         env:
           SIGN_IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY }}
@@ -184,35 +213,33 @@ jobs:
           rm -f "$certificate"
 
       - name: Build the macOS disk image
-        if: matrix.target == 'mac-universal'
+        if: matrix.os == 'mac'
         shell: bash
         env:
           RELEASE_TAG: ${{ inputs.tag }}
+          ARCH: ${{ matrix.arch }}
         run: |
           set -eu
           # `wails3 tool package -format dmg` is disabled in the pinned CLI and
           # exits 0 without producing anything, so build the image directly.
           version="${RELEASE_TAG#v}"
+          image="bin/Rocket-Leaf-${version}-mac-${ARCH}.dmg"
           hdiutil create \
             -volname "Rocket Leaf" \
             -srcfolder "bin/Rocket Leaf.app" \
             -ov -format UDZO \
-            "bin/Rocket-Leaf-${version}-mac-universal.dmg"
-          hdiutil verify "bin/Rocket-Leaf-${version}-mac-universal.dmg"
+            "$image"
+          hdiutil verify "$image"
 
-      - name: Package Windows installers
-        if: matrix.target == 'windows'
+      - name: Package the Windows installer
+        if: matrix.os == 'windows'
         shell: bash
-        run: |
-          set -eu
-          # ARCH has to be an environment variable: passing it as a Task CLI
-          # variable does not reach the nested build and syso tasks, which then
-          # silently build the runner's own architecture for both installers.
-          ARCH=amd64 wails3 task windows:package
-          ARCH=arm64 wails3 task windows:package
+        env:
+          ARCH: ${{ matrix.arch }}
+        run: wails3 task windows:package
 
       - name: Package Linux artifacts
-        if: startsWith(matrix.target, 'linux')
+        if: matrix.os == 'linux'
         shell: bash
         run: wails3 task linux:package
 
