@@ -52,7 +52,7 @@ e2e-up: ## Start RocketMQ 5.3.2 with OrbStack or Docker
 e2e-down: ## Stop the RocketMQ E2E environment and remove test volumes
 	npm run e2e:down
 
-check: ## Run version, gofmt, vet, type checks, tests, and bindings drift checks
+check: ## Run version, frontend build, gofmt, vet, tests, and bindings drift checks
 	npm run check
 
 ci: install-ci check ## Run baseline CI checks without Docker
