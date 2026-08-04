@@ -108,3 +108,9 @@ manifests. Those manifests are what the packaged artifacts declare to the OS, so
 
 The app id stays `com.rocketleaf.app` and the user data directory stays
 `rocket-leaf`, so local data from earlier versions remains compatible.
+
+`.github/workflows/ci.yml` runs the same gate on pushes and pull requests.
+`release.yml` packages a tag. Its runner matrix follows what each platform needs
+to compile: macOS builds both slices from one SDK and joins them with `lipo`,
+Windows cross-compiles both architectures from one runner because it does not
+need cgo, and Linux does, so each architecture gets a runner of its own.

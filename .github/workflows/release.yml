@@ -1,12 +1,17 @@
-# Build Wails3 packages for all platforms and publish a GitHub Release.
+# Build Wails packages for every target and publish a GitHub Release.
+#
+# Runner choice follows what each platform needs to build:
+#   macOS   CGO, both slices from one SDK, joined with lipo -> one universal job
+#   Windows CGO_ENABLED=0, so amd64 and arm64 cross-compile from one runner
+#   Linux   CGO, so each architecture needs a runner of its own
 #
 # Optional macOS signing secrets (environment: release):
 #   MACOS_SIGN_IDENTITY   Developer ID Application identity name
-#   MACOS_CSC_LINK        base64 .p12 certificate
+#   MACOS_CSC_LINK        base64 encoded .p12 certificate
 #   MACOS_CSC_KEY_PASSWORD
 #   APPLE_ID / APPLE_APP_SPECIFIC_PASSWORD / APPLE_TEAM_ID  (notarisation)
-# When the credentials are incomplete the macOS build stays ad-hoc signed, which
-# is what the Taskfile's package step produces by default.
+# With any of them missing the macOS build ships ad-hoc signed, which is what
+# the Taskfile's package step produces on its own.
 name: Release
 
 on:
@@ -56,7 +61,7 @@ jobs:
           echo "commit=$tag_commit" >> "$GITHUB_OUTPUT"
 
   package:
-    name: Package (${{ matrix.platform }})
+    name: Package (${{ matrix.target }})
     needs: resolve
     environment: release
     strategy:
@@ -64,11 +69,13 @@ jobs:
       matrix:
         include:
           - runner: macos-latest
-            platform: mac
+            target: mac-universal
           - runner: windows-latest
-            platform: win
+            target: windows
           - runner: ubuntu-latest
-            platform: linux
+            target: linux-amd64
+          - runner: ubuntu-24.04-arm
+            target: linux-arm64
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v7
@@ -102,12 +109,7 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Install Task
-        uses: arduino/setup-task@v2
-        with:
-          version: 3.x
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-
+      # The CLI bundles Task, so no separate Task install is needed.
       - name: Install the Wails CLI
         shell: bash
         run: |
@@ -117,35 +119,38 @@ jobs:
           echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
 
       - name: Validate release version
+        shell: bash
         env:
           RELEASE_TAG: ${{ inputs.tag }}
         run: npm run check:version
 
       - name: Install Linux build dependencies
-        if: matrix.platform == 'linux'
+        if: startsWith(matrix.target, 'linux')
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            pkg-config \
             libgtk-3-dev \
             libwebkit2gtk-4.1-dev \
             rpm \
             file
 
       - name: Install NSIS
-        if: matrix.platform == 'win'
+        if: matrix.target == 'windows'
         shell: bash
         run: choco install nsis -y --no-progress
 
       - name: Install frontend dependencies
         run: npm ci --prefix frontend
 
-      - name: Package (macOS universal)
-        if: matrix.platform == 'mac'
+      - name: Package macOS universal bundle
+        if: matrix.target == 'mac-universal'
         shell: bash
         run: wails3 task darwin:package:universal
 
-      - name: Sign and notarise (macOS)
-        if: matrix.platform == 'mac'
+      - name: Sign and notarise the macOS bundle
+        if: matrix.target == 'mac-universal'
         shell: bash
         env:
           SIGN_IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY }}
@@ -162,53 +167,52 @@ jobs:
             echo '::warning::macOS signing credentials are incomplete; shipping the ad-hoc signed bundle.'
             exit 0
           fi
-          keychain="$RUNNER_TEMP/release.keychain-db"
-          keychain_password="$(uuidgen)"
-          security create-keychain -p "$keychain_password" "$keychain"
-          security set-keychain-settings -lut 900 "$keychain"
-          security unlock-keychain -p "$keychain_password" "$keychain"
-          echo "$CSC_LINK" | base64 --decode > "$RUNNER_TEMP/certificate.p12"
-          security import "$RUNNER_TEMP/certificate.p12" -k "$keychain" \
-            -P "$CSC_KEY_PASSWORD" -T /usr/bin/codesign
-          security set-key-partition-list -S apple-tool:,apple:,codesign: \
-            -s -k "$keychain_password" "$keychain" > /dev/null
-          security list-keychain -d user -s "$keychain" login.keychain-db
-          rm -f "$RUNNER_TEMP/certificate.p12"
-
-          wails3 signing credentials \
+          certificate="$RUNNER_TEMP/certificate.p12"
+          echo "$CSC_LINK" | base64 --decode > "$certificate"
+          # notarytool reads the Apple credentials from a keychain profile.
+          xcrun notarytool store-credentials release-notarize \
             --apple-id "$APPLE_ID" \
             --team-id "$APPLE_TEAM_ID" \
-            --password "$APPLE_APP_SPECIFIC_PASSWORD" \
-            --profile release-notarize
+            --password "$APPLE_APP_SPECIFIC_PASSWORD"
           wails3 tool sign \
-            --input "bin/Rocket Leaf.app" \
-            --identity "$SIGN_IDENTITY" \
-            --notarize --keychain-profile release-notarize
+            -input "bin/Rocket Leaf.app" \
+            -certificate "$certificate" \
+            -password "$CSC_KEY_PASSWORD" \
+            -identity "$SIGN_IDENTITY" \
+            -notarize \
+            -keychain-profile release-notarize
+          rm -f "$certificate"
 
       - name: Build the macOS disk image
-        if: matrix.platform == 'mac'
+        if: matrix.target == 'mac-universal'
         shell: bash
         env:
           RELEASE_TAG: ${{ inputs.tag }}
         run: |
           set -eu
+          # `wails3 tool package -format dmg` is disabled in the pinned CLI and
+          # exits 0 without producing anything, so build the image directly.
           version="${RELEASE_TAG#v}"
           hdiutil create \
             -volname "Rocket Leaf" \
             -srcfolder "bin/Rocket Leaf.app" \
             -ov -format UDZO \
             "bin/Rocket-Leaf-${version}-mac-universal.dmg"
+          hdiutil verify "bin/Rocket-Leaf-${version}-mac-universal.dmg"
 
-      - name: Package (Windows)
-        if: matrix.platform == 'win'
+      - name: Package Windows installers
+        if: matrix.target == 'windows'
         shell: bash
         run: |
           set -eu
-          wails3 task windows:package ARCH=amd64
-          wails3 task windows:package ARCH=arm64
+          # ARCH has to be an environment variable: passing it as a Task CLI
+          # variable does not reach the nested build and syso tasks, which then
+          # silently build the runner's own architecture for both installers.
+          ARCH=amd64 wails3 task windows:package
+          ARCH=arm64 wails3 task windows:package
 
-      - name: Package (Linux)
-        if: matrix.platform == 'linux'
+      - name: Package Linux artifacts
+        if: startsWith(matrix.target, 'linux')
         shell: bash
         run: wails3 task linux:package
 
@@ -219,13 +223,14 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: packages-${{ matrix.platform }}
+          name: packages-${{ matrix.target }}
           path: |
             bin/*.dmg
-            bin/*.exe
+            bin/*installer.exe
             bin/*.AppImage
             bin/*.deb
             bin/*.rpm
+            bin/*.pkg.tar.zst
           if-no-files-found: error
 
   publish:
