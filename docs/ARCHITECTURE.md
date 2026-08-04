@@ -71,8 +71,10 @@ frontend/
   src/pages/             Feature pages
   src/styles/            Global CSS and early theme bootstrap
 build/                   Wails build assets and per-platform Taskfiles
-scripts/                 Version check and load-test tooling
-tests/e2e/               Shared RocketMQ e2e environment
+scripts/                 Version consistency check
+tests/
+  e2e/                   Shared RocketMQ e2e environment
+  throughput-load/       Load generator for the throughput charts (own module)
 ```
 
 ## Build

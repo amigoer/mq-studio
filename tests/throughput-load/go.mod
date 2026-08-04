@@ -1,4 +1,4 @@
-module github.com/amigoer/rocket-leaf/scripts/throughput-load
+module github.com/amigoer/rocket-leaf/tests/throughput-load
 
 go 1.25.0
 
