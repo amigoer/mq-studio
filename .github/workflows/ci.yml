@@ -1,0 +1,60 @@
+# Runs the same gate as `npm run check` locally: version consistency, gofmt,
+# go vet, frontend type checks, unit tests, and generated-binding drift.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      # Compiling the Wails packages needs the GTK and WebKit headers even
+      # though nothing is packaged here.
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            pkg-config \
+            libgtk-3-dev \
+            libwebkit2gtk-4.1-dev
+
+      # The binding drift check regenerates them, so the CLI has to match the
+      # version the module pins.
+      - name: Install the Wails CLI
+        run: |
+          set -eu
+          wails_version="$(awk '/github.com\/wailsapp\/wails\/v3/ { print $2; exit }' go.mod)"
+          go install "github.com/wailsapp/wails/v3/cmd/wails3@${wails_version}"
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+      - name: Install frontend dependencies
+        run: npm ci --prefix frontend
+
+      - name: Run checks
+        run: npm run check

@@ -1,65 +1,116 @@
 # Rocket Leaf Architecture
 
-## Process boundaries
+## Process model
 
 ```text
-React Renderer (no Node access)
-        │ contextBridge
-Electron Preload
-        │ restricted IPC operations
-Electron Main ── window / dialogs / external links / auto-update
-        │ Bearer token + loopback HTTP
-rocket-leafd
+React UI (system WebView)
+        │ Wails bindings — direct, in-process calls
+internal/bridge      ── the only layer allowed to reshape data for the UI
+        │
+internal/service     ── domain logic
         │
 RocketMQ Admin API / local encrypted settings
 ```
 
-Electron Main owns OS capabilities and the backend process. The Renderer never touches Node.js, raw IPC primitives, the daemon port, auth tokens, arbitrary file paths, or exported plaintext config.
+The application is a single process. The UI runs in the platform WebView
+(WKWebView on macOS, WebView2 on Windows, WebKitGTK on Linux) and reaches Go
+through generated bindings, so there is no local HTTP server, no auth token and
+no child process to supervise.
 
-## Daemon startup protocol
+## The bridge layer
 
-1. Electron generates a 32-byte random token and starts `rocket-leafd`.
-2. The token is written as a single-line JSON object on stdin (never on the command line or logs).
-3. The daemon listens on `127.0.0.1:0` and prints protocol version, port, PID, and app version on stdout.
-4. Every `/v1` request must include the Bearer token. Errors return `code`, `message`, `requestId`, and optional `details`.
-5. On Electron exit the main process calls the shutdown API and waits up to five seconds; closing stdin also terminates the daemon to avoid orphans.
+`internal/bridge` exposes one Wails service per domain. Its methods delegate
+straight to `internal/service`, and it is the only place that reshapes data on
+the way out:
 
-## API and data safety
+- Stored AccessKey / SecretKey values never leave the Go process. The bridge
+  replaces them with `accessKeyConfigured` / `secretKeyConfigured` flags.
+- Connection and settings updates carry an explicit credential mode:
+  `preserve`, `replace` or `clear`.
+- Config file paths and plaintext exports stay in Go: `SystemService` owns the
+  file dialogs, reads and writes the file, and returns only the chosen path.
+- External links are checked against a host allowlist before being handed to
+  the OS browser.
 
-- `contracts/openapi.yaml` is the single cross-process contract. TypeScript types are generated into `desktop/src/generated/`.
-- Saved AccessKey / SecretKey values are never returned to the Renderer; only a configured flag is exposed.
-- Connection and settings updates use explicit credential modes: `preserve`, `replace`, and `clear`.
-- Config paths and contents only move between Electron Main and the daemon.
-- Production UI is served from `app://rocket-leaf` with context isolation, sandbox, CSP, navigation limits, and an external-link host allowlist.
+`wails3 generate bindings` writes the TypeScript for these services into
+`frontend/bindings/`, typed directly from the Go structs. `npm run check` fails
+if the committed bindings drift from the Go source.
+
+## Frontend seams
+
+The UI never calls a binding directly. Two modules sit in between:
+
+- `frontend/src/api/*.ts` wraps each bound service and is the only place that
+  knows the binding shapes.
+- `frontend/src/api/models.ts` re-exports the generated domain types under the
+  vocabulary the pages use, including friendlier names for the generated enums.
+
+Window chrome (minimise, maximise, close, drag regions) is driven by the Wails
+window runtime from the frontend; only the native background colour, which has
+to stay in step with the light/dark theme, goes through a Go service.
+
+## macOS title bar
+
+The renderer paints the title bar itself, so the native traffic lights have to
+line up with it. Wails exposes no equivalent of Electron's
+`trafficLightPosition`, so `internal/macwindow` moves the standard window
+buttons through a small Objective-C shim. AppKit rebuilds the themed frame on
+resize and when leaving fullscreen, which resets the buttons, so the shim keeps
+a positioner attached to the window and re-applies the offset on those
+notifications. It leaves the buttons alone while the window is fullscreen,
+where AppKit owns them.
+
+The geometry lives in two places that must agree: `titleBarHeight` and
+`trafficLightLeft` in `main.go`, and the `.rl-title-bar` rule in
+`frontend/src/styles/app.css`.
 
 ## Repository layout
 
 ```text
-desktop/                 Electron application
-  src/main/              Main process (window, daemon supervisor, IPC)
-  src/preload/           contextBridge surface
-  src/renderer/          React UI
-    api/                 Renderer → Main backend calls
-    components/          Shared UI components
-    hooks/               React hooks / providers
-    layout/              Title bar and sidebar chrome
-    pages/               Feature pages
-    styles/              Global CSS and early theme bootstrap
-  src/shared/            Types shared by main and preload
-  src/generated/         OpenAPI-generated types
-daemon/                  Go module (github.com/amigoer/rocket-leaf/daemon)
-  cmd/rocket-leafd/      Process entrypoint
-  internal/api/          Private loopback HTTP API
-  internal/app/          Service wiring
-  internal/service/      Domain services
-  internal/model/        Domain models
-  internal/rocketmq/     RocketMQ client adapter
-  internal/crypto/       Local encryption helpers
-contracts/               OpenAPI contract
-scripts/                 Build, run, icons, smoke tests
-tests/e2e/               Shared RocketMQ e2e environment
+main.go                  Wails application entrypoint
+internal/
+  bridge/                Wails services exposed to the frontend
+  app/                   Service wiring
+  service/               Domain services
+  model/                 Domain models
+  rocketmq/              RocketMQ client adapter
+  crypto/                Local encryption helpers
+  storage/               On-disk layout and atomic writes
+  update/                GitHub release update check
+  macwindow/             Native macOS chrome Wails does not expose (cgo)
+frontend/
+  bindings/              Generated TypeScript bindings (committed)
+  src/api/               Binding wrappers, domain types, platform access
+  src/components/        Shared UI components
+  src/hooks/             React hooks / providers
+  src/layout/            Title bar and sidebar chrome
+  src/pages/             Feature pages
+  src/styles/            Global CSS and early theme bootstrap
+build/                   Wails build assets and per-platform Taskfiles
+scripts/                 Version consistency check
+tests/
+  e2e/                   Shared RocketMQ e2e environment
+  throughput-load/       Load generator for the throughput charts (own module)
 ```
 
-## Build boundary
+## Build
 
-`desktop/` and `daemon/` keep separate dependencies and tests. Release packaging compiles one Go binary per target platform and embeds it outside the ASAR as `extraResources/bin`. The app id stays `com.rocketleaf.app` and the user data directory stays `rocket-leaf`, so v1 local data remains compatible.
+`Taskfile.yml` drives everything through the `wails3` CLI: `wails3 task dev` for
+hot reload, `wails3 task build` for a binary, `wails3 task package` for a
+distributable. The app version lives in `package.json` and is injected into the
+binary with `-ldflags "-X main.version=..."`.
+
+Bumping it means editing `package.json`, both lockfiles, `frontend/package.json`
+and `info.version` in `build/config.yml`, then running
+`wails3 task common:update:build-assets` to regenerate the committed platform
+manifests. Those manifests are what the packaged artifacts declare to the OS, so
+`npm run check:version` verifies them too and names any that are stale.
+
+The app id stays `com.rocketleaf.app` and the user data directory stays
+`rocket-leaf`, so local data from earlier versions remains compatible.
+
+`.github/workflows/ci.yml` runs the same gate on pushes and pull requests.
+`release.yml` packages a tag. Its runner matrix follows what each platform needs
+to compile: macOS builds both slices from one SDK and joins them with `lipo`,
+Windows cross-compiles both architectures from one runner because it does not
+need cgo, and Linux does, so each architecture gets a runner of its own.

@@ -1,10 +1,17 @@
-# Build Electron installers for all platforms and publish a GitHub Release.
+# Build Wails packages for every target and publish a GitHub Release.
 #
-# Optional signing secrets (environment: release):
-#   MACOS_CSC_LINK / MACOS_CSC_KEY_PASSWORD
-#   APPLE_ID / APPLE_APP_SPECIFIC_PASSWORD / APPLE_TEAM_ID
-#   WINDOWS_CSC_LINK / WINDOWS_CSC_KEY_PASSWORD
-# When a platform's credentials are incomplete, that platform is packaged unsigned.
+# Runner choice follows what each platform needs to build:
+#   macOS   CGO, both slices from one SDK, joined with lipo -> one universal job
+#   Windows CGO_ENABLED=0, so amd64 and arm64 cross-compile from one runner
+#   Linux   CGO, so each architecture needs a runner of its own
+#
+# Optional macOS signing secrets (environment: release):
+#   MACOS_SIGN_IDENTITY   Developer ID Application identity name
+#   MACOS_CSC_LINK        base64 encoded .p12 certificate
+#   MACOS_CSC_KEY_PASSWORD
+#   APPLE_ID / APPLE_APP_SPECIFIC_PASSWORD / APPLE_TEAM_ID  (notarisation)
+# With any of them missing the macOS build ships ad-hoc signed, which is what
+# the Taskfile's package step produces on its own.
 name: Release
 
 on:
@@ -21,10 +28,6 @@ concurrency:
 
 permissions:
   contents: read
-
-env:
-  ELECTRON_CACHE: ${{ github.workspace }}/.cache/electron
-  ELECTRON_BUILDER_CACHE: ${{ github.workspace }}/.cache/electron-builder
 
 jobs:
   resolve:
@@ -58,7 +61,7 @@ jobs:
           echo "commit=$tag_commit" >> "$GITHUB_OUTPUT"
 
   package:
-    name: Package (${{ matrix.platform }})
+    name: Package (${{ matrix.target }})
     needs: resolve
     environment: release
     strategy:
@@ -66,18 +69,14 @@ jobs:
       matrix:
         include:
           - runner: macos-latest
-            platform: mac
+            target: mac-universal
           - runner: windows-latest
-            platform: win
+            target: windows
           - runner: ubuntu-latest
-            platform: linux
+            target: linux-amd64
+          - runner: ubuntu-24.04-arm
+            target: linux-arm64
     runs-on: ${{ matrix.runner }}
-    env:
-      CSC_LINK: ${{ matrix.platform == 'mac' && secrets.MACOS_CSC_LINK || matrix.platform == 'win' && secrets.WINDOWS_CSC_LINK || '' }}
-      CSC_KEY_PASSWORD: ${{ matrix.platform == 'mac' && secrets.MACOS_CSC_KEY_PASSWORD || matrix.platform == 'win' && secrets.WINDOWS_CSC_KEY_PASSWORD || '' }}
-      APPLE_ID: ${{ secrets.APPLE_ID }}
-      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -99,126 +98,139 @@ jobs:
             exit 1
           fi
 
-      - name: Select signing mode
-        id: signing
-        shell: bash
-        run: |
-          set -eu
-          enabled=false
-          case '${{ matrix.platform }}' in
-            mac)
-              if [ -n "${CSC_LINK:-}" ] && \
-                 [ -n "${CSC_KEY_PASSWORD:-}" ] && \
-                 [ -n "${APPLE_ID:-}" ] && \
-                 [ -n "${APPLE_APP_SPECIFIC_PASSWORD:-}" ] && \
-                 [ -n "${APPLE_TEAM_ID:-}" ]; then
-                enabled=true
-              else
-                echo '::warning::macOS signing credentials are incomplete; packaging unsigned installers.'
-              fi
-              ;;
-            win)
-              if [ -n "${CSC_LINK:-}" ] && [ -n "${CSC_KEY_PASSWORD:-}" ]; then
-                enabled=true
-              else
-                echo '::warning::Windows signing credentials are incomplete; packaging unsigned installers.'
-              fi
-              ;;
-          esac
-          echo "enabled=${enabled}" >> "$GITHUB_OUTPUT"
-
       - uses: actions/setup-go@v6
         with:
-          go-version-file: daemon/go.mod
-          cache-dependency-path: daemon/go.sum
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
 
       - uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: npm
-          cache-dependency-path: desktop/package-lock.json
+          cache-dependency-path: frontend/package-lock.json
+
+      # The CLI bundles Task, so no separate Task install is needed.
+      - name: Install the Wails CLI
+        shell: bash
+        run: |
+          set -eu
+          wails_version="$(awk '/github.com\/wailsapp\/wails\/v3/ { print $2; exit }' go.mod)"
+          go install "github.com/wailsapp/wails/v3/cmd/wails3@${wails_version}"
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
 
       - name: Validate release version
+        shell: bash
         env:
           RELEASE_TAG: ${{ inputs.tag }}
         run: npm run check:version
 
-      - name: Install Linux packaging dependencies
-        if: matrix.platform == 'linux'
+      - name: Install Linux build dependencies
+        if: startsWith(matrix.target, 'linux')
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            libopenjp2-tools \
+            build-essential \
+            pkg-config \
+            libgtk-3-dev \
+            libwebkit2gtk-4.1-dev \
             rpm \
-            xvfb
+            file
 
-      - name: Install desktop dependencies
-        run: npm ci --prefix desktop
-
-      - name: Build Go daemons (x64 + arm64)
+      - name: Install NSIS
+        if: matrix.target == 'windows'
         shell: bash
+        run: choco install nsis -y --no-progress
+
+      - name: Install frontend dependencies
+        run: npm ci --prefix frontend
+
+      - name: Package macOS universal bundle
+        if: matrix.target == 'mac-universal'
+        shell: bash
+        run: wails3 task darwin:package:universal
+
+      - name: Sign and notarise the macOS bundle
+        if: matrix.target == 'mac-universal'
+        shell: bash
+        env:
+          SIGN_IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY }}
+          CSC_LINK: ${{ secrets.MACOS_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.MACOS_CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
-          sh scripts/build-daemon.sh ${{ matrix.platform }} x64
-          sh scripts/build-daemon.sh ${{ matrix.platform }} arm64
+          set -eu
+          if [ -z "${SIGN_IDENTITY:-}" ] || [ -z "${CSC_LINK:-}" ] || \
+             [ -z "${CSC_KEY_PASSWORD:-}" ] || [ -z "${APPLE_ID:-}" ] || \
+             [ -z "${APPLE_APP_SPECIFIC_PASSWORD:-}" ] || [ -z "${APPLE_TEAM_ID:-}" ]; then
+            echo '::warning::macOS signing credentials are incomplete; shipping the ad-hoc signed bundle.'
+            exit 0
+          fi
+          certificate="$RUNNER_TEMP/certificate.p12"
+          echo "$CSC_LINK" | base64 --decode > "$certificate"
+          # notarytool reads the Apple credentials from a keychain profile.
+          xcrun notarytool store-credentials release-notarize \
+            --apple-id "$APPLE_ID" \
+            --team-id "$APPLE_TEAM_ID" \
+            --password "$APPLE_APP_SPECIFIC_PASSWORD"
+          wails3 tool sign \
+            -input "bin/Rocket Leaf.app" \
+            -certificate "$certificate" \
+            -password "$CSC_KEY_PASSWORD" \
+            -identity "$SIGN_IDENTITY" \
+            -notarize \
+            -keychain-profile release-notarize
+          rm -f "$certificate"
 
-      - name: Build Electron main / preload / renderer
-        run: npm --prefix desktop run build
+      - name: Build the macOS disk image
+        if: matrix.target == 'mac-universal'
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          set -eu
+          # `wails3 tool package -format dmg` is disabled in the pinned CLI and
+          # exits 0 without producing anything, so build the image directly.
+          version="${RELEASE_TAG#v}"
+          hdiutil create \
+            -volname "Rocket Leaf" \
+            -srcfolder "bin/Rocket Leaf.app" \
+            -ov -format UDZO \
+            "bin/Rocket-Leaf-${version}-mac-universal.dmg"
+          hdiutil verify "bin/Rocket-Leaf-${version}-mac-universal.dmg"
 
-      - name: Package installers
+      - name: Package Windows installers
+        if: matrix.target == 'windows'
         shell: bash
         run: |
           set -eu
-          cd desktop
-          case '${{ matrix.platform }}' in
-            mac)
-              if [ '${{ steps.signing.outputs.enabled }}' = true ]; then
-                npx electron-builder \
-                  --mac --x64 --arm64 \
-                  --publish never \
-                  -c.mac.notarize=true
-              else
-                unset CSC_LINK CSC_KEY_PASSWORD
-                unset APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID
-                CSC_IDENTITY_AUTO_DISCOVERY=false \
-                  npx electron-builder \
-                    --mac --x64 --arm64 \
-                    --publish never \
-                    -c.mac.notarize=false
-              fi
-              ;;
-            win)
-              if [ '${{ steps.signing.outputs.enabled }}' = true ]; then
-                npx electron-builder \
-                  --win --x64 --arm64 \
-                  --publish never
-              else
-                unset CSC_LINK CSC_KEY_PASSWORD
-                CSC_IDENTITY_AUTO_DISCOVERY=false \
-                  npx electron-builder \
-                    --win --x64 --arm64 \
-                    --publish never
-              fi
-              ;;
-            linux)
-              # Linux AppImage is not code-signed with Apple/Windows certs.
-              CSC_IDENTITY_AUTO_DISCOVERY=false \
-                npx electron-builder \
-                  --linux --x64 --arm64 \
-                  --publish never
-              ;;
-          esac
+          # ARCH has to be an environment variable: passing it as a Task CLI
+          # variable does not reach the nested build and syso tasks, which then
+          # silently build the runner's own architecture for both installers.
+          ARCH=amd64 wails3 task windows:package
+          ARCH=arm64 wails3 task windows:package
+
+      - name: Package Linux artifacts
+        if: startsWith(matrix.target, 'linux')
+        shell: bash
+        run: wails3 task linux:package
+
+      - name: List packaged files
+        shell: bash
+        run: find bin -maxdepth 1 -type f | sort
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: installers-${{ matrix.platform }}
+          name: packages-${{ matrix.target }}
           path: |
-            release/*-mac-arm64.dmg
-            release/*-mac-x64.dmg
-            release/*-win-arm64.exe
-            release/*-win-x64.exe
-            release/*-linux-arm64.AppImage
-            release/*-linux-x86_64.AppImage
+            bin/*.dmg
+            bin/*installer.exe
+            bin/*.AppImage
+            bin/*.deb
+            bin/*.rpm
+            bin/*.pkg.tar.zst
           if-no-files-found: error
 
   publish:
@@ -251,7 +263,7 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           path: release-files
-          pattern: installers-*
+          pattern: packages-*
           merge-multiple: true
 
       - name: List release files
