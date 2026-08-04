@@ -8,7 +8,9 @@ import (
 
 	"github.com/amigoer/rocket-leaf/internal/app"
 	"github.com/amigoer/rocket-leaf/internal/bridge"
+	"github.com/amigoer/rocket-leaf/internal/macwindow"
 	"github.com/wailsapp/wails/v3/pkg/application"
+	"github.com/wailsapp/wails/v3/pkg/events"
 )
 
 //go:embed all:frontend/dist
@@ -19,6 +21,13 @@ var assets embed.FS
 var version = "dev"
 
 const applicationName = "Rocket Leaf"
+
+// Title bar geometry, shared with the renderer. Keep in step with the
+// .rl-title-bar rule in frontend/src/styles/app.css.
+const (
+	titleBarHeight   = 44.0
+	trafficLightLeft = 16.0
+)
 
 func main() {
 	if err := run(); err != nil {
@@ -45,7 +54,8 @@ func run() error {
 		},
 	})
 
-	wailsApp.Window.NewWithOptions(newWindowOptions())
+	window := wailsApp.Window.NewWithOptions(newWindowOptions())
+	alignTrafficLights(window)
 
 	return wailsApp.Run()
 }
@@ -68,4 +78,18 @@ func newWindowOptions() application.WebviewWindowOptions {
 		},
 	}
 	return options
+}
+
+// alignTrafficLights centres the macOS window buttons in the renderer's title
+// bar. The native window only exists once the app is running, so the first
+// placement waits for the window to become key.
+func alignTrafficLights(window *application.WebviewWindow) {
+	if runtime.GOOS != "darwin" {
+		return
+	}
+	apply := func(*application.WindowEvent) {
+		macwindow.SetTrafficLightPosition(
+			window.NativeWindow(), trafficLightLeft, titleBarHeight/2)
+	}
+	window.OnWindowEvent(events.Mac.WindowDidBecomeKey, apply)
 }

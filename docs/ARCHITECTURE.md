@@ -49,6 +49,21 @@ Window chrome (minimise, maximise, close, drag regions) is driven by the Wails
 window runtime from the frontend; only the native background colour, which has
 to stay in step with the light/dark theme, goes through a Go service.
 
+## macOS title bar
+
+The renderer paints the title bar itself, so the native traffic lights have to
+line up with it. Wails exposes no equivalent of Electron's
+`trafficLightPosition`, so `internal/macwindow` moves the standard window
+buttons through a small Objective-C shim. AppKit rebuilds the themed frame on
+resize and when leaving fullscreen, which resets the buttons, so the shim keeps
+a positioner attached to the window and re-applies the offset on those
+notifications. It leaves the buttons alone while the window is fullscreen,
+where AppKit owns them.
+
+The geometry lives in two places that must agree: `titleBarHeight` and
+`trafficLightLeft` in `main.go`, and the `.rl-title-bar` rule in
+`frontend/src/styles/app.css`.
+
 ## Repository layout
 
 ```text
@@ -62,6 +77,7 @@ internal/
   crypto/                Local encryption helpers
   storage/               On-disk layout and atomic writes
   update/                GitHub release update check
+  macwindow/             Native macOS chrome Wails does not expose (cgo)
 frontend/
   bindings/              Generated TypeScript bindings (committed)
   src/api/               Binding wrappers, domain types, platform access
