@@ -148,7 +148,10 @@ async function expectForm(fields: {
 test.beforeAll(async () => {
   await mkdir(testHome, { recursive: true })
   app = await electron.launch({
-    args: ['.'],
+    // HOME only isolates the daemon: on macOS Chromium resolves the user directory
+    // through the OS, not the environment, so without this switch localStorage would
+    // land in the developer's real profile and leak drafts between runs.
+    args: ['.', `--user-data-dir=${resolve(testHome, 'electron')}`],
     cwd: desktopRoot,
     env: {
       ...process.env,
