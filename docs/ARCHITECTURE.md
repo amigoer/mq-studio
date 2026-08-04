@@ -81,9 +81,14 @@ tests/
 
 `Taskfile.yml` drives everything through the `wails3` CLI: `wails3 task dev` for
 hot reload, `wails3 task build` for a binary, `wails3 task package` for a
-distributable. The app version lives in `package.json`, is mirrored into
-`build/config.yml`, and is injected into the binary with
-`-ldflags "-X main.version=..."`; `npm run check:version` enforces the mirror.
+distributable. The app version lives in `package.json` and is injected into the
+binary with `-ldflags "-X main.version=..."`.
+
+Bumping it means editing `package.json`, both lockfiles, `frontend/package.json`
+and `info.version` in `build/config.yml`, then running
+`wails3 task common:update:build-assets` to regenerate the committed platform
+manifests. Those manifests are what the packaged artifacts declare to the OS, so
+`npm run check:version` verifies them too and names any that are stale.
 
 The app id stays `com.rocketleaf.app` and the user data directory stays
 `rocket-leaf`, so local data from earlier versions remains compatible.

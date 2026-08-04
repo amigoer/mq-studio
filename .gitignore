@@ -13,6 +13,9 @@ build/darwin/icons.icns
 build/darwin/Assets.car
 build/windows/icon.ico
 
+# `wails3 update build-assets` recreates this; the app does not target iOS
+build/ios/
+
 # IDE / OS files
 .idea/
 .vscode/
