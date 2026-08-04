@@ -88,7 +88,7 @@
 | --- | --- |
 | macOS Apple Silicon / Intel | `.dmg` |
 | Windows x64 / ARM64 | `.exe` 安装包 |
-| Linux x64 / ARM64 | `.AppImage`、`.deb`、`.rpm` |
+| Linux x64 / ARM64 | `.AppImage` |
 
 ## 快速开始
 

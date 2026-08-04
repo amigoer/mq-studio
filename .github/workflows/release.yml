@@ -238,10 +238,13 @@ jobs:
           ARCH: ${{ matrix.arch }}
         run: wails3 task windows:package
 
-      - name: Package Linux artifacts
+      # AppImage only: the deb, rpm and archlinux packages are named without the
+      # architecture, so the two Linux jobs would overwrite each other's files
+      # when the artifacts are merged.
+      - name: Package the Linux AppImage
         if: matrix.os == 'linux'
         shell: bash
-        run: wails3 task linux:package
+        run: wails3 task linux:create:appimage
 
       - name: List packaged files
         shell: bash
@@ -255,9 +258,6 @@ jobs:
             bin/*.dmg
             bin/*installer.exe
             bin/*.AppImage
-            bin/*.deb
-            bin/*.rpm
-            bin/*.pkg.tar.zst
           if-no-files-found: error
 
   publish:
