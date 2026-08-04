@@ -1,7 +1,7 @@
 # Rocket-Leaf
 
 <p align="center">
-  <img src="desktop/src/renderer/assets/logo.png" alt="Rocket-Leaf" width="150">
+  <img src="frontend/src/assets/logo.png" alt="Rocket-Leaf" width="150">
 </p>
 
 <p align="center">
@@ -88,7 +88,7 @@
 | --- | --- |
 | macOS Apple Silicon / Intel | `.dmg` |
 | Windows x64 / ARM64 | `.exe` 安装包 |
-| Linux x64 / ARM64 | `.AppImage` |
+| Linux x64 / ARM64 | `.AppImage`、`.deb`、`.rpm` |
 
 ## 快速开始
 
@@ -100,11 +100,11 @@
 
 ## 开发
 
-需要 Go 1.25+、Node.js 20+ 与 npm。
+需要 Go 1.25+、Node.js 20+、npm 与 [Wails 3 CLI](https://v3.wails.io)。
 
 ```bash
-npm install
-npm install --prefix desktop
+go install github.com/wailsapp/wails/v3/cmd/wails3@latest
+make install
 make dev
 ```
 

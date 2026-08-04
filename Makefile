@@ -2,70 +2,49 @@ SHELL := /bin/sh
 .DEFAULT_GOAL := help
 .NOTPARALLEL:
 
-# Optional cross-compilation parameters, for example: make build-daemon TARGET_OS=linux TARGET_ARCH=arm64
-TARGET_OS ?=
-TARGET_ARCH ?=
+# Optional cross-compilation target, for example: make build ARCH=amd64
+ARCH ?=
 
-.PHONY: help install install-ci generate icons dev run \
-	build build-daemon build-daemon-all build-desktop package \
-	test test-go test-desktop test-smoke test-e2e test-all \
-	e2e e2e-up e2e-down check ci clean
+.PHONY: help install install-ci bindings icons dev run build package \
+	test test-go test-frontend e2e e2e-up e2e-down check ci clean
 
 help: ## Show all available targets
 	@awk 'BEGIN { FS = ":.*## " } /^[a-zA-Z0-9_.-]+:.*## / { printf "  %-20s %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
 
-install: ## Install root and Electron desktop dependencies
+install: ## Install root and frontend dependencies
 	npm install
-	npm install --prefix desktop
+	npm install --prefix frontend
 
 install-ci: ## Install dependencies from lockfiles (CI)
 	npm ci
-	npm ci --prefix desktop
+	npm ci --prefix frontend
 
-generate: ## Generate desktop TypeScript types from OpenAPI
-	npm run generate:api
+bindings: ## Regenerate the TypeScript bindings from the Go services
+	npm run generate:bindings
 
-icons: ## Generate PNG, ICNS, and ICO icons with platform-safe padding from the source image
-	sh scripts/generate-icons.sh
+icons: ## Regenerate platform icons from build/appicon.png
+	wails3 task icons
 
-dev: ## Start the Electron development environment and Go daemon
-	sh scripts/run-electron.sh dev
+dev: ## Run the app with frontend hot reload
+	wails3 task dev
 
-run: build ## Build and run the Electron app temporarily, leaving no app process after exit
-	sh scripts/run-electron.sh run
+run: ## Build and run the app
+	wails3 task run
 
-build: build-daemon build-desktop ## Build the daemon and Electron app for the current platform
+build: ## Build the app for the current platform
+	wails3 task build $(if $(ARCH),ARCH=$(ARCH),)
 
-build-daemon: ## Build the daemon; TARGET_OS and TARGET_ARCH are optional
-	sh scripts/build-daemon.sh $(TARGET_OS) $(TARGET_ARCH)
+package: ## Package a distributable build for the current platform
+	wails3 task package $(if $(ARCH),ARCH=$(ARCH),)
 
-build-daemon-all: ## Build x64 and arm64 daemons for macOS, Windows, and Linux
-	@for os in mac win linux; do \
-		for arch in x64 arm64; do \
-			sh scripts/build-daemon.sh $$os $$arch; \
-		done; \
-	done
-
-build-desktop: ## Type-check and build the Electron Main, Preload, and Renderer processes
-	npm run build:desktop
-
-package: ## Build an internal test installer for the current platform
-	sh scripts/package.sh
-
-test: ## Run Go and desktop unit tests plus the daemon smoke test
+test: ## Run Go and frontend unit tests
 	npm test
 
 test-go: ## Run all Go tests
 	npm run test:go
 
-test-desktop: ## Run Electron Main and Renderer unit tests
-	npm run test:desktop
-
-test-smoke: ## Run the daemon startup, authentication, and shutdown smoke test
-	npm run test:daemon-smoke
-
-test-e2e: ## Run Electron end-to-end tests against a running RocketMQ instance
-	npm run test:e2e
+test-frontend: ## Run frontend unit tests
+	npm run test:frontend
 
 e2e-up: ## Start RocketMQ 5.3.2 with OrbStack or Docker
 	npm run e2e:up
@@ -73,22 +52,10 @@ e2e-up: ## Start RocketMQ 5.3.2 with OrbStack or Docker
 e2e-down: ## Stop the RocketMQ E2E environment and remove test volumes
 	npm run e2e:down
 
-e2e: ## Start RocketMQ, run E2E tests, and clean up automatically
-	@set -eu; \
-		cleanup() { \
-			trap - EXIT INT TERM; \
-			$(MAKE) --no-print-directory e2e-down; \
-		}; \
-		trap cleanup EXIT INT TERM; \
-		$(MAKE) --no-print-directory e2e-up; \
-		$(MAKE) --no-print-directory test-e2e
-
-test-all: test e2e ## Run unit, smoke, and full end-to-end tests
-
-check: ## Run Go vet, type checks, tests, and OpenAPI drift checks
+check: ## Run version, gofmt, vet, type checks, tests, and bindings drift checks
 	npm run check
 
-ci: install-ci check ## Run baseline CI checks without Docker E2E tests
+ci: install-ci check ## Run baseline CI checks without Docker
 
-clean: ## Remove daemon, Electron, and installer build artifacts
-	rm -rf daemon/dist desktop/out desktop/resources/bin release
+clean: ## Remove build artifacts
+	rm -rf bin frontend/dist release

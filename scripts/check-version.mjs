@@ -4,28 +4,37 @@ import { fileURLToPath } from 'node:url'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 
-async function readJSON(path) {
-  return JSON.parse(await readFile(resolve(root, path), 'utf8'))
+async function read(path) {
+  return readFile(resolve(root, path), 'utf8')
 }
 
-const [rootPackage, rootLock, desktopPackage, desktopLock] = await Promise.all([
+async function readJSON(path) {
+  return JSON.parse(await read(path))
+}
+
+const [rootPackage, rootLock, frontendPackage, frontendLock, buildConfig] = await Promise.all([
   readJSON('package.json'),
   readJSON('package-lock.json'),
-  readJSON('desktop/package.json'),
-  readJSON('desktop/package-lock.json'),
+  readJSON('frontend/package.json'),
+  readJSON('frontend/package-lock.json'),
+  read('build/config.yml'),
 ])
 
-const canonicalVersion = desktopPackage.version
+const canonicalVersion = rootPackage.version
 if (!/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(canonicalVersion)) {
-  throw new Error(`desktop/package.json contains an invalid SemVer: ${canonicalVersion}`)
+  throw new Error(`package.json contains an invalid SemVer: ${canonicalVersion}`)
 }
 
+// build/config.yml feeds the platform manifests and the -ldflags app version.
+const buildConfigVersion = /^\s{2}version:\s*"(.+)"\s*$/m.exec(buildConfig)?.[1]
+
 const mirrors = new Map([
-  ['package.json', rootPackage.version],
   ['package-lock.json', rootLock.version],
   ['package-lock.json packages[""]', rootLock.packages?.['']?.version],
-  ['desktop/package-lock.json', desktopLock.version],
-  ['desktop/package-lock.json packages[""]', desktopLock.packages?.['']?.version],
+  ['frontend/package.json', frontendPackage.version],
+  ['frontend/package-lock.json', frontendLock.version],
+  ['frontend/package-lock.json packages[""]', frontendLock.packages?.['']?.version],
+  ['build/config.yml info.version', buildConfigVersion],
 ])
 
 for (const [source, version] of mirrors) {
