@@ -1,6 +1,9 @@
 # Roadmap
 
-## v2.0.0
+## v0.1.0
+
+Versioning restarts below 1.0 with the Wails 3 rewrite: the earlier 1.x line
+was built on a different architecture and is no longer published.
 
 - Migrate from Electron + local Go daemon back to Wails 3
 - Replace the loopback HTTP transport with in-process Wails bindings

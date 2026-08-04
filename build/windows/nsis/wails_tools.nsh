@@ -5,7 +5,7 @@
 !include "FileFunc.nsh"
 
 !ifndef INFO_PROJECTNAME
-    !define INFO_PROJECTNAME "Rocket Leaf"
+    !define INFO_PROJECTNAME "rocket-leaf"
 !endif
 !ifndef INFO_COMPANYNAME
     !define INFO_COMPANYNAME "amigoer"
@@ -14,7 +14,7 @@
     !define INFO_PRODUCTNAME "Rocket Leaf"
 !endif
 !ifndef INFO_PRODUCTVERSION
-    !define INFO_PRODUCTVERSION "1.4.1"
+    !define INFO_PRODUCTVERSION "0.1.0"
 !endif
 !ifndef INFO_COPYRIGHT
     !define INFO_COPYRIGHT "(c) 2026, amigoer"
