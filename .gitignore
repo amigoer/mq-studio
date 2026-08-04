@@ -3,7 +3,6 @@ bin/
 frontend/dist/
 frontend/node_modules/
 frontend/*.tsbuildinfo
-release/
 node_modules/
 
 # Task's local checksum cache

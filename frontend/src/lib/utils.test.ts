@@ -16,12 +16,14 @@ describe('formatErrorMessage', () => {
     expect(formatErrorMessage({ message: 'boom' })).toBe('boom')
   })
 
-  it('unwraps JSON error strings', () => {
-    expect(formatErrorMessage('{"message":"from-json"}')).toBe('from-json')
-  })
-
   it('uses Error.message', () => {
     expect(formatErrorMessage(new Error('plain'))).toBe('plain')
+  })
+
+  it('keeps a Go error message intact even when it contains JSON', () => {
+    expect(formatErrorMessage(new Error('failed to parse: {"message":"inner"}'))).toBe(
+      'failed to parse: {"message":"inner"}',
+    )
   })
 
   it('stringifies plain values when no message field exists', () => {

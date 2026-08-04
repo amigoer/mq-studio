@@ -1,4 +1,4 @@
-// Package layout defines the daemon's on-disk configuration layout.
+// Package layout defines the application's on-disk configuration layout.
 package layout
 
 import (

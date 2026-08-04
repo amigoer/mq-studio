@@ -1,4 +1,4 @@
-// Package app assembles daemon business services and manages their lifecycle.
+// Package app assembles the business services and manages their lifecycle.
 package app
 
 import (

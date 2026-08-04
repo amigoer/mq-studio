@@ -27,7 +27,6 @@ dev_mode:
       - node_modules
       - frontend
       - bin
-      - release
     file:
       - .DS_Store
       - .gitignore

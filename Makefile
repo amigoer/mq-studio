@@ -58,4 +58,4 @@ check: ## Run version, gofmt, vet, type checks, tests, and bindings drift checks
 ci: install-ci check ## Run baseline CI checks without Docker
 
 clean: ## Remove build artifacts
-	rm -rf bin frontend/dist release
+	rm -rf bin frontend/dist

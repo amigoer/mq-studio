@@ -61,7 +61,7 @@ describe('aggregateThroughputHistory', () => {
     ])
   })
 
-  it('supports history returned by an older daemon without timestamps', () => {
+  it('supports history written by an older version without timestamps', () => {
     const legacy = broker([], [4, 7], [2, 3])
     const history = aggregateThroughputHistory([legacy], NOW)
 

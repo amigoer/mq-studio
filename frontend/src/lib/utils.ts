@@ -44,41 +44,16 @@ function getMessageFromObject(obj: Record<string, unknown>): string | null {
   return null
 }
 
-/** Extract a readable message from JSON or a message-bearing object; never return the raw JSON blob. */
+/** Extract a readable message from a message-bearing object or a plain string. */
 function extractMessageString(value: unknown): string | null {
   if (value == null) return null
 
-  if (typeof value === 'object' && value !== null) {
-    const fromObj = getMessageFromObject(value as Record<string, unknown>)
-    if (fromObj) {
-      // If the extracted value is still a JSON string, parse one more level.
-      if (fromObj.trim().startsWith('{')) {
-        try {
-          const parsed = JSON.parse(fromObj) as { message?: string }
-          const inner = typeof parsed?.message === 'string' ? parsed.message.trim() : ''
-          return inner !== '' ? inner : fromObj
-        } catch {
-          return fromObj
-        }
-      }
-      return fromObj
-    }
+  if (typeof value === 'object') {
+    return getMessageFromObject(value as Record<string, unknown>)
   }
 
   if (typeof value === 'string') {
     const trimmed = value.trim()
-    if (trimmed.startsWith('{')) {
-      try {
-        const parsed = JSON.parse(trimmed) as { message?: string; Message?: string }
-        const msg = parsed?.message ?? parsed?.Message
-        if (typeof msg === 'string') {
-          const t = msg.trim()
-          return t !== '' ? t : null
-        }
-      } catch {
-        // Not JSON
-      }
-    }
     return trimmed !== '' ? trimmed : null
   }
   return null
@@ -102,25 +77,19 @@ export async function withMinDuration<T>(promise: Promise<T>, minMs = 600): Prom
   }
 }
 
-/** Turn backend/runtime errors into user-readable text without showing raw JSON. */
+/**
+ * Turn a rejected binding call into user-readable text.
+ *
+ * Go errors arrive as a RuntimeError carrying the message verbatim, so the
+ * common path is simply Error.message.
+ */
 export function formatErrorMessage(e: unknown): string {
   const fromObj = extractMessageString(e)
   if (fromObj) return fromObj
 
-  if (e instanceof Error) {
-    const fromErr = extractMessageString(e.message)
-    if (fromErr) return fromErr
-    const msg = e.message.trim()
-    if (msg.startsWith('{')) {
-      const parsed = extractMessageString(msg)
-      if (parsed) return parsed
-    }
-    return msg || 'Operation failed'
-  }
+  if (e instanceof Error) return e.message.trim() || 'Operation failed'
 
   const s = String(e)
-  const fromStr = extractMessageString(s)
-  if (fromStr) return fromStr
   if (s === '[object Object]') return 'Operation failed'
   return s
 }
