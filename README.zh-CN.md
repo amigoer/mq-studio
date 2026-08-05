@@ -84,11 +84,13 @@
 
 前往 **[GitHub Releases](https://github.com/amigoer/rocket-leaf/releases)** 下载最新版本：
 
+安装包统一命名为 `rocket-leaf-<版本>-<系统>-<架构>.<后缀>`，系统取值 `mac`、`windows`、`linux`，架构取值 `amd64`、`arm64`。
+
 | 平台 | 安装包 |
 | --- | --- |
-| macOS Apple Silicon / Intel | `.dmg` |
-| Windows x64 / ARM64 | `.exe` 安装包 |
-| Linux x64 / ARM64 | `.AppImage` |
+| macOS Apple Silicon / Intel | `rocket-leaf-<版本>-mac-arm64.dmg` / `-mac-amd64.dmg` |
+| Windows ARM64 / x64 | `rocket-leaf-<版本>-windows-arm64.exe` / `-windows-amd64.exe` |
+| Linux ARM64 / x64 | `rocket-leaf-<版本>-linux-arm64.AppImage` / `-linux-amd64.AppImage` |
 
 ## 快速开始
 

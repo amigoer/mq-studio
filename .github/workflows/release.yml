@@ -168,6 +168,18 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci --prefix frontend
 
+      # Every package is published as rocket-leaf-<version>-<os>-<arch>.<ext>.
+      # The packaging tools each name their output differently, so the canonical
+      # name is resolved once here and applied below.
+      - name: Resolve the package name
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          set -eu
+          echo "PACKAGE_BASE=rocket-leaf-${RELEASE_TAG#v}-${{ matrix.os }}-${{ matrix.arch }}" \
+            >> "$GITHUB_ENV"
+
       # ARCH has to be an environment variable throughout: a Task CLI variable
       # does not reach the nested build and syso tasks, which would then
       # silently build the runner's own architecture instead.
@@ -193,7 +205,9 @@ jobs:
           if [ -z "${SIGN_IDENTITY:-}" ] || [ -z "${CSC_LINK:-}" ] || \
              [ -z "${CSC_KEY_PASSWORD:-}" ] || [ -z "${APPLE_ID:-}" ] || \
              [ -z "${APPLE_APP_SPECIFIC_PASSWORD:-}" ] || [ -z "${APPLE_TEAM_ID:-}" ]; then
-            echo '::warning::macOS signing credentials are incomplete; shipping the ad-hoc signed bundle.'
+            # Not a warning: shipping ad-hoc signed is the expected result when
+            # no signing secrets are configured.
+            echo 'macOS signing credentials are not configured; shipping the ad-hoc signed bundle.'
             exit 0
           fi
           certificate="$RUNNER_TEMP/certificate.p12"
@@ -215,15 +229,11 @@ jobs:
       - name: Build the macOS disk image
         if: matrix.os == 'mac'
         shell: bash
-        env:
-          RELEASE_TAG: ${{ inputs.tag }}
-          ARCH: ${{ matrix.arch }}
         run: |
           set -eu
           # `wails3 tool package -format dmg` is disabled in the pinned CLI and
           # exits 0 without producing anything, so build the image directly.
-          version="${RELEASE_TAG#v}"
-          image="bin/Rocket-Leaf-${version}-mac-${ARCH}.dmg"
+          image="bin/${PACKAGE_BASE}.dmg"
           hdiutil create \
             -volname "Rocket Leaf" \
             -srcfolder "bin/Rocket Leaf.app" \
@@ -246,6 +256,24 @@ jobs:
         shell: bash
         run: wails3 task linux:create:appimage
 
+      # NSIS names the installer after the product and AppImage after the GNU
+      # architecture, so both are renamed onto the canonical scheme.
+      - name: Normalise the package name
+        if: matrix.os != 'mac'
+        shell: bash
+        run: |
+          set -eu
+          shopt -s nullglob
+          case '${{ matrix.os }}' in
+            windows) produced=(bin/*installer.exe); extension=exe ;;
+            linux)   produced=(bin/*.AppImage);     extension=AppImage ;;
+          esac
+          if [ "${#produced[@]}" -ne 1 ]; then
+            echo "expected exactly one package, found ${#produced[@]}: ${produced[*]-none}" >&2
+            exit 1
+          fi
+          mv "${produced[0]}" "bin/${PACKAGE_BASE}.${extension}"
+
       - name: List packaged files
         shell: bash
         run: find bin -maxdepth 1 -type f | sort
@@ -254,10 +282,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: packages-${{ matrix.target }}
-          path: |
-            bin/*.dmg
-            bin/*installer.exe
-            bin/*.AppImage
+          path: bin/${{ env.PACKAGE_BASE }}.*
           if-no-files-found: error
 
   publish:
@@ -297,7 +322,8 @@ jobs:
         run: find release-files -type f | sort
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        # v3 is the Node 24 runtime line; v2 targets the deprecated Node 20.
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ inputs.tag }}
           target_commitish: ${{ needs.resolve.outputs.commit }}

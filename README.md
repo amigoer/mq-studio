@@ -84,11 +84,14 @@ Select any screenshot to open it at full resolution.
 
 Download the latest package from **[GitHub Releases](https://github.com/amigoer/rocket-leaf/releases)**:
 
+Packages are named `rocket-leaf-<version>-<os>-<arch>.<ext>`, where `os` is
+`mac`, `windows` or `linux` and `arch` is `amd64` or `arm64`.
+
 | Platform | Package |
 | --- | --- |
-| macOS Apple Silicon / Intel | `.dmg` (per architecture) |
-| Windows x64 / ARM64 | `.exe` installer |
-| Linux x64 / ARM64 | `.AppImage` |
+| macOS Apple Silicon / Intel | `rocket-leaf-<version>-mac-arm64.dmg` / `-mac-amd64.dmg` |
+| Windows ARM64 / x64 | `rocket-leaf-<version>-windows-arm64.exe` / `-windows-amd64.exe` |
+| Linux ARM64 / x64 | `rocket-leaf-<version>-linux-arm64.AppImage` / `-linux-amd64.AppImage` |
 
 ## Quick start
 
