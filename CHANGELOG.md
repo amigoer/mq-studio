@@ -1,0 +1,48 @@
+# Changelog
+
+All notable changes to Rocket-Leaf are documented in this file.
+
+The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
+this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+[简体中文](CHANGELOG.zh-CN.md)
+
+## [0.1.1] - 2026-08-06
+
+### Added
+
+- Connections can be organised into groups. A group is free text and optional:
+  type a name to create one, pick an existing name to reuse it, or leave the
+  field empty to stay ungrouped.
+- The connection list buckets profiles under collapsible group headers, named
+  groups first and ungrouped last. A list with no groups at all keeps the flat
+  layout it had before.
+- Connection search matches the group name, and temporarily expands folded
+  groups so a match is never hidden behind a collapsed header.
+
+### Changed
+
+- The connection environment field (Production / Test / Development) is replaced
+  by the group. The old preset only tinted a badge, and it could not be left
+  unset, so every profile carried a label whether or not it meant anything.
+
+### Removed
+
+- The stored environment value is dropped when a connection profile is loaded.
+  Existing connections open as ungrouped rather than inheriting a group named
+  after the old preset. No other connection setting is affected.
+
+## [0.1.0] - 2026-08-05
+
+### Added
+
+- First release of the desktop client rebuilt on Wails 3, published for macOS,
+  Windows and Linux on both amd64 and arm64.
+
+### Changed
+
+- Versioning restarts at 0.1.0 for the rebuilt application. This release does
+  not continue the earlier 1.x line, and no upgrade path from it is provided.
+
+[0.1.1]: https://github.com/amigoer/rocket-leaf/compare/v0.1.0...v0.1.1
+[0.1.0]: https://github.com/amigoer/rocket-leaf/releases/tag/v0.1.0

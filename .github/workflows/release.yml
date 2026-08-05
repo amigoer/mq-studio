@@ -321,6 +321,25 @@ jobs:
       - name: List release files
         run: find release-files -type f | sort
 
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+
+      # The notes come from the committed changelogs, so a tag without a
+      # changelog section fails here instead of publishing empty notes.
+      - name: Build the release notes
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          set -eu
+          # An absent predecessor is expected for the first release; the script
+          # falls back to linking the changelog instead of a compare range.
+          previous="$(git describe --tags --abbrev=0 "${RELEASE_TAG}^" 2>/dev/null || true)"
+          PREVIOUS_TAG="$previous" node scripts/release-notes.mjs "$RELEASE_TAG" \
+            > "$RUNNER_TEMP/release-notes.md"
+          cat "$RUNNER_TEMP/release-notes.md"
+
       - name: Create GitHub Release
         # v3 is the Node 24 runtime line; v2 targets the deprecated Node 20.
         uses: softprops/action-gh-release@v3
@@ -328,6 +347,6 @@ jobs:
           tag_name: ${{ inputs.tag }}
           target_commitish: ${{ needs.resolve.outputs.commit }}
           name: Rocket Leaf ${{ inputs.tag }}
-          generate_release_notes: true
+          body_path: ${{ runner.temp }}/release-notes.md
           files: release-files/*
           fail_on_unmatched_files: true
