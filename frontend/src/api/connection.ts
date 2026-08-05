@@ -7,7 +7,7 @@ export const getConnections = (): Promise<Connection[]> => ConnectionService.Lis
 
 export function addConnection(
   name: string,
-  env: string,
+  group: string,
   nameServer: string,
   timeoutSec: number,
   enableACL: boolean,
@@ -17,7 +17,7 @@ export function addConnection(
 ): Promise<Connection> {
   return ConnectionService.Add({
     name,
-    env,
+    group,
     nameServer,
     timeoutSec,
     enableACL,
@@ -31,7 +31,7 @@ export function addConnection(
 export function updateConnection(
   id: number,
   name: string,
-  env: string,
+  group: string,
   nameServer: string,
   timeoutSec: number,
   enableACL: boolean,
@@ -46,7 +46,7 @@ export function updateConnection(
       : 'preserve'
   return ConnectionService.Update(id, {
     name,
-    env,
+    group,
     nameServer,
     timeoutSec,
     enableACL,

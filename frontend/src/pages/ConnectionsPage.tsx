@@ -23,7 +23,7 @@ import { useConnections } from '@/hooks/useConnections'
 import * as connectionApi from '@/api/connection'
 import { formatErrorMessage, cn } from '@/lib/utils'
 import { activatableRowProps, ROW_FOCUS_CLASS } from '@/lib/a11y'
-import { ConnectionEnv, type Connection } from '@/api/models'
+import { type Connection } from '@/api/models'
 import {
   hasConnectionPrefill,
   takeConnectionPrefill,
@@ -31,13 +31,14 @@ import {
 } from '@/lib/connectionPrefill'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Select } from '@/components/ui/select'
+import { Combobox } from '@/components/ui/combobox'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
 import { Card } from '@/components/ui/card'
 
 const NEW_FORM_ID = -1
 const DEFAULT_NS_PORT = '9876'
+const MAX_GROUP_LENGTH = 32
 
 interface NsEntry {
   host: string
@@ -47,7 +48,7 @@ interface NsEntry {
 interface FormState {
   id: number
   name: string
-  env: ConnectionEnv
+  group: string
   nsEntries: NsEntry[]
   timeoutSec: number
   enableACL: boolean
@@ -144,7 +145,7 @@ function joinNameServers(entries: NsEntry[]): string {
 const EMPTY_FORM: FormState = {
   id: NEW_FORM_ID,
   name: '',
-  env: ConnectionEnv.Test,
+  group: '',
   nsEntries: [{ host: '', port: DEFAULT_NS_PORT }],
   timeoutSec: 5,
   enableACL: false,
@@ -159,7 +160,7 @@ function fromConnection(c: Connection): FormState {
   return {
     id: c.id,
     name: c.name,
-    env: c.env,
+    group: c.group,
     nsEntries: parseNameServers(c.nameServer),
     timeoutSec: c.timeoutSec || 5,
     enableACL: c.enableACL,
@@ -189,20 +190,34 @@ function updateNsEntry(entries: NsEntry[], index: number, patch: Partial<NsEntry
   return entries.map((e, i) => (i === index ? { ...e, ...patch } : e))
 }
 
-function EnvBadge({ env }: { env: ConnectionEnv }) {
-  const { t } = useTranslation()
-  const meta = {
-    [ConnectionEnv.Production]: { variant: 'destructive', labelKey: 'connections.envProd' },
-    [ConnectionEnv.Test]: { variant: 'warning', labelKey: 'connections.envTest' },
-    [ConnectionEnv.Development]: { variant: 'info', labelKey: 'connections.envDev' },
-    [ConnectionEnv.Unset]: { variant: 'info', labelKey: 'connections.envDev' },
-  } as const
-  const m = meta[env] ?? meta[ConnectionEnv.Development]
-  return (
-    <Badge variant={m.variant} uppercase>
-      {t(m.labelKey)}
-    </Badge>
-  )
+interface ConnectionGroup {
+  /** Group label as the user typed it; '' is the ungrouped bucket. */
+  name: string
+  items: Connection[]
+}
+
+/** Bucket connections by group: named groups in locale order, ungrouped last. */
+function groupConnections(connections: Connection[]): ConnectionGroup[] {
+  const buckets = new Map<string, Connection[]>()
+  for (const c of connections) {
+    const name = (c.group || '').trim()
+    const bucket = buckets.get(name)
+    if (bucket) bucket.push(c)
+    else buckets.set(name, [c])
+  }
+  return [...buckets.keys()]
+    .sort((a, b) => (a === '' ? 1 : b === '' ? -1 : a.localeCompare(b)))
+    .map((name) => ({ name, items: buckets.get(name)! }))
+}
+
+/** Every group in use, for the form's suggestion dropdown. */
+function existingGroups(connections: Connection[]): string[] {
+  const names = new Set<string>()
+  for (const c of connections) {
+    const name = (c.group || '').trim()
+    if (name) names.add(name)
+  }
+  return [...names].sort((a, b) => a.localeCompare(b))
 }
 
 export function ConnectionsPage() {
@@ -219,6 +234,8 @@ export function ConnectionsPage() {
   const [busyId, setBusyId] = useState<number | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<Connection | null>(null)
   const [advancedOpen, setAdvancedOpen] = useState(false)
+  // Group headers the user folded away, keyed by group name.
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(() => new Set())
   // NameServer host inputs flagged invalid on blur (keyed by entry index).
   const [hostErrors, setHostErrors] = useState<Record<number, boolean>>({})
   // Guards against React Strict Mode double-effect wiping a just-applied prefill
@@ -301,9 +318,22 @@ export function ConnectionsPage() {
       (c) =>
         c.name.toLowerCase().includes(q) ||
         c.nameServer.toLowerCase().includes(q) ||
+        (c.group || '').toLowerCase().includes(q) ||
         (c.remark || '').toLowerCase().includes(q),
     )
   }, [list, search])
+
+  const groups = useMemo(() => groupConnections(filtered), [filtered])
+  const groupOptions = useMemo(() => existingGroups(list), [list])
+  // A single ungrouped bucket stays a plain list — headers would be noise.
+  const showGroupHeaders = groups.length > 1 || (groups[0]?.name ?? '') !== ''
+
+  const toggleGroup = (name: string) =>
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev)
+      if (!next.delete(name)) next.add(name)
+      return next
+    })
 
   const showSearch = list.length >= 5
 
@@ -346,7 +376,7 @@ export function ConnectionsPage() {
     if (isNew) {
       const created = await connectionApi.addConnection(
         form.name.trim(),
-        form.env,
+        form.group.trim(),
         nameServer,
         form.timeoutSec,
         form.enableACL,
@@ -366,7 +396,7 @@ export function ConnectionsPage() {
       await connectionApi.updateConnection(
         form.id,
         form.name.trim(),
-        form.env,
+        form.group.trim(),
         nameServer,
         form.timeoutSec,
         form.enableACL,
@@ -532,6 +562,57 @@ export function ConnectionsPage() {
   const primaryBusy = busy === 'connect' || busy === 'disconnect' || busy === 'save'
   const anyBusy = busy != null
 
+  const renderRow = (c: Connection) => {
+    const active = selectedId === c.id
+    const online = c.status === 'online'
+    const rowBusy = busyId === c.id && (busy === 'row-connect' || busy === 'row-disconnect')
+    return (
+      <div
+        key={c.id}
+        role="button"
+        aria-current={active || undefined}
+        className={cn(
+          'group flex cursor-pointer flex-col gap-1 rounded-[10px] border px-3 py-2.5 transition-colors',
+          ROW_FOCUS_CLASS,
+          active ? 'border-foreground/30 bg-accent' : 'border-border hover:bg-accent/70',
+        )}
+        onClick={() => handleSelect(c)}
+        {...activatableRowProps(() => handleSelect(c))}
+      >
+        <div className="flex items-center gap-2">
+          <span
+            className="h-[7px] w-[7px] shrink-0 rounded-full"
+            style={{
+              background: online ? 'hsl(var(--success))' : 'hsl(var(--muted-foreground) / 0.35)',
+            }}
+          />
+          <span className="min-w-0 flex-1 truncate text-fs-125 font-medium">{c.name}</span>
+          {c.isDefault && (
+            <Badge variant="outline" uppercase className="text-muted-foreground">
+              {t('connections.default')}
+            </Badge>
+          )}
+          <Button
+            type="button"
+            variant={online ? 'outline' : 'default'}
+            size="sm"
+            className="h-6 shrink-0 px-2"
+            disabled={anyBusy}
+            title={online ? t('connections.disconnect') : t('connections.connect')}
+            onClick={(e) => (online ? handleRowDisconnect(c, e) : handleRowConnect(c, e))}
+          >
+            {rowBusy ? <Spinner size={12} /> : online ? <Unlink size={12} /> : <PlugZap size={12} />}
+          </Button>
+        </div>
+        <div className="flex items-center gap-1.5 pl-[15px]">
+          <span className="font-mono-design text-muted-foreground min-w-0 truncate text-fs-105">
+            {c.nameServer || '—'}
+          </span>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex h-full min-h-0 flex-col">
       <PageHeader
@@ -573,75 +654,35 @@ export function ConnectionsPage() {
                 actionLabel={t('connections.addFirst')}
                 onAction={handleNew}
               />
-            ) : (
-              <div className="flex flex-col gap-2">
-                {filtered.map((c) => {
-                  const active = selectedId === c.id
-                  const online = c.status === 'online'
-                  const rowBusy =
-                    busyId === c.id && (busy === 'row-connect' || busy === 'row-disconnect')
+            ) : showGroupHeaders ? (
+              <div className="flex flex-col gap-3">
+                {groups.map((g) => {
+                  // While searching, folded groups open up: a header with no
+                  // rows under it reads as "no match" instead of "collapsed".
+                  const collapsed = !search.trim() && collapsedGroups.has(g.name)
                   return (
-                    <div
-                      key={c.id}
-                      role="button"
-                      aria-current={active || undefined}
-                      className={cn(
-                        'group flex cursor-pointer flex-col gap-1 rounded-[10px] border px-3 py-2.5 transition-colors',
-                        ROW_FOCUS_CLASS,
-                        active
-                          ? 'border-foreground/30 bg-accent'
-                          : 'border-border hover:bg-accent/70',
+                    <div key={g.name || '__ungrouped__'} className="flex flex-col gap-2">
+                      <button
+                        type="button"
+                        aria-expanded={!collapsed}
+                        className="text-muted-foreground flex w-full items-center gap-1 rounded-md border-0 bg-transparent px-1 py-0.5 text-left text-fs-11 font-semibold outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/20"
+                        onClick={() => toggleGroup(g.name)}
+                      >
+                        {collapsed ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
+                        <span className="min-w-0 flex-1 truncate">
+                          {g.name || t('connections.ungrouped')}
+                        </span>
+                        <span className="shrink-0 tabular-nums opacity-70">{g.items.length}</span>
+                      </button>
+                      {!collapsed && (
+                        <div className="flex flex-col gap-2">{g.items.map(renderRow)}</div>
                       )}
-                      onClick={() => handleSelect(c)}
-                      {...activatableRowProps(() => handleSelect(c))}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span
-                          className="h-[7px] w-[7px] shrink-0 rounded-full"
-                          style={{
-                            background: online
-                              ? 'hsl(var(--success))'
-                              : 'hsl(var(--muted-foreground) / 0.35)',
-                          }}
-                        />
-                        <span className="min-w-0 flex-1 truncate text-fs-125 font-medium">
-                          {c.name}
-                        </span>
-                        {c.isDefault && (
-                          <Badge variant="outline" uppercase className="text-muted-foreground">
-                            {t('connections.default')}
-                          </Badge>
-                        )}
-                        <Button
-                          type="button"
-                          variant={online ? 'outline' : 'default'}
-                          size="sm"
-                          className="h-6 shrink-0 px-2"
-                          disabled={anyBusy}
-                          title={online ? t('connections.disconnect') : t('connections.connect')}
-                          onClick={(e) =>
-                            online ? handleRowDisconnect(c, e) : handleRowConnect(c, e)
-                          }
-                        >
-                          {rowBusy ? (
-                            <Spinner size={12} />
-                          ) : online ? (
-                            <Unlink size={12} />
-                          ) : (
-                            <PlugZap size={12} />
-                          )}
-                        </Button>
-                      </div>
-                      <div className="flex items-center gap-1.5 pl-[15px]">
-                        <EnvBadge env={c.env} />
-                        <span className="font-mono-design text-muted-foreground min-w-0 truncate text-fs-105">
-                          {c.nameServer || '—'}
-                        </span>
-                      </div>
                     </div>
                   )
                 })}
               </div>
+            ) : (
+              <div className="flex flex-col gap-2">{filtered.map(renderRow)}</div>
             )}
           </div>
         </div>
@@ -715,19 +756,17 @@ export function ConnectionsPage() {
                       onChange={(e) => setForm({ ...form, name: e.target.value })}
                     />
                   </Field>
-                  <Field label={t('connections.env')}>
-                    <Select
-                      value={form.env}
-                      onChange={(e) => setForm({ ...form, env: e.target.value as ConnectionEnv })}
-                    >
-                      <option value={ConnectionEnv.Production}>
-                        {t('connections.envProd')}
-                      </option>
-                      <option value={ConnectionEnv.Test}>{t('connections.envTest')}</option>
-                      <option value={ConnectionEnv.Development}>
-                        {t('connections.envDev')}
-                      </option>
-                    </Select>
+                  <Field label={t('connections.group')}>
+                    <Combobox
+                      value={form.group}
+                      onChange={(group) => setForm({ ...form, group })}
+                      options={groupOptions}
+                      placeholder={t('connections.groupPlaceholder')}
+                      emptyLabel={t('connections.ungrouped')}
+                      pickerLabel={t('connections.groupPick')}
+                      maxLength={MAX_GROUP_LENGTH}
+                      aria-label={t('connections.group')}
+                    />
                   </Field>
                   <div className="col-span-2">
                     <div className="mb-1.5 flex items-center justify-between gap-2">

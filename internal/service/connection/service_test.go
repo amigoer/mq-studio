@@ -9,7 +9,7 @@ import (
 
 func TestGetConnectionsReturnsCopies(t *testing.T) {
 	service := newTestService(t, nil)
-	if _, err := service.AddConnection("original", string(model.EnvTest), "ns:9876", 5, false, "", "", ""); err != nil {
+	if _, err := service.AddConnection("original", "test", "ns:9876", 5, false, "", "", ""); err != nil {
 		t.Fatal(err)
 	}
 	list := service.GetConnections()
@@ -57,14 +57,14 @@ func TestResolveACLCredentialsRequiresCompleteGlobalPair(t *testing.T) {
 
 func TestConnectionCRUDAndDefault(t *testing.T) {
 	service := newTestService(t, fakeSettings{connectTimeout: 3 * time.Second, autoConnect: true})
-	first, err := service.AddConnection("prod", string(model.EnvProduction), "ns1:9876", 5, false, "", "", "")
+	first, err := service.AddConnection("prod", "production", "ns1:9876", 5, false, "", "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if first.ID == 0 || first.Name != "prod" || !first.IsDefault {
 		t.Fatalf("unexpected first connection: %#v", first)
 	}
-	second, err := service.AddConnection("test", string(model.EnvTest), "ns2:9876;ns3:9876", 8, true, "ak", "sk", "note")
+	second, err := service.AddConnection("test", "test", "ns2:9876;ns3:9876", 8, true, "ak", "sk", "note")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -85,7 +85,7 @@ func TestConnectionCRUDAndDefault(t *testing.T) {
 		t.Fatal("GetConnections returned mutable internal state")
 	}
 
-	updated, err := service.UpdateConnection(first.ID, "prod-2", string(model.EnvProduction), "ns1:9876", 6, false, "", "", "x")
+	updated, err := service.UpdateConnection(first.ID, "prod-2", "production", "ns1:9876", 6, false, "", "", "x")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -114,20 +114,20 @@ func TestConnectionCRUDAndDefault(t *testing.T) {
 
 func TestConnectionAddValidation(t *testing.T) {
 	service := newTestService(t, nil)
-	if _, err := service.AddConnection("", string(model.EnvTest), "ns:9876", 5, false, "", "", ""); err == nil {
+	if _, err := service.AddConnection("", "test", "ns:9876", 5, false, "", "", ""); err == nil {
 		t.Fatal("empty name should fail")
 	}
-	if _, err := service.AddConnection("x", string(model.EnvTest), "", 5, false, "", "", ""); err == nil {
+	if _, err := service.AddConnection("x", "test", "", 5, false, "", "", ""); err == nil {
 		t.Fatal("empty NameServer should fail")
 	}
-	if _, err := service.AddConnection("x", string(model.EnvTest), "ns:9876", 5, true, "", "sk", ""); err == nil {
+	if _, err := service.AddConnection("x", "test", "ns:9876", 5, true, "", "sk", ""); err == nil {
 		t.Fatal("ACL without AccessKey should fail")
 	}
 }
 
 func TestConnectionPersistReload(t *testing.T) {
 	service := newTestService(t, nil)
-	if _, err := service.AddConnection("keep", string(model.EnvDevelopment), "127.0.0.1:9876", 5, true, "ak1", "sk1", ""); err != nil {
+	if _, err := service.AddConnection("keep", "development", "127.0.0.1:9876", 5, true, "ak1", "sk1", ""); err != nil {
 		t.Fatal(err)
 	}
 	reloaded := New(service.dataFilePath, fakeSettings{connectTimeout: 3 * time.Second, autoConnect: true})

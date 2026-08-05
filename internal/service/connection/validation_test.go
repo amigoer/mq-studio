@@ -1,10 +1,6 @@
 package connection
 
-import (
-	"testing"
-
-	"github.com/amigoer/rocket-leaf/internal/model"
-)
+import "testing"
 
 func TestValidateConnectionFields(t *testing.T) {
 	if _, _, err := validateConnectionFields("", "127.0.0.1:9876", 5); err == nil {
@@ -22,12 +18,12 @@ func TestValidateConnectionFields(t *testing.T) {
 	}
 }
 
-func TestNormalizeConnectionEnvACLAndTimeout(t *testing.T) {
-	if normalizeConnectionEnv(model.ConnectionEnv("staging")) != model.EnvDevelopment {
-		t.Fatal("unknown environment should fall back to development")
+func TestNormalizeConnectionGroupACLAndTimeout(t *testing.T) {
+	if normalizeConnectionGroup("  \t ") != "" {
+		t.Fatal("a blank group should normalize to ungrouped")
 	}
-	if normalizeConnectionEnv(model.EnvProduction) != model.EnvProduction {
-		t.Fatal("production environment should be preserved")
+	if normalizeConnectionGroup("  staging   cluster ") != "staging cluster" {
+		t.Fatal("group whitespace should be trimmed and collapsed")
 	}
 
 	enabled, accessKey, secretKey, err := normalizeACLConfig(false, "a", "b")

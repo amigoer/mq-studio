@@ -7,7 +7,6 @@ export {
     BrokerRole,
     ClusterInfo,
     ClusterSummary,
-    ConnectionEnv,
     ConnectionStatus,
     ConsumeMode,
     ConsumerGroupItem,

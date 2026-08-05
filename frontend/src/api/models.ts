@@ -37,18 +37,6 @@ export type MessageStatus = model.MessageStatus
  * values, so they remain assignable to the generated model fields.
  */
 
-/**
- * Connection environment labels stored in settings. Unset covers profiles
- * written before the field existed, which carry the Go zero value.
- */
-export const ConnectionEnv = {
-  Production: model.ConnectionEnv.EnvProduction,
-  Test: model.ConnectionEnv.EnvTest,
-  Development: model.ConnectionEnv.EnvDevelopment,
-  Unset: model.ConnectionEnv.$zero,
-} as const
-export type ConnectionEnv = model.ConnectionEnv
-
 export const ConnectionStatus = {
   Online: model.ConnectionStatus.StatusOnline,
   Offline: model.ConnectionStatus.StatusOffline,

@@ -21,7 +21,7 @@ type ConnectionService struct {
 type ConnectionView struct {
 	ID                  int                    `json:"id"`
 	Name                string                 `json:"name"`
-	Env                 model.ConnectionEnv    `json:"env"`
+	Group               string                 `json:"group"`
 	NameServer          string                 `json:"nameServer"`
 	TimeoutSec          int                    `json:"timeoutSec"`
 	EnableACL           bool                   `json:"enableACL"`
@@ -38,7 +38,7 @@ type ConnectionView struct {
 // ConnectionInput carries a connection form submission.
 type ConnectionInput struct {
 	Name            string `json:"name"`
-	Env             string `json:"env"`
+	Group           string `json:"group"`
 	NameServer      string `json:"nameServer"`
 	TimeoutSec      int    `json:"timeoutSec"`
 	EnableACL       bool   `json:"enableACL"`
@@ -53,7 +53,7 @@ func redactConnection(conn *model.Connection) *ConnectionView {
 		return nil
 	}
 	return &ConnectionView{
-		ID: conn.ID, Name: conn.Name, Env: conn.Env, NameServer: conn.NameServer,
+		ID: conn.ID, Name: conn.Name, Group: conn.Group, NameServer: conn.NameServer,
 		TimeoutSec: conn.TimeoutSec, EnableACL: conn.EnableACL,
 		AccessKeyConfigured: strings.TrimSpace(conn.AccessKey) != "",
 		SecretKeyConfigured: strings.TrimSpace(conn.SecretKey) != "",
@@ -79,7 +79,7 @@ func (s *ConnectionService) List() []*ConnectionView {
 
 // Add stores a new connection and returns it with credentials redacted.
 func (s *ConnectionService) Add(input ConnectionInput) (*ConnectionView, error) {
-	created, err := s.service.AddConnection(input.Name, input.Env, input.NameServer,
+	created, err := s.service.AddConnection(input.Name, input.Group, input.NameServer,
 		input.TimeoutSec, input.EnableACL, input.AccessKey, input.SecretKey, input.Remark)
 	if err != nil {
 		return nil, err
@@ -106,7 +106,7 @@ func (s *ConnectionService) Update(id int, input ConnectionInput) (*ConnectionVi
 	default:
 		return nil, errors.New("invalid credentials mode")
 	}
-	updated, err := s.service.UpdateConnection(id, input.Name, input.Env, input.NameServer,
+	updated, err := s.service.UpdateConnection(id, input.Name, input.Group, input.NameServer,
 		input.TimeoutSec, input.EnableACL, accessKey, secretKey, input.Remark)
 	if err != nil {
 		return nil, err

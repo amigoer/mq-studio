@@ -420,20 +420,6 @@ export class ClusterSummary {
 }
 
 /**
- * ConnectionEnv is the connection environment type.
- */
-export enum ConnectionEnv {
-    /**
-     * The Go zero value for the underlying type of the enum.
-     */
-    $zero = "",
-
-    EnvProduction = "production",
-    EnvTest = "test",
-    EnvDevelopment = "development",
-};
-
-/**
  * ConnectionStatus is the connection status.
  */
 export enum ConnectionStatus {

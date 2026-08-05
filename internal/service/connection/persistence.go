@@ -76,7 +76,7 @@ func buildConnectionState(connections []*model.Connection) (map[int]*model.Conne
 			nextID++
 		}
 
-		current.Env = normalizeConnectionEnv(current.Env)
+		current.Group = normalizeConnectionGroup(current.Group)
 		current.Status = model.StatusOffline
 		current.LastCheck = "-"
 		current.TimeoutSec = normalizeTimeoutSec(current.TimeoutSec)
@@ -180,7 +180,7 @@ func prepareReplacement(connections []*model.Connection) ([]*model.Connection, e
 		}
 		current.Name = name
 		current.NameServer = nameServer
-		current.Env = normalizeConnectionEnv(current.Env)
+		current.Group = normalizeConnectionGroup(current.Group)
 		current.TimeoutSec = normalizeTimeoutSec(current.TimeoutSec)
 		current.EnableACL = enabled
 		current.AccessKey = accessKey

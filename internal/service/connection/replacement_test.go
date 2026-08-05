@@ -18,7 +18,7 @@ func TestReplaceConnectionsNormalizesEncryptsAndReloads(t *testing.T) {
 		{
 			ID:         7,
 			Name:       "  primary  ",
-			Env:        model.ConnectionEnv("staging"),
+			Group:      "  staging   cluster ",
 			NameServer: " ns-a:9876 ",
 			TimeoutSec: 0,
 			EnableACL:  false,
@@ -31,7 +31,7 @@ func TestReplaceConnectionsNormalizesEncryptsAndReloads(t *testing.T) {
 		{
 			ID:         7,
 			Name:       "secured",
-			Env:        model.EnvProduction,
+			Group:      "production",
 			NameServer: "ns-b:9876",
 			TimeoutSec: 8,
 			EnableACL:  true,
@@ -41,7 +41,6 @@ func TestReplaceConnectionsNormalizesEncryptsAndReloads(t *testing.T) {
 		},
 		{
 			Name:       "third",
-			Env:        model.EnvTest,
 			NameServer: "ns-c:9876",
 			TimeoutSec: 5,
 		},
@@ -54,7 +53,7 @@ func TestReplaceConnectionsNormalizesEncryptsAndReloads(t *testing.T) {
 	if len(got) != 3 || got[0].ID != 7 || got[1].ID != 8 || got[2].ID != 9 {
 		t.Fatalf("IDs were not normalized deterministically: %#v", got)
 	}
-	if got[0].Name != "primary" || got[0].NameServer != "ns-a:9876" || got[0].Env != model.EnvDevelopment || got[0].TimeoutSec != defaultConnectionTimeout {
+	if got[0].Name != "primary" || got[0].NameServer != "ns-a:9876" || got[0].Group != "staging cluster" || got[0].TimeoutSec != defaultConnectionTimeout {
 		t.Fatalf("first connection was not normalized: %#v", got[0])
 	}
 	if got[0].Status != model.StatusOffline || got[0].LastCheck != "-" || got[0].AccessKey != "" || got[0].SecretKey != "" {
@@ -84,7 +83,7 @@ func TestReplaceConnectionsNormalizesEncryptsAndReloads(t *testing.T) {
 
 func TestReplaceConnectionsRejectsInvalidInputWithoutChangingState(t *testing.T) {
 	service := newTestService(t, nil)
-	if _, err := service.AddConnection("existing", string(model.EnvTest), "ns:9876", 5, false, "", "", ""); err != nil {
+	if _, err := service.AddConnection("existing", "test", "ns:9876", 5, false, "", "", ""); err != nil {
 		t.Fatal(err)
 	}
 	before, err := os.ReadFile(service.dataFilePath)
@@ -116,7 +115,7 @@ func TestReplaceConnectionsRejectsInvalidInputWithoutChangingState(t *testing.T)
 
 func TestValidateConnectionsHasNoSideEffects(t *testing.T) {
 	service := newTestService(t, nil)
-	connection, err := service.AddConnection("existing", string(model.EnvTest), "ns:9876", 5, false, "", "", "")
+	connection, err := service.AddConnection("existing", "test", "ns:9876", 5, false, "", "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -156,7 +155,7 @@ func TestValidateConnectionsHasNoSideEffects(t *testing.T) {
 
 func TestReplaceConnectionsAllowsEmptyList(t *testing.T) {
 	service := newTestService(t, nil)
-	if _, err := service.AddConnection("existing", string(model.EnvTest), "ns:9876", 5, false, "", "", ""); err != nil {
+	if _, err := service.AddConnection("existing", "test", "ns:9876", 5, false, "", "", ""); err != nil {
 		t.Fatal(err)
 	}
 	if err := service.ReplaceConnections(nil); err != nil {
@@ -169,7 +168,7 @@ func TestReplaceConnectionsAllowsEmptyList(t *testing.T) {
 
 func TestReplaceConnectionsDoesNotWriteOutsideMutationLock(t *testing.T) {
 	service := newTestService(t, nil)
-	if _, err := service.AddConnection("baseline", string(model.EnvTest), "baseline:9876", 5, false, "", "", ""); err != nil {
+	if _, err := service.AddConnection("baseline", "test", "baseline:9876", 5, false, "", "", ""); err != nil {
 		t.Fatal(err)
 	}
 	before, err := os.ReadFile(service.dataFilePath)
@@ -222,7 +221,7 @@ func TestReplaceConnectionsDoesNotWriteOutsideMutationLock(t *testing.T) {
 func TestConcurrentReplaceAndAddRemainLinearizable(t *testing.T) {
 	for iteration := 0; iteration < 24; iteration++ {
 		service := newTestService(t, nil)
-		if _, err := service.AddConnection("baseline", string(model.EnvTest), "baseline:9876", 5, false, "", "", ""); err != nil {
+		if _, err := service.AddConnection("baseline", "test", "baseline:9876", 5, false, "", "", ""); err != nil {
 			t.Fatal(err)
 		}
 		start := make(chan struct{})
@@ -238,7 +237,7 @@ func TestConcurrentReplaceAndAddRemainLinearizable(t *testing.T) {
 		}()
 		go func() {
 			<-start
-			_, err := service.AddConnection("added", string(model.EnvTest), "added:9876", 5, false, "", "", "")
+			_, err := service.AddConnection("added", "test", "added:9876", 5, false, "", "", "")
 			addDone <- err
 		}()
 		close(start)
