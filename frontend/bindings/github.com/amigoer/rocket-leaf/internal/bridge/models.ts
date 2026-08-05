@@ -397,6 +397,11 @@ export class SettingsInput {
     "autoConnectLast": boolean;
 
     /**
+     * Check GitHub for a newer release in the background
+     */
+    "autoCheckUpdate": boolean;
+
+    /**
      * Connection and network
      * Connect timeout (ms)
      */
@@ -505,6 +510,9 @@ export class SettingsInput {
         if (!("autoConnectLast" in $$source)) {
             this["autoConnectLast"] = false;
         }
+        if (!("autoCheckUpdate" in $$source)) {
+            this["autoCheckUpdate"] = false;
+        }
         if (!("connectTimeoutMs" in $$source)) {
             this["connectTimeoutMs"] = 0;
         }
@@ -607,6 +615,11 @@ export class SettingsView {
      * Auto-connect to last cluster on startup
      */
     "autoConnectLast": boolean;
+
+    /**
+     * Check GitHub for a newer release in the background
+     */
+    "autoCheckUpdate": boolean;
 
     /**
      * Connection and network
@@ -717,6 +730,9 @@ export class SettingsView {
         }
         if (!("autoConnectLast" in $$source)) {
             this["autoConnectLast"] = false;
+        }
+        if (!("autoCheckUpdate" in $$source)) {
+            this["autoCheckUpdate"] = false;
         }
         if (!("connectTimeoutMs" in $$source)) {
             this["connectTimeoutMs"] = 0;

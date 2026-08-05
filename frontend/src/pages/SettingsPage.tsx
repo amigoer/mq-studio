@@ -38,8 +38,9 @@ import { useUIPrefs } from '@/hooks/useUIPrefs'
 import { cn } from '@/lib/utils'
 import { activatableRowProps, ROW_FOCUS_CLASS } from '@/lib/a11y'
 import { useConnections } from '@/hooks/useConnections'
+import { useUpdateCheck } from '@/hooks/useUpdateCheck'
 import * as connectionApi from '@/api/connection'
-import { appVersion as fetchAppVersion, checkUpdate, openExternal } from '@/api/platform'
+import { appVersion as fetchAppVersion, openExternal } from '@/api/platform'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import logoUrl from '@/assets/logo.png'
 import {
@@ -366,6 +367,15 @@ function GeneralPanel() {
           bordered={false}
         >
           <Switch checked={settings.autoConnectLast} onCheckedChange={() => setSetting('autoConnectLast', !settings.autoConnectLast)} />
+        </SettingsRow>
+        <SettingsRow
+          title={t('settings.general.autoCheckUpdate')}
+          hint={t('settings.general.autoCheckUpdateHint')}
+        >
+          <Switch
+            checked={settings.autoCheckUpdate}
+            onCheckedChange={() => setSetting('autoCheckUpdate', !settings.autoCheckUpdate)}
+          />
         </SettingsRow>
       </Card>
     </>
@@ -863,10 +873,12 @@ function DataPanel({
 
 function AboutPanel({
   version,
+  updateAvailable,
   onCheckUpdate,
   onResetSettings,
 }: {
   version: string | null
+  updateAvailable: string | null
   onCheckUpdate: () => void
   onResetSettings: () => void
 }) {
@@ -887,11 +899,16 @@ function AboutPanel({
             aria-hidden
           />
           <div className="min-w-0 flex-1">
-            <div className="flex items-baseline gap-2">
+            <div className="flex flex-wrap items-baseline gap-2">
               <h2 className="text-fs-15 font-semibold">{t('app.name')}</h2>
               <span className="font-mono-design text-muted-foreground text-fs-115">
                 {versionLabel}
               </span>
+              {updateAvailable && (
+                <Badge variant="success">
+                  {t('settings.about.updateBadge', { version: updateAvailable })}
+                </Badge>
+              )}
             </div>
             <p className="text-muted-foreground mt-1 text-fs-12" style={{ lineHeight: 1.55 }}>
               {t('settings.about.descriptionZh')}
@@ -951,6 +968,7 @@ export function SettingsPage() {
   const [appVersion, setAppVersion] = useState<string | null>(null)
   const { resetAllSettings, reloadSettings, settlePendingSaves, loading } = useSettings()
   const { refresh: refreshConnections } = useConnections()
+  const { available: updateAvailable, refresh: refreshUpdate } = useUpdateCheck()
   const [confirmAction, setConfirmAction] = useState<{
     title: string
     description: string
@@ -1046,7 +1064,7 @@ export function SettingsPage() {
 
   const handleCheckUpdate = useCallback(async () => {
     try {
-      const result = await checkUpdate()
+      const { result } = await refreshUpdate()
       setAppVersion(result.currentVersion)
       const openReleases = {
         label: t('settings.about.openReleases'),
@@ -1077,7 +1095,7 @@ export function SettingsPage() {
         },
       })
     }
-  }, [t])
+  }, [refreshUpdate, t])
 
   const currentSection = SECTIONS.find((s) => s.id === activeSection) ?? SECTIONS[0]!
 
@@ -1148,6 +1166,7 @@ export function SettingsPage() {
               {activeSection === 'about' && (
                 <AboutPanel
                   version={appVersion}
+                  updateAvailable={updateAvailable}
                   onCheckUpdate={handleCheckUpdate}
                   onResetSettings={handleResetSettings}
                 />

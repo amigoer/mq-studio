@@ -5,6 +5,7 @@ import { SettingsProvider } from '@/hooks/useSettings'
 import { ConnectionsProvider } from '@/hooks/useConnections'
 import { OverviewProvider } from '@/hooks/useOverview'
 import { AlertsProvider } from '@/hooks/useAlerts'
+import { UpdateCheckProvider } from '@/hooks/useUpdateCheck'
 import { bootstrapUIPrefs } from '@/hooks/useUIPrefs'
 import '@/i18n'
 import './index.css'
@@ -17,7 +18,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <ConnectionsProvider>
         <OverviewProvider>
           <AlertsProvider>
-            <App />
+            <UpdateCheckProvider>
+              <App />
+            </UpdateCheckProvider>
           </AlertsProvider>
         </OverviewProvider>
       </ConnectionsProvider>

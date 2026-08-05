@@ -10,6 +10,7 @@ type AppSettings struct {
 	UIFont          string `json:"uiFont"`          // UI font
 	MonospaceFont   string `json:"monospaceFont"`   // Monospace font
 	AutoConnectLast bool   `json:"autoConnectLast"` // Auto-connect to last cluster on startup
+	AutoCheckUpdate bool   `json:"autoCheckUpdate"` // Check GitHub for a newer release in the background
 
 	// Connection and network
 	ConnectTimeoutMs int    `json:"connectTimeoutMs"` // Connect timeout (ms)
@@ -44,6 +45,7 @@ func DefaultSettings() *AppSettings {
 		UIFont:                "system",
 		MonospaceFont:         "JetBrains Mono",
 		AutoConnectLast:       true,
+		AutoCheckUpdate:       true,
 		ConnectTimeoutMs:      3000,
 		RequestTimeoutMs:      5000,
 		GlobalAccessKey:       "",

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type React from 'react'
 import { Toaster } from 'sonner'
 import { TitleBar } from '@/layout/TitleBar'
@@ -16,11 +16,19 @@ import { SettingsPage } from '@/pages/SettingsPage'
 import { EmptyStatePage } from '@/pages/EmptyStatePage'
 import { PageTransition } from '@/components/PageTransition'
 import { useConnections } from '@/hooks/useConnections'
+import { useUpdateCheck } from '@/hooks/useUpdateCheck'
 
 function App(): React.ReactElement {
   const [activeNav, setActiveNav] = useState<NavId>('home')
   const { active: activeConn, activeKey } = useConnections()
+  const { unseen: updateUnseen, markSeen: markUpdateSeen } = useUpdateCheck()
   const hasConnected = activeConn != null
+
+  // Settings is where the update is shown, so being there counts as having
+  // seen the marker — including when the check lands while it is already open.
+  useEffect(() => {
+    if (activeNav === 'settings') markUpdateSeen()
+  }, [activeNav, updateUnseen, markUpdateSeen])
 
   const gated =
     !hasConnected && activeNav !== 'connections' && activeNav !== 'settings' && activeNav !== 'home'
@@ -68,6 +76,7 @@ function App(): React.ReactElement {
         <Sidebar
           active={activeNav}
           onSelect={setActiveNav}
+          dotIds={updateUnseen ? ['settings'] : []}
           disabledIds={
             !hasConnected
               ? ['topics', 'consumers', 'messages', 'producer', 'cluster', 'alerts', 'acl']

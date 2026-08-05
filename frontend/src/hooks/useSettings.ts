@@ -29,6 +29,7 @@ export interface FrontendSettings {
   uiFont: string
   monospaceFont: string
   autoConnectLast: boolean
+  autoCheckUpdate: boolean
   connectTimeoutMs: number
   requestTimeoutMs: number
   globalAccessKey: string
@@ -57,6 +58,7 @@ const DEFAULTS: FrontendSettings = {
   uiFont: 'system',
   monospaceFont: 'JetBrains Mono',
   autoConnectLast: true,
+  autoCheckUpdate: true,
   connectTimeoutMs: 3000,
   requestTimeoutMs: 5000,
   globalAccessKey: '',
@@ -93,6 +95,7 @@ function toFrontend(s: AppSettings): FrontendSettings {
     uiFont: s.uiFont || DEFAULTS.uiFont,
     monospaceFont: s.monospaceFont || DEFAULTS.monospaceFont,
     autoConnectLast: s.autoConnectLast ?? DEFAULTS.autoConnectLast,
+    autoCheckUpdate: s.autoCheckUpdate ?? DEFAULTS.autoCheckUpdate,
     connectTimeoutMs: s.connectTimeoutMs || DEFAULTS.connectTimeoutMs,
     requestTimeoutMs: s.requestTimeoutMs || DEFAULTS.requestTimeoutMs,
     globalAccessKey: s.globalAccessKey ?? '',

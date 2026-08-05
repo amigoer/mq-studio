@@ -104,6 +104,7 @@
     "github": "GitHub",
     "githubHint": "Open the GitHub repo in your browser",
     "githubOpenFailed": "Couldn't open GitHub — check your default browser",
+    "updateAvailable": "Update available",
     "groupBrowse": "Resources",
     "groupOps": "Ops"
   },
@@ -798,7 +799,9 @@
       "tzUtc": "UTC",
       "startup": "Startup behavior",
       "autoConnect": "Auto-connect on launch",
-      "autoConnectHint": "Reconnect to the last cluster on app start"
+      "autoConnectHint": "Reconnect to the last cluster on app start",
+      "autoCheckUpdate": "Check for updates automatically",
+      "autoCheckUpdateHint": "Ask GitHub for a newer release on start and every 24 hours, sending only the current version"
     },
     "fonts": {
       "fontsTypography": "Fonts & typography",
@@ -903,6 +906,7 @@
       "descriptionEn": "A local-first desktop client for RocketMQ. Manage clusters, topics, consumers, and messages without deploying a separate console.",
       "versionUnavailable": "Version unavailable",
       "checkUpdate": "Check for updates",
+      "updateBadge": "v{{version}} available",
       "upToDate": "You are on the latest version v{{version}}",
       "updateAvailable": "Update available: v{{version}}",
       "updateAvailableHint": "Open Releases to download",

@@ -88,10 +88,13 @@ export function Sidebar({
   active,
   onSelect,
   disabledIds = [],
+  dotIds = [],
 }: {
   active: NavId
   onSelect: (id: NavId) => void
   disabledIds?: NavId[]
+  /** Items carrying an unread marker, such as an update waiting in Settings. */
+  dotIds?: NavId[]
 }) {
   const { t } = useTranslation()
 
@@ -100,6 +103,7 @@ export function Sidebar({
     const label = t(labelKey)
     const disabled = disabledIds.includes(id)
     const isActive = active === id
+    const dot = dotIds.includes(id)
 
     return (
       <Button
@@ -119,6 +123,14 @@ export function Sidebar({
           className={cn('shrink-0', isActive ? 'opacity-100' : 'opacity-80')}
         />
         <span className="truncate">{label}</span>
+        {dot && (
+          <span
+            role="status"
+            aria-label={t('nav.updateAvailable')}
+            title={t('nav.updateAvailable')}
+            className="ml-auto h-[7px] w-[7px] shrink-0 rounded-full bg-success"
+          />
+        )}
       </Button>
     )
   }
