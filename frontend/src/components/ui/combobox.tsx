@@ -1,46 +1,74 @@
 import * as React from 'react'
 import * as Popover from '@radix-ui/react-popover'
-import { Check, ChevronDown } from 'lucide-react'
+import { Check, ChevronDown, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { Input } from '@/components/ui/input'
 
 /**
- * Free-text input with a dropdown of known values.
+ * Select that can also create its own options.
  *
- * Unlike `Select`, the typed value is always kept as-is: the options are only
- * shortcuts, so a value that is not in the list stays valid. The dropdown
- * trigger is hidden when there is nothing to suggest, leaving a plain input.
+ * The trigger is styled exactly like `Select`, so a field backed by free text
+ * still reads as a picker. The dropdown carries the text input: typing filters
+ * the known values and, when nothing matches, offers to create what was typed.
  */
 export interface ComboboxProps {
   value: string
   onChange: (value: string) => void
   options: string[]
-  placeholder?: string
-  /** Label for the entry that clears the value; omitted when not provided. */
-  emptyLabel?: string
+  /** Shown for the empty value — both in the trigger and as the entry that clears it. */
+  emptyLabel: string
+  searchPlaceholder?: string
+  /** Builds the label of the "create this value" entry. Omit to forbid new values. */
+  createLabel?: (value: string) => string
   maxLength?: number
-  pickerLabel?: string
-  id?: string
   'aria-label'?: string
+}
+
+interface Entry {
+  value: string
+  label: React.ReactNode
+  create?: boolean
 }
 
 export function Combobox({
   value,
   onChange,
   options,
-  placeholder,
   emptyLabel,
+  searchPlaceholder,
+  createLabel,
   maxLength,
-  pickerLabel,
-  id,
   'aria-label': ariaLabel,
 }: ComboboxProps) {
   const [open, setOpen] = React.useState(false)
+  const [query, setQuery] = React.useState('')
   const itemRefs = React.useRef<(HTMLButtonElement | null)[]>([])
-  const entries = React.useMemo(
-    () => (emptyLabel === undefined ? options : ['', ...options]),
-    [emptyLabel, options],
-  )
+
+  const trimmed = query.trim()
+  const entries = React.useMemo<Entry[]>(() => {
+    const needle = trimmed.toLowerCase()
+    const matches = (candidate: string) => candidate.toLowerCase().includes(needle)
+    const out: Entry[] = []
+    if (matches(emptyLabel)) out.push({ value: '', label: emptyLabel })
+    for (const option of options) {
+      if (matches(option)) out.push({ value: option, label: option })
+    }
+    if (createLabel && trimmed !== '' && !options.includes(trimmed)) {
+      out.push({ value: trimmed, label: createLabel(trimmed), create: true })
+    }
+    return out
+  }, [createLabel, emptyLabel, options, trimmed])
+
+  // Radix only reports the open changes it drives, so closing from an option
+  // click has to reset the query here or it leaks into the next open.
+  const setOpenState = (next: boolean): void => {
+    setOpen(next)
+    setQuery('')
+  }
+
+  const commit = (next: string): void => {
+    setOpenState(false)
+    onChange(next)
+  }
 
   const focusItem = (start: number): void => {
     const n = entries.length
@@ -48,96 +76,110 @@ export function Combobox({
     itemRefs.current[((start % n) + n) % n]?.focus()
   }
 
-  const pick = (next: string): void => {
-    setOpen(false)
-    onChange(next)
-  }
-
   return (
-    <Popover.Root open={open} onOpenChange={setOpen}>
-      <Popover.Anchor asChild>
-        <div className="relative">
-          <Input
-            id={id}
-            aria-label={ariaLabel}
-            className={cn(options.length > 0 && 'pr-8')}
-            placeholder={placeholder}
-            value={value}
-            maxLength={maxLength}
-            autoComplete="off"
-            onChange={(e) => onChange(e.target.value)}
+    <Popover.Root open={open} onOpenChange={setOpenState}>
+      <Popover.Trigger asChild>
+        <button
+          type="button"
+          role="combobox"
+          aria-label={ariaLabel}
+          aria-expanded={open}
+          className="group flex h-8 w-full items-center justify-between gap-2 rounded-lg border border-input bg-background px-2.5 py-1 text-fs-125 text-foreground shadow-sm outline-none transition-colors focus-visible:border-ring/40 focus-visible:ring-2 focus-visible:ring-ring/20 data-[state=open]:border-ring/40 data-[state=open]:ring-2 data-[state=open]:ring-ring/20"
+        >
+          <span className={cn('min-w-0 flex-1 truncate text-left', !value && 'text-muted-foreground')}>
+            {value || emptyLabel}
+          </span>
+          <ChevronDown
+            size={14}
+            aria-hidden
+            className="shrink-0 opacity-50 transition-transform group-data-[state=open]:rotate-180"
           />
-          {options.length > 0 && (
-            <Popover.Trigger asChild>
-              <button
-                type="button"
-                aria-label={pickerLabel}
-                aria-expanded={open}
-                className="text-muted-foreground absolute right-1 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md border-0 bg-transparent p-0 outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/20"
-              >
-                <ChevronDown
-                  size={14}
-                  aria-hidden
-                  className={cn('transition-transform', open && 'rotate-180')}
-                />
-              </button>
-            </Popover.Trigger>
-          )}
-        </div>
-      </Popover.Anchor>
+        </button>
+      </Popover.Trigger>
       <Popover.Portal>
         <Popover.Content
-          role="listbox"
           align="start"
           sideOffset={4}
-          onOpenAutoFocus={(e) => {
-            e.preventDefault()
-            const idx = entries.indexOf(value)
-            focusItem(idx >= 0 ? idx : 0)
-          }}
-          onKeyDown={(e) => {
-            const idx = itemRefs.current.findIndex((n) => n === document.activeElement)
-            if (e.key === 'ArrowDown') {
-              e.preventDefault()
-              focusItem(idx < 0 ? 0 : idx + 1)
-            } else if (e.key === 'ArrowUp') {
-              e.preventDefault()
-              focusItem(idx < 0 ? entries.length - 1 : idx - 1)
-            }
-          }}
           className={cn(
-            'scroll-thin z-50 overflow-y-auto rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-[0_12px_40px_hsl(0_0%_0%/0.12),0_2px_8px_hsl(0_0%_0%/0.04)] outline-none',
+            'z-50 rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-[0_12px_40px_hsl(0_0%_0%/0.12),0_2px_8px_hsl(0_0%_0%/0.04)] outline-none',
             'data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95',
           )}
           style={{
             minWidth: 'var(--radix-popover-trigger-width)',
-            maxHeight: 'min(320px, var(--radix-popover-content-available-height))',
+            maxWidth: 'max(var(--radix-popover-trigger-width), 18rem)',
           }}
         >
-          {entries.map((entry, i) => {
-            const active = entry === value
-            return (
-              <button
-                key={entry || '__empty__'}
-                ref={(n) => {
-                  itemRefs.current[i] = n
-                }}
-                type="button"
-                role="option"
-                aria-selected={active}
-                onClick={() => pick(entry)}
-                className={cn(
-                  'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-fs-125 outline-none transition-colors hover:bg-accent focus-visible:bg-accent',
-                  active && 'bg-accent/70 font-medium',
-                )}
-              >
-                <span className={cn('min-w-0 flex-1 truncate', !entry && 'text-muted-foreground')}>
-                  {entry || emptyLabel}
-                </span>
-                {active && <Check size={14} className="shrink-0 opacity-80" />}
-              </button>
-            )
-          })}
+          <input
+            autoFocus
+            value={query}
+            maxLength={maxLength}
+            spellCheck={false}
+            autoComplete="off"
+            placeholder={searchPlaceholder}
+            className="mb-1 h-7 w-full rounded-md border-0 bg-transparent px-2 text-fs-125 text-foreground outline-none placeholder:text-muted-foreground"
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                // Commit what was typed: an exact existing name selects it, a
+                // new one creates it. An empty box just closes the dropdown.
+                if (trimmed === '') setOpenState(false)
+                else if (createLabel) commit(trimmed)
+                else if (entries[0]) commit(entries[0].value)
+              } else if (e.key === 'ArrowDown') {
+                e.preventDefault()
+                focusItem(0)
+              }
+            }}
+          />
+          <div
+            role="listbox"
+            className="scroll-thin overflow-y-auto"
+            style={{ maxHeight: 'min(280px, var(--radix-popover-content-available-height))' }}
+            onKeyDown={(e) => {
+              const idx = itemRefs.current.findIndex((n) => n === document.activeElement)
+              if (e.key === 'ArrowDown') {
+                e.preventDefault()
+                focusItem(idx + 1)
+              } else if (e.key === 'ArrowUp') {
+                e.preventDefault()
+                focusItem(idx < 0 ? entries.length - 1 : idx - 1)
+              }
+            }}
+          >
+            {entries.map((entry, i) => {
+              const active = !entry.create && entry.value === value
+              return (
+                <button
+                  key={`${entry.create ? 'create:' : ''}${entry.value}`}
+                  ref={(n) => {
+                    itemRefs.current[i] = n
+                  }}
+                  type="button"
+                  role="option"
+                  aria-selected={active}
+                  onClick={() => commit(entry.value)}
+                  className={cn(
+                    'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-fs-125 outline-none transition-colors hover:bg-accent focus-visible:bg-accent',
+                    active && 'bg-accent/70 font-medium',
+                  )}
+                >
+                  {entry.create && (
+                    <Plus size={13} aria-hidden className="shrink-0 text-muted-foreground" />
+                  )}
+                  <span
+                    className={cn(
+                      'min-w-0 flex-1 truncate',
+                      !entry.create && !entry.value && 'text-muted-foreground',
+                    )}
+                  >
+                    {entry.label}
+                  </span>
+                  {active && <Check size={14} className="shrink-0 opacity-80" />}
+                </button>
+              )
+            })}
+          </div>
         </Popover.Content>
       </Popover.Portal>
     </Popover.Root>

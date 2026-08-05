@@ -761,9 +761,9 @@ export function ConnectionsPage() {
                       value={form.group}
                       onChange={(group) => setForm({ ...form, group })}
                       options={groupOptions}
-                      placeholder={t('connections.groupPlaceholder')}
                       emptyLabel={t('connections.ungrouped')}
-                      pickerLabel={t('connections.groupPick')}
+                      searchPlaceholder={t('connections.groupSearchPlaceholder')}
+                      createLabel={(name) => t('connections.groupCreate', { name })}
                       maxLength={MAX_GROUP_LENGTH}
                       aria-label={t('connections.group')}
                     />
