@@ -53,7 +53,7 @@ func TestRealServicesConfigurationWorkflow(t *testing.T) {
 		if err := connections.ReplaceConnections([]*model.Connection{{
 			ID:         4,
 			Name:       "production",
-			Env:        model.EnvProduction,
+			Group:      "production",
 			NameServer: "ns-a:9876;ns-b:9876",
 			TimeoutSec: 8,
 			EnableACL:  true,

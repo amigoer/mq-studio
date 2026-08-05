@@ -4,22 +4,13 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/amigoer/rocket-leaf/internal/model"
 	"github.com/amigoer/rocket-leaf/internal/rocketmq"
 )
 
-// normalizeConnectionEnv accepts current values and legacy Chinese values.
-func normalizeConnectionEnv(env model.ConnectionEnv) model.ConnectionEnv {
-	switch strings.TrimSpace(string(env)) {
-	case "production", "生产":
-		return model.EnvProduction
-	case "test", "测试":
-		return model.EnvTest
-	case "development", "开发":
-		return model.EnvDevelopment
-	default:
-		return model.EnvDevelopment
-	}
+// normalizeConnectionGroup trims a group label and collapses inner whitespace.
+// The label is free-form, so an empty result is valid and means "ungrouped".
+func normalizeConnectionGroup(group string) string {
+	return strings.Join(strings.Fields(group), " ")
 }
 
 func normalizeACLConfig(enableACL bool, accessKey, secretKey string) (bool, string, string, error) {

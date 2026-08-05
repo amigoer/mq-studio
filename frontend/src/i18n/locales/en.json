@@ -72,7 +72,7 @@
       },
       "2": {
         "title": "Pick cluster",
-        "desc": "Rocket-Leaf discovers brokers and organizes them by environment."
+        "desc": "Rocket-Leaf discovers brokers and organizes them by cluster."
       },
       "3": {
         "title": "Manage topics & consume",
@@ -691,11 +691,10 @@
     "config": "Connection settings",
     "name": "Name",
     "namePlaceholder": "Give this connection a name",
-    "env": "Environment",
-    "envProd": "Production",
-    "envTest": "Test",
-    "envDev": "Development",
-    "envSelect": "Choose environment",
+    "group": "Group",
+    "groupSearchPlaceholder": "Search or create a group…",
+    "groupCreate": "Create \"{{name}}\"",
+    "ungrouped": "Ungrouped",
     "nameServer": "NameServer",
     "host": "Host / IP",
     "port": "Port",

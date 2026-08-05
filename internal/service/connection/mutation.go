@@ -8,7 +8,7 @@ import (
 )
 
 // AddConnection adds and persists a connection profile.
-func (s *Service) AddConnection(name, env, nameServer string, timeoutSec int, enableACL bool, accessKey, secretKey, remark string) (*model.Connection, error) {
+func (s *Service) AddConnection(name, group, nameServer string, timeoutSec int, enableACL bool, accessKey, secretKey, remark string) (*model.Connection, error) {
 	var err error
 	name, nameServer, err = validateConnectionFields(name, nameServer, timeoutSec)
 	if err != nil {
@@ -24,7 +24,7 @@ func (s *Service) AddConnection(name, env, nameServer string, timeoutSec int, en
 	connection := &model.Connection{
 		ID:         s.nextID,
 		Name:       name,
-		Env:        normalizeConnectionEnv(model.ConnectionEnv(env)),
+		Group:      normalizeConnectionGroup(group),
 		NameServer: nameServer,
 		TimeoutSec: normalizeTimeoutSec(timeoutSec),
 		EnableACL:  enableACL,
@@ -46,7 +46,7 @@ func (s *Service) AddConnection(name, env, nameServer string, timeoutSec int, en
 }
 
 // UpdateConnection updates and persists a connection profile.
-func (s *Service) UpdateConnection(id int, name, env, nameServer string, timeoutSec int, enableACL bool, accessKey, secretKey, remark string) (*model.Connection, error) {
+func (s *Service) UpdateConnection(id int, name, group, nameServer string, timeoutSec int, enableACL bool, accessKey, secretKey, remark string) (*model.Connection, error) {
 	var err error
 	name, nameServer, err = validateConnectionFields(name, nameServer, timeoutSec)
 	if err != nil {
@@ -69,7 +69,7 @@ func (s *Service) UpdateConnection(id int, name, env, nameServer string, timeout
 	}
 	previous := *connection
 	connection.Name = name
-	connection.Env = normalizeConnectionEnv(model.ConnectionEnv(env))
+	connection.Group = normalizeConnectionGroup(group)
 	connection.NameServer = nameServer
 	connection.TimeoutSec = normalizeTimeoutSec(timeoutSec)
 	connection.EnableACL = enableACL

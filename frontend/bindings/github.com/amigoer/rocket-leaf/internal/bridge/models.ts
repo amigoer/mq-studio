@@ -74,7 +74,7 @@ export class AccessConfigInput {
  */
 export class ConnectionInput {
     "name": string;
-    "env": string;
+    "group": string;
     "nameServer": string;
     "timeoutSec": number;
     "enableACL": boolean;
@@ -88,8 +88,8 @@ export class ConnectionInput {
         if (!("name" in $$source)) {
             this["name"] = "";
         }
-        if (!("env" in $$source)) {
-            this["env"] = "";
+        if (!("group" in $$source)) {
+            this["group"] = "";
         }
         if (!("nameServer" in $$source)) {
             this["nameServer"] = "";
@@ -135,7 +135,7 @@ export class ConnectionInput {
 export class ConnectionView {
     "id": number;
     "name": string;
-    "env": model$0.ConnectionEnv;
+    "group": string;
     "nameServer": string;
     "timeoutSec": number;
     "enableACL": boolean;
@@ -156,8 +156,8 @@ export class ConnectionView {
         if (!("name" in $$source)) {
             this["name"] = "";
         }
-        if (!("env" in $$source)) {
-            this["env"] = model$0.ConnectionEnv.$zero;
+        if (!("group" in $$source)) {
+            this["group"] = "";
         }
         if (!("nameServer" in $$source)) {
             this["nameServer"] = "";

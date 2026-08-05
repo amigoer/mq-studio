@@ -1,15 +1,6 @@
 // Package model defines the application's data models.
 package model
 
-// ConnectionEnv is the connection environment type.
-type ConnectionEnv string
-
-const (
-	EnvProduction  ConnectionEnv = "production"
-	EnvTest        ConnectionEnv = "test"
-	EnvDevelopment ConnectionEnv = "development"
-)
-
 // ConnectionStatus is the connection status.
 type ConnectionStatus string
 
@@ -22,7 +13,7 @@ const (
 type Connection struct {
 	ID         int              `json:"id"`         // Connection ID
 	Name       string           `json:"name"`       // Connection name
-	Env        ConnectionEnv    `json:"env"`        // Environment type
+	Group      string           `json:"group"`      // Free-form group label; empty means ungrouped
 	NameServer string           `json:"nameServer"` // NameServer address
 	TimeoutSec int              `json:"timeoutSec"` // Timeout in seconds
 	EnableACL  bool             `json:"enableACL"`  // Whether ACL authentication is enabled

@@ -72,7 +72,7 @@
       },
       "2": {
         "title": "选择集群与命名空间",
-        "desc": "Rocket-Leaf 自动发现 Broker，按环境组织视图。"
+        "desc": "Rocket-Leaf 自动发现 Broker，按集群组织视图。"
       },
       "3": {
         "title": "管理 Topic 与消费",
@@ -691,11 +691,10 @@
     "config": "连接配置",
     "name": "名称",
     "namePlaceholder": "为连接起一个名称",
-    "env": "环境",
-    "envProd": "生产",
-    "envTest": "测试",
-    "envDev": "开发",
-    "envSelect": "选择环境",
+    "group": "分组",
+    "groupSearchPlaceholder": "搜索或新建分组…",
+    "groupCreate": "新建「{{name}}」",
+    "ungrouped": "未分组",
     "nameServer": "NameServer",
     "host": "主机 / IP",
     "port": "端口",
