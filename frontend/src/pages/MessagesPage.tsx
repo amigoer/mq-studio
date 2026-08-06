@@ -12,6 +12,7 @@ import { InfoRow } from '@/components/InfoRow'
 import { JsonView } from '@/components/JsonView'
 import { useTopics } from '@/hooks/useTopics'
 import { useConsumers } from '@/hooks/useConsumers'
+import { useRecentPicks } from '@/hooks/useRecentPicks'
 import { useSettings } from '@/hooks/useSettings'
 import { useDelayedUnmount } from '@/hooks/useDelayedUnmount'
 import * as messageApi from '@/api/message'
@@ -32,7 +33,7 @@ import { ErrorBanner } from '@/components/ErrorBanner'
 import type { NavId } from '@/layout/Sidebar'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Select } from '@/components/ui/select'
+import { Combobox } from '@/components/ui/combobox'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import { Modal } from '@/components/ui/modal'
@@ -53,6 +54,8 @@ export function MessagesPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
   const { topics, hasOnline } = useTopics()
   const { groups: consumerGroups } = useConsumers()
   const { settings } = useSettings()
+  const { recent: recentTopics, record: recordTopic } = useRecentPicks('topic')
+  const { recent: recentGroups, record: recordGroup } = useRecentPicks('group')
   const [tab, setTab] = useState<TabKey>('topic')
 
   // Form state per tab
@@ -172,6 +175,11 @@ export function MessagesPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
         next = await messageApi.queryDLQMessages(group, limit)
       }
       if (requestId !== searchRequestRef.current) return
+      // Having queried is what makes a topic or group "recently used"; an empty
+      // result was still worth looking at. Stale responses return above, so a
+      // query the user moved on from never records anything.
+      if (tab === 'topic' || tab === 'msgid') recordTopic(topic)
+      else recordGroup(group)
       setResults(next)
       // Keep the detail panel closed after a new query — the user
       // opens it explicitly by clicking a row.
@@ -237,34 +245,38 @@ export function MessagesPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
           {/* Query bar */}
           <div className="mx-5 mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-border/80 bg-card p-3 shadow-card">
             {(tab === 'topic' || tab === 'msgid') && (
-              <Select
+              <Combobox
                 className="font-mono-design"
                 style={{ width: '16.92rem' }}
                 value={topic}
-                onChange={(e) => setTopic(e.target.value)}
-              >
-                <option value="">{t('messages.form.topicPlaceholder')}</option>
-                {sendableTopics.map((tp) => (
-                  <option key={tp} value={tp}>
-                    {tp}
-                  </option>
-                ))}
-              </Select>
+                onChange={setTopic}
+                options={sendableTopics}
+                recent={recentTopics}
+                emptyLabel={t('messages.form.topicPlaceholder')}
+                searchPlaceholder={t('messages.form.topicSearchPlaceholder')}
+                recentLabel={t('common.recentUsed')}
+                allLabel={t('common.all')}
+                emptyMessage={t('common.noMatch')}
+                moreHint={(count) => t('common.moreResults', { count })}
+                aria-label={t('messages.form.topic')}
+              />
             )}
             {(tab === 'retry' || tab === 'dlq') && (
-              <Select
+              <Combobox
                 className="font-mono-design"
                 style={{ width: '18.46rem' }}
                 value={group}
-                onChange={(e) => setGroup(e.target.value)}
-              >
-                <option value="">{t('messages.form.groupPlaceholder')}</option>
-                {sortedGroups.map((g) => (
-                  <option key={g} value={g}>
-                    {g}
-                  </option>
-                ))}
-              </Select>
+                onChange={setGroup}
+                options={sortedGroups}
+                recent={recentGroups}
+                emptyLabel={t('messages.form.groupPlaceholder')}
+                searchPlaceholder={t('messages.form.groupSearchPlaceholder')}
+                recentLabel={t('common.recentUsed')}
+                allLabel={t('common.all')}
+                emptyMessage={t('common.noMatch')}
+                moreHint={(count) => t('common.moreResults', { count })}
+                aria-label={t('messages.form.group')}
+              />
             )}
 
             {tab === 'topic' && (
