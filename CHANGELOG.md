@@ -7,6 +7,24 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 [简体中文](CHANGELOG.zh-CN.md)
 
+## [0.1.3] - 2026-08-06
+
+### Added
+
+- The topic pickers on Send test message and Messages filter as you type, so a
+  cluster with hundreds of topics no longer has to be scrolled through. Matches
+  are ordered by how well they fit: the exact name first, then names starting
+  with what was typed, then names merely containing it.
+- Both pickers now open on a "Recently used" section holding the last ten topics
+  actually sent to or queried — usually the handful one service is being
+  debugged against. The list is kept per connection, so one cluster never
+  suggests another's names, and a topic since removed from the cluster is not
+  offered.
+- The consumer group picker behind the retry and dead-letter tabs works the same
+  way, with a recent list of its own.
+- A picker renders at most 200 matches at a time and reports how many were left
+  out, so even a very large cluster opens instantly.
+
 ## [0.1.2] - 2026-08-06
 
 ### Added
@@ -62,6 +80,7 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Versioning restarts at 0.1.0 for the rebuilt application. This release does
   not continue the earlier 1.x line, and no upgrade path from it is provided.
 
+[0.1.3]: https://github.com/amigoer/rocket-leaf/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/amigoer/rocket-leaf/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/amigoer/rocket-leaf/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/amigoer/rocket-leaf/releases/tag/v0.1.0
