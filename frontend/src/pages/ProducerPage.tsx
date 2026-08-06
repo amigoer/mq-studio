@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { PageHeader } from '@/components/PageHeader'
 import { PageBody } from '@/components/PageLayout'
 import { useConnections } from '@/hooks/useConnections'
+import { useRecentPicks } from '@/hooks/useRecentPicks'
 import { useTopics } from '@/hooks/useTopics'
 import * as messageApi from '@/api/message'
 import { clearProducerDraft, loadProducerScope, saveProducerDraft } from '@/lib/producerDrafts'
@@ -15,6 +16,7 @@ import { OfflineEmpty } from '@/components/OfflineEmpty'
 import type { NavId } from '@/layout/Sidebar'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Combobox } from '@/components/ui/combobox'
 import { Select } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { Card } from '@/components/ui/card'
@@ -56,6 +58,7 @@ export function ProducerPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
   const { t } = useTranslation()
   const { topics, hasOnline } = useTopics()
   const { activeKey } = useConnections()
+  const { recent: recentTopics, record: recordTopic } = useRecentPicks('topic')
 
   const [topic, setTopic] = useState<string>('')
   const [tag, setTag] = useState('')
@@ -145,6 +148,7 @@ export function ProducerPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
       }
       setHistory((h) => [entry, ...h].slice(0, 50))
       setScope(saveProducerDraft(activeKey, topic, { tag, key, delay, body }))
+      recordTopic(topic)
       toast.success(t('producer.sendSuccess'), { description: result })
     } catch (e) {
       const msg = formatErrorMessage(e)
@@ -203,18 +207,20 @@ export function ProducerPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
                   {sendableTopics.length === 0 ? (
                     <div className="text-muted-foreground text-fs-12">{t('producer.noTopics')}</div>
                   ) : (
-                    <Select
+                    <Combobox
                       className="font-mono-design"
                       value={topic}
-                      onChange={(e) => handleTopicChange(e.target.value)}
-                    >
-                      <option value="">{t('producer.topicPlaceholder')}</option>
-                      {sendableTopics.map((tp) => (
-                        <option key={tp} value={tp}>
-                          {tp}
-                        </option>
-                      ))}
-                    </Select>
+                      onChange={handleTopicChange}
+                      options={sendableTopics}
+                      recent={recentTopics}
+                      emptyLabel={t('producer.topicPlaceholder')}
+                      searchPlaceholder={t('producer.topicSearchPlaceholder')}
+                      recentLabel={t('common.recentUsed')}
+                      allLabel={t('common.all')}
+                      emptyMessage={t('common.noMatch')}
+                      moreHint={(count) => t('common.moreResults', { count })}
+                      aria-label={t('producer.topic')}
+                    />
                   )}
                   {topic && scope.drafts[topic] && (
                     <span className="text-muted-foreground text-fs-105">
