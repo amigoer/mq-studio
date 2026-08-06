@@ -7,6 +7,24 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 [简体中文](CHANGELOG.zh-CN.md)
 
+## [0.1.2] - 2026-08-06
+
+### Added
+
+- Update checks run on their own: Rocket-Leaf asks GitHub for a newer release
+  shortly after launch and every 24 hours after that. A release is announced
+  once, then marked on the Settings entry in the sidebar until that page is
+  opened, so nobody has to go looking for the check to learn about an update.
+- Settings > General gains "Check for updates automatically", on by default, for
+  anyone who would rather the app made no outbound request on its own. The
+  request carries the running version and nothing else.
+
+### Changed
+
+- The "Check for updates" button in Settings > About shares that state, so a
+  manual check also clears the sidebar marker and updates what the About card
+  reports.
+
 ## [0.1.1] - 2026-08-06
 
 ### Added
@@ -44,5 +62,6 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Versioning restarts at 0.1.0 for the rebuilt application. This release does
   not continue the earlier 1.x line, and no upgrade path from it is provided.
 
+[0.1.2]: https://github.com/amigoer/rocket-leaf/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/amigoer/rocket-leaf/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/amigoer/rocket-leaf/releases/tag/v0.1.0
