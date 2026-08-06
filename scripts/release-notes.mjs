@@ -23,10 +23,16 @@ if (!tag) {
 }
 const version = tag.replace(/^v/, '')
 
+/** Trailing `[0.1.0]: https://…` definitions that belong to the file, not a section. */
+const LINK_DEFINITION = /^\[[^\]]+\]:\s/
+
 /**
  * Returns the body of the `## [version] - date` section: everything up to the
  * next top-level heading, with the version heading itself dropped so the
  * caller can place the section under a language heading of its own.
+ *
+ * The oldest section has no heading after it, so the file's link-reference
+ * definitions would otherwise be read as part of it.
  */
 function extractSection(changelog, path) {
   const lines = changelog.split('\n')
@@ -36,7 +42,13 @@ function extractSection(changelog, path) {
   }
   const rest = lines.slice(start + 1)
   const end = rest.findIndex((line) => line.startsWith('## '))
-  const body = (end === -1 ? rest : rest.slice(0, end)).join('\n').trim()
+  const section = end === -1 ? rest : rest.slice(0, end)
+  while (section.length > 0) {
+    const last = section[section.length - 1]
+    if (last.trim() !== '' && !LINK_DEFINITION.test(last)) break
+    section.pop()
+  }
+  const body = section.join('\n').trim()
   if (!body) {
     throw new Error(`${path} has an empty section for ${version}`)
   }
@@ -50,10 +62,12 @@ const sections = await Promise.all(
   }),
 )
 
-// Link comparisons are only meaningful once a previous release exists.
+// Link comparisons are only meaningful once a previous release exists. The
+// fallback points at the default branch because the very first release
+// predates the changelog it is being written into.
 const previous = process.env.PREVIOUS_TAG?.trim()
 const footer = previous
   ? `**Full Changelog**: ${repository}/compare/${previous}...${tag}`
-  : `**Changelog**: ${repository}/blob/${tag}/CHANGELOG.md`
+  : `**Changelog**: ${repository}/blob/main/CHANGELOG.md`
 
 process.stdout.write(`${sections.join('\n\n')}\n\n---\n\n${footer}\n`)
