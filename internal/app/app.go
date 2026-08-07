@@ -8,6 +8,7 @@ import (
 	"github.com/amigoer/rocket-leaf/internal/rocketmq"
 	"github.com/amigoer/rocket-leaf/internal/service/acl"
 	"github.com/amigoer/rocket-leaf/internal/service/cluster"
+	"github.com/amigoer/rocket-leaf/internal/service/collector"
 	"github.com/amigoer/rocket-leaf/internal/service/configuration"
 	"github.com/amigoer/rocket-leaf/internal/service/connection"
 	"github.com/amigoer/rocket-leaf/internal/service/consumer"
@@ -26,6 +27,9 @@ type Services struct {
 	Messages    *message.Service
 	Settings    *configuration.Service
 	ACL         *acl.Service
+
+	// Collector keeps the TPS history filling in while the window is hidden.
+	Collector *collector.Collector
 }
 
 // New initializes the local encryption key and assembles all business services.
@@ -41,20 +45,26 @@ func New() (*Services, error) {
 	settingsService := settings.New(paths.SettingsFile)
 	connections := connection.New(paths.ConnectionsFile, settingsService)
 	configurationService := configuration.New(paths, settingsService, connections)
+	clusterService := cluster.New(paths.TPSHistoryFile, settingsService)
 	services := &Services{
 		Connections: connections,
-		Cluster:     cluster.New(paths.TPSHistoryFile, settingsService),
+		Cluster:     clusterService,
 		Topics:      topic.New(settingsService),
 		Consumers:   consumer.New(settingsService),
 		Messages:    message.New(settingsService),
 		Settings:    configurationService,
 		ACL:         acl.New(settingsService),
+		Collector:   collector.New(clusterService),
 	}
 	rocketmq.GetClientManager().SetDefaultClientInitializer(connections.ConnectDefault)
+	services.Collector.Start()
 	return services, nil
 }
 
-// Close releases all RocketMQ clients.
+// Close stops background sampling and releases all RocketMQ clients.
 func (s *Services) Close() {
+	if s.Collector != nil {
+		s.Collector.Stop()
+	}
 	rocketmq.GetClientManager().CloseAll()
 }

@@ -36,74 +36,7 @@ func (s *Service) GetClusterInfo() (*model.ClusterInfo, error) {
 			return callErr
 		}
 
-		current := &model.ClusterInfo{
-			NameServers: retryClient.GetNameServerAddressList(),
-			Brokers:     make([]*model.BrokerNode, 0),
-		}
-
-		brokerClusters := make(map[string]string)
-		for clusterName, brokerNames := range clusterInfo.ClusterAddrTable {
-			if current.ClusterName == "" {
-				current.ClusterName = clusterName
-			}
-
-			for _, brokerName := range brokerNames {
-				if brokerName == "" {
-					continue
-				}
-				if _, exists := brokerClusters[brokerName]; !exists {
-					brokerClusters[brokerName] = clusterName
-				}
-			}
-		}
-
-		brokerID := 1
-		for brokerName, brokerData := range clusterInfo.BrokerAddrTable {
-			if brokerData == nil {
-				continue
-			}
-
-			clusterName := brokerData.Cluster
-			if clusterName == "" {
-				clusterName = brokerClusters[brokerName]
-			}
-			if clusterName == "" {
-				clusterName = "默认集群"
-			}
-			if current.ClusterName == "" {
-				current.ClusterName = clusterName
-			}
-
-			for brokerIDText, address := range brokerData.BrokerAddrs {
-				if address == "" {
-					continue
-				}
-
-				role := model.RoleSlave
-				if brokerIDText == "0" {
-					role = model.RoleMaster
-				}
-
-				brokerIDValue, _ := strconv.Atoi(brokerIDText)
-				current.Brokers = append(current.Brokers, &model.BrokerNode{
-					ID:         brokerID,
-					Cluster:    clusterName,
-					BrokerName: brokerName,
-					BrokerID:   brokerIDValue,
-					Role:       role,
-					Address:    address,
-					Status:     model.NodeWarning,
-					Topics:     -1,
-					Groups:     -1,
-					TpsIn:      -1,
-					TpsOut:     -1,
-					LastUpdate: timestamp.Now(),
-				})
-				brokerID++
-			}
-		}
-
-		current.TotalBrokers = len(current.Brokers)
+		current := buildClusterInfo(retryClient, clusterInfo)
 		s.enrichBrokers(retryClient, current)
 		s.enrichResourceTotals(retryClient, clusterInfo, current)
 		result = current
@@ -114,6 +47,105 @@ func (s *Service) GetClusterInfo() (*model.ClusterInfo, error) {
 	}
 
 	return result, nil
+}
+
+// CollectTPSSample refreshes the broker TPS history without the topic and
+// consumer-group totals the overview page needs. The background collector calls
+// it on a timer so the throughput chart keeps filling in while the window is
+// hidden in the tray or the user is on another page.
+func (s *Service) CollectTPSSample() error {
+	client, err := rocketmq.GetClientManager().GetDefaultClient()
+	if err != nil {
+		return err
+	}
+
+	return mqexec.Do(client, func(retryClient *admin.Client) error {
+		ctx, cancel := context.WithTimeout(context.Background(), s.settings.GetRequestTimeout())
+		defer cancel()
+
+		clusterInfo, callErr := retryClient.ExamineBrokerClusterInfo(ctx)
+		if callErr != nil {
+			return callErr
+		}
+
+		// enrichBrokers records the TPS samples as a side effect.
+		s.enrichBrokers(retryClient, buildClusterInfo(retryClient, clusterInfo))
+		return nil
+	})
+}
+
+// buildClusterInfo maps the raw broker tables into the application model. The
+// runtime fields are left at their sentinel values for enrichBrokers to fill.
+func buildClusterInfo(client *admin.Client, clusterInfo *admin.ClusterInfo) *model.ClusterInfo {
+	current := &model.ClusterInfo{
+		NameServers: client.GetNameServerAddressList(),
+		Brokers:     make([]*model.BrokerNode, 0),
+	}
+
+	brokerClusters := make(map[string]string)
+	for clusterName, brokerNames := range clusterInfo.ClusterAddrTable {
+		if current.ClusterName == "" {
+			current.ClusterName = clusterName
+		}
+
+		for _, brokerName := range brokerNames {
+			if brokerName == "" {
+				continue
+			}
+			if _, exists := brokerClusters[brokerName]; !exists {
+				brokerClusters[brokerName] = clusterName
+			}
+		}
+	}
+
+	brokerID := 1
+	for brokerName, brokerData := range clusterInfo.BrokerAddrTable {
+		if brokerData == nil {
+			continue
+		}
+
+		clusterName := brokerData.Cluster
+		if clusterName == "" {
+			clusterName = brokerClusters[brokerName]
+		}
+		if clusterName == "" {
+			clusterName = "默认集群"
+		}
+		if current.ClusterName == "" {
+			current.ClusterName = clusterName
+		}
+
+		for brokerIDText, address := range brokerData.BrokerAddrs {
+			if address == "" {
+				continue
+			}
+
+			role := model.RoleSlave
+			if brokerIDText == "0" {
+				role = model.RoleMaster
+			}
+
+			brokerIDValue, _ := strconv.Atoi(brokerIDText)
+			current.Brokers = append(current.Brokers, &model.BrokerNode{
+				ID:         brokerID,
+				Cluster:    clusterName,
+				BrokerName: brokerName,
+				BrokerID:   brokerIDValue,
+				Role:       role,
+				Address:    address,
+				Status:     model.NodeWarning,
+				Topics:     -1,
+				Groups:     -1,
+				TpsIn:      -1,
+				TpsOut:     -1,
+				LastUpdate: timestamp.Now(),
+			})
+			brokerID++
+		}
+	}
+
+	current.TotalBrokers = len(current.Brokers)
+	return current
 }
 
 // enrichBrokers populates runtime fields without failing the complete overview

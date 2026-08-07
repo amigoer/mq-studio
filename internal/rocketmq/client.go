@@ -93,6 +93,20 @@ func (m *AdminClientManager) GetClient(nameServer string) (*admin.Client, error)
 	return nil, fmt.Errorf("客户端未初始化: %s", nameServer)
 }
 
+// HasActiveDefaultClient reports whether a default client is already live.
+//
+// Unlike GetDefaultClient it never runs the lazy initializer, so background
+// work can sample an existing connection without silently dialling one the
+// user has deliberately closed.
+func (m *AdminClientManager) HasActiveDefaultClient() bool {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	if m.defaultConn == "" {
+		return false
+	}
+	return m.clients[m.defaultConn] != nil
+}
+
 // GetDefaultClient returns the client for the default connection.
 func (m *AdminClientManager) GetDefaultClient() (*admin.Client, error) {
 	m.mu.RLock()
