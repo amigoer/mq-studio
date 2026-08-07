@@ -13,6 +13,9 @@ func TestDefaultSettingsSaneBounds(t *testing.T) {
 	if s.FontSize < 12 || s.FontSize > 18 {
 		t.Fatalf("fontSize out of range: %d", s.FontSize)
 	}
+	if s.CloseBehavior != CloseBehaviorMinimizeToTray {
+		t.Fatalf("closeBehavior default = %q", s.CloseBehavior)
+	}
 	if s.LagAlertThreshold != 10000 {
 		t.Fatalf("lag default = %d", s.LagAlertThreshold)
 	}

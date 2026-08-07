@@ -13,6 +13,7 @@ func TestNormalizeEnforcesSettingsBounds(t *testing.T) {
 	input.Theme = "neon"
 	input.Language = "fr"
 	input.FontSize = 99
+	input.CloseBehavior = "explode"
 	input.UIFont = " "
 	input.MonospaceFont = ""
 	input.ConnectTimeoutMs = 10
@@ -33,6 +34,9 @@ func TestNormalizeEnforcesSettingsBounds(t *testing.T) {
 	}
 	if got.FontSize != defaults.FontSize || got.UIFont != defaults.UIFont || got.MonospaceFont != defaults.MonospaceFont {
 		t.Fatalf("font settings were not normalized: %#v", got)
+	}
+	if got.CloseBehavior != defaults.CloseBehavior {
+		t.Fatalf("closeBehavior was not normalized: %q", got.CloseBehavior)
 	}
 	if got.ConnectTimeoutMs != defaults.ConnectTimeoutMs || got.RequestTimeoutMs != defaults.RequestTimeoutMs {
 		t.Fatalf("timeouts were not normalized: %#v", got)

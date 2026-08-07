@@ -1,6 +1,15 @@
 // Package model defines the application's data models.
 package model
 
+// Close behaviours for the main window.
+const (
+	// CloseBehaviorMinimizeToTray hides the window and keeps the process alive
+	// so the background collector keeps sampling.
+	CloseBehaviorMinimizeToTray = "minimizeToTray"
+	// CloseBehaviorQuit terminates the application.
+	CloseBehaviorQuit = "quit"
+)
+
 // AppSettings holds application settings.
 type AppSettings struct {
 	// General
@@ -11,6 +20,7 @@ type AppSettings struct {
 	MonospaceFont   string `json:"monospaceFont"`   // Monospace font
 	AutoConnectLast bool   `json:"autoConnectLast"` // Auto-connect to last cluster on startup
 	AutoCheckUpdate bool   `json:"autoCheckUpdate"` // Check GitHub for a newer release in the background
+	CloseBehavior   string `json:"closeBehavior"`   // Close behaviour: "minimizeToTray" | "quit"
 
 	// Connection and network
 	ConnectTimeoutMs int    `json:"connectTimeoutMs"` // Connect timeout (ms)
@@ -46,6 +56,7 @@ func DefaultSettings() *AppSettings {
 		MonospaceFont:         "JetBrains Mono",
 		AutoConnectLast:       true,
 		AutoCheckUpdate:       true,
+		CloseBehavior:         CloseBehaviorMinimizeToTray,
 		ConnectTimeoutMs:      3000,
 		RequestTimeoutMs:      5000,
 		GlobalAccessKey:       "",

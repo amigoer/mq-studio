@@ -807,7 +807,12 @@
       "autoConnect": "启动时自动连接上次集群",
       "autoConnectHint": "启动应用后自动连接上次使用的集群",
       "autoCheckUpdate": "自动检查更新",
-      "autoCheckUpdateHint": "启动后及每 24 小时向 GitHub 查询是否有新版本，仅发送当前版本号"
+      "autoCheckUpdateHint": "启动后及每 24 小时向 GitHub 查询是否有新版本，仅发送当前版本号",
+      "window": "窗口行为",
+      "closeBehavior": "关闭主窗口时",
+      "closeBehaviorHint": "最小化到托盘后应用继续在后台采集吞吐数据，可从菜单栏图标唤回或退出",
+      "closeBehaviorTray": "最小化到系统托盘",
+      "closeBehaviorQuit": "退出应用"
     },
     "fonts": {
       "fontsTypography": "字体与排版",

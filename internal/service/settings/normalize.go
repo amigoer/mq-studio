@@ -17,6 +17,10 @@ func normalize(settings model.AppSettings) model.AppSettings {
 	if settings.FontSize < 12 || settings.FontSize > 18 {
 		settings.FontSize = defaults.FontSize
 	}
+	if settings.CloseBehavior != model.CloseBehaviorMinimizeToTray &&
+		settings.CloseBehavior != model.CloseBehaviorQuit {
+		settings.CloseBehavior = defaults.CloseBehavior
+	}
 	if strings.TrimSpace(settings.UIFont) == "" {
 		settings.UIFont = defaults.UIFont
 	}

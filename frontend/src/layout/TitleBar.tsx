@@ -16,6 +16,7 @@ import { cn, formatErrorMessage } from '@/lib/utils'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Spinner } from '@/components/Spinner'
 import { useConnections } from '@/hooks/useConnections'
+import { useSettings } from '@/hooks/useSettings'
 import * as connectionApi from '@/api/connection'
 import { isMac, windowControls } from '@/api/platform'
 import logoUrl from '@/assets/logo.png'
@@ -31,6 +32,7 @@ export function TitleBar({
   const { t } = useTranslation()
   const mac = isMac()
   const { list, refresh } = useConnections()
+  const { settings } = useSettings()
   const [isMaximised, setIsMaximised] = useState(false)
   const [showCloseConfirm, setShowCloseConfirm] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -78,6 +80,15 @@ export function TitleBar({
     // Linux emits no maximise event, so re-read the state after toggling.
     windowControls.toggleMaximise().then(refreshMaximised).catch(refreshMaximised)
   }, [refreshMaximised])
+  // Go decides what closing means. Minimising to the tray is reversible, so it
+  // needs no confirmation; quitting still asks.
+  const handleClose = useCallback(() => {
+    if (settings.closeBehavior === 'minimizeToTray') {
+      windowControls.close().catch(() => {})
+      return
+    }
+    setShowCloseConfirm(true)
+  }, [settings.closeBehavior])
 
   const switchTo = async (conn: Connection) => {
     if (conn.status === 'online') {
@@ -250,7 +261,7 @@ export function TitleBar({
             </button>
             <button
               type="button"
-              onClick={() => setShowCloseConfirm(true)}
+              onClick={handleClose}
               className={closeBtnClass}
               title={t('common.close')}
               aria-label={t('common.close')}

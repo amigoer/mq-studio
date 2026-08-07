@@ -52,6 +52,19 @@ func (s *Service) ImportAllConfig(raw string) error {
 		}
 	}
 
+	err := s.importConfig(payload, importedConnections, connectionsIncluded)
+	if payload.Settings != nil {
+		// Report whatever ended up on disk, applied or rolled back.
+		s.notify(s.settings.GetSettings())
+	}
+	return err
+}
+
+func (s *Service) importConfig(
+	payload importPayload,
+	importedConnections []*model.Connection,
+	connectionsIncluded bool,
+) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	previousSettings := s.settings.GetSettings()

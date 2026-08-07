@@ -13,6 +13,19 @@ export type { UpdateCheckResult }
 
 export const isMac = (): boolean => System.IsMac()
 
+/**
+ * Subscribes to the system tray menu asking for a page. The payload is a
+ * sidebar NavId; Go raises the window before emitting, so the listener only
+ * has to switch pages. Keep the name in step with tray.NavigateEvent.
+ */
+export function onTrayNavigate(listener: (target: string) => void): () => void {
+  return Events.On('tray:navigate', (event) => {
+    // Go emits a single value, so data is the NavId itself, not a tuple.
+    const target: unknown = event.data
+    if (typeof target === 'string') listener(target)
+  })
+}
+
 /** Native window events exist on Windows and macOS only; Linux has none. */
 const maximiseEvents = System.IsMac()
   ? (['mac:WindowMaximise', 'mac:WindowUnMaximise'] as const)

@@ -20,6 +20,7 @@ export type Timezone = 'local' | 'utc'
 export type TimestampFormat = 'datetime' | 'ms'
 export type ProxyType = 'http' | 'socks5'
 export type FetchLimit = 32 | 64 | 128
+export type CloseBehavior = 'minimizeToTray' | 'quit'
 
 // Frontend settings shape (aligned with backend AppSettings fields)
 export interface FrontendSettings {
@@ -30,6 +31,7 @@ export interface FrontendSettings {
   monospaceFont: string
   autoConnectLast: boolean
   autoCheckUpdate: boolean
+  closeBehavior: CloseBehavior
   connectTimeoutMs: number
   requestTimeoutMs: number
   globalAccessKey: string
@@ -59,6 +61,7 @@ const DEFAULTS: FrontendSettings = {
   monospaceFont: 'JetBrains Mono',
   autoConnectLast: true,
   autoCheckUpdate: true,
+  closeBehavior: 'minimizeToTray',
   connectTimeoutMs: 3000,
   requestTimeoutMs: 5000,
   globalAccessKey: '',
@@ -96,6 +99,7 @@ function toFrontend(s: AppSettings): FrontendSettings {
     monospaceFont: s.monospaceFont || DEFAULTS.monospaceFont,
     autoConnectLast: s.autoConnectLast ?? DEFAULTS.autoConnectLast,
     autoCheckUpdate: s.autoCheckUpdate ?? DEFAULTS.autoCheckUpdate,
+    closeBehavior: (s.closeBehavior as CloseBehavior) || DEFAULTS.closeBehavior,
     connectTimeoutMs: s.connectTimeoutMs || DEFAULTS.connectTimeoutMs,
     requestTimeoutMs: s.requestTimeoutMs || DEFAULTS.requestTimeoutMs,
     globalAccessKey: s.globalAccessKey ?? '',

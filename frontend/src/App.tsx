@@ -17,6 +17,7 @@ import { EmptyStatePage } from '@/pages/EmptyStatePage'
 import { PageTransition } from '@/components/PageTransition'
 import { useConnections } from '@/hooks/useConnections'
 import { useUpdateCheck } from '@/hooks/useUpdateCheck'
+import { onTrayNavigate } from '@/api/platform'
 
 function App(): React.ReactElement {
   const [activeNav, setActiveNav] = useState<NavId>('home')
@@ -29,6 +30,9 @@ function App(): React.ReactElement {
   useEffect(() => {
     if (activeNav === 'settings') markUpdateSeen()
   }, [activeNav, updateUnseen, markUpdateSeen])
+
+  // The tray menu jumps straight to a page; Go raises the window first.
+  useEffect(() => onTrayNavigate((target) => setActiveNav(target as NavId)), [])
 
   const gated =
     !hasConnected && activeNav !== 'connections' && activeNav !== 'settings' && activeNav !== 'home'

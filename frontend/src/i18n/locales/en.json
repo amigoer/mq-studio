@@ -807,7 +807,12 @@
       "autoConnect": "Auto-connect on launch",
       "autoConnectHint": "Reconnect to the last cluster on app start",
       "autoCheckUpdate": "Check for updates automatically",
-      "autoCheckUpdateHint": "Ask GitHub for a newer release on start and every 24 hours, sending only the current version"
+      "autoCheckUpdateHint": "Ask GitHub for a newer release on start and every 24 hours, sending only the current version",
+      "window": "Window behavior",
+      "closeBehavior": "When the main window closes",
+      "closeBehaviorHint": "Minimising keeps collecting throughput data in the background; reopen or quit from the tray icon",
+      "closeBehaviorTray": "Minimise to system tray",
+      "closeBehaviorQuit": "Quit the application"
     },
     "fonts": {
       "fontsTypography": "Fonts & typography",

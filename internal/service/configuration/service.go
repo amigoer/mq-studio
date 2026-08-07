@@ -15,11 +15,39 @@ type Service struct {
 	layout      layout.Layout
 	settings    Settings
 	connections Connections
+
+	listenersMu sync.RWMutex
+	listeners   []func(*model.AppSettings)
 }
 
 // New creates the application configuration coordinator.
 func New(paths layout.Layout, settings Settings, connections Connections) *Service {
 	return &Service{layout: paths, settings: settings, connections: connections}
+}
+
+// OnChange registers a listener invoked after settings are persisted. It lets
+// the native shell - the system tray, for instance - follow preferences that
+// the renderer alone cannot apply.
+func (s *Service) OnChange(listener func(*model.AppSettings)) {
+	if listener == nil {
+		return
+	}
+	s.listenersMu.Lock()
+	defer s.listenersMu.Unlock()
+	s.listeners = append(s.listeners, listener)
+}
+
+// notify runs the listeners outside s.mu so a listener may read settings back.
+func (s *Service) notify(settings *model.AppSettings) {
+	if settings == nil {
+		return
+	}
+	s.listenersMu.RLock()
+	listeners := s.listeners
+	s.listenersMu.RUnlock()
+	for _, listener := range listeners {
+		listener(settings)
+	}
 }
 
 // GetSettings returns the current application settings.
@@ -29,6 +57,12 @@ func (s *Service) GetSettings() *model.AppSettings {
 
 // UpdateSettings persists settings and refreshes connections when global credentials change.
 func (s *Service) UpdateSettings(next model.AppSettings) (*model.AppSettings, error) {
+	updated, err := s.updateSettings(next)
+	s.notify(updated)
+	return updated, err
+}
+
+func (s *Service) updateSettings(next model.AppSettings) (*model.AppSettings, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -47,6 +81,12 @@ func (s *Service) UpdateSettings(next model.AppSettings) (*model.AppSettings, er
 
 // ResetSettings restores defaults and refreshes connections when credentials were cleared.
 func (s *Service) ResetSettings() (*model.AppSettings, error) {
+	reset, err := s.resetSettings()
+	s.notify(reset)
+	return reset, err
+}
+
+func (s *Service) resetSettings() (*model.AppSettings, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 

@@ -33,6 +33,7 @@ import {
   type Timezone,
   type TimestampFormat,
   type FetchLimit,
+  type CloseBehavior,
 } from '@/hooks/useSettings'
 import { useUIPrefs } from '@/hooks/useUIPrefs'
 import { cn } from '@/lib/utils'
@@ -376,6 +377,24 @@ function GeneralPanel() {
             checked={settings.autoCheckUpdate}
             onCheckedChange={() => setSetting('autoCheckUpdate', !settings.autoCheckUpdate)}
           />
+        </SettingsRow>
+      </Card>
+
+      <SectionLabel>{t('settings.general.window')}</SectionLabel>
+      <Card>
+        <SettingsRow
+          title={t('settings.general.closeBehavior')}
+          hint={t('settings.general.closeBehaviorHint')}
+          bordered={false}
+        >
+          <Select
+            style={{ width: '15.38rem' }}
+            value={settings.closeBehavior}
+            onChange={(e) => setSetting('closeBehavior', e.target.value as CloseBehavior)}
+          >
+            <option value="minimizeToTray">{t('settings.general.closeBehaviorTray')}</option>
+            <option value="quit">{t('settings.general.closeBehaviorQuit')}</option>
+          </Select>
         </SettingsRow>
       </Card>
     </>

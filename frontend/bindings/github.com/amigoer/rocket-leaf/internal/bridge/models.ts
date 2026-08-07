@@ -402,6 +402,11 @@ export class SettingsInput {
     "autoCheckUpdate": boolean;
 
     /**
+     * Close behaviour: "minimizeToTray" | "quit"
+     */
+    "closeBehavior": string;
+
+    /**
      * Connection and network
      * Connect timeout (ms)
      */
@@ -513,6 +518,9 @@ export class SettingsInput {
         if (!("autoCheckUpdate" in $$source)) {
             this["autoCheckUpdate"] = false;
         }
+        if (!("closeBehavior" in $$source)) {
+            this["closeBehavior"] = "";
+        }
         if (!("connectTimeoutMs" in $$source)) {
             this["connectTimeoutMs"] = 0;
         }
@@ -620,6 +628,11 @@ export class SettingsView {
      * Check GitHub for a newer release in the background
      */
     "autoCheckUpdate": boolean;
+
+    /**
+     * Close behaviour: "minimizeToTray" | "quit"
+     */
+    "closeBehavior": string;
 
     /**
      * Connection and network
@@ -733,6 +746,9 @@ export class SettingsView {
         }
         if (!("autoCheckUpdate" in $$source)) {
             this["autoCheckUpdate"] = false;
+        }
+        if (!("closeBehavior" in $$source)) {
+            this["closeBehavior"] = "";
         }
         if (!("connectTimeoutMs" in $$source)) {
             this["connectTimeoutMs"] = 0;

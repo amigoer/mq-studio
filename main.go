@@ -9,12 +9,20 @@ import (
 	"github.com/amigoer/rocket-leaf/internal/app"
 	"github.com/amigoer/rocket-leaf/internal/bridge"
 	"github.com/amigoer/rocket-leaf/internal/macwindow"
+	"github.com/amigoer/rocket-leaf/internal/model"
+	"github.com/amigoer/rocket-leaf/internal/tray"
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"github.com/wailsapp/wails/v3/pkg/events"
 )
 
 //go:embed all:frontend/dist
 var assets embed.FS
+
+// trayIcon is the menu bar / notification area icon, downscaled from
+// build/appicon.png. `wails3 generate icons` does not touch this file.
+//
+//go:embed build/trayicon.png
+var trayIcon []byte
 
 // version is injected at build time via -ldflags "-X main.version=...".
 // The development fallback is intentionally not a release version.
@@ -50,14 +58,48 @@ func run() error {
 			Handler: application.AssetFileServerFS(assets),
 		},
 		Mac: application.MacOptions{
-			ApplicationShouldTerminateAfterLastWindowClosed: true,
+			// The tray keeps the process alive with no window on screen; the
+			// closing hook below decides when the application actually quits.
+			// The activation policy stays Regular so the Dock icon remains.
+			ApplicationShouldTerminateAfterLastWindowClosed: false,
 		},
 	})
 
 	window := wailsApp.Window.NewWithOptions(newWindowOptions())
 	alignTrafficLights(window)
 
+	trayController := tray.New(
+		wailsApp, window, trayIcon, applicationName, services.Settings.GetSettings().Language)
+	services.Settings.OnChange(func(settings *model.AppSettings) {
+		trayController.SetLanguage(settings.Language)
+	})
+	interceptClose(wailsApp, window, services)
+
 	return wailsApp.Run()
+}
+
+// interceptClose routes the close button through the user's preference. The
+// hook runs ahead of the Wails listener that destroys the window, so cancelling
+// the event is what keeps the process alive.
+//
+// Every native close path - the macOS traffic light, the renderer's own close
+// button on Windows and Linux - arrives here as events.Common.WindowClosing.
+func interceptClose(
+	wailsApp *application.App,
+	window *application.WebviewWindow,
+	services *app.Services,
+) {
+	window.RegisterHook(events.Common.WindowClosing, func(event *application.WindowEvent) {
+		event.Cancel()
+		if services.Settings.GetSettings().CloseBehavior == model.CloseBehaviorMinimizeToTray {
+			window.Hide()
+			return
+		}
+		// Quit explicitly rather than letting the window be destroyed:
+		// ApplicationShouldTerminateAfterLastWindowClosed is off, so a plain
+		// close would leave the process running without a window.
+		wailsApp.Quit()
+	})
 }
 
 func newWindowOptions() application.WebviewWindowOptions {
