@@ -36,7 +36,8 @@ import {
   type CloseBehavior,
 } from '@/hooks/useSettings'
 import { useUIPrefs } from '@/hooks/useUIPrefs'
-import { cn } from '@/lib/utils'
+import { cn, withMinDuration } from '@/lib/utils'
+import { REFRESH_SPIN_MS } from '@/components/RefreshButton'
 import { activatableRowProps, ROW_FOCUS_CLASS } from '@/lib/a11y'
 import { useConnections } from '@/hooks/useConnections'
 import { useUpdateCheck } from '@/hooks/useUpdateCheck'
@@ -898,11 +899,25 @@ function AboutPanel({
 }: {
   version: string | null
   updateAvailable: string | null
-  onCheckUpdate: () => void
+  onCheckUpdate: () => void | Promise<void>
   onResetSettings: () => void
 }) {
   const { t } = useTranslation()
   const openLink = (url: string) => openExternal(url).catch(() => {})
+
+  // A check against GitHub often returns faster than the eye can register, so
+  // hold the spin for one full turn — otherwise pressing the button looks like
+  // nothing happened until the toast arrives.
+  const [checking, setChecking] = useState(false)
+  const runCheckUpdate = useCallback(async () => {
+    if (checking) return
+    setChecking(true)
+    try {
+      await withMinDuration(Promise.resolve(onCheckUpdate()), REFRESH_SPIN_MS)
+    } finally {
+      setChecking(false)
+    }
+  }, [checking, onCheckUpdate])
   const versionLabel =
     version === null ? '…' : version ? `v${version}` : t('settings.about.versionUnavailable')
 
@@ -938,9 +953,18 @@ function AboutPanel({
           </div>
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
-          <Button variant="default" size="sm" onClick={onCheckUpdate}>
-            <RefreshCw size={13} />
-            {t('settings.about.checkUpdate')}
+          <Button
+            variant="default"
+            size="sm"
+            onClick={() => void runCheckUpdate()}
+            disabled={checking}
+            aria-busy={checking}
+          >
+            <RefreshCw
+              size={13}
+              className={cn('rl-refresh-icon', checking && 'rl-refresh-spin')}
+            />
+            {checking ? t('settings.about.checkingUpdate') : t('settings.about.checkUpdate')}
           </Button>
           <Button variant="outline" size="sm" onClick={() => openLink(GITHUB_URL)}>
             <Github size={13} />

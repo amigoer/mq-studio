@@ -917,6 +917,7 @@
       "descriptionEn": "A local-first desktop client for RocketMQ. Manage clusters, topics, consumers, and messages without deploying a separate console.",
       "versionUnavailable": "版本不可用",
       "checkUpdate": "检查更新",
+      "checkingUpdate": "检查中…",
       "updateBadge": "新版本 v{{version}}",
       "upToDate": "已是最新版本 v{{version}}",
       "updateAvailable": "发现新版本 v{{version}}",
