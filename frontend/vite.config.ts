@@ -13,6 +13,12 @@ export default defineConfig({
       ),
     },
   },
+  server: {
+    // Bind IPv4 explicitly. Node resolves "localhost" to ::1 first, and the
+    // Wails dev proxy dials tcp4 127.0.0.1, so the default leaves the asset
+    // handler with a connection refused.
+    host: '127.0.0.1',
+  },
   build: {
     outDir: 'dist',
     emptyOutDir: true,
