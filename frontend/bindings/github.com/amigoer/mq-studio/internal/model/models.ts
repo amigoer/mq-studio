@@ -553,166 +553,6 @@ export enum ConnectionStatus {
 };
 
 /**
- * ConsumeMode is the consume mode.
- */
-export enum ConsumeMode {
-    /**
-     * The Go zero value for the underlying type of the enum.
-     */
-    $zero = "",
-
-    ModeClustering = "CLUSTERING",
-    ModeBroadcasting = "BROADCASTING",
-};
-
-/**
- * ConsumerGroupItem holds consumer group information.
- */
-export class ConsumerGroupItem {
-    /**
-     * Consumer group ID
-     */
-    "id": number;
-
-    /**
-     * Consumer group name
-     */
-    "group": string;
-
-    /**
-     * Cluster name
-     */
-    "cluster": string;
-
-    /**
-     * Consume mode
-     */
-    "consumeMode": ConsumeMode;
-
-    /**
-     * Status
-     */
-    "status": GroupStatus;
-
-    /**
-     * Online client count
-     */
-    "onlineClients": number;
-
-    /**
-     * Subscribed Topic count
-     */
-    "topicCount": number;
-
-    /**
-     * Message lag
-     */
-    "lag": number;
-
-    /**
-     * Retry QPS
-     */
-    "retryQps": number;
-
-    /**
-     * Dead-letter count
-     */
-    "dlq": number;
-
-    /**
-     * Max retry times
-     */
-    "maxRetry": number;
-
-    /**
-     * Last update time
-     */
-    "lastUpdate": string;
-
-    /**
-     * Remark
-     */
-    "remark": string;
-
-    /**
-     * Subscription list
-     */
-    "subscriptions": GroupSubscription[];
-
-    /**
-     * Client list
-     */
-    "clients": GroupClient[];
-
-    /** Creates a new ConsumerGroupItem instance. */
-    constructor($$source: Partial<ConsumerGroupItem> = {}) {
-        if (!("id" in $$source)) {
-            this["id"] = 0;
-        }
-        if (!("group" in $$source)) {
-            this["group"] = "";
-        }
-        if (!("cluster" in $$source)) {
-            this["cluster"] = "";
-        }
-        if (!("consumeMode" in $$source)) {
-            this["consumeMode"] = ConsumeMode.$zero;
-        }
-        if (!("status" in $$source)) {
-            this["status"] = GroupStatus.$zero;
-        }
-        if (!("onlineClients" in $$source)) {
-            this["onlineClients"] = 0;
-        }
-        if (!("topicCount" in $$source)) {
-            this["topicCount"] = 0;
-        }
-        if (!("lag" in $$source)) {
-            this["lag"] = 0;
-        }
-        if (!("retryQps" in $$source)) {
-            this["retryQps"] = 0;
-        }
-        if (!("dlq" in $$source)) {
-            this["dlq"] = 0;
-        }
-        if (!("maxRetry" in $$source)) {
-            this["maxRetry"] = 0;
-        }
-        if (!("lastUpdate" in $$source)) {
-            this["lastUpdate"] = "";
-        }
-        if (!("remark" in $$source)) {
-            this["remark"] = "";
-        }
-        if (!("subscriptions" in $$source)) {
-            this["subscriptions"] = [];
-        }
-        if (!("clients" in $$source)) {
-            this["clients"] = [];
-        }
-
-        Object.assign(this, $$source);
-    }
-
-    /**
-     * Creates a new ConsumerGroupItem instance from a string or object.
-     */
-    static createFrom($$source: any = {}): ConsumerGroupItem {
-        const $$createField13_0 = $$createType9;
-        const $$createField14_0 = $$createType11;
-        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-        if ("subscriptions" in $$parsedSource) {
-            $$parsedSource["subscriptions"] = $$createField13_0($$parsedSource["subscriptions"]);
-        }
-        if ("clients" in $$parsedSource) {
-            $$parsedSource["clients"] = $$createField14_0($$parsedSource["clients"]);
-        }
-        return new ConsumerGroupItem($$parsedSource as Partial<ConsumerGroupItem>);
-    }
-}
-
-/**
  * Destination is a topic, queue or stream as the canonical pages see it.
  * 
  * Attributes carries whatever the family has and the canonical model does not:
@@ -791,8 +631,8 @@ export class Destination {
      * Creates a new Destination instance from a string or object.
      */
     static createFrom($$source: any = {}): Destination {
-        const $$createField1_0 = $$createType12;
-        const $$createField8_0 = $$createType13;
+        const $$createField1_0 = $$createType8;
+        const $$createField8_0 = $$createType9;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("ref" in $$parsedSource) {
             $$parsedSource["ref"] = $$createField1_0($$parsedSource["ref"]);
@@ -878,7 +718,7 @@ export class DriverDescriptor {
      * Creates a new DriverDescriptor instance from a string or object.
      */
     static createFrom($$source: any = {}): DriverDescriptor {
-        const $$createField2_0 = $$createType15;
+        const $$createField2_0 = $$createType11;
         const $$createField3_0 = $$createType2;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("form" in $$parsedSource) {
@@ -1021,8 +861,8 @@ export class FormField {
      * Creates a new FormField instance from a string or object.
      */
     static createFrom($$source: any = {}): FormField {
-        const $$createField7_0 = $$createType17;
-        const $$createField8_0 = $$createType19;
+        const $$createField7_0 = $$createType13;
+        const $$createField8_0 = $$createType15;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("visibleWhen" in $$parsedSource) {
             $$parsedSource["visibleWhen"] = $$createField7_0($$parsedSource["visibleWhen"]);
@@ -1059,114 +899,6 @@ export class FormOption {
     static createFrom($$source: any = {}): FormOption {
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         return new FormOption($$parsedSource as Partial<FormOption>);
-    }
-}
-
-/**
- * GroupClient holds consumer client information.
- */
-export class GroupClient {
-    /**
-     * Client ID
-     */
-    "clientId": string;
-
-    /**
-     * IP address
-     */
-    "ip": string;
-
-    /**
-     * Version
-     */
-    "version": string;
-
-    /**
-     * Last heartbeat time
-     */
-    "lastHeartbeat": string;
-
-    /** Creates a new GroupClient instance. */
-    constructor($$source: Partial<GroupClient> = {}) {
-        if (!("clientId" in $$source)) {
-            this["clientId"] = "";
-        }
-        if (!("ip" in $$source)) {
-            this["ip"] = "";
-        }
-        if (!("version" in $$source)) {
-            this["version"] = "";
-        }
-        if (!("lastHeartbeat" in $$source)) {
-            this["lastHeartbeat"] = "";
-        }
-
-        Object.assign(this, $$source);
-    }
-
-    /**
-     * Creates a new GroupClient instance from a string or object.
-     */
-    static createFrom($$source: any = {}): GroupClient {
-        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-        return new GroupClient($$parsedSource as Partial<GroupClient>);
-    }
-}
-
-/**
- * GroupStatus is the consumer group status.
- */
-export enum GroupStatus {
-    /**
-     * The Go zero value for the underlying type of the enum.
-     */
-    $zero = "",
-
-    GroupOnline = "online",
-    GroupWarning = "warning",
-    GroupOffline = "offline",
-};
-
-/**
- * GroupSubscription is a subscription relationship.
- */
-export class GroupSubscription {
-    /**
-     * Topic name
-     */
-    "topic": string;
-
-    /**
-     * Filter expression
-     */
-    "expression": string;
-
-    /**
-     * Consume TPS
-     */
-    "consumeTps": number;
-
-    /** Creates a new GroupSubscription instance. */
-    constructor($$source: Partial<GroupSubscription> = {}) {
-        if (!("topic" in $$source)) {
-            this["topic"] = "";
-        }
-        if (!("expression" in $$source)) {
-            this["expression"] = "";
-        }
-        if (!("consumeTps" in $$source)) {
-            this["consumeTps"] = 0;
-        }
-
-        Object.assign(this, $$source);
-    }
-
-    /**
-     * Creates a new GroupSubscription instance from a string or object.
-     */
-    static createFrom($$source: any = {}): GroupSubscription {
-        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-        return new GroupSubscription($$parsedSource as Partial<GroupSubscription>);
     }
 }
 
@@ -1333,7 +1065,7 @@ export class MessageItem {
      * Creates a new MessageItem instance from a string or object.
      */
     static createFrom($$source: any = {}): MessageItem {
-        const $$createField15_0 = $$createType13;
+        const $$createField15_0 = $$createType9;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("properties" in $$parsedSource) {
             $$parsedSource["properties"] = $$createField15_0($$parsedSource["properties"]);
@@ -1472,6 +1204,138 @@ export class ResetOffsetRequest {
     }
 }
 
+/**
+ * Subscription is a consumer group, a Pulsar subscription or a RabbitMQ queue
+ * consumer, as the canonical pages see it.
+ * 
+ * Backlog is deliberately not called lag: RocketMQ and Kafka compute it from
+ * offsets, RabbitMQ reads ready plus unacknowledged, and Redis Stream reads
+ * XPENDING. The number means "messages still owed to this subscriber" in all
+ * three, but only the first two have an offset behind it — which is why
+ * resetting position is a separate capability.
+ */
+export class Subscription {
+    /**
+     * list key for the renderer, not broker data
+     */
+    "id": number;
+    "ref": SubscriptionRef;
+    "status": SubscriptionStatus;
+
+    /**
+     * connected consumers
+     */
+    "members": number;
+
+    /**
+     * how many it reads from
+     */
+    "destinations": number;
+
+    /**
+     * UnknownMetric when not reported
+     */
+    "backlog": number;
+
+    /**
+     * messages per second consumed
+     */
+    "rateOut": number;
+    "lastUpdated": string;
+    "attributes": { [_ in string]?: string };
+
+    /** Creates a new Subscription instance. */
+    constructor($$source: Partial<Subscription> = {}) {
+        if (!("id" in $$source)) {
+            this["id"] = 0;
+        }
+        if (!("ref" in $$source)) {
+            this["ref"] = (new SubscriptionRef());
+        }
+        if (!("status" in $$source)) {
+            this["status"] = SubscriptionStatus.$zero;
+        }
+        if (!("members" in $$source)) {
+            this["members"] = 0;
+        }
+        if (!("destinations" in $$source)) {
+            this["destinations"] = 0;
+        }
+        if (!("backlog" in $$source)) {
+            this["backlog"] = 0;
+        }
+        if (!("rateOut" in $$source)) {
+            this["rateOut"] = 0;
+        }
+        if (!("lastUpdated" in $$source)) {
+            this["lastUpdated"] = "";
+        }
+        if (!("attributes" in $$source)) {
+            this["attributes"] = {};
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new Subscription instance from a string or object.
+     */
+    static createFrom($$source: any = {}): Subscription {
+        const $$createField1_0 = $$createType16;
+        const $$createField8_0 = $$createType9;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("ref" in $$parsedSource) {
+            $$parsedSource["ref"] = $$createField1_0($$parsedSource["ref"]);
+        }
+        if ("attributes" in $$parsedSource) {
+            $$parsedSource["attributes"] = $$createField8_0($$parsedSource["attributes"]);
+        }
+        return new Subscription($$parsedSource as Partial<Subscription>);
+    }
+}
+
+/**
+ * SubscriptionRef identifies a consumer group, subscription or queue consumer.
+ */
+export class SubscriptionRef {
+    "namespace": string;
+    "name": string;
+
+    /** Creates a new SubscriptionRef instance. */
+    constructor($$source: Partial<SubscriptionRef> = {}) {
+        if (!("namespace" in $$source)) {
+            this["namespace"] = "";
+        }
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new SubscriptionRef instance from a string or object.
+     */
+    static createFrom($$source: any = {}): SubscriptionRef {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new SubscriptionRef($$parsedSource as Partial<SubscriptionRef>);
+    }
+}
+
+/**
+ * SubscriptionStatus is the health of a subscription.
+ */
+export enum SubscriptionStatus {
+    /**
+     * The Go zero value for the underlying type of the enum.
+     */
+    $zero = "",
+
+    SubscriptionOnline = "online",
+    SubscriptionWarning = "warning",
+    SubscriptionOffline = "offline",
+};
+
 // Private type creation functions
 const $$createType0 = $Create.Array($Create.Any);
 const $$createType1 = $Create.Array($Create.Any);
@@ -1481,15 +1345,12 @@ const $$createType4 = $Create.Array($Create.Any);
 const $$createType5 = BrokerNode.createFrom;
 const $$createType6 = $Create.Nullable($$createType5);
 const $$createType7 = $Create.Array($$createType6);
-const $$createType8 = GroupSubscription.createFrom;
-const $$createType9 = $Create.Array($$createType8);
-const $$createType10 = GroupClient.createFrom;
+const $$createType8 = DestinationRef.createFrom;
+const $$createType9 = $Create.Map($Create.Any, $Create.Any);
+const $$createType10 = FormField.createFrom;
 const $$createType11 = $Create.Array($$createType10);
-const $$createType12 = DestinationRef.createFrom;
-const $$createType13 = $Create.Map($Create.Any, $Create.Any);
-const $$createType14 = FormField.createFrom;
+const $$createType12 = FieldCond.createFrom;
+const $$createType13 = $Create.Nullable($$createType12);
+const $$createType14 = FormOption.createFrom;
 const $$createType15 = $Create.Array($$createType14);
-const $$createType16 = FieldCond.createFrom;
-const $$createType17 = $Create.Nullable($$createType16);
-const $$createType18 = FormOption.createFrom;
-const $$createType19 = $Create.Array($$createType18);
+const $$createType16 = SubscriptionRef.createFrom;

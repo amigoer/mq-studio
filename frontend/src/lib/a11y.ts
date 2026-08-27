@@ -1,8 +1,8 @@
-import type { KeyboardEvent } from 'react'
+import type { KeyboardEvent } from "react";
 
 /** Focus ring for rows that are clickable but are not `<button>` elements. */
 export const ROW_FOCUS_CLASS =
-  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/30'
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/30";
 
 /**
  * Makes a clickable row reachable and activatable from the keyboard.
@@ -17,10 +17,10 @@ export function activatableRowProps(onActivate: () => void) {
   return {
     tabIndex: 0,
     onKeyDown: (event: KeyboardEvent<HTMLElement>) => {
-      if (event.key !== 'Enter' && event.key !== ' ') return
+      if (event.key !== "Enter" && event.key !== " ") return;
       // Space on a focused row would otherwise scroll the list.
-      event.preventDefault()
-      onActivate()
+      event.preventDefault();
+      onActivate();
     },
-  }
+  };
 }

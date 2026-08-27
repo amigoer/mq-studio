@@ -1,4 +1,4 @@
-import { Fragment } from 'react'
+import { Fragment } from "react";
 import {
   Home,
   LayoutGrid,
@@ -12,72 +12,84 @@ import {
   Settings,
   Github,
   ExternalLink,
-} from 'lucide-react'
-import type { LucideIcon } from 'lucide-react'
-import { useTranslation } from 'react-i18next'
-import { toast } from 'sonner'
-import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
-import { openExternal } from '@/api/platform'
-import { useTerms, type TermKey } from '@/mq/terms'
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { openExternal } from "@/api/platform";
+import { useTerms, type TermKey } from "@/mq/terms";
 
-const GITHUB_URL = 'https://github.com/amigoer/mq-studio'
+const GITHUB_URL = "https://github.com/amigoer/mq-studio";
 
 export type NavId =
-  | 'home'
-  | 'topics'
-  | 'consumers'
-  | 'messages'
-  | 'producer'
-  | 'cluster'
-  | 'alerts'
-  | 'acl'
-  | 'connections'
-  | 'github'
-  | 'settings'
+  | "home"
+  | "topics"
+  | "consumers"
+  | "messages"
+  | "producer"
+  | "cluster"
+  | "alerts"
+  | "acl"
+  | "connections"
+  | "github"
+  | "settings";
 
 type NavItem = {
-  id: NavId
-  icon: LucideIcon
-  labelKey: string
+  id: NavId;
+  icon: LucideIcon;
+  labelKey: string;
   /**
    * Set where the label is a canonical noun rather than a page name. Topics
    * and Consumers are what RocketMQ calls them; RabbitMQ would read Queues
    * and Consumers, and the entry should say so.
    */
-  term?: TermKey
-}
+  term?: TermKey;
+};
 
-type NavGroup = { labelKey?: string; items: NavItem[] }
+type NavGroup = { labelKey?: string; items: NavItem[] };
 
 const GROUPS: NavGroup[] = [
   {
-    items: [{ id: 'home', icon: Home, labelKey: 'nav.home' }],
+    items: [{ id: "home", icon: Home, labelKey: "nav.home" }],
   },
   {
-    labelKey: 'nav.groupBrowse',
+    labelKey: "nav.groupBrowse",
     items: [
-      { id: 'topics', icon: LayoutGrid, labelKey: 'nav.topics', term: 'destinationPlural' },
-      { id: 'consumers', icon: Users, labelKey: 'nav.consumers', term: 'subscriptionPlural' },
-      { id: 'messages', icon: Mail, labelKey: 'nav.messages' },
-      { id: 'producer', icon: Send, labelKey: 'nav.producer' },
+      {
+        id: "topics",
+        icon: LayoutGrid,
+        labelKey: "nav.topics",
+        term: "destinationPlural",
+      },
+      {
+        id: "consumers",
+        icon: Users,
+        labelKey: "nav.consumers",
+        term: "subscriptionPlural",
+      },
+      { id: "messages", icon: Mail, labelKey: "nav.messages" },
+      { id: "producer", icon: Send, labelKey: "nav.producer" },
     ],
   },
   {
-    labelKey: 'nav.groupOps',
+    labelKey: "nav.groupOps",
     items: [
-      { id: 'cluster', icon: BarChart3, labelKey: 'nav.cluster' },
-      { id: 'alerts', icon: Bell, labelKey: 'nav.alerts' },
-      { id: 'acl', icon: Shield, labelKey: 'nav.acl' },
+      { id: "cluster", icon: BarChart3, labelKey: "nav.cluster" },
+      { id: "alerts", icon: Bell, labelKey: "nav.alerts" },
+      { id: "acl", icon: Shield, labelKey: "nav.acl" },
     ],
   },
   {
-    items: [{ id: 'connections', icon: Server, labelKey: 'nav.connections' }],
+    items: [{ id: "connections", icon: Server, labelKey: "nav.connections" }],
   },
-]
+];
 
-const BOTTOM: NavItem[] = [{ id: 'settings', icon: Settings, labelKey: 'nav.settings' }]
+const BOTTOM: NavItem[] = [
+  { id: "settings", icon: Settings, labelKey: "nav.settings" },
+];
 
 /**
  * Shared by this rail and the Settings section rail.
@@ -88,11 +100,11 @@ const BOTTOM: NavItem[] = [{ id: 'settings', icon: Settings, labelKey: 'nav.sett
  */
 export function navItemClass(isActive: boolean): string {
   return cn(
-    'relative h-8 w-full justify-start gap-2 rounded-lg px-2.5 font-normal text-muted-foreground shadow-none',
+    "relative h-8 w-full justify-start gap-2 rounded-lg px-2.5 font-normal text-muted-foreground shadow-none",
     isActive
-      ? 'bg-brand/10 font-medium text-foreground before:absolute before:left-0 before:top-1/2 before:h-1/2 before:w-[2px] before:-translate-y-1/2 before:rounded-full before:bg-brand'
-      : 'hover:bg-accent hover:text-foreground',
-  )
+      ? "bg-brand/10 font-medium text-foreground before:absolute before:left-0 before:top-1/2 before:h-1/2 before:w-[2px] before:-translate-y-1/2 before:rounded-full before:bg-brand"
+      : "hover:bg-accent hover:text-foreground",
+  );
 }
 
 export function Sidebar({
@@ -101,21 +113,21 @@ export function Sidebar({
   disabledIds = [],
   dotIds = [],
 }: {
-  active: NavId
-  onSelect: (id: NavId) => void
-  disabledIds?: NavId[]
+  active: NavId;
+  onSelect: (id: NavId) => void;
+  disabledIds?: NavId[];
   /** Items carrying an unread marker, such as an update waiting in Settings. */
-  dotIds?: NavId[]
+  dotIds?: NavId[];
 }) {
-  const { t } = useTranslation()
-  const term = useTerms()
+  const { t } = useTranslation();
+  const term = useTerms();
 
   const renderItem = (item: NavItem) => {
-    const { id, icon: Icon, labelKey } = item
-    const label = item.term ? term(item.term) : t(labelKey)
-    const disabled = disabledIds.includes(id)
-    const isActive = active === id
-    const dot = dotIds.includes(id)
+    const { id, icon: Icon, labelKey } = item;
+    const label = item.term ? term(item.term) : t(labelKey);
+    const disabled = disabledIds.includes(id);
+    const isActive = active === id;
+    const dot = dotIds.includes(id);
 
     return (
       <Button
@@ -124,34 +136,34 @@ export function Sidebar({
         variant="ghost"
         size="sm"
         disabled={disabled}
-        title={disabled ? t('common.connectFirst') : label}
-        aria-current={isActive ? 'page' : undefined}
+        title={disabled ? t("common.connectFirst") : label}
+        aria-current={isActive ? "page" : undefined}
         onClick={() => !disabled && onSelect(id)}
         className={navItemClass(isActive)}
       >
         <Icon
           size={15}
           strokeWidth={isActive ? 2 : 1.75}
-          className={cn('shrink-0', isActive ? 'opacity-100' : 'opacity-80')}
+          className={cn("shrink-0", isActive ? "opacity-100" : "opacity-80")}
         />
         <span className="truncate">{label}</span>
         {dot && (
           <span
             role="status"
-            aria-label={t('nav.updateAvailable')}
-            title={t('nav.updateAvailable')}
+            aria-label={t("nav.updateAvailable")}
+            title={t("nav.updateAvailable")}
             className="ml-auto h-[7px] w-[7px] shrink-0 rounded-full bg-brand"
           />
         )}
       </Button>
-    )
-  }
+    );
+  };
 
   const openGitHub = () => {
     openExternal(GITHUB_URL).catch(() => {
-      toast.error(t('nav.githubOpenFailed'))
-    })
-  }
+      toast.error(t("nav.githubOpenFailed"));
+    });
+  };
 
   return (
     <aside className="flex w-[15.38rem] shrink-0 select-none flex-col border-r border-border/80 bg-background">
@@ -175,12 +187,16 @@ export function Sidebar({
           type="button"
           variant="ghost"
           size="sm"
-          title={t('nav.githubHint')}
+          title={t("nav.githubHint")}
           onClick={openGitHub}
-          className={cn('group', navItemClass(false))}
+          className={cn("group", navItemClass(false))}
         >
-          <Github size={15} strokeWidth={1.75} className="shrink-0 opacity-80" />
-          <span className="truncate">{t('nav.github')}</span>
+          <Github
+            size={15}
+            strokeWidth={1.75}
+            className="shrink-0 opacity-80"
+          />
+          <span className="truncate">{t("nav.github")}</span>
           <ExternalLink
             size={12}
             aria-hidden
@@ -190,5 +206,5 @@ export function Sidebar({
         {BOTTOM.map(renderItem)}
       </div>
     </aside>
-  )
+  );
 }

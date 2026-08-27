@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState } from "react";
 
 /**
  * Bridges React's mount/unmount with a CSS exit animation.
@@ -12,33 +12,34 @@ import { useEffect, useState } from 'react'
  * disabled the unmount is immediate (no flicker after close).
  */
 export function useDelayedUnmount(visible: boolean, exitMs = 180) {
-  const [shouldRender, setShouldRender] = useState(visible)
-  const [exiting, setExiting] = useState(false)
+  const [shouldRender, setShouldRender] = useState(visible);
+  const [exiting, setExiting] = useState(false);
 
   useEffect(() => {
     if (visible) {
-      setShouldRender(true)
-      setExiting(false)
-      return
+      setShouldRender(true);
+      setExiting(false);
+      return;
     }
-    if (!shouldRender) return
+    if (!shouldRender) return;
 
     const animationsOff =
-      typeof document !== 'undefined' && document.documentElement.dataset.animations === 'off'
+      typeof document !== "undefined" &&
+      document.documentElement.dataset.animations === "off";
 
     if (animationsOff || exitMs <= 0) {
-      setShouldRender(false)
-      setExiting(false)
-      return
+      setShouldRender(false);
+      setExiting(false);
+      return;
     }
 
-    setExiting(true)
+    setExiting(true);
     const t = window.setTimeout(() => {
-      setShouldRender(false)
-      setExiting(false)
-    }, exitMs)
-    return () => window.clearTimeout(t)
-  }, [visible, shouldRender, exitMs])
+      setShouldRender(false);
+      setExiting(false);
+    }, exitMs);
+    return () => window.clearTimeout(t);
+  }, [visible, shouldRender, exitMs]);
 
-  return { shouldRender, exiting }
+  return { shouldRender, exiting };
 }

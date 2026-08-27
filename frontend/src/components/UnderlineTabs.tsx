@@ -1,11 +1,11 @@
-import { useRef, type KeyboardEvent, type ReactNode } from 'react'
-import { cn } from '@/lib/utils'
+import { useRef, type KeyboardEvent, type ReactNode } from "react";
+import { cn } from "@/lib/utils";
 
 export interface UnderlineTabItem<T extends string = string> {
-  key: T
-  label: ReactNode
+  key: T;
+  label: ReactNode;
   /** Small trailing number, e.g. the instance count on a consumer group. */
-  count?: ReactNode
+  count?: ReactNode;
 }
 
 /**
@@ -27,65 +27,67 @@ export function UnderlineTabs<T extends string>({
   bleed,
   className,
 }: {
-  items: UnderlineTabItem<T>[]
-  value: T
-  onChange: (key: T) => void
-  bleed?: boolean
-  className?: string
+  items: UnderlineTabItem<T>[];
+  value: T;
+  onChange: (key: T) => void;
+  bleed?: boolean;
+  className?: string;
 }) {
-  const refs = useRef<Map<string, HTMLButtonElement>>(new Map())
+  const refs = useRef<Map<string, HTMLButtonElement>>(new Map());
 
   const select = (index: number) => {
-    const count = items.length
-    if (count === 0) return
-    const item = items[((index % count) + count) % count]
-    if (!item) return
-    onChange(item.key)
-    refs.current.get(item.key)?.focus()
-  }
+    const count = items.length;
+    if (count === 0) return;
+    const item = items[((index % count) + count) % count];
+    if (!item) return;
+    onChange(item.key);
+    refs.current.get(item.key)?.focus();
+  };
 
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    const current = items.findIndex((item) => item.key === value)
+    const current = items.findIndex((item) => item.key === value);
     const moves: Record<string, number | undefined> = {
       ArrowRight: current + 1,
       ArrowLeft: current - 1,
       Home: 0,
       End: items.length - 1,
-    }
-    const next = moves[event.key]
-    if (next === undefined) return
-    event.preventDefault()
-    select(next)
-  }
+    };
+    const next = moves[event.key];
+    if (next === undefined) return;
+    event.preventDefault();
+    select(next);
+  };
 
   return (
     <div
       role="tablist"
-      className={cn('utabs', bleed && 'utabs-bleed', className)}
+      className={cn("utabs", bleed && "utabs-bleed", className)}
       onKeyDown={onKeyDown}
     >
       {items.map((item) => {
-        const active = item.key === value
+        const active = item.key === value;
         return (
           <button
             key={item.key}
             ref={(el) => {
-              if (el) refs.current.set(item.key, el)
-              else refs.current.delete(item.key)
+              if (el) refs.current.set(item.key, el);
+              else refs.current.delete(item.key);
             }}
             type="button"
             role="tab"
             aria-selected={active}
             // Roving tabindex: Tab reaches the strip, arrows move within it.
             tabIndex={active ? 0 : -1}
-            className={cn('utab', active && 'active')}
+            className={cn("utab", active && "active")}
             onClick={() => onChange(item.key)}
           >
             {item.label}
-            {item.count != null && <span className="text-muted-foreground">{item.count}</span>}
+            {item.count != null && (
+              <span className="text-muted-foreground">{item.count}</span>
+            )}
           </button>
-        )
+        );
       })}
     </div>
-  )
+  );
 }

@@ -1,6 +1,10 @@
-import { useCallback, useEffect, useState } from 'react'
-import { useConnections } from '@/hooks/useConnections'
-import { loadRecentPicks, recordRecentPick, type PickKind } from '@/lib/recentPicks'
+import { useCallback, useEffect, useState } from "react";
+import { useConnections } from "@/hooks/useConnections";
+import {
+  loadRecentPicks,
+  recordRecentPick,
+  type PickKind,
+} from "@/lib/recentPicks";
 
 /**
  * The topics or consumer groups last used on the active connection, newest first.
@@ -10,17 +14,19 @@ import { loadRecentPicks, recordRecentPick, type PickKind } from '@/lib/recentPi
  * succeeded, a query that ran — not for merely picking it in a dropdown.
  */
 export function useRecentPicks(kind: PickKind) {
-  const { activeKey } = useConnections()
-  const [recent, setRecent] = useState<string[]>(() => loadRecentPicks(activeKey, kind))
+  const { activeKey } = useConnections();
+  const [recent, setRecent] = useState<string[]>(() =>
+    loadRecentPicks(activeKey, kind),
+  );
 
   useEffect(() => {
-    setRecent(loadRecentPicks(activeKey, kind))
-  }, [activeKey, kind])
+    setRecent(loadRecentPicks(activeKey, kind));
+  }, [activeKey, kind]);
 
   const record = useCallback(
     (value: string) => setRecent(recordRecentPick(activeKey, kind, value)),
     [activeKey, kind],
-  )
+  );
 
-  return { recent, record }
+  return { recent, record };
 }

@@ -1,24 +1,24 @@
-import { Button } from '@/components/ui/button'
-import { Modal } from '@/components/ui/modal'
+import { Button } from "@/components/ui/button";
+import { Modal } from "@/components/ui/modal";
 
 interface ConfirmDialogProps {
-  open: boolean
-  title: string
-  description: string
-  confirmText?: string
-  cancelText?: string
-  variant?: 'default' | 'destructive'
-  onConfirm: () => void
-  onCancel: () => void
+  open: boolean;
+  title: string;
+  description: string;
+  confirmText?: string;
+  cancelText?: string;
+  variant?: "default" | "destructive";
+  onConfirm: () => void;
+  onCancel: () => void;
 }
 
 export function ConfirmDialog({
   open,
   title,
   description,
-  confirmText = 'Confirm',
-  cancelText = 'Cancel',
-  variant = 'default',
+  confirmText = "Confirm",
+  cancelText = "Cancel",
+  variant = "default",
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
@@ -33,11 +33,17 @@ export function ConfirmDialog({
       footer={
         <>
           {/* Cancel takes initial focus: the safer default for a destructive prompt. */}
-          <Button variant="outline" size="sm" type="button" data-autofocus onClick={onCancel}>
+          <Button
+            variant="outline"
+            size="sm"
+            type="button"
+            data-autofocus
+            onClick={onCancel}
+          >
             {cancelText}
           </Button>
           <Button
-            variant={variant === 'destructive' ? 'destructive' : 'default'}
+            variant={variant === "destructive" ? "destructive" : "default"}
             size="sm"
             type="button"
             onClick={onConfirm}
@@ -47,5 +53,5 @@ export function ConfirmDialog({
         </>
       }
     />
-  )
+  );
 }

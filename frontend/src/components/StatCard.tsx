@@ -1,6 +1,6 @@
-import type { LucideIcon } from 'lucide-react'
-import type { ReactNode } from 'react'
-import { cn } from '@/lib/utils'
+import type { LucideIcon } from "lucide-react";
+import type { ReactNode } from "react";
+import { cn } from "@/lib/utils";
 
 /**
  * A single headline metric on a card: label + optional icon, the value, then
@@ -21,46 +21,54 @@ export function StatCard({
   children,
   className,
 }: {
-  label: ReactNode
-  icon?: LucideIcon
-  iconColor?: string
-  value: ReactNode
-  valueColor?: string
-  valueClassName?: string
-  hint?: ReactNode
-  children?: ReactNode
-  className?: string
+  label: ReactNode;
+  icon?: LucideIcon;
+  iconColor?: string;
+  value: ReactNode;
+  valueColor?: string;
+  valueClassName?: string;
+  hint?: ReactNode;
+  children?: ReactNode;
+  className?: string;
 }) {
   return (
     <div
       className={cn(
         // No hover lift: these cards are not clickable, and the lift read as a
         // promise that they were.
-        'rounded-xl border border-border/80 bg-card p-3.5 shadow-card',
+        "rounded-xl border border-border/80 bg-card p-3.5 shadow-card",
         className,
       )}
     >
       <div className="flex items-center justify-between gap-2">
-        <span className="flex items-center gap-1.5 text-fs-115 text-muted-foreground">{label}</span>
+        <span className="flex items-center gap-1.5 text-fs-115 text-muted-foreground">
+          {label}
+        </span>
         {Icon && (
           <Icon
             size={13}
-            className={iconColor ? undefined : 'text-muted-foreground opacity-70'}
+            className={
+              iconColor ? undefined : "text-muted-foreground opacity-70"
+            }
             style={iconColor ? { color: iconColor } : undefined}
           />
         )}
       </div>
       <div
         className={cn(
-          'mt-1 text-fs-21 font-semibold leading-tight tracking-[-0.02em] tabular-nums',
+          "mt-1 text-fs-21 font-semibold leading-tight tracking-[-0.02em] tabular-nums",
           valueClassName,
         )}
         style={valueColor ? { color: valueColor } : undefined}
       >
         {value}
       </div>
-      {hint && <div className="mt-1 text-fs-11 leading-snug text-muted-foreground">{hint}</div>}
+      {hint && (
+        <div className="mt-1 text-fs-11 leading-snug text-muted-foreground">
+          {hint}
+        </div>
+      )}
       {children}
     </div>
-  )
+  );
 }

@@ -1,35 +1,35 @@
-import { useEffect, useId, useRef, type ReactNode } from 'react'
-import { createPortal } from 'react-dom'
-import { cn } from '@/lib/utils'
+import { useEffect, useId, useRef, type ReactNode } from "react";
+import { createPortal } from "react-dom";
+import { cn } from "@/lib/utils";
 
 const FOCUSABLE_SELECTOR = [
-  'a[href]',
-  'button:not([disabled])',
-  'input:not([disabled])',
-  'select:not([disabled])',
-  'textarea:not([disabled])',
+  "a[href]",
+  "button:not([disabled])",
+  "input:not([disabled])",
+  "select:not([disabled])",
+  "textarea:not([disabled])",
   '[tabindex]:not([tabindex="-1"])',
-].join(',')
+].join(",");
 
 const SIZES = {
-  sm: 'max-w-sm',
-  md: 'max-w-md',
-  lg: 'max-w-lg',
-} as const
+  sm: "max-w-sm",
+  md: "max-w-md",
+  lg: "max-w-lg",
+} as const;
 
 export interface ModalProps {
-  open: boolean
-  title: string
+  open: boolean;
+  title: string;
   /** Rendered under the title and wired up as the dialog's accessible description. */
-  description?: string
-  size?: keyof typeof SIZES
+  description?: string;
+  size?: keyof typeof SIZES;
   /** `alertdialog` for destructive confirmations, so screen readers interrupt. */
-  role?: 'dialog' | 'alertdialog'
+  role?: "dialog" | "alertdialog";
   /** Set false while a submit is in flight to block Escape and backdrop dismissal. */
-  dismissible?: boolean
-  onClose: () => void
-  children?: ReactNode
-  footer?: ReactNode
+  dismissible?: boolean;
+  onClose: () => void;
+  children?: ReactNode;
+  footer?: ReactNode;
 }
 
 /**
@@ -49,61 +49,61 @@ export function Modal({
   open,
   title,
   description,
-  size = 'md',
-  role = 'dialog',
+  size = "md",
+  role = "dialog",
   dismissible = true,
   onClose,
   children,
   footer,
 }: ModalProps) {
-  const panelRef = useRef<HTMLDivElement>(null)
-  const titleId = useId()
-  const descriptionId = useId()
+  const panelRef = useRef<HTMLDivElement>(null);
+  const titleId = useId();
+  const descriptionId = useId();
 
   useEffect(() => {
-    if (!open) return
-    const panel = panelRef.current
-    const restoreTo = document.activeElement as HTMLElement | null
+    if (!open) return;
+    const panel = panelRef.current;
+    const restoreTo = document.activeElement as HTMLElement | null;
 
     const initial =
-      panel?.querySelector<HTMLElement>('[data-autofocus]') ??
-      panel?.querySelector<HTMLElement>(FOCUSABLE_SELECTOR)
-    initial?.focus()
+      panel?.querySelector<HTMLElement>("[data-autofocus]") ??
+      panel?.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
+    initial?.focus();
 
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        if (!dismissible) return
+      if (event.key === "Escape") {
+        if (!dismissible) return;
         // Stop here so the page-level Esc handler cannot also dismiss the
         // detail panel sitting behind this dialog.
-        event.stopPropagation()
-        onClose()
-        return
+        event.stopPropagation();
+        onClose();
+        return;
       }
-      if (event.key !== 'Tab' || !panel) return
-      const items = Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(
-        (el) => el.offsetParent !== null,
-      )
-      if (items.length === 0) return
-      const first = items[0]!
-      const last = items[items.length - 1]!
-      const active = document.activeElement
+      if (event.key !== "Tab" || !panel) return;
+      const items = Array.from(
+        panel.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR),
+      ).filter((el) => el.offsetParent !== null);
+      if (items.length === 0) return;
+      const first = items[0]!;
+      const last = items[items.length - 1]!;
+      const active = document.activeElement;
       if (event.shiftKey && (active === first || !panel.contains(active))) {
-        event.preventDefault()
-        last.focus()
+        event.preventDefault();
+        last.focus();
       } else if (!event.shiftKey && active === last) {
-        event.preventDefault()
-        first.focus()
+        event.preventDefault();
+        first.focus();
       }
-    }
+    };
 
-    document.addEventListener('keydown', onKeyDown)
+    document.addEventListener("keydown", onKeyDown);
     return () => {
-      document.removeEventListener('keydown', onKeyDown)
-      restoreTo?.focus?.()
-    }
-  }, [open, dismissible, onClose])
+      document.removeEventListener("keydown", onKeyDown);
+      restoreTo?.focus?.();
+    };
+  }, [open, dismissible, onClose]);
 
-  if (!open) return null
+  if (!open) return null;
 
   return createPortal(
     <div
@@ -111,7 +111,7 @@ export function Modal({
       // mousedown, not click: a drag that starts inside the panel and ends on
       // the backdrop must not close the dialog.
       onMouseDown={(event) => {
-        if (dismissible && event.target === event.currentTarget) onClose()
+        if (dismissible && event.target === event.currentTarget) onClose();
       }}
     >
       <div
@@ -121,7 +121,7 @@ export function Modal({
         aria-labelledby={titleId}
         aria-describedby={description ? descriptionId : undefined}
         className={cn(
-          'scroll-thin max-h-[calc(100vh-6rem)] w-full overflow-y-auto rounded-xl border border-border/50 bg-background p-6 shadow-lg duration-150 animate-in fade-in zoom-in-95',
+          "scroll-thin max-h-[calc(100vh-6rem)] w-full overflow-y-auto rounded-xl border border-border/50 bg-background p-6 shadow-lg duration-150 animate-in fade-in zoom-in-95",
           SIZES[size],
         )}
       >
@@ -129,14 +129,19 @@ export function Modal({
           {title}
         </h2>
         {description && (
-          <p id={descriptionId} className="mt-2 text-fs-125 leading-relaxed text-muted-foreground">
+          <p
+            id={descriptionId}
+            className="mt-2 text-fs-125 leading-relaxed text-muted-foreground"
+          >
             {description}
           </p>
         )}
         {children}
-        {footer && <div className="mt-5 flex justify-end gap-2.5">{footer}</div>}
+        {footer && (
+          <div className="mt-5 flex justify-end gap-2.5">{footer}</div>
+        )}
       </div>
     </div>,
     document.body,
-  )
+  );
 }

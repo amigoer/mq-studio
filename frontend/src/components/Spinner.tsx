@@ -1,12 +1,12 @@
-import type { CSSProperties } from 'react'
+import type { CSSProperties } from "react";
 
 interface SpinnerProps {
   /** Outer diameter in px. Defaults to 14. */
-  size?: number
+  size?: number;
   /** Ring thickness. Defaults to scale to size (~1.5–2px). */
-  thickness?: number
-  className?: string
-  style?: CSSProperties
+  thickness?: number;
+  className?: string;
+  style?: CSSProperties;
 }
 
 /**
@@ -15,8 +15,13 @@ interface SpinnerProps {
  * with a rounded head dot. Inherits `currentColor` so it sits naturally
  * on any button surface.
  */
-export function Spinner({ size = 14, thickness, className = '', style }: SpinnerProps) {
-  const t = thickness ?? Math.max(1.5, size / 8)
+export function Spinner({
+  size = 14,
+  thickness,
+  className = "",
+  style,
+}: SpinnerProps) {
+  const t = thickness ?? Math.max(1.5, size / 8);
   return (
     <span
       role="status"
@@ -26,10 +31,10 @@ export function Spinner({ size = 14, thickness, className = '', style }: Spinner
         {
           width: size,
           height: size,
-          '--mqs-spinner-thickness': `${t}px`,
+          "--mqs-spinner-thickness": `${t}px`,
           ...style,
         } as CSSProperties
       }
     />
-  )
+  );
 }

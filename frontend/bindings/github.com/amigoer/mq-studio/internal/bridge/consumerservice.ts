@@ -4,8 +4,9 @@
 /**
  * ConsumerService exposes subscription operations to the frontend.
  * 
- * It still speaks model.ConsumerGroupItem. Converting back from the canonical
- * shape here keeps the renderer untouched through the backend refactor.
+ * It speaks the canonical model. Consume mode, retry limits and the
+ * subscription and client lists travel in the attribute map, whose keys the
+ * frontend's rocketmq module reads.
  * @module
  */
 
@@ -31,7 +32,7 @@ export function Create(connID: number, input: $models.ConsumerInput): $Cancellab
 /**
  * Detail returns a consumer group with its clients and subscriptions.
  */
-export function Detail(connID: number, group: string): $CancellablePromise<model$0.ConsumerGroupItem | null> {
+export function Detail(connID: number, group: string): $CancellablePromise<model$0.Subscription | null> {
     return $Call.ByID(2168000630, connID, group).then(($result: any) => {
         return $$createType1($result);
     });
@@ -40,7 +41,7 @@ export function Detail(connID: number, group: string): $CancellablePromise<model
 /**
  * List returns every consumer group.
  */
-export function List(connID: number): $CancellablePromise<(model$0.ConsumerGroupItem | null)[]> {
+export function List(connID: number): $CancellablePromise<(model$0.Subscription | null)[]> {
     return $Call.ByID(699201983, connID).then(($result: any) => {
         return $$createType2($result);
     });
@@ -77,7 +78,7 @@ export function Update(connID: number, input: $models.ConsumerInput): $Cancellab
 }
 
 // Private type creation functions
-const $$createType0 = model$0.ConsumerGroupItem.createFrom;
+const $$createType0 = model$0.Subscription.createFrom;
 const $$createType1 = $Create.Nullable($$createType0);
 const $$createType2 = $Create.Array($$createType1);
 const $$createType3 = $Create.Map($Create.Any, $Create.Any);

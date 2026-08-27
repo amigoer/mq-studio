@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react'
-import { cn } from '@/lib/utils'
+import type { ReactNode } from "react";
+import { cn } from "@/lib/utils";
 
 /**
  * Shell for the right-hand detail pane: width, edge, background, entrance and
@@ -17,28 +17,30 @@ export function DetailPanel({
   exiting,
   ariaLabel,
   /** `scroll`: the whole panel scrolls. `column`: caller manages its own scroll region. */
-  layout = 'scroll',
+  layout = "scroll",
   className,
   children,
 }: {
-  exiting: boolean
-  ariaLabel: string
-  layout?: 'scroll' | 'column'
-  className?: string
-  children: ReactNode
+  exiting: boolean;
+  ariaLabel: string;
+  layout?: "scroll" | "column";
+  className?: string;
+  children: ReactNode;
 }) {
   return (
     <aside
       aria-label={ariaLabel}
       className={cn(
-        'scroll-thin detail-panel shrink-0 border-l border-border bg-background',
-        layout === 'scroll' ? 'overflow-auto' : 'flex min-h-0 flex-col overflow-hidden',
-        exiting && 'exiting',
+        "scroll-thin detail-panel shrink-0 border-l border-border bg-background",
+        layout === "scroll"
+          ? "overflow-auto"
+          : "flex min-h-0 flex-col overflow-hidden",
+        exiting && "exiting",
         className,
       )}
-      style={{ width: 'min(32rem, 40vw)', minWidth: '20rem' }}
+      style={{ width: "min(32rem, 40vw)", minWidth: "20rem" }}
     >
       {children}
     </aside>
-  )
+  );
 }

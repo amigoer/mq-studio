@@ -28,6 +28,7 @@ import {
   topicName,
   writeQueue as topicWriteQueue,
 } from "@/mq/rocketmq/destinations";
+import { groupName, subscriptionsOf } from "@/mq/rocketmq/subscriptions";
 import { PageHeader } from "@/components/PageHeader";
 import { PageBody, PageToolbar } from "@/components/PageLayout";
 import { DetailPanel } from "@/components/DetailPanel";
@@ -565,7 +566,7 @@ function TopicDetailPanel({
     if (!topic) return [];
     const name = topicName(topic);
     return consumerGroups.filter((g) =>
-      (g.subscriptions || []).some((s) => s.topic === name),
+      subscriptionsOf(g).some((s) => s.topic === name),
     );
   }, [consumerGroups, topic]);
 
@@ -755,7 +756,7 @@ function TopicDetailPanel({
                 </div>
                 {relatedGroups.map((g, i) => (
                   <div
-                    key={g.group}
+                    key={groupName(g)}
                     className="flex items-center justify-between gap-2"
                     style={{
                       padding: "10px 14px",
@@ -764,12 +765,12 @@ function TopicDetailPanel({
                   >
                     <div className="min-w-0 flex-1">
                       <div className="font-mono-design truncate text-fs-12 font-medium">
-                        {g.group}
+                        {groupName(g)}
                       </div>
                       <div className="text-muted-foreground mt-0.5 text-fs-11">
-                        {t("common.instances", { count: g.onlineClients ?? 0 })}
+                        {t("common.instances", { count: g.members ?? 0 })}
                         {" · "}
-                        lag {(g.lag ?? 0).toLocaleString()}
+                        lag {(g.backlog ?? 0).toLocaleString()}
                       </div>
                     </div>
                     <Badge

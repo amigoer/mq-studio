@@ -1,7 +1,7 @@
-import type { LucideIcon } from 'lucide-react'
-import type { ReactNode } from 'react'
-import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
+import type { LucideIcon } from "lucide-react";
+import type { ReactNode } from "react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 /**
  * The one empty state. Pages used to render five different ones — an icon with
@@ -19,21 +19,21 @@ export function EmptyState({
   className,
   children,
 }: {
-  icon?: LucideIcon
-  title: string
-  description?: ReactNode
-  actionLabel?: string
-  onAction?: () => void
+  icon?: LucideIcon;
+  title: string;
+  description?: ReactNode;
+  actionLabel?: string;
+  onAction?: () => void;
   /** For empties nested inside a card or detail panel, where the page-sized one would dwarf its container. */
-  compact?: boolean
-  className?: string
-  children?: ReactNode
+  compact?: boolean;
+  className?: string;
+  children?: ReactNode;
 }) {
   return (
     <div
       className={cn(
-        'flex flex-col items-center justify-center text-center text-muted-foreground',
-        compact ? 'p-4' : 'min-h-[15rem] p-10',
+        "flex flex-col items-center justify-center text-center text-muted-foreground",
+        compact ? "p-4" : "min-h-[15rem] p-10",
         className,
       )}
     >
@@ -42,16 +42,30 @@ export function EmptyState({
           <Icon size={18} className="opacity-50" aria-hidden />
         </div>
       )}
-      <div className={compact ? 'text-fs-12' : 'text-fs-13 font-medium text-foreground/80'}>
+      <div
+        className={
+          compact ? "text-fs-12" : "text-fs-13 font-medium text-foreground/80"
+        }
+      >
         {title}
       </div>
-      {description && <div className="mt-1 max-w-sm text-fs-115 leading-snug">{description}</div>}
+      {description && (
+        <div className="mt-1 max-w-sm text-fs-115 leading-snug">
+          {description}
+        </div>
+      )}
       {onAction && actionLabel && (
-        <Button variant="default" size="sm" type="button" className="mt-4" onClick={onAction}>
+        <Button
+          variant="default"
+          size="sm"
+          type="button"
+          className="mt-4"
+          onClick={onAction}
+        >
           {actionLabel}
         </Button>
       )}
       {children}
     </div>
-  )
+  );
 }

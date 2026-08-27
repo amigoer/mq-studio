@@ -8,44 +8,46 @@
  * on another.
  */
 
-const UNKNOWN = '—'
+const UNKNOWN = "—";
 
 function isUnknown(value: number): boolean {
-  return !Number.isFinite(value) || value < 0
+  return !Number.isFinite(value) || value < 0;
 }
 
 /** Shorten to thousands once the digits stop being readable at a glance. */
 function compact(value: number): string {
-  if (value >= 10000) return `${(value / 1000).toFixed(1)}k`
-  if (value >= 1000) return `${(value / 1000).toFixed(2)}k`
-  return Math.round(value).toLocaleString()
+  if (value >= 10000) return `${(value / 1000).toFixed(1)}k`;
+  if (value >= 1000) return `${(value / 1000).toFixed(2)}k`;
+  return Math.round(value).toLocaleString();
 }
 
 /** Throughput without a unit, for callers that style the "/s" separately. */
 export function formatRate(value: number): string {
-  return isUnknown(value) ? UNKNOWN : compact(value)
+  return isUnknown(value) ? UNKNOWN : compact(value);
 }
 
 /** Throughput including the unit; stays a bare dash when unreported. */
 export function formatRateWithUnit(value: number): string {
-  return isUnknown(value) ? UNKNOWN : `${compact(value)}/s`
+  return isUnknown(value) ? UNKNOWN : `${compact(value)}/s`;
 }
 
 /** Exact count with thousands separators. */
 export function formatCount(value: number): string {
-  return isUnknown(value) ? UNKNOWN : Math.round(value).toLocaleString()
+  return isUnknown(value) ? UNKNOWN : Math.round(value).toLocaleString();
 }
 
 /** Count that collapses to thousands past 10k — for lag and other big totals. */
 export function formatCompactCount(value: number): string {
-  if (isUnknown(value)) return UNKNOWN
-  return value >= 10000 ? `${(value / 1000).toFixed(1)}k` : Math.round(value).toLocaleString()
+  if (isUnknown(value)) return UNKNOWN;
+  return value >= 10000
+    ? `${(value / 1000).toFixed(1)}k`
+    : Math.round(value).toLocaleString();
 }
 
 /** Read/write queue pair, where either side may be unreported on its own. */
 export function formatQueues(read: number, write: number): string {
-  if (isUnknown(read) && isUnknown(write)) return UNKNOWN
-  if (isUnknown(read)) return `${UNKNOWN} / ${write}`
-  if (isUnknown(write)) return `${read} / ${UNKNOWN}`
-  return `${read} / ${write}`
+  if (isUnknown(read) && isUnknown(write)) return UNKNOWN;
+  if (isUnknown(read)) return `${UNKNOWN} / ${write}`;
+  if (isUnknown(write)) return `${read} / ${UNKNOWN}`;
+  return `${read} / ${write}`;
 }

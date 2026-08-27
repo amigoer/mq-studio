@@ -1,7 +1,7 @@
-import type { ReactNode } from 'react'
-import { cn } from '@/lib/utils'
+import type { ReactNode } from "react";
+import { cn } from "@/lib/utils";
 
-type Variant = 'page' | 'panel' | 'fade'
+type Variant = "page" | "panel" | "fade";
 
 /**
  * Lightweight enter animation when `transitionKey` changes.
@@ -10,26 +10,26 @@ type Variant = 'page' | 'panel' | 'fade'
 export function PageTransition({
   transitionKey,
   children,
-  variant = 'page',
+  variant = "page",
   className,
 }: {
-  transitionKey: string
-  children: ReactNode
-  variant?: Variant
-  className?: string
+  transitionKey: string;
+  children: ReactNode;
+  variant?: Variant;
+  className?: string;
 }) {
   return (
     <div
       key={transitionKey}
       className={cn(
-        'mqs-motion-enter min-h-0',
-        variant === 'page' && 'mqs-motion-page h-full',
-        variant === 'panel' && 'mqs-motion-panel',
-        variant === 'fade' && 'mqs-motion-fade',
+        "mqs-motion-enter min-h-0",
+        variant === "page" && "mqs-motion-page h-full",
+        variant === "panel" && "mqs-motion-panel",
+        variant === "fade" && "mqs-motion-fade",
         className,
       )}
     >
       {children}
     </div>
-  )
+  );
 }

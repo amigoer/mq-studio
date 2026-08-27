@@ -1,13 +1,11 @@
 import { ACTIVE_CONNECTION } from "./connectionScope";
 import { ConsumerService } from "@bindings/bridge";
-import type { ConsumerGroupItem } from "./models";
+import type { Subscription } from "./models";
 import { present, required } from "./client";
 
-export const getConsumerGroups = (): Promise<ConsumerGroupItem[]> =>
+export const getConsumerGroups = (): Promise<Subscription[]> =>
   ConsumerService.List(ACTIVE_CONNECTION).then(present);
-export const getConsumerGroupDetail = (
-  group: string,
-): Promise<ConsumerGroupItem> =>
+export const getConsumerGroupDetail = (group: string): Promise<Subscription> =>
   ConsumerService.Detail(ACTIVE_CONNECTION, group).then(required);
 export const getConsumeStats = (
   group: string,

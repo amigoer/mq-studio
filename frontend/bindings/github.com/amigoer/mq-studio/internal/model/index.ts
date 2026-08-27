@@ -11,8 +11,6 @@ export {
     ClusterInfo,
     ClusterSummary,
     ConnectionStatus,
-    ConsumeMode,
-    ConsumerGroupItem,
     Destination,
     DestinationRef,
     DriverDescriptor,
@@ -21,13 +19,13 @@ export {
     FieldType,
     FormField,
     FormOption,
-    GroupClient,
-    GroupStatus,
-    GroupSubscription,
     MQKind,
     MessageItem,
     MessageStatus,
     MessageTrackItem,
     NodeStatus,
-    ResetOffsetRequest
+    ResetOffsetRequest,
+    Subscription,
+    SubscriptionRef,
+    SubscriptionStatus
 } from "./models.js";

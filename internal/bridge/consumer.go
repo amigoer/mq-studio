@@ -10,8 +10,9 @@ import (
 
 // ConsumerService exposes subscription operations to the frontend.
 //
-// It still speaks model.ConsumerGroupItem. Converting back from the canonical
-// shape here keeps the renderer untouched through the backend refactor.
+// It speaks the canonical model. Consume mode, retry limits and the
+// subscription and client lists travel in the attribute map, whose keys the
+// frontend's rocketmq module reads.
 type ConsumerService struct {
 	service *subscription.Service
 }
@@ -36,25 +37,13 @@ func (input ConsumerInput) spec() model.SubscriptionSpec {
 }
 
 // List returns every consumer group.
-func (s *ConsumerService) List(connID int) ([]*model.ConsumerGroupItem, error) {
-	subscriptions, err := s.service.List(context.Background(), connID)
-	if err != nil {
-		return nil, err
-	}
-	groups := make([]*model.ConsumerGroupItem, 0, len(subscriptions))
-	for _, current := range subscriptions {
-		groups = append(groups, rocketmq.GroupFromSubscription(current))
-	}
-	return groups, nil
+func (s *ConsumerService) List(connID int) ([]*model.Subscription, error) {
+	return s.service.List(context.Background(), connID)
 }
 
 // Detail returns a consumer group with its clients and subscriptions.
-func (s *ConsumerService) Detail(connID int, group string) (*model.ConsumerGroupItem, error) {
-	found, err := s.service.Detail(context.Background(), connID, model.SubscriptionRef{Name: group})
-	if err != nil {
-		return nil, err
-	}
-	return rocketmq.GroupFromSubscription(found), nil
+func (s *ConsumerService) Detail(connID int, group string) (*model.Subscription, error) {
+	return s.service.Detail(context.Background(), connID, model.SubscriptionRef{Name: group})
 }
 
 // Stats returns the per-queue consume progress of a group.

@@ -13,10 +13,10 @@ export type BrokerNode = model.BrokerNode;
 export type ClusterInfo = model.ClusterInfo;
 export type Destination = model.Destination;
 export type DestinationRef = model.DestinationRef;
+export type Subscription = model.Subscription;
+export type SubscriptionRef = model.SubscriptionRef;
+export type SubscriptionStatus = model.SubscriptionStatus;
 export type ClusterSummary = model.ClusterSummary;
-export type ConsumerGroupItem = model.ConsumerGroupItem;
-export type GroupClient = model.GroupClient;
-export type GroupSubscription = model.GroupSubscription;
 export type MessageItem = model.MessageItem;
 export type MessageTrackItem = model.MessageTrackItem;
 export type ResetOffsetRequest = model.ResetOffsetRequest;
@@ -28,7 +28,6 @@ export type AppSettings = SettingsView;
 
 export type BrokerRole = model.BrokerRole;
 export type NodeStatus = model.NodeStatus;
-export type GroupStatus = model.GroupStatus;
 export type MessageStatus = model.MessageStatus;
 
 /**
@@ -36,9 +35,9 @@ export type MessageStatus = model.MessageStatus;
  * names, with the vocabulary the pages read better in. They stay the same enum
  * values, so they remain assignable to the generated model fields.
  *
- * Topic permissions and message types are gone from here. They are RocketMQ's
- * alone, Go no longer sends them across as their own types, and they live in
- * mq/rocketmq/destinations.ts with the rest of that family's vocabulary.
+ * Topic permissions, message types and consume modes are gone from here. They
+ * are RocketMQ's alone, Go no longer sends them across as their own types,
+ * and they live under mq/rocketmq/ with the rest of that family's vocabulary.
  */
 
 export const ConnectionStatus = {
@@ -46,9 +45,3 @@ export const ConnectionStatus = {
   Offline: model.ConnectionStatus.StatusOffline,
 } as const;
 export type ConnectionStatus = model.ConnectionStatus;
-
-export const ConsumeMode = {
-  Clustering: model.ConsumeMode.ModeClustering,
-  Broadcasting: model.ConsumeMode.ModeBroadcasting,
-} as const;
-export type ConsumeMode = model.ConsumeMode;
