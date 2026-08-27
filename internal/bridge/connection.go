@@ -48,21 +48,21 @@ type ConnectionInput struct {
 	CredentialsMode string `json:"credentialsMode"`
 }
 
-func redactConnection(conn *model.Connection) *ConnectionView {
+func redactConnection(conn *model.ConnectionProfile) *ConnectionView {
 	if conn == nil {
 		return nil
 	}
 	return &ConnectionView{
-		ID: conn.ID, Name: conn.Name, Group: conn.Group, NameServer: conn.NameServer,
-		TimeoutSec: conn.TimeoutSec, EnableACL: conn.EnableACL,
-		AccessKeyConfigured: strings.TrimSpace(conn.AccessKey) != "",
-		SecretKeyConfigured: strings.TrimSpace(conn.SecretKey) != "",
+		ID: conn.ID, Name: conn.Name, Group: conn.Group, NameServer: conn.Endpoints,
+		TimeoutSec: conn.TimeoutSec, EnableACL: conn.ACLEnabled(),
+		AccessKeyConfigured: strings.TrimSpace(conn.Secret(model.SecretAccessKey)) != "",
+		SecretKeyConfigured: strings.TrimSpace(conn.Secret(model.SecretSecretKey)) != "",
 		Status:              conn.Status, LastCheck: conn.LastCheck,
 		IsDefault: conn.IsDefault, Remark: conn.Remark,
 	}
 }
 
-func redactConnections(connections []*model.Connection) []*ConnectionView {
+func redactConnections(connections []*model.ConnectionProfile) []*ConnectionView {
 	result := make([]*ConnectionView, 0, len(connections))
 	for _, conn := range connections {
 		if view := redactConnection(conn); view != nil {
@@ -98,7 +98,7 @@ func (s *ConnectionService) Update(id int, input ConnectionInput) (*ConnectionVi
 	switch input.CredentialsMode {
 	case "preserve", "":
 		if input.EnableACL && accessKey == "" && secretKey == "" {
-			accessKey, secretKey = current.AccessKey, current.SecretKey
+			accessKey, secretKey = current.Secret(model.SecretAccessKey), current.Secret(model.SecretSecretKey)
 		}
 	case "clear":
 		input.EnableACL, accessKey, secretKey = false, "", ""

@@ -11,8 +11,8 @@ type Settings interface {
 
 // Connections defines the connection operations coordinated by configuration flows.
 type Connections interface {
-	GetConnections() []*model.Connection
-	ValidateConnections([]*model.Connection) error
-	ReplaceConnections([]*model.Connection) error
+	GetConnections() []*model.ConnectionProfile
+	ValidateConnections([]*model.ConnectionProfile) error
+	ReplaceConnections([]*model.ConnectionProfile) error
 	Reload() error
 }

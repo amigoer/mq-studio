@@ -12,8 +12,13 @@ import (
 	"github.com/amigoer/mq-studio/internal/storage/atomicfile"
 )
 
+// currentSchemaVersion marks the kind-based profile format. A file without it
+// predates broker kinds and is migrated on load.
+const currentSchemaVersion = 1
+
 type store struct {
-	Connections []*model.Connection `json:"connections"`
+	SchemaVersion int                       `json:"schemaVersion"`
+	Connections   []*model.ConnectionRecord `json:"connections"`
 }
 
 func (s *Service) loadConnectionsFromFile() error {
@@ -30,25 +35,24 @@ func (s *Service) loadConnectionsFromFile() error {
 		return err
 	}
 
-	connections := make([]*model.Connection, 0, len(persisted.Connections))
-	for _, connection := range persisted.Connections {
-		if connection == nil {
+	connections := make([]*model.ConnectionProfile, 0, len(persisted.Connections))
+	for _, record := range persisted.Connections {
+		if record == nil {
 			continue
 		}
-		current := *connection
-		if current.AccessKey != "" {
-			current.AccessKey, err = crypto.Decrypt(current.AccessKey, "accessKey")
-			if err != nil {
-				return fmt.Errorf("failed to decrypt AccessKey for connection %q: %w", current.Name, err)
+		current := record.Profile()
+		for _, key := range []string{model.SecretAccessKey, model.SecretSecretKey} {
+			stored := current.Secret(key)
+			if stored == "" {
+				continue
 			}
-		}
-		if current.SecretKey != "" {
-			current.SecretKey, err = crypto.Decrypt(current.SecretKey, "secretKey")
-			if err != nil {
-				return fmt.Errorf("failed to decrypt SecretKey for connection %q: %w", current.Name, err)
+			plain, decryptErr := crypto.Decrypt(stored, key)
+			if decryptErr != nil {
+				return fmt.Errorf("failed to decrypt %s for connection %q: %w", key, current.Name, decryptErr)
 			}
+			current.SetSecret(key, plain)
 		}
-		connections = append(connections, &current)
+		connections = append(connections, current)
 	}
 
 	s.connections, s.nextID = buildConnectionState(connections)
@@ -56,8 +60,8 @@ func (s *Service) loadConnectionsFromFile() error {
 }
 
 // buildConnectionState applies the compatibility rules used when loading saved profiles.
-func buildConnectionState(connections []*model.Connection) (map[int]*model.Connection, int) {
-	loaded := make(map[int]*model.Connection, len(connections))
+func buildConnectionState(connections []*model.ConnectionProfile) (map[int]*model.ConnectionProfile, int) {
+	loaded := make(map[int]*model.ConnectionProfile, len(connections))
 	nextID := 1
 	hasDefault := false
 	for _, connection := range connections {
@@ -80,13 +84,11 @@ func buildConnectionState(connections []*model.Connection) (map[int]*model.Conne
 		current.Status = model.StatusOffline
 		current.LastCheck = "-"
 		current.TimeoutSec = normalizeTimeoutSec(current.TimeoutSec)
-		enabled, accessKey, secretKey, err := normalizeACLConfig(current.EnableACL, current.AccessKey, current.SecretKey)
+		enabled, accessKey, secretKey, err := normalizeACLConfig(current.ACLEnabled(), current.Secret(model.SecretAccessKey), current.Secret(model.SecretSecretKey))
 		if err != nil {
 			enabled, accessKey, secretKey = false, "", ""
 		}
-		current.EnableACL = enabled
-		current.AccessKey = accessKey
-		current.SecretKey = secretKey
+		current.SetACL(enabled, accessKey, secretKey)
 
 		if current.IsDefault {
 			if hasDefault {
@@ -106,7 +108,7 @@ func buildConnectionState(connections []*model.Connection) (map[int]*model.Conne
 	return loaded, nextID
 }
 
-func sortedConnectionIDs(connections map[int]*model.Connection) []int {
+func sortedConnectionIDs(connections map[int]*model.ConnectionProfile) []int {
 	ids := make([]int, 0, len(connections))
 	for id := range connections {
 		ids = append(ids, id)
@@ -115,8 +117,8 @@ func sortedConnectionIDs(connections map[int]*model.Connection) []int {
 	return ids
 }
 
-func copyConnectionsSorted(connections map[int]*model.Connection) []*model.Connection {
-	result := make([]*model.Connection, 0, len(connections))
+func copyConnectionsSorted(connections map[int]*model.ConnectionProfile) []*model.ConnectionProfile {
+	result := make([]*model.ConnectionProfile, 0, len(connections))
 	for _, id := range sortedConnectionIDs(connections) {
 		connection := connections[id]
 		if connection == nil {
@@ -128,28 +130,24 @@ func copyConnectionsSorted(connections map[int]*model.Connection) []*model.Conne
 	return result
 }
 
-func encodeConnectionsForDisk(connections []*model.Connection) ([]byte, error) {
-	persisted := store{Connections: make([]*model.Connection, 0, len(connections))}
+func encodeConnectionsForDisk(connections []*model.ConnectionProfile) ([]byte, error) {
+	persisted := store{
+		SchemaVersion: currentSchemaVersion,
+		Connections:   make([]*model.ConnectionRecord, 0, len(connections)),
+	}
 	for _, connection := range connections {
 		if connection == nil {
 			continue
 		}
-		current := *connection
-		var err error
-		if current.AccessKey != "" {
-			current.AccessKey, err = crypto.Encrypt(current.AccessKey, "accessKey")
+		record := model.NewConnectionRecord(connection)
+		for key, value := range record.Secrets {
+			encrypted, err := crypto.Encrypt(value, key)
 			if err != nil {
-				return nil, fmt.Errorf("failed to encrypt AccessKey: %w", err)
+				return nil, fmt.Errorf("failed to encrypt %s: %w", key, err)
 			}
+			record.Secrets[key] = encrypted
 		}
-		if current.SecretKey != "" {
-			current.SecretKey, err = crypto.Encrypt(current.SecretKey, "secretKey")
-			if err != nil {
-				return nil, fmt.Errorf("failed to encrypt SecretKey: %w", err)
-			}
-		}
-		copy := current
-		persisted.Connections = append(persisted.Connections, &copy)
+		persisted.Connections = append(persisted.Connections, record)
 	}
 	return json.MarshalIndent(persisted, "", "  ")
 }
@@ -163,28 +161,26 @@ func (s *Service) saveConnectionsLocked() error {
 	return atomicfile.Write(s.dataFilePath, data)
 }
 
-func prepareReplacement(connections []*model.Connection) ([]*model.Connection, error) {
-	prepared := make([]*model.Connection, 0, len(connections))
+func prepareReplacement(connections []*model.ConnectionProfile) ([]*model.ConnectionProfile, error) {
+	prepared := make([]*model.ConnectionProfile, 0, len(connections))
 	for _, connection := range connections {
 		if connection == nil {
 			continue
 		}
 		current := *connection
-		name, nameServer, err := validateConnectionFields(current.Name, current.NameServer, current.TimeoutSec)
+		name, nameServer, err := validateConnectionFields(current.Name, current.Endpoints, current.TimeoutSec)
 		if err != nil {
 			return nil, fmt.Errorf("invalid connection %q: %w", current.Name, err)
 		}
-		enabled, accessKey, secretKey, err := normalizeACLConfig(current.EnableACL, current.AccessKey, current.SecretKey)
+		enabled, accessKey, secretKey, err := normalizeACLConfig(current.ACLEnabled(), current.Secret(model.SecretAccessKey), current.Secret(model.SecretSecretKey))
 		if err != nil {
 			return nil, fmt.Errorf("invalid ACL configuration for connection %q: %w", name, err)
 		}
 		current.Name = name
-		current.NameServer = nameServer
+		current.Endpoints = nameServer
 		current.Group = normalizeConnectionGroup(current.Group)
 		current.TimeoutSec = normalizeTimeoutSec(current.TimeoutSec)
-		current.EnableACL = enabled
-		current.AccessKey = accessKey
-		current.SecretKey = secretKey
+		current.SetACL(enabled, accessKey, secretKey)
 		current.Status = model.StatusOffline
 		current.LastCheck = "-"
 		prepared = append(prepared, &current)
@@ -195,7 +191,7 @@ func prepareReplacement(connections []*model.Connection) ([]*model.Connection, e
 
 // ValidateConnections verifies that profiles can be normalized and encoded
 // without changing persisted or runtime connection state.
-func (s *Service) ValidateConnections(connections []*model.Connection) error {
+func (s *Service) ValidateConnections(connections []*model.ConnectionProfile) error {
 	prepared, err := prepareReplacement(connections)
 	if err != nil {
 		return err
@@ -205,7 +201,7 @@ func (s *Service) ValidateConnections(connections []*model.Connection) error {
 }
 
 // ReplaceConnections validates and atomically replaces all persisted connection profiles.
-func (s *Service) ReplaceConnections(connections []*model.Connection) error {
+func (s *Service) ReplaceConnections(connections []*model.ConnectionProfile) error {
 	prepared, err := prepareReplacement(connections)
 	if err != nil {
 		return err

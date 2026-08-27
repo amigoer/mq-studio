@@ -7,14 +7,14 @@ import (
 )
 
 // GetConnections returns sorted copies of all connection profiles.
-func (s *Service) GetConnections() []*model.Connection {
+func (s *Service) GetConnections() []*model.ConnectionProfile {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return copyConnectionsSorted(s.connections)
 }
 
 // GetConnection returns a copy of one connection profile.
-func (s *Service) GetConnection(id int) (*model.Connection, error) {
+func (s *Service) GetConnection(id int) (*model.ConnectionProfile, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	connection, exists := s.connections[id]

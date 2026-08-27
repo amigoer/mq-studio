@@ -21,10 +21,12 @@ func TestGetConnectionsReturnsCopies(t *testing.T) {
 
 func TestResolveACLCredentialsConnectionWins(t *testing.T) {
 	service := newTestService(t, fakeSettings{accessKey: "global-ak", secretKey: "global-sk"})
-	enabled, accessKey, secretKey := service.resolveACLCredentials(&model.Connection{
-		EnableACL: true,
-		AccessKey: "connection-ak",
-		SecretKey: "connection-sk",
+	enabled, accessKey, secretKey := service.resolveACLCredentials(&model.ConnectionProfile{
+		Auth: model.AuthConfig{Mechanism: model.AuthACL},
+		Secrets: map[string]string{
+			model.SecretAccessKey: "connection-ak",
+			model.SecretSecretKey: "connection-sk",
+		},
 	})
 	if !enabled || accessKey != "connection-ak" || secretKey != "connection-sk" {
 		t.Fatalf("got enabled=%v accessKey=%q secretKey=%q", enabled, accessKey, secretKey)
@@ -33,7 +35,7 @@ func TestResolveACLCredentialsConnectionWins(t *testing.T) {
 
 func TestResolveACLCredentialsNoACLNoGlobal(t *testing.T) {
 	service := newTestService(t, fakeSettings{})
-	enabled, accessKey, secretKey := service.resolveACLCredentials(&model.Connection{})
+	enabled, accessKey, secretKey := service.resolveACLCredentials(&model.ConnectionProfile{})
 	if enabled || accessKey != "" || secretKey != "" {
 		t.Fatalf("expected no ACL, got enabled=%v accessKey=%q secretKey=%q", enabled, accessKey, secretKey)
 	}
@@ -41,7 +43,7 @@ func TestResolveACLCredentialsNoACLNoGlobal(t *testing.T) {
 
 func TestResolveACLCredentialsGlobalFallback(t *testing.T) {
 	service := newTestService(t, fakeSettings{accessKey: "global-ak", secretKey: "global-sk"})
-	enabled, accessKey, secretKey := service.resolveACLCredentials(&model.Connection{})
+	enabled, accessKey, secretKey := service.resolveACLCredentials(&model.ConnectionProfile{})
 	if !enabled || accessKey != "global-ak" || secretKey != "global-sk" {
 		t.Fatalf("got enabled=%v accessKey=%q secretKey=%q", enabled, accessKey, secretKey)
 	}
@@ -49,7 +51,7 @@ func TestResolveACLCredentialsGlobalFallback(t *testing.T) {
 
 func TestResolveACLCredentialsRequiresCompleteGlobalPair(t *testing.T) {
 	service := newTestService(t, fakeSettings{accessKey: "global-ak"})
-	enabled, accessKey, secretKey := service.resolveACLCredentials(&model.Connection{})
+	enabled, accessKey, secretKey := service.resolveACLCredentials(&model.ConnectionProfile{})
 	if enabled || accessKey != "" || secretKey != "" {
 		t.Fatalf("incomplete global credentials must be ignored, got enabled=%v accessKey=%q secretKey=%q", enabled, accessKey, secretKey)
 	}
@@ -68,7 +70,7 @@ func TestConnectionCRUDAndDefault(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !second.EnableACL || second.AccessKey != "ak" {
+	if !second.ACLEnabled() || second.Secret(model.SecretAccessKey) != "ak" {
 		t.Fatalf("unexpected ACL connection: %#v", second)
 	}
 
@@ -132,7 +134,7 @@ func TestConnectionPersistReload(t *testing.T) {
 	}
 	reloaded := New(service.dataFilePath, fakeSettings{connectTimeout: 3 * time.Second, autoConnect: true}, noopRuntime{})
 	list := reloaded.GetConnections()
-	if len(list) != 1 || list[0].AccessKey != "ak1" || list[0].SecretKey != "sk1" {
+	if len(list) != 1 || list[0].Secret(model.SecretAccessKey) != "ak1" || list[0].Secret(model.SecretSecretKey) != "sk1" {
 		t.Fatalf("reloaded credentials do not match: %#v", list)
 	}
 }

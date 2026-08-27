@@ -61,10 +61,10 @@ func TestReplaceConnectionsSerializesWithConcurrentConnect(t *testing.T) {
 	replaceDone := make(chan error, 1)
 	go func() {
 		close(replaceStarted)
-		replaceDone <- service.ReplaceConnections([]*model.Connection{{
+		replaceDone <- service.ReplaceConnections([]*model.ConnectionProfile{{
 			ID:         9,
 			Name:       "replacement",
-			NameServer: "replacement:9876",
+			Endpoints:  "replacement:9876",
 			TimeoutSec: 5,
 			IsDefault:  true,
 		}})
@@ -109,10 +109,10 @@ func TestConnectionProbeSerializesWithProfileReplacement(t *testing.T) {
 	replaceDone := make(chan error, 1)
 	go func() {
 		close(replaceStarted)
-		replaceDone <- service.ReplaceConnections([]*model.Connection{{
+		replaceDone <- service.ReplaceConnections([]*model.ConnectionProfile{{
 			ID:         connection.ID,
 			Name:       "replacement",
-			NameServer: "replacement:9876",
+			Endpoints:  "replacement:9876",
 			TimeoutSec: 5,
 			IsDefault:  true,
 		}})

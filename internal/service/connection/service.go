@@ -17,7 +17,7 @@ type Service struct {
 	// runtimeMu serializes profile operations that observe or mutate runtime
 	// clients. When both locks are needed, runtimeMu must be acquired before mu.
 	runtimeMu       sync.Mutex
-	connections     map[int]*model.Connection
+	connections     map[int]*model.ConnectionProfile
 	nextID          int
 	dataFilePath    string
 	settings        Settings
@@ -34,7 +34,7 @@ func New(dataFilePath string, settings Settings, runtime ClientRuntime) *Service
 		dataFilePath = "connections.json"
 	}
 	service := &Service{
-		connections:  make(map[int]*model.Connection),
+		connections:  make(map[int]*model.ConnectionProfile),
 		nextID:       1,
 		dataFilePath: dataFilePath,
 		settings:     settings,

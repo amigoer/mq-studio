@@ -9,7 +9,7 @@ import (
 	"github.com/amigoer/mq-studio/internal/timestamp"
 )
 
-func (s *Service) getConnectTimeout(connection *model.Connection) time.Duration {
+func (s *Service) getConnectTimeout(connection *model.ConnectionProfile) time.Duration {
 	if connection.TimeoutSec > 0 {
 		return time.Duration(connection.TimeoutSec) * time.Second
 	}
@@ -19,9 +19,9 @@ func (s *Service) getConnectTimeout(connection *model.Connection) time.Duration 
 	return defaultConnectionTimeout * time.Second
 }
 
-func (s *Service) resolveACLCredentials(connection *model.Connection) (bool, string, string) {
-	if connection.EnableACL {
-		return true, connection.AccessKey, connection.SecretKey
+func (s *Service) resolveACLCredentials(connection *model.ConnectionProfile) (bool, string, string) {
+	if connection.ACLEnabled() {
+		return true, connection.Secret(model.SecretAccessKey), connection.Secret(model.SecretSecretKey)
 	}
 	if s.settings != nil {
 		accessKey, secretKey := s.settings.GetGlobalACLCredentials()
@@ -43,7 +43,7 @@ func (s *Service) TestConnection(id int) (string, error) {
 		s.mu.Unlock()
 		return "", fmt.Errorf("connection not found: %d", id)
 	}
-	nameServer := connection.NameServer
+	nameServer := connection.Endpoints
 	timeout := s.getConnectTimeout(connection)
 	enableACL, accessKey, secretKey := s.resolveACLCredentials(connection)
 	s.mu.Unlock()
@@ -106,8 +106,8 @@ func (s *Service) otherEndpointsLocked(id int, endpoint string) []string {
 	}
 	others := make([]string, 0)
 	for _, current := range s.connections {
-		if current.ID != id && current.NameServer != "" && current.NameServer != endpoint {
-			others = append(others, current.NameServer)
+		if current.ID != id && current.Endpoints != "" && current.Endpoints != endpoint {
+			others = append(others, current.Endpoints)
 		}
 	}
 	return others
@@ -138,7 +138,7 @@ func (s *Service) connectRuntimeLocked(id int) error {
 		s.mu.RUnlock()
 		return fmt.Errorf("连接不存在: %d", id)
 	}
-	nameServer := connection.NameServer
+	nameServer := connection.Endpoints
 	timeout := s.getConnectTimeout(connection)
 	enableACL, accessKey, secretKey := s.resolveACLCredentials(connection)
 	otherNameServers := s.otherEndpointsLocked(id, nameServer)
@@ -180,7 +180,7 @@ func (s *Service) disconnectRuntimeLocked(id int) error {
 		s.mu.Unlock()
 		return fmt.Errorf("连接不存在: %d", id)
 	}
-	nameServer := connection.NameServer
+	nameServer := connection.Endpoints
 	wasDefault := connection.IsDefault
 	wasOnline := connection.Status == model.StatusOnline
 	s.mu.Unlock()
@@ -207,7 +207,7 @@ func (s *Service) disconnectRuntimeLocked(id int) error {
 			current := s.connections[candidateID]
 			current.IsDefault = true
 			newDefaultID = candidateID
-			newDefaultNameServer = current.NameServer
+			newDefaultNameServer = current.Endpoints
 			break
 		}
 	}

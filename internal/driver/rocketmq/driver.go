@@ -9,10 +9,11 @@ import (
 	"github.com/amigoer/mq-studio/internal/model"
 )
 
-// Secret keys this driver stores in ConnectionProfile.Secrets.
+// Secret keys this driver stores in ConnectionProfile.Secrets. They are the
+// store's vocabulary, aliased here so the form schema reads in one place.
 const (
-	SecretAccessKey = "accessKey"
-	SecretSecretKey = "secretKey"
+	SecretAccessKey = model.SecretAccessKey
+	SecretSecretKey = model.SecretSecretKey
 )
 
 // Driver is the RocketMQ family.

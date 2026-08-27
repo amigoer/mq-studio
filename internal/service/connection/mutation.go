@@ -8,7 +8,7 @@ import (
 )
 
 // AddConnection adds and persists a connection profile.
-func (s *Service) AddConnection(name, group, nameServer string, timeoutSec int, enableACL bool, accessKey, secretKey, remark string) (*model.Connection, error) {
+func (s *Service) AddConnection(name, group, nameServer string, timeoutSec int, enableACL bool, accessKey, secretKey, remark string) (*model.ConnectionProfile, error) {
 	var err error
 	name, nameServer, err = validateConnectionFields(name, nameServer, timeoutSec)
 	if err != nil {
@@ -21,20 +21,19 @@ func (s *Service) AddConnection(name, group, nameServer string, timeoutSec int, 
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	connection := &model.Connection{
+	connection := &model.ConnectionProfile{
 		ID:         s.nextID,
 		Name:       name,
 		Group:      normalizeConnectionGroup(group),
-		NameServer: nameServer,
+		Endpoints:  nameServer,
 		TimeoutSec: normalizeTimeoutSec(timeoutSec),
-		EnableACL:  enableACL,
-		AccessKey:  accessKey,
-		SecretKey:  secretKey,
+		Kind:       model.KindRocketMQ,
 		Status:     model.StatusOffline,
 		LastCheck:  "-",
 		IsDefault:  len(s.connections) == 0,
 		Remark:     remark,
 	}
+	connection.SetACL(enableACL, accessKey, secretKey)
 	s.connections[connection.ID] = connection
 	if err := s.saveConnectionsLocked(); err != nil {
 		delete(s.connections, connection.ID)
@@ -46,7 +45,7 @@ func (s *Service) AddConnection(name, group, nameServer string, timeoutSec int, 
 }
 
 // UpdateConnection updates and persists a connection profile.
-func (s *Service) UpdateConnection(id int, name, group, nameServer string, timeoutSec int, enableACL bool, accessKey, secretKey, remark string) (*model.Connection, error) {
+func (s *Service) UpdateConnection(id int, name, group, nameServer string, timeoutSec int, enableACL bool, accessKey, secretKey, remark string) (*model.ConnectionProfile, error) {
 	var err error
 	name, nameServer, err = validateConnectionFields(name, nameServer, timeoutSec)
 	if err != nil {
@@ -70,17 +69,15 @@ func (s *Service) UpdateConnection(id int, name, group, nameServer string, timeo
 	previous := *connection
 	connection.Name = name
 	connection.Group = normalizeConnectionGroup(group)
-	connection.NameServer = nameServer
+	connection.Endpoints = nameServer
 	connection.TimeoutSec = normalizeTimeoutSec(timeoutSec)
-	connection.EnableACL = enableACL
-	connection.AccessKey = accessKey
-	connection.SecretKey = secretKey
+	connection.SetACL(enableACL, accessKey, secretKey)
 	connection.Remark = remark
-	clientConfigChanged := previous.NameServer != connection.NameServer ||
+	clientConfigChanged := previous.Endpoints != connection.Endpoints ||
 		previous.TimeoutSec != connection.TimeoutSec ||
-		previous.EnableACL != connection.EnableACL ||
-		previous.AccessKey != connection.AccessKey ||
-		previous.SecretKey != connection.SecretKey
+		previous.ACLEnabled() != connection.ACLEnabled() ||
+		previous.Secret(model.SecretAccessKey) != connection.Secret(model.SecretAccessKey) ||
+		previous.Secret(model.SecretSecretKey) != connection.Secret(model.SecretSecretKey)
 	wasOnline := previous.Status == model.StatusOnline
 	if clientConfigChanged {
 		connection.Status = model.StatusOffline
@@ -94,7 +91,7 @@ func (s *Service) UpdateConnection(id int, name, group, nameServer string, timeo
 	s.mu.Unlock()
 
 	if clientConfigChanged && wasOnline {
-		s.runtime.Remove(previous.NameServer)
+		s.runtime.Remove(previous.Endpoints)
 		if err := s.connectRuntimeLocked(id); err != nil {
 			return &result, fmt.Errorf("connection config saved, but reconnect with new config failed: %w", err)
 		}
@@ -134,7 +131,7 @@ func (s *Service) DeleteConnection(id int) error {
 		return fmt.Errorf("failed to save connection config: %w", err)
 	}
 	if deleted.Status == model.StatusOnline {
-		s.runtime.Remove(deleted.NameServer)
+		s.runtime.Remove(deleted.Endpoints)
 	}
 	return nil
 }
@@ -151,10 +148,10 @@ func (s *Service) SetDefaultConnection(id int) error {
 		return fmt.Errorf("connection not found: %d", id)
 	}
 
-	clientExists := s.runtime.HasClient(connection.NameServer)
+	clientExists := s.runtime.HasClient(connection.Endpoints)
 	if connection.IsDefault {
 		if clientExists {
-			return s.runtime.SetDefault(connection.NameServer)
+			return s.runtime.SetDefault(connection.Endpoints)
 		}
 		return nil
 	}
@@ -162,13 +159,13 @@ func (s *Service) SetDefaultConnection(id int) error {
 	previousDefaultNameServer := ""
 	for _, current := range s.connections {
 		if current.IsDefault {
-			previousDefaultNameServer = current.NameServer
+			previousDefaultNameServer = current.Endpoints
 			break
 		}
 	}
 	runtimeDefaultChanged := false
 	if clientExists {
-		if err := s.runtime.SetDefault(connection.NameServer); err != nil {
+		if err := s.runtime.SetDefault(connection.Endpoints); err != nil {
 			return err
 		}
 		runtimeDefaultChanged = true
@@ -179,9 +176,9 @@ func (s *Service) SetDefaultConnection(id int) error {
 	connection.IsDefault = true
 	if err := s.saveConnectionsLocked(); err != nil {
 		for _, current := range s.connections {
-			current.IsDefault = current.NameServer == previousDefaultNameServer
+			current.IsDefault = current.Endpoints == previousDefaultNameServer
 		}
-		if runtimeDefaultChanged && previousDefaultNameServer != "" && previousDefaultNameServer != connection.NameServer {
+		if runtimeDefaultChanged && previousDefaultNameServer != "" && previousDefaultNameServer != connection.Endpoints {
 			if resetErr := s.runtime.SetDefault(previousDefaultNameServer); resetErr != nil {
 				log.Printf("[ConnectionService] 回滚默认连接失败: %v", resetErr)
 			}

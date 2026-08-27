@@ -14,34 +14,38 @@ import (
 
 func TestReplaceConnectionsNormalizesEncryptsAndReloads(t *testing.T) {
 	service := newTestService(t, nil)
-	connections := []*model.Connection{
+	connections := []*model.ConnectionProfile{
 		{
 			ID:         7,
 			Name:       "  primary  ",
 			Group:      "  staging   cluster ",
-			NameServer: " ns-a:9876 ",
+			Endpoints:  " ns-a:9876 ",
 			TimeoutSec: 0,
-			EnableACL:  false,
-			AccessKey:  "discarded",
-			SecretKey:  "discarded",
-			Status:     model.StatusOnline,
-			LastCheck:  "old",
-			IsDefault:  true,
+			Auth:       model.AuthConfig{Mechanism: model.AuthNone},
+			Secrets: map[string]string{
+				model.SecretAccessKey: "discarded",
+				model.SecretSecretKey: "discarded",
+			},
+			Status:    model.StatusOnline,
+			LastCheck: "old",
+			IsDefault: true,
 		},
 		{
 			ID:         7,
 			Name:       "secured",
 			Group:      "production",
-			NameServer: "ns-b:9876",
+			Endpoints:  "ns-b:9876",
 			TimeoutSec: 8,
-			EnableACL:  true,
-			AccessKey:  "portable-ak",
-			SecretKey:  "portable-sk",
-			IsDefault:  true,
+			Auth:       model.AuthConfig{Mechanism: model.AuthACL},
+			Secrets: map[string]string{
+				model.SecretAccessKey: "portable-ak",
+				model.SecretSecretKey: "portable-sk",
+			},
+			IsDefault: true,
 		},
 		{
 			Name:       "third",
-			NameServer: "ns-c:9876",
+			Endpoints:  "ns-c:9876",
 			TimeoutSec: 5,
 		},
 	}
@@ -53,10 +57,10 @@ func TestReplaceConnectionsNormalizesEncryptsAndReloads(t *testing.T) {
 	if len(got) != 3 || got[0].ID != 7 || got[1].ID != 8 || got[2].ID != 9 {
 		t.Fatalf("IDs were not normalized deterministically: %#v", got)
 	}
-	if got[0].Name != "primary" || got[0].NameServer != "ns-a:9876" || got[0].Group != "staging cluster" || got[0].TimeoutSec != defaultConnectionTimeout {
+	if got[0].Name != "primary" || got[0].Endpoints != "ns-a:9876" || got[0].Group != "staging cluster" || got[0].TimeoutSec != defaultConnectionTimeout {
 		t.Fatalf("first connection was not normalized: %#v", got[0])
 	}
-	if got[0].Status != model.StatusOffline || got[0].LastCheck != "-" || got[0].AccessKey != "" || got[0].SecretKey != "" {
+	if got[0].Status != model.StatusOffline || got[0].LastCheck != "-" || got[0].Secret(model.SecretAccessKey) != "" || got[0].Secret(model.SecretSecretKey) != "" {
 		t.Fatalf("runtime state or disabled ACL was not normalized: %#v", got[0])
 	}
 	defaultCount := 0
@@ -68,7 +72,7 @@ func TestReplaceConnectionsNormalizesEncryptsAndReloads(t *testing.T) {
 	if defaultCount != 1 || !got[0].IsDefault {
 		t.Fatalf("expected one deterministic default: %#v", got)
 	}
-	if got[1].AccessKey != "portable-ak" || got[1].SecretKey != "portable-sk" {
+	if got[1].Secret(model.SecretAccessKey) != "portable-ak" || got[1].Secret(model.SecretSecretKey) != "portable-sk" {
 		t.Fatalf("credentials were not restored after reload: %#v", got[1])
 	}
 
@@ -90,12 +94,14 @@ func TestReplaceConnectionsRejectsInvalidInputWithoutChangingState(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = service.ReplaceConnections([]*model.Connection{{
+	err = service.ReplaceConnections([]*model.ConnectionProfile{{
 		Name:       "invalid",
-		NameServer: "ns:9876",
+		Endpoints:  "ns:9876",
 		TimeoutSec: 5,
-		EnableACL:  true,
-		SecretKey:  "missing-access-key",
+		Auth:       model.AuthConfig{Mechanism: model.AuthACL},
+		Secrets: map[string]string{
+			model.SecretSecretKey: "missing-access-key",
+		},
 	}})
 	if err == nil {
 		t.Fatal("invalid replacement should fail")
@@ -127,12 +133,14 @@ func TestValidateConnectionsHasNoSideEffects(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = service.ValidateConnections([]*model.Connection{{
+	err = service.ValidateConnections([]*model.ConnectionProfile{{
 		Name:       "invalid",
-		NameServer: "ns:9876",
+		Endpoints:  "ns:9876",
 		TimeoutSec: 5,
-		EnableACL:  true,
-		SecretKey:  "missing-access-key",
+		Auth:       model.AuthConfig{Mechanism: model.AuthACL},
+		Secrets: map[string]string{
+			model.SecretSecretKey: "missing-access-key",
+		},
 	}})
 	if err == nil {
 		t.Fatal("invalid replacement should fail validation")
@@ -187,9 +195,9 @@ func TestReplaceConnectionsDoesNotWriteOutsideMutationLock(t *testing.T) {
 	done := make(chan error, 1)
 	go func() {
 		close(started)
-		done <- service.ReplaceConnections([]*model.Connection{{
+		done <- service.ReplaceConnections([]*model.ConnectionProfile{{
 			Name:       "replacement",
-			NameServer: "replacement:9876",
+			Endpoints:  "replacement:9876",
 			TimeoutSec: 5,
 		}})
 	}()
@@ -229,9 +237,9 @@ func TestConcurrentReplaceAndAddRemainLinearizable(t *testing.T) {
 		addDone := make(chan error, 1)
 		go func() {
 			<-start
-			replaceDone <- service.ReplaceConnections([]*model.Connection{{
+			replaceDone <- service.ReplaceConnections([]*model.ConnectionProfile{{
 				Name:       "replacement",
-				NameServer: "replacement:9876",
+				Endpoints:  "replacement:9876",
 				TimeoutSec: 5,
 			}})
 		}()
@@ -259,7 +267,7 @@ func TestConcurrentReplaceAndAddRemainLinearizable(t *testing.T) {
 	}
 }
 
-func connectionNames(connections []*model.Connection) []string {
+func connectionNames(connections []*model.ConnectionProfile) []string {
 	names := make([]string, 0, len(connections))
 	for _, connection := range connections {
 		names = append(names, connection.Name)
