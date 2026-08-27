@@ -10,7 +10,7 @@ import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-const repository = 'https://github.com/amigoer/rocket-leaf'
+const repository = 'https://github.com/amigoer/mq-studio'
 
 const sources = [
   { path: 'CHANGELOG.md', heading: 'English' },

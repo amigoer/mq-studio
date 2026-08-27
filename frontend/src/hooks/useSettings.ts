@@ -200,24 +200,13 @@ function useSettingsStore(): SettingsContextValue {
   const pendingSettingsRef = useRef<FrontendSettings | null>(null)
   const saveChainRef = useRef<Promise<void>>(Promise.resolve())
 
-  // Load settings from backend on mount and migrate legacy theme from localStorage
+  // Load settings from backend on mount
   useEffect(() => {
     let cancelled = false
     getSettings()
       .then((result) => {
         if (!cancelled && result) {
-          const frontend = toFrontend(result)
-          // Migrate legacy localStorage theme to the backend
-          const legacyTheme = localStorage.getItem('rocket-leaf-theme')
-          if (
-            legacyTheme &&
-            ['light', 'dark', 'system'].includes(legacyTheme) &&
-            frontend.theme === 'system'
-          ) {
-            frontend.theme = legacyTheme as ThemeMode
-            localStorage.removeItem('rocket-leaf-theme')
-          }
-          setSettingsState(frontend)
+          setSettingsState(toFrontend(result))
         }
       })
       .catch(() => {

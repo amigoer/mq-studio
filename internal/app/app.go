@@ -4,18 +4,18 @@ package app
 import (
 	"fmt"
 
-	"github.com/amigoer/rocket-leaf/internal/crypto"
-	"github.com/amigoer/rocket-leaf/internal/rocketmq"
-	"github.com/amigoer/rocket-leaf/internal/service/acl"
-	"github.com/amigoer/rocket-leaf/internal/service/cluster"
-	"github.com/amigoer/rocket-leaf/internal/service/collector"
-	"github.com/amigoer/rocket-leaf/internal/service/configuration"
-	"github.com/amigoer/rocket-leaf/internal/service/connection"
-	"github.com/amigoer/rocket-leaf/internal/service/consumer"
-	"github.com/amigoer/rocket-leaf/internal/service/message"
-	"github.com/amigoer/rocket-leaf/internal/service/settings"
-	"github.com/amigoer/rocket-leaf/internal/service/topic"
-	"github.com/amigoer/rocket-leaf/internal/storage/layout"
+	"github.com/amigoer/mq-studio/internal/crypto"
+	"github.com/amigoer/mq-studio/internal/rocketmq"
+	"github.com/amigoer/mq-studio/internal/service/acl"
+	"github.com/amigoer/mq-studio/internal/service/cluster"
+	"github.com/amigoer/mq-studio/internal/service/collector"
+	"github.com/amigoer/mq-studio/internal/service/configuration"
+	"github.com/amigoer/mq-studio/internal/service/connection"
+	"github.com/amigoer/mq-studio/internal/service/consumer"
+	"github.com/amigoer/mq-studio/internal/service/message"
+	"github.com/amigoer/mq-studio/internal/service/settings"
+	"github.com/amigoer/mq-studio/internal/service/topic"
+	"github.com/amigoer/mq-studio/internal/storage/layout"
 )
 
 // Services aggregates business services required by the HTTP transport layer.

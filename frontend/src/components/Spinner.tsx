@@ -21,12 +21,12 @@ export function Spinner({ size = 14, thickness, className = '', style }: Spinner
     <span
       role="status"
       aria-label="loading"
-      className={`rl-spinner ${className}`}
+      className={`mqs-spinner ${className}`}
       style={
         {
           width: size,
           height: size,
-          '--rl-spinner-thickness': `${t}px`,
+          '--mqs-spinner-thickness': `${t}px`,
           ...style,
         } as CSSProperties
       }

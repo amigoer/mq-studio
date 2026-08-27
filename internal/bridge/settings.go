@@ -4,8 +4,8 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/amigoer/rocket-leaf/internal/model"
-	"github.com/amigoer/rocket-leaf/internal/service/configuration"
+	"github.com/amigoer/mq-studio/internal/model"
+	"github.com/amigoer/mq-studio/internal/service/configuration"
 )
 
 // SettingsService exposes application settings to the frontend.

@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/amigoer/rocket-leaf/internal/model"
-	"github.com/amigoer/rocket-leaf/internal/storage/atomicfile"
+	"github.com/amigoer/mq-studio/internal/model"
+	"github.com/amigoer/mq-studio/internal/storage/atomicfile"
 )
 
 const (
@@ -189,7 +189,7 @@ func (s *Service) loadTPSHistory() error {
 		return err
 	}
 	if store.Version > tpsHistoryFileVersion {
-		return errors.New("TPS history file was created by a newer Rocket Leaf version")
+		return errors.New("TPS history file was created by a newer MQ Studio version")
 	}
 	if store.Brokers == nil {
 		return nil

@@ -13,8 +13,8 @@ import { toast } from 'sonner'
 import { checkUpdate, openExternal, type UpdateCheckResult } from '@/api/platform'
 import { useSettings } from '@/hooks/useSettings'
 
-const RELEASES_URL = 'https://github.com/amigoer/rocket-leaf/releases/latest'
-const STORAGE_KEY = 'rocket-leaf:update-check'
+const RELEASES_URL = 'https://github.com/amigoer/mq-studio/releases/latest'
+const STORAGE_KEY = 'mq-studio:update-check'
 const CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000
 // Let the launch sequence — auto-connect, first cluster load — finish before
 // spending anything on a check nobody is waiting for.

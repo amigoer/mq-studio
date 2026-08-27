@@ -23,7 +23,7 @@ const (
 	// keyFileName is the filename used to store the encryption key.
 	keyFileName = "secret.key"
 	// hkdfInfoPrefix namespaces field-level keys under HKDF.
-	hkdfInfoPrefix = "rocket-leaf/field/"
+	hkdfInfoPrefix = "mq-studio/field/"
 )
 
 var (

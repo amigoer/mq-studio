@@ -1,6 +1,6 @@
 package configuration
 
-import "github.com/amigoer/rocket-leaf/internal/model"
+import "github.com/amigoer/mq-studio/internal/model"
 
 // Settings defines the settings operations coordinated by configuration flows.
 type Settings interface {

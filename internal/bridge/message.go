@@ -1,8 +1,8 @@
 package bridge
 
 import (
-	"github.com/amigoer/rocket-leaf/internal/model"
-	"github.com/amigoer/rocket-leaf/internal/service/message"
+	"github.com/amigoer/mq-studio/internal/model"
+	"github.com/amigoer/mq-studio/internal/service/message"
 )
 
 // MessageService exposes RocketMQ message query and production to the frontend.

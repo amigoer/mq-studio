@@ -6,7 +6,7 @@ import en from './locales/en.json'
 export const SUPPORTED_LANGUAGES = ['zh', 'en'] as const
 export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number]
 
-const STORED_LANG_KEY = 'rocket-leaf:lang'
+const STORED_LANG_KEY = 'mq-studio:lang'
 
 function readInitialLanguage(): SupportedLanguage {
   if (typeof window === 'undefined') return 'zh'

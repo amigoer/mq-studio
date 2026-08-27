@@ -12,7 +12,7 @@ export interface ProducerScope {
   drafts: Record<string, ProducerDraft>
 }
 
-const STORAGE_KEY = 'rocket-leaf:producer-drafts'
+const STORAGE_KEY = 'mq-studio:producer-drafts'
 
 /** Bodies past this size are not the kind anyone retypes, and localStorage only has ~5 MB total. */
 const MAX_BODY_BYTES = 256 * 1024

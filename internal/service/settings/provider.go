@@ -3,7 +3,7 @@ package settings
 import (
 	"time"
 
-	"github.com/amigoer/rocket-leaf/internal/model"
+	"github.com/amigoer/mq-studio/internal/model"
 )
 
 // GetConnectTimeout returns the configured connection timeout.

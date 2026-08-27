@@ -3,7 +3,7 @@ package settings
 import (
 	"strings"
 
-	"github.com/amigoer/rocket-leaf/internal/model"
+	"github.com/amigoer/mq-studio/internal/model"
 )
 
 func normalize(settings model.AppSettings) model.AppSettings {

@@ -19,7 +19,7 @@ import * as update$0 from "../update/models.js";
  * CheckUpdate compares the running build against the latest GitHub release.
  */
 export function CheckUpdate(): $CancellablePromise<update$0.Result> {
-    return $Call.ByID(2028650955).then(($result: any) => {
+    return $Call.ByID(671084903).then(($result: any) => {
         return $$createType0($result);
     });
 }
@@ -29,7 +29,7 @@ export function CheckUpdate(): $CancellablePromise<update$0.Result> {
  * It returns the written path, or an empty string when the user cancels.
  */
 export function ExportConfig(): $CancellablePromise<string> {
-    return $Call.ByID(2019596734);
+    return $Call.ByID(3865335250);
 }
 
 /**
@@ -37,21 +37,21 @@ export function ExportConfig(): $CancellablePromise<string> {
  * path, or an empty string when the user cancels.
  */
 export function ImportConfig(): $CancellablePromise<string> {
-    return $Call.ByID(1441168317);
+    return $Call.ByID(834354433);
 }
 
 /**
  * OpenExternal opens an allow-listed HTTPS URL in the user's browser.
  */
 export function OpenExternal(rawURL: string): $CancellablePromise<void> {
-    return $Call.ByID(4127192401, rawURL);
+    return $Call.ByID(2300835293, rawURL);
 }
 
 /**
  * Version returns the running application version.
  */
 export function Version(): $CancellablePromise<string> {
-    return $Call.ByID(3245681566);
+    return $Call.ByID(4058334898);
 }
 
 // Private type creation functions

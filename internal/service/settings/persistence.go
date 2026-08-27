@@ -7,9 +7,9 @@ import (
 	"log"
 	"os"
 
-	"github.com/amigoer/rocket-leaf/internal/crypto"
-	"github.com/amigoer/rocket-leaf/internal/model"
-	"github.com/amigoer/rocket-leaf/internal/storage/atomicfile"
+	"github.com/amigoer/mq-studio/internal/crypto"
+	"github.com/amigoer/mq-studio/internal/model"
+	"github.com/amigoer/mq-studio/internal/storage/atomicfile"
 )
 
 func (s *Service) loadFromFile() error {

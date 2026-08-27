@@ -117,15 +117,15 @@ function typeBadgeClass(kind: TopicKind): string {
   // Topic-type colors stay as utility classes on Badge.
   switch (kind) {
     case 'fifo':
-      return 'rl-badge-topic-fifo'
+      return 'mqs-badge-topic-fifo'
     case 'delay':
-      return 'rl-badge-topic-delay'
+      return 'mqs-badge-topic-delay'
     case 'retry':
-      return 'rl-badge-topic-retry'
+      return 'mqs-badge-topic-retry'
     case 'dlq':
-      return 'rl-badge-topic-dlq'
+      return 'mqs-badge-topic-dlq'
     default:
-      return 'rl-badge-topic-normal'
+      return 'mqs-badge-topic-normal'
   }
 }
 

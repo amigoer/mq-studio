@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to Rocket-Leaf are documented in this file.
+All notable changes to MQ Studio are documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -29,7 +29,7 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
-- Update checks run on their own: Rocket-Leaf asks GitHub for a newer release
+- Update checks run on their own: MQ Studio asks GitHub for a newer release
   shortly after launch and every 24 hours after that. A release is announced
   once, then marked on the Settings entry in the sidebar until that page is
   opened, so nobody has to go looking for the check to learn about an update.
@@ -80,7 +80,7 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Versioning restarts at 0.1.0 for the rebuilt application. This release does
   not continue the earlier 1.x line, and no upgrade path from it is provided.
 
-[0.1.3]: https://github.com/amigoer/rocket-leaf/compare/v0.1.2...v0.1.3
-[0.1.2]: https://github.com/amigoer/rocket-leaf/compare/v0.1.1...v0.1.2
-[0.1.1]: https://github.com/amigoer/rocket-leaf/compare/v0.1.0...v0.1.1
-[0.1.0]: https://github.com/amigoer/rocket-leaf/releases/tag/v0.1.0
+[0.1.3]: https://github.com/amigoer/mq-studio/compare/v0.1.2...v0.1.3
+[0.1.2]: https://github.com/amigoer/mq-studio/compare/v0.1.1...v0.1.2
+[0.1.1]: https://github.com/amigoer/mq-studio/compare/v0.1.0...v0.1.1
+[0.1.0]: https://github.com/amigoer/mq-studio/releases/tag/v0.1.0

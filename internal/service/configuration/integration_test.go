@@ -8,11 +8,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/amigoer/rocket-leaf/internal/crypto"
-	"github.com/amigoer/rocket-leaf/internal/model"
-	connectionservice "github.com/amigoer/rocket-leaf/internal/service/connection"
-	settingsservice "github.com/amigoer/rocket-leaf/internal/service/settings"
-	"github.com/amigoer/rocket-leaf/internal/storage/layout"
+	"github.com/amigoer/mq-studio/internal/crypto"
+	"github.com/amigoer/mq-studio/internal/model"
+	connectionservice "github.com/amigoer/mq-studio/internal/service/connection"
+	settingsservice "github.com/amigoer/mq-studio/internal/service/settings"
+	"github.com/amigoer/mq-studio/internal/storage/layout"
 )
 
 type failAfterReplaceConnections struct {

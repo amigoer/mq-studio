@@ -6,7 +6,7 @@ import {
   type ProducerDraft,
 } from './producerDrafts'
 
-const KEY = 'rocket-leaf:producer-drafts'
+const KEY = 'mq-studio:producer-drafts'
 
 function draft(overrides: Partial<ProducerDraft> = {}): ProducerDraft {
   return { tag: 'order.create', key: 'ORD-1', delay: 3, body: '{"a":1}', ...overrides }

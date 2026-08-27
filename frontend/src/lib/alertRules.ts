@@ -2,7 +2,7 @@ export type AlertRuleKey = 'brokerOffline' | 'groupOffline' | 'groupLag' | 'disk
 
 export type AlertRulePrefs = Record<AlertRuleKey, boolean>
 
-const STORAGE_KEY = 'rocket-leaf:alert-rules'
+const STORAGE_KEY = 'mq-studio:alert-rules'
 
 export const DEFAULT_ALERT_RULES: AlertRulePrefs = {
   brokerOffline: true,

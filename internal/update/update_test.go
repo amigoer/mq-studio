@@ -43,7 +43,7 @@ func releaseServer(t *testing.T, status int, body string) (*httptest.Server, *ht
 		if accept := r.Header.Get("Accept"); accept != "application/vnd.github+json" {
 			t.Errorf("Accept header = %q", accept)
 		}
-		if agent := r.Header.Get("User-Agent"); !strings.HasPrefix(agent, "Rocket-Leaf/") {
+		if agent := r.Header.Get("User-Agent"); !strings.HasPrefix(agent, "MQ-Studio/") {
 			t.Errorf("User-Agent header = %q", agent)
 		}
 		w.WriteHeader(status)

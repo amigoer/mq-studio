@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "Rocket-Leaf",
+    "name": "MQ Studio",
     "tagline": "RocketMQ desktop client"
   },
   "common": {
@@ -37,7 +37,7 @@
     "restore": "Restore",
     "close": "Close",
     "exitApp": "Quit application",
-    "exitAppConfirm": "Quit Rocket-Leaf?",
+    "exitAppConfirm": "Quit MQ Studio?",
     "exit": "Quit",
     "connectFirst": "Connect to a cluster first",
     "goToConnections": "Go to Connections",
@@ -75,7 +75,7 @@
       },
       "2": {
         "title": "Pick cluster",
-        "desc": "Rocket-Leaf discovers brokers and organizes them by cluster."
+        "desc": "MQ Studio discovers brokers and organizes them by cluster."
       },
       "3": {
         "title": "Manage topics & consume",
@@ -603,7 +603,7 @@
     },
     "rules": {
       "title": "Alert rules",
-      "desc": "Rocket-Leaf derives alerts from live cluster metrics. Thresholds live in Settings → Messages.",
+      "desc": "MQ Studio derives alerts from live cluster metrics. Thresholds live in Settings → Messages.",
       "localOnlyNote": "Rule on/off is stored on this machine only. No email or webhook delivery.",
       "enabled": "Enabled",
       "disabled": "Disabled",
@@ -829,7 +829,7 @@
       "tsDatetime": "YYYY-MM-DD HH:mm:ss",
       "tsMs": "Milliseconds",
       "preview": "Preview",
-      "previewSample": "Sample: Rocket-Leaf · RocketMQ desktop client. ABCDabcd 1234"
+      "previewSample": "Sample: MQ Studio · RocketMQ desktop client. ABCDabcd 1234"
     },
     "message": {
       "defaults": "Query defaults",

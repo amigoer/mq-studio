@@ -264,7 +264,7 @@ export function AclPage({ onNavigate }: { onNavigate?: (id: NavId) => void }) {
                   className="h-[7px] w-[7px] shrink-0 rounded-full"
                   style={{
                     background: 'hsl(var(--success))',
-                    animation: 'rl-conn-pulse 2.2s ease-in-out infinite',
+                    animation: 'mqs-conn-pulse 2.2s ease-in-out infinite',
                   }}
                 />
               )}

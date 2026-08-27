@@ -13,9 +13,9 @@ import (
 )
 
 // ReleasesURL is the human-facing downloads page.
-const ReleasesURL = "https://github.com/amigoer/rocket-leaf/releases/latest"
+const ReleasesURL = "https://github.com/amigoer/mq-studio/releases/latest"
 
-const latestReleaseAPI = "https://api.github.com/repos/amigoer/rocket-leaf/releases/latest"
+const latestReleaseAPI = "https://api.github.com/repos/amigoer/mq-studio/releases/latest"
 
 const requestTimeout = 10 * time.Second
 
@@ -119,7 +119,7 @@ func CheckLatest(currentVersion string, client *http.Client) (Result, error) {
 		return Result{}, err
 	}
 	request.Header.Set("Accept", "application/vnd.github+json")
-	request.Header.Set("User-Agent", "Rocket-Leaf/"+current.normalized)
+	request.Header.Set("User-Agent", "MQ-Studio/"+current.normalized)
 	request.Header.Set("X-GitHub-Api-Version", "2022-11-28")
 
 	response, err := client.Do(request)

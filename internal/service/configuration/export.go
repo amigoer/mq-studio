@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/amigoer/rocket-leaf/internal/model"
-	"github.com/amigoer/rocket-leaf/internal/storage/atomicfile"
+	"github.com/amigoer/mq-studio/internal/model"
+	"github.com/amigoer/mq-studio/internal/storage/atomicfile"
 )
 
 // ExportAllConfig exports settings and connection profiles in the portable version 2 format.

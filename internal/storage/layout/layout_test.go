@@ -6,7 +6,7 @@ import (
 )
 
 func TestInBuildsAllPersistentPaths(t *testing.T) {
-	directory := filepath.Join("tmp", "rocket-leaf")
+	directory := filepath.Join("tmp", "mq-studio")
 	paths := In(directory)
 	if paths.SettingsFile != filepath.Join(directory, "settings.json") {
 		t.Fatalf("settings path = %q", paths.SettingsFile)

@@ -1,8 +1,8 @@
 package bridge
 
 import (
-	"github.com/amigoer/rocket-leaf/internal/model"
-	"github.com/amigoer/rocket-leaf/internal/service/acl"
+	"github.com/amigoer/mq-studio/internal/model"
+	"github.com/amigoer/mq-studio/internal/service/acl"
 )
 
 // ACLService exposes broker ACL administration to the frontend.

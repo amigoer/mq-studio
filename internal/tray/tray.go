@@ -1,4 +1,4 @@
-// Package tray puts Rocket Leaf in the system tray so closing the main window
+// Package tray puts MQ Studio in the system tray so closing the main window
 // can leave the process running and the background collector sampling.
 package tray
 
@@ -26,7 +26,7 @@ var translations = map[string]labels{
 	"zh": {
 		show:     "显示主窗口",
 		settings: "设置",
-		quit:     "退出 Rocket-Leaf",
+		quit:     "退出 MQ Studio",
 		nav: map[string]string{
 			"home":      "概览",
 			"topics":    "主题",
@@ -37,7 +37,7 @@ var translations = map[string]labels{
 	"en": {
 		show:     "Show Main Window",
 		settings: "Settings",
-		quit:     "Quit Rocket-Leaf",
+		quit:     "Quit MQ Studio",
 		nav: map[string]string{
 			"home":      "Overview",
 			"topics":    "Topics",

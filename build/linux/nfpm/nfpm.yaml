@@ -3,7 +3,7 @@
 #
 # The lines below are called `modelines`. See `:help modeline`
 
-name: "rocket-leaf"
+name: "mq-studio"
 arch: ${GOARCH}
 platform: "linux"
 version: "0.1.3"
@@ -17,12 +17,12 @@ license: "MIT"
 release: "1"
 
 contents:
-  - src: "./bin/rocket-leaf"
-    dst: "/usr/local/bin/rocket-leaf"
+  - src: "./bin/mq-studio"
+    dst: "/usr/local/bin/mq-studio"
   - src: "./build/appicon.png"
-    dst: "/usr/share/icons/hicolor/128x128/apps/rocket-leaf.png"
-  - src: "./build/linux/rocket-leaf.desktop"
-    dst: "/usr/share/applications/rocket-leaf.desktop"
+    dst: "/usr/share/icons/hicolor/128x128/apps/mq-studio.png"
+  - src: "./build/linux/mq-studio.desktop"
+    dst: "/usr/share/applications/mq-studio.desktop"
 
 # Default dependencies for Debian 12/Ubuntu 22.04+ with WebKit 4.1
 depends:

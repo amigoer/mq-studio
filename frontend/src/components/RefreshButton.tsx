@@ -5,7 +5,7 @@ import { useCallback, useState } from 'react'
 import { cn, formatErrorMessage, withMinDuration } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 
-/** One full turn ≈ this duration; keep in sync with `.rl-refresh-spin` in styles/app.css */
+/** One full turn ≈ this duration; keep in sync with `.mqs-refresh-spin` in styles/app.css */
 export const REFRESH_SPIN_MS = 700
 
 export interface RefreshButtonProps {
@@ -51,7 +51,7 @@ export function RefreshButton({
       aria-label={tip}
       aria-busy={spinning}
     >
-      <RefreshCw size={size} className={cn('rl-refresh-icon', spinning && 'rl-refresh-spin')} />
+      <RefreshCw size={size} className={cn('mqs-refresh-icon', spinning && 'mqs-refresh-spin')} />
       {label}
     </Button>
   )

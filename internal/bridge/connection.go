@@ -4,8 +4,8 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/amigoer/rocket-leaf/internal/model"
-	"github.com/amigoer/rocket-leaf/internal/service/connection"
+	"github.com/amigoer/mq-studio/internal/model"
+	"github.com/amigoer/mq-studio/internal/service/connection"
 )
 
 // ConnectionService exposes RocketMQ connection management to the frontend.

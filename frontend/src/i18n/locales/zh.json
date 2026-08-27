@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "Rocket-Leaf",
+    "name": "MQ Studio",
     "tagline": "RocketMQ 桌面客户端"
   },
   "common": {
@@ -37,7 +37,7 @@
     "restore": "还原",
     "close": "关闭",
     "exitApp": "退出应用",
-    "exitAppConfirm": "确定要关闭 Rocket-Leaf 吗？",
+    "exitAppConfirm": "确定要关闭 MQ Studio 吗？",
     "exit": "退出",
     "connectFirst": "请先连接集群",
     "goToConnections": "前往连接管理",
@@ -75,7 +75,7 @@
       },
       "2": {
         "title": "选择集群与命名空间",
-        "desc": "Rocket-Leaf 自动发现 Broker，按集群组织视图。"
+        "desc": "MQ Studio 自动发现 Broker，按集群组织视图。"
       },
       "3": {
         "title": "管理 Topic 与消费",
@@ -603,7 +603,7 @@
     },
     "rules": {
       "title": "告警规则",
-      "desc": "Rocket-Leaf 基于实时指标推断告警，阈值在「设置 → 消息查询」中配置。",
+      "desc": "MQ Studio 基于实时指标推断告警，阈值在「设置 → 消息查询」中配置。",
       "localOnlyNote": "规则启停保存在本机；无邮件/Webhook 推送。",
       "enabled": "已启用",
       "disabled": "已关闭",
@@ -829,7 +829,7 @@
       "tsDatetime": "YYYY-MM-DD HH:mm:ss",
       "tsMs": "毫秒时间戳",
       "preview": "预览",
-      "previewSample": "示例文本：Rocket-Leaf · RocketMQ 桌面客户端 ABCDabcd 1234"
+      "previewSample": "示例文本：MQ Studio · RocketMQ 桌面客户端 ABCDabcd 1234"
     },
     "message": {
       "defaults": "消息查询默认值",

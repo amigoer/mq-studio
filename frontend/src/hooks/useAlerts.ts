@@ -161,7 +161,7 @@ function useAlertsState(): AlertsContextValue {
     try {
       new Notification(`${head.title}${extra}`, {
         body: head.desc,
-        tag: `rocket-leaf-alerts-${connectionKey}`,
+        tag: `mq-studio-alerts-${connectionKey}`,
       })
     } catch {
       // Some WebView environments reject constructing Notification.

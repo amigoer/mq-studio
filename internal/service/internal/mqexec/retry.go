@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/amigoer/rocket-leaf/internal/rocketmq"
+	"github.com/amigoer/mq-studio/internal/rocketmq"
 
 	admin "github.com/amigoer/rocketmq-admin-go"
 )

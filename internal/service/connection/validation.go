@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/amigoer/rocket-leaf/internal/rocketmq"
+	"github.com/amigoer/mq-studio/internal/rocketmq"
 )
 
 // normalizeConnectionGroup trims a group label and collapses inner whitespace.

@@ -1,13 +1,13 @@
 [Desktop Entry]
 Version=1.0
-Name=Rocket Leaf
+Name=MQ Studio
 Comment=Local-first desktop client for RocketMQ
 # The Exec line includes %u to pass the URL to the application
-Exec=/usr/local/bin/rocket-leaf %u
+Exec=/usr/local/bin/mq-studio %u
 Terminal=false
 Type=Application
-Icon=rocket-leaf
+Icon=mq-studio
 Categories=Utility;
-StartupWMClass=rocket-leaf
+StartupWMClass=mq-studio
 
  

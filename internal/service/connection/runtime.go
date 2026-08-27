@@ -3,7 +3,7 @@ package connection
 import (
 	"time"
 
-	"github.com/amigoer/rocket-leaf/internal/rocketmq"
+	"github.com/amigoer/mq-studio/internal/rocketmq"
 )
 
 // clientRuntime isolates the mutable RocketMQ client registry from profile

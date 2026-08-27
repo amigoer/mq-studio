@@ -1,8 +1,8 @@
 package bridge
 
 import (
-	"github.com/amigoer/rocket-leaf/internal/model"
-	"github.com/amigoer/rocket-leaf/internal/service/cluster"
+	"github.com/amigoer/mq-studio/internal/model"
+	"github.com/amigoer/mq-studio/internal/service/cluster"
 )
 
 // ClusterService exposes cluster topology and health to the frontend.

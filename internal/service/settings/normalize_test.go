@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/amigoer/rocket-leaf/internal/model"
+	"github.com/amigoer/mq-studio/internal/model"
 )
 
 func TestNormalizeEnforcesSettingsBounds(t *testing.T) {

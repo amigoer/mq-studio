@@ -9,8 +9,8 @@ version: '3'
 
 info:
   companyName: "amigoer"
-  productName: "Rocket Leaf"
-  productIdentifier: "com.rocketleaf.app"
+  productName: "MQ Studio"
+  productIdentifier: "com.mqstudio.app"
   description: "Local-first desktop client for RocketMQ"
   copyright: "(c) 2026, amigoer"
   comments: "Local-first desktop client for RocketMQ"

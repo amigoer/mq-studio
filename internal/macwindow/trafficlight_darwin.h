@@ -1,5 +1,5 @@
-#ifndef ROCKET_LEAF_TRAFFICLIGHT_DARWIN_H
-#define ROCKET_LEAF_TRAFFICLIGHT_DARWIN_H
+#ifndef MQ_STUDIO_TRAFFICLIGHT_DARWIN_H
+#define MQ_STUDIO_TRAFFICLIGHT_DARWIN_H
 
 // RLSetTrafficLightPosition moves the standard window buttons so the cluster
 // starts `left` points from the window's left edge and its vertical centre sits

@@ -22,7 +22,7 @@ import * as $models from "./models.js";
  * ByID returns a single message by its ID.
  */
 export function ByID(topic: string, messageID: string): $CancellablePromise<model$0.MessageItem | null> {
-    return $Call.ByID(3073818484, topic, messageID).then(($result: any) => {
+    return $Call.ByID(3857162568, topic, messageID).then(($result: any) => {
         return $$createType1($result);
     });
 }
@@ -31,7 +31,7 @@ export function ByID(topic: string, messageID: string): $CancellablePromise<mode
  * DLQ returns the dead letter messages of a consumer group.
  */
 export function DLQ(group: string, maxResults: number): $CancellablePromise<(model$0.MessageItem | null)[]> {
-    return $Call.ByID(1775872543, group, maxResults).then(($result: any) => {
+    return $Call.ByID(1667775571, group, maxResults).then(($result: any) => {
         return $$createType2($result);
     });
 }
@@ -40,7 +40,7 @@ export function DLQ(group: string, maxResults: number): $CancellablePromise<(mod
  * Query searches a topic by key, tag and time range.
  */
 export function Query(query: $models.MessageQuery): $CancellablePromise<(model$0.MessageItem | null)[]> {
-    return $Call.ByID(2550307088, query).then(($result: any) => {
+    return $Call.ByID(1939938708, query).then(($result: any) => {
         return $$createType2($result);
     });
 }
@@ -49,14 +49,14 @@ export function Query(query: $models.MessageQuery): $CancellablePromise<(model$0
  * Resend pushes a message back to a consumer client and returns the new ID.
  */
 export function Resend(input: $models.ResendInput): $CancellablePromise<string> {
-    return $Call.ByID(2202085151, input);
+    return $Call.ByID(2133352667, input);
 }
 
 /**
  * Retry returns the retry messages of a consumer group.
  */
 export function Retry(group: string, maxResults: number): $CancellablePromise<(model$0.MessageItem | null)[]> {
-    return $Call.ByID(3563174366, group, maxResults).then(($result: any) => {
+    return $Call.ByID(1844595922, group, maxResults).then(($result: any) => {
         return $$createType2($result);
     });
 }
@@ -65,14 +65,14 @@ export function Retry(group: string, maxResults: number): $CancellablePromise<(m
  * Send produces a message and returns its ID.
  */
 export function Send(input: $models.SendInput): $CancellablePromise<string> {
-    return $Call.ByID(161698058, input);
+    return $Call.ByID(2088005278, input);
 }
 
 /**
  * Track returns the per-group consume status of a message.
  */
 export function Track(topic: string, messageID: string): $CancellablePromise<(model$0.MessageTrackItem | null)[]> {
-    return $Call.ByID(851025611, topic, messageID).then(($result: any) => {
+    return $Call.ByID(2516316023, topic, messageID).then(($result: any) => {
         return $$createType5($result);
     });
 }

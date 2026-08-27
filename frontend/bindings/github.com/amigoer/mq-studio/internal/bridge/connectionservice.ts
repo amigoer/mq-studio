@@ -18,7 +18,7 @@ import * as $models from "./models.js";
  * Add stores a new connection and returns it with credentials redacted.
  */
 export function Add(input: $models.ConnectionInput): $CancellablePromise<$models.ConnectionView | null> {
-    return $Call.ByID(1415602690, input).then(($result: any) => {
+    return $Call.ByID(3257557894, input).then(($result: any) => {
         return $$createType1($result);
     });
 }
@@ -27,28 +27,28 @@ export function Add(input: $models.ConnectionInput): $CancellablePromise<$models
  * Connect opens the RocketMQ client for a connection.
  */
 export function Connect(id: number): $CancellablePromise<void> {
-    return $Call.ByID(21390043, id);
+    return $Call.ByID(597177111, id);
 }
 
 /**
  * ConnectDefault opens the client for the default connection.
  */
 export function ConnectDefault(): $CancellablePromise<void> {
-    return $Call.ByID(915621100);
+    return $Call.ByID(1684387968);
 }
 
 /**
  * Disconnect closes the RocketMQ client for a connection.
  */
 export function Disconnect(id: number): $CancellablePromise<void> {
-    return $Call.ByID(3908522365, id);
+    return $Call.ByID(2955890537, id);
 }
 
 /**
  * List returns every configured connection with credentials redacted.
  */
 export function List(): $CancellablePromise<($models.ConnectionView | null)[]> {
-    return $Call.ByID(1791913887).then(($result: any) => {
+    return $Call.ByID(1321039563).then(($result: any) => {
         return $$createType2($result);
     });
 }
@@ -57,21 +57,21 @@ export function List(): $CancellablePromise<($models.ConnectionView | null)[]> {
  * Remove deletes a connection.
  */
 export function Remove(id: number): $CancellablePromise<void> {
-    return $Call.ByID(702554075, id);
+    return $Call.ByID(3549691311, id);
 }
 
 /**
  * SetDefault marks a connection as the default one.
  */
 export function SetDefault(id: number): $CancellablePromise<void> {
-    return $Call.ByID(2490223430, id);
+    return $Call.ByID(3271949170, id);
 }
 
 /**
  * Test probes a connection and reports the resulting status.
  */
 export function Test(id: number): $CancellablePromise<string> {
-    return $Call.ByID(146986595, id);
+    return $Call.ByID(2170510231, id);
 }
 
 /**
@@ -79,7 +79,7 @@ export function Test(id: number): $CancellablePromise<string> {
  * against the currently stored secrets.
  */
 export function Update(id: number, input: $models.ConnectionInput): $CancellablePromise<$models.ConnectionView | null> {
-    return $Call.ByID(1062784902, id, input).then(($result: any) => {
+    return $Call.ByID(1659627746, id, input).then(($result: any) => {
         return $$createType1($result);
     });
 }

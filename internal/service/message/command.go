@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/amigoer/rocket-leaf/internal/rocketmq"
+	"github.com/amigoer/mq-studio/internal/rocketmq"
 
 	rocketmqClient "github.com/apache/rocketmq-client-go/v2"
 	"github.com/apache/rocketmq-client-go/v2/primitive"

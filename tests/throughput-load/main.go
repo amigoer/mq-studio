@@ -1,7 +1,7 @@
 // Continuous produce/consume load for RocketMQ throughput testing.
 // Rates jitter within ranges so overview charts look less artificial.
 //
-//	go run . -n 192.168.107.2:9876 -t RocketLeafE2E_1784129918814 \
+//	go run . -n 192.168.107.2:9876 -t MQStudioE2E_1784129918814 \
 //	  -produce-min 55 -produce-max 105 -consume-min 8 -consume-max 32
 package main
 
@@ -24,8 +24,8 @@ import (
 
 func main() {
 	nameServer := flag.String("n", "192.168.107.2:9876", "NameServer address")
-	topic := flag.String("t", "RocketLeafE2E_throughput", "Topic to produce/consume")
-	group := flag.String("g", "RocketLeafThroughputCG", "Consumer group")
+	topic := flag.String("t", "MQStudioE2E_throughput", "Topic to produce/consume")
+	group := flag.String("g", "MQStudioThroughputCG", "Consumer group")
 	produceMin := flag.Int("produce-min", 55, "Min produce rate (msgs/sec)")
 	produceMax := flag.Int("produce-max", 105, "Max produce rate (msgs/sec)")
 	consumeMin := flag.Int("consume-min", 8, "Min consume rate (msgs/sec)")
@@ -53,7 +53,7 @@ func main() {
 	p, err := rocketmq.NewProducer(
 		producer.WithNameServer([]string{*nameServer}),
 		producer.WithRetry(2),
-		producer.WithGroupName("RocketLeafThroughputProducer"),
+		producer.WithGroupName("MQStudioThroughputProducer"),
 		producer.WithSendMsgTimeout(5*time.Second),
 	)
 	if err != nil {

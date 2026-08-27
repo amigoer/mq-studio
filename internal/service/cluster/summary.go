@@ -1,6 +1,6 @@
 package cluster
 
-import "github.com/amigoer/rocket-leaf/internal/model"
+import "github.com/amigoer/mq-studio/internal/model"
 
 // GetClusterSummary returns aggregate cluster statistics.
 func (s *Service) GetClusterSummary() (*model.ClusterSummary, error) {

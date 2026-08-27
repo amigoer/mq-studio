@@ -7,7 +7,7 @@
 package bridge
 
 import (
-	"github.com/amigoer/rocket-leaf/internal/app"
+	"github.com/amigoer/mq-studio/internal/app"
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 

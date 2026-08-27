@@ -1,4 +1,4 @@
-name: rocket-leaf-e2e
+name: mq-studio-e2e
 
 services:
   namesrv:

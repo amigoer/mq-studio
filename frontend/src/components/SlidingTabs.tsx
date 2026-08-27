@@ -133,11 +133,11 @@ export function SlidingTabs<T extends string>({
   return (
     <div
       ref={rootRef}
-      className={cn('rl-tabs rl-tabs-sliding', className)}
+      className={cn('mqs-tabs mqs-tabs-sliding', className)}
       role="tablist"
       onKeyDown={onKeyDown}
     >
-      <div ref={pillRef} className="rl-tabs-indicator" aria-hidden />
+      <div ref={pillRef} className="mqs-tabs-indicator" aria-hidden />
       {items.map((item) => {
         const active = item.key === value
         return (

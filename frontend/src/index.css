@@ -135,8 +135,8 @@ body {
 }
 
 /* App chrome and controls: not selectable, so drags and clicks never start a selection. */
-.rl-title-bar,
-.rl-title-bar *,
+.mqs-title-bar,
+.mqs-title-bar *,
 button,
 [role='tab'],
 [role='menuitem'],

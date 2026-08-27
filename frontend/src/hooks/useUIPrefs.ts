@@ -4,7 +4,7 @@ export interface UIPrefs {
   animations: boolean
 }
 
-const STORAGE_KEY = 'rocket-leaf:ui-prefs'
+const STORAGE_KEY = 'mq-studio:ui-prefs'
 
 /**
  * Nothing stored yet: follow the OS. Someone who has asked their system to

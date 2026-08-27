@@ -3,7 +3,7 @@ package topic
 import (
 	"testing"
 
-	"github.com/amigoer/rocket-leaf/internal/model"
+	"github.com/amigoer/mq-studio/internal/model"
 )
 
 func TestApplyTopicConfigsReportsPerBrokerQueues(t *testing.T) {

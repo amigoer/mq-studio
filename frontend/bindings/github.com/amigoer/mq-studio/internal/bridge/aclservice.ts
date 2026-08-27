@@ -22,35 +22,35 @@ import * as $models from "./models.js";
  * DeleteAccess removes an ACL access config entry.
  */
 export function DeleteAccess(accessKey: string): $CancellablePromise<void> {
-    return $Call.ByID(3600753426, accessKey);
+    return $Call.ByID(3342919822, accessKey);
 }
 
 /**
  * Enabled reports whether the broker has ACL turned on.
  */
 export function Enabled(): $CancellablePromise<boolean> {
-    return $Call.ByID(719978776);
+    return $Call.ByID(568290460);
 }
 
 /**
  * UpdateAccess creates or replaces an ACL access config entry.
  */
 export function UpdateAccess(input: $models.AccessConfigInput): $CancellablePromise<void> {
-    return $Call.ByID(3851166180, input);
+    return $Call.ByID(4030612624, input);
 }
 
 /**
  * UpdateWhiteAddrs replaces the broker global IP white list.
  */
 export function UpdateWhiteAddrs(addrs: string[]): $CancellablePromise<void> {
-    return $Call.ByID(3393347841, addrs);
+    return $Call.ByID(2512924429, addrs);
 }
 
 /**
  * Version returns the broker ACL config version and its entries.
  */
 export function Version(): $CancellablePromise<model$0.AclVersionInfo | null> {
-    return $Call.ByID(2247968573).then(($result: any) => {
+    return $Call.ByID(2629139113).then(($result: any) => {
         return $$createType1($result);
     });
 }

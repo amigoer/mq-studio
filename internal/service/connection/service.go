@@ -6,7 +6,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/amigoer/rocket-leaf/internal/model"
+	"github.com/amigoer/mq-studio/internal/model"
 )
 
 const defaultConnectionTimeout = 5

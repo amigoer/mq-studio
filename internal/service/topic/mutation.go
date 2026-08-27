@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/amigoer/rocket-leaf/internal/model"
-	"github.com/amigoer/rocket-leaf/internal/rocketmq"
-	"github.com/amigoer/rocket-leaf/internal/service/internal/mqexec"
+	"github.com/amigoer/mq-studio/internal/model"
+	"github.com/amigoer/mq-studio/internal/rocketmq"
+	"github.com/amigoer/mq-studio/internal/service/internal/mqexec"
 
 	admin "github.com/amigoer/rocketmq-admin-go"
 )

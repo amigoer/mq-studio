@@ -18,14 +18,14 @@ import * as $models from "./models.js";
  * ClearCache drops cached broker and topic metadata.
  */
 export function ClearCache(): $CancellablePromise<void> {
-    return $Call.ByID(741059075);
+    return $Call.ByID(3868789143);
 }
 
 /**
  * Get returns the current settings with credentials redacted.
  */
 export function Get(): $CancellablePromise<$models.SettingsView | null> {
-    return $Call.ByID(2363841514).then(($result: any) => {
+    return $Call.ByID(2201425622).then(($result: any) => {
         return $$createType1($result);
     });
 }
@@ -34,7 +34,7 @@ export function Get(): $CancellablePromise<$models.SettingsView | null> {
  * Reset restores the default settings.
  */
 export function Reset(): $CancellablePromise<$models.SettingsView | null> {
-    return $Call.ByID(2582353713).then(($result: any) => {
+    return $Call.ByID(1064606429).then(($result: any) => {
         return $$createType1($result);
     });
 }
@@ -44,7 +44,7 @@ export function Reset(): $CancellablePromise<$models.SettingsView | null> {
  * mode against the currently stored secrets.
  */
 export function Update(input: $models.SettingsInput): $CancellablePromise<$models.SettingsView | null> {
-    return $Call.ByID(1071617479, input).then(($result: any) => {
+    return $Call.ByID(2911322323, input).then(($result: any) => {
         return $$createType1($result);
     });
 }

@@ -6,7 +6,7 @@ export interface ConnectionPrefill {
   nameServer?: string
 }
 
-const KEY = 'rl-connection-prefill'
+const KEY = 'mq-studio:connection-prefill'
 
 export function setConnectionPrefill(prefill: ConnectionPrefill): void {
   try {

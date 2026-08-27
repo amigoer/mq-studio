@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/amigoer/rocket-leaf/internal/model"
-	"github.com/amigoer/rocket-leaf/internal/storage/layout"
+	"github.com/amigoer/mq-studio/internal/model"
+	"github.com/amigoer/mq-studio/internal/storage/layout"
 )
 
 // Service provides the settings facade consumed by the HTTP API.

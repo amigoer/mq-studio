@@ -3,7 +3,7 @@ package connection
 import (
 	"fmt"
 
-	"github.com/amigoer/rocket-leaf/internal/model"
+	"github.com/amigoer/mq-studio/internal/model"
 )
 
 // GetConnections returns sorted copies of all connection profiles.

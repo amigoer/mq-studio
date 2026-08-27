@@ -1,4 +1,4 @@
-module github.com/amigoer/rocket-leaf
+module github.com/amigoer/mq-studio
 
 go 1.25.0
 

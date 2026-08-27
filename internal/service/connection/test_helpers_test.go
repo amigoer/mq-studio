@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/amigoer/rocket-leaf/internal/crypto"
+	"github.com/amigoer/mq-studio/internal/crypto"
 )
 
 var (

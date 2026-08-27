@@ -5,7 +5,7 @@ import (
 	"log"
 	"sync"
 
-	"github.com/amigoer/rocket-leaf/internal/model"
+	"github.com/amigoer/mq-studio/internal/model"
 )
 
 // Service manages application settings and their persistence.

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { loadRecentPicks, recordRecentPick } from './recentPicks'
 
-const KEY = 'rocket-leaf:recent-picks'
+const KEY = 'mq-studio:recent-picks'
 
 describe('recentPicks storage', () => {
   const store = new Map<string, string>()

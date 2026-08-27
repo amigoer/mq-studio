@@ -6,7 +6,7 @@ export default defineConfig({
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
       '@bindings': fileURLToPath(
-        new URL('./bindings/github.com/amigoer/rocket-leaf/internal', import.meta.url),
+        new URL('./bindings/github.com/amigoer/mq-studio/internal', import.meta.url),
       ),
     },
   },

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/amigoer/rocket-leaf/internal/model"
+	"github.com/amigoer/mq-studio/internal/model"
 )
 
 // AddConnection adds and persists a connection profile.

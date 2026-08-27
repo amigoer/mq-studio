@@ -28,8 +28,8 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 
-const GITHUB_URL = 'https://github.com/amigoer/rocket-leaf'
-const DOCS_URL = 'https://github.com/amigoer/rocket-leaf#readme'
+const GITHUB_URL = 'https://github.com/amigoer/mq-studio'
+const DOCS_URL = 'https://github.com/amigoer/mq-studio#readme'
 
 type SampleKey = 'local' | 'docker' | 'paste'
 
@@ -382,7 +382,7 @@ function EmptySchematic({ notConfigured }: { notConfigured: string }) {
           fill="hsl(var(--background))"
           fontWeight={600}
         >
-          RL
+          MQS
         </text>
       </g>
 
@@ -482,7 +482,7 @@ function EmptySchematic({ notConfigured }: { notConfigured: string }) {
         fill="hsl(var(--muted-foreground))"
         fontFamily="ui-sans-serif"
       >
-        Rocket-Leaf
+        MQ Studio
       </text>
       <text
         x={178}

@@ -1,7 +1,7 @@
-# Rocket-Leaf
+# MQ Studio
 
 <p align="center">
-  <img src="frontend/src/assets/logo.png" alt="Rocket-Leaf" width="150">
+  <img src="frontend/src/assets/logo.png" alt="MQ Studio" width="150">
 </p>
 
 <p align="center">
@@ -10,8 +10,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/amigoer/rocket-leaf/releases/latest"><img src="https://img.shields.io/github/v/release/amigoer/rocket-leaf?style=flat-square&label=release" alt="Latest release"></a>
-  <a href="https://github.com/amigoer/rocket-leaf/releases"><img src="https://img.shields.io/github/downloads/amigoer/rocket-leaf/total?style=flat-square&label=downloads" alt="Downloads"></a>
+  <a href="https://github.com/amigoer/mq-studio/releases/latest"><img src="https://img.shields.io/github/v/release/amigoer/mq-studio?style=flat-square&label=release" alt="Latest release"></a>
+  <a href="https://github.com/amigoer/mq-studio/releases"><img src="https://img.shields.io/github/downloads/amigoer/mq-studio/total?style=flat-square&label=downloads" alt="Downloads"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue?style=flat-square" alt="Apache-2.0 license"></a>
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-39404A?style=flat-square" alt="Platforms">
   <img src="https://img.shields.io/badge/RocketMQ-4.x%20%7C%205.x-FF6A00?style=flat-square" alt="RocketMQ 4.x and 5.x">
@@ -19,7 +19,7 @@
 
 <p align="center">
   <a href="README.zh-CN.md">简体中文</a> ·
-  <a href="https://github.com/amigoer/rocket-leaf/releases">Download</a> ·
+  <a href="https://github.com/amigoer/mq-studio/releases">Download</a> ·
   <a href="docs/ARCHITECTURE.md">Documentation</a>
 </p>
 
@@ -27,13 +27,13 @@
 
 <p align="center">
   <a href="docs/images/overview.png">
-    <img src="docs/images/overview.png" alt="Rocket-Leaf overview dashboard">
+    <img src="docs/images/overview.png" alt="MQ Studio overview dashboard">
   </a>
   <br>
   <sub>Live cluster health, throughput, consumer lag, and broker status in one view.</sub>
 </p>
 
-## Why Rocket-Leaf?
+## Why MQ Studio?
 
 - **Ready to use** — no server or web console to deploy
 - **Built for daily operations** — common RocketMQ tasks in one desktop app
@@ -82,20 +82,20 @@ Select any screenshot to open it at full resolution.
 
 ## Download
 
-Download the latest package from **[GitHub Releases](https://github.com/amigoer/rocket-leaf/releases)**:
+Download the latest package from **[GitHub Releases](https://github.com/amigoer/mq-studio/releases)**:
 
-Packages are named `rocket-leaf-<version>-<os>-<arch>.<ext>`, where `os` is
+Packages are named `mq-studio-<version>-<os>-<arch>.<ext>`, where `os` is
 `mac`, `windows` or `linux` and `arch` is `amd64` or `arm64`.
 
 | Platform | Package |
 | --- | --- |
-| macOS Apple Silicon / Intel | `rocket-leaf-<version>-mac-arm64.dmg` / `-mac-amd64.dmg` |
-| Windows ARM64 / x64 | `rocket-leaf-<version>-windows-arm64.exe` / `-windows-amd64.exe` |
-| Linux ARM64 / x64 | `rocket-leaf-<version>-linux-arm64.AppImage` / `-linux-amd64.AppImage` |
+| macOS Apple Silicon / Intel | `mq-studio-<version>-mac-arm64.dmg` / `-mac-amd64.dmg` |
+| Windows ARM64 / x64 | `mq-studio-<version>-windows-arm64.exe` / `-windows-amd64.exe` |
+| Linux ARM64 / x64 | `mq-studio-<version>-linux-arm64.AppImage` / `-linux-amd64.AppImage` |
 
 ## Quick start
 
-1. Open Rocket Leaf and create a connection.
+1. Open MQ Studio and create a connection.
 2. Enter one or more NameServer addresses and optional ACL credentials.
 3. Save, connect, and choose a feature from the sidebar.
 

@@ -6,8 +6,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/amigoer/rocket-leaf/internal/service/configuration"
-	"github.com/amigoer/rocket-leaf/internal/update"
+	"github.com/amigoer/mq-studio/internal/service/configuration"
+	"github.com/amigoer/mq-studio/internal/update"
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
@@ -57,8 +57,8 @@ func (s *SystemService) OpenExternal(rawURL string) error {
 // It returns the written path, or an empty string when the user cancels.
 func (s *SystemService) ExportConfig() (string, error) {
 	target, err := application.Get().Dialog.SaveFile().
-		SetMessage("Export Rocket Leaf config").
-		SetFilename(fmt.Sprintf("rocket-leaf-config-%s.json", time.Now().Format("2006-01-02"))).
+		SetMessage("Export MQ Studio config").
+		SetFilename(fmt.Sprintf("mq-studio-config-%s.json", time.Now().Format("2006-01-02"))).
 		AddFilter("JSON", "*.json").
 		PromptForSingleSelection()
 	if err != nil {
@@ -74,7 +74,7 @@ func (s *SystemService) ExportConfig() (string, error) {
 // path, or an empty string when the user cancels.
 func (s *SystemService) ImportConfig() (string, error) {
 	source, err := application.Get().Dialog.OpenFile().
-		SetTitle("Import Rocket Leaf config").
+		SetTitle("Import MQ Studio config").
 		CanChooseFiles(true).
 		CanChooseDirectories(false).
 		AddFilter("JSON", "*.json").

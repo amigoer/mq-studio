@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/amigoer/rocket-leaf/internal/model"
+	"github.com/amigoer/mq-studio/internal/model"
 )
 
 // ImportAllConfigFromFile imports configuration from sourcePath.

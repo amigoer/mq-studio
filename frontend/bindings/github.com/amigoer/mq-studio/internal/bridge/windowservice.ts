@@ -17,5 +17,5 @@ import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Cr
  * SetAppearance applies the light or dark window background colour.
  */
 export function SetAppearance(dark: boolean): $CancellablePromise<void> {
-    return $Call.ByID(1754102795, dark);
+    return $Call.ByID(2170341447, dark);
 }

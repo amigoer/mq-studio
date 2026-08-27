@@ -1,8 +1,8 @@
 package bridge
 
 import (
-	"github.com/amigoer/rocket-leaf/internal/model"
-	"github.com/amigoer/rocket-leaf/internal/service/topic"
+	"github.com/amigoer/mq-studio/internal/model"
+	"github.com/amigoer/mq-studio/internal/service/topic"
 )
 
 // TopicService exposes RocketMQ topic operations to the frontend.

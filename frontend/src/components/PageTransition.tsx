@@ -22,10 +22,10 @@ export function PageTransition({
     <div
       key={transitionKey}
       className={cn(
-        'rl-motion-enter min-h-0',
-        variant === 'page' && 'rl-motion-page h-full',
-        variant === 'panel' && 'rl-motion-panel',
-        variant === 'fade' && 'rl-motion-fade',
+        'mqs-motion-enter min-h-0',
+        variant === 'page' && 'mqs-motion-page h-full',
+        variant === 'panel' && 'mqs-motion-panel',
+        variant === 'fade' && 'mqs-motion-fade',
         className,
       )}
     >

@@ -22,14 +22,14 @@ import * as $models from "./models.js";
  * Create adds a subscription group on the target broker.
  */
 export function Create(input: $models.ConsumerInput): $CancellablePromise<void> {
-    return $Call.ByID(2779800763, input);
+    return $Call.ByID(3797574047, input);
 }
 
 /**
  * Detail returns a single consumer group with its clients and subscriptions.
  */
 export function Detail(group: string): $CancellablePromise<model$0.ConsumerGroupItem | null> {
-    return $Call.ByID(4111427386, group).then(($result: any) => {
+    return $Call.ByID(2168000630, group).then(($result: any) => {
         return $$createType1($result);
     });
 }
@@ -38,7 +38,7 @@ export function Detail(group: string): $CancellablePromise<model$0.ConsumerGroup
  * List returns every consumer group.
  */
 export function List(): $CancellablePromise<(model$0.ConsumerGroupItem | null)[]> {
-    return $Call.ByID(1407387699).then(($result: any) => {
+    return $Call.ByID(699201983).then(($result: any) => {
         return $$createType2($result);
     });
 }
@@ -47,21 +47,21 @@ export function List(): $CancellablePromise<(model$0.ConsumerGroupItem | null)[]
  * Remove deletes a subscription group from a broker.
  */
 export function Remove(group: string, brokerAddr: string): $CancellablePromise<void> {
-    return $Call.ByID(3594458103, group, brokerAddr);
+    return $Call.ByID(1788729339, group, brokerAddr);
 }
 
 /**
  * ResetOffset rewinds a group's consume offset to a timestamp.
  */
 export function ResetOffset(request: model$0.ResetOffsetRequest): $CancellablePromise<void> {
-    return $Call.ByID(3442632109, request);
+    return $Call.ByID(1260330865, request);
 }
 
 /**
  * Stats returns the per-queue consume statistics for a group.
  */
 export function Stats(group: string): $CancellablePromise<{ [_ in string]?: any }> {
-    return $Call.ByID(3630578774, group).then(($result: any) => {
+    return $Call.ByID(3402555482, group).then(($result: any) => {
         return $$createType3($result);
     });
 }
@@ -70,7 +70,7 @@ export function Stats(group: string): $CancellablePromise<{ [_ in string]?: any 
  * Update changes the configuration of an existing subscription group.
  */
 export function Update(input: $models.ConsumerInput): $CancellablePromise<void> {
-    return $Call.ByID(3592571306, input);
+    return $Call.ByID(2853418918, input);
 }
 
 // Private type creation functions

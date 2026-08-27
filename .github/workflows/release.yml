@@ -168,7 +168,7 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci --prefix frontend
 
-      # Every package is published as rocket-leaf-<version>-<os>-<arch>.<ext>.
+      # Every package is published as mq-studio-<version>-<os>-<arch>.<ext>.
       # The packaging tools each name their output differently, so the canonical
       # name is resolved once here and applied below.
       - name: Resolve the package name
@@ -177,7 +177,7 @@ jobs:
           RELEASE_TAG: ${{ inputs.tag }}
         run: |
           set -eu
-          echo "PACKAGE_BASE=rocket-leaf-${RELEASE_TAG#v}-${{ matrix.os }}-${{ matrix.arch }}" \
+          echo "PACKAGE_BASE=mq-studio-${RELEASE_TAG#v}-${{ matrix.os }}-${{ matrix.arch }}" \
             >> "$GITHUB_ENV"
 
       # ARCH has to be an environment variable throughout: a Task CLI variable
@@ -218,7 +218,7 @@ jobs:
             --team-id "$APPLE_TEAM_ID" \
             --password "$APPLE_APP_SPECIFIC_PASSWORD"
           wails3 tool sign \
-            -input "bin/Rocket Leaf.app" \
+            -input "bin/MQ Studio.app" \
             -certificate "$certificate" \
             -password "$CSC_KEY_PASSWORD" \
             -identity "$SIGN_IDENTITY" \
@@ -235,8 +235,8 @@ jobs:
           # exits 0 without producing anything, so build the image directly.
           image="bin/${PACKAGE_BASE}.dmg"
           hdiutil create \
-            -volname "Rocket Leaf" \
-            -srcfolder "bin/Rocket Leaf.app" \
+            -volname "MQ Studio" \
+            -srcfolder "bin/MQ Studio.app" \
             -ov -format UDZO \
             "$image"
           hdiutil verify "$image"
@@ -346,7 +346,7 @@ jobs:
         with:
           tag_name: ${{ inputs.tag }}
           target_commitish: ${{ needs.resolve.outputs.commit }}
-          name: Rocket Leaf ${{ inputs.tag }}
+          name: MQ Studio ${{ inputs.tag }}
           body_path: ${{ runner.temp }}/release-notes.md
           files: release-files/*
           fail_on_unmatched_files: true

@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/amigoer/rocket-leaf/internal/crypto"
-	"github.com/amigoer/rocket-leaf/internal/model"
+	"github.com/amigoer/mq-studio/internal/crypto"
+	"github.com/amigoer/mq-studio/internal/model"
 )
 
 const currentExportVersion = 2

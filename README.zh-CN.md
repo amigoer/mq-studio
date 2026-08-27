@@ -1,7 +1,7 @@
-# Rocket-Leaf
+# MQ Studio
 
 <p align="center">
-  <img src="frontend/src/assets/logo.png" alt="Rocket-Leaf" width="150">
+  <img src="frontend/src/assets/logo.png" alt="MQ Studio" width="150">
 </p>
 
 <p align="center">
@@ -10,8 +10,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/amigoer/rocket-leaf/releases/latest"><img src="https://img.shields.io/github/v/release/amigoer/rocket-leaf?style=flat-square&label=release" alt="最新版本"></a>
-  <a href="https://github.com/amigoer/rocket-leaf/releases"><img src="https://img.shields.io/github/downloads/amigoer/rocket-leaf/total?style=flat-square&label=downloads" alt="下载量"></a>
+  <a href="https://github.com/amigoer/mq-studio/releases/latest"><img src="https://img.shields.io/github/v/release/amigoer/mq-studio?style=flat-square&label=release" alt="最新版本"></a>
+  <a href="https://github.com/amigoer/mq-studio/releases"><img src="https://img.shields.io/github/downloads/amigoer/mq-studio/total?style=flat-square&label=downloads" alt="下载量"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue?style=flat-square" alt="Apache-2.0 许可证"></a>
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-39404A?style=flat-square" alt="支持平台">
   <img src="https://img.shields.io/badge/RocketMQ-4.x%20%7C%205.x-FF6A00?style=flat-square" alt="RocketMQ 4.x 与 5.x">
@@ -19,7 +19,7 @@
 
 <p align="center">
   <a href="README.md">English</a> ·
-  <a href="https://github.com/amigoer/rocket-leaf/releases">下载</a> ·
+  <a href="https://github.com/amigoer/mq-studio/releases">下载</a> ·
   <a href="docs/ARCHITECTURE.md">文档</a>
 </p>
 
@@ -27,13 +27,13 @@
 
 <p align="center">
   <a href="docs/images/overview.png">
-    <img src="docs/images/overview.png" alt="Rocket-Leaf 概览仪表盘">
+    <img src="docs/images/overview.png" alt="MQ Studio 概览仪表盘">
   </a>
   <br>
   <sub>在一个页面查看集群健康、实时吞吐、消费堆积与 Broker 状态。</sub>
 </p>
 
-## 为什么用 Rocket-Leaf？
+## 为什么用 MQ Studio？
 
 - **安装即用** — 不需要部署服务端或 Web 控制台
 - **专注日常运维** — 一个桌面应用覆盖常用 RocketMQ 操作
@@ -82,19 +82,19 @@
 
 ## 下载
 
-前往 **[GitHub Releases](https://github.com/amigoer/rocket-leaf/releases)** 下载最新版本：
+前往 **[GitHub Releases](https://github.com/amigoer/mq-studio/releases)** 下载最新版本：
 
-安装包统一命名为 `rocket-leaf-<版本>-<系统>-<架构>.<后缀>`，系统取值 `mac`、`windows`、`linux`，架构取值 `amd64`、`arm64`。
+安装包统一命名为 `mq-studio-<版本>-<系统>-<架构>.<后缀>`，系统取值 `mac`、`windows`、`linux`，架构取值 `amd64`、`arm64`。
 
 | 平台 | 安装包 |
 | --- | --- |
-| macOS Apple Silicon / Intel | `rocket-leaf-<版本>-mac-arm64.dmg` / `-mac-amd64.dmg` |
-| Windows ARM64 / x64 | `rocket-leaf-<版本>-windows-arm64.exe` / `-windows-amd64.exe` |
-| Linux ARM64 / x64 | `rocket-leaf-<版本>-linux-arm64.AppImage` / `-linux-amd64.AppImage` |
+| macOS Apple Silicon / Intel | `mq-studio-<版本>-mac-arm64.dmg` / `-mac-amd64.dmg` |
+| Windows ARM64 / x64 | `mq-studio-<版本>-windows-arm64.exe` / `-windows-amd64.exe` |
+| Linux ARM64 / x64 | `mq-studio-<版本>-linux-arm64.AppImage` / `-linux-amd64.AppImage` |
 
 ## 快速开始
 
-1. 打开 Rocket Leaf，新建连接。
+1. 打开 MQ Studio，新建连接。
 2. 填写一个或多个 NameServer 地址，需要时添加 ACL 凭证。
 3. 保存并连接，然后从侧边栏选择需要的功能。
 

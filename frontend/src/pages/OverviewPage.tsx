@@ -754,7 +754,7 @@ function ThroughputCard({
           {loading ? t('common.loading') : t('overview.throughput.noData')}
         </div>
       )}
-      {refreshing && hasData && <div className="rl-shimmer-overlay" />}
+      {refreshing && hasData && <div className="mqs-shimmer-overlay" />}
     </Card>
   )
 }

@@ -1,6 +1,6 @@
 package settings
 
-import "github.com/amigoer/rocket-leaf/internal/model"
+import "github.com/amigoer/mq-studio/internal/model"
 
 // UpdateSettings replaces and persists the application settings.
 func (s *Service) UpdateSettings(settings model.AppSettings) (*model.AppSettings, error) {

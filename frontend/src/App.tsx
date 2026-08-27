@@ -97,7 +97,7 @@ function App(): React.ReactElement {
         position="top-center"
         closeButton
         toastOptions={{
-          className: 'rl-toast',
+          className: 'mqs-toast',
         }}
         style={{ '--width': '360px' } as React.CSSProperties}
       />

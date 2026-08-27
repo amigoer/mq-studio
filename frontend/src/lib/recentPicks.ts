@@ -1,7 +1,7 @@
 /** The two long, cluster-supplied lists a picker can remember. */
 export type PickKind = 'topic' | 'group'
 
-const STORAGE_KEY = 'rocket-leaf:recent-picks'
+const STORAGE_KEY = 'mq-studio:recent-picks'
 
 /** Enough to cover the handful of topics one service is debugged against. */
 const MAX_RECENT = 10

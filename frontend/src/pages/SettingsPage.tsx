@@ -57,9 +57,9 @@ import { Select } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 
-const GITHUB_URL = 'https://github.com/amigoer/rocket-leaf'
-const GITHUB_ISSUES_URL = 'https://github.com/amigoer/rocket-leaf/issues'
-const GITHUB_RELEASES_URL = 'https://github.com/amigoer/rocket-leaf/releases/latest'
+const GITHUB_URL = 'https://github.com/amigoer/mq-studio'
+const GITHUB_ISSUES_URL = 'https://github.com/amigoer/mq-studio/issues'
+const GITHUB_RELEASES_URL = 'https://github.com/amigoer/mq-studio/releases/latest'
 
 type SectionId = 'appearance' | 'general' | 'fonts' | 'message' | 'proxy' | 'data' | 'about'
 
@@ -105,17 +105,17 @@ const DATA_PATHS: {
 }[] = [
   {
     platform: 'macOS',
-    path: '~/Library/Application Support/rocket-leaf/',
+    path: '~/Library/Application Support/mq-studio/',
     Icon: FaApple,
   },
   {
     platform: 'Linux',
-    path: '~/.config/rocket-leaf/',
+    path: '~/.config/mq-studio/',
     Icon: FaLinux,
   },
   {
     platform: 'Windows',
-    path: '%AppData%\\rocket-leaf\\',
+    path: '%AppData%\\mq-studio\\',
     Icon: FaWindows,
   },
 ]
@@ -962,7 +962,7 @@ function AboutPanel({
           >
             <RefreshCw
               size={13}
-              className={cn('rl-refresh-icon', checking && 'rl-refresh-spin')}
+              className={cn('mqs-refresh-icon', checking && 'mqs-refresh-spin')}
             />
             {checking ? t('settings.about.checkingUpdate') : t('settings.about.checkUpdate')}
           </Button>

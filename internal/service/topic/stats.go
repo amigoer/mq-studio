@@ -6,9 +6,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/amigoer/rocket-leaf/internal/rocketmq"
-	"github.com/amigoer/rocket-leaf/internal/service/internal/mqexec"
-	"github.com/amigoer/rocket-leaf/internal/service/internal/mqoffset"
+	"github.com/amigoer/mq-studio/internal/rocketmq"
+	"github.com/amigoer/mq-studio/internal/service/internal/mqexec"
+	"github.com/amigoer/mq-studio/internal/service/internal/mqoffset"
 
 	admin "github.com/amigoer/rocketmq-admin-go"
 )

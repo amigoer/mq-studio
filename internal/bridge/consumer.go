@@ -1,8 +1,8 @@
 package bridge
 
 import (
-	"github.com/amigoer/rocket-leaf/internal/model"
-	"github.com/amigoer/rocket-leaf/internal/service/consumer"
+	"github.com/amigoer/mq-studio/internal/model"
+	"github.com/amigoer/mq-studio/internal/service/consumer"
 )
 
 // ConsumerService exposes RocketMQ consumer group operations to the frontend.

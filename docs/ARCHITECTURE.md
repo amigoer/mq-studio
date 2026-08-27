@@ -1,4 +1,4 @@
-# Rocket Leaf Architecture
+# MQ Studio Architecture
 
 ## Process model
 
@@ -61,7 +61,7 @@ notifications. It leaves the buttons alone while the window is fullscreen,
 where AppKit owns them.
 
 The geometry lives in two places that must agree: `titleBarHeight` and
-`trafficLightLeft` in `main.go`, and the `.rl-title-bar` rule in
+`trafficLightLeft` in `main.go`, and the `.mqs-title-bar` rule in
 `frontend/src/styles/app.css`.
 
 ## Repository layout
@@ -106,8 +106,12 @@ and `info.version` in `build/config.yml`, then running
 manifests. Those manifests are what the packaged artifacts declare to the OS, so
 `npm run check:version` verifies them too and names any that are stale.
 
-The app id stays `com.rocketleaf.app` and the user data directory stays
-`rocket-leaf`, so local data from earlier versions remains compatible.
+The app id is `com.mqstudio.app` and the user data directory is `mq-studio`.
+Both were renamed along with the app, and nothing carries pre-rename data
+across: an install that predates the rename keeps its own directory untouched
+and MQ Studio starts empty. Copying those files over by hand does not help
+either, because `crypto.hkdfInfoPrefix` feeds key derivation and was renamed
+too, so the stored `ENC:` values no longer decrypt.
 
 `.github/workflows/ci.yml` runs the same gate on pushes and pull requests.
 `release.yml` packages a tag. Its runner matrix follows what each platform needs

@@ -6,7 +6,7 @@ import {
   type AlertRulePrefs,
 } from './alertRules'
 
-const KEY = 'rocket-leaf:alert-rules'
+const KEY = 'mq-studio:alert-rules'
 
 describe('alertRules storage', () => {
   const store = new Map<string, string>()

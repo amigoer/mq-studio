@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 )
 
-const applicationDirectory = "rocket-leaf"
+const applicationDirectory = "mq-studio"
 
 // Layout contains every persistent path shared across service domains.
 type Layout struct {
@@ -18,7 +18,7 @@ type Layout struct {
 	SecretKeyFile   string
 }
 
-// Default resolves the current user's Rocket Leaf configuration layout.
+// Default resolves the current user's MQ Studio configuration layout.
 func Default() (Layout, error) {
 	configDir, err := os.UserConfigDir()
 	if err != nil {

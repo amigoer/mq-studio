@@ -1,4 +1,4 @@
-// Command rocket-leaf is the Rocket Leaf desktop application.
+// Command mq-studio is the MQ Studio desktop application.
 package main
 
 import (
@@ -6,11 +6,11 @@ import (
 	"log"
 	"runtime"
 
-	"github.com/amigoer/rocket-leaf/internal/app"
-	"github.com/amigoer/rocket-leaf/internal/bridge"
-	"github.com/amigoer/rocket-leaf/internal/macwindow"
-	"github.com/amigoer/rocket-leaf/internal/model"
-	"github.com/amigoer/rocket-leaf/internal/tray"
+	"github.com/amigoer/mq-studio/internal/app"
+	"github.com/amigoer/mq-studio/internal/bridge"
+	"github.com/amigoer/mq-studio/internal/macwindow"
+	"github.com/amigoer/mq-studio/internal/model"
+	"github.com/amigoer/mq-studio/internal/tray"
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"github.com/wailsapp/wails/v3/pkg/events"
 )
@@ -28,10 +28,10 @@ var trayIcon []byte
 // The development fallback is intentionally not a release version.
 var version = "dev"
 
-const applicationName = "Rocket Leaf"
+const applicationName = "MQ Studio"
 
 // Title bar geometry, shared with the renderer. Keep in step with the
-// .rl-title-bar rule in frontend/src/styles/app.css.
+// .mqs-title-bar rule in frontend/src/styles/app.css.
 const (
 	titleBarHeight   = 44.0
 	trafficLightLeft = 16.0

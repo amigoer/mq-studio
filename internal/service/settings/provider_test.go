@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/amigoer/rocket-leaf/internal/model"
+	"github.com/amigoer/mq-studio/internal/model"
 )
 
 func TestProvidersReturnConfiguredValues(t *testing.T) {

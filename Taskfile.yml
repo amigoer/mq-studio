@@ -8,8 +8,8 @@ includes:
 
 vars:
   # APP_NAME names the binary; BUNDLE_NAME names the macOS .app the user sees.
-  APP_NAME: "rocket-leaf"
-  BUNDLE_NAME: "Rocket Leaf"
+  APP_NAME: "mq-studio"
+  BUNDLE_NAME: "MQ Studio"
   BIN_DIR: "bin"
   VITE_PORT: '{{.WAILS_VITE_PORT | default 9245}}'
   # package.json is the single source of truth for the version.

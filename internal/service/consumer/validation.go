@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/amigoer/rocket-leaf/internal/model"
+	"github.com/amigoer/mq-studio/internal/model"
 )
 
 func validateConsumerGroupInput(groupName, brokerAddress, consumeMode string, maxRetry int) (string, string, string, int, error) {
