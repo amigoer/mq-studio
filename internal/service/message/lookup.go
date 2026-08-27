@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/amigoer/mq-studio/internal/driver/rocketmq"
-	"github.com/amigoer/mq-studio/internal/driver/rocketmq/mqexec"
 	"github.com/amigoer/mq-studio/internal/model"
 
 	admin "github.com/amigoer/rocketmq-admin-go"
@@ -28,7 +27,7 @@ func (s *Service) QueryMessageByID(topic, messageID string) (*model.MessageItem,
 	}
 
 	var item *model.MessageItem
-	err = mqexec.WithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
+	err = rocketmq.ExecWithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
 		message, findErr := findMessageByID(ctx, retryClient, topic, messageID)
 		if findErr != nil {
 			return findErr

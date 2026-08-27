@@ -7,7 +7,6 @@ import (
 	"sync"
 
 	"github.com/amigoer/mq-studio/internal/driver/rocketmq"
-	"github.com/amigoer/mq-studio/internal/driver/rocketmq/mqexec"
 	"github.com/amigoer/mq-studio/internal/driver/rocketmq/resource"
 	"github.com/amigoer/mq-studio/internal/model"
 	"github.com/amigoer/mq-studio/internal/timestamp"
@@ -27,7 +26,7 @@ func (s *Service) GetClusterInfo() (*model.ClusterInfo, error) {
 	}
 
 	var result *model.ClusterInfo
-	err = mqexec.Do(client, func(retryClient *admin.Client) error {
+	err = rocketmq.Exec(client, func(retryClient *admin.Client) error {
 		ctx, cancel := context.WithTimeout(context.Background(), s.settings.GetRequestTimeout())
 		defer cancel()
 
@@ -59,7 +58,7 @@ func (s *Service) CollectTPSSample() error {
 		return err
 	}
 
-	return mqexec.Do(client, func(retryClient *admin.Client) error {
+	return rocketmq.Exec(client, func(retryClient *admin.Client) error {
 		ctx, cancel := context.WithTimeout(context.Background(), s.settings.GetRequestTimeout())
 		defer cancel()
 

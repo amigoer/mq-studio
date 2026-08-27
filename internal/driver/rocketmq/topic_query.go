@@ -1,11 +1,9 @@
-package topic
+package rocketmq
 
 import (
 	"context"
 	"fmt"
 
-	"github.com/amigoer/mq-studio/internal/driver/rocketmq"
-	"github.com/amigoer/mq-studio/internal/driver/rocketmq/mqexec"
 	"github.com/amigoer/mq-studio/internal/driver/rocketmq/resource"
 	"github.com/amigoer/mq-studio/internal/model"
 	"github.com/amigoer/mq-studio/internal/timestamp"
@@ -16,9 +14,8 @@ import (
 // newTopicItem creates a list entry holding only what the name server returned.
 // Everything the brokers own starts unknown so a failed enrichment shows "—"
 // instead of an invented zero.
-func (s *Service) newTopicItem(topicName string) *model.TopicItem {
+func newTopicItem(topicName string) *model.TopicItem {
 	return &model.TopicItem{
-		ID:             s.getNextID(),
 		Topic:          topicName,
 		ReadQueue:      unknownMetric,
 		WriteQueue:     unknownMetric,
@@ -31,16 +28,13 @@ func (s *Service) newTopicItem(topicName string) *model.TopicItem {
 }
 
 // GetTopics returns all non-system topics.
-func (s *Service) GetTopics() ([]*model.TopicItem, error) {
-	client, err := rocketmq.GetClientManager().GetDefaultClient()
-	if err != nil {
-		return []*model.TopicItem{}, nil
-	}
+func (c *Conn) GetTopics(ctx context.Context) ([]*model.TopicItem, error) {
+	client := c.client
 
 	result := make([]*model.TopicItem, 0)
 	// mqexec may swap in a reconnected client; enrichment must use that one.
 	var working *admin.Client
-	err = mqexec.WithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
+	err := ExecWithTimeout(client, timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
 		working = retryClient
 
 		topicList, callErr := retryClient.FetchAllTopicList(ctx)
@@ -53,7 +47,7 @@ func (s *Service) GetTopics() ([]*model.TopicItem, error) {
 			if resource.IsSystemTopic(topicName) {
 				continue
 			}
-			topics = append(topics, s.newTopicItem(topicName))
+			topics = append(topics, newTopicItem(topicName))
 		}
 		result = topics
 		return nil
@@ -62,20 +56,17 @@ func (s *Service) GetTopics() ([]*model.TopicItem, error) {
 		return nil, fmt.Errorf("获取 Topic 列表失败: %w", err)
 	}
 
-	s.enrichTopics(working, result)
+	c.enrichTopics(ctx, working, result)
 	return result, nil
 }
 
 // GetAllTopics returns all topics, including system topics.
-func (s *Service) GetAllTopics() ([]*model.TopicItem, error) {
-	client, err := rocketmq.GetClientManager().GetDefaultClient()
-	if err != nil {
-		return []*model.TopicItem{}, nil
-	}
+func (c *Conn) GetAllTopics(ctx context.Context) ([]*model.TopicItem, error) {
+	client := c.client
 
 	result := make([]*model.TopicItem, 0)
 	var working *admin.Client
-	err = mqexec.WithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
+	err := ExecWithTimeout(client, timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
 		working = retryClient
 
 		topicList, callErr := retryClient.FetchAllTopicList(ctx)
@@ -85,7 +76,7 @@ func (s *Service) GetAllTopics() ([]*model.TopicItem, error) {
 
 		topics := make([]*model.TopicItem, 0, len(topicList.TopicList))
 		for _, topicName := range topicList.TopicList {
-			item := s.newTopicItem(topicName)
+			item := newTopicItem(topicName)
 			if resource.IsSystemTopic(topicName) {
 				item.Description = "系统"
 			}
@@ -98,21 +89,16 @@ func (s *Service) GetAllTopics() ([]*model.TopicItem, error) {
 		return nil, fmt.Errorf("获取 Topic 列表失败: %w", err)
 	}
 
-	s.enrichTopics(working, result)
+	c.enrichTopics(ctx, working, result)
 	return result, nil
 }
 
 // GetTopicTotal returns the number of non-system topics.
-func (s *Service) GetTopicTotal() (int, error) {
-	client, err := rocketmq.GetClientManager().GetDefaultClient()
-	if err != nil {
-		return 0, nil
-	}
+func (c *Conn) GetTopicTotal(ctx context.Context) (int, error) {
+	client := c.client
 
 	total := 0
-	err = mqexec.Do(client, func(retryClient *admin.Client) error {
-		ctx, cancel := context.WithTimeout(context.Background(), s.settings.GetRequestTimeout())
-		defer cancel()
+	err := Exec(client, func(retryClient *admin.Client) error {
 
 		topicList, callErr := retryClient.FetchAllTopicList(ctx)
 		if callErr != nil {
@@ -135,15 +121,12 @@ func (s *Service) GetTopicTotal() (int, error) {
 }
 
 // GetTopicsByCluster returns topics for a cluster.
-func (s *Service) GetTopicsByCluster(clusterName string) ([]*model.TopicItem, error) {
-	client, err := rocketmq.GetClientManager().GetDefaultClient()
-	if err != nil {
-		return nil, fmt.Errorf("获取客户端失败: %w", err)
-	}
+func (c *Conn) GetTopicsByCluster(ctx context.Context, clusterName string) ([]*model.TopicItem, error) {
+	client := c.client
 
 	result := make([]*model.TopicItem, 0)
 	var working *admin.Client
-	err = mqexec.WithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
+	err := ExecWithTimeout(client, timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
 		working = retryClient
 
 		topicList, callErr := retryClient.FetchTopicsByCluster(ctx, clusterName)
@@ -156,7 +139,7 @@ func (s *Service) GetTopicsByCluster(clusterName string) ([]*model.TopicItem, er
 			if resource.IsSystemTopic(topicName) {
 				continue
 			}
-			item := s.newTopicItem(topicName)
+			item := newTopicItem(topicName)
 			item.Cluster = clusterName
 			topics = append(topics, item)
 		}
@@ -167,6 +150,6 @@ func (s *Service) GetTopicsByCluster(clusterName string) ([]*model.TopicItem, er
 		return nil, fmt.Errorf("获取集群 Topic 列表失败: %w", err)
 	}
 
-	s.enrichTopics(working, result)
+	c.enrichTopics(ctx, working, result)
 	return result, nil
 }

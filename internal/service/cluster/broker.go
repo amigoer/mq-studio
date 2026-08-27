@@ -7,7 +7,6 @@ import (
 	"log"
 
 	"github.com/amigoer/mq-studio/internal/driver/rocketmq"
-	"github.com/amigoer/mq-studio/internal/driver/rocketmq/mqexec"
 	"github.com/amigoer/mq-studio/internal/model"
 	"github.com/amigoer/mq-studio/internal/timestamp"
 
@@ -43,7 +42,7 @@ func (s *Service) GetBrokerDetail(brokerAddress string) (*model.BrokerNode, erro
 		copyBrokerMetadata(clusterInfo.Brokers, broker)
 	}
 
-	err = mqexec.WithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
+	err = rocketmq.ExecWithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
 		if statsErr := s.applyBrokerRuntimeStats(ctx, retryClient, broker); statsErr != nil {
 			return statsErr
 		}
@@ -84,7 +83,7 @@ func (s *Service) enrichBrokerRuntimeStats(ctx context.Context, client *admin.Cl
 	}
 	if err := s.applyBrokerRuntimeStats(ctx, client, broker); err != nil {
 		log.Printf("enrichBrokerRuntimeStats(%s): %v", broker.Address, err)
-		if mqexec.IsRetryableNetworkError(err) {
+		if rocketmq.IsRetryableNetworkError(err) {
 			broker.Status = model.NodeOffline
 		} else {
 			broker.Status = model.NodeWarning

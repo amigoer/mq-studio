@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/amigoer/mq-studio/internal/driver/rocketmq"
-	"github.com/amigoer/mq-studio/internal/driver/rocketmq/mqexec"
 
 	admin "github.com/amigoer/rocketmq-admin-go"
 )
@@ -21,7 +20,7 @@ func (s *Service) getBrokerAddress() (string, *admin.Client, error) {
 		clusterInfo  *admin.ClusterInfo
 		activeClient = client
 	)
-	err = mqexec.WithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
+	err = rocketmq.ExecWithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
 		var callErr error
 		clusterInfo, callErr = retryClient.ExamineBrokerClusterInfo(ctx)
 		if callErr == nil {

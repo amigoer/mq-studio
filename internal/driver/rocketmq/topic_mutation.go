@@ -1,36 +1,31 @@
-package topic
+package rocketmq
 
 import (
 	"context"
 	"fmt"
 	"strings"
 
-	"github.com/amigoer/mq-studio/internal/driver/rocketmq"
-	"github.com/amigoer/mq-studio/internal/driver/rocketmq/mqexec"
 	"github.com/amigoer/mq-studio/internal/model"
 
 	admin "github.com/amigoer/rocketmq-admin-go"
 )
 
 // CreateTopic creates a topic.
-func (s *Service) CreateTopic(topicName string, brokerAddress string, readQueue int, writeQueue int, permission string) error {
-	return s.applyTopicConfig("创建", topicName, brokerAddress, readQueue, writeQueue, permission)
+func (c *Conn) CreateTopic(ctx context.Context, topicName string, brokerAddress string, readQueue int, writeQueue int, permission string) error {
+	return c.applyTopicConfig(ctx, "创建", topicName, brokerAddress, readQueue, writeQueue, permission)
 }
 
 // UpdateTopic updates a topic configuration. RocketMQ has no separate update
 // command: the broker upserts whatever configuration it is handed.
-func (s *Service) UpdateTopic(topicName string, brokerAddress string, readQueue int, writeQueue int, permission string) error {
-	return s.applyTopicConfig("更新", topicName, brokerAddress, readQueue, writeQueue, permission)
+func (c *Conn) UpdateTopic(ctx context.Context, topicName string, brokerAddress string, readQueue int, writeQueue int, permission string) error {
+	return c.applyTopicConfig(ctx, "更新", topicName, brokerAddress, readQueue, writeQueue, permission)
 }
 
 // applyTopicConfig writes a topic configuration to one broker. The queue counts
 // are that broker's own setting, so callers must pass the value for the broker
 // they selected rather than a cluster-wide total.
-func (s *Service) applyTopicConfig(action string, topicName string, brokerAddress string, readQueue int, writeQueue int, permission string) error {
-	client, err := rocketmq.GetClientManager().GetDefaultClient()
-	if err != nil {
-		return fmt.Errorf("获取客户端失败: %w", err)
-	}
+func (c *Conn) applyTopicConfig(ctx context.Context, action string, topicName string, brokerAddress string, readQueue int, writeQueue int, permission string) error {
+	client := c.client
 
 	topicName = strings.TrimSpace(topicName)
 	brokerAddress = strings.TrimSpace(brokerAddress)
@@ -61,7 +56,7 @@ func (s *Service) applyTopicConfig(action string, topicName string, brokerAddres
 		Perm:            model.PermToInt(model.TopicPerm(permission)),
 		TopicFilterType: "SINGLE_TAG",
 	}
-	err = mqexec.WithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
+	err := ExecWithTimeout(client, timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
 		return retryClient.CreateTopic(ctx, brokerAddress, config)
 	})
 	if err != nil {
@@ -71,11 +66,8 @@ func (s *Service) applyTopicConfig(action string, topicName string, brokerAddres
 }
 
 // DeleteTopic deletes a topic.
-func (s *Service) DeleteTopic(topicName string, clusterName string) error {
-	client, err := rocketmq.GetClientManager().GetDefaultClient()
-	if err != nil {
-		return fmt.Errorf("获取客户端失败: %w", err)
-	}
+func (c *Conn) DeleteTopic(ctx context.Context, topicName string, clusterName string) error {
+	client := c.client
 
 	topicName = strings.TrimSpace(topicName)
 	clusterName = strings.TrimSpace(clusterName)
@@ -101,9 +93,7 @@ func (s *Service) DeleteTopic(topicName string, clusterName string) error {
 		appendCluster(clusterName)
 	}
 
-	_ = mqexec.Do(client, func(retryClient *admin.Client) error {
-		ctx, cancel := context.WithTimeout(context.Background(), s.settings.GetRequestTimeout())
-		defer cancel()
+	_ = Exec(client, func(retryClient *admin.Client) error {
 		routeInfo, routeErr := retryClient.ExamineTopicRouteInfo(ctx, topicName)
 		if routeErr != nil || routeInfo == nil {
 			return routeErr
@@ -117,9 +107,7 @@ func (s *Service) DeleteTopic(topicName string, clusterName string) error {
 	})
 
 	if len(clusterCandidates) == 0 {
-		_ = mqexec.Do(client, func(retryClient *admin.Client) error {
-			ctx, cancel := context.WithTimeout(context.Background(), s.settings.GetRequestTimeout())
-			defer cancel()
+		_ = Exec(client, func(retryClient *admin.Client) error {
 			clusterInfo, clusterErr := retryClient.ExamineBrokerClusterInfo(ctx)
 			if clusterErr != nil || clusterInfo == nil {
 				return clusterErr
@@ -137,9 +125,7 @@ func (s *Service) DeleteTopic(topicName string, clusterName string) error {
 
 	var lastErr error
 	for _, candidate := range clusterCandidates {
-		callErr := mqexec.Do(client, func(retryClient *admin.Client) error {
-			ctx, cancel := context.WithTimeout(context.Background(), s.settings.GetRequestTimeout())
-			defer cancel()
+		callErr := Exec(client, func(retryClient *admin.Client) error {
 			return retryClient.DeleteTopic(ctx, topicName, candidate)
 		})
 		if callErr == nil {

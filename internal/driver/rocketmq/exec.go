@@ -1,5 +1,4 @@
-// Package mqexec executes RocketMQ admin calls with bounded reconnect retries.
-package mqexec
+package rocketmq
 
 import (
 	"context"
@@ -9,8 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/amigoer/mq-studio/internal/driver/rocketmq"
-
 	admin "github.com/amigoer/rocketmq-admin-go"
 )
 
@@ -18,23 +15,23 @@ import (
 // Serialize reconnection decisions so a later request cannot close a client just created by an earlier one.
 var clientRetryMu sync.Mutex
 
-// WithTimeout creates an independent timeout context for each attempt.
+// ExecWithTimeout creates an independent timeout context for each attempt.
 // A context cannot be reused across retries: after the first timeout it is canceled,
 // which would cause the retry to fail immediately.
-func WithTimeout(
+func ExecWithTimeout(
 	client *admin.Client,
 	timeout time.Duration,
 	call func(context.Context, *admin.Client) error,
 ) error {
-	return Do(client, func(current *admin.Client) error {
+	return Exec(client, func(current *admin.Client) error {
 		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
 		return call(ctx, current)
 	})
 }
 
-// Do executes a request with the default client and reconnects once on a network disconnect.
-func Do(client *admin.Client, call func(*admin.Client) error) error {
+// Exec runs a request and reconnects once on a network disconnect.
+func Exec(client *admin.Client, call func(*admin.Client) error) error {
 	err := call(client)
 	if err == nil {
 		return nil
@@ -44,7 +41,7 @@ func Do(client *admin.Client, call func(*admin.Client) error) error {
 		return err
 	}
 
-	manager := rocketmq.GetClientManager()
+	manager := GetClientManager()
 	defaultNameServer := strings.TrimSpace(manager.GetDefaultConnection())
 	if defaultNameServer == "" {
 		return err

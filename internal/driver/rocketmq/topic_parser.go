@@ -1,4 +1,4 @@
-package topic
+package rocketmq
 
 import (
 	"encoding/json"

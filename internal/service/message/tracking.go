@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/amigoer/mq-studio/internal/driver/rocketmq"
-	"github.com/amigoer/mq-studio/internal/driver/rocketmq/mqexec"
 	"github.com/amigoer/mq-studio/internal/driver/rocketmq/resource"
 	"github.com/amigoer/mq-studio/internal/model"
 
@@ -61,7 +60,7 @@ func (s *Service) GetMessageTrack(topic, messageID string) ([]*model.MessageTrac
 
 func (s *Service) lookupTrackedMessage(client *admin.Client, topic, messageID string) (*admin.MessageExt, error) {
 	var message *admin.MessageExt
-	err := mqexec.WithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
+	err := rocketmq.ExecWithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
 		var findErr error
 		message, findErr = findMessageByID(ctx, retryClient, topic, messageID)
 		return findErr
@@ -77,7 +76,7 @@ func (s *Service) lookupTrackedMessage(client *admin.Client, topic, messageID st
 
 func (s *Service) queryConsumerGroups(client *admin.Client, topic string) ([]string, error) {
 	var groups []string
-	err := mqexec.WithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
+	err := rocketmq.ExecWithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
 		var callErr error
 		groups, callErr = retryClient.QueryTopicConsumeByWho(ctx, topic)
 		return callErr
@@ -94,7 +93,7 @@ func (s *Service) populateTrack(
 	message *admin.MessageExt,
 	track *model.MessageTrackItem,
 ) error {
-	return mqexec.WithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
+	return rocketmq.ExecWithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
 		stats, err := retryClient.ExamineConsumeStats(ctx, group)
 		if err != nil {
 			return err
@@ -126,7 +125,7 @@ func (s *Service) resolveMessageBrokerName(client *admin.Client, message *admin.
 		return ""
 	}
 	var brokerName string
-	_ = mqexec.WithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
+	_ = rocketmq.ExecWithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
 		route, err := retryClient.ExamineTopicRouteInfo(ctx, message.Topic)
 		if err != nil {
 			return err

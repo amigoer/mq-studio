@@ -1,4 +1,4 @@
-package topic
+package rocketmq
 
 import (
 	"context"
@@ -6,23 +6,18 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/amigoer/mq-studio/internal/driver/rocketmq"
-	"github.com/amigoer/mq-studio/internal/driver/rocketmq/mqexec"
 	"github.com/amigoer/mq-studio/internal/model"
 
 	admin "github.com/amigoer/rocketmq-admin-go"
 )
 
 // GetTopicDetail returns details for a topic.
-func (s *Service) GetTopicDetail(topicName string) (*model.TopicItem, error) {
-	client, err := rocketmq.GetClientManager().GetDefaultClient()
-	if err != nil {
-		return nil, fmt.Errorf("获取客户端失败: %w", err)
-	}
+func (c *Conn) GetTopicDetail(ctx context.Context, topicName string) (*model.TopicItem, error) {
+	client := c.client
 
 	var item *model.TopicItem
 	var working *admin.Client
-	err = mqexec.WithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
+	err := ExecWithTimeout(client, timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
 		working = retryClient
 
 		routeInfo, callErr := retryClient.ExamineTopicRouteInfo(ctx, topicName)
@@ -30,7 +25,7 @@ func (s *Service) GetTopicDetail(topicName string) (*model.TopicItem, error) {
 			return callErr
 		}
 
-		detail := s.newTopicItem(topicName)
+		detail := newTopicItem(topicName)
 		detail.Routes = make([]model.TopicRouteItem, 0)
 		if strings.TrimSpace(routeInfo.OrderTopicConf) != "" {
 			detail.MessageType = model.MessageTypeFIFO
@@ -80,13 +75,13 @@ func (s *Service) GetTopicDetail(topicName string) (*model.TopicItem, error) {
 		return nil, fmt.Errorf("获取 Topic 路由信息失败: %w", err)
 	}
 
-	s.enrichTopicDetail(working, item)
+	c.enrichTopicDetail(ctx, working, item)
 	return item, nil
 }
 
 // GetTopicRoute returns routing information for a topic.
-func (s *Service) GetTopicRoute(topicName string) ([]model.TopicRouteItem, error) {
-	detail, err := s.GetTopicDetail(topicName)
+func (c *Conn) GetTopicRoute(ctx context.Context, topicName string) ([]model.TopicRouteItem, error) {
+	detail, err := c.GetTopicDetail(ctx, topicName)
 	if err != nil {
 		return nil, err
 	}

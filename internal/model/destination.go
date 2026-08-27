@@ -48,3 +48,13 @@ type DestinationSpec struct {
 	Partitions int               `json:"partitions"` // ignored where unsupported
 	Attributes map[string]string `json:"attributes"`
 }
+
+// DestinationFilter narrows a destination listing.
+//
+// IncludeInternal covers the objects every family hides by default and names
+// differently: RocketMQ system topics, RabbitMQ amq.* exchanges, Kafka's
+// __consumer_offsets.
+type DestinationFilter struct {
+	Namespace       string `json:"namespace"`
+	IncludeInternal bool   `json:"includeInternal"`
+}

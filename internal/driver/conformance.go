@@ -27,13 +27,14 @@ func backings() []capabilityBacking {
 	cluster := func(c Conn) bool { _, ok := c.(ClusterAdmin); return ok }
 	access := func(c Conn) bool { _, ok := c.(AccessAdmin); return ok }
 	routing := func(c Conn) bool { _, ok := c.(RoutingAdmin); return ok }
+	stats := func(c Conn) bool { _, ok := c.(DestinationStats); return ok }
 
 	return []capabilityBacking{
 		{model.CapDestinationList, "DestinationAdmin", destination},
 		{model.CapDestinationCreate, "DestinationAdmin", destination},
 		{model.CapDestinationUpdate, "DestinationAdmin", destination},
 		{model.CapDestinationDelete, "DestinationAdmin", destination},
-		{model.CapPartitions, "DestinationAdmin", destination},
+		{model.CapPartitions, "DestinationStats", stats},
 
 		{model.CapSubscriptionList, "SubscriptionAdmin", subscription},
 		{model.CapSubscriptionCreate, "SubscriptionAdmin", subscription},

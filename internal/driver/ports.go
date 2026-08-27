@@ -27,11 +27,21 @@ import (
 
 // DestinationAdmin enumerates and manages topics, queues or streams.
 type DestinationAdmin interface {
-	ListDestinations(ctx context.Context) ([]*model.Destination, error)
+	ListDestinations(ctx context.Context, filter model.DestinationFilter) ([]*model.Destination, error)
 	DestinationDetail(ctx context.Context, ref model.DestinationRef) (*model.Destination, error)
 	CreateDestination(ctx context.Context, spec model.DestinationSpec) error
 	UpdateDestination(ctx context.Context, spec model.DestinationSpec) error
 	RemoveDestination(ctx context.Context, ref model.DestinationRef) error
+}
+
+// DestinationStats reports per-partition read ranges. Families with no
+// partitions - RabbitMQ, MQTT - do not implement it.
+//
+// The payload is unstructured because it is passed straight through to the
+// renderer today. Giving it a shape is part of canonicalising the message
+// surface, not something to guess at now.
+type DestinationStats interface {
+	DestinationStats(ctx context.Context, ref model.DestinationRef) (map[string]interface{}, error)
 }
 
 // SubscriptionAdmin enumerates and manages consumer groups, Pulsar

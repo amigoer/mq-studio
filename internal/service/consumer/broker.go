@@ -3,8 +3,7 @@ package consumer
 import (
 	"context"
 	"fmt"
-
-	"github.com/amigoer/mq-studio/internal/driver/rocketmq/mqexec"
+	"github.com/amigoer/mq-studio/internal/driver/rocketmq"
 
 	admin "github.com/amigoer/rocketmq-admin-go"
 )
@@ -16,7 +15,7 @@ type subscriptionGroupLookup struct {
 
 func (s *Service) getSubscriptionGroupConfig(client *admin.Client, groupName string) (*subscriptionGroupLookup, error) {
 	var clusterInfo *admin.ClusterInfo
-	err := mqexec.WithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
+	err := rocketmq.ExecWithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
 		var callErr error
 		clusterInfo, callErr = retryClient.ExamineBrokerClusterInfo(ctx)
 		return callErr
@@ -35,7 +34,7 @@ func (s *Service) getSubscriptionGroupConfig(client *admin.Client, groupName str
 		}
 
 		var subscriptionGroups map[string]*admin.SubscriptionGroupConfig
-		groupErr := mqexec.WithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
+		groupErr := rocketmq.ExecWithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
 			var callErr error
 			subscriptionGroups, callErr = retryClient.GetAllSubscriptionGroup(ctx, masterAddress)
 			return callErr
@@ -70,7 +69,7 @@ func (s *Service) resolveMasterBrokerAddrs(client *admin.Client, preferredAddres
 	appendAddress(preferredAddress)
 
 	var clusterInfo *admin.ClusterInfo
-	err := mqexec.WithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
+	err := rocketmq.ExecWithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
 		var callErr error
 		clusterInfo, callErr = retryClient.ExamineBrokerClusterInfo(ctx)
 		return callErr

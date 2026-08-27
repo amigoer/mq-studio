@@ -4,10 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/amigoer/mq-studio/internal/driver/rocketmq"
 	"sort"
 	"sync"
 
-	"github.com/amigoer/mq-studio/internal/driver/rocketmq/mqexec"
 	"github.com/amigoer/mq-studio/internal/driver/rocketmq/mqoffset"
 	"github.com/amigoer/mq-studio/internal/model"
 	"github.com/amigoer/mq-studio/internal/timestamp"
@@ -40,7 +40,7 @@ func (s *Service) enrichConsumerGroup(client *admin.Client, item *model.Consumer
 	}
 	item.Subscriptions = item.Subscriptions[:0]
 	item.Clients = item.Clients[:0]
-	connectionErr := mqexec.WithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
+	connectionErr := rocketmq.ExecWithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
 		connectionInfo, callErr := retryClient.ExamineConsumerConnectionInfo(ctx, item.Group)
 		if callErr != nil {
 			return callErr
@@ -84,7 +84,7 @@ func (s *Service) enrichConsumerGroup(client *admin.Client, item *model.Consumer
 		item.Status = model.GroupWarning
 	}
 
-	_ = mqexec.WithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
+	_ = rocketmq.ExecWithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
 		stats, callErr := retryClient.ExamineConsumeStats(ctx, item.Group)
 		if callErr != nil {
 			return callErr
@@ -113,7 +113,7 @@ func (s *Service) enrichConsumerGroup(client *admin.Client, item *model.Consumer
 			return
 		}
 	}
-	_ = mqexec.WithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
+	_ = rocketmq.ExecWithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
 		offsets, callErr := mqoffset.Collect(ctx, retryClient, dlqTopic)
 		if callErr != nil {
 			if errors.Is(callErr, admin.ErrTopicNotFound) {

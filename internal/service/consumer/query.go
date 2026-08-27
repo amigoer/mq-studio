@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/amigoer/mq-studio/internal/driver/rocketmq"
-	"github.com/amigoer/mq-studio/internal/driver/rocketmq/mqexec"
 	"github.com/amigoer/mq-studio/internal/driver/rocketmq/resource"
 	"github.com/amigoer/mq-studio/internal/model"
 	"github.com/amigoer/mq-studio/internal/timestamp"
@@ -23,7 +22,7 @@ func (s *Service) GetConsumerGroups() ([]*model.ConsumerGroupItem, error) {
 	}
 
 	var clusterInfo *admin.ClusterInfo
-	err = mqexec.WithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
+	err = rocketmq.ExecWithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
 		var callErr error
 		clusterInfo, callErr = retryClient.ExamineBrokerClusterInfo(ctx)
 		return callErr
@@ -45,7 +44,7 @@ func (s *Service) GetConsumerGroups() ([]*model.ConsumerGroupItem, error) {
 		}
 
 		var subscriptionGroups map[string]*admin.SubscriptionGroupConfig
-		groupErr := mqexec.WithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
+		groupErr := rocketmq.ExecWithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
 			var callErr error
 			subscriptionGroups, callErr = retryClient.GetAllSubscriptionGroup(ctx, masterAddress)
 			return callErr
@@ -94,7 +93,7 @@ func (s *Service) GetConsumerGroups() ([]*model.ConsumerGroupItem, error) {
 	sort.Slice(result, func(i, j int) bool { return result[i].Group < result[j].Group })
 
 	var dlqTopics map[string]struct{}
-	_ = mqexec.WithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
+	_ = rocketmq.ExecWithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
 		topics, callErr := retryClient.FetchAllTopicList(ctx)
 		if callErr != nil {
 			return callErr
@@ -154,7 +153,7 @@ func (s *Service) GetConsumeStats(groupName string) (map[string]interface{}, err
 	}
 
 	result := map[string]interface{}{}
-	err = mqexec.WithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
+	err = rocketmq.ExecWithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
 		stats, callErr := retryClient.ExamineConsumeStats(ctx, groupName)
 		if callErr != nil {
 			return callErr

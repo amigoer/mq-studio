@@ -12,9 +12,9 @@ import (
 	"github.com/amigoer/mq-studio/internal/service/configuration"
 	"github.com/amigoer/mq-studio/internal/service/connection"
 	"github.com/amigoer/mq-studio/internal/service/consumer"
+	"github.com/amigoer/mq-studio/internal/service/destination"
 	"github.com/amigoer/mq-studio/internal/service/message"
 	"github.com/amigoer/mq-studio/internal/service/settings"
-	"github.com/amigoer/mq-studio/internal/service/topic"
 	"github.com/amigoer/mq-studio/internal/storage/layout"
 )
 
@@ -22,7 +22,7 @@ import (
 type Services struct {
 	Connections *connection.Service
 	Cluster     *cluster.Service
-	Topics      *topic.Service
+	Topics      *destination.Service
 	Consumers   *consumer.Service
 	Messages    *message.Service
 	Settings    *configuration.Service
@@ -49,7 +49,7 @@ func New() (*Services, error) {
 	services := &Services{
 		Connections: connections,
 		Cluster:     clusterService,
-		Topics:      topic.New(settingsService),
+		Topics:      destination.New(rocketmq.CurrentConn, settingsService),
 		Consumers:   consumer.New(settingsService),
 		Messages:    message.New(settingsService),
 		Settings:    configurationService,

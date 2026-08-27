@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/amigoer/mq-studio/internal/driver/rocketmq"
-	"github.com/amigoer/mq-studio/internal/driver/rocketmq/mqexec"
 	"github.com/amigoer/mq-studio/internal/model"
 
 	admin "github.com/amigoer/rocketmq-admin-go"
@@ -84,7 +83,7 @@ func (s *Service) QueryMessages(topic, key, tag string, maxResults int, startTim
 	if queryTimeout < 30*time.Second {
 		queryTimeout = 30 * time.Second
 	}
-	err = mqexec.WithTimeout(client, queryTimeout, func(ctx context.Context, retryClient *admin.Client) error {
+	err = rocketmq.ExecWithTimeout(client, queryTimeout, func(ctx context.Context, retryClient *admin.Client) error {
 		messages, callErr := executeMessageQuery(ctx, retryClient, query)
 		if callErr != nil {
 			return callErr

@@ -2,8 +2,7 @@ package acl
 
 import (
 	"context"
-
-	"github.com/amigoer/mq-studio/internal/driver/rocketmq/mqexec"
+	"github.com/amigoer/mq-studio/internal/driver/rocketmq"
 
 	admin "github.com/amigoer/rocketmq-admin-go"
 )
@@ -20,7 +19,7 @@ func (s *Service) CreateOrUpdateAccessConfig(
 		return err
 	}
 
-	return mqexec.Do(client, func(retryClient *admin.Client) error {
+	return rocketmq.Exec(client, func(retryClient *admin.Client) error {
 		ctx, cancel := context.WithTimeout(context.Background(), s.settings.GetRequestTimeout())
 		defer cancel()
 		return retryClient.UpdatePlainAccessConfig(ctx, brokerAddress, admin.PlainAccessConfig{
@@ -43,7 +42,7 @@ func (s *Service) DeleteAccessConfig(accessKey string) error {
 		return err
 	}
 
-	return mqexec.Do(client, func(retryClient *admin.Client) error {
+	return rocketmq.Exec(client, func(retryClient *admin.Client) error {
 		ctx, cancel := context.WithTimeout(context.Background(), s.settings.GetRequestTimeout())
 		defer cancel()
 		return retryClient.DeletePlainAccessConfig(ctx, brokerAddress, accessKey)
@@ -57,7 +56,7 @@ func (s *Service) UpdateGlobalWhiteAddrs(addresses []string) error {
 		return err
 	}
 
-	return mqexec.Do(client, func(retryClient *admin.Client) error {
+	return rocketmq.Exec(client, func(retryClient *admin.Client) error {
 		ctx, cancel := context.WithTimeout(context.Background(), s.settings.GetRequestTimeout())
 		defer cancel()
 		return retryClient.UpdateGlobalWhiteAddrsConfig(ctx, brokerAddress, addresses, "")

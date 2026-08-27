@@ -1,4 +1,4 @@
-package mqexec
+package rocketmq
 
 import (
 	"errors"

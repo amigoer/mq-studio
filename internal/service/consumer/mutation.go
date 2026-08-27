@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/amigoer/mq-studio/internal/driver/rocketmq"
-	"github.com/amigoer/mq-studio/internal/driver/rocketmq/mqexec"
 	"github.com/amigoer/mq-studio/internal/model"
 
 	admin "github.com/amigoer/rocketmq-admin-go"
@@ -93,7 +92,7 @@ func (s *Service) DeleteConsumerGroup(groupName string, brokerAddress string) er
 
 	failures := make([]string, 0)
 	for _, address := range candidates {
-		callErr := mqexec.WithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
+		callErr := rocketmq.ExecWithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
 			return retryClient.DeleteSubscriptionGroup(ctx, address, groupName)
 		})
 		if callErr != nil {
@@ -122,7 +121,7 @@ func (s *Service) ResetOffset(groupName string, topicName string, timestamp int6
 		return fmt.Errorf("重置消费位点失败: 时间戳不能为负数")
 	}
 
-	err = mqexec.WithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
+	err = rocketmq.ExecWithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
 		_, callErr := retryClient.ResetOffsetByTimestamp(ctx, topicName, groupName, timestamp, force)
 		return callErr
 	})
@@ -143,7 +142,7 @@ func (s *Service) applySubscriptionGroupConfig(
 	}
 	failures := make([]string, 0)
 	for _, address := range candidates {
-		callErr := mqexec.WithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
+		callErr := rocketmq.ExecWithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
 			return retryClient.CreateSubscriptionGroup(ctx, address, config)
 		})
 		if callErr != nil {

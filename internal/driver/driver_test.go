@@ -37,7 +37,7 @@ func (c *fakeConn) closeCount() int {
 // assert against.
 type destinationConn struct{ fakeConn }
 
-func (c *destinationConn) ListDestinations(context.Context) ([]*model.Destination, error) {
+func (c *destinationConn) ListDestinations(context.Context, model.DestinationFilter) ([]*model.Destination, error) {
 	return nil, nil
 }
 func (c *destinationConn) DestinationDetail(context.Context, model.DestinationRef) (*model.Destination, error) {

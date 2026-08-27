@@ -1,4 +1,4 @@
-package topic
+package rocketmq
 
 import (
 	"context"
@@ -85,13 +85,10 @@ func listMasterBrokers(ctx context.Context, client *admin.Client) []masterBroker
 // enrichTopics fills the columns the topic list shows beyond the name. It is
 // best effort by design: every field keeps its unknown sentinel when a broker
 // cannot answer, so a slow or partially degraded cluster still renders a list.
-func (s *Service) enrichTopics(client *admin.Client, items []*model.TopicItem) {
+func (c *Conn) enrichTopics(ctx context.Context, client *admin.Client, items []*model.TopicItem) {
 	if client == nil || len(items) == 0 {
 		return
 	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), s.settings.GetRequestTimeout())
-	defer cancel()
 
 	masters := listMasterBrokers(ctx, client)
 	if len(masters) == 0 {
@@ -219,7 +216,7 @@ func enrichTopicMetrics(
 // enrichTopicDetail fills the metrics shown for a single topic. Outbound
 // throughput is recorded per consumer group, so it costs one request per group
 // per broker and is only worth collecting here, never for a whole list.
-func (s *Service) enrichTopicDetail(client *admin.Client, item *model.TopicItem) {
+func (c *Conn) enrichTopicDetail(ctx context.Context, client *admin.Client, item *model.TopicItem) {
 	if client == nil || item == nil {
 		return
 	}
@@ -233,9 +230,6 @@ func (s *Service) enrichTopicDetail(client *admin.Client, item *model.TopicItem)
 	if len(addresses) == 0 {
 		return
 	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), s.settings.GetRequestTimeout())
-	defer cancel()
 
 	item.TpsIn = tpsOrUnknown(collectStatsTPS(ctx, client, addresses, statsTopicPutNums, item.Topic))
 

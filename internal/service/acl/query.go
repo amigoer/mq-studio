@@ -3,9 +3,9 @@ package acl
 import (
 	"context"
 	"fmt"
+	"github.com/amigoer/mq-studio/internal/driver/rocketmq"
 	"strings"
 
-	"github.com/amigoer/mq-studio/internal/driver/rocketmq/mqexec"
 	"github.com/amigoer/mq-studio/internal/model"
 
 	admin "github.com/amigoer/rocketmq-admin-go"
@@ -19,7 +19,7 @@ func (s *Service) GetAclEnabled() (bool, error) {
 	}
 
 	var enabled bool
-	err = mqexec.Do(client, func(retryClient *admin.Client) error {
+	err = rocketmq.Exec(client, func(retryClient *admin.Client) error {
 		ctx, cancel := context.WithTimeout(context.Background(), s.settings.GetRequestTimeout())
 		defer cancel()
 
@@ -44,7 +44,7 @@ func (s *Service) GetAclVersion() (*model.AclVersionInfo, error) {
 	}
 
 	var result *model.AclVersionInfo
-	err = mqexec.Do(client, func(retryClient *admin.Client) error {
+	err = rocketmq.Exec(client, func(retryClient *admin.Client) error {
 		ctx, cancel := context.WithTimeout(context.Background(), s.settings.GetRequestTimeout())
 		defer cancel()
 
