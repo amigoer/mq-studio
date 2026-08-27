@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { TopicItem } from '@/api/models'
+import type { Destination } from '@/api/models'
 import * as topicApi from '@/api/topic'
 import { useConnections } from '@/hooks/useConnections'
 import { formatErrorMessage } from '@/lib/utils'
@@ -10,7 +10,7 @@ export function useTopics() {
   const { active, activeKey } = useConnections()
   const hasOnline = active != null
 
-  const [topics, setTopics] = useState<TopicItem[]>([])
+  const [topics, setTopics] = useState<Destination[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -26,7 +26,7 @@ export function useTopics() {
     try {
       const raw = await topicApi.getTopics()
       if (cancelledRef.current || generation !== requestGenerationRef.current) return
-      setTopics(raw.filter(Boolean) as TopicItem[])
+      setTopics(raw.filter(Boolean) as Destination[])
     } catch (e) {
       if (!cancelledRef.current && generation === requestGenerationRef.current) {
         setError(formatErrorMessage(e))

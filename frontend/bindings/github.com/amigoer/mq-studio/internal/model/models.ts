@@ -713,6 +713,131 @@ export class ConsumerGroupItem {
 }
 
 /**
+ * Destination is a topic, queue or stream as the canonical pages see it.
+ * 
+ * Attributes carries whatever the family has and the canonical model does not:
+ * RocketMQ permissions and queue counts, RabbitMQ durability and queue type,
+ * Kafka replication factor. Its keys are a contract between one driver's Go
+ * side and that driver's frontend module, not part of the shared vocabulary.
+ */
+export class Destination {
+    /**
+     * list key for the renderer, not broker data
+     */
+    "id": number;
+    "ref": DestinationRef;
+
+    /**
+     * UnknownMetric where the family has none
+     */
+    "partitions": number;
+
+    /**
+     * consumer groups, subscriptions or consumers
+     */
+    "subscribers": number;
+
+    /**
+     * messages held; UnknownMetric when not reported
+     */
+    "depth": number;
+
+    /**
+     * messages per second in
+     */
+    "rateIn": number;
+
+    /**
+     * messages per second out
+     */
+    "rateOut": number;
+    "lastUpdated": string;
+    "attributes": { [_ in string]?: string };
+
+    /** Creates a new Destination instance. */
+    constructor($$source: Partial<Destination> = {}) {
+        if (!("id" in $$source)) {
+            this["id"] = 0;
+        }
+        if (!("ref" in $$source)) {
+            this["ref"] = (new DestinationRef());
+        }
+        if (!("partitions" in $$source)) {
+            this["partitions"] = 0;
+        }
+        if (!("subscribers" in $$source)) {
+            this["subscribers"] = 0;
+        }
+        if (!("depth" in $$source)) {
+            this["depth"] = 0;
+        }
+        if (!("rateIn" in $$source)) {
+            this["rateIn"] = 0;
+        }
+        if (!("rateOut" in $$source)) {
+            this["rateOut"] = 0;
+        }
+        if (!("lastUpdated" in $$source)) {
+            this["lastUpdated"] = "";
+        }
+        if (!("attributes" in $$source)) {
+            this["attributes"] = {};
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new Destination instance from a string or object.
+     */
+    static createFrom($$source: any = {}): Destination {
+        const $$createField1_0 = $$createType12;
+        const $$createField8_0 = $$createType13;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("ref" in $$parsedSource) {
+            $$parsedSource["ref"] = $$createField1_0($$parsedSource["ref"]);
+        }
+        if ("attributes" in $$parsedSource) {
+            $$parsedSource["attributes"] = $$createField8_0($$parsedSource["attributes"]);
+        }
+        return new Destination($$parsedSource as Partial<Destination>);
+    }
+}
+
+/**
+ * DestinationRef identifies a destination across families.
+ * 
+ * Flat families leave Namespace empty; Pulsar fills tenant/namespace and
+ * RabbitMQ fills the vhost. It is a struct rather than a string because
+ * joining and re-splitting those parts loses information for any name that
+ * contains the separator.
+ */
+export class DestinationRef {
+    "namespace": string;
+    "name": string;
+
+    /** Creates a new DestinationRef instance. */
+    constructor($$source: Partial<DestinationRef> = {}) {
+        if (!("namespace" in $$source)) {
+            this["namespace"] = "";
+        }
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new DestinationRef instance from a string or object.
+     */
+    static createFrom($$source: any = {}): DestinationRef {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new DestinationRef($$parsedSource as Partial<DestinationRef>);
+    }
+}
+
+/**
  * DriverDescriptor is what a family can do before any connection is open.
  * 
  * Display strings are deliberately absent: the renderer resolves them from
@@ -753,7 +878,7 @@ export class DriverDescriptor {
      * Creates a new DriverDescriptor instance from a string or object.
      */
     static createFrom($$source: any = {}): DriverDescriptor {
-        const $$createField2_0 = $$createType13;
+        const $$createField2_0 = $$createType15;
         const $$createField3_0 = $$createType2;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("form" in $$parsedSource) {
@@ -896,8 +1021,8 @@ export class FormField {
      * Creates a new FormField instance from a string or object.
      */
     static createFrom($$source: any = {}): FormField {
-        const $$createField7_0 = $$createType15;
-        const $$createField8_0 = $$createType17;
+        const $$createField7_0 = $$createType17;
+        const $$createField8_0 = $$createType19;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("visibleWhen" in $$parsedSource) {
             $$parsedSource["visibleWhen"] = $$createField7_0($$parsedSource["visibleWhen"]);
@@ -1208,7 +1333,7 @@ export class MessageItem {
      * Creates a new MessageItem instance from a string or object.
      */
     static createFrom($$source: any = {}): MessageItem {
-        const $$createField15_0 = $$createType18;
+        const $$createField15_0 = $$createType13;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("properties" in $$parsedSource) {
             $$parsedSource["properties"] = $$createField15_0($$parsedSource["properties"]);
@@ -1347,221 +1472,6 @@ export class ResetOffsetRequest {
     }
 }
 
-/**
- * TopicItem holds Topic information.
- */
-export class TopicItem {
-    /**
-     * Topic ID
-     */
-    "id": number;
-
-    /**
-     * Topic name
-     */
-    "topic": string;
-
-    /**
-     * Cluster name
-     */
-    "cluster": string;
-
-    /**
-     * Read queue count
-     */
-    "readQueue": number;
-
-    /**
-     * Write queue count
-     */
-    "writeQueue": number;
-
-    /**
-     * Permission
-     */
-    "perm": TopicPerm;
-
-    /**
-     * Message type
-     */
-    "messageType": TopicMessageType;
-
-    /**
-     * Consumer group count
-     */
-    "consumerGroups": number;
-
-    /**
-     * Inbound TPS
-     */
-    "tpsIn": number;
-
-    /**
-     * Outbound TPS
-     */
-    "tpsOut": number;
-
-    /**
-     * Last update time
-     */
-    "lastUpdated": string;
-
-    /**
-     * Description
-     */
-    "description": string;
-
-    /**
-     * Route information
-     */
-    "routes": TopicRouteItem[];
-
-    /** Creates a new TopicItem instance. */
-    constructor($$source: Partial<TopicItem> = {}) {
-        if (!("id" in $$source)) {
-            this["id"] = 0;
-        }
-        if (!("topic" in $$source)) {
-            this["topic"] = "";
-        }
-        if (!("cluster" in $$source)) {
-            this["cluster"] = "";
-        }
-        if (!("readQueue" in $$source)) {
-            this["readQueue"] = 0;
-        }
-        if (!("writeQueue" in $$source)) {
-            this["writeQueue"] = 0;
-        }
-        if (!("perm" in $$source)) {
-            this["perm"] = TopicPerm.$zero;
-        }
-        if (!("messageType" in $$source)) {
-            this["messageType"] = TopicMessageType.$zero;
-        }
-        if (!("consumerGroups" in $$source)) {
-            this["consumerGroups"] = 0;
-        }
-        if (!("tpsIn" in $$source)) {
-            this["tpsIn"] = 0;
-        }
-        if (!("tpsOut" in $$source)) {
-            this["tpsOut"] = 0;
-        }
-        if (!("lastUpdated" in $$source)) {
-            this["lastUpdated"] = "";
-        }
-        if (!("description" in $$source)) {
-            this["description"] = "";
-        }
-        if (!("routes" in $$source)) {
-            this["routes"] = [];
-        }
-
-        Object.assign(this, $$source);
-    }
-
-    /**
-     * Creates a new TopicItem instance from a string or object.
-     */
-    static createFrom($$source: any = {}): TopicItem {
-        const $$createField12_0 = $$createType20;
-        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-        if ("routes" in $$parsedSource) {
-            $$parsedSource["routes"] = $$createField12_0($$parsedSource["routes"]);
-        }
-        return new TopicItem($$parsedSource as Partial<TopicItem>);
-    }
-}
-
-/**
- * TopicMessageType is the message type.
- */
-export enum TopicMessageType {
-    /**
-     * The Go zero value for the underlying type of the enum.
-     */
-    $zero = "",
-
-    MessageTypeNormal = "Normal",
-    MessageTypeFIFO = "FIFO",
-    MessageTypeDelay = "Delay",
-};
-
-/**
- * TopicPerm is the Topic permission.
- */
-export enum TopicPerm {
-    /**
-     * The Go zero value for the underlying type of the enum.
-     */
-    $zero = "",
-
-    PermRW = "RW",
-    PermR = "R",
-    PermW = "W",
-    PermDeny = "DENY",
-};
-
-/**
- * TopicRouteItem is a Topic route entry.
- */
-export class TopicRouteItem {
-    /**
-     * Broker name
-     */
-    "broker": string;
-
-    /**
-     * Broker address
-     */
-    "brokerAddr": string;
-
-    /**
-     * Read queue count
-     */
-    "readQueue": number;
-
-    /**
-     * Write queue count
-     */
-    "writeQueue": number;
-
-    /**
-     * Permission
-     */
-    "perm": TopicPerm;
-
-    /** Creates a new TopicRouteItem instance. */
-    constructor($$source: Partial<TopicRouteItem> = {}) {
-        if (!("broker" in $$source)) {
-            this["broker"] = "";
-        }
-        if (!("brokerAddr" in $$source)) {
-            this["brokerAddr"] = "";
-        }
-        if (!("readQueue" in $$source)) {
-            this["readQueue"] = 0;
-        }
-        if (!("writeQueue" in $$source)) {
-            this["writeQueue"] = 0;
-        }
-        if (!("perm" in $$source)) {
-            this["perm"] = TopicPerm.$zero;
-        }
-
-        Object.assign(this, $$source);
-    }
-
-    /**
-     * Creates a new TopicRouteItem instance from a string or object.
-     */
-    static createFrom($$source: any = {}): TopicRouteItem {
-        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-        return new TopicRouteItem($$parsedSource as Partial<TopicRouteItem>);
-    }
-}
-
 // Private type creation functions
 const $$createType0 = $Create.Array($Create.Any);
 const $$createType1 = $Create.Array($Create.Any);
@@ -1575,12 +1485,11 @@ const $$createType8 = GroupSubscription.createFrom;
 const $$createType9 = $Create.Array($$createType8);
 const $$createType10 = GroupClient.createFrom;
 const $$createType11 = $Create.Array($$createType10);
-const $$createType12 = FormField.createFrom;
-const $$createType13 = $Create.Array($$createType12);
-const $$createType14 = FieldCond.createFrom;
-const $$createType15 = $Create.Nullable($$createType14);
-const $$createType16 = FormOption.createFrom;
-const $$createType17 = $Create.Array($$createType16);
-const $$createType18 = $Create.Map($Create.Any, $Create.Any);
-const $$createType19 = TopicRouteItem.createFrom;
-const $$createType20 = $Create.Array($$createType19);
+const $$createType12 = DestinationRef.createFrom;
+const $$createType13 = $Create.Map($Create.Any, $Create.Any);
+const $$createType14 = FormField.createFrom;
+const $$createType15 = $Create.Array($$createType14);
+const $$createType16 = FieldCond.createFrom;
+const $$createType17 = $Create.Nullable($$createType16);
+const $$createType18 = FormOption.createFrom;
+const $$createType19 = $Create.Array($$createType18);

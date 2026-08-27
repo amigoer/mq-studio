@@ -9,4 +9,4 @@
  * Threading the real id down from the active connection is the frontend
  * layering work, not part of catching up with the regenerated bindings.
  */
-export const ACTIVE_CONNECTION = 0
+export const ACTIVE_CONNECTION = 0;

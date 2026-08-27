@@ -5,13 +5,13 @@
  * touches the filesystem, the network or the user's browser goes through a Go
  * service so the checks stay outside the renderer.
  */
-import { Events, System, Window } from '@wailsio/runtime'
-import { SystemService, WindowService } from '@bindings/bridge'
-import type { Result as UpdateCheckResult } from '@bindings/update/models'
+import { Events, System, Window } from "@wailsio/runtime";
+import { SystemService, WindowService } from "@bindings/bridge";
+import type { Result as UpdateCheckResult } from "@bindings/update/models";
 
-export type { UpdateCheckResult }
+export type { UpdateCheckResult };
 
-export const isMac = (): boolean => System.IsMac()
+export const isMac = (): boolean => System.IsMac();
 
 /**
  * Subscribes to the system tray menu asking for a page. The payload is a
@@ -19,17 +19,17 @@ export const isMac = (): boolean => System.IsMac()
  * has to switch pages. Keep the name in step with tray.NavigateEvent.
  */
 export function onTrayNavigate(listener: (target: string) => void): () => void {
-  return Events.On('tray:navigate', (event) => {
+  return Events.On("tray:navigate", (event) => {
     // Go emits a single value, so data is the NavId itself, not a tuple.
-    const target: unknown = event.data
-    if (typeof target === 'string') listener(target)
-  })
+    const target: unknown = event.data;
+    if (typeof target === "string") listener(target);
+  });
 }
 
 /** Native window events exist on Windows and macOS only; Linux has none. */
 const maximiseEvents = System.IsMac()
-  ? (['mac:WindowMaximise', 'mac:WindowUnMaximise'] as const)
-  : (['windows:WindowMaximise', 'windows:WindowUnMaximise'] as const)
+  ? (["mac:WindowMaximise", "mac:WindowUnMaximise"] as const)
+  : (["windows:WindowMaximise", "windows:WindowUnMaximise"] as const);
 
 export const windowControls = {
   minimise: (): Promise<void> => Window.Minimise(),
@@ -41,17 +41,20 @@ export const windowControls = {
    * so callers must still re-read isMaximised after toggling.
    */
   onMaximisedChange(listener: (maximised: boolean) => void): () => void {
-    const [maximise, unmaximise] = maximiseEvents
+    const [maximise, unmaximise] = maximiseEvents;
     const off = [
       Events.On(maximise, () => listener(true)),
       Events.On(unmaximise, () => listener(false)),
-    ]
-    return () => off.forEach((unsubscribe) => unsubscribe())
+    ];
+    return () => off.forEach((unsubscribe) => unsubscribe());
   },
   /** Syncs the native window background with the renderer light/dark theme. */
-  setAppearance: (dark: boolean): Promise<void> => WindowService.SetAppearance(dark),
-}
+  setAppearance: (dark: boolean): Promise<void> =>
+    WindowService.SetAppearance(dark),
+};
 
-export const appVersion = (): Promise<string> => SystemService.Version()
-export const checkUpdate = (): Promise<UpdateCheckResult> => SystemService.CheckUpdate()
-export const openExternal = (url: string): Promise<void> => SystemService.OpenExternal(url)
+export const appVersion = (): Promise<string> => SystemService.Version();
+export const checkUpdate = (): Promise<UpdateCheckResult> =>
+  SystemService.CheckUpdate();
+export const openExternal = (url: string): Promise<void> =>
+  SystemService.OpenExternal(url);

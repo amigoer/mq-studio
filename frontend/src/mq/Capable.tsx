@@ -1,6 +1,6 @@
-import type { ReactElement, ReactNode } from 'react'
-import type { Capability } from '@bindings/model/models'
-import { useCapabilities } from './capabilities'
+import type { ReactElement, ReactNode } from "react";
+import type { Capability } from "@bindings/model/models";
+import { useCapabilities } from "./capabilities";
 
 /**
  * Renders children only when the connection can do this.
@@ -15,16 +15,16 @@ export function Capable({
   children,
   fallback,
 }: {
-  of: Capability
-  children: ReactNode
+  of: Capability;
+  children: ReactNode;
   /** Shown when the endpoint reports a reason. Receives that reason. */
-  fallback?: (reason: string) => ReactElement | null
+  fallback?: (reason: string) => ReactElement | null;
 }): ReactNode {
-  const { has, degradedReason } = useCapabilities()
+  const { has, degradedReason } = useCapabilities();
 
-  if (has(of)) return children
+  if (has(of)) return children;
 
-  const reason = degradedReason(of)
-  if (reason && fallback) return fallback(reason)
-  return null
+  const reason = degradedReason(of);
+  if (reason && fallback) return fallback(reason);
+  return null;
 }

@@ -12,7 +12,7 @@ import {
   RotateCcw,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import type { ConsumerGroupItem, TopicItem } from '@/api/models'
+import type { ConsumerGroupItem, Destination } from '@/api/models'
 import { PageHeader } from '@/components/PageHeader'
 import { PageBody } from '@/components/PageLayout'
 import { StatCard } from '@/components/StatCard'
@@ -182,14 +182,14 @@ export function OverviewPage({ onNavigate }: OverviewPageProps) {
   const onlineBrokerCount = data.brokers.filter((b) => b.status === 'online').length
   const totalBrokerCount = data.brokers.length || cluster?.totalBrokers || 0
 
-  const activeTopics = useMemo<TopicItem[]>(
+  const activeTopics = useMemo<Destination[]>(
     () =>
       [...data.topics]
-        .sort((a, b) => (b.tpsIn ?? 0) - (a.tpsIn ?? 0) || a.topic.localeCompare(b.topic))
+        .sort((a, b) => (b.rateIn ?? 0) - (a.rateIn ?? 0) || a.ref.name.localeCompare(b.ref.name))
         .slice(0, 6),
     [data.topics],
   )
-  const maxTopicTps = activeTopics[0]?.tpsIn ?? 0
+  const maxTopicTps = activeTopics[0]?.rateIn ?? 0
 
   const lagAlerts = useMemo<ConsumerGroupItem[]>(
     () =>
@@ -394,12 +394,12 @@ export function OverviewPage({ onNavigate }: OverviewPageProps) {
                     list of bare "—" placeholders. */}
                 {maxTopicTps > 0
                   ? activeTopics.map((topic) => {
-                      const tps = topic.tpsIn ?? 0
+                      const tps = topic.rateIn ?? 0
                       const pct = Math.max(4, Math.round((tps / maxTopicTps) * 100))
                       return (
-                        <div key={topic.topic} className="flex items-center gap-2.5 px-3 py-2">
+                        <div key={topic.ref.name} className="flex items-center gap-2.5 px-3 py-2">
                           <span className="font-mono-design min-w-0 flex-1 truncate text-fs-12">
-                            {topic.topic}
+                            {topic.ref.name}
                           </span>
                           <div
                             className="h-1.5 shrink-0 overflow-hidden rounded-full bg-muted"

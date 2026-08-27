@@ -9,26 +9,26 @@
  * Terms are pure presentation, so they live in the translation bundle rather
  * than crossing the bridge in a driver descriptor.
  */
-import { useCallback } from 'react'
-import { useTranslation } from 'react-i18next'
-import { useConnections } from '@/hooks/useConnections'
+import { useCallback } from "react";
+import { useTranslation } from "react-i18next";
+import { useConnections } from "@/hooks/useConnections";
 
 /** The canonical nouns a family can rename. */
 export type TermKey =
-  | 'destination'
-  | 'destinationPlural'
-  | 'subscription'
-  | 'subscriptionPlural'
-  | 'node'
-  | 'nodePlural'
-  | 'namespace'
-  | 'backlog'
+  | "destination"
+  | "destinationPlural"
+  | "subscription"
+  | "subscriptionPlural"
+  | "node"
+  | "nodePlural"
+  | "namespace"
+  | "backlog";
 
 export interface Terms {
   /** The family's word for a canonical noun. */
-  (key: TermKey): string
+  (key: TermKey): string;
   /** The i18n key, for callers that need to interpolate. */
-  key: (key: TermKey) => string
+  key: (key: TermKey) => string;
 }
 
 /**
@@ -38,20 +38,20 @@ export interface Terms {
  * translation belongs in the bundle that ships the rest of the language.
  */
 export function useTerms(): Terms {
-  const { t, i18n } = useTranslation()
-  const { active } = useConnections()
-  const kind = active?.kind
+  const { t, i18n } = useTranslation();
+  const { active } = useConnections();
+  const kind = active?.kind;
 
   const keyOf = useCallback(
     (term: TermKey) => {
-      const scoped = `mq.${kind}.terms.${term}`
-      return kind && i18n.exists(scoped) ? scoped : `mq.common.terms.${term}`
+      const scoped = `mq.${kind}.terms.${term}`;
+      return kind && i18n.exists(scoped) ? scoped : `mq.common.terms.${term}`;
     },
     [kind, i18n],
-  )
+  );
 
-  const resolve = useCallback((term: TermKey) => t(keyOf(term)), [t, keyOf])
-  const terms = resolve as Terms
-  terms.key = keyOf
-  return terms
+  const resolve = useCallback((term: TermKey) => t(keyOf(term)), [t, keyOf]);
+  const terms = resolve as Terms;
+  terms.key = keyOf;
+  return terms;
 }

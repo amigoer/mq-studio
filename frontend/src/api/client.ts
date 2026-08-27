@@ -9,12 +9,12 @@
 
 /** Unwraps a pointer result that the service guarantees to be non-nil. */
 export function required<T>(value: T | null | undefined): T {
-  if (value == null) throw new Error('backend returned an empty result')
-  return value
+  if (value == null) throw new Error("backend returned an empty result");
+  return value;
 }
 
 /** Drops the nullable element type from a slice result. */
 export function present<T>(values: (T | null)[] | null | undefined): T[] {
-  if (values == null) return []
-  return values.filter((value): value is T => value != null)
+  if (values == null) return [];
+  return values.filter((value): value is T => value != null);
 }

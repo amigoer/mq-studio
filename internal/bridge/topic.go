@@ -10,9 +10,10 @@ import (
 
 // TopicService exposes destination operations to the frontend.
 //
-// It still speaks model.TopicItem. Converting back from the canonical shape
-// here keeps the renderer untouched through the backend refactor; the
-// conversion goes away when the frontend moves onto model.Destination.
+// It speaks the canonical model. What RocketMQ has and another family does
+// not - queue counts, permissions, the route table - travels in the
+// destination's attribute map, whose keys the frontend's rocketmq module
+// reads.
 type TopicService struct {
 	service *destination.Service
 }
@@ -38,40 +39,28 @@ func (input TopicInput) spec() model.DestinationSpec {
 	}
 }
 
-func topicsFrom(destinations []*model.Destination) []*model.TopicItem {
-	topics := make([]*model.TopicItem, 0, len(destinations))
-	for _, current := range destinations {
-		topics = append(topics, rocketmq.TopicFromDestination(current))
-	}
-	return topics
-}
-
 // List returns the user-visible topics.
-func (s *TopicService) List(connID int) ([]*model.TopicItem, error) {
+func (s *TopicService) List(connID int) ([]*model.Destination, error) {
 	destinations, err := s.service.List(context.Background(), connID, model.DestinationFilter{})
 	if err != nil {
 		return nil, err
 	}
-	return topicsFrom(destinations), nil
+	return destinations, nil
 }
 
 // ListAll returns every topic, including system topics.
-func (s *TopicService) ListAll(connID int) ([]*model.TopicItem, error) {
+func (s *TopicService) ListAll(connID int) ([]*model.Destination, error) {
 	destinations, err := s.service.List(context.Background(), connID,
 		model.DestinationFilter{IncludeInternal: true})
 	if err != nil {
 		return nil, err
 	}
-	return topicsFrom(destinations), nil
+	return destinations, nil
 }
 
 // Detail returns a single topic with its routes and metrics.
-func (s *TopicService) Detail(connID int, topicName string) (*model.TopicItem, error) {
-	found, err := s.service.Detail(context.Background(), connID, model.DestinationRef{Name: topicName})
-	if err != nil {
-		return nil, err
-	}
-	return rocketmq.TopicFromDestination(found), nil
+func (s *TopicService) Detail(connID int, topicName string) (*model.Destination, error) {
+	return s.service.Detail(context.Background(), connID, model.DestinationRef{Name: topicName})
 }
 
 // Stats returns the per-queue statistics for a topic.

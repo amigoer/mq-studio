@@ -74,8 +74,8 @@ export function ProducerPage({ onNavigate }: { onNavigate?: (id: NavId) => void 
   const sendableTopics = useMemo(
     () =>
       topics
-        .filter((tp) => !tp.topic.startsWith('%RETRY%') && !tp.topic.startsWith('%DLQ%'))
-        .map((tp) => tp.topic)
+        .filter((tp) => !tp.ref.name.startsWith('%RETRY%') && !tp.ref.name.startsWith('%DLQ%'))
+        .map((tp) => tp.ref.name)
         .sort(),
     [topics],
   )

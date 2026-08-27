@@ -13,6 +13,8 @@ export {
     ConnectionStatus,
     ConsumeMode,
     ConsumerGroupItem,
+    Destination,
+    DestinationRef,
     DriverDescriptor,
     FieldCond,
     FieldTarget,
@@ -27,9 +29,5 @@ export {
     MessageStatus,
     MessageTrackItem,
     NodeStatus,
-    ResetOffsetRequest,
-    TopicItem,
-    TopicMessageType,
-    TopicPerm,
-    TopicRouteItem
+    ResetOffsetRequest
 } from "./models.js";

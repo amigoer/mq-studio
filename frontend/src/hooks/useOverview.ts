@@ -14,7 +14,7 @@ import type {
   ClusterInfo,
   Connection,
   ConsumerGroupItem,
-  TopicItem,
+  Destination,
 } from '@/api/models'
 import * as clusterApi from '@/api/cluster'
 import * as consumerApi from '@/api/consumer'
@@ -27,7 +27,7 @@ const AUTO_REFRESH_MS = 30_000
 export interface OverviewSnapshot {
   cluster: ClusterInfo | null
   brokers: BrokerNode[]
-  topics: TopicItem[]
+  topics: Destination[]
   consumerGroups: ConsumerGroupItem[]
   activeConnection: Connection | null
   lastUpdated: Date | null
@@ -143,7 +143,7 @@ function useOverviewState(): OverviewContextValue {
             : prev.brokers,
         topics:
           topicsResult.status === 'fulfilled'
-            ? (topicsResult.value.filter(Boolean) as TopicItem[])
+            ? (topicsResult.value.filter(Boolean) as Destination[])
             : prev.topics,
         consumerGroups: prev.consumerGroups,
         activeConnection: stillActive,

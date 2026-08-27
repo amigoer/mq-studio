@@ -1,6 +1,6 @@
-import { ConnectionService } from '@bindings/bridge'
-import type { ConnectionInput } from '@bindings/bridge/models'
-import { AuthMechanism, MQKind } from '@bindings/model/models'
+import { ConnectionService } from "@bindings/bridge";
+import type { ConnectionInput } from "@bindings/bridge/models";
+import { AuthMechanism, MQKind } from "@bindings/model/models";
 
 /**
  * Builds the profile shape the bridge now takes.
@@ -19,7 +19,7 @@ function connectionInput(
   accessKey: string,
   secretKey: string,
   remark: string,
-  extra: { credentialsMode: ConnectionInput['credentialsMode'] },
+  extra: { credentialsMode: ConnectionInput["credentialsMode"] },
 ): ConnectionInput {
   return {
     name,
@@ -32,12 +32,13 @@ function connectionInput(
     secrets: { accessKey, secretKey },
     remark,
     credentialsMode: extra.credentialsMode,
-  }
+  };
 }
-import type { Connection } from './models'
-import { present, required } from './client'
+import type { Connection } from "./models";
+import { present, required } from "./client";
 
-export const getConnections = (): Promise<Connection[]> => ConnectionService.List().then(present)
+export const getConnections = (): Promise<Connection[]> =>
+  ConnectionService.List().then(present);
 
 export function addConnection(
   name: string,
@@ -50,10 +51,20 @@ export function addConnection(
   remark: string,
 ): Promise<Connection> {
   return ConnectionService.Add(
-    connectionInput(name, group, nameServer, timeoutSec, enableACL, accessKey, secretKey, remark, {
-      credentialsMode: enableACL ? 'replace' : 'clear',
-    }),
-  ).then(required)
+    connectionInput(
+      name,
+      group,
+      nameServer,
+      timeoutSec,
+      enableACL,
+      accessKey,
+      secretKey,
+      remark,
+      {
+        credentialsMode: enableACL ? "replace" : "clear",
+      },
+    ),
+  ).then(required);
 }
 
 export function updateConnection(
@@ -67,22 +78,38 @@ export function updateConnection(
   secretKey: string,
   remark: string,
 ): Promise<Connection> {
-  const credentialsMode: ConnectionInput['credentialsMode'] = !enableACL
-    ? 'clear'
+  const credentialsMode: ConnectionInput["credentialsMode"] = !enableACL
+    ? "clear"
     : accessKey || secretKey
-      ? 'replace'
-      : 'preserve'
+      ? "replace"
+      : "preserve";
   return ConnectionService.Update(
     id,
-    connectionInput(name, group, nameServer, timeoutSec, enableACL, accessKey, secretKey, remark, {
-      credentialsMode,
-    }),
-  ).then(required)
+    connectionInput(
+      name,
+      group,
+      nameServer,
+      timeoutSec,
+      enableACL,
+      accessKey,
+      secretKey,
+      remark,
+      {
+        credentialsMode,
+      },
+    ),
+  ).then(required);
 }
 
-export const deleteConnection = (id: number): Promise<void> => ConnectionService.Remove(id)
-export const connect = (id: number): Promise<void> => ConnectionService.Connect(id)
-export const disconnect = (id: number): Promise<void> => ConnectionService.Disconnect(id)
-export const connectDefault = (): Promise<void> => ConnectionService.ConnectDefault()
-export const setDefaultConnection = (id: number): Promise<void> => ConnectionService.SetDefault(id)
-export const testConnection = (id: number): Promise<string> => ConnectionService.Test(id)
+export const deleteConnection = (id: number): Promise<void> =>
+  ConnectionService.Remove(id);
+export const connect = (id: number): Promise<void> =>
+  ConnectionService.Connect(id);
+export const disconnect = (id: number): Promise<void> =>
+  ConnectionService.Disconnect(id);
+export const connectDefault = (): Promise<void> =>
+  ConnectionService.ConnectDefault();
+export const setDefaultConnection = (id: number): Promise<void> =>
+  ConnectionService.SetDefault(id);
+export const testConnection = (id: number): Promise<string> =>
+  ConnectionService.Test(id);

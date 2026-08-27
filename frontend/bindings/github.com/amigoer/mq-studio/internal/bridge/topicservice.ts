@@ -4,9 +4,10 @@
 /**
  * TopicService exposes destination operations to the frontend.
  * 
- * It still speaks model.TopicItem. Converting back from the canonical shape
- * here keeps the renderer untouched through the backend refactor; the
- * conversion goes away when the frontend moves onto model.Destination.
+ * It speaks the canonical model. What RocketMQ has and another family does
+ * not - queue counts, permissions, the route table - travels in the
+ * destination's attribute map, whose keys the frontend's rocketmq module
+ * reads.
  * @module
  */
 
@@ -32,7 +33,7 @@ export function Create(connID: number, input: $models.TopicInput): $CancellableP
 /**
  * Detail returns a single topic with its routes and metrics.
  */
-export function Detail(connID: number, topicName: string): $CancellablePromise<model$0.TopicItem | null> {
+export function Detail(connID: number, topicName: string): $CancellablePromise<model$0.Destination | null> {
     return $Call.ByID(4032733801, connID, topicName).then(($result: any) => {
         return $$createType1($result);
     });
@@ -41,7 +42,7 @@ export function Detail(connID: number, topicName: string): $CancellablePromise<m
 /**
  * List returns the user-visible topics.
  */
-export function List(connID: number): $CancellablePromise<(model$0.TopicItem | null)[]> {
+export function List(connID: number): $CancellablePromise<(model$0.Destination | null)[]> {
     return $Call.ByID(2639464304, connID).then(($result: any) => {
         return $$createType2($result);
     });
@@ -50,7 +51,7 @@ export function List(connID: number): $CancellablePromise<(model$0.TopicItem | n
 /**
  * ListAll returns every topic, including system topics.
  */
-export function ListAll(connID: number): $CancellablePromise<(model$0.TopicItem | null)[]> {
+export function ListAll(connID: number): $CancellablePromise<(model$0.Destination | null)[]> {
     return $Call.ByID(3586990883, connID).then(($result: any) => {
         return $$createType2($result);
     });
@@ -80,7 +81,7 @@ export function Update(connID: number, input: $models.TopicInput): $CancellableP
 }
 
 // Private type creation functions
-const $$createType0 = model$0.TopicItem.createFrom;
+const $$createType0 = model$0.Destination.createFrom;
 const $$createType1 = $Create.Nullable($$createType0);
 const $$createType2 = $Create.Array($$createType1);
 const $$createType3 = $Create.Map($Create.Any, $Create.Any);
