@@ -21,6 +21,9 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { openExternal } from "@/api/platform";
 import { useTerms, type TermKey } from "@/mq/terms";
+import { useCapabilities } from "@/mq/capabilities";
+import { navAvailability } from "@/mq/navigation";
+import { useConnections } from "@/hooks/useConnections";
 
 const GITHUB_URL = "https://github.com/amigoer/mq-studio";
 
@@ -110,22 +113,25 @@ export function navItemClass(isActive: boolean): string {
 export function Sidebar({
   active,
   onSelect,
-  disabledIds = [],
   dotIds = [],
 }: {
   active: NavId;
   onSelect: (id: NavId) => void;
-  disabledIds?: NavId[];
   /** Items carrying an unread marker, such as an update waiting in Settings. */
   dotIds?: NavId[];
 }) {
   const { t } = useTranslation();
   const term = useTerms();
+  const capabilities = useCapabilities();
+  const { active: activeConnection } = useConnections();
+  const availability = navAvailability(capabilities, activeConnection != null);
 
   const renderItem = (item: NavItem) => {
     const { id, icon: Icon, labelKey } = item;
     const label = item.term ? term(item.term) : t(labelKey);
-    const disabled = disabledIds.includes(id);
+    if (!availability.visible(id)) return null;
+    const disabled = availability.disabled(id);
+    const reason = availability.reason(id);
     const isActive = active === id;
     const dot = dotIds.includes(id);
 
@@ -136,7 +142,7 @@ export function Sidebar({
         variant="ghost"
         size="sm"
         disabled={disabled}
-        title={disabled ? t("common.connectFirst") : label}
+        title={disabled ? (reason ?? t("common.connectFirst")) : label}
         aria-current={isActive ? "page" : undefined}
         onClick={() => !disabled && onSelect(id)}
         className={navItemClass(isActive)}

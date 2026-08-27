@@ -91,19 +91,6 @@ function App(): React.ReactElement {
           active={activeNav}
           onSelect={setActiveNav}
           dotIds={updateUnseen ? ["settings"] : []}
-          disabledIds={
-            !hasConnected
-              ? [
-                  "topics",
-                  "consumers",
-                  "messages",
-                  "producer",
-                  "cluster",
-                  "alerts",
-                  "acl",
-                ]
-              : []
-          }
         />
         <main className="min-h-0 min-w-0 flex-1 overflow-hidden bg-background">
           <PageTransition transitionKey={contentKey} variant="page">

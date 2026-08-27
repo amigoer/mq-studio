@@ -12,6 +12,7 @@
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { useConnections } from "@/hooks/useConnections";
+import { registeredKinds } from "./registry";
 
 /** The canonical nouns a family can rename. */
 export type TermKey =
@@ -40,7 +41,14 @@ export interface Terms {
 export function useTerms(): Terms {
   const { t, i18n } = useTranslation();
   const { active } = useConnections();
-  const kind = active?.kind;
+
+  // With nothing connected there is no family to ask, but the neutral word is
+  // the wrong answer while only one driver is compiled in: its vocabulary is
+  // the product's vocabulary, and showing "Destinations" on a RocketMQ-only
+  // build reads as a placeholder rather than as precision.
+  const registered = registeredKinds();
+  const kind =
+    active?.kind ?? (registered.length === 1 ? registered[0] : undefined);
 
   const keyOf = useCallback(
     (term: TermKey) => {
