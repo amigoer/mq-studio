@@ -110,8 +110,11 @@ func (s *Service) List(ctx context.Context, connID int) ([]*model.Destination, e
 
 ## 2. 必须逐字保留的现有行为
 
-25 处取默认客户端里，**5 处在取不到客户端时吞掉错误、返回空结果**，其余 20 处
-向上抛。这个不对称是刻意的：列表页在断连时渲染空列表而不是错误横幅。
+> **施工修正：实际是 6 处，不是 5 处。** `cluster/overview.go` 的
+> `GetClusterInfo` 也吞错返回空，但它返回的是多行结构体字面量，最初那次 grep 只
+> 匹配单行 `return X, nil`，所以漏掉了。下表已补上。
+
+25 处取默认客户端里，**6 处在取不到客户端时吞掉错误、返回空结果**，其余向上抛。这个不对称是刻意的：列表页在断连时渲染空列表而不是错误横幅。
 
 | 位置 | 取不到客户端时返回 |
 | --- | --- |
@@ -120,6 +123,7 @@ func (s *Service) List(ctx context.Context, connID int) ([]*model.Destination, e
 | `topic/query.go:109` | `0, nil` |
 | `consumer/query.go:22` | `[]*model.ConsumerGroupItem{}, nil` |
 | `cluster/broker.go:135` | `[]*model.NameServerNode{}, nil` |
+| `cluster/overview.go:18` | 空 `ClusterInfo`（施工时发现） |
 
 **薄编排层必须在这 5 个方法上显式保留这一行为**，其余方法照常返回错误。改成
 统一抛错会让断连时的界面从空列表变成错误提示 —— 那是用户可见的变化，违反
@@ -237,8 +241,11 @@ Commits，纯英文。
 | `cluster/history_test.go` | 83 | **留在 service/** |
 | `cluster/parse_test.go` | 21 | **留在 service/** |
 
-**允许改动的只有 package 声明行和 import 路径。任何断言的改动都说明重构改变了
-行为，应当停下来。**
+**允许改动的只有 package 声明行、import 路径，以及构造方式。** 最后一类是施工时
+补的：移动过来的测试构造的接收者从 `xxx.Service` 变成了驱动的 `Conn`，调用也多了
+`ctx` 参数 —— 原来的规则太窄，覆盖不到接收者变更。
+
+**任何断言的改动仍然意味着重构改变了行为，应当停下来。**
 
 薄编排层是新代码，需要新增测试：注册表查不到连接、能力不支持、以及第 2 节那 5
 个「吞错返回空」的方法各一条。
