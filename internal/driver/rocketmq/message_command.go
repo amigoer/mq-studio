@@ -1,11 +1,9 @@
-package message
+package rocketmq
 
 import (
 	"context"
 	"fmt"
 	"strings"
-
-	"github.com/amigoer/mq-studio/internal/driver/rocketmq"
 
 	rocketmqClient "github.com/apache/rocketmq-client-go/v2"
 	"github.com/apache/rocketmq-client-go/v2/primitive"
@@ -13,12 +11,12 @@ import (
 )
 
 // ResendMessage republishes the original content as a new message.
-func (s *Service) ResendMessage(consumerGroup, clientID, topic, messageID string) (string, error) {
+func (c *Conn) ResendMessage(ctx context.Context, consumerGroup, clientID, topic, messageID string) (string, error) {
 	// Preserve legacy binding parameters while using a true republish operation.
 	_ = consumerGroup
 	_ = clientID
 
-	item, err := s.QueryMessageByID(topic, messageID)
+	item, err := c.QueryMessageByID(ctx, topic, messageID)
 	if err != nil {
 		return "", fmt.Errorf("读取原消息失败: %w", err)
 	}
@@ -34,11 +32,11 @@ func (s *Service) ResendMessage(consumerGroup, clientID, topic, messageID string
 		strings.HasPrefix(targetTopic, "DLQ%") || strings.HasPrefix(targetTopic, "RETRY%") {
 		return "", fmt.Errorf("无法从内部 Topic %s 解析原业务 Topic", targetTopic)
 	}
-	return s.SendMessage(targetTopic, item.Tags, item.Keys, item.Body, 0)
+	return c.SendMessage(ctx, targetTopic, item.Tags, item.Keys, item.Body, 0)
 }
 
 // SendMessage sends a message to a topic. Delay levels range from zero through eighteen.
-func (s *Service) SendMessage(topic, tags, keys, body string, delayLevel int) (string, error) {
+func (c *Conn) SendMessage(ctx context.Context, topic, tags, keys, body string, delayLevel int) (string, error) {
 	topic = strings.TrimSpace(topic)
 	if topic == "" {
 		return "", fmt.Errorf("发送消息失败: Topic 不能为空")
@@ -50,7 +48,7 @@ func (s *Service) SendMessage(topic, tags, keys, body string, delayLevel int) (s
 		return "", fmt.Errorf("发送消息失败: 延迟等级必须在 0-18 之间")
 	}
 
-	manager := rocketmq.GetClientManager()
+	manager := GetClientManager()
 	if _, err := manager.GetDefaultClient(); err != nil {
 		return "", fmt.Errorf("发送消息失败: %w", err)
 	}
@@ -62,7 +60,7 @@ func (s *Service) SendMessage(topic, tags, keys, body string, delayLevel int) (s
 	producerOptions := []producer.Option{
 		producer.WithNameServer(clientConfig.NameServers),
 		producer.WithRetry(2),
-		producer.WithSendMsgTimeout(s.settings.GetRequestTimeout()),
+		producer.WithSendMsgTimeout(timeoutFrom(ctx)),
 	}
 	if clientConfig.EnableACL {
 		producerOptions = append(producerOptions, producer.WithCredentials(primitive.Credentials{
@@ -90,8 +88,6 @@ func (s *Service) SendMessage(topic, tags, keys, body string, delayLevel int) (s
 		message.WithDelayTimeLevel(delayLevel)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), s.settings.GetRequestTimeout())
-	defer cancel()
 	result, err := messageProducer.SendSync(ctx, message)
 	if err != nil {
 		return "", fmt.Errorf("发送消息失败: %w", err)

@@ -1,4 +1,4 @@
-package message
+package rocketmq
 
 import (
 	"context"
@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/amigoer/mq-studio/internal/driver/rocketmq"
 	"github.com/amigoer/mq-studio/internal/model"
 
 	admin "github.com/amigoer/rocketmq-admin-go"
@@ -14,25 +13,22 @@ import (
 )
 
 // QueryMessageByID returns a message by client or offset message ID.
-func (s *Service) QueryMessageByID(topic, messageID string) (*model.MessageItem, error) {
+func (c *Conn) QueryMessageByID(ctx context.Context, topic, messageID string) (*model.MessageItem, error) {
 	topic = strings.TrimSpace(topic)
 	messageID = strings.TrimSpace(messageID)
 	if topic == "" || messageID == "" {
 		return nil, fmt.Errorf("查询消息失败: Topic 和 Message ID 不能为空")
 	}
 
-	client, err := rocketmq.GetClientManager().GetDefaultClient()
-	if err != nil {
-		return nil, fmt.Errorf("获取客户端失败: %w", err)
-	}
+	client := c.client
 
 	var item *model.MessageItem
-	err = rocketmq.ExecWithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
+	err := ExecWithTimeout(client, timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
 		message, findErr := findMessageByID(ctx, retryClient, topic, messageID)
 		if findErr != nil {
 			return findErr
 		}
-		item = s.convertMessageExt(message)
+		item = c.convertMessageExt(message)
 		return nil
 	})
 	if err != nil {

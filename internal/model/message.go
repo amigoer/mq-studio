@@ -38,6 +38,11 @@ type MessageQueryParams struct {
 	StartTime  int64  `json:"startTime"`  // Start timestamp
 	EndTime    int64  `json:"endTime"`    // End timestamp
 	MaxResults int    `json:"maxResults"` // Maximum result count
+
+	// Filters narrows a search by something only one family has: a RocketMQ
+	// tag, a Kafka header, a RabbitMQ routing key. The keys are a contract
+	// between one driver and its frontend module.
+	Filters map[string]string `json:"filters"`
 }
 
 // MessageTrackItem holds message track information.

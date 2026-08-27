@@ -65,6 +65,13 @@ func rocketMQCapabilities() []model.Capability {
 		model.CapSubscriptionDelete,
 		model.CapSubscriptionLag,
 		model.CapOffsetReset,
+
+		model.CapMessageQuery,
+		model.CapMessageByID,
+		model.CapMessageTrack,
+		model.CapMessageResend,
+		model.CapDLQ,
+		model.CapPublish,
 	}
 }
 
@@ -96,3 +103,8 @@ func CurrentConn() (driver.Conn, error) {
 	}
 	return NewConn(client, GetClientManager().GetDefaultConnection()), nil
 }
+
+// defaultFetchLimit caps a message scan when the caller does not narrow it.
+// The page size used to come from application settings; it is a query
+// parameter now, and this is the fallback for callers that pass none.
+const defaultFetchLimit = 32

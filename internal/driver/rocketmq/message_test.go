@@ -1,4 +1,4 @@
-package message
+package rocketmq
 
 import (
 	"testing"
@@ -24,7 +24,7 @@ func TestContainsExactMessageKey(t *testing.T) {
 }
 
 func TestQueryMessageByIDValidation(t *testing.T) {
-	service := New(nil)
+	service := &Conn{}
 	for _, test := range []struct {
 		name      string
 		topic     string
@@ -34,7 +34,7 @@ func TestQueryMessageByIDValidation(t *testing.T) {
 		{name: "empty message ID", topic: "topic", messageID: "  "},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			_, err := service.QueryMessageByID(test.topic, test.messageID)
+			_, err := service.QueryMessageByID(t.Context(), test.topic, test.messageID)
 			if err == nil || err.Error() != "查询消息失败: Topic 和 Message ID 不能为空" {
 				t.Fatalf("validation error = %v", err)
 			}
@@ -43,7 +43,7 @@ func TestQueryMessageByIDValidation(t *testing.T) {
 }
 
 func TestQueryMessagesValidation(t *testing.T) {
-	service := New(nil)
+	service := &Conn{}
 	tests := []struct {
 		name      string
 		topic     string
@@ -68,7 +68,7 @@ func TestQueryMessagesValidation(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			_, err := service.QueryMessages(test.topic, "", "", 10, test.startTime, test.endTime)
+			_, err := service.queryMessagesBy(t.Context(), test.topic, "", "", 10, test.startTime, test.endTime)
 			if err == nil || err.Error() != test.wantError {
 				t.Fatalf("validation error = %v, want %q", err, test.wantError)
 			}
@@ -77,7 +77,7 @@ func TestQueryMessagesValidation(t *testing.T) {
 }
 
 func TestConvertRetryMessageMetadata(t *testing.T) {
-	service := New(nil)
+	service := &Conn{}
 	item := service.convertMessageExt(&admin.MessageExt{
 		Topic: "%RETRY%orders-group",
 		Properties: map[string]string{
@@ -91,7 +91,7 @@ func TestConvertRetryMessageMetadata(t *testing.T) {
 }
 
 func TestConvertMessageExtPrefersClientMessageID(t *testing.T) {
-	service := New(nil)
+	service := &Conn{}
 	item := service.convertMessageExt(&admin.MessageExt{
 		MsgId:       "client-message-id",
 		OffsetMsgId: "offset-message-id",
@@ -102,7 +102,7 @@ func TestConvertMessageExtPrefersClientMessageID(t *testing.T) {
 }
 
 func TestConvertMessageExtFallsBackToOffsetMessageID(t *testing.T) {
-	service := New(nil)
+	service := &Conn{}
 	item := service.convertMessageExt(&admin.MessageExt{OffsetMsgId: "offset-message-id"})
 	if item.MessageID != "offset-message-id" {
 		t.Fatalf("MessageID = %q, want offset-message-id", item.MessageID)
@@ -147,7 +147,7 @@ func TestMatchesMessageQueueKey(t *testing.T) {
 }
 
 func TestConvertMessageExtStatuses(t *testing.T) {
-	service := New(nil)
+	service := &Conn{}
 	dlq := service.convertMessageExt(&admin.MessageExt{
 		Topic: "%DLQ%gid",
 		MsgId: "m1",

@@ -51,7 +51,7 @@ func New() (*Services, error) {
 		Cluster:     clusterService,
 		Topics:      destination.New(rocketmq.CurrentConn, settingsService),
 		Consumers:   subscription.New(rocketmq.CurrentConn, settingsService),
-		Messages:    message.New(settingsService),
+		Messages:    message.New(rocketmq.CurrentConn, settingsService),
 		Settings:    configurationService,
 		ACL:         acl.New(settingsService),
 		Collector:   collector.New(clusterService),

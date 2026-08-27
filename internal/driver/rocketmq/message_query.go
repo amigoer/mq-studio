@@ -1,4 +1,4 @@
-package message
+package rocketmq
 
 import (
 	"context"
@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/amigoer/mq-studio/internal/driver/rocketmq"
 	"github.com/amigoer/mq-studio/internal/model"
 
 	admin "github.com/amigoer/rocketmq-admin-go"
@@ -61,10 +60,10 @@ func normalizeMessageQuery(
 
 // QueryMessages queries messages within a millisecond timestamp range. Zero
 // boundaries are unrestricted and non-positive limits use the configured default.
-func (s *Service) QueryMessages(topic, key, tag string, maxResults int, startTime, endTime int64) ([]*model.MessageItem, error) {
+func (c *Conn) queryMessagesBy(ctx context.Context, topic, key, tag string, maxResults int, startTime, endTime int64) ([]*model.MessageItem, error) {
 	defaultLimit := maxResults
 	if maxResults <= 0 {
-		defaultLimit = s.settings.GetFetchLimit()
+		defaultLimit = defaultFetchLimit
 	}
 	query, err := normalizeMessageQuery(
 		topic, key, tag, maxResults, startTime, endTime, defaultLimit, time.Now().UnixMilli(),
@@ -73,22 +72,19 @@ func (s *Service) QueryMessages(topic, key, tag string, maxResults int, startTim
 		return nil, err
 	}
 
-	client, err := rocketmq.GetClientManager().GetDefaultClient()
-	if err != nil {
-		return nil, fmt.Errorf("获取客户端失败: %w", err)
-	}
+	client := c.client
 
 	result := make([]*model.MessageItem, 0)
-	queryTimeout := s.settings.GetRequestTimeout()
+	queryTimeout := timeoutFrom(ctx)
 	if queryTimeout < 30*time.Second {
 		queryTimeout = 30 * time.Second
 	}
-	err = rocketmq.ExecWithTimeout(client, queryTimeout, func(ctx context.Context, retryClient *admin.Client) error {
+	err = ExecWithTimeout(client, queryTimeout, func(ctx context.Context, retryClient *admin.Client) error {
 		messages, callErr := executeMessageQuery(ctx, retryClient, query)
 		if callErr != nil {
 			return callErr
 		}
-		result = s.convertQueryResults(messages, query)
+		result = c.convertQueryResults(messages, query)
 		return nil
 	})
 	if err != nil {
@@ -116,7 +112,7 @@ func executeMessageQuery(ctx context.Context, client *admin.Client, query messag
 	)
 }
 
-func (s *Service) convertQueryResults(messages []*admin.MessageExt, query messageQuery) []*model.MessageItem {
+func (c *Conn) convertQueryResults(messages []*admin.MessageExt, query messageQuery) []*model.MessageItem {
 	result := make([]*model.MessageItem, 0, len(messages))
 	seen := make(map[string]struct{}, len(messages))
 	for _, message := range messages {
@@ -144,7 +140,7 @@ func (s *Service) convertQueryResults(messages []*admin.MessageExt, query messag
 			continue
 		}
 		seen[dedupeKey] = struct{}{}
-		result = append(result, s.convertMessageExt(message))
+		result = append(result, c.convertMessageExt(message))
 	}
 	sort.Slice(result, func(i, j int) bool {
 		return result[i].StoreTimestamp > result[j].StoreTimestamp

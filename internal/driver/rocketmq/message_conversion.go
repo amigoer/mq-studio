@@ -1,4 +1,4 @@
-package message
+package rocketmq
 
 import (
 	"strconv"
@@ -12,7 +12,7 @@ import (
 )
 
 // convertMessageExt converts a RocketMQ admin message to the public model.
-func (s *Service) convertMessageExt(message *admin.MessageExt) *model.MessageItem {
+func (c *Conn) convertMessageExt(message *admin.MessageExt) *model.MessageItem {
 	tags := ""
 	keys := ""
 	retryTimes := 0
@@ -37,7 +37,6 @@ func (s *Service) convertMessageExt(message *admin.MessageExt) *model.MessageIte
 	}
 
 	return &model.MessageItem{
-		ID:             s.getNextID(),
 		Topic:          message.Topic,
 		MessageID:      messageID,
 		Tags:           tags,

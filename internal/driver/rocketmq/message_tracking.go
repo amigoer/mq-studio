@@ -1,11 +1,10 @@
-package message
+package rocketmq
 
 import (
 	"context"
 	"fmt"
 	"strings"
 
-	"github.com/amigoer/mq-studio/internal/driver/rocketmq"
 	"github.com/amigoer/mq-studio/internal/driver/rocketmq/resource"
 	"github.com/amigoer/mq-studio/internal/model"
 
@@ -13,27 +12,24 @@ import (
 )
 
 // GetMessageTrack returns consumption progress for groups subscribed to a message topic.
-func (s *Service) GetMessageTrack(topic, messageID string) ([]*model.MessageTrackItem, error) {
+func (c *Conn) GetMessageTrack(ctx context.Context, topic, messageID string) ([]*model.MessageTrackItem, error) {
 	topic = strings.TrimSpace(topic)
 	messageID = strings.TrimSpace(messageID)
 	if topic == "" || messageID == "" {
 		return nil, fmt.Errorf("查询消息轨迹失败: Topic 和 Message ID 不能为空")
 	}
 
-	client, err := rocketmq.GetClientManager().GetDefaultClient()
-	if err != nil {
-		return nil, fmt.Errorf("获取客户端失败: %w", err)
-	}
+	client := c.client
 
-	message, err := s.lookupTrackedMessage(client, topic, messageID)
+	message, err := c.lookupTrackedMessage(ctx, client, topic, messageID)
 	if err != nil {
 		return nil, err
 	}
 	if message.BrokerName == "" {
-		message.BrokerName = s.resolveMessageBrokerName(client, message)
+		message.BrokerName = c.resolveMessageBrokerName(ctx, client, message)
 	}
 
-	groups, err := s.queryConsumerGroups(client, topic)
+	groups, err := c.queryConsumerGroups(ctx, client, topic)
 	if err != nil {
 		return nil, err
 	}
@@ -48,7 +44,7 @@ func (s *Service) GetMessageTrack(topic, messageID string) ([]*model.MessageTrac
 			TrackType:     "UNKNOWN",
 			ConsumeStatus: "未知",
 		}
-		if trackErr := s.populateTrack(client, group, message, track); trackErr != nil {
+		if trackErr := c.populateTrack(ctx, client, group, message, track); trackErr != nil {
 			track.TrackType = "UNKNOWN"
 			track.ConsumeStatus = "无法获取消费进度"
 			track.ExceptionDesc = trackErr.Error()
@@ -58,9 +54,9 @@ func (s *Service) GetMessageTrack(topic, messageID string) ([]*model.MessageTrac
 	return tracks, nil
 }
 
-func (s *Service) lookupTrackedMessage(client *admin.Client, topic, messageID string) (*admin.MessageExt, error) {
+func (c *Conn) lookupTrackedMessage(ctx context.Context, client *admin.Client, topic, messageID string) (*admin.MessageExt, error) {
 	var message *admin.MessageExt
-	err := rocketmq.ExecWithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
+	err := ExecWithTimeout(client, timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
 		var findErr error
 		message, findErr = findMessageByID(ctx, retryClient, topic, messageID)
 		return findErr
@@ -74,9 +70,9 @@ func (s *Service) lookupTrackedMessage(client *admin.Client, topic, messageID st
 	return message, nil
 }
 
-func (s *Service) queryConsumerGroups(client *admin.Client, topic string) ([]string, error) {
+func (c *Conn) queryConsumerGroups(ctx context.Context, client *admin.Client, topic string) ([]string, error) {
 	var groups []string
-	err := rocketmq.ExecWithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
+	err := ExecWithTimeout(client, timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
 		var callErr error
 		groups, callErr = retryClient.QueryTopicConsumeByWho(ctx, topic)
 		return callErr
@@ -87,13 +83,14 @@ func (s *Service) queryConsumerGroups(client *admin.Client, topic string) ([]str
 	return groups, nil
 }
 
-func (s *Service) populateTrack(
+func (c *Conn) populateTrack(
+	ctx context.Context,
 	client *admin.Client,
 	group string,
 	message *admin.MessageExt,
 	track *model.MessageTrackItem,
 ) error {
-	return rocketmq.ExecWithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
+	return ExecWithTimeout(client, timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
 		stats, err := retryClient.ExamineConsumeStats(ctx, group)
 		if err != nil {
 			return err
@@ -120,12 +117,12 @@ func (s *Service) populateTrack(
 	})
 }
 
-func (s *Service) resolveMessageBrokerName(client *admin.Client, message *admin.MessageExt) string {
+func (c *Conn) resolveMessageBrokerName(ctx context.Context, client *admin.Client, message *admin.MessageExt) string {
 	if message == nil {
 		return ""
 	}
 	var brokerName string
-	_ = rocketmq.ExecWithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
+	_ = ExecWithTimeout(client, timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
 		route, err := retryClient.ExamineTopicRouteInfo(ctx, message.Topic)
 		if err != nil {
 			return err
