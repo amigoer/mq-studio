@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/amigoer/mq-studio/internal/crypto"
 	"github.com/amigoer/mq-studio/internal/model"
@@ -38,7 +39,7 @@ func TestRealServicesConfigurationWorkflow(t *testing.T) {
 		t.Fatalf("initialize encryption key: %v", err)
 	}
 	settings := settingsservice.New(paths.SettingsFile)
-	connections := connectionservice.New(paths.ConnectionsFile, settings)
+	connections := connectionservice.New(paths.ConnectionsFile, settings, noopClientRuntime{})
 	configuration := New(paths, settings, connections)
 
 	t.Run("portable export and import", func(t *testing.T) {
@@ -252,3 +253,14 @@ func assertNoPlaintextCredentials(t *testing.T, path string, credentials ...stri
 		}
 	}
 }
+
+// noopClientRuntime stands in for the client registry: this test exercises
+// config import and export, not connection lifecycle.
+type noopClientRuntime struct{}
+
+func (noopClientRuntime) Connect(string, time.Duration, bool, string, string) error { return nil }
+func (noopClientRuntime) HasClient(string) bool                                     { return false }
+func (noopClientRuntime) SetDefault(string) error                                   { return nil }
+func (noopClientRuntime) Remove(string)                                             {}
+func (noopClientRuntime) Test(string, time.Duration, bool, string, string) error    { return nil }
+func (noopClientRuntime) CloseAll()                                                 {}

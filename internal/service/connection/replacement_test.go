@@ -249,7 +249,7 @@ func TestConcurrentReplaceAndAddRemainLinearizable(t *testing.T) {
 		}
 
 		inMemory := connectionNames(service.GetConnections())
-		persisted := connectionNames(New(service.dataFilePath, fakeSettings{connectTimeout: 3 * time.Second, autoConnect: true}).GetConnections())
+		persisted := connectionNames(New(service.dataFilePath, fakeSettings{connectTimeout: 3 * time.Second, autoConnect: true}, noopRuntime{}).GetConnections())
 		if !reflect.DeepEqual(inMemory, persisted) {
 			t.Fatalf("iteration %d: memory=%v disk=%v", iteration, inMemory, persisted)
 		}

@@ -21,12 +21,15 @@ type Service struct {
 	nextID          int
 	dataFilePath    string
 	settings        Settings
-	runtime         clientRuntime
+	runtime         ClientRuntime
 	reconnectReload bool
 }
 
 // New creates a connection service backed by dataFilePath.
-func New(dataFilePath string, settings Settings) *Service {
+//
+// The runtime is injected rather than constructed here so this package stays
+// free of any driver import.
+func New(dataFilePath string, settings Settings, runtime ClientRuntime) *Service {
 	if strings.TrimSpace(dataFilePath) == "" {
 		dataFilePath = "connections.json"
 	}
@@ -35,7 +38,7 @@ func New(dataFilePath string, settings Settings) *Service {
 		nextID:       1,
 		dataFilePath: dataFilePath,
 		settings:     settings,
-		runtime:      newAdminClientRuntime(),
+		runtime:      runtime,
 	}
 	if err := service.loadConnectionsFromFile(); err != nil {
 		log.Printf("[ConnectionService] failed to load connection config: %v", err)

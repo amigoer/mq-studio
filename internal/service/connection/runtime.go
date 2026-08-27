@@ -1,52 +1,23 @@
 package connection
 
-import (
-	"time"
+import "time"
 
-	"github.com/amigoer/mq-studio/internal/driver/rocketmq"
-)
-
-// clientRuntime isolates the mutable RocketMQ client registry from profile
+// ClientRuntime is the mutable client registry, isolated from profile
 // persistence so lifecycle transactions can be tested deterministically.
-type clientRuntime interface {
-	Connect(nameServer string, timeout time.Duration, enableACL bool, accessKey, secretKey string) error
-	HasClient(nameServer string) bool
-	SetDefault(nameServer string) error
-	Remove(nameServer string)
-	Test(nameServer string, timeout time.Duration, enableACL bool, accessKey, secretKey string) error
+//
+// The implementation lives in the composition root rather than here: binding
+// it in this package is what made connection management import a driver, and
+// a profile store has no business knowing which broker family it stores
+// profiles for.
+//
+// It is still keyed by endpoint. Re-keying it by profile id belongs with the
+// ConnectionProfile migration, because that is the commit where a connection
+// gets an identity independent of its address.
+type ClientRuntime interface {
+	Connect(endpoint string, timeout time.Duration, enableACL bool, accessKey, secretKey string) error
+	HasClient(endpoint string) bool
+	SetDefault(endpoint string) error
+	Remove(endpoint string)
+	Test(endpoint string, timeout time.Duration, enableACL bool, accessKey, secretKey string) error
 	CloseAll()
-}
-
-type adminClientRuntime struct {
-	manager *rocketmq.AdminClientManager
-}
-
-func newAdminClientRuntime() clientRuntime {
-	return &adminClientRuntime{manager: rocketmq.GetClientManager()}
-}
-
-func (r *adminClientRuntime) Connect(nameServer string, timeout time.Duration, enableACL bool, accessKey, secretKey string) error {
-	_, err := r.manager.CreateClient(nameServer, timeout, enableACL, accessKey, secretKey)
-	return err
-}
-
-func (r *adminClientRuntime) HasClient(nameServer string) bool {
-	_, err := r.manager.GetClient(nameServer)
-	return err == nil
-}
-
-func (r *adminClientRuntime) SetDefault(nameServer string) error {
-	return r.manager.SetDefaultConnection(nameServer)
-}
-
-func (r *adminClientRuntime) Remove(nameServer string) {
-	r.manager.RemoveClient(nameServer)
-}
-
-func (r *adminClientRuntime) Test(nameServer string, timeout time.Duration, enableACL bool, accessKey, secretKey string) error {
-	return r.manager.TestConnection(nameServer, timeout, enableACL, accessKey, secretKey)
-}
-
-func (r *adminClientRuntime) CloseAll() {
-	r.manager.CloseAll()
 }

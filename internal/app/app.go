@@ -43,7 +43,7 @@ func New() (*Services, error) {
 	}
 
 	settingsService := settings.New(paths.SettingsFile)
-	connections := connection.New(paths.ConnectionsFile, settingsService)
+	connections := connection.New(paths.ConnectionsFile, settingsService, newRocketMQRuntime())
 	configurationService := configuration.New(paths, settingsService, connections)
 	clusterService := cluster.New(paths.TPSHistoryFile, rocketmq.CurrentConn, settingsService)
 	services := &Services{

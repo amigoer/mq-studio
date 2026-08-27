@@ -88,6 +88,48 @@ func (s *Service) Connect(id int) error {
 	return s.connectRuntimeLocked(id)
 }
 
+// singleActivePolicy is deliberate, not incidental: connecting one profile
+// closes every other client and marks every other profile offline.
+//
+// The client registry is keyed by profile, so holding several open is already
+// possible. What is not decided is the UI question - which navigation wins,
+// what an aggregate overview would show - so the policy stays here as one
+// named step rather than being spread through connect as a side effect. Lifting
+// it means deleting these two calls, not untangling them.
+const singleActivePolicy = true
+
+// otherEndpointsLocked lists the clients singleActivePolicy will close.
+// The caller must hold mu.
+func (s *Service) otherEndpointsLocked(id int, endpoint string) []string {
+	if !singleActivePolicy {
+		return nil
+	}
+	others := make([]string, 0)
+	for _, current := range s.connections {
+		if current.ID != id && current.NameServer != "" && current.NameServer != endpoint {
+			others = append(others, current.NameServer)
+		}
+	}
+	return others
+}
+
+// markOnlyThisOneOnlineLocked applies singleActivePolicy to stored status.
+// The caller must hold mu.
+func (s *Service) markOnlyThisOneOnlineLocked(id int, now string) {
+	for _, current := range s.connections {
+		if current.ID == id {
+			current.Status = model.StatusOnline
+			current.LastCheck = now
+			current.IsDefault = true
+			continue
+		}
+		if singleActivePolicy {
+			current.Status = model.StatusOffline
+			current.IsDefault = false
+		}
+	}
+}
+
 // connectRuntimeLocked activates one profile while the caller holds runtimeMu.
 func (s *Service) connectRuntimeLocked(id int) error {
 	s.mu.RLock()
@@ -99,12 +141,7 @@ func (s *Service) connectRuntimeLocked(id int) error {
 	nameServer := connection.NameServer
 	timeout := s.getConnectTimeout(connection)
 	enableACL, accessKey, secretKey := s.resolveACLCredentials(connection)
-	otherNameServers := make([]string, 0)
-	for _, current := range s.connections {
-		if current.ID != id && current.NameServer != "" && current.NameServer != nameServer {
-			otherNameServers = append(otherNameServers, current.NameServer)
-		}
-	}
+	otherNameServers := s.otherEndpointsLocked(id, nameServer)
 	s.mu.RUnlock()
 
 	if err := s.runtime.Connect(nameServer, timeout, enableACL, accessKey, secretKey); err != nil {
@@ -119,16 +156,7 @@ func (s *Service) connectRuntimeLocked(id int) error {
 
 	s.mu.Lock()
 	now := timestamp.Now()
-	for _, current := range s.connections {
-		if current.ID == id {
-			current.Status = model.StatusOnline
-			current.LastCheck = now
-			current.IsDefault = true
-		} else {
-			current.Status = model.StatusOffline
-			current.IsDefault = false
-		}
-	}
+	s.markOnlyThisOneOnlineLocked(id, now)
 	err := s.saveConnectionsLocked()
 	s.mu.Unlock()
 	if err != nil {

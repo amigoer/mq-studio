@@ -130,7 +130,7 @@ func TestConnectionPersistReload(t *testing.T) {
 	if _, err := service.AddConnection("keep", "development", "127.0.0.1:9876", 5, true, "ak1", "sk1", ""); err != nil {
 		t.Fatal(err)
 	}
-	reloaded := New(service.dataFilePath, fakeSettings{connectTimeout: 3 * time.Second, autoConnect: true})
+	reloaded := New(service.dataFilePath, fakeSettings{connectTimeout: 3 * time.Second, autoConnect: true}, noopRuntime{})
 	list := reloaded.GetConnections()
 	if len(list) != 1 || list[0].AccessKey != "ak1" || list[0].SecretKey != "sk1" {
 		t.Fatalf("reloaded credentials do not match: %#v", list)

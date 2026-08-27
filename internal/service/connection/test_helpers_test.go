@@ -49,5 +49,17 @@ func newTestService(t *testing.T, settings Settings) *Service {
 	if settings == nil {
 		settings = fakeSettings{connectTimeout: 3 * time.Second, autoConnect: true}
 	}
-	return New(filepath.Join(t.TempDir(), "connections.json"), settings)
+	return New(filepath.Join(t.TempDir(), "connections.json"), settings, noopRuntime{})
 }
+
+// noopRuntime stands in where a test only exercises profile persistence. The
+// tests that care about client lifecycle replace service.runtime with a fake
+// that records calls.
+type noopRuntime struct{}
+
+func (noopRuntime) Connect(string, time.Duration, bool, string, string) error { return nil }
+func (noopRuntime) HasClient(string) bool                                     { return false }
+func (noopRuntime) SetDefault(string) error                                   { return nil }
+func (noopRuntime) Remove(string)                                             {}
+func (noopRuntime) Test(string, time.Duration, bool, string, string) error    { return nil }
+func (noopRuntime) CloseAll()                                                 {}
