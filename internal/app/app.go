@@ -3,6 +3,7 @@ package app
 
 import (
 	"fmt"
+	"github.com/amigoer/mq-studio/internal/driver"
 
 	"github.com/amigoer/mq-studio/internal/crypto"
 	"github.com/amigoer/mq-studio/internal/driver/rocketmq"
@@ -27,6 +28,10 @@ type Services struct {
 	Messages    *message.Service
 	Settings    *configuration.Service
 	ACL         *access.Service
+
+	// Conns resolves a profile id to a live connection. The bridge needs it to
+	// answer capability questions without going through a domain service.
+	Conns func(connID int) (driver.Conn, error)
 
 	// Collector keeps the TPS history filling in while the window is hidden.
 	Collector *collector.Collector
@@ -55,8 +60,12 @@ func New() (*Services, error) {
 		Messages:    message.New(conns, settingsService),
 		Settings:    configurationService,
 		ACL:         access.New(conns, settingsService),
+		Conns:       conns,
 		Collector:   collector.New(sampleActiveConnection(clusterService), rocketmq.HasActiveConnection),
 	}
+	// Register the compiled-in drivers before anything asks the catalog what
+	// families exist.
+	driver.Register(rocketmq.New())
 	rocketmq.GetClientManager().SetDefaultClientInitializer(connections.ConnectDefault)
 	services.Collector.Start()
 	return services, nil
