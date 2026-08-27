@@ -7,6 +7,12 @@
  */
 import { registerModule } from '../registry'
 import { MQKind } from '../types'
+import { registerValidator } from '../validators'
+import { isValidNsHost } from './endpoints'
+
+// The descriptor's endpoint field names this check; only this module knows
+// what a valid name server address looks like.
+registerValidator('host-port', isValidNsHost)
 
 registerModule({
   kind: MQKind.KindRocketMQ,

@@ -36,9 +36,17 @@ import { Combobox } from '@/components/ui/combobox'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
 import { Card } from '@/components/ui/card'
+import {
+  DEFAULT_NS_PORT,
+  isValidNsHost,
+  joinNameServers,
+  parseNameServers,
+  sanitizeHost,
+  updateNsEntry,
+  type NsEntry,
+} from '@/mq/rocketmq/endpoints'
 
 const NEW_FORM_ID = -1
-const DEFAULT_NS_PORT = '9876'
 const MAX_GROUP_LENGTH = 32
 const SECRET_ACCESS_KEY = 'accessKey'
 const SECRET_SECRET_KEY = 'secretKey'
@@ -46,11 +54,6 @@ const SECRET_SECRET_KEY = 'secretKey'
 /** The stored view reports a mechanism; the form still asks a yes-or-no. */
 function hasACL(connection: Connection): boolean {
   return connection.authMechanism === AuthMechanism.AuthACL
-}
-
-interface NsEntry {
-  host: string
-  port: string
 }
 
 interface FormState {
@@ -65,89 +68,6 @@ interface FormState {
   accessKeyConfigured: boolean
   secretKeyConfigured: boolean
   remark: string
-}
-
-/**
- * Keep only characters that can legally appear in a NameServer host —
- * hostname / IPv4 / IPv6 literal. Strips spaces, CJK, and other junk as
- * the user types so the field cannot hold an unparseable address.
- */
-function sanitizeHost(raw: string): string {
-  return raw.replace(/[^0-9A-Za-z.:_\-[\]]/g, '')
-}
-
-function isIPv4(s: string): boolean {
-  const m = s.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/)
-  if (!m) return false
-  return m.slice(1, 5).every((o) => Number(o) <= 255)
-}
-
-function isIPv6(s: string): boolean {
-  const inner = s.replace(/^\[/, '').replace(/\]$/, '')
-  if (!inner.includes(':')) return false
-  if ((inner.match(/::/g) ?? []).length > 1) return false
-  const groups = inner.split(':')
-  const nonEmpty = groups.filter((g) => g !== '')
-  if (nonEmpty.some((g) => !/^[0-9a-fA-F]{1,4}$/.test(g))) return false
-  return inner.includes('::') ? nonEmpty.length <= 7 : groups.length === 8
-}
-
-function isHostname(s: string): boolean {
-  if (s.length > 253) return false
-  const host = s.endsWith('.') ? s.slice(0, -1) : s
-  if (!host) return false
-  return host
-    .split('.')
-    .every((label) => /^[A-Za-z0-9_](?:[A-Za-z0-9_-]{0,61}[A-Za-z0-9_])?$/.test(label))
-}
-
-/**
- * A NameServer host is valid when it is a real IPv4, an IPv6 literal, or a
- * hostname / domain. A string of only digits and dots must be a valid IPv4 —
- * this is what rejects near-misses like "192.168.2123" instead of accepting
- * them as an all-numeric hostname.
- */
-function isValidNsHost(raw: string): boolean {
-  const s = raw.trim()
-  if (!s) return false
-  if (s.startsWith('[') || s.includes(':')) return isIPv6(s)
-  if (/^[\d.]+$/.test(s)) return isIPv4(s)
-  return isHostname(s)
-}
-
-function parseNameServers(raw: string): NsEntry[] {
-  const parts = String(raw || '')
-    .split(/[;\s,]+/)
-    .map((s) => s.trim())
-    .filter(Boolean)
-  if (parts.length === 0) return [{ host: '', port: DEFAULT_NS_PORT }]
-  return parts.map((p) => {
-    // [ipv6]:port
-    if (p.startsWith('[')) {
-      const m = p.match(/^\[([^\]]+)\](?::(\d+))?$/)
-      if (m) return { host: m[1] ?? '', port: m[2] || DEFAULT_NS_PORT }
-    }
-    const lastColon = p.lastIndexOf(':')
-    if (lastColon > 0 && /^\d+$/.test(p.slice(lastColon + 1))) {
-      return { host: p.slice(0, lastColon), port: p.slice(lastColon + 1) }
-    }
-    return { host: p, port: DEFAULT_NS_PORT }
-  })
-}
-
-function joinNameServers(entries: NsEntry[]): string {
-  return entries
-    .map((e) => {
-      const host = e.host.trim()
-      if (!host) return ''
-      const port = (e.port.trim() || DEFAULT_NS_PORT).replace(/\D/g, '') || DEFAULT_NS_PORT
-      if (host.includes(':') && !host.startsWith('[')) {
-        return `[${host}]:${port}`
-      }
-      return `${host}:${port}`
-    })
-    .filter(Boolean)
-    .join(';')
 }
 
 const EMPTY_FORM: FormState = {
@@ -194,10 +114,6 @@ function formFromPrefill(prefill: ConnectionPrefill): FormState {
     name: prefill.name?.trim() || '',
     nsEntries,
   }
-}
-
-function updateNsEntry(entries: NsEntry[], index: number, patch: Partial<NsEntry>): NsEntry[] {
-  return entries.map((e, i) => (i === index ? { ...e, ...patch } : e))
 }
 
 interface ConnectionGroup {
