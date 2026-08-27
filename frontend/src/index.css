@@ -40,6 +40,15 @@
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
+    /*
+     * --brand is the accent: selected navigation, a switch that is on, a data
+     * bar. --success stays green and means exactly one thing, that something
+     * is connected or succeeded. They shared a token before, which is why the
+     * accent could not be changed without recolouring every online indicator.
+     */
+    --brand: 236 40% 46%;
+    --brand-foreground: 0 0% 100%;
+
     --success: 152 55% 36%;
     --success-foreground: 0 0% 100%;
 
@@ -81,6 +90,9 @@
 
     --destructive: 0 62% 50%;
     --destructive-foreground: 0 0% 100%;
+
+    --brand: 237 58% 71%;
+    --brand-foreground: 0 0% 9%;
 
     --success: 152 50% 40%;
     --success-foreground: 0 0% 100%;
@@ -159,10 +171,10 @@ th {
  * selected text keeps whatever colour it already had.
  */
 ::selection {
-  background: hsl(var(--success) / 0.22);
+  background: hsl(var(--brand) / 0.22);
 }
 .dark ::selection {
-  background: hsl(var(--success) / 0.32);
+  background: hsl(var(--brand) / 0.32);
 }
 
 /* Local thin scrollbars */

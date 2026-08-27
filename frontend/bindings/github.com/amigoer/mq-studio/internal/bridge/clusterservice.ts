@@ -3,6 +3,10 @@
 
 /**
  * ClusterService exposes cluster topology and health to the frontend.
+ * 
+ * The service returns canonical nodes; assembling the RocketMQ-shaped
+ * ClusterInfo the renderer still expects happens here, alongside the other
+ * conversions that disappear when the frontend moves onto the canonical model.
  * @module
  */
 

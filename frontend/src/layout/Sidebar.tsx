@@ -79,7 +79,7 @@ export function navItemClass(isActive: boolean): string {
   return cn(
     'relative h-8 w-full justify-start gap-2 rounded-lg px-2.5 font-normal text-muted-foreground shadow-none',
     isActive
-      ? 'bg-success/10 font-medium text-foreground before:absolute before:left-0 before:top-1/2 before:h-1/2 before:w-[2px] before:-translate-y-1/2 before:rounded-full before:bg-success'
+      ? 'bg-brand/10 font-medium text-foreground before:absolute before:left-0 before:top-1/2 before:h-1/2 before:w-[2px] before:-translate-y-1/2 before:rounded-full before:bg-brand'
       : 'hover:bg-accent hover:text-foreground',
   )
 }
@@ -128,7 +128,7 @@ export function Sidebar({
             role="status"
             aria-label={t('nav.updateAvailable')}
             title={t('nav.updateAvailable')}
-            className="ml-auto h-[7px] w-[7px] shrink-0 rounded-full bg-success"
+            className="ml-auto h-[7px] w-[7px] shrink-0 rounded-full bg-brand"
           />
         )}
       </Button>

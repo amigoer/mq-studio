@@ -407,7 +407,7 @@ export function OverviewPage({ onNavigate }: OverviewPageProps) {
                           >
                             {tps > 0 && (
                               <div
-                                className="h-full rounded-full bg-success"
+                                className="h-full rounded-full bg-brand"
                                 style={{ width: `${pct}%` }}
                               />
                             )}

@@ -21,7 +21,7 @@ const Switch = React.forwardRef<HTMLButtonElement, SwitchProps>(
           // Matches the design spec 1:1 (track 34x20, thumb 16, offset 0/14).
           // All fixed px so the control never scales with `--app-font-size`.
           'peer relative inline-flex h-[20px] w-[34px] shrink-0 cursor-pointer rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-success/30 disabled:cursor-not-allowed disabled:opacity-50',
-          checked ? 'bg-success' : 'bg-[hsl(0_0%_60%/0.35)]',
+          checked ? 'bg-brand' : 'bg-[hsl(0_0%_60%/0.35)]',
           className,
         )}
         {...props}

@@ -269,25 +269,30 @@ internal/service/internal/mqoffset/query.go
 
 ### 6.2 21 个消费点分流
 
-**改指向 `--brand`（品牌，去绿）——**
+> **施工修正：这份分类原来是错的。** `app.css` 那十几处我写成「焦点环、悬停态、
+> 选中边框」，实际全是标题栏连接指示器的在线态 —— `.conn-pill.online`、
+> `.item-dot.on`、`.item-check`。它们是**语义色，一处都不该动**。真正的品牌色
+> 只有 5 处，下表已按实际代码重排。
+
+**改指向 `--brand`（品牌，去绿）—— 5 处**
 
 | 位置 | 用途 |
 | --- | --- |
 | `layout/Sidebar.tsx:82` | 选中项底色 + 左侧指示条 |
 | `layout/Sidebar.tsx:131` | 更新提醒圆点 |
 | `components/ui/switch.tsx:24` | 开关打开态 |
-| `pages/OverviewPage.tsx:410` | 进度条填充 |
+| `pages/OverviewPage.tsx:410` | Topic 吞吐占比条 |
 | `index.css:162,165` | `::selection` 选区高亮 |
-| `styles/app.css:98–138` | 焦点环、悬停态、选中边框（约 10 处） |
-| `styles/app.css:217,218` | 组件强调点 |
 
-**保留 `--success`（语义，仍是绿）——**
+**保留 `--success`（语义，仍是绿）—— 其余全部**
 
 | 位置 | 用途 |
 | --- | --- |
-| `components/ui/badge.tsx:18` | `success` 徽章变体（在线 / 正常） |
+| `styles/app.css:94–141` | 连接胶囊的在线态：圆点、边框、底色、悬停、状态文字、脉冲动画 |
+| `styles/app.css:217,218` | 连接菜单项的在线圆点 |
+| `styles/app.css:250` | 连接菜单项的勾选标记 |
+| `components/ui/badge.tsx:18` | `success` 徽章变体 |
 | `index.css:201` | 成功 toast 图标 |
-| `styles/app.css:112,250` | 状态文字色 |
 
 ### 6.3 选色说明
 
