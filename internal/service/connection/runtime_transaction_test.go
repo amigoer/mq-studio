@@ -11,7 +11,7 @@ import (
 
 func TestReloadSerializesWithConcurrentConnect(t *testing.T) {
 	service := newTestService(t, nil)
-	connection, err := service.AddConnection("primary", "test", "primary:9876", 5, false, "", "", "")
+	connection, err := service.AddConnection(profileOf("primary", "test", "primary:9876", 5, false, "", "", ""))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -46,7 +46,7 @@ func TestReloadSerializesWithConcurrentConnect(t *testing.T) {
 
 func TestReplaceConnectionsSerializesWithConcurrentConnect(t *testing.T) {
 	service := newTestService(t, nil)
-	connection, err := service.AddConnection("old", "test", "old:9876", 5, false, "", "", "")
+	connection, err := service.AddConnection(profileOf("old", "test", "old:9876", 5, false, "", "", ""))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -91,7 +91,7 @@ func TestReplaceConnectionsSerializesWithConcurrentConnect(t *testing.T) {
 
 func TestConnectionProbeSerializesWithProfileReplacement(t *testing.T) {
 	service := newTestService(t, nil)
-	connection, err := service.AddConnection("old", "test", "old:9876", 5, false, "", "", "")
+	connection, err := service.AddConnection(profileOf("old", "test", "old:9876", 5, false, "", "", ""))
 	if err != nil {
 		t.Fatal(err)
 	}

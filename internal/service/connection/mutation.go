@@ -8,15 +8,23 @@ import (
 )
 
 // AddConnection adds and persists a connection profile.
-func (s *Service) AddConnection(name, group, nameServer string, timeoutSec int, enableACL bool, accessKey, secretKey, remark string) (*model.ConnectionProfile, error) {
-	var err error
-	name, nameServer, err = validateConnectionFields(name, nameServer, timeoutSec)
+//
+// Everything family-specific arrives inside the profile - endpoints, options,
+// secrets - so adding a broker family never widens this signature.
+func (s *Service) AddConnection(input model.ConnectionProfile) (*model.ConnectionProfile, error) {
+	name, endpoints, err := validateConnectionFields(input.Name, input.Endpoints, input.TimeoutSec)
 	if err != nil {
 		return nil, err
 	}
-	enableACL, accessKey, secretKey, err = normalizeACLConfig(enableACL, accessKey, secretKey)
+	enableACL, accessKey, secretKey, err := normalizeACLConfig(
+		input.ACLEnabled(), input.Secret(model.SecretAccessKey), input.Secret(model.SecretSecretKey))
 	if err != nil {
 		return nil, err
+	}
+	group, timeoutSec, remark := input.Group, input.TimeoutSec, input.Remark
+	kind := input.Kind
+	if kind == "" {
+		kind = model.KindRocketMQ
 	}
 
 	s.mu.Lock()
@@ -25,9 +33,10 @@ func (s *Service) AddConnection(name, group, nameServer string, timeoutSec int, 
 		ID:         s.nextID,
 		Name:       name,
 		Group:      normalizeConnectionGroup(group),
-		Endpoints:  nameServer,
+		Endpoints:  endpoints,
 		TimeoutSec: normalizeTimeoutSec(timeoutSec),
-		Kind:       model.KindRocketMQ,
+		Kind:       kind,
+		Options:    input.Options,
 		Status:     model.StatusOffline,
 		LastCheck:  "-",
 		IsDefault:  len(s.connections) == 0,
@@ -45,12 +54,14 @@ func (s *Service) AddConnection(name, group, nameServer string, timeoutSec int, 
 }
 
 // UpdateConnection updates and persists a connection profile.
-func (s *Service) UpdateConnection(id int, name, group, nameServer string, timeoutSec int, enableACL bool, accessKey, secretKey, remark string) (*model.ConnectionProfile, error) {
-	var err error
-	name, nameServer, err = validateConnectionFields(name, nameServer, timeoutSec)
+func (s *Service) UpdateConnection(id int, input model.ConnectionProfile) (*model.ConnectionProfile, error) {
+	name, endpoints, err := validateConnectionFields(input.Name, input.Endpoints, input.TimeoutSec)
 	if err != nil {
 		return nil, err
 	}
+	enableACL, accessKey, secretKey := input.ACLEnabled(),
+		input.Secret(model.SecretAccessKey), input.Secret(model.SecretSecretKey)
+	group, timeoutSec, remark := input.Group, input.TimeoutSec, input.Remark
 
 	s.runtimeMu.Lock()
 	defer s.runtimeMu.Unlock()
@@ -69,7 +80,13 @@ func (s *Service) UpdateConnection(id int, name, group, nameServer string, timeo
 	previous := *connection
 	connection.Name = name
 	connection.Group = normalizeConnectionGroup(group)
-	connection.Endpoints = nameServer
+	connection.Endpoints = endpoints
+	if input.Kind != "" {
+		connection.Kind = input.Kind
+	}
+	if input.Options != nil {
+		connection.Options = input.Options
+	}
 	connection.TimeoutSec = normalizeTimeoutSec(timeoutSec)
 	connection.SetACL(enableACL, accessKey, secretKey)
 	connection.Remark = remark

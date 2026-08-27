@@ -87,7 +87,7 @@ func TestReplaceConnectionsNormalizesEncryptsAndReloads(t *testing.T) {
 
 func TestReplaceConnectionsRejectsInvalidInputWithoutChangingState(t *testing.T) {
 	service := newTestService(t, nil)
-	if _, err := service.AddConnection("existing", "test", "ns:9876", 5, false, "", "", ""); err != nil {
+	if _, err := service.AddConnection(profileOf("existing", "test", "ns:9876", 5, false, "", "", "")); err != nil {
 		t.Fatal(err)
 	}
 	before, err := os.ReadFile(service.dataFilePath)
@@ -121,7 +121,7 @@ func TestReplaceConnectionsRejectsInvalidInputWithoutChangingState(t *testing.T)
 
 func TestValidateConnectionsHasNoSideEffects(t *testing.T) {
 	service := newTestService(t, nil)
-	connection, err := service.AddConnection("existing", "test", "ns:9876", 5, false, "", "", "")
+	connection, err := service.AddConnection(profileOf("existing", "test", "ns:9876", 5, false, "", "", ""))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -163,7 +163,7 @@ func TestValidateConnectionsHasNoSideEffects(t *testing.T) {
 
 func TestReplaceConnectionsAllowsEmptyList(t *testing.T) {
 	service := newTestService(t, nil)
-	if _, err := service.AddConnection("existing", "test", "ns:9876", 5, false, "", "", ""); err != nil {
+	if _, err := service.AddConnection(profileOf("existing", "test", "ns:9876", 5, false, "", "", "")); err != nil {
 		t.Fatal(err)
 	}
 	if err := service.ReplaceConnections(nil); err != nil {
@@ -176,7 +176,7 @@ func TestReplaceConnectionsAllowsEmptyList(t *testing.T) {
 
 func TestReplaceConnectionsDoesNotWriteOutsideMutationLock(t *testing.T) {
 	service := newTestService(t, nil)
-	if _, err := service.AddConnection("baseline", "test", "baseline:9876", 5, false, "", "", ""); err != nil {
+	if _, err := service.AddConnection(profileOf("baseline", "test", "baseline:9876", 5, false, "", "", "")); err != nil {
 		t.Fatal(err)
 	}
 	before, err := os.ReadFile(service.dataFilePath)
@@ -229,7 +229,7 @@ func TestReplaceConnectionsDoesNotWriteOutsideMutationLock(t *testing.T) {
 func TestConcurrentReplaceAndAddRemainLinearizable(t *testing.T) {
 	for iteration := 0; iteration < 24; iteration++ {
 		service := newTestService(t, nil)
-		if _, err := service.AddConnection("baseline", "test", "baseline:9876", 5, false, "", "", ""); err != nil {
+		if _, err := service.AddConnection(profileOf("baseline", "test", "baseline:9876", 5, false, "", "", "")); err != nil {
 			t.Fatal(err)
 		}
 		start := make(chan struct{})
@@ -245,7 +245,7 @@ func TestConcurrentReplaceAndAddRemainLinearizable(t *testing.T) {
 		}()
 		go func() {
 			<-start
-			_, err := service.AddConnection("added", "test", "added:9876", 5, false, "", "", "")
+			_, err := service.AddConnection(profileOf("added", "test", "added:9876", 5, false, "", "", ""))
 			addDone <- err
 		}()
 		close(start)

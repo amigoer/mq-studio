@@ -1,6 +1,7 @@
 package connection
 
 import (
+	"github.com/amigoer/mq-studio/internal/model"
 	"path/filepath"
 	"sync"
 	"testing"
@@ -63,3 +64,19 @@ func (noopRuntime) SetDefault(string) error                                   { 
 func (noopRuntime) Remove(string)                                             {}
 func (noopRuntime) Test(string, time.Duration, bool, string, string) error    { return nil }
 func (noopRuntime) CloseAll()                                                 {}
+
+// profileOf builds a profile from the arguments the old positional signature
+// took, so these tests read as they did before AddConnection stopped spelling
+// out one broker family's fields.
+func profileOf(name, group, endpoints string, timeoutSec int, enableACL bool, accessKey, secretKey, remark string) model.ConnectionProfile {
+	profile := model.ConnectionProfile{
+		Name:       name,
+		Group:      group,
+		Kind:       model.KindRocketMQ,
+		Endpoints:  endpoints,
+		TimeoutSec: timeoutSec,
+		Remark:     remark,
+	}
+	profile.SetACL(enableACL, accessKey, secretKey)
+	return profile
+}

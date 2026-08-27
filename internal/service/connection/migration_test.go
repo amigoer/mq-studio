@@ -68,7 +68,7 @@ func TestSaveWritesTheKindSchemaWithEncryptedSecrets(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "connections.json")
 	service := New(path, fakeSettings{connectTimeout: 3 * time.Second}, noopRuntime{})
 
-	if _, err := service.AddConnection("prod", "", "ns:9876", 5, true, "plain-ak", "plain-sk", ""); err != nil {
+	if _, err := service.AddConnection(profileOf("prod", "", "ns:9876", 5, true, "plain-ak", "plain-sk", "")); err != nil {
 		t.Fatal(err)
 	}
 
