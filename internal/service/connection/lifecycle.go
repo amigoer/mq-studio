@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/amigoer/mq-studio/internal/model"
-	"github.com/amigoer/mq-studio/internal/service/internal/timestamp"
+	"github.com/amigoer/mq-studio/internal/timestamp"
 )
 
 func (s *Service) getConnectTimeout(connection *model.Connection) time.Duration {

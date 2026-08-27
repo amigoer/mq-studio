@@ -3,7 +3,7 @@ package acl
 import (
 	"context"
 
-	"github.com/amigoer/mq-studio/internal/service/internal/mqexec"
+	"github.com/amigoer/mq-studio/internal/driver/rocketmq/mqexec"
 
 	admin "github.com/amigoer/rocketmq-admin-go"
 )

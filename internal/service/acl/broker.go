@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/amigoer/mq-studio/internal/driver/rocketmq"
-	"github.com/amigoer/mq-studio/internal/service/internal/mqexec"
+	"github.com/amigoer/mq-studio/internal/driver/rocketmq/mqexec"
 
 	admin "github.com/amigoer/rocketmq-admin-go"
 )

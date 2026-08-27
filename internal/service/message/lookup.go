@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/amigoer/mq-studio/internal/driver/rocketmq"
+	"github.com/amigoer/mq-studio/internal/driver/rocketmq/mqexec"
 	"github.com/amigoer/mq-studio/internal/model"
-	"github.com/amigoer/mq-studio/internal/service/internal/mqexec"
 
 	admin "github.com/amigoer/rocketmq-admin-go"
 	"github.com/apache/rocketmq-client-go/v2/primitive"
