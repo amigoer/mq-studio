@@ -132,13 +132,13 @@ function matchesFilter(kind: TopicKind, filter: TypeFilter): boolean {
 function permLabel(p: TopicPerm, t: (k: string) => string): string {
   switch (p) {
     case TopicPerm.ReadWrite:
-      return t("topicPerm(topics).rw");
+      return t("topics.perm.rw");
     case TopicPerm.ReadOnly:
-      return t("topicPerm(topics).r");
+      return t("topics.perm.r");
     case TopicPerm.WriteOnly:
-      return t("topicPerm(topics).w");
+      return t("topics.perm.w");
     case TopicPerm.Deny:
-      return t("topicPerm(topics).deny");
+      return t("topics.perm.deny");
     default:
       return p ? String(p) : "—";
   }
@@ -423,7 +423,7 @@ export function TopicsPage({
                     <span className="text-right">
                       {t("topics.table.queues")}
                     </span>
-                    <span>{t("topics.topicPerm(table)")}</span>
+                    <span>{t("topics.table.perm")}</span>
                     <span>{t("topics.table.tpsIn")}</span>
                     <span className="text-right">
                       {t("topics.table.groups")}
@@ -1049,7 +1049,7 @@ function TopicEditor({
         >
           <div>
             <div className="text-muted-foreground mb-2 text-fs-12">
-              {t("topics.topicReadQueue(create)")}
+              {t("topics.create.readQueue")}
             </div>
             <Input
               type="number"
@@ -1061,7 +1061,7 @@ function TopicEditor({
           </div>
           <div>
             <div className="text-muted-foreground mb-2 text-fs-12">
-              {t("topics.topicWriteQueue(create)")}
+              {t("topics.create.writeQueue")}
             </div>
             <Input
               type="number"
@@ -1074,24 +1074,16 @@ function TopicEditor({
         </div>
         <div>
           <div className="text-muted-foreground mb-2 text-fs-12">
-            {t("topics.topicPerm(create)")}
+            {t("topics.create.perm")}
           </div>
           <Select
             value={perm}
             onChange={(e) => setPerm(e.target.value as TopicPerm)}
           >
-            <option value={TopicPerm.ReadWrite}>
-              {t("topicPerm(topics).rw")}
-            </option>
-            <option value={TopicPerm.ReadOnly}>
-              {t("topicPerm(topics).r")}
-            </option>
-            <option value={TopicPerm.WriteOnly}>
-              {t("topicPerm(topics).w")}
-            </option>
-            <option value={TopicPerm.Deny}>
-              {t("topicPerm(topics).deny")}
-            </option>
+            <option value={TopicPerm.ReadWrite}>{t("topics.perm.rw")}</option>
+            <option value={TopicPerm.ReadOnly}>{t("topics.perm.r")}</option>
+            <option value={TopicPerm.WriteOnly}>{t("topics.perm.w")}</option>
+            <option value={TopicPerm.Deny}>{t("topics.perm.deny")}</option>
           </Select>
         </div>
       </div>

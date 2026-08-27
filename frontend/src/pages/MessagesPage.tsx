@@ -5,6 +5,8 @@ import { Spinner } from "@/components/Spinner";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import type { MessageItem, MessageTrackItem } from "@/api/models";
+import { useCapabilities } from "@/mq/capabilities";
+import { Capability } from "@bindings/model/models";
 import { PageHeader } from "@/components/PageHeader";
 import { PageBody, PageToolbar } from "@/components/PageLayout";
 import { DetailPanel } from "@/components/DetailPanel";
@@ -62,6 +64,7 @@ export function MessagesPage({
 }: {
   onNavigate?: (id: NavId) => void;
 }) {
+  const { has } = useCapabilities();
   const { t } = useTranslation();
   const { topics, hasOnline } = useTopics();
   const { groups: consumerGroups } = useConsumers();
@@ -242,16 +245,26 @@ export function MessagesPage({
             value={tab}
             onChange={(key) => {
               searchRequestRef.current += 1;
-              setTab(key);
+              setTab(key as TabKey);
               setResults([]);
               setError(null);
               setHasSearched(false);
             }}
             items={[
               { key: "topic", label: t("messages.tabs.topic") },
-              { key: "msgid", label: t("messages.tabs.msgid") },
-              { key: "retry", label: t("messages.tabs.retry") },
-              { key: "dlq", label: t("messages.dlqCount(tabs)") },
+              // Looking a message up by id needs a broker-assigned id, which
+              // RabbitMQ has no equivalent for.
+              ...(has(Capability.CapMessageByID)
+                ? [{ key: "msgid", label: t("messages.tabs.msgid") }]
+                : []),
+              // Retry and dead-letter backlogs are one family's concept, not
+              // a universal one: Kafka leaves both to the application.
+              ...(has(Capability.CapDLQ)
+                ? [
+                    { key: "retry", label: t("messages.tabs.retry") },
+                    { key: "dlq", label: t("messages.tabs.dlq") },
+                  ]
+                : []),
             ]}
           />
         </PageToolbar>
@@ -298,7 +311,7 @@ export function MessagesPage({
                 allLabel={t("common.all")}
                 emptyMessage={t("common.noMatch")}
                 moreHint={(count) => t("common.moreResults", { count })}
-                aria-label={t("messages.groupName(form)")}
+                aria-label={t("messages.form.group")}
               />
             )}
 
