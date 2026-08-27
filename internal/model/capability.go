@@ -27,6 +27,9 @@ const (
 	CapMessageLiveTail Capability = "message.liveTail"
 	CapDLQ             Capability = "message.dlq"
 	CapPublish         Capability = "message.publish"
+	// CapDelayedDelivery is scheduling a message for later. RocketMQ has delay
+	// levels, Kafka has nothing, RabbitMQ needs a plugin.
+	CapDelayedDelivery Capability = "message.delayedDelivery"
 
 	CapClusterTopology Capability = "cluster.topology"
 	CapClusterMetrics  Capability = "cluster.metrics"

@@ -48,6 +48,7 @@ func backings() []capabilityBacking {
 		{model.CapDLQ, "DeadLetterReader", deadLetter},
 		{model.CapMessageResend, "DeadLetterReader", deadLetter},
 		{model.CapPublish, "MessagePublisher", publisher},
+		{model.CapDelayedDelivery, "MessagePublisher", publisher},
 
 		{model.CapClusterTopology, "ClusterAdmin", cluster},
 		{model.CapClusterMetrics, "ClusterAdmin", cluster},

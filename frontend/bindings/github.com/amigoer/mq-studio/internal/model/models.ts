@@ -375,6 +375,12 @@ export enum Capability {
     CapMessageLiveTail = "message.liveTail",
     CapDLQ = "message.dlq",
     CapPublish = "message.publish",
+
+    /**
+     * CapDelayedDelivery is scheduling a message for later. RocketMQ has delay
+     * levels, Kafka has nothing, RabbitMQ needs a plugin.
+     */
+    CapDelayedDelivery = "message.delayedDelivery",
     CapClusterTopology = "cluster.topology",
     CapClusterMetrics = "cluster.metrics",
     CapAccessControl = "access.control",

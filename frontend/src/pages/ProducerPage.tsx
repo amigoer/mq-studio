@@ -6,6 +6,8 @@ import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
 import { PageBody } from "@/components/PageLayout";
 import { useConnections } from "@/hooks/useConnections";
+import { useCapabilities } from "@/mq/capabilities";
+import { Capability } from "@bindings/model/models";
 import { useRecentPicks } from "@/hooks/useRecentPicks";
 import { useTopics } from "@/hooks/useTopics";
 import * as messageApi from "@/api/message";
@@ -68,6 +70,8 @@ export function ProducerPage({
   const { t } = useTranslation();
   const { topics, hasOnline } = useTopics();
   const { activeKey } = useConnections();
+  const { has } = useCapabilities();
+  const hasDelayLevels = has(Capability.CapDelayedDelivery);
   const { recent: recentTopics, record: recordTopic } = useRecentPicks("topic");
 
   const [topic, setTopic] = useState<string>("");
@@ -274,21 +278,26 @@ export function ProducerPage({
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-1.5">
-                  <span className="text-muted-foreground text-fs-11 font-medium">
-                    {t("producer.delay")}
-                  </span>
-                  <Select
-                    value={delay}
-                    onChange={(e) => setDelay(Number(e.target.value))}
-                  >
-                    {DELAY_LEVELS.map((lv) => (
-                      <option key={lv} value={lv}>
-                        {t(`producer.delayLevels.${lv}` as const)}
-                      </option>
-                    ))}
-                  </Select>
-                </div>
+                {/* Delay levels are RocketMQ's own scheduling feature. Kafka has
+                    none and RabbitMQ needs a plugin, so the control follows the
+                    driver rather than always being drawn. */}
+                {hasDelayLevels && (
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-muted-foreground text-fs-11 font-medium">
+                      {t("producer.delay")}
+                    </span>
+                    <Select
+                      value={delay}
+                      onChange={(e) => setDelay(Number(e.target.value))}
+                    >
+                      {DELAY_LEVELS.map((lv) => (
+                        <option key={lv} value={lv}>
+                          {t(`producer.delayLevels.${lv}` as const)}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+                )}
 
                 <div className="flex flex-col gap-1.5">
                   <div className="flex items-center gap-2">
