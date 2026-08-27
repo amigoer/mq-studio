@@ -1,9 +1,8 @@
-package acl
+package rocketmq
 
 import (
 	"context"
 	"fmt"
-	"github.com/amigoer/mq-studio/internal/driver/rocketmq"
 	"strings"
 
 	"github.com/amigoer/mq-studio/internal/model"
@@ -12,16 +11,14 @@ import (
 )
 
 // GetAclEnabled reports whether ACL is enabled on the broker.
-func (s *Service) GetAclEnabled() (bool, error) {
-	brokerAddress, client, err := s.getBrokerAddress()
+func (c *Conn) GetAclEnabled(ctx context.Context) (bool, error) {
+	brokerAddress, client, err := c.getBrokerAddress(ctx)
 	if err != nil {
 		return false, err
 	}
 
 	var enabled bool
-	err = rocketmq.Exec(client, func(retryClient *admin.Client) error {
-		ctx, cancel := context.WithTimeout(context.Background(), s.settings.GetRequestTimeout())
-		defer cancel()
+	err = Exec(client, func(retryClient *admin.Client) error {
 
 		config, callErr := retryClient.GetBrokerConfig(ctx, brokerAddress)
 		if callErr != nil {
@@ -37,16 +34,14 @@ func (s *Service) GetAclEnabled() (bool, error) {
 }
 
 // GetAclVersion returns ACL configuration version information.
-func (s *Service) GetAclVersion() (*model.AclVersionInfo, error) {
-	brokerAddress, client, err := s.getBrokerAddress()
+func (c *Conn) GetAclVersion(ctx context.Context) (*model.AclVersionInfo, error) {
+	brokerAddress, client, err := c.getBrokerAddress(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	var result *model.AclVersionInfo
-	err = rocketmq.Exec(client, func(retryClient *admin.Client) error {
-		ctx, cancel := context.WithTimeout(context.Background(), s.settings.GetRequestTimeout())
-		defer cancel()
+	err = Exec(client, func(retryClient *admin.Client) error {
 
 		info, callErr := retryClient.GetBrokerClusterAclInfo(ctx, brokerAddress)
 		if callErr != nil {

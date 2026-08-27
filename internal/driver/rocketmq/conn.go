@@ -72,6 +72,10 @@ func rocketMQCapabilities() []model.Capability {
 		model.CapMessageResend,
 		model.CapDLQ,
 		model.CapPublish,
+
+		model.CapClusterTopology,
+		model.CapClusterMetrics,
+		model.CapAccessControl,
 	}
 }
 
@@ -108,3 +112,9 @@ func CurrentConn() (driver.Conn, error) {
 // The page size used to come from application settings; it is a query
 // parameter now, and this is the fallback for callers that pass none.
 const defaultFetchLimit = 32
+
+// HasActiveConnection reports whether a client is already open, without
+// dialling one. The background collector samples only when it is true.
+func HasActiveConnection() bool {
+	return GetClientManager().HasActiveDefaultClient()
+}

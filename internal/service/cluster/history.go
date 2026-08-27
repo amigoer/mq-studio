@@ -36,7 +36,7 @@ type tpsHistoryStore struct {
 
 // recordBrokerTPS coalesces live values into one-minute buckets, attaches the
 // retained history to each broker, and persists changes once per overview load.
-func (s *Service) recordBrokerTPS(nameServers []string, brokers []*model.BrokerNode) {
+func (s *Service) recordBrokerTPS(nameServers []string, brokers []*model.Node) {
 	nowMinute := s.now().UTC().Truncate(time.Minute).Unix()
 	scope := tpsHistoryScope(nameServers)
 
@@ -52,7 +52,7 @@ func (s *Service) recordBrokerTPS(nameServers []string, brokers []*model.BrokerN
 		key := scope + "|" + broker.Address
 		history, ok := s.history[key]
 		if !ok || history == nil {
-			if broker.Status != model.NodeOnline || broker.TpsIn < 0 || broker.TpsOut < 0 {
+			if broker.Status != model.NodeOnline || broker.RateIn < 0 || broker.RateOut < 0 {
 				copyTPSHistoryToBroker(&brokerTPSHistory{}, broker)
 				continue
 			}
@@ -60,11 +60,11 @@ func (s *Service) recordBrokerTPS(nameServers []string, brokers []*model.BrokerN
 			s.history[key] = history
 		}
 
-		if broker.Status == model.NodeOnline && broker.TpsIn >= 0 && broker.TpsOut >= 0 {
+		if broker.Status == model.NodeOnline && broker.RateIn >= 0 && broker.RateOut >= 0 {
 			changed = upsertTPSSample(history, brokerTPSSample{
 				Timestamp: nowMinute,
-				TpsIn:     broker.TpsIn,
-				TpsOut:    broker.TpsOut,
+				TpsIn:     broker.RateIn,
+				TpsOut:    broker.RateOut,
 			}) || changed
 		}
 		copyTPSHistoryToBroker(history, broker)
@@ -106,7 +106,7 @@ func upsertTPSSample(history *brokerTPSHistory, sample brokerTPSSample) bool {
 	return true
 }
 
-func copyTPSHistoryToBroker(history *brokerTPSHistory, broker *model.BrokerNode) {
+func copyTPSHistoryToBroker(history *brokerTPSHistory, broker *model.Node) {
 	count := len(history.Samples)
 	broker.TpsHistoryTimestamps = make([]int64, 0, count)
 	broker.TpsInHistory = make([]int, 0, count)

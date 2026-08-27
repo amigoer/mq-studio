@@ -1,32 +1,35 @@
 package cluster
 
-import "github.com/amigoer/mq-studio/internal/model"
+import (
+	"context"
+
+	"github.com/amigoer/mq-studio/internal/model"
+)
 
 // GetClusterSummary returns aggregate cluster statistics.
-func (s *Service) GetClusterSummary() (*model.ClusterSummary, error) {
-	clusterInfo, err := s.GetClusterInfo()
+func (s *Service) GetClusterSummary(ctx context.Context) (*model.ClusterSummary, error) {
+	overview, nodes, err := s.Overview(ctx)
 	if err != nil {
 		return &model.ClusterSummary{}, nil
 	}
 
 	summary := &model.ClusterSummary{
 		TotalClusters: 1,
-		TotalBrokers:  clusterInfo.TotalBrokers,
-		AvgDiskUsage:  clusterInfo.AvgDiskUsage,
+		TotalBrokers:  overview.TotalNodes,
+		AvgDiskUsage:  overview.AvgDiskUsage,
 	}
-	for _, broker := range clusterInfo.Brokers {
-		if broker == nil {
+	for _, node := range nodes {
+		if node == nil {
 			continue
 		}
-		switch broker.Status {
+		switch node.Status {
 		case model.NodeOnline:
 			summary.OnlineBrokers++
 		case model.NodeWarning:
 			summary.WarningBrokers++
-		case model.NodeOffline:
+		default:
 			summary.OfflineBrokers++
 		}
 	}
-
 	return summary, nil
 }

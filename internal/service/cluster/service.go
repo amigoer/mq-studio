@@ -2,6 +2,7 @@
 package cluster
 
 import (
+	"github.com/amigoer/mq-studio/internal/driver"
 	"log"
 	"sync"
 	"time"
@@ -12,8 +13,12 @@ type Settings interface {
 	GetRequestTimeout() time.Duration
 }
 
+// ConnSource yields the connection a request runs against.
+type ConnSource func() (driver.Conn, error)
+
 // Service provides cluster status operations.
 type Service struct {
+	conns    ConnSource
 	settings Settings
 
 	historyMu       sync.Mutex
@@ -23,8 +28,9 @@ type Service struct {
 }
 
 // New creates a cluster status service backed by historyFilePath.
-func New(historyFilePath string, settings Settings) *Service {
+func New(historyFilePath string, conns ConnSource, settings Settings) *Service {
 	service := &Service{
+		conns:           conns,
 		settings:        settings,
 		history:         make(map[string]*brokerTPSHistory),
 		historyFilePath: historyFilePath,

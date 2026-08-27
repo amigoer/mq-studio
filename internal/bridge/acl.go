@@ -1,13 +1,15 @@
 package bridge
 
 import (
+	"context"
+
 	"github.com/amigoer/mq-studio/internal/model"
-	"github.com/amigoer/mq-studio/internal/service/acl"
+	"github.com/amigoer/mq-studio/internal/service/access"
 )
 
-// ACLService exposes broker ACL administration to the frontend.
+// ACLService exposes access-control administration to the frontend.
 type ACLService struct {
-	service *acl.Service
+	service *access.Service
 }
 
 // AccessConfigInput carries an ACL access config form submission.
@@ -24,27 +26,34 @@ type AccessConfigInput struct {
 
 // Enabled reports whether the broker has ACL turned on.
 func (s *ACLService) Enabled() (bool, error) {
-	return s.service.GetAclEnabled()
+	return s.service.Enabled(context.Background())
 }
 
 // Version returns the broker ACL config version and its entries.
 func (s *ACLService) Version() (*model.AclVersionInfo, error) {
-	return s.service.GetAclVersion()
+	return s.service.Version(context.Background())
 }
 
 // UpdateAccess creates or replaces an ACL access config entry.
 func (s *ACLService) UpdateAccess(input AccessConfigInput) error {
-	return s.service.CreateOrUpdateAccessConfig(input.AccessKey, input.SecretKey,
-		input.WhiteRemoteAddress, input.IsAdmin, input.DefaultTopicPerm,
-		input.DefaultGroupPerm, input.TopicPerms, input.GroupPerms)
+	return s.service.Put(context.Background(), model.AccessConfig{
+		AccessKey:          input.AccessKey,
+		SecretKey:          input.SecretKey,
+		WhiteRemoteAddress: input.WhiteRemoteAddress,
+		IsAdmin:            input.IsAdmin,
+		DefaultTopicPerm:   input.DefaultTopicPerm,
+		DefaultGroupPerm:   input.DefaultGroupPerm,
+		TopicPerms:         input.TopicPerms,
+		GroupPerms:         input.GroupPerms,
+	})
 }
 
 // DeleteAccess removes an ACL access config entry.
 func (s *ACLService) DeleteAccess(accessKey string) error {
-	return s.service.DeleteAccessConfig(accessKey)
+	return s.service.Remove(context.Background(), accessKey)
 }
 
 // UpdateWhiteAddrs replaces the broker global IP white list.
 func (s *ACLService) UpdateWhiteAddrs(addrs []string) error {
-	return s.service.UpdateGlobalWhiteAddrs(addrs)
+	return s.service.SetAllowList(context.Background(), addrs)
 }

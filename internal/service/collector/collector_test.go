@@ -1,6 +1,7 @@
 package collector
 
 import (
+	"context"
 	"errors"
 	"sync"
 	"testing"
@@ -18,7 +19,7 @@ func newFakeSampler() *fakeSampler {
 	return &fakeSampler{fired: make(chan struct{}, 8)}
 }
 
-func (f *fakeSampler) CollectTPSSample() error {
+func (f *fakeSampler) CollectTPSSample(context.Context) error {
 	f.mu.Lock()
 	f.calls++
 	err := f.err
@@ -41,7 +42,7 @@ func (f *fakeSampler) callCount() int {
 // reopen a connection the user closed.
 func TestCollectorSkipsSamplingWithoutActiveClient(t *testing.T) {
 	sampler := newFakeSampler()
-	collector := newWithInterval(sampler, 5*time.Millisecond)
+	collector := newWithInterval(sampler, offline, 5*time.Millisecond)
 	collector.Start()
 	defer collector.Stop()
 
@@ -53,8 +54,8 @@ func TestCollectorSkipsSamplingWithoutActiveClient(t *testing.T) {
 
 func TestCollectorSamplesOnTick(t *testing.T) {
 	sampler := newFakeSampler()
-	collector := newWithInterval(sampler, 5*time.Millisecond)
-	collector.hasClient = func() bool { return true }
+	collector := newWithInterval(sampler, offline, 5*time.Millisecond)
+	collector.hasClient = online
 	collector.Start()
 	defer collector.Stop()
 
@@ -70,8 +71,8 @@ func TestCollectorSamplesOnTick(t *testing.T) {
 func TestCollectorKeepsTickingAfterFailure(t *testing.T) {
 	sampler := newFakeSampler()
 	sampler.err = errors.New("cluster unreachable")
-	collector := newWithInterval(sampler, 5*time.Millisecond)
-	collector.hasClient = func() bool { return true }
+	collector := newWithInterval(sampler, offline, 5*time.Millisecond)
+	collector.hasClient = online
 	collector.Start()
 	defer collector.Stop()
 
@@ -85,8 +86,13 @@ func TestCollectorKeepsTickingAfterFailure(t *testing.T) {
 }
 
 func TestCollectorStopIsIdempotent(t *testing.T) {
-	collector := newWithInterval(newFakeSampler(), time.Hour)
+	collector := newWithInterval(newFakeSampler(), offline, time.Hour)
 	collector.Start()
 	collector.Stop()
 	collector.Stop()
 }
+
+// offline and online stand in for the registry probe the collector is given
+// in production.
+func offline() bool { return false }
+func online() bool  { return true }

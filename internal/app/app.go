@@ -6,7 +6,7 @@ import (
 
 	"github.com/amigoer/mq-studio/internal/crypto"
 	"github.com/amigoer/mq-studio/internal/driver/rocketmq"
-	"github.com/amigoer/mq-studio/internal/service/acl"
+	"github.com/amigoer/mq-studio/internal/service/access"
 	"github.com/amigoer/mq-studio/internal/service/cluster"
 	"github.com/amigoer/mq-studio/internal/service/collector"
 	"github.com/amigoer/mq-studio/internal/service/configuration"
@@ -26,7 +26,7 @@ type Services struct {
 	Consumers   *subscription.Service
 	Messages    *message.Service
 	Settings    *configuration.Service
-	ACL         *acl.Service
+	ACL         *access.Service
 
 	// Collector keeps the TPS history filling in while the window is hidden.
 	Collector *collector.Collector
@@ -45,7 +45,7 @@ func New() (*Services, error) {
 	settingsService := settings.New(paths.SettingsFile)
 	connections := connection.New(paths.ConnectionsFile, settingsService)
 	configurationService := configuration.New(paths, settingsService, connections)
-	clusterService := cluster.New(paths.TPSHistoryFile, settingsService)
+	clusterService := cluster.New(paths.TPSHistoryFile, rocketmq.CurrentConn, settingsService)
 	services := &Services{
 		Connections: connections,
 		Cluster:     clusterService,
@@ -53,8 +53,8 @@ func New() (*Services, error) {
 		Consumers:   subscription.New(rocketmq.CurrentConn, settingsService),
 		Messages:    message.New(rocketmq.CurrentConn, settingsService),
 		Settings:    configurationService,
-		ACL:         acl.New(settingsService),
-		Collector:   collector.New(clusterService),
+		ACL:         access.New(rocketmq.CurrentConn, settingsService),
+		Collector:   collector.New(clusterService, rocketmq.HasActiveConnection),
 	}
 	rocketmq.GetClientManager().SetDefaultClientInitializer(connections.ConnectDefault)
 	services.Collector.Start()

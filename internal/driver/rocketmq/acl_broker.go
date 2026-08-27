@@ -1,26 +1,21 @@
-package acl
+package rocketmq
 
 import (
 	"context"
 	"fmt"
 
-	"github.com/amigoer/mq-studio/internal/driver/rocketmq"
-
 	admin "github.com/amigoer/rocketmq-admin-go"
 )
 
 // getBrokerAddress returns the first available master broker and the active client.
-func (s *Service) getBrokerAddress() (string, *admin.Client, error) {
-	client, err := rocketmq.GetClientManager().GetDefaultClient()
-	if err != nil {
-		return "", nil, fmt.Errorf("未连接集群: %w", err)
-	}
+func (c *Conn) getBrokerAddress(ctx context.Context) (string, *admin.Client, error) {
+	client := c.client
 
 	var (
 		clusterInfo  *admin.ClusterInfo
 		activeClient = client
 	)
-	err = rocketmq.ExecWithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
+	err := ExecWithTimeout(client, timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
 		var callErr error
 		clusterInfo, callErr = retryClient.ExamineBrokerClusterInfo(ctx)
 		if callErr == nil {

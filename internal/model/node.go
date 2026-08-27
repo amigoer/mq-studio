@@ -20,6 +20,12 @@ type Node struct {
 
 	LastSeen string `json:"lastSeen"`
 
+	// TPS history is sampled locally by the collector, not reported by any
+	// broker, which is why a driver never fills these.
+	TpsHistoryTimestamps []int64 `json:"tpsHistoryTimestamps"` // Unix seconds
+	TpsInHistory         []int   `json:"tpsInHistory"`
+	TpsOutHistory        []int   `json:"tpsOutHistory"`
+
 	// Attributes carries family-specific detail the canonical page renders
 	// through the driver's own column set: RocketMQ master/slave role and
 	// CommitLog usage, Kafka controller and ISR, RabbitMQ disc/ram node type.

@@ -1,4 +1,4 @@
-package cluster
+package rocketmq
 
 import (
 	"context"
@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/amigoer/mq-studio/internal/driver/rocketmq"
 	"github.com/amigoer/mq-studio/internal/model"
 	"github.com/amigoer/mq-studio/internal/timestamp"
 
@@ -14,8 +13,8 @@ import (
 )
 
 // GetBrokers returns the broker list.
-func (s *Service) GetBrokers() ([]*model.BrokerNode, error) {
-	clusterInfo, err := s.GetClusterInfo()
+func (c *Conn) GetBrokers(ctx context.Context) ([]*model.BrokerNode, error) {
+	clusterInfo, err := c.GetClusterInfo(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -23,11 +22,8 @@ func (s *Service) GetBrokers() ([]*model.BrokerNode, error) {
 }
 
 // GetBrokerDetail returns details for a broker.
-func (s *Service) GetBrokerDetail(brokerAddress string) (*model.BrokerNode, error) {
-	client, err := rocketmq.GetClientManager().GetDefaultClient()
-	if err != nil {
-		return nil, fmt.Errorf("获取客户端失败: %w", err)
-	}
+func (c *Conn) GetBrokerDetail(ctx context.Context, brokerAddress string) (*model.BrokerNode, error) {
+	client := c.client
 
 	broker := &model.BrokerNode{
 		Address:    brokerAddress,
@@ -38,12 +34,12 @@ func (s *Service) GetBrokerDetail(brokerAddress string) (*model.BrokerNode, erro
 		TpsOut:     -1,
 		LastUpdate: timestamp.Now(),
 	}
-	if clusterInfo, clusterErr := s.GetClusterInfo(); clusterErr == nil && clusterInfo != nil {
+	if clusterInfo, clusterErr := c.GetClusterInfo(ctx); clusterErr == nil && clusterInfo != nil {
 		copyBrokerMetadata(clusterInfo.Brokers, broker)
 	}
 
-	err = rocketmq.ExecWithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
-		if statsErr := s.applyBrokerRuntimeStats(ctx, retryClient, broker); statsErr != nil {
+	err := ExecWithTimeout(client, timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
+		if statsErr := c.applyBrokerRuntimeStats(ctx, retryClient, broker); statsErr != nil {
 			return statsErr
 		}
 		broker.Status = model.NodeOnline
@@ -77,13 +73,13 @@ func copyBrokerMetadata(brokers []*model.BrokerNode, target *model.BrokerNode) {
 
 // enrichBrokerRuntimeStats populates runtime fields without propagating an
 // individual broker failure to a bulk overview request.
-func (s *Service) enrichBrokerRuntimeStats(ctx context.Context, client *admin.Client, broker *model.BrokerNode) {
+func (c *Conn) enrichBrokerRuntimeStats(ctx context.Context, client *admin.Client, broker *model.BrokerNode) {
 	if broker == nil || broker.Address == "" {
 		return
 	}
-	if err := s.applyBrokerRuntimeStats(ctx, client, broker); err != nil {
+	if err := c.applyBrokerRuntimeStats(ctx, client, broker); err != nil {
 		log.Printf("enrichBrokerRuntimeStats(%s): %v", broker.Address, err)
-		if rocketmq.IsRetryableNetworkError(err) {
+		if IsRetryableNetworkError(err) {
 			broker.Status = model.NodeOffline
 		} else {
 			broker.Status = model.NodeWarning
@@ -94,7 +90,7 @@ func (s *Service) enrichBrokerRuntimeStats(ctx context.Context, client *admin.Cl
 }
 
 // applyBrokerRuntimeStats fetches runtime statistics and populates a broker model.
-func (s *Service) applyBrokerRuntimeStats(ctx context.Context, client *admin.Client, broker *model.BrokerNode) error {
+func (c *Conn) applyBrokerRuntimeStats(ctx context.Context, client *admin.Client, broker *model.BrokerNode) error {
 	stats, err := client.FetchBrokerRuntimeStats(ctx, broker.Address)
 	if err != nil {
 		return err
@@ -128,11 +124,8 @@ func (s *Service) applyBrokerRuntimeStats(ctx context.Context, client *admin.Cli
 }
 
 // GetNameServers returns the NameServer list.
-func (s *Service) GetNameServers() ([]*model.NameServerNode, error) {
-	client, err := rocketmq.GetClientManager().GetDefaultClient()
-	if err != nil {
-		return []*model.NameServerNode{}, nil
-	}
+func (c *Conn) GetNameServers(ctx context.Context) ([]*model.NameServerNode, error) {
+	client := c.client
 
 	addresses := client.GetNameServerAddressList()
 	result := make([]*model.NameServerNode, 0, len(addresses))

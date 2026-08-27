@@ -14,26 +14,26 @@ func TestTPSHistoryPersistsAndCoalescesMinuteSamples(t *testing.T) {
 	service := newTPSHistoryTestService(historyPath, &current)
 
 	broker := onlineBroker("127.0.0.1:10911", 10, 4)
-	service.recordBrokerTPS([]string{"ns-b:9876", "ns-a:9876"}, []*model.BrokerNode{broker})
-	broker.TpsIn = 12
-	broker.TpsOut = 5
-	service.recordBrokerTPS([]string{"ns-a:9876", "ns-b:9876"}, []*model.BrokerNode{broker})
+	service.recordBrokerTPS([]string{"ns-b:9876", "ns-a:9876"}, []*model.Node{broker})
+	broker.RateIn = 12
+	broker.RateOut = 5
+	service.recordBrokerTPS([]string{"ns-a:9876", "ns-b:9876"}, []*model.Node{broker})
 
 	if len(broker.TpsInHistory) != 1 || broker.TpsInHistory[0] != 12 {
 		t.Fatalf("same-minute history = %#v, want [12]", broker.TpsInHistory)
 	}
 
 	current = current.Add(time.Minute)
-	broker.TpsIn = 20
-	broker.TpsOut = 8
-	service.recordBrokerTPS([]string{"ns-a:9876", "ns-b:9876"}, []*model.BrokerNode{broker})
+	broker.RateIn = 20
+	broker.RateOut = 8
+	service.recordBrokerTPS([]string{"ns-a:9876", "ns-b:9876"}, []*model.Node{broker})
 
 	restored := newTPSHistoryTestService(historyPath, &current)
 	if err := restored.loadTPSHistory(); err != nil {
 		t.Fatal(err)
 	}
-	offline := &model.BrokerNode{Address: broker.Address, Status: model.NodeOffline, TpsIn: -1, TpsOut: -1}
-	restored.recordBrokerTPS([]string{"ns-b:9876", "ns-a:9876"}, []*model.BrokerNode{offline})
+	offline := &model.Node{Address: broker.Address, Status: model.NodeOffline, RateIn: -1, RateOut: -1}
+	restored.recordBrokerTPS([]string{"ns-b:9876", "ns-a:9876"}, []*model.Node{offline})
 
 	if len(offline.TpsHistoryTimestamps) != 2 {
 		t.Fatalf("restored timestamps = %#v", offline.TpsHistoryTimestamps)
@@ -73,11 +73,11 @@ func newTPSHistoryTestService(historyPath string, current *time.Time) *Service {
 	}
 }
 
-func onlineBroker(address string, tpsIn, tpsOut int) *model.BrokerNode {
-	return &model.BrokerNode{
+func onlineBroker(address string, tpsIn, tpsOut int) *model.Node {
+	return &model.Node{
 		Address: address,
 		Status:  model.NodeOnline,
-		TpsIn:   tpsIn,
-		TpsOut:  tpsOut,
+		RateIn:  tpsIn,
+		RateOut: tpsOut,
 	}
 }

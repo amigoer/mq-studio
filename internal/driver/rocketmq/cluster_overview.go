@@ -1,4 +1,4 @@
-package cluster
+package rocketmq
 
 import (
 	"context"
@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/amigoer/mq-studio/internal/driver/rocketmq"
 	"github.com/amigoer/mq-studio/internal/driver/rocketmq/resource"
 	"github.com/amigoer/mq-studio/internal/model"
 	"github.com/amigoer/mq-studio/internal/timestamp"
@@ -15,20 +14,11 @@ import (
 )
 
 // GetClusterInfo returns cluster information.
-func (s *Service) GetClusterInfo() (*model.ClusterInfo, error) {
-	client, err := rocketmq.GetClientManager().GetDefaultClient()
-	if err != nil {
-		// Return empty data when there is no active connection.
-		return &model.ClusterInfo{
-			Brokers:     make([]*model.BrokerNode, 0),
-			NameServers: make([]string, 0),
-		}, nil
-	}
+func (c *Conn) GetClusterInfo(ctx context.Context) (*model.ClusterInfo, error) {
+	client := c.client
 
 	var result *model.ClusterInfo
-	err = rocketmq.Exec(client, func(retryClient *admin.Client) error {
-		ctx, cancel := context.WithTimeout(context.Background(), s.settings.GetRequestTimeout())
-		defer cancel()
+	err := Exec(client, func(retryClient *admin.Client) error {
 
 		clusterInfo, callErr := retryClient.ExamineBrokerClusterInfo(ctx)
 		if callErr != nil {
@@ -36,8 +26,8 @@ func (s *Service) GetClusterInfo() (*model.ClusterInfo, error) {
 		}
 
 		current := buildClusterInfo(retryClient, clusterInfo)
-		s.enrichBrokers(retryClient, current)
-		s.enrichResourceTotals(retryClient, clusterInfo, current)
+		c.enrichBrokers(ctx, retryClient, current)
+		c.enrichResourceTotals(ctx, retryClient, clusterInfo, current)
 		result = current
 		return nil
 	})
@@ -46,31 +36,6 @@ func (s *Service) GetClusterInfo() (*model.ClusterInfo, error) {
 	}
 
 	return result, nil
-}
-
-// CollectTPSSample refreshes the broker TPS history without the topic and
-// consumer-group totals the overview page needs. The background collector calls
-// it on a timer so the throughput chart keeps filling in while the window is
-// hidden in the tray or the user is on another page.
-func (s *Service) CollectTPSSample() error {
-	client, err := rocketmq.GetClientManager().GetDefaultClient()
-	if err != nil {
-		return err
-	}
-
-	return rocketmq.Exec(client, func(retryClient *admin.Client) error {
-		ctx, cancel := context.WithTimeout(context.Background(), s.settings.GetRequestTimeout())
-		defer cancel()
-
-		clusterInfo, callErr := retryClient.ExamineBrokerClusterInfo(ctx)
-		if callErr != nil {
-			return callErr
-		}
-
-		// enrichBrokers records the TPS samples as a side effect.
-		s.enrichBrokers(retryClient, buildClusterInfo(retryClient, clusterInfo))
-		return nil
-	})
 }
 
 // buildClusterInfo maps the raw broker tables into the application model. The
@@ -149,7 +114,7 @@ func buildClusterInfo(client *admin.Client, clusterInfo *admin.ClusterInfo) *mod
 
 // enrichBrokers populates runtime fields without failing the complete overview
 // when an individual broker cannot be inspected.
-func (s *Service) enrichBrokers(client *admin.Client, result *model.ClusterInfo) {
+func (c *Conn) enrichBrokers(ctx context.Context, client *admin.Client, result *model.ClusterInfo) {
 	semaphore := make(chan struct{}, 6)
 	var waitGroup sync.WaitGroup
 	for _, broker := range result.Brokers {
@@ -162,9 +127,7 @@ func (s *Service) enrichBrokers(client *admin.Client, result *model.ClusterInfo)
 			semaphore <- struct{}{}
 			defer func() { <-semaphore }()
 
-			ctx, cancel := context.WithTimeout(context.Background(), s.settings.GetRequestTimeout())
-			defer cancel()
-			s.enrichBrokerRuntimeStats(ctx, client, node)
+			c.enrichBrokerRuntimeStats(ctx, client, node)
 		}(broker)
 	}
 	waitGroup.Wait()
@@ -183,12 +146,11 @@ func (s *Service) enrichBrokers(client *admin.Client, result *model.ClusterInfo)
 	if diskCount > 0 {
 		result.AvgDiskUsage = diskSum / diskCount
 	}
-	s.recordBrokerTPS(client.GetNameServerAddressList(), result.Brokers)
 }
 
 // enrichResourceTotals adds best-effort topic and consumer-group totals.
-func (s *Service) enrichResourceTotals(client *admin.Client, clusterInfo *admin.ClusterInfo, result *model.ClusterInfo) {
-	topicCtx, topicCancel := context.WithTimeout(context.Background(), s.settings.GetRequestTimeout())
+func (c *Conn) enrichResourceTotals(ctx context.Context, client *admin.Client, clusterInfo *admin.ClusterInfo, result *model.ClusterInfo) {
+	topicCtx, topicCancel := context.WithTimeout(context.Background(), timeoutFrom(ctx))
 	if topicList, err := client.FetchAllTopicList(topicCtx); err == nil && topicList != nil {
 		for _, topic := range topicList.TopicList {
 			if !resource.IsSystemTopic(topic) {
@@ -208,7 +170,7 @@ func (s *Service) enrichResourceTotals(client *admin.Client, clusterInfo *admin.
 			continue
 		}
 
-		groupCtx, groupCancel := context.WithTimeout(context.Background(), s.settings.GetRequestTimeout())
+		groupCtx, groupCancel := context.WithTimeout(context.Background(), timeoutFrom(ctx))
 		subscriptionGroups, err := client.GetAllSubscriptionGroup(groupCtx, masterAddress)
 		groupCancel()
 		if err != nil || subscriptionGroups == nil {

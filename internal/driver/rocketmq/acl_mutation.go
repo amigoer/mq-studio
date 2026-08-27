@@ -1,27 +1,24 @@
-package acl
+package rocketmq
 
 import (
 	"context"
-	"github.com/amigoer/mq-studio/internal/driver/rocketmq"
 
 	admin "github.com/amigoer/rocketmq-admin-go"
 )
 
 // CreateOrUpdateAccessConfig creates or updates an ACL access configuration.
-func (s *Service) CreateOrUpdateAccessConfig(
+func (c *Conn) CreateOrUpdateAccessConfig(ctx context.Context,
 	accessKey, secretKey, whiteRemoteAddress string,
 	isAdmin bool,
 	defaultTopicPerm, defaultGroupPerm string,
 	topicPerms, groupPerms []string,
 ) error {
-	brokerAddress, client, err := s.getBrokerAddress()
+	brokerAddress, client, err := c.getBrokerAddress(ctx)
 	if err != nil {
 		return err
 	}
 
-	return rocketmq.Exec(client, func(retryClient *admin.Client) error {
-		ctx, cancel := context.WithTimeout(context.Background(), s.settings.GetRequestTimeout())
-		defer cancel()
+	return Exec(client, func(retryClient *admin.Client) error {
 		return retryClient.UpdatePlainAccessConfig(ctx, brokerAddress, admin.PlainAccessConfig{
 			AccessKey:          accessKey,
 			SecretKey:          secretKey,
@@ -36,29 +33,25 @@ func (s *Service) CreateOrUpdateAccessConfig(
 }
 
 // DeleteAccessConfig deletes an ACL access configuration.
-func (s *Service) DeleteAccessConfig(accessKey string) error {
-	brokerAddress, client, err := s.getBrokerAddress()
+func (c *Conn) DeleteAccessConfig(ctx context.Context, accessKey string) error {
+	brokerAddress, client, err := c.getBrokerAddress(ctx)
 	if err != nil {
 		return err
 	}
 
-	return rocketmq.Exec(client, func(retryClient *admin.Client) error {
-		ctx, cancel := context.WithTimeout(context.Background(), s.settings.GetRequestTimeout())
-		defer cancel()
+	return Exec(client, func(retryClient *admin.Client) error {
 		return retryClient.DeletePlainAccessConfig(ctx, brokerAddress, accessKey)
 	})
 }
 
 // UpdateGlobalWhiteAddrs updates the global address allowlist.
-func (s *Service) UpdateGlobalWhiteAddrs(addresses []string) error {
-	brokerAddress, client, err := s.getBrokerAddress()
+func (c *Conn) UpdateGlobalWhiteAddrs(ctx context.Context, addresses []string) error {
+	brokerAddress, client, err := c.getBrokerAddress(ctx)
 	if err != nil {
 		return err
 	}
 
-	return rocketmq.Exec(client, func(retryClient *admin.Client) error {
-		ctx, cancel := context.WithTimeout(context.Background(), s.settings.GetRequestTimeout())
-		defer cancel()
+	return Exec(client, func(retryClient *admin.Client) error {
 		return retryClient.UpdateGlobalWhiteAddrsConfig(ctx, brokerAddress, addresses, "")
 	})
 }
