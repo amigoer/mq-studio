@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/amigoer/mq-studio/internal/rocketmq"
+	"github.com/amigoer/mq-studio/internal/driver/rocketmq"
 )
 
 // DefaultInterval matches the one-minute buckets the TPS history stores.

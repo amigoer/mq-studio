@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/amigoer/mq-studio/internal/driver/rocketmq"
 	"github.com/amigoer/mq-studio/internal/model"
-	"github.com/amigoer/mq-studio/internal/rocketmq"
 	"github.com/amigoer/mq-studio/internal/service/internal/mqexec"
 	"github.com/amigoer/mq-studio/internal/service/internal/resource"
 

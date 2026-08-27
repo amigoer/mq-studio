@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/amigoer/mq-studio/internal/crypto"
-	"github.com/amigoer/mq-studio/internal/rocketmq"
+	"github.com/amigoer/mq-studio/internal/driver/rocketmq"
 	"github.com/amigoer/mq-studio/internal/service/acl"
 	"github.com/amigoer/mq-studio/internal/service/cluster"
 	"github.com/amigoer/mq-studio/internal/service/collector"

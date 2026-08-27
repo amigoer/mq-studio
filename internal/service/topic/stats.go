@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/amigoer/mq-studio/internal/rocketmq"
+	"github.com/amigoer/mq-studio/internal/driver/rocketmq"
 	"github.com/amigoer/mq-studio/internal/service/internal/mqexec"
 	"github.com/amigoer/mq-studio/internal/service/internal/mqoffset"
 
