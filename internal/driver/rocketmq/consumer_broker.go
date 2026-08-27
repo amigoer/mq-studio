@@ -1,9 +1,8 @@
-package consumer
+package rocketmq
 
 import (
 	"context"
 	"fmt"
-	"github.com/amigoer/mq-studio/internal/driver/rocketmq"
 
 	admin "github.com/amigoer/rocketmq-admin-go"
 )
@@ -13,9 +12,9 @@ type subscriptionGroupLookup struct {
 	Config  *admin.SubscriptionGroupConfig
 }
 
-func (s *Service) getSubscriptionGroupConfig(client *admin.Client, groupName string) (*subscriptionGroupLookup, error) {
+func (c *Conn) getSubscriptionGroupConfig(ctx context.Context, client *admin.Client, groupName string) (*subscriptionGroupLookup, error) {
 	var clusterInfo *admin.ClusterInfo
-	err := rocketmq.ExecWithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
+	err := ExecWithTimeout(client, timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
 		var callErr error
 		clusterInfo, callErr = retryClient.ExamineBrokerClusterInfo(ctx)
 		return callErr
@@ -34,7 +33,7 @@ func (s *Service) getSubscriptionGroupConfig(client *admin.Client, groupName str
 		}
 
 		var subscriptionGroups map[string]*admin.SubscriptionGroupConfig
-		groupErr := rocketmq.ExecWithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
+		groupErr := ExecWithTimeout(client, timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
 			var callErr error
 			subscriptionGroups, callErr = retryClient.GetAllSubscriptionGroup(ctx, masterAddress)
 			return callErr
@@ -53,7 +52,7 @@ func (s *Service) getSubscriptionGroupConfig(client *admin.Client, groupName str
 	return nil, nil
 }
 
-func (s *Service) resolveMasterBrokerAddrs(client *admin.Client, preferredAddress string) ([]string, error) {
+func (c *Conn) resolveMasterBrokerAddrs(ctx context.Context, client *admin.Client, preferredAddress string) ([]string, error) {
 	addresses := make([]string, 0, 4)
 	seen := make(map[string]struct{})
 	appendAddress := func(address string) {
@@ -69,7 +68,7 @@ func (s *Service) resolveMasterBrokerAddrs(client *admin.Client, preferredAddres
 	appendAddress(preferredAddress)
 
 	var clusterInfo *admin.ClusterInfo
-	err := rocketmq.ExecWithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
+	err := ExecWithTimeout(client, timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
 		var callErr error
 		clusterInfo, callErr = retryClient.ExamineBrokerClusterInfo(ctx)
 		return callErr

@@ -50,7 +50,13 @@ type SubscriptionAdmin interface {
 	ListSubscriptions(ctx context.Context) ([]*model.Subscription, error)
 	SubscriptionDetail(ctx context.Context, ref model.SubscriptionRef) (*model.Subscription, error)
 	CreateSubscription(ctx context.Context, spec model.SubscriptionSpec) error
+	UpdateSubscription(ctx context.Context, spec model.SubscriptionSpec) error
 	RemoveSubscription(ctx context.Context, ref model.SubscriptionRef) error
+}
+
+// SubscriptionStats reports per-partition consume progress.
+type SubscriptionStats interface {
+	SubscriptionStats(ctx context.Context, ref model.SubscriptionRef) (map[string]interface{}, error)
 }
 
 // ProgressAdmin moves a subscription's read position.

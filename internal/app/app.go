@@ -11,10 +11,10 @@ import (
 	"github.com/amigoer/mq-studio/internal/service/collector"
 	"github.com/amigoer/mq-studio/internal/service/configuration"
 	"github.com/amigoer/mq-studio/internal/service/connection"
-	"github.com/amigoer/mq-studio/internal/service/consumer"
 	"github.com/amigoer/mq-studio/internal/service/destination"
 	"github.com/amigoer/mq-studio/internal/service/message"
 	"github.com/amigoer/mq-studio/internal/service/settings"
+	"github.com/amigoer/mq-studio/internal/service/subscription"
 	"github.com/amigoer/mq-studio/internal/storage/layout"
 )
 
@@ -23,7 +23,7 @@ type Services struct {
 	Connections *connection.Service
 	Cluster     *cluster.Service
 	Topics      *destination.Service
-	Consumers   *consumer.Service
+	Consumers   *subscription.Service
 	Messages    *message.Service
 	Settings    *configuration.Service
 	ACL         *acl.Service
@@ -50,7 +50,7 @@ func New() (*Services, error) {
 		Connections: connections,
 		Cluster:     clusterService,
 		Topics:      destination.New(rocketmq.CurrentConn, settingsService),
-		Consumers:   consumer.New(settingsService),
+		Consumers:   subscription.New(rocketmq.CurrentConn, settingsService),
 		Messages:    message.New(settingsService),
 		Settings:    configurationService,
 		ACL:         acl.New(settingsService),

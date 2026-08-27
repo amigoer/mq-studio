@@ -1,10 +1,9 @@
-package consumer
+package rocketmq
 
 import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/amigoer/mq-studio/internal/driver/rocketmq"
 	"sort"
 	"sync"
 
@@ -15,7 +14,7 @@ import (
 	admin "github.com/amigoer/rocketmq-admin-go"
 )
 
-func (s *Service) enrichConsumerGroups(client *admin.Client, groups []*model.ConsumerGroupItem, dlqTopics map[string]struct{}) {
+func (c *Conn) enrichConsumerGroups(ctx context.Context, client *admin.Client, groups []*model.ConsumerGroupItem, dlqTopics map[string]struct{}) {
 	const maxConcurrent = 6
 	semaphore := make(chan struct{}, maxConcurrent)
 	var waitGroup sync.WaitGroup
@@ -28,19 +27,19 @@ func (s *Service) enrichConsumerGroups(client *admin.Client, groups []*model.Con
 			defer waitGroup.Done()
 			semaphore <- struct{}{}
 			defer func() { <-semaphore }()
-			s.enrichConsumerGroup(client, group, dlqTopics)
+			c.enrichConsumerGroup(ctx, client, group, dlqTopics)
 		}(item)
 	}
 	waitGroup.Wait()
 }
 
-func (s *Service) enrichConsumerGroup(client *admin.Client, item *model.ConsumerGroupItem, dlqTopics map[string]struct{}) {
+func (c *Conn) enrichConsumerGroup(ctx context.Context, client *admin.Client, item *model.ConsumerGroupItem, dlqTopics map[string]struct{}) {
 	if item == nil {
 		return
 	}
 	item.Subscriptions = item.Subscriptions[:0]
 	item.Clients = item.Clients[:0]
-	connectionErr := rocketmq.ExecWithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
+	connectionErr := ExecWithTimeout(client, timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
 		connectionInfo, callErr := retryClient.ExamineConsumerConnectionInfo(ctx, item.Group)
 		if callErr != nil {
 			return callErr
@@ -84,7 +83,7 @@ func (s *Service) enrichConsumerGroup(client *admin.Client, item *model.Consumer
 		item.Status = model.GroupWarning
 	}
 
-	_ = rocketmq.ExecWithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
+	_ = ExecWithTimeout(client, timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
 		stats, callErr := retryClient.ExamineConsumeStats(ctx, item.Group)
 		if callErr != nil {
 			return callErr
@@ -113,7 +112,7 @@ func (s *Service) enrichConsumerGroup(client *admin.Client, item *model.Consumer
 			return
 		}
 	}
-	_ = rocketmq.ExecWithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
+	_ = ExecWithTimeout(client, timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
 		offsets, callErr := mqoffset.Collect(ctx, retryClient, dlqTopic)
 		if callErr != nil {
 			if errors.Is(callErr, admin.ErrTopicNotFound) {

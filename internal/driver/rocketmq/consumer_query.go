@@ -1,4 +1,4 @@
-package consumer
+package rocketmq
 
 import (
 	"context"
@@ -6,7 +6,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/amigoer/mq-studio/internal/driver/rocketmq"
 	"github.com/amigoer/mq-studio/internal/driver/rocketmq/resource"
 	"github.com/amigoer/mq-studio/internal/model"
 	"github.com/amigoer/mq-studio/internal/timestamp"
@@ -15,14 +14,11 @@ import (
 )
 
 // GetConsumerGroups returns all consumer groups.
-func (s *Service) GetConsumerGroups() ([]*model.ConsumerGroupItem, error) {
-	client, err := rocketmq.GetClientManager().GetDefaultClient()
-	if err != nil {
-		return []*model.ConsumerGroupItem{}, nil
-	}
+func (c *Conn) GetConsumerGroups(ctx context.Context) ([]*model.ConsumerGroupItem, error) {
+	client := c.client
 
 	var clusterInfo *admin.ClusterInfo
-	err = rocketmq.ExecWithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
+	err := ExecWithTimeout(client, timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
 		var callErr error
 		clusterInfo, callErr = retryClient.ExamineBrokerClusterInfo(ctx)
 		return callErr
@@ -44,7 +40,7 @@ func (s *Service) GetConsumerGroups() ([]*model.ConsumerGroupItem, error) {
 		}
 
 		var subscriptionGroups map[string]*admin.SubscriptionGroupConfig
-		groupErr := rocketmq.ExecWithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
+		groupErr := ExecWithTimeout(client, timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
 			var callErr error
 			subscriptionGroups, callErr = retryClient.GetAllSubscriptionGroup(ctx, masterAddress)
 			return callErr
@@ -64,7 +60,6 @@ func (s *Service) GetConsumerGroups() ([]*model.ConsumerGroupItem, error) {
 				continue
 			}
 			item := &model.ConsumerGroupItem{
-				ID:            s.getNextID(),
 				Group:         groupName,
 				Cluster:       brokerData.Cluster,
 				ConsumeMode:   model.ModeClustering,
@@ -93,7 +88,7 @@ func (s *Service) GetConsumerGroups() ([]*model.ConsumerGroupItem, error) {
 	sort.Slice(result, func(i, j int) bool { return result[i].Group < result[j].Group })
 
 	var dlqTopics map[string]struct{}
-	_ = rocketmq.ExecWithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
+	_ = ExecWithTimeout(client, timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
 		topics, callErr := retryClient.FetchAllTopicList(ctx)
 		if callErr != nil {
 			return callErr
@@ -106,23 +101,19 @@ func (s *Service) GetConsumerGroups() ([]*model.ConsumerGroupItem, error) {
 		}
 		return nil
 	})
-	s.enrichConsumerGroups(client, result, dlqTopics)
+	c.enrichConsumerGroups(ctx, client, result, dlqTopics)
 	return result, nil
 }
 
 // GetConsumerGroupDetail returns details for a consumer group.
-func (s *Service) GetConsumerGroupDetail(groupName string) (*model.ConsumerGroupItem, error) {
+func (c *Conn) GetConsumerGroupDetail(ctx context.Context, groupName string) (*model.ConsumerGroupItem, error) {
 	groupName = strings.TrimSpace(groupName)
 	if groupName == "" {
 		return nil, fmt.Errorf("消费者组名称不能为空")
 	}
-	client, err := rocketmq.GetClientManager().GetDefaultClient()
-	if err != nil {
-		return nil, fmt.Errorf("获取客户端失败: %w", err)
-	}
+	client := c.client
 
 	item := &model.ConsumerGroupItem{
-		ID:            s.getNextID(),
 		Group:         groupName,
 		ConsumeMode:   model.ModeClustering,
 		Status:        model.GroupOffline,
@@ -132,7 +123,7 @@ func (s *Service) GetConsumerGroupDetail(groupName string) (*model.ConsumerGroup
 		Clients:       make([]model.GroupClient, 0),
 		LastUpdate:    timestamp.Now(),
 	}
-	groupConfig, err := s.getSubscriptionGroupConfig(client, groupName)
+	groupConfig, err := c.getSubscriptionGroupConfig(ctx, client, groupName)
 	if err == nil && groupConfig != nil {
 		item.Cluster = groupConfig.Cluster
 		item.MaxRetry = groupConfig.Config.RetryMaxTimes
@@ -141,19 +132,16 @@ func (s *Service) GetConsumerGroupDetail(groupName string) (*model.ConsumerGroup
 		}
 	}
 
-	s.enrichConsumerGroup(client, item, nil)
+	c.enrichConsumerGroup(ctx, client, item, nil)
 	return item, nil
 }
 
 // GetConsumeStats returns consumption statistics.
-func (s *Service) GetConsumeStats(groupName string) (map[string]interface{}, error) {
-	client, err := rocketmq.GetClientManager().GetDefaultClient()
-	if err != nil {
-		return nil, fmt.Errorf("获取客户端失败: %w", err)
-	}
+func (c *Conn) GetConsumeStats(ctx context.Context, groupName string) (map[string]interface{}, error) {
+	client := c.client
 
 	result := map[string]interface{}{}
-	err = rocketmq.ExecWithTimeout(client, s.settings.GetRequestTimeout(), func(ctx context.Context, retryClient *admin.Client) error {
+	err := ExecWithTimeout(client, timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
 		stats, callErr := retryClient.ExamineConsumeStats(ctx, groupName)
 		if callErr != nil {
 			return callErr
@@ -185,8 +173,8 @@ func (s *Service) GetConsumeStats(groupName string) (map[string]interface{}, err
 }
 
 // GetConsumerClients returns the clients for a consumer group.
-func (s *Service) GetConsumerClients(groupName string) ([]model.GroupClient, error) {
-	detail, err := s.GetConsumerGroupDetail(groupName)
+func (c *Conn) GetConsumerClients(ctx context.Context, groupName string) ([]model.GroupClient, error) {
+	detail, err := c.GetConsumerGroupDetail(ctx, groupName)
 	if err != nil {
 		return nil, err
 	}
