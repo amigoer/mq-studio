@@ -20,6 +20,7 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { openExternal } from '@/api/platform'
+import { useTerms, type TermKey } from '@/mq/terms'
 
 const GITHUB_URL = 'https://github.com/amigoer/mq-studio'
 
@@ -36,7 +37,17 @@ export type NavId =
   | 'github'
   | 'settings'
 
-type NavItem = { id: NavId; icon: LucideIcon; labelKey: string }
+type NavItem = {
+  id: NavId
+  icon: LucideIcon
+  labelKey: string
+  /**
+   * Set where the label is a canonical noun rather than a page name. Topics
+   * and Consumers are what RocketMQ calls them; RabbitMQ would read Queues
+   * and Consumers, and the entry should say so.
+   */
+  term?: TermKey
+}
 
 type NavGroup = { labelKey?: string; items: NavItem[] }
 
@@ -47,8 +58,8 @@ const GROUPS: NavGroup[] = [
   {
     labelKey: 'nav.groupBrowse',
     items: [
-      { id: 'topics', icon: LayoutGrid, labelKey: 'nav.topics' },
-      { id: 'consumers', icon: Users, labelKey: 'nav.consumers' },
+      { id: 'topics', icon: LayoutGrid, labelKey: 'nav.topics', term: 'destinationPlural' },
+      { id: 'consumers', icon: Users, labelKey: 'nav.consumers', term: 'subscriptionPlural' },
       { id: 'messages', icon: Mail, labelKey: 'nav.messages' },
       { id: 'producer', icon: Send, labelKey: 'nav.producer' },
     ],
@@ -97,10 +108,11 @@ export function Sidebar({
   dotIds?: NavId[]
 }) {
   const { t } = useTranslation()
+  const term = useTerms()
 
   const renderItem = (item: NavItem) => {
     const { id, icon: Icon, labelKey } = item
-    const label = t(labelKey)
+    const label = item.term ? term(item.term) : t(labelKey)
     const disabled = disabledIds.includes(id)
     const isActive = active === id
     const dot = dotIds.includes(id)

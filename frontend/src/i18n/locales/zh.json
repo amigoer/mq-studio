@@ -935,5 +935,55 @@
       "resetSuccess": "已恢复默认设置",
       "resetError": "恢复默认设置失败"
     }
+  },
+  "mq": {
+    "common": {
+      "terms": {
+        "destination": "目标",
+        "destinationPlural": "目标",
+        "subscription": "订阅方",
+        "subscriptionPlural": "订阅方",
+        "node": "节点",
+        "nodePlural": "节点",
+        "namespace": "命名空间",
+        "backlog": "积压"
+      }
+    },
+    "rocketmq": {
+      "terms": {
+        "destination": "主题",
+        "destinationPlural": "主题",
+        "subscription": "消费者组",
+        "subscriptionPlural": "消费者组",
+        "node": "Broker",
+        "nodePlural": "Broker",
+        "namespace": "集群",
+        "backlog": "消息堆积"
+      }
+    },
+    "kafka": {
+      "terms": {
+        "destination": "主题",
+        "destinationPlural": "主题",
+        "subscription": "消费者组",
+        "subscriptionPlural": "消费者组",
+        "node": "Broker",
+        "nodePlural": "Broker",
+        "namespace": "集群",
+        "backlog": "消费延迟"
+      }
+    },
+    "rabbitmq": {
+      "terms": {
+        "destination": "队列",
+        "destinationPlural": "队列",
+        "subscription": "消费者",
+        "subscriptionPlural": "消费者",
+        "node": "节点",
+        "nodePlural": "节点",
+        "namespace": "虚拟主机",
+        "backlog": "待处理消息"
+      }
+    }
   }
 }

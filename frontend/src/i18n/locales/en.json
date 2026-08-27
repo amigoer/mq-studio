@@ -935,5 +935,55 @@
       "resetSuccess": "Settings reset to defaults",
       "resetError": "Reset failed"
     }
+  },
+  "mq": {
+    "common": {
+      "terms": {
+        "destination": "Destination",
+        "destinationPlural": "Destinations",
+        "subscription": "Subscription",
+        "subscriptionPlural": "Subscriptions",
+        "node": "Node",
+        "nodePlural": "Nodes",
+        "namespace": "Namespace",
+        "backlog": "Backlog"
+      }
+    },
+    "rocketmq": {
+      "terms": {
+        "destination": "Topic",
+        "destinationPlural": "Topics",
+        "subscription": "Consumer group",
+        "subscriptionPlural": "Consumer groups",
+        "node": "Broker",
+        "nodePlural": "Brokers",
+        "namespace": "Cluster",
+        "backlog": "Lag"
+      }
+    },
+    "kafka": {
+      "terms": {
+        "destination": "Topic",
+        "destinationPlural": "Topics",
+        "subscription": "Consumer group",
+        "subscriptionPlural": "Consumer groups",
+        "node": "Broker",
+        "nodePlural": "Brokers",
+        "namespace": "Cluster",
+        "backlog": "Lag"
+      }
+    },
+    "rabbitmq": {
+      "terms": {
+        "destination": "Queue",
+        "destinationPlural": "Queues",
+        "subscription": "Consumer",
+        "subscriptionPlural": "Consumers",
+        "node": "Node",
+        "nodePlural": "Nodes",
+        "namespace": "Virtual host",
+        "backlog": "Ready + unacked"
+      }
+    }
   }
 }
