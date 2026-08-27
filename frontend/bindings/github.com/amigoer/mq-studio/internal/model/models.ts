@@ -42,6 +42,28 @@ export class AclVersionInfo {
 }
 
 /**
+ * AuthMechanism is how a connection authenticates.
+ */
+export enum AuthMechanism {
+    /**
+     * The Go zero value for the underlying type of the enum.
+     */
+    $zero = "",
+
+    AuthNone = "none",
+
+    /**
+     * RocketMQ AccessKey / SecretKey
+     */
+    AuthACL = "acl",
+    AuthPlain = "plain",
+    AuthSASLPlain = "sasl-plain",
+    AuthSASLScram = "sasl-scram",
+    AuthToken = "token",
+    AuthMutualTLS = "mtls",
+};
+
+/**
  * BrokerNode holds Broker node information.
  */
 export class BrokerNode {
@@ -262,6 +284,104 @@ export enum BrokerRole {
 };
 
 /**
+ * Capabilities is what one live connection can actually do.
+ * 
+ * Three states reach the UI, and they must stay distinguishable: a capability
+ * in Supported renders normally; one in Degraded renders disabled with the
+ * reason; one in neither is hidden outright. Silent absence and explained
+ * absence look identical to a user otherwise, which makes a deliberately
+ * limited endpoint read as a bug.
+ */
+export class Capabilities {
+    "supported": Capability[];
+
+    /**
+     * Degraded explains a capability the family has but this endpoint lacks.
+     * A RocketMQ Proxy endpoint is a data plane only, so it reports no topic
+     * listing, no cluster topology and no ACL.
+     */
+    "degraded": { [_ in Capability]?: string };
+
+    /**
+     * Caveats annotates a capability that works but has a consequence worth
+     * warning about. Browsing a RabbitMQ queue goes through basic.get, which
+     * alters queue state even when the message is requeued.
+     */
+    "caveats": { [_ in Capability]?: string };
+
+    /** Creates a new Capabilities instance. */
+    constructor($$source: Partial<Capabilities> = {}) {
+        if (!("supported" in $$source)) {
+            this["supported"] = [];
+        }
+        if (!("degraded" in $$source)) {
+            this["degraded"] = {};
+        }
+        if (!("caveats" in $$source)) {
+            this["caveats"] = {};
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new Capabilities instance from a string or object.
+     */
+    static createFrom($$source: any = {}): Capabilities {
+        const $$createField0_0 = $$createType2;
+        const $$createField1_0 = $$createType3;
+        const $$createField2_0 = $$createType3;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("supported" in $$parsedSource) {
+            $$parsedSource["supported"] = $$createField0_0($$parsedSource["supported"]);
+        }
+        if ("degraded" in $$parsedSource) {
+            $$parsedSource["degraded"] = $$createField1_0($$parsedSource["degraded"]);
+        }
+        if ("caveats" in $$parsedSource) {
+            $$parsedSource["caveats"] = $$createField2_0($$parsedSource["caveats"]);
+        }
+        return new Capabilities($$parsedSource as Partial<Capabilities>);
+    }
+}
+
+/**
+ * Capability names one operation the UI gates on.
+ * 
+ * The values cross the bridge and are matched as literals in the renderer, so
+ * renaming one means changing frontend/src/mq/capabilities.ts in the same
+ * commit.
+ */
+export enum Capability {
+    /**
+     * The Go zero value for the underlying type of the enum.
+     */
+    $zero = "",
+
+    CapDestinationList = "destination.list",
+    CapDestinationCreate = "destination.create",
+    CapDestinationUpdate = "destination.update",
+    CapDestinationDelete = "destination.delete",
+    CapPartitions = "destination.partitions",
+    CapSubscriptionList = "subscription.list",
+    CapSubscriptionCreate = "subscription.create",
+    CapSubscriptionDelete = "subscription.delete",
+    CapSubscriptionLag = "subscription.lag",
+    CapOffsetReset = "subscription.resetOffset",
+    CapMessageQuery = "message.query",
+    CapMessageByID = "message.byId",
+    CapMessageTrack = "message.track",
+    CapMessageResend = "message.resend",
+    CapMessageLiveTail = "message.liveTail",
+    CapDLQ = "message.dlq",
+    CapPublish = "message.publish",
+    CapClusterTopology = "cluster.topology",
+    CapClusterMetrics = "cluster.metrics",
+    CapAccessControl = "access.control",
+    CapRouting = "routing.exchanges",
+};
+
+/**
  * ClusterInfo holds cluster overview information.
  */
 export class ClusterInfo {
@@ -339,8 +459,8 @@ export class ClusterInfo {
      * Creates a new ClusterInfo instance from a string or object.
      */
     static createFrom($$source: any = {}): ClusterInfo {
-        const $$createField6_0 = $$createType2;
-        const $$createField7_0 = $$createType5;
+        const $$createField6_0 = $$createType4;
+        const $$createField7_0 = $$createType7;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("nameServers" in $$parsedSource) {
             $$parsedSource["nameServers"] = $$createField6_0($$parsedSource["nameServers"]);
@@ -579,8 +699,8 @@ export class ConsumerGroupItem {
      * Creates a new ConsumerGroupItem instance from a string or object.
      */
     static createFrom($$source: any = {}): ConsumerGroupItem {
-        const $$createField13_0 = $$createType7;
-        const $$createField14_0 = $$createType9;
+        const $$createField13_0 = $$createType9;
+        const $$createField14_0 = $$createType11;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("subscriptions" in $$parsedSource) {
             $$parsedSource["subscriptions"] = $$createField13_0($$parsedSource["subscriptions"]);
@@ -589,6 +709,231 @@ export class ConsumerGroupItem {
             $$parsedSource["clients"] = $$createField14_0($$parsedSource["clients"]);
         }
         return new ConsumerGroupItem($$parsedSource as Partial<ConsumerGroupItem>);
+    }
+}
+
+/**
+ * DriverDescriptor is what a family can do before any connection is open.
+ * 
+ * Display strings are deliberately absent: the renderer resolves them from
+ * the i18n bundle under mq.<kind>.*, so translations stay where translations
+ * live.
+ */
+export class DriverDescriptor {
+    "kind": MQKind;
+    "defaultPort": string;
+    "form": FormField[];
+
+    /**
+     * MaxCapabilities is the best case for the family. A live connection can
+     * only narrow it, never widen it, and the driver conformance test asserts
+     * every entry is backed by an implemented interface.
+     */
+    "maxCapabilities": Capability[];
+
+    /** Creates a new DriverDescriptor instance. */
+    constructor($$source: Partial<DriverDescriptor> = {}) {
+        if (!("kind" in $$source)) {
+            this["kind"] = MQKind.$zero;
+        }
+        if (!("defaultPort" in $$source)) {
+            this["defaultPort"] = "";
+        }
+        if (!("form" in $$source)) {
+            this["form"] = [];
+        }
+        if (!("maxCapabilities" in $$source)) {
+            this["maxCapabilities"] = [];
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new DriverDescriptor instance from a string or object.
+     */
+    static createFrom($$source: any = {}): DriverDescriptor {
+        const $$createField2_0 = $$createType13;
+        const $$createField3_0 = $$createType2;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("form" in $$parsedSource) {
+            $$parsedSource["form"] = $$createField2_0($$parsedSource["form"]);
+        }
+        if ("maxCapabilities" in $$parsedSource) {
+            $$parsedSource["maxCapabilities"] = $$createField3_0($$parsedSource["maxCapabilities"]);
+        }
+        return new DriverDescriptor($$parsedSource as Partial<DriverDescriptor>);
+    }
+}
+
+/**
+ * FieldCond hides a field unless another field holds one of Equals.
+ */
+export class FieldCond {
+    "field": string;
+    "equals": string[];
+
+    /** Creates a new FieldCond instance. */
+    constructor($$source: Partial<FieldCond> = {}) {
+        if (!("field" in $$source)) {
+            this["field"] = "";
+        }
+        if (!("equals" in $$source)) {
+            this["equals"] = [];
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new FieldCond instance from a string or object.
+     */
+    static createFrom($$source: any = {}): FieldCond {
+        const $$createField1_0 = $$createType4;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("equals" in $$parsedSource) {
+            $$parsedSource["equals"] = $$createField1_0($$parsedSource["equals"]);
+        }
+        return new FieldCond($$parsedSource as Partial<FieldCond>);
+    }
+}
+
+/**
+ * FieldTarget says which part of a ConnectionProfile a field writes into.
+ * Secrets are encrypted at rest and never serialised back to the renderer.
+ */
+export enum FieldTarget {
+    /**
+     * The Go zero value for the underlying type of the enum.
+     */
+    $zero = "",
+
+    TargetEndpoints = "endpoints",
+    TargetOption = "option",
+    TargetSecret = "secret",
+    TargetAuth = "auth",
+};
+
+/**
+ * FieldType is how the renderer draws one connection-form field.
+ */
+export enum FieldType {
+    /**
+     * The Go zero value for the underlying type of the enum.
+     */
+    $zero = "",
+
+    FieldText = "text",
+    FieldPassword = "password",
+    FieldNumber = "number",
+    FieldSelect = "select",
+    FieldSwitch = "switch",
+    FieldEndpointList = "endpoint-list",
+};
+
+/**
+ * FormField is one row of a driver's connection form.
+ */
+export class FormField {
+    "key": string;
+    "target": FieldTarget;
+    "type": FieldType;
+
+    /**
+     * i18n key, never a literal
+     */
+    "labelKey": string;
+    "placeholder": string;
+    "default": string;
+    "required": boolean;
+    "visibleWhen": FieldCond | null;
+    "options": FormOption[];
+
+    /**
+     * Validate names a validator the renderer already implements, such as
+     * "host-port" or "url". Shipping a regex across the bridge would move
+     * validation logic out of review and into data.
+     */
+    "validate": string;
+
+    /** Creates a new FormField instance. */
+    constructor($$source: Partial<FormField> = {}) {
+        if (!("key" in $$source)) {
+            this["key"] = "";
+        }
+        if (!("target" in $$source)) {
+            this["target"] = FieldTarget.$zero;
+        }
+        if (!("type" in $$source)) {
+            this["type"] = FieldType.$zero;
+        }
+        if (!("labelKey" in $$source)) {
+            this["labelKey"] = "";
+        }
+        if (!("placeholder" in $$source)) {
+            this["placeholder"] = "";
+        }
+        if (!("default" in $$source)) {
+            this["default"] = "";
+        }
+        if (!("required" in $$source)) {
+            this["required"] = false;
+        }
+        if (!("visibleWhen" in $$source)) {
+            this["visibleWhen"] = null;
+        }
+        if (!("options" in $$source)) {
+            this["options"] = [];
+        }
+        if (!("validate" in $$source)) {
+            this["validate"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new FormField instance from a string or object.
+     */
+    static createFrom($$source: any = {}): FormField {
+        const $$createField7_0 = $$createType15;
+        const $$createField8_0 = $$createType17;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("visibleWhen" in $$parsedSource) {
+            $$parsedSource["visibleWhen"] = $$createField7_0($$parsedSource["visibleWhen"]);
+        }
+        if ("options" in $$parsedSource) {
+            $$parsedSource["options"] = $$createField8_0($$parsedSource["options"]);
+        }
+        return new FormField($$parsedSource as Partial<FormField>);
+    }
+}
+
+/**
+ * FormOption is one choice in a select field.
+ */
+export class FormOption {
+    "value": string;
+    "labelKey": string;
+
+    /** Creates a new FormOption instance. */
+    constructor($$source: Partial<FormOption> = {}) {
+        if (!("value" in $$source)) {
+            this["value"] = "";
+        }
+        if (!("labelKey" in $$source)) {
+            this["labelKey"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new FormOption instance from a string or object.
+     */
+    static createFrom($$source: any = {}): FormOption {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new FormOption($$parsedSource as Partial<FormOption>);
     }
 }
 
@@ -699,6 +1044,27 @@ export class GroupSubscription {
         return new GroupSubscription($$parsedSource as Partial<GroupSubscription>);
     }
 }
+
+/**
+ * MQKind identifies a broker family.
+ * 
+ * The values are the key for the driver registry, the per-kind settings
+ * defaults and the `kind` field in connections.json, so they are part of the
+ * on-disk format and must not be renamed.
+ */
+export enum MQKind {
+    /**
+     * The Go zero value for the underlying type of the enum.
+     */
+    $zero = "",
+
+    KindRocketMQ = "rocketmq",
+    KindKafka = "kafka",
+    KindRabbitMQ = "rabbitmq",
+    KindPulsar = "pulsar",
+    KindRedisStream = "redis-stream",
+    KindMQTT = "mqtt",
+};
 
 /**
  * MessageItem holds message information.
@@ -842,7 +1208,7 @@ export class MessageItem {
      * Creates a new MessageItem instance from a string or object.
      */
     static createFrom($$source: any = {}): MessageItem {
-        const $$createField15_0 = $$createType10;
+        const $$createField15_0 = $$createType18;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("properties" in $$parsedSource) {
             $$parsedSource["properties"] = $$createField15_0($$parsedSource["properties"]);
@@ -1099,7 +1465,7 @@ export class TopicItem {
      * Creates a new TopicItem instance from a string or object.
      */
     static createFrom($$source: any = {}): TopicItem {
-        const $$createField12_0 = $$createType12;
+        const $$createField12_0 = $$createType20;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("routes" in $$parsedSource) {
             $$parsedSource["routes"] = $$createField12_0($$parsedSource["routes"]);
@@ -1200,13 +1566,21 @@ export class TopicRouteItem {
 const $$createType0 = $Create.Array($Create.Any);
 const $$createType1 = $Create.Array($Create.Any);
 const $$createType2 = $Create.Array($Create.Any);
-const $$createType3 = BrokerNode.createFrom;
-const $$createType4 = $Create.Nullable($$createType3);
-const $$createType5 = $Create.Array($$createType4);
-const $$createType6 = GroupSubscription.createFrom;
+const $$createType3 = $Create.Map($Create.Any, $Create.Any);
+const $$createType4 = $Create.Array($Create.Any);
+const $$createType5 = BrokerNode.createFrom;
+const $$createType6 = $Create.Nullable($$createType5);
 const $$createType7 = $Create.Array($$createType6);
-const $$createType8 = GroupClient.createFrom;
+const $$createType8 = GroupSubscription.createFrom;
 const $$createType9 = $Create.Array($$createType8);
-const $$createType10 = $Create.Map($Create.Any, $Create.Any);
-const $$createType11 = TopicRouteItem.createFrom;
-const $$createType12 = $Create.Array($$createType11);
+const $$createType10 = GroupClient.createFrom;
+const $$createType11 = $Create.Array($$createType10);
+const $$createType12 = FormField.createFrom;
+const $$createType13 = $Create.Array($$createType12);
+const $$createType14 = FieldCond.createFrom;
+const $$createType15 = $Create.Nullable($$createType14);
+const $$createType16 = FormOption.createFrom;
+const $$createType17 = $Create.Array($$createType16);
+const $$createType18 = $Create.Map($Create.Any, $Create.Any);
+const $$createType19 = TopicRouteItem.createFrom;
+const $$createType20 = $Create.Array($$createType19);

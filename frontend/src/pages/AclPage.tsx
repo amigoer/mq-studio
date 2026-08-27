@@ -36,7 +36,7 @@ export function AclPage({ onNavigate }: { onNavigate?: (id: NavId) => void }) {
   const activeConn = connections.find((c) => c.status === 'online') ?? null
   const hasOnline = activeConn != null
   // When the active cluster changes, status must be reloaded even if still "online"
-  const activeKey = activeConn ? `${activeConn.id}:${activeConn.nameServer}` : ''
+  const activeKey = activeConn ? `${activeConn.id}:${activeConn.endpoints}` : ''
 
   // Status
   const [enabled, setEnabled] = useState<boolean | null>(null)

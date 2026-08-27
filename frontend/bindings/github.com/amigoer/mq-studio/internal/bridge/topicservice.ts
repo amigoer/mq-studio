@@ -25,15 +25,15 @@ import * as $models from "./models.js";
 /**
  * Create adds a topic on the target broker.
  */
-export function Create(input: $models.TopicInput): $CancellablePromise<void> {
-    return $Call.ByID(2768344908, input);
+export function Create(connID: number, input: $models.TopicInput): $CancellablePromise<void> {
+    return $Call.ByID(2768344908, connID, input);
 }
 
 /**
  * Detail returns a single topic with its routes and metrics.
  */
-export function Detail(topicName: string): $CancellablePromise<model$0.TopicItem | null> {
-    return $Call.ByID(4032733801, topicName).then(($result: any) => {
+export function Detail(connID: number, topicName: string): $CancellablePromise<model$0.TopicItem | null> {
+    return $Call.ByID(4032733801, connID, topicName).then(($result: any) => {
         return $$createType1($result);
     });
 }
@@ -41,8 +41,8 @@ export function Detail(topicName: string): $CancellablePromise<model$0.TopicItem
 /**
  * List returns the user-visible topics.
  */
-export function List(): $CancellablePromise<(model$0.TopicItem | null)[]> {
-    return $Call.ByID(2639464304).then(($result: any) => {
+export function List(connID: number): $CancellablePromise<(model$0.TopicItem | null)[]> {
+    return $Call.ByID(2639464304, connID).then(($result: any) => {
         return $$createType2($result);
     });
 }
@@ -50,8 +50,8 @@ export function List(): $CancellablePromise<(model$0.TopicItem | null)[]> {
 /**
  * ListAll returns every topic, including system topics.
  */
-export function ListAll(): $CancellablePromise<(model$0.TopicItem | null)[]> {
-    return $Call.ByID(3586990883).then(($result: any) => {
+export function ListAll(connID: number): $CancellablePromise<(model$0.TopicItem | null)[]> {
+    return $Call.ByID(3586990883, connID).then(($result: any) => {
         return $$createType2($result);
     });
 }
@@ -59,15 +59,15 @@ export function ListAll(): $CancellablePromise<(model$0.TopicItem | null)[]> {
 /**
  * Remove deletes a topic from the cluster.
  */
-export function Remove(topicName: string, clusterName: string): $CancellablePromise<void> {
-    return $Call.ByID(4094727824, topicName, clusterName);
+export function Remove(connID: number, topicName: string, clusterName: string): $CancellablePromise<void> {
+    return $Call.ByID(4094727824, connID, topicName, clusterName);
 }
 
 /**
  * Stats returns the per-queue statistics for a topic.
  */
-export function Stats(topicName: string): $CancellablePromise<{ [_ in string]?: any }> {
-    return $Call.ByID(1748281291, topicName).then(($result: any) => {
+export function Stats(connID: number, topicName: string): $CancellablePromise<{ [_ in string]?: any }> {
+    return $Call.ByID(1748281291, connID, topicName).then(($result: any) => {
         return $$createType3($result);
     });
 }
@@ -75,8 +75,8 @@ export function Stats(topicName: string): $CancellablePromise<{ [_ in string]?: 
 /**
  * Update changes the configuration of an existing topic.
  */
-export function Update(input: $models.TopicInput): $CancellablePromise<void> {
-    return $Call.ByID(3319221225, input);
+export function Update(connID: number, input: $models.TopicInput): $CancellablePromise<void> {
+    return $Call.ByID(3319221225, connID, input);
 }
 
 // Private type creation functions

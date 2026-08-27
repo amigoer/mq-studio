@@ -71,16 +71,25 @@ export class AccessConfigInput {
 
 /**
  * ConnectionInput carries a connection form submission.
+ * 
+ * Secrets is write-only: it carries what the user just typed, and nothing ever
+ * sends one back.
  */
 export class ConnectionInput {
     "name": string;
     "group": string;
-    "nameServer": string;
+    "kind": model$0.MQKind;
+    "endpoints": string;
     "timeoutSec": number;
-    "enableACL": boolean;
-    "accessKey": string;
-    "secretKey": string;
+    "authMechanism": model$0.AuthMechanism;
+    "options": { [_ in string]?: string };
+    "secrets": { [_ in string]?: string };
     "remark": string;
+
+    /**
+     * CredentialsMode says what to do with secrets the form left blank:
+     * preserve what is stored, replace it with what was typed, or clear it.
+     */
     "credentialsMode": string;
 
     /** Creates a new ConnectionInput instance. */
@@ -91,20 +100,23 @@ export class ConnectionInput {
         if (!("group" in $$source)) {
             this["group"] = "";
         }
-        if (!("nameServer" in $$source)) {
-            this["nameServer"] = "";
+        if (!("kind" in $$source)) {
+            this["kind"] = model$0.MQKind.$zero;
+        }
+        if (!("endpoints" in $$source)) {
+            this["endpoints"] = "";
         }
         if (!("timeoutSec" in $$source)) {
             this["timeoutSec"] = 0;
         }
-        if (!("enableACL" in $$source)) {
-            this["enableACL"] = false;
+        if (!("authMechanism" in $$source)) {
+            this["authMechanism"] = model$0.AuthMechanism.$zero;
         }
-        if (!("accessKey" in $$source)) {
-            this["accessKey"] = "";
+        if (!("options" in $$source)) {
+            this["options"] = {};
         }
-        if (!("secretKey" in $$source)) {
-            this["secretKey"] = "";
+        if (!("secrets" in $$source)) {
+            this["secrets"] = {};
         }
         if (!("remark" in $$source)) {
             this["remark"] = "";
@@ -120,7 +132,15 @@ export class ConnectionInput {
      * Creates a new ConnectionInput instance from a string or object.
      */
     static createFrom($$source: any = {}): ConnectionInput {
+        const $$createField6_0 = $$createType1;
+        const $$createField7_0 = $$createType1;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("options" in $$parsedSource) {
+            $$parsedSource["options"] = $$createField6_0($$parsedSource["options"]);
+        }
+        if ("secrets" in $$parsedSource) {
+            $$parsedSource["secrets"] = $$createField7_0($$parsedSource["secrets"]);
+        }
         return new ConnectionInput($$parsedSource as Partial<ConnectionInput>);
     }
 }
@@ -128,21 +148,21 @@ export class ConnectionInput {
 /**
  * ConnectionView is the connection shape sent to the frontend.
  * 
- * AccessKey and SecretKey are always empty: the stored credentials never leave
- * the Go process. The frontend decides what to render from the *Configured
- * flags instead.
+ * Stored credentials never leave the Go process. The renderer decides what to
+ * render from SecretsConfigured, which lists the keys that hold a value - a
+ * list rather than a pair of booleans, because how many credentials a
+ * connection has is the driver's business, not this struct's.
  */
 export class ConnectionView {
     "id": number;
     "name": string;
     "group": string;
-    "nameServer": string;
+    "kind": model$0.MQKind;
+    "endpoints": string;
     "timeoutSec": number;
-    "enableACL": boolean;
-    "accessKey": string;
-    "secretKey": string;
-    "accessKeyConfigured": boolean;
-    "secretKeyConfigured": boolean;
+    "authMechanism": model$0.AuthMechanism;
+    "options": { [_ in string]?: string };
+    "secretsConfigured": string[];
     "status": model$0.ConnectionStatus;
     "lastCheck": string;
     "isDefault": boolean;
@@ -159,26 +179,23 @@ export class ConnectionView {
         if (!("group" in $$source)) {
             this["group"] = "";
         }
-        if (!("nameServer" in $$source)) {
-            this["nameServer"] = "";
+        if (!("kind" in $$source)) {
+            this["kind"] = model$0.MQKind.$zero;
+        }
+        if (!("endpoints" in $$source)) {
+            this["endpoints"] = "";
         }
         if (!("timeoutSec" in $$source)) {
             this["timeoutSec"] = 0;
         }
-        if (!("enableACL" in $$source)) {
-            this["enableACL"] = false;
+        if (!("authMechanism" in $$source)) {
+            this["authMechanism"] = model$0.AuthMechanism.$zero;
         }
-        if (!("accessKey" in $$source)) {
-            this["accessKey"] = "";
+        if (!("options" in $$source)) {
+            this["options"] = {};
         }
-        if (!("secretKey" in $$source)) {
-            this["secretKey"] = "";
-        }
-        if (!("accessKeyConfigured" in $$source)) {
-            this["accessKeyConfigured"] = false;
-        }
-        if (!("secretKeyConfigured" in $$source)) {
-            this["secretKeyConfigured"] = false;
+        if (!("secretsConfigured" in $$source)) {
+            this["secretsConfigured"] = [];
         }
         if (!("status" in $$source)) {
             this["status"] = model$0.ConnectionStatus.$zero;
@@ -200,7 +217,15 @@ export class ConnectionView {
      * Creates a new ConnectionView instance from a string or object.
      */
     static createFrom($$source: any = {}): ConnectionView {
+        const $$createField7_0 = $$createType1;
+        const $$createField8_0 = $$createType0;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("options" in $$parsedSource) {
+            $$parsedSource["options"] = $$createField7_0($$parsedSource["options"]);
+        }
+        if ("secretsConfigured" in $$parsedSource) {
+            $$parsedSource["secretsConfigured"] = $$createField8_0($$parsedSource["secretsConfigured"]);
+        }
         return new ConnectionView($$parsedSource as Partial<ConnectionView>);
     }
 }
@@ -238,6 +263,34 @@ export class ConsumerInput {
     static createFrom($$source: any = {}): ConsumerInput {
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         return new ConsumerInput($$parsedSource as Partial<ConsumerInput>);
+    }
+}
+
+/**
+ * DriverInfo is one registered family.
+ */
+export class DriverInfo {
+    "kind": model$0.MQKind;
+    "defaultPort": string;
+
+    /** Creates a new DriverInfo instance. */
+    constructor($$source: Partial<DriverInfo> = {}) {
+        if (!("kind" in $$source)) {
+            this["kind"] = model$0.MQKind.$zero;
+        }
+        if (!("defaultPort" in $$source)) {
+            this["defaultPort"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new DriverInfo instance from a string or object.
+     */
+    static createFrom($$source: any = {}): DriverInfo {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new DriverInfo($$parsedSource as Partial<DriverInfo>);
     }
 }
 
@@ -862,3 +915,4 @@ export class TopicInput {
 
 // Private type creation functions
 const $$createType0 = $Create.Array($Create.Any);
+const $$createType1 = $Create.Map($Create.Any, $Create.Any);

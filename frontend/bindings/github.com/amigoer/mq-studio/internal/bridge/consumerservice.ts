@@ -24,15 +24,15 @@ import * as $models from "./models.js";
 /**
  * Create adds a consumer group on the target broker.
  */
-export function Create(input: $models.ConsumerInput): $CancellablePromise<void> {
-    return $Call.ByID(3797574047, input);
+export function Create(connID: number, input: $models.ConsumerInput): $CancellablePromise<void> {
+    return $Call.ByID(3797574047, connID, input);
 }
 
 /**
  * Detail returns a consumer group with its clients and subscriptions.
  */
-export function Detail(group: string): $CancellablePromise<model$0.ConsumerGroupItem | null> {
-    return $Call.ByID(2168000630, group).then(($result: any) => {
+export function Detail(connID: number, group: string): $CancellablePromise<model$0.ConsumerGroupItem | null> {
+    return $Call.ByID(2168000630, connID, group).then(($result: any) => {
         return $$createType1($result);
     });
 }
@@ -40,8 +40,8 @@ export function Detail(group: string): $CancellablePromise<model$0.ConsumerGroup
 /**
  * List returns every consumer group.
  */
-export function List(): $CancellablePromise<(model$0.ConsumerGroupItem | null)[]> {
-    return $Call.ByID(699201983).then(($result: any) => {
+export function List(connID: number): $CancellablePromise<(model$0.ConsumerGroupItem | null)[]> {
+    return $Call.ByID(699201983, connID).then(($result: any) => {
         return $$createType2($result);
     });
 }
@@ -49,22 +49,22 @@ export function List(): $CancellablePromise<(model$0.ConsumerGroupItem | null)[]
 /**
  * Remove deletes a consumer group.
  */
-export function Remove(group: string, brokerAddr: string): $CancellablePromise<void> {
-    return $Call.ByID(1788729339, group, brokerAddr);
+export function Remove(connID: number, group: string, brokerAddr: string): $CancellablePromise<void> {
+    return $Call.ByID(1788729339, connID, group, brokerAddr);
 }
 
 /**
  * ResetOffset moves a consumer group's read position.
  */
-export function ResetOffset(request: model$0.ResetOffsetRequest): $CancellablePromise<void> {
-    return $Call.ByID(1260330865, request);
+export function ResetOffset(connID: number, request: model$0.ResetOffsetRequest): $CancellablePromise<void> {
+    return $Call.ByID(1260330865, connID, request);
 }
 
 /**
  * Stats returns the per-queue consume progress of a group.
  */
-export function Stats(group: string): $CancellablePromise<{ [_ in string]?: any }> {
-    return $Call.ByID(3402555482, group).then(($result: any) => {
+export function Stats(connID: number, group: string): $CancellablePromise<{ [_ in string]?: any }> {
+    return $Call.ByID(3402555482, connID, group).then(($result: any) => {
         return $$createType3($result);
     });
 }
@@ -72,8 +72,8 @@ export function Stats(group: string): $CancellablePromise<{ [_ in string]?: any 
 /**
  * Update changes an existing consumer group.
  */
-export function Update(input: $models.ConsumerInput): $CancellablePromise<void> {
-    return $Call.ByID(2853418918, input);
+export function Update(connID: number, input: $models.ConsumerInput): $CancellablePromise<void> {
+    return $Call.ByID(2853418918, connID, input);
 }
 
 // Private type creation functions

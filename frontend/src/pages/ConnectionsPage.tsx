@@ -24,6 +24,7 @@ import * as connectionApi from '@/api/connection'
 import { formatErrorMessage, cn } from '@/lib/utils'
 import { activatableRowProps, ROW_FOCUS_CLASS } from '@/lib/a11y'
 import { type Connection } from '@/api/models'
+import { AuthMechanism } from '@bindings/model/models'
 import {
   hasConnectionPrefill,
   takeConnectionPrefill,
@@ -39,6 +40,13 @@ import { Card } from '@/components/ui/card'
 const NEW_FORM_ID = -1
 const DEFAULT_NS_PORT = '9876'
 const MAX_GROUP_LENGTH = 32
+const SECRET_ACCESS_KEY = 'accessKey'
+const SECRET_SECRET_KEY = 'secretKey'
+
+/** The stored view reports a mechanism; the form still asks a yes-or-no. */
+function hasACL(connection: Connection): boolean {
+  return connection.authMechanism === AuthMechanism.AuthACL
+}
 
 interface NsEntry {
   host: string
@@ -161,13 +169,15 @@ function fromConnection(c: Connection): FormState {
     id: c.id,
     name: c.name,
     group: c.group,
-    nsEntries: parseNameServers(c.nameServer),
+    nsEntries: parseNameServers(c.endpoints),
     timeoutSec: c.timeoutSec || 5,
-    enableACL: c.enableACL,
-    accessKey: c.accessKey,
-    secretKey: c.secretKey,
-    accessKeyConfigured: c.accessKeyConfigured,
-    secretKeyConfigured: c.secretKeyConfigured,
+    enableACL: hasACL(c),
+    // Stored credentials never come back from Go, so the form starts blank
+    // and shows "already set" from the configured list instead.
+    accessKey: '',
+    secretKey: '',
+    accessKeyConfigured: c.secretsConfigured.includes(SECRET_ACCESS_KEY),
+    secretKeyConfigured: c.secretsConfigured.includes(SECRET_SECRET_KEY),
     remark: c.remark,
   }
 }
@@ -302,7 +312,7 @@ export function ConnectionsPage() {
     const next = fromConnection(selected)
     setForm(next)
     setOriginalForm(next)
-    setAdvancedOpen(selected.enableACL || selected.timeoutSec !== 5 || !!selected.remark)
+    setAdvancedOpen(hasACL(selected) || selected.timeoutSec !== 5 || !!selected.remark)
   }, [selected, selectedId, resyncToken])
 
   const isNew = selectedId === NEW_FORM_ID
@@ -317,7 +327,7 @@ export function ConnectionsPage() {
     return list.filter(
       (c) =>
         c.name.toLowerCase().includes(q) ||
-        c.nameServer.toLowerCase().includes(q) ||
+        c.endpoints.toLowerCase().includes(q) ||
         (c.group || '').toLowerCase().includes(q) ||
         (c.remark || '').toLowerCase().includes(q),
     )
@@ -606,7 +616,7 @@ export function ConnectionsPage() {
         </div>
         <div className="flex items-center gap-1.5 pl-[15px]">
           <span className="font-mono-design text-muted-foreground min-w-0 truncate text-fs-105">
-            {c.nameServer || '—'}
+            {c.endpoints || '—'}
           </span>
         </div>
       </div>
@@ -771,7 +781,7 @@ export function ConnectionsPage() {
                   <div className="col-span-2">
                     <div className="mb-1.5 flex items-center justify-between gap-2">
                       <div className="text-muted-foreground text-fs-115">
-                        {t('connections.nameServer')}
+                        {t('connections.endpoints')}
                         <span className="text-destructive"> *</span>
                       </div>
                       <Button variant="ghost" size="sm"

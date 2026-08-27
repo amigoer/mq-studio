@@ -5,6 +5,7 @@ import * as ACLService from "./aclservice.js";
 import * as ClusterService from "./clusterservice.js";
 import * as ConnectionService from "./connectionservice.js";
 import * as ConsumerService from "./consumerservice.js";
+import * as DriverService from "./driverservice.js";
 import * as MessageService from "./messageservice.js";
 import * as SettingsService from "./settingsservice.js";
 import * as SystemService from "./systemservice.js";
@@ -15,6 +16,7 @@ export {
     ClusterService,
     ConnectionService,
     ConsumerService,
+    DriverService,
     MessageService,
     SettingsService,
     SystemService,
@@ -27,6 +29,7 @@ export {
     ConnectionInput,
     ConnectionView,
     ConsumerInput,
+    DriverInfo,
     MessageQuery,
     ResendInput,
     SendInput,

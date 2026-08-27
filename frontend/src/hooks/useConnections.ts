@@ -74,7 +74,7 @@ function useConnectionsState(): ConnectionsContextValue {
   return {
     list: connections,
     active,
-    activeKey: active ? `${active.id}:${active.nameServer}` : 'offline',
+    activeKey: active ? `${active.id}:${active.endpoints}` : 'offline',
     loading,
     error,
     refresh,

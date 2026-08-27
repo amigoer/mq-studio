@@ -21,8 +21,8 @@ import * as model$0 from "../model/models.js";
 /**
  * BrokerDetail returns runtime statistics for a single broker.
  */
-export function BrokerDetail(brokerAddr: string): $CancellablePromise<model$0.BrokerNode | null> {
-    return $Call.ByID(199600473, brokerAddr).then(($result: any) => {
+export function BrokerDetail(connID: number, brokerAddr: string): $CancellablePromise<model$0.BrokerNode | null> {
+    return $Call.ByID(199600473, connID, brokerAddr).then(($result: any) => {
         return $$createType1($result);
     });
 }
@@ -30,8 +30,8 @@ export function BrokerDetail(brokerAddr: string): $CancellablePromise<model$0.Br
 /**
  * Brokers returns every known broker node.
  */
-export function Brokers(): $CancellablePromise<(model$0.BrokerNode | null)[]> {
-    return $Call.ByID(4225538801).then(($result: any) => {
+export function Brokers(connID: number): $CancellablePromise<(model$0.BrokerNode | null)[]> {
+    return $Call.ByID(4225538801, connID).then(($result: any) => {
         return $$createType2($result);
     });
 }
@@ -39,8 +39,8 @@ export function Brokers(): $CancellablePromise<(model$0.BrokerNode | null)[]> {
 /**
  * Info returns the full cluster overview.
  */
-export function Info(): $CancellablePromise<model$0.ClusterInfo | null> {
-    return $Call.ByID(362678625).then(($result: any) => {
+export function Info(connID: number): $CancellablePromise<model$0.ClusterInfo | null> {
+    return $Call.ByID(362678625, connID).then(($result: any) => {
         return $$createType4($result);
     });
 }
@@ -48,8 +48,8 @@ export function Info(): $CancellablePromise<model$0.ClusterInfo | null> {
 /**
  * Summary returns the aggregated cluster counters.
  */
-export function Summary(): $CancellablePromise<model$0.ClusterSummary | null> {
-    return $Call.ByID(4155074039).then(($result: any) => {
+export function Summary(connID: number): $CancellablePromise<model$0.ClusterSummary | null> {
+    return $Call.ByID(4155074039, connID).then(($result: any) => {
         return $$createType6($result);
     });
 }

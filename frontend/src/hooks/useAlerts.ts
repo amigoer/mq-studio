@@ -55,7 +55,7 @@ function useAlertsState(): AlertsContextValue {
   const diskThreshold = settings.diskAlertThreshold ?? 75
   const hasOnline = data.activeConnection?.status === 'online'
   const connectionKey = hasOnline
-    ? `${data.activeConnection?.id}:${data.activeConnection?.nameServer}`
+    ? `${data.activeConnection?.id}:${data.activeConnection?.endpoints}`
     : 'offline'
   const [rules, setRules] = useState<AlertRulePrefs>(() => loadAlertRules())
   const knownAlertKeysRef = useRef<Set<string> | null>(null)

@@ -61,7 +61,7 @@ function pickActiveConnection(list: Connection[]): Connection | null {
 
 function connectionKeyOf(conn: Connection | null): string {
   if (!conn) return 'none'
-  return `${conn.id}:${conn.nameServer}:${conn.status}`
+  return `${conn.id}:${conn.endpoints}:${conn.status}`
 }
 
 function useOverviewState(): OverviewContextValue {

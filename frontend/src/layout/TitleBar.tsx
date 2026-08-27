@@ -193,7 +193,7 @@ export function TitleBar({
                           )}
                         </span>
                         <span className="item-addr font-mono-design">
-                          {(c.nameServer || '').split(/[;\s,]+/)[0] || '—'}
+                          {(c.endpoints || '').split(/[;\s,]+/)[0] || '—'}
                         </span>
                       </span>
                       {busy ? (
