@@ -23,7 +23,11 @@ type Settings interface {
 }
 
 // ConnSource yields the connection a request runs against.
-type ConnSource func() (driver.Conn, error)
+//
+// Taking an id is what lets a caller name the connection instead of relying
+// on an implicit default, which is the whole reason the bridge signatures
+// grew one.
+type ConnSource func(connID int) (driver.Conn, error)
 
 // Service is the orchestration layer between the bridge and a driver.
 type Service struct {
@@ -42,8 +46,8 @@ func (s *Service) nextListID() int {
 }
 
 // admin resolves the active connection and its destination surface.
-func (s *Service) admin() (driver.DestinationAdmin, error) {
-	conn, err := s.conns()
+func (s *Service) admin(connID int) (driver.DestinationAdmin, error) {
+	conn, err := s.conns(connID)
 	if err != nil {
 		return nil, err
 	}
@@ -65,8 +69,8 @@ func (s *Service) withTimeout(ctx context.Context) (context.Context, context.Can
 // A missing connection yields an empty list rather than an error: the list
 // pages render empty when offline, and turning that into an error banner
 // would be a visible behaviour change.
-func (s *Service) List(ctx context.Context, filter model.DestinationFilter) ([]*model.Destination, error) {
-	api, err := s.admin()
+func (s *Service) List(ctx context.Context, connID int, filter model.DestinationFilter) ([]*model.Destination, error) {
+	api, err := s.admin(connID)
 	if err != nil {
 		if errors.Is(err, driver.ErrNotConnected) {
 			return []*model.Destination{}, nil
@@ -88,8 +92,8 @@ func (s *Service) List(ctx context.Context, filter model.DestinationFilter) ([]*
 
 // Detail returns one destination. Unlike List it reports a missing connection,
 // because reaching a detail view at all implies one was open.
-func (s *Service) Detail(ctx context.Context, ref model.DestinationRef) (*model.Destination, error) {
-	api, err := s.admin()
+func (s *Service) Detail(ctx context.Context, connID int, ref model.DestinationRef) (*model.Destination, error) {
+	api, err := s.admin(connID)
 	if err != nil {
 		return nil, err
 	}
@@ -107,22 +111,22 @@ func (s *Service) Detail(ctx context.Context, ref model.DestinationRef) (*model.
 }
 
 // Create adds a destination.
-func (s *Service) Create(ctx context.Context, spec model.DestinationSpec) error {
-	return s.mutate(ctx, model.CapDestinationCreate, func(api driver.DestinationAdmin, ctx context.Context) error {
+func (s *Service) Create(ctx context.Context, connID int, spec model.DestinationSpec) error {
+	return s.mutate(ctx, connID, model.CapDestinationCreate, func(api driver.DestinationAdmin, ctx context.Context) error {
 		return api.CreateDestination(ctx, spec)
 	})
 }
 
 // Update changes an existing destination.
-func (s *Service) Update(ctx context.Context, spec model.DestinationSpec) error {
-	return s.mutate(ctx, model.CapDestinationUpdate, func(api driver.DestinationAdmin, ctx context.Context) error {
+func (s *Service) Update(ctx context.Context, connID int, spec model.DestinationSpec) error {
+	return s.mutate(ctx, connID, model.CapDestinationUpdate, func(api driver.DestinationAdmin, ctx context.Context) error {
 		return api.UpdateDestination(ctx, spec)
 	})
 }
 
 // Remove deletes a destination.
-func (s *Service) Remove(ctx context.Context, ref model.DestinationRef) error {
-	return s.mutate(ctx, model.CapDestinationDelete, func(api driver.DestinationAdmin, ctx context.Context) error {
+func (s *Service) Remove(ctx context.Context, connID int, ref model.DestinationRef) error {
+	return s.mutate(ctx, connID, model.CapDestinationDelete, func(api driver.DestinationAdmin, ctx context.Context) error {
 		return api.RemoveDestination(ctx, ref)
 	})
 }
@@ -133,10 +137,11 @@ func (s *Service) Remove(ctx context.Context, ref model.DestinationRef) error {
 // offered.
 func (s *Service) mutate(
 	ctx context.Context,
+	connID int,
 	capability model.Capability,
 	call func(driver.DestinationAdmin, context.Context) error,
 ) error {
-	conn, err := s.conns()
+	conn, err := s.conns(connID)
 	if err != nil {
 		return err
 	}
@@ -153,8 +158,8 @@ func (s *Service) mutate(
 }
 
 // Stats returns the per-partition read ranges of a destination.
-func (s *Service) Stats(ctx context.Context, ref model.DestinationRef) (map[string]interface{}, error) {
-	conn, err := s.conns()
+func (s *Service) Stats(ctx context.Context, connID int, ref model.DestinationRef) (map[string]interface{}, error) {
+	conn, err := s.conns(connID)
 	if err != nil {
 		return nil, err
 	}

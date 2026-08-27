@@ -18,7 +18,11 @@ type Settings interface {
 }
 
 // ConnSource yields the connection a request runs against.
-type ConnSource func() (driver.Conn, error)
+//
+// Taking an id is what lets a caller name the connection instead of relying
+// on an implicit default, which is the whole reason the bridge signatures
+// grew one.
+type ConnSource func(connID int) (driver.Conn, error)
 
 // Service is the orchestration layer between the bridge and a driver.
 type Service struct {
@@ -57,8 +61,8 @@ func (s *Service) FetchLimit() int {
 }
 
 // Query searches a destination.
-func (s *Service) Query(ctx context.Context, params model.MessageQueryParams) ([]*model.MessageItem, error) {
-	conn, err := s.conns()
+func (s *Service) Query(ctx context.Context, connID int, params model.MessageQueryParams) ([]*model.MessageItem, error) {
+	conn, err := s.conns(connID)
 	if err != nil {
 		return nil, err
 	}
@@ -77,8 +81,8 @@ func (s *Service) Query(ctx context.Context, params model.MessageQueryParams) ([
 }
 
 // ByID returns one message by its broker-assigned id.
-func (s *Service) ByID(ctx context.Context, topic, messageID string) (*model.MessageItem, error) {
-	conn, err := s.conns()
+func (s *Service) ByID(ctx context.Context, connID int, topic, messageID string) (*model.MessageItem, error) {
+	conn, err := s.conns(connID)
 	if err != nil {
 		return nil, err
 	}
@@ -100,8 +104,8 @@ func (s *Service) ByID(ctx context.Context, topic, messageID string) (*model.Mes
 }
 
 // Track reports which subscriptions have consumed a message.
-func (s *Service) Track(ctx context.Context, topic, messageID string) ([]*model.MessageTrackItem, error) {
-	conn, err := s.conns()
+func (s *Service) Track(ctx context.Context, connID int, topic, messageID string) ([]*model.MessageTrackItem, error) {
+	conn, err := s.conns(connID)
 	if err != nil {
 		return nil, err
 	}
@@ -115,8 +119,8 @@ func (s *Service) Track(ctx context.Context, topic, messageID string) ([]*model.
 }
 
 // DLQ browses a subscription's dead-letter backlog.
-func (s *Service) DLQ(ctx context.Context, group string, maxResults int) ([]*model.MessageItem, error) {
-	api, ctx, cancel, err := s.deadLetter(ctx)
+func (s *Service) DLQ(ctx context.Context, connID int, group string, maxResults int) ([]*model.MessageItem, error) {
+	api, ctx, cancel, err := s.deadLetter(ctx, connID)
 	if err != nil {
 		return nil, err
 	}
@@ -130,8 +134,8 @@ func (s *Service) DLQ(ctx context.Context, group string, maxResults int) ([]*mod
 }
 
 // Retry browses a subscription's retry backlog.
-func (s *Service) Retry(ctx context.Context, group string, maxResults int) ([]*model.MessageItem, error) {
-	api, ctx, cancel, err := s.deadLetter(ctx)
+func (s *Service) Retry(ctx context.Context, connID int, group string, maxResults int) ([]*model.MessageItem, error) {
+	api, ctx, cancel, err := s.deadLetter(ctx, connID)
 	if err != nil {
 		return nil, err
 	}
@@ -145,8 +149,8 @@ func (s *Service) Retry(ctx context.Context, group string, maxResults int) ([]*m
 }
 
 // Resend pushes a message back to a subscription.
-func (s *Service) Resend(ctx context.Context, consumerGroup, clientID, topic, messageID string) (string, error) {
-	api, ctx, cancel, err := s.deadLetter(ctx)
+func (s *Service) Resend(ctx context.Context, connID int, consumerGroup, clientID, topic, messageID string) (string, error) {
+	api, ctx, cancel, err := s.deadLetter(ctx, connID)
 	if err != nil {
 		return "", err
 	}
@@ -154,8 +158,8 @@ func (s *Service) Resend(ctx context.Context, consumerGroup, clientID, topic, me
 	return api.ResendMessage(ctx, consumerGroup, clientID, topic, messageID)
 }
 
-func (s *Service) deadLetter(ctx context.Context) (driver.DeadLetterReader, context.Context, context.CancelFunc, error) {
-	conn, err := s.conns()
+func (s *Service) deadLetter(ctx context.Context, connID int) (driver.DeadLetterReader, context.Context, context.CancelFunc, error) {
+	conn, err := s.conns(connID)
 	if err != nil {
 		return nil, nil, func() {}, err
 	}
@@ -168,8 +172,8 @@ func (s *Service) deadLetter(ctx context.Context) (driver.DeadLetterReader, cont
 }
 
 // Send publishes a message.
-func (s *Service) Send(ctx context.Context, topic, tags, keys, body string, delayLevel int) (string, error) {
-	conn, err := s.conns()
+func (s *Service) Send(ctx context.Context, connID int, topic, tags, keys, body string, delayLevel int) (string, error) {
+	conn, err := s.conns(connID)
 	if err != nil {
 		return "", err
 	}

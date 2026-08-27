@@ -25,18 +25,18 @@ type AccessConfigInput struct {
 }
 
 // Enabled reports whether the broker has ACL turned on.
-func (s *ACLService) Enabled() (bool, error) {
-	return s.service.Enabled(context.Background())
+func (s *ACLService) Enabled(connID int) (bool, error) {
+	return s.service.Enabled(context.Background(), connID)
 }
 
 // Version returns the broker ACL config version and its entries.
-func (s *ACLService) Version() (*model.AclVersionInfo, error) {
-	return s.service.Version(context.Background())
+func (s *ACLService) Version(connID int) (*model.AclVersionInfo, error) {
+	return s.service.Version(context.Background(), connID)
 }
 
 // UpdateAccess creates or replaces an ACL access config entry.
-func (s *ACLService) UpdateAccess(input AccessConfigInput) error {
-	return s.service.Put(context.Background(), model.AccessConfig{
+func (s *ACLService) UpdateAccess(connID int, input AccessConfigInput) error {
+	return s.service.Put(context.Background(), connID, model.AccessConfig{
 		AccessKey:          input.AccessKey,
 		SecretKey:          input.SecretKey,
 		WhiteRemoteAddress: input.WhiteRemoteAddress,
@@ -49,11 +49,11 @@ func (s *ACLService) UpdateAccess(input AccessConfigInput) error {
 }
 
 // DeleteAccess removes an ACL access config entry.
-func (s *ACLService) DeleteAccess(accessKey string) error {
-	return s.service.Remove(context.Background(), accessKey)
+func (s *ACLService) DeleteAccess(connID int, accessKey string) error {
+	return s.service.Remove(context.Background(), connID, accessKey)
 }
 
 // UpdateWhiteAddrs replaces the broker global IP white list.
-func (s *ACLService) UpdateWhiteAddrs(addrs []string) error {
-	return s.service.SetAllowList(context.Background(), addrs)
+func (s *ACLService) UpdateWhiteAddrs(connID int, addrs []string) error {
+	return s.service.SetAllowList(context.Background(), connID, addrs)
 }

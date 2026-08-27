@@ -14,7 +14,7 @@ type Settings interface {
 }
 
 // ConnSource yields the connection a request runs against.
-type ConnSource func() (driver.Conn, error)
+type ConnSource func(connID int) (driver.Conn, error)
 
 // Service provides cluster status operations.
 type Service struct {

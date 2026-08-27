@@ -47,8 +47,8 @@ func topicsFrom(destinations []*model.Destination) []*model.TopicItem {
 }
 
 // List returns the user-visible topics.
-func (s *TopicService) List() ([]*model.TopicItem, error) {
-	destinations, err := s.service.List(context.Background(), model.DestinationFilter{})
+func (s *TopicService) List(connID int) ([]*model.TopicItem, error) {
+	destinations, err := s.service.List(context.Background(), connID, model.DestinationFilter{})
 	if err != nil {
 		return nil, err
 	}
@@ -56,8 +56,8 @@ func (s *TopicService) List() ([]*model.TopicItem, error) {
 }
 
 // ListAll returns every topic, including system topics.
-func (s *TopicService) ListAll() ([]*model.TopicItem, error) {
-	destinations, err := s.service.List(context.Background(),
+func (s *TopicService) ListAll(connID int) ([]*model.TopicItem, error) {
+	destinations, err := s.service.List(context.Background(), connID,
 		model.DestinationFilter{IncludeInternal: true})
 	if err != nil {
 		return nil, err
@@ -66,8 +66,8 @@ func (s *TopicService) ListAll() ([]*model.TopicItem, error) {
 }
 
 // Detail returns a single topic with its routes and metrics.
-func (s *TopicService) Detail(topicName string) (*model.TopicItem, error) {
-	found, err := s.service.Detail(context.Background(), model.DestinationRef{Name: topicName})
+func (s *TopicService) Detail(connID int, topicName string) (*model.TopicItem, error) {
+	found, err := s.service.Detail(context.Background(), connID, model.DestinationRef{Name: topicName})
 	if err != nil {
 		return nil, err
 	}
@@ -75,22 +75,22 @@ func (s *TopicService) Detail(topicName string) (*model.TopicItem, error) {
 }
 
 // Stats returns the per-queue statistics for a topic.
-func (s *TopicService) Stats(topicName string) (map[string]interface{}, error) {
-	return s.service.Stats(context.Background(), model.DestinationRef{Name: topicName})
+func (s *TopicService) Stats(connID int, topicName string) (map[string]interface{}, error) {
+	return s.service.Stats(context.Background(), connID, model.DestinationRef{Name: topicName})
 }
 
 // Create adds a topic on the target broker.
-func (s *TopicService) Create(input TopicInput) error {
-	return s.service.Create(context.Background(), input.spec())
+func (s *TopicService) Create(connID int, input TopicInput) error {
+	return s.service.Create(context.Background(), connID, input.spec())
 }
 
 // Update changes the configuration of an existing topic.
-func (s *TopicService) Update(input TopicInput) error {
-	return s.service.Update(context.Background(), input.spec())
+func (s *TopicService) Update(connID int, input TopicInput) error {
+	return s.service.Update(context.Background(), connID, input.spec())
 }
 
 // Remove deletes a topic from the cluster.
-func (s *TopicService) Remove(topicName string, clusterName string) error {
-	return s.service.Remove(context.Background(),
+func (s *TopicService) Remove(connID int, topicName string, clusterName string) error {
+	return s.service.Remove(context.Background(), connID,
 		model.DestinationRef{Namespace: clusterName, Name: topicName})
 }

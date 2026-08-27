@@ -7,8 +7,8 @@ import (
 )
 
 // GetClusterSummary returns aggregate cluster statistics.
-func (s *Service) GetClusterSummary(ctx context.Context) (*model.ClusterSummary, error) {
-	overview, nodes, err := s.Overview(ctx)
+func (s *Service) GetClusterSummary(ctx context.Context, connID int) (*model.ClusterSummary, error) {
+	overview, nodes, err := s.Overview(ctx, connID)
 	if err != nil {
 		return &model.ClusterSummary{}, nil
 	}

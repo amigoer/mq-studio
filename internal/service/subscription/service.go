@@ -18,7 +18,11 @@ type Settings interface {
 }
 
 // ConnSource yields the connection a request runs against.
-type ConnSource func() (driver.Conn, error)
+//
+// Taking an id is what lets a caller name the connection instead of relying
+// on an implicit default, which is the whole reason the bridge signatures
+// grew one.
+type ConnSource func(connID int) (driver.Conn, error)
 
 // Service is the orchestration layer between the bridge and a driver.
 type Service struct {
@@ -40,8 +44,8 @@ func (s *Service) withTimeout(ctx context.Context) (context.Context, context.Can
 	return context.WithTimeout(ctx, s.settings.GetRequestTimeout())
 }
 
-func (s *Service) admin() (driver.SubscriptionAdmin, error) {
-	conn, err := s.conns()
+func (s *Service) admin(connID int) (driver.SubscriptionAdmin, error) {
+	conn, err := s.conns(connID)
 	if err != nil {
 		return nil, err
 	}
@@ -56,8 +60,8 @@ func (s *Service) admin() (driver.SubscriptionAdmin, error) {
 //
 // A missing connection yields an empty list rather than an error, matching
 // what the list page renders when offline.
-func (s *Service) List(ctx context.Context) ([]*model.Subscription, error) {
-	api, err := s.admin()
+func (s *Service) List(ctx context.Context, connID int) ([]*model.Subscription, error) {
+	api, err := s.admin(connID)
 	if err != nil {
 		if errors.Is(err, driver.ErrNotConnected) {
 			return []*model.Subscription{}, nil
@@ -78,8 +82,8 @@ func (s *Service) List(ctx context.Context) ([]*model.Subscription, error) {
 }
 
 // Detail returns one subscription with its members.
-func (s *Service) Detail(ctx context.Context, ref model.SubscriptionRef) (*model.Subscription, error) {
-	api, err := s.admin()
+func (s *Service) Detail(ctx context.Context, connID int, ref model.SubscriptionRef) (*model.Subscription, error) {
+	api, err := s.admin(connID)
 	if err != nil {
 		return nil, err
 	}
@@ -97,32 +101,33 @@ func (s *Service) Detail(ctx context.Context, ref model.SubscriptionRef) (*model
 }
 
 // Create adds a subscription.
-func (s *Service) Create(ctx context.Context, spec model.SubscriptionSpec) error {
-	return s.mutate(ctx, model.CapSubscriptionCreate, func(api driver.SubscriptionAdmin, ctx context.Context) error {
+func (s *Service) Create(ctx context.Context, connID int, spec model.SubscriptionSpec) error {
+	return s.mutate(ctx, connID, model.CapSubscriptionCreate, func(api driver.SubscriptionAdmin, ctx context.Context) error {
 		return api.CreateSubscription(ctx, spec)
 	})
 }
 
 // Update changes an existing subscription.
-func (s *Service) Update(ctx context.Context, spec model.SubscriptionSpec) error {
-	return s.mutate(ctx, model.CapSubscriptionCreate, func(api driver.SubscriptionAdmin, ctx context.Context) error {
+func (s *Service) Update(ctx context.Context, connID int, spec model.SubscriptionSpec) error {
+	return s.mutate(ctx, connID, model.CapSubscriptionCreate, func(api driver.SubscriptionAdmin, ctx context.Context) error {
 		return api.UpdateSubscription(ctx, spec)
 	})
 }
 
 // Remove deletes a subscription.
-func (s *Service) Remove(ctx context.Context, ref model.SubscriptionRef) error {
-	return s.mutate(ctx, model.CapSubscriptionDelete, func(api driver.SubscriptionAdmin, ctx context.Context) error {
+func (s *Service) Remove(ctx context.Context, connID int, ref model.SubscriptionRef) error {
+	return s.mutate(ctx, connID, model.CapSubscriptionDelete, func(api driver.SubscriptionAdmin, ctx context.Context) error {
 		return api.RemoveSubscription(ctx, ref)
 	})
 }
 
 func (s *Service) mutate(
 	ctx context.Context,
+	connID int,
 	capability model.Capability,
 	call func(driver.SubscriptionAdmin, context.Context) error,
 ) error {
-	conn, err := s.conns()
+	conn, err := s.conns(connID)
 	if err != nil {
 		return err
 	}
@@ -143,8 +148,8 @@ func (s *Service) mutate(
 // It goes through ProgressAdmin rather than SubscriptionAdmin because backlog
 // and position are different things: RabbitMQ reports a backlog but has no
 // position to move.
-func (s *Service) ResetOffset(ctx context.Context, request model.ResetOffsetRequest) error {
-	conn, err := s.conns()
+func (s *Service) ResetOffset(ctx context.Context, connID int, request model.ResetOffsetRequest) error {
+	conn, err := s.conns(connID)
 	if err != nil {
 		return err
 	}
@@ -161,8 +166,8 @@ func (s *Service) ResetOffset(ctx context.Context, request model.ResetOffsetRequ
 }
 
 // Stats returns the per-partition consume progress of a subscription.
-func (s *Service) Stats(ctx context.Context, ref model.SubscriptionRef) (map[string]interface{}, error) {
-	conn, err := s.conns()
+func (s *Service) Stats(ctx context.Context, connID int, ref model.SubscriptionRef) (map[string]interface{}, error) {
+	conn, err := s.conns(connID)
 	if err != nil {
 		return nil, err
 	}

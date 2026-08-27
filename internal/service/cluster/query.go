@@ -8,8 +8,8 @@ import (
 	"github.com/amigoer/mq-studio/internal/model"
 )
 
-func (s *Service) topology() (driver.ClusterAdmin, error) {
-	conn, err := s.conns()
+func (s *Service) topology(connID int) (driver.ClusterAdmin, error) {
+	conn, err := s.conns(connID)
 	if err != nil {
 		return nil, err
 	}
@@ -25,12 +25,12 @@ func (s *Service) withTimeout(ctx context.Context) (context.Context, context.Can
 }
 
 // GetBrokers returns every node, empty when nothing is connected.
-func (s *Service) GetBrokers(ctx context.Context) ([]*model.Node, error) {
-	return s.nodes(ctx)
+func (s *Service) GetBrokers(ctx context.Context, connID int) ([]*model.Node, error) {
+	return s.nodes(ctx, connID)
 }
 
-func (s *Service) nodes(ctx context.Context) ([]*model.Node, error) {
-	api, err := s.topology()
+func (s *Service) nodes(ctx context.Context, connID int) ([]*model.Node, error) {
+	api, err := s.topology(connID)
 	if err != nil {
 		if errors.Is(err, driver.ErrNotConnected) {
 			return []*model.Node{}, nil
@@ -43,8 +43,8 @@ func (s *Service) nodes(ctx context.Context) ([]*model.Node, error) {
 }
 
 // GetBrokerDetail returns runtime statistics for one node.
-func (s *Service) GetBrokerDetail(ctx context.Context, address string) (*model.Node, error) {
-	api, err := s.topology()
+func (s *Service) GetBrokerDetail(ctx context.Context, connID int, address string) (*model.Node, error) {
+	api, err := s.topology(connID)
 	if err != nil {
 		return nil, err
 	}
@@ -61,8 +61,8 @@ func (s *Service) GetBrokerDetail(ctx context.Context, address string) (*model.N
 //
 // An absent connection yields an empty snapshot rather than an error, which
 // is what the page showed before the driver port existed.
-func (s *Service) Overview(ctx context.Context) (*model.ClusterOverview, []*model.Node, error) {
-	api, err := s.topology()
+func (s *Service) Overview(ctx context.Context, connID int) (*model.ClusterOverview, []*model.Node, error) {
+	api, err := s.topology(connID)
 	if err != nil {
 		if errors.Is(err, driver.ErrNotConnected) {
 			return &model.ClusterOverview{}, []*model.Node{}, nil
@@ -89,8 +89,8 @@ func (s *Service) Overview(ctx context.Context) (*model.ClusterOverview, []*mode
 // broker says right now, and keeping a local time series is the application's
 // job. Before the port existed this ran as a side effect of enrichment, which
 // is why the driver had to know about the history file.
-func (s *Service) CollectTPSSample(ctx context.Context) error {
-	api, err := s.topology()
+func (s *Service) CollectTPSSample(ctx context.Context, connID int) error {
+	api, err := s.topology(connID)
 	if err != nil {
 		return err
 	}

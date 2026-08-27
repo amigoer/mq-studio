@@ -16,7 +16,11 @@ type Settings interface {
 }
 
 // ConnSource yields the connection a request runs against.
-type ConnSource func() (driver.Conn, error)
+//
+// Taking an id is what lets a caller name the connection instead of relying
+// on an implicit default, which is the whole reason the bridge signatures
+// grew one.
+type ConnSource func(connID int) (driver.Conn, error)
 
 // Service is the orchestration layer between the bridge and a driver.
 type Service struct {
@@ -29,8 +33,8 @@ func New(conns ConnSource, settings Settings) *Service {
 	return &Service{conns: conns, settings: settings}
 }
 
-func (s *Service) admin() (driver.AccessAdmin, error) {
-	conn, err := s.conns()
+func (s *Service) admin(connID int) (driver.AccessAdmin, error) {
+	conn, err := s.conns(connID)
 	if err != nil {
 		return nil, err
 	}
@@ -46,8 +50,8 @@ func (s *Service) withTimeout(ctx context.Context) (context.Context, context.Can
 }
 
 // Enabled reports whether the broker has access control turned on.
-func (s *Service) Enabled(ctx context.Context) (bool, error) {
-	api, err := s.admin()
+func (s *Service) Enabled(ctx context.Context, connID int) (bool, error) {
+	api, err := s.admin(connID)
 	if err != nil {
 		return false, err
 	}
@@ -57,8 +61,8 @@ func (s *Service) Enabled(ctx context.Context) (bool, error) {
 }
 
 // Version returns the broker access-control config version.
-func (s *Service) Version(ctx context.Context) (*model.AclVersionInfo, error) {
-	api, err := s.admin()
+func (s *Service) Version(ctx context.Context, connID int) (*model.AclVersionInfo, error) {
+	api, err := s.admin(connID)
 	if err != nil {
 		return nil, err
 	}
@@ -68,8 +72,8 @@ func (s *Service) Version(ctx context.Context) (*model.AclVersionInfo, error) {
 }
 
 // Put creates or replaces an access entry.
-func (s *Service) Put(ctx context.Context, config model.AccessConfig) error {
-	api, err := s.admin()
+func (s *Service) Put(ctx context.Context, connID int, config model.AccessConfig) error {
+	api, err := s.admin(connID)
 	if err != nil {
 		return err
 	}
@@ -79,8 +83,8 @@ func (s *Service) Put(ctx context.Context, config model.AccessConfig) error {
 }
 
 // Remove deletes an access entry.
-func (s *Service) Remove(ctx context.Context, principal string) error {
-	api, err := s.admin()
+func (s *Service) Remove(ctx context.Context, connID int, principal string) error {
+	api, err := s.admin(connID)
 	if err != nil {
 		return err
 	}
@@ -90,8 +94,8 @@ func (s *Service) Remove(ctx context.Context, principal string) error {
 }
 
 // SetAllowList replaces the broker global IP allow list.
-func (s *Service) SetAllowList(ctx context.Context, addresses []string) error {
-	api, err := s.admin()
+func (s *Service) SetAllowList(ctx context.Context, connID int, addresses []string) error {
+	api, err := s.admin(connID)
 	if err != nil {
 		return err
 	}

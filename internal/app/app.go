@@ -45,16 +45,17 @@ func New() (*Services, error) {
 	settingsService := settings.New(paths.SettingsFile)
 	connections := connection.New(paths.ConnectionsFile, settingsService, newRocketMQRuntime())
 	configurationService := configuration.New(paths, settingsService, connections)
-	clusterService := cluster.New(paths.TPSHistoryFile, rocketmq.CurrentConn, settingsService)
+	conns := newConnSource(connections)
+	clusterService := cluster.New(paths.TPSHistoryFile, conns, settingsService)
 	services := &Services{
 		Connections: connections,
 		Cluster:     clusterService,
-		Topics:      destination.New(rocketmq.CurrentConn, settingsService),
-		Consumers:   subscription.New(rocketmq.CurrentConn, settingsService),
-		Messages:    message.New(rocketmq.CurrentConn, settingsService),
+		Topics:      destination.New(conns, settingsService),
+		Consumers:   subscription.New(conns, settingsService),
+		Messages:    message.New(conns, settingsService),
 		Settings:    configurationService,
-		ACL:         access.New(rocketmq.CurrentConn, settingsService),
-		Collector:   collector.New(clusterService, rocketmq.HasActiveConnection),
+		ACL:         access.New(conns, settingsService),
+		Collector:   collector.New(sampleActiveConnection(clusterService), rocketmq.HasActiveConnection),
 	}
 	rocketmq.GetClientManager().SetDefaultClientInitializer(connections.ConnectDefault)
 	services.Collector.Start()

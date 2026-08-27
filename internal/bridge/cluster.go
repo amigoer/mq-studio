@@ -26,8 +26,8 @@ func brokersFrom(nodes []*model.Node) []*model.BrokerNode {
 }
 
 // Info returns the full cluster overview.
-func (s *ClusterService) Info() (*model.ClusterInfo, error) {
-	overview, nodes, err := s.service.Overview(context.Background())
+func (s *ClusterService) Info(connID int) (*model.ClusterInfo, error) {
+	overview, nodes, err := s.service.Overview(context.Background(), connID)
 	if err != nil {
 		return nil, err
 	}
@@ -44,13 +44,13 @@ func (s *ClusterService) Info() (*model.ClusterInfo, error) {
 }
 
 // Summary returns the aggregated cluster counters.
-func (s *ClusterService) Summary() (*model.ClusterSummary, error) {
-	return s.service.GetClusterSummary(context.Background())
+func (s *ClusterService) Summary(connID int) (*model.ClusterSummary, error) {
+	return s.service.GetClusterSummary(context.Background(), connID)
 }
 
 // Brokers returns every known broker node.
-func (s *ClusterService) Brokers() ([]*model.BrokerNode, error) {
-	nodes, err := s.service.GetBrokers(context.Background())
+func (s *ClusterService) Brokers(connID int) ([]*model.BrokerNode, error) {
+	nodes, err := s.service.GetBrokers(context.Background(), connID)
 	if err != nil {
 		return nil, err
 	}
@@ -58,8 +58,8 @@ func (s *ClusterService) Brokers() ([]*model.BrokerNode, error) {
 }
 
 // BrokerDetail returns runtime statistics for a single broker.
-func (s *ClusterService) BrokerDetail(brokerAddr string) (*model.BrokerNode, error) {
-	node, err := s.service.GetBrokerDetail(context.Background(), brokerAddr)
+func (s *ClusterService) BrokerDetail(connID int, brokerAddr string) (*model.BrokerNode, error) {
+	node, err := s.service.GetBrokerDetail(context.Background(), connID, brokerAddr)
 	if err != nil {
 		return nil, err
 	}
