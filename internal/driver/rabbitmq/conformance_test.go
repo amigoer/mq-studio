@@ -114,3 +114,52 @@ func TestDeclaredQueueAppearsAsADestination(t *testing.T) {
 	}
 	t.Fatalf("declared queue %q did not come back in the listing", ref.Name)
 }
+
+// Browsing is declared with a caveat rather than plainly supported. This is
+// the third capability state earning its keep: the control renders, and the
+// user is told that using it moves messages.
+func TestBrowseIsSupportedWithACaveat(t *testing.T) {
+	conn := liveConn(t)
+	capabilities := conn.Capabilities()
+
+	if !capabilities.Has(model.CapMessageQuery) {
+		t.Fatal("browsing should be supported")
+	}
+	caveat, ok := capabilities.Caveat(model.CapMessageQuery)
+	if !ok || caveat == "" {
+		t.Error("browsing carries no caveat; the UI would not warn that it alters the queue")
+	}
+}
+
+// Publish then browse, against the real broker. Browsing requeues rather than
+// consuming, so the message has to still be there afterwards.
+func TestPublishedMessageComesBackFromBrowse(t *testing.T) {
+	conn := liveConn(t)
+	ctx := context.Background()
+	ref := model.DestinationRef{Name: "mq-studio-messages"}
+	t.Cleanup(func() { _ = conn.RemoveDestination(ctx, ref) })
+
+	if err := conn.CreateDestination(ctx, model.DestinationSpec{Ref: ref}); err != nil {
+		t.Fatalf("create destination: %v", err)
+	}
+	if _, err := conn.SendMessage(ctx, ref.Name, "", "", "hello from conformance", 0); err != nil {
+		t.Fatalf("publish: %v", err)
+	}
+
+	items, err := conn.QueryMessages(ctx, model.MessageQueryParams{Topic: ref.Name, MaxResults: 5})
+	if err != nil {
+		t.Fatalf("browse: %v", err)
+	}
+	if len(items) != 1 || items[0].Body != "hello from conformance" {
+		t.Fatalf("browse returned %d items: %#v", len(items), items)
+	}
+
+	// The requeue is what makes this a browse rather than a consume.
+	again, err := conn.QueryMessages(ctx, model.MessageQueryParams{Topic: ref.Name, MaxResults: 5})
+	if err != nil {
+		t.Fatalf("second browse: %v", err)
+	}
+	if len(again) != 1 {
+		t.Fatalf("message did not survive browsing; got %d on the second read", len(again))
+	}
+}

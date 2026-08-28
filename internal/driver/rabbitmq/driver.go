@@ -100,7 +100,13 @@ func (d *Driver) Open(ctx context.Context, profile model.ConnectionProfile) (dri
 	if vhost == "" {
 		vhost = defaultVHost
 	}
-	conn := &Conn{client: client, vhost: vhost, endpoint: endpoint}
+	conn := &Conn{
+		client:   client,
+		vhost:    vhost,
+		endpoint: endpoint,
+		username: profile.Secret(SecretUsername),
+		password: profile.Secret(SecretPassword),
+	}
 	conn.probe(ctx)
 	return conn, nil
 }

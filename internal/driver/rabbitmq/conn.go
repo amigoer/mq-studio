@@ -13,6 +13,8 @@ type Conn struct {
 	client   *rabbithole.Client
 	vhost    string
 	endpoint string
+	username string
+	password string
 
 	capabilities model.Capabilities
 }
@@ -50,6 +52,9 @@ func capabilities() []model.Capability {
 
 		model.CapSubscriptionList,
 		model.CapSubscriptionLag,
+
+		model.CapMessageQuery,
+		model.CapPublish,
 	}
 }
 
@@ -59,7 +64,11 @@ func capabilities() []model.Capability {
 // that as "unsupported" without a reason would make a fixable deployment
 // choice look like a missing feature.
 func (c *Conn) probe(ctx context.Context) {
-	c.capabilities = model.NewCapabilities(capabilities()...)
+	// Browsing works and still deserves a warning, which is the third
+	// capability state: supported, but with a consequence the user has to
+	// know about before clicking.
+	c.capabilities = model.NewCapabilities(capabilities()...).
+		WithCaveat(model.CapMessageQuery, browseCaveat)
 
 	if _, err := c.client.Overview(); err != nil {
 		for _, capability := range capabilities() {
@@ -67,6 +76,11 @@ func (c *Conn) probe(ctx context.Context) {
 		}
 	}
 }
+
+// browseCaveat is an i18n key. Browsing a queue is a POST that alters queue
+// state even when the message is requeued, so the UI says so rather than
+// letting an operator find out afterwards.
+const browseCaveat = "mq.rabbitmq.caveat.browseAltersQueue"
 
 // managementPluginMissing is an i18n key: the renderer turns it into a
 // sentence, because a reason the user has to act on should be in their
