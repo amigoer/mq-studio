@@ -44,12 +44,12 @@
 
 | Area | What you can do |
 | --- | --- |
-| **Connections** | Manage multiple clusters, NameServers, auto-connect, and ACL credentials |
-| **Topics & Messages** | Create and inspect topics; query, trace, resend, and produce messages |
+| **Connections** | Manage multiple clusters with free-text groups, NameServers, auto-connect, and ACL credentials |
+| **Topics & Messages** | Create and inspect topics; query, trace, resend, and produce messages; smart search with fuzzy matching and recently-used lists for Topic and consumer group selectors |
 | **Consumers** | View groups, clients, subscriptions, and lag; reset offsets; handle retry and DLQ |
 | **Cluster & Alerts** | Monitor brokers, runtime metrics, throughput, lag, disk usage, and desktop alerts |
 | **Administration** | Manage consumer settings, Topic settings, ACL, and global whitelist |
-| **Personalization** | Switch theme and language, customize display, and import or export configuration |
+| **Personalization** | Switch theme and language, customize display, import or export configuration, and automatic update checks |
 
 Supports RocketMQ **4.x / 5.x** through Admin APIs. ACL and some advanced operations depend on the broker version and configuration.
 
