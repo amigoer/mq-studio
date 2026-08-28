@@ -5,8 +5,8 @@
 </p>
 
 <p align="center">
-  <strong>A local-first desktop client for RocketMQ</strong><br>
-  Manage clusters, topics, consumers, and messages without deploying a separate console.
+  <strong>A local-first desktop client for message queues</strong><br>
+  Manage clusters, topics, queues, consumers, and messages without deploying a separate console.
 </p>
 
 <p align="center">
@@ -15,6 +15,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue?style=flat-square" alt="Apache-2.0 license"></a>
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-39404A?style=flat-square" alt="Platforms">
   <img src="https://img.shields.io/badge/RocketMQ-4.x%20%7C%205.x-FF6A00?style=flat-square" alt="RocketMQ 4.x and 5.x">
+  <img src="https://img.shields.io/badge/RabbitMQ-in%20development-FF6600?style=flat-square" alt="RabbitMQ in development">
 </p>
 
 <p align="center">
@@ -36,7 +37,7 @@
 ## Why MQ Studio?
 
 - **Ready to use** — no server or web console to deploy
-- **Built for daily operations** — common RocketMQ tasks in one desktop app
+- **Built for daily operations** — everyday message queue tasks in one desktop app
 - **Private by default** — configuration stays on your device and credentials are encrypted at rest
 - **Cross-platform** — macOS, Windows, and Linux with English and Chinese interfaces
 
@@ -51,7 +52,43 @@
 | **Administration** | Manage consumer settings, Topic settings, ACL, and global whitelist |
 | **Personalization** | Switch theme and language, customize display, import or export configuration, and automatic update checks |
 
-Supports RocketMQ **4.x / 5.x** through Admin APIs. ACL and some advanced operations depend on the broker version and configuration.
+## Driver support
+
+MQ Studio reaches every broker through a pluggable driver. Each driver declares its own
+capabilities, so the interface only offers what that broker can actually do.
+
+| Driver | Status | Notes |
+| --- | --- | --- |
+| **RocketMQ** 4.x / 5.x | ✅ Available | Full feature set through Admin APIs |
+| **RabbitMQ** | 🚧 In development | Queues, consumers, browse and publish, cluster topology, exchanges and bindings |
+| **Kafka** | 📋 Planned | |
+| **Pulsar** | 📋 Planned | |
+| **ActiveMQ / Artemis** | 📋 Planned | JMS queues and topics over the Jolokia management API |
+| **Redis Stream** | 📋 Planned | Streams and consumer groups; no cluster plane |
+| **NATS** | 📋 Planned | JetStream streams and consumers; NATS core is publish/subscribe only |
+| **NSQ** | 📋 Planned | Topics and channels over the nsqd HTTP API |
+| **MQTT** | 📋 Planned | Publish and subscribe only — the protocol has no admin plane |
+| **Amazon SQS** | 📋 Planned | Queues, attributes, and dead-letter redrive |
+| **Google Cloud Pub/Sub** | 📋 Planned | Topics and subscriptions with backlog |
+| **Azure Service Bus** | 📋 Planned | Queues, topics, subscriptions, rules, dead-letter queues |
+| **Amazon Kinesis** | 📋 Planned | Streams and shards |
+| **IBM MQ** | 📋 Planned | Queues and channels over the administrative REST API |
+| **Solace PubSub+** | 📋 Planned | Queues and topic endpoints over SEMP |
+
+✅ in a published release · 🚧 implemented, not yet released · 📋 designed, not yet implemented
+
+**Covered by an existing driver.** Wire-compatible systems do not get a driver of their own:
+Redpanda, AutoMQ, WarpStream, Confluent, Amazon MSK, and Azure Event Hubs connect as Kafka;
+EMQX, Mosquitto, HiveMQ, and VerneMQ as MQTT; Amazon MQ as ActiveMQ or RabbitMQ; Alibaba Cloud
+and Tencent Cloud RocketMQ as RocketMQ. Each driver probes the endpoint on connect and narrows
+its capabilities to what that deployment actually answers.
+
+**Out of scope.** ZeroMQ and nanomsg have no broker and therefore no management plane. Celery,
+Sidekiq, and BullMQ are application-level job queues layered on Redis or RabbitMQ rather than
+message brokers.
+
+ACL and some advanced operations depend on the broker version and configuration. The capability
+model behind this table is described in [the multi-MQ design](docs/MULTI_MQ_DESIGN.md).
 
 ## Product tour
 
