@@ -163,3 +163,46 @@ func TestPublishedMessageComesBackFromBrowse(t *testing.T) {
 		t.Fatalf("message did not survive browsing; got %d on the second read", len(again))
 	}
 }
+
+// Exchanges and bindings have no counterpart in the canonical page set, which
+// is what earns RabbitMQ its own page under the override rule.
+func TestRoutingReadsTheLiveBroker(t *testing.T) {
+	conn := liveConn(t)
+	ctx := context.Background()
+
+	exchanges, err := conn.ListExchanges(ctx, "")
+	if err != nil {
+		t.Fatalf("list exchanges: %v", err)
+	}
+	if len(exchanges) == 0 {
+		t.Fatal("a fresh broker still has its amq.* exchanges")
+	}
+	for _, exchange := range exchanges {
+		// An exchange routes rather than holds. Zero here would read as an
+		// empty queue instead of as a field that does not apply.
+		if exchange.Depth != model.UnknownMetric {
+			t.Errorf("exchange %q reports a depth of %d", exchange.Ref.Name, exchange.Depth)
+		}
+	}
+
+	if _, err := conn.ListBindings(ctx, ""); err != nil {
+		t.Fatalf("list bindings: %v", err)
+	}
+}
+
+func TestClusterOverviewReadsTheLiveBroker(t *testing.T) {
+	conn := liveConn(t)
+
+	overview, err := conn.ClusterOverview(context.Background())
+	if err != nil {
+		t.Fatalf("cluster overview: %v", err)
+	}
+	if overview.TotalNodes == 0 {
+		t.Error("a running broker reports no nodes")
+	}
+	// RabbitMQ reports free-space headroom and an alarm flag, not a
+	// percentage. Averaging alarms into a percent would invent a number.
+	if overview.AvgDiskUsage != model.UnknownMetric {
+		t.Errorf("disk usage = %d; rabbitmq has no cluster percentage to report", overview.AvgDiskUsage)
+	}
+}

@@ -15,6 +15,9 @@ type Conn struct {
 	endpoint string
 	username string
 	password string
+	// version is the broker version, read once at connect: the node listing
+	// does not carry it and asking per node would be a request each.
+	version string
 
 	capabilities model.Capabilities
 }
@@ -55,6 +58,10 @@ func capabilities() []model.Capability {
 
 		model.CapMessageQuery,
 		model.CapPublish,
+
+		model.CapClusterTopology,
+		model.CapClusterMetrics,
+		model.CapRouting,
 	}
 }
 
@@ -70,7 +77,10 @@ func (c *Conn) probe(ctx context.Context) {
 	c.capabilities = model.NewCapabilities(capabilities()...).
 		WithCaveat(model.CapMessageQuery, browseCaveat)
 
-	if _, err := c.client.Overview(); err != nil {
+	overview, err := c.client.Overview()
+	if err == nil {
+		c.version = overview.RabbitMQVersion
+	} else {
 		for _, capability := range capabilities() {
 			c.capabilities = c.capabilities.WithDegraded(capability, managementPluginMissing)
 		}
