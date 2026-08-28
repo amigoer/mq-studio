@@ -24,7 +24,11 @@ import * as connectionApi from "@/api/connection";
 import { formatErrorMessage, cn } from "@/lib/utils";
 import { activatableRowProps, ROW_FOCUS_CLASS } from "@/lib/a11y";
 import { type Connection } from "@/api/models";
-import { AuthMechanism } from "@bindings/model/models";
+import { AuthMechanism, FieldTarget, MQKind } from "@bindings/model/models";
+import type { DriverDescriptor, FormField } from "@bindings/model/models";
+import * as driverApi from "@/api/driver";
+import { DriverFields } from "@/mq/DriverFields";
+import { validate as runValidator } from "@/mq/validators";
 import {
   hasConnectionPrefill,
   takeConnectionPrefill,
@@ -32,6 +36,7 @@ import {
 } from "@/lib/connectionPrefill";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { Combobox } from "@/components/ui/combobox";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -60,6 +65,7 @@ interface FormState {
   id: number;
   name: string;
   group: string;
+  kind: MQKind;
   nsEntries: NsEntry[];
   timeoutSec: number;
   enableACL: boolean;
@@ -67,6 +73,10 @@ interface FormState {
   secretKey: string;
   accessKeyConfigured: boolean;
   secretKeyConfigured: boolean;
+  /** Values for descriptor-declared fields, keyed by the descriptor's key. */
+  driverValues: Record<string, string>;
+  /** Secret keys already stored, so blank inputs can mean "keep". */
+  secretsConfigured: string[];
   remark: string;
 }
 
@@ -74,6 +84,7 @@ const EMPTY_FORM: FormState = {
   id: NEW_FORM_ID,
   name: "",
   group: "",
+  kind: MQKind.KindRocketMQ,
   nsEntries: [{ host: "", port: DEFAULT_NS_PORT }],
   timeoutSec: 5,
   enableACL: false,
@@ -81,6 +92,8 @@ const EMPTY_FORM: FormState = {
   secretKey: "",
   accessKeyConfigured: false,
   secretKeyConfigured: false,
+  driverValues: {},
+  secretsConfigured: [],
   remark: "",
 };
 
@@ -89,6 +102,7 @@ function fromConnection(c: Connection): FormState {
     id: c.id,
     name: c.name,
     group: c.group,
+    kind: c.kind,
     nsEntries: parseNameServers(c.endpoints),
     timeoutSec: c.timeoutSec || 5,
     enableACL: hasACL(c),
@@ -98,6 +112,9 @@ function fromConnection(c: Connection): FormState {
     secretKey: "",
     accessKeyConfigured: c.secretsConfigured.includes(SECRET_ACCESS_KEY),
     secretKeyConfigured: c.secretsConfigured.includes(SECRET_SECRET_KEY),
+    // Endpoints stay in nsEntries for RocketMQ; other families read it here.
+    driverValues: { ...c.options, endpoints: c.endpoints },
+    secretsConfigured: c.secretsConfigured,
     remark: c.remark,
   };
 }
@@ -188,6 +205,43 @@ export function ConnectionsPage() {
   const hydratedRef = useRef<{ id: number; token: number } | null>(null);
   // Bumped after a save so the form deliberately re-reads the stored record.
   const [resyncToken, setResyncToken] = useState(0);
+  // Families this build has a driver for, and the active family's form schema.
+  const [drivers, setDrivers] = useState<driverApi.DriverInfo[]>([]);
+  const [descriptor, setDescriptor] = useState<DriverDescriptor | null>(null);
+
+  useEffect(() => {
+    driverApi
+      .listDrivers()
+      .then(setDrivers)
+      .catch(() => setDrivers([]));
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    driverApi
+      .getDescriptor(form.kind)
+      .then((d) => {
+        if (!cancelled) setDescriptor(d);
+      })
+      .catch(() => {
+        if (!cancelled) setDescriptor(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [form.kind]);
+
+  // RocketMQ keeps its own form: multiple NameServer addresses and an ACL
+  // toggle are richer than a flat field list. Every other family is drawn
+  // from its descriptor, so adding one needs no page code.
+  const isRocketMQ = form.kind === MQKind.KindRocketMQ;
+  const driverFields: FormField[] = isRocketMQ ? [] : (descriptor?.form ?? []);
+
+  const setDriverValue = (field: FormField, value: string) =>
+    setForm((f) => ({
+      ...f,
+      driverValues: { ...f.driverValues, [field.key]: value },
+    }));
 
   const openNewForm = () => {
     newFormCycle.current += 1;
@@ -289,6 +343,24 @@ export function ConnectionsPage() {
 
   const validate = (f: FormState = form): string | null => {
     if (!f.name.trim()) return t("connections.validateName");
+    if (!isRocketMQ) {
+      for (const field of driverFields) {
+        const value = (f.driverValues[field.key] ?? field.default ?? "").trim();
+        // A stored secret satisfies "required" even though the input is blank.
+        const stored =
+          field.target === FieldTarget.TargetSecret &&
+          f.secretsConfigured.includes(field.key);
+        if (field.required && !value && !stored) {
+          return t("connections.validateRequired", {
+            field: t(field.labelKey),
+          });
+        }
+        if (value && !runValidator(field.validate, value)) {
+          return t("connections.validateField", { field: t(field.labelKey) });
+        }
+      }
+      return null;
+    }
     const joined = joinNameServers(f.nsEntries);
     if (!joined) return t("connections.validateNameServer");
     for (const e of f.nsEntries) {
@@ -313,6 +385,77 @@ export function ConnectionsPage() {
     return null;
   };
 
+  /** Splits the flat descriptor value map into the profile's parts. */
+  const buildDraft = (): connectionApi.ConnectionDraft => {
+    const base = {
+      name: form.name.trim(),
+      group: form.group.trim(),
+      kind: form.kind,
+      remark: form.remark.trim(),
+    };
+    if (isRocketMQ) {
+      return {
+        ...base,
+        endpoints: joinNameServers(form.nsEntries),
+        timeoutSec: form.timeoutSec,
+        authMechanism: form.enableACL
+          ? AuthMechanism.AuthACL
+          : AuthMechanism.AuthNone,
+        options: {},
+        secrets: {
+          [SECRET_ACCESS_KEY]: form.accessKey.trim(),
+          [SECRET_SECRET_KEY]: form.secretKey,
+        },
+      };
+    }
+    const options: Record<string, string> = {};
+    const secrets: Record<string, string> = {};
+    let endpoints = "";
+    let mechanism = AuthMechanism.AuthNone;
+    for (const field of driverFields) {
+      const value = (form.driverValues[field.key] ?? field.default ?? "").trim();
+      switch (field.target) {
+        case FieldTarget.TargetEndpoints:
+          endpoints = value;
+          break;
+        case FieldTarget.TargetOption:
+          if (value) options[field.key] = value;
+          break;
+        case FieldTarget.TargetSecret:
+          if (value) secrets[field.key] = value;
+          break;
+        case FieldTarget.TargetAuth:
+          if (value) mechanism = value as AuthMechanism;
+          break;
+      }
+    }
+    // timeoutSec is declared as an option but the profile has a field for it.
+    const timeoutSec = Number(options.timeoutSec) || form.timeoutSec;
+    delete options.timeoutSec;
+    return {
+      ...base,
+      endpoints,
+      timeoutSec,
+      authMechanism: mechanism,
+      options,
+      secrets,
+    };
+  };
+
+  /**
+   * What to do with secrets the form left blank.
+   *
+   * Blank means "keep what is stored" while editing, but "there is none" once
+   * authentication is switched off, so the two cases cannot share an answer.
+   */
+  const credentialsMode = (
+    secrets: Record<string, string>,
+  ): connectionApi.CredentialsMode => {
+    if (isRocketMQ && !form.enableACL) return "clear";
+    if (Object.values(secrets).some((value) => value !== "")) return "replace";
+    return form.secretsConfigured.length > 0 ? "preserve" : "clear";
+  };
+
   const handleNew = () => openNewForm();
   const handleSelect = (c: Connection) => setSelectedId(c.id);
 
@@ -325,17 +468,11 @@ export function ConnectionsPage() {
       toast.error(err);
       return null;
     }
-    const nameServer = joinNameServers(form.nsEntries);
+    const draft = buildDraft();
     if (isNew) {
       const created = await connectionApi.addConnection(
-        form.name.trim(),
-        form.group.trim(),
-        nameServer,
-        form.timeoutSec,
-        form.enableACL,
-        form.accessKey.trim(),
-        form.secretKey,
-        form.remark.trim(),
+        draft,
+        credentialsMode(draft.secrets),
       );
       if (!created) return null;
       if (!opts?.quiet) {
@@ -350,14 +487,8 @@ export function ConnectionsPage() {
     if (dirty) {
       await connectionApi.updateConnection(
         form.id,
-        form.name.trim(),
-        form.group.trim(),
-        nameServer,
-        form.timeoutSec,
-        form.enableACL,
-        form.accessKey.trim(),
-        form.secretKey,
-        form.remark.trim(),
+        draft,
+        credentialsMode(draft.secrets),
       );
       if (!opts?.quiet) {
         toast.success(t("connections.saveSuccess", { name: form.name.trim() }));
@@ -766,6 +897,30 @@ export function ConnectionsPage() {
 
               <Card className="p-4">
                 <div className="grid grid-cols-2 gap-3">
+                  <div className="col-span-2">
+                    <Field label={t("connections.kind")} required>
+                      <Select
+                        value={form.kind}
+                        // Changing family on a saved connection would orphan
+                        // its options and secrets, so it is fixed after create.
+                        disabled={!isNew}
+                        onChange={(e) =>
+                          setForm({
+                            ...form,
+                            kind: e.target.value as MQKind,
+                            driverValues: {},
+                          })
+                        }
+                        aria-label={t("connections.kind")}
+                      >
+                        {drivers.map((d) => (
+                          <option key={d.kind} value={d.kind}>
+                            {t(`mq.${d.kind}.name`, { defaultValue: d.kind })}
+                          </option>
+                        ))}
+                      </Select>
+                    </Field>
+                  </div>
                   <Field label={t("connections.name")} required>
                     <Input
                       placeholder={t("connections.namePlaceholder")}
@@ -791,6 +946,7 @@ export function ConnectionsPage() {
                       aria-label={t("connections.group")}
                     />
                   </Field>
+                  {isRocketMQ && (
                   <div className="col-span-2">
                     <div className="mb-1.5 flex items-center justify-between gap-2">
                       <div className="text-muted-foreground text-fs-115">
@@ -927,6 +1083,18 @@ export function ConnectionsPage() {
                       {t("connections.nameServerHint")}
                     </div>
                   </div>
+                  )}
+
+                  {!isRocketMQ && driverFields.length > 0 && (
+                    <div className="col-span-2 grid grid-cols-2 gap-3">
+                      <DriverFields
+                        fields={driverFields}
+                        values={form.driverValues}
+                        configuredSecrets={form.secretsConfigured}
+                        onChange={setDriverValue}
+                      />
+                    </div>
+                  )}
                 </div>
 
                 {/* Advanced (timeout / ACL / remark) */}
@@ -944,6 +1112,7 @@ export function ConnectionsPage() {
                 </button>
                 {advancedOpen && (
                   <div className="mt-3 grid grid-cols-2 gap-3 border-t border-border pt-3">
+                    {isRocketMQ && (
                     <Field label={t("connections.timeout")}>
                       <div className="flex items-center gap-2">
                         <Input
@@ -963,6 +1132,8 @@ export function ConnectionsPage() {
                         </span>
                       </div>
                     </Field>
+                    )}
+                    {isRocketMQ && (
                     <div className="col-span-2">
                       <div className="flex items-start justify-between gap-4">
                         <div className="min-w-0">
@@ -1014,6 +1185,7 @@ export function ConnectionsPage() {
                         </div>
                       )}
                     </div>
+                    )}
                     <div className="col-span-2">
                       <Field label={t("connections.remark")}>
                         <Input

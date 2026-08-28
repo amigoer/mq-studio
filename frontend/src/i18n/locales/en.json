@@ -745,7 +745,12 @@
     "validateName": "Please enter a connection name",
     "validateNameServer": "Please enter a NameServer address",
     "validateAcl": "AccessKey and SecretKey are required when ACL is enabled",
-    "lastCheck": "Last checked: {{time}}"
+    "lastCheck": "Last checked: {{time}}",
+    "endpoints": "Endpoints",
+    "kind": "Broker type",
+    "secretAlreadySet": "Already set, leave blank to keep",
+    "validateRequired": "{{field}} is required",
+    "validateField": "{{field}} is not valid"
   },
   "settings": {
     "title": "Settings",
@@ -947,6 +952,10 @@
         "nodePlural": "Nodes",
         "namespace": "Namespace",
         "backlog": "Backlog"
+      },
+      "form": {
+        "timeoutSec": "Timeout (seconds)",
+        "authNone": "None"
       }
     },
     "rocketmq": {
@@ -959,6 +968,14 @@
         "nodePlural": "Brokers",
         "namespace": "Cluster",
         "backlog": "Lag"
+      },
+      "name": "RocketMQ",
+      "form": {
+        "nameServer": "NameServer",
+        "enableAcl": "Enable ACL",
+        "authAcl": "ACL",
+        "accessKey": "AccessKey",
+        "secretKey": "SecretKey"
       }
     },
     "kafka": {
@@ -971,7 +988,8 @@
         "nodePlural": "Brokers",
         "namespace": "Cluster",
         "backlog": "Lag"
-      }
+      },
+      "name": "Kafka"
     },
     "rabbitmq": {
       "terms": {
@@ -1007,7 +1025,17 @@
         "exchangeType": "Type",
         "durable": "Durable",
         "empty": "No bindings in this virtual host"
-      }
+      },
+      "name": "RabbitMQ"
+    },
+    "pulsar": {
+      "name": "Pulsar"
+    },
+    "redis-stream": {
+      "name": "Redis Stream"
+    },
+    "mqtt": {
+      "name": "MQTT"
     }
   }
 }

@@ -745,7 +745,12 @@
     "validateName": "请填写连接名称",
     "validateNameServer": "请填写 NameServer 地址",
     "validateAcl": "启用 ACL 时，AccessKey 与 SecretKey 不能为空",
-    "lastCheck": "最近检测：{{time}}"
+    "lastCheck": "最近检测：{{time}}",
+    "endpoints": "接入地址",
+    "kind": "消息队列类型",
+    "secretAlreadySet": "已设置，留空保持不变",
+    "validateRequired": "请填写{{field}}",
+    "validateField": "{{field}} 格式不正确"
   },
   "settings": {
     "title": "设置",
@@ -947,6 +952,10 @@
         "nodePlural": "节点",
         "namespace": "命名空间",
         "backlog": "积压"
+      },
+      "form": {
+        "timeoutSec": "超时时间（秒）",
+        "authNone": "不启用"
       }
     },
     "rocketmq": {
@@ -959,6 +968,14 @@
         "nodePlural": "Broker",
         "namespace": "集群",
         "backlog": "消息堆积"
+      },
+      "name": "RocketMQ",
+      "form": {
+        "nameServer": "NameServer",
+        "enableAcl": "启用 ACL",
+        "authAcl": "ACL",
+        "accessKey": "AccessKey",
+        "secretKey": "SecretKey"
       }
     },
     "kafka": {
@@ -971,7 +988,8 @@
         "nodePlural": "Broker",
         "namespace": "集群",
         "backlog": "消费延迟"
-      }
+      },
+      "name": "Kafka"
     },
     "rabbitmq": {
       "terms": {
@@ -1007,7 +1025,17 @@
         "exchangeType": "类型",
         "durable": "持久化",
         "empty": "此虚拟主机下没有绑定"
-      }
+      },
+      "name": "RabbitMQ"
+    },
+    "pulsar": {
+      "name": "Pulsar"
+    },
+    "redis-stream": {
+      "name": "Redis Stream"
+    },
+    "mqtt": {
+      "name": "MQTT"
     }
   }
 }
