@@ -6,6 +6,7 @@ import (
 	"github.com/amigoer/mq-studio/internal/driver"
 
 	"github.com/amigoer/mq-studio/internal/crypto"
+	"github.com/amigoer/mq-studio/internal/driver/rabbitmq"
 	"github.com/amigoer/mq-studio/internal/driver/rocketmq"
 	"github.com/amigoer/mq-studio/internal/service/access"
 	"github.com/amigoer/mq-studio/internal/service/cluster"
@@ -66,6 +67,7 @@ func New() (*Services, error) {
 	// Register the compiled-in drivers before anything asks the catalog what
 	// families exist.
 	driver.Register(rocketmq.New())
+	driver.Register(rabbitmq.New())
 	rocketmq.GetClientManager().SetDefaultClientInitializer(connections.ConnectDefault)
 	services.Collector.Start()
 	return services, nil

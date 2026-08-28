@@ -1,0 +1,116 @@
+package rabbitmq
+
+import (
+	"context"
+	"net/http"
+	"os"
+	"testing"
+	"time"
+
+	"github.com/amigoer/mq-studio/internal/driver"
+	"github.com/amigoer/mq-studio/internal/model"
+)
+
+// liveEndpoint is the environment tests/e2e/rabbitmq brings up. Tests skip
+// rather than fail when it is not running, so a checkout without docker still
+// has a green suite.
+const liveEndpoint = "http://127.0.0.1:15672"
+
+func liveConn(t *testing.T) *Conn {
+	t.Helper()
+	client := &http.Client{Timeout: 2 * time.Second}
+	response, err := client.Get(liveEndpoint + "/api/overview")
+	if err != nil {
+		if os.Getenv("CI") != "" {
+			t.Fatalf("rabbitmq must be running in CI: %v", err)
+		}
+		t.Skipf("rabbitmq is not running; start it with npm run e2e:rabbitmq:up (%v)", err)
+	}
+	_ = response.Body.Close()
+
+	profile := model.ConnectionProfile{
+		Kind:      model.KindRabbitMQ,
+		Endpoints: liveEndpoint,
+		Auth:      model.AuthConfig{Mechanism: model.AuthPlain},
+	}
+	profile.SetSecret(SecretUsername, "mqstudio")
+	profile.SetSecret(SecretPassword, "mqstudio")
+
+	conn, err := New().Open(context.Background(), profile)
+	if err != nil {
+		t.Fatalf("open: %v", err)
+	}
+	return conn.(*Conn)
+}
+
+// The check that makes a control the driver cannot service, or work it can do
+// that the UI never offers, fail the build.
+func TestConnDeclaresOnlyWhatItImplements(t *testing.T) {
+	conn := liveConn(t)
+
+	if problems := driver.CheckConformance(conn); len(problems) != 0 {
+		for _, problem := range problems {
+			t.Error(problem)
+		}
+	}
+}
+
+// The absences are the point. A UI that offered an offset reset here would be
+// offering something RabbitMQ has no concept of.
+func TestConnDeclaresNoOffsetOrPartitionCapabilities(t *testing.T) {
+	conn := liveConn(t)
+	capabilities := conn.Capabilities()
+
+	for _, absent := range []model.Capability{
+		model.CapOffsetReset,
+		model.CapPartitions,
+		model.CapMessageByID,
+		model.CapMessageTrack,
+		model.CapDestinationUpdate,
+		model.CapSubscriptionCreate,
+		model.CapSubscriptionDelete,
+	} {
+		if capabilities.Has(absent) {
+			t.Errorf("declares %s, which rabbitmq has no concept of", absent)
+		}
+	}
+}
+
+func TestListDestinationsReadsTheLiveBroker(t *testing.T) {
+	conn := liveConn(t)
+
+	destinations, err := conn.ListDestinations(context.Background(), model.DestinationFilter{})
+	if err != nil {
+		t.Fatalf("list destinations: %v", err)
+	}
+	for _, destination := range destinations {
+		if destination.Partitions != model.UnknownMetric {
+			t.Errorf("queue %q reports %d partitions; rabbitmq has none",
+				destination.Ref.Name, destination.Partitions)
+		}
+	}
+}
+
+// A declared queue must come back through the canonical list, which is what
+// proves the mapping survives a round trip rather than only reading well.
+func TestDeclaredQueueAppearsAsADestination(t *testing.T) {
+	conn := liveConn(t)
+	ctx := context.Background()
+	ref := model.DestinationRef{Name: "mq-studio-conformance"}
+	t.Cleanup(func() { _ = conn.RemoveDestination(ctx, ref) })
+
+	if err := conn.CreateDestination(ctx, model.DestinationSpec{Ref: ref}); err != nil {
+		t.Fatalf("create destination: %v", err)
+	}
+
+	destinations, err := conn.ListDestinations(ctx, model.DestinationFilter{})
+	if err != nil {
+		t.Fatalf("list destinations: %v", err)
+	}
+	for _, destination := range destinations {
+		if destination.Ref.Name == ref.Name {
+			return
+		}
+	}
+	t.Fatalf("declared queue %q did not come back in the listing", ref.Name)
+}
