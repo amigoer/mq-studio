@@ -1,7 +1,31 @@
 # 多 MQ 架构设计
 
-目标形态：RocketMQ（现有）、Kafka、RabbitMQ、Pulsar，以及后续的 Redis Stream
-与 MQTT。
+目标形态共 15 种，分三档。
+
+**自托管**：RocketMQ（现有）、Kafka、RabbitMQ、Pulsar、ActiveMQ / Artemis、
+Redis Stream、NATS、NSQ、MQTT。
+
+**云托管**：Amazon SQS、Google Cloud Pub/Sub、Azure Service Bus、Amazon Kinesis。
+这一档没有可拨的 broker 地址：凭证与 region 走 `ConnectionProfile` 的 `Options`
+与 `Secrets`，`Endpoints` 留空。
+
+**企业**：IBM MQ、Solace PubSub+。
+
+### 不单列形态的两类
+
+**协议兼容的实现由已有驱动覆盖**，不占用新的 `MQKind`：Redpanda、AutoMQ、
+WarpStream、Confluent、Amazon MSK、Azure Event Hubs 走 Kafka；EMQX、Mosquitto、
+HiveMQ、VerneMQ 走 MQTT；Amazon MQ 走 ActiveMQ 或 RabbitMQ；阿里云与腾讯云的
+RocketMQ 走 RocketMQ。实现之间的差异靠 `probe()` 收窄能力表达，而不是靠新增
+驱动 —— 第 9 节里 RabbitMQ 用「管理插件是否启用」收窄能力，是同一个手法。
+
+> EMQX 与 HiveMQ 是这条规则下最需要留意的一例。MQTT 形态按协议本身建模，只有
+> 发布与订阅；但这些实现各自带完整 REST 管理面，probe 成功时可以把目标列表与
+> 订阅列表补回来。能力差异因此是运行时事实，不是形态差异。
+
+**明确不做**：ZeroMQ 与 nanomsg 没有 broker，也就没有管理面可言；Celery、
+Sidekiq、BullMQ 是架在 Redis 或 RabbitMQ 之上的应用层任务队列，不是消息中间件
+本身，要做也是另一条产品线而不是一个驱动。
 
 本文在任何代码移动之前，先定义 Go 与渲染层之间的契约。它是一份设计而不是变更
 记录：下面每一个接口都是待确认的提案，文末的迁移计划才是把它变成提交的部分。
@@ -536,7 +560,9 @@ MessageQueue key、`consumer/validation.go` 校验 CLUSTERING/BROADCASTING 枚�
 | 3 | 前端接缝：`mq/` 注册表、能力门控、术语解析、schema 驱动表单、派生导航 | 对 RocketMQ 而言逐屏与今天完全一致 |
 | 4 | **RabbitMQ 驱动**（已与 5 对调） | Exchanges/Bindings 页面存在，且没有 offset 概念泄漏进 UI |
 | 5 | Kafka 驱动 | topic、消费组、lag、浏览、发布端到端可用 |
-| 6 | Pulsar，然后 Redis Stream，然后 MQTT | 每个都是纯增量：不改动任何规范页面 |
+| 6 | Pulsar，然后 Redis Stream，然后 NATS，然后 MQTT | 每个都是纯增量：不改动任何规范页面 |
+| 7 | ActiveMQ / Artemis，然后 NSQ | 仍是纯增量；ActiveMQ 用来检验 JMS 语义能否套进规范页面 |
+| 8 | 云托管：SQS、Google Pub/Sub、Azure Service Bus、Kinesis；然后 IBM MQ 与 Solace | 连接表单能表达「无地址，只有 region 与凭证」这一形态 |
 
 > **阶段 4 与 5 已对调。** 原顺序把 Kafka 放在前面是按「由易到难」排的，但下面
 > 的排期提示一恰好说明这是错的：Kafka 验证不了抽象。查证后还发现 RabbitMQ 的
@@ -555,6 +581,12 @@ MessageQueue key、`consumer/validation.go` 校验 CLUSTERING/BROADCASTING 枚�
 机械替换；等到第二个驱动落地之后再补，调用点是现在的三倍，且每个驱动都已围绕
 「默认连接」写好了自己的假设。UI 是否真的同时展示多个连接可以之后再定 ——
 但**契约里必须先有那个参数**。
+
+**排期提示三：云托管这一档的风险不在驱动，在连接表单。** 阶段 8 之前的九种形态
+都是「地址 + 可选凭证」，schema 驱动表单只需换字段标签；云托管是「region + 凭证，
+没有地址」，是第一次出现 `Endpoints` 为空却仍然合法的连接。表单与校验能否表达这
+一点，应该在阶段 3 定页面契约时就在纸上比一遍 —— 理由与提示一相同：形状改动放
+在阶段 3 远比放在阶段 8 便宜。
 
 ## 9. P5 的检验结果
 
