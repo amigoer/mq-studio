@@ -22,6 +22,8 @@ import { Separator } from "@/components/ui/separator";
 import { openExternal } from "@/api/platform";
 import { useTerms, type TermKey } from "@/mq/terms";
 import { useCapabilities } from "@/mq/capabilities";
+import { useModuleNav } from "@/mq/useModuleNav";
+import { Boxes } from "lucide-react";
 import { navAvailability } from "@/mq/navigation";
 import { useConnections } from "@/hooks/useConnections";
 
@@ -125,6 +127,7 @@ export function Sidebar({
   const capabilities = useCapabilities();
   const { active: activeConnection } = useConnections();
   const availability = navAvailability(capabilities, activeConnection != null);
+  const moduleNav = useModuleNav();
 
   const renderItem = (item: NavItem) => {
     const { id, icon: Icon, labelKey } = item;
@@ -183,6 +186,17 @@ export function Sidebar({
                 </div>
               ) : null}
               {group.items.map(renderItem)}
+              {group.labelKey === "nav.groupBrowse"
+                ? moduleNav
+                    .filter((entry) => entry.group === "browse")
+                    .map((entry) =>
+                      renderItem({
+                        id: entry.id as NavId,
+                        icon: Boxes,
+                        labelKey: entry.labelKey,
+                      }),
+                    )
+                : null}
             </div>
           </Fragment>
         ))}

@@ -18,10 +18,12 @@ import { PageTransition } from "@/components/PageTransition";
 import { useConnections } from "@/hooks/useConnections";
 import { useUpdateCheck } from "@/hooks/useUpdateCheck";
 import { onTrayNavigate } from "@/api/platform";
+import { useModuleNav } from "@/mq/useModuleNav";
 
 function App(): React.ReactElement {
   const [activeNav, setActiveNav] = useState<NavId>("home");
   const { active: activeConn, activeKey } = useConnections();
+  const moduleNav = useModuleNav();
   const { unseen: updateUnseen, markSeen: markUpdateSeen } = useUpdateCheck();
   const hasConnected = activeConn != null;
 
@@ -75,8 +77,16 @@ function App(): React.ReactElement {
         return <ConnectionsPage />;
       case "settings":
         return <SettingsPage />;
-      default:
+      default: {
+        // A driver page: the module contributed both the entry and the
+        // component, so the shell renders it without knowing what it is.
+        const contributed = moduleNav.find((entry) => entry.id === activeNav);
+        if (contributed) {
+          const DriverPage = contributed.page;
+          return <DriverPage />;
+        }
         return <OverviewPage onNavigate={setActiveNav} />;
+      }
     }
   };
 

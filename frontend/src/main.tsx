@@ -5,6 +5,7 @@ import { SettingsProvider } from "@/hooks/useSettings";
 import { ConnectionsProvider } from "@/hooks/useConnections";
 import { CapabilitiesProvider } from "@/mq/capabilities";
 import "@/mq/rocketmq";
+import "@/mq/rabbitmq";
 import { OverviewProvider } from "@/hooks/useOverview";
 import { AlertsProvider } from "@/hooks/useAlerts";
 import { UpdateCheckProvider } from "@/hooks/useUpdateCheck";

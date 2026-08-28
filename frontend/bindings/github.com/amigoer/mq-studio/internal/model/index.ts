@@ -4,6 +4,7 @@
 export {
     AclVersionInfo,
     AuthMechanism,
+    Binding,
     Capabilities,
     Capability,
     ClusterOverview,

@@ -7,6 +7,7 @@ import * as ConnectionService from "./connectionservice.js";
 import * as ConsumerService from "./consumerservice.js";
 import * as DriverService from "./driverservice.js";
 import * as MessageService from "./messageservice.js";
+import * as RoutingService from "./routingservice.js";
 import * as SettingsService from "./settingsservice.js";
 import * as SystemService from "./systemservice.js";
 import * as TopicService from "./topicservice.js";
@@ -18,6 +19,7 @@ export {
     ConsumerService,
     DriverService,
     MessageService,
+    RoutingService,
     SettingsService,
     SystemService,
     TopicService,

@@ -24,5 +24,6 @@ func Services(services *app.Services, version string) []application.Service {
 		application.NewService(&MessageService{service: services.Messages}),
 		application.NewService(&ACLService{service: services.ACL}),
 		application.NewService(&DriverService{conns: services.Conns}),
+		application.NewService(&RoutingService{service: services.Routing}),
 	}
 }

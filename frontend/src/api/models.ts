@@ -18,6 +18,7 @@ export type ClusterOverview = model.ClusterOverview;
 /** The cluster page snapshot: header counters plus the nodes behind them. */
 export type { ClusterView };
 export type Destination = model.Destination;
+export type Binding = model.Binding;
 export type DestinationRef = model.DestinationRef;
 export type Subscription = model.Subscription;
 export type SubscriptionRef = model.SubscriptionRef;

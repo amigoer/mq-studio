@@ -983,6 +983,30 @@
         "nodePlural": "Nodes",
         "namespace": "Virtual host",
         "backlog": "Ready + unacked"
+      },
+      "form": {
+        "managementUrl": "Management API",
+        "vhost": "Virtual host",
+        "username": "Username",
+        "password": "Password"
+      },
+      "caveat": {
+        "browseAltersQueue": "Browsing alters the queue: messages are requeued but come back flagged redelivered, and concurrent consumers see the gap."
+      },
+      "degraded": {
+        "managementPlugin": "The management plugin is not enabled. It provides the whole RabbitMQ admin plane; turning it on restores these views."
+      },
+      "routing": {
+        "title": "Exchanges & bindings",
+        "exchanges": "Exchanges",
+        "bindings": "Bindings",
+        "source": "Source",
+        "destination": "Destination",
+        "destinationKind": "Kind",
+        "routingKey": "Routing key",
+        "exchangeType": "Type",
+        "durable": "Durable",
+        "empty": "No bindings in this virtual host"
       }
     }
   }

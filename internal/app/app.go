@@ -15,6 +15,7 @@ import (
 	"github.com/amigoer/mq-studio/internal/service/connection"
 	"github.com/amigoer/mq-studio/internal/service/destination"
 	"github.com/amigoer/mq-studio/internal/service/message"
+	"github.com/amigoer/mq-studio/internal/service/routing"
 	"github.com/amigoer/mq-studio/internal/service/settings"
 	"github.com/amigoer/mq-studio/internal/service/subscription"
 	"github.com/amigoer/mq-studio/internal/storage/layout"
@@ -29,6 +30,7 @@ type Services struct {
 	Messages    *message.Service
 	Settings    *configuration.Service
 	ACL         *access.Service
+	Routing     *routing.Service
 
 	// Conns resolves a profile id to a live connection. The bridge needs it to
 	// answer capability questions without going through a domain service.
@@ -61,6 +63,7 @@ func New() (*Services, error) {
 		Messages:    message.New(conns, settingsService),
 		Settings:    configurationService,
 		ACL:         access.New(conns, settingsService),
+		Routing:     routing.New(conns, settingsService),
 		Conns:       conns,
 		Collector:   collector.New(sampleActiveConnection(clusterService), rocketmq.HasActiveConnection),
 	}

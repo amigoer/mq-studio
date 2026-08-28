@@ -983,6 +983,30 @@
         "nodePlural": "节点",
         "namespace": "虚拟主机",
         "backlog": "待处理消息"
+      },
+      "form": {
+        "managementUrl": "管理 API 地址",
+        "vhost": "虚拟主机",
+        "username": "用户名",
+        "password": "密码"
+      },
+      "caveat": {
+        "browseAltersQueue": "浏览会改变队列状态：消息虽被重新入队，但会标记为 redelivered，并影响并发消费者看到的顺序。"
+      },
+      "degraded": {
+        "managementPlugin": "未检测到 management 插件。RabbitMQ 的管理面全部由它提供，启用后即可使用。"
+      },
+      "routing": {
+        "title": "交换机与绑定",
+        "exchanges": "交换机",
+        "bindings": "绑定",
+        "source": "源交换机",
+        "destination": "目标",
+        "destinationKind": "目标类型",
+        "routingKey": "路由键",
+        "exchangeType": "类型",
+        "durable": "持久化",
+        "empty": "此虚拟主机下没有绑定"
       }
     }
   }

@@ -64,6 +64,69 @@ export enum AuthMechanism {
 };
 
 /**
+ * Binding is a route from an exchange to a queue or another exchange.
+ * 
+ * Only RabbitMQ has first-class bindings, which is why the canonical page set
+ * has no counterpart for them and the driver contributes a page of its own.
+ */
+export class Binding {
+    /**
+     * list key for the renderer
+     */
+    "id": number;
+    "namespace": string;
+    "source": string;
+    "destination": string;
+
+    /**
+     * DestinationKind separates a queue target from an exchange target; the
+     * same source and name can bind to both.
+     */
+    "destinationKind": string;
+    "routingKey": string;
+    "arguments": { [_ in string]?: string };
+
+    /** Creates a new Binding instance. */
+    constructor($$source: Partial<Binding> = {}) {
+        if (!("id" in $$source)) {
+            this["id"] = 0;
+        }
+        if (!("namespace" in $$source)) {
+            this["namespace"] = "";
+        }
+        if (!("source" in $$source)) {
+            this["source"] = "";
+        }
+        if (!("destination" in $$source)) {
+            this["destination"] = "";
+        }
+        if (!("destinationKind" in $$source)) {
+            this["destinationKind"] = "";
+        }
+        if (!("routingKey" in $$source)) {
+            this["routingKey"] = "";
+        }
+        if (!("arguments" in $$source)) {
+            this["arguments"] = {};
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new Binding instance from a string or object.
+     */
+    static createFrom($$source: any = {}): Binding {
+        const $$createField6_0 = $$createType0;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("arguments" in $$parsedSource) {
+            $$parsedSource["arguments"] = $$createField6_0($$parsedSource["arguments"]);
+        }
+        return new Binding($$parsedSource as Partial<Binding>);
+    }
+}
+
+/**
  * Capabilities is what one live connection can actually do.
  * 
  * Three states reach the UI, and they must stay distinguishable: a capability
@@ -108,9 +171,9 @@ export class Capabilities {
      * Creates a new Capabilities instance from a string or object.
      */
     static createFrom($$source: any = {}): Capabilities {
-        const $$createField0_0 = $$createType0;
-        const $$createField1_0 = $$createType1;
-        const $$createField2_0 = $$createType1;
+        const $$createField0_0 = $$createType1;
+        const $$createField1_0 = $$createType2;
+        const $$createField2_0 = $$createType2;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("supported" in $$parsedSource) {
             $$parsedSource["supported"] = $$createField0_0($$parsedSource["supported"]);
@@ -378,8 +441,8 @@ export class Destination {
      * Creates a new Destination instance from a string or object.
      */
     static createFrom($$source: any = {}): Destination {
-        const $$createField1_0 = $$createType2;
-        const $$createField8_0 = $$createType3;
+        const $$createField1_0 = $$createType3;
+        const $$createField8_0 = $$createType0;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("ref" in $$parsedSource) {
             $$parsedSource["ref"] = $$createField1_0($$parsedSource["ref"]);
@@ -466,7 +529,7 @@ export class DriverDescriptor {
      */
     static createFrom($$source: any = {}): DriverDescriptor {
         const $$createField2_0 = $$createType5;
-        const $$createField3_0 = $$createType0;
+        const $$createField3_0 = $$createType1;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("form" in $$parsedSource) {
             $$parsedSource["form"] = $$createField2_0($$parsedSource["form"]);
@@ -812,7 +875,7 @@ export class MessageItem {
      * Creates a new MessageItem instance from a string or object.
      */
     static createFrom($$source: any = {}): MessageItem {
-        const $$createField15_0 = $$createType3;
+        const $$createField15_0 = $$createType0;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("properties" in $$parsedSource) {
             $$parsedSource["properties"] = $$createField15_0($$parsedSource["properties"]);
@@ -996,7 +1059,7 @@ export class Node {
         const $$createField10_0 = $$createType11;
         const $$createField11_0 = $$createType12;
         const $$createField12_0 = $$createType12;
-        const $$createField13_0 = $$createType3;
+        const $$createField13_0 = $$createType0;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("tpsHistoryTimestamps" in $$parsedSource) {
             $$parsedSource["tpsHistoryTimestamps"] = $$createField10_0($$parsedSource["tpsHistoryTimestamps"]);
@@ -1157,7 +1220,7 @@ export class Subscription {
      */
     static createFrom($$source: any = {}): Subscription {
         const $$createField1_0 = $$createType13;
-        const $$createField8_0 = $$createType3;
+        const $$createField8_0 = $$createType0;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("ref" in $$parsedSource) {
             $$parsedSource["ref"] = $$createField1_0($$parsedSource["ref"]);
@@ -1212,10 +1275,10 @@ export enum SubscriptionStatus {
 };
 
 // Private type creation functions
-const $$createType0 = $Create.Array($Create.Any);
-const $$createType1 = $Create.Map($Create.Any, $Create.Any);
-const $$createType2 = DestinationRef.createFrom;
-const $$createType3 = $Create.Map($Create.Any, $Create.Any);
+const $$createType0 = $Create.Map($Create.Any, $Create.Any);
+const $$createType1 = $Create.Array($Create.Any);
+const $$createType2 = $Create.Map($Create.Any, $Create.Any);
+const $$createType3 = DestinationRef.createFrom;
 const $$createType4 = FormField.createFrom;
 const $$createType5 = $Create.Array($$createType4);
 const $$createType6 = $Create.Array($Create.Any);
