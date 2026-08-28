@@ -64,226 +64,6 @@ export enum AuthMechanism {
 };
 
 /**
- * BrokerNode holds Broker node information.
- */
-export class BrokerNode {
-    /**
-     * Node ID
-     */
-    "id": number;
-
-    /**
-     * Cluster name
-     */
-    "cluster": string;
-
-    /**
-     * Broker name
-     */
-    "brokerName": string;
-
-    /**
-     * Broker ID
-     */
-    "brokerId": number;
-
-    /**
-     * Role (MASTER/SLAVE)
-     */
-    "role": BrokerRole;
-
-    /**
-     * Primary address
-     */
-    "address": string;
-
-    /**
-     * HA address
-     */
-    "haAddress": string;
-
-    /**
-     * Version
-     */
-    "version": string;
-
-    /**
-     * Node status
-     */
-    "status": NodeStatus;
-
-    /**
-     * Topic count
-     */
-    "topics": number;
-
-    /**
-     * Consumer group count
-     */
-    "groups": number;
-
-    /**
-     * Inbound TPS
-     */
-    "tpsIn": number;
-
-    /**
-     * Outbound TPS
-     */
-    "tpsOut": number;
-
-    /**
-     * Unix-second timestamps for TPS history
-     */
-    "tpsHistoryTimestamps": number[];
-
-    /**
-     * Inbound TPS history
-     */
-    "tpsInHistory": number[];
-
-    /**
-     * Outbound TPS history
-     */
-    "tpsOutHistory": number[];
-
-    /**
-     * Messages in today
-     */
-    "msgInToday": number;
-
-    /**
-     * Messages out today
-     */
-    "msgOutToday": number;
-
-    /**
-     * CommitLog disk usage percent
-     */
-    "commitLogDiskUsage": number;
-
-    /**
-     * ConsumeQueue disk usage percent
-     */
-    "consumeQueueDiskUsage": number;
-
-    /**
-     * Last update time
-     */
-    "lastUpdate": string;
-
-    /**
-     * Remark
-     */
-    "remark": string;
-
-    /** Creates a new BrokerNode instance. */
-    constructor($$source: Partial<BrokerNode> = {}) {
-        if (!("id" in $$source)) {
-            this["id"] = 0;
-        }
-        if (!("cluster" in $$source)) {
-            this["cluster"] = "";
-        }
-        if (!("brokerName" in $$source)) {
-            this["brokerName"] = "";
-        }
-        if (!("brokerId" in $$source)) {
-            this["brokerId"] = 0;
-        }
-        if (!("role" in $$source)) {
-            this["role"] = BrokerRole.$zero;
-        }
-        if (!("address" in $$source)) {
-            this["address"] = "";
-        }
-        if (!("haAddress" in $$source)) {
-            this["haAddress"] = "";
-        }
-        if (!("version" in $$source)) {
-            this["version"] = "";
-        }
-        if (!("status" in $$source)) {
-            this["status"] = NodeStatus.$zero;
-        }
-        if (!("topics" in $$source)) {
-            this["topics"] = 0;
-        }
-        if (!("groups" in $$source)) {
-            this["groups"] = 0;
-        }
-        if (!("tpsIn" in $$source)) {
-            this["tpsIn"] = 0;
-        }
-        if (!("tpsOut" in $$source)) {
-            this["tpsOut"] = 0;
-        }
-        if (!("tpsHistoryTimestamps" in $$source)) {
-            this["tpsHistoryTimestamps"] = [];
-        }
-        if (!("tpsInHistory" in $$source)) {
-            this["tpsInHistory"] = [];
-        }
-        if (!("tpsOutHistory" in $$source)) {
-            this["tpsOutHistory"] = [];
-        }
-        if (!("msgInToday" in $$source)) {
-            this["msgInToday"] = 0;
-        }
-        if (!("msgOutToday" in $$source)) {
-            this["msgOutToday"] = 0;
-        }
-        if (!("commitLogDiskUsage" in $$source)) {
-            this["commitLogDiskUsage"] = 0;
-        }
-        if (!("consumeQueueDiskUsage" in $$source)) {
-            this["consumeQueueDiskUsage"] = 0;
-        }
-        if (!("lastUpdate" in $$source)) {
-            this["lastUpdate"] = "";
-        }
-        if (!("remark" in $$source)) {
-            this["remark"] = "";
-        }
-
-        Object.assign(this, $$source);
-    }
-
-    /**
-     * Creates a new BrokerNode instance from a string or object.
-     */
-    static createFrom($$source: any = {}): BrokerNode {
-        const $$createField13_0 = $$createType0;
-        const $$createField14_0 = $$createType1;
-        const $$createField15_0 = $$createType1;
-        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-        if ("tpsHistoryTimestamps" in $$parsedSource) {
-            $$parsedSource["tpsHistoryTimestamps"] = $$createField13_0($$parsedSource["tpsHistoryTimestamps"]);
-        }
-        if ("tpsInHistory" in $$parsedSource) {
-            $$parsedSource["tpsInHistory"] = $$createField14_0($$parsedSource["tpsInHistory"]);
-        }
-        if ("tpsOutHistory" in $$parsedSource) {
-            $$parsedSource["tpsOutHistory"] = $$createField15_0($$parsedSource["tpsOutHistory"]);
-        }
-        return new BrokerNode($$parsedSource as Partial<BrokerNode>);
-    }
-}
-
-/**
- * BrokerRole is the Broker role.
- */
-export enum BrokerRole {
-    /**
-     * The Go zero value for the underlying type of the enum.
-     */
-    $zero = "",
-
-    RoleMaster = "MASTER",
-    RoleSlave = "SLAVE",
-};
-
-/**
  * Capabilities is what one live connection can actually do.
  * 
  * Three states reach the UI, and they must stay distinguishable: a capability
@@ -328,9 +108,9 @@ export class Capabilities {
      * Creates a new Capabilities instance from a string or object.
      */
     static createFrom($$source: any = {}): Capabilities {
-        const $$createField0_0 = $$createType2;
-        const $$createField1_0 = $$createType3;
-        const $$createField2_0 = $$createType3;
+        const $$createField0_0 = $$createType0;
+        const $$createField1_0 = $$createType1;
+        const $$createField2_0 = $$createType1;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("supported" in $$parsedSource) {
             $$parsedSource["supported"] = $$createField0_0($$parsedSource["supported"]);
@@ -388,93 +168,54 @@ export enum Capability {
 };
 
 /**
- * ClusterInfo holds cluster overview information.
+ * ClusterOverview is the aggregate the Cluster page header shows.
  */
-export class ClusterInfo {
-    /**
-     * Cluster name
-     */
-    "clusterName": string;
+export class ClusterOverview {
+    "name": string;
+    "totalNodes": number;
+    "onlineNodes": number;
 
     /**
-     * Total Broker count
+     * UnknownMetric when not enumerable
      */
-    "totalBrokers": number;
+    "destinations": number;
+    "subscriptions": number;
 
     /**
-     * Online Broker count
-     */
-    "onlineBrokers": number;
-
-    /**
-     * Total Topic count
-     */
-    "totalTopics": number;
-
-    /**
-     * Total consumer group count
-     */
-    "totalGroups": number;
-
-    /**
-     * Average disk usage percent
+     * percent; UnknownMetric when not reported
      */
     "avgDiskUsage": number;
 
-    /**
-     * NameServer list
-     */
-    "nameServers": string[];
-
-    /**
-     * Broker list
-     */
-    "brokers": (BrokerNode | null)[];
-
-    /** Creates a new ClusterInfo instance. */
-    constructor($$source: Partial<ClusterInfo> = {}) {
-        if (!("clusterName" in $$source)) {
-            this["clusterName"] = "";
+    /** Creates a new ClusterOverview instance. */
+    constructor($$source: Partial<ClusterOverview> = {}) {
+        if (!("name" in $$source)) {
+            this["name"] = "";
         }
-        if (!("totalBrokers" in $$source)) {
-            this["totalBrokers"] = 0;
+        if (!("totalNodes" in $$source)) {
+            this["totalNodes"] = 0;
         }
-        if (!("onlineBrokers" in $$source)) {
-            this["onlineBrokers"] = 0;
+        if (!("onlineNodes" in $$source)) {
+            this["onlineNodes"] = 0;
         }
-        if (!("totalTopics" in $$source)) {
-            this["totalTopics"] = 0;
+        if (!("destinations" in $$source)) {
+            this["destinations"] = 0;
         }
-        if (!("totalGroups" in $$source)) {
-            this["totalGroups"] = 0;
+        if (!("subscriptions" in $$source)) {
+            this["subscriptions"] = 0;
         }
         if (!("avgDiskUsage" in $$source)) {
             this["avgDiskUsage"] = 0;
-        }
-        if (!("nameServers" in $$source)) {
-            this["nameServers"] = [];
-        }
-        if (!("brokers" in $$source)) {
-            this["brokers"] = [];
         }
 
         Object.assign(this, $$source);
     }
 
     /**
-     * Creates a new ClusterInfo instance from a string or object.
+     * Creates a new ClusterOverview instance from a string or object.
      */
-    static createFrom($$source: any = {}): ClusterInfo {
-        const $$createField6_0 = $$createType4;
-        const $$createField7_0 = $$createType7;
+    static createFrom($$source: any = {}): ClusterOverview {
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-        if ("nameServers" in $$parsedSource) {
-            $$parsedSource["nameServers"] = $$createField6_0($$parsedSource["nameServers"]);
-        }
-        if ("brokers" in $$parsedSource) {
-            $$parsedSource["brokers"] = $$createField7_0($$parsedSource["brokers"]);
-        }
-        return new ClusterInfo($$parsedSource as Partial<ClusterInfo>);
+        return new ClusterOverview($$parsedSource as Partial<ClusterOverview>);
     }
 }
 
@@ -637,8 +378,8 @@ export class Destination {
      * Creates a new Destination instance from a string or object.
      */
     static createFrom($$source: any = {}): Destination {
-        const $$createField1_0 = $$createType8;
-        const $$createField8_0 = $$createType9;
+        const $$createField1_0 = $$createType2;
+        const $$createField8_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("ref" in $$parsedSource) {
             $$parsedSource["ref"] = $$createField1_0($$parsedSource["ref"]);
@@ -724,8 +465,8 @@ export class DriverDescriptor {
      * Creates a new DriverDescriptor instance from a string or object.
      */
     static createFrom($$source: any = {}): DriverDescriptor {
-        const $$createField2_0 = $$createType11;
-        const $$createField3_0 = $$createType2;
+        const $$createField2_0 = $$createType5;
+        const $$createField3_0 = $$createType0;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("form" in $$parsedSource) {
             $$parsedSource["form"] = $$createField2_0($$parsedSource["form"]);
@@ -760,7 +501,7 @@ export class FieldCond {
      * Creates a new FieldCond instance from a string or object.
      */
     static createFrom($$source: any = {}): FieldCond {
-        const $$createField1_0 = $$createType4;
+        const $$createField1_0 = $$createType6;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("equals" in $$parsedSource) {
             $$parsedSource["equals"] = $$createField1_0($$parsedSource["equals"]);
@@ -867,8 +608,8 @@ export class FormField {
      * Creates a new FormField instance from a string or object.
      */
     static createFrom($$source: any = {}): FormField {
-        const $$createField7_0 = $$createType13;
-        const $$createField8_0 = $$createType15;
+        const $$createField7_0 = $$createType8;
+        const $$createField8_0 = $$createType10;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("visibleWhen" in $$parsedSource) {
             $$parsedSource["visibleWhen"] = $$createField7_0($$parsedSource["visibleWhen"]);
@@ -1071,7 +812,7 @@ export class MessageItem {
      * Creates a new MessageItem instance from a string or object.
      */
     static createFrom($$source: any = {}): MessageItem {
-        const $$createField15_0 = $$createType9;
+        const $$createField15_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("properties" in $$parsedSource) {
             $$parsedSource["properties"] = $$createField15_0($$parsedSource["properties"]);
@@ -1142,6 +883,134 @@ export class MessageTrackItem {
     static createFrom($$source: any = {}): MessageTrackItem {
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         return new MessageTrackItem($$parsedSource as Partial<MessageTrackItem>);
+    }
+}
+
+/**
+ * Node is one broker, RabbitMQ node or Kafka broker as the canonical Cluster
+ * page sees it.
+ * 
+ * It is deliberately thinner than BrokerNode: the TPS history arrays there are
+ * filled by the cluster service from local samples, not by any broker, so they
+ * stay out of what a driver has to produce.
+ */
+export class Node {
+    /**
+     * list key for the renderer, not broker data
+     */
+    "id": number;
+    "name": string;
+    "address": string;
+
+    /**
+     * grouping label; empty where the family has none
+     */
+    "cluster": string;
+    "version": string;
+    "status": NodeStatus;
+
+    /**
+     * messages per second in
+     */
+    "rateIn": number;
+
+    /**
+     * messages per second out
+     */
+    "rateOut": number;
+
+    /**
+     * percent; UnknownMetric when not reported
+     */
+    "diskUsage": number;
+    "lastSeen": string;
+
+    /**
+     * TPS history is sampled locally by the collector, not reported by any
+     * broker, which is why a driver never fills these.
+     * Unix seconds
+     */
+    "tpsHistoryTimestamps": number[];
+    "tpsInHistory": number[];
+    "tpsOutHistory": number[];
+
+    /**
+     * Attributes carries family-specific detail the canonical page renders
+     * through the driver's own column set: RocketMQ master/slave role and
+     * CommitLog usage, Kafka controller and ISR, RabbitMQ disc/ram node type.
+     */
+    "attributes": { [_ in string]?: string };
+
+    /** Creates a new Node instance. */
+    constructor($$source: Partial<Node> = {}) {
+        if (!("id" in $$source)) {
+            this["id"] = 0;
+        }
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("address" in $$source)) {
+            this["address"] = "";
+        }
+        if (!("cluster" in $$source)) {
+            this["cluster"] = "";
+        }
+        if (!("version" in $$source)) {
+            this["version"] = "";
+        }
+        if (!("status" in $$source)) {
+            this["status"] = NodeStatus.$zero;
+        }
+        if (!("rateIn" in $$source)) {
+            this["rateIn"] = 0;
+        }
+        if (!("rateOut" in $$source)) {
+            this["rateOut"] = 0;
+        }
+        if (!("diskUsage" in $$source)) {
+            this["diskUsage"] = 0;
+        }
+        if (!("lastSeen" in $$source)) {
+            this["lastSeen"] = "";
+        }
+        if (!("tpsHistoryTimestamps" in $$source)) {
+            this["tpsHistoryTimestamps"] = [];
+        }
+        if (!("tpsInHistory" in $$source)) {
+            this["tpsInHistory"] = [];
+        }
+        if (!("tpsOutHistory" in $$source)) {
+            this["tpsOutHistory"] = [];
+        }
+        if (!("attributes" in $$source)) {
+            this["attributes"] = {};
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new Node instance from a string or object.
+     */
+    static createFrom($$source: any = {}): Node {
+        const $$createField10_0 = $$createType11;
+        const $$createField11_0 = $$createType12;
+        const $$createField12_0 = $$createType12;
+        const $$createField13_0 = $$createType3;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("tpsHistoryTimestamps" in $$parsedSource) {
+            $$parsedSource["tpsHistoryTimestamps"] = $$createField10_0($$parsedSource["tpsHistoryTimestamps"]);
+        }
+        if ("tpsInHistory" in $$parsedSource) {
+            $$parsedSource["tpsInHistory"] = $$createField11_0($$parsedSource["tpsInHistory"]);
+        }
+        if ("tpsOutHistory" in $$parsedSource) {
+            $$parsedSource["tpsOutHistory"] = $$createField12_0($$parsedSource["tpsOutHistory"]);
+        }
+        if ("attributes" in $$parsedSource) {
+            $$parsedSource["attributes"] = $$createField13_0($$parsedSource["attributes"]);
+        }
+        return new Node($$parsedSource as Partial<Node>);
     }
 }
 
@@ -1287,8 +1156,8 @@ export class Subscription {
      * Creates a new Subscription instance from a string or object.
      */
     static createFrom($$source: any = {}): Subscription {
-        const $$createField1_0 = $$createType16;
-        const $$createField8_0 = $$createType9;
+        const $$createField1_0 = $$createType13;
+        const $$createField8_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("ref" in $$parsedSource) {
             $$parsedSource["ref"] = $$createField1_0($$parsedSource["ref"]);
@@ -1344,19 +1213,16 @@ export enum SubscriptionStatus {
 
 // Private type creation functions
 const $$createType0 = $Create.Array($Create.Any);
-const $$createType1 = $Create.Array($Create.Any);
-const $$createType2 = $Create.Array($Create.Any);
+const $$createType1 = $Create.Map($Create.Any, $Create.Any);
+const $$createType2 = DestinationRef.createFrom;
 const $$createType3 = $Create.Map($Create.Any, $Create.Any);
-const $$createType4 = $Create.Array($Create.Any);
-const $$createType5 = BrokerNode.createFrom;
-const $$createType6 = $Create.Nullable($$createType5);
-const $$createType7 = $Create.Array($$createType6);
-const $$createType8 = DestinationRef.createFrom;
-const $$createType9 = $Create.Map($Create.Any, $Create.Any);
-const $$createType10 = FormField.createFrom;
-const $$createType11 = $Create.Array($$createType10);
-const $$createType12 = FieldCond.createFrom;
-const $$createType13 = $Create.Nullable($$createType12);
-const $$createType14 = FormOption.createFrom;
-const $$createType15 = $Create.Array($$createType14);
-const $$createType16 = SubscriptionRef.createFrom;
+const $$createType4 = FormField.createFrom;
+const $$createType5 = $Create.Array($$createType4);
+const $$createType6 = $Create.Array($Create.Any);
+const $$createType7 = FieldCond.createFrom;
+const $$createType8 = $Create.Nullable($$createType7);
+const $$createType9 = FormOption.createFrom;
+const $$createType10 = $Create.Array($$createType9);
+const $$createType11 = $Create.Array($Create.Any);
+const $$createType12 = $Create.Array($Create.Any);
+const $$createType13 = SubscriptionRef.createFrom;

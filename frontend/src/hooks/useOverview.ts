@@ -10,8 +10,8 @@ import {
   type ReactNode,
 } from "react";
 import type {
-  BrokerNode,
-  ClusterInfo,
+  ClusterView,
+  Node,
   Connection,
   Subscription,
   Destination,
@@ -25,8 +25,8 @@ import { formatErrorMessage } from "@/lib/utils";
 const AUTO_REFRESH_MS = 30_000;
 
 export interface OverviewSnapshot {
-  cluster: ClusterInfo | null;
-  brokers: BrokerNode[];
+  cluster: ClusterView | null;
+  nodes: Node[];
   topics: Destination[];
   consumerGroups: Subscription[];
   activeConnection: Connection | null;
@@ -35,7 +35,7 @@ export interface OverviewSnapshot {
 
 const EMPTY: OverviewSnapshot = {
   cluster: null,
-  brokers: [],
+  nodes: [],
   topics: [],
   consumerGroups: [],
   activeConnection: null,
@@ -116,7 +116,7 @@ function useOverviewState(): OverviewContextValue {
 
       // Kick off all three, but commit cluster/topics as soon as they settle so the
       // subtitle clock and live TPS keep moving even when consumer enrichment is slow.
-      const clusterPromise = clusterApi.getClusterInfo();
+      const clusterPromise = clusterApi.getClusterView();
       const topicsPromise = topicApi.getTopics();
       const consumersPromise = consumerApi.getConsumerGroups();
 
@@ -141,12 +141,10 @@ function useOverviewState(): OverviewContextValue {
           clusterResult.status === "fulfilled"
             ? clusterResult.value
             : prev.cluster,
-        brokers:
+        nodes:
           clusterResult.status === "fulfilled"
-            ? ((clusterResult.value?.brokers?.filter(
-                Boolean,
-              ) as BrokerNode[]) ?? [])
-            : prev.brokers,
+            ? ((clusterResult.value?.nodes?.filter(Boolean) as Node[]) ?? [])
+            : prev.nodes,
         topics:
           topicsResult.status === "fulfilled"
             ? (topicsResult.value.filter(Boolean) as Destination[])

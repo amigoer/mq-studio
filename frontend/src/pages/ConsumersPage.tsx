@@ -53,6 +53,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { brokerName, role as brokerRole } from "@/mq/rocketmq/nodes";
 
 type StatusFilter = "all" | "online" | "warning" | "offline";
 
@@ -146,8 +147,8 @@ export function ConsumersPage({
   const handleDelete = async () => {
     if (!confirmDelete) return;
     // Pick first master broker as the target for delete (RocketMQ requires it)
-    const broker = clusterData.brokers.find(
-      (b) => String(b.role).toUpperCase() === "MASTER" && b.address,
+    const broker = clusterData.nodes.find(
+      (b) => String(brokerRole(b)).toUpperCase() === "MASTER" && b.address,
     );
     if (!broker) {
       toast.error(t("consumers.edit.noBrokers"));
@@ -389,7 +390,7 @@ export function ConsumersPage({
         <GroupEditor
           mode={editorOpen.mode}
           initial={editorOpen.mode === "edit" ? editorOpen.group : null}
-          brokers={clusterData.brokers}
+          brokers={clusterData.nodes}
           onClose={() => setEditorOpen(null)}
           onSaved={async () => {
             setEditorOpen(null);
@@ -931,7 +932,7 @@ function GroupEditor({
 }: {
   mode: "create" | "edit";
   initial: Subscription | null;
-  brokers: import("@/api/models").BrokerNode[];
+  brokers: import("@/api/models").Node[];
   onClose: () => void;
   onSaved: () => void | Promise<void>;
 }) {
@@ -940,7 +941,7 @@ function GroupEditor({
     () =>
       brokers.filter(
         (b) =>
-          String(b.role).toUpperCase() === "MASTER" &&
+          String(brokerRole(b)).toUpperCase() === "MASTER" &&
           b.status === "online" &&
           b.address,
       ),
@@ -1064,7 +1065,7 @@ function GroupEditor({
             >
               {masterBrokers.map((b) => (
                 <option key={b.address} value={b.address}>
-                  {b.brokerName} · {b.address}
+                  {brokerName(b)} · {b.address}
                 </option>
               ))}
             </Select>

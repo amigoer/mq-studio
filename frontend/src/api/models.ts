@@ -6,11 +6,17 @@
  * vocabulary the pages use, so a rename on either side stays a one-file change.
  */
 import * as model from "@bindings/model/models";
-import type { ConnectionView, SettingsView } from "@bindings/bridge/models";
+import type {
+  ClusterView,
+  ConnectionView,
+  SettingsView,
+} from "@bindings/bridge/models";
 
 export type AclVersionInfo = model.AclVersionInfo;
-export type BrokerNode = model.BrokerNode;
-export type ClusterInfo = model.ClusterInfo;
+export type Node = model.Node;
+export type ClusterOverview = model.ClusterOverview;
+/** The cluster page snapshot: header counters plus the nodes behind them. */
+export type { ClusterView };
 export type Destination = model.Destination;
 export type DestinationRef = model.DestinationRef;
 export type Subscription = model.Subscription;
@@ -26,7 +32,6 @@ export type Connection = ConnectionView;
 /** Settings as the UI sees it: global ACL secrets are redacted in Go. */
 export type AppSettings = SettingsView;
 
-export type BrokerRole = model.BrokerRole;
 export type NodeStatus = model.NodeStatus;
 export type MessageStatus = model.MessageStatus;
 

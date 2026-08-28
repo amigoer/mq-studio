@@ -26,6 +26,7 @@ export {
 
 export {
     AccessConfigInput,
+    ClusterView,
     ConnectionInput,
     ConnectionView,
     ConsumerInput,

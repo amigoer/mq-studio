@@ -8,7 +8,15 @@ import {
 } from "lucide-react";
 import { Spinner } from "@/components/Spinner";
 import { useTranslation } from "react-i18next";
-import type { BrokerNode } from "@/api/models";
+import type { Node } from "@/api/models";
+import {
+  brokerId,
+  brokerName,
+  commitLogDiskUsage,
+  role as brokerRole,
+} from "@/mq/rocketmq/nodes";
+import { parseNameServers } from "@/mq/rocketmq/endpoints";
+import { useConnections } from "@/hooks/useConnections";
 import { PageHeader } from "@/components/PageHeader";
 import { PageBody, PageToolbar } from "@/components/PageLayout";
 import { StatCard } from "@/components/StatCard";
@@ -48,12 +56,24 @@ export function ClusterPage({
     "overview" | "broker" | "nameserver"
   >("overview");
 
+  const { active: activeConnection } = useConnections();
   const cluster = data.cluster;
-  const brokers = data.brokers;
+  // The endpoint list is what the user configured, not something the cluster
+  // reports back, so it comes from the connection rather than the snapshot.
+  const nameServers = useMemo(
+    () =>
+      activeConnection
+        ? parseNameServers(activeConnection.endpoints).map(
+            (entry) => `${entry.host}:${entry.port}`,
+          )
+        : [],
+    [activeConnection],
+  );
+  const brokers = data.nodes;
 
   const onlineCount = brokers.filter((b) => b.status === "online").length;
   const offlineCount = brokers.filter((b) => b.status === "offline").length;
-  const totalCount = brokers.length || cluster?.totalBrokers || 0;
+  const totalCount = brokers.length || cluster?.overview.totalNodes || 0;
   const healthLabel = useMemo(() => {
     if (totalCount === 0) return t("cluster.stat.healthOffline");
     if (onlineCount === totalCount) return t("cluster.stat.healthHealthy");
@@ -68,23 +88,24 @@ export function ClusterPage({
         : "hsl(var(--warning))";
 
   const totalTpsIn = brokers.reduce(
-    (s, b) => s + (b.status === "online" && (b.tpsIn ?? -1) >= 0 ? b.tpsIn : 0),
+    (s, b) =>
+      s + (b.status === "online" && (b.rateIn ?? -1) >= 0 ? b.rateIn : 0),
     0,
   );
   const totalTpsOut = brokers.reduce(
     (s, b) =>
-      s + (b.status === "online" && (b.tpsOut ?? -1) >= 0 ? b.tpsOut : 0),
+      s + (b.status === "online" && (b.rateOut ?? -1) >= 0 ? b.rateOut : 0),
     0,
   );
   const totalTps = totalTpsIn + totalTpsOut;
   const avgDisk =
-    cluster?.avgDiskUsage ??
+    cluster?.overview.avgDiskUsage ??
     (brokers.length === 0
       ? 0
-      : brokers.reduce((s, b) => s + (b.commitLogDiskUsage ?? 0), 0) /
+      : brokers.reduce((s, b) => s + (commitLogDiskUsage(b) ?? 0), 0) /
         brokers.length);
-  const totalTopics = cluster?.totalTopics ?? 0;
-  const totalGroups = cluster?.totalGroups ?? 0;
+  const totalTopics = cluster?.overview.destinations ?? 0;
+  const totalGroups = cluster?.overview.subscriptions ?? 0;
 
   const throughputHistory = useMemo(
     () => aggregateThroughputHistory(brokers),
@@ -112,8 +133,8 @@ export function ClusterPage({
       [...brokers].sort(
         (a, b) =>
           a.cluster.localeCompare(b.cluster) ||
-          a.brokerName.localeCompare(b.brokerName) ||
-          a.brokerId - b.brokerId,
+          brokerName(a).localeCompare(brokerName(b)) ||
+          brokerId(a) - brokerId(b),
       ),
     [brokers],
   );
@@ -125,8 +146,8 @@ export function ClusterPage({
   const subtitle = !hasOnline
     ? t("cluster.subtitleNoConn")
     : t("cluster.subtitle", {
-        cluster: cluster?.clusterName || "—",
-        nameservers: cluster?.nameServers.length ?? 0,
+        cluster: cluster?.overview.name || "—",
+        nameservers: nameServers.length,
         brokers: totalCount,
       });
 
@@ -337,7 +358,7 @@ export function ClusterPage({
             ) : activeTab === "broker" ? (
               <BrokerTable brokers={sortedBrokers} />
             ) : (
-              <NameServerList servers={cluster?.nameServers ?? []} />
+              <NameServerList servers={nameServers} />
             )}
           </>
         )}
@@ -346,7 +367,7 @@ export function ClusterPage({
   );
 }
 
-function BrokerTable({ brokers }: { brokers: BrokerNode[] }) {
+function BrokerTable({ brokers }: { brokers: Node[] }) {
   const { t } = useTranslation();
   if (brokers.length === 0) {
     return (
@@ -379,20 +400,20 @@ function BrokerTable({ brokers }: { brokers: BrokerNode[] }) {
           {brokers.map((b) => {
             const isOnline = b.status === "online";
             const isWarning = b.status === "warning";
-            const role = String(b.role || "").toUpperCase();
-            const isMaster = role === "MASTER";
-            const disk = Math.round(b.commitLogDiskUsage ?? 0);
+            const nodeRole = String(brokerRole(b) || "").toUpperCase();
+            const isMaster = nodeRole === "MASTER";
+            const disk = Math.round(commitLogDiskUsage(b) ?? 0);
             return (
-              <TableRow key={`${b.brokerName}-${b.brokerId}`}>
+              <TableRow key={`${brokerName(b)}-${brokerId(b)}`}>
                 <TableCell>
                   <div className="font-mono-design">
-                    {b.brokerName}
-                    {b.brokerId !== 0 ? `-${b.brokerId}` : ""}
+                    {brokerName(b)}
+                    {brokerId(b) !== 0 ? `-${brokerId(b)}` : ""}
                   </div>
                 </TableCell>
                 <TableCell>
                   <Badge variant={isMaster ? "info" : "outline"}>
-                    {role || "—"}
+                    {nodeRole || "—"}
                   </Badge>
                 </TableCell>
                 <TableCell>
@@ -410,7 +431,7 @@ function BrokerTable({ brokers }: { brokers: BrokerNode[] }) {
                   style={{ textAlign: "right" }}
                 >
                   {isOnline
-                    ? `${formatRate(b.tpsIn)} / ${formatRate(b.tpsOut)}`
+                    ? `${formatRate(b.rateIn)} / ${formatRate(b.rateOut)}`
                     : "—"}
                 </TableCell>
                 <TableCell>

@@ -36,6 +36,12 @@ import { ErrorBanner } from "@/components/ErrorBanner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import {
+  brokerId,
+  brokerName,
+  commitLogDiskUsage,
+  role as brokerRole,
+} from "@/mq/rocketmq/nodes";
 
 function formatTime(d: Date | null): string {
   if (!d) return "—";
@@ -64,14 +70,14 @@ function buildIssues(
   const effectiveThreshold = Math.max(0, lagThreshold);
   const effectiveDisk = Math.max(0, diskThreshold);
 
-  for (const b of data.brokers
+  for (const b of data.nodes
     .filter((x) => x.status === "offline")
     .slice(0, 2)) {
     issues.push({
-      key: `broker-off-${b.brokerName}`,
+      key: `broker-off-${brokerName(b)}`,
       severity: "high",
       title: t("overview.ai.findings.brokerOfflineTitle", {
-        broker: b.brokerName,
+        broker: brokerName(b),
       }),
       desc: t("overview.ai.findings.brokerOfflineDesc"),
     });
@@ -126,19 +132,20 @@ function buildIssues(
   }
 
   if (effectiveDisk > 0) {
-    const heavyDisk = [...data.brokers]
-      .filter((b) => Number(b.commitLogDiskUsage ?? 0) >= effectiveDisk)
+    const heavyDisk = [...data.nodes]
+      .filter((b) => Number(commitLogDiskUsage(b) ?? 0) >= effectiveDisk)
       .sort(
         (a, b) =>
-          Number(b.commitLogDiskUsage ?? 0) - Number(a.commitLogDiskUsage ?? 0),
+          Number(commitLogDiskUsage(b) ?? 0) -
+          Number(commitLogDiskUsage(a) ?? 0),
       )[0];
     if (heavyDisk) {
-      const usage = Math.round(Number(heavyDisk.commitLogDiskUsage ?? 0));
+      const usage = Math.round(Number(commitLogDiskUsage(heavyDisk) ?? 0));
       issues.push({
-        key: `disk-${heavyDisk.brokerName}`,
+        key: `disk-${brokerName(heavyDisk)}`,
         severity: "med",
         title: t("overview.ai.findings.diskTitle", {
-          broker: heavyDisk.brokerName,
+          broker: brokerName(heavyDisk),
           usage,
         }),
         desc: t("overview.ai.findings.diskDesc", { threshold: effectiveDisk }),
@@ -193,10 +200,11 @@ export function OverviewPage({ onNavigate }: OverviewPageProps) {
     () => data.consumerGroups.filter((g) => g.status === "offline").length,
     [data.consumerGroups],
   );
-  const onlineBrokerCount = data.brokers.filter(
+  const onlineBrokerCount = data.nodes.filter(
     (b) => b.status === "online",
   ).length;
-  const totalBrokerCount = data.brokers.length || cluster?.totalBrokers || 0;
+  const totalBrokerCount =
+    data.nodes.length || cluster?.overview.totalNodes || 0;
 
   const activeTopics = useMemo<Destination[]>(
     () =>
@@ -227,15 +235,15 @@ export function OverviewPage({ onNavigate }: OverviewPageProps) {
     [data, lagThreshold, diskThreshold, t],
   );
   const throughputHistory = useMemo(
-    () => aggregateThroughputHistory(data.brokers),
-    [data.brokers],
+    () => aggregateThroughputHistory(data.nodes),
+    [data.nodes],
   );
-  const currentTpsIn = data.brokers.reduce(
-    (sum, broker) => sum + Math.max(0, broker.tpsIn ?? 0),
+  const currentTpsIn = data.nodes.reduce(
+    (sum, broker) => sum + Math.max(0, broker.rateIn ?? 0),
     0,
   );
-  const currentTpsOut = data.brokers.reduce(
-    (sum, broker) => sum + Math.max(0, broker.tpsOut ?? 0),
+  const currentTpsOut = data.nodes.reduce(
+    (sum, broker) => sum + Math.max(0, broker.rateOut ?? 0),
     0,
   );
 
@@ -299,7 +307,7 @@ export function OverviewPage({ onNavigate }: OverviewPageProps) {
                 label={t("overview.stat.topics")}
                 value={(
                   data.topics.length ||
-                  cluster?.totalTopics ||
+                  cluster?.overview.destinations ||
                   0
                 ).toLocaleString()}
                 hint={t("overview.stat.topicSummary", {
@@ -311,7 +319,7 @@ export function OverviewPage({ onNavigate }: OverviewPageProps) {
                 label={t("overview.stat.consumers")}
                 value={(
                   data.consumerGroups.length ||
-                  cluster?.totalGroups ||
+                  cluster?.overview.subscriptions ||
                   0
                 ).toLocaleString()}
                 hint={t("overview.stat.consumersSummary", {
@@ -330,11 +338,11 @@ export function OverviewPage({ onNavigate }: OverviewPageProps) {
                 hint={
                   onlineBrokerCount === totalBrokerCount && totalBrokerCount > 0
                     ? t("overview.stat.brokerSummary_all", {
-                        master: data.brokers.filter((b) =>
-                          String(b.role).toUpperCase().startsWith("M"),
+                        master: data.nodes.filter((b) =>
+                          String(brokerRole(b)).toUpperCase().startsWith("M"),
                         ).length,
-                        slave: data.brokers.filter((b) =>
-                          String(b.role).toUpperCase().startsWith("S"),
+                        slave: data.nodes.filter((b) =>
+                          String(brokerRole(b)).toUpperCase().startsWith("S"),
                         ).length,
                       })
                     : t("overview.stat.brokerSummary_partial", {
@@ -515,7 +523,7 @@ export function OverviewPage({ onNavigate }: OverviewPageProps) {
             </div>
 
             {/* Brokers compact */}
-            {data.brokers.length > 0 && (
+            {data.nodes.length > 0 && (
               <Card className="overflow-hidden">
                 <div className="flex items-center justify-between border-b border-border px-3 py-2.5">
                   <div className="text-fs-12 font-medium">
@@ -530,28 +538,30 @@ export function OverviewPage({ onNavigate }: OverviewPageProps) {
                   </button>
                 </div>
                 <div className="flex flex-wrap gap-1.5 p-3">
-                  {[...data.brokers]
+                  {[...data.nodes]
                     .sort(
                       (a, b) =>
-                        a.brokerName.localeCompare(b.brokerName) ||
-                        a.brokerId - b.brokerId,
+                        brokerName(a).localeCompare(brokerName(b)) ||
+                        brokerId(a) - brokerId(b),
                     )
                     .slice(0, 12)
                     .map((b) => {
                       const online = b.status === "online";
                       const warning = b.status === "warning";
-                      const label = `${b.brokerName}${b.brokerId !== 0 ? `-${b.brokerId}` : ""}`;
-                      const upperRole = String(b.role ?? "").toUpperCase();
+                      const label = `${brokerName(b)}${brokerId(b) !== 0 ? `-${brokerId(b)}` : ""}`;
+                      const upperRole = String(
+                        brokerRole(b) ?? "",
+                      ).toUpperCase();
                       const roleLabel = upperRole.startsWith("M")
                         ? "master"
                         : upperRole.startsWith("S")
                           ? "slave"
-                          : b.brokerId === 0
+                          : brokerId(b) === 0
                             ? "master"
                             : "slave";
                       return (
                         <span
-                          key={`${b.brokerName}-${b.brokerId}`}
+                          key={`${brokerName(b)}-${brokerId(b)}`}
                           className="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-1 text-fs-115 transition-colors hover:bg-muted"
                         >
                           <span

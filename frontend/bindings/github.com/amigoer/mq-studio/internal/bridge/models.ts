@@ -70,6 +70,43 @@ export class AccessConfigInput {
 }
 
 /**
+ * ClusterView is the cluster page's snapshot: the header counters and the
+ * nodes behind them, in one round trip.
+ */
+export class ClusterView {
+    "overview": model$0.ClusterOverview;
+    "nodes": (model$0.Node | null)[];
+
+    /** Creates a new ClusterView instance. */
+    constructor($$source: Partial<ClusterView> = {}) {
+        if (!("overview" in $$source)) {
+            this["overview"] = (new model$0.ClusterOverview());
+        }
+        if (!("nodes" in $$source)) {
+            this["nodes"] = [];
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ClusterView instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ClusterView {
+        const $$createField0_0 = $$createType1;
+        const $$createField1_0 = $$createType4;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("overview" in $$parsedSource) {
+            $$parsedSource["overview"] = $$createField0_0($$parsedSource["overview"]);
+        }
+        if ("nodes" in $$parsedSource) {
+            $$parsedSource["nodes"] = $$createField1_0($$parsedSource["nodes"]);
+        }
+        return new ClusterView($$parsedSource as Partial<ClusterView>);
+    }
+}
+
+/**
  * ConnectionInput carries a connection form submission.
  * 
  * Secrets is write-only: it carries what the user just typed, and nothing ever
@@ -132,8 +169,8 @@ export class ConnectionInput {
      * Creates a new ConnectionInput instance from a string or object.
      */
     static createFrom($$source: any = {}): ConnectionInput {
-        const $$createField6_0 = $$createType1;
-        const $$createField7_0 = $$createType1;
+        const $$createField6_0 = $$createType5;
+        const $$createField7_0 = $$createType5;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("options" in $$parsedSource) {
             $$parsedSource["options"] = $$createField6_0($$parsedSource["options"]);
@@ -217,7 +254,7 @@ export class ConnectionView {
      * Creates a new ConnectionView instance from a string or object.
      */
     static createFrom($$source: any = {}): ConnectionView {
-        const $$createField7_0 = $$createType1;
+        const $$createField7_0 = $$createType5;
         const $$createField8_0 = $$createType0;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("options" in $$parsedSource) {
@@ -915,4 +952,8 @@ export class TopicInput {
 
 // Private type creation functions
 const $$createType0 = $Create.Array($Create.Any);
-const $$createType1 = $Create.Map($Create.Any, $Create.Any);
+const $$createType1 = model$0.ClusterOverview.createFrom;
+const $$createType2 = model$0.Node.createFrom;
+const $$createType3 = $Create.Nullable($$createType2);
+const $$createType4 = $Create.Array($$createType3);
+const $$createType5 = $Create.Map($Create.Any, $Create.Any);

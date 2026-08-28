@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { BrokerNode } from "@/api/models";
+import type { Node } from "@/api/models";
 import {
   aggregateThroughputHistory,
   continuousHistoryRanges,
@@ -74,10 +74,10 @@ function broker(
   timestamps: number[],
   inbound: number[],
   outbound: number[],
-): BrokerNode {
+): Node {
   return {
     tpsHistoryTimestamps: timestamps,
     tpsInHistory: inbound,
     tpsOutHistory: outbound,
-  } as BrokerNode;
+  } as Node;
 }

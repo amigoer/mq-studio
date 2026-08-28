@@ -4,9 +4,9 @@
 /**
  * ClusterService exposes cluster topology and health to the frontend.
  * 
- * The service returns canonical nodes; assembling the RocketMQ-shaped
- * ClusterInfo the renderer still expects happens here, alongside the other
- * conversions that disappear when the frontend moves onto the canonical model.
+ * The service returns canonical nodes and the bridge passes them through.
+ * Broker role, CommitLog usage and the rest of RocketMQ's runtime detail
+ * travel in each node's attribute map.
  * @module
  */
 
@@ -18,10 +18,14 @@ import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Cr
 // @ts-ignore: Unused imports
 import * as model$0 from "../model/models.js";
 
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as $models from "./models.js";
+
 /**
  * BrokerDetail returns runtime statistics for a single broker.
  */
-export function BrokerDetail(connID: number, brokerAddr: string): $CancellablePromise<model$0.BrokerNode | null> {
+export function BrokerDetail(connID: number, brokerAddr: string): $CancellablePromise<model$0.Node | null> {
     return $Call.ByID(199600473, connID, brokerAddr).then(($result: any) => {
         return $$createType1($result);
     });
@@ -30,7 +34,7 @@ export function BrokerDetail(connID: number, brokerAddr: string): $CancellablePr
 /**
  * Brokers returns every known broker node.
  */
-export function Brokers(connID: number): $CancellablePromise<(model$0.BrokerNode | null)[]> {
+export function Brokers(connID: number): $CancellablePromise<(model$0.Node | null)[]> {
     return $Call.ByID(4225538801, connID).then(($result: any) => {
         return $$createType2($result);
     });
@@ -39,7 +43,7 @@ export function Brokers(connID: number): $CancellablePromise<(model$0.BrokerNode
 /**
  * Info returns the full cluster overview.
  */
-export function Info(connID: number): $CancellablePromise<model$0.ClusterInfo | null> {
+export function Info(connID: number): $CancellablePromise<$models.ClusterView | null> {
     return $Call.ByID(362678625, connID).then(($result: any) => {
         return $$createType4($result);
     });
@@ -55,10 +59,10 @@ export function Summary(connID: number): $CancellablePromise<model$0.ClusterSumm
 }
 
 // Private type creation functions
-const $$createType0 = model$0.BrokerNode.createFrom;
+const $$createType0 = model$0.Node.createFrom;
 const $$createType1 = $Create.Nullable($$createType0);
 const $$createType2 = $Create.Array($$createType1);
-const $$createType3 = model$0.ClusterInfo.createFrom;
+const $$createType3 = $models.ClusterView.createFrom;
 const $$createType4 = $Create.Nullable($$createType3);
 const $$createType5 = model$0.ClusterSummary.createFrom;
 const $$createType6 = $Create.Nullable($$createType5);

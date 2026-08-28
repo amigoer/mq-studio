@@ -19,6 +19,7 @@ import {
   saveAlertRules,
 } from "@/lib/alertRules";
 import { dlqCount, groupName } from "@/mq/rocketmq/subscriptions";
+import { brokerId, brokerName, commitLogDiskUsage } from "@/mq/rocketmq/nodes";
 
 export type AlertSeverity = "crit" | "warn" | "info";
 
@@ -74,15 +75,15 @@ function useAlertsState(): AlertsContextValue {
     if (!hasOnline) return [];
     const out: AlertEntry[] = [];
     if (rules.brokerOffline) {
-      for (const broker of data.brokers) {
+      for (const broker of data.nodes) {
         if (broker.status === "offline") {
           out.push({
-            key: `broker-off-${broker.brokerName}-${broker.brokerId}`,
+            key: `broker-off-${brokerName(broker)}-${brokerId(broker)}`,
             severity: "crit",
             ruleKey: "brokerOffline",
             title: t("alerts.rule.brokerOffline"),
-            desc: `${broker.brokerName}${broker.brokerId !== 0 ? `-${broker.brokerId}` : ""} (${broker.address || "—"})`,
-            since: broker.lastUpdate || undefined,
+            desc: `${brokerName(broker)}${brokerId(broker) !== 0 ? `-${brokerId(broker)}` : ""} (${broker.address || "—"})`,
+            since: broker.lastSeen || undefined,
           });
         }
       }
@@ -125,17 +126,17 @@ function useAlertsState(): AlertsContextValue {
       }
     }
     if (rules.diskUsage && diskThreshold > 0) {
-      for (const broker of data.brokers) {
-        const usage = Number(broker.commitLogDiskUsage ?? 0);
+      for (const broker of data.nodes) {
+        const usage = Number(commitLogDiskUsage(broker) ?? 0);
         if (usage >= diskThreshold) {
           out.push({
-            key: `disk-${broker.brokerName}-${broker.brokerId}`,
+            key: `disk-${brokerName(broker)}-${brokerId(broker)}`,
             severity:
               usage >= Math.min(100, diskThreshold + 15) ? "crit" : "warn",
             ruleKey: "diskUsage",
             title: t("alerts.rule.diskUsage"),
-            desc: `${broker.brokerName}${broker.brokerId !== 0 ? `-${broker.brokerId}` : ""} · ${Math.round(usage)}% ≥ ${diskThreshold}%`,
-            since: broker.lastUpdate || undefined,
+            desc: `${brokerName(broker)}${brokerId(broker) !== 0 ? `-${brokerId(broker)}` : ""} · ${Math.round(usage)}% ≥ ${diskThreshold}%`,
+            since: broker.lastSeen || undefined,
           });
         }
       }

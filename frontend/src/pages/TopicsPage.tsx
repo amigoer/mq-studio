@@ -57,6 +57,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { brokerName, role as brokerRole } from "@/mq/rocketmq/nodes";
 
 type TypeFilter = "all" | "normal" | "retry" | "dlq";
 type TopicKind = "normal" | "fifo" | "delay" | "retry" | "dlq";
@@ -512,7 +513,7 @@ export function TopicsPage({
         <TopicEditor
           mode={editorOpen.mode}
           initial={editorOpen.mode === "edit" ? editorOpen.topic : null}
-          brokers={clusterData.brokers}
+          brokers={clusterData.nodes}
           onClose={() => setEditorOpen(null)}
           onSaved={async () => {
             setEditorOpen(null);
@@ -872,7 +873,7 @@ function TopicEditor({
 }: {
   mode: "create" | "edit";
   initial: Destination | null;
-  brokers: import("@/api/models").BrokerNode[];
+  brokers: import("@/api/models").Node[];
   onClose: () => void;
   onSaved: () => void | Promise<void>;
 }) {
@@ -881,7 +882,7 @@ function TopicEditor({
     () =>
       brokers.filter(
         (b) =>
-          String(b.role).toUpperCase() === "MASTER" &&
+          String(brokerRole(b)).toUpperCase() === "MASTER" &&
           b.status === "online" &&
           b.address,
       ),
@@ -1034,7 +1035,7 @@ function TopicEditor({
             >
               {masterBrokers.map((b) => (
                 <option key={b.address} value={b.address}>
-                  {b.brokerName} · {b.address}
+                  {brokerName(b)} · {b.address}
                 </option>
               ))}
             </Select>

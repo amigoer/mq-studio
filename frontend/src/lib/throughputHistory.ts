@@ -1,4 +1,4 @@
-import type { BrokerNode } from "@/api/models";
+import type { Node } from "@/api/models";
 
 export const THROUGHPUT_HISTORY_MINUTES = 60;
 export const THROUGHPUT_SAMPLE_MS = 60_000;
@@ -11,7 +11,7 @@ export interface ThroughputHistory {
 }
 
 export function aggregateThroughputHistory(
-  brokers: BrokerNode[],
+  brokers: Node[],
   now: number = Date.now(),
 ): ThroughputHistory {
   const windowEnd =
