@@ -1818,7 +1818,11 @@
           "backlog": "按积压",
           "name": "按名称",
           "consume": "按消费 TPS"
-        }
+        },
+        "deleteTitle": "删除消费组",
+        "deleteDesc": "将从所有 Master 上删除消费组“{{name}}”及其位点，无法撤销。它的重试和死信队列不会被删除。",
+        "deleted": "已删除 {{name}}",
+        "deleteFailed": "删除失败"
       },
       "pulsar": {
         "cursor": "游标",

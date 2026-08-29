@@ -1818,7 +1818,11 @@
           "backlog": "By backlog",
           "name": "By name",
           "consume": "By consume TPS"
-        }
+        },
+        "deleteTitle": "Delete consumer group",
+        "deleteDesc": "This removes “{{name}}” and its offsets from every master and cannot be undone. Its retry and dead-letter queues are left in place.",
+        "deleted": "Deleted {{name}}",
+        "deleteFailed": "Could not delete"
       },
       "pulsar": {
         "cursor": "Cursor",

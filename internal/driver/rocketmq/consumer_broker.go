@@ -2,7 +2,7 @@ package rocketmq
 
 import (
 	"context"
-	"fmt"
+	"strings"
 
 	admin "github.com/amigoer/rocketmq-admin-go"
 )
@@ -52,41 +52,17 @@ func (c *Conn) getSubscriptionGroupConfig(ctx context.Context, groupName string)
 	return nil, nil
 }
 
+// resolveMasterBrokerAddrs picks the brokers a group operation writes to.
+//
+// An empty address means every master, which is what a consumer group normally
+// wants: a group configured on one broker of three only rebalances across that
+// one's queues. A named address narrows it to that broker.
+//
+// It used to put the named address first and then append every master anyway,
+// so naming one decided nothing.
 func (c *Conn) resolveMasterBrokerAddrs(ctx context.Context, preferredAddress string) ([]string, error) {
-	addresses := make([]string, 0, 4)
-	seen := make(map[string]struct{})
-	appendAddress := func(address string) {
-		if address == "" {
-			return
-		}
-		if _, exists := seen[address]; exists {
-			return
-		}
-		seen[address] = struct{}{}
-		addresses = append(addresses, address)
+	if address := strings.TrimSpace(preferredAddress); address != "" {
+		return []string{address}, nil
 	}
-	appendAddress(preferredAddress)
-
-	var clusterInfo *admin.ClusterInfo
-	err := c.execWithTimeout(timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
-		var callErr error
-		clusterInfo, callErr = retryClient.ExamineBrokerClusterInfo(ctx)
-		return callErr
-	})
-	if err != nil {
-		if len(addresses) > 0 {
-			return addresses, nil
-		}
-		return nil, err
-	}
-
-	for _, brokerData := range clusterInfo.BrokerAddrTable {
-		if brokerData != nil {
-			appendAddress(brokerData.BrokerAddrs["0"])
-		}
-	}
-	if len(addresses) == 0 {
-		return nil, fmt.Errorf("未找到可用 Broker")
-	}
-	return addresses, nil
+	return c.masterBrokerAddrs(ctx)
 }

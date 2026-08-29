@@ -9,9 +9,12 @@ import (
 
 func validateConsumerGroupInput(groupName, brokerAddress, consumeMode string, maxRetry int) (string, string, string, int, error) {
 	groupName = strings.TrimSpace(groupName)
+	// An empty broker address is allowed and means every master, which is what
+	// a consumer group normally wants: one configured on a single broker only
+	// rebalances across that broker's queues.
 	brokerAddress = strings.TrimSpace(brokerAddress)
-	if groupName == "" || brokerAddress == "" {
-		return "", "", "", 0, fmt.Errorf("消费者组名称和 Broker 地址不能为空")
+	if groupName == "" {
+		return "", "", "", 0, fmt.Errorf("消费者组名称不能为空")
 	}
 	if consumeMode != string(model.ModeClustering) && consumeMode != string(model.ModeBroadcasting) {
 		return "", "", "", 0, fmt.Errorf("不支持的消费模式: %s", consumeMode)

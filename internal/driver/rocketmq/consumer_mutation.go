@@ -27,13 +27,7 @@ func (c *Conn) CreateConsumerGroup(ctx context.Context, groupName string, broker
 		return fmt.Errorf("创建消费者组失败: %w", err)
 	}
 
-	config := admin.SubscriptionGroupConfig{
-		GroupName:              groupName,
-		ConsumeEnable:          true,
-		ConsumeFromMinEnable:   true,
-		ConsumeBroadcastEnable: consumeMode == string(model.ModeBroadcasting),
-		RetryMaxTimes:          maxRetry,
-	}
+	config := newSubscriptionGroupConfig(groupName, consumeMode, maxRetry)
 	return c.applySubscriptionGroupConfig(ctx, candidates, config, "创建")
 }
 
@@ -54,13 +48,7 @@ func (c *Conn) UpdateConsumerGroup(ctx context.Context, groupName string, broker
 		return fmt.Errorf("更新消费者组失败: %w", err)
 	}
 
-	config := admin.SubscriptionGroupConfig{
-		GroupName:              groupName,
-		ConsumeEnable:          true,
-		ConsumeFromMinEnable:   true,
-		ConsumeBroadcastEnable: consumeMode == string(model.ModeBroadcasting),
-		RetryMaxTimes:          maxRetry,
-	}
+	config := newSubscriptionGroupConfig(groupName, consumeMode, maxRetry)
 	return c.applySubscriptionGroupConfig(ctx, candidates, config, "更新")
 }
 
@@ -135,4 +123,24 @@ func (c *Conn) applySubscriptionGroupConfig(ctx context.Context,
 		return fmt.Errorf("%s消费者组时部分 Broker 失败: %s", operation, strings.Join(failures, "; "))
 	}
 	return nil
+}
+
+// newSubscriptionGroupConfig fills the fields a broker expects, not just the
+// ones this app exposes.
+//
+// The Go zero value is not a usable subscription group: a broker that receives
+// retryQueueNums 0 and whichBrokerWhenConsumeSlowly 0 rejects the request, so
+// the four fields the form does not ask about carry RocketMQ's own defaults.
+func newSubscriptionGroupConfig(groupName, consumeMode string, maxRetry int) admin.SubscriptionGroupConfig {
+	return admin.SubscriptionGroupConfig{
+		GroupName:                      groupName,
+		ConsumeEnable:                  true,
+		ConsumeFromMinEnable:           true,
+		ConsumeBroadcastEnable:         consumeMode == string(model.ModeBroadcasting),
+		RetryQueueNums:                 1,
+		RetryMaxTimes:                  maxRetry,
+		BrokerId:                       0,
+		WhichBrokerWhenConsumeSlowly:   1,
+		NotifyConsumerIdsChangedEnable: true,
+	}
 }

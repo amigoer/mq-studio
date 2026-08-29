@@ -1,28 +1,99 @@
-/*
- * Tailwind is here for its preflight alone: the design layer sets every colour
- * and measurement itself and uses no utility class, but it does assume the
- * reset -- `box-sizing: border-box` above all, which every drawn px depends on.
- */
 @import 'tailwindcss';
+@import 'tw-animate-css';
 @import './design/tokens.css';
 
-@config "../tailwind.config.js";
+@custom-variant dark (&:is(.dark *));
 
 /*
- * The document behind the shell. `.m3` fills it and paints its own ground, so
- * what is left here is only what the shell cannot set from inside itself.
+ * shadcn/ui tokens, aliased onto the design palette in tokens.css. The
+ * `--c-*` variables already flip under `:root.dark`, so one definition here
+ * serves both themes; only values with no `--c-*` source are stated twice.
  */
-html,
-body,
-#root {
-  height: 100%;
-  background: var(--c-bg);
+:root {
+  --background: var(--c-bg);
+  --foreground: var(--c-fg);
+  --card: var(--c-bg);
+  --card-foreground: var(--c-fg);
+  --popover: var(--c-bg);
+  --popover-foreground: var(--c-fg);
+  --primary: var(--c-fg);
+  --primary-foreground: var(--c-bg);
+  --secondary: var(--c-fill);
+  --secondary-foreground: var(--c-fg);
+  --muted: var(--c-fill);
+  --muted-foreground: var(--c-muted);
+  --accent: var(--c-fill);
+  --accent-foreground: var(--c-fg);
+  --destructive: var(--c-err);
+  --destructive-foreground: #fff;
+  --success: var(--c-ok);
+  --warning: var(--c-warn);
+  --info: var(--c-accent-blue);
+  --border: var(--c-border);
+  --input: var(--c-border);
+  --ring: var(--c-fg);
+  --chart-1: var(--c-series-1);
+  --chart-2: var(--c-series-2);
+  --chart-3: var(--c-ok);
+  --chart-4: var(--c-warn);
+  --chart-5: var(--c-err);
+  --radius: 0.625rem;
 }
 
-body {
-  margin: 0;
-  color: var(--c-fg);
-  font-family: var(
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-info: var(--info);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  /*
+   * Type scale mapped to the design ramp at the 13px root: text-sm is the
+   * 12px body size, text-xs the 11px mono/meta size. Stock component classes
+   * therefore land on the drawn sizes, and everything follows the 设置 font
+   * size control because the values are rem.
+   */
+  --text-xs: 0.8462rem;
+  --text-xs--line-height: 1.45;
+  --text-sm: 0.9231rem;
+  --text-sm--line-height: 1.45;
+  --text-base: 1rem;
+  --text-base--line-height: 1.5;
+  --text-lg: 1.0769rem;
+  --text-lg--line-height: 1.45;
+  --text-xl: 1.2308rem;
+  --text-xl--line-height: 1.4;
+  --text-2xl: 1.3846rem;
+  --text-2xl--line-height: 1.35;
+
+  --font-sans: var(
     --app-ui-font,
     -apple-system,
     'PingFang SC',
@@ -30,36 +101,69 @@ body {
     system-ui,
     sans-serif
   );
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  --font-mono: var(--app-monospace-font, 'JetBrains Mono'), ui-monospace, 'SF Mono', Menlo,
+    monospace;
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
   /*
-   * Content text stays selectable — this is an ops tool, and topic names,
-   * broker addresses, client ids and message ids all need to be copyable.
-   * Chrome and controls opt back out below so the app still feels native.
+   * The document behind the shell. `.m3` fills it and paints its own ground, so
+   * what is left here is only what the shell cannot set from inside itself.
    */
-  -webkit-user-select: text;
-  user-select: text;
-}
+  html,
+  body,
+  #root {
+    height: 100%;
+    background: var(--c-bg);
+  }
 
-#root {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
+  body {
+    margin: 0;
+    color: var(--c-fg);
+    font-family: var(
+      --app-ui-font,
+      -apple-system,
+      'PingFang SC',
+      'Microsoft YaHei',
+      system-ui,
+      sans-serif
+    );
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /*
+     * Content text stays selectable — this is an ops tool, and topic names,
+     * broker addresses, client ids and message ids all need to be copyable.
+     * Chrome and controls opt back out below so the app still feels native.
+     */
+    -webkit-user-select: text;
+    user-select: text;
+  }
 
-/* Chrome and controls: not selectable, so a drag never starts a selection. */
-button,
-[role='tab'],
-[role='menuitem'],
-[role='switch'],
-[role='combobox'],
-label,
-th {
-  -webkit-user-select: none;
-  user-select: none;
-}
+  #root {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
 
-/* Client-app style: no browser blue, but still clearly visible on either ground. */
-::selection {
-  background: var(--c-selection);
+  /* Chrome and controls: not selectable, so a drag never starts a selection. */
+  button,
+  [role='tab'],
+  [role='menuitem'],
+  [role='option'],
+  [role='switch'],
+  [role='combobox'],
+  label,
+  th {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  /* Client-app style: no browser blue, but still clearly visible on either ground. */
+  ::selection {
+    background: var(--c-selection);
+  }
 }

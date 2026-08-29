@@ -15,10 +15,13 @@ import {
   SelectField,
   Sheet,
   SheetBody,
+  SheetFooter,
   SheetHeader,
   Status,
   Sw,
   Table,
+  useConfirm,
+  useToast,
   TBody,
   TD,
   TH,
@@ -28,7 +31,9 @@ import {
 import { BoardState, Notice, isBlocked } from "@/design/boards/BoardState";
 import { useBrokerData } from "@/hooks/useBrokerData";
 import { useSettings } from "@/hooks/useSettings";
+import { useConnectionScope } from "@/mq/ConnectionScope";
 import * as consumerApi from "@/api/consumer";
+import { formatErrorMessage } from "@/lib/utils";
 import type { Subscription } from "@/api/models";
 import {
   ConsumeMode,
@@ -66,10 +71,19 @@ function metric(value: number): string {
  * The client table lost its assigned-queues and per-client backlog columns for
  * the same reason - the connection info a broker returns is the client id, its
  * address and its version, and nothing about what it was assigned.
+ *
+ * There is no create or edit here, and it is not an oversight: rocketmq-admin-go
+ * sends a subscription group config in the request's extFields, while RocketMQ
+ * 5.x decodes it from the request body, so every create and update is answered
+ * with a NullPointerException from the broker. Listing and deleting take the
+ * extFields route and work. See TestLiveConsumerGroupDelete.
  */
 export function ConsumersRocketMQ() {
   const { t } = useTranslation();
+  const { id: connID } = useConnectionScope();
   const { settings } = useSettings();
+  const toast = useToast();
+  const confirm = useConfirm();
   const lagThreshold = settings.lagAlertThreshold ?? 10000;
 
   const [backlogOnly, setBacklogOnly] = useState(false);
@@ -98,6 +112,26 @@ export function ConsumersRocketMQ() {
   }, [backlogOnly, groups, query, sort]);
 
   const current = rows.find((group) => groupName(group) === selected);
+  const remove = async (group: Subscription) => {
+    const name = groupName(group);
+    const confirmed = await confirm({
+      title: t("board.consumers.rocketmq.deleteTitle"),
+      description: t("board.consumers.rocketmq.deleteDesc", { name }),
+      confirmLabel: t("board.common.delete"),
+      danger: true,
+    });
+    if (!confirmed) return;
+    try {
+      await consumerApi.deleteConsumerGroup(connID, name, "");
+      toast.success(t("board.consumers.rocketmq.deleted", { name }));
+      setSelected(null);
+      await state.refresh();
+    } catch (failure) {
+      toast.error(t("board.consumers.rocketmq.deleteFailed"), {
+        description: formatErrorMessage(failure),
+      });
+    }
+  };
 
   return (
     <Page>
@@ -233,11 +267,13 @@ export function ConsumersRocketMQ() {
               lagThreshold={lagThreshold}
               tab={tab}
               onTabChange={setTab}
+              onDelete={() => void remove(current)}
               onClose={() => setSelected(null)}
             />
           )}
         </ListArea>
       )}
+
     </Page>
   );
 }
@@ -247,12 +283,14 @@ function GroupSheet({
   lagThreshold,
   tab,
   onTabChange,
+  onDelete,
   onClose,
 }: {
   group: Subscription;
   lagThreshold: number;
   tab: string;
   onTabChange: (tab: string) => void;
+  onDelete: () => void;
   onClose: () => void;
 }) {
   const { t } = useTranslation();
@@ -361,6 +399,12 @@ function GroupSheet({
           )}
         </div>
       </SheetBody>
+      <SheetFooter>
+        <span style={{ flex: 1 }} />
+        <Btn variant="danger" onClick={onDelete}>
+          {t("board.common.deleteGroup")}
+        </Btn>
+      </SheetFooter>
     </Sheet>
   );
 }

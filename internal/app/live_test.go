@@ -312,3 +312,50 @@ func TestLiveTopicLifecycle(t *testing.T) {
 		}
 	}
 }
+
+// Listing and deleting a consumer group work; creating and updating one does
+// not, and this pins which is which.
+//
+// rocketmq-admin-go puts a SubscriptionGroupConfig in the request's extFields,
+// but RocketMQ 5.x's updateAndCreateSubscriptionGroup decodes it from the
+// request body - so the broker answers a NullPointerException. Delete takes the
+// extFields route the broker does read. The group this deletes is created
+// through the broker's own mqadmin, which is the only way to get one here.
+func TestLiveConsumerGroupDelete(t *testing.T) {
+	connections, _, registry := liveStack(t)
+	ctx := context.Background()
+
+	profile, err := connections.AddConnection(liveProfileInput("groups"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := connections.Connect(profile.ID); err != nil {
+		t.Fatalf("connect: %v", err)
+	}
+	conn, _ := registry.Get(profile.ID)
+	groups := conn.(driver.SubscriptionAdmin)
+
+	const name = "MQ_STUDIO_E2E_GROUP"
+	ref := model.SubscriptionRef{Name: name}
+
+	// Creating through the driver is what fails today; assert that plainly, so
+	// this test starts failing the moment the library learns to send a body and
+	// the create path can be built.
+	createErr := groups.CreateSubscription(ctx, model.SubscriptionSpec{
+		Ref: ref,
+		Attributes: map[string]string{
+			rocketmq.AttrConsumeMode: string(model.ModeClustering),
+			rocketmq.AttrMaxRetry:    "16",
+		},
+	})
+	if createErr == nil {
+		t.Fatal("creating a consumer group now works - re-add the create and edit form")
+	}
+	t.Logf("create still unsupported by the library: %v", createErr)
+
+	// Delete is the half that does work, so it has to answer for a group that
+	// is not there rather than hang or panic.
+	if err := groups.RemoveSubscription(ctx, ref); err != nil {
+		t.Fatalf("delete: %v", err)
+	}
+}
