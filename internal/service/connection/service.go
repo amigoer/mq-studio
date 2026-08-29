@@ -23,6 +23,9 @@ type Service struct {
 	settings        Settings
 	runtime         ClientRuntime
 	reconnectReload bool
+
+	listenersMu sync.RWMutex
+	listeners   []func([]*model.ConnectionProfile)
 }
 
 // New creates a connection service backed by dataFilePath.

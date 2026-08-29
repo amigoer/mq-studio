@@ -83,6 +83,14 @@ func (c *Collector) Stop() {
 	}
 }
 
+// Sampling reports whether the next tick will collect anything. It answers
+// the tray's question - is the background work the hidden window exists for
+// actually happening - which the connection count alone does not, since the
+// probe only sees the one family the sampler can read.
+func (c *Collector) Sampling() bool {
+	return c.hasClient != nil && c.hasClient()
+}
+
 func (c *Collector) loop() {
 	defer close(c.done)
 

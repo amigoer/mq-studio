@@ -211,6 +211,7 @@ func (s *Service) ReplaceConnections(connections []*model.ConnectionProfile) err
 		return err
 	}
 
+	defer s.notifyChanged()
 	s.runtimeMu.Lock()
 	defer s.runtimeMu.Unlock()
 

@@ -10,9 +10,14 @@ import {
   TitleBar,
 } from "@/design/shell";
 import type { Connection } from "@/design/data/connections";
-import { pagesOf, type PageId } from "@/design/data/protocols";
+import { labelOf, pagesOf, type PageId } from "@/design/data/protocols";
 import { renderBoard } from "@/design/registry";
-import { openExternal } from "@/api/platform";
+import {
+  onTrayNavigate,
+  openExternal,
+  reportShellSession,
+  type TrayDestination,
+} from "@/api/platform";
 import { useUIScale } from "@/hooks/useUIScale";
 import { useUpdateCheck, useUpdateCheckAction } from "@/hooks/useUpdateCheck";
 import { useConnectionProfiles } from "@/hooks/useConnectionProfiles";
@@ -59,7 +64,7 @@ const openGithub = () => void openExternal(GITHUB_URL).catch(() => {});
  * not stored globally.
  */
 export function DesignApp(): JSX.Element {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { connections, loading: connectionsLoading, reload, remove, makeDefault } =
     useConnectionProfiles();
   const toast = useToast();
@@ -147,11 +152,11 @@ export function DesignApp(): JSX.Element {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  const openTab = (key: string) => {
+  const openTab = useCallback((key: string) => {
     setOpenTabs((tabs) => (tabs.includes(key) ? tabs : [...tabs, key]));
     setActiveTab(key);
     setView({ kind: "tab" });
-  };
+  }, []);
 
   const closeTab = (key: string) => {
     setOpenTabs((tabs) => {
@@ -161,6 +166,49 @@ export function DesignApp(): JSX.Element {
       return next;
     });
   };
+
+  /*
+   * The tray menu's destination. A page only exists inside a tab, so a request
+   * naming a connection opens or raises that tab first, and one that names
+   * none lands in whichever tab is in front. With no tab to land in there is
+   * nothing to show but the connection list.
+   */
+  const trayNavigate = useCallback(
+    (to: TrayDestination) => {
+      if (to.page === "settings") {
+        goto({ kind: "settings" });
+        return;
+      }
+      const key = to.connection !== "" ? to.connection : activeTab;
+      if (to.page === "connections" || key == null) {
+        goto({ kind: "connections" });
+        return;
+      }
+      openTab(key);
+      // The connections submenu sends no page: raising a tab must not cost the
+      // user the page it was left on.
+      if (to.page !== "") setPageByTab((byTab) => ({ ...byTab, [key]: to.page as PageId }));
+    },
+    [activeTab, goto, openTab],
+  );
+
+  useEffect(() => onTrayNavigate(trayNavigate), [trayNavigate]);
+
+  /*
+   * The other half of that conversation: the tray menu offers the active tab's
+   * sidebar, and can only do so because the labels are reported to it. They
+   * are resolved here, so a language change re-reports rather than leaving Go
+   * holding the previous language's menu.
+   */
+  useEffect(() => {
+    const pages =
+      protocol == null
+        ? []
+        : pagesOf(protocol).map((id) => ({ id, label: t(labelOf(protocol, id)) }));
+    void reportShellSession(activeTab ?? "", page, pages).catch(() => {
+      // Off Wails there is no tray to tell.
+    });
+  }, [activeTab, i18n.language, page, protocol, t]);
 
   const deleteConnection = async (connection: Connection) => {
     const confirmed = await confirm({

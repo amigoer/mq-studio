@@ -5,6 +5,7 @@ import (
 	"embed"
 	"log"
 	"runtime"
+	"strconv"
 
 	"github.com/amigoer/mq-studio/internal/app"
 	"github.com/amigoer/mq-studio/internal/bridge"
@@ -49,10 +50,14 @@ func run() error {
 	}
 	defer services.Close()
 
+	// The shell service is built here because its consumer, the tray, cannot
+	// exist until the application does: the listener is registered below.
+	shellService, onShellReport := bridge.NewShellService()
+
 	wailsApp := application.New(application.Options{
 		Name:        applicationName,
 		Description: "Local-first desktop client for RocketMQ",
-		Services:    bridge.Services(services, version),
+		Services:    bridge.Services(services, version, shellService),
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),
 		},
@@ -73,12 +78,84 @@ func run() error {
 		wailsApp, window,
 		tray.Icons{Light: trayIcon, Dark: trayIconDark, Template: trayIconTemplate},
 		applicationName, services.Settings.GetSettings().Language)
-	services.Settings.OnChange(func(settings *model.AppSettings) {
-		trayController.SetLanguage(settings.Language)
+	bindTray(trayController, services, onShellReport)
+	// Settings now have two writers. The renderer paints from its own copy, so
+	// it has to hear about the tray's writes; it hears about its own too, and
+	// re-reading what it just saved costs nothing.
+	services.Settings.OnChange(func(*model.AppSettings) {
+		wailsApp.Event.Emit(bridge.SettingsEvent, nil)
 	})
 	interceptClose(wailsApp, window, services)
 
 	return wailsApp.Run()
+}
+
+// bindTray keeps the tray menu in step with the three things it draws: the
+// preferences, the stored connections and whatever the renderer is showing.
+//
+// Only the last of those comes from the window. The other two are read from Go
+// directly, which is what lets the menu still be right after the window has
+// been hidden for an hour.
+func bindTray(
+	controller *tray.Controller,
+	services *app.Services,
+	onShellReport func(func(active string, page string, pages []bridge.ShellPage)),
+) {
+	publishConnections := func(profiles []*model.ConnectionProfile) {
+		controller.SetConnections(trayConnections(profiles), services.Collector.Sampling())
+	}
+	publishConnections(services.Connections.GetConnections())
+
+	publishPreferences := func(settings *model.AppSettings) {
+		controller.SetPreferences(settings.Theme, settings.Language, settings.CloseBehavior)
+	}
+	publishPreferences(services.Settings.GetSettings())
+
+	services.Settings.OnChange(publishPreferences)
+	services.Connections.OnChange(publishConnections)
+	controller.OnPreference(func(preference tray.Preference, value string) {
+		next := *services.Settings.GetSettings()
+		switch preference {
+		case tray.PreferenceTheme:
+			next.Theme = value
+		case tray.PreferenceLanguage:
+			next.Language = value
+		case tray.PreferenceCloseBehavior:
+			next.CloseBehavior = value
+		}
+		if _, err := services.Settings.UpdateSettings(next); err != nil {
+			log.Printf("[tray] failed to apply %s: %v", preference, err)
+		}
+	})
+	onShellReport(func(active string, page string, pages []bridge.ShellPage) {
+		controller.SetShell(active, page, trayPages(pages))
+	})
+}
+
+// trayConnections reshapes stored profiles into what the menu draws.
+func trayConnections(profiles []*model.ConnectionProfile) []tray.Connection {
+	items := make([]tray.Connection, 0, len(profiles))
+	for _, profile := range profiles {
+		if profile == nil {
+			continue
+		}
+		items = append(items, tray.Connection{
+			// The shell keys its tabs by the profile id as a string.
+			Key:    strconv.Itoa(profile.ID),
+			Name:   profile.Name,
+			Family: profile.Kind.DisplayName(),
+			Online: profile.Status == model.StatusOnline,
+		})
+	}
+	return items
+}
+
+func trayPages(pages []bridge.ShellPage) []tray.Page {
+	items := make([]tray.Page, 0, len(pages))
+	for _, page := range pages {
+		items = append(items, tray.Page{ID: page.ID, Label: page.Label})
+	}
+	return items
 }
 
 // interceptClose routes the close button through the user's preference. The

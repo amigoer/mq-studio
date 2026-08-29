@@ -14,7 +14,7 @@ import {
   resetSettings as apiResetSettings,
 } from "@/api/settings";
 import type { AppSettings } from "@/api/settings";
-import { windowControls } from "@/api/platform";
+import { onSettingsChanged, windowControls } from "@/api/platform";
 import { setLanguage as setI18nLanguage, type SupportedLanguage } from "@/i18n";
 import { monoFontStack, uiFontStack } from "@/lib/fonts";
 import { applyTheme, cacheTheme, resolveDark, type ThemeMode } from "@/lib/theme";
@@ -198,6 +198,7 @@ function useSettingsStore(): SettingsContextValue {
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingSettingsRef = useRef<FrontendSettings | null>(null);
   const saveChainRef = useRef<Promise<void>>(Promise.resolve());
+  const savesInFlightRef = useRef(0);
 
   // Load settings from backend on mount
   useEffect(() => {
@@ -243,10 +244,14 @@ function useSettingsStore(): SettingsContextValue {
 
   const enqueueSave = useCallback((next: FrontendSettings) => {
     // Serialize all writes so an earlier request cannot finish later and overwrite newer settings.
+    savesInFlightRef.current += 1;
     const operation = saveChainRef.current
       .catch(() => undefined)
       .then(async () => {
         await updateSettings(toBackend(next), "preserve");
+      })
+      .finally(() => {
+        savesInFlightRef.current -= 1;
       });
     saveChainRef.current = operation;
     void operation.catch((err) =>
@@ -317,6 +322,22 @@ function useSettingsStore(): SettingsContextValue {
     const result = await getSettings();
     if (result) setSettingsState(toFrontend(result));
   }, []);
+
+  /*
+   * The tray writes settings too, so what Go holds can move without this
+   * provider doing anything. Our own saves come back the same way, and
+   * re-reading over a change the user has made since would undo it, so a
+   * pending or in-flight save skips the reload - the save carries the value
+   * either way.
+   */
+  useEffect(
+    () =>
+      onSettingsChanged(() => {
+        if (saveTimerRef.current != null || savesInFlightRef.current > 0) return;
+        void reloadSettings().catch(() => {});
+      }),
+    [reloadSettings],
+  );
 
   const saveGlobalCredentials = useCallback(
     async (accessKey: string, secretKey: string) => {

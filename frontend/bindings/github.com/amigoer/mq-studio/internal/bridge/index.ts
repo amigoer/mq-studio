@@ -9,6 +9,7 @@ import * as DriverService from "./driverservice.js";
 import * as MessageService from "./messageservice.js";
 import * as RoutingService from "./routingservice.js";
 import * as SettingsService from "./settingsservice.js";
+import * as ShellService from "./shellservice.js";
 import * as SystemService from "./systemservice.js";
 import * as TopicService from "./topicservice.js";
 import * as WindowService from "./windowservice.js";
@@ -21,6 +22,7 @@ export {
     MessageService,
     RoutingService,
     SettingsService,
+    ShellService,
     SystemService,
     TopicService,
     WindowService
@@ -38,5 +40,6 @@ export {
     SendInput,
     SettingsInput,
     SettingsView,
+    ShellPage,
     TopicInput
 } from "./models.js";

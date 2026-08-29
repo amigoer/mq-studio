@@ -40,3 +40,34 @@ func KnownKinds() []MQKind {
 		KindIBMMQ, KindSolace,
 	}
 }
+
+// displayNames are the families' own brand spellings. They are proper nouns
+// rather than UI copy, so they are not translated and the Go side may own
+// them; frontend/src/design/data/protocols.ts spells the six it draws boards
+// for the same way.
+var displayNames = map[MQKind]string{
+	KindRocketMQ:        "RocketMQ",
+	KindKafka:           "Kafka",
+	KindRabbitMQ:        "RabbitMQ",
+	KindPulsar:          "Pulsar",
+	KindActiveMQ:        "ActiveMQ",
+	KindRedisStream:     "Redis Stream",
+	KindNATS:            "NATS",
+	KindNSQ:             "NSQ",
+	KindMQTT:            "MQTT",
+	KindSQS:             "Amazon SQS",
+	KindGooglePubSub:    "Google Pub/Sub",
+	KindAzureServiceBus: "Azure Service Bus",
+	KindKinesis:         "Amazon Kinesis",
+	KindIBMMQ:           "IBM MQ",
+	KindSolace:          "Solace",
+}
+
+// DisplayName spells the family for a reader. An unknown kind is its own name:
+// a profile stored by a newer build should still be nameable by an older one.
+func (k MQKind) DisplayName() string {
+	if name, known := displayNames[k]; known {
+		return name
+	}
+	return string(k)
+}

@@ -56,6 +56,7 @@ func (s *Service) restoreRuntimeLocked(plan reloadPlan) error {
 
 // Reload replaces in-memory profiles from disk and restores an active default connection when needed.
 func (s *Service) Reload() error {
+	defer s.notifyChanged()
 	s.runtimeMu.Lock()
 	defer s.runtimeMu.Unlock()
 

@@ -911,6 +911,34 @@ export class SettingsView {
 }
 
 /**
+ * ShellPage is one destination in the active tab's sidebar.
+ */
+export class ShellPage {
+    "id": string;
+    "label": string;
+
+    /** Creates a new ShellPage instance. */
+    constructor($$source: Partial<ShellPage> = {}) {
+        if (!("id" in $$source)) {
+            this["id"] = "";
+        }
+        if (!("label" in $$source)) {
+            this["label"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ShellPage instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ShellPage {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ShellPage($$parsedSource as Partial<ShellPage>);
+    }
+}
+
+/**
  * TopicInput carries a topic form submission.
  */
 export class TopicInput {

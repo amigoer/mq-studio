@@ -27,6 +27,7 @@ func (s *Service) AddConnection(input model.ConnectionProfile) (*model.Connectio
 		kind = model.KindRocketMQ
 	}
 
+	defer s.notifyChanged()
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	connection := &model.ConnectionProfile{
@@ -63,6 +64,7 @@ func (s *Service) UpdateConnection(id int, input model.ConnectionProfile) (*mode
 		input.Secret(model.SecretAccessKey), input.Secret(model.SecretSecretKey)
 	group, timeoutSec, remark := input.Group, input.TimeoutSec, input.Remark
 
+	defer s.notifyChanged()
 	s.runtimeMu.Lock()
 	defer s.runtimeMu.Unlock()
 
@@ -119,6 +121,7 @@ func (s *Service) UpdateConnection(id int, input model.ConnectionProfile) (*mode
 
 // DeleteConnection removes a persisted connection profile.
 func (s *Service) DeleteConnection(id int) error {
+	defer s.notifyChanged()
 	s.runtimeMu.Lock()
 	defer s.runtimeMu.Unlock()
 
@@ -155,6 +158,7 @@ func (s *Service) DeleteConnection(id int) error {
 
 // SetDefaultConnection selects the default connection profile.
 func (s *Service) SetDefaultConnection(id int) error {
+	defer s.notifyChanged()
 	s.runtimeMu.Lock()
 	defer s.runtimeMu.Unlock()
 

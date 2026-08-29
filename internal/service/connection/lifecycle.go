@@ -34,6 +34,7 @@ func (s *Service) resolveACLCredentials(connection *model.ConnectionProfile) (bo
 
 // TestConnection checks whether a saved connection profile can reach RocketMQ.
 func (s *Service) TestConnection(id int) (string, error) {
+	defer s.notifyChanged()
 	s.runtimeMu.Lock()
 	defer s.runtimeMu.Unlock()
 
@@ -83,6 +84,7 @@ func (s *Service) ConnectDefault() error {
 
 // Connect activates one profile and makes it the only online default connection.
 func (s *Service) Connect(id int) error {
+	defer s.notifyChanged()
 	s.runtimeMu.Lock()
 	defer s.runtimeMu.Unlock()
 	return s.connectRuntimeLocked(id)
@@ -167,6 +169,7 @@ func (s *Service) connectRuntimeLocked(id int) error {
 
 // Disconnect closes an active profile and promotes the next profile by ID.
 func (s *Service) Disconnect(id int) error {
+	defer s.notifyChanged()
 	s.runtimeMu.Lock()
 	defer s.runtimeMu.Unlock()
 	return s.disconnectRuntimeLocked(id)

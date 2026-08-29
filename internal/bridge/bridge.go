@@ -12,10 +12,15 @@ import (
 )
 
 // Services returns every bridge service in registration order.
-func Services(services *app.Services, version string) []application.Service {
+//
+// The shell service is passed in rather than built here: its consumer is the
+// system tray, which cannot exist until the application is running, so the
+// caller keeps the handle and registers the listener afterwards.
+func Services(services *app.Services, version string, shell *ShellService) []application.Service {
 	return []application.Service{
 		application.NewService(&SystemService{settings: services.Settings, version: version}),
 		application.NewService(&WindowService{}),
+		application.NewService(shell),
 		application.NewService(&ConnectionService{service: services.Connections}),
 		application.NewService(&SettingsService{service: services.Settings}),
 		application.NewService(&ClusterService{service: services.Cluster}),

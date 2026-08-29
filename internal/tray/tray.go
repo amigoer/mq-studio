@@ -4,6 +4,8 @@ package tray
 
 import (
 	"runtime"
+	"slices"
+	"sync"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
@@ -17,66 +19,78 @@ type Icons struct {
 	Template []byte
 }
 
-// NavigateEvent carries a sidebar destination to the renderer. The payload is
-// one of the NavId values in frontend/src/layout/Sidebar.tsx.
+// NavigateEvent carries a destination to the renderer.
 const NavigateEvent = "tray:navigate"
 
-// navTargets are the destinations offered in the menu, in display order.
-var navTargets = []string{"home", "topics", "consumers", "messages"}
-
-// labels holds the tray menu strings. They cannot come from the renderer's i18n
-// bundles, which the Go process never loads, so the few strings live here.
-type labels struct {
-	show     string
-	settings string
-	quit     string
-	nav      map[string]string
+// NavigateRequest is the tray:navigate payload.
+//
+// A destination needs both halves now that the shell is a tab per connection:
+// Connection is the profile id as a string, which is what the shell keys tabs
+// by, and empty means whichever tab is already in front. Page is a PageId from
+// frontend/src/design/data/protocols.ts, or one of the two constants below for
+// the views that sit beside the tabs; empty leaves the tab where it was.
+type NavigateRequest struct {
+	Connection string `json:"connection"`
+	Page       string `json:"page"`
 }
 
-var translations = map[string]labels{
-	"zh": {
-		show:     "显示主窗口",
-		settings: "设置",
-		quit:     "退出 MQ Studio",
-		nav: map[string]string{
-			"home":      "概览",
-			"topics":    "主题",
-			"consumers": "消费者组",
-			"messages":  "消息查询",
-		},
-	},
-	"en": {
-		show:     "Show Main Window",
-		settings: "Settings",
-		quit:     "Quit MQ Studio",
-		nav: map[string]string{
-			"home":      "Overview",
-			"topics":    "Topics",
-			"consumers": "Consumer Groups",
-			"messages":  "Messages",
-		},
-	},
+// The two destinations that are not a page inside a tab.
+const (
+	ConnectionsPage = "connections"
+	SettingsPage    = "settings"
+)
+
+// Connection is one stored profile as the menu draws it.
+type Connection struct {
+	// Key is the profile id as a string: what the shell keys its tabs by.
+	Key  string
+	Name string
+	// Family is the broker family in display form, "RocketMQ" rather than the
+	// stored kind.
+	Family string
+	Online bool
 }
 
-func labelsFor(language string) labels {
-	if found, ok := translations[language]; ok {
-		return found
-	}
-	return translations["en"]
+// Page is one destination in the active tab's sidebar, already translated.
+type Page struct {
+	ID    string
+	Label string
 }
 
-// Controller owns the tray icon and keeps its menu in the current language.
+// state is everything the menu draws. Each source owns its own fields and the
+// controller rebuilds whenever one of them actually changes.
+type state struct {
+	language      string
+	theme         string
+	closeBehavior string
+	connections   []Connection
+	sampling      bool
+	// active is the Key of the tab in front, empty when the shell shows none.
+	active string
+	page   string
+	pages  []Page
+}
+
+func (s state) equal(other state) bool {
+	return s.language == other.language &&
+		s.theme == other.theme &&
+		s.closeBehavior == other.closeBehavior &&
+		s.sampling == other.sampling &&
+		s.active == other.active &&
+		s.page == other.page &&
+		slices.Equal(s.connections, other.connections) &&
+		slices.Equal(s.pages, other.pages)
+}
+
+// Controller owns the tray icon and keeps its menu in step with the app.
 type Controller struct {
 	app    *application.App
 	window *application.WebviewWindow
 	tray   *application.SystemTray
 
-	showItem     *application.MenuItem
-	navItems     map[string]*application.MenuItem
-	settingsItem *application.MenuItem
-	quitItem     *application.MenuItem
-
-	language string
+	mu    sync.Mutex
+	state state
+	write func(Preference, string)
 }
 
 // New installs the tray icon. Either mouse button opens the menu, whose first
@@ -96,10 +110,10 @@ func New(
 	language string,
 ) *Controller {
 	controller := &Controller{
-		app:      app,
-		window:   window,
-		tray:     app.SystemTray.New(),
-		navItems: make(map[string]*application.MenuItem, len(navTargets)),
+		app:    app,
+		window: window,
+		tray:   app.SystemTray.New(),
+		state:  state{language: normalizeLanguage(language)},
 	}
 	// SetTemplateIcon is a no-op on Windows, so the icon has to be set the
 	// plain way there or the tray would show none at all.
@@ -110,65 +124,110 @@ func New(
 		controller.tray.SetDarkModeIcon(icons.Dark)
 	}
 	controller.tray.SetTooltip(tooltip)
-	controller.buildMenu()
-	controller.SetLanguage(language)
+	// Before the tray runs this only stores the menu; afterwards the same call
+	// rebinds the native one, which is what every later rebuild relies on.
+	controller.tray.SetMenu(controller.buildMenu(controller.state))
 	return controller
 }
 
-// buildMenu assembles the menu once. The native menu is bound when the tray
-// first runs and is not rebound afterwards, so replacing the menu later would
-// leave the visible one stale; only the item labels are updated after this.
-func (c *Controller) buildMenu() {
-	menu := application.NewMenu()
+// Preference names a setting the menu can change.
+type Preference string
 
-	c.showItem = menu.Add("")
-	c.showItem.OnClick(func(*application.Context) { c.showWindow() })
-	menu.AddSeparator()
+const (
+	PreferenceTheme         Preference = "theme"
+	PreferenceLanguage      Preference = "language"
+	PreferenceCloseBehavior Preference = "closeBehavior"
+)
 
-	for _, target := range navTargets {
-		item := menu.Add("")
-		item.OnClick(func(*application.Context) { c.navigate(target) })
-		c.navItems[target] = item
-	}
-	menu.AddSeparator()
-
-	c.settingsItem = menu.Add("")
-	c.settingsItem.OnClick(func(*application.Context) { c.navigate("settings") })
-	menu.AddSeparator()
-
-	c.quitItem = menu.Add("")
-	c.quitItem.OnClick(func(*application.Context) { c.app.Quit() })
-
-	c.tray.SetMenu(menu)
+// OnPreference registers the writer the preferences submenu calls.
+//
+// Nothing is redrawn from the click itself. Wails moves the radio mark before
+// the handler runs, and the settings change that follows is what redraws the
+// menu, so a write that fails puts the mark back where it belongs.
+func (c *Controller) OnPreference(write func(Preference, string)) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.write = write
 }
 
-// SetLanguage relabels the menu. Before the tray runs this only records the
-// strings; afterwards MenuItem.SetLabel updates the live native items.
-func (c *Controller) SetLanguage(language string) {
-	if c == nil || c.showItem == nil {
-		return
-	}
-	if _, known := translations[language]; !known {
-		language = "en"
-	}
-	if c.language == language {
-		return
-	}
-	c.language = language
-
-	text := labelsFor(language)
-	c.showItem.SetLabel(text.show)
-	c.settingsItem.SetLabel(text.settings)
-	c.quitItem.SetLabel(text.quit)
-	for target, item := range c.navItems {
-		item.SetLabel(text.nav[target])
-	}
+// SetPreferences records the settings the menu both shows and changes. They
+// arrive together because one settings save reports all of them.
+func (c *Controller) SetPreferences(theme string, language string, closeBehavior string) {
+	c.apply(func(next *state) {
+		next.theme = theme
+		next.language = normalizeLanguage(language)
+		next.closeBehavior = closeBehavior
+	})
 }
 
-// navigate raises the window and asks the renderer to switch pages.
-func (c *Controller) navigate(target string) {
+// SetConnections replaces the profile list the connections submenu draws,
+// along with whether the collector is sampling. The two arrive together
+// because sampling follows the open connection, and one update is one rebuild.
+func (c *Controller) SetConnections(connections []Connection, sampling bool) {
+	c.apply(func(next *state) {
+		next.connections = slices.Clone(connections)
+		next.sampling = sampling
+	})
+}
+
+// SetShell records what the renderer is showing: which tab is in front, which
+// page it is on, and the pages that tab's protocol offers.
+func (c *Controller) SetShell(active string, page string, pages []Page) {
+	c.apply(func(next *state) {
+		next.active = active
+		next.page = page
+		next.pages = slices.Clone(pages)
+	})
+}
+
+// apply rebuilds the menu when the mutation actually changed something.
+//
+// The guard is load-bearing, not an optimisation: the sources overlap - one
+// connect writes the profile list and then, once the renderer follows, the
+// shell state - and every rebuild replaces every native menu item.
+//
+// A preferences click rebuilds from inside the open menu. That is safe because
+// SetMenu dispatches to the main queue, and queued work does not run while the
+// run loop is in menu tracking mode: the rebuild lands once the menu has
+// closed. Holding the lock across it cannot deadlock for the same reason it is
+// needed - menu callbacks run on their own goroutines, never on the thread the
+// rebuild is handed to.
+func (c *Controller) apply(mutate func(*state)) {
+	if c == nil {
+		return
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	next := c.state
+	mutate(&next)
+	if next.equal(c.state) {
+		return
+	}
+	c.state = next
+	c.tray.SetMenu(c.buildMenu(next))
+}
+
+// setPreference persists one preference, if a writer has been registered.
+func (c *Controller) setPreference(preference Preference, value string) {
+	c.mu.Lock()
+	write := c.write
+	c.mu.Unlock()
+	if write == nil {
+		return
+	}
+	write(preference, value)
+}
+
+// navigate asks for a page in whichever tab is in front.
+func (c *Controller) navigate(page string) {
+	c.navigateTo("", page)
+}
+
+// navigateTo raises the window and asks the renderer for a destination.
+func (c *Controller) navigateTo(connection string, page string) {
 	c.showWindow()
-	c.app.Event.Emit(NavigateEvent, target)
+	c.app.Event.Emit(NavigateEvent, NavigateRequest{Connection: connection, Page: page})
 }
 
 func (c *Controller) showWindow() {

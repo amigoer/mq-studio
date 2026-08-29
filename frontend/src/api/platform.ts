@@ -6,7 +6,8 @@
  * service so the checks stay outside the renderer.
  */
 import { Events, System, Window } from "@wailsio/runtime";
-import { SystemService, WindowService } from "@bindings/bridge";
+import { ShellService, SystemService, WindowService } from "@bindings/bridge";
+import type { ShellPage } from "@bindings/bridge/models";
 import type { Result as UpdateCheckResult } from "@bindings/update/models";
 
 export type { UpdateCheckResult };
@@ -20,16 +21,50 @@ export const platform = (): Platform =>
   System.IsMac() ? "mac" : System.IsWindows() ? "windows" : "linux";
 
 /**
- * Subscribes to the system tray menu asking for a page. The payload is a
- * sidebar NavId; Go raises the window before emitting, so the listener only
- * has to switch pages. Keep the name in step with tray.NavigateEvent.
+ * Where the tray menu wants the shell to go.
+ *
+ * `connection` is a profile id as a string -- the key the shell tabs by -- and
+ * empty means whichever tab is in front. `page` is a PageId, or "connections"
+ * / "settings" for the views that sit beside the tabs. Keep both in step with
+ * tray.NavigateRequest.
  */
-export function onTrayNavigate(listener: (target: string) => void): () => void {
+export type TrayDestination = { connection: string; page: string };
+
+/**
+ * Subscribes to the system tray menu asking for a destination. Go raises the
+ * window before emitting, so the listener only has to switch views. Keep the
+ * name in step with tray.NavigateEvent.
+ */
+export function onTrayNavigate(listener: (to: TrayDestination) => void): () => void {
   return Events.On("tray:navigate", (event) => {
-    // Go emits a single value, so data is the NavId itself, not a tuple.
-    const target: unknown = event.data;
-    if (typeof target === "string") listener(target);
+    // Go emits a single value, so data is the request itself, not a tuple.
+    const data = event.data as Partial<TrayDestination> | undefined;
+    if (typeof data?.page !== "string") return;
+    listener({ connection: data.connection ?? "", page: data.page });
   });
+}
+
+/**
+ * Tells Go which connection tab is in front, the page it is on, and the pages
+ * that tab's sidebar offers.
+ *
+ * The tray menu draws all three. The page labels have to come from here rather
+ * than be looked up in Go: the i18n bundles never reach the Go process, and
+ * duplicating six protocols' navigation there is exactly what this avoids.
+ */
+export const reportShellSession = (
+  active: string,
+  page: string,
+  pages: ShellPage[],
+): Promise<void> => ShellService.ReportSession(active, page, pages);
+
+/**
+ * Subscribes to Go reporting that the settings changed. The tray writes them
+ * too, so the window cannot assume it is the only author of its own copy.
+ * Keep the name in step with bridge.SettingsEvent.
+ */
+export function onSettingsChanged(listener: () => void): () => void {
+  return Events.On("settings:changed", () => listener());
 }
 
 export type ZoomCommand = "in" | "out" | "reset";
