@@ -1787,7 +1787,19 @@
         "onlineClients": "在线客户端",
         "assignedQueues": "分配队列",
         "backlogHint": "堆积集中在 settle-77，建议检查该实例消费耗时",
-        "viewDlq": "查看死信"
+        "viewDlq": "查看死信",
+        "liveSubtitle": "{{count}} 个消费组",
+        "noGroups": "这个集群里没有消费组",
+        "noSubs": "没有订阅关系",
+        "noClients": "没有在线客户端",
+        "dlq": "死信",
+        "version": "版本",
+        "expression": "过滤表达式",
+        "sort": {
+          "backlog": "按积压",
+          "name": "按名称",
+          "consume": "按消费 TPS"
+        }
       },
       "pulsar": {
         "cursor": "游标",

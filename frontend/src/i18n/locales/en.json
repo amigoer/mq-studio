@@ -1787,7 +1787,19 @@
         "onlineClients": "Online clients",
         "assignedQueues": "Assigned queues",
         "backlogHint": "The backlog sits on settle-77 — check how long that instance takes to consume",
-        "viewDlq": "View dead letters"
+        "viewDlq": "View dead letters",
+        "liveSubtitle": "{{count}} consumer groups",
+        "noGroups": "This cluster has no consumer groups",
+        "noSubs": "No subscriptions",
+        "noClients": "No client connected",
+        "dlq": "Dead letters",
+        "version": "Version",
+        "expression": "Filter",
+        "sort": {
+          "backlog": "By backlog",
+          "name": "By name",
+          "consume": "By consume TPS"
+        }
       },
       "pulsar": {
         "cursor": "Cursor",
