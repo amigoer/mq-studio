@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/amigoer/mq-studio/internal/crypto"
 	"github.com/amigoer/mq-studio/internal/driver"
@@ -164,5 +165,82 @@ func TestLiveProbeUnsavedProfile(t *testing.T) {
 	unreachable.TimeoutSec = 2
 	if err := connections.ProbeProfile(unreachable); err == nil {
 		t.Fatal("probing an unreachable NameServer should fail")
+	}
+}
+
+// The path the producer and message boards drive: publish, then find it again
+// through the same connection id, then read its consume trace.
+func TestLiveSendThenQuery(t *testing.T) {
+	connections, _, registry := liveStack(t)
+	ctx := context.Background()
+
+	profile, err := connections.AddConnection(liveProfileInput("send"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := connections.Connect(profile.ID); err != nil {
+		t.Fatalf("connect: %v", err)
+	}
+	conn, ok := registry.Get(profile.ID)
+	if !ok {
+		t.Fatal("connection missing after connect")
+	}
+
+	const topic = "MQ_STUDIO_E2E"
+	key := "e2e-" + time.Now().UTC().Format("20060102150405.000")
+	body := `{"probe":"` + key + `"}`
+
+	messageID, err := conn.(driver.MessagePublisher).SendMessage(ctx, topic, "probe", key, body, 0)
+	if err != nil {
+		t.Fatalf("send: %v", err)
+	}
+	if messageID == "" {
+		t.Fatal("send returned an empty message id")
+	}
+
+	// The broker indexes by key asynchronously, so the query is retried rather
+	// than run once and called a failure.
+	reader := conn.(driver.MessageReader)
+	var found []*model.MessageItem
+	for attempt := range 10 {
+		if attempt > 0 {
+			time.Sleep(500 * time.Millisecond)
+		}
+		found, err = reader.QueryMessages(ctx, model.MessageQueryParams{
+			Topic:      topic,
+			MessageKey: key,
+			MaxResults: 8,
+		})
+		if err == nil && len(found) > 0 {
+			break
+		}
+	}
+	if err != nil {
+		t.Fatalf("query by key: %v", err)
+	}
+	if len(found) == 0 {
+		t.Fatalf("the message sent as %s never came back for key %s", messageID, key)
+	}
+	if found[0].Body != body {
+		t.Fatalf("body = %q, want %q", found[0].Body, body)
+	}
+
+	// The trace looks the message up again, and the broker's key index lags a
+	// send by a second or two - the same lag the query above rides out. With no
+	// group subscribed the answer is an empty list, which is the honest one.
+	tracker := conn.(driver.MessageTracker)
+	for attempt := range 10 {
+		if attempt > 0 {
+			time.Sleep(500 * time.Millisecond)
+		}
+		trackCtx, cancel := context.WithTimeout(ctx, 20*time.Second)
+		_, err = tracker.TrackMessage(trackCtx, topic, found[0].MessageID)
+		cancel()
+		if err == nil {
+			break
+		}
+	}
+	if err != nil {
+		t.Fatalf("track: %v", err)
 	}
 }
