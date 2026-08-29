@@ -727,6 +727,14 @@
 .set3 .in3 {
   font-size: var(--set-control);
 }
+/*
+ * A settings dropdown carries the row's answer, not a placeholder, so it is set
+ * in the label's own text colour rather than the muted grey `.in3` gives a
+ * toolbar filter -- the same reason `input.in3` overrides it.
+ */
+.set3 .in3.mqs-select {
+  color: var(--c-fg);
+}
 /* The section rail reads as the row labels it selects between. */
 .set3 .ni,
 .set3 button.ni {

@@ -9,7 +9,6 @@ import {
   ExternalLink,
   FolderOpen,
   Github,
-  Globe,
   Info,
   MessageSquare,
   RefreshCw,
@@ -89,7 +88,6 @@ export type SectionId =
   | "general"
   | "fonts"
   | "message"
-  | "proxy"
   | "data"
   | "about";
 
@@ -99,7 +97,6 @@ const SECTIONS: readonly { id: SectionId; icon: LucideIcon }[] = [
   { id: "general", icon: SettingsIcon },
   { id: "fonts", icon: Type },
   { id: "message", icon: MessageSquare },
-  { id: "proxy", icon: Globe },
   { id: "data", icon: Database },
   { id: "about", icon: Info },
 ];
@@ -580,7 +577,139 @@ function GeneralPanel() {
           </SettingRow>
         </Card>
       </Group>
+
+      <Group title={t("page.settings.general.timeouts")}>
+        <Card>
+          <SettingRow label={t("page.settings.general.connect")} hint={t("page.settings.general.connectHint")}>
+            <NumField
+              value={settings.connectTimeoutMs}
+              onChange={(next) => setSetting("connectTimeoutMs", next)}
+              min={1000}
+              max={30000}
+              step={1000}
+              unit="ms"
+            />
+          </SettingRow>
+          <SettingRow label={t("page.settings.general.request")} hint={t("page.settings.general.requestHint")} last>
+            <NumField
+              value={settings.requestTimeoutMs}
+              onChange={(next) => setSetting("requestTimeoutMs", next)}
+              min={1000}
+              max={60000}
+              step={1000}
+              unit="ms"
+            />
+          </SettingRow>
+        </Card>
+      </Group>
+
+      <CredentialsGroup />
     </>
+  );
+}
+
+/** The ACL fallback for connections that carry none of their own. */
+function CredentialsGroup() {
+  const { t } = useTranslation();
+  const { settings, saveGlobalCredentials, clearGlobalCredentials } = useSettings();
+  const toast = useToast();
+  const confirm = useConfirm();
+  /*
+   * The stored keys never reach the renderer -- Go redacts them and reports
+   * only whether they are set -- so these two fields always start empty, and
+   * what they hold is a replacement rather than the current value.
+   */
+  const [accessKey, setAccessKey] = useState("");
+  const [secretKey, setSecretKey] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const configured = settings.globalAccessKeyConfigured && settings.globalSecretKeyConfigured;
+  const filled = accessKey.trim() !== "" && secretKey.trim() !== "";
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      await saveGlobalCredentials(accessKey, secretKey);
+      setAccessKey("");
+      setSecretKey("");
+      toast.success(t("page.settings.general.saved"));
+    } catch (error) {
+      toast.error(t("page.settings.general.saveFailed"), { description: String(error) });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const clear = async () => {
+    const confirmed = await confirm({
+      title: t("page.settings.general.clearTitle"),
+      description: t("page.settings.general.clearDesc"),
+      confirmLabel: t("page.settings.general.clear"),
+      danger: true,
+    });
+    if (!confirmed) return;
+    try {
+      await clearGlobalCredentials();
+      setAccessKey("");
+      setSecretKey("");
+      toast.success(t("page.settings.general.cleared"));
+    } catch (error) {
+      toast.error(t("page.settings.general.clearFailed"), { description: String(error) });
+    }
+  };
+
+  return (
+    <Group
+      title={
+        <>
+          {t("page.settings.general.credentials")}
+          <span style={{ marginLeft: "8px", letterSpacing: 0, textTransform: "none" }}>
+            <EnvTag>
+              {configured ? t("page.settings.general.configured") : t("page.settings.general.notConfigured")}
+            </EnvTag>
+          </span>
+        </>
+      }
+    >
+      <Card>
+        <SettingRow label={t("page.settings.general.accessKey")} hint={t("page.settings.general.accessKeyHint")}>
+          <Field
+            className="mono3"
+            style={{ width: "240px" }}
+            value={accessKey}
+            placeholder={configured ? t("page.settings.general.replaceHint") : "AccessKey"}
+            onChange={(e) => setAccessKey(e.target.value)}
+          />
+        </SettingRow>
+        <SettingRow label={t("page.settings.general.secretKey")} hint={t("page.settings.general.secretKeyHint")}>
+          <Field
+            type="password"
+            className="mono3"
+            style={{ width: "240px" }}
+            value={secretKey}
+            placeholder={configured ? t("page.settings.general.replaceHint") : "SecretKey"}
+            onChange={(e) => setSecretKey(e.target.value)}
+          />
+        </SettingRow>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "flex-end",
+            gap: "8px",
+            padding: "11px 16px",
+          }}
+        >
+          {configured && (
+            <Btn variant="danger" onClick={() => void clear()}>
+              {t("page.settings.general.clear")}
+            </Btn>
+          )}
+          <Btn variant="primary" disabled={!filled || saving} onClick={() => void save()}>
+            {saving ? t("page.settings.general.saving") : t("page.settings.general.save")}
+          </Btn>
+        </div>
+      </Card>
+    </Group>
   );
 }
 
@@ -807,158 +936,6 @@ function MessagePanel() {
               onCheckedChange={(next) => void setDesktopNotifications(next)}
               label={t("page.settings.message.notifications")}
             />
-          </SettingRow>
-        </Card>
-      </Group>
-    </>
-  );
-}
-
-function ProxyPanel() {
-  const { t } = useTranslation();
-  const { settings, setSetting, saveGlobalCredentials, clearGlobalCredentials } = useSettings();
-  const toast = useToast();
-  const confirm = useConfirm();
-  /*
-   * The stored keys never reach the renderer -- Go redacts them and reports
-   * only whether they are set -- so these two fields always start empty, and
-   * what they hold is a replacement rather than the current value.
-   */
-  const [accessKey, setAccessKey] = useState("");
-  const [secretKey, setSecretKey] = useState("");
-  const [saving, setSaving] = useState(false);
-
-  const configured = settings.globalAccessKeyConfigured && settings.globalSecretKeyConfigured;
-  const filled = accessKey.trim() !== "" && secretKey.trim() !== "";
-
-  const save = async () => {
-    setSaving(true);
-    try {
-      await saveGlobalCredentials(accessKey, secretKey);
-      setAccessKey("");
-      setSecretKey("");
-      toast.success(t("page.settings.proxy.saved"));
-    } catch (error) {
-      toast.error(t("page.settings.proxy.saveFailed"), { description: String(error) });
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const clear = async () => {
-    const confirmed = await confirm({
-      title: t("page.settings.proxy.clearTitle"),
-      description: t("page.settings.proxy.clearDesc"),
-      confirmLabel: t("page.settings.proxy.clear"),
-      danger: true,
-    });
-    if (!confirmed) return;
-    try {
-      await clearGlobalCredentials();
-      setAccessKey("");
-      setSecretKey("");
-      toast.success(t("page.settings.proxy.cleared"));
-    } catch (error) {
-      toast.error(t("page.settings.proxy.clearFailed"), { description: String(error) });
-    }
-  };
-
-  return (
-    <>
-      <Group title={t("page.settings.proxy.timeouts")} first>
-        <Card>
-          <SettingRow label={t("page.settings.proxy.connect")} hint={t("page.settings.proxy.connectHint")}>
-            <NumField
-              value={settings.connectTimeoutMs}
-              onChange={(next) => setSetting("connectTimeoutMs", next)}
-              min={1000}
-              max={30000}
-              step={1000}
-              unit="ms"
-            />
-          </SettingRow>
-          <SettingRow label={t("page.settings.proxy.request")} hint={t("page.settings.proxy.requestHint")} last>
-            <NumField
-              value={settings.requestTimeoutMs}
-              onChange={(next) => setSetting("requestTimeoutMs", next)}
-              min={1000}
-              max={60000}
-              step={1000}
-              unit="ms"
-            />
-          </SettingRow>
-        </Card>
-      </Group>
-
-      <Group
-        title={
-          <>
-            {t("page.settings.proxy.credentials")}
-            <span style={{ marginLeft: "8px", letterSpacing: 0, textTransform: "none" }}>
-              <EnvTag>
-                {configured ? t("page.settings.proxy.configured") : t("page.settings.proxy.notConfigured")}
-              </EnvTag>
-            </span>
-          </>
-        }
-      >
-        <Card>
-          <SettingRow label={t("page.settings.proxy.accessKey")} hint={t("page.settings.proxy.accessKeyHint")}>
-            <Field
-              className="mono3"
-              style={{ width: "240px" }}
-              value={accessKey}
-              placeholder={configured ? t("page.settings.proxy.replaceHint") : "AccessKey"}
-              onChange={(e) => setAccessKey(e.target.value)}
-            />
-          </SettingRow>
-          <SettingRow label={t("page.settings.proxy.secretKey")} hint={t("page.settings.proxy.secretKeyHint")}>
-            <Field
-              type="password"
-              className="mono3"
-              style={{ width: "240px" }}
-              value={secretKey}
-              placeholder={configured ? t("page.settings.proxy.replaceHint") : "SecretKey"}
-              onChange={(e) => setSecretKey(e.target.value)}
-            />
-          </SettingRow>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "flex-end",
-              gap: "8px",
-              padding: "11px 16px",
-            }}
-          >
-            {configured && (
-              <Btn variant="danger" onClick={() => void clear()}>
-                {t("page.settings.proxy.clear")}
-              </Btn>
-            )}
-            <Btn variant="primary" disabled={!filled || saving} onClick={() => void save()}>
-              {saving ? t("page.settings.proxy.saving") : t("page.settings.proxy.save")}
-            </Btn>
-          </div>
-        </Card>
-      </Group>
-
-      <Group title={t("page.settings.proxy.advanced")}>
-        <Card>
-          <div
-            style={{
-              fontSize: "var(--set-hint)",
-              color: "var(--c-muted)",
-              padding: "12px 16px",
-              lineHeight: 1.55,
-            }}
-          >
-            {t("page.settings.proxy.advancedNote")}
-          </div>
-          <SettingRow label={t("page.settings.proxy.skipTls")} hint={t("page.settings.proxy.skipTlsHint")}>
-            <EnvTag>{t("page.settings.proxy.unsupported")}</EnvTag>
-          </SettingRow>
-          <SettingRow label={t("page.settings.proxy.enableProxy")} hint={t("page.settings.proxy.enableProxyHint")} last>
-            <EnvTag>{t("page.settings.proxy.unsupported")}</EnvTag>
           </SettingRow>
         </Card>
       </Group>
@@ -1270,7 +1247,6 @@ export function Settings({
     general: <GeneralPanel />,
     fonts: <FontsPanel scale={scale} />,
     message: <MessagePanel />,
-    proxy: <ProxyPanel />,
     data: <DataPanel />,
     about: <AboutPanel onOpenDoc={onOpenDoc} />,
   };
