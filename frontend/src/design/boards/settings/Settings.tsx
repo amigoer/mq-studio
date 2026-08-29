@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Check as CheckIcon,
   ChevronLeft,
@@ -85,20 +86,21 @@ export type SectionId =
   | "data"
   | "about";
 
-const SECTIONS: readonly { id: SectionId; icon: LucideIcon; label: string; subtitle: string }[] = [
-  { id: "appearance", icon: Sun, label: "外观", subtitle: "主题与界面动效" },
-  { id: "general", icon: SettingsIcon, label: "通用", subtitle: "语言、连接与默认行为" },
-  { id: "fonts", icon: Type, label: "字体与显示", subtitle: "字号、字体与时间格式" },
-  { id: "message", icon: MessageSquare, label: "消息查询", subtitle: "默认查询与告警参数" },
-  { id: "proxy", icon: Globe, label: "代理与网络", subtitle: "代理、超时与默认凭证" },
-  { id: "data", icon: Database, label: "数据与备份", subtitle: "导入导出、数据目录与缓存" },
-  { id: "about", icon: Info, label: "关于", subtitle: "版本与项目信息" },
+/** Keys, resolved at render so a language change relabels the rail. */
+const SECTIONS: readonly { id: SectionId; icon: LucideIcon }[] = [
+  { id: "appearance", icon: Sun },
+  { id: "general", icon: SettingsIcon },
+  { id: "fonts", icon: Type },
+  { id: "message", icon: MessageSquare },
+  { id: "proxy", icon: Globe },
+  { id: "data", icon: Database },
+  { id: "about", icon: Info },
 ];
 
 const THEMES: readonly { mode: ThemeMode; name: string; desc: string }[] = [
-  { mode: "light", name: "浅色", desc: "默认" },
-  { mode: "dark", name: "深色", desc: "护眼" },
-  { mode: "system", name: "跟随系统", desc: "自动切换" },
+  { mode: "light", name: "page.settings.appearance.light", desc: "page.settings.appearance.lightDesc" },
+  { mode: "dark", name: "page.settings.appearance.dark", desc: "page.settings.appearance.darkDesc" },
+  { mode: "system", name: "page.settings.appearance.system", desc: "page.settings.appearance.systemDesc" },
 ];
 
 type Palette = {
@@ -280,9 +282,6 @@ function NumField({
   );
 }
 
-const scaleLabel = (setting: UIScaleSetting, fontSize: number) =>
-  setting === "auto" ? `自动 · ${fontSize}px` : `${fontSize}px`;
-
 /**
  * The one control on this page that reaches the whole shell: the size picked
  * here scales every drawn px, chrome included, and 自动 hands that back to the
@@ -298,6 +297,7 @@ function FontSizeField({
   fontSize: number;
   onChange: (next: UIScaleSetting) => void;
 }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const choose = (next: UIScaleSetting) => {
     onChange(next);
@@ -307,13 +307,17 @@ function FontSizeField({
   return (
     <span style={{ position: "relative" }}>
       <SelectField
-        value={scaleLabel(setting, fontSize)}
+        value={
+          setting === "auto"
+            ? t("page.settings.fonts.autoValue", { size: fontSize })
+            : `${fontSize}px`
+        }
         style={{ width: "200px", justifyContent: "space-between" }}
         onClick={() => setOpen((o) => !o)}
       />
       <Menu open={open} onClose={() => setOpen(false)} width={200} top={30}>
         <MenuItem active={setting === "auto"} onSelect={() => choose("auto")}>
-          自动（跟随窗口）
+          {t("page.settings.fonts.auto")}
         </MenuItem>
         {FONT_SIZES.map((size) => (
           <MenuItem key={size} active={setting === size} onSelect={() => choose(size)}>
@@ -326,16 +330,17 @@ function FontSizeField({
 }
 
 function AppearancePanel() {
+  const { t } = useTranslation();
   const { settings, setSetting } = useSettings();
   // Motion is a property of this machine rather than of the account, so it
   // stays out of the settings file and follows the OS until it is set here.
   const { prefs, setAnimations } = useUIPrefs();
   return (
     <>
-      <Group title="主题" first>
+      <Group title={t("page.settings.appearance.theme")} first>
         <div
           role="radiogroup"
-          aria-label="主题"
+          aria-label={t("page.settings.appearance.theme")}
           style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px" }}
         >
           {THEMES.map((th) => {
@@ -398,10 +403,10 @@ function AppearancePanel() {
                 >
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div style={{ fontSize: "12.5px", fontWeight: 500, lineHeight: 1.2 }}>
-                      {th.name}
+                      {t(th.name)}
                     </div>
                     <div style={{ fontSize: "11px", color: "var(--c-muted)", marginTop: "2px" }}>
-                      {th.desc}
+                      {t(th.desc)}
                     </div>
                   </div>
                   <span
@@ -427,13 +432,17 @@ function AppearancePanel() {
         </div>
       </Group>
 
-      <Group title="动效与可访问性">
+      <Group title={t("page.settings.appearance.motion")}>
         <Card>
-          <SettingRow label="界面过渡动画" hint="页面切换、面板展开等过渡效果" last>
+          <SettingRow
+            label={t("page.settings.appearance.animations")}
+            hint={t("page.settings.appearance.animationsHint")}
+            last
+          >
             <Sw
               checked={prefs.animations}
               onCheckedChange={setAnimations}
-              label="界面过渡动画"
+              label={t("page.settings.appearance.animations")}
             />
           </SettingRow>
         </Card>
@@ -443,70 +452,74 @@ function AppearancePanel() {
 }
 
 function GeneralPanel() {
+  const { t } = useTranslation();
   const { settings, setSetting } = useSettings();
   return (
     <>
-      <Group title="语言与区域" first>
+      <Group title={t("page.settings.general.region")} first>
         <Card>
-          <SettingRow label="界面语言" hint="切换后立即生效">
+          <SettingRow label={t("page.settings.general.language")} hint={t("page.settings.general.languageHint")}>
             <Dropdown
               value={settings.language}
               onChange={(next) => setSetting("language", next)}
               options={[
-                { value: "zh", label: "简体中文" },
-                { value: "en", label: "English" },
+                { value: "zh", label: t("page.settings.general.zh") },
+                { value: "en", label: t("page.settings.general.en") },
               ]}
             />
           </SettingRow>
-          <SettingRow label="时区" hint="影响列表与详情中的时间显示" last>
+          <SettingRow label={t("page.settings.general.timezone")} hint={t("page.settings.general.timezoneHint")} last>
             <Dropdown
               value={settings.timezone}
               onChange={(next) => setSetting("timezone", next)}
               options={[
-                { value: "local", label: "本地时间" },
-                { value: "utc", label: "UTC" },
+                { value: "local", label: t("page.settings.general.local") },
+                { value: "utc", label: t("page.settings.general.utc") },
               ]}
             />
           </SettingRow>
         </Card>
       </Group>
 
-      <Group title="启动行为">
+      <Group title={t("page.settings.general.startup")}>
         <Card>
-          <SettingRow label="启动时自动连接" hint="恢复上次在线的全部连接（多连接）">
+          <SettingRow
+            label={t("page.settings.general.autoConnect")}
+            hint={t("page.settings.general.autoConnectHint")}
+          >
             <Sw
               checked={settings.autoConnectLast}
               onCheckedChange={(next) => setSetting("autoConnectLast", next)}
-              label="启动时自动连接"
+              label={t("page.settings.general.autoConnect")}
             />
           </SettingRow>
           <SettingRow
-            label="自动检查更新"
-            hint="启动后及每 24 小时向 GitHub 查询是否有新版本，仅发送当前版本号"
+            label={t("page.settings.general.autoCheckUpdate")}
+            hint={t("page.settings.general.autoCheckUpdateHint")}
             last
           >
             <Sw
               checked={settings.autoCheckUpdate}
               onCheckedChange={(next) => setSetting("autoCheckUpdate", next)}
-              label="自动检查更新"
+              label={t("page.settings.general.autoCheckUpdate")}
             />
           </SettingRow>
         </Card>
       </Group>
 
-      <Group title="窗口行为">
+      <Group title={t("page.settings.general.window")}>
         <Card>
           <SettingRow
-            label="关闭主窗口时"
-            hint="最小化到托盘后应用继续在后台采集吞吐数据，可从菜单栏图标唤回或退出"
+            label={t("page.settings.general.closeBehavior")}
+            hint={t("page.settings.general.closeBehaviorHint")}
             last
           >
             <Dropdown
               value={settings.closeBehavior}
               onChange={(next) => setSetting("closeBehavior", next)}
               options={[
-                { value: "minimizeToTray", label: "最小化到系统托盘" },
-                { value: "quit", label: "退出应用" },
+                { value: "minimizeToTray", label: t("page.settings.general.tray") },
+                { value: "quit", label: t("page.settings.general.quit") },
               ]}
             />
           </SettingRow>
@@ -521,24 +534,25 @@ function FontsPanel({
 }: {
   scale: { setting: UIScaleSetting; fontSize: number; onChange: (next: UIScaleSetting) => void };
 }) {
+  const { t } = useTranslation();
   const { settings, setSetting } = useSettings();
   return (
     <>
-      <Group title="字体与排版" first>
+      <Group title={t("page.settings.fonts.typography")} first>
         <Card>
-          <SettingRow label="界面字号" hint="⌘+ / ⌘- 逐档调整，⌘0 回到自动">
+          <SettingRow label={t("page.settings.fonts.size")} hint={t("page.settings.fonts.sizeHint")}>
             <FontSizeField
               setting={scale.setting}
               fontSize={scale.fontSize}
               onChange={scale.onChange}
             />
           </SettingRow>
-          <SettingRow label="界面字体" hint="默认使用系统 UI 字体">
+          <SettingRow label={t("page.settings.fonts.uiFont")} hint={t("page.settings.fonts.uiFontHint")}>
             <Dropdown
               value={settings.uiFont}
               onChange={(next) => setSetting("uiFont", next)}
               options={[
-                { value: "system", label: "系统默认" },
+                { value: "system", label: t("page.settings.fonts.systemDefault") },
                 { value: "Inter", label: "Inter" },
                 { value: "PingFang SC", label: "PingFang SC" },
                 { value: "Microsoft YaHei", label: "Microsoft YaHei" },
@@ -547,7 +561,7 @@ function FontsPanel({
               ]}
             />
           </SettingRow>
-          <SettingRow label="等宽字体" hint="用于消息体、ID、JSON 显示" last>
+          <SettingRow label={t("page.settings.fonts.monoFont")} hint={t("page.settings.fonts.monoFontHint")} last>
             <Dropdown
               value={settings.monospaceFont}
               onChange={(next) => setSetting("monospaceFont", next)}
@@ -558,32 +572,32 @@ function FontsPanel({
                 { value: "Cascadia Code", label: "Cascadia Code" },
                 { value: "Menlo", label: "Menlo" },
                 { value: "Consolas", label: "Consolas" },
-                { value: "system", label: "系统默认" },
+                { value: "system", label: t("page.settings.fonts.systemDefault") },
               ]}
             />
           </SettingRow>
         </Card>
       </Group>
 
-      <Group title="时间显示">
+      <Group title={t("page.settings.fonts.time")}>
         <Card>
-          <SettingRow label="时间格式" hint="影响列表与详情中的时间显示" last>
+          <SettingRow label={t("page.settings.fonts.timeFormat")} hint={t("page.settings.fonts.timeFormatHint")} last>
             <Dropdown
               value={settings.timestampFormat}
               onChange={(next) => setSetting("timestampFormat", next)}
               options={[
                 { value: "datetime", label: "YYYY-MM-DD HH:mm:ss" },
-                { value: "ms", label: "毫秒时间戳" },
+                { value: "ms", label: t("page.settings.fonts.ms") },
               ]}
             />
           </SettingRow>
         </Card>
       </Group>
 
-      <Group title="预览">
+      <Group title={t("page.settings.fonts.preview")}>
         <Card style={{ padding: "14px 16px" }}>
           <div style={{ fontSize: `${scale.fontSize}px` }}>
-            示例文本：MQ Studio · 多协议消息队列桌面客户端 ABCDabcd 1234
+            {t("page.settings.fonts.previewSample")}
           </div>
           <div
             className="mono3"
@@ -602,12 +616,11 @@ function FontsPanel({
   );
 }
 
-/** 32/64/128 as the ladder the settings store types the limit against. */
-const FETCH_LIMITS: readonly { value: FetchLimit; label: string }[] = ([32, 64, 128] as const).map(
-  (n) => ({ value: n, label: `${n} 条` }),
-);
+/** The ladder the settings store types the limit against. */
+const FETCH_LIMITS = [32, 64, 128] as const satisfies readonly FetchLimit[];
 
 function MessagePanel() {
+  const { t } = useTranslation();
   const { settings, setSetting } = useSettings();
   const toast = useToast();
 
@@ -623,7 +636,7 @@ function MessagePanel() {
       return;
     }
     if (typeof Notification === "undefined") {
-      toast.error("此环境不支持系统通知");
+      toast.error(t("page.settings.message.notificationsUnsupported"));
       return;
     }
     const permission =
@@ -631,8 +644,8 @@ function MessagePanel() {
         ? await Notification.requestPermission()
         : Notification.permission;
     if (permission !== "granted") {
-      toast.error("系统通知未获授权", {
-        description: "请在系统的通知设置中允许 MQ Studio 发送通知后重试",
+      toast.error(t("page.settings.message.notificationsDenied"), {
+        description: t("page.settings.message.notificationsDeniedHint"),
       });
       return;
     }
@@ -641,24 +654,30 @@ function MessagePanel() {
 
   return (
     <>
-      <Group title="消息查询默认值" first>
+      <Group title={t("page.settings.message.defaults")} first>
         <Card>
-          <SettingRow label="单页拉取数量" hint="每次查询主题、消费组的数量上限">
+          <SettingRow label={t("page.settings.message.fetchLimit")} hint={t("page.settings.message.fetchLimitHint")}>
             <Dropdown
               width={140}
               value={settings.fetchLimit}
               onChange={(next) => setSetting("fetchLimit", next)}
-              options={FETCH_LIMITS}
+              options={FETCH_LIMITS.map((n) => ({
+                value: n,
+                label: t("page.settings.message.fetchLimitUnit", { count: n }),
+              }))}
             />
           </SettingRow>
-          <SettingRow label="JSON 自动格式化" hint="查看消息时自动美化 JSON 内容">
+          <SettingRow
+            label={t("page.settings.message.autoFormatJson")}
+            hint={t("page.settings.message.autoFormatJsonHint")}
+          >
             <Sw
               checked={settings.autoFormatJson}
               onCheckedChange={(next) => setSetting("autoFormatJson", next)}
-              label="JSON 自动格式化"
+              label={t("page.settings.message.autoFormatJson")}
             />
           </SettingRow>
-          <SettingRow label="消息截断阈值" hint="超过此大小的消息内容将被截断显示" last>
+          <SettingRow label={t("page.settings.message.payload")} hint={t("page.settings.message.payloadHint")} last>
             <NumField
               value={Math.round(settings.maxPayloadRenderBytes / 1024)}
               onChange={(next) => setSetting("maxPayloadRenderBytes", next * 1024)}
@@ -670,19 +689,19 @@ function MessagePanel() {
         </Card>
       </Group>
 
-      <Group title="告警阈值">
+      <Group title={t("page.settings.message.thresholds")}>
         <Card>
-          <SettingRow label="消费积压告警" hint="当消费组堆积消息超过此值时显示告警，设为 0 关闭">
+          <SettingRow label={t("page.settings.message.lag")} hint={t("page.settings.message.lagHint")}>
             <NumField
               value={settings.lagAlertThreshold}
               onChange={(next) => setSetting("lagAlertThreshold", next)}
               min={0}
               step={1000}
               width={120}
-              unit="条"
+              unit={t("page.settings.message.lagUnit")}
             />
           </SettingRow>
-          <SettingRow label="磁盘水位告警" hint="Broker 磁盘使用率达到此百分比时告警，设为 0 关闭">
+          <SettingRow label={t("page.settings.message.disk")} hint={t("page.settings.message.diskHint")}>
             <NumField
               value={settings.diskAlertThreshold}
               onChange={(next) => setSetting("diskAlertThreshold", next)}
@@ -692,11 +711,15 @@ function MessagePanel() {
               unit="%"
             />
           </SettingRow>
-          <SettingRow label="系统通知" hint="出现新告警时发送桌面通知（需系统授权）" last>
+          <SettingRow
+            label={t("page.settings.message.notifications")}
+            hint={t("page.settings.message.notificationsHint")}
+            last
+          >
             <Sw
               checked={settings.desktopNotifications}
               onCheckedChange={(next) => void setDesktopNotifications(next)}
-              label="系统通知"
+              label={t("page.settings.message.notifications")}
             />
           </SettingRow>
         </Card>
@@ -706,6 +729,7 @@ function MessagePanel() {
 }
 
 function ProxyPanel() {
+  const { t } = useTranslation();
   const { settings, setSetting, saveGlobalCredentials, clearGlobalCredentials } = useSettings();
   const toast = useToast();
   const confirm = useConfirm();
@@ -727,9 +751,9 @@ function ProxyPanel() {
       await saveGlobalCredentials(accessKey, secretKey);
       setAccessKey("");
       setSecretKey("");
-      toast.success("默认凭证已保存");
+      toast.success(t("page.settings.proxy.saved"));
     } catch (error) {
-      toast.error("保存凭证失败", { description: String(error) });
+      toast.error(t("page.settings.proxy.saveFailed"), { description: String(error) });
     } finally {
       setSaving(false);
     }
@@ -737,9 +761,9 @@ function ProxyPanel() {
 
   const clear = async () => {
     const confirmed = await confirm({
-      title: "清除默认凭证",
-      description: "清除后，未单独配置 ACL 的连接将不再自动鉴权。",
-      confirmLabel: "清除凭证",
+      title: t("page.settings.proxy.clearTitle"),
+      description: t("page.settings.proxy.clearDesc"),
+      confirmLabel: t("page.settings.proxy.clear"),
       danger: true,
     });
     if (!confirmed) return;
@@ -747,17 +771,17 @@ function ProxyPanel() {
       await clearGlobalCredentials();
       setAccessKey("");
       setSecretKey("");
-      toast.success("默认凭证已清除");
+      toast.success(t("page.settings.proxy.cleared"));
     } catch (error) {
-      toast.error("清除凭证失败", { description: String(error) });
+      toast.error(t("page.settings.proxy.clearFailed"), { description: String(error) });
     }
   };
 
   return (
     <>
-      <Group title="连接超时" first>
+      <Group title={t("page.settings.proxy.timeouts")} first>
         <Card>
-          <SettingRow label="连接超时" hint="建立集群连接的最大等待时间">
+          <SettingRow label={t("page.settings.proxy.connect")} hint={t("page.settings.proxy.connectHint")}>
             <NumField
               value={settings.connectTimeoutMs}
               onChange={(next) => setSetting("connectTimeoutMs", next)}
@@ -767,7 +791,7 @@ function ProxyPanel() {
               unit="ms"
             />
           </SettingRow>
-          <SettingRow label="请求超时" hint="查询主题、消费组等操作的超时时间" last>
+          <SettingRow label={t("page.settings.proxy.request")} hint={t("page.settings.proxy.requestHint")} last>
             <NumField
               value={settings.requestTimeoutMs}
               onChange={(next) => setSetting("requestTimeoutMs", next)}
@@ -783,30 +807,32 @@ function ProxyPanel() {
       <Group
         title={
           <>
-            默认凭证
+            {t("page.settings.proxy.credentials")}
             <span style={{ marginLeft: "8px", letterSpacing: 0, textTransform: "none" }}>
-              <EnvTag>{configured ? "已配置" : "未配置"}</EnvTag>
+              <EnvTag>
+                {configured ? t("page.settings.proxy.configured") : t("page.settings.proxy.notConfigured")}
+              </EnvTag>
             </span>
           </>
         }
       >
         <Card>
-          <SettingRow label="默认 AccessKey" hint="连接未单独开启 ACL 时，自动用此凭证鉴权">
+          <SettingRow label={t("page.settings.proxy.accessKey")} hint={t("page.settings.proxy.accessKeyHint")}>
             <Field
               className="mono3"
               style={{ width: "240px" }}
               value={accessKey}
-              placeholder={configured ? "已保存，填写以替换" : "AccessKey"}
+              placeholder={configured ? t("page.settings.proxy.replaceHint") : "AccessKey"}
               onChange={(e) => setAccessKey(e.target.value)}
             />
           </SettingRow>
-          <SettingRow label="默认 SecretKey" hint="加密存储于本地；连接级 ACL 优先">
+          <SettingRow label={t("page.settings.proxy.secretKey")} hint={t("page.settings.proxy.secretKeyHint")}>
             <Field
               type="password"
               className="mono3"
               style={{ width: "240px" }}
               value={secretKey}
-              placeholder={configured ? "已保存，填写以替换" : "SecretKey"}
+              placeholder={configured ? t("page.settings.proxy.replaceHint") : "SecretKey"}
               onChange={(e) => setSecretKey(e.target.value)}
             />
           </SettingRow>
@@ -820,29 +846,28 @@ function ProxyPanel() {
           >
             {configured && (
               <Btn variant="danger" onClick={() => void clear()}>
-                清除凭证
+                {t("page.settings.proxy.clear")}
               </Btn>
             )}
             <Btn variant="primary" disabled={!filled || saving} onClick={() => void save()}>
-              {saving ? "保存中…" : "保存凭证"}
+              {saving ? t("page.settings.proxy.saving") : t("page.settings.proxy.save")}
             </Btn>
           </div>
         </Card>
       </Group>
 
-      <Group title="高级（暂未支持）">
+      <Group title={t("page.settings.proxy.advanced")}>
         <Card>
           <div
             style={{ fontSize: "11px", color: "var(--c-muted)", padding: "12px 16px", lineHeight: 1.55 }}
           >
-            代理与 TLS 跳过依赖各驱动底层客户端的能力，当前版本尚未接入。默认
-            AccessKey/SecretKey 已生效：连接未启用 ACL 时会自动使用。
+            {t("page.settings.proxy.advancedNote")}
           </div>
-          <SettingRow label="跳过 TLS 校验" hint="当前驱动客户端不支持 TLS 选项">
-            <EnvTag>暂未支持</EnvTag>
+          <SettingRow label={t("page.settings.proxy.skipTls")} hint={t("page.settings.proxy.skipTlsHint")}>
+            <EnvTag>{t("page.settings.proxy.unsupported")}</EnvTag>
           </SettingRow>
-          <SettingRow label="启用代理" hint="当前驱动客户端不支持 HTTP/SOCKS 代理" last>
-            <EnvTag>暂未支持</EnvTag>
+          <SettingRow label={t("page.settings.proxy.enableProxy")} hint={t("page.settings.proxy.enableProxyHint")} last>
+            <EnvTag>{t("page.settings.proxy.unsupported")}</EnvTag>
           </SettingRow>
         </Card>
       </Group>
@@ -851,6 +876,7 @@ function ProxyPanel() {
 }
 
 function DataPanel() {
+  const { t } = useTranslation();
   const { reloadSettings } = useSettings();
   const toast = useToast();
   const confirm = useConfirm();
@@ -882,14 +908,14 @@ function DataPanel() {
     navigator.clipboard
       .writeText(directory)
       .then(() => setCopied(true))
-      .catch(() => toast.error("复制失败"));
+      .catch(() => toast.error(t("page.settings.data.copyFailed")));
   };
 
   const reveal = async () => {
     try {
       await revealDataDirectory();
     } catch (error) {
-      toast.error("打开数据目录失败", { description: String(error) });
+      toast.error(t("page.settings.data.openFailed"), { description: String(error) });
     }
   };
 
@@ -898,9 +924,9 @@ function DataPanel() {
       const path = await exportAllConfigToFile();
       // An empty path is the save dialog being dismissed, not a failure.
       if (path == null) return;
-      toast.success("配置已导出", { description: path });
+      toast.success(t("page.settings.data.exported"), { description: path });
     } catch (error) {
-      toast.error("导出配置失败", { description: String(error) });
+      toast.error(t("page.settings.data.exportFailed"), { description: String(error) });
     }
   };
 
@@ -908,9 +934,9 @@ function DataPanel() {
     // Go applies the file as soon as it is chosen, so the question has to come
     // before the dialog rather than after it.
     const confirmed = await confirm({
-      title: "导入配置",
-      description: "导入将覆盖当前的全部连接与应用设置，且无法撤销。",
-      confirmLabel: "选择文件…",
+      title: t("page.settings.data.import"),
+      description: t("page.settings.data.importDesc"),
+      confirmLabel: t("page.settings.data.importConfirm"),
       danger: true,
     });
     if (!confirmed) return;
@@ -918,31 +944,31 @@ function DataPanel() {
       const path = await importAllConfigFromFile();
       if (path == null) return;
       await reloadSettings();
-      toast.success("配置已导入", { description: path });
+      toast.success(t("page.settings.data.imported"), { description: path });
     } catch (error) {
-      toast.error("导入配置失败", { description: String(error) });
+      toast.error(t("page.settings.data.importFailed"), { description: String(error) });
     }
   };
 
   const clear = async () => {
     const confirmed = await confirm({
-      title: "清理缓存",
-      description: "将清除本地的查询与消息缓存数据，连接与设置不受影响。",
-      confirmLabel: "清理缓存",
+      title: t("page.settings.data.clearCache"),
+      description: t("page.settings.data.clearCacheDesc"),
+      confirmLabel: t("page.settings.data.clearCache"),
       danger: true,
     });
     if (!confirmed) return;
     try {
       await clearCache();
-      toast.success("缓存已清理");
+      toast.success(t("page.settings.data.cacheCleared"));
     } catch (error) {
-      toast.error("清理缓存失败", { description: String(error) });
+      toast.error(t("page.settings.data.clearCacheFailed"), { description: String(error) });
     }
   };
 
   return (
     <>
-      <Group title="数据存储位置" first>
+      <Group title={t("page.settings.data.location")} first>
         <Card>
           <SettingRow
             label={
@@ -953,49 +979,49 @@ function DataPanel() {
             }
             hint={
               <code className="mono3" style={{ fontSize: "11.5px", wordBreak: "break-all" }}>
-                {directory || "读取中…"}
+                {directory || t("page.settings.data.loading")}
               </code>
             }
             last
           >
             <Btn disabled={directory === ""} onClick={copy}>
               <Copy size={13} aria-hidden />
-              {copied ? "已复制" : "复制路径"}
+              {copied ? t("page.settings.data.copied") : t("page.settings.data.copyPath")}
             </Btn>
             <Btn disabled={directory === ""} onClick={() => void reveal()}>
               <FolderOpen size={13} aria-hidden />
-              打开目录
+              {t("page.settings.data.openDirectory")}
             </Btn>
           </SettingRow>
         </Card>
       </Group>
 
-      <Group title="导入与导出">
+      <Group title={t("page.settings.data.transfer")}>
         <Card>
           <SettingRow
-            label="导出全部配置"
-            hint="导出连接、ACL、应用设置；文件包含明文凭据，请妥善保管"
+            label={t("page.settings.data.export")}
+            hint={t("page.settings.data.exportHint")}
           >
             <Btn onClick={() => void exportConfig()}>
               <Download size={13} aria-hidden />
-              导出
+              {t("page.settings.data.exportAction")}
             </Btn>
           </SettingRow>
-          <SettingRow label="导入配置" hint="从 JSON 文件恢复并立即重新加载连接与设置" last>
+          <SettingRow label={t("page.settings.data.import")} hint={t("page.settings.data.importHint")} last>
             <Btn onClick={() => void importConfig()}>
               <Upload size={13} aria-hidden />
-              选择文件
+              {t("page.settings.data.importAction")}
             </Btn>
           </SettingRow>
         </Card>
       </Group>
 
-      <Group title="清理">
+      <Group title={t("page.settings.data.cleanup")}>
         <Card>
-          <SettingRow label="清理缓存" hint="清除本地的查询、消息缓存数据" last>
+          <SettingRow label={t("page.settings.data.clearCache")} hint={t("page.settings.data.clearCacheHint")} last>
             <Btn variant="danger" onClick={() => void clear()}>
               <Trash2 size={13} aria-hidden />
-              清理缓存
+              {t("page.settings.data.clearCache")}
             </Btn>
           </SettingRow>
         </Card>
@@ -1007,6 +1033,7 @@ function DataPanel() {
 export type DocId = "capability" | "reuse" | "nav";
 
 function AboutPanel({ onOpenDoc }: { onOpenDoc?: (doc: DocId) => void }) {
+  const { t } = useTranslation();
   const { resetAllSettings } = useSettings();
   const { markSeen } = useUpdateCheck();
   const { check, checking } = useUpdateCheckAction();
@@ -1034,17 +1061,17 @@ function AboutPanel({ onOpenDoc }: { onOpenDoc?: (doc: DocId) => void }) {
 
   const reset = async () => {
     const confirmed = await confirm({
-      title: "恢复默认设置",
-      description: "所有应用设置将回到初始值。连接与 ACL 配置不受影响。",
-      confirmLabel: "恢复默认",
+      title: t("page.settings.about.reset"),
+      description: t("page.settings.about.resetDesc"),
+      confirmLabel: t("page.settings.about.resetAction"),
       danger: true,
     });
     if (!confirmed) return;
     try {
       await resetAllSettings();
-      toast.success("设置已恢复默认");
+      toast.success(t("page.settings.about.resetDone"));
     } catch (error) {
-      toast.error("恢复默认失败", { description: String(error) });
+      toast.error(t("page.settings.about.resetFailed"), { description: String(error) });
     }
   };
 
@@ -1077,7 +1104,7 @@ function AboutPanel({ onOpenDoc }: { onOpenDoc?: (doc: DocId) => void }) {
         <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginTop: "16px" }}>
           <Btn variant="primary" disabled={checking} onClick={() => void check()}>
             <RefreshCw size={13} aria-hidden />
-            {checking ? "检查中…" : "检查更新"}
+            {checking ? t("page.settings.about.checking") : t("page.settings.about.checkUpdate")}
           </Btn>
           <Btn onClick={() => openLink(GITHUB_URL)}>
             <Github size={13} aria-hidden />
@@ -1085,16 +1112,16 @@ function AboutPanel({ onOpenDoc }: { onOpenDoc?: (doc: DocId) => void }) {
           </Btn>
           <Btn onClick={() => openLink(GITHUB_ISSUES_URL)}>
             <ExternalLink size={13} aria-hidden />
-            提交 Issue
+            {t("page.settings.about.issue")}
           </Btn>
         </div>
       </Card>
 
       <Card style={{ marginTop: "14px" }}>
-        <SettingRow label="恢复默认设置" hint="将所有设置恢复为初始值（不影响连接）" last>
+        <SettingRow label={t("page.settings.about.reset")} hint={t("page.settings.about.resetHint")} last>
           <Btn variant="danger" onClick={() => void reset()}>
             <RotateCcw size={13} aria-hidden />
-            恢复默认
+            {t("page.settings.about.resetAction")}
           </Btn>
         </SettingRow>
       </Card>
@@ -1104,16 +1131,16 @@ function AboutPanel({ onOpenDoc }: { onOpenDoc?: (doc: DocId) => void }) {
        * the canvas; this group is the only addition to what the shipped settings
        * page carries.
        */}
-      <Group title="设计参考">
+      <Group title={t("page.settings.about.reference")}>
         <Card>
           <SettingRow
-            label="协议能力矩阵 · 复用策略 · 导航模型"
-            hint="设计稿 3h / 4d / 5c，说明各页面按协议如何裁剪"
+            label={t("page.settings.about.referenceLabel")}
+            hint={t("page.settings.about.referenceHint")}
             last
           >
-            <Btn onClick={() => onOpenDoc?.("capability")}>能力矩阵</Btn>
-            <Btn onClick={() => onOpenDoc?.("reuse")}>复用策略</Btn>
-            <Btn onClick={() => onOpenDoc?.("nav")}>导航模型</Btn>
+            <Btn onClick={() => onOpenDoc?.("capability")}>{t("page.settings.about.capability")}</Btn>
+            <Btn onClick={() => onOpenDoc?.("reuse")}>{t("page.settings.about.reuse")}</Btn>
+            <Btn onClick={() => onOpenDoc?.("nav")}>{t("page.settings.about.navModel")}</Btn>
           </SettingRow>
         </Card>
       </Group>
@@ -1137,6 +1164,7 @@ export function Settings({
   };
   initialSection?: SectionId;
 }) {
+  const { t } = useTranslation();
   const [section, setSection] = useState<SectionId>(initialSection);
 
   const current = SECTIONS.find((s) => s.id === section) ?? SECTIONS[0]!;
@@ -1157,16 +1185,16 @@ export function Settings({
       <div className="hd3" style={{ alignItems: "center" }}>
         <Btn style={{ padding: "4.5px 9px" }} onClick={onBack}>
           <ChevronLeft size={13} aria-hidden />
-          返回
+          {t("page.settings.back")}
         </Btn>
-        <h2>设置</h2>
+        <h2>{t("page.settings.title")}</h2>
         <span style={{ flex: 1 }} />
       </div>
 
       <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
         <nav
           className="mqs-scroll side3"
-          aria-label="设置分区"
+          aria-label={t("page.settings.sectionsNav")}
           style={{ gap: "2px", overflowX: "hidden", overflowY: "auto" }}
         >
           {SECTIONS.map((s) => {
@@ -1182,7 +1210,7 @@ export function Settings({
                 <span className="nic">
                   <s.icon size={16} aria-hidden />
                 </span>
-                <span className="nil">{s.label}</span>
+                <span className="nil">{t(`page.settings.section.${s.id}`)}</span>
               </button>
             );
           })}
@@ -1200,15 +1228,15 @@ export function Settings({
             >
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontSize: "15px", fontWeight: 600, letterSpacing: "-0.01em" }}>
-                  {current.label}
+                  {t(`page.settings.section.${current.id}`)}
                 </div>
                 <div style={{ fontSize: "11.5px", color: "var(--c-muted)", marginTop: "2px" }}>
-                  {current.subtitle}
+                  {t(`page.settings.section.${current.id}Sub`)}
                 </div>
               </div>
               <span style={{ flex: 1 }} />
               <span style={{ fontSize: "11px", color: "var(--c-muted)", flex: "none" }}>
-                所有更改自动保存
+                {t("page.settings.autoSaved")}
               </span>
             </div>
 

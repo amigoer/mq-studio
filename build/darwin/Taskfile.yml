@@ -171,8 +171,14 @@ tasks:
       OUTPUT: '{{ .OUTPUT | default .DEFAULT_OUTPUT }}'
 
   create:dmg:
-    summary: Runs dmgbuild against the already-packaged `.app`
-    internal: true
+    summary: Builds the disk image from the `.app` already sitting in bin/
+    desc: |
+      Split out from package:dmg so a release can sign the bundle in between.
+      Re-running package would re-run create:app:bundle, whose last step ad-hoc
+      signs the bundle - which would throw away a Developer ID signature.
+    vars:
+      DEFAULT_OUTPUT: '{{.BIN_DIR}}/{{.APP_NAME}}-{{.APP_VERSION}}-mac-{{.ARCH | default ARCH}}.dmg'
+      OUTPUT: '{{ .OUTPUT | default .DEFAULT_OUTPUT }}'
     preconditions:
       - sh: command -v dmgbuild > /dev/null 2>&1
         msg: |

@@ -1,0 +1,424 @@
+# Builds every distributable for one commit.
+#
+# Called by both ci.yml (push to main, unsigned) and release.yml (tag, signed
+# when the credentials exist). Keeping it in one place is the point: when the
+# two drifted, a packaging break only ever surfaced on release day.
+#
+# Runner choice follows what each platform needs to build:
+#   macOS   CGO, so each architecture builds natively
+#   Windows CGO_ENABLED=0, so amd64 and arm64 cross-compile from one runner
+#   Linux   CGO, so each architecture needs a runner of its own
+name: Package
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: Commit SHA to build.
+        required: true
+        type: string
+      package-version:
+        description: Version used in the artifact filenames.
+        required: true
+        type: string
+      release-tag:
+        description: Tag to check the version against. Empty skips the check.
+        required: false
+        default: ''
+        type: string
+      sign:
+        description: Sign, notarise and staple when the credentials are present.
+        required: false
+        default: false
+        type: boolean
+      retention-days:
+        description: How long to keep the uploaded artifacts.
+        required: false
+        default: 7
+        type: number
+    secrets:
+      # All optional: with any of them missing the macOS build ships ad-hoc
+      # signed, which is what the Taskfile's package step produces on its own.
+      MACOS_SIGN_IDENTITY:
+        required: false
+      MACOS_CSC_LINK:
+        required: false
+      MACOS_CSC_KEY_PASSWORD:
+        required: false
+      APPLE_ID:
+        required: false
+      APPLE_APP_SPECIFIC_PASSWORD:
+        required: false
+      APPLE_TEAM_ID:
+        required: false
+      WINDOWS_CERTIFICATE:
+        required: false
+      WINDOWS_CERTIFICATE_PASSWORD:
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    name: Package (${{ matrix.target }})
+    # Unconditional because `environment:` cannot be omitted conditionally.
+    # It only holds the optional signing secrets, so an unsigned CI run resolves
+    # them to empty and skips. Do NOT put required reviewers on this
+    # environment: every push to main would then wait for an approval.
+    environment: release
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-latest
+            target: mac-amd64
+            os: mac
+            arch: amd64
+          - runner: macos-latest
+            target: mac-arm64
+            os: mac
+            arch: arm64
+          - runner: windows-latest
+            target: windows-amd64
+            os: windows
+            arch: amd64
+          - runner: windows-latest
+            target: windows-arm64
+            os: windows
+            arch: arm64
+          - runner: ubuntu-latest
+            target: linux-amd64
+            os: linux
+            arch: amd64
+          - runner: ubuntu-24.04-arm
+            target: linux-arm64
+            os: linux
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      # Building the CLI links against GTK and WebKit, so the libraries have
+      # to be present before it is installed. desktop-file-utils is for the
+      # .desktop validation below.
+      - name: Install Linux build dependencies
+        if: matrix.os == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            pkg-config \
+            libgtk-3-dev \
+            libwebkit2gtk-4.1-dev \
+            desktop-file-utils \
+            rpm \
+            file
+
+      # Chocolatey does not export makensis to later steps, so add it here.
+      - name: Install NSIS
+        if: matrix.os == 'windows'
+        shell: bash
+        run: |
+          set -eu
+          choco install nsis -y --no-progress
+          echo "C:\Program Files (x86)\NSIS" >> "$GITHUB_PATH"
+
+      # dmgbuild lays the disk image out by writing the .DS_Store directly, so
+      # unlike create-dmg it needs no Finder and cannot hang on AppleScript.
+      # pipx is preinstalled on the macOS runner images.
+      - name: Install dmgbuild
+        if: matrix.os == 'mac'
+        shell: bash
+        run: |
+          set -eu
+          pipx install dmgbuild
+          dmgbuild --help > /dev/null
+
+      # The CLI bundles Task, so no separate Task install is needed.
+      - name: Install the Wails CLI
+        shell: bash
+        run: |
+          set -eu
+          wails_version="$(awk '/github.com\/wailsapp\/wails\/v3/ { print $2; exit }' go.mod)"
+          go install "github.com/wailsapp/wails/v3/cmd/wails3@${wails_version}"
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+      # With no tag this only checks that the version mirrors agree; a release
+      # additionally pins them to the tag being built.
+      - name: Validate version metadata
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ inputs.release-tag }}
+        run: npm run check:version
+
+      - name: Install frontend dependencies
+        run: npm ci --prefix frontend
+
+      # Every package is published as mq-studio-<version>-<os>-<arch>.<ext>.
+      # The packaging tools each name their output differently, so the canonical
+      # name is resolved once here and applied below.
+      - name: Resolve the package name
+        shell: bash
+        run: |
+          set -eu
+          echo "PACKAGE_BASE=mq-studio-${{ inputs.package-version }}-${{ matrix.os }}-${{ matrix.arch }}" \
+            >> "$GITHUB_ENV"
+
+      # Decided once so the bundle, the image layout and the verification steps
+      # cannot disagree about whether this build is signed.
+      - name: Decide whether this build gets signed
+        if: matrix.os == 'mac'
+        shell: bash
+        env:
+          WANT_SIGNING: ${{ inputs.sign }}
+          SIGN_IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY }}
+          CSC_LINK: ${{ secrets.MACOS_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.MACOS_CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -eu
+          if [ "$WANT_SIGNING" = "true" ] && [ -n "${SIGN_IDENTITY:-}" ] && \
+             [ -n "${CSC_LINK:-}" ] && [ -n "${CSC_KEY_PASSWORD:-}" ] && \
+             [ -n "${APPLE_ID:-}" ] && [ -n "${APPLE_APP_SPECIFIC_PASSWORD:-}" ] && \
+             [ -n "${APPLE_TEAM_ID:-}" ]; then
+            echo 'SIGNED=1' >> "$GITHUB_ENV"
+          else
+            # Not a warning: shipping ad-hoc signed is the expected result while
+            # no Developer ID is configured. The image then carries the First
+            # Run helper that clears the quarantine flag for the user.
+            echo 'macOS signing credentials are not configured; shipping the ad-hoc signed bundle.'
+            echo 'SIGNED=0' >> "$GITHUB_ENV"
+          fi
+
+      # ARCH has to be an environment variable throughout: a Task CLI variable
+      # does not reach the nested build and syso tasks, which would then
+      # silently build the runner's own architecture instead.
+      - name: Package the macOS bundle
+        if: matrix.os == 'mac'
+        shell: bash
+        env:
+          ARCH: ${{ matrix.arch }}
+        run: wails3 task darwin:package
+
+      # Signed inside-out with an explicit codesign rather than `wails3 tool
+      # sign`, which omits --timestamp (notarisation rejects an untimestamped
+      # signature) and passes --deep, which Apple documents as unfit for
+      # distribution.
+      - name: Sign the macOS bundle
+        if: matrix.os == 'mac' && env.SIGNED == '1'
+        shell: bash
+        env:
+          SIGN_IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY }}
+          CSC_LINK: ${{ secrets.MACOS_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.MACOS_CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -eu
+          keychain="$RUNNER_TEMP/signing.keychain-db"
+          keychain_password="$(uuidgen)"
+          certificate="$RUNNER_TEMP/certificate.p12"
+
+          security create-keychain -p "$keychain_password" "$keychain"
+          security set-keychain-settings -lut 21600 "$keychain"
+          security unlock-keychain -p "$keychain_password" "$keychain"
+          echo "$CSC_LINK" | base64 --decode > "$certificate"
+          security import "$certificate" -k "$keychain" -P "$CSC_KEY_PASSWORD" \
+            -T /usr/bin/codesign -T /usr/bin/security
+          security set-key-partition-list -S apple-tool:,apple:,codesign: \
+            -s -k "$keychain_password" "$keychain" > /dev/null
+          security list-keychain -d user -s "$keychain" login.keychain-db
+          rm -f "$certificate"
+
+          bundle="bin/MQ Studio.app"
+          codesign --force --timestamp --options runtime \
+            --entitlements build/darwin/entitlements.plist \
+            --sign "$SIGN_IDENTITY" "$bundle/Contents/MacOS/mq-studio"
+          codesign --force --timestamp --options runtime \
+            --entitlements build/darwin/entitlements.plist \
+            --sign "$SIGN_IDENTITY" "$bundle"
+          codesign --verify --strict --verbose=2 "$bundle"
+
+          # notarytool reads the Apple credentials from a keychain profile.
+          xcrun notarytool store-credentials release-notarize \
+            --apple-id "$APPLE_ID" \
+            --team-id "$APPLE_TEAM_ID" \
+            --password "$APPLE_APP_SPECIFIC_PASSWORD" \
+            --keychain "$keychain"
+
+          # Stapling the bundle as well as the image is what makes the very
+          # first launch work with no network round-trip.
+          ditto -c -k --keepParent "$bundle" "$RUNNER_TEMP/bundle.zip"
+          if ! xcrun notarytool submit "$RUNNER_TEMP/bundle.zip" \
+                 --keychain-profile release-notarize --keychain "$keychain" \
+                 --wait --output-format json > "$RUNNER_TEMP/bundle-notarize.json"; then
+            id="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1])).get("id",""))' "$RUNNER_TEMP/bundle-notarize.json" || true)"
+            [ -n "$id" ] && xcrun notarytool log "$id" \
+              --keychain-profile release-notarize --keychain "$keychain" || true
+            exit 1
+          fi
+          xcrun stapler staple "$bundle"
+
+          echo "SIGNING_KEYCHAIN=$keychain" >> "$GITHUB_ENV"
+
+      - name: Build the macOS disk image
+        if: matrix.os == 'mac'
+        shell: bash
+        env:
+          ARCH: ${{ matrix.arch }}
+        run: wails3 task darwin:create:dmg OUTPUT="bin/${PACKAGE_BASE}.dmg"
+
+      # A disk image is not code: no entitlements, no hardened runtime. It is
+      # notarised in its own right so mounting a freshly downloaded image is
+      # clean offline too.
+      - name: Sign and notarise the macOS disk image
+        if: matrix.os == 'mac' && env.SIGNED == '1'
+        shell: bash
+        env:
+          SIGN_IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY }}
+        run: |
+          set -eu
+          image="bin/${PACKAGE_BASE}.dmg"
+          codesign --force --timestamp --sign "$SIGN_IDENTITY" "$image"
+          if ! xcrun notarytool submit "$image" \
+                 --keychain-profile release-notarize --keychain "$SIGNING_KEYCHAIN" \
+                 --wait --output-format json > "$RUNNER_TEMP/dmg-notarize.json"; then
+            id="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1])).get("id",""))' "$RUNNER_TEMP/dmg-notarize.json" || true)"
+            [ -n "$id" ] && xcrun notarytool log "$id" \
+              --keychain-profile release-notarize --keychain "$SIGNING_KEYCHAIN" || true
+            exit 1
+          fi
+          xcrun stapler staple "$image"
+
+      # Fails the build rather than shipping something Gatekeeper will reject.
+      - name: Verify the macOS signature
+        if: matrix.os == 'mac' && env.SIGNED == '1'
+        shell: bash
+        run: |
+          set -eu
+          codesign --verify --deep --strict --verbose=2 "bin/MQ Studio.app"
+          spctl --assess -vvv --type exec "bin/MQ Studio.app"
+          xcrun stapler validate "bin/${PACKAGE_BASE}.dmg"
+
+      - name: Package the Windows installer
+        if: matrix.os == 'windows'
+        shell: bash
+        env:
+          ARCH: ${{ matrix.arch }}
+        run: wails3 task windows:package
+
+      - name: Sign the Windows installer
+        if: matrix.os == 'windows' && inputs.sign
+        shell: bash
+        env:
+          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        run: |
+          set -eu
+          if [ -z "${WINDOWS_CERTIFICATE:-}" ] || [ -z "${WINDOWS_CERTIFICATE_PASSWORD:-}" ]; then
+            echo 'Windows signing credentials are not configured; shipping the installer unsigned.'
+            exit 0
+          fi
+          certificate="$RUNNER_TEMP/certificate.pfx"
+          echo "$WINDOWS_CERTIFICATE" | base64 --decode > "$certificate"
+          signtool=$(find "/c/Program Files (x86)/Windows Kits/10/bin" -name signtool.exe -path '*x64*' | sort | tail -1)
+          for installer in bin/*installer.exe; do
+            "$signtool" sign //f "$(cygpath -w "$certificate")" //p "$WINDOWS_CERTIFICATE_PASSWORD" \
+              //tr http://timestamp.digicert.com //td SHA256 //fd SHA256 "$(cygpath -w "$installer")"
+          done
+          rm -f "$certificate"
+
+      - name: Package the Linux artifacts
+        if: matrix.os == 'linux'
+        shell: bash
+        env:
+          ARCH: ${{ matrix.arch }}
+        run: |
+          set -eu
+          wails3 task linux:create:appimage
+          wails3 task linux:create:deb
+          wails3 task linux:create:rpm
+
+      # The launcher entry is the most visible piece of Linux polish and the
+      # easiest to regress, so it is checked rather than assumed.
+      - name: Validate the desktop entry
+        if: matrix.os == 'linux'
+        shell: bash
+        run: |
+          set -eu
+          desktop-file-validate build/linux/mq-studio.desktop
+          grep -q '^Name=MQ Studio$' build/linux/mq-studio.desktop
+          grep -q '^StartupWMClass=mq-studio$' build/linux/mq-studio.desktop
+
+      # NSIS names the installer after the product, AppImage after the GNU
+      # architecture, and nfpm omits the architecture entirely - which would
+      # make the two Linux jobs overwrite each other once the artifacts merge.
+      # Everything is renamed onto the canonical scheme here.
+      - name: Normalise the package names
+        if: matrix.os != 'mac'
+        shell: bash
+        run: |
+          set -eu
+          shopt -s nullglob
+          normalise() {
+            local extension="$1"; shift
+            local produced=("$@")
+            if [ "${#produced[@]}" -ne 1 ]; then
+              echo "expected exactly one ${extension} package, found ${#produced[@]}: ${produced[*]-none}" >&2
+              exit 1
+            fi
+            mv "${produced[0]}" "bin/${PACKAGE_BASE}.${extension}"
+          }
+          case '${{ matrix.os }}' in
+            windows)
+              normalise exe bin/*installer.exe
+              ;;
+            linux)
+              normalise AppImage bin/*.AppImage
+              normalise deb bin/*.deb
+              normalise rpm bin/*.rpm
+              ;;
+          esac
+
+      # Hashed on the runner that produced the file, so the publish job only
+      # concatenates what each job attested to.
+      - name: Checksum the packages
+        shell: bash
+        run: |
+          set -eu
+          cd bin
+          rm -f "${PACKAGE_BASE}.sha256"
+          find . -maxdepth 1 -type f -name "${PACKAGE_BASE}.*" ! -name '*.sha256' \
+            -exec shasum -a 256 {} + | sed 's| \./| |' > "${PACKAGE_BASE}.sha256"
+          cat "${PACKAGE_BASE}.sha256"
+
+      - name: List packaged files
+        shell: bash
+        run: find bin -maxdepth 1 -type f | sort
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: packages-${{ matrix.target }}
+          path: bin/${{ env.PACKAGE_BASE }}.*
+          if-no-files-found: error
+          retention-days: ${{ inputs.retention-days }}

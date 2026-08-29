@@ -1,4 +1,5 @@
 import { useEffect, useRef, type CSSProperties } from "react";
+import { useTranslation } from "react-i18next";
 import { Columns2, Plus, X } from "lucide-react";
 import { ProtocolIcon } from "@/design/icons/ProtocolIcon";
 import { connectionOf, type ConnectionStatus } from "@/design/data/connections";
@@ -74,6 +75,7 @@ export function ConnectionTabs({
   onAdd?: () => void;
   onSplit?: () => void;
 }) {
+  const { t } = useTranslation();
   const stripRef = useRef<HTMLDivElement>(null);
 
   // The strip scrolls once tabs hit their floor, so the tab being switched to
@@ -87,11 +89,11 @@ export function ConnectionTabs({
   if (tabs.length === 0) {
     return (
       <div className="mqs-tabstrip" ref={stripRef}>
-        <button type="button" className="mqs-tab-add" aria-label="新建连接" onClick={onAdd}>
+        <button type="button" className="mqs-tab-add" aria-label={t("shell.tabs.new")} onClick={onAdd}>
           <Plus size={13} aria-hidden />
         </button>
         <span style={{ fontSize: "11px", color: "var(--c-muted-2)", whiteSpace: "nowrap" }}>
-          新建连接后会以标签的形式出现在这里
+          {t("shell.tabs.newHint")}
         </span>
       </div>
     );
@@ -130,7 +132,7 @@ export function ConnectionTabs({
             <button
               type="button"
               className="mqs-tab-close"
-              aria-label={`关闭 ${conn.name}`}
+              aria-label={t("shell.tabs.close", { name: conn.name })}
               onClick={(e) => {
                 e.stopPropagation();
                 onClose?.(key);
@@ -161,13 +163,13 @@ export function ConnectionTabs({
           <span style={{ fontSize: "10.5px", color: "var(--c-muted)", fontWeight: 400 }}>
             {compare.detail}
           </span>
-          <button type="button" className="mqs-tab-close" aria-label="退出分屏" onClick={onSplit}>
+          <button type="button" className="mqs-tab-close" aria-label={t("shell.tabs.exitSplit")} onClick={onSplit}>
             <X size={13} aria-hidden />
           </button>
         </div>
       )}
 
-      <button type="button" className="mqs-tab-add" aria-label="新建连接" onClick={onAdd}>
+      <button type="button" className="mqs-tab-add" aria-label={t("shell.tabs.new")} onClick={onAdd}>
         <Plus size={13} aria-hidden />
       </button>
     </div>

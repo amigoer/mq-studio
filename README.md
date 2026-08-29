@@ -124,11 +124,20 @@ Download the latest package from **[GitHub Releases](https://github.com/amigoer/
 Packages are named `mq-studio-<version>-<os>-<arch>.<ext>`, where `os` is
 `mac`, `windows` or `linux` and `arch` is `amd64` or `arm64`.
 
-| Platform | Package |
-| --- | --- |
-| macOS Apple Silicon / Intel | `mq-studio-<version>-mac-arm64.dmg` / `-mac-amd64.dmg` |
-| Windows ARM64 / x64 | `mq-studio-<version>-windows-arm64.exe` / `-windows-amd64.exe` |
-| Linux ARM64 / x64 | `mq-studio-<version>-linux-arm64.AppImage` / `-linux-amd64.AppImage` |
+| Platform | Package | Requires |
+| --- | --- | --- |
+| macOS Apple Silicon / Intel | `-mac-arm64.dmg` / `-mac-amd64.dmg` | macOS 12+ |
+| Windows x64 / ARM64 | `-windows-amd64.exe` / `-windows-arm64.exe` | Windows 10+ |
+| Debian / Ubuntu | `-linux-amd64.deb` / `-linux-arm64.deb` | GTK 3, WebKit2GTK 4.1 |
+| Fedora / RHEL | `-linux-amd64.rpm` / `-linux-arm64.rpm` | GTK 3, WebKit2GTK 4.1 |
+| Any Linux | `-linux-amd64.AppImage` / `-linux-arm64.AppImage` | GTK 3, WebKit2GTK 4.1 |
+
+On a Mac, About This Mac tells you whether to take `arm64` or `amd64`.
+
+macOS builds are not signed by a registered Apple developer yet, so the first
+launch needs one extra step — the disk image ships a helper for it. See
+**[INSTALL](docs/INSTALL.md)** for that and for the per-platform install steps.
+Every release also ships `SHA256SUMS.txt`.
 
 ## Quick start
 
@@ -152,7 +161,7 @@ Use `make check` to run project checks, `make package` to build a distributable,
 
 ## Docs
 
-[Architecture](docs/ARCHITECTURE.md) · [Roadmap](docs/ROADMAP.md)
+[Architecture](docs/ARCHITECTURE.md) · [Install](docs/INSTALL.md) · [Releasing](RELEASE.md) · [Roadmap](docs/ROADMAP.md)
 
 ## License
 

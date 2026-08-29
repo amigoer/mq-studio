@@ -1,20 +1,25 @@
-# Build Wails packages for every target and publish a GitHub Release.
+# Builds every target for a tag and publishes a draft GitHub Release.
 #
-# Runner choice follows what each platform needs to build:
-#   macOS   CGO, both slices from one SDK, joined with lipo -> one universal job
-#   Windows CGO_ENABLED=0, so amd64 and arm64 cross-compile from one runner
-#   Linux   CGO, so each architecture needs a runner of its own
+# The release is left as a draft on purpose: the artifacts are meant to be
+# downloaded and installed once by hand before anyone else can get them. The
+# in-app update check only ever sees a published release.
 #
 # Optional macOS signing secrets (environment: release):
 #   MACOS_SIGN_IDENTITY   Developer ID Application identity name
 #   MACOS_CSC_LINK        base64 encoded .p12 certificate
 #   MACOS_CSC_KEY_PASSWORD
 #   APPLE_ID / APPLE_APP_SPECIFIC_PASSWORD / APPLE_TEAM_ID  (notarisation)
-# With any of them missing the macOS build ships ad-hoc signed, which is what
-# the Taskfile's package step produces on its own.
+# Optional Windows signing secrets:
+#   WINDOWS_CERTIFICATE   base64 encoded .pfx
+#   WINDOWS_CERTIFICATE_PASSWORD
+# With any of them missing that platform ships unsigned, and the macOS image
+# carries the First Run helper that clears the quarantine flag for the user.
 name: Release
 
 on:
+  push:
+    tags:
+      - 'v*.*.*'
   workflow_dispatch:
     inputs:
       tag:
@@ -23,7 +28,9 @@ on:
         type: string
 
 concurrency:
-  group: release-${{ inputs.tag }}
+  # inputs.tag is null on a tag push, so without the fallback every tag would
+  # share a single group named "release-".
+  group: release-${{ github.event.inputs.tag || github.ref_name }}
   cancel-in-progress: false
 
 permissions:
@@ -34,18 +41,20 @@ jobs:
     name: Resolve release source
     runs-on: ubuntu-latest
     outputs:
+      tag: ${{ steps.resolve.outputs.tag }}
+      version: ${{ steps.resolve.outputs.version }}
       commit: ${{ steps.resolve.outputs.commit }}
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: refs/tags/${{ inputs.tag }}
+          ref: refs/tags/${{ github.event.inputs.tag || github.ref_name }}
           fetch-depth: 0
 
       - name: Validate and resolve tag
         id: resolve
         shell: bash
         env:
-          RELEASE_TAG: ${{ inputs.tag }}
+          RELEASE_TAG: ${{ github.event.inputs.tag || github.ref_name }}
         run: |
           set -eu
           if ! [[ "$RELEASE_TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
@@ -58,235 +67,34 @@ jobs:
             echo "checked out commit does not match $RELEASE_TAG" >&2
             exit 1
           fi
+          echo "tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
+          echo "version=${RELEASE_TAG#v}" >> "$GITHUB_OUTPUT"
           echo "commit=$tag_commit" >> "$GITHUB_OUTPUT"
 
   package:
-    name: Package (${{ matrix.target }})
+    name: Package
     needs: resolve
-    environment: release
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          # macOS and Windows cross-compile between architectures on one
-          # runner; Linux needs cgo, so each architecture builds natively.
-          - runner: macos-latest
-            target: mac-amd64
-            os: mac
-            arch: amd64
-          - runner: macos-latest
-            target: mac-arm64
-            os: mac
-            arch: arm64
-          - runner: windows-latest
-            target: windows-amd64
-            os: windows
-            arch: amd64
-          - runner: windows-latest
-            target: windows-arm64
-            os: windows
-            arch: arm64
-          - runner: ubuntu-latest
-            target: linux-amd64
-            os: linux
-            arch: amd64
-          - runner: ubuntu-24.04-arm
-            target: linux-arm64
-            os: linux
-            arch: arm64
-    runs-on: ${{ matrix.runner }}
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          ref: ${{ needs.resolve.outputs.commit }}
-          fetch-depth: 0
-
-      - name: Verify release source
-        shell: bash
-        env:
-          RELEASE_TAG: ${{ inputs.tag }}
-          EXPECTED_COMMIT: ${{ needs.resolve.outputs.commit }}
-        run: |
-          set -eu
-          git fetch --force --no-tags origin "refs/tags/$RELEASE_TAG:refs/tags/$RELEASE_TAG"
-          tag_commit="$(git rev-parse "refs/tags/${RELEASE_TAG}^{commit}")"
-          head_commit="$(git rev-parse HEAD)"
-          if [ "$head_commit" != "$EXPECTED_COMMIT" ] || [ "$tag_commit" != "$EXPECTED_COMMIT" ]; then
-            echo "release tag moved after source resolution" >&2
-            exit 1
-          fi
-
-      - uses: actions/setup-go@v6
-        with:
-          go-version-file: go.mod
-          cache-dependency-path: go.sum
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version: '22'
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-
-      # Building the CLI links against GTK and WebKit, so the libraries have
-      # to be present before it is installed.
-      - name: Install Linux build dependencies
-        if: matrix.os == 'linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            build-essential \
-            pkg-config \
-            libgtk-3-dev \
-            libwebkit2gtk-4.1-dev \
-            rpm \
-            file
-
-      # Chocolatey does not export makensis to later steps, so add it here.
-      - name: Install NSIS
-        if: matrix.os == 'windows'
-        shell: bash
-        run: |
-          set -eu
-          choco install nsis -y --no-progress
-          echo "C:\Program Files (x86)\NSIS" >> "$GITHUB_PATH"
-
-      # The CLI bundles Task, so no separate Task install is needed.
-      - name: Install the Wails CLI
-        shell: bash
-        run: |
-          set -eu
-          wails_version="$(awk '/github.com\/wailsapp\/wails\/v3/ { print $2; exit }' go.mod)"
-          go install "github.com/wailsapp/wails/v3/cmd/wails3@${wails_version}"
-          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
-
-      - name: Validate release version
-        shell: bash
-        env:
-          RELEASE_TAG: ${{ inputs.tag }}
-        run: npm run check:version
-
-      - name: Install frontend dependencies
-        run: npm ci --prefix frontend
-
-      # Every package is published as mq-studio-<version>-<os>-<arch>.<ext>.
-      # The packaging tools each name their output differently, so the canonical
-      # name is resolved once here and applied below.
-      - name: Resolve the package name
-        shell: bash
-        env:
-          RELEASE_TAG: ${{ inputs.tag }}
-        run: |
-          set -eu
-          echo "PACKAGE_BASE=mq-studio-${RELEASE_TAG#v}-${{ matrix.os }}-${{ matrix.arch }}" \
-            >> "$GITHUB_ENV"
-
-      # ARCH has to be an environment variable throughout: a Task CLI variable
-      # does not reach the nested build and syso tasks, which would then
-      # silently build the runner's own architecture instead.
-      - name: Package the macOS bundle
-        if: matrix.os == 'mac'
-        shell: bash
-        env:
-          ARCH: ${{ matrix.arch }}
-        run: wails3 task darwin:package
-
-      - name: Sign and notarise the macOS bundle
-        if: matrix.os == 'mac'
-        shell: bash
-        env:
-          SIGN_IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY }}
-          CSC_LINK: ${{ secrets.MACOS_CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ secrets.MACOS_CSC_KEY_PASSWORD }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: |
-          set -eu
-          if [ -z "${SIGN_IDENTITY:-}" ] || [ -z "${CSC_LINK:-}" ] || \
-             [ -z "${CSC_KEY_PASSWORD:-}" ] || [ -z "${APPLE_ID:-}" ] || \
-             [ -z "${APPLE_APP_SPECIFIC_PASSWORD:-}" ] || [ -z "${APPLE_TEAM_ID:-}" ]; then
-            # Not a warning: shipping ad-hoc signed is the expected result when
-            # no signing secrets are configured.
-            echo 'macOS signing credentials are not configured; shipping the ad-hoc signed bundle.'
-            exit 0
-          fi
-          certificate="$RUNNER_TEMP/certificate.p12"
-          echo "$CSC_LINK" | base64 --decode > "$certificate"
-          # notarytool reads the Apple credentials from a keychain profile.
-          xcrun notarytool store-credentials release-notarize \
-            --apple-id "$APPLE_ID" \
-            --team-id "$APPLE_TEAM_ID" \
-            --password "$APPLE_APP_SPECIFIC_PASSWORD"
-          wails3 tool sign \
-            -input "bin/MQ Studio.app" \
-            -certificate "$certificate" \
-            -password "$CSC_KEY_PASSWORD" \
-            -identity "$SIGN_IDENTITY" \
-            -notarize \
-            -keychain-profile release-notarize
-          rm -f "$certificate"
-
-      - name: Build the macOS disk image
-        if: matrix.os == 'mac'
-        shell: bash
-        run: |
-          set -eu
-          # `wails3 tool package -format dmg` is disabled in the pinned CLI and
-          # exits 0 without producing anything, so build the image directly.
-          image="bin/${PACKAGE_BASE}.dmg"
-          hdiutil create \
-            -volname "MQ Studio" \
-            -srcfolder "bin/MQ Studio.app" \
-            -ov -format UDZO \
-            "$image"
-          hdiutil verify "$image"
-
-      - name: Package the Windows installer
-        if: matrix.os == 'windows'
-        shell: bash
-        env:
-          ARCH: ${{ matrix.arch }}
-        run: wails3 task windows:package
-
-      # AppImage only: the deb, rpm and archlinux packages are named without the
-      # architecture, so the two Linux jobs would overwrite each other's files
-      # when the artifacts are merged.
-      - name: Package the Linux AppImage
-        if: matrix.os == 'linux'
-        shell: bash
-        run: wails3 task linux:create:appimage
-
-      # NSIS names the installer after the product and AppImage after the GNU
-      # architecture, so both are renamed onto the canonical scheme.
-      - name: Normalise the package name
-        if: matrix.os != 'mac'
-        shell: bash
-        run: |
-          set -eu
-          shopt -s nullglob
-          case '${{ matrix.os }}' in
-            windows) produced=(bin/*installer.exe); extension=exe ;;
-            linux)   produced=(bin/*.AppImage);     extension=AppImage ;;
-          esac
-          if [ "${#produced[@]}" -ne 1 ]; then
-            echo "expected exactly one package, found ${#produced[@]}: ${produced[*]-none}" >&2
-            exit 1
-          fi
-          mv "${produced[0]}" "bin/${PACKAGE_BASE}.${extension}"
-
-      - name: List packaged files
-        shell: bash
-        run: find bin -maxdepth 1 -type f | sort
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v7
-        with:
-          name: packages-${{ matrix.target }}
-          path: bin/${{ env.PACKAGE_BASE }}.*
-          if-no-files-found: error
+    uses: ./.github/workflows/package.yml
+    with:
+      ref: ${{ needs.resolve.outputs.commit }}
+      package-version: ${{ needs.resolve.outputs.version }}
+      release-tag: ${{ needs.resolve.outputs.tag }}
+      sign: true
+      retention-days: 30
+    # Listed explicitly rather than `secrets: inherit`, so the unsigned CI path
+    # never has the signing material in scope.
+    secrets:
+      MACOS_SIGN_IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY }}
+      MACOS_CSC_LINK: ${{ secrets.MACOS_CSC_LINK }}
+      MACOS_CSC_KEY_PASSWORD: ${{ secrets.MACOS_CSC_KEY_PASSWORD }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+      WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
 
   publish:
-    name: Publish GitHub Release
+    name: Publish draft release
     needs: [resolve, package]
     runs-on: ubuntu-latest
     permissions:
@@ -300,7 +108,7 @@ jobs:
       - name: Verify release tag is unchanged
         shell: bash
         env:
-          RELEASE_TAG: ${{ inputs.tag }}
+          RELEASE_TAG: ${{ needs.resolve.outputs.tag }}
           EXPECTED_COMMIT: ${{ needs.resolve.outputs.commit }}
         run: |
           set -eu
@@ -318,8 +126,17 @@ jobs:
           pattern: packages-*
           merge-multiple: true
 
-      - name: List release files
-        run: find release-files -type f | sort
+      # Each package job hashed its own output; this only joins them, so no
+      # single job is trusted to attest for the others.
+      - name: Collect the checksums
+        shell: bash
+        run: |
+          set -eu
+          cd release-files
+          cat ./*.sha256 | sort -k2 > SHA256SUMS.txt
+          rm -f ./*.sha256
+          cat SHA256SUMS.txt
+          find . -type f | sort
 
       - uses: actions/setup-node@v7
         with:
@@ -330,7 +147,10 @@ jobs:
       - name: Build the release notes
         shell: bash
         env:
-          RELEASE_TAG: ${{ inputs.tag }}
+          RELEASE_TAG: ${{ needs.resolve.outputs.tag }}
+          # Drives the "this build is unsigned" banner, so the draft documents
+          # itself and the banner disappears on its own once a cert is set up.
+          MACOS_SIGNED: ${{ secrets.MACOS_SIGN_IDENTITY != '' && secrets.MACOS_CSC_LINK != '' }}
         run: |
           set -eu
           # An absent predecessor is expected for the first release; the script
@@ -340,13 +160,14 @@ jobs:
             > "$RUNNER_TEMP/release-notes.md"
           cat "$RUNNER_TEMP/release-notes.md"
 
-      - name: Create GitHub Release
+      - name: Create draft GitHub Release
         # v3 is the Node 24 runtime line; v2 targets the deprecated Node 20.
         uses: softprops/action-gh-release@v3
         with:
-          tag_name: ${{ inputs.tag }}
+          tag_name: ${{ needs.resolve.outputs.tag }}
           target_commitish: ${{ needs.resolve.outputs.commit }}
-          name: MQ Studio ${{ inputs.tag }}
+          name: MQ Studio ${{ needs.resolve.outputs.tag }}
           body_path: ${{ runner.temp }}/release-notes.md
           files: release-files/*
           fail_on_unmatched_files: true
+          draft: true

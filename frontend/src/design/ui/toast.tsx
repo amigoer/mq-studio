@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { AlertCircle, CheckCircle2, Info, X, type LucideIcon } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Btn } from "./button";
 
 /**
@@ -82,6 +83,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 }
 
 function ToastCard({ toast, dismiss }: { toast: Toast; dismiss: (id: number) => void }) {
+  const { t } = useTranslation();
   const { id, tone, message, description, action } = toast;
   const duration = toast.duration ?? DURATION[tone];
   const { icon: Icon, colour } = TONE[tone];
@@ -116,7 +118,7 @@ function ToastCard({ toast, dismiss }: { toast: Toast; dismiss: (id: number) => 
       </div>
       <button
         type="button"
-        aria-label="关闭通知"
+        aria-label={t("common.dismiss")}
         onClick={() => dismiss(id)}
         style={{
           display: "flex",

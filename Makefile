@@ -5,7 +5,7 @@ SHELL := /bin/sh
 # Optional cross-compilation target, for example: make build ARCH=amd64
 ARCH ?=
 
-.PHONY: help install install-ci bindings icons dev run build package \
+.PHONY: help install install-ci bindings icons dev run build package dmg \
 	test test-go test-frontend e2e e2e-up e2e-down check ci clean
 
 help: ## Show all available targets
@@ -36,6 +36,9 @@ build: ## Build the app for the current platform
 
 package: ## Package a distributable build for the current platform
 	wails3 task package $(if $(ARCH),ARCH=$(ARCH),)
+
+dmg: ## Build the macOS disk image (needs: pipx install dmgbuild)
+	wails3 task darwin:package:dmg $(if $(ARCH),ARCH=$(ARCH),)
 
 test: ## Run Go and frontend unit tests
 	npm test

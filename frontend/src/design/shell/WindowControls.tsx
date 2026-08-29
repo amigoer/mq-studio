@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Copy, Minus, Square, X } from "lucide-react";
 import { windowControls } from "@/api/platform";
 
@@ -16,6 +17,7 @@ import { windowControls } from "@/api/platform";
 const ICON = 13;
 
 export function WindowControls() {
+  const { t } = useTranslation();
   const [maximised, setMaximised] = useState(false);
 
   const readMaximised = useCallback(() => {
@@ -27,15 +29,15 @@ export function WindowControls() {
     return windowControls.onMaximisedChange(setMaximised);
   }, [readMaximised]);
 
-  const restore = maximised ? "还原" : "最大化";
+  const restore = maximised ? t("common.restore") : t("common.maximize");
 
   return (
     <div className="wcg">
       <button
         type="button"
         className="wc"
-        title="最小化"
-        aria-label="最小化"
+        title={t("common.minimize")}
+        aria-label={t("common.minimize")}
         onClick={() => void windowControls.minimise().catch(() => {})}
       >
         <Minus size={ICON} aria-hidden />
@@ -53,8 +55,8 @@ export function WindowControls() {
       <button
         type="button"
         className="wc dgr"
-        title="关闭"
-        aria-label="关闭"
+        title={t("common.close")}
+        aria-label={t("common.close")}
         onClick={() => void windowControls.close().catch(() => {})}
       >
         <X size={ICON} aria-hidden />

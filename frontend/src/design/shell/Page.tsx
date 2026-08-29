@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 
 /** The content column: `flex:1;display:flex;flex-direction:column;min-width:0`. */
 export function Page({ children, style }: { children: ReactNode; style?: CSSProperties }) {
@@ -155,6 +156,7 @@ export function TabStatusBar({
   tabCount: number;
   onlineCount: number;
 }) {
+  const { t } = useTranslation();
   return (
     <div
       style={{
@@ -173,11 +175,9 @@ export function TabStatusBar({
         <span className="mqs-dot" aria-hidden />
         {connection} {latency}
       </span>
-      <span>后台标签仍保持连接与告警监听</span>
+      <span>{t("shell.status.background")}</span>
       <span style={{ flex: 1 }} />
-      <span>
-        {tabCount} 个标签 · {onlineCount} 在线
-      </span>
+      <span>{t("shell.status.tabs", { tabs: tabCount, online: onlineCount })}</span>
     </div>
   );
 }

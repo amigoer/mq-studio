@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, type JSX } from "react";
+import { useTranslation } from "react-i18next";
 import {
   AppShell,
   CommandPalette,
@@ -55,6 +56,7 @@ const openGithub = () => void openExternal(GITHUB_URL).catch(() => {});
  * not stored globally.
  */
 export function DesignApp(): JSX.Element {
+  const { t } = useTranslation();
   const [connections, setConnections] = useState<readonly Connection[]>(CONNECTIONS);
   // Read once: the stored session is the window's opening state, and reading it
   // again on a later render would fight whatever the user has done since.
@@ -244,7 +246,11 @@ export function DesignApp(): JSX.Element {
                * itself a tab and two tabs cannot both be selected.
                */
               active={atHome ? null : activeTab}
-              compare={view.kind === "split" ? { label: "对照", detail: "RMQ ⇄ Kafka" } : null}
+              compare={
+                view.kind === "split"
+                  ? { label: t("shell.tabs.compare"), detail: "RMQ ⇄ Kafka" }
+                  : null
+              }
               onSelect={openTab}
               onClose={closeTab}
               onAdd={() => {

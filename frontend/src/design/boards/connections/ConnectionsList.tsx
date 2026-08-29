@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { Ellipsis, Star } from "lucide-react";
 import { Page, PageHeader, Toolbar, StatusBar } from "@/design/shell";
 import {
@@ -36,6 +37,7 @@ export function ConnectionsList({
   onOpenTab?: (key: string) => void;
   onDelete?: (key: string) => void;
 }) {
+  const { t } = useTranslation();
   const [filter, setFilter] = useState<ProtocolId | "all">("all");
   const [query, setQuery] = useState("");
   const [menuFor, setMenuFor] = useState<string | null>(null);
@@ -52,14 +54,14 @@ export function ConnectionsList({
   return (
     <Page>
       <PageHeader
-        title="连接"
-        subtitle="全局视图：标题栏 MQ 标记或标签条 ＋ 进入 · 凭证加密存储在本机 · 双击行在新标签打开"
+        title={t("page.connections.title")}
+        subtitle={t("page.connections.subtitle")}
         actions={
           <>
-            <Btn>导入</Btn>
-            <Btn>导出</Btn>
+            <Btn>{t("page.connections.import")}</Btn>
+            <Btn>{t("page.connections.export")}</Btn>
             <Btn variant="primary" onClick={onNewConnection}>
-              + 新建连接
+              {t("page.connections.new")}
             </Btn>
           </>
         }
@@ -68,12 +70,12 @@ export function ConnectionsList({
       <Toolbar>
         <Field
           style={{ flex: "0 0 200px" }}
-          placeholder="搜索连接…"
+          placeholder={t("page.connections.searchPlaceholder")}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
         <Chip active={filter === "all"} onClick={() => setFilter("all")}>
-          全部 {connections.length}
+          {t("page.connections.all", { count: connections.length })}
         </Chip>
         {PROTOCOL_ORDER.map((p) => (
           <Chip key={p} active={filter === p} onClick={() => setFilter(p)}>
@@ -82,8 +84,8 @@ export function ConnectionsList({
           </Chip>
         ))}
         <span style={{ flex: 1 }} />
-        <SelectField value="全部环境" />
-        <SelectField value="按最近使用" />
+        <SelectField value={t("page.connections.allEnvironments")} />
+        <SelectField value={t("page.connections.sortRecent")} />
       </Toolbar>
 
       {/* Scrolls rather than clips: a long list must stay reachable, and so
@@ -92,13 +94,13 @@ export function ConnectionsList({
         <Table className="inset">
           <THead>
             <TR>
-              <TH>名称</TH>
-              <TH>协议</TH>
-              <TH>地址</TH>
-              <TH>环境</TH>
-              <TH>状态</TH>
-              <TH>最近使用</TH>
-              <TH style={{ textAlign: "right" }}>操作</TH>
+              <TH>{t("page.connections.columnName")}</TH>
+              <TH>{t("page.connections.columnProtocol")}</TH>
+              <TH>{t("page.connections.columnAddress")}</TH>
+              <TH>{t("page.connections.columnEnvironment")}</TH>
+              <TH>{t("page.connections.columnStatus")}</TH>
+              <TH>{t("page.connections.columnLastUsed")}</TH>
+              <TH style={{ textAlign: "right" }}>{t("page.connections.columnActions")}</TH>
             </TR>
           </THead>
           <TBody>
@@ -109,7 +111,7 @@ export function ConnectionsList({
                   <span style={{ display: "inline-flex", alignItems: "center", gap: "5px" }}>
                     <b style={{ fontWeight: 500 }}>{c.name}</b>
                     {c.isDefault && (
-                      <Star size={12} fill="currentColor" style={{ color: "var(--c-warn)" }} aria-label="默认连接" />
+                      <Star size={12} fill="currentColor" style={{ color: "var(--c-warn)" }} aria-label={t("page.connections.defaultConnection")} />
                     )}
                   </span>
                 </TD>
@@ -132,7 +134,7 @@ export function ConnectionsList({
                 </TD>
                 <TD style={{ color: "var(--c-muted)" }}>{c.lastUsed}</TD>
                 <TD style={{ textAlign: "right", overflow: "visible", position: "relative" }}>
-                  <span className="mqs-rowhint">悬停显示操作</span>
+                  <span className="mqs-rowhint">{t("page.connections.hoverForActions")}</span>
                   <span
                     className="mqs-rowactions"
                     style={{ position: "relative", display: "inline-flex", gap: "6px" }}
@@ -141,20 +143,20 @@ export function ConnectionsList({
                     <Btn
                       size="rowIcon"
                       variant={menuFor === c.key ? "primary" : "default"}
-                      aria-label="更多操作"
+                      aria-label={t("page.connections.moreActions")}
                       onClick={() => setMenuFor(menuFor === c.key ? null : c.key)}
                     >
                       <Ellipsis size={13} aria-hidden />
                     </Btn>
                     <Menu open={menuFor === c.key} onClose={() => setMenuFor(null)}>
-                      <MenuItem active>复制连接</MenuItem>
+                      <MenuItem active>{t("page.connections.duplicate")}</MenuItem>
                       <MenuItem>
-                        设为默认
+                        {t("page.connections.setDefault")}
                         <Star size={11} fill="currentColor" aria-hidden />
                       </MenuItem>
-                      <MenuItem>导出此连接</MenuItem>
-                      <MenuItem>测试连接</MenuItem>
-                      <MenuItem>操作日志</MenuItem>
+                      <MenuItem>{t("page.connections.exportOne")}</MenuItem>
+                      <MenuItem>{t("page.connections.test")}</MenuItem>
+                      <MenuItem>{t("page.connections.auditLog")}</MenuItem>
                       <MenuSeparator />
                       <MenuItem
                         danger
@@ -163,7 +165,7 @@ export function ConnectionsList({
                           onDelete?.(c.key);
                         }}
                       >
-                        删除连接…
+                        {t("page.connections.delete")}
                       </MenuItem>
                     </Menu>
                   </span>
@@ -177,13 +179,17 @@ export function ConnectionsList({
       <StatusBar
         left={
           <span>
-            {connections.length} 个连接 · {online} 在线 · {failed} 失败
+            {t("page.connections.summary", {
+              total: connections.length,
+              online,
+              failed,
+            })}
           </span>
         }
         right={
           <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
             <Star size={11} fill="currentColor" aria-hidden />
-            默认连接随应用启动自动连接
+            {t("page.connections.defaultHint")}
           </span>
         }
       />
@@ -192,11 +198,12 @@ export function ConnectionsList({
 }
 
 function StatusCell({ connection }: { connection: Connection }) {
+  const { t } = useTranslation();
   if (connection.status === "online") {
     return (
       <>
         <Status tone="ok" dot>
-          在线
+          {t("page.connections.online")}
         </Status>{" "}
         <span className="mono3" style={{ fontSize: "10px", color: "var(--c-muted)" }}>
           {connection.latency}
@@ -204,11 +211,14 @@ function StatusCell({ connection }: { connection: Connection }) {
       </>
     );
   }
-  if (connection.status === "offline") return <Status tone="off">离线</Status>;
+  if (connection.status === "offline")
+    return <Status tone="off">{t("page.connections.offline")}</Status>;
   return (
     <>
-      <Status tone="err">连接失败</Status>{" "}
-      <span style={{ fontSize: "10.5px", color: "var(--c-ok)" }}>日志</span>
+      <Status tone="err">{t("page.connections.failed")}</Status>{" "}
+      <span style={{ fontSize: "10.5px", color: "var(--c-ok)" }}>
+        {t("page.connections.logs")}
+      </span>
     </>
   );
 }
@@ -220,14 +230,15 @@ function RowActions({
   connection: Connection;
   onOpenTab?: (key: string) => void;
 }) {
+  const { t } = useTranslation();
   if (connection.status === "online") {
     return (
       <>
         <Btn size="row" onClick={() => onOpenTab?.(connection.key)}>
-          打开标签
+          {t("page.connections.openTab")}
         </Btn>
-        <Btn size="row">断开</Btn>
-        <Btn size="row">编辑</Btn>
+        <Btn size="row">{t("page.connections.disconnect")}</Btn>
+        <Btn size="row">{t("page.connections.edit")}</Btn>
       </>
     );
   }
@@ -235,16 +246,16 @@ function RowActions({
     return (
       <>
         <Btn size="row" variant="primary">
-          连接
+          {t("page.connections.connect")}
         </Btn>
-        <Btn size="row">编辑</Btn>
+        <Btn size="row">{t("page.connections.edit")}</Btn>
       </>
     );
   }
   return (
     <>
-      <Btn size="row">重试</Btn>
-      <Btn size="row">编辑</Btn>
+      <Btn size="row">{t("page.connections.retry")}</Btn>
+      <Btn size="row">{t("page.connections.edit")}</Btn>
     </>
   );
 }

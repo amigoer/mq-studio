@@ -1,4 +1,5 @@
 import { useEffect, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { X } from "lucide-react";
 
 /**
@@ -21,6 +22,8 @@ export function Dialog({
   children: ReactNode;
   footer?: ReactNode;
 }) {
+  const { t } = useTranslation();
+
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -68,7 +71,7 @@ export function Dialog({
           <span style={{ flex: 1 }} />
           <button
             type="button"
-            aria-label="关闭"
+            aria-label={t("common.close")}
             onClick={onClose}
             style={{ display: "flex", color: "var(--c-muted-2)", background: "none", border: "none", padding: 0 }}
           >

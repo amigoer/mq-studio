@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Check, TriangleAlert, X, type LucideIcon } from "lucide-react";
 import { Btn, Dialog, SectionLabel } from "@/design/ui";
 import { ProtocolIcon } from "@/design/icons/ProtocolIcon";
@@ -55,6 +56,7 @@ export function NewConnectionDialog({
   onClose?: () => void;
   initialProtocol?: ProtocolId;
 }) {
+  const { t } = useTranslation();
   const [protocol, setProtocol] = useState<ProtocolId>(initialProtocol);
   const [tested, setTested] = useState(true);
   const Form = FORMS[protocol];
@@ -63,11 +65,11 @@ export function NewConnectionDialog({
   return (
     <Dialog
       open={open}
-      title="新建连接"
+      title={t("page.connections.dialogTitle")}
       onClose={onClose}
       footer={
         <>
-          <Btn onClick={() => setTested(true)}>测试连接</Btn>
+          <Btn onClick={() => setTested(true)}>{t("page.connections.dialogTest")}</Btn>
           {tested && (
             <span
               style={{
@@ -83,13 +85,13 @@ export function NewConnectionDialog({
             </span>
           )}
           <span style={{ flex: 1 }} />
-          <Btn onClick={onClose}>取消</Btn>
-          <Btn variant="primary">保存并连接</Btn>
+          <Btn onClick={onClose}>{t("common.cancel")}</Btn>
+          <Btn variant="primary">{t("page.connections.dialogSave")}</Btn>
         </>
       }
     >
       <div>
-        <SectionLabel style={{ marginBottom: "8px" }}>协议</SectionLabel>
+        <SectionLabel style={{ marginBottom: "8px" }}>{t("page.connections.dialogProtocol")}</SectionLabel>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(6,1fr)", gap: "8px" }}>
           {PROTOCOL_ORDER.map((p) => (
             <button

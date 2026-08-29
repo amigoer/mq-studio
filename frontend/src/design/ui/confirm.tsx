@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { Btn } from "./button";
 import { Dialog } from "./dialog";
 
@@ -25,6 +26,7 @@ type Confirm = (request: ConfirmRequest) => Promise<boolean>;
 const ConfirmContext = createContext<Confirm | null>(null);
 
 export function ConfirmProvider({ children }: { children: ReactNode }) {
+  const { t } = useTranslation();
   const [request, setRequest] = useState<ConfirmRequest | null>(null);
   const resolveRef = useRef<((confirmed: boolean) => void) | null>(null);
 
@@ -55,13 +57,13 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
         footer={
           <>
             <span style={{ flex: 1 }} />
-            <Btn onClick={() => settle(false)}>{request?.cancelLabel ?? "取消"}</Btn>
+            <Btn onClick={() => settle(false)}>{request?.cancelLabel ?? t("common.cancel")}</Btn>
             <Btn
               autoFocus
               variant={request?.danger === true ? "danger" : "primary"}
               onClick={() => settle(true)}
             >
-              {request?.confirmLabel ?? "确定"}
+              {request?.confirmLabel ?? t("common.confirm")}
             </Btn>
           </>
         }

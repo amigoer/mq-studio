@@ -1,0 +1,3 @@
+# NSIS renders a LF licence as a single unwrapped line, so this copy has to keep
+# its CRLF endings through checkout on every platform.
+build/windows/nsis/resources/LICENSE.txt text eol=crlf

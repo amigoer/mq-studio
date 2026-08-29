@@ -1,4 +1,5 @@
 import { useEffect, useRef, type CSSProperties, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -99,6 +100,7 @@ export function SheetHeader({
   onTabChange?: (tab: string) => void;
   onClose?: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div style={{ padding: "13px 16px 0" }}>
       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -109,7 +111,7 @@ export function SheetHeader({
         <span style={{ flex: 1 }} />
         <button
           type="button"
-          aria-label="关闭"
+          aria-label={t("common.close")}
           onClick={onClose}
           style={{ display: "flex", color: "var(--c-muted-2)", background: "none", border: "none", padding: 0 }}
         >

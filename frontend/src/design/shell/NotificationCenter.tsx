@@ -1,4 +1,5 @@
 import { useEffect, useRef, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { ArrowRight, ChevronRight } from "lucide-react";
 import { ProtocolIcon } from "@/design/icons/ProtocolIcon";
 import { Card } from "@/design/ui";
@@ -77,6 +78,7 @@ export function NotificationCenter({
   onMarkAllRead?: () => void;
   onOpenAlertSettings?: () => void;
 }) {
+  const { t } = useTranslation();
   const ref = useRef<HTMLDivElement>(null);
   const { settings } = useSettings();
   const unread = read ? 0 : UNREAD_ALERTS;
@@ -118,10 +120,10 @@ export function NotificationCenter({
             borderBottom: "1px solid var(--c-border)",
           }}
         >
-          <b style={{ fontSize: "13px" }}>通知</b>
+          <b style={{ fontSize: "13px" }}>{t("shell.notifications.title")}</b>
           {unread > 0 && (
             <span className="st err" style={{ fontSize: "10px", marginLeft: "8px" }}>
-              {unread} 未读
+              {t("shell.notifications.unread", { count: unread })}
             </span>
           )}
           <span style={{ flex: 1 }} />
@@ -138,7 +140,7 @@ export function NotificationCenter({
               color: unread === 0 ? "var(--c-disabled)" : "var(--c-ok)",
             }}
           >
-            全部已读
+            {t("shell.notifications.markAllRead")}
           </button>
         </div>
 
@@ -170,7 +172,9 @@ export function NotificationCenter({
 
         <div style={{ display: "flex", alignItems: "center", padding: "11px 16px" }}>
           <span style={{ fontSize: "11px", color: "var(--c-muted)" }}>
-            {settings.desktopNotifications ? "桌面通知已开启" : "桌面通知已关闭"}
+            {settings.desktopNotifications
+              ? t("shell.notifications.desktopOn")
+              : t("shell.notifications.desktopOff")}
           </span>
           <span style={{ flex: 1 }} />
           <button
@@ -188,7 +192,7 @@ export function NotificationCenter({
               color: "var(--c-ok)",
             }}
           >
-            告警规则设置
+            {t("shell.notifications.alertSettings")}
             <ArrowRight size={13} aria-hidden />
           </button>
         </div>

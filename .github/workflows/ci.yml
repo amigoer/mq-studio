@@ -5,6 +5,9 @@ name: CI
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
   pull_request:
   workflow_dispatch:
 
@@ -19,8 +22,21 @@ jobs:
   check:
     name: Check
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
     steps:
       - uses: actions/checkout@v7
+
+      # Names the CI artifacts <version>+<short sha> so a downloaded build can
+      # be traced back to its commit without opening the run.
+      - name: Resolve the build version
+        id: meta
+        shell: bash
+        run: |
+          set -eu
+          version="$(node -p "require('./package.json').version")"
+          echo "version=${version}+${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
 
       - uses: actions/setup-go@v6
         with:
@@ -58,3 +74,20 @@ jobs:
 
       - name: Run checks
         run: npm run check
+
+  # Exercises the real packaging path for all six targets. It is skipped on pull
+  # requests to keep review feedback fast, but running it on every push to main
+  # means a packaging break surfaces then rather than on release day, which is
+  # when it used to.
+  package:
+    name: Package
+    if: github.event_name != 'pull_request'
+    needs: check
+    uses: ./.github/workflows/package.yml
+    with:
+      ref: ${{ github.sha }}
+      package-version: ${{ needs.check.outputs.version }}
+      sign: false
+      retention-days: 7
+    # No secrets passed: an unsigned build has no use for the signing material,
+    # and every matrix job would otherwise have it in scope.

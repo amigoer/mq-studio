@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { ChevronRight, RefreshCw } from "lucide-react";
 import { Field, Seg, SelectField, Sw } from "@/design/ui";
 
@@ -53,22 +54,28 @@ function Adv({ children }: { children: ReactNode }) {
   );
 }
 
-const ENVS = ["生产", "测试", "开发"];
+/** Keys, not text: the tag is a fixed enum the form offers, so it translates. */
+const ENV_KEYS = [
+  "page.connections.form.envProd",
+  "page.connections.form.envTest",
+  "page.connections.form.envDev",
+];
 
 /** Board 6a — RocketMQ. Version and access mode drive which fields exist. */
 export function RocketMQForm() {
+  const { t } = useTranslation();
   const [version, setVersion] = useState<"4.x" | "5.x">("5.x");
   const [access, setAccess] = useState<"ns" | "proxy">("ns");
   return (
     <>
       <div style={GRID}>
-        <Fld label="连接名称">
+        <Fld label={t("page.connections.form.name")}>
           <Field defaultValue="rocketmq-order" />
         </Fld>
-        <Fld label="环境标记">
-          <SelectField value={ENVS[0]} />
+        <Fld label={t("page.connections.form.env")}>
+          <SelectField value={t(ENV_KEYS[0]!)} />
         </Fld>
-        <Fld label="版本">
+        <Fld label={t("page.connections.form.rocketmq.version")}>
           <Seg
             style={{ alignSelf: "flex-start" }}
             value={version}
@@ -80,22 +87,22 @@ export function RocketMQForm() {
           />
         </Fld>
         {version === "5.x" && (
-          <Fld label="接入方式" hint="5.x 可选 Proxy">
+          <Fld label={t("page.connections.form.rocketmq.access")} hint={t("page.connections.form.rocketmq.accessHint")}>
             <Seg
               style={{ alignSelf: "flex-start" }}
               value={access}
               onChange={setAccess}
               options={[
-                { value: "ns", label: "NameServer 直连" },
+                { value: "ns", label: t("page.connections.form.rocketmq.accessDirect") },
                 { value: "proxy", label: "gRPC Proxy" },
               ]}
             />
           </Fld>
         )}
-        <Fld span label="NameServer 地址" hint="分号分隔多个">
+        <Fld span label={t("page.connections.form.rocketmq.nameServer")} hint={t("page.connections.form.rocketmq.nameServerHint")}>
           <Field className="mono3" style={MONO} defaultValue="10.12.3.44:9876;10.12.3.45:9876" />
         </Fld>
-        <Fld label="AccessKey" hint="ACL 可选">
+        <Fld label="AccessKey" hint={t("page.connections.form.rocketmq.accessKeyHint")}>
           <Field defaultValue="rocketmq2-admin" />
         </Fld>
         <Fld label="SecretKey">
@@ -103,8 +110,8 @@ export function RocketMQForm() {
         </Fld>
       </div>
       <FormNote
-        advanced={<Adv>高级：实例 ID（公有云） · 消息轨迹 Topic · 请求超时 · TLS</Adv>}
-        note="切到 4.x 时自动隐藏 Proxy 与 5.x 专属项"
+        advanced={<Adv>{t("page.connections.form.rocketmq.advanced")}</Adv>}
+        note={t("page.connections.form.rocketmq.note")}
       />
     </>
   );
@@ -112,15 +119,16 @@ export function RocketMQForm() {
 
 /** Board 6b — Kafka. The security protocol decides whether SASL/TLS shows. */
 export function KafkaForm() {
+  const { t } = useTranslation();
   const [skipVerify, setSkipVerify] = useState(false);
   return (
     <>
       <div style={GRID}>
-        <Fld label="连接名称">
+        <Fld label={t("page.connections.form.name")}>
           <Field defaultValue="prod-kafka-cn" />
         </Fld>
-        <Fld label="环境标记">
-          <SelectField value={ENVS[0]} />
+        <Fld label={t("page.connections.form.env")}>
+          <SelectField value={t(ENV_KEYS[0]!)} />
         </Fld>
         <Fld span label="Bootstrap Servers">
           <Field
@@ -129,30 +137,30 @@ export function KafkaForm() {
             defaultValue="kafka-1:9092, kafka-2:9092, kafka-3:9092"
           />
         </Fld>
-        <Fld label="安全协议">
+        <Fld label={t("page.connections.form.kafka.security")}>
           <SelectField value="SASL_SSL" />
         </Fld>
-        <Fld label="SASL 机制">
+        <Fld label={t("page.connections.form.kafka.sasl")}>
           <SelectField value="SCRAM-SHA-256" />
         </Fld>
-        <Fld label="用户名">
+        <Fld label={t("page.connections.form.username")}>
           <Field defaultValue="mq-studio" />
         </Fld>
-        <Fld label="密码">
+        <Fld label={t("page.connections.form.password")}>
           <Field type="password" defaultValue="password" />
         </Fld>
-        <Fld label="CA 证书" hint="SSL 时">
+        <Fld label={t("page.connections.form.kafka.ca")} hint={t("page.connections.form.kafka.caHint")}>
           <button type="button" className="in3">
-            选择文件… ca.pem
+            {t("page.connections.form.kafka.chooseFile")}
           </button>
         </Fld>
-        <Fld label="跳过证书验证">
-          <Sw checked={skipVerify} onCheckedChange={setSkipVerify} label="跳过证书验证" style={{ marginTop: "3px" }} />
+        <Fld label={t("page.connections.form.kafka.skipVerify")}>
+          <Sw checked={skipVerify} onCheckedChange={setSkipVerify} label={t("page.connections.form.kafka.skipVerify")} style={{ marginTop: "3px" }} />
         </Fld>
       </div>
       <FormNote
-        advanced={<Adv>高级：client.id · 请求超时 · 客户端证书（mTLS）</Adv>}
-        note="凭证加密存储在本机"
+        advanced={<Adv>{t("page.connections.form.kafka.advanced")}</Adv>}
+        note={t("page.connections.form.kafka.note")}
       />
     </>
   );
@@ -160,34 +168,35 @@ export function KafkaForm() {
 
 /** Board 6c — RabbitMQ. Without the management API the metrics pages degrade. */
 export function RabbitMQForm() {
+  const { t } = useTranslation();
   return (
     <>
       <div style={GRID}>
-        <Fld label="连接名称">
+        <Fld label={t("page.connections.form.name")}>
           <Field defaultValue="rabbit-staging" />
         </Fld>
-        <Fld label="环境标记">
-          <SelectField value={ENVS[1]} />
+        <Fld label={t("page.connections.form.env")}>
+          <SelectField value={t(ENV_KEYS[1]!)} />
         </Fld>
-        <Fld span label="AMQP 地址">
+        <Fld span label={t("page.connections.form.rabbitmq.amqp")}>
           <Field className="mono3" style={MONO} defaultValue="amqps://rabbit.stg.example.com:5671" />
         </Fld>
         <Fld label="vhost">
           <Field className="mono3" style={MONO} defaultValue="/order" />
         </Fld>
-        <Fld label="管理 API" hint="可选，用于指标">
+        <Fld label={t("page.connections.form.rabbitmq.management")} hint={t("page.connections.form.rabbitmq.managementHint")}>
           <Field className="mono3" style={MONO} defaultValue="https://rabbit.stg:15672" />
         </Fld>
-        <Fld label="用户名">
+        <Fld label={t("page.connections.form.username")}>
           <Field defaultValue="mq-studio" />
         </Fld>
-        <Fld label="密码">
+        <Fld label={t("page.connections.form.password")}>
           <Field type="password" defaultValue="password" />
         </Fld>
       </div>
       <FormNote
-        advanced={<Adv>高级：心跳 60s · 连接超时 · 通道上限 · TLS 证书</Adv>}
-        note="不填管理 API → 仅浏览/收发，无指标页"
+        advanced={<Adv>{t("page.connections.form.rabbitmq.advanced")}</Adv>}
+        note={t("page.connections.form.rabbitmq.note")}
       />
     </>
   );
@@ -195,29 +204,30 @@ export function RabbitMQForm() {
 
 /** Board 6d — Pulsar. */
 export function PulsarForm() {
+  const { t } = useTranslation();
   const [auth, setAuth] = useState<"none" | "token" | "oauth2" | "mtls">("token");
   return (
     <>
       <div style={GRID}>
-        <Fld label="连接名称">
+        <Fld label={t("page.connections.form.name")}>
           <Field defaultValue="pulsar-eu" />
         </Fld>
-        <Fld label="环境标记">
-          <SelectField value={ENVS[0]} />
+        <Fld label={t("page.connections.form.env")}>
+          <SelectField value={t(ENV_KEYS[0]!)} />
         </Fld>
-        <Fld label="服务地址" hint="收发">
+        <Fld label={t("page.connections.form.pulsar.service")} hint={t("page.connections.form.pulsar.serviceHint")}>
           <Field className="mono3" style={MONO} defaultValue="pulsar+ssl://pulsar-eu:6651" />
         </Fld>
-        <Fld label="管理 API" hint="Topic/租户管理">
+        <Fld label={t("page.connections.form.pulsar.admin")} hint={t("page.connections.form.pulsar.adminHint")}>
           <Field className="mono3" style={MONO} defaultValue="https://pulsar-eu:8443" />
         </Fld>
-        <Fld span label="认证方式">
+        <Fld span label={t("page.connections.form.pulsar.auth")}>
           <Seg
             style={{ alignSelf: "flex-start" }}
             value={auth}
             onChange={setAuth}
             options={[
-              { value: "none", label: "无" },
+              { value: "none", label: t("page.connections.form.pulsar.authNone") },
               { value: "token", label: "Token" },
               { value: "oauth2", label: "OAuth2" },
               { value: "mtls", label: "mTLS" },
@@ -233,16 +243,16 @@ export function PulsarForm() {
             />
           </Fld>
         )}
-        <Fld label="默认租户">
+        <Fld label={t("page.connections.form.pulsar.tenant")}>
           <Field className="mono3" style={MONO} defaultValue="ecommerce" />
         </Fld>
-        <Fld label="默认命名空间">
+        <Fld label={t("page.connections.form.pulsar.namespace")}>
           <Field className="mono3" style={MONO} defaultValue="orders" />
         </Fld>
       </div>
       <FormNote
-        advanced={<Adv>高级：操作超时 · TLS CA · 监听器名称</Adv>}
-        note="Topic 页按 租户 / 命名空间 级联浏览"
+        advanced={<Adv>{t("page.connections.form.pulsar.advanced")}</Adv>}
+        note={t("page.connections.form.pulsar.note")}
       />
     </>
   );
@@ -250,32 +260,33 @@ export function PulsarForm() {
 
 /** Board 6e — Redis Stream. The key filter decides the left-hand Stream list. */
 export function RedisForm() {
+  const { t } = useTranslation();
   const [mode, setMode] = useState<"standalone" | "sentinel" | "cluster">("standalone");
   return (
     <>
       <div style={GRID}>
-        <Fld label="连接名称">
+        <Fld label={t("page.connections.form.name")}>
           <Field defaultValue="redis-stream-01" />
         </Fld>
-        <Fld label="环境标记">
-          <SelectField value={ENVS[0]} />
+        <Fld label={t("page.connections.form.env")}>
+          <SelectField value={t(ENV_KEYS[0]!)} />
         </Fld>
-        <Fld span label="部署模式">
+        <Fld span label={t("page.connections.form.redis.mode")}>
           <Seg
             style={{ alignSelf: "flex-start" }}
             value={mode}
             onChange={setMode}
             options={[
-              { value: "standalone", label: "单机" },
-              { value: "sentinel", label: "哨兵" },
+              { value: "standalone", label: t("page.connections.form.redis.standalone") },
+              { value: "sentinel", label: t("page.connections.form.redis.sentinel") },
               { value: "cluster", label: "Cluster" },
             ]}
           />
         </Fld>
-        <Fld label="地址">
+        <Fld label={t("page.connections.form.redis.address")}>
           <Field className="mono3" style={MONO} defaultValue="rediss://10.2.0.8:6379" />
         </Fld>
-        <Fld label="DB 序号" hint="Cluster 禁用">
+        <Fld label={t("page.connections.form.redis.db")} hint={t("page.connections.form.redis.dbHint")}>
           <Field
             className="mono3"
             style={MONO}
@@ -283,19 +294,19 @@ export function RedisForm() {
             disabled={mode === "cluster"}
           />
         </Fld>
-        <Fld label="用户名" hint="ACL 可选">
+        <Fld label={t("page.connections.form.username")} hint={t("page.connections.form.redis.usernameHint")}>
           <Field defaultValue="default" />
         </Fld>
-        <Fld label="密码">
+        <Fld label={t("page.connections.form.password")}>
           <Field type="password" defaultValue="password" />
         </Fld>
-        <Fld span label="Stream Key 过滤" hint="决定左侧列表，支持通配">
+        <Fld span label={t("page.connections.form.redis.streamFilter")} hint={t("page.connections.form.redis.streamFilterHint")}>
           <Field className="mono3" style={MONO} defaultValue="orders:* ; events:*" />
         </Fld>
       </div>
       <FormNote
-        advanced={<Adv>高级：连接超时 · TLS · 只读模式</Adv>}
-        note="只读模式下禁用 XADD / XDEL / XTRIM"
+        advanced={<Adv>{t("page.connections.form.redis.advanced")}</Adv>}
+        note={t("page.connections.form.redis.note")}
       />
     </>
   );
@@ -303,21 +314,22 @@ export function RedisForm() {
 
 /** Board 6f — MQTT. Clean Start and session expiry are 5.0-only. */
 export function MqttForm() {
+  const { t } = useTranslation();
   const [version, setVersion] = useState<"3.1.1" | "5.0">("5.0");
   const [cleanStart, setCleanStart] = useState(true);
   return (
     <>
       <div style={GRID}>
-        <Fld label="连接名称">
+        <Fld label={t("page.connections.form.name")}>
           <Field defaultValue="iot-broker" />
         </Fld>
-        <Fld label="环境标记">
-          <SelectField value={ENVS[0]} />
+        <Fld label={t("page.connections.form.env")}>
+          <SelectField value={t(ENV_KEYS[0]!)} />
         </Fld>
-        <Fld label="Broker 地址" hint="mqtt/ws">
+        <Fld label={t("page.connections.form.mqtt.broker")} hint={t("page.connections.form.mqtt.brokerHint")}>
           <Field className="mono3" style={MONO} defaultValue="mqtts://iot.example.com:8883" />
         </Fld>
-        <Fld label="协议版本">
+        <Fld label={t("page.connections.form.mqtt.version")}>
           <Seg
             style={{ alignSelf: "flex-start" }}
             value={version}
@@ -337,24 +349,24 @@ export function MqttForm() {
         <Fld label="Keep Alive">
           <Field className="mono3" style={MONO} defaultValue="60 s" />
         </Fld>
-        <Fld label="用户名">
+        <Fld label={t("page.connections.form.username")}>
           <Field defaultValue="iot-ops" />
         </Fld>
-        <Fld label="密码">
+        <Fld label={t("page.connections.form.password")}>
           <Field type="password" defaultValue="password" />
         </Fld>
         <Fld label="Clean Start">
           <Sw checked={cleanStart} onCheckedChange={setCleanStart} label="Clean Start" style={{ marginTop: "3px" }} />
         </Fld>
         {version === "5.0" && (
-          <Fld label="会话过期" hint="5.0">
+          <Fld label={t("page.connections.form.mqtt.sessionExpiry")} hint={t("page.connections.form.mqtt.sessionExpiryHint")}>
             <Field className="mono3" style={MONO} defaultValue="3600 s" />
           </Fld>
         )}
       </div>
       <FormNote
-        advanced={<Adv>遗嘱消息（LWT）：Topic · Payload · QoS · Retain</Adv>}
-        note={<Adv>TLS：CA / 客户端证书 · 跳过验证</Adv>}
+        advanced={<Adv>{t("page.connections.form.mqtt.advanced")}</Adv>}
+        note={<Adv>{t("page.connections.form.mqtt.note")}</Adv>}
       />
     </>
   );

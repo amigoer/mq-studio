@@ -121,11 +121,19 @@ ACL 与部分高级操作是否可用，取决于 Broker 版本和配置。表�
 
 安装包统一命名为 `mq-studio-<版本>-<系统>-<架构>.<后缀>`，系统取值 `mac`、`windows`、`linux`，架构取值 `amd64`、`arm64`。
 
-| 平台 | 安装包 |
-| --- | --- |
-| macOS Apple Silicon / Intel | `mq-studio-<版本>-mac-arm64.dmg` / `-mac-amd64.dmg` |
-| Windows ARM64 / x64 | `mq-studio-<版本>-windows-arm64.exe` / `-windows-amd64.exe` |
-| Linux ARM64 / x64 | `mq-studio-<版本>-linux-arm64.AppImage` / `-linux-amd64.AppImage` |
+| 平台 | 安装包 | 系统要求 |
+| --- | --- | --- |
+| macOS Apple 芯片 / Intel | `-mac-arm64.dmg` / `-mac-amd64.dmg` | macOS 12+ |
+| Windows x64 / ARM64 | `-windows-amd64.exe` / `-windows-arm64.exe` | Windows 10+ |
+| Debian / Ubuntu | `-linux-amd64.deb` / `-linux-arm64.deb` | GTK 3、WebKit2GTK 4.1 |
+| Fedora / RHEL | `-linux-amd64.rpm` / `-linux-arm64.rpm` | GTK 3、WebKit2GTK 4.1 |
+| 任意 Linux | `-linux-amd64.AppImage` / `-linux-arm64.AppImage` | GTK 3、WebKit2GTK 4.1 |
+
+Mac 上在「关于本机」里可以看到该选 `arm64` 还是 `amd64`。
+
+macOS 版本尚未使用 Apple 开发者证书签名，首次打开需要多一步操作——磁盘映像里
+自带了处理脚本。这一步以及各平台的安装步骤见 **[安装说明](docs/INSTALL.zh-CN.md)**。
+每个版本同时附带 `SHA256SUMS.txt` 校验文件。
 
 ## 快速开始
 
@@ -149,7 +157,7 @@ make dev
 
 ## 文档
 
-[架构说明](docs/ARCHITECTURE.md) · [路线图](docs/ROADMAP.zh-CN.md)
+[架构说明](docs/ARCHITECTURE.md) · [安装说明](docs/INSTALL.zh-CN.md) · [发版流程](RELEASE.md) · [路线图](docs/ROADMAP.zh-CN.md)
 
 ## 许可证
 

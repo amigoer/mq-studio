@@ -1,4 +1,5 @@
 import { Fragment } from "react";
+import { useTranslation } from "react-i18next";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { PROTOCOLS, type PageId, type ProtocolId } from "@/design/data/protocols";
 import { cn } from "@/lib/utils";
@@ -32,11 +33,12 @@ export function Sidebar({
   onSelect?: (page: PageId) => void;
   onToggle?: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <nav className={cn("side3", collapsed && "side3--rail")}>
       {PROTOCOLS[protocol].nav.map((group, gi) => (
         <Fragment key={group.label ?? `g${gi}`}>
-          {group.label != null && <div className="gl">{group.label}</div>}
+          {group.label != null && <div className="gl">{t(group.label)}</div>}
           {group.items.map(({ id, icon: Icon, label }) => (
             <button
               key={id}
@@ -44,13 +46,13 @@ export function Sidebar({
               aria-current={id === active ? "page" : undefined}
               className={cn("ni", id === active && "on")}
               /* The label is the only thing naming the icon once it is gone. */
-              title={collapsed ? label : undefined}
+              title={collapsed ? t(label) : undefined}
               onClick={() => onSelect?.(id)}
             >
               <span className="nic">
                 <Icon size={ICON} aria-hidden />
               </span>
-              <span className="nil">{label}</span>
+              <span className="nil">{t(label)}</span>
             </button>
           ))}
         </Fragment>
@@ -62,14 +64,14 @@ export function Sidebar({
         type="button"
         className="ni side3-toggle"
         aria-expanded={!collapsed}
-        aria-label={collapsed ? "展开侧边栏" : "收起侧边栏"}
-        title={`${collapsed ? "展开" : "收起"}侧边栏 ⌘B`}
+        aria-label={collapsed ? t("shell.sidebar.expand") : t("shell.sidebar.collapse")}
+        title={collapsed ? t("shell.sidebar.expandTitle") : t("shell.sidebar.collapseTitle")}
         onClick={onToggle}
       >
         <span className="nic">
           {collapsed ? <PanelLeftOpen size={ICON} aria-hidden /> : <PanelLeftClose size={ICON} aria-hidden />}
         </span>
-        <span className="nil">收起</span>
+        <span className="nil">{t("shell.sidebar.collapseItem")}</span>
       </button>
     </nav>
   );

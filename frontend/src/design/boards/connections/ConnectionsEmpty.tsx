@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Plus } from "lucide-react";
 import { AppLogo } from "@/design/icons/AppLogo";
 import { ProtocolIcon } from "@/design/icons/ProtocolIcon";
@@ -6,6 +7,7 @@ import { PROTOCOLS, PROTOCOL_ORDER } from "@/design/data/protocols";
 
 /** Board 8b — first launch, or after the last connection is deleted. */
 export function ConnectionsEmpty({ onNewConnection }: { onNewConnection?: () => void }) {
+  const { t } = useTranslation();
   return (
     <div
       style={{
@@ -41,19 +43,19 @@ export function ConnectionsEmpty({ onNewConnection }: { onNewConnection?: () => 
           <AppLogo width={40} height={27} />
         </div>
         <div style={{ fontSize: "19px", fontWeight: 600, marginTop: "18px", letterSpacing: "-.01em" }}>
-          欢迎使用 MQ Studio
+          {t("page.connections.welcome")}
         </div>
         <div style={{ fontSize: "12.5px", color: "var(--c-muted)", marginTop: "6px", lineHeight: 1.7 }}>
-          还没有任何连接。新建一个连接开始管理你的消息队列，
+          {t("page.connections.emptyLine1")}
           <br />
-          或导入之前导出的配置文件。
+          {t("page.connections.emptyLine2")}
         </div>
         <div style={{ display: "flex", gap: "10px", marginTop: "20px" }}>
           <Btn variant="primary" style={{ padding: "6px 16px" }} onClick={onNewConnection}>
             <Plus size={13} aria-hidden />
-              新建连接
+            {t("page.connections.emptyNew")}
           </Btn>
-          <Btn style={{ padding: "6px 16px" }}>导入配置</Btn>
+          <Btn style={{ padding: "6px 16px" }}>{t("page.connections.emptyImport")}</Btn>
         </div>
         <div style={{ display: "flex", gap: "18px", marginTop: "34px", alignItems: "center" }}>
           {PROTOCOL_ORDER.map((p) => (
@@ -74,7 +76,7 @@ export function ConnectionsEmpty({ onNewConnection }: { onNewConnection?: () => 
           ))}
         </div>
         <div style={{ fontSize: "10.5px", color: "var(--c-muted-3)", marginTop: "26px" }}>
-          凭证加密存储在本机 · 配置不会上传
+          {t("page.connections.emptyFooter")}
         </div>
       </div>
     </div>

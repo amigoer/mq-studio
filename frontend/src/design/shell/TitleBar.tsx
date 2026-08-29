@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { Bell, Columns2, RefreshCw, Settings } from "lucide-react";
 import { SiGithub } from "react-icons/si";
 import { AppLogo } from "@/design/icons/AppLogo";
@@ -77,6 +78,7 @@ export function TitleBar({
   onSettings?: () => void;
   onSplit?: () => void;
 }) {
+  const { t } = useTranslation();
   const mac = isMac();
   /*
    * The update icon turns one full circle per click. Counting turns instead of
@@ -102,8 +104,8 @@ export function TitleBar({
           type="button"
           className="mqs-tab-home"
           aria-current={homeActive ? "page" : undefined}
-          aria-label="MQ Studio 首页"
-          title="首页"
+          aria-label={t("shell.titleBar.homeLabel")}
+          title={t("shell.titleBar.home")}
           onClick={onHome}
         >
           <AppLogo />
@@ -117,7 +119,7 @@ export function TitleBar({
         style={{ background: "var(--c-bg)", color: dimmed ? "var(--c-disabled)" : undefined, flex: "none" }}
         onClick={onSearch}
       >
-        搜索 ⌘K
+        {t("shell.titleBar.search")}
       </button>
       <IconBtn
         style={{ position: "relative" }}
@@ -125,7 +127,7 @@ export function TitleBar({
           setTurns((n) => n + 1);
           onRefresh?.();
         }}
-        title="检查更新"
+        title={t("shell.titleBar.checkUpdate")}
       >
         <RefreshCw
           size={ICON}
@@ -135,24 +137,28 @@ export function TitleBar({
         />
         {updateReady && <Badge tone="var(--c-ok)" />}
       </IconBtn>
-      <IconBtn onClick={onGithub} title="GitHub">
+      <IconBtn onClick={onGithub} title={t("shell.titleBar.github")}>
         <SiGithub size={14} color="var(--c-github-mark)" aria-hidden />
       </IconBtn>
       <IconBtn
         style={{ position: "relative", ...(dimmed && { color: "var(--c-disabled)" }) }}
         onClick={onNotifications}
-        title={notifications > 0 ? `通知 · ${notifications} 未读` : "通知"}
+        title={
+          notifications > 0
+            ? t("shell.titleBar.notificationsUnread", { count: notifications })
+            : t("shell.titleBar.notifications")
+        }
       >
         <Bell size={ICON} aria-hidden />
         {notifications > 0 && <Badge tone="var(--c-err)" />}
       </IconBtn>
       {/* 8b drops the strip entirely; with fewer than two tabs there is nothing to compare. */}
       {onSplit != null && (
-        <IconBtn active={splitActive} onClick={onSplit} title="分屏对照">
+        <IconBtn active={splitActive} onClick={onSplit} title={t("shell.titleBar.split")}>
           <Columns2 size={ICON} aria-hidden />
         </IconBtn>
       )}
-      <IconBtn onClick={onSettings} title="设置">
+      <IconBtn onClick={onSettings} title={t("shell.titleBar.settings")}>
         <Settings size={ICON} aria-hidden />
       </IconBtn>
       {!mac && <WindowControls />}

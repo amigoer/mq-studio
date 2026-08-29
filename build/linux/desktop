@@ -2,7 +2,6 @@
 Version=1.0
 Type=Application
 Name=MQ Studio
-Name[zh_CN]=MQ Studio
 Comment=Local-first desktop client for RocketMQ
 Comment[zh_CN]=本地优先的 RocketMQ 桌面客户端
 # Resolved through PATH so the same file serves both the deb/rpm install at

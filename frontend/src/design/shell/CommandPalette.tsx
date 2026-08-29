@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useTranslation } from "react-i18next";
 import { Plug, Search, Settings, RefreshCw, Plus, type LucideIcon } from "lucide-react";
 import { Card } from "@/design/ui";
 import { ProtocolIcon } from "@/design/icons/ProtocolIcon";
@@ -50,6 +51,7 @@ export function CommandPalette({
   onCheckUpdate?: () => void;
   onClose?: () => void;
 }) {
+  const { t } = useTranslation();
   const [cursor, setCursor] = useState(0);
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -63,7 +65,7 @@ export function CommandPalette({
       if (!matches(connection.name, connection.address, connection.protocolLabel)) continue;
       out.push({
         key: `connection:${connection.key}`,
-        group: "连接",
+        group: t("shell.palette.connections"),
         name: connection.name,
         meta: `${connection.protocolLabel} · ${connection.address}`,
         protocol: connection.protocol,
@@ -73,30 +75,31 @@ export function CommandPalette({
     if (protocol != null) {
       for (const group of PROTOCOLS[protocol].nav) {
         for (const entry of group.items) {
-          if (!matches(entry.label, entry.id)) continue;
+          const label = t(entry.label);
+          if (!matches(label, entry.id)) continue;
           out.push({
             key: `page:${entry.id}`,
-            group: "页面",
-            name: entry.label,
-            meta: group.label ?? "导航",
+            group: t("shell.palette.pages"),
+            name: label,
+            meta: group.label != null ? t(group.label) : t("shell.palette.navigation"),
             icon: entry.icon,
             run: () => onOpenPage?.(entry.id),
           });
         }
       }
     }
-    const commands: readonly { name: string; icon: LucideIcon; run?: () => void }[] = [
-      { name: "新建连接", icon: Plus, run: onNewConnection },
-      { name: "打开设置", icon: Settings, run: onOpenSettings },
-      { name: "检查更新", icon: RefreshCw, run: onCheckUpdate },
+    const commands: readonly { key: string; name: string; icon: LucideIcon; run?: () => void }[] = [
+      { key: "newConnection", name: t("shell.palette.newConnection"), icon: Plus, run: onNewConnection },
+      { key: "openSettings", name: t("shell.palette.openSettings"), icon: Settings, run: onOpenSettings },
+      { key: "checkUpdate", name: t("shell.palette.checkUpdate"), icon: RefreshCw, run: onCheckUpdate },
     ];
     for (const command of commands) {
       if (!matches(command.name)) continue;
       out.push({
-        key: `command:${command.name}`,
-        group: "操作",
+        key: `command:${command.key}`,
+        group: t("shell.palette.commands"),
         name: command.name,
-        meta: "窗口",
+        meta: t("shell.palette.window"),
         icon: command.icon,
         run: () => command.run?.(),
       });
@@ -111,6 +114,7 @@ export function CommandPalette({
     onOpenSettings,
     protocol,
     query,
+    t,
   ]);
 
   // A shorter list can leave the cursor past its end; clamping on render keeps
@@ -173,7 +177,7 @@ export function CommandPalette({
     >
       <Card
         role="dialog"
-        aria-label="全局搜索"
+        aria-label={t("shell.palette.label")}
         style={{ width: "560px", overflow: "hidden", boxShadow: "0 18px 50px rgba(0,0,0,.22)" }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -191,7 +195,7 @@ export function CommandPalette({
             autoFocus
             value={query}
             onChange={(e) => onQueryChange?.(e.target.value)}
-            placeholder="搜索连接与页面，或运行一个操作"
+            placeholder={t("shell.palette.placeholder")}
             style={{
               flex: 1,
               font: "inherit",
@@ -221,7 +225,7 @@ export function CommandPalette({
                 color: "var(--c-muted)",
               }}
             >
-              没有匹配的结果
+              {t("shell.palette.empty")}
             </div>
           )}
           {hits.map((hit, index) => {
@@ -275,7 +279,7 @@ export function CommandPalette({
                         className="mono3"
                         style={{ fontSize: "10px", color: "var(--c-muted-2)" }}
                       >
-                        ↵ 打开
+                        {t("shell.palette.hintOpen")}
                       </span>
                     </>
                   )}
@@ -295,10 +299,10 @@ export function CommandPalette({
             color: "var(--c-muted-2)",
           }}
         >
-          <span>↑↓ 选择</span>
-          <span>↵ 打开</span>
+          <span>{t("shell.palette.hintSelect")}</span>
+          <span>{t("shell.palette.hintOpen")}</span>
           <span style={{ flex: 1 }} />
-          <span>{hits.length} 个结果</span>
+          <span>{t("shell.palette.results", { count: hits.length })}</span>
         </div>
       </Card>
     </div>

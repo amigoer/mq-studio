@@ -50,6 +50,10 @@ export type PageId =
   | "alerts"
   | "acl";
 
+/**
+ * `label` is a translation key, not text: the sidebar and the palette resolve
+ * it at render so a language change relabels the nav without rebuilding it.
+ */
 export type NavEntry = { id: PageId; icon: LucideIcon; label: string };
 export type NavGroup = { label?: string; items: NavEntry[] };
 
@@ -64,8 +68,8 @@ export type Protocol = {
   nav: NavGroup[];
 };
 
-const BROWSE = "浏览";
-const OPS = "运维";
+const BROWSE = "shell.nav.browse";
+const OPS = "shell.nav.ops";
 
 export const PROTOCOLS: Record<ProtocolId, Protocol> = {
   rocketmq: {
@@ -74,23 +78,23 @@ export const PROTOCOLS: Record<ProtocolId, Protocol> = {
     badge: "RMQ 4/5",
     badgeClass: "pRMQ",
     nav: [
-      { items: [{ id: "overview", icon: House, label: "总览" }] },
+      { items: [{ id: "overview", icon: House, label: "shell.nav.rocketmq.overview" }] },
       {
         label: BROWSE,
         items: [
-          { id: "topics", icon: Layers, label: "Topic" },
-          { id: "consumers", icon: Users, label: "消费者" },
-          { id: "messages", icon: Mail, label: "消息" },
-          { id: "dlq", icon: TriangleAlert, label: "死信 / 重试" },
-          { id: "producer", icon: Send, label: "生产者" },
+          { id: "topics", icon: Layers, label: "shell.nav.rocketmq.topics" },
+          { id: "consumers", icon: Users, label: "shell.nav.rocketmq.consumers" },
+          { id: "messages", icon: Mail, label: "shell.nav.rocketmq.messages" },
+          { id: "dlq", icon: TriangleAlert, label: "shell.nav.rocketmq.dlq" },
+          { id: "producer", icon: Send, label: "shell.nav.rocketmq.producer" },
         ],
       },
       {
         label: OPS,
         items: [
-          { id: "cluster", icon: Server, label: "集群" },
-          { id: "alerts", icon: BellRing, label: "告警" },
-          { id: "acl", icon: Shield, label: "ACL" },
+          { id: "cluster", icon: Server, label: "shell.nav.rocketmq.cluster" },
+          { id: "alerts", icon: BellRing, label: "shell.nav.rocketmq.alerts" },
+          { id: "acl", icon: Shield, label: "shell.nav.rocketmq.acl" },
         ],
       },
     ],
@@ -101,23 +105,23 @@ export const PROTOCOLS: Record<ProtocolId, Protocol> = {
     badge: "KAFKA",
     badgeClass: "pKFK",
     nav: [
-      { items: [{ id: "overview", icon: House, label: "总览" }] },
+      { items: [{ id: "overview", icon: House, label: "shell.nav.kafka.overview" }] },
       {
         label: BROWSE,
         items: [
-          { id: "topics", icon: Layers, label: "Topic" },
-          { id: "consumers", icon: Users, label: "消费者组" },
-          { id: "messages", icon: Mail, label: "消息" },
-          { id: "dlq", icon: TriangleAlert, label: "死信 DLT" },
-          { id: "producer", icon: Send, label: "生产者" },
+          { id: "topics", icon: Layers, label: "shell.nav.kafka.topics" },
+          { id: "consumers", icon: Users, label: "shell.nav.kafka.consumers" },
+          { id: "messages", icon: Mail, label: "shell.nav.kafka.messages" },
+          { id: "dlq", icon: TriangleAlert, label: "shell.nav.kafka.dlq" },
+          { id: "producer", icon: Send, label: "shell.nav.kafka.producer" },
         ],
       },
       {
         label: OPS,
         items: [
-          { id: "cluster", icon: Server, label: "Broker" },
-          { id: "alerts", icon: BellRing, label: "告警" },
-          { id: "acl", icon: Shield, label: "ACL" },
+          { id: "cluster", icon: Server, label: "shell.nav.kafka.cluster" },
+          { id: "alerts", icon: BellRing, label: "shell.nav.kafka.alerts" },
+          { id: "acl", icon: Shield, label: "shell.nav.kafka.acl" },
         ],
       },
     ],
@@ -128,23 +132,23 @@ export const PROTOCOLS: Record<ProtocolId, Protocol> = {
     badge: "RABBIT",
     badgeClass: "pAMQ",
     nav: [
-      { items: [{ id: "overview", icon: House, label: "总览" }] },
+      { items: [{ id: "overview", icon: House, label: "shell.nav.rabbitmq.overview" }] },
       {
         label: BROWSE,
         items: [
-          { id: "topics", icon: Layers, label: "队列" },
-          { id: "exchanges", icon: Waypoints, label: "交换机" },
-          { id: "messages", icon: Mail, label: "消息" },
-          { id: "dlq", icon: TriangleAlert, label: "死信 DLX" },
-          { id: "producer", icon: Send, label: "生产者" },
+          { id: "topics", icon: Layers, label: "shell.nav.rabbitmq.topics" },
+          { id: "exchanges", icon: Waypoints, label: "shell.nav.rabbitmq.exchanges" },
+          { id: "messages", icon: Mail, label: "shell.nav.rabbitmq.messages" },
+          { id: "dlq", icon: TriangleAlert, label: "shell.nav.rabbitmq.dlq" },
+          { id: "producer", icon: Send, label: "shell.nav.rabbitmq.producer" },
         ],
       },
       {
         label: OPS,
         items: [
-          { id: "cluster", icon: Server, label: "节点" },
-          { id: "alerts", icon: BellRing, label: "告警" },
-          { id: "acl", icon: Shield, label: "用户 / vhost" },
+          { id: "cluster", icon: Server, label: "shell.nav.rabbitmq.cluster" },
+          { id: "alerts", icon: BellRing, label: "shell.nav.rabbitmq.alerts" },
+          { id: "acl", icon: Shield, label: "shell.nav.rabbitmq.acl" },
         ],
       },
     ],
@@ -155,23 +159,23 @@ export const PROTOCOLS: Record<ProtocolId, Protocol> = {
     badge: "PULSAR",
     badgeClass: "pPLS",
     nav: [
-      { items: [{ id: "overview", icon: House, label: "总览" }] },
+      { items: [{ id: "overview", icon: House, label: "shell.nav.pulsar.overview" }] },
       {
         label: BROWSE,
         items: [
-          { id: "topics", icon: Layers, label: "Topic" },
-          { id: "consumers", icon: Users, label: "订阅" },
-          { id: "messages", icon: Mail, label: "消息" },
-          { id: "dlq", icon: TriangleAlert, label: "死信 DLQ" },
-          { id: "producer", icon: Send, label: "生产者" },
+          { id: "topics", icon: Layers, label: "shell.nav.pulsar.topics" },
+          { id: "consumers", icon: Users, label: "shell.nav.pulsar.consumers" },
+          { id: "messages", icon: Mail, label: "shell.nav.pulsar.messages" },
+          { id: "dlq", icon: TriangleAlert, label: "shell.nav.pulsar.dlq" },
+          { id: "producer", icon: Send, label: "shell.nav.pulsar.producer" },
         ],
       },
       {
         label: OPS,
         items: [
-          { id: "cluster", icon: Server, label: "Broker / Bookie" },
-          { id: "alerts", icon: BellRing, label: "告警" },
-          { id: "acl", icon: Shield, label: "Token" },
+          { id: "cluster", icon: Server, label: "shell.nav.pulsar.cluster" },
+          { id: "alerts", icon: BellRing, label: "shell.nav.pulsar.alerts" },
+          { id: "acl", icon: Shield, label: "shell.nav.pulsar.acl" },
         ],
       },
     ],
@@ -182,22 +186,22 @@ export const PROTOCOLS: Record<ProtocolId, Protocol> = {
     badge: "REDIS",
     badgeClass: "pRDS",
     nav: [
-      { items: [{ id: "overview", icon: House, label: "总览" }] },
+      { items: [{ id: "overview", icon: House, label: "shell.nav.redis.overview" }] },
       {
         label: BROWSE,
         items: [
-          { id: "topics", icon: Layers, label: "Stream" },
-          { id: "consumers", icon: Users, label: "消费者组" },
-          { id: "messages", icon: Mail, label: "消息" },
-          { id: "dlq", icon: TriangleAlert, label: "待确认 PEL" },
-          { id: "producer", icon: Send, label: "生产者" },
+          { id: "topics", icon: Layers, label: "shell.nav.redis.topics" },
+          { id: "consumers", icon: Users, label: "shell.nav.redis.consumers" },
+          { id: "messages", icon: Mail, label: "shell.nav.redis.messages" },
+          { id: "dlq", icon: TriangleAlert, label: "shell.nav.redis.dlq" },
+          { id: "producer", icon: Send, label: "shell.nav.redis.producer" },
         ],
       },
       {
         label: OPS,
         items: [
-          { id: "cluster", icon: Server, label: "节点" },
-          { id: "alerts", icon: BellRing, label: "告警" },
+          { id: "cluster", icon: Server, label: "shell.nav.redis.cluster" },
+          { id: "alerts", icon: BellRing, label: "shell.nav.redis.alerts" },
         ],
       },
     ],
@@ -208,21 +212,21 @@ export const PROTOCOLS: Record<ProtocolId, Protocol> = {
     badge: "MQTT",
     badgeClass: "pMQT",
     nav: [
-      { items: [{ id: "overview", icon: House, label: "总览" }] },
+      { items: [{ id: "overview", icon: House, label: "shell.nav.mqtt.overview" }] },
       {
         label: BROWSE,
         items: [
-          { id: "topics", icon: Layers, label: "主题" },
-          { id: "subscribe", icon: Radio, label: "订阅监听" },
-          { id: "producer", icon: Send, label: "发布" },
-          { id: "clients", icon: Plug, label: "客户端 / 会话" },
+          { id: "topics", icon: Layers, label: "shell.nav.mqtt.topics" },
+          { id: "subscribe", icon: Radio, label: "shell.nav.mqtt.subscribe" },
+          { id: "producer", icon: Send, label: "shell.nav.mqtt.producer" },
+          { id: "clients", icon: Plug, label: "shell.nav.mqtt.clients" },
         ],
       },
       {
         label: OPS,
         items: [
-          { id: "cluster", icon: Server, label: "$SYS" },
-          { id: "alerts", icon: BellRing, label: "告警" },
+          { id: "cluster", icon: Server, label: "shell.nav.mqtt.cluster" },
+          { id: "alerts", icon: BellRing, label: "shell.nav.mqtt.alerts" },
         ],
       },
     ],
