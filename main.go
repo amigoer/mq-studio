@@ -31,9 +31,9 @@ var version = "dev"
 const applicationName = "MQ Studio"
 
 // Title bar geometry, shared with the renderer. Keep in step with the
-// .mqs-title-bar rule in frontend/src/styles/app.css.
+// .tb2 / .tb2--mac rules in frontend/src/design/tokens.css.
 const (
-	titleBarHeight   = 44.0
+	titleBarHeight   = 40.0
 	trafficLightLeft = 16.0
 )
 
