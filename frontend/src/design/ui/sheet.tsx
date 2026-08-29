@@ -1,4 +1,5 @@
 import { useEffect, useRef, type CSSProperties, type ReactNode } from "react";
+import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /*
@@ -110,9 +111,9 @@ export function SheetHeader({
           type="button"
           aria-label="关闭"
           onClick={onClose}
-          style={{ color: "#a3a3a3", background: "none", border: "none", padding: 0, font: "inherit" }}
+          style={{ display: "flex", color: "#a3a3a3", background: "none", border: "none", padding: 0 }}
         >
-          ×
+          <X size={16} aria-hidden />
         </button>
       </div>
       {tabs != null && (

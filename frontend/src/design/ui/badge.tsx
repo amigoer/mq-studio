@@ -14,14 +14,15 @@ const statusVariants = cva("st", {
 export interface StatusProps
   extends React.HTMLAttributes<HTMLSpanElement>,
     VariantProps<typeof statusVariants> {
-  /** The canvas prefixes online states with a filled bullet. */
+  /** The canvas prefixes online states with a filled bullet (`.mqs-dot`). */
   dot?: boolean;
 }
 
 export function Status({ className, tone, dot, children, ...props }: StatusProps) {
   return (
     <span className={cn(statusVariants({ tone }), className)} {...props}>
-      {dot ? <>● {children}</> : children}
+      {dot && <span className="mqs-dot" aria-hidden />}
+      {children}
     </span>
   );
 }

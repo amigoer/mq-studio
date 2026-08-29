@@ -1,4 +1,5 @@
 import { Fragment, type CSSProperties, type ReactNode } from "react";
+import { Check as CheckIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /** `.chart3` — the hatched placeholder the canvas uses for every plot. */
@@ -60,7 +61,15 @@ export function SectionLabel({
       {children}
       {action != null && (
         <span
-          style={{ float: "right", color: actionColor, textTransform: "none", letterSpacing: 0 }}
+          style={{
+            float: "right",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "4px",
+            color: actionColor,
+            textTransform: "none",
+            letterSpacing: 0,
+          }}
         >
           {action}
         </span>
@@ -91,26 +100,33 @@ export function KV({
   );
 }
 
-/** `.srow` — a settings row: label + hint on the left, control on the right. */
+/**
+ * `.srow` — a settings row: label and hint on the left, controls on the right.
+ * The last row of a card drops its rule so the card's own border is the only
+ * line under it.
+ */
 export function SettingRow({
   label,
   hint,
   children,
+  last,
   style,
 }: {
   label: ReactNode;
   hint?: ReactNode;
   children?: ReactNode;
+  last?: boolean;
   style?: CSSProperties;
 }) {
   return (
-    <div className="srow" style={style}>
+    <div className="srow" style={last ? { borderBottom: "none", ...style } : style}>
       <div className="lab">
         <div>{label}</div>
         {hint != null && <div className="hint">{hint}</div>}
       </div>
-      <span style={{ flex: 1 }} />
-      {children}
+      <div style={{ display: "flex", alignItems: "center", gap: "8px", flex: "none" }}>
+        {children}
+      </div>
     </div>
   );
 }
@@ -164,15 +180,14 @@ export function Check({
       style={
         checked
           ? {
-              display: "inline-block",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
               width: "12px",
               height: "12px",
               borderRadius: "3px",
               background: "#171717",
               color: "#fff",
-              fontSize: "9px",
-              textAlign: "center",
-              lineHeight: "12px",
               border: "none",
               padding: 0,
             }
@@ -187,7 +202,7 @@ export function Check({
             }
       }
     >
-      {checked ? "✓" : ""}
+      {checked && <CheckIcon size={9} strokeWidth={3} aria-hidden />}
     </button>
   );
 }
@@ -199,6 +214,9 @@ export function WarnBanner({ children, style }: { children: ReactNode; style?: C
       style={{
         margin: "0 20px",
         padding: "8px 12px",
+        display: "flex",
+        alignItems: "center",
+        gap: "6px",
         border: "1px solid #fde68a",
         background: "#fffbeb",
         borderRadius: "8px",

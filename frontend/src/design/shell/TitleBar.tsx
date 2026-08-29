@@ -1,4 +1,5 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
+import { Bell, Columns2, RefreshCw, Settings } from "lucide-react";
 import { SiGithub } from "react-icons/si";
 import { AppLogo } from "@/design/icons/AppLogo";
 import { IconBtn } from "@/design/ui";
@@ -9,21 +10,30 @@ import { WindowControls } from "./WindowControls";
  * `.tb2` from the canvas, carrying the connection tabs inline. The canvas draws
  * tabs on their own 39px strip below; merging the two rows buys that height
  * back for content at the cost of horizontal room for tabs, which is why the
- * strip scrolls and 分屏对照 moved into the icon cluster as ⊞.
+ * strip scrolls and 分屏对照 moved into the icon cluster.
  *
  * The canvas drew the macOS traffic lights by hand; the real window has the
  * native ones (main.go keeps the frame on darwin and moves the buttons onto
  * this bar), so the row only reserves the width they take. Everywhere else the
  * window is frameless and the bar ends with its own window buttons.
  */
+/*
+ * lucide draws on a 24 grid and inks about 20 of it, so 17px puts these within
+ * a pixel of the 14px the GitHub mark fills solid, and a stroked set beside a
+ * filled brand mark reads as one row. The canvas used Unicode symbols here, but
+ * their design sizes are unrelated -- ⚙ inked little more than half of ↻ at the
+ * same font-size -- and off darwin they fall back to whatever the system has.
+ */
+const ICON = 17;
+
 export function TitleBar({
   tabs,
-  connectionsActive,
+  homeActive,
   splitActive,
   dimmed = false,
   updateReady = false,
+  onHome,
   onSearch,
-  onConnections,
   onRefresh,
   onGithub,
   onNotifications,
@@ -31,13 +41,14 @@ export function TitleBar({
   onSplit,
 }: {
   tabs?: ReactNode;
-  connectionsActive?: boolean;
+  /** True while the connection list is the page being shown. */
+  homeActive?: boolean;
   splitActive?: boolean;
   /** 8b: with no connections the search and notification affordances read as inert. */
   dimmed?: boolean;
   updateReady?: boolean;
+  onHome?: () => void;
   onSearch?: () => void;
-  onConnections?: () => void;
   onRefresh?: () => void;
   onGithub?: () => void;
   onNotifications?: () => void;
@@ -45,24 +56,38 @@ export function TitleBar({
   onSplit?: () => void;
 }) {
   const mac = isMac();
+  /*
+   * The update icon turns one full circle per click. Counting turns instead of
+   * toggling an animation class lets a click landing mid-turn carry the icon on
+   * from where it is, with no jump back to zero.
+   */
+  const [turns, setTurns] = useState(0);
 
   return (
     <div
       className={mac ? "tb2 tb2--mac" : "tb2"}
       style={{ background: "#fafafa" }}
     >
-      {/* Mark only — the wordmark it sat next to was traded for tab width. */}
-      <span
-        role="img"
-        aria-label="MQ Studio"
-        title="MQ Studio"
-        /* The glyph is inset inside its 140x96 box, so these read ~2px wider. */
-        style={{ display: "flex", alignItems: "center", flex: "none", margin: "0 6px 0 4px" }}
-      >
-        <AppLogo />
-      </span>
-
-      {tabs ?? <span style={{ flex: 1 }} />}
+      {/*
+       * Mark only — the wordmark it sat next to was traded for tab width — and
+       * it doubles as the default tab: it is the only way back to the connection
+       * list, which the first tab opened otherwise buries. It shares the strip's
+       * row so the two sit on one rhythm, but not its scroll box, so it stays in
+       * reach.
+       */}
+      <div className="mqs-tabrow">
+        <button
+          type="button"
+          className="mqs-tab-home"
+          aria-current={homeActive ? "page" : undefined}
+          aria-label="MQ Studio 首页"
+          title="首页"
+          onClick={onHome}
+        >
+          <AppLogo />
+        </button>
+        {tabs ?? <span style={{ flex: 1 }} />}
+      </div>
 
       <button
         type="button"
@@ -72,43 +97,54 @@ export function TitleBar({
       >
         搜索 ⌘K
       </button>
-      <IconBtn active={connectionsActive} onClick={onConnections} title="连接">
-        ⇄
-      </IconBtn>
-      <IconBtn style={{ position: "relative" }} onClick={onRefresh} title="检查更新">
-        ↻
+      <IconBtn
+        style={{ position: "relative" }}
+        onClick={() => {
+          setTurns((n) => n + 1);
+          onRefresh?.();
+        }}
+        title="检查更新"
+      >
+        <RefreshCw
+          size={ICON}
+          className="mqs-refresh"
+          style={{ transform: `rotate(${turns * 360}deg)` }}
+          aria-hidden
+        />
         {updateReady && (
           <span
             style={{
               position: "absolute",
-              top: "4px",
-              right: "4px",
+              top: "3px",
+              right: "3px",
               width: "6px",
               height: "6px",
               borderRadius: "99px",
               background: "#29915d",
+              /* The badge sits over the icon's corner, so it needs an edge. */
+              boxShadow: "0 0 0 1.5px #fff",
             }}
           />
         )}
       </IconBtn>
       <IconBtn onClick={onGithub} title="GitHub">
-        <SiGithub size={13} color="#181717" aria-hidden />
+        <SiGithub size={14} color="#181717" aria-hidden />
       </IconBtn>
       <IconBtn
         style={dimmed ? { color: "#c9c9c9" } : undefined}
         onClick={onNotifications}
         title="通知"
       >
-        ◔
+        <Bell size={ICON} aria-hidden />
       </IconBtn>
       {/* 8b drops the strip entirely; with fewer than two tabs there is nothing to compare. */}
       {onSplit != null && (
         <IconBtn active={splitActive} onClick={onSplit} title="分屏对照">
-          ⊞
+          <Columns2 size={ICON} aria-hidden />
         </IconBtn>
       )}
       <IconBtn onClick={onSettings} title="设置">
-        ⚙
+        <Settings size={ICON} aria-hidden />
       </IconBtn>
       {!mac && <WindowControls />}
     </div>

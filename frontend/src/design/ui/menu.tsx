@@ -1,6 +1,6 @@
 import { useEffect, useRef, type ReactNode } from "react";
 
-/** One item in the `⋯` row menu (8a). */
+/** One item in the row overflow menu (8a). */
 export function MenuItem({
   children,
   danger,
@@ -21,6 +21,10 @@ export function MenuItem({
       style={{
         font: "inherit",
         fontSize: "12px",
+        /* A row, so an item that carries an icon keeps it on the label's line. */
+        display: "flex",
+        alignItems: "center",
+        gap: "5px",
         padding: "6px 10px",
         borderRadius: "6px",
         textAlign: "left",
@@ -38,7 +42,7 @@ export function MenuSeparator() {
   return <span style={{ height: "1px", background: "#ebebeb", margin: "4px 6px" }} />;
 }
 
-/** The floating panel anchored under the `⋯` button. */
+/** The floating panel anchored under the row overflow button. */
 export function Menu({
   open,
   onClose,

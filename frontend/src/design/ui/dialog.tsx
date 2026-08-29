@@ -1,4 +1,5 @@
 import { useEffect, type ReactNode } from "react";
+import { X } from "lucide-react";
 
 /**
  * The modal from 3a: a 32%-black scrim filling the shell body with a 580px
@@ -69,9 +70,9 @@ export function Dialog({
             type="button"
             aria-label="关闭"
             onClick={onClose}
-            style={{ color: "#a3a3a3", background: "none", border: "none", padding: 0, font: "inherit" }}
+            style={{ display: "flex", color: "#a3a3a3", background: "none", border: "none", padding: 0 }}
           >
-            ×
+            <X size={16} aria-hidden />
           </button>
         </div>
         <div style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: "14px" }}>

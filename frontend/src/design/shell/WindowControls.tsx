@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { Copy, Minus, Square, X } from "lucide-react";
 import { windowControls } from "@/api/platform";
 
 /**
@@ -8,7 +9,12 @@ import { windowControls } from "@/api/platform";
  * Close only asks the window to close: Go's WindowClosing hook is what chooses
  * between hiding to the tray and quitting, so the renderer must not second
  * guess it with a confirmation of its own.
+ *
+ * The glyphs are smaller than the app's own icons: these act on the window, and
+ * Windows draws its caption buttons at about 10px.
  */
+const ICON = 13;
+
 export function WindowControls() {
   const [maximised, setMaximised] = useState(false);
 
@@ -32,7 +38,7 @@ export function WindowControls() {
         aria-label="最小化"
         onClick={() => void windowControls.minimise().catch(() => {})}
       >
-        ─
+        <Minus size={ICON} aria-hidden />
       </button>
       <button
         type="button"
@@ -42,7 +48,7 @@ export function WindowControls() {
         // Linux emits no maximise event, so the state is re-read either way.
         onClick={() => void windowControls.toggleMaximise().then(readMaximised, readMaximised)}
       >
-        {maximised ? "❐" : "□"}
+        {maximised ? <Copy size={ICON - 1} aria-hidden /> : <Square size={ICON} aria-hidden />}
       </button>
       <button
         type="button"
@@ -51,7 +57,7 @@ export function WindowControls() {
         aria-label="关闭"
         onClick={() => void windowControls.close().catch(() => {})}
       >
-        ✕
+        <X size={ICON} aria-hidden />
       </button>
     </div>
   );

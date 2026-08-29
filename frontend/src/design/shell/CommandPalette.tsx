@@ -1,4 +1,5 @@
 import { useEffect, type CSSProperties } from "react";
+import { Layers, Search, Send, Users, type LucideIcon } from "lucide-react";
 import { Card } from "@/design/ui";
 
 /** Board 9d — ⌘K search across every connection. */
@@ -52,7 +53,7 @@ export function CommandPalette({
             borderBottom: "1px solid #ebebeb",
           }}
         >
-          <span style={{ color: "#8a8a8a" }}>⌕</span>
+          <Search size={15} color="#8a8a8a" aria-hidden />
           <input
             autoFocus
             value={query}
@@ -76,16 +77,16 @@ export function CommandPalette({
           <div style={{ padding: "2px 10px 6px" }} className="sec3">
             rocketmq-order
           </div>
-          <Row icon="▦" active name="ORDER_CREATE" meta="Topic · 堆积 982" enter />
-          <Row icon="▦" name="ORDER_PAY_DELAY" meta="Topic" />
-          <Row icon="◎" name="order-settle" meta="消费者组" pill="堆积 982" />
+          <Row icon={Layers} active name="ORDER_CREATE" meta="Topic · 堆积 982" enter />
+          <Row icon={Layers} name="ORDER_PAY_DELAY" meta="Topic" />
+          <Row icon={Users} name="order-settle" meta="消费者组" pill="堆积 982" />
         </div>
 
         <div style={{ padding: "0 8px 4px" }}>
           <div style={{ padding: "8px 10px 6px" }} className="sec3">
             prod-kafka-cn
           </div>
-          <Row icon="▦" name="orders.created" meta="Topic · 24 分区" />
+          <Row icon={Layers} name="orders.created" meta="Topic · 24 分区" />
         </div>
 
         <div style={{ padding: "0 8px 8px" }}>
@@ -93,7 +94,10 @@ export function CommandPalette({
             操作
           </div>
           <div style={{ ...ROW, color: "#525252" }}>
-            <span className="nic">➤</span>发送消息到 ORDER_CREATE…
+            <span className="nic">
+              <Send size={16} aria-hidden />
+            </span>
+            发送消息到 ORDER_CREATE…
           </div>
         </div>
 
@@ -128,14 +132,15 @@ const ROW: CSSProperties = {
 };
 
 function Row({
-  icon,
+  icon: Icon,
   name,
   meta,
   pill,
   active,
   enter,
 }: {
-  icon: string;
+  /* The same icon the sidebar gives the page a hit belongs to. */
+  icon: LucideIcon;
   name: string;
   meta: string;
   pill?: string;
@@ -144,7 +149,9 @@ function Row({
 }) {
   return (
     <div style={{ ...ROW, background: active ? "#f5f5f5" : undefined, color: active ? undefined : "#525252" }}>
-      <span className="nic">{icon}</span>
+      <span className="nic">
+        <Icon size={16} aria-hidden />
+      </span>
       {active ? (
         <b className="mono3" style={{ fontSize: "12px", fontWeight: 500 }}>
           {name}

@@ -11,6 +11,8 @@ import {
 import { CONNECTIONS, DEFAULT_OPEN_TABS, type Connection } from "@/design/data/connections";
 import { pagesOf, type PageId } from "@/design/data/protocols";
 import { renderBoard } from "@/design/registry";
+import { openExternal } from "@/api/platform";
+import { useUIScale } from "@/hooks/useUIScale";
 import { ConnectionsList } from "@/design/boards/connections/ConnectionsList";
 import { ConnectionsEmpty } from "@/design/boards/connections/ConnectionsEmpty";
 import { NewConnectionDialog } from "@/design/boards/connections/NewConnectionDialog";
@@ -32,6 +34,14 @@ const DOCS: Record<DocId, () => JSX.Element> = {
 const GITHUB_URL = "https://github.com/amigoer/mq-studio";
 
 /**
+ * The repository link goes through Go rather than window.open: the webview has
+ * no browser to open a tab in, and SystemService.OpenExternal is where the
+ * host allow-list lives. It rejects anything off github.com, which is nothing
+ * a user can act on, so a failure stays quiet.
+ */
+const openGithub = () => void openExternal(GITHUB_URL).catch(() => {});
+
+/**
  * The design canvas realised: window → connection tab → page (5c). Each tab
  * keeps its own page selection, which is why `pageByTab` is keyed by tab and
  * not stored globally.
@@ -43,6 +53,13 @@ export function DesignApp(): JSX.Element {
   const [pageByTab, setPageByTab] = useState<Record<string, PageId>>({});
   const [view, setView] = useState<View>({ kind: "connections" });
   const [previousView, setPreviousView] = useState<View>({ kind: "tab" });
+
+  // Window chrome, not per-tab state: see the note on Sidebar.
+  const [navCollapsed, setNavCollapsed] = useState(false);
+
+  // Applied to the document, not to this tree: every board is drawn in absolute
+  // px and the whole document is zoomed to the chosen size.
+  const { setting: scaleSetting, fontSize, setSetting: setScale } = useUIScale();
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -63,12 +80,17 @@ export function DesignApp(): JSX.Element {
     [],
   );
 
-  // ⌘K / Ctrl+K opens the palette from anywhere (9d).
+  // ⌘K / Ctrl+K opens the palette from anywhere (9d); ⌘B collapses the sidebar.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+      if (!e.metaKey && !e.ctrlKey) return;
+      const key = e.key.toLowerCase();
+      if (key === "k") {
         e.preventDefault();
         setPaletteOpen((open) => !open);
+      } else if (key === "b") {
+        e.preventDefault();
+        setNavCollapsed((collapsed) => !collapsed);
       }
     };
     window.addEventListener("keydown", onKey);
@@ -102,13 +124,18 @@ export function DesignApp(): JSX.Element {
   };
 
   const onConnection = view.kind === "tab" && protocol != null;
+  // The connection list is the home page, and a tab with no connection behind
+  // it falls back to the same list, so the mark reads as selected there too.
+  const atHome = view.kind === "connections" || (view.kind === "tab" && !onConnection);
 
   const sidebar =
     onConnection && protocol != null ? (
       <Sidebar
         protocol={protocol}
         active={pagesOf(protocol).includes(page) ? page : "overview"}
+        collapsed={navCollapsed}
         onSelect={selectPage}
+        onToggle={() => setNavCollapsed((collapsed) => !collapsed)}
       />
     ) : undefined;
 
@@ -130,6 +157,7 @@ export function DesignApp(): JSX.Element {
           <Settings
             onBack={() => setView(previousView)}
             onOpenDoc={(doc) => setView({ kind: "doc", doc })}
+            scale={{ setting: scaleSetting, fontSize, onChange: setScale }}
           />
         );
       case "doc": {
@@ -162,14 +190,14 @@ export function DesignApp(): JSX.Element {
     <AppShell
       titleBar={
         <TitleBar
-          connectionsActive={view.kind === "connections"}
+          homeActive={atHome}
           splitActive={view.kind === "split"}
           dimmed={connections.length === 0}
           updateReady
+          onHome={() => goto({ kind: "connections" })}
           onSearch={() => setPaletteOpen(true)}
-          onConnections={() => goto({ kind: "connections" })}
           onRefresh={() => undefined}
-          onGithub={() => window.open(GITHUB_URL, "_blank", "noopener")}
+          onGithub={openGithub}
           onNotifications={() => setNotificationsOpen((open) => !open)}
           onSettings={() => goto({ kind: "settings" })}
           onSplit={
@@ -183,9 +211,13 @@ export function DesignApp(): JSX.Element {
           tabs={
             <ConnectionTabs
               tabs={openTabs}
-              /* 8a / 3a / 3g keep the connection tab highlighted behind a global view. */
-              active={activeTab}
-              compare={view.kind === "split" ? { label: "⊞ 对照", detail: "RMQ ⇄ Kafka" } : null}
+              /*
+               * 3a / 3g keep the connection tab highlighted behind a global
+               * view; the home page is the one that does not, because it is
+               * itself a tab and two tabs cannot both be selected.
+               */
+              active={atHome ? null : activeTab}
+              compare={view.kind === "split" ? { label: "对照", detail: "RMQ ⇄ Kafka" } : null}
               onSelect={openTab}
               onClose={closeTab}
               onAdd={() => {

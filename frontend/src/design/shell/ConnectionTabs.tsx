@@ -1,4 +1,5 @@
 import { useEffect, useRef, type CSSProperties } from "react";
+import { Columns2, Plus, X } from "lucide-react";
 import { ProtocolIcon } from "@/design/icons/ProtocolIcon";
 import { connectionOf, type ConnectionStatus } from "@/design/data/connections";
 
@@ -86,8 +87,8 @@ export function ConnectionTabs({
   if (tabs.length === 0) {
     return (
       <div className="mqs-tabstrip" ref={stripRef}>
-        <button type="button" className="mqs-tab-add" onClick={onAdd}>
-          ＋
+        <button type="button" className="mqs-tab-add" aria-label="新建连接" onClick={onAdd}>
+          <Plus size={13} aria-hidden />
         </button>
         <span style={{ fontSize: "11px", color: "#a3a3a3", whiteSpace: "nowrap" }}>
           新建连接后会以标签的形式出现在这里
@@ -135,26 +136,39 @@ export function ConnectionTabs({
                 onClose?.(key);
               }}
             >
-              ×
+              <X size={13} aria-hidden />
             </button>
           </div>
         );
       })}
 
       {compare != null && (
-        <div role="tab" aria-selected className="mqs-tab mqs-tab-compare" style={ACTIVE}>
+        <div
+          role="tab"
+          aria-selected
+          className="mqs-tab mqs-tab-compare"
+          /* Two labels and a mark do not fit the tab floor the others
+             shrink to; squeezed, the name is the part that vanishes. */
+          style={{ ...ACTIVE, flex: "none" }}
+        >
+          {/* The same mark the title bar's 分屏对照 button carries, in the slot
+              a connection tab gives its protocol logo. 16px against those 14px
+              filled logos: a stroked icon reads smaller than a solid one. */}
+          <span className="mqs-tab-mark">
+            <Columns2 size={16} aria-hidden />
+          </span>
           <span className="mqs-tab-name">{compare.label}</span>
           <span style={{ fontSize: "10.5px", color: "#8a8a8a", fontWeight: 400 }}>
             {compare.detail}
           </span>
           <button type="button" className="mqs-tab-close" aria-label="退出分屏" onClick={onSplit}>
-            ×
+            <X size={13} aria-hidden />
           </button>
         </div>
       )}
 
-      <button type="button" className="mqs-tab-add" onClick={onAdd}>
-        ＋
+      <button type="button" className="mqs-tab-add" aria-label="新建连接" onClick={onAdd}>
+        <Plus size={13} aria-hidden />
       </button>
     </div>
   );

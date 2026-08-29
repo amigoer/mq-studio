@@ -1,4 +1,5 @@
 import * as React from "react";
+import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /** `.in3` as a real text input. */
@@ -20,14 +21,15 @@ TextArea.displayName = "TextArea";
 
 /**
  * `.in3` rendered as a button — the canvas draws every dropdown as a bordered
- * pill with a `▾`, so a native select would not match.
+ * pill with its own caret, so a native select would not match.
  */
 export const SelectField = React.forwardRef<
   HTMLButtonElement,
   React.ButtonHTMLAttributes<HTMLButtonElement> & { value: React.ReactNode }
 >(({ className, value, ...props }, ref) => (
-  <button ref={ref} type="button" className={cn("in3", className)} {...props}>
-    {value} ▾
+  <button ref={ref} type="button" className={cn("in3", "mqs-select", className)} {...props}>
+    {value}
+    <ChevronDown size={13} aria-hidden />
   </button>
 ));
 SelectField.displayName = "SelectField";

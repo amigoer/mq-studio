@@ -167,8 +167,11 @@ export function TabStatusBar({
         color: "#8a8a8a",
       }}
     >
-      <span style={{ color: "#1f7a4d" }}>
-        ● {connection} {latency}
+      <span
+        style={{ display: "flex", alignItems: "center", gap: "5px", color: "#1f7a4d" }}
+      >
+        <span className="mqs-dot" aria-hidden />
+        {connection} {latency}
       </span>
       <span>后台标签仍保持连接与告警监听</span>
       <span style={{ flex: 1 }} />

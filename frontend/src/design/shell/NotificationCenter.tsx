@@ -1,10 +1,11 @@
 import { useEffect, useRef, type ReactNode } from "react";
+import { ArrowRight, ChevronRight } from "lucide-react";
 import { ProtocolIcon } from "@/design/icons/ProtocolIcon";
 import { Card } from "@/design/ui";
 import type { ProtocolId } from "@/design/data/protocols";
 
 /**
- * Board 9c — the ◔ popover. Alerts are grouped by connection because they
+ * Board 9c — the 通知 popover. Alerts are grouped by connection because they
  * arrive across every open tab; the sidebar's 告警 page only rules this one.
  */
 export function NotificationCenter({
@@ -90,7 +91,18 @@ export function NotificationCenter({
         <div style={{ display: "flex", alignItems: "center", padding: "11px 16px" }}>
           <span style={{ fontSize: "11px", color: "#8a8a8a" }}>桌面通知已开启</span>
           <span style={{ flex: 1 }} />
-          <span style={{ fontSize: "11.5px", color: "#29915d" }}>告警规则设置 →</span>
+          <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "4px",
+                fontSize: "11.5px",
+                color: "#29915d",
+              }}
+            >
+              告警规则设置
+              <ArrowRight size={13} aria-hidden />
+            </span>
         </div>
       </Card>
     </div>
@@ -143,7 +155,7 @@ function Item({
         {title}
         <div style={{ fontSize: "10.5px", color: "#8a8a8a", marginTop: "1px" }}>{meta}</div>
       </div>
-      {chevron && <span style={{ color: "#c9c9c9", alignSelf: "center" }}>›</span>}
+      {chevron && <ChevronRight size={14} color="#c9c9c9" style={{ alignSelf: "center", flex: "none" }} aria-hidden />}
     </div>
   );
 }
