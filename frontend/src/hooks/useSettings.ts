@@ -17,7 +17,7 @@ import type { AppSettings } from "@/api/settings";
 import { windowControls } from "@/api/platform";
 import { setLanguage as setI18nLanguage, type SupportedLanguage } from "@/i18n";
 import { monoFontStack, uiFontStack } from "@/lib/fonts";
-import { applyTheme, cacheTheme, type ThemeMode } from "@/lib/theme";
+import { applyTheme, cacheTheme, resolveDark, type ThemeMode } from "@/lib/theme";
 import { parseUIScale, type UIScaleSetting } from "@/lib/uiScale";
 
 export type { ThemeMode };
@@ -192,9 +192,9 @@ function useSettingsStore(): SettingsContextValue {
   const [settings, setSettingsState] = useState<FrontendSettings>(DEFAULTS);
   const settingsRef = useRef<FrontendSettings>(DEFAULTS);
   const [loading, setLoading] = useState(true);
-  // What is on screen, not what was chosen: the two differ while the design
-  // layer has no dark palette. See lib/theme.
-  const [effectiveDark, setEffectiveDark] = useState(false);
+  const [effectiveDark, setEffectiveDark] = useState(() =>
+    resolveDark(DEFAULTS.theme),
+  );
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingSettingsRef = useRef<FrontendSettings | null>(null);
   const saveChainRef = useRef<Promise<void>>(Promise.resolve());

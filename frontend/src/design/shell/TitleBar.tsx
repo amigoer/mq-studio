@@ -128,7 +128,7 @@ export function TitleBar({
         )}
       </IconBtn>
       <IconBtn onClick={onGithub} title="GitHub">
-        <SiGithub size={14} color="#181717" aria-hidden />
+        <SiGithub size={14} color="var(--c-github-mark)" aria-hidden />
       </IconBtn>
       <IconBtn
         style={dimmed ? { color: "var(--c-disabled)" } : undefined}

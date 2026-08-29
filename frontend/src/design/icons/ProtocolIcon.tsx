@@ -14,14 +14,18 @@ import type { ProtocolId } from "@/design/data/protocols";
  * The canvas pulls these from cdn.simpleicons.org. A packaged desktop app has
  * no network guarantee, so the same Simple Icons glyphs are bundled through
  * react-icons and tinted with each brand's documented hex.
+ *
+ * Two of those hexes are near-black and would disappear on a dark ground, so
+ * they go through a token that carries the brand's own dark-mode value. The
+ * other four read on both.
  */
 const GLYPH: Record<ProtocolId, { icon: IconType; color: string }> = {
   rocketmq: { icon: SiApacherocketmq, color: "#D77310" },
-  kafka: { icon: SiApachekafka, color: "#231F20" },
+  kafka: { icon: SiApachekafka, color: "var(--c-brand-kafka)" },
   rabbitmq: { icon: SiRabbitmq, color: "#FF6600" },
   pulsar: { icon: SiApachepulsar, color: "#188FFF" },
   redis: { icon: SiRedis, color: "#FF4438" },
-  mqtt: { icon: SiMqtt, color: "#660066" },
+  mqtt: { icon: SiMqtt, color: "var(--c-brand-mqtt)" },
 };
 
 export function ProtocolIcon({

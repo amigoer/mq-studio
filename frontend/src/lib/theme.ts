@@ -5,14 +5,6 @@
 
 export type ThemeMode = "system" | "light" | "dark";
 
-/**
- * The design layer is drawn in light only: 57 hex values across 63 files that
- * no `.dark` rule reaches yet. The theme is stored, shown and reported, but not
- * painted, until the token sweep lands. Turning dark mode on is deleting this
- * constant and the one branch that reads it.
- */
-const DARK_THEME_READY = false;
-
 /** Mirrors the chosen theme for the next launch's first frame. */
 const CACHE_KEY = "mq-studio:theme";
 
@@ -21,14 +13,14 @@ export function systemPrefersDark(): boolean {
   return window.matchMedia("(prefers-color-scheme: dark)").matches;
 }
 
-/** What a mode means right now, before the readiness gate above. */
+/** What a mode means right now: "system" is whatever the OS is set to. */
 export function resolveDark(mode: ThemeMode): boolean {
   return mode === "system" ? systemPrefersDark() : mode === "dark";
 }
 
 /** Writes the resolved theme to the document, and reports what was applied. */
 export function applyTheme(mode: ThemeMode): boolean {
-  const dark = DARK_THEME_READY && resolveDark(mode);
+  const dark = resolveDark(mode);
   document.documentElement.classList.toggle("dark", dark);
   return dark;
 }

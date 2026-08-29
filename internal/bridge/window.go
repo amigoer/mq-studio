@@ -19,11 +19,12 @@ const (
 // "in", "out" or "reset"; see useUIScale in the frontend.
 const ZoomEvent = "ui:zoom"
 
-// Window chrome colours mirror the renderer --background token, so the native
-// frame never flashes the wrong shade while the webview paints.
+// Window chrome colours mirror the renderer's --c-bg token, so the native frame
+// never flashes the wrong shade while the webview paints. Keep in step with
+// the light and dark scales in frontend/src/design/tokens.css.
 var (
 	backgroundLight = application.NewRGB(0xFF, 0xFF, 0xFF)
-	backgroundDark  = application.NewRGB(0x12, 0x12, 0x12)
+	backgroundDark  = application.NewRGB(0x0A, 0x0A, 0x0A)
 )
 
 // WindowService keeps the native window chrome in step with the renderer theme.
