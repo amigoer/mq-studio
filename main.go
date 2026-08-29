@@ -18,11 +18,17 @@ import (
 //go:embed all:frontend/dist
 var assets embed.FS
 
-// trayIcon is the menu bar / notification area icon, downscaled from
-// build/appicon.png. `wails3 generate icons` does not touch this file.
-//
-//go:embed build/trayicon.png
-var trayIcon []byte
+// Tray artwork, drawn from the matching build/*.svg. Wails squares the image
+// to the status bar thickness, so the 2:1 wordmark takes the full width and
+// gets about half that in height. `wails3 generate icons` does not touch them.
+var (
+	//go:embed build/trayicon.png
+	trayIcon []byte
+	//go:embed build/trayicon-darkmode.png
+	trayIconDark []byte
+	//go:embed build/trayicon-template.png
+	trayIconTemplate []byte
+)
 
 // version is injected at build time via -ldflags "-X main.version=...".
 // The development fallback is intentionally not a release version.
@@ -69,7 +75,9 @@ func run() error {
 	alignTrafficLights(window)
 
 	trayController := tray.New(
-		wailsApp, window, trayIcon, applicationName, services.Settings.GetSettings().Language)
+		wailsApp, window,
+		tray.Icons{Light: trayIcon, Dark: trayIconDark, Template: trayIconTemplate},
+		applicationName, services.Settings.GetSettings().Language)
 	services.Settings.OnChange(func(settings *model.AppSettings) {
 		trayController.SetLanguage(settings.Language)
 	})

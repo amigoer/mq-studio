@@ -3,8 +3,19 @@
 package tray
 
 import (
+	"runtime"
+
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
+
+// Icons carries the tray artwork for every platform. Template is a silhouette
+// that macOS tints itself for the light and dark menu bars; Light and Dark are
+// the colour variants Windows and Linux switch between by system theme.
+type Icons struct {
+	Light    []byte
+	Dark     []byte
+	Template []byte
+}
 
 // NavigateEvent carries a sidebar destination to the renderer. The payload is
 // one of the NavId values in frontend/src/layout/Sidebar.tsx.
@@ -80,7 +91,7 @@ type Controller struct {
 func New(
 	app *application.App,
 	window *application.WebviewWindow,
-	icon []byte,
+	icons Icons,
 	tooltip string,
 	language string,
 ) *Controller {
@@ -90,7 +101,14 @@ func New(
 		tray:     app.SystemTray.New(),
 		navItems: make(map[string]*application.MenuItem, len(navTargets)),
 	}
-	controller.tray.SetIcon(icon)
+	// SetTemplateIcon is a no-op on Windows, so the icon has to be set the
+	// plain way there or the tray would show none at all.
+	if runtime.GOOS == "darwin" {
+		controller.tray.SetTemplateIcon(icons.Template)
+	} else {
+		controller.tray.SetIcon(icons.Light)
+		controller.tray.SetDarkModeIcon(icons.Dark)
+	}
 	controller.tray.SetTooltip(tooltip)
 	controller.buildMenu()
 	controller.SetLanguage(language)
