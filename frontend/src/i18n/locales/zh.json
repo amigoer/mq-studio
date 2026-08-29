@@ -1928,7 +1928,16 @@
         "risky": "高危操作 · 记录到操作日志",
         "confirmAction": "确认重投",
         "confirmTitle": "重投 {{n}} 条死信消息？",
-        "confirmBody": "将以<b>新 MsgId</b> 重新写入 <topic>{{topic}}</topic>，由 <group>{{group}}</group> 正常消费；原消息保留在死信队列，可稍后删除。"
+        "confirmBody": "将以<b>新 MsgId</b> 重新写入 <topic>{{topic}}</topic>，由 <group>{{group}}</group> 正常消费；原消息保留在死信队列，可稍后删除。",
+        "liveSubtitle": "选择消费组后查看它的重试队列和死信队列",
+        "pickGroup": "选择消费组",
+        "pickGroupTitle": "先选一个消费组",
+        "pickGroupHint": "重试和死信队列都按消费组存放，选中后才知道要读哪一条。",
+        "noDlq": "这个消费组没有死信消息",
+        "noRetry": "这个消费组没有重试中的消息",
+        "queryFailed": "查询失败",
+        "resent": "已重新投递 {{count}} 条",
+        "resendFailed": "{{count}} 条重新投递失败"
       },
       "redis": {
         "title": "待确认 PEL",

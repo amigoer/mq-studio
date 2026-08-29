@@ -1928,7 +1928,16 @@
         "risky": "High-risk · written to the audit log",
         "confirmAction": "Redeliver",
         "confirmTitle": "Redeliver {{n}} dead letters?",
-        "confirmBody": "They are rewritten under a <b>new MsgId</b> to <topic>{{topic}}</topic> for <group>{{group}}</group> to consume normally; the originals stay in the dead-letter queue and can be deleted later."
+        "confirmBody": "They are rewritten under a <b>new MsgId</b> to <topic>{{topic}}</topic> for <group>{{group}}</group> to consume normally; the originals stay in the dead-letter queue and can be deleted later.",
+        "liveSubtitle": "Pick a consumer group to see its retry and dead-letter queues",
+        "pickGroup": "Pick a group",
+        "pickGroupTitle": "Pick a consumer group first",
+        "pickGroupHint": "Retry and dead-letter queues are kept per consumer group, so one has to be named before there is anything to read.",
+        "noDlq": "This group has no dead letters",
+        "noRetry": "This group has nothing retrying",
+        "queryFailed": "Query failed",
+        "resent": "Redelivered {{count}} message(s)",
+        "resendFailed": "{{count}} message(s) could not be redelivered"
       },
       "redis": {
         "title": "Pending entries (PEL)",
