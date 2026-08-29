@@ -17,7 +17,6 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedIndexedAccess": true,
-    "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
       "@bindings/*": ["./bindings/github.com/amigoer/mq-studio/internal/*"]
