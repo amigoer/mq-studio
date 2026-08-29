@@ -11,6 +11,10 @@ import { beforeAll, describe, expect, it, vi } from "vitest";
  *
  * The imports are dynamic because the shell reaches the Wails runtime at module
  * load, which wants a `window` this environment has to install first.
+ *
+ * Boards that read live data are rendered inside the providers they need but
+ * with nothing connected, which is the state that has to render in both
+ * languages anyway: every one of them draws its "not connected" notice.
  */
 
 type Board = { name: string; html: string };
@@ -28,18 +32,30 @@ beforeAll(async () => {
   });
   vi.stubGlobal("localStorage", storage);
 
-  const [{ renderToStaticMarkup }, protocols, registry, capability, nav, reuse, split] =
-    await Promise.all([
-      import("react-dom/server"),
-      import("@/design/data/protocols"),
-      import("@/design/registry"),
-      import("@/design/boards/docs/CapabilityMatrix"),
-      import("@/design/boards/docs/NavModel"),
-      import("@/design/boards/docs/ReuseStrategy"),
-      import("@/design/boards/split/SplitCompare"),
-    ]);
+  const [
+    { renderToStaticMarkup },
+    protocols,
+    registry,
+    capability,
+    nav,
+    reuse,
+    split,
+    settings,
+  ] = await Promise.all([
+    import("react-dom/server"),
+    import("@/design/data/protocols"),
+    import("@/design/registry"),
+    import("@/design/boards/docs/CapabilityMatrix"),
+    import("@/design/boards/docs/NavModel"),
+    import("@/design/boards/docs/ReuseStrategy"),
+    import("@/design/boards/split/SplitCompare"),
+    import("@/hooks/useSettings"),
+  ]);
 
   const docs = [capability.CapabilityMatrix, nav.NavModel, reuse.ReuseStrategy, split.SplitCompare];
+
+  const render = (node: React.ReactNode) =>
+    renderToStaticMarkup(<settings.SettingsProvider>{node}</settings.SettingsProvider>);
 
   everyBoard = () => {
     const out: Board[] = [];
@@ -47,11 +63,11 @@ beforeAll(async () => {
       for (const page of protocols.pagesOf(protocol)) {
         out.push({
           name: `${protocol}/${page}`,
-          html: renderToStaticMarkup(registry.renderBoard(protocol, page)),
+          html: render(registry.renderBoard(protocol, page)),
         });
       }
     }
-    for (const Doc of docs) out.push({ name: Doc.name, html: renderToStaticMarkup(<Doc />) });
+    for (const Doc of docs) out.push({ name: Doc.name, html: render(<Doc />) });
     return out;
   };
 });

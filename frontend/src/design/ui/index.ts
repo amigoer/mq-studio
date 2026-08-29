@@ -5,6 +5,8 @@ export { Table, MiniTable, THead, TBody, TR, TH, TD, NumTD, MonoTD } from "./tab
 export { Status, ProtoBadge, OutlineTag } from "./badge";
 export { Seg, type SegOption } from "./segmented";
 export { Sw } from "./switch";
+export { LineChart } from "./chart";
+export type { Series } from "./chart";
 export { ChartBox, Bar, Placeholder, SectionLabel, KV, SettingRow, MeterRow, Check, WarnBanner } from "./misc";
 export { Sheet, SheetHeader, SheetBody, SheetFooter } from "./sheet";
 export { Dialog } from "./dialog";

@@ -1543,7 +1543,13 @@
         "produceMsg": "— 生产 msg/s",
         "consumeMsg": "— 消费 msg/s",
         "brokerHealth": "Broker 健康",
-        "diskWarn": "broker-b 磁盘超 85% 水位"
+        "diskWarn": "broker-b 磁盘超 85% 水位",
+        "liveSubtitle": "集群 {{cluster}}",
+        "online": "{{count}} 在线",
+        "consumeRate": "消费 {{rate}}/s",
+        "diskOver": "{{count}} 个 Broker 磁盘超过 {{threshold}}%",
+        "noHistory": "还没有采样数据，连接一分钟后开始出现",
+        "noBacklog": "没有积压的消费组"
       }
     },
     "cluster": {

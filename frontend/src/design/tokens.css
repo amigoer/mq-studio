@@ -99,6 +99,14 @@
   --c-err-border: #f5caca;
   --c-info-text: #0369a1;
   --c-accent-blue: #0b64f4;
+  /*
+   * Chart series, in fixed order. Status colours are reserved for status, so a
+   * series never borrows one: a green line would read as "healthy" rather than
+   * as "produce". The pair is checked for colour-vision separation against the
+   * page background, which is why it is two hues rather than two greys.
+   */
+  --c-series-1: #0b64f4;
+  --c-series-2: #a21caf;
 
   /* marks that have to read on either ground */
   --c-logo-ink: #201e1d;
@@ -178,6 +186,10 @@
   --c-err-border: #5a1f1f;
   --c-info-text: #7dd3fc;
   --c-accent-blue: #5b9bff;
+  /* Re-stepped for the dark surface, not flipped: the light pair sits too
+     bright against #0a0a0a to keep its separation. */
+  --c-series-1: #3b82f6;
+  --c-series-2: #c026d3;
 
   --c-logo-ink: #fafafa;
   --c-github-mark: #f0f6fc;

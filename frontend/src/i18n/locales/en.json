@@ -1543,7 +1543,13 @@
         "produceMsg": "— produce msg/s",
         "consumeMsg": "— consume msg/s",
         "brokerHealth": "Broker health",
-        "diskWarn": "broker-b is over the 85% disk watermark"
+        "diskWarn": "broker-b is over the 85% disk watermark",
+        "liveSubtitle": "Cluster {{cluster}}",
+        "online": "{{count}} online",
+        "consumeRate": "Consuming {{rate}}/s",
+        "diskOver": "{{count}} broker(s) past {{threshold}}% disk",
+        "noHistory": "No samples yet — the chart fills in a minute after connecting",
+        "noBacklog": "No consumer group has a backlog"
       }
     },
     "cluster": {
