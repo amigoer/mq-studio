@@ -1451,7 +1451,8 @@
       "selectedN": "已选 {{n}} 条",
       "lastUpdated": "{{time}} 更新",
       "refreshing": "刷新中…",
-      "noMatch": "没有匹配的结果"
+      "noMatch": "没有匹配的结果",
+      "copied": "已复制"
     },
     "notDesigned": {
       "title": "设计稿待补",
@@ -1888,7 +1889,27 @@
         "notifyOk": "order-notify 消费成功",
         "settleRetry": "order-settle 第 2 次重试",
         "nextDelivery": "下次投递 10:26:07",
-        "viewRetryQueue": "查看重试队列"
+        "viewRetryQueue": "查看重试队列",
+        "byTag": "按 Tag",
+        "pickTopic": "选择 Topic",
+        "lastHours": "最近 {{hours}} 小时",
+        "readyTitle": "选好 Topic 后点查询",
+        "readyHint": "消息查询会扫描 Broker，所以只在你按下查询时才发起，打开页面不会自动查。",
+        "noResults": "没有查到消息",
+        "noResultsHint": "换个时间范围，或确认 Key / Tag 是否写对。",
+        "queryFailed": "查询失败",
+        "noTrace": "没有轨迹信息",
+        "retry": "重试次数",
+        "placeholder": {
+          "key": "消息 Key",
+          "msgid": "Message ID",
+          "tag": "Tag"
+        },
+        "status": {
+          "normal": "正常",
+          "retry": "重试中",
+          "dlq": "死信"
+        }
       }
     },
     "dlq": {

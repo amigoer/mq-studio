@@ -1451,7 +1451,8 @@
       "selectedN": "{{n}} selected",
       "lastUpdated": "Updated {{time}}",
       "refreshing": "Refreshing…",
-      "noMatch": "Nothing matches the filter"
+      "noMatch": "Nothing matches the filter",
+      "copied": "Copied"
     },
     "notDesigned": {
       "title": "Not yet designed",
@@ -1888,7 +1889,27 @@
         "notifyOk": "order-notify consumed",
         "settleRetry": "order-settle retry 2",
         "nextDelivery": "Next delivery 10:26:07",
-        "viewRetryQueue": "View retry queue"
+        "viewRetryQueue": "View retry queue",
+        "byTag": "By tag",
+        "pickTopic": "Pick a topic",
+        "lastHours": "Last {{hours}}h",
+        "readyTitle": "Pick a topic, then query",
+        "readyHint": "A query scans the brokers, so it runs only when you ask for it — opening this page does not.",
+        "noResults": "No message found",
+        "noResultsHint": "Try a wider time range, or check the key or tag.",
+        "queryFailed": "Query failed",
+        "noTrace": "No trace reported",
+        "retry": "Redelivered",
+        "placeholder": {
+          "key": "Message key",
+          "msgid": "Message ID",
+          "tag": "Tag"
+        },
+        "status": {
+          "normal": "Normal",
+          "retry": "Retrying",
+          "dlq": "Dead letter"
+        }
       }
     },
     "dlq": {
