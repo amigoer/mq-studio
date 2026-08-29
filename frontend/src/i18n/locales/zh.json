@@ -1450,7 +1450,8 @@
       "page": "页面",
       "selectedN": "已选 {{n}} 条",
       "lastUpdated": "{{time}} 更新",
-      "refreshing": "刷新中…"
+      "refreshing": "刷新中…",
+      "noMatch": "没有匹配的结果"
     },
     "notDesigned": {
       "title": "设计稿待补",
@@ -1715,7 +1716,15 @@
         "queueSpread": "队列分布",
         "maxOffset": "最大位点",
         "subGroups": "订阅组",
-        "settleBacklog": "order-settle · 堆积"
+        "settleBacklog": "order-settle · 堆积",
+        "liveSubtitle": "{{count}} 个 Topic",
+        "noTopics": "这个集群里没有 Topic",
+        "noQueues": "没有队列数据",
+        "sort": {
+          "backlog": "按积压",
+          "name": "按名称",
+          "produce": "按生产 TPS"
+        }
       }
     },
     "consumers": {

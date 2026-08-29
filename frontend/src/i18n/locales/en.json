@@ -1450,7 +1450,8 @@
       "page": "Page",
       "selectedN": "{{n}} selected",
       "lastUpdated": "Updated {{time}}",
-      "refreshing": "Refreshing…"
+      "refreshing": "Refreshing…",
+      "noMatch": "Nothing matches the filter"
     },
     "notDesigned": {
       "title": "Not yet designed",
@@ -1715,7 +1716,15 @@
         "queueSpread": "Queue distribution",
         "maxOffset": "Max offset",
         "subGroups": "Subscription groups",
-        "settleBacklog": "order-settle · backlog"
+        "settleBacklog": "order-settle · backlog",
+        "liveSubtitle": "{{count}} topics",
+        "noTopics": "This cluster has no topics",
+        "noQueues": "No queue data",
+        "sort": {
+          "backlog": "By backlog",
+          "name": "By name",
+          "produce": "By produce TPS"
+        }
       }
     },
     "consumers": {
