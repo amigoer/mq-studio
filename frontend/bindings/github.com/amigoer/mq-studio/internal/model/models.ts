@@ -729,8 +729,23 @@ export enum MQKind {
     KindKafka = "kafka",
     KindRabbitMQ = "rabbitmq",
     KindPulsar = "pulsar",
+    KindActiveMQ = "activemq",
     KindRedisStream = "redis-stream",
+    KindNATS = "nats",
+    KindNSQ = "nsq",
     KindMQTT = "mqtt",
+
+    /**
+     * Hosted families authenticate through Options and Secrets rather than
+     * Endpoints: there is no broker address to dial, only a region and a
+     * credential.
+     */
+    KindSQS = "sqs",
+    KindGooglePubSub = "google-pubsub",
+    KindAzureServiceBus = "azure-servicebus",
+    KindKinesis = "kinesis",
+    KindIBMMQ = "ibmmq",
+    KindSolace = "solace",
 };
 
 /**
