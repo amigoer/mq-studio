@@ -111,6 +111,21 @@
 
   /* Selected text. Only the ground is set, so the text keeps its own colour. */
   --c-selection: rgba(23, 23, 23, 0.16);
+
+  /*
+   * Motion. Every duration in the shell is one of these, so 界面过渡动画 has a
+   * single place to turn them off -- see the switch at the foot of the file.
+   * Three lengths: `fast` for a colour under the cursor, `base` for anything
+   * that enters or leaves, `slow` for the two that cross the window.
+   */
+  --mo-fast: 0.12s;
+  --mo-base: 0.18s;
+  --mo-slow: 0.26s;
+  /* One full turn of the update icon, which is a gesture rather than a fade. */
+  --mo-turn: 0.6s;
+  /* Decelerating, so a panel arrives rather than stops. */
+  --mo-ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --mo-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /*
@@ -232,12 +247,7 @@
  * snapping the icon back to zero.
  */
 .mqs-refresh {
-  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-}
-@media (prefers-reduced-motion: reduce) {
-  .mqs-refresh {
-    transition: none;
-  }
+  transition: transform var(--mo-turn) cubic-bezier(0.4, 0, 0.2, 1);
 }
 /*
  * Window buttons, off darwin only (see WindowControls). They act on the window
@@ -268,8 +278,8 @@
   line-height: 1;
   cursor: default;
   transition:
-    background-color 0.12s ease,
-    color 0.12s ease;
+    background-color var(--mo-fast) ease,
+    color var(--mo-fast) ease;
 }
 .wc:hover {
   background: var(--c-fill-mute);
@@ -314,7 +324,7 @@
      This makes the other axis `auto`, which the 750px MinHeight never needs. */
   overflow-x: hidden;
   scrollbar-width: thin;
-  transition: width 0.18s ease;
+  transition: width var(--mo-base) var(--mo-ease);
 }
 .gl {
   padding: 8px 10px 4px;
@@ -370,12 +380,12 @@
   white-space: nowrap;
   /* Collapsing fades first and the width follows; expanding waits for the
      room, so a label never appears in a rail too narrow to hold it. */
-  transition: opacity 0.12s ease 0.08s;
+  transition: opacity var(--mo-fast) ease 0.08s;
 }
 .side3--rail .nil,
 .side3--rail .gl {
   opacity: 0;
-  transition: opacity 0.1s ease;
+  transition: opacity var(--mo-fast) ease;
 }
 /*
  * The group labels keep their box when their text goes: the gap between icon
@@ -625,20 +635,28 @@
   background: var(--c-ok);
   position: relative;
   flex: none;
+  transition: background-color var(--mo-fast) ease;
 }
+/*
+ * The thumb is anchored off and slid on, rather than swapping which edge it
+ * hangs from: 12px is the track's 28 less the 2px inset at either end and the
+ * thumb's own width, so `on` lands it exactly where `right: 2px` did.
+ */
 .sw::after {
   content: '';
   position: absolute;
   top: 2px;
-  right: 2px;
+  left: 2px;
   width: 12px;
   height: 12px;
   border-radius: 99px;
   background: var(--c-bg);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  transform: translateX(12px);
+  transition: transform var(--mo-fast) var(--mo-ease);
 }
 .sw.off { background: var(--c-border-soft); }
-.sw.off::after { right: auto; left: 2px; }
+.sw.off::after { transform: none; }
 .kv3 {
   display: grid;
   grid-template-columns: 92px 1fr;
@@ -803,6 +821,35 @@
   background: rgba(23, 23, 23, 0.13);
 }
 
+/*
+ * Everything the cursor recolours eases into it. Declared beside the hover
+ * rules rather than on each element above, so the resting appearance the
+ * canvas drew stays where it is and only the way it is reached is added.
+ */
+.ni,
+.tbi,
+.btn3,
+.seg span,
+.ptile,
+.mqs-menuitem,
+.st,
+.sw,
+button.card3 {
+  transition:
+    background-color var(--mo-fast) ease,
+    border-color var(--mo-fast) ease,
+    box-shadow var(--mo-fast) ease,
+    color var(--mo-fast) ease;
+}
+.t3 tbody td {
+  transition: background-color var(--mo-fast) ease;
+}
+.in3 {
+  transition:
+    border-color var(--mo-fast) ease,
+    background-color var(--mo-fast) ease;
+}
+
 .ni:not(.on):hover { background: var(--c-fill); }
 .tbi:not(.on):hover { background: var(--c-fill); }
 .btn3:not(.pri):hover { background: var(--c-bar); }
@@ -815,10 +862,24 @@
 .t3 tbody tr.sel:hover td { background: var(--c-fill-mute); }
 .mqs-menuitem:hover { background: var(--c-fill); }
 
-/* Row actions are drawn on hover in 8a ("悬停显示操作 ⋯"). */
-.mqs-rowactions { visibility: hidden; }
+/*
+ * Row actions are drawn on hover in 8a ("悬停显示操作 ⋯"). `visibility` still
+ * carries the hiding -- it is what keeps the buttons out of the tab order --
+ * and only the paint fades; the discrete property waits out the fade before
+ * flipping back, so the buttons do not vanish before they have faded.
+ */
+.mqs-rowactions {
+  visibility: hidden;
+  opacity: 0;
+  transition:
+    opacity var(--mo-fast) ease,
+    visibility var(--mo-fast);
+}
 .t3 tbody tr:hover .mqs-rowactions,
-.t3 tbody tr.sel .mqs-rowactions { visibility: visible; }
+.t3 tbody tr.sel .mqs-rowactions {
+  visibility: visible;
+  opacity: 1;
+}
 /*
  * The hint is taken out of flow so it lands on the cell's right edge in every
  * row: in flow the hidden buttons still reserve their width, and a two-button
@@ -937,7 +998,7 @@ button.ni.on { background: var(--c-fg); color: var(--c-bg); }
   border: 1px solid transparent;
   border-radius: 8px;
   background: transparent;
-  transition: background-color 0.12s ease;
+  transition: background-color var(--mo-fast) ease;
 }
 .mqs-tab-home:hover {
   background: var(--c-fill-mute);
@@ -1030,8 +1091,9 @@ button.ni.on { background: var(--c-fg); color: var(--c-bg); }
 .mqs-tab-add,
 .mqs-tab-close {
   transition:
-    background-color 0.12s ease,
-    color 0.12s ease;
+    background-color var(--mo-fast) ease,
+    border-color var(--mo-fast) ease,
+    color var(--mo-fast) ease;
 }
 
 .mqs-tab[aria-selected='false']:hover {
@@ -1243,7 +1305,10 @@ button.card3:hover {
   padding: 12px 14px;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.14);
   pointer-events: auto;
-  animation: toast-in 0.18s ease;
+  animation: toast-in var(--mo-base) var(--mo-ease-out);
+  transition:
+    opacity var(--mo-fast) ease,
+    transform var(--mo-fast) ease;
 }
 @keyframes toast-in {
   from {
@@ -1251,12 +1316,87 @@ button.card3:hover {
     transform: translateY(6px);
   }
 }
+/* Dismissed toasts leave towards the corner they came from. */
+.toast3[data-state='closed'] {
+  opacity: 0;
+  transform: translateX(12px);
+}
+
+/*
+ * Overlay motion. Everything that enters the window over the page carries one
+ * of these and a `data-state`, which lib/motion's usePresence drives: the
+ * element renders one frame closed, flips to open, and on the way out is held
+ * mounted for the length below. The direction each takes is where it comes
+ * from -- a modal rises into the middle, a menu drops from its trigger, the
+ * detail sheet comes in off the right edge it is docked to.
+ */
+.mqs-scrim {
+  opacity: 0;
+  transition: opacity var(--mo-base) var(--mo-ease);
+}
+.mqs-scrim[data-state='open'] {
+  opacity: 1;
+}
+.mqs-pop {
+  opacity: 0;
+  transform: translateY(8px) scale(0.985);
+  transition:
+    opacity var(--mo-base) var(--mo-ease-out),
+    transform var(--mo-base) var(--mo-ease-out);
+}
+.mqs-drop {
+  opacity: 0;
+  transform: translateY(-4px) scale(0.98);
+  transform-origin: top center;
+  transition:
+    opacity var(--mo-fast) var(--mo-ease-out),
+    transform var(--mo-fast) var(--mo-ease-out);
+}
+.mqs-slide-right {
+  opacity: 0;
+  transform: translateX(16px);
+  transition:
+    opacity var(--mo-base) var(--mo-ease),
+    transform var(--mo-base) var(--mo-ease);
+}
+.mqs-pop[data-state='open'],
+.mqs-drop[data-state='open'],
+.mqs-slide-right[data-state='open'] {
+  opacity: 1;
+  transform: none;
+}
+
+/*
+ * Page transition: the content column when the view, the tab or the page under
+ * it changes. Opacity alone -- a transform here would become the containing
+ * block for the detail sheet, which is positioned against the shell body and
+ * not against the page.
+ */
+.mqs-view {
+  animation: view-in var(--mo-base) var(--mo-ease-out);
+}
+@keyframes view-in {
+  from {
+    opacity: 0;
+  }
+}
 
 /*
  * 界面过渡动画. useUIPrefs writes the attribute; everything that moves answers
  * to it here rather than each rule testing for itself. Motion is dropped rather
  * than shortened, so a transition cannot be caught mid-way.
+ *
+ * The variables are the switch proper -- they carry every duration in the file
+ * and turning them off leaves each element resting exactly where it was drawn.
+ * The blanket below them is the backstop, for a duration written as a literal
+ * anywhere the variables do not reach.
  */
+:root[data-animations='off'] {
+  --mo-fast: 0s;
+  --mo-base: 0s;
+  --mo-slow: 0s;
+  --mo-turn: 0s;
+}
 :root[data-animations='off'] *,
 :root[data-animations='off'] *::before,
 :root[data-animations='off'] *::after {

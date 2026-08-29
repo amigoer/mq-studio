@@ -10,6 +10,7 @@ import {
 } from "react";
 import { AlertCircle, CheckCircle2, Info, X, type LucideIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { DURATION, motionEnabled } from "@/lib/motion";
 import { Btn } from "./button";
 
 /**
@@ -29,10 +30,16 @@ export type ToastOptions = {
   duration?: number;
 };
 
-type Toast = ToastOptions & { id: number; tone: ToastTone; message: string };
+type Toast = ToastOptions & {
+  id: number;
+  tone: ToastTone;
+  message: string;
+  /** Dismissed, and on screen only for as long as its exit is being drawn. */
+  leaving?: boolean;
+};
 
 /** Long enough to read the line; a failure earns the time to act on it. */
-const DURATION: Record<ToastTone, number> = { success: 4000, info: 4500, error: 7000 };
+const TIME_ON_SCREEN: Record<ToastTone, number> = { success: 4000, info: 4500, error: 7000 };
 
 const TONE: Record<ToastTone, { icon: LucideIcon; colour: string }> = {
   success: { icon: CheckCircle2, colour: "var(--c-ok-text)" },
@@ -54,7 +61,15 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const nextId = useRef(1);
 
   const dismiss = useCallback((id: number) => {
-    setToasts((current) => current.filter((toast) => toast.id !== id));
+    setToasts((current) =>
+      current.map((toast) => (toast.id === id ? { ...toast, leaving: true } : toast)),
+    );
+    // The card is what animates out, so it has to outlive the click that
+    // dismissed it -- by nothing at all when 界面过渡动画 is off.
+    window.setTimeout(
+      () => setToasts((current) => current.filter((toast) => toast.id !== id)),
+      motionEnabled() ? DURATION.fast : 0,
+    );
   }, []);
 
   const value = useMemo<ToastContextValue>(() => {
@@ -84,8 +99,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
 function ToastCard({ toast, dismiss }: { toast: Toast; dismiss: (id: number) => void }) {
   const { t } = useTranslation();
-  const { id, tone, message, description, action } = toast;
-  const duration = toast.duration ?? DURATION[tone];
+  const { id, tone, message, description, action, leaving } = toast;
+  const duration = toast.duration ?? TIME_ON_SCREEN[tone];
   const { icon: Icon, colour } = TONE[tone];
 
   useEffect(() => {
@@ -95,7 +110,7 @@ function ToastCard({ toast, dismiss }: { toast: Toast; dismiss: (id: number) => 
   }, [dismiss, duration, id]);
 
   return (
-    <div className="card3 toast3">
+    <div className="card3 toast3" data-state={leaving === true ? "closed" : "open"}>
       <Icon size={15} color={colour} style={{ flex: "none", marginTop: "1px" }} aria-hidden />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: "12.5px", lineHeight: 1.45 }}>{message}</div>

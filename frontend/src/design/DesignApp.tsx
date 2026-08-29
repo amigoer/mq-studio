@@ -340,6 +340,25 @@ export function DesignApp(): JSX.Element {
 
   const online = connections.filter((c) => c.status === "online").length;
 
+  /*
+   * The page transition. Everything the key names already remounts the column
+   * on its own -- a different board is a different component, a different tab
+   * is a different connection -- so keying on it costs nothing the switch was
+   * not already paying, and gives the change one fade to arrive on.
+   */
+  const viewKey = [
+    view.kind,
+    view.kind === "doc" ? view.doc : "",
+    view.kind === "settings" ? "" : (activeTab ?? ""),
+    onConnection ? page : "",
+  ].join(":");
+
+  const column = (
+    <div key={viewKey} className="mqs-view" style={{ flex: 1, display: "flex", minWidth: 0 }}>
+      {content}
+    </div>
+  );
+
   return (
     <AppShell
       titleBar={
@@ -428,7 +447,7 @@ export function DesignApp(): JSX.Element {
     >
       {onConnection && connection != null ? (
         <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
-          <div style={{ flex: 1, display: "flex", minHeight: 0 }}>{content}</div>
+          <div style={{ flex: 1, display: "flex", minHeight: 0 }}>{column}</div>
           <TabStatusBar
             connection={connection.name}
             latency={connection.latency ?? "—"}
@@ -437,7 +456,7 @@ export function DesignApp(): JSX.Element {
           />
         </div>
       ) : (
-        content
+        column
       )}
     </AppShell>
   );

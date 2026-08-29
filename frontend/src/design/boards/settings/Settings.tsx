@@ -1336,7 +1336,9 @@ export function Settings({
               </span>
             </div>
 
-            {panel[section]}
+            <div key={section} className="mqs-view">
+              {panel[section]}
+            </div>
           </div>
         </div>
       </div>

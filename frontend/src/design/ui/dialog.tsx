@@ -1,6 +1,7 @@
 import { useEffect, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { X } from "lucide-react";
+import { usePresence } from "@/lib/motion";
 
 /**
  * The modal from 3a: a 32%-black scrim filling the shell body with a 580px
@@ -23,6 +24,9 @@ export function Dialog({
   footer?: ReactNode;
 }) {
   const { t } = useTranslation();
+  // Held past `open` so the card can leave the way it arrived; usePresence
+  // drops the wait when 界面过渡动画 is off.
+  const { mounted, state } = usePresence(open);
 
   useEffect(() => {
     if (!open) return;
@@ -33,9 +37,11 @@ export function Dialog({
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
-  if (!open) return null;
+  if (!mounted) return null;
   return (
     <div
+      className="mqs-scrim"
+      data-state={state}
       style={{
         position: "absolute",
         inset: 0,
@@ -51,7 +57,8 @@ export function Dialog({
         role="dialog"
         aria-modal
         aria-label={typeof title === "string" ? title : undefined}
-        className="card3"
+        className="card3 mqs-pop"
+        data-state={state}
         style={{
           width: `${width}px`,
           boxShadow: "0 18px 50px rgba(0,0,0,.22)",

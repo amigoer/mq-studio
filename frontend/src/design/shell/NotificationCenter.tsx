@@ -5,6 +5,7 @@ import { ProtocolIcon } from "@/design/icons/ProtocolIcon";
 import { Card } from "@/design/ui";
 import { useSettings } from "@/hooks/useSettings";
 import type { ProtocolId } from "@/design/data/protocols";
+import { DURATION, usePresence } from "@/lib/motion";
 
 /**
  * Board 9c — the 通知 popover. Alerts are grouped by connection because they
@@ -80,6 +81,7 @@ export function NotificationCenter({
   onOpenAlertSettings?: () => void;
 }) {
   const { t } = useTranslation();
+  const { mounted, state } = usePresence(open, DURATION.fast);
   const ref = useRef<HTMLDivElement>(null);
   const { settings } = useSettings();
   const unread = read ? 0 : UNREAD_ALERTS;
@@ -100,17 +102,21 @@ export function NotificationCenter({
     };
   }, [open, onClose]);
 
-  if (!open) return null;
+  if (!mounted) return null;
 
   let previousConnection: string | null = null;
 
   return (
     <div ref={ref} style={{ position: "absolute", top: "36px", right: "58px", zIndex: 40 }}>
       <Card
+        className="mqs-drop"
+        data-state={state}
         style={{
           width: "400px",
           overflow: "hidden",
           boxShadow: "0 18px 50px rgba(0,0,0,.18)",
+          /* It hangs off the bell, which is above its own right corner. */
+          transformOrigin: "top right",
         }}
       >
         <div

@@ -5,6 +5,7 @@ import { Card } from "@/design/ui";
 import { ProtocolIcon } from "@/design/icons/ProtocolIcon";
 import { PROTOCOLS, type PageId, type ProtocolId } from "@/design/data/protocols";
 import type { Connection } from "@/design/data/connections";
+import { usePresence } from "@/lib/motion";
 
 /**
  * Board 9d — ⌘K across every connection.
@@ -52,6 +53,7 @@ export function CommandPalette({
   onClose?: () => void;
 }) {
   const { t } = useTranslation();
+  const { mounted, state } = usePresence(open);
   const [cursor, setCursor] = useState(0);
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -160,12 +162,14 @@ export function CommandPalette({
       ?.scrollIntoView({ block: "nearest" });
   }, [selected]);
 
-  if (!open) return null;
+  if (!mounted) return null;
 
   let previousGroup: string | null = null;
 
   return (
     <div
+      className="mqs-scrim"
+      data-state={state}
       style={{
         position: "absolute",
         inset: 0,
@@ -181,6 +185,8 @@ export function CommandPalette({
       <Card
         role="dialog"
         aria-label={t("shell.palette.label")}
+        className="mqs-pop"
+        data-state={state}
         style={{ width: "560px", overflow: "hidden", boxShadow: "0 18px 50px rgba(0,0,0,.22)" }}
         onClick={(e) => e.stopPropagation()}
       >

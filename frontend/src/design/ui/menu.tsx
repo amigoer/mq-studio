@@ -1,4 +1,5 @@
 import { useEffect, useRef, type ReactNode } from "react";
+import { DURATION, usePresence } from "@/lib/motion";
 
 /** One item in the row overflow menu (8a). */
 export function MenuItem({
@@ -64,6 +65,7 @@ export function Menu({
   top?: number;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  const { mounted, state } = usePresence(open, DURATION.fast);
 
   useEffect(() => {
     if (!open) return;
@@ -81,11 +83,13 @@ export function Menu({
     };
   }, [open, onClose]);
 
-  if (!open) return null;
+  if (!mounted) return null;
   return (
     <div
       ref={ref}
       role="menu"
+      className="mqs-drop"
+      data-state={state}
       style={{
         position: "absolute",
         top: `${top}px`,
@@ -95,6 +99,7 @@ export function Menu({
         border: "1px solid var(--c-border)",
         borderRadius: "10px",
         boxShadow: "0 10px 34px rgba(0,0,0,.14)",
+        transformOrigin: "top right",
         zIndex: 6,
         display: "flex",
         flexDirection: "column",

@@ -1,6 +1,7 @@
 import { useEffect, useRef, type CSSProperties, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { X } from "lucide-react";
+import { useEnter } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
 /*
@@ -36,6 +37,7 @@ export function Sheet({
   style?: CSSProperties;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  const state = useEnter();
   const dismiss = useRef(onDismiss);
   dismiss.current = onDismiss;
 
@@ -63,7 +65,8 @@ export function Sheet({
   return (
     <div
       ref={ref}
-      className={cn("mqs-sheet", className)}
+      className={cn("mqs-sheet", "mqs-slide-right", className)}
+      data-state={state}
       style={{
         position: "absolute",
         top: 0,
