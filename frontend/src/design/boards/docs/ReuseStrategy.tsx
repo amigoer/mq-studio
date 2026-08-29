@@ -1,6 +1,16 @@
 import { useTranslation } from "react-i18next";
 import { Page, PageBody, PageHeader } from "@/design/shell";
-import { Status, Table, TBody, TD, TH, THead, TR } from "@/design/ui";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Status,
+} from "@/components";
 
 type Strategy = "reuse" | "adapt" | "separate";
 
@@ -31,26 +41,26 @@ export function ReuseStrategy() {
       <PageBody>
         <div className="mqs-scroll" style={{ maxWidth: "860px", width: "100%", margin: "0 auto" }}>
           <Table style={{ fontSize: "11.5px" }}>
-            <THead>
-              <TR>
-                <TH style={{ width: "260px" }}>{t("board.common.page")}</TH>
-                <TH style={{ width: "110px" }}>{t("board.common.policy")}</TH>
-                <TH>{t("board.docs.reuse.note")}</TH>
-              </TR>
-            </THead>
-            <TBody>
+            <TableHeader>
+              <TableRow>
+                <TableHead style={{ width: "260px" }}>{t("board.common.page")}</TableHead>
+                <TableHead style={{ width: "110px" }}>{t("board.common.policy")}</TableHead>
+                <TableHead>{t("board.docs.reuse.note")}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {ROWS.map((row) => (
-                <TR key={row.page}>
+                <TableRow key={row.page}>
                   {/* The row's identity: it wraps rather than being clipped
                       to the drawn 260px, which no language's list of pages fits. */}
-                  <TD style={{ whiteSpace: "normal" }}>{t(row.page)}</TD>
-                  <TD>
+                  <TableCell style={{ whiteSpace: "normal" }}>{t(row.page)}</TableCell>
+                  <TableCell>
                     <Status tone={TONE[row.strategy].tone}>{t(TONE[row.strategy].label)}</Status>
-                  </TD>
-                  <TD style={{ whiteSpace: "normal", color: "var(--c-mono-dim)" }}>{t(row.note)}</TD>
-                </TR>
+                  </TableCell>
+                  <TableCell style={{ whiteSpace: "normal", color: "var(--c-mono-dim)" }}>{t(row.note)}</TableCell>
+                </TableRow>
               ))}
-            </TBody>
+            </TableBody>
           </Table>
           <div style={{ padding: "10px 14px 6px", fontSize: "11px", color: "var(--c-muted)" }}>
             {t("board.docs.reuse.advice")}

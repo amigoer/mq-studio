@@ -1,5 +1,12 @@
 import { useState, type ReactNode } from "react";
-import { Field, ProtoBadge, SectionLabel, Seg, SelectField, Sw } from "@/design/ui";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import {
+  ProtoBadge,
+  SectionLabel,
+  Segmented,
+  SelectField,
+} from "@/components";
 import { ProtocolIcon } from "@/design/icons/ProtocolIcon";
 import type { ProtocolId } from "@/design/data/protocols";
 import { useTranslation } from "react-i18next";
@@ -90,19 +97,19 @@ export function KafkaPanel() {
     <>
       <PanelHeader protocol="kafka" />
       <Row label="acks">
-        <Seg options={ACKS} value={acks} onChange={setAcks} />
+        <Segmented options={ACKS} value={acks} onChange={setAcks} />
       </Row>
       <Row label={t("board.producer.targetPartition")}>
-        <SelectField style={{ width: "110px" }} value={t("board.producer.autoKeyHash")} />
+        <SelectField className="w-[110px]" value="opt" options={[{ value: "opt", label: t("board.producer.autoKeyHash") }]} />
       </Row>
       <Row label={t("board.producer.compression")}>
-        <SelectField style={{ width: "110px" }} value="lz4" />
+        <SelectField className="w-[110px]" value="lz4" options={[{ value: "lz4" }]} />
       </Row>
       <Row label={t("board.producer.keySerde")}>
-        <SelectField style={{ width: "110px" }} value="String" />
+        <SelectField className="w-[110px]" value="String" options={[{ value: "String" }]} />
       </Row>
       <Row label={t("board.producer.valueSerde")}>
-        <SelectField style={{ width: "110px" }} value="JSON" />
+        <SelectField className="w-[110px]" value="JSON" options={[{ value: "JSON" }]} />
       </Row>
       <Note>{t("board.producer.noteHeaders")}</Note>
     </>
@@ -118,19 +125,19 @@ export function RabbitMQPanel() {
     <>
       <PanelHeader protocol="rabbitmq" />
       <Row label="Exchange">
-        <SelectField style={{ width: "130px" }} value="ex.order" />
+        <SelectField className="w-[130px]" value="ex.order" options={[{ value: "ex.order" }]} />
       </Row>
       <Row label="Routing Key">
-        <Field className="mono3" style={{ width: "130px", fontSize: "11px" }} defaultValue="order.created" />
+        <Input className="mono3 w-[130px] text-xs" defaultValue="order.created" />
       </Row>
       <Row label="persistent">
-        <Sw checked={persistent} onCheckedChange={setPersistent} label="persistent" />
+        <Switch checked={persistent} onCheckedChange={setPersistent} />
       </Row>
       <Row label="mandatory">
-        <Sw checked={mandatory} onCheckedChange={setMandatory} label="mandatory" />
+        <Switch checked={mandatory} onCheckedChange={setMandatory} />
       </Row>
       <Row label={t("board.producer.ttl")}>
-        <Field className="mono3" style={{ width: "90px", fontSize: "11px" }} defaultValue="30000 ms" />
+        <Input className="mono3 w-[90px] text-xs" defaultValue="30000 ms" />
       </Row>
       <Note>{t("board.producer.noteConfirm")}</Note>
     </>
@@ -150,16 +157,16 @@ export function PulsarPanel() {
     <>
       <PanelHeader protocol="pulsar" />
       <Row label="Key">
-        <Field className="mono3" style={{ width: "130px", fontSize: "11px" }} defaultValue="ORD-TEST-001" />
+        <Input className="mono3 w-[130px] text-xs" defaultValue="ORD-TEST-001" />
       </Row>
       <Row label={t("board.producer.routingMode")}>
-        <Seg options={ROUTING.map((o) => ({ ...o, label: t(o.label) }))} value={routing} onChange={setRouting} />
+        <Segmented options={ROUTING.map((o) => ({ ...o, label: t(o.label) }))} value={routing} onChange={setRouting} />
       </Row>
       <Row label={t("board.producer.scheduled")}>
-        <SelectField style={{ width: "130px" }} value="deliverAfter 10s" />
+        <SelectField className="w-[130px]" value="deliverAfter 10s" options={[{ value: "deliverAfter 10s" }]} />
       </Row>
       <Row label="Schema">
-        <SelectField style={{ width: "110px" }} value="JSON v3" />
+        <SelectField className="w-[110px]" value="JSON v3" options={[{ value: "JSON v3" }]} />
       </Row>
       <Note>{t("board.producer.noteProps")}</Note>
     </>
@@ -173,10 +180,10 @@ export function RedisPanel() {
     <>
       <PanelHeader protocol="redis" />
       <Row label="Entry ID">
-        <Field className="mono3" style={{ width: "110px", fontSize: "11px" }} defaultValue={t("board.producer.autoId")} />
+        <Input className="mono3 w-[110px] text-xs" defaultValue={t("board.producer.autoId")} />
       </Row>
       <Row label="MAXLEN">
-        <Field className="mono3" style={{ width: "110px", fontSize: "11px" }} defaultValue="~ 1000000" />
+        <Input className="mono3 w-[110px] text-xs" defaultValue="~ 1000000" />
       </Row>
       <div>
         <SectionLabel style={{ margin: "2px 0 6px" }}>{t("board.producer.fields")}</SectionLabel>
@@ -194,8 +201,8 @@ export function RedisPanel() {
 function FieldPair({ name, value }: { name: string; value: string }) {
   return (
     <div style={{ display: "flex", gap: "6px" }}>
-      <Field className="mono3" style={{ flex: "0 0 90px", fontSize: "11px" }} defaultValue={name} />
-      <Field className="mono3" style={{ flex: 1, fontSize: "11px" }} defaultValue={value} />
+      <Input className="mono3" style={{ flex: "0 0 90px", fontSize: "11px" }} defaultValue={name} />
+      <Input className="mono3" style={{ flex: 1, fontSize: "11px" }} defaultValue={value} />
     </div>
   );
 }
@@ -215,19 +222,19 @@ export function MqttPanel() {
     <>
       <PanelHeader protocol="mqtt" />
       <Row label={t("board.common.topic")}>
-        <Field className="mono3" style={{ width: "150px", fontSize: "11px" }} defaultValue="iot/device/cmd/A19F" />
+        <Input className="mono3 w-[150px] text-xs" defaultValue="iot/device/cmd/A19F" />
       </Row>
       <Row label="QoS">
-        <Seg options={QOS} value={qos} onChange={setQos} />
+        <Segmented options={QOS} value={qos} onChange={setQos} />
       </Row>
       <Row label="Retain">
-        <Sw checked={retain} onCheckedChange={setRetain} label="Retain" />
+        <Switch checked={retain} onCheckedChange={setRetain} />
       </Row>
       <Row label={t("board.producer.messageExpiry")}>
-        <Field className="mono3" style={{ width: "90px", fontSize: "11px" }} defaultValue="3600 s" />
+        <Input className="mono3 w-[90px] text-xs" defaultValue="3600 s" />
       </Row>
       <Row label={t("board.producer.responseTopic")}>
-        <Field className="mono3" style={{ width: "150px", fontSize: "11px" }} defaultValue="iot/device/ack/A19F" />
+        <Input className="mono3 w-[150px] text-xs" defaultValue="iot/device/ack/A19F" />
       </Row>
       <Note>{t("board.producer.noteRetain")}</Note>
     </>

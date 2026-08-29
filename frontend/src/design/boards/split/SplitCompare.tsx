@@ -1,4 +1,18 @@
-import { ProtoBadge, SelectField, Status, Table, TBody, TD, TH, THead, TR, Btn, Field } from "@/design/ui";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  ProtoBadge,
+  SelectField,
+  Status,
+} from "@/components";
 import { SkeletonRows, Toolbar } from "@/design/shell";
 import type { ReactNode } from "react";
 import { X } from "lucide-react";
@@ -24,38 +38,38 @@ export function SplitCompare({ onClose }: { onClose?: () => void }) {
         onClose={onClose}
         toolbar={
           <>
-            <SelectField style={{ fontSize: "11px" }} value="ORDER_CREATE" />
-            <Field className="mono3" style={{ flex: 1, fontSize: "11px" }} defaultValue="ORD-88213" />
-            <Btn variant="primary" style={{ padding: "3.5px 10px" }}>
+            <SelectField className="text-xs" value="ORDER_CREATE" options={[{ value: "ORDER_CREATE" }]} />
+            <Input className="mono3" style={{ flex: 1, fontSize: "11px" }} defaultValue="ORD-88213" />
+            <Button style={{ padding: "3.5px 10px" }}>
               {t("board.common.query")}
-            </Btn>
+            </Button>
           </>
         }
       >
         <Table style={{ fontSize: "11px" }}>
-          <THead>
-            <TR>
-              <TH>MsgId</TH>
-              <TH>Tag</TH>
-              <TH>{t("board.common.time")}</TH>
-              <TH>{t("board.common.status")}</TH>
-            </TR>
-          </THead>
-          <TBody>
-            <TR>
-              <TD className="mono3" style={{ fontSize: "10.5px" }}>7F00…4C1</TD>
-              <TD>create</TD>
-              <TD className="mono3" style={{ fontSize: "10.5px" }}>10:24:07</TD>
-              <TD><Status tone="warn" style={TAG}>{t("board.common.retrying")}</Status></TD>
-            </TR>
-            <TR>
-              <TD className="mono3" style={{ fontSize: "10.5px", color: "var(--c-mono-dim)" }}>7F00…4C2</TD>
-              <TD>paid</TD>
-              <TD className="mono3" style={{ fontSize: "10.5px" }}>10:24:09</TD>
-              <TD><Status tone="ok" style={TAG}>{t("board.common.consumed")}</Status></TD>
-            </TR>
+          <TableHeader>
+            <TableRow>
+              <TableHead>MsgId</TableHead>
+              <TableHead>Tag</TableHead>
+              <TableHead>{t("board.common.time")}</TableHead>
+              <TableHead>{t("board.common.status")}</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow>
+              <TableCell className="mono3" style={{ fontSize: "10.5px" }}>7F00…4C1</TableCell>
+              <TableCell>create</TableCell>
+              <TableCell className="mono3" style={{ fontSize: "10.5px" }}>10:24:07</TableCell>
+              <TableCell><Status tone="warn" style={TAG}>{t("board.common.retrying")}</Status></TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell className="mono3" style={{ fontSize: "10.5px", color: "var(--c-mono-dim)" }}>7F00…4C2</TableCell>
+              <TableCell>paid</TableCell>
+              <TableCell className="mono3" style={{ fontSize: "10.5px" }}>10:24:09</TableCell>
+              <TableCell><Status tone="ok" style={TAG}>{t("board.common.consumed")}</Status></TableCell>
+            </TableRow>
             <SkeletonRows colSpan={4} widths={["76%", "58%"]} />
-          </TBody>
+          </TableBody>
         </Table>
       </Pane>
 
@@ -67,41 +81,45 @@ export function SplitCompare({ onClose }: { onClose?: () => void }) {
         onClose={onClose}
         toolbar={
           <>
-            <Field style={{ flex: 1, fontSize: "11px" }} placeholder={t("board.common.searchGroups")} />
-            <SelectField style={{ fontSize: "11px" }} value={t("board.split.byLag")} />
+            <Input style={{ flex: 1, fontSize: "11px" }} placeholder={t("board.common.searchGroups")} />
+            <SelectField
+              className="text-xs"
+              value="lag"
+              options={[{ value: "lag", label: t("board.split.byLag") }]}
+            />
           </>
         }
       >
         <Table style={{ fontSize: "11px" }}>
-          <THead>
-            <TR>
-              <TH>Group</TH>
-              <TH style={R}>Lag</TH>
-              <TH style={R}>{t("board.common.members")}</TH>
-              <TH>{t("board.common.status")}</TH>
-            </TR>
-          </THead>
-          <TBody>
-            <TR>
-              <TD>settle-consumer</TD>
-              <TD className="mono3" style={{ ...R, color: "var(--c-warn-text)" }}>9 820</TD>
-              <TD className="mono3" style={R}>4</TD>
-              <TD><Status tone="warn" style={TAG}>{t("board.common.backlog")}</Status></TD>
-            </TR>
-            <TR>
-              <TD>notify-consumer</TD>
-              <TD className="mono3" style={R}>1 220</TD>
-              <TD className="mono3" style={R}>6</TD>
-              <TD><Status tone="ok" style={TAG}>Stable</Status></TD>
-            </TR>
-            <TR>
-              <TD>audit-pipeline</TD>
-              <TD className="mono3" style={R}>840</TD>
-              <TD className="mono3" style={R}>2</TD>
-              <TD><Status tone="off" style={TAG}>Rebalancing</Status></TD>
-            </TR>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Group</TableHead>
+              <TableHead style={R}>Lag</TableHead>
+              <TableHead style={R}>{t("board.common.members")}</TableHead>
+              <TableHead>{t("board.common.status")}</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow>
+              <TableCell>settle-consumer</TableCell>
+              <TableCell className="mono3" style={{ ...R, color: "var(--c-warn-text)" }}>9 820</TableCell>
+              <TableCell className="mono3" style={R}>4</TableCell>
+              <TableCell><Status tone="warn" style={TAG}>{t("board.common.backlog")}</Status></TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell>notify-consumer</TableCell>
+              <TableCell className="mono3" style={R}>1 220</TableCell>
+              <TableCell className="mono3" style={R}>6</TableCell>
+              <TableCell><Status tone="ok" style={TAG}>Stable</Status></TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell>audit-pipeline</TableCell>
+              <TableCell className="mono3" style={R}>840</TableCell>
+              <TableCell className="mono3" style={R}>2</TableCell>
+              <TableCell><Status tone="off" style={TAG}>Rebalancing</Status></TableCell>
+            </TableRow>
             <SkeletonRows colSpan={4} widths={["64%"]} />
-          </TBody>
+          </TableBody>
         </Table>
       </Pane>
     </>
@@ -151,8 +169,12 @@ function Pane({
       >
         {badge}
         <b style={{ fontSize: "12px" }}>{name}</b>
-        <SelectField style={{ fontSize: "11px", padding: "2.5px 8px" }} value={t("board.split.page", { page })} />
-        <span style={{ flex: 1 }} />
+        <SelectField
+          className="h-6 text-xs"
+          value="page"
+          options={[{ value: "page", label: t("board.split.page", { page }) }]}
+        />
+        <span className="flex-1" />
         <button
           type="button"
           aria-label={t("board.split.close", { name })}

@@ -1,18 +1,18 @@
 import { useState, type ReactNode } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { Toolbar } from "@/design/shell";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
-  Btn,
-  Field,
+  IND,
   JNum,
   JsonBlock,
-  IND,
   KV,
-  Placeholder,
   SectionLabel,
   SelectField,
   Status,
-} from "@/design/ui";
+} from "@/components";
+import { Placeholder } from "@/design/ui";
 import { useTranslation } from "react-i18next";
 
 const MONO11 = { fontSize: "11px" } as const;
@@ -72,7 +72,7 @@ export function MqttWorkbench() {
       >
         <div style={{ padding: "12px 14px 8px", display: "flex", alignItems: "center" }}>
           <SectionLabel>{t("board.mqtt.topicTree")}</SectionLabel>
-          <span style={{ flex: 1 }} />
+          <span className="flex-1" />
           <span style={{ fontSize: "11px", color: "var(--c-ok)" }}>{t("board.mqtt.subscribe")}</span>
         </div>
         <div
@@ -155,13 +155,13 @@ export function MqttWorkbench() {
           <span className="mono3" style={{ fontSize: "11px", color: "var(--c-mono-dim)" }}>
             iot/device/telemetry/# · QoS 1
           </span>
-          <span style={{ flex: 1 }} />
-          <Btn>{t("board.common.pause")}</Btn>
-          <Btn>{t("board.common.purge")}</Btn>
+          <span className="flex-1" />
+          <Button variant="outline">{t("board.common.pause")}</Button>
+          <Button variant="outline">{t("board.common.purge")}</Button>
         </Toolbar>
         <Toolbar style={{ padding: "8px 14px" }}>
-          <Field style={{ flex: 1 }} placeholder={t("board.mqtt.filter")} />
-          <SelectField value={t("board.mqtt.allQos")} />
+          <Input style={{ flex: 1 }} placeholder={t("board.mqtt.filter")} />
+          <SelectField value="opt" options={[{ value: "opt", label: t("board.mqtt.allQos") }]} />
         </Toolbar>
 
         <div className="mqs-scroll" style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
@@ -192,7 +192,7 @@ export function MqttWorkbench() {
                 >
                   {row.topic}
                 </span>
-                <span style={{ flex: 1 }} />
+                <span className="flex-1" />
                 <Status tone="off" style={{ fontSize: "9.5px" }}>
                   {row.qos}
                 </Status>
@@ -227,7 +227,7 @@ export function MqttWorkbench() {
             }}
           >
             <span>{t("board.mqtt.rate")}</span>
-            <span style={{ flex: 1 }} />
+            <span className="flex-1" />
             <span style={{ color: "var(--c-ok)" }}>{t("board.mqtt.exportNdjson")}</span>
           </div>
         </div>
@@ -255,8 +255,8 @@ export function MqttWorkbench() {
           }}
         >
           <b style={{ fontSize: "12.5px" }}>{t("board.common.messageDetail")}</b>
-          <span style={{ flex: 1 }} />
-          <Btn>{t("board.common.copy")}</Btn>
+          <span className="flex-1" />
+          <Button variant="outline">{t("board.common.copy")}</Button>
         </div>
 
         <div
@@ -315,9 +315,9 @@ export function MqttWorkbench() {
             background: "var(--c-bg)",
           }}
         >
-          <Btn>{t("board.mqtt.sameTopic")}</Btn>
-          <span style={{ flex: 1 }} />
-          <Btn variant="primary">{t("board.mqtt.publishTemplate")}</Btn>
+          <Button variant="outline">{t("board.mqtt.sameTopic")}</Button>
+          <span className="flex-1" />
+          <Button>{t("board.mqtt.publishTemplate")}</Button>
         </div>
       </div>
     </div>

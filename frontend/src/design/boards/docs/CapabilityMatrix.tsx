@@ -1,6 +1,16 @@
 import { useTranslation } from "react-i18next";
 import { Page, PageBody, PageHeader } from "@/design/shell";
-import { ProtoBadge, Table, TBody, TD, TH, THead, TR } from "@/design/ui";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  ProtoBadge,
+} from "@/components";
 import { PROTOCOL_ORDER } from "@/design/data/protocols";
 import { cn } from "@/lib/utils";
 
@@ -52,28 +62,28 @@ export function CapabilityMatrix() {
       <PageBody>
         <div className="mqs-scroll" style={{ maxWidth: "860px", width: "100%", margin: "0 auto" }}>
           <Table style={{ fontSize: "11.5px" }}>
-            <THead>
-              <TR>
-                <TH>{t("board.docs.capability.module")}</TH>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t("board.docs.capability.module")}</TableHead>
                 {PROTOCOL_ORDER.map((p) => (
-                  <TH key={p} style={{ textAlign: "center" }}>
+                  <TableHead key={p} style={{ textAlign: "center" }}>
                     <ProtoBadge protocol={p} />
-                  </TH>
+                  </TableHead>
                 ))}
-              </TR>
-            </THead>
-            <TBody>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {ROWS.map(([label, ...cells]) => (
-                <TR key={label}>
-                  <TD>{t(label)}</TD>
+                <TableRow key={label}>
+                  <TableCell>{t(label)}</TableCell>
                   {cells.map((cell, i) => (
-                    <TD key={i} className={cn("cd", toneOf(cell))}>
+                    <TableCell key={i} className={cn("cd", toneOf(cell))}>
                       {cellText(cell)}
-                    </TD>
+                    </TableCell>
                   ))}
-                </TR>
+                </TableRow>
               ))}
-            </TBody>
+            </TableBody>
           </Table>
         </div>
       </PageBody>

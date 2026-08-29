@@ -1,6 +1,9 @@
 import { ArrowLeft, Plus } from "lucide-react";
 import { Page, PageBody, PageHeader } from "@/design/shell";
-import { Placeholder, SectionLabel } from "@/design/ui";
+import {
+  SectionLabel,
+} from "@/components";
+import { Placeholder } from "@/design/ui";
 import { ProtocolIcon } from "@/design/icons/ProtocolIcon";
 import { useTranslation } from "react-i18next";
 
@@ -76,7 +79,7 @@ export function NavModel() {
               >
                 <Plus size={12} aria-hidden />
               </span>
-              <span style={{ flex: 1 }} />
+              <span className="flex-1" />
               <span
                 style={{
                   display: "inline-flex",

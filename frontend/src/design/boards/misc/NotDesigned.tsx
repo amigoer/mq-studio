@@ -1,6 +1,9 @@
 import { useTranslation } from "react-i18next";
 import { Page, PageBody, PageHeader } from "@/design/shell";
-import { Card, SectionLabel } from "@/design/ui";
+import {
+  Panel,
+  SectionLabel,
+} from "@/components";
 
 /**
  * The sidebar reaches 告警 and ACL on every protocol, but the canvas has no
@@ -24,7 +27,7 @@ export function NotDesigned({
         subtitle={t("board.notDesigned.subtitle", { protocol: protocolName })}
       />
       <PageBody>
-        <Card
+        <Panel
           style={{
             margin: "auto",
             maxWidth: "520px",
@@ -41,7 +44,7 @@ export function NotDesigned({
             <br />
             {t("board.notDesigned.line2")}
           </div>
-        </Card>
+        </Panel>
       </PageBody>
     </Page>
   );
