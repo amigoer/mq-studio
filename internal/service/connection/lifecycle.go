@@ -32,34 +32,47 @@ func (s *Service) resolveACLCredentials(connection *model.ConnectionProfile) (bo
 	return false, "", ""
 }
 
-// TestConnection checks whether a saved connection profile can reach RocketMQ.
+// resolvedProfileLocked is the profile as the runtime should dial it: the
+// stored one with the timeout and any globally configured ACL credentials
+// filled in. The caller must hold mu.
+//
+// Resolving here rather than in the runtime is what keeps application settings
+// out of the driver layer - a driver reads only what the profile carries.
+func (s *Service) resolvedProfileLocked(id int) (model.ConnectionProfile, error) {
+	connection, exists := s.connections[id]
+	if !exists {
+		return model.ConnectionProfile{}, fmt.Errorf("连接不存在: %d", id)
+	}
+	resolved := connection.Clone()
+	resolved.TimeoutSec = int(s.getConnectTimeout(connection) / time.Second)
+	enableACL, accessKey, secretKey := s.resolveACLCredentials(connection)
+	resolved.SetACL(enableACL, accessKey, secretKey)
+	return *resolved, nil
+}
+
+// TestConnection checks whether a saved connection profile can be reached.
 func (s *Service) TestConnection(id int) (string, error) {
 	defer s.notifyChanged()
 	s.runtimeMu.Lock()
 	defer s.runtimeMu.Unlock()
 
 	s.mu.Lock()
-	connection, exists := s.connections[id]
-	if !exists {
-		s.mu.Unlock()
-		return "", fmt.Errorf("connection not found: %d", id)
-	}
-	nameServer := connection.Endpoints
-	timeout := s.getConnectTimeout(connection)
-	enableACL, accessKey, secretKey := s.resolveACLCredentials(connection)
+	resolved, err := s.resolvedProfileLocked(id)
 	s.mu.Unlock()
+	if err != nil {
+		return "", err
+	}
 
-	err := s.runtime.Test(nameServer, timeout, enableACL, accessKey, secretKey)
+	testErr := s.runtime.Test(resolved)
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if current, exists := s.connections[id]; exists {
 		current.LastCheck = timestamp.Now()
-		if err == nil {
-			return "online", nil
-		}
-		return "offline", err
 	}
-	return "offline", err
+	if testErr == nil {
+		return "online", nil
+	}
+	return "offline", testErr
 }
 
 // ConnectDefault connects the default profile when automatic reconnection is enabled.
@@ -82,7 +95,8 @@ func (s *Service) ConnectDefault() error {
 	return s.Connect(defaultID)
 }
 
-// Connect activates one profile and makes it the only online default connection.
+// Connect opens one profile. Connections opened earlier stay open: the shell
+// shows one tab per connection and expects each tab's pages to keep answering.
 func (s *Service) Connect(id int) error {
 	defer s.notifyChanged()
 	s.runtimeMu.Lock()
@@ -90,84 +104,37 @@ func (s *Service) Connect(id int) error {
 	return s.connectRuntimeLocked(id)
 }
 
-// singleActivePolicy is deliberate, not incidental: connecting one profile
-// closes every other client and marks every other profile offline.
-//
-// The client registry is keyed by profile, so holding several open is already
-// possible. What is not decided is the UI question - which navigation wins,
-// what an aggregate overview would show - so the policy stays here as one
-// named step rather than being spread through connect as a side effect. Lifting
-// it means deleting these two calls, not untangling them.
-const singleActivePolicy = true
-
-// otherEndpointsLocked lists the clients singleActivePolicy will close.
-// The caller must hold mu.
-func (s *Service) otherEndpointsLocked(id int, endpoint string) []string {
-	if !singleActivePolicy {
-		return nil
-	}
-	others := make([]string, 0)
-	for _, current := range s.connections {
-		if current.ID != id && current.Endpoints != "" && current.Endpoints != endpoint {
-			others = append(others, current.Endpoints)
-		}
-	}
-	return others
-}
-
-// markOnlyThisOneOnlineLocked applies singleActivePolicy to stored status.
-// The caller must hold mu.
-func (s *Service) markOnlyThisOneOnlineLocked(id int, now string) {
-	for _, current := range s.connections {
-		if current.ID == id {
-			current.Status = model.StatusOnline
-			current.LastCheck = now
-			current.IsDefault = true
-			continue
-		}
-		if singleActivePolicy {
-			current.Status = model.StatusOffline
-			current.IsDefault = false
-		}
-	}
-}
-
 // connectRuntimeLocked activates one profile while the caller holds runtimeMu.
 func (s *Service) connectRuntimeLocked(id int) error {
-	s.mu.RLock()
-	connection, exists := s.connections[id]
-	if !exists {
-		s.mu.RUnlock()
-		return fmt.Errorf("连接不存在: %d", id)
-	}
-	nameServer := connection.Endpoints
-	timeout := s.getConnectTimeout(connection)
-	enableACL, accessKey, secretKey := s.resolveACLCredentials(connection)
-	otherNameServers := s.otherEndpointsLocked(id, nameServer)
-	s.mu.RUnlock()
-
-	if err := s.runtime.Connect(nameServer, timeout, enableACL, accessKey, secretKey); err != nil {
+	s.mu.Lock()
+	resolved, err := s.resolvedProfileLocked(id)
+	s.mu.Unlock()
+	if err != nil {
 		return err
 	}
-	for _, otherNameServer := range otherNameServers {
-		s.runtime.Remove(otherNameServer)
-	}
-	if err := s.runtime.SetDefault(nameServer); err != nil {
+
+	if err := s.runtime.Connect(resolved); err != nil {
 		return err
 	}
 
 	s.mu.Lock()
-	now := timestamp.Now()
-	s.markOnlyThisOneOnlineLocked(id, now)
-	err := s.saveConnectionsLocked()
+	if current, ok := s.connections[id]; ok {
+		current.Status = model.StatusOnline
+		current.LastCheck = timestamp.Now()
+	}
+	err = s.saveConnectionsLocked()
 	s.mu.Unlock()
 	if err != nil {
-		return fmt.Errorf("连接成功，但保存默认连接状态失败: %w", err)
+		return fmt.Errorf("连接成功，但保存连接状态失败: %w", err)
 	}
 	return nil
 }
 
-// Disconnect closes an active profile and promotes the next profile by ID.
+// Disconnect closes one open profile.
+//
+// It no longer promotes a replacement default: with several connections open
+// at once, "default" means only which profile reconnects on launch, and
+// closing a tab is not a statement about that.
 func (s *Service) Disconnect(id int) error {
 	defer s.notifyChanged()
 	s.runtimeMu.Lock()
@@ -178,57 +145,19 @@ func (s *Service) Disconnect(id int) error {
 // disconnectRuntimeLocked deactivates one profile while the caller holds runtimeMu.
 func (s *Service) disconnectRuntimeLocked(id int) error {
 	s.mu.Lock()
-	connection, exists := s.connections[id]
+	_, exists := s.connections[id]
+	s.mu.Unlock()
 	if !exists {
-		s.mu.Unlock()
 		return fmt.Errorf("连接不存在: %d", id)
 	}
-	nameServer := connection.Endpoints
-	wasDefault := connection.IsDefault
-	wasOnline := connection.Status == model.StatusOnline
-	s.mu.Unlock()
-	if wasOnline {
-		s.runtime.Remove(nameServer)
-	}
+
+	s.runtime.Remove(id)
 
 	s.mu.Lock()
+	defer s.mu.Unlock()
 	if current, ok := s.connections[id]; ok {
 		current.Status = model.StatusOffline
 		current.LastCheck = timestamp.Now()
 	}
-	var newDefaultNameServer string
-	newDefaultID := 0
-	if wasDefault {
-		if current, ok := s.connections[id]; ok {
-			current.IsDefault = false
-		}
-		ids := sortedConnectionIDs(s.connections)
-		for _, candidateID := range ids {
-			if candidateID == id {
-				continue
-			}
-			current := s.connections[candidateID]
-			current.IsDefault = true
-			newDefaultID = candidateID
-			newDefaultNameServer = current.Endpoints
-			break
-		}
-	}
-	err := s.saveConnectionsLocked()
-	if err != nil && wasDefault {
-		if current, ok := s.connections[id]; ok {
-			current.IsDefault = true
-		}
-		if newDefaultID != 0 {
-			s.connections[newDefaultID].IsDefault = false
-		}
-	}
-	s.mu.Unlock()
-	if err != nil {
-		return err
-	}
-	if newDefaultNameServer != "" {
-		_ = s.runtime.SetDefault(newDefaultNameServer)
-	}
-	return nil
+	return s.saveConnectionsLocked()
 }

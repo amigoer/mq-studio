@@ -12,13 +12,13 @@ import (
 
 // GetAclEnabled reports whether ACL is enabled on the broker.
 func (c *Conn) GetAclEnabled(ctx context.Context) (bool, error) {
-	brokerAddress, client, err := c.getBrokerAddress(ctx)
+	brokerAddress, err := c.getBrokerAddress(ctx)
 	if err != nil {
 		return false, err
 	}
 
 	var enabled bool
-	err = Exec(client, func(retryClient *admin.Client) error {
+	err = c.exec(func(retryClient *admin.Client) error {
 
 		config, callErr := retryClient.GetBrokerConfig(ctx, brokerAddress)
 		if callErr != nil {
@@ -35,13 +35,13 @@ func (c *Conn) GetAclEnabled(ctx context.Context) (bool, error) {
 
 // GetAclVersion returns ACL configuration version information.
 func (c *Conn) GetAclVersion(ctx context.Context) (*model.AclVersionInfo, error) {
-	brokerAddress, client, err := c.getBrokerAddress(ctx)
+	brokerAddress, err := c.getBrokerAddress(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	var result *model.AclVersionInfo
-	err = Exec(client, func(retryClient *admin.Client) error {
+	err = c.exec(func(retryClient *admin.Client) error {
 
 		info, callErr := retryClient.GetBrokerClusterAclInfo(ctx, brokerAddress)
 		if callErr != nil {

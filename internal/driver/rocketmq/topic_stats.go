@@ -17,10 +17,9 @@ func (c *Conn) GetTopicStats(ctx context.Context, topicName string) (map[string]
 	if topicName == "" {
 		return nil, fmt.Errorf("获取 Topic 统计失败: Topic 名称不能为空")
 	}
-	client := c.client
 
 	var result map[string]interface{}
-	err := ExecWithTimeout(client, timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
+	err := c.execWithTimeout(timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
 		offsets, callErr := mqoffset.Collect(ctx, retryClient, topicName)
 		if callErr != nil {
 			return callErr

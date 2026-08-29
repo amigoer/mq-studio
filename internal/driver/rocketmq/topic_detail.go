@@ -13,11 +13,10 @@ import (
 
 // GetTopicDetail returns details for a topic.
 func (c *Conn) GetTopicDetail(ctx context.Context, topicName string) (*model.TopicItem, error) {
-	client := c.client
 
 	var item *model.TopicItem
 	var working *admin.Client
-	err := ExecWithTimeout(client, timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
+	err := c.execWithTimeout(timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
 		working = retryClient
 
 		routeInfo, callErr := retryClient.ExamineTopicRouteInfo(ctx, topicName)

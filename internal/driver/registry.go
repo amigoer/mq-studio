@@ -93,9 +93,10 @@ func Registered() []model.MQKind {
 // Registry holds open connections, keyed by connection ID.
 //
 // Keyed by ID rather than by endpoint address: two profiles can legitimately
-// point at the same host under different kinds, and ID-keying is what leaves
-// room for more than one connection to be open at once without another
-// rewrite. The UI still shows one at a time.
+// point at the same host - the same cluster under different credentials is the
+// ordinary case - and an endpoint key made those one connection. Several are
+// open at once, one per connection tab; activeID names the one the background
+// collector samples when no caller has said which.
 type Registry struct {
 	mu       sync.RWMutex
 	conns    map[int]Conn
@@ -166,6 +167,19 @@ func (r *Registry) SetActive(id int) error {
 	}
 	r.activeID = id
 	return nil
+}
+
+// IDs lists every open connection, so a caller that has just closed the
+// active one can pick a replacement without holding the registry's lock.
+func (r *Registry) IDs() []int {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	ids := make([]int, 0, len(r.conns))
+	for id := range r.conns {
+		ids = append(ids, id)
+	}
+	slices.Sort(ids)
+	return ids
 }
 
 // Close releases one connection. Closing an unknown ID is a no-op.

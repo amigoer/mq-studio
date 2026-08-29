@@ -23,7 +23,6 @@ func (c *Conn) GetBrokers(ctx context.Context) ([]*model.BrokerNode, error) {
 
 // GetBrokerDetail returns details for a broker.
 func (c *Conn) GetBrokerDetail(ctx context.Context, brokerAddress string) (*model.BrokerNode, error) {
-	client := c.client
 
 	broker := &model.BrokerNode{
 		Address:    brokerAddress,
@@ -38,16 +37,10 @@ func (c *Conn) GetBrokerDetail(ctx context.Context, brokerAddress string) (*mode
 		copyBrokerMetadata(clusterInfo.Brokers, broker)
 	}
 
-	err := ExecWithTimeout(client, timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
-		if statsErr := c.applyBrokerRuntimeStats(ctx, retryClient, broker); statsErr != nil {
-			return statsErr
-		}
-		broker.Status = model.NodeOnline
-		return nil
-	})
-	if err != nil {
+	if err := c.applyBrokerRuntimeStats(ctx, broker); err != nil {
 		return nil, fmt.Errorf("获取 Broker 统计信息失败: %w", err)
 	}
+	broker.Status = model.NodeOnline
 
 	return broker, nil
 }
@@ -73,11 +66,11 @@ func copyBrokerMetadata(brokers []*model.BrokerNode, target *model.BrokerNode) {
 
 // enrichBrokerRuntimeStats populates runtime fields without propagating an
 // individual broker failure to a bulk overview request.
-func (c *Conn) enrichBrokerRuntimeStats(ctx context.Context, client *admin.Client, broker *model.BrokerNode) {
+func (c *Conn) enrichBrokerRuntimeStats(ctx context.Context, broker *model.BrokerNode) {
 	if broker == nil || broker.Address == "" {
 		return
 	}
-	if err := c.applyBrokerRuntimeStats(ctx, client, broker); err != nil {
+	if err := c.applyBrokerRuntimeStats(ctx, broker); err != nil {
 		log.Printf("enrichBrokerRuntimeStats(%s): %v", broker.Address, err)
 		if IsRetryableNetworkError(err) {
 			broker.Status = model.NodeOffline
@@ -90,8 +83,13 @@ func (c *Conn) enrichBrokerRuntimeStats(ctx context.Context, client *admin.Clien
 }
 
 // applyBrokerRuntimeStats fetches runtime statistics and populates a broker model.
-func (c *Conn) applyBrokerRuntimeStats(ctx context.Context, client *admin.Client, broker *model.BrokerNode) error {
-	stats, err := client.FetchBrokerRuntimeStats(ctx, broker.Address)
+func (c *Conn) applyBrokerRuntimeStats(ctx context.Context, broker *model.BrokerNode) error {
+	var stats *admin.KVTable
+	err := c.execWithTimeout(timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
+		var callErr error
+		stats, callErr = retryClient.FetchBrokerRuntimeStats(ctx, broker.Address)
+		return callErr
+	})
 	if err != nil {
 		return err
 	}
@@ -125,9 +123,8 @@ func (c *Conn) applyBrokerRuntimeStats(ctx context.Context, client *admin.Client
 
 // GetNameServers returns the NameServer list.
 func (c *Conn) GetNameServers(ctx context.Context) ([]*model.NameServerNode, error) {
-	client := c.client
 
-	addresses := client.GetNameServerAddressList()
+	addresses := c.current().GetNameServerAddressList()
 	result := make([]*model.NameServerNode, 0, len(addresses))
 	for index, address := range addresses {
 		result = append(result, &model.NameServerNode{

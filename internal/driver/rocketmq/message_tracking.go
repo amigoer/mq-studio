@@ -19,17 +19,15 @@ func (c *Conn) GetMessageTrack(ctx context.Context, topic, messageID string) ([]
 		return nil, fmt.Errorf("查询消息轨迹失败: Topic 和 Message ID 不能为空")
 	}
 
-	client := c.client
-
-	message, err := c.lookupTrackedMessage(ctx, client, topic, messageID)
+	message, err := c.lookupTrackedMessage(ctx, topic, messageID)
 	if err != nil {
 		return nil, err
 	}
 	if message.BrokerName == "" {
-		message.BrokerName = c.resolveMessageBrokerName(ctx, client, message)
+		message.BrokerName = c.resolveMessageBrokerName(ctx, message)
 	}
 
-	groups, err := c.queryConsumerGroups(ctx, client, topic)
+	groups, err := c.queryConsumerGroups(ctx, topic)
 	if err != nil {
 		return nil, err
 	}
@@ -44,7 +42,7 @@ func (c *Conn) GetMessageTrack(ctx context.Context, topic, messageID string) ([]
 			TrackType:     "UNKNOWN",
 			ConsumeStatus: "未知",
 		}
-		if trackErr := c.populateTrack(ctx, client, group, message, track); trackErr != nil {
+		if trackErr := c.populateTrack(ctx, group, message, track); trackErr != nil {
 			track.TrackType = "UNKNOWN"
 			track.ConsumeStatus = "无法获取消费进度"
 			track.ExceptionDesc = trackErr.Error()
@@ -54,9 +52,9 @@ func (c *Conn) GetMessageTrack(ctx context.Context, topic, messageID string) ([]
 	return tracks, nil
 }
 
-func (c *Conn) lookupTrackedMessage(ctx context.Context, client *admin.Client, topic, messageID string) (*admin.MessageExt, error) {
+func (c *Conn) lookupTrackedMessage(ctx context.Context, topic, messageID string) (*admin.MessageExt, error) {
 	var message *admin.MessageExt
-	err := ExecWithTimeout(client, timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
+	err := c.execWithTimeout(timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
 		var findErr error
 		message, findErr = findMessageByID(ctx, retryClient, topic, messageID)
 		return findErr
@@ -70,9 +68,9 @@ func (c *Conn) lookupTrackedMessage(ctx context.Context, client *admin.Client, t
 	return message, nil
 }
 
-func (c *Conn) queryConsumerGroups(ctx context.Context, client *admin.Client, topic string) ([]string, error) {
+func (c *Conn) queryConsumerGroups(ctx context.Context, topic string) ([]string, error) {
 	var groups []string
-	err := ExecWithTimeout(client, timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
+	err := c.execWithTimeout(timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
 		var callErr error
 		groups, callErr = retryClient.QueryTopicConsumeByWho(ctx, topic)
 		return callErr
@@ -85,12 +83,11 @@ func (c *Conn) queryConsumerGroups(ctx context.Context, client *admin.Client, to
 
 func (c *Conn) populateTrack(
 	ctx context.Context,
-	client *admin.Client,
 	group string,
 	message *admin.MessageExt,
 	track *model.MessageTrackItem,
 ) error {
-	return ExecWithTimeout(client, timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
+	return c.execWithTimeout(timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
 		stats, err := retryClient.ExamineConsumeStats(ctx, group)
 		if err != nil {
 			return err
@@ -117,12 +114,12 @@ func (c *Conn) populateTrack(
 	})
 }
 
-func (c *Conn) resolveMessageBrokerName(ctx context.Context, client *admin.Client, message *admin.MessageExt) string {
+func (c *Conn) resolveMessageBrokerName(ctx context.Context, message *admin.MessageExt) string {
 	if message == nil {
 		return ""
 	}
 	var brokerName string
-	_ = ExecWithTimeout(client, timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
+	_ = c.execWithTimeout(timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
 		route, err := retryClient.ExamineTopicRouteInfo(ctx, message.Topic)
 		if err != nil {
 			return err

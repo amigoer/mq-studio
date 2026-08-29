@@ -20,10 +20,8 @@ func (c *Conn) QueryMessageByID(ctx context.Context, topic, messageID string) (*
 		return nil, fmt.Errorf("查询消息失败: Topic 和 Message ID 不能为空")
 	}
 
-	client := c.client
-
 	var item *model.MessageItem
-	err := ExecWithTimeout(client, timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
+	err := c.execWithTimeout(timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
 		message, findErr := findMessageByID(ctx, retryClient, topic, messageID)
 		if findErr != nil {
 			return findErr

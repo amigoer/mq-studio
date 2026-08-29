@@ -29,12 +29,11 @@ func newTopicItem(topicName string) *model.TopicItem {
 
 // GetTopics returns all non-system topics.
 func (c *Conn) GetTopics(ctx context.Context) ([]*model.TopicItem, error) {
-	client := c.client
 
 	result := make([]*model.TopicItem, 0)
 	// mqexec may swap in a reconnected client; enrichment must use that one.
 	var working *admin.Client
-	err := ExecWithTimeout(client, timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
+	err := c.execWithTimeout(timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
 		working = retryClient
 
 		topicList, callErr := retryClient.FetchAllTopicList(ctx)
@@ -62,11 +61,10 @@ func (c *Conn) GetTopics(ctx context.Context) ([]*model.TopicItem, error) {
 
 // GetAllTopics returns all topics, including system topics.
 func (c *Conn) GetAllTopics(ctx context.Context) ([]*model.TopicItem, error) {
-	client := c.client
 
 	result := make([]*model.TopicItem, 0)
 	var working *admin.Client
-	err := ExecWithTimeout(client, timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
+	err := c.execWithTimeout(timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
 		working = retryClient
 
 		topicList, callErr := retryClient.FetchAllTopicList(ctx)
@@ -95,10 +93,9 @@ func (c *Conn) GetAllTopics(ctx context.Context) ([]*model.TopicItem, error) {
 
 // GetTopicTotal returns the number of non-system topics.
 func (c *Conn) GetTopicTotal(ctx context.Context) (int, error) {
-	client := c.client
 
 	total := 0
-	err := Exec(client, func(retryClient *admin.Client) error {
+	err := c.exec(func(retryClient *admin.Client) error {
 
 		topicList, callErr := retryClient.FetchAllTopicList(ctx)
 		if callErr != nil {
@@ -122,11 +119,10 @@ func (c *Conn) GetTopicTotal(ctx context.Context) (int, error) {
 
 // GetTopicsByCluster returns topics for a cluster.
 func (c *Conn) GetTopicsByCluster(ctx context.Context, clusterName string) ([]*model.TopicItem, error) {
-	client := c.client
 
 	result := make([]*model.TopicItem, 0)
 	var working *admin.Client
-	err := ExecWithTimeout(client, timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
+	err := c.execWithTimeout(timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
 		working = retryClient
 
 		topicList, callErr := retryClient.FetchTopicsByCluster(ctx, clusterName)

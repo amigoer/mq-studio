@@ -25,7 +25,6 @@ func (c *Conn) UpdateTopic(ctx context.Context, topicName string, brokerAddress 
 // are that broker's own setting, so callers must pass the value for the broker
 // they selected rather than a cluster-wide total.
 func (c *Conn) applyTopicConfig(ctx context.Context, action string, topicName string, brokerAddress string, readQueue int, writeQueue int, permission string) error {
-	client := c.client
 
 	topicName = strings.TrimSpace(topicName)
 	brokerAddress = strings.TrimSpace(brokerAddress)
@@ -56,7 +55,7 @@ func (c *Conn) applyTopicConfig(ctx context.Context, action string, topicName st
 		Perm:            model.PermToInt(model.TopicPerm(permission)),
 		TopicFilterType: "SINGLE_TAG",
 	}
-	err := ExecWithTimeout(client, timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
+	err := c.execWithTimeout(timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
 		return retryClient.CreateTopic(ctx, brokerAddress, config)
 	})
 	if err != nil {
@@ -67,7 +66,6 @@ func (c *Conn) applyTopicConfig(ctx context.Context, action string, topicName st
 
 // DeleteTopic deletes a topic.
 func (c *Conn) DeleteTopic(ctx context.Context, topicName string, clusterName string) error {
-	client := c.client
 
 	topicName = strings.TrimSpace(topicName)
 	clusterName = strings.TrimSpace(clusterName)
@@ -93,7 +91,7 @@ func (c *Conn) DeleteTopic(ctx context.Context, topicName string, clusterName st
 		appendCluster(clusterName)
 	}
 
-	_ = Exec(client, func(retryClient *admin.Client) error {
+	_ = c.exec(func(retryClient *admin.Client) error {
 		routeInfo, routeErr := retryClient.ExamineTopicRouteInfo(ctx, topicName)
 		if routeErr != nil || routeInfo == nil {
 			return routeErr
@@ -107,7 +105,7 @@ func (c *Conn) DeleteTopic(ctx context.Context, topicName string, clusterName st
 	})
 
 	if len(clusterCandidates) == 0 {
-		_ = Exec(client, func(retryClient *admin.Client) error {
+		_ = c.exec(func(retryClient *admin.Client) error {
 			clusterInfo, clusterErr := retryClient.ExamineBrokerClusterInfo(ctx)
 			if clusterErr != nil || clusterInfo == nil {
 				return clusterErr
@@ -125,7 +123,7 @@ func (c *Conn) DeleteTopic(ctx context.Context, topicName string, clusterName st
 
 	var lastErr error
 	for _, candidate := range clusterCandidates {
-		callErr := Exec(client, func(retryClient *admin.Client) error {
+		callErr := c.exec(func(retryClient *admin.Client) error {
 			return retryClient.DeleteTopic(ctx, topicName, candidate)
 		})
 		if callErr == nil {

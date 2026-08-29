@@ -2,9 +2,9 @@ package rocketmq
 
 import (
 	"context"
+	"sync"
 	"time"
 
-	"github.com/amigoer/mq-studio/internal/driver"
 	"github.com/amigoer/mq-studio/internal/model"
 
 	admin "github.com/amigoer/rocketmq-admin-go"
@@ -17,25 +17,39 @@ const defaultRequestTimeout = 5 * time.Second
 
 // Conn is one live RocketMQ connection.
 //
+// It owns its admin client: the registry opens one Conn per profile, so two
+// profiles aimed at the same NameServer hold two clients and closing either
+// leaves the other working. The client field is guarded because a reconnect
+// swaps it while other requests are in flight.
+//
 // It holds no application settings: every method takes a context that already
 // carries the request deadline, which is what keeps the driver from having to
 // know the settings service exists.
 type Conn struct {
+	mu       sync.RWMutex
 	client   *admin.Client
+	config   ClientConfig
 	endpoint string
 }
 
-// NewConn wraps an already-created admin client.
-func NewConn(client *admin.Client, endpoint string) *Conn {
-	return &Conn{client: client, endpoint: endpoint}
+// NewConn wraps an already-dialled admin client.
+func NewConn(client *admin.Client, config ClientConfig, endpoint string) *Conn {
+	return &Conn{client: client, config: config, endpoint: endpoint}
 }
 
 // Kind identifies the family.
 func (c *Conn) Kind() model.MQKind { return model.KindRocketMQ }
 
+// current returns the client to issue the next request on.
+func (c *Conn) current() *admin.Client {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.client
+}
+
 // Ping checks the NameServer still answers a route request.
 func (c *Conn) Ping(ctx context.Context) error {
-	_, err := c.client.ExamineBrokerClusterInfo(ctx)
+	_, err := c.current().ExamineBrokerClusterInfo(ctx)
 	return err
 }
 
@@ -48,9 +62,17 @@ func (c *Conn) Capabilities() model.Capabilities {
 	return model.NewCapabilities(rocketMQCapabilities()...)
 }
 
-// Close is a no-op while the process-wide client manager owns the client's
-// lifetime. It becomes real when the registry takes ownership.
-func (c *Conn) Close() error { return nil }
+// Close releases this connection's client.
+func (c *Conn) Close() error {
+	c.mu.Lock()
+	client := c.client
+	c.client = nil
+	c.mu.Unlock()
+	if client != nil {
+		client.Close()
+	}
+	return nil
+}
 
 func rocketMQCapabilities() []model.Capability {
 	return []model.Capability{
@@ -96,26 +118,7 @@ func timeoutFrom(ctx context.Context) time.Duration {
 	return 0
 }
 
-// CurrentConn wraps the process-wide default client as a driver.Conn.
-//
-// Scaffolding for the transition: the connection service still drives the
-// global client manager, so this is how the new orchestration layer reaches a
-// live client until the registry takes ownership of connection lifetime.
-func CurrentConn() (driver.Conn, error) {
-	client, err := GetClientManager().GetDefaultClient()
-	if err != nil {
-		return nil, driver.ErrNotConnected
-	}
-	return NewConn(client, GetClientManager().GetDefaultConnection()), nil
-}
-
 // defaultFetchLimit caps a message scan when the caller does not narrow it.
 // The page size used to come from application settings; it is a query
 // parameter now, and this is the fallback for callers that pass none.
 const defaultFetchLimit = 32
-
-// HasActiveConnection reports whether a client is already open, without
-// dialling one. The background collector samples only when it is true.
-func HasActiveConnection() bool {
-	return GetClientManager().HasActiveDefaultClient()
-}

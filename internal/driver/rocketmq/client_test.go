@@ -20,28 +20,29 @@ func TestParseNameServers(t *testing.T) {
 	}
 }
 
-func TestAdminClientManagerSetDefaultMissingClient(t *testing.T) {
-	m := GetClientManager()
-	if err := m.SetDefaultConnection("__missing_client_for_unit_test__:9876"); err == nil {
-		t.Fatal("不存在的客户端设为默认应失败")
+func TestNewClientConfigRejectsEmptyEndpoints(t *testing.T) {
+	if _, err := NewClientConfig("  ", 5*time.Second, false, "", ""); err == nil {
+		t.Fatal("空 NameServer 地址应当被拒绝")
 	}
 }
 
-func TestSameClientConfig(t *testing.T) {
-	base := ClientConfig{
-		NameServers: []string{"ns-a:9876", "ns-b:9876"},
-		Timeout:     5 * time.Second,
-		EnableACL:   true,
-		AccessKey:   "ak",
-		SecretKey:   "sk",
+func TestNewClientConfigRequiresCredentialsWithACL(t *testing.T) {
+	if _, err := NewClientConfig("ns:9876", 5*time.Second, true, "ak", ""); err == nil {
+		t.Fatal("启用 ACL 但缺少 SecretKey 应当被拒绝")
 	}
-	copy := base
-	copy.NameServers = append([]string(nil), base.NameServers...)
-	if !sameClientConfig(base, copy) {
-		t.Fatal("相同配置应当可以复用客户端")
+	config, err := NewClientConfig("ns-a:9876;ns-b:9876", 0, true, " ak ", " sk ")
+	if err != nil {
+		t.Fatalf("NewClientConfig() error = %v", err)
 	}
-	copy.SecretKey = "changed"
-	if sameClientConfig(base, copy) {
-		t.Fatal("凭据变化后不得复用旧客户端")
+	if config.AccessKey != "ak" || config.SecretKey != "sk" {
+		t.Fatalf("凭据未去除空白: %#v", config)
+	}
+	// A zero timeout has to become a usable one, or every request would fail
+	// its deadline immediately.
+	if config.Timeout != defaultRequestTimeout {
+		t.Fatalf("Timeout = %v, want the default %v", config.Timeout, defaultRequestTimeout)
+	}
+	if config.Address() != "ns-a:9876;ns-b:9876" {
+		t.Fatalf("Address() = %q", config.Address())
 	}
 }

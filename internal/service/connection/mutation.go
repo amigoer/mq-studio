@@ -2,7 +2,6 @@ package connection
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/amigoer/mq-studio/internal/model"
 )
@@ -110,7 +109,7 @@ func (s *Service) UpdateConnection(id int, input model.ConnectionProfile) (*mode
 	s.mu.Unlock()
 
 	if clientConfigChanged && wasOnline {
-		s.runtime.Remove(previous.Endpoints)
+		s.runtime.Remove(id)
 		if err := s.connectRuntimeLocked(id); err != nil {
 			return &result, fmt.Errorf("connection config saved, but reconnect with new config failed: %w", err)
 		}
@@ -151,58 +150,45 @@ func (s *Service) DeleteConnection(id int) error {
 		return fmt.Errorf("failed to save connection config: %w", err)
 	}
 	if deleted.Status == model.StatusOnline {
-		s.runtime.Remove(deleted.Endpoints)
+		s.runtime.Remove(id)
 	}
 	return nil
 }
 
 // SetDefaultConnection selects the default connection profile.
+//
+// Default is a stored flag and nothing more: it names the profile
+// ConnectDefault opens on launch. It used to also move the runtime's one
+// shared client, which is why it had a rollback path; several connections can
+// be open at once now, so nothing runtime-side has to move.
 func (s *Service) SetDefaultConnection(id int) error {
 	defer s.notifyChanged()
-	s.runtimeMu.Lock()
-	defer s.runtimeMu.Unlock()
-
 	s.mu.Lock()
 	defer s.mu.Unlock()
+
 	connection, exists := s.connections[id]
 	if !exists {
 		return fmt.Errorf("connection not found: %d", id)
 	}
-
-	clientExists := s.runtime.HasClient(connection.Endpoints)
 	if connection.IsDefault {
-		if clientExists {
-			return s.runtime.SetDefault(connection.Endpoints)
-		}
 		return nil
 	}
 
-	previousDefaultNameServer := ""
+	previousDefaultID := 0
 	for _, current := range s.connections {
 		if current.IsDefault {
-			previousDefaultNameServer = current.Endpoints
+			previousDefaultID = current.ID
 			break
 		}
-	}
-	runtimeDefaultChanged := false
-	if clientExists {
-		if err := s.runtime.SetDefault(connection.Endpoints); err != nil {
-			return err
-		}
-		runtimeDefaultChanged = true
 	}
 	for _, current := range s.connections {
 		current.IsDefault = false
 	}
 	connection.IsDefault = true
 	if err := s.saveConnectionsLocked(); err != nil {
-		for _, current := range s.connections {
-			current.IsDefault = current.Endpoints == previousDefaultNameServer
-		}
-		if runtimeDefaultChanged && previousDefaultNameServer != "" && previousDefaultNameServer != connection.Endpoints {
-			if resetErr := s.runtime.SetDefault(previousDefaultNameServer); resetErr != nil {
-				log.Printf("[ConnectionService] 回滚默认连接失败: %v", resetErr)
-			}
+		connection.IsDefault = false
+		if previousDefaultID != 0 {
+			s.connections[previousDefaultID].IsDefault = true
 		}
 		return fmt.Errorf("保存连接配置失败: %w", err)
 	}

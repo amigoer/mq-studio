@@ -15,10 +15,9 @@ import (
 
 // GetConsumerGroups returns all consumer groups.
 func (c *Conn) GetConsumerGroups(ctx context.Context) ([]*model.ConsumerGroupItem, error) {
-	client := c.client
 
 	var clusterInfo *admin.ClusterInfo
-	err := ExecWithTimeout(client, timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
+	err := c.execWithTimeout(timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
 		var callErr error
 		clusterInfo, callErr = retryClient.ExamineBrokerClusterInfo(ctx)
 		return callErr
@@ -40,7 +39,7 @@ func (c *Conn) GetConsumerGroups(ctx context.Context) ([]*model.ConsumerGroupIte
 		}
 
 		var subscriptionGroups map[string]*admin.SubscriptionGroupConfig
-		groupErr := ExecWithTimeout(client, timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
+		groupErr := c.execWithTimeout(timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
 			var callErr error
 			subscriptionGroups, callErr = retryClient.GetAllSubscriptionGroup(ctx, masterAddress)
 			return callErr
@@ -88,7 +87,7 @@ func (c *Conn) GetConsumerGroups(ctx context.Context) ([]*model.ConsumerGroupIte
 	sort.Slice(result, func(i, j int) bool { return result[i].Group < result[j].Group })
 
 	var dlqTopics map[string]struct{}
-	_ = ExecWithTimeout(client, timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
+	_ = c.execWithTimeout(timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
 		topics, callErr := retryClient.FetchAllTopicList(ctx)
 		if callErr != nil {
 			return callErr
@@ -101,7 +100,7 @@ func (c *Conn) GetConsumerGroups(ctx context.Context) ([]*model.ConsumerGroupIte
 		}
 		return nil
 	})
-	c.enrichConsumerGroups(ctx, client, result, dlqTopics)
+	c.enrichConsumerGroups(ctx, result, dlqTopics)
 	return result, nil
 }
 
@@ -111,7 +110,6 @@ func (c *Conn) GetConsumerGroupDetail(ctx context.Context, groupName string) (*m
 	if groupName == "" {
 		return nil, fmt.Errorf("消费者组名称不能为空")
 	}
-	client := c.client
 
 	item := &model.ConsumerGroupItem{
 		Group:         groupName,
@@ -123,7 +121,7 @@ func (c *Conn) GetConsumerGroupDetail(ctx context.Context, groupName string) (*m
 		Clients:       make([]model.GroupClient, 0),
 		LastUpdate:    timestamp.Now(),
 	}
-	groupConfig, err := c.getSubscriptionGroupConfig(ctx, client, groupName)
+	groupConfig, err := c.getSubscriptionGroupConfig(ctx, groupName)
 	if err == nil && groupConfig != nil {
 		item.Cluster = groupConfig.Cluster
 		item.MaxRetry = groupConfig.Config.RetryMaxTimes
@@ -132,16 +130,15 @@ func (c *Conn) GetConsumerGroupDetail(ctx context.Context, groupName string) (*m
 		}
 	}
 
-	c.enrichConsumerGroup(ctx, client, item, nil)
+	c.enrichConsumerGroup(ctx, item, nil)
 	return item, nil
 }
 
 // GetConsumeStats returns consumption statistics.
 func (c *Conn) GetConsumeStats(ctx context.Context, groupName string) (map[string]interface{}, error) {
-	client := c.client
 
 	result := map[string]interface{}{}
-	err := ExecWithTimeout(client, timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
+	err := c.execWithTimeout(timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
 		stats, callErr := retryClient.ExamineConsumeStats(ctx, groupName)
 		if callErr != nil {
 			return callErr

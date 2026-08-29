@@ -1,7 +1,6 @@
 package connection
 
 import (
-	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -84,7 +83,7 @@ func TestReplaceConnectionsSerializesWithConcurrentConnect(t *testing.T) {
 		t.Fatalf("unexpected replacement state: %#v", connections)
 	}
 	assertRuntimeMatchesOnlineConnection(t, service, runtime, "replacement:9876")
-	if runtime.hasClient("old:9876") {
+	if runtime.hasEndpoint("old:9876") {
 		t.Fatal("old runtime client survived replacement")
 	}
 }
@@ -157,15 +156,16 @@ func assertRuntimeMatchesOnlineConnection(t *testing.T, service *Service, runtim
 	if len(connections) != 1 || connections[0].Status != model.StatusOnline || !connections[0].IsDefault {
 		t.Fatalf("connection state is not online and default: %#v", connections)
 	}
-	if !runtime.hasClient(nameServer) || runtime.defaultConnection() != nameServer {
-		t.Fatalf("runtime state does not match connection state: clients=%v default=%q", runtime.clientNames(), runtime.defaultConnection())
+	if !runtime.hasEndpoint(nameServer) {
+		t.Fatalf("runtime state does not match connection state: clients=%v", runtime.endpoints())
 	}
 }
 
 type blockingRuntime struct {
-	mu                  sync.Mutex
-	clients             map[string]struct{}
-	defaultNameServer   string
+	mu sync.Mutex
+	// Keyed by profile id, holding the endpoint that id was dialled with, so
+	// an assertion can still name the address the test cares about.
+	clients             map[int]string
 	connectCalls        int
 	firstConnectStarted chan struct{}
 	firstConnectRelease chan struct{}
@@ -183,7 +183,7 @@ type blockingTestRuntime struct {
 
 func newBlockingRuntime() *blockingRuntime {
 	return &blockingRuntime{
-		clients:             make(map[string]struct{}),
+		clients:             make(map[int]string),
 		firstConnectStarted: make(chan struct{}),
 		firstConnectRelease: make(chan struct{}),
 		closeAllCalled:      make(chan struct{}, 1),
@@ -198,7 +198,7 @@ func newBlockingTestRuntime() *blockingTestRuntime {
 	}
 }
 
-func (r *blockingRuntime) Connect(nameServer string, _ time.Duration, _ bool, _, _ string) error {
+func (r *blockingRuntime) Connect(profile model.ConnectionProfile) error {
 	r.mu.Lock()
 	r.connectCalls++
 	call := r.connectCalls
@@ -208,39 +208,29 @@ func (r *blockingRuntime) Connect(nameServer string, _ time.Duration, _ bool, _,
 		<-r.firstConnectRelease
 	}
 	r.mu.Lock()
-	r.clients[nameServer] = struct{}{}
+	r.clients[profile.ID] = profile.Endpoints
 	r.mu.Unlock()
 	return nil
 }
 
-func (r *blockingRuntime) HasClient(nameServer string) bool {
-	return r.hasClient(nameServer)
-}
-
-func (r *blockingRuntime) SetDefault(nameServer string) error {
+func (r *blockingRuntime) HasClient(id int) bool {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	if _, exists := r.clients[nameServer]; !exists {
-		return fmt.Errorf("runtime client not found: %s", nameServer)
-	}
-	r.defaultNameServer = nameServer
+	_, exists := r.clients[id]
+	return exists
+}
+
+func (r *blockingRuntime) Remove(id int) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	delete(r.clients, id)
+}
+
+func (r *blockingRuntime) Test(model.ConnectionProfile) error {
 	return nil
 }
 
-func (r *blockingRuntime) Remove(nameServer string) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	delete(r.clients, nameServer)
-	if r.defaultNameServer == nameServer {
-		r.defaultNameServer = ""
-	}
-}
-
-func (r *blockingRuntime) Test(string, time.Duration, bool, string, string) error {
-	return nil
-}
-
-func (r *blockingTestRuntime) Test(string, time.Duration, bool, string, string) error {
+func (r *blockingTestRuntime) Test(model.ConnectionProfile) error {
 	close(r.testStarted)
 	<-r.testRelease
 	return nil
@@ -248,8 +238,7 @@ func (r *blockingTestRuntime) Test(string, time.Duration, bool, string, string) 
 
 func (r *blockingRuntime) CloseAll() {
 	r.mu.Lock()
-	r.clients = make(map[string]struct{})
-	r.defaultNameServer = ""
+	r.clients = make(map[int]string)
 	r.mu.Unlock()
 	select {
 	case r.closeAllCalled <- struct{}{}:
@@ -289,25 +278,24 @@ func (r *blockingRuntime) connectCount() int {
 	return r.connectCalls
 }
 
-func (r *blockingRuntime) hasClient(nameServer string) bool {
+// hasEndpoint reports whether any open client was dialled at that address.
+func (r *blockingRuntime) hasEndpoint(nameServer string) bool {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	_, exists := r.clients[nameServer]
-	return exists
+	for _, endpoint := range r.clients {
+		if endpoint == nameServer {
+			return true
+		}
+	}
+	return false
 }
 
-func (r *blockingRuntime) defaultConnection() string {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	return r.defaultNameServer
-}
-
-func (r *blockingRuntime) clientNames() []string {
+func (r *blockingRuntime) endpoints() []string {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	result := make([]string, 0, len(r.clients))
-	for name := range r.clients {
-		result = append(result, name)
+	for _, endpoint := range r.clients {
+		result = append(result, endpoint)
 	}
 	return result
 }

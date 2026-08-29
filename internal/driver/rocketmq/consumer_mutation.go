@@ -12,7 +12,6 @@ import (
 
 // CreateConsumerGroup creates a consumer group.
 func (c *Conn) CreateConsumerGroup(ctx context.Context, groupName string, brokerAddress string, consumeMode string, maxRetry int) error {
-	client := c.client
 
 	groupName, brokerAddress, consumeMode, maxRetry, err := validateConsumerGroupInput(
 		groupName,
@@ -23,7 +22,7 @@ func (c *Conn) CreateConsumerGroup(ctx context.Context, groupName string, broker
 	if err != nil {
 		return err
 	}
-	candidates, err := c.resolveMasterBrokerAddrs(ctx, client, brokerAddress)
+	candidates, err := c.resolveMasterBrokerAddrs(ctx, brokerAddress)
 	if err != nil {
 		return fmt.Errorf("创建消费者组失败: %w", err)
 	}
@@ -35,12 +34,11 @@ func (c *Conn) CreateConsumerGroup(ctx context.Context, groupName string, broker
 		ConsumeBroadcastEnable: consumeMode == string(model.ModeBroadcasting),
 		RetryMaxTimes:          maxRetry,
 	}
-	return c.applySubscriptionGroupConfig(ctx, client, candidates, config, "创建")
+	return c.applySubscriptionGroupConfig(ctx, candidates, config, "创建")
 }
 
 // UpdateConsumerGroup updates a consumer group configuration.
 func (c *Conn) UpdateConsumerGroup(ctx context.Context, groupName string, brokerAddress string, consumeMode string, maxRetry int) error {
-	client := c.client
 
 	groupName, brokerAddress, consumeMode, maxRetry, err := validateConsumerGroupInput(
 		groupName,
@@ -51,7 +49,7 @@ func (c *Conn) UpdateConsumerGroup(ctx context.Context, groupName string, broker
 	if err != nil {
 		return err
 	}
-	candidates, err := c.resolveMasterBrokerAddrs(ctx, client, brokerAddress)
+	candidates, err := c.resolveMasterBrokerAddrs(ctx, brokerAddress)
 	if err != nil {
 		return fmt.Errorf("更新消费者组失败: %w", err)
 	}
@@ -63,26 +61,25 @@ func (c *Conn) UpdateConsumerGroup(ctx context.Context, groupName string, broker
 		ConsumeBroadcastEnable: consumeMode == string(model.ModeBroadcasting),
 		RetryMaxTimes:          maxRetry,
 	}
-	return c.applySubscriptionGroupConfig(ctx, client, candidates, config, "更新")
+	return c.applySubscriptionGroupConfig(ctx, candidates, config, "更新")
 }
 
 // DeleteConsumerGroup deletes a consumer group.
 func (c *Conn) DeleteConsumerGroup(ctx context.Context, groupName string, brokerAddress string) error {
-	client := c.client
 
 	groupName = strings.TrimSpace(groupName)
 	brokerAddress = strings.TrimSpace(brokerAddress)
 	if groupName == "" {
 		return fmt.Errorf("删除消费者组失败: 消费者组名称不能为空")
 	}
-	candidates, err := c.resolveMasterBrokerAddrs(ctx, client, brokerAddress)
+	candidates, err := c.resolveMasterBrokerAddrs(ctx, brokerAddress)
 	if err != nil {
 		return fmt.Errorf("删除消费者组失败: %w", err)
 	}
 
 	failures := make([]string, 0)
 	for _, address := range candidates {
-		callErr := ExecWithTimeout(client, timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
+		callErr := c.execWithTimeout(timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
 			return retryClient.DeleteSubscriptionGroup(ctx, address, groupName)
 		})
 		if callErr != nil {
@@ -97,7 +94,6 @@ func (c *Conn) DeleteConsumerGroup(ctx context.Context, groupName string, broker
 
 // ResetOffset resets consumer offsets.
 func (c *Conn) ResetConsumerOffset(ctx context.Context, groupName string, topicName string, timestamp int64, force bool) error {
-	client := c.client
 
 	groupName = strings.TrimSpace(groupName)
 	topicName = strings.TrimSpace(topicName)
@@ -108,7 +104,7 @@ func (c *Conn) ResetConsumerOffset(ctx context.Context, groupName string, topicN
 		return fmt.Errorf("重置消费位点失败: 时间戳不能为负数")
 	}
 
-	err := ExecWithTimeout(client, timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
+	err := c.execWithTimeout(timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
 		_, callErr := retryClient.ResetOffsetByTimestamp(ctx, topicName, groupName, timestamp, force)
 		return callErr
 	})
@@ -119,7 +115,6 @@ func (c *Conn) ResetConsumerOffset(ctx context.Context, groupName string, topicN
 }
 
 func (c *Conn) applySubscriptionGroupConfig(ctx context.Context,
-	client *admin.Client,
 	candidates []string,
 	config admin.SubscriptionGroupConfig,
 	operation string,
@@ -129,7 +124,7 @@ func (c *Conn) applySubscriptionGroupConfig(ctx context.Context,
 	}
 	failures := make([]string, 0)
 	for _, address := range candidates {
-		callErr := ExecWithTimeout(client, timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
+		callErr := c.execWithTimeout(timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
 			return retryClient.CreateSubscriptionGroup(ctx, address, config)
 		})
 		if callErr != nil {

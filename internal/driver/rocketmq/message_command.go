@@ -48,14 +48,9 @@ func (c *Conn) SendMessage(ctx context.Context, topic, tags, keys, body string, 
 		return "", fmt.Errorf("发送消息失败: 延迟等级必须在 0-18 之间")
 	}
 
-	manager := GetClientManager()
-	if _, err := manager.GetDefaultClient(); err != nil {
-		return "", fmt.Errorf("发送消息失败: %w", err)
-	}
-	clientConfig, err := manager.GetDefaultClientConfig()
-	if err != nil {
-		return "", fmt.Errorf("发送消息失败: %w", err)
-	}
+	// The producer is dialled from this connection's own parameters, so a
+	// message always goes to the cluster the page was showing.
+	clientConfig := c.config
 
 	producerOptions := []producer.Option{
 		producer.WithNameServer(clientConfig.NameServers),

@@ -77,18 +77,27 @@ func (d *Driver) Descriptor() model.DriverDescriptor {
 	}
 }
 
-// Open dials the NameServers in the profile.
-func (d *Driver) Open(ctx context.Context, profile model.ConnectionProfile) (driver.Conn, error) {
+// configOf reads a profile into the parameters this driver dials with.
+func configOf(profile model.ConnectionProfile) (ClientConfig, error) {
 	timeout := time.Duration(profile.TimeoutSec) * time.Second
 	if timeout <= 0 {
 		timeout = defaultRequestTimeout
 	}
-	enableACL := profile.Auth.Mechanism == model.AuthACL
-	client, err := GetClientManager().CreateClient(
-		profile.Endpoints, timeout, enableACL,
+	return NewClientConfig(
+		profile.Endpoints, timeout,
+		profile.Auth.Mechanism == model.AuthACL,
 		profile.Secret(SecretAccessKey), profile.Secret(SecretSecretKey))
+}
+
+// Open dials the NameServers in the profile.
+func (d *Driver) Open(ctx context.Context, profile model.ConnectionProfile) (driver.Conn, error) {
+	config, err := configOf(profile)
 	if err != nil {
 		return nil, fmt.Errorf("open rocketmq connection: %w", err)
 	}
-	return NewConn(client, profile.Endpoints), nil
+	client, err := Dial(config)
+	if err != nil {
+		return nil, fmt.Errorf("open rocketmq connection: %w", err)
+	}
+	return NewConn(client, config, profile.Endpoints), nil
 }

@@ -12,9 +12,9 @@ type subscriptionGroupLookup struct {
 	Config  *admin.SubscriptionGroupConfig
 }
 
-func (c *Conn) getSubscriptionGroupConfig(ctx context.Context, client *admin.Client, groupName string) (*subscriptionGroupLookup, error) {
+func (c *Conn) getSubscriptionGroupConfig(ctx context.Context, groupName string) (*subscriptionGroupLookup, error) {
 	var clusterInfo *admin.ClusterInfo
-	err := ExecWithTimeout(client, timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
+	err := c.execWithTimeout(timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
 		var callErr error
 		clusterInfo, callErr = retryClient.ExamineBrokerClusterInfo(ctx)
 		return callErr
@@ -33,7 +33,7 @@ func (c *Conn) getSubscriptionGroupConfig(ctx context.Context, client *admin.Cli
 		}
 
 		var subscriptionGroups map[string]*admin.SubscriptionGroupConfig
-		groupErr := ExecWithTimeout(client, timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
+		groupErr := c.execWithTimeout(timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
 			var callErr error
 			subscriptionGroups, callErr = retryClient.GetAllSubscriptionGroup(ctx, masterAddress)
 			return callErr
@@ -52,7 +52,7 @@ func (c *Conn) getSubscriptionGroupConfig(ctx context.Context, client *admin.Cli
 	return nil, nil
 }
 
-func (c *Conn) resolveMasterBrokerAddrs(ctx context.Context, client *admin.Client, preferredAddress string) ([]string, error) {
+func (c *Conn) resolveMasterBrokerAddrs(ctx context.Context, preferredAddress string) ([]string, error) {
 	addresses := make([]string, 0, 4)
 	seen := make(map[string]struct{})
 	appendAddress := func(address string) {
@@ -68,7 +68,7 @@ func (c *Conn) resolveMasterBrokerAddrs(ctx context.Context, client *admin.Clien
 	appendAddress(preferredAddress)
 
 	var clusterInfo *admin.ClusterInfo
-	err := ExecWithTimeout(client, timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
+	err := c.execWithTimeout(timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
 		var callErr error
 		clusterInfo, callErr = retryClient.ExamineBrokerClusterInfo(ctx)
 		return callErr

@@ -7,7 +7,6 @@ import (
 	"os"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/amigoer/mq-studio/internal/crypto"
 	"github.com/amigoer/mq-studio/internal/model"
@@ -261,9 +260,8 @@ func assertNoPlaintextCredentials(t *testing.T, path string, credentials ...stri
 // config import and export, not connection lifecycle.
 type noopClientRuntime struct{}
 
-func (noopClientRuntime) Connect(string, time.Duration, bool, string, string) error { return nil }
-func (noopClientRuntime) HasClient(string) bool                                     { return false }
-func (noopClientRuntime) SetDefault(string) error                                   { return nil }
-func (noopClientRuntime) Remove(string)                                             {}
-func (noopClientRuntime) Test(string, time.Duration, bool, string, string) error    { return nil }
-func (noopClientRuntime) CloseAll()                                                 {}
+func (noopClientRuntime) Connect(model.ConnectionProfile) error { return nil }
+func (noopClientRuntime) HasClient(int) bool                    { return false }
+func (noopClientRuntime) Remove(int)                            {}
+func (noopClientRuntime) Test(model.ConnectionProfile) error    { return nil }
+func (noopClientRuntime) CloseAll()                             {}

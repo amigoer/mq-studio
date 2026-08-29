@@ -15,10 +15,9 @@ import (
 
 // GetClusterInfo returns cluster information.
 func (c *Conn) GetClusterInfo(ctx context.Context) (*model.ClusterInfo, error) {
-	client := c.client
 
 	var result *model.ClusterInfo
-	err := Exec(client, func(retryClient *admin.Client) error {
+	err := c.exec(func(retryClient *admin.Client) error {
 
 		clusterInfo, callErr := retryClient.ExamineBrokerClusterInfo(ctx)
 		if callErr != nil {
@@ -26,8 +25,8 @@ func (c *Conn) GetClusterInfo(ctx context.Context) (*model.ClusterInfo, error) {
 		}
 
 		current := buildClusterInfo(retryClient, clusterInfo)
-		c.enrichBrokers(ctx, retryClient, current)
-		c.enrichResourceTotals(ctx, retryClient, clusterInfo, current)
+		c.enrichBrokers(ctx, current)
+		c.enrichResourceTotals(ctx, clusterInfo, current)
 		result = current
 		return nil
 	})
@@ -114,7 +113,7 @@ func buildClusterInfo(client *admin.Client, clusterInfo *admin.ClusterInfo) *mod
 
 // enrichBrokers populates runtime fields without failing the complete overview
 // when an individual broker cannot be inspected.
-func (c *Conn) enrichBrokers(ctx context.Context, client *admin.Client, result *model.ClusterInfo) {
+func (c *Conn) enrichBrokers(ctx context.Context, result *model.ClusterInfo) {
 	semaphore := make(chan struct{}, 6)
 	var waitGroup sync.WaitGroup
 	for _, broker := range result.Brokers {
@@ -127,7 +126,7 @@ func (c *Conn) enrichBrokers(ctx context.Context, client *admin.Client, result *
 			semaphore <- struct{}{}
 			defer func() { <-semaphore }()
 
-			c.enrichBrokerRuntimeStats(ctx, client, node)
+			c.enrichBrokerRuntimeStats(ctx, node)
 		}(broker)
 	}
 	waitGroup.Wait()
@@ -149,9 +148,9 @@ func (c *Conn) enrichBrokers(ctx context.Context, client *admin.Client, result *
 }
 
 // enrichResourceTotals adds best-effort topic and consumer-group totals.
-func (c *Conn) enrichResourceTotals(ctx context.Context, client *admin.Client, clusterInfo *admin.ClusterInfo, result *model.ClusterInfo) {
+func (c *Conn) enrichResourceTotals(ctx context.Context, clusterInfo *admin.ClusterInfo, result *model.ClusterInfo) {
 	topicCtx, topicCancel := context.WithTimeout(context.Background(), timeoutFrom(ctx))
-	if topicList, err := client.FetchAllTopicList(topicCtx); err == nil && topicList != nil {
+	if topicList, err := c.current().FetchAllTopicList(topicCtx); err == nil && topicList != nil {
 		for _, topic := range topicList.TopicList {
 			if !resource.IsSystemTopic(topic) {
 				result.TotalTopics++
@@ -171,7 +170,7 @@ func (c *Conn) enrichResourceTotals(ctx context.Context, client *admin.Client, c
 		}
 
 		groupCtx, groupCancel := context.WithTimeout(context.Background(), timeoutFrom(ctx))
-		subscriptionGroups, err := client.GetAllSubscriptionGroup(groupCtx, masterAddress)
+		subscriptionGroups, err := c.current().GetAllSubscriptionGroup(groupCtx, masterAddress)
 		groupCancel()
 		if err != nil || subscriptionGroups == nil {
 			continue

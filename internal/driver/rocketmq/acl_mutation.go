@@ -13,12 +13,12 @@ func (c *Conn) CreateOrUpdateAccessConfig(ctx context.Context,
 	defaultTopicPerm, defaultGroupPerm string,
 	topicPerms, groupPerms []string,
 ) error {
-	brokerAddress, client, err := c.getBrokerAddress(ctx)
+	brokerAddress, err := c.getBrokerAddress(ctx)
 	if err != nil {
 		return err
 	}
 
-	return Exec(client, func(retryClient *admin.Client) error {
+	return c.exec(func(retryClient *admin.Client) error {
 		return retryClient.UpdatePlainAccessConfig(ctx, brokerAddress, admin.PlainAccessConfig{
 			AccessKey:          accessKey,
 			SecretKey:          secretKey,
@@ -34,24 +34,24 @@ func (c *Conn) CreateOrUpdateAccessConfig(ctx context.Context,
 
 // DeleteAccessConfig deletes an ACL access configuration.
 func (c *Conn) DeleteAccessConfig(ctx context.Context, accessKey string) error {
-	brokerAddress, client, err := c.getBrokerAddress(ctx)
+	brokerAddress, err := c.getBrokerAddress(ctx)
 	if err != nil {
 		return err
 	}
 
-	return Exec(client, func(retryClient *admin.Client) error {
+	return c.exec(func(retryClient *admin.Client) error {
 		return retryClient.DeletePlainAccessConfig(ctx, brokerAddress, accessKey)
 	})
 }
 
 // UpdateGlobalWhiteAddrs updates the global address allowlist.
 func (c *Conn) UpdateGlobalWhiteAddrs(ctx context.Context, addresses []string) error {
-	brokerAddress, client, err := c.getBrokerAddress(ctx)
+	brokerAddress, err := c.getBrokerAddress(ctx)
 	if err != nil {
 		return err
 	}
 
-	return Exec(client, func(retryClient *admin.Client) error {
+	return c.exec(func(retryClient *admin.Client) error {
 		return retryClient.UpdateGlobalWhiteAddrsConfig(ctx, brokerAddress, addresses, "")
 	})
 }

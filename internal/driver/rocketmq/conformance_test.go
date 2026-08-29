@@ -11,7 +11,7 @@ import (
 // in the language forces those to agree, so this is what turns a disagreement
 // into a build failure instead of a control that does nothing when clicked.
 func TestConnDeclaresOnlyWhatItImplements(t *testing.T) {
-	conn := NewConn(nil, "ns:9876")
+	conn := NewConn(nil, ClientConfig{}, "ns:9876")
 
 	if problems := driver.CheckConformance(conn); len(problems) != 0 {
 		for _, problem := range problems {
@@ -43,7 +43,7 @@ func TestDescriptorIsSelfConsistent(t *testing.T) {
 		}
 	}
 
-	live := NewConn(nil, "ns:9876").Capabilities()
+	live := NewConn(nil, ClientConfig{}, "ns:9876").Capabilities()
 	for _, capability := range descriptor.MaxCapabilities {
 		if !live.Has(capability) {
 			t.Errorf("descriptor promises %s but a connection does not report it", capability)

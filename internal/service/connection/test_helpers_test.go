@@ -58,12 +58,11 @@ func newTestService(t *testing.T, settings Settings) *Service {
 // that records calls.
 type noopRuntime struct{}
 
-func (noopRuntime) Connect(string, time.Duration, bool, string, string) error { return nil }
-func (noopRuntime) HasClient(string) bool                                     { return false }
-func (noopRuntime) SetDefault(string) error                                   { return nil }
-func (noopRuntime) Remove(string)                                             {}
-func (noopRuntime) Test(string, time.Duration, bool, string, string) error    { return nil }
-func (noopRuntime) CloseAll()                                                 {}
+func (noopRuntime) Connect(model.ConnectionProfile) error { return nil }
+func (noopRuntime) HasClient(int) bool                    { return false }
+func (noopRuntime) Remove(int)                            {}
+func (noopRuntime) Test(model.ConnectionProfile) error    { return nil }
+func (noopRuntime) CloseAll()                             {}
 
 // profileOf builds a profile from the arguments the old positional signature
 // took, so these tests read as they did before AddConnection stopped spelling

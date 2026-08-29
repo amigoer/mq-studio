@@ -72,14 +72,12 @@ func (c *Conn) queryMessagesBy(ctx context.Context, topic, key, tag string, maxR
 		return nil, err
 	}
 
-	client := c.client
-
 	result := make([]*model.MessageItem, 0)
 	queryTimeout := timeoutFrom(ctx)
 	if queryTimeout < 30*time.Second {
 		queryTimeout = 30 * time.Second
 	}
-	err = ExecWithTimeout(client, queryTimeout, func(ctx context.Context, retryClient *admin.Client) error {
+	err = c.execWithTimeout(queryTimeout, func(ctx context.Context, retryClient *admin.Client) error {
 		messages, callErr := executeMessageQuery(ctx, retryClient, query)
 		if callErr != nil {
 			return callErr

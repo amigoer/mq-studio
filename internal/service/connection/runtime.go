@@ -1,6 +1,6 @@
 package connection
 
-import "time"
+import "github.com/amigoer/mq-studio/internal/model"
 
 // ClientRuntime is the mutable client registry, isolated from profile
 // persistence so lifecycle transactions can be tested deterministically.
@@ -10,14 +10,17 @@ import "time"
 // a profile store has no business knowing which broker family it stores
 // profiles for.
 //
-// It is still keyed by endpoint. Re-keying it by profile id belongs with the
-// ConnectionProfile migration, because that is the commit where a connection
-// gets an identity independent of its address.
+// It is keyed by profile id, not by endpoint. Two profiles may name the same
+// address - the same cluster under different credentials is the ordinary case -
+// and an endpoint key made those one connection, so closing either closed both.
+//
+// The profile handed to Connect and Test is already resolved: this package has
+// filled in the timeout and any ACL credentials that fall back to application
+// settings, so the runtime dials exactly what it is given.
 type ClientRuntime interface {
-	Connect(endpoint string, timeout time.Duration, enableACL bool, accessKey, secretKey string) error
-	HasClient(endpoint string) bool
-	SetDefault(endpoint string) error
-	Remove(endpoint string)
-	Test(endpoint string, timeout time.Duration, enableACL bool, accessKey, secretKey string) error
+	Connect(profile model.ConnectionProfile) error
+	HasClient(id int) bool
+	Remove(id int)
+	Test(profile model.ConnectionProfile) error
 	CloseAll()
 }
