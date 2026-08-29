@@ -5,7 +5,6 @@ import type {
   DriverDescriptor,
   MQKind,
 } from "@bindings/model/models";
-import { ACTIVE_CONNECTION } from "./connectionScope";
 import { required } from "./client";
 
 export type { Capabilities, DriverDescriptor, DriverInfo, MQKind };
@@ -18,6 +17,5 @@ export const getDescriptor = (kind: MQKind): Promise<DriverDescriptor> =>
   DriverService.Descriptor(kind).then(required);
 
 /** What one live connection can actually do. */
-export const getCapabilities = (
-  connID = ACTIVE_CONNECTION,
-): Promise<Capabilities> => DriverService.Capabilities(connID).then(required);
+export const getCapabilities = (connID: number): Promise<Capabilities> =>
+  DriverService.Capabilities(connID).then(required);

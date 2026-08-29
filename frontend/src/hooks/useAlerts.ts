@@ -10,7 +10,8 @@ import {
   type ReactNode,
 } from "react";
 import { useTranslation } from "react-i18next";
-import { useOverview } from "@/hooks/useOverview";
+import { EMPTY_OVERVIEW, useOverview } from "@/hooks/useOverview";
+import { useConnectionScope } from "@/mq/ConnectionScope";
 import { useSettings } from "@/hooks/useSettings";
 import {
   type AlertRuleKey,
@@ -36,7 +37,7 @@ interface AlertsContextValue {
   alerts: AlertEntry[];
   rules: AlertRulePrefs;
   toggleRule: (key: AlertRuleKey) => void;
-  refresh: ReturnType<typeof useOverview>["refresh"];
+  refresh: () => Promise<void>;
   loading: boolean;
   hasOnline: boolean;
   lagThreshold: number;
@@ -51,14 +52,15 @@ function severityWeight(severity: AlertSeverity): number {
 
 function useAlertsState(): AlertsContextValue {
   const { t } = useTranslation();
-  const { data, refresh, loading } = useOverview();
+  const { data: snapshot, refresh, loading, online: hasOnline } = useOverview();
+  const { key: scopeKey } = useConnectionScope();
   const { settings } = useSettings();
   const lagThreshold = settings.lagAlertThreshold ?? 10000;
   const diskThreshold = settings.diskAlertThreshold ?? 75;
-  const hasOnline = data.activeConnection?.status === "online";
-  const connectionKey = hasOnline
-    ? `${data.activeConnection?.id}:${data.activeConnection?.endpoints}`
-    : "offline";
+  const data = snapshot ?? EMPTY_OVERVIEW;
+  // The baseline resets per connection, so switching tabs does not announce
+  // the new cluster's standing alerts as if they had just appeared.
+  const connectionKey = hasOnline ? scopeKey : "offline";
   const [rules, setRules] = useState<AlertRulePrefs>(() => loadAlertRules());
   const knownAlertKeysRef = useRef<Set<string> | null>(null);
   const baselineConnectionRef = useRef(connectionKey);

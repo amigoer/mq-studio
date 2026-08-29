@@ -21,7 +21,7 @@ import {
 } from "react";
 import type { Capabilities, Capability } from "@bindings/model/models";
 import * as driverApi from "@/api/driver";
-import { useConnections } from "@/hooks/useConnections";
+import { useConnectionScope } from "./ConnectionScope";
 
 export interface CapabilityState {
   /** True when the connection can do this. */
@@ -42,7 +42,7 @@ const empty: Capabilities = {
 const CapabilityContext = createContext<CapabilityState | null>(null);
 
 function useCapabilityState(): CapabilityState {
-  const { active, activeKey } = useConnections();
+  const { id: connID, online } = useConnectionScope();
   const [capabilities, setCapabilities] = useState<Capabilities>(empty);
   const [loading, setLoading] = useState(true);
   const cancelled = useRef(false);
@@ -52,13 +52,13 @@ function useCapabilityState(): CapabilityState {
     setLoading(true);
     // No connection means nothing is supported, which is a real answer rather
     // than an error: the shell renders before anything is dialled.
-    if (active == null) {
+    if (connID === 0 || !online) {
       setCapabilities(empty);
       setLoading(false);
       return;
     }
     driverApi
-      .getCapabilities(active.id)
+      .getCapabilities(connID)
       .then((next) => {
         if (!cancelled.current) setCapabilities(next);
       })
@@ -71,7 +71,7 @@ function useCapabilityState(): CapabilityState {
     return () => {
       cancelled.current = true;
     };
-  }, [active, activeKey]);
+  }, [connID, online]);
 
   const supported = useMemo(
     () => new Set<string>(capabilities.supported ?? []),
@@ -99,7 +99,7 @@ export function CapabilitiesProvider({ children }: { children: ReactNode }) {
   return createElement(CapabilityContext.Provider, { value }, children);
 }
 
-/** Reads the active connection's capabilities. */
+/** Reads the scoped connection's capabilities. */
 export function useCapabilities(): CapabilityState {
   const ctx = useContext(CapabilityContext);
   if (!ctx)

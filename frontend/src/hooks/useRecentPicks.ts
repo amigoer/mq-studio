@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { useConnections } from "@/hooks/useConnections";
+import { useConnectionScope } from "@/mq/ConnectionScope";
 import {
   loadRecentPicks,
   recordRecentPick,
@@ -7,14 +7,14 @@ import {
 } from "@/lib/recentPicks";
 
 /**
- * The topics or consumer groups last used on the active connection, newest first.
+ * The topics or consumer groups last used on this page's connection, newest first.
  *
  * Scoped per connection so a cluster never suggests names from another one.
  * `record` is meant for the moment the value is actually used — a send that
  * succeeded, a query that ran — not for merely picking it in a dropdown.
  */
 export function useRecentPicks(kind: PickKind) {
-  const { activeKey } = useConnections();
+  const { key: activeKey } = useConnectionScope();
   const [recent, setRecent] = useState<string[]>(() =>
     loadRecentPicks(activeKey, kind),
   );

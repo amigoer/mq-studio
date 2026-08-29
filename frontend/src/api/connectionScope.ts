@@ -1,12 +1,8 @@
 /**
  * The connection every request runs against.
  *
- * Zero means "whichever connection is online", which is what the backend did
- * implicitly before the bridge signatures carried an id. The renderer still
- * shows one connection at a time, so this reproduces today's behaviour exactly
- * while the contract already carries the parameter.
- *
- * Threading the real id down from the active connection is the frontend
- * layering work, not part of catching up with the regenerated bindings.
+ * Each API call names its connection, because the shell opens one tab per
+ * connection and each tab's pages must read the cluster that tab points at.
+ * The id comes from ConnectionScope, which the board tree is wrapped in.
  */
-export const ACTIVE_CONNECTION = 0;
+export type ConnectionID = number;

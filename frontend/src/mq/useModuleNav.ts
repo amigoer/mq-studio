@@ -1,5 +1,5 @@
 /**
- * The navigation entries the active driver contributes.
+ * The navigation entries this page's driver contributes.
  *
  * A module only earns one when its page has no canonical counterpart at all -
  * RabbitMQ's exchanges and bindings being the case the override rule was
@@ -7,11 +7,11 @@
  * instead.
  */
 import { useMemo } from "react";
-import { useConnections } from "@/hooks/useConnections";
+import { useConnectionScope } from "./ConnectionScope";
 import { moduleFor } from "./registry";
 import type { NavContribution } from "./types";
 
 export function useModuleNav(): NavContribution[] {
-  const { active } = useConnections();
-  return useMemo(() => moduleFor(active?.kind)?.nav ?? [], [active?.kind]);
+  const { kind } = useConnectionScope();
+  return useMemo(() => moduleFor(kind)?.nav ?? [], [kind]);
 }

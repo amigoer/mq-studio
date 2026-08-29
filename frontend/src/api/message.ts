@@ -1,4 +1,3 @@
-import { ACTIVE_CONNECTION } from "./connectionScope";
 import { MessageService } from "@bindings/bridge";
 import type { MessageItem, MessageTrackItem } from "./models";
 import { present } from "./client";
@@ -12,10 +11,11 @@ export interface QueryCondition {
 }
 
 export const fetchLatestMessages = (
+  connID: number,
   topic: string,
   maxResults: number,
 ): Promise<MessageItem[]> =>
-  MessageService.Query(ACTIVE_CONNECTION, {
+  MessageService.Query(connID, {
     topic,
     key: "",
     tag: "",
@@ -25,17 +25,18 @@ export const fetchLatestMessages = (
   }).then(present);
 
 export function queryMessagesByCondition(
+  connID: number,
   topic: string,
   condition: QueryCondition,
   maxResults = 32,
 ): Promise<MessageItem[]> {
   if (condition.messageId?.trim())
     return MessageService.ByID(
-      ACTIVE_CONNECTION,
+      connID,
       topic,
       condition.messageId.trim(),
     ).then((item) => (item ? [item] : []));
-  return MessageService.Query(ACTIVE_CONNECTION, {
+  return MessageService.Query(connID, {
     topic,
     key: condition.messageKey?.trim() ?? "",
     tag: condition.messageTag?.trim() ?? "",
@@ -46,28 +47,32 @@ export function queryMessagesByCondition(
 }
 
 export const getMessageTrack = (
+  connID: number,
   topic: string,
   messageId: string,
 ): Promise<MessageTrackItem[]> =>
-  MessageService.Track(ACTIVE_CONNECTION, topic, messageId).then(present);
+  MessageService.Track(connID, topic, messageId).then(present);
 export const queryDLQMessages = (
+  connID: number,
   group: string,
   maxResults = 32,
 ): Promise<MessageItem[]> =>
-  MessageService.DLQ(ACTIVE_CONNECTION, group, maxResults).then(present);
+  MessageService.DLQ(connID, group, maxResults).then(present);
 export const queryRetryMessages = (
+  connID: number,
   group: string,
   maxResults = 32,
 ): Promise<MessageItem[]> =>
-  MessageService.Retry(ACTIVE_CONNECTION, group, maxResults).then(present);
+  MessageService.Retry(connID, group, maxResults).then(present);
 
 export const resendMessage = (
+  connID: number,
   consumerGroup: string,
   clientId: string,
   topic: string,
   messageId: string,
 ): Promise<string> =>
-  MessageService.Resend(ACTIVE_CONNECTION, {
+  MessageService.Resend(connID, {
     consumerGroup,
     clientId,
     topic,
@@ -75,13 +80,14 @@ export const resendMessage = (
   });
 
 export const sendMessage = (
+  connID: number,
   topic: string,
   tags: string,
   keys: string,
   body: string,
   delayLevel = 0,
 ): Promise<string> =>
-  MessageService.Send(ACTIVE_CONNECTION, {
+  MessageService.Send(connID, {
     topic,
     tags,
     keys,

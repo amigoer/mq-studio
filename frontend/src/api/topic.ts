@@ -1,26 +1,27 @@
-import { ACTIVE_CONNECTION } from "./connectionScope";
 import { TopicService } from "@bindings/bridge";
 import type { Destination, DestinationRef } from "./models";
 import { present, required } from "./client";
 
-export const getTopics = (): Promise<Destination[]> =>
-  TopicService.List(ACTIVE_CONNECTION).then(present);
-export const getAllTopics = (): Promise<Destination[]> =>
-  TopicService.ListAll(ACTIVE_CONNECTION).then(present);
-export const getTopicDetail = (topic: string): Promise<Destination> =>
-  TopicService.Detail(ACTIVE_CONNECTION, topic).then(required);
+export const getTopics = (connID: number): Promise<Destination[]> =>
+  TopicService.List(connID).then(present);
+export const getAllTopics = (connID: number): Promise<Destination[]> =>
+  TopicService.ListAll(connID).then(present);
+export const getTopicDetail = (connID: number, topic: string): Promise<Destination> =>
+  TopicService.Detail(connID, topic).then(required);
 export const getTopicStats = (
+  connID: number,
   topic: string,
 ): Promise<Record<string, unknown>> =>
-  TopicService.Stats(ACTIVE_CONNECTION, topic);
+  TopicService.Stats(connID, topic);
 export const createTopic = (
+  connID: number,
   topic: string,
   brokerAddr: string,
   readQueue: number,
   writeQueue: number,
   perm: string,
 ): Promise<void> =>
-  TopicService.Create(ACTIVE_CONNECTION, {
+  TopicService.Create(connID, {
     topic,
     brokerAddr,
     readQueue,
@@ -28,13 +29,14 @@ export const createTopic = (
     perm,
   });
 export const updateTopic = (
+  connID: number,
   topic: string,
   brokerAddr: string,
   readQueue: number,
   writeQueue: number,
   perm: string,
 ): Promise<void> =>
-  TopicService.Update(ACTIVE_CONNECTION, {
+  TopicService.Update(connID, {
     topic,
     brokerAddr,
     readQueue,
@@ -43,6 +45,7 @@ export const updateTopic = (
   });
 export type { DestinationRef };
 export const deleteTopic = (
+  connID: number,
   topic: string,
   clusterName: string,
-): Promise<void> => TopicService.Remove(ACTIVE_CONNECTION, topic, clusterName);
+): Promise<void> => TopicService.Remove(connID, topic, clusterName);

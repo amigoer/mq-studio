@@ -21,6 +21,8 @@ import {
 import { useUIScale } from "@/hooks/useUIScale";
 import { useUpdater } from "@/hooks/useUpdater";
 import { latencyLabel, useConnectionProfiles } from "@/hooks/useConnectionProfiles";
+import { ConnectionScopeProvider } from "@/mq/ConnectionScope";
+import { CapabilitiesProvider } from "@/mq/capabilities";
 import { useConfirm, useToast } from "@/design/ui";
 import { exportAllConfigToFile, importAllConfigFromFile } from "@/api/settings";
 import {
@@ -361,6 +363,14 @@ export function DesignApp(): JSX.Element {
     dialog?.editing != null ? profiles.find((p) => p.id === dialog.editing) : undefined;
 
   /*
+   * Everything under the title bar reads one connection: the tab in front. The
+   * sidebar is inside the scope too, because which entries it draws is a
+   * question about that connection's capabilities.
+   */
+  const scopedProfile =
+    activeTab != null ? profiles.find((p) => String(p.id) === activeTab) : undefined;
+
+  /*
    * Opening a tab on a profile nobody has dialled would land on pages that
    * cannot answer, so the tab opens and the connection follows. It opens even
    * when the dial fails: the tab is where the failure is legible.
@@ -450,7 +460,7 @@ export function DesignApp(): JSX.Element {
     </div>
   );
 
-  return (
+  const shell = (
     <AppShell
       titleBar={
         <TitleBar
@@ -561,5 +571,11 @@ export function DesignApp(): JSX.Element {
         column
       )}
     </AppShell>
+  );
+
+  return (
+    <ConnectionScopeProvider profile={scopedProfile}>
+      <CapabilitiesProvider>{shell}</CapabilitiesProvider>
+    </ConnectionScopeProvider>
   );
 }

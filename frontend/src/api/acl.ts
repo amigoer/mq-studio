@@ -1,15 +1,15 @@
-import { ACTIVE_CONNECTION } from "./connectionScope";
 import { ACLService } from "@bindings/bridge";
 import type { AclVersionInfo } from "./models";
 import { required } from "./client";
 
 export type { AclVersionInfo };
 
-export const getAclEnabled = (): Promise<boolean> =>
-  ACLService.Enabled(ACTIVE_CONNECTION);
-export const getAclVersion = (): Promise<AclVersionInfo> =>
-  ACLService.Version(ACTIVE_CONNECTION).then(required);
+export const getAclEnabled = (connID: number): Promise<boolean> =>
+  ACLService.Enabled(connID);
+export const getAclVersion = (connID: number): Promise<AclVersionInfo> =>
+  ACLService.Version(connID).then(required);
 export const createOrUpdateAccessConfig = (
+  connID: number,
   accessKey: string,
   secretKey: string,
   whiteRemoteAddress: string,
@@ -19,7 +19,7 @@ export const createOrUpdateAccessConfig = (
   topicPerms: string[],
   groupPerms: string[],
 ): Promise<void> =>
-  ACLService.UpdateAccess(ACTIVE_CONNECTION, {
+  ACLService.UpdateAccess(connID, {
     accessKey,
     secretKey,
     whiteRemoteAddress,
@@ -29,7 +29,7 @@ export const createOrUpdateAccessConfig = (
     topicPerms,
     groupPerms,
   });
-export const deleteAccessConfig = (accessKey: string): Promise<void> =>
-  ACLService.DeleteAccess(ACTIVE_CONNECTION, accessKey);
-export const updateGlobalWhiteAddrs = (addrs: string[]): Promise<void> =>
-  ACLService.UpdateWhiteAddrs(ACTIVE_CONNECTION, addrs);
+export const deleteAccessConfig = (connID: number, accessKey: string): Promise<void> =>
+  ACLService.DeleteAccess(connID, accessKey);
+export const updateGlobalWhiteAddrs = (connID: number, addrs: string[]): Promise<void> =>
+  ACLService.UpdateWhiteAddrs(connID, addrs);
