@@ -24,14 +24,15 @@ import {
   THead,
   TR,
 } from "@/design/ui";
+import { useTranslation } from "react-i18next";
 
 const MODES = [
-  { value: "peek", label: "Peek 最新" },
-  { value: "msgid", label: "按 MessageId" },
-  { value: "time", label: "按发布时间" },
+  { value: "peek", label: "board.messages.pulsar.peek" },
+  { value: "msgid", label: "board.messages.pulsar.byMsgId" },
+  { value: "time", label: "board.messages.pulsar.byPublishTime" },
 ] as const;
 
-const SHEET_TABS = ["消息", "属性"] as const;
+const SHEET_TABS = ["board.common.message", "board.common.properties"] as const;
 const MONO11 = { fontSize: "11px" } as const;
 const DIM11 = { fontSize: "11px", color: "var(--c-mono-dim)" } as const;
 const R = { textAlign: "right" } as const;
@@ -40,17 +41,18 @@ const R = { textAlign: "right" } as const;
 export function MessagesPulsar() {
   const [mode, setMode] = useState<(typeof MODES)[number]["value"]>("peek");
   const [selected, setSelected] = useState<string | null>(null);
-  const [tab, setTab] = useState<string>("消息");
+  const [tab, setTab] = useState<string>(SHEET_TABS[0]);
 
+  const { t } = useTranslation();
   return (
     <Page>
-      <PageHeader title="消息查询" subtitle="" />
+      <PageHeader title={t("board.common.messageQuery")} subtitle="" />
       <Toolbar>
         <SelectField value="Topic：…/order-created" />
-        <SelectField value="订阅：settle-sub" />
-        <Seg options={MODES} value={mode} onChange={setMode} />
+        <SelectField value={t("board.messages.pulsar.subscription")} />
+        <Seg options={MODES.map((o) => ({ ...o, label: t(o.label) }))} value={mode} onChange={setMode} />
         <Field className="mono3" style={{ flex: "0 0 70px" }} defaultValue="50" />
-        <Btn variant="primary">查询</Btn>
+        <Btn variant="primary">{t("board.common.query")}</Btn>
       </Toolbar>
 
       <ListArea>
@@ -60,9 +62,9 @@ export function MessagesPulsar() {
               <TR>
                 <TH>MessageId</TH>
                 <TH>Key</TH>
-                <TH>摘要</TH>
-                <TH style={R}>属性</TH>
-                <TH>发布时间</TH>
+                <TH>{t("board.common.summary")}</TH>
+                <TH style={R}>{t("board.common.properties")}</TH>
+                <TH>{t("board.messages.pulsar.publishTime")}</TH>
               </TR>
             </THead>
             <TBody>
@@ -97,7 +99,7 @@ export function MessagesPulsar() {
             <SheetHeader
               title={selected}
               badge={<Status tone="off" style={{ fontSize: "10px" }}>ledger:entry</Status>}
-              tabs={SHEET_TABS}
+              tabs={SHEET_TABS.map((id) => ({ id, label: t(id) }))}
               activeTab={tab}
               onTabChange={setTab}
               onClose={() => setSelected(null)}
@@ -107,7 +109,7 @@ export function MessagesPulsar() {
                 rows={[
                   ["MessageId", <span className="mono3" style={MONO11}>ledger 812 · entry 4 · batch 0</span>],
                   ["Producer", <span className="mono3" style={MONO11}>order-svc-producer-2</span>],
-                  ["发布 / 事件时间", <span className="mono3" style={MONO11}>10:24:07.221 / 10:24:07.001</span>],
+                  [t("board.messages.pulsar.publishEventTime"), <span className="mono3" style={MONO11}>10:24:07.221 / 10:24:07.001</span>],
                   ["Schema", <span className="mono3" style={MONO11}>JSON v3</span>],
                 ]}
               />
@@ -117,7 +119,7 @@ export function MessagesPulsar() {
                   style={{ marginBottom: "6px" }}
                   action={
                     <>
-                      反序列化：JSON
+                      {t("board.messages.deserialize")}
                       <ChevronDown size={12} aria-hidden />
                     </>
                   }
@@ -149,10 +151,10 @@ export function MessagesPulsar() {
               </div>
             </SheetBody>
             <SheetFooter>
-              <Btn>复制</Btn>
-              <Btn>Seek 到此消息…</Btn>
+              <Btn>{t("board.common.copy")}</Btn>
+              <Btn>{t("board.messages.pulsar.seekHere")}</Btn>
               <span style={{ flex: 1 }} />
-              <Btn>导出</Btn>
+              <Btn>{t("board.common.export")}</Btn>
             </SheetFooter>
           </Sheet>
         )}
@@ -160,7 +162,7 @@ export function MessagesPulsar() {
 
       <Toolbar style={{ borderTop: "1px solid var(--c-border)", borderBottom: "none" }}>
         <span className="mono3" style={{ fontSize: "11px", color: "var(--c-muted)" }}>
-          peek 不影响订阅游标 · markDeletePosition 812:2:0
+          {t("board.messages.pulsar.peekNote")}
         </span>
         <span style={{ flex: 1 }} />
       </Toolbar>

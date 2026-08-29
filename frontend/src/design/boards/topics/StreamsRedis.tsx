@@ -20,8 +20,9 @@ import {
   THead,
   TR,
 } from "@/design/ui";
+import { useTranslation } from "react-i18next";
 
-const SHEET_TABS = ["概览", "消费者组", "配置"] as const;
+const SHEET_TABS = ["board.common.overview", "board.common.consumerGroup", "board.common.config"] as const;
 const NAME = { fontSize: "11.5px" } as const;
 const MONO11 = { fontSize: "11px" } as const;
 
@@ -29,23 +30,24 @@ const MONO11 = { fontSize: "11px" } as const;
 export function StreamsRedis() {
   const [showAll, setShowAll] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
-  const [tab, setTab] = useState<string>("概览");
+  const [tab, setTab] = useState<string>(SHEET_TABS[0]);
 
+  const { t } = useTranslation();
   return (
     <Page>
       <PageHeader
         title="Stream"
-        subtitle="匹配 orders:* ; events:* · 12 个"
-        actions={<Btn variant="primary">+ 新建 Stream（XADD）</Btn>}
+        subtitle={t("board.topics.redis.subtitle")}
+        actions={<Btn variant="primary">{t("board.topics.redis.newStream")}</Btn>}
       />
       <Toolbar>
-        <Field style={{ flex: "0 0 200px" }} placeholder="搜索 key…" />
+        <Field style={{ flex: "0 0 200px" }} placeholder={t("board.topics.redis.searchKey")} />
         <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11.5px", color: "var(--c-mono-dim)" }}>
-          <Sw checked={showAll} onCheckedChange={setShowAll} label="显示全部 key" />
-          显示全部 key
+          <Sw checked={showAll} onCheckedChange={setShowAll} label={t("board.topics.redis.showAllKeys")} />
+          {t("board.topics.redis.showAllKeys")}
         </span>
         <span style={{ flex: 1 }} />
-        <SelectField value="按 XLEN 排序" />
+        <SelectField value={t("board.topics.redis.sortByXlen")} />
       </Toolbar>
 
       <ListArea>
@@ -55,9 +57,9 @@ export function StreamsRedis() {
               <TR>
                 <TH>Stream Key</TH>
                 <TH style={{ textAlign: "right" }}>XLEN</TH>
-                <TH style={{ textAlign: "right" }}>组</TH>
+                <TH style={{ textAlign: "right" }}>{t("board.common.group")}</TH>
                 <TH>last-generated-id</TH>
-                <TH style={{ textAlign: "right" }}>内存</TH>
+                <TH style={{ textAlign: "right" }}>{t("board.common.memory")}</TH>
                 <TH>maxlen</TH>
               </TR>
             </THead>
@@ -86,7 +88,7 @@ export function StreamsRedis() {
                 <TD className="mono3" style={{ textAlign: "right" }}>1</TD>
                 <TD className="mono3" style={MONO11}>1756454647221-4</TD>
                 <TD className="mono3" style={{ textAlign: "right", color: "var(--c-warn-text)" }}>612 MB</TD>
-                <TD><Status tone="warn">无上限</Status></TD>
+                <TD><Status tone="warn">{t("board.topics.redis.unbounded")}</Status></TD>
               </TR>
               <SkeletonRows colSpan={6} widths={["64%", "48%"]} />
             </TBody>
@@ -98,7 +100,7 @@ export function StreamsRedis() {
             <SheetHeader
               title={selected}
               badge={<Status tone="off" style={{ fontSize: "10px" }}>stream</Status>}
-              tabs={SHEET_TABS}
+              tabs={SHEET_TABS.map((id) => ({ id, label: t(id) }))}
               activeTab={tab}
               onTabChange={setTab}
               onClose={() => setSelected(null)}
@@ -112,7 +114,7 @@ export function StreamsRedis() {
                   </div>
                 </Card>
                 <Card style={{ padding: "9px 12px" }}>
-                  <div style={{ fontSize: "10.5px", color: "var(--c-muted)" }}>XADD 速率</div>
+                  <div style={{ fontSize: "10.5px", color: "var(--c-muted)" }}>{t("board.topics.redis.xaddRate")}</div>
                   <div className="mono3" style={{ fontSize: "15px", fontWeight: 600, marginTop: "2px" }}>
                     1 104/s
                   </div>
@@ -124,12 +126,12 @@ export function StreamsRedis() {
                   ["first-entry", <span className="mono3" style={MONO11}>1756368200104-0</span>],
                   ["last-entry", <span className="mono3" style={MONO11}>1756454646018-0</span>],
                   ["radix-tree", <span className="mono3" style={MONO11}>keys 11 842 · nodes 23 118</span>],
-                  ["组 / PEL", <span className="mono3" style={MONO11}>3 组 · 待确认 37</span>],
+                  [t("board.topics.redis.groupPel"), <span className="mono3" style={MONO11}>{t("board.topics.redis.groupPelValue")}</span>],
                 ]}
               />
 
               <div>
-                <SectionLabel style={{ marginBottom: "6px" }}>消费者组</SectionLabel>
+                <SectionLabel style={{ marginBottom: "6px" }}>{t("board.common.consumerGroup")}</SectionLabel>
                 <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
                   <Status tone="warn">settle-group · PEL 29</Status>
                   <Status tone="ok">notify-group</Status>
@@ -138,10 +140,10 @@ export function StreamsRedis() {
               </div>
             </SheetBody>
             <SheetFooter>
-              <Btn>查看消息</Btn>
+              <Btn>{t("board.common.viewMessages")}</Btn>
               <Btn>XTRIM…</Btn>
               <span style={{ flex: 1 }} />
-              <Btn variant="danger">删除 key</Btn>
+              <Btn variant="danger">{t("board.topics.redis.deleteKey")}</Btn>
             </SheetFooter>
           </Sheet>
         )}

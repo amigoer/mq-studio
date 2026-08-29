@@ -1,15 +1,17 @@
 import { Page, PageBody, PageHeader } from "@/design/shell";
 import { Btn, Card, KV, SectionLabel, Status, Table, TBody, TD, TH, THead, TR } from "@/design/ui";
 import { Metric, NODE_CARD, NODE_GRID, NodeCard, TABLE_CARD } from "./_shared";
+import { useTranslation } from "react-i18next";
 
 const TAG = { fontSize: "10px" } as const;
 const MONO11 = { fontSize: "11px" } as const;
 
 /** Board 17d — Redis is a single instance: INFO, persistence, slow log. */
 export function NodeRedis() {
+  const { t } = useTranslation();
   return (
     <Page>
-      <PageHeader title="节点" subtitle="redis-stream-01 · 单机 · Redis 7.2.4" actions={<Btn>刷新</Btn>} />
+      <PageHeader title={t("board.common.node")} subtitle={t("board.cluster.redis.subtitle")} actions={<Btn>{t("board.common.refresh")}</Btn>} />
       <PageBody style={{ gap: "12px" }}>
         <div className={NODE_GRID}>
           <NodeCard
@@ -19,19 +21,19 @@ export function NodeRedis() {
             metrics={
               <>
                 <Metric label="ops" value="3 420/s" />
-                <Metric label="连接" value="86" />
-                <Metric label="命中率" value="99.2%" />
+                <Metric label={t("board.common.connections")} value="86" />
+                <Metric label={t("board.cluster.redis.hitRate")} value="99.2%" />
               </>
             }
-            meters={[{ label: "内存 412MB / 2GB 20%", value: 20 }]}
+            meters={[{ label: t("board.cluster.redis.memory"), value: 20 }]}
           />
           <Card style={NODE_CARD}>
-            <SectionLabel>持久化</SectionLabel>
+            <SectionLabel>{t("board.common.persistence")}</SectionLabel>
             <KV
               rows={[
-                ["AOF", <span className="mono3" style={MONO11}>everysec · 重写 02:00</span>],
-                ["RDB", <span className="mono3" style={MONO11}>最近 08:00 · 耗时 1.2s</span>],
-                ["复制", <span className="mono3" style={MONO11}>无副本（单机）</span>],
+                ["AOF", <span className="mono3" style={MONO11}>{t("board.cluster.redis.aof")}</span>],
+                ["RDB", <span className="mono3" style={MONO11}>{t("board.cluster.redis.rdb")}</span>],
+                [t("board.common.copy"), <span className="mono3" style={MONO11}>{t("board.cluster.redis.noReplica")}</span>],
               ]}
             />
           </Card>
@@ -46,16 +48,16 @@ export function NodeRedis() {
               alignItems: "center",
             }}
           >
-            <b style={{ fontSize: "12.5px" }}>慢日志（&gt;10ms）</b>
+            <b style={{ fontSize: "12.5px" }}>{t("board.cluster.redis.slowlog")}</b>
             <span style={{ flex: 1 }} />
           </div>
           <Table>
             <THead>
               <TR>
-                <TH>命令</TH>
-                <TH style={{ textAlign: "right" }}>耗时</TH>
-                <TH>时间</TH>
-                <TH>客户端</TH>
+                <TH>{t("board.cluster.redis.command")}</TH>
+                <TH style={{ textAlign: "right" }}>{t("board.cluster.redis.elapsed")}</TH>
+                <TH>{t("board.common.time")}</TH>
+                <TH>{t("board.common.client")}</TH>
               </TR>
             </THead>
             <TBody>

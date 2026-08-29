@@ -1,7 +1,7 @@
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-export type SegOption<T extends string> = { value: T; label: string };
+export type SegOption<T extends string> = { value: T; label: ReactNode };
 
 /** `.seg` — the small segmented control (时间范围, 视图切换…). */
 export function Seg<T extends string>({

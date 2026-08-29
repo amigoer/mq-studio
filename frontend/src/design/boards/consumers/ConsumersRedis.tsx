@@ -13,6 +13,7 @@ import {
   THead,
   TR,
 } from "@/design/ui";
+import { useTranslation } from "react-i18next";
 
 const R = { textAlign: "right" } as const;
 const MONO11 = { fontSize: "11px" } as const;
@@ -44,9 +45,10 @@ export function ConsumersRedis() {
     setChecked((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   const allChecked = checked.length === PEL.length;
 
+  const { t } = useTranslation();
   return (
     <Page>
-      <PageHeader title="消费者组" subtitle="orders:events · 3 组 · PEL 37" />
+      <PageHeader title={t("board.common.consumerGroup")} subtitle={t("board.consumers.redis.subtitle")} />
       <Toolbar>
         <SelectField value="Stream：orders:events" />
         <span style={{ flex: 1 }} />
@@ -57,12 +59,12 @@ export function ConsumersRedis() {
         <Table className="inset">
           <THead>
             <TR>
-              <TH>组</TH>
+              <TH>{t("board.common.group")}</TH>
               <TH style={R}>consumers</TH>
               <TH style={R}>pending</TH>
               <TH>last-delivered-id</TH>
               <TH style={R}>entries-read</TH>
-              <TH style={R}>滞后</TH>
+              <TH style={R}>{t("board.consumers.redis.lag")}</TH>
             </TR>
           </THead>
           <TBody>
@@ -95,9 +97,9 @@ export function ConsumersRedis() {
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "11px 20px 6px" }}>
-        <SectionLabel>{selectedGroup} 的 PEL（29）</SectionLabel>
+        <SectionLabel>{t("board.consumers.redis.pelOf", { group: selectedGroup })}</SectionLabel>
         <span style={{ flex: 1 }} />
-        <span style={{ fontSize: "11px", color: "var(--c-muted)" }}>勾选后可批量操作</span>
+        <span style={{ fontSize: "11px", color: "var(--c-muted)" }}>{t("board.consumers.redis.bulkHint")}</span>
       </div>
 
       <ListPane>
@@ -107,14 +109,14 @@ export function ConsumersRedis() {
               <TH style={{ width: "26px" }}>
                 <Check
                   checked={allChecked}
-                  label="全选"
+                  label={t("board.common.selectAll")}
                   onChange={() => setChecked(allChecked ? [] : PEL.map((p) => p.id))}
                 />
               </TH>
               <TH>Entry ID</TH>
               <TH>consumer</TH>
               <TH style={R}>idle</TH>
-              <TH style={R}>投递次数</TH>
+              <TH style={R}>{t("board.consumers.redis.deliveries")}</TH>
             </TR>
           </THead>
           <TBody>
@@ -137,13 +139,13 @@ export function ConsumersRedis() {
         </Table>
       </ListPane>
 
-      <BulkBar hint="idle 超 2h 的条目建议认领或确认">
-        <span>已选 {checked.length} 条</span>
+      <BulkBar hint={t("board.consumers.redis.idleHint")}>
+        <span>{t("board.consumers.redis.selected", { n: checked.length })}</span>
         <Btn variant="primary">
-              XCLAIM 认领给
+              {t("board.consumers.redis.claimTo")}
               <ChevronDown size={12} aria-hidden />
             </Btn>
-        <Btn>XACK 确认</Btn>
+        <Btn>{t("board.consumers.redis.xack")}</Btn>
       </BulkBar>
 
     </Page>

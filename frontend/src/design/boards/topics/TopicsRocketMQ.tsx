@@ -22,8 +22,9 @@ import {
   THead,
   TR,
 } from "@/design/ui";
+import { useTranslation } from "react-i18next";
 
-const SHEET_TABS = ["概览", "队列", "路由", "订阅", "配置"] as const;
+const SHEET_TABS = ["board.common.overview", "board.common.queue", "board.topics.rocketmq.route", "board.common.subscription", "board.common.config"] as const;
 
 /**
  * Board 3c — RocketMQ topics. The detail panel is a floating sheet rather than
@@ -32,23 +33,24 @@ const SHEET_TABS = ["概览", "队列", "路由", "订阅", "配置"] as const;
 export function TopicsRocketMQ() {
   const [showSystem, setShowSystem] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
-  const [tab, setTab] = useState<string>("概览");
+  const [tab, setTab] = useState<string>(SHEET_TABS[0]);
 
+  const { t } = useTranslation();
   return (
     <Page>
       <PageHeader
         title="Topic"
-        subtitle="128 个 · 系统 Topic 已隐藏"
-        actions={<Btn variant="primary">+ 新建 Topic</Btn>}
+        subtitle={t("board.topics.rocketmq.subtitle")}
+        actions={<Btn variant="primary">{t("board.common.newTopic")}</Btn>}
       />
       <Toolbar>
-        <Field style={{ flex: "0 0 240px" }} placeholder="搜索 Topic 名称…" />
+        <Field style={{ flex: "0 0 240px" }} placeholder={t("board.common.searchTopic")} />
         <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11.5px", color: "var(--c-mono-dim)" }}>
-          <Sw checked={showSystem} onCheckedChange={setShowSystem} label="显示系统 Topic" />
-          显示系统 Topic
+          <Sw checked={showSystem} onCheckedChange={setShowSystem} label={t("board.topics.rocketmq.showSystem")} />
+          {t("board.topics.rocketmq.showSystem")}
         </span>
         <span style={{ flex: 1 }} />
-        <SelectField value="按堆积排序" />
+        <SelectField value={t("board.common.sortByBacklog")} />
       </Toolbar>
 
       <ListArea>
@@ -57,10 +59,10 @@ export function TopicsRocketMQ() {
             <THead>
               <TR>
                 <TH>Topic</TH>
-                <TH style={{ textAlign: "right" }}>队列 读/写</TH>
-                <TH style={{ textAlign: "right" }}>生产 TPS</TH>
-                <TH style={{ textAlign: "right" }}>今日消息量</TH>
-                <TH style={{ textAlign: "right" }}>堆积</TH>
+                <TH style={{ textAlign: "right" }}>{t("board.topics.rocketmq.queueRW")}</TH>
+                <TH style={{ textAlign: "right" }}>{t("board.common.produceTps")}</TH>
+                <TH style={{ textAlign: "right" }}>{t("board.topics.rocketmq.todayVolume")}</TH>
+                <TH style={{ textAlign: "right" }}>{t("board.common.backlog")}</TH>
               </TR>
             </THead>
             <TBody>
@@ -104,7 +106,7 @@ export function TopicsRocketMQ() {
             <SheetHeader
               title={selected}
               badge={<ProtoBadge protocol="rocketmq" label="RMQ 5.x" />}
-              tabs={SHEET_TABS}
+              tabs={SHEET_TABS.map((id) => ({ id, label: t(id) }))}
               activeTab={tab}
               onTabChange={setTab}
               onClose={() => setSelected(null)}
@@ -112,13 +114,13 @@ export function TopicsRocketMQ() {
             <SheetBody>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
                 <Card style={{ padding: "9px 12px" }}>
-                  <div style={{ fontSize: "10.5px", color: "var(--c-muted)" }}>生产 TPS</div>
+                  <div style={{ fontSize: "10.5px", color: "var(--c-muted)" }}>{t("board.common.produceTps")}</div>
                   <div className="mono3" style={{ fontSize: "16px", fontWeight: 600, marginTop: "2px" }}>
                     1 104
                   </div>
                 </Card>
                 <Card style={{ padding: "9px 12px" }}>
-                  <div style={{ fontSize: "10.5px", color: "var(--c-muted)" }}>堆积</div>
+                  <div style={{ fontSize: "10.5px", color: "var(--c-muted)" }}>{t("board.common.backlog")}</div>
                   <div
                     className="mono3"
                     style={{ fontSize: "16px", fontWeight: 600, marginTop: "2px", color: "var(--c-warn-text)" }}
@@ -130,21 +132,21 @@ export function TopicsRocketMQ() {
 
               <KV
                 rows={[
-                  ["权限", "读写"],
-                  ["消息类型", "普通（5.x NORMAL）"],
-                  ["创建时间", <span className="mono3" style={{ fontSize: "11px" }}>2026-03-14 11:02</span>],
+                  [t("board.topics.rocketmq.perm"), t("board.topics.rocketmq.readWrite")],
+                  [t("board.topics.rocketmq.messageType"), t("board.topics.rocketmq.normal")],
+                  [t("board.topics.rocketmq.created"), <span className="mono3" style={{ fontSize: "11px" }}>2026-03-14 11:02</span>],
                 ]}
               />
 
               <div>
-                <SectionLabel style={{ marginBottom: "6px" }}>队列分布</SectionLabel>
+                <SectionLabel style={{ marginBottom: "6px" }}>{t("board.topics.rocketmq.queueSpread")}</SectionLabel>
                 <Card style={{ overflow: "hidden" }}>
                   <MiniTable>
                     <THead>
                       <TR>
                         <TH>Broker</TH>
-                        <TH style={{ textAlign: "right" }}>队列</TH>
-                        <TH style={{ textAlign: "right" }}>最大位点</TH>
+                        <TH style={{ textAlign: "right" }}>{t("board.common.queue")}</TH>
+                        <TH style={{ textAlign: "right" }}>{t("board.topics.rocketmq.maxOffset")}</TH>
                       </TR>
                     </THead>
                     <TBody>
@@ -164,18 +166,18 @@ export function TopicsRocketMQ() {
               </div>
 
               <div>
-                <SectionLabel style={{ marginBottom: "6px" }}>订阅组</SectionLabel>
+                <SectionLabel style={{ marginBottom: "6px" }}>{t("board.topics.rocketmq.subGroups")}</SectionLabel>
                 <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-                  <Status tone="warn">order-settle · 堆积</Status>
+                  <Status tone="warn">{t("board.topics.rocketmq.settleBacklog")}</Status>
                   <Status tone="ok">order-notify</Status>
                 </div>
               </div>
             </SheetBody>
             <SheetFooter>
-              <Btn>查看消息</Btn>
-              <Btn>发送消息</Btn>
+              <Btn>{t("board.common.viewMessages")}</Btn>
+              <Btn>{t("board.common.sendMessage")}</Btn>
               <span style={{ flex: 1 }} />
-              <Btn variant="danger">删除</Btn>
+              <Btn variant="danger">{t("board.common.delete")}</Btn>
             </SheetFooter>
           </Sheet>
         )}

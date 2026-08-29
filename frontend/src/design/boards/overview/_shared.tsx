@@ -1,18 +1,20 @@
 import type { ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { ArrowRight } from "lucide-react";
 import { Btn, SelectField } from "@/design/ui";
 import { PageHeader } from "@/design/shell";
 
 /** Every overview board carries the same time-range + refresh actions. */
 export function OverviewHeader({ subtitle }: { subtitle: ReactNode }) {
+  const { t } = useTranslation();
   return (
     <PageHeader
-      title="总览"
+      title={t("board.common.overview")}
       subtitle={subtitle}
       actions={
         <>
-          <SelectField value="近 1 小时" />
-          <Btn>刷新</Btn>
+          <SelectField value={t("board.common.lastHour")} />
+          <Btn>{t("board.common.refresh")}</Btn>
         </>
       }
     />
@@ -40,10 +42,11 @@ export const TABLE_CARD = {
 } as const;
 
 /** The "查看全部" link in a table-card header, arrow included. */
-export function ViewAll({ children = "查看全部" }: { children?: ReactNode }) {
+export function ViewAll({ children }: { children?: ReactNode }) {
+  const { t } = useTranslation();
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "11.5px", color: "var(--c-fg-2)" }}>
-      {children}
+      {children ?? t("board.common.viewAll")}
       <ArrowRight size={13} aria-hidden />
     </span>
   );

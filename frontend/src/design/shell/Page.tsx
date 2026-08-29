@@ -2,9 +2,20 @@ import type { CSSProperties, ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 /** The content column: `flex:1;display:flex;flex-direction:column;min-width:0`. */
-export function Page({ children, style }: { children: ReactNode; style?: CSSProperties }) {
+export function Page({
+  children,
+  className,
+  style,
+}: {
+  children: ReactNode;
+  className?: string;
+  style?: CSSProperties;
+}) {
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, ...style }}>
+    <div
+      className={className}
+      style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, ...style }}
+    >
       {children}
     </div>
   );

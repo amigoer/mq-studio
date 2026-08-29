@@ -26,12 +26,12 @@ const TILE: Record<ProtocolId, { name: string; versions: string }> = {
 
 /** The test-connection result line each protocol's board draws in its footer. */
 const TEST_RESULT: Record<ProtocolId, { icon: LucideIcon; text: string; color: string }> = {
-  rocketmq: { icon: Check, text: "连接成功 · 4 Broker · 5.1.4", color: "var(--c-ok-text)" },
-  kafka: { icon: Check, text: "连接成功 · 3 Broker · Controller kafka-1", color: "var(--c-ok-text)" },
-  rabbitmq: { icon: TriangleAlert, text: "AMQP 可达 · 管理 API 401（检查账号权限）", color: "var(--c-warn-text)" },
-  pulsar: { icon: Check, text: "连接成功 · 3 Broker · 4 Bookie", color: "var(--c-ok-text)" },
-  redis: { icon: Check, text: "连接成功 · Redis 7.2 · 扫描到 12 个 Stream", color: "var(--c-ok-text)" },
-  mqtt: { icon: X, text: "连接失败 · 证书主机名不匹配（查看详情）", color: "var(--c-err)" },
+  rocketmq: { icon: Check, text: "page.connections.probe.rocketmq", color: "var(--c-ok-text)" },
+  kafka: { icon: Check, text: "page.connections.probe.kafka", color: "var(--c-ok-text)" },
+  rabbitmq: { icon: TriangleAlert, text: "page.connections.probe.rabbitmq", color: "var(--c-warn-text)" },
+  pulsar: { icon: Check, text: "page.connections.probe.pulsar", color: "var(--c-ok-text)" },
+  redis: { icon: Check, text: "page.connections.probe.redis", color: "var(--c-ok-text)" },
+  mqtt: { icon: X, text: "page.connections.probe.mqtt", color: "var(--c-err)" },
 };
 
 const FORMS: Record<ProtocolId, () => JSX.Element> = {
@@ -81,7 +81,7 @@ export function NewConnectionDialog({
               }}
             >
               <result.icon size={13} aria-hidden />
-              {result.text}
+              {t(result.text)}
             </span>
           )}
           <span style={{ flex: 1 }} />

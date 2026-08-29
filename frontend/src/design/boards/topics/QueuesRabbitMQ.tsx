@@ -22,8 +22,9 @@ import {
   THead,
   TR,
 } from "@/design/ui";
+import { useTranslation } from "react-i18next";
 
-const SHEET_TABS = ["概览", "绑定", "消费者", "参数"] as const;
+const SHEET_TABS = ["board.common.overview", "board.common.bindings", "board.common.consumers", "board.common.params"] as const;
 const TAG = { fontSize: "10px" } as const;
 const MONO11 = { fontSize: "11px" } as const;
 
@@ -34,24 +35,25 @@ const MONO11 = { fontSize: "11px" } as const;
 export function QueuesRabbitMQ() {
   const [backlogOnly, setBacklogOnly] = useState(true);
   const [selected, setSelected] = useState<string | null>(null);
-  const [tab, setTab] = useState<string>("概览");
+  const [tab, setTab] = useState<string>(SHEET_TABS[0]);
 
+  const { t } = useTranslation();
   return (
     <Page>
       <PageHeader
-        title="队列"
-        subtitle="vhost /order · 46 个队列"
-        actions={<Btn variant="primary">+ 新建队列</Btn>}
+        title={t("board.common.queue")}
+        subtitle={t("board.topics.rabbitmq.queueSubtitle")}
+        actions={<Btn variant="primary">{t("board.topics.rabbitmq.newQueue")}</Btn>}
       />
       <Toolbar>
-        <Field style={{ flex: "0 0 220px" }} placeholder="搜索队列…" />
+        <Field style={{ flex: "0 0 220px" }} placeholder={t("board.topics.rabbitmq.searchQueue")} />
         <SelectField value="vhost：/order" />
         <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11.5px", color: "var(--c-mono-dim)" }}>
-          <Sw checked={backlogOnly} onCheckedChange={setBacklogOnly} label="仅显示有堆积" />
-          仅显示有堆积
+          <Sw checked={backlogOnly} onCheckedChange={setBacklogOnly} label={t("board.topics.rabbitmq.backlogOnly")} />
+          {t("board.topics.rabbitmq.backlogOnly")}
         </span>
         <span style={{ flex: 1 }} />
-        <SelectField value="按 Ready 排序" />
+        <SelectField value={t("board.topics.rabbitmq.sortByReady")} />
       </Toolbar>
 
       <ListArea>
@@ -59,13 +61,13 @@ export function QueuesRabbitMQ() {
           <Table className="inset">
             <THead>
               <TR>
-                <TH>队列</TH>
-                <TH>类型</TH>
+                <TH>{t("board.common.queue")}</TH>
+                <TH>{t("board.common.type")}</TH>
                 <TH style={{ textAlign: "right" }}>Ready</TH>
                 <TH style={{ textAlign: "right" }}>Unacked</TH>
-                <TH style={{ textAlign: "right" }}>消费者</TH>
-                <TH style={{ textAlign: "right" }}>入 / 出速率</TH>
-                <TH>特性</TH>
+                <TH style={{ textAlign: "right" }}>{t("board.common.consumers")}</TH>
+                <TH style={{ textAlign: "right" }}>{t("board.topics.rabbitmq.inOutRate")}</TH>
+                <TH>{t("board.common.features")}</TH>
               </TR>
             </THead>
             <TBody>
@@ -106,7 +108,7 @@ export function QueuesRabbitMQ() {
                 <TD className="mono3" style={{ textAlign: "right", color: "var(--c-muted)" }}>0</TD>
                 <TD className="mono3" style={{ textAlign: "right", color: "var(--c-muted)" }}>0</TD>
                 <TD className="mono3" style={{ textAlign: "right", color: "var(--c-muted)" }}>0.2 / 0</TD>
-                <TD><Status tone="err" style={TAG}>死信</Status></TD>
+                <TD><Status tone="err" style={TAG}>{t("board.common.deadLetter")}</Status></TD>
               </TR>
               <SkeletonRows colSpan={7} widths={["74%", "60%"]} />
             </TBody>
@@ -118,7 +120,7 @@ export function QueuesRabbitMQ() {
             <SheetHeader
               title={selected}
               badge={<ProtoBadge protocol="rabbitmq" label="quorum" />}
-              tabs={SHEET_TABS}
+              tabs={SHEET_TABS.map((id) => ({ id, label: t(id) }))}
               activeTab={tab}
               onTabChange={setTab}
               onClose={() => setSelected(null)}
@@ -139,15 +141,15 @@ export function QueuesRabbitMQ() {
 
               <KV
                 rows={[
-                  ["持久化", "durable"],
-                  ["消息 TTL", <span className="mono3" style={MONO11}>30 000 ms</span>],
-                  ["死信交换机", <span className="mono3" style={MONO11}>dlx.order</span>],
-                  ["独占 / 自动删", "否 / 否"],
+                  [t("board.common.persistence"), "durable"],
+                  [t("board.topics.rabbitmq.messageTtl"), <span className="mono3" style={MONO11}>30 000 ms</span>],
+                  [t("board.topics.rabbitmq.dlx"), <span className="mono3" style={MONO11}>dlx.order</span>],
+                  [t("board.topics.rabbitmq.exclusiveAutoDelete"), t("board.topics.rabbitmq.noNo")],
                 ]}
               />
 
               <div>
-                <SectionLabel style={{ marginBottom: "6px" }}>绑定</SectionLabel>
+                <SectionLabel style={{ marginBottom: "6px" }}>{t("board.common.bindings")}</SectionLabel>
                 <Card
                   style={{
                     padding: "9px 12px",
@@ -163,10 +165,10 @@ export function QueuesRabbitMQ() {
               </div>
             </SheetBody>
             <SheetFooter>
-              <Btn>浏览队头消息</Btn>
+              <Btn>{t("board.topics.rabbitmq.browseHead")}</Btn>
               <span style={{ flex: 1 }} />
-              <Btn variant="danger">清空</Btn>
-              <Btn variant="danger">删除</Btn>
+              <Btn variant="danger">{t("board.common.purge")}</Btn>
+              <Btn variant="danger">{t("board.common.delete")}</Btn>
             </SheetFooter>
           </Sheet>
         )}

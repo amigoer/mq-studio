@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { BulkBar, ListPane, Page, PageHeader, SkeletonRows, Toolbar } from "@/design/shell";
 import { Btn, Check, Seg, SelectField, Status, Table, TBody, TD, TH, THead, TR } from "@/design/ui";
+import { useTranslation } from "react-i18next";
 
 const REASONS = [
-  { value: "all", label: "全部" },
-  { value: "rejected", label: "rejected" },
-  { value: "expired", label: "expired" },
-  { value: "maxlen", label: "maxlen" },
+  { value: "all", label: "board.common.all" },
+  { value: "rejected", label: "board.term.rejected" },
+  { value: "expired", label: "board.term.expired" },
+  { value: "maxlen", label: "board.term.maxlen" },
 ] as const;
 
 const MONO11 = { fontSize: "11px" } as const;
@@ -38,14 +39,15 @@ export function DlqRabbitMQ() {
     setChecked((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   const allChecked = checked.length === ROWS.length;
 
+  const { t } = useTranslation();
   return (
     <Page>
-      <PageHeader title="死信 DLX" subtitle="dlx.order → dlx.order.q · 37 条" />
+      <PageHeader title={t("board.dlq.rabbitmq.title")} subtitle={t("board.dlq.rabbitmq.subtitle")} />
       <Toolbar>
-        <SelectField value="死信队列：dlx.order.q" />
-        <Seg options={REASONS} value={reason} onChange={setReason} />
+        <SelectField value={t("board.dlq.rabbitmq.queue")} />
+        <Seg options={REASONS.map((o) => ({ ...o, label: t(o.label) }))} value={reason} onChange={setReason} />
         <span style={{ flex: 1 }} />
-        <Btn variant="primary">获取 50 条</Btn>
+        <Btn variant="primary">{t("board.dlq.rabbitmq.fetch50")}</Btn>
       </Toolbar>
 
       <ListPane>
@@ -55,15 +57,15 @@ export function DlqRabbitMQ() {
               <TH style={{ width: "26px" }}>
                 <Check
                   checked={allChecked}
-                  label="全选"
+                  label={t("board.common.selectAll")}
                   onChange={() => setChecked(allChecked ? [] : ROWS.map((r) => r.id))}
                 />
               </TH>
               <TH>routing key</TH>
-              <TH>原队列（x-death）</TH>
-              <TH>原因</TH>
+              <TH>{t("board.dlq.rabbitmq.originQueue")}</TH>
+              <TH>{t("board.common.reason")}</TH>
               <TH style={R}>count</TH>
-              <TH>时间</TH>
+              <TH>{t("board.common.time")}</TH>
             </TR>
           </THead>
           <TBody>
@@ -92,12 +94,12 @@ export function DlqRabbitMQ() {
         </Table>
       </ListPane>
 
-      <BulkBar hint="重新发布 = 读取 + 按原 routing key 发布 + ack 原消息">
-        <span>已选 {checked.length} 条</span>
-        <Btn variant="primary">重新发布到原队列</Btn>
-        <Btn>发布到其他队列…</Btn>
-        <Btn>导出</Btn>
-        <Btn variant="danger">ack 移除</Btn>
+      <BulkBar hint={t("board.dlq.rabbitmq.hint")}>
+        <span>{t("board.common.selectedN", { n: checked.length })}</span>
+        <Btn variant="primary">{t("board.dlq.rabbitmq.republish")}</Btn>
+        <Btn>{t("board.dlq.rabbitmq.publishElsewhere")}</Btn>
+        <Btn>{t("board.common.export")}</Btn>
+        <Btn variant="danger">{t("board.common.ackRemove")}</Btn>
       </BulkBar>
     </Page>
   );

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { BulkBar, ListPane, Page, PageHeader, SkeletonRows, Toolbar } from "@/design/shell";
 import { Btn, Check, SelectField, Table, TBody, TD, TH, THead, TR } from "@/design/ui";
+import { useTranslation } from "react-i18next";
 
 const MONO11 = { fontSize: "11px" } as const;
 const R = { textAlign: "right" } as const;
@@ -24,21 +25,22 @@ export function DlqKafka() {
     setChecked((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   const allChecked = checked.length === ROWS.length;
 
+  const { t } = useTranslation();
   return (
     <Page>
       <PageHeader
-        title="死信 DLT"
-        subtitle="按 .DLT 后缀约定自动发现 · 3 个 DLT"
-        actions={<Btn>配置约定…</Btn>}
+        title={t("board.dlq.kafka.title")}
+        subtitle={t("board.dlq.kafka.subtitle")}
+        actions={<Btn>{t("board.dlq.kafka.convention")}</Btn>}
       />
       <Toolbar>
-        <SelectField value="源：orders.created" />
+        <SelectField value={t("board.dlq.kafka.source")} />
         <span className="mono3" style={{ fontSize: "11px", color: "var(--c-muted)" }}>
-          → orders.created.DLT（12 条）
+          {t("board.dlq.kafka.target")}
         </span>
-        <SelectField value="近 24 小时" />
+        <SelectField value={t("board.dlq.last24h")} />
         <span style={{ flex: 1 }} />
-        <Btn variant="primary">查询</Btn>
+        <Btn variant="primary">{t("board.common.query")}</Btn>
       </Toolbar>
 
       <ListPane>
@@ -48,15 +50,15 @@ export function DlqKafka() {
               <TH style={{ width: "26px" }}>
                 <Check
                   checked={allChecked}
-                  label="全选"
+                  label={t("board.common.selectAll")}
                   onChange={() => setChecked(allChecked ? [] : ROWS.map((r) => r.id))}
                 />
               </TH>
-              <TH style={R}>分区</TH>
+              <TH style={R}>{t("board.common.partition")}</TH>
               <TH style={R}>Offset</TH>
               <TH>Key</TH>
-              <TH>异常（header）</TH>
-              <TH>时间</TH>
+              <TH>{t("board.dlq.kafka.exception")}</TH>
+              <TH>{t("board.common.time")}</TH>
             </TR>
           </THead>
           <TBody>
@@ -81,11 +83,11 @@ export function DlqKafka() {
         </Table>
       </ListPane>
 
-      <BulkBar hint="Kafka 不支持删除单条 · DLT 依赖 retention 清理">
-        <span>已选 {checked.length} 条</span>
-        <Btn variant="primary">重发到 orders.created</Btn>
-        <Btn>改目标 Topic…</Btn>
-        <Btn>导出</Btn>
+      <BulkBar hint={t("board.dlq.kafka.hint")}>
+        <span>{t("board.common.selectedN", { n: checked.length })}</span>
+        <Btn variant="primary">{t("board.dlq.kafka.resend")}</Btn>
+        <Btn>{t("board.dlq.kafka.changeTarget")}</Btn>
+        <Btn>{t("board.common.export")}</Btn>
       </BulkBar>
     </Page>
   );

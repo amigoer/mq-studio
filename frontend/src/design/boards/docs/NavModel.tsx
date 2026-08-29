@@ -2,6 +2,7 @@ import { ArrowLeft, Plus } from "lucide-react";
 import { Page, PageBody, PageHeader } from "@/design/shell";
 import { Placeholder, SectionLabel } from "@/design/ui";
 import { ProtocolIcon } from "@/design/icons/ProtocolIcon";
+import { useTranslation } from "react-i18next";
 
 const DASHED = {
   border: "1.5px dashed var(--c-border-strong)",
@@ -34,11 +35,12 @@ const TAB_IDLE = {
 
 /** Board 5c — the three-layer navigation model and where state is isolated. */
 export function NavModel() {
+  const { t } = useTranslation();
   return (
     <Page>
       <PageHeader
-        title="导航模型"
-        subtitle="三层结构与隔离边界：窗口 → 连接标签 → 页面；标签间状态完全隔离，拖出=新窗口、并排=分屏"
+        title={t("board.docs.nav.title")}
+        subtitle={t("board.docs.nav.subtitle")}
       />
       <PageBody>
         <div
@@ -54,7 +56,7 @@ export function NavModel() {
           }}
         >
           <div style={{ ...DASHED, padding: "12px" }}>
-            <SectionLabel style={{ marginBottom: "8px" }}>窗口 A（可多开）</SectionLabel>
+            <SectionLabel style={{ marginBottom: "8px" }}>{t("board.docs.nav.windowA")}</SectionLabel>
             <div style={{ display: "flex", gap: "6px", marginBottom: "8px", flexWrap: "wrap" }}>
               <span style={TAB_ACTIVE}>
                 <ProtocolIcon protocol="rocketmq" size={12} />
@@ -85,7 +87,7 @@ export function NavModel() {
                 }}
               >
                 <ArrowLeft size={12} aria-hidden />
-                连接标签层（隔离边界）
+                {t("board.docs.nav.tabLayer")}
               </span>
             </div>
             <div
@@ -108,15 +110,16 @@ export function NavModel() {
                   paddingRight: "10px",
                 }}
               >
-                总览
+                {t("board.common.overview")}
                 <br />
                 <b style={{ color: "var(--c-fg)" }}>
-                  消息 <ArrowLeft size={11} style={{ verticalAlign: "-1px" }} aria-hidden />
+                  {t("board.common.message")}{" "}
+                  <ArrowLeft size={11} style={{ verticalAlign: "-1px" }} aria-hidden />
                 </b>
                 <br />
                 Topic
                 <br />
-                消费者 …
+                {t("board.docs.nav.consumersEtc")}
               </div>
               <div
                 style={{
@@ -129,7 +132,7 @@ export function NavModel() {
                   justifyContent: "center",
                 }}
               >
-                <span>页面层：每个标签自己的侧边栏位置、筛选、滚动、查询结果</span>
+                <span>{t("board.docs.nav.pageLayer")}</span>
                 <Placeholder width="70%" />
                 <Placeholder width="52%" />
               </div>
@@ -138,20 +141,19 @@ export function NavModel() {
 
           <div style={{ display: "flex", gap: "12px", alignItems: "stretch" }}>
             <div style={{ ...DASHED, flex: 1, padding: "10px 12px", fontSize: "11px", color: "var(--c-mono-dim)" }}>
-              <b style={{ color: "var(--c-fg)" }}>拖出标签 → 窗口 B</b>
+              <b style={{ color: "var(--c-fg)" }}>{t("board.docs.nav.tearOff")}</b>
               <br />
-              双显示器各盯一个集群（Wails 多窗口）
+              {t("board.docs.nav.tearOffNote")}
             </div>
             <div style={{ ...DASHED, flex: 1, padding: "10px 12px", fontSize: "11px", color: "var(--c-mono-dim)" }}>
-              <b style={{ color: "var(--c-fg)" }}>两个标签并排 → 分屏对照</b>
+              <b style={{ color: "var(--c-fg)" }}>{t("board.docs.nav.sideBySide")}</b>
               <br />
-              迁移/双写核对两边堆积与消息
+              {t("board.docs.nav.sideBySideNote")}
             </div>
           </div>
 
           <div style={{ fontSize: "11px", color: "var(--c-muted)", lineHeight: 1.7 }}>
-            隔离内容：页面状态 · 查询缓存 · 自动刷新定时器 · 凭证会话 · 告警订阅。全局共享：设置 ·
-            连接配置库 · 告警通知中心。
+            {t("board.docs.nav.isolation")}
           </div>
         </div>
       </PageBody>

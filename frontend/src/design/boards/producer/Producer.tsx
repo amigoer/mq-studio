@@ -15,17 +15,18 @@ import {
 } from "@/design/ui";
 import type { ProtocolId } from "@/design/data/protocols";
 import { PROTOCOL_PANELS } from "./ProducerPanels";
+import { useTranslation } from "react-i18next";
 
 const BODY_FORMATS = [
-  { value: "json", label: "JSON" },
-  { value: "text", label: "文本" },
-  { value: "hex", label: "Hex" },
+  { value: "json", label: "board.term.json" },
+  { value: "text", label: "board.producer.text" },
+  { value: "hex", label: "board.term.hex" },
 ] as const;
 
 const SEND_MODES = [
-  { value: "sync", label: "同步" },
-  { value: "async", label: "异步" },
-  { value: "oneway", label: "单向" },
+  { value: "sync", label: "board.producer.sync" },
+  { value: "async", label: "board.producer.async" },
+  { value: "oneway", label: "board.producer.oneway" },
 ] as const;
 
 /**
@@ -37,16 +38,17 @@ export function Producer({ protocol }: { protocol: ProtocolId }) {
   const [sendMode, setSendMode] = useState<(typeof SEND_MODES)[number]["value"]>("sync");
   const Panel = PROTOCOL_PANELS[protocol];
 
+  const { t } = useTranslation();
   return (
     <Page>
       <PageHeader
-        title="发送消息"
-        subtitle="构造并发送测试消息 · 草稿自动保存"
+        title={t("board.common.sendMessage")}
+        subtitle={t("board.producer.subtitle")}
         actions={
           <>
-            <Btn>保存为模板</Btn>
+            <Btn>{t("board.producer.saveTemplate")}</Btn>
             <Btn variant="primary">
-              发送
+              {t("board.producer.send")}
               <Send size={13} aria-hidden />
             </Btn>
           </>
@@ -56,7 +58,7 @@ export function Producer({ protocol }: { protocol: ProtocolId }) {
       <div style={{ flex: 1, display: "flex", gap: "16px", padding: "16px 20px", minHeight: 0 }}>
         <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: "12px" }}>
           <Card style={{ padding: "13px 16px", display: "flex", gap: "10px", alignItems: "center" }}>
-            <SectionLabel style={{ flex: "none" }}>目标</SectionLabel>
+            <SectionLabel style={{ flex: "none" }}>{t("board.common.target")}</SectionLabel>
             <TargetRow protocol={protocol} />
           </Card>
 
@@ -78,9 +80,9 @@ export function Producer({ protocol }: { protocol: ProtocolId }) {
                 borderBottom: "1px solid var(--c-border)",
               }}
             >
-              <Seg options={BODY_FORMATS} value={format} onChange={setFormat} />
+              <Seg options={BODY_FORMATS.map((o) => ({ ...o, label: t(o.label) }))} value={format} onChange={setFormat} />
               <span style={{ flex: 1 }} />
-              <span style={{ fontSize: "11.5px", color: "var(--c-ok)" }}>格式化</span>
+              <span style={{ fontSize: "11.5px", color: "var(--c-ok)" }}>{t("board.common.format")}</span>
               <span
                 style={{
                   display: "inline-flex",
@@ -90,7 +92,7 @@ export function Producer({ protocol }: { protocol: ProtocolId }) {
                   color: "var(--c-muted)",
                 }}
               >
-                从消息复制
+                {t("board.producer.copyFromMessage")}
                 <ChevronDown size={12} aria-hidden />
               </span>
             </div>
@@ -127,10 +129,10 @@ export function Producer({ protocol }: { protocol: ProtocolId }) {
                 fontSize: "11.5px",
               }}
             >
-              <SectionLabel>自定义属性</SectionLabel>
+              <SectionLabel>{t("board.producer.customProps")}</SectionLabel>
               <Field className="mono3" style={{ fontSize: "11px" }} defaultValue="traceId = t-9f21" />
               <Field className="mono3" style={{ fontSize: "11px" }} defaultValue="env = staging" />
-              <span style={{ color: "var(--c-ok)" }}>+ 添加</span>
+              <span style={{ color: "var(--c-ok)" }}>{t("board.producer.add")}</span>
             </div>
           </Card>
 
@@ -148,14 +150,14 @@ export function Producer({ protocol }: { protocol: ProtocolId }) {
           >
             <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", color: "var(--c-ok-text)" }}>
               <Check size={13} aria-hidden />
-              发送成功
+              {t("board.producer.sent")}
             </span>
             <span className="mono3" style={{ color: "var(--c-mono-dim)", fontSize: "11px" }}>
               MsgId 7F0000012A9C…D02
             </span>
             <span style={{ flex: 1 }} />
             <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", color: "var(--c-ok)" }}>
-              查看该消息
+              {t("board.producer.viewMessage")}
               <ArrowRight size={13} aria-hidden />
             </span>
           </div>
@@ -172,13 +174,13 @@ export function Producer({ protocol }: { protocol: ProtocolId }) {
           }}
         >
           <Card style={{ padding: "13px 16px", display: "flex", flexDirection: "column", gap: "10px" }}>
-            <SectionLabel>发送选项</SectionLabel>
+            <SectionLabel>{t("board.producer.options")}</SectionLabel>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "12px" }}>
-              <span>发送方式</span>
-              <Seg options={SEND_MODES} value={sendMode} onChange={setSendMode} />
+              <span>{t("board.producer.mode")}</span>
+              <Seg options={SEND_MODES.map((o) => ({ ...o, label: t(o.label) }))} value={sendMode} onChange={setSendMode} />
             </div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "12px" }}>
-              <span>发送次数</span>
+              <span>{t("board.producer.count")}</span>
               <Field style={{ width: "64px", textAlign: "right" }} defaultValue="1" />
             </div>
           </Card>
@@ -188,9 +190,9 @@ export function Producer({ protocol }: { protocol: ProtocolId }) {
           </Card>
 
           <Card style={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
-            <SectionLabel style={{ padding: "11px 16px 8px" }}>最近发送</SectionLabel>
-            <RecentSend tone="ok" label="成功" detail="ORDER_CREATE · 10:31" />
-            <RecentSend tone="err" label="失败" detail="ORDER_PAY_DELAY · 09:58" />
+            <SectionLabel style={{ padding: "11px 16px 8px" }}>{t("board.producer.recent")}</SectionLabel>
+            <RecentSend tone="ok" label={t("board.producer.ok")} detail="ORDER_CREATE · 10:31" />
+            <RecentSend tone="err" label={t("board.producer.failed")} detail="ORDER_PAY_DELAY · 09:58" />
             <div style={{ padding: "2px 16px 10px" }}>
               <div className="ph3" style={{ width: "70%" }} />
             </div>
@@ -203,6 +205,7 @@ export function Producer({ protocol }: { protocol: ProtocolId }) {
 
 /** The target row; RabbitMQ addresses an exchange + routing key instead (16b). */
 function TargetRow({ protocol }: { protocol: ProtocolId }) {
+  const { t } = useTranslation();
   if (protocol === "rabbitmq") {
     return (
       <>
@@ -218,7 +221,7 @@ function TargetRow({ protocol }: { protocol: ProtocolId }) {
   if (protocol === "mqtt") {
     return (
       <>
-        <Field className="mono3" style={{ flex: 1 }} defaultValue="主题：iot/device/cmd/A19F" />
+        <Field className="mono3" style={{ flex: 1 }} defaultValue={t("board.producer.mqttTopic")} />
         <SelectField style={{ flex: "0 0 130px" }} value="QoS 1" />
       </>
     );
@@ -265,6 +268,7 @@ function RecentSend({
   label: string;
   detail: string;
 }) {
+  const { t } = useTranslation();
   return (
     <div
       style={{
@@ -290,7 +294,7 @@ function RecentSend({
       >
         {detail}
       </span>
-      <span style={{ color: "var(--c-ok)" }}>重用</span>
+      <span style={{ color: "var(--c-ok)" }}>{t("board.producer.reuse")}</span>
     </div>
   );
 }

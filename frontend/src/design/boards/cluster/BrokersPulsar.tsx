@@ -1,18 +1,20 @@
 import { Page, PageBody, PageHeader } from "@/design/shell";
 import { Btn, Card, Status, Table, TBody, TD, TH, THead, TR } from "@/design/ui";
 import { Metric, NODE_GRID, NodeCard, TABLE_CARD } from "./_shared";
+import { useTranslation } from "react-i18next";
 
 const TAG = { fontSize: "10px" } as const;
 const MONO11 = { fontSize: "11px" } as const;
 
 /** Board 17c — Pulsar's two tiers: broker load above, bookie storage below. */
 export function BrokersPulsar() {
+  const { t } = useTranslation();
   return (
     <Page>
       <PageHeader
         title="Broker / Bookie"
         subtitle="Pulsar 3.2 · Broker 3 · Bookie 4"
-        actions={<Btn>刷新</Btn>}
+        actions={<Btn>{t("board.common.refresh")}</Btn>}
       />
       <PageBody style={{ gap: "12px" }}>
         <div className={NODE_GRID}>
@@ -23,11 +25,11 @@ export function BrokersPulsar() {
             metrics={
               <>
                 <Metric label="Topic" value="82" />
-                <Metric label="入" value="720/s" />
-                <Metric label="出" value="804/s" />
+                <Metric label={t("board.common.in")} value="720/s" />
+                <Metric label={t("board.common.out")} value="804/s" />
               </>
             }
-            meters={[{ label: "负载 44%", value: 44 }]}
+            meters={[{ label: t("board.cluster.pulsar.load44"), value: 44 }]}
           />
           <NodeCard
             name="broker-2"
@@ -36,11 +38,11 @@ export function BrokersPulsar() {
             metrics={
               <>
                 <Metric label="Topic" value="76" />
-                <Metric label="入" value="648/s" />
-                <Metric label="出" value="701/s" />
+                <Metric label={t("board.common.in")} value="648/s" />
+                <Metric label={t("board.common.out")} value="701/s" />
               </>
             }
-            meters={[{ label: "负载 41%", value: 41 }]}
+            meters={[{ label: t("board.cluster.pulsar.load41"), value: 41 }]}
           />
           <NodeCard
             name="bookie-1 / 2"
@@ -48,13 +50,13 @@ export function BrokersPulsar() {
             address="3181"
             metrics={
               <>
-                <Metric label="写延迟" value="1.8ms" />
-                <Metric label="读延迟" value="0.9ms" />
+                <Metric label={t("board.cluster.pulsar.writeLatency")} value="1.8ms" />
+                <Metric label={t("board.cluster.pulsar.readLatency")} value="0.9ms" />
               </>
             }
             meters={[
-              { label: "存储 58%", value: 58 },
-              { label: "存储 61%", value: 61 },
+              { label: t("board.cluster.pulsar.store58"), value: 58 },
+              { label: t("board.cluster.pulsar.store61"), value: 61 },
             ]}
           />
           <NodeCard
@@ -68,13 +70,13 @@ export function BrokersPulsar() {
             address="3181"
             metrics={
               <>
-                <Metric label="写延迟" value="2.1ms" />
-                <Metric label="读延迟" value="1.0ms" />
+                <Metric label={t("board.cluster.pulsar.writeLatency")} value="2.1ms" />
+                <Metric label={t("board.cluster.pulsar.readLatency")} value="1.0ms" />
               </>
             }
             meters={[
-              { label: "存储 57%", value: 57 },
-              { label: "存储 73%", value: 73, color: "var(--c-warn)" },
+              { label: t("board.cluster.pulsar.store57"), value: 57 },
+              { label: t("board.cluster.pulsar.store73"), value: 73, color: "var(--c-warn)" },
             ]}
           />
         </div>
@@ -88,17 +90,17 @@ export function BrokersPulsar() {
               alignItems: "center",
             }}
           >
-            <b style={{ fontSize: "12.5px" }}>命名空间 Bundle 分布</b>
+            <b style={{ fontSize: "12.5px" }}>{t("board.cluster.pulsar.bundles")}</b>
             <span style={{ flex: 1 }} />
-            <span style={{ fontSize: "11.5px", color: "var(--c-fg-2)" }}>触发负载均衡</span>
+            <span style={{ fontSize: "11.5px", color: "var(--c-fg-2)" }}>{t("board.cluster.pulsar.rebalance")}</span>
           </div>
           <Table>
             <THead>
               <TR>
-                <TH>命名空间</TH>
+                <TH>{t("board.common.namespace")}</TH>
                 <TH style={{ textAlign: "right" }}>bundle</TH>
-                <TH>分布</TH>
-                <TH style={{ textAlign: "right" }}>吞吐</TH>
+                <TH>{t("board.cluster.pulsar.distribution")}</TH>
+                <TH style={{ textAlign: "right" }}>{t("board.common.throughputShort")}</TH>
               </TR>
             </THead>
             <TBody>

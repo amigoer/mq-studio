@@ -21,27 +21,29 @@ import {
   THead,
   TR,
 } from "@/design/ui";
+import { useTranslation } from "react-i18next";
 
-const SHEET_TABS = ["分区分配", "成员", "位点"] as const;
+const SHEET_TABS = ["board.consumers.kafka.assignment", "board.common.members", "board.common.offset"] as const;
 const R = { textAlign: "right" } as const;
 
 /** Board 14a — Kafka consumer groups; Rebalancing is a first-class state. */
 export function ConsumersKafka() {
   const [lagOnly, setLagOnly] = useState(true);
   const [selected, setSelected] = useState<string | null>(null);
-  const [tab, setTab] = useState<string>("分区分配");
+  const [tab, setTab] = useState<string>(SHEET_TABS[0]);
 
+  const { t } = useTranslation();
   return (
     <Page>
-      <PageHeader title="消费者组" subtitle="18 个 · 1 再均衡中" />
+      <PageHeader title={t("board.common.consumerGroup")} subtitle={t("board.consumers.kafka.subtitle")} />
       <Toolbar>
-        <Field style={{ flex: "0 0 220px" }} placeholder="搜索消费者组…" />
+        <Field style={{ flex: "0 0 220px" }} placeholder={t("board.common.searchGroups")} />
         <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11.5px", color: "var(--c-mono-dim)" }}>
-          <Sw checked={lagOnly} onCheckedChange={setLagOnly} label="仅看有 lag" />
-          仅看有 lag
+          <Sw checked={lagOnly} onCheckedChange={setLagOnly} label={t("board.consumers.kafka.lagOnly")} />
+          {t("board.consumers.kafka.lagOnly")}
         </span>
         <span style={{ flex: 1 }} />
-        <SelectField value="按 lag 排序" />
+        <SelectField value={t("board.consumers.kafka.sortByLag")} />
       </Toolbar>
 
       <ListArea>
@@ -50,11 +52,11 @@ export function ConsumersKafka() {
             <THead>
               <TR>
                 <TH>Group</TH>
-                <TH>状态</TH>
-                <TH style={R}>成员</TH>
+                <TH>{t("board.common.status")}</TH>
+                <TH style={R}>{t("board.common.members")}</TH>
                 <TH style={R}>Topic</TH>
-                <TH style={R}>总 lag</TH>
-                <TH style={R}>消费速率</TH>
+                <TH style={R}>{t("board.consumers.kafka.totalLag")}</TH>
+                <TH style={R}>{t("board.common.consumeRate")}</TH>
               </TR>
             </THead>
             <TBody>
@@ -92,20 +94,20 @@ export function ConsumersKafka() {
             <SheetHeader
               title={selected}
               badge={<Status tone="ok" style={{ fontSize: "10px" }}>Stable</Status>}
-              tabs={SHEET_TABS}
+              tabs={SHEET_TABS.map((id) => ({ id, label: t(id) }))}
               activeTab={tab}
               onTabChange={setTab}
               onClose={() => setSelected(null)}
             />
             <SheetBody>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px" }}>
-                <MiniStat label="总 lag" value="9 820" color="var(--c-warn-text)" size={15} />
-                <MiniStat label="成员" value="6" size={15} />
-                <MiniStat label="分配策略" value="range" size={15} />
+                <MiniStat label={t("board.consumers.kafka.totalLag")} value="9 820" color="var(--c-warn-text)" size={15} />
+                <MiniStat label={t("board.common.members")} value="6" size={15} />
+                <MiniStat label={t("board.consumers.kafka.strategy")} value="range" size={15} />
               </div>
 
               <div>
-                <SectionLabel style={{ marginBottom: "6px" }}>分区 lag（orders.created）</SectionLabel>
+                <SectionLabel style={{ marginBottom: "6px" }}>{t("board.consumers.kafka.partitionLag")}</SectionLabel>
                 <Card style={{ overflow: "hidden" }}>
                   <MiniTable>
                     <THead>
@@ -144,13 +146,13 @@ export function ConsumersKafka() {
                 </Card>
               </div>
 
-              <div style={{ fontSize: "11px", color: "var(--c-muted)" }}>lag 集中在 c-1 的 p0 · 建议检查该实例</div>
+              <div style={{ fontSize: "11px", color: "var(--c-muted)" }}>{t("board.consumers.kafka.lagHint")}</div>
             </SheetBody>
             <SheetFooter>
-              <Btn>重置位点…</Btn>
-              <Btn>导出 lag</Btn>
+              <Btn>{t("board.consumers.kafka.resetOffset")}</Btn>
+              <Btn>{t("board.consumers.kafka.exportLag")}</Btn>
               <span style={{ flex: 1 }} />
-              <Btn variant="danger">删除组</Btn>
+              <Btn variant="danger">{t("board.common.deleteGroup")}</Btn>
             </SheetFooter>
           </Sheet>
         )}

@@ -24,15 +24,16 @@ import {
   THead,
   TR,
 } from "@/design/ui";
+import { useTranslation } from "react-i18next";
 
 const MODES = [
-  { value: "latest", label: "最新 N 条" },
-  { value: "offset", label: "按 Offset" },
-  { value: "time", label: "按时间" },
-  { value: "key", label: "按 Key" },
+  { value: "latest", label: "board.common.latestN" },
+  { value: "offset", label: "board.messages.kafka.byOffset" },
+  { value: "time", label: "board.common.byTime" },
+  { value: "key", label: "board.common.byKey" },
 ] as const;
 
-const SHEET_TABS = ["消息", "Headers"] as const;
+const SHEET_TABS = ["board.common.message", "board.term.headers"] as const;
 const MONO11 = { fontSize: "11px" } as const;
 const R = { textAlign: "right" } as const;
 
@@ -40,17 +41,18 @@ const R = { textAlign: "right" } as const;
 export function MessagesKafka() {
   const [mode, setMode] = useState<(typeof MODES)[number]["value"]>("latest");
   const [selected, setSelected] = useState<string | null>(null);
-  const [tab, setTab] = useState<string>("消息");
+  const [tab, setTab] = useState<string>(SHEET_TABS[0]);
 
+  const { t } = useTranslation();
   return (
     <Page>
-      <PageHeader title="消息查询" subtitle="" />
+      <PageHeader title={t("board.common.messageQuery")} subtitle="" />
       <Toolbar>
         <SelectField value="Topic：orders.created" />
-        <SelectField value="分区 ALL" />
-        <Seg options={MODES} value={mode} onChange={setMode} />
+        <SelectField value={t("board.messages.kafka.allPartitions")} />
+        <Seg options={MODES.map((o) => ({ ...o, label: t(o.label) }))} value={mode} onChange={setMode} />
         <Field className="mono3" style={{ flex: "0 0 90px" }} defaultValue="500" />
-        <Btn variant="primary">查询</Btn>
+        <Btn variant="primary">{t("board.common.query")}</Btn>
       </Toolbar>
 
       <ListArea>
@@ -58,12 +60,12 @@ export function MessagesKafka() {
           <Table className="inset">
             <THead>
               <TR>
-                <TH style={R}>分区</TH>
+                <TH style={R}>{t("board.common.partition")}</TH>
                 <TH style={R}>Offset</TH>
                 <TH>Key</TH>
-                <TH>Value 摘要</TH>
+                <TH>{t("board.messages.kafka.valueSummary")}</TH>
                 <TH style={R}>Headers</TH>
-                <TH>时间戳</TH>
+                <TH>{t("board.common.timestamp")}</TH>
               </TR>
             </THead>
             <TBody>
@@ -107,7 +109,7 @@ export function MessagesKafka() {
             <SheetHeader
               title={`offset ${selected}`}
               badge={<Status tone="off" style={{ fontSize: "10px" }}>p3</Status>}
-              tabs={SHEET_TABS}
+              tabs={SHEET_TABS.map((id) => ({ id, label: t(id) }))}
               activeTab={tab}
               onTabChange={setTab}
               onClose={() => setSelected(null)}
@@ -115,10 +117,10 @@ export function MessagesKafka() {
             <SheetBody>
               <KV
                 rows={[
-                  ["分区 / Offset", <span className="mono3" style={MONO11}>3 / 88 204 771</span>],
+                  [t("board.messages.kafka.partitionOffset"), <span className="mono3" style={MONO11}>3 / 88 204 771</span>],
                   ["Key", <span className="mono3" style={MONO11}>ORD-88213（String）</span>],
-                  ["时间戳", <span className="mono3" style={MONO11}>10:24:07.221 · CreateTime</span>],
-                  ["大小", <span className="mono3" style={MONO11}>1.2 KB · lz4</span>],
+                  [t("board.common.timestamp"), <span className="mono3" style={MONO11}>10:24:07.221 · CreateTime</span>],
+                  [t("board.common.size"), <span className="mono3" style={MONO11}>1.2 KB · lz4</span>],
                 ]}
               />
 
@@ -127,7 +129,7 @@ export function MessagesKafka() {
                   style={{ marginBottom: "6px" }}
                   action={
                     <>
-                      反序列化：JSON
+                      {t("board.messages.deserialize")}
                       <ChevronDown size={12} aria-hidden />
                     </>
                   }
@@ -160,14 +162,14 @@ export function MessagesKafka() {
               </div>
 
               <div style={{ fontSize: "11px", color: "var(--c-muted)" }}>
-                Kafka 无消费轨迹 · 各组消费进度见「消费者组」页
+                {t("board.messages.kafka.noTrace")}
               </div>
             </SheetBody>
             <SheetFooter>
-              <Btn>复制</Btn>
-              <Btn>重发到 Topic…</Btn>
+              <Btn>{t("board.common.copy")}</Btn>
+              <Btn>{t("board.messages.kafka.resendTo")}</Btn>
               <span style={{ flex: 1 }} />
-              <Btn>导出</Btn>
+              <Btn>{t("board.common.export")}</Btn>
             </SheetFooter>
           </Sheet>
         )}
@@ -175,16 +177,16 @@ export function MessagesKafka() {
 
       <Toolbar style={{ borderTop: "1px solid var(--c-border)", borderBottom: "none" }}>
         <span className="mono3" style={{ fontSize: "11px", color: "var(--c-muted)" }}>
-          游标：p3 从 88 204 271 起 · 已读 500 条
+          {t("board.messages.kafka.cursor")}
         </span>
         <span style={{ flex: 1 }} />
         <Btn>
-          加载更早
+          {t("board.messages.kafka.loadOlder")}
           <ChevronLeft size={13} aria-hidden />
         </Btn>
         <Btn>
           <ChevronRight size={13} aria-hidden />
-          加载更新
+          {t("board.messages.kafka.loadNewer")}
         </Btn>
       </Toolbar>
     </Page>

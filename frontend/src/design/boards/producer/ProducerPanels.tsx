@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react";
 import { Field, ProtoBadge, SectionLabel, Seg, SelectField, Sw } from "@/design/ui";
 import { ProtocolIcon } from "@/design/icons/ProtocolIcon";
 import type { ProtocolId } from "@/design/data/protocols";
+import { useTranslation } from "react-i18next";
 
 /** One `label ⋯ control` line inside a protocol panel. */
 function Row({ label, children }: { label: ReactNode; children: ReactNode }) {
@@ -39,9 +40,10 @@ function Note({ children }: { children: ReactNode }) {
 }
 
 export function PanelHeader({ protocol, badge }: { protocol: ProtocolId; badge?: ReactNode }) {
+  const { t } = useTranslation();
   return (
     <SectionLabel action={badge} actionColor="inherit">
-      协议专属 ·{" "}
+      {t("board.producer.protocolSpecific")}{" "}
       <ProtocolIcon protocol={protocol} style={{ verticalAlign: "-3px" }} />
     </SectionLabel>
   );
@@ -49,26 +51,27 @@ export function PanelHeader({ protocol, badge }: { protocol: ProtocolId; badge?:
 
 /** Board 3e's right panel — RocketMQ. */
 export function RocketMQPanel() {
+  const { t } = useTranslation();
   const [ordered, setOrdered] = useState(false);
   return (
     <>
       <SectionLabel action={<ProtoBadge protocol="rocketmq" label="RMQ 5.x" />} actionColor="inherit">
-        协议专属 · RocketMQ
+        {t("board.producer.specificRocketMQ")}
       </SectionLabel>
-      <Row label="延迟等级">
-        <SelectField style={{ width: "120px" }} value="不延迟" />
+      <Row label={t("board.producer.delayLevel")}>
+        <SelectField style={{ width: "120px" }} value={t("board.producer.noDelay")} />
       </Row>
-      <Row label="顺序消息 (按 Key)">
-        <Sw checked={ordered} onCheckedChange={setOrdered} label="顺序消息" />
+      <Row label={t("board.producer.orderedByKey")}>
+        <Sw checked={ordered} onCheckedChange={setOrdered} label={t("board.producer.ordered")} />
       </Row>
       <Note>
-        切换连接后此区自动变化：
+        {t("board.producer.panelNote")}
         <br />
-        Kafka → acks / 指定分区 / 压缩
+        {t("board.producer.noteKafka")}
         <br />
         RabbitMQ → Exchange / RoutingKey
         <br />
-        MQTT → QoS / Retain · Pulsar → 定时投递
+        {t("board.producer.noteMqtt")}
       </Note>
     </>
   );
@@ -82,6 +85,7 @@ const ACKS = [
 
 /** Board 16a — Kafka. */
 export function KafkaPanel() {
+  const { t } = useTranslation();
   const [acks, setAcks] = useState<(typeof ACKS)[number]["value"]>("all");
   return (
     <>
@@ -89,25 +93,26 @@ export function KafkaPanel() {
       <Row label="acks">
         <Seg options={ACKS} value={acks} onChange={setAcks} />
       </Row>
-      <Row label="目标分区">
-        <SelectField style={{ width: "110px" }} value="自动（key hash）" />
+      <Row label={t("board.producer.targetPartition")}>
+        <SelectField style={{ width: "110px" }} value={t("board.producer.autoKeyHash")} />
       </Row>
-      <Row label="压缩">
+      <Row label={t("board.producer.compression")}>
         <SelectField style={{ width: "110px" }} value="lz4" />
       </Row>
-      <Row label="Key 序列化">
+      <Row label={t("board.producer.keySerde")}>
         <SelectField style={{ width: "110px" }} value="String" />
       </Row>
-      <Row label="Value 序列化">
+      <Row label={t("board.producer.valueSerde")}>
         <SelectField style={{ width: "110px" }} value="JSON" />
       </Row>
-      <Note>headers 走通用「自定义属性」区 · key 为空时按分区器路由</Note>
+      <Note>{t("board.producer.noteHeaders")}</Note>
     </>
   );
 }
 
 /** Board 16b — RabbitMQ. */
 export function RabbitMQPanel() {
+  const { t } = useTranslation();
   const [persistent, setPersistent] = useState(true);
   const [mandatory, setMandatory] = useState(false);
   return (
@@ -125,21 +130,22 @@ export function RabbitMQPanel() {
       <Row label="mandatory">
         <Sw checked={mandatory} onCheckedChange={setMandatory} label="mandatory" />
       </Row>
-      <Row label="过期 TTL">
+      <Row label={t("board.producer.ttl")}>
         <Field className="mono3" style={{ width: "90px", fontSize: "11px" }} defaultValue="30000 ms" />
       </Row>
-      <Note>confirm 模式返回 ack/nack · mandatory 无法路由时退回</Note>
+      <Note>{t("board.producer.noteConfirm")}</Note>
     </>
   );
 }
 
 const ROUTING = [
-  { value: "rr", label: "RoundRobin" },
-  { value: "key", label: "按 Key" },
+  { value: "rr", label: "board.term.roundrobin" },
+  { value: "key", label: "board.common.byKey" },
 ] as const;
 
 /** Board 16c — Pulsar. */
 export function PulsarPanel() {
+  const { t } = useTranslation();
   const [routing, setRouting] = useState<(typeof ROUTING)[number]["value"]>("key");
   return (
     <>
@@ -147,40 +153,41 @@ export function PulsarPanel() {
       <Row label="Key">
         <Field className="mono3" style={{ width: "130px", fontSize: "11px" }} defaultValue="ORD-TEST-001" />
       </Row>
-      <Row label="路由模式">
-        <Seg options={ROUTING} value={routing} onChange={setRouting} />
+      <Row label={t("board.producer.routingMode")}>
+        <Seg options={ROUTING.map((o) => ({ ...o, label: t(o.label) }))} value={routing} onChange={setRouting} />
       </Row>
-      <Row label="定时投递">
+      <Row label={t("board.producer.scheduled")}>
         <SelectField style={{ width: "130px" }} value="deliverAfter 10s" />
       </Row>
       <Row label="Schema">
         <SelectField style={{ width: "110px" }} value="JSON v3" />
       </Row>
-      <Note>properties 走通用属性区 · Schema 校验失败会拒发</Note>
+      <Note>{t("board.producer.noteProps")}</Note>
     </>
   );
 }
 
 /** Board 16d — Redis. The body itself becomes field/value rows. */
 export function RedisPanel() {
+  const { t } = useTranslation();
   return (
     <>
       <PanelHeader protocol="redis" />
       <Row label="Entry ID">
-        <Field className="mono3" style={{ width: "110px", fontSize: "11px" }} defaultValue="*（自动）" />
+        <Field className="mono3" style={{ width: "110px", fontSize: "11px" }} defaultValue={t("board.producer.autoId")} />
       </Row>
       <Row label="MAXLEN">
         <Field className="mono3" style={{ width: "110px", fontSize: "11px" }} defaultValue="~ 1000000" />
       </Row>
       <div>
-        <SectionLabel style={{ margin: "2px 0 6px" }}>字段 · field / value</SectionLabel>
+        <SectionLabel style={{ margin: "2px 0 6px" }}>{t("board.producer.fields")}</SectionLabel>
         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
           <FieldPair name="orderId" value="ORD-TEST-001" />
           <FieldPair name="amount" value="1.00" />
-          <div style={{ fontSize: "11px", color: "var(--c-ok)" }}>+ 添加字段</div>
+          <div style={{ fontSize: "11px", color: "var(--c-ok)" }}>{t("board.producer.addField")}</div>
         </div>
       </div>
-      <Note>* = 自动生成 ID · maxlen ~ 为近似裁剪（高性能）</Note>
+      <Note>{t("board.producer.noteXadd")}</Note>
     </>
   );
 }
@@ -202,12 +209,13 @@ const QOS = [
 
 /** Board 16e — MQTT. */
 export function MqttPanel() {
+  const { t } = useTranslation();
   const [qos, setQos] = useState<(typeof QOS)[number]["value"]>("1");
   const [retain, setRetain] = useState(false);
   return (
     <>
       <PanelHeader protocol="mqtt" />
-      <Row label="主题">
+      <Row label={t("board.common.topic")}>
         <Field className="mono3" style={{ width: "150px", fontSize: "11px" }} defaultValue="iot/device/cmd/A19F" />
       </Row>
       <Row label="QoS">
@@ -216,13 +224,13 @@ export function MqttPanel() {
       <Row label="Retain">
         <Sw checked={retain} onCheckedChange={setRetain} label="Retain" />
       </Row>
-      <Row label="消息过期">
+      <Row label={t("board.producer.messageExpiry")}>
         <Field className="mono3" style={{ width: "90px", fontSize: "11px" }} defaultValue="3600 s" />
       </Row>
-      <Row label="响应主题">
+      <Row label={t("board.producer.responseTopic")}>
         <Field className="mono3" style={{ width: "150px", fontSize: "11px" }} defaultValue="iot/device/ack/A19F" />
       </Row>
-      <Note>retain 会覆盖该主题的保留消息 · 谨慎用于生产</Note>
+      <Note>{t("board.producer.noteRetain")}</Note>
     </>
   );
 }

@@ -21,17 +21,18 @@ import {
   THead,
   TR,
 } from "@/design/ui";
+import { useTranslation } from "react-i18next";
 
-const SHEET_TABS = ["订阅", "会话", "统计"] as const;
+const SHEET_TABS = ["board.common.subscription", "board.consumers.mqtt.session", "board.consumers.mqtt.stats"] as const;
 const R = { textAlign: "right" } as const;
 const DIM = { color: "var(--c-muted)" } as const;
 const NAME = { fontSize: "11.5px" } as const;
 const MONO11 = { fontSize: "11px" } as const;
 
 const FILTERS = [
-  { value: "all", label: "全部" },
-  { value: "online", label: "在线" },
-  { value: "offline", label: "离线（持久会话）" },
+  { value: "all", label: "board.common.all" },
+  { value: "online", label: "board.common.online" },
+  { value: "offline", label: "board.consumers.mqtt.offlinePersistent" },
 ] as const;
 
 const SUBS = [
@@ -47,16 +48,17 @@ const SUBS = [
 export function ClientsMqtt() {
   const [filter, setFilter] = useState<(typeof FILTERS)[number]["value"]>("all");
   const [selected, setSelected] = useState<string | null>(null);
-  const [tab, setTab] = useState<string>("订阅");
+  const [tab, setTab] = useState<string>(SHEET_TABS[0]);
 
+  const { t } = useTranslation();
   return (
     <Page>
-      <PageHeader title="客户端 / 会话" subtitle="在线 1 284 · 持久会话离线 96" />
+      <PageHeader title={t("board.consumers.mqtt.title")} subtitle={t("board.consumers.mqtt.subtitle")} />
       <Toolbar>
-        <Field style={{ flex: "0 0 220px" }} placeholder="搜索 Client ID / IP…" />
-        <Seg options={FILTERS} value={filter} onChange={setFilter} />
+        <Field style={{ flex: "0 0 220px" }} placeholder={t("board.consumers.mqtt.search")} />
+        <Seg options={FILTERS.map((o) => ({ ...o, label: t(o.label) }))} value={filter} onChange={setFilter} />
         <span style={{ flex: 1 }} />
-        <SelectField value="按连接时间" />
+        <SelectField value={t("board.consumers.mqtt.byConnectTime")} />
       </Toolbar>
 
       <ListArea>
@@ -65,12 +67,12 @@ export function ClientsMqtt() {
             <THead>
               <TR>
                 <TH>Client ID</TH>
-                <TH>用户</TH>
+                <TH>{t("board.common.user")}</TH>
                 <TH>IP</TH>
-                <TH>协议</TH>
-                <TH style={R}>订阅</TH>
-                <TH style={R}>飞行/队列</TH>
-                <TH>状态</TH>
+                <TH>{t("board.common.protocol")}</TH>
+                <TH style={R}>{t("board.common.subscription")}</TH>
+                <TH style={R}>{t("board.consumers.mqtt.inflightQueued")}</TH>
+                <TH>{t("board.common.status")}</TH>
               </TR>
             </THead>
             <TBody>
@@ -83,7 +85,7 @@ export function ClientsMqtt() {
                 <TD>5.0</TD>
                 <TD className="mono3" style={R}>4</TD>
                 <TD className="mono3" style={R}>2 / 0</TD>
-                <TD><Status tone="ok">在线 6d</Status></TD>
+                <TD><Status tone="ok">{t("board.consumers.mqtt.online6d")}</Status></TD>
               </TR>
               <TR selected={selected === "sensor-gw-B22C"} onClick={() => setSelected("sensor-gw-B22C")}>
                 <TD className="mono3" style={NAME}>sensor-gw-B22C</TD>
@@ -92,7 +94,7 @@ export function ClientsMqtt() {
                 <TD>5.0</TD>
                 <TD className="mono3" style={R}>4</TD>
                 <TD className="mono3" style={R}>1 / 0</TD>
-                <TD><Status tone="ok">在线 6d</Status></TD>
+                <TD><Status tone="ok">{t("board.consumers.mqtt.online6d")}</Status></TD>
               </TR>
               <TR selected={selected === "dash-web-9921"} onClick={() => setSelected("dash-web-9921")}>
                 <TD className="mono3" style={{ ...NAME, ...DIM }}>dash-web-9921</TD>
@@ -101,7 +103,7 @@ export function ClientsMqtt() {
                 <TD style={DIM}>3.1.1</TD>
                 <TD className="mono3" style={{ ...R, ...DIM }}>12</TD>
                 <TD className="mono3" style={{ ...R, ...DIM }}>0 / 128</TD>
-                <TD><Status tone="off">离线 · 会话保留 1h</Status></TD>
+                <TD><Status tone="off">{t("board.consumers.mqtt.offline1h")}</Status></TD>
               </TR>
               <SkeletonRows colSpan={7} widths={["64%", "48%"]} />
             </TBody>
@@ -112,15 +114,15 @@ export function ClientsMqtt() {
           <Sheet width={410} onDismiss={() => setSelected(null)}>
             <SheetHeader
               title={selected}
-              badge={<Status tone="ok" style={{ fontSize: "10px" }}>在线</Status>}
-              tabs={SHEET_TABS}
+              badge={<Status tone="ok" style={{ fontSize: "10px" }}>{t("board.common.online")}</Status>}
+              tabs={SHEET_TABS.map((id) => ({ id, label: t(id) }))}
               activeTab={tab}
               onTabChange={setTab}
               onClose={() => setSelected(null)}
             />
             <SheetBody>
               <div>
-                <SectionLabel style={{ marginBottom: "6px" }}>订阅（4）</SectionLabel>
+                <SectionLabel style={{ marginBottom: "6px" }}>{t("board.consumers.mqtt.subsCount")}</SectionLabel>
                 <Card style={{ overflow: "hidden" }}>
                   <MiniTable>
                     <THead>
@@ -143,22 +145,22 @@ export function ClientsMqtt() {
 
               <KV
                 rows={[
-                  ["Keep Alive", "60s · 最后心跳 3s 前"],
-                  ["Clean Start", "false · 会话过期 3600s"],
-                  ["飞行窗口", <span className="mono3" style={MONO11}>2 / 32</span>],
-                  ["收 / 发", <span className="mono3" style={MONO11}>1.2M / 8.4K msg</span>],
+                  ["Keep Alive", t("board.consumers.mqtt.keepAlive")],
+                  ["Clean Start", t("board.consumers.mqtt.cleanStart")],
+                  [t("board.consumers.mqtt.inflightWindow"), <span className="mono3" style={MONO11}>2 / 32</span>],
+                  [t("board.consumers.mqtt.rxTx"), <span className="mono3" style={MONO11}>1.2M / 8.4K msg</span>],
                 ]}
               />
 
               <div style={{ fontSize: "11px", color: "var(--c-muted)" }}>
-                遗嘱：iot/device/status/A19F = offline · QoS1 · retain
+                {t("board.consumers.mqtt.will")}
               </div>
             </SheetBody>
             <SheetFooter>
-              <Btn>查看实时消息</Btn>
+              <Btn>{t("board.consumers.mqtt.liveMessages")}</Btn>
               <span style={{ flex: 1 }} />
-              <Btn variant="danger">清除会话</Btn>
-              <Btn variant="danger">踢下线</Btn>
+              <Btn variant="danger">{t("board.consumers.mqtt.clearSession")}</Btn>
+              <Btn variant="danger">{t("board.consumers.mqtt.kick")}</Btn>
             </SheetFooter>
           </Sheet>
         )}

@@ -78,7 +78,7 @@ export function NodeCard({
 }
 
 /** `入 <b>1 620/s</b>` — the bold-value metric fragment in a node card. */
-export function Metric({ label, value }: { label: string; value: string }) {
+export function Metric({ label, value }: { label: ReactNode; value: string }) {
   return (
     <span>
       {label} <b className="mono3">{value}</b>

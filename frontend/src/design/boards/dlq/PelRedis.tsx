@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { BulkBar, ListPane, Page, PageHeader, SkeletonRows, Toolbar } from "@/design/shell";
 import { Btn, Check, SelectField, Table, TBody, TD, TH, THead, TR } from "@/design/ui";
+import { useTranslation } from "react-i18next";
 
 const MONO11 = { fontSize: "11px" } as const;
 const R = { textAlign: "right" } as const;
@@ -34,18 +35,19 @@ export function PelRedis() {
     setChecked((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   const allChecked = checked.length === ROWS.length;
 
+  const { t } = useTranslation();
   return (
     <Page>
       <PageHeader
-        title="待确认 PEL"
-        subtitle="idle ≥ 30 分钟的条目 · 5 条"
-        actions={<SelectField value="阈值 30 分钟" />}
+        title={t("board.dlq.redis.title")}
+        subtitle={t("board.dlq.redis.subtitle")}
+        actions={<SelectField value={t("board.dlq.redis.threshold")} />}
       />
       <Toolbar>
-        <SelectField value="Stream：全部" />
-        <SelectField value="组：全部" />
+        <SelectField value={t("board.dlq.redis.allStreams")} />
+        <SelectField value={t("board.dlq.redis.allGroups")} />
         <span style={{ flex: 1 }} />
-        <Btn>XAUTOCLAIM 批量认领…</Btn>
+        <Btn>{t("board.dlq.redis.autoclaim")}</Btn>
       </Toolbar>
 
       <ListPane>
@@ -55,15 +57,15 @@ export function PelRedis() {
               <TH style={{ width: "26px" }}>
                 <Check
                   checked={allChecked}
-                  label="全选"
+                  label={t("board.common.selectAll")}
                   onChange={() => setChecked(allChecked ? [] : ROWS.map((r) => r.id))}
                 />
               </TH>
-              <TH>Stream / 组</TH>
+              <TH>{t("board.dlq.redis.streamGroup")}</TH>
               <TH>Entry ID</TH>
               <TH>consumer</TH>
               <TH style={R}>idle</TH>
-              <TH style={R}>投递</TH>
+              <TH style={R}>{t("board.dlq.redis.deliveries")}</TH>
             </TR>
           </THead>
           <TBody>
@@ -90,14 +92,14 @@ export function PelRedis() {
         </Table>
       </ListPane>
 
-      <BulkBar hint="认领会重置 idle 并 +1 投递计数">
-        <span>已选 {checked.length} 条</span>
+      <BulkBar hint={t("board.dlq.redis.hint")}>
+        <span>{t("board.common.selectedN", { n: checked.length })}</span>
         <Btn variant="primary">
-              XCLAIM 给 settle-2
+              {t("board.dlq.redis.claimTo")}
               <ChevronDown size={12} aria-hidden />
             </Btn>
-        <Btn>XACK 放弃</Btn>
-        <Btn>查看消息</Btn>
+        <Btn>{t("board.dlq.redis.xackDrop")}</Btn>
+        <Btn>{t("board.common.viewMessages")}</Btn>
       </BulkBar>
     </Page>
   );

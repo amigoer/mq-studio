@@ -13,50 +13,52 @@ import {
   TR,
 } from "@/design/ui";
 import { CHART_CARD, CHART_ROW, KPI_GRID, NAME_CELL, OverviewHeader, TABLE_CARD, ViewAll } from "./_shared";
+import { useTranslation } from "react-i18next";
 
 /** Board 11c — Pulsar overview. Two storage tiers: brokers and bookies. */
 export function OverviewPulsar() {
+  const { t } = useTranslation();
   return (
     <Page>
-      <OverviewHeader subtitle="pulsar-eu · Pulsar 3.2 · 租户 ecommerce · Broker 3 / Bookie 4" />
+      <OverviewHeader subtitle={t("board.overview.pulsar.subtitle")} />
       <PageBody>
         <div className={KPI_GRID}>
-          <StatTile label="Broker / Bookie" value="3 / 4" hint="全部在线" />
-          <StatTile label="命名空间" value="14" hint="租户 6" />
-          <StatTile label="Topic" value="220" hint="分区 Topic 38" />
-          <StatTile label="吞吐" value="1.8k/s" hint="出 2.1k/s" />
-          <StatTile label="总积压" value="8 421" valueColor="var(--c-warn-text)" hint="较 1h 前 +6%" />
+          <StatTile label="Broker / Bookie" value="3 / 4" hint={t("board.overview.pulsar.allOnline")} />
+          <StatTile label={t("board.common.namespace")} value="14" hint={t("board.overview.pulsar.tenants")} />
+          <StatTile label="Topic" value="220" hint={t("board.overview.pulsar.partitioned")} />
+          <StatTile label={t("board.common.throughputShort")} value="1.8k/s" hint={t("board.overview.pulsar.outRate")} />
+          <StatTile label={t("board.overview.pulsar.totalPending")} value="8 421" valueColor="var(--c-warn-text)" hint={t("board.overview.pulsar.vsLastHour")} />
         </div>
 
         <div className={CHART_ROW}>
           <Card style={CHART_CARD}>
-            <b style={{ fontSize: "12.5px" }}>吞吐趋势</b>
+            <b style={{ fontSize: "12.5px" }}>{t("board.common.throughput")}</b>
             <div style={{ display: "flex", gap: "12px", fontSize: "10.5px" }}>
               <span style={{ color: "var(--c-fg)" }}>— in msg/s</span>
               <span style={{ color: "var(--c-muted)" }}>— out msg/s</span>
             </div>
-            <ChartBox style={{ flex: 1 }}>折线图占位</ChartBox>
+            <ChartBox style={{ flex: 1 }}>{t("board.common.chartPlaceholder")}</ChartBox>
           </Card>
           <Card style={CHART_CARD}>
-            <b style={{ fontSize: "12.5px" }}>Bookie 存储</b>
+            <b style={{ fontSize: "12.5px" }}>{t("board.overview.pulsar.bookieStorage")}</b>
             <MeterRow label="bookie-1" value={58} />
             <MeterRow label="bookie-2" value={61} />
             <MeterRow label="bookie-3" value={57} />
             <MeterRow label="bookie-4" value={73} />
-            <div style={{ fontSize: "10.5px", color: "var(--c-muted)" }}>Ledger 均衡 · 无只读 Bookie</div>
+            <div style={{ fontSize: "10.5px", color: "var(--c-muted)" }}>{t("board.overview.pulsar.ledgerBalanced")}</div>
           </Card>
         </div>
 
         <Card style={TABLE_CARD}>
-          <CardHeader title="积压 TOP 订阅" action={<ViewAll />} />
+          <CardHeader title={t("board.overview.pulsar.topPending")} action={<ViewAll />} />
           <Table>
             <THead>
               <TR>
-                <TH>订阅</TH>
+                <TH>{t("board.common.subscription")}</TH>
                 <TH>Topic</TH>
-                <TH>类型</TH>
-                <TH style={{ textAlign: "right" }}>积压</TH>
-                <TH style={{ textAlign: "right" }}>出速率</TH>
+                <TH>{t("board.common.type")}</TH>
+                <TH style={{ textAlign: "right" }}>{t("board.common.pending")}</TH>
+                <TH style={{ textAlign: "right" }}>{t("board.common.outRate")}</TH>
               </TR>
             </THead>
             <TBody>

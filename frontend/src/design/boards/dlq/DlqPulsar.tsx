@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { BulkBar, ListPane, Page, PageHeader, SkeletonRows, Toolbar } from "@/design/shell";
 import { Btn, Check, SelectField, Table, TBody, TD, TH, THead, TR } from "@/design/ui";
+import { useTranslation } from "react-i18next";
 
 const MONO11 = { fontSize: "11px" } as const;
 const R = { textAlign: "right" } as const;
@@ -20,19 +21,20 @@ export function DlqPulsar() {
     setChecked((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   const allChecked = checked.length === ROWS.length;
 
+  const { t } = useTranslation();
   return (
     <Page>
       <PageHeader
-        title="死信 DLQ"
-        subtitle="订阅 settle-sub · order-created-settle-sub-DLQ · 8 条"
+        title={t("board.dlq.pulsar.title")}
+        subtitle={t("board.dlq.pulsar.subtitle")}
       />
       <Toolbar>
-        <SelectField value="订阅：settle-sub" />
+        <SelectField value={t("board.dlq.pulsar.subscription")} />
         <span className="mono3" style={{ fontSize: "11px", color: "var(--c-muted)" }}>
-          maxRedeliverCount=5 · 超限入 DLQ
+          {t("board.dlq.pulsar.rule")}
         </span>
         <span style={{ flex: 1 }} />
-        <Btn variant="primary">查询</Btn>
+        <Btn variant="primary">{t("board.common.query")}</Btn>
       </Toolbar>
 
       <ListPane>
@@ -42,15 +44,15 @@ export function DlqPulsar() {
               <TH style={{ width: "26px" }}>
                 <Check
                   checked={allChecked}
-                  label="全选"
+                  label={t("board.common.selectAll")}
                   onChange={() => setChecked(allChecked ? [] : ROWS.map((r) => r.id))}
                 />
               </TH>
               <TH>MessageId</TH>
               <TH>Key</TH>
-              <TH style={R}>重投递</TH>
-              <TH>最后异常（properties）</TH>
-              <TH>时间</TH>
+              <TH style={R}>{t("board.common.redeliver")}</TH>
+              <TH>{t("board.dlq.pulsar.lastException")}</TH>
+              <TH>{t("board.common.time")}</TH>
             </TR>
           </THead>
           <TBody>
@@ -75,11 +77,11 @@ export function DlqPulsar() {
         </Table>
       </ListPane>
 
-      <BulkBar hint="丢弃 = 在 DLQ 上 ack · 源订阅不受影响">
-        <span>已选 {checked.length} 条</span>
-        <Btn variant="primary">重发到源 Topic</Btn>
-        <Btn>导出</Btn>
-        <Btn variant="danger">确认丢弃</Btn>
+      <BulkBar hint={t("board.dlq.pulsar.hint")}>
+        <span>{t("board.common.selectedN", { n: checked.length })}</span>
+        <Btn variant="primary">{t("board.dlq.pulsar.resend")}</Btn>
+        <Btn>{t("board.common.export")}</Btn>
+        <Btn variant="danger">{t("board.dlq.pulsar.discard")}</Btn>
       </BulkBar>
     </Page>
   );

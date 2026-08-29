@@ -95,7 +95,9 @@ export function SheetHeader({
 }: {
   title: ReactNode;
   badge?: ReactNode;
-  tabs?: readonly string[];
+  /* Identified rather than labelled: the label is a translation and cannot be
+     what the selected tab is compared against. */
+  tabs?: readonly { id: string; label: ReactNode }[];
   activeTab?: string;
   onTabChange?: (tab: string) => void;
   onClose?: () => void;
@@ -129,18 +131,18 @@ export function SheetHeader({
           }}
         >
           {tabs.map((tab) => {
-            const on = tab === activeTab;
+            const on = tab.id === activeTab;
             return (
               <span
-                key={tab}
+                key={tab.id}
                 role="tab"
                 tabIndex={0}
                 aria-selected={on}
-                onClick={() => onTabChange?.(tab)}
+                onClick={() => onTabChange?.(tab.id)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
-                    onTabChange?.(tab);
+                    onTabChange?.(tab.id);
                   }
                 }}
                 style={
@@ -149,7 +151,7 @@ export function SheetHeader({
                     : { padding: "0 2px 7px", color: "var(--c-muted)" }
                 }
               >
-                {tab}
+                {tab.label}
               </span>
             );
           })}

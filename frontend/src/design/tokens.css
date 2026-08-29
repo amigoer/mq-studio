@@ -671,8 +671,67 @@
 .srow .lab { flex: 1; min-width: 0; }
 .srow .hint { font-size: 11px; color: var(--c-muted); margin-top: 1px; }
 
+/*
+ * Settings typography.
+ *
+ * The rest of the shell is drawn at the canvas's board scale, which was sized
+ * for dense tables: 10.5px uppercase group labels, 11px hints, 12px controls.
+ * Settings is the one page that is prose rather than rows of data -- its hints
+ * are full sentences and they are set in 简体中文, which loses its strokes long
+ * before Latin loses its shape at the same size. So the page carries a scale of
+ * its own, one step up across the board, and every size on it comes from here
+ * rather than from a literal in the panel that happened to need one.
+ */
+.set3 {
+  --set-title: 16px;
+  --set-sub: 12.5px;
+  --set-group: 11.5px;
+  --set-label: 13px;
+  --set-hint: 12px;
+  --set-control: 12.5px;
+  --set-meta: 11.5px;
+}
+.set3 .sec3 {
+  font-size: var(--set-group);
+  /* .08em opens up a Latin run; a CJK one it merely pulls apart. */
+  letter-spacing: 0.05em;
+}
+.set3 .srow {
+  font-size: var(--set-label);
+  padding: 13px 16px;
+}
+.set3 .srow .hint {
+  font-size: var(--set-hint);
+  line-height: 1.55;
+  margin-top: 3px;
+}
+.set3 .btn3,
+.set3 .in3 {
+  font-size: var(--set-control);
+}
+/* The section rail reads as the row labels it selects between. */
+.set3 .ni,
+.set3 button.ni {
+  font-size: var(--set-label);
+  padding: 6.5px 10px;
+}
+.set3 .mqs-menuitem {
+  font-size: var(--set-control);
+}
+
 /* capability-matrix cells */
-.cd { font-size: 13px; text-align: center; }
+/*
+ * The qualifier beside the glyph wraps rather than widening the column: it is
+ * a phrase, and the same phrase in English runs half again as long as the
+ * Chinese the 860px matrix was drawn for.
+ */
+/* Scoped through `.t3 td` so it outranks that rule's `nowrap` and clipping. */
+.t3 td.cd {
+  font-size: 13px;
+  text-align: center;
+  white-space: normal;
+  overflow: visible;
+}
 .cd.y { color: var(--c-ok-text); }
 .cd.p { color: var(--c-warn-text); }
 .cd.n { color: var(--c-disabled); }

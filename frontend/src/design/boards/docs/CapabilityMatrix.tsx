@@ -1,46 +1,60 @@
+import { useTranslation } from "react-i18next";
 import { Page, PageBody, PageHeader } from "@/design/shell";
 import { ProtoBadge, Table, TBody, TD, TH, THead, TR } from "@/design/ui";
 import { PROTOCOL_ORDER } from "@/design/data/protocols";
 import { cn } from "@/lib/utils";
 
-/** `●` supported, `◐` partial or needs configuration, `—` not applicable. */
+/**
+ * `●` supported, `◐` partial or needs configuration, `—` not applicable.
+ *
+ * A cell is the glyph, optionally followed by what qualifies it. The qualifier
+ * is a locale key where it is prose and a literal where it is a protocol's own
+ * term -- `XRANGE` and `Broker/Ctrl` are the same in either language, and
+ * keying them would only add a translation that reads back as itself.
+ */
 type Cell = string;
 
 const ROWS: readonly (readonly [string, ...Cell[]])[] = [
-  ["总览指标", "●", "●", "●", "●", "●", "◐ $SYS"],
-  ["Topic / 队列管理", "●", "●", "● 队列+交换机", "● 含命名空间", "● Stream", "◐ 主题树只读"],
-  ["消息查询", "● Key/Id/时间", "● 位点/时间", "◐ 仅浏览队头", "● 游标", "● XRANGE", "◐ 仅实时订阅"],
-  ["消费轨迹", "●", "—", "—", "—", "—", "—"],
-  ["发送消息", "●", "●", "●", "●", "●", "●"],
-  ["消费者组 / 订阅", "● 消费组", "● 消费组", "◐ 连接/信道", "● 订阅", "● 消费组", "● 会话"],
-  ["死信 / 重试", "●", "◐ 需 DLT 约定", "● DLX", "●", "◐ PEL/claim", "—"],
-  ["重置位点", "●", "●", "—", "● seek", "● XSETID", "—"],
-  ["节点运维", "● Broker/NS", "● Broker/Ctrl", "● 节点", "◐ Broker+Bookie", "◐ INFO", "◐ $SYS 只读"],
-  ["ACL / 用户", "●", "●", "◐ 用户/vhost", "◐ Token 只读", "—", "—"],
-  ["延迟 / 定时消息", "●", "—", "◐ 插件", "●", "—", "—"],
+  ["board.docs.capability.overviewMetrics", "●", "●", "●", "●", "●", "◐ $SYS"],
+  ["board.docs.capability.topicMgmt", "●", "●", "● board.docs.capability.queuesExchanges", "● board.docs.capability.withNamespace", "● Stream", "◐ board.docs.capability.treeReadOnly"],
+  ["board.docs.capability.messageQuery", "● board.docs.capability.byKeyIdTime", "● board.docs.capability.byOffsetTime", "◐ board.docs.capability.headOnly", "● board.docs.capability.cursor", "● XRANGE", "◐ board.docs.capability.liveOnly"],
+  ["board.docs.capability.trace", "●", "—", "—", "—", "—", "—"],
+  ["board.docs.capability.send", "●", "●", "●", "●", "●", "●"],
+  ["board.docs.capability.groups", "● board.docs.capability.group", "● board.docs.capability.group", "◐ board.docs.capability.connChannel", "● board.docs.capability.subscription", "● board.docs.capability.group", "● board.docs.capability.session"],
+  ["board.docs.capability.dlq", "●", "◐ board.docs.capability.dltConvention", "● DLX", "●", "◐ PEL/claim", "—"],
+  ["board.docs.capability.resetOffset", "●", "●", "—", "● seek", "● XSETID", "—"],
+  ["board.docs.capability.nodeOps", "● Broker/NS", "● Broker/Ctrl", "● board.docs.capability.node", "◐ Broker+Bookie", "◐ INFO", "◐ board.docs.capability.sysReadOnly"],
+  ["board.docs.capability.acl", "●", "●", "◐ board.docs.capability.userVhost", "◐ board.docs.capability.tokenReadOnly", "—", "—"],
+  ["board.docs.capability.delayed", "●", "—", "◐ board.docs.capability.plugin", "●", "—", "—"],
 ];
 
 /** `.cd` tone follows the leading glyph. */
 function toneOf(cell: string): "y" | "p" | "n" {
-  if (cell.startsWith("●")) return "y";
-  if (cell.startsWith("◐")) return "p";
+  if (cell.startsWith("\u25cf")) return "y";
+  if (cell.startsWith("\u25d0")) return "p";
   return "n";
 }
 
-/** Board 3h — which module each protocol can actually support. */
+/** Board 3h -- which module each protocol can actually support. */
 export function CapabilityMatrix() {
+  const { t } = useTranslation();
+  const cellText = (cell: Cell) => {
+    const note = cell.slice(2);
+    if (note === "") return cell;
+    return `${cell.slice(0, 1)} ${note.startsWith("board.") ? t(note) : note}`;
+  };
   return (
     <Page>
       <PageHeader
-        title="协议能力矩阵"
-        subtitle="每个模块对每种协议的可用性（● 支持 / ◐ 部分或需配置 / — 不适用，页面按此显隐）"
+        title={t("board.docs.capability.title")}
+        subtitle={t("board.docs.capability.subtitle")}
       />
       <PageBody>
-        <div style={{ maxWidth: "860px", width: "100%", margin: "0 auto" }}>
+        <div className="mqs-scroll" style={{ maxWidth: "860px", width: "100%", margin: "0 auto" }}>
           <Table style={{ fontSize: "11.5px" }}>
             <THead>
               <TR>
-                <TH>模块</TH>
+                <TH>{t("board.docs.capability.module")}</TH>
                 {PROTOCOL_ORDER.map((p) => (
                   <TH key={p} style={{ textAlign: "center" }}>
                     <ProtoBadge protocol={p} />
@@ -51,10 +65,10 @@ export function CapabilityMatrix() {
             <TBody>
               {ROWS.map(([label, ...cells]) => (
                 <TR key={label}>
-                  <TD>{label}</TD>
+                  <TD>{t(label)}</TD>
                   {cells.map((cell, i) => (
                     <TD key={i} className={cn("cd", toneOf(cell))}>
-                      {cell}
+                      {cellText(cell)}
                     </TD>
                   ))}
                 </TR>

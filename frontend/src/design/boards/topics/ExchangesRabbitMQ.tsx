@@ -21,17 +21,18 @@ import {
   THead,
   TR,
 } from "@/design/ui";
+import { useTranslation } from "react-i18next";
 
-const SHEET_TABS = ["绑定", "概览", "参数"] as const;
+const SHEET_TABS = ["board.common.bindings", "board.common.overview", "board.common.params"] as const;
 const TAG = { fontSize: "10px" } as const;
 const NAME = { fontSize: "11.5px" } as const;
 
 const TYPES = [
-  { value: "all", label: "全部" },
-  { value: "topic", label: "topic" },
-  { value: "direct", label: "direct" },
-  { value: "fanout", label: "fanout" },
-  { value: "headers", label: "headers" },
+  { value: "all", label: "board.common.all" },
+  { value: "topic", label: "board.term.topic" },
+  { value: "direct", label: "board.term.direct" },
+  { value: "fanout", label: "board.term.fanout" },
+  { value: "headers", label: "board.term.headersType" },
 ] as const;
 
 const BINDINGS = [
@@ -46,22 +47,23 @@ export function ExchangesRabbitMQ() {
   const [type, setType] = useState<(typeof TYPES)[number]["value"]>("all");
   const [showAmq, setShowAmq] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
-  const [tab, setTab] = useState<string>("绑定");
+  const [tab, setTab] = useState<string>(SHEET_TABS[0]);
 
+  const { t } = useTranslation();
   return (
     <Page>
       <PageHeader
-        title="交换机"
-        subtitle="vhost /order · 14 个（隐藏 amq.* 默认交换机）"
-        actions={<Btn variant="primary">+ 新建交换机</Btn>}
+        title={t("board.common.exchange")}
+        subtitle={t("board.topics.rabbitmq.exchangeSubtitle")}
+        actions={<Btn variant="primary">{t("board.topics.rabbitmq.newExchange")}</Btn>}
       />
       <Toolbar>
-        <Field style={{ flex: "0 0 200px" }} placeholder="搜索交换机…" />
-        <Seg options={TYPES} value={type} onChange={setType} />
+        <Field style={{ flex: "0 0 200px" }} placeholder={t("board.topics.rabbitmq.searchExchange")} />
+        <Seg options={TYPES.map((o) => ({ ...o, label: t(o.label) }))} value={type} onChange={setType} />
         <span style={{ flex: 1 }} />
         <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11.5px", color: "var(--c-mono-dim)" }}>
-          <Sw checked={showAmq} onCheckedChange={setShowAmq} label="显示 amq.*" />
-          显示 amq.*
+          <Sw checked={showAmq} onCheckedChange={setShowAmq} label={t("board.topics.rabbitmq.showAmq")} />
+          {t("board.topics.rabbitmq.showAmq")}
         </span>
       </Toolbar>
 
@@ -70,11 +72,11 @@ export function ExchangesRabbitMQ() {
           <Table className="inset">
             <THead>
               <TR>
-                <TH>交换机</TH>
-                <TH>类型</TH>
-                <TH>特性</TH>
-                <TH style={{ textAlign: "right" }}>绑定</TH>
-                <TH style={{ textAlign: "right" }}>入速率</TH>
+                <TH>{t("board.common.exchange")}</TH>
+                <TH>{t("board.common.type")}</TH>
+                <TH>{t("board.common.features")}</TH>
+                <TH style={{ textAlign: "right" }}>{t("board.common.bindings")}</TH>
+                <TH style={{ textAlign: "right" }}>{t("board.common.inRate")}</TH>
               </TR>
             </THead>
             <TBody>
@@ -114,19 +116,19 @@ export function ExchangesRabbitMQ() {
             <SheetHeader
               title={selected}
               badge={<Status tone="off" style={TAG}>topic</Status>}
-              tabs={SHEET_TABS}
+              tabs={SHEET_TABS.map((id) => ({ id, label: t(id) }))}
               activeTab={tab}
               onTabChange={setTab}
               onClose={() => setSelected(null)}
             />
             <SheetBody>
               <div>
-                <SectionLabel style={{ marginBottom: "6px" }}>绑定（6）</SectionLabel>
+                <SectionLabel style={{ marginBottom: "6px" }}>{t("board.topics.rabbitmq.bindingsCount")}</SectionLabel>
                 <Card style={{ overflow: "hidden" }}>
                   <MiniTable>
                     <THead>
                       <TR>
-                        <TH>目标</TH>
+                        <TH>{t("board.common.target")}</TH>
                         <TH>routing key</TH>
                         <TH style={{ textAlign: "right" }} />
                       </TR>
@@ -136,7 +138,7 @@ export function ExchangesRabbitMQ() {
                         <TR key={`${b.target}-${b.key}`}>
                           <TD className="mono3">{b.target}</TD>
                           <TD className="mono3">{b.key}</TD>
-                          <TD style={{ textAlign: "right", color: "var(--c-muted)" }}>解绑</TD>
+                          <TD style={{ textAlign: "right", color: "var(--c-muted)" }}>{t("board.topics.rabbitmq.unbind")}</TD>
                         </TR>
                       ))}
                     </TBody>
@@ -145,18 +147,18 @@ export function ExchangesRabbitMQ() {
               </div>
 
               <div>
-                <SectionLabel style={{ marginBottom: "6px" }}>新增绑定</SectionLabel>
+                <SectionLabel style={{ marginBottom: "6px" }}>{t("board.topics.rabbitmq.addBinding")}</SectionLabel>
                 <div style={{ display: "flex", gap: "8px" }}>
-                  <SelectField style={{ flex: 1 }} value="队列" />
+                  <SelectField style={{ flex: 1 }} value={t("board.common.queue")} />
                   <Field className="mono3" style={{ flex: 1, fontSize: "11px" }} placeholder="routing key" />
-                  <Btn>绑定</Btn>
+                  <Btn>{t("board.common.bindings")}</Btn>
                 </div>
               </div>
             </SheetBody>
             <SheetFooter>
-              <Btn>发布测试消息</Btn>
+              <Btn>{t("board.topics.rabbitmq.publishTest")}</Btn>
               <span style={{ flex: 1 }} />
-              <Btn variant="danger">删除</Btn>
+              <Btn variant="danger">{t("board.common.delete")}</Btn>
             </SheetFooter>
           </Sheet>
         )}

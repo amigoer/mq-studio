@@ -109,10 +109,6 @@ export function renderBoard(protocol: ProtocolId, page: PageId): JSX.Element {
   if (Board) return <Board />;
 
   return (
-    <NotDesigned
-      title={labelOf(protocol, page)}
-      subtitle={`${PROTOCOLS[protocol].name} · 本页在设计稿中尚无画板`}
-      note={`「${labelOf(protocol, page)}」目前只在侧边栏中定义。`}
-    />
+    <NotDesigned labelKey={labelOf(protocol, page)} protocolName={PROTOCOLS[protocol].name} />
   );
 }

@@ -20,33 +20,35 @@ import {
   THead,
   TR,
 } from "@/design/ui";
+import { useTranslation } from "react-i18next";
 
-const SHEET_TABS = ["概览", "分区", "订阅", "策略"] as const;
+const SHEET_TABS = ["board.common.overview", "board.common.partition", "board.common.subscription", "board.common.policy"] as const;
 const NAME = { fontSize: "11.5px" } as const;
 
 /** Board 12a — Pulsar topics, scoped by a tenant / namespace cascade. */
 export function TopicsPulsar() {
   const [persistentOnly, setPersistentOnly] = useState(true);
   const [selected, setSelected] = useState<string | null>(null);
-  const [tab, setTab] = useState<string>("概览");
+  const [tab, setTab] = useState<string>(SHEET_TABS[0]);
 
+  const { t } = useTranslation();
   return (
     <Page>
       <PageHeader
         title="Topic"
-        subtitle="租户 ecommerce · 命名空间 orders · 18 个 Topic"
-        actions={<Btn variant="primary">+ 新建 Topic</Btn>}
+        subtitle={t("board.topics.pulsar.subtitle")}
+        actions={<Btn variant="primary">{t("board.common.newTopic")}</Btn>}
       />
       <Toolbar>
-        <SelectField value="租户：ecommerce" />
-        <SelectField value="命名空间：orders" />
-        <Field style={{ flex: "0 0 180px" }} placeholder="搜索 Topic…" />
+        <SelectField value={t("board.topics.pulsar.tenant")} />
+        <SelectField value={t("board.topics.pulsar.namespace")} />
+        <Field style={{ flex: "0 0 180px" }} placeholder={t("board.topics.pulsar.searchTopic")} />
         <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11.5px", color: "var(--c-mono-dim)" }}>
-          <Sw checked={persistentOnly} onCheckedChange={setPersistentOnly} label="仅 persistent" />
-          仅 persistent
+          <Sw checked={persistentOnly} onCheckedChange={setPersistentOnly} label={t("board.topics.pulsar.persistentOnly")} />
+          {t("board.topics.pulsar.persistentOnly")}
         </span>
         <span style={{ flex: 1 }} />
-        <SelectField value="按积压排序" />
+        <SelectField value={t("board.common.sortByPending")} />
       </Toolbar>
 
       <ListArea>
@@ -55,11 +57,11 @@ export function TopicsPulsar() {
             <THead>
               <TR>
                 <TH>Topic</TH>
-                <TH style={{ textAlign: "right" }}>分区</TH>
-                <TH style={{ textAlign: "right" }}>生产者</TH>
-                <TH style={{ textAlign: "right" }}>订阅</TH>
-                <TH style={{ textAlign: "right" }}>入速率</TH>
-                <TH style={{ textAlign: "right" }}>积压</TH>
+                <TH style={{ textAlign: "right" }}>{t("board.common.partition")}</TH>
+                <TH style={{ textAlign: "right" }}>{t("board.topics.pulsar.producers")}</TH>
+                <TH style={{ textAlign: "right" }}>{t("board.common.subscription")}</TH>
+                <TH style={{ textAlign: "right" }}>{t("board.common.inRate")}</TH>
+                <TH style={{ textAlign: "right" }}>{t("board.common.pending")}</TH>
               </TR>
             </THead>
             <TBody>
@@ -102,8 +104,8 @@ export function TopicsPulsar() {
           <Sheet width={390} onDismiss={() => setSelected(null)}>
             <SheetHeader
               title={selected}
-              badge={<Status tone="off" style={{ fontSize: "10px" }}>8 分区</Status>}
-              tabs={SHEET_TABS}
+              badge={<Status tone="off" style={{ fontSize: "10px" }}>{t("board.topics.pulsar.eightParts")}</Status>}
+              tabs={SHEET_TABS.map((id) => ({ id, label: t(id) }))}
               activeTab={tab}
               onTabChange={setTab}
               onClose={() => setSelected(null)}
@@ -111,13 +113,13 @@ export function TopicsPulsar() {
             <SheetBody>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
                 <Card style={{ padding: "9px 12px" }}>
-                  <div style={{ fontSize: "10.5px", color: "var(--c-muted)" }}>入 / 出</div>
+                  <div style={{ fontSize: "10.5px", color: "var(--c-muted)" }}>{t("board.topics.pulsar.inOut")}</div>
                   <div className="mono3" style={{ fontSize: "15px", fontWeight: 600, marginTop: "2px" }}>
                     1 104 / 2 987
                   </div>
                 </Card>
                 <Card style={{ padding: "9px 12px" }}>
-                  <div style={{ fontSize: "10.5px", color: "var(--c-muted)" }}>存储大小</div>
+                  <div style={{ fontSize: "10.5px", color: "var(--c-muted)" }}>{t("board.topics.pulsar.storageSize")}</div>
                   <div className="mono3" style={{ fontSize: "15px", fontWeight: 600, marginTop: "2px" }}>
                     18.2 GB
                   </div>
@@ -125,19 +127,19 @@ export function TopicsPulsar() {
               </div>
 
               <div>
-                <SectionLabel style={{ marginBottom: "6px" }}>策略（命名空间继承 · 可覆盖）</SectionLabel>
+                <SectionLabel style={{ marginBottom: "6px" }}>{t("board.topics.pulsar.policies")}</SectionLabel>
                 <KV
                   rows={[
-                    ["消息 TTL", "7 天"],
-                    ["保留", "大小 50GB / 时间 30 天"],
-                    ["积压配额", "10GB · 超限 producer_exception"],
-                    ["Schema", "JSON · 兼容 BACKWARD"],
+                    [t("board.topics.pulsar.ttl"), t("board.topics.pulsar.sevenDays")],
+                    [t("board.topics.pulsar.retention"), t("board.topics.pulsar.retentionValue")],
+                    [t("board.topics.pulsar.backlogQuota"), t("board.topics.pulsar.quotaValue")],
+                    ["Schema", t("board.topics.pulsar.schema")],
                   ]}
                 />
               </div>
 
               <div>
-                <SectionLabel style={{ marginBottom: "6px" }}>订阅</SectionLabel>
+                <SectionLabel style={{ marginBottom: "6px" }}>{t("board.common.subscription")}</SectionLabel>
                 <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
                   <Status tone="warn">settle-sub · 6 210</Status>
                   <Status tone="ok">notify-sub</Status>
@@ -146,10 +148,10 @@ export function TopicsPulsar() {
               </div>
             </SheetBody>
             <SheetFooter>
-              <Btn>查看消息</Btn>
-              <Btn>卸载 unload</Btn>
+              <Btn>{t("board.common.viewMessages")}</Btn>
+              <Btn>{t("board.topics.pulsar.unload")}</Btn>
               <span style={{ flex: 1 }} />
-              <Btn variant="danger">删除</Btn>
+              <Btn variant="danger">{t("board.common.delete")}</Btn>
             </SheetFooter>
           </Sheet>
         )}

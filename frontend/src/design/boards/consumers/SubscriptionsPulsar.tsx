@@ -21,8 +21,9 @@ import {
   THead,
   TR,
 } from "@/design/ui";
+import { useTranslation } from "react-i18next";
 
-const SHEET_TABS = ["游标", "Consumer", "配置"] as const;
+const SHEET_TABS = ["board.consumers.pulsar.cursor", "board.term.consumer", "board.common.config"] as const;
 const R = { textAlign: "right" } as const;
 const NAME = { fontSize: "11px", color: "var(--c-mono-dim)" } as const;
 const MONO11 = { fontSize: "11px" } as const;
@@ -30,16 +31,17 @@ const MONO11 = { fontSize: "11px" } as const;
 /** Board 14b — Pulsar subscriptions. Cursors move by seek, not by offset reset. */
 export function SubscriptionsPulsar() {
   const [selected, setSelected] = useState<string | null>(null);
-  const [tab, setTab] = useState<string>("游标");
+  const [tab, setTab] = useState<string>(SHEET_TABS[0]);
 
+  const { t } = useTranslation();
   return (
     <Page>
-      <PageHeader title="订阅" subtitle="命名空间 orders · 9 个订阅" />
+      <PageHeader title={t("board.common.subscription")} subtitle={t("board.consumers.pulsar.subtitle")} />
       <Toolbar>
-        <SelectField value="Topic：全部" />
-        <Field style={{ flex: "0 0 200px" }} placeholder="搜索订阅…" />
+        <SelectField value={t("board.consumers.pulsar.allTopics")} />
+        <Field style={{ flex: "0 0 200px" }} placeholder={t("board.consumers.pulsar.search")} />
         <span style={{ flex: 1 }} />
-        <SelectField value="按积压排序" />
+        <SelectField value={t("board.common.sortByPending")} />
       </Toolbar>
 
       <ListArea>
@@ -47,12 +49,12 @@ export function SubscriptionsPulsar() {
           <Table className="inset">
             <THead>
               <TR>
-                <TH>订阅</TH>
+                <TH>{t("board.common.subscription")}</TH>
                 <TH>Topic</TH>
-                <TH>类型</TH>
-                <TH style={R}>积压</TH>
-                <TH style={R}>未确认</TH>
-                <TH style={R}>出速率</TH>
+                <TH>{t("board.common.type")}</TH>
+                <TH style={R}>{t("board.common.pending")}</TH>
+                <TH style={R}>{t("board.common.unacked")}</TH>
+                <TH style={R}>{t("board.common.outRate")}</TH>
               </TR>
             </THead>
             <TBody>
@@ -90,22 +92,22 @@ export function SubscriptionsPulsar() {
             <SheetHeader
               title={selected}
               badge={<Status tone="off" style={{ fontSize: "10px" }}>Shared</Status>}
-              tabs={SHEET_TABS}
+              tabs={SHEET_TABS.map((id) => ({ id, label: t(id) }))}
               activeTab={tab}
               onTabChange={setTab}
               onClose={() => setSelected(null)}
             />
             <SheetBody>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-                <MiniStat label="积压" value="6 210" color="var(--c-warn-text)" size={15} />
-                <MiniStat label="未确认" value="48" size={15} />
+                <MiniStat label={t("board.common.pending")} value="6 210" color="var(--c-warn-text)" size={15} />
+                <MiniStat label={t("board.common.unacked")} value="48" size={15} />
               </div>
 
               <KV
                 rows={[
                   ["markDelete", <span className="mono3" style={MONO11}>812:2:0</span>],
                   ["readPosition", <span className="mono3" style={MONO11}>812:6:1</span>],
-                  ["最早未确认", <span className="mono3" style={MONO11}>10:02:37（22 分钟前）</span>],
+                  [t("board.consumers.pulsar.oldestUnacked"), <span className="mono3" style={MONO11}>{t("board.consumers.pulsar.oldestValue")}</span>],
                 ]}
               />
 
@@ -117,7 +119,7 @@ export function SubscriptionsPulsar() {
                       <TR>
                         <TH>name</TH>
                         <TH>addr</TH>
-                        <TH style={R}>未确认</TH>
+                        <TH style={R}>{t("board.common.unacked")}</TH>
                       </TR>
                     </THead>
                     <TBody>
@@ -137,15 +139,15 @@ export function SubscriptionsPulsar() {
               </div>
 
               <div style={{ display: "flex", gap: "8px" }}>
-                <Btn>Seek 时间…</Btn>
+                <Btn>{t("board.consumers.pulsar.seekTime")}</Btn>
                 <Btn>Seek MessageId…</Btn>
-                <Btn>跳过 N 条…</Btn>
+                <Btn>{t("board.consumers.pulsar.skipN")}</Btn>
               </div>
             </SheetBody>
             <SheetFooter>
-              <Btn variant="danger">清空积压</Btn>
+              <Btn variant="danger">{t("board.consumers.pulsar.clearBacklog")}</Btn>
               <span style={{ flex: 1 }} />
-              <Btn variant="danger">解除订阅</Btn>
+              <Btn variant="danger">{t("board.consumers.pulsar.unsubscribe")}</Btn>
             </SheetFooter>
           </Sheet>
         )}

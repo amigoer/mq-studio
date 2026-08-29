@@ -13,10 +13,11 @@ import {
   THead,
   TR,
 } from "@/design/ui";
+import { Trans, useTranslation } from "react-i18next";
 
 const VIEWS = [
-  { value: "retry", label: "重试队列 (37)" },
-  { value: "dlq", label: "死信队列 (12)" },
+  { value: "retry", label: "board.dlq.rocketmq.retryQueue" },
+  { value: "dlq", label: "board.dlq.rocketmq.dlqQueue" },
 ] as const;
 
 const MONO11 = { fontSize: "11px" } as const;
@@ -52,19 +53,20 @@ export function DlqRocketMQ() {
     setChecked((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   const allChecked = checked.length === ROWS.length;
 
+  const { t } = useTranslation();
   return (
     <Page>
       <PageHeader
-        title="死信 / 重试"
-        subtitle="按消费者组查看 · %RETRY% 与 %DLQ% 队列"
-        actions={<Btn>导出全部</Btn>}
+        title={t("board.common.dlqRetry")}
+        subtitle={t("board.dlq.rocketmq.subtitle")}
+        actions={<Btn>{t("board.dlq.rocketmq.exportAll")}</Btn>}
       />
       <Toolbar>
-        <SelectField value="组：order-settle" />
-        <Seg options={VIEWS} value={view} onChange={setView} />
-        <SelectField value="近 24 小时" />
+        <SelectField value={t("board.dlq.rocketmq.group")} />
+        <Seg options={VIEWS.map((o) => ({ ...o, label: t(o.label) }))} value={view} onChange={setView} />
+        <SelectField value={t("board.dlq.last24h")} />
         <span style={{ flex: 1 }} />
-        <Btn variant="primary">查询</Btn>
+        <Btn variant="primary">{t("board.common.query")}</Btn>
       </Toolbar>
 
       <ListPane>
@@ -74,16 +76,16 @@ export function DlqRocketMQ() {
               <TH style={{ width: "28px" }}>
                 <Check
                   checked={allChecked}
-                  label="全选"
+                  label={t("board.common.selectAll")}
                   onChange={() => setChecked(allChecked ? [] : ROWS.map((r) => r.id))}
                 />
               </TH>
               <TH>MsgId</TH>
-              <TH>原 Topic</TH>
+              <TH>{t("board.dlq.rocketmq.originTopic")}</TH>
               <TH>Key</TH>
-              <TH style={R}>重试</TH>
-              <TH>最后失败原因</TH>
-              <TH>进入死信时间</TH>
+              <TH style={R}>{t("board.common.retry")}</TH>
+              <TH>{t("board.dlq.rocketmq.lastFailure")}</TH>
+              <TH>{t("board.dlq.rocketmq.deadAt")}</TH>
             </TR>
           </THead>
           <TBody>
@@ -109,13 +111,13 @@ export function DlqRocketMQ() {
         </Table>
       </ListPane>
 
-      <BulkBar hint="重投以新 MsgId 写入，原消息保留">
-        <span>已选 {checked.length} 条</span>
+      <BulkBar hint={t("board.dlq.rocketmq.hint")}>
+        <span>{t("board.common.selectedN", { n: checked.length })}</span>
         <Btn variant="primary" onClick={() => setConfirming(true)}>
-          重投到原 Topic
+          {t("board.dlq.rocketmq.resend")}
         </Btn>
-        <Btn>导出</Btn>
-        <Btn variant="danger">删除</Btn>
+        <Btn>{t("board.common.export")}</Btn>
+        <Btn variant="danger">{t("board.common.delete")}</Btn>
       </BulkBar>
 
       {confirming && (
@@ -133,12 +135,14 @@ export function DlqRocketMQ() {
         >
           <Card
             role="alertdialog"
-            aria-label="重投死信消息"
+            aria-label={t("board.dlq.rocketmq.confirmLabel")}
             style={{ width: "420px", boxShadow: "0 18px 50px rgba(0,0,0,.22)", overflow: "hidden" }}
             onClick={(e) => e.stopPropagation()}
           >
             <div style={{ padding: "16px 20px 4px" }}>
-              <b style={{ fontSize: "13.5px" }}>重投 {checked.length} 条死信消息？</b>
+              <b style={{ fontSize: "13.5px" }}>
+                {t("board.dlq.rocketmq.confirmTitle", { n: checked.length })}
+              </b>
             </div>
             <div
               style={{
@@ -148,10 +152,15 @@ export function DlqRocketMQ() {
                 lineHeight: 1.7,
               }}
             >
-              将以<b>新 MsgId</b> 重新写入{" "}
-              <span className="mono3" style={MONO11}>ORDER_CREATE</span>，由{" "}
-              <span className="mono3" style={MONO11}>order-settle</span>{" "}
-              正常消费；原消息保留在死信队列，可稍后删除。
+              <Trans
+                i18nKey="board.dlq.rocketmq.confirmBody"
+                components={{
+                  b: <b />,
+                  topic: <span className="mono3" style={MONO11} />,
+                  group: <span className="mono3" style={MONO11} />,
+                }}
+                values={{ topic: "ORDER_CREATE", group: "order-settle" }}
+              />
             </div>
             <div
               style={{
@@ -163,12 +172,12 @@ export function DlqRocketMQ() {
               }}
             >
               <span style={{ fontSize: "11px", color: "var(--c-muted)", alignSelf: "center" }}>
-                高危操作 · 记录到操作日志
+                {t("board.dlq.rocketmq.risky")}
               </span>
               <span style={{ flex: 1 }} />
-              <Btn onClick={() => setConfirming(false)}>取消</Btn>
+              <Btn onClick={() => setConfirming(false)}>{t("board.common.cancel")}</Btn>
               <Btn variant="primary" onClick={() => setConfirming(false)}>
-                确认重投
+                {t("board.dlq.rocketmq.confirmAction")}
               </Btn>
             </div>
           </Card>

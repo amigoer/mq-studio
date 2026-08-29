@@ -21,8 +21,14 @@ type Alert = {
   connection: string;
   protocol: ProtocolId;
   tone: "warn" | "info";
-  title: ReactNode;
+  /* Locale keys. The row is drawn here rather than stored, so a language
+     change relabels the popover instead of leaving the drawn JSX behind. */
+  title: string;
   meta: string;
+  /** The measurement the alert fired on, set beside the title in mono. */
+  value?: string;
+  /** 9c sets the unresolved titles in medium and leaves the resolved one plain. */
+  plain?: boolean;
   /** Resolved on its own; it arrives already read. */
   resolved?: boolean;
 };
@@ -33,31 +39,26 @@ const ALERTS: readonly Alert[] = [
     connection: "rocketmq-order",
     protocol: "rocketmq",
     tone: "warn",
-    title: (
-      <>
-        <b style={{ fontWeight: 500 }}>order-settle 堆积超阈值</b>{" "}
-        <span className="mono3" style={{ color: "var(--c-warn-text)" }}>
-          982
-        </span>
-      </>
-    ),
-    meta: "阈值 500 · 持续 18 分钟 · 10:24",
+    title: "shell.notifications.alerts.lagTitle",
+    meta: "shell.notifications.alerts.lagMeta",
+    value: "982",
   },
   {
     key: "broker-b-disk",
     connection: "rocketmq-order",
     protocol: "rocketmq",
     tone: "warn",
-    title: <b style={{ fontWeight: 500 }}>broker-b 磁盘水位 87%</b>,
-    meta: "阈值 85% · 09:58",
+    title: "shell.notifications.alerts.diskTitle",
+    meta: "shell.notifications.alerts.diskMeta",
   },
   {
     key: "orders-created-isr",
     connection: "prod-kafka-cn",
     protocol: "kafka",
     tone: "info",
-    title: "orders.created 出现 2 个未同步副本（已恢复）",
-    meta: "10:12 – 10:15",
+    title: "shell.notifications.alerts.isrTitle",
+    meta: "10:12 - 10:15",
+    plain: true,
     resolved: true,
   },
 ];
@@ -162,8 +163,24 @@ export function NotificationCenter({
                       : "var(--c-ok)"
                 }
                 dim={dim}
-                title={alert.title}
-                meta={alert.meta}
+                title={
+                  <>
+                    {alert.plain === true ? (
+                      t(alert.title)
+                    ) : (
+                      <b style={{ fontWeight: 500 }}>{t(alert.title)}</b>
+                    )}
+                    {alert.value != null && (
+                      <>
+                        {" "}
+                        <span className="mono3" style={{ color: "var(--c-warn-text)" }}>
+                          {alert.value}
+                        </span>
+                      </>
+                    )}
+                  </>
+                }
+                meta={t(alert.meta)}
                 chevron={alert.resolved !== true}
               />
             </div>

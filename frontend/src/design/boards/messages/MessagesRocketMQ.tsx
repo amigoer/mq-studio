@@ -25,11 +25,12 @@ import {
   Timeline,
   TR,
 } from "@/design/ui";
+import { useTranslation } from "react-i18next";
 
 const MODES = [
-  { value: "key", label: "按 Key" },
-  { value: "msgid", label: "按 MsgId" },
-  { value: "time", label: "按时间" },
+  { value: "key", label: "board.common.byKey" },
+  { value: "msgid", label: "board.messages.rocketmq.byMsgId" },
+  { value: "time", label: "board.common.byTime" },
 ] as const;
 
 const MONO11 = { fontSize: "11px" } as const;
@@ -40,15 +41,16 @@ export function MessagesRocketMQ() {
   const [mode, setMode] = useState<(typeof MODES)[number]["value"]>("key");
   const [selected, setSelected] = useState<string | null>(null);
 
+  const { t } = useTranslation();
   return (
     <Page>
-      <PageHeader title="消息查询" />
+      <PageHeader title={t("board.common.messageQuery")} />
       <Toolbar>
         <SelectField value="Topic：ORDER_CREATE" />
-        <Seg options={MODES} value={mode} onChange={setMode} />
+        <Seg options={MODES.map((o) => ({ ...o, label: t(o.label) }))} value={mode} onChange={setMode} />
         <Field className="mono3" style={{ flex: "0 0 180px" }} defaultValue="ORD-88213" />
-        <SelectField value="近 6 小时" />
-        <Btn variant="primary">查询</Btn>
+        <SelectField value={t("board.messages.rocketmq.last6h")} />
+        <Btn variant="primary">{t("board.common.query")}</Btn>
       </Toolbar>
 
       <ListArea>
@@ -59,9 +61,9 @@ export function MessagesRocketMQ() {
                 <TH>MsgId</TH>
                 <TH>Key</TH>
                 <TH>Tag</TH>
-                <TH style={R}>队列</TH>
-                <TH>存储时间</TH>
-                <TH>状态</TH>
+                <TH style={R}>{t("board.common.queue")}</TH>
+                <TH>{t("board.messages.rocketmq.storedAt")}</TH>
+                <TH>{t("board.common.status")}</TH>
               </TR>
             </THead>
             <TBody>
@@ -74,7 +76,7 @@ export function MessagesRocketMQ() {
                 <TD>create</TD>
                 <TD className="mono3" style={R}>a/q3</TD>
                 <TD className="mono3" style={MONO11}>10:24:07.221</TD>
-                <TD><Status tone="warn">重试中</Status></TD>
+                <TD><Status tone="warn">{t("board.common.retrying")}</Status></TD>
               </TR>
               <TR selected={selected === "7F0000012A9C…4C2"} onClick={() => setSelected("7F0000012A9C…4C2")}>
                 <TD className="mono3" style={{ ...MONO11, color: "var(--c-mono-dim)" }}>7F0000012A9C…4C2</TD>
@@ -82,7 +84,7 @@ export function MessagesRocketMQ() {
                 <TD>paid</TD>
                 <TD className="mono3" style={R}>a/q1</TD>
                 <TD className="mono3" style={MONO11}>10:24:09.310</TD>
-                <TD><Status tone="ok">已消费</Status></TD>
+                <TD><Status tone="ok">{t("board.common.consumed")}</Status></TD>
               </TR>
               <SkeletonRows colSpan={6} widths={["76%", "62%"]} />
             </TBody>
@@ -101,14 +103,14 @@ export function MessagesRocketMQ() {
                 background: "var(--c-bg)",
               }}
             >
-              <b style={{ fontSize: "13px" }}>消息详情</b>
+              <b style={{ fontSize: "13px" }}>{t("board.common.messageDetail")}</b>
               <ProtoBadge protocol="rocketmq" label="RMQ 5.x" />
               <span style={{ flex: 1 }} />
-              <Btn>重发</Btn>
-              <Btn>导出</Btn>
+              <Btn>{t("board.common.resend")}</Btn>
+              <Btn>{t("board.common.export")}</Btn>
               <button
                 type="button"
-                aria-label="关闭"
+                aria-label={t("board.common.close")}
                 onClick={() => setSelected(null)}
                 style={{ display: "flex", color: "var(--c-muted-2)", marginLeft: "2px", background: "none", border: "none", padding: 0 }}
               >
@@ -130,15 +132,15 @@ export function MessagesRocketMQ() {
                     </span>,
                   ],
                   ["Key / Tag", <span className="mono3" style={MONO11}>ORD-88213 · create</span>],
-                  ["位置", <span className="mono3" style={MONO11}>broker-a / q3 / offset 1 204 771</span>],
+                  [t("board.messages.rocketmq.location"), <span className="mono3" style={MONO11}>broker-a / q3 / offset 1 204 771</span>],
                   ["Born", <span className="mono3" style={MONO11}>10.12.3.101 · producer-cli-77</span>],
-                  ["大小 / 重试", <span className="mono3" style={MONO11}>1.2 KB · reconsume ×2</span>],
+                  [t("board.messages.rocketmq.sizeRetry"), <span className="mono3" style={MONO11}>1.2 KB · reconsume ×2</span>],
                 ]}
               />
 
               <div>
-                <SectionLabel style={{ marginBottom: "6px" }} action="格式化 · 复制">
-                  消息体 · JSON
+                <SectionLabel style={{ marginBottom: "6px" }} action={t("board.messages.rocketmq.formatCopy")}>
+                  {t("board.messages.rocketmq.body")}
                 </SectionLabel>
                 <JsonBlock>
                   {"{"}
@@ -149,26 +151,26 @@ export function MessagesRocketMQ() {
                   <br />
                   {IND}"currency": <JStr>"CNY"</JStr>,
                   <br />
-                  {IND}"items": [ <JDim>… 3 项</JDim> ]
+                  {IND}"items": [ <JDim>{t("board.messages.rocketmq.threeMore")}</JDim> ]
                   <br />
                   {"}"}
                 </JsonBlock>
               </div>
 
               <div style={{ flex: 1, minHeight: 0 }}>
-                <SectionLabel style={{ marginBottom: "8px" }}>消费轨迹</SectionLabel>
+                <SectionLabel style={{ marginBottom: "8px" }}>{t("board.common.trace")}</SectionLabel>
                 <Timeline
                   steps={[
-                    { title: "生产成功", meta: "10:24:07.221 · 10.12.3.101" },
-                    { title: "Broker 存储", meta: "broker-a q3 · 0.6ms", color: "var(--c-muted-2)" },
-                    { title: "order-notify 消费成功", meta: "10:24:07.902 · 681ms" },
+                    { title: t("board.messages.rocketmq.produced"), meta: "10:24:07.221 · 10.12.3.101" },
+                    { title: t("board.messages.rocketmq.stored"), meta: "broker-a q3 · 0.6ms", color: "var(--c-muted-2)" },
+                    { title: t("board.messages.rocketmq.notifyOk"), meta: "10:24:07.902 · 681ms" },
                     {
-                      title: "order-settle 第 2 次重试",
-                      meta: "下次投递 10:26:07",
+                      title: t("board.messages.rocketmq.settleRetry"),
+                      meta: t("board.messages.rocketmq.nextDelivery"),
                       color: "var(--c-warn)",
                       extra: (
                         <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", color: "var(--c-ok)" }}>
-                          查看重试队列
+                          {t("board.messages.rocketmq.viewRetryQueue")}
                           <ArrowRight size={12} aria-hidden />
                         </span>
                       ),

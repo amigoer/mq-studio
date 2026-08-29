@@ -2,40 +2,42 @@ import { ArrowRight } from "lucide-react";
 import { Page, PageBody } from "@/design/shell";
 import { Card, CardHeader, ChartBox, StatTile, Table, TBody, TD, TH, THead, TR } from "@/design/ui";
 import { CHART_CARD, CHART_ROW, KPI_GRID, OverviewHeader, TABLE_CARD } from "./_shared";
+import { useTranslation } from "react-i18next";
 
 const METRIC = { fontSize: "11px", color: "var(--c-mono-dim)" } as const;
 
 /** Board 11e — MQTT overview. Everything here is read from the $SYS tree. */
 export function OverviewMqtt() {
+  const { t } = useTranslation();
   return (
     <Page>
-      <OverviewHeader subtitle="iot-broker · EMQX 5.4 · MQTT 5.0 · 数据来自 $SYS（只读）" />
+      <OverviewHeader subtitle={t("board.overview.mqtt.subtitle")} />
       <PageBody>
         <div className={KPI_GRID}>
-          <StatTile label="在线客户端" value="1 284" hint="峰值 1 402" />
-          <StatTile label="订阅总数" value="3 402" hint="共享订阅 12" />
-          <StatTile label="保留消息" value="128" />
-          <StatTile label="入站" value="412/s" hint="出站 1 020/s" />
-          <StatTile label="丢弃消息" value="0" hint="过期 0" />
+          <StatTile label={t("board.overview.mqtt.onlineClients")} value="1 284" hint={t("board.overview.mqtt.peakClients")} />
+          <StatTile label={t("board.overview.mqtt.subscriptions")} value="3 402" hint={t("board.overview.mqtt.shared")} />
+          <StatTile label={t("board.overview.mqtt.retained")} value="128" />
+          <StatTile label={t("board.overview.mqtt.inbound")} value="412/s" hint={t("board.overview.mqtt.outbound")} />
+          <StatTile label={t("board.overview.mqtt.dropped")} value="0" hint={t("board.overview.mqtt.expired")} />
         </div>
 
         <div className={CHART_ROW}>
           <Card style={CHART_CARD}>
-            <b style={{ fontSize: "12.5px" }}>连接数趋势</b>
-            <ChartBox style={{ flex: 1 }}>折线图占位（$SYS clients.count）</ChartBox>
+            <b style={{ fontSize: "12.5px" }}>{t("board.overview.mqtt.clientTrend")}</b>
+            <ChartBox style={{ flex: 1 }}>{t("board.overview.mqtt.clientChart")}</ChartBox>
           </Card>
           <Card style={CHART_CARD}>
-            <b style={{ fontSize: "12.5px" }}>消息速率</b>
-            <ChartBox style={{ flex: 1 }}>折线图占位（received / sent）</ChartBox>
+            <b style={{ fontSize: "12.5px" }}>{t("board.common.messageRate")}</b>
+            <ChartBox style={{ flex: 1 }}>{t("board.overview.mqtt.rateChart")}</ChartBox>
           </Card>
         </div>
 
         <Card style={TABLE_CARD}>
           <CardHeader
-            title="$SYS 关键指标"
+            title={t("board.overview.mqtt.sysMetrics")}
             action={
               <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "11.5px", color: "var(--c-fg-2)" }}>
-                完整 $SYS 树
+                {t("board.overview.mqtt.fullTree")}
                 <ArrowRight size={13} aria-hidden />
               </span>
             }
@@ -43,10 +45,10 @@ export function OverviewMqtt() {
           <Table>
             <THead>
               <TR>
-                <TH>指标</TH>
-                <TH style={{ textAlign: "right" }}>值</TH>
-                <TH>指标</TH>
-                <TH style={{ textAlign: "right" }}>值</TH>
+                <TH>{t("board.common.metrics")}</TH>
+                <TH style={{ textAlign: "right" }}>{t("board.common.value")}</TH>
+                <TH>{t("board.common.metrics")}</TH>
+                <TH style={{ textAlign: "right" }}>{t("board.common.value")}</TH>
               </TR>
             </THead>
             <TBody>

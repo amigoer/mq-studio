@@ -2,18 +2,20 @@ import { Star } from "lucide-react";
 import { Page, PageBody, PageHeader } from "@/design/shell";
 import { Btn, Card, KV, SectionLabel, Status, Table, TBody, TD, TH, THead, TR } from "@/design/ui";
 import { Metric, NODE_CARD, NODE_GRID, NodeCard, TABLE_CARD } from "./_shared";
+import { useTranslation } from "react-i18next";
 
 const TAG = { fontSize: "10px" } as const;
 const MONO11 = { fontSize: "11px" } as const;
 
 /** Board 17a — Kafka brokers: controller star, URP and ISR shrink warnings. */
 export function BrokersKafka() {
+  const { t } = useTranslation();
   return (
     <Page>
       <PageHeader
         title="Broker"
         subtitle="Kafka 3.7 · KRaft · Controller kafka-1"
-        actions={<Btn>刷新</Btn>}
+        actions={<Btn>{t("board.common.refresh")}</Btn>}
       />
       <PageBody style={{ gap: "12px" }}>
         <div className={NODE_GRID}>
@@ -28,12 +30,12 @@ export function BrokersKafka() {
             address="rack-a · 9092"
             metrics={
               <>
-                <Metric label="入" value="1 820/s" />
-                <Metric label="出" value="3 240/s" />
-                <span style={{ color: "var(--c-muted)" }}>分区 130 · leader 44</span>
+                <Metric label={t("board.common.in")} value="1 820/s" />
+                <Metric label={t("board.common.out")} value="3 240/s" />
+                <span style={{ color: "var(--c-muted)" }}>{t("board.cluster.kafka.parts1")}</span>
               </>
             }
-            meters={[{ label: "磁盘 58%", value: 58 }]}
+            meters={[{ label: t("board.cluster.kafka.disk58"), value: 58 }]}
           />
           <NodeCard
             name="kafka-2"
@@ -41,33 +43,33 @@ export function BrokersKafka() {
             address="rack-b · 9092"
             metrics={
               <>
-                <Metric label="入" value="1 704/s" />
-                <Metric label="出" value="2 988/s" />
-                <span style={{ color: "var(--c-muted)" }}>分区 128 · leader 42</span>
+                <Metric label={t("board.common.in")} value="1 704/s" />
+                <Metric label={t("board.common.out")} value="2 988/s" />
+                <span style={{ color: "var(--c-muted)" }}>{t("board.cluster.kafka.parts2")}</span>
               </>
             }
-            meters={[{ label: "磁盘 61%", value: 61 }]}
+            meters={[{ label: t("board.cluster.kafka.disk61"), value: 61 }]}
           />
           <NodeCard
             name="kafka-3"
             badges={
               <>
                 <Status tone="ok" style={TAG}>Broker</Status>
-                <Status tone="warn" style={TAG}>ISR 收缩</Status>
+                <Status tone="warn" style={TAG}>{t("board.cluster.kafka.isrShrink")}</Status>
               </>
             }
             address="rack-c · 9092"
             metrics={
               <>
-                <Metric label="入" value="1 688/s" />
-                <Metric label="出" value="2 901/s" />
+                <Metric label={t("board.common.in")} value="1 688/s" />
+                <Metric label={t("board.common.out")} value="2 901/s" />
                 <span style={{ color: "var(--c-warn-text)" }}>URP 2</span>
               </>
             }
-            meters={[{ label: "磁盘 74%", value: 74, color: "var(--c-warn)" }]}
+            meters={[{ label: t("board.cluster.kafka.disk74"), value: 74, color: "var(--c-warn)" }]}
           />
           <Card style={NODE_CARD}>
-            <SectionLabel>集群配置摘要</SectionLabel>
+            <SectionLabel>{t("board.cluster.kafka.configSummary")}</SectionLabel>
             <KV
               rows={[
                 ["min.insync.replicas", <span className="mono3" style={MONO11}>2</span>],
@@ -87,17 +89,17 @@ export function BrokersKafka() {
               alignItems: "center",
             }}
           >
-            <b style={{ fontSize: "12.5px" }}>未同步分区（URP）</b>
+            <b style={{ fontSize: "12.5px" }}>{t("board.cluster.kafka.urp")}</b>
             <span style={{ flex: 1 }} />
-            <span style={{ fontSize: "11.5px", color: "var(--c-fg-2)" }}>重新选举 leader…</span>
+            <span style={{ fontSize: "11.5px", color: "var(--c-fg-2)" }}>{t("board.cluster.kafka.reelect")}</span>
           </div>
           <Table>
             <THead>
               <TR>
                 <TH>Topic</TH>
-                <TH style={{ textAlign: "right" }}>分区</TH>
+                <TH style={{ textAlign: "right" }}>{t("board.common.partition")}</TH>
                 <TH>ISR</TH>
-                <TH>缺失副本</TH>
+                <TH>{t("board.cluster.kafka.missingReplicas")}</TH>
               </TR>
             </THead>
             <TBody>
@@ -106,14 +108,14 @@ export function BrokersKafka() {
                 <TD className="mono3" style={{ textAlign: "right" }}>2</TD>
                 <TD className="mono3" style={MONO11}>3,1</TD>
                 <TD className="mono3" style={{ ...MONO11, color: "var(--c-warn-text)" }}>
-                  2（kafka-2 落后 4 210）
+                  {t("board.cluster.kafka.lagRow1")}
                 </TD>
               </TR>
               <TR>
                 <TD className="mono3" style={MONO11}>payments.captured</TD>
                 <TD className="mono3" style={{ textAlign: "right" }}>7</TD>
                 <TD className="mono3" style={MONO11}>1,2</TD>
-                <TD className="mono3" style={{ ...MONO11, color: "var(--c-warn-text)" }}>3（追赶中）</TD>
+                <TD className="mono3" style={{ ...MONO11, color: "var(--c-warn-text)" }}>{t("board.cluster.kafka.lagRow2")}</TD>
               </TR>
             </TBody>
           </Table>

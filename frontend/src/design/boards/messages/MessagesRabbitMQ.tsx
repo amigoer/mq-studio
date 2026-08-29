@@ -25,13 +25,14 @@ import {
   TR,
   WarnBanner,
 } from "@/design/ui";
+import { useTranslation } from "react-i18next";
 
 const MODES = [
-  { value: "requeue", label: "requeue（安全）" },
-  { value: "ack", label: "ack（移除）" },
+  { value: "requeue", label: "board.messages.rabbitmq.requeue" },
+  { value: "ack", label: "board.messages.rabbitmq.ack" },
 ] as const;
 
-const SHEET_TABS = ["Payload", "Properties"] as const;
+const SHEET_TABS = ["board.term.payload", "board.term.properties"] as const;
 const MONO11 = { fontSize: "11px" } as const;
 const DIM11 = { fontSize: "11px", color: "var(--c-mono-dim)" } as const;
 const TAG = { fontSize: "10px" } as const;
@@ -44,21 +45,22 @@ const R = { textAlign: "right" } as const;
 export function MessagesRabbitMQ() {
   const [mode, setMode] = useState<(typeof MODES)[number]["value"]>("requeue");
   const [selected, setSelected] = useState<string | null>(null);
-  const [tab, setTab] = useState<string>("Payload");
+  const [tab, setTab] = useState<string>(SHEET_TABS[0]);
 
+  const { t } = useTranslation();
   return (
     <Page>
-      <PageHeader title="浏览队列消息" subtitle="AMQP 仅支持取队头 · requeue 模式不破坏队列" />
+      <PageHeader title={t("board.messages.rabbitmq.title")} subtitle={t("board.messages.rabbitmq.subtitle")} />
       <WarnBanner>
           <TriangleAlert size={13} style={{ flex: "none" }} aria-hidden />
-          ack 模式会把消息从队列移除且无法恢复；生产环境请使用 requeue 模式
+          {t("board.messages.rabbitmq.ackWarn")}
         </WarnBanner>
       <Toolbar>
-        <SelectField value="队列：order.settle.q" />
-        <Field className="mono3" style={{ flex: "0 0 70px" }} defaultValue="10 条" />
-        <Seg options={MODES} value={mode} onChange={setMode} />
+        <SelectField value={t("board.messages.rabbitmq.queue")} />
+        <Field className="mono3" style={{ flex: "0 0 70px" }} defaultValue={t("board.messages.rabbitmq.ten")} />
+        <Seg options={MODES.map((o) => ({ ...o, label: t(o.label) }))} value={mode} onChange={setMode} />
         <span style={{ flex: 1 }} />
-        <Btn variant="primary">获取</Btn>
+        <Btn variant="primary">{t("board.messages.rabbitmq.fetch")}</Btn>
       </Toolbar>
 
       <ListArea>
@@ -69,9 +71,9 @@ export function MessagesRabbitMQ() {
                 <TH style={R}>#</TH>
                 <TH>routing key</TH>
                 <TH>exchange</TH>
-                <TH>属性</TH>
-                <TH>payload 摘要</TH>
-                <TH>重投递</TH>
+                <TH>{t("board.common.properties")}</TH>
+                <TH>{t("board.messages.rabbitmq.payloadSummary")}</TH>
+                <TH>{t("board.common.redeliver")}</TH>
               </TR>
             </THead>
             <TBody>
@@ -109,7 +111,7 @@ export function MessagesRabbitMQ() {
             <SheetHeader
               title={`#${selected} · order.created`}
               badge={<Status tone="warn" style={TAG}>redelivered</Status>}
-              tabs={SHEET_TABS}
+              tabs={SHEET_TABS.map((id) => ({ id, label: t(id) }))}
               activeTab={tab}
               onTabChange={setTab}
               onClose={() => setSelected(null)}
@@ -120,7 +122,7 @@ export function MessagesRabbitMQ() {
                   style={{ marginBottom: "6px" }}
                   action={
             <>
-              反序列化：JSON
+              {t("board.messages.deserialize")}
               <ChevronDown size={12} aria-hidden />
             </>
           }
@@ -154,14 +156,14 @@ export function MessagesRabbitMQ() {
               </div>
 
               <div style={{ fontSize: "11px", color: "var(--c-muted)" }}>
-                x-death：order.settle.q · rejected ×2 · 最后 10:02:37
+                {t("board.messages.rabbitmq.xdeath")}
               </div>
             </SheetBody>
             <SheetFooter>
-              <Btn>复制</Btn>
-              <Btn>重新发布…</Btn>
+              <Btn>{t("board.common.copy")}</Btn>
+              <Btn>{t("board.messages.rabbitmq.republish")}</Btn>
               <span style={{ flex: 1 }} />
-              <Btn variant="danger">ack 移除</Btn>
+              <Btn variant="danger">{t("board.common.ackRemove")}</Btn>
             </SheetFooter>
           </Sheet>
         )}
@@ -169,7 +171,7 @@ export function MessagesRabbitMQ() {
 
       <Toolbar style={{ borderTop: "1px solid var(--c-border)", borderBottom: "none" }}>
         <span className="mono3" style={{ fontSize: "11px", color: "var(--c-muted)" }}>
-          已取 10 / Ready 982 · 消息已 requeue 回队列
+          {t("board.messages.rabbitmq.footer")}
         </span>
         <span style={{ flex: 1 }} />
       </Toolbar>

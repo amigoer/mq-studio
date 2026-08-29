@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Check as CheckIcon,
@@ -25,6 +25,7 @@ import { FaApple, FaLinux, FaWindows } from "react-icons/fa";
 import type { IconType } from "react-icons";
 import { Page } from "@/design/shell";
 import { AppLogo } from "@/design/icons/AppLogo";
+import { FlagIcon } from "@/design/icons/FlagIcon";
 import {
   Btn,
   Card,
@@ -51,10 +52,16 @@ import {
   exportAllConfigToFile,
   importAllConfigFromFile,
 } from "@/api/settings";
-import { useSettings, type FetchLimit } from "@/hooks/useSettings";
+import { useSettings, type FetchLimit, type Language } from "@/hooks/useSettings";
 import { useUIPrefs } from "@/hooks/useUIPrefs";
 import { useUpdateCheck, useUpdateCheckAction } from "@/hooks/useUpdateCheck";
-import { monoFontStack } from "@/lib/fonts";
+import {
+  availableFonts,
+  monoFontStack,
+  uiFontStack,
+  MONO_FONT_CANDIDATES,
+  UI_FONT_CANDIDATES,
+} from "@/lib/fonts";
 import type { ThemeMode } from "@/lib/theme";
 import { FONT_SIZES, type UIScaleSetting } from "@/lib/uiScale";
 import { cn } from "@/lib/utils";
@@ -208,6 +215,15 @@ function Group({
   );
 }
 
+type Option<T> = {
+  value: T;
+  label: string;
+  /** Drawn before the label, in the trigger as well as in the menu. */
+  mark?: ReactNode;
+  /** A second line under the label, for what the option cannot say itself. */
+  note?: string;
+};
+
 /** `.in3` as a real dropdown: the canvas draws every select as a bordered pill. */
 function Dropdown<T extends string | number>({
   value,
@@ -216,7 +232,7 @@ function Dropdown<T extends string | number>({
   onChange,
 }: {
   value: T;
-  options: readonly { value: T; label: string }[];
+  options: readonly Option<T>[];
   width?: number;
   onChange: (next: T) => void;
 }) {
@@ -225,7 +241,24 @@ function Dropdown<T extends string | number>({
   return (
     <span style={{ position: "relative" }}>
       <SelectField
-        value={current?.label ?? String(value)}
+        value={
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "7px",
+              minWidth: 0,
+              /* The caret keeps its place however long the label runs. */
+              flex: 1,
+              overflow: "hidden",
+            }}
+          >
+            {current?.mark}
+            <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {current?.label ?? String(value)}
+            </span>
+          </span>
+        }
         style={{ width: `${width}px`, justifyContent: "space-between" }}
         onClick={() => setOpen((o) => !o)}
       />
@@ -239,7 +272,21 @@ function Dropdown<T extends string | number>({
               setOpen(false);
             }}
           >
-            {o.label}
+            {o.mark}
+            <span style={{ minWidth: 0, flex: 1 }}>
+              <span style={{ display: "block" }}>{o.label}</span>
+              {o.note != null && (
+                <span
+                  style={{
+                    display: "block",
+                    fontSize: "var(--set-meta)",
+                    color: "var(--c-muted)",
+                  }}
+                >
+                  {o.note}
+                </span>
+              )}
+            </span>
           </MenuItem>
         ))}
       </Menu>
@@ -277,7 +324,9 @@ function NumField({
         }}
         {...limits}
       />
-      {unit != null && <span style={{ fontSize: "11px", color: "var(--c-muted)" }}>{unit}</span>}
+      {unit != null && (
+        <span style={{ fontSize: "var(--set-meta)", color: "var(--c-muted)" }}>{unit}</span>
+      )}
     </>
   );
 }
@@ -402,10 +451,10 @@ function AppearancePanel() {
                   }}
                 >
                   <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ fontSize: "12.5px", fontWeight: 500, lineHeight: 1.2 }}>
+                    <div style={{ fontSize: "var(--set-label)", fontWeight: 500, lineHeight: 1.25 }}>
                       {t(th.name)}
                     </div>
-                    <div style={{ fontSize: "11px", color: "var(--c-muted)", marginTop: "2px" }}>
+                    <div style={{ fontSize: "var(--set-hint)", color: "var(--c-muted)", marginTop: "3px" }}>
                       {t(th.desc)}
                     </div>
                   </div>
@@ -451,6 +500,9 @@ function AppearancePanel() {
   );
 }
 
+/** In the order the picker offers them; the flags come from FlagIcon. */
+const LANGUAGES = ["zh", "en"] as const satisfies readonly Language[];
+
 function GeneralPanel() {
   const { t } = useTranslation();
   const { settings, setSetting } = useSettings();
@@ -462,10 +514,11 @@ function GeneralPanel() {
             <Dropdown
               value={settings.language}
               onChange={(next) => setSetting("language", next)}
-              options={[
-                { value: "zh", label: t("page.settings.general.zh") },
-                { value: "en", label: t("page.settings.general.en") },
-              ]}
+              options={LANGUAGES.map((lang) => ({
+                value: lang,
+                label: t(`page.settings.general.${lang}`),
+                mark: <FlagIcon lang={lang} />,
+              }))}
             />
           </SettingRow>
           <SettingRow label={t("page.settings.general.timezone")} hint={t("page.settings.general.timezoneHint")} last>
@@ -515,6 +568,8 @@ function GeneralPanel() {
             last
           >
             <Dropdown
+              /* "Minimise to the system tray" does not fit the drawn 200px. */
+              width={240}
               value={settings.closeBehavior}
               onChange={(next) => setSetting("closeBehavior", next)}
               options={[
@@ -536,6 +591,39 @@ function FontsPanel({
 }) {
   const { t } = useTranslation();
   const { settings, setSetting } = useSettings();
+
+  /*
+   * The two menus offer what this machine can actually render. A family the
+   * host does not have would fall back silently to the system stack, so the
+   * row would report a font the window is not set in. Probing is measurement
+   * (see lib/fonts), so it is done once per stored choice rather than on
+   * every render.
+   */
+  const uiFonts = useMemo(
+    () => availableFonts(UI_FONT_CANDIDATES, settings.uiFont),
+    [settings.uiFont],
+  );
+  const monoFonts = useMemo(
+    () => availableFonts(MONO_FONT_CANDIDATES, settings.monospaceFont),
+    [settings.monospaceFont],
+  );
+
+  /** Each name is drawn in its own face, which is the only true preview. */
+  const fontOptions = (
+    fonts: readonly { family: string; installed: boolean }[],
+    stack: (family: string) => string,
+  ) =>
+    fonts.map(({ family, installed }) => ({
+      value: family,
+      label: family,
+      note: installed ? undefined : t("page.settings.fonts.missing"),
+      mark: (
+        <span aria-hidden style={{ fontFamily: stack(family), color: "var(--c-muted)" }}>
+          Aa
+        </span>
+      ),
+    }));
+
   return (
     <>
       <Group title={t("page.settings.fonts.typography")} first>
@@ -553,11 +641,7 @@ function FontsPanel({
               onChange={(next) => setSetting("uiFont", next)}
               options={[
                 { value: "system", label: t("page.settings.fonts.systemDefault") },
-                { value: "Inter", label: "Inter" },
-                { value: "PingFang SC", label: "PingFang SC" },
-                { value: "Microsoft YaHei", label: "Microsoft YaHei" },
-                { value: "Noto Sans SC", label: "Noto Sans SC" },
-                { value: "HarmonyOS Sans", label: "HarmonyOS Sans" },
+                ...fontOptions(uiFonts, uiFontStack),
               ]}
             />
           </SettingRow>
@@ -566,13 +650,8 @@ function FontsPanel({
               value={settings.monospaceFont}
               onChange={(next) => setSetting("monospaceFont", next)}
               options={[
-                { value: "JetBrains Mono", label: "JetBrains Mono" },
-                { value: "Fira Code", label: "Fira Code" },
-                { value: "Source Code Pro", label: "Source Code Pro" },
-                { value: "Cascadia Code", label: "Cascadia Code" },
-                { value: "Menlo", label: "Menlo" },
-                { value: "Consolas", label: "Consolas" },
                 { value: "system", label: t("page.settings.fonts.systemDefault") },
+                ...fontOptions(monoFonts, monoFontStack),
               ]}
             />
           </SettingRow>
@@ -596,15 +675,22 @@ function FontsPanel({
 
       <Group title={t("page.settings.fonts.preview")}>
         <Card style={{ padding: "14px 16px" }}>
-          <div style={{ fontSize: `${scale.fontSize}px` }}>
+          {/* Both faces at the size and family the window is actually set in,
+              so what is read here is what the rest of the shell gets. */}
+          <div
+            style={{
+              fontSize: `${scale.fontSize}px`,
+              fontFamily: uiFontStack(settings.uiFont),
+              lineHeight: 1.6,
+            }}
+          >
             {t("page.settings.fonts.previewSample")}
           </div>
           <div
-            className="mono3"
             style={{
-              fontSize: "11.5px",
+              fontSize: `${scale.fontSize - 1}px`,
               color: "var(--c-muted)",
-              marginTop: "6px",
+              marginTop: "8px",
               fontFamily: monoFontStack(settings.monospaceFont),
             }}
           >
@@ -859,7 +945,12 @@ function ProxyPanel() {
       <Group title={t("page.settings.proxy.advanced")}>
         <Card>
           <div
-            style={{ fontSize: "11px", color: "var(--c-muted)", padding: "12px 16px", lineHeight: 1.55 }}
+            style={{
+              fontSize: "var(--set-hint)",
+              color: "var(--c-muted)",
+              padding: "12px 16px",
+              lineHeight: 1.55,
+            }}
           >
             {t("page.settings.proxy.advancedNote")}
           </div>
@@ -978,7 +1069,7 @@ function DataPanel() {
               </span>
             }
             hint={
-              <code className="mono3" style={{ fontSize: "11.5px", wordBreak: "break-all" }}>
+              <code className="mono3" style={{ fontSize: "var(--set-hint)", wordBreak: "break-all" }}>
                 {directory || t("page.settings.data.loading")}
               </code>
             }
@@ -1084,20 +1175,24 @@ function AboutPanel({ onOpenDoc }: { onOpenDoc?: (doc: DocId) => void }) {
             <div
               style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: "8px" }}
             >
-              <h2 style={{ margin: 0, fontSize: "15px", fontWeight: 600 }}>MQ Studio</h2>
-              <span className="mono3" style={{ fontSize: "11.5px", color: "var(--c-muted)" }}>
+              <h2 style={{ margin: 0, fontSize: "var(--set-title)", fontWeight: 600 }}>MQ Studio</h2>
+              <span className="mono3" style={{ fontSize: "var(--set-meta)", color: "var(--c-muted)" }}>
                 {/* A development build reports "dev", which no v belongs in front of. */}
                 {version == null ? "—" : version === "dev" ? "dev" : `v${version}`}
               </span>
               <EnvTag>Apache-2.0</EnvTag>
             </div>
-            <p style={{ margin: "6px 0 0", fontSize: "11.5px", color: "var(--c-muted)", lineHeight: 1.55 }}>
-              本地优先的消息队列桌面客户端，无需额外部署控制台，即可管理 RocketMQ、Kafka、
-              RabbitMQ、Pulsar、Redis 与 MQTT 的集群、主题、消费者与消息。
-            </p>
-            <p style={{ margin: "2px 0 0", fontSize: "11px", color: "var(--c-muted)", lineHeight: 1.5 }}>
-              A local-first desktop client for message queues. Manage clusters, topics, consumers
-              and messages across six brokers without deploying a separate console.
+            {/* One paragraph now that the page follows the interface language;
+                it used to carry both at once because nothing else did. */}
+            <p
+              style={{
+                margin: "8px 0 0",
+                fontSize: "var(--set-hint)",
+                color: "var(--c-muted)",
+                lineHeight: 1.6,
+              }}
+            >
+              {t("page.settings.about.blurb")}
             </p>
           </div>
         </div>
@@ -1181,7 +1276,8 @@ export function Settings({
   };
 
   return (
-    <Page>
+    /* `set3` is the page's own type scale; see the block in tokens.css. */
+    <Page className="set3">
       <div className="hd3" style={{ alignItems: "center" }}>
         <Btn style={{ padding: "4.5px 9px" }} onClick={onBack}>
           <ChevronLeft size={13} aria-hidden />
@@ -1227,15 +1323,15 @@ export function Settings({
               }}
             >
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: "15px", fontWeight: 600, letterSpacing: "-0.01em" }}>
+                <div style={{ fontSize: "var(--set-title)", fontWeight: 600, letterSpacing: "-0.01em" }}>
                   {t(`page.settings.section.${current.id}`)}
                 </div>
-                <div style={{ fontSize: "11.5px", color: "var(--c-muted)", marginTop: "2px" }}>
+                <div style={{ fontSize: "var(--set-sub)", color: "var(--c-muted)", marginTop: "3px" }}>
                   {t(`page.settings.section.${current.id}Sub`)}
                 </div>
               </div>
               <span style={{ flex: 1 }} />
-              <span style={{ fontSize: "11px", color: "var(--c-muted)", flex: "none" }}>
+              <span style={{ fontSize: "var(--set-meta)", color: "var(--c-muted)", flex: "none" }}>
                 {t("page.settings.autoSaved")}
               </span>
             </div>

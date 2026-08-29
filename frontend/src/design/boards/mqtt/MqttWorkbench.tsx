@@ -13,6 +13,7 @@ import {
   SelectField,
   Status,
 } from "@/design/ui";
+import { useTranslation } from "react-i18next";
 
 const MONO11 = { fontSize: "11px" } as const;
 const KV_NARROW = { gridTemplateColumns: "76px 1fr" } as const;
@@ -53,6 +54,7 @@ function TreeNode({
 }
 
 export function MqttWorkbench() {
+  const { t } = useTranslation();
   const [selected, setSelected] = useState(0);
 
   return (
@@ -69,9 +71,9 @@ export function MqttWorkbench() {
         }}
       >
         <div style={{ padding: "12px 14px 8px", display: "flex", alignItems: "center" }}>
-          <SectionLabel>主题树</SectionLabel>
+          <SectionLabel>{t("board.mqtt.topicTree")}</SectionLabel>
           <span style={{ flex: 1 }} />
-          <span style={{ fontSize: "11px", color: "var(--c-ok)" }}>+ 订阅</span>
+          <span style={{ fontSize: "11px", color: "var(--c-ok)" }}>{t("board.mqtt.subscribe")}</span>
         </div>
         <div
           style={{
@@ -130,9 +132,9 @@ export function MqttWorkbench() {
             color: "var(--c-muted)",
           }}
         >
-          已订阅 2 · 缓冲 2 000 条
+          {t("board.mqtt.subscribed")}
           <br />
-          断开后订阅自动恢复
+          {t("board.mqtt.autoResume")}
         </div>
       </div>
 
@@ -148,18 +150,18 @@ export function MqttWorkbench() {
       >
         <Toolbar style={{ borderBottom: "1px solid var(--c-border)" }}>
           <Status tone="ok" dot style={{ fontSize: "10.5px" }}>
-            订阅中
+            {t("board.mqtt.subscribing")}
           </Status>
           <span className="mono3" style={{ fontSize: "11px", color: "var(--c-mono-dim)" }}>
             iot/device/telemetry/# · QoS 1
           </span>
           <span style={{ flex: 1 }} />
-          <Btn>暂停</Btn>
-          <Btn>清空</Btn>
+          <Btn>{t("board.common.pause")}</Btn>
+          <Btn>{t("board.common.purge")}</Btn>
         </Toolbar>
         <Toolbar style={{ padding: "8px 14px" }}>
-          <Field style={{ flex: 1 }} placeholder="payload 关键字过滤…" />
-          <SelectField value="全部 QoS" />
+          <Field style={{ flex: 1 }} placeholder={t("board.mqtt.filter")} />
+          <SelectField value={t("board.mqtt.allQos")} />
         </Toolbar>
 
         <div className="mqs-scroll" style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
@@ -224,9 +226,9 @@ export function MqttWorkbench() {
               display: "flex",
             }}
           >
-            <span>412 msg/s · 自动滚动</span>
+            <span>{t("board.mqtt.rate")}</span>
             <span style={{ flex: 1 }} />
-            <span style={{ color: "var(--c-ok)" }}>导出 NDJSON</span>
+            <span style={{ color: "var(--c-ok)" }}>{t("board.mqtt.exportNdjson")}</span>
           </div>
         </div>
       </div>
@@ -252,9 +254,9 @@ export function MqttWorkbench() {
             background: "var(--c-bg)",
           }}
         >
-          <b style={{ fontSize: "12.5px" }}>消息详情</b>
+          <b style={{ fontSize: "12.5px" }}>{t("board.common.messageDetail")}</b>
           <span style={{ flex: 1 }} />
-          <Btn>复制</Btn>
+          <Btn>{t("board.common.copy")}</Btn>
         </div>
 
         <div
@@ -271,9 +273,9 @@ export function MqttWorkbench() {
           <KV
             style={KV_NARROW}
             rows={[
-              ["主题", <span className="mono3" style={MONO11}>iot/device/telemetry/A19F</span>],
+              [t("board.common.topic"), <span className="mono3" style={MONO11}>iot/device/telemetry/A19F</span>],
               ["QoS / Retain", "1 / false"],
-              ["时间", <span className="mono3" style={MONO11}>10:24:07.221</span>],
+              [t("board.common.time"), <span className="mono3" style={MONO11}>10:24:07.221</span>],
             ]}
           />
 
@@ -293,7 +295,7 @@ export function MqttWorkbench() {
           </div>
 
           <div>
-            <SectionLabel style={{ marginBottom: "6px" }}>用户属性 · MQTT 5</SectionLabel>
+            <SectionLabel style={{ marginBottom: "6px" }}>{t("board.mqtt.userProps")}</SectionLabel>
             <KV
               style={KV_NARROW}
               rows={[
@@ -313,9 +315,9 @@ export function MqttWorkbench() {
             background: "var(--c-bg)",
           }}
         >
-          <Btn>历史同主题</Btn>
+          <Btn>{t("board.mqtt.sameTopic")}</Btn>
           <span style={{ flex: 1 }} />
-          <Btn variant="primary">以此为模板发布</Btn>
+          <Btn variant="primary">{t("board.mqtt.publishTemplate")}</Btn>
         </div>
       </div>
     </div>

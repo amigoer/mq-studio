@@ -20,8 +20,9 @@ import {
   THead,
   TR,
 } from "@/design/ui";
+import { useTranslation } from "react-i18next";
 
-const SHEET_TABS = ["信道", "属性"] as const;
+const SHEET_TABS = ["board.common.channel", "board.common.properties"] as const;
 const R = { textAlign: "right" } as const;
 const NAME = { fontSize: "11.5px" } as const;
 const MONO11 = { fontSize: "11px" } as const;
@@ -32,15 +33,16 @@ const MONO11 = { fontSize: "11px" } as const;
  */
 export function ChannelsRabbitMQ() {
   const [selected, setSelected] = useState<string | null>(null);
-  const [tab, setTab] = useState<string>("信道");
+  const [tab, setTab] = useState<string>(SHEET_TABS[0]);
 
+  const { t } = useTranslation();
   return (
     <Page>
-      <PageHeader title="连接 / 信道" subtitle="vhost /order · 连接 128 · 信道 342" />
+      <PageHeader title={t("board.consumers.rabbitmq.title")} subtitle={t("board.consumers.rabbitmq.subtitle")} />
       <Toolbar>
-        <Field style={{ flex: "0 0 220px" }} placeholder="搜索连接 / 用户…" />
+        <Field style={{ flex: "0 0 220px" }} placeholder={t("board.consumers.rabbitmq.search")} />
         <span style={{ flex: 1 }} />
-        <SelectField value="按 unacked 排序" />
+        <SelectField value={t("board.consumers.rabbitmq.sortByUnacked")} />
       </Toolbar>
 
       <ListArea>
@@ -48,11 +50,11 @@ export function ChannelsRabbitMQ() {
           <Table className="inset">
             <THead>
               <TR>
-                <TH>连接</TH>
-                <TH>用户</TH>
-                <TH style={R}>信道</TH>
-                <TH>状态</TH>
-                <TH style={R}>收 / 发速率</TH>
+                <TH>{t("board.common.connections")}</TH>
+                <TH>{t("board.common.user")}</TH>
+                <TH style={R}>{t("board.common.channel")}</TH>
+                <TH>{t("board.common.status")}</TH>
+                <TH style={R}>{t("board.consumers.rabbitmq.rxTx")}</TH>
               </TR>
             </THead>
             <TBody>
@@ -89,14 +91,14 @@ export function ChannelsRabbitMQ() {
             <SheetHeader
               title={selected}
               badge={<Status tone="warn" style={{ fontSize: "10px" }}>flow</Status>}
-              tabs={SHEET_TABS}
+              tabs={SHEET_TABS.map((id) => ({ id, label: t(id) }))}
               activeTab={tab}
               onTabChange={setTab}
               onClose={() => setSelected(null)}
             />
             <SheetBody>
               <div>
-                <SectionLabel style={{ marginBottom: "6px" }}>信道（4）</SectionLabel>
+                <SectionLabel style={{ marginBottom: "6px" }}>{t("board.consumers.rabbitmq.channelsCount")}</SectionLabel>
                 <Card style={{ overflow: "hidden" }}>
                   <MiniTable>
                     <THead>
@@ -129,21 +131,21 @@ export function ChannelsRabbitMQ() {
               </div>
 
               <div style={{ fontSize: "11px", color: "var(--c-warn-text)" }}>
-                ctag-settle-1 prefetch 打满且 ack=0 → 消费卡死，建议检查该进程
+                {t("board.consumers.rabbitmq.stallWarn")}
               </div>
 
               <KV
                 rows={[
-                  ["客户端", <span className="mono3" style={MONO11}>java-amqp-client 5.20</span>],
-                  ["心跳", "60s"],
+                  [t("board.common.client"), <span className="mono3" style={MONO11}>java-amqp-client 5.20</span>],
+                  [t("board.consumers.rabbitmq.heartbeat"), "60s"],
                   ["TLS", "TLSv1.3"],
                 ]}
               />
             </SheetBody>
             <SheetFooter>
-              <Btn>查看队列</Btn>
+              <Btn>{t("board.consumers.rabbitmq.viewQueues")}</Btn>
               <span style={{ flex: 1 }} />
-              <Btn variant="danger">关闭连接</Btn>
+              <Btn variant="danger">{t("board.consumers.rabbitmq.closeConnection")}</Btn>
             </SheetFooter>
           </Sheet>
         )}

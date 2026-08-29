@@ -2,6 +2,7 @@ import { ProtoBadge, SelectField, Status, Table, TBody, TD, TH, THead, TR, Btn, 
 import { SkeletonRows, Toolbar } from "@/design/shell";
 import type { ReactNode } from "react";
 import { X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 const TAG = { fontSize: "10px" } as const;
 const R = { textAlign: "right" } as const;
@@ -11,13 +12,14 @@ const R = { textAlign: "right" } as const;
  * filters, scroll and refresh timer; a third would want its own window instead.
  */
 export function SplitCompare({ onClose }: { onClose?: () => void }) {
+  const { t } = useTranslation();
   return (
     <>
       <Pane
         badge={<ProtoBadge protocol="rocketmq" label="RMQ 5.x" />}
         name="rocketmq-order"
-        page="消息查询"
-        status="12ms · 独立刷新 10s"
+        page={t("board.common.messageQuery")}
+        status={t("board.split.status1")}
         divider
         onClose={onClose}
         toolbar={
@@ -25,7 +27,7 @@ export function SplitCompare({ onClose }: { onClose?: () => void }) {
             <SelectField style={{ fontSize: "11px" }} value="ORDER_CREATE" />
             <Field className="mono3" style={{ flex: 1, fontSize: "11px" }} defaultValue="ORD-88213" />
             <Btn variant="primary" style={{ padding: "3.5px 10px" }}>
-              查询
+              {t("board.common.query")}
             </Btn>
           </>
         }
@@ -35,8 +37,8 @@ export function SplitCompare({ onClose }: { onClose?: () => void }) {
             <TR>
               <TH>MsgId</TH>
               <TH>Tag</TH>
-              <TH>时间</TH>
-              <TH>状态</TH>
+              <TH>{t("board.common.time")}</TH>
+              <TH>{t("board.common.status")}</TH>
             </TR>
           </THead>
           <TBody>
@@ -44,13 +46,13 @@ export function SplitCompare({ onClose }: { onClose?: () => void }) {
               <TD className="mono3" style={{ fontSize: "10.5px" }}>7F00…4C1</TD>
               <TD>create</TD>
               <TD className="mono3" style={{ fontSize: "10.5px" }}>10:24:07</TD>
-              <TD><Status tone="warn" style={TAG}>重试中</Status></TD>
+              <TD><Status tone="warn" style={TAG}>{t("board.common.retrying")}</Status></TD>
             </TR>
             <TR>
               <TD className="mono3" style={{ fontSize: "10.5px", color: "var(--c-mono-dim)" }}>7F00…4C2</TD>
               <TD>paid</TD>
               <TD className="mono3" style={{ fontSize: "10.5px" }}>10:24:09</TD>
-              <TD><Status tone="ok" style={TAG}>已消费</Status></TD>
+              <TD><Status tone="ok" style={TAG}>{t("board.common.consumed")}</Status></TD>
             </TR>
             <SkeletonRows colSpan={4} widths={["76%", "58%"]} />
           </TBody>
@@ -60,13 +62,13 @@ export function SplitCompare({ onClose }: { onClose?: () => void }) {
       <Pane
         badge={<ProtoBadge protocol="kafka" />}
         name="prod-kafka-cn"
-        page="消费者组"
-        status="8ms · 独立刷新 10s"
+        page={t("board.common.consumerGroup")}
+        status={t("board.split.status2")}
         onClose={onClose}
         toolbar={
           <>
-            <Field style={{ flex: 1, fontSize: "11px" }} placeholder="搜索消费者组…" />
-            <SelectField style={{ fontSize: "11px" }} value="按 lag" />
+            <Field style={{ flex: 1, fontSize: "11px" }} placeholder={t("board.common.searchGroups")} />
+            <SelectField style={{ fontSize: "11px" }} value={t("board.split.byLag")} />
           </>
         }
       >
@@ -75,8 +77,8 @@ export function SplitCompare({ onClose }: { onClose?: () => void }) {
             <TR>
               <TH>Group</TH>
               <TH style={R}>Lag</TH>
-              <TH style={R}>成员</TH>
-              <TH>状态</TH>
+              <TH style={R}>{t("board.common.members")}</TH>
+              <TH>{t("board.common.status")}</TH>
             </TR>
           </THead>
           <TBody>
@@ -84,7 +86,7 @@ export function SplitCompare({ onClose }: { onClose?: () => void }) {
               <TD>settle-consumer</TD>
               <TD className="mono3" style={{ ...R, color: "var(--c-warn-text)" }}>9 820</TD>
               <TD className="mono3" style={R}>4</TD>
-              <TD><Status tone="warn" style={TAG}>堆积</Status></TD>
+              <TD><Status tone="warn" style={TAG}>{t("board.common.backlog")}</Status></TD>
             </TR>
             <TR>
               <TD>notify-consumer</TD>
@@ -125,6 +127,7 @@ function Pane({
   divider?: boolean;
   onClose?: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div
       style={{
@@ -148,11 +151,11 @@ function Pane({
       >
         {badge}
         <b style={{ fontSize: "12px" }}>{name}</b>
-        <SelectField style={{ fontSize: "11px", padding: "2.5px 8px" }} value={`页面：${page}`} />
+        <SelectField style={{ fontSize: "11px", padding: "2.5px 8px" }} value={t("board.split.page", { page })} />
         <span style={{ flex: 1 }} />
         <button
           type="button"
-          aria-label={`关闭 ${name}`}
+          aria-label={t("board.split.close", { name })}
           onClick={onClose}
           style={{ display: "flex", color: "var(--c-muted-2)", background: "none", border: "none", padding: 0 }}
         >

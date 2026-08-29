@@ -25,7 +25,9 @@ TextArea.displayName = "TextArea";
  */
 export const SelectField = React.forwardRef<
   HTMLButtonElement,
-  React.ButtonHTMLAttributes<HTMLButtonElement> & { value: React.ReactNode }
+  /* The button's own `value` is a form value; here it is the label drawn in
+     the pill, which can carry a mark beside the text. */
+  Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "value"> & { value: React.ReactNode }
 >(({ className, value, ...props }, ref) => (
   <button ref={ref} type="button" className={cn("in3", "mqs-select", className)} {...props}>
     {value}

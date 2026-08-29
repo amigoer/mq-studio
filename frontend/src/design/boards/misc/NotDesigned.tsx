@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Page, PageBody, PageHeader } from "@/design/shell";
 import { Card, SectionLabel } from "@/design/ui";
 
@@ -7,17 +8,21 @@ import { Card, SectionLabel } from "@/design/ui";
  * layout, the page says so and points at what does exist.
  */
 export function NotDesigned({
-  title,
-  subtitle,
-  note,
+  labelKey,
+  protocolName,
 }: {
-  title: string;
-  subtitle: string;
-  note: string;
+  /** The sidebar entry this page sits behind, as a locale key. */
+  labelKey: string;
+  protocolName: string;
 }) {
+  const { t } = useTranslation();
+  const label = t(labelKey);
   return (
     <Page>
-      <PageHeader title={title} subtitle={subtitle} />
+      <PageHeader
+        title={label}
+        subtitle={t("board.notDesigned.subtitle", { protocol: protocolName })}
+      />
       <PageBody>
         <Card
           style={{
@@ -27,12 +32,14 @@ export function NotDesigned({
             textAlign: "center",
           }}
         >
-          <SectionLabel>设计稿待补</SectionLabel>
-          <div style={{ fontSize: "13px", marginTop: "10px", lineHeight: 1.8 }}>{note}</div>
+          <SectionLabel>{t("board.notDesigned.title")}</SectionLabel>
+          <div style={{ fontSize: "13px", marginTop: "10px", lineHeight: 1.8 }}>
+            {t("board.notDesigned.note", { page: label })}
+          </div>
           <div style={{ fontSize: "11px", color: "var(--c-muted)", marginTop: "12px", lineHeight: 1.7 }}>
-            该模块在能力矩阵（3h）与复用策略（4d）中已定义，但没有对应画板。
+            {t("board.notDesigned.line1")}
             <br />
-            补稿后按同一套 shell 与组件实现即可。
+            {t("board.notDesigned.line2")}
           </div>
         </Card>
       </PageBody>
