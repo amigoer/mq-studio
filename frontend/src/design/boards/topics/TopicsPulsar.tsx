@@ -1,25 +1,27 @@
 import { useState } from "react";
 import { ListArea, ListPane, Page, PageHeader, SkeletonRows, Toolbar } from "@/design/shell";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import {
-  Btn,
-  Card,
-  Field,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  DetailPanel,
+  DetailPanelBody,
+  DetailPanelFooter,
+  DetailPanelHeader,
   KV,
+  Panel,
   SectionLabel,
   SelectField,
-  Sheet,
-  SheetBody,
-  SheetFooter,
-  SheetHeader,
   Status,
-  Sw,
-  Table,
-  TBody,
-  TD,
-  TH,
-  THead,
-  TR,
-} from "@/design/ui";
+} from "@/components";
 import { useTranslation } from "react-i18next";
 
 const SHEET_TABS = ["board.common.overview", "board.common.partition", "board.common.subscription", "board.common.policy"] as const;
@@ -37,72 +39,72 @@ export function TopicsPulsar() {
       <PageHeader
         title="Topic"
         subtitle={t("board.topics.pulsar.subtitle")}
-        actions={<Btn variant="primary">{t("board.common.newTopic")}</Btn>}
+        actions={<Button>{t("board.common.newTopic")}</Button>}
       />
       <Toolbar>
-        <SelectField value={t("board.topics.pulsar.tenant")} />
-        <SelectField value={t("board.topics.pulsar.namespace")} />
-        <Field style={{ flex: "0 0 180px" }} placeholder={t("board.topics.pulsar.searchTopic")} />
+        <SelectField value="opt" options={[{ value: "opt", label: t("board.topics.pulsar.tenant") }]} />
+        <SelectField value="opt" options={[{ value: "opt", label: t("board.topics.pulsar.namespace") }]} />
+        <Input className="w-[180px] flex-none" placeholder={t("board.topics.pulsar.searchTopic")} />
         <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11.5px", color: "var(--c-mono-dim)" }}>
-          <Sw checked={persistentOnly} onCheckedChange={setPersistentOnly} label={t("board.topics.pulsar.persistentOnly")} />
+          <Switch checked={persistentOnly} onCheckedChange={setPersistentOnly} />
           {t("board.topics.pulsar.persistentOnly")}
         </span>
-        <span style={{ flex: 1 }} />
-        <SelectField value={t("board.common.sortByPending")} />
+        <span className="flex-1" />
+        <SelectField value="opt" options={[{ value: "opt", label: t("board.common.sortByPending") }]} />
       </Toolbar>
 
       <ListArea>
         <ListPane>
-          <Table className="inset">
-            <THead>
-              <TR>
-                <TH>Topic</TH>
-                <TH style={{ textAlign: "right" }}>{t("board.common.partition")}</TH>
-                <TH style={{ textAlign: "right" }}>{t("board.topics.pulsar.producers")}</TH>
-                <TH style={{ textAlign: "right" }}>{t("board.common.subscription")}</TH>
-                <TH style={{ textAlign: "right" }}>{t("board.common.inRate")}</TH>
-                <TH style={{ textAlign: "right" }}>{t("board.common.pending")}</TH>
-              </TR>
-            </THead>
-            <TBody>
-              <TR selected={selected === "order-created"} onClick={() => setSelected("order-created")}>
-                <TD>
+          <Table inset>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Topic</TableHead>
+                <TableHead style={{ textAlign: "right" }}>{t("board.common.partition")}</TableHead>
+                <TableHead style={{ textAlign: "right" }}>{t("board.topics.pulsar.producers")}</TableHead>
+                <TableHead style={{ textAlign: "right" }}>{t("board.common.subscription")}</TableHead>
+                <TableHead style={{ textAlign: "right" }}>{t("board.common.inRate")}</TableHead>
+                <TableHead style={{ textAlign: "right" }}>{t("board.common.pending")}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow selected={selected === "order-created"} onClick={() => setSelected("order-created")}>
+                <TableCell>
                   <b className="mono3" style={{ fontWeight: 500, fontSize: "11.5px" }}>
                     persistent://ecommerce/orders/order-created
                   </b>
-                </TD>
-                <TD className="mono3" style={{ textAlign: "right" }}>8</TD>
-                <TD className="mono3" style={{ textAlign: "right" }}>4</TD>
-                <TD className="mono3" style={{ textAlign: "right" }}>3</TD>
-                <TD className="mono3" style={{ textAlign: "right" }}>1 104/s</TD>
-                <TD className="mono3" style={{ textAlign: "right", color: "var(--c-warn-text)" }}>6 591</TD>
-              </TR>
-              <TR selected={selected === "payment-captured"} onClick={() => setSelected("payment-captured")}>
-                <TD className="mono3" style={NAME}>persistent://ecommerce/orders/payment-captured</TD>
-                <TD className="mono3" style={{ textAlign: "right" }}>4</TD>
-                <TD className="mono3" style={{ textAlign: "right" }}>2</TD>
-                <TD className="mono3" style={{ textAlign: "right" }}>2</TD>
-                <TD className="mono3" style={{ textAlign: "right" }}>880/s</TD>
-                <TD className="mono3" style={{ textAlign: "right" }}>1 830</TD>
-              </TR>
-              <TR selected={selected === "metrics-tick"} onClick={() => setSelected("metrics-tick")}>
-                <TD className="mono3" style={{ ...NAME, color: "var(--c-muted)" }}>
+                </TableCell>
+                <TableCell className="mono3" style={{ textAlign: "right" }}>8</TableCell>
+                <TableCell className="mono3" style={{ textAlign: "right" }}>4</TableCell>
+                <TableCell className="mono3" style={{ textAlign: "right" }}>3</TableCell>
+                <TableCell className="mono3" style={{ textAlign: "right" }}>1 104/s</TableCell>
+                <TableCell className="mono3" style={{ textAlign: "right", color: "var(--c-warn-text)" }}>6 591</TableCell>
+              </TableRow>
+              <TableRow selected={selected === "payment-captured"} onClick={() => setSelected("payment-captured")}>
+                <TableCell className="mono3" style={NAME}>persistent://ecommerce/orders/payment-captured</TableCell>
+                <TableCell className="mono3" style={{ textAlign: "right" }}>4</TableCell>
+                <TableCell className="mono3" style={{ textAlign: "right" }}>2</TableCell>
+                <TableCell className="mono3" style={{ textAlign: "right" }}>2</TableCell>
+                <TableCell className="mono3" style={{ textAlign: "right" }}>880/s</TableCell>
+                <TableCell className="mono3" style={{ textAlign: "right" }}>1 830</TableCell>
+              </TableRow>
+              <TableRow selected={selected === "metrics-tick"} onClick={() => setSelected("metrics-tick")}>
+                <TableCell className="mono3" style={{ ...NAME, color: "var(--c-muted)" }}>
                   non-persistent://ecommerce/orders/metrics-tick
-                </TD>
-                <TD className="mono3" style={{ textAlign: "right", color: "var(--c-muted)" }}>1</TD>
-                <TD className="mono3" style={{ textAlign: "right", color: "var(--c-muted)" }}>1</TD>
-                <TD className="mono3" style={{ textAlign: "right", color: "var(--c-muted)" }}>1</TD>
-                <TD className="mono3" style={{ textAlign: "right", color: "var(--c-muted)" }}>2 400/s</TD>
-                <TD className="mono3" style={{ textAlign: "right", color: "var(--c-muted)" }}>—</TD>
-              </TR>
+                </TableCell>
+                <TableCell className="mono3" style={{ textAlign: "right", color: "var(--c-muted)" }}>1</TableCell>
+                <TableCell className="mono3" style={{ textAlign: "right", color: "var(--c-muted)" }}>1</TableCell>
+                <TableCell className="mono3" style={{ textAlign: "right", color: "var(--c-muted)" }}>1</TableCell>
+                <TableCell className="mono3" style={{ textAlign: "right", color: "var(--c-muted)" }}>2 400/s</TableCell>
+                <TableCell className="mono3" style={{ textAlign: "right", color: "var(--c-muted)" }}>—</TableCell>
+              </TableRow>
               <SkeletonRows colSpan={6} widths={["70%", "52%"]} />
-            </TBody>
+            </TableBody>
           </Table>
         </ListPane>
 
         {selected != null && (
-          <Sheet width={390} onDismiss={() => setSelected(null)}>
-            <SheetHeader
+          <DetailPanel width={390} onDismiss={() => setSelected(null)}>
+            <DetailPanelHeader
               title={selected}
               badge={<Status tone="off" style={{ fontSize: "10px" }}>{t("board.topics.pulsar.eightParts")}</Status>}
               tabs={SHEET_TABS.map((id) => ({ id, label: t(id) }))}
@@ -110,20 +112,20 @@ export function TopicsPulsar() {
               onTabChange={setTab}
               onClose={() => setSelected(null)}
             />
-            <SheetBody>
+            <DetailPanelBody>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-                <Card style={{ padding: "9px 12px" }}>
+                <Panel style={{ padding: "9px 12px" }}>
                   <div style={{ fontSize: "10.5px", color: "var(--c-muted)" }}>{t("board.topics.pulsar.inOut")}</div>
                   <div className="mono3" style={{ fontSize: "15px", fontWeight: 600, marginTop: "2px" }}>
                     1 104 / 2 987
                   </div>
-                </Card>
-                <Card style={{ padding: "9px 12px" }}>
+                </Panel>
+                <Panel style={{ padding: "9px 12px" }}>
                   <div style={{ fontSize: "10.5px", color: "var(--c-muted)" }}>{t("board.topics.pulsar.storageSize")}</div>
                   <div className="mono3" style={{ fontSize: "15px", fontWeight: 600, marginTop: "2px" }}>
                     18.2 GB
                   </div>
-                </Card>
+                </Panel>
               </div>
 
               <div>
@@ -146,14 +148,14 @@ export function TopicsPulsar() {
                   <Status tone="ok">audit-sub</Status>
                 </div>
               </div>
-            </SheetBody>
-            <SheetFooter>
-              <Btn>{t("board.common.viewMessages")}</Btn>
-              <Btn>{t("board.topics.pulsar.unload")}</Btn>
-              <span style={{ flex: 1 }} />
-              <Btn variant="danger">{t("board.common.delete")}</Btn>
-            </SheetFooter>
-          </Sheet>
+            </DetailPanelBody>
+            <DetailPanelFooter>
+              <Button variant="outline">{t("board.common.viewMessages")}</Button>
+              <Button variant="outline">{t("board.topics.pulsar.unload")}</Button>
+              <span className="flex-1" />
+              <Button variant="destructive">{t("board.common.delete")}</Button>
+            </DetailPanelFooter>
+          </DetailPanel>
         )}
       </ListArea>
     </Page>

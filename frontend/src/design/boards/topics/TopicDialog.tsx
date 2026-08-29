@@ -1,6 +1,17 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Btn, Dialog, Field, Menu, MenuItem, Seg, SelectField } from "@/design/ui";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { Spinner } from "@/components/ui/spinner";
+import { Segmented, SelectField } from "@/components";
 import { useBrokerData } from "@/hooks/useBrokerData";
 import * as clusterApi from "@/api/cluster";
 import { BrokerRole, brokerId, brokerName, role } from "@/mq/rocketmq/nodes";
@@ -10,6 +21,10 @@ import { formatErrorMessage } from "@/lib/utils";
 
 /** Every master, which is what a topic normally wants to exist on. */
 const ALL_MASTERS = "";
+
+/* A Select item cannot carry the empty string, so "all masters" gets a
+   sentinel at the widget boundary and stays "" in the form. */
+const ALL_MASTERS_OPTION = "__all_masters__";
 
 const PERMS = [
   { value: TopicPerm.ReadWrite, label: "board.topics.rocketmq.permRW" },
@@ -63,7 +78,6 @@ export function TopicDialog({
 }) {
   const { t } = useTranslation();
   const [form, setForm] = useState<TopicForm>(() => formOf(editing));
-  const [brokerOpen, setBrokerOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -106,117 +120,118 @@ export function TopicDialog({
     }
   };
 
-  const brokerLabel =
-    form.brokerAddr === ALL_MASTERS
-      ? t("board.topics.rocketmq.allMasters", { count: masters.length })
-      : form.brokerAddr;
-
   return (
     <Dialog
       open={open}
-      title={t(editing != null ? "board.topics.rocketmq.editTitle" : "board.common.newTopic")}
-      onClose={onClose}
-      footer={
-        <>
-          <span style={{ flex: 1 }} />
+      onOpenChange={(next) => {
+        if (!next) onClose();
+      }}
+    >
+      <DialogContent className="sm:max-w-[580px]">
+        <DialogHeader>
+          <DialogTitle>
+            {t(editing != null ? "board.topics.rocketmq.editTitle" : "board.common.newTopic")}
+          </DialogTitle>
+        </DialogHeader>
+
+        <FieldGroup className="grid grid-cols-2 gap-x-3.5 gap-y-3">
+          <Field className="col-span-2">
+            <FieldLabel htmlFor="topic-name">{t("board.topics.rocketmq.nameLabel")}</FieldLabel>
+            <Input
+              id="topic-name"
+              className="mono3"
+              value={form.topic}
+              placeholder="ORDER_CREATE"
+              /* The name is the identity: renaming would be creating a second
+                 topic and leaving the first behind. */
+              disabled={editing != null}
+              onChange={(event) => set("topic", event.target.value)}
+            />
+          </Field>
+
+          <Field>
+            <FieldLabel htmlFor="topic-read-queues">
+              {t("board.topics.rocketmq.readQueueLabel")}
+            </FieldLabel>
+            <Input
+              id="topic-read-queues"
+              value={String(form.readQueue)}
+              onChange={(event) => set("readQueue", queueCount(event.target.value))}
+            />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="topic-write-queues">
+              {t("board.topics.rocketmq.writeQueueLabel")}
+            </FieldLabel>
+            <Input
+              id="topic-write-queues"
+              value={String(form.writeQueue)}
+              onChange={(event) => set("writeQueue", queueCount(event.target.value))}
+            />
+          </Field>
+
+          <Field>
+            <FieldLabel>{t("board.topics.rocketmq.perm")}</FieldLabel>
+            <Segmented
+              className="self-start"
+              value={form.perm}
+              onChange={(next: string) => set("perm", next)}
+              options={PERMS.map((one) => ({ value: one.value as string, label: t(one.label) }))}
+            />
+          </Field>
+
+          <Field>
+            <FieldLabel>
+              Broker{" "}
+              <span className="font-normal text-muted-foreground">
+                {t("board.topics.rocketmq.brokerHint")}
+              </span>
+            </FieldLabel>
+            <SelectField
+              size="default"
+              className="w-full"
+              value={form.brokerAddr === ALL_MASTERS ? ALL_MASTERS_OPTION : form.brokerAddr}
+              onValueChange={(next) =>
+                set("brokerAddr", next === ALL_MASTERS_OPTION ? ALL_MASTERS : next)
+              }
+              options={[
+                {
+                  value: ALL_MASTERS_OPTION,
+                  label: t("board.topics.rocketmq.allMasters", { count: masters.length }),
+                },
+                ...masters.map((node) => ({
+                  value: node.address,
+                  label: `${brokerName(node)}${brokerId(node) !== 0 ? `-${brokerId(node)}` : ""} · ${node.address}`,
+                })),
+              ]}
+            />
+          </Field>
+        </FieldGroup>
+
+        <FieldDescription className="text-xs">
+          {t("board.topics.rocketmq.queueNote")}
+        </FieldDescription>
+
+        <DialogFooter className="items-center">
           {(invalid ?? error) != null && (
             <span
-              style={{
-                fontSize: "11.5px",
-                color: error != null ? "var(--c-err)" : "var(--c-muted)",
-                maxWidth: "320px",
-                textAlign: "right",
-              }}
+              className={
+                "max-w-80 text-right text-xs " +
+                (error != null ? "text-(--c-err)" : "text-muted-foreground")
+              }
             >
               {error ?? invalid}
             </span>
           )}
-          <Btn onClick={onClose}>{t("common.cancel")}</Btn>
-          <Btn variant="primary" disabled={invalid != null || saving} onClick={() => void save()}>
+          <Button variant="outline" onClick={onClose}>
+            {t("common.cancel")}
+          </Button>
+          <Button disabled={invalid != null || saving} onClick={() => void save()}>
+            {saving && <Spinner />}
             {t("common.save")}
-          </Btn>
-        </>
-      }
-    >
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px 14px" }}>
-        <div className="fld" style={{ gridColumn: "1/3" }}>
-          <span>{t("board.topics.rocketmq.nameLabel")}</span>
-          <Field
-            className="mono3"
-            value={form.topic}
-            placeholder="ORDER_CREATE"
-            /* The name is the identity: renaming would be creating a second
-               topic and leaving the first behind. */
-            disabled={editing != null}
-            onChange={(event) => set("topic", event.target.value)}
-          />
-        </div>
-
-        <div className="fld">
-          <span>{t("board.topics.rocketmq.readQueueLabel")}</span>
-          <Field
-            value={String(form.readQueue)}
-            onChange={(event) => set("readQueue", queueCount(event.target.value))}
-          />
-        </div>
-        <div className="fld">
-          <span>{t("board.topics.rocketmq.writeQueueLabel")}</span>
-          <Field
-            value={String(form.writeQueue)}
-            onChange={(event) => set("writeQueue", queueCount(event.target.value))}
-          />
-        </div>
-
-        <div className="fld">
-          <span>{t("board.topics.rocketmq.perm")}</span>
-          <Seg
-            style={{ alignSelf: "flex-start" }}
-            value={form.perm}
-            onChange={(next: string) => set("perm", next)}
-            options={PERMS.map((one) => ({ value: one.value as string, label: t(one.label) }))}
-          />
-        </div>
-
-        <div className="fld">
-          <span>
-            Broker{" "}
-            <span style={{ color: "var(--c-muted-2)" }}>{t("board.topics.rocketmq.brokerHint")}</span>
-          </span>
-          <span style={{ position: "relative" }}>
-            <SelectField
-              style={{ width: "100%" }}
-              value={brokerLabel}
-              onClick={() => setBrokerOpen((one) => !one)}
-            />
-            <Menu open={brokerOpen} onClose={() => setBrokerOpen(false)}>
-              <MenuItem
-                onSelect={() => {
-                  set("brokerAddr", ALL_MASTERS);
-                  setBrokerOpen(false);
-                }}
-              >
-                {t("board.topics.rocketmq.allMasters", { count: masters.length })}
-              </MenuItem>
-              {masters.map((node) => (
-                <MenuItem
-                  key={node.address}
-                  onSelect={() => {
-                    set("brokerAddr", node.address);
-                    setBrokerOpen(false);
-                  }}
-                >
-                  {brokerName(node)}
-                  {brokerId(node) !== 0 ? `-${brokerId(node)}` : ""} · {node.address}
-                </MenuItem>
-              ))}
-            </Menu>
-          </span>
-        </div>
-      </div>
-
-      <div style={{ fontSize: "11px", color: "var(--c-muted)", lineHeight: 1.6 }}>
-        {t("board.topics.rocketmq.queueNote")}
-      </div>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 }

@@ -2,7 +2,9 @@ import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { ListArea, ListPane, Page, PageHeader, SkeletonRows, Toolbar } from "@/design/shell";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/design/ui";
+import {
+  Panel,
+} from "@/components";
 import { Input } from "@/components/ui/input";
 import {
   Table,
@@ -60,8 +62,8 @@ export function MessagesRedis() {
           options={[{ value: "orders:events" }]}
         />
         <Segmented options={MODES.map((o) => ({ ...o, label: t(o.label) }))} value={mode} onChange={setMode} />
-        <Input className="mono3" style={{ flex: "0 0 150px" }} defaultValue="- ～ +" />
-        <Input className="mono3" style={{ flex: "0 0 70px" }} defaultValue="100" />
+        <Input className="mono3 w-[150px] flex-none" defaultValue="- ～ +" />
+        <Input className="mono3 w-[70px] flex-none" defaultValue="100" />
         <Button>{t("board.common.query")}</Button>
       </Toolbar>
 
@@ -122,7 +124,7 @@ export function MessagesRedis() {
             <DetailPanelBody>
               <div>
                 <SectionLabel style={{ marginBottom: "6px" }}>{t("board.messages.redis.fields")}</SectionLabel>
-                <Card style={{ overflow: "hidden" }}>
+                <Panel style={{ overflow: "hidden" }}>
                   <Table className="text-xs">
                     <TableBody>
                       {FIELDS.map(([k, v]) => (
@@ -133,7 +135,7 @@ export function MessagesRedis() {
                       ))}
                     </TableBody>
                   </Table>
-                </Card>
+                </Panel>
               </div>
 
               <div>

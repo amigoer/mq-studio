@@ -1,35 +1,36 @@
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { RefreshCw } from "lucide-react";
 import { ListArea, ListPane, Page, PageHeader, Toolbar } from "@/design/shell";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Spinner } from "@/components/ui/spinner";
+import { Switch } from "@/components/ui/switch";
 import {
-  Btn,
-  Card,
-  Field,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  DetailPanel,
+  DetailPanelBody,
+  DetailPanelFooter,
+  DetailPanelHeader,
   KV,
-  MiniTable,
+  MiniStat,
   ProtoBadge,
   SectionLabel,
   SelectField,
-  Menu,
-  MenuItem,
-  Sheet,
-  SheetBody,
-  SheetFooter,
-  SheetHeader,
   Status,
-  Sw,
-  Table,
-  TBody,
-  TD,
-  TH,
-  THead,
-  TR,
-} from "@/design/ui";
+  useConfirm,
+  useToast,
+} from "@/components";
 import { BoardState, Notice, isBlocked } from "@/design/boards/BoardState";
 import { useBrokerData } from "@/hooks/useBrokerData";
 import { useConnectionScope } from "@/mq/ConnectionScope";
-import { useConfirm, useToast } from "@/design/ui";
 import { TopicDialog, type TopicForm } from "./TopicDialog";
 import * as topicApi from "@/api/topic";
 import type { Destination } from "@/api/models";
@@ -79,7 +80,6 @@ export function TopicsRocketMQ() {
   const [tab, setTab] = useState<string>(SHEET_TABS[0]);
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<Sort>("backlog");
-  const [sortOpen, setSortOpen] = useState(false);
 
   const load = useCallback(
     (id: number) => (showSystem ? topicApi.getAllTopics(id) : topicApi.getTopics(id)),
@@ -146,47 +146,36 @@ export function TopicsRocketMQ() {
         subtitle={t("board.topics.rocketmq.liveSubtitle", { count: topics.length })}
         actions={
           <>
-            <Btn disabled={state.refreshing || !state.online} onClick={() => void state.refresh()}>
-              {state.refreshing && <RefreshCw size={12} className="mqs-turning" aria-hidden />}
+            <Button variant="outline" disabled={state.refreshing || !state.online} onClick={() => void state.refresh()}>
+              {state.refreshing && <Spinner />}
               {t("board.common.refresh")}
-            </Btn>
-            <Btn variant="primary" disabled={!online} onClick={() => setDialog({ editing: null })}>
+            </Button>
+            <Button disabled={!online} onClick={() => setDialog({ editing: null })}>
               {t("board.common.newTopic")}
-            </Btn>
+            </Button>
           </>
         }
       />
       <Toolbar>
-        <Field
-          style={{ flex: "0 0 240px" }}
+        <Input
+          className="w-60 flex-none"
           placeholder={t("board.common.searchTopic")}
           value={query}
           onChange={(event) => setQuery(event.target.value)}
         />
-        <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11.5px", color: "var(--c-mono-dim)" }}>
-          <Sw checked={showSystem} onCheckedChange={setShowSystem} label={t("board.topics.rocketmq.showSystem")} />
+        <label className="flex items-center gap-1.5 text-xs text-(--c-mono-dim)">
+          <Switch checked={showSystem} onCheckedChange={setShowSystem} />
           {t("board.topics.rocketmq.showSystem")}
-        </span>
-        <span style={{ flex: 1 }} />
-        <span style={{ position: "relative" }}>
-          <SelectField
-            value={t(`board.topics.rocketmq.sort.${sort}`)}
-            onClick={() => setSortOpen((open) => !open)}
-          />
-          <Menu open={sortOpen} onClose={() => setSortOpen(false)}>
-            {SORTS.map((key) => (
-              <MenuItem
-                key={key}
-                onSelect={() => {
-                  setSort(key);
-                  setSortOpen(false);
-                }}
-              >
-                {t(`board.topics.rocketmq.sort.${key}`)}
-              </MenuItem>
-            ))}
-          </Menu>
-        </span>
+        </label>
+        <span className="flex-1" />
+        <SelectField
+          value={sort}
+          onValueChange={setSort}
+          options={SORTS.map((key) => ({
+            value: key,
+            label: t(`board.topics.rocketmq.sort.${key}`),
+          }))}
+        />
       </Toolbar>
 
       {isBlocked(state) ? (
@@ -194,36 +183,36 @@ export function TopicsRocketMQ() {
       ) : (
         <ListArea>
           <ListPane>
-            <Table className="inset">
-              <THead>
-                <TR>
-                  <TH>Topic</TH>
-                  <TH style={{ textAlign: "right" }}>{t("board.topics.rocketmq.queueRW")}</TH>
-                  <TH style={{ textAlign: "right" }}>{t("board.common.produceTps")}</TH>
-                  <TH style={{ textAlign: "right" }}>{t("board.common.consumerGroup")}</TH>
-                  <TH style={{ textAlign: "right" }}>{t("board.common.backlog")}</TH>
-                </TR>
-              </THead>
-              <TBody>
+            <Table inset>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Topic</TableHead>
+                  <TableHead style={{ textAlign: "right" }}>{t("board.topics.rocketmq.queueRW")}</TableHead>
+                  <TableHead style={{ textAlign: "right" }}>{t("board.common.produceTps")}</TableHead>
+                  <TableHead style={{ textAlign: "right" }}>{t("board.common.consumerGroup")}</TableHead>
+                  <TableHead style={{ textAlign: "right" }}>{t("board.common.backlog")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {rows.map((topic) => {
                   const name = topicName(topic);
                   const internal = isInternal(name);
                   const dim = internal ? { color: "var(--c-muted)" } : undefined;
                   return (
-                    <TR key={name} selected={selected === name} onClick={() => setSelected(name)}>
-                      <TD style={dim}>
+                    <TableRow key={name} selected={selected === name} onClick={() => setSelected(name)}>
+                      <TableCell style={dim}>
                         {internal ? name : <b style={{ fontWeight: 500 }}>{name}</b>}
-                      </TD>
-                      <TD className="mono3" style={{ textAlign: "right", ...dim }}>
+                      </TableCell>
+                      <TableCell className="mono3" style={{ textAlign: "right", ...dim }}>
                         {metric(readQueue(topic))} / {metric(writeQueue(topic))}
-                      </TD>
-                      <TD className="mono3" style={{ textAlign: "right", ...dim }}>
+                      </TableCell>
+                      <TableCell className="mono3" style={{ textAlign: "right", ...dim }}>
                         {metric(topic.rateIn)}
-                      </TD>
-                      <TD className="mono3" style={{ textAlign: "right", ...dim }}>
+                      </TableCell>
+                      <TableCell className="mono3" style={{ textAlign: "right", ...dim }}>
                         {metric(consumerGroups(topic))}
-                      </TD>
-                      <TD
+                      </TableCell>
+                      <TableCell
                         className="mono3"
                         style={{
                           textAlign: "right",
@@ -232,18 +221,18 @@ export function TopicsRocketMQ() {
                         }}
                       >
                         {metric(topic.depth)}
-                      </TD>
-                    </TR>
+                      </TableCell>
+                    </TableRow>
                   );
                 })}
                 {rows.length === 0 && (
-                  <TR>
-                    <TD colSpan={5} style={{ padding: "34px", textAlign: "center", color: "var(--c-muted)" }}>
+                  <TableRow>
+                    <TableCell colSpan={5} style={{ padding: "34px", textAlign: "center", color: "var(--c-muted)" }}>
                       {t(topics.length === 0 ? "board.topics.rocketmq.noTopics" : "board.common.noMatch")}
-                    </TD>
-                  </TR>
+                    </TableCell>
+                  </TableRow>
                 )}
-              </TBody>
+              </TableBody>
             </Table>
           </ListPane>
 
@@ -308,8 +297,8 @@ function TopicSheet({
   const route = routes(topic);
 
   return (
-    <Sheet onDismiss={onClose}>
-      <SheetHeader
+    <DetailPanel onDismiss={onClose}>
+      <DetailPanelHeader
         title={name}
         badge={<ProtoBadge protocol="rocketmq" label="RMQ" />}
         tabs={SHEET_TABS.map((id) => ({ id, label: t(id) }))}
@@ -317,28 +306,14 @@ function TopicSheet({
         onTabChange={onTabChange}
         onClose={onClose}
       />
-      <SheetBody>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-          <Card style={{ padding: "9px 12px" }}>
-            <div style={{ fontSize: "10.5px", color: "var(--c-muted)" }}>{t("board.common.produceTps")}</div>
-            <div className="mono3" style={{ fontSize: "16px", fontWeight: 600, marginTop: "2px" }}>
-              {metric(topic.rateIn)}
-            </div>
-          </Card>
-          <Card style={{ padding: "9px 12px" }}>
-            <div style={{ fontSize: "10.5px", color: "var(--c-muted)" }}>{t("board.common.backlog")}</div>
-            <div
-              className="mono3"
-              style={{
-                fontSize: "16px",
-                fontWeight: 600,
-                marginTop: "2px",
-                color: topic.depth > 0 ? "var(--c-warn-text)" : undefined,
-              }}
-            >
-              {metric(topic.depth)}
-            </div>
-          </Card>
+      <DetailPanelBody>
+        <div className="grid grid-cols-2 gap-2">
+          <MiniStat label={t("board.common.produceTps")} value={metric(topic.rateIn)} />
+          <MiniStat
+            label={t("board.common.backlog")}
+            value={metric(topic.depth)}
+            color={topic.depth > 0 ? "var(--c-warn-text)" : undefined}
+          />
         </div>
 
         <KV
@@ -351,34 +326,34 @@ function TopicSheet({
 
         <div>
           <SectionLabel style={{ marginBottom: "6px" }}>{t("board.topics.rocketmq.queueSpread")}</SectionLabel>
-          <Card style={{ overflow: "hidden" }}>
+          <Card className="gap-0 overflow-hidden rounded-lg py-0">
             {isBlocked(stats) ? (
               <BoardState state={stats} />
             ) : queues.length === 0 ? (
               <Notice title={t("board.topics.rocketmq.noQueues")} />
             ) : (
-              <MiniTable>
-                <THead>
-                  <TR>
-                    <TH>Broker</TH>
-                    <TH style={{ textAlign: "right" }}>{t("board.common.queue")}</TH>
-                    <TH style={{ textAlign: "right" }}>{t("board.topics.rocketmq.maxOffset")}</TH>
-                  </TR>
-                </THead>
-                <TBody>
+              <Table className="text-xs">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Broker</TableHead>
+                    <TableHead style={{ textAlign: "right" }}>{t("board.common.queue")}</TableHead>
+                    <TableHead style={{ textAlign: "right" }}>{t("board.topics.rocketmq.maxOffset")}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {queues.map((queue) => (
-                    <TR key={`${queue.brokerName}-${queue.queueId}`}>
-                      <TD className="mono3">{queue.brokerName}</TD>
-                      <TD className="mono3" style={{ textAlign: "right" }}>
+                    <TableRow key={`${queue.brokerName}-${queue.queueId}`}>
+                      <TableCell className="mono3">{queue.brokerName}</TableCell>
+                      <TableCell className="mono3" style={{ textAlign: "right" }}>
                         q{queue.queueId}
-                      </TD>
-                      <TD className="mono3" style={{ textAlign: "right" }}>
+                      </TableCell>
+                      <TableCell className="mono3" style={{ textAlign: "right" }}>
                         {queue.maxOffset.toLocaleString()}
-                      </TD>
-                    </TR>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </TBody>
-              </MiniTable>
+                </TableBody>
+              </Table>
             )}
           </Card>
         </div>
@@ -395,14 +370,14 @@ function TopicSheet({
             </div>
           </div>
         )}
-      </SheetBody>
-      <SheetFooter>
-        <Btn onClick={onEdit}>{t("board.common.edit")}</Btn>
-        <span style={{ flex: 1 }} />
-        <Btn variant="danger" onClick={onDelete}>
+      </DetailPanelBody>
+      <DetailPanelFooter>
+        <Button variant="outline" onClick={onEdit}>{t("board.common.edit")}</Button>
+        <span className="flex-1" />
+        <Button variant="destructive" onClick={onDelete}>
           {t("board.common.delete")}
-        </Btn>
-      </SheetFooter>
-    </Sheet>
+        </Button>
+      </DetailPanelFooter>
+    </DetailPanel>
   );
 }

@@ -1,25 +1,26 @@
 import { useState } from "react";
 import { ListArea, ListPane, Page, PageHeader, SkeletonRows, Toolbar } from "@/design/shell";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import {
-  Btn,
-  Card,
-  Field,
-  MiniTable,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  DetailPanel,
+  DetailPanelBody,
+  DetailPanelFooter,
+  DetailPanelHeader,
+  Panel,
   ProtoBadge,
   SelectField,
-  Sheet,
-  SheetBody,
-  SheetFooter,
-  SheetHeader,
   Status,
-  Sw,
-  Table,
-  TBody,
-  TD,
-  TH,
-  THead,
-  TR,
-} from "@/design/ui";
+} from "@/components";
 import { useTranslation } from "react-i18next";
 
 const SHEET_TABS = ["board.common.overview", "board.common.partition", "board.common.consumers", "board.common.config"] as const;
@@ -36,63 +37,63 @@ export function TopicsKafka() {
       <PageHeader
         title="Topic"
         subtitle={t("board.topics.kafka.subtitle")}
-        actions={<Btn variant="primary">{t("board.common.newTopic")}</Btn>}
+        actions={<Button>{t("board.common.newTopic")}</Button>}
       />
       <Toolbar>
-        <Field style={{ flex: "0 0 240px" }} placeholder={t("board.common.searchTopic")} />
+        <Input className="w-[240px] flex-none" placeholder={t("board.common.searchTopic")} />
         <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11.5px", color: "var(--c-mono-dim)" }}>
-          <Sw checked={showInternal} onCheckedChange={setShowInternal} label={t("board.topics.kafka.showInternal")} />
+          <Switch checked={showInternal} onCheckedChange={setShowInternal} />
           {t("board.topics.kafka.showInternal")}
         </span>
-        <span style={{ flex: 1 }} />
-        <SelectField value={t("board.common.sortByBacklog")} />
+        <span className="flex-1" />
+        <SelectField value="opt" options={[{ value: "opt", label: t("board.common.sortByBacklog") }]} />
       </Toolbar>
 
       <ListArea>
         <ListPane>
-          <Table className="inset">
-            <THead>
-              <TR>
-                <TH>Topic</TH>
-                <TH style={{ textAlign: "right" }}>{t("board.common.partition")}</TH>
-                <TH style={{ textAlign: "right" }}>{t("board.topics.kafka.replicas")}</TH>
-                <TH style={{ textAlign: "right" }}>{t("board.topics.kafka.produceRate")}</TH>
-                <TH style={{ textAlign: "right" }}>{t("board.common.backlog")}</TH>
-              </TR>
-            </THead>
-            <TBody>
-              <TR selected={selected === "orders.created"} onClick={() => setSelected("orders.created")}>
-                <TD>
+          <Table inset>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Topic</TableHead>
+                <TableHead style={{ textAlign: "right" }}>{t("board.common.partition")}</TableHead>
+                <TableHead style={{ textAlign: "right" }}>{t("board.topics.kafka.replicas")}</TableHead>
+                <TableHead style={{ textAlign: "right" }}>{t("board.topics.kafka.produceRate")}</TableHead>
+                <TableHead style={{ textAlign: "right" }}>{t("board.common.backlog")}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow selected={selected === "orders.created"} onClick={() => setSelected("orders.created")}>
+                <TableCell>
                   <b style={{ fontWeight: 500 }}>orders.created</b>{" "}
                   <Status tone="warn" style={{ fontSize: "10px" }}>URP</Status>
-                </TD>
-                <TD className="mono3" style={{ textAlign: "right" }}>24</TD>
-                <TD className="mono3" style={{ textAlign: "right" }}>3</TD>
-                <TD className="mono3" style={{ textAlign: "right" }}>1 104/s</TD>
-                <TD className="mono3" style={{ textAlign: "right", color: "var(--c-warn-text)" }}>9 820</TD>
-              </TR>
-              <TR selected={selected === "payments.captured"} onClick={() => setSelected("payments.captured")}>
-                <TD>payments.captured</TD>
-                <TD className="mono3" style={{ textAlign: "right" }}>12</TD>
-                <TD className="mono3" style={{ textAlign: "right" }}>3</TD>
-                <TD className="mono3" style={{ textAlign: "right" }}>880/s</TD>
-                <TD className="mono3" style={{ textAlign: "right" }}>840</TD>
-              </TR>
-              <TR selected={selected === "user.signup"} onClick={() => setSelected("user.signup")}>
-                <TD>user.signup</TD>
-                <TD className="mono3" style={{ textAlign: "right" }}>6</TD>
-                <TD className="mono3" style={{ textAlign: "right" }}>3</TD>
-                <TD className="mono3" style={{ textAlign: "right" }}>45/s</TD>
-                <TD className="mono3" style={{ textAlign: "right" }}>0</TD>
-              </TR>
+                </TableCell>
+                <TableCell className="mono3" style={{ textAlign: "right" }}>24</TableCell>
+                <TableCell className="mono3" style={{ textAlign: "right" }}>3</TableCell>
+                <TableCell className="mono3" style={{ textAlign: "right" }}>1 104/s</TableCell>
+                <TableCell className="mono3" style={{ textAlign: "right", color: "var(--c-warn-text)" }}>9 820</TableCell>
+              </TableRow>
+              <TableRow selected={selected === "payments.captured"} onClick={() => setSelected("payments.captured")}>
+                <TableCell>payments.captured</TableCell>
+                <TableCell className="mono3" style={{ textAlign: "right" }}>12</TableCell>
+                <TableCell className="mono3" style={{ textAlign: "right" }}>3</TableCell>
+                <TableCell className="mono3" style={{ textAlign: "right" }}>880/s</TableCell>
+                <TableCell className="mono3" style={{ textAlign: "right" }}>840</TableCell>
+              </TableRow>
+              <TableRow selected={selected === "user.signup"} onClick={() => setSelected("user.signup")}>
+                <TableCell>user.signup</TableCell>
+                <TableCell className="mono3" style={{ textAlign: "right" }}>6</TableCell>
+                <TableCell className="mono3" style={{ textAlign: "right" }}>3</TableCell>
+                <TableCell className="mono3" style={{ textAlign: "right" }}>45/s</TableCell>
+                <TableCell className="mono3" style={{ textAlign: "right" }}>0</TableCell>
+              </TableRow>
               <SkeletonRows colSpan={5} widths={["76%", "58%"]} />
-            </TBody>
+            </TableBody>
           </Table>
         </ListPane>
 
         {selected != null && (
-          <Sheet onDismiss={() => setSelected(null)}>
-            <SheetHeader
+          <DetailPanel onDismiss={() => setSelected(null)}>
+            <DetailPanelHeader
               title={selected}
               badge={<ProtoBadge protocol="kafka" />}
               tabs={SHEET_TABS.map((id) => ({ id, label: t(id) }))}
@@ -100,65 +101,65 @@ export function TopicsKafka() {
               onTabChange={setTab}
               onClose={() => setSelected(null)}
             />
-            <SheetBody style={{ gap: "10px" }}>
+            <DetailPanelBody style={{ gap: "10px" }}>
               <div style={{ display: "flex", gap: "8px", fontSize: "11px", color: "var(--c-muted)" }}>
                 <span>{t("board.topics.kafka.partitionInfo")}</span>
-                <span style={{ flex: 1 }} />
+                <span className="flex-1" />
                 <span style={{ color: "var(--c-warn-text)" }}>{t("board.topics.kafka.urpWarn")}</span>
               </div>
-              <Card style={{ overflow: "hidden" }}>
-                <MiniTable>
-                  <THead>
-                    <TR>
-                      <TH style={{ textAlign: "right" }}>P</TH>
-                      <TH style={{ textAlign: "right" }}>Leader</TH>
-                      <TH>ISR</TH>
-                      <TH style={{ textAlign: "right" }}>{t("board.topics.kafka.endOffset")}</TH>
-                    </TR>
-                  </THead>
-                  <TBody>
-                    <TR>
-                      <TD className="mono3" style={{ textAlign: "right" }}>0</TD>
-                      <TD className="mono3" style={{ textAlign: "right" }}>1</TD>
-                      <TD className="mono3">1,2,3</TD>
-                      <TD className="mono3" style={{ textAlign: "right" }}>88 204 771</TD>
-                    </TR>
-                    <TR>
-                      <TD className="mono3" style={{ textAlign: "right" }}>1</TD>
-                      <TD className="mono3" style={{ textAlign: "right" }}>2</TD>
-                      <TD className="mono3">2,3,1</TD>
-                      <TD className="mono3" style={{ textAlign: "right" }}>88 198 042</TD>
-                    </TR>
-                    <TR style={{ background: "var(--c-warn-bg-soft)" }}>
-                      <TD className="mono3" style={{ textAlign: "right" }}>2</TD>
-                      <TD className="mono3" style={{ textAlign: "right" }}>3</TD>
-                      <TD className="mono3" style={{ color: "var(--c-warn-text)" }}>
+              <Panel style={{ overflow: "hidden" }}>
+                <Table className="text-xs">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead style={{ textAlign: "right" }}>P</TableHead>
+                      <TableHead style={{ textAlign: "right" }}>Leader</TableHead>
+                      <TableHead>ISR</TableHead>
+                      <TableHead style={{ textAlign: "right" }}>{t("board.topics.kafka.endOffset")}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <TableRow>
+                      <TableCell className="mono3" style={{ textAlign: "right" }}>0</TableCell>
+                      <TableCell className="mono3" style={{ textAlign: "right" }}>1</TableCell>
+                      <TableCell className="mono3">1,2,3</TableCell>
+                      <TableCell className="mono3" style={{ textAlign: "right" }}>88 204 771</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="mono3" style={{ textAlign: "right" }}>1</TableCell>
+                      <TableCell className="mono3" style={{ textAlign: "right" }}>2</TableCell>
+                      <TableCell className="mono3">2,3,1</TableCell>
+                      <TableCell className="mono3" style={{ textAlign: "right" }}>88 198 042</TableCell>
+                    </TableRow>
+                    <TableRow style={{ background: "var(--c-warn-bg-soft)" }}>
+                      <TableCell className="mono3" style={{ textAlign: "right" }}>2</TableCell>
+                      <TableCell className="mono3" style={{ textAlign: "right" }}>3</TableCell>
+                      <TableCell className="mono3" style={{ color: "var(--c-warn-text)" }}>
                         3,1 <span style={{ fontSize: "9.5px" }}>{t("board.topics.kafka.missing2")}</span>
-                      </TD>
-                      <TD className="mono3" style={{ textAlign: "right" }}>88 201 118</TD>
-                    </TR>
-                    <TR>
-                      <TD className="mono3" style={{ textAlign: "right" }}>3</TD>
-                      <TD className="mono3" style={{ textAlign: "right" }}>1</TD>
-                      <TD className="mono3">1,3,2</TD>
-                      <TD className="mono3" style={{ textAlign: "right" }}>88 197 664</TD>
-                    </TR>
-                    <TR>
-                      <TD colSpan={4} style={{ padding: "6px 10px", color: "var(--c-muted)", fontSize: "10.5px" }}>
+                      </TableCell>
+                      <TableCell className="mono3" style={{ textAlign: "right" }}>88 201 118</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="mono3" style={{ textAlign: "right" }}>3</TableCell>
+                      <TableCell className="mono3" style={{ textAlign: "right" }}>1</TableCell>
+                      <TableCell className="mono3">1,3,2</TableCell>
+                      <TableCell className="mono3" style={{ textAlign: "right" }}>88 197 664</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell colSpan={4} style={{ padding: "6px 10px", color: "var(--c-muted)", fontSize: "10.5px" }}>
                         {t("board.topics.kafka.morePartitions")}
-                      </TD>
-                    </TR>
-                  </TBody>
-                </MiniTable>
-              </Card>
-            </SheetBody>
-            <SheetFooter>
-              <Btn>{t("board.common.viewMessages")}</Btn>
-              <Btn>{t("board.topics.kafka.addPartitions")}</Btn>
-              <span style={{ flex: 1 }} />
-              <Btn variant="danger">{t("board.common.delete")}</Btn>
-            </SheetFooter>
-          </Sheet>
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </Panel>
+            </DetailPanelBody>
+            <DetailPanelFooter>
+              <Button variant="outline">{t("board.common.viewMessages")}</Button>
+              <Button variant="outline">{t("board.topics.kafka.addPartitions")}</Button>
+              <span className="flex-1" />
+              <Button variant="destructive">{t("board.common.delete")}</Button>
+            </DetailPanelFooter>
+          </DetailPanel>
         )}
       </ListArea>
     </Page>

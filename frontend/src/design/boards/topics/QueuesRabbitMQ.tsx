@@ -1,27 +1,29 @@
 import { useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { ListArea, ListPane, Page, PageHeader, SkeletonRows, Toolbar } from "@/design/shell";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import {
-  Btn,
-  Card,
-  Field,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  DetailPanel,
+  DetailPanelBody,
+  DetailPanelFooter,
+  DetailPanelHeader,
   KV,
+  Panel,
   ProtoBadge,
   SectionLabel,
   SelectField,
-  Sheet,
-  SheetBody,
-  SheetFooter,
-  SheetHeader,
   Status,
-  Sw,
-  Table,
-  TBody,
-  TD,
-  TH,
-  THead,
-  TR,
-} from "@/design/ui";
+} from "@/components";
 import { useTranslation } from "react-i18next";
 
 const SHEET_TABS = ["board.common.overview", "board.common.bindings", "board.common.consumers", "board.common.params"] as const;
@@ -43,81 +45,81 @@ export function QueuesRabbitMQ() {
       <PageHeader
         title={t("board.common.queue")}
         subtitle={t("board.topics.rabbitmq.queueSubtitle")}
-        actions={<Btn variant="primary">{t("board.topics.rabbitmq.newQueue")}</Btn>}
+        actions={<Button>{t("board.topics.rabbitmq.newQueue")}</Button>}
       />
       <Toolbar>
-        <Field style={{ flex: "0 0 220px" }} placeholder={t("board.topics.rabbitmq.searchQueue")} />
-        <SelectField value="vhost：/order" />
+        <Input className="w-[220px] flex-none" placeholder={t("board.topics.rabbitmq.searchQueue")} />
+        <SelectField value="/order" prefix="vhost：" options={[{ value: "/order" }]} />
         <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11.5px", color: "var(--c-mono-dim)" }}>
-          <Sw checked={backlogOnly} onCheckedChange={setBacklogOnly} label={t("board.topics.rabbitmq.backlogOnly")} />
+          <Switch checked={backlogOnly} onCheckedChange={setBacklogOnly} />
           {t("board.topics.rabbitmq.backlogOnly")}
         </span>
-        <span style={{ flex: 1 }} />
-        <SelectField value={t("board.topics.rabbitmq.sortByReady")} />
+        <span className="flex-1" />
+        <SelectField value="opt" options={[{ value: "opt", label: t("board.topics.rabbitmq.sortByReady") }]} />
       </Toolbar>
 
       <ListArea>
         <ListPane>
-          <Table className="inset">
-            <THead>
-              <TR>
-                <TH>{t("board.common.queue")}</TH>
-                <TH>{t("board.common.type")}</TH>
-                <TH style={{ textAlign: "right" }}>Ready</TH>
-                <TH style={{ textAlign: "right" }}>Unacked</TH>
-                <TH style={{ textAlign: "right" }}>{t("board.common.consumers")}</TH>
-                <TH style={{ textAlign: "right" }}>{t("board.topics.rabbitmq.inOutRate")}</TH>
-                <TH>{t("board.common.features")}</TH>
-              </TR>
-            </THead>
-            <TBody>
-              <TR selected={selected === "order.settle.q"} onClick={() => setSelected("order.settle.q")}>
-                <TD><b style={{ fontWeight: 500 }}>order.settle.q</b></TD>
-                <TD>quorum</TD>
-                <TD className="mono3" style={{ textAlign: "right", color: "var(--c-warn-text)" }}>982</TD>
-                <TD className="mono3" style={{ textAlign: "right" }}>14</TD>
-                <TD className="mono3" style={{ textAlign: "right" }}>4</TD>
-                <TD className="mono3" style={{ textAlign: "right" }}>1 104 / 1 010</TD>
-                <TD>
+          <Table inset>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t("board.common.queue")}</TableHead>
+                <TableHead>{t("board.common.type")}</TableHead>
+                <TableHead style={{ textAlign: "right" }}>Ready</TableHead>
+                <TableHead style={{ textAlign: "right" }}>Unacked</TableHead>
+                <TableHead style={{ textAlign: "right" }}>{t("board.common.consumers")}</TableHead>
+                <TableHead style={{ textAlign: "right" }}>{t("board.topics.rabbitmq.inOutRate")}</TableHead>
+                <TableHead>{t("board.common.features")}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow selected={selected === "order.settle.q"} onClick={() => setSelected("order.settle.q")}>
+                <TableCell><b style={{ fontWeight: 500 }}>order.settle.q</b></TableCell>
+                <TableCell>quorum</TableCell>
+                <TableCell className="mono3" style={{ textAlign: "right", color: "var(--c-warn-text)" }}>982</TableCell>
+                <TableCell className="mono3" style={{ textAlign: "right" }}>14</TableCell>
+                <TableCell className="mono3" style={{ textAlign: "right" }}>4</TableCell>
+                <TableCell className="mono3" style={{ textAlign: "right" }}>1 104 / 1 010</TableCell>
+                <TableCell>
                   <Status tone="off" style={TAG}>DLX</Status>{" "}
                   <Status tone="off" style={TAG}>TTL</Status>
-                </TD>
-              </TR>
-              <TR selected={selected === "order.notify.q"} onClick={() => setSelected("order.notify.q")}>
-                <TD>order.notify.q</TD>
-                <TD>classic</TD>
-                <TD className="mono3" style={{ textAlign: "right" }}>0</TD>
-                <TD className="mono3" style={{ textAlign: "right" }}>2</TD>
-                <TD className="mono3" style={{ textAlign: "right" }}>6</TD>
-                <TD className="mono3" style={{ textAlign: "right" }}>2 003 / 2 001</TD>
-                <TD><Status tone="off" style={TAG}>DLX</Status></TD>
-              </TR>
-              <TR selected={selected === "audit.pipeline.q"} onClick={() => setSelected("audit.pipeline.q")}>
-                <TD>audit.pipeline.q</TD>
-                <TD>stream</TD>
-                <TD className="mono3" style={{ textAlign: "right" }}>120</TD>
-                <TD className="mono3" style={{ textAlign: "right" }}>0</TD>
-                <TD className="mono3" style={{ textAlign: "right" }}>2</TD>
-                <TD className="mono3" style={{ textAlign: "right" }}>880 / 875</TD>
-                <TD />
-              </TR>
-              <TR selected={selected === "dlx.order.q"} onClick={() => setSelected("dlx.order.q")}>
-                <TD style={{ color: "var(--c-muted)" }}>dlx.order.q</TD>
-                <TD style={{ color: "var(--c-muted)" }}>classic</TD>
-                <TD className="mono3" style={{ textAlign: "right", color: "var(--c-err-text)" }}>37</TD>
-                <TD className="mono3" style={{ textAlign: "right", color: "var(--c-muted)" }}>0</TD>
-                <TD className="mono3" style={{ textAlign: "right", color: "var(--c-muted)" }}>0</TD>
-                <TD className="mono3" style={{ textAlign: "right", color: "var(--c-muted)" }}>0.2 / 0</TD>
-                <TD><Status tone="err" style={TAG}>{t("board.common.deadLetter")}</Status></TD>
-              </TR>
+                </TableCell>
+              </TableRow>
+              <TableRow selected={selected === "order.notify.q"} onClick={() => setSelected("order.notify.q")}>
+                <TableCell>order.notify.q</TableCell>
+                <TableCell>classic</TableCell>
+                <TableCell className="mono3" style={{ textAlign: "right" }}>0</TableCell>
+                <TableCell className="mono3" style={{ textAlign: "right" }}>2</TableCell>
+                <TableCell className="mono3" style={{ textAlign: "right" }}>6</TableCell>
+                <TableCell className="mono3" style={{ textAlign: "right" }}>2 003 / 2 001</TableCell>
+                <TableCell><Status tone="off" style={TAG}>DLX</Status></TableCell>
+              </TableRow>
+              <TableRow selected={selected === "audit.pipeline.q"} onClick={() => setSelected("audit.pipeline.q")}>
+                <TableCell>audit.pipeline.q</TableCell>
+                <TableCell>stream</TableCell>
+                <TableCell className="mono3" style={{ textAlign: "right" }}>120</TableCell>
+                <TableCell className="mono3" style={{ textAlign: "right" }}>0</TableCell>
+                <TableCell className="mono3" style={{ textAlign: "right" }}>2</TableCell>
+                <TableCell className="mono3" style={{ textAlign: "right" }}>880 / 875</TableCell>
+                <TableCell />
+              </TableRow>
+              <TableRow selected={selected === "dlx.order.q"} onClick={() => setSelected("dlx.order.q")}>
+                <TableCell style={{ color: "var(--c-muted)" }}>dlx.order.q</TableCell>
+                <TableCell style={{ color: "var(--c-muted)" }}>classic</TableCell>
+                <TableCell className="mono3" style={{ textAlign: "right", color: "var(--c-err-text)" }}>37</TableCell>
+                <TableCell className="mono3" style={{ textAlign: "right", color: "var(--c-muted)" }}>0</TableCell>
+                <TableCell className="mono3" style={{ textAlign: "right", color: "var(--c-muted)" }}>0</TableCell>
+                <TableCell className="mono3" style={{ textAlign: "right", color: "var(--c-muted)" }}>0.2 / 0</TableCell>
+                <TableCell><Status tone="err" style={TAG}>{t("board.common.deadLetter")}</Status></TableCell>
+              </TableRow>
               <SkeletonRows colSpan={7} widths={["74%", "60%"]} />
-            </TBody>
+            </TableBody>
           </Table>
         </ListPane>
 
         {selected != null && (
-          <Sheet width={370} onDismiss={() => setSelected(null)}>
-            <SheetHeader
+          <DetailPanel width={370} onDismiss={() => setSelected(null)}>
+            <DetailPanelHeader
               title={selected}
               badge={<ProtoBadge protocol="rabbitmq" label="quorum" />}
               tabs={SHEET_TABS.map((id) => ({ id, label: t(id) }))}
@@ -125,18 +127,18 @@ export function QueuesRabbitMQ() {
               onTabChange={setTab}
               onClose={() => setSelected(null)}
             />
-            <SheetBody>
+            <DetailPanelBody>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-                <Card style={{ padding: "9px 12px" }}>
+                <Panel style={{ padding: "9px 12px" }}>
                   <div style={{ fontSize: "10.5px", color: "var(--c-muted)" }}>Ready</div>
                   <div className="mono3" style={{ fontSize: "16px", fontWeight: 600, marginTop: "2px", color: "var(--c-warn-text)" }}>
                     982
                   </div>
-                </Card>
-                <Card style={{ padding: "9px 12px" }}>
+                </Panel>
+                <Panel style={{ padding: "9px 12px" }}>
                   <div style={{ fontSize: "10.5px", color: "var(--c-muted)" }}>Unacked</div>
                   <div className="mono3" style={{ fontSize: "16px", fontWeight: 600, marginTop: "2px" }}>14</div>
-                </Card>
+                </Panel>
               </div>
 
               <KV
@@ -150,7 +152,7 @@ export function QueuesRabbitMQ() {
 
               <div>
                 <SectionLabel style={{ marginBottom: "6px" }}>{t("board.common.bindings")}</SectionLabel>
-                <Card
+                <Panel
                   style={{
                     padding: "9px 12px",
                     display: "flex",
@@ -161,16 +163,16 @@ export function QueuesRabbitMQ() {
                 >
                   <BindingRow routingKey="order.created" />
                   <BindingRow routingKey="order.updated" />
-                </Card>
+                </Panel>
               </div>
-            </SheetBody>
-            <SheetFooter>
-              <Btn>{t("board.topics.rabbitmq.browseHead")}</Btn>
-              <span style={{ flex: 1 }} />
-              <Btn variant="danger">{t("board.common.purge")}</Btn>
-              <Btn variant="danger">{t("board.common.delete")}</Btn>
-            </SheetFooter>
-          </Sheet>
+            </DetailPanelBody>
+            <DetailPanelFooter>
+              <Button variant="outline">{t("board.topics.rabbitmq.browseHead")}</Button>
+              <span className="flex-1" />
+              <Button variant="destructive">{t("board.common.purge")}</Button>
+              <Button variant="destructive">{t("board.common.delete")}</Button>
+            </DetailPanelFooter>
+          </DetailPanel>
         )}
       </ListArea>
     </Page>
