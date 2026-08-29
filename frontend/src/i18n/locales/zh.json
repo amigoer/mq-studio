@@ -753,195 +753,6 @@
     "validateRequired": "请填写{{field}}",
     "validateField": "{{field}} 格式不正确"
   },
-  "settings": {
-    "title": "设置",
-    "autoSaved": "所有更改自动保存",
-    "loading": "加载中…",
-    "section": {
-      "appearance": {
-        "label": "外观",
-        "subtitle": "主题与界面动效"
-      },
-      "general": {
-        "label": "通用",
-        "subtitle": "语言、连接与默认行为"
-      },
-      "fonts": {
-        "label": "字体与显示",
-        "subtitle": "字号、字体与时间格式"
-      },
-      "message": {
-        "label": "消息查询",
-        "subtitle": "默认查询与告警参数"
-      },
-      "proxy": {
-        "label": "代理与网络",
-        "subtitle": "代理、超时与默认凭证"
-      },
-      "data": {
-        "label": "数据与备份",
-        "subtitle": "导入导出、数据目录与缓存"
-      },
-      "about": {
-        "label": "关于",
-        "subtitle": "版本与项目信息"
-      }
-    },
-    "appearance": {
-      "theme": "主题",
-      "themes": {
-        "light": "浅色",
-        "lightDesc": "默认",
-        "dark": "深色",
-        "darkDesc": "护眼",
-        "system": "跟随系统",
-        "systemDesc": "自动切换"
-      },
-      "a11y": "动效与可访问性",
-      "animations": "界面过渡动画",
-      "animationsHint": "页面切换、面板展开等过渡效果"
-    },
-    "general": {
-      "languageRegion": "语言与区域",
-      "language": "界面语言",
-      "languageHint": "切换后立即生效",
-      "timezone": "时区",
-      "timezoneHint": "影响列表与详情中的时间显示",
-      "tzLocal": "本地时间",
-      "tzUtc": "UTC",
-      "startup": "启动行为",
-      "autoConnect": "启动时自动连接上次集群",
-      "autoConnectHint": "启动应用后自动连接上次使用的集群",
-      "autoCheckUpdate": "自动检查更新",
-      "autoCheckUpdateHint": "启动后及每 24 小时向 GitHub 查询是否有新版本，仅发送当前版本号",
-      "window": "窗口行为",
-      "closeBehavior": "关闭主窗口时",
-      "closeBehaviorHint": "最小化到托盘后应用继续在后台采集吞吐数据，可从菜单栏图标唤回或退出",
-      "closeBehaviorTray": "最小化到系统托盘",
-      "closeBehaviorQuit": "退出应用"
-    },
-    "fonts": {
-      "fontsTypography": "字体与排版",
-      "fontSize": "界面字号",
-      "fontSizeHint": "影响整个应用的基础字号",
-      "uiFont": "界面字体",
-      "uiFontHint": "默认使用系统 UI 字体",
-      "monospaceFont": "等宽字体",
-      "monospaceFontHint": "用于消息体、ID、JSON 显示",
-      "systemDefault": "系统默认",
-      "timeDisplay": "时间显示",
-      "timeFormat": "时间格式",
-      "timeFormatHint": "影响列表与详情中的时间显示",
-      "tsDatetime": "YYYY-MM-DD HH:mm:ss",
-      "tsMs": "毫秒时间戳",
-      "preview": "预览",
-      "previewSample": "示例文本：MQ Studio · RocketMQ 桌面客户端 ABCDabcd 1234"
-    },
-    "message": {
-      "defaults": "消息查询默认值",
-      "fetchLimit": "单页拉取数量",
-      "fetchLimitHint": "每次查询 Topic、消费组的数量上限",
-      "fetchUnit": "{{count}} 条",
-      "autoFormatJson": "JSON 自动格式化",
-      "autoFormatJsonHint": "查看消息时自动美化 JSON 内容",
-      "payloadLimit": "消息截断阈值",
-      "payloadLimitHint": "超过此大小的消息内容将被截断显示",
-      "alertThresholds": "告警阈值",
-      "lagAlert": "消费积压告警",
-      "lagAlertHint": "当消费组堆积消息超过此值时显示告警，设为 0 关闭",
-      "lagAlertUnit": "条",
-      "diskAlert": "磁盘水位告警",
-      "diskAlertHint": "CommitLog 磁盘使用率达到此百分比时告警，设为 0 关闭",
-      "diskAlertUnit": "%",
-      "desktopNotifications": "系统通知",
-      "desktopNotificationsHint": "出现新告警时发送桌面通知（需系统授权）"
-    },
-    "proxy": {
-      "timeout": "连接超时",
-      "connect": "连接超时",
-      "connectHint": "建立 NameServer 连接的最大等待时间",
-      "request": "请求超时",
-      "requestHint": "查询 Topic、消费组等操作的超时时间",
-      "credentials": "默认凭证",
-      "credentialsConfigured": "已配置",
-      "credentialsNotConfigured": "未配置",
-      "credentialsReplacePlaceholder": "留空保持原凭证",
-      "credentialsPairRequired": "AccessKey 和 SecretKey 必须同时填写",
-      "credentialsSaved": "默认凭证已保存",
-      "credentialsSaveError": "默认凭证保存失败",
-      "credentialsCleared": "默认凭证已清除",
-      "credentialsClearError": "默认凭证清除失败",
-      "saveCredentials": "保存凭证",
-      "replaceCredentials": "替换凭证",
-      "clearCredentials": "清除凭证",
-      "ak": "默认 AccessKey",
-      "akHint": "连接未单独开启 ACL 时，自动用此凭证鉴权",
-      "sk": "默认 SecretKey",
-      "skHint": "加密存储于本地；连接级 ACL 优先",
-      "skipTls": "跳过 TLS 校验",
-      "skipTlsHint": "当前 Admin 客户端不支持 TLS 选项",
-      "httpProxy": "HTTP 代理",
-      "enable": "启用代理",
-      "enableHint": "当前 Admin 客户端不支持 HTTP/SOCKS 代理",
-      "type": "代理类型",
-      "host": "代理地址",
-      "port": "代理端口",
-      "portRangeError": "端口范围 1-65535",
-      "disabledNote": "未启用代理，连接将直连 NameServer。",
-      "akPlaceholder": "AccessKey",
-      "skPlaceholder": "SecretKey",
-      "advanced": "高级（暂未支持）",
-      "notAvailable": "暂未支持",
-      "unsupportedNote": "代理与 TLS 跳过依赖底层 Admin 客户端能力，当前版本尚未接入。默认 AccessKey/SecretKey 已生效：连接未启用 ACL 时会自动使用。"
-    },
-    "data": {
-      "storage": "数据存储位置",
-      "clickToCopy": "点击复制",
-      "copySuccess": "已复制路径",
-      "copyError": "复制失败",
-      "ioSection": "导入与导出",
-      "exportTitle": "导出全部配置",
-      "exportHint": "导出连接、ACL、应用设置；文件包含明文凭据，请妥善保管",
-      "exportConfirmTitle": "导出包含敏感凭据的配置？",
-      "exportConfirmDesc": "导出文件将包含明文 AccessKey 和 SecretKey，以支持跨设备迁移。请仅保存到可信位置并限制文件访问权限。",
-      "importTitle": "导入配置",
-      "importHint": "从 JSON 文件恢复并立即重新加载连接与设置",
-      "exportSuccess": "配置已导出",
-      "exportError": "导出配置失败",
-      "importSuccess": "配置已导入并生效",
-      "importError": "导入配置失败",
-      "cleanup": "清理",
-      "clearCache": "清理缓存",
-      "clearCacheHint": "清除本地的查询、消息缓存数据",
-      "clearCacheConfirmTitle": "清理缓存",
-      "clearCacheConfirmDesc": "确定要清理所有缓存数据吗？此操作不可撤销。",
-      "clearCacheSuccess": "缓存已清理",
-      "clearCacheError": "清理缓存失败"
-    },
-    "about": {
-      "descriptionZh": "本地优先的 RocketMQ 桌面客户端，无需额外部署控制台，即可管理集群、Topic、消费者与消息。",
-      "descriptionEn": "A local-first desktop client for RocketMQ. Manage clusters, topics, consumers, and messages without deploying a separate console.",
-      "versionUnavailable": "版本不可用",
-      "checkUpdate": "检查更新",
-      "checkingUpdate": "检查中…",
-      "updateBadge": "新版本 v{{version}}",
-      "upToDate": "已是最新版本 v{{version}}",
-      "updateAvailable": "发现新版本 v{{version}}",
-      "updateAvailableHint": "可前往 Releases 下载",
-      "aheadOfRelease": "当前 v{{current}} 新于线上 v{{latest}}",
-      "updateCheckFailed": "无法检查更新",
-      "openReleasesHint": "可手动打开 Releases 页面",
-      "openReleases": "打开 Releases",
-      "openIssue": "提交 Issue",
-      "resetTitle": "恢复默认设置",
-      "resetHint": "将所有设置恢复为初始值（不影响连接）",
-      "reset": "恢复默认",
-      "resetConfirmTitle": "恢复默认设置",
-      "resetConfirmDesc": "确定要将所有设置恢复为默认值吗？当前的自定义设置将全部丢失。",
-      "resetSuccess": "已恢复默认设置",
-      "resetError": "恢复默认设置失败"
-    }
-  },
   "mq": {
     "common": {
       "terms": {
@@ -1456,7 +1267,14 @@
         "referenceHint": "设计稿 3h / 4d / 5c，说明各页面按协议如何裁剪",
         "capability": "能力矩阵",
         "reuse": "复用策略",
-        "navModel": "导航模型"
+        "navModel": "导航模型",
+        "updateAvailable": "发现新版本 v{{version}}",
+        "updateAvailableHint": "可前往 Releases 下载",
+        "openReleases": "打开 Releases",
+        "openReleasesHint": "可手动打开 Releases 页面",
+        "aheadOfRelease": "当前 v{{current}} 新于线上 v{{latest}}",
+        "upToDate": "已是最新版本 v{{version}}",
+        "updateCheckFailed": "无法检查更新"
       }
     }
   }

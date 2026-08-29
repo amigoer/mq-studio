@@ -142,15 +142,15 @@ function useUpdateCheckState(): UpdateCheckContextValue {
         // One toast per release: someone who is not ready to upgrade should not
         // be asked again on every launch. The sidebar marker carries it on.
         toast.info(
-          translate.current("settings.about.updateAvailable", {
+          translate.current("page.settings.about.updateAvailable", {
             version: result.latestVersion,
           }),
           {
             description: translate.current(
-              "settings.about.updateAvailableHint",
+              "page.settings.about.updateAvailableHint",
             ),
             action: {
-              label: translate.current("settings.about.openReleases"),
+              label: translate.current("page.settings.about.openReleases"),
               onClick: () => void openExternal(RELEASES_URL).catch(() => {}),
             },
           },
@@ -212,31 +212,31 @@ export function useUpdateCheckAction(): { check: () => Promise<void>; checking: 
     inFlight.current = true;
     setChecking(true);
     const openReleases = {
-      label: t("settings.about.openReleases"),
+      label: t("page.settings.about.openReleases"),
       onClick: () => void openExternal(RELEASES_URL).catch(() => {}),
     };
     try {
       const { result } = await refresh();
       if (result.status === "available") {
-        toast.info(t("settings.about.updateAvailable", { version: result.latestVersion }), {
-          description: t("settings.about.updateAvailableHint"),
+        toast.info(t("page.settings.about.updateAvailable", { version: result.latestVersion }), {
+          description: t("page.settings.about.updateAvailableHint"),
           action: openReleases,
         });
       } else if (result.status === "ahead") {
         // A local build newer than the latest release: neither stale nor an update.
         toast.info(
-          t("settings.about.aheadOfRelease", {
+          t("page.settings.about.aheadOfRelease", {
             current: result.currentVersion,
             latest: result.latestVersion,
           }),
         );
       } else {
-        toast.success(t("settings.about.upToDate", { version: result.currentVersion }));
+        toast.success(t("page.settings.about.upToDate", { version: result.currentVersion }));
       }
       markSeen();
     } catch {
-      toast.error(t("settings.about.updateCheckFailed"), {
-        description: t("settings.about.openReleasesHint"),
+      toast.error(t("page.settings.about.updateCheckFailed"), {
+        description: t("page.settings.about.openReleasesHint"),
         action: openReleases,
       });
     } finally {

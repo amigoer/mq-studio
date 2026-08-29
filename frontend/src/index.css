@@ -1,144 +1,33 @@
+/*
+ * Tailwind is here for its preflight alone: the design layer sets every colour
+ * and measurement itself and uses no utility class, but it does assume the
+ * reset -- `box-sizing: border-box` above all, which every drawn px depends on.
+ */
 @import 'tailwindcss';
-@import './styles/app.css';
 @import './design/tokens.css';
 
 @config "../tailwind.config.js";
 
-@layer base {
-  /*
-   * Pure-white desktop shell (newapi / shadcn-inspired).
-   * Hierarchy:
-   *   --background  pure white canvas
-   *   --card        pure white elevated surfaces
-   *   --muted       near-white for subtle fills only
-   *   --border      very light hairline
-   */
-  :root {
-    --app-font-size: 13px;
-    --app-monospace-font: 'JetBrains Mono';
-
-    --background: 0 0% 100%;
-    --foreground: 0 0% 9%;
-
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 9%;
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 9%;
-
-    --primary: 0 0% 9%;
-    --primary-foreground: 0 0% 100%;
-
-    --secondary: 0 0% 98%;
-    --secondary-foreground: 0 0% 9%;
-
-    --muted: 0 0% 98%;
-    --muted-foreground: 0 0% 40%;
-
-    --accent: 0 0% 97%;
-    --accent-foreground: 0 0% 9%;
-
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 0 0% 100%;
-
-    /*
-     * --brand is the accent: selected navigation, a switch that is on, a data
-     * bar. --success stays green and means exactly one thing, that something
-     * is connected or succeeded. They shared a token before, which is why the
-     * accent could not be changed without recolouring every online indicator.
-     */
-    --brand: 236 40% 46%;
-    --brand-foreground: 0 0% 100%;
-
-    --success: 152 55% 36%;
-    --success-foreground: 0 0% 100%;
-
-    --warning: 32 95% 44%;
-    --warning-foreground: 0 0% 100%;
-
-    --info: 217 91% 50%;
-    --info-foreground: 0 0% 100%;
-
-    --border: 0 0% 92%;
-    --input: 0 0% 92%;
-    --ring: 0 0% 9%;
-    --radius: 0.75rem;
-
-    --sidebar-active: 0 0% 96%;
-  }
-
-  .dark {
-    --background: 0 0% 7%;
-    --foreground: 0 0% 98%;
-
-    --card: 0 0% 9%;
-    --card-foreground: 0 0% 98%;
-
-    --popover: 0 0% 9%;
-    --popover-foreground: 0 0% 98%;
-
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
-
-    --secondary: 0 0% 12%;
-    --secondary-foreground: 0 0% 98%;
-
-    --muted: 0 0% 12%;
-    --muted-foreground: 0 0% 64%;
-
-    --accent: 0 0% 14%;
-    --accent-foreground: 0 0% 98%;
-
-    --destructive: 0 62% 50%;
-    --destructive-foreground: 0 0% 100%;
-
-    --brand: 237 58% 71%;
-    --brand-foreground: 0 0% 9%;
-
-    --success: 152 50% 40%;
-    --success-foreground: 0 0% 100%;
-
-    --warning: 32 90% 48%;
-    --warning-foreground: 0 0% 100%;
-
-    --info: 217 80% 58%;
-    --info-foreground: 0 0% 100%;
-
-    --border: 0 0% 16%;
-    --input: 0 0% 16%;
-    --ring: 0 0% 84%;
-
-    --sidebar-active: 0 0% 14%;
-  }
-
-  * {
-    border-color: hsl(var(--border));
-  }
-}
-
-html {
-  font-size: var(--app-font-size);
+/*
+ * The document behind the shell. `.m3` fills it and paints its own ground, so
+ * what is left here is only what the shell cannot set from inside itself.
+ */
+html,
+body,
+#root {
+  height: 100%;
+  background: var(--c-bg);
 }
 
 body {
   margin: 0;
-  /*
-   * Percentages, not vh: the UI scale zooms the document and viewport units are
-   * not scaled with it, so `100vh` would stand a scaled-up shell taller than the
-   * window and let the title bar scroll away.
-   */
-  min-height: 100%;
-  background: hsl(var(--background));
-  color: hsl(var(--foreground));
+  color: var(--c-fg);
   font-family: var(
     --app-ui-font,
     -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    Roboto,
-    'Helvetica Neue',
-    Arial,
-    'Noto Sans',
+    'PingFang SC',
+    'Microsoft YaHei',
+    system-ui,
     sans-serif
   );
   -webkit-font-smoothing: antialiased;
@@ -152,9 +41,13 @@ body {
   user-select: text;
 }
 
-/* App chrome and controls: not selectable, so drags and clicks never start a selection. */
-.mqs-title-bar,
-.mqs-title-bar *,
+#root {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* Chrome and controls: not selectable, so a drag never starts a selection. */
 button,
 [role='tab'],
 [role='menuitem'],
@@ -166,82 +59,7 @@ th {
   user-select: none;
 }
 
-#root {
-  min-height: 100%;
-  background: hsl(var(--background));
-}
-
-/*
- * Client-app style: no browser blue, but the highlight still has to be
- * clearly visible on a pure-white canvas. Only the background is set so
- * selected text keeps whatever colour it already had.
- */
+/* Client-app style: no browser blue, but still clearly visible on either ground. */
 ::selection {
-  background: hsl(var(--brand) / 0.22);
-}
-.dark ::selection {
-  background: hsl(var(--brand) / 0.32);
-}
-
-/* Local thin scrollbars */
-@supports (scrollbar-width: thin) {
-  .scroll-thin {
-    scrollbar-width: thin;
-    scrollbar-color: hsl(var(--border)) transparent;
-  }
-}
-
-.scroll-thin::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-.scroll-thin::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.scroll-thin::-webkit-scrollbar-thumb {
-  background: hsl(var(--border));
-  border-radius: 999px;
-}
-
-/* Sonner — pure white cards */
-[data-sonner-toaster] [data-sonner-toast] {
-  background: hsl(var(--card)) !important;
-  border: 1px solid hsl(var(--border)) !important;
-  color: hsl(var(--foreground)) !important;
-  box-shadow:
-    0 8px 30px hsl(0 0% 0% / 0.06),
-    0 1px 2px hsl(0 0% 0% / 0.04) !important;
-  border-radius: calc(var(--radius) + 2px) !important;
-}
-[data-sonner-toast][data-type='success'] [data-icon] svg {
-  color: hsl(var(--success)) !important;
-}
-[data-sonner-toast][data-type='error'] [data-icon] svg {
-  color: hsl(var(--destructive)) !important;
-}
-[data-sonner-toast][data-type='warning'] [data-icon] svg {
-  color: hsl(var(--warning)) !important;
-}
-[data-sonner-toast][data-type='info'] [data-icon] svg {
-  color: hsl(var(--info)) !important;
-}
-
-/*
- * Design-canvas shell. The canvas is light-only and `.m3` paints its own white
- * ground, so the document behind it must not follow the OS dark theme, and the
- * root has to be a full-height flex column for the shell to fill the window.
- */
-html,
-body,
-#root {
-  height: 100%;
-  background: var(--c-bg);
-}
-
-#root {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
+  background: var(--c-selection);
 }

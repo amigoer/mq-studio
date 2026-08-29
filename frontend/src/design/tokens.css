@@ -108,6 +108,9 @@
 
   /* the scrim a modal lays over the window */
   --c-scrim: rgba(23, 23, 23, 0.32);
+
+  /* Selected text. Only the ground is set, so the text keeps its own colour. */
+  --c-selection: rgba(23, 23, 23, 0.16);
 }
 
 /*
@@ -168,6 +171,7 @@
 
   /* Black rather than the ink: over a dark window, a lighter scrim lifts. */
   --c-scrim: rgba(0, 0, 0, 0.55);
+  --c-selection: rgba(250, 250, 250, 0.22);
 }
 
 /* title bar */

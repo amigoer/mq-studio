@@ -753,195 +753,6 @@
     "validateRequired": "{{field}} is required",
     "validateField": "{{field}} is not valid"
   },
-  "settings": {
-    "title": "Settings",
-    "autoSaved": "All changes saved automatically",
-    "loading": "Loading…",
-    "section": {
-      "appearance": {
-        "label": "Appearance",
-        "subtitle": "Theme and motion preferences"
-      },
-      "general": {
-        "label": "General",
-        "subtitle": "Language, connection and defaults"
-      },
-      "fonts": {
-        "label": "Fonts & display",
-        "subtitle": "Font size, family and time format"
-      },
-      "message": {
-        "label": "Messages",
-        "subtitle": "Default query and alert thresholds"
-      },
-      "proxy": {
-        "label": "Proxy & network",
-        "subtitle": "Proxy, timeouts and default credentials"
-      },
-      "data": {
-        "label": "Data & backup",
-        "subtitle": "Import/export, data folder and cache"
-      },
-      "about": {
-        "label": "About",
-        "subtitle": "Version and project info"
-      }
-    },
-    "appearance": {
-      "theme": "Theme",
-      "themes": {
-        "light": "Light",
-        "lightDesc": "Default",
-        "dark": "Dark",
-        "darkDesc": "Easy on eyes",
-        "system": "System",
-        "systemDesc": "Auto switch"
-      },
-      "a11y": "Animations & accessibility",
-      "animations": "Interface animations",
-      "animationsHint": "Page transitions, panel open/close, etc."
-    },
-    "general": {
-      "languageRegion": "Language & region",
-      "language": "Interface language",
-      "languageHint": "Applied immediately",
-      "timezone": "Timezone",
-      "timezoneHint": "Affects timestamps in lists and details",
-      "tzLocal": "Local time",
-      "tzUtc": "UTC",
-      "startup": "Startup behavior",
-      "autoConnect": "Auto-connect on launch",
-      "autoConnectHint": "Reconnect to the last cluster on app start",
-      "autoCheckUpdate": "Check for updates automatically",
-      "autoCheckUpdateHint": "Ask GitHub for a newer release on start and every 24 hours, sending only the current version",
-      "window": "Window behavior",
-      "closeBehavior": "When the main window closes",
-      "closeBehaviorHint": "Minimising keeps collecting throughput data in the background; reopen or quit from the tray icon",
-      "closeBehaviorTray": "Minimise to system tray",
-      "closeBehaviorQuit": "Quit the application"
-    },
-    "fonts": {
-      "fontsTypography": "Fonts & typography",
-      "fontSize": "Interface font size",
-      "fontSizeHint": "Base font size for the entire app",
-      "uiFont": "Interface font",
-      "uiFontHint": "Defaults to the system UI font",
-      "monospaceFont": "Monospace font",
-      "monospaceFontHint": "Used for message bodies, IDs and JSON",
-      "systemDefault": "System default",
-      "timeDisplay": "Time display",
-      "timeFormat": "Time format",
-      "timeFormatHint": "Affects timestamps in lists and details",
-      "tsDatetime": "YYYY-MM-DD HH:mm:ss",
-      "tsMs": "Milliseconds",
-      "preview": "Preview",
-      "previewSample": "Sample: MQ Studio · RocketMQ desktop client. ABCDabcd 1234"
-    },
-    "message": {
-      "defaults": "Query defaults",
-      "fetchLimit": "Page size",
-      "fetchLimitHint": "Max items fetched per topic/consumer query",
-      "fetchUnit": "{{count}} items",
-      "autoFormatJson": "Auto-format JSON",
-      "autoFormatJsonHint": "Beautify JSON when viewing messages",
-      "payloadLimit": "Truncate threshold",
-      "payloadLimitHint": "Messages exceeding this size will be truncated",
-      "alertThresholds": "Alert thresholds",
-      "lagAlert": "Consumer lag alert",
-      "lagAlertHint": "Show alert when group lag exceeds this value. 0 disables.",
-      "lagAlertUnit": "msgs",
-      "diskAlert": "Disk usage alert",
-      "diskAlertHint": "Alert when CommitLog disk usage reaches this percent. 0 disables.",
-      "diskAlertUnit": "%",
-      "desktopNotifications": "Desktop notifications",
-      "desktopNotificationsHint": "Notify when new alerts appear (requires OS permission)"
-    },
-    "proxy": {
-      "timeout": "Timeouts",
-      "connect": "Connect timeout",
-      "connectHint": "Max wait for the NameServer connection",
-      "request": "Request timeout",
-      "requestHint": "Timeout for topic, consumer and other queries",
-      "credentials": "Default credentials",
-      "credentialsConfigured": "Configured",
-      "credentialsNotConfigured": "Not configured",
-      "credentialsReplacePlaceholder": "Leave blank to keep current value",
-      "credentialsPairRequired": "AccessKey and SecretKey are both required",
-      "credentialsSaved": "Default credentials saved",
-      "credentialsSaveError": "Failed to save default credentials",
-      "credentialsCleared": "Default credentials cleared",
-      "credentialsClearError": "Failed to clear default credentials",
-      "saveCredentials": "Save credentials",
-      "replaceCredentials": "Replace credentials",
-      "clearCredentials": "Clear credentials",
-      "ak": "Default AccessKey",
-      "akHint": "Used when a connection has ACL disabled",
-      "sk": "Default SecretKey",
-      "skHint": "Encrypted at rest; per-connection ACL wins when set",
-      "skipTls": "Skip TLS verification",
-      "skipTlsHint": "Not supported by the current Admin client",
-      "httpProxy": "HTTP proxy",
-      "enable": "Enable proxy",
-      "enableHint": "HTTP/SOCKS proxy is not supported by the Admin client yet",
-      "type": "Proxy type",
-      "host": "Proxy host",
-      "port": "Proxy port",
-      "portRangeError": "Port must be 1–65535",
-      "disabledNote": "Proxy is disabled. Connections go directly to the NameServer.",
-      "akPlaceholder": "AccessKey",
-      "skPlaceholder": "SecretKey",
-      "advanced": "Advanced (not available)",
-      "notAvailable": "Not available",
-      "unsupportedNote": "Proxy and TLS skip need Admin client support that is not wired yet. Default AccessKey/SecretKey already work when a connection has ACL off."
-    },
-    "data": {
-      "storage": "Data storage location",
-      "clickToCopy": "Click to copy",
-      "copySuccess": "Path copied",
-      "copyError": "Copy failed",
-      "ioSection": "Import & export",
-      "exportTitle": "Export all configuration",
-      "exportHint": "Export connections, ACL and settings. The file contains plaintext credentials; keep it secure",
-      "exportConfirmTitle": "Export configuration with credentials?",
-      "exportConfirmDesc": "The export contains plaintext AccessKey and SecretKey values for cross-device migration. Save it only to a trusted location with restricted access.",
-      "importTitle": "Import configuration",
-      "importHint": "Restore from JSON and reload connections and settings immediately",
-      "exportSuccess": "Configuration exported",
-      "exportError": "Export failed",
-      "importSuccess": "Configuration imported and applied",
-      "importError": "Import failed",
-      "cleanup": "Cleanup",
-      "clearCache": "Clear cache",
-      "clearCacheHint": "Remove local query and message cache",
-      "clearCacheConfirmTitle": "Clear cache",
-      "clearCacheConfirmDesc": "Clear all cached data? This cannot be undone.",
-      "clearCacheSuccess": "Cache cleared",
-      "clearCacheError": "Clear cache failed"
-    },
-    "about": {
-      "descriptionZh": "本地优先的 RocketMQ 桌面客户端，无需额外部署控制台，即可管理集群、Topic、消费者与消息。",
-      "descriptionEn": "A local-first desktop client for RocketMQ. Manage clusters, topics, consumers, and messages without deploying a separate console.",
-      "versionUnavailable": "Version unavailable",
-      "checkUpdate": "Check for updates",
-      "checkingUpdate": "Checking…",
-      "updateBadge": "v{{version}} available",
-      "upToDate": "You are on the latest version v{{version}}",
-      "updateAvailable": "Update available: v{{version}}",
-      "updateAvailableHint": "Open Releases to download",
-      "aheadOfRelease": "Local v{{current}} is newer than published v{{latest}}",
-      "updateCheckFailed": "Could not check for updates",
-      "openReleasesHint": "You can open the Releases page manually",
-      "openReleases": "Open Releases",
-      "openIssue": "Open issue",
-      "resetTitle": "Reset to defaults",
-      "resetHint": "Reset all settings to defaults (does not affect connections)",
-      "reset": "Reset",
-      "resetConfirmTitle": "Reset to defaults",
-      "resetConfirmDesc": "Reset all settings to defaults? Custom values will be lost.",
-      "resetSuccess": "Settings reset to defaults",
-      "resetError": "Reset failed"
-    }
-  },
   "mq": {
     "common": {
       "terms": {
@@ -1456,7 +1267,14 @@
         "referenceHint": "Boards 3h / 4d / 5c, on how each page is cut down per protocol",
         "capability": "Capability matrix",
         "reuse": "Reuse strategy",
-        "navModel": "Navigation model"
+        "navModel": "Navigation model",
+        "updateAvailable": "Update available: v{{version}}",
+        "updateAvailableHint": "Open Releases to download",
+        "openReleases": "Open Releases",
+        "openReleasesHint": "You can open the Releases page manually",
+        "aheadOfRelease": "Local v{{current}} is newer than published v{{latest}}",
+        "upToDate": "You are on the latest version v{{version}}",
+        "updateCheckFailed": "Could not check for updates"
       }
     }
   }
