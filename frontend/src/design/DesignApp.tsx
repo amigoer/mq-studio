@@ -86,7 +86,8 @@ export function DesignApp(): JSX.Element {
   // The marker stays lit for as long as an update is pending: it is a state,
   // not a notification, and it clears itself when the update is taken or
   // skipped.
-  const { available: updateAvailable, check: checkUpdate } = useUpdater();
+  const { available: updateAvailable, checking: updateChecking, check: checkUpdate } =
+    useUpdater();
   const [alertsRead, setAlertsRead] = useState(false);
 
   // Applied to the document, not to this tree: every board is drawn in absolute
@@ -368,6 +369,7 @@ export function DesignApp(): JSX.Element {
           homeActive={atHome}
           splitActive={view.kind === "split"}
           dimmed={connections.length === 0}
+          refreshing={updateChecking}
           updateReady={updateAvailable != null}
           onHome={() => goto({ kind: "connections" })}
           onSearch={() => setPaletteOpen(true)}

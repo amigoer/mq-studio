@@ -242,12 +242,18 @@
   border-color: var(--c-fg);
 }
 /*
- * 检查更新 turns its icon one full circle per click. The angle only ever grows,
- * so a click landing mid-turn retargets the running transition rather than
- * snapping the icon back to zero.
+ * 检查更新 turns its icon for as long as the check is in flight. TitleBar drops
+ * the class on an iteration boundary rather than the moment the answer lands,
+ * so the icon always comes to rest upright and a check answered in 50ms still
+ * reads as a turn instead of a twitch.
  */
-.mqs-refresh {
-  transition: transform var(--mo-turn) cubic-bezier(0.4, 0, 0.2, 1);
+.mqs-refresh.on {
+  animation: mqs-turn var(--mo-turn) linear infinite;
+}
+@keyframes mqs-turn {
+  to {
+    transform: rotate(360deg);
+  }
 }
 /*
  * Window buttons, off darwin only (see WindowControls). They act on the window

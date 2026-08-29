@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Bell, Columns2, RefreshCw, Settings } from "lucide-react";
 import { SiGithub } from "react-icons/si";
@@ -50,6 +50,7 @@ export function TitleBar({
   homeActive,
   splitActive,
   dimmed = false,
+  refreshing = false,
   updateReady = false,
   notifications = 0,
   onHome,
@@ -66,6 +67,8 @@ export function TitleBar({
   splitActive?: boolean;
   /** 8b: with no connections the search and notification affordances read as inert. */
   dimmed?: boolean;
+  /** True while the update check the button starts is still out. */
+  refreshing?: boolean;
   updateReady?: boolean;
   /** Unread alerts. The canvas draws the mark on 检查更新 only; the bell earns
    *  the same one, or the count is only readable by opening the popover. */
@@ -81,11 +84,18 @@ export function TitleBar({
   const { t } = useTranslation();
   const mac = isMac();
   /*
-   * The update icon turns one full circle per click. Counting turns instead of
-   * toggling an animation class lets a click landing mid-turn carry the icon on
-   * from where it is, with no jump back to zero.
+   * The update icon turns while the check is out, not for a fixed circle per
+   * click: a spin that ends before the answer does is theatre. It outlives the
+   * answer by at most the rest of the current turn -- `onAnimationIteration`
+   * ends it on a whole circle, so it never snaps back from a random angle.
    */
-  const [turns, setTurns] = useState(0);
+  const [spinning, setSpinning] = useState(false);
+  useEffect(() => {
+    if (refreshing) setSpinning(true);
+    // Motion turned off zeroes the duration, so no iteration will ever arrive
+    // to close the turn -- and there is no turn to close.
+    else if (document.documentElement.dataset.animations === "off") setSpinning(false);
+  }, [refreshing]);
 
   return (
     <div
@@ -123,16 +133,16 @@ export function TitleBar({
       </button>
       <IconBtn
         style={{ position: "relative" }}
-        onClick={() => {
-          setTurns((n) => n + 1);
-          onRefresh?.();
-        }}
-        title={t("shell.titleBar.checkUpdate")}
+        onClick={onRefresh}
+        aria-busy={refreshing || undefined}
+        title={t(refreshing ? "update.checking" : "shell.titleBar.checkUpdate")}
       >
         <RefreshCw
           size={ICON}
-          className="mqs-refresh"
-          style={{ transform: `rotate(${turns * 360}deg)` }}
+          className={spinning ? "mqs-refresh on" : "mqs-refresh"}
+          onAnimationIteration={() => {
+            if (!refreshing) setSpinning(false);
+          }}
           aria-hidden
         />
         {updateReady && <Badge tone="var(--c-ok)" />}

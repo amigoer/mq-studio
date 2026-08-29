@@ -48,6 +48,8 @@ interface UpdaterContextValue {
   available: string | null;
   /** True while a check, download or install is in flight. */
   busy: boolean;
+  /** True while a check alone is in flight -- what the title bar icon turns on. */
+  checking: boolean;
   check: () => Promise<void>;
   download: () => Promise<void>;
   cancel: () => void;
@@ -62,6 +64,10 @@ function useUpdaterState(): UpdaterContextValue {
   const { t } = useTranslation();
   const toast = useToast();
   const [state, setState] = useState<UpdateState>(UNKNOWN_UPDATE_STATE);
+  // A check the user is waiting on. Go publishes PhaseChecking too, but this
+  // covers the call from the click to that event and the checks Go answers
+  // without ever entering the phase, such as on a development build.
+  const [checking, setChecking] = useState(false);
   // The release the toast has already reported. Read from Go once, then kept
   // here: a restart must not re-announce a version the user has declined.
   const announced = useRef<string | null>(null);
@@ -129,6 +135,7 @@ function useUpdaterState(): UpdaterContextValue {
   }, [announce]);
 
   const check = useCallback(async () => {
+    setChecking(true);
     try {
       const next = await checkUpdate();
       setState(next);
@@ -154,6 +161,8 @@ function useUpdaterState(): UpdaterContextValue {
         description: String(error),
         action: { label: t("page.settings.about.openReleases"), onClick: openReleases },
       });
+    } finally {
+      setChecking(false);
     }
   }, [openReleases, t, toast]);
 
@@ -189,7 +198,8 @@ function useUpdaterState(): UpdaterContextValue {
     () => ({
       state,
       available: hasUpdate(state) ? state.latestVersion : null,
-      busy: isUpdateBusy(state),
+      busy: checking || isUpdateBusy(state),
+      checking: checking || state.phase === Phase.PhaseChecking,
       check,
       download,
       cancel,
@@ -197,7 +207,7 @@ function useUpdaterState(): UpdaterContextValue {
       skip,
       openReleases,
     }),
-    [cancel, check, download, install, openReleases, skip, state],
+    [cancel, check, checking, download, install, openReleases, skip, state],
   );
 }
 
