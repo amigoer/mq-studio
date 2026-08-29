@@ -1448,7 +1448,9 @@
       "address": "地址",
       "role": "角色",
       "page": "页面",
-      "selectedN": "已选 {{n}} 条"
+      "selectedN": "已选 {{n}} 条",
+      "lastUpdated": "{{time}} 更新",
+      "refreshing": "刷新中…"
     },
     "notDesigned": {
       "title": "设计稿待补",
@@ -1584,7 +1586,19 @@
         "nameserver": "NameServer / 运行指标",
         "copyDiagnostics": "复制诊断信息",
         "flush": "刷盘",
-        "commitLogLatency": "CommitLog 延迟"
+        "commitLogLatency": "CommitLog 延迟",
+        "liveTitle": "集群 · {{cluster}}",
+        "liveSubtitle": "{{version}} · {{masters}} 主 {{slaves}} 从",
+        "liveSubtitleNoVersion": "{{masters}} 主 {{slaves}} 从",
+        "runtime": "Broker 运行指标",
+        "commitLog": "CommitLog 盘",
+        "consumeQueue": "ConsumeQueue 盘",
+        "todayIn": "今日入",
+        "todayOut": "今日出",
+        "topics": "Topic",
+        "groups": "消费组",
+        "noBrokers": "集群里没有 Broker",
+        "disk": "磁盘 {{percent}}%"
       },
       "redis": {
         "subtitle": "redis-stream-01 · 单机 · Redis 7.2.4",
@@ -2069,6 +2083,13 @@
       "properties": "Properties",
       "consumer": "Consumer",
       "headersType": "headers"
+    },
+    "state": {
+      "offline": "未连接",
+      "offlineHint": "这个标签页的连接还没有打开。在连接列表里连上之后，这一页会开始读取数据。",
+      "loading": "正在读取…",
+      "failed": "读取失败",
+      "empty": "没有数据"
     }
   }
 }

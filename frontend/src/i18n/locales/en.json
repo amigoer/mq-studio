@@ -1448,7 +1448,9 @@
       "address": "Address",
       "role": "Role",
       "page": "Page",
-      "selectedN": "{{n}} selected"
+      "selectedN": "{{n}} selected",
+      "lastUpdated": "Updated {{time}}",
+      "refreshing": "Refreshing…"
     },
     "notDesigned": {
       "title": "Not yet designed",
@@ -1584,7 +1586,19 @@
         "nameserver": "Name servers / runtime metrics",
         "copyDiagnostics": "Copy diagnostics",
         "flush": "Flush",
-        "commitLogLatency": "CommitLog latency"
+        "commitLogLatency": "CommitLog latency",
+        "liveTitle": "Cluster · {{cluster}}",
+        "liveSubtitle": "{{version}} · {{masters}} master, {{slaves}} slave",
+        "liveSubtitleNoVersion": "{{masters}} master, {{slaves}} slave",
+        "runtime": "Broker runtime",
+        "commitLog": "CommitLog disk",
+        "consumeQueue": "ConsumeQueue disk",
+        "todayIn": "In today",
+        "todayOut": "Out today",
+        "topics": "Topics",
+        "groups": "Groups",
+        "noBrokers": "The cluster reports no brokers",
+        "disk": "Disk {{percent}}%"
       },
       "redis": {
         "subtitle": "redis-stream-01 · standalone · Redis 7.2.4",
@@ -2069,6 +2083,13 @@
       "properties": "Properties",
       "consumer": "Consumer",
       "headersType": "headers"
+    },
+    "state": {
+      "offline": "Not connected",
+      "offlineHint": "This tab's connection is not open. Connect it from the connection list and this page will start reading.",
+      "loading": "Reading…",
+      "failed": "Could not read",
+      "empty": "Nothing to show"
     }
   }
 }
