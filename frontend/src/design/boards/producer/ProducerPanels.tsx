@@ -241,7 +241,7 @@ export function MqttPanel() {
   );
 }
 
-export const PROTOCOL_PANELS: Record<ProtocolId, () => JSX.Element> = {
+export const PROTOCOL_PANELS: Record<ProtocolId, () => ReactNode> = {
   rocketmq: RocketMQPanel,
   kafka: KafkaPanel,
   rabbitmq: RabbitMQPanel,
