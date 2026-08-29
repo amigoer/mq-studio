@@ -9,6 +9,7 @@ export { ChartBox, Bar, Placeholder, SectionLabel, KV, SettingRow, MeterRow, Che
 export { Sheet, SheetHeader, SheetBody, SheetFooter } from "./sheet";
 export { Dialog } from "./dialog";
 export { ConfirmProvider, useConfirm, type ConfirmRequest } from "./confirm";
-export { ToastProvider, useToast, type ToastOptions, type ToastTone } from "./toast";
+export { toast, useToast, type ToastApi, type ToastOptions, type ToastTone } from "./toast";
+export { Toaster } from "./sonner";
 export { Menu, MenuItem, MenuSeparator } from "./menu";
 export { JsonBlock, IND, JStr, JNum, JDim, Timeline, type TraceStep } from "./json";

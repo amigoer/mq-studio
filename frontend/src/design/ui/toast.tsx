@@ -1,24 +1,14 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
-import { AlertCircle, CheckCircle2, Info, X, type LucideIcon } from "lucide-react";
-import { useTranslation } from "react-i18next";
-import { DURATION, motionEnabled } from "@/lib/motion";
-import { Btn } from "./button";
+import { toast as sonner } from "sonner";
 
 /**
  * Transient feedback for the actions the settings page fires -- saving
  * credentials, exporting a config, checking for an update. The canvas draws no
  * transient state at all, so this and the confirm dialog beside it are the two
- * additions the wiring needed. Both are built from `.card3` and the `.st` tones
- * so they read as part of the drawn set.
+ * additions the wiring needed.
+ *
+ * The stack itself is shadcn/ui's sonner, mounted as `<Toaster />` in main.tsx.
+ * What is left here is the tone-and-duration policy on top of it, kept behind a
+ * hook so the boards read the same as they did before the swap.
  */
 
 export type ToastTone = "success" | "error" | "info";
@@ -30,128 +20,31 @@ export type ToastOptions = {
   duration?: number;
 };
 
-type Toast = ToastOptions & {
-  id: number;
-  tone: ToastTone;
-  message: string;
-  /** Dismissed, and on screen only for as long as its exit is being drawn. */
-  leaving?: boolean;
-};
-
 /** Long enough to read the line; a failure earns the time to act on it. */
 const TIME_ON_SCREEN: Record<ToastTone, number> = { success: 4000, info: 4500, error: 7000 };
 
-const TONE: Record<ToastTone, { icon: LucideIcon; colour: string }> = {
-  success: { icon: CheckCircle2, colour: "var(--c-ok-text)" },
-  error: { icon: AlertCircle, colour: "var(--c-err-text)" },
-  info: { icon: Info, colour: "var(--c-fg-2)" },
-};
-
-/** Older toasts leave rather than push the stack past the corner. */
-const MAX_VISIBLE = 3;
-
 type Show = (message: string, options?: ToastOptions) => void;
 
-type ToastContextValue = { success: Show; error: Show; info: Show };
-
-const ToastContext = createContext<ToastContextValue | null>(null);
-
-export function ToastProvider({ children }: { children: ReactNode }) {
-  const [toasts, setToasts] = useState<readonly Toast[]>([]);
-  const nextId = useRef(1);
-
-  const dismiss = useCallback((id: number) => {
-    setToasts((current) =>
-      current.map((toast) => (toast.id === id ? { ...toast, leaving: true } : toast)),
-    );
-    // The card is what animates out, so it has to outlive the click that
-    // dismissed it -- by nothing at all when 界面过渡动画 is off.
-    window.setTimeout(
-      () => setToasts((current) => current.filter((toast) => toast.id !== id)),
-      motionEnabled() ? DURATION.fast : 0,
-    );
-  }, []);
-
-  const value = useMemo<ToastContextValue>(() => {
-    const push =
-      (tone: ToastTone): Show =>
-      (message, options) => {
-        const id = nextId.current++;
-        setToasts((current) => [
-          ...current.slice(-(MAX_VISIBLE - 1)),
-          { ...options, id, tone, message },
-        ]);
-      };
-    return { success: push("success"), error: push("error"), info: push("info") };
-  }, []);
-
-  return (
-    <ToastContext.Provider value={value}>
-      {children}
-      <div className="toastw" role="status" aria-live="polite">
-        {toasts.map((toast) => (
-          <ToastCard key={toast.id} toast={toast} dismiss={dismiss} />
-        ))}
-      </div>
-    </ToastContext.Provider>
-  );
+function show(tone: ToastTone): Show {
+  return (message, options = {}) => {
+    const { description, action, duration = TIME_ON_SCREEN[tone] } = options;
+    sonner[tone](message, {
+      description,
+      action,
+      duration: duration <= 0 ? Number.POSITIVE_INFINITY : duration,
+    });
+  };
 }
 
-function ToastCard({ toast, dismiss }: { toast: Toast; dismiss: (id: number) => void }) {
-  const { t } = useTranslation();
-  const { id, tone, message, description, action, leaving } = toast;
-  const duration = toast.duration ?? TIME_ON_SCREEN[tone];
-  const { icon: Icon, colour } = TONE[tone];
+export const toast = {
+  success: show("success"),
+  error: show("error"),
+  info: show("info"),
+} as const;
 
-  useEffect(() => {
-    if (duration <= 0) return;
-    const timer = window.setTimeout(() => dismiss(id), duration);
-    return () => window.clearTimeout(timer);
-  }, [dismiss, duration, id]);
+export type ToastApi = typeof toast;
 
-  return (
-    <div className="card3 toast3" data-state={leaving === true ? "closed" : "open"}>
-      <Icon size={15} color={colour} style={{ flex: "none", marginTop: "1px" }} aria-hidden />
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: "12.5px", lineHeight: 1.45 }}>{message}</div>
-        {description != null && (
-          <div style={{ fontSize: "11px", color: "var(--c-muted)", marginTop: "3px", lineHeight: 1.5 }}>
-            {description}
-          </div>
-        )}
-        {action != null && (
-          <Btn
-            style={{ marginTop: "9px" }}
-            onClick={() => {
-              action.onClick();
-              dismiss(id);
-            }}
-          >
-            {action.label}
-          </Btn>
-        )}
-      </div>
-      <button
-        type="button"
-        aria-label={t("common.dismiss")}
-        onClick={() => dismiss(id)}
-        style={{
-          display: "flex",
-          flex: "none",
-          color: "var(--c-muted-2)",
-          background: "none",
-          border: "none",
-          padding: 0,
-        }}
-      >
-        <X size={14} aria-hidden />
-      </button>
-    </div>
-  );
-}
-
-export function useToast(): ToastContextValue {
-  const context = useContext(ToastContext);
-  if (context == null) throw new Error("useToast must be used within ToastProvider");
-  return context;
+/** The stack is global; the hook is what the boards already call. */
+export function useToast(): ToastApi {
+  return toast;
 }

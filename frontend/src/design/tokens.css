@@ -1291,43 +1291,94 @@ button.card3:hover {
 }
 
 /*
- * Toasts. Fixed to the window rather than to the shell body: what they report
+ * Toasts. sonner draws the stack; what follows dresses it in the canvas -- the
+ * `.card3` border and radius, the state tones on the icon, `.btn3` on the
+ * action -- so what changed with the component is the behaviour, not the card.
+ * Fixed to the window rather than to the shell body: what a toast reports
  * outlives the page that fired it, and the corner is free on every board.
+ *
+ * sonner appends its own stylesheet to <head> and so wins every specificity
+ * tie; every rule below carries `.mqs-toaster` in order to sit above it.
  */
-.toastw {
-  position: fixed;
-  right: 16px;
-  bottom: 16px;
-  z-index: 60;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  align-items: flex-end;
-  /* A stack of cards must not swallow clicks on the page behind the gaps. */
-  pointer-events: none;
+.mqs-toaster[data-sonner-toaster] {
+  font-family: inherit;
 }
-.toast3 {
-  width: 340px;
-  display: flex;
-  gap: 10px;
+.mqs-toaster [data-sonner-toast][data-styled='true'] {
   padding: 12px 14px;
+  gap: 10px;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.14);
-  pointer-events: auto;
-  animation: toast-in var(--mo-base) var(--mo-ease-out);
-  transition:
-    opacity var(--mo-fast) ease,
-    transform var(--mo-fast) ease;
+  /*
+   * sonner draws every toast at the full `--width`, which leaves a one-line
+   * report -- "already on the latest version" -- as a card that is mostly
+   * empty. Hugging the line instead, right-anchored so the stack still lines
+   * up against the corner it is docked to.
+   */
+  width: fit-content;
+  min-width: 220px;
+  max-width: 340px;
+  right: 0;
 }
-@keyframes toast-in {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
+.mqs-toaster [data-sonner-toast][data-styled='true'] [data-title] {
+  font-size: 12.5px;
+  font-weight: 400;
+  line-height: 1.45;
 }
-/* Dismissed toasts leave towards the corner they came from. */
-.toast3[data-state='closed'] {
-  opacity: 0;
-  transform: translateX(12px);
+.mqs-toaster [data-sonner-toast][data-styled='true'] [data-description] {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--c-muted);
+}
+.mqs-toaster [data-sonner-toast][data-styled='true'] [data-content] {
+  gap: 3px;
+}
+/* The tone is carried by the icon alone, as the drawn card carried it. */
+.mqs-toaster [data-sonner-toast][data-styled='true'] [data-icon] {
+  width: 15px;
+  height: 15px;
+  color: var(--c-fg-2);
+}
+.mqs-toaster [data-sonner-toast][data-type='success'] [data-icon] {
+  color: var(--c-ok-text);
+}
+.mqs-toaster [data-sonner-toast][data-type='warning'] [data-icon] {
+  color: var(--c-warn-text);
+}
+.mqs-toaster [data-sonner-toast][data-type='error'] [data-icon] {
+  color: var(--c-err-text);
+}
+/* `.btn3`, which the action cannot wear: sonner renders the button itself. */
+.mqs-toaster [data-sonner-toast][data-styled='true'] [data-button] {
+  height: auto;
+  padding: 4.5px 12px;
+  border: 1px solid var(--c-border);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--c-fg);
+  background: var(--c-bg);
+}
+.mqs-toaster [data-sonner-toast][data-styled='true'] [data-button]:hover {
+  background: var(--c-bar);
+}
+.mqs-toaster [data-sonner-toast][data-styled='true'] [data-close-button] {
+  width: 18px;
+  height: 18px;
+  color: var(--c-muted-2);
+  background: var(--c-bg);
+  border-color: var(--c-border);
+}
+.mqs-toaster [data-sonner-toast][data-styled='true']:hover [data-close-button]:hover {
+  color: var(--c-fg);
+  background: var(--c-fill);
+  border-color: var(--c-border-strong);
+}
+/*
+ * The 界面过渡动画 switch, which the toast alone cannot follow: sonner's
+ * durations are hard-coded rather than read from the `--mo-*` ladder the rest
+ * of the shell collapses to 0s.
+ */
+html[data-animations='off'] .mqs-toaster [data-sonner-toast] {
+  transition: none;
 }
 
 /*

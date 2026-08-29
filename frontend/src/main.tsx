@@ -1,7 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
-import { ConfirmProvider, ToastProvider } from "@/design/ui";
+import { ConfirmProvider, Toaster } from "@/design/ui";
 import { ConnectionProfilesProvider } from "@/hooks/useConnectionProfiles";
 import { SettingsProvider } from "@/hooks/useSettings";
 import { UpdateCheckProvider } from "@/hooks/useUpdateCheck";
@@ -19,21 +19,22 @@ bootstrapUIScale();
 bootstrapUIPrefs();
 
 /*
- * Toasts and the confirm dialog sit outside the settings store: both report on
- * it, including on the calls that fail before it has anything to show.
+ * The toast stack and the confirm dialog sit outside the settings store: both
+ * report on it, including on the calls that fail before it has anything to
+ * show. The Toaster is a sibling rather than a wrapper -- sonner's toasts are
+ * raised through a module-level queue, not through context.
  */
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <ToastProvider>
-      <ConfirmProvider>
-        <SettingsProvider>
-          <UpdateCheckProvider>
-            <ConnectionProfilesProvider>
-              <App />
-            </ConnectionProfilesProvider>
-          </UpdateCheckProvider>
-        </SettingsProvider>
-      </ConfirmProvider>
-    </ToastProvider>
+    <ConfirmProvider>
+      <SettingsProvider>
+        <UpdateCheckProvider>
+          <ConnectionProfilesProvider>
+            <App />
+          </ConnectionProfilesProvider>
+        </UpdateCheckProvider>
+      </SettingsProvider>
+    </ConfirmProvider>
+    <Toaster />
   </React.StrictMode>,
 );
