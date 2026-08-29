@@ -1,5 +1,6 @@
 @import 'tailwindcss';
 @import './styles/app.css';
+@import './design/tokens.css';
 
 @config "../tailwind.config.js";
 
@@ -220,4 +221,22 @@ th {
 }
 [data-sonner-toast][data-type='info'] [data-icon] svg {
   color: hsl(var(--info)) !important;
+}
+
+/*
+ * Design-canvas shell. The canvas is light-only and `.m3` paints its own white
+ * ground, so the document behind it must not follow the OS dark theme, and the
+ * root has to be a full-height flex column for the shell to fill the window.
+ */
+html,
+body,
+#root {
+  height: 100%;
+  background: #fff;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }

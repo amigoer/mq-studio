@@ -1,0 +1,97 @@
+import { useEffect, type ReactNode } from "react";
+
+/**
+ * The modal from 3a: a 32%-black scrim filling the shell body with a 580px
+ * card centred on it. Scoped to the body rather than the viewport so the
+ * title bar and tab strip stay reachable, exactly as drawn.
+ */
+export function Dialog({
+  open,
+  title,
+  width = 580,
+  onClose,
+  children,
+  footer,
+}: {
+  open: boolean;
+  title: ReactNode;
+  width?: number;
+  onClose?: () => void;
+  children: ReactNode;
+  footer?: ReactNode;
+}) {
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose?.();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
+  if (!open) return null;
+  return (
+    <div
+      style={{
+        position: "absolute",
+        inset: 0,
+        background: "rgba(23,23,23,.32)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 5,
+      }}
+      onClick={onClose}
+    >
+      <div
+        role="dialog"
+        aria-modal
+        aria-label={typeof title === "string" ? title : undefined}
+        className="card3"
+        style={{
+          width: `${width}px`,
+          boxShadow: "0 18px 50px rgba(0,0,0,.22)",
+          overflow: "hidden",
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            padding: "14px 20px",
+            borderBottom: "1px solid #ebebeb",
+          }}
+        >
+          <b style={{ fontSize: "14px" }}>{title}</b>
+          <span style={{ flex: 1 }} />
+          <button
+            type="button"
+            aria-label="关闭"
+            onClick={onClose}
+            style={{ color: "#a3a3a3", background: "none", border: "none", padding: 0, font: "inherit" }}
+          >
+            ×
+          </button>
+        </div>
+        <div style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: "14px" }}>
+          {children}
+        </div>
+        {footer != null && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              padding: "13px 20px",
+              borderTop: "1px solid #ebebeb",
+              background: "#fcfcfc",
+            }}
+          >
+            {footer}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

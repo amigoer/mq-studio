@@ -1,34 +1,16 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
-import { SettingsProvider } from "@/hooks/useSettings";
-import { ConnectionsProvider } from "@/hooks/useConnections";
-import { CapabilitiesProvider } from "@/mq/capabilities";
-import "@/mq/rocketmq";
-import "@/mq/rabbitmq";
-import { OverviewProvider } from "@/hooks/useOverview";
-import { AlertsProvider } from "@/hooks/useAlerts";
-import { UpdateCheckProvider } from "@/hooks/useUpdateCheck";
-import { bootstrapUIPrefs } from "@/hooks/useUIPrefs";
-import "@/i18n";
 import "./index.css";
 
-bootstrapUIPrefs();
-
+/*
+ * The static design restoration renders on its own. The Wails providers
+ * (settings / connections / capabilities / overview / alerts / update check)
+ * still live under `@/hooks` and go back around the tree when the pages are
+ * wired to the backend again.
+ */
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <SettingsProvider>
-      <ConnectionsProvider>
-        <CapabilitiesProvider>
-          <OverviewProvider>
-            <AlertsProvider>
-              <UpdateCheckProvider>
-                <App />
-              </UpdateCheckProvider>
-            </AlertsProvider>
-          </OverviewProvider>
-        </CapabilitiesProvider>
-      </ConnectionsProvider>
-    </SettingsProvider>
+    <App />
   </React.StrictMode>,
 );

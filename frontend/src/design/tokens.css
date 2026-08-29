@@ -1,0 +1,700 @@
+/*
+ * Design-canvas token layer, ported verbatim from mq-studio-design.dc.html.
+ * Values are absolute px on purpose: the canvas was drawn at a 13px root and
+ * the app's `--app-font-size` control must not reflow the chrome.
+ * The deviations are `.m3`, which fills the window instead of the 1180x764
+ * artboard frame, and the two `.tb2` additions: room for the native traffic
+ * lights in place of the ones the canvas drew, and the window drag region.
+ */
+
+.m3 {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  color: #171717;
+  font: 13px/1.5 -apple-system, 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+}
+.mono3 {
+  font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+}
+
+/* title bar */
+.tb2 {
+  height: 40px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px;
+  border-bottom: 1px solid #ebebeb;
+  /* The bar is the window's drag handle; see the opt-out below. */
+  --wails-draggable: drag;
+}
+/* Native traffic lights start at trafficLightLeft (16) and span 52px. */
+.tb2--mac {
+  padding-left: 78px;
+}
+/*
+ * `--wails-draggable` inherits, so every control in the bar has to opt back
+ * out: a drag started on a button swallows the click that follows it.
+ */
+.tb2 button,
+.tb2 [role='tab'] {
+  --wails-draggable: no-drag;
+}
+.tbi {
+  width: 26px;
+  height: 26px;
+  border: 1px solid #ebebeb;
+  border-radius: 7px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #525252;
+  background: #fff;
+  font-size: 12.5px;
+  flex: none;
+}
+.tbi.on {
+  background: #171717;
+  color: #fff;
+  border-color: #171717;
+}
+/*
+ * Window buttons, off darwin only (see WindowControls). They act on the window
+ * rather than on the app, so they sit past a divider and drop the `.tbi`
+ * outline -- three more outlined squares would read as three more app buttons.
+ */
+.wcg {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: none;
+  padding-left: 8px;
+  border-left: 1px solid #ebebeb;
+}
+.wc {
+  width: 28px;
+  height: 26px;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: #525252;
+  font-family: inherit;
+  font-size: 12.5px;
+  line-height: 1;
+  cursor: default;
+  transition:
+    background-color 0.12s ease,
+    color 0.12s ease;
+}
+.wc:hover {
+  background: #f0f0f0;
+}
+/* Close is the only irreversible button in the bar, so it hovers like `.btn3.dgr`. */
+.wc.dgr:hover {
+  background: #fef2f2;
+  color: #dc2828;
+}
+.wc:focus-visible {
+  outline: 2px solid #171717;
+  outline-offset: 1px;
+}
+.pillc {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid #ebebeb;
+  border-radius: 99px;
+  padding: 3px 11px;
+  font-size: 11.5px;
+  color: #525252;
+}
+.dotg {
+  width: 7px;
+  height: 7px;
+  border-radius: 99px;
+  background: #29915d;
+  flex: none;
+}
+
+/* sidebar */
+.side3 {
+  width: 198px;
+  flex: none;
+  border-right: 1px solid #ebebeb;
+  display: flex;
+  flex-direction: column;
+  padding: 10px;
+  gap: 2px;
+}
+.gl {
+  padding: 8px 10px 4px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: #8a8a8a;
+  text-transform: uppercase;
+}
+.ni {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5.5px 10px;
+  border-radius: 8px;
+  color: #525252;
+  font-size: 12.5px;
+  position: relative;
+}
+.ni.on {
+  background: #171717;
+  color: #fff;
+  font-weight: 500;
+}
+.ni.on .nic {
+  opacity: 0.9;
+}
+.nic {
+  width: 16px;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.2;
+  opacity: 0.7;
+  flex: none;
+}
+
+/* page header / toolbar */
+.hd3 {
+  flex: none;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 20px 12px;
+  border-bottom: 1px solid #ebebeb;
+}
+.hd3 h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.hd3 .sub {
+  font-size: 11.5px;
+  color: #8a8a8a;
+  margin-top: 2px;
+}
+.tbar3 {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 20px;
+  border-bottom: 1px solid #ebebeb;
+}
+
+/* controls */
+.btn3 {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #ebebeb;
+  border-radius: 8px;
+  padding: 4.5px 12px;
+  font-size: 12px;
+  background: #fff;
+  white-space: nowrap;
+}
+.btn3.pri {
+  background: #171717;
+  color: #fff;
+  border-color: #171717;
+}
+.btn3.dgr {
+  color: #dc2828;
+  border-color: #f5caca;
+}
+.in3 {
+  border: 1px solid #ebebeb;
+  border-radius: 8px;
+  padding: 4.5px 10px;
+  font-size: 12px;
+  color: #8a8a8a;
+  background: #fff;
+  white-space: nowrap;
+}
+.card3 {
+  border: 1px solid #ebebeb;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+.sec3 {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #8a8a8a;
+}
+
+/* table */
+.t3 {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.t3 th {
+  text-align: left;
+  font-size: 11px;
+  font-weight: 500;
+  color: #8a8a8a;
+  padding: 7px 14px;
+  border-bottom: 1px solid #ebebeb;
+  white-space: nowrap;
+}
+.t3 td {
+  padding: 7.5px 14px;
+  border-bottom: 1px solid #f4f4f4;
+  white-space: nowrap;
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.t3 tr.sel td {
+  background: #f5f5f5;
+}
+
+/* status pills */
+.st {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 99px;
+  padding: 1.5px 9px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.st.ok {
+  background: rgba(41, 145, 93, 0.1);
+  color: #1f7a4d;
+}
+.st.warn {
+  background: #fef3c7;
+  color: #92400e;
+}
+.st.err {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+.st.off {
+  background: #f4f4f5;
+  color: #71717a;
+}
+
+/* protocol badge */
+.pb {
+  font: 600 9.5px 'JetBrains Mono', ui-monospace, monospace;
+  border-radius: 4px;
+  padding: 2px 6px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.pRMQ { background: #fff1e6; color: #c2410c; }
+.pKFK { background: #ececee; color: #18181b; }
+.pAMQ { background: #fef3c7; color: #b45309; }
+.pPLS { background: #e0f2fe; color: #0369a1; }
+.pRDS { background: #fee2e2; color: #b91c1c; }
+.pMQT { background: #ede9fe; color: #6d28d9; }
+
+/* misc primitives */
+.ph3 {
+  height: 7px;
+  border-radius: 4px;
+  background: #f0f0f0;
+}
+.chart3 {
+  border: 1px dashed #e0e0e0;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #a3a3a3;
+  font: 11px 'JetBrains Mono', ui-monospace, monospace;
+  background: repeating-linear-gradient(45deg, #fcfcfc, #fcfcfc 8px, #f8f8f8 8px, #f8f8f8 16px);
+  text-align: center;
+}
+.seg {
+  display: inline-flex;
+  border: 1px solid #ebebeb;
+  border-radius: 8px;
+  padding: 2px;
+  gap: 2px;
+  background: #fff;
+}
+.seg span {
+  padding: 2.5px 10px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  color: #666;
+}
+.seg .on {
+  background: #171717;
+  color: #fff;
+  font-weight: 500;
+}
+.sw {
+  width: 28px;
+  height: 16px;
+  border-radius: 99px;
+  background: #29915d;
+  position: relative;
+  flex: none;
+}
+.sw::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 99px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+.sw.off { background: #e4e4e7; }
+.sw.off::after { right: auto; left: 2px; }
+.kv3 {
+  display: grid;
+  grid-template-columns: 92px 1fr;
+  gap: 5px 10px;
+  font-size: 11.5px;
+  align-items: baseline;
+}
+.kv3 .k { color: #8a8a8a; }
+.bar3 {
+  height: 6px;
+  border-radius: 99px;
+  background: #f0f0f0;
+  overflow: hidden;
+}
+.bar3 i {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: #29915d;
+}
+.srow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 16px;
+  border-bottom: 1px solid #f4f4f4;
+  font-size: 12.5px;
+}
+.srow .lab { width: 180px; flex: none; }
+.srow .hint { font-size: 11px; color: #8a8a8a; margin-top: 1px; }
+
+/* capability-matrix cells */
+.cd { font-size: 13px; text-align: center; }
+.cd.y { color: #1f7a4d; }
+.cd.p { color: #b45309; }
+.cd.n { color: #c9c9c9; }
+
+/* protocol logo + picker tile */
+.plogo {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+  flex: none;
+  vertical-align: -2px;
+}
+.ptile {
+  border: 1px solid #ebebeb;
+  border-radius: 8px;
+  padding: 8px 4px;
+  text-align: center;
+  font-size: 10.5px;
+  color: #525252;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.ptile img,
+.ptile svg { width: 18px; height: 18px; object-fit: contain; }
+.ptile.sel {
+  border: 1.5px solid #171717;
+  background: #fafafa;
+  font-weight: 500;
+  color: #171717;
+  padding: 7.5px 3.5px;
+}
+.pv { font-size: 9.5px; color: #a3a3a3; font-weight: 400; }
+.fld {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 11px;
+  color: #666;
+}
+.fld .in3 { color: #171717; }
+
+/*
+ * Interaction layer. The canvas is a static mockup, so hover/active states are
+ * additive only: the resting appearance of every element above is unchanged.
+ *
+ * A desktop shell, not a page: the arrow cursor throughout and nothing
+ * selectable, so a stray drag never paints half the window. Only what an
+ * operator actually copies opts back in -- the monospaced values (endpoints,
+ * topics, ids, payloads) and anything typed into.
+ */
+.m3 {
+  cursor: default;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.m3 .mono3,
+.m3 input,
+.m3 textarea,
+.m3 [contenteditable] {
+  cursor: text;
+  -webkit-user-select: text;
+  user-select: text;
+}
+/* The shell is neutral with one red accent; the app-wide indigo has no place. */
+.m3::selection,
+.m3 ::selection {
+  background: rgba(23, 23, 23, 0.13);
+}
+
+.ni:not(.on):hover { background: #f5f5f5; }
+.tbi:not(.on):hover { background: #f5f5f5; }
+.btn3:not(.pri):hover { background: #fafafa; }
+.btn3.pri:hover { background: #2b2b2b; }
+.btn3.dgr:hover { background: #fef2f2; }
+.seg span:not(.on):hover { background: #f5f5f5; }
+.ptile:not(.sel):hover { background: #fafafa; }
+.t3 tbody tr:hover td { background: #fafafa; }
+.t3 tbody tr.sel:hover td { background: #f0f0f0; }
+.mqs-menuitem:hover { background: #f5f5f5; }
+
+/* Row actions are drawn on hover in 8a ("悬停显示操作 ⋯"). */
+.mqs-rowactions { visibility: hidden; }
+.t3 tbody tr:hover .mqs-rowactions,
+.t3 tbody tr.sel .mqs-rowactions { visibility: visible; }
+.mqs-rowhint { color: #c9c9c9; }
+.t3 tbody tr:hover .mqs-rowhint { display: none; }
+
+button.btn3,
+button.tbi,
+button.in3 {
+  font-family: inherit;
+  line-height: inherit;
+  cursor: default;
+}
+button.btn3:focus-visible,
+button.tbi:focus-visible,
+.ni:focus-visible,
+.mqs-tab:focus-visible {
+  outline: 2px solid #171717;
+  outline-offset: 1px;
+}
+input.in3,
+textarea.in3,
+select.in3 {
+  color: #171717;
+  font-family: inherit;
+  outline: none;
+}
+input.in3::placeholder,
+textarea.in3::placeholder { color: #8a8a8a; }
+input.in3:focus,
+textarea.in3:focus,
+select.in3:focus { border-color: #d4d4d8; }
+
+/* Scrollbars inside the shell stay thin so the chrome metrics hold. */
+.mqs-scroll { overflow: auto; scrollbar-width: thin; scrollbar-color: #e4e4e7 transparent; }
+.mqs-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+.mqs-scroll::-webkit-scrollbar-thumb { background: #e4e4e7; border-radius: 99px; }
+.mqs-scroll::-webkit-scrollbar-track { background: transparent; }
+
+/* Compact in-row action button (8a "打开标签 / 断开 / 编辑 / ⋯"). */
+.btn3.mqs-btn-row {
+  border-radius: 6px;
+  padding: 2.5px 9px;
+  font-size: 11px;
+  gap: 0;
+}
+.btn3.mqs-btn-rowicon { padding: 2.5px 7px; }
+.btn3.mqs-btn-row.pri { background: #171717; color: #fff; border-color: #171717; }
+
+/* Button resets, so nav/tab affordances can be real buttons without restyling. */
+button.ni,
+button.mqs-tab,
+button.mqs-menuitem,
+.ptile button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  text-align: left;
+  appearance: none;
+}
+/*
+ * `.in3` as a button keeps its own 12px size — a `font: inherit` reset here
+ * would pull it up to the 13px shell font and grow the control by 1.5px.
+ */
+button.in3 {
+  font-family: inherit;
+  line-height: inherit;
+  text-align: left;
+  appearance: none;
+}
+button.ni {
+  font-size: 12.5px;
+  color: #525252;
+  width: 100%;
+}
+button.ni.on { background: #171717; color: #fff; }
+
+/* The compact table used inside detail sheets (partition lists, bindings…). */
+.t3.mini { font-size: 11px; }
+.t3.mini th,
+.t3.mini td { padding: 5px 10px; }
+
+/*
+ * Connection tabs live inside the title bar rather than on the canvas's own
+ * 39px strip. That leaves them roughly 770px instead of 1180px, so the strip
+ * takes the bar's free space, tabs shrink to `--mqs-tab-min`, and only past
+ * that does the strip scroll (its scrollbar is hidden — a 40px bar has no
+ * room for one). 118px is the floor that still fits six tabs at a 1180px
+ * window; below the name is narrower than the protocol icon beside it.
+ */
+.mqs-tabstrip {
+  --mqs-tab-min: 118px;
+  --mqs-tab-max: 200px;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  /* .tb2's own 8px gap already separates the strip from the mark and search. */
+  scrollbar-width: none;
+}
+.mqs-tabstrip::-webkit-scrollbar {
+  display: none;
+}
+.mqs-tab {
+  min-width: var(--mqs-tab-min);
+  max-width: var(--mqs-tab-max);
+}
+/* The compare tab (5b) carries two labels, so it is sized by its content. */
+.mqs-tab-compare {
+  flex: 0 0 auto;
+  max-width: none;
+}
+/* The name is the only part that gives way; the mark and × keep their size. */
+.mqs-tab-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/*
+ * The connection's status rides on the protocol mark as a corner badge. As its
+ * own `.dotg` it cost 14px of every tab (7px dot + 7px gap); here it costs
+ * nothing, which is 84px back across six tabs. The ring has to match whatever
+ * the tab is sitting on, so it follows the tab's three background states.
+ */
+.mqs-tab-mark {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+}
+.mqs-tab-dot {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 6px;
+  height: 6px;
+  border-radius: 99px;
+  box-shadow: 0 0 0 1.5px #fafafa;
+}
+.mqs-tab[aria-selected='true'] .mqs-tab-dot {
+  box-shadow: 0 0 0 1.5px #fff;
+}
+.mqs-tab[aria-selected='false']:hover .mqs-tab-dot {
+  box-shadow: 0 0 0 1.5px #f0f0f0;
+}
+
+/*
+ * Connection tab hover. 5a draws the hovered inactive tab with its close ×
+ * revealed in #c9c9c9 — that is the only thing separating it from the two
+ * tabs after it. The × slot is always occupied so moving along the strip
+ * never reflows it and a tab cannot slide out from under the cursor.
+ */
+.mqs-tab,
+.mqs-tab-add,
+.mqs-tab-close {
+  transition:
+    background-color 0.12s ease,
+    color 0.12s ease;
+}
+
+.mqs-tab[aria-selected='false']:hover {
+  background: #f0f0f0;
+}
+
+.mqs-tab-close {
+  font: inherit;
+  margin-left: 2px;
+  padding: 0;
+  border: none;
+  background: none;
+  line-height: 1;
+  color: #a3a3a3;
+}
+
+/*
+ * Only the active tab shows its × at rest, but every tab keeps the button's
+ * box: revealing it on hover must not widen the tab and shove its neighbours
+ * right. The ~16px that costs comes out of the name.
+ * Keyboard users get the × via :focus-within, the tab itself being focusable.
+ */
+.mqs-tab[aria-selected='false'] .mqs-tab-close {
+  visibility: hidden;
+  color: #c9c9c9;
+}
+.mqs-tab[aria-selected='false']:hover .mqs-tab-close,
+.mqs-tab[aria-selected='false']:focus-within .mqs-tab-close {
+  visibility: visible;
+}
+/* Scoped to .mqs-tab so it outranks the [aria-selected] rule that greys it. */
+.mqs-tab .mqs-tab-close:hover {
+  color: #171717;
+}
+
+/* The dashed ＋ that opens the new-connection dialog. */
+.mqs-tab-add {
+  flex: none;
+  padding: 3px 9px;
+  border: 1px dashed #d4d4d8;
+  border-radius: 8px;
+  background: transparent;
+  color: #8a8a8a;
+  font-family: inherit;
+  font-size: 12px;
+  line-height: inherit;
+}
+.mqs-tab-add:hover {
+  background: #f0f0f0;
+  border-color: #c9c9c9;
+  color: #525252;
+}
