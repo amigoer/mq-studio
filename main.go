@@ -36,13 +36,6 @@ var version = "dev"
 
 const applicationName = "MQ Studio"
 
-// Title bar geometry, shared with the renderer. Keep in step with the
-// .tb2 / .tb2--mac rules in frontend/src/design/tokens.css.
-const (
-	titleBarHeight   = 40.0
-	trafficLightLeft = 16.0
-)
-
 func main() {
 	if err := run(); err != nil {
 		log.Fatal(err)
@@ -70,6 +63,8 @@ func run() error {
 			ApplicationShouldTerminateAfterLastWindowClosed: false,
 		},
 	})
+
+	wailsApp.Menu.Set(applicationMenu(wailsApp))
 
 	window := wailsApp.Window.NewWithOptions(newWindowOptions())
 	alignTrafficLights(window)
@@ -139,7 +134,41 @@ func alignTrafficLights(window *application.WebviewWindow) {
 	}
 	apply := func(*application.WindowEvent) {
 		macwindow.SetTrafficLightPosition(
-			window.NativeWindow(), trafficLightLeft, titleBarHeight/2)
+			window.NativeWindow(), bridge.TrafficLightLeft, bridge.TitleBarHeight/2)
 	}
 	window.OnWindowEvent(events.Mac.WindowDidBecomeKey, apply)
+}
+
+// zoomCommands maps the View menu's zoom entries to the renderer's UI scale.
+var zoomCommands = map[application.Role]string{
+	application.ZoomIn:    "in",
+	application.ZoomOut:   "out",
+	application.ResetZoom: "reset",
+}
+
+// applicationMenu is the platform's default menu with those three entries
+// retargeted. Zoom is the renderer's own UI scale - it drives the container
+// queries the boards reflow on - so the webview's page zoom, which the default
+// entries drive, would silently stack a second scale on top of it.
+func applicationMenu(wailsApp *application.App) *application.Menu {
+	menu := application.DefaultApplicationMenu()
+	for role, command := range zoomCommands {
+		item := menu.FindByRole(role)
+		if item == nil {
+			continue
+		}
+		/*
+		 * The role's own accelerator is CmdOrCtrl+plus, which AppKit never
+		 * matches: typing + takes Shift, and the mask is Command alone. `=` is
+		 * the same physical key and does match, so the menu carries that and
+		 * useUIScale reads the shifted press the menu cannot claim.
+		 */
+		if role == application.ZoomIn {
+			item.SetAccelerator("CmdOrCtrl+=")
+		}
+		item.OnClick(func(*application.Context) {
+			wailsApp.Event.Emit(bridge.ZoomEvent, command)
+		})
+	}
+	return menu
 }

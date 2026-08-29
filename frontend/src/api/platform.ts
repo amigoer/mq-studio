@@ -26,6 +26,20 @@ export function onTrayNavigate(listener: (target: string) => void): () => void {
   });
 }
 
+export type ZoomCommand = "in" | "out" | "reset";
+
+/**
+ * Subscribes to the View menu's zoom entries. They drive the renderer's own UI
+ * scale rather than the webview's page zoom; keep the name in step with
+ * bridge.ZoomEvent.
+ */
+export function onZoomCommand(listener: (command: ZoomCommand) => void): () => void {
+  return Events.On("ui:zoom", (event) => {
+    const command: unknown = event.data;
+    if (command === "in" || command === "out" || command === "reset") listener(command);
+  });
+}
+
 /** Native window events exist on Windows and macOS only; Linux has none. */
 const maximiseEvents = System.IsMac()
   ? (["mac:WindowMaximise", "mac:WindowUnMaximise"] as const)
@@ -52,6 +66,13 @@ export const windowControls = {
   setAppearance: (dark: boolean): Promise<void> =>
     WindowService.SetAppearance(dark),
 };
+
+/**
+ * Re-centres the macOS traffic lights after the UI scale has changed the height
+ * of the title bar they sit in. A no-op on the other platforms.
+ */
+export const setTitleBarHeight = (height: number): Promise<void> =>
+  WindowService.SetTitleBarHeight(height);
 
 export const appVersion = (): Promise<string> => SystemService.Version();
 export const checkUpdate = (): Promise<UpdateCheckResult> =>

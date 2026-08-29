@@ -122,7 +122,12 @@ html {
 
 body {
   margin: 0;
-  min-height: 100vh;
+  /*
+   * Percentages, not vh: the UI scale zooms the document and viewport units are
+   * not scaled with it, so `100vh` would stand a scaled-up shell taller than the
+   * window and let the title bar scroll away.
+   */
+  min-height: 100%;
   background: hsl(var(--background));
   color: hsl(var(--foreground));
   font-family: var(
@@ -162,7 +167,7 @@ th {
 }
 
 #root {
-  min-height: 100vh;
+  min-height: 100%;
   background: hsl(var(--background));
 }
 
