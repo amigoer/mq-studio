@@ -1,7 +1,8 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
-import { ConfirmProvider, Toaster } from "@/design/ui";
+import { ConfirmProvider, Toaster } from "@/components";
+import { AlertCenterProvider } from "@/hooks/useAlertCenter";
 import { ConnectionProfilesProvider } from "@/hooks/useConnectionProfiles";
 import { SettingsProvider } from "@/hooks/useSettings";
 import { UpdaterProvider } from "@/hooks/useUpdater";
@@ -30,7 +31,11 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
       <SettingsProvider>
         <UpdaterProvider>
           <ConnectionProfilesProvider>
-            <App />
+            {/* Above ConnectionScope: the bell watches every open connection,
+                not the one whichever tab is in front is scoped to. */}
+            <AlertCenterProvider>
+              <App />
+            </AlertCenterProvider>
           </ConnectionProfilesProvider>
         </UpdaterProvider>
       </SettingsProvider>

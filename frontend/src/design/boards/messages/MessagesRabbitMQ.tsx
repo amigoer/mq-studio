@@ -1,30 +1,32 @@
 import { useState } from "react";
 import { ChevronDown, TriangleAlert } from "lucide-react";
 import { ListArea, ListPane, Page, PageHeader, SkeletonRows, Toolbar } from "@/design/shell";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
-  Btn,
-  Field,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  DetailPanel,
+  DetailPanelBody,
+  DetailPanelFooter,
+  DetailPanelHeader,
   IND,
   JNum,
   JsonBlock,
   JStr,
   KV,
   SectionLabel,
-  Seg,
+  Segmented,
   SelectField,
-  Sheet,
-  SheetBody,
-  SheetFooter,
-  SheetHeader,
   Status,
-  Table,
-  TBody,
-  TD,
-  TH,
-  THead,
-  TR,
   WarnBanner,
-} from "@/design/ui";
+} from "@/components";
 import { useTranslation } from "react-i18next";
 
 const MODES = [
@@ -56,59 +58,62 @@ export function MessagesRabbitMQ() {
           {t("board.messages.rabbitmq.ackWarn")}
         </WarnBanner>
       <Toolbar>
-        <SelectField value={t("board.messages.rabbitmq.queue")} />
-        <Field className="mono3" style={{ flex: "0 0 70px" }} defaultValue={t("board.messages.rabbitmq.ten")} />
-        <Seg options={MODES.map((o) => ({ ...o, label: t(o.label) }))} value={mode} onChange={setMode} />
-        <span style={{ flex: 1 }} />
-        <Btn variant="primary">{t("board.messages.rabbitmq.fetch")}</Btn>
+        <SelectField
+          value="q.order.process"
+          options={[{ value: "q.order.process", label: t("board.messages.rabbitmq.queue") }]}
+        />
+        <Input className="mono3" style={{ flex: "0 0 70px" }} defaultValue={t("board.messages.rabbitmq.ten")} />
+        <Segmented options={MODES.map((o) => ({ ...o, label: t(o.label) }))} value={mode} onChange={setMode} />
+        <span className="flex-1" />
+        <Button>{t("board.messages.rabbitmq.fetch")}</Button>
       </Toolbar>
 
       <ListArea>
         <ListPane>
-          <Table className="inset">
-            <THead>
-              <TR>
-                <TH style={R}>#</TH>
-                <TH>routing key</TH>
-                <TH>exchange</TH>
-                <TH>{t("board.common.properties")}</TH>
-                <TH>{t("board.messages.rabbitmq.payloadSummary")}</TH>
-                <TH>{t("board.common.redeliver")}</TH>
-              </TR>
-            </THead>
-            <TBody>
-              <TR selected={selected === "1"} onClick={() => setSelected("1")}>
-                <TD className="mono3" style={R}>1</TD>
-                <TD className="mono3" style={MONO11}>order.created</TD>
-                <TD className="mono3" style={DIM11}>ex.order</TD>
-                <TD><Status tone="off" style={TAG}>persistent</Status></TD>
-                <TD className="mono3" style={DIM11}>{'{"orderId":"ORD-88213"…'}</TD>
-                <TD><Status tone="warn" style={TAG}>redelivered</Status></TD>
-              </TR>
-              <TR selected={selected === "2"} onClick={() => setSelected("2")}>
-                <TD className="mono3" style={R}>2</TD>
-                <TD className="mono3" style={MONO11}>order.created</TD>
-                <TD className="mono3" style={DIM11}>ex.order</TD>
-                <TD><Status tone="off" style={TAG}>persistent</Status></TD>
-                <TD className="mono3" style={DIM11}>{'{"orderId":"ORD-88214"…'}</TD>
-                <TD />
-              </TR>
-              <TR selected={selected === "3"} onClick={() => setSelected("3")}>
-                <TD className="mono3" style={R}>3</TD>
-                <TD className="mono3" style={MONO11}>order.updated</TD>
-                <TD className="mono3" style={DIM11}>ex.order</TD>
-                <TD><Status tone="off" style={TAG}>TTL 30s</Status></TD>
-                <TD className="mono3" style={DIM11}>{'{"orderId":"ORD-88101"…'}</TD>
-                <TD />
-              </TR>
+          <Table inset>
+            <TableHeader>
+              <TableRow>
+                <TableHead style={R}>#</TableHead>
+                <TableHead>routing key</TableHead>
+                <TableHead>exchange</TableHead>
+                <TableHead>{t("board.common.properties")}</TableHead>
+                <TableHead>{t("board.messages.rabbitmq.payloadSummary")}</TableHead>
+                <TableHead>{t("board.common.redeliver")}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow selected={selected === "1"} onClick={() => setSelected("1")}>
+                <TableCell className="mono3" style={R}>1</TableCell>
+                <TableCell className="mono3" style={MONO11}>order.created</TableCell>
+                <TableCell className="mono3" style={DIM11}>ex.order</TableCell>
+                <TableCell><Status tone="off" style={TAG}>persistent</Status></TableCell>
+                <TableCell className="mono3" style={DIM11}>{'{"orderId":"ORD-88213"…'}</TableCell>
+                <TableCell><Status tone="warn" style={TAG}>redelivered</Status></TableCell>
+              </TableRow>
+              <TableRow selected={selected === "2"} onClick={() => setSelected("2")}>
+                <TableCell className="mono3" style={R}>2</TableCell>
+                <TableCell className="mono3" style={MONO11}>order.created</TableCell>
+                <TableCell className="mono3" style={DIM11}>ex.order</TableCell>
+                <TableCell><Status tone="off" style={TAG}>persistent</Status></TableCell>
+                <TableCell className="mono3" style={DIM11}>{'{"orderId":"ORD-88214"…'}</TableCell>
+                <TableCell />
+              </TableRow>
+              <TableRow selected={selected === "3"} onClick={() => setSelected("3")}>
+                <TableCell className="mono3" style={R}>3</TableCell>
+                <TableCell className="mono3" style={MONO11}>order.updated</TableCell>
+                <TableCell className="mono3" style={DIM11}>ex.order</TableCell>
+                <TableCell><Status tone="off" style={TAG}>TTL 30s</Status></TableCell>
+                <TableCell className="mono3" style={DIM11}>{'{"orderId":"ORD-88101"…'}</TableCell>
+                <TableCell />
+              </TableRow>
               <SkeletonRows colSpan={6} widths={["60%"]} />
-            </TBody>
+            </TableBody>
           </Table>
         </ListPane>
 
         {selected != null && (
-          <Sheet width={410} onDismiss={() => setSelected(null)}>
-            <SheetHeader
+          <DetailPanel width={410} onDismiss={() => setSelected(null)}>
+            <DetailPanelHeader
               title={`#${selected} · order.created`}
               badge={<Status tone="warn" style={TAG}>redelivered</Status>}
               tabs={SHEET_TABS.map((id) => ({ id, label: t(id) }))}
@@ -116,7 +121,7 @@ export function MessagesRabbitMQ() {
               onTabChange={setTab}
               onClose={() => setSelected(null)}
             />
-            <SheetBody>
+            <DetailPanelBody>
               <div>
                 <SectionLabel
                   style={{ marginBottom: "6px" }}
@@ -158,14 +163,14 @@ export function MessagesRabbitMQ() {
               <div style={{ fontSize: "11px", color: "var(--c-muted)" }}>
                 {t("board.messages.rabbitmq.xdeath")}
               </div>
-            </SheetBody>
-            <SheetFooter>
-              <Btn>{t("board.common.copy")}</Btn>
-              <Btn>{t("board.messages.rabbitmq.republish")}</Btn>
-              <span style={{ flex: 1 }} />
-              <Btn variant="danger">{t("board.common.ackRemove")}</Btn>
-            </SheetFooter>
-          </Sheet>
+            </DetailPanelBody>
+            <DetailPanelFooter>
+              <Button variant="outline">{t("board.common.copy")}</Button>
+              <Button variant="outline">{t("board.messages.rabbitmq.republish")}</Button>
+              <span className="flex-1" />
+              <Button variant="destructive">{t("board.common.ackRemove")}</Button>
+            </DetailPanelFooter>
+          </DetailPanel>
         )}
       </ListArea>
 
@@ -173,7 +178,7 @@ export function MessagesRabbitMQ() {
         <span className="mono3" style={{ fontSize: "11px", color: "var(--c-muted)" }}>
           {t("board.messages.rabbitmq.footer")}
         </span>
-        <span style={{ flex: 1 }} />
+        <span className="flex-1" />
       </Toolbar>
     </Page>
   );

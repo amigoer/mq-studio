@@ -1,29 +1,31 @@
 import { useState } from "react";
 import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { ListArea, ListPane, Page, PageHeader, SkeletonRows, Toolbar } from "@/design/shell";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
-  Btn,
-  Field,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  DetailPanel,
+  DetailPanelBody,
+  DetailPanelFooter,
+  DetailPanelHeader,
   IND,
   JNum,
   JsonBlock,
   JStr,
   KV,
   SectionLabel,
-  Seg,
+  Segmented,
   SelectField,
-  Sheet,
-  SheetBody,
-  SheetFooter,
-  SheetHeader,
   Status,
-  Table,
-  TBody,
-  TD,
-  TH,
-  THead,
-  TR,
-} from "@/design/ui";
+} from "@/components";
 import { useTranslation } from "react-i18next";
 
 const MODES = [
@@ -48,65 +50,72 @@ export function MessagesKafka() {
     <Page>
       <PageHeader title={t("board.common.messageQuery")} subtitle="" />
       <Toolbar>
-        <SelectField value="Topic：orders.created" />
-        <SelectField value={t("board.messages.kafka.allPartitions")} />
-        <Seg options={MODES.map((o) => ({ ...o, label: t(o.label) }))} value={mode} onChange={setMode} />
-        <Field className="mono3" style={{ flex: "0 0 90px" }} defaultValue="500" />
-        <Btn variant="primary">{t("board.common.query")}</Btn>
+        <SelectField
+          value="orders.created"
+          prefix="Topic："
+          options={[{ value: "orders.created" }]}
+        />
+        <SelectField
+          value="all"
+          options={[{ value: "all", label: t("board.messages.kafka.allPartitions") }]}
+        />
+        <Segmented options={MODES.map((o) => ({ ...o, label: t(o.label) }))} value={mode} onChange={setMode} />
+        <Input className="mono3" style={{ flex: "0 0 90px" }} defaultValue="500" />
+        <Button>{t("board.common.query")}</Button>
       </Toolbar>
 
       <ListArea>
         <ListPane>
-          <Table className="inset">
-            <THead>
-              <TR>
-                <TH style={R}>{t("board.common.partition")}</TH>
-                <TH style={R}>Offset</TH>
-                <TH>Key</TH>
-                <TH>{t("board.messages.kafka.valueSummary")}</TH>
-                <TH style={R}>Headers</TH>
-                <TH>{t("board.common.timestamp")}</TH>
-              </TR>
-            </THead>
-            <TBody>
-              <TR selected={selected === "88 204 771"} onClick={() => setSelected("88 204 771")}>
-                <TD className="mono3" style={R}>3</TD>
-                <TD className="mono3" style={R}>88 204 771</TD>
-                <TD className="mono3" style={MONO11}>ORD-88213</TD>
-                <TD className="mono3" style={{ ...MONO11, color: "var(--c-mono-dim)" }}>
+          <Table inset>
+            <TableHeader>
+              <TableRow>
+                <TableHead style={R}>{t("board.common.partition")}</TableHead>
+                <TableHead style={R}>Offset</TableHead>
+                <TableHead>Key</TableHead>
+                <TableHead>{t("board.messages.kafka.valueSummary")}</TableHead>
+                <TableHead style={R}>Headers</TableHead>
+                <TableHead>{t("board.common.timestamp")}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow selected={selected === "88 204 771"} onClick={() => setSelected("88 204 771")}>
+                <TableCell className="mono3" style={R}>3</TableCell>
+                <TableCell className="mono3" style={R}>88 204 771</TableCell>
+                <TableCell className="mono3" style={MONO11}>ORD-88213</TableCell>
+                <TableCell className="mono3" style={{ ...MONO11, color: "var(--c-mono-dim)" }}>
                   {'{"orderId":"ORD-88213","amount":129…'}
-                </TD>
-                <TD className="mono3" style={R}>3</TD>
-                <TD className="mono3" style={MONO11}>10:24:07.221</TD>
-              </TR>
-              <TR selected={selected === "88 204 772"} onClick={() => setSelected("88 204 772")}>
-                <TD className="mono3" style={R}>1</TD>
-                <TD className="mono3" style={R}>88 204 772</TD>
-                <TD className="mono3" style={MONO11}>ORD-88214</TD>
-                <TD className="mono3" style={{ ...MONO11, color: "var(--c-mono-dim)" }}>
+                </TableCell>
+                <TableCell className="mono3" style={R}>3</TableCell>
+                <TableCell className="mono3" style={MONO11}>10:24:07.221</TableCell>
+              </TableRow>
+              <TableRow selected={selected === "88 204 772"} onClick={() => setSelected("88 204 772")}>
+                <TableCell className="mono3" style={R}>1</TableCell>
+                <TableCell className="mono3" style={R}>88 204 772</TableCell>
+                <TableCell className="mono3" style={MONO11}>ORD-88214</TableCell>
+                <TableCell className="mono3" style={{ ...MONO11, color: "var(--c-mono-dim)" }}>
                   {'{"orderId":"ORD-88214","amount":45…'}
-                </TD>
-                <TD className="mono3" style={R}>3</TD>
-                <TD className="mono3" style={MONO11}>10:24:07.310</TD>
-              </TR>
-              <TR selected={selected === "88 204 773"} onClick={() => setSelected("88 204 773")}>
-                <TD className="mono3" style={R}>0</TD>
-                <TD className="mono3" style={R}>88 204 773</TD>
-                <TD className="mono3" style={{ ...MONO11, color: "var(--c-muted)" }}>null</TD>
-                <TD className="mono3" style={{ ...MONO11, color: "var(--c-mono-dim)" }}>
+                </TableCell>
+                <TableCell className="mono3" style={R}>3</TableCell>
+                <TableCell className="mono3" style={MONO11}>10:24:07.310</TableCell>
+              </TableRow>
+              <TableRow selected={selected === "88 204 773"} onClick={() => setSelected("88 204 773")}>
+                <TableCell className="mono3" style={R}>0</TableCell>
+                <TableCell className="mono3" style={R}>88 204 773</TableCell>
+                <TableCell className="mono3" style={{ ...MONO11, color: "var(--c-muted)" }}>null</TableCell>
+                <TableCell className="mono3" style={{ ...MONO11, color: "var(--c-mono-dim)" }}>
                   {'{"orderId":"ORD-88215","amount":268…'}
-                </TD>
-                <TD className="mono3" style={R}>1</TD>
-                <TD className="mono3" style={MONO11}>10:24:08.004</TD>
-              </TR>
+                </TableCell>
+                <TableCell className="mono3" style={R}>1</TableCell>
+                <TableCell className="mono3" style={MONO11}>10:24:08.004</TableCell>
+              </TableRow>
               <SkeletonRows colSpan={6} widths={["74%", "58%"]} />
-            </TBody>
+            </TableBody>
           </Table>
         </ListPane>
 
         {selected != null && (
-          <Sheet width={410} onDismiss={() => setSelected(null)}>
-            <SheetHeader
+          <DetailPanel width={410} onDismiss={() => setSelected(null)}>
+            <DetailPanelHeader
               title={`offset ${selected}`}
               badge={<Status tone="off" style={{ fontSize: "10px" }}>p3</Status>}
               tabs={SHEET_TABS.map((id) => ({ id, label: t(id) }))}
@@ -114,7 +123,7 @@ export function MessagesKafka() {
               onTabChange={setTab}
               onClose={() => setSelected(null)}
             />
-            <SheetBody>
+            <DetailPanelBody>
               <KV
                 rows={[
                   [t("board.messages.kafka.partitionOffset"), <span className="mono3" style={MONO11}>3 / 88 204 771</span>],
@@ -164,14 +173,14 @@ export function MessagesKafka() {
               <div style={{ fontSize: "11px", color: "var(--c-muted)" }}>
                 {t("board.messages.kafka.noTrace")}
               </div>
-            </SheetBody>
-            <SheetFooter>
-              <Btn>{t("board.common.copy")}</Btn>
-              <Btn>{t("board.messages.kafka.resendTo")}</Btn>
-              <span style={{ flex: 1 }} />
-              <Btn>{t("board.common.export")}</Btn>
-            </SheetFooter>
-          </Sheet>
+            </DetailPanelBody>
+            <DetailPanelFooter>
+              <Button variant="outline">{t("board.common.copy")}</Button>
+              <Button variant="outline">{t("board.messages.kafka.resendTo")}</Button>
+              <span className="flex-1" />
+              <Button variant="outline">{t("board.common.export")}</Button>
+            </DetailPanelFooter>
+          </DetailPanel>
         )}
       </ListArea>
 
@@ -179,15 +188,15 @@ export function MessagesKafka() {
         <span className="mono3" style={{ fontSize: "11px", color: "var(--c-muted)" }}>
           {t("board.messages.kafka.cursor")}
         </span>
-        <span style={{ flex: 1 }} />
-        <Btn>
+        <span className="flex-1" />
+        <Button variant="outline">
           {t("board.messages.kafka.loadOlder")}
           <ChevronLeft size={13} aria-hidden />
-        </Btn>
-        <Btn>
+        </Button>
+        <Button variant="outline">
           <ChevronRight size={13} aria-hidden />
           {t("board.messages.kafka.loadNewer")}
-        </Btn>
+        </Button>
       </Toolbar>
     </Page>
   );

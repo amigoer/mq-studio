@@ -1,29 +1,31 @@
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { ListArea, ListPane, Page, PageHeader, SkeletonRows, Toolbar } from "@/design/shell";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
-  Btn,
-  Field,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  DetailPanel,
+  DetailPanelBody,
+  DetailPanelFooter,
+  DetailPanelHeader,
   IND,
   JNum,
   JsonBlock,
   JStr,
   KV,
   SectionLabel,
-  Seg,
+  Segmented,
   SelectField,
-  Sheet,
-  SheetBody,
-  SheetFooter,
-  SheetHeader,
   Status,
-  Table,
-  TBody,
-  TD,
-  TH,
-  THead,
-  TR,
-} from "@/design/ui";
+} from "@/components";
 import { useTranslation } from "react-i18next";
 
 const MODES = [
@@ -48,55 +50,62 @@ export function MessagesPulsar() {
     <Page>
       <PageHeader title={t("board.common.messageQuery")} subtitle="" />
       <Toolbar>
-        <SelectField value="Topic：…/order-created" />
-        <SelectField value={t("board.messages.pulsar.subscription")} />
-        <Seg options={MODES.map((o) => ({ ...o, label: t(o.label) }))} value={mode} onChange={setMode} />
-        <Field className="mono3" style={{ flex: "0 0 70px" }} defaultValue="50" />
-        <Btn variant="primary">{t("board.common.query")}</Btn>
+        <SelectField
+          value="…/order-created"
+          prefix="Topic："
+          options={[{ value: "…/order-created" }]}
+        />
+        <SelectField
+          value="sub"
+          options={[{ value: "sub", label: t("board.messages.pulsar.subscription") }]}
+        />
+        <Segmented options={MODES.map((o) => ({ ...o, label: t(o.label) }))} value={mode} onChange={setMode} />
+        <Input className="mono3" style={{ flex: "0 0 70px" }} defaultValue="50" />
+        <Button>{t("board.common.query")}</Button>
       </Toolbar>
 
       <ListArea>
         <ListPane>
-          <Table className="inset">
-            <THead>
-              <TR>
-                <TH>MessageId</TH>
-                <TH>Key</TH>
-                <TH>{t("board.common.summary")}</TH>
-                <TH style={R}>{t("board.common.properties")}</TH>
-                <TH>{t("board.messages.pulsar.publishTime")}</TH>
-              </TR>
-            </THead>
-            <TBody>
-              <TR selected={selected === "812:4:0"} onClick={() => setSelected("812:4:0")}>
-                <TD className="mono3" style={MONO11}>812:4:0</TD>
-                <TD className="mono3" style={MONO11}>ORD-88213</TD>
-                <TD className="mono3" style={DIM11}>{'{"orderId":"ORD-88213"…'}</TD>
-                <TD className="mono3" style={R}>4</TD>
-                <TD className="mono3" style={MONO11}>10:24:07.221</TD>
-              </TR>
-              <TR selected={selected === "812:5:0"} onClick={() => setSelected("812:5:0")}>
-                <TD className="mono3" style={MONO11}>812:5:0</TD>
-                <TD className="mono3" style={MONO11}>ORD-88214</TD>
-                <TD className="mono3" style={DIM11}>{'{"orderId":"ORD-88214"…'}</TD>
-                <TD className="mono3" style={R}>4</TD>
-                <TD className="mono3" style={MONO11}>10:24:07.310</TD>
-              </TR>
-              <TR selected={selected === "812:6:1"} onClick={() => setSelected("812:6:1")}>
-                <TD className="mono3" style={MONO11}>812:6:1</TD>
-                <TD className="mono3" style={{ ...MONO11, color: "var(--c-muted)" }}>—</TD>
-                <TD className="mono3" style={DIM11}>{'{"orderId":"ORD-88215"…'}</TD>
-                <TD className="mono3" style={R}>2</TD>
-                <TD className="mono3" style={MONO11}>10:24:08.004</TD>
-              </TR>
+          <Table inset>
+            <TableHeader>
+              <TableRow>
+                <TableHead>MessageId</TableHead>
+                <TableHead>Key</TableHead>
+                <TableHead>{t("board.common.summary")}</TableHead>
+                <TableHead style={R}>{t("board.common.properties")}</TableHead>
+                <TableHead>{t("board.messages.pulsar.publishTime")}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow selected={selected === "812:4:0"} onClick={() => setSelected("812:4:0")}>
+                <TableCell className="mono3" style={MONO11}>812:4:0</TableCell>
+                <TableCell className="mono3" style={MONO11}>ORD-88213</TableCell>
+                <TableCell className="mono3" style={DIM11}>{'{"orderId":"ORD-88213"…'}</TableCell>
+                <TableCell className="mono3" style={R}>4</TableCell>
+                <TableCell className="mono3" style={MONO11}>10:24:07.221</TableCell>
+              </TableRow>
+              <TableRow selected={selected === "812:5:0"} onClick={() => setSelected("812:5:0")}>
+                <TableCell className="mono3" style={MONO11}>812:5:0</TableCell>
+                <TableCell className="mono3" style={MONO11}>ORD-88214</TableCell>
+                <TableCell className="mono3" style={DIM11}>{'{"orderId":"ORD-88214"…'}</TableCell>
+                <TableCell className="mono3" style={R}>4</TableCell>
+                <TableCell className="mono3" style={MONO11}>10:24:07.310</TableCell>
+              </TableRow>
+              <TableRow selected={selected === "812:6:1"} onClick={() => setSelected("812:6:1")}>
+                <TableCell className="mono3" style={MONO11}>812:6:1</TableCell>
+                <TableCell className="mono3" style={{ ...MONO11, color: "var(--c-muted)" }}>—</TableCell>
+                <TableCell className="mono3" style={DIM11}>{'{"orderId":"ORD-88215"…'}</TableCell>
+                <TableCell className="mono3" style={R}>2</TableCell>
+                <TableCell className="mono3" style={MONO11}>10:24:08.004</TableCell>
+              </TableRow>
               <SkeletonRows colSpan={5} widths={["66%", "50%"]} />
-            </TBody>
+            </TableBody>
           </Table>
         </ListPane>
 
         {selected != null && (
-          <Sheet width={410} onDismiss={() => setSelected(null)}>
-            <SheetHeader
+          <DetailPanel width={410} onDismiss={() => setSelected(null)}>
+            <DetailPanelHeader
               title={selected}
               badge={<Status tone="off" style={{ fontSize: "10px" }}>ledger:entry</Status>}
               tabs={SHEET_TABS.map((id) => ({ id, label: t(id) }))}
@@ -104,7 +113,7 @@ export function MessagesPulsar() {
               onTabChange={setTab}
               onClose={() => setSelected(null)}
             />
-            <SheetBody>
+            <DetailPanelBody>
               <KV
                 rows={[
                   ["MessageId", <span className="mono3" style={MONO11}>ledger 812 · entry 4 · batch 0</span>],
@@ -149,14 +158,14 @@ export function MessagesPulsar() {
                   ]}
                 />
               </div>
-            </SheetBody>
-            <SheetFooter>
-              <Btn>{t("board.common.copy")}</Btn>
-              <Btn>{t("board.messages.pulsar.seekHere")}</Btn>
-              <span style={{ flex: 1 }} />
-              <Btn>{t("board.common.export")}</Btn>
-            </SheetFooter>
-          </Sheet>
+            </DetailPanelBody>
+            <DetailPanelFooter>
+              <Button variant="outline">{t("board.common.copy")}</Button>
+              <Button variant="outline">{t("board.messages.pulsar.seekHere")}</Button>
+              <span className="flex-1" />
+              <Button variant="outline">{t("board.common.export")}</Button>
+            </DetailPanelFooter>
+          </DetailPanel>
         )}
       </ListArea>
 
@@ -164,7 +173,7 @@ export function MessagesPulsar() {
         <span className="mono3" style={{ fontSize: "11px", color: "var(--c-muted)" }}>
           {t("board.messages.pulsar.peekNote")}
         </span>
-        <span style={{ flex: 1 }} />
+        <span className="flex-1" />
       </Toolbar>
     </Page>
   );

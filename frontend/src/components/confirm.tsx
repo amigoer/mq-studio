@@ -1,15 +1,21 @@
 import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { Btn } from "./button";
-import { Dialog } from "./dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { buttonVariants } from "@/components/ui/button";
 
 /**
  * The question asked before an action that cannot be taken back: clearing the
- * cache, restoring defaults, importing over the current config. Nothing in the
- * canvas draws one, so it is the drawn modal (3a) with a fixed footer.
- *
- * It sits above `.m3` rather than inside it, so the scrim covers the title bar
- * too: switching tabs with the question still open would strand it.
+ * cache, restoring defaults, redelivering a dead letter. One provider, asked
+ * imperatively, so call sites read as `if (await confirm({...}))`.
  */
 
 export type ConfirmRequest = {
@@ -49,31 +55,35 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
   return (
     <ConfirmContext.Provider value={confirm}>
       {children}
-      <Dialog
+      <AlertDialog
         open={request != null}
-        title={request?.title ?? ""}
-        width={440}
-        onClose={() => settle(false)}
-        footer={
-          <>
-            <span style={{ flex: 1 }} />
-            <Btn onClick={() => settle(false)}>{request?.cancelLabel ?? t("common.cancel")}</Btn>
-            <Btn
+        onOpenChange={(open) => {
+          if (!open) settle(false);
+        }}
+      >
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle>{request?.title}</AlertDialogTitle>
+            {request?.description != null && (
+              <AlertDialogDescription>{request.description}</AlertDialogDescription>
+            )}
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => settle(false)}>
+              {request?.cancelLabel ?? t("common.cancel")}
+            </AlertDialogCancel>
+            <AlertDialogAction
               autoFocus
-              variant={request?.danger === true ? "danger" : "primary"}
+              className={
+                request?.danger === true ? buttonVariants({ variant: "destructive" }) : undefined
+              }
               onClick={() => settle(true)}
             >
               {request?.confirmLabel ?? t("common.confirm")}
-            </Btn>
-          </>
-        }
-      >
-        {request?.description != null && (
-          <div style={{ fontSize: "12.5px", color: "var(--c-fg-2)", lineHeight: 1.6 }}>
-            {request.description}
-          </div>
-        )}
-      </Dialog>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </ConfirmContext.Provider>
   );
 }
