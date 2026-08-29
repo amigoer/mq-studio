@@ -6,7 +6,8 @@ SHELL := /bin/sh
 ARCH ?=
 
 .PHONY: help install install-ci bindings icons dev run build package dmg \
-	test test-go test-frontend e2e e2e-up e2e-seed e2e-down check ci clean
+	test test-go test-frontend e2e e2e-up e2e-seed e2e-down \
+	e2e-acl-up e2e-acl-down check ci clean
 
 help: ## Show all available targets
 	@awk 'BEGIN { FS = ":.*## " } /^[a-zA-Z0-9_.-]+:.*## / { printf "  %-20s %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
@@ -54,6 +55,12 @@ e2e-up: ## Start RocketMQ 5.3.2 with OrbStack or Docker
 
 e2e-seed: ## Seed the E2E broker with the topic and consumer group the live tests need
 	npm run e2e:seed
+
+e2e-acl-up: ## Start the ACL-enabled RocketMQ used by the ACL live tests
+	npm run e2e:acl:up
+
+e2e-acl-down: ## Stop the ACL E2E environment and remove its volumes
+	npm run e2e:acl:down
 
 e2e: ## Run the live tests against a running, seeded RocketMQ E2E environment
 	npm run test:e2e

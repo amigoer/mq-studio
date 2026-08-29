@@ -32,3 +32,6 @@ build/ios/
 **/.DS_Store
 
 .claude/
+
+# The ACL E2E broker rewrites this; the tracked template is plain_acl.seed.yml.
+tests/e2e/rocketmq-acl/plain_acl.yml

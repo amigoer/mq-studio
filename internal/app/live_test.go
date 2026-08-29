@@ -30,6 +30,14 @@ const (
 	seededGroup = "MQ_STUDIO_E2E_GROUP"
 )
 
+// The separate ACL-enabled broker, from `npm run e2e:acl:up`. Its admin
+// account is the one seeded in tests/e2e/rocketmq-acl/plain_acl.yml.
+const (
+	aclNameServer = "127.0.0.1:9877"
+	aclAccessKey  = "mqstudio"
+	aclSecretKey  = "mqstudio-secret"
+)
+
 // liveStack assembles the same pieces New does, rooted in a temp directory so
 // the test never touches the user's real configuration.
 func liveStack(t *testing.T) (*connection.Service, *destination.Service, *driver.Registry) {
@@ -433,5 +441,116 @@ func TestLiveResetOffset(t *testing.T) {
 		Timestamp: 0,
 	}); err == nil {
 		t.Log("resetting an unknown group was accepted; RocketMQ creates offsets lazily")
+	}
+}
+
+// Every AccessAdmin method, against a broker that really has ACL on.
+//
+// None of them had ever run against one. AccessEnabled in particular reported
+// false on an ACL-enabled broker, because a broker answers GET_BROKER_CONFIG
+// with a Properties document and the library's json.Unmarshal of it fails,
+// leaving every setting inside a single "raw" string.
+func TestLiveACL(t *testing.T) {
+	connections, _, registry := liveStack(t)
+	ctx := context.Background()
+
+	input := liveProfileInput("acl")
+	input.Endpoints = aclNameServer
+	input.SetACL(true, aclAccessKey, aclSecretKey)
+	profile, err := connections.AddConnection(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := connections.Connect(profile.ID); err != nil {
+		t.Skipf("run `npm run e2e:acl:up` for the ACL broker: %v", err)
+	}
+	conn, _ := registry.Get(profile.ID)
+	acl := conn.(driver.AccessAdmin)
+
+	enabled, err := acl.AccessEnabled(ctx)
+	if err != nil {
+		t.Fatalf("AccessEnabled: %v", err)
+	}
+	if !enabled {
+		t.Fatal("AccessEnabled reported false on a broker with aclEnable=true")
+	}
+
+	version, err := acl.AccessVersion(ctx)
+	if err != nil {
+		t.Fatalf("AccessVersion: %v", err)
+	}
+	if version == nil || version.ClusterName == "" {
+		t.Fatalf("AccessVersion returned %+v", version)
+	}
+
+	const probeKey = "mq-studio-e2e-probe"
+	t.Cleanup(func() { _ = acl.RemoveAccessConfig(context.Background(), probeKey) })
+
+	if err := acl.PutAccessConfig(ctx, model.AccessConfig{
+		AccessKey:        probeKey,
+		SecretKey:        "mq-studio-e2e-probe-secret",
+		DefaultTopicPerm: "SUB",
+		DefaultGroupPerm: "SUB",
+	}); err != nil {
+		t.Fatalf("PutAccessConfig: %v", err)
+	}
+
+	// Writing an account bumps the ACL version, which is the only readable
+	// evidence that it landed: the library has no call to list the accounts.
+	after, err := acl.AccessVersion(ctx)
+	if err != nil {
+		t.Fatalf("AccessVersion after put: %v", err)
+	}
+	if after.Version == version.Version {
+		t.Log("the ACL version did not move after a write; the broker may batch it")
+	}
+
+	// The whitelist is what lets these very calls through, since nothing is
+	// signed - so the write has to keep the seed's entries and only add to
+	// them, and put them back afterwards. Replacing it with a narrower list
+	// locks the next run out of the broker.
+	seedWhiteList := []string{"127.0.0.1", "172.*.*.*", "192.168.*.*"}
+	t.Cleanup(func() { _ = acl.SetGlobalWhiteAddrs(context.Background(), seedWhiteList) })
+	if err := acl.SetGlobalWhiteAddrs(ctx, append(append([]string{}, seedWhiteList...), "10.*.*.*")); err != nil {
+		t.Fatalf("SetGlobalWhiteAddrs: %v", err)
+	}
+	if err := acl.RemoveAccessConfig(ctx, probeKey); err != nil {
+		t.Fatalf("RemoveAccessConfig: %v", err)
+	}
+}
+
+// The credentials a connection profile carries are never actually sent.
+//
+// rocketmq-admin-go stores AccessKey and SecretKey in its options and contains
+// no signing code at all - no HMAC, no signature - so every admin call arrives
+// unauthenticated. On an ACL broker it succeeds only when the global whitelist
+// covers the caller, which is why the E2E broker's whitelist has to include the
+// Docker gateway.
+//
+// This connects with deliberately wrong credentials and expects it to work
+// anyway. It goes red the day the library signs its requests, which is when
+// the connection form's ACL fields start meaning something.
+func TestLiveACLCredentialsAreNotSigned(t *testing.T) {
+	connections, _, registry := liveStack(t)
+	ctx := context.Background()
+
+	input := liveProfileInput("acl-wrong-credentials")
+	input.Endpoints = aclNameServer
+	input.SetACL(true, "not-a-real-key", "not-a-real-secret")
+	profile, err := connections.AddConnection(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := connections.Connect(profile.ID); err != nil {
+		t.Skipf("run `npm run e2e:acl:up` for the ACL broker: %v", err)
+	}
+	conn, _ := registry.Get(profile.ID)
+
+	enabled, err := conn.(driver.AccessAdmin).AccessEnabled(ctx)
+	if err != nil {
+		t.Fatalf("credentials are signed now - rebuild the ACL story: %v", err)
+	}
+	if !enabled {
+		t.Fatal("AccessEnabled reported false on a broker with aclEnable=true")
 	}
 }

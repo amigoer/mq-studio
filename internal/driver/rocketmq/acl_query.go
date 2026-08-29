@@ -20,11 +20,11 @@ func (c *Conn) GetAclEnabled(ctx context.Context) (bool, error) {
 	var enabled bool
 	err = c.exec(func(retryClient *admin.Client) error {
 
-		config, callErr := retryClient.GetBrokerConfig(ctx, brokerAddress)
+		returned, callErr := retryClient.GetBrokerConfig(ctx, brokerAddress)
 		if callErr != nil {
 			return callErr
 		}
-		enabled = strings.EqualFold(config["aclEnable"], "true")
+		enabled = strings.EqualFold(brokerConfig(returned)["aclEnable"], "true")
 		return nil
 	})
 	if err != nil {
