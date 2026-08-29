@@ -1,3 +1,4 @@
+import { ArrowRight } from "lucide-react";
 import { Page, PageBody } from "@/design/shell";
 import { Card, CardHeader, ChartBox, StatTile, Table, TBody, TD, TH, THead, TR } from "@/design/ui";
 import { CHART_CARD, CHART_ROW, KPI_GRID, OverviewHeader, TABLE_CARD } from "./_shared";
@@ -10,7 +11,7 @@ export function OverviewMqtt() {
     <Page>
       <OverviewHeader subtitle="iot-broker · EMQX 5.4 · MQTT 5.0 · 数据来自 $SYS（只读）" />
       <PageBody>
-        <div style={KPI_GRID}>
+        <div className={KPI_GRID}>
           <StatTile label="在线客户端" value="1 284" hint="峰值 1 402" />
           <StatTile label="订阅总数" value="3 402" hint="共享订阅 12" />
           <StatTile label="保留消息" value="128" />
@@ -18,7 +19,7 @@ export function OverviewMqtt() {
           <StatTile label="丢弃消息" value="0" hint="过期 0" />
         </div>
 
-        <div style={CHART_ROW}>
+        <div className={CHART_ROW}>
           <Card style={CHART_CARD}>
             <b style={{ fontSize: "12.5px" }}>连接数趋势</b>
             <ChartBox style={{ flex: 1 }}>折线图占位（$SYS clients.count）</ChartBox>
@@ -32,7 +33,12 @@ export function OverviewMqtt() {
         <Card style={TABLE_CARD}>
           <CardHeader
             title="$SYS 关键指标"
-            action={<span style={{ fontSize: "11.5px", color: "#525252" }}>完整 $SYS 树 →</span>}
+            action={
+              <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "11.5px", color: "#525252" }}>
+                完整 $SYS 树
+                <ArrowRight size={13} aria-hidden />
+              </span>
+            }
           />
           <Table>
             <THead>

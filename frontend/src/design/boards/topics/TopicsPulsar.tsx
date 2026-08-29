@@ -51,7 +51,7 @@ export function TopicsPulsar() {
 
       <ListArea>
         <ListPane>
-          <Table>
+          <Table className="inset">
             <THead>
               <TR>
                 <TH>Topic</TH>

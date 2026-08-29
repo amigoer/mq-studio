@@ -1,11 +1,8 @@
 import type { ReactNode } from "react";
 import { Bar, Card } from "@/design/ui";
 
-export const NODE_GRID = {
-  display: "grid",
-  gridTemplateColumns: "repeat(2,1fr)",
-  gap: "12px",
-} as const;
+/* `.mqs-nodegrid` in tokens.css: it drops to one column on a narrow shell. */
+export const NODE_GRID = "mqs-nodegrid";
 
 export const NODE_CARD = {
   padding: "13px 16px",

@@ -48,7 +48,7 @@ export function ConsumersRocketMQ() {
 
       <ListArea>
         <ListPane>
-          <Table>
+          <Table className="inset">
             <THead>
               <TR>
                 <TH>组名</TH>

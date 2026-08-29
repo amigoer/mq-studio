@@ -21,7 +21,7 @@ export function OverviewRocketMQ() {
     <Page>
       <OverviewHeader subtitle="rocketmq-order · RocketMQ 5.1.4 · DefaultCluster · 自动刷新 10s" />
       <PageBody>
-        <div style={KPI_GRID}>
+        <div className={KPI_GRID}>
           <StatTile label="Broker" value="4" hint="2 主 2 从" />
           <StatTile label="Topic" value="128" hint="系统 Topic 已隐藏" />
           <StatTile label="消费者组" value="32" hint="2 个告警" />
@@ -29,7 +29,7 @@ export function OverviewRocketMQ() {
           <StatTile label="总堆积" value="1 204" valueColor="#b45309" hint="较 1h 前 +12%" />
         </div>
 
-        <div style={CHART_ROW}>
+        <div className={CHART_ROW}>
           <Card style={CHART_CARD}>
             <b style={{ fontSize: "12.5px" }}>吞吐趋势</b>
             <div style={{ display: "flex", gap: "12px", fontSize: "10.5px" }}>

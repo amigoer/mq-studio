@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { Toolbar } from "@/design/shell";
 import {
   Btn,
@@ -29,6 +30,28 @@ const LIVE: readonly Live[] = [
  * model here, so the page is a topic tree, a live subscription stream, and a
  * detail column, rather than the list + sheet used by every other protocol.
  */
+
+/** A branch in the 11e topic tree: the canvas drew its caret as ▾ / ▸. */
+function TreeNode({
+  children,
+  indent,
+  open = false,
+  color = "#525252",
+}: {
+  children: ReactNode;
+  indent: string;
+  open?: boolean;
+  color?: string;
+}) {
+  const Caret = open ? ChevronDown : ChevronRight;
+  return (
+    <div style={{ padding: indent, color, display: "flex", alignItems: "center", gap: "4px" }}>
+      <Caret size={12} aria-hidden />
+      {children}
+    </div>
+  );
+}
+
 export function MqttWorkbench() {
   const [selected, setSelected] = useState(0);
 
@@ -59,8 +82,12 @@ export function MqttWorkbench() {
             gap: "1px",
           }}
         >
-          <div style={{ padding: "4px 8px", color: "#525252" }}>▾ iot</div>
-          <div style={{ padding: "4px 8px 4px 22px", color: "#525252" }}>▾ device</div>
+          <TreeNode indent="4px 8px" open>
+            iot
+          </TreeNode>
+          <TreeNode indent="4px 8px 4px 22px" open>
+            device
+          </TreeNode>
           <div
             style={{
               padding: "4px 8px 4px 36px",
@@ -87,8 +114,10 @@ export function MqttWorkbench() {
               2/s
             </span>
           </div>
-          <div style={{ padding: "4px 8px 4px 22px", color: "#525252" }}>▸ cmd</div>
-          <div style={{ padding: "4px 8px", color: "#8a8a8a" }}>▸ $SYS</div>
+          <TreeNode indent="4px 8px 4px 22px">cmd</TreeNode>
+          <TreeNode indent="4px 8px" color="#8a8a8a">
+            $SYS
+          </TreeNode>
         </div>
         <div style={{ flex: 1 }} />
         <div

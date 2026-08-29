@@ -68,7 +68,7 @@ export function DlqRocketMQ() {
       </Toolbar>
 
       <ListPane>
-        <Table>
+        <Table className="inset">
           <THead>
             <TR>
               <TH style={{ width: "28px" }}>

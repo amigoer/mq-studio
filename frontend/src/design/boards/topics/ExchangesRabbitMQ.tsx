@@ -67,7 +67,7 @@ export function ExchangesRabbitMQ() {
 
       <ListArea>
         <ListPane>
-          <Table>
+          <Table className="inset">
             <THead>
               <TR>
                 <TH>交换机</TH>

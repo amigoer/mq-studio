@@ -20,7 +20,7 @@ export function OverviewPulsar() {
     <Page>
       <OverviewHeader subtitle="pulsar-eu · Pulsar 3.2 · 租户 ecommerce · Broker 3 / Bookie 4" />
       <PageBody>
-        <div style={KPI_GRID}>
+        <div className={KPI_GRID}>
           <StatTile label="Broker / Bookie" value="3 / 4" hint="全部在线" />
           <StatTile label="命名空间" value="14" hint="租户 6" />
           <StatTile label="Topic" value="220" hint="分区 Topic 38" />
@@ -28,7 +28,7 @@ export function OverviewPulsar() {
           <StatTile label="总积压" value="8 421" valueColor="#b45309" hint="较 1h 前 +6%" />
         </div>
 
-        <div style={CHART_ROW}>
+        <div className={CHART_ROW}>
           <Card style={CHART_CARD}>
             <b style={{ fontSize: "12.5px" }}>吞吐趋势</b>
             <div style={{ display: "flex", gap: "12px", fontSize: "10.5px" }}>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ChevronDown } from "lucide-react";
 import { BulkBar, ListPane, Page, PageHeader, SkeletonRows, Toolbar } from "@/design/shell";
 import { Btn, Check, SelectField, Table, TBody, TD, TH, THead, TR } from "@/design/ui";
 
@@ -48,7 +49,7 @@ export function PelRedis() {
       </Toolbar>
 
       <ListPane>
-        <Table>
+        <Table className="inset">
           <THead>
             <TR>
               <TH style={{ width: "26px" }}>
@@ -91,7 +92,10 @@ export function PelRedis() {
 
       <BulkBar hint="认领会重置 idle 并 +1 投递计数">
         <span>已选 {checked.length} 条</span>
-        <Btn variant="primary">XCLAIM 给 settle-2 ▾</Btn>
+        <Btn variant="primary">
+              XCLAIM 给 settle-2
+              <ChevronDown size={12} aria-hidden />
+            </Btn>
         <Btn>XACK 放弃</Btn>
         <Btn>查看消息</Btn>
       </BulkBar>

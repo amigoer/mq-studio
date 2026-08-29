@@ -21,7 +21,7 @@ export function OverviewRabbitMQ() {
     <Page>
       <OverviewHeader subtitle="rabbit-staging · RabbitMQ 3.13 · 集群 3 节点 · vhost /order" />
       <PageBody>
-        <div style={KPI_GRID}>
+        <div className={KPI_GRID}>
           <StatTile label="节点" value="3" hint="全部 running" />
           <StatTile label="队列" value="46" hint="quorum 18 · classic 24" />
           <StatTile label="连接 / 信道" value="128 / 342" hint="峰值 09:40" />
@@ -29,7 +29,7 @@ export function OverviewRabbitMQ() {
           <StatTile label="Ready 消息" value="1 139" valueColor="#b45309" hint="Unacked 16" />
         </div>
 
-        <div style={CHART_ROW}>
+        <div className={CHART_ROW}>
           <Card style={CHART_CARD}>
             <b style={{ fontSize: "12.5px" }}>消息速率</b>
             <div style={{ display: "flex", gap: "12px", fontSize: "10.5px" }}>

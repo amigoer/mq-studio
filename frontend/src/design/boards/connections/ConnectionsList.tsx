@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from "react";
+import { Ellipsis, Star } from "lucide-react";
 import { Page, PageHeader, Toolbar, StatusBar } from "@/design/shell";
 import {
   Btn,
@@ -21,7 +22,7 @@ import { CONNECTIONS, type Connection } from "@/design/data/connections";
 import { PROTOCOL_ORDER, type ProtocolId } from "@/design/data/protocols";
 
 /**
- * Board 8a — the global connection list. Row actions appear on hover; the `⋯`
+ * Board 8a — the global connection list. Row actions appear on hover; the
  * menu carries the low-frequency operations so the row stays scannable.
  */
 export function ConnectionsList({
@@ -52,7 +53,7 @@ export function ConnectionsList({
     <Page>
       <PageHeader
         title="连接"
-        subtitle="全局视图：标题栏 ⇄ 或标签条 ＋ 进入 · 凭证加密存储在本机 · 双击行在新标签打开"
+        subtitle="全局视图：标题栏 MQ 标记或标签条 ＋ 进入 · 凭证加密存储在本机 · 双击行在新标签打开"
         actions={
           <>
             <Btn>导入</Btn>
@@ -85,8 +86,10 @@ export function ConnectionsList({
         <SelectField value="按最近使用" />
       </Toolbar>
 
-      <div style={{ flex: 1, minHeight: 0, overflow: "hidden" }} className="mqs-scroll">
-        <Table>
+      {/* Scrolls rather than clips: a long list must stay reachable, and so
+          must the action column on a window narrower than the table. */}
+      <div style={{ flex: 1, minHeight: 0 }} className="mqs-scroll">
+        <Table className="inset">
           <THead>
             <TR>
               <TH>名称</TH>
@@ -102,12 +105,13 @@ export function ConnectionsList({
             {rows.map((c) => (
               <TR key={c.key} onDoubleClick={() => onOpenTab?.(c.key)}>
                 <TD>
-                  <b style={{ fontWeight: 500 }}>{c.name}</b>{" "}
-                  {c.isDefault && (
-                    <span title="默认连接" style={{ color: "#d97706" }}>
-                      ★
-                    </span>
-                  )}
+                  {/* Name and star ride one line: the column is sized by content. */}
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: "5px" }}>
+                    <b style={{ fontWeight: 500 }}>{c.name}</b>
+                    {c.isDefault && (
+                      <Star size={12} fill="currentColor" color="#d97706" aria-label="默认连接" />
+                    )}
+                  </span>
                 </TD>
                 <TD>
                   <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
@@ -115,7 +119,9 @@ export function ConnectionsList({
                     {c.protocolLabel}
                   </span>
                 </TD>
-                <TD className="mono3" style={{ color: "#666", fontSize: "11px" }}>
+                {/* The one column that gives way: 20px under the `.t3` cap, which
+                    is what keeps the table inside the 1024 minimum window. */}
+                <TD className="mono3" style={{ color: "#666", fontSize: "11px", maxWidth: "260px" }}>
                   {c.address}
                 </TD>
                 <TD>
@@ -126,7 +132,7 @@ export function ConnectionsList({
                 </TD>
                 <TD style={{ color: "#8a8a8a" }}>{c.lastUsed}</TD>
                 <TD style={{ textAlign: "right", overflow: "visible", position: "relative" }}>
-                  <span className="mqs-rowhint">悬停显示操作 ⋯</span>
+                  <span className="mqs-rowhint">悬停显示操作</span>
                   <span
                     className="mqs-rowactions"
                     style={{ position: "relative", display: "inline-flex", gap: "6px" }}
@@ -138,11 +144,14 @@ export function ConnectionsList({
                       aria-label="更多操作"
                       onClick={() => setMenuFor(menuFor === c.key ? null : c.key)}
                     >
-                      ⋯
+                      <Ellipsis size={13} aria-hidden />
                     </Btn>
                     <Menu open={menuFor === c.key} onClose={() => setMenuFor(null)}>
                       <MenuItem active>复制连接</MenuItem>
-                      <MenuItem>设为默认 ★</MenuItem>
+                      <MenuItem>
+                        设为默认
+                        <Star size={11} fill="currentColor" aria-hidden />
+                      </MenuItem>
                       <MenuItem>导出此连接</MenuItem>
                       <MenuItem>测试连接</MenuItem>
                       <MenuItem>操作日志</MenuItem>
@@ -171,7 +180,12 @@ export function ConnectionsList({
             {connections.length} 个连接 · {online} 在线 · {failed} 失败
           </span>
         }
-        right={<span>★ 默认连接随应用启动自动连接</span>}
+        right={
+          <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+            <Star size={11} fill="currentColor" aria-hidden />
+            默认连接随应用启动自动连接
+          </span>
+        }
       />
     </Page>
   );

@@ -11,7 +11,7 @@ export function NodeRedis() {
     <Page>
       <PageHeader title="节点" subtitle="redis-stream-01 · 单机 · Redis 7.2.4" actions={<Btn>刷新</Btn>} />
       <PageBody style={{ gap: "12px" }}>
-        <div style={NODE_GRID}>
+        <div className={NODE_GRID}>
           <NodeCard
             name="10.2.0.8:6379"
             badges={<Status tone="ok" style={TAG}>master</Status>}

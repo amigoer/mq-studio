@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Check, TriangleAlert, X, type LucideIcon } from "lucide-react";
 import { Btn, Dialog, SectionLabel } from "@/design/ui";
 import { ProtocolIcon } from "@/design/icons/ProtocolIcon";
 import { PROTOCOL_ORDER, type ProtocolId } from "@/design/data/protocols";
@@ -23,13 +24,13 @@ const TILE: Record<ProtocolId, { name: string; versions: string }> = {
 };
 
 /** The test-connection result line each protocol's board draws in its footer. */
-const TEST_RESULT: Record<ProtocolId, { text: string; color: string }> = {
-  rocketmq: { text: "✓ 连接成功 · 4 Broker · 5.1.4", color: "#1f7a4d" },
-  kafka: { text: "✓ 连接成功 · 3 Broker · Controller kafka-1", color: "#1f7a4d" },
-  rabbitmq: { text: "△ AMQP 可达 · 管理 API 401（检查账号权限）", color: "#b45309" },
-  pulsar: { text: "✓ 连接成功 · 3 Broker · 4 Bookie", color: "#1f7a4d" },
-  redis: { text: "✓ 连接成功 · Redis 7.2 · 扫描到 12 个 Stream", color: "#1f7a4d" },
-  mqtt: { text: "✕ 连接失败 · 证书主机名不匹配（查看详情）", color: "#dc2828" },
+const TEST_RESULT: Record<ProtocolId, { icon: LucideIcon; text: string; color: string }> = {
+  rocketmq: { icon: Check, text: "连接成功 · 4 Broker · 5.1.4", color: "#1f7a4d" },
+  kafka: { icon: Check, text: "连接成功 · 3 Broker · Controller kafka-1", color: "#1f7a4d" },
+  rabbitmq: { icon: TriangleAlert, text: "AMQP 可达 · 管理 API 401（检查账号权限）", color: "#b45309" },
+  pulsar: { icon: Check, text: "连接成功 · 3 Broker · 4 Bookie", color: "#1f7a4d" },
+  redis: { icon: Check, text: "连接成功 · Redis 7.2 · 扫描到 12 个 Stream", color: "#1f7a4d" },
+  mqtt: { icon: X, text: "连接失败 · 证书主机名不匹配（查看详情）", color: "#dc2828" },
 };
 
 const FORMS: Record<ProtocolId, () => JSX.Element> = {
@@ -68,7 +69,18 @@ export function NewConnectionDialog({
         <>
           <Btn onClick={() => setTested(true)}>测试连接</Btn>
           {tested && (
-            <span style={{ fontSize: "11.5px", color: result.color }}>{result.text}</span>
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "5px",
+                fontSize: "11.5px",
+                color: result.color,
+              }}
+            >
+              <result.icon size={13} aria-hidden />
+              {result.text}
+            </span>
           )}
           <span style={{ flex: 1 }} />
           <Btn onClick={onClose}>取消</Btn>

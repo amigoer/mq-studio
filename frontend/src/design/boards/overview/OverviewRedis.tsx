@@ -24,7 +24,7 @@ export function OverviewRedis() {
     <Page>
       <OverviewHeader subtitle="redis-stream-01 · Redis 7.2 · 单机 · db0 · 只读模式关闭" />
       <PageBody>
-        <div style={KPI_GRID}>
+        <div className={KPI_GRID}>
           <StatTile label="模式" value="单机" hint="uptime 96d" />
           <StatTile label="Stream" value="12" hint="匹配 orders:* ; events:*" />
           <StatTile label="消费者组" value="9" hint="消费者 21" />
@@ -32,7 +32,7 @@ export function OverviewRedis() {
           <StatTile label="PEL 待确认" value="37" valueColor="#b45309" hint="最长空闲 2.1h" />
         </div>
 
-        <div style={CHART_ROW}>
+        <div className={CHART_ROW}>
           <Card style={CHART_CARD}>
             <b style={{ fontSize: "12.5px" }}>命令速率</b>
             <div style={{ display: "flex", gap: "12px", fontSize: "10.5px" }}>

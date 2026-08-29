@@ -45,7 +45,7 @@ export function ChannelsRabbitMQ() {
 
       <ListArea>
         <ListPane>
-          <Table>
+          <Table className="inset">
             <THead>
               <TR>
                 <TH>连接</TH>

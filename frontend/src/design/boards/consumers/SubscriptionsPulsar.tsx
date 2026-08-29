@@ -44,7 +44,7 @@ export function SubscriptionsPulsar() {
 
       <ListArea>
         <ListPane>
-          <Table>
+          <Table className="inset">
             <THead>
               <TR>
                 <TH>订阅</TH>

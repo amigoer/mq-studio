@@ -1,3 +1,4 @@
+import { Star } from "lucide-react";
 import { Page, PageBody, PageHeader } from "@/design/shell";
 import { Btn, Card, KV, SectionLabel, Status, Table, TBody, TD, TH, THead, TR } from "@/design/ui";
 import { Metric, NODE_CARD, NODE_GRID, NodeCard, TABLE_CARD } from "./_shared";
@@ -15,10 +16,15 @@ export function BrokersKafka() {
         actions={<Btn>刷新</Btn>}
       />
       <PageBody style={{ gap: "12px" }}>
-        <div style={NODE_GRID}>
+        <div className={NODE_GRID}>
           <NodeCard
             name="kafka-1"
-            badges={<Status tone="ok" style={TAG}>Controller ★</Status>}
+            badges={
+              <Status tone="ok" style={TAG}>
+                Controller
+                <Star size={10} fill="currentColor" aria-hidden />
+              </Status>
+            }
             address="rack-a · 9092"
             metrics={
               <>

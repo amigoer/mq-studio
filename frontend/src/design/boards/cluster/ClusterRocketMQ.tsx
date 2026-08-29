@@ -15,7 +15,7 @@ export function ClusterRocketMQ() {
         actions={<Btn>刷新</Btn>}
       />
       <PageBody style={{ gap: "12px" }}>
-        <div style={NODE_GRID}>
+        <div className={NODE_GRID}>
           <NodeCard
             name="broker-a"
             badges={<Status tone="ok" style={TAG}>MASTER</Status>}

@@ -49,7 +49,7 @@ export function DlqRabbitMQ() {
       </Toolbar>
 
       <ListPane>
-        <Table>
+        <Table className="inset">
           <THead>
             <TR>
               <TH style={{ width: "26px" }}>

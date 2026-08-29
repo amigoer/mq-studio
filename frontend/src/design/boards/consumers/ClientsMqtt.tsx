@@ -61,7 +61,7 @@ export function ClientsMqtt() {
 
       <ListArea>
         <ListPane>
-          <Table>
+          <Table className="inset">
             <THead>
               <TR>
                 <TH>Client ID</TH>

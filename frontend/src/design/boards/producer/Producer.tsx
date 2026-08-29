@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ArrowRight, Check, ChevronDown, Send } from "lucide-react";
 import { Page, PageHeader } from "@/design/shell";
 import {
   Btn,
@@ -44,7 +45,10 @@ export function Producer({ protocol }: { protocol: ProtocolId }) {
         actions={
           <>
             <Btn>保存为模板</Btn>
-            <Btn variant="primary">发送 ▸</Btn>
+            <Btn variant="primary">
+              发送
+              <Send size={13} aria-hidden />
+            </Btn>
           </>
         }
       />
@@ -77,7 +81,18 @@ export function Producer({ protocol }: { protocol: ProtocolId }) {
               <Seg options={BODY_FORMATS} value={format} onChange={setFormat} />
               <span style={{ flex: 1 }} />
               <span style={{ fontSize: "11.5px", color: "#29915d" }}>格式化</span>
-              <span style={{ fontSize: "11.5px", color: "#8a8a8a" }}>从消息复制 ▾</span>
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  fontSize: "11.5px",
+                  color: "#8a8a8a",
+                }}
+              >
+                从消息复制
+                <ChevronDown size={12} aria-hidden />
+              </span>
             </div>
 
             <div
@@ -131,12 +146,18 @@ export function Producer({ protocol }: { protocol: ProtocolId }) {
               fontSize: "12px",
             }}
           >
-            <span style={{ color: "#1f7a4d" }}>✓ 发送成功</span>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", color: "#1f7a4d" }}>
+              <Check size={13} aria-hidden />
+              发送成功
+            </span>
             <span className="mono3" style={{ color: "#666", fontSize: "11px" }}>
               MsgId 7F0000012A9C…D02
             </span>
             <span style={{ flex: 1 }} />
-            <span style={{ color: "#29915d" }}>查看该消息 →</span>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", color: "#29915d" }}>
+              查看该消息
+              <ArrowRight size={13} aria-hidden />
+            </span>
           </div>
         </div>
 

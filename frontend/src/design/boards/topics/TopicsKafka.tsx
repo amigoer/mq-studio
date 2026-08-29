@@ -48,7 +48,7 @@ export function TopicsKafka() {
 
       <ListArea>
         <ListPane>
-          <Table>
+          <Table className="inset">
             <THead>
               <TR>
                 <TH>Topic</TH>

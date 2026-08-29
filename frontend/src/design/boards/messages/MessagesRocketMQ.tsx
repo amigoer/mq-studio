@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ArrowRight, Copy, X } from "lucide-react";
 import { ListArea, ListPane, Page, PageHeader, SkeletonRows, Toolbar } from "@/design/shell";
 import {
   Btn,
@@ -52,7 +53,7 @@ export function MessagesRocketMQ() {
 
       <ListArea>
         <ListPane>
-          <Table>
+          <Table className="inset">
             <THead>
               <TR>
                 <TH>MsgId</TH>
@@ -109,9 +110,9 @@ export function MessagesRocketMQ() {
                 type="button"
                 aria-label="关闭"
                 onClick={() => setSelected(null)}
-                style={{ color: "#a3a3a3", marginLeft: "2px", background: "none", border: "none", font: "inherit" }}
+                style={{ display: "flex", color: "#a3a3a3", marginLeft: "2px", background: "none", border: "none", padding: 0 }}
               >
-                ×
+                <X size={15} aria-hidden />
               </button>
             </div>
 
@@ -120,8 +121,12 @@ export function MessagesRocketMQ() {
                 rows={[
                   [
                     "MsgId",
-                    <span className="mono3" style={MONO11}>
-                      7F0000012A9C81E44C1 <span style={{ color: "#29915d" }}>⧉</span>
+                    <span
+                      className="mono3"
+                      style={{ ...MONO11, display: "inline-flex", alignItems: "center", gap: "6px" }}
+                    >
+                      7F0000012A9C81E44C1
+                      <Copy size={12} color="#29915d" style={{ flex: "none" }} aria-hidden />
                     </span>,
                   ],
                   ["Key / Tag", <span className="mono3" style={MONO11}>ORD-88213 · create</span>],
@@ -161,7 +166,12 @@ export function MessagesRocketMQ() {
                       title: "order-settle 第 2 次重试",
                       meta: "下次投递 10:26:07",
                       color: "#d97706",
-                      extra: <span style={{ color: "#29915d" }}>查看重试队列 →</span>,
+                      extra: (
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", color: "#29915d" }}>
+                          查看重试队列
+                          <ArrowRight size={12} aria-hidden />
+                        </span>
+                      ),
                     },
                   ]}
                 />

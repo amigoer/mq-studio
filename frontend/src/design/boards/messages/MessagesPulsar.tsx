@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ChevronDown } from "lucide-react";
 import { ListArea, ListPane, Page, PageHeader, SkeletonRows, Toolbar } from "@/design/shell";
 import {
   Btn,
@@ -54,7 +55,7 @@ export function MessagesPulsar() {
 
       <ListArea>
         <ListPane>
-          <Table>
+          <Table className="inset">
             <THead>
               <TR>
                 <TH>MessageId</TH>
@@ -114,7 +115,12 @@ export function MessagesPulsar() {
               <div>
                 <SectionLabel
                   style={{ marginBottom: "6px" }}
-                  action="反序列化：JSON ▾"
+                  action={
+                    <>
+                      反序列化：JSON
+                      <ChevronDown size={12} aria-hidden />
+                    </>
+                  }
                   actionColor="#525252"
                 >
                   Value · JSON

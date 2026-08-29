@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { ListArea, ListPane, Page, PageHeader, SkeletonRows, Toolbar } from "@/design/shell";
 import {
   Btn,
@@ -59,7 +60,7 @@ export function MessagesRedis() {
 
       <ListArea>
         <ListPane>
-          <Table>
+          <Table className="inset">
             <THead>
               <TR>
                 <TH>Entry ID</TH>
@@ -152,8 +153,14 @@ export function MessagesRedis() {
           XRANGE orders:events - + COUNT 100
         </span>
         <span style={{ flex: 1 }} />
-        <Btn>‹ 更早</Btn>
-        <Btn>更新 ›</Btn>
+        <Btn>
+          <ChevronLeft size={13} aria-hidden />
+          更早
+        </Btn>
+        <Btn>
+          更新
+          <ChevronRight size={13} aria-hidden />
+        </Btn>
       </Toolbar>
     </Page>
   );

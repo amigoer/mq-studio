@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ChevronDown, TriangleAlert } from "lucide-react";
 import { ListArea, ListPane, Page, PageHeader, SkeletonRows, Toolbar } from "@/design/shell";
 import {
   Btn,
@@ -48,7 +49,10 @@ export function MessagesRabbitMQ() {
   return (
     <Page>
       <PageHeader title="浏览队列消息" subtitle="AMQP 仅支持取队头 · requeue 模式不破坏队列" />
-      <WarnBanner>⚠ ack 模式会把消息从队列移除且无法恢复；生产环境请使用 requeue 模式</WarnBanner>
+      <WarnBanner>
+          <TriangleAlert size={13} style={{ flex: "none" }} aria-hidden />
+          ack 模式会把消息从队列移除且无法恢复；生产环境请使用 requeue 模式
+        </WarnBanner>
       <Toolbar>
         <SelectField value="队列：order.settle.q" />
         <Field className="mono3" style={{ flex: "0 0 70px" }} defaultValue="10 条" />
@@ -59,7 +63,7 @@ export function MessagesRabbitMQ() {
 
       <ListArea>
         <ListPane>
-          <Table>
+          <Table className="inset">
             <THead>
               <TR>
                 <TH style={R}>#</TH>
@@ -114,7 +118,12 @@ export function MessagesRabbitMQ() {
               <div>
                 <SectionLabel
                   style={{ marginBottom: "6px" }}
-                  action="反序列化：JSON ▾"
+                  action={
+            <>
+              反序列化：JSON
+              <ChevronDown size={12} aria-hidden />
+            </>
+          }
                   actionColor="#525252"
                 >
                   Value · JSON

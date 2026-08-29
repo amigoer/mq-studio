@@ -1,6 +1,7 @@
 import { ProtoBadge, SelectField, Status, Table, TBody, TD, TH, THead, TR, Btn, Field } from "@/design/ui";
 import { SkeletonRows, Toolbar } from "@/design/shell";
 import type { ReactNode } from "react";
+import { X } from "lucide-react";
 
 const TAG = { fontSize: "10px" } as const;
 const R = { textAlign: "right" } as const;
@@ -16,7 +17,7 @@ export function SplitCompare({ onClose }: { onClose?: () => void }) {
         badge={<ProtoBadge protocol="rocketmq" label="RMQ 5.x" />}
         name="rocketmq-order"
         page="消息查询"
-        status="● 12ms · 独立刷新 10s"
+        status="12ms · 独立刷新 10s"
         divider
         onClose={onClose}
         toolbar={
@@ -60,7 +61,7 @@ export function SplitCompare({ onClose }: { onClose?: () => void }) {
         badge={<ProtoBadge protocol="kafka" />}
         name="prod-kafka-cn"
         page="消费者组"
-        status="● 8ms · 独立刷新 10s"
+        status="8ms · 独立刷新 10s"
         onClose={onClose}
         toolbar={
           <>
@@ -153,9 +154,9 @@ function Pane({
           type="button"
           aria-label={`关闭 ${name}`}
           onClick={onClose}
-          style={{ color: "#a3a3a3", background: "none", border: "none", font: "inherit" }}
+          style={{ display: "flex", color: "#a3a3a3", background: "none", border: "none", padding: 0 }}
         >
-          ×
+          <X size={15} aria-hidden />
         </button>
       </div>
 
@@ -168,12 +169,17 @@ function Pane({
       <div
         style={{
           flex: "none",
+          display: "flex",
+          alignItems: "center",
+          gap: "5px",
           padding: "6px 14px",
           borderTop: "1px solid #ebebeb",
           fontSize: "10.5px",
           color: "#8a8a8a",
         }}
       >
+        {/* Each pane keeps its own connection, so each states its own health. */}
+        <span className="mqs-dot" style={{ color: "#29915d" }} aria-hidden />
         {status}
       </div>
     </div>

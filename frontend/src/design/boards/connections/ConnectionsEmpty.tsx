@@ -1,3 +1,4 @@
+import { Plus } from "lucide-react";
 import { AppLogo } from "@/design/icons/AppLogo";
 import { ProtocolIcon } from "@/design/icons/ProtocolIcon";
 import { Btn } from "@/design/ui";
@@ -49,7 +50,8 @@ export function ConnectionsEmpty({ onNewConnection }: { onNewConnection?: () => 
         </div>
         <div style={{ display: "flex", gap: "10px", marginTop: "20px" }}>
           <Btn variant="primary" style={{ padding: "6px 16px" }} onClick={onNewConnection}>
-            ＋ 新建连接
+            <Plus size={13} aria-hidden />
+              新建连接
           </Btn>
           <Btn style={{ padding: "6px 16px" }}>导入配置</Btn>
         </div>

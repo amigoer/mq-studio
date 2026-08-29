@@ -46,7 +46,7 @@ export function ConsumersKafka() {
 
       <ListArea>
         <ListPane>
-          <Table>
+          <Table className="inset">
             <THead>
               <TR>
                 <TH>Group</TH>

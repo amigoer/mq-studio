@@ -1,3 +1,4 @@
+import { ArrowRight } from "lucide-react";
 import { Page, PageBody } from "@/design/shell";
 import {
   Card,
@@ -20,7 +21,7 @@ export function OverviewKafka() {
     <Page>
       <OverviewHeader subtitle="prod-kafka-cn · Kafka 3.7 · Controller kafka-1 · 自动刷新 10s" />
       <PageBody>
-        <div style={KPI_GRID}>
+        <div className={KPI_GRID}>
           <StatTile label="Broker" value="3" hint="Controller kafka-1" />
           <StatTile label="Topic" value="42" hint="已隐藏内部 12 个" />
           <StatTile label="分区" value="386" hint="URP 2 · 离线 0" hintColor="#b45309" />
@@ -28,7 +29,7 @@ export function OverviewKafka() {
           <StatTile label="总堆积" value="12 480" valueColor="#b45309" hint="较 1h 前 +8%" />
         </div>
 
-        <div style={{ ...CHART_ROW, height: "170px" }}>
+        <div className={CHART_ROW}>
           <Card style={CHART_CARD}>
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
               <b style={{ fontSize: "12.5px" }}>吞吐趋势</b>
@@ -51,7 +52,12 @@ export function OverviewKafka() {
         <Card style={TABLE_CARD}>
           <CardHeader
             title="堆积 TOP 消费者组"
-            action={<span style={{ fontSize: "11.5px", color: "#29915d" }}>查看全部 →</span>}
+            action={
+              <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "11.5px", color: "#29915d" }}>
+                查看全部
+                <ArrowRight size={13} aria-hidden />
+              </span>
+            }
           />
           <Table>
             <THead>

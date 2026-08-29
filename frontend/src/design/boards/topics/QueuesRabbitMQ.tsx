@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ArrowRight } from "lucide-react";
 import { ListArea, ListPane, Page, PageHeader, SkeletonRows, Toolbar } from "@/design/shell";
 import {
   Btn,
@@ -55,7 +56,7 @@ export function QueuesRabbitMQ() {
 
       <ListArea>
         <ListPane>
-          <Table>
+          <Table className="inset">
             <THead>
               <TR>
                 <TH>队列</TH>
@@ -179,7 +180,7 @@ function BindingRow({ routingKey }: { routingKey: string }) {
     <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
       <ProtoBadge protocol="rabbitmq" label="topic" style={{ fontSize: "9px" }} />
       <span className="mono3" style={MONO11}>ex.order</span>
-      <span style={{ color: "#a3a3a3" }}>→</span>
+      <ArrowRight size={12} color="#a3a3a3" style={{ flex: "none" }} aria-hidden />
       <span className="mono3" style={{ ...MONO11, color: "#666" }}>rk = {routingKey}</span>
     </div>
   );

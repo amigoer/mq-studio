@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { ListArea, ListPane, Page, PageHeader, SkeletonRows, Toolbar } from "@/design/shell";
 import {
   Btn,
@@ -54,7 +55,7 @@ export function MessagesKafka() {
 
       <ListArea>
         <ListPane>
-          <Table>
+          <Table className="inset">
             <THead>
               <TR>
                 <TH style={R}>分区</TH>
@@ -124,7 +125,12 @@ export function MessagesKafka() {
               <div>
                 <SectionLabel
                   style={{ marginBottom: "6px" }}
-                  action="反序列化：JSON ▾"
+                  action={
+                    <>
+                      反序列化：JSON
+                      <ChevronDown size={12} aria-hidden />
+                    </>
+                  }
                   actionColor="#525252"
                 >
                   Value · JSON
@@ -172,8 +178,14 @@ export function MessagesKafka() {
           游标：p3 从 88 204 271 起 · 已读 500 条
         </span>
         <span style={{ flex: 1 }} />
-        <Btn>加载更早 ‹</Btn>
-        <Btn>› 加载更新</Btn>
+        <Btn>
+          加载更早
+          <ChevronLeft size={13} aria-hidden />
+        </Btn>
+        <Btn>
+          <ChevronRight size={13} aria-hidden />
+          加载更新
+        </Btn>
       </Toolbar>
     </Page>
   );

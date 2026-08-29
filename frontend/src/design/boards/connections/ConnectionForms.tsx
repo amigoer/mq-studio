@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from "react";
+import { ChevronRight, RefreshCw } from "lucide-react";
 import { Field, Seg, SelectField, Sw } from "@/design/ui";
 
 /** `.fld` — label (with optional grey hint) above the control. */
@@ -32,13 +33,23 @@ const GRID = {
 
 const MONO = { fontSize: "11.5px" } as const;
 
-/** The `▸ 高级 …` line and the right-hand caveat under every form. */
-function FormNote({ advanced, note }: { advanced: string; note: string }) {
+/** The 高级 disclosure line and the right-hand caveat under every form. */
+function FormNote({ advanced, note }: { advanced: ReactNode; note: ReactNode }) {
   return (
     <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "#8a8a8a" }}>
       <span>{advanced}</span>
       <span>{note}</span>
     </div>
+  );
+}
+
+/** A hint the canvas marked with a ▸: fields the form does not draw. */
+function Adv({ children }: { children: ReactNode }) {
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: "3px" }}>
+      <ChevronRight size={12} aria-hidden />
+      {children}
+    </span>
   );
 }
 
@@ -92,7 +103,7 @@ export function RocketMQForm() {
         </Fld>
       </div>
       <FormNote
-        advanced="▸ 高级：实例 ID（公有云） · 消息轨迹 Topic · 请求超时 · TLS"
+        advanced={<Adv>高级：实例 ID（公有云） · 消息轨迹 Topic · 请求超时 · TLS</Adv>}
         note="切到 4.x 时自动隐藏 Proxy 与 5.x 专属项"
       />
     </>
@@ -140,7 +151,7 @@ export function KafkaForm() {
         </Fld>
       </div>
       <FormNote
-        advanced="▸ 高级：client.id · 请求超时 · 客户端证书（mTLS）"
+        advanced={<Adv>高级：client.id · 请求超时 · 客户端证书（mTLS）</Adv>}
         note="凭证加密存储在本机"
       />
     </>
@@ -175,7 +186,7 @@ export function RabbitMQForm() {
         </Fld>
       </div>
       <FormNote
-        advanced="▸ 高级：心跳 60s · 连接超时 · 通道上限 · TLS 证书"
+        advanced={<Adv>高级：心跳 60s · 连接超时 · 通道上限 · TLS 证书</Adv>}
         note="不填管理 API → 仅浏览/收发，无指标页"
       />
     </>
@@ -230,7 +241,7 @@ export function PulsarForm() {
         </Fld>
       </div>
       <FormNote
-        advanced="▸ 高级：操作超时 · TLS CA · 监听器名称"
+        advanced={<Adv>高级：操作超时 · TLS CA · 监听器名称</Adv>}
         note="Topic 页按 租户 / 命名空间 级联浏览"
       />
     </>
@@ -283,7 +294,7 @@ export function RedisForm() {
         </Fld>
       </div>
       <FormNote
-        advanced="▸ 高级：连接超时 · TLS · 只读模式"
+        advanced={<Adv>高级：连接超时 · TLS · 只读模式</Adv>}
         note="只读模式下禁用 XADD / XDEL / XTRIM"
       />
     </>
@@ -320,7 +331,7 @@ export function MqttForm() {
         <Fld label="Client ID">
           <span className="in3 mono3" style={{ ...MONO, display: "flex" }}>
             mq-studio-8f21c3
-            <span style={{ marginLeft: "auto", color: "#29915d" }}>↻</span>
+            <RefreshCw size={12} color="#29915d" style={{ marginLeft: "auto" }} aria-hidden />
           </span>
         </Fld>
         <Fld label="Keep Alive">
@@ -342,8 +353,8 @@ export function MqttForm() {
         )}
       </div>
       <FormNote
-        advanced="▸ 遗嘱消息（LWT）：Topic · Payload · QoS · Retain"
-        note="▸ TLS：CA / 客户端证书 · 跳过验证"
+        advanced={<Adv>遗嘱消息（LWT）：Topic · Payload · QoS · Retain</Adv>}
+        note={<Adv>TLS：CA / 客户端证书 · 跳过验证</Adv>}
       />
     </>
   );

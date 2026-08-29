@@ -53,7 +53,7 @@ export function TopicsRocketMQ() {
 
       <ListArea>
         <ListPane>
-          <Table>
+          <Table className="inset">
             <THead>
               <TR>
                 <TH>Topic</TH>

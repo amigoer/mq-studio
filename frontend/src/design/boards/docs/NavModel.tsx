@@ -1,3 +1,4 @@
+import { ArrowLeft, Plus } from "lucide-react";
 import { Page, PageBody, PageHeader } from "@/design/shell";
 import { Placeholder, SectionLabel } from "@/design/ui";
 import { ProtocolIcon } from "@/design/icons/ProtocolIcon";
@@ -63,11 +64,29 @@ export function NavModel() {
                 <ProtocolIcon protocol="kafka" size={12} />
                 prod-kafka-cn
               </span>
-              <span style={{ borderRadius: "7px", padding: "3px 10px", fontSize: "11px", color: "#8a8a8a" }}>
-                ＋
+              <span
+                style={{
+                  display: "inline-flex",
+                  borderRadius: "7px",
+                  padding: "3px 10px",
+                  color: "#8a8a8a",
+                }}
+              >
+                <Plus size={12} aria-hidden />
               </span>
               <span style={{ flex: 1 }} />
-              <span style={{ fontSize: "10.5px", color: "#8a8a8a" }}>← 连接标签层（隔离边界）</span>
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  fontSize: "10.5px",
+                  color: "#8a8a8a",
+                }}
+              >
+                <ArrowLeft size={12} aria-hidden />
+                连接标签层（隔离边界）
+              </span>
             </div>
             <div
               style={{
@@ -91,7 +110,9 @@ export function NavModel() {
               >
                 总览
                 <br />
-                <b style={{ color: "#171717" }}>消息 ←</b>
+                <b style={{ color: "#171717" }}>
+                  消息 <ArrowLeft size={11} style={{ verticalAlign: "-1px" }} aria-hidden />
+                </b>
                 <br />
                 Topic
                 <br />

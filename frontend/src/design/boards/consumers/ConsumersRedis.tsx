@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ChevronDown } from "lucide-react";
 import { BulkBar, ListPane, Page, PageHeader, Toolbar } from "@/design/shell";
 import {
   Btn,
@@ -53,7 +54,7 @@ export function ConsumersRedis() {
       </Toolbar>
 
       <div style={{ flex: "none", overflow: "hidden" }}>
-        <Table>
+        <Table className="inset">
           <THead>
             <TR>
               <TH>组</TH>
@@ -100,7 +101,7 @@ export function ConsumersRedis() {
       </div>
 
       <ListPane>
-        <Table>
+        <Table className="inset">
           <THead>
             <TR>
               <TH style={{ width: "26px" }}>
@@ -138,7 +139,10 @@ export function ConsumersRedis() {
 
       <BulkBar hint="idle 超 2h 的条目建议认领或确认">
         <span>已选 {checked.length} 条</span>
-        <Btn variant="primary">XCLAIM 认领给 ▾</Btn>
+        <Btn variant="primary">
+              XCLAIM 认领给
+              <ChevronDown size={12} aria-hidden />
+            </Btn>
         <Btn>XACK 确认</Btn>
       </BulkBar>
 

@@ -12,7 +12,7 @@ export function NodesRabbitMQ() {
     <Page>
       <PageHeader title="节点" subtitle="集群 rabbit@cluster · 3 节点" actions={<Btn>刷新</Btn>} />
       <PageBody style={{ gap: "12px" }}>
-        <div style={NODE_GRID}>
+        <div className={NODE_GRID}>
           <NodeCard
             name="rabbit@node1"
             badges={<Status tone="ok" style={TAG}>disc</Status>}

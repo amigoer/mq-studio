@@ -50,7 +50,7 @@ export function StreamsRedis() {
 
       <ListArea>
         <ListPane>
-          <Table>
+          <Table className="inset">
             <THead>
               <TR>
                 <TH>Stream Key</TH>
