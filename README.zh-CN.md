@@ -1,45 +1,41 @@
-# MQ Studio
+<div align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/hero-dark.zh-CN.svg">
+    <img src="docs/images/hero-light.zh-CN.svg" width="100%" alt="MQ Studio — 本地优先的消息队列桌面客户端。无需部署 Web 控制台，即可管理集群、Topic、消费者与消息。">
+  </picture>
+</div>
 
 <p align="center">
-  <img src="frontend/src/assets/logo.png" alt="MQ Studio" width="150">
+  <a href="https://github.com/amigoer/mq-studio/releases/latest"><img src="https://img.shields.io/github/v/release/amigoer/mq-studio?style=flat-square&label=release&labelColor=1A1A1E&color=EC3013" alt="最新版本"></a>
+  <a href="https://github.com/amigoer/mq-studio/releases"><img src="https://img.shields.io/github/downloads/amigoer/mq-studio/total?style=flat-square&label=downloads&labelColor=1A1A1E&color=3F3F46" alt="下载量"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-3F3F46?style=flat-square&labelColor=1A1A1E" alt="Apache-2.0 许可证"></a>
 </p>
 
 <p align="center">
-  <strong>本地优先的消息队列桌面客户端</strong><br>
-  无需额外部署控制台，即可管理集群、Topic、队列、消费者与消息。
-</p>
-
-<p align="center">
-  <a href="https://github.com/amigoer/mq-studio/releases/latest"><img src="https://img.shields.io/github/v/release/amigoer/mq-studio?style=flat-square&label=release" alt="最新版本"></a>
-  <a href="https://github.com/amigoer/mq-studio/releases"><img src="https://img.shields.io/github/downloads/amigoer/mq-studio/total?style=flat-square&label=downloads" alt="下载量"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue?style=flat-square" alt="Apache-2.0 许可证"></a>
-  <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-39404A?style=flat-square" alt="支持平台">
-  <img src="https://img.shields.io/badge/RocketMQ-4.x%20%7C%205.x-FF6A00?style=flat-square" alt="RocketMQ 4.x 与 5.x">
-  <img src="https://img.shields.io/badge/RabbitMQ-in%20development-FF6600?style=flat-square" alt="RabbitMQ 开发中">
-</p>
-
-<p align="center">
-  <a href="README.md">English</a> ·
-  <a href="https://github.com/amigoer/mq-studio/releases">下载</a> ·
+  <a href="README.md">English</a>&nbsp;&nbsp;·&nbsp;&nbsp;
+  <a href="https://github.com/amigoer/mq-studio/releases">下载</a>&nbsp;&nbsp;·&nbsp;&nbsp;
+  <a href="docs/INSTALL.zh-CN.md">安装说明</a>&nbsp;&nbsp;·&nbsp;&nbsp;
   <a href="docs/ARCHITECTURE.md">文档</a>
 </p>
 
----
+<br>
 
 <p align="center">
-  <a href="docs/images/overview.png">
-    <img src="docs/images/overview.png" alt="MQ Studio 概览仪表盘">
-  </a>
-  <br>
-  <sub>在一个页面查看集群健康、实时吞吐、消费堆积与 Broker 状态。</sub>
+  <a href="docs/images/overview.png"><img src="docs/images/overview.png" alt="MQ Studio 概览仪表盘" width="100%"></a>
+</p>
+<p align="center">
+  <sub>连接之后，集群健康、实时吞吐、消费堆积与 Broker 状态一眼可见。</sub>
 </p>
 
-## 为什么用 MQ Studio？
+## 为什么用 MQ Studio
 
-- **安装即用** — 不需要部署服务端或 Web 控制台
-- **专注日常运维** — 一个桌面应用覆盖常用的消息队列运维操作
+MQ Studio 把消息队列运维当作一个桌面问题来解决：安装应用、添加连接，然后开始工作。
+没有需要部署、加固和值守的服务端组件。
+
+- **安装即用** — 下载、连接、开工，不需要搭建和维护 Web 控制台
+- **专注日常运维** — 一个应用覆盖运营消息队列的日常操作
 - **数据留在本机** — 配置保存在当前设备，凭证加密存储
-- **跨平台与双语** — 支持 macOS、Windows、Linux 以及中英文界面
+- **跨平台与双语** — 支持 macOS、Windows、Linux，提供中英文界面
 
 ## 功能
 
@@ -52,15 +48,50 @@
 | **管理能力** | 管理消费者配置、Topic 配置、ACL 与全局白名单 |
 | **个性化** | 切换主题与语言、自定义显示、导入或导出配置、自动检查更新 |
 
+## 产品一览
+
+点击任意截图可查看完整尺寸原图。
+
+<table>
+  <tr>
+    <td width="50%" align="center">
+      <a href="docs/images/topics.png"><img src="docs/images/topics.png" alt="Topic 管理"></a>
+      <sub><strong>Topic 操作</strong> — 查看队列、路由与订阅关系。</sub>
+    </td>
+    <td width="50%" align="center">
+      <a href="docs/images/consumers.png"><img src="docs/images/consumers.png" alt="消费者组详情"></a>
+      <sub><strong>消费诊断</strong> — 跟踪客户端、订阅、TPS 与消息堆积。</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center">
+      <a href="docs/images/messages.png"><img src="docs/images/messages.png" alt="消息查询与详情"></a>
+      <sub><strong>消息检查</strong> — 查询消息并查看消息体、属性与轨迹。</sub>
+    </td>
+    <td width="50%" align="center">
+      <a href="docs/images/cluster.png"><img src="docs/images/cluster.png" alt="集群监控"></a>
+      <sub><strong>集群监控</strong> — 查看健康状态、吞吐、Broker 与磁盘使用率。</sub>
+    </td>
+  </tr>
+</table>
+
 ## 驱动支持
 
-MQ Studio 通过可插拔驱动对接各类消息中间件。每个驱动声明自己的能力，界面只呈现该中间件真正
-支持的功能。
+MQ Studio 通过可插拔驱动对接各类消息中间件。每个驱动声明自己的能力，界面只呈现所连
+中间件真正支持的功能。
 
 | 驱动 | 状态 | 说明 |
 | --- | --- | --- |
 | **RocketMQ** 4.x / 5.x | ✅ 已发布 | 通过 Admin API 提供完整功能 |
 | **RabbitMQ** | 🚧 开发中 | 队列、消费者、消息浏览与发布、集群拓扑、Exchange 与 Binding |
+| Kafka · Pulsar · NATS · MQTT · SQS 等 | 📋 计划中 | 完整矩阵见下方折叠内容 |
+
+<details>
+<summary><strong>计划中的驱动、协议兼容系统与范围边界</strong></summary>
+<br>
+
+| 驱动 | 状态 | 说明 |
+| --- | --- | --- |
 | **Kafka** | 📋 计划中 | |
 | **Pulsar** | 📋 计划中 | |
 | **ActiveMQ / Artemis** | 📋 计划中 | 通过 Jolokia 管理接口访问 JMS 队列与主题 |
@@ -75,8 +106,6 @@ MQ Studio 通过可插拔驱动对接各类消息中间件。每个驱动声明�
 | **IBM MQ** | 📋 计划中 | 通过管理 REST 接口访问队列与通道 |
 | **Solace PubSub+** | 📋 计划中 | 通过 SEMP 访问队列与主题端点 |
 
-✅ 已随正式版本发布 · 🚧 已实现，尚未发布 · 📋 已完成设计，尚未实现
-
 **由已有驱动覆盖。** 协议兼容的实现不单独占用一个驱动：Redpanda、AutoMQ、WarpStream、
 Confluent、Amazon MSK 与 Azure Event Hubs 按 Kafka 连接；EMQX、Mosquitto、HiveMQ 与
 VerneMQ 按 MQTT 连接；Amazon MQ 按 ActiveMQ 或 RabbitMQ 连接；阿里云与腾讯云的 RocketMQ
@@ -85,41 +114,16 @@ VerneMQ 按 MQTT 连接；Amazon MQ 按 ActiveMQ 或 RabbitMQ 连接；阿里云
 **不在范围内。** ZeroMQ 与 nanomsg 没有 broker，也就没有管理面；Celery、Sidekiq 与
 BullMQ 是架在 Redis 或 RabbitMQ 之上的应用层任务队列，而不是消息中间件本身。
 
+</details>
+
 ACL 与部分高级操作是否可用，取决于 Broker 版本和配置。表格背后的能力模型详见
 [多 MQ 架构设计](docs/MULTI_MQ_DESIGN.md)。
 
-## 产品一览
-
-点击任意截图可查看完整尺寸原图。
-
-<table>
-  <tr>
-    <td width="50%" align="center">
-      <a href="docs/images/topics.png"><img src="docs/images/topics.png" alt="Topic 管理"></a>
-      <br><sub><strong>Topic 操作</strong> — 查看队列、路由与订阅关系。</sub>
-    </td>
-    <td width="50%" align="center">
-      <a href="docs/images/consumers.png"><img src="docs/images/consumers.png" alt="消费者组详情"></a>
-      <br><sub><strong>消费诊断</strong> — 跟踪客户端、订阅、TPS 与消息堆积。</sub>
-    </td>
-  </tr>
-  <tr>
-    <td width="50%" align="center">
-      <a href="docs/images/messages.png"><img src="docs/images/messages.png" alt="消息查询与详情"></a>
-      <br><sub><strong>消息检查</strong> — 查询消息并查看消息体、属性与轨迹。</sub>
-    </td>
-    <td width="50%" align="center">
-      <a href="docs/images/cluster.png"><img src="docs/images/cluster.png" alt="集群监控"></a>
-      <br><sub><strong>集群监控</strong> — 查看健康状态、吞吐、Broker 与磁盘使用率。</sub>
-    </td>
-  </tr>
-</table>
-
 ## 下载
 
-前往 **[GitHub Releases](https://github.com/amigoer/mq-studio/releases)** 下载最新版本：
-
-安装包统一命名为 `mq-studio-<版本>-<系统>-<架构>.<后缀>`，系统取值 `mac`、`windows`、`linux`，架构取值 `amd64`、`arm64`。
+前往 **[GitHub Releases](https://github.com/amigoer/mq-studio/releases)** 下载最新版本。
+安装包统一命名为 `mq-studio-<版本>-<系统>-<架构>.<后缀>`，系统取值 `mac`、`windows`、
+`linux`，架构取值 `amd64`、`arm64`。
 
 | 平台 | 安装包 | 系统要求 |
 | --- | --- | --- |
@@ -131,9 +135,9 @@ ACL 与部分高级操作是否可用，取决于 Broker 版本和配置。表�
 
 Mac 上在「关于本机」里可以看到该选 `arm64` 还是 `amd64`。
 
-macOS 版本尚未使用 Apple 开发者证书签名，首次打开需要多一步操作——磁盘映像里
-自带了处理脚本。这一步以及各平台的安装步骤见 **[安装说明](docs/INSTALL.zh-CN.md)**。
-每个版本同时附带 `SHA256SUMS.txt` 校验文件。
+macOS 版本尚未使用 Apple 开发者证书签名，首次打开需要多一步操作——磁盘映像里自带了
+处理脚本。这一步以及各平台的安装步骤见 **[安装说明](docs/INSTALL.zh-CN.md)**。每个
+版本同时附带 `SHA256SUMS.txt` 校验文件，可用于核对下载完整性。
 
 ## 快速开始
 
@@ -153,11 +157,12 @@ make install
 make dev
 ```
 
-使用 `make check` 运行项目检查，使用 `make package` 生成安装包，使用 `make help` 查看全部命令。
+使用 `make check` 运行项目检查，使用 `make package` 生成安装包，使用 `make help`
+查看全部命令。
 
 ## 文档
 
-[架构说明](docs/ARCHITECTURE.md) · [安装说明](docs/INSTALL.zh-CN.md) · [发版流程](RELEASE.md) · [路线图](docs/ROADMAP.zh-CN.md)
+[架构说明](docs/ARCHITECTURE.md) · [安装说明](docs/INSTALL.zh-CN.md) · [更新日志](CHANGELOG.zh-CN.md) · [发版流程](RELEASE.md) · [路线图](docs/ROADMAP.zh-CN.md)
 
 ## 许可证
 
