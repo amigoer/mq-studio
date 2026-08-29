@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useTranslation } from "react-i18next";
 
 /** The content column: `flex:1;display:flex;flex-direction:column;min-width:0`. */
@@ -121,8 +122,8 @@ export function SkeletonRows({ widths, colSpan }: { widths: readonly string[]; c
     <>
       {widths.map((w, i) => (
         <tr key={i}>
-          <td colSpan={colSpan}>
-            <div className="ph3" style={{ width: w }} />
+          <td colSpan={colSpan} className="px-3.5 py-2">
+            <Skeleton className="h-3.5" style={{ width: w }} />
           </td>
         </tr>
       ))}

@@ -38,10 +38,10 @@ import {
   OutlineTag,
   Panel,
   SectionLabel,
+  SettingRow,
   useConfirm,
   useToast,
 } from "@/components";
-import { SettingRow } from "@/design/ui";
 import {
   appVersion,
   dataDirectory,
@@ -375,7 +375,7 @@ function AppearancePanel() {
                 type="button"
                 role="radio"
                 aria-checked={active}
-                className="card3"
+                className="rounded-xl border bg-card shadow-xs"
                 onClick={() => setSetting("theme", th.mode)}
                 style={{
                   overflow: "hidden",

@@ -1,11 +1,18 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { Plug, Search, Settings, RefreshCw, Plus, type LucideIcon } from "lucide-react";
-import { Card } from "@/design/ui";
+import { Plug, Plus, RefreshCw, Settings, type LucideIcon } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { ProtocolIcon } from "@/design/icons/ProtocolIcon";
 import { PROTOCOLS, type PageId, type ProtocolId } from "@/design/data/protocols";
 import type { Connection } from "@/design/data/connections";
-import { usePresence } from "@/lib/motion";
 
 /**
  * Board 9d — ⌘K across every connection.
@@ -14,6 +21,10 @@ import { usePresence } from "@/lib/motion";
  * the MQ data plane, so what is here is what the shell itself knows: the
  * connections, the pages of the tab in front, and the window's own commands.
  * The drawn sections slot back in beside them once the boards are wired.
+ *
+ * Filtering stays in this component (the matcher spans name, address and
+ * protocol label), so the Command runs with its own filter off and the list
+ * simply renders what matched.
  */
 
 type Hit = {
@@ -53,9 +64,6 @@ export function CommandPalette({
   onClose?: () => void;
 }) {
   const { t } = useTranslation();
-  const { mounted, state } = usePresence(open);
-  const [cursor, setCursor] = useState(0);
-  const listRef = useRef<HTMLDivElement>(null);
 
   const hits = useMemo<Hit[]>(() => {
     const needle = query.trim().toLowerCase();
@@ -122,207 +130,78 @@ export function CommandPalette({
     t,
   ]);
 
-  // A shorter list can leave the cursor past its end; clamping on render keeps
-  // the highlight and the Enter key on the same row.
-  const selected = hits.length === 0 ? -1 : Math.min(cursor, hits.length - 1);
-
-  useEffect(() => {
-    if (open) setCursor(0);
-  }, [open, query]);
-
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        onClose?.();
-        return;
+  /* Insertion order is the section order the canvas draws. */
+  const groups = useMemo(() => {
+    const names: string[] = [];
+    const byName = new Map<string, Hit[]>();
+    for (const hit of hits) {
+      const bucket = byName.get(hit.group);
+      if (bucket == null) {
+        names.push(hit.group);
+        byName.set(hit.group, [hit]);
+      } else {
+        bucket.push(hit);
       }
-      if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-        event.preventDefault();
-        setCursor((current) => {
-          const next = current + (event.key === "ArrowDown" ? 1 : -1);
-          return Math.min(hits.length - 1, Math.max(0, next));
-        });
-        return;
-      }
-      if (event.key === "Enter" && selected >= 0) {
-        event.preventDefault();
-        hits[selected]?.run();
-        onClose?.();
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [hits, onClose, open, selected]);
-
-  // Keeps the keyboard cursor in view once the list is longer than the box.
-  useEffect(() => {
-    listRef.current
-      ?.querySelector('[data-selected="true"]')
-      ?.scrollIntoView({ block: "nearest" });
-  }, [selected]);
-
-  if (!mounted) return null;
-
-  let previousGroup: string | null = null;
+    }
+    return names.map((name) => ({ name, items: byName.get(name)! }));
+  }, [hits]);
 
   return (
-    <div
-      className="mqs-scrim"
-      data-state={state}
-      style={{
-        position: "absolute",
-        inset: 0,
-        background: "var(--c-scrim)",
-        display: "flex",
-        alignItems: "flex-start",
-        justifyContent: "center",
-        paddingTop: "90px",
-        zIndex: 30,
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) onClose?.();
       }}
-      onClick={onClose}
     >
-      <Card
-        role="dialog"
-        aria-label={t("shell.palette.label")}
-        className="mqs-pop"
-        data-state={state}
-        style={{ width: "560px", overflow: "hidden", boxShadow: "0 18px 50px rgba(0,0,0,.22)" }}
-        onClick={(e) => e.stopPropagation()}
+      <DialogContent
+        className="top-24 translate-y-0 overflow-hidden p-0 sm:max-w-[560px]"
+        showCloseButton={false}
       >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            padding: "13px 16px",
-            borderBottom: "1px solid var(--c-border)",
-          }}
-        >
-          <Search size={15} style={{ color: "var(--c-muted)" }} aria-hidden />
-          <input
+        <DialogHeader className="sr-only">
+          <DialogTitle>{t("shell.palette.label")}</DialogTitle>
+        </DialogHeader>
+        <Command shouldFilter={false}>
+          <CommandInput
             autoFocus
             value={query}
-            onChange={(e) => onQueryChange?.(e.target.value)}
+            onValueChange={(next) => onQueryChange?.(next)}
             placeholder={t("shell.palette.placeholder")}
-            style={{
-              flex: 1,
-              font: "inherit",
-              fontSize: "13.5px",
-              border: "none",
-              outline: "none",
-              background: "transparent",
-              color: "inherit",
-            }}
           />
-          <span className="mono3" style={{ fontSize: "10px", color: "var(--c-muted-2)" }}>
-            ESC
-          </span>
-        </div>
-
-        <div
-          ref={listRef}
-          className="mqs-scroll"
-          style={{ padding: "8px", maxHeight: "320px", overflowY: "auto" }}
-        >
-          {hits.length === 0 && (
-            <div
-              style={{
-                padding: "20px 10px",
-                textAlign: "center",
-                fontSize: "12px",
-                color: "var(--c-muted)",
-              }}
-            >
-              {t("shell.palette.empty")}
-            </div>
-          )}
-          {hits.map((hit, index) => {
-            const heading = hit.group === previousGroup ? null : hit.group;
-            previousGroup = hit.group;
-            return (
-              <div key={hit.key}>
-                {heading != null && (
-                  <div
-                    className="sec3"
-                    style={{ padding: index === 0 ? "2px 10px 6px" : "8px 10px 6px" }}
+          <CommandList className="max-h-80">
+            <CommandEmpty>{t("shell.palette.empty")}</CommandEmpty>
+            {groups.map((group) => (
+              <CommandGroup key={group.name} heading={group.name}>
+                {group.items.map((hit) => (
+                  <CommandItem
+                    key={hit.key}
+                    value={hit.key}
+                    onSelect={() => {
+                      hit.run();
+                      onClose?.();
+                    }}
                   >
-                    {heading}
-                  </div>
-                )}
-                <button
-                  type="button"
-                  data-selected={index === selected}
-                  onMouseEnter={() => setCursor(index)}
-                  onClick={() => {
-                    hit.run();
-                    onClose?.();
-                  }}
-                  style={{
-                    ...ROW,
-                    width: "100%",
-                    border: "none",
-                    font: "inherit",
-                    textAlign: "left",
-                    background: index === selected ? "var(--c-fill)" : "transparent",
-                    color: index === selected ? "inherit" : "var(--c-fg-2)",
-                  }}
-                >
-                  <span className="nic">
                     {hit.protocol != null ? (
                       <ProtocolIcon protocol={hit.protocol} size={15} />
                     ) : hit.icon != null ? (
-                      <hit.icon size={16} aria-hidden />
+                      <hit.icon aria-hidden />
                     ) : (
-                      <Plug size={16} aria-hidden />
+                      <Plug aria-hidden />
                     )}
-                  </span>
-                  <span className="mono3" style={{ fontSize: "12px", fontWeight: index === selected ? 500 : undefined }}>
-                    {hit.name}
-                  </span>
-                  <span style={{ fontSize: "10.5px", color: "var(--c-muted)" }}>{hit.meta}</span>
-                  {index === selected && (
-                    <>
-                      <span style={{ flex: 1 }} />
-                      <span
-                        className="mono3"
-                        style={{ fontSize: "10px", color: "var(--c-muted-2)" }}
-                      >
-                        {t("shell.palette.hintOpen")}
-                      </span>
-                    </>
-                  )}
-                </button>
-              </div>
-            );
-          })}
-        </div>
-
-        <div
-          style={{
-            display: "flex",
-            gap: "14px",
-            padding: "9px 16px",
-            borderTop: "1px solid var(--c-border)",
-            fontSize: "10.5px",
-            color: "var(--c-muted-2)",
-          }}
-        >
-          <span>{t("shell.palette.hintSelect")}</span>
-          <span>{t("shell.palette.hintOpen")}</span>
-          <span style={{ flex: 1 }} />
-          <span>{t("shell.palette.results", { count: hits.length })}</span>
-        </div>
-      </Card>
-    </div>
+                    <span className="mono3 text-sm">{hit.name}</span>
+                    <span className="text-[10.5px] text-muted-foreground">{hit.meta}</span>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            ))}
+          </CommandList>
+          <div className="flex items-center gap-3.5 border-t px-4 py-2 text-[10.5px] text-muted-foreground">
+            <span>{t("shell.palette.hintSelect")}</span>
+            <span>{t("shell.palette.hintOpen")}</span>
+            <span className="flex-1" />
+            <span>{t("shell.palette.results", { count: hits.length })}</span>
+          </div>
+        </Command>
+      </DialogContent>
+    </Dialog>
   );
 }
-
-const ROW: CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: "8px",
-  padding: "7px 10px",
-  borderRadius: "8px",
-  fontSize: "12.5px",
-};

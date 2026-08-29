@@ -1,7 +1,16 @@
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { RefreshCw, TriangleAlert, Unplug } from "lucide-react";
-import { Btn } from "@/design/ui";
+import { TriangleAlert, Unplug } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import { Spinner } from "@/components/ui/spinner";
 import type { BrokerData } from "@/hooks/useBrokerData";
 
 /**
@@ -33,12 +42,7 @@ export function BoardState({
     );
   }
   if (state.loading) {
-    return (
-      <Notice
-        icon={<RefreshCw size={22} className="mqs-turning" aria-hidden />}
-        title={t("board.state.loading")}
-      />
-    );
+    return <Notice icon={<Spinner className="size-5" />} title={t("board.state.loading")} />;
   }
   if (state.error != null) {
     return (
@@ -47,9 +51,9 @@ export function BoardState({
         title={t("board.state.failed")}
         tone="var(--c-err)"
         action={
-          <Btn size="row" onClick={() => void state.refresh()}>
+          <Button variant="outline" size="xs" onClick={() => void state.refresh()}>
             {t("board.common.refresh")}
-          </Btn>
+          </Button>
         }
       >
         {state.error}
@@ -80,26 +84,23 @@ export function Notice({
   children?: ReactNode;
 }) {
   return (
-    <div
-      style={{
-        flex: 1,
-        minHeight: 0,
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: "9px",
-        padding: "40px 24px",
-        textAlign: "center",
-        color: "var(--c-muted)",
-      }}
-    >
-      <span style={{ color: tone ?? "var(--c-muted-2)" }}>{icon}</span>
-      <b style={{ fontSize: "12.5px", color: tone ?? "var(--c-fg)" }}>{title}</b>
-      {children != null && (
-        <span style={{ fontSize: "11.5px", maxWidth: "460px", lineHeight: 1.6 }}>{children}</span>
-      )}
-      {action}
-    </div>
+    <Empty className="min-h-0 flex-1 gap-2 p-6">
+      <EmptyHeader className="gap-2">
+        {icon != null && (
+          <EmptyMedia variant="default" style={{ color: tone ?? "var(--c-muted-2)" }}>
+            {icon}
+          </EmptyMedia>
+        )}
+        <EmptyTitle className="text-[12.5px]" style={{ color: tone }}>
+          {title}
+        </EmptyTitle>
+        {children != null && (
+          <EmptyDescription className="max-w-md text-xs leading-relaxed">
+            {children}
+          </EmptyDescription>
+        )}
+      </EmptyHeader>
+      {action != null && <EmptyContent>{action}</EmptyContent>}
+    </Empty>
   );
 }

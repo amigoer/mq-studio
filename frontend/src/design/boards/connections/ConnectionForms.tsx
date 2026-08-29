@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { ChevronRight, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -8,7 +9,7 @@ import {
   SelectField,
 } from "@/components";
 
-/** `.fld` — label (with optional grey hint) above the control. */
+/** Label (with optional grey hint) above the control. */
 function Fld({
   label,
   hint,
@@ -22,9 +23,12 @@ function Fld({
   children: ReactNode;
 }) {
   return (
-    <div className="fld" style={span ? { gridColumn: "1/3" } : undefined}>
-      <span>
-        {label} {hint != null && <span style={{ color: "var(--c-muted-2)" }}>{hint}</span>}
+    <div
+      className="flex min-w-0 flex-col gap-1.5 text-xs"
+      style={span ? { gridColumn: "1/3" } : undefined}
+    >
+      <span className="font-medium">
+        {label} {hint != null && <span className="font-normal text-(--c-muted-2)">{hint}</span>}
       </span>
       {children}
     </div>
@@ -236,9 +240,9 @@ export function KafkaForm() {
           <Input type="password" defaultValue="password" />
         </Fld>
         <Fld label={t("page.connections.form.kafka.ca")} hint={t("page.connections.form.kafka.caHint")}>
-          <button type="button" className="in3">
+          <Button variant="outline" size="sm" className="self-start font-normal">
             {t("page.connections.form.kafka.chooseFile")}
-          </button>
+          </Button>
         </Fld>
         <Fld label={t("page.connections.form.kafka.skipVerify")}>
           <Switch checked={skipVerify} onCheckedChange={setSkipVerify} style={{ marginTop: "3px" }} />
@@ -415,9 +419,12 @@ export function MqttForm() {
           />
         </Fld>
         <Fld label="Client ID">
-          <span className="in3 mono3" style={{ ...MONO, display: "flex" }}>
+          <span
+            className="mono3 flex items-center rounded-md border bg-background px-2.5 py-1 text-xs whitespace-nowrap text-muted-foreground"
+            style={MONO}
+          >
             mq-studio-8f21c3
-            <RefreshCw size={12} style={{ color: "var(--c-ok)", marginLeft: "auto" }} aria-hidden />
+            <RefreshCw size={12} className="ml-auto text-(--c-ok)" aria-hidden />
           </span>
         </Fld>
         <Fld label="Keep Alive">

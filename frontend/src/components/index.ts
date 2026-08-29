@@ -11,6 +11,7 @@ export {
 export { ConfirmProvider, useConfirm, type ConfirmRequest } from "./confirm";
 export { StatTile, MiniStat } from "./stat";
 export { Panel, PanelHeader } from "./panel";
+export { SettingRow } from "./setting-row";
 export { KV } from "./kv";
 export { SectionLabel } from "./section-label";
 export { Bar, MeterRow } from "./meter";

@@ -23,7 +23,7 @@ import { useUpdater } from "@/hooks/useUpdater";
 import { latencyLabel, useConnectionProfiles } from "@/hooks/useConnectionProfiles";
 import { ConnectionScopeProvider } from "@/mq/ConnectionScope";
 import { CapabilitiesProvider } from "@/mq/capabilities";
-import { useConfirm, useToast } from "@/design/ui";
+import { useConfirm, useToast } from "@/components";
 import { exportAllConfigToFile, importAllConfigFromFile } from "@/api/settings";
 import {
   probeConnection as probeDraft,

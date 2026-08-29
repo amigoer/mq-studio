@@ -235,24 +235,6 @@
  * bar of 30px tabs; 28px lines it up with those and gives the icons room. The
  * font-size is the canvas's and now carries nothing -- every child is an SVG.
  */
-.tbi {
-  width: 28px;
-  height: 28px;
-  border: 1px solid var(--c-border);
-  border-radius: 8px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--c-fg-2);
-  background: var(--c-bg);
-  font-size: 12.5px;
-  flex: none;
-}
-.tbi.on {
-  background: var(--c-fg);
-  color: var(--c-bg);
-  border-color: var(--c-fg);
-}
 /*
  * 检查更新 turns its icon for as long as the check is in flight. TitleBar drops
  * the class on an iteration boundary rather than the moment the answer lands,
@@ -332,16 +314,6 @@
 .wc:focus-visible {
   outline: 2px solid var(--c-fg);
   outline-offset: 1px;
-}
-.pillc {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  border: 1px solid var(--c-border);
-  border-radius: 99px;
-  padding: 3px 11px;
-  font-size: 11.5px;
-  color: var(--c-fg-2);
 }
 .dotg {
   width: 7px;
@@ -482,126 +454,22 @@
 }
 
 /* controls */
-.btn3 {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  border: 1px solid var(--c-border);
-  border-radius: 8px;
-  padding: 4.5px 12px;
-  font-size: 12px;
-  background: var(--c-bg);
-  white-space: nowrap;
-}
-.btn3.pri {
-  background: var(--c-fg);
-  color: var(--c-bg);
-  border-color: var(--c-fg);
-}
-.btn3.dgr {
-  color: var(--c-err);
-  border-color: var(--c-err-border);
-}
-.in3 {
-  border: 1px solid var(--c-border);
-  border-radius: 8px;
-  padding: 4.5px 10px;
-  font-size: 12px;
-  color: var(--c-muted);
-  background: var(--c-bg);
-  white-space: nowrap;
-}
-.card3 {
-  border: 1px solid var(--c-border);
-  border-radius: 12px;
-  background: var(--c-bg);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-}
-.sec3 {
-  font-size: 10.5px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--c-muted);
-}
 
 /* table */
-.t3 {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 12px;
-}
-.t3 th {
-  text-align: left;
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--c-muted);
-  padding: 7px 14px;
-  border-bottom: 1px solid var(--c-border);
-  white-space: nowrap;
-}
-.t3 td {
-  padding: 7.5px 14px;
-  border-bottom: 1px solid var(--c-rule);
-  white-space: nowrap;
-  max-width: 280px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.t3 tr.sel td {
-  background: var(--c-fill);
-}
 /*
  * The slack in a table of short values has to land somewhere; this one empty
  * column puts it after the data and before the row actions, so the data packs
  * left where it scans, the actions keep the right edge, and no gap opens
  * between two columns that belong together.
  */
-.t3 .fill {
-  width: 100%;
-  padding: 0;
-}
 
 /*
  * A table that is the page's own content, not a card's: its outer cells take
  * the 20px page gutter, so the first column lines up with the header title and
  * the last with the header actions instead of sitting 6px outside both.
  */
-.t3.inset th:first-child,
-.t3.inset td:first-child {
-  padding-left: 20px;
-}
-.t3.inset th:last-child,
-.t3.inset td:last-child {
-  padding-right: 20px;
-}
 
 /* status pills */
-.st {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  border-radius: 99px;
-  padding: 1.5px 9px;
-  font-size: 11px;
-  white-space: nowrap;
-}
-.st.ok {
-  background: var(--c-ok-tint);
-  color: var(--c-ok-text);
-}
-.st.warn {
-  background: var(--c-warn-bg);
-  color: var(--c-warn-text-deep);
-}
-.st.err {
-  background: var(--c-err-bg);
-  color: var(--c-err-text);
-}
-.st.off {
-  background: var(--c-fill-zinc);
-  color: var(--c-muted-zinc);
-}
 
 /*
  * The bullet the canvas prefixed online states with, as a shape rather than a
@@ -616,11 +484,6 @@
 }
 
 /* The dropdown caret needs the pill to lay its label and icon out in a row. */
-.in3.mqs-select {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
 
 /* protocol badge */
 .pb {
@@ -644,101 +507,12 @@
 :root.dark .pMQT { background: #241a3a; color: #c4b5fd; }
 
 /* misc primitives */
-.ph3 {
-  height: 7px;
-  border-radius: 4px;
-  background: var(--c-fill-mute);
-}
-.chart3 {
-  border: 1px dashed var(--c-border-dash);
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--c-muted-2);
-  font: 11px var(--app-monospace-font, 'JetBrains Mono', ui-monospace, monospace);
-  background: repeating-linear-gradient(45deg, var(--c-panel), var(--c-panel) 8px, var(--c-fill-soft) 8px, var(--c-fill-soft) 16px);
-  text-align: center;
-}
-.seg {
-  display: inline-flex;
-  border: 1px solid var(--c-border);
-  border-radius: 8px;
-  padding: 2px;
-  gap: 2px;
-  background: var(--c-bg);
-}
-.seg span {
-  padding: 2.5px 10px;
-  border-radius: 6px;
-  font-size: 11.5px;
-  color: var(--c-mono-dim);
-}
-.seg .on {
-  background: var(--c-fg);
-  color: var(--c-bg);
-  font-weight: 500;
-}
-.sw {
-  width: 28px;
-  height: 16px;
-  border-radius: 99px;
-  background: var(--c-ok);
-  position: relative;
-  flex: none;
-  transition: background-color var(--mo-fast) ease;
-}
 /*
  * The thumb is anchored off and slid on, rather than swapping which edge it
  * hangs from: 12px is the track's 28 less the 2px inset at either end and the
  * thumb's own width, so `on` lands it exactly where `right: 2px` did.
  */
-.sw::after {
-  content: '';
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 12px;
-  height: 12px;
-  border-radius: 99px;
-  background: var(--c-bg);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-  transform: translateX(12px);
-  transition: transform var(--mo-fast) var(--mo-ease);
-}
-.sw.off { background: var(--c-border-soft); }
-.sw.off::after { transform: none; }
-.kv3 {
-  display: grid;
-  grid-template-columns: 92px 1fr;
-  gap: 5px 10px;
-  font-size: 11.5px;
-  align-items: baseline;
-}
-.kv3 .k { color: var(--c-muted); }
-.bar3 {
-  height: 6px;
-  border-radius: 99px;
-  background: var(--c-fill-mute);
-  overflow: hidden;
-}
-.bar3 i {
-  display: block;
-  height: 100%;
-  border-radius: 99px;
-  background: var(--c-ok);
-}
-.srow {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 11px 16px;
-  border-bottom: 1px solid var(--c-rule);
-  font-size: 12.5px;
-}
 /* Elastic, as the shipped settings page draws it: the hints run long. */
-.srow .lab { flex: 1; min-width: 0; }
-.srow .hint { font-size: 11px; color: var(--c-muted); margin-top: 1px; }
 
 /*
  * Settings typography.
@@ -765,26 +539,18 @@
   /* .08em opens up a Latin run; a CJK one it merely pulls apart. */
   letter-spacing: 0.05em;
 }
-.set3 .srow {
+.set3 [data-slot='setting-row'] {
   font-size: var(--set-label);
   padding: 13px 16px;
 }
-.set3 .srow .hint {
+.set3 [data-slot='setting-row-hint'] {
   font-size: var(--set-hint);
   line-height: 1.55;
   margin-top: 3px;
 }
-.set3 .btn3,
-.set3 .in3 {
+.set3 button[data-slot='button'],
+.set3 [data-slot='select-trigger'] {
   font-size: var(--set-control);
-}
-/*
- * A settings dropdown carries the row's answer, not a placeholder, so it is set
- * in the label's own text colour rather than the muted grey `.in3` gives a
- * toolbar filter -- the same reason `input.in3` overrides it.
- */
-.set3 .in3.mqs-select {
-  color: var(--c-fg);
 }
 /* The section rail reads as the row labels it selects between. */
 .set3 .ni,
@@ -792,26 +558,6 @@
   font-size: var(--set-label);
   padding: 6.5px 10px;
 }
-.set3 .mqs-menuitem {
-  font-size: var(--set-control);
-}
-
-/* capability-matrix cells */
-/*
- * The qualifier beside the glyph wraps rather than widening the column: it is
- * a phrase, and the same phrase in English runs half again as long as the
- * Chinese the 860px matrix was drawn for.
- */
-/* Scoped through `.t3 td` so it outranks that rule's `nowrap` and clipping. */
-.t3 td.cd {
-  font-size: 13px;
-  text-align: center;
-  white-space: normal;
-  overflow: visible;
-}
-.cd.y { color: var(--c-ok-text); }
-.cd.p { color: var(--c-warn-text); }
-.cd.n { color: var(--c-disabled); }
 
 /* protocol logo + picker tile */
 .plogo {
@@ -843,14 +589,6 @@
   padding: 7.5px 3.5px;
 }
 .pv { font-size: 9.5px; color: var(--c-muted-2); font-weight: 400; }
-.fld {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  font-size: 11px;
-  color: var(--c-mono-dim);
-}
-.fld .in3 { color: var(--c-fg); }
 
 /*
  * Interaction layer. The canvas is a static mockup, so hover/active states are
@@ -886,44 +624,18 @@
  * canvas drew stays where it is and only the way it is reached is added.
  */
 .ni,
-.tbi,
-.btn3,
-.seg span,
-.ptile,
-.mqs-menuitem,
-.st,
-.sw,
-button.card3 {
+.ptile {
   transition:
     background-color var(--mo-fast) ease,
     border-color var(--mo-fast) ease,
     box-shadow var(--mo-fast) ease,
     color var(--mo-fast) ease;
 }
-.t3 tbody td {
-  transition: background-color var(--mo-fast) ease;
-}
-.in3 {
-  transition:
-    border-color var(--mo-fast) ease,
-    background-color var(--mo-fast) ease;
-}
 
 .ni:not(.on):hover { background: var(--c-fill); }
-.tbi:not(.on):hover { background: var(--c-fill); }
-.btn3:not(.pri):hover { background: var(--c-bar); }
-.btn3.pri:hover { background: var(--c-fg-hover); }
-.btn3.dgr:hover { background: var(--c-err-bg-soft); }
-.btn3:disabled { opacity: 0.5; }
-.seg span:not(.on):hover { background: var(--c-fill); }
 .ptile:not(.sel):hover { background: var(--c-bar); }
-.t3 tbody tr:hover td { background: var(--c-bar); }
-.t3 tbody tr.sel:hover td { background: var(--c-fill-mute); }
-.mqs-menuitem:hover { background: var(--c-fill); }
 
-button.btn3,
-button.tbi,
-button.in3 {
+button.mqs-tab-home {
   font-family: inherit;
   line-height: inherit;
   cursor: default;
@@ -956,14 +668,6 @@ select.in3:focus { border-color: var(--c-border-strong); }
 .mqs-scroll::-webkit-scrollbar-track { background: transparent; }
 
 /* Compact in-row action button (8a "打开标签 / 断开 / 编辑 / ⋯"). */
-.btn3.mqs-btn-row {
-  border-radius: 6px;
-  padding: 2.5px 9px;
-  font-size: 11px;
-  gap: 0;
-}
-.btn3.mqs-btn-rowicon { padding: 2.5px 7px; }
-.btn3.mqs-btn-row.pri { background: var(--c-fg); color: var(--c-bg); border-color: var(--c-fg); }
 
 /* Button resets, so nav/tab affordances can be real buttons without restyling. */
 button.ni,
@@ -995,9 +699,6 @@ button.ni {
 button.ni.on { background: var(--c-fg); color: var(--c-bg); }
 
 /* The compact table used inside detail sheets (partition lists, bindings…). */
-.t3.mini { font-size: 11px; }
-.t3.mini th,
-.t3.mini td { padding: 5px 10px; }
 
 /*
  * The mark and the strip share one row so the gap between the mark and the
@@ -1291,9 +992,6 @@ button.ni.on { background: var(--c-fg); color: var(--c-bg); }
  * list rather than shrinking it, so on a narrow shell that width would leave the
  * table it is describing unreadable behind it.
  */
-.mqs-sheet {
-  max-width: 62cqi;
-}
 
 
 /* The theme cards are selectable, so they are real buttons wearing `.card3`. */
@@ -1407,19 +1105,8 @@ html[data-animations='off'] .mqs-toaster [data-sonner-toast] {
  * from -- a modal rises into the middle, a menu drops from its trigger, the
  * detail sheet comes in off the right edge it is docked to.
  */
-.mqs-scrim {
-  opacity: 0;
-  transition: opacity var(--mo-base) var(--mo-ease);
-}
 .mqs-scrim[data-state='open'] {
   opacity: 1;
-}
-.mqs-pop {
-  opacity: 0;
-  transform: translateY(8px) scale(0.985);
-  transition:
-    opacity var(--mo-base) var(--mo-ease-out),
-    transform var(--mo-base) var(--mo-ease-out);
 }
 .mqs-drop {
   opacity: 0;

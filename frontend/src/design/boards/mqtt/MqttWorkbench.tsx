@@ -12,7 +12,7 @@ import {
   SelectField,
   Status,
 } from "@/components";
-import { Placeholder } from "@/design/ui";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useTranslation } from "react-i18next";
 
 const MONO11 = { fontSize: "11px" } as const;
@@ -213,7 +213,7 @@ export function MqttWorkbench() {
           ))}
           <div style={{ padding: "10px 14px", display: "flex", flexDirection: "column", gap: "10px" }}>
             {["86%", "70%", "92%", "64%", "78%"].map((w) => (
-              <Placeholder key={w} width={w} />
+              <Skeleton key={w} className="h-3.5" style={{ width: w }} />
             ))}
           </div>
           <div style={{ flex: 1 }} />

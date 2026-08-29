@@ -51,7 +51,7 @@ beforeAll(async () => {
     import("@/design/boards/docs/ReuseStrategy"),
     import("@/design/boards/split/SplitCompare"),
     import("@/hooks/useSettings"),
-    import("@/design/ui"),
+    import("@/components"),
   ]);
 
   const docs = [capability.CapabilityMatrix, nav.NavModel, reuse.ReuseStrategy, split.SplitCompare];

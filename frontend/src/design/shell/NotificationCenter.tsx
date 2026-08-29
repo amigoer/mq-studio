@@ -2,7 +2,7 @@ import { useEffect, useRef, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { ArrowRight, ChevronRight } from "lucide-react";
 import { ProtocolIcon } from "@/design/icons/ProtocolIcon";
-import { Card } from "@/design/ui";
+import { Panel, Status } from "@/components";
 import { useSettings } from "@/hooks/useSettings";
 import type { ProtocolId } from "@/design/data/protocols";
 import { DURATION, usePresence } from "@/lib/motion";
@@ -108,7 +108,7 @@ export function NotificationCenter({
 
   return (
     <div ref={ref} style={{ position: "absolute", top: "36px", right: "58px", zIndex: 40 }}>
-      <Card
+      <Panel
         className="mqs-drop"
         data-state={state}
         style={{
@@ -129,9 +129,9 @@ export function NotificationCenter({
         >
           <b style={{ fontSize: "13px" }}>{t("shell.notifications.title")}</b>
           {unread > 0 && (
-            <span className="st err" style={{ fontSize: "10px", marginLeft: "8px" }}>
+            <Status tone="err" className="ml-2 text-[10px]">
               {t("shell.notifications.unread", { count: unread })}
-            </span>
+            </Status>
           )}
           <span style={{ flex: 1 }} />
           <button
@@ -219,7 +219,7 @@ export function NotificationCenter({
             <ArrowRight size={13} aria-hidden />
           </button>
         </div>
-      </Card>
+      </Panel>
     </div>
   );
 }

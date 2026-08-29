@@ -3,7 +3,7 @@ import { Page, PageBody, PageHeader } from "@/design/shell";
 import {
   SectionLabel,
 } from "@/components";
-import { Placeholder } from "@/design/ui";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ProtocolIcon } from "@/design/icons/ProtocolIcon";
 import { useTranslation } from "react-i18next";
 
@@ -136,8 +136,8 @@ export function NavModel() {
                 }}
               >
                 <span>{t("board.docs.nav.pageLayer")}</span>
-                <Placeholder width="70%" />
-                <Placeholder width="52%" />
+                <Skeleton className="h-3.5" style={{ width: "70%" }} />
+                <Skeleton className="h-3.5" style={{ width: "52%" }} />
               </div>
             </div>
           </div>

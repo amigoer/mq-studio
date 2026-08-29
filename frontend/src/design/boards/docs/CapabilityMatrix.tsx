@@ -38,8 +38,14 @@ const ROWS: readonly (readonly [string, ...Cell[]])[] = [
   ["board.docs.capability.delayed", "●", "—", "◐ board.docs.capability.plugin", "●", "—", "—"],
 ];
 
-/** `.cd` tone follows the leading glyph. */
-function toneOf(cell: string): "y" | "p" | "n" {
+/** Cell tone follows the leading glyph. */
+const TONE = {
+  y: "text-(--c-ok-text)",
+  p: "text-(--c-warn-text)",
+  n: "text-(--c-disabled)",
+} as const;
+
+function toneOf(cell: string): keyof typeof TONE {
   if (cell.startsWith("\u25cf")) return "y";
   if (cell.startsWith("\u25d0")) return "p";
   return "n";
@@ -77,7 +83,7 @@ export function CapabilityMatrix() {
                 <TableRow key={label}>
                   <TableCell>{t(label)}</TableCell>
                   {cells.map((cell, i) => (
-                    <TableCell key={i} className={cn("cd", toneOf(cell))}>
+                    <TableCell key={i} className={cn("text-center text-base whitespace-normal", TONE[toneOf(cell)])}>
                       {cellText(cell)}
                     </TableCell>
                   ))}
