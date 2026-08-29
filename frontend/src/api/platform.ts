@@ -13,6 +13,12 @@ export type { UpdateCheckResult };
 
 export const isMac = (): boolean => System.IsMac();
 
+export type Platform = "mac" | "windows" | "linux";
+
+/** The host the app is running on, for the labels and paths that differ by it. */
+export const platform = (): Platform =>
+  System.IsMac() ? "mac" : System.IsWindows() ? "windows" : "linux";
+
 /**
  * Subscribes to the system tray menu asking for a page. The payload is a
  * sidebar NavId; Go raises the window before emitting, so the listener only
@@ -79,3 +85,8 @@ export const checkUpdate = (): Promise<UpdateCheckResult> =>
   SystemService.CheckUpdate();
 export const openExternal = (url: string): Promise<void> =>
   SystemService.OpenExternal(url);
+
+/** Where the app keeps its settings, connections and local key. */
+export const dataDirectory = (): Promise<string> => SystemService.DataDirectory();
+export const revealDataDirectory = (): Promise<void> =>
+  SystemService.RevealDataDirectory();

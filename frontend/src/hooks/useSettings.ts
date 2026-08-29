@@ -16,6 +16,7 @@ import {
 import type { AppSettings } from "@/api/settings";
 import { windowControls } from "@/api/platform";
 import { setLanguage as setI18nLanguage, type SupportedLanguage } from "@/i18n";
+import { monoFontStack, uiFontStack } from "@/lib/fonts";
 import { applyTheme, cacheTheme, type ThemeMode } from "@/lib/theme";
 import { parseUIScale, type UIScaleSetting } from "@/lib/uiScale";
 
@@ -164,9 +165,6 @@ type SettingsContextValue = {
 
 const SettingsContext = createContext<SettingsContextValue | null>(null);
 
-const SYSTEM_FONT_STACK =
-  '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif';
-
 /**
  * Writes everything the document itself carries, and reports the theme that
  * was applied. The interface size is not among them: useUIScale zooms the
@@ -179,20 +177,9 @@ function applySettingsToDocument(settings: FrontendSettings): boolean {
   const dark = applyTheme(settings.theme);
   cacheTheme(settings.theme);
 
-  // UI font
-  const uiFont = settings.uiFont.trim();
-  root.style.setProperty(
-    "--app-ui-font",
-    !uiFont || uiFont === "system"
-      ? SYSTEM_FONT_STACK
-      : `"${uiFont}", ${SYSTEM_FONT_STACK}`,
-  );
-
-  // Monospace font
-  root.style.setProperty(
-    "--app-monospace-font",
-    settings.monospaceFont.trim() || DEFAULTS.monospaceFont,
-  );
+  // Fonts
+  root.style.setProperty("--app-ui-font", uiFontStack(settings.uiFont));
+  root.style.setProperty("--app-monospace-font", monoFontStack(settings.monospaceFont));
 
   // Language
   root.lang = settings.language === "en" ? "en" : "zh-CN";

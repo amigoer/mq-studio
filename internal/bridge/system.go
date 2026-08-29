@@ -38,6 +38,22 @@ func (s *SystemService) CheckUpdate() (update.Result, error) {
 	return update.CheckLatest(s.version, nil)
 }
 
+// DataDirectory reports where the app keeps its files. The settings page draws
+// the real path rather than one per platform for the reader to pick from.
+func (s *SystemService) DataDirectory() string {
+	return s.settings.DataDirectory()
+}
+
+// RevealDataDirectory opens the data directory in the platform's file manager.
+// The directory is the app's own, never a path from the renderer.
+func (s *SystemService) RevealDataDirectory() error {
+	directory := s.settings.DataDirectory()
+	if _, err := os.Stat(directory); err != nil {
+		return fmt.Errorf("failed to open the data directory: %w", err)
+	}
+	return application.Get().Browser.OpenFile(directory)
+}
+
 // OpenExternal opens an allow-listed HTTPS URL in the user's browser.
 func (s *SystemService) OpenExternal(rawURL string) error {
 	parsed, err := url.Parse(rawURL)

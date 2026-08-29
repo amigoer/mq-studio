@@ -25,7 +25,10 @@
   flex-direction: column;
   background: #fff;
   color: #171717;
-  font: 13px/1.5 -apple-system, 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+  /* The fallback is the canvas's own stack, for the frames before the
+     interface font setting has loaded. See lib/fonts. */
+  font: 13px/1.5
+    var(--app-ui-font, -apple-system, 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif);
   /* The shell is the window: nothing inside it may scroll the document and take
      the title bar off screen. What overflows scrolls in its own pane. */
   overflow: hidden;
@@ -37,7 +40,7 @@
   container: shell / inline-size;
 }
 .mono3 {
-  font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+  font-family: var(--app-monospace-font, 'JetBrains Mono', ui-monospace, Menlo, monospace);
 }
 
 /* title bar */
@@ -429,7 +432,7 @@
 
 /* protocol badge */
 .pb {
-  font: 600 9.5px 'JetBrains Mono', ui-monospace, monospace;
+  font: 600 9.5px var(--app-monospace-font, 'JetBrains Mono', ui-monospace, monospace);
   border-radius: 4px;
   padding: 2px 6px;
   letter-spacing: 0.02em;
@@ -455,7 +458,7 @@
   align-items: center;
   justify-content: center;
   color: #a3a3a3;
-  font: 11px 'JetBrains Mono', ui-monospace, monospace;
+  font: 11px var(--app-monospace-font, 'JetBrains Mono', ui-monospace, monospace);
   background: repeating-linear-gradient(45deg, #fcfcfc, #fcfcfc 8px, #f8f8f8 8px, #f8f8f8 16px);
   text-align: center;
 }

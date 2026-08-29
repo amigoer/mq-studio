@@ -50,6 +50,12 @@ func (s *Service) notify(settings *model.AppSettings) {
 	}
 }
 
+// DataDirectory reports the directory holding the settings, the connections
+// and the local encryption key.
+func (s *Service) DataDirectory() string {
+	return s.layout.Directory
+}
+
 // GetSettings returns the current application settings.
 func (s *Service) GetSettings() *model.AppSettings {
 	return s.settings.GetSettings()

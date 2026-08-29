@@ -25,6 +25,14 @@ export function CheckUpdate(): $CancellablePromise<update$0.Result> {
 }
 
 /**
+ * DataDirectory reports where the app keeps its files. The settings page draws
+ * the real path rather than one per platform for the reader to pick from.
+ */
+export function DataDirectory(): $CancellablePromise<string> {
+    return $Call.ByID(1175044437);
+}
+
+/**
  * ExportConfig prompts for a destination and writes the full configuration.
  * It returns the written path, or an empty string when the user cancels.
  */
@@ -45,6 +53,14 @@ export function ImportConfig(): $CancellablePromise<string> {
  */
 export function OpenExternal(rawURL: string): $CancellablePromise<void> {
     return $Call.ByID(2300835293, rawURL);
+}
+
+/**
+ * RevealDataDirectory opens the data directory in the platform's file manager.
+ * The directory is the app's own, never a path from the renderer.
+ */
+export function RevealDataDirectory(): $CancellablePromise<void> {
+    return $Call.ByID(3448770714);
 }
 
 /**
