@@ -80,3 +80,16 @@ export const setDefaultConnection = (id: number): Promise<void> =>
   ConnectionService.SetDefault(id);
 export const testConnection = (id: number): Promise<string> =>
   ConnectionService.Test(id);
+
+/**
+ * Tests a form submission that has not been saved.
+ *
+ * `id` is the connection being edited, or 0 for a new one. It is only there so
+ * an edit whose password field shows "already set" is tested with the stored
+ * credential rather than a blank.
+ */
+export const probeConnection = (
+  draft: ConnectionDraft,
+  id = 0,
+  credentialsMode: CredentialsMode = id === 0 ? "replace" : "preserve",
+): Promise<void> => ConnectionService.Probe(id, toInput(draft, credentialsMode));

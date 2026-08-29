@@ -27,7 +27,7 @@ import { FlagIcon } from "@/design/icons/FlagIcon";
 import {
   Btn,
   Card,
-  EnvTag,
+  OutlineTag,
   Field,
   Menu,
   MenuItem,
@@ -669,9 +669,9 @@ function CredentialsGroup() {
         <>
           {t("page.settings.general.credentials")}
           <span style={{ marginLeft: "8px", letterSpacing: 0, textTransform: "none" }}>
-            <EnvTag>
+            <OutlineTag>
               {configured ? t("page.settings.general.configured") : t("page.settings.general.notConfigured")}
-            </EnvTag>
+            </OutlineTag>
           </span>
         </>
       }
@@ -1156,7 +1156,7 @@ function AboutPanel({ onOpenDoc }: { onOpenDoc?: (doc: DocId) => void }) {
                 {/* A development build reports "dev", which no v belongs in front of. */}
                 {version == null ? "—" : version === "dev" ? "dev" : `v${version}`}
               </span>
-              <EnvTag>Apache-2.0</EnvTag>
+              <OutlineTag>Apache-2.0</OutlineTag>
             </div>
             {/* One paragraph now that the page follows the interface language;
                 it used to carry both at once because nothing else did. */}

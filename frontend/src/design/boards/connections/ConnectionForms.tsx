@@ -54,44 +54,98 @@ function Adv({ children }: { children: ReactNode }) {
   );
 }
 
-/** Keys, not text: the tag is a fixed enum the form offers, so it translates. */
-const ENV_KEYS = [
-  "page.connections.form.envProd",
-  "page.connections.form.envTest",
-  "page.connections.form.envDev",
-];
+/** Option keys the RocketMQ driver reads back off a stored profile. */
+export const OPTION_VERSION = "version";
+export const OPTION_ACCESS = "access";
+
+/**
+ * What board 6a collects. The fields the canvas does not draw - group, remark,
+ * request timeout - ride along so editing a profile round-trips them instead
+ * of clearing what another screen set.
+ */
+export interface RocketMQDraft {
+  name: string;
+  version: "4.x" | "5.x";
+  access: "ns" | "proxy";
+  endpoints: string;
+  accessKey: string;
+  secretKey: string;
+  group: string;
+  remark: string;
+  timeoutSec: number;
+  /**
+   * Editing a profile that already has ACL credentials. Go never sends a
+   * stored secret back, so the fields show that one exists rather than a value,
+   * and a blank field means "keep it" - which is why clearing needs its own
+   * gesture below.
+   */
+  credentialsStored: boolean;
+  /** Set by the clear control: submits as credentialsMode "clear". */
+  clearCredentials: boolean;
+}
+
+export function emptyRocketMQDraft(): RocketMQDraft {
+  return {
+    name: "",
+    version: "5.x",
+    access: "ns",
+    endpoints: "",
+    accessKey: "",
+    secretKey: "",
+    group: "",
+    remark: "",
+    timeoutSec: 5,
+    credentialsStored: false,
+    clearCredentials: false,
+  };
+}
 
 /** Board 6a — RocketMQ. Version and access mode drive which fields exist. */
-export function RocketMQForm() {
+export function RocketMQForm({
+  value,
+  onChange,
+}: {
+  value: RocketMQDraft;
+  onChange: (next: RocketMQDraft) => void;
+}) {
   const { t } = useTranslation();
-  const [version, setVersion] = useState<"4.x" | "5.x">("5.x");
-  const [access, setAccess] = useState<"ns" | "proxy">("ns");
+  const set = <K extends keyof RocketMQDraft>(key: K, next: RocketMQDraft[K]) =>
+    onChange({ ...value, [key]: next });
+  // Once cleared, the fields are empty and typing into them is what sets new
+  // credentials, so the placeholder and the clear control both go away.
+  const stored = value.credentialsStored && !value.clearCredentials;
+
   return (
     <>
       <div style={GRID}>
         <Fld label={t("page.connections.form.name")}>
-          <Field defaultValue="rocketmq-order" />
-        </Fld>
-        <Fld label={t("page.connections.form.env")}>
-          <SelectField value={t(ENV_KEYS[0]!)} />
+          <Field
+            value={value.name}
+            placeholder="rocketmq-order"
+            onChange={(event) => set("name", event.target.value)}
+          />
         </Fld>
         <Fld label={t("page.connections.form.rocketmq.version")}>
           <Seg
             style={{ alignSelf: "flex-start" }}
-            value={version}
-            onChange={setVersion}
+            value={value.version}
+            onChange={(next: "4.x" | "5.x") =>
+              // 4.x has no Proxy, so leaving access on it would submit a mode
+              // the version cannot have.
+              onChange({ ...value, version: next, access: next === "4.x" ? "ns" : value.access })
+            }
             options={[
               { value: "4.x", label: "4.x" },
               { value: "5.x", label: "5.x" },
             ]}
           />
         </Fld>
-        {version === "5.x" && (
+        {value.version === "5.x" && (
           <Fld label={t("page.connections.form.rocketmq.access")} hint={t("page.connections.form.rocketmq.accessHint")}>
             <Seg
               style={{ alignSelf: "flex-start" }}
-              value={access}
-              onChange={setAccess}
+              value={value.access}
+              onChange={(next: "ns" | "proxy") => set("access", next)}
               options={[
                 { value: "ns", label: t("page.connections.form.rocketmq.accessDirect") },
                 { value: "proxy", label: "gRPC Proxy" },
@@ -100,18 +154,48 @@ export function RocketMQForm() {
           </Fld>
         )}
         <Fld span label={t("page.connections.form.rocketmq.nameServer")} hint={t("page.connections.form.rocketmq.nameServerHint")}>
-          <Field className="mono3" style={MONO} defaultValue="10.12.3.44:9876;10.12.3.45:9876" />
+          <Field
+            className="mono3"
+            style={MONO}
+            value={value.endpoints}
+            placeholder="10.12.3.44:9876;10.12.3.45:9876"
+            onChange={(event) => set("endpoints", event.target.value)}
+          />
         </Fld>
-        <Fld label="AccessKey" hint={t("page.connections.form.rocketmq.accessKeyHint")}>
-          <Field defaultValue="rocketmq2-admin" />
+        <Fld
+          label="AccessKey"
+          hint={
+            stored ? (
+              <button type="button" className="mqs-linkbtn" onClick={() => set("clearCredentials", true)}>
+                {t("page.connections.form.clearCredentials")}
+              </button>
+            ) : (
+              t("page.connections.form.rocketmq.accessKeyHint")
+            )
+          }
+        >
+          <Field
+            value={value.accessKey}
+            placeholder={stored ? t("page.connections.form.secretStored") : undefined}
+            onChange={(event) => set("accessKey", event.target.value)}
+          />
         </Fld>
         <Fld label="SecretKey">
-          <Field type="password" defaultValue="password" />
+          <Field
+            type="password"
+            value={value.secretKey}
+            placeholder={stored ? t("page.connections.form.secretStored") : undefined}
+            onChange={(event) => set("secretKey", event.target.value)}
+          />
         </Fld>
       </div>
       <FormNote
         advanced={<Adv>{t("page.connections.form.rocketmq.advanced")}</Adv>}
-        note={t("page.connections.form.rocketmq.note")}
+        note={
+          value.access === "proxy"
+            ? t("page.connections.form.rocketmq.proxyNote")
+            : t("page.connections.form.rocketmq.note")
+        }
       />
     </>
   );
@@ -124,11 +208,8 @@ export function KafkaForm() {
   return (
     <>
       <div style={GRID}>
-        <Fld label={t("page.connections.form.name")}>
+        <Fld span label={t("page.connections.form.name")}>
           <Field defaultValue="prod-kafka-cn" />
-        </Fld>
-        <Fld label={t("page.connections.form.env")}>
-          <SelectField value={t(ENV_KEYS[0]!)} />
         </Fld>
         <Fld span label="Bootstrap Servers">
           <Field
@@ -172,11 +253,8 @@ export function RabbitMQForm() {
   return (
     <>
       <div style={GRID}>
-        <Fld label={t("page.connections.form.name")}>
+        <Fld span label={t("page.connections.form.name")}>
           <Field defaultValue="rabbit-staging" />
-        </Fld>
-        <Fld label={t("page.connections.form.env")}>
-          <SelectField value={t(ENV_KEYS[1]!)} />
         </Fld>
         <Fld span label={t("page.connections.form.rabbitmq.amqp")}>
           <Field className="mono3" style={MONO} defaultValue="amqps://rabbit.stg.example.com:5671" />
@@ -211,9 +289,6 @@ export function PulsarForm() {
       <div style={GRID}>
         <Fld label={t("page.connections.form.name")}>
           <Field defaultValue="pulsar-eu" />
-        </Fld>
-        <Fld label={t("page.connections.form.env")}>
-          <SelectField value={t(ENV_KEYS[0]!)} />
         </Fld>
         <Fld label={t("page.connections.form.pulsar.service")} hint={t("page.connections.form.pulsar.serviceHint")}>
           <Field className="mono3" style={MONO} defaultValue="pulsar+ssl://pulsar-eu:6651" />
@@ -265,11 +340,8 @@ export function RedisForm() {
   return (
     <>
       <div style={GRID}>
-        <Fld label={t("page.connections.form.name")}>
+        <Fld span label={t("page.connections.form.name")}>
           <Field defaultValue="redis-stream-01" />
-        </Fld>
-        <Fld label={t("page.connections.form.env")}>
-          <SelectField value={t(ENV_KEYS[0]!)} />
         </Fld>
         <Fld span label={t("page.connections.form.redis.mode")}>
           <Seg
@@ -322,9 +394,6 @@ export function MqttForm() {
       <div style={GRID}>
         <Fld label={t("page.connections.form.name")}>
           <Field defaultValue="iot-broker" />
-        </Fld>
-        <Fld label={t("page.connections.form.env")}>
-          <SelectField value={t(ENV_KEYS[0]!)} />
         </Fld>
         <Fld label={t("page.connections.form.mqtt.broker")} hint={t("page.connections.form.mqtt.brokerHint")}>
           <Field className="mono3" style={MONO} defaultValue="mqtts://iot.example.com:8883" />

@@ -47,8 +47,8 @@ export function ProtoBadge({
   );
 }
 
-/** The bordered environment chip in the 8a connection list. */
-export function EnvTag({ children }: { children: React.ReactNode }) {
+/** A bordered outline chip: version and licence marks in settings. */
+export function OutlineTag({ children }: { children: React.ReactNode }) {
   return (
     <span
       style={{

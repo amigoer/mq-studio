@@ -54,6 +54,17 @@ export function List(): $CancellablePromise<($models.ConnectionView | null)[]> {
 }
 
 /**
+ * Probe tests a form submission without storing it.
+ * 
+ * The id is the connection being edited, or zero for a new one; it exists only
+ * so a form whose password field shows "already set" can be tested with the
+ * stored credential rather than an empty one.
+ */
+export function Probe(id: number, input: $models.ConnectionInput): $CancellablePromise<void> {
+    return $Call.ByID(2385811175, id, input);
+}
+
+/**
  * Remove deletes a connection.
  */
 export function Remove(id: number): $CancellablePromise<void> {

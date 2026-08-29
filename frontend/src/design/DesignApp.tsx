@@ -20,9 +20,14 @@ import {
 } from "@/api/platform";
 import { useUIScale } from "@/hooks/useUIScale";
 import { useUpdater } from "@/hooks/useUpdater";
-import { useConnectionProfiles } from "@/hooks/useConnectionProfiles";
+import { latencyLabel, useConnectionProfiles } from "@/hooks/useConnectionProfiles";
 import { useConfirm, useToast } from "@/design/ui";
 import { exportAllConfigToFile, importAllConfigFromFile } from "@/api/settings";
+import {
+  probeConnection as probeDraft,
+  type ConnectionDraft,
+  type CredentialsMode,
+} from "@/api/connection";
 import { readSession, writeSession } from "@/design/data/session";
 import { UNREAD_ALERTS } from "@/design/shell/NotificationCenter";
 import { ConnectionsList } from "@/design/boards/connections/ConnectionsList";
@@ -65,8 +70,21 @@ const openGithub = () => void openExternal(GITHUB_URL).catch(() => {});
  */
 export function DesignApp(): JSX.Element {
   const { t, i18n } = useTranslation();
-  const { connections, loading: connectionsLoading, reload, remove, makeDefault } =
-    useConnectionProfiles();
+  const {
+    connections,
+    profiles,
+    loading: connectionsLoading,
+    pending,
+    errors,
+    reload,
+    remove,
+    makeDefault,
+    connect,
+    disconnect,
+    test,
+    create,
+    update,
+  } = useConnectionProfiles();
   const toast = useToast();
   const confirm = useConfirm();
   // Read once: the stored session is the window's opening state, and reading it
@@ -94,7 +112,9 @@ export function DesignApp(): JSX.Element {
   // px and the whole document is zoomed to the chosen size.
   const { setting: scaleSetting, fontSize, setSetting: setScale } = useUIScale();
 
-  const [dialogOpen, setDialogOpen] = useState(false);
+  // One dialog serves both gestures: `editing` is the profile id being edited,
+  // or null for a new connection.
+  const [dialog, setDialog] = useState<{ editing: number | null } | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [paletteQuery, setPaletteQuery] = useState("");
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -231,6 +251,54 @@ export function DesignApp(): JSX.Element {
     }
   };
 
+  const connectConnection = async (connection: Connection) => {
+    const result = await connect(connection.id);
+    if (result.ok) {
+      toast.success(t("page.connections.connected", { name: connection.name }));
+    } else {
+      toast.error(t("page.connections.connectFailed", { name: connection.name }), {
+        description: result.error,
+      });
+    }
+    return result.ok;
+  };
+
+  const disconnectConnection = async (connection: Connection) => {
+    const result = await disconnect(connection.id);
+    if (!result.ok) {
+      toast.error(t("page.connections.disconnectFailed"), { description: result.error });
+      return;
+    }
+    // A tab whose connection is closed would show pages that cannot answer.
+    setOpenTabs((tabs) => tabs.filter((key) => key !== connection.key));
+    setActiveTab((current) => (current === connection.key ? null : current));
+    toast.success(t("page.connections.disconnected", { name: connection.name }));
+  };
+
+  const probeConnection = async (connection: Connection) => {
+    const result = await test(connection.id);
+    if (!result.ok) {
+      toast.error(t("page.connections.probeFailed"), { description: result.error });
+      return;
+    }
+    toast.success(t("page.connections.probeOk", { latency: latencyLabel(result.latencyMs) }));
+  };
+
+  const saveConnection = async (
+    draft: ConnectionDraft,
+    credentialsMode: CredentialsMode,
+  ) => {
+    const editingID = dialog?.editing ?? null;
+    const saved =
+      editingID != null
+        ? await update(editingID, draft, credentialsMode)
+        : await create(draft);
+    toast.success(t("page.connections.saved", { name: saved.name }));
+    // "Save and connect" is what the button says on a new connection, and a
+    // profile nobody has dialled is not much use on its own.
+    if (editingID == null) await connect(saved.id);
+  };
+
   const promoteConnection = async (connection: Connection) => {
     try {
       await makeDefault(connection.id);
@@ -289,21 +357,49 @@ export function DesignApp(): JSX.Element {
       />
     ) : undefined;
 
+  const editingProfile =
+    dialog?.editing != null ? profiles.find((p) => p.id === dialog.editing) : undefined;
+
+  /*
+   * Opening a tab on a profile nobody has dialled would land on pages that
+   * cannot answer, so the tab opens and the connection follows. It opens even
+   * when the dial fails: the tab is where the failure is legible.
+   */
+  const openConnectionTab = (connection: Connection) => {
+    openTab(connection.key);
+    if (connection.status !== "online" && pending[connection.id] == null) {
+      void connectConnection(connection);
+    }
+  };
+
+  const connectionsBoard = (
+    <ConnectionsList
+      connections={connections}
+      pending={pending}
+      errors={errors}
+      onNewConnection={() => setDialog({ editing: null })}
+      onOpenTab={(key) => {
+        const connection = connections.find((c) => c.key === key);
+        if (connection != null) openConnectionTab(connection);
+      }}
+      onDelete={(connection) => void deleteConnection(connection)}
+      onSetDefault={(connection) => void promoteConnection(connection)}
+      onImport={() => void importConfig()}
+      onExport={() => void exportConfig()}
+      onConnect={(connection) => void connectConnection(connection)}
+      onDisconnect={(connection) => void disconnectConnection(connection)}
+      onTest={(connection) => void probeConnection(connection)}
+      onEdit={(connection) => setDialog({ editing: connection.id })}
+    />
+  );
+
   const content = (() => {
     switch (view.kind) {
       case "connections":
         return connections.length === 0 ? (
-          <ConnectionsEmpty onNewConnection={() => setDialogOpen(true)} />
+          <ConnectionsEmpty onNewConnection={() => setDialog({ editing: null })} />
         ) : (
-          <ConnectionsList
-            connections={connections}
-            onNewConnection={() => setDialogOpen(true)}
-            onOpenTab={openTab}
-            onDelete={(connection) => void deleteConnection(connection)}
-            onSetDefault={(connection) => void promoteConnection(connection)}
-            onImport={() => void importConfig()}
-            onExport={() => void exportConfig()}
-          />
+          connectionsBoard
         );
       case "settings":
         return (
@@ -324,17 +420,9 @@ export function DesignApp(): JSX.Element {
       default:
         if (protocol == null) {
           return connections.length === 0 ? (
-            <ConnectionsEmpty onNewConnection={() => setDialogOpen(true)} />
+            <ConnectionsEmpty onNewConnection={() => setDialog({ editing: null })} />
           ) : (
-            <ConnectionsList
-              connections={connections}
-              onNewConnection={() => setDialogOpen(true)}
-              onOpenTab={openTab}
-              onDelete={(connection) => void deleteConnection(connection)}
-              onSetDefault={(connection) => void promoteConnection(connection)}
-              onImport={() => void importConfig()}
-              onExport={() => void exportConfig()}
-            />
+            connectionsBoard
           );
         }
         return renderBoard(protocol, pagesOf(protocol).includes(page) ? page : "overview");
@@ -405,7 +493,7 @@ export function DesignApp(): JSX.Element {
               onClose={closeTab}
               onAdd={() => {
                 goto({ kind: "connections" });
-                setDialogOpen(true);
+                setDialog({ editing: null });
               }}
               onSplit={() =>
                 setView((current) =>
@@ -419,7 +507,17 @@ export function DesignApp(): JSX.Element {
       sidebar={sidebar}
       overlays={
         <>
-          <NewConnectionDialog open={dialogOpen} onClose={() => setDialogOpen(false)} />
+          <NewConnectionDialog
+            open={dialog != null}
+            onClose={() => setDialog(null)}
+            editing={editingProfile}
+            onSubmit={saveConnection}
+            onProbe={async (draft, credentialsMode) => {
+              const started = performance.now();
+              await probeDraft(draft, dialog?.editing ?? 0, credentialsMode);
+              return performance.now() - started;
+            }}
+          />
           <CommandPalette
             open={paletteOpen}
             query={paletteQuery}
@@ -430,7 +528,7 @@ export function DesignApp(): JSX.Element {
             onOpenPage={selectPage}
             onNewConnection={() => {
               goto({ kind: "connections" });
-              setDialogOpen(true);
+              setDialog({ editing: null });
             }}
             onOpenSettings={() => goto({ kind: "settings" })}
             onCheckUpdate={() => void checkUpdate()}

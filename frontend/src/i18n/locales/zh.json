@@ -1018,24 +1018,26 @@
   "page": {
     "connections": {
       "title": "连接",
-      "subtitle": "全局视图：标题栏 MQ 标记或标签条 ＋ 进入 · 凭证加密存储在本机 · 双击行在新标签打开",
+      "subtitle": "双击一行在新标签中打开 · 凭证加密存储在本机",
       "import": "导入",
       "export": "导出",
       "new": "+ 新建连接",
       "searchPlaceholder": "搜索连接…",
       "all": "全部 {{count}}",
-      "allEnvironments": "全部环境",
-      "sortRecent": "按最近使用",
-      "columnName": "名称",
-      "columnProtocol": "协议",
+      "sort": {
+        "recent": "按最近使用",
+        "name": "按名称",
+        "status": "按状态"
+      },
+      "columnConnection": "连接",
       "columnAddress": "地址",
-      "columnEnvironment": "环境",
       "columnStatus": "状态",
       "columnLastUsed": "最近使用",
       "columnActions": "操作",
       "defaultConnection": "默认连接",
-      "hoverForActions": "悬停显示操作",
       "moreActions": "更多操作",
+      "noMatch": "没有匹配的连接",
+      "clearFilters": "清除筛选",
       "duplicate": "复制连接",
       "setDefault": "设为默认",
       "exportOne": "导出此连接",
@@ -1043,6 +1045,7 @@
       "auditLog": "操作日志",
       "delete": "删除连接…",
       "summary": "{{total}} 个连接 · {{online}} 在线 · {{failed}} 失败",
+      "summaryFiltered": "显示 {{shown}} / {{total}} 个连接",
       "defaultHint": "默认连接随应用启动自动连接",
       "online": "在线",
       "offline": "离线",
@@ -1065,12 +1068,8 @@
       "dialogProtocol": "协议",
       "form": {
         "name": "连接名称",
-        "env": "环境标记",
         "username": "用户名",
         "password": "密码",
-        "envProd": "生产",
-        "envTest": "测试",
-        "envDev": "开发",
         "rocketmq": {
           "version": "版本",
           "access": "接入方式",
@@ -1080,7 +1079,8 @@
           "nameServerHint": "分号分隔多个",
           "accessKeyHint": "ACL 可选",
           "advanced": "高级：实例 ID（公有云） · 消息轨迹 Topic · 请求超时 · TLS",
-          "note": "切到 4.x 时自动隐藏 Proxy 与 5.x 专属项"
+          "note": "切到 4.x 时自动隐藏 Proxy 与 5.x 专属项",
+          "proxyNote": "Proxy 只有数据面，没有管理接口，暂不支持"
         },
         "kafka": {
           "security": "安全协议",
@@ -1132,7 +1132,9 @@
           "sessionExpiryHint": "5.0",
           "advanced": "遗嘱消息（LWT）：Topic · Payload · QoS · Retain",
           "note": "TLS：CA / 客户端证书 · 跳过验证"
-        }
+        },
+        "secretStored": "已保存，留空保持不变",
+        "clearCredentials": "清除凭证"
       },
       "deleteTitle": "删除连接",
       "deleteDesc": "将删除连接「{{name}}」及其保存的凭证，且无法撤销。",
@@ -1149,7 +1151,22 @@
         "pulsar": "连接成功 · 3 Broker · 4 Bookie",
         "redis": "连接成功 · Redis 7.2 · 扫描到 12 个 Stream",
         "mqtt": "连接失败 · 证书主机名不匹配（查看详情）"
-      }
+      },
+      "dialogTitleEdit": "编辑连接",
+      "dialogSaveOnly": "保存",
+      "probeOk": "连接成功 · {{latency}}",
+      "probeFailed": "连接失败",
+      "notWired": "{{protocol}} 尚未接入，暂时只能保存 RocketMQ 连接",
+      "nameRequired": "请填写连接名称",
+      "endpointsRequired": "请填写 NameServer 地址",
+      "connecting": "连接中…",
+      "testing": "测试中…",
+      "disconnecting": "断开中…",
+      "connectFailed": "连接 {{name}} 失败",
+      "connected": "已连接 {{name}}",
+      "disconnected": "已断开 {{name}}",
+      "saved": "已保存 {{name}}",
+      "disconnectFailed": "断开失败"
     },
     "settings": {
       "title": "设置",

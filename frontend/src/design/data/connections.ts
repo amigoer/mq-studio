@@ -21,7 +21,6 @@ export type Connection = {
   protocol: ProtocolId | null;
   protocolLabel: string;
   address: string;
-  env: string;
   status: ConnectionStatus;
   latency?: string;
   lastUsed: string;
@@ -56,7 +55,6 @@ export function toShellConnection(profile: ConnectionProfile): Connection {
     // A family with no board still names itself; the raw kind is all there is.
     protocolLabel: protocol != null ? PROTOCOLS[protocol].name : profile.kind,
     address: profile.endpoints,
-    env: profile.group,
     status: profile.status === "online" ? "online" : "offline",
     lastUsed: profile.lastCheck,
     isDefault: profile.isDefault,

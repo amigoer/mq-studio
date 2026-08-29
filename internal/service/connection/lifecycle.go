@@ -43,11 +43,31 @@ func (s *Service) resolvedProfileLocked(id int) (model.ConnectionProfile, error)
 	if !exists {
 		return model.ConnectionProfile{}, fmt.Errorf("连接不存在: %d", id)
 	}
+	return s.resolveForDial(connection), nil
+}
+
+// resolveForDial fills a profile's blanks from application settings.
+func (s *Service) resolveForDial(connection *model.ConnectionProfile) model.ConnectionProfile {
 	resolved := connection.Clone()
 	resolved.TimeoutSec = int(s.getConnectTimeout(connection) / time.Second)
 	enableACL, accessKey, secretKey := s.resolveACLCredentials(connection)
 	resolved.SetACL(enableACL, accessKey, secretKey)
-	return *resolved, nil
+	return *resolved
+}
+
+// ProbeProfile tests parameters that are not stored yet.
+//
+// The new-connection dialog draws a test button beside a form that has no id
+// to name, so the probe takes the draft itself. Nothing is persisted and no
+// client is kept: it is TestConnection for a connection that does not exist.
+func (s *Service) ProbeProfile(profile model.ConnectionProfile) error {
+	if strings.TrimSpace(profile.Endpoints) == "" {
+		return fmt.Errorf("connection endpoints cannot be empty")
+	}
+	if profile.Kind == "" {
+		profile.Kind = model.KindRocketMQ
+	}
+	return s.runtime.Test(s.resolveForDial(&profile))
 }
 
 // TestConnection checks whether a saved connection profile can be reached.

@@ -255,6 +255,28 @@
     transform: rotate(360deg);
   }
 }
+/* Anything else waiting on Go turns the same way, at the same speed. */
+.mqs-turning {
+  animation: mqs-turn var(--mo-turn) linear infinite;
+}
+/*
+ * A control small enough to live inside a field's grey hint line. It borrows
+ * the hint's own size so the line keeps its rhythm, and only colour and the
+ * underline say it is pressable.
+ */
+.mqs-linkbtn {
+  border: 0;
+  padding: 0;
+  background: none;
+  font: inherit;
+  color: var(--c-ok);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.mqs-linkbtn:hover {
+  color: var(--c-fg);
+}
 /*
  * Window buttons, off darwin only (see WindowControls). They act on the window
  * rather than on the app, so they sit past a divider and drop the `.tbi`
@@ -517,6 +539,17 @@
 .t3 tr.sel td {
   background: var(--c-fill);
 }
+/*
+ * The slack in a table of short values has to land somewhere; this one empty
+ * column puts it after the data and before the row actions, so the data packs
+ * left where it scans, the actions keep the right edge, and no gap opens
+ * between two columns that belong together.
+ */
+.t3 .fill {
+  width: 100%;
+  padding: 0;
+}
+
 /*
  * A table that is the page's own content, not a card's: its outer cells take
  * the 20px page gutter, so the first column lines up with the header title and
@@ -875,39 +908,6 @@ button.card3 {
 .t3 tbody tr:hover td { background: var(--c-bar); }
 .t3 tbody tr.sel:hover td { background: var(--c-fill-mute); }
 .mqs-menuitem:hover { background: var(--c-fill); }
-
-/*
- * Row actions are drawn on hover in 8a ("悬停显示操作 ⋯"). `visibility` still
- * carries the hiding -- it is what keeps the buttons out of the tab order --
- * and only the paint fades; the discrete property waits out the fade before
- * flipping back, so the buttons do not vanish before they have faded.
- */
-.mqs-rowactions {
-  visibility: hidden;
-  opacity: 0;
-  transition:
-    opacity var(--mo-fast) ease,
-    visibility var(--mo-fast);
-}
-.t3 tbody tr:hover .mqs-rowactions,
-.t3 tbody tr.sel .mqs-rowactions {
-  visibility: visible;
-  opacity: 1;
-}
-/*
- * The hint is taken out of flow so it lands on the cell's right edge in every
- * row: in flow the hidden buttons still reserve their width, and a two-button
- * row reserves less than a three-button one, so the hints came out ragged.
- * The offset is the inset table's own right padding.
- */
-.mqs-rowhint {
-  position: absolute;
-  right: 20px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--c-disabled);
-}
-.t3 tbody tr:hover .mqs-rowhint { display: none; }
 
 button.btn3,
 button.tbi,

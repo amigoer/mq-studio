@@ -1018,24 +1018,26 @@
   "page": {
     "connections": {
       "title": "Connections",
-      "subtitle": "Global view: the MQ mark in the title bar or a tab ＋ to enter · credentials are encrypted on this machine · double-click a row to open it in a new tab",
+      "subtitle": "Double-click a row to open it in a new tab · Credentials are encrypted on this machine",
       "import": "Import",
       "export": "Export",
       "new": "+ New connection",
       "searchPlaceholder": "Search connections…",
       "all": "All {{count}}",
-      "allEnvironments": "All environments",
-      "sortRecent": "By last used",
-      "columnName": "Name",
-      "columnProtocol": "Protocol",
+      "sort": {
+        "recent": "Recently used",
+        "name": "Name",
+        "status": "Status"
+      },
+      "columnConnection": "Connection",
       "columnAddress": "Address",
-      "columnEnvironment": "Environment",
       "columnStatus": "Status",
       "columnLastUsed": "Last used",
       "columnActions": "Actions",
       "defaultConnection": "Default connection",
-      "hoverForActions": "Hover for actions",
       "moreActions": "More actions",
+      "noMatch": "No connection matches the filter",
+      "clearFilters": "Clear filters",
       "duplicate": "Duplicate",
       "setDefault": "Set as default",
       "exportOne": "Export this connection",
@@ -1043,6 +1045,7 @@
       "auditLog": "Activity log",
       "delete": "Delete connection…",
       "summary": "{{total}} connections · {{online}} online · {{failed}} failed",
+      "summaryFiltered": "Showing {{shown}} of {{total}} connections",
       "defaultHint": "The default connection connects on launch",
       "online": "Online",
       "offline": "Offline",
@@ -1065,12 +1068,8 @@
       "dialogProtocol": "Protocol",
       "form": {
         "name": "Connection name",
-        "env": "Environment",
         "username": "Username",
         "password": "Password",
-        "envProd": "Production",
-        "envTest": "Staging",
-        "envDev": "Development",
         "rocketmq": {
           "version": "Version",
           "access": "Access mode",
@@ -1080,7 +1079,8 @@
           "nameServerHint": "Semicolon-separated",
           "accessKeyHint": "Optional, for ACL",
           "advanced": "Advanced: instance ID (cloud) · trace topic · request timeout · TLS",
-          "note": "Switching to 4.x hides Proxy and the 5.x-only fields"
+          "note": "Switching to 4.x hides Proxy and the 5.x-only fields",
+          "proxyNote": "Proxy is a data plane only, with no admin API; not supported yet"
         },
         "kafka": {
           "security": "Security protocol",
@@ -1132,7 +1132,9 @@
           "sessionExpiryHint": "5.0 only",
           "advanced": "Last will (LWT): topic · payload · QoS · retain",
           "note": "TLS: CA / client certificate · skip verification"
-        }
+        },
+        "secretStored": "Saved — leave blank to keep it",
+        "clearCredentials": "Clear credentials"
       },
       "deleteTitle": "Delete connection",
       "deleteDesc": "This deletes “{{name}}” and the credentials stored with it, and cannot be undone.",
@@ -1149,7 +1151,22 @@
         "pulsar": "Connected · 3 brokers · 4 bookies",
         "redis": "Connected · Redis 7.2 · 12 streams found",
         "mqtt": "Connection failed · certificate hostname mismatch (see details)"
-      }
+      },
+      "dialogTitleEdit": "Edit connection",
+      "dialogSaveOnly": "Save",
+      "probeOk": "Connected · {{latency}}",
+      "probeFailed": "Could not connect",
+      "notWired": "{{protocol}} is not wired up yet; only RocketMQ connections can be saved",
+      "nameRequired": "Enter a connection name",
+      "endpointsRequired": "Enter the NameServer addresses",
+      "connecting": "Connecting…",
+      "testing": "Testing…",
+      "disconnecting": "Disconnecting…",
+      "connectFailed": "Could not connect to {{name}}",
+      "connected": "Connected to {{name}}",
+      "disconnected": "Disconnected {{name}}",
+      "saved": "Saved {{name}}",
+      "disconnectFailed": "Could not disconnect"
     },
     "settings": {
       "title": "Settings",

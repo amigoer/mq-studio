@@ -2,7 +2,7 @@ export { Btn, IconBtn, btnVariants } from "./button";
 export { Field, TextArea, SelectField, FieldGroup } from "./field";
 export { Card, CardHeader, StatTile, MiniStat } from "./card";
 export { Table, MiniTable, THead, TBody, TR, TH, TD, NumTD, MonoTD } from "./table";
-export { Status, ProtoBadge, EnvTag } from "./badge";
+export { Status, ProtoBadge, OutlineTag } from "./badge";
 export { Seg, type SegOption } from "./segmented";
 export { Sw } from "./switch";
 export { ChartBox, Bar, Placeholder, SectionLabel, KV, SettingRow, MeterRow, Check, WarnBanner } from "./misc";

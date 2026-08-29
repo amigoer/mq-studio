@@ -52,6 +52,9 @@ test-frontend: ## Run frontend unit tests
 e2e-up: ## Start RocketMQ 5.3.2 with OrbStack or Docker
 	npm run e2e:up
 
+e2e: ## Run the live tests against a running RocketMQ E2E environment
+	npm run test:e2e
+
 e2e-down: ## Stop the RocketMQ E2E environment and remove test volumes
 	npm run e2e:down
 

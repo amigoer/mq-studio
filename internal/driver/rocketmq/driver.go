@@ -77,8 +77,23 @@ func (d *Driver) Descriptor() model.DriverDescriptor {
 	}
 }
 
+// How a 5.x profile says which kind of endpoint it names.
+const (
+	OptionAccess = "access"
+	AccessProxy  = "proxy"
+)
+
 // configOf reads a profile into the parameters this driver dials with.
+//
+// A Proxy endpoint is refused rather than dialled. The 5.x Proxy is a data
+// plane: it answers no route, topology or ACL request, so every page this app
+// has would come back empty. Dialling it anyway would fail somewhere deep in
+// the first admin call, with a network error that says nothing about why.
 func configOf(profile model.ConnectionProfile) (ClientConfig, error) {
+	if profile.Option(OptionAccess) == AccessProxy {
+		return ClientConfig{}, fmt.Errorf(
+			"RocketMQ Proxy 只有数据面，没有管理接口；请填写 NameServer 地址")
+	}
 	timeout := time.Duration(profile.TimeoutSec) * time.Second
 	if timeout <= 0 {
 		timeout = defaultRequestTimeout

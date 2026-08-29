@@ -116,17 +116,21 @@ func (s *ConnectionService) Add(input ConnectionInput) (*ConnectionView, error) 
 	return redactConnection(created), nil
 }
 
-// Update applies a connection form submission, resolving the credentials mode
-// against the currently stored secrets.
-func (s *ConnectionService) Update(id int, input ConnectionInput) (*ConnectionView, error) {
-	current, err := s.service.GetConnection(id)
-	if err != nil {
-		return nil, err
-	}
-	profile := input.profile()
-
-	switch input.CredentialsMode {
+// applyCredentialsMode resolves the secrets a form left blank against what is
+// stored for id. An id of zero means there is nothing stored to preserve, so
+// only "replace" and "clear" can apply.
+func (s *ConnectionService) applyCredentialsMode(
+	id int, profile *model.ConnectionProfile, mode string,
+) error {
+	switch mode {
 	case "preserve", "":
+		if id == 0 {
+			return nil
+		}
+		current, err := s.service.GetConnection(id)
+		if err != nil {
+			return err
+		}
 		// A form that shows "already set" instead of the value submits nothing,
 		// so an untouched field must keep what is stored rather than clear it.
 		for key, stored := range current.Secrets {
@@ -139,14 +143,36 @@ func (s *ConnectionService) Update(id int, input ConnectionInput) (*ConnectionVi
 		profile.Auth.Mechanism = model.AuthNone
 	case "replace":
 	default:
-		return nil, errors.New("invalid credentials mode")
+		return errors.New("invalid credentials mode")
 	}
+	return nil
+}
 
+// Update applies a connection form submission, resolving the credentials mode
+// against the currently stored secrets.
+func (s *ConnectionService) Update(id int, input ConnectionInput) (*ConnectionView, error) {
+	profile := input.profile()
+	if err := s.applyCredentialsMode(id, &profile, input.CredentialsMode); err != nil {
+		return nil, err
+	}
 	updated, err := s.service.UpdateConnection(id, profile)
 	if err != nil {
 		return nil, err
 	}
 	return redactConnection(updated), nil
+}
+
+// Probe tests a form submission without storing it.
+//
+// The id is the connection being edited, or zero for a new one; it exists only
+// so a form whose password field shows "already set" can be tested with the
+// stored credential rather than an empty one.
+func (s *ConnectionService) Probe(id int, input ConnectionInput) error {
+	profile := input.profile()
+	if err := s.applyCredentialsMode(id, &profile, input.CredentialsMode); err != nil {
+		return err
+	}
+	return s.service.ProbeProfile(profile)
 }
 
 // Remove deletes a connection.
