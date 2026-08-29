@@ -2032,7 +2032,12 @@
       "text": "文本",
       "sync": "同步",
       "async": "异步",
-      "oneway": "单向"
+      "oneway": "单向",
+      "notWired": "这个协议还没有接入，暂时只能从 RocketMQ 连接发送",
+      "pickTopicFirst": "先选一个 Topic",
+      "sentN": "已发送 {{count}} 条",
+      "noSends": "这个会话还没有发送记录",
+      "notJson": "消息体不是合法 JSON，无法格式化"
     },
     "mqtt": {
       "topicTree": "主题树",

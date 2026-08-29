@@ -49,21 +49,20 @@ export function PanelHeader({ protocol, badge }: { protocol: ProtocolId; badge?:
   );
 }
 
-/** Board 3e's right panel — RocketMQ. */
+/**
+ * Board 3e's right panel — RocketMQ.
+ *
+ * Delay level moved into the options card beside the repeat count, where the
+ * controls that actually reach the send call live. Ordered-by-key sending is
+ * gone: it needs a queue selector the send path does not have.
+ */
 export function RocketMQPanel() {
   const { t } = useTranslation();
-  const [ordered, setOrdered] = useState(false);
   return (
     <>
-      <SectionLabel action={<ProtoBadge protocol="rocketmq" label="RMQ 5.x" />} actionColor="inherit">
+      <SectionLabel action={<ProtoBadge protocol="rocketmq" label="RMQ" />} actionColor="inherit">
         {t("board.producer.specificRocketMQ")}
       </SectionLabel>
-      <Row label={t("board.producer.delayLevel")}>
-        <SelectField style={{ width: "120px" }} value={t("board.producer.noDelay")} />
-      </Row>
-      <Row label={t("board.producer.orderedByKey")}>
-        <Sw checked={ordered} onCheckedChange={setOrdered} label={t("board.producer.ordered")} />
-      </Row>
       <Note>
         {t("board.producer.panelNote")}
         <br />

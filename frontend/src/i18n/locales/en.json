@@ -2032,7 +2032,12 @@
       "text": "Text",
       "sync": "Sync",
       "async": "Async",
-      "oneway": "One-way"
+      "oneway": "One-way",
+      "notWired": "This protocol is not wired up yet; only RocketMQ connections can send",
+      "pickTopicFirst": "Pick a topic first",
+      "sentN": "Sent {{count}} message(s)",
+      "noSends": "Nothing sent in this session yet",
+      "notJson": "The body is not valid JSON, so it cannot be formatted"
     },
     "mqtt": {
       "topicTree": "Topic tree",

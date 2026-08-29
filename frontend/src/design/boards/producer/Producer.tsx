@@ -1,44 +1,147 @@
-import { useState } from "react";
-import { ArrowRight, Check, ChevronDown, Send } from "lucide-react";
+import { useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { Check, RefreshCw, Send } from "lucide-react";
 import { Page, PageHeader } from "@/design/shell";
 import {
   Btn,
   Card,
   Field,
-  IND,
-  JNum,
-  JStr,
+  Menu,
+  MenuItem,
   SectionLabel,
   Seg,
   SelectField,
   Status,
+  TextArea,
+  useToast,
 } from "@/design/ui";
 import type { ProtocolId } from "@/design/data/protocols";
 import { PROTOCOL_PANELS } from "./ProducerPanels";
-import { useTranslation } from "react-i18next";
+import { useBrokerData } from "@/hooks/useBrokerData";
+import { useConnectionScope } from "@/mq/ConnectionScope";
+import { useRecentPicks } from "@/hooks/useRecentPicks";
+import * as messageApi from "@/api/message";
+import * as topicApi from "@/api/topic";
+import { topicName } from "@/mq/rocketmq/destinations";
+import { formatErrorMessage } from "@/lib/utils";
 
 const BODY_FORMATS = [
   { value: "json", label: "board.term.json" },
   { value: "text", label: "board.producer.text" },
-  { value: "hex", label: "board.term.hex" },
+] as const;
+type BodyFormat = (typeof BODY_FORMATS)[number]["value"];
+
+/** RocketMQ's fixed delay ladder. Level 0 sends immediately. */
+const DELAY_LEVELS = [
+  "1s", "5s", "10s", "30s", "1m", "2m", "3m", "4m", "5m",
+  "6m", "7m", "8m", "9m", "10m", "20m", "30m", "1h", "2h",
 ] as const;
 
-const SEND_MODES = [
-  { value: "sync", label: "board.producer.sync" },
-  { value: "async", label: "board.producer.async" },
-  { value: "oneway", label: "board.producer.oneway" },
-] as const;
+/** One send is one round trip, so a burst is bounded. */
+const MAX_COUNT = 50;
+
+interface SendOutcome {
+  ok: boolean;
+  detail: string;
+  topic: string;
+  at: string;
+}
 
 /**
- * Board 3e — the send console. Left: target + body. Right: send options and a
- * protocol panel (16a-16e) that swaps wholesale with the active connection.
+ * Board 3e — the send console.
+ *
+ * Four of the options the canvas drew are gone, because the send path behind
+ * them does not exist: async and one-way sending (the bridge sends
+ * synchronously and returns the id), ordered-by-key sending (no queue
+ * selector), custom properties (the send input carries none), and hex bodies
+ * (nothing decodes one). Delay level and a bounded repeat count are real and
+ * stay.
+ *
+ * Only RocketMQ can send. The other five keep their drawn panel and say so
+ * rather than offering a button that cannot work.
  */
 export function Producer({ protocol }: { protocol: ProtocolId }) {
-  const [format, setFormat] = useState<(typeof BODY_FORMATS)[number]["value"]>("json");
-  const [sendMode, setSendMode] = useState<(typeof SEND_MODES)[number]["value"]>("sync");
-  const Panel = PROTOCOL_PANELS[protocol];
-
   const { t } = useTranslation();
+  const { id: connID, online } = useConnectionScope();
+  const toast = useToast();
+  const Panel = PROTOCOL_PANELS[protocol];
+  const wired = protocol === "rocketmq";
+
+  const [format, setFormat] = useState<BodyFormat>("json");
+  const [topic, setTopic] = useState("");
+  const [tags, setTags] = useState("");
+  const [keys, setKeys] = useState("");
+  const [body, setBody] = useState('{\n  "orderId": "ORD-TEST-001"\n}');
+  const [delayLevel, setDelayLevel] = useState(0);
+  const [count, setCount] = useState(1);
+  const [topicOpen, setTopicOpen] = useState(false);
+  const [delayOpen, setDelayOpen] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [recentSends, setRecentSends] = useState<SendOutcome[]>([]);
+
+  const { recent, record } = useRecentPicks("topic");
+  const topicList = useBrokerData(
+    useCallback((id: number) => topicApi.getTopics(id), []),
+    { enabled: wired },
+  );
+  const topics = (topicList.data ?? []).map(topicName);
+  const offered = [
+    ...recent.filter((name) => topics.includes(name)),
+    ...topics.filter((name) => !recent.includes(name)),
+  ];
+
+  const formatBody = () => {
+    try {
+      setBody(JSON.stringify(JSON.parse(body), null, 2));
+    } catch {
+      toast.error(t("board.producer.notJson"));
+    }
+  };
+
+  const send = async () => {
+    if (topic === "" || !online || !wired) return;
+    setSending(true);
+    const stamp = new Date().toLocaleTimeString();
+    let sent = 0;
+    let lastId = "";
+    let failure: string | null = null;
+    for (let index = 0; index < Math.min(MAX_COUNT, Math.max(1, count)); index++) {
+      try {
+        lastId = await messageApi.sendMessage(connID, topic, tags, keys, body, delayLevel);
+        sent += 1;
+      } catch (error) {
+        failure = formatErrorMessage(error);
+        break;
+      }
+    }
+    setSending(false);
+    setRecentSends((previous) =>
+      [
+        {
+          ok: failure == null,
+          detail: failure ?? lastId,
+          topic,
+          at: stamp,
+        },
+        ...previous,
+      ].slice(0, 8),
+    );
+    if (failure == null) {
+      record(topic);
+      toast.success(t("board.producer.sentN", { count: sent }), { description: lastId });
+    } else {
+      toast.error(t("board.producer.failed"), { description: failure });
+    }
+  };
+
+  const blocked = !wired
+    ? t("board.producer.notWired")
+    : !online
+      ? t("board.state.offline")
+      : topic === ""
+        ? t("board.producer.pickTopicFirst")
+        : null;
+
   return (
     <Page>
       <PageHeader
@@ -46,10 +149,16 @@ export function Producer({ protocol }: { protocol: ProtocolId }) {
         subtitle={t("board.producer.subtitle")}
         actions={
           <>
-            <Btn>{t("board.producer.saveTemplate")}</Btn>
-            <Btn variant="primary">
+            {blocked != null && (
+              <span style={{ fontSize: "11.5px", color: "var(--c-muted)" }}>{blocked}</span>
+            )}
+            <Btn variant="primary" disabled={blocked != null || sending} onClick={() => void send()}>
+              {sending ? (
+                <RefreshCw size={13} className="mqs-turning" aria-hidden />
+              ) : (
+                <Send size={13} aria-hidden />
+              )}
               {t("board.producer.send")}
-              <Send size={13} aria-hidden />
             </Btn>
           </>
         }
@@ -59,7 +168,47 @@ export function Producer({ protocol }: { protocol: ProtocolId }) {
         <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: "12px" }}>
           <Card style={{ padding: "13px 16px", display: "flex", gap: "10px", alignItems: "center" }}>
             <SectionLabel style={{ flex: "none" }}>{t("board.common.target")}</SectionLabel>
-            <TargetRow protocol={protocol} />
+            {wired ? (
+              <>
+                <span style={{ position: "relative", flex: 1 }}>
+                  <SelectField
+                    style={{ width: "100%" }}
+                    value={topic === "" ? t("board.messages.rocketmq.pickTopic") : `Topic：${topic}`}
+                    onClick={() => setTopicOpen((open) => !open)}
+                  />
+                  <Menu open={topicOpen} onClose={() => setTopicOpen(false)}>
+                    {offered.slice(0, 200).map((name) => (
+                      <MenuItem
+                        key={name}
+                        onSelect={() => {
+                          setTopic(name);
+                          setTopicOpen(false);
+                        }}
+                      >
+                        {name}
+                      </MenuItem>
+                    ))}
+                  </Menu>
+                </span>
+                <Field
+                  style={{ flex: "0 0 130px" }}
+                  placeholder="Tag"
+                  value={tags}
+                  onChange={(event) => setTags(event.target.value)}
+                />
+                <Field
+                  className="mono3"
+                  style={{ flex: "0 0 170px" }}
+                  placeholder="Keys"
+                  value={keys}
+                  onChange={(event) => setKeys(event.target.value)}
+                />
+              </>
+            ) : (
+              <span style={{ fontSize: "11.5px", color: "var(--c-muted)" }}>
+                {t("board.producer.notWired")}
+              </span>
+            )}
           </Card>
 
           <Card
@@ -80,87 +229,37 @@ export function Producer({ protocol }: { protocol: ProtocolId }) {
                 borderBottom: "1px solid var(--c-border)",
               }}
             >
-              <Seg options={BODY_FORMATS.map((o) => ({ ...o, label: t(o.label) }))} value={format} onChange={setFormat} />
+              <Seg
+                options={BODY_FORMATS.map((o) => ({ ...o, label: t(o.label) }))}
+                value={format}
+                onChange={setFormat}
+              />
               <span style={{ flex: 1 }} />
-              <span style={{ fontSize: "11.5px", color: "var(--c-ok)" }}>{t("board.common.format")}</span>
-              <span
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "4px",
-                  fontSize: "11.5px",
-                  color: "var(--c-muted)",
-                }}
-              >
-                {t("board.producer.copyFromMessage")}
-                <ChevronDown size={12} aria-hidden />
-              </span>
+              {format === "json" && (
+                <button type="button" className="mqs-linkbtn" onClick={formatBody}>
+                  {t("board.common.format")}
+                </button>
+              )}
             </div>
 
-            <div
+            <TextArea
               className="mono3 mqs-scroll"
+              value={body}
+              onChange={(event) => setBody(event.target.value)}
+              spellCheck={false}
               style={{
                 flex: 1,
                 minHeight: 0,
+                border: "none",
+                borderRadius: 0,
+                resize: "none",
                 padding: "12px 16px",
                 fontSize: "11.5px",
                 lineHeight: 1.8,
                 color: "var(--c-fg-2)",
               }}
-            >
-              {"{"}
-              <br />
-              {IND}"orderId": <JStr>"ORD-TEST-001"</JStr>,
-              <br />
-              {IND}"amount": <JNum>1.00</JNum>,
-              <br />
-              {IND}"scene": <JStr>"smoke-test"</JStr>
-              <br />
-              {"}"}
-            </div>
-
-            <div
-              style={{
-                borderTop: "1px solid var(--c-border)",
-                padding: "10px 14px",
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                fontSize: "11.5px",
-              }}
-            >
-              <SectionLabel>{t("board.producer.customProps")}</SectionLabel>
-              <Field className="mono3" style={{ fontSize: "11px" }} defaultValue="traceId = t-9f21" />
-              <Field className="mono3" style={{ fontSize: "11px" }} defaultValue="env = staging" />
-              <span style={{ color: "var(--c-ok)" }}>{t("board.producer.add")}</span>
-            </div>
+            />
           </Card>
-
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              padding: "9px 14px",
-              border: "1px solid rgba(41,145,93,.35)",
-              background: "rgba(41,145,93,.06)",
-              borderRadius: "10px",
-              fontSize: "12px",
-            }}
-          >
-            <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", color: "var(--c-ok-text)" }}>
-              <Check size={13} aria-hidden />
-              {t("board.producer.sent")}
-            </span>
-            <span className="mono3" style={{ color: "var(--c-mono-dim)", fontSize: "11px" }}>
-              MsgId 7F0000012A9C…D02
-            </span>
-            <span style={{ flex: 1 }} />
-            <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", color: "var(--c-ok)" }}>
-              {t("board.producer.viewMessage")}
-              <ArrowRight size={13} aria-hidden />
-            </span>
-          </div>
         </div>
 
         <div
@@ -176,12 +275,45 @@ export function Producer({ protocol }: { protocol: ProtocolId }) {
           <Card style={{ padding: "13px 16px", display: "flex", flexDirection: "column", gap: "10px" }}>
             <SectionLabel>{t("board.producer.options")}</SectionLabel>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "12px" }}>
-              <span>{t("board.producer.mode")}</span>
-              <Seg options={SEND_MODES.map((o) => ({ ...o, label: t(o.label) }))} value={sendMode} onChange={setSendMode} />
+              <span>{t("board.producer.delayLevel")}</span>
+              <span style={{ position: "relative" }}>
+                <SelectField
+                  style={{ width: "120px" }}
+                  value={delayLevel === 0 ? t("board.producer.noDelay") : DELAY_LEVELS[delayLevel - 1]!}
+                  onClick={() => setDelayOpen((open) => !open)}
+                />
+                <Menu open={delayOpen} onClose={() => setDelayOpen(false)}>
+                  <MenuItem
+                    onSelect={() => {
+                      setDelayLevel(0);
+                      setDelayOpen(false);
+                    }}
+                  >
+                    {t("board.producer.noDelay")}
+                  </MenuItem>
+                  {DELAY_LEVELS.map((label, index) => (
+                    <MenuItem
+                      key={label}
+                      onSelect={() => {
+                        setDelayLevel(index + 1);
+                        setDelayOpen(false);
+                      }}
+                    >
+                      {label}
+                    </MenuItem>
+                  ))}
+                </Menu>
+              </span>
             </div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "12px" }}>
               <span>{t("board.producer.count")}</span>
-              <Field style={{ width: "64px", textAlign: "right" }} defaultValue="1" />
+              <Field
+                style={{ width: "64px", textAlign: "right" }}
+                value={String(count)}
+                onChange={(event) =>
+                  setCount(Math.max(1, Math.min(MAX_COUNT, Number(event.target.value) || 1)))
+                }
+              />
             </div>
           </Card>
 
@@ -191,11 +323,21 @@ export function Producer({ protocol }: { protocol: ProtocolId }) {
 
           <Card style={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
             <SectionLabel style={{ padding: "11px 16px 8px" }}>{t("board.producer.recent")}</SectionLabel>
-            <RecentSend tone="ok" label={t("board.producer.ok")} detail="ORDER_CREATE · 10:31" />
-            <RecentSend tone="err" label={t("board.producer.failed")} detail="ORDER_PAY_DELAY · 09:58" />
-            <div style={{ padding: "2px 16px 10px" }}>
-              <div className="ph3" style={{ width: "70%" }} />
-            </div>
+            {recentSends.length === 0 ? (
+              <div style={{ padding: "0 16px 12px", fontSize: "11px", color: "var(--c-muted)" }}>
+                {t("board.producer.noSends")}
+              </div>
+            ) : (
+              recentSends.map((outcome, index) => (
+                <RecentSend
+                  key={`${outcome.at}-${index}`}
+                  tone={outcome.ok ? "ok" : "err"}
+                  label={t(outcome.ok ? "board.producer.ok" : "board.producer.failed")}
+                  detail={`${outcome.topic} · ${outcome.at}`}
+                  title={outcome.detail}
+                />
+              ))
+            )}
           </Card>
         </div>
       </div>
@@ -203,74 +345,20 @@ export function Producer({ protocol }: { protocol: ProtocolId }) {
   );
 }
 
-/** The target row; RabbitMQ addresses an exchange + routing key instead (16b). */
-function TargetRow({ protocol }: { protocol: ProtocolId }) {
-  const { t } = useTranslation();
-  if (protocol === "rabbitmq") {
-    return (
-      <>
-        <SelectField style={{ flex: 1 }} value="Exchange：ex.order" />
-        <Field
-          className="mono3"
-          style={{ flex: "0 0 200px" }}
-          defaultValue="Routing Key：order.created"
-        />
-      </>
-    );
-  }
-  if (protocol === "mqtt") {
-    return (
-      <>
-        <Field className="mono3" style={{ flex: 1 }} defaultValue={t("board.producer.mqttTopic")} />
-        <SelectField style={{ flex: "0 0 130px" }} value="QoS 1" />
-      </>
-    );
-  }
-  if (protocol === "redis") {
-    return (
-      <>
-        <SelectField style={{ flex: 1 }} value="Stream：orders:events" />
-        <Field className="mono3" style={{ flex: "0 0 170px" }} defaultValue="Entry ID：*" />
-      </>
-    );
-  }
-  if (protocol === "pulsar") {
-    return (
-      <>
-        <SelectField style={{ flex: 1 }} value="Topic：…/order-created" />
-        <Field className="mono3" style={{ flex: "0 0 170px" }} defaultValue="Key：ORD-TEST-001" />
-      </>
-    );
-  }
-  if (protocol === "kafka") {
-    return (
-      <>
-        <SelectField style={{ flex: 1 }} value="Topic：orders.created" />
-        <Field className="mono3" style={{ flex: "0 0 170px" }} defaultValue="Key：ORD-TEST-001" />
-      </>
-    );
-  }
-  return (
-    <>
-      <SelectField style={{ flex: 1 }} value="Topic：ORDER_CREATE" />
-      <Field style={{ flex: "0 0 130px" }} defaultValue="Tag：create" />
-      <Field className="mono3" style={{ flex: "0 0 170px" }} defaultValue="Keys：ORD-TEST-001" />
-    </>
-  );
-}
-
 function RecentSend({
   tone,
   label,
   detail,
+  title,
 }: {
   tone: "ok" | "err";
   label: string;
   detail: string;
+  title?: string;
 }) {
-  const { t } = useTranslation();
   return (
     <div
+      title={title}
       style={{
         padding: "0 16px 6px",
         display: "flex",
@@ -280,6 +368,7 @@ function RecentSend({
       }}
     >
       <Status tone={tone} style={{ fontSize: "10px" }}>
+        {tone === "ok" ? <Check size={11} aria-hidden /> : null}
         {label}
       </Status>
       <span
@@ -290,11 +379,11 @@ function RecentSend({
           flex: 1,
           overflow: "hidden",
           textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
         }}
       >
         {detail}
       </span>
-      <span style={{ color: "var(--c-ok)" }}>{t("board.producer.reuse")}</span>
     </div>
   );
 }
