@@ -1,6 +1,8 @@
 // Package model defines the application's data models.
 package model
 
+import "github.com/amigoer/mq-studio/internal/update"
+
 // UIScaleAuto sizes the interface from the window instead of pinning a step.
 const UIScaleAuto = "auto"
 
@@ -32,7 +34,7 @@ type AppSettings struct {
 	UIFont          string `json:"uiFont"`          // UI font
 	MonospaceFont   string `json:"monospaceFont"`   // Monospace font
 	AutoConnectLast bool   `json:"autoConnectLast"` // Auto-connect to last cluster on startup
-	AutoCheckUpdate bool   `json:"autoCheckUpdate"` // Check GitHub for a newer release in the background
+	UpdatePolicy    string `json:"updatePolicy"`    // How far updates go on their own: "off" | "notify" | "download" | "auto"
 	CloseBehavior   string `json:"closeBehavior"`   // Close behaviour: "minimizeToTray" | "quit"
 
 	// Connection and network
@@ -68,7 +70,7 @@ func DefaultSettings() *AppSettings {
 		UIFont:                "system",
 		MonospaceFont:         "JetBrains Mono",
 		AutoConnectLast:       true,
-		AutoCheckUpdate:       true,
+		UpdatePolicy:          string(update.PolicyNotify),
 		CloseBehavior:         CloseBehaviorMinimizeToTray,
 		ConnectTimeoutMs:      3000,
 		RequestTimeoutMs:      5000,

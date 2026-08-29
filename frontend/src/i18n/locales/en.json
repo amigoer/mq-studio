@@ -979,6 +979,42 @@
       }
     }
   },
+  "update": {
+    "section": "Application updates",
+    "checking": "Checking for updates…",
+    "upToDate": "You are on the latest version, {{version}}",
+    "neverChecked": "Not checked yet",
+    "developmentBuild": "Development build",
+    "developmentHint": "This build has no release to compare against, so update checks are off",
+    "lastChecked": "Last checked {{at}}",
+    "availableTitle": "Version {{version}} is available",
+    "availableHint": "Ready to download and install",
+    "currentIs": "currently on {{version}}",
+    "download": "Download and install",
+    "skip": "Skip this version",
+    "downloading": "Downloading {{version}}",
+    "cancel": "Cancel download",
+    "retry": "Try again",
+    "readyTitle": "{{version}} is downloaded and verified",
+    "readyHint": "Restart the app to finish updating",
+    "readyOnQuit": "It will be installed when you quit; the next launch is the new version",
+    "installNow": "Restart and update",
+    "installing": "Installing; the app will restart shortly…",
+    "view": "View",
+    "downloadFailed": "Could not download the update",
+    "installFailed": "Could not install the update",
+    "failed": {
+      "check": "Could not check for updates",
+      "download": "Could not download the update",
+      "install": "Could not install the update"
+    },
+    "blocked": {
+      "packageManager": "This install is managed by your package manager, so the app cannot replace itself. Update through apt or dnf, or download the new package from Releases.",
+      "readOnly": "The install location is not writable, so the app cannot replace itself. Move it to your Applications folder, or install the new version from Releases by hand.",
+      "notPackaged": "This is not an installed application (a development build or a bare binary), so it cannot replace itself.",
+      "unsupported": "No release is built for this operating system or architecture, so it cannot update itself."
+    }
+  },
   "page": {
     "connections": {
       "title": "Connections",
@@ -1159,8 +1195,14 @@
         "startup": "Startup",
         "autoConnect": "Connect on launch",
         "autoConnectHint": "Restores every connection that was online last time",
-        "autoCheckUpdate": "Check for updates automatically",
-        "autoCheckUpdateHint": "Asks GitHub for a newer release on launch and every 24 hours, sending only the current version",
+        "updatePolicy": "Update policy",
+        "updatePolicyHint": "Asks GitHub for a newer release on launch and every 24 hours, sending only the current version",
+        "updatePolicyOption": {
+          "off": "Off",
+          "notify": "Notify only",
+          "download": "Download, install manually",
+          "auto": "Update automatically (on quit)"
+        },
         "window": "Window",
         "closeBehavior": "When the main window closes",
         "closeBehaviorHint": "Minimised to the tray, the app keeps collecting throughput in the background; reopen or quit it from the menu bar icon",

@@ -979,6 +979,42 @@
       }
     }
   },
+  "update": {
+    "section": "应用更新",
+    "checking": "正在检查更新…",
+    "upToDate": "已是最新版本 {{version}}",
+    "neverChecked": "尚未检查过",
+    "developmentBuild": "开发构建",
+    "developmentHint": "当前构建没有对应的发布版本，更新检查已停用",
+    "lastChecked": "上次检查 {{at}}",
+    "availableTitle": "发现新版本 {{version}}",
+    "availableHint": "可以下载并安装",
+    "currentIs": "当前 {{version}}",
+    "download": "下载并安装",
+    "skip": "跳过此版本",
+    "downloading": "正在下载 {{version}}",
+    "cancel": "取消下载",
+    "retry": "重试",
+    "readyTitle": "{{version}} 已下载并校验",
+    "readyHint": "重启应用即可完成更新",
+    "readyOnQuit": "将在退出应用时自动安装，下次启动即为新版本",
+    "installNow": "立即重启更新",
+    "installing": "正在安装，稍后会自动重启…",
+    "view": "查看",
+    "downloadFailed": "下载更新失败",
+    "installFailed": "安装更新失败",
+    "failed": {
+      "check": "检查更新失败",
+      "download": "下载更新失败",
+      "install": "安装更新失败"
+    },
+    "blocked": {
+      "packageManager": "这份安装由系统包管理器接管，应用无法自行替换。请用 apt / dnf 升级，或从 Releases 下载新的安装包。",
+      "readOnly": "当前安装位置不可写，应用无法自行替换。请把它移到「应用程序」目录，或从 Releases 手动安装。",
+      "notPackaged": "当前运行的不是已安装的应用（可能是开发构建或裸二进制），无法自行替换。",
+      "unsupported": "当前系统或架构没有对应的发布包，无法自动更新。"
+    }
+  },
   "page": {
     "connections": {
       "title": "连接",
@@ -1159,8 +1195,14 @@
         "startup": "启动行为",
         "autoConnect": "启动时自动连接",
         "autoConnectHint": "恢复上次在线的全部连接（多连接）",
-        "autoCheckUpdate": "自动检查更新",
-        "autoCheckUpdateHint": "启动后及每 24 小时向 GitHub 查询是否有新版本，仅发送当前版本号",
+        "updatePolicy": "更新策略",
+        "updatePolicyHint": "启动后及每 24 小时向 GitHub 查询新版本，仅发送当前版本号",
+        "updatePolicyOption": {
+          "off": "关闭",
+          "notify": "仅提醒",
+          "download": "自动下载，手动安装",
+          "auto": "自动更新（退出时安装）"
+        },
         "window": "窗口行为",
         "closeBehavior": "关闭主窗口时",
         "closeBehaviorHint": "最小化到托盘后应用继续在后台采集吞吐数据，可从菜单栏图标唤回或退出",

@@ -3,26 +3,14 @@
 
 /**
  * SystemService exposes application-level operations that need the desktop
- * shell: version reporting, update checks, external links and file dialogs.
+ * shell: version reporting, external links and file dialogs. The update
+ * lifecycle is UpdateService's.
  * @module
  */
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Create } from "@wailsio/runtime";
-
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore: Unused imports
-import * as update$0 from "../update/models.js";
-
-/**
- * CheckUpdate compares the running build against the latest GitHub release.
- */
-export function CheckUpdate(): $CancellablePromise<update$0.Result> {
-    return $Call.ByID(671084903).then(($result: any) => {
-        return $$createType0($result);
-    });
-}
 
 /**
  * DataDirectory reports where the app keeps its files. The settings page draws
@@ -69,6 +57,3 @@ export function RevealDataDirectory(): $CancellablePromise<void> {
 export function Version(): $CancellablePromise<string> {
     return $Call.ByID(4058334898);
 }
-
-// Private type creation functions
-const $$createType0 = update$0.Result.createFrom;

@@ -12,6 +12,7 @@ import * as SettingsService from "./settingsservice.js";
 import * as ShellService from "./shellservice.js";
 import * as SystemService from "./systemservice.js";
 import * as TopicService from "./topicservice.js";
+import * as UpdateService from "./updateservice.js";
 import * as WindowService from "./windowservice.js";
 export {
     ACLService,
@@ -25,6 +26,7 @@ export {
     ShellService,
     SystemService,
     TopicService,
+    UpdateService,
     WindowService
 };
 

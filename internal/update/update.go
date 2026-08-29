@@ -35,11 +35,38 @@ const (
 	StatusAhead Status = "ahead"
 )
 
+// Asset is one file attached to a release. The updater picks the one matching
+// the running platform and verifies it against the release's SHA256SUMS.txt.
+type Asset struct {
+	Name string `json:"name"`
+	URL  string `json:"url"`
+	Size int64  `json:"size"`
+}
+
 // Result is the outcome of an update check.
 type Result struct {
 	Status         Status `json:"status"`
 	CurrentVersion string `json:"currentVersion"`
 	LatestVersion  string `json:"latestVersion"`
+	// Release notes, as written in the changelog the workflow publishes.
+	Notes string `json:"notes"`
+	// RFC3339, or empty when GitHub reported no publication date.
+	PublishedAt string `json:"publishedAt"`
+	ReleaseURL  string `json:"releaseURL"`
+	// Everything attached to the release, including SHA256SUMS.txt. Resolving
+	// which one this build installs is the caller's job -- CheckLatest knows
+	// nothing about the host it is running on.
+	Assets []Asset `json:"assets"`
+}
+
+// Find returns the named asset. The second result reports whether it exists.
+func (r Result) Find(name string) (Asset, bool) {
+	for _, asset := range r.Assets {
+		if asset.Name == name {
+			return asset, true
+		}
+	}
+	return Asset{}, false
 }
 
 type stableVersion struct {
@@ -99,9 +126,17 @@ func statusFromComparison(comparison int) Status {
 }
 
 type releasePayload struct {
-	TagName    string `json:"tag_name"`
-	Draft      bool   `json:"draft"`
-	Prerelease bool   `json:"prerelease"`
+	TagName     string `json:"tag_name"`
+	Draft       bool   `json:"draft"`
+	Prerelease  bool   `json:"prerelease"`
+	Body        string `json:"body"`
+	PublishedAt string `json:"published_at"`
+	HTMLURL     string `json:"html_url"`
+	Assets      []struct {
+		Name string `json:"name"`
+		URL  string `json:"browser_download_url"`
+		Size int64  `json:"size"`
+	} `json:"assets"`
 }
 
 // CheckLatest queries the GitHub latest release and compares it to current.
@@ -151,9 +186,17 @@ func CheckLatest(currentVersion string, client *http.Client) (Result, error) {
 	if err != nil {
 		return Result{}, err
 	}
+	assets := make([]Asset, 0, len(payload.Assets))
+	for _, asset := range payload.Assets {
+		assets = append(assets, Asset{Name: asset.Name, URL: asset.URL, Size: asset.Size})
+	}
 	return Result{
 		Status:         statusFromComparison(comparison),
 		CurrentVersion: current.normalized,
 		LatestVersion:  latest.normalized,
+		Notes:          strings.TrimSpace(payload.Body),
+		PublishedAt:    strings.TrimSpace(payload.PublishedAt),
+		ReleaseURL:     strings.TrimSpace(payload.HTMLURL),
+		Assets:         assets,
 	}, nil
 }

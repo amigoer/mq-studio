@@ -487,9 +487,9 @@ export class SettingsInput {
     "autoConnectLast": boolean;
 
     /**
-     * Check GitHub for a newer release in the background
+     * How far updates go on their own: "off" | "notify" | "download" | "auto"
      */
-    "autoCheckUpdate": boolean;
+    "updatePolicy": string;
 
     /**
      * Close behaviour: "minimizeToTray" | "quit"
@@ -605,8 +605,8 @@ export class SettingsInput {
         if (!("autoConnectLast" in $$source)) {
             this["autoConnectLast"] = false;
         }
-        if (!("autoCheckUpdate" in $$source)) {
-            this["autoCheckUpdate"] = false;
+        if (!("updatePolicy" in $$source)) {
+            this["updatePolicy"] = "";
         }
         if (!("closeBehavior" in $$source)) {
             this["closeBehavior"] = "";
@@ -715,9 +715,9 @@ export class SettingsView {
     "autoConnectLast": boolean;
 
     /**
-     * Check GitHub for a newer release in the background
+     * How far updates go on their own: "off" | "notify" | "download" | "auto"
      */
-    "autoCheckUpdate": boolean;
+    "updatePolicy": string;
 
     /**
      * Close behaviour: "minimizeToTray" | "quit"
@@ -834,8 +834,8 @@ export class SettingsView {
         if (!("autoConnectLast" in $$source)) {
             this["autoConnectLast"] = false;
         }
-        if (!("autoCheckUpdate" in $$source)) {
-            this["autoCheckUpdate"] = false;
+        if (!("updatePolicy" in $$source)) {
+            this["updatePolicy"] = "";
         }
         if (!("closeBehavior" in $$source)) {
             this["closeBehavior"] = "";

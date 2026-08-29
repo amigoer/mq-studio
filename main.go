@@ -2,16 +2,20 @@
 package main
 
 import (
+	"context"
 	"embed"
 	"log"
+	"path/filepath"
 	"runtime"
 	"strconv"
+	"time"
 
 	"github.com/amigoer/mq-studio/internal/app"
 	"github.com/amigoer/mq-studio/internal/bridge"
 	"github.com/amigoer/mq-studio/internal/macwindow"
 	"github.com/amigoer/mq-studio/internal/model"
 	"github.com/amigoer/mq-studio/internal/tray"
+	"github.com/amigoer/mq-studio/internal/update"
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"github.com/wailsapp/wails/v3/pkg/events"
 )
@@ -54,10 +58,13 @@ func run() error {
 	// exist until the application does: the listener is registered below.
 	shellService, onShellReport := bridge.NewShellService()
 
+	updates := newUpdateManager(services)
+	defer updates.Close()
+
 	wailsApp := application.New(application.Options{
 		Name:        applicationName,
 		Description: "Local-first desktop client for RocketMQ",
-		Services:    bridge.Services(services, version, shellService),
+		Services:    bridge.Services(services, version, shellService, updates),
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),
 		},
@@ -87,8 +94,61 @@ func run() error {
 	})
 	interceptClose(wailsApp, window, services)
 
+	// The schedule outlives the window: closing to the tray leaves the process
+	// up for days, and a check nobody is looking at is the point of it.
+	updateContext, stopUpdates := context.WithCancel(context.Background())
+	defer stopUpdates()
+	updates.Start(updateContext)
+	// Every way out of the application comes through here, which is what makes
+	// this the one place the auto policy can apply what it downloaded.
+	wailsApp.OnShutdown(func() {
+		stopUpdates()
+		installPendingUpdate(updates)
+	})
+
 	return wailsApp.Run()
 }
+
+// updateDirectory is where downloaded packages and the updater's own memory
+// are kept, under the directory that already holds the settings.
+const updateDirectory = "updates"
+
+func newUpdateManager(services *app.Services) *update.Manager {
+	return update.New(update.Options{
+		Version:   version,
+		Directory: filepath.Join(services.Settings.DataDirectory(), updateDirectory),
+		Policy: func() update.Policy {
+			return update.Policy(services.Settings.GetSettings().UpdatePolicy)
+		},
+		Emit: func(state update.State) {
+			// Nil until application.New has run, which is before anything can
+			// change the state.
+			if wailsApp := application.Get(); wailsApp != nil {
+				wailsApp.Event.Emit(update.Event, state)
+			}
+		},
+	})
+}
+
+// installPendingUpdate applies a verified package as the application closes.
+// Only the auto policy reaches the swap; every other policy waits to be asked,
+// and the manager is what enforces that.
+func installPendingUpdate(updates *update.Manager) {
+	ctx, cancel := context.WithTimeout(context.Background(), updateInstallTimeout)
+	defer cancel()
+	installed, err := updates.InstallOnQuit(ctx)
+	if err != nil {
+		log.Printf("[Update] failed to install on quit: %v", err)
+		return
+	}
+	if installed {
+		log.Print("[Update] installed on quit; the next launch is the new version")
+	}
+}
+
+// updateInstallTimeout bounds the swap so a hung hdiutil cannot keep the
+// application from exiting.
+const updateInstallTimeout = 3 * time.Minute
 
 // bindTray keeps the tray menu in step with the three things it draws: the
 // preferences, the stored connections and whatever the renderer is showing.

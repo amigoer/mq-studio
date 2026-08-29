@@ -19,7 +19,7 @@ import {
   type TrayDestination,
 } from "@/api/platform";
 import { useUIScale } from "@/hooks/useUIScale";
-import { useUpdateCheck, useUpdateCheckAction } from "@/hooks/useUpdateCheck";
+import { useUpdater } from "@/hooks/useUpdater";
 import { useConnectionProfiles } from "@/hooks/useConnectionProfiles";
 import { useConfirm, useToast } from "@/design/ui";
 import { exportAllConfigToFile, importAllConfigFromFile } from "@/api/settings";
@@ -83,8 +83,10 @@ export function DesignApp(): JSX.Element {
   // Window chrome, not per-tab state: see the note on Sidebar.
   const [navCollapsed, setNavCollapsed] = useState(session.navCollapsed ?? false);
 
-  const { unseen } = useUpdateCheck();
-  const { check: checkUpdate } = useUpdateCheckAction();
+  // The marker stays lit for as long as an update is pending: it is a state,
+  // not a notification, and it clears itself when the update is taken or
+  // skipped.
+  const { available: updateAvailable, check: checkUpdate } = useUpdater();
   const [alertsRead, setAlertsRead] = useState(false);
 
   // Applied to the document, not to this tree: every board is drawn in absolute
@@ -366,7 +368,7 @@ export function DesignApp(): JSX.Element {
           homeActive={atHome}
           splitActive={view.kind === "split"}
           dimmed={connections.length === 0}
-          updateReady={unseen}
+          updateReady={updateAvailable != null}
           onHome={() => goto({ kind: "connections" })}
           onSearch={() => setPaletteOpen(true)}
           onRefresh={() => void checkUpdate()}

@@ -11,7 +11,6 @@ import {
   Github,
   Info,
   MessageSquare,
-  RefreshCw,
   RotateCcw,
   Settings as SettingsIcon,
   Sun,
@@ -53,7 +52,8 @@ import {
 } from "@/api/settings";
 import { useSettings, type FetchLimit, type Language } from "@/hooks/useSettings";
 import { useUIPrefs } from "@/hooks/useUIPrefs";
-import { useUpdateCheck, useUpdateCheckAction } from "@/hooks/useUpdateCheck";
+import { UPDATE_POLICIES } from "@/api/updates";
+import { UpdateCard } from "./UpdateCard";
 import {
   availableFonts,
   monoFontStack,
@@ -544,14 +544,19 @@ function GeneralPanel() {
             />
           </SettingRow>
           <SettingRow
-            label={t("page.settings.general.autoCheckUpdate")}
-            hint={t("page.settings.general.autoCheckUpdateHint")}
+            label={t("page.settings.general.updatePolicy")}
+            hint={t("page.settings.general.updatePolicyHint")}
             last
           >
-            <Sw
-              checked={settings.autoCheckUpdate}
-              onCheckedChange={(next) => setSetting("autoCheckUpdate", next)}
-              label={t("page.settings.general.autoCheckUpdate")}
+            <Dropdown
+              /* "Download automatically, install on quit" outruns the drawn 200px. */
+              width={240}
+              value={settings.updatePolicy}
+              onChange={(next) => setSetting("updatePolicy", next)}
+              options={UPDATE_POLICIES.map((policy) => ({
+                value: policy,
+                label: t(`page.settings.general.updatePolicyOption.${policy}`),
+              }))}
             />
           </SettingRow>
         </Card>
@@ -1103,8 +1108,6 @@ export type DocId = "capability" | "reuse" | "nav";
 function AboutPanel({ onOpenDoc }: { onOpenDoc?: (doc: DocId) => void }) {
   const { t } = useTranslation();
   const { resetAllSettings } = useSettings();
-  const { markSeen } = useUpdateCheck();
-  const { check, checking } = useUpdateCheckAction();
   const toast = useToast();
   const confirm = useConfirm();
   const [version, setVersion] = useState<string | null>(null);
@@ -1122,10 +1125,6 @@ function AboutPanel({ onOpenDoc }: { onOpenDoc?: (doc: DocId) => void }) {
       cancelled = true;
     };
   }, []);
-
-  // This page is where the release the background check found is read, so the
-  // title bar's marker has been seen by the time it is open.
-  useEffect(() => markSeen(), [markSeen]);
 
   const reset = async () => {
     const confirmed = await confirm({
@@ -1174,10 +1173,6 @@ function AboutPanel({ onOpenDoc }: { onOpenDoc?: (doc: DocId) => void }) {
           </div>
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginTop: "16px" }}>
-          <Btn variant="primary" disabled={checking} onClick={() => void check()}>
-            <RefreshCw size={13} aria-hidden />
-            {checking ? t("page.settings.about.checking") : t("page.settings.about.checkUpdate")}
-          </Btn>
           <Btn onClick={() => openLink(GITHUB_URL)}>
             <Github size={13} aria-hidden />
             GitHub
@@ -1188,6 +1183,10 @@ function AboutPanel({ onOpenDoc }: { onOpenDoc?: (doc: DocId) => void }) {
           </Btn>
         </div>
       </Card>
+
+      <div style={{ marginTop: "14px" }}>
+        <UpdateCard />
+      </div>
 
       <Card style={{ marginTop: "14px" }}>
         <SettingRow label={t("page.settings.about.reset")} hint={t("page.settings.about.resetHint")} last>

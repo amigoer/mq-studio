@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/amigoer/mq-studio/internal/service/configuration"
-	"github.com/amigoer/mq-studio/internal/update"
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
@@ -22,7 +21,8 @@ var allowedExternalHosts = map[string]struct{}{
 }
 
 // SystemService exposes application-level operations that need the desktop
-// shell: version reporting, update checks, external links and file dialogs.
+// shell: version reporting, external links and file dialogs. The update
+// lifecycle is UpdateService's.
 type SystemService struct {
 	settings *configuration.Service
 	version  string
@@ -31,11 +31,6 @@ type SystemService struct {
 // Version returns the running application version.
 func (s *SystemService) Version() string {
 	return s.version
-}
-
-// CheckUpdate compares the running build against the latest GitHub release.
-func (s *SystemService) CheckUpdate() (update.Result, error) {
-	return update.CheckLatest(s.version, nil)
 }
 
 // DataDirectory reports where the app keeps its files. The settings page draws

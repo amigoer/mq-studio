@@ -77,7 +77,7 @@ internal/
   rocketmq/              RocketMQ client adapter
   crypto/                Local encryption helpers
   storage/               On-disk layout and atomic writes
-  update/                GitHub release update check
+  update/                In-app updater: check, download, verify, install
   macwindow/             Native macOS chrome Wails does not expose (cgo)
 frontend/
   bindings/              Generated TypeScript bindings (committed)

@@ -15,6 +15,7 @@ import {
 } from "@/api/settings";
 import type { AppSettings } from "@/api/settings";
 import { onSettingsChanged, windowControls } from "@/api/platform";
+import { isPolicy, Policy } from "@/api/updates";
 import { setLanguage as setI18nLanguage, type SupportedLanguage } from "@/i18n";
 import { monoFontStack, uiFontStack } from "@/lib/fonts";
 import { applyTheme, cacheTheme, resolveDark, type ThemeMode } from "@/lib/theme";
@@ -37,7 +38,8 @@ export interface FrontendSettings {
   uiFont: string;
   monospaceFont: string;
   autoConnectLast: boolean;
-  autoCheckUpdate: boolean;
+  /** How far updates go on their own; see api/updates. */
+  updatePolicy: Policy;
   closeBehavior: CloseBehavior;
   connectTimeoutMs: number;
   requestTimeoutMs: number;
@@ -67,7 +69,7 @@ const DEFAULTS: FrontendSettings = {
   uiFont: "system",
   monospaceFont: "JetBrains Mono",
   autoConnectLast: true,
-  autoCheckUpdate: true,
+  updatePolicy: Policy.PolicyNotify,
   closeBehavior: "minimizeToTray",
   connectTimeoutMs: 3000,
   requestTimeoutMs: 5000,
@@ -101,7 +103,7 @@ function toFrontend(s: AppSettings): FrontendSettings {
     uiFont: s.uiFont || DEFAULTS.uiFont,
     monospaceFont: s.monospaceFont || DEFAULTS.monospaceFont,
     autoConnectLast: s.autoConnectLast ?? DEFAULTS.autoConnectLast,
-    autoCheckUpdate: s.autoCheckUpdate ?? DEFAULTS.autoCheckUpdate,
+    updatePolicy: isPolicy(s.updatePolicy) ? s.updatePolicy : DEFAULTS.updatePolicy,
     closeBehavior: (s.closeBehavior as CloseBehavior) || DEFAULTS.closeBehavior,
     connectTimeoutMs: s.connectTimeoutMs || DEFAULTS.connectTimeoutMs,
     requestTimeoutMs: s.requestTimeoutMs || DEFAULTS.requestTimeoutMs,

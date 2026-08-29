@@ -11,6 +11,7 @@ import (
 	"github.com/amigoer/mq-studio/internal/crypto"
 	"github.com/amigoer/mq-studio/internal/model"
 	"github.com/amigoer/mq-studio/internal/storage/atomicfile"
+	"github.com/amigoer/mq-studio/internal/update"
 )
 
 func (s *Service) loadFromFile() error {
@@ -28,6 +29,7 @@ func (s *Service) loadFromFile() error {
 		return nil
 	}
 	migrateLegacyFontSize(raw)
+	migrateLegacyAutoCheckUpdate(raw)
 
 	fixedData, err := json.Marshal(raw)
 	if err != nil {
@@ -85,6 +87,27 @@ func migrateLegacyFontSize(raw map[string]json.RawMessage) {
 	}
 	raw["uiScale"], _ = json.Marshal(scale)
 	log.Printf("[SettingsService] converted legacy fontSize %s to uiScale %q", rawFontSize, scale)
+}
+
+// migrateLegacyAutoCheckUpdate folds the boolean earlier builds wrote into the
+// update policy ladder that replaced it. Off stays off; on becomes the notify
+// rung, which is what the boolean actually did.
+func migrateLegacyAutoCheckUpdate(raw map[string]json.RawMessage) {
+	rawAutoCheck, ok := raw["autoCheckUpdate"]
+	if !ok {
+		return
+	}
+	delete(raw, "autoCheckUpdate")
+	if _, alreadyMigrated := raw["updatePolicy"]; alreadyMigrated {
+		return
+	}
+	policy := update.PolicyNotify
+	var enabled bool
+	if json.Unmarshal(rawAutoCheck, &enabled) == nil && !enabled {
+		policy = update.PolicyOff
+	}
+	raw["updatePolicy"], _ = json.Marshal(string(policy))
+	log.Printf("[SettingsService] converted legacy autoCheckUpdate %s to updatePolicy %q", rawAutoCheck, policy)
 }
 
 func marshalForDisk(settings model.AppSettings) ([]byte, error) {

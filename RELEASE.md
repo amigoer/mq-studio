@@ -79,6 +79,27 @@ Before publishing:
 - install at least the macOS image by hand, on a machine that has not built it,
   downloading through a browser so the quarantine flag is really applied
 
+## What the in-app updater needs from a release
+
+The app updates itself from these artifacts, so the release is a contract, not
+just a set of downloads. `internal/update` computes the file it needs rather
+than being told, and refuses anything it cannot verify.
+
+- **The names must stay `mq-studio-<version>-<os>-<arch>.<ext>`.** This is
+  `PACKAGE_BASE` in `package.yml`, and `update.Target.PackageName` rebuilds it
+  from the running platform. `TestPackageNameMatchesTheReleaseWorkflow` pins
+  the two together; changing the scheme in the workflow without changing it
+  there leaves every installed copy looking for a file that is not attached.
+- **`SHA256SUMS.txt` must be attached.** A package whose name is absent from
+  it is refused rather than installed unverified, and so is a release that
+  publishes no list at all. The panel then offers the releases page instead.
+- **Draft and pre-release tags are invisible to it**, which is what makes the
+  draft step above safe: nothing reaches an installed copy until you publish.
+
+Releases before v0.1.4 predate both rules -- v0.1.3 ships `rocket-leaf-*` names
+and no checksum file -- which costs nothing, since an update is only ever
+fetched *forward*.
+
 ## Signing
 
 Nothing is code-signed yet. Both platforms are wired for it and skip when the

@@ -6,34 +6,351 @@
 import { Create as $Create } from "@wailsio/runtime";
 
 /**
- * Result is the outcome of an update check.
+ * Blocker says why the running build cannot install an update itself. The
+ * values are keys, not prose: the renderer translates them.
  */
-export class Result {
-    "status": Status;
-    "currentVersion": string;
-    "latestVersion": string;
+export enum Blocker {
+    /**
+     * The Go zero value for the underlying type of the enum.
+     */
+    $zero = "",
 
-    /** Creates a new Result instance. */
-    constructor($$source: Partial<Result> = {}) {
-        if (!("status" in $$source)) {
-            this["status"] = Status.$zero;
+    /**
+     * BlockerNone means the update can be applied in place.
+     */
+    BlockerNone = "",
+
+    /**
+     * BlockerPackageManager means apt/dnf owns the files and needs root.
+     */
+    BlockerPackageManager = "packageManager",
+
+    /**
+     * BlockerReadOnly means the install location is not writable by this user.
+     */
+    BlockerReadOnly = "readOnly",
+
+    /**
+     * BlockerNotPackaged means this is not an installed application.
+     */
+    BlockerNotPackaged = "notPackaged",
+
+    /**
+     * BlockerUnsupported means no release is built for this OS or architecture.
+     */
+    BlockerUnsupported = "unsupported",
+};
+
+/**
+ * FailedStep names which part of the last failure, so the renderer can offer
+ * the right way out -- retry a download, open the releases page for the rest.
+ */
+export enum FailedStep {
+    /**
+     * The Go zero value for the underlying type of the enum.
+     */
+    $zero = "",
+
+    StepNone = "",
+    StepCheck = "check",
+    StepDownload = "download",
+    StepInstall = "install",
+};
+
+/**
+ * Kind is how the running build was installed. It decides both the asset to
+ * fetch and the way it is applied.
+ */
+export enum Kind {
+    /**
+     * The Go zero value for the underlying type of the enum.
+     */
+    $zero = "",
+
+    /**
+     * KindAppBundle is a macOS .app, shipped inside a .dmg.
+     */
+    KindAppBundle = "appBundle",
+
+    /**
+     * KindInstaller is a Windows install, replaced by re-running the NSIS
+     * installer.
+     */
+    KindInstaller = "installer",
+
+    /**
+     * KindAppImage is a Linux single-file AppImage, replaced in place.
+     */
+    KindAppImage = "appImage",
+
+    /**
+     * KindManaged is a Linux .deb or .rpm install, owned by the package
+     * manager.
+     */
+    KindManaged = "managed",
+
+    /**
+     * KindUnknown is a bare binary or a `wails3 dev` run.
+     */
+    KindUnknown = "unknown",
+};
+
+/**
+ * Location is where the running build lives and what may be done to it.
+ */
+export class Location {
+    "kind": Kind;
+    "target": Target;
+
+    /**
+     * Root is what applying an update replaces: the .app bundle on macOS, the
+     * AppImage file on Linux, the installed executable on Windows. Empty when
+     * nothing can be replaced.
+     */
+    "root": string;
+
+    /**
+     * Blocker is why this build cannot install an update itself, "" when it can.
+     */
+    "blocker": Blocker;
+
+    /** Creates a new Location instance. */
+    constructor($$source: Partial<Location> = {}) {
+        if (!("kind" in $$source)) {
+            this["kind"] = Kind.$zero;
         }
-        if (!("currentVersion" in $$source)) {
-            this["currentVersion"] = "";
+        if (!("target" in $$source)) {
+            this["target"] = (new Target());
         }
-        if (!("latestVersion" in $$source)) {
-            this["latestVersion"] = "";
+        if (!("root" in $$source)) {
+            this["root"] = "";
+        }
+        if (!("blocker" in $$source)) {
+            this["blocker"] = Blocker.$zero;
         }
 
         Object.assign(this, $$source);
     }
 
     /**
-     * Creates a new Result instance from a string or object.
+     * Creates a new Location instance from a string or object.
      */
-    static createFrom($$source: any = {}): Result {
+    static createFrom($$source: any = {}): Location {
+        const $$createField1_0 = $$createType0;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-        return new Result($$parsedSource as Partial<Result>);
+        if ("target" in $$parsedSource) {
+            $$parsedSource["target"] = $$createField1_0($$parsedSource["target"]);
+        }
+        return new Location($$parsedSource as Partial<Location>);
+    }
+}
+
+/**
+ * Phase is what the updater is doing.
+ */
+export enum Phase {
+    /**
+     * The Go zero value for the underlying type of the enum.
+     */
+    $zero = "",
+
+    /**
+     * PhaseIdle means nothing newer is known of.
+     */
+    PhaseIdle = "idle",
+
+    /**
+     * PhaseChecking means a check is in flight.
+     */
+    PhaseChecking = "checking",
+
+    /**
+     * PhaseAvailable means a newer release exists and nothing is downloaded.
+     */
+    PhaseAvailable = "available",
+
+    /**
+     * PhaseDownloading means the package is being fetched.
+     */
+    PhaseDownloading = "downloading",
+
+    /**
+     * PhaseReady means a verified package is waiting to be installed.
+     */
+    PhaseReady = "ready",
+
+    /**
+     * PhaseInstalling means the package is being applied.
+     */
+    PhaseInstalling = "installing",
+
+    /**
+     * PhaseError means the last operation failed; Error says which and why.
+     */
+    PhaseError = "error",
+};
+
+/**
+ * Policy is how much the app may do without being asked.
+ */
+export enum Policy {
+    /**
+     * The Go zero value for the underlying type of the enum.
+     */
+    $zero = "",
+
+    /**
+     * PolicyOff never checks. A manual check still works.
+     */
+    PolicyOff = "off",
+
+    /**
+     * PolicyNotify checks and reports; downloading is the user's call.
+     */
+    PolicyNotify = "notify",
+
+    /**
+     * PolicyDownload fetches and verifies in the background, then waits to be
+     * told to install.
+     */
+    PolicyDownload = "download",
+
+    /**
+     * PolicyAuto also installs, at quit, so an update never interrupts a
+     * session it was not asked for.
+     */
+    PolicyAuto = "auto",
+};
+
+/**
+ * State is everything the renderer draws. It is a value: callers get a copy.
+ */
+export class State {
+    "phase": Phase;
+    "policy": Policy;
+
+    /**
+     * The build that is running.
+     */
+    "currentVersion": string;
+
+    /**
+     * True for a build with no release to compare against -- `wails3 dev`, or
+     * anything else that did not get a version at link time. The updater is
+     * inert, and the panel says so rather than claiming to be up to date.
+     */
+    "development": boolean;
+
+    /**
+     * The newest release, or "" when none is known or it is not newer.
+     */
+    "latestVersion": string;
+    "notes": string;
+
+    /**
+     * RFC3339, or "" when unknown.
+     */
+    "publishedAt": string;
+    "releaseURL": string;
+
+    /**
+     * Bytes fetched and expected. Total is -1 when the server sent no length.
+     */
+    "downloaded": number;
+    "total": number;
+
+    /**
+     * What the last check concluded. Empty until one has run: it is a fact
+     * about a check, not a phase, which is why it sits beside Phase rather
+     * than in it.
+     */
+    "outcome": Status;
+
+    /**
+     * RFC3339 of the last completed check, successful or not.
+     */
+    "checkedAt": string;
+
+    /**
+     * A release the user asked not to be told about again.
+     */
+    "skipped": string;
+
+    /**
+     * Where this build is installed and whether it can replace itself.
+     */
+    "location": Location;
+
+    /**
+     * Human-readable failure for PhaseError, and the step it happened in.
+     */
+    "error": string;
+    "failedStep": FailedStep;
+
+    /** Creates a new State instance. */
+    constructor($$source: Partial<State> = {}) {
+        if (!("phase" in $$source)) {
+            this["phase"] = Phase.$zero;
+        }
+        if (!("policy" in $$source)) {
+            this["policy"] = Policy.$zero;
+        }
+        if (!("currentVersion" in $$source)) {
+            this["currentVersion"] = "";
+        }
+        if (!("development" in $$source)) {
+            this["development"] = false;
+        }
+        if (!("latestVersion" in $$source)) {
+            this["latestVersion"] = "";
+        }
+        if (!("notes" in $$source)) {
+            this["notes"] = "";
+        }
+        if (!("publishedAt" in $$source)) {
+            this["publishedAt"] = "";
+        }
+        if (!("releaseURL" in $$source)) {
+            this["releaseURL"] = "";
+        }
+        if (!("downloaded" in $$source)) {
+            this["downloaded"] = 0;
+        }
+        if (!("total" in $$source)) {
+            this["total"] = 0;
+        }
+        if (!("outcome" in $$source)) {
+            this["outcome"] = Status.$zero;
+        }
+        if (!("checkedAt" in $$source)) {
+            this["checkedAt"] = "";
+        }
+        if (!("skipped" in $$source)) {
+            this["skipped"] = "";
+        }
+        if (!("location" in $$source)) {
+            this["location"] = (new Location());
+        }
+        if (!("error" in $$source)) {
+            this["error"] = "";
+        }
+        if (!("failedStep" in $$source)) {
+            this["failedStep"] = FailedStep.$zero;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new State instance from a string or object.
+     */
+    static createFrom($$source: any = {}): State {
+        const $$createField13_0 = $$createType1;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("location" in $$parsedSource) {
+            $$parsedSource["location"] = $$createField13_0($$parsedSource["location"]);
+        }
+        return new State($$parsedSource as Partial<State>);
     }
 }
 
@@ -61,3 +378,39 @@ export enum Status {
      */
     StatusAhead = "ahead",
 };
+
+/**
+ * Target names the release asset a build installs from.
+ */
+export class Target {
+    "os": string;
+    "arch": string;
+    "ext": string;
+
+    /** Creates a new Target instance. */
+    constructor($$source: Partial<Target> = {}) {
+        if (!("os" in $$source)) {
+            this["os"] = "";
+        }
+        if (!("arch" in $$source)) {
+            this["arch"] = "";
+        }
+        if (!("ext" in $$source)) {
+            this["ext"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new Target instance from a string or object.
+     */
+    static createFrom($$source: any = {}): Target {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new Target($$parsedSource as Partial<Target>);
+    }
+}
+
+// Private type creation functions
+const $$createType0 = Target.createFrom;
+const $$createType1 = Location.createFrom;

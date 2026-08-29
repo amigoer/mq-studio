@@ -8,17 +8,25 @@ package bridge
 
 import (
 	"github.com/amigoer/mq-studio/internal/app"
+	"github.com/amigoer/mq-studio/internal/update"
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
 // Services returns every bridge service in registration order.
 //
-// The shell service is passed in rather than built here: its consumer is the
-// system tray, which cannot exist until the application is running, so the
-// caller keeps the handle and registers the listener afterwards.
-func Services(services *app.Services, version string, shell *ShellService) []application.Service {
+// The shell service and the update manager are passed in rather than built
+// here. Both outlive a single call: the shell's consumer is the system tray,
+// which cannot exist until the application is running, and the updater keeps a
+// background schedule the caller has to be able to stop.
+func Services(
+	services *app.Services,
+	version string,
+	shell *ShellService,
+	updates *update.Manager,
+) []application.Service {
 	return []application.Service{
 		application.NewService(&SystemService{settings: services.Settings, version: version}),
+		application.NewService(NewUpdateService(updates)),
 		application.NewService(&WindowService{}),
 		application.NewService(shell),
 		application.NewService(&ConnectionService{service: services.Connections}),

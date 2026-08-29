@@ -66,7 +66,7 @@ describe.each(["zh", "en"] as const)("boards in %s", (lang) => {
     await useLanguage(lang);
     for (const { name, html } of everyBoard()) {
       // An unresolved key reaches the page as its own dotted name.
-      expect(html.match(/\b(board|shell|page|common)\.[a-zA-Z][\w.]*/g), name).toBeNull();
+      expect(html.match(/\b(board|shell|page|common|update)\.[a-zA-Z][\w.]*/g), name).toBeNull();
     }
   });
 });

@@ -4,7 +4,7 @@ import App from "./App";
 import { ConfirmProvider, Toaster } from "@/design/ui";
 import { ConnectionProfilesProvider } from "@/hooks/useConnectionProfiles";
 import { SettingsProvider } from "@/hooks/useSettings";
-import { UpdateCheckProvider } from "@/hooks/useUpdateCheck";
+import { UpdaterProvider } from "@/hooks/useUpdater";
 import { bootstrapUIPrefs } from "@/hooks/useUIPrefs";
 import { bootstrapUIScale } from "@/hooks/useUIScale";
 import "./index.css";
@@ -28,11 +28,11 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <ConfirmProvider>
       <SettingsProvider>
-        <UpdateCheckProvider>
+        <UpdaterProvider>
           <ConnectionProfilesProvider>
             <App />
           </ConnectionProfilesProvider>
-        </UpdateCheckProvider>
+        </UpdaterProvider>
       </SettingsProvider>
     </ConfirmProvider>
     <Toaster />

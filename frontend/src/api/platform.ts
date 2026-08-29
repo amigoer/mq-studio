@@ -8,9 +8,6 @@
 import { Events, System, Window } from "@wailsio/runtime";
 import { ShellService, SystemService, WindowService } from "@bindings/bridge";
 import type { ShellPage } from "@bindings/bridge/models";
-import type { Result as UpdateCheckResult } from "@bindings/update/models";
-
-export type { UpdateCheckResult };
 
 export const isMac = (): boolean => System.IsMac();
 
@@ -116,8 +113,6 @@ export const setTitleBarHeight = (height: number): Promise<void> =>
   WindowService.SetTitleBarHeight(height);
 
 export const appVersion = (): Promise<string> => SystemService.Version();
-export const checkUpdate = (): Promise<UpdateCheckResult> =>
-  SystemService.CheckUpdate();
 export const openExternal = (url: string): Promise<void> =>
   SystemService.OpenExternal(url);
 

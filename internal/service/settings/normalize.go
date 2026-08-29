@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/amigoer/mq-studio/internal/model"
+	"github.com/amigoer/mq-studio/internal/update"
 )
 
 func normalize(settings model.AppSettings) model.AppSettings {
@@ -16,6 +17,9 @@ func normalize(settings model.AppSettings) model.AppSettings {
 	}
 	if !model.ValidUIScale(settings.UIScale) {
 		settings.UIScale = defaults.UIScale
+	}
+	if !update.ValidPolicy(settings.UpdatePolicy) {
+		settings.UpdatePolicy = defaults.UpdatePolicy
 	}
 	if settings.CloseBehavior != model.CloseBehaviorMinimizeToTray &&
 		settings.CloseBehavior != model.CloseBehaviorQuit {
