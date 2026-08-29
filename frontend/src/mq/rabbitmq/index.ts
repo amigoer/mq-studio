@@ -1,21 +1,12 @@
 /**
  * The RabbitMQ module.
  *
- * It contributes the queue columns the canonical destinations page shows and
- * the one page that has no canonical counterpart at all.
+ * It contributes the queue columns the canonical destinations page shows. The
+ * one page with no canonical counterpart at all -- exchanges and bindings --
+ * is drawn in the design layer as a board and has no wired page to register
+ * yet, so the nav contribution comes back with it.
  */
 import { registerModule } from "../registry";
 import { MQKind } from "../types";
-import { RoutingPage } from "./RoutingPage";
 
-registerModule({
-  kind: MQKind.KindRabbitMQ,
-  nav: [
-    {
-      id: "rabbitmq-routing",
-      labelKey: "mq.rabbitmq.routing.title",
-      page: RoutingPage,
-      group: "browse",
-    },
-  ],
-});
+registerModule({ kind: MQKind.KindRabbitMQ });
