@@ -9,7 +9,12 @@ import {
   RotateCw,
   X,
 } from "lucide-react";
-import { Btn, Card, MeterRow, SectionLabel } from "@/design/ui";
+import { Button } from "@/components/ui/button";
+import {
+  MeterRow,
+  Panel,
+  SectionLabel,
+} from "@/components";
 import { Blocker, Phase, Policy, updateProgress } from "@/api/updates";
 import { useUpdater } from "@/hooks/useUpdater";
 import { useSettings } from "@/hooks/useSettings";
@@ -158,7 +163,7 @@ export function UpdateCard() {
   const checkedAt = formatDateTime(state.checkedAt, locale);
 
   return (
-    <Card style={{ padding: "16px 18px" }}>
+    <Panel style={{ padding: "16px 18px" }}>
       <SectionLabel style={{ marginBottom: "12px" }}>{t("update.section")}</SectionLabel>
       <div style={{ display: "flex", alignItems: "flex-start", gap: "12px", flexWrap: "wrap" }}>
         {renderHeadline()}
@@ -166,7 +171,7 @@ export function UpdateCard() {
       </div>
       {available != null && state.notes !== "" && <Notes notes={state.notes} />}
       {renderFooter()}
-    </Card>
+    </Panel>
   );
 
   function renderHeadline() {
@@ -250,62 +255,61 @@ export function UpdateCard() {
     if (state.phase === Phase.PhaseError) {
       return (
         <>
-          <Btn onClick={openReleases}>
+          <Button variant="outline" onClick={openReleases}>
             <ExternalLink size={13} aria-hidden />
             {t("page.settings.about.openReleases")}
-          </Btn>
-          <Btn
-            variant="primary"
+          </Button>
+          <Button
             disabled={busy}
             onClick={() => void (available != null && blocked == null ? download() : check())}
           >
             <RefreshCw size={13} aria-hidden />
             {t("update.retry")}
-          </Btn>
+          </Button>
         </>
       );
     }
     if (state.phase === Phase.PhaseDownloading) {
       return (
-        <Btn onClick={cancel}>
+        <Button variant="outline" onClick={cancel}>
           <X size={13} aria-hidden />
           {t("update.cancel")}
-        </Btn>
+        </Button>
       );
     }
     if (state.phase === Phase.PhaseReady) {
       return (
-        <Btn variant="primary" onClick={() => void install()}>
+        <Button onClick={() => void install()}>
           <RotateCw size={13} aria-hidden />
           {t("update.installNow")}
-        </Btn>
+        </Button>
       );
     }
     if (available != null) {
       return (
         <>
-          <Btn onClick={skip} disabled={busy}>
+          <Button variant="outline" onClick={skip} disabled={busy}>
             {t("update.skip")}
-          </Btn>
+          </Button>
           {blocked == null ? (
-            <Btn variant="primary" onClick={() => void download()} disabled={busy}>
+            <Button onClick={() => void download()} disabled={busy}>
               <Download size={13} aria-hidden />
               {t("update.download")}
-            </Btn>
+            </Button>
           ) : (
-            <Btn variant="primary" onClick={openReleases}>
+            <Button onClick={openReleases}>
               <ExternalLink size={13} aria-hidden />
               {t("page.settings.about.openReleases")}
-            </Btn>
+            </Button>
           )}
         </>
       );
     }
     return (
-      <Btn variant="primary" disabled={busy || state.development} onClick={() => void check()}>
+      <Button disabled={busy || state.development} onClick={() => void check()}>
         <RefreshCw size={13} aria-hidden />
         {busy ? t("page.settings.about.checking") : t("page.settings.about.checkUpdate")}
-      </Btn>
+      </Button>
     );
   }
 

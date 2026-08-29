@@ -24,20 +24,24 @@ import type { IconType } from "react-icons";
 import { Page } from "@/design/shell";
 import { AppLogo } from "@/design/icons/AppLogo";
 import { FlagIcon } from "@/design/icons/FlagIcon";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import {
-  Btn,
-  Card,
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+} from "@/components/ui/select";
+import {
   OutlineTag,
-  Field,
-  Menu,
-  MenuItem,
+  Panel,
   SectionLabel,
-  SelectField,
-  SettingRow,
-  Sw,
   useConfirm,
   useToast,
-} from "@/design/ui";
+} from "@/components";
+import { SettingRow } from "@/design/ui";
 import {
   appVersion,
   dataDirectory,
@@ -177,7 +181,7 @@ function MiniAppChrome({ p, half }: { p: Palette; half?: "left" | "right" }) {
           <div
             style={{ width: "14px", height: "3px", background: p.fg, opacity: 0.9, borderRadius: "1px" }}
           />
-          <span style={{ flex: 1 }} />
+          <span className="flex-1" />
           <div
             style={{ width: "6px", height: "3px", background: p.muted, opacity: 0.5, borderRadius: "1px" }}
           />
@@ -221,73 +225,56 @@ type Option<T> = {
   note?: string;
 };
 
-/** `.in3` as a real dropdown: the canvas draws every select as a bordered pill. */
+/** The settings dropdown: shadcn Select with a mark and an optional note. */
 function Dropdown<T extends string | number>({
   value,
   options,
   width = 200,
   onChange,
+  triggerLabel,
 }: {
   value: T;
   options: readonly Option<T>[];
   width?: number;
   onChange: (next: T) => void;
+  /** Overrides the trigger text where it differs from the option's label. */
+  triggerLabel?: ReactNode;
 }) {
-  const [open, setOpen] = useState(false);
   const current = options.find((o) => o.value === value);
   return (
-    <span style={{ position: "relative" }}>
-      <SelectField
-        value={
-          <span
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "7px",
-              minWidth: 0,
-              /* The caret keeps its place however long the label runs. */
-              flex: 1,
-              overflow: "hidden",
-            }}
-          >
-            {current?.mark}
-            <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              {current?.label ?? String(value)}
-            </span>
-          </span>
-        }
-        style={{ width: `${width}px`, justifyContent: "space-between" }}
-        onClick={() => setOpen((o) => !o)}
-      />
-      <Menu open={open} onClose={() => setOpen(false)} width={width} top={30}>
-        {options.map((o) => (
-          <MenuItem
-            key={String(o.value)}
-            active={o.value === value}
-            onSelect={() => {
-              onChange(o.value);
-              setOpen(false);
-            }}
-          >
-            {o.mark}
-            <span style={{ minWidth: 0, flex: 1 }}>
-              <span style={{ display: "block" }}>{o.label}</span>
-              {o.note != null && (
-                <span
-                  style={{
-                    display: "block",
-                    fontSize: "var(--set-meta)",
-                    color: "var(--c-muted)",
-                  }}
-                >
-                  {o.note}
+    <Select
+      value={String(value)}
+      onValueChange={(next) => {
+        const picked = options.find((o) => String(o.value) === next);
+        if (picked != null) onChange(picked.value);
+      }}
+    >
+      <SelectTrigger style={{ width: `${width}px` }} className="justify-between">
+        <span className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden">
+          {current?.mark}
+          <span className="truncate">{triggerLabel ?? current?.label ?? String(value)}</span>
+        </span>
+      </SelectTrigger>
+      <SelectContent style={{ minWidth: `${width}px` }}>
+        <SelectGroup>
+          {options.map((o) => (
+            <SelectItem key={String(o.value)} value={String(o.value)}>
+              <span className="flex min-w-0 items-center gap-1.5">
+                {o.mark}
+                <span className="min-w-0">
+                  <span className="block truncate">{o.label}</span>
+                  {o.note != null && (
+                    <span className="block text-(length:--set-meta) text-muted-foreground">
+                      {o.note}
+                    </span>
+                  )}
                 </span>
-              )}
-            </span>
-          </MenuItem>
-        ))}
-      </Menu>
-    </span>
+              </span>
+            </SelectItem>
+          ))}
+        </SelectGroup>
+      </SelectContent>
+    </Select>
   );
 }
 
@@ -309,7 +296,7 @@ function NumField({
 }) {
   return (
     <>
-      <Field
+      <Input
         type="number"
         value={value}
         style={{ width: `${width}px` }}
@@ -344,34 +331,24 @@ function FontSizeField({
   onChange: (next: UIScaleSetting) => void;
 }) {
   const { t } = useTranslation();
-  const [open, setOpen] = useState(false);
-  const choose = (next: UIScaleSetting) => {
-    onChange(next);
-    setOpen(false);
-  };
-
   return (
-    <span style={{ position: "relative" }}>
-      <SelectField
-        value={
-          setting === "auto"
-            ? t("page.settings.fonts.autoValue", { size: fontSize })
-            : `${fontSize}px`
-        }
-        style={{ width: "200px", justifyContent: "space-between" }}
-        onClick={() => setOpen((o) => !o)}
-      />
-      <Menu open={open} onClose={() => setOpen(false)} width={200} top={30}>
-        <MenuItem active={setting === "auto"} onSelect={() => choose("auto")}>
-          {t("page.settings.fonts.auto")}
-        </MenuItem>
-        {FONT_SIZES.map((size) => (
-          <MenuItem key={size} active={setting === size} onSelect={() => choose(size)}>
-            {size}px
-          </MenuItem>
-        ))}
-      </Menu>
-    </span>
+    <Dropdown
+      value={setting}
+      onChange={onChange}
+      width={200}
+      triggerLabel={
+        setting === "auto"
+          ? t("page.settings.fonts.autoValue", { size: fontSize })
+          : `${fontSize}px`
+      }
+      options={[
+        { value: "auto" as UIScaleSetting, label: t("page.settings.fonts.auto") },
+        ...FONT_SIZES.map((size) => ({
+          value: size as UIScaleSetting,
+          label: `${size}px`,
+        })),
+      ]}
+    />
   );
 }
 
@@ -479,19 +456,19 @@ function AppearancePanel() {
       </Group>
 
       <Group title={t("page.settings.appearance.motion")}>
-        <Card>
+        <Panel>
           <SettingRow
             label={t("page.settings.appearance.animations")}
             hint={t("page.settings.appearance.animationsHint")}
             last
           >
-            <Sw
+            <Switch
               checked={prefs.animations}
               onCheckedChange={setAnimations}
-              label={t("page.settings.appearance.animations")}
+             
             />
           </SettingRow>
-        </Card>
+        </Panel>
       </Group>
     </>
   );
@@ -506,7 +483,7 @@ function GeneralPanel() {
   return (
     <>
       <Group title={t("page.settings.general.region")} first>
-        <Card>
+        <Panel>
           <SettingRow label={t("page.settings.general.language")} hint={t("page.settings.general.languageHint")}>
             <Dropdown
               value={settings.language}
@@ -528,19 +505,18 @@ function GeneralPanel() {
               ]}
             />
           </SettingRow>
-        </Card>
+        </Panel>
       </Group>
 
       <Group title={t("page.settings.general.startup")}>
-        <Card>
+        <Panel>
           <SettingRow
             label={t("page.settings.general.autoConnect")}
             hint={t("page.settings.general.autoConnectHint")}
           >
-            <Sw
+            <Switch
               checked={settings.autoConnectLast}
               onCheckedChange={(next) => setSetting("autoConnectLast", next)}
-              label={t("page.settings.general.autoConnect")}
             />
           </SettingRow>
           <SettingRow
@@ -559,11 +535,11 @@ function GeneralPanel() {
               }))}
             />
           </SettingRow>
-        </Card>
+        </Panel>
       </Group>
 
       <Group title={t("page.settings.general.window")}>
-        <Card>
+        <Panel>
           <SettingRow
             label={t("page.settings.general.closeBehavior")}
             hint={t("page.settings.general.closeBehaviorHint")}
@@ -580,11 +556,11 @@ function GeneralPanel() {
               ]}
             />
           </SettingRow>
-        </Card>
+        </Panel>
       </Group>
 
       <Group title={t("page.settings.general.timeouts")}>
-        <Card>
+        <Panel>
           <SettingRow label={t("page.settings.general.connect")} hint={t("page.settings.general.connectHint")}>
             <NumField
               value={settings.connectTimeoutMs}
@@ -605,7 +581,7 @@ function GeneralPanel() {
               unit="ms"
             />
           </SettingRow>
-        </Card>
+        </Panel>
       </Group>
 
       <CredentialsGroup />
@@ -676,9 +652,9 @@ function CredentialsGroup() {
         </>
       }
     >
-      <Card>
+      <Panel>
         <SettingRow label={t("page.settings.general.accessKey")} hint={t("page.settings.general.accessKeyHint")}>
-          <Field
+          <Input
             className="mono3"
             style={{ width: "240px" }}
             value={accessKey}
@@ -687,7 +663,7 @@ function CredentialsGroup() {
           />
         </SettingRow>
         <SettingRow label={t("page.settings.general.secretKey")} hint={t("page.settings.general.secretKeyHint")}>
-          <Field
+          <Input
             type="password"
             className="mono3"
             style={{ width: "240px" }}
@@ -705,15 +681,15 @@ function CredentialsGroup() {
           }}
         >
           {configured && (
-            <Btn variant="danger" onClick={() => void clear()}>
+            <Button variant="destructive" onClick={() => void clear()}>
               {t("page.settings.general.clear")}
-            </Btn>
+            </Button>
           )}
-          <Btn variant="primary" disabled={!filled || saving} onClick={() => void save()}>
+          <Button disabled={!filled || saving} onClick={() => void save()}>
             {saving ? t("page.settings.general.saving") : t("page.settings.general.save")}
-          </Btn>
+          </Button>
         </div>
-      </Card>
+      </Panel>
     </Group>
   );
 }
@@ -761,7 +737,7 @@ function FontsPanel({
   return (
     <>
       <Group title={t("page.settings.fonts.typography")} first>
-        <Card>
+        <Panel>
           <SettingRow label={t("page.settings.fonts.size")} hint={t("page.settings.fonts.sizeHint")}>
             <FontSizeField
               setting={scale.setting}
@@ -789,11 +765,11 @@ function FontsPanel({
               ]}
             />
           </SettingRow>
-        </Card>
+        </Panel>
       </Group>
 
       <Group title={t("page.settings.fonts.time")}>
-        <Card>
+        <Panel>
           <SettingRow label={t("page.settings.fonts.timeFormat")} hint={t("page.settings.fonts.timeFormatHint")} last>
             <Dropdown
               value={settings.timestampFormat}
@@ -804,11 +780,11 @@ function FontsPanel({
               ]}
             />
           </SettingRow>
-        </Card>
+        </Panel>
       </Group>
 
       <Group title={t("page.settings.fonts.preview")}>
-        <Card style={{ padding: "14px 16px" }}>
+        <Panel style={{ padding: "14px 16px" }}>
           {/* Both faces at the size and family the window is actually set in,
               so what is read here is what the rest of the shell gets. */}
           <div
@@ -830,7 +806,7 @@ function FontsPanel({
           >
             msgId: AC1A0F23000078A4F0B8C1234E2F0001
           </div>
-        </Card>
+        </Panel>
       </Group>
     </>
   );
@@ -875,7 +851,7 @@ function MessagePanel() {
   return (
     <>
       <Group title={t("page.settings.message.defaults")} first>
-        <Card>
+        <Panel>
           <SettingRow label={t("page.settings.message.fetchLimit")} hint={t("page.settings.message.fetchLimitHint")}>
             <Dropdown
               width={140}
@@ -891,10 +867,9 @@ function MessagePanel() {
             label={t("page.settings.message.autoFormatJson")}
             hint={t("page.settings.message.autoFormatJsonHint")}
           >
-            <Sw
+            <Switch
               checked={settings.autoFormatJson}
               onCheckedChange={(next) => setSetting("autoFormatJson", next)}
-              label={t("page.settings.message.autoFormatJson")}
             />
           </SettingRow>
           <SettingRow label={t("page.settings.message.payload")} hint={t("page.settings.message.payloadHint")} last>
@@ -906,11 +881,11 @@ function MessagePanel() {
               unit="KB"
             />
           </SettingRow>
-        </Card>
+        </Panel>
       </Group>
 
       <Group title={t("page.settings.message.thresholds")}>
-        <Card>
+        <Panel>
           <SettingRow label={t("page.settings.message.lag")} hint={t("page.settings.message.lagHint")}>
             <NumField
               value={settings.lagAlertThreshold}
@@ -936,13 +911,12 @@ function MessagePanel() {
             hint={t("page.settings.message.notificationsHint")}
             last
           >
-            <Sw
+            <Switch
               checked={settings.desktopNotifications}
               onCheckedChange={(next) => void setDesktopNotifications(next)}
-              label={t("page.settings.message.notifications")}
             />
           </SettingRow>
-        </Card>
+        </Panel>
       </Group>
     </>
   );
@@ -1042,7 +1016,7 @@ function DataPanel() {
   return (
     <>
       <Group title={t("page.settings.data.location")} first>
-        <Card>
+        <Panel>
           <SettingRow
             label={
               <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
@@ -1057,47 +1031,47 @@ function DataPanel() {
             }
             last
           >
-            <Btn disabled={directory === ""} onClick={copy}>
+            <Button variant="outline" disabled={directory === ""} onClick={copy}>
               <Copy size={13} aria-hidden />
               {copied ? t("page.settings.data.copied") : t("page.settings.data.copyPath")}
-            </Btn>
-            <Btn disabled={directory === ""} onClick={() => void reveal()}>
+            </Button>
+            <Button variant="outline" disabled={directory === ""} onClick={() => void reveal()}>
               <FolderOpen size={13} aria-hidden />
               {t("page.settings.data.openDirectory")}
-            </Btn>
+            </Button>
           </SettingRow>
-        </Card>
+        </Panel>
       </Group>
 
       <Group title={t("page.settings.data.transfer")}>
-        <Card>
+        <Panel>
           <SettingRow
             label={t("page.settings.data.export")}
             hint={t("page.settings.data.exportHint")}
           >
-            <Btn onClick={() => void exportConfig()}>
+            <Button variant="outline" onClick={() => void exportConfig()}>
               <Download size={13} aria-hidden />
               {t("page.settings.data.exportAction")}
-            </Btn>
+            </Button>
           </SettingRow>
           <SettingRow label={t("page.settings.data.import")} hint={t("page.settings.data.importHint")} last>
-            <Btn onClick={() => void importConfig()}>
+            <Button variant="outline" onClick={() => void importConfig()}>
               <Upload size={13} aria-hidden />
               {t("page.settings.data.importAction")}
-            </Btn>
+            </Button>
           </SettingRow>
-        </Card>
+        </Panel>
       </Group>
 
       <Group title={t("page.settings.data.cleanup")}>
-        <Card>
+        <Panel>
           <SettingRow label={t("page.settings.data.clearCache")} hint={t("page.settings.data.clearCacheHint")} last>
-            <Btn variant="danger" onClick={() => void clear()}>
+            <Button variant="destructive" onClick={() => void clear()}>
               <Trash2 size={13} aria-hidden />
               {t("page.settings.data.clearCache")}
-            </Btn>
+            </Button>
           </SettingRow>
-        </Card>
+        </Panel>
       </Group>
     </>
   );
@@ -1144,7 +1118,7 @@ function AboutPanel({ onOpenDoc }: { onOpenDoc?: (doc: DocId) => void }) {
 
   return (
     <>
-      <Card style={{ padding: "18px" }}>
+      <Panel style={{ padding: "18px" }}>
         <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
           <AppLogo width={40} height={28} />
           <div style={{ minWidth: 0, flex: 1 }}>
@@ -1173,29 +1147,29 @@ function AboutPanel({ onOpenDoc }: { onOpenDoc?: (doc: DocId) => void }) {
           </div>
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginTop: "16px" }}>
-          <Btn onClick={() => openLink(GITHUB_URL)}>
+          <Button variant="outline" onClick={() => openLink(GITHUB_URL)}>
             <Github size={13} aria-hidden />
             GitHub
-          </Btn>
-          <Btn onClick={() => openLink(GITHUB_ISSUES_URL)}>
+          </Button>
+          <Button variant="outline" onClick={() => openLink(GITHUB_ISSUES_URL)}>
             <ExternalLink size={13} aria-hidden />
             {t("page.settings.about.issue")}
-          </Btn>
+          </Button>
         </div>
-      </Card>
+      </Panel>
 
       <div style={{ marginTop: "14px" }}>
         <UpdateCard />
       </div>
 
-      <Card style={{ marginTop: "14px" }}>
+      <Panel style={{ marginTop: "14px" }}>
         <SettingRow label={t("page.settings.about.reset")} hint={t("page.settings.about.resetHint")} last>
-          <Btn variant="danger" onClick={() => void reset()}>
+          <Button variant="destructive" onClick={() => void reset()}>
             <RotateCcw size={13} aria-hidden />
             {t("page.settings.about.resetAction")}
-          </Btn>
+          </Button>
         </SettingRow>
-      </Card>
+      </Panel>
 
       {/*
        * Boards 3h / 4d / 5c are specification pages with no entry point drawn in
@@ -1203,17 +1177,17 @@ function AboutPanel({ onOpenDoc }: { onOpenDoc?: (doc: DocId) => void }) {
        * page carries.
        */}
       <Group title={t("page.settings.about.reference")}>
-        <Card>
+        <Panel>
           <SettingRow
             label={t("page.settings.about.referenceLabel")}
             hint={t("page.settings.about.referenceHint")}
             last
           >
-            <Btn onClick={() => onOpenDoc?.("capability")}>{t("page.settings.about.capability")}</Btn>
-            <Btn onClick={() => onOpenDoc?.("reuse")}>{t("page.settings.about.reuse")}</Btn>
-            <Btn onClick={() => onOpenDoc?.("nav")}>{t("page.settings.about.navModel")}</Btn>
+            <Button variant="outline" onClick={() => onOpenDoc?.("capability")}>{t("page.settings.about.capability")}</Button>
+            <Button variant="outline" onClick={() => onOpenDoc?.("reuse")}>{t("page.settings.about.reuse")}</Button>
+            <Button variant="outline" onClick={() => onOpenDoc?.("nav")}>{t("page.settings.about.navModel")}</Button>
           </SettingRow>
-        </Card>
+        </Panel>
       </Group>
     </>
   );
@@ -1254,12 +1228,12 @@ export function Settings({
     /* `set3` is the page's own type scale; see the block in tokens.css. */
     <Page className="set3">
       <div className="hd3" style={{ alignItems: "center" }}>
-        <Btn style={{ padding: "4.5px 9px" }} onClick={onBack}>
+        <Button variant="outline" style={{ padding: "4.5px 9px" }} onClick={onBack}>
           <ChevronLeft size={13} aria-hidden />
           {t("page.settings.back")}
-        </Btn>
+        </Button>
         <h2>{t("page.settings.title")}</h2>
-        <span style={{ flex: 1 }} />
+        <span className="flex-1" />
       </div>
 
       <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
@@ -1305,7 +1279,7 @@ export function Settings({
                   {t(`page.settings.section.${current.id}Sub`)}
                 </div>
               </div>
-              <span style={{ flex: 1 }} />
+              <span className="flex-1" />
               <span style={{ fontSize: "var(--set-meta)", color: "var(--c-muted)", flex: "none" }}>
                 {t("page.settings.autoSaved")}
               </span>
