@@ -1,108 +1,65 @@
-import type { ProtocolId } from "./protocols";
+import type { Connection as ConnectionProfile } from "@/api/models";
+import { MQKind } from "@/api/connection";
+import { PROTOCOLS, type ProtocolId } from "./protocols";
 
-/** The six sample connections drawn in board 8a, in list order. */
+/**
+ * A stored connection profile as the shell draws it.
+ *
+ * The canvas drew six sample rows; these are the real ones, mapped from what
+ * Go keeps in connections.json. Two fields the canvas drew have no source yet:
+ * `latency` needs a live connection, and the status is whatever the last
+ * connection attempt left behind rather than a current probe.
+ */
 export type ConnectionStatus = "online" | "offline" | "failed";
 
 export type Connection = {
+  /** The profile id as a string: the shell keys tabs and sessions by it. */
   key: string;
+  id: number;
   name: string;
-  protocol: ProtocolId;
-  /** Protocol label as printed in the 8a "协议" column. */
+  /** null for a broker family the design has no boards for. */
+  protocol: ProtocolId | null;
   protocolLabel: string;
   address: string;
   env: string;
   status: ConnectionStatus;
   latency?: string;
   lastUsed: string;
-  isDefault?: boolean;
-  /** Subtitle fragment used by each page's `hd3` header. */
-  subtitle: string;
+  isDefault: boolean;
+  remark: string;
 };
 
-export const CONNECTIONS: Connection[] = [
-  {
-    key: "rocketmq-order",
-    name: "rocketmq-order",
-    protocol: "rocketmq",
-    protocolLabel: "RocketMQ 5.x",
-    address: "10.12.3.44:9876 +1",
-    env: "生产",
-    status: "online",
-    latency: "12ms",
-    lastUsed: "刚刚",
-    isDefault: true,
-    subtitle: "rocketmq-order · RocketMQ 5.1.4 · NameServer 10.12.3.44:9876",
-  },
-  {
-    key: "prod-kafka-cn",
-    name: "prod-kafka-cn",
-    protocol: "kafka",
-    protocolLabel: "Kafka",
-    address: "kafka-1:9092 +2 · SASL_SSL",
-    env: "生产",
-    status: "online",
-    latency: "8ms",
-    lastUsed: "5 分钟前",
-    subtitle: "prod-kafka-cn · Kafka 3.7 · Controller kafka-1 · 自动刷新 10s",
-  },
-  {
-    key: "rabbit-staging",
-    name: "rabbit-staging",
-    protocol: "rabbitmq",
-    protocolLabel: "RabbitMQ",
-    address: "rabbit.stg:5672 · /order",
-    env: "测试",
-    status: "online",
-    latency: "24ms",
-    lastUsed: "昨天",
-    subtitle: "rabbit-staging · RabbitMQ 3.13 · vhost /order · 管理 API 已连接",
-  },
-  {
-    key: "pulsar-eu",
-    name: "pulsar-eu",
-    protocol: "pulsar",
-    protocolLabel: "Pulsar",
-    address: "pulsar://pulsar-eu:6650 · ecommerce/orders",
-    env: "生产",
-    status: "offline",
-    lastUsed: "3 天前",
-    subtitle: "pulsar-eu · Pulsar 3.2 · ecommerce / orders",
-  },
-  {
-    key: "redis-stream-01",
-    name: "redis-stream-01",
-    protocol: "redis",
-    protocolLabel: "Redis Stream",
-    address: "redis://10.2.0.8:6379/0",
-    env: "生产",
-    status: "failed",
-    lastUsed: "1 周前",
-    subtitle: "redis-stream-01 · Redis 7.2 · db0 · 单机",
-  },
-  {
-    key: "iot-broker",
-    name: "iot-broker",
-    protocol: "mqtt",
-    protocolLabel: "MQTT 5.0",
-    address: "mqtts://iot.example.com:8883",
-    env: "生产",
-    status: "online",
-    latency: "31ms",
-    lastUsed: "今天",
-    subtitle: "iot-broker · MQTT 5.0 · mqtts://iot.example.com:8883",
-  },
-];
+/**
+ * The families the design draws boards for. A profile of any other kind is
+ * still listed and still editable -- it just has no page to open.
+ */
+const PROTOCOL_BY_KIND: Partial<Record<MQKind, ProtocolId>> = {
+  [MQKind.KindRocketMQ]: "rocketmq",
+  [MQKind.KindKafka]: "kafka",
+  [MQKind.KindRabbitMQ]: "rabbitmq",
+  [MQKind.KindPulsar]: "pulsar",
+  [MQKind.KindRedisStream]: "redis",
+  [MQKind.KindMQTT]: "mqtt",
+};
 
-export function connectionOf(key: string): Connection {
-  const found = CONNECTIONS.find((c) => c.key === key);
-  if (!found) throw new Error(`unknown connection: ${key}`);
-  return found;
+export function protocolOfKind(kind: MQKind): ProtocolId | null {
+  return PROTOCOL_BY_KIND[kind] ?? null;
 }
 
-/** Tabs open on first paint — the four drawn in every screen board. */
-export const DEFAULT_OPEN_TABS = [
-  "rocketmq-order",
-  "prod-kafka-cn",
-  "rabbit-staging",
-  "iot-broker",
-];
+export function toShellConnection(profile: ConnectionProfile): Connection {
+  const protocol = protocolOfKind(profile.kind);
+  return {
+    key: String(profile.id),
+    id: profile.id,
+    name: profile.name,
+    protocol,
+    // A family with no board still names itself; the raw kind is all there is.
+    protocolLabel: protocol != null ? PROTOCOLS[protocol].name : profile.kind,
+    address: profile.endpoints,
+    env: profile.group,
+    status: profile.status === "online" ? "online" : "offline",
+    lastUsed: profile.lastCheck,
+    isDefault: profile.isDefault,
+    remark: profile.remark,
+  };
+}

@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
 import { ConfirmProvider, ToastProvider } from "@/design/ui";
+import { ConnectionProfilesProvider } from "@/hooks/useConnectionProfiles";
 import { SettingsProvider } from "@/hooks/useSettings";
 import { UpdateCheckProvider } from "@/hooks/useUpdateCheck";
 import { bootstrapUIPrefs } from "@/hooks/useUIPrefs";
@@ -27,7 +28,9 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
       <ConfirmProvider>
         <SettingsProvider>
           <UpdateCheckProvider>
-            <App />
+            <ConnectionProfilesProvider>
+              <App />
+            </ConnectionProfilesProvider>
           </UpdateCheckProvider>
         </SettingsProvider>
       </ConfirmProvider>

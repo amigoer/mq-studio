@@ -1279,7 +1279,15 @@
           "advanced": "Last will (LWT): topic · payload · QoS · retain",
           "note": "TLS: CA / client certificate · skip verification"
         }
-      }
+      },
+      "deleteTitle": "Delete connection",
+      "deleteDesc": "This deletes “{{name}}” and the credentials stored with it, and cannot be undone.",
+      "deleteAction": "Delete",
+      "deleted": "Deleted “{{name}}”",
+      "deleteFailed": "Could not delete the connection",
+      "defaultSet": "“{{name}}” is now the default connection",
+      "defaultFailed": "Could not set the default connection",
+      "noBoard": "No pages for this family yet"
     },
     "settings": {
       "title": "Settings",

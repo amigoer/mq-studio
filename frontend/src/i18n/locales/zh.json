@@ -1279,7 +1279,15 @@
           "advanced": "遗嘱消息（LWT）：Topic · Payload · QoS · Retain",
           "note": "TLS：CA / 客户端证书 · 跳过验证"
         }
-      }
+      },
+      "deleteTitle": "删除连接",
+      "deleteDesc": "将删除连接「{{name}}」及其保存的凭证，且无法撤销。",
+      "deleteAction": "删除",
+      "deleted": "已删除连接「{{name}}」",
+      "deleteFailed": "删除连接失败",
+      "defaultSet": "「{{name}}」已设为默认连接",
+      "defaultFailed": "设置默认连接失败",
+      "noBoard": "暂无对应页面"
     },
     "settings": {
       "title": "设置",

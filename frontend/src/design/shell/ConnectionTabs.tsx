@@ -2,7 +2,7 @@ import { useEffect, useRef, type CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
 import { Columns2, Plus, X } from "lucide-react";
 import { ProtocolIcon } from "@/design/icons/ProtocolIcon";
-import { connectionOf, type ConnectionStatus } from "@/design/data/connections";
+import type { Connection, ConnectionStatus } from "@/design/data/connections";
 
 /**
  * The canvas paints every tab dot green. Now that the dot rides on the protocol
@@ -58,6 +58,7 @@ const IDLE: CSSProperties = {
  */
 export function ConnectionTabs({
   tabs,
+  connections,
   active,
   compare,
   onSelect,
@@ -66,6 +67,8 @@ export function ConnectionTabs({
   onSplit,
 }: {
   tabs: readonly string[];
+  /** The profiles behind them; a tab whose profile is gone is not drawn. */
+  connections: readonly Connection[];
   /** null while a global view (connections / settings) is showing. */
   active: string | null;
   /** 5b: split mode replaces the active tab with a single compare tab. */
@@ -102,7 +105,8 @@ export function ConnectionTabs({
   return (
     <div className="mqs-tabstrip" role="tablist" ref={stripRef}>
       {tabs.map((key) => {
-        const conn = connectionOf(key);
+        const conn = connections.find((c) => c.key === key);
+        if (conn == null) return null;
         const on = compare == null && key === active;
         return (
           <div
@@ -122,7 +126,7 @@ export function ConnectionTabs({
             }}
           >
             <span className="mqs-tab-mark">
-              <ProtocolIcon protocol={conn.protocol} />
+              {conn.protocol != null && <ProtocolIcon protocol={conn.protocol} />}
               <span
                 className="mqs-tab-dot"
                 style={{ background: STATUS_COLOR[conn.status] }}

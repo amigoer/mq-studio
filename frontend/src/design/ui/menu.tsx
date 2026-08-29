@@ -5,11 +5,13 @@ export function MenuItem({
   children,
   danger,
   active,
+  disabled,
   onSelect,
 }: {
   children: ReactNode;
   danger?: boolean;
   active?: boolean;
+  disabled?: boolean;
   onSelect?: () => void;
 }) {
   return (
@@ -17,6 +19,7 @@ export function MenuItem({
       type="button"
       role="menuitem"
       className="mqs-menuitem"
+      disabled={disabled}
       onClick={onSelect}
       style={{
         font: "inherit",
@@ -30,7 +33,11 @@ export function MenuItem({
         textAlign: "left",
         border: "none",
         background: active ? "var(--c-fill)" : "transparent",
-        color: danger ? "var(--c-err)" : "var(--c-fg-2)",
+        color: disabled === true
+          ? "var(--c-disabled)"
+          : danger === true
+            ? "var(--c-err)"
+            : "var(--c-fg-2)",
       }}
     >
       {children}

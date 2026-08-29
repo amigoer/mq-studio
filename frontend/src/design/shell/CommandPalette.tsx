@@ -62,6 +62,9 @@ export function CommandPalette({
 
     const out: Hit[] = [];
     for (const connection of connections) {
+      // The row's action is to open a tab, which a family with no boards has
+      // nothing to open; it stays findable on the connection list.
+      if (connection.protocol == null) continue;
       if (!matches(connection.name, connection.address, connection.protocolLabel)) continue;
       out.push({
         key: `connection:${connection.key}`,

@@ -9,12 +9,15 @@ import {
   TabStatusBar,
   TitleBar,
 } from "@/design/shell";
-import { CONNECTIONS, DEFAULT_OPEN_TABS, type Connection } from "@/design/data/connections";
+import type { Connection } from "@/design/data/connections";
 import { pagesOf, type PageId } from "@/design/data/protocols";
 import { renderBoard } from "@/design/registry";
 import { openExternal } from "@/api/platform";
 import { useUIScale } from "@/hooks/useUIScale";
 import { useUpdateCheck, useUpdateCheckAction } from "@/hooks/useUpdateCheck";
+import { useConnectionProfiles } from "@/hooks/useConnectionProfiles";
+import { useConfirm, useToast } from "@/design/ui";
+import { exportAllConfigToFile, importAllConfigFromFile } from "@/api/settings";
 import { readSession, writeSession } from "@/design/data/session";
 import { UNREAD_ALERTS } from "@/design/shell/NotificationCenter";
 import { ConnectionsList } from "@/design/boards/connections/ConnectionsList";
@@ -57,20 +60,19 @@ const openGithub = () => void openExternal(GITHUB_URL).catch(() => {});
  */
 export function DesignApp(): JSX.Element {
   const { t } = useTranslation();
-  const [connections, setConnections] = useState<readonly Connection[]>(CONNECTIONS);
+  const { connections, loading: connectionsLoading, reload, remove, makeDefault } =
+    useConnectionProfiles();
+  const toast = useToast();
+  const confirm = useConfirm();
   // Read once: the stored session is the window's opening state, and reading it
-  // again on a later render would fight whatever the user has done since.
-  const [session] = useState(() => readSession(CONNECTIONS.map((c) => c.key)));
-  const [openTabs, setOpenTabs] = useState<string[]>(session.openTabs ?? DEFAULT_OPEN_TABS);
-  const [activeTab, setActiveTab] = useState<string | null>(
-    session.activeTab ?? session.openTabs?.[0] ?? DEFAULT_OPEN_TABS[0] ?? null,
-  );
+  // again on a later render would fight whatever the user has done since. It is
+  // filtered against the profiles below, once they have loaded.
+  const [session] = useState(() => readSession([]));
+  const [openTabs, setOpenTabs] = useState<string[]>([]);
+  const [activeTab, setActiveTab] = useState<string | null>(null);
   const [pageByTab, setPageByTab] = useState<Record<string, PageId>>(session.pageByTab ?? {});
-  // Reopening on the connection list would restore the tabs and then hide
-  // them; a session that names a tab is one the window was last showing.
-  const [view, setView] = useState<View>(
-    session.activeTab != null ? { kind: "tab" } : { kind: "connections" },
-  );
+  const [restored, setRestored] = useState(false);
+  const [view, setView] = useState<View>({ kind: "connections" });
   const [previousView, setPreviousView] = useState<View>({ kind: "tab" });
 
   // Window chrome, not per-tab state: see the note on Sidebar.
@@ -89,9 +91,30 @@ export function DesignApp(): JSX.Element {
   const [paletteQuery, setPaletteQuery] = useState("");
   const [notificationsOpen, setNotificationsOpen] = useState(false);
 
+  /*
+   * The session names profiles, so it can only be restored once they have
+   * loaded: a tab whose profile is gone must not reopen. Reopening on the
+   * connection list would restore the tabs and then hide them, so a session
+   * that names a tab reopens on it.
+   */
   useEffect(() => {
+    if (connectionsLoading || restored) return;
+    setRestored(true);
+    const known = connections.map((c) => c.key);
+    const tabs = (session.openTabs ?? []).filter((key) => known.includes(key));
+    if (tabs.length === 0) return;
+    const active = session.activeTab != null && tabs.includes(session.activeTab)
+      ? session.activeTab
+      : tabs[0]!;
+    setOpenTabs(tabs);
+    setActiveTab(active);
+    setView({ kind: "tab" });
+  }, [connections, connectionsLoading, restored, session]);
+
+  useEffect(() => {
+    if (!restored) return;
     writeSession({ openTabs, activeTab, pageByTab, navCollapsed });
-  }, [activeTab, navCollapsed, openTabs, pageByTab]);
+  }, [activeTab, navCollapsed, openTabs, pageByTab, restored]);
 
   const connection = connections.find((c) => c.key === activeTab) ?? null;
   const protocol = connection?.protocol ?? null;
@@ -139,10 +162,59 @@ export function DesignApp(): JSX.Element {
     });
   };
 
-  const deleteConnection = (key: string) => {
-    setConnections((list) => list.filter((c) => c.key !== key));
-    setOpenTabs((tabs) => tabs.filter((t) => t !== key));
-    setActiveTab((current) => (current === key ? null : current));
+  const deleteConnection = async (connection: Connection) => {
+    const confirmed = await confirm({
+      title: t("page.connections.deleteTitle"),
+      description: t("page.connections.deleteDesc", { name: connection.name }),
+      confirmLabel: t("page.connections.deleteAction"),
+      danger: true,
+    });
+    if (!confirmed) return;
+    try {
+      await remove(connection.id);
+      setOpenTabs((tabs) => tabs.filter((t) => t !== connection.key));
+      setActiveTab((current) => (current === connection.key ? null : current));
+      toast.success(t("page.connections.deleted", { name: connection.name }));
+    } catch (error) {
+      toast.error(t("page.connections.deleteFailed"), { description: String(error) });
+    }
+  };
+
+  const promoteConnection = async (connection: Connection) => {
+    try {
+      await makeDefault(connection.id);
+      toast.success(t("page.connections.defaultSet", { name: connection.name }));
+    } catch (error) {
+      toast.error(t("page.connections.defaultFailed"), { description: String(error) });
+    }
+  };
+
+  const exportConfig = async () => {
+    try {
+      const path = await exportAllConfigToFile();
+      if (path == null) return;
+      toast.success(t("page.settings.data.exported"), { description: path });
+    } catch (error) {
+      toast.error(t("page.settings.data.exportFailed"), { description: String(error) });
+    }
+  };
+
+  const importConfig = async () => {
+    const confirmed = await confirm({
+      title: t("page.settings.data.import"),
+      description: t("page.settings.data.importDesc"),
+      confirmLabel: t("page.settings.data.importConfirm"),
+      danger: true,
+    });
+    if (!confirmed) return;
+    try {
+      const path = await importAllConfigFromFile();
+      if (path == null) return;
+      await reload();
+      toast.success(t("page.settings.data.imported"), { description: path });
+    } catch (error) {
+      toast.error(t("page.settings.data.importFailed"), { description: String(error) });
+    }
   };
 
   const selectPage = (next: PageId) => {
@@ -176,7 +248,10 @@ export function DesignApp(): JSX.Element {
             connections={connections}
             onNewConnection={() => setDialogOpen(true)}
             onOpenTab={openTab}
-            onDelete={deleteConnection}
+            onDelete={(connection) => void deleteConnection(connection)}
+            onSetDefault={(connection) => void promoteConnection(connection)}
+            onImport={() => void importConfig()}
+            onExport={() => void exportConfig()}
           />
         );
       case "settings":
@@ -204,7 +279,10 @@ export function DesignApp(): JSX.Element {
               connections={connections}
               onNewConnection={() => setDialogOpen(true)}
               onOpenTab={openTab}
-              onDelete={deleteConnection}
+              onDelete={(connection) => void deleteConnection(connection)}
+              onSetDefault={(connection) => void promoteConnection(connection)}
+              onImport={() => void importConfig()}
+              onExport={() => void exportConfig()}
             />
           );
         }
@@ -240,6 +318,7 @@ export function DesignApp(): JSX.Element {
           tabs={
             <ConnectionTabs
               tabs={openTabs}
+              connections={connections}
               /*
                * 3a / 3g keep the connection tab highlighted behind a global
                * view; the home page is the one that does not, because it is

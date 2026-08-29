@@ -19,7 +19,7 @@ import {
   TR,
 } from "@/design/ui";
 import { ProtocolIcon } from "@/design/icons/ProtocolIcon";
-import { CONNECTIONS, type Connection } from "@/design/data/connections";
+import type { Connection } from "@/design/data/connections";
 import { PROTOCOL_ORDER, type ProtocolId } from "@/design/data/protocols";
 
 /**
@@ -27,15 +27,21 @@ import { PROTOCOL_ORDER, type ProtocolId } from "@/design/data/protocols";
  * menu carries the low-frequency operations so the row stays scannable.
  */
 export function ConnectionsList({
-  connections = CONNECTIONS,
+  connections,
   onNewConnection,
   onOpenTab,
   onDelete,
+  onSetDefault,
+  onImport,
+  onExport,
 }: {
-  connections?: readonly Connection[];
+  connections: readonly Connection[];
   onNewConnection?: () => void;
   onOpenTab?: (key: string) => void;
-  onDelete?: (key: string) => void;
+  onDelete?: (connection: Connection) => void;
+  onSetDefault?: (connection: Connection) => void;
+  onImport?: () => void;
+  onExport?: () => void;
 }) {
   const { t } = useTranslation();
   const [filter, setFilter] = useState<ProtocolId | "all">("all");
@@ -58,8 +64,8 @@ export function ConnectionsList({
         subtitle={t("page.connections.subtitle")}
         actions={
           <>
-            <Btn>{t("page.connections.import")}</Btn>
-            <Btn>{t("page.connections.export")}</Btn>
+            <Btn onClick={onImport}>{t("page.connections.import")}</Btn>
+            <Btn onClick={onExport}>{t("page.connections.export")}</Btn>
             <Btn variant="primary" onClick={onNewConnection}>
               {t("page.connections.new")}
             </Btn>
@@ -105,7 +111,7 @@ export function ConnectionsList({
           </THead>
           <TBody>
             {rows.map((c) => (
-              <TR key={c.key} onDoubleClick={() => onOpenTab?.(c.key)}>
+              <TR key={c.key} onDoubleClick={() => c.protocol != null && onOpenTab?.(c.key)}>
                 <TD>
                   {/* Name and star ride one line: the column is sized by content. */}
                   <span style={{ display: "inline-flex", alignItems: "center", gap: "5px" }}>
@@ -117,7 +123,7 @@ export function ConnectionsList({
                 </TD>
                 <TD>
                   <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                    <ProtocolIcon protocol={c.protocol} />
+                    {c.protocol != null && <ProtocolIcon protocol={c.protocol} />}
                     {c.protocolLabel}
                   </span>
                 </TD>
@@ -127,7 +133,8 @@ export function ConnectionsList({
                   {c.address}
                 </TD>
                 <TD>
-                  <EnvTag>{c.env}</EnvTag>
+                  {/* A profile with no group has no tag rather than an empty one. */}
+                  {c.env !== "" && <EnvTag>{c.env}</EnvTag>}
                 </TD>
                 <TD>
                   <StatusCell connection={c} />
@@ -139,7 +146,7 @@ export function ConnectionsList({
                     className="mqs-rowactions"
                     style={{ position: "relative", display: "inline-flex", gap: "6px" }}
                   >
-                    <RowActions connection={c} onOpenTab={onOpenTab} />
+                    <RowActions connection={c} onOpenTab={c.protocol != null ? onOpenTab : undefined} />
                     <Btn
                       size="rowIcon"
                       variant={menuFor === c.key ? "primary" : "default"}
@@ -149,20 +156,22 @@ export function ConnectionsList({
                       <Ellipsis size={13} aria-hidden />
                     </Btn>
                     <Menu open={menuFor === c.key} onClose={() => setMenuFor(null)}>
-                      <MenuItem active>{t("page.connections.duplicate")}</MenuItem>
-                      <MenuItem>
+                      <MenuItem
+                        disabled={c.isDefault}
+                        onSelect={() => {
+                          setMenuFor(null);
+                          onSetDefault?.(c);
+                        }}
+                      >
                         {t("page.connections.setDefault")}
                         <Star size={11} fill="currentColor" aria-hidden />
                       </MenuItem>
-                      <MenuItem>{t("page.connections.exportOne")}</MenuItem>
-                      <MenuItem>{t("page.connections.test")}</MenuItem>
-                      <MenuItem>{t("page.connections.auditLog")}</MenuItem>
                       <MenuSeparator />
                       <MenuItem
                         danger
                         onSelect={() => {
                           setMenuFor(null);
-                          onDelete?.(c.key);
+                          onDelete?.(c);
                         }}
                       >
                         {t("page.connections.delete")}
@@ -234,7 +243,11 @@ function RowActions({
   if (connection.status === "online") {
     return (
       <>
-        <Btn size="row" onClick={() => onOpenTab?.(connection.key)}>
+        <Btn
+          size="row"
+          disabled={onOpenTab == null}
+          onClick={() => onOpenTab?.(connection.key)}
+        >
           {t("page.connections.openTab")}
         </Btn>
         <Btn size="row">{t("page.connections.disconnect")}</Btn>
