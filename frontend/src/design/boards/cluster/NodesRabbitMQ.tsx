@@ -57,10 +57,10 @@ export function NodesRabbitMQ() {
             metrics={
               <>
                 <Metric label="Erlang 进程" value="48K" />
-                <span style={{ color: "#b45309" }}>内存告警会触发全局 flow</span>
+                <span style={{ color: "var(--c-warn-text)" }}>内存告警会触发全局 flow</span>
               </>
             }
-            meters={[{ label: "内存 88%", value: 88, color: "#d97706" }]}
+            meters={[{ label: "内存 88%", value: 88, color: "var(--c-warn)" }]}
           />
           <Card style={NODE_CARD}>
             <SectionLabel>已启用插件</SectionLabel>
@@ -78,7 +78,7 @@ export function NodesRabbitMQ() {
           <div
             style={{
               padding: "11px 16px",
-              borderBottom: "1px solid #ebebeb",
+              borderBottom: "1px solid var(--c-border)",
               display: "flex",
               alignItems: "center",
             }}

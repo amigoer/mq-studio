@@ -29,16 +29,16 @@ export function OverviewRedis() {
           <StatTile label="Stream" value="12" hint="匹配 orders:* ; events:*" />
           <StatTile label="消费者组" value="9" hint="消费者 21" />
           <StatTile label="内存" value="412 MB" hint="/ 2 GB · 20%" />
-          <StatTile label="PEL 待确认" value="37" valueColor="#b45309" hint="最长空闲 2.1h" />
+          <StatTile label="PEL 待确认" value="37" valueColor="var(--c-warn-text)" hint="最长空闲 2.1h" />
         </div>
 
         <div className={CHART_ROW}>
           <Card style={CHART_CARD}>
             <b style={{ fontSize: "12.5px" }}>命令速率</b>
             <div style={{ display: "flex", gap: "12px", fontSize: "10.5px" }}>
-              <span style={{ color: "#171717" }}>— XADD</span>
-              <span style={{ color: "#8a8a8a" }}>— XREADGROUP</span>
-              <span style={{ color: "#a3a3a3" }}>— XACK</span>
+              <span style={{ color: "var(--c-fg)" }}>— XADD</span>
+              <span style={{ color: "var(--c-muted)" }}>— XREADGROUP</span>
+              <span style={{ color: "var(--c-muted-2)" }}>— XACK</span>
             </div>
             <ChartBox style={{ flex: 1 }}>折线图占位</ChartBox>
           </Card>

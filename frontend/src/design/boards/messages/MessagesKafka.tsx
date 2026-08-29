@@ -71,7 +71,7 @@ export function MessagesKafka() {
                 <TD className="mono3" style={R}>3</TD>
                 <TD className="mono3" style={R}>88 204 771</TD>
                 <TD className="mono3" style={MONO11}>ORD-88213</TD>
-                <TD className="mono3" style={{ ...MONO11, color: "#666" }}>
+                <TD className="mono3" style={{ ...MONO11, color: "var(--c-mono-dim)" }}>
                   {'{"orderId":"ORD-88213","amount":129…'}
                 </TD>
                 <TD className="mono3" style={R}>3</TD>
@@ -81,7 +81,7 @@ export function MessagesKafka() {
                 <TD className="mono3" style={R}>1</TD>
                 <TD className="mono3" style={R}>88 204 772</TD>
                 <TD className="mono3" style={MONO11}>ORD-88214</TD>
-                <TD className="mono3" style={{ ...MONO11, color: "#666" }}>
+                <TD className="mono3" style={{ ...MONO11, color: "var(--c-mono-dim)" }}>
                   {'{"orderId":"ORD-88214","amount":45…'}
                 </TD>
                 <TD className="mono3" style={R}>3</TD>
@@ -90,8 +90,8 @@ export function MessagesKafka() {
               <TR selected={selected === "88 204 773"} onClick={() => setSelected("88 204 773")}>
                 <TD className="mono3" style={R}>0</TD>
                 <TD className="mono3" style={R}>88 204 773</TD>
-                <TD className="mono3" style={{ ...MONO11, color: "#8a8a8a" }}>null</TD>
-                <TD className="mono3" style={{ ...MONO11, color: "#666" }}>
+                <TD className="mono3" style={{ ...MONO11, color: "var(--c-muted)" }}>null</TD>
+                <TD className="mono3" style={{ ...MONO11, color: "var(--c-mono-dim)" }}>
                   {'{"orderId":"ORD-88215","amount":268…'}
                 </TD>
                 <TD className="mono3" style={R}>1</TD>
@@ -131,7 +131,7 @@ export function MessagesKafka() {
                       <ChevronDown size={12} aria-hidden />
                     </>
                   }
-                  actionColor="#525252"
+                  actionColor="var(--c-fg-2)"
                 >
                   Value · JSON
                 </SectionLabel>
@@ -159,7 +159,7 @@ export function MessagesKafka() {
                 />
               </div>
 
-              <div style={{ fontSize: "11px", color: "#8a8a8a" }}>
+              <div style={{ fontSize: "11px", color: "var(--c-muted)" }}>
                 Kafka 无消费轨迹 · 各组消费进度见「消费者组」页
               </div>
             </SheetBody>
@@ -173,8 +173,8 @@ export function MessagesKafka() {
         )}
       </ListArea>
 
-      <Toolbar style={{ borderTop: "1px solid #ebebeb", borderBottom: "none" }}>
-        <span className="mono3" style={{ fontSize: "11px", color: "#8a8a8a" }}>
+      <Toolbar style={{ borderTop: "1px solid var(--c-border)", borderBottom: "none" }}>
+        <span className="mono3" style={{ fontSize: "11px", color: "var(--c-muted)" }}>
           游标：p3 从 88 204 271 起 · 已读 500 条
         </span>
         <span style={{ flex: 1 }} />

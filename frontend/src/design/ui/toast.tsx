@@ -34,9 +34,9 @@ type Toast = ToastOptions & { id: number; tone: ToastTone; message: string };
 const DURATION: Record<ToastTone, number> = { success: 4000, info: 4500, error: 7000 };
 
 const TONE: Record<ToastTone, { icon: LucideIcon; colour: string }> = {
-  success: { icon: CheckCircle2, colour: "#1f7a4d" },
-  error: { icon: AlertCircle, colour: "#b91c1c" },
-  info: { icon: Info, colour: "#525252" },
+  success: { icon: CheckCircle2, colour: "var(--c-ok-text)" },
+  error: { icon: AlertCircle, colour: "var(--c-err-text)" },
+  info: { icon: Info, colour: "var(--c-fg-2)" },
 };
 
 /** Older toasts leave rather than push the stack past the corner. */
@@ -98,7 +98,7 @@ function ToastCard({ toast, dismiss }: { toast: Toast; dismiss: (id: number) => 
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: "12.5px", lineHeight: 1.45 }}>{message}</div>
         {description != null && (
-          <div style={{ fontSize: "11px", color: "#8a8a8a", marginTop: "3px", lineHeight: 1.5 }}>
+          <div style={{ fontSize: "11px", color: "var(--c-muted)", marginTop: "3px", lineHeight: 1.5 }}>
             {description}
           </div>
         )}
@@ -121,7 +121,7 @@ function ToastCard({ toast, dismiss }: { toast: Toast; dismiss: (id: number) => 
         style={{
           display: "flex",
           flex: "none",
-          color: "#a3a3a3",
+          color: "var(--c-muted-2)",
           background: "none",
           border: "none",
           padding: 0,

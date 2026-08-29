@@ -29,7 +29,7 @@ export function NotDesigned({
         >
           <SectionLabel>设计稿待补</SectionLabel>
           <div style={{ fontSize: "13px", marginTop: "10px", lineHeight: 1.8 }}>{note}</div>
-          <div style={{ fontSize: "11px", color: "#8a8a8a", marginTop: "12px", lineHeight: 1.7 }}>
+          <div style={{ fontSize: "11px", color: "var(--c-muted)", marginTop: "12px", lineHeight: 1.7 }}>
             该模块在能力矩阵（3h）与复用策略（4d）中已定义，但没有对应画板。
             <br />
             补稿后按同一套 shell 与组件实现即可。

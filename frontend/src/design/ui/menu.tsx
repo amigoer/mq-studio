@@ -29,8 +29,8 @@ export function MenuItem({
         borderRadius: "6px",
         textAlign: "left",
         border: "none",
-        background: active ? "#f5f5f5" : "transparent",
-        color: danger ? "#dc2828" : "#525252",
+        background: active ? "var(--c-fill)" : "transparent",
+        color: danger ? "var(--c-err)" : "var(--c-fg-2)",
       }}
     >
       {children}
@@ -39,7 +39,7 @@ export function MenuItem({
 }
 
 export function MenuSeparator() {
-  return <span style={{ height: "1px", background: "#ebebeb", margin: "4px 6px" }} />;
+  return <span style={{ height: "1px", background: "var(--c-border)", margin: "4px 6px" }} />;
 }
 
 /** The floating panel anchored under the row overflow button. */
@@ -84,8 +84,8 @@ export function Menu({
         top: `${top}px`,
         right: 0,
         width: `${width}px`,
-        background: "#fff",
-        border: "1px solid #ebebeb",
+        background: "var(--c-bg)",
+        border: "1px solid var(--c-border)",
         borderRadius: "10px",
         boxShadow: "0 10px 34px rgba(0,0,0,.14)",
         zIndex: 6,

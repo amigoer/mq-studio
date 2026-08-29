@@ -26,7 +26,7 @@ export function CardHeader({
         display: "flex",
         alignItems: "center",
         padding: "11px 16px",
-        borderBottom: "1px solid #ebebeb",
+        borderBottom: "1px solid var(--c-border)",
         ...style,
       }}
     >
@@ -53,7 +53,7 @@ export function StatTile({
 }) {
   return (
     <Card style={{ padding: "12px 14px" }}>
-      <div style={{ fontSize: "11.5px", color: "#8a8a8a" }}>{label}</div>
+      <div style={{ fontSize: "11.5px", color: "var(--c-muted)" }}>{label}</div>
       <div
         style={{
           fontSize: "21px",
@@ -66,7 +66,7 @@ export function StatTile({
         {value}
       </div>
       {hint != null && (
-        <div style={{ fontSize: "10.5px", color: hintColor ?? "#8a8a8a", marginTop: "2px" }}>
+        <div style={{ fontSize: "10.5px", color: hintColor ?? "var(--c-muted)", marginTop: "2px" }}>
           {hint}
         </div>
       )}
@@ -89,7 +89,7 @@ export function MiniStat({
 }) {
   return (
     <Card style={{ padding: "9px 12px" }}>
-      <div style={{ fontSize: "10.5px", color: "#8a8a8a" }}>{label}</div>
+      <div style={{ fontSize: "10.5px", color: "var(--c-muted)" }}>{label}</div>
       <div
         className="mono3"
         style={{ fontSize: `${size}px`, fontWeight: 600, marginTop: "2px", color }}

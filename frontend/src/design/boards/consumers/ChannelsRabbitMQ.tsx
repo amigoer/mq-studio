@@ -113,8 +113,8 @@ export function ChannelsRabbitMQ() {
                         <TD className="mono3" style={R}>1</TD>
                         <TD className="mono3">ctag-settle-1</TD>
                         <TD className="mono3" style={R}>50</TD>
-                        <TD className="mono3" style={{ ...R, color: "#b45309" }}>50</TD>
-                        <TD className="mono3" style={{ ...R, color: "#b45309" }}>0</TD>
+                        <TD className="mono3" style={{ ...R, color: "var(--c-warn-text)" }}>50</TD>
+                        <TD className="mono3" style={{ ...R, color: "var(--c-warn-text)" }}>0</TD>
                       </TR>
                       <TR>
                         <TD className="mono3" style={R}>2</TD>
@@ -128,7 +128,7 @@ export function ChannelsRabbitMQ() {
                 </Card>
               </div>
 
-              <div style={{ fontSize: "11px", color: "#b45309" }}>
+              <div style={{ fontSize: "11px", color: "var(--c-warn-text)" }}>
                 ctag-settle-1 prefetch 打满且 ack=0 → 消费卡死，建议检查该进程
               </div>
 

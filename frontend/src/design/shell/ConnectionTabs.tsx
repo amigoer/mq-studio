@@ -9,9 +9,9 @@ import { connectionOf, type ConnectionStatus } from "@/design/data/connections";
  * truth — a failed connection showing green was the one thing the tab got wrong.
  */
 const STATUS_COLOR: Record<ConnectionStatus, string> = {
-  online: "#29915d",
-  offline: "#a3a3a3",
-  failed: "#dc2828",
+  online: "var(--c-ok)",
+  offline: "var(--c-muted-2)",
+  failed: "var(--c-err)",
 };
 
 /**
@@ -40,14 +40,14 @@ const BASE: CSSProperties = {
  */
 const ACTIVE: CSSProperties = {
   ...BASE,
-  background: "#fff",
-  border: "1px solid #ebebeb",
+  background: "var(--c-bg)",
+  border: "1px solid var(--c-border)",
   boxShadow: "0 1px 2px rgba(0,0,0,.05)",
 };
 
 const IDLE: CSSProperties = {
   ...BASE,
-  color: "#525252",
+  color: "var(--c-fg-2)",
 };
 
 /**
@@ -90,7 +90,7 @@ export function ConnectionTabs({
         <button type="button" className="mqs-tab-add" aria-label="新建连接" onClick={onAdd}>
           <Plus size={13} aria-hidden />
         </button>
-        <span style={{ fontSize: "11px", color: "#a3a3a3", whiteSpace: "nowrap" }}>
+        <span style={{ fontSize: "11px", color: "var(--c-muted-2)", whiteSpace: "nowrap" }}>
           新建连接后会以标签的形式出现在这里
         </span>
       </div>
@@ -158,7 +158,7 @@ export function ConnectionTabs({
             <Columns2 size={16} aria-hidden />
           </span>
           <span className="mqs-tab-name">{compare.label}</span>
-          <span style={{ fontSize: "10.5px", color: "#8a8a8a", fontWeight: 400 }}>
+          <span style={{ fontSize: "10.5px", color: "var(--c-muted)", fontWeight: 400 }}>
             {compare.detail}
           </span>
           <button type="button" className="mqs-tab-close" aria-label="退出分屏" onClick={onSplit}>

@@ -33,7 +33,7 @@ export function DlqKafka() {
       />
       <Toolbar>
         <SelectField value="源：orders.created" />
-        <span className="mono3" style={{ fontSize: "11px", color: "#8a8a8a" }}>
+        <span className="mono3" style={{ fontSize: "11px", color: "var(--c-muted)" }}>
           → orders.created.DLT（12 条）
         </span>
         <SelectField value="近 24 小时" />
@@ -62,7 +62,7 @@ export function DlqKafka() {
           <TBody>
             {ROWS.map((row) => {
               const on = checked.includes(row.id);
-              const dim = on ? undefined : "#666";
+              const dim = on ? undefined : "var(--c-mono-dim)";
               return (
                 <TR key={row.id}>
                   <TD>
@@ -71,7 +71,7 @@ export function DlqKafka() {
                   <TD className="mono3" style={{ ...R, color: dim }}>{row.partition}</TD>
                   <TD className="mono3" style={{ ...R, color: dim }}>{row.offset}</TD>
                   <TD className="mono3" style={{ ...MONO11, color: dim }}>{row.key}</TD>
-                  <TD style={{ color: on ? "#b91c1c" : "#8a8a8a", maxWidth: "230px" }}>{row.error}</TD>
+                  <TD style={{ color: on ? "var(--c-err-text)" : "var(--c-muted)", maxWidth: "230px" }}>{row.error}</TD>
                   <TD className="mono3" style={{ ...MONO11, color: dim }}>{row.at}</TD>
                 </TR>
               );

@@ -38,7 +38,7 @@ export function TopicsKafka() {
       />
       <Toolbar>
         <Field style={{ flex: "0 0 240px" }} placeholder="搜索 Topic 名称…" />
-        <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11.5px", color: "#666" }}>
+        <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11.5px", color: "var(--c-mono-dim)" }}>
           <Sw checked={showInternal} onCheckedChange={setShowInternal} label="显示内部 Topic" />
           显示内部 Topic
         </span>
@@ -67,7 +67,7 @@ export function TopicsKafka() {
                 <TD className="mono3" style={{ textAlign: "right" }}>24</TD>
                 <TD className="mono3" style={{ textAlign: "right" }}>3</TD>
                 <TD className="mono3" style={{ textAlign: "right" }}>1 104/s</TD>
-                <TD className="mono3" style={{ textAlign: "right", color: "#b45309" }}>9 820</TD>
+                <TD className="mono3" style={{ textAlign: "right", color: "var(--c-warn-text)" }}>9 820</TD>
               </TR>
               <TR selected={selected === "payments.captured"} onClick={() => setSelected("payments.captured")}>
                 <TD>payments.captured</TD>
@@ -99,10 +99,10 @@ export function TopicsKafka() {
               onClose={() => setSelected(null)}
             />
             <SheetBody style={{ gap: "10px" }}>
-              <div style={{ display: "flex", gap: "8px", fontSize: "11px", color: "#8a8a8a" }}>
+              <div style={{ display: "flex", gap: "8px", fontSize: "11px", color: "var(--c-muted)" }}>
                 <span>24 分区 · 副本因子 3</span>
                 <span style={{ flex: 1 }} />
-                <span style={{ color: "#b45309" }}>1 个分区未完全同步</span>
+                <span style={{ color: "var(--c-warn-text)" }}>1 个分区未完全同步</span>
               </div>
               <Card style={{ overflow: "hidden" }}>
                 <MiniTable>
@@ -127,10 +127,10 @@ export function TopicsKafka() {
                       <TD className="mono3">2,3,1</TD>
                       <TD className="mono3" style={{ textAlign: "right" }}>88 198 042</TD>
                     </TR>
-                    <TR style={{ background: "#fffbeb" }}>
+                    <TR style={{ background: "var(--c-warn-bg-soft)" }}>
                       <TD className="mono3" style={{ textAlign: "right" }}>2</TD>
                       <TD className="mono3" style={{ textAlign: "right" }}>3</TD>
-                      <TD className="mono3" style={{ color: "#b45309" }}>
+                      <TD className="mono3" style={{ color: "var(--c-warn-text)" }}>
                         3,1 <span style={{ fontSize: "9.5px" }}>(缺 2)</span>
                       </TD>
                       <TD className="mono3" style={{ textAlign: "right" }}>88 201 118</TD>
@@ -142,7 +142,7 @@ export function TopicsKafka() {
                       <TD className="mono3" style={{ textAlign: "right" }}>88 197 664</TD>
                     </TR>
                     <TR>
-                      <TD colSpan={4} style={{ padding: "6px 10px", color: "#8a8a8a", fontSize: "10.5px" }}>
+                      <TD colSpan={4} style={{ padding: "6px 10px", color: "var(--c-muted)", fontSize: "10.5px" }}>
                         … 其余 20 个分区
                       </TD>
                     </TR>

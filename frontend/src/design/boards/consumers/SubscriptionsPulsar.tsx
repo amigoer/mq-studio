@@ -24,7 +24,7 @@ import {
 
 const SHEET_TABS = ["游标", "Consumer", "配置"] as const;
 const R = { textAlign: "right" } as const;
-const NAME = { fontSize: "11px", color: "#666" } as const;
+const NAME = { fontSize: "11px", color: "var(--c-mono-dim)" } as const;
 const MONO11 = { fontSize: "11px" } as const;
 
 /** Board 14b — Pulsar subscriptions. Cursors move by seek, not by offset reset. */
@@ -60,7 +60,7 @@ export function SubscriptionsPulsar() {
                 <TD><b style={{ fontWeight: 500 }}>settle-sub</b></TD>
                 <TD className="mono3" style={NAME}>…/order-created</TD>
                 <TD>Shared</TD>
-                <TD className="mono3" style={{ ...R, color: "#b45309" }}>6 210</TD>
+                <TD className="mono3" style={{ ...R, color: "var(--c-warn-text)" }}>6 210</TD>
                 <TD className="mono3" style={R}>48</TD>
                 <TD className="mono3" style={R}>1 104/s</TD>
               </TR>
@@ -97,7 +97,7 @@ export function SubscriptionsPulsar() {
             />
             <SheetBody>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-                <MiniStat label="积压" value="6 210" color="#b45309" size={15} />
+                <MiniStat label="积压" value="6 210" color="var(--c-warn-text)" size={15} />
                 <MiniStat label="未确认" value="48" size={15} />
               </div>
 
@@ -124,7 +124,7 @@ export function SubscriptionsPulsar() {
                       <TR>
                         <TD className="mono3">settle-1</TD>
                         <TD className="mono3">10.2.3.4</TD>
-                        <TD className="mono3" style={{ ...R, color: "#b45309" }}>41</TD>
+                        <TD className="mono3" style={{ ...R, color: "var(--c-warn-text)" }}>41</TD>
                       </TR>
                       <TR>
                         <TD className="mono3">settle-2</TD>

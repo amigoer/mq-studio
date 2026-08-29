@@ -46,7 +46,7 @@ export function QueuesRabbitMQ() {
       <Toolbar>
         <Field style={{ flex: "0 0 220px" }} placeholder="搜索队列…" />
         <SelectField value="vhost：/order" />
-        <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11.5px", color: "#666" }}>
+        <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11.5px", color: "var(--c-mono-dim)" }}>
           <Sw checked={backlogOnly} onCheckedChange={setBacklogOnly} label="仅显示有堆积" />
           仅显示有堆积
         </span>
@@ -72,7 +72,7 @@ export function QueuesRabbitMQ() {
               <TR selected={selected === "order.settle.q"} onClick={() => setSelected("order.settle.q")}>
                 <TD><b style={{ fontWeight: 500 }}>order.settle.q</b></TD>
                 <TD>quorum</TD>
-                <TD className="mono3" style={{ textAlign: "right", color: "#b45309" }}>982</TD>
+                <TD className="mono3" style={{ textAlign: "right", color: "var(--c-warn-text)" }}>982</TD>
                 <TD className="mono3" style={{ textAlign: "right" }}>14</TD>
                 <TD className="mono3" style={{ textAlign: "right" }}>4</TD>
                 <TD className="mono3" style={{ textAlign: "right" }}>1 104 / 1 010</TD>
@@ -100,12 +100,12 @@ export function QueuesRabbitMQ() {
                 <TD />
               </TR>
               <TR selected={selected === "dlx.order.q"} onClick={() => setSelected("dlx.order.q")}>
-                <TD style={{ color: "#8a8a8a" }}>dlx.order.q</TD>
-                <TD style={{ color: "#8a8a8a" }}>classic</TD>
-                <TD className="mono3" style={{ textAlign: "right", color: "#b91c1c" }}>37</TD>
-                <TD className="mono3" style={{ textAlign: "right", color: "#8a8a8a" }}>0</TD>
-                <TD className="mono3" style={{ textAlign: "right", color: "#8a8a8a" }}>0</TD>
-                <TD className="mono3" style={{ textAlign: "right", color: "#8a8a8a" }}>0.2 / 0</TD>
+                <TD style={{ color: "var(--c-muted)" }}>dlx.order.q</TD>
+                <TD style={{ color: "var(--c-muted)" }}>classic</TD>
+                <TD className="mono3" style={{ textAlign: "right", color: "var(--c-err-text)" }}>37</TD>
+                <TD className="mono3" style={{ textAlign: "right", color: "var(--c-muted)" }}>0</TD>
+                <TD className="mono3" style={{ textAlign: "right", color: "var(--c-muted)" }}>0</TD>
+                <TD className="mono3" style={{ textAlign: "right", color: "var(--c-muted)" }}>0.2 / 0</TD>
                 <TD><Status tone="err" style={TAG}>死信</Status></TD>
               </TR>
               <SkeletonRows colSpan={7} widths={["74%", "60%"]} />
@@ -126,13 +126,13 @@ export function QueuesRabbitMQ() {
             <SheetBody>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
                 <Card style={{ padding: "9px 12px" }}>
-                  <div style={{ fontSize: "10.5px", color: "#8a8a8a" }}>Ready</div>
-                  <div className="mono3" style={{ fontSize: "16px", fontWeight: 600, marginTop: "2px", color: "#b45309" }}>
+                  <div style={{ fontSize: "10.5px", color: "var(--c-muted)" }}>Ready</div>
+                  <div className="mono3" style={{ fontSize: "16px", fontWeight: 600, marginTop: "2px", color: "var(--c-warn-text)" }}>
                     982
                   </div>
                 </Card>
                 <Card style={{ padding: "9px 12px" }}>
-                  <div style={{ fontSize: "10.5px", color: "#8a8a8a" }}>Unacked</div>
+                  <div style={{ fontSize: "10.5px", color: "var(--c-muted)" }}>Unacked</div>
                   <div className="mono3" style={{ fontSize: "16px", fontWeight: 600, marginTop: "2px" }}>14</div>
                 </Card>
               </div>
@@ -180,8 +180,8 @@ function BindingRow({ routingKey }: { routingKey: string }) {
     <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
       <ProtoBadge protocol="rabbitmq" label="topic" style={{ fontSize: "9px" }} />
       <span className="mono3" style={MONO11}>ex.order</span>
-      <ArrowRight size={12} color="#a3a3a3" style={{ flex: "none" }} aria-hidden />
-      <span className="mono3" style={{ ...MONO11, color: "#666" }}>rk = {routingKey}</span>
+      <ArrowRight size={12} style={{ color: "var(--c-muted-2)", flex: "none" }} aria-hidden />
+      <span className="mono3" style={{ ...MONO11, color: "var(--c-mono-dim)" }}>rk = {routingKey}</span>
     </div>
   );
 }

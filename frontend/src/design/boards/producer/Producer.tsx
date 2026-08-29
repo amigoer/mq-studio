@@ -75,19 +75,19 @@ export function Producer({ protocol }: { protocol: ProtocolId }) {
                 alignItems: "center",
                 gap: "10px",
                 padding: "10px 14px",
-                borderBottom: "1px solid #ebebeb",
+                borderBottom: "1px solid var(--c-border)",
               }}
             >
               <Seg options={BODY_FORMATS} value={format} onChange={setFormat} />
               <span style={{ flex: 1 }} />
-              <span style={{ fontSize: "11.5px", color: "#29915d" }}>格式化</span>
+              <span style={{ fontSize: "11.5px", color: "var(--c-ok)" }}>格式化</span>
               <span
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
                   gap: "4px",
                   fontSize: "11.5px",
-                  color: "#8a8a8a",
+                  color: "var(--c-muted)",
                 }}
               >
                 从消息复制
@@ -103,7 +103,7 @@ export function Producer({ protocol }: { protocol: ProtocolId }) {
                 padding: "12px 16px",
                 fontSize: "11.5px",
                 lineHeight: 1.8,
-                color: "#525252",
+                color: "var(--c-fg-2)",
               }}
             >
               {"{"}
@@ -119,7 +119,7 @@ export function Producer({ protocol }: { protocol: ProtocolId }) {
 
             <div
               style={{
-                borderTop: "1px solid #ebebeb",
+                borderTop: "1px solid var(--c-border)",
                 padding: "10px 14px",
                 display: "flex",
                 alignItems: "center",
@@ -130,7 +130,7 @@ export function Producer({ protocol }: { protocol: ProtocolId }) {
               <SectionLabel>自定义属性</SectionLabel>
               <Field className="mono3" style={{ fontSize: "11px" }} defaultValue="traceId = t-9f21" />
               <Field className="mono3" style={{ fontSize: "11px" }} defaultValue="env = staging" />
-              <span style={{ color: "#29915d" }}>+ 添加</span>
+              <span style={{ color: "var(--c-ok)" }}>+ 添加</span>
             </div>
           </Card>
 
@@ -146,15 +146,15 @@ export function Producer({ protocol }: { protocol: ProtocolId }) {
               fontSize: "12px",
             }}
           >
-            <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", color: "#1f7a4d" }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", color: "var(--c-ok-text)" }}>
               <Check size={13} aria-hidden />
               发送成功
             </span>
-            <span className="mono3" style={{ color: "#666", fontSize: "11px" }}>
+            <span className="mono3" style={{ color: "var(--c-mono-dim)", fontSize: "11px" }}>
               MsgId 7F0000012A9C…D02
             </span>
             <span style={{ flex: 1 }} />
-            <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", color: "#29915d" }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", color: "var(--c-ok)" }}>
               查看该消息
               <ArrowRight size={13} aria-hidden />
             </span>
@@ -281,7 +281,7 @@ function RecentSend({
       <span
         className="mono3"
         style={{
-          color: "#666",
+          color: "var(--c-mono-dim)",
           fontSize: "10.5px",
           flex: 1,
           overflow: "hidden",
@@ -290,7 +290,7 @@ function RecentSend({
       >
         {detail}
       </span>
-      <span style={{ color: "#29915d" }}>重用</span>
+      <span style={{ color: "var(--c-ok)" }}>重用</span>
     </div>
   );
 }

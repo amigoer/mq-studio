@@ -74,7 +74,7 @@ export function BrokersPulsar() {
             }
             meters={[
               { label: "存储 57%", value: 57 },
-              { label: "存储 73%", value: 73, color: "#d97706" },
+              { label: "存储 73%", value: 73, color: "var(--c-warn)" },
             ]}
           />
         </div>
@@ -83,14 +83,14 @@ export function BrokersPulsar() {
           <div
             style={{
               padding: "11px 16px",
-              borderBottom: "1px solid #ebebeb",
+              borderBottom: "1px solid var(--c-border)",
               display: "flex",
               alignItems: "center",
             }}
           >
             <b style={{ fontSize: "12.5px" }}>命名空间 Bundle 分布</b>
             <span style={{ flex: 1 }} />
-            <span style={{ fontSize: "11.5px", color: "#525252" }}>触发负载均衡</span>
+            <span style={{ fontSize: "11.5px", color: "var(--c-fg-2)" }}>触发负载均衡</span>
           </div>
           <Table>
             <THead>

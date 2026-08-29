@@ -28,7 +28,7 @@ export function DlqPulsar() {
       />
       <Toolbar>
         <SelectField value="订阅：settle-sub" />
-        <span className="mono3" style={{ fontSize: "11px", color: "#8a8a8a" }}>
+        <span className="mono3" style={{ fontSize: "11px", color: "var(--c-muted)" }}>
           maxRedeliverCount=5 · 超限入 DLQ
         </span>
         <span style={{ flex: 1 }} />
@@ -56,7 +56,7 @@ export function DlqPulsar() {
           <TBody>
             {ROWS.map((row) => {
               const on = checked.includes(row.id);
-              const dim = on ? undefined : "#666";
+              const dim = on ? undefined : "var(--c-mono-dim)";
               return (
                 <TR key={row.id}>
                   <TD>
@@ -65,7 +65,7 @@ export function DlqPulsar() {
                   <TD className="mono3" style={{ ...MONO11, color: dim }}>{row.messageId}</TD>
                   <TD className="mono3" style={{ ...MONO11, color: dim }}>{row.key}</TD>
                   <TD className="mono3" style={{ ...R, color: dim }}>{row.redeliveries}</TD>
-                  <TD style={{ color: on ? "#b91c1c" : "#8a8a8a", maxWidth: "220px" }}>{row.error}</TD>
+                  <TD style={{ color: on ? "var(--c-err-text)" : "var(--c-muted)", maxWidth: "220px" }}>{row.error}</TD>
                   <TD className="mono3" style={{ ...MONO11, color: dim }}>{row.at}</TD>
                 </TR>
               );

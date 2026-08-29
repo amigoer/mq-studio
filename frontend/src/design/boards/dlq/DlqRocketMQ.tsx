@@ -20,7 +20,7 @@ const VIEWS = [
 ] as const;
 
 const MONO11 = { fontSize: "11px" } as const;
-const DIM11 = { fontSize: "11px", color: "#666" } as const;
+const DIM11 = { fontSize: "11px", color: "var(--c-mono-dim)" } as const;
 const R = { textAlign: "right" } as const;
 
 type Row = {
@@ -89,7 +89,7 @@ export function DlqRocketMQ() {
           <TBody>
             {ROWS.map((row) => {
               const on = checked.includes(row.id);
-              const dim = on ? undefined : "#666";
+              const dim = on ? undefined : "var(--c-mono-dim)";
               return (
                 <TR key={row.id} selected={on}>
                   <TD>
@@ -99,7 +99,7 @@ export function DlqRocketMQ() {
                   <TD className="mono3" style={DIM11}>{row.topic}</TD>
                   <TD className="mono3" style={{ ...MONO11, color: dim }}>{row.key}</TD>
                   <TD className="mono3" style={{ ...R, color: dim }}>{row.retries}</TD>
-                  <TD style={{ color: on ? "#b91c1c" : "#8a8a8a", maxWidth: "200px" }}>{row.reason}</TD>
+                  <TD style={{ color: on ? "var(--c-err-text)" : "var(--c-muted)", maxWidth: "200px" }}>{row.reason}</TD>
                   <TD className="mono3" style={{ ...MONO11, color: dim }}>{row.at}</TD>
                 </TR>
               );
@@ -123,7 +123,7 @@ export function DlqRocketMQ() {
           style={{
             position: "absolute",
             inset: 0,
-            background: "rgba(23,23,23,.32)",
+            background: "var(--c-scrim)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -144,7 +144,7 @@ export function DlqRocketMQ() {
               style={{
                 padding: "8px 20px 16px",
                 fontSize: "12px",
-                color: "#525252",
+                color: "var(--c-fg-2)",
                 lineHeight: 1.7,
               }}
             >
@@ -158,11 +158,11 @@ export function DlqRocketMQ() {
                 display: "flex",
                 gap: "10px",
                 padding: "12px 20px",
-                borderTop: "1px solid #ebebeb",
-                background: "#fcfcfc",
+                borderTop: "1px solid var(--c-border)",
+                background: "var(--c-panel)",
               }}
             >
-              <span style={{ fontSize: "11px", color: "#8a8a8a", alignSelf: "center" }}>
+              <span style={{ fontSize: "11px", color: "var(--c-muted)", alignSelf: "center" }}>
                 高危操作 · 记录到操作日志
               </span>
               <span style={{ flex: 1 }} />

@@ -24,7 +24,7 @@ export function ClusterRocketMQ() {
               <>
                 <Metric label="入" value="1 620/s" />
                 <Metric label="出" value="1 588/s" />
-                <span style={{ color: "#8a8a8a" }}>PageCache 0.3ms</span>
+                <span style={{ color: "var(--c-muted)" }}>PageCache 0.3ms</span>
               </>
             }
             meters={[{ label: "磁盘 61%", value: 61 }]}
@@ -42,10 +42,10 @@ export function ClusterRocketMQ() {
               <>
                 <Metric label="入" value="1 604/s" />
                 <Metric label="出" value="1 530/s" />
-                <span style={{ color: "#8a8a8a" }}>PageCache 0.4ms</span>
+                <span style={{ color: "var(--c-muted)" }}>PageCache 0.4ms</span>
               </>
             }
-            meters={[{ label: "磁盘 87%", value: 87, color: "#d97706", labelColor: "#b45309" }]}
+            meters={[{ label: "磁盘 87%", value: 87, color: "var(--c-warn)", labelColor: "var(--c-warn-text)" }]}
           />
           <NodeCard
             dim
@@ -53,11 +53,11 @@ export function ClusterRocketMQ() {
             badges={<Status tone="off" style={TAG}>SLAVE</Status>}
             address="10.12.3.52:10911"
             metrics={
-              <span style={{ color: "#666" }}>
+              <span style={{ color: "var(--c-mono-dim)" }}>
                 同步复制 · 落后 <b className="mono3">0</b>
               </span>
             }
-            meters={[{ label: "磁盘 60%", value: 60, color: "#a3a3a3" }]}
+            meters={[{ label: "磁盘 60%", value: 60, color: "var(--c-muted-2)" }]}
           />
           <NodeCard
             dim
@@ -65,11 +65,11 @@ export function ClusterRocketMQ() {
             badges={<Status tone="off" style={TAG}>SLAVE</Status>}
             address="10.12.3.54:10911"
             metrics={
-              <span style={{ color: "#666" }}>
+              <span style={{ color: "var(--c-mono-dim)" }}>
                 同步复制 · 落后 <b className="mono3">128</b>
               </span>
             }
-            meters={[{ label: "磁盘 66%", value: 66, color: "#a3a3a3" }]}
+            meters={[{ label: "磁盘 66%", value: 66, color: "var(--c-muted-2)" }]}
           />
         </div>
 
@@ -77,14 +77,14 @@ export function ClusterRocketMQ() {
           <div
             style={{
               padding: "11px 16px",
-              borderBottom: "1px solid #ebebeb",
+              borderBottom: "1px solid var(--c-border)",
               display: "flex",
               alignItems: "center",
             }}
           >
             <b style={{ fontSize: "12.5px" }}>NameServer / 运行指标</b>
             <span style={{ flex: 1 }} />
-            <span style={{ fontSize: "11.5px", color: "#29915d" }}>复制诊断信息</span>
+            <span style={{ fontSize: "11.5px", color: "var(--c-ok)" }}>复制诊断信息</span>
           </div>
           <Table>
             <THead>

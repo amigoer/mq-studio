@@ -22,7 +22,7 @@ export function ChartBox({
 /** `.bar3` — a thin progress/utilisation bar. */
 export function Bar({
   value,
-  color = "#29915d",
+  color = "var(--c-ok)",
   className,
   style,
 }: {
@@ -48,7 +48,7 @@ export function Placeholder({ width, style }: { width?: number | string; style?:
 export function SectionLabel({
   children,
   action,
-  actionColor = "#29915d",
+  actionColor = "var(--c-ok)",
   style,
 }: {
   children: ReactNode;
@@ -153,7 +153,7 @@ export function MeterRow({
         {label}
       </span>
       <Bar value={value} color={color} style={{ flex: 1 }} />
-      <span className="mono3" style={{ color: "#8a8a8a", flex: "none" }}>
+      <span className="mono3" style={{ color: "var(--c-muted)", flex: "none" }}>
         {display ?? `${value}%`}
       </span>
     </div>
@@ -186,8 +186,8 @@ export function Check({
               width: "12px",
               height: "12px",
               borderRadius: "3px",
-              background: "#171717",
-              color: "#fff",
+              background: "var(--c-fg)",
+              color: "var(--c-bg)",
               border: "none",
               padding: 0,
             }
@@ -195,7 +195,7 @@ export function Check({
               display: "inline-block",
               width: "12px",
               height: "12px",
-              border: "1.4px solid #c9c9c9",
+              border: "1.4px solid var(--c-disabled)",
               borderRadius: "3px",
               background: "transparent",
               padding: 0,
@@ -217,11 +217,11 @@ export function WarnBanner({ children, style }: { children: ReactNode; style?: C
         display: "flex",
         alignItems: "center",
         gap: "6px",
-        border: "1px solid #fde68a",
-        background: "#fffbeb",
+        border: "1px solid var(--c-warn-border)",
+        background: "var(--c-warn-bg-soft)",
         borderRadius: "8px",
         fontSize: "11.5px",
-        color: "#92400e",
+        color: "var(--c-warn-text-deep)",
         flex: "none",
         ...style,
       }}

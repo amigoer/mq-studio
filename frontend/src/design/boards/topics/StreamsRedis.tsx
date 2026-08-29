@@ -40,7 +40,7 @@ export function StreamsRedis() {
       />
       <Toolbar>
         <Field style={{ flex: "0 0 200px" }} placeholder="搜索 key…" />
-        <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11.5px", color: "#666" }}>
+        <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11.5px", color: "var(--c-mono-dim)" }}>
           <Sw checked={showAll} onCheckedChange={setShowAll} label="显示全部 key" />
           显示全部 key
         </span>
@@ -82,10 +82,10 @@ export function StreamsRedis() {
               </TR>
               <TR selected={selected === "iot:raw"} onClick={() => setSelected("iot:raw")}>
                 <TD className="mono3" style={NAME}>iot:raw</TD>
-                <TD className="mono3" style={{ textAlign: "right", color: "#b45309" }}>8 402 118</TD>
+                <TD className="mono3" style={{ textAlign: "right", color: "var(--c-warn-text)" }}>8 402 118</TD>
                 <TD className="mono3" style={{ textAlign: "right" }}>1</TD>
                 <TD className="mono3" style={MONO11}>1756454647221-4</TD>
-                <TD className="mono3" style={{ textAlign: "right", color: "#b45309" }}>612 MB</TD>
+                <TD className="mono3" style={{ textAlign: "right", color: "var(--c-warn-text)" }}>612 MB</TD>
                 <TD><Status tone="warn">无上限</Status></TD>
               </TR>
               <SkeletonRows colSpan={6} widths={["64%", "48%"]} />
@@ -106,13 +106,13 @@ export function StreamsRedis() {
             <SheetBody>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
                 <Card style={{ padding: "9px 12px" }}>
-                  <div style={{ fontSize: "10.5px", color: "#8a8a8a" }}>XLEN</div>
+                  <div style={{ fontSize: "10.5px", color: "var(--c-muted)" }}>XLEN</div>
                   <div className="mono3" style={{ fontSize: "15px", fontWeight: 600, marginTop: "2px" }}>
                     1 204 771
                   </div>
                 </Card>
                 <Card style={{ padding: "9px 12px" }}>
-                  <div style={{ fontSize: "10.5px", color: "#8a8a8a" }}>XADD 速率</div>
+                  <div style={{ fontSize: "10.5px", color: "var(--c-muted)" }}>XADD 速率</div>
                   <div className="mono3" style={{ fontSize: "15px", fontWeight: 600, marginTop: "2px" }}>
                     1 104/s
                   </div>

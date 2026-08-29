@@ -27,7 +27,7 @@ type PelEntry = {
 };
 
 const PEL: readonly PelEntry[] = [
-  { id: "1756447200104-0", consumer: "settle-1", idle: "2.1h", idleColor: "#b91c1c", deliveries: "17", deliveryColor: "#b45309" },
+  { id: "1756447200104-0", consumer: "settle-1", idle: "2.1h", idleColor: "var(--c-err-text)", deliveries: "17", deliveryColor: "var(--c-warn-text)" },
   { id: "1756450301882-3", consumer: "settle-1", idle: "1.2h", deliveries: "9" },
   { id: "1756453988012-1", consumer: "settle-2", idle: "11m", deliveries: "2" },
 ];
@@ -69,10 +69,10 @@ export function ConsumersRedis() {
             <TR selected={selectedGroup === "settle-group"} onClick={() => setSelectedGroup("settle-group")}>
               <TD><b style={{ fontWeight: 500 }}>settle-group</b></TD>
               <TD className="mono3" style={R}>2</TD>
-              <TD className="mono3" style={{ ...R, color: "#b45309" }}>29</TD>
+              <TD className="mono3" style={{ ...R, color: "var(--c-warn-text)" }}>29</TD>
               <TD className="mono3" style={MONO11}>1756454641773-2</TD>
               <TD className="mono3" style={R}>1 204 742</TD>
-              <TD className="mono3" style={{ ...R, color: "#b45309" }}>982</TD>
+              <TD className="mono3" style={{ ...R, color: "var(--c-warn-text)" }}>982</TD>
             </TR>
             <TR selected={selectedGroup === "notify-group"} onClick={() => setSelectedGroup("notify-group")}>
               <TD>notify-group</TD>
@@ -97,7 +97,7 @@ export function ConsumersRedis() {
       <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "11px 20px 6px" }}>
         <SectionLabel>{selectedGroup} 的 PEL（29）</SectionLabel>
         <span style={{ flex: 1 }} />
-        <span style={{ fontSize: "11px", color: "#8a8a8a" }}>勾选后可批量操作</span>
+        <span style={{ fontSize: "11px", color: "var(--c-muted)" }}>勾选后可批量操作</span>
       </div>
 
       <ListPane>

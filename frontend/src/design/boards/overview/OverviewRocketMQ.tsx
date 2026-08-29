@@ -26,25 +26,25 @@ export function OverviewRocketMQ() {
           <StatTile label="Topic" value="128" hint="系统 Topic 已隐藏" />
           <StatTile label="消费者组" value="32" hint="2 个告警" />
           <StatTile label="生产 TPS" value="3 240" hint="消费 3 118" />
-          <StatTile label="总堆积" value="1 204" valueColor="#b45309" hint="较 1h 前 +12%" />
+          <StatTile label="总堆积" value="1 204" valueColor="var(--c-warn-text)" hint="较 1h 前 +12%" />
         </div>
 
         <div className={CHART_ROW}>
           <Card style={CHART_CARD}>
             <b style={{ fontSize: "12.5px" }}>吞吐趋势</b>
             <div style={{ display: "flex", gap: "12px", fontSize: "10.5px" }}>
-              <span style={{ color: "#171717" }}>— 生产 msg/s</span>
-              <span style={{ color: "#8a8a8a" }}>— 消费 msg/s</span>
+              <span style={{ color: "var(--c-fg)" }}>— 生产 msg/s</span>
+              <span style={{ color: "var(--c-muted)" }}>— 消费 msg/s</span>
             </div>
             <ChartBox style={{ flex: 1 }}>折线图占位</ChartBox>
           </Card>
           <Card style={CHART_CARD}>
             <b style={{ fontSize: "12.5px" }}>Broker 健康</b>
             <MeterRow label="broker-a" value={61} />
-            <MeterRow label="broker-b" value={87} color="#d97706" />
+            <MeterRow label="broker-b" value={87} color="var(--c-warn)" />
             <MeterRow label="broker-a-s" value={60} />
             <MeterRow label="broker-b-s" value={66} />
-            <div style={{ fontSize: "10.5px", color: "#b45309" }}>broker-b 磁盘超 85% 水位</div>
+            <div style={{ fontSize: "10.5px", color: "var(--c-warn-text)" }}>broker-b 磁盘超 85% 水位</div>
           </Card>
         </div>
 
@@ -64,7 +64,7 @@ export function OverviewRocketMQ() {
               <TR>
                 <TD>order-settle</TD>
                 <TD className="mono3" style={NAME_CELL}>ORDER_CREATE</TD>
-                <TD className="mono3" style={{ textAlign: "right", color: "#b45309" }}>982</TD>
+                <TD className="mono3" style={{ textAlign: "right", color: "var(--c-warn-text)" }}>982</TD>
                 <TD className="mono3" style={{ textAlign: "right" }}>1 104</TD>
                 <TD><Status tone="warn">堆积告警</Status></TD>
               </TR>

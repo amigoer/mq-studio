@@ -30,7 +30,7 @@ const MODES = [
 
 const SHEET_TABS = ["字段", "消费状态"] as const;
 const MONO11 = { fontSize: "11px" } as const;
-const DIM11 = { fontSize: "11px", color: "#666" } as const;
+const DIM11 = { fontSize: "11px", color: "var(--c-mono-dim)" } as const;
 const R = { textAlign: "right" } as const;
 
 const FIELDS = [
@@ -120,7 +120,7 @@ export function MessagesRedis() {
                     <TBody>
                       {FIELDS.map(([k, v]) => (
                         <TR key={k}>
-                          <TD className="mono3" style={{ color: "#8a8a8a", width: "90px" }}>{k}</TD>
+                          <TD className="mono3" style={{ color: "var(--c-muted)", width: "90px" }}>{k}</TD>
                           <TD className="mono3">{v}</TD>
                         </TR>
                       ))}
@@ -148,8 +148,8 @@ export function MessagesRedis() {
         )}
       </ListArea>
 
-      <Toolbar style={{ borderTop: "1px solid #ebebeb", borderBottom: "none" }}>
-        <span className="mono3" style={{ fontSize: "11px", color: "#8a8a8a" }}>
+      <Toolbar style={{ borderTop: "1px solid var(--c-border)", borderBottom: "none" }}>
+        <span className="mono3" style={{ fontSize: "11px", color: "var(--c-muted)" }}>
           XRANGE orders:events - + COUNT 100
         </span>
         <span style={{ flex: 1 }} />

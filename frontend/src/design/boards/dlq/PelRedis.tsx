@@ -18,8 +18,8 @@ type Row = {
 };
 
 const ROWS: readonly Row[] = [
-  { id: "a", scope: "orders:events / settle-group", entryId: "1756447200104-0", consumer: "settle-1", idle: "2.1h", idleColor: "#b91c1c", deliveries: "17", deliveryColor: "#b45309" },
-  { id: "b", scope: "orders:events / settle-group", entryId: "1756450301882-3", consumer: "settle-1", idle: "1.2h", idleColor: "#b45309", deliveries: "9" },
+  { id: "a", scope: "orders:events / settle-group", entryId: "1756447200104-0", consumer: "settle-1", idle: "2.1h", idleColor: "var(--c-err-text)", deliveries: "17", deliveryColor: "var(--c-warn-text)" },
+  { id: "b", scope: "orders:events / settle-group", entryId: "1756450301882-3", consumer: "settle-1", idle: "1.2h", idleColor: "var(--c-warn-text)", deliveries: "9" },
   { id: "c", scope: "payments:captured / audit-group", entryId: "1756451877210-0", consumer: "audit-1", idle: "42m", deliveries: "3" },
 ];
 
@@ -69,7 +69,7 @@ export function PelRedis() {
           <TBody>
             {ROWS.map((row) => {
               const on = checked.includes(row.id);
-              const dim = on ? undefined : "#666";
+              const dim = on ? undefined : "var(--c-mono-dim)";
               return (
                 <TR key={row.id}>
                   <TD>

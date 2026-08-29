@@ -52,5 +52,5 @@ export const MonoTD = ({
   style,
   ...props
 }: React.TdHTMLAttributes<HTMLTableCellElement>) => (
-  <td className={cn("mono3", className)} style={{ fontSize: "11px", color: "#666", ...style }} {...props} />
+  <td className={cn("mono3", className)} style={{ fontSize: "11px", color: "var(--c-mono-dim)", ...style }} {...props} />
 );

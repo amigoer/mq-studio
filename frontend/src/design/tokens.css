@@ -23,8 +23,8 @@
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: #fff;
-  color: #171717;
+  background: var(--c-bg);
+  color: var(--c-fg);
   /* The fallback is the canvas's own stack, for the frames before the
      interface font setting has loaded. See lib/fonts. */
   font: 13px/1.5
@@ -43,6 +43,70 @@
   font-family: var(--app-monospace-font, 'JetBrains Mono', ui-monospace, Menlo, monospace);
 }
 
+/*
+ * The colour scale, lifted out of the values the canvas was drawn in so the
+ * shell can be re-grounded without touching a board. Every name below holds
+ * exactly the value it replaced, so light renders as it always did; the dark
+ * theme is the same names bound to a second set.
+ *
+ * Two families stay literal on purpose: the brand marks (the protocol glyphs,
+ * the GitHub mark, the logo's red) and the palettes the theme cards draw --
+ * those are pictures of a theme, not the theme itself, and must not follow it.
+ */
+:root {
+  /* surfaces */
+  --c-bg: #fff;
+  --c-panel: #fcfcfc;
+  --c-bar: #fafafa;
+  --c-fill: #f5f5f5;
+  --c-fill-soft: #f8f8f8;
+  --c-fill-mute: #f0f0f0;
+  --c-fill-zinc: #f4f4f5;
+  /* The hairline between rows of one card, lighter than the card's own edge. */
+  --c-rule: #f4f4f4;
+
+  /* borders */
+  --c-border: #ebebeb;
+  --c-border-soft: #e4e4e7;
+  --c-border-dash: #e0e0e0;
+  --c-border-strong: #d4d4d8;
+
+  /* text, darkest first */
+  --c-fg: #171717;
+  --c-fg-hover: #2b2b2b;
+  --c-fg-2: #525252;
+  --c-mono-dim: #666;
+  --c-muted: #8a8a8a;
+  --c-muted-zinc: #71717a;
+  --c-muted-2: #a3a3a3;
+  --c-muted-3: #b5b1aa;
+  --c-disabled: #c9c9c9;
+
+  /* states */
+  --c-ok: #29915d;
+  --c-ok-text: #1f7a4d;
+  --c-ok-tint: rgba(41, 145, 93, 0.1);
+  --c-warn: #d97706;
+  --c-warn-text: #b45309;
+  --c-warn-text-deep: #92400e;
+  --c-warn-bg: #fef3c7;
+  --c-warn-bg-soft: #fffbeb;
+  --c-warn-border: #fde68a;
+  --c-err: #dc2828;
+  --c-err-text: #b91c1c;
+  --c-err-bg: #fee2e2;
+  --c-err-bg-soft: #fef2f2;
+  --c-err-border: #f5caca;
+  --c-info-text: #0369a1;
+  --c-accent-blue: #0b64f4;
+
+  /* the app's own mark, which has to read on either ground */
+  --c-logo-ink: #201e1d;
+
+  /* the scrim a modal lays over the window */
+  --c-scrim: rgba(23, 23, 23, 0.32);
+}
+
 /* title bar */
 .tb2 {
   height: 40px;
@@ -51,7 +115,7 @@
   align-items: center;
   gap: 8px;
   padding: 0 14px;
-  border-bottom: 1px solid #ebebeb;
+  border-bottom: 1px solid var(--c-border);
   /* The bar is the window's drag handle; see the opt-out below. */
   --wails-draggable: drag;
 }
@@ -80,20 +144,20 @@
 .tbi {
   width: 28px;
   height: 28px;
-  border: 1px solid #ebebeb;
+  border: 1px solid var(--c-border);
   border-radius: 8px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #525252;
-  background: #fff;
+  color: var(--c-fg-2);
+  background: var(--c-bg);
   font-size: 12.5px;
   flex: none;
 }
 .tbi.on {
-  background: #171717;
-  color: #fff;
-  border-color: #171717;
+  background: var(--c-fg);
+  color: var(--c-bg);
+  border-color: var(--c-fg);
 }
 /*
  * 检查更新 turns its icon one full circle per click. The angle only ever grows,
@@ -119,7 +183,7 @@
   gap: 2px;
   flex: none;
   padding-left: 8px;
-  border-left: 1px solid #ebebeb;
+  border-left: 1px solid var(--c-border);
 }
 .wc {
   width: 28px;
@@ -131,7 +195,7 @@
   border: none;
   border-radius: 7px;
   background: transparent;
-  color: #525252;
+  color: var(--c-fg-2);
   font-family: inherit;
   font-size: 12.5px;
   line-height: 1;
@@ -141,32 +205,32 @@
     color 0.12s ease;
 }
 .wc:hover {
-  background: #f0f0f0;
+  background: var(--c-fill-mute);
 }
 /* Close is the only irreversible button in the bar, so it hovers like `.btn3.dgr`. */
 .wc.dgr:hover {
-  background: #fef2f2;
-  color: #dc2828;
+  background: var(--c-err-bg-soft);
+  color: var(--c-err);
 }
 .wc:focus-visible {
-  outline: 2px solid #171717;
+  outline: 2px solid var(--c-fg);
   outline-offset: 1px;
 }
 .pillc {
   display: flex;
   align-items: center;
   gap: 7px;
-  border: 1px solid #ebebeb;
+  border: 1px solid var(--c-border);
   border-radius: 99px;
   padding: 3px 11px;
   font-size: 11.5px;
-  color: #525252;
+  color: var(--c-fg-2);
 }
 .dotg {
   width: 7px;
   height: 7px;
   border-radius: 99px;
-  background: #29915d;
+  background: var(--c-ok);
   flex: none;
 }
 
@@ -174,7 +238,7 @@
 .side3 {
   width: 198px;
   flex: none;
-  border-right: 1px solid #ebebeb;
+  border-right: 1px solid var(--c-border);
   display: flex;
   flex-direction: column;
   padding: 10px;
@@ -190,7 +254,7 @@
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.06em;
-  color: #8a8a8a;
+  color: var(--c-muted);
   text-transform: uppercase;
 }
 .ni {
@@ -199,13 +263,13 @@
   gap: 8px;
   padding: 5.5px 10px;
   border-radius: 8px;
-  color: #525252;
+  color: var(--c-fg-2);
   font-size: 12.5px;
   position: relative;
 }
 .ni.on {
-  background: #171717;
-  color: #fff;
+  background: var(--c-fg);
+  color: var(--c-bg);
   font-weight: 500;
 }
 .ni.on .nic {
@@ -261,7 +325,7 @@
  * the grey the group labels use. Two classes to outrank `button.ni`'s reset.
  */
 .side3 .side3-toggle {
-  color: #8a8a8a;
+  color: var(--c-muted);
 }
 
 /* page header / toolbar */
@@ -275,7 +339,7 @@
      run past the window, which is the one case the canvas never drew. */
   flex-wrap: wrap;
   padding: 14px 20px 12px;
-  border-bottom: 1px solid #ebebeb;
+  border-bottom: 1px solid var(--c-border);
 }
 .hd3 h2 {
   margin: 0;
@@ -285,7 +349,7 @@
 }
 .hd3 .sub {
   font-size: 11.5px;
-  color: #8a8a8a;
+  color: var(--c-muted);
   margin-top: 2px;
 }
 .tbar3 {
@@ -297,7 +361,7 @@
   /* See .hd3: the filter row wraps rather than losing its last control. */
   flex-wrap: wrap;
   padding: 10px 20px;
-  border-bottom: 1px solid #ebebeb;
+  border-bottom: 1px solid var(--c-border);
 }
 
 /* controls */
@@ -305,35 +369,35 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  border: 1px solid #ebebeb;
+  border: 1px solid var(--c-border);
   border-radius: 8px;
   padding: 4.5px 12px;
   font-size: 12px;
-  background: #fff;
+  background: var(--c-bg);
   white-space: nowrap;
 }
 .btn3.pri {
-  background: #171717;
-  color: #fff;
-  border-color: #171717;
+  background: var(--c-fg);
+  color: var(--c-bg);
+  border-color: var(--c-fg);
 }
 .btn3.dgr {
-  color: #dc2828;
-  border-color: #f5caca;
+  color: var(--c-err);
+  border-color: var(--c-err-border);
 }
 .in3 {
-  border: 1px solid #ebebeb;
+  border: 1px solid var(--c-border);
   border-radius: 8px;
   padding: 4.5px 10px;
   font-size: 12px;
-  color: #8a8a8a;
-  background: #fff;
+  color: var(--c-muted);
+  background: var(--c-bg);
   white-space: nowrap;
 }
 .card3 {
-  border: 1px solid #ebebeb;
+  border: 1px solid var(--c-border);
   border-radius: 12px;
-  background: #fff;
+  background: var(--c-bg);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 .sec3 {
@@ -341,7 +405,7 @@
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #8a8a8a;
+  color: var(--c-muted);
 }
 
 /* table */
@@ -354,21 +418,21 @@
   text-align: left;
   font-size: 11px;
   font-weight: 500;
-  color: #8a8a8a;
+  color: var(--c-muted);
   padding: 7px 14px;
-  border-bottom: 1px solid #ebebeb;
+  border-bottom: 1px solid var(--c-border);
   white-space: nowrap;
 }
 .t3 td {
   padding: 7.5px 14px;
-  border-bottom: 1px solid #f4f4f4;
+  border-bottom: 1px solid var(--c-rule);
   white-space: nowrap;
   max-width: 280px;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .t3 tr.sel td {
-  background: #f5f5f5;
+  background: var(--c-fill);
 }
 /*
  * A table that is the page's own content, not a card's: its outer cells take
@@ -395,20 +459,20 @@
   white-space: nowrap;
 }
 .st.ok {
-  background: rgba(41, 145, 93, 0.1);
-  color: #1f7a4d;
+  background: var(--c-ok-tint);
+  color: var(--c-ok-text);
 }
 .st.warn {
-  background: #fef3c7;
-  color: #92400e;
+  background: var(--c-warn-bg);
+  color: var(--c-warn-text-deep);
 }
 .st.err {
-  background: #fee2e2;
-  color: #b91c1c;
+  background: var(--c-err-bg);
+  color: var(--c-err-text);
 }
 .st.off {
-  background: #f4f4f5;
-  color: #71717a;
+  background: var(--c-fill-zinc);
+  color: var(--c-muted-zinc);
 }
 
 /*
@@ -449,43 +513,43 @@
 .ph3 {
   height: 7px;
   border-radius: 4px;
-  background: #f0f0f0;
+  background: var(--c-fill-mute);
 }
 .chart3 {
-  border: 1px dashed #e0e0e0;
+  border: 1px dashed var(--c-border-dash);
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #a3a3a3;
+  color: var(--c-muted-2);
   font: 11px var(--app-monospace-font, 'JetBrains Mono', ui-monospace, monospace);
-  background: repeating-linear-gradient(45deg, #fcfcfc, #fcfcfc 8px, #f8f8f8 8px, #f8f8f8 16px);
+  background: repeating-linear-gradient(45deg, var(--c-panel), var(--c-panel) 8px, var(--c-fill-soft) 8px, var(--c-fill-soft) 16px);
   text-align: center;
 }
 .seg {
   display: inline-flex;
-  border: 1px solid #ebebeb;
+  border: 1px solid var(--c-border);
   border-radius: 8px;
   padding: 2px;
   gap: 2px;
-  background: #fff;
+  background: var(--c-bg);
 }
 .seg span {
   padding: 2.5px 10px;
   border-radius: 6px;
   font-size: 11.5px;
-  color: #666;
+  color: var(--c-mono-dim);
 }
 .seg .on {
-  background: #171717;
-  color: #fff;
+  background: var(--c-fg);
+  color: var(--c-bg);
   font-weight: 500;
 }
 .sw {
   width: 28px;
   height: 16px;
   border-radius: 99px;
-  background: #29915d;
+  background: var(--c-ok);
   position: relative;
   flex: none;
 }
@@ -497,10 +561,10 @@
   width: 12px;
   height: 12px;
   border-radius: 99px;
-  background: #fff;
+  background: var(--c-bg);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
-.sw.off { background: #e4e4e7; }
+.sw.off { background: var(--c-border-soft); }
 .sw.off::after { right: auto; left: 2px; }
 .kv3 {
   display: grid;
@@ -509,36 +573,36 @@
   font-size: 11.5px;
   align-items: baseline;
 }
-.kv3 .k { color: #8a8a8a; }
+.kv3 .k { color: var(--c-muted); }
 .bar3 {
   height: 6px;
   border-radius: 99px;
-  background: #f0f0f0;
+  background: var(--c-fill-mute);
   overflow: hidden;
 }
 .bar3 i {
   display: block;
   height: 100%;
   border-radius: 99px;
-  background: #29915d;
+  background: var(--c-ok);
 }
 .srow {
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 11px 16px;
-  border-bottom: 1px solid #f4f4f4;
+  border-bottom: 1px solid var(--c-rule);
   font-size: 12.5px;
 }
 /* Elastic, as the shipped settings page draws it: the hints run long. */
 .srow .lab { flex: 1; min-width: 0; }
-.srow .hint { font-size: 11px; color: #8a8a8a; margin-top: 1px; }
+.srow .hint { font-size: 11px; color: var(--c-muted); margin-top: 1px; }
 
 /* capability-matrix cells */
 .cd { font-size: 13px; text-align: center; }
-.cd.y { color: #1f7a4d; }
-.cd.p { color: #b45309; }
-.cd.n { color: #c9c9c9; }
+.cd.y { color: var(--c-ok-text); }
+.cd.p { color: var(--c-warn-text); }
+.cd.n { color: var(--c-disabled); }
 
 /* protocol logo + picker tile */
 .plogo {
@@ -549,12 +613,12 @@
   vertical-align: -2px;
 }
 .ptile {
-  border: 1px solid #ebebeb;
+  border: 1px solid var(--c-border);
   border-radius: 8px;
   padding: 8px 4px;
   text-align: center;
   font-size: 10.5px;
-  color: #525252;
+  color: var(--c-fg-2);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -563,21 +627,21 @@
 .ptile img,
 .ptile svg { width: 18px; height: 18px; object-fit: contain; }
 .ptile.sel {
-  border: 1.5px solid #171717;
-  background: #fafafa;
+  border: 1.5px solid var(--c-fg);
+  background: var(--c-bar);
   font-weight: 500;
-  color: #171717;
+  color: var(--c-fg);
   padding: 7.5px 3.5px;
 }
-.pv { font-size: 9.5px; color: #a3a3a3; font-weight: 400; }
+.pv { font-size: 9.5px; color: var(--c-muted-2); font-weight: 400; }
 .fld {
   display: flex;
   flex-direction: column;
   gap: 5px;
   font-size: 11px;
-  color: #666;
+  color: var(--c-mono-dim);
 }
-.fld .in3 { color: #171717; }
+.fld .in3 { color: var(--c-fg); }
 
 /*
  * Interaction layer. The canvas is a static mockup, so hover/active states are
@@ -607,17 +671,17 @@
   background: rgba(23, 23, 23, 0.13);
 }
 
-.ni:not(.on):hover { background: #f5f5f5; }
-.tbi:not(.on):hover { background: #f5f5f5; }
-.btn3:not(.pri):hover { background: #fafafa; }
-.btn3.pri:hover { background: #2b2b2b; }
-.btn3.dgr:hover { background: #fef2f2; }
+.ni:not(.on):hover { background: var(--c-fill); }
+.tbi:not(.on):hover { background: var(--c-fill); }
+.btn3:not(.pri):hover { background: var(--c-bar); }
+.btn3.pri:hover { background: var(--c-fg-hover); }
+.btn3.dgr:hover { background: var(--c-err-bg-soft); }
 .btn3:disabled { opacity: 0.5; }
-.seg span:not(.on):hover { background: #f5f5f5; }
-.ptile:not(.sel):hover { background: #fafafa; }
-.t3 tbody tr:hover td { background: #fafafa; }
-.t3 tbody tr.sel:hover td { background: #f0f0f0; }
-.mqs-menuitem:hover { background: #f5f5f5; }
+.seg span:not(.on):hover { background: var(--c-fill); }
+.ptile:not(.sel):hover { background: var(--c-bar); }
+.t3 tbody tr:hover td { background: var(--c-bar); }
+.t3 tbody tr.sel:hover td { background: var(--c-fill-mute); }
+.mqs-menuitem:hover { background: var(--c-fill); }
 
 /* Row actions are drawn on hover in 8a ("悬停显示操作 ⋯"). */
 .mqs-rowactions { visibility: hidden; }
@@ -634,7 +698,7 @@
   right: 20px;
   top: 50%;
   transform: translateY(-50%);
-  color: #c9c9c9;
+  color: var(--c-disabled);
 }
 .t3 tbody tr:hover .mqs-rowhint { display: none; }
 
@@ -650,26 +714,26 @@ button.tbi:focus-visible,
 .ni:focus-visible,
 .mqs-tab:focus-visible,
 .mqs-tab-home:focus-visible {
-  outline: 2px solid #171717;
+  outline: 2px solid var(--c-fg);
   outline-offset: 1px;
 }
 input.in3,
 textarea.in3,
 select.in3 {
-  color: #171717;
+  color: var(--c-fg);
   font-family: inherit;
   outline: none;
 }
 input.in3::placeholder,
-textarea.in3::placeholder { color: #8a8a8a; }
+textarea.in3::placeholder { color: var(--c-muted); }
 input.in3:focus,
 textarea.in3:focus,
-select.in3:focus { border-color: #d4d4d8; }
+select.in3:focus { border-color: var(--c-border-strong); }
 
 /* Scrollbars inside the shell stay thin so the chrome metrics hold. */
-.mqs-scroll { overflow: auto; scrollbar-width: thin; scrollbar-color: #e4e4e7 transparent; }
+.mqs-scroll { overflow: auto; scrollbar-width: thin; scrollbar-color: var(--c-border-soft) transparent; }
 .mqs-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
-.mqs-scroll::-webkit-scrollbar-thumb { background: #e4e4e7; border-radius: 99px; }
+.mqs-scroll::-webkit-scrollbar-thumb { background: var(--c-border-soft); border-radius: 99px; }
 .mqs-scroll::-webkit-scrollbar-track { background: transparent; }
 
 /* Compact in-row action button (8a "打开标签 / 断开 / 编辑 / ⋯"). */
@@ -680,7 +744,7 @@ select.in3:focus { border-color: #d4d4d8; }
   gap: 0;
 }
 .btn3.mqs-btn-rowicon { padding: 2.5px 7px; }
-.btn3.mqs-btn-row.pri { background: #171717; color: #fff; border-color: #171717; }
+.btn3.mqs-btn-row.pri { background: var(--c-fg); color: var(--c-bg); border-color: var(--c-fg); }
 
 /* Button resets, so nav/tab affordances can be real buttons without restyling. */
 button.ni,
@@ -706,10 +770,10 @@ button.in3 {
 }
 button.ni {
   font-size: 12.5px;
-  color: #525252;
+  color: var(--c-fg-2);
   width: 100%;
 }
-button.ni.on { background: #171717; color: #fff; }
+button.ni.on { background: var(--c-fg); color: var(--c-bg); }
 
 /* The compact table used inside detail sheets (partition lists, bindings…). */
 .t3.mini { font-size: 11px; }
@@ -744,11 +808,11 @@ button.ni.on { background: #171717; color: #fff; }
   transition: background-color 0.12s ease;
 }
 .mqs-tab-home:hover {
-  background: #f0f0f0;
+  background: var(--c-fill-mute);
 }
 .mqs-tab-home[aria-current='page'] {
-  background: #fff;
-  border-color: #ebebeb;
+  background: var(--c-bg);
+  border-color: var(--c-border);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
@@ -784,10 +848,10 @@ button.ni.on { background: #171717; color: #fff; }
    * close ×'s fade have to disappear into it, so the three states are declared
    * here once instead of being restated by everything that must match them.
    */
-  --mqs-tab-bg: #fafafa;
+  --mqs-tab-bg: var(--c-bar);
 }
 .mqs-tab[aria-selected='true'] {
-  --mqs-tab-bg: #fff;
+  --mqs-tab-bg: var(--c-bg);
 }
 /*
  * The compare tab (5b) carries two labels, so it is sized by its content. Its
@@ -826,7 +890,7 @@ button.ni.on { background: #171717; color: #fff; }
 
 /*
  * Connection tab hover. 5a draws the hovered inactive tab with its close ×
- * revealed in #c9c9c9 — that is the only thing separating it from the two
+ * revealed in var(--c-disabled) — that is the only thing separating it from the two
  * tabs after it. Moving along the strip must not reflow it, or a tab can
  * slide out from under the cursor.
  */
@@ -839,8 +903,8 @@ button.ni.on { background: #171717; color: #fff; }
 }
 
 .mqs-tab[aria-selected='false']:hover {
-  background: #f0f0f0;
-  --mqs-tab-bg: #f0f0f0;
+  background: var(--c-fill-mute);
+  --mqs-tab-bg: var(--c-fill-mute);
 }
 
 /*
@@ -865,7 +929,7 @@ button.ni.on { background: #171717; color: #fff; }
   background: var(--mqs-tab-bg);
   font: inherit;
   line-height: 1;
-  color: #a3a3a3;
+  color: var(--c-muted-2);
 }
 /*
  * The runway the name fades out along. It hangs off the button so it inherits
@@ -904,7 +968,7 @@ button.ni.on { background: #171717; color: #fff; }
  */
 .mqs-tab[aria-selected='false'] .mqs-tab-close {
   visibility: hidden;
-  color: #c9c9c9;
+  color: var(--c-disabled);
 }
 .mqs-tab[aria-selected='false']:hover .mqs-tab-close,
 .mqs-tab[aria-selected='false']:focus-within .mqs-tab-close {
@@ -912,7 +976,7 @@ button.ni.on { background: #171717; color: #fff; }
 }
 /* Scoped to .mqs-tab so it outranks the [aria-selected] rule that greys it. */
 .mqs-tab .mqs-tab-close:hover {
-  color: #171717;
+  color: var(--c-fg);
 }
 
 /* The dashed ＋ that opens the new-connection dialog. */
@@ -924,15 +988,15 @@ button.ni.on { background: #171717; color: #fff; }
   align-items: center;
   justify-content: center;
   padding: 0 9px;
-  border: 1px dashed #d4d4d8;
+  border: 1px dashed var(--c-border-strong);
   border-radius: 8px;
   background: transparent;
-  color: #8a8a8a;
+  color: var(--c-muted);
 }
 .mqs-tab-add:hover {
-  background: #f0f0f0;
-  border-color: #c9c9c9;
-  color: #525252;
+  background: var(--c-fill-mute);
+  border-color: var(--c-disabled);
+  color: var(--c-fg-2);
 }
 
 /*
@@ -1021,7 +1085,7 @@ button.card3 {
   appearance: none;
 }
 button.card3:hover {
-  border-color: #d4d4d8;
+  border-color: var(--c-border-strong);
 }
 
 /*

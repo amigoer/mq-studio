@@ -27,8 +27,8 @@ function Note({ children }: { children: ReactNode }) {
     <div
       style={{
         fontSize: "10.5px",
-        color: "#8a8a8a",
-        borderTop: "1px solid #f4f4f4",
+        color: "var(--c-muted)",
+        borderTop: "1px solid var(--c-rule)",
         paddingTop: "8px",
         lineHeight: 1.6,
       }}
@@ -177,7 +177,7 @@ export function RedisPanel() {
         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
           <FieldPair name="orderId" value="ORD-TEST-001" />
           <FieldPair name="amount" value="1.00" />
-          <div style={{ fontSize: "11px", color: "#29915d" }}>+ 添加字段</div>
+          <div style={{ fontSize: "11px", color: "var(--c-ok)" }}>+ 添加字段</div>
         </div>
       </div>
       <Note>* = 自动生成 ID · maxlen ~ 为近似裁剪（高性能）</Note>

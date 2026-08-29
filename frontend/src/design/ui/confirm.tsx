@@ -67,7 +67,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
         }
       >
         {request?.description != null && (
-          <div style={{ fontSize: "12.5px", color: "#525252", lineHeight: 1.6 }}>
+          <div style={{ fontSize: "12.5px", color: "var(--c-fg-2)", lineHeight: 1.6 }}>
             {request.description}
           </div>
         )}

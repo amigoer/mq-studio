@@ -25,15 +25,15 @@ export function OverviewPulsar() {
           <StatTile label="命名空间" value="14" hint="租户 6" />
           <StatTile label="Topic" value="220" hint="分区 Topic 38" />
           <StatTile label="吞吐" value="1.8k/s" hint="出 2.1k/s" />
-          <StatTile label="总积压" value="8 421" valueColor="#b45309" hint="较 1h 前 +6%" />
+          <StatTile label="总积压" value="8 421" valueColor="var(--c-warn-text)" hint="较 1h 前 +6%" />
         </div>
 
         <div className={CHART_ROW}>
           <Card style={CHART_CARD}>
             <b style={{ fontSize: "12.5px" }}>吞吐趋势</b>
             <div style={{ display: "flex", gap: "12px", fontSize: "10.5px" }}>
-              <span style={{ color: "#171717" }}>— in msg/s</span>
-              <span style={{ color: "#8a8a8a" }}>— out msg/s</span>
+              <span style={{ color: "var(--c-fg)" }}>— in msg/s</span>
+              <span style={{ color: "var(--c-muted)" }}>— out msg/s</span>
             </div>
             <ChartBox style={{ flex: 1 }}>折线图占位</ChartBox>
           </Card>
@@ -43,7 +43,7 @@ export function OverviewPulsar() {
             <MeterRow label="bookie-2" value={61} />
             <MeterRow label="bookie-3" value={57} />
             <MeterRow label="bookie-4" value={73} />
-            <div style={{ fontSize: "10.5px", color: "#8a8a8a" }}>Ledger 均衡 · 无只读 Bookie</div>
+            <div style={{ fontSize: "10.5px", color: "var(--c-muted)" }}>Ledger 均衡 · 无只读 Bookie</div>
           </Card>
         </div>
 
@@ -66,7 +66,7 @@ export function OverviewPulsar() {
                   persistent://ecommerce/orders/order-created
                 </TD>
                 <TD>Shared</TD>
-                <TD className="mono3" style={{ textAlign: "right", color: "#b45309" }}>6 210</TD>
+                <TD className="mono3" style={{ textAlign: "right", color: "var(--c-warn-text)" }}>6 210</TD>
                 <TD className="mono3" style={{ textAlign: "right" }}>1 104/s</TD>
               </TR>
               <TR>

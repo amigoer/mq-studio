@@ -47,7 +47,7 @@ export function NodeCard({
   children?: ReactNode;
 }) {
   return (
-    <Card style={{ ...NODE_CARD, background: dim ? "#fcfcfc" : undefined }}>
+    <Card style={{ ...NODE_CARD, background: dim ? "var(--c-panel)" : undefined }}>
       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
         <b className="mono3" style={{ fontSize: "12.5px" }}>
           {name}
@@ -55,7 +55,7 @@ export function NodeCard({
         {badges}
         <span style={{ flex: 1 }} />
         {address != null && (
-          <span className="mono3" style={{ fontSize: "10.5px", color: "#8a8a8a" }}>
+          <span className="mono3" style={{ fontSize: "10.5px", color: "var(--c-muted)" }}>
             {address}
           </span>
         )}
@@ -66,7 +66,7 @@ export function NodeCard({
       {meters?.map((m, i) => (
         <div
           key={i}
-          style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "11px", color: "#8a8a8a" }}
+          style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "11px", color: "var(--c-muted)" }}
         >
           <span style={{ flex: "none", color: m.labelColor }}>{m.label}</span>
           <Bar value={m.value} color={m.color} style={{ flex: 1 }} />

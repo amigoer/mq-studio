@@ -30,7 +30,7 @@ export function BrokersKafka() {
               <>
                 <Metric label="入" value="1 820/s" />
                 <Metric label="出" value="3 240/s" />
-                <span style={{ color: "#8a8a8a" }}>分区 130 · leader 44</span>
+                <span style={{ color: "var(--c-muted)" }}>分区 130 · leader 44</span>
               </>
             }
             meters={[{ label: "磁盘 58%", value: 58 }]}
@@ -43,7 +43,7 @@ export function BrokersKafka() {
               <>
                 <Metric label="入" value="1 704/s" />
                 <Metric label="出" value="2 988/s" />
-                <span style={{ color: "#8a8a8a" }}>分区 128 · leader 42</span>
+                <span style={{ color: "var(--c-muted)" }}>分区 128 · leader 42</span>
               </>
             }
             meters={[{ label: "磁盘 61%", value: 61 }]}
@@ -61,10 +61,10 @@ export function BrokersKafka() {
               <>
                 <Metric label="入" value="1 688/s" />
                 <Metric label="出" value="2 901/s" />
-                <span style={{ color: "#b45309" }}>URP 2</span>
+                <span style={{ color: "var(--c-warn-text)" }}>URP 2</span>
               </>
             }
-            meters={[{ label: "磁盘 74%", value: 74, color: "#d97706" }]}
+            meters={[{ label: "磁盘 74%", value: 74, color: "var(--c-warn)" }]}
           />
           <Card style={NODE_CARD}>
             <SectionLabel>集群配置摘要</SectionLabel>
@@ -82,14 +82,14 @@ export function BrokersKafka() {
           <div
             style={{
               padding: "11px 16px",
-              borderBottom: "1px solid #ebebeb",
+              borderBottom: "1px solid var(--c-border)",
               display: "flex",
               alignItems: "center",
             }}
           >
             <b style={{ fontSize: "12.5px" }}>未同步分区（URP）</b>
             <span style={{ flex: 1 }} />
-            <span style={{ fontSize: "11.5px", color: "#525252" }}>重新选举 leader…</span>
+            <span style={{ fontSize: "11.5px", color: "var(--c-fg-2)" }}>重新选举 leader…</span>
           </div>
           <Table>
             <THead>
@@ -105,7 +105,7 @@ export function BrokersKafka() {
                 <TD className="mono3" style={MONO11}>orders.created</TD>
                 <TD className="mono3" style={{ textAlign: "right" }}>2</TD>
                 <TD className="mono3" style={MONO11}>3,1</TD>
-                <TD className="mono3" style={{ ...MONO11, color: "#b45309" }}>
+                <TD className="mono3" style={{ ...MONO11, color: "var(--c-warn-text)" }}>
                   2（kafka-2 落后 4 210）
                 </TD>
               </TR>
@@ -113,7 +113,7 @@ export function BrokersKafka() {
                 <TD className="mono3" style={MONO11}>payments.captured</TD>
                 <TD className="mono3" style={{ textAlign: "right" }}>7</TD>
                 <TD className="mono3" style={MONO11}>1,2</TD>
-                <TD className="mono3" style={{ ...MONO11, color: "#b45309" }}>3（追赶中）</TD>
+                <TD className="mono3" style={{ ...MONO11, color: "var(--c-warn-text)" }}>3（追赶中）</TD>
               </TR>
             </TBody>
           </Table>

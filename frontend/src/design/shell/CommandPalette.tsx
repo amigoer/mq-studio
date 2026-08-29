@@ -29,7 +29,7 @@ export function CommandPalette({
       style={{
         position: "absolute",
         inset: 0,
-        background: "rgba(23,23,23,.32)",
+        background: "var(--c-scrim)",
         display: "flex",
         alignItems: "flex-start",
         justifyContent: "center",
@@ -50,10 +50,10 @@ export function CommandPalette({
             alignItems: "center",
             gap: "8px",
             padding: "13px 16px",
-            borderBottom: "1px solid #ebebeb",
+            borderBottom: "1px solid var(--c-border)",
           }}
         >
-          <Search size={15} color="#8a8a8a" aria-hidden />
+          <Search size={15} style={{ color: "var(--c-muted)" }} aria-hidden />
           <input
             autoFocus
             value={query}
@@ -68,7 +68,7 @@ export function CommandPalette({
               background: "transparent",
             }}
           />
-          <span className="mono3" style={{ fontSize: "10px", color: "#a3a3a3" }}>
+          <span className="mono3" style={{ fontSize: "10px", color: "var(--c-muted-2)" }}>
             ESC
           </span>
         </div>
@@ -93,7 +93,7 @@ export function CommandPalette({
           <div style={{ padding: "8px 10px 6px" }} className="sec3">
             操作
           </div>
-          <div style={{ ...ROW, color: "#525252" }}>
+          <div style={{ ...ROW, color: "var(--c-fg-2)" }}>
             <span className="nic">
               <Send size={16} aria-hidden />
             </span>
@@ -106,9 +106,9 @@ export function CommandPalette({
             display: "flex",
             gap: "14px",
             padding: "9px 16px",
-            borderTop: "1px solid #ebebeb",
+            borderTop: "1px solid var(--c-border)",
             fontSize: "10.5px",
-            color: "#a3a3a3",
+            color: "var(--c-muted-2)",
           }}
         >
           <span>↑↓ 选择</span>
@@ -148,7 +148,7 @@ function Row({
   enter?: boolean;
 }) {
   return (
-    <div style={{ ...ROW, background: active ? "#f5f5f5" : undefined, color: active ? undefined : "#525252" }}>
+    <div style={{ ...ROW, background: active ? "var(--c-fill)" : undefined, color: active ? undefined : "var(--c-fg-2)" }}>
       <span className="nic">
         <Icon size={16} aria-hidden />
       </span>
@@ -166,11 +166,11 @@ function Row({
           {pill}
         </span>
       )}
-      <span style={{ fontSize: "10.5px", color: "#8a8a8a" }}>{meta}</span>
+      <span style={{ fontSize: "10.5px", color: "var(--c-muted)" }}>{meta}</span>
       {enter && (
         <>
           <span style={{ flex: 1 }} />
-          <span className="mono3" style={{ fontSize: "10px", color: "#a3a3a3" }}>
+          <span className="mono3" style={{ fontSize: "10px", color: "var(--c-muted-2)" }}>
             ↵ 打开
           </span>
         </>

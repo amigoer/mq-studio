@@ -71,8 +71,8 @@ export function Sheet({
         width: `${width}px`,
         display: "flex",
         flexDirection: "column",
-        background: "#fff",
-        borderLeft: "1px solid #ebebeb",
+        background: "var(--c-bg)",
+        borderLeft: "1px solid var(--c-border)",
         boxShadow: "-16px 0 44px rgba(0,0,0,.13)",
         overflow: "hidden",
         zIndex: 4,
@@ -111,7 +111,7 @@ export function SheetHeader({
           type="button"
           aria-label="关闭"
           onClick={onClose}
-          style={{ display: "flex", color: "#a3a3a3", background: "none", border: "none", padding: 0 }}
+          style={{ display: "flex", color: "var(--c-muted-2)", background: "none", border: "none", padding: 0 }}
         >
           <X size={16} aria-hidden />
         </button>
@@ -122,7 +122,7 @@ export function SheetHeader({
             display: "flex",
             gap: "14px",
             marginTop: "10px",
-            borderBottom: "1px solid #ebebeb",
+            borderBottom: "1px solid var(--c-border)",
             fontSize: "12px",
           }}
         >
@@ -143,8 +143,8 @@ export function SheetHeader({
                 }}
                 style={
                   on
-                    ? { padding: "0 2px 7px", borderBottom: "2px solid #171717", fontWeight: 500 }
-                    : { padding: "0 2px 7px", color: "#8a8a8a" }
+                    ? { padding: "0 2px 7px", borderBottom: "2px solid var(--c-fg)", fontWeight: 500 }
+                    : { padding: "0 2px 7px", color: "var(--c-muted)" }
                 }
               >
                 {tab}
@@ -183,8 +183,8 @@ export function SheetFooter({ children }: { children: ReactNode }) {
         display: "flex",
         gap: "8px",
         padding: "12px 16px",
-        borderTop: "1px solid #ebebeb",
-        background: "#fff",
+        borderTop: "1px solid var(--c-border)",
+        background: "var(--c-bg)",
       }}
     >
       {children}

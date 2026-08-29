@@ -68,12 +68,12 @@ export function ReuseStrategy() {
                   <TD>
                     <Status tone={TONE[row.strategy].tone}>{TONE[row.strategy].label}</Status>
                   </TD>
-                  <TD style={{ whiteSpace: "normal", color: "#666" }}>{row.note}</TD>
+                  <TD style={{ whiteSpace: "normal", color: "var(--c-mono-dim)" }}>{row.note}</TD>
                 </TR>
               ))}
             </TBody>
           </Table>
-          <div style={{ padding: "10px 14px 6px", fontSize: "11px", color: "#8a8a8a" }}>
+          <div style={{ padding: "10px 14px 6px", fontSize: "11px", color: "var(--c-muted)" }}>
             实现建议：每种协议一个 adapter，暴露统一接口 + capabilities 描述；页面按 capabilities
             渲染字段与操作，独立模块走协议专属路由。
           </div>

@@ -3,7 +3,7 @@ import { Page, PageBody } from "@/design/shell";
 import { Card, CardHeader, ChartBox, StatTile, Table, TBody, TD, TH, THead, TR } from "@/design/ui";
 import { CHART_CARD, CHART_ROW, KPI_GRID, OverviewHeader, TABLE_CARD } from "./_shared";
 
-const METRIC = { fontSize: "11px", color: "#666" } as const;
+const METRIC = { fontSize: "11px", color: "var(--c-mono-dim)" } as const;
 
 /** Board 11e — MQTT overview. Everything here is read from the $SYS tree. */
 export function OverviewMqtt() {
@@ -34,7 +34,7 @@ export function OverviewMqtt() {
           <CardHeader
             title="$SYS 关键指标"
             action={
-              <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "11.5px", color: "#525252" }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "11.5px", color: "var(--c-fg-2)" }}>
                 完整 $SYS 树
                 <ArrowRight size={13} aria-hidden />
               </span>

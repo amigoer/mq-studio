@@ -42,7 +42,7 @@ export const TABLE_CARD = {
 /** The "查看全部" link in a table-card header, arrow included. */
 export function ViewAll({ children = "查看全部" }: { children?: ReactNode }) {
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "11.5px", color: "#525252" }}>
+    <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "11.5px", color: "var(--c-fg-2)" }}>
       {children}
       <ArrowRight size={13} aria-hidden />
     </span>
@@ -50,4 +50,4 @@ export function ViewAll({ children = "查看全部" }: { children?: ReactNode })
 }
 
 /** The mono, muted secondary cell used for topic/queue names in TOP tables. */
-export const NAME_CELL = { fontSize: "11px", color: "#666" } as const;
+export const NAME_CELL = { fontSize: "11px", color: "var(--c-mono-dim)" } as const;

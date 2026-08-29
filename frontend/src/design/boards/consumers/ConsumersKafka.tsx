@@ -36,7 +36,7 @@ export function ConsumersKafka() {
       <PageHeader title="消费者组" subtitle="18 个 · 1 再均衡中" />
       <Toolbar>
         <Field style={{ flex: "0 0 220px" }} placeholder="搜索消费者组…" />
-        <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11.5px", color: "#666" }}>
+        <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11.5px", color: "var(--c-mono-dim)" }}>
           <Sw checked={lagOnly} onCheckedChange={setLagOnly} label="仅看有 lag" />
           仅看有 lag
         </span>
@@ -63,7 +63,7 @@ export function ConsumersKafka() {
                 <TD><Status tone="ok">Stable</Status></TD>
                 <TD className="mono3" style={R}>6</TD>
                 <TD className="mono3" style={R}>1</TD>
-                <TD className="mono3" style={{ ...R, color: "#b45309" }}>9 820</TD>
+                <TD className="mono3" style={{ ...R, color: "var(--c-warn-text)" }}>9 820</TD>
                 <TD className="mono3" style={R}>1 104/s</TD>
               </TR>
               <TR selected={selected === "notify-consumer"} onClick={() => setSelected("notify-consumer")}>
@@ -99,7 +99,7 @@ export function ConsumersKafka() {
             />
             <SheetBody>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px" }}>
-                <MiniStat label="总 lag" value="9 820" color="#b45309" size={15} />
+                <MiniStat label="总 lag" value="9 820" color="var(--c-warn-text)" size={15} />
                 <MiniStat label="成员" value="6" size={15} />
                 <MiniStat label="分配策略" value="range" size={15} />
               </div>
@@ -123,7 +123,7 @@ export function ConsumersKafka() {
                         <TD className="mono3">c-1@10.2.3.4</TD>
                         <TD className="mono3" style={R}>88 199 021</TD>
                         <TD className="mono3" style={R}>88 204 771</TD>
-                        <TD className="mono3" style={{ ...R, color: "#b45309" }}>5 750</TD>
+                        <TD className="mono3" style={{ ...R, color: "var(--c-warn-text)" }}>5 750</TD>
                       </TR>
                       <TR>
                         <TD className="mono3" style={R}>1</TD>
@@ -144,7 +144,7 @@ export function ConsumersKafka() {
                 </Card>
               </div>
 
-              <div style={{ fontSize: "11px", color: "#8a8a8a" }}>lag 集中在 c-1 的 p0 · 建议检查该实例</div>
+              <div style={{ fontSize: "11px", color: "var(--c-muted)" }}>lag 集中在 c-1 的 p0 · 建议检查该实例</div>
             </SheetBody>
             <SheetFooter>
               <Btn>重置位点…</Btn>

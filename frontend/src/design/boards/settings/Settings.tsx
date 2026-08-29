@@ -269,7 +269,7 @@ function NumField({
         }}
         {...limits}
       />
-      {unit != null && <span style={{ fontSize: "11px", color: "#8a8a8a" }}>{unit}</span>}
+      {unit != null && <span style={{ fontSize: "11px", color: "var(--c-muted)" }}>{unit}</span>}
     </>
   );
 }
@@ -345,8 +345,8 @@ function AppearancePanel() {
                 onClick={() => setSetting("theme", th.mode)}
                 style={{
                   overflow: "hidden",
-                  borderColor: active ? "#171717" : undefined,
-                  boxShadow: active ? "0 0 0 1px #171717" : undefined,
+                  borderColor: active ? "var(--c-fg)" : undefined,
+                  boxShadow: active ? "0 0 0 1px var(--c-fg)" : undefined,
                 }}
               >
                 <div
@@ -354,7 +354,7 @@ function AppearancePanel() {
                     height: "84px",
                     position: "relative",
                     background: palette.bg,
-                    borderBottom: "1px solid #ebebeb",
+                    borderBottom: "1px solid var(--c-border)",
                   }}
                 >
                   {th.mode === "system" ? (
@@ -394,7 +394,7 @@ function AppearancePanel() {
                     <div style={{ fontSize: "12.5px", fontWeight: 500, lineHeight: 1.2 }}>
                       {th.name}
                     </div>
-                    <div style={{ fontSize: "11px", color: "#8a8a8a", marginTop: "2px" }}>
+                    <div style={{ fontSize: "11px", color: "var(--c-muted)", marginTop: "2px" }}>
                       {th.desc}
                     </div>
                   </div>
@@ -405,9 +405,9 @@ function AppearancePanel() {
                       height: "16px",
                       flex: "none",
                       borderRadius: "99px",
-                      border: `1px solid ${active ? "#171717" : "#ebebeb"}`,
-                      background: active ? "#171717" : "transparent",
-                      color: "#fff",
+                      border: `1px solid ${active ? "var(--c-fg)" : "var(--c-border)"}`,
+                      background: active ? "var(--c-fg)" : "transparent",
+                      color: "var(--c-bg)",
                       display: "grid",
                       placeItems: "center",
                     }}
@@ -583,7 +583,7 @@ function FontsPanel({
             className="mono3"
             style={{
               fontSize: "11.5px",
-              color: "#8a8a8a",
+              color: "var(--c-muted)",
               marginTop: "6px",
               fontFamily: monoFontStack(settings.monospaceFont),
             }}
@@ -827,7 +827,7 @@ function ProxyPanel() {
       <Group title="高级（暂未支持）">
         <Card>
           <div
-            style={{ fontSize: "11px", color: "#8a8a8a", padding: "12px 16px", lineHeight: 1.55 }}
+            style={{ fontSize: "11px", color: "var(--c-muted)", padding: "12px 16px", lineHeight: 1.55 }}
           >
             代理与 TLS 跳过依赖各驱动底层客户端的能力，当前版本尚未接入。默认
             AccessKey/SecretKey 已生效：连接未启用 ACL 时会自动使用。
@@ -941,7 +941,7 @@ function DataPanel() {
           <SettingRow
             label={
               <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                <Icon size={13} color="#8a8a8a" aria-hidden />
+                <Icon size={13} color="var(--c-muted)" aria-hidden />
                 {platformLabel}
               </span>
             }
@@ -1077,17 +1077,17 @@ function AboutPanel({ onOpenDoc }: { onOpenDoc?: (doc: DocId) => void }) {
               style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: "8px" }}
             >
               <h2 style={{ margin: 0, fontSize: "15px", fontWeight: 600 }}>MQ Studio</h2>
-              <span className="mono3" style={{ fontSize: "11.5px", color: "#8a8a8a" }}>
+              <span className="mono3" style={{ fontSize: "11.5px", color: "var(--c-muted)" }}>
                 {/* A development build reports "dev", which no v belongs in front of. */}
                 {version == null ? "—" : version === "dev" ? "dev" : `v${version}`}
               </span>
               <EnvTag>Apache-2.0</EnvTag>
             </div>
-            <p style={{ margin: "6px 0 0", fontSize: "11.5px", color: "#8a8a8a", lineHeight: 1.55 }}>
+            <p style={{ margin: "6px 0 0", fontSize: "11.5px", color: "var(--c-muted)", lineHeight: 1.55 }}>
               本地优先的消息队列桌面客户端，无需额外部署控制台，即可管理 RocketMQ、Kafka、
               RabbitMQ、Pulsar、Redis 与 MQTT 的集群、主题、消费者与消息。
             </p>
-            <p style={{ margin: "2px 0 0", fontSize: "11px", color: "#8a8a8a", lineHeight: 1.5 }}>
+            <p style={{ margin: "2px 0 0", fontSize: "11px", color: "var(--c-muted)", lineHeight: 1.5 }}>
               A local-first desktop client for message queues. Manage clusters, topics, consumers
               and messages across six brokers without deploying a separate console.
             </p>
@@ -1218,12 +1218,12 @@ export function Settings({
                 <div style={{ fontSize: "15px", fontWeight: 600, letterSpacing: "-0.01em" }}>
                   {current.label}
                 </div>
-                <div style={{ fontSize: "11.5px", color: "#8a8a8a", marginTop: "2px" }}>
+                <div style={{ fontSize: "11.5px", color: "var(--c-muted)", marginTop: "2px" }}>
                   {current.subtitle}
                 </div>
               </div>
               <span style={{ flex: 1 }} />
-              <span style={{ fontSize: "11px", color: "#8a8a8a", flex: "none" }}>
+              <span style={{ fontSize: "11px", color: "var(--c-muted)", flex: "none" }}>
                 所有更改自动保存
               </span>
             </div>

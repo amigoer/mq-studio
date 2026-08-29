@@ -33,7 +33,7 @@ const MODES = [
 
 const SHEET_TABS = ["消息", "属性"] as const;
 const MONO11 = { fontSize: "11px" } as const;
-const DIM11 = { fontSize: "11px", color: "#666" } as const;
+const DIM11 = { fontSize: "11px", color: "var(--c-mono-dim)" } as const;
 const R = { textAlign: "right" } as const;
 
 /** Board 13c — Pulsar. Peeking by subscription never moves the cursor. */
@@ -82,7 +82,7 @@ export function MessagesPulsar() {
               </TR>
               <TR selected={selected === "812:6:1"} onClick={() => setSelected("812:6:1")}>
                 <TD className="mono3" style={MONO11}>812:6:1</TD>
-                <TD className="mono3" style={{ ...MONO11, color: "#8a8a8a" }}>—</TD>
+                <TD className="mono3" style={{ ...MONO11, color: "var(--c-muted)" }}>—</TD>
                 <TD className="mono3" style={DIM11}>{'{"orderId":"ORD-88215"…'}</TD>
                 <TD className="mono3" style={R}>2</TD>
                 <TD className="mono3" style={MONO11}>10:24:08.004</TD>
@@ -121,7 +121,7 @@ export function MessagesPulsar() {
                       <ChevronDown size={12} aria-hidden />
                     </>
                   }
-                  actionColor="#525252"
+                  actionColor="var(--c-fg-2)"
                 >
                   Value · JSON
                 </SectionLabel>
@@ -158,8 +158,8 @@ export function MessagesPulsar() {
         )}
       </ListArea>
 
-      <Toolbar style={{ borderTop: "1px solid #ebebeb", borderBottom: "none" }}>
-        <span className="mono3" style={{ fontSize: "11px", color: "#8a8a8a" }}>
+      <Toolbar style={{ borderTop: "1px solid var(--c-border)", borderBottom: "none" }}>
+        <span className="mono3" style={{ fontSize: "11px", color: "var(--c-muted)" }}>
           peek 不影响订阅游标 · markDeletePosition 812:2:0
         </span>
         <span style={{ flex: 1 }} />

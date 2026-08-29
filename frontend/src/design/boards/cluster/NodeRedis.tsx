@@ -41,7 +41,7 @@ export function NodeRedis() {
           <div
             style={{
               padding: "11px 16px",
-              borderBottom: "1px solid #ebebeb",
+              borderBottom: "1px solid var(--c-border)",
               display: "flex",
               alignItems: "center",
             }}
@@ -61,7 +61,7 @@ export function NodeRedis() {
             <TBody>
               <TR>
                 <TD className="mono3" style={MONO11}>XRANGE iot:raw - + COUNT 10000</TD>
-                <TD className="mono3" style={{ textAlign: "right", color: "#b45309" }}>48ms</TD>
+                <TD className="mono3" style={{ textAlign: "right", color: "var(--c-warn-text)" }}>48ms</TD>
                 <TD className="mono3" style={MONO11}>10:02:37</TD>
                 <TD className="mono3" style={MONO11}>10.2.3.9</TD>
               </TR>

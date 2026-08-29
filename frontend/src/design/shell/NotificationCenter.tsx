@@ -48,7 +48,7 @@ export function NotificationCenter({
             display: "flex",
             alignItems: "center",
             padding: "13px 16px",
-            borderBottom: "1px solid #ebebeb",
+            borderBottom: "1px solid var(--c-border)",
           }}
         >
           <b style={{ fontSize: "13px" }}>通知</b>
@@ -56,16 +56,16 @@ export function NotificationCenter({
             2 未读
           </span>
           <span style={{ flex: 1 }} />
-          <span style={{ fontSize: "11.5px", color: "#29915d" }}>全部已读</span>
+          <span style={{ fontSize: "11.5px", color: "var(--c-ok)" }}>全部已读</span>
         </div>
 
         <GroupLabel protocol="rocketmq" name="rocketmq-order" />
         <Item
-          dot="#d97706"
+          dot="var(--c-warn)"
           title={
             <>
               <b style={{ fontWeight: 500 }}>order-settle 堆积超阈值</b>{" "}
-              <span className="mono3" style={{ color: "#b45309" }}>
+              <span className="mono3" style={{ color: "var(--c-warn-text)" }}>
                 982
               </span>
             </>
@@ -74,7 +74,7 @@ export function NotificationCenter({
           chevron
         />
         <Item
-          dot="#d97706"
+          dot="var(--c-warn)"
           title={<b style={{ fontWeight: 500 }}>broker-b 磁盘水位 87%</b>}
           meta="阈值 85% · 09:58"
           chevron
@@ -82,14 +82,14 @@ export function NotificationCenter({
 
         <GroupLabel protocol="kafka" name="prod-kafka-cn" />
         <Item
-          dot="#a3a3a3"
+          dot="var(--c-muted-2)"
           dim
           title="orders.created 出现 2 个未同步副本（已恢复）"
           meta="10:12 – 10:15"
         />
 
         <div style={{ display: "flex", alignItems: "center", padding: "11px 16px" }}>
-          <span style={{ fontSize: "11px", color: "#8a8a8a" }}>桌面通知已开启</span>
+          <span style={{ fontSize: "11px", color: "var(--c-muted)" }}>桌面通知已开启</span>
           <span style={{ flex: 1 }} />
           <span
               style={{
@@ -97,7 +97,7 @@ export function NotificationCenter({
                 alignItems: "center",
                 gap: "4px",
                 fontSize: "11.5px",
-                color: "#29915d",
+                color: "var(--c-ok)",
               }}
             >
               告警规则设置
@@ -118,7 +118,7 @@ function GroupLabel({ protocol, name }: { protocol: ProtocolId; name: string }) 
         alignItems: "center",
         gap: "6px",
         fontSize: "10.5px",
-        color: "#8a8a8a",
+        color: "var(--c-muted)",
       }}
     >
       <ProtocolIcon protocol={protocol} size={12} />
@@ -146,16 +146,16 @@ function Item({
         display: "flex",
         gap: "10px",
         padding: "8px 16px",
-        borderBottom: "1px solid #f4f4f4",
+        borderBottom: "1px solid var(--c-rule)",
         opacity: dim ? 0.6 : undefined,
       }}
     >
       <span className="dotg" style={{ background: dot, marginTop: "5px" }} />
       <div style={{ flex: 1, fontSize: "12px" }}>
         {title}
-        <div style={{ fontSize: "10.5px", color: "#8a8a8a", marginTop: "1px" }}>{meta}</div>
+        <div style={{ fontSize: "10.5px", color: "var(--c-muted)", marginTop: "1px" }}>{meta}</div>
       </div>
-      {chevron && <ChevronRight size={14} color="#c9c9c9" style={{ alignSelf: "center", flex: "none" }} aria-hidden />}
+      {chevron && <ChevronRight size={14} style={{ color: "var(--c-disabled)", alignSelf: "center", flex: "none" }} aria-hidden />}
     </div>
   );
 }

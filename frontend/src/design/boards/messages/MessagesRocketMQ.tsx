@@ -77,7 +77,7 @@ export function MessagesRocketMQ() {
                 <TD><Status tone="warn">重试中</Status></TD>
               </TR>
               <TR selected={selected === "7F0000012A9C…4C2"} onClick={() => setSelected("7F0000012A9C…4C2")}>
-                <TD className="mono3" style={{ ...MONO11, color: "#666" }}>7F0000012A9C…4C2</TD>
+                <TD className="mono3" style={{ ...MONO11, color: "var(--c-mono-dim)" }}>7F0000012A9C…4C2</TD>
                 <TD className="mono3" style={MONO11}>ORD-88213</TD>
                 <TD>paid</TD>
                 <TD className="mono3" style={R}>a/q1</TD>
@@ -97,8 +97,8 @@ export function MessagesRocketMQ() {
                 alignItems: "center",
                 gap: "8px",
                 padding: "12px 16px",
-                borderBottom: "1px solid #ebebeb",
-                background: "#fff",
+                borderBottom: "1px solid var(--c-border)",
+                background: "var(--c-bg)",
               }}
             >
               <b style={{ fontSize: "13px" }}>消息详情</b>
@@ -110,7 +110,7 @@ export function MessagesRocketMQ() {
                 type="button"
                 aria-label="关闭"
                 onClick={() => setSelected(null)}
-                style={{ display: "flex", color: "#a3a3a3", marginLeft: "2px", background: "none", border: "none", padding: 0 }}
+                style={{ display: "flex", color: "var(--c-muted-2)", marginLeft: "2px", background: "none", border: "none", padding: 0 }}
               >
                 <X size={15} aria-hidden />
               </button>
@@ -126,7 +126,7 @@ export function MessagesRocketMQ() {
                       style={{ ...MONO11, display: "inline-flex", alignItems: "center", gap: "6px" }}
                     >
                       7F0000012A9C81E44C1
-                      <Copy size={12} color="#29915d" style={{ flex: "none" }} aria-hidden />
+                      <Copy size={12} style={{ color: "var(--c-ok)", flex: "none" }} aria-hidden />
                     </span>,
                   ],
                   ["Key / Tag", <span className="mono3" style={MONO11}>ORD-88213 · create</span>],
@@ -160,14 +160,14 @@ export function MessagesRocketMQ() {
                 <Timeline
                   steps={[
                     { title: "生产成功", meta: "10:24:07.221 · 10.12.3.101" },
-                    { title: "Broker 存储", meta: "broker-a q3 · 0.6ms", color: "#a3a3a3" },
+                    { title: "Broker 存储", meta: "broker-a q3 · 0.6ms", color: "var(--c-muted-2)" },
                     { title: "order-notify 消费成功", meta: "10:24:07.902 · 681ms" },
                     {
                       title: "order-settle 第 2 次重试",
                       meta: "下次投递 10:26:07",
-                      color: "#d97706",
+                      color: "var(--c-warn)",
                       extra: (
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", color: "#29915d" }}>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", color: "var(--c-ok)" }}>
                           查看重试队列
                           <ArrowRight size={12} aria-hidden />
                         </span>

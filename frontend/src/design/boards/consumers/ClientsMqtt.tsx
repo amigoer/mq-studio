@@ -24,7 +24,7 @@ import {
 
 const SHEET_TABS = ["订阅", "会话", "统计"] as const;
 const R = { textAlign: "right" } as const;
-const DIM = { color: "#8a8a8a" } as const;
+const DIM = { color: "var(--c-muted)" } as const;
 const NAME = { fontSize: "11.5px" } as const;
 const MONO11 = { fontSize: "11px" } as const;
 
@@ -150,7 +150,7 @@ export function ClientsMqtt() {
                 ]}
               />
 
-              <div style={{ fontSize: "11px", color: "#8a8a8a" }}>
+              <div style={{ fontSize: "11px", color: "var(--c-muted)" }}>
                 遗嘱：iot/device/status/A19F = offline · QoS1 · retain
               </div>
             </SheetBody>

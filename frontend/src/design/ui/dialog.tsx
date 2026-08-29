@@ -36,7 +36,7 @@ export function Dialog({
       style={{
         position: "absolute",
         inset: 0,
-        background: "rgba(23,23,23,.32)",
+        background: "var(--c-scrim)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -61,7 +61,7 @@ export function Dialog({
             display: "flex",
             alignItems: "center",
             padding: "14px 20px",
-            borderBottom: "1px solid #ebebeb",
+            borderBottom: "1px solid var(--c-border)",
           }}
         >
           <b style={{ fontSize: "14px" }}>{title}</b>
@@ -70,7 +70,7 @@ export function Dialog({
             type="button"
             aria-label="关闭"
             onClick={onClose}
-            style={{ display: "flex", color: "#a3a3a3", background: "none", border: "none", padding: 0 }}
+            style={{ display: "flex", color: "var(--c-muted-2)", background: "none", border: "none", padding: 0 }}
           >
             <X size={16} aria-hidden />
           </button>
@@ -85,8 +85,8 @@ export function Dialog({
               alignItems: "center",
               gap: "10px",
               padding: "13px 20px",
-              borderTop: "1px solid #ebebeb",
-              background: "#fcfcfc",
+              borderTop: "1px solid var(--c-border)",
+              background: "var(--c-panel)",
             }}
           >
             {footer}

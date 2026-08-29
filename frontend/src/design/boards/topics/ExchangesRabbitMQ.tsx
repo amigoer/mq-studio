@@ -59,7 +59,7 @@ export function ExchangesRabbitMQ() {
         <Field style={{ flex: "0 0 200px" }} placeholder="搜索交换机…" />
         <Seg options={TYPES} value={type} onChange={setType} />
         <span style={{ flex: 1 }} />
-        <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11.5px", color: "#666" }}>
+        <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11.5px", color: "var(--c-mono-dim)" }}>
           <Sw checked={showAmq} onCheckedChange={setShowAmq} label="显示 amq.*" />
           显示 amq.*
         </span>
@@ -136,7 +136,7 @@ export function ExchangesRabbitMQ() {
                         <TR key={`${b.target}-${b.key}`}>
                           <TD className="mono3">{b.target}</TD>
                           <TD className="mono3">{b.key}</TD>
-                          <TD style={{ textAlign: "right", color: "#8a8a8a" }}>解绑</TD>
+                          <TD style={{ textAlign: "right", color: "var(--c-muted)" }}>解绑</TD>
                         </TR>
                       ))}
                     </TBody>

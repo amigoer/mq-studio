@@ -50,10 +50,10 @@ export function StatusBar({ left, right }: { left?: ReactNode; right?: ReactNode
         alignItems: "center",
         gap: "14px",
         padding: "9px 20px",
-        borderTop: "1px solid #ebebeb",
-        background: "#fcfcfc",
+        borderTop: "1px solid var(--c-border)",
+        background: "var(--c-panel)",
         fontSize: "11px",
-        color: "#8a8a8a",
+        color: "var(--c-muted)",
       }}
     >
       {left}
@@ -128,14 +128,14 @@ export function BulkBar({ children, hint }: { children: ReactNode; hint?: ReactN
         alignItems: "center",
         gap: "10px",
         padding: "9px 20px",
-        borderTop: "1px solid #ebebeb",
-        background: "#fcfcfc",
+        borderTop: "1px solid var(--c-border)",
+        background: "var(--c-panel)",
         fontSize: "12px",
       }}
     >
       {children}
       <span style={{ flex: 1 }} />
-      {hint != null && <span style={{ color: "#8a8a8a", fontSize: "11px" }}>{hint}</span>}
+      {hint != null && <span style={{ color: "var(--c-muted)", fontSize: "11px" }}>{hint}</span>}
     </div>
   );
 }
@@ -162,13 +162,13 @@ export function TabStatusBar({
         display: "flex",
         gap: "14px",
         padding: "7px 20px",
-        borderTop: "1px solid #ebebeb",
+        borderTop: "1px solid var(--c-border)",
         fontSize: "10.5px",
-        color: "#8a8a8a",
+        color: "var(--c-muted)",
       }}
     >
       <span
-        style={{ display: "flex", alignItems: "center", gap: "5px", color: "#1f7a4d" }}
+        style={{ display: "flex", alignItems: "center", gap: "5px", color: "var(--c-ok-text)" }}
       >
         <span className="mqs-dot" aria-hidden />
         {connection} {latency}

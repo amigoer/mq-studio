@@ -24,9 +24,9 @@ export function OverviewKafka() {
         <div className={KPI_GRID}>
           <StatTile label="Broker" value="3" hint="Controller kafka-1" />
           <StatTile label="Topic" value="42" hint="已隐藏内部 12 个" />
-          <StatTile label="分区" value="386" hint="URP 2 · 离线 0" hintColor="#b45309" />
+          <StatTile label="分区" value="386" hint="URP 2 · 离线 0" hintColor="var(--c-warn-text)" />
           <StatTile label="消费者组" value="18" hint="再均衡中 1" />
-          <StatTile label="总堆积" value="12 480" valueColor="#b45309" hint="较 1h 前 +8%" />
+          <StatTile label="总堆积" value="12 480" valueColor="var(--c-warn-text)" hint="较 1h 前 +8%" />
         </div>
 
         <div className={CHART_ROW}>
@@ -34,8 +34,8 @@ export function OverviewKafka() {
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
               <b style={{ fontSize: "12.5px" }}>吞吐趋势</b>
               <span style={{ flex: 1 }} />
-              <span style={{ fontSize: "10.5px", color: "#29915d" }}>— 流入 msg/s</span>
-              <span style={{ fontSize: "10.5px", color: "#0b64f4" }}>— 流出 msg/s</span>
+              <span style={{ fontSize: "10.5px", color: "var(--c-ok)" }}>— 流入 msg/s</span>
+              <span style={{ fontSize: "10.5px", color: "var(--c-accent-blue)" }}>— 流出 msg/s</span>
             </div>
             <ChartBox style={{ flex: 1 }}>折线图占位（复用现有 throughputHistory）</ChartBox>
           </Card>
@@ -53,7 +53,7 @@ export function OverviewKafka() {
           <CardHeader
             title="堆积 TOP 消费者组"
             action={
-              <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "11.5px", color: "#29915d" }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "11.5px", color: "var(--c-ok)" }}>
                 查看全部
                 <ArrowRight size={13} aria-hidden />
               </span>
@@ -73,7 +73,7 @@ export function OverviewKafka() {
               <TR>
                 <TD>settle-consumer</TD>
                 <TD className="mono3" style={NAME_CELL}>orders.created</TD>
-                <TD className="mono3" style={{ textAlign: "right", color: "#b45309" }}>9 820</TD>
+                <TD className="mono3" style={{ textAlign: "right", color: "var(--c-warn-text)" }}>9 820</TD>
                 <TD className="mono3" style={{ textAlign: "right" }}>1 104/s</TD>
                 <TD><Status tone="warn">堆积告警</Status></TD>
               </TR>

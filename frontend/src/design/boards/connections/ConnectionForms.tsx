@@ -18,7 +18,7 @@ function Fld({
   return (
     <div className="fld" style={span ? { gridColumn: "1/3" } : undefined}>
       <span>
-        {label} {hint != null && <span style={{ color: "#a3a3a3" }}>{hint}</span>}
+        {label} {hint != null && <span style={{ color: "var(--c-muted-2)" }}>{hint}</span>}
       </span>
       {children}
     </div>
@@ -36,7 +36,7 @@ const MONO = { fontSize: "11.5px" } as const;
 /** The 高级 disclosure line and the right-hand caveat under every form. */
 function FormNote({ advanced, note }: { advanced: ReactNode; note: ReactNode }) {
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "#8a8a8a" }}>
+    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "var(--c-muted)" }}>
       <span>{advanced}</span>
       <span>{note}</span>
     </div>
@@ -331,7 +331,7 @@ export function MqttForm() {
         <Fld label="Client ID">
           <span className="in3 mono3" style={{ ...MONO, display: "flex" }}>
             mq-studio-8f21c3
-            <RefreshCw size={12} color="#29915d" style={{ marginLeft: "auto" }} aria-hidden />
+            <RefreshCw size={12} style={{ color: "var(--c-ok)", marginLeft: "auto" }} aria-hidden />
           </span>
         </Fld>
         <Fld label="Keep Alive">

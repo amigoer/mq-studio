@@ -31,8 +31,8 @@ export function ConnectionsEmpty({ onNewConnection }: { onNewConnection?: () => 
             width: "64px",
             height: "64px",
             borderRadius: "16px",
-            background: "#fff",
-            border: "1.5px solid #ebebeb",
+            background: "var(--c-bg)",
+            border: "1.5px solid var(--c-border)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -43,7 +43,7 @@ export function ConnectionsEmpty({ onNewConnection }: { onNewConnection?: () => 
         <div style={{ fontSize: "19px", fontWeight: 600, marginTop: "18px", letterSpacing: "-.01em" }}>
           欢迎使用 MQ Studio
         </div>
-        <div style={{ fontSize: "12.5px", color: "#8a8a8a", marginTop: "6px", lineHeight: 1.7 }}>
+        <div style={{ fontSize: "12.5px", color: "var(--c-muted)", marginTop: "6px", lineHeight: 1.7 }}>
           还没有任何连接。新建一个连接开始管理你的消息队列，
           <br />
           或导入之前导出的配置文件。
@@ -65,7 +65,7 @@ export function ConnectionsEmpty({ onNewConnection }: { onNewConnection?: () => 
                 alignItems: "center",
                 gap: "5px",
                 fontSize: "10px",
-                color: "#8a8a8a",
+                color: "var(--c-muted)",
               }}
             >
               <ProtocolIcon protocol={p} size={20} className="" />
@@ -73,7 +73,7 @@ export function ConnectionsEmpty({ onNewConnection }: { onNewConnection?: () => 
             </span>
           ))}
         </div>
-        <div style={{ fontSize: "10.5px", color: "#b5b1aa", marginTop: "26px" }}>
+        <div style={{ fontSize: "10.5px", color: "var(--c-muted-3)", marginTop: "26px" }}>
           凭证加密存储在本机 · 配置不会上传
         </div>
       </div>

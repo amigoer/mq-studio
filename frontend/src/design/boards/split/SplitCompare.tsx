@@ -47,7 +47,7 @@ export function SplitCompare({ onClose }: { onClose?: () => void }) {
               <TD><Status tone="warn" style={TAG}>重试中</Status></TD>
             </TR>
             <TR>
-              <TD className="mono3" style={{ fontSize: "10.5px", color: "#666" }}>7F00…4C2</TD>
+              <TD className="mono3" style={{ fontSize: "10.5px", color: "var(--c-mono-dim)" }}>7F00…4C2</TD>
               <TD>paid</TD>
               <TD className="mono3" style={{ fontSize: "10.5px" }}>10:24:09</TD>
               <TD><Status tone="ok" style={TAG}>已消费</Status></TD>
@@ -82,7 +82,7 @@ export function SplitCompare({ onClose }: { onClose?: () => void }) {
           <TBody>
             <TR>
               <TD>settle-consumer</TD>
-              <TD className="mono3" style={{ ...R, color: "#b45309" }}>9 820</TD>
+              <TD className="mono3" style={{ ...R, color: "var(--c-warn-text)" }}>9 820</TD>
               <TD className="mono3" style={R}>4</TD>
               <TD><Status tone="warn" style={TAG}>堆积</Status></TD>
             </TR>
@@ -132,7 +132,7 @@ function Pane({
         minWidth: 0,
         display: "flex",
         flexDirection: "column",
-        borderRight: divider ? "2px solid #ebebeb" : undefined,
+        borderRight: divider ? "2px solid var(--c-border)" : undefined,
       }}
     >
       <div
@@ -142,8 +142,8 @@ function Pane({
           alignItems: "center",
           gap: "8px",
           padding: "8px 14px",
-          borderBottom: "1px solid #ebebeb",
-          background: "#fcfcfc",
+          borderBottom: "1px solid var(--c-border)",
+          background: "var(--c-panel)",
         }}
       >
         {badge}
@@ -154,7 +154,7 @@ function Pane({
           type="button"
           aria-label={`关闭 ${name}`}
           onClick={onClose}
-          style={{ display: "flex", color: "#a3a3a3", background: "none", border: "none", padding: 0 }}
+          style={{ display: "flex", color: "var(--c-muted-2)", background: "none", border: "none", padding: 0 }}
         >
           <X size={15} aria-hidden />
         </button>
@@ -173,13 +173,13 @@ function Pane({
           alignItems: "center",
           gap: "5px",
           padding: "6px 14px",
-          borderTop: "1px solid #ebebeb",
+          borderTop: "1px solid var(--c-border)",
           fontSize: "10.5px",
-          color: "#8a8a8a",
+          color: "var(--c-muted)",
         }}
       >
         {/* Each pane keeps its own connection, so each states its own health. */}
-        <span className="mqs-dot" style={{ color: "#29915d" }} aria-hidden />
+        <span className="mqs-dot" style={{ color: "var(--c-ok)" }} aria-hidden />
         {status}
       </div>
     </div>

@@ -26,16 +26,16 @@ export function OverviewRabbitMQ() {
           <StatTile label="队列" value="46" hint="quorum 18 · classic 24" />
           <StatTile label="连接 / 信道" value="128 / 342" hint="峰值 09:40" />
           <StatTile label="发布速率" value="2 980/s" hint="投递 2 903/s" />
-          <StatTile label="Ready 消息" value="1 139" valueColor="#b45309" hint="Unacked 16" />
+          <StatTile label="Ready 消息" value="1 139" valueColor="var(--c-warn-text)" hint="Unacked 16" />
         </div>
 
         <div className={CHART_ROW}>
           <Card style={CHART_CARD}>
             <b style={{ fontSize: "12.5px" }}>消息速率</b>
             <div style={{ display: "flex", gap: "12px", fontSize: "10.5px" }}>
-              <span style={{ color: "#171717" }}>— publish</span>
-              <span style={{ color: "#8a8a8a" }}>— deliver</span>
-              <span style={{ color: "#a3a3a3" }}>— ack</span>
+              <span style={{ color: "var(--c-fg)" }}>— publish</span>
+              <span style={{ color: "var(--c-muted)" }}>— deliver</span>
+              <span style={{ color: "var(--c-muted-2)" }}>— ack</span>
             </div>
             <ChartBox style={{ flex: 1 }}>折线图占位</ChartBox>
           </Card>
@@ -43,9 +43,9 @@ export function OverviewRabbitMQ() {
             <b style={{ fontSize: "12.5px" }}>节点水位</b>
             <MeterRow label="node1 内存" value={48} />
             <MeterRow label="node2 内存" value={52} />
-            <MeterRow label="node3 内存" value={88} color="#d97706" />
+            <MeterRow label="node3 内存" value={88} color="var(--c-warn)" />
             <MeterRow label="磁盘 free" value={34} />
-            <div style={{ fontSize: "10.5px", color: "#b45309" }}>node3 逼近 vm_memory 高水位</div>
+            <div style={{ fontSize: "10.5px", color: "var(--c-warn-text)" }}>node3 逼近 vm_memory 高水位</div>
           </Card>
         </div>
 
@@ -66,7 +66,7 @@ export function OverviewRabbitMQ() {
               <TR>
                 <TD>order.settle.q</TD>
                 <TD className="mono3" style={NAME_CELL}>/order</TD>
-                <TD className="mono3" style={{ textAlign: "right", color: "#b45309" }}>982</TD>
+                <TD className="mono3" style={{ textAlign: "right", color: "var(--c-warn-text)" }}>982</TD>
                 <TD className="mono3" style={{ textAlign: "right" }}>14</TD>
                 <TD className="mono3" style={{ textAlign: "right" }}>4</TD>
                 <TD><Status tone="warn">堆积</Status></TD>
@@ -82,7 +82,7 @@ export function OverviewRabbitMQ() {
               <TR>
                 <TD>dlx.order.q</TD>
                 <TD className="mono3" style={NAME_CELL}>/order</TD>
-                <TD className="mono3" style={{ textAlign: "right", color: "#b91c1c" }}>37</TD>
+                <TD className="mono3" style={{ textAlign: "right", color: "var(--c-err-text)" }}>37</TD>
                 <TD className="mono3" style={{ textAlign: "right" }}>0</TD>
                 <TD className="mono3" style={{ textAlign: "right" }}>0</TD>
                 <TD><Status tone="err">死信</Status></TD>

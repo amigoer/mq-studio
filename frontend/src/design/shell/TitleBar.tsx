@@ -66,7 +66,7 @@ export function TitleBar({
   return (
     <div
       className={mac ? "tb2 tb2--mac" : "tb2"}
-      style={{ background: "#fafafa" }}
+      style={{ background: "var(--c-bar)" }}
     >
       {/*
        * Mark only — the wordmark it sat next to was traded for tab width — and
@@ -92,7 +92,7 @@ export function TitleBar({
       <button
         type="button"
         className="in3"
-        style={{ background: "#fff", color: dimmed ? "#c9c9c9" : undefined, flex: "none" }}
+        style={{ background: "var(--c-bg)", color: dimmed ? "var(--c-disabled)" : undefined, flex: "none" }}
         onClick={onSearch}
       >
         搜索 ⌘K
@@ -120,9 +120,9 @@ export function TitleBar({
               width: "6px",
               height: "6px",
               borderRadius: "99px",
-              background: "#29915d",
+              background: "var(--c-ok)",
               /* The badge sits over the icon's corner, so it needs an edge. */
-              boxShadow: "0 0 0 1.5px #fff",
+              boxShadow: "0 0 0 1.5px var(--c-bg)",
             }}
           />
         )}
@@ -131,7 +131,7 @@ export function TitleBar({
         <SiGithub size={14} color="#181717" aria-hidden />
       </IconBtn>
       <IconBtn
-        style={dimmed ? { color: "#c9c9c9" } : undefined}
+        style={dimmed ? { color: "var(--c-disabled)" } : undefined}
         onClick={onNotifications}
         title="通知"
       >

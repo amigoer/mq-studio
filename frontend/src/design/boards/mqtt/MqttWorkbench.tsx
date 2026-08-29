@@ -36,7 +36,7 @@ function TreeNode({
   children,
   indent,
   open = false,
-  color = "#525252",
+  color = "var(--c-fg-2)",
 }: {
   children: ReactNode;
   indent: string;
@@ -62,7 +62,7 @@ export function MqttWorkbench() {
         style={{
           width: "216px",
           flex: "none",
-          borderRight: "1px solid #ebebeb",
+          borderRight: "1px solid var(--c-border)",
           display: "flex",
           flexDirection: "column",
           minHeight: 0,
@@ -71,7 +71,7 @@ export function MqttWorkbench() {
         <div style={{ padding: "12px 14px 8px", display: "flex", alignItems: "center" }}>
           <SectionLabel>主题树</SectionLabel>
           <span style={{ flex: 1 }} />
-          <span style={{ fontSize: "11px", color: "#29915d" }}>+ 订阅</span>
+          <span style={{ fontSize: "11px", color: "var(--c-ok)" }}>+ 订阅</span>
         </div>
         <div
           style={{
@@ -92,8 +92,8 @@ export function MqttWorkbench() {
             style={{
               padding: "4px 8px 4px 36px",
               borderRadius: "6px",
-              background: "#171717",
-              color: "#fff",
+              background: "var(--c-fg)",
+              color: "var(--c-bg)",
               fontWeight: 500,
               display: "flex",
               alignItems: "center",
@@ -108,14 +108,14 @@ export function MqttWorkbench() {
               12/s
             </span>
           </div>
-          <div style={{ padding: "4px 8px 4px 36px", color: "#525252", display: "flex", gap: "6px" }}>
+          <div style={{ padding: "4px 8px 4px 36px", color: "var(--c-fg-2)", display: "flex", gap: "6px" }}>
             status/#
-            <span className="mono3" style={{ fontSize: "10px", color: "#a3a3a3", marginLeft: "auto" }}>
+            <span className="mono3" style={{ fontSize: "10px", color: "var(--c-muted-2)", marginLeft: "auto" }}>
               2/s
             </span>
           </div>
           <TreeNode indent="4px 8px 4px 22px">cmd</TreeNode>
-          <TreeNode indent="4px 8px" color="#8a8a8a">
+          <TreeNode indent="4px 8px" color="var(--c-muted)">
             $SYS
           </TreeNode>
         </div>
@@ -124,10 +124,10 @@ export function MqttWorkbench() {
           style={{
             margin: "10px",
             padding: "9px 11px",
-            border: "1px dashed #d4d4d8",
+            border: "1px dashed var(--c-border-strong)",
             borderRadius: "8px",
             fontSize: "10.5px",
-            color: "#8a8a8a",
+            color: "var(--c-muted)",
           }}
         >
           已订阅 2 · 缓冲 2 000 条
@@ -143,14 +143,14 @@ export function MqttWorkbench() {
           minWidth: 0,
           display: "flex",
           flexDirection: "column",
-          borderRight: "1px solid #ebebeb",
+          borderRight: "1px solid var(--c-border)",
         }}
       >
-        <Toolbar style={{ borderBottom: "1px solid #ebebeb" }}>
+        <Toolbar style={{ borderBottom: "1px solid var(--c-border)" }}>
           <Status tone="ok" dot style={{ fontSize: "10.5px" }}>
             订阅中
           </Status>
-          <span className="mono3" style={{ fontSize: "11px", color: "#666" }}>
+          <span className="mono3" style={{ fontSize: "11px", color: "var(--c-mono-dim)" }}>
             iot/device/telemetry/# · QoS 1
           </span>
           <span style={{ flex: 1 }} />
@@ -174,14 +174,14 @@ export function MqttWorkbench() {
                 border: "none",
                 padding: "8px 14px",
                 background: i === selected ? "rgba(41,145,93,.06)" : "transparent",
-                borderBottom: "1px solid #f4f4f4",
+                borderBottom: "1px solid var(--c-rule)",
                 display: "flex",
                 flexDirection: "column",
                 gap: "2px",
               }}
             >
               <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                <span className="mono3" style={{ fontSize: "10.5px", color: "#8a8a8a" }}>
+                <span className="mono3" style={{ fontSize: "10.5px", color: "var(--c-muted)" }}>
                   {row.time}
                 </span>
                 <span
@@ -199,7 +199,7 @@ export function MqttWorkbench() {
                 className="mono3"
                 style={{
                   fontSize: "10.5px",
-                  color: "#8a8a8a",
+                  color: "var(--c-muted)",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
                   whiteSpace: "nowrap",
@@ -218,15 +218,15 @@ export function MqttWorkbench() {
           <div
             style={{
               padding: "8px 14px",
-              borderTop: "1px solid #ebebeb",
+              borderTop: "1px solid var(--c-border)",
               fontSize: "10.5px",
-              color: "#8a8a8a",
+              color: "var(--c-muted)",
               display: "flex",
             }}
           >
             <span>412 msg/s · 自动滚动</span>
             <span style={{ flex: 1 }} />
-            <span style={{ color: "#29915d" }}>导出 NDJSON</span>
+            <span style={{ color: "var(--c-ok)" }}>导出 NDJSON</span>
           </div>
         </div>
       </div>
@@ -239,7 +239,7 @@ export function MqttWorkbench() {
           display: "flex",
           flexDirection: "column",
           minHeight: 0,
-          background: "#fcfcfc",
+          background: "var(--c-panel)",
         }}
       >
         <div
@@ -248,8 +248,8 @@ export function MqttWorkbench() {
             alignItems: "center",
             gap: "8px",
             padding: "12px 16px",
-            borderBottom: "1px solid #ebebeb",
-            background: "#fff",
+            borderBottom: "1px solid var(--c-border)",
+            background: "var(--c-bg)",
           }}
         >
           <b style={{ fontSize: "12.5px" }}>消息详情</b>
@@ -309,8 +309,8 @@ export function MqttWorkbench() {
             display: "flex",
             gap: "8px",
             padding: "12px 16px",
-            borderTop: "1px solid #ebebeb",
-            background: "#fff",
+            borderTop: "1px solid var(--c-border)",
+            background: "var(--c-bg)",
           }}
         >
           <Btn>历史同主题</Btn>

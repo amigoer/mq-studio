@@ -53,10 +53,10 @@ export function EnvTag({ children }: { children: React.ReactNode }) {
     <span
       style={{
         fontSize: "10px",
-        border: "1px solid #ebebeb",
+        border: "1px solid var(--c-border)",
         borderRadius: "4px",
         padding: "1px 6px",
-        color: "#8a8a8a",
+        color: "var(--c-muted)",
       }}
     >
       {children}

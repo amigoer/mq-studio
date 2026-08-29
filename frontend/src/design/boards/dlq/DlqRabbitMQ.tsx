@@ -10,7 +10,7 @@ const REASONS = [
 ] as const;
 
 const MONO11 = { fontSize: "11px" } as const;
-const DIM11 = { fontSize: "11px", color: "#666" } as const;
+const DIM11 = { fontSize: "11px", color: "var(--c-mono-dim)" } as const;
 const TAG = { fontSize: "10px" } as const;
 const R = { textAlign: "right" } as const;
 
@@ -69,7 +69,7 @@ export function DlqRabbitMQ() {
           <TBody>
             {ROWS.map((row) => {
               const on = checked.includes(row.id);
-              const dim = on ? undefined : "#666";
+              const dim = on ? undefined : "var(--c-mono-dim)";
               return (
                 <TR key={row.id}>
                   <TD>

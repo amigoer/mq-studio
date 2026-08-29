@@ -33,7 +33,7 @@ const MODES = [
 
 const SHEET_TABS = ["Payload", "Properties"] as const;
 const MONO11 = { fontSize: "11px" } as const;
-const DIM11 = { fontSize: "11px", color: "#666" } as const;
+const DIM11 = { fontSize: "11px", color: "var(--c-mono-dim)" } as const;
 const TAG = { fontSize: "10px" } as const;
 const R = { textAlign: "right" } as const;
 
@@ -124,7 +124,7 @@ export function MessagesRabbitMQ() {
               <ChevronDown size={12} aria-hidden />
             </>
           }
-                  actionColor="#525252"
+                  actionColor="var(--c-fg-2)"
                 >
                   Value · JSON
                 </SectionLabel>
@@ -153,7 +153,7 @@ export function MessagesRabbitMQ() {
                 />
               </div>
 
-              <div style={{ fontSize: "11px", color: "#8a8a8a" }}>
+              <div style={{ fontSize: "11px", color: "var(--c-muted)" }}>
                 x-death：order.settle.q · rejected ×2 · 最后 10:02:37
               </div>
             </SheetBody>
@@ -167,8 +167,8 @@ export function MessagesRabbitMQ() {
         )}
       </ListArea>
 
-      <Toolbar style={{ borderTop: "1px solid #ebebeb", borderBottom: "none" }}>
-        <span className="mono3" style={{ fontSize: "11px", color: "#8a8a8a" }}>
+      <Toolbar style={{ borderTop: "1px solid var(--c-border)", borderBottom: "none" }}>
+        <span className="mono3" style={{ fontSize: "11px", color: "var(--c-muted)" }}>
           已取 10 / Ready 982 · 消息已 requeue 回队列
         </span>
         <span style={{ flex: 1 }} />

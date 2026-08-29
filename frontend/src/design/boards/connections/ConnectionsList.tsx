@@ -109,7 +109,7 @@ export function ConnectionsList({
                   <span style={{ display: "inline-flex", alignItems: "center", gap: "5px" }}>
                     <b style={{ fontWeight: 500 }}>{c.name}</b>
                     {c.isDefault && (
-                      <Star size={12} fill="currentColor" color="#d97706" aria-label="默认连接" />
+                      <Star size={12} fill="currentColor" style={{ color: "var(--c-warn)" }} aria-label="默认连接" />
                     )}
                   </span>
                 </TD>
@@ -121,7 +121,7 @@ export function ConnectionsList({
                 </TD>
                 {/* The one column that gives way: 20px under the `.t3` cap, which
                     is what keeps the table inside the 1024 minimum window. */}
-                <TD className="mono3" style={{ color: "#666", fontSize: "11px", maxWidth: "260px" }}>
+                <TD className="mono3" style={{ color: "var(--c-mono-dim)", fontSize: "11px", maxWidth: "260px" }}>
                   {c.address}
                 </TD>
                 <TD>
@@ -130,7 +130,7 @@ export function ConnectionsList({
                 <TD>
                   <StatusCell connection={c} />
                 </TD>
-                <TD style={{ color: "#8a8a8a" }}>{c.lastUsed}</TD>
+                <TD style={{ color: "var(--c-muted)" }}>{c.lastUsed}</TD>
                 <TD style={{ textAlign: "right", overflow: "visible", position: "relative" }}>
                   <span className="mqs-rowhint">悬停显示操作</span>
                   <span
@@ -198,7 +198,7 @@ function StatusCell({ connection }: { connection: Connection }) {
         <Status tone="ok" dot>
           在线
         </Status>{" "}
-        <span className="mono3" style={{ fontSize: "10px", color: "#8a8a8a" }}>
+        <span className="mono3" style={{ fontSize: "10px", color: "var(--c-muted)" }}>
           {connection.latency}
         </span>
       </>
@@ -208,7 +208,7 @@ function StatusCell({ connection }: { connection: Connection }) {
   return (
     <>
       <Status tone="err">连接失败</Status>{" "}
-      <span style={{ fontSize: "10.5px", color: "#29915d" }}>日志</span>
+      <span style={{ fontSize: "10.5px", color: "var(--c-ok)" }}>日志</span>
     </>
   );
 }
@@ -271,24 +271,24 @@ function Chip({
               display: "inline-flex",
               alignItems: "center",
               gap: "5px",
-              border: "1px solid #171717",
-              background: "#fafafa",
+              border: "1px solid var(--c-fg)",
+              background: "var(--c-bar)",
               fontWeight: 500,
               borderRadius: "99px",
               padding: "3px 10px",
               fontSize: "11px",
-              color: "#171717",
+              color: "var(--c-fg)",
             }
           : {
               display: "inline-flex",
               alignItems: "center",
               gap: "5px",
-              border: "1px solid #ebebeb",
-              background: "#fff",
+              border: "1px solid var(--c-border)",
+              background: "var(--c-bg)",
               borderRadius: "99px",
               padding: "3px 10px",
               fontSize: "11px",
-              color: "#666",
+              color: "var(--c-mono-dim)",
             }
       }
     >

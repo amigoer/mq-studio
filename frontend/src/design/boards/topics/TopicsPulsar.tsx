@@ -41,7 +41,7 @@ export function TopicsPulsar() {
         <SelectField value="租户：ecommerce" />
         <SelectField value="命名空间：orders" />
         <Field style={{ flex: "0 0 180px" }} placeholder="搜索 Topic…" />
-        <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11.5px", color: "#666" }}>
+        <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11.5px", color: "var(--c-mono-dim)" }}>
           <Sw checked={persistentOnly} onCheckedChange={setPersistentOnly} label="仅 persistent" />
           仅 persistent
         </span>
@@ -73,7 +73,7 @@ export function TopicsPulsar() {
                 <TD className="mono3" style={{ textAlign: "right" }}>4</TD>
                 <TD className="mono3" style={{ textAlign: "right" }}>3</TD>
                 <TD className="mono3" style={{ textAlign: "right" }}>1 104/s</TD>
-                <TD className="mono3" style={{ textAlign: "right", color: "#b45309" }}>6 591</TD>
+                <TD className="mono3" style={{ textAlign: "right", color: "var(--c-warn-text)" }}>6 591</TD>
               </TR>
               <TR selected={selected === "payment-captured"} onClick={() => setSelected("payment-captured")}>
                 <TD className="mono3" style={NAME}>persistent://ecommerce/orders/payment-captured</TD>
@@ -84,14 +84,14 @@ export function TopicsPulsar() {
                 <TD className="mono3" style={{ textAlign: "right" }}>1 830</TD>
               </TR>
               <TR selected={selected === "metrics-tick"} onClick={() => setSelected("metrics-tick")}>
-                <TD className="mono3" style={{ ...NAME, color: "#8a8a8a" }}>
+                <TD className="mono3" style={{ ...NAME, color: "var(--c-muted)" }}>
                   non-persistent://ecommerce/orders/metrics-tick
                 </TD>
-                <TD className="mono3" style={{ textAlign: "right", color: "#8a8a8a" }}>1</TD>
-                <TD className="mono3" style={{ textAlign: "right", color: "#8a8a8a" }}>1</TD>
-                <TD className="mono3" style={{ textAlign: "right", color: "#8a8a8a" }}>1</TD>
-                <TD className="mono3" style={{ textAlign: "right", color: "#8a8a8a" }}>2 400/s</TD>
-                <TD className="mono3" style={{ textAlign: "right", color: "#8a8a8a" }}>—</TD>
+                <TD className="mono3" style={{ textAlign: "right", color: "var(--c-muted)" }}>1</TD>
+                <TD className="mono3" style={{ textAlign: "right", color: "var(--c-muted)" }}>1</TD>
+                <TD className="mono3" style={{ textAlign: "right", color: "var(--c-muted)" }}>1</TD>
+                <TD className="mono3" style={{ textAlign: "right", color: "var(--c-muted)" }}>2 400/s</TD>
+                <TD className="mono3" style={{ textAlign: "right", color: "var(--c-muted)" }}>—</TD>
               </TR>
               <SkeletonRows colSpan={6} widths={["70%", "52%"]} />
             </TBody>
@@ -111,13 +111,13 @@ export function TopicsPulsar() {
             <SheetBody>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
                 <Card style={{ padding: "9px 12px" }}>
-                  <div style={{ fontSize: "10.5px", color: "#8a8a8a" }}>入 / 出</div>
+                  <div style={{ fontSize: "10.5px", color: "var(--c-muted)" }}>入 / 出</div>
                   <div className="mono3" style={{ fontSize: "15px", fontWeight: 600, marginTop: "2px" }}>
                     1 104 / 2 987
                   </div>
                 </Card>
                 <Card style={{ padding: "9px 12px" }}>
-                  <div style={{ fontSize: "10.5px", color: "#8a8a8a" }}>存储大小</div>
+                  <div style={{ fontSize: "10.5px", color: "var(--c-muted)" }}>存储大小</div>
                   <div className="mono3" style={{ fontSize: "15px", fontWeight: 600, marginTop: "2px" }}>
                     18.2 GB
                   </div>

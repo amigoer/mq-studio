@@ -43,7 +43,7 @@ export function TopicsRocketMQ() {
       />
       <Toolbar>
         <Field style={{ flex: "0 0 240px" }} placeholder="搜索 Topic 名称…" />
-        <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11.5px", color: "#666" }}>
+        <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11.5px", color: "var(--c-mono-dim)" }}>
           <Sw checked={showSystem} onCheckedChange={setShowSystem} label="显示系统 Topic" />
           显示系统 Topic
         </span>
@@ -71,7 +71,7 @@ export function TopicsRocketMQ() {
                 <TD className="mono3" style={{ textAlign: "right" }}>16 / 16</TD>
                 <TD className="mono3" style={{ textAlign: "right" }}>1 104</TD>
                 <TD className="mono3" style={{ textAlign: "right" }}>8.2M</TD>
-                <TD className="mono3" style={{ textAlign: "right", color: "#b45309" }}>982</TD>
+                <TD className="mono3" style={{ textAlign: "right", color: "var(--c-warn-text)" }}>982</TD>
               </TR>
               <TR selected={selected === "ORDER_PAY_DELAY"} onClick={() => setSelected("ORDER_PAY_DELAY")}>
                 <TD>ORDER_PAY_DELAY</TD>
@@ -88,11 +88,11 @@ export function TopicsRocketMQ() {
                 <TD className="mono3" style={{ textAlign: "right" }}>0</TD>
               </TR>
               <TR selected={selected === "%RETRY%order-settle"} onClick={() => setSelected("%RETRY%order-settle")}>
-                <TD style={{ color: "#8a8a8a" }}>%RETRY%order-settle</TD>
-                <TD className="mono3" style={{ textAlign: "right", color: "#8a8a8a" }}>1 / 1</TD>
-                <TD className="mono3" style={{ textAlign: "right", color: "#8a8a8a" }}>12</TD>
-                <TD className="mono3" style={{ textAlign: "right", color: "#8a8a8a" }}>9.4K</TD>
-                <TD className="mono3" style={{ textAlign: "right", color: "#8a8a8a" }}>37</TD>
+                <TD style={{ color: "var(--c-muted)" }}>%RETRY%order-settle</TD>
+                <TD className="mono3" style={{ textAlign: "right", color: "var(--c-muted)" }}>1 / 1</TD>
+                <TD className="mono3" style={{ textAlign: "right", color: "var(--c-muted)" }}>12</TD>
+                <TD className="mono3" style={{ textAlign: "right", color: "var(--c-muted)" }}>9.4K</TD>
+                <TD className="mono3" style={{ textAlign: "right", color: "var(--c-muted)" }}>37</TD>
               </TR>
               <SkeletonRows colSpan={5} widths={["72%", "58%", "80%"]} />
             </TBody>
@@ -112,16 +112,16 @@ export function TopicsRocketMQ() {
             <SheetBody>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
                 <Card style={{ padding: "9px 12px" }}>
-                  <div style={{ fontSize: "10.5px", color: "#8a8a8a" }}>生产 TPS</div>
+                  <div style={{ fontSize: "10.5px", color: "var(--c-muted)" }}>生产 TPS</div>
                   <div className="mono3" style={{ fontSize: "16px", fontWeight: 600, marginTop: "2px" }}>
                     1 104
                   </div>
                 </Card>
                 <Card style={{ padding: "9px 12px" }}>
-                  <div style={{ fontSize: "10.5px", color: "#8a8a8a" }}>堆积</div>
+                  <div style={{ fontSize: "10.5px", color: "var(--c-muted)" }}>堆积</div>
                   <div
                     className="mono3"
-                    style={{ fontSize: "16px", fontWeight: 600, marginTop: "2px", color: "#b45309" }}
+                    style={{ fontSize: "16px", fontWeight: 600, marginTop: "2px", color: "var(--c-warn-text)" }}
                   >
                     982
                   </div>
