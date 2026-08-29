@@ -1,19 +1,21 @@
 import { Page, PageBody } from "@/design/shell";
 import {
-  Card,
-  CardHeader,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
   ChartBox,
   KV,
   MeterRow,
+  Panel,
+  PanelHeader,
   StatTile,
   Status,
-  Table,
-  TBody,
-  TD,
-  TH,
-  THead,
-  TR,
-} from "@/design/ui";
+} from "@/components";
 import { CHART_CARD, CHART_ROW, KPI_GRID, OverviewHeader, TABLE_CARD, ViewAll } from "./_shared";
 import { useTranslation } from "react-i18next";
 
@@ -35,7 +37,7 @@ export function OverviewRedis() {
         </div>
 
         <div className={CHART_ROW}>
-          <Card style={CHART_CARD}>
+          <Panel style={CHART_CARD}>
             <b style={{ fontSize: "12.5px" }}>{t("board.overview.redis.cmdRate")}</b>
             <div style={{ display: "flex", gap: "12px", fontSize: "10.5px" }}>
               <span style={{ color: "var(--c-fg)" }}>— XADD</span>
@@ -43,8 +45,8 @@ export function OverviewRedis() {
               <span style={{ color: "var(--c-muted-2)" }}>— XACK</span>
             </div>
             <ChartBox style={{ flex: 1 }}>{t("board.common.chartPlaceholder")}</ChartBox>
-          </Card>
-          <Card style={CHART_CARD}>
+          </Panel>
+          <Panel style={CHART_CARD}>
             <b style={{ fontSize: "12.5px" }}>Keyspace</b>
             <MeterRow label={t("board.overview.redis.memUsage")} value={20} />
             <KV
@@ -55,46 +57,46 @@ export function OverviewRedis() {
                 ["AOF / RDB", <span className="mono3" style={MONO11}>everysec · 08:00</span>],
               ]}
             />
-          </Card>
+          </Panel>
         </div>
 
-        <Card style={TABLE_CARD}>
-          <CardHeader title={t("board.overview.redis.topLength")} action={<ViewAll />} />
+        <Panel style={TABLE_CARD}>
+          <PanelHeader title={t("board.overview.redis.topLength")} action={<ViewAll />} />
           <Table>
-            <THead>
-              <TR>
-                <TH>Stream</TH>
-                <TH style={{ textAlign: "right" }}>XLEN</TH>
-                <TH style={{ textAlign: "right" }}>{t("board.common.group")}</TH>
-                <TH>last-generated-id</TH>
-                <TH>{t("board.overview.redis.maxlen")}</TH>
-              </TR>
-            </THead>
-            <TBody>
-              <TR>
-                <TD className="mono3">iot:raw</TD>
-                <TD className="mono3" style={{ textAlign: "right" }}>8.4M</TD>
-                <TD className="mono3" style={{ textAlign: "right" }}>1</TD>
-                <TD className="mono3" style={MONO11}>1756454647221-4</TD>
-                <TD><Status tone="warn">{t("board.overview.redis.unbounded")}</Status></TD>
-              </TR>
-              <TR>
-                <TD className="mono3">orders:events</TD>
-                <TD className="mono3" style={{ textAlign: "right" }}>1.2M</TD>
-                <TD className="mono3" style={{ textAlign: "right" }}>3</TD>
-                <TD className="mono3" style={MONO11}>1756454646018-0</TD>
-                <TD><Status tone="ok">~1M approx</Status></TD>
-              </TR>
-              <TR>
-                <TD className="mono3">payments:captured</TD>
-                <TD className="mono3" style={{ textAlign: "right" }}>640K</TD>
-                <TD className="mono3" style={{ textAlign: "right" }}>2</TD>
-                <TD className="mono3" style={MONO11}>1756454641773-2</TD>
-                <TD><Status tone="ok">~500K approx</Status></TD>
-              </TR>
-            </TBody>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Stream</TableHead>
+                <TableHead style={{ textAlign: "right" }}>XLEN</TableHead>
+                <TableHead style={{ textAlign: "right" }}>{t("board.common.group")}</TableHead>
+                <TableHead>last-generated-id</TableHead>
+                <TableHead>{t("board.overview.redis.maxlen")}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow>
+                <TableCell className="mono3">iot:raw</TableCell>
+                <TableCell className="mono3" style={{ textAlign: "right" }}>8.4M</TableCell>
+                <TableCell className="mono3" style={{ textAlign: "right" }}>1</TableCell>
+                <TableCell className="mono3" style={MONO11}>1756454647221-4</TableCell>
+                <TableCell><Status tone="warn">{t("board.overview.redis.unbounded")}</Status></TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell className="mono3">orders:events</TableCell>
+                <TableCell className="mono3" style={{ textAlign: "right" }}>1.2M</TableCell>
+                <TableCell className="mono3" style={{ textAlign: "right" }}>3</TableCell>
+                <TableCell className="mono3" style={MONO11}>1756454646018-0</TableCell>
+                <TableCell><Status tone="ok">~1M approx</Status></TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell className="mono3">payments:captured</TableCell>
+                <TableCell className="mono3" style={{ textAlign: "right" }}>640K</TableCell>
+                <TableCell className="mono3" style={{ textAlign: "right" }}>2</TableCell>
+                <TableCell className="mono3" style={MONO11}>1756454641773-2</TableCell>
+                <TableCell><Status tone="ok">~500K approx</Status></TableCell>
+              </TableRow>
+            </TableBody>
           </Table>
-        </Card>
+        </Panel>
       </PageBody>
     </Page>
   );

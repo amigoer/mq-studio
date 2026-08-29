@@ -1,7 +1,19 @@
 import { useTranslation } from "react-i18next";
 import { RefreshCw } from "lucide-react";
 import { Page, PageBody, PageHeader } from "@/design/shell";
-import { Btn, Card, Status, Table, TBody, TD, TH, THead, TR } from "@/design/ui";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Panel,
+  Status,
+} from "@/components";
 import { useCluster } from "@/hooks/useCluster";
 import { BoardState, Notice, isBlocked } from "@/design/boards/BoardState";
 import {
@@ -72,10 +84,10 @@ export function ClusterRocketMQ() {
           { version, masters: masters.length, slaves: slaves.length },
         )}
         actions={
-          <Btn disabled={state.refreshing || !state.online} onClick={() => void state.refresh()}>
+          <Button variant="outline" disabled={state.refreshing || !state.online} onClick={() => void state.refresh()}>
             {state.refreshing && <RefreshCw size={12} className="mqs-turning" aria-hidden />}
             {t("board.common.refresh")}
-          </Btn>
+          </Button>
         }
       />
       {isBlocked(state) ? (
@@ -89,7 +101,7 @@ export function ClusterRocketMQ() {
               <BrokerTile key={`${brokerName(node)}-${brokerId(node)}`} node={node} />
             ))}
           </div>
-          <Card style={TABLE_CARD}>
+          <Panel style={TABLE_CARD}>
             <div
               style={{
                 padding: "11px 16px",
@@ -101,46 +113,46 @@ export function ClusterRocketMQ() {
               <b style={{ fontSize: "12.5px" }}>{t("board.cluster.rocketmq.runtime")}</b>
             </div>
             <Table>
-              <THead>
-                <TR>
-                  <TH>{t("board.common.address")}</TH>
-                  <TH>{t("board.common.role")}</TH>
-                  <TH style={{ textAlign: "right" }}>{t("board.cluster.rocketmq.topics")}</TH>
-                  <TH style={{ textAlign: "right" }}>{t("board.cluster.rocketmq.groups")}</TH>
-                  <TH style={{ textAlign: "right" }}>{t("board.cluster.rocketmq.todayIn")}</TH>
-                  <TH style={{ textAlign: "right" }}>{t("board.cluster.rocketmq.todayOut")}</TH>
-                  <TH style={{ textAlign: "right" }}>{t("board.cluster.rocketmq.consumeQueue")}</TH>
-                </TR>
-              </THead>
-              <TBody>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("board.common.address")}</TableHead>
+                  <TableHead>{t("board.common.role")}</TableHead>
+                  <TableHead style={{ textAlign: "right" }}>{t("board.cluster.rocketmq.topics")}</TableHead>
+                  <TableHead style={{ textAlign: "right" }}>{t("board.cluster.rocketmq.groups")}</TableHead>
+                  <TableHead style={{ textAlign: "right" }}>{t("board.cluster.rocketmq.todayIn")}</TableHead>
+                  <TableHead style={{ textAlign: "right" }}>{t("board.cluster.rocketmq.todayOut")}</TableHead>
+                  <TableHead style={{ textAlign: "right" }}>{t("board.cluster.rocketmq.consumeQueue")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {nodes.map((node) => (
-                  <TR key={`row-${brokerName(node)}-${brokerId(node)}`}>
-                    <TD className="mono3" style={MONO11}>
+                  <TableRow key={`row-${brokerName(node)}-${brokerId(node)}`}>
+                    <TableCell className="mono3" style={MONO11}>
                       {node.address}
-                    </TD>
-                    <TD>{role(node)}</TD>
-                    <TD className="mono3" style={{ textAlign: "right" }}>
+                    </TableCell>
+                    <TableCell>{role(node)}</TableCell>
+                    <TableCell className="mono3" style={{ textAlign: "right" }}>
                       {metric(topicCount(node))}
-                    </TD>
-                    <TD className="mono3" style={{ textAlign: "right" }}>
+                    </TableCell>
+                    <TableCell className="mono3" style={{ textAlign: "right" }}>
                       {metric(groupCount(node))}
-                    </TD>
-                    <TD className="mono3" style={{ textAlign: "right" }}>
+                    </TableCell>
+                    <TableCell className="mono3" style={{ textAlign: "right" }}>
                       {metric(msgInToday(node))}
-                    </TD>
-                    <TD className="mono3" style={{ textAlign: "right" }}>
+                    </TableCell>
+                    <TableCell className="mono3" style={{ textAlign: "right" }}>
                       {metric(msgOutToday(node))}
-                    </TD>
-                    <TD className="mono3" style={{ textAlign: "right" }}>
+                    </TableCell>
+                    <TableCell className="mono3" style={{ textAlign: "right" }}>
                       {consumeQueueDiskUsage(node) === UNKNOWN
                         ? "—"
                         : `${consumeQueueDiskUsage(node)}%`}
-                    </TD>
-                  </TR>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </TBody>
+              </TableBody>
             </Table>
-          </Card>
+          </Panel>
         </PageBody>
       )}
     </Page>

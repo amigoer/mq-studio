@@ -1,7 +1,19 @@
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { BulkBar, ListPane, Page, PageHeader, SkeletonRows, Toolbar } from "@/design/shell";
-import { Btn, Check, SelectField, Table, TBody, TD, TH, THead, TR } from "@/design/ui";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  SelectField,
+} from "@/components";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useTranslation } from "react-i18next";
 
 const MONO11 = { fontSize: "11px" } as const;
@@ -41,65 +53,65 @@ export function PelRedis() {
       <PageHeader
         title={t("board.dlq.redis.title")}
         subtitle={t("board.dlq.redis.subtitle")}
-        actions={<SelectField value={t("board.dlq.redis.threshold")} />}
+        actions={<SelectField value="opt" options={[{ value: "opt", label: t("board.dlq.redis.threshold") }]} />}
       />
       <Toolbar>
-        <SelectField value={t("board.dlq.redis.allStreams")} />
-        <SelectField value={t("board.dlq.redis.allGroups")} />
-        <span style={{ flex: 1 }} />
-        <Btn>{t("board.dlq.redis.autoclaim")}</Btn>
+        <SelectField value="opt" options={[{ value: "opt", label: t("board.dlq.redis.allStreams") }]} />
+        <SelectField value="opt" options={[{ value: "opt", label: t("board.dlq.redis.allGroups") }]} />
+        <span className="flex-1" />
+        <Button variant="outline">{t("board.dlq.redis.autoclaim")}</Button>
       </Toolbar>
 
       <ListPane>
-        <Table className="inset">
-          <THead>
-            <TR>
-              <TH style={{ width: "26px" }}>
-                <Check
+        <Table inset>
+          <TableHeader>
+            <TableRow>
+              <TableHead style={{ width: "26px" }}>
+                <Checkbox
                   checked={allChecked}
-                  label={t("board.common.selectAll")}
-                  onChange={() => setChecked(allChecked ? [] : ROWS.map((r) => r.id))}
+                  aria-label={t("board.common.selectAll")}
+                  onCheckedChange={() => setChecked(allChecked ? [] : ROWS.map((r) => r.id))}
                 />
-              </TH>
-              <TH>{t("board.dlq.redis.streamGroup")}</TH>
-              <TH>Entry ID</TH>
-              <TH>consumer</TH>
-              <TH style={R}>idle</TH>
-              <TH style={R}>{t("board.dlq.redis.deliveries")}</TH>
-            </TR>
-          </THead>
-          <TBody>
+              </TableHead>
+              <TableHead>{t("board.dlq.redis.streamGroup")}</TableHead>
+              <TableHead>Entry ID</TableHead>
+              <TableHead>consumer</TableHead>
+              <TableHead style={R}>idle</TableHead>
+              <TableHead style={R}>{t("board.dlq.redis.deliveries")}</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {ROWS.map((row) => {
               const on = checked.includes(row.id);
               const dim = on ? undefined : "var(--c-mono-dim)";
               return (
-                <TR key={row.id}>
-                  <TD>
-                    <Check checked={on} label={row.entryId} onChange={() => toggle(row.id)} />
-                  </TD>
-                  <TD className="mono3" style={{ ...MONO11, color: dim }}>{row.scope}</TD>
-                  <TD className="mono3" style={{ ...MONO11, color: dim }}>{row.entryId}</TD>
-                  <TD className="mono3" style={{ ...MONO11, color: dim }}>{row.consumer}</TD>
-                  <TD className="mono3" style={{ ...R, color: on ? row.idleColor : dim }}>{row.idle}</TD>
-                  <TD className="mono3" style={{ ...R, color: on ? row.deliveryColor : dim }}>
+                <TableRow key={row.id}>
+                  <TableCell>
+                    <Checkbox checked={on} aria-label={row.entryId} onCheckedChange={() => toggle(row.id)} />
+                  </TableCell>
+                  <TableCell className="mono3" style={{ ...MONO11, color: dim }}>{row.scope}</TableCell>
+                  <TableCell className="mono3" style={{ ...MONO11, color: dim }}>{row.entryId}</TableCell>
+                  <TableCell className="mono3" style={{ ...MONO11, color: dim }}>{row.consumer}</TableCell>
+                  <TableCell className="mono3" style={{ ...R, color: on ? row.idleColor : dim }}>{row.idle}</TableCell>
+                  <TableCell className="mono3" style={{ ...R, color: on ? row.deliveryColor : dim }}>
                     {row.deliveries}
-                  </TD>
-                </TR>
+                  </TableCell>
+                </TableRow>
               );
             })}
             <SkeletonRows colSpan={6} widths={["48%"]} />
-          </TBody>
+          </TableBody>
         </Table>
       </ListPane>
 
       <BulkBar hint={t("board.dlq.redis.hint")}>
         <span>{t("board.common.selectedN", { n: checked.length })}</span>
-        <Btn variant="primary">
+        <Button>
               {t("board.dlq.redis.claimTo")}
               <ChevronDown size={12} aria-hidden />
-            </Btn>
-        <Btn>{t("board.dlq.redis.xackDrop")}</Btn>
-        <Btn>{t("board.common.viewMessages")}</Btn>
+            </Button>
+        <Button variant="outline">{t("board.dlq.redis.xackDrop")}</Button>
+        <Button variant="outline">{t("board.common.viewMessages")}</Button>
       </BulkBar>
     </Page>
   );

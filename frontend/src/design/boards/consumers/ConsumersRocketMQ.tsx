@@ -2,32 +2,31 @@ import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { RefreshCw } from "lucide-react";
 import { ListArea, ListPane, Page, PageHeader, Toolbar } from "@/design/shell";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import {
-  Btn,
-  Card,
-  Field,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  DetailPanel,
+  DetailPanelBody,
+  DetailPanelFooter,
+  DetailPanelHeader,
   KV,
-  Menu,
-  MenuItem,
   MiniStat,
-  MiniTable,
+  Panel,
   SectionLabel,
   SelectField,
-  Sheet,
-  SheetBody,
-  SheetFooter,
-  SheetHeader,
   Status,
-  Sw,
-  Table,
   useConfirm,
   useToast,
-  TBody,
-  TD,
-  TH,
-  THead,
-  TR,
-} from "@/design/ui";
+} from "@/components";
 import { BoardState, Notice, isBlocked } from "@/design/boards/BoardState";
 import { useBrokerData } from "@/hooks/useBrokerData";
 import { useSettings } from "@/hooks/useSettings";
@@ -93,7 +92,6 @@ export function ConsumersRocketMQ() {
   const [tab, setTab] = useState<string>(SHEET_TABS[0]);
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<Sort>("backlog");
-  const [sortOpen, setSortOpen] = useState(false);
 
   const load = useCallback((id: number) => consumerApi.getConsumerGroups(id), []);
   const state = useBrokerData(load);
@@ -148,43 +146,32 @@ export function ConsumersRocketMQ() {
         title={t("board.common.consumerGroup")}
         subtitle={t("board.consumers.rocketmq.liveSubtitle", { count: groups.length })}
         actions={
-          <Btn disabled={state.refreshing || !state.online} onClick={() => void state.refresh()}>
+          <Button variant="outline" disabled={state.refreshing || !state.online} onClick={() => void state.refresh()}>
             {state.refreshing && <RefreshCw size={12} className="mqs-turning" aria-hidden />}
             {t("board.common.refresh")}
-          </Btn>
+          </Button>
         }
       />
       <Toolbar>
-        <Field
-          style={{ flex: "0 0 220px" }}
+        <Input
+          className="w-[220px] flex-none"
           placeholder={t("board.common.searchGroups")}
           value={query}
           onChange={(event) => setQuery(event.target.value)}
         />
-        <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11.5px", color: "var(--c-mono-dim)" }}>
-          <Sw checked={backlogOnly} onCheckedChange={setBacklogOnly} label={t("board.consumers.rocketmq.backlogOnly")} />
+        <label className="flex items-center gap-1.5 text-xs text-(--c-mono-dim)">
+          <Switch checked={backlogOnly} onCheckedChange={setBacklogOnly} />
           {t("board.consumers.rocketmq.backlogOnly")}
-        </span>
-        <span style={{ flex: 1 }} />
-        <span style={{ position: "relative" }}>
-          <SelectField
-            value={t(`board.consumers.rocketmq.sort.${sort}`)}
-            onClick={() => setSortOpen((open) => !open)}
-          />
-          <Menu open={sortOpen} onClose={() => setSortOpen(false)}>
-            {SORTS.map((key) => (
-              <MenuItem
-                key={key}
-                onSelect={() => {
-                  setSort(key);
-                  setSortOpen(false);
-                }}
-              >
-                {t(`board.consumers.rocketmq.sort.${key}`)}
-              </MenuItem>
-            ))}
-          </Menu>
-        </span>
+        </label>
+        <span className="flex-1" />
+        <SelectField
+          value={sort}
+          onValueChange={setSort}
+          options={SORTS.map((key) => ({
+            value: key,
+            label: t(`board.consumers.rocketmq.sort.${key}`),
+          }))}
+        />
       </Toolbar>
 
       {isBlocked(state) ? (
@@ -192,20 +179,20 @@ export function ConsumersRocketMQ() {
       ) : (
         <ListArea>
           <ListPane>
-            <Table className="inset">
-              <THead>
-                <TR>
-                  <TH>{t("board.consumers.rocketmq.groupName")}</TH>
-                  <TH style={R}>{t("board.consumers.rocketmq.subTopic")}</TH>
-                  <TH>{t("board.common.mode")}</TH>
-                  <TH style={R}>{t("board.common.client")}</TH>
-                  <TH style={R}>{t("board.common.consumeTps")}</TH>
-                  <TH style={R}>{t("board.common.backlog")}</TH>
-                  <TH style={R}>{t("board.consumers.rocketmq.dlq")}</TH>
-                  <TH>{t("board.common.status")}</TH>
-                </TR>
-              </THead>
-              <TBody>
+            <Table inset>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("board.consumers.rocketmq.groupName")}</TableHead>
+                  <TableHead style={R}>{t("board.consumers.rocketmq.subTopic")}</TableHead>
+                  <TableHead>{t("board.common.mode")}</TableHead>
+                  <TableHead style={R}>{t("board.common.client")}</TableHead>
+                  <TableHead style={R}>{t("board.common.consumeTps")}</TableHead>
+                  <TableHead style={R}>{t("board.common.backlog")}</TableHead>
+                  <TableHead style={R}>{t("board.consumers.rocketmq.dlq")}</TableHead>
+                  <TableHead>{t("board.common.status")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {rows.map((group) => {
                   const name = groupName(group);
                   const backlog = group.backlog ?? 0;
@@ -213,39 +200,39 @@ export function ConsumersRocketMQ() {
                   const alerting = backlog > lagThreshold;
                   const dim = offline ? { color: "var(--c-muted)" } : undefined;
                   return (
-                    <TR key={name} selected={selected === name} onClick={() => setSelected(name)}>
-                      <TD style={dim}>
+                    <TableRow key={name} selected={selected === name} onClick={() => setSelected(name)}>
+                      <TableCell style={dim}>
                         {offline ? name : <b style={{ fontWeight: 500 }}>{name}</b>}
-                      </TD>
-                      <TD className="mono3" style={{ ...R, ...dim }}>
+                      </TableCell>
+                      <TableCell className="mono3" style={{ ...R, ...dim }}>
                         {metric(group.destinations)}
-                      </TD>
-                      <TD style={dim}>
+                      </TableCell>
+                      <TableCell style={dim}>
                         {t(
                           consumeMode(group) === ConsumeMode.Broadcasting
                             ? "board.consumers.rocketmq.broadcast"
                             : "board.common.cluster",
                         )}
-                      </TD>
-                      <TD className="mono3" style={{ ...R, ...dim }}>
+                      </TableCell>
+                      <TableCell className="mono3" style={{ ...R, ...dim }}>
                         {metric(group.members)}
-                      </TD>
-                      <TD className="mono3" style={{ ...R, ...dim }}>
+                      </TableCell>
+                      <TableCell className="mono3" style={{ ...R, ...dim }}>
                         {metric(group.rateOut)}
-                      </TD>
-                      <TD
+                      </TableCell>
+                      <TableCell
                         className="mono3"
                         style={{ ...R, ...dim, ...(alerting ? { color: "var(--c-warn-text)" } : {}) }}
                       >
                         {metric(backlog)}
-                      </TD>
-                      <TD
+                      </TableCell>
+                      <TableCell
                         className="mono3"
                         style={{ ...R, ...dim, ...(dlqCount(group) > 0 ? { color: "var(--c-err-text)" } : {}) }}
                       >
                         {dlqCount(group).toLocaleString()}
-                      </TD>
-                      <TD>
+                      </TableCell>
+                      <TableCell>
                         <Status tone={offline ? "off" : alerting ? "warn" : "ok"}>
                           {t(
                             offline
@@ -255,18 +242,18 @@ export function ConsumersRocketMQ() {
                                 : "board.common.healthy",
                           )}
                         </Status>
-                      </TD>
-                    </TR>
+                      </TableCell>
+                    </TableRow>
                   );
                 })}
                 {rows.length === 0 && (
-                  <TR>
-                    <TD colSpan={8} style={{ padding: "34px", textAlign: "center", color: "var(--c-muted)" }}>
+                  <TableRow>
+                    <TableCell colSpan={8} style={{ padding: "34px", textAlign: "center", color: "var(--c-muted)" }}>
                       {t(groups.length === 0 ? "board.consumers.rocketmq.noGroups" : "board.common.noMatch")}
-                    </TD>
-                  </TR>
+                    </TableCell>
+                  </TableRow>
                 )}
-              </TBody>
+              </TableBody>
             </Table>
           </ListPane>
 
@@ -318,8 +305,8 @@ function GroupSheet({
   const subscriptions = subscriptionsOf(group);
 
   return (
-    <Sheet width={390} onDismiss={onClose}>
-      <SheetHeader
+    <DetailPanel width={390} onDismiss={onClose}>
+      <DetailPanelHeader
         title={groupName(group)}
         badge={
           <Status tone={alerting ? "warn" : "ok"} style={{ fontSize: "10px" }}>
@@ -331,7 +318,7 @@ function GroupSheet({
         onTabChange={onTabChange}
         onClose={onClose}
       />
-      <SheetBody>
+      <DetailPanelBody>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px" }}>
           <MiniStat
             label={t("board.common.backlog")}
@@ -362,26 +349,26 @@ function GroupSheet({
           {subscriptions.length === 0 ? (
             <Notice title={t("board.consumers.rocketmq.noSubs")} />
           ) : (
-            <Card style={{ overflow: "hidden" }}>
-              <MiniTable>
-                <THead>
-                  <TR>
-                    <TH>Topic</TH>
-                    <TH>{t("board.consumers.rocketmq.expression")}</TH>
-                  </TR>
-                </THead>
-                <TBody>
+            <Panel style={{ overflow: "hidden" }}>
+              <Table className="text-xs">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Topic</TableHead>
+                    <TableHead>{t("board.consumers.rocketmq.expression")}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {subscriptions.map((one) => (
-                    <TR key={one.topic}>
-                      <TD className="mono3">{one.topic}</TD>
-                      <TD className="mono3" style={{ color: "var(--c-mono-dim)" }}>
+                    <TableRow key={one.topic}>
+                      <TableCell className="mono3">{one.topic}</TableCell>
+                      <TableCell className="mono3" style={{ color: "var(--c-mono-dim)" }}>
                         {one.expression || "*"}
-                      </TD>
-                    </TR>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </TBody>
-              </MiniTable>
-            </Card>
+                </TableBody>
+              </Table>
+            </Panel>
           )}
         </div>
 
@@ -390,40 +377,40 @@ function GroupSheet({
           {clients.length === 0 ? (
             <Notice title={t("board.consumers.rocketmq.noClients")} />
           ) : (
-            <Card style={{ overflow: "hidden" }}>
-              <MiniTable>
-                <THead>
-                  <TR>
-                    <TH>ClientId</TH>
-                    <TH>IP</TH>
-                    <TH style={R}>{t("board.consumers.rocketmq.version")}</TH>
-                  </TR>
-                </THead>
-                <TBody>
+            <Panel style={{ overflow: "hidden" }}>
+              <Table className="text-xs">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>ClientId</TableHead>
+                    <TableHead>IP</TableHead>
+                    <TableHead style={R}>{t("board.consumers.rocketmq.version")}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {clients.map((client) => (
-                    <TR key={client.clientId}>
-                      <TD className="mono3">{client.clientId}</TD>
-                      <TD className="mono3" style={{ color: "var(--c-mono-dim)" }}>
+                    <TableRow key={client.clientId}>
+                      <TableCell className="mono3">{client.clientId}</TableCell>
+                      <TableCell className="mono3" style={{ color: "var(--c-mono-dim)" }}>
                         {client.ip}
-                      </TD>
-                      <TD className="mono3" style={R}>
+                      </TableCell>
+                      <TableCell className="mono3" style={R}>
                         {client.version}
-                      </TD>
-                    </TR>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </TBody>
-              </MiniTable>
-            </Card>
+                </TableBody>
+              </Table>
+            </Panel>
           )}
         </div>
-      </SheetBody>
-      <SheetFooter>
-        <Btn onClick={onResetOffset}>{t("board.common.resetOffset")}</Btn>
-        <span style={{ flex: 1 }} />
-        <Btn variant="danger" onClick={onDelete}>
+      </DetailPanelBody>
+      <DetailPanelFooter>
+        <Button variant="outline" onClick={onResetOffset}>{t("board.common.resetOffset")}</Button>
+        <span className="flex-1" />
+        <Button variant="destructive" onClick={onDelete}>
           {t("board.common.deleteGroup")}
-        </Btn>
-      </SheetFooter>
-    </Sheet>
+        </Button>
+      </DetailPanelFooter>
+    </DetailPanel>
   );
 }

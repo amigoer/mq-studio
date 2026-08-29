@@ -1,5 +1,19 @@
 import { Page, PageBody, PageHeader } from "@/design/shell";
-import { Btn, Card, KV, SectionLabel, Status, Table, TBody, TD, TH, THead, TR } from "@/design/ui";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  KV,
+  Panel,
+  SectionLabel,
+  Status,
+} from "@/components";
 import { Metric, NODE_CARD, NODE_GRID, NodeCard, TABLE_CARD } from "./_shared";
 import { useTranslation } from "react-i18next";
 
@@ -11,7 +25,7 @@ export function NodeRedis() {
   const { t } = useTranslation();
   return (
     <Page>
-      <PageHeader title={t("board.common.node")} subtitle={t("board.cluster.redis.subtitle")} actions={<Btn>{t("board.common.refresh")}</Btn>} />
+      <PageHeader title={t("board.common.node")} subtitle={t("board.cluster.redis.subtitle")} actions={<Button variant="outline">{t("board.common.refresh")}</Button>} />
       <PageBody style={{ gap: "12px" }}>
         <div className={NODE_GRID}>
           <NodeCard
@@ -27,7 +41,7 @@ export function NodeRedis() {
             }
             meters={[{ label: t("board.cluster.redis.memory"), value: 20 }]}
           />
-          <Card style={NODE_CARD}>
+          <Panel style={NODE_CARD}>
             <SectionLabel>{t("board.common.persistence")}</SectionLabel>
             <KV
               rows={[
@@ -36,10 +50,10 @@ export function NodeRedis() {
                 [t("board.common.copy"), <span className="mono3" style={MONO11}>{t("board.cluster.redis.noReplica")}</span>],
               ]}
             />
-          </Card>
+          </Panel>
         </div>
 
-        <Card style={TABLE_CARD}>
+        <Panel style={TABLE_CARD}>
           <div
             style={{
               padding: "11px 16px",
@@ -49,33 +63,33 @@ export function NodeRedis() {
             }}
           >
             <b style={{ fontSize: "12.5px" }}>{t("board.cluster.redis.slowlog")}</b>
-            <span style={{ flex: 1 }} />
+            <span className="flex-1" />
           </div>
           <Table>
-            <THead>
-              <TR>
-                <TH>{t("board.cluster.redis.command")}</TH>
-                <TH style={{ textAlign: "right" }}>{t("board.cluster.redis.elapsed")}</TH>
-                <TH>{t("board.common.time")}</TH>
-                <TH>{t("board.common.client")}</TH>
-              </TR>
-            </THead>
-            <TBody>
-              <TR>
-                <TD className="mono3" style={MONO11}>XRANGE iot:raw - + COUNT 10000</TD>
-                <TD className="mono3" style={{ textAlign: "right", color: "var(--c-warn-text)" }}>48ms</TD>
-                <TD className="mono3" style={MONO11}>10:02:37</TD>
-                <TD className="mono3" style={MONO11}>10.2.3.9</TD>
-              </TR>
-              <TR>
-                <TD className="mono3" style={MONO11}>XAUTOCLAIM orders:events …</TD>
-                <TD className="mono3" style={{ textAlign: "right" }}>18ms</TD>
-                <TD className="mono3" style={MONO11}>09:41:22</TD>
-                <TD className="mono3" style={MONO11}>10.2.3.4</TD>
-              </TR>
-            </TBody>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t("board.cluster.redis.command")}</TableHead>
+                <TableHead style={{ textAlign: "right" }}>{t("board.cluster.redis.elapsed")}</TableHead>
+                <TableHead>{t("board.common.time")}</TableHead>
+                <TableHead>{t("board.common.client")}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow>
+                <TableCell className="mono3" style={MONO11}>XRANGE iot:raw - + COUNT 10000</TableCell>
+                <TableCell className="mono3" style={{ textAlign: "right", color: "var(--c-warn-text)" }}>48ms</TableCell>
+                <TableCell className="mono3" style={MONO11}>10:02:37</TableCell>
+                <TableCell className="mono3" style={MONO11}>10.2.3.9</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell className="mono3" style={MONO11}>XAUTOCLAIM orders:events …</TableCell>
+                <TableCell className="mono3" style={{ textAlign: "right" }}>18ms</TableCell>
+                <TableCell className="mono3" style={MONO11}>09:41:22</TableCell>
+                <TableCell className="mono3" style={MONO11}>10.2.3.4</TableCell>
+              </TableRow>
+            </TableBody>
           </Table>
-        </Card>
+        </Panel>
       </PageBody>
     </Page>
   );

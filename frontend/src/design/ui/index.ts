@@ -11,8 +11,7 @@ export { Table, MiniTable, THead, TBody, TR, TH, TD, NumTD, MonoTD } from "./tab
 export { Status, ProtoBadge, OutlineTag } from "@/components/status";
 export { Seg, type SegOption } from "./segmented";
 export { Sw } from "./switch";
-export { LineChart } from "./chart";
-export type { Series } from "./chart";
+export { LineChart, type Series } from "@/components";
 export { ChartBox, Bar, SectionLabel, KV, MeterRow, WarnBanner } from "@/components";
 export { Placeholder, SettingRow, Check } from "./misc";
 export { Sheet, SheetHeader, SheetBody, SheetFooter } from "./sheet";

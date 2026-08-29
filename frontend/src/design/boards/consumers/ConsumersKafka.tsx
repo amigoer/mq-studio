@@ -1,26 +1,27 @@
 import { useState } from "react";
 import { ListArea, ListPane, Page, PageHeader, SkeletonRows, Toolbar } from "@/design/shell";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import {
-  Btn,
-  Card,
-  Field,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  DetailPanel,
+  DetailPanelBody,
+  DetailPanelFooter,
+  DetailPanelHeader,
   MiniStat,
-  MiniTable,
+  Panel,
   SectionLabel,
   SelectField,
-  Sheet,
-  SheetBody,
-  SheetFooter,
-  SheetHeader,
   Status,
-  Sw,
-  Table,
-  TBody,
-  TD,
-  TH,
-  THead,
-  TR,
-} from "@/design/ui";
+} from "@/components";
 import { useTranslation } from "react-i18next";
 
 const SHEET_TABS = ["board.consumers.kafka.assignment", "board.common.members", "board.common.offset"] as const;
@@ -37,61 +38,61 @@ export function ConsumersKafka() {
     <Page>
       <PageHeader title={t("board.common.consumerGroup")} subtitle={t("board.consumers.kafka.subtitle")} />
       <Toolbar>
-        <Field style={{ flex: "0 0 220px" }} placeholder={t("board.common.searchGroups")} />
+        <Input className="w-[220px] flex-none" placeholder={t("board.common.searchGroups")} />
         <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11.5px", color: "var(--c-mono-dim)" }}>
-          <Sw checked={lagOnly} onCheckedChange={setLagOnly} label={t("board.consumers.kafka.lagOnly")} />
+          <Switch checked={lagOnly} onCheckedChange={setLagOnly} />
           {t("board.consumers.kafka.lagOnly")}
         </span>
-        <span style={{ flex: 1 }} />
-        <SelectField value={t("board.consumers.kafka.sortByLag")} />
+        <span className="flex-1" />
+        <SelectField value="opt" options={[{ value: "opt", label: t("board.consumers.kafka.sortByLag") }]} />
       </Toolbar>
 
       <ListArea>
         <ListPane>
-          <Table className="inset">
-            <THead>
-              <TR>
-                <TH>Group</TH>
-                <TH>{t("board.common.status")}</TH>
-                <TH style={R}>{t("board.common.members")}</TH>
-                <TH style={R}>Topic</TH>
-                <TH style={R}>{t("board.consumers.kafka.totalLag")}</TH>
-                <TH style={R}>{t("board.common.consumeRate")}</TH>
-              </TR>
-            </THead>
-            <TBody>
-              <TR selected={selected === "settle-consumer"} onClick={() => setSelected("settle-consumer")}>
-                <TD><b style={{ fontWeight: 500 }}>settle-consumer</b></TD>
-                <TD><Status tone="ok">Stable</Status></TD>
-                <TD className="mono3" style={R}>6</TD>
-                <TD className="mono3" style={R}>1</TD>
-                <TD className="mono3" style={{ ...R, color: "var(--c-warn-text)" }}>9 820</TD>
-                <TD className="mono3" style={R}>1 104/s</TD>
-              </TR>
-              <TR selected={selected === "notify-consumer"} onClick={() => setSelected("notify-consumer")}>
-                <TD>notify-consumer</TD>
-                <TD><Status tone="ok">Stable</Status></TD>
-                <TD className="mono3" style={R}>4</TD>
-                <TD className="mono3" style={R}>1</TD>
-                <TD className="mono3" style={R}>1 220</TD>
-                <TD className="mono3" style={R}>2 003/s</TD>
-              </TR>
-              <TR selected={selected === "audit-pipeline"} onClick={() => setSelected("audit-pipeline")}>
-                <TD>audit-pipeline</TD>
-                <TD><Status tone="warn">Rebalancing</Status></TD>
-                <TD className="mono3" style={R}>3→4</TD>
-                <TD className="mono3" style={R}>2</TD>
-                <TD className="mono3" style={R}>840</TD>
-                <TD className="mono3" style={R}>—</TD>
-              </TR>
+          <Table inset>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Group</TableHead>
+                <TableHead>{t("board.common.status")}</TableHead>
+                <TableHead style={R}>{t("board.common.members")}</TableHead>
+                <TableHead style={R}>Topic</TableHead>
+                <TableHead style={R}>{t("board.consumers.kafka.totalLag")}</TableHead>
+                <TableHead style={R}>{t("board.common.consumeRate")}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow selected={selected === "settle-consumer"} onClick={() => setSelected("settle-consumer")}>
+                <TableCell><b style={{ fontWeight: 500 }}>settle-consumer</b></TableCell>
+                <TableCell><Status tone="ok">Stable</Status></TableCell>
+                <TableCell className="mono3" style={R}>6</TableCell>
+                <TableCell className="mono3" style={R}>1</TableCell>
+                <TableCell className="mono3" style={{ ...R, color: "var(--c-warn-text)" }}>9 820</TableCell>
+                <TableCell className="mono3" style={R}>1 104/s</TableCell>
+              </TableRow>
+              <TableRow selected={selected === "notify-consumer"} onClick={() => setSelected("notify-consumer")}>
+                <TableCell>notify-consumer</TableCell>
+                <TableCell><Status tone="ok">Stable</Status></TableCell>
+                <TableCell className="mono3" style={R}>4</TableCell>
+                <TableCell className="mono3" style={R}>1</TableCell>
+                <TableCell className="mono3" style={R}>1 220</TableCell>
+                <TableCell className="mono3" style={R}>2 003/s</TableCell>
+              </TableRow>
+              <TableRow selected={selected === "audit-pipeline"} onClick={() => setSelected("audit-pipeline")}>
+                <TableCell>audit-pipeline</TableCell>
+                <TableCell><Status tone="warn">Rebalancing</Status></TableCell>
+                <TableCell className="mono3" style={R}>3→4</TableCell>
+                <TableCell className="mono3" style={R}>2</TableCell>
+                <TableCell className="mono3" style={R}>840</TableCell>
+                <TableCell className="mono3" style={R}>—</TableCell>
+              </TableRow>
               <SkeletonRows colSpan={6} widths={["66%", "50%"]} />
-            </TBody>
+            </TableBody>
           </Table>
         </ListPane>
 
         {selected != null && (
-          <Sheet width={410} onDismiss={() => setSelected(null)}>
-            <SheetHeader
+          <DetailPanel width={410} onDismiss={() => setSelected(null)}>
+            <DetailPanelHeader
               title={selected}
               badge={<Status tone="ok" style={{ fontSize: "10px" }}>Stable</Status>}
               tabs={SHEET_TABS.map((id) => ({ id, label: t(id) }))}
@@ -99,7 +100,7 @@ export function ConsumersKafka() {
               onTabChange={setTab}
               onClose={() => setSelected(null)}
             />
-            <SheetBody>
+            <DetailPanelBody>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px" }}>
                 <MiniStat label={t("board.consumers.kafka.totalLag")} value="9 820" color="var(--c-warn-text)" size={15} />
                 <MiniStat label={t("board.common.members")} value="6" size={15} />
@@ -108,53 +109,53 @@ export function ConsumersKafka() {
 
               <div>
                 <SectionLabel style={{ marginBottom: "6px" }}>{t("board.consumers.kafka.partitionLag")}</SectionLabel>
-                <Card style={{ overflow: "hidden" }}>
-                  <MiniTable>
-                    <THead>
-                      <TR>
-                        <TH style={R}>P</TH>
-                        <TH>member</TH>
-                        <TH style={R}>committed</TH>
-                        <TH style={R}>end</TH>
-                        <TH style={R}>lag</TH>
-                      </TR>
-                    </THead>
-                    <TBody>
-                      <TR>
-                        <TD className="mono3" style={R}>0</TD>
-                        <TD className="mono3">c-1@10.2.3.4</TD>
-                        <TD className="mono3" style={R}>88 199 021</TD>
-                        <TD className="mono3" style={R}>88 204 771</TD>
-                        <TD className="mono3" style={{ ...R, color: "var(--c-warn-text)" }}>5 750</TD>
-                      </TR>
-                      <TR>
-                        <TD className="mono3" style={R}>1</TD>
-                        <TD className="mono3">c-1@10.2.3.4</TD>
-                        <TD className="mono3" style={R}>88 201 990</TD>
-                        <TD className="mono3" style={R}>88 204 018</TD>
-                        <TD className="mono3" style={R}>2 028</TD>
-                      </TR>
-                      <TR>
-                        <TD className="mono3" style={R}>2</TD>
-                        <TD className="mono3">c-2@10.2.3.5</TD>
-                        <TD className="mono3" style={R}>88 202 771</TD>
-                        <TD className="mono3" style={R}>88 204 813</TD>
-                        <TD className="mono3" style={R}>2 042</TD>
-                      </TR>
-                    </TBody>
-                  </MiniTable>
-                </Card>
+                <Panel style={{ overflow: "hidden" }}>
+                  <Table className="text-xs">
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead style={R}>P</TableHead>
+                        <TableHead>member</TableHead>
+                        <TableHead style={R}>committed</TableHead>
+                        <TableHead style={R}>end</TableHead>
+                        <TableHead style={R}>lag</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      <TableRow>
+                        <TableCell className="mono3" style={R}>0</TableCell>
+                        <TableCell className="mono3">c-1@10.2.3.4</TableCell>
+                        <TableCell className="mono3" style={R}>88 199 021</TableCell>
+                        <TableCell className="mono3" style={R}>88 204 771</TableCell>
+                        <TableCell className="mono3" style={{ ...R, color: "var(--c-warn-text)" }}>5 750</TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell className="mono3" style={R}>1</TableCell>
+                        <TableCell className="mono3">c-1@10.2.3.4</TableCell>
+                        <TableCell className="mono3" style={R}>88 201 990</TableCell>
+                        <TableCell className="mono3" style={R}>88 204 018</TableCell>
+                        <TableCell className="mono3" style={R}>2 028</TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell className="mono3" style={R}>2</TableCell>
+                        <TableCell className="mono3">c-2@10.2.3.5</TableCell>
+                        <TableCell className="mono3" style={R}>88 202 771</TableCell>
+                        <TableCell className="mono3" style={R}>88 204 813</TableCell>
+                        <TableCell className="mono3" style={R}>2 042</TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </Panel>
               </div>
 
               <div style={{ fontSize: "11px", color: "var(--c-muted)" }}>{t("board.consumers.kafka.lagHint")}</div>
-            </SheetBody>
-            <SheetFooter>
-              <Btn>{t("board.consumers.kafka.resetOffset")}</Btn>
-              <Btn>{t("board.consumers.kafka.exportLag")}</Btn>
-              <span style={{ flex: 1 }} />
-              <Btn variant="danger">{t("board.common.deleteGroup")}</Btn>
-            </SheetFooter>
-          </Sheet>
+            </DetailPanelBody>
+            <DetailPanelFooter>
+              <Button variant="outline">{t("board.consumers.kafka.resetOffset")}</Button>
+              <Button variant="outline">{t("board.consumers.kafka.exportLag")}</Button>
+              <span className="flex-1" />
+              <Button variant="destructive">{t("board.common.deleteGroup")}</Button>
+            </DetailPanelFooter>
+          </DetailPanel>
         )}
       </ListArea>
     </Page>

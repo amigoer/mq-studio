@@ -1,18 +1,20 @@
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { BulkBar, ListPane, Page, PageHeader, Toolbar } from "@/design/shell";
+import { Button } from "@/components/ui/button";
 import {
-  Btn,
-  Check,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
   SectionLabel,
   SelectField,
-  Table,
-  TBody,
-  TD,
-  TH,
-  THead,
-  TR,
-} from "@/design/ui";
+} from "@/components";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useTranslation } from "react-i18next";
 
 const R = { textAlign: "right" } as const;
@@ -50,102 +52,102 @@ export function ConsumersRedis() {
     <Page>
       <PageHeader title={t("board.common.consumerGroup")} subtitle={t("board.consumers.redis.subtitle")} />
       <Toolbar>
-        <SelectField value="Stream：orders:events" />
-        <span style={{ flex: 1 }} />
-        <Btn>XAUTOCLAIM idle&gt;60s…</Btn>
+        <SelectField value="orders:events" prefix="Stream：" options={[{ value: "orders:events" }]} />
+        <span className="flex-1" />
+        <Button variant="outline">XAUTOCLAIM idle&gt;60s…</Button>
       </Toolbar>
 
       <div style={{ flex: "none", overflow: "hidden" }}>
-        <Table className="inset">
-          <THead>
-            <TR>
-              <TH>{t("board.common.group")}</TH>
-              <TH style={R}>consumers</TH>
-              <TH style={R}>pending</TH>
-              <TH>last-delivered-id</TH>
-              <TH style={R}>entries-read</TH>
-              <TH style={R}>{t("board.consumers.redis.lag")}</TH>
-            </TR>
-          </THead>
-          <TBody>
-            <TR selected={selectedGroup === "settle-group"} onClick={() => setSelectedGroup("settle-group")}>
-              <TD><b style={{ fontWeight: 500 }}>settle-group</b></TD>
-              <TD className="mono3" style={R}>2</TD>
-              <TD className="mono3" style={{ ...R, color: "var(--c-warn-text)" }}>29</TD>
-              <TD className="mono3" style={MONO11}>1756454641773-2</TD>
-              <TD className="mono3" style={R}>1 204 742</TD>
-              <TD className="mono3" style={{ ...R, color: "var(--c-warn-text)" }}>982</TD>
-            </TR>
-            <TR selected={selectedGroup === "notify-group"} onClick={() => setSelectedGroup("notify-group")}>
-              <TD>notify-group</TD>
-              <TD className="mono3" style={R}>3</TD>
-              <TD className="mono3" style={R}>6</TD>
-              <TD className="mono3" style={MONO11}>1756454646018-0</TD>
-              <TD className="mono3" style={R}>1 204 771</TD>
-              <TD className="mono3" style={R}>0</TD>
-            </TR>
-            <TR selected={selectedGroup === "audit-group"} onClick={() => setSelectedGroup("audit-group")}>
-              <TD>audit-group</TD>
-              <TD className="mono3" style={R}>1</TD>
-              <TD className="mono3" style={R}>2</TD>
-              <TD className="mono3" style={MONO11}>1756454640031-5</TD>
-              <TD className="mono3" style={R}>1 204 512</TD>
-              <TD className="mono3" style={R}>259</TD>
-            </TR>
-          </TBody>
+        <Table inset>
+          <TableHeader>
+            <TableRow>
+              <TableHead>{t("board.common.group")}</TableHead>
+              <TableHead style={R}>consumers</TableHead>
+              <TableHead style={R}>pending</TableHead>
+              <TableHead>last-delivered-id</TableHead>
+              <TableHead style={R}>entries-read</TableHead>
+              <TableHead style={R}>{t("board.consumers.redis.lag")}</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow selected={selectedGroup === "settle-group"} onClick={() => setSelectedGroup("settle-group")}>
+              <TableCell><b style={{ fontWeight: 500 }}>settle-group</b></TableCell>
+              <TableCell className="mono3" style={R}>2</TableCell>
+              <TableCell className="mono3" style={{ ...R, color: "var(--c-warn-text)" }}>29</TableCell>
+              <TableCell className="mono3" style={MONO11}>1756454641773-2</TableCell>
+              <TableCell className="mono3" style={R}>1 204 742</TableCell>
+              <TableCell className="mono3" style={{ ...R, color: "var(--c-warn-text)" }}>982</TableCell>
+            </TableRow>
+            <TableRow selected={selectedGroup === "notify-group"} onClick={() => setSelectedGroup("notify-group")}>
+              <TableCell>notify-group</TableCell>
+              <TableCell className="mono3" style={R}>3</TableCell>
+              <TableCell className="mono3" style={R}>6</TableCell>
+              <TableCell className="mono3" style={MONO11}>1756454646018-0</TableCell>
+              <TableCell className="mono3" style={R}>1 204 771</TableCell>
+              <TableCell className="mono3" style={R}>0</TableCell>
+            </TableRow>
+            <TableRow selected={selectedGroup === "audit-group"} onClick={() => setSelectedGroup("audit-group")}>
+              <TableCell>audit-group</TableCell>
+              <TableCell className="mono3" style={R}>1</TableCell>
+              <TableCell className="mono3" style={R}>2</TableCell>
+              <TableCell className="mono3" style={MONO11}>1756454640031-5</TableCell>
+              <TableCell className="mono3" style={R}>1 204 512</TableCell>
+              <TableCell className="mono3" style={R}>259</TableCell>
+            </TableRow>
+          </TableBody>
         </Table>
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "11px 20px 6px" }}>
         <SectionLabel>{t("board.consumers.redis.pelOf", { group: selectedGroup })}</SectionLabel>
-        <span style={{ flex: 1 }} />
+        <span className="flex-1" />
         <span style={{ fontSize: "11px", color: "var(--c-muted)" }}>{t("board.consumers.redis.bulkHint")}</span>
       </div>
 
       <ListPane>
-        <Table className="inset">
-          <THead>
-            <TR>
-              <TH style={{ width: "26px" }}>
-                <Check
+        <Table inset>
+          <TableHeader>
+            <TableRow>
+              <TableHead style={{ width: "26px" }}>
+                <Checkbox
                   checked={allChecked}
-                  label={t("board.common.selectAll")}
-                  onChange={() => setChecked(allChecked ? [] : PEL.map((p) => p.id))}
+                  aria-label={t("board.common.selectAll")}
+                  onCheckedChange={() => setChecked(allChecked ? [] : PEL.map((p) => p.id))}
                 />
-              </TH>
-              <TH>Entry ID</TH>
-              <TH>consumer</TH>
-              <TH style={R}>idle</TH>
-              <TH style={R}>{t("board.consumers.redis.deliveries")}</TH>
-            </TR>
-          </THead>
-          <TBody>
+              </TableHead>
+              <TableHead>Entry ID</TableHead>
+              <TableHead>consumer</TableHead>
+              <TableHead style={R}>idle</TableHead>
+              <TableHead style={R}>{t("board.consumers.redis.deliveries")}</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {PEL.map((e) => (
-              <TR key={e.id}>
-                <TD>
-                  <Check
+              <TableRow key={e.id}>
+                <TableCell>
+                  <Checkbox
                     checked={checked.includes(e.id)}
-                    label={e.id}
-                    onChange={() => toggle(e.id)}
+                    aria-label={e.id}
+                    onCheckedChange={() => toggle(e.id)}
                   />
-                </TD>
-                <TD className="mono3" style={MONO11}>{e.id}</TD>
-                <TD className="mono3" style={MONO11}>{e.consumer}</TD>
-                <TD className="mono3" style={{ ...R, color: e.idleColor }}>{e.idle}</TD>
-                <TD className="mono3" style={{ ...R, color: e.deliveryColor }}>{e.deliveries}</TD>
-              </TR>
+                </TableCell>
+                <TableCell className="mono3" style={MONO11}>{e.id}</TableCell>
+                <TableCell className="mono3" style={MONO11}>{e.consumer}</TableCell>
+                <TableCell className="mono3" style={{ ...R, color: e.idleColor }}>{e.idle}</TableCell>
+                <TableCell className="mono3" style={{ ...R, color: e.deliveryColor }}>{e.deliveries}</TableCell>
+              </TableRow>
             ))}
-          </TBody>
+          </TableBody>
         </Table>
       </ListPane>
 
       <BulkBar hint={t("board.consumers.redis.idleHint")}>
         <span>{t("board.consumers.redis.selected", { n: checked.length })}</span>
-        <Btn variant="primary">
+        <Button>
               {t("board.consumers.redis.claimTo")}
               <ChevronDown size={12} aria-hidden />
-            </Btn>
-        <Btn>{t("board.consumers.redis.xack")}</Btn>
+            </Button>
+        <Button variant="outline">{t("board.consumers.redis.xack")}</Button>
       </BulkBar>
 
     </Page>

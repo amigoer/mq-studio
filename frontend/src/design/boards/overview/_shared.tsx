@@ -1,7 +1,10 @@
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { ArrowRight } from "lucide-react";
-import { Btn, SelectField } from "@/design/ui";
+import { Button } from "@/components/ui/button";
+import {
+  SelectField,
+} from "@/components";
 import { PageHeader } from "@/design/shell";
 
 /** Every overview board carries the same time-range + refresh actions. */
@@ -13,8 +16,8 @@ export function OverviewHeader({ subtitle }: { subtitle: ReactNode }) {
       subtitle={subtitle}
       actions={
         <>
-          <SelectField value={t("board.common.lastHour")} />
-          <Btn>{t("board.common.refresh")}</Btn>
+          <SelectField value="opt" options={[{ value: "opt", label: t("board.common.lastHour") }]} />
+          <Button variant="outline">{t("board.common.refresh")}</Button>
         </>
       }
     />

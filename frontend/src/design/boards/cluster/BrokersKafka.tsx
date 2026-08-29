@@ -1,6 +1,20 @@
 import { Star } from "lucide-react";
 import { Page, PageBody, PageHeader } from "@/design/shell";
-import { Btn, Card, KV, SectionLabel, Status, Table, TBody, TD, TH, THead, TR } from "@/design/ui";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  KV,
+  Panel,
+  SectionLabel,
+  Status,
+} from "@/components";
 import { Metric, NODE_CARD, NODE_GRID, NodeCard, TABLE_CARD } from "./_shared";
 import { useTranslation } from "react-i18next";
 
@@ -15,7 +29,7 @@ export function BrokersKafka() {
       <PageHeader
         title="Broker"
         subtitle="Kafka 3.7 · KRaft · Controller kafka-1"
-        actions={<Btn>{t("board.common.refresh")}</Btn>}
+        actions={<Button variant="outline">{t("board.common.refresh")}</Button>}
       />
       <PageBody style={{ gap: "12px" }}>
         <div className={NODE_GRID}>
@@ -68,7 +82,7 @@ export function BrokersKafka() {
             }
             meters={[{ label: t("board.cluster.kafka.disk74"), value: 74, color: "var(--c-warn)" }]}
           />
-          <Card style={NODE_CARD}>
+          <Panel style={NODE_CARD}>
             <SectionLabel>{t("board.cluster.kafka.configSummary")}</SectionLabel>
             <KV
               rows={[
@@ -77,10 +91,10 @@ export function BrokersKafka() {
                 ["auto.create.topics", <span className="mono3" style={MONO11}>false</span>],
               ]}
             />
-          </Card>
+          </Panel>
         </div>
 
-        <Card style={TABLE_CARD}>
+        <Panel style={TABLE_CARD}>
           <div
             style={{
               padding: "11px 16px",
@@ -90,36 +104,36 @@ export function BrokersKafka() {
             }}
           >
             <b style={{ fontSize: "12.5px" }}>{t("board.cluster.kafka.urp")}</b>
-            <span style={{ flex: 1 }} />
+            <span className="flex-1" />
             <span style={{ fontSize: "11.5px", color: "var(--c-fg-2)" }}>{t("board.cluster.kafka.reelect")}</span>
           </div>
           <Table>
-            <THead>
-              <TR>
-                <TH>Topic</TH>
-                <TH style={{ textAlign: "right" }}>{t("board.common.partition")}</TH>
-                <TH>ISR</TH>
-                <TH>{t("board.cluster.kafka.missingReplicas")}</TH>
-              </TR>
-            </THead>
-            <TBody>
-              <TR>
-                <TD className="mono3" style={MONO11}>orders.created</TD>
-                <TD className="mono3" style={{ textAlign: "right" }}>2</TD>
-                <TD className="mono3" style={MONO11}>3,1</TD>
-                <TD className="mono3" style={{ ...MONO11, color: "var(--c-warn-text)" }}>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Topic</TableHead>
+                <TableHead style={{ textAlign: "right" }}>{t("board.common.partition")}</TableHead>
+                <TableHead>ISR</TableHead>
+                <TableHead>{t("board.cluster.kafka.missingReplicas")}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow>
+                <TableCell className="mono3" style={MONO11}>orders.created</TableCell>
+                <TableCell className="mono3" style={{ textAlign: "right" }}>2</TableCell>
+                <TableCell className="mono3" style={MONO11}>3,1</TableCell>
+                <TableCell className="mono3" style={{ ...MONO11, color: "var(--c-warn-text)" }}>
                   {t("board.cluster.kafka.lagRow1")}
-                </TD>
-              </TR>
-              <TR>
-                <TD className="mono3" style={MONO11}>payments.captured</TD>
-                <TD className="mono3" style={{ textAlign: "right" }}>7</TD>
-                <TD className="mono3" style={MONO11}>1,2</TD>
-                <TD className="mono3" style={{ ...MONO11, color: "var(--c-warn-text)" }}>{t("board.cluster.kafka.lagRow2")}</TD>
-              </TR>
-            </TBody>
+                </TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell className="mono3" style={MONO11}>payments.captured</TableCell>
+                <TableCell className="mono3" style={{ textAlign: "right" }}>7</TableCell>
+                <TableCell className="mono3" style={MONO11}>1,2</TableCell>
+                <TableCell className="mono3" style={{ ...MONO11, color: "var(--c-warn-text)" }}>{t("board.cluster.kafka.lagRow2")}</TableCell>
+              </TableRow>
+            </TableBody>
           </Table>
-        </Card>
+        </Panel>
       </PageBody>
     </Page>
   );

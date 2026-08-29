@@ -1,26 +1,27 @@
 import { useState } from "react";
 import { ListArea, ListPane, Page, PageHeader, SkeletonRows, Toolbar } from "@/design/shell";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
-  Btn,
-  Card,
-  Field,
-  KV,
-  MiniTable,
-  SectionLabel,
-  Seg,
-  SelectField,
-  Sheet,
-  SheetBody,
-  SheetFooter,
-  SheetHeader,
-  Status,
   Table,
-  TBody,
-  TD,
-  TH,
-  THead,
-  TR,
-} from "@/design/ui";
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  DetailPanel,
+  DetailPanelBody,
+  DetailPanelFooter,
+  DetailPanelHeader,
+  KV,
+  Panel,
+  SectionLabel,
+  Segmented,
+  SelectField,
+  Status,
+} from "@/components";
 import { useTranslation } from "react-i18next";
 
 const SHEET_TABS = ["board.common.subscription", "board.consumers.mqtt.session", "board.consumers.mqtt.stats"] as const;
@@ -55,64 +56,64 @@ export function ClientsMqtt() {
     <Page>
       <PageHeader title={t("board.consumers.mqtt.title")} subtitle={t("board.consumers.mqtt.subtitle")} />
       <Toolbar>
-        <Field style={{ flex: "0 0 220px" }} placeholder={t("board.consumers.mqtt.search")} />
-        <Seg options={FILTERS.map((o) => ({ ...o, label: t(o.label) }))} value={filter} onChange={setFilter} />
-        <span style={{ flex: 1 }} />
-        <SelectField value={t("board.consumers.mqtt.byConnectTime")} />
+        <Input className="w-[220px] flex-none" placeholder={t("board.consumers.mqtt.search")} />
+        <Segmented options={FILTERS.map((o) => ({ ...o, label: t(o.label) }))} value={filter} onChange={setFilter} />
+        <span className="flex-1" />
+        <SelectField value="opt" options={[{ value: "opt", label: t("board.consumers.mqtt.byConnectTime") }]} />
       </Toolbar>
 
       <ListArea>
         <ListPane>
-          <Table className="inset">
-            <THead>
-              <TR>
-                <TH>Client ID</TH>
-                <TH>{t("board.common.user")}</TH>
-                <TH>IP</TH>
-                <TH>{t("board.common.protocol")}</TH>
-                <TH style={R}>{t("board.common.subscription")}</TH>
-                <TH style={R}>{t("board.consumers.mqtt.inflightQueued")}</TH>
-                <TH>{t("board.common.status")}</TH>
-              </TR>
-            </THead>
-            <TBody>
-              <TR selected={selected === "sensor-gw-A19F"} onClick={() => setSelected("sensor-gw-A19F")}>
-                <TD>
+          <Table inset>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Client ID</TableHead>
+                <TableHead>{t("board.common.user")}</TableHead>
+                <TableHead>IP</TableHead>
+                <TableHead>{t("board.common.protocol")}</TableHead>
+                <TableHead style={R}>{t("board.common.subscription")}</TableHead>
+                <TableHead style={R}>{t("board.consumers.mqtt.inflightQueued")}</TableHead>
+                <TableHead>{t("board.common.status")}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow selected={selected === "sensor-gw-A19F"} onClick={() => setSelected("sensor-gw-A19F")}>
+                <TableCell>
                   <b className="mono3" style={{ fontWeight: 500, fontSize: "11.5px" }}>sensor-gw-A19F</b>
-                </TD>
-                <TD>iot-ops</TD>
-                <TD className="mono3" style={MONO11}>10.8.0.21</TD>
-                <TD>5.0</TD>
-                <TD className="mono3" style={R}>4</TD>
-                <TD className="mono3" style={R}>2 / 0</TD>
-                <TD><Status tone="ok">{t("board.consumers.mqtt.online6d")}</Status></TD>
-              </TR>
-              <TR selected={selected === "sensor-gw-B22C"} onClick={() => setSelected("sensor-gw-B22C")}>
-                <TD className="mono3" style={NAME}>sensor-gw-B22C</TD>
-                <TD>iot-ops</TD>
-                <TD className="mono3" style={MONO11}>10.8.0.22</TD>
-                <TD>5.0</TD>
-                <TD className="mono3" style={R}>4</TD>
-                <TD className="mono3" style={R}>1 / 0</TD>
-                <TD><Status tone="ok">{t("board.consumers.mqtt.online6d")}</Status></TD>
-              </TR>
-              <TR selected={selected === "dash-web-9921"} onClick={() => setSelected("dash-web-9921")}>
-                <TD className="mono3" style={{ ...NAME, ...DIM }}>dash-web-9921</TD>
-                <TD style={DIM}>viewer</TD>
-                <TD className="mono3" style={{ ...MONO11, ...DIM }}>—</TD>
-                <TD style={DIM}>3.1.1</TD>
-                <TD className="mono3" style={{ ...R, ...DIM }}>12</TD>
-                <TD className="mono3" style={{ ...R, ...DIM }}>0 / 128</TD>
-                <TD><Status tone="off">{t("board.consumers.mqtt.offline1h")}</Status></TD>
-              </TR>
+                </TableCell>
+                <TableCell>iot-ops</TableCell>
+                <TableCell className="mono3" style={MONO11}>10.8.0.21</TableCell>
+                <TableCell>5.0</TableCell>
+                <TableCell className="mono3" style={R}>4</TableCell>
+                <TableCell className="mono3" style={R}>2 / 0</TableCell>
+                <TableCell><Status tone="ok">{t("board.consumers.mqtt.online6d")}</Status></TableCell>
+              </TableRow>
+              <TableRow selected={selected === "sensor-gw-B22C"} onClick={() => setSelected("sensor-gw-B22C")}>
+                <TableCell className="mono3" style={NAME}>sensor-gw-B22C</TableCell>
+                <TableCell>iot-ops</TableCell>
+                <TableCell className="mono3" style={MONO11}>10.8.0.22</TableCell>
+                <TableCell>5.0</TableCell>
+                <TableCell className="mono3" style={R}>4</TableCell>
+                <TableCell className="mono3" style={R}>1 / 0</TableCell>
+                <TableCell><Status tone="ok">{t("board.consumers.mqtt.online6d")}</Status></TableCell>
+              </TableRow>
+              <TableRow selected={selected === "dash-web-9921"} onClick={() => setSelected("dash-web-9921")}>
+                <TableCell className="mono3" style={{ ...NAME, ...DIM }}>dash-web-9921</TableCell>
+                <TableCell style={DIM}>viewer</TableCell>
+                <TableCell className="mono3" style={{ ...MONO11, ...DIM }}>—</TableCell>
+                <TableCell style={DIM}>3.1.1</TableCell>
+                <TableCell className="mono3" style={{ ...R, ...DIM }}>12</TableCell>
+                <TableCell className="mono3" style={{ ...R, ...DIM }}>0 / 128</TableCell>
+                <TableCell><Status tone="off">{t("board.consumers.mqtt.offline1h")}</Status></TableCell>
+              </TableRow>
               <SkeletonRows colSpan={7} widths={["64%", "48%"]} />
-            </TBody>
+            </TableBody>
           </Table>
         </ListPane>
 
         {selected != null && (
-          <Sheet width={410} onDismiss={() => setSelected(null)}>
-            <SheetHeader
+          <DetailPanel width={410} onDismiss={() => setSelected(null)}>
+            <DetailPanelHeader
               title={selected}
               badge={<Status tone="ok" style={{ fontSize: "10px" }}>{t("board.common.online")}</Status>}
               tabs={SHEET_TABS.map((id) => ({ id, label: t(id) }))}
@@ -120,27 +121,27 @@ export function ClientsMqtt() {
               onTabChange={setTab}
               onClose={() => setSelected(null)}
             />
-            <SheetBody>
+            <DetailPanelBody>
               <div>
                 <SectionLabel style={{ marginBottom: "6px" }}>{t("board.consumers.mqtt.subsCount")}</SectionLabel>
-                <Card style={{ overflow: "hidden" }}>
-                  <MiniTable>
-                    <THead>
-                      <TR>
-                        <TH>topic filter</TH>
-                        <TH style={R}>QoS</TH>
-                      </TR>
-                    </THead>
-                    <TBody>
+                <Panel style={{ overflow: "hidden" }}>
+                  <Table className="text-xs">
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>topic filter</TableHead>
+                        <TableHead style={R}>QoS</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
                       {SUBS.map((s) => (
-                        <TR key={s.filter}>
-                          <TD className="mono3">{s.filter}</TD>
-                          <TD className="mono3" style={R}>{s.qos}</TD>
-                        </TR>
+                        <TableRow key={s.filter}>
+                          <TableCell className="mono3">{s.filter}</TableCell>
+                          <TableCell className="mono3" style={R}>{s.qos}</TableCell>
+                        </TableRow>
                       ))}
-                    </TBody>
-                  </MiniTable>
-                </Card>
+                    </TableBody>
+                  </Table>
+                </Panel>
               </div>
 
               <KV
@@ -155,14 +156,14 @@ export function ClientsMqtt() {
               <div style={{ fontSize: "11px", color: "var(--c-muted)" }}>
                 {t("board.consumers.mqtt.will")}
               </div>
-            </SheetBody>
-            <SheetFooter>
-              <Btn>{t("board.consumers.mqtt.liveMessages")}</Btn>
-              <span style={{ flex: 1 }} />
-              <Btn variant="danger">{t("board.consumers.mqtt.clearSession")}</Btn>
-              <Btn variant="danger">{t("board.consumers.mqtt.kick")}</Btn>
-            </SheetFooter>
-          </Sheet>
+            </DetailPanelBody>
+            <DetailPanelFooter>
+              <Button variant="outline">{t("board.consumers.mqtt.liveMessages")}</Button>
+              <span className="flex-1" />
+              <Button variant="destructive">{t("board.consumers.mqtt.clearSession")}</Button>
+              <Button variant="destructive">{t("board.consumers.mqtt.kick")}</Button>
+            </DetailPanelFooter>
+          </DetailPanel>
         )}
       </ListArea>
     </Page>

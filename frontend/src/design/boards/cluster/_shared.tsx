@@ -1,5 +1,8 @@
 import type { ReactNode } from "react";
-import { Bar, Card } from "@/design/ui";
+import {
+  Bar,
+  Panel,
+} from "@/components";
 
 /* `.mqs-nodegrid` in tokens.css: it drops to one column on a narrow shell. */
 export const NODE_GRID = "mqs-nodegrid";
@@ -47,13 +50,13 @@ export function NodeCard({
   children?: ReactNode;
 }) {
   return (
-    <Card style={{ ...NODE_CARD, background: dim ? "var(--c-panel)" : undefined }}>
+    <Panel style={{ ...NODE_CARD, background: dim ? "var(--c-panel)" : undefined }}>
       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
         <b className="mono3" style={{ fontSize: "12.5px" }}>
           {name}
         </b>
         {badges}
-        <span style={{ flex: 1 }} />
+        <span className="flex-1" />
         {address != null && (
           <span className="mono3" style={{ fontSize: "10.5px", color: "var(--c-muted)" }}>
             {address}
@@ -73,7 +76,7 @@ export function NodeCard({
         </div>
       ))}
       {children}
-    </Card>
+    </Panel>
   );
 }
 

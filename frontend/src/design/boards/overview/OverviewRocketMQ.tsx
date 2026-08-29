@@ -2,21 +2,23 @@ import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { RefreshCw } from "lucide-react";
 import { Page, PageBody, PageHeader } from "@/design/shell";
+import { Button } from "@/components/ui/button";
 import {
-  Btn,
-  Card,
-  CardHeader,
-  LineChart,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
   MeterRow,
+  Panel,
+  PanelHeader,
   StatTile,
   Status,
-  Table,
-  TBody,
-  TD,
-  TH,
-  THead,
-  TR,
-} from "@/design/ui";
+} from "@/components";
+import { LineChart } from "@/components";
 import { BoardState, Notice, isBlocked } from "@/design/boards/BoardState";
 import { useOverview } from "@/hooks/useOverview";
 import { useSettings } from "@/hooks/useSettings";
@@ -122,10 +124,10 @@ export function OverviewRocketMQ() {
             : t("board.common.overview")
         }
         actions={
-          <Btn disabled={state.refreshing || !state.online} onClick={() => void state.refresh()}>
+          <Button variant="outline" disabled={state.refreshing || !state.online} onClick={() => void state.refresh()}>
             {state.refreshing && <RefreshCw size={12} className="mqs-turning" aria-hidden />}
             {t("board.common.refresh")}
-          </Btn>
+          </Button>
         }
       />
       {isBlocked(state) ? (
@@ -160,7 +162,7 @@ export function OverviewRocketMQ() {
           </div>
 
           <div className={CHART_ROW}>
-            <Card style={CHART_CARD}>
+            <Panel style={CHART_CARD}>
               <b style={{ fontSize: "12.5px" }}>{t("board.common.throughput")}</b>
               {history.timestamps.length === 0 ? (
                 <Notice title={t("board.overview.rocketmq.noHistory")} />
@@ -173,8 +175,8 @@ export function OverviewRocketMQ() {
                   formatTime={(timestamp) => timeFormat.format(new Date(timestamp))}
                 />
               )}
-            </Card>
-            <Card style={CHART_CARD}>
+            </Panel>
+            <Panel style={CHART_CARD}>
               <b style={{ fontSize: "12.5px" }}>{t("board.overview.rocketmq.brokerHealth")}</b>
               {nodes.map((node) => {
                 const disk = commitLogDiskUsage(node);
@@ -196,22 +198,22 @@ export function OverviewRocketMQ() {
                   })}
                 </div>
               )}
-            </Card>
+            </Panel>
           </div>
 
-          <Card style={TABLE_CARD}>
-            <CardHeader title={t("board.common.topBacklogGroups")} />
+          <Panel style={TABLE_CARD}>
+            <PanelHeader title={t("board.common.topBacklogGroups")} />
             <Table>
-              <THead>
-                <TR>
-                  <TH>{t("board.common.consumerGroup")}</TH>
-                  <TH>Topic</TH>
-                  <TH style={{ textAlign: "right" }}>{t("board.common.backlog")}</TH>
-                  <TH style={{ textAlign: "right" }}>{t("board.common.consumeTps")}</TH>
-                  <TH>{t("board.common.status")}</TH>
-                </TR>
-              </THead>
-              <TBody>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("board.common.consumerGroup")}</TableHead>
+                  <TableHead>Topic</TableHead>
+                  <TableHead style={{ textAlign: "right" }}>{t("board.common.backlog")}</TableHead>
+                  <TableHead style={{ textAlign: "right" }}>{t("board.common.consumeTps")}</TableHead>
+                  <TableHead>{t("board.common.status")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {backlogged.map((group) => {
                   const backlog = group.backlog ?? 0;
                   const alerting = backlog > lagThreshold;
@@ -219,12 +221,12 @@ export function OverviewRocketMQ() {
                     .map((one) => one.topic)
                     .join(", ");
                   return (
-                    <TR key={groupName(group)}>
-                      <TD>{groupName(group)}</TD>
-                      <TD className="mono3" style={NAME_CELL}>
+                    <TableRow key={groupName(group)}>
+                      <TableCell>{groupName(group)}</TableCell>
+                      <TableCell className="mono3" style={NAME_CELL}>
                         {reads || "—"}
-                      </TD>
-                      <TD
+                      </TableCell>
+                      <TableCell
                         className="mono3"
                         style={{
                           textAlign: "right",
@@ -232,28 +234,28 @@ export function OverviewRocketMQ() {
                         }}
                       >
                         {backlog.toLocaleString()}
-                      </TD>
-                      <TD className="mono3" style={{ textAlign: "right" }}>
+                      </TableCell>
+                      <TableCell className="mono3" style={{ textAlign: "right" }}>
                         {count(group.rateOut)}
-                      </TD>
-                      <TD>
+                      </TableCell>
+                      <TableCell>
                         <Status tone={alerting ? "warn" : "ok"}>
                           {t(alerting ? "board.common.backlogAlert" : "board.common.healthy")}
                         </Status>
-                      </TD>
-                    </TR>
+                      </TableCell>
+                    </TableRow>
                   );
                 })}
                 {backlogged.length === 0 && (
-                  <TR>
-                    <TD colSpan={5} style={{ padding: "26px", textAlign: "center", color: "var(--c-muted)" }}>
+                  <TableRow>
+                    <TableCell colSpan={5} style={{ padding: "26px", textAlign: "center", color: "var(--c-muted)" }}>
                       {t("board.overview.rocketmq.noBacklog")}
-                    </TD>
-                  </TR>
+                    </TableCell>
+                  </TableRow>
                 )}
-              </TBody>
+              </TableBody>
             </Table>
-          </Card>
+          </Panel>
         </PageBody>
       )}
     </Page>

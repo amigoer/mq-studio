@@ -2,22 +2,22 @@ import { useCallback, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { RefreshCw } from "lucide-react";
 import { BulkBar, ListPane, Page, PageHeader, Toolbar } from "@/design/shell";
+import { Button } from "@/components/ui/button";
 import {
-  Btn,
-  Card,
-  Check,
-  Menu,
-  MenuItem,
-  Seg,
-  SelectField,
   Table,
-  TBody,
-  TD,
-  TH,
-  THead,
-  TR,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Combobox,
+  Panel,
+  Segmented,
   useToast,
-} from "@/design/ui";
+} from "@/components";
+import { Checkbox } from "@/components/ui/checkbox";
 import { BoardState, Notice } from "@/design/boards/BoardState";
 import { useBrokerData } from "@/hooks/useBrokerData";
 import { useConnectionScope } from "@/mq/ConnectionScope";
@@ -71,7 +71,6 @@ export function DlqRocketMQ() {
 
   const [view, setView] = useState<View>("dlq");
   const [group, setGroup] = useState("");
-  const [groupOpen, setGroupOpen] = useState(false);
   const [checked, setChecked] = useState<string[]>([]);
   const [confirming, setConfirming] = useState(false);
   const [resending, setResending] = useState(false);
@@ -148,27 +147,19 @@ export function DlqRocketMQ() {
         subtitle={t("board.dlq.rocketmq.liveSubtitle")}
       />
       <Toolbar>
-        <span style={{ position: "relative" }}>
-          <SelectField
-            value={group === "" ? t("board.dlq.rocketmq.pickGroup") : group}
-            onClick={() => setGroupOpen((open) => !open)}
-          />
-          <Menu open={groupOpen} onClose={() => setGroupOpen(false)}>
-            {offered.slice(0, 200).map((name) => (
-              <MenuItem
-                key={name}
-                onSelect={() => {
-                  setGroup(name);
-                  setGroupOpen(false);
-                  void runQuery(view, name);
-                }}
-              >
-                {name}
-              </MenuItem>
-            ))}
-          </Menu>
-        </span>
-        <Seg
+        <Combobox
+          value={group}
+          onValueChange={(name) => {
+            setGroup(name);
+            void runQuery(view, name);
+          }}
+          options={offered.slice(0, 200)}
+          placeholder={t("board.dlq.rocketmq.pickGroup")}
+          searchPlaceholder={t("board.common.searchGroups")}
+          emptyText={t("board.common.noMatch")}
+          className="max-w-72"
+        />
+        <Segmented
           options={VIEWS.map((o) => ({ ...o, label: t(o.label) }))}
           value={view}
           onChange={(next: View) => {
@@ -176,11 +167,11 @@ export function DlqRocketMQ() {
             void runQuery(next);
           }}
         />
-        <span style={{ flex: 1 }} />
-        <Btn variant="primary" disabled={group === "" || querying || !online} onClick={() => void runQuery()}>
+        <span className="flex-1" />
+        <Button disabled={group === "" || querying || !online} onClick={() => void runQuery()}>
           {querying && <RefreshCw size={12} className="mqs-turning" aria-hidden />}
           {t("board.common.query")}
-        </Btn>
+        </Button>
       </Toolbar>
 
       {!online ? (
@@ -198,65 +189,64 @@ export function DlqRocketMQ() {
       ) : (
         <>
           <ListPane>
-            <Table className="inset">
-              <THead>
-                <TR>
-                  <TH style={{ width: "28px" }}>
-                    <Check
+            <Table inset>
+              <TableHeader>
+                <TableRow>
+                  <TableHead style={{ width: "28px" }}>
+                    <Checkbox
                       checked={allChecked}
-                      label={t("board.common.selectAll")}
-                      onChange={() =>
+                      aria-label={t("board.common.selectAll")}
+                      onCheckedChange={() =>
                         setChecked(allChecked ? [] : list.map((row) => row.messageId))
                       }
                     />
-                  </TH>
-                  <TH>MsgId</TH>
-                  <TH>{t("board.dlq.rocketmq.originTopic")}</TH>
-                  <TH>Key</TH>
-                  <TH style={R}>{t("board.common.retry")}</TH>
-                  <TH>{t("board.dlq.rocketmq.deadAt")}</TH>
-                </TR>
-              </THead>
-              <TBody>
+                  </TableHead>
+                  <TableHead>MsgId</TableHead>
+                  <TableHead>{t("board.dlq.rocketmq.originTopic")}</TableHead>
+                  <TableHead>Key</TableHead>
+                  <TableHead style={R}>{t("board.common.retry")}</TableHead>
+                  <TableHead>{t("board.dlq.rocketmq.deadAt")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {list.map((row) => {
                   const on = checked.includes(row.messageId);
                   const dim = on ? undefined : "var(--c-mono-dim)";
                   return (
-                    <TR key={row.messageId} selected={on}>
-                      <TD>
-                        <Check checked={on} label={row.messageId} onChange={() => toggle(row.messageId)} />
-                      </TD>
-                      <TD className="mono3" style={{ ...MONO11, color: dim }}>
+                    <TableRow key={row.messageId} selected={on}>
+                      <TableCell>
+                        <Checkbox checked={on} aria-label={row.messageId} onCheckedChange={() => toggle(row.messageId)} />
+                      </TableCell>
+                      <TableCell className="mono3" style={{ ...MONO11, color: dim }}>
                         {row.messageId}
-                      </TD>
-                      <TD className="mono3" style={DIM11}>
+                      </TableCell>
+                      <TableCell className="mono3" style={DIM11}>
                         {originTopic(row)}
-                      </TD>
-                      <TD className="mono3" style={{ ...MONO11, color: dim }}>
+                      </TableCell>
+                      <TableCell className="mono3" style={{ ...MONO11, color: dim }}>
                         {row.keys || "—"}
-                      </TD>
-                      <TD className="mono3" style={{ ...R, color: dim }}>
+                      </TableCell>
+                      <TableCell className="mono3" style={{ ...R, color: dim }}>
                         {row.retryTimes}
-                      </TD>
-                      <TD className="mono3" style={{ ...MONO11, color: dim }}>
+                      </TableCell>
+                      <TableCell className="mono3" style={{ ...MONO11, color: dim }}>
                         {row.storeTime || "—"}
-                      </TD>
-                    </TR>
+                      </TableCell>
+                    </TableRow>
                   );
                 })}
-              </TBody>
+              </TableBody>
             </Table>
           </ListPane>
 
           <BulkBar hint={t("board.dlq.rocketmq.hint")}>
             <span>{t("board.common.selectedN", { n: checked.length })}</span>
-            <Btn
-              variant="primary"
+            <Button
               disabled={checked.length === 0 || resending}
               onClick={() => setConfirming(true)}
             >
               {t("board.dlq.rocketmq.resend")}
-            </Btn>
+            </Button>
           </BulkBar>
         </>
       )}
@@ -274,7 +264,7 @@ export function DlqRocketMQ() {
           }}
           onClick={() => setConfirming(false)}
         >
-          <Card
+          <Panel
             role="alertdialog"
             aria-label={t("board.dlq.rocketmq.confirmLabel")}
             style={{ width: "420px", boxShadow: "0 18px 50px rgba(0,0,0,.22)", overflow: "hidden" }}
@@ -320,14 +310,14 @@ export function DlqRocketMQ() {
               <span style={{ fontSize: "11px", color: "var(--c-muted)", alignSelf: "center" }}>
                 {t("board.dlq.rocketmq.risky")}
               </span>
-              <span style={{ flex: 1 }} />
-              <Btn onClick={() => setConfirming(false)}>{t("board.common.cancel")}</Btn>
-              <Btn variant="primary" disabled={resending} onClick={() => void resend()}>
+              <span className="flex-1" />
+              <Button variant="outline" onClick={() => setConfirming(false)}>{t("board.common.cancel")}</Button>
+              <Button disabled={resending} onClick={() => void resend()}>
                 {resending && <RefreshCw size={12} className="mqs-turning" aria-hidden />}
                 {t("board.dlq.rocketmq.confirmAction")}
-              </Btn>
+              </Button>
             </div>
-          </Card>
+          </Panel>
         </div>
       )}
     </Page>

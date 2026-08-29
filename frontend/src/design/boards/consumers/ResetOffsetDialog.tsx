@@ -1,6 +1,18 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Btn, Dialog, Field, Menu, MenuItem, Seg, SelectField, Sw } from "@/design/ui";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { Spinner } from "@/components/ui/spinner";
+import { Switch } from "@/components/ui/switch";
+import { Segmented, SelectField } from "@/components";
 import { groupName, subscriptionsOf } from "@/mq/rocketmq/subscriptions";
 import type { Subscription } from "@/api/models";
 import { formatErrorMessage } from "@/lib/utils";
@@ -45,7 +57,6 @@ export function ResetOffsetDialog({
   const [target, setTarget] = useState<Target>("earliest");
   const [at, setAt] = useState(() => localInputValue(new Date()));
   const [force, setForce] = useState(true);
-  const [topicOpen, setTopicOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -92,106 +103,106 @@ export function ResetOffsetDialog({
   return (
     <Dialog
       open={open}
-      title={t("board.common.resetOffset")}
-      onClose={onClose}
-      footer={
-        <>
-          <span style={{ fontSize: "11px", color: "var(--c-muted)" }}>
-            {t("board.consumers.rocketmq.reset.risky")}
-          </span>
-          <span style={{ flex: 1 }} />
-          {(invalid ?? error) != null && (
-            <span
-              style={{
-                fontSize: "11.5px",
-                color: error != null ? "var(--c-err)" : "var(--c-muted)",
-                maxWidth: "300px",
-                textAlign: "right",
-              }}
-            >
-              {error ?? invalid}
-            </span>
-          )}
-          <Btn onClick={onClose}>{t("common.cancel")}</Btn>
-          <Btn variant="primary" disabled={invalid != null || saving} onClick={() => void save()}>
-            {t("board.common.resetOffset")}
-          </Btn>
-        </>
-      }
+      onOpenChange={(next) => {
+        if (!next) onClose();
+      }}
     >
-      <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-        <div className="fld">
-          <span>
-            {t("board.common.consumerGroup")}{" "}
-            <span className="mono3" style={{ color: "var(--c-fg-2)" }}>
-              {group == null ? "—" : groupName(group)}
-            </span>
-          </span>
-        </div>
+      <DialogContent className="sm:max-w-[520px]">
+        <DialogHeader>
+          <DialogTitle>{t("board.common.resetOffset")}</DialogTitle>
+        </DialogHeader>
 
-        <div className="fld">
-          <span>Topic</span>
-          {topics.length > 0 ? (
-            <span style={{ position: "relative" }}>
-              <SelectField
-                style={{ width: "100%" }}
-                value={topic || t("board.messages.rocketmq.pickTopic")}
-                onClick={() => setTopicOpen((one) => !one)}
-              />
-              <Menu open={topicOpen} onClose={() => setTopicOpen(false)}>
-                {topics.map((name) => (
-                  <MenuItem
-                    key={name}
-                    onSelect={() => {
-                      setTopic(name);
-                      setTopicOpen(false);
-                    }}
-                  >
-                    {name}
-                  </MenuItem>
-                ))}
-              </Menu>
-            </span>
+        <FieldGroup className="gap-3">
+          <Field>
+            <FieldLabel>
+              {t("board.common.consumerGroup")}{" "}
+              <span className="mono3 font-normal text-(--c-fg-2)">
+                {group == null ? "—" : groupName(group)}
+              </span>
+            </FieldLabel>
+          </Field>
+
+          <Field>
+            <FieldLabel>Topic</FieldLabel>
+            {topics.length > 0 ? (
+            <SelectField
+              size="default"
+              className="w-full"
+              value={topic}
+              onValueChange={setTopic}
+              placeholder={t("board.messages.rocketmq.pickTopic")}
+              options={topics.map((name) => ({ value: name }))}
+            />
           ) : (
             /* A group with no client connected reports no subscriptions, so the
                topic has to be typed rather than picked. */
-            <Field
+            <Input
               className="mono3"
               value={topic}
               placeholder={t("board.consumers.rocketmq.reset.topicPlaceholder")}
               onChange={(event) => setTopic(event.target.value)}
             />
           )}
-        </div>
+          </Field>
 
-        <div className="fld">
-          <span>{t("board.consumers.rocketmq.reset.target")}</span>
-          <Seg
-            style={{ alignSelf: "flex-start" }}
-            value={target}
-            onChange={(next: Target) => setTarget(next)}
-            options={TARGETS.map((one) => ({ value: one.value, label: t(one.label) }))}
-          />
-        </div>
+          <Field>
+            <FieldLabel>{t("board.consumers.rocketmq.reset.target")}</FieldLabel>
+            <Segmented
+              className="self-start"
+              value={target}
+              onChange={(next: Target) => setTarget(next)}
+              options={TARGETS.map((one) => ({ value: one.value, label: t(one.label) }))}
+            />
+          </Field>
 
-        {target === "at" && (
-          <div className="fld">
-            <span>{t("board.consumers.rocketmq.reset.at")}</span>
-            <Field type="datetime-local" value={at} onChange={(event) => setAt(event.target.value)} />
-          </div>
-        )}
+          {target === "at" && (
+            <Field>
+              <FieldLabel htmlFor="reset-at">{t("board.consumers.rocketmq.reset.at")}</FieldLabel>
+              <Input
+                id="reset-at"
+                type="datetime-local"
+                value={at}
+                onChange={(event) => setAt(event.target.value)}
+              />
+            </Field>
+          )}
 
-        <div className="fld">
-          <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            <Sw checked={force} onCheckedChange={setForce} label={t("board.consumers.rocketmq.reset.force")} />
-            {t("board.consumers.rocketmq.reset.force")}
-          </span>
-        </div>
+          <Field>
+            <label className="flex items-center gap-1.5 text-sm">
+              <Switch checked={force} onCheckedChange={setForce} />
+              {t("board.consumers.rocketmq.reset.force")}
+            </label>
+          </Field>
+        </FieldGroup>
 
-        <div style={{ fontSize: "11px", color: "var(--c-muted)", lineHeight: 1.6 }}>
+        <FieldDescription className="text-xs">
           {t("board.consumers.rocketmq.reset.note")}
-        </div>
-      </div>
+        </FieldDescription>
+
+        <DialogFooter className="items-center">
+          <span className="text-xs text-muted-foreground">
+            {t("board.consumers.rocketmq.reset.risky")}
+          </span>
+          <span className="flex-1" />
+          {(invalid ?? error) != null && (
+            <span
+              className={
+                "max-w-72 text-right text-xs " +
+                (error != null ? "text-(--c-err)" : "text-muted-foreground")
+              }
+            >
+              {error ?? invalid}
+            </span>
+          )}
+          <Button variant="outline" onClick={onClose}>
+            {t("common.cancel")}
+          </Button>
+          <Button disabled={invalid != null || saving} onClick={() => void save()}>
+            {saving && <Spinner />}
+            {t("board.common.resetOffset")}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 }

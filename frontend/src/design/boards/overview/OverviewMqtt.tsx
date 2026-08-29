@@ -1,6 +1,19 @@
 import { ArrowRight } from "lucide-react";
 import { Page, PageBody } from "@/design/shell";
-import { Card, CardHeader, ChartBox, StatTile, Table, TBody, TD, TH, THead, TR } from "@/design/ui";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  ChartBox,
+  Panel,
+  PanelHeader,
+  StatTile,
+} from "@/components";
 import { CHART_CARD, CHART_ROW, KPI_GRID, OverviewHeader, TABLE_CARD } from "./_shared";
 import { useTranslation } from "react-i18next";
 
@@ -22,18 +35,18 @@ export function OverviewMqtt() {
         </div>
 
         <div className={CHART_ROW}>
-          <Card style={CHART_CARD}>
+          <Panel style={CHART_CARD}>
             <b style={{ fontSize: "12.5px" }}>{t("board.overview.mqtt.clientTrend")}</b>
             <ChartBox style={{ flex: 1 }}>{t("board.overview.mqtt.clientChart")}</ChartBox>
-          </Card>
-          <Card style={CHART_CARD}>
+          </Panel>
+          <Panel style={CHART_CARD}>
             <b style={{ fontSize: "12.5px" }}>{t("board.common.messageRate")}</b>
             <ChartBox style={{ flex: 1 }}>{t("board.overview.mqtt.rateChart")}</ChartBox>
-          </Card>
+          </Panel>
         </div>
 
-        <Card style={TABLE_CARD}>
-          <CardHeader
+        <Panel style={TABLE_CARD}>
+          <PanelHeader
             title={t("board.overview.mqtt.sysMetrics")}
             action={
               <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "11.5px", color: "var(--c-fg-2)" }}>
@@ -43,36 +56,36 @@ export function OverviewMqtt() {
             }
           />
           <Table>
-            <THead>
-              <TR>
-                <TH>{t("board.common.metrics")}</TH>
-                <TH style={{ textAlign: "right" }}>{t("board.common.value")}</TH>
-                <TH>{t("board.common.metrics")}</TH>
-                <TH style={{ textAlign: "right" }}>{t("board.common.value")}</TH>
-              </TR>
-            </THead>
-            <TBody>
-              <TR>
-                <TD className="mono3" style={METRIC}>uptime</TD>
-                <TD className="mono3" style={{ textAlign: "right" }}>42d 6h</TD>
-                <TD className="mono3" style={METRIC}>bytes.received</TD>
-                <TD className="mono3" style={{ textAlign: "right" }}>1.2 GB</TD>
-              </TR>
-              <TR>
-                <TD className="mono3" style={METRIC}>messages.retained</TD>
-                <TD className="mono3" style={{ textAlign: "right" }}>128</TD>
-                <TD className="mono3" style={METRIC}>messages.dropped</TD>
-                <TD className="mono3" style={{ textAlign: "right" }}>0</TD>
-              </TR>
-              <TR>
-                <TD className="mono3" style={METRIC}>heap.current</TD>
-                <TD className="mono3" style={{ textAlign: "right" }}>812 MB</TD>
-                <TD className="mono3" style={METRIC}>subscriptions.shared</TD>
-                <TD className="mono3" style={{ textAlign: "right" }}>12</TD>
-              </TR>
-            </TBody>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t("board.common.metrics")}</TableHead>
+                <TableHead style={{ textAlign: "right" }}>{t("board.common.value")}</TableHead>
+                <TableHead>{t("board.common.metrics")}</TableHead>
+                <TableHead style={{ textAlign: "right" }}>{t("board.common.value")}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow>
+                <TableCell className="mono3" style={METRIC}>uptime</TableCell>
+                <TableCell className="mono3" style={{ textAlign: "right" }}>42d 6h</TableCell>
+                <TableCell className="mono3" style={METRIC}>bytes.received</TableCell>
+                <TableCell className="mono3" style={{ textAlign: "right" }}>1.2 GB</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell className="mono3" style={METRIC}>messages.retained</TableCell>
+                <TableCell className="mono3" style={{ textAlign: "right" }}>128</TableCell>
+                <TableCell className="mono3" style={METRIC}>messages.dropped</TableCell>
+                <TableCell className="mono3" style={{ textAlign: "right" }}>0</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell className="mono3" style={METRIC}>heap.current</TableCell>
+                <TableCell className="mono3" style={{ textAlign: "right" }}>812 MB</TableCell>
+                <TableCell className="mono3" style={METRIC}>subscriptions.shared</TableCell>
+                <TableCell className="mono3" style={{ textAlign: "right" }}>12</TableCell>
+              </TableRow>
+            </TableBody>
           </Table>
-        </Card>
+        </Panel>
       </PageBody>
     </Page>
   );

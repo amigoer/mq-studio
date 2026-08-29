@@ -1,6 +1,20 @@
 import { useState } from "react";
 import { BulkBar, ListPane, Page, PageHeader, SkeletonRows, Toolbar } from "@/design/shell";
-import { Btn, Check, Seg, SelectField, Status, Table, TBody, TD, TH, THead, TR } from "@/design/ui";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Segmented,
+  SelectField,
+  Status,
+} from "@/components";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useTranslation } from "react-i18next";
 
 const REASONS = [
@@ -44,62 +58,62 @@ export function DlqRabbitMQ() {
     <Page>
       <PageHeader title={t("board.dlq.rabbitmq.title")} subtitle={t("board.dlq.rabbitmq.subtitle")} />
       <Toolbar>
-        <SelectField value={t("board.dlq.rabbitmq.queue")} />
-        <Seg options={REASONS.map((o) => ({ ...o, label: t(o.label) }))} value={reason} onChange={setReason} />
-        <span style={{ flex: 1 }} />
-        <Btn variant="primary">{t("board.dlq.rabbitmq.fetch50")}</Btn>
+        <SelectField value="opt" options={[{ value: "opt", label: t("board.dlq.rabbitmq.queue") }]} />
+        <Segmented options={REASONS.map((o) => ({ ...o, label: t(o.label) }))} value={reason} onChange={setReason} />
+        <span className="flex-1" />
+        <Button>{t("board.dlq.rabbitmq.fetch50")}</Button>
       </Toolbar>
 
       <ListPane>
-        <Table className="inset">
-          <THead>
-            <TR>
-              <TH style={{ width: "26px" }}>
-                <Check
+        <Table inset>
+          <TableHeader>
+            <TableRow>
+              <TableHead style={{ width: "26px" }}>
+                <Checkbox
                   checked={allChecked}
-                  label={t("board.common.selectAll")}
-                  onChange={() => setChecked(allChecked ? [] : ROWS.map((r) => r.id))}
+                  aria-label={t("board.common.selectAll")}
+                  onCheckedChange={() => setChecked(allChecked ? [] : ROWS.map((r) => r.id))}
                 />
-              </TH>
-              <TH>routing key</TH>
-              <TH>{t("board.dlq.rabbitmq.originQueue")}</TH>
-              <TH>{t("board.common.reason")}</TH>
-              <TH style={R}>count</TH>
-              <TH>{t("board.common.time")}</TH>
-            </TR>
-          </THead>
-          <TBody>
+              </TableHead>
+              <TableHead>routing key</TableHead>
+              <TableHead>{t("board.dlq.rabbitmq.originQueue")}</TableHead>
+              <TableHead>{t("board.common.reason")}</TableHead>
+              <TableHead style={R}>count</TableHead>
+              <TableHead>{t("board.common.time")}</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {ROWS.map((row) => {
               const on = checked.includes(row.id);
               const dim = on ? undefined : "var(--c-mono-dim)";
               return (
-                <TR key={row.id}>
-                  <TD>
-                    <Check checked={on} label={row.routingKey} onChange={() => toggle(row.id)} />
-                  </TD>
-                  <TD className="mono3" style={{ ...MONO11, color: dim }}>{row.routingKey}</TD>
-                  <TD className="mono3" style={DIM11}>{row.origin}</TD>
-                  <TD>
+                <TableRow key={row.id}>
+                  <TableCell>
+                    <Checkbox checked={on} aria-label={row.routingKey} onCheckedChange={() => toggle(row.id)} />
+                  </TableCell>
+                  <TableCell className="mono3" style={{ ...MONO11, color: dim }}>{row.routingKey}</TableCell>
+                  <TableCell className="mono3" style={DIM11}>{row.origin}</TableCell>
+                  <TableCell>
                     <Status tone={row.reason === "rejected" ? "err" : "warn"} style={TAG}>
                       {row.reason}
                     </Status>
-                  </TD>
-                  <TD className="mono3" style={{ ...R, color: dim }}>{row.count}</TD>
-                  <TD className="mono3" style={{ ...MONO11, color: dim }}>{row.at}</TD>
-                </TR>
+                  </TableCell>
+                  <TableCell className="mono3" style={{ ...R, color: dim }}>{row.count}</TableCell>
+                  <TableCell className="mono3" style={{ ...MONO11, color: dim }}>{row.at}</TableCell>
+                </TableRow>
               );
             })}
             <SkeletonRows colSpan={6} widths={["52%"]} />
-          </TBody>
+          </TableBody>
         </Table>
       </ListPane>
 
       <BulkBar hint={t("board.dlq.rabbitmq.hint")}>
         <span>{t("board.common.selectedN", { n: checked.length })}</span>
-        <Btn variant="primary">{t("board.dlq.rabbitmq.republish")}</Btn>
-        <Btn>{t("board.dlq.rabbitmq.publishElsewhere")}</Btn>
-        <Btn>{t("board.common.export")}</Btn>
-        <Btn variant="danger">{t("board.common.ackRemove")}</Btn>
+        <Button>{t("board.dlq.rabbitmq.republish")}</Button>
+        <Button variant="outline">{t("board.dlq.rabbitmq.publishElsewhere")}</Button>
+        <Button variant="outline">{t("board.common.export")}</Button>
+        <Button variant="destructive">{t("board.common.ackRemove")}</Button>
       </BulkBar>
     </Page>
   );

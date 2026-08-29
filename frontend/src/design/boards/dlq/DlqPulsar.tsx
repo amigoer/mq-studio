@@ -1,6 +1,18 @@
 import { useState } from "react";
 import { BulkBar, ListPane, Page, PageHeader, SkeletonRows, Toolbar } from "@/design/shell";
-import { Btn, Check, SelectField, Table, TBody, TD, TH, THead, TR } from "@/design/ui";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  SelectField,
+} from "@/components";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useTranslation } from "react-i18next";
 
 const MONO11 = { fontSize: "11px" } as const;
@@ -29,59 +41,59 @@ export function DlqPulsar() {
         subtitle={t("board.dlq.pulsar.subtitle")}
       />
       <Toolbar>
-        <SelectField value={t("board.dlq.pulsar.subscription")} />
+        <SelectField value="opt" options={[{ value: "opt", label: t("board.dlq.pulsar.subscription") }]} />
         <span className="mono3" style={{ fontSize: "11px", color: "var(--c-muted)" }}>
           {t("board.dlq.pulsar.rule")}
         </span>
-        <span style={{ flex: 1 }} />
-        <Btn variant="primary">{t("board.common.query")}</Btn>
+        <span className="flex-1" />
+        <Button>{t("board.common.query")}</Button>
       </Toolbar>
 
       <ListPane>
-        <Table className="inset">
-          <THead>
-            <TR>
-              <TH style={{ width: "26px" }}>
-                <Check
+        <Table inset>
+          <TableHeader>
+            <TableRow>
+              <TableHead style={{ width: "26px" }}>
+                <Checkbox
                   checked={allChecked}
-                  label={t("board.common.selectAll")}
-                  onChange={() => setChecked(allChecked ? [] : ROWS.map((r) => r.id))}
+                  aria-label={t("board.common.selectAll")}
+                  onCheckedChange={() => setChecked(allChecked ? [] : ROWS.map((r) => r.id))}
                 />
-              </TH>
-              <TH>MessageId</TH>
-              <TH>Key</TH>
-              <TH style={R}>{t("board.common.redeliver")}</TH>
-              <TH>{t("board.dlq.pulsar.lastException")}</TH>
-              <TH>{t("board.common.time")}</TH>
-            </TR>
-          </THead>
-          <TBody>
+              </TableHead>
+              <TableHead>MessageId</TableHead>
+              <TableHead>Key</TableHead>
+              <TableHead style={R}>{t("board.common.redeliver")}</TableHead>
+              <TableHead>{t("board.dlq.pulsar.lastException")}</TableHead>
+              <TableHead>{t("board.common.time")}</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {ROWS.map((row) => {
               const on = checked.includes(row.id);
               const dim = on ? undefined : "var(--c-mono-dim)";
               return (
-                <TR key={row.id}>
-                  <TD>
-                    <Check checked={on} label={row.messageId} onChange={() => toggle(row.id)} />
-                  </TD>
-                  <TD className="mono3" style={{ ...MONO11, color: dim }}>{row.messageId}</TD>
-                  <TD className="mono3" style={{ ...MONO11, color: dim }}>{row.key}</TD>
-                  <TD className="mono3" style={{ ...R, color: dim }}>{row.redeliveries}</TD>
-                  <TD style={{ color: on ? "var(--c-err-text)" : "var(--c-muted)", maxWidth: "220px" }}>{row.error}</TD>
-                  <TD className="mono3" style={{ ...MONO11, color: dim }}>{row.at}</TD>
-                </TR>
+                <TableRow key={row.id}>
+                  <TableCell>
+                    <Checkbox checked={on} aria-label={row.messageId} onCheckedChange={() => toggle(row.id)} />
+                  </TableCell>
+                  <TableCell className="mono3" style={{ ...MONO11, color: dim }}>{row.messageId}</TableCell>
+                  <TableCell className="mono3" style={{ ...MONO11, color: dim }}>{row.key}</TableCell>
+                  <TableCell className="mono3" style={{ ...R, color: dim }}>{row.redeliveries}</TableCell>
+                  <TableCell style={{ color: on ? "var(--c-err-text)" : "var(--c-muted)", maxWidth: "220px" }}>{row.error}</TableCell>
+                  <TableCell className="mono3" style={{ ...MONO11, color: dim }}>{row.at}</TableCell>
+                </TableRow>
               );
             })}
             <SkeletonRows colSpan={6} widths={["50%"]} />
-          </TBody>
+          </TableBody>
         </Table>
       </ListPane>
 
       <BulkBar hint={t("board.dlq.pulsar.hint")}>
         <span>{t("board.common.selectedN", { n: checked.length })}</span>
-        <Btn variant="primary">{t("board.dlq.pulsar.resend")}</Btn>
-        <Btn>{t("board.common.export")}</Btn>
-        <Btn variant="danger">{t("board.dlq.pulsar.discard")}</Btn>
+        <Button>{t("board.dlq.pulsar.resend")}</Button>
+        <Button variant="outline">{t("board.common.export")}</Button>
+        <Button variant="destructive">{t("board.dlq.pulsar.discard")}</Button>
       </BulkBar>
     </Page>
   );

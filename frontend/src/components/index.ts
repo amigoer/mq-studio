@@ -17,5 +17,6 @@ export { Bar, MeterRow } from "./meter";
 export { JsonBlock, IND, JStr, JNum, JDim, Timeline, type TraceStep } from "./json-block";
 export { WarnBanner } from "./warn-banner";
 export { ChartBox } from "./chart-box";
+export { LineChart, type Series } from "./line-chart";
 export { toast, useToast, type ToastApi, type ToastOptions, type ToastTone } from "./toast";
 export { Toaster } from "./sonner";

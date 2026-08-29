@@ -1,6 +1,18 @@
 import { useState } from "react";
 import { BulkBar, ListPane, Page, PageHeader, SkeletonRows, Toolbar } from "@/design/shell";
-import { Btn, Check, SelectField, Table, TBody, TD, TH, THead, TR } from "@/design/ui";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  SelectField,
+} from "@/components";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useTranslation } from "react-i18next";
 
 const MONO11 = { fontSize: "11px" } as const;
@@ -31,63 +43,63 @@ export function DlqKafka() {
       <PageHeader
         title={t("board.dlq.kafka.title")}
         subtitle={t("board.dlq.kafka.subtitle")}
-        actions={<Btn>{t("board.dlq.kafka.convention")}</Btn>}
+        actions={<Button variant="outline">{t("board.dlq.kafka.convention")}</Button>}
       />
       <Toolbar>
-        <SelectField value={t("board.dlq.kafka.source")} />
+        <SelectField value="opt" options={[{ value: "opt", label: t("board.dlq.kafka.source") }]} />
         <span className="mono3" style={{ fontSize: "11px", color: "var(--c-muted)" }}>
           {t("board.dlq.kafka.target")}
         </span>
-        <SelectField value={t("board.dlq.last24h")} />
-        <span style={{ flex: 1 }} />
-        <Btn variant="primary">{t("board.common.query")}</Btn>
+        <SelectField value="opt" options={[{ value: "opt", label: t("board.dlq.last24h") }]} />
+        <span className="flex-1" />
+        <Button>{t("board.common.query")}</Button>
       </Toolbar>
 
       <ListPane>
-        <Table className="inset">
-          <THead>
-            <TR>
-              <TH style={{ width: "26px" }}>
-                <Check
+        <Table inset>
+          <TableHeader>
+            <TableRow>
+              <TableHead style={{ width: "26px" }}>
+                <Checkbox
                   checked={allChecked}
-                  label={t("board.common.selectAll")}
-                  onChange={() => setChecked(allChecked ? [] : ROWS.map((r) => r.id))}
+                  aria-label={t("board.common.selectAll")}
+                  onCheckedChange={() => setChecked(allChecked ? [] : ROWS.map((r) => r.id))}
                 />
-              </TH>
-              <TH style={R}>{t("board.common.partition")}</TH>
-              <TH style={R}>Offset</TH>
-              <TH>Key</TH>
-              <TH>{t("board.dlq.kafka.exception")}</TH>
-              <TH>{t("board.common.time")}</TH>
-            </TR>
-          </THead>
-          <TBody>
+              </TableHead>
+              <TableHead style={R}>{t("board.common.partition")}</TableHead>
+              <TableHead style={R}>Offset</TableHead>
+              <TableHead>Key</TableHead>
+              <TableHead>{t("board.dlq.kafka.exception")}</TableHead>
+              <TableHead>{t("board.common.time")}</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {ROWS.map((row) => {
               const on = checked.includes(row.id);
               const dim = on ? undefined : "var(--c-mono-dim)";
               return (
-                <TR key={row.id}>
-                  <TD>
-                    <Check checked={on} label={row.offset} onChange={() => toggle(row.id)} />
-                  </TD>
-                  <TD className="mono3" style={{ ...R, color: dim }}>{row.partition}</TD>
-                  <TD className="mono3" style={{ ...R, color: dim }}>{row.offset}</TD>
-                  <TD className="mono3" style={{ ...MONO11, color: dim }}>{row.key}</TD>
-                  <TD style={{ color: on ? "var(--c-err-text)" : "var(--c-muted)", maxWidth: "230px" }}>{row.error}</TD>
-                  <TD className="mono3" style={{ ...MONO11, color: dim }}>{row.at}</TD>
-                </TR>
+                <TableRow key={row.id}>
+                  <TableCell>
+                    <Checkbox checked={on} aria-label={row.offset} onCheckedChange={() => toggle(row.id)} />
+                  </TableCell>
+                  <TableCell className="mono3" style={{ ...R, color: dim }}>{row.partition}</TableCell>
+                  <TableCell className="mono3" style={{ ...R, color: dim }}>{row.offset}</TableCell>
+                  <TableCell className="mono3" style={{ ...MONO11, color: dim }}>{row.key}</TableCell>
+                  <TableCell style={{ color: on ? "var(--c-err-text)" : "var(--c-muted)", maxWidth: "230px" }}>{row.error}</TableCell>
+                  <TableCell className="mono3" style={{ ...MONO11, color: dim }}>{row.at}</TableCell>
+                </TableRow>
               );
             })}
             <SkeletonRows colSpan={6} widths={["56%"]} />
-          </TBody>
+          </TableBody>
         </Table>
       </ListPane>
 
       <BulkBar hint={t("board.dlq.kafka.hint")}>
         <span>{t("board.common.selectedN", { n: checked.length })}</span>
-        <Btn variant="primary">{t("board.dlq.kafka.resend")}</Btn>
-        <Btn>{t("board.dlq.kafka.changeTarget")}</Btn>
-        <Btn>{t("board.common.export")}</Btn>
+        <Button>{t("board.dlq.kafka.resend")}</Button>
+        <Button variant="outline">{t("board.dlq.kafka.changeTarget")}</Button>
+        <Button variant="outline">{t("board.common.export")}</Button>
       </BulkBar>
     </Page>
   );

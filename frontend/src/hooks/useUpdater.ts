@@ -10,7 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { useTranslation } from "react-i18next";
-import { useToast } from "@/design/ui";
+import { useToast } from "@/components";
 import { openExternal } from "@/api/platform";
 import {
   announcedUpdate,
