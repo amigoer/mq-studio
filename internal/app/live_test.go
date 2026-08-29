@@ -22,6 +22,14 @@ import (
 //	npm run e2e:up && MQ_STUDIO_E2E=1 go test ./internal/app/...
 const liveNameServer = "127.0.0.1:9876"
 
+// What `npm run e2e:seed` puts on the broker. Tests that need a consumer group
+// use this one, because mq-studio cannot create one - see
+// TestLiveConsumerGroupDelete for why.
+const (
+	seededTopic = "MQ_STUDIO_E2E"
+	seededGroup = "MQ_STUDIO_E2E_GROUP"
+)
+
 // liveStack assembles the same pieces New does, rooted in a temp directory so
 // the test never touches the user's real configuration.
 func liveStack(t *testing.T) (*connection.Service, *destination.Service, *driver.Registry) {
@@ -357,5 +365,73 @@ func TestLiveConsumerGroupDelete(t *testing.T) {
 	// is not there rather than hang or panic.
 	if err := groups.RemoveSubscription(ctx, ref); err != nil {
 		t.Fatalf("delete: %v", err)
+	}
+}
+
+// The consumer sheet's 重置位点 action.
+func TestLiveResetOffset(t *testing.T) {
+	connections, _, registry := liveStack(t)
+	ctx := context.Background()
+
+	profile, err := connections.AddConnection(liveProfileInput("offsets"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := connections.Connect(profile.ID); err != nil {
+		t.Fatalf("connect: %v", err)
+	}
+	conn, _ := registry.Get(profile.ID)
+
+	groups := conn.(driver.SubscriptionAdmin)
+	listed, err := groups.ListSubscriptions(ctx)
+	if err != nil {
+		t.Fatalf("list groups: %v", err)
+	}
+	seeded := false
+	for _, one := range listed {
+		if one.Ref.Name == seededGroup {
+			seeded = true
+		}
+	}
+	if !seeded {
+		t.Skipf("run `npm run e2e:seed` to create %s", seededGroup)
+	}
+
+	// Something has to be in the topic for a reset to have a position to move
+	// to, and the seeded topic is empty on a fresh broker.
+	if _, err := conn.(driver.MessagePublisher).SendMessage(
+		ctx, seededTopic, "reset", "reset-probe", `{"probe":"reset"}`, 0,
+	); err != nil {
+		t.Fatalf("seed a message: %v", err)
+	}
+
+	progress := conn.(driver.ProgressAdmin)
+	// Timestamp 0 means the earliest retained message, which is the reset the
+	// UI offers as 最早.
+	if err := progress.ResetOffset(ctx, model.ResetOffsetRequest{
+		Group:     seededGroup,
+		Topic:     seededTopic,
+		Timestamp: 0,
+		Force:     true,
+	}); err != nil {
+		t.Fatalf("reset to earliest: %v", err)
+	}
+
+	if err := progress.ResetOffset(ctx, model.ResetOffsetRequest{
+		Group:     seededGroup,
+		Topic:     seededTopic,
+		Timestamp: time.Now().UnixMilli(),
+		Force:     true,
+	}); err != nil {
+		t.Fatalf("reset to now: %v", err)
+	}
+
+	// A group that does not exist has to be reported, not silently accepted.
+	if err := progress.ResetOffset(ctx, model.ResetOffsetRequest{
+		Group:     "MQ_STUDIO_E2E_NO_SUCH_GROUP",
+		Topic:     seededTopic,
+		Timestamp: 0,
+	}); err == nil {
+		t.Log("resetting an unknown group was accepted; RocketMQ creates offsets lazily")
 	}
 }

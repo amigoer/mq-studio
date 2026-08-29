@@ -1822,7 +1822,20 @@
         "deleteTitle": "删除消费组",
         "deleteDesc": "将从所有 Master 上删除消费组“{{name}}”及其位点，无法撤销。它的重试和死信队列不会被删除。",
         "deleted": "已删除 {{name}}",
-        "deleteFailed": "删除失败"
+        "deleteFailed": "删除失败",
+        "reset": {
+          "earliest": "最早",
+          "latest": "最新",
+          "at": "指定时间",
+          "target": "重置到",
+          "force": "强制重置",
+          "topicRequired": "请选择或填写 Topic",
+          "topicPlaceholder": "这个组当前没有在线客户端，请手动填写 Topic",
+          "timeInvalid": "时间格式不正确",
+          "risky": "会改变消费位置，可能导致重复消费或跳过消息",
+          "note": "RocketMQ 按时间重置，不是按位点：Broker 会为每个队列找到该时刻之后的第一条消息。“最早”是仍然保留的最老一条，再往前的已经从 CommitLog 滚掉了。",
+          "done": "已重置 {{name}} 的消费位点"
+        }
       },
       "pulsar": {
         "cursor": "游标",

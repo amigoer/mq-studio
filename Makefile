@@ -6,7 +6,7 @@ SHELL := /bin/sh
 ARCH ?=
 
 .PHONY: help install install-ci bindings icons dev run build package dmg \
-	test test-go test-frontend e2e e2e-up e2e-down check ci clean
+	test test-go test-frontend e2e e2e-up e2e-seed e2e-down check ci clean
 
 help: ## Show all available targets
 	@awk 'BEGIN { FS = ":.*## " } /^[a-zA-Z0-9_.-]+:.*## / { printf "  %-20s %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
@@ -52,7 +52,10 @@ test-frontend: ## Run frontend unit tests
 e2e-up: ## Start RocketMQ 5.3.2 with OrbStack or Docker
 	npm run e2e:up
 
-e2e: ## Run the live tests against a running RocketMQ E2E environment
+e2e-seed: ## Seed the E2E broker with the topic and consumer group the live tests need
+	npm run e2e:seed
+
+e2e: ## Run the live tests against a running, seeded RocketMQ E2E environment
 	npm run test:e2e
 
 e2e-down: ## Stop the RocketMQ E2E environment and remove test volumes

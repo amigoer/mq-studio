@@ -32,6 +32,7 @@ import { BoardState, Notice, isBlocked } from "@/design/boards/BoardState";
 import { useBrokerData } from "@/hooks/useBrokerData";
 import { useSettings } from "@/hooks/useSettings";
 import { useConnectionScope } from "@/mq/ConnectionScope";
+import { ResetOffsetDialog } from "./ResetOffsetDialog";
 import * as consumerApi from "@/api/consumer";
 import { formatErrorMessage } from "@/lib/utils";
 import type { Subscription } from "@/api/models";
@@ -84,6 +85,7 @@ export function ConsumersRocketMQ() {
   const { settings } = useSettings();
   const toast = useToast();
   const confirm = useConfirm();
+  const [resetting, setResetting] = useState<string | null>(null);
   const lagThreshold = settings.lagAlertThreshold ?? 10000;
 
   const [backlogOnly, setBacklogOnly] = useState(false);
@@ -112,6 +114,13 @@ export function ConsumersRocketMQ() {
   }, [backlogOnly, groups, query, sort]);
 
   const current = rows.find((group) => groupName(group) === selected);
+  const resetOffset = async (topic: string, timestamp: number, force: boolean) => {
+    if (resetting == null) return;
+    await consumerApi.resetOffset(connID, resetting, topic, timestamp, force);
+    toast.success(t("board.consumers.rocketmq.reset.done", { name: resetting }));
+    await state.refresh();
+  };
+
   const remove = async (group: Subscription) => {
     const name = groupName(group);
     const confirmed = await confirm({
@@ -267,6 +276,7 @@ export function ConsumersRocketMQ() {
               lagThreshold={lagThreshold}
               tab={tab}
               onTabChange={setTab}
+              onResetOffset={() => setResetting(groupName(current))}
               onDelete={() => void remove(current)}
               onClose={() => setSelected(null)}
             />
@@ -274,6 +284,12 @@ export function ConsumersRocketMQ() {
         </ListArea>
       )}
 
+      <ResetOffsetDialog
+        open={resetting != null}
+        group={groups.find((group) => groupName(group) === resetting)}
+        onClose={() => setResetting(null)}
+        onSubmit={resetOffset}
+      />
     </Page>
   );
 }
@@ -283,6 +299,7 @@ function GroupSheet({
   lagThreshold,
   tab,
   onTabChange,
+  onResetOffset,
   onDelete,
   onClose,
 }: {
@@ -290,6 +307,7 @@ function GroupSheet({
   lagThreshold: number;
   tab: string;
   onTabChange: (tab: string) => void;
+  onResetOffset: () => void;
   onDelete: () => void;
   onClose: () => void;
 }) {
@@ -400,6 +418,7 @@ function GroupSheet({
         </div>
       </SheetBody>
       <SheetFooter>
+        <Btn onClick={onResetOffset}>{t("board.common.resetOffset")}</Btn>
         <span style={{ flex: 1 }} />
         <Btn variant="danger" onClick={onDelete}>
           {t("board.common.deleteGroup")}
