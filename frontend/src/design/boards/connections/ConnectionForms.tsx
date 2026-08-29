@@ -1,7 +1,12 @@
 import { useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { ChevronRight, RefreshCw } from "lucide-react";
-import { Field, Seg, SelectField, Sw } from "@/design/ui";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import {
+  Segmented,
+  SelectField,
+} from "@/components";
 
 /** `.fld` — label (with optional grey hint) above the control. */
 function Fld({
@@ -119,14 +124,14 @@ export function RocketMQForm({
     <>
       <div style={GRID}>
         <Fld label={t("page.connections.form.name")}>
-          <Field
+          <Input
             value={value.name}
             placeholder="rocketmq-order"
             onChange={(event) => set("name", event.target.value)}
           />
         </Fld>
         <Fld label={t("page.connections.form.rocketmq.version")}>
-          <Seg
+          <Segmented
             style={{ alignSelf: "flex-start" }}
             value={value.version}
             onChange={(next: "4.x" | "5.x") =>
@@ -142,7 +147,7 @@ export function RocketMQForm({
         </Fld>
         {value.version === "5.x" && (
           <Fld label={t("page.connections.form.rocketmq.access")} hint={t("page.connections.form.rocketmq.accessHint")}>
-            <Seg
+            <Segmented
               style={{ alignSelf: "flex-start" }}
               value={value.access}
               onChange={(next: "ns" | "proxy") => set("access", next)}
@@ -154,7 +159,7 @@ export function RocketMQForm({
           </Fld>
         )}
         <Fld span label={t("page.connections.form.rocketmq.nameServer")} hint={t("page.connections.form.rocketmq.nameServerHint")}>
-          <Field
+          <Input
             className="mono3"
             style={MONO}
             value={value.endpoints}
@@ -174,14 +179,14 @@ export function RocketMQForm({
             )
           }
         >
-          <Field
+          <Input
             value={value.accessKey}
             placeholder={stored ? t("page.connections.form.secretStored") : undefined}
             onChange={(event) => set("accessKey", event.target.value)}
           />
         </Fld>
         <Fld label="SecretKey">
-          <Field
+          <Input
             type="password"
             value={value.secretKey}
             placeholder={stored ? t("page.connections.form.secretStored") : undefined}
@@ -209,26 +214,26 @@ export function KafkaForm() {
     <>
       <div style={GRID}>
         <Fld span label={t("page.connections.form.name")}>
-          <Field defaultValue="prod-kafka-cn" />
+          <Input defaultValue="prod-kafka-cn" />
         </Fld>
         <Fld span label="Bootstrap Servers">
-          <Field
+          <Input
             className="mono3"
             style={MONO}
             defaultValue="kafka-1:9092, kafka-2:9092, kafka-3:9092"
           />
         </Fld>
         <Fld label={t("page.connections.form.kafka.security")}>
-          <SelectField value="SASL_SSL" />
+          <SelectField value="SASL_SSL" options={[{ value: "SASL_SSL" }]} />
         </Fld>
         <Fld label={t("page.connections.form.kafka.sasl")}>
-          <SelectField value="SCRAM-SHA-256" />
+          <SelectField value="SCRAM-SHA-256" options={[{ value: "SCRAM-SHA-256" }]} />
         </Fld>
         <Fld label={t("page.connections.form.username")}>
-          <Field defaultValue="mq-studio" />
+          <Input defaultValue="mq-studio" />
         </Fld>
         <Fld label={t("page.connections.form.password")}>
-          <Field type="password" defaultValue="password" />
+          <Input type="password" defaultValue="password" />
         </Fld>
         <Fld label={t("page.connections.form.kafka.ca")} hint={t("page.connections.form.kafka.caHint")}>
           <button type="button" className="in3">
@@ -236,7 +241,7 @@ export function KafkaForm() {
           </button>
         </Fld>
         <Fld label={t("page.connections.form.kafka.skipVerify")}>
-          <Sw checked={skipVerify} onCheckedChange={setSkipVerify} label={t("page.connections.form.kafka.skipVerify")} style={{ marginTop: "3px" }} />
+          <Switch checked={skipVerify} onCheckedChange={setSkipVerify} style={{ marginTop: "3px" }} />
         </Fld>
       </div>
       <FormNote
@@ -254,22 +259,22 @@ export function RabbitMQForm() {
     <>
       <div style={GRID}>
         <Fld span label={t("page.connections.form.name")}>
-          <Field defaultValue="rabbit-staging" />
+          <Input defaultValue="rabbit-staging" />
         </Fld>
         <Fld span label={t("page.connections.form.rabbitmq.amqp")}>
-          <Field className="mono3" style={MONO} defaultValue="amqps://rabbit.stg.example.com:5671" />
+          <Input className="mono3" style={MONO} defaultValue="amqps://rabbit.stg.example.com:5671" />
         </Fld>
         <Fld label="vhost">
-          <Field className="mono3" style={MONO} defaultValue="/order" />
+          <Input className="mono3" style={MONO} defaultValue="/order" />
         </Fld>
         <Fld label={t("page.connections.form.rabbitmq.management")} hint={t("page.connections.form.rabbitmq.managementHint")}>
-          <Field className="mono3" style={MONO} defaultValue="https://rabbit.stg:15672" />
+          <Input className="mono3" style={MONO} defaultValue="https://rabbit.stg:15672" />
         </Fld>
         <Fld label={t("page.connections.form.username")}>
-          <Field defaultValue="mq-studio" />
+          <Input defaultValue="mq-studio" />
         </Fld>
         <Fld label={t("page.connections.form.password")}>
-          <Field type="password" defaultValue="password" />
+          <Input type="password" defaultValue="password" />
         </Fld>
       </div>
       <FormNote
@@ -288,16 +293,16 @@ export function PulsarForm() {
     <>
       <div style={GRID}>
         <Fld label={t("page.connections.form.name")}>
-          <Field defaultValue="pulsar-eu" />
+          <Input defaultValue="pulsar-eu" />
         </Fld>
         <Fld label={t("page.connections.form.pulsar.service")} hint={t("page.connections.form.pulsar.serviceHint")}>
-          <Field className="mono3" style={MONO} defaultValue="pulsar+ssl://pulsar-eu:6651" />
+          <Input className="mono3" style={MONO} defaultValue="pulsar+ssl://pulsar-eu:6651" />
         </Fld>
         <Fld label={t("page.connections.form.pulsar.admin")} hint={t("page.connections.form.pulsar.adminHint")}>
-          <Field className="mono3" style={MONO} defaultValue="https://pulsar-eu:8443" />
+          <Input className="mono3" style={MONO} defaultValue="https://pulsar-eu:8443" />
         </Fld>
         <Fld span label={t("page.connections.form.pulsar.auth")}>
-          <Seg
+          <Segmented
             style={{ alignSelf: "flex-start" }}
             value={auth}
             onChange={setAuth}
@@ -311,7 +316,7 @@ export function PulsarForm() {
         </Fld>
         {auth === "token" && (
           <Fld span label="Token">
-            <Field
+            <Input
               className="mono3"
               style={{ fontSize: "11px", overflow: "hidden", textOverflow: "ellipsis" }}
               defaultValue="eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJtcS1zdHVkaW8ifQ…"
@@ -319,10 +324,10 @@ export function PulsarForm() {
           </Fld>
         )}
         <Fld label={t("page.connections.form.pulsar.tenant")}>
-          <Field className="mono3" style={MONO} defaultValue="ecommerce" />
+          <Input className="mono3" style={MONO} defaultValue="ecommerce" />
         </Fld>
         <Fld label={t("page.connections.form.pulsar.namespace")}>
-          <Field className="mono3" style={MONO} defaultValue="orders" />
+          <Input className="mono3" style={MONO} defaultValue="orders" />
         </Fld>
       </div>
       <FormNote
@@ -341,10 +346,10 @@ export function RedisForm() {
     <>
       <div style={GRID}>
         <Fld span label={t("page.connections.form.name")}>
-          <Field defaultValue="redis-stream-01" />
+          <Input defaultValue="redis-stream-01" />
         </Fld>
         <Fld span label={t("page.connections.form.redis.mode")}>
-          <Seg
+          <Segmented
             style={{ alignSelf: "flex-start" }}
             value={mode}
             onChange={setMode}
@@ -356,10 +361,10 @@ export function RedisForm() {
           />
         </Fld>
         <Fld label={t("page.connections.form.redis.address")}>
-          <Field className="mono3" style={MONO} defaultValue="rediss://10.2.0.8:6379" />
+          <Input className="mono3" style={MONO} defaultValue="rediss://10.2.0.8:6379" />
         </Fld>
         <Fld label={t("page.connections.form.redis.db")} hint={t("page.connections.form.redis.dbHint")}>
-          <Field
+          <Input
             className="mono3"
             style={MONO}
             defaultValue="0"
@@ -367,13 +372,13 @@ export function RedisForm() {
           />
         </Fld>
         <Fld label={t("page.connections.form.username")} hint={t("page.connections.form.redis.usernameHint")}>
-          <Field defaultValue="default" />
+          <Input defaultValue="default" />
         </Fld>
         <Fld label={t("page.connections.form.password")}>
-          <Field type="password" defaultValue="password" />
+          <Input type="password" defaultValue="password" />
         </Fld>
         <Fld span label={t("page.connections.form.redis.streamFilter")} hint={t("page.connections.form.redis.streamFilterHint")}>
-          <Field className="mono3" style={MONO} defaultValue="orders:* ; events:*" />
+          <Input className="mono3" style={MONO} defaultValue="orders:* ; events:*" />
         </Fld>
       </div>
       <FormNote
@@ -393,13 +398,13 @@ export function MqttForm() {
     <>
       <div style={GRID}>
         <Fld label={t("page.connections.form.name")}>
-          <Field defaultValue="iot-broker" />
+          <Input defaultValue="iot-broker" />
         </Fld>
         <Fld label={t("page.connections.form.mqtt.broker")} hint={t("page.connections.form.mqtt.brokerHint")}>
-          <Field className="mono3" style={MONO} defaultValue="mqtts://iot.example.com:8883" />
+          <Input className="mono3" style={MONO} defaultValue="mqtts://iot.example.com:8883" />
         </Fld>
         <Fld label={t("page.connections.form.mqtt.version")}>
-          <Seg
+          <Segmented
             style={{ alignSelf: "flex-start" }}
             value={version}
             onChange={setVersion}
@@ -416,20 +421,20 @@ export function MqttForm() {
           </span>
         </Fld>
         <Fld label="Keep Alive">
-          <Field className="mono3" style={MONO} defaultValue="60 s" />
+          <Input className="mono3" style={MONO} defaultValue="60 s" />
         </Fld>
         <Fld label={t("page.connections.form.username")}>
-          <Field defaultValue="iot-ops" />
+          <Input defaultValue="iot-ops" />
         </Fld>
         <Fld label={t("page.connections.form.password")}>
-          <Field type="password" defaultValue="password" />
+          <Input type="password" defaultValue="password" />
         </Fld>
         <Fld label="Clean Start">
-          <Sw checked={cleanStart} onCheckedChange={setCleanStart} label="Clean Start" style={{ marginTop: "3px" }} />
+          <Switch checked={cleanStart} onCheckedChange={setCleanStart} aria-label="Clean Start" style={{ marginTop: "3px" }} />
         </Fld>
         {version === "5.0" && (
           <Fld label={t("page.connections.form.mqtt.sessionExpiry")} hint={t("page.connections.form.mqtt.sessionExpiryHint")}>
-            <Field className="mono3" style={MONO} defaultValue="3600 s" />
+            <Input className="mono3" style={MONO} defaultValue="3600 s" />
           </Fld>
         )}
       </div>

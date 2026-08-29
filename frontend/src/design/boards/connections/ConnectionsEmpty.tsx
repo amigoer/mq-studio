@@ -2,7 +2,7 @@ import { useTranslation } from "react-i18next";
 import { Plus } from "lucide-react";
 import { AppLogo } from "@/design/icons/AppLogo";
 import { ProtocolIcon } from "@/design/icons/ProtocolIcon";
-import { Btn } from "@/design/ui";
+import { Button } from "@/components/ui/button";
 import { PROTOCOLS, PROTOCOL_ORDER } from "@/design/data/protocols";
 
 /** Board 8b — first launch, or after the last connection is deleted. */
@@ -51,11 +51,11 @@ export function ConnectionsEmpty({ onNewConnection }: { onNewConnection?: () => 
           {t("page.connections.emptyLine2")}
         </div>
         <div style={{ display: "flex", gap: "10px", marginTop: "20px" }}>
-          <Btn variant="primary" style={{ padding: "6px 16px" }} onClick={onNewConnection}>
+          <Button style={{ padding: "6px 16px" }} onClick={onNewConnection}>
             <Plus size={13} aria-hidden />
             {t("page.connections.emptyNew")}
-          </Btn>
-          <Btn style={{ padding: "6px 16px" }}>{t("page.connections.emptyImport")}</Btn>
+          </Button>
+          <Button variant="outline" style={{ padding: "6px 16px" }}>{t("page.connections.emptyImport")}</Button>
         </div>
         <div style={{ display: "flex", gap: "18px", marginTop: "34px", alignItems: "center" }}>
           {PROTOCOL_ORDER.map((p) => (

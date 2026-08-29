@@ -1,7 +1,18 @@
 import { useEffect, useMemo, useState, type JSX } from "react";
 import { useTranslation } from "react-i18next";
 import { Check, RefreshCw, X } from "lucide-react";
-import { Btn, Dialog, SectionLabel } from "@/design/ui";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Spinner } from "@/components/ui/spinner";
+import {
+  SectionLabel,
+} from "@/components";
 import { ProtocolIcon } from "@/design/icons/ProtocolIcon";
 import { PROTOCOL_ORDER, type ProtocolId } from "@/design/data/protocols";
 import { cn, formatErrorMessage } from "@/lib/utils";
@@ -136,36 +147,16 @@ export function NewConnectionDialog({
   return (
     <Dialog
       open={open}
-      title={t(editing != null ? "page.connections.dialogTitleEdit" : "page.connections.dialogTitle")}
-      onClose={onClose}
-      footer={
-        <>
-          <Btn disabled={invalid != null || probe.kind === "running"} onClick={runProbe}>
-            {t("page.connections.dialogTest")}
-          </Btn>
-          <ProbeResult state={probe} />
-          <span style={{ flex: 1 }} />
-          {/* The blocking reason belongs beside the button it blocks, not in a
-              toast that appears after the click that did nothing. */}
-          {(invalid ?? error) != null && (
-            <span
-              style={{
-                fontSize: "11.5px",
-                color: error != null ? "var(--c-err)" : "var(--c-muted)",
-                maxWidth: "320px",
-                textAlign: "right",
-              }}
-            >
-              {error ?? invalid}
-            </span>
-          )}
-          <Btn onClick={onClose}>{t("common.cancel")}</Btn>
-          <Btn variant="primary" disabled={invalid != null || saving} onClick={save}>
-            {t(editing != null ? "page.connections.dialogSaveOnly" : "page.connections.dialogSave")}
-          </Btn>
-        </>
-      }
+      onOpenChange={(next) => {
+        if (!next) onClose?.();
+      }}
     >
+      <DialogContent className="flex max-h-[85vh] flex-col gap-3.5 overflow-y-auto sm:max-w-[580px]">
+        <DialogHeader>
+          <DialogTitle>
+            {t(editing != null ? "page.connections.dialogTitleEdit" : "page.connections.dialogTitle")}
+          </DialogTitle>
+        </DialogHeader>
       <div>
         <SectionLabel style={{ marginBottom: "8px" }}>{t("page.connections.dialogProtocol")}</SectionLabel>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(6,1fr)", gap: "8px" }}>
@@ -192,6 +183,39 @@ export function NewConnectionDialog({
         </div>
       </div>
       {StaticForm != null ? <StaticForm /> : <RocketMQForm value={draft} onChange={setDraft} />}
+
+        <DialogFooter className="items-center">
+          <Button
+            variant="outline"
+            disabled={invalid != null || probe.kind === "running"}
+            onClick={runProbe}
+          >
+            {probe.kind === "running" && <Spinner />}
+            {t("page.connections.dialogTest")}
+          </Button>
+          <ProbeResult state={probe} />
+          <span className="flex-1" />
+          {/* The blocking reason belongs beside the button it blocks, not in a
+              toast that appears after the click that did nothing. */}
+          {(invalid ?? error) != null && (
+            <span
+              className={
+                "max-w-80 text-right text-xs " +
+                (error != null ? "text-(--c-err)" : "text-muted-foreground")
+              }
+            >
+              {error ?? invalid}
+            </span>
+          )}
+          <Button variant="outline" onClick={onClose}>
+            {t("common.cancel")}
+          </Button>
+          <Button disabled={invalid != null || saving} onClick={save}>
+            {saving && <Spinner />}
+            {t(editing != null ? "page.connections.dialogSaveOnly" : "page.connections.dialogSave")}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 }

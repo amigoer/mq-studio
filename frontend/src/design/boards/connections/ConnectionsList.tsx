@@ -2,21 +2,29 @@ import { useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Ellipsis, RefreshCw, Star } from "lucide-react";
 import { Page, PageHeader, Toolbar, StatusBar } from "@/design/shell";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
-  Btn,
-  Field,
-  Menu,
-  MenuItem,
-  MenuSeparator,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Toggle } from "@/components/ui/toggle";
+import {
   SelectField,
   Status,
-  Table,
-  TBody,
-  TD,
-  TH,
-  THead,
-  TR,
-} from "@/design/ui";
+} from "@/components";
 import { ProtocolIcon } from "@/design/icons/ProtocolIcon";
 import type { Connection, ConnectionStatus } from "@/design/data/connections";
 import type { ConnectionOp } from "@/hooks/useConnectionProfiles";
@@ -80,8 +88,6 @@ export function ConnectionsList({
   const [filter, setFilter] = useState<ProtocolId | "all">("all");
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<Sort>("recent");
-  const [sortOpen, setSortOpen] = useState(false);
-  const [menuFor, setMenuFor] = useState<string | null>(null);
 
   /* Only the families actually stored get a chip: five zeroes above three rows
      was most of what the filter row was saying. */
@@ -124,18 +130,18 @@ export function ConnectionsList({
         subtitle={t("page.connections.subtitle")}
         actions={
           <>
-            <Btn onClick={onImport}>{t("page.connections.import")}</Btn>
-            <Btn onClick={onExport}>{t("page.connections.export")}</Btn>
-            <Btn variant="primary" onClick={onNewConnection}>
+            <Button variant="outline" onClick={onImport}>{t("page.connections.import")}</Button>
+            <Button variant="outline" onClick={onExport}>{t("page.connections.export")}</Button>
+            <Button onClick={onNewConnection}>
               {t("page.connections.new")}
-            </Btn>
+            </Button>
           </>
         }
       />
 
       <Toolbar>
-        <Field
-          style={{ flex: "0 0 200px" }}
+        <Input
+          className="w-[200px] flex-none"
           placeholder={t("page.connections.searchPlaceholder")}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
@@ -161,55 +167,43 @@ export function ConnectionsList({
             ))}
           </>
         )}
-        <span style={{ flex: 1 }} />
-        <span style={{ position: "relative", display: "inline-flex" }}>
+        <span className="flex-1" />
+        <span style={{ display: "inline-flex" }}>
           <SelectField
-            value={t(`page.connections.sort.${sort}`)}
-            aria-haspopup="menu"
-            aria-expanded={sortOpen}
-            onClick={() => setSortOpen(!sortOpen)}
+            value={sort}
+            onValueChange={setSort}
+            options={SORTS.map((key) => ({
+              value: key,
+              label: t(`page.connections.sort.${key}`),
+            }))}
           />
-          <Menu open={sortOpen} onClose={() => setSortOpen(false)} width={140} top={30}>
-            {SORTS.map((key) => (
-              <MenuItem
-                key={key}
-                active={sort === key}
-                onSelect={() => {
-                  setSort(key);
-                  setSortOpen(false);
-                }}
-              >
-                {t(`page.connections.sort.${key}`)}
-              </MenuItem>
-            ))}
-          </Menu>
         </span>
       </Toolbar>
 
       {/* Scrolls rather than clips: a long list must stay reachable, and so
           must the action column on a window narrower than the table. */}
       <div style={{ flex: 1, minHeight: 0 }} className="mqs-scroll">
-        <Table className="inset">
+        <Table inset>
           {/* Column heads over a single "nothing matched" cell come out
               squeezed against the table's edges, so they stand down. */}
           {rows.length > 0 && (
-            <THead>
-              <TR>
+            <TableHeader>
+              <TableRow>
                 {/* Minimums keep short values from cramming the columns into
                     each other; longer values still widen them naturally. */}
-                <TH style={{ minWidth: "200px" }}>{t("page.connections.columnConnection")}</TH>
-                <TH style={{ minWidth: "240px" }}>{t("page.connections.columnAddress")}</TH>
-                <TH style={{ minWidth: "104px" }}>{t("page.connections.columnStatus")}</TH>
-                <TH style={{ minWidth: "104px" }}>{t("page.connections.columnLastUsed")}</TH>
-                <TH className="fill" role="presentation" />
-                <TH style={{ textAlign: "right" }}>{t("page.connections.columnActions")}</TH>
-              </TR>
-            </THead>
+                <TableHead style={{ minWidth: "200px" }}>{t("page.connections.columnConnection")}</TableHead>
+                <TableHead style={{ minWidth: "240px" }}>{t("page.connections.columnAddress")}</TableHead>
+                <TableHead style={{ minWidth: "104px" }}>{t("page.connections.columnStatus")}</TableHead>
+                <TableHead style={{ minWidth: "104px" }}>{t("page.connections.columnLastUsed")}</TableHead>
+                <TableHead className="fill" role="presentation" />
+                <TableHead style={{ textAlign: "right" }}>{t("page.connections.columnActions")}</TableHead>
+              </TableRow>
+            </TableHeader>
           )}
-          <TBody>
+          <TableBody>
             {rows.map((c) => (
-              <TR key={c.key} onDoubleClick={() => c.protocol != null && onOpenTab?.(c.key)}>
-                <TD title={c.remark !== "" ? c.remark : undefined}>
+              <TableRow key={c.key} onDoubleClick={() => c.protocol != null && onOpenTab?.(c.key)}>
+                <TableCell title={c.remark !== "" ? c.remark : undefined}>
                   <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
                     {/* The brand mark is the protocol column: it names itself to
                         a screen reader and on hover, and a family the design has
@@ -241,20 +235,20 @@ export function ConnectionsList({
                       <span style={{ fontSize: "11px", color: "var(--c-muted)" }}>{c.remark}</span>
                     )}
                   </span>
-                </TD>
+                </TableCell>
                 {/* Room for a three-broker bootstrap list before the ellipsis. */}
-                <TD
+                <TableCell
                   className="mono3"
                   style={{ color: "var(--c-mono-dim)", fontSize: "11px", maxWidth: "420px" }}
                 >
                   {c.address}
-                </TD>
-                <TD>
+                </TableCell>
+                <TableCell>
                   <StatusCell connection={c} error={errors?.[c.id]} />
-                </TD>
-                <TD style={{ color: "var(--c-muted)" }}>{lastUsedLabel(c.lastUsed)}</TD>
-                <TD className="fill" role="presentation" />
-                <TD style={{ textAlign: "right", overflow: "visible" }}>
+                </TableCell>
+                <TableCell style={{ color: "var(--c-muted)" }}>{lastUsedLabel(c.lastUsed)}</TableCell>
+                <TableCell className="fill" role="presentation" />
+                <TableCell style={{ textAlign: "right", overflow: "visible" }}>
                   <span style={{ position: "relative", display: "inline-flex", gap: "6px" }}>
                     <PrimaryAction
                       connection={c}
@@ -262,93 +256,68 @@ export function ConnectionsList({
                       onOpenTab={c.protocol != null ? onOpenTab : undefined}
                       onConnect={onConnect}
                     />
-                    <Btn
-                      size="rowIcon"
-                      variant={menuFor === c.key ? "primary" : "default"}
-                      aria-label={t("page.connections.moreActions")}
-                      onClick={() => setMenuFor(menuFor === c.key ? null : c.key)}
-                    >
-                      <Ellipsis size={13} aria-hidden />
-                    </Btn>
-                    <Menu open={menuFor === c.key} onClose={() => setMenuFor(null)}>
-                      {/* Opening a tab is the double-click, spelled out: the
-                          rows that do not carry it as their primary button are
-                          the ones whose gesture is hardest to guess. */}
-                      {c.protocol != null && c.status !== "online" && (
-                        <MenuItem
-                          onSelect={() => {
-                            setMenuFor(null);
-                            onOpenTab?.(c.key);
-                          }}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="icon-xs"
+                          aria-label={t("page.connections.moreActions")}
                         >
-                          {t("page.connections.openTab")}
-                        </MenuItem>
-                      )}
-                      {c.status === "online" && (
-                        <MenuItem
-                          onSelect={() => {
-                            setMenuFor(null);
-                            onDisconnect?.(c);
-                          }}
-                        >
-                          {t("page.connections.disconnect")}
-                        </MenuItem>
-                      )}
-                      <MenuItem
-                        onSelect={() => {
-                          setMenuFor(null);
-                          onTest?.(c);
-                        }}
-                      >
-                        {t("page.connections.test")}
-                      </MenuItem>
-                      <MenuItem
-                        onSelect={() => {
-                          setMenuFor(null);
-                          onEdit?.(c);
-                        }}
-                      >
-                        {t("page.connections.edit")}
-                      </MenuItem>
-                      <MenuItem
-                        disabled={c.isDefault}
-                        onSelect={() => {
-                          setMenuFor(null);
-                          onSetDefault?.(c);
-                        }}
-                      >
-                        {t("page.connections.setDefault")}
-                        <Star size={11} fill="currentColor" aria-hidden />
-                      </MenuItem>
-                      <MenuSeparator />
-                      <MenuItem
-                        danger
-                        onSelect={() => {
-                          setMenuFor(null);
-                          onDelete?.(c);
-                        }}
-                      >
-                        {t("page.connections.delete")}
-                      </MenuItem>
-                    </Menu>
+                          <Ellipsis size={13} aria-hidden />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuGroup>
+                          {/* Opening a tab is the double-click, spelled out: the
+                              rows that do not carry it as their primary button are
+                              the ones whose gesture is hardest to guess. */}
+                          {c.protocol != null && c.status !== "online" && (
+                            <DropdownMenuItem onSelect={() => onOpenTab?.(c.key)}>
+                              {t("page.connections.openTab")}
+                            </DropdownMenuItem>
+                          )}
+                          {c.status === "online" && (
+                            <DropdownMenuItem onSelect={() => onDisconnect?.(c)}>
+                              {t("page.connections.disconnect")}
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem onSelect={() => onTest?.(c)}>
+                            {t("page.connections.test")}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => onEdit?.(c)}>
+                            {t("page.connections.edit")}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem disabled={c.isDefault} onSelect={() => onSetDefault?.(c)}>
+                            {t("page.connections.setDefault")}
+                            <Star size={11} fill="currentColor" aria-hidden />
+                          </DropdownMenuItem>
+                        </DropdownMenuGroup>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuGroup>
+                          <DropdownMenuItem variant="destructive" onSelect={() => onDelete?.(c)}>
+                            {t("page.connections.delete")}
+                          </DropdownMenuItem>
+                        </DropdownMenuGroup>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </span>
-                </TD>
-              </TR>
+                </TableCell>
+              </TableRow>
             ))}
             {/* A search that matches nothing used to leave a bare header. */}
             {rows.length === 0 && (
-              <TR>
-                <TD colSpan={6} style={{ padding: "38px 20px", textAlign: "center" }}>
+              <TableRow>
+                <TableCell colSpan={6} style={{ padding: "38px 20px", textAlign: "center" }}>
                   <div style={{ color: "var(--c-muted)", marginBottom: "10px" }}>
                     {t("page.connections.noMatch")}
                   </div>
-                  <Btn size="row" onClick={clearFilters}>
+                  <Button variant="outline" size="xs" onClick={clearFilters}>
                     {t("page.connections.clearFilters")}
-                  </Btn>
-                </TD>
-              </TR>
+                  </Button>
+                </TableCell>
+              </TableRow>
             )}
-          </TBody>
+          </TableBody>
         </Table>
       </div>
 
@@ -468,25 +437,25 @@ function PrimaryAction({
   const { t } = useTranslation();
   if (op != null) {
     return (
-      <Btn size="row" disabled>
+      <Button variant="outline" size="xs" disabled>
         <RefreshCw size={11} className="mqs-turning" aria-hidden />
         {t(`page.connections.${op}`)}
-      </Btn>
+      </Button>
     );
   }
   if (connection.status === "online") {
     return (
-      <Btn size="row" disabled={onOpenTab == null} onClick={() => onOpenTab?.(connection.key)}>
+      <Button variant="outline" size="xs" disabled={onOpenTab == null} onClick={() => onOpenTab?.(connection.key)}>
         {t("page.connections.openTab")}
-      </Btn>
+      </Button>
     );
   }
   return (
-    <Btn size="row" disabled={onConnect == null} onClick={() => onConnect?.(connection)}>
+    <Button variant="outline" size="xs" disabled={onConnect == null} onClick={() => onConnect?.(connection)}>
       {connection.status === "offline"
         ? t("page.connections.connect")
         : t("page.connections.retry")}
-    </Btn>
+    </Button>
   );
 }
 
@@ -504,41 +473,15 @@ function Chip({
   onClick?: () => void;
 }) {
   return (
-    <button
-      type="button"
-      className="mqs-chip"
-      aria-pressed={active}
+    <Toggle
+      variant="outline"
+      pressed={Boolean(active)}
       aria-label={label}
       title={label}
-      onClick={onClick}
-      style={
-        active
-          ? {
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "5px",
-              border: "1px solid var(--c-fg)",
-              background: "var(--c-bar)",
-              fontWeight: 500,
-              borderRadius: "99px",
-              padding: "3px 10px",
-              fontSize: "11px",
-              color: "var(--c-fg)",
-            }
-          : {
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "5px",
-              border: "1px solid var(--c-border)",
-              background: "var(--c-bg)",
-              borderRadius: "99px",
-              padding: "3px 10px",
-              fontSize: "11px",
-              color: "var(--c-mono-dim)",
-            }
-      }
+      onPressedChange={() => onClick?.()}
+      className="h-auto gap-1 rounded-full bg-background px-2.5 py-[3px] text-xs font-normal text-(--c-mono-dim) data-[state=on]:border-foreground data-[state=on]:bg-(--c-bar) data-[state=on]:font-medium data-[state=on]:text-foreground"
     >
       {children}
-    </button>
+    </Toggle>
   );
 }

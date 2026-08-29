@@ -1,3 +1,4 @@
+import type * as React from "react";
 import type { ReactNode } from "react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
@@ -13,14 +14,21 @@ export function Segmented<T extends string>({
   value,
   onChange,
   className,
+  style,
 }: {
   options: readonly SegOption<T>[];
   value: T;
   onChange?: (value: T) => void;
   className?: string;
+  style?: React.CSSProperties;
 }) {
   return (
-    <Tabs value={value} onValueChange={(next) => onChange?.(next as T)} className={className}>
+    <Tabs
+      value={value}
+      onValueChange={(next) => onChange?.(next as T)}
+      className={className}
+      style={style}
+    >
       <TabsList className="h-auto gap-0.5 border bg-background p-0.5">
         {options.map((option) => (
           <TabsTrigger
