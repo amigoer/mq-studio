@@ -26,12 +26,31 @@ import { WindowControls } from "./WindowControls";
  */
 const ICON = 17;
 
+/** The corner mark on an icon button. It sits over the glyph, so it needs an edge. */
+function Badge({ tone }: { tone: string }) {
+  return (
+    <span
+      style={{
+        position: "absolute",
+        top: "3px",
+        right: "3px",
+        width: "6px",
+        height: "6px",
+        borderRadius: "99px",
+        background: tone,
+        boxShadow: "0 0 0 1.5px var(--c-bg)",
+      }}
+    />
+  );
+}
+
 export function TitleBar({
   tabs,
   homeActive,
   splitActive,
   dimmed = false,
   updateReady = false,
+  notifications = 0,
   onHome,
   onSearch,
   onRefresh,
@@ -47,6 +66,9 @@ export function TitleBar({
   /** 8b: with no connections the search and notification affordances read as inert. */
   dimmed?: boolean;
   updateReady?: boolean;
+  /** Unread alerts. The canvas draws the mark on 检查更新 only; the bell earns
+   *  the same one, or the count is only readable by opening the popover. */
+  notifications?: number;
   onHome?: () => void;
   onSearch?: () => void;
   onRefresh?: () => void;
@@ -111,31 +133,18 @@ export function TitleBar({
           style={{ transform: `rotate(${turns * 360}deg)` }}
           aria-hidden
         />
-        {updateReady && (
-          <span
-            style={{
-              position: "absolute",
-              top: "3px",
-              right: "3px",
-              width: "6px",
-              height: "6px",
-              borderRadius: "99px",
-              background: "var(--c-ok)",
-              /* The badge sits over the icon's corner, so it needs an edge. */
-              boxShadow: "0 0 0 1.5px var(--c-bg)",
-            }}
-          />
-        )}
+        {updateReady && <Badge tone="var(--c-ok)" />}
       </IconBtn>
       <IconBtn onClick={onGithub} title="GitHub">
         <SiGithub size={14} color="var(--c-github-mark)" aria-hidden />
       </IconBtn>
       <IconBtn
-        style={dimmed ? { color: "var(--c-disabled)" } : undefined}
+        style={{ position: "relative", ...(dimmed && { color: "var(--c-disabled)" }) }}
         onClick={onNotifications}
-        title="通知"
+        title={notifications > 0 ? `通知 · ${notifications} 未读` : "通知"}
       >
         <Bell size={ICON} aria-hidden />
+        {notifications > 0 && <Badge tone="var(--c-err)" />}
       </IconBtn>
       {/* 8b drops the strip entirely; with fewer than two tabs there is nothing to compare. */}
       {onSplit != null && (

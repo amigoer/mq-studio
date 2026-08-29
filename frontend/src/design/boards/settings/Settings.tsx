@@ -52,7 +52,7 @@ import {
 } from "@/api/settings";
 import { useSettings, type FetchLimit } from "@/hooks/useSettings";
 import { useUIPrefs } from "@/hooks/useUIPrefs";
-import { useUpdateCheck } from "@/hooks/useUpdateCheck";
+import { useUpdateCheck, useUpdateCheckAction } from "@/hooks/useUpdateCheck";
 import { monoFontStack } from "@/lib/fonts";
 import type { ThemeMode } from "@/lib/theme";
 import { FONT_SIZES, type UIScaleSetting } from "@/lib/uiScale";
@@ -73,11 +73,17 @@ import { cn } from "@/lib/utils";
 
 const GITHUB_URL = "https://github.com/amigoer/mq-studio";
 const GITHUB_ISSUES_URL = "https://github.com/amigoer/mq-studio/issues";
-const RELEASES_URL = "https://github.com/amigoer/mq-studio/releases/latest";
 
 const openLink = (url: string) => void openExternal(url).catch(() => {});
 
-type SectionId = "appearance" | "general" | "fonts" | "message" | "proxy" | "data" | "about";
+export type SectionId =
+  | "appearance"
+  | "general"
+  | "fonts"
+  | "message"
+  | "proxy"
+  | "data"
+  | "about";
 
 const SECTIONS: readonly { id: SectionId; icon: LucideIcon; label: string; subtitle: string }[] = [
   { id: "appearance", icon: Sun, label: "外观", subtitle: "主题与界面动效" },
@@ -1002,11 +1008,11 @@ export type DocId = "capability" | "reuse" | "nav";
 
 function AboutPanel({ onOpenDoc }: { onOpenDoc?: (doc: DocId) => void }) {
   const { resetAllSettings } = useSettings();
-  const { refresh, markSeen } = useUpdateCheck();
+  const { markSeen } = useUpdateCheck();
+  const { check, checking } = useUpdateCheckAction();
   const toast = useToast();
   const confirm = useConfirm();
   const [version, setVersion] = useState<string | null>(null);
-  const [checking, setChecking] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -1025,31 +1031,6 @@ function AboutPanel({ onOpenDoc }: { onOpenDoc?: (doc: DocId) => void }) {
   // This page is where the release the background check found is read, so the
   // title bar's marker has been seen by the time it is open.
   useEffect(() => markSeen(), [markSeen]);
-
-  const check = async () => {
-    setChecking(true);
-    try {
-      const { result } = await refresh();
-      if (result.status === "available") {
-        toast.info(`发现新版本 ${result.latestVersion}`, {
-          description: "可前往 Releases 下载",
-          action: { label: "打开 Releases", onClick: () => openLink(RELEASES_URL) },
-        });
-      } else if (result.status === "ahead") {
-        // A local build ahead of the latest release: not an update, not stale.
-        toast.info("当前版本高于最新发布版本", { description: `最新发布 ${result.latestVersion}` });
-      } else {
-        toast.success("已是最新版本");
-      }
-    } catch (error) {
-      toast.error("检查更新失败", {
-        description: String(error),
-        action: { label: "打开 Releases", onClick: () => openLink(RELEASES_URL) },
-      });
-    } finally {
-      setChecking(false);
-    }
-  };
 
   const reset = async () => {
     const confirmed = await confirm({
@@ -1144,6 +1125,8 @@ export function Settings({
   onBack,
   onOpenDoc,
   scale,
+  /** Which section to open on; the notification popover links straight to one. */
+  initialSection = "appearance",
 }: {
   onBack?: () => void;
   onOpenDoc?: (doc: DocId) => void;
@@ -1152,8 +1135,9 @@ export function Settings({
     fontSize: number;
     onChange: (next: UIScaleSetting) => void;
   };
+  initialSection?: SectionId;
 }) {
-  const [section, setSection] = useState<SectionId>("appearance");
+  const [section, setSection] = useState<SectionId>(initialSection);
 
   const current = SECTIONS.find((s) => s.id === section) ?? SECTIONS[0]!;
   // Only the selected entry is rendered, so each panel reads the settings store

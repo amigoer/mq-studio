@@ -13,17 +13,25 @@ import { pagesOf, type PageId } from "@/design/data/protocols";
 import { renderBoard } from "@/design/registry";
 import { openExternal } from "@/api/platform";
 import { useUIScale } from "@/hooks/useUIScale";
+import { useUpdateCheck, useUpdateCheckAction } from "@/hooks/useUpdateCheck";
+import { readSession, writeSession } from "@/design/data/session";
+import { UNREAD_ALERTS } from "@/design/shell/NotificationCenter";
 import { ConnectionsList } from "@/design/boards/connections/ConnectionsList";
 import { ConnectionsEmpty } from "@/design/boards/connections/ConnectionsEmpty";
 import { NewConnectionDialog } from "@/design/boards/connections/NewConnectionDialog";
-import { Settings, type DocId } from "@/design/boards/settings/Settings";
+import { Settings, type DocId, type SectionId } from "@/design/boards/settings/Settings";
 import { SplitCompare } from "@/design/boards/split/SplitCompare";
 import { CapabilityMatrix } from "@/design/boards/docs/CapabilityMatrix";
 import { ReuseStrategy } from "@/design/boards/docs/ReuseStrategy";
 import { NavModel } from "@/design/boards/docs/NavModel";
 
 /** Global views sit beside the connection tabs rather than inside one. */
-type View = { kind: "tab" } | { kind: "connections" } | { kind: "settings" } | { kind: "split" } | { kind: "doc"; doc: DocId };
+type View =
+  | { kind: "tab" }
+  | { kind: "connections" }
+  | { kind: "settings"; section?: SectionId }
+  | { kind: "split" }
+  | { kind: "doc"; doc: DocId };
 
 const DOCS: Record<DocId, () => JSX.Element> = {
   capability: CapabilityMatrix,
@@ -48,14 +56,27 @@ const openGithub = () => void openExternal(GITHUB_URL).catch(() => {});
  */
 export function DesignApp(): JSX.Element {
   const [connections, setConnections] = useState<readonly Connection[]>(CONNECTIONS);
-  const [openTabs, setOpenTabs] = useState<string[]>(DEFAULT_OPEN_TABS);
-  const [activeTab, setActiveTab] = useState<string | null>(DEFAULT_OPEN_TABS[0] ?? null);
-  const [pageByTab, setPageByTab] = useState<Record<string, PageId>>({});
-  const [view, setView] = useState<View>({ kind: "connections" });
+  // Read once: the stored session is the window's opening state, and reading it
+  // again on a later render would fight whatever the user has done since.
+  const [session] = useState(() => readSession(CONNECTIONS.map((c) => c.key)));
+  const [openTabs, setOpenTabs] = useState<string[]>(session.openTabs ?? DEFAULT_OPEN_TABS);
+  const [activeTab, setActiveTab] = useState<string | null>(
+    session.activeTab ?? session.openTabs?.[0] ?? DEFAULT_OPEN_TABS[0] ?? null,
+  );
+  const [pageByTab, setPageByTab] = useState<Record<string, PageId>>(session.pageByTab ?? {});
+  // Reopening on the connection list would restore the tabs and then hide
+  // them; a session that names a tab is one the window was last showing.
+  const [view, setView] = useState<View>(
+    session.activeTab != null ? { kind: "tab" } : { kind: "connections" },
+  );
   const [previousView, setPreviousView] = useState<View>({ kind: "tab" });
 
   // Window chrome, not per-tab state: see the note on Sidebar.
-  const [navCollapsed, setNavCollapsed] = useState(false);
+  const [navCollapsed, setNavCollapsed] = useState(session.navCollapsed ?? false);
+
+  const { unseen } = useUpdateCheck();
+  const { check: checkUpdate } = useUpdateCheckAction();
+  const [alertsRead, setAlertsRead] = useState(false);
 
   // Applied to the document, not to this tree: every board is drawn in absolute
   // px and the whole document is zoomed to the chosen size.
@@ -63,8 +84,12 @@ export function DesignApp(): JSX.Element {
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
-  const [paletteQuery, setPaletteQuery] = useState("order");
+  const [paletteQuery, setPaletteQuery] = useState("");
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+
+  useEffect(() => {
+    writeSession({ openTabs, activeTab, pageByTab, navCollapsed });
+  }, [activeTab, navCollapsed, openTabs, pageByTab]);
 
   const connection = connections.find((c) => c.key === activeTab) ?? null;
   const protocol = connection?.protocol ?? null;
@@ -158,6 +183,7 @@ export function DesignApp(): JSX.Element {
             onBack={() => setView(previousView)}
             onOpenDoc={(doc) => setView({ kind: "doc", doc })}
             scale={{ setting: scaleSetting, fontSize, onChange: setScale }}
+            initialSection={view.section}
           />
         );
       case "doc": {
@@ -193,11 +219,12 @@ export function DesignApp(): JSX.Element {
           homeActive={atHome}
           splitActive={view.kind === "split"}
           dimmed={connections.length === 0}
-          updateReady
+          updateReady={unseen}
           onHome={() => goto({ kind: "connections" })}
           onSearch={() => setPaletteOpen(true)}
-          onRefresh={() => undefined}
+          onRefresh={() => void checkUpdate()}
           onGithub={openGithub}
+          notifications={alertsRead ? 0 : UNREAD_ALERTS}
           onNotifications={() => setNotificationsOpen((open) => !open)}
           onSettings={() => goto({ kind: "settings" })}
           onSplit={
@@ -240,12 +267,28 @@ export function DesignApp(): JSX.Element {
           <CommandPalette
             open={paletteOpen}
             query={paletteQuery}
+            connections={connections}
+            protocol={protocol}
             onQueryChange={setPaletteQuery}
+            onOpenConnection={openTab}
+            onOpenPage={selectPage}
+            onNewConnection={() => {
+              goto({ kind: "connections" });
+              setDialogOpen(true);
+            }}
+            onOpenSettings={() => goto({ kind: "settings" })}
+            onCheckUpdate={() => void checkUpdate()}
             onClose={() => setPaletteOpen(false)}
           />
           <NotificationCenter
             open={notificationsOpen}
+            read={alertsRead}
             onClose={() => setNotificationsOpen(false)}
+            onMarkAllRead={() => setAlertsRead(true)}
+            onOpenAlertSettings={() => {
+              setNotificationsOpen(false);
+              goto({ kind: "settings", section: "message" });
+            }}
           />
         </>
       }

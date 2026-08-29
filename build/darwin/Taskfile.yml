@@ -48,9 +48,9 @@ tasks:
       GOOS: darwin
       CGO_ENABLED: 1
       GOARCH: '{{.ARCH | default ARCH}}'
-      CGO_CFLAGS: "-mmacosx-version-min=10.15"
-      CGO_LDFLAGS: "-mmacosx-version-min=10.15"
-      MACOSX_DEPLOYMENT_TARGET: "10.15"
+      CGO_CFLAGS: "-mmacosx-version-min=12.0"
+      CGO_LDFLAGS: "-mmacosx-version-min=12.0"
+      MACOSX_DEPLOYMENT_TARGET: "12.0"
 
   build:docker:
     summary: Cross-compiles for macOS using Docker (for Linux/Windows hosts)
@@ -149,6 +149,56 @@ tasks:
       - cp "{{.BIN_DIR}}/{{.APP_NAME}}" "{{.BIN_DIR}}/{{.BUNDLE_NAME}}.app/Contents/MacOS"
       - cp build/darwin/Info.plist "{{.BIN_DIR}}/{{.BUNDLE_NAME}}.app/Contents"
       - task: '{{if eq OS "darwin"}}codesign:adhoc{{else}}codesign:skip{{end}}'
+
+  package:dmg:
+    summary: Packages the `.app` into a distributable disk image
+    desc: |
+      Builds the drag-to-Applications disk image.
+
+      Set SIGNED=1 once the bundle carries a Developer ID signature: that drops
+      the First Run helper and switches to the shorter window layout.
+    deps:
+      - task: package
+      # icons.icns is gitignored, so a clean checkout has to generate it before
+      # it can be used as the volume icon.
+      - task: common:generate:icons
+    cmds:
+      - task: create:dmg
+        vars:
+          OUTPUT: '{{.OUTPUT}}'
+    vars:
+      DEFAULT_OUTPUT: '{{.BIN_DIR}}/{{.APP_NAME}}-{{.APP_VERSION}}-mac-{{.ARCH | default ARCH}}.dmg'
+      OUTPUT: '{{ .OUTPUT | default .DEFAULT_OUTPUT }}'
+
+  create:dmg:
+    summary: Runs dmgbuild against the already-packaged `.app`
+    internal: true
+    preconditions:
+      - sh: command -v dmgbuild > /dev/null 2>&1
+        msg: |
+          dmgbuild is required to build the disk image. Install it with:
+            pipx install dmgbuild
+          (or: python3 -m pip install --user dmgbuild)
+    cmds:
+      - |
+        set -eu
+        variant=background
+        firstrun="build/darwin/dmg/首次运行 First Run.command"
+        if [ "${SIGNED:-0}" = "1" ]; then
+          firstrun=""
+        else
+          variant=background-unsigned
+        fi
+
+        rm -f "{{.OUTPUT}}"
+        dmgbuild \
+          -s build/darwin/dmg/settings.py \
+          -D app="{{.BIN_DIR}}/{{.BUNDLE_NAME}}.app" \
+          -D volicon="build/darwin/icons.icns" \
+          -D background="build/darwin/dmg/$variant.png" \
+          -D firstrun="$firstrun" \
+          "{{.BUNDLE_NAME}}" "{{.OUTPUT}}"
+        hdiutil verify "{{.OUTPUT}}"
 
   codesign:adhoc:
     summary: Ad-hoc signs the app bundle (macOS only)

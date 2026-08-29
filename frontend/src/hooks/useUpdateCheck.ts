@@ -192,6 +192,62 @@ function useUpdateCheckState(): UpdateCheckContextValue {
   };
 }
 
+/**
+ * The 检查更新 button, shared by the title bar and the About panel. Unlike the
+ * background check, which announces a release once and stays silent otherwise,
+ * a press reports every outcome -- and marks the release as seen, because
+ * pressing the button is reading the answer.
+ */
+export function useUpdateCheckAction(): { check: () => Promise<void>; checking: boolean } {
+  const { t } = useTranslation();
+  const { refresh, markSeen } = useUpdateCheck();
+  const toast = useToast();
+  const [checking, setChecking] = useState(false);
+  // A second press while the first is in flight would report the same answer
+  // twice; the state alone cannot say so inside the callback.
+  const inFlight = useRef(false);
+
+  const check = useCallback(async () => {
+    if (inFlight.current) return;
+    inFlight.current = true;
+    setChecking(true);
+    const openReleases = {
+      label: t("settings.about.openReleases"),
+      onClick: () => void openExternal(RELEASES_URL).catch(() => {}),
+    };
+    try {
+      const { result } = await refresh();
+      if (result.status === "available") {
+        toast.info(t("settings.about.updateAvailable", { version: result.latestVersion }), {
+          description: t("settings.about.updateAvailableHint"),
+          action: openReleases,
+        });
+      } else if (result.status === "ahead") {
+        // A local build newer than the latest release: neither stale nor an update.
+        toast.info(
+          t("settings.about.aheadOfRelease", {
+            current: result.currentVersion,
+            latest: result.latestVersion,
+          }),
+        );
+      } else {
+        toast.success(t("settings.about.upToDate", { version: result.currentVersion }));
+      }
+      markSeen();
+    } catch {
+      toast.error(t("settings.about.updateCheckFailed"), {
+        description: t("settings.about.openReleasesHint"),
+        action: openReleases,
+      });
+    } finally {
+      inFlight.current = false;
+      setChecking(false);
+    }
+  }, [markSeen, refresh, t, toast]);
+
+  return { check, checking };
+}
+
 export function UpdateCheckProvider({ children }: { children: ReactNode }) {
   const value = useUpdateCheckState();
   return createElement(UpdateCheckContext.Provider, { value }, children);
