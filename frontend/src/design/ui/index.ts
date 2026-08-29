@@ -8,5 +8,7 @@ export { Sw } from "./switch";
 export { ChartBox, Bar, Placeholder, SectionLabel, KV, SettingRow, MeterRow, Check, WarnBanner } from "./misc";
 export { Sheet, SheetHeader, SheetBody, SheetFooter } from "./sheet";
 export { Dialog } from "./dialog";
+export { ConfirmProvider, useConfirm, type ConfirmRequest } from "./confirm";
+export { ToastProvider, useToast, type ToastOptions, type ToastTone } from "./toast";
 export { Menu, MenuItem, MenuSeparator } from "./menu";
 export { JsonBlock, IND, JStr, JNum, JDim, Timeline, type TraceStep } from "./json";

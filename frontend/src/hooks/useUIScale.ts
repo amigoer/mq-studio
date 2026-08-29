@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useLayoutEffect, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { isMac, onZoomCommand, setTitleBarHeight, type ZoomCommand } from "@/api/platform";
+import { useSettings } from "@/hooks/useSettings";
 import {
   autoFontSize,
-  FONT_SIZES,
+  parseUIScale,
   scaleOf,
   stepFrom,
   type FontSize,
@@ -19,7 +20,12 @@ import {
 /** Keep in step with `.tb2` in frontend/src/design/tokens.css. */
 const TITLE_BAR_HEIGHT = 40;
 
-const STORAGE_KEY = "mq-studio:ui-scale";
+/*
+ * The chosen scale lives in the settings file with everything else. This is a
+ * mirror of it: the settings arrive from Go a tick after the window opens, and
+ * the size the window opens at cannot wait for them.
+ */
+const CACHE_KEY = "mq-studio:ui-scale";
 
 const ZOOM_KEYS: Readonly<Record<string, ZoomCommand>> = {
   "+": "in",
@@ -39,14 +45,20 @@ const ZOOM_KEYS: Readonly<Record<string, ZoomCommand>> = {
 const isMacZoomIn = (event: KeyboardEvent) =>
   event.shiftKey && (event.key === "+" || event.key === "=");
 
-function loadSetting(): UIScaleSetting {
+function readCache(): UIScaleSetting {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw == null || raw === "auto") return "auto";
-    const size = Number(raw);
-    return (FONT_SIZES as readonly number[]).includes(size) ? (size as FontSize) : "auto";
+    return parseUIScale(localStorage.getItem(CACHE_KEY));
   } catch {
     return "auto";
+  }
+}
+
+function writeCache(setting: UIScaleSetting): void {
+  try {
+    localStorage.setItem(CACHE_KEY, String(setting));
+  } catch {
+    // Storage may be unavailable; the next window then opens on the default
+    // and corrects itself once the settings load.
   }
 }
 
@@ -70,8 +82,13 @@ function viewport() {
 }
 
 export function useUIScale() {
-  const [setting, setSetting] = useState<UIScaleSetting>(loadSetting);
+  const { settings, setSetting, loading } = useSettings();
   const [windowSize, setWindowSize] = useState(viewport);
+  // Until the stored settings arrive, the cache is what bootstrapUIScale has
+  // already put on screen; following it keeps the window from resizing itself
+  // on the frame the settings land.
+  const cached = useRef(readCache());
+  const setting = loading ? cached.current : settings.uiScale;
 
   useEffect(() => {
     const onResize = () => setWindowSize(viewport);
@@ -87,25 +104,41 @@ export function useUIScale() {
     apply(fontSize);
   }, [fontSize]);
 
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, String(setting));
-    } catch {
-      // Storage may be unavailable; the choice then lasts the session only.
-    }
-  }, [setting]);
+  const choose = useCallback(
+    (next: UIScaleSetting) => {
+      cached.current = next;
+      setSetting("uiScale", next);
+    },
+    [setSetting],
+  );
 
-  const zoom = useCallback((command: ZoomCommand) => {
-    if (command === "reset") {
-      setSetting("auto");
-      return;
-    }
-    setSetting((current) => {
+  // Mirrored on every change rather than only on a local one: a scale that
+  // arrived with an imported config, or was migrated from an older settings
+  // file, has to reach the cache too or the next window opens on the wrong one.
+  useEffect(() => {
+    if (loading) return;
+    writeCache(settings.uiScale);
+  }, [loading, settings.uiScale]);
+
+  // The zoom commands step from whatever is showing, which the callback cannot
+  // read from `setting` without being rebuilt - and rebuilt, it would resubscribe.
+  const current = useRef(setting);
+  current.current = setting;
+
+  const zoom = useCallback(
+    (command: ZoomCommand) => {
+      if (command === "reset") {
+        choose("auto");
+        return;
+      }
       const from =
-        current === "auto" ? autoFontSize(window.innerWidth, window.innerHeight) : current;
-      return stepFrom(from, command === "in" ? 1 : -1);
-    });
-  }, []);
+        current.current === "auto"
+          ? autoFontSize(window.innerWidth, window.innerHeight)
+          : current.current;
+      choose(stepFrom(from, command === "in" ? 1 : -1));
+    },
+    [choose],
+  );
 
   useEffect(() => onZoomCommand(zoom), [zoom]);
 
@@ -124,7 +157,7 @@ export function useUIScale() {
     return () => window.removeEventListener("keydown", onKey);
   }, [zoom]);
 
-  return { setting, fontSize, setSetting };
+  return { setting, fontSize, setSetting: choose };
 }
 
 /**
@@ -133,6 +166,6 @@ export function useUIScale() {
  */
 export function bootstrapUIScale() {
   if (typeof document === "undefined") return;
-  const setting = loadSetting();
+  const setting = readCache();
   apply(setting === "auto" ? autoFontSize(window.innerWidth, window.innerHeight) : setting);
 }

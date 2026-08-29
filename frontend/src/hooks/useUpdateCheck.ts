@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { useTranslation } from "react-i18next";
-import { toast } from "sonner";
+import { useToast } from "@/design/ui";
 import {
   checkUpdate,
   openExternal,
@@ -97,6 +97,7 @@ const UpdateCheckContext = createContext<UpdateCheckContextValue | null>(null);
 
 function useUpdateCheckState(): UpdateCheckContextValue {
   const { t } = useTranslation();
+  const toast = useToast();
   const { settings } = useSettings();
   const [state, setState] = useState<StoredState>(loadState);
   const enabled = settings.autoCheckUpdate;
@@ -174,7 +175,7 @@ function useUpdateCheckState(): UpdateCheckContextValue {
       window.clearTimeout(timeoutId);
       window.clearInterval(intervalId);
     };
-  }, [commit, enabled, refresh]);
+  }, [commit, enabled, refresh, toast]);
 
   const markSeen = useCallback(() => {
     const previous = stateRef.current;

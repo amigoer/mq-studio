@@ -14,8 +14,8 @@ func normalize(settings model.AppSettings) model.AppSettings {
 	if settings.Language != "zh" && settings.Language != "en" {
 		settings.Language = defaults.Language
 	}
-	if settings.FontSize < 12 || settings.FontSize > 18 {
-		settings.FontSize = defaults.FontSize
+	if !model.ValidUIScale(settings.UIScale) {
+		settings.UIScale = defaults.UIScale
 	}
 	if settings.CloseBehavior != model.CloseBehaviorMinimizeToTray &&
 		settings.CloseBehavior != model.CloseBehaviorQuit {

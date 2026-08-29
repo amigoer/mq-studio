@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 
 	"github.com/amigoer/mq-studio/internal/crypto"
 	"github.com/amigoer/mq-studio/internal/model"
@@ -26,7 +27,7 @@ func (s *Service) loadFromFile() error {
 		log.Printf("[SettingsService] failed to parse settings file: %v", err)
 		return nil
 	}
-	normalizeLegacyFontSize(raw)
+	migrateLegacyFontSize(raw)
 
 	fixedData, err := json.Marshal(raw)
 	if err != nil {
@@ -55,22 +56,35 @@ func (s *Service) loadFromFile() error {
 	return nil
 }
 
-func normalizeLegacyFontSize(raw map[string]json.RawMessage) {
+// migrateLegacyFontSize folds the two shapes earlier builds wrote - the
+// t-shirt sizes of the first, the 12-18 px integer of the second - into the
+// uiScale ladder. A size that is not a step on it becomes "auto" rather than
+// the nearest step: the ladder no longer offers it.
+func migrateLegacyFontSize(raw map[string]json.RawMessage) {
 	rawFontSize, ok := raw["fontSize"]
 	if !ok {
 		return
 	}
-	var legacyValue string
-	if json.Unmarshal(rawFontSize, &legacyValue) != nil {
+	delete(raw, "fontSize")
+	if _, alreadyMigrated := raw["uiScale"]; alreadyMigrated {
 		return
 	}
-	fontSizes := map[string]int{"small": 12, "medium": 14, "large": 16}
-	fontSize := 14
-	if mapped, ok := fontSizes[legacyValue]; ok {
-		fontSize = mapped
+
+	scale := model.UIScaleAuto
+	var tShirt string
+	var pixels int
+	switch {
+	case json.Unmarshal(rawFontSize, &tShirt) == nil:
+		if mapped, known := map[string]string{"small": "12", "medium": "14", "large": "16"}[tShirt]; known {
+			scale = mapped
+		}
+	case json.Unmarshal(rawFontSize, &pixels) == nil:
+		if step := strconv.Itoa(pixels); model.ValidUIScale(step) {
+			scale = step
+		}
 	}
-	raw["fontSize"], _ = json.Marshal(fontSize)
-	log.Printf("[SettingsService] converted legacy fontSize %q to %d", legacyValue, fontSize)
+	raw["uiScale"], _ = json.Marshal(scale)
+	log.Printf("[SettingsService] converted legacy fontSize %s to uiScale %q", rawFontSize, scale)
 }
 
 func marshalForDisk(settings model.AppSettings) ([]byte, error) {

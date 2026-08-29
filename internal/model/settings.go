@@ -1,6 +1,19 @@
 // Package model defines the application's data models.
 package model
 
+// UIScaleAuto sizes the interface from the window instead of pinning a step.
+const UIScaleAuto = "auto"
+
+// ValidUIScale reports whether value names a step on the interface size ladder.
+// Keep in step with FONT_SIZES in frontend/src/lib/uiScale.ts.
+func ValidUIScale(value string) bool {
+	switch value {
+	case UIScaleAuto, "12", "13", "14", "15", "16", "18", "20":
+		return true
+	}
+	return false
+}
+
 // Close behaviours for the main window.
 const (
 	// CloseBehaviorMinimizeToTray hides the window and keeps the process alive
@@ -15,7 +28,7 @@ type AppSettings struct {
 	// General
 	Theme           string `json:"theme"`           // Theme: "system" | "light" | "dark"
 	Language        string `json:"language"`        // Language: "en" | "zh"
-	FontSize        int    `json:"fontSize"`        // Font size (px): 12-18
+	UIScale         string `json:"uiScale"`         // Interface size: "auto" or a px step
 	UIFont          string `json:"uiFont"`          // UI font
 	MonospaceFont   string `json:"monospaceFont"`   // Monospace font
 	AutoConnectLast bool   `json:"autoConnectLast"` // Auto-connect to last cluster on startup
@@ -51,7 +64,7 @@ func DefaultSettings() *AppSettings {
 	return &AppSettings{
 		Theme:                 "system",
 		Language:              "zh",
-		FontSize:              14,
+		UIScale:               UIScaleAuto,
 		UIFont:                "system",
 		MonospaceFont:         "JetBrains Mono",
 		AutoConnectLast:       true,

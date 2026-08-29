@@ -10,9 +10,11 @@
  * `.side3` collapse, which the canvas drew no state for at all, `.t3.inset`,
  * which lines a full-width list table's outer columns up with the page gutter
  * rather than the canvas's own 14px cell padding, the breakpoints at the foot
- * of the file, which the canvas drew at one size only, and the elastic `.srow`
+ * of the file, which the canvas drew at one size only, the elastic `.srow`
  * label -- the settings page follows the shipped app's layout rather than
- * board 3g's single column, and its hints run long.
+ * board 3g's single column, and its hints run long -- and the two blocks that
+ * close the file: toasts, which the canvas has no transient state to draw, and
+ * the motion switch they and everything else answer to.
  */
 
 .m3 {
@@ -1017,4 +1019,48 @@ button.card3 {
 }
 button.card3:hover {
   border-color: #d4d4d8;
+}
+
+/*
+ * Toasts. Fixed to the window rather than to the shell body: what they report
+ * outlives the page that fired it, and the corner is free on every board.
+ */
+.toastw {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-end;
+  /* A stack of cards must not swallow clicks on the page behind the gaps. */
+  pointer-events: none;
+}
+.toast3 {
+  width: 340px;
+  display: flex;
+  gap: 10px;
+  padding: 12px 14px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.14);
+  pointer-events: auto;
+  animation: toast-in 0.18s ease;
+}
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+/*
+ * 界面过渡动画. useUIPrefs writes the attribute; everything that moves answers
+ * to it here rather than each rule testing for itself. Motion is dropped rather
+ * than shortened, so a transition cannot be caught mid-way.
+ */
+:root[data-animations='off'] *,
+:root[data-animations='off'] *::before,
+:root[data-animations='off'] *::after {
+  transition-duration: 0s !important;
+  animation-duration: 0s !important;
 }

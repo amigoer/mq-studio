@@ -41,6 +41,13 @@ export function autoFontSize(width: number, height: number): FontSize {
   return chosen;
 }
 
+/** Reads a stored or transported scale, falling back to `auto`. */
+export function parseUIScale(value: string | null | undefined): UIScaleSetting {
+  if (value == null || value === "auto") return "auto";
+  const size = Number(value);
+  return (FONT_SIZES as readonly number[]).includes(size) ? (size as FontSize) : "auto";
+}
+
 /** One step along the ladder, stopping at either end rather than wrapping. */
 export function stepFrom(size: FontSize, direction: 1 | -1): FontSize {
   const index = FONT_SIZES.indexOf(size);

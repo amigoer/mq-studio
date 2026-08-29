@@ -1,6 +1,7 @@
 /*
- * The design canvas is light-only, so the first paint is pinned to light
- * instead of following the OS. When dark mode comes back this reads the
- * setting again and re-enables `windowControls.setAppearance`.
+ * Loaded from index.html ahead of the bundle: the window opens on the theme the
+ * last session chose rather than flashing the default and correcting itself.
  */
-document.documentElement.classList.remove("dark");
+import { applyTheme, readCachedTheme } from "@/lib/theme";
+
+applyTheme(readCachedTheme());

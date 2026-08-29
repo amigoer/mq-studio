@@ -122,8 +122,6 @@ const DATA_PATHS: {
   },
 ];
 
-const MIN_FONT_SIZE = 12;
-const MAX_FONT_SIZE = 18;
 
 type Palette = {
   bg: string;
@@ -517,45 +515,10 @@ function FontsPanel() {
   const { t } = useTranslation();
   const { settings, setSetting } = useSettings();
 
-  const handleFontSizeChange = (delta: number) => {
-    const next = Math.max(
-      MIN_FONT_SIZE,
-      Math.min(MAX_FONT_SIZE, settings.fontSize + delta),
-    );
-    setSetting("fontSize", next);
-  };
-
   return (
     <>
       <SectionLabel first>{t("settings.fonts.fontsTypography")}</SectionLabel>
       <Card>
-        <SettingsRow
-          title={t("settings.fonts.fontSize")}
-          hint={t("settings.fonts.fontSizeHint")}
-        >
-          <Button
-            variant="outline"
-            size="icon-sm"
-            onClick={() => handleFontSizeChange(-1)}
-            disabled={settings.fontSize <= MIN_FONT_SIZE}
-          >
-            −
-          </Button>
-          <span
-            className="font-mono-design tabular-nums text-fs-13"
-            style={{ width: "3.08rem", textAlign: "center" }}
-          >
-            {settings.fontSize}px
-          </span>
-          <Button
-            variant="outline"
-            size="icon-sm"
-            onClick={() => handleFontSizeChange(1)}
-            disabled={settings.fontSize >= MAX_FONT_SIZE}
-          >
-            +
-          </Button>
-        </SettingsRow>
         <SettingsRow
           title={t("settings.fonts.uiFont")}
           hint={t("settings.fonts.uiFontHint")}
@@ -616,7 +579,7 @@ function FontsPanel() {
 
       <SectionLabel>{t("settings.fonts.preview")}</SectionLabel>
       <Card style={{ padding: 16 }}>
-        <div className="text-fs-13" style={{ fontSize: settings.fontSize }}>
+        <div className="text-fs-13">
           {t("settings.fonts.previewSample")}
         </div>
         <div

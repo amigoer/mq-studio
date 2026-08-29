@@ -16,10 +16,11 @@ import {
 import type { AppSettings } from "@/api/settings";
 import { windowControls } from "@/api/platform";
 import { setLanguage as setI18nLanguage, type SupportedLanguage } from "@/i18n";
+import { applyTheme, cacheTheme, type ThemeMode } from "@/lib/theme";
+import { parseUIScale, type UIScaleSetting } from "@/lib/uiScale";
 
-export type ThemeMode = "system" | "light" | "dark";
+export type { ThemeMode };
 export type Language = "en" | "zh";
-export type FontSize = number;
 export type Timezone = "local" | "utc";
 export type TimestampFormat = "datetime" | "ms";
 export type ProxyType = "http" | "socks5";
@@ -30,7 +31,8 @@ export type CloseBehavior = "minimizeToTray" | "quit";
 export interface FrontendSettings {
   theme: ThemeMode;
   language: Language;
-  fontSize: FontSize;
+  /** "auto" or a step on the interface size ladder; see lib/uiScale. */
+  uiScale: UIScaleSetting;
   uiFont: string;
   monospaceFont: string;
   autoConnectLast: boolean;
@@ -60,7 +62,7 @@ export interface FrontendSettings {
 const DEFAULTS: FrontendSettings = {
   theme: "system",
   language: "zh",
-  fontSize: 14,
+  uiScale: "auto",
   uiFont: "system",
   monospaceFont: "JetBrains Mono",
   autoConnectLast: true,
@@ -87,9 +89,6 @@ const DEFAULTS: FrontendSettings = {
   fetchLimit: 64,
 };
 
-const MIN_FONT_SIZE = 12;
-const MAX_FONT_SIZE = 18;
-
 // Map backend AppSettings to the frontend type
 function toFrontend(s: AppSettings): FrontendSettings {
   return {
@@ -97,10 +96,7 @@ function toFrontend(s: AppSettings): FrontendSettings {
       ? s.theme
       : DEFAULTS.theme) as ThemeMode,
     language: (s.language as Language) || DEFAULTS.language,
-    fontSize:
-      typeof s.fontSize === "number" && s.fontSize >= 12 && s.fontSize <= 18
-        ? s.fontSize
-        : DEFAULTS.fontSize,
+    uiScale: parseUIScale(s.uiScale),
     uiFont: s.uiFont || DEFAULTS.uiFont,
     monospaceFont: s.monospaceFont || DEFAULTS.monospaceFont,
     autoConnectLast: s.autoConnectLast ?? DEFAULTS.autoConnectLast,
@@ -142,9 +138,10 @@ function toBackend(s: FrontendSettings): AppSettings {
   const {
     globalAccessKeyConfigured: _accessConfigured,
     globalSecretKeyConfigured: _secretConfigured,
+    uiScale,
     ...settings
   } = s;
-  return settings as unknown as AppSettings;
+  return { ...settings, uiScale: String(uiScale) } as unknown as AppSettings;
 }
 
 type SettingsContextValue = {
@@ -170,30 +167,17 @@ const SettingsContext = createContext<SettingsContextValue | null>(null);
 const SYSTEM_FONT_STACK =
   '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif';
 
-function getSystemDark(): boolean {
-  if (typeof window === "undefined") return false;
-  return window.matchMedia("(prefers-color-scheme: dark)").matches;
-}
-
-function applyTheme(mode: ThemeMode) {
-  const dark = mode === "system" ? getSystemDark() : mode === "dark";
-  document.documentElement.classList.toggle("dark", dark);
-  // Keep native window chrome in step (avoids a white hairline under the macOS traffic lights).
-  void windowControls.setAppearance(dark).catch(() => {});
-}
-
-function applySettingsToDocument(settings: FrontendSettings) {
+/**
+ * Writes everything the document itself carries, and reports the theme that
+ * was applied. The interface size is not among them: useUIScale zooms the
+ * whole document rather than setting a size here.
+ */
+function applySettingsToDocument(settings: FrontendSettings): boolean {
   const root = document.documentElement;
 
   // Theme
-  applyTheme(settings.theme);
-
-  // Font size
-  const size = Math.max(
-    MIN_FONT_SIZE,
-    Math.min(MAX_FONT_SIZE, settings.fontSize),
-  );
-  root.style.setProperty("--app-font-size", `${size}px`);
+  const dark = applyTheme(settings.theme);
+  cacheTheme(settings.theme);
 
   // UI font
   const uiFont = settings.uiFont.trim();
@@ -213,13 +197,17 @@ function applySettingsToDocument(settings: FrontendSettings) {
   // Language
   root.lang = settings.language === "en" ? "en" : "zh-CN";
   setI18nLanguage(settings.language as SupportedLanguage);
+
+  return dark;
 }
 
 function useSettingsStore(): SettingsContextValue {
   const [settings, setSettingsState] = useState<FrontendSettings>(DEFAULTS);
   const settingsRef = useRef<FrontendSettings>(DEFAULTS);
   const [loading, setLoading] = useState(true);
-  const [effectiveDark, setEffectiveDark] = useState(() => getSystemDark());
+  // What is on screen, not what was chosen: the two differ while the design
+  // layer has no dark palette. See lib/theme.
+  const [effectiveDark, setEffectiveDark] = useState(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingSettingsRef = useRef<FrontendSettings | null>(null);
   const saveChainRef = useRef<Promise<void>>(Promise.resolve());
@@ -246,23 +234,24 @@ function useSettingsStore(): SettingsContextValue {
 
   useEffect(() => {
     settingsRef.current = settings;
-    applySettingsToDocument(settings);
-    setEffectiveDark(
-      settings.theme === "system" ? getSystemDark() : settings.theme === "dark",
-    );
+    const dark = applySettingsToDocument(settings);
+    setEffectiveDark(dark);
+    // Keep the native window chrome in step: it is what shows through as a
+    // hairline under the macOS traffic lights.
+    void windowControls.setAppearance(dark).catch(() => {});
   }, [settings]);
 
   // Listen for system theme changes (only when theme === 'system')
   useEffect(() => {
     if (settings.theme !== "system") return;
-    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    const query = window.matchMedia("(prefers-color-scheme: dark)");
     const handler = () => {
-      applyTheme("system");
-      setEffectiveDark(mq.matches);
-      void windowControls.setAppearance(mq.matches).catch(() => {});
+      const dark = applyTheme("system");
+      setEffectiveDark(dark);
+      void windowControls.setAppearance(dark).catch(() => {});
     };
-    mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
+    query.addEventListener("change", handler);
+    return () => query.removeEventListener("change", handler);
   }, [settings.theme]);
 
   const enqueueSave = useCallback((next: FrontendSettings) => {

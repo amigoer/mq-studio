@@ -467,9 +467,9 @@ export class SettingsInput {
     "language": string;
 
     /**
-     * Font size (px): 12-18
+     * Interface size: "auto" or a px step
      */
-    "fontSize": number;
+    "uiScale": string;
 
     /**
      * UI font
@@ -593,8 +593,8 @@ export class SettingsInput {
         if (!("language" in $$source)) {
             this["language"] = "";
         }
-        if (!("fontSize" in $$source)) {
-            this["fontSize"] = 0;
+        if (!("uiScale" in $$source)) {
+            this["uiScale"] = "";
         }
         if (!("uiFont" in $$source)) {
             this["uiFont"] = "";
@@ -695,9 +695,9 @@ export class SettingsView {
     "language": string;
 
     /**
-     * Font size (px): 12-18
+     * Interface size: "auto" or a px step
      */
-    "fontSize": number;
+    "uiScale": string;
 
     /**
      * UI font
@@ -822,8 +822,8 @@ export class SettingsView {
         if (!("language" in $$source)) {
             this["language"] = "";
         }
-        if (!("fontSize" in $$source)) {
-            this["fontSize"] = 0;
+        if (!("uiScale" in $$source)) {
+            this["uiScale"] = "";
         }
         if (!("uiFont" in $$source)) {
             this["uiFont"] = "";
