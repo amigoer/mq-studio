@@ -3,6 +3,7 @@ package rocketmq
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/amigoer/mq-studio/internal/model"
@@ -21,18 +22,22 @@ func (c *Conn) UpdateTopic(ctx context.Context, topicName string, brokerAddress 
 	return c.applyTopicConfig(ctx, "更新", topicName, brokerAddress, readQueue, writeQueue, permission)
 }
 
-// applyTopicConfig writes a topic configuration to one broker. The queue counts
-// are that broker's own setting, so callers must pass the value for the broker
-// they selected rather than a cluster-wide total.
+// applyTopicConfig writes a topic configuration to the brokers that should
+// hold it.
+//
+// An empty broker address means every master, which is what creating a topic
+// on a cluster normally means: a topic present on one broker of three is a
+// topic two thirds of the producers cannot reach. Naming a broker narrows it
+// to that one, which is how a per-broker queue count is changed.
+//
+// The queue counts are one broker's own setting, not a cluster-wide total, so
+// applying to every master gives each of them that many queues.
 func (c *Conn) applyTopicConfig(ctx context.Context, action string, topicName string, brokerAddress string, readQueue int, writeQueue int, permission string) error {
 
 	topicName = strings.TrimSpace(topicName)
 	brokerAddress = strings.TrimSpace(brokerAddress)
 	if topicName == "" {
 		return fmt.Errorf("%s Topic 失败: Topic 名称不能为空", action)
-	}
-	if brokerAddress == "" {
-		return fmt.Errorf("%s Topic 失败: Broker 地址不能为空，请先连接集群并选择可用 Broker", action)
 	}
 	if readQueue <= 0 {
 		readQueue = 4
@@ -48,6 +53,15 @@ func (c *Conn) applyTopicConfig(ctx context.Context, action string, topicName st
 		return fmt.Errorf("%s Topic 失败: 不支持的权限 %q", action, permission)
 	}
 
+	targets := []string{brokerAddress}
+	if brokerAddress == "" {
+		masters, err := c.masterBrokerAddrs(ctx)
+		if err != nil {
+			return fmt.Errorf("%s Topic 失败: %w", action, err)
+		}
+		targets = masters
+	}
+
 	config := admin.TopicConfig{
 		TopicName:       topicName,
 		ReadQueueNums:   readQueue,
@@ -55,13 +69,57 @@ func (c *Conn) applyTopicConfig(ctx context.Context, action string, topicName st
 		Perm:            model.PermToInt(model.TopicPerm(permission)),
 		TopicFilterType: "SINGLE_TAG",
 	}
-	err := c.execWithTimeout(timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
-		return retryClient.CreateTopic(ctx, brokerAddress, config)
-	})
-	if err != nil {
-		return fmt.Errorf("%s Topic 失败: %w", action, err)
+
+	failures := make([]string, 0)
+	for _, target := range targets {
+		callErr := c.execWithTimeout(timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
+			return retryClient.CreateTopic(ctx, target, config)
+		})
+		if callErr != nil {
+			failures = append(failures, fmt.Sprintf("%s: %v", target, callErr))
+		}
+	}
+	// A partial write is reported rather than swallowed: the topic now exists
+	// on some brokers and not others, and the caller has to know which.
+	if len(failures) > 0 {
+		return fmt.Errorf("%s Topic 时部分 Broker 失败: %s", action, strings.Join(failures, "; "))
 	}
 	return nil
+}
+
+// masterBrokerAddrs lists every master in the cluster.
+func (c *Conn) masterBrokerAddrs(ctx context.Context) ([]string, error) {
+	var clusterInfo *admin.ClusterInfo
+	err := c.execWithTimeout(timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
+		var callErr error
+		clusterInfo, callErr = retryClient.ExamineBrokerClusterInfo(ctx)
+		return callErr
+	})
+	if err != nil {
+		return nil, fmt.Errorf("获取集群信息失败: %w", err)
+	}
+
+	addresses := make([]string, 0, len(clusterInfo.BrokerAddrTable))
+	seen := make(map[string]struct{}, len(clusterInfo.BrokerAddrTable))
+	for _, brokerData := range clusterInfo.BrokerAddrTable {
+		if brokerData == nil {
+			continue
+		}
+		address := brokerData.BrokerAddrs["0"]
+		if address == "" {
+			continue
+		}
+		if _, exists := seen[address]; exists {
+			continue
+		}
+		seen[address] = struct{}{}
+		addresses = append(addresses, address)
+	}
+	if len(addresses) == 0 {
+		return nil, fmt.Errorf("未找到可用 Master Broker")
+	}
+	sort.Strings(addresses)
+	return addresses, nil
 }
 
 // DeleteTopic deletes a topic.

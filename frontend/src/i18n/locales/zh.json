@@ -1452,7 +1452,8 @@
       "lastUpdated": "{{time}} 更新",
       "refreshing": "刷新中…",
       "noMatch": "没有匹配的结果",
-      "copied": "已复制"
+      "copied": "已复制",
+      "edit": "编辑"
     },
     "notDesigned": {
       "title": "设计稿待补",
@@ -1725,7 +1726,24 @@
           "backlog": "按积压",
           "name": "按名称",
           "produce": "按生产 TPS"
-        }
+        },
+        "nameLabel": "Topic 名称",
+        "nameRequired": "请填写 Topic 名称",
+        "nameInvalid": "Topic 名称不能包含空格或 %",
+        "readQueueLabel": "读队列数",
+        "writeQueueLabel": "写队列数",
+        "permRW": "读写",
+        "permR": "只读",
+        "permW": "只写",
+        "allMasters": "所有 Master（{{count}}）",
+        "brokerHint": "默认写到全部",
+        "queueNote": "队列数是单个 Broker 的设置，不是集群总数：写到全部 Master 时每台都会得到这么多队列。",
+        "editTitle": "编辑 Topic",
+        "saved": "已保存 {{name}}",
+        "deleteTitle": "删除 Topic",
+        "deleteDesc": "将从集群中删除“{{name}}”及其队列，无法撤销。已投递的消息会一并丢失。",
+        "deleted": "已删除 {{name}}",
+        "deleteFailed": "删除失败"
       }
     },
     "consumers": {

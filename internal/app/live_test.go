@@ -244,3 +244,71 @@ func TestLiveSendThenQuery(t *testing.T) {
 		t.Fatalf("track: %v", err)
 	}
 }
+
+// The topics board's write path: create on every master, read the config back,
+// change it, then delete.
+func TestLiveTopicLifecycle(t *testing.T) {
+	connections, topics, registry := liveStack(t)
+	ctx := context.Background()
+
+	profile, err := connections.AddConnection(liveProfileInput("topics"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := connections.Connect(profile.ID); err != nil {
+		t.Fatalf("connect: %v", err)
+	}
+	conn, _ := registry.Get(profile.ID)
+
+	const name = "MQ_STUDIO_E2E_LIFECYCLE"
+	ref := model.DestinationRef{Name: name}
+	admin := conn.(driver.DestinationAdmin)
+	t.Cleanup(func() { _ = admin.RemoveDestination(context.Background(), ref) })
+
+	// No broker named: every master should get it.
+	spec := model.DestinationSpec{
+		Ref: ref,
+		Attributes: map[string]string{
+			rocketmq.AttrReadQueue:  "2",
+			rocketmq.AttrWriteQueue: "2",
+			rocketmq.AttrPerm:       string(model.PermRW),
+		},
+	}
+	if err := admin.CreateDestination(ctx, spec); err != nil {
+		t.Fatalf("create: %v", err)
+	}
+
+	created, err := topics.Detail(ctx, profile.ID, ref)
+	if err != nil {
+		t.Fatalf("detail after create: %v", err)
+	}
+	if got := created.Attributes[rocketmq.AttrWriteQueue]; got != "2" {
+		t.Fatalf("writeQueue = %q, want 2", got)
+	}
+
+	spec.Attributes[rocketmq.AttrReadQueue] = "4"
+	spec.Attributes[rocketmq.AttrWriteQueue] = "4"
+	if err := admin.UpdateDestination(ctx, spec); err != nil {
+		t.Fatalf("update: %v", err)
+	}
+	updated, err := topics.Detail(ctx, profile.ID, ref)
+	if err != nil {
+		t.Fatalf("detail after update: %v", err)
+	}
+	if got := updated.Attributes[rocketmq.AttrWriteQueue]; got != "4" {
+		t.Fatalf("writeQueue after update = %q, want 4", got)
+	}
+
+	if err := admin.RemoveDestination(ctx, ref); err != nil {
+		t.Fatalf("remove: %v", err)
+	}
+	listed, err := topics.List(ctx, profile.ID, model.DestinationFilter{IncludeInternal: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, one := range listed {
+		if one.Ref.Name == name {
+			t.Fatal("the deleted topic is still listed")
+		}
+	}
+}

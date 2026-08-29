@@ -41,6 +41,7 @@ beforeAll(async () => {
     reuse,
     split,
     settings,
+    ui,
   ] = await Promise.all([
     import("react-dom/server"),
     import("@/design/data/protocols"),
@@ -50,12 +51,17 @@ beforeAll(async () => {
     import("@/design/boards/docs/ReuseStrategy"),
     import("@/design/boards/split/SplitCompare"),
     import("@/hooks/useSettings"),
+    import("@/design/ui"),
   ]);
 
   const docs = [capability.CapabilityMatrix, nav.NavModel, reuse.ReuseStrategy, split.SplitCompare];
 
   const render = (node: React.ReactNode) =>
-    renderToStaticMarkup(<settings.SettingsProvider>{node}</settings.SettingsProvider>);
+    renderToStaticMarkup(
+      <ui.ConfirmProvider>
+        <settings.SettingsProvider>{node}</settings.SettingsProvider>
+      </ui.ConfirmProvider>,
+    );
 
   everyBoard = () => {
     const out: Board[] = [];

@@ -28,10 +28,15 @@ import {
 } from "@/design/ui";
 import { BoardState, Notice, isBlocked } from "@/design/boards/BoardState";
 import { useBrokerData } from "@/hooks/useBrokerData";
+import { useConnectionScope } from "@/mq/ConnectionScope";
+import { useConfirm, useToast } from "@/design/ui";
+import { TopicDialog, type TopicForm } from "./TopicDialog";
 import * as topicApi from "@/api/topic";
 import type { Destination } from "@/api/models";
+import { formatErrorMessage } from "@/lib/utils";
 import {
   UNKNOWN_METRIC,
+  cluster,
   consumerGroups,
   messageType,
   perm,
@@ -65,6 +70,10 @@ function isInternal(name: string): boolean {
  */
 export function TopicsRocketMQ() {
   const { t } = useTranslation();
+  const { id: connID, online } = useConnectionScope();
+  const toast = useToast();
+  const confirm = useConfirm();
+  const [dialog, setDialog] = useState<{ editing: string | null } | null>(null);
   const [showSystem, setShowSystem] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
   const [tab, setTab] = useState<string>(SHEET_TABS[0]);
@@ -92,6 +101,43 @@ export function TopicsRocketMQ() {
   }, [query, sort, topics]);
 
   const current = rows.find((topic) => topicName(topic) === selected);
+  const editing =
+    dialog?.editing != null ? topics.find((topic) => topicName(topic) === dialog.editing) : undefined;
+
+  const submit = async (form: TopicForm) => {
+    if (dialog?.editing != null) {
+      await topicApi.updateTopic(
+        connID, form.topic, form.brokerAddr, form.readQueue, form.writeQueue, form.perm,
+      );
+    } else {
+      await topicApi.createTopic(
+        connID, form.topic, form.brokerAddr, form.readQueue, form.writeQueue, form.perm,
+      );
+    }
+    toast.success(t("board.topics.rocketmq.saved", { name: form.topic }));
+    await state.refresh();
+  };
+
+  const remove = async (topic: Destination) => {
+    const name = topicName(topic);
+    const confirmed = await confirm({
+      title: t("board.topics.rocketmq.deleteTitle"),
+      description: t("board.topics.rocketmq.deleteDesc", { name }),
+      confirmLabel: t("board.common.delete"),
+      danger: true,
+    });
+    if (!confirmed) return;
+    try {
+      await topicApi.deleteTopic(connID, name, cluster(topic));
+      toast.success(t("board.topics.rocketmq.deleted", { name }));
+      setSelected(null);
+      await state.refresh();
+    } catch (failure) {
+      toast.error(t("board.topics.rocketmq.deleteFailed"), {
+        description: formatErrorMessage(failure),
+      });
+    }
+  };
 
   return (
     <Page>
@@ -99,10 +145,15 @@ export function TopicsRocketMQ() {
         title="Topic"
         subtitle={t("board.topics.rocketmq.liveSubtitle", { count: topics.length })}
         actions={
-          <Btn disabled={state.refreshing || !state.online} onClick={() => void state.refresh()}>
-            {state.refreshing && <RefreshCw size={12} className="mqs-turning" aria-hidden />}
-            {t("board.common.refresh")}
-          </Btn>
+          <>
+            <Btn disabled={state.refreshing || !state.online} onClick={() => void state.refresh()}>
+              {state.refreshing && <RefreshCw size={12} className="mqs-turning" aria-hidden />}
+              {t("board.common.refresh")}
+            </Btn>
+            <Btn variant="primary" disabled={!online} onClick={() => setDialog({ editing: null })}>
+              {t("board.common.newTopic")}
+            </Btn>
+          </>
         }
       />
       <Toolbar>
@@ -202,11 +253,20 @@ export function TopicsRocketMQ() {
               topic={current}
               tab={tab}
               onTabChange={setTab}
+              onEdit={() => setDialog({ editing: topicName(current) })}
+              onDelete={() => void remove(current)}
               onClose={() => setSelected(null)}
             />
           )}
         </ListArea>
       )}
+
+      <TopicDialog
+        open={dialog != null}
+        editing={editing}
+        onClose={() => setDialog(null)}
+        onSubmit={submit}
+      />
     </Page>
   );
 }
@@ -223,11 +283,15 @@ function TopicSheet({
   topic,
   tab,
   onTabChange,
+  onEdit,
+  onDelete,
   onClose,
 }: {
   topic: Destination;
   tab: string;
   onTabChange: (tab: string) => void;
+  onEdit: () => void;
+  onDelete: () => void;
   onClose: () => void;
 }) {
   const { t } = useTranslation();
@@ -333,7 +397,11 @@ function TopicSheet({
         )}
       </SheetBody>
       <SheetFooter>
+        <Btn onClick={onEdit}>{t("board.common.edit")}</Btn>
         <span style={{ flex: 1 }} />
+        <Btn variant="danger" onClick={onDelete}>
+          {t("board.common.delete")}
+        </Btn>
       </SheetFooter>
     </Sheet>
   );

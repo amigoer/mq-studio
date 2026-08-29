@@ -1452,7 +1452,8 @@
       "lastUpdated": "Updated {{time}}",
       "refreshing": "Refreshing…",
       "noMatch": "Nothing matches the filter",
-      "copied": "Copied"
+      "copied": "Copied",
+      "edit": "Edit"
     },
     "notDesigned": {
       "title": "Not yet designed",
@@ -1725,7 +1726,24 @@
           "backlog": "By backlog",
           "name": "By name",
           "produce": "By produce TPS"
-        }
+        },
+        "nameLabel": "Topic name",
+        "nameRequired": "Enter a topic name",
+        "nameInvalid": "A topic name cannot contain spaces or %",
+        "readQueueLabel": "Read queues",
+        "writeQueueLabel": "Write queues",
+        "permRW": "Read/write",
+        "permR": "Read only",
+        "permW": "Write only",
+        "allMasters": "All masters ({{count}})",
+        "brokerHint": "all by default",
+        "queueNote": "The queue count is one broker’s own setting, not a cluster total: writing to every master gives each of them that many queues.",
+        "editTitle": "Edit topic",
+        "saved": "Saved {{name}}",
+        "deleteTitle": "Delete topic",
+        "deleteDesc": "This removes “{{name}}” and its queues from the cluster and cannot be undone. Messages already stored in it are lost.",
+        "deleted": "Deleted {{name}}",
+        "deleteFailed": "Could not delete"
       }
     },
     "consumers": {
