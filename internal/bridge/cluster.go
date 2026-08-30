@@ -52,3 +52,33 @@ func (s *ClusterService) BrokerDetail(connID int, brokerAddr string) (*model.Nod
 func (s *ClusterService) NodeConfig(connID int, brokerAddr string) (map[string]string, error) {
 	return s.service.NodeConfig(context.Background(), connID, brokerAddr)
 }
+
+// MaintenanceTasks lists the housekeeping jobs a node can be asked to run,
+// and which of them destroy message data.
+//
+// The renderer offers only what this returns, so a task cannot be triggered by
+// name from the frontend without appearing here first.
+func (s *ClusterService) MaintenanceTasks() []MaintenanceTaskView {
+	tasks := model.KnownMaintenanceTasks()
+	views := make([]MaintenanceTaskView, 0, len(tasks))
+	for _, task := range tasks {
+		views = append(views, MaintenanceTaskView{
+			Task:        string(task),
+			Destructive: task.Destructive(),
+		})
+	}
+	return views
+}
+
+// MaintenanceTaskView is one offerable housekeeping job.
+type MaintenanceTaskView struct {
+	Task string `json:"task"`
+	// Destructive marks a task that removes message data rather than only
+	// reclaiming what is already unreachable, so the UI can confirm it harder.
+	Destructive bool `json:"destructive"`
+}
+
+// RunMaintenance asks one broker to run a housekeeping job now.
+func (s *ClusterService) RunMaintenance(connID int, brokerAddr string, task string) error {
+	return s.service.RunMaintenance(context.Background(), connID, brokerAddr, model.MaintenanceTask(task))
+}

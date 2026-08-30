@@ -332,6 +332,39 @@ export class DriverInfo {
 }
 
 /**
+ * MaintenanceTaskView is one offerable housekeeping job.
+ */
+export class MaintenanceTaskView {
+    "task": string;
+
+    /**
+     * Destructive marks a task that removes message data rather than only
+     * reclaiming what is already unreachable, so the UI can confirm it harder.
+     */
+    "destructive": boolean;
+
+    /** Creates a new MaintenanceTaskView instance. */
+    constructor($$source: Partial<MaintenanceTaskView> = {}) {
+        if (!("task" in $$source)) {
+            this["task"] = "";
+        }
+        if (!("destructive" in $$source)) {
+            this["destructive"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new MaintenanceTaskView instance from a string or object.
+     */
+    static createFrom($$source: any = {}): MaintenanceTaskView {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new MaintenanceTaskView($$parsedSource as Partial<MaintenanceTaskView>);
+    }
+}
+
+/**
  * MessageQuery carries the message search form.
  */
 export class MessageQuery {

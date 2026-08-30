@@ -71,3 +71,42 @@ type ClusterOverview struct {
 	Subscriptions int    `json:"subscriptions"`
 	AvgDiskUsage  int    `json:"avgDiskUsage"` // percent; UnknownMetric when not reported
 }
+
+// MaintenanceTask is a housekeeping job a node can be asked to run now.
+//
+// The set is closed rather than a free-form command string: these reclaim disk
+// and cannot be undone, so what the UI can trigger has to be enumerable and
+// reviewable, not whatever a caller types.
+type MaintenanceTask string
+
+const (
+	// TaskCleanExpiredQueues drops consume queues whose messages have already
+	// aged out of the log. Safe: it removes only what is already unreadable.
+	TaskCleanExpiredQueues MaintenanceTask = "cleanExpiredQueues"
+
+	// TaskCleanUnusedTopics drops queue files for topics no longer in the
+	// route table. A topic deleted moments ago may still be in use by a
+	// producer that has not refreshed its route.
+	TaskCleanUnusedTopics MaintenanceTask = "cleanUnusedTopics"
+
+	// TaskDeleteExpiredLogs forces the commit log retention sweep to run now
+	// instead of at its scheduled hour. This is the destructive one: it
+	// deletes message data that is past retention but may still be within
+	// what someone expected to be able to replay.
+	TaskDeleteExpiredLogs MaintenanceTask = "deleteExpiredLogs"
+)
+
+// Destructive reports whether a task removes message data rather than only
+// reclaiming what is already unreachable. The UI confirms those differently.
+func (t MaintenanceTask) Destructive() bool {
+	return t == TaskDeleteExpiredLogs
+}
+
+// KnownMaintenanceTasks lists every task, for a UI that offers them.
+func KnownMaintenanceTasks() []MaintenanceTask {
+	return []MaintenanceTask{
+		TaskCleanExpiredQueues,
+		TaskCleanUnusedTopics,
+		TaskDeleteExpiredLogs,
+	}
+}

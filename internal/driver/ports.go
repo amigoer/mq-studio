@@ -131,6 +131,15 @@ type NodeConfig interface {
 	NodeConfig(ctx context.Context, address string) (map[string]string, error)
 }
 
+// NodeMaintenance runs a node's housekeeping on demand.
+//
+// Scoped to one node rather than a cluster: these reclaim disk, and an
+// operator dealing with one broker that is full should not have to run it
+// everywhere to fix that one.
+type NodeMaintenance interface {
+	RunMaintenance(ctx context.Context, address string, task model.MaintenanceTask) error
+}
+
 // AccessAdmin manages broker access control.
 type AccessAdmin interface {
 	AccessEnabled(ctx context.Context) (bool, error)

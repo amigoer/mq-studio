@@ -914,3 +914,43 @@ func startLiveProducer(t *testing.T, group string) func() {
 	}
 	return func() { _ = sender.Shutdown() }
 }
+
+// Every housekeeping task a node can be asked to run.
+//
+// These are safe to run on the E2E broker: each is something it does on its
+// own schedule anyway, and the store holds only what these tests published.
+func TestLiveNodeMaintenance(t *testing.T) {
+	connections, _, registry := liveStack(t)
+	ctx := context.Background()
+
+	profile, err := connections.AddConnection(liveProfileInput("maintenance"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := connections.Connect(profile.ID); err != nil {
+		t.Fatalf("connect: %v", err)
+	}
+	conn, _ := registry.Get(profile.ID)
+
+	nodes, err := conn.(driver.ClusterAdmin).ListNodes(ctx)
+	if err != nil || len(nodes) == 0 {
+		t.Fatalf("list nodes: %v (%d nodes)", err, len(nodes))
+	}
+	address := nodes[0].Address
+	maintenance := conn.(driver.NodeMaintenance)
+
+	for _, task := range model.KnownMaintenanceTasks() {
+		if err := maintenance.RunMaintenance(ctx, address, task); err != nil {
+			t.Errorf("%s: %v", task, err)
+		}
+	}
+
+	// A task outside the set must be refused rather than passed through.
+	if err := maintenance.RunMaintenance(ctx, address, model.MaintenanceTask("rm -rf")); err == nil {
+		t.Error("an unknown maintenance task was accepted")
+	}
+	// So must an empty address, before anything reaches a broker.
+	if err := maintenance.RunMaintenance(ctx, "", model.TaskCleanExpiredQueues); err == nil {
+		t.Error("an empty broker address was accepted")
+	}
+}

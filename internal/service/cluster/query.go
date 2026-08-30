@@ -3,6 +3,7 @@ package cluster
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/amigoer/mq-studio/internal/driver"
 	"github.com/amigoer/mq-studio/internal/model"
@@ -128,4 +129,37 @@ func (s *Service) NodeConfig(ctx context.Context, connID int, address string) (m
 	ctx, cancel := s.withTimeout(ctx)
 	defer cancel()
 	return api.NodeConfig(ctx, address)
+}
+
+// RunMaintenance asks one node to run a housekeeping task now.
+//
+// The task is validated here rather than in the driver so an unknown one is
+// refused before any connection is touched: these reclaim disk and are not
+// undoable, and a typo should not reach a broker.
+func (s *Service) RunMaintenance(ctx context.Context, connID int, address string, task model.MaintenanceTask) error {
+	known := false
+	for _, candidate := range model.KnownMaintenanceTasks() {
+		if candidate == task {
+			known = true
+			break
+		}
+	}
+	if !known {
+		return fmt.Errorf("unknown maintenance task: %q", task)
+	}
+
+	conn, err := s.conns(connID)
+	if err != nil {
+		return err
+	}
+	if !conn.Capabilities().Has(model.CapNodeMaintenance) {
+		return driver.Unsupported(conn, model.CapNodeMaintenance)
+	}
+	api, ok := conn.(driver.NodeMaintenance)
+	if !ok {
+		return driver.Unsupported(conn, model.CapNodeMaintenance)
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.RunMaintenance(ctx, address, task)
 }

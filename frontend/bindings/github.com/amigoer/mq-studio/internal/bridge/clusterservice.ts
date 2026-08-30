@@ -50,13 +50,33 @@ export function Info(connID: number): $CancellablePromise<$models.ClusterView | 
 }
 
 /**
+ * MaintenanceTasks lists the housekeeping jobs a node can be asked to run,
+ * and which of them destroy message data.
+ * 
+ * The renderer offers only what this returns, so a task cannot be triggered by
+ * name from the frontend without appearing here first.
+ */
+export function MaintenanceTasks(): $CancellablePromise<$models.MaintenanceTaskView[]> {
+    return $Call.ByID(2592029318).then(($result: any) => {
+        return $$createType6($result);
+    });
+}
+
+/**
  * NodeConfig returns one broker's effective settings, as the broker reports
  * them rather than as its config file reads.
  */
 export function NodeConfig(connID: number, brokerAddr: string): $CancellablePromise<{ [_ in string]?: string }> {
     return $Call.ByID(2436534115, connID, brokerAddr).then(($result: any) => {
-        return $$createType5($result);
+        return $$createType7($result);
     });
+}
+
+/**
+ * RunMaintenance asks one broker to run a housekeeping job now.
+ */
+export function RunMaintenance(connID: number, brokerAddr: string, task: string): $CancellablePromise<void> {
+    return $Call.ByID(2604298185, connID, brokerAddr, task);
 }
 
 /**
@@ -64,7 +84,7 @@ export function NodeConfig(connID: number, brokerAddr: string): $CancellableProm
  */
 export function Summary(connID: number): $CancellablePromise<model$0.ClusterSummary | null> {
     return $Call.ByID(4155074039, connID).then(($result: any) => {
-        return $$createType7($result);
+        return $$createType9($result);
     });
 }
 
@@ -74,6 +94,8 @@ const $$createType1 = $Create.Nullable($$createType0);
 const $$createType2 = $Create.Array($$createType1);
 const $$createType3 = $models.ClusterView.createFrom;
 const $$createType4 = $Create.Nullable($$createType3);
-const $$createType5 = $Create.Map($Create.Any, $Create.Any);
-const $$createType6 = model$0.ClusterSummary.createFrom;
-const $$createType7 = $Create.Nullable($$createType6);
+const $$createType5 = $models.MaintenanceTaskView.createFrom;
+const $$createType6 = $Create.Array($$createType5);
+const $$createType7 = $Create.Map($Create.Any, $Create.Any);
+const $$createType8 = model$0.ClusterSummary.createFrom;
+const $$createType9 = $Create.Nullable($$createType8);

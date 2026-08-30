@@ -246,6 +246,12 @@ export enum Capability {
      * actually running with, which is not always what its config file says.
      */
     CapNodeConfig = "cluster.nodeConfig",
+
+    /**
+     * CapNodeMaintenance is running a broker's own housekeeping on demand -
+     * reclaiming space the broker would otherwise get to on its own schedule.
+     */
+    CapNodeMaintenance = "cluster.nodeMaintenance",
     CapClusterMetrics = "cluster.metrics",
     CapAccessControl = "access.control",
     CapRouting = "routing.exchanges",

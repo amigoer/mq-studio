@@ -37,6 +37,7 @@ export {
     ConnectionView,
     ConsumerInput,
     DriverInfo,
+    MaintenanceTaskView,
     MessageQuery,
     ResendInput,
     SendInput,
