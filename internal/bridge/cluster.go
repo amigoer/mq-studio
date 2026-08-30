@@ -82,3 +82,8 @@ type MaintenanceTaskView struct {
 func (s *ClusterService) RunMaintenance(connID int, brokerAddr string, task string) error {
 	return s.service.RunMaintenance(context.Background(), connID, brokerAddr, model.MaintenanceTask(task))
 }
+
+// DirectoryConfig returns the name servers' effective settings.
+func (s *ClusterService) DirectoryConfig(connID int) (map[string]string, error) {
+	return s.service.DirectoryConfig(context.Background(), connID)
+}

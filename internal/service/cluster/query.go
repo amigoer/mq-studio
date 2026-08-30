@@ -122,7 +122,7 @@ func (s *Service) NodeConfig(ctx context.Context, connID int, address string) (m
 	if !conn.Capabilities().Has(model.CapNodeConfig) {
 		return nil, driver.Unsupported(conn, model.CapNodeConfig)
 	}
-	api, ok := conn.(driver.NodeConfig)
+	api, ok := conn.(driver.ConfigInspector)
 	if !ok {
 		return nil, driver.Unsupported(conn, model.CapNodeConfig)
 	}
@@ -162,4 +162,23 @@ func (s *Service) RunMaintenance(ctx context.Context, connID int, address string
 	ctx, cancel := s.withTimeout(ctx)
 	defer cancel()
 	return api.RunMaintenance(ctx, address, task)
+}
+
+// DirectoryConfig returns the effective settings of the cluster's discovery
+// tier - the name servers, for RocketMQ.
+func (s *Service) DirectoryConfig(ctx context.Context, connID int) (map[string]string, error) {
+	conn, err := s.conns(connID)
+	if err != nil {
+		return nil, err
+	}
+	if !conn.Capabilities().Has(model.CapNodeConfig) {
+		return nil, driver.Unsupported(conn, model.CapNodeConfig)
+	}
+	api, ok := conn.(driver.ConfigInspector)
+	if !ok {
+		return nil, driver.Unsupported(conn, model.CapNodeConfig)
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.DirectoryConfig(ctx)
 }

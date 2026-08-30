@@ -127,17 +127,24 @@ type ClusterAdmin interface {
 	ClusterOverview(ctx context.Context) (*model.ClusterOverview, error)
 }
 
-// NodeConfig reads one node's effective settings.
+// ConfigInspector reads the effective settings of the things a cluster is made
+// of - what they are actually running with, which is not always what their
+// config files say.
 //
 // Separate from ClusterAdmin because it answers a different question at a
-// different cost: the topology is one request for the whole cluster, this is
-// one request per node and returns a few hundred keys.
+// different cost: the topology is one request for the whole cluster, these are
+// one request each and return a few hundred keys.
 //
-// The result is a flat map because that is what it is - a settings document,
-// not a shape any driver should pretend to normalise. What the keys mean
-// differs per family and the page renders them as given.
-type NodeConfig interface {
+// The results are flat maps because that is what they are - settings
+// documents, not a shape any driver should pretend to normalise. What the keys
+// mean differs per family and the page renders them as given.
+type ConfigInspector interface {
 	NodeConfig(ctx context.Context, address string) (map[string]string, error)
+
+	// DirectoryConfig is the settings of whatever the family uses for
+	// discovery - a RocketMQ name server, a Kafka controller. Families with no
+	// separate discovery tier return an empty map rather than an error.
+	DirectoryConfig(ctx context.Context) (map[string]string, error)
 }
 
 // NodeMaintenance runs a node's housekeeping on demand.

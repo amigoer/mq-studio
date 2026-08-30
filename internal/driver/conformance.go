@@ -28,7 +28,7 @@ func backings() []capabilityBacking {
 	publisher := func(c Conn) bool { _, ok := c.(MessagePublisher); return ok }
 	producers := func(c Conn) bool { _, ok := c.(ProducerInspector); return ok }
 	cluster := func(c Conn) bool { _, ok := c.(ClusterAdmin); return ok }
-	nodeConfig := func(c Conn) bool { _, ok := c.(NodeConfig); return ok }
+	nodeConfig := func(c Conn) bool { _, ok := c.(ConfigInspector); return ok }
 	maintenance := func(c Conn) bool { _, ok := c.(NodeMaintenance); return ok }
 	access := func(c Conn) bool { _, ok := c.(AccessAdmin); return ok }
 	routing := func(c Conn) bool { _, ok := c.(RoutingAdmin); return ok }
@@ -60,7 +60,7 @@ func backings() []capabilityBacking {
 
 		{model.CapClusterTopology, "ClusterAdmin", cluster},
 		{model.CapClusterMetrics, "ClusterAdmin", cluster},
-		{model.CapNodeConfig, "NodeConfig", nodeConfig},
+		{model.CapNodeConfig, "ConfigInspector", nodeConfig},
 		{model.CapNodeMaintenance, "NodeMaintenance", maintenance},
 		{model.CapAccessControl, "AccessAdmin", access},
 		{model.CapRouting, "RoutingAdmin", routing},

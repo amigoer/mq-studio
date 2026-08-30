@@ -45,8 +45,9 @@ const (
 	CapDelayedDelivery Capability = "message.delayedDelivery"
 
 	CapClusterTopology Capability = "cluster.topology"
-	// CapNodeConfig is reading one node's effective settings - what it is
-	// actually running with, which is not always what its config file says.
+	// CapNodeConfig is reading the effective settings of a node or of the
+	// cluster's discovery tier - what they are actually running with, which is
+	// not always what their config files say.
 	CapNodeConfig Capability = "cluster.nodeConfig"
 	// CapNodeMaintenance is running a broker's own housekeeping on demand -
 	// reclaiming space the broker would otherwise get to on its own schedule.

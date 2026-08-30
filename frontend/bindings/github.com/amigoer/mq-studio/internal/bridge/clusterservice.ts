@@ -41,11 +41,20 @@ export function Brokers(connID: number): $CancellablePromise<(model$0.Node | nul
 }
 
 /**
+ * DirectoryConfig returns the name servers' effective settings.
+ */
+export function DirectoryConfig(connID: number): $CancellablePromise<{ [_ in string]?: string }> {
+    return $Call.ByID(855689906, connID).then(($result: any) => {
+        return $$createType3($result);
+    });
+}
+
+/**
  * Info returns the full cluster overview.
  */
 export function Info(connID: number): $CancellablePromise<$models.ClusterView | null> {
     return $Call.ByID(362678625, connID).then(($result: any) => {
-        return $$createType4($result);
+        return $$createType5($result);
     });
 }
 
@@ -58,7 +67,7 @@ export function Info(connID: number): $CancellablePromise<$models.ClusterView | 
  */
 export function MaintenanceTasks(): $CancellablePromise<$models.MaintenanceTaskView[]> {
     return $Call.ByID(2592029318).then(($result: any) => {
-        return $$createType6($result);
+        return $$createType7($result);
     });
 }
 
@@ -68,7 +77,7 @@ export function MaintenanceTasks(): $CancellablePromise<$models.MaintenanceTaskV
  */
 export function NodeConfig(connID: number, brokerAddr: string): $CancellablePromise<{ [_ in string]?: string }> {
     return $Call.ByID(2436534115, connID, brokerAddr).then(($result: any) => {
-        return $$createType7($result);
+        return $$createType3($result);
     });
 }
 
@@ -92,10 +101,10 @@ export function Summary(connID: number): $CancellablePromise<model$0.ClusterSumm
 const $$createType0 = model$0.Node.createFrom;
 const $$createType1 = $Create.Nullable($$createType0);
 const $$createType2 = $Create.Array($$createType1);
-const $$createType3 = $models.ClusterView.createFrom;
-const $$createType4 = $Create.Nullable($$createType3);
-const $$createType5 = $models.MaintenanceTaskView.createFrom;
-const $$createType6 = $Create.Array($$createType5);
-const $$createType7 = $Create.Map($Create.Any, $Create.Any);
+const $$createType3 = $Create.Map($Create.Any, $Create.Any);
+const $$createType4 = $models.ClusterView.createFrom;
+const $$createType5 = $Create.Nullable($$createType4);
+const $$createType6 = $models.MaintenanceTaskView.createFrom;
+const $$createType7 = $Create.Array($$createType6);
 const $$createType8 = model$0.ClusterSummary.createFrom;
 const $$createType9 = $Create.Nullable($$createType8);

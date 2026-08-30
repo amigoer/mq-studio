@@ -816,7 +816,8 @@ func TestLiveNodeConfig(t *testing.T) {
 		t.Fatalf("list nodes: %v (%d nodes)", err, len(nodes))
 	}
 
-	config, err := conn.(driver.NodeConfig).NodeConfig(ctx, nodes[0].Address)
+	inspector := conn.(driver.ConfigInspector)
+	config, err := inspector.NodeConfig(ctx, nodes[0].Address)
 	if err != nil {
 		t.Fatalf("node config: %v", err)
 	}
@@ -832,6 +833,19 @@ func TestLiveNodeConfig(t *testing.T) {
 		t.Error("the unparsed document leaked through as a key")
 	}
 	t.Logf("%s reports %d settings", nodes[0].Address, len(config))
+
+	// The discovery tier answers separately, and through the same parser.
+	directory, err := inspector.DirectoryConfig(ctx)
+	if err != nil {
+		t.Fatalf("directory config: %v", err)
+	}
+	if len(directory) < 5 {
+		t.Fatalf("name server config returned %d keys, want a parsed document", len(directory))
+	}
+	if _, leaked := directory["raw"]; leaked {
+		t.Error("the unparsed name server document leaked through as a key")
+	}
+	t.Logf("name servers report %d settings", len(directory))
 }
 
 // Who is currently publishing.

@@ -85,3 +85,21 @@ func (c *Conn) NodeConfig(ctx context.Context, address string) (map[string]strin
 	}
 	return brokerConfig(returned), nil
 }
+
+// DirectoryConfig returns the name servers' effective settings.
+//
+// One answer for the tier rather than one per address: the library asks
+// whichever name server it is connected to, and a cluster whose name servers
+// disagree has a bigger problem than this page can show.
+func (c *Conn) DirectoryConfig(ctx context.Context) (map[string]string, error) {
+	var returned map[string]string
+	err := c.execWithTimeout(timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
+		var callErr error
+		returned, callErr = retryClient.GetNameServerConfig(ctx)
+		return callErr
+	})
+	if err != nil {
+		return nil, fmt.Errorf("获取 NameServer 配置失败: %w", err)
+	}
+	return brokerConfig(returned), nil
+}
