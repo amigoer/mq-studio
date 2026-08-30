@@ -36,6 +36,7 @@ import { copyText } from "@/api/platform";
 import * as messageApi from "@/api/message";
 import * as topicApi from "@/api/topic";
 import { topicName } from "@/mq/rocketmq/destinations";
+import { ReplayDialog } from "./ReplayDialog";
 import type { MessageItem } from "@/api/models";
 import { formatErrorMessage } from "@/lib/utils";
 
@@ -246,6 +247,7 @@ function MessageSheet({
 }) {
   const { t } = useTranslation();
   const toast = useToast();
+  const [replaying, setReplaying] = useState(false);
 
   // The trace is one request per message, so it is fetched when a message is
   // opened rather than for every row in the result.
@@ -271,10 +273,20 @@ function MessageSheet({
         <b className="text-base font-semibold">{t("board.common.messageDetail")}</b>
         <ProtoBadge protocol="rocketmq" label="RMQ" />
         <span className="flex-1" />
+        <Button variant="outline" size="sm" onClick={() => setReplaying(true)}>
+          {t("board.messages.rocketmq.replay.action")}
+        </Button>
         <Button variant="outline" size="sm" onClick={() => copy(message.body)}>
           {t("board.common.export")}
         </Button>
       </div>
+
+      <ReplayDialog
+        open={replaying}
+        topic={topic}
+        messageId={message.messageId}
+        onClose={() => setReplaying(false)}
+      />
 
       <DetailPanelBody>
         <KV

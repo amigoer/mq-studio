@@ -38,7 +38,9 @@
     "connectFirst": "请先连接集群",
     "goToConnections": "前往连接管理",
     "docs": "文档",
-    "dismiss": "关闭通知"
+    "dismiss": "关闭通知",
+    "yes": "是",
+    "no": "否"
   },
   "nav": {
     "consumers": "消费者组"
@@ -1614,6 +1616,21 @@
           "normal": "正常",
           "retry": "重试中",
           "dlq": "死信"
+        },
+        "replay": {
+          "action": "投递到消费者",
+          "title": "投递到消费者",
+          "pickGroup": "选择消费组",
+          "client": "客户端",
+          "pickClient": "选择客户端实例",
+          "run": "执行",
+          "noClients": "没有消费组有在线客户端。这个操作要跑在一个活着的实例上，先把消费者起起来。",
+          "spent": "耗时 {{ms}} ms",
+          "mode": "消费模式",
+          "ordered": "顺序",
+          "concurrent": "并发",
+          "autoCommit": "自动提交位点",
+          "note": "让这个客户端用自己的处理逻辑再消费一次这条消息，并把它的返回结果带回来——排查「为什么就这条失败」用。会真的消费：开了自动提交的客户端，位点会往前走。"
         }
       }
     },

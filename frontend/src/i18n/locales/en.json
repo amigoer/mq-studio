@@ -38,7 +38,9 @@
     "connectFirst": "Connect to a cluster first",
     "goToConnections": "Go to Connections",
     "docs": "Docs",
-    "dismiss": "Dismiss notification"
+    "dismiss": "Dismiss notification",
+    "yes": "Yes",
+    "no": "No"
   },
   "nav": {
     "consumers": "Consumers"
@@ -1614,6 +1616,21 @@
           "normal": "Normal",
           "retry": "Retrying",
           "dlq": "Dead letter"
+        },
+        "replay": {
+          "action": "Send to a consumer",
+          "title": "Send to a consumer",
+          "pickGroup": "Pick a consumer group",
+          "client": "Client",
+          "pickClient": "Pick a client instance",
+          "run": "Run",
+          "noClients": "No consumer group has a client connected. This runs on a live instance, so start a consumer first.",
+          "spent": "{{ms}} ms",
+          "mode": "Consume mode",
+          "ordered": "Ordered",
+          "concurrent": "Concurrent",
+          "autoCommit": "Auto-commit offset",
+          "note": "Runs this client's own handler on the message again and brings back what it returned — for working out why one message in particular fails. It consumes for real: on a client with auto-commit the offset moves."
         }
       }
     },

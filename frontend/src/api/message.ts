@@ -1,8 +1,8 @@
 import { MessageService } from "@bindings/bridge";
-import type { MessageItem, MessageTrackItem, ProducerClient } from "./models";
-import { present } from "./client";
+import type { MessageItem, MessageTrackItem, ProducerClient, ReplayResult } from "./models";
+import { present, required } from "./client";
 
-export type { ProducerClient };
+export type { ProducerClient, ReplayResult };
 
 export interface QueryCondition {
   messageId?: string;
@@ -109,3 +109,18 @@ export const getProducers = (
   group: string,
   topic: string,
 ): Promise<ProducerClient[]> => MessageService.Producers(connID, group, topic).then(present);
+
+/**
+ * Runs one named client's handler on one message and returns its verdict.
+ *
+ * The message is consumed for real: on a client with auto-commit the offset
+ * moves. It is a diagnostic with a side effect, not a dry run.
+ */
+export const replayMessage = (
+  connID: number,
+  consumerGroup: string,
+  clientId: string,
+  topic: string,
+  messageId: string,
+): Promise<ReplayResult> =>
+  MessageService.Replay(connID, { consumerGroup, clientId, topic, messageId }).then(required);
