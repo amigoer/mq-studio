@@ -3,6 +3,15 @@ export type AlertRuleKey =
 
 export type AlertRulePrefs = Record<AlertRuleKey, boolean>;
 
+/** Every rule, in the order a list of them reads best: worst first. */
+export const ALERT_RULE_KEYS: readonly AlertRuleKey[] = [
+  "brokerOffline",
+  "groupOffline",
+  "groupLag",
+  "diskUsage",
+  "dlqGrowth",
+];
+
 const STORAGE_KEY = "mq-studio:alert-rules";
 
 export const DEFAULT_ALERT_RULES: AlertRulePrefs = {

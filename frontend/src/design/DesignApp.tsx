@@ -431,7 +431,9 @@ export function DesignApp(): JSX.Element {
             connectionsBoard
           );
         }
-        return renderBoard(protocol, pagesOf(protocol).includes(page) ? page : "overview");
+        return renderBoard(protocol, pagesOf(protocol).includes(page) ? page : "overview", {
+          onOpenAlertSettings: () => goto({ kind: "settings", section: "message" }),
+        });
     }
   })();
 

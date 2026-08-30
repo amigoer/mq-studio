@@ -36,6 +36,7 @@ import { DlqPulsar } from "./boards/dlq/DlqPulsar";
 import { PelRedis } from "./boards/dlq/PelRedis";
 
 import { Producer } from "./boards/producer/Producer";
+import { Alerts } from "./boards/alerts/Alerts";
 
 import { ClusterRocketMQ } from "./boards/cluster/ClusterRocketMQ";
 import { BrokersKafka } from "./boards/cluster/BrokersKafka";
@@ -102,8 +103,21 @@ const BOARDS: Partial<Record<PageId, Partial<Record<ProtocolId, () => JSX.Elemen
   },
 };
 
-export function renderBoard(protocol: ProtocolId, page: PageId): JSX.Element {
+/** What a board may ask the shell to do, for the few that need to. */
+export interface BoardNav {
+  /** The alerts page sends the reader to where the thresholds are set. */
+  onOpenAlertSettings?: () => void;
+}
+
+export function renderBoard(
+  protocol: ProtocolId,
+  page: PageId,
+  nav?: BoardNav,
+): JSX.Element {
   if (page === "producer") return <Producer protocol={protocol} />;
+  /* Alerts is one board for every family: the rules are numeric comparisons
+     over a cluster snapshot, with nothing protocol-specific to draw. */
+  if (page === "alerts") return <Alerts onOpenSettings={nav?.onOpenAlertSettings} />;
 
   const Board = BOARDS[page]?.[protocol];
   if (Board) return <Board />;

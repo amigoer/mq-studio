@@ -41,6 +41,8 @@ beforeAll(async () => {
     reuse,
     split,
     settings,
+    profiles,
+    center,
     ui,
   ] = await Promise.all([
     import("react-dom/server"),
@@ -51,15 +53,23 @@ beforeAll(async () => {
     import("@/design/boards/docs/ReuseStrategy"),
     import("@/design/boards/split/SplitCompare"),
     import("@/hooks/useSettings"),
+    import("@/hooks/useConnectionProfiles"),
+    import("@/hooks/useAlertCenter"),
     import("@/components"),
   ]);
 
   const docs = [capability.CapabilityMatrix, nav.NavModel, reuse.ReuseStrategy, split.SplitCompare];
 
+  /* The same nesting main.tsx uses, minus what draws nothing here. Effects do
+     not run under static rendering, so no provider reaches the bridge. */
   const render = (node: React.ReactNode) =>
     renderToStaticMarkup(
       <ui.ConfirmProvider>
-        <settings.SettingsProvider>{node}</settings.SettingsProvider>
+        <settings.SettingsProvider>
+          <profiles.ConnectionProfilesProvider>
+            <center.AlertCenterProvider>{node}</center.AlertCenterProvider>
+          </profiles.ConnectionProfilesProvider>
+        </settings.SettingsProvider>
       </ui.ConfirmProvider>,
     );
 
