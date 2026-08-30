@@ -64,8 +64,11 @@ const (
 	// CapNodeMaintenance is running a broker's own housekeeping on demand -
 	// reclaiming space the broker would otherwise get to on its own schedule.
 	CapNodeMaintenance Capability = "cluster.nodeMaintenance"
-	CapClusterMetrics  Capability = "cluster.metrics"
-	CapAccessControl   Capability = "access.control"
+	// CapNodeWritePerm is taking a node out of the write path and putting it
+	// back, which is how a broker is drained before it is stopped.
+	CapNodeWritePerm  Capability = "cluster.writePerm"
+	CapClusterMetrics Capability = "cluster.metrics"
+	CapAccessControl  Capability = "access.control"
 	// CapAccessDirectory is identity-based access control: principals the
 	// broker authenticates and rules attached to a subject. Distinct from
 	// CapAccessControl, which is the credential-carrying kind a broker will

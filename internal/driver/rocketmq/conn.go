@@ -125,6 +125,7 @@ func rocketMQCapabilities() []model.Capability {
 		model.CapDirectory,
 		model.CapNodeConfig,
 		model.CapNodeMaintenance,
+		model.CapNodeWritePerm,
 		model.CapAccessControl,
 		model.CapAccessDirectory,
 	}

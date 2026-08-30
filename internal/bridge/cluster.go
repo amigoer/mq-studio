@@ -94,3 +94,9 @@ func (s *ClusterService) RunMaintenance(connID int, brokerAddr string, task stri
 func (s *ClusterService) DirectoryConfig(connID int) (map[string]string, error) {
 	return s.service.DirectoryConfig(context.Background(), connID)
 }
+
+// SetBrokerWritable takes a broker out of the write path, or puts it back, and
+// returns how many destinations the change touched.
+func (s *ClusterService) SetBrokerWritable(connID int, brokerName string, writable bool) (int, error) {
+	return s.service.SetNodeWritable(context.Background(), connID, brokerName, writable)
+}

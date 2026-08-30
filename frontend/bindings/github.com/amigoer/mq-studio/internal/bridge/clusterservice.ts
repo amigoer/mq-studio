@@ -88,6 +88,14 @@ export function RunMaintenance(connID: number, brokerAddr: string, task: string)
     return $Call.ByID(2604298185, connID, brokerAddr, task);
 }
 
+/**
+ * SetBrokerWritable takes a broker out of the write path, or puts it back, and
+ * returns how many destinations the change touched.
+ */
+export function SetBrokerWritable(connID: number, brokerName: string, writable: boolean): $CancellablePromise<number> {
+    return $Call.ByID(2200378998, connID, brokerName, writable);
+}
+
 // Private type creation functions
 const $$createType0 = model$0.Node.createFrom;
 const $$createType1 = $Create.Nullable($$createType0);

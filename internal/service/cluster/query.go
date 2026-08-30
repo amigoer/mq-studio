@@ -203,3 +203,24 @@ func (s *Service) DirectoryConfig(ctx context.Context, connID int) (map[string]s
 	defer cancel()
 	return api.DirectoryConfig(ctx)
 }
+
+// SetNodeWritable takes a node out of the write path, or puts it back.
+//
+// The node is named rather than addressed: write permission lives in the route
+// table, which is keyed by broker name, and a master and its slaves share one.
+func (s *Service) SetNodeWritable(ctx context.Context, connID int, name string, writable bool) (int, error) {
+	conn, err := s.conns(connID)
+	if err != nil {
+		return 0, err
+	}
+	if !conn.Capabilities().Has(model.CapNodeWritePerm) {
+		return 0, driver.Unsupported(conn, model.CapNodeWritePerm)
+	}
+	api, ok := conn.(driver.WritePermissionAdmin)
+	if !ok {
+		return 0, driver.Unsupported(conn, model.CapNodeWritePerm)
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.SetNodeWritable(ctx, name, writable)
+}

@@ -203,6 +203,23 @@ type NodeMaintenance interface {
 	RunMaintenance(ctx context.Context, address string, task model.MaintenanceTask) error
 }
 
+// WritePermissionAdmin takes a node out of the write path and puts it back.
+//
+// This is how a broker is drained before it is stopped: producers stop being
+// routed to it while consumers keep draining what it already holds, so no
+// message is stranded on a node that is about to go away.
+//
+// Separate from NodeMaintenance because it is the opposite kind of operation -
+// maintenance reclaims space on a node that stays in service, this changes
+// whether the node is in service at all - and because it is answered by the
+// discovery tier rather than by the node itself.
+type WritePermissionAdmin interface {
+	// SetNodeWritable returns how many destinations the change touched. The
+	// count is best effort: the permission change lands either way, and a
+	// broker that reports no count is not a broker that refused.
+	SetNodeWritable(ctx context.Context, name string, writable bool) (int, error)
+}
+
 // AccessAdmin manages credential-based access control: an entry carries the
 // key, the secret and the permissions together.
 //

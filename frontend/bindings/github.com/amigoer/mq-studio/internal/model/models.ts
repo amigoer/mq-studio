@@ -426,6 +426,12 @@ export enum Capability {
      * reclaiming space the broker would otherwise get to on its own schedule.
      */
     CapNodeMaintenance = "cluster.nodeMaintenance",
+
+    /**
+     * CapNodeWritePerm is taking a node out of the write path and putting it
+     * back, which is how a broker is drained before it is stopped.
+     */
+    CapNodeWritePerm = "cluster.writePerm",
     CapClusterMetrics = "cluster.metrics",
     CapAccessControl = "access.control",
 
