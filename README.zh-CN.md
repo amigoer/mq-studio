@@ -214,6 +214,11 @@ make dev
 
 [架构说明](docs/ARCHITECTURE.md) · [安装说明](docs/INSTALL.zh-CN.md) · [更新日志](CHANGELOG.zh-CN.md) · [发版流程](RELEASE.md) · [路线图](docs/ROADMAP.zh-CN.md)
 
+## 交流
+
+有问题、有需求，或者想聊聊下一个驱动接哪个：
+[GitHub Issues](https://github.com/amigoer/mq-studio/issues) · [linux.do](https://linux.do)
+
 ## 许可证
 
 [Apache-2.0](LICENSE) © 2026 [amigoer](https://github.com/amigoer)

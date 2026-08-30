@@ -224,6 +224,11 @@ Use `make check` to run project checks, `make package` to build a distributable,
 
 [Architecture](docs/ARCHITECTURE.md) · [Install](docs/INSTALL.md) · [Changelog](CHANGELOG.md) · [Releasing](RELEASE.md) · [Roadmap](docs/ROADMAP.md)
 
+## Community
+
+Questions, requests, or thoughts on which driver should come next:
+[GitHub Issues](https://github.com/amigoer/mq-studio/issues) · [linux.do](https://linux.do) (in Chinese)
+
 ## License
 
 [Apache-2.0](LICENSE) © 2026 [amigoer](https://github.com/amigoer)
