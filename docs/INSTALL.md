@@ -77,7 +77,10 @@ features for uninstalling.
 
 ## Linux
 
-Requires GTK 3 and WebKit2GTK 4.1.
+Requires GTK 4 and WebKitGTK 6.0 — Ubuntu 24.04 or later, Debian 13 or later, and
+equivalent releases elsewhere. Earlier distributions ship WebKit2GTK 4.1 and cannot run
+these packages. The packages are `libgtk-4-1` and `libwebkitgtk-6.0-4` on Debian and
+Ubuntu, `gtk4` and `webkitgtk6.0` on Fedora and RHEL.
 
 **Debian, Ubuntu:**
 

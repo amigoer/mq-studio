@@ -69,7 +69,10 @@ macOS 是按代码签名来记住这个授权的。当前构建使用的是临�
 
 ## Linux
 
-需要 GTK 3 和 WebKit2GTK 4.1。
+需要 GTK 4 和 WebKitGTK 6.0 —— 即 Ubuntu 24.04 及以上、Debian 13 及以上，以及其他发行版的
+同期版本。更早的发行版自带的是 WebKit2GTK 4.1，无法运行这些包。对应的软件包在 Debian 与
+Ubuntu 上是 `libgtk-4-1` 和 `libwebkitgtk-6.0-4`，在 Fedora 与 RHEL 上是 `gtk4` 和
+`webkitgtk6.0`。
 
 **Debian、Ubuntu：**
 
