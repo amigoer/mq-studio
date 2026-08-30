@@ -1,0 +1,27 @@
+name: mq-studio-e2e-rabbitmq
+
+services:
+  rabbitmq:
+    # The -management tag is not a convenience: the driver reads the HTTP
+    # management API, so the plain image would leave it with no admin plane
+    # at all.
+    image: rabbitmq:4-management
+    ports:
+      - '127.0.0.1:5672:5672'
+      - '127.0.0.1:15672:15672'
+    environment:
+      RABBITMQ_DEFAULT_USER: mqstudio
+      RABBITMQ_DEFAULT_PASS: mqstudio
+    healthcheck:
+      # Wait for the management plugin rather than the broker: a driver that
+      # connects before the API answers sees a broker with no capabilities.
+      test: ['CMD', 'rabbitmq-diagnostics', 'check_port_connectivity']
+      interval: 5s
+      timeout: 10s
+      retries: 12
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    restart: unless-stopped
+
+volumes:
+  rabbitmq-data:

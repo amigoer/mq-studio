@@ -5,6 +5,9 @@ name: CI
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
   pull_request:
   workflow_dispatch:
 
@@ -19,8 +22,21 @@ jobs:
   check:
     name: Check
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
     steps:
       - uses: actions/checkout@v7
+
+      # Names the CI artifacts <version>+<short sha> so a downloaded build can
+      # be traced back to its commit without opening the run.
+      - name: Resolve the build version
+        id: meta
+        shell: bash
+        run: |
+          set -eu
+          version="$(node -p "require('./package.json').version")"
+          echo "version=${version}+${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
 
       - uses: actions/setup-go@v6
         with:
@@ -34,15 +50,17 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       # Compiling the Wails packages needs the GTK and WebKit headers even
-      # though nothing is packaged here.
+      # though nothing is packaged here. GTK 4 rather than 3: every Linux file
+      # in wails v3 that pulls gtk+-3.0 is behind a `gtk3` build tag, which
+      # nothing here sets, so the default build wants gtk4 and webkitgtk-6.0.
       - name: Install build dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             build-essential \
             pkg-config \
-            libgtk-3-dev \
-            libwebkit2gtk-4.1-dev
+            libgtk-4-dev \
+            libwebkitgtk-6.0-dev
 
       # The binding drift check regenerates them, so the CLI has to match the
       # version the module pins.
@@ -56,5 +74,30 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci --prefix frontend
 
+      # The rabbitmq conformance tests skip when the broker is absent so a
+      # checkout without docker still has a green suite, but fail outright when
+      # CI is set - the contract they assert is worthless if CI can silently
+      # skip it. Same compose file a developer runs, so the image, the
+      # credentials and the management plugin match.
+      - name: Start RabbitMQ
+        run: npm run e2e:rabbitmq:up
+
       - name: Run checks
         run: npm run check
+
+  # Exercises the real packaging path for all six targets. It is skipped on pull
+  # requests to keep review feedback fast, but running it on every push to main
+  # means a packaging break surfaces then rather than on release day, which is
+  # when it used to.
+  package:
+    name: Package
+    if: github.event_name != 'pull_request'
+    needs: check
+    uses: ./.github/workflows/package.yml
+    with:
+      ref: ${{ github.sha }}
+      package-version: ${{ needs.check.outputs.version }}
+      sign: false
+      retention-days: 7
+    # No secrets passed: an unsigned build has no use for the signing material,
+    # and every matrix job would otherwise have it in scope.

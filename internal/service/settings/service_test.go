@@ -9,6 +9,7 @@ import (
 
 	"github.com/amigoer/mq-studio/internal/crypto"
 	"github.com/amigoer/mq-studio/internal/model"
+	"github.com/amigoer/mq-studio/internal/update"
 )
 
 func newTestService(t *testing.T) (*Service, string) {
@@ -102,5 +103,65 @@ func TestNewUsesDefaultsWhenFileDoesNotExist(t *testing.T) {
 	service, _ := newTestService(t)
 	if got := service.GetSettings(); got.Theme != "system" || got.FetchLimit <= 0 {
 		t.Fatalf("unexpected defaults: %#v", got)
+	}
+}
+
+// The boolean earlier builds wrote has to land on the rung of the ladder that
+// means what it meant, or turning the check off would silently turn back on.
+func TestLegacyAutoCheckUpdateBecomesAPolicy(t *testing.T) {
+	cases := []struct {
+		name   string
+		stored string
+		want   string
+	}{
+		{"the check was off", `{"autoCheckUpdate":false}`, string(update.PolicyOff)},
+		{"the check was on", `{"autoCheckUpdate":true}`, string(update.PolicyNotify)},
+		{"nothing was stored", `{}`, string(update.PolicyNotify)},
+		{"a policy is already set", `{"autoCheckUpdate":false,"updatePolicy":"auto"}`, string(update.PolicyAuto)},
+		{"the policy is not one we know", `{"updatePolicy":"whenever"}`, string(update.PolicyNotify)},
+	}
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			service, path := newTestService(t)
+			if err := os.WriteFile(path, []byte(testCase.stored), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			if err := service.loadFromFile(); err != nil {
+				t.Fatalf("loadFromFile() error = %v", err)
+			}
+			if got := service.GetSettings().UpdatePolicy; got != testCase.want {
+				t.Fatalf("UpdatePolicy = %q, want %q", got, testCase.want)
+			}
+		})
+	}
+}
+
+// Once migrated, the old key is gone from the file rather than left to be
+// re-read on the next launch.
+func TestLegacyAutoCheckUpdateIsNotWrittenBack(t *testing.T) {
+	service, path := newTestService(t)
+	if err := os.WriteFile(path, []byte(`{"autoCheckUpdate":false}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := service.loadFromFile(); err != nil {
+		t.Fatalf("loadFromFile() error = %v", err)
+	}
+	if _, err := service.UpdateSettings(*service.GetSettings()); err != nil {
+		t.Fatalf("UpdateSettings() error = %v", err)
+	}
+
+	content, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var stored map[string]json.RawMessage
+	if err := json.Unmarshal(content, &stored); err != nil {
+		t.Fatal(err)
+	}
+	if _, present := stored["autoCheckUpdate"]; present {
+		t.Error("the legacy key should not be written back")
+	}
+	if string(stored["updatePolicy"]) != `"off"` {
+		t.Errorf("updatePolicy = %s", stored["updatePolicy"])
 	}
 }

@@ -2,15 +2,20 @@
 package main
 
 import (
+	"context"
 	"embed"
 	"log"
+	"path/filepath"
 	"runtime"
+	"strconv"
+	"time"
 
 	"github.com/amigoer/mq-studio/internal/app"
 	"github.com/amigoer/mq-studio/internal/bridge"
 	"github.com/amigoer/mq-studio/internal/macwindow"
 	"github.com/amigoer/mq-studio/internal/model"
 	"github.com/amigoer/mq-studio/internal/tray"
+	"github.com/amigoer/mq-studio/internal/update"
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"github.com/wailsapp/wails/v3/pkg/events"
 )
@@ -18,24 +23,23 @@ import (
 //go:embed all:frontend/dist
 var assets embed.FS
 
-// trayIcon is the menu bar / notification area icon, downscaled from
-// build/appicon.png. `wails3 generate icons` does not touch this file.
-//
-//go:embed build/trayicon.png
-var trayIcon []byte
+// Tray artwork, drawn from the matching build/*.svg. Wails squares the image
+// to the status bar thickness, so the 2:1 wordmark takes the full width and
+// gets about half that in height. `wails3 generate icons` does not touch them.
+var (
+	//go:embed build/trayicon.png
+	trayIcon []byte
+	//go:embed build/trayicon-darkmode.png
+	trayIconDark []byte
+	//go:embed build/trayicon-template.png
+	trayIconTemplate []byte
+)
 
 // version is injected at build time via -ldflags "-X main.version=...".
 // The development fallback is intentionally not a release version.
 var version = "dev"
 
 const applicationName = "MQ Studio"
-
-// Title bar geometry, shared with the renderer. Keep in step with the
-// .mqs-title-bar rule in frontend/src/styles/app.css.
-const (
-	titleBarHeight   = 44.0
-	trafficLightLeft = 16.0
-)
 
 func main() {
 	if err := run(); err != nil {
@@ -50,10 +54,17 @@ func run() error {
 	}
 	defer services.Close()
 
+	// The shell service is built here because its consumer, the tray, cannot
+	// exist until the application does: the listener is registered below.
+	shellService, onShellReport := bridge.NewShellService()
+
+	updates := newUpdateManager(services)
+	defer updates.Close()
+
 	wailsApp := application.New(application.Options{
 		Name:        applicationName,
 		Description: "Local-first desktop client for RocketMQ",
-		Services:    bridge.Services(services, version),
+		Services:    bridge.Services(services, version, shellService, updates),
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),
 		},
@@ -65,17 +76,146 @@ func run() error {
 		},
 	})
 
+	wailsApp.Menu.Set(applicationMenu(wailsApp))
+
 	window := wailsApp.Window.NewWithOptions(newWindowOptions())
 	alignTrafficLights(window)
 
 	trayController := tray.New(
-		wailsApp, window, trayIcon, applicationName, services.Settings.GetSettings().Language)
-	services.Settings.OnChange(func(settings *model.AppSettings) {
-		trayController.SetLanguage(settings.Language)
+		wailsApp, window,
+		tray.Icons{Light: trayIcon, Dark: trayIconDark, Template: trayIconTemplate},
+		applicationName, services.Settings.GetSettings().Language)
+	bindTray(trayController, services, onShellReport)
+	// Settings now have two writers. The renderer paints from its own copy, so
+	// it has to hear about the tray's writes; it hears about its own too, and
+	// re-reading what it just saved costs nothing.
+	services.Settings.OnChange(func(*model.AppSettings) {
+		wailsApp.Event.Emit(bridge.SettingsEvent, nil)
 	})
 	interceptClose(wailsApp, window, services)
 
+	// The schedule outlives the window: closing to the tray leaves the process
+	// up for days, and a check nobody is looking at is the point of it.
+	updateContext, stopUpdates := context.WithCancel(context.Background())
+	defer stopUpdates()
+	updates.Start(updateContext)
+	// Every way out of the application comes through here, which is what makes
+	// this the one place the auto policy can apply what it downloaded.
+	wailsApp.OnShutdown(func() {
+		stopUpdates()
+		installPendingUpdate(updates)
+	})
+
 	return wailsApp.Run()
+}
+
+// updateDirectory is where downloaded packages and the updater's own memory
+// are kept, under the directory that already holds the settings.
+const updateDirectory = "updates"
+
+func newUpdateManager(services *app.Services) *update.Manager {
+	return update.New(update.Options{
+		Version:   version,
+		Directory: filepath.Join(services.Settings.DataDirectory(), updateDirectory),
+		Policy: func() update.Policy {
+			return update.Policy(services.Settings.GetSettings().UpdatePolicy)
+		},
+		Emit: func(state update.State) {
+			// Nil until application.New has run, which is before anything can
+			// change the state.
+			if wailsApp := application.Get(); wailsApp != nil {
+				wailsApp.Event.Emit(update.Event, state)
+			}
+		},
+	})
+}
+
+// installPendingUpdate applies a verified package as the application closes.
+// Only the auto policy reaches the swap; every other policy waits to be asked,
+// and the manager is what enforces that.
+func installPendingUpdate(updates *update.Manager) {
+	ctx, cancel := context.WithTimeout(context.Background(), updateInstallTimeout)
+	defer cancel()
+	installed, err := updates.InstallOnQuit(ctx)
+	if err != nil {
+		log.Printf("[Update] failed to install on quit: %v", err)
+		return
+	}
+	if installed {
+		log.Print("[Update] installed on quit; the next launch is the new version")
+	}
+}
+
+// updateInstallTimeout bounds the swap so a hung hdiutil cannot keep the
+// application from exiting.
+const updateInstallTimeout = 3 * time.Minute
+
+// bindTray keeps the tray menu in step with the three things it draws: the
+// preferences, the stored connections and whatever the renderer is showing.
+//
+// Only the last of those comes from the window. The other two are read from Go
+// directly, which is what lets the menu still be right after the window has
+// been hidden for an hour.
+func bindTray(
+	controller *tray.Controller,
+	services *app.Services,
+	onShellReport func(func(active string, page string, pages []bridge.ShellPage)),
+) {
+	publishConnections := func(profiles []*model.ConnectionProfile) {
+		controller.SetConnections(trayConnections(profiles), services.Collector.Sampling())
+	}
+	publishConnections(services.Connections.GetConnections())
+
+	publishPreferences := func(settings *model.AppSettings) {
+		controller.SetPreferences(settings.Theme, settings.Language, settings.CloseBehavior)
+	}
+	publishPreferences(services.Settings.GetSettings())
+
+	services.Settings.OnChange(publishPreferences)
+	services.Connections.OnChange(publishConnections)
+	controller.OnPreference(func(preference tray.Preference, value string) {
+		next := *services.Settings.GetSettings()
+		switch preference {
+		case tray.PreferenceTheme:
+			next.Theme = value
+		case tray.PreferenceLanguage:
+			next.Language = value
+		case tray.PreferenceCloseBehavior:
+			next.CloseBehavior = value
+		}
+		if _, err := services.Settings.UpdateSettings(next); err != nil {
+			log.Printf("[tray] failed to apply %s: %v", preference, err)
+		}
+	})
+	onShellReport(func(active string, page string, pages []bridge.ShellPage) {
+		controller.SetShell(active, page, trayPages(pages))
+	})
+}
+
+// trayConnections reshapes stored profiles into what the menu draws.
+func trayConnections(profiles []*model.ConnectionProfile) []tray.Connection {
+	items := make([]tray.Connection, 0, len(profiles))
+	for _, profile := range profiles {
+		if profile == nil {
+			continue
+		}
+		items = append(items, tray.Connection{
+			// The shell keys its tabs by the profile id as a string.
+			Key:    strconv.Itoa(profile.ID),
+			Name:   profile.Name,
+			Family: profile.Kind.DisplayName(),
+			Online: profile.Status == model.StatusOnline,
+		})
+	}
+	return items
+}
+
+func trayPages(pages []bridge.ShellPage) []tray.Page {
+	items := make([]tray.Page, 0, len(pages))
+	for _, page := range pages {
+		items = append(items, tray.Page{ID: page.ID, Label: page.Label})
+	}
+	return items
 }
 
 // interceptClose routes the close button through the user's preference. The
@@ -131,7 +271,41 @@ func alignTrafficLights(window *application.WebviewWindow) {
 	}
 	apply := func(*application.WindowEvent) {
 		macwindow.SetTrafficLightPosition(
-			window.NativeWindow(), trafficLightLeft, titleBarHeight/2)
+			window.NativeWindow(), bridge.TrafficLightLeft, bridge.TitleBarHeight/2)
 	}
 	window.OnWindowEvent(events.Mac.WindowDidBecomeKey, apply)
+}
+
+// zoomCommands maps the View menu's zoom entries to the renderer's UI scale.
+var zoomCommands = map[application.Role]string{
+	application.ZoomIn:    "in",
+	application.ZoomOut:   "out",
+	application.ResetZoom: "reset",
+}
+
+// applicationMenu is the platform's default menu with those three entries
+// retargeted. Zoom is the renderer's own UI scale - it drives the container
+// queries the boards reflow on - so the webview's page zoom, which the default
+// entries drive, would silently stack a second scale on top of it.
+func applicationMenu(wailsApp *application.App) *application.Menu {
+	menu := application.DefaultApplicationMenu()
+	for role, command := range zoomCommands {
+		item := menu.FindByRole(role)
+		if item == nil {
+			continue
+		}
+		/*
+		 * The role's own accelerator is CmdOrCtrl+plus, which AppKit never
+		 * matches: typing + takes Shift, and the mask is Command alone. `=` is
+		 * the same physical key and does match, so the menu carries that and
+		 * useUIScale reads the shifted press the menu cannot claim.
+		 */
+		if role == application.ZoomIn {
+			item.SetAccelerator("CmdOrCtrl+=")
+		}
+		item.OnClick(func(*application.Context) {
+			wailsApp.Event.Emit(bridge.ZoomEvent, command)
+		})
+	}
+	return menu
 }

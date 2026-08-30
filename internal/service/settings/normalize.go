@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/amigoer/mq-studio/internal/model"
+	"github.com/amigoer/mq-studio/internal/update"
 )
 
 func normalize(settings model.AppSettings) model.AppSettings {
@@ -14,8 +15,11 @@ func normalize(settings model.AppSettings) model.AppSettings {
 	if settings.Language != "zh" && settings.Language != "en" {
 		settings.Language = defaults.Language
 	}
-	if settings.FontSize < 12 || settings.FontSize > 18 {
-		settings.FontSize = defaults.FontSize
+	if !model.ValidUIScale(settings.UIScale) {
+		settings.UIScale = defaults.UIScale
+	}
+	if !update.ValidPolicy(settings.UpdatePolicy) {
+		settings.UpdatePolicy = defaults.UpdatePolicy
 	}
 	if settings.CloseBehavior != model.CloseBehaviorMinimizeToTray &&
 		settings.CloseBehavior != model.CloseBehaviorQuit {
@@ -53,9 +57,6 @@ func normalize(settings model.AppSettings) model.AppSettings {
 	}
 	if settings.FetchLimit <= 0 || settings.FetchLimit > 1000 {
 		settings.FetchLimit = defaults.FetchLimit
-	}
-	if settings.ProxyType != "http" && settings.ProxyType != "socks5" {
-		settings.ProxyType = defaults.ProxyType
 	}
 	settings.GlobalAccessKey = strings.TrimSpace(settings.GlobalAccessKey)
 	return settings

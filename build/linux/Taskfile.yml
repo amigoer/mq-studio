@@ -156,28 +156,38 @@ tasks:
     summary: Creates a deb package
     cmds:
       - wails3 tool package -name "{{.APP_NAME}}" -format deb -config ./build/linux/nfpm/nfpm.yaml -out {{.ROOT_DIR}}/bin
+    env:
+      GOARCH: '{{.ARCH | default ARCH}}'
 
   generate:rpm:
     summary: Creates a rpm package
     cmds:
       - wails3 tool package -name "{{.APP_NAME}}" -format rpm -config ./build/linux/nfpm/nfpm.yaml -out {{.ROOT_DIR}}/bin
+    env:
+      GOARCH: '{{.ARCH | default ARCH}}'
 
   generate:aur:
     summary: Creates a arch linux packager package
     cmds:
       - wails3 tool package -name "{{.APP_NAME}}" -format archlinux -config ./build/linux/nfpm/nfpm.yaml -out {{.ROOT_DIR}}/bin
+    env:
+      GOARCH: '{{.ARCH | default ARCH}}'
 
   generate:dotdesktop:
-    summary: Generates a `.desktop` file
-    dir: build
+    summary: Installs the committed `.desktop` entry where the packagers expect it
+    # Deliberately a copy, not `wails3 generate .desktop`: the generator names
+    # the entry after the binary rather than the product, defaults Keywords to
+    # "wails", omits Comment, and has no StartupWMClass field at all - so the
+    # launcher shows "mq-studio" with no description and will not group the
+    # app's window onto its icon. build/linux/desktop is the source of truth.
     cmds:
       - mkdir -p {{.ROOT_DIR}}/build/linux/appimage
-      - wails3 generate .desktop -name "{{.APP_NAME}}" -exec "{{.EXEC}}" -icon "{{.ICON}}" -outputfile "{{.ROOT_DIR}}/build/linux/{{.APP_NAME}}.desktop" -categories "{{.CATEGORIES}}"
+      - cp {{.ROOT_DIR}}/build/linux/desktop {{.OUTPUTFILE}}
+    sources:
+      - '{{.ROOT_DIR}}/build/linux/desktop'
+    generates:
+      - '{{.OUTPUTFILE}}'
     vars:
-      APP_NAME: '{{.APP_NAME}}'
-      EXEC: '{{.APP_NAME}}'
-      ICON: '{{.APP_NAME}}'
-      CATEGORIES: 'Development;'
       OUTPUTFILE: '{{.ROOT_DIR}}/build/linux/{{.APP_NAME}}.desktop'
 
   run:

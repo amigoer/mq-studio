@@ -17,6 +17,25 @@ const sources = [
   { path: 'CHANGELOG.zh-CN.md', heading: '简体中文' },
 ]
 
+/** Install guidance, kept in the repository so the wording is reviewable. */
+const INSTALL_NOTE = 'docs/release-install-note.md'
+
+/**
+ * Warns that macOS builds are not notarised. Driven by MACOS_SIGNED so the
+ * banner disappears on its own once a Developer ID is configured, rather than
+ * relying on someone remembering to delete it.
+ */
+const UNSIGNED_BANNER = [
+  '> [!IMPORTANT]',
+  '> **macOS — this build is not signed by a registered Apple developer yet.**',
+  '> Drag MQ Studio into Applications, then double-click **首次运行 First Run**',
+  `> inside the disk image. See [INSTALL](${repository}/blob/main/docs/INSTALL.md).`,
+  '>',
+  '> **macOS —— 此版本尚未使用 Apple 开发者证书签名。**',
+  '> 将 MQ Studio 拖入 Applications 后，双击磁盘映像里的「首次运行」。',
+  `> 详见 [安装说明](${repository}/blob/main/docs/INSTALL.zh-CN.md)。`,
+].join('\n')
+
 const tag = process.env.RELEASE_TAG ?? process.argv[2]
 if (!tag) {
   throw new Error('usage: node scripts/release-notes.mjs <tag>')
@@ -70,4 +89,12 @@ const footer = previous
   ? `**Full Changelog**: ${repository}/compare/${previous}...${tag}`
   : `**Changelog**: ${repository}/blob/main/CHANGELOG.md`
 
-process.stdout.write(`${sections.join('\n\n')}\n\n---\n\n${footer}\n`)
+const installNote = (await readFile(resolve(root, INSTALL_NOTE), 'utf8')).trim()
+
+// The workflow sets this to the literal string 'true' only when both the
+// signing identity and the certificate are configured.
+const macSigned = process.env.MACOS_SIGNED === 'true'
+const banner = macSigned ? [] : [UNSIGNED_BANNER]
+
+const body = [...banner, sections.join('\n\n'), '---', installNote, '---', footer]
+process.stdout.write(`${body.join('\n\n')}\n`)

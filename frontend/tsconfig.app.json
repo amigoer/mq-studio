@@ -17,10 +17,10 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedIndexedAccess": true,
-    "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@bindings/*": ["./bindings/github.com/amigoer/mq-studio/internal/*"]
+      "@bindings/*": ["./bindings/github.com/amigoer/mq-studio/internal/*"],
+      "@wails/*": ["./bindings/github.com/wailsapp/wails/v3/pkg/*"]
     },
     "types": ["vite/client"]
   },

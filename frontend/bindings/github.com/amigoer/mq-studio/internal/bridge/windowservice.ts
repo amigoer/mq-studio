@@ -19,3 +19,12 @@ import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Cr
 export function SetAppearance(dark: boolean): $CancellablePromise<void> {
     return $Call.ByID(2170341447, dark);
 }
+
+/**
+ * SetTitleBarHeight re-centres the macOS window buttons in a title bar the
+ * renderer has scaled. The buttons are native and keep their own size, so only
+ * the bar's height changes with the UI scale. No-op off macOS.
+ */
+export function SetTitleBarHeight(height: number): $CancellablePromise<void> {
+    return $Call.ByID(160893141, height);
+}

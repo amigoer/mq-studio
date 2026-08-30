@@ -20,7 +20,7 @@ type failAfterReplaceConnections struct {
 	failNext bool
 }
 
-func (f *failAfterReplaceConnections) ReplaceConnections(connections []*model.Connection) error {
+func (f *failAfterReplaceConnections) ReplaceConnections(connections []*model.ConnectionProfile) error {
 	if err := f.Service.ReplaceConnections(connections); err != nil {
 		return err
 	}
@@ -38,7 +38,7 @@ func TestRealServicesConfigurationWorkflow(t *testing.T) {
 		t.Fatalf("initialize encryption key: %v", err)
 	}
 	settings := settingsservice.New(paths.SettingsFile)
-	connections := connectionservice.New(paths.ConnectionsFile, settings)
+	connections := connectionservice.New(paths.ConnectionsFile, settings, noopClientRuntime{})
 	configuration := New(paths, settings, connections)
 
 	t.Run("portable export and import", func(t *testing.T) {
@@ -50,16 +50,18 @@ func TestRealServicesConfigurationWorkflow(t *testing.T) {
 		if _, err := configuration.UpdateSettings(nextSettings); err != nil {
 			t.Fatal(err)
 		}
-		if err := connections.ReplaceConnections([]*model.Connection{{
+		if err := connections.ReplaceConnections([]*model.ConnectionProfile{{
 			ID:         4,
 			Name:       "production",
 			Group:      "production",
-			NameServer: "ns-a:9876;ns-b:9876",
+			Endpoints:  "ns-a:9876;ns-b:9876",
 			TimeoutSec: 8,
-			EnableACL:  true,
-			AccessKey:  "connection-ak",
-			SecretKey:  "connection-sk",
-			IsDefault:  true,
+			Auth:       model.AuthConfig{Mechanism: model.AuthACL},
+			Secrets: map[string]string{
+				model.SecretAccessKey: "connection-ak",
+				model.SecretSecretKey: "connection-sk",
+			},
+			IsDefault: true,
 		}}); err != nil {
 			t.Fatal(err)
 		}
@@ -79,8 +81,8 @@ func TestRealServicesConfigurationWorkflow(t *testing.T) {
 			t.Fatalf("global credentials were not exported portably: %#v", payload.Settings)
 		}
 		if len(payload.Connections.Connections) != 1 ||
-			payload.Connections.Connections[0].AccessKey != "connection-ak" ||
-			payload.Connections.Connections[0].SecretKey != "connection-sk" {
+			payload.Connections.Connections[0].Secret(model.SecretAccessKey) != "connection-ak" ||
+			payload.Connections.Connections[0].Secret(model.SecretSecretKey) != "connection-sk" {
 			t.Fatalf("connection credentials were not exported portably: %#v", payload.Connections)
 		}
 
@@ -112,7 +114,7 @@ func TestRealServicesConfigurationWorkflow(t *testing.T) {
 			t.Fatalf("settings were not restored: %#v", got)
 		}
 		gotConnections := connections.GetConnections()
-		if len(gotConnections) != 1 || gotConnections[0].AccessKey != "connection-ak" || gotConnections[0].SecretKey != "connection-sk" {
+		if len(gotConnections) != 1 || gotConnections[0].Secret(model.SecretAccessKey) != "connection-ak" || gotConnections[0].Secret(model.SecretSecretKey) != "connection-sk" {
 			t.Fatalf("connections were not restored: %#v", gotConnections)
 		}
 		assertNoPlaintextCredentials(t, paths.SettingsFile, "global-ak", "global-sk")
@@ -122,21 +124,22 @@ func TestRealServicesConfigurationWorkflow(t *testing.T) {
 	t.Run("version 2 keeps ENC prefix as plaintext", func(t *testing.T) {
 		raw := marshalJSON(t, map[string]any{
 			"version": currentExportVersion,
-			"connections": connectionStore{Connections: []*model.Connection{{
+			"connections": connectionStore{Connections: []*model.ConnectionRecord{{ConnectionProfile: model.ConnectionProfile{
 				ID:         1,
 				Name:       "literal-prefix",
-				NameServer: "ns:9876",
+				Endpoints:  "ns:9876",
 				TimeoutSec: 5,
-				EnableACL:  true,
-				AccessKey:  "ENC:literal-ak",
-				SecretKey:  "ENC:literal-sk",
-			}}},
+				Auth:       model.AuthConfig{Mechanism: model.AuthACL},
+			}, Secrets: map[string]string{
+				model.SecretAccessKey: "ENC:literal-ak",
+				model.SecretSecretKey: "ENC:literal-sk",
+			}}}},
 		})
 		if err := configuration.ImportAllConfig(raw); err != nil {
 			t.Fatal(err)
 		}
 		got := connections.GetConnections()
-		if len(got) != 1 || got[0].AccessKey != "ENC:literal-ak" || got[0].SecretKey != "ENC:literal-sk" {
+		if len(got) != 1 || got[0].Secret(model.SecretAccessKey) != "ENC:literal-ak" || got[0].Secret(model.SecretSecretKey) != "ENC:literal-sk" {
 			t.Fatalf("version 2 credentials changed: %#v", got)
 		}
 		assertNoPlaintextCredentials(t, paths.ConnectionsFile, "ENC:literal-ak", "ENC:literal-sk")
@@ -153,21 +156,19 @@ func TestRealServicesConfigurationWorkflow(t *testing.T) {
 		}
 		raw := marshalJSON(t, map[string]any{
 			"version": 1,
-			"connections": connectionStore{Connections: []*model.Connection{{
+			"connections": connectionStore{Connections: []*model.ConnectionRecord{{ConnectionProfile: model.ConnectionProfile{
 				ID:         2,
 				Name:       "legacy",
-				NameServer: "legacy-ns:9876",
+				Endpoints:  "legacy-ns:9876",
 				TimeoutSec: 5,
-				EnableACL:  true,
-				AccessKey:  encryptedAccessKey,
-				SecretKey:  encryptedSecretKey,
-			}}},
+				Auth:       model.AuthConfig{Mechanism: model.AuthACL},
+			}, LegacyAccessKey: encryptedAccessKey, LegacySecretKey: encryptedSecretKey}}},
 		})
 		if err := configuration.ImportAllConfig(raw); err != nil {
 			t.Fatal(err)
 		}
 		got := connections.GetConnections()
-		if len(got) != 1 || got[0].AccessKey != "legacy-ak" || got[0].SecretKey != "legacy-sk" {
+		if len(got) != 1 || got[0].Secret(model.SecretAccessKey) != "legacy-ak" || got[0].Secret(model.SecretSecretKey) != "legacy-sk" {
 			t.Fatalf("version 1 credentials were not decrypted: %#v", got)
 		}
 		assertNoPlaintextCredentials(t, paths.ConnectionsFile, "legacy-ak", "legacy-sk")
@@ -181,14 +182,16 @@ func TestRealServicesConfigurationWorkflow(t *testing.T) {
 		if _, err := configuration.UpdateSettings(baselineSettings); err != nil {
 			t.Fatal(err)
 		}
-		baselineConnections := []*model.Connection{{
+		baselineConnections := []*model.ConnectionProfile{{
 			ID:         11,
 			Name:       "baseline",
-			NameServer: "baseline-ns:9876",
+			Endpoints:  "baseline-ns:9876",
 			TimeoutSec: 5,
-			EnableACL:  true,
-			AccessKey:  "baseline-ak",
-			SecretKey:  "baseline-sk",
+			Auth:       model.AuthConfig{Mechanism: model.AuthACL},
+			Secrets: map[string]string{
+				model.SecretAccessKey: "baseline-ak",
+				model.SecretSecretKey: "baseline-sk",
+			},
 		}}
 		if err := connections.ReplaceConnections(baselineConnections); err != nil {
 			t.Fatal(err)
@@ -201,12 +204,12 @@ func TestRealServicesConfigurationWorkflow(t *testing.T) {
 		raw := marshalJSON(t, map[string]any{
 			"version":  currentExportVersion,
 			"settings": updatedSettings,
-			"connections": connectionStore{Connections: []*model.Connection{{
+			"connections": connectionStore{Connections: []*model.ConnectionRecord{{ConnectionProfile: model.ConnectionProfile{
 				ID:         12,
 				Name:       "replacement",
-				NameServer: "replacement-ns:9876",
+				Endpoints:  "replacement-ns:9876",
 				TimeoutSec: 5,
-			}}},
+			}}}},
 		})
 		err := coordinator.ImportAllConfig(raw)
 		if err == nil || !strings.Contains(err.Error(), "已回滚") {
@@ -216,7 +219,7 @@ func TestRealServicesConfigurationWorkflow(t *testing.T) {
 			t.Fatalf("settings rollback failed: %#v", got)
 		}
 		gotConnections := connections.GetConnections()
-		if len(gotConnections) != 1 || gotConnections[0].Name != "baseline" || gotConnections[0].AccessKey != "baseline-ak" {
+		if len(gotConnections) != 1 || gotConnections[0].Name != "baseline" || gotConnections[0].Secret(model.SecretAccessKey) != "baseline-ak" {
 			t.Fatalf("connection rollback failed: %#v", gotConnections)
 		}
 		connectionData, err := os.ReadFile(paths.ConnectionsFile)
@@ -252,3 +255,13 @@ func assertNoPlaintextCredentials(t *testing.T, path string, credentials ...stri
 		}
 	}
 }
+
+// noopClientRuntime stands in for the client registry: this test exercises
+// config import and export, not connection lifecycle.
+type noopClientRuntime struct{}
+
+func (noopClientRuntime) Connect(model.ConnectionProfile) error { return nil }
+func (noopClientRuntime) HasClient(int) bool                    { return false }
+func (noopClientRuntime) Remove(int)                            {}
+func (noopClientRuntime) Test(model.ConnectionProfile) error    { return nil }
+func (noopClientRuntime) CloseAll()                             {}

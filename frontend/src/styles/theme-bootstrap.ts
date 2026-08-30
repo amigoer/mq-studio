@@ -1,8 +1,7 @@
-import { windowControls } from '@/api/platform'
+/*
+ * Loaded from index.html ahead of the bundle: the window opens on the theme the
+ * last session chose rather than flashing the default and correcting itself.
+ */
+import { applyTheme, readCachedTheme } from "@/lib/theme";
 
-// The chosen theme lives in the backend settings, which have not loaded yet, so
-// the first paint follows the OS and useSettings corrects it once they arrive.
-const dark = window.matchMedia('(prefers-color-scheme: dark)').matches
-document.documentElement.classList.toggle('dark', dark)
-// Sync native window background as early as possible, before the app renders.
-void windowControls.setAppearance(dark).catch(() => {})
+applyTheme(readCachedTheme());

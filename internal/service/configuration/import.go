@@ -37,13 +37,16 @@ func (s *Service) ImportAllConfig(raw string) error {
 	}
 
 	connectionsIncluded := len(payload.Connections) > 0 && string(payload.Connections) != "null"
-	var importedConnections []*model.Connection
+	var importedConnections []*model.ConnectionProfile
 	if connectionsIncluded {
 		store, err := decodeConnectionStore(payload.Connections, payload.Version < currentExportVersion)
 		if err != nil {
 			return fmt.Errorf("解析连接配置失败: %w", err)
 		}
-		importedConnections = store.Connections
+		importedConnections = make([]*model.ConnectionProfile, 0, len(store.Connections))
+		for _, record := range store.Connections {
+			importedConnections = append(importedConnections, record.Profile())
+		}
 		if s.connections == nil {
 			return errors.New("连接配置服务不可用")
 		}
@@ -62,13 +65,13 @@ func (s *Service) ImportAllConfig(raw string) error {
 
 func (s *Service) importConfig(
 	payload importPayload,
-	importedConnections []*model.Connection,
+	importedConnections []*model.ConnectionProfile,
 	connectionsIncluded bool,
 ) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	previousSettings := s.settings.GetSettings()
-	var previousConnections []*model.Connection
+	var previousConnections []*model.ConnectionProfile
 	if s.connections != nil {
 		previousConnections = s.connections.GetConnections()
 	}
@@ -99,7 +102,7 @@ func (s *Service) importConfig(
 	return fmt.Errorf("热重载连接配置失败，已回滚: %w", applyErr)
 }
 
-func (s *Service) applyConnections(connections []*model.Connection, included, credentialsChanged bool) error {
+func (s *Service) applyConnections(connections []*model.ConnectionProfile, included, credentialsChanged bool) error {
 	switch {
 	case included && s.connections == nil:
 		return errors.New("连接配置服务不可用")
@@ -114,7 +117,7 @@ func (s *Service) applyConnections(connections []*model.Connection, included, cr
 
 func (s *Service) rollback(
 	settings *model.AppSettings,
-	connections []*model.Connection,
+	connections []*model.ConnectionProfile,
 	settingsChanged bool,
 	connectionsChanged bool,
 ) error {

@@ -8,6 +8,11 @@ import (
 	"github.com/amigoer/mq-studio/internal/service/configuration"
 )
 
+// SettingsEvent tells the renderer the settings changed. It has to be told:
+// the tray writes them too, and the window holds its own copy of the values
+// it paints from.
+const SettingsEvent = "settings:changed"
+
 // SettingsService exposes application settings to the frontend.
 type SettingsService struct {
 	service *configuration.Service

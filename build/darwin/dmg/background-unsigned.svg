@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  DMG background used while the app ships ad-hoc signed. Taller than
+  background.svg to make room for the First Run helper, which clears the
+  quarantine flag Gatekeeper would otherwise reject the app for.
+
+  600x560 matches window_rect in settings.py; the icon slots sit at
+  (150,155), (450,155) and (300,432), matching icon_locations there.
+
+  settings.py stops referencing this file on its own once SIGNED=1, so nothing
+  here needs deleting when the Developer ID cert lands.
+
+  Regenerate the PNGs after editing:
+    node scripts/render-dmg-background.mjs
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="560" viewBox="0 0 600 560">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fbfcfd"/>
+      <stop offset="55%" stop-color="#f3f5f8"/>
+      <stop offset="100%" stop-color="#e9edf2"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="600" height="560" fill="url(#bg)"/>
+
+  <g fill="none" stroke="#d3dae3" stroke-width="1.5" stroke-dasharray="5 6">
+    <rect x="80" y="85" width="140" height="140" rx="28"/>
+    <rect x="380" y="85" width="140" height="140" rx="28"/>
+    <rect x="230" y="362" width="140" height="140" rx="28"/>
+  </g>
+
+  <g fill="#9aa7b8">
+    <rect x="244" y="151" width="94" height="8" rx="4"/>
+    <path d="M332 137 L360 155 L332 173 Z"/>
+  </g>
+
+  <line x1="140" y1="311" x2="460" y2="311" stroke="#dfe5ec" stroke-width="1"/>
+
+  <g font-family="-apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'PingFang SC', sans-serif"
+     text-anchor="middle">
+    <text x="300" y="272" font-size="15" font-weight="600" fill="#4a5563">
+      ① 将 MQ Studio 拖入 Applications
+    </text>
+    <text x="300" y="292" font-size="12.5" fill="#8b96a5">
+      Drag MQ Studio into Applications
+    </text>
+
+    <text x="300" y="341" font-size="15" font-weight="600" fill="#4a5563">
+      ② 双击下方的「首次运行」
+    </text>
+    <text x="300" y="361" font-size="12.5" fill="#8b96a5">
+      Then double-click First Run below
+    </text>
+
+    <text x="300" y="546" font-size="11.5" fill="#a2acba">
+      被阻止时改用右键点按 →「打开」 · If blocked, right-click it and choose Open
+    </text>
+  </g>
+</svg>

@@ -1,0 +1,23 @@
+# Pristine seed for the ACL E2E broker. Copied to plain_acl.yml by up.sh.
+#
+# The broker keeps its ACL in memory and flushes it back over plain_acl.yml, so
+# that file is generated and gitignored - never edit it, edit this.
+#
+# The whitelist must cover the address the client actually reaches the broker
+# from, which is the Docker gateway (172.x), not 127.0.0.1: rocketmq-admin-go
+# never signs its requests, so every admin call arrives unauthenticated and is
+# allowed only by this list. See TestLiveACLCredentialsAreNotSigned.
+#
+# Formats are exact addresses, `a.b.*.*` wildcards or `a.b.c.1-200` ranges -
+# not CIDR. A CIDR entry fails ACL initialisation and the broker then never
+# registers with the name server.
+globalWhiteRemoteAddresses:
+  - 127.0.0.1
+  - 172.*.*.*
+  - 192.168.*.*
+
+accounts:
+  - accessKey: mqstudio
+    secretKey: mqstudio-secret
+    whiteRemoteAddress:
+    admin: true

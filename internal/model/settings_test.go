@@ -10,8 +10,8 @@ func TestDefaultSettingsSaneBounds(t *testing.T) {
 	if s.Theme != "system" {
 		t.Fatalf("theme = %q", s.Theme)
 	}
-	if s.FontSize < 12 || s.FontSize > 18 {
-		t.Fatalf("fontSize out of range: %d", s.FontSize)
+	if !ValidUIScale(s.UIScale) {
+		t.Fatalf("uiScale is not a step on the ladder: %q", s.UIScale)
 	}
 	if s.CloseBehavior != CloseBehaviorMinimizeToTray {
 		t.Fatalf("closeBehavior default = %q", s.CloseBehavior)

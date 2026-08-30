@@ -7,11 +7,10 @@
 package collector
 
 import (
+	"context"
 	"log"
 	"sync"
 	"time"
-
-	"github.com/amigoer/mq-studio/internal/rocketmq"
 )
 
 // DefaultInterval matches the one-minute buckets the TPS history stores.
@@ -20,16 +19,21 @@ const DefaultInterval = time.Minute
 
 // Sampler is the metric collection the ticker drives.
 type Sampler interface {
-	CollectTPSSample() error
+	CollectTPSSample(ctx context.Context) error
 }
+
+// ConnectionProbe reports whether any connection is open.
+//
+// It must never dial: an absent connection means the user closed it
+// deliberately, and sampling has no business reopening it.
+type ConnectionProbe func() bool
 
 // Collector periodically samples an already-connected cluster.
 type Collector struct {
 	sampler  Sampler
 	interval time.Duration
-	// hasClient reports whether a connection is already open. Injectable so the
-	// tests do not need the process-wide client manager.
-	hasClient func() bool
+	// hasClient reports whether a connection is already open.
+	hasClient ConnectionProbe
 
 	startOnce sync.Once
 	stopOnce  sync.Once
@@ -41,15 +45,15 @@ type Collector struct {
 }
 
 // New creates a collector that samples at DefaultInterval.
-func New(sampler Sampler) *Collector {
-	return newWithInterval(sampler, DefaultInterval)
+func New(sampler Sampler, connected ConnectionProbe) *Collector {
+	return newWithInterval(sampler, connected, DefaultInterval)
 }
 
-func newWithInterval(sampler Sampler, interval time.Duration) *Collector {
+func newWithInterval(sampler Sampler, connected ConnectionProbe, interval time.Duration) *Collector {
 	return &Collector{
 		sampler:   sampler,
 		interval:  interval,
-		hasClient: rocketmq.GetClientManager().HasActiveDefaultClient,
+		hasClient: connected,
 		stop:      make(chan struct{}),
 		done:      make(chan struct{}),
 	}
@@ -79,6 +83,14 @@ func (c *Collector) Stop() {
 	}
 }
 
+// Sampling reports whether the next tick will collect anything. It answers
+// the tray's question - is the background work the hidden window exists for
+// actually happening - which the connection count alone does not, since the
+// probe only sees the one family the sampler can read.
+func (c *Collector) Sampling() bool {
+	return c.hasClient != nil && c.hasClient()
+}
+
 func (c *Collector) loop() {
 	defer close(c.done)
 
@@ -102,7 +114,7 @@ func (c *Collector) sample() {
 		return
 	}
 
-	if err := c.sampler.CollectTPSSample(); err != nil {
+	if err := c.sampler.CollectTPSSample(context.Background()); err != nil {
 		// Log the start of a failure streak only, so a long outage does not
 		// fill the log with one identical line per minute.
 		if !c.failing {

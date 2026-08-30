@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="340" viewBox="0 0 1200 340" role="img" aria-labelledby="t d">
+  <title id="t">MQ Studio</title>
+  <desc id="d">MQ Studio — see inside your message queues. Clusters, topics, consumers, and messages in one local-first desktop app, with no web console to deploy.</desc>
+
+  <!-- eyebrow -->
+  <text x="10" y="36" font-family="ui-monospace,'SF Mono',Menlo,Consolas,monospace" font-size="16.5" letter-spacing="3" fill="#71717A">LOCAL-FIRST · CROSS-PLATFORM · OPEN SOURCE</text>
+
+  <!-- logo tile + wordmark -->
+  <g id="lockup">
+    <rect x="10" y="62" width="88" height="88" rx="22" fill="#EC3013"/>
+    <text x="52" y="118" text-anchor="middle" font-family="-apple-system,'PingFang SC','Segoe UI','Microsoft YaHei',system-ui,sans-serif" font-size="35" font-weight="800" letter-spacing="0.5" fill="#F6F2F1">MQ</text>
+    <line x1="70" y1="115" x2="82" y2="127" stroke="#201E1D" stroke-width="7.5" stroke-linecap="round"/>
+    <text x="126" y="128" font-family="-apple-system,'PingFang SC','Segoe UI','Microsoft YaHei',system-ui,sans-serif" font-size="60" font-weight="800" letter-spacing="-1" fill="#18181B">MQ Studio</text>
+  </g>
+
+  <!-- value -->
+  <text x="10" y="205" font-family="-apple-system,'PingFang SC','Segoe UI','Microsoft YaHei',system-ui,sans-serif" font-size="28" font-weight="600" fill="#3F3F46">See inside your message queues.</text>
+  <text x="10" y="241" font-family="-apple-system,'PingFang SC','Segoe UI','Microsoft YaHei',system-ui,sans-serif" font-size="20.5" fill="#71717A">Clusters, topics, consumers, messages — one desktop app, nothing to deploy.</text>
+
+  <!-- metadata -->
+  <g id="meta">
+    <rect x="10" y="272" width="234" height="36" rx="18" fill="none" stroke="#E0E0E3" stroke-width="1.5"/>
+    <circle cx="32" cy="290" r="4.5" fill="#29915D"/>
+    <text x="46" y="296" font-family="ui-monospace,'SF Mono',Menlo,Consolas,monospace" font-size="16.5" fill="#52525B">RocketMQ 4.x / 5.x</text>
+    <text x="272" y="296" font-family="ui-monospace,'SF Mono',Menlo,Consolas,monospace" font-size="16.5" fill="#71717A">macOS · Windows · Linux&#160;&#160;·&#160;&#160;Apache-2.0</text>
+  </g>
+
+  <!-- queue rails: messages flowing from producer to consumer -->
+  <g id="rails">
+    <line x1="748" y1="113" x2="1178" y2="113" stroke="#E4E4E7" stroke-width="1.5"/>
+    <circle cx="748" cy="113" r="5" fill="#71717A"/>
+    <circle cx="1178" cy="113" r="5.5" fill="none" stroke="#71717A" stroke-width="2"/>
+    <rect x="785" y="98" width="30" height="30" rx="9" fill="#FAFAFA" stroke="#D4D4D8" stroke-width="1.5"/>
+    <rect x="845" y="98" width="30" height="30" rx="9" fill="#FAFAFA" stroke="#D4D4D8" stroke-width="1.5"/>
+    <rect x="905" y="98" width="30" height="30" rx="9" fill="#FAFAFA" stroke="#D4D4D8" stroke-width="1.5"/>
+    <rect x="1025" y="98" width="30" height="30" rx="9" fill="#FAFAFA" stroke="#D4D4D8" stroke-width="1.5"/>
+    <rect x="1085" y="98" width="30" height="30" rx="9" fill="#FAFAFA" stroke="#D4D4D8" stroke-width="1.5"/>
+    <line x1="748" y1="187" x2="1178" y2="187" stroke="#E4E4E7" stroke-width="1.5"/>
+    <circle cx="748" cy="187" r="5" fill="#71717A"/>
+    <circle cx="1178" cy="187" r="5.5" fill="none" stroke="#71717A" stroke-width="2"/>
+    <rect x="775" y="172" width="30" height="30" rx="9" fill="#FAFAFA" stroke="#D4D4D8" stroke-width="1.5"/>
+    <rect x="853" y="172" width="30" height="30" rx="9" fill="#FAFAFA" stroke="#D4D4D8" stroke-width="1.5"/>
+    <rect x="1003" y="172" width="30" height="30" rx="9" fill="#FAFAFA" stroke="#D4D4D8" stroke-width="1.5"/>
+    <rect x="1081" y="172" width="30" height="30" rx="9" fill="#FAFAFA" stroke="#D4D4D8" stroke-width="1.5"/>
+    <line x1="748" y1="261" x2="1178" y2="261" stroke="#E4E4E7" stroke-width="1.5"/>
+    <circle cx="748" cy="261" r="5" fill="#71717A"/>
+    <circle cx="1178" cy="261" r="5.5" fill="none" stroke="#71717A" stroke-width="2"/>
+    <rect x="805" y="246" width="30" height="30" rx="9" fill="#FAFAFA" stroke="#D4D4D8" stroke-width="1.5"/>
+    <rect x="865" y="246" width="30" height="30" rx="9" fill="#FAFAFA" stroke="#D4D4D8" stroke-width="1.5"/>
+    <rect x="985" y="246" width="30" height="30" rx="9" fill="#FAFAFA" stroke="#D4D4D8" stroke-width="1.5"/>
+    <rect x="1045" y="246" width="30" height="30" rx="9" fill="#FAFAFA" stroke="#D4D4D8" stroke-width="1.5"/>
+    <rect x="1105" y="246" width="30" height="30" rx="9" fill="#FAFAFA" stroke="#D4D4D8" stroke-width="1.5"/>
+  </g>
+
+  <!-- featured message + magnifier echoing the logo's Q -->
+  <g id="inspect">
+    <rect x="926" y="170" width="34" height="34" rx="10" fill="#EC3013"/>
+    <circle cx="943" cy="187" r="31" fill="none" stroke="#18181B" stroke-width="3.5"/>
+    <line x1="965" y1="209" x2="988" y2="232" stroke="#18181B" stroke-width="7.5" stroke-linecap="round"/>
+  </g>
+</svg>

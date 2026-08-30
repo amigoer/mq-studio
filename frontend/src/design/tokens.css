@@ -1,0 +1,1233 @@
+/*
+ * Design-canvas token layer, ported verbatim from mq-studio-design.dc.html.
+ * Values are absolute px on purpose: the canvas was drawn at a 13px root, and
+ * the UI scale multiplies them all at once by zooming the document (see
+ * useUIScale) rather than by restyling anything here.
+ * The deviations are `.m3`, which fills the window instead of the 1180x764
+ * artboard frame, the two `.tb2` additions -- room for the native traffic
+ * lights in place of the ones the canvas drew, and the window drag region --
+ * `.tbi`, whose icons the canvas drew too small for a real window, the
+ * `.side3` collapse, which the canvas drew no state for at all, `.t3.inset`,
+ * which lines a full-width list table's outer columns up with the page gutter
+ * rather than the canvas's own 14px cell padding, the breakpoints at the foot
+ * of the file, which the canvas drew at one size only, the elastic `.srow`
+ * label -- the settings page follows the shipped app's layout rather than
+ * board 3g's single column, and its hints run long -- and the two blocks that
+ * close the file: toasts, which the canvas has no transient state to draw, and
+ * the motion switch they and everything else answer to.
+ */
+
+.m3 {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--c-bg);
+  color: var(--c-fg);
+  /* The fallback is the canvas's own stack, for the frames before the
+     interface font setting has loaded. See lib/fonts. */
+  font: 13px/1.5
+    var(--app-ui-font, -apple-system, 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif);
+  /* The shell is the window: nothing inside it may scroll the document and take
+     the title bar off screen. What overflows scrolls in its own pane. */
+  overflow: hidden;
+  /*
+   * Boards adapt to the room the shell has in drawn px, which the document zoom
+   * changes and the viewport does not -- so the breakpoints below are container
+   * queries and not media queries, which would still be reading the window.
+   */
+  container: shell / inline-size;
+}
+.mono3 {
+  font-family: var(--app-monospace-font, 'JetBrains Mono', ui-monospace, Menlo, monospace);
+}
+
+/*
+ * The colour scale, lifted out of the values the canvas was drawn in so the
+ * shell can be re-grounded without touching a board. Every name below holds
+ * exactly the value it replaced, so light renders as it always did; the dark
+ * theme is the same names bound to a second set.
+ *
+ * Two families stay literal on purpose: the brand marks (the protocol glyphs,
+ * the GitHub mark, the logo's red) and the palettes the theme cards draw --
+ * those are pictures of a theme, not the theme itself, and must not follow it.
+ */
+:root {
+  /* surfaces */
+  --c-bg: #fff;
+  --c-panel: #fcfcfc;
+  --c-bar: #fafafa;
+  --c-fill: #f5f5f5;
+  --c-fill-soft: #f8f8f8;
+  --c-fill-mute: #f0f0f0;
+  --c-fill-zinc: #f4f4f5;
+  /* The hairline between rows of one card, lighter than the card's own edge. */
+  --c-rule: #f4f4f4;
+
+  /* borders */
+  --c-border: #ebebeb;
+  --c-border-soft: #e4e4e7;
+  --c-border-dash: #e0e0e0;
+  --c-border-strong: #d4d4d8;
+
+  /* text, darkest first */
+  --c-fg: #171717;
+  --c-fg-hover: #2b2b2b;
+  --c-fg-2: #525252;
+  --c-mono-dim: #666;
+  --c-muted: #8a8a8a;
+  --c-muted-zinc: #71717a;
+  --c-muted-2: #a3a3a3;
+  --c-muted-3: #b5b1aa;
+  --c-disabled: #c9c9c9;
+
+  /* states */
+  --c-ok: #29915d;
+  --c-ok-text: #1f7a4d;
+  --c-ok-tint: rgba(41, 145, 93, 0.1);
+  --c-warn: #d97706;
+  --c-warn-text: #b45309;
+  --c-warn-text-deep: #92400e;
+  --c-warn-bg: #fef3c7;
+  --c-warn-bg-soft: #fffbeb;
+  --c-warn-border: #fde68a;
+  --c-err: #dc2828;
+  --c-err-text: #b91c1c;
+  --c-err-bg: #fee2e2;
+  --c-err-bg-soft: #fef2f2;
+  --c-err-border: #f5caca;
+  --c-info-text: #0369a1;
+  --c-accent-blue: #0b64f4;
+  /*
+   * Chart series, in fixed order. Status colours are reserved for status, so a
+   * series never borrows one: a green line would read as "healthy" rather than
+   * as "produce". The pair is checked for colour-vision separation against the
+   * page background, which is why it is two hues rather than two greys.
+   */
+  --c-series-1: #0b64f4;
+  --c-series-2: #a21caf;
+
+  /* marks that have to read on either ground */
+  --c-logo-ink: #201e1d;
+  --c-github-mark: #181717;
+  --c-brand-kafka: #231f20;
+  --c-brand-mqtt: #660066;
+
+  /* the scrim a modal lays over the window */
+  --c-scrim: rgba(23, 23, 23, 0.32);
+
+  /* Selected text. Only the ground is set, so the text keeps its own colour. */
+  --c-selection: rgba(23, 23, 23, 0.16);
+
+  /*
+   * Motion. Every duration in the shell is one of these, so 界面过渡动画 has a
+   * single place to turn them off -- see the switch at the foot of the file.
+   * Three lengths: `fast` for a colour under the cursor, `base` for anything
+   * that enters or leaves, `slow` for the two that cross the window.
+   */
+  --mo-fast: 0.12s;
+  --mo-base: 0.18s;
+  --mo-slow: 0.26s;
+  /* One full turn of the update icon, which is a gesture rather than a fade. */
+  --mo-turn: 0.6s;
+  /* Decelerating, so a panel arrives rather than stops. */
+  --mo-ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --mo-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/*
+ * Dark. The canvas was drawn in light only, so this scale is not traced from
+ * it -- it keeps the light one's structure instead: the chrome sits a step off
+ * the content ground (below it in light, above it here), the rule inside a card
+ * stays lighter than the card's own edge, and every state keeps its hue while
+ * swapping which end of it carries the text.
+ *
+ * The class is set by lib/theme, which resolves "跟随系统" against the OS.
+ */
+:root.dark {
+  --c-bg: #0a0a0a;
+  --c-panel: #121212;
+  --c-bar: #141414;
+  --c-fill: #1f1f1f;
+  --c-fill-soft: #171717;
+  --c-fill-mute: #242424;
+  --c-fill-zinc: #1f1f22;
+  --c-rule: #1e1e1e;
+
+  --c-border: #262626;
+  --c-border-soft: #2c2c2c;
+  --c-border-dash: #333;
+  --c-border-strong: #454545;
+
+  --c-fg: #fafafa;
+  --c-fg-hover: #e5e5e5;
+  --c-fg-2: #d4d4d4;
+  --c-mono-dim: #a1a1a1;
+  --c-muted: #8f8f8f;
+  --c-muted-zinc: #8b8b93;
+  --c-muted-2: #6f6f6f;
+  --c-muted-3: #6b665e;
+  --c-disabled: #4a4a4a;
+
+  --c-ok: #3fb07a;
+  --c-ok-text: #6ee7a8;
+  --c-ok-tint: rgba(63, 176, 122, 0.14);
+  --c-warn: #f59e0b;
+  --c-warn-text: #fbbf24;
+  --c-warn-text-deep: #fcd34d;
+  --c-warn-bg: #3a2a08;
+  --c-warn-bg-soft: #1f1705;
+  --c-warn-border: #5a4210;
+  --c-err: #ef4444;
+  --c-err-text: #fca5a5;
+  --c-err-bg: #3a1414;
+  --c-err-bg-soft: #1f0d0d;
+  --c-err-border: #5a1f1f;
+  --c-info-text: #7dd3fc;
+  --c-accent-blue: #5b9bff;
+  /* Re-stepped for the dark surface, not flipped: the light pair sits too
+     bright against #0a0a0a to keep its separation. */
+  --c-series-1: #3b82f6;
+  --c-series-2: #c026d3;
+
+  --c-logo-ink: #fafafa;
+  --c-github-mark: #f0f6fc;
+  --c-brand-kafka: #e4e4e7;
+  --c-brand-mqtt: #c4b5fd;
+
+  /* Black rather than the ink: over a dark window, a lighter scrim lifts. */
+  --c-scrim: rgba(0, 0, 0, 0.55);
+  --c-selection: rgba(250, 250, 250, 0.22);
+}
+
+/* title bar */
+.tb2 {
+  height: 40px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--c-border);
+  /* The bar is the window's drag handle; see the opt-out below. */
+  --wails-draggable: drag;
+}
+/*
+ * Native traffic lights start at trafficLightLeft (16) and span 52px. They are
+ * AppKit's own buttons, so they keep their size while the bar around them
+ * scales: the reserve is divided by the scale to stay those same 78 on-screen
+ * px. WindowService.SetTitleBarHeight handles the other axis.
+ */
+.tb2--mac {
+  padding-left: calc(78px / var(--mqs-scale, 1));
+}
+/*
+ * `--wails-draggable` inherits, so every control in the bar has to opt back
+ * out: a drag started on a button swallows the click that follows it.
+ */
+.tb2 button,
+.tb2 [role='tab'] {
+  --wails-draggable: no-drag;
+}
+/*
+ * The canvas drew 26px boxes, which left the cluster the shortest thing in a
+ * bar of 30px tabs; 28px lines it up with those and gives the icons room. The
+ * font-size is the canvas's and now carries nothing -- every child is an SVG.
+ */
+/*
+ * 检查更新 turns its icon for as long as the check is in flight. TitleBar drops
+ * the class on an iteration boundary rather than the moment the answer lands,
+ * so the icon always comes to rest upright and a check answered in 50ms still
+ * reads as a turn instead of a twitch.
+ */
+.mqs-refresh.on {
+  animation: mqs-turn var(--mo-turn) linear infinite;
+}
+@keyframes mqs-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+/* Anything else waiting on Go turns the same way, at the same speed. */
+.mqs-turning {
+  animation: mqs-turn var(--mo-turn) linear infinite;
+}
+/*
+ * A control small enough to live inside a field's grey hint line. It borrows
+ * the hint's own size so the line keeps its rhythm, and only colour and the
+ * underline say it is pressable.
+ */
+.mqs-linkbtn {
+  border: 0;
+  padding: 2px 6px;
+  margin: -2px -6px;
+  border-radius: 5px;
+  background: none;
+  font: inherit;
+  color: var(--c-ok);
+  cursor: default;
+  transition: background var(--mo-fast);
+}
+/*
+ * No underline. An underlined coloured word is a hyperlink, and a hyperlink in
+ * a desktop window says "this navigates somewhere" about a control that
+ * formats a text box. The hover tint is what a native text button does
+ * instead: nothing until the pointer is on it, then a surface.
+ */
+.mqs-linkbtn:hover {
+  background: var(--c-fill);
+  color: var(--c-fg);
+}
+/* Disclosure toggle (form 高级): grey like the line it sits on, chevron
+   turned by the state it reports. */
+.mqs-disclosure {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  border: 0;
+  padding: 2px 6px;
+  margin: -2px -6px;
+  border-radius: 5px;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: default;
+  transition: background var(--mo-fast);
+}
+.mqs-disclosure:hover { background: var(--c-fill); }
+.mqs-disclosure svg { transition: transform var(--mo-fast) ease; }
+.mqs-disclosure[aria-expanded="true"] svg { transform: rotate(90deg); }
+
+/*
+ * Window buttons, off darwin only (see WindowControls). They act on the window
+ * rather than on the app, so they sit past a divider and drop the `.tbi`
+ * outline -- three more outlined squares would read as three more app buttons.
+ */
+.wcg {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: none;
+  padding-left: 8px;
+  border-left: 1px solid var(--c-border);
+}
+.wc {
+  width: 28px;
+  height: 26px;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--c-fg-2);
+  font-family: inherit;
+  font-size: 12.5px;
+  line-height: 1;
+  cursor: default;
+  transition:
+    background-color var(--mo-fast) ease,
+    color var(--mo-fast) ease;
+}
+.wc:hover {
+  background: var(--c-fill-mute);
+}
+/* Close is the only irreversible button in the bar, so it hovers like `.btn3.dgr`. */
+.wc.dgr:hover {
+  background: var(--c-err-bg-soft);
+  color: var(--c-err);
+}
+.wc:focus-visible {
+  outline: 2px solid var(--c-fg);
+  outline-offset: 1px;
+}
+.dotg {
+  width: 7px;
+  height: 7px;
+  border-radius: 99px;
+  background: var(--c-ok);
+  flex: none;
+}
+
+/* sidebar */
+.side3 {
+  width: 198px;
+  flex: none;
+  border-right: 1px solid var(--c-border);
+  display: flex;
+  flex-direction: column;
+  padding: 10px;
+  gap: 2px;
+  /* Labels leave by being clipped, not by wrapping into the narrowing rail.
+     This makes the other axis `auto`, which the 750px MinHeight never needs. */
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  transition: width var(--mo-base) var(--mo-ease);
+}
+.gl {
+  padding: 8px 10px 4px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--c-muted);
+  text-transform: uppercase;
+}
+.ni {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5.5px 10px;
+  border-radius: 8px;
+  color: var(--c-fg-2);
+  font-size: 12.5px;
+  position: relative;
+}
+.ni.on {
+  background: var(--c-fg);
+  color: var(--c-bg);
+  font-weight: 500;
+}
+.ni.on .nic {
+  opacity: 0.9;
+}
+/* A page this endpoint cannot open. It stays in the list because the reason
+   sits on it, and a missing entry explains nothing. */
+.ni:disabled {
+  color: var(--c-muted);
+  cursor: not-allowed;
+}
+.ni:disabled .nic {
+  opacity: 0.5;
+}
+/*
+ * Holds the canvas's 16px icon column now that what sits in it is an SVG and
+ * not a Unicode symbol. The rail width is measured off this; Sidebar's own
+ * ICON has to stay 16 to match.
+ */
+.nic {
+  width: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.7;
+  flex: none;
+}
+
+/*
+ * The rail is the label column taken off 198px: 10px of panel padding, the
+ * item's own 10px and the 16px icon, that padding pair again on the other
+ * side, and the 1px border. The icon keeps the x it had expanded, so nothing
+ * slides sideways while the width animates -- the labels are all that go, and
+ * the icon lands centred in what is left of the active item's pill.
+ */
+.side3--rail {
+  width: 57px;
+}
+.nil {
+  white-space: nowrap;
+  /* Collapsing fades first and the width follows; expanding waits for the
+     room, so a label never appears in a rail too narrow to hold it. */
+  transition: opacity var(--mo-fast) ease 0.08s;
+}
+.side3--rail .nil {
+  opacity: 0;
+  transition: opacity var(--mo-fast) ease;
+}
+/*
+ * The group labels stay in the rail: they are the only thing saying where
+ * 浏览 ends and 运维 begins, which a column of anonymous icons does not. They
+ * trade their own padding for the nav's too, so the text has all 56px of rail
+ * instead of 36 -- it centres on the same x either way, the one the icons sit
+ * on. Vertical padding is untouched, so every icon keeps the y it had expanded.
+ */
+.side3--rail .gl {
+  margin-left: -10px;
+  margin-right: -10px;
+  padding-left: 0;
+  padding-right: 0;
+  text-align: center;
+  /* Wrapping would grow the gap between the groups; overrun clips instead. */
+  white-space: nowrap;
+  overflow: hidden;
+}
+/*
+ * Chrome rather than navigation, so it reads a step quieter than the pages --
+ * the grey the group labels use. Two classes to outrank `button.ni`'s reset.
+ */
+.side3 .side3-toggle {
+  color: var(--c-muted);
+}
+
+/* page header / toolbar */
+.hd3 {
+  flex: none;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  row-gap: 8px;
+  /* Single rows by design. Wrapping only engages where the row would otherwise
+     run past the window, which is the one case the canvas never drew. */
+  flex-wrap: wrap;
+  padding: 14px 20px 12px;
+  border-bottom: 1px solid var(--c-border);
+}
+.hd3 h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.hd3 .sub {
+  font-size: 11.5px;
+  color: var(--c-muted);
+  margin-top: 2px;
+}
+.tbar3 {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  row-gap: 8px;
+  /* See .hd3: the filter row wraps rather than losing its last control. */
+  flex-wrap: wrap;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--c-border);
+}
+
+/* controls */
+
+/* table */
+/*
+ * The slack in a table of short values has to land somewhere; this one empty
+ * column puts it after the data and before the row actions, so the data packs
+ * left where it scans, the actions keep the right edge, and no gap opens
+ * between two columns that belong together.
+ */
+
+/*
+ * A table that is the page's own content, not a card's: its outer cells take
+ * the 20px page gutter, so the first column lines up with the header title and
+ * the last with the header actions instead of sitting 6px outside both.
+ */
+
+/* status pills */
+
+/*
+ * The bullet the canvas prefixed online states with, as a shape rather than a
+ * glyph: it holds its size against `.st`'s 11px and follows the tone's colour.
+ */
+.mqs-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 99px;
+  background: currentColor;
+  flex: none;
+}
+
+/* The dropdown caret needs the pill to lay its label and icon out in a row. */
+
+/* protocol badge */
+.pb {
+  font: 600 9.5px var(--app-monospace-font, 'JetBrains Mono', ui-monospace, monospace);
+  border-radius: 4px;
+  padding: 2px 6px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.pRMQ { background: #fff1e6; color: #c2410c; }
+.pKFK { background: #ececee; color: #18181b; }
+.pAMQ { background: #fef3c7; color: #b45309; }
+.pPLS { background: #e0f2fe; color: #0369a1; }
+.pRDS { background: #fee2e2; color: #b91c1c; }
+.pMQT { background: #ede9fe; color: #6d28d9; }
+:root.dark .pRMQ { background: #3a1f0c; color: #fdba74; }
+:root.dark .pKFK { background: #26262a; color: #e4e4e7; }
+:root.dark .pAMQ { background: #3a2a08; color: #fcd34d; }
+:root.dark .pPLS { background: #0c2a3a; color: #7dd3fc; }
+:root.dark .pRDS { background: #3a1414; color: #fca5a5; }
+:root.dark .pMQT { background: #241a3a; color: #c4b5fd; }
+
+/* misc primitives */
+/*
+ * The thumb is anchored off and slid on, rather than swapping which edge it
+ * hangs from: 12px is the track's 28 less the 2px inset at either end and the
+ * thumb's own width, so `on` lands it exactly where `right: 2px` did.
+ */
+/* Elastic, as the shipped settings page draws it: the hints run long. */
+
+/*
+ * Settings typography.
+ *
+ * The rest of the shell is drawn at the canvas's board scale, which was sized
+ * for dense tables: 10.5px uppercase group labels, 11px hints, 12px controls.
+ * Settings is the one page that is prose rather than rows of data -- its hints
+ * are full sentences and they are set in 简体中文, which loses its strokes long
+ * before Latin loses its shape at the same size. So the page carries a scale of
+ * its own, one step up across the board, and every size on it comes from here
+ * rather than from a literal in the panel that happened to need one.
+ */
+.set3 {
+  --set-title: 16px;
+  --set-sub: 12.5px;
+  --set-group: 11.5px;
+  --set-label: 13px;
+  --set-hint: 12px;
+  --set-control: 12.5px;
+  --set-meta: 11.5px;
+}
+.set3 .sec3 {
+  font-size: var(--set-group);
+  /* .08em opens up a Latin run; a CJK one it merely pulls apart. */
+  letter-spacing: 0.05em;
+}
+.set3 [data-slot='setting-row'] {
+  font-size: var(--set-label);
+  padding: 13px 16px;
+}
+.set3 [data-slot='setting-row-hint'] {
+  font-size: var(--set-hint);
+  line-height: 1.55;
+  margin-top: 3px;
+}
+.set3 button[data-slot='button'],
+.set3 [data-slot='select-trigger'] {
+  font-size: var(--set-control);
+}
+/* The section rail reads as the row labels it selects between. */
+.set3 .ni,
+.set3 button.ni {
+  font-size: var(--set-label);
+  padding: 6.5px 10px;
+}
+
+/* protocol logo + picker tile */
+.plogo {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+  flex: none;
+  vertical-align: -2px;
+}
+.ptile {
+  border: 1px solid var(--c-border);
+  border-radius: 8px;
+  padding: 8px 4px;
+  text-align: center;
+  font-size: 10.5px;
+  color: var(--c-fg-2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.ptile img,
+.ptile svg { width: 18px; height: 18px; object-fit: contain; }
+.ptile.sel {
+  border: 1.5px solid var(--c-fg);
+  background: var(--c-bar);
+  font-weight: 500;
+  color: var(--c-fg);
+  padding: 7.5px 3.5px;
+}
+.pv { font-size: 9.5px; color: var(--c-muted-2); font-weight: 400; }
+/* Protocols with no driver yet: drawn, greyed, not selectable. */
+.ptile:disabled { color: var(--c-muted); cursor: not-allowed; }
+.ptile:disabled svg { filter: grayscale(1); opacity: 0.4; }
+.ptile:disabled .pv { color: inherit; }
+
+/*
+ * Interaction layer. The canvas is a static mockup, so hover/active states are
+ * additive only: the resting appearance of every element above is unchanged.
+ *
+ * A desktop shell, not a page: the arrow cursor throughout and nothing
+ * selectable, so a stray drag never paints half the window. Only what an
+ * operator actually copies opts back in -- the monospaced values (endpoints,
+ * topics, ids, payloads) and anything typed into.
+ */
+.m3 {
+  cursor: default;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.m3 .mono3,
+.m3 input,
+.m3 textarea,
+.m3 [contenteditable] {
+  cursor: text;
+  -webkit-user-select: text;
+  user-select: text;
+}
+/* The shell is neutral with one red accent; the app-wide indigo has no place. */
+.m3::selection,
+.m3 ::selection {
+  background: rgba(23, 23, 23, 0.13);
+}
+
+/*
+ * Everything the cursor recolours eases into it. Declared beside the hover
+ * rules rather than on each element above, so the resting appearance the
+ * canvas drew stays where it is and only the way it is reached is added.
+ */
+.ni,
+.ptile {
+  transition:
+    background-color var(--mo-fast) ease,
+    border-color var(--mo-fast) ease,
+    box-shadow var(--mo-fast) ease,
+    color var(--mo-fast) ease;
+}
+
+.ni:not(.on):not(:disabled):hover { background: var(--c-fill); }
+.ptile:not(.sel):not(:disabled):hover { background: var(--c-bar); }
+
+button.mqs-tab-home {
+  font-family: inherit;
+  line-height: inherit;
+  cursor: default;
+}
+button.btn3:focus-visible,
+button.tbi:focus-visible,
+.ni:focus-visible,
+.mqs-tab:focus-visible,
+.mqs-tab-home:focus-visible {
+  outline: 2px solid var(--c-fg);
+  outline-offset: 1px;
+}
+input.in3,
+textarea.in3,
+select.in3 {
+  color: var(--c-fg);
+  font-family: inherit;
+  outline: none;
+}
+input.in3::placeholder,
+textarea.in3::placeholder { color: var(--c-muted); }
+input.in3:focus,
+textarea.in3:focus,
+select.in3:focus { border-color: var(--c-border-strong); }
+
+/* Scrollbars inside the shell stay thin so the chrome metrics hold. */
+/* `overscroll-behavior: contain` keeps a list that has hit its end from
+   handing the gesture to the window behind it, which is what makes the whole
+   app appear to bounce when you were only scrolling a table. */
+.mqs-scroll { overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--c-border-soft) transparent; }
+.mqs-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+.mqs-scroll::-webkit-scrollbar-thumb { background: var(--c-border-soft); border-radius: 99px; }
+.mqs-scroll::-webkit-scrollbar-track { background: transparent; }
+
+/*
+ * The colour layer under the message-body editor: the same text, tokenised,
+ * behind a textarea whose own text is transparent. It has to reserve the same
+ * scrollbar gutter as that textarea or the two copies wrap at different widths
+ * and the colours drift off the characters -- so it scrolls on the same terms
+ * and only its thumb is invisible.
+ */
+.mqs-ghost { overflow: auto; scrollbar-width: thin; scrollbar-color: transparent transparent; }
+.mqs-ghost::-webkit-scrollbar { width: 8px; height: 8px; }
+.mqs-ghost::-webkit-scrollbar-thumb { background: transparent; }
+.mqs-ghost::-webkit-scrollbar-track { background: transparent; }
+
+/* Compact in-row action button (8a "打开标签 / 断开 / 编辑 / ⋯"). */
+
+/* Button resets, so nav/tab affordances can be real buttons without restyling. */
+button.ni,
+button.mqs-tab,
+button.mqs-menuitem,
+.ptile button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  text-align: left;
+  appearance: none;
+}
+/*
+ * `.in3` as a button keeps its own 12px size — a `font: inherit` reset here
+ * would pull it up to the 13px shell font and grow the control by 1.5px.
+ */
+button.in3 {
+  font-family: inherit;
+  line-height: inherit;
+  text-align: left;
+  appearance: none;
+}
+button.ni {
+  font-size: 12.5px;
+  color: var(--c-fg-2);
+  width: 100%;
+}
+button.ni.on { background: var(--c-fg); color: var(--c-bg); }
+
+/* The compact table used inside detail sheets (partition lists, bindings…). */
+
+/*
+ * The mark and the strip share one row so the gap between the mark and the
+ * first tab is the gap between two tabs, not the title bar's wider one.
+ */
+.mqs-tabrow {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+/*
+ * The mark as the default tab. Its own 30px height stands in for the tabs'
+ * vertical padding: the glyph is taller than their 12px text, and padding it
+ * like a tab would push the pill past the 40px bar.
+ */
+.mqs-tab-home {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  height: 30px;
+  padding: 0 9px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  transition: background-color var(--mo-fast) ease;
+}
+.mqs-tab-home:hover {
+  background: var(--c-fill-mute);
+}
+.mqs-tab-home[aria-current='page'] {
+  background: var(--c-bg);
+  border-color: var(--c-border);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+/*
+ * Connection tabs live inside the title bar rather than on the canvas's own
+ * 39px strip. That leaves them roughly 770px instead of 1180px, so the strip
+ * takes the bar's free space, tabs shrink to `--mqs-tab-min`, and only past
+ * that does the strip scroll (its scrollbar is hidden — a 40px bar has no
+ * room for one). 118px is the floor that still fits six tabs at a 1180px
+ * window; below the name is narrower than the protocol icon beside it.
+ */
+.mqs-tabstrip {
+  --mqs-tab-min: 118px;
+  --mqs-tab-max: 200px;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  /* .tb2's own 8px gap already separates the strip from the mark and search. */
+  scrollbar-width: none;
+}
+.mqs-tabstrip::-webkit-scrollbar {
+  display: none;
+}
+.mqs-tab {
+  position: relative;
+  min-width: var(--mqs-tab-min);
+  max-width: var(--mqs-tab-max);
+  /*
+   * The colour the tab is painted with. Both the status dot's ring and the
+   * close ×'s fade have to disappear into it, so the three states are declared
+   * here once instead of being restated by everything that must match them.
+   */
+  --mqs-tab-bg: var(--c-bar);
+}
+.mqs-tab[aria-selected='true'] {
+  --mqs-tab-bg: var(--c-bg);
+}
+/* The name is the only part that gives way; the mark keeps its size. */
+.mqs-tab-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/*
+ * The connection's status rides on the protocol mark as a corner badge. As its
+ * own `.dotg` it cost 14px of every tab (7px dot + 7px gap); here it costs
+ * nothing, which is 84px back across six tabs.
+ */
+.mqs-tab-mark {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+}
+.mqs-tab-dot {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 6px;
+  height: 6px;
+  border-radius: 99px;
+  box-shadow: 0 0 0 1.5px var(--mqs-tab-bg);
+}
+
+/*
+ * Connection tab hover. 5a draws the hovered inactive tab with its close ×
+ * revealed in var(--c-disabled) — that is the only thing separating it from the two
+ * tabs after it. Moving along the strip must not reflow it, or a tab can
+ * slide out from under the cursor.
+ */
+.mqs-tab,
+.mqs-tab-add,
+.mqs-tab-close {
+  transition:
+    background-color var(--mo-fast) ease,
+    border-color var(--mo-fast) ease,
+    color var(--mo-fast) ease;
+}
+
+.mqs-tab[aria-selected='false']:hover {
+  background: var(--c-fill-mute);
+  --mqs-tab-bg: var(--c-fill-mute);
+}
+
+/*
+ * The × is laid over the end of the name rather than sitting beside it. Held
+ * open in the row it cost every tab ~16px, a slot every tab but the active one
+ * was keeping for a button it was not showing. Overlaid, revealing it still
+ * costs no width -- the strip holds just as still -- and the name gets the
+ * whole tab, fading out under the × instead of stopping short of it.
+ */
+.mqs-tab-close {
+  position: absolute;
+  /* Offsets are from the padding box, so this nests inside the 1px border. */
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  /* Right padding is the tab's own, putting the × where the name would end. */
+  padding: 0 11px 0 6px;
+  border: none;
+  border-radius: 0 7px 7px 0;
+  background: var(--mqs-tab-bg);
+  font: inherit;
+  line-height: 1;
+  color: var(--c-muted-2);
+}
+/*
+ * The runway the name fades out along. It hangs off the button so it inherits
+ * the button's visibility, but it takes no clicks: what closes a tab stays the
+ * × itself, not the whole faded end of it.
+ */
+.mqs-tab-close::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 100%;
+  bottom: 0;
+  width: 22px;
+  pointer-events: none;
+  background: linear-gradient(to right, transparent, var(--mqs-tab-bg));
+}
+
+/*
+ * Only the active tab shows its × at rest; the others reveal it on hover, over
+ * their own name.
+ * Keyboard users get the × via :focus-within, the tab itself being focusable.
+ */
+.mqs-tab[aria-selected='false'] .mqs-tab-close {
+  visibility: hidden;
+  color: var(--c-disabled);
+}
+.mqs-tab[aria-selected='false']:hover .mqs-tab-close,
+.mqs-tab[aria-selected='false']:focus-within .mqs-tab-close {
+  visibility: visible;
+}
+/* Scoped to .mqs-tab so it outranks the [aria-selected] rule that greys it. */
+.mqs-tab .mqs-tab-close:hover {
+  color: var(--c-fg);
+}
+
+/* The dashed ＋ that opens the new-connection dialog. */
+.mqs-tab-add {
+  flex: none;
+  /* Held explicitly: the height used to come from the glyph's line box. */
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 9px;
+  border: 1px dashed var(--c-border-strong);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--c-muted);
+}
+.mqs-tab-add:hover {
+  background: var(--c-fill-mute);
+  border-color: var(--c-disabled);
+  color: var(--c-fg-2);
+}
+
+/*
+ * Breakpoints. The canvas drew every board at one size, 1180x764, and auto
+ * scaling never leaves the shell less room than that -- so these only come into
+ * play when the window is dragged narrow or the UI scale is pinned larger than
+ * the window has room for. They are container queries: `zoom` changes the width
+ * the shell is laid out at without touching the viewport a media query reads.
+ */
+
+/*
+ * Overview KPI row. 145px is the tile width the canvas's five columns come to in
+ * the smallest window the app opens (1024 wide), so the five hold at every real
+ * window size and the row only wraps once the scale has taken the shell below
+ * one.
+ */
+.mqs-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+  gap: 12px;
+}
+
+/*
+ * The overview's jump-off row. It wraps rather than stacking: four short
+ * labels on one line is the point, and two lines of two is the next best
+ * thing when the shell is narrow.
+ */
+.mqs-shortcuts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+  flex: none;
+}
+
+/*
+ * Overview chart row. The canvas's 1.7 / 1 split stacks once the meters in the
+ * narrower card would have less room than their labels.
+ *
+ * Taller than the canvas drew it. At 168px the plot left after the heading,
+ * the legend and the time axis came to about 64px, and an hour of samples in
+ * 64px reads as a flat line whatever it is actually doing.
+ */
+.mqs-chartrow {
+  display: grid;
+  grid-template-columns: 1.7fr 1fr;
+  gap: 12px;
+  height: 240px;
+  flex: none;
+}
+@container shell (max-width: 940px) {
+  .mqs-chartrow {
+    grid-template-columns: 1fr;
+    grid-auto-rows: 240px;
+    height: auto;
+  }
+}
+
+/* Cluster node cards. Two columns is the drawn layout; one is all that is left. */
+.mqs-nodegrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+@container shell (max-width: 780px) {
+  .mqs-nodegrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/*
+ * Past this the sidebar costs more of the page than the page can spare, so it
+ * takes the rail it already has a state for. `.side3--rail` is still the user's
+ * own choice: this overrides the width without touching it, so the nav goes back
+ * to whatever they had once there is room again.
+ */
+@container shell (max-width: 860px) {
+  .side3 {
+    width: 57px;
+  }
+  .side3 .nil {
+    opacity: 0;
+  }
+  .side3 .gl {
+    margin-left: -10px;
+    margin-right: -10px;
+    padding-left: 0;
+    padding-right: 0;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+}
+
+/*
+ * The detail sheet is drawn 380px wide against a 1180px shell. It overlays the
+ * list rather than shrinking it, so on a narrow shell that width would leave the
+ * table it is describing unreadable behind it.
+ */
+
+
+/* The theme cards are selectable, so they are real buttons wearing `.card3`. */
+button.card3 {
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  padding: 0;
+  appearance: none;
+}
+button.card3:hover {
+  border-color: var(--c-border-strong);
+}
+
+/*
+ * Toasts. sonner draws the stack; what follows dresses it in the canvas -- the
+ * `.card3` border and radius, the state tones on the icon, `.btn3` on the
+ * action -- so what changed with the component is the behaviour, not the card.
+ * Fixed to the window rather than to the shell body: what a toast reports
+ * outlives the page that fired it, and the corner is free on every board.
+ *
+ * sonner appends its own stylesheet to <head> and so wins every specificity
+ * tie; every rule below carries `.mqs-toaster` in order to sit above it.
+ */
+.mqs-toaster[data-sonner-toaster] {
+  font-family: inherit;
+}
+.mqs-toaster [data-sonner-toast][data-styled='true'] {
+  padding: 12px 14px;
+  gap: 10px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.14);
+  /*
+   * sonner draws every toast at the full `--width`, which leaves a one-line
+   * report -- "already on the latest version" -- as a card that is mostly
+   * empty. Hugging the line instead, right-anchored so the stack still lines
+   * up against the corner it is docked to.
+   */
+  width: fit-content;
+  min-width: 220px;
+  max-width: 340px;
+  right: 0;
+}
+.mqs-toaster [data-sonner-toast][data-styled='true'] [data-title] {
+  font-size: 12.5px;
+  font-weight: 400;
+  line-height: 1.45;
+}
+.mqs-toaster [data-sonner-toast][data-styled='true'] [data-description] {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--c-muted);
+}
+.mqs-toaster [data-sonner-toast][data-styled='true'] [data-content] {
+  gap: 3px;
+}
+/* The tone is carried by the icon alone, as the drawn card carried it. */
+.mqs-toaster [data-sonner-toast][data-styled='true'] [data-icon] {
+  width: 15px;
+  height: 15px;
+  color: var(--c-fg-2);
+}
+.mqs-toaster [data-sonner-toast][data-type='success'] [data-icon] {
+  color: var(--c-ok-text);
+}
+.mqs-toaster [data-sonner-toast][data-type='warning'] [data-icon] {
+  color: var(--c-warn-text);
+}
+.mqs-toaster [data-sonner-toast][data-type='error'] [data-icon] {
+  color: var(--c-err-text);
+}
+/* `.btn3`, which the action cannot wear: sonner renders the button itself. */
+.mqs-toaster [data-sonner-toast][data-styled='true'] [data-button] {
+  height: auto;
+  padding: 4.5px 12px;
+  border: 1px solid var(--c-border);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--c-fg);
+  background: var(--c-bg);
+}
+.mqs-toaster [data-sonner-toast][data-styled='true'] [data-button]:hover {
+  background: var(--c-bar);
+}
+.mqs-toaster [data-sonner-toast][data-styled='true'] [data-close-button] {
+  width: 18px;
+  height: 18px;
+  color: var(--c-muted-2);
+  background: var(--c-bg);
+  border-color: var(--c-border);
+}
+.mqs-toaster [data-sonner-toast][data-styled='true']:hover [data-close-button]:hover {
+  color: var(--c-fg);
+  background: var(--c-fill);
+  border-color: var(--c-border-strong);
+}
+/*
+ * The 界面过渡动画 switch, which the toast alone cannot follow: sonner's
+ * durations are hard-coded rather than read from the `--mo-*` ladder the rest
+ * of the shell collapses to 0s.
+ */
+html[data-animations='off'] .mqs-toaster [data-sonner-toast] {
+  transition: none;
+}
+
+/*
+ * Overlay motion. Everything that enters the window over the page carries one
+ * of these and a `data-state`, which lib/motion's usePresence drives: the
+ * element renders one frame closed, flips to open, and on the way out is held
+ * mounted for the length below. The direction each takes is where it comes
+ * from -- a modal rises into the middle, a menu drops from its trigger, the
+ * detail sheet comes in off the right edge it is docked to.
+ */
+.mqs-scrim[data-state='open'] {
+  opacity: 1;
+}
+.mqs-drop {
+  opacity: 0;
+  transform: translateY(-4px) scale(0.98);
+  transform-origin: top center;
+  transition:
+    opacity var(--mo-fast) var(--mo-ease-out),
+    transform var(--mo-fast) var(--mo-ease-out);
+}
+.mqs-slide-right {
+  opacity: 0;
+  transform: translateX(16px);
+  transition:
+    opacity var(--mo-base) var(--mo-ease),
+    transform var(--mo-base) var(--mo-ease);
+}
+.mqs-pop[data-state='open'],
+.mqs-drop[data-state='open'],
+.mqs-slide-right[data-state='open'] {
+  opacity: 1;
+  transform: none;
+}
+
+/*
+ * Page transition: the content column when the view, the tab or the page under
+ * it changes. Opacity alone -- a transform here would become the containing
+ * block for the detail sheet, which is positioned against the shell body and
+ * not against the page.
+ */
+.mqs-view {
+  animation: view-in var(--mo-base) var(--mo-ease-out);
+}
+@keyframes view-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/*
+ * 界面过渡动画. useUIPrefs writes the attribute; everything that moves answers
+ * to it here rather than each rule testing for itself. Motion is dropped rather
+ * than shortened, so a transition cannot be caught mid-way.
+ *
+ * The variables are the switch proper -- they carry every duration in the file
+ * and turning them off leaves each element resting exactly where it was drawn.
+ * The blanket below them is the backstop, for a duration written as a literal
+ * anywhere the variables do not reach.
+ */
+:root[data-animations='off'] {
+  --mo-fast: 0s;
+  --mo-base: 0s;
+  --mo-slow: 0s;
+  --mo-turn: 0s;
+}
+:root[data-animations='off'] *,
+:root[data-animations='off'] *::before,
+:root[data-animations='off'] *::after {
+  transition-duration: 0s !important;
+  animation-duration: 0s !important;
+}

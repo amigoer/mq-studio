@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+	<!--
+	  Deliberately empty. Under the hardened runtime a Developer ID build of
+	  this app needs nothing: it is not sandboxed, Go does not need writable
+	  executable memory, and WKWebView's JIT lives in the separate
+	  com.apple.WebKit.WebContent process with its own entitlements.
+
+	  Add com.apple.security.cs.disable-library-validation only if a
+	  third-party dylib ever gets dlopen'd.
+	-->
+	<dict/>
+</plist>

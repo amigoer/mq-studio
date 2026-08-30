@@ -6,6 +6,6 @@ package macwindow
 
 import "unsafe"
 
-// SetTrafficLightPosition does nothing outside macOS, where the renderer draws
-// the window buttons itself.
+// SetTrafficLightPosition does nothing outside macOS, the only platform whose
+// native window buttons overlap the renderer's title bar.
 func SetTrafficLightPosition(_ unsafe.Pointer, _, _ float64) {}

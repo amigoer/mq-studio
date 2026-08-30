@@ -61,8 +61,9 @@ notifications. It leaves the buttons alone while the window is fullscreen,
 where AppKit owns them.
 
 The geometry lives in two places that must agree: `titleBarHeight` and
-`trafficLightLeft` in `main.go`, and the `.mqs-title-bar` rule in
-`frontend/src/styles/app.css`.
+`trafficLightLeft` in `main.go`, and the `.tb2` / `.tb2--mac` rules in
+`frontend/src/design/tokens.css`, which keep the title bar clear of the
+buttons instead of drawing stand-ins for them.
 
 ## Repository layout
 
@@ -76,7 +77,7 @@ internal/
   rocketmq/              RocketMQ client adapter
   crypto/                Local encryption helpers
   storage/               On-disk layout and atomic writes
-  update/                GitHub release update check
+  update/                In-app updater: check, download, verify, install
   macwindow/             Native macOS chrome Wails does not expose (cgo)
 frontend/
   bindings/              Generated TypeScript bindings (committed)

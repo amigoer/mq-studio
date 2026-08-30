@@ -34,7 +34,7 @@ func (f *fakeSettings) ResetSettings() (*model.AppSettings, error) {
 }
 
 type fakeConnections struct {
-	current         []*model.Connection
+	current         []*model.ConnectionProfile
 	validateErr     error
 	validateCalls   int
 	reloadErr       error
@@ -43,8 +43,8 @@ type fakeConnections struct {
 	replaceCalls    int
 }
 
-func (f *fakeConnections) GetConnections() []*model.Connection {
-	result := make([]*model.Connection, 0, len(f.current))
+func (f *fakeConnections) GetConnections() []*model.ConnectionProfile {
+	result := make([]*model.ConnectionProfile, 0, len(f.current))
 	for _, connection := range f.current {
 		if connection == nil {
 			continue
@@ -55,12 +55,12 @@ func (f *fakeConnections) GetConnections() []*model.Connection {
 	return result
 }
 
-func (f *fakeConnections) ValidateConnections([]*model.Connection) error {
+func (f *fakeConnections) ValidateConnections([]*model.ConnectionProfile) error {
 	f.validateCalls++
 	return f.validateErr
 }
 
-func (f *fakeConnections) ReplaceConnections(next []*model.Connection) error {
+func (f *fakeConnections) ReplaceConnections(next []*model.ConnectionProfile) error {
 	f.replaceCalls++
 	if f.replaceFailures > 0 {
 		f.replaceFailures--
@@ -96,11 +96,11 @@ func TestImportRejectsInvalidConnectionsBeforeChangingState(t *testing.T) {
 	previousSettings.Theme = "light"
 	settings := &fakeSettings{current: &previousSettings}
 	connections := &fakeConnections{
-		current: []*model.Connection{{
-			ID:         1,
-			Name:       "online",
-			NameServer: "online:9876",
-			Status:     model.StatusOnline,
+		current: []*model.ConnectionProfile{{
+			ID:        1,
+			Name:      "online",
+			Endpoints: "online:9876",
+			Status:    model.StatusOnline,
 		}},
 		validateErr: errors.New("invalid connection"),
 	}
@@ -146,7 +146,7 @@ func TestUpdateSettingsRetainsSavedSettingsWhenReloadFails(t *testing.T) {
 
 func TestImportRollsBackSettingsAfterConnectionFailure(t *testing.T) {
 	previousSettings := model.DefaultSettings()
-	previousConnections := []*model.Connection{{ID: 1, Name: "old", NameServer: "old:9876"}}
+	previousConnections := []*model.ConnectionProfile{{ID: 1, Name: "old", Endpoints: "old:9876"}}
 	settings := &fakeSettings{current: previousSettings}
 	connections := &fakeConnections{current: previousConnections, replaceFailures: 1}
 	service := New(layout.In(t.TempDir()), settings, connections)
@@ -166,8 +166,8 @@ func TestImportRollsBackSettingsAfterConnectionFailure(t *testing.T) {
 
 func TestExportIncludesPortableConnectionCredentials(t *testing.T) {
 	settings := &fakeSettings{current: model.DefaultSettings()}
-	connections := &fakeConnections{current: []*model.Connection{{
-		ID: 1, Name: "prod", NameServer: "ns:9876", AccessKey: "portable-ak", SecretKey: "portable-sk",
+	connections := &fakeConnections{current: []*model.ConnectionProfile{{
+		ID: 1, Name: "prod", Endpoints: "ns:9876", Auth: model.AuthConfig{Mechanism: model.AuthACL}, Secrets: map[string]string{model.SecretAccessKey: "portable-ak", model.SecretSecretKey: "portable-sk"},
 	}}}
 	service := New(layout.In(t.TempDir()), settings, connections)
 
@@ -207,14 +207,14 @@ func TestDecodeVersionTwoCredentialsKeepsENCPrefix(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if store.Connections[0].AccessKey != "ENC:literal-ak" || store.Connections[0].SecretKey != "ENC:literal-sk" {
+	if store.Connections[0].Secret(model.SecretAccessKey) != "ENC:literal-ak" || store.Connections[0].Secret(model.SecretSecretKey) != "ENC:literal-sk" {
 		t.Fatalf("credentials changed: %#v", store.Connections[0])
 	}
 }
 
 func TestImportRejectsUnsupportedVersionBeforeChangingState(t *testing.T) {
 	settings := &fakeSettings{current: model.DefaultSettings()}
-	connections := &fakeConnections{current: []*model.Connection{{ID: 1, Name: "old", NameServer: "old:9876"}}}
+	connections := &fakeConnections{current: []*model.ConnectionProfile{{ID: 1, Name: "old", Endpoints: "old:9876"}}}
 	service := New(layout.In(t.TempDir()), settings, connections)
 	if err := service.ImportAllConfig(`{"version":3,"settings":{"theme":"dark"}}`); err == nil {
 		t.Fatal("unsupported version should fail")

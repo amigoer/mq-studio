@@ -3,18 +3,22 @@ package app
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/amigoer/mq-studio/internal/crypto"
-	"github.com/amigoer/mq-studio/internal/rocketmq"
-	"github.com/amigoer/mq-studio/internal/service/acl"
+	"github.com/amigoer/mq-studio/internal/driver"
+	"github.com/amigoer/mq-studio/internal/driver/rabbitmq"
+	"github.com/amigoer/mq-studio/internal/driver/rocketmq"
+	"github.com/amigoer/mq-studio/internal/service/access"
 	"github.com/amigoer/mq-studio/internal/service/cluster"
 	"github.com/amigoer/mq-studio/internal/service/collector"
 	"github.com/amigoer/mq-studio/internal/service/configuration"
 	"github.com/amigoer/mq-studio/internal/service/connection"
-	"github.com/amigoer/mq-studio/internal/service/consumer"
+	"github.com/amigoer/mq-studio/internal/service/destination"
 	"github.com/amigoer/mq-studio/internal/service/message"
+	"github.com/amigoer/mq-studio/internal/service/routing"
 	"github.com/amigoer/mq-studio/internal/service/settings"
-	"github.com/amigoer/mq-studio/internal/service/topic"
+	"github.com/amigoer/mq-studio/internal/service/subscription"
 	"github.com/amigoer/mq-studio/internal/storage/layout"
 )
 
@@ -22,14 +26,22 @@ import (
 type Services struct {
 	Connections *connection.Service
 	Cluster     *cluster.Service
-	Topics      *topic.Service
-	Consumers   *consumer.Service
+	Topics      *destination.Service
+	Consumers   *subscription.Service
 	Messages    *message.Service
 	Settings    *configuration.Service
-	ACL         *acl.Service
+	ACL         *access.Service
+	Routing     *routing.Service
+
+	// Conns resolves a profile id to a live connection. The bridge needs it to
+	// answer capability questions without going through a domain service.
+	Conns func(connID int) (driver.Conn, error)
 
 	// Collector keeps the TPS history filling in while the window is hidden.
 	Collector *collector.Collector
+
+	// registry owns every open connection, one per connected profile.
+	registry *driver.Registry
 }
 
 // New initializes the local encryption key and assembles all business services.
@@ -42,29 +54,51 @@ func New() (*Services, error) {
 		return nil, fmt.Errorf("failed to initialize local encryption key: %w", err)
 	}
 
+	// Register the compiled-in drivers before anything asks the catalog what
+	// families exist, or opens a connection against one.
+	driver.Register(rocketmq.New())
+	driver.Register(rabbitmq.New())
+
+	registry := driver.NewRegistry()
 	settingsService := settings.New(paths.SettingsFile)
-	connections := connection.New(paths.ConnectionsFile, settingsService)
+	connections := connection.New(paths.ConnectionsFile, settingsService, newRegistryRuntime(registry))
 	configurationService := configuration.New(paths, settingsService, connections)
-	clusterService := cluster.New(paths.TPSHistoryFile, settingsService)
+	conns := newConnSource(registry)
+	clusterService := cluster.New(paths.TPSHistoryFile, conns, settingsService)
 	services := &Services{
 		Connections: connections,
 		Cluster:     clusterService,
-		Topics:      topic.New(settingsService),
-		Consumers:   consumer.New(settingsService),
-		Messages:    message.New(settingsService),
+		Topics:      destination.New(conns, settingsService),
+		Consumers:   subscription.New(conns, settingsService),
+		Messages:    message.New(conns, settingsService),
 		Settings:    configurationService,
-		ACL:         acl.New(settingsService),
-		Collector:   collector.New(clusterService),
+		ACL:         access.New(conns, settingsService),
+		Routing:     routing.New(conns, settingsService),
+		Conns:       conns,
+		Collector:   collector.New(sampleActiveConnection(clusterService, registry), registry.HasActive),
+		registry:    registry,
 	}
-	rocketmq.GetClientManager().SetDefaultClientInitializer(connections.ConnectDefault)
 	services.Collector.Start()
+
+	// Reopening the last connection used to happen lazily, on whichever data
+	// request first found no client. The registry never dials on its own, so
+	// the reconnect is explicit - in the background, because a NameServer that
+	// is down would otherwise hold the window shut for the dial timeout.
+	// ConnectDefault is a no-op when the user has turned auto-connect off.
+	go func() {
+		if err := connections.ConnectDefault(); err != nil {
+			log.Printf("[app] 自动连接默认连接失败: %v", err)
+		}
+	}()
 	return services, nil
 }
 
-// Close stops background sampling and releases all RocketMQ clients.
+// Close stops background sampling and releases every open connection.
 func (s *Services) Close() {
 	if s.Collector != nil {
 		s.Collector.Stop()
 	}
-	rocketmq.GetClientManager().CloseAll()
+	if s.registry != nil {
+		s.registry.CloseAll()
+	}
 }

@@ -5,8 +5,9 @@ SHELL := /bin/sh
 # Optional cross-compilation target, for example: make build ARCH=amd64
 ARCH ?=
 
-.PHONY: help install install-ci bindings icons dev run build package \
-	test test-go test-frontend e2e e2e-up e2e-down check ci clean
+.PHONY: help install install-ci bindings icons dev run build package dmg \
+	test test-go test-frontend e2e e2e-up e2e-seed e2e-down \
+	e2e-acl-up e2e-acl-down check ci clean
 
 help: ## Show all available targets
 	@awk 'BEGIN { FS = ":.*## " } /^[a-zA-Z0-9_.-]+:.*## / { printf "  %-20s %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
@@ -37,6 +38,9 @@ build: ## Build the app for the current platform
 package: ## Package a distributable build for the current platform
 	wails3 task package $(if $(ARCH),ARCH=$(ARCH),)
 
+dmg: ## Build the macOS disk image (needs: pipx install dmgbuild)
+	wails3 task darwin:package:dmg $(if $(ARCH),ARCH=$(ARCH),)
+
 test: ## Run Go and frontend unit tests
 	npm test
 
@@ -48,6 +52,18 @@ test-frontend: ## Run frontend unit tests
 
 e2e-up: ## Start RocketMQ 5.3.2 with OrbStack or Docker
 	npm run e2e:up
+
+e2e-seed: ## Seed the E2E broker with the topic and consumer group the live tests need
+	npm run e2e:seed
+
+e2e-acl-up: ## Start the ACL-enabled RocketMQ used by the ACL live tests
+	npm run e2e:acl:up
+
+e2e-acl-down: ## Stop the ACL E2E environment and remove its volumes
+	npm run e2e:acl:down
+
+e2e: ## Run the live tests against a running, seeded RocketMQ E2E environment
+	npm run test:e2e
 
 e2e-down: ## Stop the RocketMQ E2E environment and remove test volumes
 	npm run e2e:down

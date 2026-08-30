@@ -1,6 +1,7 @@
 package connection
 
 import (
+	"github.com/amigoer/mq-studio/internal/model"
 	"path/filepath"
 	"sync"
 	"testing"
@@ -49,5 +50,32 @@ func newTestService(t *testing.T, settings Settings) *Service {
 	if settings == nil {
 		settings = fakeSettings{connectTimeout: 3 * time.Second, autoConnect: true}
 	}
-	return New(filepath.Join(t.TempDir(), "connections.json"), settings)
+	return New(filepath.Join(t.TempDir(), "connections.json"), settings, noopRuntime{})
+}
+
+// noopRuntime stands in where a test only exercises profile persistence. The
+// tests that care about client lifecycle replace service.runtime with a fake
+// that records calls.
+type noopRuntime struct{}
+
+func (noopRuntime) Connect(model.ConnectionProfile) error { return nil }
+func (noopRuntime) HasClient(int) bool                    { return false }
+func (noopRuntime) Remove(int)                            {}
+func (noopRuntime) Test(model.ConnectionProfile) error    { return nil }
+func (noopRuntime) CloseAll()                             {}
+
+// profileOf builds a profile from the arguments the old positional signature
+// took, so these tests read as they did before AddConnection stopped spelling
+// out one broker family's fields.
+func profileOf(name, group, endpoints string, timeoutSec int, enableACL bool, accessKey, secretKey, remark string) model.ConnectionProfile {
+	profile := model.ConnectionProfile{
+		Name:       name,
+		Group:      group,
+		Kind:       model.KindRocketMQ,
+		Endpoints:  endpoints,
+		TimeoutSec: timeoutSec,
+		Remark:     remark,
+	}
+	profile.SetACL(enableACL, accessKey, secretKey)
+	return profile
 }

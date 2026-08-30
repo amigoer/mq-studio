@@ -3,6 +3,10 @@
 
 /**
  * ClusterService exposes cluster topology and health to the frontend.
+ * 
+ * The service returns canonical nodes and the bridge passes them through.
+ * Broker role, CommitLog usage and the rest of RocketMQ's runtime detail
+ * travel in each node's attribute map.
  * @module
  */
 
@@ -14,11 +18,15 @@ import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Cr
 // @ts-ignore: Unused imports
 import * as model$0 from "../model/models.js";
 
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as $models from "./models.js";
+
 /**
  * BrokerDetail returns runtime statistics for a single broker.
  */
-export function BrokerDetail(brokerAddr: string): $CancellablePromise<model$0.BrokerNode | null> {
-    return $Call.ByID(199600473, brokerAddr).then(($result: any) => {
+export function BrokerDetail(connID: number, brokerAddr: string): $CancellablePromise<model$0.Node | null> {
+    return $Call.ByID(199600473, connID, brokerAddr).then(($result: any) => {
         return $$createType1($result);
     });
 }
@@ -26,35 +34,74 @@ export function BrokerDetail(brokerAddr: string): $CancellablePromise<model$0.Br
 /**
  * Brokers returns every known broker node.
  */
-export function Brokers(): $CancellablePromise<(model$0.BrokerNode | null)[]> {
-    return $Call.ByID(4225538801).then(($result: any) => {
+export function Brokers(connID: number): $CancellablePromise<(model$0.Node | null)[]> {
+    return $Call.ByID(4225538801, connID).then(($result: any) => {
         return $$createType2($result);
+    });
+}
+
+/**
+ * DirectoryConfig returns the name servers' effective settings.
+ */
+export function DirectoryConfig(connID: number): $CancellablePromise<{ [_ in string]?: string }> {
+    return $Call.ByID(855689906, connID).then(($result: any) => {
+        return $$createType3($result);
     });
 }
 
 /**
  * Info returns the full cluster overview.
  */
-export function Info(): $CancellablePromise<model$0.ClusterInfo | null> {
-    return $Call.ByID(362678625).then(($result: any) => {
-        return $$createType4($result);
+export function Info(connID: number): $CancellablePromise<$models.ClusterView | null> {
+    return $Call.ByID(362678625, connID).then(($result: any) => {
+        return $$createType5($result);
     });
 }
 
 /**
- * Summary returns the aggregated cluster counters.
+ * MaintenanceTasks lists the housekeeping jobs a node can be asked to run,
+ * and which of them destroy message data.
+ * 
+ * The renderer offers only what this returns, so a task cannot be triggered by
+ * name from the frontend without appearing here first.
  */
-export function Summary(): $CancellablePromise<model$0.ClusterSummary | null> {
-    return $Call.ByID(4155074039).then(($result: any) => {
-        return $$createType6($result);
+export function MaintenanceTasks(): $CancellablePromise<$models.MaintenanceTaskView[]> {
+    return $Call.ByID(2592029318).then(($result: any) => {
+        return $$createType7($result);
     });
 }
 
+/**
+ * NodeConfig returns one broker's effective settings, as the broker reports
+ * them rather than as its config file reads.
+ */
+export function NodeConfig(connID: number, brokerAddr: string): $CancellablePromise<{ [_ in string]?: string }> {
+    return $Call.ByID(2436534115, connID, brokerAddr).then(($result: any) => {
+        return $$createType3($result);
+    });
+}
+
+/**
+ * RunMaintenance asks one broker to run a housekeeping job now.
+ */
+export function RunMaintenance(connID: number, brokerAddr: string, task: string): $CancellablePromise<void> {
+    return $Call.ByID(2604298185, connID, brokerAddr, task);
+}
+
+/**
+ * SetBrokerWritable takes a broker out of the write path, or puts it back, and
+ * returns how many destinations the change touched.
+ */
+export function SetBrokerWritable(connID: number, brokerName: string, writable: boolean): $CancellablePromise<number> {
+    return $Call.ByID(2200378998, connID, brokerName, writable);
+}
+
 // Private type creation functions
-const $$createType0 = model$0.BrokerNode.createFrom;
+const $$createType0 = model$0.Node.createFrom;
 const $$createType1 = $Create.Nullable($$createType0);
 const $$createType2 = $Create.Array($$createType1);
-const $$createType3 = model$0.ClusterInfo.createFrom;
-const $$createType4 = $Create.Nullable($$createType3);
-const $$createType5 = model$0.ClusterSummary.createFrom;
-const $$createType6 = $Create.Nullable($$createType5);
+const $$createType3 = $Create.Map($Create.Any, $Create.Any);
+const $$createType4 = $models.ClusterView.createFrom;
+const $$createType5 = $Create.Nullable($$createType4);
+const $$createType6 = $models.MaintenanceTaskView.createFrom;
+const $$createType7 = $Create.Array($$createType6);

@@ -1,57 +1,53 @@
-# MQ Studio
+<div align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/hero-dark.svg">
+    <img src="docs/images/hero-light.svg" width="100%" alt="MQ Studio — see inside your message queues. Clusters, topics, consumers, and messages in one local-first desktop app, with no web console to deploy.">
+  </picture>
+</div>
 
 <p align="center">
-  <img src="frontend/src/assets/logo.png" alt="MQ Studio" width="150">
+  <a href="https://github.com/amigoer/mq-studio/releases/latest"><img src="https://img.shields.io/github/v/release/amigoer/mq-studio?style=flat-square&label=release&labelColor=1A1A1E&color=EC3013" alt="Latest release"></a>
+  <a href="https://github.com/amigoer/mq-studio/releases"><img src="https://img.shields.io/github/downloads/amigoer/mq-studio/total?style=flat-square&label=downloads&labelColor=1A1A1E&color=3F3F46" alt="Total downloads"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-3F3F46?style=flat-square&labelColor=1A1A1E" alt="Apache-2.0 license"></a>
 </p>
 
 <p align="center">
-  <strong>A local-first desktop client for RocketMQ</strong><br>
-  Manage clusters, topics, consumers, and messages without deploying a separate console.
-</p>
-
-<p align="center">
-  <a href="https://github.com/amigoer/mq-studio/releases/latest"><img src="https://img.shields.io/github/v/release/amigoer/mq-studio?style=flat-square&label=release" alt="Latest release"></a>
-  <a href="https://github.com/amigoer/mq-studio/releases"><img src="https://img.shields.io/github/downloads/amigoer/mq-studio/total?style=flat-square&label=downloads" alt="Downloads"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue?style=flat-square" alt="Apache-2.0 license"></a>
-  <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-39404A?style=flat-square" alt="Platforms">
-  <img src="https://img.shields.io/badge/RocketMQ-4.x%20%7C%205.x-FF6A00?style=flat-square" alt="RocketMQ 4.x and 5.x">
-</p>
-
-<p align="center">
-  <a href="README.zh-CN.md">简体中文</a> ·
-  <a href="https://github.com/amigoer/mq-studio/releases">Download</a> ·
+  <a href="README.zh-CN.md">简体中文</a>&nbsp;&nbsp;·&nbsp;&nbsp;
+  <a href="https://github.com/amigoer/mq-studio/releases">Download</a>&nbsp;&nbsp;·&nbsp;&nbsp;
+  <a href="docs/INSTALL.md">Install guide</a>&nbsp;&nbsp;·&nbsp;&nbsp;
+  <a href="#roadmap">Roadmap</a>&nbsp;&nbsp;·&nbsp;&nbsp;
   <a href="docs/ARCHITECTURE.md">Documentation</a>
 </p>
 
----
+<br>
 
 <p align="center">
-  <a href="docs/images/overview.png">
-    <img src="docs/images/overview.png" alt="MQ Studio overview dashboard">
-  </a>
-  <br>
-  <sub>Live cluster health, throughput, consumer lag, and broker status in one view.</sub>
+  <a href="docs/images/readme/overview.png"><img src="docs/images/readme/overview.png" alt="MQ Studio overview dashboard" width="100%"></a>
+</p>
+<p align="center">
+  <sub>Cluster health, live throughput, consumer lag, and broker status — one glance after connecting.</sub>
 </p>
 
-## Why MQ Studio?
+## Why MQ Studio
 
-- **Ready to use** — no server or web console to deploy
-- **Built for daily operations** — common RocketMQ tasks in one desktop app
+MQ Studio treats message-queue operations as a desktop problem: install the app, add a
+connection, and start working. There is no server component to deploy, secure, or keep alive.
+
+- **Ready to use** — download, connect, work; no web console to stand up and maintain
+- **Built for daily operations** — the everyday tasks of running a message queue, in one app
 - **Private by default** — configuration stays on your device and credentials are encrypted at rest
-- **Cross-platform** — macOS, Windows, and Linux with English and Chinese interfaces
+- **Cross-platform** — macOS, Windows, and Linux, with English and Chinese interfaces
 
 ## Features
 
 | Area | What you can do |
 | --- | --- |
-| **Connections** | Manage multiple clusters, NameServers, auto-connect, and ACL credentials |
-| **Topics & Messages** | Create and inspect topics; query, trace, resend, and produce messages |
+| **Connections** | Manage multiple clusters with free-text groups, NameServers, auto-connect, and ACL credentials |
+| **Topics & Messages** | Create and inspect topics; query, trace, resend, and produce messages; smart search with fuzzy matching and recently-used lists for Topic and consumer group selectors |
 | **Consumers** | View groups, clients, subscriptions, and lag; reset offsets; handle retry and DLQ |
 | **Cluster & Alerts** | Monitor brokers, runtime metrics, throughput, lag, disk usage, and desktop alerts |
 | **Administration** | Manage consumer settings, Topic settings, ACL, and global whitelist |
-| **Personalization** | Switch theme and language, customize display, and import or export configuration |
-
-Supports RocketMQ **4.x / 5.x** through Admin APIs. ACL and some advanced operations depend on the broker version and configuration.
+| **Personalization** | Switch theme and language, customize display, import or export configuration, and automatic update checks |
 
 ## Product tour
 
@@ -60,38 +56,134 @@ Select any screenshot to open it at full resolution.
 <table>
   <tr>
     <td width="50%" align="center">
-      <a href="docs/images/topics.png"><img src="docs/images/topics.png" alt="Topic management"></a>
-      <br><sub><strong>Topic operations</strong> — Inspect queues, routing, and subscriptions.</sub>
+      <a href="docs/images/readme/welcome-light.png"><img src="docs/images/readme/welcome-light.png" alt="Welcome screen"></a>
+      <sub><strong>First launch</strong> — no connection yet: create one, or import a previous export.</sub>
     </td>
     <td width="50%" align="center">
-      <a href="docs/images/consumers.png"><img src="docs/images/consumers.png" alt="Consumer group details"></a>
-      <br><sub><strong>Consumer diagnostics</strong> — Track clients, subscriptions, TPS, and lag.</sub>
+      <a href="docs/images/readme/welcome-dark.png"><img src="docs/images/readme/welcome-dark.png" alt="Welcome screen in dark theme"></a>
+      <sub><strong>Dark theme</strong> — the whole interface follows the system theme, or the one you pick.</sub>
     </td>
   </tr>
   <tr>
     <td width="50%" align="center">
-      <a href="docs/images/messages.png"><img src="docs/images/messages.png" alt="Message query and details"></a>
-      <br><sub><strong>Message inspection</strong> — Query messages and inspect body, properties, and traces.</sub>
+      <a href="docs/images/readme/connections.png"><img src="docs/images/readme/connections.png" alt="Connection list"></a>
+      <sub><strong>Connections</strong> — every cluster in one list; double-click a row to open it in its own tab.</sub>
     </td>
     <td width="50%" align="center">
-      <a href="docs/images/cluster.png"><img src="docs/images/cluster.png" alt="Cluster monitoring"></a>
-      <br><sub><strong>Cluster monitoring</strong> — Follow health, throughput, brokers, and disk usage.</sub>
+      <a href="docs/images/readme/new-connection.png"><img src="docs/images/readme/new-connection.png" alt="New connection dialog"></a>
+      <sub><strong>Adding a connection</strong> — pick the protocol and version, then NameServer or gRPC Proxy, with optional ACL keys.</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center">
+      <a href="docs/images/readme/topics.png"><img src="docs/images/readme/topics.png" alt="Topic list and detail panel"></a>
+      <sub><strong>Topic operations</strong> — filter by type, then inspect queues, routing, and subscriptions in the detail panel.</sub>
+    </td>
+    <td width="50%" align="center">
+      <a href="docs/images/readme/consumers.png"><img src="docs/images/readme/consumers.png" alt="Consumer group list and detail panel"></a>
+      <sub><strong>Consumer diagnostics</strong> — lag, consume TPS, and clients per group; reset or clone offsets queue by queue.</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center">
+      <a href="docs/images/readme/cluster.png"><img src="docs/images/readme/cluster.png" alt="Cluster page"></a>
+      <sub><strong>Cluster monitoring</strong> — broker roles, throughput, disk water level, and messages in and out today.</sub>
+    </td>
+    <td width="50%" align="center">
+      <a href="docs/images/readme/alerts.png"><img src="docs/images/readme/alerts.png" alt="Alerts page"></a>
+      <sub><strong>Alerts</strong> — active alerts derived from live cluster metrics, with the rules behind them.</sub>
     </td>
   </tr>
 </table>
 
+## Driver support
+
+MQ Studio reaches every broker through a pluggable driver. Each driver declares its own
+capabilities, so the interface only offers what the connected broker can actually do.
+
+| Driver | Status | Notes |
+| --- | --- | --- |
+| **RocketMQ** 4.x / 5.x | ✅ Available | Full feature set through Admin APIs |
+| **RabbitMQ** | 🚧 In development | Queues, consumers, browse and publish, cluster topology, exchanges and bindings |
+| Kafka · Pulsar · NATS · MQTT · SQS and more | 📋 Planned | Full matrix below |
+
+<details>
+<summary><strong>Planned drivers, wire-compatible systems, and scope</strong></summary>
+<br>
+
+| Driver | Status | Notes |
+| --- | --- | --- |
+| **Kafka** | 📋 Planned | |
+| **Pulsar** | 📋 Planned | |
+| **ActiveMQ / Artemis** | 📋 Planned | JMS queues and topics over the Jolokia management API |
+| **Redis Stream** | 📋 Planned | Streams and consumer groups; no cluster plane |
+| **NATS** | 📋 Planned | JetStream streams and consumers; NATS core is publish/subscribe only |
+| **NSQ** | 📋 Planned | Topics and channels over the nsqd HTTP API |
+| **MQTT** | 📋 Planned | Publish and subscribe only — the protocol has no admin plane |
+| **Amazon SQS** | 📋 Planned | Queues, attributes, and dead-letter redrive |
+| **Google Cloud Pub/Sub** | 📋 Planned | Topics and subscriptions with backlog |
+| **Azure Service Bus** | 📋 Planned | Queues, topics, subscriptions, rules, dead-letter queues |
+| **Amazon Kinesis** | 📋 Planned | Streams and shards |
+| **IBM MQ** | 📋 Planned | Queues and channels over the administrative REST API |
+| **Solace PubSub+** | 📋 Planned | Queues and topic endpoints over SEMP |
+
+**Covered by an existing driver.** Wire-compatible systems do not get a driver of their own:
+Redpanda, AutoMQ, WarpStream, Confluent, Amazon MSK, and Azure Event Hubs connect as Kafka;
+EMQX, Mosquitto, HiveMQ, and VerneMQ as MQTT; Amazon MQ as ActiveMQ or RabbitMQ; Alibaba Cloud
+and Tencent Cloud RocketMQ as RocketMQ. Each driver declares what its family can do and the
+pages are drawn from that; probing an endpoint to narrow it per deployment is not built yet.
+
+**Out of scope.** ZeroMQ and nanomsg have no broker and therefore no management plane. Celery,
+Sidekiq, and BullMQ are application-level job queues layered on Redis or RabbitMQ rather than
+message brokers.
+
+</details>
+
+ACL and some advanced operations depend on the broker version and configuration. The capability
+model behind this table is described in [the multi-MQ design](docs/MULTI_MQ_DESIGN.md).
+
+## Roadmap
+
+Drivers land one at a time. Each one is taken to the depth RocketMQ already has — topics,
+consumers, messages, cluster, and alerts — before the next one starts, so no driver ships as a
+half-wired set of pages.
+
+| Phase | Scope | Status |
+| --- | --- | --- |
+| 1 | RocketMQ 4.x / 5.x | ✅ Done |
+| 2 | RabbitMQ | 🚧 In development |
+| 3 | Kafka | 📋 Next |
+| 4 | The remaining drivers, in the order listed under Driver support | 📋 Planned |
+| 5 | Agent features | 📋 Planned |
+
+Agent work starts once driver coverage is in place, not before. Every driver already declares
+what the connected broker can actually do, and that capability model is the foundation an agent
+needs to work across brokers without offering operations the broker cannot perform. The scope
+will be published here once phase 4 lands.
+
+This is a sequence, not a schedule: no dates are attached to it, and the order after Kafka can
+change if there is enough demand for a driver further down the list.
+
 ## Download
 
-Download the latest package from **[GitHub Releases](https://github.com/amigoer/mq-studio/releases)**:
+Grab the latest package from **[GitHub Releases](https://github.com/amigoer/mq-studio/releases)**.
+Packages are named `mq-studio-<version>-<os>-<arch>.<ext>`, where `os` is `mac`, `windows`, or
+`linux` and `arch` is `amd64` or `arm64`.
 
-Packages are named `mq-studio-<version>-<os>-<arch>.<ext>`, where `os` is
-`mac`, `windows` or `linux` and `arch` is `amd64` or `arm64`.
+| Platform | Package | Requires |
+| --- | --- | --- |
+| macOS Apple Silicon / Intel | `-mac-arm64.dmg` / `-mac-amd64.dmg` | macOS 12+ |
+| Windows x64 / ARM64 | `-windows-amd64.exe` / `-windows-arm64.exe` | Windows 10+ |
+| Debian / Ubuntu | `-linux-amd64.deb` / `-linux-arm64.deb` | GTK 3, WebKit2GTK 4.1 |
+| Fedora / RHEL | `-linux-amd64.rpm` / `-linux-arm64.rpm` | GTK 3, WebKit2GTK 4.1 |
+| Any Linux | `-linux-amd64.AppImage` / `-linux-arm64.AppImage` | GTK 3, WebKit2GTK 4.1 |
 
-| Platform | Package |
-| --- | --- |
-| macOS Apple Silicon / Intel | `mq-studio-<version>-mac-arm64.dmg` / `-mac-amd64.dmg` |
-| Windows ARM64 / x64 | `mq-studio-<version>-windows-arm64.exe` / `-windows-amd64.exe` |
-| Linux ARM64 / x64 | `mq-studio-<version>-linux-arm64.AppImage` / `-linux-amd64.AppImage` |
+On a Mac, About This Mac tells you whether to take `arm64` or `amd64`.
+
+macOS builds are not signed by a registered Apple developer yet, so the first launch needs one
+extra step — the disk image ships a helper for it. See **[INSTALL](docs/INSTALL.md)** for that
+and for the per-platform install steps. Every release ships a `SHA256SUMS.txt` you can verify
+downloads against.
 
 ## Quick start
 
@@ -99,7 +191,8 @@ Packages are named `mq-studio-<version>-<os>-<arch>.<ext>`, where `os` is
 2. Enter one or more NameServer addresses and optional ACL credentials.
 3. Save, connect, and choose a feature from the sidebar.
 
-Your profiles and settings stay in the local user configuration directory. Configuration exports contain plaintext credentials and should be stored securely.
+Your profiles and settings stay in the local user configuration directory. Configuration
+exports contain plaintext credentials and should be stored securely.
 
 ## Development
 
@@ -111,11 +204,12 @@ make install
 make dev
 ```
 
-Use `make check` to run project checks, `make package` to build a distributable, and `make help` to list all commands.
+Use `make check` to run project checks, `make package` to build a distributable, and
+`make help` to list all commands.
 
 ## Docs
 
-[Architecture](docs/ARCHITECTURE.md) · [Roadmap](docs/ROADMAP.md)
+[Architecture](docs/ARCHITECTURE.md) · [Install](docs/INSTALL.md) · [Changelog](CHANGELOG.md) · [Releasing](RELEASE.md) · [Roadmap](docs/ROADMAP.md)
 
 ## License
 

@@ -33,6 +33,7 @@ const [
   windowsNsis,
   windowsManifest,
   nfpm,
+  darwinTaskfile,
 ] = await Promise.all([
   readJSON('package.json'),
   readJSON('package-lock.json'),
@@ -45,6 +46,7 @@ const [
   read('build/windows/nsis/wails_tools.nsh'),
   read('build/windows/wails.exe.manifest'),
   read('build/linux/nfpm/nfpm.yaml'),
+  read('build/darwin/Taskfile.yml'),
 ])
 
 const canonicalVersion = rootPackage.version
@@ -95,6 +97,36 @@ verify(
   'These are generated: set info.version in build/config.yml, then run\n' +
     '  wails3 task common:update:build-assets',
 )
+
+// The macOS deployment floor is mirrored in three places and only ever drifts
+// silently: `wails3 task common:update:build-assets` rewrites the plists from a
+// template that pins 12.0.0, while the compile flags live in the Taskfile. A
+// build that claims one floor and is compiled against another crashes on launch
+// on exactly the systems in between.
+const deploymentTargets = new Map([
+  ['build/darwin/Info.plist LSMinimumSystemVersion', plistString(infoPlist, 'LSMinimumSystemVersion')],
+  ['build/darwin/Info.dev.plist LSMinimumSystemVersion', plistString(infoDevPlist, 'LSMinimumSystemVersion')],
+  ['build/darwin/Taskfile.yml CGO_CFLAGS', match(darwinTaskfile, /CGO_CFLAGS: "-mmacosx-version-min=(.+)"/)],
+  ['build/darwin/Taskfile.yml CGO_LDFLAGS', match(darwinTaskfile, /CGO_LDFLAGS: "-mmacosx-version-min=(.+)"/)],
+  ['build/darwin/Taskfile.yml MACOSX_DEPLOYMENT_TARGET', match(darwinTaskfile, /MACOSX_DEPLOYMENT_TARGET: "(.+)"/)],
+])
+
+/** `12.0` and `12.0.0` mean the same floor; compare on major.minor. */
+function majorMinor(version) {
+  return String(version).split('.').slice(0, 2).join('.')
+}
+
+const targets = [...deploymentTargets.values()].map(majorMinor)
+if (new Set(targets).size !== 1) {
+  const listed = [...deploymentTargets]
+    .map(([source, value]) => `  ${source}: ${String(value)}`)
+    .join('\n')
+  throw new Error(
+    `the macOS deployment target does not agree across:\n${listed}\n` +
+      'The plists are generated: the Wails template pins LSMinimumSystemVersion,\n' +
+      'so match the Taskfile build flags to it rather than the other way round.',
+  )
+}
 
 const requestedTag = process.env.RELEASE_TAG ?? process.argv[2]
 if (requestedTag && requestedTag !== `v${canonicalVersion}`) {

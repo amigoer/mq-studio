@@ -70,17 +70,113 @@ export class AccessConfigInput {
 }
 
 /**
+ * AccessRuleInput carries an access-rule form submission.
+ */
+export class AccessRuleInput {
+    "subject": string;
+    "description": string;
+    "policies": PolicyInput[];
+
+    /** Creates a new AccessRuleInput instance. */
+    constructor($$source: Partial<AccessRuleInput> = {}) {
+        if (!("subject" in $$source)) {
+            this["subject"] = "";
+        }
+        if (!("description" in $$source)) {
+            this["description"] = "";
+        }
+        if (!("policies" in $$source)) {
+            this["policies"] = [];
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new AccessRuleInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): AccessRuleInput {
+        const $$createField2_0 = $$createType2;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("policies" in $$parsedSource) {
+            $$parsedSource["policies"] = $$createField2_0($$parsedSource["policies"]);
+        }
+        return new AccessRuleInput($$parsedSource as Partial<AccessRuleInput>);
+    }
+}
+
+/**
+ * ClusterView is the cluster page's snapshot: the header counters and the
+ * nodes behind them, in one round trip.
+ */
+export class ClusterView {
+    "overview": model$0.ClusterOverview;
+    "nodes": (model$0.Node | null)[];
+
+    /**
+     * Directory is the tier the cluster is reached through - RocketMQ name
+     * servers. Empty for a family that has none, which the page reads as
+     * "there is no such tier" rather than as "none are up".
+     */
+    "directory": (model$0.Node | null)[];
+
+    /** Creates a new ClusterView instance. */
+    constructor($$source: Partial<ClusterView> = {}) {
+        if (!("overview" in $$source)) {
+            this["overview"] = (new model$0.ClusterOverview());
+        }
+        if (!("nodes" in $$source)) {
+            this["nodes"] = [];
+        }
+        if (!("directory" in $$source)) {
+            this["directory"] = [];
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ClusterView instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ClusterView {
+        const $$createField0_0 = $$createType3;
+        const $$createField1_0 = $$createType6;
+        const $$createField2_0 = $$createType6;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("overview" in $$parsedSource) {
+            $$parsedSource["overview"] = $$createField0_0($$parsedSource["overview"]);
+        }
+        if ("nodes" in $$parsedSource) {
+            $$parsedSource["nodes"] = $$createField1_0($$parsedSource["nodes"]);
+        }
+        if ("directory" in $$parsedSource) {
+            $$parsedSource["directory"] = $$createField2_0($$parsedSource["directory"]);
+        }
+        return new ClusterView($$parsedSource as Partial<ClusterView>);
+    }
+}
+
+/**
  * ConnectionInput carries a connection form submission.
+ * 
+ * Secrets is write-only: it carries what the user just typed, and nothing ever
+ * sends one back.
  */
 export class ConnectionInput {
     "name": string;
     "group": string;
-    "nameServer": string;
+    "kind": model$0.MQKind;
+    "endpoints": string;
     "timeoutSec": number;
-    "enableACL": boolean;
-    "accessKey": string;
-    "secretKey": string;
+    "authMechanism": model$0.AuthMechanism;
+    "options": { [_ in string]?: string };
+    "secrets": { [_ in string]?: string };
     "remark": string;
+
+    /**
+     * CredentialsMode says what to do with secrets the form left blank:
+     * preserve what is stored, replace it with what was typed, or clear it.
+     */
     "credentialsMode": string;
 
     /** Creates a new ConnectionInput instance. */
@@ -91,20 +187,23 @@ export class ConnectionInput {
         if (!("group" in $$source)) {
             this["group"] = "";
         }
-        if (!("nameServer" in $$source)) {
-            this["nameServer"] = "";
+        if (!("kind" in $$source)) {
+            this["kind"] = model$0.MQKind.$zero;
+        }
+        if (!("endpoints" in $$source)) {
+            this["endpoints"] = "";
         }
         if (!("timeoutSec" in $$source)) {
             this["timeoutSec"] = 0;
         }
-        if (!("enableACL" in $$source)) {
-            this["enableACL"] = false;
+        if (!("authMechanism" in $$source)) {
+            this["authMechanism"] = model$0.AuthMechanism.$zero;
         }
-        if (!("accessKey" in $$source)) {
-            this["accessKey"] = "";
+        if (!("options" in $$source)) {
+            this["options"] = {};
         }
-        if (!("secretKey" in $$source)) {
-            this["secretKey"] = "";
+        if (!("secrets" in $$source)) {
+            this["secrets"] = {};
         }
         if (!("remark" in $$source)) {
             this["remark"] = "";
@@ -120,7 +219,15 @@ export class ConnectionInput {
      * Creates a new ConnectionInput instance from a string or object.
      */
     static createFrom($$source: any = {}): ConnectionInput {
+        const $$createField6_0 = $$createType7;
+        const $$createField7_0 = $$createType7;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("options" in $$parsedSource) {
+            $$parsedSource["options"] = $$createField6_0($$parsedSource["options"]);
+        }
+        if ("secrets" in $$parsedSource) {
+            $$parsedSource["secrets"] = $$createField7_0($$parsedSource["secrets"]);
+        }
         return new ConnectionInput($$parsedSource as Partial<ConnectionInput>);
     }
 }
@@ -128,21 +235,21 @@ export class ConnectionInput {
 /**
  * ConnectionView is the connection shape sent to the frontend.
  * 
- * AccessKey and SecretKey are always empty: the stored credentials never leave
- * the Go process. The frontend decides what to render from the *Configured
- * flags instead.
+ * Stored credentials never leave the Go process. The renderer decides what to
+ * render from SecretsConfigured, which lists the keys that hold a value - a
+ * list rather than a pair of booleans, because how many credentials a
+ * connection has is the driver's business, not this struct's.
  */
 export class ConnectionView {
     "id": number;
     "name": string;
     "group": string;
-    "nameServer": string;
+    "kind": model$0.MQKind;
+    "endpoints": string;
     "timeoutSec": number;
-    "enableACL": boolean;
-    "accessKey": string;
-    "secretKey": string;
-    "accessKeyConfigured": boolean;
-    "secretKeyConfigured": boolean;
+    "authMechanism": model$0.AuthMechanism;
+    "options": { [_ in string]?: string };
+    "secretsConfigured": string[];
     "status": model$0.ConnectionStatus;
     "lastCheck": string;
     "isDefault": boolean;
@@ -159,26 +266,23 @@ export class ConnectionView {
         if (!("group" in $$source)) {
             this["group"] = "";
         }
-        if (!("nameServer" in $$source)) {
-            this["nameServer"] = "";
+        if (!("kind" in $$source)) {
+            this["kind"] = model$0.MQKind.$zero;
+        }
+        if (!("endpoints" in $$source)) {
+            this["endpoints"] = "";
         }
         if (!("timeoutSec" in $$source)) {
             this["timeoutSec"] = 0;
         }
-        if (!("enableACL" in $$source)) {
-            this["enableACL"] = false;
+        if (!("authMechanism" in $$source)) {
+            this["authMechanism"] = model$0.AuthMechanism.$zero;
         }
-        if (!("accessKey" in $$source)) {
-            this["accessKey"] = "";
+        if (!("options" in $$source)) {
+            this["options"] = {};
         }
-        if (!("secretKey" in $$source)) {
-            this["secretKey"] = "";
-        }
-        if (!("accessKeyConfigured" in $$source)) {
-            this["accessKeyConfigured"] = false;
-        }
-        if (!("secretKeyConfigured" in $$source)) {
-            this["secretKeyConfigured"] = false;
+        if (!("secretsConfigured" in $$source)) {
+            this["secretsConfigured"] = [];
         }
         if (!("status" in $$source)) {
             this["status"] = model$0.ConnectionStatus.$zero;
@@ -200,7 +304,15 @@ export class ConnectionView {
      * Creates a new ConnectionView instance from a string or object.
      */
     static createFrom($$source: any = {}): ConnectionView {
+        const $$createField7_0 = $$createType7;
+        const $$createField8_0 = $$createType0;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("options" in $$parsedSource) {
+            $$parsedSource["options"] = $$createField7_0($$parsedSource["options"]);
+        }
+        if ("secretsConfigured" in $$parsedSource) {
+            $$parsedSource["secretsConfigured"] = $$createField8_0($$parsedSource["secretsConfigured"]);
+        }
         return new ConnectionView($$parsedSource as Partial<ConnectionView>);
     }
 }
@@ -238,6 +350,67 @@ export class ConsumerInput {
     static createFrom($$source: any = {}): ConsumerInput {
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         return new ConsumerInput($$parsedSource as Partial<ConsumerInput>);
+    }
+}
+
+/**
+ * DriverInfo is one registered family.
+ */
+export class DriverInfo {
+    "kind": model$0.MQKind;
+    "defaultPort": string;
+
+    /** Creates a new DriverInfo instance. */
+    constructor($$source: Partial<DriverInfo> = {}) {
+        if (!("kind" in $$source)) {
+            this["kind"] = model$0.MQKind.$zero;
+        }
+        if (!("defaultPort" in $$source)) {
+            this["defaultPort"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new DriverInfo instance from a string or object.
+     */
+    static createFrom($$source: any = {}): DriverInfo {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new DriverInfo($$parsedSource as Partial<DriverInfo>);
+    }
+}
+
+/**
+ * MaintenanceTaskView is one offerable housekeeping job.
+ */
+export class MaintenanceTaskView {
+    "task": string;
+
+    /**
+     * Destructive marks a task that removes message data rather than only
+     * reclaiming what is already unreachable, so the UI can confirm it harder.
+     */
+    "destructive": boolean;
+
+    /** Creates a new MaintenanceTaskView instance. */
+    constructor($$source: Partial<MaintenanceTaskView> = {}) {
+        if (!("task" in $$source)) {
+            this["task"] = "";
+        }
+        if (!("destructive" in $$source)) {
+            this["destructive"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new MaintenanceTaskView instance from a string or object.
+     */
+    static createFrom($$source: any = {}): MaintenanceTaskView {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new MaintenanceTaskView($$parsedSource as Partial<MaintenanceTaskView>);
     }
 }
 
@@ -282,6 +455,163 @@ export class MessageQuery {
     static createFrom($$source: any = {}): MessageQuery {
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         return new MessageQuery($$parsedSource as Partial<MessageQuery>);
+    }
+}
+
+/**
+ * PolicyInput is one rule row of an access-rule form.
+ */
+export class PolicyInput {
+    "resource": string;
+    "actions": string[];
+    "effect": string;
+    "sourceIps": string[];
+
+    /** Creates a new PolicyInput instance. */
+    constructor($$source: Partial<PolicyInput> = {}) {
+        if (!("resource" in $$source)) {
+            this["resource"] = "";
+        }
+        if (!("actions" in $$source)) {
+            this["actions"] = [];
+        }
+        if (!("effect" in $$source)) {
+            this["effect"] = "";
+        }
+        if (!("sourceIps" in $$source)) {
+            this["sourceIps"] = [];
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new PolicyInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): PolicyInput {
+        const $$createField1_0 = $$createType0;
+        const $$createField3_0 = $$createType0;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("actions" in $$parsedSource) {
+            $$parsedSource["actions"] = $$createField1_0($$parsedSource["actions"]);
+        }
+        if ("sourceIps" in $$parsedSource) {
+            $$parsedSource["sourceIps"] = $$createField3_0($$parsedSource["sourceIps"]);
+        }
+        return new PolicyInput($$parsedSource as Partial<PolicyInput>);
+    }
+}
+
+/**
+ * PrincipalInput carries a principal form submission. The secret is
+ * write-only: the broker stores it hashed and nothing sends it back.
+ */
+export class PrincipalInput {
+    "name": string;
+    "secret": string;
+    "type": string;
+    "status": string;
+
+    /** Creates a new PrincipalInput instance. */
+    constructor($$source: Partial<PrincipalInput> = {}) {
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("secret" in $$source)) {
+            this["secret"] = "";
+        }
+        if (!("type" in $$source)) {
+            this["type"] = "";
+        }
+        if (!("status" in $$source)) {
+            this["status"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new PrincipalInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): PrincipalInput {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new PrincipalInput($$parsedSource as Partial<PrincipalInput>);
+    }
+}
+
+/**
+ * QueueOffsetInput carries a per-queue offset form submission.
+ */
+export class QueueOffsetInput {
+    "group": string;
+    "topic": string;
+    "broker": string;
+    "queueId": number;
+    "offset": number;
+
+    /** Creates a new QueueOffsetInput instance. */
+    constructor($$source: Partial<QueueOffsetInput> = {}) {
+        if (!("group" in $$source)) {
+            this["group"] = "";
+        }
+        if (!("topic" in $$source)) {
+            this["topic"] = "";
+        }
+        if (!("broker" in $$source)) {
+            this["broker"] = "";
+        }
+        if (!("queueId" in $$source)) {
+            this["queueId"] = 0;
+        }
+        if (!("offset" in $$source)) {
+            this["offset"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new QueueOffsetInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): QueueOffsetInput {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new QueueOffsetInput($$parsedSource as Partial<QueueOffsetInput>);
+    }
+}
+
+/**
+ * ReplayInput carries a replay-to-one-consumer request.
+ */
+export class ReplayInput {
+    "consumerGroup": string;
+    "clientId": string;
+    "topic": string;
+    "messageId": string;
+
+    /** Creates a new ReplayInput instance. */
+    constructor($$source: Partial<ReplayInput> = {}) {
+        if (!("consumerGroup" in $$source)) {
+            this["consumerGroup"] = "";
+        }
+        if (!("clientId" in $$source)) {
+            this["clientId"] = "";
+        }
+        if (!("topic" in $$source)) {
+            this["topic"] = "";
+        }
+        if (!("messageId" in $$source)) {
+            this["messageId"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ReplayInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ReplayInput {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ReplayInput($$parsedSource as Partial<ReplayInput>);
     }
 }
 
@@ -377,9 +707,9 @@ export class SettingsInput {
     "language": string;
 
     /**
-     * Font size (px): 12-18
+     * Interface size: "auto" or a px step
      */
-    "fontSize": number;
+    "uiScale": string;
 
     /**
      * UI font
@@ -397,9 +727,9 @@ export class SettingsInput {
     "autoConnectLast": boolean;
 
     /**
-     * Check GitHub for a newer release in the background
+     * How far updates go on their own: "off" | "notify" | "download" | "auto"
      */
-    "autoCheckUpdate": boolean;
+    "updatePolicy": string;
 
     /**
      * Close behaviour: "minimizeToTray" | "quit"
@@ -426,31 +756,6 @@ export class SettingsInput {
      * Default SecretKey
      */
     "globalSecretKey": string;
-
-    /**
-     * Skip TLS verification
-     */
-    "skipTlsVerify": boolean;
-
-    /**
-     * Enable proxy
-     */
-    "proxyEnabled": boolean;
-
-    /**
-     * Proxy type: "http" | "socks5"
-     */
-    "proxyType": string;
-
-    /**
-     * Proxy host
-     */
-    "proxyHost": string;
-
-    /**
-     * Proxy port
-     */
-    "proxyPort": string;
 
     /**
      * Monitoring and alerts
@@ -503,8 +808,8 @@ export class SettingsInput {
         if (!("language" in $$source)) {
             this["language"] = "";
         }
-        if (!("fontSize" in $$source)) {
-            this["fontSize"] = 0;
+        if (!("uiScale" in $$source)) {
+            this["uiScale"] = "";
         }
         if (!("uiFont" in $$source)) {
             this["uiFont"] = "";
@@ -515,8 +820,8 @@ export class SettingsInput {
         if (!("autoConnectLast" in $$source)) {
             this["autoConnectLast"] = false;
         }
-        if (!("autoCheckUpdate" in $$source)) {
-            this["autoCheckUpdate"] = false;
+        if (!("updatePolicy" in $$source)) {
+            this["updatePolicy"] = "";
         }
         if (!("closeBehavior" in $$source)) {
             this["closeBehavior"] = "";
@@ -532,21 +837,6 @@ export class SettingsInput {
         }
         if (!("globalSecretKey" in $$source)) {
             this["globalSecretKey"] = "";
-        }
-        if (!("skipTlsVerify" in $$source)) {
-            this["skipTlsVerify"] = false;
-        }
-        if (!("proxyEnabled" in $$source)) {
-            this["proxyEnabled"] = false;
-        }
-        if (!("proxyType" in $$source)) {
-            this["proxyType"] = "";
-        }
-        if (!("proxyHost" in $$source)) {
-            this["proxyHost"] = "";
-        }
-        if (!("proxyPort" in $$source)) {
-            this["proxyPort"] = "";
         }
         if (!("lagAlertThreshold" in $$source)) {
             this["lagAlertThreshold"] = 0;
@@ -605,9 +895,9 @@ export class SettingsView {
     "language": string;
 
     /**
-     * Font size (px): 12-18
+     * Interface size: "auto" or a px step
      */
-    "fontSize": number;
+    "uiScale": string;
 
     /**
      * UI font
@@ -625,9 +915,9 @@ export class SettingsView {
     "autoConnectLast": boolean;
 
     /**
-     * Check GitHub for a newer release in the background
+     * How far updates go on their own: "off" | "notify" | "download" | "auto"
      */
-    "autoCheckUpdate": boolean;
+    "updatePolicy": string;
 
     /**
      * Close behaviour: "minimizeToTray" | "quit"
@@ -654,31 +944,6 @@ export class SettingsView {
      * Default SecretKey
      */
     "globalSecretKey": string;
-
-    /**
-     * Skip TLS verification
-     */
-    "skipTlsVerify": boolean;
-
-    /**
-     * Enable proxy
-     */
-    "proxyEnabled": boolean;
-
-    /**
-     * Proxy type: "http" | "socks5"
-     */
-    "proxyType": string;
-
-    /**
-     * Proxy host
-     */
-    "proxyHost": string;
-
-    /**
-     * Proxy port
-     */
-    "proxyPort": string;
 
     /**
      * Monitoring and alerts
@@ -732,8 +997,8 @@ export class SettingsView {
         if (!("language" in $$source)) {
             this["language"] = "";
         }
-        if (!("fontSize" in $$source)) {
-            this["fontSize"] = 0;
+        if (!("uiScale" in $$source)) {
+            this["uiScale"] = "";
         }
         if (!("uiFont" in $$source)) {
             this["uiFont"] = "";
@@ -744,8 +1009,8 @@ export class SettingsView {
         if (!("autoConnectLast" in $$source)) {
             this["autoConnectLast"] = false;
         }
-        if (!("autoCheckUpdate" in $$source)) {
-            this["autoCheckUpdate"] = false;
+        if (!("updatePolicy" in $$source)) {
+            this["updatePolicy"] = "";
         }
         if (!("closeBehavior" in $$source)) {
             this["closeBehavior"] = "";
@@ -761,21 +1026,6 @@ export class SettingsView {
         }
         if (!("globalSecretKey" in $$source)) {
             this["globalSecretKey"] = "";
-        }
-        if (!("skipTlsVerify" in $$source)) {
-            this["skipTlsVerify"] = false;
-        }
-        if (!("proxyEnabled" in $$source)) {
-            this["proxyEnabled"] = false;
-        }
-        if (!("proxyType" in $$source)) {
-            this["proxyType"] = "";
-        }
-        if (!("proxyHost" in $$source)) {
-            this["proxyHost"] = "";
-        }
-        if (!("proxyPort" in $$source)) {
-            this["proxyPort"] = "";
         }
         if (!("lagAlertThreshold" in $$source)) {
             this["lagAlertThreshold"] = 0;
@@ -821,6 +1071,34 @@ export class SettingsView {
 }
 
 /**
+ * ShellPage is one destination in the active tab's sidebar.
+ */
+export class ShellPage {
+    "id": string;
+    "label": string;
+
+    /** Creates a new ShellPage instance. */
+    constructor($$source: Partial<ShellPage> = {}) {
+        if (!("id" in $$source)) {
+            this["id"] = "";
+        }
+        if (!("label" in $$source)) {
+            this["label"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ShellPage instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ShellPage {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ShellPage($$parsedSource as Partial<ShellPage>);
+    }
+}
+
+/**
  * TopicInput carries a topic form submission.
  */
 export class TopicInput {
@@ -862,3 +1140,10 @@ export class TopicInput {
 
 // Private type creation functions
 const $$createType0 = $Create.Array($Create.Any);
+const $$createType1 = PolicyInput.createFrom;
+const $$createType2 = $Create.Array($$createType1);
+const $$createType3 = model$0.ClusterOverview.createFrom;
+const $$createType4 = model$0.Node.createFrom;
+const $$createType5 = $Create.Nullable($$createType4);
+const $$createType6 = $Create.Array($$createType5);
+const $$createType7 = $Create.Map($Create.Any, $Create.Any);

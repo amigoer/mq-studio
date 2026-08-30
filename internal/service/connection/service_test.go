@@ -9,7 +9,7 @@ import (
 
 func TestGetConnectionsReturnsCopies(t *testing.T) {
 	service := newTestService(t, nil)
-	if _, err := service.AddConnection("original", "test", "ns:9876", 5, false, "", "", ""); err != nil {
+	if _, err := service.AddConnection(profileOf("original", "test", "ns:9876", 5, false, "", "", "")); err != nil {
 		t.Fatal(err)
 	}
 	list := service.GetConnections()
@@ -21,10 +21,12 @@ func TestGetConnectionsReturnsCopies(t *testing.T) {
 
 func TestResolveACLCredentialsConnectionWins(t *testing.T) {
 	service := newTestService(t, fakeSettings{accessKey: "global-ak", secretKey: "global-sk"})
-	enabled, accessKey, secretKey := service.resolveACLCredentials(&model.Connection{
-		EnableACL: true,
-		AccessKey: "connection-ak",
-		SecretKey: "connection-sk",
+	enabled, accessKey, secretKey := service.resolveACLCredentials(&model.ConnectionProfile{
+		Auth: model.AuthConfig{Mechanism: model.AuthACL},
+		Secrets: map[string]string{
+			model.SecretAccessKey: "connection-ak",
+			model.SecretSecretKey: "connection-sk",
+		},
 	})
 	if !enabled || accessKey != "connection-ak" || secretKey != "connection-sk" {
 		t.Fatalf("got enabled=%v accessKey=%q secretKey=%q", enabled, accessKey, secretKey)
@@ -33,7 +35,7 @@ func TestResolveACLCredentialsConnectionWins(t *testing.T) {
 
 func TestResolveACLCredentialsNoACLNoGlobal(t *testing.T) {
 	service := newTestService(t, fakeSettings{})
-	enabled, accessKey, secretKey := service.resolveACLCredentials(&model.Connection{})
+	enabled, accessKey, secretKey := service.resolveACLCredentials(&model.ConnectionProfile{})
 	if enabled || accessKey != "" || secretKey != "" {
 		t.Fatalf("expected no ACL, got enabled=%v accessKey=%q secretKey=%q", enabled, accessKey, secretKey)
 	}
@@ -41,7 +43,7 @@ func TestResolveACLCredentialsNoACLNoGlobal(t *testing.T) {
 
 func TestResolveACLCredentialsGlobalFallback(t *testing.T) {
 	service := newTestService(t, fakeSettings{accessKey: "global-ak", secretKey: "global-sk"})
-	enabled, accessKey, secretKey := service.resolveACLCredentials(&model.Connection{})
+	enabled, accessKey, secretKey := service.resolveACLCredentials(&model.ConnectionProfile{})
 	if !enabled || accessKey != "global-ak" || secretKey != "global-sk" {
 		t.Fatalf("got enabled=%v accessKey=%q secretKey=%q", enabled, accessKey, secretKey)
 	}
@@ -49,7 +51,7 @@ func TestResolveACLCredentialsGlobalFallback(t *testing.T) {
 
 func TestResolveACLCredentialsRequiresCompleteGlobalPair(t *testing.T) {
 	service := newTestService(t, fakeSettings{accessKey: "global-ak"})
-	enabled, accessKey, secretKey := service.resolveACLCredentials(&model.Connection{})
+	enabled, accessKey, secretKey := service.resolveACLCredentials(&model.ConnectionProfile{})
 	if enabled || accessKey != "" || secretKey != "" {
 		t.Fatalf("incomplete global credentials must be ignored, got enabled=%v accessKey=%q secretKey=%q", enabled, accessKey, secretKey)
 	}
@@ -57,18 +59,18 @@ func TestResolveACLCredentialsRequiresCompleteGlobalPair(t *testing.T) {
 
 func TestConnectionCRUDAndDefault(t *testing.T) {
 	service := newTestService(t, fakeSettings{connectTimeout: 3 * time.Second, autoConnect: true})
-	first, err := service.AddConnection("prod", "production", "ns1:9876", 5, false, "", "", "")
+	first, err := service.AddConnection(profileOf("prod", "production", "ns1:9876", 5, false, "", "", ""))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if first.ID == 0 || first.Name != "prod" || !first.IsDefault {
 		t.Fatalf("unexpected first connection: %#v", first)
 	}
-	second, err := service.AddConnection("test", "test", "ns2:9876;ns3:9876", 8, true, "ak", "sk", "note")
+	second, err := service.AddConnection(profileOf("test", "test", "ns2:9876;ns3:9876", 8, true, "ak", "sk", "note"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !second.EnableACL || second.AccessKey != "ak" {
+	if !second.ACLEnabled() || second.Secret(model.SecretAccessKey) != "ak" {
 		t.Fatalf("unexpected ACL connection: %#v", second)
 	}
 
@@ -85,7 +87,7 @@ func TestConnectionCRUDAndDefault(t *testing.T) {
 		t.Fatal("GetConnections returned mutable internal state")
 	}
 
-	updated, err := service.UpdateConnection(first.ID, "prod-2", "production", "ns1:9876", 6, false, "", "", "x")
+	updated, err := service.UpdateConnection(first.ID, profileOf("prod-2", "production", "ns1:9876", 6, false, "", "", "x"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -114,25 +116,25 @@ func TestConnectionCRUDAndDefault(t *testing.T) {
 
 func TestConnectionAddValidation(t *testing.T) {
 	service := newTestService(t, nil)
-	if _, err := service.AddConnection("", "test", "ns:9876", 5, false, "", "", ""); err == nil {
+	if _, err := service.AddConnection(profileOf("", "test", "ns:9876", 5, false, "", "", "")); err == nil {
 		t.Fatal("empty name should fail")
 	}
-	if _, err := service.AddConnection("x", "test", "", 5, false, "", "", ""); err == nil {
+	if _, err := service.AddConnection(profileOf("x", "test", "", 5, false, "", "", "")); err == nil {
 		t.Fatal("empty NameServer should fail")
 	}
-	if _, err := service.AddConnection("x", "test", "ns:9876", 5, true, "", "sk", ""); err == nil {
+	if _, err := service.AddConnection(profileOf("x", "test", "ns:9876", 5, true, "", "sk", "")); err == nil {
 		t.Fatal("ACL without AccessKey should fail")
 	}
 }
 
 func TestConnectionPersistReload(t *testing.T) {
 	service := newTestService(t, nil)
-	if _, err := service.AddConnection("keep", "development", "127.0.0.1:9876", 5, true, "ak1", "sk1", ""); err != nil {
+	if _, err := service.AddConnection(profileOf("keep", "development", "127.0.0.1:9876", 5, true, "ak1", "sk1", "")); err != nil {
 		t.Fatal(err)
 	}
-	reloaded := New(service.dataFilePath, fakeSettings{connectTimeout: 3 * time.Second, autoConnect: true})
+	reloaded := New(service.dataFilePath, fakeSettings{connectTimeout: 3 * time.Second, autoConnect: true}, noopRuntime{})
 	list := reloaded.GetConnections()
-	if len(list) != 1 || list[0].AccessKey != "ak1" || list[0].SecretKey != "sk1" {
+	if len(list) != 1 || list[0].Secret(model.SecretAccessKey) != "ak1" || list[0].Secret(model.SecretSecretKey) != "sk1" {
 		t.Fatalf("reloaded credentials do not match: %#v", list)
 	}
 }

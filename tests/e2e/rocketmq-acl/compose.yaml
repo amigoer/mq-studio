@@ -1,0 +1,40 @@
+# A second, isolated RocketMQ with ACL turned on.
+#
+# It is separate from the main E2E environment rather than a flag on it: a
+# broker with ACL enabled refuses every unauthenticated call, which is exactly
+# what the other live tests make.
+name: mq-studio-e2e-acl
+
+services:
+  namesrv:
+    image: apache/rocketmq:5.3.2
+    command: sh mqnamesrv
+    ports:
+      - '127.0.0.1:9877:9876'
+    restart: unless-stopped
+
+  broker:
+    image: apache/rocketmq:5.3.2
+    # Same reason as the main environment: named volumes are root-owned, and
+    # this container exists only for local tests.
+    user: root
+    command: sh mqbroker -n namesrv:9876 -c /etc/rocketmq/broker.conf
+    depends_on:
+      - namesrv
+    ports:
+      - '127.0.0.1:10921:10921'
+    environment:
+      JAVA_OPT_EXT: >-
+        -server -Xms512m -Xmx512m -Xmn256m
+        -XX:+UseG1GC -XX:MaxGCPauseMillis=50
+    volumes:
+      - ./broker.conf:/etc/rocketmq/broker.conf:ro
+      # ACL 1.0 reads its accounts from conf/plain_acl.yml under ROCKETMQ_HOME.
+      # Writable, not :ro - the broker rewrites this file when an access config
+      # is added or removed, which is exactly what the live tests exercise.
+      - ./plain_acl.yml:/home/rocketmq/rocketmq-5.3.2/conf/plain_acl.yml
+      - broker-store:/home/rocketmq/store
+    restart: unless-stopped
+
+volumes:
+  broker-store:

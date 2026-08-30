@@ -6,10 +6,10 @@ import (
 	"time"
 
 	"github.com/amigoer/mq-studio/internal/model"
-	"github.com/amigoer/mq-studio/internal/service/internal/timestamp"
+	"github.com/amigoer/mq-studio/internal/timestamp"
 )
 
-func (s *Service) getConnectTimeout(connection *model.Connection) time.Duration {
+func (s *Service) getConnectTimeout(connection *model.ConnectionProfile) time.Duration {
 	if connection.TimeoutSec > 0 {
 		return time.Duration(connection.TimeoutSec) * time.Second
 	}
@@ -19,9 +19,9 @@ func (s *Service) getConnectTimeout(connection *model.Connection) time.Duration 
 	return defaultConnectionTimeout * time.Second
 }
 
-func (s *Service) resolveACLCredentials(connection *model.Connection) (bool, string, string) {
-	if connection.EnableACL {
-		return true, connection.AccessKey, connection.SecretKey
+func (s *Service) resolveACLCredentials(connection *model.ConnectionProfile) (bool, string, string) {
+	if connection.ACLEnabled() {
+		return true, connection.Secret(model.SecretAccessKey), connection.Secret(model.SecretSecretKey)
 	}
 	if s.settings != nil {
 		accessKey, secretKey := s.settings.GetGlobalACLCredentials()
@@ -32,33 +32,67 @@ func (s *Service) resolveACLCredentials(connection *model.Connection) (bool, str
 	return false, "", ""
 }
 
-// TestConnection checks whether a saved connection profile can reach RocketMQ.
+// resolvedProfileLocked is the profile as the runtime should dial it: the
+// stored one with the timeout and any globally configured ACL credentials
+// filled in. The caller must hold mu.
+//
+// Resolving here rather than in the runtime is what keeps application settings
+// out of the driver layer - a driver reads only what the profile carries.
+func (s *Service) resolvedProfileLocked(id int) (model.ConnectionProfile, error) {
+	connection, exists := s.connections[id]
+	if !exists {
+		return model.ConnectionProfile{}, fmt.Errorf("连接不存在: %d", id)
+	}
+	return s.resolveForDial(connection), nil
+}
+
+// resolveForDial fills a profile's blanks from application settings.
+func (s *Service) resolveForDial(connection *model.ConnectionProfile) model.ConnectionProfile {
+	resolved := connection.Clone()
+	resolved.TimeoutSec = int(s.getConnectTimeout(connection) / time.Second)
+	enableACL, accessKey, secretKey := s.resolveACLCredentials(connection)
+	resolved.SetACL(enableACL, accessKey, secretKey)
+	return *resolved
+}
+
+// ProbeProfile tests parameters that are not stored yet.
+//
+// The new-connection dialog draws a test button beside a form that has no id
+// to name, so the probe takes the draft itself. Nothing is persisted and no
+// client is kept: it is TestConnection for a connection that does not exist.
+func (s *Service) ProbeProfile(profile model.ConnectionProfile) error {
+	if strings.TrimSpace(profile.Endpoints) == "" {
+		return fmt.Errorf("connection endpoints cannot be empty")
+	}
+	if profile.Kind == "" {
+		profile.Kind = model.KindRocketMQ
+	}
+	return s.runtime.Test(s.resolveForDial(&profile))
+}
+
+// TestConnection checks whether a saved connection profile can be reached.
 func (s *Service) TestConnection(id int) (string, error) {
+	defer s.notifyChanged()
 	s.runtimeMu.Lock()
 	defer s.runtimeMu.Unlock()
 
 	s.mu.Lock()
-	connection, exists := s.connections[id]
-	if !exists {
-		s.mu.Unlock()
-		return "", fmt.Errorf("connection not found: %d", id)
-	}
-	nameServer := connection.NameServer
-	timeout := s.getConnectTimeout(connection)
-	enableACL, accessKey, secretKey := s.resolveACLCredentials(connection)
+	resolved, err := s.resolvedProfileLocked(id)
 	s.mu.Unlock()
+	if err != nil {
+		return "", err
+	}
 
-	err := s.runtime.Test(nameServer, timeout, enableACL, accessKey, secretKey)
+	testErr := s.runtime.Test(resolved)
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if current, exists := s.connections[id]; exists {
 		current.LastCheck = timestamp.Now()
-		if err == nil {
-			return "online", nil
-		}
-		return "offline", err
 	}
-	return "offline", err
+	if testErr == nil {
+		return "online", nil
+	}
+	return "offline", testErr
 }
 
 // ConnectDefault connects the default profile when automatic reconnection is enabled.
@@ -81,8 +115,10 @@ func (s *Service) ConnectDefault() error {
 	return s.Connect(defaultID)
 }
 
-// Connect activates one profile and makes it the only online default connection.
+// Connect opens one profile. Connections opened earlier stay open: the shell
+// shows one tab per connection and expects each tab's pages to keep answering.
 func (s *Service) Connect(id int) error {
+	defer s.notifyChanged()
 	s.runtimeMu.Lock()
 	defer s.runtimeMu.Unlock()
 	return s.connectRuntimeLocked(id)
@@ -90,55 +126,37 @@ func (s *Service) Connect(id int) error {
 
 // connectRuntimeLocked activates one profile while the caller holds runtimeMu.
 func (s *Service) connectRuntimeLocked(id int) error {
-	s.mu.RLock()
-	connection, exists := s.connections[id]
-	if !exists {
-		s.mu.RUnlock()
-		return fmt.Errorf("连接不存在: %d", id)
-	}
-	nameServer := connection.NameServer
-	timeout := s.getConnectTimeout(connection)
-	enableACL, accessKey, secretKey := s.resolveACLCredentials(connection)
-	otherNameServers := make([]string, 0)
-	for _, current := range s.connections {
-		if current.ID != id && current.NameServer != "" && current.NameServer != nameServer {
-			otherNameServers = append(otherNameServers, current.NameServer)
-		}
-	}
-	s.mu.RUnlock()
-
-	if err := s.runtime.Connect(nameServer, timeout, enableACL, accessKey, secretKey); err != nil {
+	s.mu.Lock()
+	resolved, err := s.resolvedProfileLocked(id)
+	s.mu.Unlock()
+	if err != nil {
 		return err
 	}
-	for _, otherNameServer := range otherNameServers {
-		s.runtime.Remove(otherNameServer)
-	}
-	if err := s.runtime.SetDefault(nameServer); err != nil {
+
+	if err := s.runtime.Connect(resolved); err != nil {
 		return err
 	}
 
 	s.mu.Lock()
-	now := timestamp.Now()
-	for _, current := range s.connections {
-		if current.ID == id {
-			current.Status = model.StatusOnline
-			current.LastCheck = now
-			current.IsDefault = true
-		} else {
-			current.Status = model.StatusOffline
-			current.IsDefault = false
-		}
+	if current, ok := s.connections[id]; ok {
+		current.Status = model.StatusOnline
+		current.LastCheck = timestamp.Now()
 	}
-	err := s.saveConnectionsLocked()
+	err = s.saveConnectionsLocked()
 	s.mu.Unlock()
 	if err != nil {
-		return fmt.Errorf("连接成功，但保存默认连接状态失败: %w", err)
+		return fmt.Errorf("连接成功，但保存连接状态失败: %w", err)
 	}
 	return nil
 }
 
-// Disconnect closes an active profile and promotes the next profile by ID.
+// Disconnect closes one open profile.
+//
+// It no longer promotes a replacement default: with several connections open
+// at once, "default" means only which profile reconnects on launch, and
+// closing a tab is not a statement about that.
 func (s *Service) Disconnect(id int) error {
+	defer s.notifyChanged()
 	s.runtimeMu.Lock()
 	defer s.runtimeMu.Unlock()
 	return s.disconnectRuntimeLocked(id)
@@ -147,57 +165,19 @@ func (s *Service) Disconnect(id int) error {
 // disconnectRuntimeLocked deactivates one profile while the caller holds runtimeMu.
 func (s *Service) disconnectRuntimeLocked(id int) error {
 	s.mu.Lock()
-	connection, exists := s.connections[id]
+	_, exists := s.connections[id]
+	s.mu.Unlock()
 	if !exists {
-		s.mu.Unlock()
 		return fmt.Errorf("连接不存在: %d", id)
 	}
-	nameServer := connection.NameServer
-	wasDefault := connection.IsDefault
-	wasOnline := connection.Status == model.StatusOnline
-	s.mu.Unlock()
-	if wasOnline {
-		s.runtime.Remove(nameServer)
-	}
+
+	s.runtime.Remove(id)
 
 	s.mu.Lock()
+	defer s.mu.Unlock()
 	if current, ok := s.connections[id]; ok {
 		current.Status = model.StatusOffline
 		current.LastCheck = timestamp.Now()
 	}
-	var newDefaultNameServer string
-	newDefaultID := 0
-	if wasDefault {
-		if current, ok := s.connections[id]; ok {
-			current.IsDefault = false
-		}
-		ids := sortedConnectionIDs(s.connections)
-		for _, candidateID := range ids {
-			if candidateID == id {
-				continue
-			}
-			current := s.connections[candidateID]
-			current.IsDefault = true
-			newDefaultID = candidateID
-			newDefaultNameServer = current.NameServer
-			break
-		}
-	}
-	err := s.saveConnectionsLocked()
-	if err != nil && wasDefault {
-		if current, ok := s.connections[id]; ok {
-			current.IsDefault = true
-		}
-		if newDefaultID != 0 {
-			s.connections[newDefaultID].IsDefault = false
-		}
-	}
-	s.mu.Unlock()
-	if err != nil {
-		return err
-	}
-	if newDefaultNameServer != "" {
-		_ = s.runtime.SetDefault(newDefaultNameServer)
-	}
-	return nil
+	return s.saveConnectionsLocked()
 }

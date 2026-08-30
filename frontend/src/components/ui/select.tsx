@@ -1,191 +1,196 @@
-import * as React from 'react'
-import * as Popover from '@radix-ui/react-popover'
-import { Check, ChevronDown } from 'lucide-react'
-import { cn } from '@/lib/utils'
+"use client"
 
-/**
- * Non-native, cross-platform-consistent select.
- *
- * Drop-in replacement for the previous native `<select>` wrapper: it keeps the
- * same call-site API — `value`, `onChange(e => e.target.value)`, and `<option>`
- * children — but renders a portalled, styled dropdown (built on Radix Popover)
- * so it looks identical on every platform. No `<select>` element is used, so
- * the OS-native picker never appears.
- */
+import * as React from "react"
+import { CheckIcon, ChevronDownIcon, ChevronUpIcon } from "lucide-react"
+import { Select as SelectPrimitive } from "radix-ui"
 
-interface ParsedOption {
-  value: string
-  label: React.ReactNode
-  disabled?: boolean
+import { cn } from "@/lib/utils"
+
+function Select({
+  ...props
+}: React.ComponentProps<typeof SelectPrimitive.Root>) {
+  return <SelectPrimitive.Root data-slot="select" {...props} />
 }
 
-/** Flatten `<option>` children (through arrays and fragments) into a flat list. */
-function parseOptions(children: React.ReactNode): ParsedOption[] {
-  const out: ParsedOption[] = []
-  const walk = (nodes: React.ReactNode): void => {
-    React.Children.forEach(nodes, (child) => {
-      if (!React.isValidElement(child)) return
-      if (child.type === React.Fragment) {
-        walk((child.props as { children?: React.ReactNode }).children)
-        return
-      }
-      if (child.type === 'option') {
-        const p = child.props as {
-          value?: string | number
-          children?: React.ReactNode
-          disabled?: boolean
-        }
-        const value = p.value === undefined ? '' : String(p.value)
-        out.push({ value, label: p.children ?? value, disabled: p.disabled })
-      }
-    })
-  }
-  walk(children)
-  return out
+function SelectGroup({
+  ...props
+}: React.ComponentProps<typeof SelectPrimitive.Group>) {
+  return <SelectPrimitive.Group data-slot="select-group" {...props} />
 }
 
-export interface SelectChangeEvent {
-  target: { value: string }
-  currentTarget: { value: string }
+function SelectValue({
+  ...props
+}: React.ComponentProps<typeof SelectPrimitive.Value>) {
+  return <SelectPrimitive.Value data-slot="select-value" {...props} />
 }
 
-export interface SelectProps {
-  value?: string | number
-  onChange?: (event: SelectChangeEvent) => void
-  disabled?: boolean
-  className?: string
-  style?: React.CSSProperties
-  children?: React.ReactNode
-  placeholder?: string
-  id?: string
-  name?: string
-  'aria-label'?: string
-  'aria-invalid'?: boolean
-}
-
-const Select = React.forwardRef<HTMLButtonElement, SelectProps>(function Select(
-  { value, onChange, disabled, className, style, children, placeholder, ...rest },
-  ref,
-) {
-  const [open, setOpen] = React.useState(false)
-  const options = React.useMemo(() => parseOptions(children), [children])
-  const currentValue = value === undefined ? '' : String(value)
-  const selected = options.find((o) => o.value === currentValue)
-  const isPlaceholder = !selected || selected.value === ''
-  const itemRefs = React.useRef<(HTMLButtonElement | null)[]>([])
-
-  const emit = (v: string): void => {
-    setOpen(false)
-    onChange?.({ target: { value: v }, currentTarget: { value: v } })
-  }
-
-  const focusItem = (start: number): void => {
-    const n = options.length
-    if (n === 0) return
-    let idx = ((start % n) + n) % n
-    for (let step = 0; step < n; step++) {
-      if (!options[idx]?.disabled) {
-        itemRefs.current[idx]?.focus()
-        return
-      }
-      idx = (idx + 1) % n
-    }
-  }
-
+function SelectTrigger({
+  className,
+  size = "default",
+  children,
+  ...props
+}: React.ComponentProps<typeof SelectPrimitive.Trigger> & {
+  size?: "sm" | "default"
+}) {
   return (
-    <Popover.Root open={open} onOpenChange={setOpen}>
-      <Popover.Trigger asChild disabled={disabled}>
-        <button
-          ref={ref}
-          type="button"
-          role="combobox"
-          aria-expanded={open}
-          className={cn(
-            'group flex h-8 w-full items-center justify-between gap-2 rounded-lg border border-input bg-background px-2.5 py-1 text-fs-125 text-foreground shadow-sm outline-none transition-colors focus-visible:border-ring/40 focus-visible:ring-2 focus-visible:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-50 data-[state=open]:border-ring/40 data-[state=open]:ring-2 data-[state=open]:ring-ring/20',
-            className,
-          )}
-          style={style}
-          {...rest}
-        >
-          <span
-            className={cn(
-              'min-w-0 flex-1 truncate text-left',
-              isPlaceholder && 'text-muted-foreground',
-            )}
-          >
-            {selected ? selected.label : (placeholder ?? '')}
-          </span>
-          <ChevronDown
-            size={14}
-            aria-hidden
-            className="shrink-0 opacity-50 transition-transform group-data-[state=open]:rotate-180"
-          />
-        </button>
-      </Popover.Trigger>
-      <Popover.Portal>
-        <Popover.Content
-          role="listbox"
-          align="start"
-          sideOffset={4}
-          onOpenAutoFocus={(e) => {
-            e.preventDefault()
-            const idx = options.findIndex((o) => o.value === currentValue && !o.disabled)
-            focusItem(idx >= 0 ? idx : 0)
-          }}
-          onKeyDown={(e) => {
-            const idx = itemRefs.current.findIndex((n) => n === document.activeElement)
-            if (e.key === 'ArrowDown') {
-              e.preventDefault()
-              focusItem(idx < 0 ? 0 : idx + 1)
-            } else if (e.key === 'ArrowUp') {
-              e.preventDefault()
-              focusItem(idx < 0 ? options.length - 1 : idx - 1)
-            } else if (e.key === 'Home') {
-              e.preventDefault()
-              focusItem(0)
-            } else if (e.key === 'End') {
-              e.preventDefault()
-              focusItem(options.length - 1)
-            }
-          }}
-          className={cn(
-            'scroll-thin z-50 overflow-y-auto rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-[0_12px_40px_hsl(0_0%_0%/0.12),0_2px_8px_hsl(0_0%_0%/0.04)] outline-none',
-            'data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95',
-          )}
-          style={{
-            minWidth: 'var(--radix-popover-trigger-width)',
-            maxHeight: 'min(320px, var(--radix-popover-content-available-height))',
-          }}
-        >
-          {options.map((o, i) => {
-            const active = o.value === currentValue
-            return (
-              <button
-                key={`${o.value}-${i}`}
-                ref={(n) => {
-                  itemRefs.current[i] = n
-                }}
-                type="button"
-                role="option"
-                aria-selected={active}
-                disabled={o.disabled}
-                onClick={() => emit(o.value)}
-                className={cn(
-                  'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-fs-125 outline-none transition-colors hover:bg-accent focus-visible:bg-accent disabled:pointer-events-none disabled:opacity-50',
-                  active && 'bg-accent/70 font-medium',
-                )}
-              >
-                <span className="min-w-0 flex-1 truncate">{o.label}</span>
-                {active && <Check size={14} className="shrink-0 opacity-80" />}
-              </button>
-            )
-          })}
-        </Popover.Content>
-      </Popover.Portal>
-    </Popover.Root>
+    <SelectPrimitive.Trigger
+      data-slot="select-trigger"
+      data-size={size}
+      className={cn(
+        "flex w-fit items-center justify-between gap-2 rounded-md border border-input bg-transparent px-3 py-2 text-sm whitespace-nowrap shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 data-[placeholder]:text-muted-foreground data-[size=default]:h-9 data-[size=sm]:h-8 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 dark:bg-input/30 dark:hover:bg-input/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-muted-foreground",
+        className
+      )}
+      {...props}
+    >
+      {children}
+      <SelectPrimitive.Icon asChild>
+        <ChevronDownIcon className="size-4 opacity-50" />
+      </SelectPrimitive.Icon>
+    </SelectPrimitive.Trigger>
   )
-})
+}
 
-Select.displayName = 'Select'
+/*
+ * Popper rather than Radix's item-aligned mode: item-aligned positions a bare
+ * div carrying nothing but inline styles, which the zoom correction in
+ * index.css has no selector to reach. The menu drops below the trigger instead
+ * of opening over it.
+ */
+function SelectContent({
+  className,
+  children,
+  position = "popper",
+  align = "center",
+  ...props
+}: React.ComponentProps<typeof SelectPrimitive.Content>) {
+  return (
+    <SelectPrimitive.Portal>
+      <SelectPrimitive.Content
+        data-slot="select-content"
+        className={cn(
+          "relative z-50 max-h-[calc(var(--radix-select-content-available-height)/var(--mqs-scale,1))] min-w-[8rem] origin-(--radix-select-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-md border bg-popover text-popover-foreground shadow-md data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",
+          position === "popper" &&
+            "data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",
+          className
+        )}
+        position={position}
+        align={align}
+        {...props}
+      >
+        <SelectScrollUpButton />
+        <SelectPrimitive.Viewport
+          className={cn(
+            "p-1",
+            position === "popper" &&
+              "h-[calc(var(--radix-select-trigger-height)/var(--mqs-scale,1))] w-full min-w-[calc(var(--radix-select-trigger-width)/var(--mqs-scale,1))] scroll-my-1"
+          )}
+        >
+          {children}
+        </SelectPrimitive.Viewport>
+        <SelectScrollDownButton />
+      </SelectPrimitive.Content>
+    </SelectPrimitive.Portal>
+  )
+}
 
-export { Select }
+function SelectLabel({
+  className,
+  ...props
+}: React.ComponentProps<typeof SelectPrimitive.Label>) {
+  return (
+    <SelectPrimitive.Label
+      data-slot="select-label"
+      className={cn("px-2 py-1.5 text-xs text-muted-foreground", className)}
+      {...props}
+    />
+  )
+}
+
+function SelectItem({
+  className,
+  children,
+  ...props
+}: React.ComponentProps<typeof SelectPrimitive.Item>) {
+  return (
+    <SelectPrimitive.Item
+      data-slot="select-item"
+      className={cn(
+        "relative flex w-full cursor-default items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 text-sm outline-hidden select-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-muted-foreground *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
+        className
+      )}
+      {...props}
+    >
+      <span
+        data-slot="select-item-indicator"
+        className="absolute right-2 flex size-3.5 items-center justify-center"
+      >
+        <SelectPrimitive.ItemIndicator>
+          <CheckIcon className="size-4" />
+        </SelectPrimitive.ItemIndicator>
+      </span>
+      <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
+    </SelectPrimitive.Item>
+  )
+}
+
+function SelectSeparator({
+  className,
+  ...props
+}: React.ComponentProps<typeof SelectPrimitive.Separator>) {
+  return (
+    <SelectPrimitive.Separator
+      data-slot="select-separator"
+      className={cn("pointer-events-none -mx-1 my-1 h-px bg-border", className)}
+      {...props}
+    />
+  )
+}
+
+function SelectScrollUpButton({
+  className,
+  ...props
+}: React.ComponentProps<typeof SelectPrimitive.ScrollUpButton>) {
+  return (
+    <SelectPrimitive.ScrollUpButton
+      data-slot="select-scroll-up-button"
+      className={cn(
+        "flex cursor-default items-center justify-center py-1",
+        className
+      )}
+      {...props}
+    >
+      <ChevronUpIcon className="size-4" />
+    </SelectPrimitive.ScrollUpButton>
+  )
+}
+
+function SelectScrollDownButton({
+  className,
+  ...props
+}: React.ComponentProps<typeof SelectPrimitive.ScrollDownButton>) {
+  return (
+    <SelectPrimitive.ScrollDownButton
+      data-slot="select-scroll-down-button"
+      className={cn(
+        "flex cursor-default items-center justify-center py-1",
+        className
+      )}
+      {...props}
+    >
+      <ChevronDownIcon className="size-4" />
+    </SelectPrimitive.ScrollDownButton>
+  )
+}
+
+export {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectScrollDownButton,
+  SelectScrollUpButton,
+  SelectSeparator,
+  SelectTrigger,
+  SelectValue,
+}

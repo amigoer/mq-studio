@@ -1,0 +1,38 @@
+package rocketmq
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"strings"
+
+	"github.com/amigoer/mq-studio/internal/model"
+
+	admin "github.com/amigoer/rocketmq-admin-go"
+)
+
+// QueryDLQMessages returns dead-letter messages for a consumer group.
+func (c *Conn) QueryDLQMessages(ctx context.Context, groupName string, maxResults int) ([]*model.MessageItem, error) {
+	groupName = strings.TrimSpace(groupName)
+	if groupName == "" {
+		return nil, fmt.Errorf("查询死信消息失败: 消费者组不能为空")
+	}
+	messages, err := c.queryMessagesBy(ctx, "%DLQ%"+groupName, "", "", maxResults, 0, 0)
+	if err != nil && errors.Is(err, admin.ErrTopicNotFound) {
+		return []*model.MessageItem{}, nil
+	}
+	return messages, err
+}
+
+// QueryRetryMessages returns retry messages for a consumer group.
+func (c *Conn) QueryRetryMessages(ctx context.Context, groupName string, maxResults int) ([]*model.MessageItem, error) {
+	groupName = strings.TrimSpace(groupName)
+	if groupName == "" {
+		return nil, fmt.Errorf("查询重试消息失败: 消费者组不能为空")
+	}
+	messages, err := c.queryMessagesBy(ctx, "%RETRY%"+groupName, "", "", maxResults, 0, 0)
+	if err != nil && errors.Is(err, admin.ErrTopicNotFound) {
+		return []*model.MessageItem{}, nil
+	}
+	return messages, err
+}

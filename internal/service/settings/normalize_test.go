@@ -12,7 +12,7 @@ func TestNormalizeEnforcesSettingsBounds(t *testing.T) {
 	input := *model.DefaultSettings()
 	input.Theme = "neon"
 	input.Language = "fr"
-	input.FontSize = 99
+	input.UIScale = "99"
 	input.CloseBehavior = "explode"
 	input.UIFont = " "
 	input.MonospaceFont = ""
@@ -24,7 +24,6 @@ func TestNormalizeEnforcesSettingsBounds(t *testing.T) {
 	input.TimestampFormat = "iso"
 	input.MaxPayloadRenderBytes = 1
 	input.FetchLimit = 1001
-	input.ProxyType = "ftp"
 	input.GlobalAccessKey = " access-key "
 
 	got := normalize(input)
@@ -32,7 +31,7 @@ func TestNormalizeEnforcesSettingsBounds(t *testing.T) {
 	if got.Theme != defaults.Theme || got.Language != defaults.Language {
 		t.Fatalf("theme or language was not normalized: %q %q", got.Theme, got.Language)
 	}
-	if got.FontSize != defaults.FontSize || got.UIFont != defaults.UIFont || got.MonospaceFont != defaults.MonospaceFont {
+	if got.UIScale != defaults.UIScale || got.UIFont != defaults.UIFont || got.MonospaceFont != defaults.MonospaceFont {
 		t.Fatalf("font settings were not normalized: %#v", got)
 	}
 	if got.CloseBehavior != defaults.CloseBehavior {
@@ -50,7 +49,7 @@ func TestNormalizeEnforcesSettingsBounds(t *testing.T) {
 	if got.MaxPayloadRenderBytes != defaults.MaxPayloadRenderBytes || got.FetchLimit != defaults.FetchLimit {
 		t.Fatalf("payload settings were not normalized: %#v", got)
 	}
-	if got.ProxyType != defaults.ProxyType || got.GlobalAccessKey != "access-key" {
+	if got.GlobalAccessKey != "access-key" {
 		t.Fatalf("network settings were not normalized: %#v", got)
 	}
 }
@@ -64,14 +63,24 @@ func TestNormalizeKeepsDisabledLagThreshold(t *testing.T) {
 }
 
 func TestLoadConvertsLegacyFontSize(t *testing.T) {
-	directory := t.TempDir()
-	path := filepath.Join(directory, "settings.json")
-	if err := os.WriteFile(path, []byte(`{"fontSize":"large","theme":"dark"}`), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	service := New(path)
-	settings := service.GetSettings()
-	if settings.FontSize != 16 || settings.Theme != "dark" {
-		t.Fatalf("legacy settings were not converted: %#v", settings)
+	for _, testCase := range []struct {
+		name  string
+		file  string
+		scale string
+	}{
+		{"t-shirt size", `{"fontSize":"large","theme":"dark"}`, "16"},
+		{"pixel step", `{"fontSize":16,"theme":"dark"}`, "16"},
+		{"size off the ladder", `{"fontSize":17,"theme":"dark"}`, model.UIScaleAuto},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			path := filepath.Join(t.TempDir(), "settings.json")
+			if err := os.WriteFile(path, []byte(testCase.file), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			settings := New(path).GetSettings()
+			if settings.UIScale != testCase.scale || settings.Theme != "dark" {
+				t.Fatalf("legacy settings were not converted: %#v", settings)
+			}
+		})
 	}
 }

@@ -1,0 +1,115 @@
+import { beforeAll, describe, expect, it, vi } from "vitest";
+
+/**
+ * Every board, rendered in both languages.
+ *
+ * The boards carry no logic worth a unit test, but they do carry ~900 locale
+ * keys, and a key that is used without being defined fails silently: i18next
+ * echoes the key back, so the page renders `board.producer.sync` where a label
+ * belongs. This is the check that catches that -- and the one that keeps the
+ * English bundle from quietly falling back to Chinese.
+ *
+ * The imports are dynamic because the shell reaches the Wails runtime at module
+ * load, which wants a `window` this environment has to install first.
+ *
+ * Boards that read live data are rendered inside the providers they need but
+ * with nothing connected, which is the state that has to render in both
+ * languages anyway: every one of them draws its "not connected" notice.
+ *
+ * The three design-spec pages have no entry point any more - they were pulled
+ * out of the settings page because they describe what was designed rather than
+ * what is wired - and are rendered here so their strings stay covered.
+ */
+
+type Board = { name: string; html: string };
+
+let everyBoard: () => Board[];
+
+beforeAll(async () => {
+  const storage = { getItem: () => null, setItem() {}, removeItem() {} };
+  vi.stubGlobal("window", {
+    _wails: { environment: { OS: "darwin" } },
+    matchMedia: () => ({ matches: false, addEventListener() {}, removeEventListener() {} }),
+    localStorage: storage,
+    addEventListener() {},
+    removeEventListener() {},
+  });
+  vi.stubGlobal("localStorage", storage);
+
+  const [
+    { renderToStaticMarkup },
+    protocols,
+    registry,
+    capability,
+    nav,
+    reuse,
+    settings,
+    profiles,
+    center,
+    ui,
+  ] = await Promise.all([
+    import("react-dom/server"),
+    import("@/design/data/protocols"),
+    import("@/design/registry"),
+    import("@/design/boards/docs/CapabilityMatrix"),
+    import("@/design/boards/docs/NavModel"),
+    import("@/design/boards/docs/ReuseStrategy"),
+    import("@/hooks/useSettings"),
+    import("@/hooks/useConnectionProfiles"),
+    import("@/hooks/useAlertCenter"),
+    import("@/components"),
+  ]);
+
+  const docs = [capability.CapabilityMatrix, nav.NavModel, reuse.ReuseStrategy];
+
+  /* The same nesting main.tsx uses, minus what draws nothing here. Effects do
+     not run under static rendering, so no provider reaches the bridge. */
+  const render = (node: React.ReactNode) =>
+    renderToStaticMarkup(
+      <ui.ConfirmProvider>
+        <settings.SettingsProvider>
+          <profiles.ConnectionProfilesProvider>
+            <center.AlertCenterProvider>{node}</center.AlertCenterProvider>
+          </profiles.ConnectionProfilesProvider>
+        </settings.SettingsProvider>
+      </ui.ConfirmProvider>,
+    );
+
+  everyBoard = () => {
+    const out: Board[] = [];
+    for (const protocol of protocols.PROTOCOL_ORDER) {
+      for (const page of protocols.pagesOf(protocol)) {
+        out.push({
+          name: `${protocol}/${page}`,
+          html: render(registry.renderBoard(protocol, page)),
+        });
+      }
+    }
+    for (const Doc of docs) out.push({ name: Doc.name, html: render(<Doc />) });
+    return out;
+  };
+});
+
+async function useLanguage(lang: "zh" | "en") {
+  const { default: i18n } = await import("@/i18n");
+  await i18n.changeLanguage(lang);
+}
+
+describe.each(["zh", "en"] as const)("boards in %s", (lang) => {
+  it("resolves every key it renders", async () => {
+    await useLanguage(lang);
+    for (const { name, html } of everyBoard()) {
+      // An unresolved key reaches the page as its own dotted name.
+      expect(html.match(/\b(board|shell|page|common|update)\.[a-zA-Z][\w.]*/g), name).toBeNull();
+    }
+  });
+});
+
+describe("boards in en", () => {
+  it("leaves no Chinese behind", async () => {
+    await useLanguage("en");
+    for (const { name, html } of everyBoard()) {
+      expect(html.replace(/<[^>]*>/g, "").match(/[一-鿿]+/g), name).toBeNull();
+    }
+  });
+});

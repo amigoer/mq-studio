@@ -1,211 +1,199 @@
 @import 'tailwindcss';
-@import './styles/app.css';
+@import 'tw-animate-css';
+@import './design/tokens.css';
 
-@config "../tailwind.config.js";
-
-@layer base {
-  /*
-   * Pure-white desktop shell (newapi / shadcn-inspired).
-   * Hierarchy:
-   *   --background  pure white canvas
-   *   --card        pure white elevated surfaces
-   *   --muted       near-white for subtle fills only
-   *   --border      very light hairline
-   */
-  :root {
-    --app-font-size: 13px;
-    --app-monospace-font: 'JetBrains Mono';
-
-    --background: 0 0% 100%;
-    --foreground: 0 0% 9%;
-
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 9%;
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 9%;
-
-    --primary: 0 0% 9%;
-    --primary-foreground: 0 0% 100%;
-
-    --secondary: 0 0% 98%;
-    --secondary-foreground: 0 0% 9%;
-
-    --muted: 0 0% 98%;
-    --muted-foreground: 0 0% 40%;
-
-    --accent: 0 0% 97%;
-    --accent-foreground: 0 0% 9%;
-
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 0 0% 100%;
-
-    --success: 152 55% 36%;
-    --success-foreground: 0 0% 100%;
-
-    --warning: 32 95% 44%;
-    --warning-foreground: 0 0% 100%;
-
-    --info: 217 91% 50%;
-    --info-foreground: 0 0% 100%;
-
-    --border: 0 0% 92%;
-    --input: 0 0% 92%;
-    --ring: 0 0% 9%;
-    --radius: 0.75rem;
-
-    --sidebar-active: 0 0% 96%;
-  }
-
-  .dark {
-    --background: 0 0% 7%;
-    --foreground: 0 0% 98%;
-
-    --card: 0 0% 9%;
-    --card-foreground: 0 0% 98%;
-
-    --popover: 0 0% 9%;
-    --popover-foreground: 0 0% 98%;
-
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
-
-    --secondary: 0 0% 12%;
-    --secondary-foreground: 0 0% 98%;
-
-    --muted: 0 0% 12%;
-    --muted-foreground: 0 0% 64%;
-
-    --accent: 0 0% 14%;
-    --accent-foreground: 0 0% 98%;
-
-    --destructive: 0 62% 50%;
-    --destructive-foreground: 0 0% 100%;
-
-    --success: 152 50% 40%;
-    --success-foreground: 0 0% 100%;
-
-    --warning: 32 90% 48%;
-    --warning-foreground: 0 0% 100%;
-
-    --info: 217 80% 58%;
-    --info-foreground: 0 0% 100%;
-
-    --border: 0 0% 16%;
-    --input: 0 0% 16%;
-    --ring: 0 0% 84%;
-
-    --sidebar-active: 0 0% 14%;
-  }
-
-  * {
-    border-color: hsl(var(--border));
-  }
-}
-
-html {
-  font-size: var(--app-font-size);
-}
-
-body {
-  margin: 0;
-  min-height: 100vh;
-  background: hsl(var(--background));
-  color: hsl(var(--foreground));
-  font-family: var(
-    --app-ui-font,
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    Roboto,
-    'Helvetica Neue',
-    Arial,
-    'Noto Sans',
-    sans-serif
-  );
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  /*
-   * Content text stays selectable — this is an ops tool, and topic names,
-   * broker addresses, client ids and message ids all need to be copyable.
-   * Chrome and controls opt back out below so the app still feels native.
-   */
-  -webkit-user-select: text;
-  user-select: text;
-}
-
-/* App chrome and controls: not selectable, so drags and clicks never start a selection. */
-.mqs-title-bar,
-.mqs-title-bar *,
-button,
-[role='tab'],
-[role='menuitem'],
-[role='switch'],
-[role='combobox'],
-label,
-th {
-  -webkit-user-select: none;
-  user-select: none;
-}
-
-#root {
-  min-height: 100vh;
-  background: hsl(var(--background));
-}
+@custom-variant dark (&:is(.dark *));
 
 /*
- * Client-app style: no browser blue, but the highlight still has to be
- * clearly visible on a pure-white canvas. Only the background is set so
- * selected text keeps whatever colour it already had.
+ * shadcn/ui tokens, aliased onto the design palette in tokens.css. The
+ * `--c-*` variables already flip under `:root.dark`, so one definition here
+ * serves both themes; only values with no `--c-*` source are stated twice.
  */
-::selection {
-  background: hsl(var(--success) / 0.22);
-}
-.dark ::selection {
-  background: hsl(var(--success) / 0.32);
+:root {
+  --background: var(--c-bg);
+  --foreground: var(--c-fg);
+  --card: var(--c-bg);
+  --card-foreground: var(--c-fg);
+  --popover: var(--c-bg);
+  --popover-foreground: var(--c-fg);
+  --primary: var(--c-fg);
+  --primary-foreground: var(--c-bg);
+  --secondary: var(--c-fill);
+  --secondary-foreground: var(--c-fg);
+  --muted: var(--c-fill);
+  --muted-foreground: var(--c-muted);
+  --accent: var(--c-fill);
+  --accent-foreground: var(--c-fg);
+  --destructive: var(--c-err);
+  --destructive-foreground: #fff;
+  --success: var(--c-ok);
+  --warning: var(--c-warn);
+  --info: var(--c-accent-blue);
+  --border: var(--c-border);
+  --input: var(--c-border);
+  --ring: var(--c-fg);
+  --chart-1: var(--c-series-1);
+  --chart-2: var(--c-series-2);
+  --chart-3: var(--c-ok);
+  --chart-4: var(--c-warn);
+  --chart-5: var(--c-err);
+  --radius: 0.625rem;
 }
 
-/* Local thin scrollbars */
-@supports (scrollbar-width: thin) {
-  .scroll-thin {
-    scrollbar-width: thin;
-    scrollbar-color: hsl(var(--border)) transparent;
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-info: var(--info);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  /*
+   * Type scale mapped to the design ramp at the 13px root: text-sm is the
+   * 12px body size, text-xs the 11px mono/meta size. Stock component classes
+   * therefore land on the drawn sizes, and everything follows the 设置 font
+   * size control because the values are rem.
+   */
+  --text-xs: 0.8462rem;
+  --text-xs--line-height: 1.45;
+  --text-sm: 0.9231rem;
+  --text-sm--line-height: 1.45;
+  --text-base: 1rem;
+  --text-base--line-height: 1.5;
+  --text-lg: 1.0769rem;
+  --text-lg--line-height: 1.45;
+  --text-xl: 1.2308rem;
+  --text-xl--line-height: 1.4;
+  --text-2xl: 1.3846rem;
+  --text-2xl--line-height: 1.35;
+
+  --font-sans: var(
+    --app-ui-font,
+    -apple-system,
+    'PingFang SC',
+    'Microsoft YaHei',
+    system-ui,
+    sans-serif
+  );
+  --font-mono: var(--app-monospace-font, 'JetBrains Mono'), ui-monospace, 'SF Mono', Menlo,
+    monospace;
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
   }
-}
 
-.scroll-thin::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
+  /*
+   * The document behind the shell. `.m3` fills it and paints its own ground, so
+   * what is left here is only what the shell cannot set from inside itself.
+   */
+  html,
+  body,
+  #root {
+    height: 100%;
+    background: var(--c-bg);
 
-.scroll-thin::-webkit-scrollbar-track {
-  background: transparent;
-}
+    /*
+     * A window, not a page. `.m3` already clips its own content, so in a
+     * browser nothing here scrolls anyway - but a WKWebView still rubber-bands
+     * the whole view on a two-finger scroll even when there is nothing to
+     * scroll to, and that elastic bounce is the loudest tell that an app is a
+     * web page in a window. `overflow: hidden` removes the scroll port,
+     * `overscroll-behavior: none` removes the bounce.
+     */
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
 
-.scroll-thin::-webkit-scrollbar-thumb {
-  background: hsl(var(--border));
-  border-radius: 999px;
-}
+  body {
+    margin: 0;
+    color: var(--c-fg);
+    font-family: var(
+      --app-ui-font,
+      -apple-system,
+      'PingFang SC',
+      'Microsoft YaHei',
+      system-ui,
+      sans-serif
+    );
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /*
+     * Content text stays selectable — this is an ops tool, and topic names,
+     * broker addresses, client ids and message ids all need to be copyable.
+     * Chrome and controls opt back out below so the app still feels native.
+     */
+    -webkit-user-select: text;
+    user-select: text;
+  }
 
-/* Sonner — pure white cards */
-[data-sonner-toaster] [data-sonner-toast] {
-  background: hsl(var(--card)) !important;
-  border: 1px solid hsl(var(--border)) !important;
-  color: hsl(var(--foreground)) !important;
-  box-shadow:
-    0 8px 30px hsl(0 0% 0% / 0.06),
-    0 1px 2px hsl(0 0% 0% / 0.04) !important;
-  border-radius: calc(var(--radius) + 2px) !important;
-}
-[data-sonner-toast][data-type='success'] [data-icon] svg {
-  color: hsl(var(--success)) !important;
-}
-[data-sonner-toast][data-type='error'] [data-icon] svg {
-  color: hsl(var(--destructive)) !important;
-}
-[data-sonner-toast][data-type='warning'] [data-icon] svg {
-  color: hsl(var(--warning)) !important;
-}
-[data-sonner-toast][data-type='info'] [data-icon] svg {
-  color: hsl(var(--info)) !important;
+  #root {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  /* Chrome and controls: not selectable, so a drag never starts a selection. */
+  button,
+  [role='tab'],
+  [role='menuitem'],
+  [role='option'],
+  [role='switch'],
+  [role='combobox'],
+  label,
+  th {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  /*
+   * Popups portal to the body, which sits inside the document zoom the UI scale
+   * applies. Radix positions them from client-space coordinates it read back
+   * with getBoundingClientRect, and a client-space length written inside the
+   * zoom is multiplied by it a second time -- the menus and popovers landed
+   * off by the scale, and off-screen entirely by the top of the ladder.
+   *
+   * Cancelling the zoom on the wrapper Radix writes to puts its coordinates
+   * back in client space; the content inside takes the scale back so it is
+   * still drawn at the size the rest of the shell is. Both are no-ops at 13px.
+   */
+  [data-radix-popper-content-wrapper] {
+    zoom: calc(1 / var(--mqs-scale, 1));
+  }
+
+  [data-radix-popper-content-wrapper] > * {
+    zoom: var(--mqs-scale, 1);
+  }
+
+  /* Client-app style: no browser blue, but still clearly visible on either ground. */
+  ::selection {
+    background: var(--c-selection);
+  }
 }

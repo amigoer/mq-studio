@@ -5,32 +5,49 @@ import * as ACLService from "./aclservice.js";
 import * as ClusterService from "./clusterservice.js";
 import * as ConnectionService from "./connectionservice.js";
 import * as ConsumerService from "./consumerservice.js";
+import * as DriverService from "./driverservice.js";
 import * as MessageService from "./messageservice.js";
+import * as RoutingService from "./routingservice.js";
 import * as SettingsService from "./settingsservice.js";
+import * as ShellService from "./shellservice.js";
 import * as SystemService from "./systemservice.js";
 import * as TopicService from "./topicservice.js";
+import * as UpdateService from "./updateservice.js";
 import * as WindowService from "./windowservice.js";
 export {
     ACLService,
     ClusterService,
     ConnectionService,
     ConsumerService,
+    DriverService,
     MessageService,
+    RoutingService,
     SettingsService,
+    ShellService,
     SystemService,
     TopicService,
+    UpdateService,
     WindowService
 };
 
 export {
     AccessConfigInput,
+    AccessRuleInput,
+    ClusterView,
     ConnectionInput,
     ConnectionView,
     ConsumerInput,
+    DriverInfo,
+    MaintenanceTaskView,
     MessageQuery,
+    PolicyInput,
+    PrincipalInput,
+    QueueOffsetInput,
+    ReplayInput,
     ResendInput,
     SendInput,
     SettingsInput,
     SettingsView,
+    ShellPage,
     TopicInput
 } from "./models.js";

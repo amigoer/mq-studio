@@ -6,6 +6,151 @@
 import { Create as $Create } from "@wailsio/runtime";
 
 /**
+ * AccessPolicy grants or denies actions on one resource.
+ */
+export class AccessPolicy {
+    /**
+     * a topic, a group, or the cluster
+     */
+    "resource": string;
+
+    /**
+     * PUB, SUB, and the family's own verbs
+     */
+    "actions": string[];
+
+    /**
+     * Allow, Deny
+     */
+    "effect": string;
+
+    /**
+     * SourceIPs narrows the rule to callers from these addresses. Empty means
+     * any source.
+     */
+    "sourceIps": string[];
+
+    /**
+     * Decision is what the broker actually decided for this policy, which is
+     * not always its effect - a later rule can override an earlier one.
+     */
+    "decision": string;
+
+    /** Creates a new AccessPolicy instance. */
+    constructor($$source: Partial<AccessPolicy> = {}) {
+        if (!("resource" in $$source)) {
+            this["resource"] = "";
+        }
+        if (!("actions" in $$source)) {
+            this["actions"] = [];
+        }
+        if (!("effect" in $$source)) {
+            this["effect"] = "";
+        }
+        if (!("sourceIps" in $$source)) {
+            this["sourceIps"] = [];
+        }
+        if (!("decision" in $$source)) {
+            this["decision"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new AccessPolicy instance from a string or object.
+     */
+    static createFrom($$source: any = {}): AccessPolicy {
+        const $$createField1_0 = $$createType0;
+        const $$createField3_0 = $$createType0;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("actions" in $$parsedSource) {
+            $$parsedSource["actions"] = $$createField1_0($$parsedSource["actions"]);
+        }
+        if ("sourceIps" in $$parsedSource) {
+            $$parsedSource["sourceIps"] = $$createField3_0($$parsedSource["sourceIps"]);
+        }
+        return new AccessPolicy($$parsedSource as Partial<AccessPolicy>);
+    }
+}
+
+/**
+ * AccessPrincipal is one identity the broker authenticates.
+ * 
+ * RocketMQ 5.3 calls it a user, Kafka a principal. Type and status stay the
+ * family's own words: what values they take differs per family, and
+ * normalising them would lose exactly what an operator has to type back.
+ */
+export class AccessPrincipal {
+    "name": string;
+    "type": string;
+    "status": string;
+
+    /** Creates a new AccessPrincipal instance. */
+    constructor($$source: Partial<AccessPrincipal> = {}) {
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("type" in $$source)) {
+            this["type"] = "";
+        }
+        if (!("status" in $$source)) {
+            this["status"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new AccessPrincipal instance from a string or object.
+     */
+    static createFrom($$source: any = {}): AccessPrincipal {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new AccessPrincipal($$parsedSource as Partial<AccessPrincipal>);
+    }
+}
+
+/**
+ * AccessRule is everything one subject is permitted to do.
+ * 
+ * Identity-based rather than key-based, which is what separates it from
+ * AccessConfig: a rule names a subject the broker already knows, where an
+ * AccessConfig carries the credential and the permissions together.
+ */
+export class AccessRule {
+    "subject": string;
+    "policies": AccessPolicy[];
+    "description": string;
+
+    /** Creates a new AccessRule instance. */
+    constructor($$source: Partial<AccessRule> = {}) {
+        if (!("subject" in $$source)) {
+            this["subject"] = "";
+        }
+        if (!("policies" in $$source)) {
+            this["policies"] = [];
+        }
+        if (!("description" in $$source)) {
+            this["description"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new AccessRule instance from a string or object.
+     */
+    static createFrom($$source: any = {}): AccessRule {
+        const $$createField1_0 = $$createType2;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("policies" in $$parsedSource) {
+            $$parsedSource["policies"] = $$createField1_0($$parsedSource["policies"]);
+        }
+        return new AccessRule($$parsedSource as Partial<AccessRule>);
+    }
+}
+
+/**
  * AclVersionInfo holds ACL config version information.
  */
 export class AclVersionInfo {
@@ -42,366 +187,350 @@ export class AclVersionInfo {
 }
 
 /**
- * BrokerNode holds Broker node information.
+ * AuthMechanism is how a connection authenticates.
  */
-export class BrokerNode {
-    /**
-     * Node ID
-     */
-    "id": number;
-
-    /**
-     * Cluster name
-     */
-    "cluster": string;
-
-    /**
-     * Broker name
-     */
-    "brokerName": string;
-
-    /**
-     * Broker ID
-     */
-    "brokerId": number;
-
-    /**
-     * Role (MASTER/SLAVE)
-     */
-    "role": BrokerRole;
-
-    /**
-     * Primary address
-     */
-    "address": string;
-
-    /**
-     * HA address
-     */
-    "haAddress": string;
-
-    /**
-     * Version
-     */
-    "version": string;
-
-    /**
-     * Node status
-     */
-    "status": NodeStatus;
-
-    /**
-     * Topic count
-     */
-    "topics": number;
-
-    /**
-     * Consumer group count
-     */
-    "groups": number;
-
-    /**
-     * Inbound TPS
-     */
-    "tpsIn": number;
-
-    /**
-     * Outbound TPS
-     */
-    "tpsOut": number;
-
-    /**
-     * Unix-second timestamps for TPS history
-     */
-    "tpsHistoryTimestamps": number[];
-
-    /**
-     * Inbound TPS history
-     */
-    "tpsInHistory": number[];
-
-    /**
-     * Outbound TPS history
-     */
-    "tpsOutHistory": number[];
-
-    /**
-     * Messages in today
-     */
-    "msgInToday": number;
-
-    /**
-     * Messages out today
-     */
-    "msgOutToday": number;
-
-    /**
-     * CommitLog disk usage percent
-     */
-    "commitLogDiskUsage": number;
-
-    /**
-     * ConsumeQueue disk usage percent
-     */
-    "consumeQueueDiskUsage": number;
-
-    /**
-     * Last update time
-     */
-    "lastUpdate": string;
-
-    /**
-     * Remark
-     */
-    "remark": string;
-
-    /** Creates a new BrokerNode instance. */
-    constructor($$source: Partial<BrokerNode> = {}) {
-        if (!("id" in $$source)) {
-            this["id"] = 0;
-        }
-        if (!("cluster" in $$source)) {
-            this["cluster"] = "";
-        }
-        if (!("brokerName" in $$source)) {
-            this["brokerName"] = "";
-        }
-        if (!("brokerId" in $$source)) {
-            this["brokerId"] = 0;
-        }
-        if (!("role" in $$source)) {
-            this["role"] = BrokerRole.$zero;
-        }
-        if (!("address" in $$source)) {
-            this["address"] = "";
-        }
-        if (!("haAddress" in $$source)) {
-            this["haAddress"] = "";
-        }
-        if (!("version" in $$source)) {
-            this["version"] = "";
-        }
-        if (!("status" in $$source)) {
-            this["status"] = NodeStatus.$zero;
-        }
-        if (!("topics" in $$source)) {
-            this["topics"] = 0;
-        }
-        if (!("groups" in $$source)) {
-            this["groups"] = 0;
-        }
-        if (!("tpsIn" in $$source)) {
-            this["tpsIn"] = 0;
-        }
-        if (!("tpsOut" in $$source)) {
-            this["tpsOut"] = 0;
-        }
-        if (!("tpsHistoryTimestamps" in $$source)) {
-            this["tpsHistoryTimestamps"] = [];
-        }
-        if (!("tpsInHistory" in $$source)) {
-            this["tpsInHistory"] = [];
-        }
-        if (!("tpsOutHistory" in $$source)) {
-            this["tpsOutHistory"] = [];
-        }
-        if (!("msgInToday" in $$source)) {
-            this["msgInToday"] = 0;
-        }
-        if (!("msgOutToday" in $$source)) {
-            this["msgOutToday"] = 0;
-        }
-        if (!("commitLogDiskUsage" in $$source)) {
-            this["commitLogDiskUsage"] = 0;
-        }
-        if (!("consumeQueueDiskUsage" in $$source)) {
-            this["consumeQueueDiskUsage"] = 0;
-        }
-        if (!("lastUpdate" in $$source)) {
-            this["lastUpdate"] = "";
-        }
-        if (!("remark" in $$source)) {
-            this["remark"] = "";
-        }
-
-        Object.assign(this, $$source);
-    }
-
-    /**
-     * Creates a new BrokerNode instance from a string or object.
-     */
-    static createFrom($$source: any = {}): BrokerNode {
-        const $$createField13_0 = $$createType0;
-        const $$createField14_0 = $$createType1;
-        const $$createField15_0 = $$createType1;
-        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-        if ("tpsHistoryTimestamps" in $$parsedSource) {
-            $$parsedSource["tpsHistoryTimestamps"] = $$createField13_0($$parsedSource["tpsHistoryTimestamps"]);
-        }
-        if ("tpsInHistory" in $$parsedSource) {
-            $$parsedSource["tpsInHistory"] = $$createField14_0($$parsedSource["tpsInHistory"]);
-        }
-        if ("tpsOutHistory" in $$parsedSource) {
-            $$parsedSource["tpsOutHistory"] = $$createField15_0($$parsedSource["tpsOutHistory"]);
-        }
-        return new BrokerNode($$parsedSource as Partial<BrokerNode>);
-    }
-}
-
-/**
- * BrokerRole is the Broker role.
- */
-export enum BrokerRole {
+export enum AuthMechanism {
     /**
      * The Go zero value for the underlying type of the enum.
      */
     $zero = "",
 
-    RoleMaster = "MASTER",
-    RoleSlave = "SLAVE",
+    AuthNone = "none",
+
+    /**
+     * RocketMQ AccessKey / SecretKey
+     */
+    AuthACL = "acl",
+    AuthPlain = "plain",
+    AuthSASLPlain = "sasl-plain",
+    AuthSASLScram = "sasl-scram",
+    AuthToken = "token",
+    AuthMutualTLS = "mtls",
 };
 
 /**
- * ClusterInfo holds cluster overview information.
+ * Binding is a route from an exchange to a queue or another exchange.
+ * 
+ * Only RabbitMQ has first-class bindings, which is why the canonical page set
+ * has no counterpart for them and the driver contributes a page of its own.
  */
-export class ClusterInfo {
+export class Binding {
     /**
-     * Cluster name
+     * list key for the renderer
      */
-    "clusterName": string;
+    "id": number;
+    "namespace": string;
+    "source": string;
+    "destination": string;
 
     /**
-     * Total Broker count
+     * DestinationKind separates a queue target from an exchange target; the
+     * same source and name can bind to both.
      */
-    "totalBrokers": number;
+    "destinationKind": string;
+    "routingKey": string;
+    "arguments": { [_ in string]?: string };
 
-    /**
-     * Online Broker count
-     */
-    "onlineBrokers": number;
-
-    /**
-     * Total Topic count
-     */
-    "totalTopics": number;
-
-    /**
-     * Total consumer group count
-     */
-    "totalGroups": number;
-
-    /**
-     * Average disk usage percent
-     */
-    "avgDiskUsage": number;
-
-    /**
-     * NameServer list
-     */
-    "nameServers": string[];
-
-    /**
-     * Broker list
-     */
-    "brokers": (BrokerNode | null)[];
-
-    /** Creates a new ClusterInfo instance. */
-    constructor($$source: Partial<ClusterInfo> = {}) {
-        if (!("clusterName" in $$source)) {
-            this["clusterName"] = "";
+    /** Creates a new Binding instance. */
+    constructor($$source: Partial<Binding> = {}) {
+        if (!("id" in $$source)) {
+            this["id"] = 0;
         }
-        if (!("totalBrokers" in $$source)) {
-            this["totalBrokers"] = 0;
+        if (!("namespace" in $$source)) {
+            this["namespace"] = "";
         }
-        if (!("onlineBrokers" in $$source)) {
-            this["onlineBrokers"] = 0;
+        if (!("source" in $$source)) {
+            this["source"] = "";
         }
-        if (!("totalTopics" in $$source)) {
-            this["totalTopics"] = 0;
+        if (!("destination" in $$source)) {
+            this["destination"] = "";
         }
-        if (!("totalGroups" in $$source)) {
-            this["totalGroups"] = 0;
+        if (!("destinationKind" in $$source)) {
+            this["destinationKind"] = "";
         }
-        if (!("avgDiskUsage" in $$source)) {
-            this["avgDiskUsage"] = 0;
+        if (!("routingKey" in $$source)) {
+            this["routingKey"] = "";
         }
-        if (!("nameServers" in $$source)) {
-            this["nameServers"] = [];
-        }
-        if (!("brokers" in $$source)) {
-            this["brokers"] = [];
+        if (!("arguments" in $$source)) {
+            this["arguments"] = {};
         }
 
         Object.assign(this, $$source);
     }
 
     /**
-     * Creates a new ClusterInfo instance from a string or object.
+     * Creates a new Binding instance from a string or object.
      */
-    static createFrom($$source: any = {}): ClusterInfo {
-        const $$createField6_0 = $$createType2;
-        const $$createField7_0 = $$createType5;
+    static createFrom($$source: any = {}): Binding {
+        const $$createField6_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-        if ("nameServers" in $$parsedSource) {
-            $$parsedSource["nameServers"] = $$createField6_0($$parsedSource["nameServers"]);
+        if ("arguments" in $$parsedSource) {
+            $$parsedSource["arguments"] = $$createField6_0($$parsedSource["arguments"]);
         }
-        if ("brokers" in $$parsedSource) {
-            $$parsedSource["brokers"] = $$createField7_0($$parsedSource["brokers"]);
-        }
-        return new ClusterInfo($$parsedSource as Partial<ClusterInfo>);
+        return new Binding($$parsedSource as Partial<Binding>);
     }
 }
 
 /**
- * ClusterSummary holds cluster status summary for the frontend.
+ * Capabilities is what one live connection can actually do.
+ * 
+ * Three states reach the UI, and they must stay distinguishable: a capability
+ * in Supported renders normally; one in Degraded renders disabled with the
+ * reason; one in neither is hidden outright. Silent absence and explained
+ * absence look identical to a user otherwise, which makes a deliberately
+ * limited endpoint read as a bug.
  */
-export class ClusterSummary {
-    /**
-     * Cluster count
-     */
-    "totalClusters": number;
+export class Capabilities {
+    "supported": Capability[];
 
     /**
-     * Total Broker count
+     * Degraded explains a capability the family has but this endpoint lacks.
+     * A RocketMQ Proxy endpoint is a data plane only, so it reports no topic
+     * listing, no cluster topology and no ACL.
      */
-    "totalBrokers": number;
+    "degraded": { [_ in Capability]?: string };
 
     /**
-     * Online Broker count
+     * Caveats annotates a capability that works but has a consequence worth
+     * warning about. Browsing a RabbitMQ queue goes through basic.get, which
+     * alters queue state even when the message is requeued.
      */
-    "onlineBrokers": number;
+    "caveats": { [_ in Capability]?: string };
+
+    /** Creates a new Capabilities instance. */
+    constructor($$source: Partial<Capabilities> = {}) {
+        if (!("supported" in $$source)) {
+            this["supported"] = [];
+        }
+        if (!("degraded" in $$source)) {
+            this["degraded"] = {};
+        }
+        if (!("caveats" in $$source)) {
+            this["caveats"] = {};
+        }
+
+        Object.assign(this, $$source);
+    }
 
     /**
-     * Warning Broker count
+     * Creates a new Capabilities instance from a string or object.
      */
-    "warningBrokers": number;
+    static createFrom($$source: any = {}): Capabilities {
+        const $$createField0_0 = $$createType4;
+        const $$createField1_0 = $$createType5;
+        const $$createField2_0 = $$createType5;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("supported" in $$parsedSource) {
+            $$parsedSource["supported"] = $$createField0_0($$parsedSource["supported"]);
+        }
+        if ("degraded" in $$parsedSource) {
+            $$parsedSource["degraded"] = $$createField1_0($$parsedSource["degraded"]);
+        }
+        if ("caveats" in $$parsedSource) {
+            $$parsedSource["caveats"] = $$createField2_0($$parsedSource["caveats"]);
+        }
+        return new Capabilities($$parsedSource as Partial<Capabilities>);
+    }
+}
+
+/**
+ * Capability names one operation the UI gates on.
+ * 
+ * The values cross the bridge and are matched as literals in the renderer, so
+ * renaming one means changing frontend/src/mq/capabilities.ts in the same
+ * commit.
+ */
+export enum Capability {
+    /**
+     * The Go zero value for the underlying type of the enum.
+     */
+    $zero = "",
+
+    CapDestinationList = "destination.list",
+    CapDestinationCreate = "destination.create",
+    CapDestinationUpdate = "destination.update",
+    CapDestinationDelete = "destination.delete",
+    CapPartitions = "destination.partitions",
+    CapSubscriptionList = "subscription.list",
+    CapSubscriptionCreate = "subscription.create",
+    CapSubscriptionDelete = "subscription.delete",
+    CapSubscriptionLag = "subscription.lag",
+    CapOffsetReset = "subscription.resetOffset",
 
     /**
-     * Offline Broker count
+     * CapOffsetClone is copying one subscription's read position onto another.
+     * It is not CapOffsetReset: reset moves a group in time, this hands a
+     * second group the first one's exact per-queue positions.
      */
-    "offlineBrokers": number;
+    CapOffsetClone = "subscription.cloneOffset",
 
     /**
-     * Average disk usage percent
+     * CapQueueOffset is writing one queue's read position directly. Distinct
+     * from CapOffsetReset, which moves a whole subscription to a moment in
+     * time and lets the broker find each queue's position for itself.
+     */
+    CapQueueOffset = "subscription.queueOffset",
+
+    /**
+     * CapSubscriptionRuntime is asking a connected consumer what it is doing:
+     * which queues it holds and how fast it is getting through them. Only a
+     * live client can answer, so a family without client introspection - or a
+     * group with nothing connected - simply has no answer.
+     */
+    CapSubscriptionRuntime = "subscription.runtime",
+    CapMessageQuery = "message.query",
+    CapMessageByID = "message.byId",
+    CapMessageTrack = "message.track",
+    CapMessageResend = "message.resend",
+
+    /**
+     * CapMessageReplay is handing one message back to one connected consumer
+     * and reporting what its handler returned. Distinct from CapMessageResend,
+     * which puts a copy back on the retry path for whoever picks it up.
+     */
+    CapMessageReplay = "message.replay",
+    CapMessageLiveTail = "message.liveTail",
+    CapDLQ = "message.dlq",
+    CapPublish = "message.publish",
+
+    /**
+     * CapProducerInspect is asking who is currently publishing. It needs a
+     * producer group to ask about: the broker tracks connections per group and
+     * offers no way to enumerate the groups themselves.
+     */
+    CapProducerInspect = "message.producerInspect",
+
+    /**
+     * CapDelayedDelivery is scheduling a message for later. RocketMQ has delay
+     * levels, Kafka has nothing, RabbitMQ needs a plugin.
+     */
+    CapDelayedDelivery = "message.delayedDelivery",
+    CapClusterTopology = "cluster.topology",
+
+    /**
+     * CapDirectory is listing the discovery tier a cluster is reached
+     * through. Families whose nodes find each other have no such tier and do
+     * not report it.
+     */
+    CapDirectory = "cluster.directory",
+
+    /**
+     * CapNodeConfig is reading the effective settings of a node or of the
+     * cluster's discovery tier - what they are actually running with, which is
+     * not always what their config files say.
+     */
+    CapNodeConfig = "cluster.nodeConfig",
+
+    /**
+     * CapNodeMaintenance is running a broker's own housekeeping on demand -
+     * reclaiming space the broker would otherwise get to on its own schedule.
+     */
+    CapNodeMaintenance = "cluster.nodeMaintenance",
+
+    /**
+     * CapNodeWritePerm is taking a node out of the write path and putting it
+     * back, which is how a broker is drained before it is stopped.
+     */
+    CapNodeWritePerm = "cluster.writePerm",
+    CapClusterMetrics = "cluster.metrics",
+    CapAccessControl = "access.control",
+
+    /**
+     * CapAccessDirectory is identity-based access control: principals the
+     * broker authenticates and rules attached to a subject. Distinct from
+     * CapAccessControl, which is the credential-carrying kind a broker will
+     * take a write for and never read back.
+     */
+    CapAccessDirectory = "access.directory",
+    CapRouting = "routing.exchanges",
+};
+
+/**
+ * CloneOffsetRequest copies one subscription's read position onto another.
+ * 
+ * The usual reason is standing up a replacement consumer group without
+ * replaying everything the old one already handled: the new group starts
+ * exactly where the old one is.
+ */
+export class CloneOffsetRequest {
+    "from": string;
+    "to": string;
+
+    /**
+     * Destination narrows the copy to one topic. Empty copies every topic the
+     * source group reads.
+     */
+    "destination": string;
+
+    /**
+     * FromOffline reads the source's positions from stored offsets rather than
+     * from its live consumers. Required when the source group is already shut
+     * down, which is the ordinary case during a migration.
+     */
+    "fromOffline": boolean;
+
+    /** Creates a new CloneOffsetRequest instance. */
+    constructor($$source: Partial<CloneOffsetRequest> = {}) {
+        if (!("from" in $$source)) {
+            this["from"] = "";
+        }
+        if (!("to" in $$source)) {
+            this["to"] = "";
+        }
+        if (!("destination" in $$source)) {
+            this["destination"] = "";
+        }
+        if (!("fromOffline" in $$source)) {
+            this["fromOffline"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new CloneOffsetRequest instance from a string or object.
+     */
+    static createFrom($$source: any = {}): CloneOffsetRequest {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new CloneOffsetRequest($$parsedSource as Partial<CloneOffsetRequest>);
+    }
+}
+
+/**
+ * ClusterOverview is the aggregate the Cluster page header shows.
+ */
+export class ClusterOverview {
+    "name": string;
+    "totalNodes": number;
+    "onlineNodes": number;
+
+    /**
+     * UnknownMetric when not enumerable
+     */
+    "destinations": number;
+    "subscriptions": number;
+
+    /**
+     * percent; UnknownMetric when not reported
      */
     "avgDiskUsage": number;
 
-    /** Creates a new ClusterSummary instance. */
-    constructor($$source: Partial<ClusterSummary> = {}) {
-        if (!("totalClusters" in $$source)) {
-            this["totalClusters"] = 0;
+    /** Creates a new ClusterOverview instance. */
+    constructor($$source: Partial<ClusterOverview> = {}) {
+        if (!("name" in $$source)) {
+            this["name"] = "";
         }
-        if (!("totalBrokers" in $$source)) {
-            this["totalBrokers"] = 0;
+        if (!("totalNodes" in $$source)) {
+            this["totalNodes"] = 0;
         }
-        if (!("onlineBrokers" in $$source)) {
-            this["onlineBrokers"] = 0;
+        if (!("onlineNodes" in $$source)) {
+            this["onlineNodes"] = 0;
         }
-        if (!("warningBrokers" in $$source)) {
-            this["warningBrokers"] = 0;
+        if (!("destinations" in $$source)) {
+            this["destinations"] = 0;
         }
-        if (!("offlineBrokers" in $$source)) {
-            this["offlineBrokers"] = 0;
+        if (!("subscriptions" in $$source)) {
+            this["subscriptions"] = 0;
         }
         if (!("avgDiskUsage" in $$source)) {
             this["avgDiskUsage"] = 0;
@@ -411,11 +540,11 @@ export class ClusterSummary {
     }
 
     /**
-     * Creates a new ClusterSummary instance from a string or object.
+     * Creates a new ClusterOverview instance from a string or object.
      */
-    static createFrom($$source: any = {}): ClusterSummary {
+    static createFrom($$source: any = {}): ClusterOverview {
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-        return new ClusterSummary($$parsedSource as Partial<ClusterSummary>);
+        return new ClusterOverview($$parsedSource as Partial<ClusterOverview>);
     }
 }
 
@@ -433,272 +562,438 @@ export enum ConnectionStatus {
 };
 
 /**
- * ConsumeMode is the consume mode.
+ * ConsumeThroughput is one destination's consume rates for one client.
  */
-export enum ConsumeMode {
-    /**
-     * The Go zero value for the underlying type of the enum.
-     */
-    $zero = "",
+export class ConsumeThroughput {
+    "destination": string;
+    "pullLatencyMs": number;
+    "pullRate": number;
+    "consumeLatencyMs": number;
+    "successRate": number;
+    "failureRate": number;
+    "failedMessages": number;
 
-    ModeClustering = "CLUSTERING",
-    ModeBroadcasting = "BROADCASTING",
-};
+    /** Creates a new ConsumeThroughput instance. */
+    constructor($$source: Partial<ConsumeThroughput> = {}) {
+        if (!("destination" in $$source)) {
+            this["destination"] = "";
+        }
+        if (!("pullLatencyMs" in $$source)) {
+            this["pullLatencyMs"] = 0;
+        }
+        if (!("pullRate" in $$source)) {
+            this["pullRate"] = 0;
+        }
+        if (!("consumeLatencyMs" in $$source)) {
+            this["consumeLatencyMs"] = 0;
+        }
+        if (!("successRate" in $$source)) {
+            this["successRate"] = 0;
+        }
+        if (!("failureRate" in $$source)) {
+            this["failureRate"] = 0;
+        }
+        if (!("failedMessages" in $$source)) {
+            this["failedMessages"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ConsumeThroughput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ConsumeThroughput {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ConsumeThroughput($$parsedSource as Partial<ConsumeThroughput>);
+    }
+}
 
 /**
- * ConsumerGroupItem holds consumer group information.
+ * Destination is a topic, queue or stream as the canonical pages see it.
+ * 
+ * Attributes carries whatever the family has and the canonical model does not:
+ * RocketMQ permissions and queue counts, RabbitMQ durability and queue type,
+ * Kafka replication factor. Its keys are a contract between one driver's Go
+ * side and that driver's frontend module, not part of the shared vocabulary.
  */
-export class ConsumerGroupItem {
+export class Destination {
     /**
-     * Consumer group ID
+     * list key for the renderer, not broker data
      */
     "id": number;
+    "ref": DestinationRef;
 
     /**
-     * Consumer group name
+     * UnknownMetric where the family has none
      */
-    "group": string;
+    "partitions": number;
 
     /**
-     * Cluster name
+     * consumer groups, subscriptions or consumers
      */
-    "cluster": string;
+    "subscribers": number;
 
     /**
-     * Consume mode
+     * messages held; UnknownMetric when not reported
      */
-    "consumeMode": ConsumeMode;
+    "depth": number;
 
     /**
-     * Status
+     * messages per second in
      */
-    "status": GroupStatus;
+    "rateIn": number;
 
     /**
-     * Online client count
+     * messages per second out
      */
-    "onlineClients": number;
+    "rateOut": number;
+    "lastUpdated": string;
+    "attributes": { [_ in string]?: string };
 
-    /**
-     * Subscribed Topic count
-     */
-    "topicCount": number;
-
-    /**
-     * Message lag
-     */
-    "lag": number;
-
-    /**
-     * Retry QPS
-     */
-    "retryQps": number;
-
-    /**
-     * Dead-letter count
-     */
-    "dlq": number;
-
-    /**
-     * Max retry times
-     */
-    "maxRetry": number;
-
-    /**
-     * Last update time
-     */
-    "lastUpdate": string;
-
-    /**
-     * Remark
-     */
-    "remark": string;
-
-    /**
-     * Subscription list
-     */
-    "subscriptions": GroupSubscription[];
-
-    /**
-     * Client list
-     */
-    "clients": GroupClient[];
-
-    /** Creates a new ConsumerGroupItem instance. */
-    constructor($$source: Partial<ConsumerGroupItem> = {}) {
+    /** Creates a new Destination instance. */
+    constructor($$source: Partial<Destination> = {}) {
         if (!("id" in $$source)) {
             this["id"] = 0;
         }
-        if (!("group" in $$source)) {
-            this["group"] = "";
+        if (!("ref" in $$source)) {
+            this["ref"] = (new DestinationRef());
         }
-        if (!("cluster" in $$source)) {
-            this["cluster"] = "";
+        if (!("partitions" in $$source)) {
+            this["partitions"] = 0;
         }
-        if (!("consumeMode" in $$source)) {
-            this["consumeMode"] = ConsumeMode.$zero;
+        if (!("subscribers" in $$source)) {
+            this["subscribers"] = 0;
         }
-        if (!("status" in $$source)) {
-            this["status"] = GroupStatus.$zero;
+        if (!("depth" in $$source)) {
+            this["depth"] = 0;
         }
-        if (!("onlineClients" in $$source)) {
-            this["onlineClients"] = 0;
+        if (!("rateIn" in $$source)) {
+            this["rateIn"] = 0;
         }
-        if (!("topicCount" in $$source)) {
-            this["topicCount"] = 0;
+        if (!("rateOut" in $$source)) {
+            this["rateOut"] = 0;
         }
-        if (!("lag" in $$source)) {
-            this["lag"] = 0;
+        if (!("lastUpdated" in $$source)) {
+            this["lastUpdated"] = "";
         }
-        if (!("retryQps" in $$source)) {
-            this["retryQps"] = 0;
-        }
-        if (!("dlq" in $$source)) {
-            this["dlq"] = 0;
-        }
-        if (!("maxRetry" in $$source)) {
-            this["maxRetry"] = 0;
-        }
-        if (!("lastUpdate" in $$source)) {
-            this["lastUpdate"] = "";
-        }
-        if (!("remark" in $$source)) {
-            this["remark"] = "";
-        }
-        if (!("subscriptions" in $$source)) {
-            this["subscriptions"] = [];
-        }
-        if (!("clients" in $$source)) {
-            this["clients"] = [];
+        if (!("attributes" in $$source)) {
+            this["attributes"] = {};
         }
 
         Object.assign(this, $$source);
     }
 
     /**
-     * Creates a new ConsumerGroupItem instance from a string or object.
+     * Creates a new Destination instance from a string or object.
      */
-    static createFrom($$source: any = {}): ConsumerGroupItem {
-        const $$createField13_0 = $$createType7;
-        const $$createField14_0 = $$createType9;
+    static createFrom($$source: any = {}): Destination {
+        const $$createField1_0 = $$createType6;
+        const $$createField8_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-        if ("subscriptions" in $$parsedSource) {
-            $$parsedSource["subscriptions"] = $$createField13_0($$parsedSource["subscriptions"]);
+        if ("ref" in $$parsedSource) {
+            $$parsedSource["ref"] = $$createField1_0($$parsedSource["ref"]);
         }
-        if ("clients" in $$parsedSource) {
-            $$parsedSource["clients"] = $$createField14_0($$parsedSource["clients"]);
+        if ("attributes" in $$parsedSource) {
+            $$parsedSource["attributes"] = $$createField8_0($$parsedSource["attributes"]);
         }
-        return new ConsumerGroupItem($$parsedSource as Partial<ConsumerGroupItem>);
+        return new Destination($$parsedSource as Partial<Destination>);
     }
 }
 
 /**
- * GroupClient holds consumer client information.
+ * DestinationRef identifies a destination across families.
+ * 
+ * Flat families leave Namespace empty; Pulsar fills tenant/namespace and
+ * RabbitMQ fills the vhost. It is a struct rather than a string because
+ * joining and re-splitting those parts loses information for any name that
+ * contains the separator.
  */
-export class GroupClient {
-    /**
-     * Client ID
-     */
-    "clientId": string;
+export class DestinationRef {
+    "namespace": string;
+    "name": string;
 
-    /**
-     * IP address
-     */
-    "ip": string;
-
-    /**
-     * Version
-     */
-    "version": string;
-
-    /**
-     * Last heartbeat time
-     */
-    "lastHeartbeat": string;
-
-    /** Creates a new GroupClient instance. */
-    constructor($$source: Partial<GroupClient> = {}) {
-        if (!("clientId" in $$source)) {
-            this["clientId"] = "";
+    /** Creates a new DestinationRef instance. */
+    constructor($$source: Partial<DestinationRef> = {}) {
+        if (!("namespace" in $$source)) {
+            this["namespace"] = "";
         }
-        if (!("ip" in $$source)) {
-            this["ip"] = "";
-        }
-        if (!("version" in $$source)) {
-            this["version"] = "";
-        }
-        if (!("lastHeartbeat" in $$source)) {
-            this["lastHeartbeat"] = "";
+        if (!("name" in $$source)) {
+            this["name"] = "";
         }
 
         Object.assign(this, $$source);
     }
 
     /**
-     * Creates a new GroupClient instance from a string or object.
+     * Creates a new DestinationRef instance from a string or object.
      */
-    static createFrom($$source: any = {}): GroupClient {
+    static createFrom($$source: any = {}): DestinationRef {
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-        return new GroupClient($$parsedSource as Partial<GroupClient>);
+        return new DestinationRef($$parsedSource as Partial<DestinationRef>);
     }
 }
 
 /**
- * GroupStatus is the consumer group status.
+ * DriverDescriptor is what a family can do before any connection is open.
+ * 
+ * Display strings are deliberately absent: the renderer resolves them from
+ * the i18n bundle under mq.<kind>.*, so translations stay where translations
+ * live.
  */
-export enum GroupStatus {
+export class DriverDescriptor {
+    "kind": MQKind;
+    "defaultPort": string;
+    "form": FormField[];
+
+    /**
+     * MaxCapabilities is the best case for the family. A live connection can
+     * only narrow it, never widen it, and the driver conformance test asserts
+     * every entry is backed by an implemented interface.
+     */
+    "maxCapabilities": Capability[];
+
+    /** Creates a new DriverDescriptor instance. */
+    constructor($$source: Partial<DriverDescriptor> = {}) {
+        if (!("kind" in $$source)) {
+            this["kind"] = MQKind.$zero;
+        }
+        if (!("defaultPort" in $$source)) {
+            this["defaultPort"] = "";
+        }
+        if (!("form" in $$source)) {
+            this["form"] = [];
+        }
+        if (!("maxCapabilities" in $$source)) {
+            this["maxCapabilities"] = [];
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new DriverDescriptor instance from a string or object.
+     */
+    static createFrom($$source: any = {}): DriverDescriptor {
+        const $$createField2_0 = $$createType8;
+        const $$createField3_0 = $$createType4;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("form" in $$parsedSource) {
+            $$parsedSource["form"] = $$createField2_0($$parsedSource["form"]);
+        }
+        if ("maxCapabilities" in $$parsedSource) {
+            $$parsedSource["maxCapabilities"] = $$createField3_0($$parsedSource["maxCapabilities"]);
+        }
+        return new DriverDescriptor($$parsedSource as Partial<DriverDescriptor>);
+    }
+}
+
+/**
+ * FieldCond hides a field unless another field holds one of Equals.
+ */
+export class FieldCond {
+    "field": string;
+    "equals": string[];
+
+    /** Creates a new FieldCond instance. */
+    constructor($$source: Partial<FieldCond> = {}) {
+        if (!("field" in $$source)) {
+            this["field"] = "";
+        }
+        if (!("equals" in $$source)) {
+            this["equals"] = [];
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new FieldCond instance from a string or object.
+     */
+    static createFrom($$source: any = {}): FieldCond {
+        const $$createField1_0 = $$createType0;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("equals" in $$parsedSource) {
+            $$parsedSource["equals"] = $$createField1_0($$parsedSource["equals"]);
+        }
+        return new FieldCond($$parsedSource as Partial<FieldCond>);
+    }
+}
+
+/**
+ * FieldTarget says which part of a ConnectionProfile a field writes into.
+ * Secrets are encrypted at rest and never serialised back to the renderer.
+ */
+export enum FieldTarget {
     /**
      * The Go zero value for the underlying type of the enum.
      */
     $zero = "",
 
-    GroupOnline = "online",
-    GroupWarning = "warning",
-    GroupOffline = "offline",
+    TargetEndpoints = "endpoints",
+    TargetOption = "option",
+    TargetSecret = "secret",
+    TargetAuth = "auth",
 };
 
 /**
- * GroupSubscription is a subscription relationship.
+ * FieldType is how the renderer draws one connection-form field.
  */
-export class GroupSubscription {
+export enum FieldType {
     /**
-     * Topic name
+     * The Go zero value for the underlying type of the enum.
      */
-    "topic": string;
+    $zero = "",
+
+    FieldText = "text",
+    FieldPassword = "password",
+    FieldNumber = "number",
+    FieldSelect = "select",
+    FieldSwitch = "switch",
+    FieldEndpointList = "endpoint-list",
+};
+
+/**
+ * FormField is one row of a driver's connection form.
+ */
+export class FormField {
+    "key": string;
+    "target": FieldTarget;
+    "type": FieldType;
 
     /**
-     * Filter expression
+     * i18n key, never a literal
      */
-    "expression": string;
+    "labelKey": string;
+    "placeholder": string;
+    "default": string;
+    "required": boolean;
+    "visibleWhen": FieldCond | null;
+    "options": FormOption[];
 
     /**
-     * Consume TPS
+     * Validate names a validator the renderer already implements, such as
+     * "host-port" or "url". Shipping a regex across the bridge would move
+     * validation logic out of review and into data.
      */
-    "consumeTps": number;
+    "validate": string;
 
-    /** Creates a new GroupSubscription instance. */
-    constructor($$source: Partial<GroupSubscription> = {}) {
-        if (!("topic" in $$source)) {
-            this["topic"] = "";
+    /** Creates a new FormField instance. */
+    constructor($$source: Partial<FormField> = {}) {
+        if (!("key" in $$source)) {
+            this["key"] = "";
         }
-        if (!("expression" in $$source)) {
-            this["expression"] = "";
+        if (!("target" in $$source)) {
+            this["target"] = FieldTarget.$zero;
         }
-        if (!("consumeTps" in $$source)) {
-            this["consumeTps"] = 0;
+        if (!("type" in $$source)) {
+            this["type"] = FieldType.$zero;
+        }
+        if (!("labelKey" in $$source)) {
+            this["labelKey"] = "";
+        }
+        if (!("placeholder" in $$source)) {
+            this["placeholder"] = "";
+        }
+        if (!("default" in $$source)) {
+            this["default"] = "";
+        }
+        if (!("required" in $$source)) {
+            this["required"] = false;
+        }
+        if (!("visibleWhen" in $$source)) {
+            this["visibleWhen"] = null;
+        }
+        if (!("options" in $$source)) {
+            this["options"] = [];
+        }
+        if (!("validate" in $$source)) {
+            this["validate"] = "";
         }
 
         Object.assign(this, $$source);
     }
 
     /**
-     * Creates a new GroupSubscription instance from a string or object.
+     * Creates a new FormField instance from a string or object.
      */
-    static createFrom($$source: any = {}): GroupSubscription {
+    static createFrom($$source: any = {}): FormField {
+        const $$createField7_0 = $$createType10;
+        const $$createField8_0 = $$createType12;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-        return new GroupSubscription($$parsedSource as Partial<GroupSubscription>);
+        if ("visibleWhen" in $$parsedSource) {
+            $$parsedSource["visibleWhen"] = $$createField7_0($$parsedSource["visibleWhen"]);
+        }
+        if ("options" in $$parsedSource) {
+            $$parsedSource["options"] = $$createField8_0($$parsedSource["options"]);
+        }
+        return new FormField($$parsedSource as Partial<FormField>);
     }
 }
+
+/**
+ * FormOption is one choice in a select field.
+ */
+export class FormOption {
+    "value": string;
+    "labelKey": string;
+
+    /** Creates a new FormOption instance. */
+    constructor($$source: Partial<FormOption> = {}) {
+        if (!("value" in $$source)) {
+            this["value"] = "";
+        }
+        if (!("labelKey" in $$source)) {
+            this["labelKey"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new FormOption instance from a string or object.
+     */
+    static createFrom($$source: any = {}): FormOption {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new FormOption($$parsedSource as Partial<FormOption>);
+    }
+}
+
+/**
+ * MQKind identifies a broker family.
+ * 
+ * The values are the key for the driver registry, the per-kind settings
+ * defaults and the `kind` field in connections.json, so they are part of the
+ * on-disk format and must not be renamed.
+ */
+export enum MQKind {
+    /**
+     * The Go zero value for the underlying type of the enum.
+     */
+    $zero = "",
+
+    KindRocketMQ = "rocketmq",
+    KindKafka = "kafka",
+    KindRabbitMQ = "rabbitmq",
+    KindPulsar = "pulsar",
+    KindActiveMQ = "activemq",
+    KindRedisStream = "redis-stream",
+    KindNATS = "nats",
+    KindNSQ = "nsq",
+    KindMQTT = "mqtt",
+
+    /**
+     * Hosted families authenticate through Options and Secrets rather than
+     * Endpoints: there is no broker address to dial, only a region and a
+     * credential.
+     */
+    KindSQS = "sqs",
+    KindGooglePubSub = "google-pubsub",
+    KindAzureServiceBus = "azure-servicebus",
+    KindKinesis = "kinesis",
+    KindIBMMQ = "ibmmq",
+    KindSolace = "solace",
+};
 
 /**
  * MessageItem holds message information.
@@ -842,7 +1137,7 @@ export class MessageItem {
      * Creates a new MessageItem instance from a string or object.
      */
     static createFrom($$source: any = {}): MessageItem {
-        const $$createField15_0 = $$createType10;
+        const $$createField15_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("properties" in $$parsedSource) {
             $$parsedSource["properties"] = $$createField15_0($$parsedSource["properties"]);
@@ -917,6 +1212,155 @@ export class MessageTrackItem {
 }
 
 /**
+ * Node is one broker, RabbitMQ node or Kafka broker as the canonical Cluster
+ * page sees it.
+ * 
+ * It is deliberately thinner than BrokerNode: the TPS history arrays there are
+ * filled by the cluster service from local samples, not by any broker, so they
+ * stay out of what a driver has to produce.
+ */
+export class Node {
+    /**
+     * list key for the renderer, not broker data
+     */
+    "id": number;
+    "name": string;
+    "address": string;
+
+    /**
+     * grouping label; empty where the family has none
+     */
+    "cluster": string;
+    "version": string;
+    "status": NodeStatus;
+
+    /**
+     * messages per second in
+     */
+    "rateIn": number;
+
+    /**
+     * messages per second out
+     */
+    "rateOut": number;
+
+    /**
+     * percent; UnknownMetric when not reported
+     */
+    "diskUsage": number;
+    "lastSeen": string;
+
+    /**
+     * TPS history is sampled locally by the collector, not reported by any
+     * broker, which is why a driver never fills these.
+     * Unix seconds
+     */
+    "tpsHistoryTimestamps": number[];
+    "tpsInHistory": number[];
+    "tpsOutHistory": number[];
+
+    /**
+     * Replicas is how far each follower of this node trails it, where the
+     * family replicates. Empty on a follower, and on a leader with none.
+     * 
+     * Canonical rather than an attribute because every replicating family has
+     * the question - RocketMQ slaves, Kafka ISR, RabbitMQ quorum members - and
+     * "is a replica falling behind" is the one thing a cluster page is opened
+     * to answer during an incident.
+     * 
+     * Filled only by NodeDetail: it costs a request per node, which a list
+     * should not pay.
+     */
+    "replicas": ReplicaStatus[];
+
+    /**
+     * Attributes carries family-specific detail the canonical page renders
+     * through the driver's own column set: RocketMQ master/slave role and
+     * CommitLog usage, Kafka controller and ISR, RabbitMQ disc/ram node type.
+     */
+    "attributes": { [_ in string]?: string };
+
+    /** Creates a new Node instance. */
+    constructor($$source: Partial<Node> = {}) {
+        if (!("id" in $$source)) {
+            this["id"] = 0;
+        }
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("address" in $$source)) {
+            this["address"] = "";
+        }
+        if (!("cluster" in $$source)) {
+            this["cluster"] = "";
+        }
+        if (!("version" in $$source)) {
+            this["version"] = "";
+        }
+        if (!("status" in $$source)) {
+            this["status"] = NodeStatus.$zero;
+        }
+        if (!("rateIn" in $$source)) {
+            this["rateIn"] = 0;
+        }
+        if (!("rateOut" in $$source)) {
+            this["rateOut"] = 0;
+        }
+        if (!("diskUsage" in $$source)) {
+            this["diskUsage"] = 0;
+        }
+        if (!("lastSeen" in $$source)) {
+            this["lastSeen"] = "";
+        }
+        if (!("tpsHistoryTimestamps" in $$source)) {
+            this["tpsHistoryTimestamps"] = [];
+        }
+        if (!("tpsInHistory" in $$source)) {
+            this["tpsInHistory"] = [];
+        }
+        if (!("tpsOutHistory" in $$source)) {
+            this["tpsOutHistory"] = [];
+        }
+        if (!("replicas" in $$source)) {
+            this["replicas"] = [];
+        }
+        if (!("attributes" in $$source)) {
+            this["attributes"] = {};
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new Node instance from a string or object.
+     */
+    static createFrom($$source: any = {}): Node {
+        const $$createField10_0 = $$createType13;
+        const $$createField11_0 = $$createType14;
+        const $$createField12_0 = $$createType14;
+        const $$createField13_0 = $$createType16;
+        const $$createField14_0 = $$createType3;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("tpsHistoryTimestamps" in $$parsedSource) {
+            $$parsedSource["tpsHistoryTimestamps"] = $$createField10_0($$parsedSource["tpsHistoryTimestamps"]);
+        }
+        if ("tpsInHistory" in $$parsedSource) {
+            $$parsedSource["tpsInHistory"] = $$createField11_0($$parsedSource["tpsInHistory"]);
+        }
+        if ("tpsOutHistory" in $$parsedSource) {
+            $$parsedSource["tpsOutHistory"] = $$createField12_0($$parsedSource["tpsOutHistory"]);
+        }
+        if ("replicas" in $$parsedSource) {
+            $$parsedSource["replicas"] = $$createField13_0($$parsedSource["replicas"]);
+        }
+        if ("attributes" in $$parsedSource) {
+            $$parsedSource["attributes"] = $$createField14_0($$parsedSource["attributes"]);
+        }
+        return new Node($$parsedSource as Partial<Node>);
+    }
+}
+
+/**
  * NodeStatus is the node status.
  */
 export enum NodeStatus {
@@ -928,7 +1372,253 @@ export enum NodeStatus {
     NodeOnline = "online",
     NodeWarning = "warning",
     NodeOffline = "offline",
+
+    /**
+     * NodeUnknown is a node whose health the family does not report. A
+     * RocketMQ name server is one: the admin protocol names the addresses the
+     * client dials and says nothing about whether each of them answers, and
+     * calling that "online" would be inventing a check nobody ran.
+     */
+    NodeUnknown = "unknown",
 };
+
+/**
+ * ProducerClient is one connected publisher.
+ * 
+ * There is no list of publishers the way there is of subscriptions: a broker
+ * tracks connections per producer group and offers no way to enumerate the
+ * groups, so a caller has to name one. That is why this is not a Producer
+ * type with a Ref - there is nothing to list, only something to look up.
+ */
+export class ProducerClient {
+    "clientId": string;
+    "address": string;
+    "language": string;
+    "version": string;
+
+    /** Creates a new ProducerClient instance. */
+    constructor($$source: Partial<ProducerClient> = {}) {
+        if (!("clientId" in $$source)) {
+            this["clientId"] = "";
+        }
+        if (!("address" in $$source)) {
+            this["address"] = "";
+        }
+        if (!("language" in $$source)) {
+            this["language"] = "";
+        }
+        if (!("version" in $$source)) {
+            this["version"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ProducerClient instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ProducerClient {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ProducerClient($$parsedSource as Partial<ProducerClient>);
+    }
+}
+
+/**
+ * QueueAssignment is one queue a consumer holds, and how far behind it is.
+ */
+export class QueueAssignment {
+    "destination": string;
+
+    /**
+     * the broker holding this queue
+     */
+    "node": string;
+    "queueId": number;
+
+    /**
+     * Pending is what this client has buffered but not yet finished, which is
+     * not the same as the group's backlog on the broker.
+     */
+    "pending": number;
+    "pendingBytes": number;
+    "lastPull": string;
+    "lastConsume": string;
+
+    /**
+     * Locked matters only where a family locks a queue to one consumer for
+     * ordered delivery; Dropped means the client is releasing it in a rebalance.
+     */
+    "locked": boolean;
+    "dropped": boolean;
+
+    /** Creates a new QueueAssignment instance. */
+    constructor($$source: Partial<QueueAssignment> = {}) {
+        if (!("destination" in $$source)) {
+            this["destination"] = "";
+        }
+        if (!("node" in $$source)) {
+            this["node"] = "";
+        }
+        if (!("queueId" in $$source)) {
+            this["queueId"] = 0;
+        }
+        if (!("pending" in $$source)) {
+            this["pending"] = 0;
+        }
+        if (!("pendingBytes" in $$source)) {
+            this["pendingBytes"] = 0;
+        }
+        if (!("lastPull" in $$source)) {
+            this["lastPull"] = "";
+        }
+        if (!("lastConsume" in $$source)) {
+            this["lastConsume"] = "";
+        }
+        if (!("locked" in $$source)) {
+            this["locked"] = false;
+        }
+        if (!("dropped" in $$source)) {
+            this["dropped"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new QueueAssignment instance from a string or object.
+     */
+    static createFrom($$source: any = {}): QueueAssignment {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new QueueAssignment($$parsedSource as Partial<QueueAssignment>);
+    }
+}
+
+/**
+ * QueuePosition is one partition's place in a tail.
+ */
+export class QueuePosition {
+    /**
+     * the broker holding it
+     */
+    "node": string;
+    "queueId": number;
+    "offset": number;
+
+    /** Creates a new QueuePosition instance. */
+    constructor($$source: Partial<QueuePosition> = {}) {
+        if (!("node" in $$source)) {
+            this["node"] = "";
+        }
+        if (!("queueId" in $$source)) {
+            this["queueId"] = 0;
+        }
+        if (!("offset" in $$source)) {
+            this["offset"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new QueuePosition instance from a string or object.
+     */
+    static createFrom($$source: any = {}): QueuePosition {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new QueuePosition($$parsedSource as Partial<QueuePosition>);
+    }
+}
+
+/**
+ * ReplayResult is what that consumer's own handler returned.
+ * 
+ * This is not a delivery receipt: the broker forwarded the message and the
+ * client ran its listener, so a failure here is the application's, reported
+ * back verbatim in Remark.
+ */
+export class ReplayResult {
+    "result": string;
+    "remark": string;
+    "spentMs": number;
+
+    /**
+     * Ordered and AutoCommit describe how the client was configured to consume,
+     * which changes what a failure means: an ordered consumer blocks its queue
+     * on one it cannot handle.
+     */
+    "ordered": boolean;
+    "autoCommit": boolean;
+
+    /** Creates a new ReplayResult instance. */
+    constructor($$source: Partial<ReplayResult> = {}) {
+        if (!("result" in $$source)) {
+            this["result"] = "";
+        }
+        if (!("remark" in $$source)) {
+            this["remark"] = "";
+        }
+        if (!("spentMs" in $$source)) {
+            this["spentMs"] = 0;
+        }
+        if (!("ordered" in $$source)) {
+            this["ordered"] = false;
+        }
+        if (!("autoCommit" in $$source)) {
+            this["autoCommit"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ReplayResult instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ReplayResult {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ReplayResult($$parsedSource as Partial<ReplayResult>);
+    }
+}
+
+/**
+ * ReplicaStatus is one follower's replication state.
+ */
+export class ReplicaStatus {
+    "address": string;
+
+    /**
+     * BehindBytes is how far this replica trails the leader's log. Zero means
+     * caught up; UnknownMetric means the family reports no such figure.
+     */
+    "behindBytes": number;
+
+    /**
+     * InSync is the family's own verdict, which is not simply BehindBytes == 0:
+     * a replica can be a little behind and still count as in sync.
+     */
+    "inSync": boolean;
+
+    /** Creates a new ReplicaStatus instance. */
+    constructor($$source: Partial<ReplicaStatus> = {}) {
+        if (!("address" in $$source)) {
+            this["address"] = "";
+        }
+        if (!("behindBytes" in $$source)) {
+            this["behindBytes"] = 0;
+        }
+        if (!("inSync" in $$source)) {
+            this["inSync"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ReplicaStatus instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ReplicaStatus {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ReplicaStatus($$parsedSource as Partial<ReplicaStatus>);
+    }
+}
 
 /**
  * ResetOffsetRequest is a request to reset offsets.
@@ -982,231 +1672,319 @@ export class ResetOffsetRequest {
 }
 
 /**
- * TopicItem holds Topic information.
+ * Subscription is a consumer group, a Pulsar subscription or a RabbitMQ queue
+ * consumer, as the canonical pages see it.
+ * 
+ * Backlog is deliberately not called lag: RocketMQ and Kafka compute it from
+ * offsets, RabbitMQ reads ready plus unacknowledged, and Redis Stream reads
+ * XPENDING. The number means "messages still owed to this subscriber" in all
+ * three, but only the first two have an offset behind it — which is why
+ * resetting position is a separate capability.
  */
-export class TopicItem {
+export class Subscription {
     /**
-     * Topic ID
+     * list key for the renderer, not broker data
      */
     "id": number;
+    "ref": SubscriptionRef;
+    "status": SubscriptionStatus;
 
     /**
-     * Topic name
+     * connected consumers
      */
-    "topic": string;
+    "members": number;
 
     /**
-     * Cluster name
+     * how many it reads from
      */
-    "cluster": string;
+    "destinations": number;
 
     /**
-     * Read queue count
+     * UnknownMetric when not reported
      */
-    "readQueue": number;
+    "backlog": number;
 
     /**
-     * Write queue count
+     * messages per second consumed
      */
-    "writeQueue": number;
-
-    /**
-     * Permission
-     */
-    "perm": TopicPerm;
-
-    /**
-     * Message type
-     */
-    "messageType": TopicMessageType;
-
-    /**
-     * Consumer group count
-     */
-    "consumerGroups": number;
-
-    /**
-     * Inbound TPS
-     */
-    "tpsIn": number;
-
-    /**
-     * Outbound TPS
-     */
-    "tpsOut": number;
-
-    /**
-     * Last update time
-     */
+    "rateOut": number;
     "lastUpdated": string;
+    "attributes": { [_ in string]?: string };
 
-    /**
-     * Description
-     */
-    "description": string;
-
-    /**
-     * Route information
-     */
-    "routes": TopicRouteItem[];
-
-    /** Creates a new TopicItem instance. */
-    constructor($$source: Partial<TopicItem> = {}) {
+    /** Creates a new Subscription instance. */
+    constructor($$source: Partial<Subscription> = {}) {
         if (!("id" in $$source)) {
             this["id"] = 0;
         }
-        if (!("topic" in $$source)) {
-            this["topic"] = "";
+        if (!("ref" in $$source)) {
+            this["ref"] = (new SubscriptionRef());
         }
-        if (!("cluster" in $$source)) {
-            this["cluster"] = "";
+        if (!("status" in $$source)) {
+            this["status"] = SubscriptionStatus.$zero;
         }
-        if (!("readQueue" in $$source)) {
-            this["readQueue"] = 0;
+        if (!("members" in $$source)) {
+            this["members"] = 0;
         }
-        if (!("writeQueue" in $$source)) {
-            this["writeQueue"] = 0;
+        if (!("destinations" in $$source)) {
+            this["destinations"] = 0;
         }
-        if (!("perm" in $$source)) {
-            this["perm"] = TopicPerm.$zero;
+        if (!("backlog" in $$source)) {
+            this["backlog"] = 0;
         }
-        if (!("messageType" in $$source)) {
-            this["messageType"] = TopicMessageType.$zero;
-        }
-        if (!("consumerGroups" in $$source)) {
-            this["consumerGroups"] = 0;
-        }
-        if (!("tpsIn" in $$source)) {
-            this["tpsIn"] = 0;
-        }
-        if (!("tpsOut" in $$source)) {
-            this["tpsOut"] = 0;
+        if (!("rateOut" in $$source)) {
+            this["rateOut"] = 0;
         }
         if (!("lastUpdated" in $$source)) {
             this["lastUpdated"] = "";
         }
-        if (!("description" in $$source)) {
-            this["description"] = "";
-        }
-        if (!("routes" in $$source)) {
-            this["routes"] = [];
+        if (!("attributes" in $$source)) {
+            this["attributes"] = {};
         }
 
         Object.assign(this, $$source);
     }
 
     /**
-     * Creates a new TopicItem instance from a string or object.
+     * Creates a new Subscription instance from a string or object.
      */
-    static createFrom($$source: any = {}): TopicItem {
-        const $$createField12_0 = $$createType12;
+    static createFrom($$source: any = {}): Subscription {
+        const $$createField1_0 = $$createType17;
+        const $$createField8_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-        if ("routes" in $$parsedSource) {
-            $$parsedSource["routes"] = $$createField12_0($$parsedSource["routes"]);
+        if ("ref" in $$parsedSource) {
+            $$parsedSource["ref"] = $$createField1_0($$parsedSource["ref"]);
         }
-        return new TopicItem($$parsedSource as Partial<TopicItem>);
+        if ("attributes" in $$parsedSource) {
+            $$parsedSource["attributes"] = $$createField8_0($$parsedSource["attributes"]);
+        }
+        return new Subscription($$parsedSource as Partial<Subscription>);
     }
 }
 
 /**
- * TopicMessageType is the message type.
+ * SubscriptionClient is what one connected consumer is actually doing.
+ * 
+ * It is separate from the client list a Subscription carries because the two
+ * answer different questions and cost different things. The list says who is
+ * connected, and comes back with the group. This is a round trip to that one
+ * client, so it is fetched when someone asks about it.
  */
-export enum TopicMessageType {
-    /**
-     * The Go zero value for the underlying type of the enum.
-     */
-    $zero = "",
-
-    MessageTypeNormal = "Normal",
-    MessageTypeFIFO = "FIFO",
-    MessageTypeDelay = "Delay",
-};
-
-/**
- * TopicPerm is the Topic permission.
- */
-export enum TopicPerm {
-    /**
-     * The Go zero value for the underlying type of the enum.
-     */
-    $zero = "",
-
-    PermRW = "RW",
-    PermR = "R",
-    PermW = "W",
-    PermDeny = "DENY",
-};
-
-/**
- * TopicRouteItem is a Topic route entry.
- */
-export class TopicRouteItem {
-    /**
-     * Broker name
-     */
-    "broker": string;
+export class SubscriptionClient {
+    "clientId": string;
 
     /**
-     * Broker address
+     * Assignments is which queues this client currently holds. It is the
+     * answer to "why is one consumer behind and the others idle", which a
+     * group-level backlog cannot give.
      */
-    "brokerAddr": string;
+    "assignments": QueueAssignment[];
 
     /**
-     * Read queue count
+     * Throughput is per destination, because a client reading two topics can
+     * be healthy on one and stalled on the other.
      */
-    "readQueue": number;
+    "throughput": ConsumeThroughput[];
 
     /**
-     * Write queue count
+     * Properties is what the client reports about itself - version, consume
+     * mode, thread counts. Free-form because every family names them
+     * differently and none of it is worth a canonical field.
      */
-    "writeQueue": number;
+    "properties": { [_ in string]?: string };
 
-    /**
-     * Permission
-     */
-    "perm": TopicPerm;
-
-    /** Creates a new TopicRouteItem instance. */
-    constructor($$source: Partial<TopicRouteItem> = {}) {
-        if (!("broker" in $$source)) {
-            this["broker"] = "";
+    /** Creates a new SubscriptionClient instance. */
+    constructor($$source: Partial<SubscriptionClient> = {}) {
+        if (!("clientId" in $$source)) {
+            this["clientId"] = "";
         }
-        if (!("brokerAddr" in $$source)) {
-            this["brokerAddr"] = "";
+        if (!("assignments" in $$source)) {
+            this["assignments"] = [];
         }
-        if (!("readQueue" in $$source)) {
-            this["readQueue"] = 0;
+        if (!("throughput" in $$source)) {
+            this["throughput"] = [];
         }
-        if (!("writeQueue" in $$source)) {
-            this["writeQueue"] = 0;
-        }
-        if (!("perm" in $$source)) {
-            this["perm"] = TopicPerm.$zero;
+        if (!("properties" in $$source)) {
+            this["properties"] = {};
         }
 
         Object.assign(this, $$source);
     }
 
     /**
-     * Creates a new TopicRouteItem instance from a string or object.
+     * Creates a new SubscriptionClient instance from a string or object.
      */
-    static createFrom($$source: any = {}): TopicRouteItem {
+    static createFrom($$source: any = {}): SubscriptionClient {
+        const $$createField1_0 = $$createType19;
+        const $$createField2_0 = $$createType21;
+        const $$createField3_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-        return new TopicRouteItem($$parsedSource as Partial<TopicRouteItem>);
+        if ("assignments" in $$parsedSource) {
+            $$parsedSource["assignments"] = $$createField1_0($$parsedSource["assignments"]);
+        }
+        if ("throughput" in $$parsedSource) {
+            $$parsedSource["throughput"] = $$createField2_0($$parsedSource["throughput"]);
+        }
+        if ("properties" in $$parsedSource) {
+            $$parsedSource["properties"] = $$createField3_0($$parsedSource["properties"]);
+        }
+        return new SubscriptionClient($$parsedSource as Partial<SubscriptionClient>);
+    }
+}
+
+/**
+ * SubscriptionRef identifies a consumer group, subscription or queue consumer.
+ */
+export class SubscriptionRef {
+    "namespace": string;
+    "name": string;
+
+    /** Creates a new SubscriptionRef instance. */
+    constructor($$source: Partial<SubscriptionRef> = {}) {
+        if (!("namespace" in $$source)) {
+            this["namespace"] = "";
+        }
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new SubscriptionRef instance from a string or object.
+     */
+    static createFrom($$source: any = {}): SubscriptionRef {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new SubscriptionRef($$parsedSource as Partial<SubscriptionRef>);
+    }
+}
+
+/**
+ * SubscriptionStatus is the health of a subscription.
+ */
+export enum SubscriptionStatus {
+    /**
+     * The Go zero value for the underlying type of the enum.
+     */
+    $zero = "",
+
+    SubscriptionOnline = "online",
+    SubscriptionWarning = "warning",
+    SubscriptionOffline = "offline",
+};
+
+/**
+ * TailBatch is one poll's worth of a tail.
+ */
+export class TailBatch {
+    /**
+     * Messages are oldest first, which is the order a tail appends in.
+     */
+    "messages": (MessageItem | null)[];
+
+    /**
+     * Cursor is what to pass next time. It advances even when no message came
+     * back, because a partition can move on without this tail matching any.
+     */
+    "cursor": TailCursor;
+
+    /**
+     * Dropped counts messages that aged out of the log between two polls -
+     * a tail slower than the retention it is watching. Reporting it is the
+     * difference between a quiet tail and one that is silently losing.
+     */
+    "dropped": number;
+
+    /** Creates a new TailBatch instance. */
+    constructor($$source: Partial<TailBatch> = {}) {
+        if (!("messages" in $$source)) {
+            this["messages"] = [];
+        }
+        if (!("cursor" in $$source)) {
+            this["cursor"] = (new TailCursor());
+        }
+        if (!("dropped" in $$source)) {
+            this["dropped"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new TailBatch instance from a string or object.
+     */
+    static createFrom($$source: any = {}): TailBatch {
+        const $$createField0_0 = $$createType24;
+        const $$createField1_0 = $$createType25;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("messages" in $$parsedSource) {
+            $$parsedSource["messages"] = $$createField0_0($$parsedSource["messages"]);
+        }
+        if ("cursor" in $$parsedSource) {
+            $$parsedSource["cursor"] = $$createField1_0($$parsedSource["cursor"]);
+        }
+        return new TailBatch($$parsedSource as Partial<TailBatch>);
+    }
+}
+
+/**
+ * TailCursor is where a tail has read to, per partition.
+ * 
+ * An empty cursor means "start at the end": a tail opens on what arrives next
+ * rather than replaying what is already stored, which is what the message
+ * query is for.
+ */
+export class TailCursor {
+    "positions": QueuePosition[];
+
+    /** Creates a new TailCursor instance. */
+    constructor($$source: Partial<TailCursor> = {}) {
+        if (!("positions" in $$source)) {
+            this["positions"] = [];
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new TailCursor instance from a string or object.
+     */
+    static createFrom($$source: any = {}): TailCursor {
+        const $$createField0_0 = $$createType27;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("positions" in $$parsedSource) {
+            $$parsedSource["positions"] = $$createField0_0($$parsedSource["positions"]);
+        }
+        return new TailCursor($$parsedSource as Partial<TailCursor>);
     }
 }
 
 // Private type creation functions
 const $$createType0 = $Create.Array($Create.Any);
-const $$createType1 = $Create.Array($Create.Any);
-const $$createType2 = $Create.Array($Create.Any);
-const $$createType3 = BrokerNode.createFrom;
-const $$createType4 = $Create.Nullable($$createType3);
-const $$createType5 = $Create.Array($$createType4);
-const $$createType6 = GroupSubscription.createFrom;
-const $$createType7 = $Create.Array($$createType6);
-const $$createType8 = GroupClient.createFrom;
-const $$createType9 = $Create.Array($$createType8);
-const $$createType10 = $Create.Map($Create.Any, $Create.Any);
-const $$createType11 = TopicRouteItem.createFrom;
+const $$createType1 = AccessPolicy.createFrom;
+const $$createType2 = $Create.Array($$createType1);
+const $$createType3 = $Create.Map($Create.Any, $Create.Any);
+const $$createType4 = $Create.Array($Create.Any);
+const $$createType5 = $Create.Map($Create.Any, $Create.Any);
+const $$createType6 = DestinationRef.createFrom;
+const $$createType7 = FormField.createFrom;
+const $$createType8 = $Create.Array($$createType7);
+const $$createType9 = FieldCond.createFrom;
+const $$createType10 = $Create.Nullable($$createType9);
+const $$createType11 = FormOption.createFrom;
 const $$createType12 = $Create.Array($$createType11);
+const $$createType13 = $Create.Array($Create.Any);
+const $$createType14 = $Create.Array($Create.Any);
+const $$createType15 = ReplicaStatus.createFrom;
+const $$createType16 = $Create.Array($$createType15);
+const $$createType17 = SubscriptionRef.createFrom;
+const $$createType18 = QueueAssignment.createFrom;
+const $$createType19 = $Create.Array($$createType18);
+const $$createType20 = ConsumeThroughput.createFrom;
+const $$createType21 = $Create.Array($$createType20);
+const $$createType22 = MessageItem.createFrom;
+const $$createType23 = $Create.Nullable($$createType22);
+const $$createType24 = $Create.Array($$createType23);
+const $$createType25 = TailCursor.createFrom;
+const $$createType26 = QueuePosition.createFrom;
+const $$createType27 = $Create.Array($$createType26);

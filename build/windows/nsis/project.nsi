@@ -1,4 +1,4 @@
-Unicode true
+﻿Unicode true
 
 ####
 ## Please note: Template replacements don't work in this file. They are provided with default defines like
@@ -34,6 +34,13 @@ Unicode true
 ####
 !include "wails_tools.nsh"
 
+# wails_tools.nsh guards its strings with !ifndef, so redefining them here wins.
+# They are baked in at compile time and shown before the language dialog exists,
+# so each one carries both languages rather than following the user's choice.
+!define WAILS_WIN10_REQUIRED "This product is only supported on Windows 10 (Server 2016) and later.$\r$\n本产品仅支持 Windows 10（Server 2016）及以上版本。"
+!define WAILS_ARCHITECTURE_NOT_SUPPORTED "This product can't be installed on the current Windows architecture. Supports: ${ARCH}$\r$\n本产品无法安装在当前的 Windows 架构上。支持的架构：${ARCH}"
+!define WAILS_INSTALL_WEBVIEW_DETAILPRINT "Installing the WebView2 runtime / 正在安装 WebView2 运行时"
+
 # The version information for this two must consist of 4 parts
 VIProductVersion "${INFO_PRODUCTVERSION}.0"
 VIFileVersion    "${INFO_PRODUCTVERSION}.0"
@@ -52,19 +59,33 @@ ManifestDPIAware true
 
 !define MUI_ICON "..\icon.ico"
 !define MUI_UNICON "..\icon.ico"
-# !define MUI_WELCOMEFINISHPAGE_BITMAP "resources\leftimage.bmp" #Include this to add a bitmap on the left side of the Welcome Page. Must be a size of 164x314
+
+# Both bitmaps are 24-bit BMP3 at the sizes MUI fixes (164x314 and 150x57);
+# regenerate them with `node scripts/render-nsis-bitmaps.mjs`.
+!define MUI_WELCOMEFINISHPAGE_BITMAP "resources\welcome.bmp"
+!define MUI_HEADERIMAGE
+!define MUI_HEADERIMAGE_RIGHT
+!define MUI_HEADERIMAGE_BITMAP "resources\header.bmp"
+
 !define MUI_FINISHPAGE_NOAUTOCLOSE # Wait on the INSTFILES page so the user can take a look into the details of the installation steps
 !define MUI_ABORTWARNING # This will warn the user if they exit from the installer.
 
+# Remembers the language so a re-run and the uninstaller do not ask again.
+!define MUI_LANGDLL_REGISTRY_ROOT "HKLM"
+!define MUI_LANGDLL_REGISTRY_KEY "${UNINST_KEY}"
+!define MUI_LANGDLL_REGISTRY_VALUENAME "Installer Language"
+
 !insertmacro MUI_PAGE_WELCOME # Welcome to the installer page.
-# !insertmacro MUI_PAGE_LICENSE "resources\eula.txt" # Adds a EULA page to the installer
+!insertmacro MUI_PAGE_LICENSE "resources\LICENSE.txt" # Apache-2.0, CRLF copy of the repository LICENSE.
 !insertmacro MUI_PAGE_DIRECTORY # In which folder install page.
 !insertmacro MUI_PAGE_INSTFILES # Installing page.
 !insertmacro MUI_PAGE_FINISH # Finished installation page.
 
 !insertmacro MUI_UNPAGE_INSTFILES # Uninstalling page
 
-!insertmacro MUI_LANGUAGE "English" # Set the Language of the installer
+# Insertion order sets the order of the language dropdown.
+!insertmacro MUI_LANGUAGE "English"
+!insertmacro MUI_LANGUAGE "SimpChinese"
 
 ## The following two statements can be used to sign the installer and the uninstaller. The path to the binaries are provided in %1
 #!uninstfinalize 'signtool --file "%1"'
@@ -76,6 +97,7 @@ InstallDir "$PROGRAMFILES64\${INFO_COMPANYNAME}\${INFO_PRODUCTNAME}" # Default i
 ShowInstDetails show # This will always show the installation details.
 
 Function .onInit
+   !insertmacro MUI_LANGDLL_DISPLAY
    !insertmacro wails.checkArchitecture
 FunctionEnd
 
@@ -96,6 +118,10 @@ Section
     
     !insertmacro wails.writeUninstaller
 SectionEnd
+
+Function un.onInit
+  !insertmacro MUI_UNGETLANGUAGE
+FunctionEnd
 
 Section "uninstall" 
     !insertmacro wails.setShellContext

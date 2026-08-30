@@ -16,8 +16,14 @@
     "test": "npm run test:go && npm run test:frontend",
     "test:go": "go test ./...",
     "test:frontend": "npm --prefix frontend test",
+    "test:e2e": "MQ_STUDIO_E2E=1 go test -count=1 -run TestLive ./internal/app/... ./internal/driver/rocketmq/...",
     "e2e:up": "docker compose -f tests/e2e/rocketmq/compose.yaml up -d --wait",
+    "e2e:seed": "bash scripts/e2e-seed.sh",
+    "e2e:acl:up": "bash tests/e2e/rocketmq-acl/up.sh",
+    "e2e:acl:down": "docker compose -f tests/e2e/rocketmq-acl/compose.yaml down -v",
+    "e2e:rabbitmq:up": "docker compose -f tests/e2e/rabbitmq/compose.yaml up -d --wait",
     "e2e:down": "docker compose -f tests/e2e/rocketmq/compose.yaml down -v",
+    "e2e:rabbitmq:down": "docker compose -f tests/e2e/rabbitmq/compose.yaml down -v",
     "check:bindings": "npm run generate:bindings && git diff --quiet -- frontend/bindings || (echo 'Generated bindings are stale; run npm run generate:bindings and commit the result.' >&2 && git diff --stat -- frontend/bindings && exit 1)",
     "check": "npm run check:version && npm run build:frontend && npm run go:fmt:check && npm run go:vet && npm test && npm run check:bindings"
   }

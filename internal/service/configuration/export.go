@@ -20,15 +20,17 @@ func (s *Service) ExportAllConfig() (string, error) {
 	defer s.mu.Unlock()
 
 	settings := s.settings.GetSettings()
-	connections := connectionStore{Connections: make([]*model.Connection, 0)}
+	connections := connectionStore{Connections: make([]*model.ConnectionRecord, 0)}
 	if s.connections != nil {
-		connections.Connections = s.connections.GetConnections()
+		for _, profile := range s.connections.GetConnections() {
+			connections.Connections = append(connections.Connections, model.NewConnectionRecord(profile))
+		}
 	}
 
 	containsSecrets := settings != nil &&
 		(settings.GlobalAccessKey != "" || settings.GlobalSecretKey != "")
 	for _, connection := range connections.Connections {
-		if connection != nil && (connection.AccessKey != "" || connection.SecretKey != "") {
+		if connection != nil && len(connection.Secrets) > 0 {
 			containsSecrets = true
 			break
 		}

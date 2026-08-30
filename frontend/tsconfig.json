@@ -7,5 +7,17 @@
     {
       "path": "./tsconfig.app.json"
     }
-  ]
+  ],
+  /*
+   * Mirrored from tsconfig.app.json for tools that only read the root file:
+   * the shadcn CLI resolves its component aliases here, and without paths it
+   * writes into a literal `@/` directory.
+   */
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@bindings/*": ["./bindings/github.com/amigoer/mq-studio/internal/*"]
+    }
+  }
 }

@@ -17,25 +17,31 @@ type Service struct {
 	// runtimeMu serializes profile operations that observe or mutate runtime
 	// clients. When both locks are needed, runtimeMu must be acquired before mu.
 	runtimeMu       sync.Mutex
-	connections     map[int]*model.Connection
+	connections     map[int]*model.ConnectionProfile
 	nextID          int
 	dataFilePath    string
 	settings        Settings
-	runtime         clientRuntime
+	runtime         ClientRuntime
 	reconnectReload bool
+
+	listenersMu sync.RWMutex
+	listeners   []func([]*model.ConnectionProfile)
 }
 
 // New creates a connection service backed by dataFilePath.
-func New(dataFilePath string, settings Settings) *Service {
+//
+// The runtime is injected rather than constructed here so this package stays
+// free of any driver import.
+func New(dataFilePath string, settings Settings, runtime ClientRuntime) *Service {
 	if strings.TrimSpace(dataFilePath) == "" {
 		dataFilePath = "connections.json"
 	}
 	service := &Service{
-		connections:  make(map[int]*model.Connection),
+		connections:  make(map[int]*model.ConnectionProfile),
 		nextID:       1,
 		dataFilePath: dataFilePath,
 		settings:     settings,
-		runtime:      newAdminClientRuntime(),
+		runtime:      runtime,
 	}
 	if err := service.loadConnectionsFromFile(); err != nil {
 		log.Printf("[ConnectionService] failed to load connection config: %v", err)
