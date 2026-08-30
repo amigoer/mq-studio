@@ -2,7 +2,9 @@ package rabbitmq
 
 import (
 	"context"
+	"errors"
 	"net/http"
+	"strings"
 
 	rabbithole "github.com/michaelklishin/rabbit-hole/v3"
 
@@ -95,11 +97,53 @@ func (c *Conn) probe(ctx context.Context) {
 	overview, err := c.overview(ctx)
 	if err == nil {
 		c.version = overview.RabbitMQVersion
-	} else {
-		for _, capability := range capabilities() {
-			c.capabilities = c.capabilities.WithDegraded(capability, managementPluginMissing)
-		}
+		return
 	}
+	reason := degradeReason(err)
+	for _, capability := range capabilities() {
+		c.capabilities = c.capabilities.WithDegraded(capability, reason)
+	}
+}
+
+// degradeReason names why this endpoint cannot serve the admin plane.
+//
+// All of these look the same to a caller - every capability goes away - but
+// they are fixed in completely different places, and only one of them is fixed
+// by touching the broker's plugins. Reporting a typo'd password as "enable the
+// management plugin" sent people to reconfigure a broker that was fine.
+func degradeReason(err error) string {
+	switch statusOf(err) {
+	case http.StatusUnauthorized:
+		return credentialsRejected
+	case http.StatusForbidden:
+		return credentialsForbidden
+	case http.StatusNotFound:
+		return managementPluginMissing
+	}
+	if errors.Is(err, context.DeadlineExceeded) || isTimeout(err) {
+		return endpointTimedOut
+	}
+	return endpointUnreachable
+}
+
+// statusOf reads the HTTP status back out of a rabbit-hole error, or 0 when
+// the call never got a response at all.
+func statusOf(err error) int {
+	var response rabbithole.ErrorResponse
+	if errors.As(err, &response) {
+		return response.StatusCode
+	}
+	// rabbit-hole short-circuits 401 into a bare errors.New before it builds
+	// an ErrorResponse, so that one can only be read out of the text.
+	if strings.Contains(err.Error(), "401 Unauthorized") {
+		return http.StatusUnauthorized
+	}
+	return 0
+}
+
+func isTimeout(err error) bool {
+	var timeout interface{ Timeout() bool }
+	return errors.As(err, &timeout) && timeout.Timeout()
 }
 
 // browseCaveat is an i18n key. Browsing a queue is a POST that alters queue
@@ -107,7 +151,22 @@ func (c *Conn) probe(ctx context.Context) {
 // letting an operator find out afterwards.
 const browseCaveat = "mq.rabbitmq.caveat.browseAltersQueue"
 
-// managementPluginMissing is an i18n key: the renderer turns it into a
-// sentence, because a reason the user has to act on should be in their
-// language.
-const managementPluginMissing = "mq.rabbitmq.degraded.managementPlugin"
+// The reasons a connection reports when the admin plane is unavailable. They
+// are i18n keys rather than sentences: the renderer turns them into the user's
+// own language, because each one asks the user to go and do something.
+const (
+	// credentialsRejected is a 401. The password is wrong.
+	credentialsRejected = "mq.rabbitmq.degraded.credentials"
+	// credentialsForbidden is a 403. The password is right and the user has no
+	// management tag, which is a different fix in a different place.
+	credentialsForbidden = "mq.rabbitmq.degraded.forbidden"
+	// managementPluginMissing is a 404: something answered, but the API is not
+	// mounted there.
+	managementPluginMissing = "mq.rabbitmq.degraded.managementPlugin"
+	// endpointTimedOut is a host that accepted the connection and went quiet.
+	endpointTimedOut = "mq.rabbitmq.degraded.timeout"
+	// endpointUnreachable is nothing answering at all. The wording names both
+	// causes on purpose: with the plugin off nothing listens on the management
+	// port, so from here that is indistinguishable from a wrong address.
+	endpointUnreachable = "mq.rabbitmq.degraded.unreachable"
+)

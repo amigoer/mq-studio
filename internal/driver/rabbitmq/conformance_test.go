@@ -16,7 +16,8 @@ import (
 // has a green suite.
 const liveEndpoint = "http://127.0.0.1:15672"
 
-func liveConn(t *testing.T) *Conn {
+// requireLiveBroker skips, or in CI fails, when the e2e environment is absent.
+func requireLiveBroker(t *testing.T) {
 	t.Helper()
 	client := &http.Client{Timeout: 2 * time.Second}
 	response, err := client.Get(liveEndpoint + "/api/overview")
@@ -27,6 +28,11 @@ func liveConn(t *testing.T) *Conn {
 		t.Skipf("rabbitmq is not running; start it with npm run e2e:rabbitmq:up (%v)", err)
 	}
 	_ = response.Body.Close()
+}
+
+func liveConn(t *testing.T) *Conn {
+	t.Helper()
+	requireLiveBroker(t)
 
 	profile := model.ConnectionProfile{
 		Kind:      model.KindRabbitMQ,
@@ -204,5 +210,34 @@ func TestClusterOverviewReadsTheLiveBroker(t *testing.T) {
 	// percentage. Averaging alarms into a percent would invent a number.
 	if overview.AvgDiskUsage != model.UnknownMetric {
 		t.Errorf("disk usage = %d; rabbitmq has no cluster percentage to report", overview.AvgDiskUsage)
+	}
+}
+
+// Against the real broker, a wrong password must read as a wrong password.
+// This is the live half of TestProbeNamesTheActualFailure: the httptest cases
+// prove the classifier, this proves RabbitMQ answers the way it assumes.
+func TestLiveBadCredentialIsNotReportedAsMissingPlugin(t *testing.T) {
+	requireLiveBroker(t)
+
+	profile := model.ConnectionProfile{
+		Kind:      model.KindRabbitMQ,
+		Endpoints: liveEndpoint,
+		Auth:      model.AuthConfig{Mechanism: model.AuthPlain},
+	}
+	profile.SetSecret(SecretUsername, "mqstudio")
+	profile.SetSecret(SecretPassword, "definitely-not-the-password")
+
+	conn, err := New().Open(context.Background(), profile)
+	if err != nil {
+		t.Fatalf("open: %v", err)
+	}
+	defer func() { _ = conn.Close() }()
+
+	reason, degraded := conn.Capabilities().DegradedReason(model.CapDestinationList)
+	if !degraded {
+		t.Fatal("a rejected credential left the capabilities intact")
+	}
+	if reason != credentialsRejected {
+		t.Errorf("reason = %q, want %q - the broker answered something other than 401", reason, credentialsRejected)
 	}
 }

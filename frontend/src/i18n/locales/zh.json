@@ -379,7 +379,11 @@
         "browseAltersQueue": "浏览会改变队列状态：消息虽被重新入队，但会标记为 redelivered，并影响并发消费者看到的顺序。"
       },
       "degraded": {
-        "managementPlugin": "未检测到 management 插件。RabbitMQ 的管理面全部由它提供，启用后即可使用。"
+        "managementPlugin": "管理 API 返回 404：该地址上没有挂载管理接口。请确认 management 插件已启用，且地址指向的是管理端口。",
+        "credentials": "用户名或密码被拒绝（管理 API 返回 401）。请检查连接设置里的凭据。",
+        "forbidden": "凭据有效，但该用户没有 management 标签，读不到管理 API（返回 403）。请为其添加 management 或更高的标签。",
+        "timeout": "连接管理 API 超时。请确认 broker 可达，或在连接设置里调大超时时间。",
+        "unreachable": "无法连接到管理 API。请确认地址与端口正确，并且 management 插件已启用 —— 插件未启用时管理端口根本不会监听，从客户端看两者是一样的。"
       },
       "routing": {
         "title": "交换机与绑定",

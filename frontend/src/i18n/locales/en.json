@@ -379,7 +379,11 @@
         "browseAltersQueue": "Browsing alters the queue: messages are requeued but come back flagged redelivered, and concurrent consumers see the gap."
       },
       "degraded": {
-        "managementPlugin": "The management plugin is not enabled. It provides the whole RabbitMQ admin plane; turning it on restores these views."
+        "managementPlugin": "The management API answered 404: nothing is mounted at that address. Check that the management plugin is enabled and that the address points at the management port.",
+        "credentials": "The username or password was rejected (the management API answered 401). Check the credentials in the connection settings.",
+        "forbidden": "The credentials are valid, but this user has no management tag and cannot read the management API (403). Give it the management tag or higher.",
+        "timeout": "Timed out reaching the management API. Check the broker is reachable, or raise the timeout in the connection settings.",
+        "unreachable": "Cannot reach the management API. Check the address and port, and that the management plugin is enabled - with it off nothing listens on the management port at all, which looks the same from here as a wrong address."
       },
       "routing": {
         "title": "Exchanges & bindings",
