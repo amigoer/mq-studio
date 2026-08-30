@@ -2,6 +2,7 @@ package rocketmq
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sort"
 	"strings"
@@ -134,7 +135,11 @@ func (c *Conn) GetConsumerGroupDetail(ctx context.Context, groupName string) (*m
 	return item, nil
 }
 
-// GetConsumeStats returns consumption statistics.
+// GetConsumeStats returns consumption statistics, per queue and in total.
+//
+// The per-queue rows are the point of it: a group-level backlog says a group
+// is behind, and only this says whether one queue is carrying all of it -
+// which is the difference between a slow consumer and a stuck one.
 func (c *Conn) GetConsumeStats(ctx context.Context, groupName string) (map[string]interface{}, error) {
 
 	result := map[string]interface{}{}
@@ -148,18 +153,33 @@ func (c *Conn) GetConsumeStats(ctx context.Context, groupName string) (map[strin
 		}
 
 		var totalDifference int64
-		for _, offset := range stats.OffsetTable {
+		queues := make([]map[string]interface{}, 0, len(stats.OffsetTable))
+		for key, offset := range stats.OffsetTable {
 			if offset == nil {
 				continue
 			}
-			if difference := offset.BrokerOffset - offset.ConsumerOffset; difference > 0 {
+			difference := offset.BrokerOffset - offset.ConsumerOffset
+			if difference > 0 {
 				totalDifference += difference
 			}
+			queue := parseMessageQueueKey(key)
+			queues = append(queues, map[string]interface{}{
+				"topic":          queue.Topic,
+				"brokerName":     queue.BrokerName,
+				"queueId":        queue.QueueID,
+				"brokerOffset":   offset.BrokerOffset,
+				"consumerOffset": offset.ConsumerOffset,
+				"backlog":        difference,
+				"lastConsumed":   offset.LastTimestamp,
+			})
 		}
+		sortQueueRows(queues)
+
 		result = map[string]interface{}{
 			"group":      groupName,
 			"consumeTps": stats.ConsumeTps,
 			"diffTotal":  totalDifference,
+			"queues":     queues,
 		}
 		return nil
 	})
@@ -167,6 +187,45 @@ func (c *Conn) GetConsumeStats(ctx context.Context, groupName string) (map[strin
 		return nil, fmt.Errorf("获取消费统计失败: %w", err)
 	}
 	return result, nil
+}
+
+// messageQueue is the shape RocketMQ uses as a map key. The library hands it
+// back as the JSON text of that object, once its Fastjson fixer has quoted it.
+type messageQueue struct {
+	Topic      string `json:"topic"`
+	BrokerName string `json:"brokerName"`
+	QueueID    int    `json:"queueId"`
+}
+
+// parseMessageQueueKey reads one offset-table key.
+//
+// A key it cannot read is not dropped: the offsets behind it are still true,
+// and a row with a blank topic reads better than a backlog that silently does
+// not add up to the total beside it.
+func parseMessageQueueKey(key string) messageQueue {
+	var queue messageQueue
+	if err := json.Unmarshal([]byte(key), &queue); err != nil {
+		return messageQueue{QueueID: -1}
+	}
+	return queue
+}
+
+func sortQueueRows(queues []map[string]interface{}) {
+	sort.Slice(queues, func(left, right int) bool {
+		leftTopic, _ := queues[left]["topic"].(string)
+		rightTopic, _ := queues[right]["topic"].(string)
+		if leftTopic != rightTopic {
+			return leftTopic < rightTopic
+		}
+		leftBroker, _ := queues[left]["brokerName"].(string)
+		rightBroker, _ := queues[right]["brokerName"].(string)
+		if leftBroker != rightBroker {
+			return leftBroker < rightBroker
+		}
+		leftQueue, _ := queues[left]["queueId"].(int)
+		rightQueue, _ := queues[right]["queueId"].(int)
+		return leftQueue < rightQueue
+	})
 }
 
 // GetConsumerClients returns the clients for a consumer group.

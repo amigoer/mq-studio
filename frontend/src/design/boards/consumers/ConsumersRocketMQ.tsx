@@ -30,6 +30,8 @@ import { BoardState, Notice, isBlocked } from "@/design/boards/BoardState";
 import { useBrokerData } from "@/hooks/useBrokerData";
 import { useSettings } from "@/hooks/useSettings";
 import { useConnectionScope } from "@/mq/ConnectionScope";
+import { useCapabilities } from "@/mq/capabilities";
+import { Capability } from "@bindings/model/models";
 import { ResetOffsetDialog } from "./ResetOffsetDialog";
 import * as consumerApi from "@/api/consumer";
 import { formatErrorMessage } from "@/lib/utils";
@@ -49,9 +51,22 @@ import {
  * against something stable rather than against a label that changes language.
  */
 const TAB_OVERVIEW = "board.common.overview";
+const TAB_QUEUES = "board.common.queue";
 const TAB_MEMBERS = "board.common.members";
 const TAB_SUBSCRIPTIONS = "board.consumers.rocketmq.subRel";
-const SHEET_TABS = [TAB_OVERVIEW, TAB_MEMBERS, TAB_SUBSCRIPTIONS] as const;
+const SHEET_TABS = [TAB_OVERVIEW, TAB_QUEUES, TAB_MEMBERS, TAB_SUBSCRIPTIONS] as const;
+
+/** One row of the group's per-queue consume progress. */
+interface QueueProgress {
+  topic: string;
+  brokerName: string;
+  queueId: number;
+  brokerOffset: number;
+  consumerOffset: number;
+  backlog: number;
+  lastConsumed: number;
+}
+
 const R = { textAlign: "right" } as const;
 const SORTS = ["backlog", "name", "consume"] as const;
 type Sort = (typeof SORTS)[number];
@@ -301,10 +316,21 @@ function GroupSheet({
   onClose: () => void;
 }) {
   const { t } = useTranslation();
+  const name = groupName(group);
   const backlog = group.backlog ?? 0;
   const alerting = backlog > lagThreshold;
   const clients = clientsOf(group);
   const subscriptions = subscriptionsOf(group);
+  const runtimeBlocked = useCapabilities().degradedReason(Capability.CapSubscriptionRuntime);
+
+  // One request per group, and only the 队列 tab shows it, so opening a group
+  // to read its mode does not pay for it.
+  const loadStats = useCallback(
+    (id: number) => consumerApi.getConsumeStats(id, name),
+    [name],
+  );
+  const stats = useBrokerData(loadStats, { refreshMs: null, enabled: tab === TAB_QUEUES });
+  const queues = (stats.data?.["queues"] as QueueProgress[] | undefined) ?? [];
 
   return (
     <DetailPanel width={390} onDismiss={onClose}>
@@ -350,35 +376,90 @@ function GroupSheet({
           </>
         )}
 
-        {tab === TAB_MEMBERS &&
-          (clients.length === 0 ? (
-            <Notice title={t("board.consumers.rocketmq.noClients")} />
-          ) : (
-            <Panel style={{ overflow: "hidden" }}>
+        {tab === TAB_QUEUES && (
+          <Panel style={{ overflow: "hidden" }}>
+            {isBlocked(stats) ? (
+              <BoardState state={stats} />
+            ) : queues.length === 0 ? (
+              <Notice title={t("board.consumers.rocketmq.noQueues")} />
+            ) : (
               <Table className="text-xs">
                 <TableHeader>
                   <TableRow>
-                    <TableHead>ClientId</TableHead>
-                    <TableHead>IP</TableHead>
-                    <TableHead style={R}>{t("board.consumers.rocketmq.version")}</TableHead>
+                    <TableHead>{t("board.common.queue")}</TableHead>
+                    <TableHead style={R}>{t("board.consumers.rocketmq.position")}</TableHead>
+                    <TableHead style={R}>{t("board.common.backlog")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {clients.map((client) => (
-                    <TableRow key={client.clientId}>
-                      <TableCell className="mono3">{client.clientId}</TableCell>
-                      <TableCell className="mono3" style={{ color: "var(--c-mono-dim)" }}>
-                        {client.ip}
+                  {queues.map((queue) => (
+                    <TableRow key={`${queue.topic}-${queue.brokerName}-${queue.queueId}`}>
+                      <TableCell className="mono3">
+                        {queue.topic}
+                        <span style={{ color: "var(--c-mono-dim)" }}>
+                          {" "}
+                          {queue.brokerName} q{queue.queueId}
+                        </span>
                       </TableCell>
-                      <TableCell className="mono3" style={R}>
-                        {client.version}
+                      <TableCell className="mono3" style={{ ...R, color: "var(--c-mono-dim)" }}>
+                        {queue.consumerOffset.toLocaleString()} /{" "}
+                        {queue.brokerOffset.toLocaleString()}
+                      </TableCell>
+                      <TableCell
+                        className="mono3"
+                        style={{ ...R, ...(queue.backlog > 0 ? { color: "var(--c-warn-text)" } : {}) }}
+                      >
+                        {Math.max(0, queue.backlog).toLocaleString()}
                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
-            </Panel>
-          ))}
+            )}
+          </Panel>
+        )}
+
+        {tab === TAB_MEMBERS && (
+          <>
+            {clients.length === 0 ? (
+              <Notice title={t("board.consumers.rocketmq.noClients")} />
+            ) : (
+              <Panel style={{ overflow: "hidden" }}>
+                <Table className="text-xs">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>ClientId</TableHead>
+                      <TableHead>IP</TableHead>
+                      <TableHead style={R}>{t("board.consumers.rocketmq.version")}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {clients.map((client) => (
+                      <TableRow key={client.clientId}>
+                        <TableCell className="mono3">{client.clientId}</TableCell>
+                        <TableCell className="mono3" style={{ color: "var(--c-mono-dim)" }}>
+                          {client.ip}
+                        </TableCell>
+                        <TableCell className="mono3" style={R}>
+                          {client.version}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </Panel>
+            )}
+            {/* Which queues each client holds is what this tab wants next, and
+                the endpoint says why it cannot answer. Silence would read as
+                RocketMQ having no such concept. */}
+            {runtimeBlocked != null && (
+              <p className="m-0 text-xs leading-relaxed text-(--c-muted)">
+                {t("board.consumers.rocketmq.runtimeBlocked")}
+                <span className="mt-0.5 block text-(--c-muted-2)">{runtimeBlocked}</span>
+              </p>
+            )}
+          </>
+        )}
 
         {tab === TAB_SUBSCRIPTIONS &&
           (subscriptions.length === 0 ? (
