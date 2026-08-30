@@ -173,6 +173,25 @@
     user-select: none;
   }
 
+  /*
+   * Popups portal to the body, which sits inside the document zoom the UI scale
+   * applies. Radix positions them from client-space coordinates it read back
+   * with getBoundingClientRect, and a client-space length written inside the
+   * zoom is multiplied by it a second time -- the menus and popovers landed
+   * off by the scale, and off-screen entirely by the top of the ladder.
+   *
+   * Cancelling the zoom on the wrapper Radix writes to puts its coordinates
+   * back in client space; the content inside takes the scale back so it is
+   * still drawn at the size the rest of the shell is. Both are no-ops at 13px.
+   */
+  [data-radix-popper-content-wrapper] {
+    zoom: calc(1 / var(--mqs-scale, 1));
+  }
+
+  [data-radix-popper-content-wrapper] > * {
+    zoom: var(--mqs-scale, 1);
+  }
+
   /* Client-app style: no browser blue, but still clearly visible on either ground. */
   ::selection {
     background: var(--c-selection);
