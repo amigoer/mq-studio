@@ -1,8 +1,4 @@
 {
-  "app": {
-    "name": "MQ Studio",
-    "tagline": "RocketMQ desktop client"
-  },
   "common": {
     "save": "Save",
     "cancel": "Cancel",
@@ -44,257 +40,8 @@
     "docs": "Docs",
     "dismiss": "Dismiss notification"
   },
-  "emptyState": {
-    "title": "Overview",
-    "subtitle": "Not connected · add a NameServer first",
-    "badge": "Not connected",
-    "supportNote": "RocketMQ 4.x / 5.x · runs locally · no server required",
-    "heroTitle": "Connect to your first NameServer",
-    "heroDesc": "After you add a NameServer you can browse topics, consumer groups, messages, and cluster health. All config stays on this machine.",
-    "addConnection": "Add connection",
-    "importFromFile": "Import from file",
-    "quickStart": "Quick start",
-    "workflow": "How it works",
-    "samples": {
-      "local": {
-        "name": "Local dev",
-        "desc": "NameServer on this machine"
-      },
-      "docker": {
-        "name": "Docker Compose",
-        "desc": "NameServer on the container network"
-      },
-      "paste": {
-        "name": "Paste address…",
-        "desc": "Add quickly from the clipboard"
-      }
-    },
-    "steps": {
-      "1": {
-        "title": "Add NameServer",
-        "desc": "Enter host:port. ACL and TLS are optional. Config is stored locally only."
-      },
-      "2": {
-        "title": "Pick cluster",
-        "desc": "MQ Studio discovers brokers and organizes them by cluster."
-      },
-      "3": {
-        "title": "Manage topics & consume",
-        "desc": "Create topics, query messages, reset offsets, and track message trails."
-      }
-    },
-    "links": {
-      "github": "GitHub",
-      "acl": "Features",
-      "docs": "Architecture",
-      "faq": "FAQ"
-    },
-    "footer": "Local data · nothing is uploaded",
-    "importSuccess": "Configuration imported and applied",
-    "importError": "Failed to import config",
-    "clipboardEmpty": "Clipboard is empty — open a blank connection form"
-  },
   "nav": {
-    "home": "Overview",
-    "topics": "Topics",
-    "consumers": "Consumers",
-    "messages": "Messages",
-    "producer": "Producer",
-    "cluster": "Cluster",
-    "alerts": "Alerts",
-    "acl": "ACL & Audit",
-    "connections": "Connections",
-    "settings": "Settings",
-    "github": "GitHub",
-    "githubHint": "Open the GitHub repo in your browser",
-    "githubOpenFailed": "Couldn't open GitHub — check your default browser",
-    "updateAvailable": "Update available",
-    "groupBrowse": "Resources",
-    "groupOps": "Ops"
-  },
-  "titlebar": {
-    "aiAssistant": "AI Assistant",
-    "noCluster": "No cluster",
-    "connectedHint": "Connected to {{name}} · click to switch",
-    "offlineHint": "Not connected · click to choose a connection",
-    "switchConnection": "Switch connection",
-    "noConnections": "No connections yet",
-    "manageConnections": "Manage connections…"
-  },
-  "overview": {
-    "title": "Overview",
-    "subtitleConnected": "{{cluster}} · updated {{time}}",
-    "subtitleNoConn": "Not connected",
-    "loadError": "Failed to load overview: {{message}}",
-    "disconnectSuccess": "Disconnected from {{cluster}}",
-    "issues": {
-      "title": "Needs attention",
-      "count": "{{count}} items"
-    },
-    "throughput": {
-      "title": "Live throughput",
-      "subtitle": "Last 60 minutes · 1-min samples",
-      "produce": "Produce",
-      "consume": "Consume",
-      "noData": "No throughput samples yet",
-      "hoverAgo": "{{n}} min ago",
-      "hoverNow": "Now"
-    },
-    "stat": {
-      "topics": "Topics",
-      "consumers": "Consumer groups",
-      "broker": "Brokers",
-      "lag": "Total lag",
-      "topicSummary": "{{active}} active",
-      "consumersSummary": "{{online}} online · {{offline}} offline · {{unknown}} unknown",
-      "brokerSummary_all": "{{master}} master + {{slave}} slave · all online",
-      "brokerSummary_partial": "{{online}} / {{total}} online",
-      "lagSummary": "{{count}} group(s) abnormal",
-      "lagSummary_zero": "All normal"
-    },
-    "ai": {
-      "title": "AI diagnostics",
-      "subtitle": "Inferred from current cluster metrics",
-      "subtitleEmpty": "Inferred from current cluster metrics · no issues detected",
-      "reanalyze": "Re-analyze",
-      "chat": "Chat with AI",
-      "high": "High",
-      "med": "Medium",
-      "low": "Low",
-      "empty": "The cluster is running well. No issues detected at this time.",
-      "findings": {
-        "highLagTitle": "{{group}} has {{lag}} backlogged messages",
-        "highLagDesc": "Above the alert threshold ({{threshold}}). Check downstream consumption speed, or reset this group's offset.",
-        "offlineGroupTitle": "{{group}} has no online instance",
-        "offlineGroupDesc": "{{lag}} messages backlogged with no client. Make sure the consumer is running.",
-        "diskTitle": "{{broker}} disk usage {{usage}}%",
-        "diskDesc": "At or above the {{threshold}}% threshold. Consider scaling up or purging old messages before it goes read-only.",
-        "brokerOfflineTitle": "Broker {{broker}} is offline",
-        "brokerOfflineDesc": "Verify node status and network connectivity to keep the cluster available.",
-        "idleTopicTitle": "{{count}} topic(s) with no recent traffic",
-        "idleTopicDesc": "{{names}} have been idle for a while; consider archiving them."
-      }
-    },
-    "active": {
-      "title": "Topic overview",
-      "subtitle": "Topics with inbound traffic are shown first",
-      "empty": "No topics",
-      "noTraffic": "No inbound traffic data"
-    },
-    "lag": {
-      "title": "Lag alerts",
-      "subtitle": "Groups with > {{threshold}} lag",
-      "rest": "Other {{count}} group(s) running normally",
-      "empty": "No lag alerts"
-    },
-    "current": {
-      "title": "Current connection",
-      "noConnection": "No active connection",
-      "goToConnections": "Open Connections"
-    },
-    "broker": {
-      "title": "Broker status",
-      "subtitle": "{{count}} nodes all online",
-      "subtitle_partial": "{{online}} / {{total}} online",
-      "empty": "No broker data"
-    },
-    "shortcut": {
-      "title": "Quick actions",
-      "send": "Send test message",
-      "search": "Search messages",
-      "create": "Create topic",
-      "reset": "Reset consumer offset"
-    }
-  },
-  "topics": {
-    "title": "Topics",
-    "subtitle": "{{count}} topics",
-    "subtitleFiltered": "{{count}} of {{total}} topics",
-    "resultCount": "{{count}} topics",
-    "subtitleNoConn": "Not connected · open Connections first",
-    "searchPlaceholder": "Search topics…",
-    "filterAll": "All",
-    "filterNormal": "Normal",
-    "filterFifo": "FIFO",
-    "filterDelay": "Delay",
-    "filterRetry": "Retry",
-    "filterDlq": "DLQ",
-    "table": {
-      "name": "Name",
-      "type": "Type",
-      "queues": "Queues (R/W)",
-      "perm": "Perm",
-      "groups": "Groups",
-      "tpsIn": "Inbound TPS",
-      "open": "",
-      "view": "Open",
-      "viewing": "Open"
-    },
-    "empty": "No topics",
-    "emptyHint": "Internal system topics are hidden. Create a topic, or filter Retry / DLQ",
-    "loadError": "Failed to load topics: {{message}}",
-    "type": {
-      "normal": "Normal",
-      "fifo": "FIFO",
-      "delay": "Delay",
-      "retry": "Retry",
-      "dlq": "DLQ"
-    },
-    "perm": {
-      "rw": "Read/Write",
-      "r": "Read",
-      "w": "Write",
-      "deny": "Deny"
-    },
-    "detail": {
-      "tabs": {
-        "info": "Info",
-        "routes": "Routes",
-        "groups": "Groups"
-      },
-      "stat": {
-        "tpsIn": "Inbound",
-        "tpsOut": "Outbound",
-        "groups": "Subscribers",
-        "queues": "Queues"
-      },
-      "info": "General",
-      "infoCluster": "Cluster",
-      "infoType": "Type",
-      "infoPerm": "Permission",
-      "infoQueues": "Read / Write queues",
-      "infoGroups": "Consumer groups",
-      "infoUpdated": "Last update",
-      "infoDesc": "Description",
-      "routesTitle": "Route distribution",
-      "routesEmpty": "No route data",
-      "groupsTitle": "Consumer groups",
-      "groupsEmpty": "No subscribers",
-      "actions": {
-        "edit": "Edit",
-        "send": "Send test",
-        "messages": "View messages",
-        "delete": "Delete"
-      },
-      "deleteConfirm": "Delete topic {{name}}? This cannot be undone and will clear all route data."
-    },
-    "create": {
-      "title": "New topic",
-      "edit": "Edit topic",
-      "name": "Topic name",
-      "namePlaceholder": "e.g. order-events",
-      "broker": "Target broker",
-      "brokerHint": "Pick a master broker to create the topic on",
-      "noBrokers": "No brokers available",
-      "readQueue": "Read queues",
-      "writeQueue": "Write queues",
-      "perm": "Permission",
-      "submit": "Create",
-      "save": "Save",
-      "createSuccess": "Topic {{name}} created",
-      "saveSuccess": "Topic {{name}} saved",
-      "deleteSuccess": "Topic deleted"
-    }
+    "consumers": "Consumers"
   },
   "consumers": {
     "title": "Consumer groups",
@@ -385,161 +132,12 @@
       "saveSuccess": "Group {{name}} saved"
     }
   },
-  "messages": {
-    "title": "Messages",
-    "subtitleNoConn": "Not connected · open Connections first",
-    "lag": "Lag",
-    "tabs": {
-      "topic": "By topic",
-      "msgid": "By Message ID",
-      "retry": "Retry queue",
-      "dlq": "Dead letter queue"
-    },
-    "form": {
-      "topic": "Topic",
-      "topicPlaceholder": "Pick a topic",
-      "topicSearchPlaceholder": "Search topics…",
-      "noTopics": "No topics available",
-      "group": "Consumer group",
-      "groupPlaceholder": "Pick a group",
-      "groupSearchPlaceholder": "Search consumer groups…",
-      "noGroups": "No groups available",
-      "msgId": "Message ID",
-      "msgIdPlaceholder": "Full Message ID",
-      "key": "Key",
-      "keyPlaceholder": "optional",
-      "tag": "Tag",
-      "tagPlaceholder": "optional",
-      "begin": "Start",
-      "end": "End",
-      "limit": "Max results",
-      "search": "Search",
-      "searching": "Searching…",
-      "validateTopic": "Pick a topic",
-      "validateGroup": "Pick a group",
-      "validateMsgId": "Enter the Message ID",
-      "validateTimeRange": "Invalid time range: the start must not be later than the end"
-    },
-    "table": {
-      "msgId": "Message ID",
-      "tag": "Tag",
-      "key": "Key",
-      "preview": "Preview",
-      "queue": "Queue",
-      "storeTime": "Stored at"
-    },
-    "summary": "{{count}} results",
-    "empty": "No messages matched",
-    "emptyPromptTitle": "Search messages",
-    "emptyPromptHint": "Pick a topic or consumer group, set your filters, then run the query",
-    "queryError": "Query failed: {{message}}",
-    "detail": {
-      "title": "Message detail",
-      "tabs": {
-        "body": "Body",
-        "properties": "Properties",
-        "track": "Track"
-      },
-      "info": "General",
-      "msgId": "Message ID",
-      "topic": "Topic",
-      "tag": "Tag",
-      "key": "Key",
-      "queue": "Queue",
-      "queueOffset": "Offset",
-      "bornHost": "Born host",
-      "storeHost": "Store host",
-      "storeTime": "Stored at",
-      "status": "Status",
-      "retryTimes": "Retries",
-      "bodyTitle": "Body",
-      "bodyTruncated": "Body is large — showing first {{shown}} KB of {{total}} KB. Adjust the limit in Settings.",
-      "bodyMode": {
-        "auto": "Auto",
-        "raw": "Raw",
-        "hex": "Hex"
-      },
-      "bodyKind": {
-        "json": "JSON",
-        "text": "Text",
-        "binary": "Binary"
-      },
-      "propsEmpty": "No message properties",
-      "trackTitle": "Consumption track",
-      "trackEmpty": "No track data",
-      "trackLoading": "Loading track…",
-      "trackError": "Failed to load track",
-      "trackGroup": "Group",
-      "trackType": "Track type",
-      "trackStatus": "Status",
-      "trackException": "Exception",
-      "actions": {
-        "copyId": "Copy ID",
-        "copyBody": "Copy body",
-        "track": "View track",
-        "resend": "Republish"
-      },
-      "copySuccess": "Copied",
-      "copyError": "Copy failed",
-      "resendTitle": "Republish message",
-      "resendDesc": "Publish the original payload as a new message to topic {{topic}}. Every subscribing group may receive it according to its own progress.",
-      "resendSubmit": "Republish",
-      "resendSuccess": "Republished to {{topic}}",
-      "resendError": "Republish failed"
-    }
-  },
   "producer": {
-    "title": "Send test message",
     "subtitle": "Send a single message to a topic for end-to-end testing",
-    "subtitleNoConn": "Not connected · open Connections first",
     "target": "Target",
-    "topic": "Topic",
-    "topicPlaceholder": "Pick a topic",
-    "topicSearchPlaceholder": "Search topics…",
-    "noTopics": "No topics available",
-    "tag": "Tag",
-    "tagOptional": "(optional)",
-    "tagPlaceholder": "e.g. order.create",
     "key": "Key",
-    "keyPlaceholder": "e.g. ORD-...",
     "delay": "Delay level",
-    "delayLevels": {
-      "0": "No delay",
-      "1": "1 second",
-      "2": "5 seconds",
-      "3": "10 seconds",
-      "4": "30 seconds",
-      "5": "1 minute",
-      "6": "2 minutes",
-      "7": "3 minutes",
-      "8": "4 minutes",
-      "9": "5 minutes",
-      "10": "6 minutes",
-      "11": "7 minutes",
-      "12": "8 minutes",
-      "13": "9 minutes",
-      "14": "10 minutes",
-      "15": "20 minutes",
-      "16": "30 minutes",
-      "17": "1 hour",
-      "18": "2 hours"
-    },
-    "body": "Body",
-    "loadSample": "Load sample",
-    "format": "Format",
-    "send": "Send",
-    "sending": "Sending…",
-    "reset": "Reset",
-    "resetTitle": "Clear the form and delete this topic's saved content",
-    "draftRestored": "The last message sent to this topic is saved",
-    "history": "Recent sends",
-    "historyHint": "Kept only for this session",
-    "historyEmpty": "No sends yet",
-    "validateTopic": "Pick a topic",
-    "validateBody": "Body cannot be empty",
-    "invalidJson": "Invalid JSON",
-    "sendSuccess": "Message sent",
-    "sendError": "Send failed"
+    "send": "Send"
   },
   "cluster": {
     "title": "Cluster",
@@ -606,8 +204,6 @@
       "title": "Alert rules",
       "desc": "MQ Studio derives alerts from live cluster metrics. Thresholds live in Settings → Messages.",
       "localOnlyNote": "Rule on/off is stored on this machine only. No email or webhook delivery.",
-      "enabled": "Enabled",
-      "disabled": "Disabled",
       "lagThreshold": "Consumer lag threshold",
       "lagThresholdValue": "{{n}} messages",
       "diskThreshold": "Disk usage threshold",
@@ -640,73 +236,7 @@
     }
   },
   "acl": {
-    "title": "ACL",
-    "subtitle": "Access control list",
-    "subtitleNoConn": "Not connected · open Connections first",
-    "limitationsTitle": "Note:",
-    "limitationsDesc": "RocketMQ 4.x Plain ACL has no list API. This page is write-oriented (create/update, delete by AK, replace global allow list). Existing accounts and the allow list cannot be loaded from the broker.",
-    "status": {
-      "loading": "Reading ACL status…",
-      "enabled": "ACL is enabled",
-      "disabled": "ACL is disabled",
-      "broker": "Broker {{addr}}",
-      "version": "Config version {{ver}}"
-    },
-    "form": {
-      "title": "Access config",
-      "subtitle": "Create or update an AccessKey; existing entries are overwritten",
-      "advanced": "Per-resource permission overrides",
-      "advancedHint": "Optional · set permissions for specific topics or groups, overriding the defaults above",
-      "adminActive": "Admin accounts have full topic and group permissions — no per-resource config needed.",
-      "ak": "AccessKey",
-      "akPlaceholder": "Unique identifier",
-      "sk": "SecretKey",
-      "skPlaceholder": "At least 6 characters",
-      "whiteIp": "Allowed IPs",
-      "whiteIpPlaceholder": "* or 10.0.0.0/16, separate with ;",
-      "admin": "Admin",
-      "adminHint": "Has full topic and group permissions",
-      "defaultTopicPerm": "Default Topic permission",
-      "defaultGroupPerm": "Default Group permission",
-      "topicPerms": "Topic permission overrides",
-      "topicPermsHint": "Format: TOPIC=PERM, separate with , or newlines",
-      "groupPerms": "Group permission overrides",
-      "groupPermsHint": "Format: GROUP=PERM",
-      "submit": "Save",
-      "saving": "Saving…",
-      "saveSuccess": "ACL config saved",
-      "validateAk": "Enter the AccessKey",
-      "validateSk": "Enter the SecretKey"
-    },
-    "perm": {
-      "deny": "DENY",
-      "pub": "PUB",
-      "sub": "SUB",
-      "pubsub": "PUB|SUB"
-    },
-    "delete": {
-      "title": "Delete account",
-      "subtitle": "Remove an ACL account by AccessKey",
-      "submit": "Delete",
-      "confirmTitle": "Delete ACL account",
-      "confirmDesc": "Delete AccessKey {{ak}}? That client will no longer be able to access the broker.",
-      "success": "Deleted"
-    },
-    "globalWhite": {
-      "title": "Global allow list",
-      "subtitle": "IPs in the allow list bypass ACL authentication",
-      "warning": "Saving fully replaces the broker's global allow list with the entries below. Any address not in this list will be removed. RocketMQ does not expose the current list — confirm carefully.",
-      "addPlaceholder": "10.0.0.0/24",
-      "add": "Add",
-      "save": "Replace allow list",
-      "saving": "Saving…",
-      "saveSuccess": "Global allow list updated",
-      "empty": "No entries (saving clears the broker's existing allow list)",
-      "confirmTitle": "Replace global allow list?",
-      "confirmBody": "This will fully replace the broker's global allow list with the {{count}} entries below. Any address currently configured on the broker that isn't in this list will be deleted. This cannot be undone.",
-      "confirmEmptyBody": "The list below is empty. Saving will clear the broker's entire global allow list. All currently configured addresses will be deleted. This cannot be undone.",
-      "confirmAction": "Replace"
-    }
+    "subtitle": "Access control list"
   },
   "connections": {
     "title": "Connections",
@@ -1352,10 +882,7 @@
         "resetDesc": "Every app setting returns to its initial value. Connections and ACLs are untouched.",
         "resetDone": "Settings restored to defaults",
         "resetFailed": "Could not restore the defaults",
-        "updateAvailable": "Update available: v{{version}}",
-        "updateAvailableHint": "Open Releases to download",
         "openReleases": "Open Releases",
-        "openReleasesHint": "You can open the Releases page manually",
         "aheadOfRelease": "Local v{{current}} is newer than published v{{latest}}",
         "upToDate": "You are on the latest version v{{version}}",
         "updateCheckFailed": "Could not check for updates",
@@ -1405,10 +932,8 @@
       "sendMessage": "Send message",
       "messageQuery": "Message query",
       "connections": "Connections",
-      "close": "Close",
       "cancel": "Cancel",
       "size": "Size",
-      "latency": "Latency",
       "topic": "Topic",
       "deadLetter": "Dead letter",
       "memory": "Memory",
@@ -1417,8 +942,6 @@
       "exchange": "Exchange",
       "features": "Features",
       "online": "Online",
-      "retrying": "Retrying",
-      "consumed": "Consumed",
       "metrics": "Metrics",
       "messageDetail": "Message detail",
       "purge": "Purge",
@@ -1459,10 +982,7 @@
       "summary": "Summary",
       "reason": "Reason",
       "throughputShort": "Throughput",
-      "disk": "Disk",
-      "storage": "Storage",
       "retry": "Retry",
-      "resend": "Resend",
       "format": "Format",
       "pause": "Pause",
       "protocol": "Protocol",
@@ -1470,8 +990,6 @@
       "role": "Role",
       "page": "Page",
       "selectedN": "{{n}} selected",
-      "lastUpdated": "Updated {{time}}",
-      "refreshing": "Refreshing…",
       "noMatch": "Nothing matches the filter",
       "copied": "Copied",
       "edit": "Edit"
@@ -1558,16 +1076,11 @@
         "unbounded": "Unbounded · consider XTRIM"
       },
       "rocketmq": {
-        "subtitle": "rocketmq-order · RocketMQ 5.1.4 · DefaultCluster · auto-refresh 10s",
-        "masters": "2 masters, 2 slaves",
         "systemHidden": "System topics hidden",
-        "alerts": "2 alerts",
         "consume": "Consume 3 118",
-        "vsLastHour": "+12% vs 1h ago",
         "produceMsg": "— produce msg/s",
         "consumeMsg": "— consume msg/s",
         "brokerHealth": "Broker health",
-        "diskWarn": "broker-b is over the 85% disk watermark",
         "liveSubtitle": "Cluster {{cluster}}",
         "online": "{{count}} online",
         "consumeRate": "Consuming {{rate}}/s",
@@ -1606,17 +1119,7 @@
       },
       "rocketmq": {
         "title": "Cluster · DefaultCluster",
-        "subtitle": "RocketMQ 5.1.4 · 2 name servers · 2 masters, 2 slaves",
-        "disk61": "Disk 61%",
-        "disk87": "Disk 87%",
-        "disk60": "Disk 60%",
-        "disk66": "Disk 66%",
         "diskAlert": "Disk alert",
-        "syncBehind": "Sync replica · behind by",
-        "nameserver": "Name servers / runtime metrics",
-        "copyDiagnostics": "Copy diagnostics",
-        "flush": "Flush",
-        "commitLogLatency": "CommitLog latency",
         "liveTitle": "Cluster · {{cluster}}",
         "liveSubtitle": "{{version}} · {{masters}} master, {{slaves}} slave",
         "liveSubtitleNoVersion": "{{masters}} master, {{slaves}} slave",
@@ -1668,7 +1171,6 @@
           "none": "No replicas",
           "noneHint": "This node has no followers, or is a follower itself — a follower answers about none."
         },
-        "commitLog": "CommitLog disk",
         "consumeQueue": "ConsumeQueue disk",
         "todayIn": "In today",
         "todayOut": "Out today",
@@ -1860,19 +1362,11 @@
       },
       "rocketmq": {
         "route": "Routing",
-        "subtitle": "128 topics · system topics hidden",
         "showSystem": "Show system topics",
         "queueRW": "Queues read/write",
-        "todayVolume": "Messages today",
         "perm": "Permissions",
-        "readWrite": "Read/write",
         "messageType": "Message type",
-        "normal": "Normal (5.x NORMAL)",
-        "created": "Created",
-        "queueSpread": "Queue distribution",
         "maxOffset": "Max offset",
-        "subGroups": "Subscription groups",
-        "settleBacklog": "order-settle · backlog",
         "liveSubtitle": "{{count}} topics",
         "noTopics": "This cluster has no topics",
         "noQueues": "No queue data",
@@ -1949,19 +1443,11 @@
       },
       "rocketmq": {
         "subRel": "Subscriptions",
-        "subtitle": "32 groups · 2 backlog alerts",
         "backlogOnly": "Backlogged only",
         "groupName": "Group",
         "subTopic": "Subscribed topic",
         "broadcast": "Broadcast",
-        "backlog982": "Backlog 982",
-        "clusterConcurrent": "Clustering · concurrent",
         "retryPolicy": "Retry policy",
-        "retryValue": "Up to 16 attempts, then dead-letter",
-        "onlineClients": "Online clients",
-        "assignedQueues": "Assigned queues",
-        "backlogHint": "The backlog sits on settle-77 — check how long that instance takes to consume",
-        "viewDlq": "View dead letters",
         "liveSubtitle": "{{count}} consumer groups",
         "noGroups": "This cluster has no consumer groups",
         "noSubs": "No subscriptions",
@@ -2083,19 +1569,10 @@
       },
       "rocketmq": {
         "byMsgId": "By message ID",
-        "last6h": "Last 6 hours",
         "storedAt": "Stored at",
         "location": "Location",
-        "sizeRetry": "Size / retries",
-        "formatCopy": "Format · copy",
         "body": "Body · JSON",
-        "threeMore": "… 3 items",
-        "produced": "Produced",
         "stored": "Stored by broker",
-        "notifyOk": "order-notify consumed",
-        "settleRetry": "order-settle retry 2",
-        "nextDelivery": "Next delivery 10:26:07",
-        "viewRetryQueue": "View retry queue",
         "byTag": "By tag",
         "pickTopic": "Pick a topic",
         "lastHours": "Last {{hours}}h",
@@ -2122,11 +1599,7 @@
       "rocketmq": {
         "retryQueue": "Retry queue",
         "dlqQueue": "Dead-letter queue",
-        "subtitle": "By consumer group · the %RETRY% and %DLQ% queues",
-        "exportAll": "Export all",
-        "group": "Group: order-settle",
         "originTopic": "Origin topic",
-        "lastFailure": "Last failure",
         "deadAt": "Dead-lettered at",
         "hint": "A redelivery is written under a new MsgId; the original is kept",
         "resend": "Redeliver to the origin topic",
@@ -2195,8 +1668,6 @@
     "producer": {
       "delayLevel": "Delay level",
       "noDelay": "No delay",
-      "orderedByKey": "Ordered (by key)",
-      "ordered": "Ordered message",
       "targetPartition": "Target partition",
       "autoKeyHash": "Automatic (key hash)",
       "compression": "Compression",
@@ -2217,25 +1688,16 @@
       "noteRetain": "Retain overwrites the topic's retained message · use it carefully in production",
       "protocolSpecific": "Protocol-specific ·",
       "subtitle": "Compose and send a test message · drafts save themselves",
-      "saveTemplate": "Save as template",
       "send": "Send",
-      "copyFromMessage": "Copy from a message",
-      "customProps": "Custom properties",
       "add": "+ Add",
       "sent": "Sent",
-      "viewMessage": "View the message",
       "options": "Send options",
-      "mode": "Mode",
       "count": "Repeat",
       "recent": "Recently sent",
       "ok": "Sent",
       "failed": "Failed",
-      "mqttTopic": "Topic: iot/device/cmd/A19F",
-      "reuse": "Reuse",
       "text": "Text",
       "sync": "Sync",
-      "async": "Async",
-      "oneway": "One-way",
       "notWired": "This protocol is not wired up yet; only RocketMQ connections can send",
       "pickTopicFirst": "Pick a topic first",
       "sentN": "Sent {{count}} message(s)",
@@ -2342,7 +1804,6 @@
       "expired": "expired",
       "maxlen": "maxlen",
       "json": "JSON",
-      "hex": "Hex",
       "roundrobin": "RoundRobin",
       "payload": "Payload",
       "properties": "Properties",
@@ -2353,8 +1814,7 @@
       "offline": "Not connected",
       "offlineHint": "This tab's connection is not open. Connect it from the connection list and this page will start reading.",
       "loading": "Reading…",
-      "failed": "Could not read",
-      "empty": "Nothing to show"
+      "failed": "Could not read"
     }
   }
 }

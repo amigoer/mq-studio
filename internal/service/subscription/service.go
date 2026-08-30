@@ -82,25 +82,6 @@ func (s *Service) List(ctx context.Context, connID int) ([]*model.Subscription, 
 	return subscriptions, nil
 }
 
-// Detail returns one subscription with its members.
-func (s *Service) Detail(ctx context.Context, connID int, ref model.SubscriptionRef) (*model.Subscription, error) {
-	api, err := s.admin(connID)
-	if err != nil {
-		return nil, err
-	}
-	ctx, cancel := s.withTimeout(ctx)
-	defer cancel()
-
-	subscription, err := api.SubscriptionDetail(ctx, ref)
-	if err != nil {
-		return nil, err
-	}
-	if subscription != nil {
-		subscription.ID = s.nextListID()
-	}
-	return subscription, nil
-}
-
 // Create adds a subscription.
 func (s *Service) Create(ctx context.Context, connID int, spec model.SubscriptionSpec) error {
 	return s.mutate(ctx, connID, model.CapSubscriptionCreate, func(api driver.SubscriptionAdmin, ctx context.Context) error {

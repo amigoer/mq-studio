@@ -1,8 +1,4 @@
 {
-  "app": {
-    "name": "MQ Studio",
-    "tagline": "RocketMQ 桌面客户端"
-  },
   "common": {
     "save": "保存",
     "cancel": "取消",
@@ -44,257 +40,8 @@
     "docs": "文档",
     "dismiss": "关闭通知"
   },
-  "emptyState": {
-    "title": "概览",
-    "subtitle": "未连接 · 请先添加 NameServer",
-    "badge": "未连接",
-    "supportNote": "支持 RocketMQ 4.x / 5.x · 本地运行 · 无服务端",
-    "heroTitle": "连接到你的第一个 NameServer",
-    "heroDesc": "配置 NameServer 地址后即可访问 Topic、消费者组、消息查询与集群监控。所有配置仅保存在本地。",
-    "addConnection": "添加连接",
-    "importFromFile": "从文件导入",
-    "quickStart": "快速开始",
-    "workflow": "使用流程",
-    "samples": {
-      "local": {
-        "name": "本地开发",
-        "desc": "运行在本机的 NameServer"
-      },
-      "docker": {
-        "name": "Docker Compose",
-        "desc": "容器网络内的 NameServer"
-      },
-      "paste": {
-        "name": "粘贴地址…",
-        "desc": "从剪贴板快速添加"
-      }
-    },
-    "steps": {
-      "1": {
-        "title": "添加 NameServer",
-        "desc": "填写 host:port，可选启用 ACL 与 TLS。配置仅保存在本地。"
-      },
-      "2": {
-        "title": "选择集群与命名空间",
-        "desc": "MQ Studio 自动发现 Broker，按集群组织视图。"
-      },
-      "3": {
-        "title": "管理 Topic 与消费",
-        "desc": "创建、查询、回溯消费位点，跟踪消息轨迹。"
-      }
-    },
-    "links": {
-      "github": "GitHub",
-      "acl": "功能说明",
-      "docs": "架构文档",
-      "faq": "常见问题"
-    },
-    "footer": "本地数据 · 不上传任何信息",
-    "importSuccess": "配置已导入并生效",
-    "importError": "导入配置失败",
-    "clipboardEmpty": "剪贴板为空，已打开空白连接表单"
-  },
   "nav": {
-    "home": "概览",
-    "topics": "主题",
-    "consumers": "消费者组",
-    "messages": "消息",
-    "producer": "发送测试",
-    "cluster": "集群",
-    "alerts": "告警",
-    "acl": "权限与审计",
-    "connections": "连接",
-    "settings": "设置",
-    "github": "GitHub",
-    "githubHint": "在浏览器中打开 GitHub 仓库",
-    "githubOpenFailed": "无法打开 GitHub，请检查默认浏览器",
-    "updateAvailable": "有新版本可用",
-    "groupBrowse": "资源",
-    "groupOps": "运维"
-  },
-  "titlebar": {
-    "aiAssistant": "AI 助手",
-    "noCluster": "未选择集群",
-    "connectedHint": "当前连接：{{name}} · 点击切换连接",
-    "offlineHint": "尚未连接 · 点击选择连接",
-    "switchConnection": "切换连接",
-    "noConnections": "还没有连接配置",
-    "manageConnections": "管理连接…"
-  },
-  "overview": {
-    "title": "概览",
-    "subtitleConnected": "{{cluster}} · 数据更新于 {{time}}",
-    "subtitleNoConn": "未连接集群",
-    "loadError": "加载概览数据失败：{{message}}",
-    "disconnectSuccess": "已断开 {{cluster}}",
-    "issues": {
-      "title": "需要关注",
-      "count": "{{count}} 项"
-    },
-    "throughput": {
-      "title": "实时吞吐",
-      "subtitle": "最近 60 分钟 · 每分钟采样",
-      "produce": "生产",
-      "consume": "消费",
-      "noData": "暂无吞吐采样数据",
-      "hoverAgo": "{{n}} 分钟前",
-      "hoverNow": "当前"
-    },
-    "stat": {
-      "topics": "Topic",
-      "consumers": "消费者组",
-      "broker": "Broker",
-      "lag": "消息积压",
-      "topicSummary": "活跃 {{active}}",
-      "consumersSummary": "在线 {{online}} · 离线 {{offline}} · 未知 {{unknown}}",
-      "brokerSummary_all": "{{master}} 主 + {{slave}} 备 · 全部在线",
-      "brokerSummary_partial": "在线 {{online}} / {{total}}",
-      "lagSummary": "{{count}} 个 Group 异常",
-      "lagSummary_zero": "全部正常"
-    },
-    "ai": {
-      "title": "AI 智能诊断",
-      "subtitle": "基于当前集群指标推断",
-      "subtitleEmpty": "基于当前集群指标推断 · 暂无明显异常",
-      "reanalyze": "重新分析",
-      "chat": "和 AI 聊聊",
-      "high": "高优先级",
-      "med": "中优先级",
-      "low": "低优先级",
-      "empty": "当前集群运行良好，未检测到需要立即处理的问题。",
-      "findings": {
-        "highLagTitle": "{{group}} 持续堆积 {{lag}} 条消息",
-        "highLagDesc": "已超过告警阈值（{{threshold}}）。建议检查下游消费速度，或重置该消费组进度。",
-        "offlineGroupTitle": "{{group}} 当前无在线实例",
-        "offlineGroupDesc": "积压 {{lag}} 条消息但无客户端消费。请确认消费者已启动。",
-        "diskTitle": "{{broker}} 磁盘水位 {{usage}}%",
-        "diskDesc": "已达到或超过 {{threshold}}% 阈值。建议扩容或清理过期消息以避免触发只读。",
-        "brokerOfflineTitle": "Broker {{broker}} 已离线",
-        "brokerOfflineDesc": "请检查节点状态与网络连通性，及时恢复以保证集群可用性。",
-        "idleTopicTitle": "{{count}} 个 Topic 长期无消息",
-        "idleTopicDesc": "{{names}} 等长时间无生产，建议归档以释放资源。"
-      }
-    },
-    "active": {
-      "title": "Topic 概览",
-      "subtitle": "优先展示有入流量数据的 Topic",
-      "empty": "暂无 Topic",
-      "noTraffic": "暂无入流量数据"
-    },
-    "lag": {
-      "title": "堆积告警",
-      "subtitle": "堆积 > {{threshold}} 条的消费组",
-      "rest": "其余 {{count}} 个消费组运行正常",
-      "empty": "暂无堆积告警"
-    },
-    "current": {
-      "title": "当前连接",
-      "noConnection": "尚未建立连接",
-      "goToConnections": "前往连接管理"
-    },
-    "broker": {
-      "title": "Broker 状态",
-      "subtitle": "{{count}} 个节点全部在线",
-      "subtitle_partial": "在线 {{online}} / {{total}}",
-      "empty": "暂无 Broker 数据"
-    },
-    "shortcut": {
-      "title": "快捷操作",
-      "send": "发送测试消息",
-      "search": "查询消息",
-      "create": "新建 Topic",
-      "reset": "重置消费进度"
-    }
-  },
-  "topics": {
-    "title": "主题",
-    "subtitle": "{{count}} 个 Topic",
-    "subtitleFiltered": "{{count}} 个 Topic（共 {{total}} 个）",
-    "resultCount": "{{count}} 个主题",
-    "subtitleNoConn": "未连接 · 请先在「连接」页面建立连接",
-    "searchPlaceholder": "搜索 Topic…",
-    "filterAll": "全部",
-    "filterNormal": "普通",
-    "filterFifo": "顺序",
-    "filterDelay": "延迟",
-    "filterRetry": "重试",
-    "filterDlq": "死信",
-    "table": {
-      "name": "名称",
-      "type": "类型",
-      "queues": "队列 (R/W)",
-      "perm": "权限",
-      "groups": "消费组",
-      "tpsIn": "入流量",
-      "open": "",
-      "view": "详情",
-      "viewing": "查看中"
-    },
-    "empty": "暂无 Topic",
-    "emptyHint": "系统内部 Topic 已隐藏。可新建业务 Topic，或切换筛选查看重试 / 死信",
-    "loadError": "加载 Topic 列表失败：{{message}}",
-    "type": {
-      "normal": "普通",
-      "fifo": "顺序",
-      "delay": "延迟",
-      "retry": "重试",
-      "dlq": "死信"
-    },
-    "perm": {
-      "rw": "读写",
-      "r": "只读",
-      "w": "只写",
-      "deny": "禁用"
-    },
-    "detail": {
-      "tabs": {
-        "info": "详情",
-        "routes": "路由",
-        "groups": "消费组"
-      },
-      "stat": {
-        "tpsIn": "入流量",
-        "tpsOut": "出流量",
-        "groups": "订阅消费组",
-        "queues": "队列数"
-      },
-      "info": "基础信息",
-      "infoCluster": "所属集群",
-      "infoType": "类型",
-      "infoPerm": "权限",
-      "infoQueues": "读 / 写队列",
-      "infoGroups": "消费组数",
-      "infoUpdated": "最后更新",
-      "infoDesc": "描述",
-      "routesTitle": "路由分布",
-      "routesEmpty": "暂无路由数据",
-      "groupsTitle": "订阅消费组",
-      "groupsEmpty": "暂无订阅消费组",
-      "actions": {
-        "edit": "编辑",
-        "send": "发送测试",
-        "messages": "查看消息",
-        "delete": "删除"
-      },
-      "deleteConfirm": "删除 Topic {{name}}？此操作不可撤销，且将清除所有路由信息。"
-    },
-    "create": {
-      "title": "新建 Topic",
-      "edit": "编辑 Topic",
-      "name": "Topic 名称",
-      "namePlaceholder": "例：order-events",
-      "broker": "目标 Broker",
-      "brokerHint": "选择一个 master Broker 创建",
-      "noBrokers": "未发现可用的 Broker",
-      "readQueue": "读队列数",
-      "writeQueue": "写队列数",
-      "perm": "权限",
-      "submit": "创建",
-      "save": "保存",
-      "createSuccess": "已创建 Topic {{name}}",
-      "saveSuccess": "已保存 Topic {{name}}",
-      "deleteSuccess": "已删除 Topic"
-    }
+    "consumers": "消费者组"
   },
   "consumers": {
     "title": "消费者组",
@@ -385,161 +132,12 @@
       "saveSuccess": "已保存 Group {{name}}"
     }
   },
-  "messages": {
-    "title": "消息查询",
-    "subtitleNoConn": "未连接 · 请先在「连接」页面建立连接",
-    "lag": "堆积",
-    "tabs": {
-      "topic": "按 Topic 查询",
-      "msgid": "按 MsgID 查询",
-      "retry": "重试队列",
-      "dlq": "死信队列"
-    },
-    "form": {
-      "topic": "Topic",
-      "topicPlaceholder": "选择 Topic",
-      "topicSearchPlaceholder": "搜索 Topic…",
-      "noTopics": "暂无可用 Topic",
-      "group": "消费者组",
-      "groupPlaceholder": "选择 Group",
-      "groupSearchPlaceholder": "搜索消费者组…",
-      "noGroups": "暂无可用 Group",
-      "msgId": "Message ID",
-      "msgIdPlaceholder": "完整的 Message ID",
-      "key": "Key",
-      "keyPlaceholder": "可选",
-      "tag": "Tag",
-      "tagPlaceholder": "可选",
-      "begin": "开始时间",
-      "end": "结束时间",
-      "limit": "数量上限",
-      "search": "查询",
-      "searching": "查询中…",
-      "validateTopic": "请选择 Topic",
-      "validateGroup": "请选择消费者组",
-      "validateMsgId": "请输入 Message ID",
-      "validateTimeRange": "时间范围无效，开始时间不能晚于结束时间"
-    },
-    "table": {
-      "msgId": "Message ID",
-      "tag": "Tag",
-      "key": "Key",
-      "preview": "预览",
-      "queue": "队列",
-      "storeTime": "存储时间"
-    },
-    "summary": "共 {{count}} 条结果",
-    "empty": "未找到匹配的消息",
-    "emptyPromptTitle": "搜索消息",
-    "emptyPromptHint": "选择 Topic 或消费组，设置条件后开始查询",
-    "queryError": "查询失败：{{message}}",
-    "detail": {
-      "title": "消息详情",
-      "tabs": {
-        "body": "Body",
-        "properties": "属性",
-        "track": "轨迹"
-      },
-      "info": "基本信息",
-      "msgId": "Message ID",
-      "topic": "Topic",
-      "tag": "Tag",
-      "key": "Key",
-      "queue": "队列",
-      "queueOffset": "队列偏移",
-      "bornHost": "Born Host",
-      "storeHost": "Store Host",
-      "storeTime": "Store Time",
-      "status": "状态",
-      "retryTimes": "重试次数",
-      "bodyTitle": "消息体",
-      "bodyTruncated": "消息体过大，仅显示前 {{shown}} KB（共 {{total}} KB）。可在设置中调整截断阈值。",
-      "bodyMode": {
-        "auto": "自动",
-        "raw": "原文",
-        "hex": "十六进制"
-      },
-      "bodyKind": {
-        "json": "JSON",
-        "text": "文本",
-        "binary": "二进制"
-      },
-      "propsEmpty": "暂无消息属性",
-      "trackTitle": "消费轨迹",
-      "trackEmpty": "暂无消费轨迹",
-      "trackLoading": "加载轨迹中…",
-      "trackError": "加载轨迹失败",
-      "trackGroup": "消费者组",
-      "trackType": "轨迹类型",
-      "trackStatus": "消费状态",
-      "trackException": "异常",
-      "actions": {
-        "copyId": "复制 ID",
-        "copyBody": "复制消息体",
-        "track": "查看轨迹",
-        "resend": "重新发布"
-      },
-      "copySuccess": "已复制",
-      "copyError": "复制失败",
-      "resendTitle": "重新发布消息",
-      "resendDesc": "将原消息内容作为新消息发布到 Topic {{topic}}。所有订阅组都会按各自进度接收。",
-      "resendSubmit": "重新发布",
-      "resendSuccess": "已重新发布到 {{topic}}",
-      "resendError": "重新发布失败"
-    }
-  },
   "producer": {
-    "title": "发送测试消息",
     "subtitle": "向 Topic 发送一条消息用于联调与诊断",
-    "subtitleNoConn": "未连接 · 请先在「连接」页面建立连接",
     "target": "目标",
-    "topic": "Topic",
-    "topicPlaceholder": "选择 Topic",
-    "topicSearchPlaceholder": "搜索 Topic…",
-    "noTopics": "暂无可用 Topic",
-    "tag": "Tag",
-    "tagOptional": "(可选)",
-    "tagPlaceholder": "如 order.create",
     "key": "Key",
-    "keyPlaceholder": "如 ORD-...",
     "delay": "延迟级别",
-    "delayLevels": {
-      "0": "不延迟",
-      "1": "1 秒",
-      "2": "5 秒",
-      "3": "10 秒",
-      "4": "30 秒",
-      "5": "1 分钟",
-      "6": "2 分钟",
-      "7": "3 分钟",
-      "8": "4 分钟",
-      "9": "5 分钟",
-      "10": "6 分钟",
-      "11": "7 分钟",
-      "12": "8 分钟",
-      "13": "9 分钟",
-      "14": "10 分钟",
-      "15": "20 分钟",
-      "16": "30 分钟",
-      "17": "1 小时",
-      "18": "2 小时"
-    },
-    "body": "消息体",
-    "loadSample": "载入示例",
-    "format": "格式化",
-    "send": "发送",
-    "sending": "发送中…",
-    "reset": "重置",
-    "resetTitle": "清空表单，并删除该 Topic 已保存的内容",
-    "draftRestored": "已保存该 Topic 上次发送的内容",
-    "history": "最近发送",
-    "historyHint": "仅本会话保留",
-    "historyEmpty": "暂无发送记录",
-    "validateTopic": "请选择 Topic",
-    "validateBody": "请输入消息体",
-    "invalidJson": "JSON 格式无效",
-    "sendSuccess": "消息已发送",
-    "sendError": "发送失败"
+    "send": "发送"
   },
   "cluster": {
     "title": "集群",
@@ -606,8 +204,6 @@
       "title": "告警规则",
       "desc": "MQ Studio 基于实时指标推断告警，阈值在「设置 → 消息查询」中配置。",
       "localOnlyNote": "规则启停保存在本机；无邮件/Webhook 推送。",
-      "enabled": "已启用",
-      "disabled": "已关闭",
       "lagThreshold": "消费积压阈值",
       "lagThresholdValue": "{{n}} 条",
       "diskThreshold": "磁盘使用阈值",
@@ -640,73 +236,7 @@
     }
   },
   "acl": {
-    "title": "ACL 管理",
-    "subtitle": "访问控制列表",
-    "subtitleNoConn": "未连接 · 请先在「连接」页面建立连接",
-    "limitationsTitle": "能力说明：",
-    "limitationsDesc": "RocketMQ 4.x Plain ACL 无列表接口，本页为写入型运维（创建/更新/按 AK 删除、覆盖全局白名单）。无法从 Broker 回读现有账号与白名单。",
-    "status": {
-      "loading": "正在读取 ACL 状态…",
-      "enabled": "ACL 已启用",
-      "disabled": "ACL 已禁用",
-      "broker": "Broker {{addr}}",
-      "version": "配置版本 {{ver}}"
-    },
-    "form": {
-      "title": "账号配置",
-      "subtitle": "创建或更新一个 AccessKey；如已存在则覆盖原配置",
-      "advanced": "按资源覆写权限",
-      "advancedHint": "可选 · 为指定 Topic / Group 单独设权，覆盖上面的默认值",
-      "adminActive": "管理员账号拥有全部 Topic / Group 权限，无需再单独配置。",
-      "ak": "AccessKey",
-      "akPlaceholder": "唯一标识",
-      "sk": "SecretKey",
-      "skPlaceholder": "至少 6 位",
-      "whiteIp": "白名单 IP",
-      "whiteIpPlaceholder": "* 或 10.0.0.0/16，多个用 ; 分隔",
-      "admin": "管理员",
-      "adminHint": "拥有所有 Topic / Group 权限",
-      "defaultTopicPerm": "默认 Topic 权限",
-      "defaultGroupPerm": "默认 Group 权限",
-      "topicPerms": "Topic 权限覆写",
-      "topicPermsHint": "格式：TOPIC=PERM，多条用 , 或换行分隔",
-      "groupPerms": "Group 权限覆写",
-      "groupPermsHint": "格式：GROUP=PERM",
-      "submit": "保存",
-      "saving": "保存中…",
-      "saveSuccess": "已保存 ACL 配置",
-      "validateAk": "请填写 AccessKey",
-      "validateSk": "请填写 SecretKey"
-    },
-    "perm": {
-      "deny": "DENY",
-      "pub": "PUB",
-      "sub": "SUB",
-      "pubsub": "PUB|SUB"
-    },
-    "delete": {
-      "title": "删除 ACL 账号",
-      "subtitle": "按 AccessKey 删除一个 ACL 账号",
-      "submit": "删除",
-      "confirmTitle": "删除 ACL 账号",
-      "confirmDesc": "删除 AccessKey {{ak}}？该客户端将无法再访问 Broker。",
-      "success": "已删除"
-    },
-    "globalWhite": {
-      "title": "全局白名单 IP",
-      "subtitle": "白名单 IP 不需要鉴权即可访问",
-      "warning": "保存会用下方列表完整覆盖 broker 上的全局白名单，未列出的地址将被移除。RocketMQ 不支持读取现有白名单，请谨慎确认。",
-      "addPlaceholder": "10.0.0.0/24",
-      "add": "添加",
-      "save": "覆盖保存白名单",
-      "saving": "保存中…",
-      "saveSuccess": "已更新全局白名单",
-      "empty": "未添加任何 IP（保存将清空 broker 的现有白名单）",
-      "confirmTitle": "覆盖全局白名单？",
-      "confirmBody": "这会用下方 {{count}} 条 IP 完全替换 broker 上的全局白名单。Broker 当前已配置的、不在此列表中的地址都将被删除。此操作无法撤销。",
-      "confirmEmptyBody": "下方列表为空，保存将清空 broker 上所有全局白名单。Broker 当前已配置的所有地址都将被删除。此操作无法撤销。",
-      "confirmAction": "覆盖保存"
-    }
+    "subtitle": "访问控制列表"
   },
   "connections": {
     "title": "连接",
@@ -1352,10 +882,7 @@
         "resetDesc": "所有应用设置将回到初始值。连接与 ACL 配置不受影响。",
         "resetDone": "设置已恢复默认",
         "resetFailed": "恢复默认失败",
-        "updateAvailable": "发现新版本 v{{version}}",
-        "updateAvailableHint": "可前往 Releases 下载",
         "openReleases": "打开 Releases",
-        "openReleasesHint": "可手动打开 Releases 页面",
         "aheadOfRelease": "当前 v{{current}} 新于线上 v{{latest}}",
         "upToDate": "已是最新版本 v{{version}}",
         "updateCheckFailed": "无法检查更新",
@@ -1405,10 +932,8 @@
       "sendMessage": "发送消息",
       "messageQuery": "消息查询",
       "connections": "连接",
-      "close": "关闭",
       "cancel": "取消",
       "size": "大小",
-      "latency": "延迟",
       "topic": "主题",
       "deadLetter": "死信",
       "memory": "内存",
@@ -1417,8 +942,6 @@
       "exchange": "交换机",
       "features": "特性",
       "online": "在线",
-      "retrying": "重试中",
-      "consumed": "已消费",
       "metrics": "指标",
       "messageDetail": "消息详情",
       "purge": "清空",
@@ -1459,10 +982,7 @@
       "summary": "摘要",
       "reason": "原因",
       "throughputShort": "吞吐",
-      "disk": "磁盘",
-      "storage": "存储",
       "retry": "重试",
-      "resend": "重发",
       "format": "格式化",
       "pause": "暂停",
       "protocol": "协议",
@@ -1470,8 +990,6 @@
       "role": "角色",
       "page": "页面",
       "selectedN": "已选 {{n}} 条",
-      "lastUpdated": "{{time}} 更新",
-      "refreshing": "刷新中…",
       "noMatch": "没有匹配的结果",
       "copied": "已复制",
       "edit": "编辑"
@@ -1558,16 +1076,11 @@
         "unbounded": "无上限 · 建议 XTRIM"
       },
       "rocketmq": {
-        "subtitle": "rocketmq-order · RocketMQ 5.1.4 · DefaultCluster · 自动刷新 10s",
-        "masters": "2 主 2 从",
         "systemHidden": "系统 Topic 已隐藏",
-        "alerts": "2 个告警",
         "consume": "消费 3 118",
-        "vsLastHour": "较 1h 前 +12%",
         "produceMsg": "— 生产 msg/s",
         "consumeMsg": "— 消费 msg/s",
         "brokerHealth": "Broker 健康",
-        "diskWarn": "broker-b 磁盘超 85% 水位",
         "liveSubtitle": "集群 {{cluster}}",
         "online": "{{count}} 在线",
         "consumeRate": "消费 {{rate}}/s",
@@ -1606,17 +1119,7 @@
       },
       "rocketmq": {
         "title": "集群 · DefaultCluster",
-        "subtitle": "RocketMQ 5.1.4 · 2 NameServer · 2 主 2 从",
-        "disk61": "磁盘 61%",
-        "disk87": "磁盘 87%",
-        "disk60": "磁盘 60%",
-        "disk66": "磁盘 66%",
         "diskAlert": "磁盘告警",
-        "syncBehind": "同步复制 · 落后",
-        "nameserver": "NameServer / 运行指标",
-        "copyDiagnostics": "复制诊断信息",
-        "flush": "刷盘",
-        "commitLogLatency": "CommitLog 延迟",
         "liveTitle": "集群 · {{cluster}}",
         "liveSubtitle": "{{version}} · {{masters}} 主 {{slaves}} 从",
         "liveSubtitleNoVersion": "{{masters}} 主 {{slaves}} 从",
@@ -1668,7 +1171,6 @@
           "none": "没有副本",
           "noneHint": "这台没有从节点，或者它本身就是从节点——从节点不回答关于副本的问题。"
         },
-        "commitLog": "CommitLog 盘",
         "consumeQueue": "ConsumeQueue 盘",
         "todayIn": "今日入",
         "todayOut": "今日出",
@@ -1860,19 +1362,11 @@
       },
       "rocketmq": {
         "route": "路由",
-        "subtitle": "128 个 · 系统 Topic 已隐藏",
         "showSystem": "显示系统 Topic",
         "queueRW": "队列 读/写",
-        "todayVolume": "今日消息量",
         "perm": "权限",
-        "readWrite": "读写",
         "messageType": "消息类型",
-        "normal": "普通（5.x NORMAL）",
-        "created": "创建时间",
-        "queueSpread": "队列分布",
         "maxOffset": "最大位点",
-        "subGroups": "订阅组",
-        "settleBacklog": "order-settle · 堆积",
         "liveSubtitle": "{{count}} 个 Topic",
         "noTopics": "这个集群里没有 Topic",
         "noQueues": "没有队列数据",
@@ -1949,19 +1443,11 @@
       },
       "rocketmq": {
         "subRel": "订阅关系",
-        "subtitle": "32 个 · 2 个堆积告警",
         "backlogOnly": "仅看有堆积",
         "groupName": "组名",
         "subTopic": "订阅 Topic",
         "broadcast": "广播",
-        "backlog982": "堆积 982",
-        "clusterConcurrent": "集群消费 · 并发",
         "retryPolicy": "重试策略",
-        "retryValue": "最多 16 次 → 死信",
-        "onlineClients": "在线客户端",
-        "assignedQueues": "分配队列",
-        "backlogHint": "堆积集中在 settle-77，建议检查该实例消费耗时",
-        "viewDlq": "查看死信",
         "liveSubtitle": "{{count}} 个消费组",
         "noGroups": "这个集群里没有消费组",
         "noSubs": "没有订阅关系",
@@ -2083,19 +1569,10 @@
       },
       "rocketmq": {
         "byMsgId": "按 MsgId",
-        "last6h": "近 6 小时",
         "storedAt": "存储时间",
         "location": "位置",
-        "sizeRetry": "大小 / 重试",
-        "formatCopy": "格式化 · 复制",
         "body": "消息体 · JSON",
-        "threeMore": "… 3 项",
-        "produced": "生产成功",
         "stored": "Broker 存储",
-        "notifyOk": "order-notify 消费成功",
-        "settleRetry": "order-settle 第 2 次重试",
-        "nextDelivery": "下次投递 10:26:07",
-        "viewRetryQueue": "查看重试队列",
         "byTag": "按 Tag",
         "pickTopic": "选择 Topic",
         "lastHours": "最近 {{hours}} 小时",
@@ -2122,11 +1599,7 @@
       "rocketmq": {
         "retryQueue": "重试队列",
         "dlqQueue": "死信队列",
-        "subtitle": "按消费者组查看 · %RETRY% 与 %DLQ% 队列",
-        "exportAll": "导出全部",
-        "group": "组：order-settle",
         "originTopic": "原 Topic",
-        "lastFailure": "最后失败原因",
         "deadAt": "进入死信时间",
         "hint": "重投以新 MsgId 写入，原消息保留",
         "resend": "重投到原 Topic",
@@ -2195,8 +1668,6 @@
     "producer": {
       "delayLevel": "延迟等级",
       "noDelay": "不延迟",
-      "orderedByKey": "顺序消息 (按 Key)",
-      "ordered": "顺序消息",
       "targetPartition": "目标分区",
       "autoKeyHash": "自动（key hash）",
       "compression": "压缩",
@@ -2217,25 +1688,16 @@
       "noteRetain": "retain 会覆盖该主题的保留消息 · 谨慎用于生产",
       "protocolSpecific": "协议专属 ·",
       "subtitle": "构造并发送测试消息 · 草稿自动保存",
-      "saveTemplate": "保存为模板",
       "send": "发送",
-      "copyFromMessage": "从消息复制",
-      "customProps": "自定义属性",
       "add": "+ 添加",
       "sent": "发送成功",
-      "viewMessage": "查看该消息",
       "options": "发送选项",
-      "mode": "发送方式",
       "count": "发送次数",
       "recent": "最近发送",
       "ok": "成功",
       "failed": "失败",
-      "mqttTopic": "主题：iot/device/cmd/A19F",
-      "reuse": "重用",
       "text": "文本",
       "sync": "同步",
-      "async": "异步",
-      "oneway": "单向",
       "notWired": "这个协议还没有接入，暂时只能从 RocketMQ 连接发送",
       "pickTopicFirst": "先选一个 Topic",
       "sentN": "已发送 {{count}} 条",
@@ -2342,7 +1804,6 @@
       "expired": "expired",
       "maxlen": "maxlen",
       "json": "JSON",
-      "hex": "Hex",
       "roundrobin": "RoundRobin",
       "payload": "Payload",
       "properties": "Properties",
@@ -2353,8 +1814,7 @@
       "offline": "未连接",
       "offlineHint": "这个标签页的连接还没有打开。在连接列表里连上之后，这一页会开始读取数据。",
       "loading": "正在读取…",
-      "failed": "读取失败",
-      "empty": "没有数据"
+      "failed": "读取失败"
     }
   }
 }
