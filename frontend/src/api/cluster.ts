@@ -39,3 +39,16 @@ export const runMaintenance = (
   brokerAddr: string,
   task: string,
 ): Promise<void> => ClusterService.RunMaintenance(connID, brokerAddr, task);
+
+/**
+ * Takes a broker out of the write path, or puts it back, and returns how many
+ * destinations the change touched.
+ *
+ * Named rather than addressed: write permission lives in the route table,
+ * which a master and its slaves share under one broker name.
+ */
+export const setBrokerWritable = (
+  connID: number,
+  brokerName: string,
+  writable: boolean,
+): Promise<number> => ClusterService.SetBrokerWritable(connID, brokerName, writable);

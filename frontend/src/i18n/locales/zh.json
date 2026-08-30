@@ -1171,6 +1171,18 @@
           "none": "没有副本",
           "noneHint": "这台没有从节点，或者它本身就是从节点——从节点不回答关于副本的问题。"
         },
+        "writePerm": {
+          "wipe": "摘除写权限",
+          "add": "恢复写权限",
+          "wipeTitle": "摘除写权限",
+          "addTitle": "恢复写权限",
+          "wipeDesc": "生产者将不再被路由到 {{name}}，消费者仍会把它已有的消息消费完。停机前排空用。",
+          "addDesc": "重新把 {{name}} 放回生产者的路由表。",
+          "wiped": "已摘除 {{name}} 的写权限 · 影响 {{count}} 个 Topic",
+          "added": "已恢复 {{name}} 的写权限 · 影响 {{count}} 个 Topic",
+          "oneNameServer": "只写到了当前连上的那台 NameServer，其余要等它们之间同步",
+          "failed": "修改写权限失败"
+        },
         "consumeQueue": "ConsumeQueue 盘",
         "todayIn": "今日入",
         "todayOut": "今日出",

@@ -1171,6 +1171,18 @@
           "none": "No replicas",
           "noneHint": "This node has no followers, or is a follower itself — a follower answers about none."
         },
+        "writePerm": {
+          "wipe": "Wipe write permission",
+          "add": "Restore write permission",
+          "wipeTitle": "Wipe write permission",
+          "addTitle": "Restore write permission",
+          "wipeDesc": "Producers stop being routed to {{name}}; consumers keep draining what it holds. This is how a broker is emptied before it is stopped.",
+          "addDesc": "Puts {{name}} back into the producers' route table.",
+          "wiped": "Wiped write permission on {{name}} · {{count}} topic(s) affected",
+          "added": "Restored write permission on {{name}} · {{count}} topic(s) affected",
+          "oneNameServer": "Written to the name server this connection reached; the others follow when they gossip",
+          "failed": "Could not change write permission"
+        },
         "consumeQueue": "ConsumeQueue disk",
         "todayIn": "In today",
         "todayOut": "Out today",

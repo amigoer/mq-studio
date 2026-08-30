@@ -7,6 +7,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -25,6 +26,9 @@ import { useCluster } from "@/hooks/useCluster";
 import { useBrokerData } from "@/hooks/useBrokerData";
 import * as clusterApi from "@/api/cluster";
 import { BoardState, Notice, isBlocked } from "@/design/boards/BoardState";
+import { useConnectionScope } from "@/mq/ConnectionScope";
+import { formatErrorMessage } from "@/lib/utils";
+import { useConfirm, useToast } from "@/components";
 import { ConfigDialog } from "./ConfigDialog";
 import { MaintenanceDialog } from "./MaintenanceDialog";
 import { ReplicaDialog } from "./ReplicaDialog";
@@ -92,6 +96,46 @@ export function ClusterRocketMQ() {
   const [directoryConfigOpen, setDirectoryConfigOpen] = useState(false);
   const [maintenanceOf, setMaintenanceOf] = useState<string | null>(null);
   const [replicasOf, setReplicasOf] = useState<string | null>(null);
+
+  const { id: connID } = useConnectionScope();
+  const toast = useToast();
+  const confirm = useConfirm();
+
+  /*
+   * Draining a broker before it is stopped: producers stop being routed to it
+   * while consumers keep draining what it already holds. The current state is
+   * not shown because nothing reports it - the route table carries the
+   * permission, and the topology call does not bring it back - so both
+   * directions are offered and the result says how many topics moved.
+   */
+  const setWritable = async (node: Node, writable: boolean) => {
+    const name = brokerName(node);
+    const confirmed = await confirm({
+      title: t(writable ? "board.cluster.rocketmq.writePerm.addTitle" : "board.cluster.rocketmq.writePerm.wipeTitle"),
+      description: t(
+        writable ? "board.cluster.rocketmq.writePerm.addDesc" : "board.cluster.rocketmq.writePerm.wipeDesc",
+        { name },
+      ),
+      confirmLabel: t(writable ? "board.cluster.rocketmq.writePerm.add" : "board.cluster.rocketmq.writePerm.wipe"),
+      danger: !writable,
+    });
+    if (!confirmed) return;
+    try {
+      const affected = await clusterApi.setBrokerWritable(connID, name, writable);
+      toast.success(
+        t(writable ? "board.cluster.rocketmq.writePerm.added" : "board.cluster.rocketmq.writePerm.wiped", {
+          name,
+          count: affected,
+        }),
+        { description: t("board.cluster.rocketmq.writePerm.oneNameServer") },
+      );
+      await state.refresh();
+    } catch (failure) {
+      toast.error(t("board.cluster.rocketmq.writePerm.failed"), {
+        description: formatErrorMessage(failure),
+      });
+    }
+  };
 
   const loadNodeConfig = useCallback(
     (id: number) => clusterApi.getNodeConfig(id, configOf ?? ""),
@@ -208,6 +252,13 @@ export function ClusterRocketMQ() {
                           </DropdownMenuItem>
                           <DropdownMenuItem onSelect={() => setMaintenanceOf(node.address)}>
                             {t("board.cluster.rocketmq.maintenance.action")}
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onSelect={() => void setWritable(node, false)}>
+                            {t("board.cluster.rocketmq.writePerm.wipe")}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => void setWritable(node, true)}>
+                            {t("board.cluster.rocketmq.writePerm.add")}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
