@@ -36,13 +36,18 @@ function stateOf<T>(over: Partial<BrokerState<T>>): BrokerState<T> {
 }
 
 const overviewState = vi.hoisted(() => ({ current: null as unknown }));
+const queuesState = vi.hoisted(() => ({ current: null as unknown }));
 
 vi.mock("@/hooks/rabbitmq/useRabbitOverview", () => ({
   useRabbitOverview: () => overviewState.current,
 }));
+vi.mock("@/hooks/rabbitmq/useRabbitQueues", () => ({
+  useRabbitQueues: () => queuesState.current,
+}));
 
 let render: (element: React.ReactElement) => string;
 let OverviewRabbitMQ: typeof import("./overview/OverviewRabbitMQ").OverviewRabbitMQ;
+let QueuesRabbitMQ: typeof import("./topics/QueuesRabbitMQ").QueuesRabbitMQ;
 
 beforeAll(async () => {
   const storage = { getItem: () => null, setItem() {}, removeItem() {} };
@@ -55,14 +60,16 @@ beforeAll(async () => {
   });
   vi.stubGlobal("localStorage", storage);
 
-  const [server, overview, i18n] = await Promise.all([
+  const [server, overview, queues, i18n] = await Promise.all([
     import("react-dom/server"),
     import("./overview/OverviewRabbitMQ"),
+    import("./topics/QueuesRabbitMQ"),
     import("@/i18n"),
   ]);
   await i18n.default.changeLanguage("zh");
   render = server.renderToStaticMarkup;
   OverviewRabbitMQ = overview.OverviewRabbitMQ;
+  QueuesRabbitMQ = queues.QueuesRabbitMQ;
 });
 
 const census = {
@@ -101,7 +108,13 @@ const node = (over: Record<string, string> = {}) => ({
   },
 });
 
-const queue = (name: string, ready: string, unacked: string, consumers: number) => ({
+const queue = (
+  name: string,
+  ready: string,
+  unacked: string,
+  consumers: number,
+  extra: Record<string, string> = {},
+) => ({
   ref: { namespace: "/", name },
   partitions: -1,
   subscribers: consumers,
@@ -113,6 +126,7 @@ const queue = (name: string, ready: string, unacked: string, consumers: number) 
     messagesUnacknowledged: unacked,
     queueType: "quorum",
     durable: "true",
+    ...extra,
   },
 });
 
@@ -207,5 +221,62 @@ describe("the RabbitMQ overview board", () => {
     });
     expect(html).toContain("rabbit@two");
     expect(html).toContain("rabbit@three");
+  });
+});
+
+describe("the RabbitMQ queues board", () => {
+  const renderWith = (over: Partial<BrokerState<unknown>>) => {
+    queuesState.current = stateOf(over);
+    return render(<QueuesRabbitMQ />);
+  };
+
+  it("draws a not-connected notice rather than an empty queue list", () => {
+    expect(() => renderWith({ online: false })).not.toThrow();
+  });
+
+  it("draws a loading state without touching the data", () => {
+    expect(() => renderWith({ loading: true })).not.toThrow();
+  });
+
+  it("draws the failure rather than an empty cluster", () => {
+    const html = renderWith({ error: "management API returned 500" });
+    expect(html).not.toContain("order.settle.q");
+  });
+
+  it("says the virtual host is empty rather than showing a blank table", () => {
+    const html = renderWith({ data: [] });
+    expect(html).toContain("还没有队列");
+  });
+
+  it("lists queues deepest first", () => {
+    const html = renderWith({
+      data: [queue("shallow.q", "5", "0", 1), queue("deep.q", "980", "14", 4)],
+    });
+    expect(html.indexOf("deep.q")).toBeLessThan(html.indexOf("shallow.q"));
+    expect(html).toContain("980");
+  });
+
+  /*
+   * The tags are read off what the queue was declared with. A queue carrying
+   * none is the ordinary case and must not sprout tags of its own.
+   */
+  it("tags a queue from its declared arguments", () => {
+    const html = renderWith({
+      data: [
+        queue("ttl.q", "1", "0", 1, {
+          arguments: JSON.stringify({ "x-message-ttl": 30000, "x-dead-letter-exchange": "dlx" }),
+        }),
+      ],
+    });
+    expect(html).toContain("DLX");
+    expect(html).toContain("TTL");
+  });
+
+  // A queue holding messages with nobody attached is the row that needs a
+  // person, and the consumer count is where that shows.
+  it("survives a queue with no consumers and no arguments", () => {
+    expect(() =>
+      renderWith({ data: [queue("bare.q", "500", "0", 0, { arguments: "" })] }),
+    ).not.toThrow();
   });
 });

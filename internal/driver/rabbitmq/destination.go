@@ -2,6 +2,7 @@ package rabbitmq
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -15,15 +16,38 @@ import (
 // Attribute keys this driver puts on a Destination. They are a contract with
 // frontend/src/mq/rabbitmq.
 const (
-	AttrDurable    = "durable"
-	AttrAutoDelete = "autoDelete"
-	AttrExclusive  = "exclusive"
-	AttrQueueType  = "queueType"
-	AttrNode       = "node"
-	AttrState      = "state"
-	AttrReady      = "messagesReady"
-	AttrUnacked    = "messagesUnacknowledged"
-	AttrMemory     = "memory"
+	AttrDurable      = "durable"
+	AttrAutoDelete   = "autoDelete"
+	AttrExclusive    = "exclusive"
+	AttrQueueType    = "queueType"
+	AttrNode         = "node"
+	AttrState        = "state"
+	AttrReady        = "messagesReady"
+	AttrUnacked      = "messagesUnacknowledged"
+	AttrMemory       = "memory"
+	AttrMessageBytes = "messageBytes"
+	AttrPolicy       = "policy"
+	AttrLeader       = "leader"
+	AttrMembers      = "members"
+	AttrOnline       = "onlineMembers"
+	AttrUtilisation  = "consumerUtilisation"
+	AttrArguments    = "arguments"
+)
+
+// The queue arguments this driver names, so the frontend can label them rather
+// than printing raw x- keys at the reader. Anything else the queue carries
+// still travels in AttrArguments untouched.
+const (
+	ArgMessageTTL           = "x-message-ttl"
+	ArgExpires              = "x-expires"
+	ArgDeadLetterExchange   = "x-dead-letter-exchange"
+	ArgDeadLetterRoutingKey = "x-dead-letter-routing-key"
+	ArgMaxLength            = "x-max-length"
+	ArgMaxLengthBytes       = "x-max-length-bytes"
+	ArgOverflow             = "x-overflow"
+	ArgMaxPriority          = "x-max-priority"
+	ArgSingleActiveConsumer = "x-single-active-consumer"
+	ArgQueueType            = "x-queue-type"
 )
 
 // ListDestinations returns the queues in the connection's vhost.
@@ -129,6 +153,38 @@ func destinationFromQueue(queue *rabbithole.QueueInfo) *model.Destination {
 		rateOut = int(queue.MessageStats.DeliverGetDetails.Rate)
 	}
 
+	attributes := map[string]string{
+		AttrDurable:      strconv.FormatBool(queue.Durable),
+		AttrAutoDelete:   strconv.FormatBool(bool(queue.AutoDelete)),
+		AttrExclusive:    strconv.FormatBool(queue.Exclusive),
+		AttrQueueType:    queueTypeOf(queue),
+		AttrNode:         queue.Node,
+		AttrState:        queue.Status,
+		AttrReady:        strconv.Itoa(queue.MessagesReady),
+		AttrUnacked:      strconv.Itoa(queue.MessagesUnacknowledged),
+		AttrMemory:       strconv.FormatInt(queue.Memory, 10),
+		AttrMessageBytes: strconv.FormatInt(queue.MessagesBytes, 10),
+		AttrPolicy:       queue.Policy,
+		AttrArguments:    encodeArguments(queue.Arguments),
+	}
+
+	// Replication is a quorum and stream concept. A classic queue lives on one
+	// node and reports none of this, so the keys stay absent rather than
+	// carrying an empty list that would read as "replicated nowhere".
+	if queue.Leader != "" {
+		attributes[AttrLeader] = queue.Leader
+	}
+	if len(queue.Members) > 0 {
+		attributes[AttrMembers] = strings.Join(queue.Members, ",")
+		attributes[AttrOnline] = strings.Join(queue.Online, ",")
+	}
+	// Utilisation is only meaningful with a consumer attached: the broker
+	// reports 0 for an unconsumed queue, which reads as "consumers are idle"
+	// rather than "there are none".
+	if queue.Consumers > 0 {
+		attributes[AttrUtilisation] = strconv.FormatFloat(queue.ConsumerUtilisation, 'f', 2, 64)
+	}
+
 	return &model.Destination{
 		Ref: model.DestinationRef{Namespace: queue.Vhost, Name: queue.Name},
 		// A queue has no partitions. Reporting zero would read as "measured,
@@ -139,16 +195,34 @@ func destinationFromQueue(queue *rabbithole.QueueInfo) *model.Destination {
 		Depth:       int64(queue.MessagesReady + queue.MessagesUnacknowledged),
 		RateIn:      rateIn,
 		RateOut:     rateOut,
-		Attributes: map[string]string{
-			AttrDurable:    strconv.FormatBool(queue.Durable),
-			AttrAutoDelete: strconv.FormatBool(bool(queue.AutoDelete)),
-			AttrExclusive:  strconv.FormatBool(queue.Exclusive),
-			AttrQueueType:  queue.Type,
-			AttrNode:       queue.Node,
-			AttrState:      queue.Status,
-			AttrReady:      strconv.Itoa(queue.MessagesReady),
-			AttrUnacked:    strconv.Itoa(queue.MessagesUnacknowledged),
-			AttrMemory:     strconv.FormatInt(queue.Memory, 10),
-		},
+		Attributes:  attributes,
 	}
+}
+
+// queueTypeOf falls back to classic, which is what the broker means by an
+// absent type: it only names the type when it is not the default.
+func queueTypeOf(queue *rabbithole.QueueInfo) string {
+	if queue.Type != "" {
+		return queue.Type
+	}
+	if declared, ok := queue.Arguments[ArgQueueType].(string); ok && declared != "" {
+		return declared
+	}
+	return "classic"
+}
+
+// encodeArguments carries the queue's declared arguments across as JSON.
+//
+// A flat map would lose the types - x-max-length is a number, x-overflow a
+// string, and a header argument can be a nested table - and those types are
+// what a reader needs to tell "5000" the limit from "5000" the name.
+func encodeArguments(arguments map[string]interface{}) string {
+	if len(arguments) == 0 {
+		return ""
+	}
+	encoded, err := json.Marshal(arguments)
+	if err != nil {
+		return ""
+	}
+	return string(encoded)
 }

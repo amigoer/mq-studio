@@ -1,7 +1,6 @@
-import { useState } from "react";
-import { ArrowRight } from "lucide-react";
-import { ListArea, ListPane, Page, PageHeader, SkeletonRows, Toolbar } from "@/design/shell";
-import { Button } from "@/components/ui/button";
+import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { ListArea, ListPane, Page, PageHeader, RefreshButton, Toolbar } from "@/design/shell";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -15,7 +14,6 @@ import {
 import {
   DetailPanel,
   DetailPanelBody,
-  DetailPanelFooter,
   DetailPanelHeader,
   KV,
   Panel,
@@ -24,154 +22,233 @@ import {
   SelectField,
   Status,
 } from "@/components";
-import { useTranslation } from "react-i18next";
+import { BoardState, isBlocked } from "@/design/boards/BoardState";
+import { useRabbitQueues } from "@/hooks/rabbitmq/useRabbitQueues";
+import { formatBytes, formatCount, formatRate } from "@/lib/format";
+import {
+  argumentsOf,
+  consumerUtilisation,
+  featureTags,
+  leader,
+  memoryBytes,
+  members,
+  messageBytes,
+  messagesReady,
+  messagesUnacknowledged,
+  onlineMembers,
+  policy,
+  queueType,
+  node as queueNode,
+  state as queueState,
+  vhost,
+} from "@/mq/rabbitmq/destinations";
+import type { Destination } from "@/api/models";
 
-const SHEET_TABS = ["board.common.overview", "board.common.bindings", "board.common.consumers", "board.common.params"] as const;
 const TAG = { fontSize: "10px" } as const;
 const MONO11 = { fontSize: "11px" } as const;
 
+/** Ordered so the tags a reader scans for come first at any row width. */
+const ALL_VHOSTS = "__all__";
+
 /**
- * Board 4a — RabbitMQ queues. AMQP has no topic to map onto, so this is its
- * own module rather than an adaptation of the topic page.
+ * Board 4a — RabbitMQ queues.
+ *
+ * AMQP has no topic to map onto, so this is its own board rather than an
+ * adaptation of the topic page: there is no partition count, no offset and no
+ * consumer group, and the columns that matter instead are the ready/unacked
+ * split and what the queue was declared with.
+ *
+ * The canvas drew a "new queue" button and purge and delete in the detail
+ * footer. They are absent until the write operations land, because a control
+ * that does nothing is worse than one that is not there.
  */
 export function QueuesRabbitMQ() {
-  const [backlogOnly, setBacklogOnly] = useState(true);
-  const [selected, setSelected] = useState<string | null>(null);
-  const [tab, setTab] = useState<string>(SHEET_TABS[0]);
-
   const { t } = useTranslation();
+  const state = useRabbitQueues();
+  const [search, setSearch] = useState("");
+  const [backlogOnly, setBacklogOnly] = useState(false);
+  const [vhostFilter, setVhostFilter] = useState(ALL_VHOSTS);
+  const [selected, setSelected] = useState<string | null>(null);
+
+  const queues = useMemo(() => state.data ?? [], [state.data]);
+
+  const vhosts = useMemo(() => {
+    const found = new Set(queues.map((queue) => vhost(queue)).filter((name) => name !== ""));
+    return [...found].sort();
+  }, [queues]);
+
+  const rows = useMemo(() => {
+    const needle = search.trim().toLowerCase();
+    return queues
+      .filter((queue) => {
+        if (vhostFilter !== ALL_VHOSTS && vhost(queue) !== vhostFilter) return false;
+        if (backlogOnly && messagesReady(queue) + messagesUnacknowledged(queue) === 0) return false;
+        return needle === "" || queue.ref.name.toLowerCase().includes(needle);
+      })
+      .sort(
+        (left, right) =>
+          messagesReady(right) + messagesUnacknowledged(right) -
+          (messagesReady(left) + messagesUnacknowledged(left)),
+      );
+  }, [backlogOnly, queues, search, vhostFilter]);
+
+  const detail = useMemo(
+    () => rows.find((queue) => queueKey(queue) === selected) ?? null,
+    [rows, selected],
+  );
+
   return (
     <Page>
       <PageHeader
         title={t("board.common.queue")}
-        subtitle={t("board.topics.rabbitmq.queueSubtitle")}
-        actions={<Button>{t("board.topics.rabbitmq.newQueue")}</Button>}
+        subtitle={t("board.topics.rabbitmq.queueSubtitle", { count: queues.length })}
+        actions={
+          <RefreshButton
+            refreshing={state.refreshing}
+            online={state.online}
+            onClick={state.refresh}
+          />
+        }
       />
-      <Toolbar>
-        <Input className="w-[220px] flex-none" placeholder={t("board.topics.rabbitmq.searchQueue")} />
-        <SelectField value="/order" prefix="vhost：" options={[{ value: "/order" }]} />
-        <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11.5px", color: "var(--c-mono-dim)" }}>
-          <Switch checked={backlogOnly} onCheckedChange={setBacklogOnly} />
-          {t("board.topics.rabbitmq.backlogOnly")}
-        </span>
-        <span className="flex-1" />
-        <SelectField value="opt" options={[{ value: "opt", label: t("board.topics.rabbitmq.sortByReady") }]} />
-      </Toolbar>
-
+      {!isBlocked(state) && (
+        <Toolbar>
+          <Input
+            className="w-[220px] flex-none"
+            placeholder={t("board.topics.rabbitmq.searchQueue")}
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+          />
+          {vhosts.length > 1 && (
+            <SelectField
+              value={vhostFilter}
+              prefix="vhost："
+              onValueChange={setVhostFilter}
+              options={[
+                { value: ALL_VHOSTS, label: t("board.common.all") },
+                ...vhosts.map((name) => ({ value: name })),
+              ]}
+            />
+          )}
+          <span
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              fontSize: "11.5px",
+              color: "var(--c-mono-dim)",
+            }}
+          >
+            <Switch checked={backlogOnly} onCheckedChange={setBacklogOnly} />
+            {t("board.topics.rabbitmq.backlogOnly")}
+          </span>
+          <span className="flex-1" />
+          <span style={{ fontSize: "11.5px", color: "var(--c-muted)" }}>
+            {t("board.topics.rabbitmq.shown", { shown: rows.length, total: queues.length })}
+          </span>
+        </Toolbar>
+      )}
       <ListArea>
         <ListPane>
-          <Table inset>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t("board.common.queue")}</TableHead>
-                <TableHead>{t("board.common.type")}</TableHead>
-                <TableHead style={{ textAlign: "right" }}>Ready</TableHead>
-                <TableHead style={{ textAlign: "right" }}>Unacked</TableHead>
-                <TableHead style={{ textAlign: "right" }}>{t("board.common.consumers")}</TableHead>
-                <TableHead style={{ textAlign: "right" }}>{t("board.topics.rabbitmq.inOutRate")}</TableHead>
-                <TableHead>{t("board.common.features")}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              <TableRow selected={selected === "order.settle.q"} onClick={() => setSelected("order.settle.q")}>
-                <TableCell><b style={{ fontWeight: 500 }}>order.settle.q</b></TableCell>
-                <TableCell>quorum</TableCell>
-                <TableCell className="mono3" style={{ textAlign: "right", color: "var(--c-warn-text)" }}>982</TableCell>
-                <TableCell className="mono3" style={{ textAlign: "right" }}>14</TableCell>
-                <TableCell className="mono3" style={{ textAlign: "right" }}>4</TableCell>
-                <TableCell className="mono3" style={{ textAlign: "right" }}>1 104 / 1 010</TableCell>
-                <TableCell>
-                  <Status tone="off" style={TAG}>DLX</Status>{" "}
-                  <Status tone="off" style={TAG}>TTL</Status>
-                </TableCell>
-              </TableRow>
-              <TableRow selected={selected === "order.notify.q"} onClick={() => setSelected("order.notify.q")}>
-                <TableCell>order.notify.q</TableCell>
-                <TableCell>classic</TableCell>
-                <TableCell className="mono3" style={{ textAlign: "right" }}>0</TableCell>
-                <TableCell className="mono3" style={{ textAlign: "right" }}>2</TableCell>
-                <TableCell className="mono3" style={{ textAlign: "right" }}>6</TableCell>
-                <TableCell className="mono3" style={{ textAlign: "right" }}>2 003 / 2 001</TableCell>
-                <TableCell><Status tone="off" style={TAG}>DLX</Status></TableCell>
-              </TableRow>
-              <TableRow selected={selected === "audit.pipeline.q"} onClick={() => setSelected("audit.pipeline.q")}>
-                <TableCell>audit.pipeline.q</TableCell>
-                <TableCell>stream</TableCell>
-                <TableCell className="mono3" style={{ textAlign: "right" }}>120</TableCell>
-                <TableCell className="mono3" style={{ textAlign: "right" }}>0</TableCell>
-                <TableCell className="mono3" style={{ textAlign: "right" }}>2</TableCell>
-                <TableCell className="mono3" style={{ textAlign: "right" }}>880 / 875</TableCell>
-                <TableCell />
-              </TableRow>
-              <TableRow selected={selected === "dlx.order.q"} onClick={() => setSelected("dlx.order.q")}>
-                <TableCell style={{ color: "var(--c-muted)" }}>dlx.order.q</TableCell>
-                <TableCell style={{ color: "var(--c-muted)" }}>classic</TableCell>
-                <TableCell className="mono3" style={{ textAlign: "right", color: "var(--c-err-text)" }}>37</TableCell>
-                <TableCell className="mono3" style={{ textAlign: "right", color: "var(--c-muted)" }}>0</TableCell>
-                <TableCell className="mono3" style={{ textAlign: "right", color: "var(--c-muted)" }}>0</TableCell>
-                <TableCell className="mono3" style={{ textAlign: "right", color: "var(--c-muted)" }}>0.2 / 0</TableCell>
-                <TableCell><Status tone="err" style={TAG}>{t("board.common.deadLetter")}</Status></TableCell>
-              </TableRow>
-              <SkeletonRows colSpan={7} widths={["74%", "60%"]} />
-            </TableBody>
-          </Table>
+          <BoardState
+            state={state}
+            empty={queues.length === 0 ? t("board.topics.rabbitmq.noQueues") : undefined}
+          >
+            <Table inset>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("board.common.queue")}</TableHead>
+                  <TableHead>{t("board.common.type")}</TableHead>
+                  <TableHead style={{ textAlign: "right" }}>Ready</TableHead>
+                  <TableHead style={{ textAlign: "right" }}>Unacked</TableHead>
+                  <TableHead style={{ textAlign: "right" }}>
+                    {t("board.common.consumers")}
+                  </TableHead>
+                  <TableHead style={{ textAlign: "right" }}>
+                    {t("board.topics.rabbitmq.inOutRate")}
+                  </TableHead>
+                  <TableHead>{t("board.common.features")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rows.map((queue) => {
+                  const ready = messagesReady(queue);
+                  const unacked = messagesUnacknowledged(queue);
+                  const key = queueKey(queue);
+                  return (
+                    <TableRow
+                      key={key}
+                      selected={selected === key}
+                      onClick={() => setSelected(key)}
+                    >
+                      <TableCell>
+                        <b style={{ fontWeight: 500 }}>{queue.ref.name}</b>
+                        {vhosts.length > 1 && (
+                          <span
+                            className="mono3"
+                            style={{ marginLeft: "6px", fontSize: "10.5px", color: "var(--c-muted)" }}
+                          >
+                            {vhost(queue)}
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell>{queueType(queue)}</TableCell>
+                      <TableCell
+                        className="mono3"
+                        style={{
+                          textAlign: "right",
+                          color: ready > 0 ? "var(--c-warn-text)" : undefined,
+                        }}
+                      >
+                        {formatCount(ready)}
+                      </TableCell>
+                      <TableCell className="mono3" style={{ textAlign: "right" }}>
+                        {formatCount(unacked)}
+                      </TableCell>
+                      <TableCell
+                        className="mono3"
+                        style={{
+                          textAlign: "right",
+                          color:
+                            ready > 0 && queue.subscribers === 0 ? "var(--c-err-text)" : undefined,
+                        }}
+                      >
+                        {formatCount(queue.subscribers)}
+                      </TableCell>
+                      <TableCell className="mono3" style={{ textAlign: "right" }}>
+                        {formatRate(queue.rateIn)} / {formatRate(queue.rateOut)}
+                      </TableCell>
+                      <TableCell>
+                        {featureTags(queue).map((tag) => (
+                          <Status key={tag} tone="off" style={TAG}>
+                            {tag}
+                          </Status>
+                        ))}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+                {rows.length === 0 && queues.length > 0 && (
+                  <TableRow>
+                    <TableCell colSpan={7} style={{ color: "var(--c-muted)" }}>
+                      {t("board.topics.rabbitmq.noMatch")}
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </BoardState>
         </ListPane>
 
-        {selected != null && (
+        {detail != null && (
           <DetailPanel width={370} onDismiss={() => setSelected(null)}>
             <DetailPanelHeader
-              title={selected}
-              badge={<ProtoBadge protocol="rabbitmq" label="quorum" />}
-              tabs={SHEET_TABS.map((id) => ({ id, label: t(id) }))}
-              activeTab={tab}
-              onTabChange={setTab}
+              title={detail.ref.name}
+              badge={<ProtoBadge protocol="rabbitmq" label={queueType(detail)} />}
               onClose={() => setSelected(null)}
             />
             <DetailPanelBody>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-                <Panel style={{ padding: "9px 12px" }}>
-                  <div style={{ fontSize: "10.5px", color: "var(--c-muted)" }}>Ready</div>
-                  <div className="mono3" style={{ fontSize: "16px", fontWeight: 600, marginTop: "2px", color: "var(--c-warn-text)" }}>
-                    982
-                  </div>
-                </Panel>
-                <Panel style={{ padding: "9px 12px" }}>
-                  <div style={{ fontSize: "10.5px", color: "var(--c-muted)" }}>Unacked</div>
-                  <div className="mono3" style={{ fontSize: "16px", fontWeight: 600, marginTop: "2px" }}>14</div>
-                </Panel>
-              </div>
-
-              <KV
-                rows={[
-                  [t("board.common.persistence"), "durable"],
-                  [t("board.topics.rabbitmq.messageTtl"), <span className="mono3" style={MONO11}>30 000 ms</span>],
-                  [t("board.topics.rabbitmq.dlx"), <span className="mono3" style={MONO11}>dlx.order</span>],
-                  [t("board.topics.rabbitmq.exclusiveAutoDelete"), t("board.topics.rabbitmq.noNo")],
-                ]}
-              />
-
-              <div>
-                <SectionLabel style={{ marginBottom: "6px" }}>{t("board.common.bindings")}</SectionLabel>
-                <Panel
-                  style={{
-                    padding: "9px 12px",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "6px",
-                    fontSize: "11.5px",
-                  }}
-                >
-                  <BindingRow routingKey="order.created" />
-                  <BindingRow routingKey="order.updated" />
-                </Panel>
-              </div>
+              <QueueDetail queue={detail} />
             </DetailPanelBody>
-            <DetailPanelFooter>
-              <Button variant="outline">{t("board.topics.rabbitmq.browseHead")}</Button>
-              <span className="flex-1" />
-              <Button variant="destructive">{t("board.common.purge")}</Button>
-              <Button variant="destructive">{t("board.common.delete")}</Button>
-            </DetailPanelFooter>
           </DetailPanel>
         )}
       </ListArea>
@@ -179,13 +256,138 @@ export function QueuesRabbitMQ() {
   );
 }
 
-function BindingRow({ routingKey }: { routingKey: string }) {
+/** A queue is unique per virtual host, not per broker. */
+function queueKey(queue: Destination): string {
+  return `${queue.ref.namespace}/${queue.ref.name}`;
+}
+
+/**
+ * The declared arguments, labelled where the name is jargon.
+ *
+ * Anything the broker carries that is not in this list is still shown, under
+ * its own key: a queue can be declared with arguments a plugin understands and
+ * this app has never heard of, and hiding them would make the panel a lie
+ * about what the queue is.
+ */
+const ARG_LABELS: Record<string, string> = {
+  "x-message-ttl": "board.topics.rabbitmq.messageTtl",
+  "x-expires": "board.topics.rabbitmq.expires",
+  "x-dead-letter-exchange": "board.topics.rabbitmq.dlx",
+  "x-dead-letter-routing-key": "board.topics.rabbitmq.dlxRoutingKey",
+  "x-max-length": "board.topics.rabbitmq.maxLength",
+  "x-max-length-bytes": "board.topics.rabbitmq.maxLengthBytes",
+  "x-overflow": "board.topics.rabbitmq.overflow",
+  "x-max-priority": "board.topics.rabbitmq.maxPriority",
+  "x-single-active-consumer": "board.topics.rabbitmq.singleActive",
+};
+
+function QueueDetail({ queue }: { queue: Destination }) {
+  const { t } = useTranslation();
+  const ready = messagesReady(queue);
+  const unacked = messagesUnacknowledged(queue);
+  const args = argumentsOf(queue);
+  const utilisation = consumerUtilisation(queue);
+  const replicas = members(queue);
+  const online = onlineMembers(queue);
+  const matched = policy(queue);
+
   return (
-    <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
-      <ProtoBadge protocol="rabbitmq" label="topic" style={{ fontSize: "9px" }} />
-      <span className="mono3" style={MONO11}>ex.order</span>
-      <ArrowRight size={12} style={{ color: "var(--c-muted-2)", flex: "none" }} aria-hidden />
-      <span className="mono3" style={{ ...MONO11, color: "var(--c-mono-dim)" }}>rk = {routingKey}</span>
-    </div>
+    <>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+        <Counter label="Ready" value={formatCount(ready)} tone={ready > 0 ? "warn" : undefined} />
+        <Counter label="Unacked" value={formatCount(unacked)} />
+      </div>
+
+      <KV
+        rows={[
+          [t("board.common.persistence"), queue.attributes?.durable === "true" ? "durable" : "transient"],
+          [t("board.common.status"), queueState(queue) || "—"],
+          [t("board.common.node"), <span key="n" className="mono3" style={MONO11}>{queueNode(queue) || "—"}</span>],
+          [t("board.topics.rabbitmq.messageBytes"), formatBytes(messageBytes(queue))],
+          [t("board.topics.rabbitmq.queueMemory"), formatBytes(memoryBytes(queue))],
+          ...(utilisation != null
+            ? [[
+                t("board.topics.rabbitmq.utilisation"),
+                `${Math.round(utilisation * 100)}%`,
+              ] as const]
+            : []),
+          ...(matched !== ""
+            ? [[t("board.topics.rabbitmq.policy"), matched] as const]
+            : []),
+        ]}
+      />
+
+      {/* Replication, for the queue types that have it. A classic queue lives
+          on one node and reports none of this. */}
+      {replicas.length > 0 && (
+        <div>
+          <SectionLabel style={{ marginBottom: "6px" }}>
+            {t("board.topics.rabbitmq.replication")}
+          </SectionLabel>
+          <Panel style={{ padding: "9px 12px", display: "flex", flexDirection: "column", gap: "4px" }}>
+            <div style={{ fontSize: "11.5px" }}>
+              {t("board.topics.rabbitmq.leader")}{" "}
+              <span className="mono3" style={MONO11}>{leader(queue) || "—"}</span>
+            </div>
+            {replicas.map((member) => (
+              <div key={member} style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                <Status tone={online.includes(member) ? "ok" : "err"} style={TAG}>
+                  {online.includes(member)
+                    ? t("board.topics.rabbitmq.memberOnline")
+                    : t("board.topics.rabbitmq.memberDown")}
+                </Status>
+                <span className="mono3" style={MONO11}>{member}</span>
+              </div>
+            ))}
+          </Panel>
+        </div>
+      )}
+
+      <div>
+        <SectionLabel style={{ marginBottom: "6px" }}>
+          {t("board.topics.rabbitmq.arguments")}
+        </SectionLabel>
+        {Object.keys(args).length === 0 ? (
+          <Panel style={{ padding: "9px 12px", fontSize: "11.5px", color: "var(--c-muted)" }}>
+            {t("board.topics.rabbitmq.noArguments")}
+          </Panel>
+        ) : (
+          <KV
+            rows={Object.entries(args).map(([key, value]) => [
+              ARG_LABELS[key] != null ? t(ARG_LABELS[key]) : key,
+              <span key={key} className="mono3" style={MONO11}>
+                {formatArgument(value)}
+              </span>,
+            ])}
+          />
+        )}
+      </div>
+    </>
   );
+}
+
+function Counter({ label, value, tone }: { label: string; value: string; tone?: "warn" }) {
+  return (
+    <Panel style={{ padding: "9px 12px" }}>
+      <div style={{ fontSize: "10.5px", color: "var(--c-muted)" }}>{label}</div>
+      <div
+        className="mono3"
+        style={{
+          fontSize: "16px",
+          fontWeight: 600,
+          marginTop: "2px",
+          color: tone === "warn" ? "var(--c-warn-text)" : undefined,
+        }}
+      >
+        {value}
+      </div>
+    </Panel>
+  );
+}
+
+/** An argument can be a number, a string, a boolean or a nested table. */
+function formatArgument(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  return JSON.stringify(value);
 }

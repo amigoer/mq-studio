@@ -2,6 +2,7 @@ package rabbitmq
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"os"
 	"testing"
@@ -467,5 +468,101 @@ func TestLiveNodeCarriesMemoryAndDiskLimits(t *testing.T) {
 	// rather than being filled with a zero that reads as "measured, idle".
 	if node.RateIn != model.UnknownMetric || node.RateOut != model.UnknownMetric {
 		t.Errorf("node rates = %d / %d, want the unknown sentinel", node.RateIn, node.RateOut)
+	}
+}
+
+// A queue declared with arguments has to come back carrying them, because the
+// queues board reads its whole detail panel out of that map.
+func TestLiveQueueCarriesItsDeclaredArguments(t *testing.T) {
+	conn := liveConn(t)
+	defer func() { _ = conn.Close() }()
+
+	ctx := context.Background()
+	name := "mqs-test-arguments"
+	settings := rabbithole.QueueSettings{
+		Durable: true,
+		Arguments: map[string]interface{}{
+			"x-message-ttl":            30000,
+			"x-dead-letter-exchange":   "amq.fanout",
+			"x-max-length":             5000,
+			"x-overflow":               "reject-publish",
+			"x-single-active-consumer": true,
+		},
+	}
+	if err := exec(ctx, conn.mgmt, func(client *rabbithole.Client) (*http.Response, error) {
+		return client.DeclareQueue("/", name, settings)
+	}); err != nil {
+		t.Fatalf("declare: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = exec(context.Background(), conn.mgmt, func(client *rabbithole.Client) (*http.Response, error) {
+			return client.DeleteQueue("/", name)
+		})
+	})
+
+	found, err := conn.DestinationDetail(ctx, model.DestinationRef{Namespace: "/", Name: name})
+	if err != nil {
+		t.Fatalf("detail: %v", err)
+	}
+
+	raw := found.Attributes[AttrArguments]
+	if raw == "" {
+		t.Fatal("the queue came back with no arguments at all")
+	}
+	var arguments map[string]interface{}
+	if err := json.Unmarshal([]byte(raw), &arguments); err != nil {
+		t.Fatalf("arguments are not decodable JSON: %v", err)
+	}
+	// The types are the point: a reader has to tell the number 5000 from the
+	// string "5000", so a flat string map would lose what matters.
+	if ttl, ok := arguments["x-message-ttl"].(float64); !ok || ttl != 30000 {
+		t.Errorf("x-message-ttl = %#v, want the number 30000", arguments["x-message-ttl"])
+	}
+	if single, ok := arguments["x-single-active-consumer"].(bool); !ok || !single {
+		t.Errorf("x-single-active-consumer = %#v, want the boolean true", arguments["x-single-active-consumer"])
+	}
+	if arguments["x-overflow"] != "reject-publish" {
+		t.Errorf("x-overflow = %#v", arguments["x-overflow"])
+	}
+	if found.Attributes[AttrQueueType] != "classic" {
+		t.Errorf("queueType = %q, want classic for a queue declared without one",
+			found.Attributes[AttrQueueType])
+	}
+}
+
+// A quorum queue reports its replicas; a classic one reports none, and the
+// absence is what tells the panel not to draw a replication section.
+func TestLiveQuorumQueueReportsItsReplicas(t *testing.T) {
+	conn := liveConn(t)
+	defer func() { _ = conn.Close() }()
+
+	ctx := context.Background()
+	name := "mqs-test-quorum"
+	if err := exec(ctx, conn.mgmt, func(client *rabbithole.Client) (*http.Response, error) {
+		return client.DeclareQueue("/", name, rabbithole.QueueSettings{
+			Durable:   true,
+			Arguments: map[string]interface{}{"x-queue-type": "quorum"},
+		})
+	}); err != nil {
+		t.Fatalf("declare: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = exec(context.Background(), conn.mgmt, func(client *rabbithole.Client) (*http.Response, error) {
+			return client.DeleteQueue("/", name)
+		})
+	})
+
+	found, err := conn.DestinationDetail(ctx, model.DestinationRef{Namespace: "/", Name: name})
+	if err != nil {
+		t.Fatalf("detail: %v", err)
+	}
+	if found.Attributes[AttrQueueType] != "quorum" {
+		t.Errorf("queueType = %q, want quorum", found.Attributes[AttrQueueType])
+	}
+	if found.Attributes[AttrLeader] == "" {
+		t.Error("a quorum queue reported no leader")
+	}
+	if found.Attributes[AttrMembers] == "" {
+		t.Error("a quorum queue reported no members")
 	}
 }

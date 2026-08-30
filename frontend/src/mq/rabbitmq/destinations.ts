@@ -13,6 +13,14 @@ const AttrNode = "node";
 const AttrState = "state";
 const AttrReady = "messagesReady";
 const AttrUnacked = "messagesUnacknowledged";
+const AttrMemory = "memory";
+const AttrMessageBytes = "messageBytes";
+const AttrPolicy = "policy";
+const AttrLeader = "leader";
+const AttrMembers = "members";
+const AttrOnline = "onlineMembers";
+const AttrUtilisation = "consumerUtilisation";
+const AttrArguments = "arguments";
 const AttrExchangeType = "exchangeType";
 
 function attr(destination: Destination, key: string): string {
@@ -55,3 +63,100 @@ export const messagesReady = (destination: Destination): number =>
   count(destination, AttrReady);
 export const messagesUnacknowledged = (destination: Destination): number =>
   count(destination, AttrUnacked);
+
+export const memoryBytes = (destination: Destination): number =>
+  count(destination, AttrMemory);
+export const messageBytes = (destination: Destination): number =>
+  count(destination, AttrMessageBytes);
+
+/** The policy the broker says this queue matched, or "" for none. */
+export const policy = (destination: Destination): string =>
+  attr(destination, AttrPolicy);
+
+/**
+ * Replication, which only quorum and stream queues have.
+ *
+ * A classic queue lives on one node and the driver leaves these absent rather
+ * than sending an empty list, because "replicated nowhere" and "not a
+ * replicated queue" are different things.
+ */
+export const leader = (destination: Destination): string =>
+  attr(destination, AttrLeader);
+
+export function members(destination: Destination): string[] {
+  const raw = attr(destination, AttrMembers);
+  return raw === "" ? [] : raw.split(",");
+}
+
+export function onlineMembers(destination: Destination): string[] {
+  const raw = attr(destination, AttrOnline);
+  return raw === "" ? [] : raw.split(",");
+}
+
+/**
+ * How busy the consumers are, 0 to 1, or null when there are none.
+ *
+ * The driver omits it for an unconsumed queue on purpose: the broker reports
+ * zero there, which reads as "the consumers are idle" rather than "there are
+ * no consumers".
+ */
+export function consumerUtilisation(destination: Destination): number | null {
+  const raw = attr(destination, AttrUtilisation);
+  if (raw === "") return null;
+  const value = Number.parseFloat(raw);
+  return Number.isNaN(value) ? null : value;
+}
+
+/**
+ * The arguments the queue was declared with.
+ *
+ * They cross as JSON rather than as a flat string map because the types carry
+ * meaning: x-max-length is a number, x-overflow a string, and a header
+ * argument can be a nested table.
+ */
+export function argumentsOf(destination: Destination): Record<string, unknown> {
+  const raw = attr(destination, AttrArguments);
+  if (raw === "") return {};
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    return typeof parsed === "object" && parsed !== null
+      ? (parsed as Record<string, unknown>)
+      : {};
+  } catch {
+    return {};
+  }
+}
+
+/** Argument names the UI labels rather than printing raw. */
+export const ARG_MESSAGE_TTL = "x-message-ttl";
+export const ARG_EXPIRES = "x-expires";
+export const ARG_DLX = "x-dead-letter-exchange";
+export const ARG_DLX_ROUTING_KEY = "x-dead-letter-routing-key";
+export const ARG_MAX_LENGTH = "x-max-length";
+export const ARG_MAX_LENGTH_BYTES = "x-max-length-bytes";
+export const ARG_OVERFLOW = "x-overflow";
+export const ARG_MAX_PRIORITY = "x-max-priority";
+export const ARG_SINGLE_ACTIVE_CONSUMER = "x-single-active-consumer";
+export const ARG_QUEUE_TYPE = "x-queue-type";
+
+/**
+ * The short tags a queue's row shows, from what it was actually declared with.
+ *
+ * x-queue-type is deliberately absent: the type has its own column, and
+ * repeating it as a tag would spend the row's limited width saying the same
+ * thing twice.
+ */
+export function featureTags(destination: Destination): string[] {
+  const args = argumentsOf(destination);
+  const tags: string[] = [];
+  if (args[ARG_DLX] != null) tags.push("DLX");
+  if (args[ARG_MESSAGE_TTL] != null) tags.push("TTL");
+  if (args[ARG_EXPIRES] != null) tags.push("expires");
+  if (args[ARG_MAX_LENGTH] != null || args[ARG_MAX_LENGTH_BYTES] != null) tags.push("max-length");
+  if (args[ARG_MAX_PRIORITY] != null) tags.push("priority");
+  if (args[ARG_SINGLE_ACTIVE_CONSUMER] === true) tags.push("single-active");
+  if (exclusive(destination)) tags.push("exclusive");
+  if (autoDelete(destination)) tags.push("auto-delete");
+  if (!durable(destination)) tags.push("transient");
+  return tags;
+}
