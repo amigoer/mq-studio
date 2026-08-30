@@ -26,6 +26,28 @@ export function DeleteAccess(connID: number, accessKey: string): $CancellablePro
 }
 
 /**
+ * DeletePrincipal removes a principal.
+ */
+export function DeletePrincipal(connID: number, name: string): $CancellablePromise<void> {
+    return $Call.ByID(3815334526, connID, name);
+}
+
+/**
+ * DeleteRule drops every policy attached to a subject.
+ */
+export function DeleteRule(connID: number, subject: string): $CancellablePromise<void> {
+    return $Call.ByID(3982915882, connID, subject);
+}
+
+/**
+ * DirectoryEnabled reports whether the broker runs identity-based access
+ * control, which is what decides which of the two ACL systems the page shows.
+ */
+export function DirectoryEnabled(connID: number): $CancellablePromise<boolean> {
+    return $Call.ByID(2276842395, connID);
+}
+
+/**
  * Enabled reports whether the broker has ACL turned on.
  */
 export function Enabled(connID: number): $CancellablePromise<boolean> {
@@ -33,10 +55,43 @@ export function Enabled(connID: number): $CancellablePromise<boolean> {
 }
 
 /**
+ * Principals returns the identities the broker authenticates.
+ */
+export function Principals(connID: number): $CancellablePromise<(model$0.AccessPrincipal | null)[]> {
+    return $Call.ByID(565209008, connID).then(($result: any) => {
+        return $$createType2($result);
+    });
+}
+
+/**
+ * Rules returns every subject's policies.
+ */
+export function Rules(connID: number): $CancellablePromise<(model$0.AccessRule | null)[]> {
+    return $Call.ByID(2034516958, connID).then(($result: any) => {
+        return $$createType5($result);
+    });
+}
+
+/**
  * UpdateAccess creates or replaces an ACL access config entry.
  */
 export function UpdateAccess(connID: number, input: $models.AccessConfigInput): $CancellablePromise<void> {
     return $Call.ByID(4030612624, connID, input);
+}
+
+/**
+ * UpdatePrincipal creates a principal, or updates one that already exists.
+ */
+export function UpdatePrincipal(connID: number, input: $models.PrincipalInput): $CancellablePromise<void> {
+    return $Call.ByID(1019927728, connID, input);
+}
+
+/**
+ * UpdateRule replaces one subject's policies. It replaces rather than merges,
+ * which is what the broker does with the set it is handed.
+ */
+export function UpdateRule(connID: number, input: $models.AccessRuleInput): $CancellablePromise<void> {
+    return $Call.ByID(3524370640, connID, input);
 }
 
 /**
@@ -51,10 +106,16 @@ export function UpdateWhiteAddrs(connID: number, addrs: string[]): $CancellableP
  */
 export function Version(connID: number): $CancellablePromise<model$0.AclVersionInfo | null> {
     return $Call.ByID(2629139113, connID).then(($result: any) => {
-        return $$createType1($result);
+        return $$createType7($result);
     });
 }
 
 // Private type creation functions
-const $$createType0 = model$0.AclVersionInfo.createFrom;
+const $$createType0 = model$0.AccessPrincipal.createFrom;
 const $$createType1 = $Create.Nullable($$createType0);
+const $$createType2 = $Create.Array($$createType1);
+const $$createType3 = model$0.AccessRule.createFrom;
+const $$createType4 = $Create.Nullable($$createType3);
+const $$createType5 = $Create.Array($$createType4);
+const $$createType6 = model$0.AclVersionInfo.createFrom;
+const $$createType7 = $Create.Nullable($$createType6);

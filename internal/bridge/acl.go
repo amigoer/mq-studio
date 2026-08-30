@@ -57,3 +57,82 @@ func (s *ACLService) DeleteAccess(connID int, accessKey string) error {
 func (s *ACLService) UpdateWhiteAddrs(connID int, addrs []string) error {
 	return s.service.SetAllowList(context.Background(), connID, addrs)
 }
+
+// PrincipalInput carries a principal form submission. The secret is
+// write-only: the broker stores it hashed and nothing sends it back.
+type PrincipalInput struct {
+	Name   string `json:"name"`
+	Secret string `json:"secret"`
+	Type   string `json:"type"`
+	Status string `json:"status"`
+}
+
+// PolicyInput is one rule row of an access-rule form.
+type PolicyInput struct {
+	Resource  string   `json:"resource"`
+	Actions   []string `json:"actions"`
+	Effect    string   `json:"effect"`
+	SourceIPs []string `json:"sourceIps"`
+}
+
+// AccessRuleInput carries an access-rule form submission.
+type AccessRuleInput struct {
+	Subject     string        `json:"subject"`
+	Description string        `json:"description"`
+	Policies    []PolicyInput `json:"policies"`
+}
+
+// DirectoryEnabled reports whether the broker runs identity-based access
+// control, which is what decides which of the two ACL systems the page shows.
+func (s *ACLService) DirectoryEnabled(connID int) (bool, error) {
+	return s.service.DirectoryEnabled(context.Background(), connID)
+}
+
+// Principals returns the identities the broker authenticates.
+func (s *ACLService) Principals(connID int) ([]*model.AccessPrincipal, error) {
+	return s.service.Principals(context.Background(), connID)
+}
+
+// UpdatePrincipal creates a principal, or updates one that already exists.
+func (s *ACLService) UpdatePrincipal(connID int, input PrincipalInput) error {
+	return s.service.PutPrincipal(context.Background(), connID, model.AccessPrincipalSpec{
+		Name:   input.Name,
+		Secret: input.Secret,
+		Type:   input.Type,
+		Status: input.Status,
+	})
+}
+
+// DeletePrincipal removes a principal.
+func (s *ACLService) DeletePrincipal(connID int, name string) error {
+	return s.service.RemovePrincipal(context.Background(), connID, name)
+}
+
+// Rules returns every subject's policies.
+func (s *ACLService) Rules(connID int) ([]*model.AccessRule, error) {
+	return s.service.Rules(context.Background(), connID)
+}
+
+// UpdateRule replaces one subject's policies. It replaces rather than merges,
+// which is what the broker does with the set it is handed.
+func (s *ACLService) UpdateRule(connID int, input AccessRuleInput) error {
+	policies := make([]model.AccessPolicy, 0, len(input.Policies))
+	for _, policy := range input.Policies {
+		policies = append(policies, model.AccessPolicy{
+			Resource:  policy.Resource,
+			Actions:   policy.Actions,
+			Effect:    policy.Effect,
+			SourceIPs: policy.SourceIPs,
+		})
+	}
+	return s.service.PutRule(context.Background(), connID, model.AccessRule{
+		Subject:     input.Subject,
+		Description: input.Description,
+		Policies:    policies,
+	})
+}
+
+// DeleteRule drops every policy attached to a subject.
+func (s *ACLService) DeleteRule(connID int, subject string) error {
+	return s.service.RemoveRule(context.Background(), connID, subject)
+}

@@ -123,6 +123,7 @@ func rocketMQCapabilities() []model.Capability {
 		model.CapNodeConfig,
 		model.CapNodeMaintenance,
 		model.CapAccessControl,
+		model.CapAccessDirectory,
 	}
 }
 

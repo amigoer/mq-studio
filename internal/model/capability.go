@@ -58,6 +58,11 @@ const (
 	CapNodeMaintenance Capability = "cluster.nodeMaintenance"
 	CapClusterMetrics  Capability = "cluster.metrics"
 	CapAccessControl   Capability = "access.control"
+	// CapAccessDirectory is identity-based access control: principals the
+	// broker authenticates and rules attached to a subject. Distinct from
+	// CapAccessControl, which is the credential-carrying kind a broker will
+	// take a write for and never read back.
+	CapAccessDirectory Capability = "access.directory"
 	CapRouting         Capability = "routing.exchanges"
 )
 

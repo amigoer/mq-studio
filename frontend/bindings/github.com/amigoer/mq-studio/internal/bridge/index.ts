@@ -32,6 +32,7 @@ export {
 
 export {
     AccessConfigInput,
+    AccessRuleInput,
     ClusterView,
     ConnectionInput,
     ConnectionView,
@@ -39,6 +40,8 @@ export {
     DriverInfo,
     MaintenanceTaskView,
     MessageQuery,
+    PolicyInput,
+    PrincipalInput,
     ResendInput,
     SendInput,
     SettingsInput,

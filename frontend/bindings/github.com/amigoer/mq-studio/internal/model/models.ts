@@ -6,6 +6,151 @@
 import { Create as $Create } from "@wailsio/runtime";
 
 /**
+ * AccessPolicy grants or denies actions on one resource.
+ */
+export class AccessPolicy {
+    /**
+     * a topic, a group, or the cluster
+     */
+    "resource": string;
+
+    /**
+     * PUB, SUB, and the family's own verbs
+     */
+    "actions": string[];
+
+    /**
+     * Allow, Deny
+     */
+    "effect": string;
+
+    /**
+     * SourceIPs narrows the rule to callers from these addresses. Empty means
+     * any source.
+     */
+    "sourceIps": string[];
+
+    /**
+     * Decision is what the broker actually decided for this policy, which is
+     * not always its effect - a later rule can override an earlier one.
+     */
+    "decision": string;
+
+    /** Creates a new AccessPolicy instance. */
+    constructor($$source: Partial<AccessPolicy> = {}) {
+        if (!("resource" in $$source)) {
+            this["resource"] = "";
+        }
+        if (!("actions" in $$source)) {
+            this["actions"] = [];
+        }
+        if (!("effect" in $$source)) {
+            this["effect"] = "";
+        }
+        if (!("sourceIps" in $$source)) {
+            this["sourceIps"] = [];
+        }
+        if (!("decision" in $$source)) {
+            this["decision"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new AccessPolicy instance from a string or object.
+     */
+    static createFrom($$source: any = {}): AccessPolicy {
+        const $$createField1_0 = $$createType0;
+        const $$createField3_0 = $$createType0;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("actions" in $$parsedSource) {
+            $$parsedSource["actions"] = $$createField1_0($$parsedSource["actions"]);
+        }
+        if ("sourceIps" in $$parsedSource) {
+            $$parsedSource["sourceIps"] = $$createField3_0($$parsedSource["sourceIps"]);
+        }
+        return new AccessPolicy($$parsedSource as Partial<AccessPolicy>);
+    }
+}
+
+/**
+ * AccessPrincipal is one identity the broker authenticates.
+ * 
+ * RocketMQ 5.3 calls it a user, Kafka a principal. Type and status stay the
+ * family's own words: what values they take differs per family, and
+ * normalising them would lose exactly what an operator has to type back.
+ */
+export class AccessPrincipal {
+    "name": string;
+    "type": string;
+    "status": string;
+
+    /** Creates a new AccessPrincipal instance. */
+    constructor($$source: Partial<AccessPrincipal> = {}) {
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("type" in $$source)) {
+            this["type"] = "";
+        }
+        if (!("status" in $$source)) {
+            this["status"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new AccessPrincipal instance from a string or object.
+     */
+    static createFrom($$source: any = {}): AccessPrincipal {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new AccessPrincipal($$parsedSource as Partial<AccessPrincipal>);
+    }
+}
+
+/**
+ * AccessRule is everything one subject is permitted to do.
+ * 
+ * Identity-based rather than key-based, which is what separates it from
+ * AccessConfig: a rule names a subject the broker already knows, where an
+ * AccessConfig carries the credential and the permissions together.
+ */
+export class AccessRule {
+    "subject": string;
+    "policies": AccessPolicy[];
+    "description": string;
+
+    /** Creates a new AccessRule instance. */
+    constructor($$source: Partial<AccessRule> = {}) {
+        if (!("subject" in $$source)) {
+            this["subject"] = "";
+        }
+        if (!("policies" in $$source)) {
+            this["policies"] = [];
+        }
+        if (!("description" in $$source)) {
+            this["description"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new AccessRule instance from a string or object.
+     */
+    static createFrom($$source: any = {}): AccessRule {
+        const $$createField1_0 = $$createType2;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("policies" in $$parsedSource) {
+            $$parsedSource["policies"] = $$createField1_0($$parsedSource["policies"]);
+        }
+        return new AccessRule($$parsedSource as Partial<AccessRule>);
+    }
+}
+
+/**
  * AclVersionInfo holds ACL config version information.
  */
 export class AclVersionInfo {
@@ -117,7 +262,7 @@ export class Binding {
      * Creates a new Binding instance from a string or object.
      */
     static createFrom($$source: any = {}): Binding {
-        const $$createField6_0 = $$createType0;
+        const $$createField6_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("arguments" in $$parsedSource) {
             $$parsedSource["arguments"] = $$createField6_0($$parsedSource["arguments"]);
@@ -171,9 +316,9 @@ export class Capabilities {
      * Creates a new Capabilities instance from a string or object.
      */
     static createFrom($$source: any = {}): Capabilities {
-        const $$createField0_0 = $$createType1;
-        const $$createField1_0 = $$createType2;
-        const $$createField2_0 = $$createType2;
+        const $$createField0_0 = $$createType4;
+        const $$createField1_0 = $$createType5;
+        const $$createField2_0 = $$createType5;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("supported" in $$parsedSource) {
             $$parsedSource["supported"] = $$createField0_0($$parsedSource["supported"]);
@@ -269,6 +414,14 @@ export enum Capability {
     CapNodeMaintenance = "cluster.nodeMaintenance",
     CapClusterMetrics = "cluster.metrics",
     CapAccessControl = "access.control",
+
+    /**
+     * CapAccessDirectory is identity-based access control: principals the
+     * broker authenticates and rules attached to a subject. Distinct from
+     * CapAccessControl, which is the credential-carrying kind a broker will
+     * take a write for and never read back.
+     */
+    CapAccessDirectory = "access.directory",
     CapRouting = "routing.exchanges",
 };
 
@@ -582,8 +735,8 @@ export class Destination {
      * Creates a new Destination instance from a string or object.
      */
     static createFrom($$source: any = {}): Destination {
-        const $$createField1_0 = $$createType3;
-        const $$createField8_0 = $$createType0;
+        const $$createField1_0 = $$createType6;
+        const $$createField8_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("ref" in $$parsedSource) {
             $$parsedSource["ref"] = $$createField1_0($$parsedSource["ref"]);
@@ -669,8 +822,8 @@ export class DriverDescriptor {
      * Creates a new DriverDescriptor instance from a string or object.
      */
     static createFrom($$source: any = {}): DriverDescriptor {
-        const $$createField2_0 = $$createType5;
-        const $$createField3_0 = $$createType1;
+        const $$createField2_0 = $$createType8;
+        const $$createField3_0 = $$createType4;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("form" in $$parsedSource) {
             $$parsedSource["form"] = $$createField2_0($$parsedSource["form"]);
@@ -705,7 +858,7 @@ export class FieldCond {
      * Creates a new FieldCond instance from a string or object.
      */
     static createFrom($$source: any = {}): FieldCond {
-        const $$createField1_0 = $$createType6;
+        const $$createField1_0 = $$createType0;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("equals" in $$parsedSource) {
             $$parsedSource["equals"] = $$createField1_0($$parsedSource["equals"]);
@@ -812,8 +965,8 @@ export class FormField {
      * Creates a new FormField instance from a string or object.
      */
     static createFrom($$source: any = {}): FormField {
-        const $$createField7_0 = $$createType8;
-        const $$createField8_0 = $$createType10;
+        const $$createField7_0 = $$createType10;
+        const $$createField8_0 = $$createType12;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("visibleWhen" in $$parsedSource) {
             $$parsedSource["visibleWhen"] = $$createField7_0($$parsedSource["visibleWhen"]);
@@ -1031,7 +1184,7 @@ export class MessageItem {
      * Creates a new MessageItem instance from a string or object.
      */
     static createFrom($$source: any = {}): MessageItem {
-        const $$createField15_0 = $$createType0;
+        const $$createField15_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("properties" in $$parsedSource) {
             $$parsedSource["properties"] = $$createField15_0($$parsedSource["properties"]);
@@ -1229,11 +1382,11 @@ export class Node {
      * Creates a new Node instance from a string or object.
      */
     static createFrom($$source: any = {}): Node {
-        const $$createField10_0 = $$createType11;
-        const $$createField11_0 = $$createType12;
-        const $$createField12_0 = $$createType12;
-        const $$createField13_0 = $$createType14;
-        const $$createField14_0 = $$createType0;
+        const $$createField10_0 = $$createType13;
+        const $$createField11_0 = $$createType14;
+        const $$createField12_0 = $$createType14;
+        const $$createField13_0 = $$createType16;
+        const $$createField14_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("tpsHistoryTimestamps" in $$parsedSource) {
             $$parsedSource["tpsHistoryTimestamps"] = $$createField10_0($$parsedSource["tpsHistoryTimestamps"]);
@@ -1557,8 +1710,8 @@ export class Subscription {
      * Creates a new Subscription instance from a string or object.
      */
     static createFrom($$source: any = {}): Subscription {
-        const $$createField1_0 = $$createType15;
-        const $$createField8_0 = $$createType0;
+        const $$createField1_0 = $$createType17;
+        const $$createField8_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("ref" in $$parsedSource) {
             $$parsedSource["ref"] = $$createField1_0($$parsedSource["ref"]);
@@ -1623,9 +1776,9 @@ export class SubscriptionClient {
      * Creates a new SubscriptionClient instance from a string or object.
      */
     static createFrom($$source: any = {}): SubscriptionClient {
-        const $$createField1_0 = $$createType17;
-        const $$createField2_0 = $$createType19;
-        const $$createField3_0 = $$createType0;
+        const $$createField1_0 = $$createType19;
+        const $$createField2_0 = $$createType21;
+        const $$createField3_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("assignments" in $$parsedSource) {
             $$parsedSource["assignments"] = $$createField1_0($$parsedSource["assignments"]);
@@ -1683,23 +1836,25 @@ export enum SubscriptionStatus {
 };
 
 // Private type creation functions
-const $$createType0 = $Create.Map($Create.Any, $Create.Any);
-const $$createType1 = $Create.Array($Create.Any);
-const $$createType2 = $Create.Map($Create.Any, $Create.Any);
-const $$createType3 = DestinationRef.createFrom;
-const $$createType4 = FormField.createFrom;
-const $$createType5 = $Create.Array($$createType4);
-const $$createType6 = $Create.Array($Create.Any);
-const $$createType7 = FieldCond.createFrom;
-const $$createType8 = $Create.Nullable($$createType7);
-const $$createType9 = FormOption.createFrom;
-const $$createType10 = $Create.Array($$createType9);
-const $$createType11 = $Create.Array($Create.Any);
-const $$createType12 = $Create.Array($Create.Any);
-const $$createType13 = ReplicaStatus.createFrom;
-const $$createType14 = $Create.Array($$createType13);
-const $$createType15 = SubscriptionRef.createFrom;
-const $$createType16 = QueueAssignment.createFrom;
-const $$createType17 = $Create.Array($$createType16);
-const $$createType18 = ConsumeThroughput.createFrom;
+const $$createType0 = $Create.Array($Create.Any);
+const $$createType1 = AccessPolicy.createFrom;
+const $$createType2 = $Create.Array($$createType1);
+const $$createType3 = $Create.Map($Create.Any, $Create.Any);
+const $$createType4 = $Create.Array($Create.Any);
+const $$createType5 = $Create.Map($Create.Any, $Create.Any);
+const $$createType6 = DestinationRef.createFrom;
+const $$createType7 = FormField.createFrom;
+const $$createType8 = $Create.Array($$createType7);
+const $$createType9 = FieldCond.createFrom;
+const $$createType10 = $Create.Nullable($$createType9);
+const $$createType11 = FormOption.createFrom;
+const $$createType12 = $Create.Array($$createType11);
+const $$createType13 = $Create.Array($Create.Any);
+const $$createType14 = $Create.Array($Create.Any);
+const $$createType15 = ReplicaStatus.createFrom;
+const $$createType16 = $Create.Array($$createType15);
+const $$createType17 = SubscriptionRef.createFrom;
+const $$createType18 = QueueAssignment.createFrom;
 const $$createType19 = $Create.Array($$createType18);
+const $$createType20 = ConsumeThroughput.createFrom;
+const $$createType21 = $Create.Array($$createType20);

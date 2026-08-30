@@ -70,6 +70,42 @@ export class AccessConfigInput {
 }
 
 /**
+ * AccessRuleInput carries an access-rule form submission.
+ */
+export class AccessRuleInput {
+    "subject": string;
+    "description": string;
+    "policies": PolicyInput[];
+
+    /** Creates a new AccessRuleInput instance. */
+    constructor($$source: Partial<AccessRuleInput> = {}) {
+        if (!("subject" in $$source)) {
+            this["subject"] = "";
+        }
+        if (!("description" in $$source)) {
+            this["description"] = "";
+        }
+        if (!("policies" in $$source)) {
+            this["policies"] = [];
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new AccessRuleInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): AccessRuleInput {
+        const $$createField2_0 = $$createType2;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("policies" in $$parsedSource) {
+            $$parsedSource["policies"] = $$createField2_0($$parsedSource["policies"]);
+        }
+        return new AccessRuleInput($$parsedSource as Partial<AccessRuleInput>);
+    }
+}
+
+/**
  * ClusterView is the cluster page's snapshot: the header counters and the
  * nodes behind them, in one round trip.
  */
@@ -103,9 +139,9 @@ export class ClusterView {
      * Creates a new ClusterView instance from a string or object.
      */
     static createFrom($$source: any = {}): ClusterView {
-        const $$createField0_0 = $$createType1;
-        const $$createField1_0 = $$createType4;
-        const $$createField2_0 = $$createType4;
+        const $$createField0_0 = $$createType3;
+        const $$createField1_0 = $$createType6;
+        const $$createField2_0 = $$createType6;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("overview" in $$parsedSource) {
             $$parsedSource["overview"] = $$createField0_0($$parsedSource["overview"]);
@@ -183,8 +219,8 @@ export class ConnectionInput {
      * Creates a new ConnectionInput instance from a string or object.
      */
     static createFrom($$source: any = {}): ConnectionInput {
-        const $$createField6_0 = $$createType5;
-        const $$createField7_0 = $$createType5;
+        const $$createField6_0 = $$createType7;
+        const $$createField7_0 = $$createType7;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("options" in $$parsedSource) {
             $$parsedSource["options"] = $$createField6_0($$parsedSource["options"]);
@@ -268,7 +304,7 @@ export class ConnectionView {
      * Creates a new ConnectionView instance from a string or object.
      */
     static createFrom($$source: any = {}): ConnectionView {
-        const $$createField7_0 = $$createType5;
+        const $$createField7_0 = $$createType7;
         const $$createField8_0 = $$createType0;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("options" in $$parsedSource) {
@@ -419,6 +455,87 @@ export class MessageQuery {
     static createFrom($$source: any = {}): MessageQuery {
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         return new MessageQuery($$parsedSource as Partial<MessageQuery>);
+    }
+}
+
+/**
+ * PolicyInput is one rule row of an access-rule form.
+ */
+export class PolicyInput {
+    "resource": string;
+    "actions": string[];
+    "effect": string;
+    "sourceIps": string[];
+
+    /** Creates a new PolicyInput instance. */
+    constructor($$source: Partial<PolicyInput> = {}) {
+        if (!("resource" in $$source)) {
+            this["resource"] = "";
+        }
+        if (!("actions" in $$source)) {
+            this["actions"] = [];
+        }
+        if (!("effect" in $$source)) {
+            this["effect"] = "";
+        }
+        if (!("sourceIps" in $$source)) {
+            this["sourceIps"] = [];
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new PolicyInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): PolicyInput {
+        const $$createField1_0 = $$createType0;
+        const $$createField3_0 = $$createType0;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("actions" in $$parsedSource) {
+            $$parsedSource["actions"] = $$createField1_0($$parsedSource["actions"]);
+        }
+        if ("sourceIps" in $$parsedSource) {
+            $$parsedSource["sourceIps"] = $$createField3_0($$parsedSource["sourceIps"]);
+        }
+        return new PolicyInput($$parsedSource as Partial<PolicyInput>);
+    }
+}
+
+/**
+ * PrincipalInput carries a principal form submission. The secret is
+ * write-only: the broker stores it hashed and nothing sends it back.
+ */
+export class PrincipalInput {
+    "name": string;
+    "secret": string;
+    "type": string;
+    "status": string;
+
+    /** Creates a new PrincipalInput instance. */
+    constructor($$source: Partial<PrincipalInput> = {}) {
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("secret" in $$source)) {
+            this["secret"] = "";
+        }
+        if (!("type" in $$source)) {
+            this["type"] = "";
+        }
+        if (!("status" in $$source)) {
+            this["status"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new PrincipalInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): PrincipalInput {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new PrincipalInput($$parsedSource as Partial<PrincipalInput>);
     }
 }
 
@@ -1027,8 +1144,10 @@ export class TopicInput {
 
 // Private type creation functions
 const $$createType0 = $Create.Array($Create.Any);
-const $$createType1 = model$0.ClusterOverview.createFrom;
-const $$createType2 = model$0.Node.createFrom;
-const $$createType3 = $Create.Nullable($$createType2);
-const $$createType4 = $Create.Array($$createType3);
-const $$createType5 = $Create.Map($Create.Any, $Create.Any);
+const $$createType1 = PolicyInput.createFrom;
+const $$createType2 = $Create.Array($$createType1);
+const $$createType3 = model$0.ClusterOverview.createFrom;
+const $$createType4 = model$0.Node.createFrom;
+const $$createType5 = $Create.Nullable($$createType4);
+const $$createType6 = $Create.Array($$createType5);
+const $$createType7 = $Create.Map($Create.Any, $Create.Any);

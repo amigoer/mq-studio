@@ -1017,3 +1017,105 @@ func TestLiveCloneOffset(t *testing.T) {
 		t.Error("an empty destination group was accepted")
 	}
 }
+
+// The ACL 2.0 store, against a broker that runs it.
+//
+// It skips rather than fails where authentication is off, which is every
+// environment this repo can start today: the 5.3 auth metadata providers need
+// RocksDB, and the official image ships no aarch64 JNI for it, so the ACL
+// compose file deliberately runs plain_acl instead. On an amd64 host with
+// authenticationEnabled and authorizationEnabled set, this exercises the whole
+// surface the ACL board is built on.
+func TestLiveAccessDirectory(t *testing.T) {
+	connections, _, registry := liveStack(t)
+	ctx := context.Background()
+
+	input := liveProfileInput("acl-directory")
+	input.Endpoints = aclNameServer
+	input.SetACL(true, aclAccessKey, aclSecretKey)
+	profile, err := connections.AddConnection(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := connections.Connect(profile.ID); err != nil {
+		t.Skipf("run `npm run e2e:acl:up` for the ACL broker: %v", err)
+	}
+	conn, _ := registry.Get(profile.ID)
+	directory, ok := conn.(driver.AccessDirectory)
+	if !ok {
+		t.Fatal("the RocketMQ driver no longer implements AccessDirectory")
+	}
+
+	enabled, err := directory.DirectoryEnabled(ctx)
+	if err != nil {
+		t.Fatalf("DirectoryEnabled: %v", err)
+	}
+	if !enabled {
+		t.Skip("this broker runs plain_acl, not 5.3 authentication")
+	}
+
+	const probeUser = "mq-studio-e2e-user"
+	t.Cleanup(func() { _ = directory.RemovePrincipal(context.Background(), probeUser) })
+
+	if err := directory.PutPrincipal(ctx, model.AccessPrincipalSpec{
+		Name:   probeUser,
+		Secret: "mq-studio-e2e-user-secret",
+		Type:   "Normal",
+		Status: "enable",
+	}); err != nil {
+		t.Fatalf("PutPrincipal: %v", err)
+	}
+
+	principals, err := directory.ListPrincipals(ctx)
+	if err != nil {
+		t.Fatalf("ListPrincipals: %v", err)
+	}
+	if !hasPrincipal(principals, probeUser) {
+		t.Fatalf("the principal just written is not in the listing: %+v", principals)
+	}
+
+	t.Cleanup(func() { _ = directory.RemoveAccessRule(context.Background(), probeUser) })
+	if err := directory.PutAccessRule(ctx, model.AccessRule{
+		Subject: probeUser,
+		Policies: []model.AccessPolicy{{
+			Resource: "Topic:" + seededTopic,
+			Actions:  []string{"Sub"},
+			Effect:   "Allow",
+		}},
+	}); err != nil {
+		t.Fatalf("PutAccessRule: %v", err)
+	}
+
+	rules, err := directory.ListAccessRules(ctx)
+	if err != nil {
+		t.Fatalf("ListAccessRules: %v", err)
+	}
+	if !hasRule(rules, probeUser) {
+		t.Fatalf("the rule just written is not in the listing: %+v", rules)
+	}
+
+	if err := directory.RemoveAccessRule(ctx, probeUser); err != nil {
+		t.Fatalf("RemoveAccessRule: %v", err)
+	}
+	if err := directory.RemovePrincipal(ctx, probeUser); err != nil {
+		t.Fatalf("RemovePrincipal: %v", err)
+	}
+}
+
+func hasPrincipal(principals []*model.AccessPrincipal, name string) bool {
+	for _, principal := range principals {
+		if principal != nil && principal.Name == name {
+			return true
+		}
+	}
+	return false
+}
+
+func hasRule(rules []*model.AccessRule, subject string) bool {
+	for _, rule := range rules {
+		if rule != nil && rule.Subject == subject {
+			return true
+		}
+	}
+	return false
+}

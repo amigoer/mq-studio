@@ -32,6 +32,7 @@ func backings() []capabilityBacking {
 	directory := func(c Conn) bool { _, ok := c.(DirectoryAdmin); return ok }
 	maintenance := func(c Conn) bool { _, ok := c.(NodeMaintenance); return ok }
 	access := func(c Conn) bool { _, ok := c.(AccessAdmin); return ok }
+	accessDirectory := func(c Conn) bool { _, ok := c.(AccessDirectory); return ok }
 	routing := func(c Conn) bool { _, ok := c.(RoutingAdmin); return ok }
 	stats := func(c Conn) bool { _, ok := c.(DestinationStats); return ok }
 
@@ -65,6 +66,7 @@ func backings() []capabilityBacking {
 		{model.CapNodeConfig, "ConfigInspector", nodeConfig},
 		{model.CapNodeMaintenance, "NodeMaintenance", maintenance},
 		{model.CapAccessControl, "AccessAdmin", access},
+		{model.CapAccessDirectory, "AccessDirectory", accessDirectory},
 		{model.CapRouting, "RoutingAdmin", routing},
 	}
 }

@@ -166,13 +166,41 @@ type NodeMaintenance interface {
 	RunMaintenance(ctx context.Context, address string, task model.MaintenanceTask) error
 }
 
-// AccessAdmin manages broker access control.
+// AccessAdmin manages credential-based access control: an entry carries the
+// key, the secret and the permissions together.
+//
+// It is write-only for RocketMQ, and that is the broker's doing rather than a
+// gap here - the 4.x admin protocol has no call that reads plain_acl.yml back.
+// A UI on top of it can only edit blind, which is why AccessDirectory exists.
 type AccessAdmin interface {
 	AccessEnabled(ctx context.Context) (bool, error)
 	AccessVersion(ctx context.Context) (*model.AclVersionInfo, error)
 	PutAccessConfig(ctx context.Context, config model.AccessConfig) error
 	RemoveAccessConfig(ctx context.Context, accessKey string) error
 	SetGlobalWhiteAddrs(ctx context.Context, addresses []string) error
+}
+
+// AccessDirectory manages identity-based access control: principals the broker
+// authenticates, and rules attached to a subject.
+//
+// Separate from AccessAdmin because they are two systems on the same broker
+// rather than two views of one. RocketMQ 4.x plain_acl is a file of
+// AccessKey entries that can be written and never read; 5.3's auth is a store
+// that answers, which is what lets a page show what is actually in force.
+// Kafka's ACLs have the same shape.
+type AccessDirectory interface {
+	// DirectoryEnabled reports whether the broker runs this at all. A broker
+	// with it switched off answers false rather than failing, so a page can
+	// say which system is on instead of showing an error.
+	DirectoryEnabled(ctx context.Context) (bool, error)
+
+	ListPrincipals(ctx context.Context) ([]*model.AccessPrincipal, error)
+	PutPrincipal(ctx context.Context, spec model.AccessPrincipalSpec) error
+	RemovePrincipal(ctx context.Context, name string) error
+
+	ListAccessRules(ctx context.Context) ([]*model.AccessRule, error)
+	PutAccessRule(ctx context.Context, rule model.AccessRule) error
+	RemoveAccessRule(ctx context.Context, subject string) error
 }
 
 // RoutingAdmin manages exchanges and bindings. Only RabbitMQ has them, which
