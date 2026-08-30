@@ -74,6 +74,14 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci --prefix frontend
 
+      # The rabbitmq conformance tests skip when the broker is absent so a
+      # checkout without docker still has a green suite, but fail outright when
+      # CI is set - the contract they assert is worthless if CI can silently
+      # skip it. Same compose file a developer runs, so the image, the
+      # credentials and the management plugin match.
+      - name: Start RabbitMQ
+        run: npm run e2e:rabbitmq:up
+
       - name: Run checks
         run: npm run check
 
