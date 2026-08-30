@@ -422,20 +422,26 @@
      room, so a label never appears in a rail too narrow to hold it. */
   transition: opacity var(--mo-fast) ease 0.08s;
 }
-.side3--rail .nil,
-.side3--rail .gl {
+.side3--rail .nil {
   opacity: 0;
   transition: opacity var(--mo-fast) ease;
 }
 /*
- * The group labels keep their box when their text goes: the gap between icon
- * groups is what is left of 浏览 / 运维, and holding it keeps every icon on the
- * y it had expanded.
+ * The group labels stay in the rail: they are the only thing saying where
+ * 浏览 ends and 运维 begins, which a column of anonymous icons does not. They
+ * trade their own padding for the nav's too, so the text has all 56px of rail
+ * instead of 36 -- it centres on the same x either way, the one the icons sit
+ * on. Vertical padding is untouched, so every icon keeps the y it had expanded.
  */
 .side3--rail .gl {
-  pointer-events: none;
-  /* 36px of rail cannot hold 浏览, and wrapping would grow the gap it leaves. */
+  margin-left: -10px;
+  margin-right: -10px;
+  padding-left: 0;
+  padding-right: 0;
+  text-align: center;
+  /* Wrapping would grow the gap between the groups; overrun clips instead. */
   white-space: nowrap;
+  overflow: hidden;
 }
 /*
  * Chrome rather than navigation, so it reads a step quieter than the pages --
@@ -1016,9 +1022,17 @@ button.ni.on { background: var(--c-fg); color: var(--c-bg); }
   .side3 {
     width: 57px;
   }
-  .side3 .nil,
-  .side3 .gl {
+  .side3 .nil {
     opacity: 0;
+  }
+  .side3 .gl {
+    margin-left: -10px;
+    margin-right: -10px;
+    padding-left: 0;
+    padding-right: 0;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
   }
 }
 
