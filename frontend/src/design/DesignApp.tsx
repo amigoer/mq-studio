@@ -4,7 +4,6 @@ import {
   AppShell,
   CommandPalette,
   ConnectionTabs,
-  NotificationCenter,
   Sidebar,
   TabStatusBar,
   TitleBar,
@@ -31,7 +30,6 @@ import {
   type CredentialsMode,
 } from "@/api/connection";
 import { readSession, writeSession } from "@/design/data/session";
-import { UNREAD_ALERTS } from "@/design/shell/NotificationCenter";
 import { ConnectionsList } from "@/design/boards/connections/ConnectionsList";
 import { ConnectionsEmpty } from "@/design/boards/connections/ConnectionsEmpty";
 import { NewConnectionDialog } from "@/design/boards/connections/NewConnectionDialog";
@@ -108,7 +106,6 @@ export function DesignApp(): JSX.Element {
   // skipped.
   const { available: updateAvailable, checking: updateChecking, check: checkUpdate } =
     useUpdater();
-  const [alertsRead, setAlertsRead] = useState(false);
 
   // Applied to the document, not to this tree: every board is drawn in absolute
   // px and the whole document is zoomed to the chosen size.
@@ -119,7 +116,6 @@ export function DesignApp(): JSX.Element {
   const [dialog, setDialog] = useState<{ editing: number | null } | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [paletteQuery, setPaletteQuery] = useState("");
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   /*
    * The session names profiles, so it can only be restored once they have
@@ -473,8 +469,11 @@ export function DesignApp(): JSX.Element {
           onSearch={() => setPaletteOpen(true)}
           onRefresh={() => void checkUpdate()}
           onGithub={openGithub}
-          notifications={alertsRead ? 0 : UNREAD_ALERTS}
-          onNotifications={() => setNotificationsOpen((open) => !open)}
+          onOpenAlertSettings={() => goto({ kind: "settings", section: "message" })}
+          onOpenConnection={(id) => {
+            openTab(String(id));
+            goto({ kind: "tab" });
+          }}
           onSettings={() => goto({ kind: "settings" })}
           onSplit={
             openTabs.length >= 2
@@ -543,16 +542,6 @@ export function DesignApp(): JSX.Element {
             onOpenSettings={() => goto({ kind: "settings" })}
             onCheckUpdate={() => void checkUpdate()}
             onClose={() => setPaletteOpen(false)}
-          />
-          <NotificationCenter
-            open={notificationsOpen}
-            read={alertsRead}
-            onClose={() => setNotificationsOpen(false)}
-            onMarkAllRead={() => setAlertsRead(true)}
-            onOpenAlertSettings={() => {
-              setNotificationsOpen(false);
-              goto({ kind: "settings", section: "message" });
-            }}
           />
         </>
       }

@@ -1,10 +1,11 @@
 import { useEffect, useState, type ReactNode } from "react";
-import type * as React from "react";
 import { useTranslation } from "react-i18next";
-import { Bell, Columns2, RefreshCw, Settings } from "lucide-react";
+import { Columns2, RefreshCw, Settings } from "lucide-react";
 import { SiGithub } from "react-icons/si";
 import { AppLogo } from "@/design/icons/AppLogo";
 import { Button } from "@/components/ui/button";
+import { Badge, ICON_CLASS, IconBtn } from "./IconBtn";
+import { NotificationBell } from "./NotificationCenter";
 import { cn } from "@/lib/utils";
 import { isMac } from "@/api/platform";
 import { WindowControls } from "./WindowControls";
@@ -20,54 +21,6 @@ import { WindowControls } from "./WindowControls";
  * this bar), so the row only reserves the width they take. Everywhere else the
  * window is frameless and the bar ends with its own window buttons.
  */
-/*
- * lucide draws on a 24 grid and inks about 20 of it, so 17px puts these within
- * a pixel of the 14px the GitHub mark fills solid, and a stroked set beside a
- * filled brand mark reads as one row. Expressed in rem (17/13) so the cluster
- * follows the font-size setting, and carrying `size-` so the Button's own
- * icon sizing rule leaves it alone.
- */
-const ICON_CLASS = "size-[1.3rem]";
-
-/** A 26px ghost icon button in the title bar cluster. */
-function IconBtn({
-  active,
-  className,
-  ...props
-}: React.ComponentProps<typeof Button> & { active?: boolean }) {
-  return (
-    <Button
-      variant="ghost"
-      size="icon-sm"
-      aria-pressed={active}
-      className={cn(
-        "flex-none text-foreground/80",
-        active && "bg-accent text-accent-foreground",
-        className,
-      )}
-      {...props}
-    />
-  );
-}
-
-/** The corner mark on an icon button. It sits over the glyph, so it needs an edge. */
-function Badge({ tone }: { tone: string }) {
-  return (
-    <span
-      style={{
-        position: "absolute",
-        top: "3px",
-        right: "3px",
-        width: "6px",
-        height: "6px",
-        borderRadius: "99px",
-        background: tone,
-        boxShadow: "0 0 0 1.5px var(--c-bg)",
-      }}
-    />
-  );
-}
-
 export function TitleBar({
   tabs,
   homeActive,
@@ -75,12 +28,12 @@ export function TitleBar({
   dimmed = false,
   refreshing = false,
   updateReady = false,
-  notifications = 0,
   onHome,
   onSearch,
   onRefresh,
   onGithub,
-  onNotifications,
+  onOpenAlertSettings,
+  onOpenConnection,
   onSettings,
   onSplit,
 }: {
@@ -93,14 +46,14 @@ export function TitleBar({
   /** True while the update check the button starts is still out. */
   refreshing?: boolean;
   updateReady?: boolean;
-  /** Unread alerts. The canvas draws the mark on 检查更新 only; the bell earns
-   *  the same one, or the count is only readable by opening the popover. */
-  notifications?: number;
   onHome?: () => void;
   onSearch?: () => void;
   onRefresh?: () => void;
   onGithub?: () => void;
-  onNotifications?: () => void;
+  /** The popover's footer link, into the thresholds that produce the alerts. */
+  onOpenAlertSettings?: () => void;
+  /** Where an alert row goes: the connection it fired on. */
+  onOpenConnection?: (connectionId: number) => void;
   onSettings?: () => void;
   onSplit?: () => void;
 }) {
@@ -175,18 +128,13 @@ export function TitleBar({
       <IconBtn onClick={onGithub} title={t("shell.titleBar.github")}>
         <SiGithub className="size-[1.08rem]" color="var(--c-github-mark)" aria-hidden />
       </IconBtn>
-      <IconBtn
-        style={{ position: "relative", ...(dimmed && { color: "var(--c-disabled)" }) }}
-        onClick={onNotifications}
-        title={
-          notifications > 0
-            ? t("shell.titleBar.notificationsUnread", { count: notifications })
-            : t("shell.titleBar.notifications")
-        }
-      >
-        <Bell className={ICON_CLASS} aria-hidden />
-        {notifications > 0 && <Badge tone="var(--c-err)" />}
-      </IconBtn>
+      {/* Owns its own open state and unread count -- both come from the
+          alert centre, which no longer has anything to tell the title bar. */}
+      <NotificationBell
+        dimmed={dimmed}
+        onOpenAlertSettings={onOpenAlertSettings}
+        onOpenConnection={onOpenConnection}
+      />
       {/* 8b drops the strip entirely; with fewer than two tabs there is nothing to compare. */}
       {onSplit != null && (
         <IconBtn active={splitActive} onClick={onSplit} title={t("shell.titleBar.split")}>

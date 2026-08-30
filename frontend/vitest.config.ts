@@ -8,6 +8,10 @@ export default defineConfig({
       '@bindings': fileURLToPath(
         new URL('./bindings/github.com/amigoer/mq-studio/internal', import.meta.url),
       ),
+      // Wails' own service bindings, which sit outside our module's tree.
+      '@wails': fileURLToPath(
+        new URL('./bindings/github.com/wailsapp/wails/v3/pkg', import.meta.url),
+      ),
     },
   },
   test: {

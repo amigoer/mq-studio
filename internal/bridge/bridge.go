@@ -10,6 +10,7 @@ import (
 	"github.com/amigoer/mq-studio/internal/app"
 	"github.com/amigoer/mq-studio/internal/update"
 	"github.com/wailsapp/wails/v3/pkg/application"
+	"github.com/wailsapp/wails/v3/pkg/services/notifications"
 )
 
 // Services returns every bridge service in registration order.
@@ -38,5 +39,10 @@ func Services(
 		application.NewService(&ACLService{service: services.ACL}),
 		application.NewService(&DriverService{conns: services.Conns}),
 		application.NewService(&RoutingService{service: services.Routing}),
+		// Wails' own service, registered rather than wrapped: it is a platform
+		// capability like WindowService, not business data to reshape. On macOS
+		// it only delivers from a packaged, signed bundle -- the renderer falls
+		// back to the Web API when a call fails, so dev builds still notify.
+		application.NewService(notifications.New()),
 	}
 }

@@ -614,6 +614,29 @@
       "diskThresholdValue": "{{n}}%",
       "thresholdOff": "已关闭",
       "openSettings": "前往设置"
+    },
+    "headline": {
+      "brokerOffline": "{{broker}} 离线",
+      "groupOffline": "{{group}} 无在线实例",
+      "groupLag": "{{group}} 堆积超阈值",
+      "diskUsage": "{{broker}} 磁盘水位 {{usage}}%",
+      "dlqGrowth": "{{group}} 死信队列非空"
+    },
+    "detail": {
+      "brokerOffline": "{{broker}}（{{address}}）",
+      "groupOffline": "{{group}} · 堆积 {{lag}}",
+      "groupLag": "{{group}} · 堆积 {{lag}} > {{threshold}}",
+      "diskUsage": "{{broker}} · {{usage}}% ≥ {{threshold}}%",
+      "dlqGrowth": "{{group}} · {{count}} 条死信"
+    },
+    "duration": {
+      "minutes": "持续 {{count}} 分钟",
+      "hours": "持续 {{count}} 小时",
+      "days": "持续 {{count}} 天"
+    },
+    "meta": {
+      "threshold": "阈值 {{value}}",
+      "thresholdPercent": "阈值 {{value}}%"
     }
   },
   "acl": {
@@ -903,13 +926,10 @@
       "desktopOn": "桌面通知已开启",
       "desktopOff": "桌面通知已关闭",
       "alertSettings": "告警规则设置",
-      "alerts": {
-        "lagTitle": "order-settle 堆积超阈值",
-        "lagMeta": "阈值 500 · 持续 18 分钟 · 10:24",
-        "diskTitle": "broker-b 磁盘水位 87%",
-        "diskMeta": "阈值 85% · 09:58",
-        "isrTitle": "orders.created 出现 2 个未同步副本（已恢复）"
-      }
+      "desktopMore": "{{title}}（+{{count}}）",
+      "empty": "当前没有活跃告警",
+      "emptyOffline": "未连接 · 请先在「连接」页面建立连接",
+      "recovered": "（已恢复）"
     },
     "nav": {
       "browse": "浏览",

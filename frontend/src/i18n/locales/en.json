@@ -614,6 +614,29 @@
       "diskThresholdValue": "{{n}}%",
       "thresholdOff": "Off",
       "openSettings": "Open settings"
+    },
+    "headline": {
+      "brokerOffline": "{{broker}} is offline",
+      "groupOffline": "{{group}} has no online instances",
+      "groupLag": "{{group}} is over its backlog threshold",
+      "diskUsage": "{{broker}} disk at {{usage}}%",
+      "dlqGrowth": "{{group}} has dead letters"
+    },
+    "detail": {
+      "brokerOffline": "{{broker}} ({{address}})",
+      "groupOffline": "{{group}} · lag {{lag}}",
+      "groupLag": "{{group}} · lag {{lag}} > {{threshold}}",
+      "diskUsage": "{{broker}} · {{usage}}% ≥ {{threshold}}%",
+      "dlqGrowth": "{{group}} · {{count}} dead letters"
+    },
+    "duration": {
+      "minutes": "for {{count}} min",
+      "hours": "for {{count}} h",
+      "days": "for {{count}} d"
+    },
+    "meta": {
+      "threshold": "Threshold {{value}}",
+      "thresholdPercent": "Threshold {{value}}%"
     }
   },
   "acl": {
@@ -903,17 +926,14 @@
       "desktopOn": "Desktop notifications on",
       "desktopOff": "Desktop notifications off",
       "alertSettings": "Alert settings",
-      "alerts": {
-        "lagTitle": "order-settle is over its backlog threshold",
-        "lagMeta": "Threshold 500 · for 18 minutes · 10:24",
-        "diskTitle": "broker-b disk at 87%",
-        "diskMeta": "Threshold 85% · 09:58",
-        "isrTitle": "orders.created had 2 under-replicated partitions (recovered)"
-      }
+      "desktopMore": "{{title}} (+{{count}})",
+      "empty": "No active alerts",
+      "emptyOffline": "Not connected — open a connection first",
+      "recovered": " (recovered)"
     },
     "nav": {
       "browse": "Browse",
-      "ops": "Operations",
+      "ops": "Ops",
       "rocketmq": {
         "overview": "Overview",
         "topics": "Topics",
