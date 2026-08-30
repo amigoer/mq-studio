@@ -555,6 +555,60 @@ export class PrincipalInput {
 }
 
 /**
+ * QueueInput is a queue declaration as the form collects it.
+ * 
+ * Nothing like TopicInput, and it should not be: a RocketMQ topic is read and
+ * write queue counts and a permission bitmask, a RabbitMQ queue is a type, a
+ * lifetime and a bag of arguments the broker validates itself.
+ */
+export class QueueInput {
+    "vhost": string;
+    "name": string;
+    "queueType": string;
+    "durable": boolean;
+    "autoDelete": boolean;
+
+    /**
+     * Arguments is the declaration bag as JSON, so a number stays a number.
+     * RabbitMQ rejects a float where it wants an integer, and a string where
+     * it wants either.
+     */
+    "arguments": string;
+
+    /** Creates a new QueueInput instance. */
+    constructor($$source: Partial<QueueInput> = {}) {
+        if (!("vhost" in $$source)) {
+            this["vhost"] = "";
+        }
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("queueType" in $$source)) {
+            this["queueType"] = "";
+        }
+        if (!("durable" in $$source)) {
+            this["durable"] = false;
+        }
+        if (!("autoDelete" in $$source)) {
+            this["autoDelete"] = false;
+        }
+        if (!("arguments" in $$source)) {
+            this["arguments"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new QueueInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): QueueInput {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new QueueInput($$parsedSource as Partial<QueueInput>);
+    }
+}
+
+/**
  * QueueOffsetInput carries a per-queue offset form submission.
  */
 export class QueueOffsetInput {

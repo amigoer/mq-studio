@@ -65,6 +65,12 @@ vi.mock("@/hooks/rabbitmq/useRabbitDeadLetters", () => ({
   useRabbitDeadLetters: () => deadLetterState.current,
 }));
 
+/**
+ * The boards are rendered inside the providers main.tsx gives them, because a
+ * board that performs a destructive action reaches for the confirm dialog at
+ * render time. Effects do not run under static rendering, so no provider here
+ * reaches the bridge.
+ */
 let render: (element: React.ReactElement) => string;
 let OverviewRabbitMQ: typeof import("./overview/OverviewRabbitMQ").OverviewRabbitMQ;
 let QueuesRabbitMQ: typeof import("./topics/QueuesRabbitMQ").QueuesRabbitMQ;
@@ -85,7 +91,7 @@ beforeAll(async () => {
   });
   vi.stubGlobal("localStorage", storage);
 
-  const [server, overview, queues, exchanges, clients, cluster, messages, dlq, i18n] =
+  const [server, overview, queues, exchanges, clients, cluster, messages, dlq, ui, i18n] =
     await Promise.all([
     import("react-dom/server"),
     import("./overview/OverviewRabbitMQ"),
@@ -95,10 +101,12 @@ beforeAll(async () => {
     import("./cluster/NodesRabbitMQ"),
     import("./messages/MessagesRabbitMQ"),
     import("./dlq/DlqRabbitMQ"),
+    import("@/components"),
     import("@/i18n"),
   ]);
   await i18n.default.changeLanguage("zh");
-  render = server.renderToStaticMarkup;
+  render = (node) =>
+    server.renderToStaticMarkup(<ui.ConfirmProvider>{node}</ui.ConfirmProvider>);
   OverviewRabbitMQ = overview.OverviewRabbitMQ;
   QueuesRabbitMQ = queues.QueuesRabbitMQ;
   ExchangesRabbitMQ = exchanges.ExchangesRabbitMQ;

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"net/http"
 	"strconv"
 	"strings"
@@ -90,14 +91,24 @@ func (c *Conn) DestinationDetail(ctx context.Context, ref model.DestinationRef) 
 }
 
 // CreateDestination declares a queue.
+//
+// Declaring is idempotent on RabbitMQ only while the arguments match: a second
+// declare with a different TTL is a channel-level error, not an update. That
+// is why there is no UpdateDestination - see below.
 func (c *Conn) CreateDestination(ctx context.Context, spec model.DestinationSpec) error {
 	settings := rabbithole.QueueSettings{
+		// Durable unless it was explicitly turned off. A transient queue is
+		// the unusual choice, and defaulting to it would lose a queue on the
+		// next restart of the node that happened to hold it.
 		Durable:    spec.Attributes[AttrDurable] != "false",
 		AutoDelete: spec.Attributes[AttrAutoDelete] == "true",
+		Type:       spec.Attributes[AttrQueueType],
+		Arguments:  decodeArguments(spec.Attributes[AttrArguments]),
 	}
-	if queueType := spec.Attributes[AttrQueueType]; queueType != "" {
-		settings.Arguments = map[string]interface{}{"x-queue-type": queueType}
-	}
+	// Exclusive is not offered. An exclusive queue belongs to the connection
+	// that declared it and dies with it, so one declared from here would be
+	// gone the moment this request finished - the API accepts it and the
+	// result is a queue nobody can ever use.
 	err := exec(ctx, c.mgmt, func(client *rabbithole.Client) (*http.Response, error) {
 		return client.DeclareQueue(c.vhostOr(spec.Ref.Namespace), spec.Ref.Name, settings)
 	})
@@ -107,17 +118,58 @@ func (c *Conn) CreateDestination(ctx context.Context, spec model.DestinationSpec
 	return nil
 }
 
-// UpdateDestination is not offered: a queue's durability and type are fixed at
-// declaration, so the connection never declares destination.update and the UI
-// never shows an edit control.
-func (c *Conn) UpdateDestination(ctx context.Context, spec model.DestinationSpec) error {
-	return fmt.Errorf("rabbitmq queues cannot be reconfigured after declaration")
+// decodeArguments reads the JSON the form sends back into AMQP values.
+//
+// Numbers come out of JSON as float64, and RabbitMQ rejects a float where it
+// wants an integer - x-max-length has to arrive as a whole number or the
+// declare fails with a channel error naming a type nobody chose.
+func decodeArguments(encoded string) map[string]interface{} {
+	if strings.TrimSpace(encoded) == "" {
+		return nil
+	}
+	var decoded map[string]interface{}
+	if err := json.Unmarshal([]byte(encoded), &decoded); err != nil {
+		return nil
+	}
+	for key, value := range decoded {
+		if number, ok := value.(float64); ok && number == math.Trunc(number) {
+			decoded[key] = int64(number)
+		}
+	}
+	return decoded
 }
 
-// RemoveDestination deletes a queue.
+// UpdateDestination is not offered: a queue's type, durability and arguments
+// are fixed at declaration. Re-declaring with different ones is an error
+// rather than a change, and the way to alter a live queue's behaviour is a
+// policy, which is its own page. The connection never declares
+// destination.update and the UI never shows an edit control.
+func (c *Conn) UpdateDestination(ctx context.Context, spec model.DestinationSpec) error {
+	return fmt.Errorf("rabbitmq queues cannot be reconfigured after declaration; use a policy")
+}
+
+// RemoveDestination deletes a queue, and everything in it.
 func (c *Conn) RemoveDestination(ctx context.Context, ref model.DestinationRef) error {
+	return c.removeQueue(ctx, ref, rabbithole.QueueDeleteOptions{})
+}
+
+// RemoveQueueGuarded deletes a queue only if the broker agrees it is unused or
+// empty.
+//
+// The guards are the broker's, checked at the moment of deletion, which is the
+// only place they can be checked without a race: a queue read as empty a
+// second ago can have a message in it by the time the delete lands, and this
+// app has no way to hold it still.
+func (c *Conn) RemoveQueueGuarded(ctx context.Context, ref model.DestinationRef, ifUnused, ifEmpty bool) error {
+	return c.removeQueue(ctx, ref, rabbithole.QueueDeleteOptions{
+		IfUnused: ifUnused,
+		IfEmpty:  ifEmpty,
+	})
+}
+
+func (c *Conn) removeQueue(ctx context.Context, ref model.DestinationRef, opts rabbithole.QueueDeleteOptions) error {
 	err := exec(ctx, c.mgmt, func(client *rabbithole.Client) (*http.Response, error) {
-		return client.DeleteQueue(c.vhostOr(ref.Namespace), ref.Name)
+		return client.DeleteQueue(c.vhostOr(ref.Namespace), ref.Name, opts)
 	})
 	if err != nil {
 		return fmt.Errorf("delete queue %q: %w", ref.Name, err)

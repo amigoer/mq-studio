@@ -44,6 +44,7 @@ export {
     MessageQuery,
     PolicyInput,
     PrincipalInput,
+    QueueInput,
     QueueOffsetInput,
     ReplayInput,
     ResendInput,

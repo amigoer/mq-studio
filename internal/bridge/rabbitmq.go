@@ -2,7 +2,9 @@ package bridge
 
 import (
 	"context"
+	"strconv"
 
+	rabbitmqdriver "github.com/amigoer/mq-studio/internal/driver/rabbitmq"
 	"github.com/amigoer/mq-studio/internal/model"
 	"github.com/amigoer/mq-studio/internal/service/rabbitmq"
 )
@@ -46,4 +48,44 @@ func (s *RabbitMQService) Health(connID int) (*model.BrokerHealth, error) {
 // feed each one.
 func (s *RabbitMQService) DeadLetterQueues(connID int, namespace string) ([]*model.DeadLetterQueue, error) {
 	return s.service.DeadLetterQueues(context.Background(), connID, namespace)
+}
+
+// QueueInput is a queue declaration as the form collects it.
+//
+// Nothing like TopicInput, and it should not be: a RocketMQ topic is read and
+// write queue counts and a permission bitmask, a RabbitMQ queue is a type, a
+// lifetime and a bag of arguments the broker validates itself.
+type QueueInput struct {
+	Vhost      string `json:"vhost"`
+	Name       string `json:"name"`
+	QueueType  string `json:"queueType"`
+	Durable    bool   `json:"durable"`
+	AutoDelete bool   `json:"autoDelete"`
+	// Arguments is the declaration bag as JSON, so a number stays a number.
+	// RabbitMQ rejects a float where it wants an integer, and a string where
+	// it wants either.
+	Arguments string `json:"arguments"`
+}
+
+// DeclareQueue creates a queue.
+func (s *RabbitMQService) DeclareQueue(connID int, input QueueInput) error {
+	return s.service.DeclareQueue(context.Background(), connID, model.DestinationSpec{
+		Ref: model.DestinationRef{Namespace: input.Vhost, Name: input.Name},
+		Attributes: map[string]string{
+			rabbitmqdriver.AttrQueueType:  input.QueueType,
+			rabbitmqdriver.AttrDurable:    strconv.FormatBool(input.Durable),
+			rabbitmqdriver.AttrAutoDelete: strconv.FormatBool(input.AutoDelete),
+			rabbitmqdriver.AttrArguments:  input.Arguments,
+		},
+	})
+}
+
+// DeleteQueue removes a queue and everything in it.
+//
+// ifUnused and ifEmpty are the broker's own preconditions. They are checked
+// where the delete happens, which is the only place they can be checked
+// without a race.
+func (s *RabbitMQService) DeleteQueue(connID int, vhost, name string, ifUnused, ifEmpty bool) error {
+	return s.service.DeleteQueue(context.Background(), connID,
+		model.DestinationRef{Namespace: vhost, Name: name}, ifUnused, ifEmpty)
 }

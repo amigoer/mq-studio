@@ -34,6 +34,17 @@ type DestinationAdmin interface {
 	RemoveDestination(ctx context.Context, ref model.DestinationRef) error
 }
 
+// QueueGuardedRemover deletes a destination only if the broker agrees it is
+// unused or empty.
+//
+// It rides on the same capability as the plain delete rather than declaring
+// one of its own: a family either can delete a destination or cannot, and
+// whether it will also check a precondition first is a detail of how, not a
+// separate thing a page decides to offer.
+type QueueGuardedRemover interface {
+	RemoveQueueGuarded(ctx context.Context, ref model.DestinationRef, ifUnused, ifEmpty bool) error
+}
+
 // DestinationStats reports per-partition read ranges. Families with no
 // partitions - RabbitMQ, MQTT - do not implement it.
 //

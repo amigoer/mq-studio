@@ -69,3 +69,31 @@ export const getDeadLetterQueues = (
   namespace = "",
 ): Promise<DeadLetterQueue[]> =>
   RabbitMQService.DeadLetterQueues(connID, namespace).then(present);
+
+export interface QueueDeclaration {
+  vhost: string;
+  name: string;
+  queueType: string;
+  durable: boolean;
+  autoDelete: boolean;
+  /** The declaration arguments as JSON, so a number stays a number. */
+  arguments: string;
+}
+
+/** Declares a queue. Re-declaring with different arguments is an error. */
+export const declareQueue = (connID: number, queue: QueueDeclaration): Promise<void> =>
+  RabbitMQService.DeclareQueue(connID, queue);
+
+/**
+ * Deletes a queue and everything in it.
+ *
+ * The two guards are the broker's own preconditions, checked where the delete
+ * happens - which is the only place they can be checked without a race.
+ */
+export const deleteQueue = (
+  connID: number,
+  vhost: string,
+  name: string,
+  guards: { ifUnused?: boolean; ifEmpty?: boolean } = {},
+): Promise<void> =>
+  RabbitMQService.DeleteQueue(connID, vhost, name, guards.ifUnused ?? false, guards.ifEmpty ?? false);

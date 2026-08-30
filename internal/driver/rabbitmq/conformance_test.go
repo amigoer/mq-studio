@@ -1256,3 +1256,107 @@ func TestLiveDeadLetteredMessageCarriesXDeath(t *testing.T) {
 		}
 	}
 }
+
+// Declaring through the form's path and reading the result back. Every
+// argument has to arrive with the type the broker wanted, or the declare
+// fails with a channel error naming a type nobody chose.
+func TestLiveDeclareQueueWithArguments(t *testing.T) {
+	conn := liveConn(t)
+	defer func() { _ = conn.Close() }()
+
+	ctx := context.Background()
+	const name = "mqs-test-declared"
+	spec := model.DestinationSpec{
+		Ref: model.DestinationRef{Namespace: "/", Name: name},
+		Attributes: map[string]string{
+			AttrQueueType:  "quorum",
+			AttrDurable:    "true",
+			AttrAutoDelete: "false",
+			// As the form sends it: JSON, with numbers as numbers.
+			AttrArguments: `{"x-message-ttl":30000,"x-max-length":5000,"x-overflow":"reject-publish","x-dead-letter-exchange":"amq.fanout"}`,
+		},
+	}
+	if err := conn.CreateDestination(ctx, spec); err != nil {
+		t.Fatalf("declare: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = conn.RemoveDestination(context.Background(),
+			model.DestinationRef{Namespace: "/", Name: name})
+	})
+
+	found, err := conn.DestinationDetail(ctx, model.DestinationRef{Namespace: "/", Name: name})
+	if err != nil {
+		t.Fatalf("detail: %v", err)
+	}
+	if found.Attributes[AttrQueueType] != "quorum" {
+		t.Errorf("queueType = %q, want quorum", found.Attributes[AttrQueueType])
+	}
+	var arguments map[string]interface{}
+	if err := json.Unmarshal([]byte(found.Attributes[AttrArguments]), &arguments); err != nil {
+		t.Fatalf("arguments are not decodable: %v", err)
+	}
+	// JSON gives float64 and RabbitMQ wants an integer. If the driver passed
+	// the float straight through, the declare above would have failed.
+	if ttl, ok := arguments["x-message-ttl"].(float64); !ok || ttl != 30000 {
+		t.Errorf("x-message-ttl = %#v", arguments["x-message-ttl"])
+	}
+	if arguments["x-overflow"] != "reject-publish" {
+		t.Errorf("x-overflow = %#v", arguments["x-overflow"])
+	}
+}
+
+// The delete guards are the broker's, and they have to actually stop a delete.
+// A guard that silently passes is worse than none: it reads as protection.
+func TestLiveGuardedDeleteRefusesANonEmptyQueue(t *testing.T) {
+	conn := liveConnNamed(t, "guarded-delete")
+	defer func() { _ = conn.Close() }()
+
+	ctx := context.Background()
+	const name = "mqs-test-guarded"
+	publishTestMessages(t, conn, name, []string{"still here"}, nil)
+
+	ref := model.DestinationRef{Namespace: "/", Name: name}
+	if err := conn.RemoveQueueGuarded(ctx, ref, false, true); err == nil {
+		t.Fatal("if-empty deleted a queue holding a message")
+	}
+	// And the queue is still there, which is the part that matters.
+	if _, err := conn.DestinationDetail(ctx, ref); err != nil {
+		t.Fatalf("the queue is gone after a refused delete: %v", err)
+	}
+
+	// Unguarded, it goes.
+	if err := conn.RemoveDestination(ctx, ref); err != nil {
+		t.Fatalf("unguarded delete: %v", err)
+	}
+	if _, err := conn.DestinationDetail(ctx, ref); err == nil {
+		t.Error("the queue survived an unguarded delete")
+	}
+}
+
+// Re-declaring with different arguments is an error rather than an update,
+// which is why there is no edit form. If this ever starts passing, the queue
+// dialog can grow one.
+func TestLiveRedeclareWithDifferentArgumentsFails(t *testing.T) {
+	conn := liveConn(t)
+	defer func() { _ = conn.Close() }()
+
+	ctx := context.Background()
+	const name = "mqs-test-redeclare"
+	first := model.DestinationSpec{
+		Ref:        model.DestinationRef{Namespace: "/", Name: name},
+		Attributes: map[string]string{AttrDurable: "true", AttrArguments: `{"x-message-ttl":1000}`},
+	}
+	if err := conn.CreateDestination(ctx, first); err != nil {
+		t.Fatalf("declare: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = conn.RemoveDestination(context.Background(),
+			model.DestinationRef{Namespace: "/", Name: name})
+	})
+
+	second := first
+	second.Attributes = map[string]string{AttrDurable: "true", AttrArguments: `{"x-message-ttl":2000}`}
+	if err := conn.CreateDestination(ctx, second); err == nil {
+		t.Error("re-declaring with a different TTL succeeded - RabbitMQ has learned to update a queue, so the dialog can grow an edit form")
+	}
+}

@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ListArea, ListPane, Page, PageHeader, RefreshButton, Toolbar } from "@/design/shell";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -14,6 +15,7 @@ import {
 import {
   DetailPanel,
   DetailPanelBody,
+  DetailPanelFooter,
   DetailPanelHeader,
   KV,
   Panel,
@@ -21,6 +23,8 @@ import {
   SectionLabel,
   SelectField,
   Status,
+  toast,
+  useConfirm,
 } from "@/components";
 import { BoardState, isBlocked } from "@/design/boards/BoardState";
 import { useRabbitQueues } from "@/hooks/rabbitmq/useRabbitQueues";
@@ -42,6 +46,11 @@ import {
   state as queueState,
   vhost,
 } from "@/mq/rabbitmq/destinations";
+import { useConnectionScope } from "@/mq/ConnectionScope";
+import * as rabbitApi from "@/api/rabbitmq";
+import { formatErrorMessage } from "@/lib/utils";
+import { QueueDialog } from "./QueueDialog";
+import type { QueueDeclaration } from "@/api/rabbitmq";
 import type { Destination } from "@/api/models";
 
 const TAG = { fontSize: "10px" } as const;
@@ -65,10 +74,13 @@ const ALL_VHOSTS = "__all__";
 export function QueuesRabbitMQ() {
   const { t } = useTranslation();
   const state = useRabbitQueues();
+  const { id: connID } = useConnectionScope();
+  const confirm = useConfirm();
   const [search, setSearch] = useState("");
   const [backlogOnly, setBacklogOnly] = useState(false);
   const [vhostFilter, setVhostFilter] = useState(ALL_VHOSTS);
   const [selected, setSelected] = useState<string | null>(null);
+  const [declaring, setDeclaring] = useState(false);
 
   const queues = useMemo(() => state.data ?? [], [state.data]);
 
@@ -97,18 +109,73 @@ export function QueuesRabbitMQ() {
     [rows, selected],
   );
 
+  /* The virtual host a new queue lands in. With a filter on it is that one;
+     with none it is whichever the connection opened, which is what the
+     existing queues already report. */
+  const targetVhost =
+    vhostFilter !== ALL_VHOSTS ? vhostFilter : (queues[0] != null ? vhost(queues[0]) : "/");
+
+  const declare = useCallback(
+    async (declaration: QueueDeclaration) => {
+      await rabbitApi.declareQueue(connID, declaration);
+      toast.success(t("board.topics.rabbitmq.declared", { name: declaration.name }));
+      await state.refresh();
+    },
+    [connID, state, t],
+  );
+
+  const remove = useCallback(
+    async (queue: Destination) => {
+      const holding = messagesReady(queue) + messagesUnacknowledged(queue);
+      const ok = await confirm({
+        title: t("board.topics.rabbitmq.deleteTitle", { name: queue.ref.name }),
+        /* The count is the whole warning. Deleting a queue discards what is in
+           it, and the broker offers no undo. */
+        description:
+          holding > 0
+            ? t("board.topics.rabbitmq.deleteHolding", { count: holding })
+            : t("board.topics.rabbitmq.deleteEmpty"),
+        confirmLabel: t("board.common.delete"),
+        danger: true,
+      });
+      if (!ok) return;
+      try {
+        await rabbitApi.deleteQueue(connID, vhost(queue), queue.ref.name);
+        toast.success(t("board.topics.rabbitmq.deleted", { name: queue.ref.name }));
+        setSelected(null);
+        await state.refresh();
+      } catch (deleteError) {
+        toast.error(t("board.topics.rabbitmq.deleteFailed"), {
+          description: formatErrorMessage(deleteError),
+        });
+      }
+    },
+    [confirm, connID, state, t],
+  );
+
   return (
     <Page>
       <PageHeader
         title={t("board.common.queue")}
         subtitle={t("board.topics.rabbitmq.queueSubtitle", { count: queues.length })}
         actions={
-          <RefreshButton
-            refreshing={state.refreshing}
-            online={state.online}
-            onClick={state.refresh}
-          />
+          <>
+            <Button disabled={!state.online} onClick={() => setDeclaring(true)}>
+              {t("board.topics.rabbitmq.newQueue")}
+            </Button>
+            <RefreshButton
+              refreshing={state.refreshing}
+              online={state.online}
+              onClick={state.refresh}
+            />
+          </>
         }
+      />
+      <QueueDialog
+        open={declaring}
+        vhost={targetVhost}
+        onClose={() => setDeclaring(false)}
+        onSubmit={declare}
       />
       {!isBlocked(state) && (
         <Toolbar>
@@ -249,6 +316,12 @@ export function QueuesRabbitMQ() {
             <DetailPanelBody>
               <QueueDetail queue={detail} />
             </DetailPanelBody>
+            <DetailPanelFooter>
+              <span className="flex-1" />
+              <Button variant="destructive" onClick={() => void remove(detail)}>
+                {t("board.common.delete")}
+              </Button>
+            </DetailPanelFooter>
           </DetailPanel>
         )}
       </ListArea>

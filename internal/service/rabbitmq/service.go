@@ -146,3 +146,30 @@ func (s *Service) DeadLetterQueues(ctx context.Context, connID int, namespace st
 	defer cancel()
 	return api.DeadLetterQueues(ctx, namespace)
 }
+
+// DeclareQueue creates a queue with the arguments the form collected.
+func (s *Service) DeclareQueue(ctx context.Context, connID int, spec model.DestinationSpec) error {
+	api, err := port[driver.DestinationAdmin](s, connID, model.CapDestinationCreate)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.CreateDestination(ctx, spec)
+}
+
+// DeleteQueue removes a queue, optionally only if the broker agrees it is
+// unused or empty.
+//
+// The guards are checked by the broker at the moment of deletion, which is the
+// only place they can be checked without a race - a queue this app read as
+// empty a second ago may not be by the time the request lands.
+func (s *Service) DeleteQueue(ctx context.Context, connID int, ref model.DestinationRef, ifUnused, ifEmpty bool) error {
+	api, err := port[driver.QueueGuardedRemover](s, connID, model.CapDestinationDelete)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.RemoveQueueGuarded(ctx, ref, ifUnused, ifEmpty)
+}

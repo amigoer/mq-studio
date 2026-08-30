@@ -19,6 +19,10 @@ import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Cr
 // @ts-ignore: Unused imports
 import * as model$0 from "../model/models.js";
 
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as $models from "./models.js";
+
 /**
  * Census returns the broker's running totals: object counts, queued depth and
  * message rates for the whole cluster.
@@ -58,6 +62,24 @@ export function DeadLetterQueues(connID: number, $namespace: string): $Cancellab
     return $Call.ByID(3828160863, connID, $namespace).then(($result: any) => {
         return $$createType10($result);
     });
+}
+
+/**
+ * DeclareQueue creates a queue.
+ */
+export function DeclareQueue(connID: number, input: $models.QueueInput): $CancellablePromise<void> {
+    return $Call.ByID(2471359076, connID, input);
+}
+
+/**
+ * DeleteQueue removes a queue and everything in it.
+ * 
+ * ifUnused and ifEmpty are the broker's own preconditions. They are checked
+ * where the delete happens, which is the only place they can be checked
+ * without a race.
+ */
+export function DeleteQueue(connID: number, vhost: string, name: string, ifUnused: boolean, ifEmpty: boolean): $CancellablePromise<void> {
+    return $Call.ByID(1602678449, connID, vhost, name, ifUnused, ifEmpty);
 }
 
 /**
