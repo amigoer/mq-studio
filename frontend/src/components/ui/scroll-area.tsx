@@ -14,9 +14,18 @@ function ScrollArea({
       className={cn("relative", className)}
       {...props}
     >
+      {/*
+        `[&>div]:block!` overrides the inline `display: table` Radix puts on its
+        content wrapper. A table box shrink-wraps to max-content, so any child
+        wanting more room than the viewport has -- an equal-column grid, a
+        nowrap cell -- widens the wrapper past it. Nothing scrolls there
+        (overflow-x is hidden without a horizontal scrollbar), so the excess is
+        clipped off the right edge, eating the right gutter while the left one
+        stays put.
+      */}
       <ScrollAreaPrimitive.Viewport
         data-slot="scroll-area-viewport"
-        className="size-full rounded-[inherit] transition-[color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-1"
+        className="size-full rounded-[inherit] transition-[color,box-shadow] outline-none [&>div]:block! focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-1"
       >
         {children}
       </ScrollAreaPrimitive.Viewport>
