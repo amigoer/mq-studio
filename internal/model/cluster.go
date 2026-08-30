@@ -7,6 +7,12 @@ const (
 	NodeOnline  NodeStatus = "online"
 	NodeWarning NodeStatus = "warning"
 	NodeOffline NodeStatus = "offline"
+
+	// NodeUnknown is a node whose health the family does not report. A
+	// RocketMQ name server is one: the admin protocol names the addresses the
+	// client dials and says nothing about whether each of them answers, and
+	// calling that "online" would be inventing a check nobody ran.
+	NodeUnknown NodeStatus = "unknown"
 )
 
 // BrokerRole is the Broker role.

@@ -249,6 +249,13 @@ export enum Capability {
     CapClusterTopology = "cluster.topology",
 
     /**
+     * CapDirectory is listing the discovery tier a cluster is reached
+     * through. Families whose nodes find each other have no such tier and do
+     * not report it.
+     */
+    CapDirectory = "cluster.directory",
+
+    /**
      * CapNodeConfig is reading the effective settings of a node or of the
      * cluster's discovery tier - what they are actually running with, which is
      * not always what their config files say.
@@ -1259,6 +1266,14 @@ export enum NodeStatus {
     NodeOnline = "online",
     NodeWarning = "warning",
     NodeOffline = "offline",
+
+    /**
+     * NodeUnknown is a node whose health the family does not report. A
+     * RocketMQ name server is one: the admin protocol names the addresses the
+     * client dials and says nothing about whether each of them answers, and
+     * calling that "online" would be inventing a check nobody ran.
+     */
+    NodeUnknown = "unknown",
 };
 
 /**

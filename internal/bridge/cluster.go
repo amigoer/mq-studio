@@ -21,15 +21,27 @@ type ClusterService struct {
 type ClusterView struct {
 	Overview model.ClusterOverview `json:"overview"`
 	Nodes    []*model.Node         `json:"nodes"`
+
+	// Directory is the tier the cluster is reached through - RocketMQ name
+	// servers. Empty for a family that has none, which the page reads as
+	// "there is no such tier" rather than as "none are up".
+	Directory []*model.Node `json:"directory"`
 }
 
 // Info returns the full cluster overview.
 func (s *ClusterService) Info(connID int) (*ClusterView, error) {
-	overview, nodes, err := s.service.Overview(context.Background(), connID)
+	ctx := context.Background()
+	overview, nodes, err := s.service.Overview(ctx, connID)
 	if err != nil {
 		return nil, err
 	}
-	return &ClusterView{Overview: *overview, Nodes: nodes}, nil
+	// Local knowledge for RocketMQ, so it costs the page nothing to carry it
+	// here rather than making the renderer ask separately.
+	directory, err := s.service.DirectoryNodes(ctx, connID)
+	if err != nil {
+		return nil, err
+	}
+	return &ClusterView{Overview: *overview, Nodes: nodes, Directory: directory}, nil
 }
 
 // Summary returns the aggregated cluster counters.

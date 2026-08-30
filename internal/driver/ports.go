@@ -127,6 +127,16 @@ type ClusterAdmin interface {
 	ClusterOverview(ctx context.Context) (*model.ClusterOverview, error)
 }
 
+// DirectoryAdmin lists the discovery tier a cluster is reached through -
+// RocketMQ name servers, Kafka controllers.
+//
+// Separate from ClusterAdmin because not every family has one: RabbitMQ nodes
+// find each other, and a driver with no tier of its own does not implement
+// this rather than listing its brokers a second time.
+type DirectoryAdmin interface {
+	ListDirectoryNodes(ctx context.Context) ([]*model.Node, error)
+}
+
 // ConfigInspector reads the effective settings of the things a cluster is made
 // of - what they are actually running with, which is not always what their
 // config files say.

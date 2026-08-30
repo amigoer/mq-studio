@@ -7,6 +7,8 @@ import { useBrokerData, type BrokerData } from "@/hooks/useBrokerData";
 export interface ClusterSnapshot {
   cluster: ClusterView;
   nodes: Node[];
+  /** The discovery tier, empty for a family that has none. */
+  directory: Node[];
 }
 
 /**
@@ -18,7 +20,11 @@ export interface ClusterSnapshot {
 export function useCluster(): BrokerData<ClusterSnapshot> {
   const load = useCallback(async (connID: number): Promise<ClusterSnapshot> => {
     const cluster = await clusterApi.getClusterView(connID);
-    return { cluster, nodes: present(cluster?.nodes) };
+    return {
+      cluster,
+      nodes: present(cluster?.nodes),
+      directory: present(cluster?.directory),
+    };
   }, []);
 
   return useBrokerData(load);

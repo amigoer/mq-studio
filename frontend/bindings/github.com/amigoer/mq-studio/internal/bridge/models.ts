@@ -77,6 +77,13 @@ export class ClusterView {
     "overview": model$0.ClusterOverview;
     "nodes": (model$0.Node | null)[];
 
+    /**
+     * Directory is the tier the cluster is reached through - RocketMQ name
+     * servers. Empty for a family that has none, which the page reads as
+     * "there is no such tier" rather than as "none are up".
+     */
+    "directory": (model$0.Node | null)[];
+
     /** Creates a new ClusterView instance. */
     constructor($$source: Partial<ClusterView> = {}) {
         if (!("overview" in $$source)) {
@@ -84,6 +91,9 @@ export class ClusterView {
         }
         if (!("nodes" in $$source)) {
             this["nodes"] = [];
+        }
+        if (!("directory" in $$source)) {
+            this["directory"] = [];
         }
 
         Object.assign(this, $$source);
@@ -95,12 +105,16 @@ export class ClusterView {
     static createFrom($$source: any = {}): ClusterView {
         const $$createField0_0 = $$createType1;
         const $$createField1_0 = $$createType4;
+        const $$createField2_0 = $$createType4;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("overview" in $$parsedSource) {
             $$parsedSource["overview"] = $$createField0_0($$parsedSource["overview"]);
         }
         if ("nodes" in $$parsedSource) {
             $$parsedSource["nodes"] = $$createField1_0($$parsedSource["nodes"]);
+        }
+        if ("directory" in $$parsedSource) {
+            $$parsedSource["directory"] = $$createField2_0($$parsedSource["directory"]);
         }
         return new ClusterView($$parsedSource as Partial<ClusterView>);
     }

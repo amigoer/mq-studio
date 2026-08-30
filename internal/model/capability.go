@@ -45,6 +45,10 @@ const (
 	CapDelayedDelivery Capability = "message.delayedDelivery"
 
 	CapClusterTopology Capability = "cluster.topology"
+	// CapDirectory is listing the discovery tier a cluster is reached
+	// through. Families whose nodes find each other have no such tier and do
+	// not report it.
+	CapDirectory Capability = "cluster.directory"
 	// CapNodeConfig is reading the effective settings of a node or of the
 	// cluster's discovery tier - what they are actually running with, which is
 	// not always what their config files say.

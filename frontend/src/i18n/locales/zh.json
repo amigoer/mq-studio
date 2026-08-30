@@ -1629,6 +1629,8 @@
         "liveSubtitle": "{{version}} · {{masters}} 主 {{slaves}} 从",
         "liveSubtitleNoVersion": "{{masters}} 主 {{slaves}} 从",
         "runtime": "Broker 运行指标",
+        "directory": "NameServer",
+        "directoryHint": "本连接拨号的地址；管理协议不报告各自的健康状态",
         "commitLog": "CommitLog 盘",
         "consumeQueue": "ConsumeQueue 盘",
         "todayIn": "今日入",

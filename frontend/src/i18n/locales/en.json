@@ -1629,6 +1629,8 @@
         "liveSubtitle": "{{version}} · {{masters}} master, {{slaves}} slave",
         "liveSubtitleNoVersion": "{{masters}} master, {{slaves}} slave",
         "runtime": "Broker runtime",
+        "directory": "NameServer",
+        "directoryHint": "the addresses this connection dials; the admin protocol reports no health for them",
         "commitLog": "CommitLog disk",
         "consumeQueue": "ConsumeQueue disk",
         "todayIn": "In today",

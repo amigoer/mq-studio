@@ -119,6 +119,7 @@ func rocketMQCapabilities() []model.Capability {
 
 		model.CapClusterTopology,
 		model.CapClusterMetrics,
+		model.CapDirectory,
 		model.CapNodeConfig,
 		model.CapNodeMaintenance,
 		model.CapAccessControl,

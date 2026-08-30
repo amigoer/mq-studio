@@ -121,18 +121,24 @@ func (c *Conn) applyBrokerRuntimeStats(ctx context.Context, broker *model.Broker
 	return nil
 }
 
-// GetNameServers returns the NameServer list.
-func (c *Conn) GetNameServers(ctx context.Context) ([]*model.NameServerNode, error) {
-
+// ListDirectoryNodes returns the name servers this connection reaches the
+// cluster through.
+//
+// Local knowledge, not a request: the client holds the address list and the
+// admin protocol has no call that asks a name server about itself, let alone
+// about its peers. Each therefore comes back with NodeUnknown rather than a
+// health nobody checked - one of them is certainly answering, since the
+// connection works, but which is not something this can say.
+func (c *Conn) ListDirectoryNodes(ctx context.Context) ([]*model.Node, error) {
 	addresses := c.current().GetNameServerAddressList()
-	result := make([]*model.NameServerNode, 0, len(addresses))
+	nodes := make([]*model.Node, 0, len(addresses))
 	for index, address := range addresses {
-		result = append(result, &model.NameServerNode{
-			ID:       index + 1,
-			Address:  address,
-			Status:   model.NodeOnline,
-			LastSeen: timestamp.Now(),
+		nodes = append(nodes, &model.Node{
+			ID:      index + 1,
+			Name:    address,
+			Address: address,
+			Status:  model.NodeUnknown,
 		})
 	}
-	return result, nil
+	return nodes, nil
 }

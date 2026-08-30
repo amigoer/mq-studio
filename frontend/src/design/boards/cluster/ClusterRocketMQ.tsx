@@ -65,6 +65,7 @@ export function ClusterRocketMQ() {
   const { t } = useTranslation();
   const state = useCluster();
   const nodes = state.data?.nodes ?? [];
+  const directory = state.data?.directory ?? [];
 
   const masters = nodes.filter((node) => role(node) === BrokerRole.Master);
   const slaves = nodes.filter((node) => role(node) === BrokerRole.Slave);
@@ -101,6 +102,7 @@ export function ClusterRocketMQ() {
               <BrokerTile key={`${brokerName(node)}-${brokerId(node)}`} node={node} />
             ))}
           </div>
+          {directory.length > 0 && <DirectoryPanel nodes={directory} />}
           <Panel style={TABLE_CARD}>
             <div
               style={{
@@ -156,6 +158,34 @@ export function ClusterRocketMQ() {
         </PageBody>
       )}
     </Page>
+  );
+}
+
+/**
+ * The name servers this connection reaches the cluster through.
+ *
+ * Addresses and nothing else, because that is all there is: the admin protocol
+ * has no call that asks a name server about itself, so there is no version, no
+ * uptime and no per-address health to draw. The canvas drew round-trip and
+ * flush-mode columns here; they were never available.
+ */
+function DirectoryPanel({ nodes }: { nodes: readonly Node[] }) {
+  const { t } = useTranslation();
+  return (
+    <Panel style={{ padding: "11px 16px", display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+      <b style={{ fontSize: "12.5px" }}>{t("board.cluster.rocketmq.directory")}</b>
+      <span style={{ fontSize: "11px", color: "var(--c-muted)" }}>
+        {t("board.cluster.rocketmq.directoryHint")}
+      </span>
+      <span className="flex-1" />
+      <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+        {nodes.map((node) => (
+          <span key={node.address} className="mono3" style={{ fontSize: "11px", color: "var(--c-fg-2)" }}>
+            {node.address}
+          </span>
+        ))}
+      </div>
+    </Panel>
   );
 }
 

@@ -164,6 +164,27 @@ func (s *Service) RunMaintenance(ctx context.Context, connID int, address string
 	return api.RunMaintenance(ctx, address, task)
 }
 
+// DirectoryNodes returns the cluster's discovery tier.
+//
+// A family with no tier of its own reports none, which is a fact about the
+// family rather than a failure, so it comes back empty instead of erroring.
+func (s *Service) DirectoryNodes(ctx context.Context, connID int) ([]*model.Node, error) {
+	conn, err := s.conns(connID)
+	if err != nil {
+		if errors.Is(err, driver.ErrNotConnected) {
+			return []*model.Node{}, nil
+		}
+		return nil, err
+	}
+	api, ok := conn.(driver.DirectoryAdmin)
+	if !ok || !conn.Capabilities().Has(model.CapDirectory) {
+		return []*model.Node{}, nil
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.ListDirectoryNodes(ctx)
+}
+
 // DirectoryConfig returns the effective settings of the cluster's discovery
 // tier - the name servers, for RocketMQ.
 func (s *Service) DirectoryConfig(ctx context.Context, connID int) (map[string]string, error) {
