@@ -3,7 +3,7 @@ import { Plus } from "lucide-react";
 import { AppLogo } from "@/design/icons/AppLogo";
 import { ProtocolIcon } from "@/design/icons/ProtocolIcon";
 import { Button } from "@/components/ui/button";
-import { PROTOCOLS, PROTOCOL_ORDER } from "@/design/data/protocols";
+import { PROTOCOLS, PROTOCOL_ORDER, isProtocolReady } from "@/design/data/protocols";
 
 /** Board 8b — first launch, or after the last connection is deleted. */
 export function ConnectionsEmpty({ onNewConnection }: { onNewConnection?: () => void }) {
@@ -58,22 +58,32 @@ export function ConnectionsEmpty({ onNewConnection }: { onNewConnection?: () => 
           <Button variant="outline" style={{ padding: "6px 16px" }}>{t("page.connections.emptyImport")}</Button>
         </div>
         <div style={{ display: "flex", gap: "18px", marginTop: "34px", alignItems: "center" }}>
-          {PROTOCOL_ORDER.map((p) => (
-            <span
-              key={p}
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                gap: "5px",
-                fontSize: "10px",
-                color: "var(--c-muted)",
-              }}
-            >
-              <ProtocolIcon protocol={p} size={20} className="" />
-              {PROTOCOLS[p].name}
-            </span>
-          ))}
+          {/* The five without a driver are greyed here too, so the strip
+              matches what the connection dialog will let you pick. */}
+          {PROTOCOL_ORDER.map((p) => {
+            const ready = isProtocolReady(p);
+            return (
+              <span
+                key={p}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: "5px",
+                  fontSize: "10px",
+                  color: ready ? "var(--c-muted)" : "var(--c-muted-2)",
+                }}
+              >
+                <ProtocolIcon
+                  protocol={p}
+                  size={20}
+                  className=""
+                  style={ready ? undefined : { filter: "grayscale(1)", opacity: 0.4 }}
+                />
+                {PROTOCOLS[p].name}
+              </span>
+            );
+          })}
         </div>
         <div style={{ fontSize: "10.5px", color: "var(--c-muted-3)", marginTop: "26px" }}>
           {t("page.connections.emptyFooter")}

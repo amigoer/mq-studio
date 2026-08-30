@@ -279,6 +279,26 @@
   background: var(--c-fill);
   color: var(--c-fg);
 }
+/* Disclosure toggle (form 高级): grey like the line it sits on, chevron
+   turned by the state it reports. */
+.mqs-disclosure {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  border: 0;
+  padding: 2px 6px;
+  margin: -2px -6px;
+  border-radius: 5px;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: default;
+  transition: background var(--mo-fast);
+}
+.mqs-disclosure:hover { background: var(--c-fill); }
+.mqs-disclosure svg { transition: transform var(--mo-fast) ease; }
+.mqs-disclosure[aria-expanded="true"] svg { transform: rotate(90deg); }
+
 /*
  * Window buttons, off darwin only (see WindowControls). They act on the window
  * rather than on the app, so they sit past a divider and drop the `.tbi`
@@ -597,6 +617,10 @@
   padding: 7.5px 3.5px;
 }
 .pv { font-size: 9.5px; color: var(--c-muted-2); font-weight: 400; }
+/* Protocols with no driver yet: drawn, greyed, not selectable. */
+.ptile:disabled { color: var(--c-muted); cursor: not-allowed; }
+.ptile:disabled svg { filter: grayscale(1); opacity: 0.4; }
+.ptile:disabled .pv { color: inherit; }
 
 /*
  * Interaction layer. The canvas is a static mockup, so hover/active states are
@@ -641,7 +665,7 @@
 }
 
 .ni:not(.on):hover { background: var(--c-fill); }
-.ptile:not(.sel):hover { background: var(--c-bar); }
+.ptile:not(.sel):not(:disabled):hover { background: var(--c-bar); }
 
 button.mqs-tab-home {
   font-family: inherit;

@@ -253,3 +253,14 @@ export function labelOf(protocol: ProtocolId, page: PageId): string {
   }
   return page;
 }
+
+/**
+ * Protocols with a driver behind them. The other five are drawn in the picker
+ * so the shell shows where it is going, but they cannot be selected -- wiring
+ * one up is a matter of adding it here.
+ */
+const READY: ReadonlySet<ProtocolId> = new Set<ProtocolId>(["rocketmq"]);
+
+export function isProtocolReady(protocol: ProtocolId): boolean {
+  return READY.has(protocol);
+}

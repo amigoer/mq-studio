@@ -67,6 +67,9 @@ function Adv({ children }: { children: ReactNode }) {
 export const OPTION_VERSION = "version";
 export const OPTION_ACCESS = "access";
 
+/** What Go falls back to when the profile asks for no timeout of its own. */
+const DEFAULT_TIMEOUT_SEC = 5;
+
 /**
  * What board 6a collects. The fields the canvas does not draw - group, remark,
  * request timeout - ride along so editing a profile round-trips them instead
@@ -103,7 +106,7 @@ export function emptyRocketMQDraft(): RocketMQDraft {
     secretKey: "",
     group: "",
     remark: "",
-    timeoutSec: 5,
+    timeoutSec: DEFAULT_TIMEOUT_SEC,
     credentialsStored: false,
     clearCredentials: false,
   };
@@ -120,6 +123,11 @@ export function RocketMQForm({
   const { t } = useTranslation();
   const set = <K extends keyof RocketMQDraft>(key: K, next: RocketMQDraft[K]) =>
     onChange({ ...value, [key]: next });
+  // Opens on a profile that already sets one of these, so editing never hides
+  // a value the connection is actually using.
+  const [advancedOpen, setAdvancedOpen] = useState(
+    value.timeoutSec !== DEFAULT_TIMEOUT_SEC || value.remark !== "",
+  );
   // Once cleared, the fields are empty and typing into them is what sets new
   // credentials, so the placeholder and the clear control both go away.
   const stored = value.credentialsStored && !value.clearCredentials;
@@ -136,7 +144,7 @@ export function RocketMQForm({
         </Fld>
         <Fld label={t("page.connections.form.rocketmq.version")}>
           <Segmented
-            style={{ alignSelf: "flex-start" }}
+            block
             value={value.version}
             onChange={(next: "4.x" | "5.x") =>
               // 4.x has no Proxy, so leaving access on it would submit a mode
@@ -150,9 +158,9 @@ export function RocketMQForm({
           />
         </Fld>
         {value.version === "5.x" && (
-          <Fld label={t("page.connections.form.rocketmq.access")} hint={t("page.connections.form.rocketmq.accessHint")}>
+          <Fld span label={t("page.connections.form.rocketmq.access")} hint={t("page.connections.form.rocketmq.accessHint")}>
             <Segmented
-              style={{ alignSelf: "flex-start" }}
+              block
               value={value.access}
               onChange={(next: "ns" | "proxy") => set("access", next)}
               options={[
@@ -199,13 +207,69 @@ export function RocketMQForm({
         </Fld>
       </div>
       <FormNote
-        advanced={<Adv>{t("page.connections.form.rocketmq.advanced")}</Adv>}
+        advanced={
+          <button
+            type="button"
+            className="mqs-disclosure"
+            aria-expanded={advancedOpen}
+            onClick={() => setAdvancedOpen((open) => !open)}
+          >
+            <ChevronRight size={12} aria-hidden />
+            {t("page.connections.form.rocketmq.advanced")}
+          </button>
+        }
         note={
           value.access === "proxy"
             ? t("page.connections.form.rocketmq.proxyNote")
             : t("page.connections.form.rocketmq.note")
         }
       />
+      {advancedOpen && (
+        <div style={GRID}>
+          <Fld
+            label={t("page.connections.form.rocketmq.timeout")}
+            hint={t("page.connections.form.rocketmq.timeoutHint")}
+          >
+            <Input
+              type="number"
+              min={1}
+              max={300}
+              // Blank is a real state: Go reads 0 as "use the default".
+              value={value.timeoutSec > 0 ? String(value.timeoutSec) : ""}
+              onChange={(event) => {
+                const seconds = Number.parseInt(event.target.value, 10);
+                set("timeoutSec", Number.isNaN(seconds) ? 0 : seconds);
+              }}
+            />
+          </Fld>
+          <Fld label={t("page.connections.form.remark")} hint={t("page.connections.form.remarkHint")}>
+            <Input value={value.remark} onChange={(event) => set("remark", event.target.value)} />
+          </Fld>
+          {/* Drawn but dead: the admin library dials with name servers, a
+              timeout and ACL, and nothing else, so a namespace, a trace topic
+              or TLS has nowhere to go until it grows the options. */}
+          <Fld
+            label={t("page.connections.form.rocketmq.instanceId")}
+            hint={t("page.connections.soon")}
+          >
+            <Input disabled placeholder="MQ_INST_1234567890_xxxxxxx" />
+          </Fld>
+          <Fld
+            label={t("page.connections.form.rocketmq.traceTopic")}
+            hint={t("page.connections.soon")}
+          >
+            <Input disabled placeholder="RMQ_SYS_TRACE_TOPIC" />
+          </Fld>
+          <Fld span label="TLS" hint={t("page.connections.soon")}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "3px" }}>
+              <Switch disabled />
+              <span style={{ color: "var(--c-muted)" }}>
+                {t("page.connections.form.rocketmq.tlsNote")}
+              </span>
+            </div>
+          </Fld>
+        </div>
+      )}
     </>
   );
 }

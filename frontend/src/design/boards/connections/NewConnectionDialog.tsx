@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type JSX } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Check, RefreshCw, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -14,20 +14,11 @@ import {
   SectionLabel,
 } from "@/components";
 import { ProtocolIcon } from "@/design/icons/ProtocolIcon";
-import { PROTOCOL_ORDER, type ProtocolId } from "@/design/data/protocols";
+import { PROTOCOL_ORDER, isProtocolReady, type ProtocolId } from "@/design/data/protocols";
 import { cn, formatErrorMessage } from "@/lib/utils";
 import type { ConnectionDraft, CredentialsMode } from "@/api/connection";
 import type { Connection as ConnectionProfile } from "@/api/models";
-import {
-  KafkaForm,
-  MqttForm,
-  PulsarForm,
-  RabbitMQForm,
-  RedisForm,
-  RocketMQForm,
-  emptyRocketMQDraft,
-  type RocketMQDraft,
-} from "./ConnectionForms";
+import { RocketMQForm, emptyRocketMQDraft, type RocketMQDraft } from "./ConnectionForms";
 import { toRocketMQDraft, toSubmission } from "./connectionDraft";
 
 /** Version ranges printed under each tile in the 3a protocol picker. */
@@ -40,20 +31,6 @@ const TILE: Record<ProtocolId, { name: string; versions: string }> = {
   mqtt: { name: "MQTT", versions: "3.1 / 5.0" },
 };
 
-/**
- * The five forms that are still boards rather than inputs. They are drawn so
- * the picker shows what the canvas drew, but nothing behind them exists yet,
- * so the dialog refuses to save one instead of storing a profile no page can
- * open.
- */
-const STATIC_FORMS: Partial<Record<ProtocolId, () => JSX.Element>> = {
-  kafka: KafkaForm,
-  rabbitmq: RabbitMQForm,
-  pulsar: PulsarForm,
-  redis: RedisForm,
-  mqtt: MqttForm,
-};
-
 /** What the probe last reported, drawn in the footer beside the test button. */
 type ProbeState =
   | { kind: "idle" }
@@ -62,12 +39,12 @@ type ProbeState =
   | { kind: "failed"; message: string };
 
 /**
- * Board 3a plus the six protocol forms (6a-6f). Picking a protocol swaps the
- * whole field set — that is the only thing the connection dialog varies.
+ * Board 3a with the RocketMQ form (6a). The canvas drew a field set per
+ * protocol, but only RocketMQ has a driver behind it, so the other five tiles
+ * are shown disabled rather than offering a form that cannot be saved.
  *
- * RocketMQ is the one that submits. `editing` turns the dialog into the edit
- * form for a stored profile, which the canvas never drew separately because
- * the field set is the same one.
+ * `editing` turns the dialog into the edit form for a stored profile, which
+ * the canvas never drew separately because the field set is the same one.
  */
 export function NewConnectionDialog({
   open,
@@ -98,21 +75,22 @@ export function NewConnectionDialog({
   useEffect(() => {
     if (!open) return;
     setDraft(editing != null ? toRocketMQDraft(editing) : emptyRocketMQDraft());
-    setProtocol(editing != null ? "rocketmq" : initialProtocol);
+    const wanted = editing != null ? "rocketmq" : initialProtocol;
+    setProtocol(isProtocolReady(wanted) ? wanted : "rocketmq");
     setProbe({ kind: "idle" });
     setError(null);
     setSaving(false);
   }, [editing, initialProtocol, open]);
 
-  const StaticForm = STATIC_FORMS[protocol];
   const proxySelected = draft.version === "5.x" && draft.access === "proxy";
   const invalid = useMemo(() => {
-    if (StaticForm != null) return t("page.connections.notWired", { protocol: TILE[protocol].name });
     if (draft.name.trim() === "") return t("page.connections.nameRequired");
     if (draft.endpoints.trim() === "") return t("page.connections.endpointsRequired");
     if (proxySelected) return t("page.connections.form.rocketmq.proxyNote");
+    // 0 is blank, which Go reads as its own default; anything else Go rejects.
+    if (draft.timeoutSec < 0 || draft.timeoutSec > 300) return t("page.connections.timeoutRange");
     return null;
-  }, [StaticForm, draft.endpoints, draft.name, protocol, proxySelected, t]);
+  }, [draft.endpoints, draft.name, draft.timeoutSec, proxySelected, t]);
 
   const runProbe = async () => {
     if (invalid != null || onProbe == null) return;
@@ -160,29 +138,40 @@ export function NewConnectionDialog({
       <div>
         <SectionLabel style={{ marginBottom: "8px" }}>{t("page.connections.dialogProtocol")}</SectionLabel>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(6,1fr)", gap: "8px" }}>
-          {PROTOCOL_ORDER.map((p) => (
-            <button
-              key={p}
-              type="button"
-              aria-pressed={p === protocol}
-              /* The protocol is what a stored profile is; changing it would
-                 make the edit a different connection. */
-              disabled={editing != null && p !== "rocketmq"}
-              className={cn("ptile", p === protocol && "sel")}
-              onClick={() => {
-                setProtocol(p);
-                setProbe({ kind: "idle" });
-                setError(null);
-              }}
-            >
-              <ProtocolIcon protocol={p} size={18} className="" />
-              {TILE[p].name}
-              <span className="pv">{TILE[p].versions}</span>
-            </button>
-          ))}
+          {PROTOCOL_ORDER.map((p) => {
+            const ready = isProtocolReady(p);
+            return (
+              <button
+                key={p}
+                type="button"
+                aria-pressed={p === protocol}
+                /* Nothing drives the other five yet. And the protocol is what
+                   a stored profile is, so changing it on an edit would make
+                   the dialog a different connection. */
+                disabled={!ready || (editing != null && p !== protocol)}
+                className={cn("ptile", p === protocol && "sel")}
+                onClick={() => {
+                  setProtocol(p);
+                  setProbe({ kind: "idle" });
+                  setError(null);
+                }}
+              >
+                <ProtocolIcon protocol={p} size={18} className="" />
+                {TILE[p].name}
+                <span className="pv">
+                  {ready ? TILE[p].versions : t("page.connections.soon")}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        {/* The dimmed tiles say they are off; this says why, once, rather than
+            in a tooltip a disabled button never shows. */}
+        <div style={{ marginTop: "8px", fontSize: "11px", color: "var(--c-muted)" }}>
+          {t("page.connections.protocolSoonHint")}
         </div>
       </div>
-      {StaticForm != null ? <StaticForm /> : <RocketMQForm value={draft} onChange={setDraft} />}
+      <RocketMQForm value={draft} onChange={setDraft} />
 
         <DialogFooter className="items-center">
           <Button
