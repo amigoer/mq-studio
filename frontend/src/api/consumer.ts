@@ -1,4 +1,5 @@
 import { ConsumerService } from "@bindings/bridge";
+import type { SubscriptionClient } from "@bindings/model/models";
 import type { Subscription } from "./models";
 import { present } from "./client";
 
@@ -9,6 +10,19 @@ export const getConsumeStats = (
   group: string,
 ): Promise<Record<string, unknown>> =>
   ConsumerService.Stats(connID, group);
+
+/**
+ * Asks every connected consumer in a group what it holds.
+ *
+ * One broker round trip per client, so this is only worth paying for a group
+ * somebody has opened - the group list must not call it.
+ */
+export const getConsumerClients = (
+  connID: number,
+  group: string,
+): Promise<SubscriptionClient[]> =>
+  ConsumerService.Clients(connID, group).then(present);
+
 /*
  * Creating and editing a group have no wrapper here on purpose. The bridge and
  * the driver both implement them, but rocketmq-admin-go sends the config in

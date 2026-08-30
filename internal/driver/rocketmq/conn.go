@@ -59,23 +59,8 @@ func (c *Conn) Ping(ctx context.Context) error {
 // with no topic listing, cluster topology or ACL - which is what the degraded
 // entries in model.Capabilities exist to describe once endpoint probing lands.
 func (c *Conn) Capabilities() model.Capabilities {
-	return model.NewCapabilities(rocketMQCapabilities()...).
-		WithDegraded(model.CapSubscriptionRuntime, subscriptionRuntimeBlocked)
+	return model.NewCapabilities(rocketMQCapabilities()...)
 }
-
-// subscriptionRuntimeBlocked explains why asking a consumer what it holds does
-// not work, even though the broker answers it and the driver implements it.
-//
-// GetConsumerRunningInfo in rocketmq-admin-go unmarshals the response without
-// the fixJSONBody pass that six of its siblings apply. The response carries
-// mqTable, a Fastjson map whose keys are objects - the very shape that fixer
-// exists for - so the parse always fails and the library reports a generic
-// error. The broker's own mqadmin consumerStatus reads it fine.
-//
-// Degraded rather than absent: the page should say why the queue assignment is
-// missing, not pretend RocketMQ has no such concept.
-const subscriptionRuntimeBlocked = "rocketmq-admin-go 无法解析 GetConsumerRunningInfo 的响应" +
-	"（mqTable 是 Fastjson 的对象键 Map，该调用漏掉了 fixJSONBody）"
 
 // Close releases this connection's client.
 func (c *Conn) Close() error {
@@ -104,9 +89,6 @@ func rocketMQCapabilities() []model.Capability {
 		model.CapOffsetReset,
 		model.CapOffsetClone,
 		model.CapQueueOffset,
-		// CapSubscriptionRuntime is listed here and then degraded in
-		// Capabilities: the driver implements it, but the library cannot read
-		// the broker's answer. See subscriptionRuntimeBlocked.
 		model.CapSubscriptionRuntime,
 
 		model.CapMessageQuery,

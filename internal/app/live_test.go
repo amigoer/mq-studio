@@ -643,24 +643,20 @@ func TestLiveACLCredentialsAreNotSigned(t *testing.T) {
 	}
 }
 
-// What a connected consumer is actually doing - and why it cannot be shown.
+// What a connected consumer is actually doing.
 //
 // GetConsumerRunningInfo asks the client rather than the broker, so this is the
 // one live test that needs a real consumer. It starts one, waits for the
-// rebalance, and then finds that the queue assignment never arrives.
+// rebalance, and then reads back the queues that client holds.
 //
-// The broker is not at fault: its own `mqadmin consumerStatus` collects the
-// same information from the same client. rocketmq-admin-go unmarshals the
-// response without the fixJSONBody pass that six of its siblings apply, and the
-// response carries mqTable - a Fastjson map whose keys are objects, the exact
-// shape that fixer exists for - so the parse always fails.
-//
-// The driver implements SubscriptionRuntime and reports the capability as
-// degraded with that reason, so a page explains the gap rather than pretending
-// RocketMQ has no such concept. This test asserts the gap is still there: it
-// goes red the day the library adds fixJSONBody, which is when the consumers
-// board can have its queue-assignment column back.
-func TestLiveConsumerClientsBlockedByLibraryParse(t *testing.T) {
+// Two library defects used to make this unreadable, and both are pinned here
+// because neither fails loudly. The Broker relays the client's answer with a
+// binary header, which the remoting decoder used to drop on the floor - the
+// call then timed out with a generic error. The body then needs fixJSONBody,
+// because mqTable is a Fastjson map whose keys are objects. Underneath that,
+// ProcessQueue's field names have to be RocketMQ's own, since a wrong tag
+// decodes to zero rather than to an error.
+func TestLiveConsumerClients(t *testing.T) {
 	connections, _, registry := liveStack(t)
 	ctx := context.Background()
 
@@ -678,13 +674,11 @@ func TestLiveConsumerClientsBlockedByLibraryParse(t *testing.T) {
 	}
 	ref := model.SubscriptionRef{Name: seededGroup}
 
-	// The capability has to be visible and explained, not silently missing.
-	reason, degraded := conn.Capabilities().DegradedReason(model.CapSubscriptionRuntime)
-	if !degraded || reason == "" {
-		t.Error("CapSubscriptionRuntime should be degraded with a reason while the parse is broken")
+	if !conn.Capabilities().Has(model.CapSubscriptionRuntime) {
+		t.Error("CapSubscriptionRuntime should be supported")
 	}
-	if conn.Capabilities().Has(model.CapSubscriptionRuntime) {
-		t.Error("CapSubscriptionRuntime is both supported and degraded")
+	if _, degraded := conn.Capabilities().DegradedReason(model.CapSubscriptionRuntime); degraded {
+		t.Error("CapSubscriptionRuntime is supported and still carries a degraded reason")
 	}
 
 	// With nothing connected the answer is an error, not an empty list: "nobody
@@ -696,14 +690,24 @@ func TestLiveConsumerClientsBlockedByLibraryParse(t *testing.T) {
 	stop := startLiveConsumer(t)
 	defer stop()
 
-	// Wait for the broker to see the consumer and finish its rebalance.
-	var clients []*model.SubscriptionClient
+	// Wait for the broker to see the consumer and finish its rebalance. The
+	// wait is for the seeded topic rather than for any queue at all: the
+	// group's retry queue is assigned separately and often arrives first, so
+	// "has assignments" is satisfied a rebalance too early.
+	var (
+		clients []*model.SubscriptionClient
+		seeded  *model.QueueAssignment
+	)
 	for attempt := range 20 {
 		if attempt > 0 {
 			time.Sleep(time.Second)
 		}
 		clients, err = runtime.SubscriptionClients(ctx, ref)
-		if err == nil && len(clients) > 0 {
+		if err != nil || len(clients) == 0 {
+			continue
+		}
+		seeded = assignmentFor(clients[0], seededTopic)
+		if seeded != nil {
 			break
 		}
 	}
@@ -714,19 +718,40 @@ func TestLiveConsumerClientsBlockedByLibraryParse(t *testing.T) {
 		t.Fatal("no client reported for a group with a consumer connected")
 	}
 
-	// The client is found - that part comes from the broker's connection info.
-	// Everything that comes from the client itself is empty, because the parse
-	// of its answer failed.
 	client := clients[0]
 	if client.ClientID == "" {
 		t.Error("a client came back with no id")
 	}
-	if len(client.Assignments) != 0 {
-		t.Fatalf("the library can parse GetConsumerRunningInfo now (%d assignments) - "+
-			"drop the degraded reason and wire the queue-assignment column back",
-			len(client.Assignments))
+	if len(client.Assignments) == 0 {
+		t.Fatal("the client reported no queues; GetConsumerRunningInfo is unreadable again")
 	}
-	t.Logf("client %s found, assignment still unreadable - as expected", client.ClientID)
+	if client.Properties["PROP_CLIENT_VERSION"] == "" {
+		t.Errorf("the client reported no version: %v", client.Properties)
+	}
+
+	// The seeded topic has to be in there, holding a real queue on a real
+	// broker. A zero timestamp would mean the field names drifted again.
+	if seeded == nil {
+		t.Fatalf("no assignment for %s: %+v", seededTopic, client.Assignments)
+	}
+	if seeded.Node == "" {
+		t.Errorf("assignment carries no broker: %+v", *seeded)
+	}
+	if seeded.LastPull == "" {
+		t.Errorf("assignment carries no pull time: %+v", *seeded)
+	}
+	t.Logf("client %s holds %d queues, %s on %s q%d",
+		client.ClientID, len(client.Assignments), seeded.Destination, seeded.Node, seeded.QueueID)
+}
+
+// assignmentFor returns the client's queue on topic, or nil if it holds none.
+func assignmentFor(client *model.SubscriptionClient, topic string) *model.QueueAssignment {
+	for index, assignment := range client.Assignments {
+		if assignment.Destination == topic {
+			return &client.Assignments[index]
+		}
+	}
+	return nil
 }
 
 // startLiveConsumer runs a push consumer on the seeded topic and group.

@@ -74,13 +74,15 @@ func applyRunningInfo(client *model.SubscriptionClient, info *admin.ConsumerRunn
 	for key, queue := range info.MqTable {
 		broker, queueID := parseMQKey(key)
 		client.Assignments = append(client.Assignments, model.QueueAssignment{
-			Destination:  topicFromMQKey(key),
-			Node:         broker,
-			QueueID:      queueID,
-			Pending:      queue.MsgCount,
-			PendingBytes: queue.MsgSize,
-			LastPull:     timestamp.FromUnixMilli(queue.LastPullTime),
-			LastConsume:  timestamp.FromUnixMilli(queue.LastConsumeTime),
+			Destination: topicFromMQKey(key),
+			Node:        broker,
+			QueueID:     queueID,
+			Pending:     queue.CachedMsgCount,
+			// RocketMQ reports the cached size in whole MiB, so anything under
+			// a MiB arrives as zero. Widening it here keeps the model in bytes.
+			PendingBytes: queue.CachedMsgSizeInMiB * 1024 * 1024,
+			LastPull:     timestamp.FromUnixMilli(queue.LastPullTimestamp),
+			LastConsume:  timestamp.FromUnixMilli(queue.LastConsumeTimestamp),
 			Locked:       queue.Locked,
 			Dropped:      queue.Dropped,
 		})
