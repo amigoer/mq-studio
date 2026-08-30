@@ -900,7 +900,6 @@
       "collapseItem": "Collapse"
     },
     "status": {
-      "background": "Background tabs keep their connections and alert watches",
       "tabs": "{{tabs}} tabs · {{online}} online"
     },
     "palette": {
@@ -2129,8 +2128,8 @@
     },
     "dlq": {
       "rocketmq": {
-        "retryQueue": "Retry queue (37)",
-        "dlqQueue": "Dead-letter queue (12)",
+        "retryQueue": "Retry queue",
+        "dlqQueue": "Dead-letter queue",
         "subtitle": "By consumer group · the %RETRY% and %DLQ% queues",
         "exportAll": "Export all",
         "group": "Group: order-settle",
@@ -2145,6 +2144,7 @@
         "confirmTitle": "Redeliver {{n}} dead letters?",
         "confirmBody": "They are rewritten under a <b>new MsgId</b> to <topic>{{topic}}</topic> for <group>{{group}}</group> to consume normally; the originals stay in the dead-letter queue and can be deleted later.",
         "liveSubtitle": "Pick a consumer group to see its retry and dead-letter queues",
+        "fetched": "{{count}} fetched",
         "pickGroup": "Pick a group",
         "pickGroupTitle": "Pick a consumer group first",
         "pickGroupHint": "Retry and dead-letter queues are kept per consumer group, so one has to be named before there is anything to read.",

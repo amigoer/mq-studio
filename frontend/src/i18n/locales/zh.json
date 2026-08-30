@@ -900,7 +900,6 @@
       "collapseItem": "收起"
     },
     "status": {
-      "background": "后台标签仍保持连接与告警监听",
       "tabs": "{{tabs}} 个标签 · {{online}} 在线"
     },
     "palette": {
@@ -2129,8 +2128,8 @@
     },
     "dlq": {
       "rocketmq": {
-        "retryQueue": "重试队列 (37)",
-        "dlqQueue": "死信队列 (12)",
+        "retryQueue": "重试队列",
+        "dlqQueue": "死信队列",
         "subtitle": "按消费者组查看 · %RETRY% 与 %DLQ% 队列",
         "exportAll": "导出全部",
         "group": "组：order-settle",
@@ -2145,6 +2144,7 @@
         "confirmTitle": "重投 {{n}} 条死信消息？",
         "confirmBody": "将以<b>新 MsgId</b> 重新写入 <topic>{{topic}}</topic>，由 <group>{{group}}</group> 正常消费；原消息保留在死信队列，可稍后删除。",
         "liveSubtitle": "选择消费组后查看它的重试队列和死信队列",
+        "fetched": "已取 {{count}} 条",
         "pickGroup": "选择消费组",
         "pickGroupTitle": "先选一个消费组",
         "pickGroupHint": "重试和死信队列都按消费组存放，选中后才知道要读哪一条。",

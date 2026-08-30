@@ -553,7 +553,9 @@ export function DesignApp(): JSX.Element {
           <div style={{ flex: 1, display: "flex", minHeight: 0 }}>{column}</div>
           <TabStatusBar
             connection={connection.name}
-            latency={connection.latency ?? "—"}
+            address={connection.address}
+            status={connection.status}
+            latency={connection.latency}
             tabCount={openTabs.length}
             onlineCount={online}
           />

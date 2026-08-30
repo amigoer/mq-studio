@@ -153,27 +153,53 @@ export function BulkBar({ children, hint }: { children: ReactNode; hint?: ReactN
   );
 }
 
+/** The dot and the name take the tone of the state they are reporting. */
+const STATUS_TONE: Record<string, string> = {
+  online: "var(--c-ok-text)",
+  failed: "var(--c-err-text)",
+  offline: "var(--c-muted)",
+};
+
 /**
- * Board 5a's footer: the active tab's own connection state. Background tabs
- * keep their connection and alert subscriptions, which is what it reports.
+ * Board 5a's footer: the active tab's own connection state.
+ *
+ * It carries only what the app has actually measured. The canvas drew a
+ * latency figure beside the name and a line promising that background tabs
+ * keep their connection and alert subscriptions; the first was a dash whenever
+ * nothing had been dialled this session, and the second was a fixed sentence
+ * dressed as status. A status bar that says something it did not check is
+ * worse than a shorter one.
+ *
+ * Latency is therefore printed only where it exists: it is the round trip of
+ * the connect or test that last succeeded, which is the only figure the admin
+ * protocol gives us, and a tab restored onto an already-open connection has
+ * none.
  */
 export function TabStatusBar({
   connection,
+  address,
+  status,
   latency,
   tabCount,
   onlineCount,
 }: {
   connection: string;
-  latency: string;
+  /** The endpoint this tab is reading, which is known whether or not it is up. */
+  address: string;
+  status: string;
+  /** Undefined until a dial in this session timed one. */
+  latency?: string;
   tabCount: number;
   onlineCount: number;
 }) {
   const { t } = useTranslation();
+  const tone = STATUS_TONE[status] ?? "var(--c-muted)";
   return (
     <div
       style={{
         flex: "none",
         display: "flex",
+        alignItems: "center",
         gap: "14px",
         padding: "7px 20px",
         borderTop: "1px solid var(--c-border)",
@@ -181,13 +207,12 @@ export function TabStatusBar({
         color: "var(--c-muted)",
       }}
     >
-      <span
-        style={{ display: "flex", alignItems: "center", gap: "5px", color: "var(--c-ok-text)" }}
-      >
+      <span style={{ display: "flex", alignItems: "center", gap: "5px", color: tone }}>
         <span className="mqs-dot" aria-hidden />
-        {connection} {latency}
+        {connection}
       </span>
-      <span>{t("shell.status.background")}</span>
+      <span className="mono3">{address}</span>
+      {latency != null && <span className="mono3">{latency}</span>}
       <span style={{ flex: 1 }} />
       <span>{t("shell.status.tabs", { tabs: tabCount, online: onlineCount })}</span>
     </div>

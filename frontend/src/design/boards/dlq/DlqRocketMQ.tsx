@@ -28,6 +28,12 @@ import { groupName } from "@/mq/rocketmq/subscriptions";
 import type { MessageItem } from "@/api/models";
 import { formatErrorMessage } from "@/lib/utils";
 
+/*
+ * The canvas printed a count on each of these. Nothing reports one: the
+ * dead-letter figure the group carries is the whole queue, the retry queue has
+ * no figure at all, and what a query returns is a page rather than a total. The
+ * fetched count goes in the subtitle instead, where it can say what it is.
+ */
 const VIEWS = [
   { value: "retry", label: "board.dlq.rocketmq.retryQueue" },
   { value: "dlq", label: "board.dlq.rocketmq.dlqQueue" },
@@ -144,7 +150,11 @@ export function DlqRocketMQ() {
     <Page>
       <PageHeader
         title={t("board.common.dlqRetry")}
-        subtitle={t("board.dlq.rocketmq.liveSubtitle")}
+        subtitle={
+          rows == null
+            ? t("board.dlq.rocketmq.liveSubtitle")
+            : t("board.dlq.rocketmq.fetched", { count: rows.length })
+        }
       />
       <Toolbar>
         <Combobox
