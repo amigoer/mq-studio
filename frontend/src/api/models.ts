@@ -29,6 +29,7 @@ export type SubscriptionStatus = model.SubscriptionStatus;
 export type ClusterSummary = model.ClusterSummary;
 export type MessageItem = model.MessageItem;
 export type MessageTrackItem = model.MessageTrackItem;
+export type ProducerClient = model.ProducerClient;
 export type ResetOffsetRequest = model.ResetOffsetRequest;
 
 /** A connection as the UI sees it: ACL secrets are redacted in Go. */

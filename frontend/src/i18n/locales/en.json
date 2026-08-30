@@ -2166,7 +2166,14 @@
       "pickTopicFirst": "Pick a topic first",
       "sentN": "Sent {{count}} message(s)",
       "noSends": "Nothing sent in this session yet",
-      "notJson": "The body is not valid JSON, so it cannot be formatted"
+      "notJson": "The body is not valid JSON, so it cannot be formatted",
+      "clients": {
+        "title": "Who is publishing",
+        "groupPlaceholder": "Producer group",
+        "query": "Query",
+        "hint": "Brokers index connections by producer group and offer no call that lists the groups, so the name has to be typed.",
+        "none": "No producer connected under this group"
+      }
     },
     "mqtt": {
       "topicTree": "Topic tree",

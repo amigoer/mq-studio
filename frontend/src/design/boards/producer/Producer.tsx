@@ -16,6 +16,7 @@ import {
 } from "@/components";
 import type { ProtocolId } from "@/design/data/protocols";
 import { PROTOCOL_PANELS } from "./ProducerPanels";
+import { ProducerClients } from "./ProducerClients";
 import { useBrokerData } from "@/hooks/useBrokerData";
 import { useConnectionScope } from "@/mq/ConnectionScope";
 import { useRecentPicks } from "@/hooks/useRecentPicks";
@@ -300,6 +301,8 @@ export function Producer({ protocol }: { protocol: ProtocolId }) {
           <Panel style={{ padding: "13px 16px", display: "flex", flexDirection: "column", gap: "10px" }}>
             <ProtocolPanel />
           </Panel>
+
+          {wired && <ProducerClients topic={topic} />}
 
           <Panel style={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
             <SectionLabel style={{ padding: "11px 16px 8px" }}>{t("board.producer.recent")}</SectionLabel>

@@ -2166,7 +2166,14 @@
       "pickTopicFirst": "先选一个 Topic",
       "sentN": "已发送 {{count}} 条",
       "noSends": "这个会话还没有发送记录",
-      "notJson": "消息体不是合法 JSON，无法格式化"
+      "notJson": "消息体不是合法 JSON，无法格式化",
+      "clients": {
+        "title": "谁在发送",
+        "groupPlaceholder": "生产者组名",
+        "query": "查询",
+        "hint": "Broker 按生产者组记录连接，没有枚举组名的接口，所以组名需要手动填写。",
+        "none": "这个组没有在线的生产者"
+      }
     },
     "mqtt": {
       "topicTree": "主题树",

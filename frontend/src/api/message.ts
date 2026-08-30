@@ -1,6 +1,8 @@
 import { MessageService } from "@bindings/bridge";
-import type { MessageItem, MessageTrackItem } from "./models";
+import type { MessageItem, MessageTrackItem, ProducerClient } from "./models";
 import { present } from "./client";
+
+export type { ProducerClient };
 
 export interface QueryCondition {
   messageId?: string;
@@ -94,3 +96,16 @@ export const sendMessage = (
     body,
     delayLevel,
   });
+
+/**
+ * Who is currently publishing under one producer group.
+ *
+ * The group has to be named: a broker indexes connections by producer group
+ * and offers no call that enumerates the groups, so this answers "is anything
+ * from this service still connected", not "who is writing here".
+ */
+export const getProducers = (
+  connID: number,
+  group: string,
+  topic: string,
+): Promise<ProducerClient[]> => MessageService.Producers(connID, group, topic).then(present);
