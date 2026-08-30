@@ -79,6 +79,11 @@ const (
 	// channels open against it. Families that expose producers and consumers
 	// but not the sessions underneath them do not have it.
 	CapClientInspect Capability = "client.inspect"
+
+	// CapClusterHealth is a broker that answers questions about its own
+	// health, rather than one whose health has to be inferred from its
+	// metrics.
+	CapClusterHealth Capability = "cluster.health"
 	CapAccessControl Capability = "access.control"
 	// CapAccessDirectory is identity-based access control: principals the
 	// broker authenticates and rules attached to a subject. Distinct from

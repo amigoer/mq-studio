@@ -39,6 +39,7 @@ const overviewState = vi.hoisted(() => ({ current: null as unknown }));
 const queuesState = vi.hoisted(() => ({ current: null as unknown }));
 const routingState = vi.hoisted(() => ({ current: null as unknown }));
 const clientsState = vi.hoisted(() => ({ current: null as unknown }));
+const clusterState = vi.hoisted(() => ({ current: null as unknown }));
 
 vi.mock("@/hooks/rabbitmq/useRabbitOverview", () => ({
   useRabbitOverview: () => overviewState.current,
@@ -52,12 +53,16 @@ vi.mock("@/hooks/rabbitmq/useRabbitRouting", () => ({
 vi.mock("@/hooks/rabbitmq/useRabbitClients", () => ({
   useRabbitClients: () => clientsState.current,
 }));
+vi.mock("@/hooks/rabbitmq/useRabbitCluster", () => ({
+  useRabbitCluster: () => clusterState.current,
+}));
 
 let render: (element: React.ReactElement) => string;
 let OverviewRabbitMQ: typeof import("./overview/OverviewRabbitMQ").OverviewRabbitMQ;
 let QueuesRabbitMQ: typeof import("./topics/QueuesRabbitMQ").QueuesRabbitMQ;
 let ExchangesRabbitMQ: typeof import("./topics/ExchangesRabbitMQ").ExchangesRabbitMQ;
 let ChannelsRabbitMQ: typeof import("./consumers/ChannelsRabbitMQ").ChannelsRabbitMQ;
+let NodesRabbitMQ: typeof import("./cluster/NodesRabbitMQ").NodesRabbitMQ;
 
 beforeAll(async () => {
   const storage = { getItem: () => null, setItem() {}, removeItem() {} };
@@ -70,12 +75,13 @@ beforeAll(async () => {
   });
   vi.stubGlobal("localStorage", storage);
 
-  const [server, overview, queues, exchanges, clients, i18n] = await Promise.all([
+  const [server, overview, queues, exchanges, clients, cluster, i18n] = await Promise.all([
     import("react-dom/server"),
     import("./overview/OverviewRabbitMQ"),
     import("./topics/QueuesRabbitMQ"),
     import("./topics/ExchangesRabbitMQ"),
     import("./consumers/ChannelsRabbitMQ"),
+    import("./cluster/NodesRabbitMQ"),
     import("@/i18n"),
   ]);
   await i18n.default.changeLanguage("zh");
@@ -84,6 +90,7 @@ beforeAll(async () => {
   QueuesRabbitMQ = queues.QueuesRabbitMQ;
   ExchangesRabbitMQ = exchanges.ExchangesRabbitMQ;
   ChannelsRabbitMQ = clients.ChannelsRabbitMQ;
+  NodesRabbitMQ = cluster.NodesRabbitMQ;
 });
 
 const census = {
@@ -523,5 +530,106 @@ describe("the RabbitMQ connections board", () => {
     expect(() =>
       renderWith({ data: { connections: [connection({ channels: 0 })], channels: [] } }),
     ).not.toThrow();
+  });
+});
+
+const health = (over: Record<string, unknown> = {}) => ({
+  checks: [
+    { id: "alarms", passed: true, unavailable: false, reason: "" },
+    { id: "virtualHosts", passed: true, unavailable: false, reason: "" },
+  ],
+  alarms: [],
+  featureFlags: [
+    {
+      name: "quorum_queue",
+      description: "",
+      state: "enabled",
+      stability: "required",
+      providedBy: "rabbit",
+      docUrl: "",
+    },
+  ],
+  deprecatedFeatures: [],
+  ...over,
+});
+
+describe("the RabbitMQ nodes board", () => {
+  const renderWith = (over: Partial<BrokerState<unknown>>) => {
+    clusterState.current = stateOf(over);
+    return render(<NodesRabbitMQ />);
+  };
+
+  it("draws a not-connected notice rather than an empty cluster", () => {
+    expect(() => renderWith({ online: false })).not.toThrow();
+  });
+
+  it("draws a loading state without touching the data", () => {
+    expect(() => renderWith({ loading: true })).not.toThrow();
+  });
+
+  it("reports a node with its real memory fraction", () => {
+    const html = renderWith({
+      data: { nodes: [node()], census, health: health() },
+    });
+    expect(html).toContain("rabbit@one");
+    // 512Mi against a 1Gi watermark.
+    expect(html).toContain("50%");
+  });
+
+  /*
+   * A partition is the one thing that outranks every figure on the page: the
+   * cluster is running as two halves and everything below is one half's view.
+   */
+  it("leads with a partition banner when a node has lost the cluster", () => {
+    const html = renderWith({
+      data: {
+        nodes: [node({ partitions: "rabbit@two" })],
+        census,
+        health: health(),
+      },
+    });
+    expect(html).toContain("rabbit@two");
+  });
+
+  it("leads with an alarm banner while a resource alarm is on", () => {
+    const html = renderWith({
+      data: {
+        nodes: [node()],
+        census,
+        health: health({ alarms: [{ node: "rabbit@one", resource: "memory" }] }),
+      },
+    });
+    expect(html).toContain("memory");
+  });
+
+  /*
+   * A check the broker cannot run is not a failure. Showing it as one would
+   * have an operator chasing a problem that is not there.
+   */
+  it("survives health results the broker could not produce", () => {
+    expect(() =>
+      renderWith({
+        data: {
+          nodes: [node()],
+          census,
+          health: health({
+            checks: [
+              { id: "mirrorSyncCritical", passed: false, unavailable: true, reason: "" },
+              { id: "quorumCritical", passed: false, unavailable: false, reason: "too few" },
+            ],
+          }),
+        },
+      }),
+    ).not.toThrow();
+  });
+
+  // Health is allowed to fail on its own, so the node list must still render.
+  it("still lists nodes when the health calls failed entirely", () => {
+    const html = renderWith({ data: { nodes: [node()], census, health: null } });
+    expect(html).toContain("rabbit@one");
+  });
+
+  it("survives a broker with no nodes at all", () => {
+    expect(() => renderWith({ data: { nodes: [], census, health: null } })).not.toThrow();
   });
 });

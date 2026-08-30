@@ -282,6 +282,16 @@ type ClientInspector interface {
 	ListClientChannels(ctx context.Context, namespace string) ([]*model.ClientChannel, error)
 }
 
+// HealthInspector runs the broker's own health checks.
+//
+// Separate from ClusterAdmin because it is the broker's opinion rather than
+// its topology: these are questions it answers about itself, and the answers
+// name what to do. A family whose health can only be inferred from metrics
+// does not implement it, and its cluster page falls back to the numbers.
+type HealthInspector interface {
+	Health(ctx context.Context) (*model.BrokerHealth, error)
+}
+
 // RoutingAdmin manages exchanges and bindings. Only RabbitMQ has them, which
 // is why the canonical page set has no counterpart and the driver contributes
 // a page of its own.

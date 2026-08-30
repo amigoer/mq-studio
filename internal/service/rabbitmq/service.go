@@ -118,3 +118,17 @@ func (s *Service) ClientChannels(ctx context.Context, connID int, namespace stri
 	defer cancel()
 	return api.ListClientChannels(ctx, namespace)
 }
+
+// Health runs the broker's own checks and reads its feature flags.
+func (s *Service) Health(ctx context.Context, connID int) (*model.BrokerHealth, error) {
+	api, err := port[driver.HealthInspector](s, connID, model.CapClusterHealth)
+	if err != nil {
+		if notConnected(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.Health(ctx)
+}

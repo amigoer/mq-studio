@@ -35,3 +35,9 @@ func (s *RabbitMQService) ClientConnections(connID int, namespace string) ([]*mo
 func (s *RabbitMQService) ClientChannels(connID int, namespace string) ([]*model.ClientChannel, error) {
 	return s.service.ClientChannels(context.Background(), connID, namespace)
 }
+
+// Health runs the broker's own checks, and reads its feature flags and the
+// deprecated features it still allows.
+func (s *RabbitMQService) Health(connID int) (*model.BrokerHealth, error) {
+	return s.service.Health(context.Background(), connID)
+}

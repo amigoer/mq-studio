@@ -360,6 +360,58 @@ export class BrokerCensus {
 }
 
 /**
+ * BrokerHealth is everything a cluster page asks beyond the node list.
+ */
+export class BrokerHealth {
+    "checks": (HealthCheck | null)[];
+    "alarms": (ResourceAlarm | null)[];
+    "featureFlags": (FeatureFlag | null)[];
+    "deprecatedFeatures": (DeprecatedFeature | null)[];
+
+    /** Creates a new BrokerHealth instance. */
+    constructor($$source: Partial<BrokerHealth> = {}) {
+        if (!("checks" in $$source)) {
+            this["checks"] = [];
+        }
+        if (!("alarms" in $$source)) {
+            this["alarms"] = [];
+        }
+        if (!("featureFlags" in $$source)) {
+            this["featureFlags"] = [];
+        }
+        if (!("deprecatedFeatures" in $$source)) {
+            this["deprecatedFeatures"] = [];
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new BrokerHealth instance from a string or object.
+     */
+    static createFrom($$source: any = {}): BrokerHealth {
+        const $$createField0_0 = $$createType7;
+        const $$createField1_0 = $$createType10;
+        const $$createField2_0 = $$createType13;
+        const $$createField3_0 = $$createType16;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("checks" in $$parsedSource) {
+            $$parsedSource["checks"] = $$createField0_0($$parsedSource["checks"]);
+        }
+        if ("alarms" in $$parsedSource) {
+            $$parsedSource["alarms"] = $$createField1_0($$parsedSource["alarms"]);
+        }
+        if ("featureFlags" in $$parsedSource) {
+            $$parsedSource["featureFlags"] = $$createField2_0($$parsedSource["featureFlags"]);
+        }
+        if ("deprecatedFeatures" in $$parsedSource) {
+            $$parsedSource["deprecatedFeatures"] = $$createField3_0($$parsedSource["deprecatedFeatures"]);
+        }
+        return new BrokerHealth($$parsedSource as Partial<BrokerHealth>);
+    }
+}
+
+/**
  * BrokerRates is messages per second, as the broker computes them over its own
  * sampling window rather than as anything measured here.
  */
@@ -452,9 +504,9 @@ export class Capabilities {
      * Creates a new Capabilities instance from a string or object.
      */
     static createFrom($$source: any = {}): Capabilities {
-        const $$createField0_0 = $$createType5;
-        const $$createField1_0 = $$createType6;
-        const $$createField2_0 = $$createType6;
+        const $$createField0_0 = $$createType17;
+        const $$createField1_0 = $$createType18;
+        const $$createField2_0 = $$createType18;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("supported" in $$parsedSource) {
             $$parsedSource["supported"] = $$createField0_0($$parsedSource["supported"]);
@@ -584,6 +636,13 @@ export enum Capability {
      * but not the sessions underneath them do not have it.
      */
     CapClientInspect = "client.inspect",
+
+    /**
+     * CapClusterHealth is a broker that answers questions about its own
+     * health, rather than one whose health has to be inferred from its
+     * metrics.
+     */
+    CapClusterHealth = "cluster.health",
     CapAccessControl = "access.control",
 
     /**
@@ -1010,6 +1069,65 @@ export class ConsumeThroughput {
 }
 
 /**
+ * DeprecatedFeature is something this cluster still allows that a later
+ * release will not.
+ * 
+ * The list of what is deprecated is background; the list of what is deprecated
+ * *and in use here* is a work item, which is why the two are reported
+ * separately rather than as one list with a flag.
+ */
+export class DeprecatedFeature {
+    "name": string;
+    "description": string;
+
+    /**
+     * Phase is how far along the removal is: permitted by default, denied by
+     * default, disconnected, or removed.
+     */
+    "phase": string;
+    "providedBy": string;
+    "docUrl": string;
+
+    /**
+     * InUse is set when the broker reports this feature is actually being
+     * used on this cluster, which turns it from background into a work item.
+     */
+    "inUse": boolean;
+
+    /** Creates a new DeprecatedFeature instance. */
+    constructor($$source: Partial<DeprecatedFeature> = {}) {
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("description" in $$source)) {
+            this["description"] = "";
+        }
+        if (!("phase" in $$source)) {
+            this["phase"] = "";
+        }
+        if (!("providedBy" in $$source)) {
+            this["providedBy"] = "";
+        }
+        if (!("docUrl" in $$source)) {
+            this["docUrl"] = "";
+        }
+        if (!("inUse" in $$source)) {
+            this["inUse"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new DeprecatedFeature instance from a string or object.
+     */
+    static createFrom($$source: any = {}): DeprecatedFeature {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new DeprecatedFeature($$parsedSource as Partial<DeprecatedFeature>);
+    }
+}
+
+/**
  * Destination is a topic, queue or stream as the canonical pages see it.
  * 
  * Attributes carries whatever the family has and the canonical model does not:
@@ -1088,7 +1206,7 @@ export class Destination {
      * Creates a new Destination instance from a string or object.
      */
     static createFrom($$source: any = {}): Destination {
-        const $$createField1_0 = $$createType7;
+        const $$createField1_0 = $$createType19;
         const $$createField8_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("ref" in $$parsedSource) {
@@ -1175,8 +1293,8 @@ export class DriverDescriptor {
      * Creates a new DriverDescriptor instance from a string or object.
      */
     static createFrom($$source: any = {}): DriverDescriptor {
-        const $$createField2_0 = $$createType9;
-        const $$createField3_0 = $$createType5;
+        const $$createField2_0 = $$createType21;
+        const $$createField3_0 = $$createType17;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("form" in $$parsedSource) {
             $$parsedSource["form"] = $$createField2_0($$parsedSource["form"]);
@@ -1185,6 +1303,59 @@ export class DriverDescriptor {
             $$parsedSource["maxCapabilities"] = $$createField3_0($$parsedSource["maxCapabilities"]);
         }
         return new DriverDescriptor($$parsedSource as Partial<DriverDescriptor>);
+    }
+}
+
+/**
+ * FeatureFlag is a behaviour change that has to be enabled before the cluster
+ * can use it, and cannot be turned off again once it is.
+ * 
+ * It matters on a page about nodes because a flag that is not enabled
+ * everywhere blocks a rolling upgrade: the cluster cannot move to a version
+ * that requires it until every node agrees.
+ */
+export class FeatureFlag {
+    "name": string;
+    "description": string;
+
+    /**
+     * State is the broker's own word - "enabled", "disabled", "unavailable".
+     */
+    "state": string;
+    "stability": string;
+    "providedBy": string;
+    "docUrl": string;
+
+    /** Creates a new FeatureFlag instance. */
+    constructor($$source: Partial<FeatureFlag> = {}) {
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("description" in $$source)) {
+            this["description"] = "";
+        }
+        if (!("state" in $$source)) {
+            this["state"] = "";
+        }
+        if (!("stability" in $$source)) {
+            this["stability"] = "";
+        }
+        if (!("providedBy" in $$source)) {
+            this["providedBy"] = "";
+        }
+        if (!("docUrl" in $$source)) {
+            this["docUrl"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new FeatureFlag instance from a string or object.
+     */
+    static createFrom($$source: any = {}): FeatureFlag {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new FeatureFlag($$parsedSource as Partial<FeatureFlag>);
     }
 }
 
@@ -1318,8 +1489,8 @@ export class FormField {
      * Creates a new FormField instance from a string or object.
      */
     static createFrom($$source: any = {}): FormField {
-        const $$createField7_0 = $$createType11;
-        const $$createField8_0 = $$createType13;
+        const $$createField7_0 = $$createType23;
+        const $$createField8_0 = $$createType25;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("visibleWhen" in $$parsedSource) {
             $$parsedSource["visibleWhen"] = $$createField7_0($$parsedSource["visibleWhen"]);
@@ -1356,6 +1527,62 @@ export class FormOption {
     static createFrom($$source: any = {}): FormOption {
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         return new FormOption($$parsedSource as Partial<FormOption>);
+    }
+}
+
+/**
+ * HealthCheck is one question the broker answers about itself.
+ * 
+ * RabbitMQ's health endpoints are deliberately narrow: each asks one thing and
+ * answers ok or not, with a sentence when not. Collapsing them into a single
+ * "healthy" flag would throw away the only part an operator can act on, which
+ * is which check failed and what it said.
+ */
+export class HealthCheck {
+    /**
+     * ID is a stable key the UI labels from, not a sentence.
+     */
+    "id": string;
+
+    /**
+     * Passed is false when the check failed and unknown when the broker could
+     * not run it at all, which is why Unavailable exists rather than a third
+     * value here.
+     */
+    "passed": boolean;
+
+    /**
+     * Unavailable means this endpoint is not on this broker - an older
+     * version, or a check that needs a plugin. It reads differently from a
+     * failure and must not be shown as one.
+     */
+    "unavailable": boolean;
+    "reason": string;
+
+    /** Creates a new HealthCheck instance. */
+    constructor($$source: Partial<HealthCheck> = {}) {
+        if (!("id" in $$source)) {
+            this["id"] = "";
+        }
+        if (!("passed" in $$source)) {
+            this["passed"] = false;
+        }
+        if (!("unavailable" in $$source)) {
+            this["unavailable"] = false;
+        }
+        if (!("reason" in $$source)) {
+            this["reason"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new HealthCheck instance from a string or object.
+     */
+    static createFrom($$source: any = {}): HealthCheck {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new HealthCheck($$parsedSource as Partial<HealthCheck>);
     }
 }
 
@@ -1735,10 +1962,10 @@ export class Node {
      * Creates a new Node instance from a string or object.
      */
     static createFrom($$source: any = {}): Node {
-        const $$createField10_0 = $$createType14;
-        const $$createField11_0 = $$createType15;
-        const $$createField12_0 = $$createType15;
-        const $$createField13_0 = $$createType17;
+        const $$createField10_0 = $$createType26;
+        const $$createField11_0 = $$createType27;
+        const $$createField12_0 = $$createType27;
+        const $$createField13_0 = $$createType29;
         const $$createField14_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("tpsHistoryTimestamps" in $$parsedSource) {
@@ -2072,6 +2299,37 @@ export class ResetOffsetRequest {
 }
 
 /**
+ * ResourceAlarm is a node that has crossed a memory or disk watermark.
+ * 
+ * While one is in effect the broker refuses publishes from every connection,
+ * which makes it the first thing worth showing on a cluster page.
+ */
+export class ResourceAlarm {
+    "node": string;
+    "resource": string;
+
+    /** Creates a new ResourceAlarm instance. */
+    constructor($$source: Partial<ResourceAlarm> = {}) {
+        if (!("node" in $$source)) {
+            this["node"] = "";
+        }
+        if (!("resource" in $$source)) {
+            this["resource"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ResourceAlarm instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ResourceAlarm {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ResourceAlarm($$parsedSource as Partial<ResourceAlarm>);
+    }
+}
+
+/**
  * Subscription is a consumer group, a Pulsar subscription or a RabbitMQ queue
  * consumer, as the canonical pages see it.
  * 
@@ -2148,7 +2406,7 @@ export class Subscription {
      * Creates a new Subscription instance from a string or object.
      */
     static createFrom($$source: any = {}): Subscription {
-        const $$createField1_0 = $$createType18;
+        const $$createField1_0 = $$createType30;
         const $$createField8_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("ref" in $$parsedSource) {
@@ -2214,8 +2472,8 @@ export class SubscriptionClient {
      * Creates a new SubscriptionClient instance from a string or object.
      */
     static createFrom($$source: any = {}): SubscriptionClient {
-        const $$createField1_0 = $$createType20;
-        const $$createField2_0 = $$createType22;
+        const $$createField1_0 = $$createType32;
+        const $$createField2_0 = $$createType34;
         const $$createField3_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("assignments" in $$parsedSource) {
@@ -2314,8 +2572,8 @@ export class TailBatch {
      * Creates a new TailBatch instance from a string or object.
      */
     static createFrom($$source: any = {}): TailBatch {
-        const $$createField0_0 = $$createType25;
-        const $$createField1_0 = $$createType26;
+        const $$createField0_0 = $$createType37;
+        const $$createField1_0 = $$createType38;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("messages" in $$parsedSource) {
             $$parsedSource["messages"] = $$createField0_0($$parsedSource["messages"]);
@@ -2350,7 +2608,7 @@ export class TailCursor {
      * Creates a new TailCursor instance from a string or object.
      */
     static createFrom($$source: any = {}): TailCursor {
-        const $$createField0_0 = $$createType28;
+        const $$createField0_0 = $$createType40;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("positions" in $$parsedSource) {
             $$parsedSource["positions"] = $$createField0_0($$parsedSource["positions"]);
@@ -2365,27 +2623,39 @@ const $$createType1 = AccessPolicy.createFrom;
 const $$createType2 = $Create.Array($$createType1);
 const $$createType3 = $Create.Map($Create.Any, $Create.Any);
 const $$createType4 = BrokerRates.createFrom;
-const $$createType5 = $Create.Array($Create.Any);
-const $$createType6 = $Create.Map($Create.Any, $Create.Any);
-const $$createType7 = DestinationRef.createFrom;
-const $$createType8 = FormField.createFrom;
-const $$createType9 = $Create.Array($$createType8);
-const $$createType10 = FieldCond.createFrom;
-const $$createType11 = $Create.Nullable($$createType10);
-const $$createType12 = FormOption.createFrom;
+const $$createType5 = HealthCheck.createFrom;
+const $$createType6 = $Create.Nullable($$createType5);
+const $$createType7 = $Create.Array($$createType6);
+const $$createType8 = ResourceAlarm.createFrom;
+const $$createType9 = $Create.Nullable($$createType8);
+const $$createType10 = $Create.Array($$createType9);
+const $$createType11 = FeatureFlag.createFrom;
+const $$createType12 = $Create.Nullable($$createType11);
 const $$createType13 = $Create.Array($$createType12);
-const $$createType14 = $Create.Array($Create.Any);
-const $$createType15 = $Create.Array($Create.Any);
-const $$createType16 = ReplicaStatus.createFrom;
-const $$createType17 = $Create.Array($$createType16);
-const $$createType18 = SubscriptionRef.createFrom;
-const $$createType19 = QueueAssignment.createFrom;
-const $$createType20 = $Create.Array($$createType19);
-const $$createType21 = ConsumeThroughput.createFrom;
-const $$createType22 = $Create.Array($$createType21);
-const $$createType23 = MessageItem.createFrom;
-const $$createType24 = $Create.Nullable($$createType23);
+const $$createType14 = DeprecatedFeature.createFrom;
+const $$createType15 = $Create.Nullable($$createType14);
+const $$createType16 = $Create.Array($$createType15);
+const $$createType17 = $Create.Array($Create.Any);
+const $$createType18 = $Create.Map($Create.Any, $Create.Any);
+const $$createType19 = DestinationRef.createFrom;
+const $$createType20 = FormField.createFrom;
+const $$createType21 = $Create.Array($$createType20);
+const $$createType22 = FieldCond.createFrom;
+const $$createType23 = $Create.Nullable($$createType22);
+const $$createType24 = FormOption.createFrom;
 const $$createType25 = $Create.Array($$createType24);
-const $$createType26 = TailCursor.createFrom;
-const $$createType27 = QueuePosition.createFrom;
-const $$createType28 = $Create.Array($$createType27);
+const $$createType26 = $Create.Array($Create.Any);
+const $$createType27 = $Create.Array($Create.Any);
+const $$createType28 = ReplicaStatus.createFrom;
+const $$createType29 = $Create.Array($$createType28);
+const $$createType30 = SubscriptionRef.createFrom;
+const $$createType31 = QueueAssignment.createFrom;
+const $$createType32 = $Create.Array($$createType31);
+const $$createType33 = ConsumeThroughput.createFrom;
+const $$createType34 = $Create.Array($$createType33);
+const $$createType35 = MessageItem.createFrom;
+const $$createType36 = $Create.Nullable($$createType35);
+const $$createType37 = $Create.Array($$createType36);
+const $$createType38 = TailCursor.createFrom;
+const $$createType39 = QueuePosition.createFrom;
+const $$createType40 = $Create.Array($$createType39);

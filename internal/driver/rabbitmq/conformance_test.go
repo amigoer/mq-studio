@@ -783,3 +783,75 @@ func TestLiveClientChannelsAttachToTheirConnection(t *testing.T) {
 		t.Errorf("vhost = %q, want the one asked for", attached.Namespace)
 	}
 }
+
+// The broker's own health checks, against the real broker. A single-node
+// development broker passes most of them, so what this pins is that each one
+// produced an answer rather than an error the page would show as a failure.
+func TestLiveHealthChecksAllAnswer(t *testing.T) {
+	conn := liveConn(t)
+	defer func() { _ = conn.Close() }()
+
+	health, err := conn.Health(context.Background())
+	if err != nil {
+		t.Fatalf("Health: %v", err)
+	}
+
+	wanted := []string{
+		CheckAlarms, CheckLocalAlarms, CheckVirtualHosts,
+		CheckQuorum, CheckMirrorSync, CheckCertificates,
+	}
+	seen := make(map[string]*model.HealthCheck, len(health.Checks))
+	for _, check := range health.Checks {
+		seen[check.ID] = check
+	}
+	for _, id := range wanted {
+		check, present := seen[id]
+		if !present {
+			t.Errorf("check %q produced no result at all", id)
+			continue
+		}
+		// A check that could not run is a distinct state from one that ran and
+		// failed, and it must not carry Passed.
+		if check.Unavailable && check.Passed {
+			t.Errorf("check %q is both unavailable and passed", id)
+		}
+	}
+
+	// A healthy broker with no alarms reports the check as passed and the
+	// alarm list as empty; the two must agree.
+	if alarms := seen[CheckAlarms]; alarms != nil && alarms.Passed && len(health.Alarms) > 0 {
+		t.Errorf("the alarm check passed while reporting %d alarms", len(health.Alarms))
+	}
+}
+
+// Feature flags decide whether a rolling upgrade is possible, so the page has
+// to be able to read them at all.
+func TestLiveFeatureFlagsAreReadable(t *testing.T) {
+	conn := liveConn(t)
+	defer func() { _ = conn.Close() }()
+
+	health, err := conn.Health(context.Background())
+	if err != nil {
+		t.Fatalf("Health: %v", err)
+	}
+	if len(health.FeatureFlags) == 0 {
+		t.Fatal("no feature flags came back; RabbitMQ 4 ships with many")
+	}
+	for _, flag := range health.FeatureFlags {
+		if flag.Name == "" || flag.State == "" {
+			t.Errorf("flag %+v is missing a name or a state", flag)
+		}
+	}
+
+	// The deprecation phase is decoded from an int by the library, so a naive
+	// string conversion yields one rune rather than a word. Anything that came
+	// back has to be a name.
+	for _, feature := range health.DeprecatedFeatures {
+		switch feature.Phase {
+		case "permitted_by_default", "denied_by_default", "disconnected", "removed", "unknown":
+		default:
+			t.Errorf("deprecated feature %q has phase %q, which is not a name",
+				feature.Name, feature.Phase)
+		}
+	}
+}

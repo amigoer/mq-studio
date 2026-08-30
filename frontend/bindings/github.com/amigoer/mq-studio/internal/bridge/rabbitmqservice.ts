@@ -50,6 +50,16 @@ export function ClientConnections(connID: number, $namespace: string): $Cancella
     });
 }
 
+/**
+ * Health runs the broker's own checks, and reads its feature flags and the
+ * deprecated features it still allows.
+ */
+export function Health(connID: number): $CancellablePromise<model$0.BrokerHealth | null> {
+    return $Call.ByID(483013203, connID).then(($result: any) => {
+        return $$createType9($result);
+    });
+}
+
 // Private type creation functions
 const $$createType0 = model$0.BrokerCensus.createFrom;
 const $$createType1 = $Create.Nullable($$createType0);
@@ -59,3 +69,5 @@ const $$createType4 = $Create.Array($$createType3);
 const $$createType5 = model$0.ClientConnection.createFrom;
 const $$createType6 = $Create.Nullable($$createType5);
 const $$createType7 = $Create.Array($$createType6);
+const $$createType8 = model$0.BrokerHealth.createFrom;
+const $$createType9 = $Create.Nullable($$createType8);

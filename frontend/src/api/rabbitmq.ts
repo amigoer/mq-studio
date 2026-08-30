@@ -8,14 +8,24 @@
  * exchanges that come later.
  */
 import { RabbitMQService } from "@bindings/bridge";
-import type { BrokerCensus, ClientChannel, ClientConnection } from "@bindings/model/models";
+import type {
+  BrokerCensus,
+  BrokerHealth,
+  ClientChannel,
+  ClientConnection,
+} from "@bindings/model/models";
 import { present } from "./client";
 
 export type {
   BrokerCensus,
+  BrokerHealth,
   BrokerRates,
   ClientChannel,
   ClientConnection,
+  DeprecatedFeature,
+  FeatureFlag,
+  HealthCheck,
+  ResourceAlarm,
 } from "@bindings/model/models";
 
 /**
@@ -40,3 +50,12 @@ export const getClientChannels = (
   namespace = "",
 ): Promise<ClientChannel[]> =>
   RabbitMQService.ClientChannels(connID, namespace).then(present);
+
+/**
+ * The broker's own health checks, resource alarms, feature flags and the
+ * deprecated features it still allows.
+ *
+ * Null when nothing is connected.
+ */
+export const getHealth = (connID: number): Promise<BrokerHealth | null> =>
+  RabbitMQService.Health(connID);
