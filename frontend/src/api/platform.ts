@@ -5,7 +5,7 @@
  * touches the filesystem, the network or the user's browser goes through a Go
  * service so the checks stay outside the renderer.
  */
-import { Events, System, Window } from "@wailsio/runtime";
+import { Clipboard, Events, System, Window } from "@wailsio/runtime";
 import { ShellService, SystemService, WindowService } from "@bindings/bridge";
 import type { ShellPage } from "@bindings/bridge/models";
 
@@ -111,6 +111,18 @@ export const windowControls = {
  */
 export const setTitleBarHeight = (height: number): Promise<void> =>
   WindowService.SetTitleBarHeight(height);
+
+/**
+ * Puts text on the system clipboard.
+ *
+ * Go writes the pasteboard rather than the DOM. `navigator.clipboard.writeText`
+ * rejects inside the app -- macOS serves the window over the `wails://` scheme
+ * rather than https -- and every copy button in the app failed while that was
+ * the only path.
+ */
+export async function copyText(text: string): Promise<void> {
+  await Clipboard.SetText(text);
+}
 
 export const appVersion = (): Promise<string> => SystemService.Version();
 export const openExternal = (url: string): Promise<void> =>

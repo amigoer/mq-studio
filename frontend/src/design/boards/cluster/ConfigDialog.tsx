@@ -18,6 +18,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useToast } from "@/components";
+import { copyText } from "@/api/platform";
 import { BoardState, Notice, isBlocked } from "@/design/boards/BoardState";
 import type { ConfigDocument } from "@/api/cluster";
 import type { BrokerData } from "@/hooks/useBrokerData";
@@ -71,7 +72,7 @@ export function ConfigDialog({
   const copy = async () => {
     const text = rows.map(([key, value]) => `${key}=${value}`).join("\n");
     try {
-      await navigator.clipboard.writeText(text);
+      await copyText(text);
       toast.success(t("board.cluster.rocketmq.config.copied", { count: rows.length }));
     } catch {
       toast.error(t("board.cluster.rocketmq.config.copyFailed"));

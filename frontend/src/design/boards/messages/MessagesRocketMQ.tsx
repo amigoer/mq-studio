@@ -31,6 +31,7 @@ import { BoardState, Notice, isBlocked } from "@/design/boards/BoardState";
 import { useBrokerData } from "@/hooks/useBrokerData";
 import { useConnectionScope } from "@/mq/ConnectionScope";
 import { useRecentPicks } from "@/hooks/useRecentPicks";
+import { copyText } from "@/api/platform";
 import * as messageApi from "@/api/message";
 import * as topicApi from "@/api/topic";
 import { topicName } from "@/mq/rocketmq/destinations";
@@ -255,8 +256,7 @@ function MessageSheet({
   );
 
   const copy = (value: string) => {
-    void navigator.clipboard
-      ?.writeText(value)
+    void copyText(value)
       .then(() => toast.success(t("board.common.copied")))
       .catch(() => {});
   };

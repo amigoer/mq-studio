@@ -45,6 +45,7 @@ import {
 } from "@/components";
 import {
   appVersion,
+  copyText,
   dataDirectory,
   openExternal,
   platform,
@@ -961,8 +962,7 @@ function DataPanel() {
   }, [copied]);
 
   const copy = () => {
-    navigator.clipboard
-      .writeText(directory)
+    copyText(directory)
       .then(() => setCopied(true))
       .catch(() => toast.error(t("page.settings.data.copyFailed")));
   };
