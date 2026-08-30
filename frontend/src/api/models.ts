@@ -9,6 +9,7 @@ import * as model from "@bindings/model/models";
 import type {
   ClusterView,
   ConnectionView,
+  MaintenanceTaskView,
   SettingsView,
 } from "@bindings/bridge/models";
 
@@ -17,6 +18,8 @@ export type Node = model.Node;
 export type ClusterOverview = model.ClusterOverview;
 /** The cluster page snapshot: header counters plus the nodes behind them. */
 export type { ClusterView };
+/** One housekeeping job a node can be asked to run, and whether it destroys data. */
+export type { MaintenanceTaskView };
 export type Destination = model.Destination;
 export type Binding = model.Binding;
 export type DestinationRef = model.DestinationRef;

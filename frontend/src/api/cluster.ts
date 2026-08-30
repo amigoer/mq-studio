@@ -1,6 +1,8 @@
 import { ClusterService } from "@bindings/bridge";
-import type { Node, ClusterView, ClusterSummary } from "./models";
+import type { Node, ClusterView, ClusterSummary, MaintenanceTaskView } from "./models";
 import { present, required } from "./client";
+
+export type { MaintenanceTaskView };
 
 export const getBrokers = (connID: number): Promise<Node[]> =>
   ClusterService.Brokers(connID).then(present);
@@ -24,3 +26,18 @@ export const getNodeConfig = (connID: number, brokerAddr: string): Promise<Confi
 /** The name servers' effective settings: one answer for the whole tier. */
 export const getDirectoryConfig = (connID: number): Promise<ConfigDocument> =>
   ClusterService.DirectoryConfig(connID);
+
+/**
+ * The housekeeping jobs a node can be asked to run.
+ *
+ * The set is closed and comes from Go, so the renderer cannot trigger a task
+ * that has not been reviewed and marked for how much it destroys.
+ */
+export const getMaintenanceTasks = (): Promise<MaintenanceTaskView[]> =>
+  ClusterService.MaintenanceTasks().then(present);
+
+export const runMaintenance = (
+  connID: number,
+  brokerAddr: string,
+  task: string,
+): Promise<void> => ClusterService.RunMaintenance(connID, brokerAddr, task);

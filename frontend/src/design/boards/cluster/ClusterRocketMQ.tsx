@@ -20,6 +20,7 @@ import { useBrokerData } from "@/hooks/useBrokerData";
 import * as clusterApi from "@/api/cluster";
 import { BoardState, Notice, isBlocked } from "@/design/boards/BoardState";
 import { ConfigDialog } from "./ConfigDialog";
+import { MaintenanceDialog } from "./MaintenanceDialog";
 import {
   BrokerRole,
   brokerId,
@@ -82,6 +83,7 @@ export function ClusterRocketMQ() {
    */
   const [configOf, setConfigOf] = useState<string | null>(null);
   const [directoryConfigOpen, setDirectoryConfigOpen] = useState(false);
+  const [maintenanceOf, setMaintenanceOf] = useState<string | null>(null);
 
   const loadNodeConfig = useCallback(
     (id: number) => clusterApi.getNodeConfig(id, configOf ?? ""),
@@ -182,9 +184,16 @@ export function ClusterRocketMQ() {
                         ? "—"
                         : `${consumeQueueDiskUsage(node)}%`}
                     </TableCell>
-                    <TableCell style={{ textAlign: "right" }}>
+                    <TableCell style={{ textAlign: "right", whiteSpace: "nowrap" }}>
                       <Button variant="ghost" size="xs" onClick={() => setConfigOf(node.address)}>
                         {t("board.cluster.rocketmq.config.action")}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="xs"
+                        onClick={() => setMaintenanceOf(node.address)}
+                      >
+                        {t("board.cluster.rocketmq.maintenance.action")}
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -208,6 +217,11 @@ export function ClusterRocketMQ() {
         subtitle={directory.map((node) => node.address).join("  ")}
         state={directoryConfig}
         onClose={() => setDirectoryConfigOpen(false)}
+      />
+      <MaintenanceDialog
+        open={maintenanceOf != null}
+        address={maintenanceOf}
+        onClose={() => setMaintenanceOf(null)}
       />
     </Page>
   );

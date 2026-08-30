@@ -1644,6 +1644,29 @@
           "copied": "已复制 {{count}} 项",
           "copyFailed": "复制失败"
         },
+        "maintenance": {
+          "action": "清理",
+          "title": "Broker 清理",
+          "run": "执行",
+          "confirm": "将在 {{address}} 上立即执行这项清理，无法撤销。",
+          "confirmDestructive": "将在 {{address}} 上立即删除已过保留期的 CommitLog，无法撤销。这些消息可能仍在有人预期能够回溯的范围内。",
+          "done": "已执行 {{name}}",
+          "failed": "{{name}} 执行失败",
+          "task": {
+            "cleanExpiredQueues": {
+              "name": "清理过期消费队列",
+              "desc": "删除消息已经从 CommitLog 滚掉的消费队列文件。只删已经读不到的内容。"
+            },
+            "cleanUnusedTopics": {
+              "name": "清理未使用 Topic",
+              "desc": "删除已不在路由表里的 Topic 的队列文件。刚删除的 Topic 可能仍被尚未刷新路由的生产者使用。"
+            },
+            "deleteExpiredLogs": {
+              "name": "删除过期 CommitLog",
+              "desc": "立即执行保留期清理，而不是等到预定时刻。会删除消息数据。"
+            }
+          }
+        },
         "commitLog": "CommitLog 盘",
         "consumeQueue": "ConsumeQueue 盘",
         "todayIn": "今日入",

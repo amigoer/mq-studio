@@ -1644,6 +1644,29 @@
           "copied": "Copied {{count}} settings",
           "copyFailed": "Could not copy"
         },
+        "maintenance": {
+          "action": "Clean",
+          "title": "Broker housekeeping",
+          "run": "Run",
+          "confirm": "Runs this job on {{address}} now. It cannot be undone.",
+          "confirmDestructive": "Deletes commit log past retention on {{address}} now. It cannot be undone, and the messages may still be within what someone expects to be able to replay.",
+          "done": "{{name}} finished",
+          "failed": "{{name}} failed",
+          "task": {
+            "cleanExpiredQueues": {
+              "name": "Clean expired consume queues",
+              "desc": "Drops consume queue files whose messages have already aged out of the commit log. Removes only what is unreadable already."
+            },
+            "cleanUnusedTopics": {
+              "name": "Clean unused topics",
+              "desc": "Drops queue files for topics no longer in the route table. A topic deleted moments ago may still be in use by a producer that has not refreshed."
+            },
+            "deleteExpiredLogs": {
+              "name": "Delete expired commit log",
+              "desc": "Runs the retention sweep now instead of at its scheduled hour. This one deletes message data."
+            }
+          }
+        },
         "commitLog": "CommitLog disk",
         "consumeQueue": "ConsumeQueue disk",
         "todayIn": "In today",
