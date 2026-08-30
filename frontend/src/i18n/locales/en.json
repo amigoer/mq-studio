@@ -1667,6 +1667,16 @@
             }
           }
         },
+        "replicas": {
+          "action": "Replicas",
+          "title": "Replication state",
+          "behind": "Behind",
+          "bytes": "{{bytes}} B",
+          "inSync": "In sync",
+          "outOfSync": "Behind",
+          "none": "No replicas",
+          "noneHint": "This node has no followers, or is a follower itself — a follower answers about none."
+        },
         "commitLog": "CommitLog disk",
         "consumeQueue": "ConsumeQueue disk",
         "todayIn": "In today",

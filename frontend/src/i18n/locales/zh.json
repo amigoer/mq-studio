@@ -1667,6 +1667,16 @@
             }
           }
         },
+        "replicas": {
+          "action": "副本状态",
+          "title": "副本同步状态",
+          "behind": "落后",
+          "bytes": "{{bytes}} B",
+          "inSync": "已同步",
+          "outOfSync": "未同步",
+          "none": "没有副本",
+          "noneHint": "这台没有从节点，或者它本身就是从节点——从节点不回答关于副本的问题。"
+        },
         "commitLog": "CommitLog 盘",
         "consumeQueue": "ConsumeQueue 盘",
         "todayIn": "今日入",

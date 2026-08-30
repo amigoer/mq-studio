@@ -1,8 +1,14 @@
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { RefreshCw } from "lucide-react";
+import { MoreHorizontal, RefreshCw } from "lucide-react";
 import { Page, PageBody, PageHeader } from "@/design/shell";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Table,
   TableBody,
@@ -21,6 +27,7 @@ import * as clusterApi from "@/api/cluster";
 import { BoardState, Notice, isBlocked } from "@/design/boards/BoardState";
 import { ConfigDialog } from "./ConfigDialog";
 import { MaintenanceDialog } from "./MaintenanceDialog";
+import { ReplicaDialog } from "./ReplicaDialog";
 import {
   BrokerRole,
   brokerId,
@@ -84,6 +91,7 @@ export function ClusterRocketMQ() {
   const [configOf, setConfigOf] = useState<string | null>(null);
   const [directoryConfigOpen, setDirectoryConfigOpen] = useState(false);
   const [maintenanceOf, setMaintenanceOf] = useState<string | null>(null);
+  const [replicasOf, setReplicasOf] = useState<string | null>(null);
 
   const loadNodeConfig = useCallback(
     (id: number) => clusterApi.getNodeConfig(id, configOf ?? ""),
@@ -184,17 +192,25 @@ export function ClusterRocketMQ() {
                         ? "—"
                         : `${consumeQueueDiskUsage(node)}%`}
                     </TableCell>
-                    <TableCell style={{ textAlign: "right", whiteSpace: "nowrap" }}>
-                      <Button variant="ghost" size="xs" onClick={() => setConfigOf(node.address)}>
-                        {t("board.cluster.rocketmq.config.action")}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="xs"
-                        onClick={() => setMaintenanceOf(node.address)}
-                      >
-                        {t("board.cluster.rocketmq.maintenance.action")}
-                      </Button>
+                    <TableCell style={{ textAlign: "right" }}>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon-xs" aria-label={t("board.common.actions")}>
+                            <MoreHorizontal />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onSelect={() => setReplicasOf(node.address)}>
+                            {t("board.cluster.rocketmq.replicas.action")}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => setConfigOf(node.address)}>
+                            {t("board.cluster.rocketmq.config.action")}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => setMaintenanceOf(node.address)}>
+                            {t("board.cluster.rocketmq.maintenance.action")}
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -222,6 +238,11 @@ export function ClusterRocketMQ() {
         open={maintenanceOf != null}
         address={maintenanceOf}
         onClose={() => setMaintenanceOf(null)}
+      />
+      <ReplicaDialog
+        open={replicasOf != null}
+        address={replicasOf}
+        onClose={() => setReplicasOf(null)}
       />
     </Page>
   );
