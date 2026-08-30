@@ -1072,20 +1072,22 @@
         "bookieStorage": "Bookie storage"
       },
       "rabbitmq": {
-        "subtitle": "rabbit-staging · RabbitMQ 3.13 · 3-node cluster · vhost /order",
+        "subtitle": "{{cluster}} · RabbitMQ {{version}}",
+        "empty": "This broker has no queues or exchanges yet",
         "allRunning": "All running",
+        "partitioned": "{{count}} node(s) partitioned",
+        "consumers": "{{count}} consumers",
         "connChannels": "Connections / channels",
-        "peak": "Peak 09:40",
-        "publishRate": "Publish rate",
-        "deliverRate": "Deliver 2 903/s",
-        "ready": "Ready messages",
+        "connChannelsHint": "Management stats lag by a few seconds",
+        "ready": "Ready",
+        "unacked": "{{count}} unacked",
+        "unroutable": "Unroutable",
         "watermarks": "Node watermarks",
-        "node1Mem": "node1 memory",
-        "node2Mem": "node2 memory",
-        "node3Mem": "node3 memory",
-        "diskFree": "Disk free",
-        "nodeWarn": "node3 is approaching the vm_memory high watermark",
-        "topReady": "Top queues by ready"
+        "noNodes": "No nodes could be read",
+        "partitionWarn": "{{node}} has lost {{peers}}: the cluster is split and each half believes it is whole",
+        "busiest": "Queues holding the most",
+        "allDrained": "Every queue is drained",
+        "noConsumer": "No consumer"
       },
       "redis": {
         "subtitle": "redis-stream-01 · Redis 7.2 · standalone · db0 · read-only off",

@@ -257,6 +257,18 @@ type AccessDirectory interface {
 	RemoveAccessRule(ctx context.Context, subject string) error
 }
 
+// CensusReporter answers for the whole broker in one call.
+//
+// Separate from ClusterAdmin because it is a different question at a different
+// cost. The topology is which nodes exist; this is what they are collectively
+// holding and how fast it is moving, and a family that cannot answer it in one
+// request should not pretend to - assembling it by walking every destination
+// would be a page that takes a minute and a figure that was never true at any
+// single moment.
+type CensusReporter interface {
+	Census(ctx context.Context) (*model.BrokerCensus, error)
+}
+
 // RoutingAdmin manages exchanges and bindings. Only RabbitMQ has them, which
 // is why the canonical page set has no counterpart and the driver contributes
 // a page of its own.

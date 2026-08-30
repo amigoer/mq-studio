@@ -68,7 +68,13 @@ const (
 	// back, which is how a broker is drained before it is stopped.
 	CapNodeWritePerm  Capability = "cluster.writePerm"
 	CapClusterMetrics Capability = "cluster.metrics"
-	CapAccessControl  Capability = "access.control"
+
+	// CapClusterCensus is a broker that keeps its own running totals - object
+	// counts, queued depth and message rates for the whole cluster in one
+	// answer. A family whose figures can only be assembled by walking every
+	// destination does not have it.
+	CapClusterCensus Capability = "cluster.census"
+	CapAccessControl Capability = "access.control"
 	// CapAccessDirectory is identity-based access control: principals the
 	// broker authenticates and rules attached to a subject. Distinct from
 	// CapAccessControl, which is the credential-carrying kind a broker will

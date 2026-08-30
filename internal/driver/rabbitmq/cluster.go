@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 
 	rabbithole "github.com/michaelklishin/rabbit-hole/v3"
 
@@ -11,12 +12,24 @@ import (
 	"github.com/amigoer/mq-studio/internal/timestamp"
 )
 
-// Attribute keys this driver puts on a Node.
+// Attribute keys this driver puts on a Node. They are a contract with
+// frontend/src/mq/rabbitmq/nodes.ts.
 const (
-	AttrNodeType    = "nodeType"
-	AttrErlangProcs = "erlangProcesses"
-	AttrUptime      = "uptime"
-	AttrFdUsed      = "fileDescriptorsUsed"
+	AttrNodeType      = "nodeType"
+	AttrSchedulers    = "schedulers"
+	AttrErlangProcs   = "erlangProcesses"
+	AttrErlangProcMax = "erlangProcessLimit"
+	AttrUptime        = "uptime"
+	AttrFdUsed        = "fileDescriptorsUsed"
+	AttrFdLimit       = "fileDescriptorLimit"
+	AttrMemUsed       = "memoryUsed"
+	AttrMemLimit      = "memoryLimit"
+	AttrMemAlarm      = "memoryAlarm"
+	AttrDiskFree      = "diskFree"
+	AttrDiskLimit     = "diskFreeLimit"
+	AttrDiskAlarm     = "diskFreeAlarm"
+	AttrPartitions    = "partitions"
+	AttrRunQueue      = "runQueue"
 )
 
 // ListNodes returns the cluster's nodes.
@@ -81,7 +94,7 @@ func nodeFrom(node *rabbithole.NodeInfo, version string) *model.Node {
 	switch {
 	case !node.IsRunning:
 		status = model.NodeOffline
-	case node.MemAlarm || node.DiskFreeAlarm:
+	case len(node.Partitions) > 0, node.MemAlarm, node.DiskFreeAlarm:
 		status = model.NodeWarning
 	}
 
@@ -90,17 +103,33 @@ func nodeFrom(node *rabbithole.NodeInfo, version string) *model.Node {
 		Address: node.Name,
 		Version: version,
 		Status:  status,
+		// A node reports no per-node throughput. The rates live on the broker
+		// as a whole and on each queue, so anything here would be invented.
 		RateIn:  model.UnknownMetric,
 		RateOut: model.UnknownMetric,
-		// There is no single disk-usage percentage to report: the broker
-		// exposes free-space headroom and an alarm flag instead.
+		// Disk is free-space headroom against an alarm threshold, not a
+		// fraction of a total the broker knows. A percentage would be a number
+		// nobody measured; the bytes and the alarm flag are in the attributes.
 		DiskUsage: model.UnknownMetric,
 		LastSeen:  timestamp.Now(),
 		Attributes: map[string]string{
-			AttrNodeType:    node.NodeType,
-			AttrErlangProcs: strconv.FormatUint(uint64(node.Processors), 10),
-			AttrUptime:      strconv.FormatUint(node.Uptime, 10),
-			AttrFdUsed:      strconv.Itoa(node.FdUsed),
+			AttrNodeType:      node.NodeType,
+			AttrSchedulers:    strconv.FormatUint(uint64(node.Processors), 10),
+			AttrErlangProcs:   strconv.Itoa(node.ProcUsed),
+			AttrErlangProcMax: strconv.Itoa(node.ProcTotal),
+			AttrUptime:        strconv.FormatUint(node.Uptime, 10),
+			AttrFdUsed:        strconv.Itoa(node.FdUsed),
+			AttrFdLimit:       strconv.Itoa(node.FdTotal),
+			AttrMemUsed:       strconv.Itoa(node.MemUsed),
+			AttrMemLimit:      strconv.Itoa(node.MemLimit),
+			AttrMemAlarm:      strconv.FormatBool(node.MemAlarm),
+			AttrDiskFree:      strconv.Itoa(node.DiskFree),
+			AttrDiskLimit:     strconv.Itoa(node.DiskFreeLimit),
+			AttrDiskAlarm:     strconv.FormatBool(node.DiskFreeAlarm),
+			// A non-empty list is a split brain, which is the single most
+			// important thing a RabbitMQ node can be saying.
+			AttrPartitions: strings.Join(node.Partitions, ","),
+			AttrRunQueue:   strconv.FormatUint(uint64(node.RunQueueLength), 10),
 		},
 	}
 }

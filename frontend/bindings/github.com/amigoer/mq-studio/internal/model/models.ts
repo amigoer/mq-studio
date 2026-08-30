@@ -272,6 +272,142 @@ export class Binding {
 }
 
 /**
+ * BrokerCensus is a broker-wide snapshot: how many of each object exists, how
+ * much is sitting in queues, and how fast messages are moving through.
+ * 
+ * It is separate from ClusterOverview because the two answer different
+ * questions. ClusterOverview is the topology - how many nodes, how many are
+ * up - and every family has one. This is the broker's own running total, which
+ * only a family with a single endpoint that aggregates the cluster can report;
+ * RabbitMQ's management API is one, and RocketMQ has no counterpart.
+ * 
+ * Counts a family does not report carry UnknownMetric rather than zero, so the
+ * page renders an em dash instead of a measurement that was never taken.
+ */
+export class BrokerCensus {
+    "clusterName": string;
+    "version": string;
+    "runtimeVersion": string;
+    "queues": number;
+    "exchanges": number;
+    "connections": number;
+    "channels": number;
+    "consumers": number;
+
+    /**
+     * Ready is deliverable now, Unacknowledged is with a consumer that has not
+     * acked yet. Total is what the broker holds and is not always their sum:
+     * it counts messages in states neither covers.
+     */
+    "ready": number;
+    "unacknowledged": number;
+    "total": number;
+    "rates": BrokerRates;
+
+    /** Creates a new BrokerCensus instance. */
+    constructor($$source: Partial<BrokerCensus> = {}) {
+        if (!("clusterName" in $$source)) {
+            this["clusterName"] = "";
+        }
+        if (!("version" in $$source)) {
+            this["version"] = "";
+        }
+        if (!("runtimeVersion" in $$source)) {
+            this["runtimeVersion"] = "";
+        }
+        if (!("queues" in $$source)) {
+            this["queues"] = 0;
+        }
+        if (!("exchanges" in $$source)) {
+            this["exchanges"] = 0;
+        }
+        if (!("connections" in $$source)) {
+            this["connections"] = 0;
+        }
+        if (!("channels" in $$source)) {
+            this["channels"] = 0;
+        }
+        if (!("consumers" in $$source)) {
+            this["consumers"] = 0;
+        }
+        if (!("ready" in $$source)) {
+            this["ready"] = 0;
+        }
+        if (!("unacknowledged" in $$source)) {
+            this["unacknowledged"] = 0;
+        }
+        if (!("total" in $$source)) {
+            this["total"] = 0;
+        }
+        if (!("rates" in $$source)) {
+            this["rates"] = (new BrokerRates());
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new BrokerCensus instance from a string or object.
+     */
+    static createFrom($$source: any = {}): BrokerCensus {
+        const $$createField11_0 = $$createType4;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("rates" in $$parsedSource) {
+            $$parsedSource["rates"] = $$createField11_0($$parsedSource["rates"]);
+        }
+        return new BrokerCensus($$parsedSource as Partial<BrokerCensus>);
+    }
+}
+
+/**
+ * BrokerRates is messages per second, as the broker computes them over its own
+ * sampling window rather than as anything measured here.
+ */
+export class BrokerRates {
+    "publish": number;
+    "deliver": number;
+    "ack": number;
+    "redeliver": number;
+
+    /**
+     * Unroutable is publishes that matched no binding. It has no counterpart
+     * in a family that publishes straight to a destination, and it is the
+     * first thing worth knowing when messages "disappear" on a topology whose
+     * bindings are wrong.
+     */
+    "unroutable": number;
+
+    /** Creates a new BrokerRates instance. */
+    constructor($$source: Partial<BrokerRates> = {}) {
+        if (!("publish" in $$source)) {
+            this["publish"] = 0;
+        }
+        if (!("deliver" in $$source)) {
+            this["deliver"] = 0;
+        }
+        if (!("ack" in $$source)) {
+            this["ack"] = 0;
+        }
+        if (!("redeliver" in $$source)) {
+            this["redeliver"] = 0;
+        }
+        if (!("unroutable" in $$source)) {
+            this["unroutable"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new BrokerRates instance from a string or object.
+     */
+    static createFrom($$source: any = {}): BrokerRates {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new BrokerRates($$parsedSource as Partial<BrokerRates>);
+    }
+}
+
+/**
  * Capabilities is what one live connection can actually do.
  * 
  * Three states reach the UI, and they must stay distinguishable: a capability
@@ -316,9 +452,9 @@ export class Capabilities {
      * Creates a new Capabilities instance from a string or object.
      */
     static createFrom($$source: any = {}): Capabilities {
-        const $$createField0_0 = $$createType4;
-        const $$createField1_0 = $$createType5;
-        const $$createField2_0 = $$createType5;
+        const $$createField0_0 = $$createType5;
+        const $$createField1_0 = $$createType6;
+        const $$createField2_0 = $$createType6;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("supported" in $$parsedSource) {
             $$parsedSource["supported"] = $$createField0_0($$parsedSource["supported"]);
@@ -433,6 +569,14 @@ export enum Capability {
      */
     CapNodeWritePerm = "cluster.writePerm",
     CapClusterMetrics = "cluster.metrics",
+
+    /**
+     * CapClusterCensus is a broker that keeps its own running totals - object
+     * counts, queued depth and message rates for the whole cluster in one
+     * answer. A family whose figures can only be assembled by walking every
+     * destination does not have it.
+     */
+    CapClusterCensus = "cluster.census",
     CapAccessControl = "access.control",
 
     /**
@@ -688,7 +832,7 @@ export class Destination {
      * Creates a new Destination instance from a string or object.
      */
     static createFrom($$source: any = {}): Destination {
-        const $$createField1_0 = $$createType6;
+        const $$createField1_0 = $$createType7;
         const $$createField8_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("ref" in $$parsedSource) {
@@ -775,8 +919,8 @@ export class DriverDescriptor {
      * Creates a new DriverDescriptor instance from a string or object.
      */
     static createFrom($$source: any = {}): DriverDescriptor {
-        const $$createField2_0 = $$createType8;
-        const $$createField3_0 = $$createType4;
+        const $$createField2_0 = $$createType9;
+        const $$createField3_0 = $$createType5;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("form" in $$parsedSource) {
             $$parsedSource["form"] = $$createField2_0($$parsedSource["form"]);
@@ -918,8 +1062,8 @@ export class FormField {
      * Creates a new FormField instance from a string or object.
      */
     static createFrom($$source: any = {}): FormField {
-        const $$createField7_0 = $$createType10;
-        const $$createField8_0 = $$createType12;
+        const $$createField7_0 = $$createType11;
+        const $$createField8_0 = $$createType13;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("visibleWhen" in $$parsedSource) {
             $$parsedSource["visibleWhen"] = $$createField7_0($$parsedSource["visibleWhen"]);
@@ -1335,10 +1479,10 @@ export class Node {
      * Creates a new Node instance from a string or object.
      */
     static createFrom($$source: any = {}): Node {
-        const $$createField10_0 = $$createType13;
-        const $$createField11_0 = $$createType14;
-        const $$createField12_0 = $$createType14;
-        const $$createField13_0 = $$createType16;
+        const $$createField10_0 = $$createType14;
+        const $$createField11_0 = $$createType15;
+        const $$createField12_0 = $$createType15;
+        const $$createField13_0 = $$createType17;
         const $$createField14_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("tpsHistoryTimestamps" in $$parsedSource) {
@@ -1748,7 +1892,7 @@ export class Subscription {
      * Creates a new Subscription instance from a string or object.
      */
     static createFrom($$source: any = {}): Subscription {
-        const $$createField1_0 = $$createType17;
+        const $$createField1_0 = $$createType18;
         const $$createField8_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("ref" in $$parsedSource) {
@@ -1814,8 +1958,8 @@ export class SubscriptionClient {
      * Creates a new SubscriptionClient instance from a string or object.
      */
     static createFrom($$source: any = {}): SubscriptionClient {
-        const $$createField1_0 = $$createType19;
-        const $$createField2_0 = $$createType21;
+        const $$createField1_0 = $$createType20;
+        const $$createField2_0 = $$createType22;
         const $$createField3_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("assignments" in $$parsedSource) {
@@ -1914,8 +2058,8 @@ export class TailBatch {
      * Creates a new TailBatch instance from a string or object.
      */
     static createFrom($$source: any = {}): TailBatch {
-        const $$createField0_0 = $$createType24;
-        const $$createField1_0 = $$createType25;
+        const $$createField0_0 = $$createType25;
+        const $$createField1_0 = $$createType26;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("messages" in $$parsedSource) {
             $$parsedSource["messages"] = $$createField0_0($$parsedSource["messages"]);
@@ -1950,7 +2094,7 @@ export class TailCursor {
      * Creates a new TailCursor instance from a string or object.
      */
     static createFrom($$source: any = {}): TailCursor {
-        const $$createField0_0 = $$createType27;
+        const $$createField0_0 = $$createType28;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("positions" in $$parsedSource) {
             $$parsedSource["positions"] = $$createField0_0($$parsedSource["positions"]);
@@ -1964,27 +2108,28 @@ const $$createType0 = $Create.Array($Create.Any);
 const $$createType1 = AccessPolicy.createFrom;
 const $$createType2 = $Create.Array($$createType1);
 const $$createType3 = $Create.Map($Create.Any, $Create.Any);
-const $$createType4 = $Create.Array($Create.Any);
-const $$createType5 = $Create.Map($Create.Any, $Create.Any);
-const $$createType6 = DestinationRef.createFrom;
-const $$createType7 = FormField.createFrom;
-const $$createType8 = $Create.Array($$createType7);
-const $$createType9 = FieldCond.createFrom;
-const $$createType10 = $Create.Nullable($$createType9);
-const $$createType11 = FormOption.createFrom;
-const $$createType12 = $Create.Array($$createType11);
-const $$createType13 = $Create.Array($Create.Any);
+const $$createType4 = BrokerRates.createFrom;
+const $$createType5 = $Create.Array($Create.Any);
+const $$createType6 = $Create.Map($Create.Any, $Create.Any);
+const $$createType7 = DestinationRef.createFrom;
+const $$createType8 = FormField.createFrom;
+const $$createType9 = $Create.Array($$createType8);
+const $$createType10 = FieldCond.createFrom;
+const $$createType11 = $Create.Nullable($$createType10);
+const $$createType12 = FormOption.createFrom;
+const $$createType13 = $Create.Array($$createType12);
 const $$createType14 = $Create.Array($Create.Any);
-const $$createType15 = ReplicaStatus.createFrom;
-const $$createType16 = $Create.Array($$createType15);
-const $$createType17 = SubscriptionRef.createFrom;
-const $$createType18 = QueueAssignment.createFrom;
-const $$createType19 = $Create.Array($$createType18);
-const $$createType20 = ConsumeThroughput.createFrom;
-const $$createType21 = $Create.Array($$createType20);
-const $$createType22 = MessageItem.createFrom;
-const $$createType23 = $Create.Nullable($$createType22);
-const $$createType24 = $Create.Array($$createType23);
-const $$createType25 = TailCursor.createFrom;
-const $$createType26 = QueuePosition.createFrom;
-const $$createType27 = $Create.Array($$createType26);
+const $$createType15 = $Create.Array($Create.Any);
+const $$createType16 = ReplicaStatus.createFrom;
+const $$createType17 = $Create.Array($$createType16);
+const $$createType18 = SubscriptionRef.createFrom;
+const $$createType19 = QueueAssignment.createFrom;
+const $$createType20 = $Create.Array($$createType19);
+const $$createType21 = ConsumeThroughput.createFrom;
+const $$createType22 = $Create.Array($$createType21);
+const $$createType23 = MessageItem.createFrom;
+const $$createType24 = $Create.Nullable($$createType23);
+const $$createType25 = $Create.Array($$createType24);
+const $$createType26 = TailCursor.createFrom;
+const $$createType27 = QueuePosition.createFrom;
+const $$createType28 = $Create.Array($$createType27);

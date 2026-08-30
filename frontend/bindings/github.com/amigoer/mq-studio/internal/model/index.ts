@@ -8,6 +8,8 @@ export {
     AclVersionInfo,
     AuthMechanism,
     Binding,
+    BrokerCensus,
+    BrokerRates,
     Capabilities,
     Capability,
     CloneOffsetRequest,

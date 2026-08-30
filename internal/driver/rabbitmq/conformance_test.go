@@ -386,3 +386,86 @@ func waitForConnectionToGo(t *testing.T, admin *Conn, name string) bool {
 		time.Sleep(250 * time.Millisecond)
 	}
 }
+
+// The census against the real broker. The offline tests prove the mapping
+// against fixtures; this proves the fixtures are the shape RabbitMQ 4 sends.
+func TestLiveCensusReadsTheBroker(t *testing.T) {
+	conn := liveConn(t)
+	defer func() { _ = conn.Close() }()
+
+	ctx := context.Background()
+	census, err := conn.Census(ctx)
+	if err != nil {
+		t.Fatalf("Census: %v", err)
+	}
+
+	if census.ClusterName == "" {
+		t.Error("the broker reported no cluster name")
+	}
+	if census.Version == "" || census.RuntimeVersion == "" {
+		t.Errorf("versions = %q / %q, want both", census.Version, census.RuntimeVersion)
+	}
+	// Every vhost has the default exchanges, so this is never zero on a broker
+	// that answered at all.
+	if census.Exchanges <= 0 {
+		t.Errorf("exchanges = %d, want the built-in ones at least", census.Exchanges)
+	}
+	// Connections is deliberately not asserted. The management API's object
+	// totals come from a stats collector on an interval, so the connection
+	// this test just opened is not counted for a few seconds - the same lag
+	// TestLiveAmqpConnectionNamesItself has to poll around. Asserting it here
+	// would be a flaky test rather than a strict one.
+	if census.Connections < 0 {
+		t.Errorf("connections = %d", census.Connections)
+	}
+
+	// Cross-check the census against walking the queues, which is the thing it
+	// exists to avoid doing. They are read a moment apart, so this checks the
+	// census is in the right order of magnitude rather than exactly equal.
+	queues, err := conn.ListDestinations(ctx, model.DestinationFilter{IncludeInternal: true})
+	if err != nil {
+		t.Fatalf("list queues: %v", err)
+	}
+	if census.Queues < len(queues)-2 || census.Queues > len(queues)+2 {
+		t.Errorf("census counts %d queues, the listing has %d", census.Queues, len(queues))
+	}
+}
+
+// Node figures the overview's watermark meters read. They are attributes
+// rather than canonical fields, so nothing but a test says they are there.
+func TestLiveNodeCarriesMemoryAndDiskLimits(t *testing.T) {
+	conn := liveConn(t)
+	defer func() { _ = conn.Close() }()
+
+	nodes, err := conn.ListNodes(context.Background())
+	if err != nil {
+		t.Fatalf("list nodes: %v", err)
+	}
+	if len(nodes) == 0 {
+		t.Fatal("no nodes")
+	}
+
+	node := nodes[0]
+	for _, key := range []string{AttrMemUsed, AttrMemLimit, AttrDiskFree, AttrDiskLimit} {
+		value, present := node.Attributes[key]
+		if !present || value == "" || value == "0" {
+			t.Errorf("attribute %q = %q, want a real figure", key, value)
+		}
+	}
+	for _, key := range []string{AttrMemAlarm, AttrDiskAlarm} {
+		if value := node.Attributes[key]; value != "true" && value != "false" {
+			t.Errorf("attribute %q = %q, want a boolean", key, value)
+		}
+	}
+	// A healthy single-node broker is partitioned from nobody. The key must
+	// still be present, because its absence and an empty list mean different
+	// things to the reader.
+	if _, present := node.Attributes[AttrPartitions]; !present {
+		t.Error("the partitions attribute is missing entirely")
+	}
+	// RabbitMQ reports no per-node throughput, so these must stay unknown
+	// rather than being filled with a zero that reads as "measured, idle".
+	if node.RateIn != model.UnknownMetric || node.RateOut != model.UnknownMetric {
+		t.Errorf("node rates = %d / %d, want the unknown sentinel", node.RateIn, node.RateOut)
+	}
+}

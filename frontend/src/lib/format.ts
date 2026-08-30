@@ -51,3 +51,26 @@ export function formatQueues(read: number, write: number): string {
   if (isUnknown(write)) return `${read} / ${UNKNOWN}`;
   return `${read} / ${write}`;
 }
+
+/**
+ * A byte count at human scale.
+ *
+ * RabbitMQ reports memory and free disk in bytes, and the numbers are large
+ * enough that the raw figure is unreadable: a node's memory limit is routinely
+ * ten digits.
+ */
+export function formatBytes(value: number | string | undefined): string {
+  const bytes = typeof value === "string" ? Number.parseInt(value, 10) : value;
+  if (bytes == null || Number.isNaN(bytes) || isUnknown(bytes)) return UNKNOWN;
+  if (bytes < 1024) return `${bytes} B`;
+  const units = ["KiB", "MiB", "GiB", "TiB", "PiB"];
+  let scaled = bytes / 1024;
+  let unit = 0;
+  while (scaled >= 1024 && unit < units.length - 1) {
+    scaled /= 1024;
+    unit += 1;
+  }
+  // One decimal below ten keeps 1.5 GiB from reading as 2 GiB; above it the
+  // fraction is noise.
+  return `${scaled < 10 ? scaled.toFixed(1) : Math.round(scaled)} ${units[unit]}`;
+}
