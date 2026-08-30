@@ -1119,3 +1119,54 @@ func hasRule(rules []*model.AccessRule, subject string) bool {
 	}
 	return false
 }
+
+// The per-queue rows of a group's consume progress.
+//
+// The broker keys its offset table by a MessageQueue object, which the library
+// hands back as that object's JSON text once its Fastjson fixer has quoted it.
+// Nothing but a live broker proves that key is the shape the driver reads, and
+// getting it wrong would leave every row with a blank topic and queue -1 while
+// the totals beside them still looked right.
+func TestLiveConsumeStatsQueues(t *testing.T) {
+	connections, _, registry := liveStack(t)
+	ctx := context.Background()
+
+	profile, err := connections.AddConnection(liveProfileInput("consume-stats"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := connections.Connect(profile.ID); err != nil {
+		t.Fatalf("connect: %v", err)
+	}
+	conn, _ := registry.Get(profile.ID)
+
+	stats, err := conn.(driver.SubscriptionStats).SubscriptionStats(ctx,
+		model.SubscriptionRef{Name: seededGroup})
+	if err != nil {
+		t.Fatalf("SubscriptionStats: %v", err)
+	}
+	queues, ok := stats["queues"].([]map[string]interface{})
+	if !ok {
+		t.Fatalf("no queue rows in %v", stats)
+	}
+	if len(queues) == 0 {
+		t.Fatal("the seeded group reports no queues")
+	}
+
+	seeded := 0
+	for _, queue := range queues {
+		if queue["queueId"].(int) < 0 {
+			t.Fatalf("a queue key did not decode: %v", queue)
+		}
+		if queue["brokerName"] == "" {
+			t.Fatalf("a queue row has no broker: %v", queue)
+		}
+		if queue["topic"] == seededTopic {
+			seeded++
+		}
+	}
+	if seeded == 0 {
+		t.Fatalf("no row for %s among %d queues", seededTopic, len(queues))
+	}
+	t.Logf("%d queue row(s), %d of them on %s", len(queues), seeded, seededTopic)
+}
