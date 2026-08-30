@@ -55,6 +55,11 @@ interface ConnectionProfilesContextValue {
    */
   profiles: readonly ConnectionProfile[];
   loading: boolean;
+  /**
+   * True when the list could not be read at all. Distinct from an empty list:
+   * a list that never arrived is no proof that a stored tab's profile is gone.
+   */
+  loadFailed: boolean;
   /** In-flight operation per connection id; absent when the row is idle. */
   pending: Readonly<Record<number, ConnectionOp | undefined>>;
   /** Message from the last failed connect or test, cleared by a success. */
@@ -85,6 +90,7 @@ export function latencyLabel(milliseconds: number): string {
 function useConnectionProfilesStore(): ConnectionProfilesContextValue {
   const [profiles, setProfiles] = useState<readonly ConnectionProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [pending, setPending] = useState<Record<number, ConnectionOp | undefined>>({});
   const [errors, setErrors] = useState<Record<number, string | undefined>>({});
   // Measured, not invented: the round trip of the connect or test that last
@@ -94,6 +100,7 @@ function useConnectionProfilesStore(): ConnectionProfilesContextValue {
 
   const load = useCallback(async () => {
     setProfiles(await getConnections());
+    setLoadFailed(false);
   }, []);
 
   const reload = useCallback(async () => {
@@ -109,6 +116,7 @@ function useConnectionProfilesStore(): ConnectionProfilesContextValue {
       .catch(() => {
         // Off Wails, or before Go is up: an empty list is the honest answer,
         // and the empty state says so.
+        if (!cancelled) setLoadFailed(true);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -242,6 +250,7 @@ function useConnectionProfilesStore(): ConnectionProfilesContextValue {
       connections,
       profiles,
       loading,
+      loadFailed,
       pending,
       errors,
       reload,
@@ -261,6 +270,7 @@ function useConnectionProfilesStore(): ConnectionProfilesContextValue {
       disconnect,
       errors,
       loading,
+      loadFailed,
       makeDefault,
       pending,
       reload,

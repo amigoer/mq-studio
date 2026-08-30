@@ -29,7 +29,7 @@ import {
   type ConnectionDraft,
   type CredentialsMode,
 } from "@/api/connection";
-import { readSession, writeSession } from "@/design/data/session";
+import { readSession, restoreSession, writeSession } from "@/design/data/session";
 import { ConnectionsList } from "@/design/boards/connections/ConnectionsList";
 import { ConnectionsEmpty } from "@/design/boards/connections/ConnectionsEmpty";
 import { NewConnectionDialog } from "@/design/boards/connections/NewConnectionDialog";
@@ -62,6 +62,7 @@ export function DesignApp(): JSX.Element {
     connections,
     profiles,
     loading: connectionsLoading,
+    loadFailed: connectionsLoadFailed,
     pending,
     errors,
     reload,
@@ -78,10 +79,10 @@ export function DesignApp(): JSX.Element {
   // Read once: the stored session is the window's opening state, and reading it
   // again on a later render would fight whatever the user has done since. It is
   // filtered against the profiles below, once they have loaded.
-  const [session] = useState(() => readSession([]));
+  const [session] = useState(() => readSession());
   const [openTabs, setOpenTabs] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<string | null>(null);
-  const [pageByTab, setPageByTab] = useState<Record<string, PageId>>(session.pageByTab ?? {});
+  const [pageByTab, setPageByTab] = useState<Record<string, PageId>>({});
   /*
    * Where a cross-page jump landed. `seq` is what makes the board remount even
    * when the jump does not change the page, so arriving twice on the same page
@@ -118,18 +119,18 @@ export function DesignApp(): JSX.Element {
    * that names a tab reopens on it.
    */
   useEffect(() => {
-    if (connectionsLoading || restored) return;
+    // A list that never arrived is not a list without these profiles in it.
+    // Restoring on one would drop every tab, and the write below would then
+    // persist that emptiness over the session it failed to read.
+    if (connectionsLoading || connectionsLoadFailed || restored) return;
     setRestored(true);
-    const known = connections.map((c) => c.key);
-    const tabs = (session.openTabs ?? []).filter((key) => known.includes(key));
-    if (tabs.length === 0) return;
-    const active = session.activeTab != null && tabs.includes(session.activeTab)
-      ? session.activeTab
-      : tabs[0]!;
-    setOpenTabs(tabs);
-    setActiveTab(active);
+    const opening = restoreSession(session, connections.map((c) => c.key));
+    setPageByTab(opening.pageByTab);
+    if (opening.openTabs.length === 0) return;
+    setOpenTabs(opening.openTabs);
+    setActiveTab(opening.activeTab);
     setView({ kind: "tab" });
-  }, [connections, connectionsLoading, restored, session]);
+  }, [connections, connectionsLoading, connectionsLoadFailed, restored, session]);
 
   useEffect(() => {
     if (!restored) return;
