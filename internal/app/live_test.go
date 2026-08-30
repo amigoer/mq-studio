@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
@@ -14,6 +15,7 @@ import (
 	"github.com/amigoer/mq-studio/internal/driver"
 	"github.com/amigoer/mq-studio/internal/driver/rocketmq"
 	"github.com/amigoer/mq-studio/internal/model"
+	"github.com/amigoer/mq-studio/internal/service/cluster"
 	"github.com/amigoer/mq-studio/internal/service/connection"
 	"github.com/amigoer/mq-studio/internal/service/destination"
 	"github.com/amigoer/mq-studio/internal/service/settings"
@@ -1322,6 +1324,63 @@ func TestLiveMessageTail(t *testing.T) {
 	for _, message := range after.Messages {
 		if strings.Contains(message.Keys, marker) {
 			t.Fatal("the tail replayed a message its own cursor had passed")
+		}
+	}
+}
+
+// The overview carries back the TPS history the collector recorded.
+//
+// Sampling and reading are two different calls on two different timers, and
+// nothing tied them together: the collector filed every sample correctly and
+// the overview returned nodes that had never been near the history, so the
+// trend chart drew its empty state forever. Sampling alone does not prove the
+// feature - only reading it back through the call the page actually makes.
+func TestLiveOverviewCarriesRecordedTPSHistory(t *testing.T) {
+	connections, _, registry := liveStack(t)
+	ctx := context.Background()
+
+	settingsService := settings.New(filepath.Join(t.TempDir(), "settings.json"))
+	clusters := cluster.New(filepath.Join(t.TempDir(), "tps-history.json"), newConnSource(registry), settingsService)
+
+	profile, err := connections.AddConnection(liveProfileInput("tps"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := connections.Connect(profile.ID); err != nil {
+		t.Fatalf("connect: %v", err)
+	}
+
+	_, before, err := clusters.Overview(ctx, profile.ID)
+	if err != nil {
+		t.Fatalf("overview before sampling: %v", err)
+	}
+	if len(before) == 0 {
+		t.Fatal("the cluster reported no nodes")
+	}
+	for _, node := range before {
+		if len(node.TpsInHistory) != 0 {
+			t.Errorf("%s already had history before anything sampled it", node.Address)
+		}
+	}
+
+	if err := clusters.CollectTPSSample(ctx, profile.ID); err != nil {
+		t.Fatalf("collect sample: %v", err)
+	}
+
+	_, after, err := clusters.Overview(ctx, profile.ID)
+	if err != nil {
+		t.Fatalf("overview after sampling: %v", err)
+	}
+	for _, node := range after {
+		if node.Status != model.NodeOnline {
+			continue
+		}
+		if len(node.TpsInHistory) == 0 || len(node.TpsOutHistory) == 0 {
+			t.Fatalf("%s came back with no TPS history after a sample", node.Address)
+		}
+		if len(node.TpsHistoryTimestamps) != len(node.TpsInHistory) {
+			t.Fatalf("%s: %d timestamps for %d samples", node.Address,
+				len(node.TpsHistoryTimestamps), len(node.TpsInHistory))
 		}
 	}
 }

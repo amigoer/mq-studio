@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -35,10 +36,9 @@ type tpsHistoryStore struct {
 }
 
 // recordBrokerTPS coalesces live values into one-minute buckets, attaches the
-// retained history to each broker, and persists changes once per overview load.
-func (s *Service) recordBrokerTPS(nameServers []string, brokers []*model.Node) {
+// retained history to each broker, and persists changes once per sample.
+func (s *Service) recordBrokerTPS(connID int, brokers []*model.Node) {
 	nowMinute := s.now().UTC().Truncate(time.Minute).Unix()
-	scope := tpsHistoryScope(nameServers)
 
 	s.historyMu.Lock()
 	defer s.historyMu.Unlock()
@@ -49,7 +49,7 @@ func (s *Service) recordBrokerTPS(nameServers []string, brokers []*model.Node) {
 			continue
 		}
 
-		key := scope + "|" + broker.Address
+		key := tpsHistoryKey(connID, broker.Address)
 		history, ok := s.history[key]
 		if !ok || history == nil {
 			if broker.Status != model.NodeOnline || broker.RateIn < 0 || broker.RateOut < 0 {
@@ -78,13 +78,38 @@ func (s *Service) recordBrokerTPS(nameServers []string, brokers []*model.Node) {
 	}
 }
 
-func tpsHistoryScope(nameServers []string) string {
-	addresses := append([]string(nil), nameServers...)
-	for index := range addresses {
-		addresses[index] = strings.TrimSpace(addresses[index])
+// attachTPSHistory fills in what has already been recorded for each broker,
+// without sampling.
+//
+// Reading and recording are separate on purpose. A page re-reads every thirty
+// seconds, so recording here would leave each minute bucket holding whichever
+// refresh landed last rather than the collector's one sample per minute - and
+// a page nobody has open would stop the history accruing altogether.
+func (s *Service) attachTPSHistory(connID int, brokers []*model.Node) {
+	s.historyMu.Lock()
+	defer s.historyMu.Unlock()
+
+	for _, broker := range brokers {
+		if broker == nil || broker.Address == "" {
+			continue
+		}
+		history := s.history[tpsHistoryKey(connID, broker.Address)]
+		if history == nil {
+			history = &brokerTPSHistory{}
+		}
+		copyTPSHistoryToBroker(history, broker)
 	}
-	sort.Strings(addresses)
-	return strings.Join(addresses, ";")
+}
+
+// tpsHistoryKey scopes one broker's history to the connection it was sampled
+// through.
+//
+// The connection id, not the cluster's addresses: two profiles may point at
+// the same host under different credentials, and a broker set changes whenever
+// one is added or taken out of the write path - keying on it voided every
+// broker's history the moment the cluster changed shape.
+func tpsHistoryKey(connID int, address string) string {
+	return strconv.Itoa(connID) + "|" + address
 }
 
 func upsertTPSSample(history *brokerTPSHistory, sample brokerTPSSample) bool {

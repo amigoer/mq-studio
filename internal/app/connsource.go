@@ -13,17 +13,14 @@ import (
 // own. It used to hand every caller the one process-wide default client, which
 // meant the id argument every bridge method takes decided nothing.
 //
-// Id zero means "whichever connection is active", which is correct for exactly
-// one caller - the background collector, which samples on its own timer with
-// no page to name a connection.
+// Id zero used to mean "whichever connection is active", for the collector's
+// benefit. The collector resolves the active id itself now - it has to, so the
+// TPS history it records is filed under the connection the pages read it back
+// by - and nothing else ever wanted it. An unresolvable id is an error rather
+// than a silent fallback: with several connections open, answering the wrong
+// one is worse than answering nothing.
 func newConnSource(registry *driver.Registry) func(int) (driver.Conn, error) {
 	return func(connID int) (driver.Conn, error) {
-		if connID == 0 {
-			if conn, ok := registry.Active(); ok {
-				return conn, nil
-			}
-			return nil, driver.ErrNotConnected
-		}
 		conn, ok := registry.Get(connID)
 		if !ok {
 			return nil, fmt.Errorf("%w: %d", driver.ErrNotConnected, connID)

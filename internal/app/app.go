@@ -75,7 +75,7 @@ func New() (*Services, error) {
 		ACL:         access.New(conns, settingsService),
 		Routing:     routing.New(conns, settingsService),
 		Conns:       conns,
-		Collector:   collector.New(sampleActiveConnection(clusterService), registry.HasActive),
+		Collector:   collector.New(sampleActiveConnection(clusterService, registry), registry.HasActive),
 		registry:    registry,
 	}
 	services.Collector.Start()

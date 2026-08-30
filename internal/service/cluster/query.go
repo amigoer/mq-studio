@@ -81,6 +81,9 @@ func (s *Service) Overview(ctx context.Context, connID int) (*model.ClusterOverv
 	if err != nil {
 		return nil, nil, err
 	}
+	// A node reports the rate it sees right now; the trend chart needs the
+	// series behind it, which only the collector has been keeping.
+	s.attachTPSHistory(connID, nodes)
 	return overview, nodes, nil
 }
 
@@ -102,11 +105,7 @@ func (s *Service) CollectTPSSample(ctx context.Context, connID int) error {
 	if err != nil {
 		return err
 	}
-	addresses := make([]string, 0, len(nodes))
-	for _, node := range nodes {
-		addresses = append(addresses, node.Address)
-	}
-	s.recordBrokerTPS(addresses, nodes)
+	s.recordBrokerTPS(connID, nodes)
 	return nil
 }
 
