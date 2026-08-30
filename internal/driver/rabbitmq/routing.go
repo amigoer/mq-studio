@@ -92,6 +92,7 @@ func (c *Conn) ListBindings(ctx context.Context, namespace string) ([]*model.Bin
 			DestinationKind: binding.DestinationType,
 			RoutingKey:      binding.RoutingKey,
 			Arguments:       arguments,
+			PropertiesKey:   binding.PropertiesKey,
 		})
 	}
 	return bindings, nil

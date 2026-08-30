@@ -123,3 +123,65 @@ func (s *RabbitMQService) MoveMessages(connID int, input MoveInput) (int, error)
 func (s *RabbitMQService) RebalanceQueues(connID int) error {
 	return s.service.RebalanceQueues(context.Background(), connID)
 }
+
+// ExchangeInput is an exchange declaration as the form collects it.
+type ExchangeInput struct {
+	Vhost      string `json:"vhost"`
+	Name       string `json:"name"`
+	Type       string `json:"type"`
+	Transient  bool   `json:"transient"`
+	AutoDelete bool   `json:"autoDelete"`
+	Arguments  string `json:"arguments"`
+}
+
+// DeclareExchange creates an exchange.
+func (s *RabbitMQService) DeclareExchange(connID int, input ExchangeInput) error {
+	return s.service.DeclareExchange(context.Background(), connID, model.ExchangeSpec{
+		Namespace:  input.Vhost,
+		Name:       input.Name,
+		Type:       input.Type,
+		Transient:  input.Transient,
+		AutoDelete: input.AutoDelete,
+		Arguments:  input.Arguments,
+	})
+}
+
+// DeleteExchange removes an exchange, and its bindings with it.
+func (s *RabbitMQService) DeleteExchange(connID int, vhost, name string) error {
+	return s.service.DeleteExchange(context.Background(), connID, vhost, name)
+}
+
+// BindingInput describes one route.
+type BindingInput struct {
+	Vhost           string            `json:"vhost"`
+	Source          string            `json:"source"`
+	Destination     string            `json:"destination"`
+	DestinationKind string            `json:"destinationKind"`
+	RoutingKey      string            `json:"routingKey"`
+	Arguments       map[string]string `json:"arguments"`
+	// PropertiesKey identifies an existing binding for deletion. It comes from
+	// the listing; a delete without it is refused rather than guessed at.
+	PropertiesKey string `json:"propertiesKey"`
+}
+
+func (input BindingInput) binding() model.Binding {
+	return model.Binding{
+		Namespace:       input.Vhost,
+		Source:          input.Source,
+		Destination:     input.Destination,
+		DestinationKind: input.DestinationKind,
+		RoutingKey:      input.RoutingKey,
+		Arguments:       input.Arguments,
+		PropertiesKey:   input.PropertiesKey,
+	}
+}
+
+// DeclareBinding routes an exchange to a queue or to another exchange.
+func (s *RabbitMQService) DeclareBinding(connID int, input BindingInput) error {
+	return s.service.DeclareBinding(context.Background(), connID, input.binding())
+}
+
+// DeleteBinding removes one binding.
+func (s *RabbitMQService) DeleteBinding(connID int, input BindingInput) error {
+	return s.service.DeleteBinding(context.Background(), connID, input.binding())
+}

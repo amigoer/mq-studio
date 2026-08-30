@@ -35,11 +35,13 @@ export {
 export {
     AccessConfigInput,
     AccessRuleInput,
+    BindingInput,
     ClusterView,
     ConnectionInput,
     ConnectionView,
     ConsumerInput,
     DriverInfo,
+    ExchangeInput,
     MaintenanceTaskView,
     MessageQuery,
     MoveInput,

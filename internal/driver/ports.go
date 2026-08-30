@@ -297,6 +297,18 @@ type AccessDirectory interface {
 	RemoveAccessRule(ctx context.Context, subject string) error
 }
 
+// RoutingMutator creates and deletes exchanges and bindings.
+//
+// Separate from RoutingAdmin because reading a topology and changing it are
+// different permissions on the broker: a monitoring user can list every
+// exchange in a virtual host and configure none of them.
+type RoutingMutator interface {
+	DeclareExchange(ctx context.Context, spec model.ExchangeSpec) error
+	RemoveExchange(ctx context.Context, namespace, name string) error
+	DeclareBinding(ctx context.Context, binding model.Binding) error
+	RemoveBinding(ctx context.Context, binding model.Binding) error
+}
+
 // CensusReporter answers for the whole broker in one call.
 //
 // Separate from ClusterAdmin because it is a different question at a different

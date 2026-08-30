@@ -1521,3 +1521,171 @@ func TestLiveRebalanceSucceedsOnASingleNode(t *testing.T) {
 		t.Errorf("rebalance: %v", err)
 	}
 }
+
+// Declaring an exchange, binding it, unbinding it and deleting it - the whole
+// life of a route through the driver's own methods.
+func TestLiveRoutingLifecycle(t *testing.T) {
+	conn := liveConn(t)
+	defer func() { _ = conn.Close() }()
+
+	ctx := context.Background()
+	const exchange = "mqs-test-routing-ex"
+	const queue = "mqs-test-routing-q"
+
+	if err := conn.DeclareExchange(ctx, model.ExchangeSpec{
+		Namespace: "/", Name: exchange, Type: "topic",
+		Arguments: `{"alternate-exchange":"amq.fanout"}`,
+	}); err != nil {
+		t.Fatalf("declare exchange: %v", err)
+	}
+	t.Cleanup(func() { _ = conn.RemoveExchange(context.Background(), "/", exchange) })
+
+	if err := conn.CreateDestination(ctx, model.DestinationSpec{
+		Ref:        model.DestinationRef{Namespace: "/", Name: queue},
+		Attributes: map[string]string{AttrDurable: "true"},
+	}); err != nil {
+		t.Fatalf("declare queue: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = conn.RemoveDestination(context.Background(),
+			model.DestinationRef{Namespace: "/", Name: queue})
+	})
+
+	// The alternate exchange has to have survived the declaration, because it
+	// is an argument rather than a field.
+	exchanges, err := conn.ListExchanges(ctx, "/")
+	if err != nil {
+		t.Fatalf("list exchanges: %v", err)
+	}
+	var declared *model.Destination
+	for _, found := range exchanges {
+		if found.Ref.Name == exchange {
+			declared = found
+		}
+	}
+	if declared == nil {
+		t.Fatal("the exchange just declared is missing")
+	}
+	if declared.Attributes[AttrExchangeType] != "topic" {
+		t.Errorf("type = %q, want topic", declared.Attributes[AttrExchangeType])
+	}
+	if !strings.Contains(declared.Attributes[AttrArguments], "alternate-exchange") {
+		t.Errorf("the alternate exchange did not survive: %q", declared.Attributes[AttrArguments])
+	}
+
+	if err := conn.DeclareBinding(ctx, model.Binding{
+		Namespace: "/", Source: exchange, Destination: queue,
+		DestinationKind: "queue", RoutingKey: "order.*",
+	}); err != nil {
+		t.Fatalf("declare binding: %v", err)
+	}
+
+	// The listing has to carry the properties key, because that is the only
+	// handle a delete has.
+	find := func() *model.Binding {
+		t.Helper()
+		bindings, err := conn.ListBindings(ctx, "/")
+		if err != nil {
+			t.Fatalf("list bindings: %v", err)
+		}
+		for _, binding := range bindings {
+			if binding.Source == exchange && binding.Destination == queue {
+				return binding
+			}
+		}
+		return nil
+	}
+
+	created := find()
+	if created == nil {
+		t.Fatal("the binding just declared is missing")
+	}
+	if created.PropertiesKey == "" {
+		t.Fatal("the binding came back with no properties key, so it could never be deleted")
+	}
+	if created.RoutingKey != "order.*" {
+		t.Errorf("routingKey = %q", created.RoutingKey)
+	}
+
+	if err := conn.RemoveBinding(ctx, *created); err != nil {
+		t.Fatalf("remove binding: %v", err)
+	}
+	if find() != nil {
+		t.Error("the binding survived its deletion")
+	}
+}
+
+// Deleting a binding without the broker's key must be refused rather than
+// guessed at: a binding has no name, and the same source, destination and key
+// can exist more than once with different arguments.
+func TestLiveRemoveBindingRefusesAGuess(t *testing.T) {
+	conn := liveConn(t)
+	defer func() { _ = conn.Close() }()
+
+	err := conn.RemoveBinding(context.Background(), model.Binding{
+		Namespace: "/", Source: "amq.topic", Destination: "whatever",
+		DestinationKind: "queue", RoutingKey: "#",
+	})
+	if err == nil {
+		t.Error("a binding delete with no properties key was attempted")
+	}
+}
+
+// A headers binding is distinguished by its arguments alone, and two of them
+// on the same source and destination have to stay two.
+func TestLiveHeaderBindingsAreDistinguishedByArguments(t *testing.T) {
+	conn := liveConn(t)
+	defer func() { _ = conn.Close() }()
+
+	ctx := context.Background()
+	const exchange = "mqs-test-headers-ex"
+	const queue = "mqs-test-headers-q"
+
+	if err := conn.DeclareExchange(ctx, model.ExchangeSpec{
+		Namespace: "/", Name: exchange, Type: "headers",
+	}); err != nil {
+		t.Fatalf("declare exchange: %v", err)
+	}
+	t.Cleanup(func() { _ = conn.RemoveExchange(context.Background(), "/", exchange) })
+
+	if err := conn.CreateDestination(ctx, model.DestinationSpec{
+		Ref:        model.DestinationRef{Namespace: "/", Name: queue},
+		Attributes: map[string]string{AttrDurable: "true"},
+	}); err != nil {
+		t.Fatalf("declare queue: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = conn.RemoveDestination(context.Background(),
+			model.DestinationRef{Namespace: "/", Name: queue})
+	})
+
+	for _, kind := range []string{"order", "invoice"} {
+		if err := conn.DeclareBinding(ctx, model.Binding{
+			Namespace: "/", Source: exchange, Destination: queue, DestinationKind: "queue",
+			Arguments: map[string]string{"x-match": "all", "kind": kind},
+		}); err != nil {
+			t.Fatalf("declare binding for %q: %v", kind, err)
+		}
+	}
+
+	bindings, err := conn.ListBindings(ctx, "/")
+	if err != nil {
+		t.Fatalf("list bindings: %v", err)
+	}
+	keys := map[string]bool{}
+	count := 0
+	for _, binding := range bindings {
+		if binding.Source == exchange && binding.Destination == queue {
+			count++
+			keys[binding.PropertiesKey] = true
+		}
+	}
+	if count != 2 {
+		t.Errorf("found %d header bindings, want the 2 declared", count)
+	}
+	// Two bindings, two distinct keys - otherwise deleting one would delete
+	// whichever the broker matched first.
+	if len(keys) != count {
+		t.Errorf("%d bindings share %d properties keys", count, len(keys))
+	}
+}

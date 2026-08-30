@@ -96,6 +96,7 @@ func capabilities() []model.Capability {
 		model.CapClientInspect,
 		model.CapClusterHealth,
 		model.CapRouting,
+		model.CapRoutingAdmin,
 	}
 }
 

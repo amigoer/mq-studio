@@ -216,3 +216,48 @@ func (s *Service) RebalanceQueues(ctx context.Context, connID int) error {
 	defer cancel()
 	return api.RebalanceQueues(ctx)
 }
+
+// DeclareExchange creates an exchange.
+func (s *Service) DeclareExchange(ctx context.Context, connID int, spec model.ExchangeSpec) error {
+	api, err := port[driver.RoutingMutator](s, connID, model.CapRoutingAdmin)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.DeclareExchange(ctx, spec)
+}
+
+// DeleteExchange removes an exchange, and its bindings with it.
+func (s *Service) DeleteExchange(ctx context.Context, connID int, namespace, name string) error {
+	api, err := port[driver.RoutingMutator](s, connID, model.CapRoutingAdmin)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.RemoveExchange(ctx, namespace, name)
+}
+
+// DeclareBinding routes an exchange to a queue or to another exchange.
+func (s *Service) DeclareBinding(ctx context.Context, connID int, binding model.Binding) error {
+	api, err := port[driver.RoutingMutator](s, connID, model.CapRoutingAdmin)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.DeclareBinding(ctx, binding)
+}
+
+// DeleteBinding removes one binding, identified by the properties key the
+// broker listed it under.
+func (s *Service) DeleteBinding(ctx context.Context, connID int, binding model.Binding) error {
+	api, err := port[driver.RoutingMutator](s, connID, model.CapRoutingAdmin)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.RemoveBinding(ctx, binding)
+}

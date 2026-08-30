@@ -356,6 +356,8 @@ const binding = (
 describe("the RabbitMQ exchanges board", () => {
   const renderWith = (over: Partial<BrokerState<unknown>>) => {
     routingState.current = stateOf(over);
+    // The board reads queues too, for the binding dialog's target picker.
+    queuesState.current = stateOf({ data: [] });
     return render(<ExchangesRabbitMQ />);
   };
 

@@ -124,3 +124,39 @@ export const moveMessages = (connID: number, request: MoveRequest): Promise<numb
 /** Spreads quorum queue leaders back across the nodes. */
 export const rebalanceQueues = (connID: number): Promise<void> =>
   RabbitMQService.RebalanceQueues(connID);
+
+export interface ExchangeDeclaration {
+  vhost: string;
+  name: string;
+  type: string;
+  transient: boolean;
+  autoDelete: boolean;
+  arguments: string;
+}
+
+/** Declares an exchange. Re-declaring with a different type is an error. */
+export const declareExchange = (
+  connID: number,
+  exchange: ExchangeDeclaration,
+): Promise<void> => RabbitMQService.DeclareExchange(connID, exchange);
+
+/** Deletes an exchange, and its bindings with it. */
+export const deleteExchange = (connID: number, vhost: string, name: string): Promise<void> =>
+  RabbitMQService.DeleteExchange(connID, vhost, name);
+
+export interface BindingInput {
+  vhost: string;
+  source: string;
+  destination: string;
+  destinationKind: string;
+  routingKey: string;
+  arguments: Record<string, string>;
+  /** Required to delete; it comes from the listing and is never made up. */
+  propertiesKey: string;
+}
+
+export const declareBinding = (connID: number, binding: BindingInput): Promise<void> =>
+  RabbitMQService.DeclareBinding(connID, binding);
+
+export const deleteBinding = (connID: number, binding: BindingInput): Promise<void> =>
+  RabbitMQService.DeleteBinding(connID, binding);

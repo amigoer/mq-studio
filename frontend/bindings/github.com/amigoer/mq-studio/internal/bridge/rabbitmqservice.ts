@@ -65,10 +65,38 @@ export function DeadLetterQueues(connID: number, $namespace: string): $Cancellab
 }
 
 /**
+ * DeclareBinding routes an exchange to a queue or to another exchange.
+ */
+export function DeclareBinding(connID: number, input: $models.BindingInput): $CancellablePromise<void> {
+    return $Call.ByID(2458090782, connID, input);
+}
+
+/**
+ * DeclareExchange creates an exchange.
+ */
+export function DeclareExchange(connID: number, input: $models.ExchangeInput): $CancellablePromise<void> {
+    return $Call.ByID(3355486020, connID, input);
+}
+
+/**
  * DeclareQueue creates a queue.
  */
 export function DeclareQueue(connID: number, input: $models.QueueInput): $CancellablePromise<void> {
     return $Call.ByID(2471359076, connID, input);
+}
+
+/**
+ * DeleteBinding removes one binding.
+ */
+export function DeleteBinding(connID: number, input: $models.BindingInput): $CancellablePromise<void> {
+    return $Call.ByID(2772532011, connID, input);
+}
+
+/**
+ * DeleteExchange removes an exchange, and its bindings with it.
+ */
+export function DeleteExchange(connID: number, vhost: string, name: string): $CancellablePromise<void> {
+    return $Call.ByID(3256463559, connID, vhost, name);
 }
 
 /**

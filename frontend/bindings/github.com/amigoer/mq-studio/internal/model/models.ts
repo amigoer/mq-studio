@@ -231,6 +231,15 @@ export class Binding {
     "routingKey": string;
     "arguments": { [_ in string]?: string };
 
+    /**
+     * PropertiesKey is the broker's own identifier for this binding, and the
+     * only way to delete one. A binding has no name, and the same source,
+     * destination and routing key can exist more than once with different
+     * arguments - so anything a caller made up would delete a different
+     * binding or none. It comes back with the listing.
+     */
+    "propertiesKey": string;
+
     /** Creates a new Binding instance. */
     constructor($$source: Partial<Binding> = {}) {
         if (!("id" in $$source)) {
@@ -253,6 +262,9 @@ export class Binding {
         }
         if (!("arguments" in $$source)) {
             this["arguments"] = {};
+        }
+        if (!("propertiesKey" in $$source)) {
+            this["propertiesKey"] = "";
         }
 
         Object.assign(this, $$source);
@@ -676,6 +688,13 @@ export enum Capability {
      */
     CapAccessDirectory = "access.directory",
     CapRouting = "routing.exchanges",
+
+    /**
+     * CapRoutingAdmin creates and deletes exchanges and bindings. Separate
+     * from reading them: a connection may list a topology it has no permission
+     * to change.
+     */
+    CapRoutingAdmin = "routing.admin",
 };
 
 /**

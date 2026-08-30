@@ -14,4 +14,29 @@ type Binding struct {
 	DestinationKind string            `json:"destinationKind"`
 	RoutingKey      string            `json:"routingKey"`
 	Arguments       map[string]string `json:"arguments"`
+
+	// PropertiesKey is the broker's own identifier for this binding, and the
+	// only way to delete one. A binding has no name, and the same source,
+	// destination and routing key can exist more than once with different
+	// arguments - so anything a caller made up would delete a different
+	// binding or none. It comes back with the listing.
+	PropertiesKey string `json:"propertiesKey"`
+}
+
+// ExchangeSpec declares an exchange.
+//
+// Transient rather than Durable, so the zero value is the safe one: an
+// exchange that survives a restart. A transient exchange disappears with the
+// node and takes its bindings with it.
+type ExchangeSpec struct {
+	Namespace string `json:"namespace"`
+	Name      string `json:"name"`
+	// Type is direct, fanout, topic or headers, and cannot be changed once
+	// declared.
+	Type       string `json:"type"`
+	Transient  bool   `json:"transient"`
+	AutoDelete bool   `json:"autoDelete"`
+	// Arguments as JSON, so alternate-exchange and anything a plugin
+	// understands arrive with their types intact.
+	Arguments string `json:"arguments"`
 }

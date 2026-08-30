@@ -108,6 +108,11 @@ const (
 	// take a write for and never read back.
 	CapAccessDirectory Capability = "access.directory"
 	CapRouting         Capability = "routing.exchanges"
+
+	// CapRoutingAdmin creates and deletes exchanges and bindings. Separate
+	// from reading them: a connection may list a topology it has no permission
+	// to change.
+	CapRoutingAdmin Capability = "routing.admin"
 )
 
 // Capabilities is what one live connection can actually do.

@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ArrowRight } from "lucide-react";
 import { ListArea, ListPane, Page, PageHeader, RefreshButton, Toolbar } from "@/design/shell";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -15,12 +16,15 @@ import {
 import {
   DetailPanel,
   DetailPanelBody,
+  DetailPanelFooter,
   DetailPanelHeader,
   KV,
   Panel,
   ProtoBadge,
   SectionLabel,
   Status,
+  toast,
+  useConfirm,
 } from "@/components";
 import { BoardState, isBlocked } from "@/design/boards/BoardState";
 import { useRabbitRouting } from "@/hooks/rabbitmq/useRabbitRouting";
@@ -34,6 +38,12 @@ import {
   internal,
 } from "@/mq/rabbitmq/destinations";
 import { bindingKey, bindingsBySource, bindsExchange, routesOnKey } from "@/mq/rabbitmq/routing";
+import { useRabbitQueues } from "@/hooks/rabbitmq/useRabbitQueues";
+import { useConnectionScope } from "@/mq/ConnectionScope";
+import * as rabbitApi from "@/api/rabbitmq";
+import { formatErrorMessage } from "@/lib/utils";
+import { BindingDialog, ExchangeDialog } from "./ExchangeDialog";
+import type { BindingInput, ExchangeDeclaration } from "@/api/rabbitmq";
 import type { Binding, Destination } from "@/api/models";
 
 const TAG = { fontSize: "10px" } as const;
@@ -60,9 +70,14 @@ const isBuiltIn = (name: string) => name === "" || name.startsWith("amq.");
 export function ExchangesRabbitMQ() {
   const { t } = useTranslation();
   const state = useRabbitRouting();
+  const queues = useRabbitQueues();
+  const { id: connID } = useConnectionScope();
+  const confirm = useConfirm();
   const [search, setSearch] = useState("");
   const [showBuiltIn, setShowBuiltIn] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
+  const [declaring, setDeclaring] = useState(false);
+  const [binding, setBinding] = useState<Destination | null>(null);
 
   const exchanges = useMemo(() => state.data?.exchanges ?? [], [state.data]);
   const bindings = useMemo(() => state.data?.bindings ?? [], [state.data]);
@@ -86,6 +101,96 @@ export function ExchangesRabbitMQ() {
     [rows, selected],
   );
 
+  const vhost = exchanges[0]?.ref.namespace ?? "/";
+  const exchangeNames = useMemo(() => exchanges.map(exchangeLabel), [exchanges]);
+  const queueNames = useMemo(
+    () => (queues.data ?? []).map((queue) => queue.ref.name),
+    [queues.data],
+  );
+
+  const declare = useCallback(
+    async (declaration: ExchangeDeclaration) => {
+      await rabbitApi.declareExchange(connID, declaration);
+      toast.success(t("board.topics.rabbitmq.exchangeDeclared", { name: declaration.name }));
+      await state.refresh();
+    },
+    [connID, state, t],
+  );
+
+  const addBinding = useCallback(
+    async (input: BindingInput) => {
+      await rabbitApi.declareBinding(connID, input);
+      toast.success(t("board.topics.rabbitmq.bindingAdded"));
+      await state.refresh();
+    },
+    [connID, state, t],
+  );
+
+  const unbind = useCallback(
+    async (target: Binding) => {
+      const ok = await confirm({
+        title: t("board.topics.rabbitmq.unbindTitle"),
+        description: t("board.topics.rabbitmq.unbindDesc", {
+          source: target.source,
+          destination: target.destination,
+        }),
+        confirmLabel: t("board.topics.rabbitmq.unbind"),
+        danger: true,
+      });
+      if (!ok) return;
+      try {
+        await rabbitApi.deleteBinding(connID, {
+          vhost: target.namespace,
+          source: target.source,
+          destination: target.destination,
+          destinationKind: target.destinationKind,
+          routingKey: target.routingKey,
+          // The bindings map crosses as possibly-undefined values; a binding
+          // argument the broker sent is never actually null.
+          arguments: Object.fromEntries(
+            Object.entries(target.arguments ?? {}).map(([key, value]) => [key, value ?? ""]),
+          ),
+          // The broker's own key for this binding, from the listing. A
+          // binding has no name and this is the only way to name one.
+          propertiesKey: target.propertiesKey,
+        });
+        toast.success(t("board.topics.rabbitmq.unbound"));
+        await state.refresh();
+      } catch (unbindError) {
+        toast.error(t("board.topics.rabbitmq.unbindFailed"), {
+          description: formatErrorMessage(unbindError),
+        });
+      }
+    },
+    [confirm, connID, state, t],
+  );
+
+  const removeExchange = useCallback(
+    async (exchange: Destination) => {
+      const outgoing = bySource.get(exchange.ref.name) ?? [];
+      const ok = await confirm({
+        title: t("board.topics.rabbitmq.deleteExchangeTitle", { name: exchange.ref.name }),
+        /* Its bindings go with it, and anything still publishing to it starts
+           getting errors. The broker warns about neither. */
+        description: t("board.topics.rabbitmq.deleteExchangeDesc", { count: outgoing.length }),
+        confirmLabel: t("board.common.delete"),
+        danger: true,
+      });
+      if (!ok) return;
+      try {
+        await rabbitApi.deleteExchange(connID, exchange.ref.namespace, exchange.ref.name);
+        toast.success(t("board.topics.rabbitmq.exchangeDeleted", { name: exchange.ref.name }));
+        setSelected(null);
+        await state.refresh();
+      } catch (deleteError) {
+        toast.error(t("board.topics.rabbitmq.deleteExchangeFailed"), {
+          description: formatErrorMessage(deleteError),
+        });
+      }
+    },
+    [bySource, confirm, connID, state, t],
+  );
+
   return (
     <Page>
       <PageHeader
@@ -95,12 +200,34 @@ export function ExchangesRabbitMQ() {
           bindings: bindings.length,
         })}
         actions={
-          <RefreshButton
-            refreshing={state.refreshing}
-            online={state.online}
-            onClick={state.refresh}
-          />
+          <>
+            <Button disabled={!state.online} onClick={() => setDeclaring(true)}>
+              {t("board.topics.rabbitmq.newExchange")}
+            </Button>
+            <RefreshButton
+              refreshing={state.refreshing}
+              online={state.online}
+              onClick={state.refresh}
+            />
+          </>
         }
+      />
+      <ExchangeDialog
+        open={declaring}
+        vhost={vhost}
+        exchanges={exchangeNames}
+        onClose={() => setDeclaring(false)}
+        onSubmit={declare}
+      />
+      <BindingDialog
+        open={binding != null}
+        source={binding?.ref.name ?? ""}
+        sourceType={binding != null ? exchangeType(binding) : ""}
+        vhost={vhost}
+        queues={queueNames}
+        exchanges={exchangeNames}
+        onClose={() => setBinding(null)}
+        onSubmit={addBinding}
       />
       {!isBlocked(state) && (
         <Toolbar>
@@ -210,8 +337,22 @@ export function ExchangesRabbitMQ() {
               <ExchangeDetail
                 exchange={detail}
                 outgoing={bySource.get(detail.ref.name) ?? []}
+                onUnbind={unbind}
               />
             </DetailPanelBody>
+            {/* The default exchange cannot be bound or deleted: its bindings
+                are implicit and the broker refuses to remove it. */}
+            {detail.ref.name !== "" && (
+              <DetailPanelFooter>
+                <Button variant="outline" onClick={() => setBinding(detail)}>
+                  {t("board.topics.rabbitmq.addBinding")}
+                </Button>
+                <span className="flex-1" />
+                <Button variant="destructive" onClick={() => void removeExchange(detail)}>
+                  {t("board.common.delete")}
+                </Button>
+              </DetailPanelFooter>
+            )}
           </DetailPanel>
         )}
       </ListArea>
@@ -219,7 +360,15 @@ export function ExchangesRabbitMQ() {
   );
 }
 
-function ExchangeDetail({ exchange, outgoing }: { exchange: Destination; outgoing: Binding[] }) {
+function ExchangeDetail({
+  exchange,
+  outgoing,
+  onUnbind,
+}: {
+  exchange: Destination;
+  outgoing: Binding[];
+  onUnbind: (binding: Binding) => void;
+}) {
   const { t } = useTranslation();
   const alternate = alternateExchange(exchange);
   const args = argumentsOf(exchange);
@@ -271,7 +420,7 @@ function ExchangeDetail({ exchange, outgoing }: { exchange: Destination; outgoin
             </span>
           )}
           {outgoing.map((binding) => (
-            <BindingRow key={bindingKey(binding)} binding={binding} />
+            <BindingRow key={bindingKey(binding)} binding={binding} onUnbind={onUnbind} />
           ))}
           {outgoing.length === 0 && exchange.ref.name !== "" && (
             <span style={{ color: "var(--c-muted)" }}>
@@ -300,7 +449,13 @@ function ExchangeDetail({ exchange, outgoing }: { exchange: Destination; outgoin
   );
 }
 
-function BindingRow({ binding }: { binding: Binding }) {
+function BindingRow({
+  binding,
+  onUnbind,
+}: {
+  binding: Binding;
+  onUnbind: (binding: Binding) => void;
+}) {
   const { t } = useTranslation();
   const args = Object.entries(binding.arguments ?? {});
   return (
@@ -326,6 +481,14 @@ function BindingRow({ binding }: { binding: Binding }) {
           {key} = {value}
         </Status>
       ))}
+      <span className="flex-1" />
+      <button
+        type="button"
+        className="mqs-linkbtn"
+        onClick={() => onUnbind(binding)}
+      >
+        {t("board.topics.rabbitmq.unbind")}
+      </button>
     </div>
   );
 }

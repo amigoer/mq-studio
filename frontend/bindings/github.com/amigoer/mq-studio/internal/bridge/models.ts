@@ -106,6 +106,63 @@ export class AccessRuleInput {
 }
 
 /**
+ * BindingInput describes one route.
+ */
+export class BindingInput {
+    "vhost": string;
+    "source": string;
+    "destination": string;
+    "destinationKind": string;
+    "routingKey": string;
+    "arguments": { [_ in string]?: string };
+
+    /**
+     * PropertiesKey identifies an existing binding for deletion. It comes from
+     * the listing; a delete without it is refused rather than guessed at.
+     */
+    "propertiesKey": string;
+
+    /** Creates a new BindingInput instance. */
+    constructor($$source: Partial<BindingInput> = {}) {
+        if (!("vhost" in $$source)) {
+            this["vhost"] = "";
+        }
+        if (!("source" in $$source)) {
+            this["source"] = "";
+        }
+        if (!("destination" in $$source)) {
+            this["destination"] = "";
+        }
+        if (!("destinationKind" in $$source)) {
+            this["destinationKind"] = "";
+        }
+        if (!("routingKey" in $$source)) {
+            this["routingKey"] = "";
+        }
+        if (!("arguments" in $$source)) {
+            this["arguments"] = {};
+        }
+        if (!("propertiesKey" in $$source)) {
+            this["propertiesKey"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new BindingInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): BindingInput {
+        const $$createField5_0 = $$createType3;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("arguments" in $$parsedSource) {
+            $$parsedSource["arguments"] = $$createField5_0($$parsedSource["arguments"]);
+        }
+        return new BindingInput($$parsedSource as Partial<BindingInput>);
+    }
+}
+
+/**
  * ClusterView is the cluster page's snapshot: the header counters and the
  * nodes behind them, in one round trip.
  */
@@ -139,9 +196,9 @@ export class ClusterView {
      * Creates a new ClusterView instance from a string or object.
      */
     static createFrom($$source: any = {}): ClusterView {
-        const $$createField0_0 = $$createType3;
-        const $$createField1_0 = $$createType6;
-        const $$createField2_0 = $$createType6;
+        const $$createField0_0 = $$createType4;
+        const $$createField1_0 = $$createType7;
+        const $$createField2_0 = $$createType7;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("overview" in $$parsedSource) {
             $$parsedSource["overview"] = $$createField0_0($$parsedSource["overview"]);
@@ -219,8 +276,8 @@ export class ConnectionInput {
      * Creates a new ConnectionInput instance from a string or object.
      */
     static createFrom($$source: any = {}): ConnectionInput {
-        const $$createField6_0 = $$createType7;
-        const $$createField7_0 = $$createType7;
+        const $$createField6_0 = $$createType3;
+        const $$createField7_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("options" in $$parsedSource) {
             $$parsedSource["options"] = $$createField6_0($$parsedSource["options"]);
@@ -304,7 +361,7 @@ export class ConnectionView {
      * Creates a new ConnectionView instance from a string or object.
      */
     static createFrom($$source: any = {}): ConnectionView {
-        const $$createField7_0 = $$createType7;
+        const $$createField7_0 = $$createType3;
         const $$createField8_0 = $$createType0;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("options" in $$parsedSource) {
@@ -378,6 +435,50 @@ export class DriverInfo {
     static createFrom($$source: any = {}): DriverInfo {
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         return new DriverInfo($$parsedSource as Partial<DriverInfo>);
+    }
+}
+
+/**
+ * ExchangeInput is an exchange declaration as the form collects it.
+ */
+export class ExchangeInput {
+    "vhost": string;
+    "name": string;
+    "type": string;
+    "transient": boolean;
+    "autoDelete": boolean;
+    "arguments": string;
+
+    /** Creates a new ExchangeInput instance. */
+    constructor($$source: Partial<ExchangeInput> = {}) {
+        if (!("vhost" in $$source)) {
+            this["vhost"] = "";
+        }
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("type" in $$source)) {
+            this["type"] = "";
+        }
+        if (!("transient" in $$source)) {
+            this["transient"] = false;
+        }
+        if (!("autoDelete" in $$source)) {
+            this["autoDelete"] = false;
+        }
+        if (!("arguments" in $$source)) {
+            this["arguments"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ExchangeInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ExchangeInput {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ExchangeInput($$parsedSource as Partial<ExchangeInput>);
     }
 }
 
@@ -464,7 +565,7 @@ export class MessageQuery {
      * Creates a new MessageQuery instance from a string or object.
      */
     static createFrom($$source: any = {}): MessageQuery {
-        const $$createField6_0 = $$createType7;
+        const $$createField6_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("filters" in $$parsedSource) {
             $$parsedSource["filters"] = $$createField6_0($$parsedSource["filters"]);
@@ -1259,8 +1360,8 @@ export class TopicInput {
 const $$createType0 = $Create.Array($Create.Any);
 const $$createType1 = PolicyInput.createFrom;
 const $$createType2 = $Create.Array($$createType1);
-const $$createType3 = model$0.ClusterOverview.createFrom;
-const $$createType4 = model$0.Node.createFrom;
-const $$createType5 = $Create.Nullable($$createType4);
-const $$createType6 = $Create.Array($$createType5);
-const $$createType7 = $Create.Map($Create.Any, $Create.Any);
+const $$createType3 = $Create.Map($Create.Any, $Create.Any);
+const $$createType4 = model$0.ClusterOverview.createFrom;
+const $$createType5 = model$0.Node.createFrom;
+const $$createType6 = $Create.Nullable($$createType5);
+const $$createType7 = $Create.Array($$createType6);
