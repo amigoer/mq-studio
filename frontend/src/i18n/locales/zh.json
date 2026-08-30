@@ -1098,7 +1098,7 @@
           "accessKeyHint": "ACL 可选",
           "advanced": "高级",
           "timeout": "请求超时",
-          "timeoutHint": "秒 · 默认 5",
+          "timeoutHint": "秒 · 留空用设置里的值",
           "instanceId": "实例 ID（公有云）",
           "traceTopic": "消息轨迹 Topic",
           "tlsNote": "驱动库支持后开放",

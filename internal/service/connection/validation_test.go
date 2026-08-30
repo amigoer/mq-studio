@@ -37,10 +37,4 @@ func TestNormalizeConnectionGroupACLAndTimeout(t *testing.T) {
 	if err != nil || !enabled || accessKey != "ak" || secretKey != "sk" {
 		t.Fatalf("ACL normalization failed: err=%v enabled=%v accessKey=%q secretKey=%q", err, enabled, accessKey, secretKey)
 	}
-	if normalizeTimeoutSec(0) != defaultConnectionTimeout {
-		t.Fatalf("zero timeout should fall back to %d", defaultConnectionTimeout)
-	}
-	if normalizeTimeoutSec(12) != 12 {
-		t.Fatal("positive timeout should be preserved")
-	}
 }

@@ -4,8 +4,8 @@ import { Check, RefreshCw, Send } from "lucide-react";
 import { Page, PageHeader } from "@/design/shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import {
+  CodeEditor,
   Combobox,
   Panel,
   SectionLabel,
@@ -239,22 +239,12 @@ export function Producer({ protocol }: { protocol: ProtocolId }) {
                 and the shadow does the same. Focus shows on the panel instead
                 (focus-within above), which is visible and has an edge to sit
                 on. */}
-            <Textarea
-              className="mono3 mqs-scroll border-transparent shadow-none focus-visible:border-transparent focus-visible:ring-0"
+            <CodeEditor
+              className="min-h-0 flex-1"
+              language={format}
               value={body}
-              onChange={(event) => setBody(event.target.value)}
+              onValueChange={setBody}
               spellCheck={false}
-              style={{
-                flex: 1,
-                minHeight: 0,
-                border: "none",
-                borderRadius: 0,
-                resize: "none",
-                padding: "12px 16px",
-                fontSize: "11.5px",
-                lineHeight: 1.8,
-                color: "var(--c-fg-2)",
-              }}
             />
           </Panel>
         </div>

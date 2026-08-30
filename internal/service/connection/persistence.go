@@ -83,7 +83,6 @@ func buildConnectionState(connections []*model.ConnectionProfile) (map[int]*mode
 		current.Group = normalizeConnectionGroup(current.Group)
 		current.Status = model.StatusOffline
 		current.LastCheck = "-"
-		current.TimeoutSec = normalizeTimeoutSec(current.TimeoutSec)
 		enabled, accessKey, secretKey, err := normalizeACLConfig(current.ACLEnabled(), current.Secret(model.SecretAccessKey), current.Secret(model.SecretSecretKey))
 		if err != nil {
 			enabled, accessKey, secretKey = false, "", ""
@@ -179,7 +178,6 @@ func prepareReplacement(connections []*model.ConnectionProfile) ([]*model.Connec
 		current.Name = name
 		current.Endpoints = nameServer
 		current.Group = normalizeConnectionGroup(current.Group)
-		current.TimeoutSec = normalizeTimeoutSec(current.TimeoutSec)
 		current.SetACL(enabled, accessKey, secretKey)
 		current.Status = model.StatusOffline
 		current.LastCheck = "-"

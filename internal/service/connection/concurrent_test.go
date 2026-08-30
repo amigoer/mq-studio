@@ -204,3 +204,38 @@ func (c *capturingRuntime) Connect(profile model.ConnectionProfile) error {
 	*c.seen = profile
 	return c.recordingRuntime.Connect(profile)
 }
+
+// A profile with no timeout of its own takes the application setting.
+//
+// It used to take nothing: every stored profile was stamped with a positive
+// default on the way in, so `TimeoutSec > 0` was always true and the settings
+// page's 连接超时 reached no connection at all.
+func TestBlankProfileTimeoutTakesTheApplicationSetting(t *testing.T) {
+	service := newTestService(t, fakeSettings{
+		connectTimeout: 11 * time.Second,
+		autoConnect:    true,
+	})
+	var resolved model.ConnectionProfile
+	runtime := newRecordingRuntime()
+	service.runtime = &capturingRuntime{recordingRuntime: runtime, seen: &resolved}
+
+	profile, err := service.AddConnection(profileOf("p", "", "ns:9876", 0, false, "", "", ""))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := service.Connect(profile.ID); err != nil {
+		t.Fatal(err)
+	}
+
+	if resolved.TimeoutSec != 11 {
+		t.Fatalf("resolved TimeoutSec = %d, want the application setting", resolved.TimeoutSec)
+	}
+	// The blank has to survive storage, or the next dial shadows the setting again.
+	stored, err := service.GetConnection(profile.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stored.TimeoutSec != 0 {
+		t.Fatalf("stored TimeoutSec = %d, want the blank to survive", stored.TimeoutSec)
+	}
+}

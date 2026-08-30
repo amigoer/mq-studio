@@ -87,7 +87,7 @@ export function NewConnectionDialog({
     if (draft.name.trim() === "") return t("page.connections.nameRequired");
     if (draft.endpoints.trim() === "") return t("page.connections.endpointsRequired");
     if (proxySelected) return t("page.connections.form.rocketmq.proxyNote");
-    // 0 is blank, which Go reads as its own default; anything else Go rejects.
+    // 0 is blank, which means the connection takes the timeout from settings.
     if (draft.timeoutSec < 0 || draft.timeoutSec > 300) return t("page.connections.timeoutRange");
     return null;
   }, [draft.endpoints, draft.name, draft.timeoutSec, proxySelected, t]);

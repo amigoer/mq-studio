@@ -1098,7 +1098,7 @@
           "accessKeyHint": "Optional, for ACL",
           "advanced": "Advanced",
           "timeout": "Request timeout",
-          "timeoutHint": "seconds · default 5",
+          "timeoutHint": "seconds · blank takes the app setting",
           "instanceId": "Instance ID (cloud)",
           "traceTopic": "Trace topic",
           "tlsNote": "Opens once the driver library supports it",

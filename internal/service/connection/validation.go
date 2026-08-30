@@ -38,13 +38,6 @@ func normalizeACLConfig(enableACL bool, accessKey, secretKey string) (bool, stri
 	return true, accessKey, secretKey, nil
 }
 
-func normalizeTimeoutSec(timeoutSec int) int {
-	if timeoutSec <= 0 {
-		return defaultConnectionTimeout
-	}
-	return timeoutSec
-}
-
 func validateConnectionFields(name, nameServer string, timeoutSec int) (string, string, error) {
 	name = strings.TrimSpace(name)
 	nameServer = strings.TrimSpace(nameServer)

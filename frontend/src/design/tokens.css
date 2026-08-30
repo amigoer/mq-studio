@@ -717,6 +717,18 @@ select.in3:focus { border-color: var(--c-border-strong); }
 .mqs-scroll::-webkit-scrollbar-thumb { background: var(--c-border-soft); border-radius: 99px; }
 .mqs-scroll::-webkit-scrollbar-track { background: transparent; }
 
+/*
+ * The colour layer under the message-body editor: the same text, tokenised,
+ * behind a textarea whose own text is transparent. It has to reserve the same
+ * scrollbar gutter as that textarea or the two copies wrap at different widths
+ * and the colours drift off the characters -- so it scrolls on the same terms
+ * and only its thumb is invisible.
+ */
+.mqs-ghost { overflow: auto; scrollbar-width: thin; scrollbar-color: transparent transparent; }
+.mqs-ghost::-webkit-scrollbar { width: 8px; height: 8px; }
+.mqs-ghost::-webkit-scrollbar-thumb { background: transparent; }
+.mqs-ghost::-webkit-scrollbar-track { background: transparent; }
+
 /* Compact in-row action button (8a "打开标签 / 断开 / 编辑 / ⋯"). */
 
 /* Button resets, so nav/tab affordances can be real buttons without restyling. */

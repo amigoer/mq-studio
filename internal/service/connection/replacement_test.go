@@ -57,7 +57,9 @@ func TestReplaceConnectionsNormalizesEncryptsAndReloads(t *testing.T) {
 	if len(got) != 3 || got[0].ID != 7 || got[1].ID != 8 || got[2].ID != 9 {
 		t.Fatalf("IDs were not normalized deterministically: %#v", got)
 	}
-	if got[0].Name != "primary" || got[0].Endpoints != "ns-a:9876" || got[0].Group != "staging cluster" || got[0].TimeoutSec != defaultConnectionTimeout {
+	// A blank timeout stays blank, which is what lets the application setting
+	// reach the dial; stamping a default here is what used to shadow it.
+	if got[0].Name != "primary" || got[0].Endpoints != "ns-a:9876" || got[0].Group != "staging cluster" || got[0].TimeoutSec != 0 {
 		t.Fatalf("first connection was not normalized: %#v", got[0])
 	}
 	if got[0].Status != model.StatusOffline || got[0].LastCheck != "-" || got[0].Secret(model.SecretAccessKey) != "" || got[0].Secret(model.SecretSecretKey) != "" {

@@ -34,7 +34,7 @@ func (s *Service) AddConnection(input model.ConnectionProfile) (*model.Connectio
 		Name:       name,
 		Group:      normalizeConnectionGroup(group),
 		Endpoints:  endpoints,
-		TimeoutSec: normalizeTimeoutSec(timeoutSec),
+		TimeoutSec: timeoutSec,
 		Kind:       kind,
 		Options:    input.Options,
 		Status:     model.StatusOffline,
@@ -88,7 +88,7 @@ func (s *Service) UpdateConnection(id int, input model.ConnectionProfile) (*mode
 	if input.Options != nil {
 		connection.Options = input.Options
 	}
-	connection.TimeoutSec = normalizeTimeoutSec(timeoutSec)
+	connection.TimeoutSec = timeoutSec
 	connection.SetACL(enableACL, accessKey, secretKey)
 	connection.Remark = remark
 	clientConfigChanged := previous.Endpoints != connection.Endpoints ||
