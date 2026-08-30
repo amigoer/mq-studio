@@ -36,9 +36,14 @@ export const CHART_CARD = {
   gap: "8px",
 } as const;
 
+/*
+ * The card takes whatever room the page has left over but never gives up its
+ * own rows: a `flex:1` basis of 0 with `min-height:0` collapses to nothing as
+ * soon as the panels above it fill the viewport, and `overflow:hidden` then
+ * clips the table away with no scrollbar of its own to reach it by.
+ */
 export const TABLE_CARD = {
-  flex: 1,
-  minHeight: 0,
+  flex: "1 0 auto",
   overflow: "hidden",
   display: "flex",
   flexDirection: "column",

@@ -309,6 +309,7 @@ export function Producer({ protocol, nav }: { protocol: ProtocolId } & BoardProp
         </div>
 
         <div
+          className="mqs-scroll"
           style={{
             width: "300px",
             flex: "none",
@@ -355,7 +356,10 @@ export function Producer({ protocol, nav }: { protocol: ProtocolId } & BoardProp
 
           {wired && <ProducerClients topic={topic} />}
 
-          <Panel style={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
+          {/* Grows into spare room but never shrinks below its own rows; the
+              column scrolls instead. Same reasoning as TABLE_CARD in
+              overview/_shared. */}
+          <Panel style={{ flex: "1 0 auto", overflow: "hidden" }}>
             <SectionLabel style={{ padding: "11px 16px 8px" }}>{t("board.producer.recent")}</SectionLabel>
             {recentSends.length === 0 ? (
               <div style={{ padding: "0 16px 12px", fontSize: "11px", color: "var(--c-muted)" }}>
