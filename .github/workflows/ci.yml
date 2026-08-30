@@ -50,15 +50,17 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       # Compiling the Wails packages needs the GTK and WebKit headers even
-      # though nothing is packaged here.
+      # though nothing is packaged here. GTK 4 rather than 3: every Linux file
+      # in wails v3 that pulls gtk+-3.0 is behind a `gtk3` build tag, which
+      # nothing here sets, so the default build wants gtk4 and webkitgtk-6.0.
       - name: Install build dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             build-essential \
             pkg-config \
-            libgtk-3-dev \
-            libwebkit2gtk-4.1-dev
+            libgtk-4-dev \
+            libwebkitgtk-6.0-dev
 
       # The binding drift check regenerates them, so the CLI has to match the
       # version the module pins.
