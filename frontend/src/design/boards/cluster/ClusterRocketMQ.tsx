@@ -1,3 +1,4 @@
+import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { RefreshCw } from "lucide-react";
 import { Page, PageBody, PageHeader } from "@/design/shell";
@@ -15,7 +16,10 @@ import {
   Status,
 } from "@/components";
 import { useCluster } from "@/hooks/useCluster";
+import { useBrokerData } from "@/hooks/useBrokerData";
+import * as clusterApi from "@/api/cluster";
 import { BoardState, Notice, isBlocked } from "@/design/boards/BoardState";
+import { ConfigDialog } from "./ConfigDialog";
 import {
   BrokerRole,
   brokerId,
@@ -72,6 +76,31 @@ export function ClusterRocketMQ() {
   const version = nodes.find((node) => node.version !== "")?.version ?? "";
   const overview = state.data?.cluster?.overview;
 
+  /*
+   * A settings document is a few hundred keys and one request, so both of
+   * these wait for the dialog that shows them and neither of them polls.
+   */
+  const [configOf, setConfigOf] = useState<string | null>(null);
+  const [directoryConfigOpen, setDirectoryConfigOpen] = useState(false);
+
+  const loadNodeConfig = useCallback(
+    (id: number) => clusterApi.getNodeConfig(id, configOf ?? ""),
+    [configOf],
+  );
+  const nodeConfig = useBrokerData(loadNodeConfig, {
+    refreshMs: null,
+    enabled: configOf != null,
+  });
+
+  const loadDirectoryConfig = useCallback(
+    (id: number) => clusterApi.getDirectoryConfig(id),
+    [],
+  );
+  const directoryConfig = useBrokerData(loadDirectoryConfig, {
+    refreshMs: null,
+    enabled: directoryConfigOpen,
+  });
+
   return (
     <Page>
       <PageHeader
@@ -102,7 +131,9 @@ export function ClusterRocketMQ() {
               <BrokerTile key={`${brokerName(node)}-${brokerId(node)}`} node={node} />
             ))}
           </div>
-          {directory.length > 0 && <DirectoryPanel nodes={directory} />}
+          {directory.length > 0 && (
+            <DirectoryPanel nodes={directory} onConfig={() => setDirectoryConfigOpen(true)} />
+          )}
           <Panel style={TABLE_CARD}>
             <div
               style={{
@@ -124,6 +155,7 @@ export function ClusterRocketMQ() {
                   <TableHead style={{ textAlign: "right" }}>{t("board.cluster.rocketmq.todayIn")}</TableHead>
                   <TableHead style={{ textAlign: "right" }}>{t("board.cluster.rocketmq.todayOut")}</TableHead>
                   <TableHead style={{ textAlign: "right" }}>{t("board.cluster.rocketmq.consumeQueue")}</TableHead>
+                  <TableHead style={{ textAlign: "right" }}>{t("board.common.actions")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -150,6 +182,11 @@ export function ClusterRocketMQ() {
                         ? "—"
                         : `${consumeQueueDiskUsage(node)}%`}
                     </TableCell>
+                    <TableCell style={{ textAlign: "right" }}>
+                      <Button variant="ghost" size="xs" onClick={() => setConfigOf(node.address)}>
+                        {t("board.cluster.rocketmq.config.action")}
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -157,6 +194,21 @@ export function ClusterRocketMQ() {
           </Panel>
         </PageBody>
       )}
+
+      <ConfigDialog
+        open={configOf != null}
+        title={t("board.cluster.rocketmq.config.brokerTitle")}
+        subtitle={configOf ?? undefined}
+        state={nodeConfig}
+        onClose={() => setConfigOf(null)}
+      />
+      <ConfigDialog
+        open={directoryConfigOpen}
+        title={t("board.cluster.rocketmq.config.directoryTitle")}
+        subtitle={directory.map((node) => node.address).join("  ")}
+        state={directoryConfig}
+        onClose={() => setDirectoryConfigOpen(false)}
+      />
     </Page>
   );
 }
@@ -169,22 +221,31 @@ export function ClusterRocketMQ() {
  * uptime and no per-address health to draw. The canvas drew round-trip and
  * flush-mode columns here; they were never available.
  */
-function DirectoryPanel({ nodes }: { nodes: readonly Node[] }) {
+function DirectoryPanel({
+  nodes,
+  onConfig,
+}: {
+  nodes: readonly Node[];
+  onConfig: () => void;
+}) {
   const { t } = useTranslation();
   return (
-    <Panel style={{ padding: "11px 16px", display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+    <Panel style={{ padding: "9px 10px 9px 16px", display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
       <b style={{ fontSize: "12.5px" }}>{t("board.cluster.rocketmq.directory")}</b>
       <span style={{ fontSize: "11px", color: "var(--c-muted)" }}>
         {t("board.cluster.rocketmq.directoryHint")}
       </span>
       <span className="flex-1" />
-      <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
         {nodes.map((node) => (
           <span key={node.address} className="mono3" style={{ fontSize: "11px", color: "var(--c-fg-2)" }}>
             {node.address}
           </span>
         ))}
       </div>
+      <Button variant="ghost" size="xs" onClick={onConfig}>
+        {t("board.cluster.rocketmq.config.action")}
+      </Button>
     </Panel>
   );
 }

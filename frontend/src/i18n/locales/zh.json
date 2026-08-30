@@ -1376,6 +1376,7 @@
     "common": {
       "overview": "总览",
       "refresh": "刷新",
+      "actions": "操作",
       "lastHour": "近 1 小时",
       "viewAll": "查看全部",
       "status": "状态",
@@ -1631,6 +1632,18 @@
         "runtime": "Broker 运行指标",
         "directory": "NameServer",
         "directoryHint": "本连接拨号的地址；管理协议不报告各自的健康状态",
+        "config": {
+          "action": "配置",
+          "brokerTitle": "Broker 有效配置",
+          "directoryTitle": "NameServer 有效配置",
+          "search": "搜索配置项…",
+          "key": "配置项",
+          "value": "值",
+          "count": "显示 {{shown}} / 共 {{total}} 项",
+          "empty": "没有返回配置项",
+          "copied": "已复制 {{count}} 项",
+          "copyFailed": "复制失败"
+        },
         "commitLog": "CommitLog 盘",
         "consumeQueue": "ConsumeQueue 盘",
         "todayIn": "今日入",

@@ -1376,6 +1376,7 @@
     "common": {
       "overview": "Overview",
       "refresh": "Refresh",
+      "actions": "Actions",
       "lastHour": "Last hour",
       "viewAll": "View all",
       "status": "Status",
@@ -1631,6 +1632,18 @@
         "runtime": "Broker runtime",
         "directory": "NameServer",
         "directoryHint": "the addresses this connection dials; the admin protocol reports no health for them",
+        "config": {
+          "action": "Config",
+          "brokerTitle": "Broker effective settings",
+          "directoryTitle": "NameServer effective settings",
+          "search": "Search settings…",
+          "key": "Key",
+          "value": "Value",
+          "count": "{{shown}} of {{total}} shown",
+          "empty": "No settings returned",
+          "copied": "Copied {{count}} settings",
+          "copyFailed": "Could not copy"
+        },
         "commitLog": "CommitLog disk",
         "consumeQueue": "ConsumeQueue disk",
         "todayIn": "In today",
