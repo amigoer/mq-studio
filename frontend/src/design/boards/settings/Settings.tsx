@@ -963,7 +963,10 @@ function DataPanel() {
 
   const copy = () => {
     copyText(directory)
-      .then(() => setCopied(true))
+      .then(() => {
+        setCopied(true);
+        toast.success(t("page.settings.data.pathCopied"), { description: directory });
+      })
       .catch(() => toast.error(t("page.settings.data.copyFailed")));
   };
 

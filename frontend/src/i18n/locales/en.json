@@ -1318,6 +1318,7 @@
         "loading": "Reading…",
         "copyPath": "Copy path",
         "copied": "Copied",
+        "pathCopied": "Path copied",
         "openDirectory": "Open directory",
         "copyFailed": "Could not copy",
         "openFailed": "Could not open the data directory",
