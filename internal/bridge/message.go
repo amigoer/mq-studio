@@ -93,3 +93,8 @@ func (s *MessageService) Send(connID int, input SendInput) (string, error) {
 	return s.service.Send(context.Background(), connID,
 		input.Topic, input.Tags, input.Keys, input.Body, input.DelayLevel)
 }
+
+// Producers lists the publishers connected under a producer group.
+func (s *MessageService) Producers(connID int, group string, topic string) ([]*model.ProducerClient, error) {
+	return s.service.Producers(context.Background(), connID, group, topic)
+}

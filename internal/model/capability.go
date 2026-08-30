@@ -32,6 +32,10 @@ const (
 	CapMessageLiveTail Capability = "message.liveTail"
 	CapDLQ             Capability = "message.dlq"
 	CapPublish         Capability = "message.publish"
+	// CapProducerInspect is asking who is currently publishing. It needs a
+	// producer group to ask about: the broker tracks connections per group and
+	// offers no way to enumerate the groups themselves.
+	CapProducerInspect Capability = "message.producerInspect"
 	// CapDelayedDelivery is scheduling a message for later. RocketMQ has delay
 	// levels, Kafka has nothing, RabbitMQ needs a plugin.
 	CapDelayedDelivery Capability = "message.delayedDelivery"

@@ -103,3 +103,16 @@ type ConsumeThroughput struct {
 	FailureRate      float64 `json:"failureRate"`
 	FailedMessages   int64   `json:"failedMessages"`
 }
+
+// ProducerClient is one connected publisher.
+//
+// There is no list of publishers the way there is of subscriptions: a broker
+// tracks connections per producer group and offers no way to enumerate the
+// groups, so a caller has to name one. That is why this is not a Producer
+// type with a Ref - there is nothing to list, only something to look up.
+type ProducerClient struct {
+	ClientID string `json:"clientId"`
+	Address  string `json:"address"`
+	Language string `json:"language"`
+	Version  string `json:"version"`
+}

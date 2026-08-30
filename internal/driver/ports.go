@@ -102,6 +102,15 @@ type MessagePublisher interface {
 	SendMessage(ctx context.Context, topic, tags, keys, body string, delayLevel int) (string, error)
 }
 
+// ProducerInspector reports who is currently publishing to a destination.
+//
+// It takes a producer group because that is what a broker indexes connections
+// by, and there is no call that enumerates the groups - so this answers "is
+// anything from this service still connected", not "who is writing here".
+type ProducerInspector interface {
+	ProducerClients(ctx context.Context, group, destination string) ([]*model.ProducerClient, error)
+}
+
 // ClusterAdmin reports the broker topology.
 type ClusterAdmin interface {
 	ListNodes(ctx context.Context) ([]*model.Node, error)

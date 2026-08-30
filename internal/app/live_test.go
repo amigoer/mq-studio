@@ -18,6 +18,7 @@ import (
 	admin "github.com/amigoer/rocketmq-admin-go"
 	rocketmqconsumer "github.com/apache/rocketmq-client-go/v2/consumer"
 	"github.com/apache/rocketmq-client-go/v2/primitive"
+	rocketmqproducer "github.com/apache/rocketmq-client-go/v2/producer"
 )
 
 // Exercises the stack the connection screen drives, against the broker
@@ -831,4 +832,85 @@ func TestLiveNodeConfig(t *testing.T) {
 		t.Error("the unparsed document leaked through as a key")
 	}
 	t.Logf("%s reports %d settings", nodes[0].Address, len(config))
+}
+
+// Who is currently publishing.
+//
+// The app could not answer this at all: it knew every consumer group but
+// nothing about producers. A producer group has to be named because the broker
+// indexes connections by one and offers no way to enumerate them.
+func TestLiveProducerClients(t *testing.T) {
+	connections, _, registry := liveStack(t)
+	ctx := context.Background()
+
+	profile, err := connections.AddConnection(liveProfileInput("producers"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := connections.Connect(profile.ID); err != nil {
+		t.Fatalf("connect: %v", err)
+	}
+	conn, _ := registry.Get(profile.ID)
+	inspector := conn.(driver.ProducerInspector)
+
+	const group = "MQ_STUDIO_E2E_PRODUCER"
+
+	// Nobody attached is an empty list, not an error: a producer idle between
+	// sends is normal, unlike a consumer group with nothing on it.
+	idle, err := inspector.ProducerClients(ctx, group, seededTopic)
+	if err != nil {
+		t.Fatalf("with no producer attached: %v", err)
+	}
+	if len(idle) != 0 {
+		t.Logf("%d producer(s) already attached; the idle case is not covered by this run", len(idle))
+	}
+
+	stop := startLiveProducer(t, group)
+	defer stop()
+
+	var clients []*model.ProducerClient
+	for attempt := range 15 {
+		if attempt > 0 {
+			time.Sleep(time.Second)
+		}
+		clients, err = inspector.ProducerClients(ctx, group, seededTopic)
+		if err == nil && len(clients) > 0 {
+			break
+		}
+	}
+	if err != nil {
+		t.Fatalf("ProducerClients: %v", err)
+	}
+	if len(clients) == 0 {
+		t.Fatal("no producer reported while one was publishing")
+	}
+	for _, client := range clients {
+		if client.ClientID == "" || client.Address == "" {
+			t.Errorf("producer came back incomplete: %+v", client)
+		}
+	}
+	t.Logf("%s has %d producer(s): %s", group, len(clients), clients[0].Address)
+}
+
+// startLiveProducer publishes one message and stays connected.
+func startLiveProducer(t *testing.T, group string) func() {
+	t.Helper()
+	sender, err := rocketmqproducer.NewDefaultProducer(
+		rocketmqproducer.WithNameServer([]string{liveNameServer}),
+		rocketmqproducer.WithGroupName(group),
+	)
+	if err != nil {
+		t.Fatalf("create producer: %v", err)
+	}
+	if err := sender.Start(); err != nil {
+		t.Fatalf("start producer: %v", err)
+	}
+	// The broker only learns about a producer once it has routed something.
+	if _, err := sender.SendSync(context.Background(), &primitive.Message{
+		Topic: seededTopic,
+		Body:  []byte(`{"probe":"producer"}`),
+	}); err != nil {
+		t.Fatalf("publish: %v", err)
+	}
+	return func() { _ = sender.Shutdown() }
 }

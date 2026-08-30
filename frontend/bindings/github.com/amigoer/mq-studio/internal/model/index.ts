@@ -25,6 +25,7 @@ export {
     MessageTrackItem,
     Node,
     NodeStatus,
+    ProducerClient,
     QueueAssignment,
     ReplicaStatus,
     ResetOffsetRequest,

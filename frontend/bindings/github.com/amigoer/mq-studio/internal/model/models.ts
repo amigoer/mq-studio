@@ -228,6 +228,13 @@ export enum Capability {
     CapPublish = "message.publish",
 
     /**
+     * CapProducerInspect is asking who is currently publishing. It needs a
+     * producer group to ask about: the broker tracks connections per group and
+     * offers no way to enumerate the groups themselves.
+     */
+    CapProducerInspect = "message.producerInspect",
+
+    /**
      * CapDelayedDelivery is scheduling a message for later. RocketMQ has delay
      * levels, Kafka has nothing, RabbitMQ needs a plugin.
      */
@@ -1188,6 +1195,47 @@ export enum NodeStatus {
     NodeWarning = "warning",
     NodeOffline = "offline",
 };
+
+/**
+ * ProducerClient is one connected publisher.
+ * 
+ * There is no list of publishers the way there is of subscriptions: a broker
+ * tracks connections per producer group and offers no way to enumerate the
+ * groups, so a caller has to name one. That is why this is not a Producer
+ * type with a Ref - there is nothing to list, only something to look up.
+ */
+export class ProducerClient {
+    "clientId": string;
+    "address": string;
+    "language": string;
+    "version": string;
+
+    /** Creates a new ProducerClient instance. */
+    constructor($$source: Partial<ProducerClient> = {}) {
+        if (!("clientId" in $$source)) {
+            this["clientId"] = "";
+        }
+        if (!("address" in $$source)) {
+            this["address"] = "";
+        }
+        if (!("language" in $$source)) {
+            this["language"] = "";
+        }
+        if (!("version" in $$source)) {
+            this["version"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ProducerClient instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ProducerClient {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ProducerClient($$parsedSource as Partial<ProducerClient>);
+    }
+}
 
 /**
  * QueueAssignment is one queue a consumer holds, and how far behind it is.

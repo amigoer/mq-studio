@@ -37,6 +37,15 @@ export function DLQ(connID: number, group: string, maxResults: number): $Cancell
 }
 
 /**
+ * Producers lists the publishers connected under a producer group.
+ */
+export function Producers(connID: number, group: string, topic: string): $CancellablePromise<(model$0.ProducerClient | null)[]> {
+    return $Call.ByID(827390843, connID, group, topic).then(($result: any) => {
+        return $$createType5($result);
+    });
+}
+
+/**
  * Query searches a topic by key, tag and time range.
  */
 export function Query(connID: number, query: $models.MessageQuery): $CancellablePromise<(model$0.MessageItem | null)[]> {
@@ -73,7 +82,7 @@ export function Send(connID: number, input: $models.SendInput): $CancellableProm
  */
 export function Track(connID: number, topic: string, messageID: string): $CancellablePromise<(model$0.MessageTrackItem | null)[]> {
     return $Call.ByID(2516316023, connID, topic, messageID).then(($result: any) => {
-        return $$createType5($result);
+        return $$createType8($result);
     });
 }
 
@@ -81,6 +90,9 @@ export function Track(connID: number, topic: string, messageID: string): $Cancel
 const $$createType0 = model$0.MessageItem.createFrom;
 const $$createType1 = $Create.Nullable($$createType0);
 const $$createType2 = $Create.Array($$createType1);
-const $$createType3 = model$0.MessageTrackItem.createFrom;
+const $$createType3 = model$0.ProducerClient.createFrom;
 const $$createType4 = $Create.Nullable($$createType3);
 const $$createType5 = $Create.Array($$createType4);
+const $$createType6 = model$0.MessageTrackItem.createFrom;
+const $$createType7 = $Create.Nullable($$createType6);
+const $$createType8 = $Create.Array($$createType7);

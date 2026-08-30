@@ -188,3 +188,26 @@ func (s *Service) Send(ctx context.Context, connID int, topic, tags, keys, body 
 	defer cancel()
 	return api.SendMessage(ctx, topic, tags, keys, body, delayLevel)
 }
+
+// Producers lists the publishers connected under one producer group.
+//
+// It needs both a group and a destination because that is how a broker indexes
+// producer connections; there is no call that enumerates the groups, so this
+// answers "is anything from this service still attached" rather than "who is
+// writing to this topic".
+func (s *Service) Producers(ctx context.Context, connID int, group, destination string) ([]*model.ProducerClient, error) {
+	conn, err := s.conns(connID)
+	if err != nil {
+		return nil, err
+	}
+	if !conn.Capabilities().Has(model.CapProducerInspect) {
+		return nil, driver.Unsupported(conn, model.CapProducerInspect)
+	}
+	api, ok := conn.(driver.ProducerInspector)
+	if !ok {
+		return nil, driver.Unsupported(conn, model.CapProducerInspect)
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.ProducerClients(ctx, group, destination)
+}

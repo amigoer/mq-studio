@@ -114,6 +114,7 @@ func rocketMQCapabilities() []model.Capability {
 		model.CapDLQ,
 		model.CapPublish,
 		model.CapDelayedDelivery,
+		model.CapProducerInspect,
 
 		model.CapClusterTopology,
 		model.CapClusterMetrics,
