@@ -29,10 +29,14 @@ const (
 	// group with nothing connected - simply has no answer.
 	CapSubscriptionRuntime Capability = "subscription.runtime"
 
-	CapMessageQuery    Capability = "message.query"
-	CapMessageByID     Capability = "message.byId"
-	CapMessageTrack    Capability = "message.track"
-	CapMessageResend   Capability = "message.resend"
+	CapMessageQuery  Capability = "message.query"
+	CapMessageByID   Capability = "message.byId"
+	CapMessageTrack  Capability = "message.track"
+	CapMessageResend Capability = "message.resend"
+	// CapMessageReplay is handing one message back to one connected consumer
+	// and reporting what its handler returned. Distinct from CapMessageResend,
+	// which puts a copy back on the retry path for whoever picks it up.
+	CapMessageReplay   Capability = "message.replay"
 	CapMessageLiveTail Capability = "message.liveTail"
 	CapDLQ             Capability = "message.dlq"
 	CapPublish         Capability = "message.publish"

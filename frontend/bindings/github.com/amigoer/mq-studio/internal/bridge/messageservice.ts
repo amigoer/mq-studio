@@ -55,6 +55,16 @@ export function Query(connID: number, query: $models.MessageQuery): $Cancellable
 }
 
 /**
+ * Replay asks one connected consumer to handle a message again and returns
+ * what its own handler reported.
+ */
+export function Replay(connID: number, input: $models.ReplayInput): $CancellablePromise<model$0.ReplayResult | null> {
+    return $Call.ByID(1123098703, connID, input).then(($result: any) => {
+        return $$createType7($result);
+    });
+}
+
+/**
  * Resend pushes a message back to a consumer client and returns the new ID.
  */
 export function Resend(connID: number, input: $models.ResendInput): $CancellablePromise<string> {
@@ -83,7 +93,7 @@ export function Send(connID: number, input: $models.SendInput): $CancellableProm
  */
 export function Tail(connID: number, topic: string, cursor: model$0.TailCursor, limit: number): $CancellablePromise<model$0.TailBatch | null> {
     return $Call.ByID(992589890, connID, topic, cursor, limit).then(($result: any) => {
-        return $$createType7($result);
+        return $$createType9($result);
     });
 }
 
@@ -92,7 +102,7 @@ export function Tail(connID: number, topic: string, cursor: model$0.TailCursor, 
  */
 export function Track(connID: number, topic: string, messageID: string): $CancellablePromise<(model$0.MessageTrackItem | null)[]> {
     return $Call.ByID(2516316023, connID, topic, messageID).then(($result: any) => {
-        return $$createType10($result);
+        return $$createType12($result);
     });
 }
 
@@ -103,8 +113,10 @@ const $$createType2 = $Create.Array($$createType1);
 const $$createType3 = model$0.ProducerClient.createFrom;
 const $$createType4 = $Create.Nullable($$createType3);
 const $$createType5 = $Create.Array($$createType4);
-const $$createType6 = model$0.TailBatch.createFrom;
+const $$createType6 = model$0.ReplayResult.createFrom;
 const $$createType7 = $Create.Nullable($$createType6);
-const $$createType8 = model$0.MessageTrackItem.createFrom;
+const $$createType8 = model$0.TailBatch.createFrom;
 const $$createType9 = $Create.Nullable($$createType8);
-const $$createType10 = $Create.Array($$createType9);
+const $$createType10 = model$0.MessageTrackItem.createFrom;
+const $$createType11 = $Create.Nullable($$createType10);
+const $$createType12 = $Create.Array($$createType11);

@@ -123,6 +123,16 @@ type DeadLetterReader interface {
 	ResendMessage(ctx context.Context, consumerGroup, clientID, topic, messageID string) (string, error)
 }
 
+// MessageReplayer hands one message back to one connected consumer.
+//
+// Separate from DeadLetterReader's ResendMessage, which puts a copy on the
+// retry path for whichever member picks it up. This runs the listener of a
+// named client and reports what it returned, which is the difference between
+// "try again" and "show me why this one fails".
+type MessageReplayer interface {
+	ReplayMessage(ctx context.Context, request model.ReplayRequest) (*model.ReplayResult, error)
+}
+
 // MessagePublisher sends a message.
 type MessagePublisher interface {
 	SendMessage(ctx context.Context, topic, tags, keys, body string, delayLevel int) (string, error)

@@ -110,3 +110,22 @@ func (s *MessageService) Tail(
 	return s.service.Tail(context.Background(), connID,
 		model.DestinationRef{Name: topic}, cursor, limit)
 }
+
+// ReplayInput carries a replay-to-one-consumer request.
+type ReplayInput struct {
+	ConsumerGroup string `json:"consumerGroup"`
+	ClientID      string `json:"clientId"`
+	Topic         string `json:"topic"`
+	MessageID     string `json:"messageId"`
+}
+
+// Replay asks one connected consumer to handle a message again and returns
+// what its own handler reported.
+func (s *MessageService) Replay(connID int, input ReplayInput) (*model.ReplayResult, error) {
+	return s.service.Replay(context.Background(), connID, model.ReplayRequest{
+		Subscription: input.ConsumerGroup,
+		ClientID:     input.ClientID,
+		Destination:  input.Topic,
+		MessageID:    input.MessageID,
+	})
+}

@@ -113,6 +113,7 @@ func rocketMQCapabilities() []model.Capability {
 		model.CapMessageTrack,
 		model.CapMessageLiveTail,
 		model.CapMessageResend,
+		model.CapMessageReplay,
 		model.CapDLQ,
 		model.CapPublish,
 		model.CapDelayedDelivery,

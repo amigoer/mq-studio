@@ -242,3 +242,21 @@ func (s *Service) Tail(
 	defer cancel()
 	return api.TailMessages(ctx, ref, cursor, limit)
 }
+
+// Replay hands one message back to one connected consumer.
+func (s *Service) Replay(ctx context.Context, connID int, request model.ReplayRequest) (*model.ReplayResult, error) {
+	conn, err := s.conns(connID)
+	if err != nil {
+		return nil, err
+	}
+	if !conn.Capabilities().Has(model.CapMessageReplay) {
+		return nil, driver.Unsupported(conn, model.CapMessageReplay)
+	}
+	api, ok := conn.(driver.MessageReplayer)
+	if !ok {
+		return nil, driver.Unsupported(conn, model.CapMessageReplay)
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.ReplayMessage(ctx, request)
+}

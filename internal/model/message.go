@@ -76,6 +76,35 @@ type TailBatch struct {
 	Dropped int64 `json:"dropped"`
 }
 
+// ReplayRequest asks one connected consumer to handle a message again, now.
+//
+// It names a client rather than a group because that is the point: a group
+// would hand the message to whichever member the rebalance picked, and the
+// question being asked is why one particular consumer chokes on it.
+type ReplayRequest struct {
+	Subscription string `json:"subscription"`
+	ClientID     string `json:"clientId"`
+	Destination  string `json:"destination"`
+	MessageID    string `json:"messageId"`
+}
+
+// ReplayResult is what that consumer's own handler returned.
+//
+// This is not a delivery receipt: the broker forwarded the message and the
+// client ran its listener, so a failure here is the application's, reported
+// back verbatim in Remark.
+type ReplayResult struct {
+	Result  string `json:"result"`
+	Remark  string `json:"remark"`
+	SpentMs int64  `json:"spentMs"`
+
+	// Ordered and AutoCommit describe how the client was configured to consume,
+	// which changes what a failure means: an ordered consumer blocks its queue
+	// on one it cannot handle.
+	Ordered    bool `json:"ordered"`
+	AutoCommit bool `json:"autoCommit"`
+}
+
 // MessageTrackItem holds message track information.
 type MessageTrackItem struct {
 	ConsumerGroup string `json:"consumerGroup"` // Consumer group

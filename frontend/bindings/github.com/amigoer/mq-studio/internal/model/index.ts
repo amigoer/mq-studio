@@ -31,6 +31,7 @@ export {
     ProducerClient,
     QueueAssignment,
     QueuePosition,
+    ReplayResult,
     ReplicaStatus,
     ResetOffsetRequest,
     Subscription,

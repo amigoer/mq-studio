@@ -42,6 +42,7 @@ export {
     MessageQuery,
     PolicyInput,
     PrincipalInput,
+    ReplayInput,
     ResendInput,
     SendInput,
     SettingsInput,

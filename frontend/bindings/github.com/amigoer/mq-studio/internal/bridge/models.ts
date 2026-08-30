@@ -540,6 +540,42 @@ export class PrincipalInput {
 }
 
 /**
+ * ReplayInput carries a replay-to-one-consumer request.
+ */
+export class ReplayInput {
+    "consumerGroup": string;
+    "clientId": string;
+    "topic": string;
+    "messageId": string;
+
+    /** Creates a new ReplayInput instance. */
+    constructor($$source: Partial<ReplayInput> = {}) {
+        if (!("consumerGroup" in $$source)) {
+            this["consumerGroup"] = "";
+        }
+        if (!("clientId" in $$source)) {
+            this["clientId"] = "";
+        }
+        if (!("topic" in $$source)) {
+            this["topic"] = "";
+        }
+        if (!("messageId" in $$source)) {
+            this["messageId"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ReplayInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ReplayInput {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ReplayInput($$parsedSource as Partial<ReplayInput>);
+    }
+}
+
+/**
  * ResendInput identifies a message to push back to a consumer group.
  */
 export class ResendInput {

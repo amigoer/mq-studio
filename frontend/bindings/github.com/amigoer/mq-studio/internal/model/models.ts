@@ -375,6 +375,13 @@ export enum Capability {
     CapMessageByID = "message.byId",
     CapMessageTrack = "message.track",
     CapMessageResend = "message.resend",
+
+    /**
+     * CapMessageReplay is handing one message back to one connected consumer
+     * and reporting what its handler returned. Distinct from CapMessageResend,
+     * which puts a copy back on the retry path for whoever picks it up.
+     */
+    CapMessageReplay = "message.replay",
     CapMessageLiveTail = "message.liveTail",
     CapDLQ = "message.dlq",
     CapPublish = "message.publish",
@@ -1505,6 +1512,56 @@ export class QueuePosition {
     static createFrom($$source: any = {}): QueuePosition {
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         return new QueuePosition($$parsedSource as Partial<QueuePosition>);
+    }
+}
+
+/**
+ * ReplayResult is what that consumer's own handler returned.
+ * 
+ * This is not a delivery receipt: the broker forwarded the message and the
+ * client ran its listener, so a failure here is the application's, reported
+ * back verbatim in Remark.
+ */
+export class ReplayResult {
+    "result": string;
+    "remark": string;
+    "spentMs": number;
+
+    /**
+     * Ordered and AutoCommit describe how the client was configured to consume,
+     * which changes what a failure means: an ordered consumer blocks its queue
+     * on one it cannot handle.
+     */
+    "ordered": boolean;
+    "autoCommit": boolean;
+
+    /** Creates a new ReplayResult instance. */
+    constructor($$source: Partial<ReplayResult> = {}) {
+        if (!("result" in $$source)) {
+            this["result"] = "";
+        }
+        if (!("remark" in $$source)) {
+            this["remark"] = "";
+        }
+        if (!("spentMs" in $$source)) {
+            this["spentMs"] = 0;
+        }
+        if (!("ordered" in $$source)) {
+            this["ordered"] = false;
+        }
+        if (!("autoCommit" in $$source)) {
+            this["autoCommit"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ReplayResult instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ReplayResult {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ReplayResult($$parsedSource as Partial<ReplayResult>);
     }
 }
 
