@@ -33,6 +33,7 @@ import {
   SelectGroup,
   SelectItem,
   SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import {
   OutlineTag,
@@ -249,11 +250,19 @@ function Dropdown<T extends string | number>({
         if (picked != null) onChange(picked.value);
       }}
     >
-      <SelectTrigger style={{ width: `${width}px` }} className="justify-between">
-        <span className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden">
+      {/*
+       * The label has to be a SelectValue rather than a plain span: Radix
+       * measures that node to line an item-aligned menu up with the trigger,
+       * and with nothing to measure it leaves the menu at the window's corner.
+       */}
+      <SelectTrigger
+        style={{ width: `${width}px` }}
+        className="justify-between *:data-[slot=select-value]:min-w-0 *:data-[slot=select-value]:flex-1 *:data-[slot=select-value]:gap-1.5"
+      >
+        <SelectValue>
           {current?.mark}
           <span className="truncate">{triggerLabel ?? current?.label ?? String(value)}</span>
-        </span>
+        </SelectValue>
       </SelectTrigger>
       <SelectContent style={{ minWidth: `${width}px` }}>
         <SelectGroup>
