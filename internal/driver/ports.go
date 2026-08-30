@@ -59,6 +59,17 @@ type SubscriptionStats interface {
 	SubscriptionStats(ctx context.Context, ref model.SubscriptionRef) (map[string]interface{}, error)
 }
 
+// SubscriptionRuntime asks a connected consumer what it is doing.
+//
+// It is separate from SubscriptionStats because the two ask different things
+// of different places: stats are the broker's view of a group's progress,
+// this is one client's view of its own work, and only a live client can
+// answer it. A group with nothing connected has no answer rather than an
+// empty one, which is why it returns an error the UI can distinguish.
+type SubscriptionRuntime interface {
+	SubscriptionClients(ctx context.Context, ref model.SubscriptionRef) ([]*model.SubscriptionClient, error)
+}
+
 // ProgressAdmin moves a subscription's read position.
 //
 // It is separate from SubscriptionAdmin because backlog and position are

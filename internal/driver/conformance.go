@@ -19,6 +19,7 @@ type capabilityBacking struct {
 func backings() []capabilityBacking {
 	destination := func(c Conn) bool { _, ok := c.(DestinationAdmin); return ok }
 	subscription := func(c Conn) bool { _, ok := c.(SubscriptionAdmin); return ok }
+	runtime := func(c Conn) bool { _, ok := c.(SubscriptionRuntime); return ok }
 	progress := func(c Conn) bool { _, ok := c.(ProgressAdmin); return ok }
 	reader := func(c Conn) bool { _, ok := c.(MessageReader); return ok }
 	tracker := func(c Conn) bool { _, ok := c.(MessageTracker); return ok }
@@ -41,6 +42,7 @@ func backings() []capabilityBacking {
 		{model.CapSubscriptionDelete, "SubscriptionAdmin", subscription},
 		{model.CapSubscriptionLag, "SubscriptionAdmin", subscription},
 		{model.CapOffsetReset, "ProgressAdmin", progress},
+		{model.CapSubscriptionRuntime, "SubscriptionRuntime", runtime},
 
 		{model.CapMessageQuery, "MessageReader", reader},
 		{model.CapMessageByID, "MessageReader", reader},
@@ -83,11 +85,16 @@ func CheckConformance(conn Conn) []error {
 		if implemented {
 			implementedIfaces[backing.iface] = true
 		}
-		if !capabilities.Has(backing.capability) {
+		// A degraded capability counts as declared: the family has the
+		// concept and the page should explain its absence, which is the whole
+		// point of the middle state. Only a supported one obliges the driver
+		// to implement the interface behind it.
+		_, degraded := capabilities.DegradedReason(backing.capability)
+		if !capabilities.Has(backing.capability) && !degraded {
 			continue
 		}
 		declaredIfaces[backing.iface] = true
-		if !implemented {
+		if capabilities.Has(backing.capability) && !implemented {
 			problems = append(problems, fmt.Errorf(
 				"%s: declares %s but does not implement %s",
 				conn.Kind(), backing.capability, backing.iface))

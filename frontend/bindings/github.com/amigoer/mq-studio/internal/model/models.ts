@@ -211,6 +211,14 @@ export enum Capability {
     CapSubscriptionDelete = "subscription.delete",
     CapSubscriptionLag = "subscription.lag",
     CapOffsetReset = "subscription.resetOffset",
+
+    /**
+     * CapSubscriptionRuntime is asking a connected consumer what it is doing:
+     * which queues it holds and how fast it is getting through them. Only a
+     * live client can answer, so a family without client introspection - or a
+     * group with nothing connected - simply has no answer.
+     */
+    CapSubscriptionRuntime = "subscription.runtime",
     CapMessageQuery = "message.query",
     CapMessageByID = "message.byId",
     CapMessageTrack = "message.track",
@@ -361,6 +369,54 @@ export enum ConnectionStatus {
     StatusOnline = "online",
     StatusOffline = "offline",
 };
+
+/**
+ * ConsumeThroughput is one destination's consume rates for one client.
+ */
+export class ConsumeThroughput {
+    "destination": string;
+    "pullLatencyMs": number;
+    "pullRate": number;
+    "consumeLatencyMs": number;
+    "successRate": number;
+    "failureRate": number;
+    "failedMessages": number;
+
+    /** Creates a new ConsumeThroughput instance. */
+    constructor($$source: Partial<ConsumeThroughput> = {}) {
+        if (!("destination" in $$source)) {
+            this["destination"] = "";
+        }
+        if (!("pullLatencyMs" in $$source)) {
+            this["pullLatencyMs"] = 0;
+        }
+        if (!("pullRate" in $$source)) {
+            this["pullRate"] = 0;
+        }
+        if (!("consumeLatencyMs" in $$source)) {
+            this["consumeLatencyMs"] = 0;
+        }
+        if (!("successRate" in $$source)) {
+            this["successRate"] = 0;
+        }
+        if (!("failureRate" in $$source)) {
+            this["failureRate"] = 0;
+        }
+        if (!("failedMessages" in $$source)) {
+            this["failedMessages"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ConsumeThroughput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ConsumeThroughput {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ConsumeThroughput($$parsedSource as Partial<ConsumeThroughput>);
+    }
+}
 
 /**
  * Destination is a topic, queue or stream as the canonical pages see it.
@@ -1107,6 +1163,76 @@ export enum NodeStatus {
 };
 
 /**
+ * QueueAssignment is one queue a consumer holds, and how far behind it is.
+ */
+export class QueueAssignment {
+    "destination": string;
+
+    /**
+     * the broker holding this queue
+     */
+    "node": string;
+    "queueId": number;
+
+    /**
+     * Pending is what this client has buffered but not yet finished, which is
+     * not the same as the group's backlog on the broker.
+     */
+    "pending": number;
+    "pendingBytes": number;
+    "lastPull": string;
+    "lastConsume": string;
+
+    /**
+     * Locked matters only where a family locks a queue to one consumer for
+     * ordered delivery; Dropped means the client is releasing it in a rebalance.
+     */
+    "locked": boolean;
+    "dropped": boolean;
+
+    /** Creates a new QueueAssignment instance. */
+    constructor($$source: Partial<QueueAssignment> = {}) {
+        if (!("destination" in $$source)) {
+            this["destination"] = "";
+        }
+        if (!("node" in $$source)) {
+            this["node"] = "";
+        }
+        if (!("queueId" in $$source)) {
+            this["queueId"] = 0;
+        }
+        if (!("pending" in $$source)) {
+            this["pending"] = 0;
+        }
+        if (!("pendingBytes" in $$source)) {
+            this["pendingBytes"] = 0;
+        }
+        if (!("lastPull" in $$source)) {
+            this["lastPull"] = "";
+        }
+        if (!("lastConsume" in $$source)) {
+            this["lastConsume"] = "";
+        }
+        if (!("locked" in $$source)) {
+            this["locked"] = false;
+        }
+        if (!("dropped" in $$source)) {
+            this["dropped"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new QueueAssignment instance from a string or object.
+     */
+    static createFrom($$source: any = {}): QueueAssignment {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new QueueAssignment($$parsedSource as Partial<QueueAssignment>);
+    }
+}
+
+/**
  * ResetOffsetRequest is a request to reset offsets.
  */
 export class ResetOffsetRequest {
@@ -1248,6 +1374,76 @@ export class Subscription {
 }
 
 /**
+ * SubscriptionClient is what one connected consumer is actually doing.
+ * 
+ * It is separate from the client list a Subscription carries because the two
+ * answer different questions and cost different things. The list says who is
+ * connected, and comes back with the group. This is a round trip to that one
+ * client, so it is fetched when someone asks about it.
+ */
+export class SubscriptionClient {
+    "clientId": string;
+
+    /**
+     * Assignments is which queues this client currently holds. It is the
+     * answer to "why is one consumer behind and the others idle", which a
+     * group-level backlog cannot give.
+     */
+    "assignments": QueueAssignment[];
+
+    /**
+     * Throughput is per destination, because a client reading two topics can
+     * be healthy on one and stalled on the other.
+     */
+    "throughput": ConsumeThroughput[];
+
+    /**
+     * Properties is what the client reports about itself - version, consume
+     * mode, thread counts. Free-form because every family names them
+     * differently and none of it is worth a canonical field.
+     */
+    "properties": { [_ in string]?: string };
+
+    /** Creates a new SubscriptionClient instance. */
+    constructor($$source: Partial<SubscriptionClient> = {}) {
+        if (!("clientId" in $$source)) {
+            this["clientId"] = "";
+        }
+        if (!("assignments" in $$source)) {
+            this["assignments"] = [];
+        }
+        if (!("throughput" in $$source)) {
+            this["throughput"] = [];
+        }
+        if (!("properties" in $$source)) {
+            this["properties"] = {};
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new SubscriptionClient instance from a string or object.
+     */
+    static createFrom($$source: any = {}): SubscriptionClient {
+        const $$createField1_0 = $$createType15;
+        const $$createField2_0 = $$createType17;
+        const $$createField3_0 = $$createType0;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("assignments" in $$parsedSource) {
+            $$parsedSource["assignments"] = $$createField1_0($$parsedSource["assignments"]);
+        }
+        if ("throughput" in $$parsedSource) {
+            $$parsedSource["throughput"] = $$createField2_0($$parsedSource["throughput"]);
+        }
+        if ("properties" in $$parsedSource) {
+            $$parsedSource["properties"] = $$createField3_0($$parsedSource["properties"]);
+        }
+        return new SubscriptionClient($$parsedSource as Partial<SubscriptionClient>);
+    }
+}
+
+/**
  * SubscriptionRef identifies a consumer group, subscription or queue consumer.
  */
 export class SubscriptionRef {
@@ -1304,3 +1500,7 @@ const $$createType10 = $Create.Array($$createType9);
 const $$createType11 = $Create.Array($Create.Any);
 const $$createType12 = $Create.Array($Create.Any);
 const $$createType13 = SubscriptionRef.createFrom;
+const $$createType14 = QueueAssignment.createFrom;
+const $$createType15 = $Create.Array($$createType14);
+const $$createType16 = ConsumeThroughput.createFrom;
+const $$createType17 = $Create.Array($$createType16);

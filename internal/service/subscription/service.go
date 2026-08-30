@@ -179,3 +179,25 @@ func (s *Service) Stats(ctx context.Context, connID int, ref model.SubscriptionR
 	defer cancel()
 	return api.SubscriptionStats(ctx, ref)
 }
+
+// Clients reports what each connected consumer in a group is doing.
+//
+// Unlike Stats, which is the broker's view of a group's progress, this asks
+// the clients themselves - so it is the only thing that can say which consumer
+// holds which queue, and why one of them is behind while the others idle.
+func (s *Service) Clients(ctx context.Context, connID int, ref model.SubscriptionRef) ([]*model.SubscriptionClient, error) {
+	conn, err := s.conns(connID)
+	if err != nil {
+		return nil, err
+	}
+	if !conn.Capabilities().Has(model.CapSubscriptionRuntime) {
+		return nil, driver.Unsupported(conn, model.CapSubscriptionRuntime)
+	}
+	api, ok := conn.(driver.SubscriptionRuntime)
+	if !ok {
+		return nil, driver.Unsupported(conn, model.CapSubscriptionRuntime)
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.SubscriptionClients(ctx, ref)
+}

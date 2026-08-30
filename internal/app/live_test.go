@@ -14,6 +14,9 @@ import (
 	"github.com/amigoer/mq-studio/internal/service/destination"
 	"github.com/amigoer/mq-studio/internal/service/settings"
 	"github.com/amigoer/mq-studio/internal/storage/layout"
+
+	rocketmqconsumer "github.com/apache/rocketmq-client-go/v2/consumer"
+	"github.com/apache/rocketmq-client-go/v2/primitive"
 )
 
 // Exercises the stack the connection screen drives, against the broker
@@ -553,4 +556,114 @@ func TestLiveACLCredentialsAreNotSigned(t *testing.T) {
 	if !enabled {
 		t.Fatal("AccessEnabled reported false on a broker with aclEnable=true")
 	}
+}
+
+// What a connected consumer is actually doing - and why it cannot be shown.
+//
+// GetConsumerRunningInfo asks the client rather than the broker, so this is the
+// one live test that needs a real consumer. It starts one, waits for the
+// rebalance, and then finds that the queue assignment never arrives.
+//
+// The broker is not at fault: its own `mqadmin consumerStatus` collects the
+// same information from the same client. rocketmq-admin-go unmarshals the
+// response without the fixJSONBody pass that six of its siblings apply, and the
+// response carries mqTable - a Fastjson map whose keys are objects, the exact
+// shape that fixer exists for - so the parse always fails.
+//
+// The driver implements SubscriptionRuntime and reports the capability as
+// degraded with that reason, so a page explains the gap rather than pretending
+// RocketMQ has no such concept. This test asserts the gap is still there: it
+// goes red the day the library adds fixJSONBody, which is when the consumers
+// board can have its queue-assignment column back.
+func TestLiveConsumerClientsBlockedByLibraryParse(t *testing.T) {
+	connections, _, registry := liveStack(t)
+	ctx := context.Background()
+
+	profile, err := connections.AddConnection(liveProfileInput("clients"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := connections.Connect(profile.ID); err != nil {
+		t.Fatalf("connect: %v", err)
+	}
+	conn, _ := registry.Get(profile.ID)
+	runtime, ok := conn.(driver.SubscriptionRuntime)
+	if !ok {
+		t.Fatal("the RocketMQ connection does not implement SubscriptionRuntime")
+	}
+	ref := model.SubscriptionRef{Name: seededGroup}
+
+	// The capability has to be visible and explained, not silently missing.
+	reason, degraded := conn.Capabilities().DegradedReason(model.CapSubscriptionRuntime)
+	if !degraded || reason == "" {
+		t.Error("CapSubscriptionRuntime should be degraded with a reason while the parse is broken")
+	}
+	if conn.Capabilities().Has(model.CapSubscriptionRuntime) {
+		t.Error("CapSubscriptionRuntime is both supported and degraded")
+	}
+
+	// With nothing connected the answer is an error, not an empty list: "nobody
+	// is consuming" and "everyone is consuming nothing" are different things.
+	if _, err := runtime.SubscriptionClients(ctx, ref); err == nil {
+		t.Log("a client was already connected; the offline case is not covered by this run")
+	}
+
+	stop := startLiveConsumer(t)
+	defer stop()
+
+	// Wait for the broker to see the consumer and finish its rebalance.
+	var clients []*model.SubscriptionClient
+	for attempt := range 20 {
+		if attempt > 0 {
+			time.Sleep(time.Second)
+		}
+		clients, err = runtime.SubscriptionClients(ctx, ref)
+		if err == nil && len(clients) > 0 {
+			break
+		}
+	}
+	if err != nil {
+		t.Fatalf("SubscriptionClients: %v", err)
+	}
+	if len(clients) == 0 {
+		t.Fatal("no client reported for a group with a consumer connected")
+	}
+
+	// The client is found - that part comes from the broker's connection info.
+	// Everything that comes from the client itself is empty, because the parse
+	// of its answer failed.
+	client := clients[0]
+	if client.ClientID == "" {
+		t.Error("a client came back with no id")
+	}
+	if len(client.Assignments) != 0 {
+		t.Fatalf("the library can parse GetConsumerRunningInfo now (%d assignments) - "+
+			"drop the degraded reason and wire the queue-assignment column back",
+			len(client.Assignments))
+	}
+	t.Logf("client %s found, assignment still unreadable - as expected", client.ClientID)
+}
+
+// startLiveConsumer runs a push consumer on the seeded topic and group.
+func startLiveConsumer(t *testing.T) func() {
+	t.Helper()
+	pushConsumer, err := rocketmqconsumer.NewPushConsumer(
+		rocketmqconsumer.WithNameServer([]string{liveNameServer}),
+		rocketmqconsumer.WithGroupName(seededGroup),
+		rocketmqconsumer.WithConsumerModel(rocketmqconsumer.Clustering),
+	)
+	if err != nil {
+		t.Fatalf("create consumer: %v", err)
+	}
+	err = pushConsumer.Subscribe(seededTopic, rocketmqconsumer.MessageSelector{},
+		func(_ context.Context, _ ...*primitive.MessageExt) (rocketmqconsumer.ConsumeResult, error) {
+			return rocketmqconsumer.ConsumeSuccess, nil
+		})
+	if err != nil {
+		t.Fatalf("subscribe: %v", err)
+	}
+	if err := pushConsumer.Start(); err != nil {
+		t.Fatalf("start consumer: %v", err)
+	}
+	return func() { _ = pushConsumer.Shutdown() }
 }

@@ -23,6 +23,19 @@ import * as model$0 from "../model/models.js";
 import * as $models from "./models.js";
 
 /**
+ * Clients reports what each connected consumer in a group is doing: the queues
+ * it holds and how fast it is getting through them.
+ * 
+ * It is a separate call rather than part of Detail because it costs one round
+ * trip per connected client, and a group list should not pay that.
+ */
+export function Clients(connID: number, group: string): $CancellablePromise<(model$0.SubscriptionClient | null)[]> {
+    return $Call.ByID(4135460369, connID, group).then(($result: any) => {
+        return $$createType2($result);
+    });
+}
+
+/**
  * Create adds a consumer group on the target broker.
  */
 export function Create(connID: number, input: $models.ConsumerInput): $CancellablePromise<void> {
@@ -34,7 +47,7 @@ export function Create(connID: number, input: $models.ConsumerInput): $Cancellab
  */
 export function Detail(connID: number, group: string): $CancellablePromise<model$0.Subscription | null> {
     return $Call.ByID(2168000630, connID, group).then(($result: any) => {
-        return $$createType1($result);
+        return $$createType4($result);
     });
 }
 
@@ -43,7 +56,7 @@ export function Detail(connID: number, group: string): $CancellablePromise<model
  */
 export function List(connID: number): $CancellablePromise<(model$0.Subscription | null)[]> {
     return $Call.ByID(699201983, connID).then(($result: any) => {
-        return $$createType2($result);
+        return $$createType5($result);
     });
 }
 
@@ -66,7 +79,7 @@ export function ResetOffset(connID: number, request: model$0.ResetOffsetRequest)
  */
 export function Stats(connID: number, group: string): $CancellablePromise<{ [_ in string]?: any }> {
     return $Call.ByID(3402555482, connID, group).then(($result: any) => {
-        return $$createType3($result);
+        return $$createType6($result);
     });
 }
 
@@ -78,7 +91,10 @@ export function Update(connID: number, input: $models.ConsumerInput): $Cancellab
 }
 
 // Private type creation functions
-const $$createType0 = model$0.Subscription.createFrom;
+const $$createType0 = model$0.SubscriptionClient.createFrom;
 const $$createType1 = $Create.Nullable($$createType0);
 const $$createType2 = $Create.Array($$createType1);
-const $$createType3 = $Create.Map($Create.Any, $Create.Any);
+const $$createType3 = model$0.Subscription.createFrom;
+const $$createType4 = $Create.Nullable($$createType3);
+const $$createType5 = $Create.Array($$createType4);
+const $$createType6 = $Create.Map($Create.Any, $Create.Any);

@@ -19,6 +19,11 @@ const (
 	CapSubscriptionDelete Capability = "subscription.delete"
 	CapSubscriptionLag    Capability = "subscription.lag"
 	CapOffsetReset        Capability = "subscription.resetOffset"
+	// CapSubscriptionRuntime is asking a connected consumer what it is doing:
+	// which queues it holds and how fast it is getting through them. Only a
+	// live client can answer, so a family without client introspection - or a
+	// group with nothing connected - simply has no answer.
+	CapSubscriptionRuntime Capability = "subscription.runtime"
 
 	CapMessageQuery    Capability = "message.query"
 	CapMessageByID     Capability = "message.byId"

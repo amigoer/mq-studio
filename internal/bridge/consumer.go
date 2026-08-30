@@ -71,3 +71,12 @@ func (s *ConsumerService) Remove(connID int, group string, brokerAddr string) er
 func (s *ConsumerService) ResetOffset(connID int, request model.ResetOffsetRequest) error {
 	return s.service.ResetOffset(context.Background(), connID, request)
 }
+
+// Clients reports what each connected consumer in a group is doing: the queues
+// it holds and how fast it is getting through them.
+//
+// It is a separate call rather than part of Detail because it costs one round
+// trip per connected client, and a group list should not pay that.
+func (s *ConsumerService) Clients(connID int, group string) ([]*model.SubscriptionClient, error) {
+	return s.service.Clients(context.Background(), connID, model.SubscriptionRef{Name: group})
+}

@@ -10,6 +10,7 @@ export {
     ClusterOverview,
     ClusterSummary,
     ConnectionStatus,
+    ConsumeThroughput,
     Destination,
     DestinationRef,
     DriverDescriptor,
@@ -24,8 +25,10 @@ export {
     MessageTrackItem,
     Node,
     NodeStatus,
+    QueueAssignment,
     ResetOffsetRequest,
     Subscription,
+    SubscriptionClient,
     SubscriptionRef,
     SubscriptionStatus
 } from "./models.js";

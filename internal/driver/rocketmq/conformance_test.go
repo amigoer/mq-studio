@@ -43,10 +43,20 @@ func TestDescriptorIsSelfConsistent(t *testing.T) {
 		}
 	}
 
+	// MaxCapabilities is the family's best case, so a connection may report a
+	// capability as degraded instead of supported - that is the middle state
+	// working, not a disagreement. What it may not do is drop one entirely.
 	live := NewConn(nil, ClientConfig{}, "ns:9876").Capabilities()
 	for _, capability := range descriptor.MaxCapabilities {
-		if !live.Has(capability) {
-			t.Errorf("descriptor promises %s but a connection does not report it", capability)
+		if live.Has(capability) {
+			continue
 		}
+		if reason, degraded := live.DegradedReason(capability); degraded {
+			if reason == "" {
+				t.Errorf("%s is degraded with no reason to show", capability)
+			}
+			continue
+		}
+		t.Errorf("descriptor promises %s but a connection neither supports nor degrades it", capability)
 	}
 }

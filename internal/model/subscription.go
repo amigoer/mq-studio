@@ -47,3 +47,59 @@ type SubscriptionSpec struct {
 	Ref        SubscriptionRef   `json:"ref"`
 	Attributes map[string]string `json:"attributes"`
 }
+
+// SubscriptionClient is what one connected consumer is actually doing.
+//
+// It is separate from the client list a Subscription carries because the two
+// answer different questions and cost different things. The list says who is
+// connected, and comes back with the group. This is a round trip to that one
+// client, so it is fetched when someone asks about it.
+type SubscriptionClient struct {
+	ClientID string `json:"clientId"`
+
+	// Assignments is which queues this client currently holds. It is the
+	// answer to "why is one consumer behind and the others idle", which a
+	// group-level backlog cannot give.
+	Assignments []QueueAssignment `json:"assignments"`
+
+	// Throughput is per destination, because a client reading two topics can
+	// be healthy on one and stalled on the other.
+	Throughput []ConsumeThroughput `json:"throughput"`
+
+	// Properties is what the client reports about itself - version, consume
+	// mode, thread counts. Free-form because every family names them
+	// differently and none of it is worth a canonical field.
+	Properties map[string]string `json:"properties"`
+}
+
+// QueueAssignment is one queue a consumer holds, and how far behind it is.
+type QueueAssignment struct {
+	Destination string `json:"destination"`
+	Node        string `json:"node"` // the broker holding this queue
+	QueueID     int    `json:"queueId"`
+
+	// Pending is what this client has buffered but not yet finished, which is
+	// not the same as the group's backlog on the broker.
+	Pending      int64 `json:"pending"`
+	PendingBytes int64 `json:"pendingBytes"`
+
+	LastPull    string `json:"lastPull"`
+	LastConsume string `json:"lastConsume"`
+
+	// Locked matters only where a family locks a queue to one consumer for
+	// ordered delivery; Dropped means the client is releasing it in a rebalance.
+	Locked  bool `json:"locked"`
+	Dropped bool `json:"dropped"`
+}
+
+// ConsumeThroughput is one destination's consume rates for one client.
+type ConsumeThroughput struct {
+	Destination string `json:"destination"`
+
+	PullLatencyMs    float64 `json:"pullLatencyMs"`
+	PullRate         float64 `json:"pullRate"`
+	ConsumeLatencyMs float64 `json:"consumeLatencyMs"`
+	SuccessRate      float64 `json:"successRate"`
+	FailureRate      float64 `json:"failureRate"`
+	FailedMessages   int64   `json:"failedMessages"`
+}
