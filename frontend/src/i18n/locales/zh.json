@@ -1751,6 +1751,7 @@
         "liveSubtitle": "{{count}} 个 Topic",
         "noTopics": "这个集群里没有 Topic",
         "noQueues": "没有队列数据",
+        "noRoute": "没有路由信息",
         "sort": {
           "backlog": "按积压",
           "name": "按名称",

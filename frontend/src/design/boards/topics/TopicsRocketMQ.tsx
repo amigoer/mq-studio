@@ -22,7 +22,6 @@ import {
   KV,
   MiniStat,
   ProtoBadge,
-  SectionLabel,
   SelectField,
   Status,
   useConfirm,
@@ -47,7 +46,14 @@ import {
   writeQueue,
 } from "@/mq/rocketmq/destinations";
 
-const SHEET_TABS = ["board.common.overview", "board.common.queue", "board.topics.rocketmq.route"] as const;
+/*
+ * The tab ids are the translation keys, so the selected tab is compared
+ * against something stable rather than against a label that changes language.
+ */
+const TAB_OVERVIEW = "board.common.overview";
+const TAB_QUEUES = "board.common.queue";
+const TAB_ROUTE = "board.topics.rocketmq.route";
+const SHEET_TABS = [TAB_OVERVIEW, TAB_QUEUES, TAB_ROUTE] as const;
 
 const SORTS = ["backlog", "name", "produce"] as const;
 type Sort = (typeof SORTS)[number];
@@ -286,13 +292,13 @@ function TopicSheet({
   const { t } = useTranslation();
   const name = topicName(topic);
 
-  // Per-queue offsets are one request per topic, so they are fetched when a
-  // topic is actually opened rather than for every row in the list.
+  // Per-queue offsets are one request per topic, and only the 队列 tab shows
+  // them, so opening a topic to read its permissions does not pay for them.
   const load = useCallback(
     (id: number) => topicApi.getTopicStats(id, name),
     [name],
   );
-  const stats = useBrokerData(load, { refreshMs: null });
+  const stats = useBrokerData(load, { refreshMs: null, enabled: tab === TAB_QUEUES });
   const queues = (stats.data?.["queues"] as QueueRow[] | undefined) ?? [];
   const route = routes(topic);
 
@@ -307,25 +313,31 @@ function TopicSheet({
         onClose={onClose}
       />
       <DetailPanelBody>
-        <div className="grid grid-cols-2 gap-2">
-          <MiniStat label={t("board.common.produceTps")} value={metric(topic.rateIn)} />
-          <MiniStat
-            label={t("board.common.backlog")}
-            value={metric(topic.depth)}
-            color={topic.depth > 0 ? "var(--c-warn-text)" : undefined}
-          />
-        </div>
+        {tab === TAB_OVERVIEW && (
+          <>
+            <div className="grid grid-cols-2 gap-2">
+              <MiniStat label={t("board.common.produceTps")} value={metric(topic.rateIn)} />
+              <MiniStat
+                label={t("board.common.backlog")}
+                value={metric(topic.depth)}
+                color={topic.depth > 0 ? "var(--c-warn-text)" : undefined}
+              />
+            </div>
 
-        <KV
-          rows={[
-            [t("board.topics.rocketmq.perm"), perm(topic)],
-            [t("board.topics.rocketmq.messageType"), messageType(topic)],
-            [t("board.common.queue"), `${metric(readQueue(topic))} / ${metric(writeQueue(topic))}`],
-          ]}
-        />
+            <KV
+              rows={[
+                [t("board.topics.rocketmq.perm"), perm(topic)],
+                [t("board.topics.rocketmq.messageType"), messageType(topic)],
+                [
+                  t("board.common.queue"),
+                  `${metric(readQueue(topic))} / ${metric(writeQueue(topic))}`,
+                ],
+              ]}
+            />
+          </>
+        )}
 
-        <div>
-          <SectionLabel style={{ marginBottom: "6px" }}>{t("board.topics.rocketmq.queueSpread")}</SectionLabel>
+        {tab === TAB_QUEUES && (
           <Card className="gap-0 overflow-hidden rounded-lg py-0">
             {isBlocked(stats) ? (
               <BoardState state={stats} />
@@ -356,11 +368,12 @@ function TopicSheet({
               </Table>
             )}
           </Card>
-        </div>
+        )}
 
-        {route.length > 0 && (
-          <div>
-            <SectionLabel style={{ marginBottom: "6px" }}>{t("board.topics.rocketmq.route")}</SectionLabel>
+        {tab === TAB_ROUTE &&
+          (route.length === 0 ? (
+            <Notice title={t("board.topics.rocketmq.noRoute")} />
+          ) : (
             <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
               {route.map((one) => (
                 <Status key={one.brokerAddr || one.broker} tone="ok">
@@ -368,8 +381,7 @@ function TopicSheet({
                 </Status>
               ))}
             </div>
-          </div>
-        )}
+          ))}
       </DetailPanelBody>
       <DetailPanelFooter>
         <Button variant="outline" onClick={onEdit}>{t("board.common.edit")}</Button>

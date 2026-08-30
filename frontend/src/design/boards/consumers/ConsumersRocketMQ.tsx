@@ -21,7 +21,6 @@ import {
   KV,
   MiniStat,
   Panel,
-  SectionLabel,
   SelectField,
   Status,
   useConfirm,
@@ -45,11 +44,14 @@ import {
   subscriptionsOf,
 } from "@/mq/rocketmq/subscriptions";
 
-const SHEET_TABS = [
-  "board.common.overview",
-  "board.common.members",
-  "board.consumers.rocketmq.subRel",
-] as const;
+/*
+ * The tab ids are the translation keys, so the selected tab is compared
+ * against something stable rather than against a label that changes language.
+ */
+const TAB_OVERVIEW = "board.common.overview";
+const TAB_MEMBERS = "board.common.members";
+const TAB_SUBSCRIPTIONS = "board.consumers.rocketmq.subRel";
+const SHEET_TABS = [TAB_OVERVIEW, TAB_MEMBERS, TAB_SUBSCRIPTIONS] as const;
 const R = { textAlign: "right" } as const;
 const SORTS = ["backlog", "name", "consume"] as const;
 type Sort = (typeof SORTS)[number];
@@ -319,62 +321,37 @@ function GroupSheet({
         onClose={onClose}
       />
       <DetailPanelBody>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px" }}>
-          <MiniStat
-            label={t("board.common.backlog")}
-            value={backlog.toLocaleString()}
-            color={alerting ? "var(--c-warn-text)" : undefined}
-          />
-          <MiniStat label={t("board.common.consumeTps")} value={metric(group.rateOut)} />
-          <MiniStat label={t("board.common.client")} value={metric(group.members)} />
-        </div>
+        {tab === TAB_OVERVIEW && (
+          <>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px" }}>
+              <MiniStat
+                label={t("board.common.backlog")}
+                value={backlog.toLocaleString()}
+                color={alerting ? "var(--c-warn-text)" : undefined}
+              />
+              <MiniStat label={t("board.common.consumeTps")} value={metric(group.rateOut)} />
+              <MiniStat label={t("board.common.client")} value={metric(group.members)} />
+            </div>
 
-        <KV
-          rows={[
-            [
-              t("board.common.mode"),
-              t(
-                consumeMode(group) === ConsumeMode.Broadcasting
-                  ? "board.consumers.rocketmq.broadcast"
-                  : "board.common.cluster",
-              ),
-            ],
-            [t("board.consumers.rocketmq.retryPolicy"), String(maxRetry(group))],
-            [t("board.consumers.rocketmq.dlq"), dlqCount(group).toLocaleString()],
-          ]}
-        />
+            <KV
+              rows={[
+                [
+                  t("board.common.mode"),
+                  t(
+                    consumeMode(group) === ConsumeMode.Broadcasting
+                      ? "board.consumers.rocketmq.broadcast"
+                      : "board.common.cluster",
+                  ),
+                ],
+                [t("board.consumers.rocketmq.retryPolicy"), String(maxRetry(group))],
+                [t("board.consumers.rocketmq.dlq"), dlqCount(group).toLocaleString()],
+              ]}
+            />
+          </>
+        )}
 
-        <div>
-          <SectionLabel style={{ marginBottom: "6px" }}>{t("board.consumers.rocketmq.subRel")}</SectionLabel>
-          {subscriptions.length === 0 ? (
-            <Notice title={t("board.consumers.rocketmq.noSubs")} />
-          ) : (
-            <Panel style={{ overflow: "hidden" }}>
-              <Table className="text-xs">
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Topic</TableHead>
-                    <TableHead>{t("board.consumers.rocketmq.expression")}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {subscriptions.map((one) => (
-                    <TableRow key={one.topic}>
-                      <TableCell className="mono3">{one.topic}</TableCell>
-                      <TableCell className="mono3" style={{ color: "var(--c-mono-dim)" }}>
-                        {one.expression || "*"}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Panel>
-          )}
-        </div>
-
-        <div>
-          <SectionLabel style={{ marginBottom: "6px" }}>{t("board.consumers.rocketmq.onlineClients")}</SectionLabel>
-          {clients.length === 0 ? (
+        {tab === TAB_MEMBERS &&
+          (clients.length === 0 ? (
             <Notice title={t("board.consumers.rocketmq.noClients")} />
           ) : (
             <Panel style={{ overflow: "hidden" }}>
@@ -401,8 +378,33 @@ function GroupSheet({
                 </TableBody>
               </Table>
             </Panel>
-          )}
-        </div>
+          ))}
+
+        {tab === TAB_SUBSCRIPTIONS &&
+          (subscriptions.length === 0 ? (
+            <Notice title={t("board.consumers.rocketmq.noSubs")} />
+          ) : (
+            <Panel style={{ overflow: "hidden" }}>
+              <Table className="text-xs">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Topic</TableHead>
+                    <TableHead>{t("board.consumers.rocketmq.expression")}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {subscriptions.map((one) => (
+                    <TableRow key={one.topic}>
+                      <TableCell className="mono3">{one.topic}</TableCell>
+                      <TableCell className="mono3" style={{ color: "var(--c-mono-dim)" }}>
+                        {one.expression || "*"}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </Panel>
+          ))}
       </DetailPanelBody>
       <DetailPanelFooter>
         <Button variant="outline" onClick={onResetOffset}>{t("board.common.resetOffset")}</Button>

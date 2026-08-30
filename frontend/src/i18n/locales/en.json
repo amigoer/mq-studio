@@ -1751,6 +1751,7 @@
         "liveSubtitle": "{{count}} topics",
         "noTopics": "This cluster has no topics",
         "noQueues": "No queue data",
+        "noRoute": "No route information",
         "sort": {
           "backlog": "By backlog",
           "name": "By name",
