@@ -117,6 +117,23 @@ type ProducerClient struct {
 	Version  string `json:"version"`
 }
 
+// QueueOffsetRequest sets one queue's read position to an exact offset.
+//
+// It is not a reset: a reset names a moment and lets the broker find a
+// position per queue, which is the safe gesture for a whole group. This writes
+// a number to one queue, which is the surgical one - the queue whose backlog
+// the page just showed, moved past a message nobody can consume.
+type QueueOffsetRequest struct {
+	Subscription string `json:"subscription"`
+	Destination  string `json:"destination"`
+
+	// Node is the broker holding the queue. The offset lives on it, not in the
+	// route table, so it cannot be inferred from the destination.
+	Node    string `json:"node"`
+	QueueID int    `json:"queueId"`
+	Offset  int64  `json:"offset"`
+}
+
 // CloneOffsetRequest copies one subscription's read position onto another.
 //
 // The usual reason is standing up a replacement consumer group without

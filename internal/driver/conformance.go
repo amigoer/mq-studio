@@ -22,6 +22,7 @@ func backings() []capabilityBacking {
 	runtime := func(c Conn) bool { _, ok := c.(SubscriptionRuntime); return ok }
 	progress := func(c Conn) bool { _, ok := c.(ProgressAdmin); return ok }
 	cloner := func(c Conn) bool { _, ok := c.(OffsetCloner); return ok }
+	queueProgress := func(c Conn) bool { _, ok := c.(QueueProgressAdmin); return ok }
 	reader := func(c Conn) bool { _, ok := c.(MessageReader); return ok }
 	tracker := func(c Conn) bool { _, ok := c.(MessageTracker); return ok }
 	tailer := func(c Conn) bool { _, ok := c.(MessageTailer); return ok }
@@ -52,6 +53,7 @@ func backings() []capabilityBacking {
 		{model.CapOffsetReset, "ProgressAdmin", progress},
 		{model.CapSubscriptionRuntime, "SubscriptionRuntime", runtime},
 		{model.CapOffsetClone, "OffsetCloner", cloner},
+		{model.CapQueueOffset, "QueueProgressAdmin", queueProgress},
 
 		{model.CapMessageQuery, "MessageReader", reader},
 		{model.CapMessageByID, "MessageReader", reader},

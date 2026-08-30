@@ -365,6 +365,13 @@ export enum Capability {
     CapOffsetClone = "subscription.cloneOffset",
 
     /**
+     * CapQueueOffset is writing one queue's read position directly. Distinct
+     * from CapOffsetReset, which moves a whole subscription to a moment in
+     * time and lets the broker find each queue's position for itself.
+     */
+    CapQueueOffset = "subscription.queueOffset",
+
+    /**
      * CapSubscriptionRuntime is asking a connected consumer what it is doing:
      * which queues it holds and how fast it is getting through them. Only a
      * live client can answer, so a family without client introspection - or a

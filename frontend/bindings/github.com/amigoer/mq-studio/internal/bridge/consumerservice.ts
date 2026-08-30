@@ -75,6 +75,13 @@ export function ResetOffset(connID: number, request: model$0.ResetOffsetRequest)
 }
 
 /**
+ * SetQueueOffset writes one queue's committed offset for a group.
+ */
+export function SetQueueOffset(connID: number, input: $models.QueueOffsetInput): $CancellablePromise<void> {
+    return $Call.ByID(2850518035, connID, input);
+}
+
+/**
  * Stats returns the per-queue consume progress of a group.
  */
 export function Stats(connID: number, group: string): $CancellablePromise<{ [_ in string]?: any }> {

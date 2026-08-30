@@ -78,6 +78,16 @@ type ProgressAdmin interface {
 	ResetOffset(ctx context.Context, request model.ResetOffsetRequest) error
 }
 
+// QueueProgressAdmin writes one queue's read position directly.
+//
+// Separate from ProgressAdmin because the two are different gestures with
+// different blast radii: a reset names a moment and moves a whole
+// subscription, this writes a number to one queue. A family whose position is
+// per subscription rather than per partition has nothing to implement here.
+type QueueProgressAdmin interface {
+	SetQueueOffset(ctx context.Context, request model.QueueOffsetRequest) error
+}
+
 // OffsetCloner copies one subscription's read position onto another.
 //
 // Separate from ProgressAdmin because it is a different operation with a

@@ -103,6 +103,7 @@ func rocketMQCapabilities() []model.Capability {
 		model.CapSubscriptionLag,
 		model.CapOffsetReset,
 		model.CapOffsetClone,
+		model.CapQueueOffset,
 		// CapSubscriptionRuntime is listed here and then degraded in
 		// Capabilities: the driver implements it, but the library cannot read
 		// the broker's answer. See subscriptionRuntimeBlocked.

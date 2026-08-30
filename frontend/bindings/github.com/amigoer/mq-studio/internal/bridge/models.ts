@@ -540,6 +540,46 @@ export class PrincipalInput {
 }
 
 /**
+ * QueueOffsetInput carries a per-queue offset form submission.
+ */
+export class QueueOffsetInput {
+    "group": string;
+    "topic": string;
+    "broker": string;
+    "queueId": number;
+    "offset": number;
+
+    /** Creates a new QueueOffsetInput instance. */
+    constructor($$source: Partial<QueueOffsetInput> = {}) {
+        if (!("group" in $$source)) {
+            this["group"] = "";
+        }
+        if (!("topic" in $$source)) {
+            this["topic"] = "";
+        }
+        if (!("broker" in $$source)) {
+            this["broker"] = "";
+        }
+        if (!("queueId" in $$source)) {
+            this["queueId"] = 0;
+        }
+        if (!("offset" in $$source)) {
+            this["offset"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new QueueOffsetInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): QueueOffsetInput {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new QueueOffsetInput($$parsedSource as Partial<QueueOffsetInput>);
+    }
+}
+
+/**
  * ReplayInput carries a replay-to-one-consumer request.
  */
 export class ReplayInput {

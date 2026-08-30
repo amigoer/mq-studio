@@ -82,3 +82,23 @@ func (s *ConsumerService) Clients(connID int, group string) ([]*model.Subscripti
 func (s *ConsumerService) CloneOffset(connID int, request model.CloneOffsetRequest) error {
 	return s.service.CloneOffset(context.Background(), connID, request)
 }
+
+// QueueOffsetInput carries a per-queue offset form submission.
+type QueueOffsetInput struct {
+	Group   string `json:"group"`
+	Topic   string `json:"topic"`
+	Broker  string `json:"broker"`
+	QueueID int    `json:"queueId"`
+	Offset  int64  `json:"offset"`
+}
+
+// SetQueueOffset writes one queue's committed offset for a group.
+func (s *ConsumerService) SetQueueOffset(connID int, input QueueOffsetInput) error {
+	return s.service.SetQueueOffset(context.Background(), connID, model.QueueOffsetRequest{
+		Subscription: input.Group,
+		Destination:  input.Topic,
+		Node:         input.Broker,
+		QueueID:      input.QueueID,
+		Offset:       input.Offset,
+	})
+}

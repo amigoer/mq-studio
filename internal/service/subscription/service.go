@@ -220,3 +220,25 @@ func (s *Service) CloneOffset(ctx context.Context, connID int, request model.Clo
 	defer cancel()
 	return api.CloneOffset(ctx, request)
 }
+
+// SetQueueOffset writes one queue's committed offset.
+//
+// It is deliberately not folded into ResetOffset. The two answer different
+// questions and a caller that could pass either would be one keystroke from
+// moving a whole group when it meant to move a queue.
+func (s *Service) SetQueueOffset(ctx context.Context, connID int, request model.QueueOffsetRequest) error {
+	conn, err := s.conns(connID)
+	if err != nil {
+		return err
+	}
+	if !conn.Capabilities().Has(model.CapQueueOffset) {
+		return driver.Unsupported(conn, model.CapQueueOffset)
+	}
+	api, ok := conn.(driver.QueueProgressAdmin)
+	if !ok {
+		return driver.Unsupported(conn, model.CapQueueOffset)
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.SetQueueOffset(ctx, request)
+}
