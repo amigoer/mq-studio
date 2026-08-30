@@ -278,3 +278,17 @@ func (s *Service) Publish(ctx context.Context, connID int, request model.Publish
 	defer cancel()
 	return api.Publish(ctx, request)
 }
+
+// DropMessages discards a bounded batch from the head of a queue.
+//
+// The count is returned even alongside an error, like a move: what it reports
+// is already gone, and there is no undo.
+func (s *Service) DropMessages(ctx context.Context, connID int, ref model.DestinationRef, limit int) (int, error) {
+	api, err := port[driver.QueueActions](s, connID, model.CapDestinationPurge)
+	if err != nil {
+		return 0, err
+	}
+	ctx, cancel := context.WithTimeout(ctx, moveTimeout)
+	defer cancel()
+	return api.DropMessages(ctx, ref, limit)
+}

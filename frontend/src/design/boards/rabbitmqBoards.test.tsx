@@ -783,6 +783,8 @@ describe("the RabbitMQ dead-letter board", () => {
   ) => {
     deadLetterState.current = stateOf(topology);
     messagesState.current = browseState(browse);
+    // The board reads queues too, for the republish dialog's target picker.
+    queuesState.current = stateOf({ data: [] });
     return render(<DlqRabbitMQ />);
   };
 

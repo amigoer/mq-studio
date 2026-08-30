@@ -210,3 +210,70 @@ func republishing(delivery *amqp.Delivery) amqp.Publishing {
 		Body:            delivery.Body,
 	}
 }
+
+// DropMessages discards a batch from the head of a queue.
+//
+// Not a purge. A purge empties the queue in one broker call and cannot be
+// bounded; this takes a fixed number from the head and acknowledges them,
+// which is what "discard these ten dead letters and leave the rest" means.
+//
+// Acknowledging is what discards: an acknowledged message is gone from the
+// broker with no dead-lettering and no copy anywhere. That is the whole
+// operation, and there is no undo.
+func (c *Conn) DropMessages(ctx context.Context, ref model.DestinationRef, limit int) (int, error) {
+	if limit <= 0 {
+		return 0, fmt.Errorf("dropping needs a count")
+	}
+
+	var dropped int
+	err := c.data.withChannel(ctx, func(channel *amqp.Channel) error {
+		count, dropErr := discard(ctx, channel, ref.Name, limit)
+		dropped = count
+		return dropErr
+	})
+	if err != nil {
+		return dropped, fmt.Errorf("drop from %q: %w", ref.Name, err)
+	}
+	return dropped, nil
+}
+
+func discard(ctx context.Context, channel *amqp.Channel, queue string, limit int) (int, error) {
+	if err := channel.Qos(1, 0, false); err != nil {
+		return 0, fmt.Errorf("set prefetch: %w", err)
+	}
+	tag := fmt.Sprintf("mq-studio-drop-%d", time.Now().UnixNano())
+	deliveries, err := channel.ConsumeWithContext(ctx, queue, tag, false, false, false, false, nil)
+	if err != nil {
+		return 0, fmt.Errorf("consume: %w", err)
+	}
+	defer func() { _ = channel.Cancel(tag, false) }()
+
+	idle := time.NewTimer(moveIdleTimeout)
+	defer idle.Stop()
+
+	dropped := 0
+	for dropped < limit {
+		select {
+		case <-ctx.Done():
+			return dropped, ctx.Err()
+		case delivery, ok := <-deliveries:
+			if !ok {
+				return dropped, nil
+			}
+			if err := delivery.Ack(false); err != nil {
+				return dropped, fmt.Errorf("acknowledge: %w", err)
+			}
+			dropped++
+			if !idle.Stop() {
+				select {
+				case <-idle.C:
+				default:
+				}
+			}
+			idle.Reset(moveIdleTimeout)
+		case <-idle.C:
+			return dropped, nil
+		}
+	}
+	return dropped, nil
+}

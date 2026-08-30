@@ -1976,7 +1976,14 @@
           "expired": "expired",
           "maxlen": "queue full",
           "delivery_limit": "delivery limit"
-        }
+        },
+        "republish": "Republish",
+        "republished": "Republished {{count}}",
+        "drop": "Discard",
+        "dropTitle": "Discard from {{name}}",
+        "dropDesc": "Takes up to {{count}} from the head and acknowledges them. Acknowledging removes them from the broker with no dead-lettering and no copy anywhere. There is no undo.",
+        "dropped": "Discarded {{count}}",
+        "dropFailed": "Could not discard"
       }
     },
     "producer": {

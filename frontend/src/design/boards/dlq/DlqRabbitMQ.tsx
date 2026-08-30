@@ -21,6 +21,8 @@ import {
   SelectField,
   Status,
   WarnBanner,
+  toast,
+  useConfirm,
 } from "@/components";
 import { BoardState } from "@/design/boards/BoardState";
 import { useRabbitDeadLetters } from "@/hooks/rabbitmq/useRabbitDeadLetters";
@@ -34,6 +36,12 @@ import {
   headers,
   routingKey,
 } from "@/mq/rabbitmq/messages";
+import { useConnectionScope } from "@/mq/ConnectionScope";
+import { useRabbitQueues } from "@/hooks/rabbitmq/useRabbitQueues";
+import * as rabbitApi from "@/api/rabbitmq";
+import { formatErrorMessage } from "@/lib/utils";
+import { MoveDialog } from "@/design/boards/topics/MoveDialog";
+import type { MoveRequest } from "@/api/rabbitmq";
 import type { DeadLetterQueue } from "@/api/rabbitmq";
 import type { MessageItem } from "@/api/models";
 
@@ -53,16 +61,26 @@ const COUNTS = ["10", "50", "200"] as const;
  * says how many messages failed; knowing which queues dead-letter into it is
  * what says where to look.
  *
- * The canvas drew republish, publish-elsewhere, export and ack-and-remove.
- * They arrive with the write operations.
+ * Two actions, and the difference between them is the whole page. Republishing
+ * sends a batch back where it came from - the target opens on the queue the
+ * messages died in, read from their own x-death history. Dropping
+ * acknowledges them, which discards them from the broker with no
+ * dead-lettering and no copy anywhere.
+ *
+ * Export is not offered. The canvas drew it, and a file of message bodies with
+ * no headers and no routing keys is not something anything can read back.
  */
 export function DlqRabbitMQ() {
   const { t } = useTranslation();
   const topology = useRabbitDeadLetters();
   const messages = useRabbitMessages();
+  const allQueues = useRabbitQueues();
+  const { id: connID } = useConnectionScope();
+  const confirm = useConfirm();
   const [queue, setQueue] = useState("");
   const [count, setCount] = useState<string>("50");
   const [selected, setSelected] = useState<number | null>(null);
+  const [republishing, setRepublishing] = useState(false);
 
   const queues = useMemo(() => topology.data ?? [], [topology.data]);
   const chosen = queues.find((found) => found.name === queue) ?? null;
@@ -75,6 +93,47 @@ export function DlqRabbitMQ() {
 
   const rows = messages.items;
   const detail = rows.find((message) => message.id === selected) ?? null;
+
+  /* The queue these dead letters came from, when they all agree on one. It is
+     the obvious republish target and the dialog opens on it. */
+  const origins = new Set(rows.map(deathQueue).filter((name) => name !== ""));
+  const singleOrigin = origins.size === 1 ? [...origins][0] : undefined;
+
+  const republish = useCallback(
+    async (request: MoveRequest) => {
+      const moved = await rabbitApi.moveMessages(connID, request);
+      toast.success(t("board.dlq.rabbitmq.republished", { count: moved }));
+      await topology.refresh();
+      if (queue !== "") {
+        void messages.browse({ queue, count: Number.parseInt(count, 10) });
+      }
+    },
+    [connID, count, messages, queue, t, topology],
+  );
+
+  const drop = useCallback(async () => {
+    if (chosen == null) return;
+    const batch = Number.parseInt(count, 10);
+    const ok = await confirm({
+      title: t("board.dlq.rabbitmq.dropTitle", { name: chosen.name }),
+      /* Acknowledging is what discards. The messages are gone from the broker
+         with no dead-lettering and no copy anywhere. */
+      description: t("board.dlq.rabbitmq.dropDesc", { count: batch }),
+      confirmLabel: t("board.dlq.rabbitmq.drop"),
+      danger: true,
+    });
+    if (!ok) return;
+    try {
+      const dropped = await rabbitApi.dropMessages(connID, chosen.namespace, chosen.name, batch);
+      toast.success(t("board.dlq.rabbitmq.dropped", { count: dropped }));
+      await topology.refresh();
+      void messages.browse({ queue: chosen.name, count: batch });
+    } catch (dropError) {
+      toast.error(t("board.dlq.rabbitmq.dropFailed"), {
+        description: formatErrorMessage(dropError),
+      });
+    }
+  }, [chosen, confirm, connID, count, messages, t, topology]);
 
   return (
     <Page>
@@ -116,6 +175,16 @@ export function DlqRabbitMQ() {
           {messages.running ? <Spinner /> : <Search size={13} aria-hidden />}
           {t("board.dlq.rabbitmq.fetch")}
         </Button>
+        <Button
+          variant="outline"
+          disabled={chosen == null}
+          onClick={() => setRepublishing(true)}
+        >
+          {t("board.dlq.rabbitmq.republish")}
+        </Button>
+        <Button variant="destructive" disabled={chosen == null} onClick={() => void drop()}>
+          {t("board.dlq.rabbitmq.drop")}
+        </Button>
         <span className="flex-1" />
         {messages.lastCount != null && (
           <span style={{ fontSize: "11.5px", color: "var(--c-muted)" }}>
@@ -125,6 +194,16 @@ export function DlqRabbitMQ() {
           </span>
         )}
       </Toolbar>
+      <MoveDialog
+        open={republishing}
+        vhost={chosen?.namespace ?? "/"}
+        from={chosen?.name ?? ""}
+        queues={(allQueues.data ?? []).map((found) => found.ref.name)}
+        exchanges={[]}
+        defaultTargetQueue={singleOrigin}
+        onClose={() => setRepublishing(false)}
+        onSubmit={republish}
+      />
       <ListArea>
         <ListPane>
           <BoardState

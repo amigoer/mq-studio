@@ -229,3 +229,10 @@ func (s *RabbitMQService) Publish(connID int, input PublishInput) (*model.Publis
 		Count:         input.Count,
 	})
 }
+
+// DropMessages discards a bounded batch from the head of a queue and reports
+// how many are gone. There is no undo.
+func (s *RabbitMQService) DropMessages(connID int, vhost, name string, limit int) (int, error) {
+	return s.service.DropMessages(context.Background(), connID,
+		model.DestinationRef{Namespace: vhost, Name: name}, limit)
+}

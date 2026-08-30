@@ -57,6 +57,9 @@ type QueueActions interface {
 	// MoveMessages returns how many it moved, which is meaningful even on an
 	// error: the count is what already reached the target.
 	MoveMessages(ctx context.Context, request model.MoveRequest) (int, error)
+	// DropMessages discards a bounded batch from the head, which a purge
+	// cannot do: a purge empties the whole queue in one call.
+	DropMessages(ctx context.Context, ref model.DestinationRef, limit int) (int, error)
 	RebalanceQueues(ctx context.Context) error
 }
 

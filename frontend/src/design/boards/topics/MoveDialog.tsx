@@ -26,8 +26,8 @@ export interface MoveForm {
   limit: string;
 }
 
-export function emptyMoveForm(): MoveForm {
-  return { target: "queue", queue: "", exchange: "", routingKey: "", limit: "100" };
+export function emptyMoveForm(queue = ""): MoveForm {
+  return { target: "queue", queue, exchange: "", routingKey: "", limit: "100" };
 }
 
 /**
@@ -78,6 +78,7 @@ export function MoveDialog({
   from,
   queues,
   exchanges,
+  defaultTargetQueue,
   onClose,
   onSubmit,
 }: {
@@ -86,20 +87,26 @@ export function MoveDialog({
   from: string;
   queues: readonly string[];
   exchanges: readonly string[];
+  /**
+   * Pre-selected target. The dead-letter board passes the queue the messages
+   * died in, read from their x-death history, which is where a republish
+   * nearly always goes.
+   */
+  defaultTargetQueue?: string;
   onClose: () => void;
   onSubmit: (request: MoveRequest) => Promise<void>;
 }) {
   const { t } = useTranslation();
-  const [form, setForm] = useState<MoveForm>(emptyMoveForm);
+  const [form, setForm] = useState<MoveForm>(() => emptyMoveForm(defaultTargetQueue));
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
-    setForm(emptyMoveForm());
+    setForm(emptyMoveForm(defaultTargetQueue));
     setError(null);
     setRunning(false);
-  }, [open]);
+  }, [defaultTargetQueue, open]);
 
   const set = <K extends keyof MoveForm>(key: K, value: MoveForm[K]) =>
     setForm((current) => ({ ...current, [key]: value }));

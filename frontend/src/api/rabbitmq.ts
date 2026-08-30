@@ -192,3 +192,18 @@ export interface PublishInput {
  */
 export const publish = (connID: number, input: PublishInput): Promise<PublishResult | null> =>
   RabbitMQService.Publish(connID, input);
+
+/**
+ * Discards a bounded batch from the head of a queue and reports how many are
+ * gone.
+ *
+ * Not a purge: a purge empties the whole queue in one broker call and cannot
+ * be bounded. This acknowledges a fixed number, which is what "discard these
+ * ten and leave the rest" means. There is no undo either way.
+ */
+export const dropMessages = (
+  connID: number,
+  vhost: string,
+  name: string,
+  limit: number,
+): Promise<number> => RabbitMQService.DropMessages(connID, vhost, name, limit);

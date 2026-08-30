@@ -111,6 +111,14 @@ export function DeleteQueue(connID: number, vhost: string, name: string, ifUnuse
 }
 
 /**
+ * DropMessages discards a bounded batch from the head of a queue and reports
+ * how many are gone. There is no undo.
+ */
+export function DropMessages(connID: number, vhost: string, name: string, limit: number): $CancellablePromise<number> {
+    return $Call.ByID(1134307524, connID, vhost, name, limit);
+}
+
+/**
  * Health runs the broker's own checks, and reads its feature flags and the
  * deprecated features it still allows.
  */

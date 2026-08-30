@@ -1787,3 +1787,151 @@ func TestLiveSendMessageRefusesADelayLevel(t *testing.T) {
 		t.Error("a delay level was accepted; RabbitMQ has none, so the message would arrive at once")
 	}
 }
+
+// Dropping acknowledges, which removes the messages from the broker with no
+// dead-lettering and no copy anywhere. It has to be bounded: a purge cannot
+// be, and "discard these ten and leave the rest" is the whole point.
+func TestLiveDropDiscardsABoundedBatch(t *testing.T) {
+	conn := liveConnNamed(t, "drop")
+	defer func() { _ = conn.Close() }()
+
+	ctx := context.Background()
+	const queue = "mqs-test-drop"
+	publishTestMessages(t, conn, queue, []string{"a", "b", "c", "d", "e"}, nil)
+
+	ref := model.DestinationRef{Namespace: "/", Name: queue}
+	dropped, err := conn.DropMessages(ctx, ref, 2)
+	if err != nil {
+		t.Fatalf("drop: %v", err)
+	}
+	if dropped != 2 {
+		t.Errorf("dropped %d, want the 2 asked for", dropped)
+	}
+	waitForDepth(t, conn, queue, 3)
+}
+
+// Dropping more than the queue holds takes what is there and stops, rather
+// than waiting for messages that are not coming.
+func TestLiveDropStopsWhenTheQueueRunsOut(t *testing.T) {
+	conn := liveConnNamed(t, "drop-short")
+	defer func() { _ = conn.Close() }()
+
+	ctx := context.Background()
+	const queue = "mqs-test-drop-short"
+	publishTestMessages(t, conn, queue, []string{"only one"}, nil)
+
+	start := time.Now()
+	dropped, err := conn.DropMessages(ctx, model.DestinationRef{Namespace: "/", Name: queue}, 100)
+	if err != nil {
+		t.Fatalf("drop: %v", err)
+	}
+	if dropped != 1 {
+		t.Errorf("dropped %d, want the 1 that was there", dropped)
+	}
+	if elapsed := time.Since(start); elapsed > 5*time.Second {
+		t.Errorf("took %s to notice the queue had run out", elapsed)
+	}
+	waitForDepth(t, conn, queue, 0)
+}
+
+// The dead-letter round trip the board performs: a message is rejected, lands
+// in the dead-letter queue, and is republished back to the queue it died in.
+//
+// Rejection rather than a TTL, because that is how dead letters actually
+// happen and because a short TTL makes the republished message die again
+// immediately - the move would then drain its own output in a loop.
+func TestLiveRepublishADeadLetterToItsOrigin(t *testing.T) {
+	conn := liveConnNamed(t, "republish")
+	defer func() { _ = conn.Close() }()
+
+	ctx := context.Background()
+	const exchange = "mqs-test-republish-dlx"
+	const target = "mqs-test-republish-dlq"
+	const source = "mqs-test-republish-src"
+
+	steps := []func(*rabbithole.Client) (*http.Response, error){
+		func(c *rabbithole.Client) (*http.Response, error) {
+			return c.DeclareExchange("/", exchange, rabbithole.ExchangeSettings{Type: "fanout", Durable: true})
+		},
+		func(c *rabbithole.Client) (*http.Response, error) {
+			return c.DeclareQueue("/", target, rabbithole.QueueSettings{Durable: true})
+		},
+		func(c *rabbithole.Client) (*http.Response, error) {
+			return c.DeclareBinding("/", rabbithole.BindingInfo{
+				Source: exchange, Destination: target, DestinationType: "queue",
+			})
+		},
+		func(c *rabbithole.Client) (*http.Response, error) {
+			return c.DeclareQueue("/", source, rabbithole.QueueSettings{
+				Durable:   true,
+				Arguments: map[string]interface{}{ArgDeadLetterExchange: exchange},
+			})
+		},
+	}
+	for _, step := range steps {
+		if err := exec(ctx, conn.mgmt, step); err != nil {
+			t.Fatalf("declare: %v", err)
+		}
+	}
+	t.Cleanup(func() {
+		for _, remove := range []func(*rabbithole.Client) (*http.Response, error){
+			func(c *rabbithole.Client) (*http.Response, error) { return c.DeleteQueue("/", source) },
+			func(c *rabbithole.Client) (*http.Response, error) { return c.DeleteQueue("/", target) },
+			func(c *rabbithole.Client) (*http.Response, error) { return c.DeleteExchange("/", exchange) },
+		} {
+			_ = exec(context.Background(), conn.mgmt, remove)
+		}
+	})
+
+	if err := conn.data.withChannel(ctx, func(channel *amqp.Channel) error {
+		return channel.PublishWithContext(ctx, "", source, false, false, amqp.Publishing{
+			Body: []byte("retry me"), DeliveryMode: amqp.Persistent,
+		})
+	}); err != nil {
+		t.Fatalf("publish: %v", err)
+	}
+	waitForDepth(t, conn, source, 1)
+
+	// Reject it without requeueing, which is what a consumer that cannot
+	// process a message does and what actually fills a dead-letter queue.
+	if err := conn.data.withChannel(ctx, func(channel *amqp.Channel) error {
+		delivery, ok, err := channel.Get(source, false)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			return fmt.Errorf("nothing to reject")
+		}
+		return delivery.Nack(false, false)
+	}); err != nil {
+		t.Fatalf("reject: %v", err)
+	}
+	waitForDepth(t, conn, target, 1)
+
+	moved, err := conn.MoveMessages(ctx, model.MoveRequest{
+		Namespace: "/", From: target, ToRoutingKey: source, Limit: 10,
+	})
+	if err != nil {
+		t.Fatalf("republish: %v", err)
+	}
+	if moved != 1 {
+		t.Errorf("republished %d, want 1", moved)
+	}
+	// Back where it started, and the dead-letter queue is empty again.
+	waitForDepth(t, conn, source, 1)
+	waitForDepth(t, conn, target, 0)
+
+	items, err := conn.QueryMessages(ctx, model.MessageQueryParams{Topic: source, MaxResults: 1})
+	if err != nil {
+		t.Fatalf("browse: %v", err)
+	}
+	if len(items) != 1 {
+		t.Fatalf("browsed %d, want the republished message", len(items))
+	}
+	// The history survived the round trip, which is what tells whoever picks
+	// it up next that this has already failed once.
+	death := items[0].Properties["header.x-death"]
+	if !strings.Contains(death, "reason=rejected") || !strings.Contains(death, "queue="+source) {
+		t.Errorf("x-death did not survive the republish: %q", death)
+	}
+}

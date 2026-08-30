@@ -1976,7 +1976,14 @@
           "expired": "已过期",
           "maxlen": "队列超长",
           "delivery_limit": "超过投递上限"
-        }
+        },
+        "republish": "重新投递",
+        "republished": "已重新投递 {{count}} 条",
+        "drop": "丢弃",
+        "dropTitle": "从「{{name}}」丢弃消息",
+        "dropDesc": "将从队首取出最多 {{count}} 条并确认丢弃。确认即从 broker 移除，不会再转入死信，也不会留任何副本，无法撤销。",
+        "dropped": "已丢弃 {{count}} 条",
+        "dropFailed": "丢弃失败"
       }
     },
     "producer": {
