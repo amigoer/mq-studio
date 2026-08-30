@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useState, type CSSProperties, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { ChevronRight, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -62,6 +62,14 @@ function Adv({ children }: { children: ReactNode }) {
     </span>
   );
 }
+
+/** Layout for a switch and its explanation on one row. */
+const SWITCH_ROW: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: "8px",
+  marginTop: "3px",
+};
 
 /** Option keys the RocketMQ driver reads back off a stored profile. */
 export const OPTION_VERSION = "version";
@@ -320,35 +328,209 @@ export function KafkaForm() {
   );
 }
 
-/** Board 6c — RabbitMQ. Without the management API the metrics pages degrade. */
-export function RabbitMQForm() {
+/** Option keys the RabbitMQ driver reads back off a stored profile. */
+export const OPTION_VHOST = "vhost";
+export const OPTION_AMQP = "amqpEndpoint";
+export const OPTION_TLS = "tls";
+export const OPTION_TLS_SKIP_VERIFY = "tlsSkipVerify";
+
+/**
+ * What the RabbitMQ form collects.
+ *
+ * Two addresses rather than one, because RabbitMQ is two listeners: the
+ * management API answers the admin pages over HTTP, and AMQP carries the
+ * messages. They need not be on one host, so both are asked for - but the AMQP
+ * one is optional and derived from the management host when blank, which is
+ * what most deployments want.
+ */
+export interface RabbitMQDraft {
+  name: string;
+  /** The management API address. This is the profile's endpoints field. */
+  management: string;
+  amqp: string;
+  vhost: string;
+  username: string;
+  password: string;
+  tls: boolean;
+  tlsSkipVerify: boolean;
+  group: string;
+  remark: string;
+  timeoutSec: number;
+  /** A stored password never comes back, so blank means "keep it". */
+  credentialsStored: boolean;
+  clearCredentials: boolean;
+}
+
+export function emptyRabbitMQDraft(): RabbitMQDraft {
+  return {
+    name: "",
+    management: "",
+    amqp: "",
+    vhost: "/",
+    username: "",
+    password: "",
+    tls: false,
+    tlsSkipVerify: false,
+    group: "",
+    remark: "",
+    timeoutSec: DEFAULT_TIMEOUT_SEC,
+    credentialsStored: false,
+    clearCredentials: false,
+  };
+}
+
+/** Board 6c — RabbitMQ. The management API is the whole admin plane. */
+export function RabbitMQForm({
+  value,
+  onChange,
+}: {
+  value: RabbitMQDraft;
+  onChange: (next: RabbitMQDraft) => void;
+}) {
   const { t } = useTranslation();
+  const set = <K extends keyof RabbitMQDraft>(key: K, next: RabbitMQDraft[K]) =>
+    onChange({ ...value, [key]: next });
+  const [advancedOpen, setAdvancedOpen] = useState(
+    value.timeoutSec !== DEFAULT_TIMEOUT_SEC || value.remark !== "" || value.tls,
+  );
+  const stored = value.credentialsStored && !value.clearCredentials;
+
   return (
     <>
       <div style={GRID}>
-        <Fld span label={t("page.connections.form.name")}>
-          <Input defaultValue="rabbit-staging" />
+        <Fld label={t("page.connections.form.name")}>
+          <Input
+            value={value.name}
+            placeholder="rabbit-staging"
+            onChange={(event) => set("name", event.target.value)}
+          />
         </Fld>
-        <Fld span label={t("page.connections.form.rabbitmq.amqp")}>
-          <Input className="mono3" style={MONO} defaultValue="amqps://rabbit.stg.example.com:5671" />
+        <Fld label={t("page.connections.form.rabbitmq.vhost")}>
+          <Input
+            className="mono3"
+            style={MONO}
+            value={value.vhost}
+            placeholder="/"
+            onChange={(event) => set("vhost", event.target.value)}
+          />
         </Fld>
-        <Fld label="vhost">
-          <Input className="mono3" style={MONO} defaultValue="/order" />
+        <Fld
+          span
+          label={t("page.connections.form.rabbitmq.management")}
+          hint={t("page.connections.form.rabbitmq.managementHint")}
+        >
+          <Input
+            className="mono3"
+            style={MONO}
+            value={value.management}
+            placeholder="http://rabbit.example.com:15672"
+            onChange={(event) => set("management", event.target.value)}
+          />
         </Fld>
-        <Fld label={t("page.connections.form.rabbitmq.management")} hint={t("page.connections.form.rabbitmq.managementHint")}>
-          <Input className="mono3" style={MONO} defaultValue="https://rabbit.stg:15672" />
+        <Fld
+          span
+          label={t("page.connections.form.rabbitmq.amqp")}
+          hint={t("page.connections.form.rabbitmq.amqpHint")}
+        >
+          <Input
+            className="mono3"
+            style={MONO}
+            value={value.amqp}
+            placeholder={value.tls ? "amqps://rabbit.example.com:5671" : "amqp://rabbit.example.com:5672"}
+            onChange={(event) => set("amqp", event.target.value)}
+          />
         </Fld>
-        <Fld label={t("page.connections.form.username")}>
-          <Input defaultValue="mq-studio" />
+        <Fld
+          label={t("page.connections.form.username")}
+          hint={
+            stored ? (
+              <button type="button" className="mqs-linkbtn" onClick={() => set("clearCredentials", true)}>
+                {t("page.connections.form.clearCredentials")}
+              </button>
+            ) : (
+              t("page.connections.form.rabbitmq.usernameHint")
+            )
+          }
+        >
+          <Input
+            value={value.username}
+            placeholder={stored ? t("page.connections.form.secretStored") : undefined}
+            onChange={(event) => set("username", event.target.value)}
+          />
         </Fld>
         <Fld label={t("page.connections.form.password")}>
-          <Input type="password" defaultValue="password" />
+          <Input
+            type="password"
+            value={value.password}
+            placeholder={stored ? t("page.connections.form.secretStored") : undefined}
+            onChange={(event) => set("password", event.target.value)}
+          />
         </Fld>
       </div>
       <FormNote
-        advanced={<Adv>{t("page.connections.form.rabbitmq.advanced")}</Adv>}
+        advanced={
+          <button
+            type="button"
+            className="mqs-disclosure"
+            aria-expanded={advancedOpen}
+            onClick={() => setAdvancedOpen((open) => !open)}
+          >
+            <ChevronRight size={12} aria-hidden />
+            {t("page.connections.form.rabbitmq.advanced")}
+          </button>
+        }
         note={t("page.connections.form.rabbitmq.note")}
       />
+      {advancedOpen && (
+        <div style={GRID}>
+          <Fld
+            label={t("page.connections.form.rocketmq.timeout")}
+            hint={t("page.connections.form.rocketmq.timeoutHint")}
+          >
+            <Input
+              type="number"
+              min={1}
+              max={300}
+              value={value.timeoutSec > 0 ? String(value.timeoutSec) : ""}
+              onChange={(event) => {
+                const seconds = Number.parseInt(event.target.value, 10);
+                set("timeoutSec", Number.isNaN(seconds) ? 0 : seconds);
+              }}
+            />
+          </Fld>
+          <Fld label={t("page.connections.form.remark")} hint={t("page.connections.form.remarkHint")}>
+            <Input value={value.remark} onChange={(event) => set("remark", event.target.value)} />
+          </Fld>
+          <Fld span label="TLS" hint={t("page.connections.form.rabbitmq.tlsHint")}>
+            <div style={SWITCH_ROW}>
+              <Switch
+                checked={value.tls}
+                onCheckedChange={(next: boolean) =>
+                  // Skipping verification only means anything with TLS on, and
+                  // leaving it set while TLS is off would silently re-apply it.
+                  onChange({ ...value, tls: next, tlsSkipVerify: next && value.tlsSkipVerify })
+                }
+              />
+              <span style={{ color: "var(--c-muted)" }}>
+                {t("page.connections.form.rabbitmq.tls")}
+              </span>
+            </div>
+          </Fld>
+          {value.tls && (
+            <Fld span label={t("page.connections.form.rabbitmq.tlsSkipVerify")} hint={t("page.connections.form.rabbitmq.tlsSkipVerifyHint")}>
+              <div style={SWITCH_ROW}>
+                <Switch
+                  checked={value.tlsSkipVerify}
+                  onCheckedChange={(next: boolean) => set("tlsSkipVerify", next)}
+                />
+                <span style={{ color: "var(--c-muted)" }}>
+                  {t("page.connections.form.rabbitmq.tlsSkipVerifyNote")}
+                </span>
+              </div>
+            </Fld>
+          )}
+        </div>
+      )}
     </>
   );
 }

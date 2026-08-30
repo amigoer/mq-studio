@@ -659,11 +659,19 @@
           "note": "Credentials are encrypted on this machine"
         },
         "rabbitmq": {
-          "amqp": "AMQP address",
+          "vhost": "Virtual host",
           "management": "Management API",
-          "managementHint": "Optional, for metrics",
-          "advanced": "Advanced: heartbeat 60s · connect timeout · channel limit · TLS certificate",
-          "note": "Without the management API: browse and publish only, no metrics page"
+          "managementHint": "Where the management plugin listens, port 15672 by default",
+          "amqp": "AMQP address",
+          "amqpHint": "Optional - left empty, the management host is reused on port 5672",
+          "usernameHint": "Needs the management tag",
+          "advanced": "Advanced: request timeout, remark, TLS",
+          "note": "The management API serves every admin page; AMQP carries the messages",
+          "tls": "Use TLS for both the management API and AMQP",
+          "tlsHint": "Turns the management address to https and AMQP to amqps",
+          "tlsSkipVerify": "Certificate verification",
+          "tlsSkipVerifyHint": "Only for self-signed certificates",
+          "tlsSkipVerifyNote": "Skip certificate verification"
         },
         "pulsar": {
           "service": "Service URL",
@@ -734,7 +742,9 @@
       "connected": "Connected to {{name}}",
       "disconnected": "Disconnected {{name}}",
       "saved": "Saved {{name}}",
-      "disconnectFailed": "Could not disconnect"
+      "disconnectFailed": "Could not disconnect",
+      "managementRequired": "A management API address is required",
+      "usernameRequired": "A username is required"
     },
     "settings": {
       "title": "Settings",

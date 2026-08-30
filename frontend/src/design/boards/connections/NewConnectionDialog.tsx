@@ -18,14 +18,20 @@ import { PROTOCOL_ORDER, isProtocolReady, type ProtocolId } from "@/design/data/
 import { cn, formatErrorMessage } from "@/lib/utils";
 import type { ConnectionDraft, CredentialsMode } from "@/api/connection";
 import type { Connection as ConnectionProfile } from "@/api/models";
-import { RocketMQForm, emptyRocketMQDraft, type RocketMQDraft } from "./ConnectionForms";
-import { toRocketMQDraft, toSubmission } from "./connectionDraft";
+import { RabbitMQForm, RocketMQForm } from "./ConnectionForms";
+import {
+  emptyDraft,
+  isDraftable,
+  toDraft,
+  toSubmission,
+  type ProtocolDraft,
+} from "./connectionDraft";
 
 /** Version ranges printed under each tile in the 3a protocol picker. */
 const TILE: Record<ProtocolId, { name: string; versions: string }> = {
   rocketmq: { name: "RocketMQ", versions: "4.x / 5.x" },
   kafka: { name: "Kafka", versions: "2.8+" },
-  rabbitmq: { name: "RabbitMQ", versions: "3.x" },
+  rabbitmq: { name: "RabbitMQ", versions: "3.x / 4.x" },
   pulsar: { name: "Pulsar", versions: "2.x / 3.x" },
   redis: { name: "Redis Stream", versions: "6.0+" },
   mqtt: { name: "MQTT", versions: "3.1 / 5.0" },
@@ -39,9 +45,10 @@ type ProbeState =
   | { kind: "failed"; message: string };
 
 /**
- * Board 3a with the RocketMQ form (6a). The canvas drew a field set per
- * protocol, but only RocketMQ has a driver behind it, so the other five tiles
- * are shown disabled rather than offering a form that cannot be saved.
+ * Board 3a with one form per protocol. The canvas drew a field set for each of
+ * the six; a tile is offered only where a driver and a form both exist, and
+ * the rest are shown disabled rather than offering a form that cannot be
+ * saved.
  *
  * `editing` turns the dialog into the edit form for a stored profile, which
  * the canvas never drew separately because the field set is the same one.
@@ -64,8 +71,8 @@ export function NewConnectionDialog({
   onProbe?: (draft: ConnectionDraft, credentialsMode: CredentialsMode) => Promise<number>;
 }) {
   const { t } = useTranslation();
-  const [protocol, setProtocol] = useState<ProtocolId>(initialProtocol);
-  const [draft, setDraft] = useState<RocketMQDraft>(emptyRocketMQDraft);
+  const [draft, setDraft] = useState<ProtocolDraft>(() => emptyDraft("rocketmq"));
+  const protocol = draft.protocol;
   const [probe, setProbe] = useState<ProbeState>({ kind: "idle" });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -74,23 +81,44 @@ export function NewConnectionDialog({
   // whatever the last edit left in state.
   useEffect(() => {
     if (!open) return;
-    setDraft(editing != null ? toRocketMQDraft(editing) : emptyRocketMQDraft());
-    const wanted = editing != null ? "rocketmq" : initialProtocol;
-    setProtocol(isProtocolReady(wanted) ? wanted : "rocketmq");
+    if (editing != null) {
+      setDraft(toDraft(editing));
+    } else {
+      const wanted = isProtocolReady(initialProtocol) && isDraftable(initialProtocol)
+        ? initialProtocol
+        : "rocketmq";
+      setDraft(emptyDraft(wanted));
+    }
     setProbe({ kind: "idle" });
     setError(null);
     setSaving(false);
   }, [editing, initialProtocol, open]);
 
-  const proxySelected = draft.version === "5.x" && draft.access === "proxy";
   const invalid = useMemo(() => {
-    if (draft.name.trim() === "") return t("page.connections.nameRequired");
-    if (draft.endpoints.trim() === "") return t("page.connections.endpointsRequired");
-    if (proxySelected) return t("page.connections.form.rocketmq.proxyNote");
+    const shared = draft.value;
+    if (shared.name.trim() === "") return t("page.connections.nameRequired");
     // 0 is blank, which means the connection takes the timeout from settings.
-    if (draft.timeoutSec < 0 || draft.timeoutSec > 300) return t("page.connections.timeoutRange");
+    if (shared.timeoutSec < 0 || shared.timeoutSec > 300) {
+      return t("page.connections.timeoutRange");
+    }
+    if (draft.protocol === "rabbitmq") {
+      if (draft.value.management.trim() === "") {
+        return t("page.connections.managementRequired");
+      }
+      // The management API has no anonymous mode, so a connection with no
+      // credential cannot read a single page.
+      const stored = draft.value.credentialsStored && !draft.value.clearCredentials;
+      if (!stored && draft.value.username.trim() === "") {
+        return t("page.connections.usernameRequired");
+      }
+      return null;
+    }
+    if (draft.value.endpoints.trim() === "") return t("page.connections.endpointsRequired");
+    if (draft.value.version === "5.x" && draft.value.access === "proxy") {
+      return t("page.connections.form.rocketmq.proxyNote");
+    }
     return null;
-  }, [draft.endpoints, draft.name, draft.timeoutSec, proxySelected, t]);
+  }, [draft, t]);
 
   const runProbe = async () => {
     if (invalid != null || onProbe == null) return;
@@ -151,7 +179,8 @@ export function NewConnectionDialog({
                 disabled={!ready || (editing != null && p !== protocol)}
                 className={cn("ptile", p === protocol && "sel")}
                 onClick={() => {
-                  setProtocol(p);
+                  if (!isDraftable(p)) return;
+                  setDraft(emptyDraft(p));
                   setProbe({ kind: "idle" });
                   setError(null);
                 }}
@@ -171,7 +200,17 @@ export function NewConnectionDialog({
           {t("page.connections.protocolSoonHint")}
         </div>
       </div>
-      <RocketMQForm value={draft} onChange={setDraft} />
+      {draft.protocol === "rabbitmq" ? (
+        <RabbitMQForm
+          value={draft.value}
+          onChange={(next) => setDraft({ protocol: "rabbitmq", value: next })}
+        />
+      ) : (
+        <RocketMQForm
+          value={draft.value}
+          onChange={(next) => setDraft({ protocol: "rocketmq", value: next })}
+        />
+      )}
 
         <DialogFooter className="items-center">
           <Button

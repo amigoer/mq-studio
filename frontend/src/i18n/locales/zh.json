@@ -659,11 +659,19 @@
           "note": "凭证加密存储在本机"
         },
         "rabbitmq": {
+          "vhost": "虚拟主机",
+          "management": "管理 API 地址",
+          "managementHint": "管理插件的地址，默认端口 15672",
           "amqp": "AMQP 地址",
-          "management": "管理 API",
-          "managementHint": "可选，用于指标",
-          "advanced": "高级：心跳 60s · 连接超时 · 通道上限 · TLS 证书",
-          "note": "不填管理 API → 仅浏览/收发，无指标页"
+          "amqpHint": "可选 · 留空则沿用管理地址的主机，端口取 5672",
+          "usernameHint": "需要 management 标签",
+          "advanced": "高级：请求超时 · 备注 · TLS",
+          "note": "管理 API 提供全部管理页面，AMQP 负责收发消息",
+          "tls": "使用 TLS 连接管理 API 与 AMQP",
+          "tlsHint": "启用后管理地址走 https，AMQP 走 amqps",
+          "tlsSkipVerify": "证书校验",
+          "tlsSkipVerifyHint": "仅在自签名证书时使用",
+          "tlsSkipVerifyNote": "跳过证书校验"
         },
         "pulsar": {
           "service": "服务地址",
@@ -734,7 +742,9 @@
       "connected": "已连接 {{name}}",
       "disconnected": "已断开 {{name}}",
       "saved": "已保存 {{name}}",
-      "disconnectFailed": "断开失败"
+      "disconnectFailed": "断开失败",
+      "managementRequired": "请填写管理 API 地址",
+      "usernameRequired": "请填写用户名"
     },
     "settings": {
       "title": "设置",
