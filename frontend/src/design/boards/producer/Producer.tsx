@@ -202,6 +202,7 @@ export function Producer({ protocol }: { protocol: ProtocolId }) {
           </Panel>
 
           <Panel
+            className="focus-within:border-(--c-border-strong)"
             style={{
               flex: 1,
               minHeight: 0,
@@ -232,8 +233,13 @@ export function Producer({ protocol }: { protocol: ProtocolId }) {
               )}
             </div>
 
+            {/* The editor fills the panel, so the panel is its visual frame:
+                a ring of its own is clipped to a stray line under the toolbar,
+                and the shadow does the same. Focus shows on the panel instead
+                (focus-within above), which is visible and has an edge to sit
+                on. */}
             <Textarea
-              className="mono3 mqs-scroll"
+              className="mono3 mqs-scroll border-transparent shadow-none focus-visible:border-transparent focus-visible:ring-0"
               value={body}
               onChange={(event) => setBody(event.target.value)}
               spellCheck={false}
