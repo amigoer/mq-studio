@@ -392,6 +392,15 @@
 .ni.on .nic {
   opacity: 0.9;
 }
+/* A page this endpoint cannot open. It stays in the list because the reason
+   sits on it, and a missing entry explains nothing. */
+.ni:disabled {
+  color: var(--c-muted);
+  cursor: not-allowed;
+}
+.ni:disabled .nic {
+  opacity: 0.5;
+}
 /*
  * Holds the canvas's 16px icon column now that what sits in it is an SVG and
  * not a Unicode symbol. The rail width is measured off this; Sidebar's own
@@ -670,7 +679,7 @@
     color var(--mo-fast) ease;
 }
 
-.ni:not(.on):hover { background: var(--c-fill); }
+.ni:not(.on):not(:disabled):hover { background: var(--c-fill); }
 .ptile:not(.sel):not(:disabled):hover { background: var(--c-bar); }
 
 button.mqs-tab-home {

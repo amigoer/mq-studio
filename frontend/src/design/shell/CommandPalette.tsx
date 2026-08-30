@@ -12,6 +12,9 @@ import {
 } from "@/components/ui/command";
 import { ProtocolIcon } from "@/design/icons/ProtocolIcon";
 import { PROTOCOLS, type PageId, type ProtocolId } from "@/design/data/protocols";
+import { useCapabilities } from "@/mq/capabilities";
+import { useConnectionScope } from "@/mq/ConnectionScope";
+import { navAvailability } from "@/mq/navigation";
 import type { Connection } from "@/design/data/connections";
 
 /**
@@ -64,6 +67,11 @@ export function CommandPalette({
   onClose?: () => void;
 }) {
   const { t } = useTranslation();
+  const capabilities = useCapabilities();
+  const { online } = useConnectionScope();
+  // The palette navigates the same pages the sidebar does, so it has to agree
+  // with it about which ones exist here.
+  const nav = useMemo(() => navAvailability(capabilities, online), [capabilities, online]);
 
   const hits = useMemo<Hit[]>(() => {
     const needle = query.trim().toLowerCase();
@@ -88,6 +96,7 @@ export function CommandPalette({
     if (protocol != null) {
       for (const group of PROTOCOLS[protocol].nav) {
         for (const entry of group.items) {
+          if (!nav.visible(entry.id) || nav.disabled(entry.id)) continue;
           const label = t(entry.label);
           if (!matches(label, entry.id)) continue;
           out.push({
@@ -120,6 +129,7 @@ export function CommandPalette({
     return out;
   }, [
     connections,
+    nav,
     onCheckUpdate,
     onNewConnection,
     onOpenConnection,

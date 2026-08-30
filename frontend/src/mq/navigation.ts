@@ -28,7 +28,7 @@ const requires: Record<string, Capability> = {
  *
  * Alerts is deliberately not here. Its rules are broker-agnostic numeric
  * comparisons, but it has nothing to compare until a connection reports
- * metrics, and it was disabled while offline before this refactor.
+ * metrics.
  */
 const alwaysAvailable = new Set(["home", "connections", "settings", "github"]);
 
@@ -44,24 +44,29 @@ export interface NavAvailability {
 /**
  * Works out what to draw.
  *
- * With nothing connected every broker-backed entry is visible but disabled,
- * which is what the app did before and is the right read: the user has not
- * been told these pages do not exist, only that they need a connection.
+ * Being offline disables nothing. Every board renders its own "not connected"
+ * state, which says more than a dead sidebar does, and a nav that goes inert
+ * the moment a broker drops takes away the one thing still worth doing -
+ * looking at the other pages to see how far the outage reaches.
+ *
+ * What the sidebar does gate on is the endpoint's answer once it has one: a
+ * capability it reports a reason for is drawn disabled with that reason, and
+ * one the family has no concept of is not drawn at all.
  */
 export function navAvailability(
   capabilities: CapabilityState,
   connected: boolean,
 ): NavAvailability {
   const capabilityFor = (id: string) => requires[id];
+  // Before the endpoint answers, nothing is known; hiding pages that would
+  // come back reads worse than showing them and finding out.
+  const unknown = !connected || capabilities.loading;
 
   return {
     visible: (id) => {
       if (alwaysAvailable.has(id)) return true;
       const capability = capabilityFor(id);
-      if (!capability) return true;
-      // Before connecting, show everything: nothing is known yet, and hiding
-      // pages that would come back is worse than disabling them.
-      if (!connected || capabilities.loading) return true;
+      if (!capability || unknown) return true;
       return (
         capabilities.has(capability) ||
         capabilities.degradedReason(capability) !== undefined
@@ -69,9 +74,8 @@ export function navAvailability(
     },
     disabled: (id) => {
       if (alwaysAvailable.has(id)) return false;
-      if (!connected) return true;
       const capability = capabilityFor(id);
-      if (!capability) return false;
+      if (!capability || unknown) return false;
       return !capabilities.has(capability);
     },
     reason: (id) => {

@@ -91,7 +91,12 @@ function useCapabilityState(): CapabilityState {
     [capabilities.caveats],
   );
 
-  return { has, degradedReason, caveat, loading };
+  // Memoised because it is a context value: a fresh object every render would
+  // re-run the navigation derivation in every consumer for nothing.
+  return useMemo(
+    () => ({ has, degradedReason, caveat, loading }),
+    [caveat, degradedReason, has, loading],
+  );
 }
 
 export function CapabilitiesProvider({ children }: { children: ReactNode }) {
