@@ -5,7 +5,7 @@ go 1.25.0
 require (
 	github.com/amigoer/rocketmq-admin-go v1.3.1
 	github.com/apache/rocketmq-client-go/v2 v2.1.2
-	github.com/michaelklishin/rabbit-hole/v2 v2.16.0
+	github.com/michaelklishin/rabbit-hole/v3 v3.5.0
 	github.com/wailsapp/wails/v3 v3.0.0-beta.16
 )
 
@@ -26,6 +26,7 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/rabbitmq/amqp091-go v1.14.0 // indirect
 	github.com/sirupsen/logrus v1.9.4 // indirect
 	github.com/smartystreets/goconvey v1.8.1 // indirect
 	github.com/tidwall/gjson v1.18.0 // indirect

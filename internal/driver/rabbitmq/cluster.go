@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strconv"
 
-	rabbithole "github.com/michaelklishin/rabbit-hole/v2"
+	rabbithole "github.com/michaelklishin/rabbit-hole/v3"
 
 	"github.com/amigoer/mq-studio/internal/model"
 	"github.com/amigoer/mq-studio/internal/timestamp"
@@ -17,7 +17,6 @@ const (
 	AttrErlangProcs = "erlangProcesses"
 	AttrUptime      = "uptime"
 	AttrFdUsed      = "fileDescriptorsUsed"
-	AttrSocketsUsed = "socketsUsed"
 )
 
 // ListNodes returns the cluster's nodes.
@@ -98,7 +97,6 @@ func nodeFrom(node *rabbithole.NodeInfo, version string) *model.Node {
 			AttrErlangProcs: strconv.FormatUint(uint64(node.Processors), 10),
 			AttrUptime:      strconv.FormatUint(node.Uptime, 10),
 			AttrFdUsed:      strconv.Itoa(node.FdUsed),
-			AttrSocketsUsed: strconv.Itoa(node.SocketsUsed),
 		},
 	}
 }
