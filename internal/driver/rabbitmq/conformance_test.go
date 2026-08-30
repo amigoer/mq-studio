@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	rabbithole "github.com/michaelklishin/rabbit-hole/v3"
+
 	"github.com/amigoer/mq-studio/internal/driver"
 	"github.com/amigoer/mq-studio/internal/model"
 )
@@ -31,11 +33,19 @@ func requireLiveBroker(t *testing.T) {
 }
 
 func liveConn(t *testing.T) *Conn {
+	return liveConnNamed(t, t.Name())
+}
+
+// liveConnNamed opens a connection the broker will list under that name, which
+// is how a test picks its own AMQP connection out of everything else talking
+// to the same broker.
+func liveConnNamed(t *testing.T, name string) *Conn {
 	t.Helper()
 	requireLiveBroker(t)
 
 	profile := model.ConnectionProfile{
 		Kind:      model.KindRabbitMQ,
+		Name:      name,
 		Endpoints: liveEndpoint,
 		Auth:      model.AuthConfig{Mechanism: model.AuthPlain},
 	}
@@ -239,5 +249,140 @@ func TestLiveBadCredentialIsNotReportedAsMissingPlugin(t *testing.T) {
 	}
 	if reason != credentialsRejected {
 		t.Errorf("reason = %q, want %q - the broker answered something other than 401", reason, credentialsRejected)
+	}
+}
+
+// The broker lists every AMQP connection, and an operator looking at an
+// unexpected one deserves a name rather than an IP and a port.
+func TestLiveAmqpConnectionNamesItself(t *testing.T) {
+	conn := liveConn(t)
+	defer func() { _ = conn.Close() }()
+
+	ctx := context.Background()
+	if err := conn.data.ping(ctx); err != nil {
+		t.Fatalf("amqp ping: %v", err)
+	}
+
+	if name := waitForConnectionNamed(t, conn, connectionName(t.Name())); name == "" {
+		t.Errorf("no connection on the broker calls itself %q", connectionName(t.Name()))
+	}
+}
+
+// Close must end the AMQP session, not just stop using it. A disconnected
+// profile still holding a connection is one the operator cannot account for.
+func TestLiveCloseEndsTheAmqpConnection(t *testing.T) {
+	// Two connections, named apart: the one under test, and one to watch it
+	// with. Counting connections globally would make this depend on every
+	// other test in the package and on anything else talking to the broker.
+	subject := liveConnNamed(t, "close-subject")
+	observer := liveConnNamed(t, "close-observer")
+	defer func() { _ = observer.Close() }()
+
+	if err := subject.data.ping(context.Background()); err != nil {
+		t.Fatalf("amqp ping: %v", err)
+	}
+
+	name := waitForConnectionNamed(t, observer, connectionName("close-subject"))
+	if name == "" {
+		t.Fatal("the connection this test just opened never appeared")
+	}
+	_ = subject.Close()
+
+	if !waitForConnectionToGo(t, observer, name) {
+		t.Errorf("connection %q outlived Close", name)
+	}
+}
+
+// A management API that answers and an AMQP port that does not is a working
+// admin plane with no data plane, and the capability model is what says so.
+func TestLiveUnreachableAmqpDegradesOnlyTheDataPlane(t *testing.T) {
+	requireLiveBroker(t)
+
+	profile := model.ConnectionProfile{
+		Kind:       model.KindRabbitMQ,
+		Endpoints:  liveEndpoint,
+		TimeoutSec: 2,
+		Auth:       model.AuthConfig{Mechanism: model.AuthPlain},
+		Options:    map[string]string{OptionAMQPEndpoint: "127.0.0.1:1"},
+	}
+	profile.SetSecret(SecretUsername, "mqstudio")
+	profile.SetSecret(SecretPassword, "mqstudio")
+
+	conn, err := New().Open(context.Background(), profile)
+	if err != nil {
+		t.Fatalf("open: %v", err)
+	}
+	defer func() { _ = conn.Close() }()
+
+	capabilities := conn.Capabilities()
+	for _, capability := range []model.Capability{model.CapMessageQuery, model.CapPublish} {
+		if _, degraded := capabilities.DegradedReason(capability); !degraded {
+			t.Errorf("%s survived an unreachable AMQP port", capability)
+		}
+	}
+	// The admin plane is reached over HTTP and is unaffected.
+	for _, capability := range []model.Capability{
+		model.CapDestinationList, model.CapClusterTopology, model.CapRouting,
+	} {
+		if _, degraded := capabilities.DegradedReason(capability); degraded {
+			t.Errorf("%s was degraded by an AMQP failure it does not depend on", capability)
+		}
+	}
+}
+
+func liveConnections(t *testing.T, conn *Conn) []rabbithole.ConnectionInfo {
+	t.Helper()
+	found, err := call(context.Background(), conn.mgmt,
+		func(client *rabbithole.Client) ([]rabbithole.ConnectionInfo, error) {
+			return client.ListConnections()
+		})
+	if err != nil {
+		t.Fatalf("list connections: %v", err)
+	}
+	return found
+}
+
+// The management API is eventually consistent about connections: its stats
+// collector runs on an interval, so one that exists right now shows up a
+// couple of seconds later and a closed one lingers just as long. Reading once
+// and asserting would be a flaky test rather than a strict one.
+const connectionSettleTimeout = 20 * time.Second
+
+// waitForConnectionNamed returns the broker's own identifier for the
+// connection advertising that connection_name, or "" if it never appears.
+func waitForConnectionNamed(t *testing.T, admin *Conn, advertised string) string {
+	t.Helper()
+	deadline := time.Now().Add(connectionSettleTimeout)
+	for {
+		for _, connection := range liveConnections(t, admin) {
+			if connection.ClientProperties["connection_name"] == advertised {
+				return connection.Name
+			}
+		}
+		if time.Now().After(deadline) {
+			return ""
+		}
+		time.Sleep(250 * time.Millisecond)
+	}
+}
+
+func waitForConnectionToGo(t *testing.T, admin *Conn, name string) bool {
+	t.Helper()
+	deadline := time.Now().Add(connectionSettleTimeout)
+	for {
+		present := false
+		for _, connection := range liveConnections(t, admin) {
+			if connection.Name == name {
+				present = true
+				break
+			}
+		}
+		if !present {
+			return true
+		}
+		if time.Now().After(deadline) {
+			return false
+		}
+		time.Sleep(250 * time.Millisecond)
 	}
 }

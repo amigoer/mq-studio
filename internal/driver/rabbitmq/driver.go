@@ -7,6 +7,7 @@ package rabbitmq
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"net"
 	"net/http"
@@ -20,11 +21,14 @@ import (
 
 // Option and secret keys this driver stores in a connection profile.
 const (
-	OptionVHost     = "vhost"
-	SecretUsername  = "username"
-	SecretPassword  = "password"
-	defaultVHost    = "/"
-	defaultMgmtPort = "15672"
+	OptionVHost         = "vhost"
+	OptionAMQPEndpoint  = "amqpEndpoint"
+	OptionTLS           = "tls"
+	OptionTLSSkipVerify = "tlsSkipVerify"
+	SecretUsername      = "username"
+	SecretPassword      = "password"
+	defaultVHost        = "/"
+	defaultMgmtPort     = "15672"
 )
 
 // Driver is the RabbitMQ family.
@@ -58,6 +62,28 @@ func (d *Driver) Descriptor() model.DriverDescriptor {
 				Type:     model.FieldText,
 				LabelKey: "mq.rabbitmq.form.vhost",
 				Default:  defaultVHost,
+			},
+			{
+				Key:         OptionAMQPEndpoint,
+				Target:      model.TargetOption,
+				Type:        model.FieldText,
+				LabelKey:    "mq.rabbitmq.form.amqpUrl",
+				Placeholder: "amqp://localhost:5672",
+			},
+			{
+				Key:      OptionTLS,
+				Target:   model.TargetOption,
+				Type:     model.FieldSwitch,
+				LabelKey: "mq.rabbitmq.form.tls",
+				Default:  "false",
+			},
+			{
+				Key:         OptionTLSSkipVerify,
+				Target:      model.TargetOption,
+				Type:        model.FieldSwitch,
+				LabelKey:    "mq.rabbitmq.form.tlsSkipVerify",
+				Default:     "false",
+				VisibleWhen: &model.FieldCond{Field: OptionTLS, Equals: []string{"true"}},
 			},
 			{
 				Key:      "timeoutSec",
@@ -95,13 +121,29 @@ func (d *Driver) Open(ctx context.Context, profile model.ConnectionProfile) (dri
 	if vhost == "" {
 		vhost = defaultVHost
 	}
+	useTLS := profile.Option(OptionTLS) == "true"
+	uri, err := amqpAddress(
+		profile.Option(OptionAMQPEndpoint),
+		endpoint,
+		vhost,
+		profile.Secret(SecretUsername),
+		profile.Secret(SecretPassword),
+		useTLS,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	dial := dialTimeout(profile)
+	tlsConfig := tlsConfigFor(profile, useTLS, uri.Host)
 	conn := &Conn{
 		mgmt: newMgmt(
 			endpoint,
 			profile.Secret(SecretUsername),
 			profile.Secret(SecretPassword),
-			newTransport(dialTimeout(profile)),
+			newTransport(dial, tlsConfig),
 		),
+		data:     newDataPlane(uri, connectionName(profile.Name), tlsConfig, dial),
 		vhost:    vhost,
 		endpoint: endpoint,
 	}
@@ -134,13 +176,29 @@ func normaliseEndpoint(raw string) (string, error) {
 // It exists per connection rather than per process because it carries that
 // profile's timeout, and later its TLS settings: two profiles against one
 // broker need not agree on either.
-func newTransport(dial time.Duration) http.RoundTripper {
+func newTransport(dial time.Duration, tlsConfig *tls.Config) http.RoundTripper {
 	return &http.Transport{
 		Proxy:               http.ProxyFromEnvironment,
 		DialContext:         (&net.Dialer{Timeout: dial, KeepAlive: 30 * time.Second}).DialContext,
+		TLSClientConfig:     tlsConfig,
 		TLSHandshakeTimeout: dial,
 		MaxIdleConns:        8,
 		IdleConnTimeout:     60 * time.Second,
+	}
+}
+
+// tlsConfigFor is nil unless the profile asked for TLS, which leaves both
+// planes on their own defaults rather than an empty config that would change
+// how a plaintext connection behaves.
+func tlsConfigFor(profile model.ConnectionProfile, useTLS bool, serverName string) *tls.Config {
+	if !useTLS {
+		return nil
+	}
+	return &tls.Config{
+		ServerName: serverName,
+		// Opt-in, and named for what it does. Self-signed certificates are
+		// common on internal brokers; silently accepting them would not be.
+		InsecureSkipVerify: profile.Option(OptionTLSSkipVerify) == "true",
 	}
 }
 

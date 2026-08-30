@@ -70,17 +70,22 @@ func TestProbeNamesTheActualFailure(t *testing.T) {
 	}
 }
 
-func TestProbeReportsNothingListeningAsUnreachable(t *testing.T) {
-	// A port that was listening and is not any more: with the management
-	// plugin off, this is exactly what the broker looks like.
+// closedPort returns an address nothing is listening on.
+func closedPort(t *testing.T) string {
+	t.Helper()
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatalf("listen: %v", err)
 	}
 	address := listener.Addr().String()
 	_ = listener.Close()
+	return address
+}
 
-	if got := probeAgainst(t, "http://"+address, 2); got != endpointUnreachable {
+func TestProbeReportsNothingListeningAsUnreachable(t *testing.T) {
+	// A port that was listening and is not any more: with the management
+	// plugin off, this is exactly what the broker looks like.
+	if got := probeAgainst(t, "http://"+closedPort(t), 2); got != endpointUnreachable {
 		t.Errorf("reason = %q, want %q", got, endpointUnreachable)
 	}
 }
@@ -92,18 +97,25 @@ func TestProbeReportsASilentHostAsTimedOut(t *testing.T) {
 	}
 }
 
-// A healthy endpoint degrades nothing. The caveat on browsing is a separate
-// state and must survive.
-func TestProbeLeavesAHealthyEndpointUndegraded(t *testing.T) {
+// A healthy management endpoint degrades nothing on the admin plane, and the
+// caveat on browsing survives - it is a different state from degraded.
+//
+// The AMQP side is pointed at a closed port on purpose. Deriving it from the
+// httptest host would aim it at whatever is really listening on 5672, which on
+// a developer machine is the e2e broker and makes the result depend on
+// credentials this test is not about.
+func TestProbeLeavesTheAdminPlaneUndegraded(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(`{"rabbitmq_version":"4.1.0","node":"rabbit@test"}`))
 	}))
 	defer server.Close()
 
 	profile := model.ConnectionProfile{
-		Kind:      model.KindRabbitMQ,
-		Endpoints: server.URL,
-		Secrets:   map[string]string{SecretUsername: "guest", SecretPassword: "guest"},
+		Kind:       model.KindRabbitMQ,
+		Endpoints:  server.URL,
+		TimeoutSec: 1,
+		Options:    map[string]string{OptionAMQPEndpoint: closedPort(t)},
+		Secrets:    map[string]string{SecretUsername: "guest", SecretPassword: "guest"},
 	}
 	conn, err := New().Open(context.Background(), profile)
 	if err != nil {
@@ -112,10 +124,15 @@ func TestProbeLeavesAHealthyEndpointUndegraded(t *testing.T) {
 	defer func() { _ = conn.Close() }()
 
 	capabilities := conn.Capabilities()
-	if _, degraded := capabilities.DegradedReason(model.CapDestinationList); degraded {
-		t.Error("a healthy endpoint degraded destination.list")
+	for _, capability := range []model.Capability{
+		model.CapDestinationList, model.CapDestinationCreate, model.CapClusterTopology,
+		model.CapRouting, model.CapSubscriptionList,
+	} {
+		if _, degraded := capabilities.DegradedReason(capability); degraded {
+			t.Errorf("%s was degraded on a healthy management endpoint", capability)
+		}
 	}
-	if !capabilities.Has(model.CapMessageQuery) {
-		t.Error("message.query is not supported on a healthy endpoint")
+	if reason, ok := capabilities.Caveat(model.CapMessageQuery); !ok || reason != browseCaveat {
+		t.Errorf("the browse caveat did not survive: reason=%q ok=%v", reason, ok)
 	}
 }

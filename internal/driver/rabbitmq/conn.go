@@ -14,6 +14,7 @@ import (
 // Conn is one live RabbitMQ connection.
 type Conn struct {
 	mgmt     *mgmt
+	data     *dataPlane
 	vhost    string
 	endpoint string
 	// version is the broker version, read once at connect: the node listing
@@ -26,10 +27,17 @@ type Conn struct {
 // Kind identifies the family.
 func (c *Conn) Kind() model.MQKind { return model.KindRabbitMQ }
 
-// Ping checks the management API still answers.
+// Ping checks both planes.
+//
+// It is only ever the "test connection" button - nothing polls it - so it is
+// worth the AMQP dial: a profile whose management API answers and whose AMQP
+// listener does not is a connection that will fail the first time anyone sends
+// a message, and finding that out at test time is the whole point.
 func (c *Conn) Ping(ctx context.Context) error {
-	_, err := c.overview(ctx)
-	return err
+	if _, err := c.overview(ctx); err != nil {
+		return err
+	}
+	return c.data.ping(ctx)
 }
 
 // overview is the one call every health check goes through.
@@ -42,12 +50,14 @@ func (c *Conn) overview(ctx context.Context) (*rabbithole.Overview, error) {
 // Capabilities is what this endpoint can do.
 func (c *Conn) Capabilities() model.Capabilities { return c.capabilities }
 
-// Close drops the connection's idle HTTP connections.
+// Close ends the AMQP session and drops the idle HTTP sockets.
 //
-// The management API is stateless, so there is no session to end - but the
-// transport this connection owns holds sockets open for reuse, and a profile
-// that has been disconnected should not still be holding one.
+// The management API is stateless and has no session to end, but the transport
+// holds sockets for reuse and the data plane holds a real connection the
+// broker lists. A profile that has been disconnected should be holding
+// neither.
 func (c *Conn) Close() error {
+	c.data.close()
 	if transport, ok := c.mgmt.transport.(*http.Transport); ok {
 		transport.CloseIdleConnections()
 	}
@@ -95,14 +105,31 @@ func (c *Conn) probe(ctx context.Context) {
 		WithCaveat(model.CapMessageQuery, browseCaveat)
 
 	overview, err := c.overview(ctx)
-	if err == nil {
-		c.version = overview.RabbitMQVersion
+	if err != nil {
+		reason := degradeReason(err)
+		for _, capability := range capabilities() {
+			c.capabilities = c.capabilities.WithDegraded(capability, reason)
+		}
 		return
 	}
-	reason := degradeReason(err)
-	for _, capability := range capabilities() {
-		c.capabilities = c.capabilities.WithDegraded(capability, reason)
+	c.version = overview.RabbitMQVersion
+
+	// The data plane is probed separately because it fails separately. A
+	// management user with no permission on the vhost can read every admin
+	// page and publish nothing, and reporting that at connect time is better
+	// than a send console that only fails when a user presses the button.
+	if err := c.data.ping(ctx); err != nil {
+		reason := amqpDegradeReason(err)
+		for _, capability := range dataPlaneCapabilities() {
+			c.capabilities = c.capabilities.WithDegraded(capability, reason)
+		}
 	}
+}
+
+// dataPlaneCapabilities are the ones AMQP carries. Everything else is admin
+// and survives a data plane that is down.
+func dataPlaneCapabilities() []model.Capability {
+	return []model.Capability{model.CapMessageQuery, model.CapPublish}
 }
 
 // degradeReason names why this endpoint cannot serve the admin plane.
@@ -169,4 +196,11 @@ const (
 	// causes on purpose: with the plugin off nothing listens on the management
 	// port, so from here that is indistinguishable from a wrong address.
 	endpointUnreachable = "mq.rabbitmq.degraded.unreachable"
+
+	// The data plane fails on its own terms and says so on its own.
+	// amqpAccessRefused is the common one: the same credential that reads
+	// every admin page may have no permission on the vhost.
+	amqpAccessRefused = "mq.rabbitmq.degraded.amqpAccessRefused"
+	amqpTimedOut      = "mq.rabbitmq.degraded.amqpTimeout"
+	amqpUnreachable   = "mq.rabbitmq.degraded.amqpUnreachable"
 )

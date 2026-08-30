@@ -29,7 +29,7 @@ func hangingServer(t *testing.T) *httptest.Server {
 }
 
 func testMgmt(endpoint string) *mgmt {
-	return newMgmt(endpoint, "guest", "guest", newTransport(2*time.Second))
+	return newMgmt(endpoint, "guest", "guest", newTransport(2*time.Second, nil))
 }
 
 func overviewOf(m *mgmt, ctx context.Context) error {

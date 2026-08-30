@@ -373,7 +373,11 @@
         "managementUrl": "Management API",
         "vhost": "Virtual host",
         "username": "Username",
-        "password": "Password"
+        "password": "Password",
+        "amqpUrl": "AMQP address",
+        "amqpUrlHint": "Left empty, the management host is reused on port 5672 (5671 with TLS).",
+        "tls": "Use TLS",
+        "tlsSkipVerify": "Skip certificate verification"
       },
       "caveat": {
         "browseAltersQueue": "Browsing alters the queue: messages are requeued but come back flagged redelivered, and concurrent consumers see the gap."
@@ -383,7 +387,10 @@
         "credentials": "The username or password was rejected (the management API answered 401). Check the credentials in the connection settings.",
         "forbidden": "The credentials are valid, but this user has no management tag and cannot read the management API (403). Give it the management tag or higher.",
         "timeout": "Timed out reaching the management API. Check the broker is reachable, or raise the timeout in the connection settings.",
-        "unreachable": "Cannot reach the management API. Check the address and port, and that the management plugin is enabled - with it off nothing listens on the management port at all, which looks the same from here as a wrong address."
+        "unreachable": "Cannot reach the management API. Check the address and port, and that the management plugin is enabled - with it off nothing listens on the management port at all, which looks the same from here as a wrong address.",
+        "amqpAccessRefused": "The management API works but the AMQP connection was refused: this user has no permission on the virtual host. Browsing and publishing are unavailable; the admin views are not affected.",
+        "amqpTimeout": "Timed out reaching the AMQP port. Check the address and port, and that nothing is filtering it.",
+        "amqpUnreachable": "Cannot reach the AMQP port. The admin views still work, but browsing and publishing do not - check the AMQP address and port."
       },
       "routing": {
         "title": "Exchanges & bindings",
