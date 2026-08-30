@@ -32,6 +32,11 @@ func TestIsSystemGroup(t *testing.T) {
 	if !IsSystemGroup("CID_ONSAPI_FOO") {
 		t.Fatal("CID_ONSAPI prefixes must be system groups")
 	}
+	// Created by every broker start, and the hyphen keeps it out of the
+	// CID_ONSAPI prefix rule, so it needs its own entry.
+	if !IsSystemGroup("CID_ONS-HTTP-PROXY") {
+		t.Fatal("CID_ONS-HTTP-PROXY must be a system group")
+	}
 	if IsSystemGroup("orders-consumer") {
 		t.Fatal("business groups must remain visible")
 	}

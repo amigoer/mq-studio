@@ -62,7 +62,10 @@ func IsSystemTopic(topic string) bool {
 
 // IsSystemGroup reports whether a consumer group is reserved for system use.
 func IsSystemGroup(group string) bool {
+	// Several of these are written by SubscriptionGroupManager.init() on every
+	// broker start, so they exist with a default config and never hold a client.
 	systemGroups := []string{
+		"CID_ONS-HTTP-PROXY",
 		"CID_ONSAPI_OWNER",
 		"CID_ONSAPI_PERMISSION",
 		"CID_ONSAPI_PULL",
