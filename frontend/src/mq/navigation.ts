@@ -14,7 +14,11 @@ import type { CapabilityState } from "./capabilities";
 const requires: Record<string, Capability> = {
   topics: Capability.CapDestinationList,
   consumers: Capability.CapSubscriptionList,
+  // Only RabbitMQ has exchanges, and the sidebar is where that shows: a
+  // family without them must not draw the entry at all.
+  exchanges: Capability.CapRouting,
   messages: Capability.CapMessageQuery,
+  dlq: Capability.CapDLQ,
   producer: Capability.CapPublish,
   cluster: Capability.CapClusterTopology,
   acl: Capability.CapAccessControl,

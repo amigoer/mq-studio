@@ -499,6 +499,7 @@
         "overview": "总览",
         "topics": "队列",
         "exchanges": "交换机",
+        "consumers": "连接与信道",
         "messages": "消息",
         "dlq": "死信 DLX",
         "producer": "生产者",

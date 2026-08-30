@@ -138,6 +138,7 @@ export const PROTOCOLS: Record<ProtocolId, Protocol> = {
         items: [
           { id: "topics", icon: Layers, label: "shell.nav.rabbitmq.topics" },
           { id: "exchanges", icon: Waypoints, label: "shell.nav.rabbitmq.exchanges" },
+          { id: "consumers", icon: Users, label: "shell.nav.rabbitmq.consumers" },
           { id: "messages", icon: Mail, label: "shell.nav.rabbitmq.messages" },
           { id: "dlq", icon: TriangleAlert, label: "shell.nav.rabbitmq.dlq" },
           { id: "producer", icon: Send, label: "shell.nav.rabbitmq.producer" },
@@ -255,9 +256,12 @@ export function labelOf(protocol: ProtocolId, page: PageId): string {
 }
 
 /**
- * Protocols with a driver behind them. The other five are drawn in the picker
- * so the shell shows where it is going, but they cannot be selected -- wiring
- * one up is a matter of adding it here.
+ * Protocols whose boards read a real broker. The rest are drawn in the picker
+ * so the shell shows where it is going, but they cannot be selected: a board
+ * of invented figures beside a live cluster is worse than no board.
+ *
+ * Adding one here needs a driver, a form in
+ * boards/connections/connectionDraft.ts, and boards that read the endpoint.
  */
 const READY: ReadonlySet<ProtocolId> = new Set<ProtocolId>(["rocketmq"]);
 

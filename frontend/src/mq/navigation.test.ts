@@ -78,3 +78,37 @@ describe("navAvailability", () => {
     }
   });
 });
+
+/**
+ * Two families, two shapes. RabbitMQ has exchanges and no consumer groups to
+ * reset; RocketMQ has neither exchanges nor a routing page. The sidebar is
+ * what makes that visible, so these pin the entries each one does and does not
+ * draw rather than trusting the nav constant.
+ */
+describe("navAvailability across families", () => {
+  it("draws the exchanges entry only where routing exists", () => {
+    const rabbit = navAvailability(state([Capability.CapRouting]), true);
+    expect(rabbit.visible("exchanges")).toBe(true);
+
+    const rocket = navAvailability(state([Capability.CapDestinationList]), true);
+    expect(rocket.visible("exchanges")).toBe(false);
+  });
+
+  // Dead letters are a queue with a policy pointing at it in RabbitMQ and a
+  // built-in retry topic in RocketMQ. A family reporting neither must not draw
+  // an entry that lands on an empty page.
+  it("draws the dead-letter entry only where the driver reports one", () => {
+    expect(navAvailability(state([Capability.CapDLQ]), true).visible("dlq")).toBe(true);
+    expect(navAvailability(state([Capability.CapMessageQuery]), true).visible("dlq")).toBe(false);
+  });
+
+  // RabbitMQ has no credential-based ACL of the shape AccessAdmin describes,
+  // so the driver declares nothing and the entry must not appear.
+  it("hides the access-control entry for a family that declares none", () => {
+    const rabbit = navAvailability(
+      state([Capability.CapDestinationList, Capability.CapRouting, Capability.CapPublish]),
+      true,
+    );
+    expect(rabbit.visible("acl")).toBe(false);
+  });
+});

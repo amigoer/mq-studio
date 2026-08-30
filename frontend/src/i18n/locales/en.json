@@ -499,6 +499,7 @@
         "overview": "Overview",
         "topics": "Queues",
         "exchanges": "Exchanges",
+        "consumers": "Connections & channels",
         "messages": "Messages",
         "dlq": "DLX",
         "producer": "Producer",
