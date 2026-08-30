@@ -1631,6 +1631,14 @@
           "concurrent": "Concurrent",
           "autoCommit": "Auto-commit offset",
           "note": "Runs this client's own handler on the message again and brings back what it returned — for working out why one message in particular fails. It consumes for real: on a client with auto-commit the offset moves."
+        },
+        "tail": {
+          "live": "Live",
+          "following": "{{count}} received",
+          "dropped": "{{count}} rolled off",
+          "waiting": "Waiting for new messages",
+          "waitingHint": "A live tail starts from the moment it is switched on; what is already stored is what the query above is for.",
+          "failed": "The tail could not read"
         }
       }
     },

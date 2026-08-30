@@ -33,6 +33,8 @@ export type MessageItem = model.MessageItem;
 export type MessageTrackItem = model.MessageTrackItem;
 export type ProducerClient = model.ProducerClient;
 export type ReplayResult = model.ReplayResult;
+export type TailBatch = model.TailBatch;
+export type TailCursor = model.TailCursor;
 export type ResetOffsetRequest = model.ResetOffsetRequest;
 
 /** A connection as the UI sees it: ACL secrets are redacted in Go. */

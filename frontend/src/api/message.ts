@@ -1,8 +1,15 @@
 import { MessageService } from "@bindings/bridge";
-import type { MessageItem, MessageTrackItem, ProducerClient, ReplayResult } from "./models";
+import type {
+  MessageItem,
+  MessageTrackItem,
+  ProducerClient,
+  ReplayResult,
+  TailBatch,
+  TailCursor,
+} from "./models";
 import { present, required } from "./client";
 
-export type { ProducerClient, ReplayResult };
+export type { ProducerClient, ReplayResult, TailBatch, TailCursor };
 
 export interface QueryCondition {
   messageId?: string;
@@ -124,3 +131,14 @@ export const replayMessage = (
   messageId: string,
 ): Promise<ReplayResult> =>
   MessageService.Replay(connID, { consumerGroup, clientId, topic, messageId }).then(required);
+
+/**
+ * Returns what a topic has received since the cursor, and the cursor to pass
+ * next time. An empty cursor opens at the topic's current end.
+ */
+export const tailMessages = (
+  connID: number,
+  topic: string,
+  cursor: TailCursor,
+  limit = 64,
+): Promise<TailBatch> => MessageService.Tail(connID, topic, cursor, limit).then(required);

@@ -37,6 +37,8 @@ import * as messageApi from "@/api/message";
 import * as topicApi from "@/api/topic";
 import { topicName } from "@/mq/rocketmq/destinations";
 import { ReplayDialog } from "./ReplayDialog";
+import { useMessageTail } from "@/hooks/useMessageTail";
+import { Switch } from "@/components/ui/switch";
 import type { MessageItem } from "@/api/models";
 import { formatErrorMessage } from "@/lib/utils";
 
@@ -85,6 +87,7 @@ export function MessagesRocketMQ() {
   const [selected, setSelected] = useState<string | null>(null);
 
   const [results, setResults] = useState<MessageItem[] | null>(null);
+  const tail = useMessageTail(topic);
   const [querying, setQuerying] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -125,7 +128,62 @@ export function MessagesRocketMQ() {
     }
   };
 
-  const current = results?.find((item) => item.messageId === selected);
+  // One table serves both modes: a query fills it once, the tail keeps filling
+  // it. Which rows it holds is the only difference between them.
+  const rows = tail.running ? tail.messages : (results ?? []);
+  const current = rows.find((item) => item.messageId === selected);
+
+  const list = (
+    <ListArea>
+      <ListPane>
+        <Table inset>
+          <TableHeader>
+            <TableRow>
+              <TableHead>MsgId</TableHead>
+              <TableHead>Key</TableHead>
+              <TableHead>Tag</TableHead>
+              <TableHead className="text-right">{t("board.common.queue")}</TableHead>
+              <TableHead>{t("board.messages.rocketmq.storedAt")}</TableHead>
+              <TableHead>{t("board.common.status")}</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {rows.map((item) => (
+              <TableRow
+                key={item.messageId}
+                selected={selected === item.messageId}
+                onClick={() => setSelected(item.messageId)}
+              >
+                <TableCell className="mono3 max-w-70 truncate text-xs">
+                  {item.messageId}
+                </TableCell>
+                <TableCell className="mono3 max-w-50 truncate text-xs">
+                  {item.keys || "—"}
+                </TableCell>
+                <TableCell>{item.tags || "—"}</TableCell>
+                <TableCell className="mono3 text-right">q{item.queueId}</TableCell>
+                <TableCell className="mono3 text-xs">{storedAt(item)}</TableCell>
+                <TableCell>
+                  <Status tone={item.status === "dlq" ? "err" : item.status === "retry" ? "warn" : "ok"}>
+                    {t(`board.messages.rocketmq.status.${item.status || "normal"}`)}
+                  </Status>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </ListPane>
+
+      {current != null && (
+        <MessageSheet
+          key={current.messageId}
+          message={current}
+          topic={topic}
+          onClose={() => setSelected(null)}
+        />
+      )}
+    </ListArea>
+  );
 
   return (
     <Page>
@@ -141,34 +199,73 @@ export function MessagesRocketMQ() {
           emptyText={t("board.common.noMatch")}
           className="max-w-64"
         />
-        <Segmented options={MODES.map((o) => ({ ...o, label: t(o.label) }))} value={mode} onChange={setMode} />
-        <Input
-          className="mono3 w-[180px] flex-none"
-          value={term}
-          placeholder={t(`board.messages.rocketmq.placeholder.${mode}`)}
-          onChange={(event) => setTerm(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") void runQuery();
-          }}
-        />
-        {mode !== "msgid" && (
-          <SelectField
-            value={String(hours)}
-            onValueChange={(next) => setHours(Number(next))}
-            options={RANGES.map((option) => ({
-              value: String(option),
-              label: t("board.messages.rocketmq.lastHours", { hours: option }),
-            }))}
-          />
+        {!tail.running && (
+          <>
+            <Segmented options={MODES.map((o) => ({ ...o, label: t(o.label) }))} value={mode} onChange={setMode} />
+            <Input
+              className="mono3 w-[180px] flex-none"
+              value={term}
+              placeholder={t(`board.messages.rocketmq.placeholder.${mode}`)}
+              onChange={(event) => setTerm(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") void runQuery();
+              }}
+            />
+            {mode !== "msgid" && (
+              <SelectField
+                value={String(hours)}
+                onValueChange={(next) => setHours(Number(next))}
+                options={RANGES.map((option) => ({
+                  value: String(option),
+                  label: t("board.messages.rocketmq.lastHours", { hours: option }),
+                }))}
+              />
+            )}
+            <Button disabled={topic === "" || querying || !online} onClick={() => void runQuery()}>
+              {querying && <Spinner />}
+              {t("board.common.query")}
+            </Button>
+          </>
         )}
-        <Button disabled={topic === "" || querying || !online} onClick={() => void runQuery()}>
-          {querying && <Spinner />}
-          {t("board.common.query")}
-        </Button>
+        {tail.running && (
+          <span className="text-xs text-(--c-muted)">
+            {t("board.messages.rocketmq.tail.following", { count: tail.messages.length })}
+            {tail.dropped > 0 && (
+              <span className="ml-2 text-(--c-warn-text)">
+                {t("board.messages.rocketmq.tail.dropped", { count: tail.dropped })}
+              </span>
+            )}
+          </span>
+        )}
+        <span className="flex-1" />
+        <label className="flex items-center gap-1.5 text-xs text-(--c-mono-dim)">
+          <Switch
+            checked={tail.running}
+            disabled={topic === "" || !online}
+            onCheckedChange={(next) => {
+              setSelected(null);
+              if (next) tail.start();
+              else tail.stop();
+            }}
+          />
+          {t("board.messages.rocketmq.tail.live")}
+        </label>
       </Toolbar>
 
       {!online ? (
         <BoardState state={{ online, loading: false, error: null, refresh: async () => {} }} />
+      ) : tail.running ? (
+        tail.error != null ? (
+          <Notice title={t("board.messages.rocketmq.tail.failed")} tone="var(--c-err)">
+            {tail.error}
+          </Notice>
+        ) : rows.length === 0 ? (
+          <Notice title={t("board.messages.rocketmq.tail.waiting")}>
+            {t("board.messages.rocketmq.tail.waitingHint")}
+          </Notice>
+        ) : (
+          list
+        )
       ) : error != null ? (
         <Notice title={t("board.messages.rocketmq.queryFailed")} tone="var(--c-err)">
           {error}
@@ -182,55 +279,7 @@ export function MessagesRocketMQ() {
           {t("board.messages.rocketmq.noResultsHint")}
         </Notice>
       ) : (
-        <ListArea>
-          <ListPane>
-            <Table inset>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>MsgId</TableHead>
-                  <TableHead>Key</TableHead>
-                  <TableHead>Tag</TableHead>
-                  <TableHead className="text-right">{t("board.common.queue")}</TableHead>
-                  <TableHead>{t("board.messages.rocketmq.storedAt")}</TableHead>
-                  <TableHead>{t("board.common.status")}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {results.map((item) => (
-                  <TableRow
-                    key={item.messageId}
-                    selected={selected === item.messageId}
-                    onClick={() => setSelected(item.messageId)}
-                  >
-                    <TableCell className="mono3 max-w-70 truncate text-xs">
-                      {item.messageId}
-                    </TableCell>
-                    <TableCell className="mono3 max-w-50 truncate text-xs">
-                      {item.keys || "—"}
-                    </TableCell>
-                    <TableCell>{item.tags || "—"}</TableCell>
-                    <TableCell className="mono3 text-right">q{item.queueId}</TableCell>
-                    <TableCell className="mono3 text-xs">{storedAt(item)}</TableCell>
-                    <TableCell>
-                      <Status tone={item.status === "dlq" ? "err" : item.status === "retry" ? "warn" : "ok"}>
-                        {t(`board.messages.rocketmq.status.${item.status || "normal"}`)}
-                      </Status>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </ListPane>
-
-          {current != null && (
-            <MessageSheet
-              key={current.messageId}
-              message={current}
-              topic={topic}
-              onClose={() => setSelected(null)}
-            />
-          )}
-        </ListArea>
+        list
       )}
     </Page>
   );
