@@ -109,7 +109,7 @@ MQ Studio 通过可插拔驱动对接各类消息中间件。每个驱动声明�
 **由已有驱动覆盖。** 协议兼容的实现不单独占用一个驱动：Redpanda、AutoMQ、WarpStream、
 Confluent、Amazon MSK 与 Azure Event Hubs 按 Kafka 连接；EMQX、Mosquitto、HiveMQ 与
 VerneMQ 按 MQTT 连接；Amazon MQ 按 ActiveMQ 或 RabbitMQ 连接；阿里云与腾讯云的 RocketMQ
-按 RocketMQ 连接。每个驱动在连接时探测端点，把能力收窄到该部署实际支持的范围。
+按 RocketMQ 连接。每个驱动声明自己这一族的能力，页面据此裁剪；按部署逐个探测端点还没做。
 
 **不在范围内。** ZeroMQ 与 nanomsg 没有 broker，也就没有管理面；Celery、Sidekiq 与
 BullMQ 是架在 Redis 或 RabbitMQ 之上的应用层任务队列，而不是消息中间件本身。

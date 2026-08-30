@@ -109,8 +109,8 @@ capabilities, so the interface only offers what the connected broker can actuall
 **Covered by an existing driver.** Wire-compatible systems do not get a driver of their own:
 Redpanda, AutoMQ, WarpStream, Confluent, Amazon MSK, and Azure Event Hubs connect as Kafka;
 EMQX, Mosquitto, HiveMQ, and VerneMQ as MQTT; Amazon MQ as ActiveMQ or RabbitMQ; Alibaba Cloud
-and Tencent Cloud RocketMQ as RocketMQ. Each driver probes the endpoint on connect and narrows
-its capabilities to what that deployment actually answers.
+and Tencent Cloud RocketMQ as RocketMQ. Each driver declares what its family can do and the
+pages are drawn from that; probing an endpoint to narrow it per deployment is not built yet.
 
 **Out of scope.** ZeroMQ and nanomsg have no broker and therefore no management plane. Celery,
 Sidekiq, and BullMQ are application-level job queues layered on Redis or RabbitMQ rather than
