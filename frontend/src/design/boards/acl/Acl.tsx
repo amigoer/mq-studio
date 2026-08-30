@@ -1,7 +1,6 @@
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { RefreshCw } from "lucide-react";
-import { Page, PageBody, PageHeader, Toolbar } from "@/design/shell";
+import { Page, PageBody, PageHeader, RefreshButton, Toolbar } from "@/design/shell";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -150,18 +149,15 @@ export function Acl() {
                 {t(tab === "principals" ? "board.acl.principal.create" : "board.acl.rule.create")}
               </Button>
             )}
-            <Button
-              variant="outline"
-              disabled={state.refreshing || !state.online}
+            <RefreshButton
+              refreshing={state.refreshing}
+              online={state.online}
               onClick={() => {
                 void state.refresh();
                 void principals.refresh();
                 void rules.refresh();
               }}
-            >
-              {state.refreshing && <RefreshCw size={12} className="mqs-turning" aria-hidden />}
-              {t("board.common.refresh")}
-            </Button>
+            />
           </>
         }
       />

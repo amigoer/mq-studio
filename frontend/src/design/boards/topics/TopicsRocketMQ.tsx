@@ -1,6 +1,6 @@
 import { Fragment, useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ListArea, ListPane, Page, PageHeader, Toolbar } from "@/design/shell";
+import { ListArea, ListPane, Page, PageHeader, RefreshButton, Toolbar } from "@/design/shell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -203,10 +203,11 @@ export function TopicsRocketMQ({ nav }: BoardProps = {}) {
         subtitle={t("board.topics.rocketmq.liveSubtitle", { count: topics.length })}
         actions={
           <>
-            <Button variant="outline" disabled={state.refreshing || !state.online} onClick={() => void state.refresh()}>
-              {state.refreshing && <Spinner />}
-              {t("board.common.refresh")}
-            </Button>
+            <RefreshButton
+              refreshing={state.refreshing}
+              online={state.online}
+              onClick={() => void state.refresh()}
+            />
             <Button disabled={!online} onClick={() => setDialog({ editing: null })}>
               {t("board.common.newTopic")}
             </Button>

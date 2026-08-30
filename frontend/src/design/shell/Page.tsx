@@ -1,4 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
+import { RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTranslation } from "react-i18next";
 
@@ -41,6 +43,33 @@ export function PageHeader({
       <span style={{ flex: 1 }} />
       {actions}
     </div>
+  );
+}
+
+/**
+ * The re-read every live board offers in its header.
+ *
+ * The icon is always drawn and only turns while a read is in flight. Drawing
+ * it for the refresh alone moved the label and widened the button on every
+ * click: the size variant drops its side padding as soon as the button holds
+ * an icon, so the icon arrived and the padding shrank at the same moment.
+ */
+export function RefreshButton({
+  refreshing,
+  online,
+  onClick,
+}: {
+  refreshing: boolean;
+  /** Nothing to re-read while no connection is dialled. */
+  online: boolean;
+  onClick: () => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <Button variant="outline" disabled={refreshing || !online} onClick={onClick}>
+      <RefreshCw className={refreshing ? "mqs-turning" : undefined} aria-hidden />
+      {t("board.common.refresh")}
+    </Button>
   );
 }
 

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { BellOff, RefreshCw, Settings as SettingsIcon } from "lucide-react";
-import { Page, PageBody, PageHeader, Toolbar } from "@/design/shell";
+import { BellOff, Settings as SettingsIcon } from "lucide-react";
+import { Page, PageBody, PageHeader, RefreshButton, Toolbar } from "@/design/shell";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { MiniStat, Panel, SectionLabel, Segmented, Status } from "@/components";
@@ -55,10 +55,11 @@ export function Alerts({ onOpenSettings }: { onOpenSettings?: () => void }) {
           hasOnline ? t("alerts.subtitle", { count: alerts.length }) : t("alerts.subtitleNoConn")
         }
         actions={
-          <Button variant="outline" disabled={loading || !hasOnline} onClick={() => void refresh()}>
-            {loading && <RefreshCw size={12} className="mqs-turning" aria-hidden />}
-            {t("board.common.refresh")}
-          </Button>
+          <RefreshButton
+            refreshing={loading}
+            online={hasOnline}
+            onClick={() => void refresh()}
+          />
         }
       />
 
