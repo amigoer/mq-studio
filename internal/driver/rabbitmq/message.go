@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"net/url"
 	"strconv"
 	"time"
@@ -14,9 +13,8 @@ import (
 	"github.com/amigoer/mq-studio/internal/timestamp"
 )
 
-// rabbit-hole does not wrap the message endpoints, so these two go over plain
-// HTTP. The management API is REST either way; nothing is lost but the typed
-// wrapper.
+// rabbit-hole does not wrap the message endpoints, so these two go through
+// mgmt.postJSON.
 
 // ackModeBrowse requeues what it reads instead of consuming it.
 //
@@ -96,7 +94,7 @@ func (c *Conn) QueryMessages(ctx context.Context, params model.MessageQueryParam
 
 	var fetched []getMessagesResponse
 	path := fmt.Sprintf("/api/queues/%s/%s/get", url.PathEscape(c.vhost), url.PathEscape(params.Topic))
-	if err := c.post(ctx, path, body, &fetched); err != nil {
+	if err := c.mgmt.postJSON(ctx, path, body, &fetched); err != nil {
 		return nil, fmt.Errorf("browse queue %q: %w", params.Topic, err)
 	}
 
@@ -136,7 +134,7 @@ func (c *Conn) SendMessage(ctx context.Context, topic, tags, keys, body string, 
 	// The empty exchange name is the default exchange, which routes by queue
 	// name. Publishing to a named exchange is the routing page's job.
 	path := fmt.Sprintf("/api/exchanges/%s/%s/publish", url.PathEscape(c.vhost), url.PathEscape("amq.default"))
-	if err := c.post(ctx, path, request, &result); err != nil {
+	if err := c.mgmt.postJSON(ctx, path, request, &result); err != nil {
 		return "", fmt.Errorf("publish to %q: %w", topic, err)
 	}
 	if !result.Routed {
@@ -175,33 +173,4 @@ func messageFromGet(queue string, source *getMessagesResponse) *model.MessageIte
 		QueueOffset:    model.UnknownMetric,
 		Properties:     properties,
 	}
-}
-
-// post sends one management API request.
-func (c *Conn) post(ctx context.Context, path string, body, out any) error {
-	encoded, err := json.Marshal(body)
-	if err != nil {
-		return err
-	}
-	request, err := http.NewRequestWithContext(
-		ctx, http.MethodPost, c.endpoint+path, bytes.NewReader(encoded))
-	if err != nil {
-		return err
-	}
-	request.SetBasicAuth(c.username, c.password)
-	request.Header.Set("Content-Type", "application/json")
-
-	response, err := http.DefaultClient.Do(request)
-	if err != nil {
-		return err
-	}
-	defer func() { _ = response.Body.Close() }()
-
-	if response.StatusCode >= http.StatusBadRequest {
-		return fmt.Errorf("management API returned %s", response.Status)
-	}
-	if out == nil {
-		return nil
-	}
-	return json.NewDecoder(response.Body).Decode(out)
 }

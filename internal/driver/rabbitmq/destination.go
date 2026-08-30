@@ -3,6 +3,7 @@ package rabbitmq
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"strconv"
 	"strings"
 
@@ -32,7 +33,9 @@ const (
 // per-queue enrichment pass.
 func (c *Conn) ListDestinations(ctx context.Context, filter model.DestinationFilter) ([]*model.Destination, error) {
 	vhost := c.vhostOr(filter.Namespace)
-	queues, err := c.client.ListQueuesIn(vhost)
+	queues, err := call(ctx, c.mgmt, func(client *rabbithole.Client) ([]rabbithole.QueueInfo, error) {
+		return client.ListQueuesIn(vhost)
+	})
 	if err != nil {
 		return nil, fmt.Errorf("list queues: %w", err)
 	}
@@ -50,7 +53,9 @@ func (c *Conn) ListDestinations(ctx context.Context, filter model.DestinationFil
 
 // DestinationDetail returns one queue.
 func (c *Conn) DestinationDetail(ctx context.Context, ref model.DestinationRef) (*model.Destination, error) {
-	queue, err := c.client.GetQueue(c.vhostOr(ref.Namespace), ref.Name)
+	queue, err := call(ctx, c.mgmt, func(client *rabbithole.Client) (*rabbithole.DetailedQueueInfo, error) {
+		return client.GetQueue(c.vhostOr(ref.Namespace), ref.Name)
+	})
 	if err != nil {
 		return nil, fmt.Errorf("get queue %q: %w", ref.Name, err)
 	}
@@ -69,7 +74,9 @@ func (c *Conn) CreateDestination(ctx context.Context, spec model.DestinationSpec
 	if queueType := spec.Attributes[AttrQueueType]; queueType != "" {
 		settings.Arguments = map[string]interface{}{"x-queue-type": queueType}
 	}
-	_, err := c.client.DeclareQueue(c.vhostOr(spec.Ref.Namespace), spec.Ref.Name, settings)
+	err := exec(ctx, c.mgmt, func(client *rabbithole.Client) (*http.Response, error) {
+		return client.DeclareQueue(c.vhostOr(spec.Ref.Namespace), spec.Ref.Name, settings)
+	})
 	if err != nil {
 		return fmt.Errorf("declare queue %q: %w", spec.Ref.Name, err)
 	}
@@ -85,7 +92,9 @@ func (c *Conn) UpdateDestination(ctx context.Context, spec model.DestinationSpec
 
 // RemoveDestination deletes a queue.
 func (c *Conn) RemoveDestination(ctx context.Context, ref model.DestinationRef) error {
-	_, err := c.client.DeleteQueue(c.vhostOr(ref.Namespace), ref.Name)
+	err := exec(ctx, c.mgmt, func(client *rabbithole.Client) (*http.Response, error) {
+		return client.DeleteQueue(c.vhostOr(ref.Namespace), ref.Name)
+	})
 	if err != nil {
 		return fmt.Errorf("delete queue %q: %w", ref.Name, err)
 	}

@@ -8,10 +8,11 @@ package rabbitmq
 import (
 	"context"
 	"fmt"
+	"net"
+	"net/http"
 	"net/url"
 	"strings"
-
-	rabbithole "github.com/michaelklishin/rabbit-hole/v3"
+	"time"
 
 	"github.com/amigoer/mq-studio/internal/driver"
 	"github.com/amigoer/mq-studio/internal/model"
@@ -90,22 +91,19 @@ func (d *Driver) Open(ctx context.Context, profile model.ConnectionProfile) (dri
 	if err != nil {
 		return nil, err
 	}
-	client, err := rabbithole.NewClient(
-		endpoint, profile.Secret(SecretUsername), profile.Secret(SecretPassword))
-	if err != nil {
-		return nil, fmt.Errorf("open rabbitmq connection: %w", err)
-	}
-
 	vhost := profile.Option(OptionVHost)
 	if vhost == "" {
 		vhost = defaultVHost
 	}
 	conn := &Conn{
-		client:   client,
+		mgmt: newMgmt(
+			endpoint,
+			profile.Secret(SecretUsername),
+			profile.Secret(SecretPassword),
+			newTransport(dialTimeout(profile)),
+		),
 		vhost:    vhost,
 		endpoint: endpoint,
-		username: profile.Secret(SecretUsername),
-		password: profile.Secret(SecretPassword),
 	}
 	conn.probe(ctx)
 	return conn, nil
@@ -130,3 +128,31 @@ func normaliseEndpoint(raw string) (string, error) {
 	}
 	return strings.TrimSuffix(parsed.String(), "/"), nil
 }
+
+// newTransport is the HTTP transport one connection's management calls share.
+//
+// It exists per connection rather than per process because it carries that
+// profile's timeout, and later its TLS settings: two profiles against one
+// broker need not agree on either.
+func newTransport(dial time.Duration) http.RoundTripper {
+	return &http.Transport{
+		Proxy:               http.ProxyFromEnvironment,
+		DialContext:         (&net.Dialer{Timeout: dial, KeepAlive: 30 * time.Second}).DialContext,
+		TLSHandshakeTimeout: dial,
+		MaxIdleConns:        8,
+		IdleConnTimeout:     60 * time.Second,
+	}
+}
+
+// dialTimeout is the profile's own timeout, which is what the connection form
+// collects. It bounds reaching the host at all - something a request deadline
+// cannot do on its own, because a host that never answers SYN consumes the
+// whole budget before the first byte.
+func dialTimeout(profile model.ConnectionProfile) time.Duration {
+	if profile.TimeoutSec > 0 {
+		return time.Duration(profile.TimeoutSec) * time.Second
+	}
+	return defaultDialTimeout
+}
+
+const defaultDialTimeout = 5 * time.Second

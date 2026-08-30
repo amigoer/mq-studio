@@ -2,6 +2,7 @@ package rabbitmq
 
 import (
 	"context"
+	"net/http"
 
 	rabbithole "github.com/michaelklishin/rabbit-hole/v3"
 
@@ -10,11 +11,9 @@ import (
 
 // Conn is one live RabbitMQ connection.
 type Conn struct {
-	client   *rabbithole.Client
+	mgmt     *mgmt
 	vhost    string
 	endpoint string
-	username string
-	password string
 	// version is the broker version, read once at connect: the node listing
 	// does not carry it and asking per node would be a request each.
 	version string
@@ -27,15 +26,31 @@ func (c *Conn) Kind() model.MQKind { return model.KindRabbitMQ }
 
 // Ping checks the management API still answers.
 func (c *Conn) Ping(ctx context.Context) error {
-	_, err := c.client.Overview()
+	_, err := c.overview(ctx)
 	return err
+}
+
+// overview is the one call every health check goes through.
+func (c *Conn) overview(ctx context.Context) (*rabbithole.Overview, error) {
+	return call(ctx, c.mgmt, func(client *rabbithole.Client) (*rabbithole.Overview, error) {
+		return client.Overview()
+	})
 }
 
 // Capabilities is what this endpoint can do.
 func (c *Conn) Capabilities() model.Capabilities { return c.capabilities }
 
-// Close releases nothing: the management client is stateless HTTP.
-func (c *Conn) Close() error { return nil }
+// Close drops the connection's idle HTTP connections.
+//
+// The management API is stateless, so there is no session to end - but the
+// transport this connection owns holds sockets open for reuse, and a profile
+// that has been disconnected should not still be holding one.
+func (c *Conn) Close() error {
+	if transport, ok := c.mgmt.transport.(*http.Transport); ok {
+		transport.CloseIdleConnections()
+	}
+	return nil
+}
 
 // capabilities is the family's best case.
 //
@@ -77,7 +92,7 @@ func (c *Conn) probe(ctx context.Context) {
 	c.capabilities = model.NewCapabilities(capabilities()...).
 		WithCaveat(model.CapMessageQuery, browseCaveat)
 
-	overview, err := c.client.Overview()
+	overview, err := c.overview(ctx)
 	if err == nil {
 		c.version = overview.RabbitMQVersion
 	} else {

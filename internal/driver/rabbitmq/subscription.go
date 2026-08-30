@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strconv"
 
+	rabbithole "github.com/michaelklishin/rabbit-hole/v3"
+
 	"github.com/amigoer/mq-studio/internal/model"
 )
 
@@ -24,11 +26,15 @@ const (
 // collapse onto one object here, and a subscription is a queue seen from the
 // consuming side rather than a separate thing to enumerate.
 func (c *Conn) ListSubscriptions(ctx context.Context) ([]*model.Subscription, error) {
-	queues, err := c.client.ListQueuesIn(c.vhost)
+	queues, err := call(ctx, c.mgmt, func(client *rabbithole.Client) ([]rabbithole.QueueInfo, error) {
+		return client.ListQueuesIn(c.vhost)
+	})
 	if err != nil {
 		return nil, fmt.Errorf("list queues: %w", err)
 	}
-	consumers, err := c.client.ListConsumersIn(c.vhost)
+	consumers, err := call(ctx, c.mgmt, func(client *rabbithole.Client) ([]rabbithole.ConsumerInfo, error) {
+		return client.ListConsumersIn(c.vhost)
+	})
 	if err != nil {
 		return nil, fmt.Errorf("list consumers: %w", err)
 	}

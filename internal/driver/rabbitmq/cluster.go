@@ -21,7 +21,9 @@ const (
 
 // ListNodes returns the cluster's nodes.
 func (c *Conn) ListNodes(ctx context.Context) ([]*model.Node, error) {
-	found, err := c.client.ListNodes()
+	found, err := call(ctx, c.mgmt, func(client *rabbithole.Client) ([]rabbithole.NodeInfo, error) {
+		return client.ListNodes()
+	})
 	if err != nil {
 		return nil, fmt.Errorf("list nodes: %w", err)
 	}
@@ -34,7 +36,9 @@ func (c *Conn) ListNodes(ctx context.Context) ([]*model.Node, error) {
 
 // NodeDetail returns one node.
 func (c *Conn) NodeDetail(ctx context.Context, address string) (*model.Node, error) {
-	found, err := c.client.GetNode(address)
+	found, err := call(ctx, c.mgmt, func(client *rabbithole.Client) (*rabbithole.NodeInfo, error) {
+		return client.GetNode(address)
+	})
 	if err != nil {
 		return nil, fmt.Errorf("get node %q: %w", address, err)
 	}
@@ -43,7 +47,7 @@ func (c *Conn) NodeDetail(ctx context.Context, address string) (*model.Node, err
 
 // ClusterOverview aggregates the header counters.
 func (c *Conn) ClusterOverview(ctx context.Context) (*model.ClusterOverview, error) {
-	overview, err := c.client.Overview()
+	overview, err := c.overview(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("overview: %w", err)
 	}

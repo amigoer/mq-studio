@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strconv"
 
+	rabbithole "github.com/michaelklishin/rabbit-hole/v3"
+
 	"github.com/amigoer/mq-studio/internal/model"
 )
 
@@ -21,7 +23,9 @@ const (
 // it is published to, and it has a rate. What it does not have is a depth,
 // which is why that field carries the unknown sentinel instead of zero.
 func (c *Conn) ListExchanges(ctx context.Context, namespace string) ([]*model.Destination, error) {
-	exchanges, err := c.client.ListExchangesIn(c.vhostOr(namespace))
+	exchanges, err := call(ctx, c.mgmt, func(client *rabbithole.Client) ([]rabbithole.ExchangeInfo, error) {
+		return client.ListExchangesIn(c.vhostOr(namespace))
+	})
 	if err != nil {
 		return nil, fmt.Errorf("list exchanges: %w", err)
 	}
@@ -54,7 +58,9 @@ func (c *Conn) ListExchanges(ctx context.Context, namespace string) ([]*model.De
 
 // ListBindings returns the routes in a vhost.
 func (c *Conn) ListBindings(ctx context.Context, namespace string) ([]*model.Binding, error) {
-	found, err := c.client.ListBindingsIn(c.vhostOr(namespace))
+	found, err := call(ctx, c.mgmt, func(client *rabbithole.Client) ([]rabbithole.BindingInfo, error) {
+		return client.ListBindingsIn(c.vhostOr(namespace))
+	})
 	if err != nil {
 		return nil, fmt.Errorf("list bindings: %w", err)
 	}
