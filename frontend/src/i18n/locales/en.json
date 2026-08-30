@@ -1456,7 +1456,6 @@
         "exportLag": "Export lag"
       },
       "rocketmq": {
-        "subRel": "Subscriptions",
         "backlogOnly": "Backlogged only",
         "groupName": "Group",
         "subTopic": "Subscribed topic",
@@ -1472,10 +1471,10 @@
         "dlq": "Dead letters",
         "version": "Version",
         "expression": "Filter",
+        "subProgress": "Subscriptions and progress",
         "sort": {
           "backlog": "By backlog",
-          "name": "By name",
-          "consume": "By consume TPS"
+          "name": "By name"
         },
         "deleteTitle": "Delete consumer group",
         "deleteDesc": "This removes “{{name}}” and its offsets from every master and cannot be undone. Its retry and dead-letter queues are left in place.",

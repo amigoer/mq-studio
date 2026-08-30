@@ -1456,7 +1456,6 @@
         "exportLag": "导出 lag"
       },
       "rocketmq": {
-        "subRel": "订阅关系",
         "backlogOnly": "仅看有堆积",
         "groupName": "组名",
         "subTopic": "订阅 Topic",
@@ -1471,11 +1470,11 @@
         "runtimeBlocked": "无法读取每个客户端持有的队列与消费速率。",
         "dlq": "死信",
         "version": "版本",
-        "expression": "过滤表达式",
+        "expression": "过滤",
+        "subProgress": "订阅与进度",
         "sort": {
           "backlog": "按积压",
-          "name": "按名称",
-          "consume": "按消费 TPS"
+          "name": "按名称"
         },
         "deleteTitle": "删除消费组",
         "deleteDesc": "将从所有 Master 上删除消费组“{{name}}”及其位点，无法撤销。它的重试和死信队列不会被删除。",
