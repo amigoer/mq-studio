@@ -124,7 +124,17 @@ export function DetailPanelHeader({
                 key={tab.id}
                 value={tab.id}
                 className={cn(
-                  "rounded-none border-0 border-b-2 border-transparent px-0.5 pt-0 pb-1.5 text-sm font-normal text-muted-foreground",
+                  /*
+                   * `after:hidden` is load-bearing. The `line` variant already
+                   * draws its own active bar as an ::after at bottom -5px, so
+                   * adding an underline here as well produced two rules: one
+                   * flush on the strip's baseline and one floating five pixels
+                   * under it, with the strip's own border in between.
+                   *
+                   * The border is the one kept, because a tab underline should
+                   * sit on the strip's baseline rather than hover below it.
+                   */
+                  "rounded-none border-0 border-b-2 border-transparent px-0.5 pt-0 pb-1.5 text-sm font-normal text-muted-foreground after:hidden",
                   "data-[state=active]:border-foreground data-[state=active]:bg-transparent data-[state=active]:font-medium data-[state=active]:text-foreground data-[state=active]:shadow-none",
                 )}
               >
