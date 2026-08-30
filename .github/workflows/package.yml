@@ -405,10 +405,19 @@ jobs:
         shell: bash
         run: |
           set -eu
+          # No single tool spans the three runners: the Git Bash this runs in on
+          # Windows carries sha256sum and no shasum, the macOS image carries
+          # shasum and no sha256sum. Both print "<hash>  <path>", so the sed
+          # below does not care which one answered.
+          if command -v sha256sum >/dev/null 2>&1; then
+            sha256=(sha256sum)
+          else
+            sha256=(shasum -a 256)
+          fi
           cd bin
           rm -f "${PACKAGE_BASE}.sha256"
           find . -maxdepth 1 -type f -name "${PACKAGE_BASE}.*" ! -name '*.sha256' \
-            -exec shasum -a 256 {} + | sed 's| \./| |' > "${PACKAGE_BASE}.sha256"
+            -exec "${sha256[@]}" {} + | sed 's| \./| |' > "${PACKAGE_BASE}.sha256"
           cat "${PACKAGE_BASE}.sha256"
 
       - name: List packaged files
