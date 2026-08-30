@@ -15,13 +15,14 @@
   <a href="README.md">English</a>&nbsp;&nbsp;·&nbsp;&nbsp;
   <a href="https://github.com/amigoer/mq-studio/releases">下载</a>&nbsp;&nbsp;·&nbsp;&nbsp;
   <a href="docs/INSTALL.zh-CN.md">安装说明</a>&nbsp;&nbsp;·&nbsp;&nbsp;
+  <a href="#开发计划">开发计划</a>&nbsp;&nbsp;·&nbsp;&nbsp;
   <a href="docs/ARCHITECTURE.md">文档</a>
 </p>
 
 <br>
 
 <p align="center">
-  <a href="docs/images/overview.png"><img src="docs/images/overview.png" alt="MQ Studio 概览仪表盘" width="100%"></a>
+  <a href="docs/images/readme/overview.png"><img src="docs/images/readme/overview.png" alt="MQ Studio 概览仪表盘" width="100%"></a>
 </p>
 <p align="center">
   <sub>连接之后，集群健康、实时吞吐、消费堆积与 Broker 状态一眼可见。</sub>
@@ -55,22 +56,42 @@ MQ Studio 把消息队列运维当作一个桌面问题来解决：安装应用�
 <table>
   <tr>
     <td width="50%" align="center">
-      <a href="docs/images/topics.png"><img src="docs/images/topics.png" alt="Topic 管理"></a>
-      <sub><strong>Topic 操作</strong> — 查看队列、路由与订阅关系。</sub>
+      <a href="docs/images/readme/welcome-light.png"><img src="docs/images/readme/welcome-light.png" alt="欢迎页"></a>
+      <sub><strong>首次启动</strong> — 还没有连接时，新建一个或导入之前导出的配置。</sub>
     </td>
     <td width="50%" align="center">
-      <a href="docs/images/consumers.png"><img src="docs/images/consumers.png" alt="消费者组详情"></a>
-      <sub><strong>消费诊断</strong> — 跟踪客户端、订阅、TPS 与消息堆积。</sub>
+      <a href="docs/images/readme/welcome-dark.png"><img src="docs/images/readme/welcome-dark.png" alt="深色主题下的欢迎页"></a>
+      <sub><strong>深色主题</strong> — 整个界面跟随系统主题，也可以手动指定。</sub>
     </td>
   </tr>
   <tr>
     <td width="50%" align="center">
-      <a href="docs/images/messages.png"><img src="docs/images/messages.png" alt="消息查询与详情"></a>
-      <sub><strong>消息检查</strong> — 查询消息并查看消息体、属性与轨迹。</sub>
+      <a href="docs/images/readme/connections.png"><img src="docs/images/readme/connections.png" alt="连接列表"></a>
+      <sub><strong>连接管理</strong> — 所有集群集中在一个列表，双击任意一行在新标签页中打开。</sub>
     </td>
     <td width="50%" align="center">
-      <a href="docs/images/cluster.png"><img src="docs/images/cluster.png" alt="集群监控"></a>
-      <sub><strong>集群监控</strong> — 查看健康状态、吞吐、Broker 与磁盘使用率。</sub>
+      <a href="docs/images/readme/new-connection.png"><img src="docs/images/readme/new-connection.png" alt="新建连接对话框"></a>
+      <sub><strong>新建连接</strong> — 选择协议与版本，填写 NameServer 或 gRPC Proxy 地址，ACL 凭证可选。</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center">
+      <a href="docs/images/readme/topics.png"><img src="docs/images/readme/topics.png" alt="Topic 列表与详情面板"></a>
+      <sub><strong>Topic 操作</strong> — 按类型筛选 Topic，在详情面板查看队列、路由与订阅关系。</sub>
+    </td>
+    <td width="50%" align="center">
+      <a href="docs/images/readme/consumers.png"><img src="docs/images/readme/consumers.png" alt="消费者组列表与详情面板"></a>
+      <sub><strong>消费诊断</strong> — 逐组查看堆积、消费 TPS 与客户端；按队列重置或克隆位点。</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center">
+      <a href="docs/images/readme/cluster.png"><img src="docs/images/readme/cluster.png" alt="集群页面"></a>
+      <sub><strong>集群监控</strong> — Broker 角色、吞吐、磁盘水位与今日进出消息量。</sub>
+    </td>
+    <td width="50%" align="center">
+      <a href="docs/images/readme/alerts.png"><img src="docs/images/readme/alerts.png" alt="告警页面"></a>
+      <sub><strong>告警</strong> — 基于实时集群指标的活跃告警，背后的规则可自行配置。</sub>
     </td>
   </tr>
 </table>
@@ -118,6 +139,25 @@ BullMQ 是架在 Redis 或 RabbitMQ 之上的应用层任务队列，而不是�
 
 ACL 与部分高级操作是否可用，取决于 Broker 版本和配置。表格背后的能力模型详见
 [多 MQ 架构设计](docs/MULTI_MQ_DESIGN.md)。
+
+## 开发计划
+
+驱动逐个推进。每接入一个，都会做到 RocketMQ 现有的深度 —— Topic、消费者、消息、集群与告警
+—— 再开始下一个，不会留下一堆只连了一半的页面。
+
+| 阶段 | 范围 | 状态 |
+| --- | --- | --- |
+| 1 | RocketMQ 4.x / 5.x | ✅ 已完成 |
+| 2 | RabbitMQ | 🚧 开发中 |
+| 3 | Kafka | 📋 下一个 |
+| 4 | 其余驱动，按「驱动支持」中列出的顺序推进 | 📋 计划中 |
+| 5 | Agent 相关功能 | 📋 计划中 |
+
+Agent 相关的功能会等驱动接入完成之后再开始，不会提前。每个驱动都会声明所连中间件真正支持
+的能力，这套能力模型正是 Agent 跨中间件工作的前提 —— 不会给出中间件本身做不到的操作。
+具体范围会在第 4 阶段完成后在这里公布。
+
+这是一个顺序，不是排期：没有绑定时间点；Kafka 之后的顺序也可能因为呼声调整。
 
 ## 下载
 

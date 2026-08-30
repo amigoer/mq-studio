@@ -15,13 +15,14 @@
   <a href="README.zh-CN.md">简体中文</a>&nbsp;&nbsp;·&nbsp;&nbsp;
   <a href="https://github.com/amigoer/mq-studio/releases">Download</a>&nbsp;&nbsp;·&nbsp;&nbsp;
   <a href="docs/INSTALL.md">Install guide</a>&nbsp;&nbsp;·&nbsp;&nbsp;
+  <a href="#roadmap">Roadmap</a>&nbsp;&nbsp;·&nbsp;&nbsp;
   <a href="docs/ARCHITECTURE.md">Documentation</a>
 </p>
 
 <br>
 
 <p align="center">
-  <a href="docs/images/overview.png"><img src="docs/images/overview.png" alt="MQ Studio overview dashboard" width="100%"></a>
+  <a href="docs/images/readme/overview.png"><img src="docs/images/readme/overview.png" alt="MQ Studio overview dashboard" width="100%"></a>
 </p>
 <p align="center">
   <sub>Cluster health, live throughput, consumer lag, and broker status — one glance after connecting.</sub>
@@ -55,22 +56,42 @@ Select any screenshot to open it at full resolution.
 <table>
   <tr>
     <td width="50%" align="center">
-      <a href="docs/images/topics.png"><img src="docs/images/topics.png" alt="Topic management"></a>
-      <sub><strong>Topic operations</strong> — inspect queues, routing, and subscriptions.</sub>
+      <a href="docs/images/readme/welcome-light.png"><img src="docs/images/readme/welcome-light.png" alt="Welcome screen"></a>
+      <sub><strong>First launch</strong> — no connection yet: create one, or import a previous export.</sub>
     </td>
     <td width="50%" align="center">
-      <a href="docs/images/consumers.png"><img src="docs/images/consumers.png" alt="Consumer group details"></a>
-      <sub><strong>Consumer diagnostics</strong> — track clients, subscriptions, TPS, and lag.</sub>
+      <a href="docs/images/readme/welcome-dark.png"><img src="docs/images/readme/welcome-dark.png" alt="Welcome screen in dark theme"></a>
+      <sub><strong>Dark theme</strong> — the whole interface follows the system theme, or the one you pick.</sub>
     </td>
   </tr>
   <tr>
     <td width="50%" align="center">
-      <a href="docs/images/messages.png"><img src="docs/images/messages.png" alt="Message query and details"></a>
-      <sub><strong>Message inspection</strong> — query messages and inspect body, properties, and traces.</sub>
+      <a href="docs/images/readme/connections.png"><img src="docs/images/readme/connections.png" alt="Connection list"></a>
+      <sub><strong>Connections</strong> — every cluster in one list; double-click a row to open it in its own tab.</sub>
     </td>
     <td width="50%" align="center">
-      <a href="docs/images/cluster.png"><img src="docs/images/cluster.png" alt="Cluster monitoring"></a>
-      <sub><strong>Cluster monitoring</strong> — follow health, throughput, brokers, and disk usage.</sub>
+      <a href="docs/images/readme/new-connection.png"><img src="docs/images/readme/new-connection.png" alt="New connection dialog"></a>
+      <sub><strong>Adding a connection</strong> — pick the protocol and version, then NameServer or gRPC Proxy, with optional ACL keys.</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center">
+      <a href="docs/images/readme/topics.png"><img src="docs/images/readme/topics.png" alt="Topic list and detail panel"></a>
+      <sub><strong>Topic operations</strong> — filter by type, then inspect queues, routing, and subscriptions in the detail panel.</sub>
+    </td>
+    <td width="50%" align="center">
+      <a href="docs/images/readme/consumers.png"><img src="docs/images/readme/consumers.png" alt="Consumer group list and detail panel"></a>
+      <sub><strong>Consumer diagnostics</strong> — lag, consume TPS, and clients per group; reset or clone offsets queue by queue.</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center">
+      <a href="docs/images/readme/cluster.png"><img src="docs/images/readme/cluster.png" alt="Cluster page"></a>
+      <sub><strong>Cluster monitoring</strong> — broker roles, throughput, disk water level, and messages in and out today.</sub>
+    </td>
+    <td width="50%" align="center">
+      <a href="docs/images/readme/alerts.png"><img src="docs/images/readme/alerts.png" alt="Alerts page"></a>
+      <sub><strong>Alerts</strong> — active alerts derived from live cluster metrics, with the rules behind them.</sub>
     </td>
   </tr>
 </table>
@@ -120,6 +141,28 @@ message brokers.
 
 ACL and some advanced operations depend on the broker version and configuration. The capability
 model behind this table is described in [the multi-MQ design](docs/MULTI_MQ_DESIGN.md).
+
+## Roadmap
+
+Drivers land one at a time. Each one is taken to the depth RocketMQ already has — topics,
+consumers, messages, cluster, and alerts — before the next one starts, so no driver ships as a
+half-wired set of pages.
+
+| Phase | Scope | Status |
+| --- | --- | --- |
+| 1 | RocketMQ 4.x / 5.x | ✅ Done |
+| 2 | RabbitMQ | 🚧 In development |
+| 3 | Kafka | 📋 Next |
+| 4 | The remaining drivers, in the order listed under Driver support | 📋 Planned |
+| 5 | Agent features | 📋 Planned |
+
+Agent work starts once driver coverage is in place, not before. Every driver already declares
+what the connected broker can actually do, and that capability model is the foundation an agent
+needs to work across brokers without offering operations the broker cannot perform. The scope
+will be published here once phase 4 lands.
+
+This is a sequence, not a schedule: no dates are attached to it, and the order after Kafka can
+change if there is enough demand for a driver further down the list.
 
 ## Download
 
