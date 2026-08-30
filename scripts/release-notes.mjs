@@ -17,9 +17,6 @@ const sources = [
   { path: 'CHANGELOG.zh-CN.md', heading: '简体中文' },
 ]
 
-/** Install guidance, kept in the repository so the wording is reviewable. */
-const INSTALL_NOTE = 'docs/release-install-note.md'
-
 /**
  * Warns that macOS builds are not notarised. Driven by MACOS_SIGNED so the
  * banner disappears on its own once a Developer ID is configured, rather than
@@ -89,12 +86,10 @@ const footer = previous
   ? `**Full Changelog**: ${repository}/compare/${previous}...${tag}`
   : `**Changelog**: ${repository}/blob/main/CHANGELOG.md`
 
-const installNote = (await readFile(resolve(root, INSTALL_NOTE), 'utf8')).trim()
-
 // The workflow sets this to the literal string 'true' only when both the
 // signing identity and the certificate are configured.
 const macSigned = process.env.MACOS_SIGNED === 'true'
 const banner = macSigned ? [] : [UNSIGNED_BANNER]
 
-const body = [...banner, sections.join('\n\n'), '---', installNote, '---', footer]
+const body = [...banner, sections.join('\n\n'), '---', footer]
 process.stdout.write(`${body.join('\n\n')}\n`)
