@@ -78,3 +78,10 @@ func (s *TopicService) Remove(connID int, topicName string, clusterName string) 
 	return s.service.Remove(context.Background(), connID,
 		model.DestinationRef{Namespace: clusterName, Name: topicName})
 }
+
+// Detail returns one topic with the fields only a per-topic lookup can fill:
+// its route table, and the outbound rate that costs one request per group.
+func (s *TopicService) Detail(connID int, topicName string) (*model.Destination, error) {
+	return s.service.Detail(context.Background(), connID,
+		model.DestinationRef{Name: topicName})
+}

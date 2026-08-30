@@ -994,7 +994,8 @@
       "selectedN": "{{n}} selected",
       "noMatch": "Nothing matches the filter",
       "copied": "Copied",
-      "edit": "Edit"
+      "edit": "Edit",
+      "moreOptions": "{{count}} more — keep typing to narrow it down"
     },
     "notDesigned": {
       "title": "Not yet designed",
@@ -1088,7 +1089,15 @@
         "consumeRate": "Consuming {{rate}}/s",
         "diskOver": "{{count}} broker(s) past {{threshold}}% disk",
         "noHistory": "No samples yet — the chart fills in a minute after connecting",
-        "noBacklog": "No consumer group has a backlog"
+        "noBacklog": "No consumer group has a backlog",
+        "activeTopics": "Active topics",
+        "noTopics": "No topics",
+        "shortcut": {
+          "send": "Send a test message",
+          "search": "Search messages",
+          "create": "New topic",
+          "reset": "Reset offsets"
+        }
       }
     },
     "cluster": {
@@ -1406,7 +1415,26 @@
         "deleteTitle": "Delete topic",
         "deleteDesc": "This removes “{{name}}” and its queues from the cluster and cannot be undone. Messages already stored in it are lost.",
         "deleted": "Deleted {{name}}",
-        "deleteFailed": "Could not delete"
+        "deleteFailed": "Could not delete",
+        "type": "Type",
+        "browse": "Browse messages",
+        "lastUpdated": "Last updated",
+        "description": "Description",
+        "subscribers": "Subscribing groups",
+        "noSubscribers": "No group subscribes to this topic",
+        "kind": {
+          "all": "All",
+          "normal": "Normal",
+          "retry": "Retry",
+          "dlq": "Dead letter"
+        },
+        "kindOf": {
+          "normal": "Normal",
+          "fifo": "Ordered",
+          "delay": "Delayed",
+          "retry": "Retry",
+          "dlq": "Dead letter"
+        }
       }
     },
     "consumers": {
@@ -1639,6 +1667,34 @@
           "waiting": "Waiting for new messages",
           "waitingHint": "A live tail starts from the moment it is switched on; what is already stored is what the query above is for.",
           "failed": "The tail could not read"
+        },
+        "properties": "Properties",
+        "noProperties": "No message properties",
+        "customRange": "Custom range",
+        "begin": "From",
+        "end": "To",
+        "badRange": "Enter a valid start and end time",
+        "rangeReversed": "The start time cannot be after the end time",
+        "limitDefault": "Default ({{count}})",
+        "limitN": "{{count}} messages",
+        "bodyTruncated": "Body too large — showing the first {{shown}} KB of {{total}} KB. The cut-off is a setting.",
+        "bodyMode": {
+          "auto": "Auto",
+          "raw": "Raw",
+          "hex": "Hex"
+        },
+        "bodyKind": {
+          "json": "JSON",
+          "text": "Text",
+          "binary": "Binary"
+        },
+        "resend": {
+          "action": "Republish",
+          "title": "Republish message",
+          "pickGroup": "Pick a consumer group",
+          "desc": "Puts this message back on the group's retry path for {{topic}}, for whichever member picks it up.",
+          "done": "Republished to {{group}}",
+          "failed": "Republish failed"
         }
       }
     },
@@ -1756,7 +1812,11 @@
         "query": "Query",
         "hint": "Brokers index connections by producer group and offer no call that lists the groups, so the name has to be typed.",
         "none": "No producer connected under this group"
-      }
+      },
+      "loadSample": "Load sample",
+      "reset": "Reset",
+      "resetHint": "Clears the form and forgets what this topic had saved",
+      "draftRestored": "Restored what was last sent to this topic"
     },
     "mqtt": {
       "topicTree": "Topic tree",

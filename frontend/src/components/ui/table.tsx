@@ -65,16 +65,35 @@ function TableFooter({ className, ...props }: React.ComponentProps<"tfoot">) {
 function TableRow({
   className,
   selected,
+  onClick,
+  onKeyDown,
   ...props
 }: React.ComponentProps<"tr"> & { selected?: boolean }) {
+  // A clickable row is reachable and activatable from the keyboard. It keeps
+  // its implicit row role rather than taking role="button", which would break
+  // the table semantics for a screen reader.
+  const activatable = onClick != null
   return (
     <tr
       data-slot="table-row"
       data-state={selected ? "selected" : undefined}
       className={cn(
         "border-b transition-colors hover:bg-muted/50 has-aria-expanded:bg-muted/50 data-[state=selected]:bg-muted",
+        activatable &&
+          "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/40",
         className
       )}
+      tabIndex={activatable ? 0 : undefined}
+      aria-selected={activatable ? Boolean(selected) : undefined}
+      onClick={onClick}
+      onKeyDown={(event) => {
+        onKeyDown?.(event)
+        if (!activatable || event.defaultPrevented) return
+        if (event.key !== "Enter" && event.key !== " ") return
+        // Space on a focused row would otherwise scroll the list.
+        event.preventDefault()
+        event.currentTarget.click()
+      }}
       {...props}
     />
   )

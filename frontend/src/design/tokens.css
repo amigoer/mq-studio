@@ -981,6 +981,18 @@ button.ni.on { background: var(--c-fg); color: var(--c-bg); }
 }
 
 /*
+ * The overview's jump-off row. It wraps rather than stacking: four short
+ * labels on one line is the point, and two lines of two is the next best
+ * thing when the shell is narrow.
+ */
+.mqs-shortcuts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+  flex: none;
+}
+
+/*
  * Overview chart row. The canvas's 1.7 / 1 split stacks once the meters in the
  * narrower card would have less room than their labels.
  */

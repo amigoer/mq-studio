@@ -93,10 +93,9 @@ func (s *Service) List(ctx context.Context, connID int, filter model.Destination
 // Detail returns one destination. Unlike List it reports a missing connection,
 // because reaching a detail view at all implies one was open.
 //
-// No page calls it: the boards read what the list already carries. The topic
-// lifecycle live test does, to check that a create and an update actually
-// reached the broker, which is the one question a list refreshed from cache
-// cannot answer.
+// The topic inspector calls it when a row is opened: the route table and the
+// outbound rate cost one request per consumer group, so the list cannot carry
+// them and only a per-topic lookup fills them in.
 func (s *Service) Detail(ctx context.Context, connID int, ref model.DestinationRef) (*model.Destination, error) {
 	api, err := s.admin(connID)
 	if err != nil {

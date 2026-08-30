@@ -70,6 +70,9 @@ func (s *Service) Query(ctx context.Context, connID int, params model.MessageQue
 	if !ok {
 		return nil, driver.Unsupported(conn, model.CapMessageQuery)
 	}
+	if params.MaxResults <= 0 {
+		params.MaxResults = s.FetchLimit()
+	}
 	ctx, cancel := s.withTimeout(ctx)
 	defer cancel()
 
@@ -126,6 +129,9 @@ func (s *Service) DLQ(ctx context.Context, connID int, group string, maxResults 
 	}
 	defer cancel()
 
+	if maxResults <= 0 {
+		maxResults = s.FetchLimit()
+	}
 	items, err := api.DLQMessages(ctx, group, maxResults)
 	if err != nil {
 		return nil, err
@@ -141,6 +147,9 @@ func (s *Service) Retry(ctx context.Context, connID int, group string, maxResult
 	}
 	defer cancel()
 
+	if maxResults <= 0 {
+		maxResults = s.FetchLimit()
+	}
 	items, err := api.RetryMessages(ctx, group, maxResults)
 	if err != nil {
 		return nil, err

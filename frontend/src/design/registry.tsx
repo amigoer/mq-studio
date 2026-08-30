@@ -49,11 +49,40 @@ import { MqttWorkbench } from "./boards/mqtt/MqttWorkbench";
 import { NotDesigned } from "./boards/misc/NotDesigned";
 
 /**
+ * What one page should arrive looking at, when it was reached from another.
+ *
+ * A board reads it once, on mount, so a later edit by the user is never
+ * overwritten by where they came from.
+ */
+export interface BoardFocus {
+  topic?: string;
+  group?: string;
+  /** Open the page's create dialog on arrival. */
+  create?: boolean;
+}
+
+/** What a board may ask the shell to do, for the few that need to. */
+export interface BoardNav {
+  /** The alerts page sends the reader to where the thresholds are set. */
+  onOpenAlertSettings?: () => void;
+  /** Move to another page in this tab, optionally naming what to open on. */
+  onOpenPage?: (page: PageId, focus?: BoardFocus) => void;
+  /** Set when this page was reached through `onOpenPage`. */
+  focus?: BoardFocus;
+}
+
+export interface BoardProps {
+  nav?: BoardNav;
+}
+
+/**
  * (page, protocol) -> board. Every cell is its own component: the canvas draws
  * each protocol's page separately and the differences are semantic, not
  * cosmetic, so nothing is shared beyond the primitive layer.
  */
-const BOARDS: Partial<Record<PageId, Partial<Record<ProtocolId, () => JSX.Element>>>> = {
+const BOARDS: Partial<
+  Record<PageId, Partial<Record<ProtocolId, (props: BoardProps) => JSX.Element>>>
+> = {
   overview: {
     rocketmq: OverviewRocketMQ,
     kafka: OverviewKafka,
@@ -104,18 +133,12 @@ const BOARDS: Partial<Record<PageId, Partial<Record<ProtocolId, () => JSX.Elemen
   },
 };
 
-/** What a board may ask the shell to do, for the few that need to. */
-export interface BoardNav {
-  /** The alerts page sends the reader to where the thresholds are set. */
-  onOpenAlertSettings?: () => void;
-}
-
 export function renderBoard(
   protocol: ProtocolId,
   page: PageId,
   nav?: BoardNav,
 ): JSX.Element {
-  if (page === "producer") return <Producer protocol={protocol} />;
+  if (page === "producer") return <Producer protocol={protocol} nav={nav} />;
   /* Alerts is one board for every family: the rules are numeric comparisons
      over a cluster snapshot, with nothing protocol-specific to draw. */
   if (page === "alerts") return <Alerts onOpenSettings={nav?.onOpenAlertSettings} />;
@@ -124,7 +147,7 @@ export function renderBoard(
   if (page === "acl" && protocol === "rocketmq") return <Acl />;
 
   const Board = BOARDS[page]?.[protocol];
-  if (Board) return <Board />;
+  if (Board) return <Board nav={nav} />;
 
   return (
     <NotDesigned labelKey={labelOf(protocol, page)} protocolName={PROTOCOLS[protocol].name} />

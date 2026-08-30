@@ -2,8 +2,10 @@ package app
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -333,6 +335,83 @@ func TestLiveTopicLifecycle(t *testing.T) {
 		if one.Ref.Name == name {
 			t.Fatal("the deleted topic is still listed")
 		}
+	}
+}
+
+// What the topic inspector opens on: the two fields the list cannot carry.
+//
+// The list enrichment fills queue counts and inbound rate for every topic at
+// once; the route table and the subscribing groups cost a call per topic, and
+// the outbound rate a call per group, so only Detail has them. A board reading
+// the list row alone would draw an empty route table and a dash for consume
+// TPS, which is what this stops.
+func TestLiveTopicDetailCarriesRoutes(t *testing.T) {
+	connections, topics, registry := liveStack(t)
+	ctx := context.Background()
+
+	profile, err := connections.AddConnection(liveProfileInput("detail"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := connections.Connect(profile.ID); err != nil {
+		t.Fatalf("connect: %v", err)
+	}
+	conn, _ := registry.Get(profile.ID)
+
+	const name = "MQ_STUDIO_E2E"
+	ref := model.DestinationRef{Name: name}
+	admin := conn.(driver.DestinationAdmin)
+	if err := admin.CreateDestination(ctx, model.DestinationSpec{
+		Ref: ref,
+		Attributes: map[string]string{
+			rocketmq.AttrReadQueue:  "2",
+			rocketmq.AttrWriteQueue: "2",
+			rocketmq.AttrPerm:       string(model.PermRW),
+		},
+	}); err != nil {
+		t.Fatalf("create: %v", err)
+	}
+
+	listed, err := topics.List(ctx, profile.ID, model.DestinationFilter{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var row *model.Destination
+	for _, one := range listed {
+		if one.Ref.Name == name {
+			row = one
+			break
+		}
+	}
+	if row == nil {
+		t.Fatalf("%s is not in the list", name)
+	}
+	if got := row.Attribute(rocketmq.AttrRoutes); got != "" {
+		t.Fatalf("the list carries a route table (%q); it is meant to cost too much", got)
+	}
+
+	detail, err := topics.Detail(ctx, profile.ID, ref)
+	if err != nil {
+		t.Fatalf("detail: %v", err)
+	}
+	if detail.Attribute(rocketmq.AttrRoutes) == "" {
+		t.Fatal("Detail returned no route table; the inspector draws an empty one")
+	}
+	if detail.RateOut == model.UnknownMetric {
+		t.Fatal("Detail returned no outbound rate; the inspector draws a dash")
+	}
+
+	// The names behind the count, which the inspector lists. Asserted against
+	// the count rather than against a fixture, so it holds on a broker where
+	// nothing subscribes yet.
+	var names []string
+	if encoded := detail.Attribute(rocketmq.AttrSubscribers); encoded != "" {
+		if err := json.Unmarshal([]byte(encoded), &names); err != nil {
+			t.Fatalf("subscribers is not a name list: %v", err)
+		}
+	}
+	if got := detail.Attribute(rocketmq.AttrConsumerGroups); got != strconv.Itoa(len(names)) {
+		t.Fatalf("consumerGroups = %s but %d names came back", got, len(names))
 	}
 }
 

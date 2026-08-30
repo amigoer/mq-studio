@@ -33,11 +33,15 @@ export const fetchLatestMessages = (
     endTime: 0,
   }).then(present);
 
+/**
+ * A non-positive `maxResults` lets the configured page size decide, which is
+ * how the 单页拉取数量 setting reaches a query nobody narrowed by hand.
+ */
 export function queryMessagesByCondition(
   connID: number,
   topic: string,
   condition: QueryCondition,
-  maxResults = 32,
+  maxResults = 0,
 ): Promise<MessageItem[]> {
   if (condition.messageId?.trim())
     return MessageService.ByID(
@@ -64,13 +68,13 @@ export const getMessageTrack = (
 export const queryDLQMessages = (
   connID: number,
   group: string,
-  maxResults = 32,
+  maxResults = 0,
 ): Promise<MessageItem[]> =>
   MessageService.DLQ(connID, group, maxResults).then(present);
 export const queryRetryMessages = (
   connID: number,
   group: string,
-  maxResults = 32,
+  maxResults = 0,
 ): Promise<MessageItem[]> =>
   MessageService.Retry(connID, group, maxResults).then(present);
 
@@ -140,5 +144,5 @@ export const tailMessages = (
   connID: number,
   topic: string,
   cursor: TailCursor,
-  limit = 64,
+  limit = 0,
 ): Promise<TailBatch> => MessageService.Tail(connID, topic, cursor, limit).then(required);

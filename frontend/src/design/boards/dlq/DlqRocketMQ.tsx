@@ -20,12 +20,14 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { BoardState, Notice } from "@/design/boards/BoardState";
 import { useBrokerData } from "@/hooks/useBrokerData";
+import { useSettings } from "@/hooks/useSettings";
 import { useConnectionScope } from "@/mq/ConnectionScope";
 import { useRecentPicks } from "@/hooks/useRecentPicks";
 import * as consumerApi from "@/api/consumer";
 import * as messageApi from "@/api/message";
 import { groupName } from "@/mq/rocketmq/subscriptions";
 import type { MessageItem } from "@/api/models";
+import { formatMessageTime } from "@/lib/time";
 import { formatErrorMessage } from "@/lib/utils";
 
 /*
@@ -74,6 +76,7 @@ export function DlqRocketMQ() {
   const { t } = useTranslation();
   const { id: connID, online } = useConnectionScope();
   const toast = useToast();
+  const { settings } = useSettings();
 
   const [view, setView] = useState<View>("dlq");
   const [group, setGroup] = useState("");
@@ -163,7 +166,8 @@ export function DlqRocketMQ() {
             setGroup(name);
             void runQuery(view, name);
           }}
-          options={offered.slice(0, 200)}
+          options={offered}
+          moreText={(hidden) => t("board.common.moreOptions", { count: hidden })}
           placeholder={t("board.dlq.rocketmq.pickGroup")}
           searchPlaceholder={t("board.common.searchGroups")}
           emptyText={t("board.common.noMatch")}
@@ -240,7 +244,11 @@ export function DlqRocketMQ() {
                         {row.retryTimes}
                       </TableCell>
                       <TableCell className="mono3" style={{ ...MONO11, color: dim }}>
-                        {row.storeTime || "—"}
+                        {formatMessageTime(
+                          row.storeTime,
+                          settings.timezone,
+                          settings.timestampFormat,
+                        )}
                       </TableCell>
                     </TableRow>
                   );

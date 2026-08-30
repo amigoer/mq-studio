@@ -15,6 +15,7 @@ const AttrCluster = "cluster";
 const AttrDescription = "description";
 const AttrConsumerGroups = "consumerGroups";
 const AttrRoutes = "routes";
+const AttrSubscribers = "subscribers";
 
 /** A numeric field no broker reported. The UI renders it as an em dash. */
 export const UNKNOWN_METRIC = -1;
@@ -73,6 +74,37 @@ export const consumerGroups = (destination: Destination): number =>
   numeric(destination, AttrConsumerGroups);
 
 /**
+ * How a topic reads in the list.
+ *
+ * RocketMQ's own message type covers ordered and delayed; retry and dead
+ * letter are not a type at all but a name the broker mints per consumer
+ * group, which is why they are read off the prefix.
+ */
+export const TopicKind = {
+  Normal: "normal",
+  FIFO: "fifo",
+  Delay: "delay",
+  Retry: "retry",
+  DLQ: "dlq",
+} as const;
+export type TopicKind = (typeof TopicKind)[keyof typeof TopicKind];
+
+const RETRY_PREFIXES = ["%RETRY%", "RETRY%"];
+const DLQ_PREFIXES = ["%DLQ%", "DLQ%"];
+
+export function topicKind(destination: Destination): TopicKind {
+  const name = topicName(destination);
+  if (RETRY_PREFIXES.some((prefix) => name.startsWith(prefix)))
+    return TopicKind.Retry;
+  if (DLQ_PREFIXES.some((prefix) => name.startsWith(prefix)))
+    return TopicKind.DLQ;
+  const type = messageType(destination);
+  if (type === TopicMessageType.FIFO) return TopicKind.FIFO;
+  if (type === TopicMessageType.Delay) return TopicKind.Delay;
+  return TopicKind.Normal;
+}
+
+/**
  * The per-broker route table.
  *
  * It crosses as JSON because a destination's attributes are strings and a
@@ -84,6 +116,17 @@ export function routes(destination: Destination): TopicRouteItem[] {
   if (!encoded) return [];
   try {
     return JSON.parse(encoded) as TopicRouteItem[];
+  } catch {
+    return [];
+  }
+}
+
+/** The groups subscribing to a topic. Only a topic detail lookup fills it. */
+export function subscribers(destination: Destination): string[] {
+  const encoded = attr(destination, AttrSubscribers);
+  if (!encoded) return [];
+  try {
+    return JSON.parse(encoded) as string[];
   } catch {
     return [];
   }

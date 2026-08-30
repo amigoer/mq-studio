@@ -27,6 +27,9 @@ const (
 	// escape hatch rather than a preference, and it wants settling before a
 	// second driver leans on it.
 	AttrRoutes = "routes"
+	// AttrSubscribers holds the subscribing group names as JSON. Only a
+	// per-topic lookup fills it.
+	AttrSubscribers = "subscribers"
 )
 
 // ListDestinations returns topics, hiding the system ones unless asked.
@@ -118,6 +121,11 @@ func destinationFromTopic(topic *model.TopicItem) *model.Destination {
 	if len(topic.Routes) > 0 {
 		if encoded, err := json.Marshal(topic.Routes); err == nil {
 			attributes[AttrRoutes] = string(encoded)
+		}
+	}
+	if len(topic.Subscribers) > 0 {
+		if encoded, err := json.Marshal(topic.Subscribers); err == nil {
+			attributes[AttrSubscribers] = string(encoded)
 		}
 	}
 

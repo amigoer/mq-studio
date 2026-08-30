@@ -3,9 +3,9 @@ import { DesignApp } from "@/design/DesignApp";
 
 /**
  * The frontend is the design canvas (mq-studio-design.dc.html) rebuilt one to
- * one. The control plane -- settings, window chrome, update checks -- is wired
- * to Go; the figures on the MQ pages still come from `@/design/data`, waiting
- * to be wired back page by page.
+ * one. The control plane and every RocketMQ page read Go; the boards for the
+ * five families without a driver still draw the canvas's own figures, and are
+ * unreachable because those protocols cannot be selected.
  */
 function App(): JSX.Element {
   return <DesignApp />;

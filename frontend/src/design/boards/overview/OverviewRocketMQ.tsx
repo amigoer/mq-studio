@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { RefreshCw } from "lucide-react";
+import { Plus, RefreshCw, RotateCcw, Search, Send } from "lucide-react";
 import { Page, PageBody, PageHeader } from "@/design/shell";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,7 +27,10 @@ import {
   continuousHistoryRanges,
 } from "@/lib/throughputHistory";
 import { brokerId, brokerName, commitLogDiskUsage } from "@/mq/rocketmq/nodes";
+import { topicName } from "@/mq/rocketmq/destinations";
 import { groupName, subscriptionsOf } from "@/mq/rocketmq/subscriptions";
+import type { BoardProps } from "@/design/registry";
+import type { PageId } from "@/design/data/protocols";
 import { CHART_CARD, CHART_ROW, KPI_GRID, NAME_CELL, TABLE_CARD } from "./_shared";
 
 const UNKNOWN = -1;
@@ -36,8 +39,25 @@ function count(value: number | undefined): string {
   return value == null || value === UNKNOWN ? "—" : value.toLocaleString();
 }
 
-/** How many rows the backlog table shows before it stops being a summary. */
+/** How many rows a summary table shows before it stops being a summary. */
 const TOP_ROWS = 5;
+
+/**
+ * The four gestures the overview is a jumping-off point for. Each lands on the
+ * page that performs it; "新建 Topic" also opens the form on arrival, because
+ * the page alone is not what was asked for.
+ */
+const SHORTCUTS: readonly {
+  key: string;
+  icon: typeof Send;
+  page: PageId;
+  create?: boolean;
+}[] = [
+  { key: "send", icon: Send, page: "producer" },
+  { key: "search", icon: Search, page: "messages" },
+  { key: "create", icon: Plus, page: "topics", create: true },
+  { key: "reset", icon: RotateCcw, page: "consumers" },
+];
 
 /**
  * Board 11a — RocketMQ overview.
@@ -46,7 +66,7 @@ const TOP_ROWS = 5;
  * been sampling per-broker TPS into a local history all along, so it is a real
  * chart. Both series carry the same unit and share one axis.
  */
-export function OverviewRocketMQ() {
+export function OverviewRocketMQ({ nav }: BoardProps = {}) {
   const { t, i18n } = useTranslation();
   const state = useOverview();
   const { settings } = useSettings();
@@ -81,6 +101,16 @@ export function OverviewRocketMQ() {
       },
     ];
   }, [history, t]);
+
+  // Traffic first, because a topic nothing is writing to is not what an
+  // overview is for; the rest keep their order so the panel is never empty.
+  const activeTopics = useMemo(
+    () =>
+      [...topics]
+        .sort((left, right) => right.rateIn - left.rateIn)
+        .slice(0, TOP_ROWS),
+    [topics],
+  );
 
   const backlogged = useMemo(
     () =>
@@ -161,6 +191,26 @@ export function OverviewRocketMQ() {
             />
           </div>
 
+          <div className="mqs-shortcuts">
+            {SHORTCUTS.map((shortcut) => (
+              <Button
+                key={shortcut.key}
+                variant="outline"
+                className="h-auto justify-start gap-2 px-3 py-2.5 text-xs font-normal"
+                disabled={!state.online || nav?.onOpenPage == null}
+                onClick={() =>
+                  nav?.onOpenPage?.(
+                    shortcut.page,
+                    shortcut.create === true ? { create: true } : undefined,
+                  )
+                }
+              >
+                <shortcut.icon size={14} aria-hidden />
+                {t(`board.overview.rocketmq.shortcut.${shortcut.key}`)}
+              </Button>
+            ))}
+          </div>
+
           <div className={CHART_ROW}>
             <Panel style={CHART_CARD}>
               <b style={{ fontSize: "12.5px" }}>{t("board.common.throughput")}</b>
@@ -200,6 +250,45 @@ export function OverviewRocketMQ() {
               )}
             </Panel>
           </div>
+
+          <Panel style={CHART_CARD}>
+            <b style={{ fontSize: "12.5px" }}>{t("board.overview.rocketmq.activeTopics")}</b>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Topic</TableHead>
+                  <TableHead style={{ textAlign: "right" }}>{t("board.common.produceTps")}</TableHead>
+                  <TableHead style={{ textAlign: "right" }}>{t("board.topics.rocketmq.queueRW")}</TableHead>
+                  <TableHead style={{ textAlign: "right" }}>{t("board.common.consumerGroup")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {activeTopics.map((topic) => (
+                  <TableRow key={topicName(topic)}>
+                    <TableCell className="mono3" style={NAME_CELL}>
+                      {topicName(topic)}
+                    </TableCell>
+                    <TableCell className="mono3" style={{ textAlign: "right" }}>
+                      {count(topic.rateIn)}
+                    </TableCell>
+                    <TableCell className="mono3" style={{ textAlign: "right" }}>
+                      {count(topic.partitions)}
+                    </TableCell>
+                    <TableCell className="mono3" style={{ textAlign: "right" }}>
+                      {count(topic.subscribers)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {activeTopics.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={4} style={{ padding: "20px", textAlign: "center", color: "var(--c-muted)" }}>
+                      {t("board.overview.rocketmq.noTopics")}
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </Panel>
 
           <Panel style={TABLE_CARD}>
             <PanelHeader title={t("board.common.topBacklogGroups")} />

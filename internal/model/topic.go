@@ -38,11 +38,14 @@ type TopicItem struct {
 	Perm           TopicPerm        `json:"perm"`           // Permission
 	MessageType    TopicMessageType `json:"messageType"`    // Message type
 	ConsumerGroups int              `json:"consumerGroups"` // Consumer group count
-	TpsIn          int              `json:"tpsIn"`          // Inbound TPS
-	TpsOut         int              `json:"tpsOut"`         // Outbound TPS
-	LastUpdated    string           `json:"lastUpdated"`    // Last update time
-	Description    string           `json:"description"`    // Description
-	Routes         []TopicRouteItem `json:"routes"`         // Route information
+	// Subscribers names the groups behind ConsumerGroups. Only a per-topic
+	// lookup fills it: the list enrichment asks for the count alone.
+	Subscribers []string         `json:"subscribers"`
+	TpsIn       int              `json:"tpsIn"`       // Inbound TPS
+	TpsOut      int              `json:"tpsOut"`      // Outbound TPS
+	LastUpdated string           `json:"lastUpdated"` // Last update time
+	Description string           `json:"description"` // Description
+	Routes      []TopicRouteItem `json:"routes"`      // Route information
 }
 
 // TopicConfig holds Topic create/update configuration.

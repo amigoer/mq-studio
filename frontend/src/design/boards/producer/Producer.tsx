@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Check, RefreshCw, Send } from "lucide-react";
 import { Page, PageHeader } from "@/design/shell";
@@ -15,6 +15,7 @@ import {
   useToast,
 } from "@/components";
 import type { ProtocolId } from "@/design/data/protocols";
+import type { BoardProps } from "@/design/registry";
 import { PROTOCOL_PANELS } from "./ProducerPanels";
 import { ProducerClients } from "./ProducerClients";
 import { useBrokerData } from "@/hooks/useBrokerData";
@@ -23,6 +24,12 @@ import { useRecentPicks } from "@/hooks/useRecentPicks";
 import * as messageApi from "@/api/message";
 import * as topicApi from "@/api/topic";
 import { topicName } from "@/mq/rocketmq/destinations";
+import {
+  clearProducerDraft,
+  loadProducerScope,
+  saveProducerDraft,
+  type ProducerScope,
+} from "@/lib/producerDrafts";
 import { formatErrorMessage } from "@/lib/utils";
 
 const BODY_FORMATS = [
@@ -39,6 +46,9 @@ const DELAY_LEVELS = [
 
 /** One send is one round trip, so a burst is bounded. */
 const MAX_COUNT = 50;
+
+/** What "载入示例" puts in the editor, and the body a fresh form opens on. */
+const SAMPLE_BODY = '{\n  "orderId": "ORD-TEST-001"\n}';
 
 interface SendOutcome {
   ok: boolean;
@@ -60,18 +70,25 @@ interface SendOutcome {
  * Only RocketMQ can send. The other five keep their drawn panel and say so
  * rather than offering a button that cannot work.
  */
-export function Producer({ protocol }: { protocol: ProtocolId }) {
+export function Producer({ protocol, nav }: { protocol: ProtocolId } & BoardProps) {
   const { t } = useTranslation();
   const { id: connID, online } = useConnectionScope();
   const toast = useToast();
   const ProtocolPanel = PROTOCOL_PANELS[protocol];  // undefined where the family adds none
   const wired = protocol === "rocketmq";
 
+  // Drafts are per connection: the same topic name on staging and on
+  // production is not the same topic, and one must not prefill the other.
+  const scopeKey = String(connID);
+  const [scope, setScope] = useState<ProducerScope>(() => loadProducerScope(scopeKey));
+
   const [format, setFormat] = useState<BodyFormat>("json");
-  const [topic, setTopic] = useState("");
+  // Arriving from a topic row names the topic; otherwise reopen wherever the
+  // last send went, which is almost always where the next one goes.
+  const [topic, setTopic] = useState(() => nav?.focus?.topic ?? scope.lastTopic);
   const [tags, setTags] = useState("");
   const [keys, setKeys] = useState("");
-  const [body, setBody] = useState('{\n  "orderId": "ORD-TEST-001"\n}');
+  const [body, setBody] = useState(SAMPLE_BODY);
   const [delayLevel, setDelayLevel] = useState(0);
   const [count, setCount] = useState(1);
   const [sending, setSending] = useState(false);
@@ -88,12 +105,41 @@ export function Producer({ protocol }: { protocol: ProtocolId }) {
     ...topics.filter((name) => !recent.includes(name)),
   ];
 
+  /*
+   * Restoring what was last sent to this topic. It fires on the topic
+   * changing, not on every render, so an edit made after the restore is never
+   * clobbered by it. The topic the form opened on is restored too, which is
+   * why the ref starts empty rather than at the initial topic.
+   */
+  const restoredFor = useRef("");
+  useEffect(() => {
+    if (!wired || topic === "" || restoredFor.current === topic) return;
+    restoredFor.current = topic;
+    const draft = scope.drafts[topic];
+    if (draft == null) return;
+    setTags(draft.tag);
+    setKeys(draft.key);
+    setDelayLevel(draft.delay);
+    setBody(draft.body);
+    toast.info(t("board.producer.draftRestored"));
+  }, [scope.drafts, t, toast, topic, wired]);
+
   const formatBody = () => {
     try {
       setBody(JSON.stringify(JSON.parse(body), null, 2));
     } catch {
       toast.error(t("board.producer.notJson"));
     }
+  };
+
+  /** Clears the form and forgets what this topic had saved. */
+  const reset = () => {
+    setTags("");
+    setKeys("");
+    setDelayLevel(0);
+    setCount(1);
+    setBody(SAMPLE_BODY);
+    if (topic !== "") setScope(clearProducerDraft(scopeKey, topic));
   };
 
   const send = async () => {
@@ -126,6 +172,7 @@ export function Producer({ protocol }: { protocol: ProtocolId }) {
     );
     if (failure == null) {
       record(topic);
+      setScope(saveProducerDraft(scopeKey, topic, { tag: tags, key: keys, delay: delayLevel, body }));
       toast.success(t("board.producer.sentN", { count: sent }), { description: lastId });
     } else {
       toast.error(t("board.producer.failed"), { description: failure });
@@ -176,7 +223,8 @@ export function Producer({ protocol }: { protocol: ProtocolId }) {
                   className="min-w-[9rem] flex-1"
                   value={topic}
                   onValueChange={setTopic}
-                  options={offered.slice(0, 200)}
+                  options={offered}
+                  moreText={(hidden) => t("board.common.moreOptions", { count: hidden })}
                   placeholder={t("board.messages.rocketmq.pickTopic")}
                   prefix="Topic："
                   searchPlaceholder={t("board.common.searchTopic")}
@@ -232,6 +280,17 @@ export function Producer({ protocol }: { protocol: ProtocolId }) {
                   {t("board.common.format")}
                 </button>
               )}
+              <button type="button" className="mqs-linkbtn" onClick={() => setBody(SAMPLE_BODY)}>
+                {t("board.producer.loadSample")}
+              </button>
+              <button
+                type="button"
+                className="mqs-linkbtn"
+                title={t("board.producer.resetHint")}
+                onClick={reset}
+              >
+                {t("board.producer.reset")}
+              </button>
             </div>
 
             {/* The editor fills the panel, so the panel is its visual frame:

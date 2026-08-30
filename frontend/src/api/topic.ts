@@ -1,11 +1,20 @@
 import { TopicService } from "@bindings/bridge";
 import type { Destination, DestinationRef } from "./models";
-import { present } from "./client";
+import { present, required } from "./client";
 
 export const getTopics = (connID: number): Promise<Destination[]> =>
   TopicService.List(connID).then(present);
 export const getAllTopics = (connID: number): Promise<Destination[]> =>
   TopicService.ListAll(connID).then(present);
+/**
+ * One topic with the fields the list cannot carry: its per-broker route table
+ * and the outbound rate, both of which cost one request per consumer group.
+ */
+export const getTopicDetail = (
+  connID: number,
+  topic: string,
+): Promise<Destination> => TopicService.Detail(connID, topic).then(required);
+
 export const getTopicStats = (
   connID: number,
   topic: string,

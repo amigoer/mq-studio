@@ -9,32 +9,14 @@ export const getConsumeStats = (
   group: string,
 ): Promise<Record<string, unknown>> =>
   ConsumerService.Stats(connID, group);
-export const createConsumerGroup = (
-  connID: number,
-  group: string,
-  brokerAddr: string,
-  consumeMode: string,
-  maxRetry: number,
-): Promise<void> =>
-  ConsumerService.Create(connID, {
-    group,
-    brokerAddr,
-    consumeMode,
-    maxRetry,
-  });
-export const updateConsumerGroup = (
-  connID: number,
-  group: string,
-  brokerAddr: string,
-  consumeMode: string,
-  maxRetry: number,
-): Promise<void> =>
-  ConsumerService.Update(connID, {
-    group,
-    brokerAddr,
-    consumeMode,
-    maxRetry,
-  });
+/*
+ * Creating and editing a group have no wrapper here on purpose. The bridge and
+ * the driver both implement them, but rocketmq-admin-go sends the config in
+ * extFields where RocketMQ 5.x reads it from the body, so the broker answers
+ * every create and update with a NullPointerException.
+ * TestLiveConsumerGroupDelete pins that; it turns red when the library is
+ * fixed, and the form goes back in then.
+ */
 export const deleteConsumerGroup = (
   connID: number,
   group: string,

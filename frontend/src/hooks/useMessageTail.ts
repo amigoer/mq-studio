@@ -80,7 +80,7 @@ export function useMessageTail(topic: string): MessageTail {
       if (inFlight.current) return;
       inFlight.current = true;
       try {
-        const batch = await messageApi.tailMessages(connID, topic, cursor.current, 64);
+        const batch = await messageApi.tailMessages(connID, topic, cursor.current);
         if (cancelled) return;
         cursor.current = batch.cursor;
         setError(null);

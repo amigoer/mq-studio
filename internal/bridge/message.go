@@ -40,24 +40,17 @@ type SendInput struct {
 	DelayLevel int    `json:"delayLevel"`
 }
 
-// defaultMaxResults mirrors the page size the message views request.
-const defaultMaxResults = 32
-
-func maxResultsOrDefault(value int) int {
-	if value <= 0 {
-		return defaultMaxResults
-	}
-	return value
-}
-
 // Query searches a topic by key, tag and time range.
+//
+// A non-positive MaxResults is passed through rather than filled in here: the
+// page size is an application setting, and the service is what holds it.
 func (s *MessageService) Query(connID int, query MessageQuery) ([]*model.MessageItem, error) {
 	return s.service.Query(context.Background(), connID, model.MessageQueryParams{
 		Topic:      query.Topic,
 		MessageKey: query.Key,
 		StartTime:  query.StartTime,
 		EndTime:    query.EndTime,
-		MaxResults: maxResultsOrDefault(query.MaxResults),
+		MaxResults: query.MaxResults,
 		Filters:    map[string]string{rocketmq.FilterTag: query.Tag},
 	})
 }
@@ -74,12 +67,12 @@ func (s *MessageService) Track(connID int, topic string, messageID string) ([]*m
 
 // DLQ returns the dead letter messages of a consumer group.
 func (s *MessageService) DLQ(connID int, group string, maxResults int) ([]*model.MessageItem, error) {
-	return s.service.DLQ(context.Background(), connID, group, maxResultsOrDefault(maxResults))
+	return s.service.DLQ(context.Background(), connID, group, maxResults)
 }
 
 // Retry returns the retry messages of a consumer group.
 func (s *MessageService) Retry(connID int, group string, maxResults int) ([]*model.MessageItem, error) {
-	return s.service.Retry(context.Background(), connID, group, maxResultsOrDefault(maxResults))
+	return s.service.Retry(context.Background(), connID, group, maxResults)
 }
 
 // Resend pushes a message back to a consumer client and returns the new ID.

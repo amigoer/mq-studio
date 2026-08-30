@@ -238,6 +238,8 @@ func (c *Conn) enrichTopicDetail(ctx context.Context, client *admin.Client, item
 		return
 	}
 	item.ConsumerGroups = len(groups)
+	item.Subscribers = append([]string(nil), groups...)
+	sort.Strings(item.Subscribers)
 	if len(groups) == 0 {
 		// No subscriber can be reading it, so zero is a measurement here.
 		item.TpsOut = 0

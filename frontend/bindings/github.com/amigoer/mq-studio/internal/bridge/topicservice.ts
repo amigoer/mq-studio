@@ -31,6 +31,16 @@ export function Create(connID: number, input: $models.TopicInput): $CancellableP
 }
 
 /**
+ * Detail returns one topic with the fields only a per-topic lookup can fill:
+ * its route table, and the outbound rate that costs one request per group.
+ */
+export function Detail(connID: number, topicName: string): $CancellablePromise<model$0.Destination | null> {
+    return $Call.ByID(4032733801, connID, topicName).then(($result: any) => {
+        return $$createType1($result);
+    });
+}
+
+/**
  * List returns the user-visible topics.
  */
 export function List(connID: number): $CancellablePromise<(model$0.Destination | null)[]> {

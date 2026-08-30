@@ -994,7 +994,8 @@
       "selectedN": "已选 {{n}} 条",
       "noMatch": "没有匹配的结果",
       "copied": "已复制",
-      "edit": "编辑"
+      "edit": "编辑",
+      "moreOptions": "还有 {{count}} 项，继续输入以缩小范围"
     },
     "notDesigned": {
       "title": "设计稿待补",
@@ -1088,7 +1089,15 @@
         "consumeRate": "消费 {{rate}}/s",
         "diskOver": "{{count}} 个 Broker 磁盘超过 {{threshold}}%",
         "noHistory": "还没有采样数据，连接一分钟后开始出现",
-        "noBacklog": "没有积压的消费组"
+        "noBacklog": "没有积压的消费组",
+        "activeTopics": "活跃 Topic",
+        "noTopics": "暂无 Topic",
+        "shortcut": {
+          "send": "发送测试消息",
+          "search": "查询消息",
+          "create": "新建 Topic",
+          "reset": "重置消费进度"
+        }
       }
     },
     "cluster": {
@@ -1406,7 +1415,26 @@
         "deleteTitle": "删除 Topic",
         "deleteDesc": "将从集群中删除“{{name}}”及其队列，无法撤销。已投递的消息会一并丢失。",
         "deleted": "已删除 {{name}}",
-        "deleteFailed": "删除失败"
+        "deleteFailed": "删除失败",
+        "type": "类型",
+        "browse": "查看消息",
+        "lastUpdated": "最后更新",
+        "description": "描述",
+        "subscribers": "订阅消费组",
+        "noSubscribers": "暂无订阅消费组",
+        "kind": {
+          "all": "全部",
+          "normal": "普通",
+          "retry": "重试",
+          "dlq": "死信"
+        },
+        "kindOf": {
+          "normal": "普通",
+          "fifo": "顺序",
+          "delay": "延迟",
+          "retry": "重试",
+          "dlq": "死信"
+        }
       }
     },
     "consumers": {
@@ -1639,6 +1667,34 @@
           "waiting": "正在等待新消息",
           "waitingHint": "实时模式从打开的这一刻开始跟，之前已经存下的消息用上面的查询看。",
           "failed": "实时读取失败"
+        },
+        "properties": "消息属性",
+        "noProperties": "没有消息属性",
+        "customRange": "自定义区间",
+        "begin": "开始时间",
+        "end": "结束时间",
+        "badRange": "请填写合法的起止时间",
+        "rangeReversed": "开始时间不能晚于结束时间",
+        "limitDefault": "默认 {{count}} 条",
+        "limitN": "{{count}} 条",
+        "bodyTruncated": "消息体过大，仅显示前 {{shown}} KB（共 {{total}} KB）。可在设置中调整截断阈值。",
+        "bodyMode": {
+          "auto": "自动",
+          "raw": "原文",
+          "hex": "十六进制"
+        },
+        "bodyKind": {
+          "json": "JSON",
+          "text": "文本",
+          "binary": "二进制"
+        },
+        "resend": {
+          "action": "重新发布",
+          "title": "重新发布消息",
+          "pickGroup": "选择消费组",
+          "desc": "把这条消息重新投到 {{topic}} 上该消费组的重试队列，由组内任一实例再消费一次。",
+          "done": "已重新发布到 {{group}}",
+          "failed": "重新发布失败"
         }
       }
     },
@@ -1756,7 +1812,11 @@
         "query": "查询",
         "hint": "Broker 按生产者组记录连接，没有枚举组名的接口，所以组名需要手动填写。",
         "none": "这个组没有在线的生产者"
-      }
+      },
+      "loadSample": "载入示例",
+      "reset": "重置",
+      "resetHint": "清空表单，并删除该 Topic 已保存的内容",
+      "draftRestored": "已恢复该 Topic 上次发送的内容"
     },
     "mqtt": {
       "topicTree": "主题树",

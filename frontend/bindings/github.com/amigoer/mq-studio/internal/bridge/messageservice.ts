@@ -47,6 +47,9 @@ export function Producers(connID: number, group: string, topic: string): $Cancel
 
 /**
  * Query searches a topic by key, tag and time range.
+ * 
+ * A non-positive MaxResults is passed through rather than filled in here: the
+ * page size is an application setting, and the service is what holds it.
  */
 export function Query(connID: number, query: $models.MessageQuery): $CancellablePromise<(model$0.MessageItem | null)[]> {
     return $Call.ByID(1939938708, connID, query).then(($result: any) => {

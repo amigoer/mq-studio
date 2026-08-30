@@ -6,7 +6,13 @@ import { Button } from "@/components/ui/button";
 import { PROTOCOLS, PROTOCOL_ORDER, isProtocolReady } from "@/design/data/protocols";
 
 /** Board 8b — first launch, or after the last connection is deleted. */
-export function ConnectionsEmpty({ onNewConnection }: { onNewConnection?: () => void }) {
+export function ConnectionsEmpty({
+  onNewConnection,
+  onImport,
+}: {
+  onNewConnection?: () => void;
+  onImport?: () => void;
+}) {
   const { t } = useTranslation();
   return (
     <div
@@ -55,7 +61,14 @@ export function ConnectionsEmpty({ onNewConnection }: { onNewConnection?: () => 
             <Plus size={13} aria-hidden />
             {t("page.connections.emptyNew")}
           </Button>
-          <Button variant="outline" style={{ padding: "6px 16px" }}>{t("page.connections.emptyImport")}</Button>
+          <Button
+            variant="outline"
+            style={{ padding: "6px 16px" }}
+            disabled={onImport == null}
+            onClick={onImport}
+          >
+            {t("page.connections.emptyImport")}
+          </Button>
         </div>
         <div style={{ display: "flex", gap: "18px", marginTop: "34px", alignItems: "center" }}>
           {/* The five without a driver are greyed here too, so the strip

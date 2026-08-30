@@ -23,6 +23,7 @@ import {
   MiniStat,
   ProtoBadge,
   SectionLabel,
+  Segmented,
   SelectField,
   Status,
   type StatusTone,
@@ -31,20 +32,27 @@ import {
 } from "@/components";
 import { BoardState, Notice, isBlocked } from "@/design/boards/BoardState";
 import { useBrokerData } from "@/hooks/useBrokerData";
+import { useSettings } from "@/hooks/useSettings";
 import { useConnectionScope } from "@/mq/ConnectionScope";
+import type { BoardProps } from "@/design/registry";
 import { TopicDialog, type TopicForm } from "./TopicDialog";
 import * as topicApi from "@/api/topic";
 import type { Destination } from "@/api/models";
 import { formatErrorMessage } from "@/lib/utils";
+import { formatMessageTime } from "@/lib/time";
 import {
+  TopicKind,
   TopicPerm,
   UNKNOWN_METRIC,
   cluster,
   consumerGroups,
+  description,
   messageType,
   perm,
   readQueue,
   routes,
+  subscribers,
+  topicKind,
   topicName,
   writeQueue,
   type TopicRouteItem,
@@ -53,13 +61,34 @@ import {
 const SORTS = ["name", "produce"] as const;
 type Sort = (typeof SORTS)[number];
 
+/**
+ * "普通" covers every business topic, ordered and delayed included, so the
+ * segment counts always add up to the "全部" total.
+ */
+const KIND_FILTERS = ["all", "normal", "retry", "dlq"] as const;
+type KindFilter = (typeof KIND_FILTERS)[number];
+
+function matchesKind(kind: TopicKind, filter: KindFilter): boolean {
+  if (filter === "all") return true;
+  if (filter === "normal")
+    return kind === TopicKind.Normal || kind === TopicKind.FIFO || kind === TopicKind.Delay;
+  return kind === filter;
+}
+
 function metric(value: number): string {
   return value === UNKNOWN_METRIC ? "—" : value.toLocaleString();
 }
 
-/** RocketMQ's own internal topics, which the toggle hides by default. */
-function isInternal(name: string): boolean {
-  return name.startsWith("%RETRY%") || name.startsWith("%DLQ%");
+const PERM_TONE: Record<string, StatusTone> = {
+  [TopicPerm.ReadWrite]: "ok",
+  [TopicPerm.ReadOnly]: "warn",
+  [TopicPerm.WriteOnly]: "warn",
+  [TopicPerm.Deny]: "err",
+};
+
+/** Retry and dead-letter rows are the broker's own bookkeeping, drawn dimmed. */
+function isDerived(kind: TopicKind): boolean {
+  return kind === TopicKind.Retry || kind === TopicKind.DLQ;
 }
 
 /**
@@ -70,15 +99,20 @@ function isInternal(name: string): boolean {
  * message count for today nowhere, only per broker, and a topic-level figure
  * would have to be invented. Created-at went the same way.
  */
-export function TopicsRocketMQ() {
+export function TopicsRocketMQ({ nav }: BoardProps = {}) {
   const { t } = useTranslation();
   const { id: connID, online } = useConnectionScope();
   const toast = useToast();
   const confirm = useConfirm();
-  const [dialog, setDialog] = useState<{ editing: string | null } | null>(null);
+  // Arriving from another page may ask for the create form; a later render
+  // must not reopen it, so the request is read once.
+  const [dialog, setDialog] = useState<{ editing: string | null } | null>(() =>
+    nav?.focus?.create === true ? { editing: null } : null,
+  );
   const [showSystem, setShowSystem] = useState(false);
-  const [selected, setSelected] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string | null>(nav?.focus?.topic ?? null);
   const [query, setQuery] = useState("");
+  const [kind, setKind] = useState<KindFilter>("all");
   // The name server hands topics back in no useful order, so name is the
   // default rather than whatever the broker's own set iterates as.
   const [sort, setSort] = useState<Sort>("name");
@@ -90,16 +124,38 @@ export function TopicsRocketMQ() {
   const state = useBrokerData(load);
   const topics = state.data ?? [];
 
+  const kinds = useMemo(() => {
+    const byName = new Map<string, TopicKind>();
+    for (const topic of topics) byName.set(topicName(topic), topicKind(topic));
+    return byName;
+  }, [topics]);
+
+  const counts = useMemo(() => {
+    const tally: Record<KindFilter, number> = { all: 0, normal: 0, retry: 0, dlq: 0 };
+    for (const value of kinds.values()) {
+      tally.all++;
+      if (value === TopicKind.Retry) tally.retry++;
+      else if (value === TopicKind.DLQ) tally.dlq++;
+      else tally.normal++;
+    }
+    return tally;
+  }, [kinds]);
+
   const rows = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    const matched = topics.filter((topic) =>
-      needle === "" ? true : topicName(topic).toLowerCase().includes(needle),
-    );
+    const matched = topics.filter((topic) => {
+      if (!matchesKind(kinds.get(topicName(topic)) ?? TopicKind.Normal, kind)) return false;
+      if (needle === "") return true;
+      return (
+        topicName(topic).toLowerCase().includes(needle) ||
+        description(topic).toLowerCase().includes(needle)
+      );
+    });
     return [...matched].sort((left, right) => {
       if (sort === "produce") return right.rateIn - left.rateIn;
       return topicName(left).localeCompare(topicName(right));
     });
-  }, [query, sort, topics]);
+  }, [kind, kinds, query, sort, topics]);
 
   const current = rows.find((topic) => topicName(topic) === selected);
   const editing =
@@ -164,6 +220,14 @@ export function TopicsRocketMQ() {
           value={query}
           onChange={(event) => setQuery(event.target.value)}
         />
+        <Segmented
+          options={KIND_FILTERS.map((key) => ({
+            value: key,
+            label: `${t(`board.topics.rocketmq.kind.${key}`)} ${counts[key]}`,
+          }))}
+          value={kind}
+          onChange={setKind}
+        />
         <label className="flex items-center gap-1.5 text-xs text-(--c-mono-dim)">
           <Switch checked={showSystem} onCheckedChange={setShowSystem} />
           {t("board.topics.rocketmq.showSystem")}
@@ -188,7 +252,9 @@ export function TopicsRocketMQ() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Topic</TableHead>
+                  <TableHead>{t("board.topics.rocketmq.type")}</TableHead>
                   <TableHead style={{ textAlign: "right" }}>{t("board.topics.rocketmq.queueRW")}</TableHead>
+                  <TableHead>{t("board.topics.rocketmq.perm")}</TableHead>
                   <TableHead style={{ textAlign: "right" }}>{t("board.common.produceTps")}</TableHead>
                   <TableHead style={{ textAlign: "right" }}>{t("board.common.consumerGroup")}</TableHead>
                 </TableRow>
@@ -196,15 +262,22 @@ export function TopicsRocketMQ() {
               <TableBody>
                 {rows.map((topic) => {
                   const name = topicName(topic);
-                  const internal = isInternal(name);
-                  const dim = internal ? { color: "var(--c-muted)" } : undefined;
+                  const rowKind = kinds.get(name) ?? TopicKind.Normal;
+                  const derived = isDerived(rowKind);
+                  const dim = derived ? { color: "var(--c-muted)" } : undefined;
                   return (
                     <TableRow key={name} selected={selected === name} onClick={() => setSelected(name)}>
                       <TableCell style={dim}>
-                        {internal ? name : <b style={{ fontWeight: 500 }}>{name}</b>}
+                        {derived ? name : <b style={{ fontWeight: 500 }}>{name}</b>}
+                      </TableCell>
+                      <TableCell style={dim}>
+                        {t(`board.topics.rocketmq.kindOf.${rowKind}`)}
                       </TableCell>
                       <TableCell className="mono3" style={{ textAlign: "right", ...dim }}>
                         {metric(readQueue(topic))} / {metric(writeQueue(topic))}
+                      </TableCell>
+                      <TableCell>
+                        <Status tone={PERM_TONE[perm(topic)] ?? "off"}>{perm(topic)}</Status>
                       </TableCell>
                       <TableCell className="mono3" style={{ textAlign: "right", ...dim }}>
                         {metric(topic.rateIn)}
@@ -217,7 +290,7 @@ export function TopicsRocketMQ() {
                 })}
                 {rows.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={4} style={{ padding: "34px", textAlign: "center", color: "var(--c-muted)" }}>
+                    <TableCell colSpan={6} style={{ padding: "34px", textAlign: "center", color: "var(--c-muted)" }}>
                       {t(topics.length === 0 ? "board.topics.rocketmq.noTopics" : "board.common.noMatch")}
                     </TableCell>
                   </TableRow>
@@ -232,6 +305,8 @@ export function TopicsRocketMQ() {
               topic={current}
               onEdit={() => setDialog({ editing: topicName(current) })}
               onDelete={() => void remove(current)}
+              onBrowse={() => nav?.onOpenPage?.("messages", { topic: topicName(current) })}
+              onSend={() => nav?.onOpenPage?.("producer", { topic: topicName(current) })}
               onClose={() => setSelected(null)}
             />
           )}
@@ -265,13 +340,6 @@ interface BrokerBlock {
   writeQueue: number;
   queues: QueueRow[];
 }
-
-const PERM_TONE: Record<string, StatusTone> = {
-  [TopicPerm.ReadWrite]: "ok",
-  [TopicPerm.ReadOnly]: "warn",
-  [TopicPerm.WriteOnly]: "warn",
-  [TopicPerm.Deny]: "err",
-};
 
 /*
  * The route table and the per-queue offsets are both keyed by broker, so they
@@ -322,26 +390,47 @@ function TopicSheet({
   topic,
   onEdit,
   onDelete,
+  onBrowse,
+  onSend,
   onClose,
 }: {
   topic: Destination;
   onEdit: () => void;
   onDelete: () => void;
+  onBrowse: () => void;
+  onSend: () => void;
   onClose: () => void;
 }) {
   const { t } = useTranslation();
+  const { settings } = useSettings();
   const name = topicName(topic);
 
-  // Per-queue offsets are one request per topic, now paid on open: the panel
-  // shows them without a tab to hide behind.
-  const load = useCallback(
-    (id: number) => topicApi.getTopicStats(id, name),
-    [name],
+  /*
+   * Two requests, both paid on open rather than for every row in the list: the
+   * route table and the outbound rate cost one call per consumer group, and
+   * the per-queue offsets one call per topic.
+   */
+  const detail = useBrokerData(
+    useCallback((id: number) => topicApi.getTopicDetail(id, name), [name]),
+    { refreshMs: null },
   );
-  const stats = useBrokerData(load, { refreshMs: null });
+  const stats = useBrokerData(
+    useCallback((id: number) => topicApi.getTopicStats(id, name), [name]),
+    { refreshMs: null },
+  );
+
+  // The list row is what draws until the lookup lands, so the panel opens
+  // with figures rather than a column of dashes.
+  const full = detail.data ?? topic;
   const queues = (stats.data?.["queues"] as QueueRow[] | undefined) ?? [];
   const stored = stats.data?.["totalMessages"] as number | undefined;
-  const blocks = brokerBlocks(routes(topic), queues);
+  const blocks = brokerBlocks(routes(full), queues);
+  const groups = subscribers(full);
+  const updated = formatMessageTime(
+    full.lastUpdated,
+    settings.timezone,
+    settings.timestampFormat,
+  );
 
   return (
     <DetailPanel width={420} onDismiss={onClose}>
@@ -352,22 +441,59 @@ function TopicSheet({
       />
       <DetailPanelBody>
         <div className="grid grid-cols-2 gap-2">
-          <MiniStat label={t("board.common.produceTps")} value={metric(topic.rateIn)} />
-          <MiniStat label={t("board.common.consumeTps")} value={metric(topic.rateOut)} />
+          <MiniStat label={t("board.common.produceTps")} value={metric(full.rateIn)} />
+          <MiniStat
+            label={t("board.common.consumeTps")}
+            value={detail.loading ? "…" : metric(full.rateOut)}
+          />
         </div>
 
         <KV
           rows={[
-            [t("board.topics.rocketmq.perm"), perm(topic)],
-            [t("board.topics.rocketmq.messageType"), messageType(topic)],
+            [t("board.topics.rocketmq.perm"), perm(full)],
+            [t("board.topics.rocketmq.messageType"), messageType(full)],
             [
               t("board.topics.rocketmq.queueRW"),
-              `${metric(readQueue(topic))} / ${metric(writeQueue(topic))}`,
+              `${metric(readQueue(full))} / ${metric(writeQueue(full))}`,
             ],
-            [t("board.common.consumerGroup"), metric(consumerGroups(topic))],
-            [t("board.common.cluster"), cluster(topic) || "—"],
+            [t("board.common.consumerGroup"), metric(consumerGroups(full))],
+            [t("board.common.cluster"), cluster(full) || "—"],
+            [t("board.topics.rocketmq.lastUpdated"), updated],
+            ...(description(full) === ""
+              ? []
+              : [[t("board.topics.rocketmq.description"), description(full)] as const]),
           ]}
         />
+
+        <div>
+          <SectionLabel
+            className="mb-1.5"
+            actionColor="inherit"
+            action={detail.loading ? <Spinner className="size-3" /> : null}
+          >
+            {t("board.topics.rocketmq.subscribers")}
+          </SectionLabel>
+          {groups.length === 0 ? (
+            <Notice
+              title={t(
+                detail.loading
+                  ? "board.state.loading"
+                  : "board.topics.rocketmq.noSubscribers",
+              )}
+            />
+          ) : (
+            <div className="flex flex-wrap gap-1.5">
+              {groups.map((group) => (
+                <span
+                  key={group}
+                  className="mono3 rounded-md border px-2 py-0.5 text-[11px] text-(--c-mono-dim)"
+                >
+                  {group}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
 
         <div>
           <SectionLabel
@@ -454,6 +580,12 @@ function TopicSheet({
         </div>
       </DetailPanelBody>
       <DetailPanelFooter>
+        <Button variant="outline" onClick={onBrowse}>
+          {t("board.topics.rocketmq.browse")}
+        </Button>
+        <Button variant="outline" onClick={onSend}>
+          {t("board.common.sendMessage")}
+        </Button>
         <Button variant="outline" onClick={onEdit}>{t("board.common.edit")}</Button>
         <span className="flex-1" />
         <Button variant="destructive" onClick={onDelete}>

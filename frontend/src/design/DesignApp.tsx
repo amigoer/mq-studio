@@ -10,7 +10,7 @@ import {
 } from "@/design/shell";
 import type { Connection } from "@/design/data/connections";
 import { labelOf, pagesOf, type PageId } from "@/design/data/protocols";
-import { renderBoard } from "@/design/registry";
+import { renderBoard, type BoardFocus } from "@/design/registry";
 import {
   onTrayNavigate,
   openExternal,
@@ -82,6 +82,12 @@ export function DesignApp(): JSX.Element {
   const [openTabs, setOpenTabs] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<string | null>(null);
   const [pageByTab, setPageByTab] = useState<Record<string, PageId>>(session.pageByTab ?? {});
+  /*
+   * Where a cross-page jump landed. `seq` is what makes the board remount even
+   * when the jump does not change the page, so arriving twice on the same page
+   * with a different topic is honoured rather than swallowed.
+   */
+  const [focus, setFocus] = useState<{ seq: number; value: BoardFocus } | null>(null);
   const [restored, setRestored] = useState(false);
   const [view, setView] = useState<View>({ kind: "connections" });
   const [previousView, setPreviousView] = useState<View>({ kind: "tab" });
@@ -322,8 +328,11 @@ export function DesignApp(): JSX.Element {
     }
   };
 
-  const selectPage = (next: PageId) => {
+  const selectPage = (next: PageId, nextFocus?: BoardFocus) => {
     if (activeTab == null) return;
+    // Reaching a page from the sidebar carries no focus, and must clear the
+    // one a previous jump left behind.
+    setFocus(nextFocus == null ? null : { seq: (focus?.seq ?? 0) + 1, value: nextFocus });
     setPageByTab((byTab) => ({ ...byTab, [activeTab]: next }));
   };
 
@@ -391,7 +400,10 @@ export function DesignApp(): JSX.Element {
     switch (view.kind) {
       case "connections":
         return connections.length === 0 ? (
-          <ConnectionsEmpty onNewConnection={() => setDialog({ editing: null })} />
+          <ConnectionsEmpty
+            onNewConnection={() => setDialog({ editing: null })}
+            onImport={() => void importConfig()}
+          />
         ) : (
           connectionsBoard
         );
@@ -407,13 +419,18 @@ export function DesignApp(): JSX.Element {
       default:
         if (protocol == null) {
           return connections.length === 0 ? (
-            <ConnectionsEmpty onNewConnection={() => setDialog({ editing: null })} />
+            <ConnectionsEmpty
+              onNewConnection={() => setDialog({ editing: null })}
+              onImport={() => void importConfig()}
+            />
           ) : (
             connectionsBoard
           );
         }
         return renderBoard(protocol, pagesOf(protocol).includes(page) ? page : "overview", {
           onOpenAlertSettings: () => goto({ kind: "settings", section: "message" }),
+          onOpenPage: selectPage,
+          focus: focus?.value,
         });
     }
   })();
@@ -430,6 +447,7 @@ export function DesignApp(): JSX.Element {
     view.kind,
     view.kind === "settings" ? "" : (activeTab ?? ""),
     onConnection ? page : "",
+    onConnection ? String(focus?.seq ?? 0) : "",
   ].join(":");
 
   const column = (
