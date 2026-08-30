@@ -1504,6 +1504,16 @@
           "risky": "Overwrites the target group's current positions",
           "note": "Writes the target group the source's exact per-queue offsets, so a replacement group does not replay what the old one handled. Unlike a reset, which finds a position by time, this copies positions.",
           "done": "Copied {{from}} offsets onto {{to}}"
+        },
+        "queueOffset": {
+          "action": "Set offset",
+          "title": "Set the queue's consume offset",
+          "range": "Offset consumed/latest",
+          "newOffset": "New offset",
+          "invalid": "Enter a non-negative whole number",
+          "risky": "Affects this one queue only",
+          "note": "Unlike a reset, which finds a position by time and moves the whole group, this writes a number to one queue. Past the latest skips what has not arrived; before the earliest is pulled forward by the broker on its next fetch.",
+          "done": "Set {{queue}} to offset {{offset}}"
         }
       },
       "pulsar": {

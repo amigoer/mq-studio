@@ -70,3 +70,19 @@ export const cloneOffset = (
   fromOffline: boolean,
 ): Promise<void> =>
   ConsumerService.CloneOffset(connID, { from, to, destination, fromOffline });
+
+/**
+ * Writes one queue's committed offset for a group.
+ *
+ * The broker is named rather than addressed: per-queue progress rows are keyed
+ * by broker name, which is the only identity a message queue carries.
+ */
+export const setQueueOffset = (
+  connID: number,
+  group: string,
+  topic: string,
+  broker: string,
+  queueId: number,
+  offset: number,
+): Promise<void> =>
+  ConsumerService.SetQueueOffset(connID, { group, topic, broker, queueId, offset });

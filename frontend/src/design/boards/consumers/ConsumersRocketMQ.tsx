@@ -33,6 +33,7 @@ import { useConnectionScope } from "@/mq/ConnectionScope";
 import { useCapabilities } from "@/mq/capabilities";
 import { Capability } from "@bindings/model/models";
 import { CloneOffsetDialog } from "./CloneOffsetDialog";
+import { QueueOffsetDialog, type QueueTarget } from "./QueueOffsetDialog";
 import { ResetOffsetDialog } from "./ResetOffsetDialog";
 import * as consumerApi from "@/api/consumer";
 import { formatErrorMessage } from "@/lib/utils";
@@ -104,6 +105,7 @@ export function ConsumersRocketMQ() {
   const confirm = useConfirm();
   const [resetting, setResetting] = useState<string | null>(null);
   const [cloning, setCloning] = useState<string | null>(null);
+  const [queueOffset, setQueueOffset] = useState<QueueTarget | undefined>();
   const lagThreshold = settings.lagAlertThreshold ?? 10000;
 
   const [backlogOnly, setBacklogOnly] = useState(false);
@@ -142,6 +144,18 @@ export function ConsumersRocketMQ() {
     if (cloning == null) return;
     await consumerApi.cloneOffset(connID, cloning, to, destination, fromOffline);
     toast.success(t("board.consumers.rocketmq.clone.done", { from: cloning, to }));
+    await state.refresh();
+  };
+
+  const setOneQueueOffset = async (target: QueueTarget, offset: number) => {
+    if (selected == null) return;
+    await consumerApi.setQueueOffset(
+      connID, selected, target.topic, target.brokerName, target.queueId, offset,
+    );
+    toast.success(t("board.consumers.rocketmq.queueOffset.done", {
+      queue: `${target.brokerName} q${target.queueId}`,
+      offset: offset.toLocaleString(),
+    }));
     await state.refresh();
   };
 
@@ -291,6 +305,7 @@ export function ConsumersRocketMQ() {
               onTabChange={setTab}
               onResetOffset={() => setResetting(groupName(current))}
               onCloneOffset={() => setCloning(groupName(current))}
+              onSetQueueOffset={setQueueOffset}
               onDelete={() => void remove(current)}
               onClose={() => setSelected(null)}
             />
@@ -303,6 +318,13 @@ export function ConsumersRocketMQ() {
         group={groups.find((group) => groupName(group) === resetting)}
         onClose={() => setResetting(null)}
         onSubmit={resetOffset}
+      />
+      <QueueOffsetDialog
+        open={queueOffset != null}
+        group={selected ?? ""}
+        target={queueOffset}
+        onClose={() => setQueueOffset(undefined)}
+        onSubmit={setOneQueueOffset}
       />
       <CloneOffsetDialog
         open={cloning != null}
@@ -322,6 +344,7 @@ function GroupSheet({
   onTabChange,
   onResetOffset,
   onCloneOffset,
+  onSetQueueOffset,
   onDelete,
   onClose,
 }: {
@@ -331,6 +354,7 @@ function GroupSheet({
   onTabChange: (tab: string) => void;
   onResetOffset: () => void;
   onCloneOffset: () => void;
+  onSetQueueOffset: (queue: QueueProgress) => void;
   onDelete: () => void;
   onClose: () => void;
 }) {
@@ -408,6 +432,7 @@ function GroupSheet({
                     <TableHead>{t("board.common.queue")}</TableHead>
                     <TableHead style={R}>{t("board.consumers.rocketmq.position")}</TableHead>
                     <TableHead style={R}>{t("board.common.backlog")}</TableHead>
+                    <TableHead style={R}>{t("board.common.actions")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -429,6 +454,11 @@ function GroupSheet({
                         style={{ ...R, ...(queue.backlog > 0 ? { color: "var(--c-warn-text)" } : {}) }}
                       >
                         {Math.max(0, queue.backlog).toLocaleString()}
+                      </TableCell>
+                      <TableCell style={R}>
+                        <Button variant="ghost" size="xs" onClick={() => onSetQueueOffset(queue)}>
+                          {t("board.consumers.rocketmq.queueOffset.action")}
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
