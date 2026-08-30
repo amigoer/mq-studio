@@ -78,6 +78,15 @@ type ProgressAdmin interface {
 	ResetOffset(ctx context.Context, request model.ResetOffsetRequest) error
 }
 
+// OffsetCloner copies one subscription's read position onto another.
+//
+// Separate from ProgressAdmin because it is a different operation with a
+// different blast radius: a reset moves one group in time, this writes a
+// second group's positions from a first one's.
+type OffsetCloner interface {
+	CloneOffset(ctx context.Context, request model.CloneOffsetRequest) error
+}
+
 // MessageReader browses stored messages.
 type MessageReader interface {
 	QueryMessages(ctx context.Context, params model.MessageQueryParams) ([]*model.MessageItem, error)

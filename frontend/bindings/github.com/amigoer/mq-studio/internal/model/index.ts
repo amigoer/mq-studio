@@ -7,6 +7,7 @@ export {
     Binding,
     Capabilities,
     Capability,
+    CloneOffsetRequest,
     ClusterOverview,
     ClusterSummary,
     ConnectionStatus,

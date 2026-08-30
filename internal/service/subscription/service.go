@@ -5,6 +5,7 @@ package subscription
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync/atomic"
 	"time"
 
@@ -200,4 +201,41 @@ func (s *Service) Clients(ctx context.Context, connID int, ref model.Subscriptio
 	ctx, cancel := s.withTimeout(ctx)
 	defer cancel()
 	return api.SubscriptionClients(ctx, ref)
+}
+
+// CloneOffset copies one subscription's read position onto another.
+//
+// It refuses to overwrite a group that is still being consumed: writing
+// offsets under a live consumer races its own commits, and the result is
+// neither group's position. The caller stops the destination first.
+func (s *Service) CloneOffset(ctx context.Context, connID int, request model.CloneOffsetRequest) error {
+	conn, err := s.conns(connID)
+	if err != nil {
+		return err
+	}
+	if !conn.Capabilities().Has(model.CapOffsetClone) {
+		return driver.Unsupported(conn, model.CapOffsetClone)
+	}
+	api, ok := conn.(driver.OffsetCloner)
+	if !ok {
+		return driver.Unsupported(conn, model.CapOffsetClone)
+	}
+
+	if runtime, canInspect := conn.(driver.SubscriptionRuntime); canInspect {
+		inspectCtx, cancelInspect := s.withTimeout(ctx)
+		clients, inspectErr := runtime.SubscriptionClients(inspectCtx,
+			model.SubscriptionRef{Name: request.To})
+		cancelInspect()
+		// An error here means nobody is attached, which is what we want; only
+		// a positive answer blocks.
+		if inspectErr == nil && len(clients) > 0 {
+			return fmt.Errorf(
+				"目标消费组 %s 还有 %d 个在线客户端，请先停止后再复制位点",
+				request.To, len(clients))
+		}
+	}
+
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.CloneOffset(ctx, request)
 }

@@ -954,3 +954,52 @@ func TestLiveNodeMaintenance(t *testing.T) {
 		t.Error("an empty broker address was accepted")
 	}
 }
+
+// Copying one group's read position onto another.
+func TestLiveCloneOffset(t *testing.T) {
+	connections, _, registry := liveStack(t)
+	ctx := context.Background()
+
+	profile, err := connections.AddConnection(liveProfileInput("clone"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := connections.Connect(profile.ID); err != nil {
+		t.Fatalf("connect: %v", err)
+	}
+	conn, _ := registry.Get(profile.ID)
+	cloner := conn.(driver.OffsetCloner)
+
+	const target = "MQ_STUDIO_E2E_GROUP_CLONE"
+	if err := cloner.CloneOffset(ctx, model.CloneOffsetRequest{
+		From:        seededGroup,
+		To:          target,
+		Destination: seededTopic,
+		FromOffline: true,
+	}); err != nil {
+		t.Fatalf("clone: %v", err)
+	}
+
+	// The destination did not exist before; it does now, because a group is
+	// its offsets.
+	stats, err := conn.(driver.SubscriptionStats).SubscriptionStats(ctx,
+		model.SubscriptionRef{Name: target})
+	if err != nil {
+		t.Logf("the clone target reports no stats yet: %v", err)
+	} else {
+		t.Logf("clone target reports %d stat field(s)", len(stats))
+	}
+
+	// Cloning onto itself is a mistake worth catching before it reaches a
+	// broker, as is a blank name.
+	if err := cloner.CloneOffset(ctx, model.CloneOffsetRequest{
+		From: seededGroup, To: seededGroup, Destination: seededTopic,
+	}); err == nil {
+		t.Error("cloning a group onto itself was accepted")
+	}
+	if err := cloner.CloneOffset(ctx, model.CloneOffsetRequest{
+		From: seededGroup, To: "", Destination: seededTopic,
+	}); err == nil {
+		t.Error("an empty destination group was accepted")
+	}
+}

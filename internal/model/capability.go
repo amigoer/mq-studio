@@ -19,6 +19,10 @@ const (
 	CapSubscriptionDelete Capability = "subscription.delete"
 	CapSubscriptionLag    Capability = "subscription.lag"
 	CapOffsetReset        Capability = "subscription.resetOffset"
+	// CapOffsetClone is copying one subscription's read position onto another.
+	// It is not CapOffsetReset: reset moves a group in time, this hands a
+	// second group the first one's exact per-queue positions.
+	CapOffsetClone Capability = "subscription.cloneOffset"
 	// CapSubscriptionRuntime is asking a connected consumer what it is doing:
 	// which queues it holds and how fast it is getting through them. Only a
 	// live client can answer, so a family without client introspection - or a

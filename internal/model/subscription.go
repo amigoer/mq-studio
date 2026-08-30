@@ -116,3 +116,22 @@ type ProducerClient struct {
 	Language string `json:"language"`
 	Version  string `json:"version"`
 }
+
+// CloneOffsetRequest copies one subscription's read position onto another.
+//
+// The usual reason is standing up a replacement consumer group without
+// replaying everything the old one already handled: the new group starts
+// exactly where the old one is.
+type CloneOffsetRequest struct {
+	From string `json:"from"`
+	To   string `json:"to"`
+
+	// Destination narrows the copy to one topic. Empty copies every topic the
+	// source group reads.
+	Destination string `json:"destination"`
+
+	// FromOffline reads the source's positions from stored offsets rather than
+	// from its live consumers. Required when the source group is already shut
+	// down, which is the ordinary case during a migration.
+	FromOffline bool `json:"fromOffline"`
+}

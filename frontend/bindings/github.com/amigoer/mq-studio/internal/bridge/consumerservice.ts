@@ -36,6 +36,15 @@ export function Clients(connID: number, group: string): $CancellablePromise<(mod
 }
 
 /**
+ * CloneOffset copies one consumer group's read position onto another, which is
+ * how a replacement group starts where the old one is instead of replaying
+ * everything it already handled.
+ */
+export function CloneOffset(connID: number, request: model$0.CloneOffsetRequest): $CancellablePromise<void> {
+    return $Call.ByID(3606627855, connID, request);
+}
+
+/**
  * Create adds a consumer group on the target broker.
  */
 export function Create(connID: number, input: $models.ConsumerInput): $CancellablePromise<void> {

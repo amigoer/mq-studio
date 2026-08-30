@@ -80,3 +80,10 @@ func (s *ConsumerService) ResetOffset(connID int, request model.ResetOffsetReque
 func (s *ConsumerService) Clients(connID int, group string) ([]*model.SubscriptionClient, error) {
 	return s.service.Clients(context.Background(), connID, model.SubscriptionRef{Name: group})
 }
+
+// CloneOffset copies one consumer group's read position onto another, which is
+// how a replacement group starts where the old one is instead of replaying
+// everything it already handled.
+func (s *ConsumerService) CloneOffset(connID int, request model.CloneOffsetRequest) error {
+	return s.service.CloneOffset(context.Background(), connID, request)
+}

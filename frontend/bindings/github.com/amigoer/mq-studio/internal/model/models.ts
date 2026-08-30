@@ -213,6 +213,13 @@ export enum Capability {
     CapOffsetReset = "subscription.resetOffset",
 
     /**
+     * CapOffsetClone is copying one subscription's read position onto another.
+     * It is not CapOffsetReset: reset moves a group in time, this hands a
+     * second group the first one's exact per-queue positions.
+     */
+    CapOffsetClone = "subscription.cloneOffset",
+
+    /**
      * CapSubscriptionRuntime is asking a connected consumer what it is doing:
      * which queues it holds and how fast it is getting through them. Only a
      * live client can answer, so a family without client introspection - or a
@@ -256,6 +263,57 @@ export enum Capability {
     CapAccessControl = "access.control",
     CapRouting = "routing.exchanges",
 };
+
+/**
+ * CloneOffsetRequest copies one subscription's read position onto another.
+ * 
+ * The usual reason is standing up a replacement consumer group without
+ * replaying everything the old one already handled: the new group starts
+ * exactly where the old one is.
+ */
+export class CloneOffsetRequest {
+    "from": string;
+    "to": string;
+
+    /**
+     * Destination narrows the copy to one topic. Empty copies every topic the
+     * source group reads.
+     */
+    "destination": string;
+
+    /**
+     * FromOffline reads the source's positions from stored offsets rather than
+     * from its live consumers. Required when the source group is already shut
+     * down, which is the ordinary case during a migration.
+     */
+    "fromOffline": boolean;
+
+    /** Creates a new CloneOffsetRequest instance. */
+    constructor($$source: Partial<CloneOffsetRequest> = {}) {
+        if (!("from" in $$source)) {
+            this["from"] = "";
+        }
+        if (!("to" in $$source)) {
+            this["to"] = "";
+        }
+        if (!("destination" in $$source)) {
+            this["destination"] = "";
+        }
+        if (!("fromOffline" in $$source)) {
+            this["fromOffline"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new CloneOffsetRequest instance from a string or object.
+     */
+    static createFrom($$source: any = {}): CloneOffsetRequest {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new CloneOffsetRequest($$parsedSource as Partial<CloneOffsetRequest>);
+    }
+}
 
 /**
  * ClusterOverview is the aggregate the Cluster page header shows.
