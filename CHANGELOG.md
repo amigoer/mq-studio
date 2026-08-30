@@ -7,80 +7,42 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 [简体中文](CHANGELOG.zh-CN.md)
 
-## [0.1.3] - 2026-08-06
+## [Unreleased]
+
+The application was rebuilt around a driver port, so this is not a list of
+changes to 0.1.3 — it is what the rebuilt app does. The 0.1.x releases predate
+it and have been removed; the first release from this line takes a new number.
 
 ### Added
 
-- The topic pickers on Send test message and Messages filter as you type, so a
-  cluster with hundreds of topics no longer has to be scrolled through. Matches
-  are ordered by how well they fit: the exact name first, then names starting
-  with what was typed, then names merely containing it.
-- Both pickers now open on a "Recently used" section holding the last ten topics
-  actually sent to or queried — usually the handful one service is being
-  debugged against. The list is kept per connection, so one cluster never
-  suggests another's names, and a topic since removed from the cluster is not
-  offered.
-- The consumer group picker behind the retry and dead-letter tabs works the same
-  way, with a recent list of its own.
-- A picker renders at most 200 matches at a time and reports how many were left
-  out, so even a very large cluster opens instantly.
+- **Multiple connections at once.** Each connection opens in its own tab with
+  its own pages, and every request names the connection it runs against.
+- **RocketMQ, end to end.** Overview, topics, consumer groups, message search,
+  dead letters, publishing and cluster health, all reading a live NameServer.
+- **Topic and consumer group operations.** Create, edit and delete topics; reset
+  a group's read position by time; copy one group's positions onto another;
+  write a single queue's offset directly.
+- **Message operations.** Query by key, tag, time window or message id; follow
+  a topic live; trace where a message got to; resend a dead letter; hand one
+  message back to a named consumer and see what its handler returned.
+- **Cluster operations.** Read a broker's and the name servers' effective
+  settings, see how far a broker's replicas trail it, run a broker's
+  housekeeping on demand, and take a broker out of the write path to drain it.
+- **Access control.** RocketMQ 5.3 users and rules, readable and writable, with
+  4.x plain_acl kept as a write-only fallback that says so.
+- **Alerts.** Broker offline, group offline, backlog, disk water level and dead
+  letters, evaluated across every open connection, surfaced in the title bar
+  and on a page of their own, with optional desktop notifications.
+- **A capability layer.** Each connection reports what its endpoint can do, and
+  the navigation is drawn from that: a page the endpoint cannot serve is
+  disabled with the reason, one the family has no concept of is not drawn.
 
-## [0.1.2] - 2026-08-06
+### Notes
 
-### Added
+- Only RocketMQ can be connected. The other protocol tiles are drawn and
+  disabled; the RabbitMQ driver exists but its pages are not wired yet.
+- Six operations are held back by defects in `rocketmq-admin-go`, the admin
+  library this app is built on — most visibly consumer group creation and
+  editing. Each is pinned by a test that asserts the current behaviour, so
+  fixing the library is what unblocks them.
 
-- Update checks run on their own: MQ Studio asks GitHub for a newer release
-  shortly after launch and every 24 hours after that. A release is announced
-  once, then marked on the Settings entry in the sidebar until that page is
-  opened, so nobody has to go looking for the check to learn about an update.
-- Settings > General gains "Check for updates automatically", on by default, for
-  anyone who would rather the app made no outbound request on its own. The
-  request carries the running version and nothing else.
-
-### Changed
-
-- The "Check for updates" button in Settings > About shares that state, so a
-  manual check also clears the sidebar marker and updates what the About card
-  reports.
-
-## [0.1.1] - 2026-08-06
-
-### Added
-
-- Connections can be organised into groups. A group is free text and optional:
-  type a name to create one, pick an existing name to reuse it, or leave the
-  field empty to stay ungrouped.
-- The connection list buckets profiles under collapsible group headers, named
-  groups first and ungrouped last. A list with no groups at all keeps the flat
-  layout it had before.
-- Connection search matches the group name, and temporarily expands folded
-  groups so a match is never hidden behind a collapsed header.
-
-### Changed
-
-- The connection environment field (Production / Test / Development) is replaced
-  by the group. The old preset only tinted a badge, and it could not be left
-  unset, so every profile carried a label whether or not it meant anything.
-
-### Removed
-
-- The stored environment value is dropped when a connection profile is loaded.
-  Existing connections open as ungrouped rather than inheriting a group named
-  after the old preset. No other connection setting is affected.
-
-## [0.1.0] - 2026-08-05
-
-### Added
-
-- First release of the desktop client rebuilt on Wails 3, published for macOS,
-  Windows and Linux on both amd64 and arm64.
-
-### Changed
-
-- Versioning restarts at 0.1.0 for the rebuilt application. This release does
-  not continue the earlier 1.x line, and no upgrade path from it is provided.
-
-[0.1.3]: https://github.com/amigoer/mq-studio/compare/v0.1.2...v0.1.3
-[0.1.2]: https://github.com/amigoer/mq-studio/compare/v0.1.1...v0.1.2
-[0.1.1]: https://github.com/amigoer/mq-studio/compare/v0.1.0...v0.1.1
-[0.1.0]: https://github.com/amigoer/mq-studio/releases/tag/v0.1.0
