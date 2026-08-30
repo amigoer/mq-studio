@@ -2193,13 +2193,10 @@
       }
     },
     "producer": {
-      "specificRocketMQ": "协议专属 · RocketMQ",
       "delayLevel": "延迟等级",
       "noDelay": "不延迟",
       "orderedByKey": "顺序消息 (按 Key)",
       "ordered": "顺序消息",
-      "noteKafka": "Kafka → acks / 指定分区 / 压缩",
-      "noteMqtt": "MQTT → QoS / Retain · Pulsar → 定时投递",
       "targetPartition": "目标分区",
       "autoKeyHash": "自动（key hash）",
       "compression": "压缩",
@@ -2219,7 +2216,6 @@
       "responseTopic": "响应主题",
       "noteRetain": "retain 会覆盖该主题的保留消息 · 谨慎用于生产",
       "protocolSpecific": "协议专属 ·",
-      "panelNote": "切换连接后此区自动变化：",
       "subtitle": "构造并发送测试消息 · 草稿自动保存",
       "saveTemplate": "保存为模板",
       "send": "发送",

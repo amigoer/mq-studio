@@ -2193,13 +2193,10 @@
       }
     },
     "producer": {
-      "specificRocketMQ": "Protocol-specific · RocketMQ",
       "delayLevel": "Delay level",
       "noDelay": "No delay",
       "orderedByKey": "Ordered (by key)",
       "ordered": "Ordered message",
-      "noteKafka": "Kafka → acks / target partition / compression",
-      "noteMqtt": "MQTT → QoS / retain · Pulsar → scheduled delivery",
       "targetPartition": "Target partition",
       "autoKeyHash": "Automatic (key hash)",
       "compression": "Compression",
@@ -2219,7 +2216,6 @@
       "responseTopic": "Response topic",
       "noteRetain": "Retain overwrites the topic's retained message · use it carefully in production",
       "protocolSpecific": "Protocol-specific ·",
-      "panelNote": "This block follows the connection:",
       "subtitle": "Compose and send a test message · drafts save themselves",
       "saveTemplate": "Save as template",
       "send": "Send",

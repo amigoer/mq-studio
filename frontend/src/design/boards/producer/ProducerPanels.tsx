@@ -2,7 +2,6 @@ import { useState, type ReactNode } from "react";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import {
-  ProtoBadge,
   SectionLabel,
   Segmented,
   SelectField,
@@ -53,33 +52,6 @@ export function PanelHeader({ protocol, badge }: { protocol: ProtocolId; badge?:
       {t("board.producer.protocolSpecific")}{" "}
       <ProtocolIcon protocol={protocol} style={{ verticalAlign: "-3px" }} />
     </SectionLabel>
-  );
-}
-
-/**
- * Board 3e's right panel — RocketMQ.
- *
- * Delay level moved into the options card beside the repeat count, where the
- * controls that actually reach the send call live. Ordered-by-key sending is
- * gone: it needs a queue selector the send path does not have.
- */
-export function RocketMQPanel() {
-  const { t } = useTranslation();
-  return (
-    <>
-      <SectionLabel action={<ProtoBadge protocol="rocketmq" label="RMQ" />} actionColor="inherit">
-        {t("board.producer.specificRocketMQ")}
-      </SectionLabel>
-      <Note>
-        {t("board.producer.panelNote")}
-        <br />
-        {t("board.producer.noteKafka")}
-        <br />
-        RabbitMQ → Exchange / RoutingKey
-        <br />
-        {t("board.producer.noteMqtt")}
-      </Note>
-    </>
   );
 }
 
@@ -241,8 +213,16 @@ export function MqttPanel() {
   );
 }
 
-export const PROTOCOL_PANELS: Record<ProtocolId, () => ReactNode> = {
-  rocketmq: RocketMQPanel,
+/**
+ * The families whose send call takes options beyond topic, tag, keys and body.
+ *
+ * RocketMQ is deliberately absent: its two — delay level and repeat count —
+ * live in the options card beside the send button, where the controls that
+ * actually reach the call are. The panel it used to have carried no control at
+ * all, only a note listing what *other* protocols would offer, which is a
+ * promise a page cannot keep for a driver that does not exist yet.
+ */
+export const PROTOCOL_PANELS: Partial<Record<ProtocolId, () => ReactNode>> = {
   kafka: KafkaPanel,
   rabbitmq: RabbitMQPanel,
   pulsar: PulsarPanel,

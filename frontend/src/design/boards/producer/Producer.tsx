@@ -64,7 +64,7 @@ export function Producer({ protocol }: { protocol: ProtocolId }) {
   const { t } = useTranslation();
   const { id: connID, online } = useConnectionScope();
   const toast = useToast();
-  const ProtocolPanel = PROTOCOL_PANELS[protocol];
+  const ProtocolPanel = PROTOCOL_PANELS[protocol];  // undefined where the family adds none
   const wired = protocol === "rocketmq";
 
   const [format, setFormat] = useState<BodyFormat>("json");
@@ -288,9 +288,11 @@ export function Producer({ protocol }: { protocol: ProtocolId }) {
             </div>
           </Panel>
 
-          <Panel style={{ padding: "13px 16px", display: "flex", flexDirection: "column", gap: "10px" }}>
-            <ProtocolPanel />
-          </Panel>
+          {ProtocolPanel != null && (
+            <Panel style={{ padding: "13px 16px", display: "flex", flexDirection: "column", gap: "10px" }}>
+              <ProtocolPanel />
+            </Panel>
+          )}
 
           {wired && <ProducerClients topic={topic} />}
 
