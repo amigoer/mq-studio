@@ -1,4 +1,9 @@
-// Builds the GitHub Release body for a tag from the bilingual changelogs.
+// Builds the GitHub Release body for a tag from the Chinese changelog.
+//
+// The body is one markdown document, so a release cannot carry two languages
+// the way the README does with two files. Chinese is the body; English is a
+// link to its own section of CHANGELOG.md, which is the README's arrangement
+// as closely as a single document allows.
 //
 // Usage: node scripts/release-notes.mjs v0.1.1 [> notes.md]
 //
@@ -12,10 +17,8 @@ import { fileURLToPath } from 'node:url'
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const repository = 'https://github.com/amigoer/mq-studio'
 
-const sources = [
-  { path: 'CHANGELOG.md', heading: 'English' },
-  { path: 'CHANGELOG.zh-CN.md', heading: '简体中文' },
-]
+const ZH_CHANGELOG = 'CHANGELOG.zh-CN.md'
+const EN_CHANGELOG = 'CHANGELOG.md'
 
 /**
  * Warns that macOS builds are not notarised. Driven by MACOS_SIGNED so the
@@ -24,10 +27,6 @@ const sources = [
  */
 const UNSIGNED_BANNER = [
   '> [!IMPORTANT]',
-  '> **macOS — this build is not signed by a registered Apple developer yet.**',
-  '> Drag MQ Studio into Applications, then double-click **首次运行 First Run**',
-  `> inside the disk image. See [INSTALL](${repository}/blob/main/docs/INSTALL.md).`,
-  '>',
   '> **macOS —— 此版本尚未使用 Apple 开发者证书签名。**',
   '> 将 MQ Studio 拖入 Applications 后，双击磁盘映像里的「首次运行」。',
   `> 详见 [安装说明](${repository}/blob/main/docs/INSTALL.zh-CN.md)。`,
@@ -71,20 +70,39 @@ function extractSection(changelog, path) {
   return body
 }
 
-const sections = await Promise.all(
-  sources.map(async ({ path, heading }) => {
-    const changelog = await readFile(resolve(root, path), 'utf8')
-    return `## ${heading}\n\n${extractSection(changelog, path)}`
-  }),
-)
+/**
+ * GitHub's anchor for a heading: lowercased, punctuation dropped, spaces
+ * hyphenated. Built from the English heading so the link lands on that
+ * version's section rather than the top of the file.
+ */
+function headingAnchor(changelog, path) {
+  const heading = changelog
+    .split('\n')
+    .find((line) => line.startsWith(`## [${version}]`))
+  if (heading === undefined) {
+    throw new Error(`${path} has no section for ${version}`)
+  }
+  return heading
+    .replace(/^##\s+/, '')
+    .toLowerCase()
+    .replace(/[^\w -]/g, '')
+    .trim()
+    .replace(/ /g, '-')
+}
+
+const zhChangelog = await readFile(resolve(root, ZH_CHANGELOG), 'utf8')
+const enChangelog = await readFile(resolve(root, EN_CHANGELOG), 'utf8')
+const anchor = headingAnchor(enChangelog, EN_CHANGELOG)
+const englishLink = `[English](${repository}/blob/main/${EN_CHANGELOG}#${anchor})`
+const sections = [englishLink, extractSection(zhChangelog, ZH_CHANGELOG)]
 
 // Link comparisons are only meaningful once a previous release exists. The
 // fallback points at the default branch because the very first release
 // predates the changelog it is being written into.
 const previous = process.env.PREVIOUS_TAG?.trim()
 const footer = previous
-  ? `**Full Changelog**: ${repository}/compare/${previous}...${tag}`
-  : `**Changelog**: ${repository}/blob/main/CHANGELOG.md`
+  ? `**完整变更**：${repository}/compare/${previous}...${tag}`
+  : `**变更日志**：${repository}/blob/main/${ZH_CHANGELOG}`
 
 // The workflow sets this to the literal string 'true' only when both the
 // signing identity and the certificate are configured.
