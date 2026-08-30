@@ -1360,3 +1360,164 @@ func TestLiveRedeclareWithDifferentArgumentsFails(t *testing.T) {
 		t.Error("re-declaring with a different TTL succeeded - RabbitMQ has learned to update a queue, so the dialog can grow an edit form")
 	}
 }
+
+func TestLivePurgeEmptiesAQueue(t *testing.T) {
+	conn := liveConnNamed(t, "purge")
+	defer func() { _ = conn.Close() }()
+
+	const queue = "mqs-test-purge"
+	publishTestMessages(t, conn, queue, []string{"a", "b", "c"}, nil)
+
+	ref := model.DestinationRef{Namespace: "/", Name: queue}
+	if err := conn.PurgeQueue(context.Background(), ref); err != nil {
+		t.Fatalf("purge: %v", err)
+	}
+	waitForDepth(t, conn, queue, 0)
+
+	// The queue itself survives; purging is not deleting.
+	if _, err := conn.DestinationDetail(context.Background(), ref); err != nil {
+		t.Errorf("the queue was deleted rather than emptied: %v", err)
+	}
+}
+
+// Moving has to leave the source empty and the target full, with the bodies
+// intact - and it has to publish before it acknowledges, so a failure leaves a
+// duplicate rather than a hole.
+func TestLiveMoveMessagesBetweenQueues(t *testing.T) {
+	conn := liveConnNamed(t, "move")
+	defer func() { _ = conn.Close() }()
+
+	ctx := context.Background()
+	const source = "mqs-test-move-src"
+	const target = "mqs-test-move-dst"
+	publishTestMessages(t, conn, source, []string{"one", "two", "three"}, nil)
+	publishTestMessages(t, conn, target, nil, nil)
+
+	// The default exchange with the target's name as the routing key is the
+	// simplest way to send straight to a queue.
+	moved, err := conn.MoveMessages(ctx, model.MoveRequest{
+		Namespace: "/", From: source, ToExchange: "", ToRoutingKey: target, Limit: 10,
+	})
+	if err != nil {
+		t.Fatalf("move: %v", err)
+	}
+	if moved != 3 {
+		t.Errorf("moved %d, want 3", moved)
+	}
+	waitForDepth(t, conn, source, 0)
+	waitForDepth(t, conn, target, 3)
+
+	items, err := conn.QueryMessages(ctx, model.MessageQueryParams{Topic: target, MaxResults: 10})
+	if err != nil {
+		t.Fatalf("browse target: %v", err)
+	}
+	bodies := map[string]bool{}
+	for _, item := range items {
+		bodies[item.Body] = true
+	}
+	for _, want := range []string{"one", "two", "three"} {
+		if !bodies[want] {
+			t.Errorf("the body %q did not survive the move", want)
+		}
+	}
+}
+
+// Headers have to survive, because moving dead letters back is the main use
+// and x-death is the only record of why they died.
+func TestLiveMovePreservesHeaders(t *testing.T) {
+	conn := liveConnNamed(t, "move-headers")
+	defer func() { _ = conn.Close() }()
+
+	ctx := context.Background()
+	const source = "mqs-test-move-hdr-src"
+	const target = "mqs-test-move-hdr-dst"
+	publishTestMessages(t, conn, source, []string{"payload"},
+		[]amqp.Table{{"retries": int32(4), "origin": "order.settle.q"}})
+	publishTestMessages(t, conn, target, nil, nil)
+
+	if _, err := conn.MoveMessages(ctx, model.MoveRequest{
+		Namespace: "/", From: source, ToRoutingKey: target, Limit: 10,
+	}); err != nil {
+		t.Fatalf("move: %v", err)
+	}
+	waitForDepth(t, conn, target, 1)
+
+	items, err := conn.QueryMessages(ctx, model.MessageQueryParams{Topic: target, MaxResults: 1})
+	if err != nil {
+		t.Fatalf("browse: %v", err)
+	}
+	if len(items) != 1 {
+		t.Fatalf("browsed %d, want 1", len(items))
+	}
+	if items[0].Properties["header.retries"] != "4" {
+		t.Errorf("header.retries = %q, want 4", items[0].Properties["header.retries"])
+	}
+	if items[0].Properties["header.origin"] != "order.settle.q" {
+		t.Errorf("header.origin = %q", items[0].Properties["header.origin"])
+	}
+	// Persistence is a property, not a header, and losing it would mean the
+	// moved copy no longer survives a restart.
+	if items[0].Properties["deliveryMode"] != "persistent" {
+		t.Errorf("deliveryMode = %q, want persistent", items[0].Properties["deliveryMode"])
+	}
+}
+
+// A move into nowhere must not eat the messages. Mandatory publishing plus the
+// confirm is what turns that into a refusal rather than a silent drop.
+func TestLiveMoveToNowhereLeavesTheSourceIntact(t *testing.T) {
+	conn := liveConnNamed(t, "move-nowhere")
+	defer func() { _ = conn.Close() }()
+
+	ctx := context.Background()
+	const source = "mqs-test-move-nowhere"
+	publishTestMessages(t, conn, source, []string{"precious"}, nil)
+
+	moved, err := conn.MoveMessages(ctx, model.MoveRequest{
+		Namespace: "/", From: source, ToRoutingKey: "mqs-test-no-such-queue", Limit: 10,
+	})
+	if err == nil {
+		t.Error("moving into a routing key nothing is bound to reported success")
+	}
+	if moved != 0 {
+		t.Errorf("moved = %d, want nothing moved", moved)
+	}
+	// The message is still in the source, which is the part that matters.
+	waitForDepth(t, conn, source, 1)
+}
+
+// A batch limit has to be honoured, because moving is one round trip per
+// message and a page asks for a batch rather than a whole backlog.
+func TestLiveMoveHonoursTheBatchLimit(t *testing.T) {
+	conn := liveConnNamed(t, "move-limit")
+	defer func() { _ = conn.Close() }()
+
+	ctx := context.Background()
+	const source = "mqs-test-move-limit-src"
+	const target = "mqs-test-move-limit-dst"
+	publishTestMessages(t, conn, source, []string{"a", "b", "c", "d", "e"}, nil)
+	publishTestMessages(t, conn, target, nil, nil)
+
+	moved, err := conn.MoveMessages(ctx, model.MoveRequest{
+		Namespace: "/", From: source, ToRoutingKey: target, Limit: 2,
+	})
+	if err != nil {
+		t.Fatalf("move: %v", err)
+	}
+	if moved != 2 {
+		t.Errorf("moved %d, want the 2 asked for", moved)
+	}
+	waitForDepth(t, conn, source, 3)
+	waitForDepth(t, conn, target, 2)
+}
+
+// Rebalancing is a no-op on a single node, which is exactly what it should be:
+// it has to succeed rather than error, so the button is not permanently red on
+// a development broker.
+func TestLiveRebalanceSucceedsOnASingleNode(t *testing.T) {
+	conn := liveConn(t)
+	defer func() { _ = conn.Close() }()
+
+	if err := conn.RebalanceQueues(context.Background()); err != nil {
+		t.Errorf("rebalance: %v", err)
+	}
+}

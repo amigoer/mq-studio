@@ -539,6 +539,21 @@ export enum Capability {
     CapDestinationUpdate = "destination.update",
     CapDestinationDelete = "destination.delete",
     CapPartitions = "destination.partitions",
+
+    /**
+     * CapDestinationPurge empties a destination without deleting it, and
+     * CapDestinationMove drains one into another. Separate capabilities
+     * because they are separate buttons with very different blast radii: one
+     * discards, the other relocates.
+     */
+    CapDestinationPurge = "destination.purge",
+    CapDestinationMove = "destination.move",
+
+    /**
+     * CapQueueRebalance spreads replicated destinations' leaders back across
+     * the cluster. Only a family that elects a leader per destination has it.
+     */
+    CapQueueRebalance = "destination.rebalance",
     CapSubscriptionList = "subscription.list",
     CapSubscriptionCreate = "subscription.create",
     CapSubscriptionDelete = "subscription.delete",

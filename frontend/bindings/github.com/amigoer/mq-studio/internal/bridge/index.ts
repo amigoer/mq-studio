@@ -42,6 +42,7 @@ export {
     DriverInfo,
     MaintenanceTaskView,
     MessageQuery,
+    MoveInput,
     PolicyInput,
     PrincipalInput,
     QueueInput,

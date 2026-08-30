@@ -45,6 +45,21 @@ type QueueGuardedRemover interface {
 	RemoveQueueGuarded(ctx context.Context, ref model.DestinationRef, ifUnused, ifEmpty bool) error
 }
 
+// QueueActions are the operations that change what a destination holds,
+// without changing what it is.
+//
+// Separate from DestinationAdmin because that is about a destination's
+// existence and configuration, and these are about its contents and placement.
+// A family may well be able to create and delete a queue and have no way to
+// empty one.
+type QueueActions interface {
+	PurgeQueue(ctx context.Context, ref model.DestinationRef) error
+	// MoveMessages returns how many it moved, which is meaningful even on an
+	// error: the count is what already reached the target.
+	MoveMessages(ctx context.Context, request model.MoveRequest) (int, error)
+	RebalanceQueues(ctx context.Context) error
+}
+
 // DestinationStats reports per-partition read ranges. Families with no
 // partitions - RabbitMQ, MQTT - do not implement it.
 //

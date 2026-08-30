@@ -173,3 +173,46 @@ func (s *Service) DeleteQueue(ctx context.Context, connID int, ref model.Destina
 	defer cancel()
 	return api.RemoveQueueGuarded(ctx, ref, ifUnused, ifEmpty)
 }
+
+// PurgeQueue drops everything a queue is holding.
+func (s *Service) PurgeQueue(ctx context.Context, connID int, ref model.DestinationRef) error {
+	api, err := port[driver.QueueActions](s, connID, model.CapDestinationPurge)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.PurgeQueue(ctx, ref)
+}
+
+// MoveMessages drains one queue into an exchange and reports how many arrived.
+//
+// The count is returned even when the move failed partway: it is what already
+// reached the target, and the page has to say so rather than implying nothing
+// happened.
+func (s *Service) MoveMessages(ctx context.Context, connID int, request model.MoveRequest) (int, error) {
+	api, err := port[driver.QueueActions](s, connID, model.CapDestinationMove)
+	if err != nil {
+		return 0, err
+	}
+	// Deliberately not the shared request timeout. Moving is one round trip
+	// per message with a confirm on each, so a batch of five hundred against a
+	// slow broker takes longer than any page read is allowed to.
+	ctx, cancel := context.WithTimeout(ctx, moveTimeout)
+	defer cancel()
+	return api.MoveMessages(ctx, request)
+}
+
+// moveTimeout bounds one move batch.
+const moveTimeout = 2 * time.Minute
+
+// RebalanceQueues spreads replicated queue leaders back across the nodes.
+func (s *Service) RebalanceQueues(ctx context.Context, connID int) error {
+	api, err := port[driver.QueueActions](s, connID, model.CapQueueRebalance)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.RebalanceQueues(ctx)
+}

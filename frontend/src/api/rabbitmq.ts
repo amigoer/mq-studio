@@ -97,3 +97,30 @@ export const deleteQueue = (
   guards: { ifUnused?: boolean; ifEmpty?: boolean } = {},
 ): Promise<void> =>
   RabbitMQService.DeleteQueue(connID, vhost, name, guards.ifUnused ?? false, guards.ifEmpty ?? false);
+
+/** Drops everything a queue is holding. There is no undo. */
+export const purgeQueue = (connID: number, vhost: string, name: string): Promise<void> =>
+  RabbitMQService.PurgeQueue(connID, vhost, name);
+
+export interface MoveRequest {
+  vhost: string;
+  from: string;
+  /** Empty is the default exchange, which routes by queue name. */
+  toExchange: string;
+  /** Empty means each message keeps its own routing key. */
+  toRoutingKey: string;
+  limit: number;
+}
+
+/**
+ * Drains a queue into an exchange and reports how many arrived.
+ *
+ * The count is meaningful even when this rejects: that many already moved, and
+ * the page has to say so rather than implying nothing happened.
+ */
+export const moveMessages = (connID: number, request: MoveRequest): Promise<number> =>
+  RabbitMQService.MoveMessages(connID, request);
+
+/** Spreads quorum queue leaders back across the nodes. */
+export const rebalanceQueues = (connID: number): Promise<void> =>
+  RabbitMQService.RebalanceQueues(connID);

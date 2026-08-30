@@ -92,6 +92,28 @@ export function Health(connID: number): $CancellablePromise<model$0.BrokerHealth
     });
 }
 
+/**
+ * MoveMessages returns how many reached the target, which is meaningful even
+ * when the call also returns an error: that count already moved.
+ */
+export function MoveMessages(connID: number, input: $models.MoveInput): $CancellablePromise<number> {
+    return $Call.ByID(3802146380, connID, input);
+}
+
+/**
+ * PurgeQueue drops everything a queue is holding. There is no undo.
+ */
+export function PurgeQueue(connID: number, vhost: string, name: string): $CancellablePromise<void> {
+    return $Call.ByID(4123808287, connID, vhost, name);
+}
+
+/**
+ * RebalanceQueues spreads quorum queue leaders back across the nodes.
+ */
+export function RebalanceQueues(connID: number): $CancellablePromise<void> {
+    return $Call.ByID(3409348108, connID);
+}
+
 // Private type creation functions
 const $$createType0 = model$0.BrokerCensus.createFrom;
 const $$createType1 = $Create.Nullable($$createType0);

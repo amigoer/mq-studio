@@ -474,6 +474,54 @@ export class MessageQuery {
 }
 
 /**
+ * MoveInput drains one queue into an exchange.
+ */
+export class MoveInput {
+    "vhost": string;
+    "from": string;
+
+    /**
+     * ToExchange empty is the default exchange, which routes by queue name.
+     */
+    "toExchange": string;
+
+    /**
+     * ToRoutingKey empty means each message keeps its own.
+     */
+    "toRoutingKey": string;
+    "limit": number;
+
+    /** Creates a new MoveInput instance. */
+    constructor($$source: Partial<MoveInput> = {}) {
+        if (!("vhost" in $$source)) {
+            this["vhost"] = "";
+        }
+        if (!("from" in $$source)) {
+            this["from"] = "";
+        }
+        if (!("toExchange" in $$source)) {
+            this["toExchange"] = "";
+        }
+        if (!("toRoutingKey" in $$source)) {
+            this["toRoutingKey"] = "";
+        }
+        if (!("limit" in $$source)) {
+            this["limit"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new MoveInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): MoveInput {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new MoveInput($$parsedSource as Partial<MoveInput>);
+    }
+}
+
+/**
  * PolicyInput is one rule row of an access-rule form.
  */
 export class PolicyInput {

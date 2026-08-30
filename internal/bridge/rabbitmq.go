@@ -89,3 +89,37 @@ func (s *RabbitMQService) DeleteQueue(connID int, vhost, name string, ifUnused, 
 	return s.service.DeleteQueue(context.Background(), connID,
 		model.DestinationRef{Namespace: vhost, Name: name}, ifUnused, ifEmpty)
 }
+
+// PurgeQueue drops everything a queue is holding. There is no undo.
+func (s *RabbitMQService) PurgeQueue(connID int, vhost, name string) error {
+	return s.service.PurgeQueue(context.Background(), connID,
+		model.DestinationRef{Namespace: vhost, Name: name})
+}
+
+// MoveInput drains one queue into an exchange.
+type MoveInput struct {
+	Vhost string `json:"vhost"`
+	From  string `json:"from"`
+	// ToExchange empty is the default exchange, which routes by queue name.
+	ToExchange string `json:"toExchange"`
+	// ToRoutingKey empty means each message keeps its own.
+	ToRoutingKey string `json:"toRoutingKey"`
+	Limit        int    `json:"limit"`
+}
+
+// MoveMessages returns how many reached the target, which is meaningful even
+// when the call also returns an error: that count already moved.
+func (s *RabbitMQService) MoveMessages(connID int, input MoveInput) (int, error) {
+	return s.service.MoveMessages(context.Background(), connID, model.MoveRequest{
+		Namespace:    input.Vhost,
+		From:         input.From,
+		ToExchange:   input.ToExchange,
+		ToRoutingKey: input.ToRoutingKey,
+		Limit:        input.Limit,
+	})
+}
+
+// RebalanceQueues spreads quorum queue leaders back across the nodes.
+func (s *RabbitMQService) RebalanceQueues(connID int) error {
+	return s.service.RebalanceQueues(context.Background(), connID)
+}

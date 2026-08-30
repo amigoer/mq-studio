@@ -43,6 +43,7 @@ func backings() []capabilityBacking {
 	health := func(c Conn) bool { _, ok := c.(HealthInspector); return ok }
 	dlqTopology := func(c Conn) bool { _, ok := c.(DeadLetterTopology); return ok }
 	stats := func(c Conn) bool { _, ok := c.(DestinationStats); return ok }
+	actions := func(c Conn) bool { _, ok := c.(QueueActions); return ok }
 
 	return []capabilityBacking{
 		{model.CapDestinationList, "DestinationAdmin", destination},
@@ -50,6 +51,9 @@ func backings() []capabilityBacking {
 		{model.CapDestinationUpdate, "DestinationAdmin", destination},
 		{model.CapDestinationDelete, "DestinationAdmin", destination},
 		{model.CapPartitions, "DestinationStats", stats},
+		{model.CapDestinationPurge, "QueueActions", actions},
+		{model.CapDestinationMove, "QueueActions", actions},
+		{model.CapQueueRebalance, "QueueActions", actions},
 
 		{model.CapSubscriptionList, "SubscriptionAdmin", subscription},
 		{model.CapSubscriptionCreate, "SubscriptionAdmin", subscription},

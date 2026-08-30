@@ -49,8 +49,11 @@ import {
 import { useConnectionScope } from "@/mq/ConnectionScope";
 import * as rabbitApi from "@/api/rabbitmq";
 import { formatErrorMessage } from "@/lib/utils";
+import { useRabbitRouting } from "@/hooks/rabbitmq/useRabbitRouting";
+import { exchangeLabel } from "@/mq/rabbitmq/destinations";
 import { QueueDialog } from "./QueueDialog";
-import type { QueueDeclaration } from "@/api/rabbitmq";
+import { MoveDialog } from "./MoveDialog";
+import type { MoveRequest, QueueDeclaration } from "@/api/rabbitmq";
 import type { Destination } from "@/api/models";
 
 const TAG = { fontSize: "10px" } as const;
@@ -81,6 +84,10 @@ export function QueuesRabbitMQ() {
   const [vhostFilter, setVhostFilter] = useState(ALL_VHOSTS);
   const [selected, setSelected] = useState<string | null>(null);
   const [declaring, setDeclaring] = useState(false);
+  const [moving, setMoving] = useState<string | null>(null);
+  /* Only for the move dialog's target picker, so it is not loaded until the
+     board is. It shares the routing read the exchanges board already does. */
+  const routing = useRabbitRouting();
 
   const queues = useMemo(() => state.data ?? [], [state.data]);
 
@@ -124,6 +131,56 @@ export function QueuesRabbitMQ() {
     [connID, state, t],
   );
 
+  const purge = useCallback(
+    async (queue: Destination) => {
+      const holding = messagesReady(queue) + messagesUnacknowledged(queue);
+      const ok = await confirm({
+        title: t("board.topics.rabbitmq.purgeTitle", { name: queue.ref.name }),
+        description: t("board.topics.rabbitmq.purgeDesc", { count: holding }),
+        confirmLabel: t("board.common.purge"),
+        danger: true,
+      });
+      if (!ok) return;
+      try {
+        await rabbitApi.purgeQueue(connID, vhost(queue), queue.ref.name);
+        toast.success(t("board.topics.rabbitmq.purged", { name: queue.ref.name }));
+        await state.refresh();
+      } catch (purgeError) {
+        toast.error(t("board.topics.rabbitmq.purgeFailed"), {
+          description: formatErrorMessage(purgeError),
+        });
+      }
+    },
+    [confirm, connID, state, t],
+  );
+
+  const move = useCallback(
+    async (request: MoveRequest) => {
+      const moved = await rabbitApi.moveMessages(connID, request);
+      toast.success(t("board.topics.rabbitmq.moved", { count: moved }));
+      await state.refresh();
+    },
+    [connID, state, t],
+  );
+
+  const rebalance = useCallback(async () => {
+    const ok = await confirm({
+      title: t("board.topics.rabbitmq.rebalanceTitle"),
+      description: t("board.topics.rabbitmq.rebalanceDesc"),
+      confirmLabel: t("board.topics.rabbitmq.rebalanceAction"),
+    });
+    if (!ok) return;
+    try {
+      await rabbitApi.rebalanceQueues(connID);
+      toast.success(t("board.topics.rabbitmq.rebalanced"));
+      await state.refresh();
+    } catch (rebalanceError) {
+      toast.error(t("board.topics.rabbitmq.rebalanceFailed"), {
+        description: formatErrorMessage(rebalanceError),
+      });
+    }
+  }, [confirm, connID, state, t]);
+
   const remove = useCallback(
     async (queue: Destination) => {
       const holding = messagesReady(queue) + messagesUnacknowledged(queue);
@@ -160,6 +217,11 @@ export function QueuesRabbitMQ() {
         subtitle={t("board.topics.rabbitmq.queueSubtitle", { count: queues.length })}
         actions={
           <>
+            {/* Leaders pile up on whichever node was available when each queue
+                was declared, and nothing spreads them back on its own. */}
+            <Button variant="outline" disabled={!state.online} onClick={() => void rebalance()}>
+              {t("board.topics.rabbitmq.rebalanceAction")}
+            </Button>
             <Button disabled={!state.online} onClick={() => setDeclaring(true)}>
               {t("board.topics.rabbitmq.newQueue")}
             </Button>
@@ -176,6 +238,15 @@ export function QueuesRabbitMQ() {
         vhost={targetVhost}
         onClose={() => setDeclaring(false)}
         onSubmit={declare}
+      />
+      <MoveDialog
+        open={moving != null}
+        vhost={targetVhost}
+        from={moving ?? ""}
+        queues={queues.map((found) => found.ref.name)}
+        exchanges={(routing.data?.exchanges ?? []).map(exchangeLabel)}
+        onClose={() => setMoving(null)}
+        onSubmit={move}
       />
       {!isBlocked(state) && (
         <Toolbar>
@@ -317,7 +388,13 @@ export function QueuesRabbitMQ() {
               <QueueDetail queue={detail} />
             </DetailPanelBody>
             <DetailPanelFooter>
+              <Button variant="outline" onClick={() => setMoving(detail.ref.name)}>
+                {t("board.topics.rabbitmq.moveAction")}
+              </Button>
               <span className="flex-1" />
+              <Button variant="destructive" onClick={() => void purge(detail)}>
+                {t("board.common.purge")}
+              </Button>
               <Button variant="destructive" onClick={() => void remove(detail)}>
                 {t("board.common.delete")}
               </Button>
