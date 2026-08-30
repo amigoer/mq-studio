@@ -38,6 +38,7 @@ import { CloneOffsetDialog } from "./CloneOffsetDialog";
 import { QueueOffsetDialog, type QueueTarget } from "./QueueOffsetDialog";
 import { ResetOffsetDialog } from "./ResetOffsetDialog";
 import * as consumerApi from "@/api/consumer";
+import { formatMessageTime } from "@/lib/time";
 import { formatErrorMessage } from "@/lib/utils";
 import type { Subscription } from "@/api/models";
 import {
@@ -392,6 +393,7 @@ function GroupSheet({
   onClose: () => void;
 }) {
   const { t } = useTranslation();
+  const { settings } = useSettings();
   const name = groupName(group);
   const backlog = group.backlog ?? 0;
   const offline = group.status === "offline";
@@ -411,7 +413,7 @@ function GroupSheet({
   const blocks = topicBlocks(subscriptionsOf(group), queues);
 
   return (
-    <DetailPanel width={430} onDismiss={onClose}>
+    <DetailPanel width={460} onDismiss={onClose}>
       <DetailPanelHeader
         title={name}
         badge={
@@ -551,6 +553,17 @@ function GroupSheet({
                           <TableCell className="mono3" style={{ ...R, color: "var(--c-mono-dim)" }}>
                             {queue.consumerOffset.toLocaleString()} /{" "}
                             {queue.brokerOffset.toLocaleString()}
+                            {/* When the queue last moved, which is the
+                                difference between a slow consumer and a
+                                stuck one once the backlog is non-zero. */}
+                            <span className="mt-0.5 block text-[10.5px] text-(--c-muted)">
+                              {t("board.consumers.rocketmq.lastConsumed")}{" "}
+                              {formatMessageTime(
+                                queue.lastConsumed,
+                                settings.timezone,
+                                settings.timestampFormat,
+                              )}
+                            </span>
                           </TableCell>
                           <TableCell
                             className="mono3"

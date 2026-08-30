@@ -1467,6 +1467,7 @@
         "noClients": "No client connected",
         "noQueues": "No per-queue progress",
         "position": "Offset consumed/latest",
+        "lastConsumed": "Last consumed",
         "runtimeBlocked": "The queues each client holds, and its consume rates, cannot be read.",
         "dlq": "Dead letters",
         "version": "Version",

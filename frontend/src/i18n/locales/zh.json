@@ -1467,6 +1467,7 @@
         "noClients": "没有在线客户端",
         "noQueues": "没有队列消费进度",
         "position": "位点 消费/最新",
+        "lastConsumed": "最后消费",
         "runtimeBlocked": "无法读取每个客户端持有的队列与消费速率。",
         "dlq": "死信",
         "version": "版本",
