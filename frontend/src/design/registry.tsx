@@ -37,6 +37,7 @@ import { PelRedis } from "./boards/dlq/PelRedis";
 
 import { Producer } from "./boards/producer/Producer";
 import { Alerts } from "./boards/alerts/Alerts";
+import { Acl } from "./boards/acl/Acl";
 
 import { ClusterRocketMQ } from "./boards/cluster/ClusterRocketMQ";
 import { BrokersKafka } from "./boards/cluster/BrokersKafka";
@@ -118,6 +119,9 @@ export function renderBoard(
   /* Alerts is one board for every family: the rules are numeric comparisons
      over a cluster snapshot, with nothing protocol-specific to draw. */
   if (page === "alerts") return <Alerts onOpenSettings={nav?.onOpenAlertSettings} />;
+  /* ACL is RocketMQ's for now: the board speaks its two access systems, and a
+     family with a different one gets its own rather than a shared shell. */
+  if (page === "acl" && protocol === "rocketmq") return <Acl />;
 
   const Board = BOARDS[page]?.[protocol];
   if (Board) return <Board />;

@@ -14,6 +14,9 @@ import type {
 } from "@bindings/bridge/models";
 
 export type AclVersionInfo = model.AclVersionInfo;
+export type AccessPrincipal = model.AccessPrincipal;
+export type AccessRule = model.AccessRule;
+export type AccessPolicy = model.AccessPolicy;
 export type Node = model.Node;
 export type ClusterOverview = model.ClusterOverview;
 /** The cluster page snapshot: header counters plus the nodes behind them. */
