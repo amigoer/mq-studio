@@ -38,6 +38,15 @@ type Sort = (typeof SORTS)[number];
 const STATUS_RANK: Record<ConnectionStatus, number> = { online: 0, failed: 1, offline: 2 };
 
 /**
+ * The status column while a row is carrying a failure reason. A dial's reason
+ * is the one cell in the table with no natural length, and an auto-width column
+ * sized to fit one pushes every column after it past the window edge. Zero
+ * max-width drops the reason out of the column's measurement; the share of the
+ * table it is handed instead is what the reason ellipses into.
+ */
+const FAILURE_COLUMN = { width: "36%", maxWidth: 0 } as const;
+
+/**
  * `2026-08-30 10:22:11` -> `08-30 10:22`. Go writes `-` for a profile it has
  * never dialled, and the year is noise in a column that is scanned, not read.
  */
@@ -113,6 +122,8 @@ export function ConnectionsList({
       return b.lastUsed.localeCompare(a.lastUsed) || byName(a, b);
     });
   }, [connections, filter, query, sort]);
+
+  const showsFailure = rows.some((c) => c.status === "failed" && (errors?.[c.id] ?? "") !== "");
 
   const online = connections.filter((c) => c.status === "online").length;
   const failed = connections.filter((c) => c.status === "failed").length;
@@ -193,7 +204,9 @@ export function ConnectionsList({
                     each other; longer values still widen them naturally. */}
                 <TableHead style={{ minWidth: "200px" }}>{t("page.connections.columnConnection")}</TableHead>
                 <TableHead style={{ minWidth: "240px" }}>{t("page.connections.columnAddress")}</TableHead>
-                <TableHead style={{ minWidth: "104px" }}>{t("page.connections.columnStatus")}</TableHead>
+                <TableHead style={{ minWidth: "104px", ...(showsFailure ? FAILURE_COLUMN : null) }}>
+                  {t("page.connections.columnStatus")}
+                </TableHead>
                 <TableHead style={{ minWidth: "104px" }}>{t("page.connections.columnLastUsed")}</TableHead>
                 <TableHead className="fill" role="presentation" />
                 <TableHead style={{ textAlign: "right" }}>{t("page.connections.columnActions")}</TableHead>
@@ -243,7 +256,7 @@ export function ConnectionsList({
                 >
                   {c.address}
                 </TableCell>
-                <TableCell>
+                <TableCell style={showsFailure ? FAILURE_COLUMN : undefined}>
                   <StatusCell connection={c} error={errors?.[c.id]} />
                 </TableCell>
                 <TableCell style={{ color: "var(--c-muted)" }}>{lastUsedLabel(c.lastUsed)}</TableCell>
@@ -395,15 +408,18 @@ function StatusCell({ connection, error }: { connection: Connection; error?: str
      in hand now, so it says it, with the untruncated text on hover. */
   return (
     <span
-      style={{ display: "inline-flex", alignItems: "baseline", gap: "6px", maxWidth: "100%" }}
+      style={{ display: "flex", alignItems: "baseline", gap: "6px", minWidth: 0 }}
       title={error}
     >
-      <Status tone="err" dot>
+      <Status tone="err" dot className="flex-none">
         {t("page.connections.failed")}
       </Status>
       {error != null && (
         <span
           style={{
+            // Shrinks past its text so FAILURE_COLUMN, not the reason, sets the
+            // column's width; whatever does not fit is on hover.
+            minWidth: 0,
             fontSize: "10.5px",
             color: "var(--c-muted)",
             overflow: "hidden",
