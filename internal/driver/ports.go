@@ -269,6 +269,19 @@ type CensusReporter interface {
 	Census(ctx context.Context) (*model.BrokerCensus, error)
 }
 
+// ClientInspector lists the transport connections and channels open against
+// the broker.
+//
+// Separate from ProducerInspector and SubscriptionRuntime because it answers a
+// different question. Those are about roles - who is publishing to this
+// destination, what is this consumer group doing. This is the layer beneath:
+// which hosts are holding sockets open, which of them are being throttled, and
+// which one to close when an application will not let go.
+type ClientInspector interface {
+	ListClientConnections(ctx context.Context, namespace string) ([]*model.ClientConnection, error)
+	ListClientChannels(ctx context.Context, namespace string) ([]*model.ClientChannel, error)
+}
+
 // RoutingAdmin manages exchanges and bindings. Only RabbitMQ has them, which
 // is why the canonical page set has no counterpart and the driver contributes
 // a page of its own.

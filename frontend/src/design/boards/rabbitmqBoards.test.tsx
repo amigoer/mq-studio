@@ -38,6 +38,7 @@ function stateOf<T>(over: Partial<BrokerState<T>>): BrokerState<T> {
 const overviewState = vi.hoisted(() => ({ current: null as unknown }));
 const queuesState = vi.hoisted(() => ({ current: null as unknown }));
 const routingState = vi.hoisted(() => ({ current: null as unknown }));
+const clientsState = vi.hoisted(() => ({ current: null as unknown }));
 
 vi.mock("@/hooks/rabbitmq/useRabbitOverview", () => ({
   useRabbitOverview: () => overviewState.current,
@@ -48,11 +49,15 @@ vi.mock("@/hooks/rabbitmq/useRabbitQueues", () => ({
 vi.mock("@/hooks/rabbitmq/useRabbitRouting", () => ({
   useRabbitRouting: () => routingState.current,
 }));
+vi.mock("@/hooks/rabbitmq/useRabbitClients", () => ({
+  useRabbitClients: () => clientsState.current,
+}));
 
 let render: (element: React.ReactElement) => string;
 let OverviewRabbitMQ: typeof import("./overview/OverviewRabbitMQ").OverviewRabbitMQ;
 let QueuesRabbitMQ: typeof import("./topics/QueuesRabbitMQ").QueuesRabbitMQ;
 let ExchangesRabbitMQ: typeof import("./topics/ExchangesRabbitMQ").ExchangesRabbitMQ;
+let ChannelsRabbitMQ: typeof import("./consumers/ChannelsRabbitMQ").ChannelsRabbitMQ;
 
 beforeAll(async () => {
   const storage = { getItem: () => null, setItem() {}, removeItem() {} };
@@ -65,11 +70,12 @@ beforeAll(async () => {
   });
   vi.stubGlobal("localStorage", storage);
 
-  const [server, overview, queues, exchanges, i18n] = await Promise.all([
+  const [server, overview, queues, exchanges, clients, i18n] = await Promise.all([
     import("react-dom/server"),
     import("./overview/OverviewRabbitMQ"),
     import("./topics/QueuesRabbitMQ"),
     import("./topics/ExchangesRabbitMQ"),
+    import("./consumers/ChannelsRabbitMQ"),
     import("@/i18n"),
   ]);
   await i18n.default.changeLanguage("zh");
@@ -77,6 +83,7 @@ beforeAll(async () => {
   OverviewRabbitMQ = overview.OverviewRabbitMQ;
   QueuesRabbitMQ = queues.QueuesRabbitMQ;
   ExchangesRabbitMQ = exchanges.ExchangesRabbitMQ;
+  ChannelsRabbitMQ = clients.ChannelsRabbitMQ;
 });
 
 const census = {
@@ -396,6 +403,125 @@ describe("the RabbitMQ exchanges board", () => {
           bindings: [],
         },
       }),
+    ).not.toThrow();
+  });
+});
+
+const connection = (over: Record<string, unknown> = {}) => ({
+  name: "10.0.0.5:51234 -> 10.0.0.1:5672",
+  clientName: "",
+  namespace: "/",
+  user: "app",
+  node: "rabbit@one",
+  peerHost: "10.0.0.5",
+  peerPort: 51234,
+  protocol: "AMQP 0-9-1",
+  state: "running",
+  channels: 2,
+  tls: false,
+  cipher: "",
+  heartbeatSec: 60,
+  recvBytes: 1024,
+  sendBytes: 2048,
+  recvByteRate: 100,
+  sendByteRate: 200,
+  connectedAtMs: 0,
+  blockedBy: "",
+  ...over,
+});
+
+const channel = (over: Record<string, unknown> = {}) => ({
+  name: "10.0.0.5:51234 -> 10.0.0.1:5672 (1)",
+  number: 1,
+  connection: "10.0.0.5:51234 -> 10.0.0.1:5672",
+  namespace: "/",
+  user: "app",
+  node: "rabbit@one",
+  consumers: 1,
+  prefetchCount: 10,
+  unacknowledged: 0,
+  unconfirmed: 0,
+  confirms: false,
+  transactional: false,
+  flowBlocked: false,
+  idleSince: "",
+  ...over,
+});
+
+describe("the RabbitMQ connections board", () => {
+  const renderWith = (over: Partial<BrokerState<unknown>>) => {
+    clientsState.current = stateOf(over);
+    return render(<ChannelsRabbitMQ />);
+  };
+
+  it("draws a not-connected notice rather than an empty client list", () => {
+    expect(() => renderWith({ online: false })).not.toThrow();
+  });
+
+  it("draws a loading state without touching the data", () => {
+    expect(() => renderWith({ loading: true })).not.toThrow();
+  });
+
+  it("says nothing is connected rather than showing a blank table", () => {
+    const html = renderWith({ data: { connections: [], channels: [] } });
+    expect(html).toContain("没有任何客户端连接");
+  });
+
+  /*
+   * Most client libraries send no connection name, so the peer address has to
+   * carry the row. A blank first column would make every ordinary connection
+   * unidentifiable.
+   */
+  it("falls back to the peer address when a client did not name itself", () => {
+    const html = renderWith({ data: { connections: [connection()], channels: [channel()] } });
+    expect(html).toContain("10.0.0.5");
+  });
+
+  it("prefers the name a client gave itself", () => {
+    const html = renderWith({
+      data: { connections: [connection({ clientName: "order-service" })], channels: [] },
+    });
+    expect(html).toContain("order-service");
+  });
+
+  // Unacked work is per channel, so the connection row has to add up its own
+  // channels rather than showing a figure the connection does not carry.
+  it("totals unacknowledged work across a connection's channels", () => {
+    const html = renderWith({
+      data: {
+        connections: [connection()],
+        channels: [channel({ unacknowledged: 7 }), channel({ number: 2, unacknowledged: 5 })],
+      },
+    });
+    expect(html).toContain("12");
+  });
+
+  /*
+   * Blocked outranks flow control. Flow control is the broker asking one
+   * channel to slow down; blocked is a resource alarm stopping the whole
+   * connection publishing, which is a cluster problem rather than a client
+   * one.
+   */
+  it("reports a resource-blocked connection ahead of flow control", () => {
+    const html = renderWith({
+      data: {
+        connections: [connection({ state: "blocked", blockedBy: "memory" })],
+        channels: [channel({ flowBlocked: true })],
+      },
+    });
+    expect(html).toContain("memory");
+  });
+
+  it("warns at the top when any channel is under flow control", () => {
+    const html = renderWith({
+      data: { connections: [connection()], channels: [channel({ flowBlocked: true })] },
+    });
+    expect(html).toContain("流控");
+  });
+
+  it("survives a connection with no channels at all", () => {
+    expect(() =>
+      renderWith({ data: { connections: [connection({ channels: 0 })], channels: [] } }),
     ).not.toThrow();
   });
 });

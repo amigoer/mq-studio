@@ -25,3 +25,13 @@ type RabbitMQService struct {
 func (s *RabbitMQService) Census(connID int) (*model.BrokerCensus, error) {
 	return s.service.Census(context.Background(), connID)
 }
+
+// ClientConnections returns the transport connections open against the broker.
+func (s *RabbitMQService) ClientConnections(connID int, namespace string) ([]*model.ClientConnection, error) {
+	return s.service.ClientConnections(context.Background(), connID, namespace)
+}
+
+// ClientChannels returns the channels multiplexed inside those connections.
+func (s *RabbitMQService) ClientChannels(connID int, namespace string) ([]*model.ClientChannel, error) {
+	return s.service.ClientChannels(context.Background(), connID, namespace)
+}

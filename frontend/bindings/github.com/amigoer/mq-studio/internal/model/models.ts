@@ -577,6 +577,13 @@ export enum Capability {
      * destination does not have it.
      */
     CapClusterCensus = "cluster.census",
+
+    /**
+     * CapClientInspect is a broker that can name the transport connections and
+     * channels open against it. Families that expose producers and consumers
+     * but not the sessions underneath them do not have it.
+     */
+    CapClientInspect = "client.inspect",
     CapAccessControl = "access.control",
 
     /**
@@ -588,6 +595,255 @@ export enum Capability {
     CapAccessDirectory = "access.directory",
     CapRouting = "routing.exchanges",
 };
+
+/**
+ * ClientChannel is one multiplexed session inside a connection.
+ * 
+ * A channel is where the interesting failure lives: prefetch and
+ * unacknowledged counts are per channel, and a consumer that has stopped
+ * acknowledging shows up here long before the queue depth makes it obvious.
+ */
+export class ClientChannel {
+    "name": string;
+    "number": number;
+    "connection": string;
+    "namespace": string;
+    "user": string;
+    "node": string;
+
+    /**
+     * There is deliberately no state field. The management API reports one but
+     * the client library does not model it, and the two flags that matter -
+     * flow-blocked and idle-since - are here in full, so deriving a word from
+     * them would be inventing a field rather than reporting one.
+     */
+    "consumers": number;
+    "prefetchCount": number;
+
+    /**
+     * Unacknowledged is delivered and not yet acked. Unconfirmed is published
+     * and not yet confirmed back to the publisher. They are the two sides of
+     * in-flight work and fail for opposite reasons.
+     */
+    "unacknowledged": number;
+    "unconfirmed": number;
+
+    /**
+     * Confirms and Transactional are the two delivery guarantees a channel can
+     * be in, and they are mutually exclusive in AMQP.
+     */
+    "confirms": boolean;
+    "transactional": boolean;
+
+    /**
+     * FlowBlocked is the broker telling this channel to stop publishing. It is
+     * the single most useful field here: a publisher that has slowed down for
+     * no apparent reason is usually looking at this.
+     */
+    "flowBlocked": boolean;
+
+    /**
+     * IdleSince is when the channel last did anything, as the broker spells
+     * it. Empty means it is busy now.
+     */
+    "idleSince": string;
+
+    /** Creates a new ClientChannel instance. */
+    constructor($$source: Partial<ClientChannel> = {}) {
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("number" in $$source)) {
+            this["number"] = 0;
+        }
+        if (!("connection" in $$source)) {
+            this["connection"] = "";
+        }
+        if (!("namespace" in $$source)) {
+            this["namespace"] = "";
+        }
+        if (!("user" in $$source)) {
+            this["user"] = "";
+        }
+        if (!("node" in $$source)) {
+            this["node"] = "";
+        }
+        if (!("consumers" in $$source)) {
+            this["consumers"] = 0;
+        }
+        if (!("prefetchCount" in $$source)) {
+            this["prefetchCount"] = 0;
+        }
+        if (!("unacknowledged" in $$source)) {
+            this["unacknowledged"] = 0;
+        }
+        if (!("unconfirmed" in $$source)) {
+            this["unconfirmed"] = 0;
+        }
+        if (!("confirms" in $$source)) {
+            this["confirms"] = false;
+        }
+        if (!("transactional" in $$source)) {
+            this["transactional"] = false;
+        }
+        if (!("flowBlocked" in $$source)) {
+            this["flowBlocked"] = false;
+        }
+        if (!("idleSince" in $$source)) {
+            this["idleSince"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ClientChannel instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ClientChannel {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ClientChannel($$parsedSource as Partial<ClientChannel>);
+    }
+}
+
+/**
+ * ClientConnection is one application's connection to the broker.
+ * 
+ * It has no counterpart in the canonical vocabulary on purpose. RocketMQ and
+ * Kafka expose producers and consumers, which are roles; this is the transport
+ * underneath them, and an operator uses it for a different job - finding which
+ * host is holding a connection open, which one is being throttled, and which
+ * one to close when an application will not let go.
+ */
+export class ClientConnection {
+    /**
+     * Name is the broker's own identifier, of the form "host:port -> host:port".
+     * It is what a close request names, so it is the key rather than a label.
+     */
+    "name": string;
+
+    /**
+     * ClientName is what the application called itself, or "" when it said
+     * nothing. Most libraries send nothing, which is why the peer address
+     * stays the primary identifier.
+     */
+    "clientName": string;
+    "namespace": string;
+    "user": string;
+    "node": string;
+    "peerHost": string;
+    "peerPort": number;
+
+    /**
+     * Protocol is the wire protocol this connection speaks. A broker with the
+     * MQTT or STOMP plugins on carries connections that are not AMQP at all,
+     * and treating them alike would misreport both.
+     */
+    "protocol": string;
+    "state": string;
+    "channels": number;
+
+    /**
+     * TLS is whether the transport is encrypted, and Cipher names how. An
+     * empty cipher on a TLS connection means the broker did not report one.
+     */
+    "tls": boolean;
+    "cipher": string;
+
+    /**
+     * HeartbeatSec is what the two sides negotiated. Zero means heartbeats are
+     * off, which is worth seeing: a connection with none can sit half-open
+     * through a network partition and look healthy from both ends.
+     */
+    "heartbeatSec": number;
+    "recvBytes": number;
+    "sendBytes": number;
+    "recvByteRate": number;
+    "sendByteRate": number;
+
+    /**
+     * ConnectedAtMs is when the connection was established, in Unix
+     * milliseconds, or 0 when the broker did not report it.
+     */
+    "connectedAtMs": number;
+
+    /**
+     * BlockedBy is why the broker last stopped this connection publishing -
+     * a resource alarm, usually memory or disk. Empty means it was never
+     * blocked.
+     */
+    "blockedBy": string;
+
+    /** Creates a new ClientConnection instance. */
+    constructor($$source: Partial<ClientConnection> = {}) {
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("clientName" in $$source)) {
+            this["clientName"] = "";
+        }
+        if (!("namespace" in $$source)) {
+            this["namespace"] = "";
+        }
+        if (!("user" in $$source)) {
+            this["user"] = "";
+        }
+        if (!("node" in $$source)) {
+            this["node"] = "";
+        }
+        if (!("peerHost" in $$source)) {
+            this["peerHost"] = "";
+        }
+        if (!("peerPort" in $$source)) {
+            this["peerPort"] = 0;
+        }
+        if (!("protocol" in $$source)) {
+            this["protocol"] = "";
+        }
+        if (!("state" in $$source)) {
+            this["state"] = "";
+        }
+        if (!("channels" in $$source)) {
+            this["channels"] = 0;
+        }
+        if (!("tls" in $$source)) {
+            this["tls"] = false;
+        }
+        if (!("cipher" in $$source)) {
+            this["cipher"] = "";
+        }
+        if (!("heartbeatSec" in $$source)) {
+            this["heartbeatSec"] = 0;
+        }
+        if (!("recvBytes" in $$source)) {
+            this["recvBytes"] = 0;
+        }
+        if (!("sendBytes" in $$source)) {
+            this["sendBytes"] = 0;
+        }
+        if (!("recvByteRate" in $$source)) {
+            this["recvByteRate"] = 0;
+        }
+        if (!("sendByteRate" in $$source)) {
+            this["sendByteRate"] = 0;
+        }
+        if (!("connectedAtMs" in $$source)) {
+            this["connectedAtMs"] = 0;
+        }
+        if (!("blockedBy" in $$source)) {
+            this["blockedBy"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ClientConnection instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ClientConnection {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ClientConnection($$parsedSource as Partial<ClientConnection>);
+    }
+}
 
 /**
  * CloneOffsetRequest copies one subscription's read position onto another.

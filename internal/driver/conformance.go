@@ -39,6 +39,7 @@ func backings() []capabilityBacking {
 	accessDirectory := func(c Conn) bool { _, ok := c.(AccessDirectory); return ok }
 	routing := func(c Conn) bool { _, ok := c.(RoutingAdmin); return ok }
 	census := func(c Conn) bool { _, ok := c.(CensusReporter); return ok }
+	clients := func(c Conn) bool { _, ok := c.(ClientInspector); return ok }
 	stats := func(c Conn) bool { _, ok := c.(DestinationStats); return ok }
 
 	return []capabilityBacking{
@@ -78,6 +79,7 @@ func backings() []capabilityBacking {
 		{model.CapAccessDirectory, "AccessDirectory", accessDirectory},
 		{model.CapRouting, "RoutingAdmin", routing},
 		{model.CapClusterCensus, "CensusReporter", census},
+		{model.CapClientInspect, "ClientInspector", clients},
 	}
 }
 

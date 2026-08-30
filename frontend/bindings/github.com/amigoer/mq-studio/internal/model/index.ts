@@ -12,6 +12,8 @@ export {
     BrokerRates,
     Capabilities,
     Capability,
+    ClientChannel,
+    ClientConnection,
     CloneOffsetRequest,
     ClusterOverview,
     ConnectionStatus,

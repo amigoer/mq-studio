@@ -32,6 +32,30 @@ export function Census(connID: number): $CancellablePromise<model$0.BrokerCensus
     });
 }
 
+/**
+ * ClientChannels returns the channels multiplexed inside those connections.
+ */
+export function ClientChannels(connID: number, $namespace: string): $CancellablePromise<(model$0.ClientChannel | null)[]> {
+    return $Call.ByID(2651318602, connID, $namespace).then(($result: any) => {
+        return $$createType4($result);
+    });
+}
+
+/**
+ * ClientConnections returns the transport connections open against the broker.
+ */
+export function ClientConnections(connID: number, $namespace: string): $CancellablePromise<(model$0.ClientConnection | null)[]> {
+    return $Call.ByID(1012970279, connID, $namespace).then(($result: any) => {
+        return $$createType7($result);
+    });
+}
+
 // Private type creation functions
 const $$createType0 = model$0.BrokerCensus.createFrom;
 const $$createType1 = $Create.Nullable($$createType0);
+const $$createType2 = model$0.ClientChannel.createFrom;
+const $$createType3 = $Create.Nullable($$createType2);
+const $$createType4 = $Create.Array($$createType3);
+const $$createType5 = model$0.ClientConnection.createFrom;
+const $$createType6 = $Create.Nullable($$createType5);
+const $$createType7 = $Create.Array($$createType6);

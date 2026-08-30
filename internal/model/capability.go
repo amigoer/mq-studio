@@ -74,6 +74,11 @@ const (
 	// answer. A family whose figures can only be assembled by walking every
 	// destination does not have it.
 	CapClusterCensus Capability = "cluster.census"
+
+	// CapClientInspect is a broker that can name the transport connections and
+	// channels open against it. Families that expose producers and consumers
+	// but not the sessions underneath them do not have it.
+	CapClientInspect Capability = "client.inspect"
 	CapAccessControl Capability = "access.control"
 	// CapAccessDirectory is identity-based access control: principals the
 	// broker authenticates and rules attached to a subject. Distinct from

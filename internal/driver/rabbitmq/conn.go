@@ -89,6 +89,7 @@ func capabilities() []model.Capability {
 		model.CapClusterTopology,
 		model.CapClusterMetrics,
 		model.CapClusterCensus,
+		model.CapClientInspect,
 		model.CapRouting,
 	}
 }

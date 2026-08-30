@@ -9,6 +9,7 @@ import (
 	"time"
 
 	rabbithole "github.com/michaelklishin/rabbit-hole/v3"
+	amqp "github.com/rabbitmq/amqp091-go"
 
 	"github.com/amigoer/mq-studio/internal/driver"
 	"github.com/amigoer/mq-studio/internal/model"
@@ -672,4 +673,113 @@ func TestLiveDefaultExchangeIsListed(t *testing.T) {
 		}
 	}
 	t.Error("the default exchange is missing from the listing")
+}
+
+// The connection this test is holding has to show up in the listing, with the
+// fields the board reads. It polls, because the management API's client stats
+// come from a collector on an interval.
+func TestLiveClientConnectionsIncludeOurOwn(t *testing.T) {
+	conn := liveConnNamed(t, "client-listing")
+	defer func() { _ = conn.Close() }()
+
+	ctx := context.Background()
+	if err := conn.data.ping(ctx); err != nil {
+		t.Fatalf("amqp ping: %v", err)
+	}
+
+	var found *model.ClientConnection
+	deadline := time.Now().Add(connectionSettleTimeout)
+	for found == nil && time.Now().Before(deadline) {
+		connections, err := conn.ListClientConnections(ctx, "/")
+		if err != nil {
+			t.Fatalf("list client connections: %v", err)
+		}
+		for _, candidate := range connections {
+			if candidate.ClientName == connectionName("client-listing") {
+				found = candidate
+			}
+		}
+		if found == nil {
+			time.Sleep(250 * time.Millisecond)
+		}
+	}
+	if found == nil {
+		t.Fatal("our own AMQP connection never appeared in the listing")
+	}
+
+	if found.Protocol == "" {
+		t.Error("the connection reports no protocol")
+	}
+	if found.User != "mqstudio" {
+		t.Errorf("user = %q, want the connecting user", found.User)
+	}
+	if found.PeerHost == "" || found.PeerPort == 0 {
+		t.Errorf("peer = %q:%d, want a real address", found.PeerHost, found.PeerPort)
+	}
+	// The driver negotiates a ten second heartbeat, so this must not be zero -
+	// zero would mean heartbeats are off, which the panel says out loud.
+	if found.HeartbeatSec <= 0 {
+		t.Errorf("heartbeat = %d, want the negotiated interval", found.HeartbeatSec)
+	}
+	if found.Name == "" {
+		t.Error("the connection has no name, which is what a close request needs")
+	}
+}
+
+// A channel opened on our connection has to come back attached to it, because
+// the board groups channels under the connection they belong to.
+func TestLiveClientChannelsAttachToTheirConnection(t *testing.T) {
+	conn := liveConnNamed(t, "channel-listing")
+	defer func() { _ = conn.Close() }()
+
+	ctx := context.Background()
+	// Hold a channel open for the length of the check rather than letting
+	// withChannel close it the moment it returns.
+	held := make(chan struct{})
+	done := make(chan error, 1)
+	go func() {
+		done <- conn.data.withChannel(ctx, func(*amqp.Channel) error {
+			<-held
+			return nil
+		})
+	}()
+	defer func() { close(held); <-done }()
+
+	var attached *model.ClientChannel
+	deadline := time.Now().Add(connectionSettleTimeout)
+	for attached == nil && time.Now().Before(deadline) {
+		connections, err := conn.ListClientConnections(ctx, "/")
+		if err != nil {
+			t.Fatalf("list connections: %v", err)
+		}
+		ours := ""
+		for _, candidate := range connections {
+			if candidate.ClientName == connectionName("channel-listing") {
+				ours = candidate.Name
+			}
+		}
+		if ours != "" {
+			channels, err := conn.ListClientChannels(ctx, "/")
+			if err != nil {
+				t.Fatalf("list channels: %v", err)
+			}
+			for _, channel := range channels {
+				if channel.Connection == ours {
+					attached = channel
+				}
+			}
+		}
+		if attached == nil {
+			time.Sleep(250 * time.Millisecond)
+		}
+	}
+	if attached == nil {
+		t.Fatal("no channel came back attached to our connection")
+	}
+	if attached.Number <= 0 {
+		t.Errorf("channel number = %d, want a real one", attached.Number)
+	}
+	if attached.Namespace != "/" {
+		t.Errorf("vhost = %q, want the one asked for", attached.Namespace)
+	}
 }

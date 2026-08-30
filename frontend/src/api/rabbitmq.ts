@@ -8,9 +8,15 @@
  * exchanges that come later.
  */
 import { RabbitMQService } from "@bindings/bridge";
-import type { BrokerCensus } from "@bindings/model/models";
+import type { BrokerCensus, ClientChannel, ClientConnection } from "@bindings/model/models";
+import { present } from "./client";
 
-export type { BrokerCensus, BrokerRates } from "@bindings/model/models";
+export type {
+  BrokerCensus,
+  BrokerRates,
+  ClientChannel,
+  ClientConnection,
+} from "@bindings/model/models";
 
 /**
  * The broker's running totals, or null when nothing is connected.
@@ -20,3 +26,17 @@ export type { BrokerCensus, BrokerRates } from "@bindings/model/models";
  */
 export const getCensus = (connID: number): Promise<BrokerCensus | null> =>
   RabbitMQService.Census(connID);
+
+/** The transport connections open against the broker, in one virtual host. */
+export const getClientConnections = (
+  connID: number,
+  namespace = "",
+): Promise<ClientConnection[]> =>
+  RabbitMQService.ClientConnections(connID, namespace).then(present);
+
+/** The channels multiplexed inside those connections. */
+export const getClientChannels = (
+  connID: number,
+  namespace = "",
+): Promise<ClientChannel[]> =>
+  RabbitMQService.ClientChannels(connID, namespace).then(present);

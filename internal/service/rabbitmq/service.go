@@ -87,3 +87,34 @@ func (s *Service) Census(ctx context.Context, connID int) (*model.BrokerCensus, 
 	defer cancel()
 	return api.Census(ctx)
 }
+
+// ClientConnections returns the transport connections open against the broker.
+//
+// An empty list when nothing is dialled, matching every other list page: the
+// board draws its own not-connected state.
+func (s *Service) ClientConnections(ctx context.Context, connID int, namespace string) ([]*model.ClientConnection, error) {
+	api, err := port[driver.ClientInspector](s, connID, model.CapClientInspect)
+	if err != nil {
+		if notConnected(err) {
+			return []*model.ClientConnection{}, nil
+		}
+		return nil, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.ListClientConnections(ctx, namespace)
+}
+
+// ClientChannels returns the channels multiplexed inside those connections.
+func (s *Service) ClientChannels(ctx context.Context, connID int, namespace string) ([]*model.ClientChannel, error) {
+	api, err := port[driver.ClientInspector](s, connID, model.CapClientInspect)
+	if err != nil {
+		if notConnected(err) {
+			return []*model.ClientChannel{}, nil
+		}
+		return nil, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.ListClientChannels(ctx, namespace)
+}
