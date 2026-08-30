@@ -67,14 +67,14 @@ export function LineChart({
           axisLine={false}
           tickMargin={6}
           minTickGap={48}
-          fontSize={10}
+          fontSize={11}
           tickFormatter={(value: number) => formatTime(value)}
         />
         <YAxis
-          width={44}
+          width={48}
           tickLine={false}
           axisLine={false}
-          fontSize={10}
+          fontSize={11}
           tickFormatter={(value: number) => formatValue(value)}
         />
         <ChartTooltip
