@@ -37,6 +37,7 @@ function stateOf<T>(over: Partial<BrokerState<T>>): BrokerState<T> {
 
 const overviewState = vi.hoisted(() => ({ current: null as unknown }));
 const queuesState = vi.hoisted(() => ({ current: null as unknown }));
+const routingState = vi.hoisted(() => ({ current: null as unknown }));
 
 vi.mock("@/hooks/rabbitmq/useRabbitOverview", () => ({
   useRabbitOverview: () => overviewState.current,
@@ -44,10 +45,14 @@ vi.mock("@/hooks/rabbitmq/useRabbitOverview", () => ({
 vi.mock("@/hooks/rabbitmq/useRabbitQueues", () => ({
   useRabbitQueues: () => queuesState.current,
 }));
+vi.mock("@/hooks/rabbitmq/useRabbitRouting", () => ({
+  useRabbitRouting: () => routingState.current,
+}));
 
 let render: (element: React.ReactElement) => string;
 let OverviewRabbitMQ: typeof import("./overview/OverviewRabbitMQ").OverviewRabbitMQ;
 let QueuesRabbitMQ: typeof import("./topics/QueuesRabbitMQ").QueuesRabbitMQ;
+let ExchangesRabbitMQ: typeof import("./topics/ExchangesRabbitMQ").ExchangesRabbitMQ;
 
 beforeAll(async () => {
   const storage = { getItem: () => null, setItem() {}, removeItem() {} };
@@ -60,16 +65,18 @@ beforeAll(async () => {
   });
   vi.stubGlobal("localStorage", storage);
 
-  const [server, overview, queues, i18n] = await Promise.all([
+  const [server, overview, queues, exchanges, i18n] = await Promise.all([
     import("react-dom/server"),
     import("./overview/OverviewRabbitMQ"),
     import("./topics/QueuesRabbitMQ"),
+    import("./topics/ExchangesRabbitMQ"),
     import("@/i18n"),
   ]);
   await i18n.default.changeLanguage("zh");
   render = server.renderToStaticMarkup;
   OverviewRabbitMQ = overview.OverviewRabbitMQ;
   QueuesRabbitMQ = queues.QueuesRabbitMQ;
+  ExchangesRabbitMQ = exchanges.ExchangesRabbitMQ;
 });
 
 const census = {
@@ -277,6 +284,118 @@ describe("the RabbitMQ queues board", () => {
   it("survives a queue with no consumers and no arguments", () => {
     expect(() =>
       renderWith({ data: [queue("bare.q", "500", "0", 0, { arguments: "" })] }),
+    ).not.toThrow();
+  });
+});
+
+const exchange = (name: string, type: string, extra: Record<string, string> = {}) => ({
+  ref: { namespace: "/", name },
+  partitions: -1,
+  subscribers: -1,
+  depth: -1,
+  rateIn: 0,
+  rateOut: 0,
+  attributes: { exchangeType: type, durable: "true", internal: "false", ...extra },
+});
+
+const binding = (
+  source: string,
+  destination: string,
+  routingKey: string,
+  kind = "queue",
+  args: Record<string, string> = {},
+) => ({
+  id: 1,
+  namespace: "/",
+  source,
+  destination,
+  destinationKind: kind,
+  routingKey,
+  arguments: args,
+});
+
+describe("the RabbitMQ exchanges board", () => {
+  const renderWith = (over: Partial<BrokerState<unknown>>) => {
+    routingState.current = stateOf(over);
+    return render(<ExchangesRabbitMQ />);
+  };
+
+  it("draws a not-connected notice rather than an empty topology", () => {
+    expect(() => renderWith({ online: false })).not.toThrow();
+  });
+
+  it("draws a loading state without touching the data", () => {
+    expect(() => renderWith({ loading: true })).not.toThrow();
+  });
+
+  it("says the virtual host has none rather than showing a blank table", () => {
+    const html = renderWith({ data: { exchanges: [], bindings: [] } });
+    expect(html).toContain("没有交换机");
+  });
+
+  // Every virtual host has the built-in amq.* exchanges. Showing them by
+  // default would bury the handful an operator actually declared.
+  it("hides the built-in exchanges until asked for them", () => {
+    const html = renderWith({
+      data: {
+        exchanges: [exchange("amq.topic", "topic"), exchange("ex.order", "topic")],
+        bindings: [],
+      },
+    });
+    expect(html).toContain("ex.order");
+    expect(html).not.toContain("amq.topic");
+  });
+
+  it("counts the bindings leaving each exchange", () => {
+    const html = renderWith({
+      data: {
+        exchanges: [exchange("ex.order", "topic")],
+        bindings: [
+          binding("ex.order", "order.settle.q", "order.created"),
+          binding("ex.order", "order.notify.q", "order.updated"),
+          binding("ex.other", "elsewhere.q", "x"),
+        ],
+      },
+    });
+    // Two, not three: the third leaves a different exchange.
+    expect(html).toContain("ex.order");
+    expect(html).toMatch(/>2</);
+  });
+
+  // A fanout binds with no routing key at all; how that reads is covered by
+  // mq/rabbitmq/routing.test.ts, since it renders in the detail panel.
+  it("survives a binding with no routing key", () => {
+    expect(() =>
+      renderWith({
+        data: {
+          exchanges: [exchange("ex.broadcast", "fanout")],
+          bindings: [binding("ex.broadcast", "audit.q", "")],
+        },
+      }),
+    ).not.toThrow();
+  });
+
+  // An exchange with nothing bound silently drops everything published to it,
+  // which is worth saying rather than showing an empty box.
+  it("says what an unbound exchange does with its messages", () => {
+    const html = renderWith({
+      data: { exchanges: [exchange("ex.orphan", "direct")], bindings: [] },
+    });
+    expect(html).toContain("ex.orphan");
+  });
+
+  it("survives an exchange carrying arguments and an alternate exchange", () => {
+    expect(() =>
+      renderWith({
+        data: {
+          exchanges: [
+            exchange("ex.ae", "topic", {
+              arguments: JSON.stringify({ "alternate-exchange": "ex.unrouted" }),
+            }),
+          ],
+          bindings: [],
+        },
+      }),
     ).not.toThrow();
   });
 });

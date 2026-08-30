@@ -4,6 +4,7 @@
  * The keys are a contract with internal/driver/rabbitmq/destination.go.
  */
 import type { Destination } from "@bindings/model/models";
+import { DEFAULT_EXCHANGE } from "./routing";
 
 const AttrDurable = "durable";
 const AttrAutoDelete = "autoDelete";
@@ -158,5 +159,38 @@ export function featureTags(destination: Destination): string[] {
   if (exclusive(destination)) tags.push("exclusive");
   if (autoDelete(destination)) tags.push("auto-delete");
   if (!durable(destination)) tags.push("transient");
+  return tags;
+}
+
+/** Exchanges. An exchange travels as a Destination: it is named, published to,
+ * and has a rate - what it does not have is a depth, which is why that field
+ * carries the unknown sentinel. */
+const AttrInternal = "internal";
+
+export const internal = (destination: Destination): boolean =>
+  attr(destination, AttrInternal) === "true";
+
+export const exchangeLabel = (destination: Destination): string =>
+  destination.ref.name === "" ? DEFAULT_EXCHANGE : destination.ref.name;
+
+/** Where an exchange sends what it could not route, or "" for nowhere. */
+export function alternateExchange(destination: Destination): string {
+  const value = argumentsOf(destination)["alternate-exchange"];
+  return typeof value === "string" ? value : "";
+}
+
+/**
+ * The tags an exchange's row shows.
+ *
+ * Internal is the one that changes how a reader should treat the row: an
+ * internal exchange refuses direct publishes and exists only as a hop between
+ * other exchanges.
+ */
+export function exchangeTags(destination: Destination): string[] {
+  const tags: string[] = [];
+  if (internal(destination)) tags.push("internal");
+  if (!durable(destination)) tags.push("transient");
+  if (autoDelete(destination)) tags.push("auto-delete");
+  if (alternateExchange(destination) !== "") tags.push("AE");
   return tags;
 }

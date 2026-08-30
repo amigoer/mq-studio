@@ -566,3 +566,110 @@ func TestLiveQuorumQueueReportsItsReplicas(t *testing.T) {
 		t.Error("a quorum queue reported no members")
 	}
 }
+
+// Bindings, round trip. Declaring one and reading it back is what proves the
+// mapping survives rather than only reading well against a fixture.
+func TestLiveBindingRoundTrip(t *testing.T) {
+	conn := liveConn(t)
+	defer func() { _ = conn.Close() }()
+
+	ctx := context.Background()
+	const exchange = "mqs-test-ex"
+	const queue = "mqs-test-bound-q"
+	const routingKey = "order.created"
+
+	if err := exec(ctx, conn.mgmt, func(client *rabbithole.Client) (*http.Response, error) {
+		return client.DeclareExchange("/", exchange, rabbithole.ExchangeSettings{
+			Type: "topic", Durable: true,
+		})
+	}); err != nil {
+		t.Fatalf("declare exchange: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = exec(context.Background(), conn.mgmt, func(client *rabbithole.Client) (*http.Response, error) {
+			return client.DeleteExchange("/", exchange)
+		})
+	})
+
+	if err := exec(ctx, conn.mgmt, func(client *rabbithole.Client) (*http.Response, error) {
+		return client.DeclareQueue("/", queue, rabbithole.QueueSettings{Durable: true})
+	}); err != nil {
+		t.Fatalf("declare queue: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = exec(context.Background(), conn.mgmt, func(client *rabbithole.Client) (*http.Response, error) {
+			return client.DeleteQueue("/", queue)
+		})
+	})
+
+	if err := exec(ctx, conn.mgmt, func(client *rabbithole.Client) (*http.Response, error) {
+		return client.DeclareBinding("/", rabbithole.BindingInfo{
+			Source: exchange, Destination: queue, DestinationType: "queue", RoutingKey: routingKey,
+		})
+	}); err != nil {
+		t.Fatalf("declare binding: %v", err)
+	}
+
+	bindings, err := conn.ListBindings(ctx, "/")
+	if err != nil {
+		t.Fatalf("list bindings: %v", err)
+	}
+	found := false
+	for _, binding := range bindings {
+		if binding.Source == exchange && binding.Destination == queue {
+			found = true
+			if binding.RoutingKey != routingKey {
+				t.Errorf("routingKey = %q, want %q", binding.RoutingKey, routingKey)
+			}
+			if binding.DestinationKind != "queue" {
+				t.Errorf("destinationKind = %q, want queue", binding.DestinationKind)
+			}
+		}
+	}
+	if !found {
+		t.Errorf("the binding just declared is not in the listing")
+	}
+
+	// The exchange has to come back with a depth of unknown rather than zero:
+	// it routes and holds nothing, and zero would read as an empty queue.
+	exchanges, err := conn.ListExchanges(ctx, "/")
+	if err != nil {
+		t.Fatalf("list exchanges: %v", err)
+	}
+	var declared *model.Destination
+	for _, found := range exchanges {
+		if found.Ref.Name == exchange {
+			declared = found
+		}
+	}
+	if declared == nil {
+		t.Fatal("the exchange just declared is not in the listing")
+	}
+	if declared.Depth != model.UnknownMetric {
+		t.Errorf("exchange depth = %d, want the unknown sentinel", declared.Depth)
+	}
+	if declared.Attributes[AttrExchangeType] != "topic" {
+		t.Errorf("exchangeType = %q", declared.Attributes[AttrExchangeType])
+	}
+}
+
+// Every virtual host has a default exchange with an empty name. It must come
+// through as itself rather than being dropped or renamed by the mapping.
+func TestLiveDefaultExchangeIsListed(t *testing.T) {
+	conn := liveConn(t)
+	defer func() { _ = conn.Close() }()
+
+	exchanges, err := conn.ListExchanges(context.Background(), "/")
+	if err != nil {
+		t.Fatalf("list exchanges: %v", err)
+	}
+	for _, exchange := range exchanges {
+		if exchange.Ref.Name == "" {
+			if exchange.Attributes[AttrExchangeType] != "direct" {
+				t.Errorf("the default exchange is a %q", exchange.Attributes[AttrExchangeType])
+			}
+			return
+		}
+	}
+	t.Error("the default exchange is missing from the listing")
+}
