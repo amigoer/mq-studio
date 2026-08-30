@@ -261,3 +261,20 @@ func (s *Service) DeleteBinding(ctx context.Context, connID int, binding model.B
 	defer cancel()
 	return api.RemoveBinding(ctx, binding)
 }
+
+// Publish sends a message and reports what the broker did with it.
+//
+// The result is returned even alongside an error: a batch that failed halfway
+// has already sent what it counted, and a console that showed nothing would be
+// telling the user something untrue.
+func (s *Service) Publish(ctx context.Context, connID int, request model.PublishRequest) (*model.PublishResult, error) {
+	api, err := port[driver.RichPublisher](s, connID, model.CapPublishRich)
+	if err != nil {
+		return nil, err
+	}
+	// Its own timeout, like moving: a repeat count of a thousand is a thousand
+	// confirm round trips, which no page read is allowed to take.
+	ctx, cancel := context.WithTimeout(ctx, moveTimeout)
+	defer cancel()
+	return api.Publish(ctx, request)
+}

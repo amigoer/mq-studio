@@ -36,6 +36,7 @@ import { DlqPulsar } from "./boards/dlq/DlqPulsar";
 import { PelRedis } from "./boards/dlq/PelRedis";
 
 import { Producer } from "./boards/producer/Producer";
+import { ProducerRabbitMQ } from "./boards/producer/ProducerRabbitMQ";
 import { Alerts } from "./boards/alerts/Alerts";
 import { Acl } from "./boards/acl/Acl";
 
@@ -138,7 +139,14 @@ export function renderBoard(
   page: PageId,
   nav?: BoardNav,
 ): JSX.Element {
-  if (page === "producer") return <Producer protocol={protocol} nav={nav} />;
+  /* The send console is per family, not shared: RabbitMQ's collects an
+     exchange, a routing key, headers and AMQP properties, and the shared one
+     collects a topic, tags, keys and a delay level - RocketMQ's vocabulary, of
+     which only the body means anything here. */
+  if (page === "producer") {
+    if (protocol === "rabbitmq") return <ProducerRabbitMQ />;
+    return <Producer protocol={protocol} nav={nav} />;
+  }
   /* Alerts is one board for every family: the rules are numeric comparisons
      over a cluster snapshot, with nothing protocol-specific to draw. */
   if (page === "alerts") return <Alerts onOpenSettings={nav?.onOpenAlertSettings} />;

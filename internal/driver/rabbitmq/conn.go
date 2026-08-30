@@ -89,6 +89,7 @@ func capabilities() []model.Capability {
 		model.CapMessageQuery,
 		model.CapDeadLetterTopology,
 		model.CapPublish,
+		model.CapPublishRich,
 
 		model.CapClusterTopology,
 		model.CapClusterMetrics,

@@ -47,6 +47,7 @@ export {
     MoveInput,
     PolicyInput,
     PrincipalInput,
+    PublishInput,
     QueueInput,
     QueueOffsetInput,
     ReplayInput,

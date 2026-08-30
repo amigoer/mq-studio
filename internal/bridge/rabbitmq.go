@@ -185,3 +185,47 @@ func (s *RabbitMQService) DeclareBinding(connID int, input BindingInput) error {
 func (s *RabbitMQService) DeleteBinding(connID int, input BindingInput) error {
 	return s.service.DeleteBinding(context.Background(), connID, input.binding())
 }
+
+// PublishInput is the send console's form.
+type PublishInput struct {
+	Vhost string `json:"vhost"`
+	// Exchange empty is the default exchange, which routes by queue name.
+	Exchange      string            `json:"exchange"`
+	RoutingKey    string            `json:"routingKey"`
+	Body          string            `json:"body"`
+	Persistent    bool              `json:"persistent"`
+	Mandatory     bool              `json:"mandatory"`
+	Headers       map[string]string `json:"headers"`
+	ContentType   string            `json:"contentType"`
+	CorrelationID string            `json:"correlationId"`
+	ReplyTo       string            `json:"replyTo"`
+	MessageID     string            `json:"messageId"`
+	Type          string            `json:"type"`
+	AppID         string            `json:"appId"`
+	Expiration    string            `json:"expiration"`
+	Priority      int               `json:"priority"`
+	Count         int               `json:"count"`
+}
+
+// Publish sends a message and reports how many the broker kept and how many it
+// handed back as unroutable. Those are two different facts.
+func (s *RabbitMQService) Publish(connID int, input PublishInput) (*model.PublishResult, error) {
+	return s.service.Publish(context.Background(), connID, model.PublishRequest{
+		Namespace:     input.Vhost,
+		Exchange:      input.Exchange,
+		RoutingKey:    input.RoutingKey,
+		Body:          input.Body,
+		Persistent:    input.Persistent,
+		Mandatory:     input.Mandatory,
+		Headers:       input.Headers,
+		ContentType:   input.ContentType,
+		CorrelationID: input.CorrelationID,
+		ReplyTo:       input.ReplyTo,
+		MessageID:     input.MessageID,
+		Type:          input.Type,
+		AppID:         input.AppID,
+		Expiration:    input.Expiration,
+		Priority:      input.Priority,
+		Count:         input.Count,
+	})
+}

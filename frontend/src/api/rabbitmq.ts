@@ -14,6 +14,7 @@ import type {
   ClientChannel,
   ClientConnection,
   DeadLetterQueue,
+  PublishResult,
 } from "@bindings/model/models";
 import { present } from "./client";
 
@@ -27,6 +28,7 @@ export type {
   DeadLetterSource,
   DeprecatedFeature,
   FeatureFlag,
+  PublishResult,
   HealthCheck,
   ResourceAlarm,
 } from "@bindings/model/models";
@@ -160,3 +162,33 @@ export const declareBinding = (connID: number, binding: BindingInput): Promise<v
 
 export const deleteBinding = (connID: number, binding: BindingInput): Promise<void> =>
   RabbitMQService.DeleteBinding(connID, binding);
+
+export interface PublishInput {
+  vhost: string;
+  /** Empty is the default exchange, which routes by queue name. */
+  exchange: string;
+  routingKey: string;
+  body: string;
+  persistent: boolean;
+  mandatory: boolean;
+  headers: Record<string, string>;
+  contentType: string;
+  correlationId: string;
+  replyTo: string;
+  messageId: string;
+  type: string;
+  appId: string;
+  expiration: string;
+  priority: number;
+  count: number;
+}
+
+/**
+ * Sends a message and reports what the broker did with it.
+ *
+ * Sent and unroutable are two different facts: a confirm means the broker took
+ * the message, routing means something was bound to receive it. An unroutable
+ * publish is confirmed and then dropped.
+ */
+export const publish = (connID: number, input: PublishInput): Promise<PublishResult | null> =>
+  RabbitMQService.Publish(connID, input);

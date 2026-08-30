@@ -2027,7 +2027,42 @@
       "loadSample": "载入示例",
       "reset": "重置",
       "resetHint": "清空表单，并删除该 Topic 已保存的内容",
-      "draftRestored": "已恢复该 Topic 上次发送的内容"
+      "draftRestored": "已恢复该 Topic 上次发送的内容",
+      "rabbitmq": {
+        "title": "发送消息",
+        "subtitle": "发到交换机或直接发到队列，等 broker 确认",
+        "destination": "目标",
+        "addressing": "寻址方式",
+        "addressingHint": {
+          "queue": "走默认交换机，以队列名作为路由键 —— 这就是 AMQP 里「发给某个队列」的含义",
+          "exchange": "发到具名交换机，由它按路由键决定投递到哪些队列"
+        },
+        "pickQueue": "选择队列",
+        "pickExchange": "选择交换机",
+        "queueRequired": "请选择目标队列",
+        "exchangeRequired": "请选择目标交换机",
+        "bodyRequired": "消息体不能为空",
+        "countRange": "发送条数需在 1-1000 之间",
+        "persistent": "持久化",
+        "persistentHint": "关闭后消息只在内存中，节点重启即丢失 —— 即使队列本身是持久化的",
+        "mandatory": "无法路由时退回",
+        "mandatoryHint": "关闭后，没有队列接收的消息会被 broker 丢弃并照样返回确认，这里就会把丢失报成成功",
+        "count": "发送条数",
+        "countHint": "同一条消息重复发送，用于压测或填充队列。每条都要等一次确认。",
+        "properties": "属性",
+        "contentType": "内容类型",
+        "headers": "Headers",
+        "headersHint": "一行一条，形如 kind=order。headers 交换机就是按这些匹配的。",
+        "expiration": "过期时间",
+        "expirationHint": "毫秒。单条消息的 TTL，超时后被丢弃或转入死信。",
+        "priority": "优先级",
+        "priorityHint": "仅在队列声明了 x-max-priority 时生效，否则被忽略",
+        "body": "消息体",
+        "send": "发送",
+        "sent": "已发送 {{count}} 条，broker 已确认",
+        "confirmed": "已确认",
+        "unroutable": "{{count}} 条无法路由"
+      }
     },
     "mqtt": {
       "topicTree": "主题树",

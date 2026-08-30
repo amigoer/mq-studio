@@ -704,6 +704,98 @@ export class PrincipalInput {
 }
 
 /**
+ * PublishInput is the send console's form.
+ */
+export class PublishInput {
+    "vhost": string;
+
+    /**
+     * Exchange empty is the default exchange, which routes by queue name.
+     */
+    "exchange": string;
+    "routingKey": string;
+    "body": string;
+    "persistent": boolean;
+    "mandatory": boolean;
+    "headers": { [_ in string]?: string };
+    "contentType": string;
+    "correlationId": string;
+    "replyTo": string;
+    "messageId": string;
+    "type": string;
+    "appId": string;
+    "expiration": string;
+    "priority": number;
+    "count": number;
+
+    /** Creates a new PublishInput instance. */
+    constructor($$source: Partial<PublishInput> = {}) {
+        if (!("vhost" in $$source)) {
+            this["vhost"] = "";
+        }
+        if (!("exchange" in $$source)) {
+            this["exchange"] = "";
+        }
+        if (!("routingKey" in $$source)) {
+            this["routingKey"] = "";
+        }
+        if (!("body" in $$source)) {
+            this["body"] = "";
+        }
+        if (!("persistent" in $$source)) {
+            this["persistent"] = false;
+        }
+        if (!("mandatory" in $$source)) {
+            this["mandatory"] = false;
+        }
+        if (!("headers" in $$source)) {
+            this["headers"] = {};
+        }
+        if (!("contentType" in $$source)) {
+            this["contentType"] = "";
+        }
+        if (!("correlationId" in $$source)) {
+            this["correlationId"] = "";
+        }
+        if (!("replyTo" in $$source)) {
+            this["replyTo"] = "";
+        }
+        if (!("messageId" in $$source)) {
+            this["messageId"] = "";
+        }
+        if (!("type" in $$source)) {
+            this["type"] = "";
+        }
+        if (!("appId" in $$source)) {
+            this["appId"] = "";
+        }
+        if (!("expiration" in $$source)) {
+            this["expiration"] = "";
+        }
+        if (!("priority" in $$source)) {
+            this["priority"] = 0;
+        }
+        if (!("count" in $$source)) {
+            this["count"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new PublishInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): PublishInput {
+        const $$createField6_0 = $$createType3;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("headers" in $$parsedSource) {
+            $$parsedSource["headers"] = $$createField6_0($$parsedSource["headers"]);
+        }
+        return new PublishInput($$parsedSource as Partial<PublishInput>);
+    }
+}
+
+/**
  * QueueInput is a queue declaration as the form collects it.
  * 
  * Nothing like TopicInput, and it should not be: a RocketMQ topic is read and

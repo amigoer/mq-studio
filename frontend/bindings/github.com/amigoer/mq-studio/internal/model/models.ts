@@ -609,6 +609,13 @@ export enum Capability {
     CapPublish = "message.publish",
 
     /**
+     * CapPublishRich is a send console that can set what the family's own
+     * protocol carries - an exchange and routing key, headers, and the
+     * delivery guarantees - rather than only a destination and a body.
+     */
+    CapPublishRich = "message.publishRich",
+
+    /**
      * CapProducerInspect is asking who is currently publishing. It needs a
      * producer group to ask about: the broker tracks connections per group and
      * offers no way to enumerate the groups themselves.
@@ -2201,6 +2208,57 @@ export class ProducerClient {
     static createFrom($$source: any = {}): ProducerClient {
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         return new ProducerClient($$parsedSource as Partial<ProducerClient>);
+    }
+}
+
+/**
+ * PublishResult is what the broker said about the send.
+ * 
+ * Confirmed and Routed are different facts and the difference is the whole
+ * point of this type. A confirm means the broker took responsibility for the
+ * message; routing means something was bound to receive it. An unroutable
+ * publish is confirmed and then dropped, so a page reporting only the confirm
+ * would call that a success.
+ */
+export class PublishResult {
+    /**
+     * Sent is how many the broker confirmed.
+     */
+    "sent": number;
+
+    /**
+     * Unroutable is how many it handed back because nothing was bound. They
+     * were not delivered anywhere, and on a mandatory publish that is the only
+     * way to find out.
+     */
+    "unroutable": number;
+
+    /**
+     * Reason is the broker's own words for the last message handed back.
+     */
+    "reason": string;
+
+    /** Creates a new PublishResult instance. */
+    constructor($$source: Partial<PublishResult> = {}) {
+        if (!("sent" in $$source)) {
+            this["sent"] = 0;
+        }
+        if (!("unroutable" in $$source)) {
+            this["unroutable"] = 0;
+        }
+        if (!("reason" in $$source)) {
+            this["reason"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new PublishResult instance from a string or object.
+     */
+    static createFrom($$source: any = {}): PublishResult {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new PublishResult($$parsedSource as Partial<PublishResult>);
     }
 }
 

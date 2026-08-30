@@ -129,6 +129,16 @@ export function MoveMessages(connID: number, input: $models.MoveInput): $Cancell
 }
 
 /**
+ * Publish sends a message and reports how many the broker kept and how many it
+ * handed back as unroutable. Those are two different facts.
+ */
+export function Publish(connID: number, input: $models.PublishInput): $CancellablePromise<model$0.PublishResult | null> {
+    return $Call.ByID(718367916, connID, input).then(($result: any) => {
+        return $$createType14($result);
+    });
+}
+
+/**
  * PurgeQueue drops everything a queue is holding. There is no undo.
  */
 export function PurgeQueue(connID: number, vhost: string, name: string): $CancellablePromise<void> {
@@ -156,3 +166,5 @@ const $$createType9 = $Create.Nullable($$createType8);
 const $$createType10 = $Create.Array($$createType9);
 const $$createType11 = model$0.BrokerHealth.createFrom;
 const $$createType12 = $Create.Nullable($$createType11);
+const $$createType13 = model$0.PublishResult.createFrom;
+const $$createType14 = $Create.Nullable($$createType13);

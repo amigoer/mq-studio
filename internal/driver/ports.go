@@ -188,6 +188,18 @@ type MessagePublisher interface {
 	SendMessage(ctx context.Context, topic, tags, keys, body string, delayLevel int) (string, error)
 }
 
+// RichPublisher sends a message with everything the family's own protocol
+// carries, and reports what the broker did with it.
+//
+// Separate from MessagePublisher because that signature is RocketMQ's - a
+// topic, tags, keys and a delay level - and none of it but the body maps onto
+// AMQP. It also answers a different question: whether the broker kept the
+// message and whether anything was bound to receive it, which are two facts
+// and not one.
+type RichPublisher interface {
+	Publish(ctx context.Context, request model.PublishRequest) (*model.PublishResult, error)
+}
+
 // ProducerInspector reports who is currently publishing to a destination.
 //
 // It takes a producer group because that is what a broker indexes connections

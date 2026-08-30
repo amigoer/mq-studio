@@ -39,6 +39,7 @@ export {
     Node,
     NodeStatus,
     ProducerClient,
+    PublishResult,
     QueueAssignment,
     QueuePosition,
     ReplayResult,

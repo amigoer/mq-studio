@@ -2027,7 +2027,42 @@
       "loadSample": "Load sample",
       "reset": "Reset",
       "resetHint": "Clears the form and forgets what this topic had saved",
-      "draftRestored": "Restored what was last sent to this topic"
+      "draftRestored": "Restored what was last sent to this topic",
+      "rabbitmq": {
+        "title": "Publish",
+        "subtitle": "Send to an exchange or straight to a queue, and wait for the broker",
+        "destination": "Destination",
+        "addressing": "Addressing",
+        "addressingHint": {
+          "queue": "Through the default exchange with the queue's name as the routing key - which is what publishing to a queue means in AMQP",
+          "exchange": "To a named exchange, which decides from the routing key which queues receive it"
+        },
+        "pickQueue": "Pick a queue",
+        "pickExchange": "Pick an exchange",
+        "queueRequired": "Pick a target queue",
+        "exchangeRequired": "Pick a target exchange",
+        "bodyRequired": "The body cannot be empty",
+        "countRange": "Send between 1 and 1000",
+        "persistent": "Persistent",
+        "persistentHint": "Off, the message lives in memory only and is lost when the node restarts - even on a durable queue",
+        "mandatory": "Return if unroutable",
+        "mandatoryHint": "Off, a message no queue receives is dropped by the broker and still confirmed, so this console would report the loss as a success",
+        "count": "Copies",
+        "countHint": "Sends the same message repeatedly, for load or for filling a queue. Each waits for its own confirm.",
+        "properties": "Properties",
+        "contentType": "Content type",
+        "headers": "Headers",
+        "headersHint": "One per line, as kind=order. A headers exchange matches on exactly these.",
+        "expiration": "Expiration",
+        "expirationHint": "Milliseconds. A per-message TTL, after which it is dropped or dead-lettered.",
+        "priority": "Priority",
+        "priorityHint": "Only honoured on a queue declared with x-max-priority; ignored otherwise",
+        "body": "Body",
+        "send": "Send",
+        "sent": "{{count}} sent and confirmed",
+        "confirmed": "Confirmed",
+        "unroutable": "{{count}} could not be routed"
+      }
     },
     "mqtt": {
       "topicTree": "Topic tree",

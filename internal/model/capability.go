@@ -55,6 +55,11 @@ const (
 	CapMessageLiveTail Capability = "message.liveTail"
 	CapDLQ             Capability = "message.dlq"
 	CapPublish         Capability = "message.publish"
+
+	// CapPublishRich is a send console that can set what the family's own
+	// protocol carries - an exchange and routing key, headers, and the
+	// delivery guarantees - rather than only a destination and a body.
+	CapPublishRich Capability = "message.publishRich"
 	// CapProducerInspect is asking who is currently publishing. It needs a
 	// producer group to ask about: the broker tracks connections per group and
 	// offers no way to enumerate the groups themselves.

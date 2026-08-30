@@ -29,6 +29,7 @@ func backings() []capabilityBacking {
 	deadLetter := func(c Conn) bool { _, ok := c.(DeadLetterReader); return ok }
 	replayer := func(c Conn) bool { _, ok := c.(MessageReplayer); return ok }
 	publisher := func(c Conn) bool { _, ok := c.(MessagePublisher); return ok }
+	richPublisher := func(c Conn) bool { _, ok := c.(RichPublisher); return ok }
 	producers := func(c Conn) bool { _, ok := c.(ProducerInspector); return ok }
 	cluster := func(c Conn) bool { _, ok := c.(ClusterAdmin); return ok }
 	nodeConfig := func(c Conn) bool { _, ok := c.(ConfigInspector); return ok }
@@ -74,6 +75,7 @@ func backings() []capabilityBacking {
 		{model.CapMessageReplay, "MessageReplayer", replayer},
 		{model.CapPublish, "MessagePublisher", publisher},
 		{model.CapDelayedDelivery, "MessagePublisher", publisher},
+		{model.CapPublishRich, "RichPublisher", richPublisher},
 		{model.CapProducerInspect, "ProducerInspector", producers},
 
 		{model.CapClusterTopology, "ClusterAdmin", cluster},

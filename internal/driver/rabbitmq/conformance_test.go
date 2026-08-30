@@ -1689,3 +1689,101 @@ func TestLiveHeaderBindingsAreDistinguishedByArguments(t *testing.T) {
 		t.Errorf("%d bindings share %d properties keys", count, len(keys))
 	}
 }
+
+// Publishing with confirms, and every property surviving the round trip.
+func TestLivePublishWithConfirms(t *testing.T) {
+	conn := liveConnNamed(t, "publish")
+	defer func() { _ = conn.Close() }()
+
+	ctx := context.Background()
+	const queue = "mqs-test-publish"
+	publishTestMessages(t, conn, queue, nil, nil)
+
+	result, err := conn.Publish(ctx, model.PublishRequest{
+		RoutingKey:    queue,
+		Body:          `{"orderId":"1001"}`,
+		Persistent:    true,
+		Mandatory:     true,
+		ContentType:   "application/json",
+		CorrelationID: "corr-1",
+		ReplyTo:       "reply.q",
+		MessageID:     "msg-1",
+		Headers:       map[string]string{"kind": "order"},
+		Count:         3,
+	})
+	if err != nil {
+		t.Fatalf("publish: %v", err)
+	}
+	if result.Sent != 3 {
+		t.Errorf("sent = %d, want 3", result.Sent)
+	}
+	if result.Unroutable != 0 {
+		t.Errorf("unroutable = %d, want none", result.Unroutable)
+	}
+	waitForDepth(t, conn, queue, 3)
+
+	items, err := conn.QueryMessages(ctx, model.MessageQueryParams{Topic: queue, MaxResults: 1})
+	if err != nil {
+		t.Fatalf("browse: %v", err)
+	}
+	if len(items) != 1 {
+		t.Fatalf("browsed %d, want 1", len(items))
+	}
+	item := items[0]
+	for key, want := range map[string]string{
+		"contentType":   "application/json",
+		"correlationId": "corr-1",
+		"replyTo":       "reply.q",
+		"deliveryMode":  "persistent",
+		"header.kind":   "order",
+	} {
+		if item.Properties[key] != want {
+			t.Errorf("%s = %q, want %q", key, item.Properties[key], want)
+		}
+	}
+	if item.MessageID != "msg-1" {
+		t.Errorf("messageId = %q", item.MessageID)
+	}
+}
+
+// The failure this console exists to make visible: a confirm is not routing.
+// Without mandatory the broker drops the message and confirms it anyway, and
+// a page reading only the confirm would call that a success.
+func TestLiveUnroutablePublishIsReported(t *testing.T) {
+	conn := liveConnNamed(t, "publish-unroutable")
+	defer func() { _ = conn.Close() }()
+
+	result, err := conn.Publish(context.Background(), model.PublishRequest{
+		RoutingKey: "mqs-test-no-such-queue-at-all",
+		Body:       "into the void",
+		Persistent: true,
+		Mandatory:  true,
+		Count:      2,
+	})
+	if err != nil {
+		t.Fatalf("publish: %v", err)
+	}
+	// The broker did take them, which is what a confirm means.
+	if result.Sent != 2 {
+		t.Errorf("sent = %d, want 2 confirmed", result.Sent)
+	}
+	// And handed both back, which is the part that matters.
+	if result.Unroutable != 2 {
+		t.Errorf("unroutable = %d, want 2 - a confirm is not routing", result.Unroutable)
+	}
+	if result.Reason == "" {
+		t.Error("the broker's reason for handing them back was not reported")
+	}
+}
+
+// The canonical publish is the rich one with the fields RabbitMQ has no
+// counterpart for dropped - except the delay level, which is refused rather
+// than silently ignored.
+func TestLiveSendMessageRefusesADelayLevel(t *testing.T) {
+	conn := liveConn(t)
+	defer func() { _ = conn.Close() }()
+
+	if _, err := conn.SendMessage(context.Background(), "any", "", "", "body", 3); err == nil {
+		t.Error("a delay level was accepted; RabbitMQ has none, so the message would arrive at once")
+	}
+}
