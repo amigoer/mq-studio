@@ -422,7 +422,9 @@ function TopicSheet({
                       </TableRow>
                       {block.queues.map((queue) => (
                         <TableRow key={queue.queueId}>
-                          <TableCell className="mono3 pl-5">q{queue.queueId}</TableCell>
+                          <TableCell className="mono3" style={{ paddingLeft: "20px" }}>
+                            q{queue.queueId}
+                          </TableCell>
                           <TableCell className="mono3" style={{ textAlign: "right" }}>
                             {queue.minOffset.toLocaleString()} – {queue.maxOffset.toLocaleString()}
                           </TableCell>
