@@ -1,6 +1,7 @@
 import type { CSSProperties, ReactNode } from "react";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { MAX_HIGHLIGHT_LENGTH, tokenizeJson, type JsonTokenKind } from "@/lib/jsonTokens";
 
 /** The message-body card: a bordered, monospaced, lightly tinted JSON block. */
 export function JsonBlock({
@@ -37,6 +38,36 @@ export const JNum = ({ children }: { children: ReactNode }) => (
 export const JDim = ({ children }: { children: ReactNode }) => (
   <span className="text-muted-foreground">{children}</span>
 );
+
+/**
+ * The same three colours as the pair above, keyed by what the scanner found,
+ * for JSON nobody wrote by hand. A key keeps the body colour: it is the line's
+ * subject, so the value beside it is what the eye should land on.
+ */
+export const JSON_TOKEN_COLOR: Partial<Record<JsonTokenKind, string>> = {
+  string: "var(--c-ok-text)",
+  number: "var(--c-info-text)",
+  literal: "var(--c-info-text)",
+  punct: "var(--c-mono-dim)",
+};
+
+/**
+ * A JSON document, coloured. Give it text a caller has already established is
+ * JSON - a body that is not gets shown as it is, and colouring the numbers in
+ * a line of prose would only claim a structure it does not have.
+ */
+export function JsonText({ children }: { children: string }) {
+  if (children.length > MAX_HIGHLIGHT_LENGTH) return children;
+  return (
+    <>
+      {tokenizeJson(children).map((token, index) => (
+        <span key={index} style={{ color: JSON_TOKEN_COLOR[token.kind] }}>
+          {token.text}
+        </span>
+      ))}
+    </>
+  );
+}
 
 export type TraceStep = {
   title: ReactNode;

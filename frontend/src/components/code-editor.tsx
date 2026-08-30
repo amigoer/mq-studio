@@ -2,7 +2,8 @@ import { useCallback, useLayoutEffect, useMemo, useRef } from "react";
 import type { ComponentProps, CSSProperties } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { MAX_HIGHLIGHT_LENGTH, tokenizeJson, type JsonTokenKind } from "@/lib/jsonTokens";
+import { MAX_HIGHLIGHT_LENGTH, tokenizeJson } from "@/lib/jsonTokens";
+import { JSON_TOKEN_COLOR } from "./json-block";
 
 /**
  * The metrics both layers are laid out with. They have to agree to the pixel:
@@ -24,18 +25,6 @@ const METRICS: CSSProperties = {
   overflowWrap: "break-word",
   wordBreak: "normal",
   tabSize: 2,
-};
-
-/**
- * The same three colours the read-only JSON blocks use, plus a dimmed
- * structure: a key is the line's subject and keeps the body colour, so the
- * value beside it is what the eye lands on.
- */
-const TOKEN_COLOR: Partial<Record<JsonTokenKind, string>> = {
-  string: "var(--c-ok-text)",
-  number: "var(--c-info-text)",
-  literal: "var(--c-info-text)",
-  punct: "var(--c-mono-dim)",
 };
 
 /**
@@ -86,7 +75,7 @@ export function CodeEditor({
           style={METRICS}
         >
           {tokens.map((token, index) => (
-            <span key={index} style={{ color: TOKEN_COLOR[token.kind] }}>
+            <span key={index} style={{ color: JSON_TOKEN_COLOR[token.kind] }}>
               {token.text}
             </span>
           ))}

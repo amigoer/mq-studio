@@ -15,7 +15,17 @@ export { SettingRow } from "./setting-row";
 export { KV } from "./kv";
 export { SectionLabel } from "./section-label";
 export { Bar, MeterRow } from "./meter";
-export { JsonBlock, IND, JStr, JNum, JDim, Timeline, type TraceStep } from "./json-block";
+export {
+  JsonBlock,
+  JsonText,
+  JSON_TOKEN_COLOR,
+  IND,
+  JStr,
+  JNum,
+  JDim,
+  Timeline,
+  type TraceStep,
+} from "./json-block";
 export { CodeEditor } from "./code-editor";
 export { WarnBanner } from "./warn-banner";
 export { ChartBox } from "./chart-box";

@@ -18,6 +18,7 @@ import {
   DetailPanel,
   DetailPanelBody,
   JsonBlock,
+  JsonText,
   KV,
   ProtoBadge,
   SectionLabel,
@@ -54,12 +55,13 @@ function storedAt(item: MessageItem): string {
   return match?.[0] ?? (item.storeTime || "—");
 }
 
-function prettyBody(body: string): string {
+/** The body as it should read, and whether it is JSON worth colouring. */
+function prettyBody(body: string): { text: string; json: boolean } {
   try {
-    return JSON.stringify(JSON.parse(body), null, 2);
+    return { text: JSON.stringify(JSON.parse(body), null, 2), json: true };
   } catch {
     // Not every payload is JSON, and a body that is not gets shown as it is.
-    return body;
+    return { text: body, json: false };
   }
 }
 
@@ -261,6 +263,8 @@ function MessageSheet({
       .catch(() => {});
   };
 
+  const body = prettyBody(message.body);
+
   return (
     <DetailPanel width={440} onDismiss={onClose}>
       <div className="flex items-center gap-2 border-b bg-background px-4 py-3">
@@ -316,7 +320,9 @@ function MessageSheet({
 
         <div>
           <SectionLabel className="mb-1.5">{t("board.messages.rocketmq.body")}</SectionLabel>
-          <JsonBlock>{prettyBody(message.body)}</JsonBlock>
+          <JsonBlock>
+            {body.json ? <JsonText>{body.text}</JsonText> : body.text}
+          </JsonBlock>
         </div>
 
         <div className="min-h-0 flex-1">
