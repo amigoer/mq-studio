@@ -42,11 +42,6 @@ type AppSettings struct {
 	RequestTimeoutMs int    `json:"requestTimeoutMs"` // Request timeout (ms)
 	GlobalAccessKey  string `json:"globalAccessKey"`  // Default AccessKey
 	GlobalSecretKey  string `json:"globalSecretKey"`  // Default SecretKey
-	SkipTlsVerify    bool   `json:"skipTlsVerify"`    // Skip TLS verification
-	ProxyEnabled     bool   `json:"proxyEnabled"`     // Enable proxy
-	ProxyType        string `json:"proxyType"`        // Proxy type: "http" | "socks5"
-	ProxyHost        string `json:"proxyHost"`        // Proxy host
-	ProxyPort        string `json:"proxyPort"`        // Proxy port
 
 	// Monitoring and alerts
 	LagAlertThreshold    int  `json:"lagAlertThreshold"`    // Consumer lag alert threshold (0=disabled)
@@ -76,11 +71,6 @@ func DefaultSettings() *AppSettings {
 		RequestTimeoutMs:      5000,
 		GlobalAccessKey:       "",
 		GlobalSecretKey:       "",
-		SkipTlsVerify:         false,
-		ProxyEnabled:          false,
-		ProxyType:             "http",
-		ProxyHost:             "",
-		ProxyPort:             "",
 		LagAlertThreshold:     10000,
 		DiskAlertThreshold:    75,
 		DesktopNotifications:  false,

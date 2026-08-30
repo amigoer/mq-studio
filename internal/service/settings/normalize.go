@@ -58,9 +58,6 @@ func normalize(settings model.AppSettings) model.AppSettings {
 	if settings.FetchLimit <= 0 || settings.FetchLimit > 1000 {
 		settings.FetchLimit = defaults.FetchLimit
 	}
-	if settings.ProxyType != "http" && settings.ProxyType != "socks5" {
-		settings.ProxyType = defaults.ProxyType
-	}
 	settings.GlobalAccessKey = strings.TrimSpace(settings.GlobalAccessKey)
 	return settings
 }

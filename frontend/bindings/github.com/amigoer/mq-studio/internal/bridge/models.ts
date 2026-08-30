@@ -682,31 +682,6 @@ export class SettingsInput {
     "globalSecretKey": string;
 
     /**
-     * Skip TLS verification
-     */
-    "skipTlsVerify": boolean;
-
-    /**
-     * Enable proxy
-     */
-    "proxyEnabled": boolean;
-
-    /**
-     * Proxy type: "http" | "socks5"
-     */
-    "proxyType": string;
-
-    /**
-     * Proxy host
-     */
-    "proxyHost": string;
-
-    /**
-     * Proxy port
-     */
-    "proxyPort": string;
-
-    /**
      * Monitoring and alerts
      * Consumer lag alert threshold (0=disabled)
      */
@@ -786,21 +761,6 @@ export class SettingsInput {
         }
         if (!("globalSecretKey" in $$source)) {
             this["globalSecretKey"] = "";
-        }
-        if (!("skipTlsVerify" in $$source)) {
-            this["skipTlsVerify"] = false;
-        }
-        if (!("proxyEnabled" in $$source)) {
-            this["proxyEnabled"] = false;
-        }
-        if (!("proxyType" in $$source)) {
-            this["proxyType"] = "";
-        }
-        if (!("proxyHost" in $$source)) {
-            this["proxyHost"] = "";
-        }
-        if (!("proxyPort" in $$source)) {
-            this["proxyPort"] = "";
         }
         if (!("lagAlertThreshold" in $$source)) {
             this["lagAlertThreshold"] = 0;
@@ -910,31 +870,6 @@ export class SettingsView {
     "globalSecretKey": string;
 
     /**
-     * Skip TLS verification
-     */
-    "skipTlsVerify": boolean;
-
-    /**
-     * Enable proxy
-     */
-    "proxyEnabled": boolean;
-
-    /**
-     * Proxy type: "http" | "socks5"
-     */
-    "proxyType": string;
-
-    /**
-     * Proxy host
-     */
-    "proxyHost": string;
-
-    /**
-     * Proxy port
-     */
-    "proxyPort": string;
-
-    /**
      * Monitoring and alerts
      * Consumer lag alert threshold (0=disabled)
      */
@@ -1015,21 +950,6 @@ export class SettingsView {
         }
         if (!("globalSecretKey" in $$source)) {
             this["globalSecretKey"] = "";
-        }
-        if (!("skipTlsVerify" in $$source)) {
-            this["skipTlsVerify"] = false;
-        }
-        if (!("proxyEnabled" in $$source)) {
-            this["proxyEnabled"] = false;
-        }
-        if (!("proxyType" in $$source)) {
-            this["proxyType"] = "";
-        }
-        if (!("proxyHost" in $$source)) {
-            this["proxyHost"] = "";
-        }
-        if (!("proxyPort" in $$source)) {
-            this["proxyPort"] = "";
         }
         if (!("lagAlertThreshold" in $$source)) {
             this["lagAlertThreshold"] = 0;

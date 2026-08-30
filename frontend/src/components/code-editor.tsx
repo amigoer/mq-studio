@@ -104,6 +104,10 @@ export function CodeEditor({
         className={cn(
           "mono3 mqs-scroll absolute inset-0 size-full field-sizing-fixed min-h-0 resize-none",
           "border-transparent shadow-none focus-visible:border-transparent focus-visible:ring-0",
+          // Textarea eases its colour, and here that colour is the difference
+          // between showing the text and showing the layer under it: switching
+          // format would fade one out with nothing yet faded in.
+          "transition-none",
         )}
         style={{
           ...METRICS,

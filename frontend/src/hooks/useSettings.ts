@@ -25,7 +25,6 @@ export type { ThemeMode };
 export type Language = "en" | "zh";
 export type Timezone = "local" | "utc";
 export type TimestampFormat = "datetime" | "ms";
-export type ProxyType = "http" | "socks5";
 export type FetchLimit = 32 | 64 | 128;
 export type CloseBehavior = "minimizeToTray" | "quit";
 
@@ -47,11 +46,6 @@ export interface FrontendSettings {
   globalSecretKey: string;
   globalAccessKeyConfigured: boolean;
   globalSecretKeyConfigured: boolean;
-  skipTlsVerify: boolean;
-  proxyEnabled: boolean;
-  proxyType: ProxyType;
-  proxyHost: string;
-  proxyPort: string;
   timezone: Timezone;
   timestampFormat: TimestampFormat;
   autoFormatJson: boolean;
@@ -77,11 +71,6 @@ const DEFAULTS: FrontendSettings = {
   globalSecretKey: "",
   globalAccessKeyConfigured: false,
   globalSecretKeyConfigured: false,
-  skipTlsVerify: false,
-  proxyEnabled: false,
-  proxyType: "http",
-  proxyHost: "",
-  proxyPort: "",
   lagAlertThreshold: 10000,
   diskAlertThreshold: 75,
   desktopNotifications: false,
@@ -111,11 +100,6 @@ function toFrontend(s: AppSettings): FrontendSettings {
     globalSecretKey: s.globalSecretKey ?? "",
     globalAccessKeyConfigured: s.globalAccessKeyConfigured ?? false,
     globalSecretKeyConfigured: s.globalSecretKeyConfigured ?? false,
-    skipTlsVerify: s.skipTlsVerify ?? false,
-    proxyEnabled: s.proxyEnabled ?? false,
-    proxyType: (s.proxyType as ProxyType) || DEFAULTS.proxyType,
-    proxyHost: s.proxyHost ?? "",
-    proxyPort: s.proxyPort ?? "",
     lagAlertThreshold:
       typeof s.lagAlertThreshold === "number"
         ? s.lagAlertThreshold

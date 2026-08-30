@@ -24,7 +24,6 @@ func TestNormalizeEnforcesSettingsBounds(t *testing.T) {
 	input.TimestampFormat = "iso"
 	input.MaxPayloadRenderBytes = 1
 	input.FetchLimit = 1001
-	input.ProxyType = "ftp"
 	input.GlobalAccessKey = " access-key "
 
 	got := normalize(input)
@@ -50,7 +49,7 @@ func TestNormalizeEnforcesSettingsBounds(t *testing.T) {
 	if got.MaxPayloadRenderBytes != defaults.MaxPayloadRenderBytes || got.FetchLimit != defaults.FetchLimit {
 		t.Fatalf("payload settings were not normalized: %#v", got)
 	}
-	if got.ProxyType != defaults.ProxyType || got.GlobalAccessKey != "access-key" {
+	if got.GlobalAccessKey != "access-key" {
 		t.Fatalf("network settings were not normalized: %#v", got)
 	}
 }
