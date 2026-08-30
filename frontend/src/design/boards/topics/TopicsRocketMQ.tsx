@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { Fragment, useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ListArea, ListPane, Page, PageHeader, Toolbar } from "@/design/shell";
 import { Button } from "@/components/ui/button";
@@ -22,8 +22,10 @@ import {
   KV,
   MiniStat,
   ProtoBadge,
+  SectionLabel,
   SelectField,
   Status,
+  type StatusTone,
   useConfirm,
   useToast,
 } from "@/components";
@@ -35,6 +37,7 @@ import * as topicApi from "@/api/topic";
 import type { Destination } from "@/api/models";
 import { formatErrorMessage } from "@/lib/utils";
 import {
+  TopicPerm,
   UNKNOWN_METRIC,
   cluster,
   consumerGroups,
@@ -44,18 +47,10 @@ import {
   routes,
   topicName,
   writeQueue,
+  type TopicRouteItem,
 } from "@/mq/rocketmq/destinations";
 
-/*
- * The tab ids are the translation keys, so the selected tab is compared
- * against something stable rather than against a label that changes language.
- */
-const TAB_OVERVIEW = "board.common.overview";
-const TAB_QUEUES = "board.common.queue";
-const TAB_ROUTE = "board.topics.rocketmq.route";
-const SHEET_TABS = [TAB_OVERVIEW, TAB_QUEUES, TAB_ROUTE] as const;
-
-const SORTS = ["backlog", "name", "produce"] as const;
+const SORTS = ["name", "produce"] as const;
 type Sort = (typeof SORTS)[number];
 
 function metric(value: number): string {
@@ -83,9 +78,10 @@ export function TopicsRocketMQ() {
   const [dialog, setDialog] = useState<{ editing: string | null } | null>(null);
   const [showSystem, setShowSystem] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
-  const [tab, setTab] = useState<string>(SHEET_TABS[0]);
   const [query, setQuery] = useState("");
-  const [sort, setSort] = useState<Sort>("backlog");
+  // The name server hands topics back in no useful order, so name is the
+  // default rather than whatever the broker's own set iterates as.
+  const [sort, setSort] = useState<Sort>("name");
 
   const load = useCallback(
     (id: number) => (showSystem ? topicApi.getAllTopics(id) : topicApi.getTopics(id)),
@@ -100,9 +96,8 @@ export function TopicsRocketMQ() {
       needle === "" ? true : topicName(topic).toLowerCase().includes(needle),
     );
     return [...matched].sort((left, right) => {
-      if (sort === "name") return topicName(left).localeCompare(topicName(right));
       if (sort === "produce") return right.rateIn - left.rateIn;
-      return right.depth - left.depth;
+      return topicName(left).localeCompare(topicName(right));
     });
   }, [query, sort, topics]);
 
@@ -196,7 +191,6 @@ export function TopicsRocketMQ() {
                   <TableHead style={{ textAlign: "right" }}>{t("board.topics.rocketmq.queueRW")}</TableHead>
                   <TableHead style={{ textAlign: "right" }}>{t("board.common.produceTps")}</TableHead>
                   <TableHead style={{ textAlign: "right" }}>{t("board.common.consumerGroup")}</TableHead>
-                  <TableHead style={{ textAlign: "right" }}>{t("board.common.backlog")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -218,22 +212,12 @@ export function TopicsRocketMQ() {
                       <TableCell className="mono3" style={{ textAlign: "right", ...dim }}>
                         {metric(consumerGroups(topic))}
                       </TableCell>
-                      <TableCell
-                        className="mono3"
-                        style={{
-                          textAlign: "right",
-                          ...dim,
-                          ...(topic.depth > 0 && !internal ? { color: "var(--c-warn-text)" } : {}),
-                        }}
-                      >
-                        {metric(topic.depth)}
-                      </TableCell>
                     </TableRow>
                   );
                 })}
                 {rows.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={5} style={{ padding: "34px", textAlign: "center", color: "var(--c-muted)" }}>
+                    <TableCell colSpan={4} style={{ padding: "34px", textAlign: "center", color: "var(--c-muted)" }}>
                       {t(topics.length === 0 ? "board.topics.rocketmq.noTopics" : "board.common.noMatch")}
                     </TableCell>
                   </TableRow>
@@ -246,8 +230,6 @@ export function TopicsRocketMQ() {
             <TopicSheet
               key={topicName(current)}
               topic={current}
-              tab={tab}
-              onTabChange={setTab}
               onEdit={() => setDialog({ editing: topicName(current) })}
               onDelete={() => void remove(current)}
               onClose={() => setSelected(null)}
@@ -274,17 +256,75 @@ interface QueueRow {
   messages: number;
 }
 
+/** One broker: its route configuration, and the queues sitting on it. */
+interface BrokerBlock {
+  broker: string;
+  addr: string;
+  perm: TopicPerm | "";
+  readQueue: number;
+  writeQueue: number;
+  queues: QueueRow[];
+}
+
+const PERM_TONE: Record<string, StatusTone> = {
+  [TopicPerm.ReadWrite]: "ok",
+  [TopicPerm.ReadOnly]: "warn",
+  [TopicPerm.WriteOnly]: "warn",
+  [TopicPerm.Deny]: "err",
+};
+
+/*
+ * The route table and the per-queue offsets are both keyed by broker, so they
+ * are shown grouped rather than as two lists repeating the same broker names.
+ * A queue on a broker the route does not mention still gets a group, so a
+ * stale route cannot hide a queue that exists.
+ */
+function brokerBlocks(route: TopicRouteItem[], queues: QueueRow[]): BrokerBlock[] {
+  const blocks = new Map<string, BrokerBlock>();
+  for (const item of route) {
+    blocks.set(item.broker, {
+      broker: item.broker,
+      addr: item.brokerAddr,
+      perm: item.perm,
+      readQueue: item.readQueue,
+      writeQueue: item.writeQueue,
+      queues: [],
+    });
+  }
+  for (const queue of queues) {
+    let block = blocks.get(queue.brokerName);
+    if (block == null) {
+      block = {
+        broker: queue.brokerName,
+        addr: "",
+        perm: "",
+        readQueue: UNKNOWN_METRIC,
+        writeQueue: UNKNOWN_METRIC,
+        queues: [],
+      };
+      blocks.set(queue.brokerName, block);
+    }
+    block.queues.push(queue);
+  }
+  return [...blocks.values()];
+}
+
+/**
+ * The topic inspector: one scrolling column, no tabs.
+ *
+ * The overview / queues / routing tabs held about a dozen facts between them
+ * and showed a third of them at a time, in a panel with room for all of it.
+ *
+ * Backlog is not among those facts: RocketMQ reports no per-topic depth, only
+ * per-consumer-group, so the tile could never have read anything but a dash.
+ */
 function TopicSheet({
   topic,
-  tab,
-  onTabChange,
   onEdit,
   onDelete,
   onClose,
 }: {
   topic: Destination;
-  tab: string;
-  onTabChange: (tab: string) => void;
   onEdit: () => void;
   onDelete: () => void;
   onClose: () => void;
@@ -292,96 +332,124 @@ function TopicSheet({
   const { t } = useTranslation();
   const name = topicName(topic);
 
-  // Per-queue offsets are one request per topic, and only the 队列 tab shows
-  // them, so opening a topic to read its permissions does not pay for them.
+  // Per-queue offsets are one request per topic, now paid on open: the panel
+  // shows them without a tab to hide behind.
   const load = useCallback(
     (id: number) => topicApi.getTopicStats(id, name),
     [name],
   );
-  const stats = useBrokerData(load, { refreshMs: null, enabled: tab === TAB_QUEUES });
+  const stats = useBrokerData(load, { refreshMs: null });
   const queues = (stats.data?.["queues"] as QueueRow[] | undefined) ?? [];
-  const route = routes(topic);
+  const stored = stats.data?.["totalMessages"] as number | undefined;
+  const blocks = brokerBlocks(routes(topic), queues);
 
   return (
-    <DetailPanel onDismiss={onClose}>
+    <DetailPanel width={420} onDismiss={onClose}>
       <DetailPanelHeader
         title={name}
         badge={<ProtoBadge protocol="rocketmq" label="RMQ" />}
-        tabs={SHEET_TABS.map((id) => ({ id, label: t(id) }))}
-        activeTab={tab}
-        onTabChange={onTabChange}
         onClose={onClose}
       />
       <DetailPanelBody>
-        {tab === TAB_OVERVIEW && (
-          <>
-            <div className="grid grid-cols-2 gap-2">
-              <MiniStat label={t("board.common.produceTps")} value={metric(topic.rateIn)} />
-              <MiniStat
-                label={t("board.common.backlog")}
-                value={metric(topic.depth)}
-                color={topic.depth > 0 ? "var(--c-warn-text)" : undefined}
-              />
-            </div>
+        <div className="grid grid-cols-2 gap-2">
+          <MiniStat label={t("board.common.produceTps")} value={metric(topic.rateIn)} />
+          <MiniStat label={t("board.common.consumeTps")} value={metric(topic.rateOut)} />
+        </div>
 
-            <KV
-              rows={[
-                [t("board.topics.rocketmq.perm"), perm(topic)],
-                [t("board.topics.rocketmq.messageType"), messageType(topic)],
-                [
-                  t("board.common.queue"),
-                  `${metric(readQueue(topic))} / ${metric(writeQueue(topic))}`,
-                ],
-              ]}
-            />
-          </>
-        )}
+        <KV
+          rows={[
+            [t("board.topics.rocketmq.perm"), perm(topic)],
+            [t("board.topics.rocketmq.messageType"), messageType(topic)],
+            [
+              t("board.topics.rocketmq.queueRW"),
+              `${metric(readQueue(topic))} / ${metric(writeQueue(topic))}`,
+            ],
+            [t("board.common.consumerGroup"), metric(consumerGroups(topic))],
+            [t("board.common.cluster"), cluster(topic) || "—"],
+          ]}
+        />
 
-        {tab === TAB_QUEUES && (
-          <Card className="gap-0 overflow-hidden rounded-lg py-0">
-            {isBlocked(stats) ? (
-              <BoardState state={stats} />
-            ) : queues.length === 0 ? (
-              <Notice title={t("board.topics.rocketmq.noQueues")} />
-            ) : (
-              <Table className="text-xs">
+        <div>
+          <SectionLabel
+            className="mb-1.5"
+            actionColor="inherit"
+            action={
+              stats.loading ? (
+                <Spinner className="size-3" />
+              ) : stored == null ? null : (
+                t("board.topics.rocketmq.storedN", { n: stored.toLocaleString() })
+              )
+            }
+          >
+            {t("board.topics.rocketmq.brokerQueues")}
+          </SectionLabel>
+
+          {blocks.length === 0 ? (
+            <Notice title={t("board.topics.rocketmq.noRoute")} />
+          ) : (
+            <Card className="gap-0 overflow-hidden rounded-lg py-0">
+              <Table className="text-xs [&_td]:px-2.5 [&_th]:px-2.5">
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Broker</TableHead>
-                    <TableHead style={{ textAlign: "right" }}>{t("board.common.queue")}</TableHead>
-                    <TableHead style={{ textAlign: "right" }}>{t("board.topics.rocketmq.maxOffset")}</TableHead>
+                    <TableHead>{t("board.common.queue")}</TableHead>
+                    <TableHead style={{ textAlign: "right" }}>{t("board.common.offset")}</TableHead>
+                    <TableHead style={{ textAlign: "right" }}>
+                      {t("board.topics.rocketmq.messageCount")}
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {queues.map((queue) => (
-                    <TableRow key={`${queue.brokerName}-${queue.queueId}`}>
-                      <TableCell className="mono3">{queue.brokerName}</TableCell>
-                      <TableCell className="mono3" style={{ textAlign: "right" }}>
-                        q{queue.queueId}
-                      </TableCell>
-                      <TableCell className="mono3" style={{ textAlign: "right" }}>
-                        {queue.maxOffset.toLocaleString()}
-                      </TableCell>
-                    </TableRow>
+                  {blocks.map((block) => (
+                    <Fragment key={block.broker}>
+                      <TableRow className="bg-muted/40 hover:bg-muted/40">
+                        <TableCell colSpan={3} className="py-1.5">
+                          <span className="flex items-center gap-1.5">
+                            <b className="mono3 font-medium">{block.broker}</b>
+                            {block.perm !== "" && (
+                              <Status tone={PERM_TONE[block.perm] ?? "off"}>{block.perm}</Status>
+                            )}
+                            <span className="flex-1" />
+                            <span className="mono3 text-(--c-mono-dim)">
+                              {metric(block.readQueue)} / {metric(block.writeQueue)}
+                            </span>
+                          </span>
+                          {block.addr !== "" && (
+                            <span className="mono3 mt-0.5 block text-[10.5px] text-(--c-muted)">
+                              {block.addr}
+                            </span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                      {block.queues.map((queue) => (
+                        <TableRow key={queue.queueId}>
+                          <TableCell className="mono3 pl-5">q{queue.queueId}</TableCell>
+                          <TableCell className="mono3" style={{ textAlign: "right" }}>
+                            {queue.minOffset.toLocaleString()} – {queue.maxOffset.toLocaleString()}
+                          </TableCell>
+                          <TableCell className="mono3" style={{ textAlign: "right" }}>
+                            {queue.messages.toLocaleString()}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      {block.queues.length === 0 && stats.data != null && (
+                        <TableRow>
+                          <TableCell
+                            colSpan={3}
+                            style={{ textAlign: "center", color: "var(--c-muted)" }}
+                          >
+                            {t("board.topics.rocketmq.noQueues")}
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </Fragment>
                   ))}
                 </TableBody>
               </Table>
-            )}
-          </Card>
-        )}
+            </Card>
+          )}
 
-        {tab === TAB_ROUTE &&
-          (route.length === 0 ? (
-            <Notice title={t("board.topics.rocketmq.noRoute")} />
-          ) : (
-            <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-              {route.map((one) => (
-                <Status key={one.brokerAddr || one.broker} tone="ok">
-                  {one.broker} · {one.readQueue}/{one.writeQueue} · {one.perm}
-                </Status>
-              ))}
-            </div>
-          ))}
+          {stats.error != null && <BoardState state={stats} />}
+        </div>
       </DetailPanelBody>
       <DetailPanelFooter>
         <Button variant="outline" onClick={onEdit}>{t("board.common.edit")}</Button>

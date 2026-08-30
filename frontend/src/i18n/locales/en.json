@@ -1361,18 +1361,18 @@
         "unload": "Unload"
       },
       "rocketmq": {
-        "route": "Routing",
         "showSystem": "Show system topics",
         "queueRW": "Queues read/write",
         "perm": "Permissions",
         "messageType": "Message type",
-        "maxOffset": "Max offset",
+        "brokerQueues": "Brokers and queues",
+        "messageCount": "Messages",
+        "storedN": "{{n}} stored",
         "liveSubtitle": "{{count}} topics",
         "noTopics": "This cluster has no topics",
         "noQueues": "No queue data",
         "noRoute": "No route information",
         "sort": {
-          "backlog": "By backlog",
           "name": "By name",
           "produce": "By produce TPS"
         },

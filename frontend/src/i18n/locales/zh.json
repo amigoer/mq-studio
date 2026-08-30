@@ -1361,18 +1361,18 @@
         "unload": "卸载 unload"
       },
       "rocketmq": {
-        "route": "路由",
         "showSystem": "显示系统 Topic",
         "queueRW": "队列 读/写",
         "perm": "权限",
         "messageType": "消息类型",
-        "maxOffset": "最大位点",
+        "brokerQueues": "Broker 与队列",
+        "messageCount": "消息数",
+        "storedN": "共 {{n}} 条",
         "liveSubtitle": "{{count}} 个 Topic",
         "noTopics": "这个集群里没有 Topic",
         "noQueues": "没有队列数据",
         "noRoute": "没有路由信息",
         "sort": {
-          "backlog": "按积压",
           "name": "按名称",
           "produce": "按生产 TPS"
         },
