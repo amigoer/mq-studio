@@ -40,6 +40,7 @@ const queuesState = vi.hoisted(() => ({ current: null as unknown }));
 const routingState = vi.hoisted(() => ({ current: null as unknown }));
 const clientsState = vi.hoisted(() => ({ current: null as unknown }));
 const clusterState = vi.hoisted(() => ({ current: null as unknown }));
+const messagesState = vi.hoisted(() => ({ current: null as unknown }));
 
 vi.mock("@/hooks/rabbitmq/useRabbitOverview", () => ({
   useRabbitOverview: () => overviewState.current,
@@ -56,6 +57,9 @@ vi.mock("@/hooks/rabbitmq/useRabbitClients", () => ({
 vi.mock("@/hooks/rabbitmq/useRabbitCluster", () => ({
   useRabbitCluster: () => clusterState.current,
 }));
+vi.mock("@/hooks/rabbitmq/useRabbitMessages", () => ({
+  useRabbitMessages: () => messagesState.current,
+}));
 
 let render: (element: React.ReactElement) => string;
 let OverviewRabbitMQ: typeof import("./overview/OverviewRabbitMQ").OverviewRabbitMQ;
@@ -63,6 +67,7 @@ let QueuesRabbitMQ: typeof import("./topics/QueuesRabbitMQ").QueuesRabbitMQ;
 let ExchangesRabbitMQ: typeof import("./topics/ExchangesRabbitMQ").ExchangesRabbitMQ;
 let ChannelsRabbitMQ: typeof import("./consumers/ChannelsRabbitMQ").ChannelsRabbitMQ;
 let NodesRabbitMQ: typeof import("./cluster/NodesRabbitMQ").NodesRabbitMQ;
+let MessagesRabbitMQ: typeof import("./messages/MessagesRabbitMQ").MessagesRabbitMQ;
 
 beforeAll(async () => {
   const storage = { getItem: () => null, setItem() {}, removeItem() {} };
@@ -75,13 +80,15 @@ beforeAll(async () => {
   });
   vi.stubGlobal("localStorage", storage);
 
-  const [server, overview, queues, exchanges, clients, cluster, i18n] = await Promise.all([
+  const [server, overview, queues, exchanges, clients, cluster, messages, i18n] =
+    await Promise.all([
     import("react-dom/server"),
     import("./overview/OverviewRabbitMQ"),
     import("./topics/QueuesRabbitMQ"),
     import("./topics/ExchangesRabbitMQ"),
     import("./consumers/ChannelsRabbitMQ"),
     import("./cluster/NodesRabbitMQ"),
+    import("./messages/MessagesRabbitMQ"),
     import("@/i18n"),
   ]);
   await i18n.default.changeLanguage("zh");
@@ -91,6 +98,7 @@ beforeAll(async () => {
   ExchangesRabbitMQ = exchanges.ExchangesRabbitMQ;
   ChannelsRabbitMQ = clients.ChannelsRabbitMQ;
   NodesRabbitMQ = cluster.NodesRabbitMQ;
+  MessagesRabbitMQ = messages.MessagesRabbitMQ;
 });
 
 const census = {
@@ -631,5 +639,111 @@ describe("the RabbitMQ nodes board", () => {
 
   it("survives a broker with no nodes at all", () => {
     expect(() => renderWith({ data: { nodes: [], census, health: null } })).not.toThrow();
+  });
+});
+
+const browseState = (over: Record<string, unknown> = {}) => ({
+  items: [],
+  running: false,
+  lastCount: null,
+  browse: async () => {},
+  state: { loading: false, error: null, online: true, refresh: async () => {} },
+  ...over,
+});
+
+const amqpMessage = (id: number, properties: Record<string, string>, body = "payload") => ({
+  id,
+  cluster: "",
+  topic: "order.settle.q",
+  messageId: "",
+  tags: "",
+  keys: "",
+  queueId: -1,
+  queueOffset: -1,
+  storeHost: "",
+  bornHost: "",
+  storeTime: "",
+  storeTimestamp: 0,
+  status: "normal",
+  retryTimes: 0,
+  body,
+  properties,
+});
+
+describe("the RabbitMQ messages board", () => {
+  const renderWith = (over: Record<string, unknown>) => {
+    messagesState.current = browseState(over);
+    queuesState.current = stateOf({ data: [queue("order.settle.q", "5", "0", 1)] });
+    return render(<MessagesRabbitMQ />);
+  };
+
+  /*
+   * Browsing is a write in disguise, and the banner is the only place the user
+   * finds that out before doing it rather than from a monitoring alert after.
+   */
+  it("always warns that browsing alters the queue", () => {
+    expect(renderWith({})).toContain("浏览会改变队列");
+  });
+
+  it("asks for a queue before it has been given one", () => {
+    expect(renderWith({})).toContain("先选一个队列");
+  });
+
+  it("separates an empty result from never having asked", () => {
+    const asked = renderWith({ lastCount: 0 });
+    expect(asked).toContain("没有取到消息");
+    expect(asked).not.toContain("先选一个队列");
+  });
+
+  it("draws a failed browse rather than an empty list", () => {
+    const html = renderWith({
+      state: { loading: false, error: "consume: NOT_FOUND", online: true, refresh: async () => {} },
+    });
+    expect(html).not.toContain("order.created");
+  });
+
+  it("lists what came back with its routing key and exchange", () => {
+    const html = renderWith({
+      lastCount: 1,
+      items: [
+        amqpMessage(1, {
+          exchange: "ex.order",
+          routingKey: "order.created",
+          deliveryMode: "persistent",
+          redelivered: "false",
+        }),
+      ],
+    });
+    expect(html).toContain("order.created");
+    expect(html).toContain("ex.order");
+  });
+
+  // The default exchange has no name; a blank cell would leave the reader
+  // unable to tell that from a missing value.
+  it("names the default exchange rather than leaving the cell blank", () => {
+    const html = renderWith({
+      lastCount: 1,
+      items: [amqpMessage(1, { routingKey: "order.settle.q", deliveryMode: "persistent" })],
+    });
+    expect(html).toContain("默认交换机");
+  });
+
+  it("flags a redelivered or dead-lettered message in the row", () => {
+    const html = renderWith({
+      lastCount: 1,
+      items: [
+        amqpMessage(1, {
+          redelivered: "true",
+          deliveryMode: "transient",
+          "header.x-death": "[{count=4, queue=order.settle.q, reason=rejected}]",
+        }),
+      ],
+    });
+    expect(html).toContain("x-death 4");
+    expect(html).toContain("transient");
+  });
+
+  it("survives a message with no properties at all", () => {
+    expect(() => renderWith({ lastCount: 1, items: [amqpMessage(1, {})] })).not.toThrow();
   });
 });

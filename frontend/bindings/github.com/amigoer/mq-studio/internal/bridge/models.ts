@@ -425,6 +425,14 @@ export class MessageQuery {
     "startTime": number;
     "endTime": number;
 
+    /**
+     * Filters carries what only one family can narrow by, keyed by names that
+     * family's driver and its frontend module agree on - a RabbitMQ routing
+     * key or header, a Kafka header. Tag stays its own field because the
+     * RocketMQ form has always sent it there.
+     */
+    "filters": { [_ in string]?: string };
+
     /** Creates a new MessageQuery instance. */
     constructor($$source: Partial<MessageQuery> = {}) {
         if (!("topic" in $$source)) {
@@ -445,6 +453,9 @@ export class MessageQuery {
         if (!("endTime" in $$source)) {
             this["endTime"] = 0;
         }
+        if (!("filters" in $$source)) {
+            this["filters"] = {};
+        }
 
         Object.assign(this, $$source);
     }
@@ -453,7 +464,11 @@ export class MessageQuery {
      * Creates a new MessageQuery instance from a string or object.
      */
     static createFrom($$source: any = {}): MessageQuery {
+        const $$createField6_0 = $$createType7;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("filters" in $$parsedSource) {
+            $$parsedSource["filters"] = $$createField6_0($$parsedSource["filters"]);
+        }
         return new MessageQuery($$parsedSource as Partial<MessageQuery>);
     }
 }

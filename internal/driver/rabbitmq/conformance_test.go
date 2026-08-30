@@ -3,8 +3,10 @@ package rabbitmq
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 	"testing"
 	"time"
 
@@ -853,5 +855,225 @@ func TestLiveFeatureFlagsAreReadable(t *testing.T) {
 			t.Errorf("deprecated feature %q has phase %q, which is not a name",
 				feature.Name, feature.Phase)
 		}
+	}
+}
+
+// publishTestMessages puts n messages on a fresh queue and cleans it up.
+func publishTestMessages(t *testing.T, conn *Conn, queue string, bodies []string, headers []amqp.Table) {
+	t.Helper()
+	ctx := context.Background()
+
+	if err := exec(ctx, conn.mgmt, func(client *rabbithole.Client) (*http.Response, error) {
+		return client.DeclareQueue("/", queue, rabbithole.QueueSettings{Durable: true})
+	}); err != nil {
+		t.Fatalf("declare %q: %v", queue, err)
+	}
+	t.Cleanup(func() {
+		_ = exec(context.Background(), conn.mgmt, func(client *rabbithole.Client) (*http.Response, error) {
+			return client.DeleteQueue("/", queue)
+		})
+	})
+
+	err := conn.data.withChannel(ctx, func(channel *amqp.Channel) error {
+		for i, body := range bodies {
+			publishing := amqp.Publishing{
+				Body:         []byte(body),
+				DeliveryMode: amqp.Persistent,
+				MessageId:    fmt.Sprintf("id-%d", i),
+			}
+			if i < len(headers) {
+				publishing.Headers = headers[i]
+			}
+			if err := channel.PublishWithContext(ctx, "", queue, false, false, publishing); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("publish: %v", err)
+	}
+	waitForDepth(t, conn, queue, len(bodies))
+}
+
+// waitForDepth polls until the queue reports the depth expected. Publishing is
+// asynchronous without confirms, so the messages are not there the instant the
+// publish call returns.
+func waitForDepth(t *testing.T, conn *Conn, queue string, want int) {
+	t.Helper()
+	deadline := time.Now().Add(10 * time.Second)
+	for {
+		found, err := conn.DestinationDetail(context.Background(),
+			model.DestinationRef{Namespace: "/", Name: queue})
+		if err == nil && found.Attributes[AttrReady] == strconv.Itoa(want) {
+			return
+		}
+		if time.Now().After(deadline) {
+			depth := "unknown"
+			if err == nil {
+				depth = found.Attributes[AttrReady]
+			}
+			t.Fatalf("queue %q settled at %s ready, want %d", queue, depth, want)
+		}
+		time.Sleep(200 * time.Millisecond)
+	}
+}
+
+// The invariant the whole board rests on: browsing must put everything back.
+// If this ever fails, the page is silently eating production messages.
+func TestLiveBrowseDoesNotConsume(t *testing.T) {
+	conn := liveConnNamed(t, "browse-nondestructive")
+	defer func() { _ = conn.Close() }()
+
+	const queue = "mqs-test-browse"
+	publishTestMessages(t, conn, queue, []string{"one", "two", "three"}, nil)
+
+	items, err := conn.QueryMessages(context.Background(), model.MessageQueryParams{
+		Topic: queue, MaxResults: 10,
+	})
+	if err != nil {
+		t.Fatalf("browse: %v", err)
+	}
+	if len(items) != 3 {
+		t.Fatalf("browsed %d messages, want 3", len(items))
+	}
+	// Everything has to be back, ready to deliver, once the nack lands.
+	waitForDepth(t, conn, queue, 3)
+
+	// And a second browse must see the same three, which is what proves the
+	// first one did not take them.
+	again, err := conn.QueryMessages(context.Background(), model.MessageQueryParams{
+		Topic: queue, MaxResults: 10,
+	})
+	if err != nil {
+		t.Fatalf("second browse: %v", err)
+	}
+	if len(again) != 3 {
+		t.Errorf("the second browse found %d messages, want the same 3", len(again))
+	}
+}
+
+// A browse asking for fewer than the queue holds must return exactly that many
+// and leave the rest alone.
+func TestLiveBrowseHonoursTheRequestedCount(t *testing.T) {
+	conn := liveConnNamed(t, "browse-count")
+	defer func() { _ = conn.Close() }()
+
+	const queue = "mqs-test-browse-count"
+	publishTestMessages(t, conn, queue, []string{"a", "b", "c", "d", "e"}, nil)
+
+	items, err := conn.QueryMessages(context.Background(), model.MessageQueryParams{
+		Topic: queue, MaxResults: 2,
+	})
+	if err != nil {
+		t.Fatalf("browse: %v", err)
+	}
+	if len(items) != 2 {
+		t.Errorf("browsed %d messages, want the 2 asked for", len(items))
+	}
+	waitForDepth(t, conn, queue, 5)
+}
+
+// The management API's get endpoint could not honour a filter at all. This is
+// the reason browsing moved to AMQP.
+func TestLiveBrowseFiltersOnHeadersAndBody(t *testing.T) {
+	conn := liveConnNamed(t, "browse-filter")
+	defer func() { _ = conn.Close() }()
+
+	const queue = "mqs-test-browse-filter"
+	publishTestMessages(t, conn, queue,
+		[]string{"order created", "order shipped", "invoice raised"},
+		[]amqp.Table{{"kind": "order"}, {"kind": "order"}, {"kind": "invoice"}},
+	)
+
+	ctx := context.Background()
+	byBody, err := conn.QueryMessages(ctx, model.MessageQueryParams{
+		Topic: queue, MaxResults: 10,
+		Filters: map[string]string{FilterBody: "shipped"},
+	})
+	if err != nil {
+		t.Fatalf("browse by body: %v", err)
+	}
+	if len(byBody) != 1 || byBody[0].Body != "order shipped" {
+		t.Errorf("body filter returned %d items: %+v", len(byBody), byBody)
+	}
+	waitForDepth(t, conn, queue, 3)
+
+	byHeader, err := conn.QueryMessages(ctx, model.MessageQueryParams{
+		Topic: queue, MaxResults: 10,
+		Filters: map[string]string{FilterHeader: "kind=invoice"},
+	})
+	if err != nil {
+		t.Fatalf("browse by header: %v", err)
+	}
+	if len(byHeader) != 1 {
+		t.Errorf("header filter returned %d items, want 1", len(byHeader))
+	}
+	waitForDepth(t, conn, queue, 3)
+}
+
+// Every property the detail panel shows has to survive the round trip. The
+// management API flattened headers through JSON and lost their types.
+func TestLiveBrowseCarriesPropertiesAndHeaders(t *testing.T) {
+	conn := liveConnNamed(t, "browse-properties")
+	defer func() { _ = conn.Close() }()
+
+	const queue = "mqs-test-browse-props"
+	publishTestMessages(t, conn, queue, []string{"payload"},
+		[]amqp.Table{{"retries": int32(3), "source": "gateway"}})
+
+	items, err := conn.QueryMessages(context.Background(), model.MessageQueryParams{
+		Topic: queue, MaxResults: 1,
+	})
+	if err != nil {
+		t.Fatalf("browse: %v", err)
+	}
+	if len(items) != 1 {
+		t.Fatalf("browsed %d messages, want 1", len(items))
+	}
+
+	item := items[0]
+	if item.Properties["header.retries"] != "3" {
+		t.Errorf("header.retries = %q, want 3", item.Properties["header.retries"])
+	}
+	if item.Properties["header.source"] != "gateway" {
+		t.Errorf("header.source = %q", item.Properties["header.source"])
+	}
+	// Persistent decides whether the message survives a restart, so the word
+	// rather than the number 2.
+	if item.Properties["deliveryMode"] != "persistent" {
+		t.Errorf("deliveryMode = %q, want persistent", item.Properties["deliveryMode"])
+	}
+	if item.MessageID != "id-0" {
+		t.Errorf("messageId = %q", item.MessageID)
+	}
+	// AMQP has no partition and no offset. Zero would read as the first
+	// message on partition zero.
+	if item.QueueID != model.UnknownMetric || item.QueueOffset != model.UnknownMetric {
+		t.Errorf("queueId/offset = %d/%d, want the unknown sentinel", item.QueueID, item.QueueOffset)
+	}
+}
+
+// An empty queue is a result, not an error, and it must not hang waiting for
+// a message that is never coming.
+func TestLiveBrowseAnEmptyQueueReturnsQuickly(t *testing.T) {
+	conn := liveConnNamed(t, "browse-empty")
+	defer func() { _ = conn.Close() }()
+
+	const queue = "mqs-test-browse-empty"
+	publishTestMessages(t, conn, queue, nil, nil)
+
+	start := time.Now()
+	items, err := conn.QueryMessages(context.Background(), model.MessageQueryParams{
+		Topic: queue, MaxResults: 32,
+	})
+	if err != nil {
+		t.Fatalf("browse: %v", err)
+	}
+	if len(items) != 0 {
+		t.Errorf("an empty queue returned %d messages", len(items))
+	}
+	if elapsed := time.Since(start); elapsed > 5*time.Second {
+		t.Errorf("browsing an empty queue took %s", elapsed)
 	}
 }

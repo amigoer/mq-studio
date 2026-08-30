@@ -1,65 +1,16 @@
 package rabbitmq
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/url"
-	"strconv"
-	"time"
 
 	"github.com/amigoer/mq-studio/internal/model"
-	"github.com/amigoer/mq-studio/internal/timestamp"
 )
 
-// rabbit-hole does not wrap the message endpoints, so these two go through
-// mgmt.postJSON.
-
-// ackModeBrowse requeues what it reads instead of consuming it.
-//
-// It is the closest RabbitMQ offers to browsing, and it is still not a read.
-// The broker's own documentation says so: the endpoint is a POST because it
-// alters queue state. A requeued message keeps its position but comes back
-// flagged redelivered, and anything consuming concurrently sees the gap.
-const ackModeBrowse = "reject_requeue_true"
-
-type getMessagesRequest struct {
-	Count    int    `json:"count"`
-	AckMode  string `json:"ackmode"`
-	Encoding string `json:"encoding"`
-	Truncate int    `json:"truncate"`
-}
-
-type getMessagesResponse struct {
-	PayloadBytes int    `json:"payload_bytes"`
-	Redelivered  bool   `json:"redelivered"`
-	Exchange     string `json:"exchange"`
-	RoutingKey   string `json:"routing_key"`
-	MessageCount int    `json:"message_count"`
-	Payload      string `json:"payload"`
-	// A message with no properties comes back as [] rather than {}. Erlang
-	// encodes an empty map as an empty list, so decoding straight into a map
-	// fails on exactly the common case.
-	Properties messageProperties `json:"properties"`
-}
-
-// messageProperties decodes either shape the broker sends.
-type messageProperties map[string]any
-
-func (p *messageProperties) UnmarshalJSON(data []byte) error {
-	trimmed := bytes.TrimSpace(data)
-	if len(trimmed) == 0 || trimmed[0] == '[' || string(trimmed) == "null" {
-		*p = messageProperties{}
-		return nil
-	}
-	var decoded map[string]any
-	if err := json.Unmarshal(trimmed, &decoded); err != nil {
-		return err
-	}
-	*p = decoded
-	return nil
-}
+// Publishing still goes over the management API. It moves to AMQP with the
+// send console, where publisher confirms and the full property set are what
+// the page needs; browsing has already moved, in message_browse.go.
 
 type publishRequest struct {
 	Properties      map[string]any `json:"properties"`
@@ -68,41 +19,11 @@ type publishRequest struct {
 	PayloadEncoding string         `json:"payload_encoding"`
 }
 
+// Routed is the broker saying whether anything was bound to take the message.
+// It is not a delivery confirmation, which is one reason the send console
+// moves to AMQP.
 type publishResponse struct {
 	Routed bool `json:"routed"`
-}
-
-// maxBrowseBytes caps a payload so one oversized message cannot stall the page.
-const maxBrowseBytes = 50000
-
-// QueryMessages browses a queue.
-//
-// Everything the canonical params carry beyond the destination is ignored,
-// because there is nothing to honour: no message id to look up, no key index,
-// no time range. What comes back is the head of the queue.
-func (c *Conn) QueryMessages(ctx context.Context, params model.MessageQueryParams) ([]*model.MessageItem, error) {
-	count := params.MaxResults
-	if count <= 0 {
-		count = 32
-	}
-	body := getMessagesRequest{
-		Count:    count,
-		AckMode:  ackModeBrowse,
-		Encoding: "auto",
-		Truncate: maxBrowseBytes,
-	}
-
-	var fetched []getMessagesResponse
-	path := fmt.Sprintf("/api/queues/%s/%s/get", url.PathEscape(c.vhost), url.PathEscape(params.Topic))
-	if err := c.mgmt.postJSON(ctx, path, body, &fetched); err != nil {
-		return nil, fmt.Errorf("browse queue %q: %w", params.Topic, err)
-	}
-
-	items := make([]*model.MessageItem, 0, len(fetched))
-	for i := range fetched {
-		items = append(items, messageFromGet(params.Topic, &fetched[i]))
-	}
-	return items, nil
 }
 
 // MessageByID is not offered: RabbitMQ assigns no stable identifier a message
@@ -141,36 +62,4 @@ func (c *Conn) SendMessage(ctx context.Context, topic, tags, keys, body string, 
 		return "", fmt.Errorf("published, but nothing is bound to route it to %q", topic)
 	}
 	return topic, nil
-}
-
-func messageFromGet(queue string, source *getMessagesResponse) *model.MessageItem {
-	properties := make(map[string]string, len(source.Properties))
-	for key, value := range source.Properties {
-		properties[key] = fmt.Sprint(value)
-	}
-	properties["redelivered"] = strconv.FormatBool(source.Redelivered)
-	if source.Exchange != "" {
-		properties["exchange"] = source.Exchange
-	}
-
-	messageID := ""
-	if raw, ok := source.Properties["message_id"]; ok {
-		messageID = fmt.Sprint(raw)
-	}
-
-	return &model.MessageItem{
-		Topic: queue,
-		// There is no broker-assigned id. The message's own message_id
-		// property is the only candidate and applications often leave it
-		// unset, so an absent one stays absent rather than being invented.
-		MessageID:      messageID,
-		Keys:           source.RoutingKey,
-		Body:           source.Payload,
-		Status:         model.MsgNormal,
-		StoreTime:      timestamp.Now(),
-		StoreTimestamp: time.Now().UnixMilli(),
-		QueueID:        model.UnknownMetric,
-		QueueOffset:    model.UnknownMetric,
-		Properties:     properties,
-	}
 }
