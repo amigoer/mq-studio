@@ -1493,6 +1493,8 @@
         "noGroups": "这个集群里没有消费组",
         "noSubs": "没有订阅关系",
         "noClients": "没有在线客户端",
+        "clientsUnknown": "客户端未知",
+        "clientsUnknownHint": "Broker 没有返回这个组的连接信息，无法确认有没有客户端在消费。",
         "noQueues": "没有队列消费进度",
         "position": "位点 消费/最新",
         "lastConsumed": "最后消费",

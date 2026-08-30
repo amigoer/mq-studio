@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strings"
 	"sync"
 
 	"github.com/amigoer/mq-studio/internal/driver/rocketmq/mqoffset"
@@ -50,6 +51,9 @@ func (c *Conn) enrichConsumerGroup(ctx context.Context, item *model.ConsumerGrou
 		item.OnlineClients = len(connectionInfo.ConnectionSet)
 		if item.OnlineClients > 0 {
 			item.Status = model.GroupOnline
+			// The only place the message model can be read: the subscription
+			// config carries a broadcast permission, not the mode in use.
+			item.ConsumeMode = consumeModeFrom(connectionInfo.MessageModel)
 		} else {
 			item.Status = model.GroupOffline
 		}
@@ -79,8 +83,17 @@ func (c *Conn) enrichConsumerGroup(ctx context.Context, item *model.ConsumerGrou
 		item.TopicCount = len(item.Subscriptions)
 		return nil
 	})
+	// A group nobody is attached to is answered with CONSUMER_NOT_ONLINE, which
+	// the library reports as ErrConsumerGroupNotFound. That is an answer, not a
+	// failure - treating it as one is what made an idle group show as healthy,
+	// because the pages only ever look for the offline status.
 	if connectionErr != nil {
-		item.Status = model.GroupWarning
+		if errors.Is(connectionErr, admin.ErrConsumerGroupNotFound) {
+			item.Status = model.GroupOffline
+		} else {
+			item.Status = model.GroupWarning
+			item.OnlineClients = model.UnknownMetric
+		}
 	}
 
 	_ = c.execWithTimeout(timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
@@ -131,4 +144,17 @@ func (c *Conn) enrichConsumerGroup(ctx context.Context, item *model.ConsumerGrou
 		return nil
 	})
 	item.LastUpdate = timestamp.Now()
+}
+
+// consumeModeFrom maps the message model a client reports onto the canonical
+// mode. Anything unrecognised stays unknown rather than guessing clustering.
+func consumeModeFrom(messageModel string) model.ConsumeMode {
+	switch strings.ToUpper(strings.TrimSpace(messageModel)) {
+	case string(model.ModeBroadcasting):
+		return model.ModeBroadcasting
+	case string(model.ModeClustering):
+		return model.ModeClustering
+	default:
+		return model.ModeUnknown
+	}
 }

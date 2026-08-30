@@ -1493,6 +1493,8 @@
         "noGroups": "This cluster has no consumer groups",
         "noSubs": "No subscriptions",
         "noClients": "No client connected",
+        "clientsUnknown": "Clients unknown",
+        "clientsUnknownHint": "The broker did not return this group's connection info, so whether anything is consuming is unknown.",
         "noQueues": "No per-queue progress",
         "position": "Offset consumed/latest",
         "lastConsumed": "Last consumed",

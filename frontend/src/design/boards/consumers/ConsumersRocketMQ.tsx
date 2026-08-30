@@ -1,7 +1,7 @@
-import { Fragment, useCallback, useMemo, useState } from "react";
+import { Fragment, useCallback, useMemo, useState, type CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
-import { RefreshCw } from "lucide-react";
-import { ListArea, ListPane, Page, PageHeader, Toolbar } from "@/design/shell";
+import type { TFunction } from "i18next";
+import { ListArea, ListPane, Page, PageHeader, RefreshButton, Toolbar } from "@/design/shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
@@ -33,7 +33,7 @@ import { useBrokerData } from "@/hooks/useBrokerData";
 import { useSettings } from "@/hooks/useSettings";
 import { useConnectionScope } from "@/mq/ConnectionScope";
 import { useCapabilities } from "@/mq/capabilities";
-import { Capability } from "@bindings/model/models";
+import { Capability, SubscriptionStatus } from "@bindings/model/models";
 import { CloneOffsetDialog } from "./CloneOffsetDialog";
 import { QueueOffsetDialog, type QueueTarget } from "./QueueOffsetDialog";
 import { ResetOffsetDialog } from "./ResetOffsetDialog";
@@ -72,6 +72,53 @@ const UNKNOWN = -1;
 
 function metric(value: number): string {
   return value === UNKNOWN ? "—" : value.toLocaleString();
+}
+
+/** A group nobody could be asked about: the broker did not answer for it. */
+function statusUnknown(group: Subscription): boolean {
+  return group.status === SubscriptionStatus.SubscriptionWarning;
+}
+
+function modeText(group: Subscription, t: TFunction): string {
+  const mode = consumeMode(group);
+  if (mode == null) return "—";
+  return t(
+    mode === ConsumeMode.Broadcasting
+      ? "board.consumers.rocketmq.broadcast"
+      : "board.common.cluster",
+  );
+}
+
+/**
+ * The chip the row and the panel header both carry.
+ *
+ * Offline and unknown are separate answers - the broker said nobody is
+ * attached, versus it did not answer at all - and collapsing them is what let
+ * a group with no consumers show a healthy badge.
+ */
+function GroupStatus({
+  group,
+  alerting,
+  style,
+}: {
+  group: Subscription;
+  alerting: boolean;
+  style?: CSSProperties;
+}) {
+  const { t } = useTranslation();
+  const [tone, key] =
+    group.status === SubscriptionStatus.SubscriptionOffline
+      ? (["off", "board.consumers.rocketmq.noClients"] as const)
+      : statusUnknown(group)
+        ? (["warn", "board.consumers.rocketmq.clientsUnknown"] as const)
+        : alerting
+          ? (["warn", "board.common.backlogAlert"] as const)
+          : (["ok", "board.common.healthy"] as const);
+  return (
+    <Status tone={tone} style={style}>
+      {t(key)}
+    </Status>
+  );
 }
 
 /**
@@ -179,10 +226,11 @@ export function ConsumersRocketMQ() {
         title={t("board.common.consumerGroup")}
         subtitle={t("board.consumers.rocketmq.liveSubtitle", { count: groups.length })}
         actions={
-          <Button variant="outline" disabled={state.refreshing || !state.online} onClick={() => void state.refresh()}>
-            {state.refreshing && <RefreshCw size={12} className="mqs-turning" aria-hidden />}
-            {t("board.common.refresh")}
-          </Button>
+          <RefreshButton
+            refreshing={state.refreshing}
+            online={state.online}
+            onClick={() => void state.refresh()}
+          />
         }
       />
       <Toolbar>
@@ -228,7 +276,7 @@ export function ConsumersRocketMQ() {
                 {rows.map((group) => {
                   const name = groupName(group);
                   const backlog = group.backlog ?? 0;
-                  const offline = group.status === "offline";
+                  const offline = group.status === SubscriptionStatus.SubscriptionOffline;
                   const alerting = backlog > lagThreshold;
                   const dim = offline ? { color: "var(--c-muted)" } : undefined;
                   return (
@@ -239,13 +287,7 @@ export function ConsumersRocketMQ() {
                       <TableCell className="mono3" style={{ ...R, ...dim }}>
                         {metric(group.destinations)}
                       </TableCell>
-                      <TableCell style={dim}>
-                        {t(
-                          consumeMode(group) === ConsumeMode.Broadcasting
-                            ? "board.consumers.rocketmq.broadcast"
-                            : "board.common.cluster",
-                        )}
-                      </TableCell>
+                      <TableCell style={dim}>{modeText(group, t)}</TableCell>
                       <TableCell className="mono3" style={{ ...R, ...dim }}>
                         {metric(group.members)}
                       </TableCell>
@@ -262,15 +304,7 @@ export function ConsumersRocketMQ() {
                         {dlqCount(group).toLocaleString()}
                       </TableCell>
                       <TableCell>
-                        <Status tone={offline ? "off" : alerting ? "warn" : "ok"}>
-                          {t(
-                            offline
-                              ? "board.consumers.rocketmq.noClients"
-                              : alerting
-                                ? "board.common.backlogAlert"
-                                : "board.common.healthy",
-                          )}
-                        </Status>
+                        <GroupStatus group={group} alerting={alerting} />
                       </TableCell>
                     </TableRow>
                   );
@@ -396,10 +430,22 @@ function GroupSheet({
   const { settings } = useSettings();
   const name = groupName(group);
   const backlog = group.backlog ?? 0;
-  const offline = group.status === "offline";
   const alerting = backlog > lagThreshold;
   const clients = clientsOf(group);
   const runtimeBlocked = useCapabilities().degradedReason(Capability.CapSubscriptionRuntime);
+
+  /* Which queues each client holds is what the members table wants next, and
+     the endpoint says why it cannot answer. Silence would read as RocketMQ
+     having no such concept. It is a footer under that table and nowhere else:
+     in the empty state it would read as the reason the group has no clients,
+     which is a different thing entirely and not this one. */
+  const runtimeNote =
+    runtimeBlocked == null ? null : (
+      <>
+        {t("board.consumers.rocketmq.runtimeBlocked")}
+        <span className="mt-1 block text-(--c-muted-2)">{runtimeBlocked}</span>
+      </>
+    );
 
   // One request per group, now paid on open: the queue progress no longer has
   // a tab to hide behind, and the group's consume TPS comes back with it.
@@ -413,27 +459,17 @@ function GroupSheet({
   const blocks = topicBlocks(subscriptionsOf(group), queues);
 
   return (
-    <DetailPanel width={460} onDismiss={onClose}>
+    <DetailPanel width={500} onDismiss={onClose}>
       <DetailPanelHeader
         title={name}
-        badge={
-          <Status tone={offline ? "off" : alerting ? "warn" : "ok"} style={{ fontSize: "10px" }}>
-            {t(
-              offline
-                ? "board.consumers.rocketmq.noClients"
-                : alerting
-                  ? "board.common.backlogAlert"
-                  : "board.common.healthy",
-            )}
-          </Status>
-        }
+        badge={<GroupStatus group={group} alerting={alerting} style={{ fontSize: "10px" }} />}
         onClose={onClose}
       />
       <DetailPanelBody>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px" }}>
           <MiniStat
             label={t("board.common.backlog")}
-            value={backlog.toLocaleString()}
+            value={metric(backlog)}
             color={alerting ? "var(--c-warn-text)" : undefined}
           />
           <MiniStat
@@ -445,14 +481,7 @@ function GroupSheet({
 
         <KV
           rows={[
-            [
-              t("board.common.mode"),
-              t(
-                consumeMode(group) === ConsumeMode.Broadcasting
-                  ? "board.consumers.rocketmq.broadcast"
-                  : "board.common.cluster",
-              ),
-            ],
+            [t("board.common.mode"), modeText(group, t)],
             [t("board.consumers.rocketmq.retryPolicy"), String(maxRetry(group))],
             [t("board.consumers.rocketmq.dlq"), dlqCount(group).toLocaleString()],
             [t("board.common.cluster"), cluster(group) || "—"],
@@ -462,7 +491,15 @@ function GroupSheet({
         <div>
           <SectionLabel className="mb-1.5">{t("board.common.members")}</SectionLabel>
           {clients.length === 0 ? (
-            <Notice title={t("board.consumers.rocketmq.noClients")} />
+            <Notice
+              title={t(
+                statusUnknown(group)
+                  ? "board.consumers.rocketmq.clientsUnknown"
+                  : "board.consumers.rocketmq.noClients",
+              )}
+            >
+              {statusUnknown(group) ? t("board.consumers.rocketmq.clientsUnknownHint") : null}
+            </Notice>
           ) : (
             <Panel style={{ overflow: "hidden" }}>
               <Table className="text-xs [&_td]:px-2.5 [&_th]:px-2.5">
@@ -487,16 +524,12 @@ function GroupSheet({
                   ))}
                 </TableBody>
               </Table>
+              {runtimeNote != null && (
+                <p className="m-0 border-t px-2.5 py-2 text-xs leading-relaxed text-(--c-muted)">
+                  {runtimeNote}
+                </p>
+              )}
             </Panel>
-          )}
-          {/* Which queues each client holds is what this table wants next, and
-              the endpoint says why it cannot answer. Silence would read as
-              RocketMQ having no such concept. */}
-          {runtimeBlocked != null && (
-            <p className="m-0 mt-1.5 text-xs leading-relaxed text-(--c-muted)">
-              {t("board.consumers.rocketmq.runtimeBlocked")}
-              <span className="mt-0.5 block text-(--c-muted-2)">{runtimeBlocked}</span>
-            </p>
           )}
         </div>
 
@@ -517,7 +550,16 @@ function GroupSheet({
                 <TableHeader>
                   <TableRow>
                     <TableHead>{t("board.common.queue")}</TableHead>
-                    <TableHead style={R}>{t("board.consumers.rocketmq.position")}</TableHead>
+                    {/* The last-consumed label belongs here, not on every row:
+                        repeated per queue it cost more width than the
+                        timestamps it introduced, and pushed the table into a
+                        horizontal scroll inside a panel this narrow. */}
+                    <TableHead style={R}>
+                      {t("board.consumers.rocketmq.position")}
+                      <span className="mt-0.5 block text-[10.5px] font-normal">
+                        {t("board.consumers.rocketmq.lastConsumed")}
+                      </span>
+                    </TableHead>
                     <TableHead style={R}>{t("board.common.backlog")}</TableHead>
                     <TableHead style={R}>{t("board.common.actions")}</TableHead>
                   </TableRow>
@@ -557,7 +599,6 @@ function GroupSheet({
                                 difference between a slow consumer and a
                                 stuck one once the backlog is non-zero. */}
                             <span className="mt-0.5 block text-[10.5px] text-(--c-muted)">
-                              {t("board.consumers.rocketmq.lastConsumed")}{" "}
                               {formatMessageTime(
                                 queue.lastConsumed,
                                 settings.timezone,

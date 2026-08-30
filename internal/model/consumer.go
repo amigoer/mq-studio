@@ -13,6 +13,9 @@ const (
 type ConsumeMode string
 
 const (
+	// ModeUnknown is a group whose message model nobody has reported yet.
+	// Only a connected client knows it, so an idle group keeps this.
+	ModeUnknown      ConsumeMode = ""
 	ModeClustering   ConsumeMode = "CLUSTERING"
 	ModeBroadcasting ConsumeMode = "BROADCASTING"
 )

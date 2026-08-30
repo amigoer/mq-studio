@@ -60,9 +60,15 @@ export const cluster = (subscription: Subscription): string =>
   attr(subscription, AttrCluster);
 export const remark = (subscription: Subscription): string =>
   attr(subscription, AttrRemark);
-export const consumeMode = (subscription: Subscription): ConsumeMode =>
-  (attr(subscription, AttrConsumeMode) ||
-    ConsumeMode.Clustering) as ConsumeMode;
+/**
+ * The message model, or null when nothing has reported one.
+ *
+ * A RocketMQ broker only learns it from a connected client - the subscription
+ * config carries a broadcast permission, not the mode in use - so an idle
+ * group has no mode rather than a clustering one.
+ */
+export const consumeMode = (subscription: Subscription): ConsumeMode | null =>
+  (attr(subscription, AttrConsumeMode) as ConsumeMode) || null;
 export const maxRetry = (subscription: Subscription): number =>
   numeric(subscription, AttrMaxRetry);
 export const retryQps = (subscription: Subscription): number =>

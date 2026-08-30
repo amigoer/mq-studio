@@ -59,10 +59,14 @@ func (c *Conn) GetConsumerGroups(ctx context.Context) ([]*model.ConsumerGroupIte
 			if _, exists := groupMap[groupName]; exists {
 				continue
 			}
+			// The mode stays unknown here on purpose: consumeBroadcastEnable
+			// is a permission the broker defaults to true, not the model in
+			// use, so reading it as the mode calls every untouched group
+			// broadcasting. enrichConsumerGroup fills in what a client reports.
 			item := &model.ConsumerGroupItem{
 				Group:         groupName,
 				Cluster:       brokerData.Cluster,
-				ConsumeMode:   model.ModeClustering,
+				ConsumeMode:   model.ModeUnknown,
 				Status:        model.GroupOffline,
 				Lag:           -1,
 				DLQ:           -1,
@@ -70,9 +74,6 @@ func (c *Conn) GetConsumerGroups(ctx context.Context) ([]*model.ConsumerGroupIte
 				LastUpdate:    timestamp.Now(),
 				Subscriptions: make([]model.GroupSubscription, 0),
 				Clients:       make([]model.GroupClient, 0),
-			}
-			if config.ConsumeBroadcastEnable {
-				item.ConsumeMode = model.ModeBroadcasting
 			}
 			groupMap[groupName] = item
 		}
@@ -114,7 +115,7 @@ func (c *Conn) GetConsumerGroupDetail(ctx context.Context, groupName string) (*m
 
 	item := &model.ConsumerGroupItem{
 		Group:         groupName,
-		ConsumeMode:   model.ModeClustering,
+		ConsumeMode:   model.ModeUnknown,
 		Status:        model.GroupOffline,
 		Lag:           -1,
 		DLQ:           -1,
@@ -126,9 +127,6 @@ func (c *Conn) GetConsumerGroupDetail(ctx context.Context, groupName string) (*m
 	if err == nil && groupConfig != nil {
 		item.Cluster = groupConfig.Cluster
 		item.MaxRetry = groupConfig.Config.RetryMaxTimes
-		if groupConfig.Config.ConsumeBroadcastEnable {
-			item.ConsumeMode = model.ModeBroadcasting
-		}
 	}
 
 	c.enrichConsumerGroup(ctx, item, nil)
