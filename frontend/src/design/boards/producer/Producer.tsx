@@ -167,8 +167,12 @@ export function Producer({ protocol }: { protocol: ProtocolId }) {
             <SectionLabel className="flex-none">{t("board.common.target")}</SectionLabel>
             {wired ? (
               <>
+                {/* The topic is the field that decides where the message
+                    goes, so it keeps a legible floor and Tag and Keys give up
+                    their width first - the reverse of what fixed widths beside
+                    a flexible one do on their own. */}
                 <Combobox
-                  className="min-w-0 flex-1"
+                  className="min-w-[9rem] flex-1"
                   value={topic}
                   onValueChange={setTopic}
                   options={offered.slice(0, 200)}
@@ -178,13 +182,13 @@ export function Producer({ protocol }: { protocol: ProtocolId }) {
                   emptyText={t("board.common.noMatch")}
                 />
                 <Input
-                  className="w-[130px] flex-none"
+                  className="min-w-[4.5rem] shrink grow-0 basis-[130px]"
                   placeholder="Tag"
                   value={tags}
                   onChange={(event) => setTags(event.target.value)}
                 />
                 <Input
-                  className="mono3 w-[170px] flex-none"
+                  className="mono3 min-w-[5.5rem] shrink grow-0 basis-[170px]"
                   placeholder="Keys"
                   value={keys}
                   onChange={(event) => setKeys(event.target.value)}

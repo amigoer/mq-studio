@@ -119,6 +119,17 @@
   #root {
     height: 100%;
     background: var(--c-bg);
+
+    /*
+     * A window, not a page. `.m3` already clips its own content, so in a
+     * browser nothing here scrolls anyway - but a WKWebView still rubber-bands
+     * the whole view on a two-finger scroll even when there is nothing to
+     * scroll to, and that elastic bounce is the loudest tell that an app is a
+     * web page in a window. `overflow: hidden` removes the scroll port,
+     * `overscroll-behavior: none` removes the bounce.
+     */
+    overflow: hidden;
+    overscroll-behavior: none;
   }
 
   body {

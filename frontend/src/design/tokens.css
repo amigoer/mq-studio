@@ -260,15 +260,23 @@
  */
 .mqs-linkbtn {
   border: 0;
-  padding: 0;
+  padding: 2px 6px;
+  margin: -2px -6px;
+  border-radius: 5px;
   background: none;
   font: inherit;
   color: var(--c-ok);
-  text-decoration: underline;
-  text-underline-offset: 2px;
-  cursor: pointer;
+  cursor: default;
+  transition: background var(--mo-fast);
 }
+/*
+ * No underline. An underlined coloured word is a hyperlink, and a hyperlink in
+ * a desktop window says "this navigates somewhere" about a control that
+ * formats a text box. The hover tint is what a native text button does
+ * instead: nothing until the pointer is on it, then a surface.
+ */
 .mqs-linkbtn:hover {
+  background: var(--c-fill);
   color: var(--c-fg);
 }
 /*
@@ -662,7 +670,10 @@ textarea.in3:focus,
 select.in3:focus { border-color: var(--c-border-strong); }
 
 /* Scrollbars inside the shell stay thin so the chrome metrics hold. */
-.mqs-scroll { overflow: auto; scrollbar-width: thin; scrollbar-color: var(--c-border-soft) transparent; }
+/* `overscroll-behavior: contain` keeps a list that has hit its end from
+   handing the gesture to the window behind it, which is what makes the whole
+   app appear to bounce when you were only scrolling a table. */
+.mqs-scroll { overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--c-border-soft) transparent; }
 .mqs-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
 .mqs-scroll::-webkit-scrollbar-thumb { background: var(--c-border-soft); border-radius: 99px; }
 .mqs-scroll::-webkit-scrollbar-track { background: transparent; }
