@@ -45,6 +45,37 @@ type MessageQueryParams struct {
 	Filters map[string]string `json:"filters"`
 }
 
+// TailCursor is where a tail has read to, per partition.
+//
+// An empty cursor means "start at the end": a tail opens on what arrives next
+// rather than replaying what is already stored, which is what the message
+// query is for.
+type TailCursor struct {
+	Positions []QueuePosition `json:"positions"`
+}
+
+// QueuePosition is one partition's place in a tail.
+type QueuePosition struct {
+	Node    string `json:"node"` // the broker holding it
+	QueueID int    `json:"queueId"`
+	Offset  int64  `json:"offset"`
+}
+
+// TailBatch is one poll's worth of a tail.
+type TailBatch struct {
+	// Messages are oldest first, which is the order a tail appends in.
+	Messages []*MessageItem `json:"messages"`
+
+	// Cursor is what to pass next time. It advances even when no message came
+	// back, because a partition can move on without this tail matching any.
+	Cursor TailCursor `json:"cursor"`
+
+	// Dropped counts messages that aged out of the log between two polls -
+	// a tail slower than the retention it is watching. Reporting it is the
+	// difference between a quiet tail and one that is silently losing.
+	Dropped int64 `json:"dropped"`
+}
+
 // MessageTrackItem holds message track information.
 type MessageTrackItem struct {
 	ConsumerGroup string `json:"consumerGroup"` // Consumer group

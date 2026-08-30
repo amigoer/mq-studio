@@ -24,6 +24,7 @@ func backings() []capabilityBacking {
 	cloner := func(c Conn) bool { _, ok := c.(OffsetCloner); return ok }
 	reader := func(c Conn) bool { _, ok := c.(MessageReader); return ok }
 	tracker := func(c Conn) bool { _, ok := c.(MessageTracker); return ok }
+	tailer := func(c Conn) bool { _, ok := c.(MessageTailer); return ok }
 	deadLetter := func(c Conn) bool { _, ok := c.(DeadLetterReader); return ok }
 	publisher := func(c Conn) bool { _, ok := c.(MessagePublisher); return ok }
 	producers := func(c Conn) bool { _, ok := c.(ProducerInspector); return ok }
@@ -54,6 +55,7 @@ func backings() []capabilityBacking {
 		{model.CapMessageQuery, "MessageReader", reader},
 		{model.CapMessageByID, "MessageReader", reader},
 		{model.CapMessageTrack, "MessageTracker", tracker},
+		{model.CapMessageLiveTail, "MessageTailer", tailer},
 		{model.CapDLQ, "DeadLetterReader", deadLetter},
 		{model.CapMessageResend, "DeadLetterReader", deadLetter},
 		{model.CapPublish, "MessagePublisher", publisher},
@@ -73,9 +75,6 @@ func backings() []capabilityBacking {
 
 // CheckConformance reports every way a connection's declared capabilities and
 // its implemented interfaces disagree. An empty result means they match.
-//
-// model.CapMessageLiveTail has no backing interface yet, because streaming
-// from Go to the renderer is not built; it is therefore not checked.
 func CheckConformance(conn Conn) []error {
 	capabilities := conn.Capabilities()
 	problems := make([]error, 0)

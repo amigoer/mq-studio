@@ -1474,6 +1474,41 @@ export class QueueAssignment {
 }
 
 /**
+ * QueuePosition is one partition's place in a tail.
+ */
+export class QueuePosition {
+    /**
+     * the broker holding it
+     */
+    "node": string;
+    "queueId": number;
+    "offset": number;
+
+    /** Creates a new QueuePosition instance. */
+    constructor($$source: Partial<QueuePosition> = {}) {
+        if (!("node" in $$source)) {
+            this["node"] = "";
+        }
+        if (!("queueId" in $$source)) {
+            this["queueId"] = 0;
+        }
+        if (!("offset" in $$source)) {
+            this["offset"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new QueuePosition instance from a string or object.
+     */
+    static createFrom($$source: any = {}): QueuePosition {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new QueuePosition($$parsedSource as Partial<QueuePosition>);
+    }
+}
+
+/**
  * ReplicaStatus is one follower's replication state.
  */
 export class ReplicaStatus {
@@ -1768,6 +1803,92 @@ export enum SubscriptionStatus {
     SubscriptionOffline = "offline",
 };
 
+/**
+ * TailBatch is one poll's worth of a tail.
+ */
+export class TailBatch {
+    /**
+     * Messages are oldest first, which is the order a tail appends in.
+     */
+    "messages": (MessageItem | null)[];
+
+    /**
+     * Cursor is what to pass next time. It advances even when no message came
+     * back, because a partition can move on without this tail matching any.
+     */
+    "cursor": TailCursor;
+
+    /**
+     * Dropped counts messages that aged out of the log between two polls -
+     * a tail slower than the retention it is watching. Reporting it is the
+     * difference between a quiet tail and one that is silently losing.
+     */
+    "dropped": number;
+
+    /** Creates a new TailBatch instance. */
+    constructor($$source: Partial<TailBatch> = {}) {
+        if (!("messages" in $$source)) {
+            this["messages"] = [];
+        }
+        if (!("cursor" in $$source)) {
+            this["cursor"] = (new TailCursor());
+        }
+        if (!("dropped" in $$source)) {
+            this["dropped"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new TailBatch instance from a string or object.
+     */
+    static createFrom($$source: any = {}): TailBatch {
+        const $$createField0_0 = $$createType24;
+        const $$createField1_0 = $$createType25;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("messages" in $$parsedSource) {
+            $$parsedSource["messages"] = $$createField0_0($$parsedSource["messages"]);
+        }
+        if ("cursor" in $$parsedSource) {
+            $$parsedSource["cursor"] = $$createField1_0($$parsedSource["cursor"]);
+        }
+        return new TailBatch($$parsedSource as Partial<TailBatch>);
+    }
+}
+
+/**
+ * TailCursor is where a tail has read to, per partition.
+ * 
+ * An empty cursor means "start at the end": a tail opens on what arrives next
+ * rather than replaying what is already stored, which is what the message
+ * query is for.
+ */
+export class TailCursor {
+    "positions": QueuePosition[];
+
+    /** Creates a new TailCursor instance. */
+    constructor($$source: Partial<TailCursor> = {}) {
+        if (!("positions" in $$source)) {
+            this["positions"] = [];
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new TailCursor instance from a string or object.
+     */
+    static createFrom($$source: any = {}): TailCursor {
+        const $$createField0_0 = $$createType27;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("positions" in $$parsedSource) {
+            $$parsedSource["positions"] = $$createField0_0($$parsedSource["positions"]);
+        }
+        return new TailCursor($$parsedSource as Partial<TailCursor>);
+    }
+}
+
 // Private type creation functions
 const $$createType0 = $Create.Array($Create.Any);
 const $$createType1 = AccessPolicy.createFrom;
@@ -1791,3 +1912,9 @@ const $$createType18 = QueueAssignment.createFrom;
 const $$createType19 = $Create.Array($$createType18);
 const $$createType20 = ConsumeThroughput.createFrom;
 const $$createType21 = $Create.Array($$createType20);
+const $$createType22 = MessageItem.createFrom;
+const $$createType23 = $Create.Nullable($$createType22);
+const $$createType24 = $Create.Array($$createType23);
+const $$createType25 = TailCursor.createFrom;
+const $$createType26 = QueuePosition.createFrom;
+const $$createType27 = $Create.Array($$createType26);

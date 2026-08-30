@@ -2,7 +2,9 @@ package app
 
 import (
 	"context"
+	"fmt"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -1169,4 +1171,78 @@ func TestLiveConsumeStatsQueues(t *testing.T) {
 		t.Fatalf("no row for %s among %d queues", seededTopic, len(queues))
 	}
 	t.Logf("%d queue row(s), %d of them on %s", len(queues), seeded, seededTopic)
+}
+
+// A tail opens on what happens next, then follows it.
+//
+// The three things worth proving against a real broker: an opening tail sees
+// nothing already stored, a message published after it opened comes back, and
+// the cursor it returns does not replay that message on the next poll.
+func TestLiveMessageTail(t *testing.T) {
+	connections, _, registry := liveStack(t)
+	ctx := context.Background()
+
+	profile, err := connections.AddConnection(liveProfileInput("tail"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := connections.Connect(profile.ID); err != nil {
+		t.Fatalf("connect: %v", err)
+	}
+	conn, _ := registry.Get(profile.ID)
+	tailer := conn.(driver.MessageTailer)
+	ref := model.DestinationRef{Name: seededTopic}
+
+	// Opening on a topic that already holds messages must come back empty.
+	opened, err := tailer.TailMessages(ctx, ref, model.TailCursor{}, 32)
+	if err != nil {
+		t.Fatalf("open tail: %v", err)
+	}
+	if len(opened.Messages) != 0 {
+		t.Fatalf("a tail opened on %d stored message(s); it should start at the end",
+			len(opened.Messages))
+	}
+	if len(opened.Cursor.Positions) == 0 {
+		t.Fatal("the opening tail returned no cursor")
+	}
+
+	marker := fmt.Sprintf("mq-studio-tail-%d", opened.Cursor.Positions[0].Offset)
+	publisher := conn.(driver.MessagePublisher)
+	if _, err := publisher.SendMessage(ctx, seededTopic, "", marker, `{"probe":"tail"}`, 0); err != nil {
+		t.Fatalf("send: %v", err)
+	}
+
+	// The broker stores asynchronously, so the message may need a poll or two.
+	var seen bool
+	cursor := opened.Cursor
+	for attempt := 0; attempt < 10 && !seen; attempt++ {
+		batch, err := tailer.TailMessages(ctx, ref, cursor, 32)
+		if err != nil {
+			t.Fatalf("tail poll: %v", err)
+		}
+		cursor = batch.Cursor
+		for _, message := range batch.Messages {
+			if strings.Contains(message.Keys, marker) {
+				seen = true
+			}
+		}
+		if !seen {
+			time.Sleep(300 * time.Millisecond)
+		}
+	}
+	if !seen {
+		t.Fatal("the tail never saw a message published after it opened")
+	}
+
+	// The cursor has to have moved past it: a tail that replays what it just
+	// showed would double every row on screen.
+	after, err := tailer.TailMessages(ctx, ref, cursor, 32)
+	if err != nil {
+		t.Fatalf("tail after: %v", err)
+	}
+	for _, message := range after.Messages {
+		if strings.Contains(message.Keys, marker) {
+			t.Fatal("the tail replayed a message its own cursor had passed")
+		}
+	}
 }

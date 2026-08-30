@@ -93,6 +93,23 @@ type MessageReader interface {
 	MessageByID(ctx context.Context, topic, messageID string) (*model.MessageItem, error)
 }
 
+// MessageTailer follows a destination's newest messages.
+//
+// Nothing here streams, and that is the family's doing rather than a shortcut:
+// no broker this app speaks to pushes admin data, so a tail is a poll however
+// it is dressed. What a driver contributes is making that poll incremental -
+// the caller hands back the cursor it was given and receives only what has
+// arrived since, instead of re-reading the end of the log every time and
+// working out the difference for itself.
+//
+// The caller owns the loop, because the caller owns the lifetime. A goroutine
+// started in Go would outlive the panel that asked for it whenever the
+// renderer forgot to say stop, and a tail that keeps pulling after its page is
+// gone is the one failure mode worth designing out.
+type MessageTailer interface {
+	TailMessages(ctx context.Context, ref model.DestinationRef, cursor model.TailCursor, limit int) (*model.TailBatch, error)
+}
+
 // MessageTracker reports where a message got to. Only RocketMQ has a trace.
 type MessageTracker interface {
 	TrackMessage(ctx context.Context, topic, messageID string) ([]*model.MessageTrackItem, error)

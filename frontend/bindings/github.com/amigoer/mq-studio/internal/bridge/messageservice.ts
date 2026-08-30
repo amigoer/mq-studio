@@ -78,11 +78,21 @@ export function Send(connID: number, input: $models.SendInput): $CancellableProm
 }
 
 /**
+ * Tail returns what a topic has received since the cursor, and the cursor to
+ * pass next time. The renderer drives the interval; Go holds nothing open.
+ */
+export function Tail(connID: number, topic: string, cursor: model$0.TailCursor, limit: number): $CancellablePromise<model$0.TailBatch | null> {
+    return $Call.ByID(992589890, connID, topic, cursor, limit).then(($result: any) => {
+        return $$createType7($result);
+    });
+}
+
+/**
  * Track returns the per-group consume status of a message.
  */
 export function Track(connID: number, topic: string, messageID: string): $CancellablePromise<(model$0.MessageTrackItem | null)[]> {
     return $Call.ByID(2516316023, connID, topic, messageID).then(($result: any) => {
-        return $$createType8($result);
+        return $$createType10($result);
     });
 }
 
@@ -93,6 +103,8 @@ const $$createType2 = $Create.Array($$createType1);
 const $$createType3 = model$0.ProducerClient.createFrom;
 const $$createType4 = $Create.Nullable($$createType3);
 const $$createType5 = $Create.Array($$createType4);
-const $$createType6 = model$0.MessageTrackItem.createFrom;
+const $$createType6 = model$0.TailBatch.createFrom;
 const $$createType7 = $Create.Nullable($$createType6);
-const $$createType8 = $Create.Array($$createType7);
+const $$createType8 = model$0.MessageTrackItem.createFrom;
+const $$createType9 = $Create.Nullable($$createType8);
+const $$createType10 = $Create.Array($$createType9);

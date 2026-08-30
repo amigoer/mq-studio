@@ -30,10 +30,13 @@ export {
     NodeStatus,
     ProducerClient,
     QueueAssignment,
+    QueuePosition,
     ReplicaStatus,
     ResetOffsetRequest,
     Subscription,
     SubscriptionClient,
     SubscriptionRef,
-    SubscriptionStatus
+    SubscriptionStatus,
+    TailBatch,
+    TailCursor
 } from "./models.js";

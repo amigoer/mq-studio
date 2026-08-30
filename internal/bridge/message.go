@@ -98,3 +98,15 @@ func (s *MessageService) Send(connID int, input SendInput) (string, error) {
 func (s *MessageService) Producers(connID int, group string, topic string) ([]*model.ProducerClient, error) {
 	return s.service.Producers(context.Background(), connID, group, topic)
 }
+
+// Tail returns what a topic has received since the cursor, and the cursor to
+// pass next time. The renderer drives the interval; Go holds nothing open.
+func (s *MessageService) Tail(
+	connID int,
+	topic string,
+	cursor model.TailCursor,
+	limit int,
+) (*model.TailBatch, error) {
+	return s.service.Tail(context.Background(), connID,
+		model.DestinationRef{Name: topic}, cursor, limit)
+}

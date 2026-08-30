@@ -211,3 +211,34 @@ func (s *Service) Producers(ctx context.Context, connID int, group, destination 
 	defer cancel()
 	return api.ProducerClients(ctx, group, destination)
 }
+
+// Tail returns what a destination has received since the cursor.
+//
+// The loop belongs to the caller: the service resolves the connection and
+// applies the request timeout, and the page decides how often to ask and when
+// to stop. Nothing here holds a goroutine open on a page's behalf.
+func (s *Service) Tail(
+	ctx context.Context,
+	connID int,
+	ref model.DestinationRef,
+	cursor model.TailCursor,
+	limit int,
+) (*model.TailBatch, error) {
+	conn, err := s.conns(connID)
+	if err != nil {
+		return nil, err
+	}
+	if !conn.Capabilities().Has(model.CapMessageLiveTail) {
+		return nil, driver.Unsupported(conn, model.CapMessageLiveTail)
+	}
+	api, ok := conn.(driver.MessageTailer)
+	if !ok {
+		return nil, driver.Unsupported(conn, model.CapMessageLiveTail)
+	}
+	if limit <= 0 {
+		limit = s.FetchLimit()
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.TailMessages(ctx, ref, cursor, limit)
+}
