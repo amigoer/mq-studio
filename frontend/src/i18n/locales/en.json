@@ -1916,6 +1916,19 @@
           "note": "RocketMQ resets by time, not by offset: the broker finds the first message stored at or after that moment, per queue. “Earliest” is the oldest message still retained — anything older has rolled off the commit log.",
           "risky": "This moves the read position and can replay or skip messages",
           "done": "Reset the offsets of {{name}}"
+        },
+        "clone": {
+          "action": "Clone offsets",
+          "title": "Clone consume offsets",
+          "from": "Source group",
+          "to": "Target group",
+          "pickTarget": "Pick the target group",
+          "allTopics": "Every topic",
+          "fromOffline": "Read stored offsets (source group is shut down)",
+          "targetRequired": "Pick a target group",
+          "risky": "Overwrites the target group's current positions",
+          "note": "Writes the target group the source's exact per-queue offsets, so a replacement group does not replay what the old one handled. Unlike a reset, which finds a position by time, this copies positions.",
+          "done": "Copied {{from}} offsets onto {{to}}"
         }
       },
       "pulsar": {

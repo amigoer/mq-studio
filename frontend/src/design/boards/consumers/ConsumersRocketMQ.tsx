@@ -32,6 +32,7 @@ import { useSettings } from "@/hooks/useSettings";
 import { useConnectionScope } from "@/mq/ConnectionScope";
 import { useCapabilities } from "@/mq/capabilities";
 import { Capability } from "@bindings/model/models";
+import { CloneOffsetDialog } from "./CloneOffsetDialog";
 import { ResetOffsetDialog } from "./ResetOffsetDialog";
 import * as consumerApi from "@/api/consumer";
 import { formatErrorMessage } from "@/lib/utils";
@@ -102,6 +103,7 @@ export function ConsumersRocketMQ() {
   const toast = useToast();
   const confirm = useConfirm();
   const [resetting, setResetting] = useState<string | null>(null);
+  const [cloning, setCloning] = useState<string | null>(null);
   const lagThreshold = settings.lagAlertThreshold ?? 10000;
 
   const [backlogOnly, setBacklogOnly] = useState(false);
@@ -133,6 +135,13 @@ export function ConsumersRocketMQ() {
     if (resetting == null) return;
     await consumerApi.resetOffset(connID, resetting, topic, timestamp, force);
     toast.success(t("board.consumers.rocketmq.reset.done", { name: resetting }));
+    await state.refresh();
+  };
+
+  const cloneOffset = async (to: string, destination: string, fromOffline: boolean) => {
+    if (cloning == null) return;
+    await consumerApi.cloneOffset(connID, cloning, to, destination, fromOffline);
+    toast.success(t("board.consumers.rocketmq.clone.done", { from: cloning, to }));
     await state.refresh();
   };
 
@@ -281,6 +290,7 @@ export function ConsumersRocketMQ() {
               tab={tab}
               onTabChange={setTab}
               onResetOffset={() => setResetting(groupName(current))}
+              onCloneOffset={() => setCloning(groupName(current))}
               onDelete={() => void remove(current)}
               onClose={() => setSelected(null)}
             />
@@ -294,6 +304,13 @@ export function ConsumersRocketMQ() {
         onClose={() => setResetting(null)}
         onSubmit={resetOffset}
       />
+      <CloneOffsetDialog
+        open={cloning != null}
+        source={groups.find((group) => groupName(group) === cloning)}
+        groups={groups}
+        onClose={() => setCloning(null)}
+        onSubmit={cloneOffset}
+      />
     </Page>
   );
 }
@@ -304,6 +321,7 @@ function GroupSheet({
   tab,
   onTabChange,
   onResetOffset,
+  onCloneOffset,
   onDelete,
   onClose,
 }: {
@@ -312,6 +330,7 @@ function GroupSheet({
   tab: string;
   onTabChange: (tab: string) => void;
   onResetOffset: () => void;
+  onCloneOffset: () => void;
   onDelete: () => void;
   onClose: () => void;
 }) {
@@ -489,6 +508,9 @@ function GroupSheet({
       </DetailPanelBody>
       <DetailPanelFooter>
         <Button variant="outline" onClick={onResetOffset}>{t("board.common.resetOffset")}</Button>
+        <Button variant="outline" onClick={onCloneOffset}>
+          {t("board.consumers.rocketmq.clone.action")}
+        </Button>
         <span className="flex-1" />
         <Button variant="destructive" onClick={onDelete}>
           {t("board.common.deleteGroup")}

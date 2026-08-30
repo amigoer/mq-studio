@@ -56,3 +56,19 @@ export const resetOffset = (
     timestamp,
     force,
   });
+
+/**
+ * Copies one group's per-queue positions onto another.
+ *
+ * An empty destination copies every topic the source reads. `fromOffline`
+ * reads the source's stored offsets rather than its live consumers, which is
+ * what a group that has already been shut down needs.
+ */
+export const cloneOffset = (
+  connID: number,
+  from: string,
+  to: string,
+  destination: string,
+  fromOffline: boolean,
+): Promise<void> =>
+  ConsumerService.CloneOffset(connID, { from, to, destination, fromOffline });
