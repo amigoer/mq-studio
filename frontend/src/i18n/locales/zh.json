@@ -732,7 +732,7 @@
       "probeOk": "连接成功 · {{latency}}",
       "probeFailed": "连接失败",
       "soon": "开发中",
-      "protocolSoonHint": "目前仅支持 RocketMQ，其余协议正在开发中，后续版本陆续开放。",
+      "protocolSoonHint": "目前支持 RocketMQ 与 RabbitMQ，其余协议正在开发中，后续版本陆续开放。",
       "nameRequired": "请填写连接名称",
       "timeoutRange": "请求超时需在 1-300 秒之间",
       "endpointsRequired": "请填写 NameServer 地址",
