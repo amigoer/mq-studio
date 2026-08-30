@@ -227,12 +227,3 @@ func sortQueueRows(queues []map[string]interface{}) {
 		return leftQueue < rightQueue
 	})
 }
-
-// GetConsumerClients returns the clients for a consumer group.
-func (c *Conn) GetConsumerClients(ctx context.Context, groupName string) ([]model.GroupClient, error) {
-	detail, err := c.GetConsumerGroupDetail(ctx, groupName)
-	if err != nil {
-		return nil, err
-	}
-	return detail.Clients, nil
-}

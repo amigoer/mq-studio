@@ -58,11 +58,6 @@ func (s *TopicService) ListAll(connID int) ([]*model.Destination, error) {
 	return destinations, nil
 }
 
-// Detail returns a single topic with its routes and metrics.
-func (s *TopicService) Detail(connID int, topicName string) (*model.Destination, error) {
-	return s.service.Detail(context.Background(), connID, model.DestinationRef{Name: topicName})
-}
-
 // Stats returns the per-queue statistics for a topic.
 func (s *TopicService) Stats(connID int, topicName string) (map[string]interface{}, error) {
 	return s.service.Stats(context.Background(), connID, model.DestinationRef{Name: topicName})

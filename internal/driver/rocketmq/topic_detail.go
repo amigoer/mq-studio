@@ -77,12 +77,3 @@ func (c *Conn) GetTopicDetail(ctx context.Context, topicName string) (*model.Top
 	c.enrichTopicDetail(ctx, working, item)
 	return item, nil
 }
-
-// GetTopicRoute returns routing information for a topic.
-func (c *Conn) GetTopicRoute(ctx context.Context, topicName string) ([]model.TopicRouteItem, error) {
-	detail, err := c.GetTopicDetail(ctx, topicName)
-	if err != nil {
-		return nil, err
-	}
-	return detail.Routes, nil
-}

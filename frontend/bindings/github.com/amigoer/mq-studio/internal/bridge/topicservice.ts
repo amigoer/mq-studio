@@ -31,15 +31,6 @@ export function Create(connID: number, input: $models.TopicInput): $CancellableP
 }
 
 /**
- * Detail returns a single topic with its routes and metrics.
- */
-export function Detail(connID: number, topicName: string): $CancellablePromise<model$0.Destination | null> {
-    return $Call.ByID(4032733801, connID, topicName).then(($result: any) => {
-        return $$createType1($result);
-    });
-}
-
-/**
  * List returns the user-visible topics.
  */
 export function List(connID: number): $CancellablePromise<(model$0.Destination | null)[]> {

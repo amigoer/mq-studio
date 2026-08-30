@@ -88,15 +88,6 @@ export function RunMaintenance(connID: number, brokerAddr: string, task: string)
     return $Call.ByID(2604298185, connID, brokerAddr, task);
 }
 
-/**
- * Summary returns the aggregated cluster counters.
- */
-export function Summary(connID: number): $CancellablePromise<model$0.ClusterSummary | null> {
-    return $Call.ByID(4155074039, connID).then(($result: any) => {
-        return $$createType9($result);
-    });
-}
-
 // Private type creation functions
 const $$createType0 = model$0.Node.createFrom;
 const $$createType1 = $Create.Nullable($$createType0);
@@ -106,5 +97,3 @@ const $$createType4 = $models.ClusterView.createFrom;
 const $$createType5 = $Create.Nullable($$createType4);
 const $$createType6 = $models.MaintenanceTaskView.createFrom;
 const $$createType7 = $Create.Array($$createType6);
-const $$createType8 = model$0.ClusterSummary.createFrom;
-const $$createType9 = $Create.Nullable($$createType8);

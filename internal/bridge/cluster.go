@@ -44,11 +44,6 @@ func (s *ClusterService) Info(connID int) (*ClusterView, error) {
 	return &ClusterView{Overview: *overview, Nodes: nodes, Directory: directory}, nil
 }
 
-// Summary returns the aggregated cluster counters.
-func (s *ClusterService) Summary(connID int) (*model.ClusterSummary, error) {
-	return s.service.GetClusterSummary(context.Background(), connID)
-}
-
 // Brokers returns every known broker node.
 func (s *ClusterService) Brokers(connID int) ([]*model.Node, error) {
 	return s.service.GetBrokers(context.Background(), connID)

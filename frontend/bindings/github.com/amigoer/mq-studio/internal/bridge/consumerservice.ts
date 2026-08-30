@@ -52,15 +52,6 @@ export function Create(connID: number, input: $models.ConsumerInput): $Cancellab
 }
 
 /**
- * Detail returns a consumer group with its clients and subscriptions.
- */
-export function Detail(connID: number, group: string): $CancellablePromise<model$0.Subscription | null> {
-    return $Call.ByID(2168000630, connID, group).then(($result: any) => {
-        return $$createType4($result);
-    });
-}
-
-/**
  * List returns every consumer group.
  */
 export function List(connID: number): $CancellablePromise<(model$0.Subscription | null)[]> {

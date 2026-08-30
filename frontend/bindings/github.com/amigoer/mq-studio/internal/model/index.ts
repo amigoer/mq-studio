@@ -12,7 +12,6 @@ export {
     Capability,
     CloneOffsetRequest,
     ClusterOverview,
-    ClusterSummary,
     ConnectionStatus,
     ConsumeThroughput,
     Destination,

@@ -23,16 +23,6 @@ const (
 	RoleSlave  BrokerRole = "SLAVE"
 )
 
-// NameServerNode holds NameServer node information.
-type NameServerNode struct {
-	ID       int        `json:"id"`       // Node ID
-	Cluster  string     `json:"cluster"`  // Cluster name
-	Address  string     `json:"address"`  // Node address
-	Version  string     `json:"version"`  // Version
-	Status   NodeStatus `json:"status"`   // Node status
-	LastSeen string     `json:"lastSeen"` // Last seen time
-}
-
 // BrokerNode holds Broker node information.
 type BrokerNode struct {
 	ID                    int        `json:"id"`                    // Node ID
@@ -69,14 +59,4 @@ type ClusterInfo struct {
 	AvgDiskUsage  int           `json:"avgDiskUsage"`  // Average disk usage percent
 	NameServers   []string      `json:"nameServers"`   // NameServer list
 	Brokers       []*BrokerNode `json:"brokers"`       // Broker list
-}
-
-// ClusterSummary holds cluster status summary for the frontend.
-type ClusterSummary struct {
-	TotalClusters  int `json:"totalClusters"`  // Cluster count
-	TotalBrokers   int `json:"totalBrokers"`   // Total Broker count
-	OnlineBrokers  int `json:"onlineBrokers"`  // Online Broker count
-	WarningBrokers int `json:"warningBrokers"` // Warning Broker count
-	OfflineBrokers int `json:"offlineBrokers"` // Offline Broker count
-	AvgDiskUsage   int `json:"avgDiskUsage"`   // Average disk usage percent
 }

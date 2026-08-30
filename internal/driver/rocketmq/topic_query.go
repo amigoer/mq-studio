@@ -91,32 +91,6 @@ func (c *Conn) GetAllTopics(ctx context.Context) ([]*model.TopicItem, error) {
 	return result, nil
 }
 
-// GetTopicTotal returns the number of non-system topics.
-func (c *Conn) GetTopicTotal(ctx context.Context) (int, error) {
-
-	total := 0
-	err := c.exec(func(retryClient *admin.Client) error {
-
-		topicList, callErr := retryClient.FetchAllTopicList(ctx)
-		if callErr != nil {
-			return callErr
-		}
-
-		count := 0
-		for _, topicName := range topicList.TopicList {
-			if !resource.IsSystemTopic(topicName) {
-				count++
-			}
-		}
-		total = count
-		return nil
-	})
-	if err != nil {
-		return 0, fmt.Errorf("获取 Topic 总数失败: %w", err)
-	}
-	return total, nil
-}
-
 // GetTopicsByCluster returns topics for a cluster.
 func (c *Conn) GetTopicsByCluster(ctx context.Context, clusterName string) ([]*model.TopicItem, error) {
 

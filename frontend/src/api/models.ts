@@ -29,7 +29,6 @@ export type DestinationRef = model.DestinationRef;
 export type Subscription = model.Subscription;
 export type SubscriptionRef = model.SubscriptionRef;
 export type SubscriptionStatus = model.SubscriptionStatus;
-export type ClusterSummary = model.ClusterSummary;
 export type MessageItem = model.MessageItem;
 export type MessageTrackItem = model.MessageTrackItem;
 export type ProducerClient = model.ProducerClient;

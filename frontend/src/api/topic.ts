@@ -1,13 +1,11 @@
 import { TopicService } from "@bindings/bridge";
 import type { Destination, DestinationRef } from "./models";
-import { present, required } from "./client";
+import { present } from "./client";
 
 export const getTopics = (connID: number): Promise<Destination[]> =>
   TopicService.List(connID).then(present);
 export const getAllTopics = (connID: number): Promise<Destination[]> =>
   TopicService.ListAll(connID).then(present);
-export const getTopicDetail = (connID: number, topic: string): Promise<Destination> =>
-  TopicService.Detail(connID, topic).then(required);
 export const getTopicStats = (
   connID: number,
   topic: string,

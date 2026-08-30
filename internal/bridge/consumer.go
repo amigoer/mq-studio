@@ -41,11 +41,6 @@ func (s *ConsumerService) List(connID int) ([]*model.Subscription, error) {
 	return s.service.List(context.Background(), connID)
 }
 
-// Detail returns a consumer group with its clients and subscriptions.
-func (s *ConsumerService) Detail(connID int, group string) (*model.Subscription, error) {
-	return s.service.Detail(context.Background(), connID, model.SubscriptionRef{Name: group})
-}
-
 // Stats returns the per-queue consume progress of a group.
 func (s *ConsumerService) Stats(connID int, group string) (map[string]interface{}, error) {
 	return s.service.Stats(context.Background(), connID, model.SubscriptionRef{Name: group})
