@@ -84,6 +84,7 @@ func capabilities() []model.Capability {
 		model.CapSubscriptionLag,
 
 		model.CapMessageQuery,
+		model.CapDeadLetterTopology,
 		model.CapPublish,
 
 		model.CapClusterTopology,

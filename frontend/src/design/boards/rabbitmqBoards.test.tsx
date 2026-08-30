@@ -41,6 +41,7 @@ const routingState = vi.hoisted(() => ({ current: null as unknown }));
 const clientsState = vi.hoisted(() => ({ current: null as unknown }));
 const clusterState = vi.hoisted(() => ({ current: null as unknown }));
 const messagesState = vi.hoisted(() => ({ current: null as unknown }));
+const deadLetterState = vi.hoisted(() => ({ current: null as unknown }));
 
 vi.mock("@/hooks/rabbitmq/useRabbitOverview", () => ({
   useRabbitOverview: () => overviewState.current,
@@ -60,6 +61,9 @@ vi.mock("@/hooks/rabbitmq/useRabbitCluster", () => ({
 vi.mock("@/hooks/rabbitmq/useRabbitMessages", () => ({
   useRabbitMessages: () => messagesState.current,
 }));
+vi.mock("@/hooks/rabbitmq/useRabbitDeadLetters", () => ({
+  useRabbitDeadLetters: () => deadLetterState.current,
+}));
 
 let render: (element: React.ReactElement) => string;
 let OverviewRabbitMQ: typeof import("./overview/OverviewRabbitMQ").OverviewRabbitMQ;
@@ -68,6 +72,7 @@ let ExchangesRabbitMQ: typeof import("./topics/ExchangesRabbitMQ").ExchangesRabb
 let ChannelsRabbitMQ: typeof import("./consumers/ChannelsRabbitMQ").ChannelsRabbitMQ;
 let NodesRabbitMQ: typeof import("./cluster/NodesRabbitMQ").NodesRabbitMQ;
 let MessagesRabbitMQ: typeof import("./messages/MessagesRabbitMQ").MessagesRabbitMQ;
+let DlqRabbitMQ: typeof import("./dlq/DlqRabbitMQ").DlqRabbitMQ;
 
 beforeAll(async () => {
   const storage = { getItem: () => null, setItem() {}, removeItem() {} };
@@ -80,7 +85,7 @@ beforeAll(async () => {
   });
   vi.stubGlobal("localStorage", storage);
 
-  const [server, overview, queues, exchanges, clients, cluster, messages, i18n] =
+  const [server, overview, queues, exchanges, clients, cluster, messages, dlq, i18n] =
     await Promise.all([
     import("react-dom/server"),
     import("./overview/OverviewRabbitMQ"),
@@ -89,6 +94,7 @@ beforeAll(async () => {
     import("./consumers/ChannelsRabbitMQ"),
     import("./cluster/NodesRabbitMQ"),
     import("./messages/MessagesRabbitMQ"),
+    import("./dlq/DlqRabbitMQ"),
     import("@/i18n"),
   ]);
   await i18n.default.changeLanguage("zh");
@@ -99,6 +105,7 @@ beforeAll(async () => {
   ChannelsRabbitMQ = clients.ChannelsRabbitMQ;
   NodesRabbitMQ = cluster.NodesRabbitMQ;
   MessagesRabbitMQ = messages.MessagesRabbitMQ;
+  DlqRabbitMQ = dlq.DlqRabbitMQ;
 });
 
 const census = {
@@ -745,5 +752,85 @@ describe("the RabbitMQ messages board", () => {
 
   it("survives a message with no properties at all", () => {
     expect(() => renderWith({ lastCount: 1, items: [amqpMessage(1, {})] })).not.toThrow();
+  });
+});
+
+const deadLetterQueue = (over: Record<string, unknown> = {}) => ({
+  namespace: "/",
+  name: "dlx.order.q",
+  depth: 37,
+  consumers: 0,
+  sources: [{ queue: "order.settle.q", exchange: "dlx.order", routingKey: "" }],
+  ...over,
+});
+
+describe("the RabbitMQ dead-letter board", () => {
+  const renderWith = (
+    topology: Partial<BrokerState<unknown>>,
+    browse: Record<string, unknown> = {},
+  ) => {
+    deadLetterState.current = stateOf(topology);
+    messagesState.current = browseState(browse);
+    return render(<DlqRabbitMQ />);
+  };
+
+  it("draws a not-connected notice rather than an empty topology", () => {
+    expect(() => renderWith({ online: false })).not.toThrow();
+  });
+
+  it("draws a loading state without touching the data", () => {
+    expect(() => renderWith({ loading: true })).not.toThrow();
+  });
+
+  /*
+   * Nothing on the broker marks a queue as a dead-letter queue, so an empty
+   * result means no queue declares a dead-letter exchange - which is worth
+   * saying rather than showing a blank page.
+   */
+  it("says no queue declares a dead-letter exchange", () => {
+    expect(renderWith({ data: [] })).toContain("没有任何队列声明了死信交换机");
+  });
+
+  /*
+   * The sources are the whole point of the page. A dead-letter queue says how
+   * many messages failed; which queues feed it is what says where to look.
+   */
+  it("names the queues that dead-letter into each one", () => {
+    const html = renderWith({ data: [deadLetterQueue()] });
+    expect(html).toContain("dlx.order.q");
+    expect(html).toContain("order.settle.q");
+    expect(html).toContain("dlx.order");
+  });
+
+  // An empty dead-letter routing key means the message keeps its original
+  // one, which changes where it lands - so it must not read as "no key".
+  it("says a message keeps its routing key when none was set", () => {
+    expect(renderWith({ data: [deadLetterQueue()] })).toContain("沿用原路由键");
+  });
+
+  /*
+   * A dead-letter queue with a consumer is a retry pipeline. One without is a
+   * backlog nobody is looking at, which is the case that needs a person.
+   */
+  it("flags a backlog nobody is consuming", () => {
+    const html = renderWith({ data: [deadLetterQueue({ consumers: 0, depth: 37 })] });
+    expect(html).toContain("无人消费");
+
+    const drained = renderWith({ data: [deadLetterQueue({ consumers: 2, depth: 37 })] });
+    expect(drained).not.toContain("无人消费");
+  });
+
+  // A queue nothing points at any more will never receive again, and saying so
+  // is more useful than an empty source list.
+  it("says when nothing dead-letters into a queue any more", () => {
+    expect(renderWith({ data: [deadLetterQueue({ sources: [] })] })).toContain(
+      "没有队列死信到这里",
+    );
+  });
+
+  it("survives a topology entry with a null source in it", () => {
+    expect(() =>
+      renderWith({ data: [deadLetterQueue({ sources: [null] })] }),
+    ).not.toThrow();
   });
 });

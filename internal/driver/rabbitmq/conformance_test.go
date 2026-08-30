@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -1075,5 +1076,183 @@ func TestLiveBrowseAnEmptyQueueReturnsQuickly(t *testing.T) {
 	}
 	if elapsed := time.Since(start); elapsed > 5*time.Second {
 		t.Errorf("browsing an empty queue took %s", elapsed)
+	}
+}
+
+// Dead-letter queues are found by walking the topology, so the test has to
+// build one: a source queue with a dead-letter exchange, that exchange, and
+// the queue it is bound to.
+func TestLiveDeadLetterTopologyIsWalkedBackwards(t *testing.T) {
+	conn := liveConn(t)
+	defer func() { _ = conn.Close() }()
+
+	ctx := context.Background()
+	const (
+		exchange = "mqs-test-dlx"
+		target   = "mqs-test-dlq"
+		source   = "mqs-test-dl-source"
+	)
+
+	declare := func(fn func(*rabbithole.Client) (*http.Response, error), what string) {
+		t.Helper()
+		if err := exec(ctx, conn.mgmt, fn); err != nil {
+			t.Fatalf("declare %s: %v", what, err)
+		}
+	}
+	declare(func(client *rabbithole.Client) (*http.Response, error) {
+		return client.DeclareExchange("/", exchange, rabbithole.ExchangeSettings{Type: "fanout", Durable: true})
+	}, "exchange")
+	t.Cleanup(func() {
+		_ = exec(context.Background(), conn.mgmt, func(client *rabbithole.Client) (*http.Response, error) {
+			return client.DeleteExchange("/", exchange)
+		})
+	})
+
+	declare(func(client *rabbithole.Client) (*http.Response, error) {
+		return client.DeclareQueue("/", target, rabbithole.QueueSettings{Durable: true})
+	}, "target queue")
+	t.Cleanup(func() {
+		_ = exec(context.Background(), conn.mgmt, func(client *rabbithole.Client) (*http.Response, error) {
+			return client.DeleteQueue("/", target)
+		})
+	})
+
+	declare(func(client *rabbithole.Client) (*http.Response, error) {
+		return client.DeclareBinding("/", rabbithole.BindingInfo{
+			Source: exchange, Destination: target, DestinationType: "queue",
+		})
+	}, "binding")
+
+	declare(func(client *rabbithole.Client) (*http.Response, error) {
+		return client.DeclareQueue("/", source, rabbithole.QueueSettings{
+			Durable:   true,
+			Arguments: map[string]interface{}{ArgDeadLetterExchange: exchange},
+		})
+	}, "source queue")
+	t.Cleanup(func() {
+		_ = exec(context.Background(), conn.mgmt, func(client *rabbithole.Client) (*http.Response, error) {
+			return client.DeleteQueue("/", source)
+		})
+	})
+
+	found, err := conn.DeadLetterQueues(ctx, "/")
+	if err != nil {
+		t.Fatalf("DeadLetterQueues: %v", err)
+	}
+
+	var dlq *model.DeadLetterQueue
+	for _, candidate := range found {
+		if candidate.Name == target {
+			dlq = candidate
+		}
+	}
+	if dlq == nil {
+		t.Fatalf("the dead-letter queue was not found; got %d queues", len(found))
+	}
+	if len(dlq.Sources) != 1 {
+		t.Fatalf("sources = %d, want the one queue that dead-letters here", len(dlq.Sources))
+	}
+	if dlq.Sources[0].Queue != source {
+		t.Errorf("source queue = %q, want %q", dlq.Sources[0].Queue, source)
+	}
+	if dlq.Sources[0].Exchange != exchange {
+		t.Errorf("source exchange = %q, want %q", dlq.Sources[0].Exchange, exchange)
+	}
+	// No routing key was declared, so the message keeps its own - which is a
+	// different setup from one that rewrites it, and the empty value says so.
+	if dlq.Sources[0].RoutingKey != "" {
+		t.Errorf("routingKey = %q, want empty", dlq.Sources[0].RoutingKey)
+	}
+
+	// The source queue itself must not be listed: it sends dead letters, it
+	// does not receive them.
+	for _, candidate := range found {
+		if candidate.Name == source {
+			t.Error("the source queue was listed as a dead-letter queue")
+		}
+	}
+}
+
+// A message that actually died has to carry the history the board reads.
+func TestLiveDeadLetteredMessageCarriesXDeath(t *testing.T) {
+	conn := liveConnNamed(t, "dead-letter-history")
+	defer func() { _ = conn.Close() }()
+
+	ctx := context.Background()
+	const (
+		exchange = "mqs-test-death-dlx"
+		target   = "mqs-test-death-dlq"
+		source   = "mqs-test-death-source"
+	)
+	steps := []struct {
+		what string
+		run  func(*rabbithole.Client) (*http.Response, error)
+	}{
+		{"exchange", func(c *rabbithole.Client) (*http.Response, error) {
+			return c.DeclareExchange("/", exchange, rabbithole.ExchangeSettings{Type: "fanout", Durable: true})
+		}},
+		{"target", func(c *rabbithole.Client) (*http.Response, error) {
+			return c.DeclareQueue("/", target, rabbithole.QueueSettings{Durable: true})
+		}},
+		{"binding", func(c *rabbithole.Client) (*http.Response, error) {
+			return c.DeclareBinding("/", rabbithole.BindingInfo{
+				Source: exchange, Destination: target, DestinationType: "queue",
+			})
+		}},
+		{"source", func(c *rabbithole.Client) (*http.Response, error) {
+			return c.DeclareQueue("/", source, rabbithole.QueueSettings{
+				Durable: true,
+				Arguments: map[string]interface{}{
+					ArgDeadLetterExchange: exchange,
+					// A one-shot TTL is the cheapest way to make a message
+					// die without needing a consumer to reject it.
+					ArgMessageTTL: 1,
+				},
+			})
+		}},
+	}
+	for _, step := range steps {
+		if err := exec(ctx, conn.mgmt, step.run); err != nil {
+			t.Fatalf("declare %s: %v", step.what, err)
+		}
+	}
+	t.Cleanup(func() {
+		for _, remove := range []func(*rabbithole.Client) (*http.Response, error){
+			func(c *rabbithole.Client) (*http.Response, error) { return c.DeleteQueue("/", source) },
+			func(c *rabbithole.Client) (*http.Response, error) { return c.DeleteQueue("/", target) },
+			func(c *rabbithole.Client) (*http.Response, error) { return c.DeleteExchange("/", exchange) },
+		} {
+			_ = exec(context.Background(), conn.mgmt, remove)
+		}
+	})
+
+	err := conn.data.withChannel(ctx, func(channel *amqp.Channel) error {
+		return channel.PublishWithContext(ctx, "", source, false, false, amqp.Publishing{
+			Body: []byte("will expire"), DeliveryMode: amqp.Persistent,
+		})
+	})
+	if err != nil {
+		t.Fatalf("publish: %v", err)
+	}
+	waitForDepth(t, conn, target, 1)
+
+	items, err := conn.QueryMessages(ctx, model.MessageQueryParams{Topic: target, MaxResults: 1})
+	if err != nil {
+		t.Fatalf("browse: %v", err)
+	}
+	if len(items) != 1 {
+		t.Fatalf("browsed %d messages, want the one that died", len(items))
+	}
+
+	death := items[0].Properties["header.x-death"]
+	if death == "" {
+		t.Fatal("a dead-lettered message carries no x-death header")
+	}
+	// The board parses the count, the origin queue and the reason out of this,
+	// so all three have to survive the driver's flattening.
+	for _, want := range []string{"count=", "queue=" + source, "reason=expired"} {
+		if !strings.Contains(death, want) {
+			t.Errorf("x-death %q does not contain %q", death, want)
+		}
 	}
 }

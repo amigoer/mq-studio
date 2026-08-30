@@ -13,6 +13,7 @@ import type {
   BrokerHealth,
   ClientChannel,
   ClientConnection,
+  DeadLetterQueue,
 } from "@bindings/model/models";
 import { present } from "./client";
 
@@ -22,6 +23,8 @@ export type {
   BrokerRates,
   ClientChannel,
   ClientConnection,
+  DeadLetterQueue,
+  DeadLetterSource,
   DeprecatedFeature,
   FeatureFlag,
   HealthCheck,
@@ -59,3 +62,10 @@ export const getClientChannels = (
  */
 export const getHealth = (connID: number): Promise<BrokerHealth | null> =>
   RabbitMQService.Health(connID);
+
+/** The queues dead letters land in, and what feeds each one. */
+export const getDeadLetterQueues = (
+  connID: number,
+  namespace = "",
+): Promise<DeadLetterQueue[]> =>
+  RabbitMQService.DeadLetterQueues(connID, namespace).then(present);

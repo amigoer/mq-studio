@@ -133,6 +133,20 @@ type DeadLetterReader interface {
 	ResendMessage(ctx context.Context, consumerGroup, clientID, topic, messageID string) (string, error)
 }
 
+// DeadLetterTopology finds dead-letter queues by following the topology.
+//
+// Separate from DeadLetterReader because the two families disagree about what
+// a dead-letter queue is. RocketMQ gives every consumer group one, named after
+// it, so a group name is enough to find it and the messages come back through
+// the same read path as any other. RabbitMQ has no such object: a queue is
+// declared with a dead-letter exchange, that exchange routes like any other,
+// and whatever it lands in becomes a dead-letter queue by convention. Finding
+// one means walking backwards from every queue that declares one; reading it
+// afterwards is an ordinary browse.
+type DeadLetterTopology interface {
+	DeadLetterQueues(ctx context.Context, namespace string) ([]*model.DeadLetterQueue, error)
+}
+
 // MessageReplayer hands one message back to one connected consumer.
 //
 // Separate from DeadLetterReader's ResendMessage, which puts a copy on the

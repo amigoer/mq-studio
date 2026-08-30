@@ -112,3 +112,35 @@ describe("navAvailability across families", () => {
     expect(rabbit.visible("acl")).toBe(false);
   });
 });
+
+/**
+ * Two families answer the dead-letter page by different means, so the entry
+ * accepts either capability. Requiring one would hide the page from whichever
+ * family does not have it, and both have the page.
+ */
+describe("pages a family can reach more than one way", () => {
+  it("draws the dead-letter entry for a per-group dead-letter topic", () => {
+    expect(navAvailability(state([Capability.CapDLQ]), true).visible("dlq")).toBe(true);
+  });
+
+  it("draws it for a family whose dead letters are found by topology", () => {
+    const rabbit = navAvailability(state([Capability.CapDeadLetterTopology]), true);
+    expect(rabbit.visible("dlq")).toBe(true);
+    expect(rabbit.disabled("dlq")).toBe(false);
+  });
+
+  it("still hides it from a family that has neither", () => {
+    expect(navAvailability(state([Capability.CapMessageQuery]), true).visible("dlq")).toBe(false);
+  });
+
+  // Degraded on the one it has: drawn, disabled, and carrying that reason.
+  it("carries the reason from whichever capability the family reports", () => {
+    const degraded = navAvailability(
+      state([], { [Capability.CapDeadLetterTopology]: "the management plugin is off" }),
+      true,
+    );
+    expect(degraded.visible("dlq")).toBe(true);
+    expect(degraded.disabled("dlq")).toBe(true);
+    expect(degraded.reason("dlq")).toBe("the management plugin is off");
+  });
+});

@@ -1,6 +1,9 @@
-import { useState } from "react";
-import { BulkBar, ListPane, Page, PageHeader, SkeletonRows, Toolbar } from "@/design/shell";
+import { useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { ArrowRight, Search } from "lucide-react";
+import { ListArea, ListPane, Page, PageHeader, RefreshButton, Toolbar } from "@/design/shell";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import {
   Table,
   TableBody,
@@ -10,111 +13,331 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Segmented,
+  Combobox,
+  JsonBlock,
+  KV,
+  Panel,
+  SectionLabel,
   SelectField,
   Status,
+  WarnBanner,
 } from "@/components";
-import { Checkbox } from "@/components/ui/checkbox";
-import { useTranslation } from "react-i18next";
-
-const REASONS = [
-  { value: "all", label: "board.common.all" },
-  { value: "rejected", label: "board.term.rejected" },
-  { value: "expired", label: "board.term.expired" },
-  { value: "maxlen", label: "board.term.maxlen" },
-] as const;
+import { BoardState } from "@/design/boards/BoardState";
+import { useRabbitDeadLetters } from "@/hooks/rabbitmq/useRabbitDeadLetters";
+import { useRabbitMessages } from "@/hooks/rabbitmq/useRabbitMessages";
+import { formatCount } from "@/lib/format";
+import {
+  deathCount,
+  deathQueue,
+  deathReason,
+  exchange,
+  headers,
+  routingKey,
+} from "@/mq/rabbitmq/messages";
+import type { DeadLetterQueue } from "@/api/rabbitmq";
+import type { MessageItem } from "@/api/models";
 
 const MONO11 = { fontSize: "11px" } as const;
-const DIM11 = { fontSize: "11px", color: "var(--c-mono-dim)" } as const;
-const TAG = { fontSize: "10px" } as const;
-const R = { textAlign: "right" } as const;
+const COUNTS = ["10", "50", "200"] as const;
 
-type Row = {
-  id: string;
-  routingKey: string;
-  origin: string;
-  reason: "rejected" | "expired";
-  count: string;
-  at: string;
-};
-
-const ROWS: readonly Row[] = [
-  { id: "a", routingKey: "order.created", origin: "order.settle.q", reason: "rejected", count: "2", at: "10:02:37" },
-  { id: "b", routingKey: "order.created", origin: "order.settle.q", reason: "rejected", count: "2", at: "10:14:08" },
-  { id: "c", routingKey: "order.updated", origin: "order.notify.q", reason: "expired", count: "1", at: "10:18:03" },
-];
-
-/** Board 15b — RabbitMQ DLX queue; x-death carries the origin and the reason. */
+/**
+ * Board 4f - RabbitMQ dead letters.
+ *
+ * There is no dead-letter queue on a RabbitMQ broker, strictly. What exists is
+ * a queue declared with a dead-letter exchange, an exchange that routes like
+ * any other, and whatever it lands in - which becomes a dead-letter queue by
+ * convention rather than by declaration. So this page is a topology walk
+ * first: which queues receive dead letters, and which queues feed them.
+ *
+ * That is why the source list is on every row. A dead-letter queue on its own
+ * says how many messages failed; knowing which queues dead-letter into it is
+ * what says where to look.
+ *
+ * The canvas drew republish, publish-elsewhere, export and ack-and-remove.
+ * They arrive with the write operations.
+ */
 export function DlqRabbitMQ() {
-  const [reason, setReason] = useState<(typeof REASONS)[number]["value"]>("all");
-  const [checked, setChecked] = useState<string[]>(["a", "b"]);
-
-  const toggle = (id: string) =>
-    setChecked((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
-  const allChecked = checked.length === ROWS.length;
-
   const { t } = useTranslation();
+  const topology = useRabbitDeadLetters();
+  const messages = useRabbitMessages();
+  const [queue, setQueue] = useState("");
+  const [count, setCount] = useState<string>("50");
+  const [selected, setSelected] = useState<number | null>(null);
+
+  const queues = useMemo(() => topology.data ?? [], [topology.data]);
+  const chosen = queues.find((found) => found.name === queue) ?? null;
+
+  const fetch = useCallback(() => {
+    if (queue === "") return;
+    setSelected(null);
+    void messages.browse({ queue, count: Number.parseInt(count, 10) });
+  }, [count, messages, queue]);
+
+  const rows = messages.items;
+  const detail = rows.find((message) => message.id === selected) ?? null;
+
   return (
     <Page>
-      <PageHeader title={t("board.dlq.rabbitmq.title")} subtitle={t("board.dlq.rabbitmq.subtitle")} />
+      <PageHeader
+        title={t("board.dlq.rabbitmq.title")}
+        subtitle={t("board.dlq.rabbitmq.subtitle", { count: queues.length })}
+        actions={
+          <RefreshButton
+            refreshing={topology.refreshing}
+            online={topology.online}
+            onClick={topology.refresh}
+          />
+        }
+      />
+      {/* Reading a dead-letter queue is the same browse as any other, with
+          the same consequence. */}
+      <WarnBanner>{t("board.dlq.rabbitmq.browseWarn")}</WarnBanner>
       <Toolbar>
-        <SelectField value="opt" options={[{ value: "opt", label: t("board.dlq.rabbitmq.queue") }]} />
-        <Segmented options={REASONS.map((o) => ({ ...o, label: t(o.label) }))} value={reason} onChange={setReason} />
+        <Combobox
+          value={queue}
+          onValueChange={setQueue}
+          options={queues.map((found) => ({
+            value: found.name,
+            label: t("board.dlq.rabbitmq.queueOption", {
+              name: found.name,
+              depth: found.depth,
+            }),
+          }))}
+          placeholder={t("board.dlq.rabbitmq.queue")}
+          className="w-[260px]"
+        />
+        <SelectField
+          value={count}
+          prefix={t("board.dlq.rabbitmq.countPrefix")}
+          onValueChange={setCount}
+          options={COUNTS.map((value) => ({ value }))}
+        />
+        <Button disabled={queue === "" || messages.running} onClick={fetch}>
+          {messages.running ? <Spinner /> : <Search size={13} aria-hidden />}
+          {t("board.dlq.rabbitmq.fetch")}
+        </Button>
         <span className="flex-1" />
-        <Button>{t("board.dlq.rabbitmq.fetch50")}</Button>
+        {messages.lastCount != null && (
+          <span style={{ fontSize: "11.5px", color: "var(--c-muted)" }}>
+            {/* "Taken N" rather than a queue total: a browse returns a page,
+                and the depth is on the queue row above. */}
+            {t("board.dlq.rabbitmq.taken", { count: messages.lastCount })}
+          </span>
+        )}
       </Toolbar>
-
-      <ListPane>
-        <Table inset>
-          <TableHeader>
-            <TableRow>
-              <TableHead style={{ width: "26px" }}>
-                <Checkbox
-                  checked={allChecked}
-                  aria-label={t("board.common.selectAll")}
-                  onCheckedChange={() => setChecked(allChecked ? [] : ROWS.map((r) => r.id))}
+      <ListArea>
+        <ListPane>
+          <BoardState
+            state={topology}
+            empty={queues.length === 0 ? t("board.dlq.rabbitmq.none") : undefined}
+          >
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px", padding: "10px" }}>
+              {queues.map((found) => (
+                <DeadLetterCard
+                  key={`${found.namespace}/${found.name}`}
+                  queue={found}
+                  selected={found.name === queue}
+                  onSelect={() => setQueue(found.name)}
                 />
-              </TableHead>
-              <TableHead>routing key</TableHead>
-              <TableHead>{t("board.dlq.rabbitmq.originQueue")}</TableHead>
-              <TableHead>{t("board.common.reason")}</TableHead>
-              <TableHead style={R}>count</TableHead>
-              <TableHead>{t("board.common.time")}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {ROWS.map((row) => {
-              const on = checked.includes(row.id);
-              const dim = on ? undefined : "var(--c-mono-dim)";
-              return (
-                <TableRow key={row.id}>
-                  <TableCell>
-                    <Checkbox checked={on} aria-label={row.routingKey} onCheckedChange={() => toggle(row.id)} />
-                  </TableCell>
-                  <TableCell className="mono3" style={{ ...MONO11, color: dim }}>{row.routingKey}</TableCell>
-                  <TableCell className="mono3" style={DIM11}>{row.origin}</TableCell>
-                  <TableCell>
-                    <Status tone={row.reason === "rejected" ? "err" : "warn"} style={TAG}>
-                      {row.reason}
-                    </Status>
-                  </TableCell>
-                  <TableCell className="mono3" style={{ ...R, color: dim }}>{row.count}</TableCell>
-                  <TableCell className="mono3" style={{ ...MONO11, color: dim }}>{row.at}</TableCell>
-                </TableRow>
-              );
-            })}
-            <SkeletonRows colSpan={6} widths={["52%"]} />
-          </TableBody>
-        </Table>
-      </ListPane>
+              ))}
+            </div>
 
-      <BulkBar hint={t("board.dlq.rabbitmq.hint")}>
-        <span>{t("board.common.selectedN", { n: checked.length })}</span>
-        <Button>{t("board.dlq.rabbitmq.republish")}</Button>
-        <Button variant="outline">{t("board.dlq.rabbitmq.publishElsewhere")}</Button>
-        <Button variant="outline">{t("board.common.export")}</Button>
-        <Button variant="destructive">{t("board.common.ackRemove")}</Button>
-      </BulkBar>
+            {chosen != null && (
+              <div style={{ padding: "0 10px 10px" }}>
+                <SectionLabel style={{ margin: "6px 0" }}>
+                  {t("board.dlq.rabbitmq.messagesIn", { queue: chosen.name })}
+                </SectionLabel>
+                {messages.state.error != null ? (
+                  <Panel style={{ padding: "10px 14px", fontSize: "11.5px", color: "var(--c-err-text)" }}>
+                    {messages.state.error}
+                  </Panel>
+                ) : rows.length === 0 ? (
+                  <Panel style={{ padding: "10px 14px", fontSize: "11.5px", color: "var(--c-muted)" }}>
+                    {messages.lastCount === 0
+                      ? t("board.dlq.rabbitmq.nothingTaken")
+                      : t("board.dlq.rabbitmq.pressFetch")}
+                  </Panel>
+                ) : (
+                  <Panel style={{ padding: "4px 0" }}>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead style={{ width: "48px" }}>#</TableHead>
+                          <TableHead>{t("board.dlq.rabbitmq.originQueue")}</TableHead>
+                          <TableHead>{t("board.common.reason")}</TableHead>
+                          <TableHead style={{ textAlign: "right" }}>
+                            {t("board.dlq.rabbitmq.deaths")}
+                          </TableHead>
+                          <TableHead>{t("board.messages.rabbitmq.routingKey")}</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {rows.map((message) => (
+                          <TableRow
+                            key={message.id}
+                            selected={selected === message.id}
+                            onClick={() => setSelected(message.id)}
+                          >
+                            <TableCell className="mono3" style={{ color: "var(--c-muted)" }}>
+                              {message.id}
+                            </TableCell>
+                            <TableCell className="mono3" style={MONO11}>
+                              {deathQueue(message) || t("board.dlq.rabbitmq.unknownOrigin")}
+                            </TableCell>
+                            <TableCell>
+                              <ReasonTag reason={deathReason(message)} />
+                            </TableCell>
+                            <TableCell className="mono3" style={{ textAlign: "right" }}>
+                              {deathCount(message) ?? "-"}
+                            </TableCell>
+                            <TableCell className="mono3" style={MONO11}>
+                              {routingKey(message) || "-"}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </Panel>
+                )}
+              </div>
+            )}
+
+            {detail != null && <DeadMessageDetail message={detail} />}
+          </BoardState>
+        </ListPane>
+      </ListArea>
     </Page>
+  );
+}
+
+function DeadLetterCard({
+  queue,
+  selected,
+  onSelect,
+}: {
+  queue: DeadLetterQueue;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <Panel
+      onClick={onSelect}
+      style={{
+        padding: "10px 14px",
+        display: "flex",
+        flexDirection: "column",
+        gap: "6px",
+        cursor: "pointer",
+        borderColor: selected ? "var(--c-accent)" : undefined,
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+        <b style={{ fontWeight: 500 }}>{queue.name}</b>
+        <span className="mono3" style={{ fontSize: "10.5px", color: "var(--c-muted)" }}>
+          {queue.namespace}
+        </span>
+        <span
+          className="mono3"
+          style={{
+            fontSize: "12px",
+            color: queue.depth > 0 ? "var(--c-err-text)" : "var(--c-muted)",
+          }}
+        >
+          {formatCount(queue.depth)}
+        </span>
+        {/* A dead-letter queue with a consumer is a retry pipeline. One
+            without is a backlog nobody is looking at, which is the case worth
+            surfacing. */}
+        {queue.consumers === 0 && queue.depth > 0 && (
+          <Status tone="err" style={{ fontSize: "10px" }}>
+            {t("board.dlq.rabbitmq.noConsumer")}
+          </Status>
+        )}
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: "3px", fontSize: "11px" }}>
+        {(queue.sources ?? []).map((source) => (
+          <div
+            key={`${source?.queue}/${source?.exchange}/${source?.routingKey}`}
+            style={{ display: "flex", alignItems: "center", gap: "5px", color: "var(--c-mono-dim)" }}
+          >
+            <span className="mono3">{source?.queue}</span>
+            <ArrowRight size={11} aria-hidden style={{ flex: "none" }} />
+            <span className="mono3">{source?.exchange || t("board.dlq.rabbitmq.defaultExchange")}</span>
+            <span className="mono3">
+              {/* An empty dead-letter routing key means the message keeps its
+                  original one, which changes where it lands. */}
+              {source?.routingKey
+                ? `rk = ${source.routingKey}`
+                : t("board.dlq.rabbitmq.keepsRoutingKey")}
+            </span>
+          </div>
+        ))}
+        {(queue.sources ?? []).length === 0 && (
+          <span style={{ color: "var(--c-muted)" }}>{t("board.dlq.rabbitmq.noSources")}</span>
+        )}
+      </div>
+    </Panel>
+  );
+}
+
+/**
+ * Why a message died, in the broker's own words.
+ *
+ * The four reasons mean genuinely different things and lead to different
+ * fixes, so they are not collapsed into "failed".
+ */
+function ReasonTag({ reason }: { reason: string }) {
+  const { t } = useTranslation();
+  if (reason === "") return <span style={{ color: "var(--c-muted)" }}>-</span>;
+  const tone = reason === "expired" || reason === "maxlen" ? "warn" : "err";
+  return (
+    <Status tone={tone} style={{ fontSize: "10px" }}>
+      {t(`board.dlq.rabbitmq.reasons.${reason}`, reason)}
+    </Status>
+  );
+}
+
+function DeadMessageDetail({ message }: { message: MessageItem }) {
+  const { t } = useTranslation();
+  const applicationHeaders = headers(message);
+  return (
+    <div style={{ padding: "0 10px 14px" }}>
+      <SectionLabel style={{ margin: "6px 0" }}>
+        {t("board.dlq.rabbitmq.detail", { id: message.id })}
+      </SectionLabel>
+      <Panel style={{ padding: "10px 14px", display: "flex", flexDirection: "column", gap: "8px" }}>
+        <KV
+          rows={[
+            [t("board.dlq.rabbitmq.originQueue"), deathQueue(message) || "-"],
+            [t("board.common.reason"), deathReason(message) || "-"],
+            [t("board.dlq.rabbitmq.deaths"), String(deathCount(message) ?? "-")],
+            [
+              t("board.common.exchange"),
+              <span key="ex" className="mono3" style={MONO11}>
+                {exchange(message) || t("board.dlq.rabbitmq.defaultExchange")}
+              </span>,
+            ],
+            [
+              t("board.messages.rabbitmq.routingKey"),
+              <span key="rk" className="mono3" style={MONO11}>
+                {routingKey(message) || "-"}
+              </span>,
+            ],
+          ]}
+        />
+        {Object.keys(applicationHeaders).length > 0 && (
+          <KV
+            rows={Object.entries(applicationHeaders).map(([key, value]) => [
+              key,
+              <span key={key} className="mono3" style={MONO11}>
+                {value}
+              </span>,
+            ])}
+          />
+        )}
+        <JsonBlock>{message.body}</JsonBlock>
+      </Panel>
+    </div>
   );
 }

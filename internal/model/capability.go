@@ -84,7 +84,13 @@ const (
 	// health, rather than one whose health has to be inferred from its
 	// metrics.
 	CapClusterHealth Capability = "cluster.health"
-	CapAccessControl Capability = "access.control"
+
+	// CapDeadLetterTopology is a family whose dead-letter queues are ordinary
+	// queues something else points at, found by walking the topology, rather
+	// than a per-group topic the broker names for you. Both answer the same
+	// page; neither can answer it the other's way.
+	CapDeadLetterTopology Capability = "message.dlqTopology"
+	CapAccessControl      Capability = "access.control"
 	// CapAccessDirectory is identity-based access control: principals the
 	// broker authenticates and rules attached to a subject. Distinct from
 	// CapAccessControl, which is the credential-carrying kind a broker will

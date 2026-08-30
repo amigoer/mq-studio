@@ -132,3 +132,17 @@ func (s *Service) Health(ctx context.Context, connID int) (*model.BrokerHealth, 
 	defer cancel()
 	return api.Health(ctx)
 }
+
+// DeadLetterQueues finds the queues dead letters land in.
+func (s *Service) DeadLetterQueues(ctx context.Context, connID int, namespace string) ([]*model.DeadLetterQueue, error) {
+	api, err := port[driver.DeadLetterTopology](s, connID, model.CapDeadLetterTopology)
+	if err != nil {
+		if notConnected(err) {
+			return []*model.DeadLetterQueue{}, nil
+		}
+		return nil, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.DeadLetterQueues(ctx, namespace)
+}

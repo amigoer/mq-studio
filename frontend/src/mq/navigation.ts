@@ -10,15 +10,24 @@
 import { Capability } from "@bindings/model/models";
 import type { CapabilityState } from "./capabilities";
 
-/** The capability a page needs to be worth showing at all. */
-const requires: Record<string, Capability> = {
+/**
+ * The capability a page needs to be worth showing at all.
+ *
+ * A list means any one of them will do: two families can answer the same page
+ * by different means, and dead letters is where that first showed up. RocketMQ
+ * has a dead-letter topic per consumer group and reads it like any other;
+ * RabbitMQ has ordinary queues that something else dead-letters into, found by
+ * walking the topology. Neither can answer the page the other's way, and both
+ * answer it.
+ */
+const requires: Record<string, Capability | Capability[]> = {
   topics: Capability.CapDestinationList,
   consumers: Capability.CapSubscriptionList,
   // Only RabbitMQ has exchanges, and the sidebar is where that shows: a
   // family without them must not draw the entry at all.
   exchanges: Capability.CapRouting,
   messages: Capability.CapMessageQuery,
-  dlq: Capability.CapDLQ,
+  dlq: [Capability.CapDLQ, Capability.CapDeadLetterTopology],
   producer: Capability.CapPublish,
   cluster: Capability.CapClusterTopology,
   acl: Capability.CapAccessControl,
@@ -61,7 +70,17 @@ export function navAvailability(
   capabilities: CapabilityState,
   connected: boolean,
 ): NavAvailability {
-  const capabilityFor = (id: string) => requires[id];
+  const asked = (id: string): Capability[] => {
+    const wanted = requires[id];
+    if (wanted == null) return [];
+    return Array.isArray(wanted) ? wanted : [wanted];
+  };
+  const known = (id: string) =>
+    asked(id).find(
+      (capability) =>
+        capabilities.has(capability) ||
+        capabilities.degradedReason(capability) !== undefined,
+    );
   // Before the endpoint answers, nothing is known; hiding pages that would
   // come back reads worse than showing them and finding out.
   const unknown = !connected || capabilities.loading;
@@ -69,21 +88,18 @@ export function navAvailability(
   return {
     visible: (id) => {
       if (alwaysAvailable.has(id)) return true;
-      const capability = capabilityFor(id);
-      if (!capability || unknown) return true;
-      return (
-        capabilities.has(capability) ||
-        capabilities.degradedReason(capability) !== undefined
-      );
+      if (asked(id).length === 0 || unknown) return true;
+      return known(id) !== undefined;
     },
     disabled: (id) => {
       if (alwaysAvailable.has(id)) return false;
-      const capability = capabilityFor(id);
-      if (!capability || unknown) return false;
-      return !capabilities.has(capability);
+      if (asked(id).length === 0 || unknown) return false;
+      // Usable if any one of the capabilities is plainly supported; degraded
+      // on all of them is what disables the entry.
+      return !asked(id).some((capability) => capabilities.has(capability));
     },
     reason: (id) => {
-      const capability = capabilityFor(id);
+      const capability = known(id);
       return capability ? capabilities.degradedReason(capability) : undefined;
     },
   };

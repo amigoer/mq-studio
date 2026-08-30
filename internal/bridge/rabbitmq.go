@@ -41,3 +41,9 @@ func (s *RabbitMQService) ClientChannels(connID int, namespace string) ([]*model
 func (s *RabbitMQService) Health(connID int) (*model.BrokerHealth, error) {
 	return s.service.Health(context.Background(), connID)
 }
+
+// DeadLetterQueues finds the queues dead letters land in, and the queues that
+// feed each one.
+func (s *RabbitMQService) DeadLetterQueues(connID int, namespace string) ([]*model.DeadLetterQueue, error) {
+	return s.service.DeadLetterQueues(context.Background(), connID, namespace)
+}

@@ -1855,14 +1855,32 @@
         "discard": "确认丢弃"
       },
       "rabbitmq": {
-        "title": "死信 DLX",
-        "subtitle": "dlx.order → dlx.order.q · 37 条",
-        "queue": "死信队列：dlx.order.q",
-        "fetch50": "获取 50 条",
-        "originQueue": "原队列（x-death）",
-        "hint": "重新发布 = 读取 + 按原 routing key 发布 + ack 原消息",
-        "republish": "重新发布到原队列",
-        "publishElsewhere": "发布到其他队列…"
+        "title": "死信",
+        "subtitle": "共 {{count}} 个队列在接收死信",
+        "browseWarn": "查看死信用的是同一套浏览：消息会被取出再放回，并标记为 redelivered。",
+        "none": "该虚拟主机下没有任何队列声明了死信交换机",
+        "queue": "选择死信队列",
+        "queueOption": "{{name}} · {{depth}} 条",
+        "countPrefix": "条数：",
+        "fetch": "取一批",
+        "taken": "已取 {{count}} 条",
+        "nothingTaken": "这一批没取到消息",
+        "pressFetch": "点「取一批」查看里面的消息",
+        "messagesIn": "{{queue}} 中的消息",
+        "originQueue": "来源队列",
+        "unknownOrigin": "未记录",
+        "deaths": "死信次数",
+        "noConsumer": "无人消费",
+        "noSources": "没有队列死信到这里 —— 声明它的队列可能已被删除或改配置",
+        "defaultExchange": "（默认交换机）",
+        "keepsRoutingKey": "沿用原路由键",
+        "detail": "消息 #{{id}}",
+        "reasons": {
+          "rejected": "被拒绝",
+          "expired": "已过期",
+          "maxlen": "队列超长",
+          "delivery_limit": "超过投递上限"
+        }
       }
     },
     "producer": {

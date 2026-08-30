@@ -643,6 +643,14 @@ export enum Capability {
      * metrics.
      */
     CapClusterHealth = "cluster.health",
+
+    /**
+     * CapDeadLetterTopology is a family whose dead-letter queues are ordinary
+     * queues something else points at, found by walking the topology, rather
+     * than a per-group topic the broker names for you. Both answer the same
+     * page; neither can answer it the other's way.
+     */
+    CapDeadLetterTopology = "message.dlqTopology",
     CapAccessControl = "access.control",
 
     /**
@@ -1069,6 +1077,118 @@ export class ConsumeThroughput {
 }
 
 /**
+ * DeadLetterQueue is a queue that receives what other queues could not keep.
+ * 
+ * It is not the shape DeadLetterReader describes, and that is the point.
+ * RocketMQ gives every consumer group a dead-letter topic of its own, named
+ * after it, so a group name is enough to find one. RabbitMQ has no such thing:
+ * a queue is declared with a dead-letter exchange, that exchange routes like
+ * any other, and whatever it routes to becomes a dead-letter queue by
+ * convention rather than by declaration. Finding one means walking the
+ * topology backwards.
+ */
+export class DeadLetterQueue {
+    "namespace": string;
+
+    /**
+     * Name is the queue dead letters land in. It has no special status on the
+     * broker - it is an ordinary queue that something else points at.
+     */
+    "name": string;
+    "depth": number;
+
+    /**
+     * Consumers is how many are draining it. A dead-letter queue with a
+     * consumer is a retry pipeline; one without is a backlog nobody is
+     * looking at, which is the case worth surfacing.
+     */
+    "consumers": number;
+
+    /**
+     * Sources are the queues whose dead-letter exchange routes here, and the
+     * reason this queue matters. A dead-letter queue with no sources is one
+     * whose producers were deleted or reconfigured, and it will never receive
+     * anything again.
+     */
+    "sources": (DeadLetterSource | null)[];
+
+    /** Creates a new DeadLetterQueue instance. */
+    constructor($$source: Partial<DeadLetterQueue> = {}) {
+        if (!("namespace" in $$source)) {
+            this["namespace"] = "";
+        }
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("depth" in $$source)) {
+            this["depth"] = 0;
+        }
+        if (!("consumers" in $$source)) {
+            this["consumers"] = 0;
+        }
+        if (!("sources" in $$source)) {
+            this["sources"] = [];
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new DeadLetterQueue instance from a string or object.
+     */
+    static createFrom($$source: any = {}): DeadLetterQueue {
+        const $$createField4_0 = $$createType21;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("sources" in $$parsedSource) {
+            $$parsedSource["sources"] = $$createField4_0($$parsedSource["sources"]);
+        }
+        return new DeadLetterQueue($$parsedSource as Partial<DeadLetterQueue>);
+    }
+}
+
+/**
+ * DeadLetterSource is one queue that dead-letters into another.
+ */
+export class DeadLetterSource {
+    "queue": string;
+
+    /**
+     * Exchange is what the source queue was declared to dead-letter through.
+     */
+    "exchange": string;
+
+    /**
+     * RoutingKey is the key the message is re-published with. Empty means the
+     * message keeps its original routing key, which is the default and changes
+     * where it lands.
+     */
+    "routingKey": string;
+
+    /** Creates a new DeadLetterSource instance. */
+    constructor($$source: Partial<DeadLetterSource> = {}) {
+        if (!("queue" in $$source)) {
+            this["queue"] = "";
+        }
+        if (!("exchange" in $$source)) {
+            this["exchange"] = "";
+        }
+        if (!("routingKey" in $$source)) {
+            this["routingKey"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new DeadLetterSource instance from a string or object.
+     */
+    static createFrom($$source: any = {}): DeadLetterSource {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new DeadLetterSource($$parsedSource as Partial<DeadLetterSource>);
+    }
+}
+
+/**
  * DeprecatedFeature is something this cluster still allows that a later
  * release will not.
  * 
@@ -1206,7 +1326,7 @@ export class Destination {
      * Creates a new Destination instance from a string or object.
      */
     static createFrom($$source: any = {}): Destination {
-        const $$createField1_0 = $$createType19;
+        const $$createField1_0 = $$createType22;
         const $$createField8_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("ref" in $$parsedSource) {
@@ -1293,7 +1413,7 @@ export class DriverDescriptor {
      * Creates a new DriverDescriptor instance from a string or object.
      */
     static createFrom($$source: any = {}): DriverDescriptor {
-        const $$createField2_0 = $$createType21;
+        const $$createField2_0 = $$createType24;
         const $$createField3_0 = $$createType17;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("form" in $$parsedSource) {
@@ -1489,8 +1609,8 @@ export class FormField {
      * Creates a new FormField instance from a string or object.
      */
     static createFrom($$source: any = {}): FormField {
-        const $$createField7_0 = $$createType23;
-        const $$createField8_0 = $$createType25;
+        const $$createField7_0 = $$createType26;
+        const $$createField8_0 = $$createType28;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("visibleWhen" in $$parsedSource) {
             $$parsedSource["visibleWhen"] = $$createField7_0($$parsedSource["visibleWhen"]);
@@ -1962,10 +2082,10 @@ export class Node {
      * Creates a new Node instance from a string or object.
      */
     static createFrom($$source: any = {}): Node {
-        const $$createField10_0 = $$createType26;
-        const $$createField11_0 = $$createType27;
-        const $$createField12_0 = $$createType27;
-        const $$createField13_0 = $$createType29;
+        const $$createField10_0 = $$createType29;
+        const $$createField11_0 = $$createType30;
+        const $$createField12_0 = $$createType30;
+        const $$createField13_0 = $$createType32;
         const $$createField14_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("tpsHistoryTimestamps" in $$parsedSource) {
@@ -2406,7 +2526,7 @@ export class Subscription {
      * Creates a new Subscription instance from a string or object.
      */
     static createFrom($$source: any = {}): Subscription {
-        const $$createField1_0 = $$createType30;
+        const $$createField1_0 = $$createType33;
         const $$createField8_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("ref" in $$parsedSource) {
@@ -2472,8 +2592,8 @@ export class SubscriptionClient {
      * Creates a new SubscriptionClient instance from a string or object.
      */
     static createFrom($$source: any = {}): SubscriptionClient {
-        const $$createField1_0 = $$createType32;
-        const $$createField2_0 = $$createType34;
+        const $$createField1_0 = $$createType35;
+        const $$createField2_0 = $$createType37;
         const $$createField3_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("assignments" in $$parsedSource) {
@@ -2572,8 +2692,8 @@ export class TailBatch {
      * Creates a new TailBatch instance from a string or object.
      */
     static createFrom($$source: any = {}): TailBatch {
-        const $$createField0_0 = $$createType37;
-        const $$createField1_0 = $$createType38;
+        const $$createField0_0 = $$createType40;
+        const $$createField1_0 = $$createType41;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("messages" in $$parsedSource) {
             $$parsedSource["messages"] = $$createField0_0($$parsedSource["messages"]);
@@ -2608,7 +2728,7 @@ export class TailCursor {
      * Creates a new TailCursor instance from a string or object.
      */
     static createFrom($$source: any = {}): TailCursor {
-        const $$createField0_0 = $$createType40;
+        const $$createField0_0 = $$createType43;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("positions" in $$parsedSource) {
             $$parsedSource["positions"] = $$createField0_0($$parsedSource["positions"]);
@@ -2637,25 +2757,28 @@ const $$createType15 = $Create.Nullable($$createType14);
 const $$createType16 = $Create.Array($$createType15);
 const $$createType17 = $Create.Array($Create.Any);
 const $$createType18 = $Create.Map($Create.Any, $Create.Any);
-const $$createType19 = DestinationRef.createFrom;
-const $$createType20 = FormField.createFrom;
+const $$createType19 = DeadLetterSource.createFrom;
+const $$createType20 = $Create.Nullable($$createType19);
 const $$createType21 = $Create.Array($$createType20);
-const $$createType22 = FieldCond.createFrom;
-const $$createType23 = $Create.Nullable($$createType22);
-const $$createType24 = FormOption.createFrom;
-const $$createType25 = $Create.Array($$createType24);
-const $$createType26 = $Create.Array($Create.Any);
-const $$createType27 = $Create.Array($Create.Any);
-const $$createType28 = ReplicaStatus.createFrom;
-const $$createType29 = $Create.Array($$createType28);
-const $$createType30 = SubscriptionRef.createFrom;
-const $$createType31 = QueueAssignment.createFrom;
+const $$createType22 = DestinationRef.createFrom;
+const $$createType23 = FormField.createFrom;
+const $$createType24 = $Create.Array($$createType23);
+const $$createType25 = FieldCond.createFrom;
+const $$createType26 = $Create.Nullable($$createType25);
+const $$createType27 = FormOption.createFrom;
+const $$createType28 = $Create.Array($$createType27);
+const $$createType29 = $Create.Array($Create.Any);
+const $$createType30 = $Create.Array($Create.Any);
+const $$createType31 = ReplicaStatus.createFrom;
 const $$createType32 = $Create.Array($$createType31);
-const $$createType33 = ConsumeThroughput.createFrom;
-const $$createType34 = $Create.Array($$createType33);
-const $$createType35 = MessageItem.createFrom;
-const $$createType36 = $Create.Nullable($$createType35);
+const $$createType33 = SubscriptionRef.createFrom;
+const $$createType34 = QueueAssignment.createFrom;
+const $$createType35 = $Create.Array($$createType34);
+const $$createType36 = ConsumeThroughput.createFrom;
 const $$createType37 = $Create.Array($$createType36);
-const $$createType38 = TailCursor.createFrom;
-const $$createType39 = QueuePosition.createFrom;
+const $$createType38 = MessageItem.createFrom;
+const $$createType39 = $Create.Nullable($$createType38);
 const $$createType40 = $Create.Array($$createType39);
+const $$createType41 = TailCursor.createFrom;
+const $$createType42 = QueuePosition.createFrom;
+const $$createType43 = $Create.Array($$createType42);

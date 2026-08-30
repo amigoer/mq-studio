@@ -1855,14 +1855,32 @@
         "discard": "Discard"
       },
       "rabbitmq": {
-        "title": "Dead letters (DLX)",
-        "subtitle": "dlx.order → dlx.order.q · 37 messages",
-        "queue": "Dead-letter queue: dlx.order.q",
-        "fetch50": "Fetch 50",
-        "originQueue": "Origin queue (x-death)",
-        "hint": "Republish reads it, publishes under the original routing key, and acks the original",
-        "republish": "Republish to the origin queue",
-        "publishElsewhere": "Publish to another queue…"
+        "title": "Dead letters",
+        "subtitle": "{{count}} queues are receiving dead letters",
+        "browseWarn": "Reading a dead-letter queue is the same browse as any other: messages are taken and put back, and come back flagged redelivered.",
+        "none": "No queue in this virtual host declares a dead-letter exchange",
+        "queue": "Pick a dead-letter queue",
+        "queueOption": "{{name}} · {{depth}} held",
+        "countPrefix": "Count: ",
+        "fetch": "Take a batch",
+        "taken": "{{count}} taken",
+        "nothingTaken": "This batch came back empty",
+        "pressFetch": "Take a batch to see what is in it",
+        "messagesIn": "Messages in {{queue}}",
+        "originQueue": "Died in",
+        "unknownOrigin": "not recorded",
+        "deaths": "Deaths",
+        "noConsumer": "nobody consuming",
+        "noSources": "Nothing dead-letters here - the queue that did may have been deleted or reconfigured",
+        "defaultExchange": "(default exchange)",
+        "keepsRoutingKey": "keeps its routing key",
+        "detail": "Message #{{id}}",
+        "reasons": {
+          "rejected": "rejected",
+          "expired": "expired",
+          "maxlen": "queue full",
+          "delivery_limit": "delivery limit"
+        }
       }
     },
     "producer": {

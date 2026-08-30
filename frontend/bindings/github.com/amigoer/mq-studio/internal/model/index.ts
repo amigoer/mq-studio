@@ -19,6 +19,8 @@ export {
     ClusterOverview,
     ConnectionStatus,
     ConsumeThroughput,
+    DeadLetterQueue,
+    DeadLetterSource,
     DeprecatedFeature,
     Destination,
     DestinationRef,
