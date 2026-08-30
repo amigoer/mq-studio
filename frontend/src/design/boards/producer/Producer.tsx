@@ -163,8 +163,8 @@ export function Producer({ protocol }: { protocol: ProtocolId }) {
 
       <div style={{ flex: 1, display: "flex", gap: "16px", padding: "16px 20px", minHeight: 0 }}>
         <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: "12px" }}>
-          <Panel style={{ padding: "13px 16px", display: "flex", gap: "10px", alignItems: "center" }}>
-            <SectionLabel style={{ flex: "none" }}>{t("board.common.target")}</SectionLabel>
+          <Panel className="flex items-center gap-2.5 px-4 py-[13px]">
+            <SectionLabel className="flex-none">{t("board.common.target")}</SectionLabel>
             {wired ? (
               <>
                 <Combobox
