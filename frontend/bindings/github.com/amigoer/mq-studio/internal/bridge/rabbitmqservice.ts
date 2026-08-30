@@ -55,6 +55,22 @@ export function ClientConnections(connID: number, $namespace: string): $Cancella
 }
 
 /**
+ * CloseClientConnection disconnects one connection. The reason reaches the
+ * client being disconnected and the broker's log.
+ */
+export function CloseClientConnection(connID: number, name: string, reason: string): $CancellablePromise<void> {
+    return $Call.ByID(3084805880, connID, name, reason);
+}
+
+/**
+ * CloseUserConnections disconnects every connection one user holds, which is
+ * how an application running several instances is evicted.
+ */
+export function CloseUserConnections(connID: number, username: string, reason: string): $CancellablePromise<void> {
+    return $Call.ByID(2721346829, connID, username, reason);
+}
+
+/**
  * DeadLetterQueues finds the queues dead letters land in, and the queues that
  * feed each one.
  */

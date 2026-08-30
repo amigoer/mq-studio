@@ -672,6 +672,13 @@ export enum Capability {
     CapClientInspect = "client.inspect",
 
     /**
+     * CapClientClose disconnects a client from the broker. Separate from
+     * inspecting them: a monitoring user can list every connection and close
+     * none.
+     */
+    CapClientClose = "client.close",
+
+    /**
      * CapClusterHealth is a broker that answers questions about its own
      * health, rather than one whose health has to be inferred from its
      * metrics.

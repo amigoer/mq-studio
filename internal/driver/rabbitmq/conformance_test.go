@@ -1935,3 +1935,52 @@ func TestLiveRepublishADeadLetterToItsOrigin(t *testing.T) {
 		t.Errorf("x-death did not survive the republish: %q", death)
 	}
 }
+
+// Closing a connection, against a real one this test opens itself.
+func TestLiveCloseClientConnection(t *testing.T) {
+	subject := liveConnNamed(t, "close-target")
+	defer func() { _ = subject.Close() }()
+	observer := liveConnNamed(t, "close-observer")
+	defer func() { _ = observer.Close() }()
+
+	ctx := context.Background()
+	if err := subject.data.ping(ctx); err != nil {
+		t.Fatalf("amqp ping: %v", err)
+	}
+
+	name := waitForConnectionNamed(t, observer, connectionName("close-target"))
+	if name == "" {
+		t.Fatal("the connection to close never appeared")
+	}
+
+	if err := observer.CloseClientConnection(ctx, name, "closed by a test"); err != nil {
+		t.Fatalf("close: %v", err)
+	}
+	if !waitForConnectionToGo(t, observer, name) {
+		t.Errorf("connection %q is still listed after being closed", name)
+	}
+}
+
+// Closing something already gone is the outcome that was asked for, not an
+// error - the management API answers 404 and the driver treats it as done.
+func TestLiveCloseAnAbsentConnectionSucceeds(t *testing.T) {
+	conn := liveConn(t)
+	defer func() { _ = conn.Close() }()
+
+	err := conn.CloseClientConnection(context.Background(), "no-such-connection", "")
+	if err != nil {
+		t.Errorf("closing an absent connection reported an error: %v", err)
+	}
+}
+
+func TestLiveCloseRefusesAnEmptyName(t *testing.T) {
+	conn := liveConn(t)
+	defer func() { _ = conn.Close() }()
+
+	if err := conn.CloseClientConnection(context.Background(), "  ", "why"); err == nil {
+		t.Error("a close with no connection name was attempted")
+	}
+	if err := conn.CloseUserConnections(context.Background(), "", "why"); err == nil {
+		t.Error("a user close with no username was attempted")
+	}
+}

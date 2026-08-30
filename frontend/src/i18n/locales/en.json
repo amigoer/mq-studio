@@ -1622,7 +1622,17 @@
         "channelsOn": "Channels, {{count}}",
         "noChannels": "No channels open on this connection",
         "channelLine": "{{consumers}} consumers, prefetch {{prefetch}}, {{unacked}} unacked, {{unconfirmed}} unconfirmed",
-        "idleSince": "Idle since {{since}}"
+        "idleSince": "Idle since {{since}}",
+        "close": "Close connection",
+        "closeTitle": "Close the connection from {{peer}}",
+        "closeDesc": "Its {{count}} channels close with it and unacknowledged messages are requeued. Most clients reconnect at once - unless whatever reconnects has also been stopped, this only makes it start over.",
+        "closeUser": "Close all of this user's",
+        "closeUserTitle": "Close every connection held by {{user}}",
+        "closeUserDesc": "Every connection this user currently holds is closed. An application usually opens one per instance, and closing them one at a time races the ones reconnecting behind it.",
+        "closeReason": "Closed from mq-studio",
+        "closed": "Closed",
+        "closeFailed": "Could not close",
+        "noChannelClose": "RabbitMQ has no endpoint to close a single channel; only whole connections"
       },
       "mqtt": {
         "session": "Session",

@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ListArea, ListPane, Page, PageHeader, RefreshButton, Toolbar } from "@/design/shell";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Table,
@@ -13,16 +14,22 @@ import {
 import {
   DetailPanel,
   DetailPanelBody,
+  DetailPanelFooter,
   DetailPanelHeader,
   KV,
   Panel,
   ProtoBadge,
   SectionLabel,
   Status,
+  toast,
+  useConfirm,
 } from "@/components";
 import { BoardState, isBlocked } from "@/design/boards/BoardState";
 import { useRabbitClients } from "@/hooks/rabbitmq/useRabbitClients";
 import { formatBytes, formatCount } from "@/lib/format";
+import { useConnectionScope } from "@/mq/ConnectionScope";
+import * as rabbitApi from "@/api/rabbitmq";
+import { formatErrorMessage } from "@/lib/utils";
 import type { ClientChannel, ClientConnection } from "@/api/rabbitmq";
 
 const TAG = { fontSize: "10px" } as const;
@@ -44,6 +51,8 @@ const MONO11 = { fontSize: "11px" } as const;
 export function ChannelsRabbitMQ() {
   const { t } = useTranslation();
   const state = useRabbitClients();
+  const { id: connID } = useConnectionScope();
+  const confirm = useConfirm();
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
 
@@ -79,6 +88,41 @@ export function ChannelsRabbitMQ() {
   );
 
   const stalled = channels.filter((channel) => channel.flowBlocked).length;
+
+  const close = useCallback(
+    async (connection: ClientConnection, everyOne: boolean) => {
+      const own = channelsByConnection.get(connection.name) ?? [];
+      const ok = await confirm({
+        title: everyOne
+          ? t("board.consumers.rabbitmq.closeUserTitle", { user: connection.user })
+          : t("board.consumers.rabbitmq.closeTitle", { peer: connection.peerHost }),
+        /* Closing a connection closes every channel inside it, and most
+           clients reconnect at once - so this is a nudge, not an eviction,
+           unless whatever is reconnecting has also been stopped. */
+        description: everyOne
+          ? t("board.consumers.rabbitmq.closeUserDesc")
+          : t("board.consumers.rabbitmq.closeDesc", { count: own.length }),
+        confirmLabel: t("board.consumers.rabbitmq.close"),
+        danger: true,
+      });
+      if (!ok) return;
+      try {
+        if (everyOne) {
+          await rabbitApi.closeUserConnections(connID, connection.user, closeReason(t));
+        } else {
+          await rabbitApi.closeClientConnection(connID, connection.name, closeReason(t));
+        }
+        toast.success(t("board.consumers.rabbitmq.closed"));
+        setSelected(null);
+        await state.refresh();
+      } catch (closeError) {
+        toast.error(t("board.consumers.rabbitmq.closeFailed"), {
+          description: formatErrorMessage(closeError),
+        });
+      }
+    },
+    [channelsByConnection, confirm, connID, state, t],
+  );
 
   return (
     <Page>
@@ -212,11 +256,31 @@ export function ChannelsRabbitMQ() {
                 channels={channelsByConnection.get(detail.name) ?? []}
               />
             </DetailPanelBody>
+            <DetailPanelFooter>
+              <Button variant="outline" onClick={() => void close(detail, true)}>
+                {t("board.consumers.rabbitmq.closeUser")}
+              </Button>
+              <span className="flex-1" />
+              <Button variant="destructive" onClick={() => void close(detail, false)}>
+                {t("board.consumers.rabbitmq.close")}
+              </Button>
+            </DetailPanelFooter>
           </DetailPanel>
         )}
       </ListArea>
     </Page>
   );
+}
+
+/**
+ * What the client is told, and what the broker logs.
+ *
+ * Naming the app is the point: an application that suddenly loses its
+ * connection can then find out from its own logs who did it, rather than
+ * seeing a bare "connection forced" that nobody can explain.
+ */
+function closeReason(t: (key: string) => string): string {
+  return t("board.consumers.rabbitmq.closeReason");
 }
 
 function unackedOn(
@@ -318,6 +382,14 @@ function ConnectionDetail({
           {channels.length === 0 && (
             <span style={{ color: "var(--c-muted)" }}>
               {t("board.consumers.rabbitmq.noChannels")}
+            </span>
+          )}
+          {/* There is no endpoint to close one channel: the broker offers
+              only whole connections, and a button that said otherwise would
+              close more than it named. */}
+          {channels.length > 0 && (
+            <span style={{ color: "var(--c-muted)", fontSize: "10.5px" }}>
+              {t("board.consumers.rabbitmq.noChannelClose")}
             </span>
           )}
         </Panel>

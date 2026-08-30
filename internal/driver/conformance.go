@@ -42,6 +42,7 @@ func backings() []capabilityBacking {
 	census := func(c Conn) bool { _, ok := c.(CensusReporter); return ok }
 	routingAdmin := func(c Conn) bool { _, ok := c.(RoutingMutator); return ok }
 	clients := func(c Conn) bool { _, ok := c.(ClientInspector); return ok }
+	clientClose := func(c Conn) bool { _, ok := c.(ClientCloser); return ok }
 	health := func(c Conn) bool { _, ok := c.(HealthInspector); return ok }
 	dlqTopology := func(c Conn) bool { _, ok := c.(DeadLetterTopology); return ok }
 	stats := func(c Conn) bool { _, ok := c.(DestinationStats); return ok }
@@ -90,6 +91,7 @@ func backings() []capabilityBacking {
 		{model.CapRoutingAdmin, "RoutingMutator", routingAdmin},
 		{model.CapClusterCensus, "CensusReporter", census},
 		{model.CapClientInspect, "ClientInspector", clients},
+		{model.CapClientClose, "ClientCloser", clientClose},
 		{model.CapClusterHealth, "HealthInspector", health},
 		{model.CapDeadLetterTopology, "DeadLetterTopology", dlqTopology},
 	}

@@ -312,6 +312,18 @@ type AccessDirectory interface {
 	RemoveAccessRule(ctx context.Context, subject string) error
 }
 
+// ClientCloser disconnects a client from the broker.
+//
+// Only whole connections. Some families - RabbitMQ among them - multiplex
+// sessions inside one connection and offer no way to close a single session,
+// so a port that promised it would have to close more than it named.
+type ClientCloser interface {
+	CloseClientConnection(ctx context.Context, name, reason string) error
+	// CloseUserConnections closes every connection one identity holds, which
+	// is how an application with several instances is actually evicted.
+	CloseUserConnections(ctx context.Context, username, reason string) error
+}
+
 // RoutingMutator creates and deletes exchanges and bindings.
 //
 // Separate from RoutingAdmin because reading a topology and changing it are

@@ -236,3 +236,15 @@ func (s *RabbitMQService) DropMessages(connID int, vhost, name string, limit int
 	return s.service.DropMessages(context.Background(), connID,
 		model.DestinationRef{Namespace: vhost, Name: name}, limit)
 }
+
+// CloseClientConnection disconnects one connection. The reason reaches the
+// client being disconnected and the broker's log.
+func (s *RabbitMQService) CloseClientConnection(connID int, name, reason string) error {
+	return s.service.CloseClientConnection(context.Background(), connID, name, reason)
+}
+
+// CloseUserConnections disconnects every connection one user holds, which is
+// how an application running several instances is evicted.
+func (s *RabbitMQService) CloseUserConnections(connID int, username, reason string) error {
+	return s.service.CloseUserConnections(context.Background(), connID, username, reason)
+}

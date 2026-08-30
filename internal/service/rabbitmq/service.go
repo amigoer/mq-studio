@@ -292,3 +292,25 @@ func (s *Service) DropMessages(ctx context.Context, connID int, ref model.Destin
 	defer cancel()
 	return api.DropMessages(ctx, ref, limit)
 }
+
+// CloseClientConnection disconnects one connection, telling the client why.
+func (s *Service) CloseClientConnection(ctx context.Context, connID int, name, reason string) error {
+	api, err := port[driver.ClientCloser](s, connID, model.CapClientClose)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.CloseClientConnection(ctx, name, reason)
+}
+
+// CloseUserConnections disconnects every connection one user holds.
+func (s *Service) CloseUserConnections(ctx context.Context, connID int, username, reason string) error {
+	api, err := port[driver.ClientCloser](s, connID, model.CapClientClose)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.CloseUserConnections(ctx, username, reason)
+}

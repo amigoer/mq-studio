@@ -207,3 +207,23 @@ export const dropMessages = (
   name: string,
   limit: number,
 ): Promise<number> => RabbitMQService.DropMessages(connID, vhost, name, limit);
+
+/**
+ * Disconnects one client connection.
+ *
+ * The reason reaches the client being disconnected and the broker's log, so an
+ * application that suddenly loses its connection can find out from its own
+ * logs who did it and why.
+ */
+export const closeClientConnection = (
+  connID: number,
+  name: string,
+  reason: string,
+): Promise<void> => RabbitMQService.CloseClientConnection(connID, name, reason);
+
+/** Disconnects every connection one user holds. */
+export const closeUserConnections = (
+  connID: number,
+  username: string,
+  reason: string,
+): Promise<void> => RabbitMQService.CloseUserConnections(connID, username, reason);

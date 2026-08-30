@@ -117,6 +117,41 @@ func exec(ctx context.Context, m *mgmt, fn func(*rabbithole.Client) (*http.Respo
 	return nil
 }
 
+// deleteWith sends a DELETE carrying extra headers.
+//
+// rabbit-hole's own delete calls take no headers, and closing a connection is
+// the one place that matters: the broker passes X-Reason to the client being
+// disconnected and writes it to its log, so an application that suddenly loses
+// its connection can find out from its own logs who did it and why. Without
+// it the client sees a bare "connection forced" and nobody can explain it.
+func (m *mgmt) deleteWith(ctx context.Context, path string, headers map[string]string) error {
+	request, err := http.NewRequestWithContext(ctx, http.MethodDelete, m.endpoint+path, nil)
+	if err != nil {
+		return err
+	}
+	request.SetBasicAuth(m.username, m.password)
+	for name, value := range headers {
+		request.Header.Set(name, value)
+	}
+
+	client := &http.Client{Transport: m.transport, Timeout: m.budget(ctx)}
+	response, err := client.Do(request)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = response.Body.Close() }()
+
+	// A 404 on a delete is the thing already being gone, which is the outcome
+	// asked for.
+	if response.StatusCode == http.StatusNotFound {
+		return nil
+	}
+	if response.StatusCode >= http.StatusBadRequest {
+		return fmt.Errorf("management API returned %s", response.Status)
+	}
+	return nil
+}
+
 // postJSON sends a management request rabbit-hole does not wrap. The message
 // endpoints are the ones that need it; the API is REST either way, and what is
 // lost is only the typed wrapper.

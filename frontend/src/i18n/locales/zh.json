@@ -1622,7 +1622,17 @@
         "channelsOn": "信道 · {{count}} 个",
         "noChannels": "该连接上没有打开的信道",
         "channelLine": "消费者 {{consumers}} · prefetch {{prefetch}} · 未确认 {{unacked}} · 未回执 {{unconfirmed}}",
-        "idleSince": "空闲自 {{since}}"
+        "idleSince": "空闲自 {{since}}",
+        "close": "断开连接",
+        "closeTitle": "断开来自 {{peer}} 的连接",
+        "closeDesc": "连接上的 {{count}} 个信道会一并关闭，未确认的消息会重新入队。大多数客户端会立刻重连 —— 除非把重连的那一端也停掉，否则这只是让它重来一次。",
+        "closeUser": "断开该用户的全部连接",
+        "closeUserTitle": "断开用户「{{user}}」的全部连接",
+        "closeUserDesc": "该用户当前持有的所有连接都会被断开。一个应用通常每个实例开一条连接，逐条关会跟正在重连的赛跑，所以这里一次全关。",
+        "closeReason": "由 mq-studio 断开",
+        "closed": "已断开",
+        "closeFailed": "断开失败",
+        "noChannelClose": "RabbitMQ 没有单独关闭信道的接口，只能关整条连接"
       },
       "mqtt": {
         "session": "会话",
