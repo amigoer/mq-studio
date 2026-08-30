@@ -108,3 +108,24 @@ func (s *Service) CollectTPSSample(ctx context.Context, connID int) error {
 	s.recordBrokerTPS(addresses, nodes)
 	return nil
 }
+
+// NodeConfig returns one node's effective settings.
+//
+// It is a page of its own rather than part of the node detail: a few hundred
+// keys is not something a card shows, and it is one request per node.
+func (s *Service) NodeConfig(ctx context.Context, connID int, address string) (map[string]string, error) {
+	conn, err := s.conns(connID)
+	if err != nil {
+		return nil, err
+	}
+	if !conn.Capabilities().Has(model.CapNodeConfig) {
+		return nil, driver.Unsupported(conn, model.CapNodeConfig)
+	}
+	api, ok := conn.(driver.NodeConfig)
+	if !ok {
+		return nil, driver.Unsupported(conn, model.CapNodeConfig)
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.NodeConfig(ctx, address)
+}

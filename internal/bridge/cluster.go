@@ -46,3 +46,9 @@ func (s *ClusterService) Brokers(connID int) ([]*model.Node, error) {
 func (s *ClusterService) BrokerDetail(connID int, brokerAddr string) (*model.Node, error) {
 	return s.service.GetBrokerDetail(context.Background(), connID, brokerAddr)
 }
+
+// NodeConfig returns one broker's effective settings, as the broker reports
+// them rather than as its config file reads.
+func (s *ClusterService) NodeConfig(connID int, brokerAddr string) (map[string]string, error) {
+	return s.service.NodeConfig(context.Background(), connID, brokerAddr)
+}

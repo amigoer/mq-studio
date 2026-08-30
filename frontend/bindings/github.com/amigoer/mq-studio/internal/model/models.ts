@@ -233,6 +233,12 @@ export enum Capability {
      */
     CapDelayedDelivery = "message.delayedDelivery",
     CapClusterTopology = "cluster.topology",
+
+    /**
+     * CapNodeConfig is reading one node's effective settings - what it is
+     * actually running with, which is not always what its config file says.
+     */
+    CapNodeConfig = "cluster.nodeConfig",
     CapClusterMetrics = "cluster.metrics",
     CapAccessControl = "access.control",
     CapRouting = "routing.exchanges",

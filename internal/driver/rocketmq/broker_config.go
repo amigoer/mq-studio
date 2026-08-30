@@ -1,7 +1,11 @@
 package rocketmq
 
 import (
+	"context"
+	"fmt"
 	"strings"
+
+	admin "github.com/amigoer/rocketmq-admin-go"
 )
 
 // rawBrokerConfigKey is where the library puts a body it could not parse.
@@ -57,4 +61,27 @@ func parseProperties(document string) map[string]string {
 		values[key] = strings.TrimSpace(value)
 	}
 	return values
+}
+
+// NodeConfig returns one broker's effective settings.
+//
+// This is what the broker is running with, which is not always what its
+// broker.conf says: anything changed at runtime, or defaulted, shows here and
+// nowhere else.
+func (c *Conn) NodeConfig(ctx context.Context, address string) (map[string]string, error) {
+	address = strings.TrimSpace(address)
+	if address == "" {
+		return nil, fmt.Errorf("获取 Broker 配置失败: Broker 地址不能为空")
+	}
+
+	var returned map[string]string
+	err := c.execWithTimeout(timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
+		var callErr error
+		returned, callErr = retryClient.GetBrokerConfig(ctx, address)
+		return callErr
+	})
+	if err != nil {
+		return nil, fmt.Errorf("获取 Broker 配置失败: %w", err)
+	}
+	return brokerConfig(returned), nil
 }

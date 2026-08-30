@@ -792,3 +792,43 @@ func TestLiveConsumeTimeSpanBlockedByLibraryParse(t *testing.T) {
 	}
 	t.Logf("group has %d committed offsets and still no readable time span - as expected", offsets)
 }
+
+// One broker's effective settings.
+//
+// This is the surface the Properties fix opened up: before it, the library
+// handed back a single "raw" key and every lookup missed.
+func TestLiveNodeConfig(t *testing.T) {
+	connections, _, registry := liveStack(t)
+	ctx := context.Background()
+
+	profile, err := connections.AddConnection(liveProfileInput("config"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := connections.Connect(profile.ID); err != nil {
+		t.Fatalf("connect: %v", err)
+	}
+	conn, _ := registry.Get(profile.ID)
+
+	nodes, err := conn.(driver.ClusterAdmin).ListNodes(ctx)
+	if err != nil || len(nodes) == 0 {
+		t.Fatalf("list nodes: %v (%d nodes)", err, len(nodes))
+	}
+
+	config, err := conn.(driver.NodeConfig).NodeConfig(ctx, nodes[0].Address)
+	if err != nil {
+		t.Fatalf("node config: %v", err)
+	}
+	// A broker reports hundreds of settings; a handful means the document was
+	// not parsed, which is the failure this exists to catch.
+	if len(config) < 20 {
+		t.Fatalf("node config returned %d keys, want a parsed document", len(config))
+	}
+	if config["brokerClusterName"] == "" {
+		t.Errorf("brokerClusterName is missing from %d keys", len(config))
+	}
+	if _, leaked := config["raw"]; leaked {
+		t.Error("the unparsed document leaked through as a key")
+	}
+	t.Logf("%s reports %d settings", nodes[0].Address, len(config))
+}

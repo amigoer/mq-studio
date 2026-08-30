@@ -37,9 +37,12 @@ const (
 	CapDelayedDelivery Capability = "message.delayedDelivery"
 
 	CapClusterTopology Capability = "cluster.topology"
-	CapClusterMetrics  Capability = "cluster.metrics"
-	CapAccessControl   Capability = "access.control"
-	CapRouting         Capability = "routing.exchanges"
+	// CapNodeConfig is reading one node's effective settings - what it is
+	// actually running with, which is not always what its config file says.
+	CapNodeConfig     Capability = "cluster.nodeConfig"
+	CapClusterMetrics Capability = "cluster.metrics"
+	CapAccessControl  Capability = "access.control"
+	CapRouting        Capability = "routing.exchanges"
 )
 
 // Capabilities is what one live connection can actually do.

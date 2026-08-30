@@ -109,6 +109,19 @@ type ClusterAdmin interface {
 	ClusterOverview(ctx context.Context) (*model.ClusterOverview, error)
 }
 
+// NodeConfig reads one node's effective settings.
+//
+// Separate from ClusterAdmin because it answers a different question at a
+// different cost: the topology is one request for the whole cluster, this is
+// one request per node and returns a few hundred keys.
+//
+// The result is a flat map because that is what it is - a settings document,
+// not a shape any driver should pretend to normalise. What the keys mean
+// differs per family and the page renders them as given.
+type NodeConfig interface {
+	NodeConfig(ctx context.Context, address string) (map[string]string, error)
+}
+
 // AccessAdmin manages broker access control.
 type AccessAdmin interface {
 	AccessEnabled(ctx context.Context) (bool, error)
