@@ -667,3 +667,51 @@ func startLiveConsumer(t *testing.T) func() {
 	}
 	return func() { _ = pushConsumer.Shutdown() }
 }
+
+// Node detail carries the replication state the cluster board needs.
+//
+// The single-broker E2E cluster has no slaves, so the interesting assertion is
+// that asking is safe and answers empty rather than failing - which is the
+// case every single-master deployment hits.
+func TestLiveNodeDetailReplicas(t *testing.T) {
+	connections, _, registry := liveStack(t)
+	ctx := context.Background()
+
+	profile, err := connections.AddConnection(liveProfileInput("nodes"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := connections.Connect(profile.ID); err != nil {
+		t.Fatalf("connect: %v", err)
+	}
+	conn, _ := registry.Get(profile.ID)
+	cluster := conn.(driver.ClusterAdmin)
+
+	nodes, err := cluster.ListNodes(ctx)
+	if err != nil {
+		t.Fatalf("list nodes: %v", err)
+	}
+	if len(nodes) == 0 {
+		t.Fatal("the cluster reported no nodes")
+	}
+	// A list must not pay for the replication request.
+	for _, node := range nodes {
+		if len(node.Replicas) != 0 {
+			t.Errorf("ListNodes filled Replicas for %s; that belongs to NodeDetail", node.Address)
+		}
+	}
+
+	detail, err := cluster.NodeDetail(ctx, nodes[0].Address)
+	if err != nil {
+		t.Fatalf("node detail: %v", err)
+	}
+	if detail.Address != nodes[0].Address {
+		t.Fatalf("detail address = %q, want %q", detail.Address, nodes[0].Address)
+	}
+	for _, replica := range detail.Replicas {
+		if replica.Address == "" {
+			t.Error("a replica came back with no address")
+		}
+	}
+	t.Logf("%s reports %d replica(s)", detail.Address, len(detail.Replicas))
+}

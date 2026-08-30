@@ -2,9 +2,12 @@ package rocketmq
 
 import (
 	"context"
+	"sort"
 	"strconv"
 
 	"github.com/amigoer/mq-studio/internal/model"
+
+	admin "github.com/amigoer/rocketmq-admin-go"
 )
 
 // Attribute keys this driver puts on a Node.
@@ -32,13 +35,51 @@ func (c *Conn) ListNodes(ctx context.Context) ([]*model.Node, error) {
 	return nodes, nil
 }
 
-// NodeDetail returns runtime statistics for one broker.
+// NodeDetail returns runtime statistics for one broker, plus how far its
+// slaves trail it.
+//
+// The replication state is a second request, which is why it is here and not
+// in ListNodes: a cluster page would otherwise pay one per broker on every
+// refresh. A master with no slaves reports none, and a slave answers about
+// nothing, so an empty result is normal rather than a failure.
 func (c *Conn) NodeDetail(ctx context.Context, address string) (*model.Node, error) {
 	broker, err := c.GetBrokerDetail(ctx, address)
 	if err != nil {
 		return nil, err
 	}
-	return nodeFromBroker(broker), nil
+	node := nodeFromBroker(broker)
+	node.Replicas = c.replicaStatus(ctx, address)
+	return node, nil
+}
+
+// replicaStatus reads the HA state of one broker's followers.
+//
+// Best effort: a broker that does not answer leaves the section empty rather
+// than failing the whole detail, which is the same rule the runtime statistics
+// follow.
+func (c *Conn) replicaStatus(ctx context.Context, address string) []model.ReplicaStatus {
+	var status *admin.BrokerHAStatus
+	err := c.execWithTimeout(timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
+		var callErr error
+		status, callErr = retryClient.GetBrokerHAStatus(ctx, address)
+		return callErr
+	})
+	if err != nil || status == nil {
+		return nil
+	}
+
+	replicas := make([]model.ReplicaStatus, 0, len(status.HaConnectionSet))
+	for _, connection := range status.HaConnectionSet {
+		replicas = append(replicas, model.ReplicaStatus{
+			Address:     connection.Addr,
+			BehindBytes: connection.Diff,
+			InSync:      connection.InSync,
+		})
+	}
+	sort.Slice(replicas, func(left, right int) bool {
+		return replicas[left].Address < replicas[right].Address
+	})
+	return replicas
 }
 
 // ClusterOverview aggregates the cluster header counters.

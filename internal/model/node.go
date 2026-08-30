@@ -26,10 +26,35 @@ type Node struct {
 	TpsInHistory         []int   `json:"tpsInHistory"`
 	TpsOutHistory        []int   `json:"tpsOutHistory"`
 
+	// Replicas is how far each follower of this node trails it, where the
+	// family replicates. Empty on a follower, and on a leader with none.
+	//
+	// Canonical rather than an attribute because every replicating family has
+	// the question - RocketMQ slaves, Kafka ISR, RabbitMQ quorum members - and
+	// "is a replica falling behind" is the one thing a cluster page is opened
+	// to answer during an incident.
+	//
+	// Filled only by NodeDetail: it costs a request per node, which a list
+	// should not pay.
+	Replicas []ReplicaStatus `json:"replicas"`
+
 	// Attributes carries family-specific detail the canonical page renders
 	// through the driver's own column set: RocketMQ master/slave role and
 	// CommitLog usage, Kafka controller and ISR, RabbitMQ disc/ram node type.
 	Attributes map[string]string `json:"attributes"`
+}
+
+// ReplicaStatus is one follower's replication state.
+type ReplicaStatus struct {
+	Address string `json:"address"`
+
+	// BehindBytes is how far this replica trails the leader's log. Zero means
+	// caught up; UnknownMetric means the family reports no such figure.
+	BehindBytes int64 `json:"behindBytes"`
+
+	// InSync is the family's own verdict, which is not simply BehindBytes == 0:
+	// a replica can be a little behind and still count as in sync.
+	InSync bool `json:"inSync"`
 }
 
 // Attribute returns a driver-specific field.

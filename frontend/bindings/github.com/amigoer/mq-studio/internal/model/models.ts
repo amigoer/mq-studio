@@ -1069,6 +1069,20 @@ export class Node {
     "tpsOutHistory": number[];
 
     /**
+     * Replicas is how far each follower of this node trails it, where the
+     * family replicates. Empty on a follower, and on a leader with none.
+     * 
+     * Canonical rather than an attribute because every replicating family has
+     * the question - RocketMQ slaves, Kafka ISR, RabbitMQ quorum members - and
+     * "is a replica falling behind" is the one thing a cluster page is opened
+     * to answer during an incident.
+     * 
+     * Filled only by NodeDetail: it costs a request per node, which a list
+     * should not pay.
+     */
+    "replicas": ReplicaStatus[];
+
+    /**
      * Attributes carries family-specific detail the canonical page renders
      * through the driver's own column set: RocketMQ master/slave role and
      * CommitLog usage, Kafka controller and ISR, RabbitMQ disc/ram node type.
@@ -1116,6 +1130,9 @@ export class Node {
         if (!("tpsOutHistory" in $$source)) {
             this["tpsOutHistory"] = [];
         }
+        if (!("replicas" in $$source)) {
+            this["replicas"] = [];
+        }
         if (!("attributes" in $$source)) {
             this["attributes"] = {};
         }
@@ -1130,7 +1147,8 @@ export class Node {
         const $$createField10_0 = $$createType11;
         const $$createField11_0 = $$createType12;
         const $$createField12_0 = $$createType12;
-        const $$createField13_0 = $$createType0;
+        const $$createField13_0 = $$createType14;
+        const $$createField14_0 = $$createType0;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("tpsHistoryTimestamps" in $$parsedSource) {
             $$parsedSource["tpsHistoryTimestamps"] = $$createField10_0($$parsedSource["tpsHistoryTimestamps"]);
@@ -1141,8 +1159,11 @@ export class Node {
         if ("tpsOutHistory" in $$parsedSource) {
             $$parsedSource["tpsOutHistory"] = $$createField12_0($$parsedSource["tpsOutHistory"]);
         }
+        if ("replicas" in $$parsedSource) {
+            $$parsedSource["replicas"] = $$createField13_0($$parsedSource["replicas"]);
+        }
         if ("attributes" in $$parsedSource) {
-            $$parsedSource["attributes"] = $$createField13_0($$parsedSource["attributes"]);
+            $$parsedSource["attributes"] = $$createField14_0($$parsedSource["attributes"]);
         }
         return new Node($$parsedSource as Partial<Node>);
     }
@@ -1229,6 +1250,48 @@ export class QueueAssignment {
     static createFrom($$source: any = {}): QueueAssignment {
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         return new QueueAssignment($$parsedSource as Partial<QueueAssignment>);
+    }
+}
+
+/**
+ * ReplicaStatus is one follower's replication state.
+ */
+export class ReplicaStatus {
+    "address": string;
+
+    /**
+     * BehindBytes is how far this replica trails the leader's log. Zero means
+     * caught up; UnknownMetric means the family reports no such figure.
+     */
+    "behindBytes": number;
+
+    /**
+     * InSync is the family's own verdict, which is not simply BehindBytes == 0:
+     * a replica can be a little behind and still count as in sync.
+     */
+    "inSync": boolean;
+
+    /** Creates a new ReplicaStatus instance. */
+    constructor($$source: Partial<ReplicaStatus> = {}) {
+        if (!("address" in $$source)) {
+            this["address"] = "";
+        }
+        if (!("behindBytes" in $$source)) {
+            this["behindBytes"] = 0;
+        }
+        if (!("inSync" in $$source)) {
+            this["inSync"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ReplicaStatus instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ReplicaStatus {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ReplicaStatus($$parsedSource as Partial<ReplicaStatus>);
     }
 }
 
@@ -1360,7 +1423,7 @@ export class Subscription {
      * Creates a new Subscription instance from a string or object.
      */
     static createFrom($$source: any = {}): Subscription {
-        const $$createField1_0 = $$createType13;
+        const $$createField1_0 = $$createType15;
         const $$createField8_0 = $$createType0;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("ref" in $$parsedSource) {
@@ -1426,8 +1489,8 @@ export class SubscriptionClient {
      * Creates a new SubscriptionClient instance from a string or object.
      */
     static createFrom($$source: any = {}): SubscriptionClient {
-        const $$createField1_0 = $$createType15;
-        const $$createField2_0 = $$createType17;
+        const $$createField1_0 = $$createType17;
+        const $$createField2_0 = $$createType19;
         const $$createField3_0 = $$createType0;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("assignments" in $$parsedSource) {
@@ -1499,8 +1562,10 @@ const $$createType9 = FormOption.createFrom;
 const $$createType10 = $Create.Array($$createType9);
 const $$createType11 = $Create.Array($Create.Any);
 const $$createType12 = $Create.Array($Create.Any);
-const $$createType13 = SubscriptionRef.createFrom;
-const $$createType14 = QueueAssignment.createFrom;
-const $$createType15 = $Create.Array($$createType14);
-const $$createType16 = ConsumeThroughput.createFrom;
+const $$createType13 = ReplicaStatus.createFrom;
+const $$createType14 = $Create.Array($$createType13);
+const $$createType15 = SubscriptionRef.createFrom;
+const $$createType16 = QueueAssignment.createFrom;
 const $$createType17 = $Create.Array($$createType16);
+const $$createType18 = ConsumeThroughput.createFrom;
+const $$createType19 = $Create.Array($$createType18);

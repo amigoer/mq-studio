@@ -26,6 +26,7 @@ export {
     Node,
     NodeStatus,
     QueueAssignment,
+    ReplicaStatus,
     ResetOffsetRequest,
     Subscription,
     SubscriptionClient,
