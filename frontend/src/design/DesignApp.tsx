@@ -33,25 +33,13 @@ import { readSession, writeSession } from "@/design/data/session";
 import { ConnectionsList } from "@/design/boards/connections/ConnectionsList";
 import { ConnectionsEmpty } from "@/design/boards/connections/ConnectionsEmpty";
 import { NewConnectionDialog } from "@/design/boards/connections/NewConnectionDialog";
-import { Settings, type DocId, type SectionId } from "@/design/boards/settings/Settings";
-import { SplitCompare } from "@/design/boards/split/SplitCompare";
-import { CapabilityMatrix } from "@/design/boards/docs/CapabilityMatrix";
-import { ReuseStrategy } from "@/design/boards/docs/ReuseStrategy";
-import { NavModel } from "@/design/boards/docs/NavModel";
+import { Settings, type SectionId } from "@/design/boards/settings/Settings";
 
 /** Global views sit beside the connection tabs rather than inside one. */
 type View =
   | { kind: "tab" }
   | { kind: "connections" }
-  | { kind: "settings"; section?: SectionId }
-  | { kind: "split" }
-  | { kind: "doc"; doc: DocId };
-
-const DOCS: Record<DocId, () => JSX.Element> = {
-  capability: CapabilityMatrix,
-  reuse: ReuseStrategy,
-  nav: NavModel,
-};
+  | { kind: "settings"; section?: SectionId };
 
 const GITHUB_URL = "https://github.com/amigoer/mq-studio";
 
@@ -411,17 +399,10 @@ export function DesignApp(): JSX.Element {
         return (
           <Settings
             onBack={() => setView(previousView)}
-            onOpenDoc={(doc) => setView({ kind: "doc", doc })}
             scale={{ setting: scaleSetting, fontSize, onChange: setScale }}
             initialSection={view.section}
           />
         );
-      case "doc": {
-        const Doc = DOCS[view.doc];
-        return <Doc />;
-      }
-      case "split":
-        return <SplitCompare onClose={() => setView({ kind: "tab" })} />;
       case "tab":
       default:
         if (protocol == null) {
@@ -447,7 +428,6 @@ export function DesignApp(): JSX.Element {
    */
   const viewKey = [
     view.kind,
-    view.kind === "doc" ? view.doc : "",
     view.kind === "settings" ? "" : (activeTab ?? ""),
     onConnection ? page : "",
   ].join(":");
@@ -463,7 +443,6 @@ export function DesignApp(): JSX.Element {
       titleBar={
         <TitleBar
           homeActive={atHome}
-          splitActive={view.kind === "split"}
           dimmed={connections.length === 0}
           refreshing={updateChecking}
           updateReady={updateAvailable != null}
@@ -477,14 +456,6 @@ export function DesignApp(): JSX.Element {
             goto({ kind: "tab" });
           }}
           onSettings={() => goto({ kind: "settings" })}
-          onSplit={
-            openTabs.length >= 2
-              ? () =>
-                  setView((current) =>
-                    current.kind === "split" ? { kind: "tab" } : { kind: "split" },
-                  )
-              : undefined
-          }
           tabs={
             <ConnectionTabs
               tabs={openTabs}
@@ -495,22 +466,12 @@ export function DesignApp(): JSX.Element {
                * itself a tab and two tabs cannot both be selected.
                */
               active={atHome ? null : activeTab}
-              compare={
-                view.kind === "split"
-                  ? { label: t("shell.tabs.compare"), detail: "RMQ ⇄ Kafka" }
-                  : null
-              }
               onSelect={openTab}
               onClose={closeTab}
               onAdd={() => {
                 goto({ kind: "connections" });
                 setDialog({ editing: null });
               }}
-              onSplit={() =>
-                setView((current) =>
-                  current.kind === "split" ? { kind: "tab" } : { kind: "split" },
-                )
-              }
             />
           }
         />

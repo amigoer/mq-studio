@@ -882,15 +882,12 @@
       "github": "GitHub",
       "notifications": "Notifications",
       "notificationsUnread": "Notifications · {{count}} unread",
-      "split": "Split compare",
       "settings": "Settings"
     },
     "tabs": {
       "new": "New connection",
       "newHint": "New connections appear here as tabs",
-      "close": "Close {{name}}",
-      "exitSplit": "Exit split view",
-      "compare": "Compare"
+      "close": "Close {{name}}"
     },
     "sidebar": {
       "expand": "Expand sidebar",
@@ -1354,12 +1351,6 @@
         "resetDesc": "Every app setting returns to its initial value. Connections and ACLs are untouched.",
         "resetDone": "Settings restored to defaults",
         "resetFailed": "Could not restore the defaults",
-        "reference": "Design reference",
-        "referenceLabel": "Capability matrix · reuse strategy · navigation model",
-        "referenceHint": "Boards 3h / 4d / 5c, on how each page is cut down per protocol",
-        "capability": "Capability matrix",
-        "reuse": "Reuse strategy",
-        "navModel": "Navigation model",
         "updateAvailable": "Update available: v{{version}}",
         "updateAvailableHint": "Open Releases to download",
         "openReleases": "Open Releases",
@@ -2274,13 +2265,6 @@
       "userProps": "User properties · MQTT 5",
       "sameTopic": "History for this topic",
       "publishTemplate": "Publish from this as a template"
-    },
-    "split": {
-      "status1": "12ms · refreshes on its own every 10s",
-      "status2": "8ms · refreshes on its own every 10s",
-      "byLag": "By lag",
-      "page": "Page: {{page}}",
-      "close": "Close {{name}}"
     },
     "docs": {
       "capability": {

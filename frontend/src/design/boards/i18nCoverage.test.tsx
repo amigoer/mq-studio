@@ -15,6 +15,10 @@ import { beforeAll, describe, expect, it, vi } from "vitest";
  * Boards that read live data are rendered inside the providers they need but
  * with nothing connected, which is the state that has to render in both
  * languages anyway: every one of them draws its "not connected" notice.
+ *
+ * The three design-spec pages have no entry point any more - they were pulled
+ * out of the settings page because they describe what was designed rather than
+ * what is wired - and are rendered here so their strings stay covered.
  */
 
 type Board = { name: string; html: string };
@@ -39,7 +43,6 @@ beforeAll(async () => {
     capability,
     nav,
     reuse,
-    split,
     settings,
     profiles,
     center,
@@ -51,14 +54,13 @@ beforeAll(async () => {
     import("@/design/boards/docs/CapabilityMatrix"),
     import("@/design/boards/docs/NavModel"),
     import("@/design/boards/docs/ReuseStrategy"),
-    import("@/design/boards/split/SplitCompare"),
     import("@/hooks/useSettings"),
     import("@/hooks/useConnectionProfiles"),
     import("@/hooks/useAlertCenter"),
     import("@/components"),
   ]);
 
-  const docs = [capability.CapabilityMatrix, nav.NavModel, reuse.ReuseStrategy, split.SplitCompare];
+  const docs = [capability.CapabilityMatrix, nav.NavModel, reuse.ReuseStrategy];
 
   /* The same nesting main.tsx uses, minus what draws nothing here. Effects do
      not run under static rendering, so no provider reaches the bridge. */

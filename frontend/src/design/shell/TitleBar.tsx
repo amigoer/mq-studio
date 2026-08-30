@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { Columns2, RefreshCw, Settings } from "lucide-react";
+import { RefreshCw, Settings } from "lucide-react";
 import { SiGithub } from "react-icons/si";
 import { AppLogo } from "@/design/icons/AppLogo";
 import { Button } from "@/components/ui/button";
@@ -24,7 +24,6 @@ import { WindowControls } from "./WindowControls";
 export function TitleBar({
   tabs,
   homeActive,
-  splitActive,
   dimmed = false,
   refreshing = false,
   updateReady = false,
@@ -35,12 +34,10 @@ export function TitleBar({
   onOpenAlertSettings,
   onOpenConnection,
   onSettings,
-  onSplit,
 }: {
   tabs?: ReactNode;
   /** True while the connection list is the page being shown. */
   homeActive?: boolean;
-  splitActive?: boolean;
   /** 8b: with no connections the search and notification affordances read as inert. */
   dimmed?: boolean;
   /** True while the update check the button starts is still out. */
@@ -55,7 +52,6 @@ export function TitleBar({
   /** Where an alert row goes: the connection it fired on. */
   onOpenConnection?: (connectionId: number) => void;
   onSettings?: () => void;
-  onSplit?: () => void;
 }) {
   const { t } = useTranslation();
   const mac = isMac();
@@ -135,12 +131,6 @@ export function TitleBar({
         onOpenAlertSettings={onOpenAlertSettings}
         onOpenConnection={onOpenConnection}
       />
-      {/* 8b drops the strip entirely; with fewer than two tabs there is nothing to compare. */}
-      {onSplit != null && (
-        <IconBtn active={splitActive} onClick={onSplit} title={t("shell.titleBar.split")}>
-          <Columns2 className={ICON_CLASS} aria-hidden />
-        </IconBtn>
-      )}
       <IconBtn onClick={onSettings} title={t("shell.titleBar.settings")}>
         <Settings className={ICON_CLASS} aria-hidden />
       </IconBtn>

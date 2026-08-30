@@ -882,15 +882,12 @@
       "github": "GitHub",
       "notifications": "通知",
       "notificationsUnread": "通知 · {{count}} 未读",
-      "split": "分屏对照",
       "settings": "设置"
     },
     "tabs": {
       "new": "新建连接",
       "newHint": "新建连接后会以标签的形式出现在这里",
-      "close": "关闭 {{name}}",
-      "exitSplit": "退出分屏",
-      "compare": "对照"
+      "close": "关闭 {{name}}"
     },
     "sidebar": {
       "expand": "展开侧边栏",
@@ -1354,12 +1351,6 @@
         "resetDesc": "所有应用设置将回到初始值。连接与 ACL 配置不受影响。",
         "resetDone": "设置已恢复默认",
         "resetFailed": "恢复默认失败",
-        "reference": "设计参考",
-        "referenceLabel": "协议能力矩阵 · 复用策略 · 导航模型",
-        "referenceHint": "设计稿 3h / 4d / 5c，说明各页面按协议如何裁剪",
-        "capability": "能力矩阵",
-        "reuse": "复用策略",
-        "navModel": "导航模型",
         "updateAvailable": "发现新版本 v{{version}}",
         "updateAvailableHint": "可前往 Releases 下载",
         "openReleases": "打开 Releases",
@@ -2274,13 +2265,6 @@
       "userProps": "用户属性 · MQTT 5",
       "sameTopic": "历史同主题",
       "publishTemplate": "以此为模板发布"
-    },
-    "split": {
-      "status1": "12ms · 独立刷新 10s",
-      "status2": "8ms · 独立刷新 10s",
-      "byLag": "按 lag",
-      "page": "页面：{{page}}",
-      "close": "关闭 {{name}}"
     },
     "docs": {
       "capability": {

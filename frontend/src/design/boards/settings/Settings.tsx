@@ -1077,9 +1077,7 @@ function DataPanel() {
   );
 }
 
-export type DocId = "capability" | "reuse" | "nav";
-
-function AboutPanel({ onOpenDoc }: { onOpenDoc?: (doc: DocId) => void }) {
+function AboutPanel() {
   const { t } = useTranslation();
   const { resetAllSettings } = useSettings();
   const toast = useToast();
@@ -1170,38 +1168,17 @@ function AboutPanel({ onOpenDoc }: { onOpenDoc?: (doc: DocId) => void }) {
           </Button>
         </SettingRow>
       </Panel>
-
-      {/*
-       * Boards 3h / 4d / 5c are specification pages with no entry point drawn in
-       * the canvas; this group is the only addition to what the shipped settings
-       * page carries.
-       */}
-      <Group title={t("page.settings.about.reference")}>
-        <Panel>
-          <SettingRow
-            label={t("page.settings.about.referenceLabel")}
-            hint={t("page.settings.about.referenceHint")}
-            last
-          >
-            <Button variant="outline" onClick={() => onOpenDoc?.("capability")}>{t("page.settings.about.capability")}</Button>
-            <Button variant="outline" onClick={() => onOpenDoc?.("reuse")}>{t("page.settings.about.reuse")}</Button>
-            <Button variant="outline" onClick={() => onOpenDoc?.("nav")}>{t("page.settings.about.navModel")}</Button>
-          </SettingRow>
-        </Panel>
-      </Group>
     </>
   );
 }
 
 export function Settings({
   onBack,
-  onOpenDoc,
   scale,
   /** Which section to open on; the notification popover links straight to one. */
   initialSection = "appearance",
 }: {
   onBack?: () => void;
-  onOpenDoc?: (doc: DocId) => void;
   scale: {
     setting: UIScaleSetting;
     fontSize: number;
@@ -1221,7 +1198,7 @@ export function Settings({
     fonts: <FontsPanel scale={scale} />,
     message: <MessagePanel />,
     data: <DataPanel />,
-    about: <AboutPanel onOpenDoc={onOpenDoc} />,
+    about: <AboutPanel />,
   };
 
   return (

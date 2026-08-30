@@ -1,6 +1,6 @@
 import { useEffect, useRef, type CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
-import { Columns2, Plus, X } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { ProtocolIcon } from "@/design/icons/ProtocolIcon";
 import type { Connection, ConnectionStatus } from "@/design/data/connections";
 
@@ -60,23 +60,18 @@ export function ConnectionTabs({
   tabs,
   connections,
   active,
-  compare,
   onSelect,
   onClose,
   onAdd,
-  onSplit,
 }: {
   tabs: readonly string[];
   /** The profiles behind them; a tab whose profile is gone is not drawn. */
   connections: readonly Connection[];
   /** null while a global view (connections / settings) is showing. */
   active: string | null;
-  /** 5b: split mode replaces the active tab with a single compare tab. */
-  compare?: { label: string; detail: string } | null;
   onSelect?: (key: string) => void;
   onClose?: (key: string) => void;
   onAdd?: () => void;
-  onSplit?: () => void;
 }) {
   const { t } = useTranslation();
   const stripRef = useRef<HTMLDivElement>(null);
@@ -87,7 +82,7 @@ export function ConnectionTabs({
   useEffect(() => {
     const selected = stripRef.current?.querySelector('[aria-selected="true"]');
     selected?.scrollIntoView({ block: "nearest", inline: "nearest" });
-  }, [active, compare, tabs]);
+  }, [active, tabs]);
 
   if (tabs.length === 0) {
     return (
@@ -107,7 +102,7 @@ export function ConnectionTabs({
       {tabs.map((key) => {
         const conn = connections.find((c) => c.key === key);
         if (conn == null) return null;
-        const on = compare == null && key === active;
+        const on = key === active;
         return (
           <div
             key={key}
@@ -147,31 +142,6 @@ export function ConnectionTabs({
           </div>
         );
       })}
-
-      {compare != null && (
-        <div
-          role="tab"
-          aria-selected
-          className="mqs-tab mqs-tab-compare"
-          /* Two labels and a mark do not fit the tab floor the others
-             shrink to; squeezed, the name is the part that vanishes. */
-          style={{ ...ACTIVE, flex: "none" }}
-        >
-          {/* The same mark the title bar's 分屏对照 button carries, in the slot
-              a connection tab gives its protocol logo. 16px against those 14px
-              filled logos: a stroked icon reads smaller than a solid one. */}
-          <span className="mqs-tab-mark">
-            <Columns2 size={16} aria-hidden />
-          </span>
-          <span className="mqs-tab-name">{compare.label}</span>
-          <span style={{ fontSize: "10.5px", color: "var(--c-muted)", fontWeight: 400 }}>
-            {compare.detail}
-          </span>
-          <button type="button" className="mqs-tab-close" aria-label={t("shell.tabs.exitSplit")} onClick={onSplit}>
-            <X size={13} aria-hidden />
-          </button>
-        </div>
-      )}
 
       <button type="button" className="mqs-tab-add" aria-label={t("shell.tabs.new")} onClick={onAdd}>
         <Plus size={13} aria-hidden />

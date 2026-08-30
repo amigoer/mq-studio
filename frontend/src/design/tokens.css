@@ -823,14 +823,6 @@ button.ni.on { background: var(--c-fg); color: var(--c-bg); }
 .mqs-tab[aria-selected='true'] {
   --mqs-tab-bg: var(--c-bg);
 }
-/*
- * The compare tab (5b) carries two labels, so it is sized by its content. Its
- * `flex` is set inline with the rest of its box, not here -- ConnectionTabs
- * styles tabs inline, and an inline value outranks this rule.
- */
-.mqs-tab-compare {
-  max-width: none;
-}
 /* The name is the only part that gives way; the mark keeps its size. */
 .mqs-tab-name {
   overflow: hidden;
@@ -916,20 +908,6 @@ button.ni.on { background: var(--c-fg); color: var(--c-bg); }
   width: 22px;
   pointer-events: none;
   background: linear-gradient(to right, transparent, var(--mqs-tab-bg));
-}
-/*
- * The compare tab (5b) is sized by its content and always shows its ×, so it
- * has nothing to overlay and no width to win back -- its button stays in the
- * row, where it cannot cover the detail label beside it.
- */
-.mqs-tab-compare .mqs-tab-close {
-  position: static;
-  margin-left: 2px;
-  padding: 0;
-  background: none;
-}
-.mqs-tab-compare .mqs-tab-close::before {
-  content: none;
 }
 
 /*
