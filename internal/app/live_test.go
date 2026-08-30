@@ -15,6 +15,7 @@ import (
 	"github.com/amigoer/mq-studio/internal/service/settings"
 	"github.com/amigoer/mq-studio/internal/storage/layout"
 
+	admin "github.com/amigoer/rocketmq-admin-go"
 	rocketmqconsumer "github.com/apache/rocketmq-client-go/v2/consumer"
 	"github.com/apache/rocketmq-client-go/v2/primitive"
 )
@@ -714,4 +715,80 @@ func TestLiveNodeDetailReplicas(t *testing.T) {
 		}
 	}
 	t.Logf("%s reports %d replica(s)", detail.Address, len(detail.Replicas))
+}
+
+// Time-based consumer lag cannot be read, and this records why.
+//
+// "Four minutes behind" is the number an operator triages on - a backlog of
+// 982 is fine at 10k/s and an outage at 10/s - so QueryConsumeTimeSpan is what
+// a lag column would be built from. It returns nothing.
+//
+// Two defects, the second worse than the first. Like GetConsumerRunningInfo it
+// unmarshals without the fixJSONBody pass its siblings apply; and the broker
+// answers with an object wrapping the set rather than a bare array, which is
+// not the shape it decodes into either way. Both failures are swallowed by a
+// `continue`, so the call returns an empty slice AND a nil error - a caller
+// cannot tell "this group is caught up" from "the response was unreadable".
+//
+// The field this would fill was reverted rather than shipped always-unknown.
+// This test asserts the call is still empty while the group demonstrably has
+// committed offsets, so it goes red when the library is fixed.
+func TestLiveConsumeTimeSpanBlockedByLibraryParse(t *testing.T) {
+	connections, _, registry := liveStack(t)
+	ctx := context.Background()
+
+	profile, err := connections.AddConnection(liveProfileInput("timespan"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := connections.Connect(profile.ID); err != nil {
+		t.Fatalf("connect: %v", err)
+	}
+	conn, _ := registry.Get(profile.ID)
+
+	stop := startLiveConsumer(t)
+	defer stop()
+	if _, err := conn.(driver.MessagePublisher).SendMessage(
+		ctx, seededTopic, "lag", "lag-probe", `{"probe":"lag"}`, 0,
+	); err != nil {
+		t.Fatalf("publish: %v", err)
+	}
+
+	client, err := admin.NewClient(
+		admin.WithNameServers([]string{liveNameServer}),
+		admin.WithTimeout(10*time.Second))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := client.Start(); err != nil {
+		t.Fatal(err)
+	}
+	defer client.Close()
+
+	// Wait until the group has committed offsets, which is the proof that
+	// there is something for a time span to describe.
+	var offsets int
+	for attempt := range 20 {
+		if attempt > 0 {
+			time.Sleep(time.Second)
+		}
+		stats, statsErr := client.ExamineConsumeStats(ctx, seededGroup)
+		if statsErr == nil && len(stats.OffsetTable) > 0 {
+			offsets = len(stats.OffsetTable)
+			break
+		}
+	}
+	if offsets == 0 {
+		t.Skip("the group never committed an offset; nothing to ask a time span about")
+	}
+
+	spans, err := client.QueryConsumeTimeSpan(ctx, seededTopic, seededGroup)
+	if err != nil {
+		t.Fatalf("QueryConsumeTimeSpan now returns an error rather than silence: %v", err)
+	}
+	if len(spans) != 0 {
+		t.Fatalf("QueryConsumeTimeSpan returns %d span(s) now - a time-based lag column "+
+			"can be built on it", len(spans))
+	}
+	t.Logf("group has %d committed offsets and still no readable time span - as expected", offsets)
 }
