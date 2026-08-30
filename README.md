@@ -30,13 +30,22 @@
 
 ## Why MQ Studio
 
-MQ Studio treats message-queue operations as a desktop problem: install the app, add a
-connection, and start working. There is no server component to deploy, secure, or keep alive.
+Every message queue arrives with a console of its own — RocketMQ has one, Kafka has another,
+RabbitMQ ships a management plugin. Different interfaces, different vocabulary, and every one
+of them a service to deploy and keep alive.
 
+MQ Studio is one client for all of them. Each broker is reached through a driver sitting
+behind the same interface, so the pages and the workflow stay the same whichever system you
+are connected to. Install the app, add a connection, and start working: there is no server
+component to deploy, secure, or keep alive.
+
+- **One interface, every broker** — drivers land one at a time, each taken to the same depth
+- **Honest about what it connects to** — every connection reports what its endpoint can actually do, and the pages are drawn from that
 - **Ready to use** — download, connect, work; no web console to stand up and maintain
-- **Built for daily operations** — the everyday tasks of running a message queue, in one app
 - **Private by default** — configuration stays on your device and credentials are encrypted at rest
 - **Cross-platform** — macOS, Windows, and Linux, with English and Chinese interfaces
+
+RocketMQ is the driver available today; [Driver support](#driver-support) has the rest.
 
 ## Features
 
@@ -174,9 +183,13 @@ Packages are named `mq-studio-<version>-<os>-<arch>.<ext>`, where `os` is `mac`,
 | --- | --- | --- |
 | macOS Apple Silicon / Intel | `-mac-arm64.dmg` / `-mac-amd64.dmg` | macOS 12+ |
 | Windows x64 / ARM64 | `-windows-amd64.exe` / `-windows-arm64.exe` | Windows 10+ |
-| Debian / Ubuntu | `-linux-amd64.deb` / `-linux-arm64.deb` | GTK 3, WebKit2GTK 4.1 |
-| Fedora / RHEL | `-linux-amd64.rpm` / `-linux-arm64.rpm` | GTK 3, WebKit2GTK 4.1 |
-| Any Linux | `-linux-amd64.AppImage` / `-linux-arm64.AppImage` | GTK 3, WebKit2GTK 4.1 |
+| Debian / Ubuntu | `-linux-amd64.deb` / `-linux-arm64.deb` | GTK 4, WebKitGTK 6.0 |
+| Fedora / RHEL | `-linux-amd64.rpm` / `-linux-arm64.rpm` | GTK 4, WebKitGTK 6.0 |
+| Any Linux | `-linux-amd64.AppImage` / `-linux-arm64.AppImage` | GTK 4, WebKitGTK 6.0 |
+
+The Linux packages are built against the GTK 4 stack, which means Ubuntu 24.04 or later,
+Debian 13 or later, and equivalent releases elsewhere. Earlier distributions ship
+WebKit2GTK 4.1 and cannot run these packages.
 
 On a Mac, About This Mac tells you whether to take `arm64` or `amd64`.
 

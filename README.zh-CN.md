@@ -30,13 +30,20 @@
 
 ## 为什么用 MQ Studio
 
-MQ Studio 把消息队列运维当作一个桌面问题来解决：安装应用、添加连接，然后开始工作。
-没有需要部署、加固和值守的服务端组件。
+每一种消息队列都自带一个控制台 —— RocketMQ 一个，Kafka 另一个，RabbitMQ 带着它的
+management 插件。界面不同、叫法不同，而且每一个都是要部署、要值守的服务。
 
+MQ Studio 是它们共同的客户端。每一种消息中间件都通过一个驱动接入同一套接口，
+所以不管连的是哪一个系统，页面和操作方式都是同一套。安装应用、添加连接，然后开始
+工作：没有需要部署、加固和值守的服务端组件。
+
+- **一套界面，所有中间件** — 驱动一个一个接入，每一个都做到同样的深度
+- **如实呈现所连的端点** — 每个连接上报它究竟能做什么，界面据此绘制
 - **安装即用** — 下载、连接、开工，不需要搭建和维护 Web 控制台
-- **专注日常运维** — 一个应用覆盖运营消息队列的日常操作
 - **数据留在本机** — 配置保存在当前设备，凭证加密存储
 - **跨平台与双语** — 支持 macOS、Windows、Linux，提供中英文界面
+
+目前可以连接的驱动是 RocketMQ，其余进度见[驱动支持](#驱动支持)。
 
 ## 功能
 
@@ -169,9 +176,12 @@ Agent 相关的功能会等驱动接入完成之后再开始，不会提前。�
 | --- | --- | --- |
 | macOS Apple 芯片 / Intel | `-mac-arm64.dmg` / `-mac-amd64.dmg` | macOS 12+ |
 | Windows x64 / ARM64 | `-windows-amd64.exe` / `-windows-arm64.exe` | Windows 10+ |
-| Debian / Ubuntu | `-linux-amd64.deb` / `-linux-arm64.deb` | GTK 3、WebKit2GTK 4.1 |
-| Fedora / RHEL | `-linux-amd64.rpm` / `-linux-arm64.rpm` | GTK 3、WebKit2GTK 4.1 |
-| 任意 Linux | `-linux-amd64.AppImage` / `-linux-arm64.AppImage` | GTK 3、WebKit2GTK 4.1 |
+| Debian / Ubuntu | `-linux-amd64.deb` / `-linux-arm64.deb` | GTK 4、WebKitGTK 6.0 |
+| Fedora / RHEL | `-linux-amd64.rpm` / `-linux-arm64.rpm` | GTK 4、WebKitGTK 6.0 |
+| 任意 Linux | `-linux-amd64.AppImage` / `-linux-arm64.AppImage` | GTK 4、WebKitGTK 6.0 |
+
+Linux 包基于 GTK 4 构建，因此需要 Ubuntu 24.04 及以上、Debian 13 及以上，以及其他发行版的
+同期版本。更早的发行版自带的是 WebKit2GTK 4.1，无法运行这些包。
 
 Mac 上在「关于本机」里可以看到该选 `arm64` 还是 `amd64`。
 
