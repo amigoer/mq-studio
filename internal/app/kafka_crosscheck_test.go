@@ -165,6 +165,12 @@ func crossCheckTopic(t *testing.T, stack *kafkaStack, name string, partitions in
 	defer cancel()
 
 	ref := model.DestinationRef{Name: name}
+	// A run killed part way through leaves its topic behind, and the next run
+	// then fails on TOPIC_ALREADY_EXISTS rather than on anything it was
+	// written to check. These names belong to this test; taking one back is
+	// safe and is what a developer would do by hand.
+	_ = stack.kafka.DeleteTopic(ctx, stack.connID, name)
+
 	t.Cleanup(func() {
 		cleanup, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 		defer cancel()
@@ -181,6 +187,38 @@ func crossCheckTopic(t *testing.T, stack *kafkaStack, name string, partitions in
 	}); err != nil {
 		t.Fatalf("create %s: %v", name, err)
 	}
+}
+
+/*
+ * agreeOn compares a figure both systems report, on a cluster that is moving.
+ *
+ * Reading mq-studio's answer and then Kafka's own is not one observation of
+ * one cluster: a docker exec takes seconds, and the driver package's live
+ * tests create and delete topics against these same brokers while this runs -
+ * go test runs the two packages at once. Comparing snapshots taken that far
+ * apart failed on counts that were never wrong.
+ *
+ * So mq-studio is read on both sides of the CLI call. Equal before and after
+ * means nothing changed while the CLI was looking, which makes a disagreement
+ * real; different means the cluster moved and the comparison proves nothing,
+ * so it is taken again rather than reported. A genuine miscount never settles.
+ */
+func agreeOn(t *testing.T, what string, mine func() string, theirs func() string) {
+	t.Helper()
+	for attempt := 0; attempt < 5; attempt++ {
+		before := mine()
+		want := theirs()
+		after := mine()
+		if before != after {
+			continue
+		}
+		if before == want {
+			return
+		}
+		t.Errorf("%s: mq-studio %s, kafka's own tools %s", what, before, want)
+		return
+	}
+	t.Errorf("%s: the cluster changed under every attempt to compare it", what)
 }
 
 func TestLiveKafkaCrossCheck(t *testing.T) {
@@ -220,12 +258,21 @@ func TestLiveKafkaCrossCheck(t *testing.T) {
 	}
 
 	t.Run("the overview counts what the cluster counts", func(t *testing.T) {
+		overview := func() *model.ClusterOverview {
+			view, _, err := stack.cluster.Overview(ctx, stack.connID)
+			if err != nil {
+				t.Fatalf("Overview: %v", err)
+			}
+			return view
+		}
+
+		// Brokers, against kafka-broker-api-versions.sh. The one figure here
+		// that does not move: a broker joining or leaving is the incident this
+		// suite has a test of its own for.
 		view, nodes, err := stack.cluster.Overview(ctx, stack.connID)
 		if err != nil {
 			t.Fatalf("Overview: %v", err)
 		}
-
-		// Brokers, against kafka-broker-api-versions.sh.
 		brokers := 0
 		for _, line := range lines(cli(t, "kafka-broker-api-versions.sh")) {
 			if strings.Contains(line, "(id: ") {
@@ -239,29 +286,34 @@ func TestLiveKafkaCrossCheck(t *testing.T) {
 
 		// Topics, against kafka-topics.sh --list. The CLI lists internal
 		// topics too, so they are counted the same way here.
-		listed := lines(cli(t, "kafka-topics.sh", "--list"))
-		internal := 0
-		for _, name := range listed {
-			if strings.HasPrefix(name, "__") {
-				internal++
-			}
-		}
-		want := len(listed) - internal
-		if got := view.Destinations; got != want {
-			t.Errorf("topics: mq-studio %d, kafka-topics.sh %d", got, want)
-		}
+		agreeOn(t, "topics",
+			func() string { return strconv.Itoa(overview().Destinations) },
+			func() string {
+				listed := lines(cli(t, "kafka-topics.sh", "--list"))
+				internal := 0
+				for _, name := range listed {
+					if strings.HasPrefix(name, "__") {
+						internal++
+					}
+				}
+				return strconv.Itoa(len(listed) - internal)
+			})
 
 		// Partition health, against kafka-topics.sh --describe
 		// --under-replicated-partitions, which is the CLI's own answer to the
 		// same question.
-		urp := len(lines(cli(t, "kafka-topics.sh", "--describe", "--under-replicated-partitions")))
-		if got := view.Attribute(kafkadriver.AttrUnderReplicated); got != strconv.Itoa(urp) {
-			t.Errorf("under-replicated: mq-studio %s, kafka-topics.sh %d", got, urp)
-		}
-		unavailable := len(lines(cli(t, "kafka-topics.sh", "--describe", "--unavailable-partitions")))
-		if got := view.Attribute(kafkadriver.AttrLeaderlessPartition); got != strconv.Itoa(unavailable) {
-			t.Errorf("leaderless: mq-studio %s, kafka-topics.sh %d", got, unavailable)
-		}
+		agreeOn(t, "under-replicated",
+			func() string { return overview().Attribute(kafkadriver.AttrUnderReplicated) },
+			func() string {
+				return strconv.Itoa(len(lines(cli(t,
+					"kafka-topics.sh", "--describe", "--under-replicated-partitions"))))
+			})
+		agreeOn(t, "leaderless",
+			func() string { return overview().Attribute(kafkadriver.AttrLeaderlessPartition) },
+			func() string {
+				return strconv.Itoa(len(lines(cli(t,
+					"kafka-topics.sh", "--describe", "--unavailable-partitions"))))
+			})
 	})
 
 	t.Run("a topic matches what kafka-topics.sh describes", func(t *testing.T) {
@@ -725,7 +777,6 @@ func TestLiveKafkaFullRoundTrip(t *testing.T) {
 	const group = "mqs-xcheck-roundtrip-group"
 
 	before := lines(cli(t, "kafka-topics.sh", "--list"))
-	beforeGroups := lines(cli(t, "kafka-consumer-groups.sh", "--list"))
 
 	ref := model.DestinationRef{Name: topic}
 	if err := stack.kafka.CreateTopic(ctx, stack.connID, model.DestinationSpec{
@@ -783,13 +834,26 @@ func TestLiveKafkaFullRoundTrip(t *testing.T) {
 		t.Fatalf("delete the topic: %v", err)
 	}
 
-	after := lines(cli(t, "kafka-topics.sh", "--list"))
-	afterGroups := lines(cli(t, "kafka-consumer-groups.sh", "--list"))
-	if len(after) != len(before) {
-		t.Errorf("topics: started with %d, ended with %d", len(before), len(after))
+	/*
+	 * What this test made is gone - not "the cluster holds as many things as
+	 * it did".
+	 *
+	 * The count version failed whenever the driver package created a topic
+	 * while this ran, and go test runs the two packages against this cluster
+	 * at the same time. It was also the weaker assertion: a count returns to
+	 * where it started just as happily when this test leaks a topic and
+	 * something else deletes one.
+	 */
+	if remaining := cli(t, "kafka-topics.sh", "--list"); strings.Contains(remaining, topic) {
+		t.Errorf("%s is still listed after the round trip deleted it", topic)
 	}
-	if len(afterGroups) != len(beforeGroups) {
-		t.Errorf("consumer groups: started with %d, ended with %d",
-			len(beforeGroups), len(afterGroups))
+	if remaining := cli(t, "kafka-consumer-groups.sh", "--list"); strings.Contains(remaining, group) {
+		t.Errorf("%s is still listed after the round trip deleted it", group)
+	}
+	// Nothing else this test named should be left either.
+	for _, name := range before {
+		if strings.HasPrefix(name, "mqs-xcheck-roundtrip") {
+			t.Errorf("the round trip left %s behind", name)
+		}
 	}
 }
