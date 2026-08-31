@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/twmb/franz-go/pkg/kfake"
+	"github.com/twmb/franz-go/pkg/kmsg"
 
 	"github.com/amigoer/mq-studio/internal/model"
 )
@@ -211,4 +212,126 @@ func TestOpenRefusesAProfileItCannotDial(t *testing.T) {
 			}
 		})
 	}
+}
+
+/*
+ * A credential is not written until the cluster will admit it exists.
+ *
+ * Kafka stores a SCRAM credential in the metadata log and answers a describe
+ * from whichever broker took the request, so "created" and "visible" are two
+ * different instants. A create that returned at the first one left the access
+ * page listing users without the one just added - which reads as a create that
+ * silently failed. It showed up as a live test failing only under load, so it
+ * is pinned here where the delay can be made to happen on purpose.
+ */
+func TestCreatingAUserWaitsUntilTheClusterListsIt(t *testing.T) {
+	cluster, err := kfake.NewCluster()
+	if err != nil {
+		t.Fatalf("start the fake cluster: %v", err)
+	}
+	t.Cleanup(cluster.Close)
+
+	const quiet = 2
+	describes := 0
+	cluster.ControlKey(kmsg.DescribeUserSCRAMCredentials.Int16(),
+		func(request kmsg.Request) (kmsg.Response, error, bool) {
+			cluster.KeepControl()
+			describes++
+			if describes > quiet {
+				// Hand it back to the cluster, which now answers truthfully.
+				return nil, nil, false
+			}
+			// The credential exists and this broker has not heard: a user with
+			// no credentials, which is what a describe returns before the
+			// record is applied.
+			asked := request.(*kmsg.DescribeUserSCRAMCredentialsRequest)
+			answer := asked.ResponseKind().(*kmsg.DescribeUserSCRAMCredentialsResponse)
+			for _, user := range asked.Users {
+				answer.Results = append(answer.Results,
+					kmsg.DescribeUserSCRAMCredentialsResponseResult{User: user.Name})
+			}
+			return answer, nil, true
+		})
+
+	conn := openProfile(t, model.ConnectionProfile{
+		Name:      "fake",
+		Endpoints: strings.Join(cluster.ListenAddrs(), ","),
+	})
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
+	if err := conn.PutPrincipal(ctx, model.AccessPrincipalSpec{
+		Name: "alice", Secret: "a-password", Type: "SCRAM-SHA-512",
+	}); err != nil {
+		t.Fatalf("PutPrincipal: %v", err)
+	}
+	if describes <= quiet {
+		t.Fatalf("the create returned after %d describe(s); it did not wait for the cluster", describes)
+	}
+
+	// And the thing the waiting is for: the page lists the user immediately
+	// after the create, with no refresh and no retry of its own.
+	principals, err := conn.ListPrincipals(ctx)
+	if err != nil {
+		t.Fatalf("ListPrincipals: %v", err)
+	}
+	for _, principal := range principals {
+		if principal.Name == "alice" {
+			return
+		}
+	}
+	t.Fatalf("the user is not listed straight after being created: %v", principals)
+}
+
+// The same lag on the other half of the access page. An authorizer writes its
+// rules to the metadata log too, and a describe answered before the record is
+// applied showed the list without the rule just written.
+func TestWritingARuleWaitsUntilTheClusterListsIt(t *testing.T) {
+	cluster, err := kfake.NewCluster()
+	if err != nil {
+		t.Fatalf("start the fake cluster: %v", err)
+	}
+	t.Cleanup(cluster.Close)
+
+	const quiet = 2
+	describes := 0
+	cluster.ControlKey(kmsg.DescribeACLs.Int16(),
+		func(request kmsg.Request) (kmsg.Response, error, bool) {
+			cluster.KeepControl()
+			describes++
+			if describes > quiet {
+				return nil, nil, false
+			}
+			// No rules yet: what a broker that has not applied the record says.
+			return request.ResponseKind().(*kmsg.DescribeACLsResponse), nil, true
+		})
+
+	conn := openProfile(t, model.ConnectionProfile{
+		Name:      "fake",
+		Endpoints: strings.Join(cluster.ListenAddrs(), ","),
+	})
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
+	const subject = "User:alice"
+	if err := conn.PutAccessRule(ctx, model.AccessRule{
+		Subject:  subject,
+		Policies: []model.AccessPolicy{{Resource: "topic:orders", Actions: []string{"READ"}, Effect: "Allow"}},
+	}); err != nil {
+		t.Fatalf("PutAccessRule: %v", err)
+	}
+	if describes <= quiet {
+		t.Fatalf("the write returned after %d describe(s); it did not wait for the cluster", describes)
+	}
+
+	rules, err := conn.ListAccessRules(ctx)
+	if err != nil {
+		t.Fatalf("ListAccessRules: %v", err)
+	}
+	for _, rule := range rules {
+		if rule.Subject == subject {
+			return
+		}
+	}
+	t.Fatalf("the rule is not listed straight after being written: %v", rules)
 }

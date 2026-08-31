@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/twmb/franz-go/pkg/kadm"
 	"github.com/twmb/franz-go/pkg/kerr"
@@ -150,7 +151,42 @@ func (c *Conn) PutPrincipal(ctx context.Context, spec model.AccessPrincipalSpec)
 	if err != nil {
 		return err
 	}
-	return firstSCRAMError(altered)
+	if err := firstSCRAMError(altered); err != nil {
+		return err
+	}
+	c.awaitPrincipal(ctx, spec.Name, true)
+	return nil
+}
+
+/*
+ * awaitPrincipal waits for the cluster to agree that a user does or does not
+ * exist.
+ *
+ * A credential is written to the metadata log and read back from whichever
+ * broker answers, and the two are not the same instant: a user created and
+ * immediately listed came back missing under load. Bounded, and silent when
+ * the bound is reached - the alter succeeded either way, and refusing to
+ * return would turn a slow cluster into a failed write.
+ */
+func (c *Conn) awaitPrincipal(ctx context.Context, name string, want bool) {
+	deadline := time.Now().Add(propagationLimit)
+	for {
+		described, err := c.admin.DescribeUserSCRAMs(ctx, name)
+		if err == nil {
+			user, listed := described[name]
+			if exists := listed && user.Err == nil && len(user.CredInfos) > 0; exists == want {
+				return
+			}
+		}
+		if time.Now().After(deadline) {
+			return
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(25 * time.Millisecond):
+		}
+	}
 }
 
 // RemovePrincipal deletes a user's password for every mechanism it has.
@@ -179,7 +215,11 @@ func (c *Conn) RemovePrincipal(ctx context.Context, name string) error {
 	if err != nil {
 		return err
 	}
-	return firstSCRAMError(altered)
+	if err := firstSCRAMError(altered); err != nil {
+		return err
+	}
+	c.awaitPrincipal(ctx, name, false)
+	return nil
 }
 
 func scramMechanism(name string) (kadm.ScramMechanism, error) {
@@ -337,7 +377,46 @@ func (c *Conn) PutAccessRule(ctx context.Context, rule model.AccessRule) error {
 			}
 		}
 	}
+	c.awaitAccessRule(ctx, rule.Subject, true)
 	return nil
+}
+
+/*
+ * awaitAccessRule waits for the cluster to agree that a subject does or does
+ * not have rules.
+ *
+ * The same lag as a credential, for the same reason: an authorizer writes its
+ * rules to the metadata log and a describe is answered by whichever broker
+ * took the request. A page that wrote a rule and immediately listed showed the
+ * list without it, which reads as a write that did nothing.
+ *
+ * Bounded, and silent at the bound: the write succeeded either way, and a
+ * cluster still catching up is not a failed create.
+ */
+func (c *Conn) awaitAccessRule(ctx context.Context, subject string, want bool) {
+	deadline := time.Now().Add(propagationLimit)
+	for {
+		rules, err := c.ListAccessRules(ctx)
+		if err == nil {
+			listed := false
+			for _, rule := range rules {
+				if rule.Subject == subject {
+					listed = true
+				}
+			}
+			if listed == want {
+				return
+			}
+		}
+		if time.Now().After(deadline) {
+			return
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(25 * time.Millisecond):
+		}
+	}
 }
 
 // RemoveAccessRule deletes every ACL belonging to a principal.
@@ -360,6 +439,7 @@ func (c *Conn) RemoveAccessRule(ctx context.Context, subject string) error {
 			return result.Err
 		}
 	}
+	c.awaitAccessRule(ctx, subject, false)
 	return nil
 }
 
