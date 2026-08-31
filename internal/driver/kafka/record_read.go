@@ -40,6 +40,20 @@ const (
 // told apart from one that ran out of budget.
 const scanLimit = 200_000
 
+/*
+ * readableEnds is where each partition stops being readable.
+ *
+ * Not the high watermark. A browse reads committed records only, so an open
+ * transaction's records are in the log and past the last stable offset, and
+ * fetching them returns nothing however long it waits - which is what it did:
+ * a topic whose tail was one uncommitted record took the whole request budget
+ * to return zero rows. The last stable offset is the same as the high
+ * watermark on every topic no transaction has touched.
+ */
+func (c *Conn) readableEnds(ctx context.Context, topic string) (kadm.ListedOffsets, error) {
+	return c.admin.ListCommittedOffsets(ctx, topic)
+}
+
 // QueryMessages reads records out of a topic.
 //
 // Every mode resolves to the same thing underneath: a starting offset per
@@ -61,7 +75,7 @@ func (c *Conn) QueryMessages(
 	if err != nil {
 		return nil, err
 	}
-	ends, err := c.admin.ListEndOffsets(ctx, params.Topic)
+	ends, err := c.readableEnds(ctx, params.Topic)
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +119,7 @@ func (c *Conn) MessageByID(ctx context.Context, topic, messageID string) (*model
 	if err != nil {
 		return nil, err
 	}
-	ends, err := c.admin.ListEndOffsets(ctx, topic)
+	ends, err := c.readableEnds(ctx, topic)
 	if err != nil {
 		return nil, err
 	}

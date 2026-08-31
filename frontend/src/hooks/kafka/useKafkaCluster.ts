@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { getClusterView, getNodeConfig, type ConfigDocument } from "@/api/cluster";
-import { getKafkaLogDirs } from "@/api/kafka";
-import type { LogDirView } from "@bindings/bridge/models";
+import { getKafkaLogDirs, getKafkaTransactions } from "@/api/kafka";
+import type { LogDirView, TransactionView } from "@bindings/bridge/models";
 import type { ClusterOverview, Node } from "@/api/models";
 import { useBrokerData, type BrokerData } from "@/hooks/useBrokerData";
 
@@ -62,5 +62,18 @@ export function useKafkaBrokerConfig(address: string | null): BrokerData<ConfigD
       [address],
     ),
     { enabled: address != null },
+  );
+}
+
+/**
+ * The cluster's open transactions.
+ *
+ * Same shape as the storage tab and for the same reason: a request to every
+ * coordinator, made only when the tab it fills is showing.
+ */
+export function useKafkaTransactions(enabled: boolean): BrokerData<TransactionView> {
+  return useBrokerData(
+    useCallback((connID: number) => getKafkaTransactions(connID), []),
+    { enabled },
   );
 }

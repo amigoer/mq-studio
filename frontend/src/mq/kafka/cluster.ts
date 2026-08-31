@@ -81,3 +81,39 @@ export function partitionsAreHealthy(overview: ClusterOverview): boolean {
     (read) => read(overview) === 0,
   );
 }
+
+/*
+ * A transaction's age, as a label.
+ *
+ * Unknown when the coordinator did not report a start time, and unknown again
+ * when the answer would be negative: the broker's clock and this machine's are
+ * not the same clock, and a transaction that appears to start in the future is
+ * skew rather than news.
+ */
+export function transactionAge(startedAt: number, now: number): string {
+  if (startedAt < 0 || now < startedAt) return "—";
+  const seconds = Math.floor((now - startedAt) / 1000);
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ${minutes % 60}m`;
+  return `${Math.floor(hours / 24)}d ${hours % 24}h`;
+}
+
+/**
+ * Whether a transaction has outlived the deadline the cluster set for it.
+ *
+ * This is the one that means something is wrong rather than merely slow: the
+ * coordinator undertook to abort the transaction after its timeout, so one
+ * still open well past it is not a long-running job, it is a transaction
+ * nothing is finishing.
+ */
+export function transactionOverdue(
+  startedAt: number,
+  timeoutMs: number,
+  now: number,
+): boolean {
+  if (startedAt < 0 || timeoutMs <= 0) return false;
+  return now - startedAt > timeoutMs;
+}

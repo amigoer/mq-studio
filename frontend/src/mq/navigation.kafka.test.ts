@@ -42,6 +42,7 @@ const KAFKA_CAPABILITIES: Capability[] = [
   Capability.CapQuotaList,
   Capability.CapQuotaAdmin,
   Capability.CapReassign,
+  Capability.CapTransactions,
 ];
 
 function state(

@@ -38,6 +38,7 @@ func backings() []capabilityBacking {
 	logDirs := func(c Conn) bool { _, ok := c.(LogDirInspector); return ok }
 	reassign := func(c Conn) bool { _, ok := c.(PartitionReassigner); return ok }
 	quotas := func(c Conn) bool { _, ok := c.(QuotaAdmin); return ok }
+	transactions := func(c Conn) bool { _, ok := c.(TransactionInspector); return ok }
 	writePerm := func(c Conn) bool { _, ok := c.(WritePermissionAdmin); return ok }
 	access := func(c Conn) bool { _, ok := c.(AccessAdmin); return ok }
 	accessDirectory := func(c Conn) bool { _, ok := c.(AccessDirectory); return ok }
@@ -72,6 +73,7 @@ func backings() []capabilityBacking {
 		{model.CapReassign, "PartitionReassigner", reassign},
 		{model.CapQuotaList, "QuotaAdmin", quotas},
 		{model.CapQuotaAdmin, "QuotaAdmin", quotas},
+		{model.CapTransactions, "TransactionInspector", transactions},
 
 		{model.CapSubscriptionList, "SubscriptionAdmin", subscription},
 		{model.CapSubscriptionCreate, "SubscriptionAdmin", subscription},

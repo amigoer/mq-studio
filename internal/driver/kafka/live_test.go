@@ -1352,3 +1352,115 @@ func TestLiveReassignAPartition(t *testing.T) {
 		t.Errorf("%d partitions still report a move after it landed", len(moving))
 	}
 }
+
+/*
+ * A transaction that is genuinely holding a reader back.
+ *
+ * This is the situation the panel exists for and the only way to build it is
+ * to make one: begin a transaction, write to a partition, and stop without
+ * committing. The topic then has records, the log end offset has moved, and a
+ * consumer reading committed records is given nothing - which is exactly what
+ * looks like a broken pipeline and is not.
+ */
+func TestLiveAnUnfinishedTransactionHoldsReadersBack(t *testing.T) {
+	requireLiveCluster(t)
+	conn := liveConn(t, liveSeeds)
+
+	const topic = "mqs-test-live-txn"
+	seededTopic(t, conn, topic, 1, 0)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 40*time.Second)
+	defer cancel()
+
+	// A producer of its own: a transactional client is a different client, and
+	// this one is deliberately never committed.
+	producer, err := kgo.NewClient(
+		kgo.SeedBrokers(strings.Split(liveSeeds, ",")...),
+		kgo.TransactionalID("mqs-test-live-txn-writer"),
+		kgo.RequiredAcks(kgo.AllISRAcks()),
+	)
+	if err != nil {
+		t.Fatalf("build the transactional producer: %v", err)
+	}
+	t.Cleanup(func() {
+		// Aborting releases the partitions; without it the topic cannot be
+		// deleted and the next run inherits a stuck transaction.
+		abort, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+		defer cancel()
+		_ = producer.EndTransaction(abort, kgo.TryAbort)
+		producer.Close()
+	})
+
+	if err := producer.BeginTransaction(); err != nil {
+		t.Fatalf("BeginTransaction: %v", err)
+	}
+	if err := producer.ProduceSync(ctx, &kgo.Record{
+		Topic: topic, Value: []byte("uncommitted"),
+	}).FirstErr(); err != nil {
+		t.Fatalf("produce inside the transaction: %v", err)
+	}
+
+	// The coordinator learns about the partition on the first produce, so the
+	// listing catches up a moment later like everything else here.
+	var holding *model.Transaction
+	for deadline := time.Now().Add(20 * time.Second); time.Now().Before(deadline); {
+		transactions, err := conn.ListTransactions(ctx)
+		if err != nil {
+			t.Fatalf("ListTransactions: %v", err)
+		}
+		for _, transaction := range transactions {
+			if transaction.ID == "mqs-test-live-txn-writer" && TransactionIsHolding(transaction) {
+				holding = transaction
+			}
+		}
+		if holding != nil {
+			break
+		}
+		time.Sleep(250 * time.Millisecond)
+	}
+	if holding == nil {
+		t.Fatal("an open transaction that has written a record is not reported as holding")
+	}
+
+	if holding.State != "Ongoing" {
+		t.Errorf("state = %q, want Ongoing", holding.State)
+	}
+	// Which partitions it is holding is the useful half: "there is a
+	// transaction" does not tell an operator whose pipeline has stopped.
+	if len(holding.Partitions) == 0 {
+		t.Error("the transaction reports no partitions, so the panel cannot say what is stuck")
+	}
+	if holding.Coordinator < 0 {
+		t.Error("no coordinator was named")
+	}
+	if holding.TimeoutMs <= 0 {
+		t.Error("no timeout was reported, so nothing says when the cluster will abort it")
+	}
+
+	/*
+	 * And the proof that it matters: a read-committed browse sees nothing,
+	 * while the log's end offset has moved. That gap is the whole reason this
+	 * panel exists - every other page shows a healthy topic.
+	 */
+	started := time.Now()
+	records, err := conn.QueryMessages(ctx, model.MessageQueryParams{Topic: topic, MaxResults: 10})
+	if err != nil {
+		t.Fatalf("QueryMessages: %v", err)
+	}
+	if len(records) != 0 {
+		t.Errorf("a read-committed browse returned %d uncommitted records", len(records))
+	}
+	// And it says so at once. Bounding the read by the high watermark instead
+	// of the last stable offset made this wait for records the fetch would
+	// never hand over, spending the entire request budget to return nothing.
+	if elapsed := time.Since(started); elapsed > 10*time.Second {
+		t.Errorf("the browse took %s to report an unreadable tail", elapsed)
+	}
+	detail, err := conn.DestinationDetail(ctx, model.DestinationRef{Name: topic})
+	if err != nil {
+		t.Fatalf("DestinationDetail: %v", err)
+	}
+	if detail.Depth == 0 {
+		t.Error("the topic reports no records, so the gap this panel explains is not visible")
+	}
+}

@@ -214,6 +214,15 @@ export function SendRecord(connID: number, input: $models.RecordInput): $Cancell
 }
 
 /**
+ * Transactions reports the transactional producers the cluster knows about.
+ */
+export function Transactions(connID: number): $CancellablePromise<$models.TransactionView | null> {
+    return $Call.ByID(3951859848, connID).then(($result: any) => {
+        return $$createType12($result);
+    });
+}
+
+/**
  * TruncateTopic empties a topic without deleting it.
  * 
  * The offsets do not restart: a consumer that was at 900 stays at 900 and is
@@ -235,3 +244,5 @@ const $$createType7 = $Create.Nullable($$createType6);
 const $$createType8 = $Create.Array($$createType7);
 const $$createType9 = kafka$0.RecordResult.createFrom;
 const $$createType10 = $Create.Nullable($$createType9);
+const $$createType11 = $models.TransactionView.createFrom;
+const $$createType12 = $Create.Nullable($$createType11);

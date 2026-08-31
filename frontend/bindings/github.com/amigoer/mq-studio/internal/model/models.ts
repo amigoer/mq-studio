@@ -704,6 +704,13 @@ export enum Capability {
     CapReassign = "destination.reassign",
 
     /**
+     * CapTransactions is a family whose producers can write across partitions
+     * atomically, and whose unfinished transactions hold readers back. Only a
+     * family with that mechanism has anything to report.
+     */
+    CapTransactions = "transaction.list",
+
+    /**
      * CapQuotaList and CapQuotaAdmin are limits attached to a client rather
      * than to a destination - what one user, application or address may do to
      * the cluster as a whole. Only a family that throttles by identity has
@@ -4058,6 +4065,93 @@ export class TopicPermission {
     static createFrom($$source: any = {}): TopicPermission {
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         return new TopicPermission($$parsedSource as Partial<TopicPermission>);
+    }
+}
+
+/**
+ * Transaction is one transactional producer's session, as the cluster sees it.
+ * 
+ * Kafka only. The reason it is worth a panel is what a stuck one does: a
+ * transaction that is Ongoing holds the last stable offset of every partition
+ * it has written to, and a consumer reading committed records will not advance
+ * past it. One producer that died mid-transaction can stall an entire pipeline
+ * while every other figure on every other page looks healthy.
+ */
+export class Transaction {
+    "id": string;
+    "state": string;
+    "coordinator": number;
+    "producerId": number;
+    "producerEpoch": number;
+
+    /**
+     * StartedAt is when the transaction began, in milliseconds, or
+     * UnknownMetric where the coordinator does not report it.
+     */
+    "startedAt": number;
+
+    /**
+     * TimeoutMs is how long the cluster will wait before aborting it itself.
+     */
+    "timeoutMs": number;
+
+    /**
+     * Partitions are the topic partitions this transaction has written to and
+     * not yet resolved. They are the ones whose readers are being held up.
+     */
+    "partitions": string[];
+
+    /**
+     * Holding is the driver's verdict on whether this transaction is actually
+     * keeping readers back. Derived rather than reported, and derived here so
+     * that the rule - which states count, and that partitions must be held -
+     * exists once rather than again in the page that draws it.
+     */
+    "holding": boolean;
+
+    /** Creates a new Transaction instance. */
+    constructor($$source: Partial<Transaction> = {}) {
+        if (!("id" in $$source)) {
+            this["id"] = "";
+        }
+        if (!("state" in $$source)) {
+            this["state"] = "";
+        }
+        if (!("coordinator" in $$source)) {
+            this["coordinator"] = 0;
+        }
+        if (!("producerId" in $$source)) {
+            this["producerId"] = 0;
+        }
+        if (!("producerEpoch" in $$source)) {
+            this["producerEpoch"] = 0;
+        }
+        if (!("startedAt" in $$source)) {
+            this["startedAt"] = 0;
+        }
+        if (!("timeoutMs" in $$source)) {
+            this["timeoutMs"] = 0;
+        }
+        if (!("partitions" in $$source)) {
+            this["partitions"] = [];
+        }
+        if (!("holding" in $$source)) {
+            this["holding"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new Transaction instance from a string or object.
+     */
+    static createFrom($$source: any = {}): Transaction {
+        const $$createField7_0 = $$createType0;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("partitions" in $$parsedSource) {
+            $$parsedSource["partitions"] = $$createField7_0($$parsedSource["partitions"]);
+        }
+        return new Transaction($$parsedSource as Partial<Transaction>);
     }
 }
 

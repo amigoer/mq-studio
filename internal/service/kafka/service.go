@@ -408,6 +408,27 @@ func (s *Service) Quotas(ctx context.Context, connID int) ([]*model.ClientQuota,
 	return api.ListQuotas(ctx)
 }
 
+/*
+ * Transactions reports every transactional producer the cluster knows about.
+ *
+ * The reason a page wants this is the stuck one: a transaction left Ongoing
+ * holds the last stable offset of every partition it wrote to, and a consumer
+ * reading committed records stops there. Nothing else in this app shows that -
+ * the topic looks healthy, the group looks healthy, and the pipeline is not.
+ */
+func (s *Service) Transactions(ctx context.Context, connID int) ([]*model.Transaction, error) {
+	api, err := port[driver.TransactionInspector](s, connID, model.CapTransactions)
+	if err != nil {
+		if notConnected(err) {
+			return []*model.Transaction{}, nil
+		}
+		return nil, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.ListTransactions(ctx)
+}
+
 // AlterQuota sets the limits in set and removes the keys in remove. A removal
 // is not a set to zero: zero throttles a client to nothing.
 func (s *Service) AlterQuota(

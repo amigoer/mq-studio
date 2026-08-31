@@ -141,6 +141,7 @@ func capabilities() []model.Capability {
 		model.CapAccessDirectory,
 		model.CapQuotaList,
 		model.CapQuotaAdmin,
+		model.CapTransactions,
 	}
 }
 

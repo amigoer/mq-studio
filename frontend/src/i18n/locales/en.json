@@ -1203,7 +1203,19 @@
         "path": "Path",
         "size": "Size",
         "largest": "Largest partitions",
-        "moving": "moving"
+        "moving": "moving",
+        "transactions": "Transactions",
+        "txnNote": "A transaction that is still open holds the last stable offset of every partition it wrote to, so consumers reading committed records stop there while the topic and the group both look healthy. This is the only page that shows it.",
+        "txnOpen": "Transactions",
+        "txnHolding": "Holding readers back",
+        "txnOverdue": "Past their timeout",
+        "txnId": "Transactional ID",
+        "txnCoordinator": "Coordinator",
+        "txnProducer": "Producer / epoch",
+        "txnAge": "Open for",
+        "txnHolds": "Partitions held",
+        "txnPastTimeout": "past timeout",
+        "txnEmpty": "No transactional producer is registered with this cluster."
       },
       "pulsar": {
         "load44": "Load 44%",

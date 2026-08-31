@@ -42,6 +42,7 @@ const topicDetailState = vi.hoisted(() => ({ current: null as unknown }));
 const groupsState = vi.hoisted(() => ({ current: null as unknown }));
 const groupDetailState = vi.hoisted(() => ({ current: null as unknown }));
 const logDirState = vi.hoisted(() => ({ current: null as unknown }));
+const transactionState = vi.hoisted(() => ({ current: null as unknown }));
 const brokerConfigState = vi.hoisted(() => ({ current: null as unknown }));
 const readState = vi.hoisted(() => ({ current: null as unknown }));
 const tailState = vi.hoisted(() => ({ current: null as unknown }));
@@ -49,6 +50,7 @@ const tailState = vi.hoisted(() => ({ current: null as unknown }));
 vi.mock("@/hooks/kafka/useKafkaCluster", () => ({
   useKafkaCluster: () => clusterState.current,
   useKafkaLogDirs: () => logDirState.current,
+  useKafkaTransactions: () => transactionState.current,
   useKafkaBrokerConfig: () => brokerConfigState.current,
 }));
 vi.mock("@/hooks/kafka/useKafkaTopics", () => ({
@@ -72,6 +74,7 @@ let OverviewKafka: typeof import("./overview/OverviewKafka").OverviewKafka;
 let TopicsKafka: typeof import("./topics/TopicsKafka").TopicsKafka;
 let ConsumersKafka: typeof import("./consumers/ConsumersKafka").ConsumersKafka;
 let BrokersKafka: typeof import("./cluster/BrokersKafka").BrokersKafka;
+let KafkaTransactionsPanel: typeof import("./cluster/BrokersKafka").KafkaTransactionsPanel;
 let MessagesKafka: typeof import("./messages/MessagesKafka").MessagesKafka;
 
 beforeAll(async () => {
@@ -108,6 +111,7 @@ beforeAll(async () => {
   TopicsKafka = topics.TopicsKafka;
   ConsumersKafka = consumers.ConsumersKafka;
   BrokersKafka = brokers.BrokersKafka;
+  KafkaTransactionsPanel = brokers.KafkaTransactionsPanel;
   MessagesKafka = messages.MessagesKafka;
 });
 
@@ -462,6 +466,7 @@ describe("the Kafka cluster board", () => {
   it("draws the offline notice with nothing dialled", () => {
     clusterState.current = stateOf({ online: false });
     logDirState.current = stateOf({});
+    transactionState.current = stateOf({});
     brokerConfigState.current = stateOf({});
     expect(render(<BrokersKafka />)).toContain("未连接");
   });
@@ -469,6 +474,7 @@ describe("the Kafka cluster board", () => {
   it("lists the brokers and marks the controller", () => {
     clusterState.current = stateOf({ data: healthyCluster });
     logDirState.current = stateOf({});
+    transactionState.current = stateOf({});
     brokerConfigState.current = stateOf({});
     const html = render(<BrokersKafka />);
 
@@ -485,12 +491,151 @@ describe("the Kafka cluster board", () => {
   it("shows no disk percentage", () => {
     clusterState.current = stateOf({ data: healthyCluster });
     logDirState.current = stateOf({});
+    transactionState.current = stateOf({});
     brokerConfigState.current = stateOf({});
     const html = render(<BrokersKafka />);
     // Percentages in inline layout styles are not a claim about a disk; only
     // one inside rendered text would be.
     const text = html.replace(/<[^>]*>/g, " ");
     expect(text).not.toMatch(/\d+\s*%/);
+  });
+});
+
+const NOW = 1_756_000_000_000;
+
+const transaction = (over: Record<string, unknown> = {}) => ({
+  id: "orders-writer",
+  state: "Ongoing",
+  coordinator: 2,
+  producerId: 1001,
+  producerEpoch: 7,
+  startedAt: NOW - 90_000,
+  timeoutMs: 60_000,
+  partitions: ["orders.created:0", "orders.created:1"],
+  holding: true,
+  ...over,
+});
+
+/*
+ * The transactions tab.
+ *
+ * It is the one panel in this app whose whole purpose is a state no other page
+ * can show: a producer that died mid-transaction, holding the last stable
+ * offset while every other figure reads healthy.
+ */
+describe("the Kafka transactions panel", () => {
+  it("says so while it is loading", () => {
+    const html = render(
+      <KafkaTransactionsPanel state={stateOf({ loading: true })} now={NOW} />,
+    );
+    expect(html).toContain("正在读取");
+  });
+
+  it("shows the reason when the cluster would not answer", () => {
+    const html = render(
+      <KafkaTransactionsPanel
+        state={stateOf({ error: "coordinator not available" })}
+        now={NOW}
+      />,
+    );
+    expect(html).toContain("coordinator not available");
+  });
+
+  // A cluster with no transactional producer at all is the normal case, and it
+  // must not read as a page that failed to load.
+  it("says the cluster has none rather than showing an empty table", () => {
+    const html = render(
+      <KafkaTransactionsPanel
+        state={stateOf({ data: { transactions: [], holding: 0 } })}
+        now={NOW}
+      />,
+    );
+    expect(html).toContain("没有注册任何事务生产者");
+  });
+
+  it("names the transaction, what it holds, and how long it has held it", () => {
+    const html = render(
+      <KafkaTransactionsPanel
+        state={stateOf({ data: { transactions: [transaction()], holding: 1 } })}
+        now={NOW}
+      />,
+    );
+
+    expect(html).toContain("orders-writer");
+    expect(html).toContain("Ongoing");
+    expect(html).toContain("orders.created:0");
+    expect(html).toContain("1m");
+    // The producer and its epoch together: a fenced-out producer keeps the id
+    // and takes a new epoch, so the id alone does not identify the session.
+    expect(html).toContain("1001");
+    expect(html).toContain("/7");
+  });
+
+  /*
+   * Past its timeout is the finding, not the age. The coordinator undertook to
+   * abort the transaction after that long, so one still open past it is not a
+   * slow job - it is a transaction nothing is finishing.
+   */
+  it("marks a transaction the cluster should already have aborted", () => {
+    const html = render(
+      <KafkaTransactionsPanel
+        state={stateOf({ data: { transactions: [transaction()], holding: 1 } })}
+        now={NOW}
+      />,
+    );
+    expect(html).toContain(">已超时<");
+  });
+
+  it("leaves a transaction inside its timeout unmarked", () => {
+    const html = render(
+      <KafkaTransactionsPanel
+        state={stateOf({
+          data: { transactions: [transaction({ startedAt: NOW - 5_000 })], holding: 1 },
+        })}
+        now={NOW}
+      />,
+    );
+    expect(html).not.toContain(">已超时<");
+  });
+
+  // A completed transaction is listed but holds nothing, and the panel must
+  // not colour it as trouble.
+  it("does not flag a transaction that has finished", () => {
+    const html = render(
+      <KafkaTransactionsPanel
+        state={stateOf({
+          data: {
+            transactions: [
+              transaction({
+                state: "CompleteCommit",
+                holding: false,
+                partitions: [],
+                startedAt: NOW - 5_000,
+              }),
+            ],
+            holding: 0,
+          },
+        })}
+        now={NOW}
+      />,
+    );
+    expect(html).toContain("CompleteCommit");
+    expect(html).not.toContain(">已超时<");
+  });
+
+  // Unknown is not zero: a coordinator that did not report a start time must
+  // not produce an age, and must not be called overdue either.
+  it("reports no age when the coordinator gave no start time", () => {
+    const html = render(
+      <KafkaTransactionsPanel
+        state={stateOf({
+          data: { transactions: [transaction({ startedAt: -1 })], holding: 1 },
+        })}
+        now={NOW}
+      />,
+    );
+    expect(html).not.toContain(">已超时<");
+    expect(html).toContain("—");
   });
 });
 
@@ -560,7 +705,7 @@ describe("the Kafka messages board", () => {
   it("says when a record has no key at all", () => {
     topicsState.current = stateOf({ data: topicRows });
     readState.current = readOf({
-      records: [record({ keys: "\u0000__mqs_null_key" })],
+      records: [record({ keys: " __mqs_null_key" })],
       ran: true,
     });
     tailState.current = tailOf();

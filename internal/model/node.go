@@ -208,3 +208,35 @@ type QuotaEntity struct {
 	// quota names them. Not the same as an empty name.
 	Default bool `json:"default"`
 }
+
+// Transaction is one transactional producer's session, as the cluster sees it.
+//
+// Kafka only. The reason it is worth a panel is what a stuck one does: a
+// transaction that is Ongoing holds the last stable offset of every partition
+// it has written to, and a consumer reading committed records will not advance
+// past it. One producer that died mid-transaction can stall an entire pipeline
+// while every other figure on every other page looks healthy.
+type Transaction struct {
+	ID          string `json:"id"`
+	State       string `json:"state"`
+	Coordinator int32  `json:"coordinator"`
+
+	ProducerID    int64 `json:"producerId"`
+	ProducerEpoch int16 `json:"producerEpoch"`
+
+	// StartedAt is when the transaction began, in milliseconds, or
+	// UnknownMetric where the coordinator does not report it.
+	StartedAt int64 `json:"startedAt"`
+	// TimeoutMs is how long the cluster will wait before aborting it itself.
+	TimeoutMs int32 `json:"timeoutMs"`
+
+	// Partitions are the topic partitions this transaction has written to and
+	// not yet resolved. They are the ones whose readers are being held up.
+	Partitions []string `json:"partitions"`
+
+	// Holding is the driver's verdict on whether this transaction is actually
+	// keeping readers back. Derived rather than reported, and derived here so
+	// that the rule - which states count, and that partitions must be held -
+	// exists once rather than again in the page that draws it.
+	Holding bool `json:"holding"`
+}

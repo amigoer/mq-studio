@@ -1203,7 +1203,19 @@
         "path": "路径",
         "size": "大小",
         "largest": "最大的分区",
-        "moving": "迁移中"
+        "moving": "迁移中",
+        "transactions": "事务",
+        "txnNote": "未结束的事务会顶住它写过的每个分区的最后稳定位点，读已提交的消费者就停在那里，而 Topic 与消费组看上去都是健康的。只有这一页能看出来。",
+        "txnOpen": "事务数",
+        "txnHolding": "顶住读取",
+        "txnOverdue": "已超时未结束",
+        "txnId": "事务 ID",
+        "txnCoordinator": "协调者",
+        "txnProducer": "生产者 / epoch",
+        "txnAge": "已持续",
+        "txnHolds": "顶住的分区",
+        "txnPastTimeout": "已超时",
+        "txnEmpty": "该集群没有注册任何事务生产者。"
       },
       "pulsar": {
         "load44": "负载 44%",

@@ -69,5 +69,6 @@ export {
     SubscriptionStatus,
     TailBatch,
     TailCursor,
-    TopicPermission
+    TopicPermission,
+    Transaction
 } from "./models.js";

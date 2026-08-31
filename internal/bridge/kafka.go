@@ -353,6 +353,31 @@ func (s *KafkaService) Quotas(connID int) (*QuotaView, error) {
 	}, nil
 }
 
+// TransactionView is the cluster page's transactions tab.
+type TransactionView struct {
+	Transactions []*model.Transaction `json:"transactions"`
+
+	// Holding is how many of them are keeping a partition's readers back. The
+	// tab draws it as its badge: on a healthy cluster this is zero however
+	// many transactions are listed.
+	Holding int `json:"holding"`
+}
+
+// Transactions reports the transactional producers the cluster knows about.
+func (s *KafkaService) Transactions(connID int) (*TransactionView, error) {
+	transactions, err := s.service.Transactions(context.Background(), connID)
+	if err != nil {
+		return nil, err
+	}
+	view := &TransactionView{Transactions: transactions}
+	for _, transaction := range transactions {
+		if transaction.Holding {
+			view.Holding++
+		}
+	}
+	return view, nil
+}
+
 // AlterQuota sets the limits in set and removes the keys in remove.
 func (s *KafkaService) AlterQuota(
 	connID int, entity []model.QuotaEntity, set map[string]float64, remove []string,

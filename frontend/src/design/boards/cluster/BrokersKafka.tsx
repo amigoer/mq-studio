@@ -21,18 +21,29 @@ import {
   Status,
 } from "@/components";
 import { BoardState } from "@/design/boards/BoardState";
+import type { BrokerData } from "@/hooks/useBrokerData";
+import type { TransactionView } from "@bindings/bridge/models";
 import {
   useKafkaBrokerConfig,
   useKafkaCluster,
   useKafkaLogDirs,
+  useKafkaTransactions,
 } from "@/hooks/kafka/useKafkaCluster";
 import { formatBytes, formatCount } from "@/lib/format";
-import { clusterID, controllerNode, isController, nodeID, rack } from "@/mq/kafka/cluster";
+import {
+  clusterID,
+  controllerNode,
+  isController,
+  nodeID,
+  rack,
+  transactionAge,
+  transactionOverdue,
+} from "@/mq/kafka/cluster";
 
 const R = { textAlign: "right" } as const;
 const MONO11 = { fontSize: "11px" } as const;
 
-type View = "brokers" | "storage";
+type View = "brokers" | "storage" | "transactions";
 
 /**
  * Board 17a — Kafka brokers.
@@ -53,12 +64,16 @@ export function BrokersKafka() {
 
   const state = useKafkaCluster();
   const storage = useKafkaLogDirs(view === "storage");
+  const transactions = useKafkaTransactions(view === "transactions");
   const config = useKafkaBrokerConfig(selected);
 
   const overview = state.data?.overview ?? null;
   const nodes = state.data?.nodes ?? [];
   const dirs = storage.data?.dirs ?? [];
   const largest = storage.data?.largest ?? [];
+  // Read once per render so every row in the panel is aged against the same
+  // instant, rather than each cell against a slightly later one.
+  const now = Date.now();
 
   return (
     <Page>
@@ -67,11 +82,12 @@ export function BrokersKafka() {
         subtitle={overview != null ? clusterID(overview) : ""}
         actions={
           <RefreshButton
-            refreshing={state.refreshing || storage.refreshing}
+            refreshing={state.refreshing || storage.refreshing || transactions.refreshing}
             online={state.online}
             onClick={() => {
               void state.refresh();
               if (view === "storage") void storage.refresh();
+              if (view === "transactions") void transactions.refresh();
             }}
           />
         }
@@ -81,6 +97,7 @@ export function BrokersKafka() {
           options={[
             { value: "brokers", label: t("board.cluster.kafka.brokers") },
             { value: "storage", label: t("board.cluster.kafka.storage") },
+            { value: "transactions", label: t("board.cluster.kafka.transactions") },
           ]}
           value={view}
           onChange={setView}
@@ -156,7 +173,7 @@ export function BrokersKafka() {
             )}
           </ListArea>
         </BoardState>
-      ) : (
+      ) : view === "storage" ? (
         <BoardState state={storage}>
           <div style={{ display: "flex", flexDirection: "column", gap: "10px", padding: "12px 14px", overflow: "auto" }}>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px" }}>
@@ -254,7 +271,109 @@ export function BrokersKafka() {
             </div>
           </div>
         </BoardState>
+      ) : (
+        <KafkaTransactionsPanel state={transactions} now={now} />
       )}
     </Page>
+  );
+}
+
+/**
+ * The transactions tab.
+ *
+ * Its own component rather than a branch inside the board because it is the
+ * one view here that cannot be reached without a click, and a panel that only
+ * a click can render is a panel nothing can test.
+ */
+export function KafkaTransactionsPanel({
+  state,
+  now,
+}: {
+  state: BrokerData<TransactionView>;
+  now: number;
+}) {
+  const { t } = useTranslation();
+  const open = (state.data?.transactions ?? []).filter((txn) => txn != null);
+  const overdue = open.filter((txn) =>
+    transactionOverdue(txn.startedAt, txn.timeoutMs, now),
+  ).length;
+
+  return (
+    <BoardState state={state}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "10px", padding: "12px 14px", overflow: "auto" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px" }}>
+          <MiniStat
+            label={t("board.cluster.kafka.txnOpen")}
+            value={formatCount(open.length)}
+            size={15}
+          />
+          <MiniStat
+            label={t("board.cluster.kafka.txnHolding")}
+            value={formatCount(state.data?.holding ?? 0)}
+            color={(state.data?.holding ?? 0) > 0 ? "var(--c-warn-text)" : undefined}
+            size={15}
+          />
+          <MiniStat
+            label={t("board.cluster.kafka.txnOverdue")}
+            value={formatCount(overdue)}
+            color={overdue > 0 ? "var(--c-err-text)" : undefined}
+            size={15}
+          />
+        </div>
+        <span style={{ fontSize: "11px", color: "var(--c-muted)" }}>
+          {t("board.cluster.kafka.txnNote")}
+        </span>
+
+        <Panel style={{ overflow: "hidden" }}>
+          <Table className="text-xs">
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t("board.cluster.kafka.txnId")}</TableHead>
+                <TableHead>{t("board.common.status")}</TableHead>
+                <TableHead style={R}>{t("board.cluster.kafka.txnCoordinator")}</TableHead>
+                <TableHead style={R}>{t("board.cluster.kafka.txnProducer")}</TableHead>
+                <TableHead style={R}>{t("board.cluster.kafka.txnAge")}</TableHead>
+                <TableHead>{t("board.cluster.kafka.txnHolds")}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {open.map((txn) => (
+                <TableRow key={`${txn.id}/${txn.producerId}`}>
+                  <TableCell className="mono3" style={MONO11}>{txn.id}</TableCell>
+                  <TableCell>
+                    <Status tone={txn.holding ? "warn" : "off"}>{txn.state}</Status>
+                    {transactionOverdue(txn.startedAt, txn.timeoutMs, now) && (
+                      <Status tone="err" style={{ fontSize: "10px", marginLeft: "4px" }}>
+                        {t("board.cluster.kafka.txnPastTimeout")}
+                      </Status>
+                    )}
+                  </TableCell>
+                  <TableCell className="mono3" style={R}>{txn.coordinator}</TableCell>
+                  <TableCell className="mono3" style={R}>
+                    {txn.producerId}
+                    <span style={{ color: "var(--c-muted)" }}>/{txn.producerEpoch}</span>
+                  </TableCell>
+                  <TableCell className="mono3" style={R}>
+                    {transactionAge(txn.startedAt, now)}
+                  </TableCell>
+                  <TableCell className="mono3" style={MONO11}>
+                    {(txn.partitions ?? []).length === 0
+                      ? "—"
+                      : (txn.partitions ?? []).join("  ")}
+                  </TableCell>
+                </TableRow>
+              ))}
+              {open.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} style={{ padding: "18px", color: "var(--c-muted)" }}>
+                    {t("board.cluster.kafka.txnEmpty")}
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </Panel>
+      </div>
+    </BoardState>
   );
 }

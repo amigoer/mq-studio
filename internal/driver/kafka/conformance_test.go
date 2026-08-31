@@ -212,6 +212,7 @@ func TestCapabilitiesMatchTheSidebarContract(t *testing.T) {
 		"access.directory",
 		"quota.list",
 		"quota.admin",
+		"transaction.list",
 	}
 
 	declared := make(map[string]bool, len(capabilities()))

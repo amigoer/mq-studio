@@ -70,5 +70,6 @@ export {
     SettingsView,
     ShellPage,
     TopicInput,
-    TopicPermissionInput
+    TopicPermissionInput,
+    TransactionView
 } from "./models.js";

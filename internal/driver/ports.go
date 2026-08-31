@@ -249,6 +249,17 @@ type ConfigInspector interface {
 	DirectoryConfig(ctx context.Context) (map[string]string, error)
 }
 
+// TransactionInspector reports the transactional producers a cluster is
+// tracking.
+//
+// It exists because an unfinished transaction is invisible everywhere else: it
+// holds the last stable offset of every partition it has written to, so a
+// consumer reading committed records stops advancing while the topic, the
+// group and the replicas all look healthy.
+type TransactionInspector interface {
+	ListTransactions(ctx context.Context) ([]*model.Transaction, error)
+}
+
 // QuotaAdmin manages the limits attached to a client rather than to a
 // destination: what one user, application or address may do to the cluster.
 //

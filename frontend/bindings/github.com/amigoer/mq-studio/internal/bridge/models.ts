@@ -2110,6 +2110,44 @@ export class TopicPermissionInput {
     }
 }
 
+/**
+ * TransactionView is the cluster page's transactions tab.
+ */
+export class TransactionView {
+    "transactions": (model$0.Transaction | null)[];
+
+    /**
+     * Holding is how many of them are keeping a partition's readers back. The
+     * tab draws it as its badge: on a healthy cluster this is zero however
+     * many transactions are listed.
+     */
+    "holding": number;
+
+    /** Creates a new TransactionView instance. */
+    constructor($$source: Partial<TransactionView> = {}) {
+        if (!("transactions" in $$source)) {
+            this["transactions"] = [];
+        }
+        if (!("holding" in $$source)) {
+            this["holding"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new TransactionView instance from a string or object.
+     */
+    static createFrom($$source: any = {}): TransactionView {
+        const $$createField0_0 = $$createType27;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("transactions" in $$parsedSource) {
+            $$parsedSource["transactions"] = $$createField0_0($$parsedSource["transactions"]);
+        }
+        return new TransactionView($$parsedSource as Partial<TransactionView>);
+    }
+}
+
 // Private type creation functions
 const $$createType0 = $Create.Array($Create.Any);
 const $$createType1 = PolicyInput.createFrom;
@@ -2136,3 +2174,6 @@ const $$createType21 = $Create.Array($Create.Any);
 const $$createType22 = model$0.ClientQuota.createFrom;
 const $$createType23 = $Create.Nullable($$createType22);
 const $$createType24 = $Create.Array($$createType23);
+const $$createType25 = model$0.Transaction.createFrom;
+const $$createType26 = $Create.Nullable($$createType25);
+const $$createType27 = $Create.Array($$createType26);

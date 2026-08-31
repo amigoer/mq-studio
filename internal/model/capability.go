@@ -91,6 +91,11 @@ const (
 	// log to its new home in the background.
 	CapReassign Capability = "destination.reassign"
 
+	// CapTransactions is a family whose producers can write across partitions
+	// atomically, and whose unfinished transactions hold readers back. Only a
+	// family with that mechanism has anything to report.
+	CapTransactions Capability = "transaction.list"
+
 	// CapQuotaList and CapQuotaAdmin are limits attached to a client rather
 	// than to a destination - what one user, application or address may do to
 	// the cluster as a whole. Only a family that throttles by identity has

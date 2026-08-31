@@ -88,6 +88,16 @@ export const deleteKafkaGroup = (connID: number, group: string): Promise<void> =
 export const getKafkaLogDirs = (connID: number) =>
   KafkaService.LogDirs(connID).then(required);
 
+/**
+ * The transactional producers the cluster is tracking.
+ *
+ * Read on demand rather than with the cluster header: it is a request to the
+ * coordinators, and it matters only while somebody is looking for the one
+ * transaction that has stopped a pipeline.
+ */
+export const getKafkaTransactions = (connID: number) =>
+  KafkaService.Transactions(connID).then(required);
+
 import type { KafkaAcks } from "@/design/boards/producer/producerKafkaDraft";
 
 export interface KafkaRecordInput {
