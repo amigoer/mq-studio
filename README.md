@@ -45,7 +45,7 @@ component to deploy, secure, or keep alive.
 - **Private by default** — configuration stays on your device and credentials are encrypted at rest
 - **Cross-platform** — macOS, Windows, and Linux, with English and Chinese interfaces
 
-RocketMQ is the driver available today; [Driver support](#driver-support) has the rest.
+RocketMQ, RabbitMQ, and Kafka are the drivers available today; [Driver support](#driver-support) has the rest.
 
 ## Features
 
