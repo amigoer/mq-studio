@@ -65,8 +65,16 @@ export function Sidebar({
                   aria-current={id === active ? "page" : undefined}
                   className={cn("ni", id === active && "on")}
                   /* The label is the only thing naming the icon once it is
-                     gone; a blocked entry adds why it cannot be opened. */
-                  title={[collapsed ? t(label) : null, reason].filter(Boolean).join(" · ") || undefined}
+                     gone; a blocked entry adds why it cannot be opened. The
+                     reason is a translation key - drivers report keys, not
+                     sentences - and it was going into the tooltip raw, so a
+                     degraded entry explained itself as
+                     "mq.kafka.degraded.accessControl". */
+                  title={
+                    [collapsed ? t(label) : null, reason == null ? null : t(reason)]
+                      .filter(Boolean)
+                      .join(" · ") || undefined
+                  }
                   onClick={() => onSelect?.(id)}
                 >
                   <span className="nic">
