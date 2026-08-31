@@ -1,5 +1,5 @@
-import { ArrowRight } from "lucide-react";
-import { Page, PageBody } from "@/design/shell";
+import { useTranslation } from "react-i18next";
+import { Page, PageBody, PageHeader, RefreshButton } from "@/design/shell";
 import {
   Table,
   TableBody,
@@ -8,97 +8,176 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { KV, Panel, PanelHeader, StatTile, Status } from "@/components";
+import { BoardState } from "@/design/boards/BoardState";
+import { useKafkaCluster } from "@/hooks/kafka/useKafkaCluster";
+import { formatCount } from "@/lib/format";
 import {
-  ChartBox,
-  Panel,
-  PanelHeader,
-  StatTile,
-  Status,
-} from "@/components";
-import { CHART_CARD, CHART_ROW, KPI_GRID, NAME_CELL, OverviewHeader, TABLE_CARD } from "./_shared";
-import { useTranslation } from "react-i18next";
+  clusterID,
+  consumerGroupCount,
+  controllerNode,
+  internalTopicCount,
+  isController,
+  leaderlessPartitions,
+  nodeID,
+  offlinePartitions,
+  partitionCount,
+  partitionsAreHealthy,
+  rack,
+  topicCount,
+  underReplicatedPartitions,
+} from "@/mq/kafka/cluster";
+import { KPI_GRID, TABLE_CARD } from "./_shared";
 
-/** Board 3b — Kafka overview. Partitions get their own KPI; health is URP. */
+/** A count the cluster did not report, drawn as absent rather than as zero. */
+function reported(value: number | null): string {
+  return value == null ? "—" : formatCount(value);
+}
+
+/**
+ * Board 3b — Kafka overview.
+ *
+ * The canvas drew a throughput chart, a produce/consume rate pair and a total
+ * backlog. None of them survives, because Kafka's admin protocol reports no
+ * rate at all - produce and consume rates are JMX metrics, and this app speaks
+ * the Kafka protocol rather than JMX. A backlog is not a cluster figure
+ * either: it belongs to a consumer group against a topic, so a cluster total
+ * would be a sum over every group and every partition, and one topic read by
+ * five groups would count five times.
+ *
+ * What replaces them is what Kafka actually reports, and it is a better page
+ * for it: partition health. Under-replicated, offline and leaderless are three
+ * different degrees of trouble, and together they are the whole answer to "is
+ * this cluster all right".
+ */
 export function OverviewKafka() {
   const { t } = useTranslation();
+  const state = useKafkaCluster();
+
+  const overview = state.data?.overview ?? null;
+  const nodes = state.data?.nodes ?? [];
+
+  const underReplicated = overview ? underReplicatedPartitions(overview) : null;
+  const offline = overview ? offlinePartitions(overview) : null;
+  const leaderless = overview ? leaderlessPartitions(overview) : null;
+  const healthy = overview != null && partitionsAreHealthy(overview);
+  const internal = overview ? internalTopicCount(overview) : null;
+
   return (
     <Page>
-      <OverviewHeader subtitle={t("board.overview.kafka.subtitle")} />
-      <PageBody>
-        <div className={KPI_GRID}>
-          <StatTile label="Broker" value="3" hint="Controller kafka-1" />
-          <StatTile label="Topic" value="42" hint={t("board.overview.kafka.internalHidden")} />
-          <StatTile label={t("board.common.partition")} value="386" hint={t("board.overview.kafka.urpOffline")} hintColor="var(--c-warn-text)" />
-          <StatTile label={t("board.common.consumerGroup")} value="18" hint={t("board.overview.kafka.rebalancingOne")} />
-          <StatTile label={t("board.common.totalBacklog")} value="12 480" valueColor="var(--c-warn-text)" hint={t("board.overview.kafka.vsLastHour")} />
-        </div>
-
-        <div className={CHART_ROW}>
-          <Panel style={CHART_CARD}>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <b style={{ fontSize: "12.5px" }}>{t("board.common.throughput")}</b>
-              <span className="flex-1" />
-              <span style={{ fontSize: "10.5px", color: "var(--c-ok)" }}>{t("board.overview.kafka.inMsg")}</span>
-              <span style={{ fontSize: "10.5px", color: "var(--c-accent-blue)" }}>{t("board.overview.kafka.outMsg")}</span>
-            </div>
-            <ChartBox style={{ flex: 1 }}>{t("board.overview.kafka.chart")}</ChartBox>
-          </Panel>
-          <Panel style={CHART_CARD}>
-            <b style={{ fontSize: "12.5px" }}>{t("board.overview.kafka.partitionHealth")}</b>
-            <ChartBox style={{ flex: 1 }}>
-              {t("board.overview.kafka.donut")}
-              <br />
-              {t("board.overview.kafka.isrLine")}
-            </ChartBox>
-          </Panel>
-        </div>
-
-        <Panel style={TABLE_CARD}>
-          <PanelHeader
-            title={t("board.common.topBacklogGroups")}
-            action={
-              <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "11.5px", color: "var(--c-ok)" }}>
-                {t("board.common.viewAll")}
-                <ArrowRight size={13} aria-hidden />
-              </span>
-            }
+      <PageHeader
+        title={t("board.common.overview")}
+        subtitle={overview != null ? clusterID(overview) : ""}
+        actions={
+          <RefreshButton
+            refreshing={state.refreshing}
+            online={state.online}
+            onClick={() => void state.refresh()}
           />
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t("board.common.consumerGroup")}</TableHead>
-                <TableHead>Topic</TableHead>
-                <TableHead style={{ textAlign: "right" }}>{t("board.overview.kafka.lag")}</TableHead>
-                <TableHead style={{ textAlign: "right" }}>{t("board.common.consumeRate")}</TableHead>
-                <TableHead>{t("board.common.status")}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              <TableRow>
-                <TableCell>settle-consumer</TableCell>
-                <TableCell className="mono3" style={NAME_CELL}>orders.created</TableCell>
-                <TableCell className="mono3" style={{ textAlign: "right", color: "var(--c-warn-text)" }}>9 820</TableCell>
-                <TableCell className="mono3" style={{ textAlign: "right" }}>1 104/s</TableCell>
-                <TableCell><Status tone="warn">{t("board.common.backlogAlert")}</Status></TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>notify-consumer</TableCell>
-                <TableCell className="mono3" style={NAME_CELL}>orders.created</TableCell>
-                <TableCell className="mono3" style={{ textAlign: "right" }}>1 220</TableCell>
-                <TableCell className="mono3" style={{ textAlign: "right" }}>2 003/s</TableCell>
-                <TableCell><Status tone="ok">{t("board.common.healthy")}</Status></TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>audit-pipeline</TableCell>
-                <TableCell className="mono3" style={NAME_CELL}>payments.captured</TableCell>
-                <TableCell className="mono3" style={{ textAlign: "right" }}>840</TableCell>
-                <TableCell className="mono3" style={{ textAlign: "right" }}>880/s</TableCell>
-                <TableCell><Status tone="off">{t("board.overview.kafka.rebalancing")}</Status></TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </Panel>
-      </PageBody>
+        }
+      />
+      <BoardState state={state}>
+        <PageBody>
+          <div className={KPI_GRID}>
+            <StatTile
+              label="Broker"
+              value={reported(nodes.length === 0 ? null : nodes.length)}
+              hint={
+                overview != null && controllerNode(overview) !== ""
+                  ? t("board.overview.kafka.controllerIs", { id: controllerNode(overview) })
+                  : t("board.overview.kafka.noController")
+              }
+            />
+            <StatTile
+              label="Topic"
+              value={reported(overview ? topicCount(overview) : null)}
+              hint={
+                internal == null
+                  ? ""
+                  : t("board.overview.kafka.internalHidden", { count: internal })
+              }
+            />
+            <StatTile
+              label={t("board.common.partition")}
+              value={reported(overview ? partitionCount(overview) : null)}
+              hint={t("board.overview.kafka.acrossAllTopics")}
+            />
+            <StatTile
+              label={t("board.common.consumerGroup")}
+              value={reported(overview ? consumerGroupCount(overview) : null)}
+              hint={t("board.overview.kafka.groupsHint")}
+            />
+            <StatTile
+              label={t("board.overview.kafka.underReplicated")}
+              value={reported(underReplicated)}
+              valueColor={underReplicated ? "var(--c-warn-text)" : undefined}
+              hint={t("board.overview.kafka.underReplicatedHint")}
+            />
+          </div>
+
+          <Panel style={{ padding: "13px 16px", display: "flex", flexDirection: "column", gap: "10px" }}>
+            <PanelHeader
+              title={t("board.overview.kafka.partitionHealth")}
+              action={
+                healthy ? (
+                  <Status tone="ok">{t("board.overview.kafka.allInSync")}</Status>
+                ) : (
+                  <Status tone="warn">{t("board.overview.kafka.needsAttention")}</Status>
+                )
+              }
+            />
+            {/* Three counters rather than one health badge: they are three
+                different failures with three different fixes, and collapsing
+                them would lose which one is happening. */}
+            <KV
+              rows={[
+                [t("board.overview.kafka.underReplicated"), reported(underReplicated)],
+                [t("board.overview.kafka.offline"), reported(offline)],
+                [t("board.overview.kafka.leaderless"), reported(leaderless)],
+              ]}
+            />
+            <span style={{ fontSize: "11px", color: "var(--c-muted)" }}>
+              {t("board.overview.kafka.healthNote")}
+            </span>
+          </Panel>
+
+          <Panel style={TABLE_CARD}>
+            <PanelHeader title={t("board.overview.kafka.brokers")} />
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead style={{ textAlign: "right" }}>ID</TableHead>
+                  <TableHead>{t("board.common.address")}</TableHead>
+                  <TableHead>Rack</TableHead>
+                  <TableHead>{t("board.common.status")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {nodes.map((node) => (
+                  <TableRow key={node.id}>
+                    <TableCell className="mono3" style={{ textAlign: "right" }}>
+                      {nodeID(node)}
+                    </TableCell>
+                    <TableCell className="mono3" style={{ fontSize: "11px" }}>
+                      {node.address}
+                    </TableCell>
+                    <TableCell className="mono3" style={{ fontSize: "11px", color: "var(--c-mono-dim)" }}>
+                      {rack(node) === "" ? "—" : rack(node)}
+                    </TableCell>
+                    <TableCell>
+                      {isController(node) ? (
+                        <Status tone="ok">{t("board.overview.kafka.controller")}</Status>
+                      ) : (
+                        <Status tone="off">{t("board.overview.kafka.broker")}</Status>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Panel>
+        </PageBody>
+      </BoardState>
     </Page>
   );
 }

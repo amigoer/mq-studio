@@ -70,6 +70,17 @@ type ClusterOverview struct {
 	Destinations  int    `json:"destinations"` // UnknownMetric when not enumerable
 	Subscriptions int    `json:"subscriptions"`
 	AvgDiskUsage  int    `json:"avgDiskUsage"` // percent; UnknownMetric when not reported
+
+	// Attributes carries family-specific detail the canonical header has no
+	// field for, the same way Node and Destination do. Kafka's health is
+	// counted in partitions - under-replicated, offline, leaderless - which no
+	// other family has and which is the whole reason its overview exists.
+	Attributes map[string]string `json:"attributes"`
+}
+
+// Attribute returns a driver-specific field.
+func (o *ClusterOverview) Attribute(key string) string {
+	return o.Attributes[key]
 }
 
 // MaintenanceTask is a housekeeping job a node can be asked to run now.

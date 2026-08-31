@@ -1093,6 +1093,14 @@ export class ClusterOverview {
      */
     "avgDiskUsage": number;
 
+    /**
+     * Attributes carries family-specific detail the canonical header has no
+     * field for, the same way Node and Destination do. Kafka's health is
+     * counted in partitions - under-replicated, offline, leaderless - which no
+     * other family has and which is the whole reason its overview exists.
+     */
+    "attributes": { [_ in string]?: string };
+
     /** Creates a new ClusterOverview instance. */
     constructor($$source: Partial<ClusterOverview> = {}) {
         if (!("name" in $$source)) {
@@ -1113,6 +1121,9 @@ export class ClusterOverview {
         if (!("avgDiskUsage" in $$source)) {
             this["avgDiskUsage"] = 0;
         }
+        if (!("attributes" in $$source)) {
+            this["attributes"] = {};
+        }
 
         Object.assign(this, $$source);
     }
@@ -1121,7 +1132,11 @@ export class ClusterOverview {
      * Creates a new ClusterOverview instance from a string or object.
      */
     static createFrom($$source: any = {}): ClusterOverview {
+        const $$createField6_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("attributes" in $$parsedSource) {
+            $$parsedSource["attributes"] = $$createField6_0($$parsedSource["attributes"]);
+        }
         return new ClusterOverview($$parsedSource as Partial<ClusterOverview>);
     }
 }

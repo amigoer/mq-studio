@@ -72,12 +72,14 @@ func (c *Conn) Close() error {
 
 // capabilities is the family's best case.
 //
-// It is empty while the ports that would back each entry are still being
-// built: CheckConformance fails a capability with no interface behind it, so
-// each one arrives in the commit that implements it rather than as a promise
-// the connection cannot keep.
+// It grows one port at a time: CheckConformance fails a capability with no
+// interface behind it, so each one arrives in the commit that implements it
+// rather than as a promise the connection cannot keep.
 func capabilities() []model.Capability {
-	return []model.Capability{}
+	return []model.Capability{
+		model.CapClusterTopology,
+		model.CapClusterMetrics,
+	}
 }
 
 // probe narrows the family's best case to what this cluster actually answers.

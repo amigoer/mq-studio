@@ -16,7 +16,10 @@ import type { CapabilityState } from "./capabilities";
  * declares. A Go test asserts the driver still declares exactly this, so the
  * two halves cannot drift apart without one of them failing.
  */
-const KAFKA_CAPABILITIES: Capability[] = [];
+const KAFKA_CAPABILITIES: Capability[] = [
+  Capability.CapClusterTopology,
+  Capability.CapClusterMetrics,
+];
 
 function state(
   supported: Capability[],
@@ -58,6 +61,29 @@ describe("the sidebar a Kafka connection draws", () => {
     const ungated = drawn.filter((id) => id !== "overview" && nav.visible(id));
 
     expect(ungated).toEqual([]);
+  });
+
+  // The pages the driver can serve today. This list grows one entry per
+  // commit, and it growing by accident is exactly what it is here to catch.
+  it("reaches the pages the driver declares capabilities for", () => {
+    const nav = navAvailability(state(KAFKA_CAPABILITIES), true);
+    const reachable = drawn.filter((id) => nav.visible(id) && !nav.disabled(id));
+
+    expect(reachable).toEqual(["overview", "cluster", "alerts"]);
+  });
+
+  // A degraded capability keeps its page in the sidebar and says why, which is
+  // the whole reason the middle state exists: a cluster that refuses a
+  // credential should explain itself, not quietly lose pages.
+  it("keeps a degraded page drawn and gives its reason", () => {
+    const nav = navAvailability(
+      state([], { [Capability.CapClusterTopology]: "mq.kafka.degraded.credentials" }),
+      true,
+    );
+
+    expect(nav.visible("cluster")).toBe(true);
+    expect(nav.disabled("cluster")).toBe(true);
+    expect(nav.reason("cluster")).toBe("mq.kafka.degraded.credentials");
   });
 
   // Being offline must not empty the sidebar. Every board draws its own "not

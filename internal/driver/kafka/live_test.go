@@ -135,3 +135,80 @@ func TestLiveDialTimeoutIsHonoured(t *testing.T) {
 		t.Errorf("Ping took %v against an unrouted address; the dial timeout is not in force", elapsed)
 	}
 }
+
+func TestLiveClusterTopology(t *testing.T) {
+	requireLiveCluster(t)
+	conn := liveConn(t, liveSeeds)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
+	nodes, err := conn.ListNodes(ctx)
+	if err != nil {
+		t.Fatalf("ListNodes: %v", err)
+	}
+	if len(nodes) != 3 {
+		t.Fatalf("got %d brokers, want the 3 the e2e cluster runs", len(nodes))
+	}
+
+	controllers := 0
+	for _, node := range nodes {
+		if node.Address == "" {
+			t.Errorf("broker %d has no address", node.ID)
+		}
+		if node.Attribute(AttrController) == "true" {
+			controllers++
+		}
+	}
+	// Exactly one, always. A cluster with none is mid-election and a cluster
+	// reporting two is a bug in this mapping.
+	if controllers != 1 {
+		t.Errorf("got %d controllers, want exactly 1", controllers)
+	}
+
+	first := nodes[0]
+	detail, err := conn.NodeDetail(ctx, first.Address)
+	if err != nil {
+		t.Fatalf("NodeDetail(%s): %v", first.Address, err)
+	}
+	if detail.ID != first.ID {
+		t.Errorf("NodeDetail returned broker %d for %s, want %d", detail.ID, first.Address, first.ID)
+	}
+	if _, err := conn.NodeDetail(ctx, "no-such-broker:9092"); err == nil {
+		t.Error("NodeDetail invented a broker that does not exist")
+	}
+}
+
+func TestLiveClusterOverview(t *testing.T) {
+	requireLiveCluster(t)
+	conn := liveConn(t, liveSeeds)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
+	overview, err := conn.ClusterOverview(ctx)
+	if err != nil {
+		t.Fatalf("ClusterOverview: %v", err)
+	}
+	if overview.Name == "" {
+		t.Error("the cluster reports no id")
+	}
+	if overview.TotalNodes != 3 {
+		t.Errorf("brokers = %d, want 3", overview.TotalNodes)
+	}
+	if overview.Attribute(AttrControllerNode) == "" {
+		t.Error("no controller was named")
+	}
+	// The e2e cluster is healthy, and a healthy cluster has to say so in
+	// numbers rather than by leaving the fields blank.
+	for _, key := range []string{AttrUnderReplicated, AttrOfflinePartitions, AttrLeaderlessPartition} {
+		if overview.Attribute(key) != "0" {
+			t.Errorf("%s = %q on a healthy cluster, want 0", key, overview.Attribute(key))
+		}
+	}
+	// __consumer_offsets exists on any cluster that has ever had a group, and
+	// it must not be counted as something a user made.
+	if overview.Attribute(AttrInternalTopicCount) == "" {
+		t.Error("internal topics were not counted separately")
+	}
+}
