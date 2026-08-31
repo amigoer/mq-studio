@@ -34,6 +34,11 @@ const RULE_SEVERITY: Record<AlertRuleKey, AlertSeverity> = {
   queueNoConsumer: "crit",
   queueBacklog: "warn",
   flowControl: "warn",
+  // Under-replicated is a warning and the other two are outages: the topic is
+  // still working in the first case and is not in the other two.
+  partitionUnderReplicated: "warn",
+  partitionOffline: "crit",
+  partitionLeaderless: "crit",
 };
 
 /**

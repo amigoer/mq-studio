@@ -198,7 +198,10 @@
       "memoryUsage": "内存水位偏高",
       "queueBacklog": "队列堆积",
       "queueNoConsumer": "队列无人消费",
-      "flowControl": "连接被限流"
+      "flowControl": "连接被限流",
+      "partitionUnderReplicated": "分区副本不足",
+      "partitionOffline": "分区有不可达的副本",
+      "partitionLeaderless": "分区没有 leader"
     },
     "tabs": {
       "active": "活跃告警",
@@ -243,7 +246,10 @@
       "memoryUsage": "{{broker}} · {{usage}}% ≥ {{threshold}}%",
       "queueBacklog": "{{queue}} · 堆积 {{lag}} > {{threshold}}",
       "queueNoConsumer": "{{queue}} · {{lag}} 条待消费，无消费者",
-      "flowControl": "{{count}} 个连接处于 flow/blocked，如 {{peer}}"
+      "flowControl": "{{count}} 个连接处于 flow/blocked，如 {{peer}}",
+      "partitionUnderReplicated": "{{topic}} · {{count}} 个分区",
+      "partitionOffline": "{{topic}} · {{count}} 个分区",
+      "partitionLeaderless": "{{topic}} · {{count}} 个分区既不可读也不可写"
     },
     "duration": {
       "minutes": "持续 {{count}} 分钟",

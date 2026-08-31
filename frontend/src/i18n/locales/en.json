@@ -198,7 +198,10 @@
       "memoryUsage": "Memory near its watermark",
       "queueBacklog": "Queue backlog",
       "queueNoConsumer": "Queue with no consumer",
-      "flowControl": "Connections being throttled"
+      "flowControl": "Connections being throttled",
+      "partitionUnderReplicated": "Partitions under-replicated",
+      "partitionOffline": "Partitions with an unreachable replica",
+      "partitionLeaderless": "Partitions with no leader"
     },
     "tabs": {
       "active": "Active",
@@ -243,7 +246,10 @@
       "memoryUsage": "{{broker}} · {{usage}}% ≥ {{threshold}}%",
       "queueBacklog": "{{queue}} · {{lag}} waiting > {{threshold}}",
       "queueNoConsumer": "{{queue}} · {{lag}} waiting, no consumer attached",
-      "flowControl": "{{count}} connection(s) in flow or blocked, such as {{peer}}"
+      "flowControl": "{{count}} connection(s) in flow or blocked, such as {{peer}}",
+      "partitionUnderReplicated": "{{topic}} · {{count}} partitions",
+      "partitionOffline": "{{topic}} · {{count}} partitions",
+      "partitionLeaderless": "{{topic}} · {{count}} partitions neither readable nor writable"
     },
     "duration": {
       "minutes": "for {{count}} min",

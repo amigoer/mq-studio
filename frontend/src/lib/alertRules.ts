@@ -11,7 +11,13 @@ export type AlertRuleKey =
   | "memoryUsage"
   | "queueBacklog"
   | "queueNoConsumer"
-  | "flowControl";
+  | "flowControl"
+  // Kafka's three degrees of partition trouble. Separate keys because they are
+  // separate switches: a cluster mid-reassignment is under-replicated on
+  // purpose and its operator wants that one off, not all three.
+  | "partitionUnderReplicated"
+  | "partitionOffline"
+  | "partitionLeaderless";
 
 export type AlertRulePrefs = Record<AlertRuleKey, boolean>;
 
@@ -20,6 +26,9 @@ export const ALERT_RULE_KEYS: readonly AlertRuleKey[] = [
   "brokerOffline",
   "resourceAlarm",
   "nodePartition",
+  "partitionLeaderless",
+  "partitionOffline",
+  "partitionUnderReplicated",
   "groupOffline",
   "queueNoConsumer",
   "groupLag",
@@ -40,6 +49,14 @@ export const ALERT_RULE_KEYS: readonly AlertRuleKey[] = [
  * offering a switch for something that cannot happen.
  */
 const RULES_BY_KIND: Partial<Record<MQKind, readonly AlertRuleKey[]>> = {
+  [MQKind.KindKafka]: [
+    "brokerOffline",
+    "partitionLeaderless",
+    "partitionOffline",
+    "partitionUnderReplicated",
+    "groupOffline",
+    "groupLag",
+  ],
   [MQKind.KindRabbitMQ]: [
     "brokerOffline",
     "resourceAlarm",
@@ -79,6 +96,9 @@ export const DEFAULT_ALERT_RULES: AlertRulePrefs = {
   queueBacklog: true,
   queueNoConsumer: true,
   flowControl: true,
+  partitionUnderReplicated: true,
+  partitionOffline: true,
+  partitionLeaderless: true,
 };
 
 function read(): AlertRulePrefs {

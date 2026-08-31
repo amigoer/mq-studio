@@ -89,6 +89,7 @@ type Sweep = { id: number; facts: AlertFacts | null };
 async function sweepConnection(profile: Connection): Promise<Sweep> {
   if (profile.status !== "online") return { id: profile.id, facts: NO_FACTS };
   const rabbit = profile.kind === MQKind.KindRabbitMQ;
+  const kafka = profile.kind === MQKind.KindKafka;
   try {
     const [cluster, groups, destinations, connections] = await Promise.all([
       clusterApi.getClusterView(profile.id),
@@ -98,9 +99,13 @@ async function sweepConnection(profile: Connection): Promise<Sweep> {
       rabbit
         ? Promise.resolve([] as Subscription[])
         : consumerApi.getConsumerGroups(profile.id).catch(() => [] as Subscription[]),
-      rabbit
+      // Kafka's rules read a topic's partition health, which is the whole of
+      // what it reports about being unwell, so it needs the topic list too.
+      rabbit || kafka
         ? topicApi.getTopics(profile.id).catch(() => [] as Destination[])
         : Promise.resolve([] as Destination[]),
+      // Only RabbitMQ reports flow control on a connection; Kafka's admin
+      // protocol cannot enumerate connections at all.
       rabbit
         ? rabbitApi.getClientConnections(profile.id, "").catch(() => [] as ClientConnection[])
         : Promise.resolve([] as ClientConnection[]),
