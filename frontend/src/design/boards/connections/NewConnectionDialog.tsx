@@ -18,7 +18,7 @@ import { PROTOCOL_ORDER, isProtocolReady, type ProtocolId } from "@/design/data/
 import { cn, formatErrorMessage } from "@/lib/utils";
 import type { ConnectionDraft, CredentialsMode } from "@/api/connection";
 import type { Connection as ConnectionProfile } from "@/api/models";
-import { RabbitMQForm, RocketMQForm } from "./ConnectionForms";
+import { KafkaForm, RabbitMQForm, RocketMQForm } from "./ConnectionForms";
 import {
   emptyDraft,
   isDraftable,
@@ -113,6 +113,20 @@ export function NewConnectionDialog({
       }
       return null;
     }
+    if (draft.protocol === "kafka") {
+      if (draft.value.endpoints.trim() === "") {
+        return t("page.connections.bootstrapRequired");
+      }
+      // Anonymous is a real choice here, so the credential is only required
+      // once a mechanism has been picked.
+      if (draft.value.mechanism !== "none") {
+        const stored = draft.value.credentialsStored && !draft.value.clearCredentials;
+        if (!stored && draft.value.username.trim() === "") {
+          return t("page.connections.usernameRequired");
+        }
+      }
+      return null;
+    }
     if (draft.value.endpoints.trim() === "") return t("page.connections.endpointsRequired");
     if (draft.value.version === "5.x" && draft.value.access === "proxy") {
       return t("page.connections.form.rocketmq.proxyNote");
@@ -204,6 +218,11 @@ export function NewConnectionDialog({
         <RabbitMQForm
           value={draft.value}
           onChange={(next) => setDraft({ protocol: "rabbitmq", value: next })}
+        />
+      ) : draft.protocol === "kafka" ? (
+        <KafkaForm
+          value={draft.value}
+          onChange={(next) => setDraft({ protocol: "kafka", value: next })}
         />
       ) : (
         <RocketMQForm

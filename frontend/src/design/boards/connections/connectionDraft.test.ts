@@ -1,11 +1,19 @@
 import { describe, expect, it } from "vitest";
 import { AuthMechanism, MQKind } from "@/api/connection";
 import type { Connection as ConnectionProfile } from "@/api/models";
-import { emptyRabbitMQDraft, emptyRocketMQDraft, type RabbitMQDraft, type RocketMQDraft } from "./ConnectionForms";
+import {
+  emptyKafkaDraft,
+  emptyRabbitMQDraft,
+  emptyRocketMQDraft,
+  type KafkaDraft,
+  type RabbitMQDraft,
+  type RocketMQDraft,
+} from "./ConnectionForms";
 import { emptyDraft, isDraftable, toDraft, toSubmission, type ProtocolDraft } from "./connectionDraft";
 
 const rocketmq = (value: RocketMQDraft): ProtocolDraft => ({ protocol: "rocketmq", value });
 const rabbitmq = (value: RabbitMQDraft): ProtocolDraft => ({ protocol: "rabbitmq", value });
+const kafka = (value: KafkaDraft): ProtocolDraft => ({ protocol: "kafka", value });
 
 /**
  * Both halves of an ACL pair are stored encrypted and neither comes back, so
@@ -253,9 +261,185 @@ describe("the RabbitMQ connection draft", () => {
   });
 });
 
+/**
+ * Kafka is the first family where authenticating with nothing is a real
+ * choice rather than a blank form, and that changes what every credential
+ * rule means: dropping to PLAINTEXT has to take the stored password with it,
+ * or re-selecting SASL later would silently reuse a credential nobody was
+ * shown.
+ */
+describe("the Kafka connection draft", () => {
+  const newConnection = () => ({
+    ...emptyKafkaDraft(),
+    name: "  kafka-orders  ",
+    endpoints: "  kafka-1:9092, kafka-2:9092  ",
+  });
+
+  const authenticated = () => ({
+    ...newConnection(),
+    mechanism: "sasl-scram" as const,
+    username: "admin",
+    password: "hunter2",
+  });
+
+  it("trims what the user typed and names the family", () => {
+    const { draft } = toSubmission(kafka(newConnection()));
+    expect(draft.name).toBe("kafka-orders");
+    expect(draft.endpoints).toBe("kafka-1:9092, kafka-2:9092");
+    expect(draft.kind).toBe(MQKind.KindKafka);
+  });
+
+  it("stores no credential and clears any stored one when the mechanism is none", () => {
+    const submission = toSubmission(kafka({ ...newConnection(), credentialsStored: true }));
+    expect(submission.draft.authMechanism).toBe(AuthMechanism.AuthNone);
+    expect(submission.draft.secrets).toEqual({ username: "", password: "" });
+    expect(submission.credentialsMode).toBe("clear");
+  });
+
+  // A password left in the draft after the user switched to PLAINTEXT must not
+  // reach the store, or turning SASL back on would authenticate with something
+  // the form never showed.
+  it("drops a typed credential the mechanism no longer uses", () => {
+    const submission = toSubmission(kafka({
+      ...newConnection(),
+      mechanism: "none",
+      username: "admin",
+      password: "hunter2",
+    }));
+    expect(submission.draft.secrets).toEqual({ username: "", password: "" });
+    expect(submission.credentialsMode).toBe("clear");
+  });
+
+  it("carries each SASL mechanism through in the store's vocabulary", () => {
+    expect(toSubmission(kafka({ ...authenticated(), mechanism: "sasl-plain" })).draft.authMechanism)
+      .toBe(AuthMechanism.AuthSASLPlain);
+    expect(toSubmission(kafka(authenticated())).draft.authMechanism)
+      .toBe(AuthMechanism.AuthSASLScram);
+  });
+
+  it("stores the SCRAM digest, which is a separate credential on the broker", () => {
+    const submission = toSubmission(kafka({ ...authenticated(), scramSha: "256" }));
+    expect(submission.draft.options.scramSha).toBe("256");
+    expect(toSubmission(kafka(authenticated())).draft.options.scramSha).toBe("512");
+  });
+
+  it("keeps a stored credential when the form was opened on one and left blank", () => {
+    const submission = toSubmission(kafka({
+      ...newConnection(),
+      mechanism: "sasl-scram",
+      credentialsStored: true,
+    }));
+    expect(submission.credentialsMode).toBe("preserve");
+  });
+
+  it("replaces a stored credential as soon as one is typed", () => {
+    const submission = toSubmission(kafka({ ...authenticated(), credentialsStored: true }));
+    expect(submission.credentialsMode).toBe("replace");
+    expect(submission.draft.secrets).toEqual({ username: "admin", password: "hunter2" });
+  });
+
+  it("clears a stored credential when the clear control was used", () => {
+    const submission = toSubmission(kafka({
+      ...newConnection(),
+      mechanism: "sasl-scram",
+      credentialsStored: true,
+      clearCredentials: true,
+    }));
+    expect(submission.credentialsMode).toBe("clear");
+  });
+
+  // Storing the TLS extras with TLS off would re-apply them the day someone
+  // turns it back on, without the form ever having shown them.
+  it("stores no TLS extras while TLS is off", () => {
+    const submission = toSubmission(kafka({
+      ...newConnection(),
+      tls: false,
+      tlsCaFile: "/etc/kafka/ca.pem",
+      tlsSkipVerify: true,
+    }));
+    expect(submission.draft.options.tls).toBe("false");
+    expect(submission.draft.options.tlsCaFile).toBe("");
+    expect(submission.draft.options.tlsSkipVerify).toBe("false");
+  });
+
+  it("stores the TLS extras once TLS is on", () => {
+    const submission = toSubmission(kafka({
+      ...newConnection(),
+      tls: true,
+      tlsCaFile: "  /etc/kafka/ca.pem  ",
+      tlsSkipVerify: true,
+    }));
+    expect(submission.draft.options.tls).toBe("true");
+    expect(submission.draft.options.tlsCaFile).toBe("/etc/kafka/ca.pem");
+    expect(submission.draft.options.tlsSkipVerify).toBe("true");
+  });
+
+  it("reads a stored profile back into the form it came from", () => {
+    const profile = {
+      id: 7,
+      name: "kafka-orders",
+      group: "prod",
+      kind: MQKind.KindKafka,
+      endpoints: "kafka-1:9092",
+      timeoutSec: 9,
+      authMechanism: AuthMechanism.AuthSASLScram,
+      options: {
+        scramSha: "256",
+        tls: "true",
+        tlsCaFile: "/etc/kafka/ca.pem",
+        tlsSkipVerify: "true",
+      },
+      secretsConfigured: ["username", "password"],
+      remark: "orders cluster",
+    } as unknown as ConnectionProfile;
+
+    const draft = toDraft(profile);
+    expect(draft.protocol).toBe("kafka");
+    if (draft.protocol !== "kafka") return;
+    expect(draft.value).toMatchObject({
+      name: "kafka-orders",
+      endpoints: "kafka-1:9092",
+      mechanism: "sasl-scram",
+      scramSha: "256",
+      tls: true,
+      tlsCaFile: "/etc/kafka/ca.pem",
+      tlsSkipVerify: true,
+      timeoutSec: 9,
+      credentialsStored: true,
+      clearCredentials: false,
+    });
+    // Secrets never come back from the store, so the fields open blank and
+    // blank has to keep meaning "leave it alone".
+    expect(draft.value.username).toBe("");
+    expect(draft.value.password).toBe("");
+  });
+
+  // A profile that authenticates with nothing has no credential to keep,
+  // whatever is still sitting in the secret store from an earlier mechanism.
+  it("reports no stored credential on a profile that does not authenticate", () => {
+    const profile = {
+      id: 8,
+      name: "kafka-dev",
+      group: "",
+      kind: MQKind.KindKafka,
+      endpoints: "localhost:9092",
+      timeoutSec: 5,
+      authMechanism: AuthMechanism.AuthNone,
+      options: {},
+      secretsConfigured: ["username", "password"],
+      remark: "",
+    } as unknown as ConnectionProfile;
+
+    const draft = toDraft(profile);
+    if (draft.protocol !== "kafka") throw new Error("expected a kafka draft");
+    expect(draft.value.mechanism).toBe("none");
+    expect(draft.value.credentialsStored).toBe(false);
+  });
+});
+
 describe("the draft registry", () => {
   it("has an empty draft for every protocol it claims to handle", () => {
-    for (const protocol of ["rocketmq", "rabbitmq"] as const) {
+    for (const protocol of ["rocketmq", "rabbitmq", "kafka"] as const) {
       expect(isDraftable(protocol)).toBe(true);
       expect(emptyDraft(protocol).protocol).toBe(protocol);
     }
@@ -264,7 +448,7 @@ describe("the draft registry", () => {
   // The picker gates on this: a tile whose form cannot be built must not open
   // one, which is what disabling it is for.
   it("does not claim protocols with no form", () => {
-    for (const protocol of ["kafka", "pulsar", "redis", "mqtt"] as const) {
+    for (const protocol of ["pulsar", "redis", "mqtt"] as const) {
       expect(isDraftable(protocol)).toBe(false);
     }
   });

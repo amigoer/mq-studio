@@ -1,7 +1,6 @@
 import { useState, type CSSProperties, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { ChevronRight, RefreshCw } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -282,48 +281,264 @@ export function RocketMQForm({
   );
 }
 
-/** Board 6b — Kafka. The security protocol decides whether SASL/TLS shows. */
-export function KafkaForm() {
+/**
+ * Option keys the Kafka driver reads back off a stored profile.
+ *
+ * They repeat two of RabbitMQ's strings, and are declared separately on
+ * purpose: each set is a private contract between one Go driver and this form,
+ * so renaming one family's key must not silently rename the other's.
+ */
+export const OPTION_KAFKA_SCRAM_SHA = "scramSha";
+export const OPTION_KAFKA_TLS = "tls";
+export const OPTION_KAFKA_TLS_SKIP_VERIFY = "tlsSkipVerify";
+export const OPTION_KAFKA_TLS_CA_FILE = "tlsCaFile";
+
+/** How a Kafka connection authenticates. Anonymous is a real option here. */
+export type KafkaMechanism = "none" | "sasl-plain" | "sasl-scram";
+
+/** Kafka's two SCRAM mechanisms are separate credentials on the broker. */
+export type KafkaScramSha = "256" | "512";
+
+/**
+ * What the Kafka form collects.
+ *
+ * One address list rather than two: Kafka administers itself over the protocol
+ * that carries records, so there is no second endpoint to name. The bootstrap
+ * list is only a starting point - the cluster answers with the address of
+ * every broker, and those are what the client actually talks to.
+ */
+export interface KafkaDraft {
+  name: string;
+  /** Bootstrap servers. This is the profile's endpoints field. */
+  endpoints: string;
+  mechanism: KafkaMechanism;
+  scramSha: KafkaScramSha;
+  username: string;
+  password: string;
+  tls: boolean;
+  tlsCaFile: string;
+  tlsSkipVerify: boolean;
+  group: string;
+  remark: string;
+  timeoutSec: number;
+  /** A stored password never comes back, so blank means "keep it". */
+  credentialsStored: boolean;
+  clearCredentials: boolean;
+}
+
+export function emptyKafkaDraft(): KafkaDraft {
+  return {
+    name: "",
+    endpoints: "",
+    mechanism: "none",
+    scramSha: "512",
+    username: "",
+    password: "",
+    tls: false,
+    tlsCaFile: "",
+    tlsSkipVerify: false,
+    group: "",
+    remark: "",
+    timeoutSec: DEFAULT_TIMEOUT_SEC,
+    credentialsStored: false,
+    clearCredentials: false,
+  };
+}
+
+/** Board 6b — Kafka. The mechanism decides whether the credential rows show. */
+export function KafkaForm({
+  value,
+  onChange,
+}: {
+  value: KafkaDraft;
+  onChange: (next: KafkaDraft) => void;
+}) {
   const { t } = useTranslation();
-  const [skipVerify, setSkipVerify] = useState(false);
+  const set = <K extends keyof KafkaDraft>(key: K, next: KafkaDraft[K]) =>
+    onChange({ ...value, [key]: next });
+  const [advancedOpen, setAdvancedOpen] = useState(
+    value.timeoutSec !== DEFAULT_TIMEOUT_SEC || value.remark !== "" || value.tls,
+  );
+  const authenticating = value.mechanism !== "none";
+  const stored = value.credentialsStored && !value.clearCredentials;
+
   return (
     <>
       <div style={GRID}>
-        <Fld span label={t("page.connections.form.name")}>
-          <Input defaultValue="prod-kafka-cn" />
+        <Fld label={t("page.connections.form.name")}>
+          <Input
+            value={value.name}
+            placeholder="kafka-staging"
+            onChange={(event) => set("name", event.target.value)}
+          />
         </Fld>
-        <Fld span label="Bootstrap Servers">
+        <Fld label={t("page.connections.form.kafka.mechanism")}>
+          <SelectField<KafkaMechanism>
+            value={value.mechanism}
+            options={[
+              { value: "none", label: t("page.connections.form.kafka.mechanismNone") },
+              { value: "sasl-plain", label: "SASL/PLAIN" },
+              { value: "sasl-scram", label: "SASL/SCRAM" },
+            ]}
+            onValueChange={(next) =>
+              // Dropping to anonymous drops the credential with it. Keeping it
+              // would put the old password back the day someone re-selects
+              // SASL, without them being shown that it was still there.
+              onChange({
+                ...value,
+                mechanism: next,
+                username: next === "none" ? "" : value.username,
+                password: next === "none" ? "" : value.password,
+              })
+            }
+          />
+        </Fld>
+        <Fld
+          span
+          label={t("page.connections.form.kafka.bootstrap")}
+          hint={t("page.connections.form.kafka.bootstrapHint")}
+        >
           <Input
             className="mono3"
             style={MONO}
-            defaultValue="kafka-1:9092, kafka-2:9092, kafka-3:9092"
+            value={value.endpoints}
+            placeholder="kafka-1:9092, kafka-2:9092, kafka-3:9092"
+            onChange={(event) => set("endpoints", event.target.value)}
           />
         </Fld>
-        <Fld label={t("page.connections.form.kafka.security")}>
-          <SelectField value="SASL_SSL" options={[{ value: "SASL_SSL" }]} />
-        </Fld>
-        <Fld label={t("page.connections.form.kafka.sasl")}>
-          <SelectField value="SCRAM-SHA-256" options={[{ value: "SCRAM-SHA-256" }]} />
-        </Fld>
-        <Fld label={t("page.connections.form.username")}>
-          <Input defaultValue="mq-studio" />
-        </Fld>
-        <Fld label={t("page.connections.form.password")}>
-          <Input type="password" defaultValue="password" />
-        </Fld>
-        <Fld label={t("page.connections.form.kafka.ca")} hint={t("page.connections.form.kafka.caHint")}>
-          <Button variant="outline" size="sm" className="self-start font-normal">
-            {t("page.connections.form.kafka.chooseFile")}
-          </Button>
-        </Fld>
-        <Fld label={t("page.connections.form.kafka.skipVerify")}>
-          <Switch checked={skipVerify} onCheckedChange={setSkipVerify} style={{ marginTop: "3px" }} />
-        </Fld>
+        {authenticating && (
+          <>
+            <Fld
+              label={t("page.connections.form.username")}
+              hint={
+                stored ? (
+                  <button type="button" className="mqs-linkbtn" onClick={() => set("clearCredentials", true)}>
+                    {t("page.connections.form.clearCredentials")}
+                  </button>
+                ) : undefined
+              }
+            >
+              <Input
+                value={value.username}
+                placeholder={stored ? t("page.connections.form.secretStored") : undefined}
+                onChange={(event) => set("username", event.target.value)}
+              />
+            </Fld>
+            <Fld label={t("page.connections.form.password")}>
+              <Input
+                type="password"
+                value={value.password}
+                placeholder={stored ? t("page.connections.form.secretStored") : undefined}
+                onChange={(event) => set("password", event.target.value)}
+              />
+            </Fld>
+          </>
+        )}
+        {value.mechanism === "sasl-scram" && (
+          <Fld
+            span
+            label={t("page.connections.form.kafka.scramSha")}
+            hint={t("page.connections.form.kafka.scramShaHint")}
+          >
+            <Segmented<KafkaScramSha>
+              options={[
+                { value: "256", label: "SCRAM-SHA-256" },
+                { value: "512", label: "SCRAM-SHA-512" },
+              ]}
+              value={value.scramSha}
+              onChange={(next) => set("scramSha", next)}
+            />
+          </Fld>
+        )}
       </div>
       <FormNote
-        advanced={<Adv>{t("page.connections.form.kafka.advanced")}</Adv>}
+        advanced={
+          <button
+            type="button"
+            className="mqs-disclosure"
+            aria-expanded={advancedOpen}
+            onClick={() => setAdvancedOpen((open) => !open)}
+          >
+            <ChevronRight size={12} aria-hidden />
+            {t("page.connections.form.kafka.advanced")}
+          </button>
+        }
         note={t("page.connections.form.kafka.note")}
       />
+      {advancedOpen && (
+        <div style={GRID}>
+          <Fld
+            label={t("page.connections.form.rocketmq.timeout")}
+            hint={t("page.connections.form.rocketmq.timeoutHint")}
+          >
+            <Input
+              type="number"
+              min={1}
+              max={300}
+              value={value.timeoutSec > 0 ? String(value.timeoutSec) : ""}
+              onChange={(event) => {
+                const seconds = Number.parseInt(event.target.value, 10);
+                set("timeoutSec", Number.isNaN(seconds) ? 0 : seconds);
+              }}
+            />
+          </Fld>
+          <Fld label={t("page.connections.form.remark")} hint={t("page.connections.form.remarkHint")}>
+            <Input value={value.remark} onChange={(event) => set("remark", event.target.value)} />
+          </Fld>
+          <Fld span label="TLS" hint={t("page.connections.form.kafka.tlsHint")}>
+            <div style={SWITCH_ROW}>
+              <Switch
+                checked={value.tls}
+                onCheckedChange={(next: boolean) =>
+                  // The CA file and skip-verify only mean anything with TLS on,
+                  // and leaving them set would silently re-apply them.
+                  onChange({
+                    ...value,
+                    tls: next,
+                    tlsCaFile: next ? value.tlsCaFile : "",
+                    tlsSkipVerify: next && value.tlsSkipVerify,
+                  })
+                }
+              />
+              <span style={{ color: "var(--c-muted)" }}>
+                {t("page.connections.form.kafka.tls")}
+              </span>
+            </div>
+          </Fld>
+          {value.tls && (
+            <>
+              <Fld
+                span
+                label={t("page.connections.form.kafka.caFile")}
+                hint={t("page.connections.form.kafka.caFileHint")}
+              >
+                <Input
+                  className="mono3"
+                  style={MONO}
+                  value={value.tlsCaFile}
+                  placeholder="/etc/kafka/ca.pem"
+                  onChange={(event) => set("tlsCaFile", event.target.value)}
+                />
+              </Fld>
+              <Fld
+                span
+                label={t("page.connections.form.kafka.skipVerify")}
+                hint={t("page.connections.form.kafka.skipVerifyHint")}
+              >
+                <div style={SWITCH_ROW}>
+                  <Switch
+                    checked={value.tlsSkipVerify}
+                    onCheckedChange={(next: boolean) => set("tlsSkipVerify", next)}
+                  />
+                  <span style={{ color: "var(--c-muted)" }}>
+                    {t("page.connections.form.kafka.skipVerifyNote")}
+                  </span>
+                </div>
+              </Fld>
+            </>
+          )}
+        </div>
+      )}
     </>
   );
 }

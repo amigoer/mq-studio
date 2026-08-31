@@ -694,14 +694,21 @@
           "proxyNote": "Proxy 只有数据面，没有管理接口，暂不支持"
         },
         "kafka": {
-          "security": "安全协议",
-          "sasl": "SASL 机制",
-          "ca": "CA 证书",
-          "caHint": "SSL 时",
-          "chooseFile": "选择文件… ca.pem",
-          "skipVerify": "跳过证书验证",
-          "advanced": "高级：client.id · 请求超时 · 客户端证书（mTLS）",
-          "note": "凭证加密存储在本机"
+          "mechanism": "认证方式",
+          "mechanismNone": "不认证（PLAINTEXT）",
+          "bootstrap": "Bootstrap 地址",
+          "bootstrapHint": "填一个就够，集群会告知其余 broker",
+          "scramSha": "SCRAM 摘要",
+          "scramShaHint": "在 broker 上是两套独立凭据，不是同一套的两种编码",
+          "advanced": "高级：超时 · 备注 · TLS",
+          "note": "凭证加密存储在本机",
+          "tls": "加密连接",
+          "tlsHint": "需要 listener 侧也配置了 TLS",
+          "caFile": "CA 证书文件",
+          "caFileHint": "本机上的 PEM 路径；留空则使用系统根证书",
+          "skipVerify": "跳过证书校验",
+          "skipVerifyHint": "仅用于你已经确认可信的自签名证书",
+          "skipVerifyNote": "接受集群出示的任何证书"
         },
         "rabbitmq": {
           "vhost": "虚拟主机",
@@ -789,6 +796,7 @@
       "saved": "已保存 {{name}}",
       "disconnectFailed": "断开失败",
       "managementRequired": "请填写管理 API 地址",
+      "bootstrapRequired": "请填写 Bootstrap 地址",
       "usernameRequired": "请填写用户名"
     },
     "settings": {

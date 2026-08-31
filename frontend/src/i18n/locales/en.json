@@ -694,14 +694,21 @@
           "proxyNote": "Proxy is a data plane only, with no admin API; not supported yet"
         },
         "kafka": {
-          "security": "Security protocol",
-          "sasl": "SASL mechanism",
-          "ca": "CA certificate",
-          "caHint": "For SSL",
-          "chooseFile": "Choose file… ca.pem",
+          "mechanism": "Authentication",
+          "mechanismNone": "None (PLAINTEXT)",
+          "bootstrap": "Bootstrap servers",
+          "bootstrapHint": "One is enough; the cluster names the rest",
+          "scramSha": "SCRAM digest",
+          "scramShaHint": "Separate credentials on the broker, not two encodings of one",
+          "advanced": "Advanced: timeout · remark · TLS",
+          "note": "Credentials are encrypted on this machine",
+          "tls": "Encrypt the connection",
+          "tlsHint": "The listener has to be configured for it",
+          "caFile": "CA certificate file",
+          "caFileHint": "A PEM path on this machine; leave blank to use the system roots",
           "skipVerify": "Skip certificate verification",
-          "advanced": "Advanced: client.id · request timeout · client certificate (mTLS)",
-          "note": "Credentials are encrypted on this machine"
+          "skipVerifyHint": "Only for a self-signed certificate you already trust",
+          "skipVerifyNote": "Accept any certificate the cluster presents"
         },
         "rabbitmq": {
           "vhost": "Virtual host",
@@ -789,6 +796,7 @@
       "saved": "Saved {{name}}",
       "disconnectFailed": "Could not disconnect",
       "managementRequired": "A management API address is required",
+      "bootstrapRequired": "Enter the bootstrap servers",
       "usernameRequired": "A username is required"
     },
     "settings": {

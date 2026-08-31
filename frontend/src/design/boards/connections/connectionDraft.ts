@@ -9,8 +9,9 @@
  *
  * The draft is a union rather than one shared shape. A RocketMQ connection is
  * name servers and an ACL pair; a RabbitMQ one is two addresses, a virtual
- * host and a password. Flattening them into one record would mean every field
- * carrying a note about which protocols it applies to.
+ * host and a password; a Kafka one is a bootstrap list, a SASL mechanism and a
+ * TLS block. Flattening them into one record would mean every field carrying a
+ * note about which protocols it applies to.
  */
 import {
   AuthMechanism,
@@ -23,12 +24,19 @@ import type { ProtocolId } from "@/design/data/protocols";
 import {
   OPTION_ACCESS,
   OPTION_AMQP,
+  OPTION_KAFKA_SCRAM_SHA,
+  OPTION_KAFKA_TLS,
+  OPTION_KAFKA_TLS_CA_FILE,
+  OPTION_KAFKA_TLS_SKIP_VERIFY,
   OPTION_TLS,
   OPTION_TLS_SKIP_VERIFY,
   OPTION_VERSION,
   OPTION_VHOST,
+  emptyKafkaDraft,
   emptyRabbitMQDraft,
   emptyRocketMQDraft,
+  type KafkaDraft,
+  type KafkaMechanism,
   type RabbitMQDraft,
   type RocketMQDraft,
 } from "./ConnectionForms";
@@ -41,32 +49,48 @@ export interface Submission {
 /** One protocol's form state, tagged so the dialog can dispatch on it. */
 export type ProtocolDraft =
   | { protocol: "rocketmq"; value: RocketMQDraft }
-  | { protocol: "rabbitmq"; value: RabbitMQDraft };
+  | { protocol: "rabbitmq"; value: RabbitMQDraft }
+  | { protocol: "kafka"; value: KafkaDraft };
 
 /** The protocols this file can build a submission for. */
-export const DRAFTABLE: readonly ProtocolDraft["protocol"][] = ["rocketmq", "rabbitmq"];
+export const DRAFTABLE: readonly ProtocolDraft["protocol"][] = ["rocketmq", "rabbitmq", "kafka"];
 
 export function isDraftable(protocol: ProtocolId): protocol is ProtocolDraft["protocol"] {
   return (DRAFTABLE as readonly string[]).includes(protocol);
 }
 
 export function emptyDraft(protocol: ProtocolDraft["protocol"]): ProtocolDraft {
-  return protocol === "rabbitmq"
-    ? { protocol, value: emptyRabbitMQDraft() }
-    : { protocol, value: emptyRocketMQDraft() };
+  switch (protocol) {
+    case "rabbitmq":
+      return { protocol, value: emptyRabbitMQDraft() };
+    case "kafka":
+      return { protocol, value: emptyKafkaDraft() };
+    default:
+      return { protocol, value: emptyRocketMQDraft() };
+  }
 }
 
 export function toSubmission(draft: ProtocolDraft): Submission {
-  return draft.protocol === "rabbitmq"
-    ? rabbitMQSubmission(draft.value)
-    : rocketMQSubmission(draft.value);
+  switch (draft.protocol) {
+    case "rabbitmq":
+      return rabbitMQSubmission(draft.value);
+    case "kafka":
+      return kafkaSubmission(draft.value);
+    default:
+      return rocketMQSubmission(draft.value);
+  }
 }
 
 /** Reads a stored profile back into its own form's field set. */
 export function toDraft(profile: ConnectionProfile): ProtocolDraft {
-  return profile.kind === MQKind.KindRabbitMQ
-    ? { protocol: "rabbitmq", value: toRabbitMQDraft(profile) }
-    : { protocol: "rocketmq", value: toRocketMQDraft(profile) };
+  switch (profile.kind) {
+    case MQKind.KindRabbitMQ:
+      return { protocol: "rabbitmq", value: toRabbitMQDraft(profile) };
+    case MQKind.KindKafka:
+      return { protocol: "kafka", value: toKafkaDraft(profile) };
+    default:
+      return { protocol: "rocketmq", value: toRocketMQDraft(profile) };
+  }
 }
 
 function rocketMQSubmission(draft: RocketMQDraft): Submission {
@@ -123,6 +147,51 @@ function rabbitMQSubmission(draft: RabbitMQDraft): Submission {
   };
 }
 
+function kafkaSubmission(draft: KafkaDraft): Submission {
+  const authenticating = draft.mechanism !== "none";
+  const username = authenticating ? draft.username.trim() : "";
+  const password = authenticating ? draft.password.trim() : "";
+  const typed = username !== "" || password !== "";
+  const keepStored = authenticating && draft.credentialsStored && !draft.clearCredentials;
+
+  return {
+    draft: {
+      name: draft.name.trim(),
+      group: draft.group,
+      kind: MQKind.KindKafka,
+      endpoints: draft.endpoints.trim(),
+      timeoutSec: draft.timeoutSec,
+      authMechanism: MECHANISM[draft.mechanism],
+      options: {
+        [OPTION_KAFKA_SCRAM_SHA]: draft.scramSha,
+        [OPTION_KAFKA_TLS]: String(draft.tls),
+        // The CA file and skip-verify only mean anything with TLS on, and
+        // storing them otherwise would re-apply them silently the day someone
+        // turns TLS back on.
+        [OPTION_KAFKA_TLS_CA_FILE]: draft.tls ? draft.tlsCaFile.trim() : "",
+        [OPTION_KAFKA_TLS_SKIP_VERIFY]: String(draft.tls && draft.tlsSkipVerify),
+      },
+      secrets: { username, password },
+      remark: draft.remark,
+    },
+    // Anonymous is a real choice on Kafka, not a blank one, so dropping to it
+    // clears the stored credential rather than leaving one that would come
+    // back the day someone re-selects SASL.
+    credentialsMode: !authenticating || draft.clearCredentials
+      ? "clear"
+      : typed || !keepStored
+        ? "replace"
+        : "preserve",
+  };
+}
+
+/** The form's three choices in the store's own vocabulary. */
+const MECHANISM: Record<KafkaMechanism, AuthMechanism> = {
+  none: AuthMechanism.AuthNone,
+  "sasl-plain": AuthMechanism.AuthSASLPlain,
+  "sasl-scram": AuthMechanism.AuthSASLScram,
+};
+
 function toRocketMQDraft(profile: ConnectionProfile): RocketMQDraft {
   return {
     name: profile.name,
@@ -138,6 +207,34 @@ function toRocketMQDraft(profile: ConnectionProfile): RocketMQDraft {
     clearCredentials: false,
   };
 }
+
+function toKafkaDraft(profile: ConnectionProfile): KafkaDraft {
+  const tls = profile.options?.[OPTION_KAFKA_TLS] === "true";
+  const mechanism = KAFKA_MECHANISM_BY_STORED[profile.authMechanism] ?? "none";
+  return {
+    name: profile.name,
+    endpoints: profile.endpoints,
+    mechanism,
+    scramSha: profile.options?.[OPTION_KAFKA_SCRAM_SHA] === "256" ? "256" : "512",
+    username: "",
+    password: "",
+    tls,
+    tlsCaFile: tls ? (profile.options?.[OPTION_KAFKA_TLS_CA_FILE] ?? "") : "",
+    tlsSkipVerify: tls && profile.options?.[OPTION_KAFKA_TLS_SKIP_VERIFY] === "true",
+    group: profile.group,
+    remark: profile.remark,
+    timeoutSec: profile.timeoutSec,
+    // A profile that authenticates with nothing has no credential to keep,
+    // whatever is still sitting in the secret store.
+    credentialsStored: mechanism !== "none" && profile.secretsConfigured.length > 0,
+    clearCredentials: false,
+  };
+}
+
+const KAFKA_MECHANISM_BY_STORED: Partial<Record<AuthMechanism, KafkaMechanism>> = {
+  [AuthMechanism.AuthSASLPlain]: "sasl-plain",
+  [AuthMechanism.AuthSASLScram]: "sasl-scram",
+};
 
 function toRabbitMQDraft(profile: ConnectionProfile): RabbitMQDraft {
   const tls = profile.options?.[OPTION_TLS] === "true";
