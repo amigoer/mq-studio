@@ -111,7 +111,7 @@ MQ Studio 通过可插拔驱动对接各类消息中间件。每个驱动声明�
 | 驱动 | 状态 | 说明 |
 | --- | --- | --- |
 | **RocketMQ** 4.x / 5.x | ✅ 已发布 | 通过 Admin API 提供完整功能 |
-| **RabbitMQ** | 🚧 开发中 | 队列、消费者、消息浏览与发布、集群拓扑、Exchange 与 Binding |
+| **RabbitMQ** 3.x / 4.x | ✅ 已支持 | 完整管理面：队列、Exchange 与 Binding、连接与信道、基于 AMQP 的浏览与发送、死信、虚拟主机、用户与权限、策略、定义导入导出、Shovel 与 Federation |
 | Kafka · Pulsar · NATS · MQTT · SQS 等 | 📋 计划中 | 完整矩阵见下方折叠内容 |
 
 <details>
@@ -155,7 +155,7 @@ ACL 与部分高级操作是否可用，取决于 Broker 版本和配置。表�
 | 阶段 | 范围 | 状态 |
 | --- | --- | --- |
 | 1 | RocketMQ 4.x / 5.x | ✅ 已完成 |
-| 2 | RabbitMQ | 🚧 开发中 |
+| 2 | RabbitMQ | ✅ 已完成 |
 | 3 | Kafka | 📋 下一个 |
 | 4 | 其余驱动，按「驱动支持」中列出的顺序推进 | 📋 计划中 |
 | 5 | Agent 相关功能 | 📋 计划中 |

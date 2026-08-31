@@ -11,8 +11,10 @@ MQ Studio 正在成为一个覆盖所有消息队列的桌面客户端。每种�
 ## 当前状态
 
 - **已发布** — RocketMQ 4.x / 5.x，通过 Admin API 提供完整功能。
-- **开发中** — RabbitMQ：目标、订阅、消息浏览与发布、集群拓扑，以及 Exchanges/Bindings
-  页面。尚未合并，也尚未发布。
+- **已发布** — RabbitMQ 3.x / 4.x，管理面走 HTTP 管理插件，数据面走 AMQP 0-9-1 而不是
+  管理接口的 publish 与 get。管理面是完整的：带完整 arguments 的队列、Exchange 与
+  Binding、连接与信道、死信、带健康检查与特性开关的节点、虚拟主机、用户与权限、策略与
+  参数、定义导入导出、Shovel 与 Federation，以及 stream 队列。
 - **已完成设计，尚未实现** — 下面列出的十三种形态。
 
 ## 交付顺序
@@ -20,7 +22,7 @@ MQ Studio 正在成为一个覆盖所有消息队列的桌面客户端。每种�
 | 阶段 | 范围 | 完成判据 |
 | --- | --- | --- |
 | 0–3 | 驱动接缝本身：契约、后端端口、存储与 bridge、前端注册表 | 对 RocketMQ 而言逐屏与之前完全一致 |
-| 4 | **RabbitMQ** | Exchanges/Bindings 页面存在，且没有 offset 概念泄漏进 UI |
+| 4 | **RabbitMQ** | 已完成。Exchanges/Bindings 页面存在，且没有 offset 概念泄漏进 UI |
 | 5 | **Kafka** | Topic、消费组、lag、浏览与发布端到端可用 |
 | 6 | **Pulsar**，然后 **Redis Stream**，然后 **NATS**，然后 **MQTT** | 每个都是纯增量：不改动任何规范页面 |
 | 7 | **ActiveMQ / Artemis**，然后 **NSQ** | 仍是纯增量；ActiveMQ 用来检验 JMS 语义能否套进规范页面 |
@@ -49,7 +51,7 @@ MQ Studio 正在成为一个覆盖所有消息队列的桌面客户端。每种�
 | 驱动 | 管理面 | 点亮的页面 | 主要缺口 |
 | --- | --- | --- | --- |
 | **RocketMQ** 4.x / 5.x | 基于 remoting 协议的 Admin API | 全部六个 | Proxy 端点能回答的远少于 NameServer，能力在连接时收窄 |
-| **RabbitMQ** | HTTP 管理插件 | 全部六个，外加 Exchanges/Bindings | 没有 offset 与分区；没有具名消费组；浏览会改变队列状态，因此带 caveat |
+| **RabbitMQ** | HTTP 管理插件，消息面走 AMQP 0-9-1 | 全部六个，外加 Exchanges/Bindings、连接、死信、虚拟主机、策略、定义、数据搬运 | 没有 offset 与分区；没有具名消费组；没有稳定的消息 id；浏览会把读到的消息重新入队，因此带 caveat；Shovel、Federation 与 stream 协议都是插件，未装时能力降级并给出原因 |
 | **Kafka** | 基于 Kafka 协议的 AdminClient | 全部六个 | ACL 取决于所配置的 authorizer；浏览是按 offset 区间拉取，不是随机访问 |
 | **Pulsar** | Admin REST API | 全部六个 | tenant 与 namespace 做成范围选择器，而不是一个页面 |
 | **ActiveMQ / Artemis** | 基于 JMX 的 Jolokia REST | 全部六个 | Classic 5.x 与 Artemis 暴露的管理树不同，驱动需探测实际应答的是哪一种 |

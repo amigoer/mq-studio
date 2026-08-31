@@ -72,25 +72,33 @@ main.go                  Wails application entrypoint
 internal/
   bridge/                Wails services exposed to the frontend
   app/                   Service wiring
-  service/               Domain services
-  model/                 Domain models
-  rocketmq/              RocketMQ client adapter
+  service/               Domain services, one package per domain
+  driver/                The broker seam: ports, capabilities, conformance
+    rocketmq/            RocketMQ driver
+    rabbitmq/            RabbitMQ driver
+  model/                 Domain models and the capability vocabulary
   crypto/                Local encryption helpers
   storage/               On-disk layout and atomic writes
   update/                In-app updater: check, download, verify, install
   macwindow/             Native macOS chrome Wails does not expose (cgo)
+  tray/                  System tray
 frontend/
   bindings/              Generated TypeScript bindings (committed)
   src/api/               Binding wrappers, domain types, platform access
-  src/components/        Shared UI components
+  src/components/        shadcn/ui primitives and the app composites over them
+  src/design/            The shell, the page registry, and every board
   src/hooks/             React hooks / providers
-  src/layout/            Title bar and sidebar chrome
-  src/pages/             Feature pages
+  src/mq/                Per-family attribute readers, navigation, capabilities
+  src/lib/               Pure helpers: formatting, alert rules, storage
+  src/i18n/              Locale bundles, zh and en
   src/styles/            Global CSS and early theme bootstrap
 build/                   Wails build assets and per-platform Taskfiles
-scripts/                 Version consistency check
+scripts/                 Version check, e2e seeds, packaging asset generators
 tests/
-  e2e/                   Shared RocketMQ e2e environment
+  e2e/rocketmq/          RocketMQ e2e environment
+  e2e/rocketmq-acl/      RocketMQ with ACL on, for the access-control tests
+  e2e/rabbitmq/          RabbitMQ with the optional plugins on
+  e2e/rabbitmq-plain/    RabbitMQ with none of them, for the degraded paths
   throughput-load/       Load generator for the throughput charts (own module)
 ```
 

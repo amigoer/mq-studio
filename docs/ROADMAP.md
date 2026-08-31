@@ -13,8 +13,12 @@ This is the delivery plan. The contract it delivers against is
 ## Where things stand
 
 - **Shipped** — RocketMQ 4.x / 5.x through the Admin API, feature-complete.
-- **In development** — RabbitMQ: destinations, subscriptions, message browse and publish,
-  cluster topology, and an Exchanges/Bindings page. Not yet merged or released.
+- **Shipped** — RabbitMQ 3.x / 4.x through the HTTP management plugin, with the data plane on
+  AMQP 0-9-1 rather than the management API's publish and get endpoints. The whole management
+  plane: queues with their full arguments, exchanges and bindings, connections and channels,
+  dead letters, nodes with health checks and feature flags, virtual hosts, users and
+  permissions, policies and parameters, definitions import and export, shovels and federation,
+  and stream queues.
 - **Designed, not yet implemented** — the thirteen families below.
 
 ## Delivery order
@@ -22,7 +26,7 @@ This is the delivery plan. The contract it delivers against is
 | Phase | Scope | Done when |
 | --- | --- | --- |
 | 0–3 | The driver seam itself: contracts, backend ports, storage and bridge, frontend registry | RocketMQ behaves exactly as before, screen for screen |
-| 4 | **RabbitMQ** | An Exchanges/Bindings page exists and no offset concept leaks into the UI |
+| 4 | **RabbitMQ** | Done. An Exchanges/Bindings page exists and no offset concept leaks into the UI |
 | 5 | **Kafka** | Topics, consumer groups, lag, browse and publish work end to end |
 | 6 | **Pulsar**, then **Redis Stream**, then **NATS**, then **MQTT** | Each is purely additive — no canonical page changes shape |
 | 7 | **ActiveMQ / Artemis**, then **NSQ** | Still additive; ActiveMQ tests whether JMS semantics fit the canonical pages |
@@ -56,7 +60,7 @@ and `Access`.
 | Driver | Management plane | Pages it lights up | Notable gaps |
 | --- | --- | --- | --- |
 | **RocketMQ** 4.x / 5.x | Admin API over the remoting protocol | All six | A Proxy endpoint answers far less than a NameServer; capabilities narrow on connect |
-| **RabbitMQ** | HTTP management plugin | All six, plus Exchanges/Bindings | No offsets or partitions; no named consumer groups; browsing mutates queue state and carries a caveat |
+| **RabbitMQ** | HTTP management plugin, plus AMQP 0-9-1 for messages | All six, plus Exchanges/Bindings, Connections, Dead letters, Virtual hosts, Policies, Definitions, Replication | No offsets or partitions; no named consumer groups; no stable message id; browsing requeues what it read and carries a caveat; shovel, federation and the stream protocol are plugins and degrade with a reason when absent |
 | **Kafka** | AdminClient over the Kafka protocol | All six | ACL depends on the configured authorizer; browse is an offset-range fetch, not random access |
 | **Pulsar** | Admin REST API | All six | Tenant and namespace become a scope selector rather than a page |
 | **ActiveMQ / Artemis** | Jolokia REST over JMX | All six | Classic 5.x and Artemis expose different management trees; the driver probes which one answered |
