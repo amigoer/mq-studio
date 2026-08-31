@@ -30,7 +30,7 @@ import {
 /** Version ranges printed under each tile in the 3a protocol picker. */
 const TILE: Record<ProtocolId, { name: string; versions: string }> = {
   rocketmq: { name: "RocketMQ", versions: "4.x / 5.x" },
-  kafka: { name: "Kafka", versions: "2.8+" },
+  kafka: { name: "Kafka", versions: "3.x / 4.x" },
   rabbitmq: { name: "RabbitMQ", versions: "3.x / 4.x" },
   pulsar: { name: "Pulsar", versions: "2.x / 3.x" },
   redis: { name: "Redis Stream", versions: "6.0+" },
@@ -209,7 +209,9 @@ export function NewConnectionDialog({
           })}
         </div>
         {/* The dimmed tiles say they are off; this says why, once, rather than
-            in a tooltip a disabled button never shows. */}
+            in a tooltip a disabled button never shows. It names no protocol on
+            purpose: the version that named the ready ones went stale the day
+            Kafka shipped and told people it had no driver. */}
         <div style={{ marginTop: "8px", fontSize: "11px", color: "var(--c-muted)" }}>
           {t("page.connections.protocolSoonHint")}
         </div>

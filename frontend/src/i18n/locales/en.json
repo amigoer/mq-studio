@@ -790,7 +790,7 @@
       "probeOk": "Connected · {{latency}}",
       "probeFailed": "Could not connect",
       "soon": "Coming soon",
-      "protocolSoonHint": "RocketMQ and RabbitMQ have drivers today; the others are still in development.",
+      "protocolSoonHint": "The dimmed protocols have no driver yet; they open up in later versions.",
       "nameRequired": "Enter a connection name",
       "timeoutRange": "Request timeout must be between 1 and 300 seconds",
       "endpointsRequired": "Enter the NameServer addresses",
