@@ -10,7 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { useTranslation } from "react-i18next";
-import { useToast } from "@/components";
+import { useToast, type ToastId } from "@/components";
 import { openExternal } from "@/api/platform";
 import {
   cancelUpdate,
@@ -79,12 +79,25 @@ function useUpdaterState(): UpdaterContextValue {
   // remaining notice was a six-pixel dot on the title bar. Now it comes back on
   // the next launch, and the only way to stop it for good is to skip it.
   const announced = useRef("");
+  // The standing announcement, so it can be taken down once it is answered. A
+  // toast that never leaves is worse than one that fades too soon.
+  const announcement = useRef<ToastId | null>(null);
   // The background check reports on its own timetable, so the toast text has
   // to be reachable without re-subscribing every time the language changes.
   const translate = useRef(t);
   translate.current = t;
 
-  const openDialog = useCallback(() => setDialogOpen(true), []);
+  const dismissAnnouncement = useCallback(() => {
+    if (announcement.current == null) return;
+    toast.dismiss(announcement.current);
+    announcement.current = null;
+  }, [toast]);
+
+  // Opening the dialog is the answer the toast was asking for.
+  const openDialog = useCallback(() => {
+    dismissAnnouncement();
+    setDialogOpen(true);
+  }, [dismissAnnouncement]);
   const closeDialog = useCallback(() => setDialogOpen(false), []);
 
   const openReleases = useCallback(() => {
@@ -100,7 +113,7 @@ function useUpdaterState(): UpdaterContextValue {
       announced.current = next.latestVersion;
       const version = next.latestVersion;
       const ready = next.phase === Phase.PhaseReady;
-      toast.info(
+      announcement.current = toast.info(
         translate.current(ready ? "update.readyTitle" : "update.availableTitle", { version }),
         {
           description: translate.current(ready ? "update.readyHint" : "update.availableHint"),
@@ -120,6 +133,12 @@ function useUpdaterState(): UpdaterContextValue {
     },
     [openDialog, toast],
   );
+
+  /* Taken, skipped or overtaken: whatever the answer was, the standing toast
+     has stopped being true and must not outlive it. */
+  useEffect(() => {
+    if (!hasUpdate(state)) dismissAnnouncement();
+  }, [dismissAnnouncement, state]);
 
   useEffect(() => {
     let cancelled = false;
