@@ -590,6 +590,15 @@
       }
     }
   },
+  "markdown": {
+    "alert": {
+      "note": "Note",
+      "tip": "Tip",
+      "important": "Important",
+      "warning": "Warning",
+      "caution": "Caution"
+    }
+  },
   "update": {
     "section": "Application updates",
     "checking": "Checking for updates…",

@@ -27,6 +27,7 @@ export {
   type TraceStep,
 } from "./json-block";
 export { CodeEditor } from "./code-editor";
+export { Markdown, parseBlocks, type Block } from "./markdown";
 export { WarnBanner } from "./warn-banner";
 export { ChartBox } from "./chart-box";
 export { LineChart, type Series } from "./line-chart";
