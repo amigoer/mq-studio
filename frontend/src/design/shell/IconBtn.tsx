@@ -11,8 +11,8 @@ import { cn } from "@/lib/utils";
  * In px, not rem. This was `1.3rem`, written as 17/13 against BASE_FONT_SIZE --
  * but the scale ladder zooms the document rather than setting a root font size
  * (see useUIScale), so the root stays at the browser's 16 and that rem rendered
- * as 20.8px. `zoom` already scales everything, so px is both accurate and the
- * only thing rem was there to buy.
+ * as 20.8px. Scaling with the setting is the one thing the rem was there to
+ * buy, and `zoom` already provides it.
  */
 export const ICON_CLASS = "size-[17px]";
 
