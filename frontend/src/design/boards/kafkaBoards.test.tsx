@@ -43,6 +43,8 @@ const groupsState = vi.hoisted(() => ({ current: null as unknown }));
 const groupDetailState = vi.hoisted(() => ({ current: null as unknown }));
 const logDirState = vi.hoisted(() => ({ current: null as unknown }));
 const brokerConfigState = vi.hoisted(() => ({ current: null as unknown }));
+const readState = vi.hoisted(() => ({ current: null as unknown }));
+const tailState = vi.hoisted(() => ({ current: null as unknown }));
 
 vi.mock("@/hooks/kafka/useKafkaCluster", () => ({
   useKafkaCluster: () => clusterState.current,
@@ -57,6 +59,10 @@ vi.mock("@/hooks/kafka/useKafkaGroups", () => ({
   useKafkaGroups: () => groupsState.current,
   useKafkaGroupDetail: () => groupDetailState.current,
 }));
+vi.mock("@/hooks/kafka/useKafkaMessages", () => ({
+  useKafkaRead: () => readState.current,
+  useKafkaTail: () => tailState.current,
+}));
 vi.mock("@/mq/ConnectionScope", () => ({
   useConnectionScope: () => ({ id: 1, kind: "kafka", key: "k1", online: true }),
 }));
@@ -66,6 +72,7 @@ let OverviewKafka: typeof import("./overview/OverviewKafka").OverviewKafka;
 let TopicsKafka: typeof import("./topics/TopicsKafka").TopicsKafka;
 let ConsumersKafka: typeof import("./consumers/ConsumersKafka").ConsumersKafka;
 let BrokersKafka: typeof import("./cluster/BrokersKafka").BrokersKafka;
+let MessagesKafka: typeof import("./messages/MessagesKafka").MessagesKafka;
 
 beforeAll(async () => {
   const storage = { getItem: () => null, setItem() {}, removeItem() {} };
@@ -78,16 +85,18 @@ beforeAll(async () => {
   });
   vi.stubGlobal("localStorage", storage);
 
-  const [server, overview, topics, consumers, brokers, ui, i18n, settings] = await Promise.all([
+  const [server, overview, topics, consumers, brokers, messages, ui, i18n, settings] =
+    await Promise.all([
     import("react-dom/server"),
     import("./overview/OverviewKafka"),
     import("./topics/TopicsKafka"),
     import("./consumers/ConsumersKafka"),
     import("./cluster/BrokersKafka"),
-    import("@/components"),
-    import("@/i18n"),
-    import("@/hooks/useSettings"),
-  ]);
+    import("./messages/MessagesKafka"),
+      import("@/components"),
+      import("@/i18n"),
+      import("@/hooks/useSettings"),
+    ]);
   await i18n.default.changeLanguage("zh");
   render = (node) =>
     server.renderToStaticMarkup(
@@ -99,6 +108,7 @@ beforeAll(async () => {
   TopicsKafka = topics.TopicsKafka;
   ConsumersKafka = consumers.ConsumersKafka;
   BrokersKafka = brokers.BrokersKafka;
+  MessagesKafka = messages.MessagesKafka;
 });
 
 /** A healthy three-broker cluster, shaped the way the driver sends it. */
@@ -481,5 +491,94 @@ describe("the Kafka cluster board", () => {
     // one inside rendered text would be.
     const text = html.replace(/<[^>]*>/g, " ");
     expect(text).not.toMatch(/\d+\s*%/);
+  });
+});
+
+const record = (over: Record<string, unknown> = {}) => ({
+  id: 1,
+  topic: "orders.created",
+  messageId: "orders.created-3-42",
+  keys: "ORD-1",
+  queueId: 3,
+  queueOffset: 42,
+  storeTime: "2026-08-31T10:24:07Z",
+  storeTimestamp: 1_756_636_247_000,
+  status: "normal",
+  body: '{"orderId":"ORD-1"}',
+  properties: { "trace-id": "abc" },
+  ...over,
+});
+
+const readOf = (over: Record<string, unknown> = {}) => ({
+  records: [],
+  loading: false,
+  error: null,
+  ran: false,
+  run: () => {},
+  ...over,
+});
+
+const tailOf = (over: Record<string, unknown> = {}) => ({
+  records: [],
+  dropped: 0,
+  error: null,
+  step: async () => {},
+  reset: () => {},
+  ...over,
+});
+
+describe("the Kafka messages board", () => {
+  it("asks for a topic before anything is read", () => {
+    topicsState.current = stateOf({ data: topicRows });
+    readState.current = readOf();
+    tailState.current = tailOf();
+    expect(render(<MessagesKafka />)).toContain("选一个 topic 再读取");
+  });
+
+  it("says a query found nothing rather than looking unread", () => {
+    topicsState.current = stateOf({ data: topicRows });
+    readState.current = readOf({ ran: true });
+    tailState.current = tailOf();
+    expect(render(<MessagesKafka />)).toContain("没有匹配的消息");
+  });
+
+  it("draws a record with its coordinates and headers", () => {
+    topicsState.current = stateOf({ data: topicRows });
+    readState.current = readOf({ records: [record()], ran: true });
+    tailState.current = tailOf();
+    const html = render(<MessagesKafka />);
+
+    expect(html).toContain("42");
+    expect(html).toContain("ORD-1");
+  });
+
+  /*
+   * A record with no key at all is spread across partitions; one with an empty
+   * key is pinned. Drawing both as blank would hide why two records that look
+   * the same went to different places.
+   */
+  it("says when a record has no key at all", () => {
+    topicsState.current = stateOf({ data: topicRows });
+    readState.current = readOf({
+      records: [record({ keys: "\u0000__mqs_null_key" })],
+      ran: true,
+    });
+    tailState.current = tailOf();
+    expect(render(<MessagesKafka />)).toContain("无 key");
+  });
+
+  /*
+   * The canvas drew a produce rate beside the records. Kafka reports none, and
+   * a message list is the last place a made-up throughput would be noticed.
+   *
+   * What a tail lost to retention is asserted in the driver instead: the
+   * banner only exists on the follow panel, and a static render cannot switch
+   * to it, while the arithmetic behind the number is what actually matters.
+   */
+  it("shows no per-second figure", () => {
+    topicsState.current = stateOf({ data: topicRows });
+    readState.current = readOf({ records: [record()], ran: true });
+    tailState.current = tailOf();
+    expect(render(<MessagesKafka />)).not.toMatch(/\/s\b/);
   });
 });

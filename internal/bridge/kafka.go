@@ -179,3 +179,54 @@ func (s *KafkaService) LogDirs(connID int) (*LogDirView, error) {
 	}
 	return view, nil
 }
+
+// RecordInput is a Kafka publish as the send console collects it.
+//
+// Deliberately not MessageService's PublishInput. That one carries an exchange,
+// a routing key, mandatory, persistent, a TTL and a priority - AMQP's, none of
+// which Kafka has. A Kafka record has a partition it can be pinned to, a key
+// that decides the partition when it is not, and an acknowledgement level that
+// decides what a confirmation is worth.
+type RecordInput struct {
+	Topic string `json:"topic"`
+
+	// Partition pins the record. -1 lets the key decide, which is what
+	// ordering by key depends on.
+	Partition int32 `json:"partition"`
+
+	// HasKey separates a record with no key from one with an empty key. Kafka
+	// treats them differently: the first is spread across partitions, the
+	// second is pinned like any other.
+	HasKey bool   `json:"hasKey"`
+	Key    string `json:"key"`
+
+	Value   string            `json:"value"`
+	Headers map[string]string `json:"headers"`
+	// Timestamp in milliseconds. Zero stamps it now.
+	Timestamp int64 `json:"timestamp"`
+
+	// Acks is none, leader or all.
+	Acks  string `json:"acks"`
+	Count int    `json:"count"`
+}
+
+// SendRecord publishes and reports the partition and offset it landed on.
+func (s *KafkaService) SendRecord(connID int, input RecordInput) (*kafkadriver.RecordResult, error) {
+	request := kafkadriver.RecordRequest{
+		Topic:     input.Topic,
+		Value:     input.Value,
+		Headers:   input.Headers,
+		Timestamp: input.Timestamp,
+		Acks:      kafkadriver.Acks(input.Acks),
+		Count:     input.Count,
+	}
+	if input.Partition >= 0 {
+		partition := input.Partition
+		request.Partition = &partition
+	}
+	if input.HasKey {
+		key := input.Key
+		request.Key = &key
+	}
+	return s.service.SendRecord(context.Background(), connID, request)
+}

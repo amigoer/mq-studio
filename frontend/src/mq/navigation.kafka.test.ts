@@ -28,6 +28,10 @@ const KAFKA_CAPABILITIES: Capability[] = [
   Capability.CapOffsetReset,
   Capability.CapOffsetClone,
   Capability.CapQueueOffset,
+  Capability.CapMessageQuery,
+  Capability.CapMessageByID,
+  Capability.CapMessageLiveTail,
+  Capability.CapPublish,
   Capability.CapClusterTopology,
   Capability.CapClusterMetrics,
   Capability.CapNodeConfig,
@@ -82,7 +86,15 @@ describe("the sidebar a Kafka connection draws", () => {
     const nav = navAvailability(state(KAFKA_CAPABILITIES), true);
     const reachable = drawn.filter((id) => nav.visible(id) && !nav.disabled(id));
 
-    expect(reachable).toEqual(["overview", "topics", "consumers", "cluster", "alerts"]);
+    expect(reachable).toEqual([
+      "overview",
+      "topics",
+      "consumers",
+      "messages",
+      "producer",
+      "cluster",
+      "alerts",
+    ]);
   });
 
   // A degraded capability keeps its page in the sidebar and says why, which is

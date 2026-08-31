@@ -86,3 +86,24 @@ export const deleteKafkaGroup = (connID: number, group: string): Promise<void> =
 /** Where a cluster's disk has gone: one round trip for the storage tab. */
 export const getKafkaLogDirs = (connID: number) =>
   KafkaService.LogDirs(connID).then(required);
+
+import type { KafkaAcks } from "@/design/boards/producer/producerKafkaDraft";
+
+export interface KafkaRecordInput {
+  topic: string;
+  /** -1 lets the key decide, which is what ordering by key depends on. */
+  partition: number;
+  /** A record with no key at all is spread; one with an empty key is pinned. */
+  hasKey: boolean;
+  key: string;
+  value: string;
+  headers: Record<string, string>;
+  /** Milliseconds; zero stamps it now. */
+  timestamp: number;
+  acks: KafkaAcks;
+  count: number;
+}
+
+/** Publishes and reports the partition and offset the record landed on. */
+export const sendKafkaRecord = (connID: number, input: KafkaRecordInput) =>
+  KafkaService.SendRecord(connID, input).then(required);

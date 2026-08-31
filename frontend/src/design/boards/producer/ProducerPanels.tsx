@@ -55,39 +55,6 @@ export function PanelHeader({ protocol, badge }: { protocol: ProtocolId; badge?:
   );
 }
 
-const ACKS = [
-  { value: "0", label: "0" },
-  { value: "1", label: "1" },
-  { value: "all", label: "all" },
-] as const;
-
-/** Board 16a — Kafka. */
-export function KafkaPanel() {
-  const { t } = useTranslation();
-  const [acks, setAcks] = useState<(typeof ACKS)[number]["value"]>("all");
-  return (
-    <>
-      <PanelHeader protocol="kafka" />
-      <Row label="acks">
-        <Segmented options={ACKS} value={acks} onChange={setAcks} />
-      </Row>
-      <Row label={t("board.producer.targetPartition")}>
-        <SelectField className="w-[110px]" value="opt" options={[{ value: "opt", label: t("board.producer.autoKeyHash") }]} />
-      </Row>
-      <Row label={t("board.producer.compression")}>
-        <SelectField className="w-[110px]" value="lz4" options={[{ value: "lz4" }]} />
-      </Row>
-      <Row label={t("board.producer.keySerde")}>
-        <SelectField className="w-[110px]" value="String" options={[{ value: "String" }]} />
-      </Row>
-      <Row label={t("board.producer.valueSerde")}>
-        <SelectField className="w-[110px]" value="JSON" options={[{ value: "JSON" }]} />
-      </Row>
-      <Note>{t("board.producer.noteHeaders")}</Note>
-    </>
-  );
-}
-
 /** Board 16b — RabbitMQ. */
 export function RabbitMQPanel() {
   const { t } = useTranslation();
@@ -223,7 +190,6 @@ export function MqttPanel() {
  * promise a page cannot keep for a driver that does not exist yet.
  */
 export const PROTOCOL_PANELS: Partial<Record<ProtocolId, () => ReactNode>> = {
-  kafka: KafkaPanel,
   rabbitmq: RabbitMQPanel,
   pulsar: PulsarPanel,
   redis: RedisPanel,

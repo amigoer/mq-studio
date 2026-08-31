@@ -20,6 +20,10 @@ import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Cr
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
+import * as kafka$0 from "../driver/kafka/models.js";
+
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
 import * as $models from "./models.js";
 
 /**
@@ -92,6 +96,17 @@ export function ResetGroupOffsets(connID: number, input: $models.OffsetResetInpu
     return $Call.ByID(2590147649, connID, input);
 }
 
+/**
+ * SendRecord publishes and reports the partition and offset it landed on.
+ */
+export function SendRecord(connID: number, input: $models.RecordInput): $CancellablePromise<kafka$0.RecordResult | null> {
+    return $Call.ByID(2137680894, connID, input).then(($result: any) => {
+        return $$createType3($result);
+    });
+}
+
 // Private type creation functions
 const $$createType0 = $models.LogDirView.createFrom;
 const $$createType1 = $Create.Nullable($$createType0);
+const $$createType2 = kafka$0.RecordResult.createFrom;
+const $$createType3 = $Create.Nullable($$createType2);

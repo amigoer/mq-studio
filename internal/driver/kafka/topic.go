@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/twmb/franz-go/pkg/kadm"
+	"github.com/twmb/franz-go/pkg/kmsg"
 
 	"github.com/amigoer/mq-studio/internal/model"
 )
@@ -208,36 +209,32 @@ func (c *Conn) RemoveDestination(ctx context.Context, ref model.DestinationRef) 
 const propagationLimit = 3 * time.Second
 
 /*
- * awaitTopic waits until the cluster reports the topic as wanted.
+ * awaitTopic waits until every broker reports the topic as wanted.
  *
  * Both halves of a topic's life are asynchronous on a real cluster. The
  * controller accepts a create or a delete and metadata catches up a moment
  * later - around fifty milliseconds when it is healthy, and long enough to
- * lose a race with the board's own re-read. Without this, creating a topic
- * left it missing from the list that refreshed on success and deleting one
- * left it there, and either way the operator does it again.
+ * lose a race with the board's own re-read. Creating a topic left it missing
+ * from the list that refreshed on success; deleting one left it there. Either
+ * way the operator does it again.
  *
- * What this cannot promise is that every broker agrees. Kafka's metadata is
- * per-broker and each catches up on its own, so "the topic is gone" has no
- * single answer at an instant: a client can be told yes by the broker it asks
- * and no by the next one. This waits for one broker to agree, which closes the
- * common case; the rest belongs to the protocol.
+ * Every broker rather than whichever one answers. Kafka's metadata is
+ * per-broker and each catches up on its own, so asking once is a coin flip
+ * while they disagree: the wait would end on a broker that had caught up and
+ * the next read would land on one that had not. Asking each in turn makes the
+ * condition an observable fact - after this returns, a read against any broker
+ * sees the same thing.
  *
- * Best effort and bounded. A transient metadata error is retried rather than
- * taken as an answer, and if the cluster is still catching up when time runs
+ * Best effort and bounded. A broker that will not answer is not counted
+ * against the mutation, and if the cluster is still catching up when time runs
  * out the mutation has still been accepted - so the caller reports success
  * rather than a failure that did not happen.
  */
 func (c *Conn) awaitTopic(ctx context.Context, topic string, wantPresent bool) {
 	deadline := time.Now().Add(propagationLimit)
 	for {
-		metadata, err := c.admin.Metadata(fresh(ctx), topic)
-		if err == nil {
-			detail, found := metadata.Topics[topic]
-			present := found && detail.Err == nil
-			if present == wantPresent {
-				return
-			}
+		if c.everyBrokerAgrees(ctx, topic, wantPresent) {
+			return
 		}
 		if time.Now().After(deadline) {
 			return
@@ -248,6 +245,49 @@ func (c *Conn) awaitTopic(ctx context.Context, topic string, wantPresent bool) {
 		case <-time.After(25 * time.Millisecond):
 		}
 	}
+}
+
+// everyBrokerAgrees asks each broker for its own view of the topic.
+//
+// A broker that fails to answer counts as agreeing: it is not evidence against
+// the mutation, and holding the caller for a broker that is down would make a
+// create on a degraded cluster look like a failure.
+func (c *Conn) everyBrokerAgrees(ctx context.Context, topic string, wantPresent bool) bool {
+	brokers, err := c.admin.ListBrokers(fresh(ctx))
+	if err != nil || len(brokers) == 0 {
+		return false
+	}
+
+	for _, broker := range brokers {
+		request := kmsg.NewPtrMetadataRequest()
+		wanted := kmsg.NewMetadataRequestTopic()
+		wanted.Topic = kmsg.StringPtr(topic)
+		request.Topics = []kmsg.MetadataRequestTopic{wanted}
+		// Off explicitly: asking a broker about a topic that does not exist
+		// would otherwise create it on a cluster with auto-creation on, which
+		// would turn this check into the thing it is checking for.
+		request.AllowAutoTopicCreation = false
+
+		raw, err := c.client.Broker(int(broker.NodeID)).Request(ctx, request)
+		if err != nil {
+			continue
+		}
+		response, ok := raw.(*kmsg.MetadataResponse)
+		if !ok {
+			continue
+		}
+
+		present := false
+		for _, reported := range response.Topics {
+			if reported.Topic != nil && *reported.Topic == topic && reported.ErrorCode == 0 {
+				present = true
+			}
+		}
+		if present != wantPresent {
+			return false
+		}
+	}
+	return true
 }
 
 // DestinationStats reports each partition's leader, replicas and read range.

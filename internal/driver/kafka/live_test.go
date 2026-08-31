@@ -2,6 +2,7 @@ package kafka
 
 import (
 	"context"
+	"crypto/rand"
 	"net"
 	"os"
 	"strconv"
@@ -359,15 +360,10 @@ func TestLiveInternalTopicsAreHiddenByDefault(t *testing.T) {
  * That is long enough to lose the race with a board re-reading on success, and
  * the in-process fake cannot catch it because it applies both at once.
  *
- * The two halves are asserted differently, and the difference is Kafka's, not
- * this driver's. A create is observable at once: the topic exists on the
- * broker being asked or the create would not have returned. A delete is not,
- * because metadata is per-broker and each catches up on its own - one broker
- * can say gone while the next still says present, and no client can see
- * "gone everywhere" at an instant. So the delete is asserted against the
- * propagation bound the driver promises rather than against the next
- * microsecond, and the bound itself is asserted too: a delete that took longer
- * than the driver waits would be a broken promise rather than a slow cluster.
+ * No sleep and no retry on either half. The driver waits for every broker to
+ * agree before it returns, so "the topic exists" and "the topic is gone" are
+ * observable facts by then rather than whichever broker happened to answer.
+ * A test that retried would hide exactly the race this is here to catch.
  */
 func TestLiveATopicIsVisibleAndGoneWhenItSaysSo(t *testing.T) {
 	requireLiveCluster(t)
@@ -394,20 +390,11 @@ func TestLiveATopicIsVisibleAndGoneWhenItSaysSo(t *testing.T) {
 			t.Fatalf("attempt %d: a topic that was just created is not readable: %v", attempt, err)
 		}
 
-		start := time.Now()
 		if err := conn.RemoveDestination(ctx, ref); err != nil {
 			t.Fatalf("attempt %d, RemoveDestination: %v", attempt, err)
 		}
-		gone := false
-		for waited := time.Duration(0); waited < 5*time.Second; waited = time.Since(start) {
-			if _, err := conn.DestinationDetail(ctx, ref); err != nil {
-				gone = true
-				break
-			}
-			time.Sleep(25 * time.Millisecond)
-		}
-		if !gone {
-			t.Fatalf("attempt %d: a deleted topic was still readable after %v", attempt, time.Since(start))
+		if _, err := conn.DestinationDetail(ctx, ref); err == nil {
+			t.Fatalf("attempt %d: a topic that was just deleted is still readable", attempt)
 		}
 	}
 }
@@ -761,4 +748,264 @@ func TestLiveThereIsNoDiscoveryTier(t *testing.T) {
 	if len(settings) != 0 {
 		t.Errorf("a discovery tier was reported: %v", settings)
 	}
+}
+
+// A topic with known contents, for the read tests below.
+func seededTopic(t *testing.T, conn *Conn, name string, partitions int, records int) {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	ref := model.DestinationRef{Name: name}
+	t.Cleanup(func() {
+		cleanup, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+		defer cancel()
+		_ = conn.RemoveDestination(cleanup, ref)
+	})
+	if err := conn.CreateDestination(ctx, model.DestinationSpec{
+		Ref: ref, Partitions: partitions,
+		Attributes: map[string]string{AttrReplicationFactor: "3"},
+	}); err != nil {
+		t.Fatalf("CreateDestination: %v", err)
+	}
+	produce(t, conn, name, records)
+}
+
+func TestLiveBrowseRecords(t *testing.T) {
+	requireLiveCluster(t)
+	conn := liveConn(t, liveSeeds)
+
+	const topic = "mqs-test-live-browse"
+	seededTopic(t, conn, topic, 1, 50)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	t.Run("the latest records come back newest-window first", func(t *testing.T) {
+		records, err := conn.QueryMessages(ctx, model.MessageQueryParams{
+			Topic: topic, MaxResults: 10,
+		})
+		if err != nil {
+			t.Fatalf("QueryMessages: %v", err)
+		}
+		if len(records) != 10 {
+			t.Fatalf("records = %d, want 10", len(records))
+		}
+		// Fifty produced, the last ten asked for: offsets 40 through 49.
+		if records[0].QueueOffset != 40 || records[9].QueueOffset != 49 {
+			t.Errorf("offsets %d..%d, want 40..49",
+				records[0].QueueOffset, records[9].QueueOffset)
+		}
+		if records[0].MessageID != messageID(topic, 0, 40) {
+			t.Errorf("id = %q", records[0].MessageID)
+		}
+	})
+
+	t.Run("an offset range reads forward from where it was told", func(t *testing.T) {
+		records, err := conn.QueryMessages(ctx, model.MessageQueryParams{
+			Topic: topic, MaxResults: 5,
+			Filters: map[string]string{FilterMode: ModeOffset, FilterStartOffset: "12"},
+		})
+		if err != nil {
+			t.Fatalf("QueryMessages: %v", err)
+		}
+		if len(records) != 5 || records[0].QueueOffset != 12 {
+			t.Fatalf("read %d records starting at %d, want 5 from 12",
+				len(records), records[0].QueueOffset)
+		}
+		if records[0].Keys != "k12" || records[0].Body != "v12" {
+			t.Errorf("record 12 is %q/%q, want k12/v12", records[0].Keys, records[0].Body)
+		}
+	})
+
+	t.Run("a key search finds the one record that has it", func(t *testing.T) {
+		records, err := conn.QueryMessages(ctx, model.MessageQueryParams{
+			Topic: topic, MessageKey: "k33", MaxResults: 10,
+			Filters: map[string]string{FilterMode: ModeKey},
+		})
+		if err != nil {
+			t.Fatalf("QueryMessages: %v", err)
+		}
+		if len(records) != 1 {
+			t.Fatalf("records = %d, want exactly the one with that key", len(records))
+		}
+		if records[0].QueueOffset != 33 {
+			t.Errorf("found offset %d, want 33", records[0].QueueOffset)
+		}
+	})
+
+	t.Run("a record can be read back by its coordinates", func(t *testing.T) {
+		record, err := conn.MessageByID(ctx, topic, messageID(topic, 0, 7))
+		if err != nil {
+			t.Fatalf("MessageByID: %v", err)
+		}
+		if record.Body != "v7" {
+			t.Errorf("body = %q, want v7", record.Body)
+		}
+		if _, err := conn.MessageByID(ctx, topic, messageID(topic, 0, 9999)); err == nil {
+			t.Error("an offset past the end returned a record")
+		}
+	})
+
+	// Browsing must not move anybody's position: it joins no group and commits
+	// nothing, which is what makes it safe to run against production.
+	t.Run("browsing commits nothing", func(t *testing.T) {
+		before, err := conn.ListSubscriptions(ctx)
+		if err != nil {
+			t.Fatalf("ListSubscriptions: %v", err)
+		}
+		if _, err := conn.QueryMessages(ctx, model.MessageQueryParams{
+			Topic: topic, MaxResults: 10,
+		}); err != nil {
+			t.Fatalf("QueryMessages: %v", err)
+		}
+		after, err := conn.ListSubscriptions(ctx)
+		if err != nil {
+			t.Fatalf("ListSubscriptions: %v", err)
+		}
+		if len(after) != len(before) {
+			t.Errorf("browsing created a consumer group: %d -> %d", len(before), len(after))
+		}
+	})
+}
+
+// A tail opens on what arrives next and reports each poll's new records once.
+func TestLiveTailFollowsNewRecords(t *testing.T) {
+	requireLiveCluster(t)
+	conn := liveConn(t, liveSeeds)
+
+	const topic = "mqs-test-live-tail"
+	seededTopic(t, conn, topic, 2, 10)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	ref := model.DestinationRef{Name: topic}
+
+	// The first poll opens at the end, so the ten already there are not
+	// replayed: a tail shows what arrives next.
+	first, err := conn.TailMessages(ctx, ref, model.TailCursor{}, 100)
+	if err != nil {
+		t.Fatalf("TailMessages: %v", err)
+	}
+	if len(first.Messages) != 0 {
+		t.Errorf("a fresh tail replayed %d stored records", len(first.Messages))
+	}
+
+	produce(t, conn, topic, 6)
+
+	second, err := conn.TailMessages(ctx, ref, first.Cursor, 100)
+	if err != nil {
+		t.Fatalf("TailMessages: %v", err)
+	}
+	if len(second.Messages) != 6 {
+		t.Fatalf("the tail saw %d of 6 new records", len(second.Messages))
+	}
+
+	// And the same records are not handed back twice.
+	third, err := conn.TailMessages(ctx, ref, second.Cursor, 100)
+	if err != nil {
+		t.Fatalf("TailMessages: %v", err)
+	}
+	if len(third.Messages) != 0 {
+		t.Errorf("the tail repeated %d records", len(third.Messages))
+	}
+}
+
+func TestLiveProduceRecord(t *testing.T) {
+	requireLiveCluster(t)
+	conn := liveConn(t, liveSeeds)
+
+	const topic = "mqs-test-live-produce"
+	seededTopic(t, conn, topic, 3, 0)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	key := "ORD-1"
+	result, err := conn.SendRecord(ctx, RecordRequest{
+		Topic: topic, Key: &key, Value: `{"id":1}`,
+		Headers: map[string]string{"trace-id": "abc"},
+		Acks:    AcksAll, Count: 1,
+	})
+	if err != nil {
+		t.Fatalf("SendRecord: %v", err)
+	}
+	if result.Sent != 1 || result.Failed != 0 {
+		t.Fatalf("sent %d, failed %d", result.Sent, result.Failed)
+	}
+	// The coordinates are the point: an operator can go and read it back.
+	if result.Offset < 0 || result.Partition < 0 {
+		t.Fatalf("no coordinates were reported: %+v", result)
+	}
+
+	read, err := conn.MessageByID(ctx, topic, messageID(topic, result.Partition, result.Offset))
+	if err != nil {
+		t.Fatalf("MessageByID: %v", err)
+	}
+	if read.Body != `{"id":1}` || read.Keys != key {
+		t.Errorf("read back %q/%q", read.Keys, read.Body)
+	}
+	if read.Properties["trace-id"] != "abc" {
+		t.Errorf("headers = %v", read.Properties)
+	}
+
+	t.Run("a pinned partition is honoured", func(t *testing.T) {
+		wanted := int32(2)
+		pinned, err := conn.SendRecord(ctx, RecordRequest{
+			Topic: topic, Partition: &wanted, Value: "pinned", Acks: AcksAll, Count: 1,
+		})
+		if err != nil {
+			t.Fatalf("SendRecord: %v", err)
+		}
+		if pinned.Partition != wanted {
+			t.Errorf("landed on partition %d, want %d", pinned.Partition, wanted)
+		}
+	})
+
+	t.Run("acks none reports no coordinates because it never asked", func(t *testing.T) {
+		none, err := conn.SendRecord(ctx, RecordRequest{
+			Topic: topic, Value: "fire and forget", Acks: AcksNone, Count: 1,
+		})
+		if err != nil {
+			t.Fatalf("SendRecord: %v", err)
+		}
+		if none.Partition != model.UnknownMetric || none.Offset != model.UnknownMetric {
+			t.Errorf("acks=none reported %d/%d, want unknown", none.Partition, none.Offset)
+		}
+	})
+
+	/*
+	 * A record too large for the topic is reported as a failure, not as a
+	 * silent success. That is the whole reason the send console waits.
+	 *
+	 * The payload is random rather than repeated: the producer compresses, and
+	 * eight kilobytes of one character shrinks to nothing and is accepted -
+	 * which is correct behaviour and proves nothing about a refusal.
+	 */
+	t.Run("a refused record is reported", func(t *testing.T) {
+		if err := conn.UpdateDestination(ctx, model.DestinationSpec{
+			Ref:        model.DestinationRef{Name: topic},
+			Attributes: map[string]string{"max.message.bytes": "1024"},
+		}); err != nil {
+			t.Fatalf("UpdateDestination: %v", err)
+		}
+		payload := make([]byte, 64*1024)
+		if _, err := rand.Read(payload); err != nil {
+			t.Fatalf("build an incompressible payload: %v", err)
+		}
+
+		oversized, err := conn.SendRecord(ctx, RecordRequest{
+			Topic: topic, Value: string(payload), Acks: AcksAll, Count: 1,
+		})
+		if err != nil {
+			// A transport-level refusal is an equally honest answer.
+			return
+		}
+		if oversized.Failed == 0 {
+			t.Error("an oversized record was reported as sent")
+		}
+		if oversized.Reason == "" {
+			t.Error("a refused record came back with no reason")
+		}
+	})
 }

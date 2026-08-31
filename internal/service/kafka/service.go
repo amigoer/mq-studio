@@ -206,3 +206,17 @@ func (s *Service) LogDirPartitions(
 	defer cancel()
 	return api.LogDirPartitions(ctx, limit)
 }
+
+// SendRecord publishes with everything Kafka carries and reports where the
+// record landed.
+func (s *Service) SendRecord(
+	ctx context.Context, connID int, request kafkadriver.RecordRequest,
+) (*kafkadriver.RecordResult, error) {
+	api, err := port[*kafkadriver.Conn](s, connID, model.CapPublish)
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.SendRecord(ctx, request)
+}

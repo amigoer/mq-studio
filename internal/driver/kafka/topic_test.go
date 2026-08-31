@@ -420,3 +420,36 @@ func TestOnlyTheDetailCarriesTheWholeSettingsDocument(t *testing.T) {
 		}
 	}
 }
+
+/*
+ * An offset outside the log is refused, not silently reset.
+ *
+ * franz-go's default for an out-of-range fetch is to start over at the
+ * beginning of the partition, which turned "read offset 9999" on a topic of
+ * fifty records into "here is record 0" - the wrong record, returned as the
+ * one that was asked for.
+ */
+func TestReadingAnOffsetOutsideTheLogIsRefused(t *testing.T) {
+	conn := fakeConn(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
+	const name = "mqs-test-out-of-range"
+	if err := conn.CreateDestination(ctx, model.DestinationSpec{
+		Ref: model.DestinationRef{Name: name}, Partitions: 1,
+		Attributes: map[string]string{AttrReplicationFactor: "1"},
+	}); err != nil {
+		t.Fatalf("CreateDestination: %v", err)
+	}
+
+	_, err := conn.MessageByID(ctx, name, messageID(name, 0, 500))
+	if err == nil {
+		t.Fatal("an offset past the end returned a record")
+	}
+	if !strings.Contains(err.Error(), "outside") {
+		t.Errorf("error = %v, want it to name the range", err)
+	}
+	if _, err := conn.MessageByID(ctx, name, messageID(name, 7, 0)); err == nil {
+		t.Error("a partition the topic does not have returned a record")
+	}
+}

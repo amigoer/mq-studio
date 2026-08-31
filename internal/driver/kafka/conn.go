@@ -26,6 +26,11 @@ type Conn struct {
 	admin  *kadm.Client
 	seeds  []string
 
+	// config is kept because reading records needs a second client: franz-go
+	// fixes what a client consumes when it is created, so a browse builds one
+	// of its own from the same profile and closes it again.
+	config clientConfig
+
 	// authenticating records that the profile carries a SASL mechanism. It is
 	// what lets a dropped connection be told apart from an unreachable one:
 	// see degradeReason.
@@ -42,6 +47,7 @@ func newConn(client *kgo.Client, admin *kadm.Client, config clientConfig) *Conn 
 		client:         client,
 		admin:          admin,
 		seeds:          config.Seeds,
+		config:         config,
 		authenticating: config.Mechanism != "" && config.Mechanism != model.AuthNone,
 	}
 }
@@ -118,6 +124,11 @@ func capabilities() []model.Capability {
 		model.CapOffsetReset,
 		model.CapOffsetClone,
 		model.CapQueueOffset,
+
+		model.CapMessageQuery,
+		model.CapMessageByID,
+		model.CapMessageLiveTail,
+		model.CapPublish,
 
 		model.CapClusterTopology,
 		model.CapClusterMetrics,

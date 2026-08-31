@@ -1302,6 +1302,91 @@ export class RabbitPolicyInput {
 }
 
 /**
+ * RecordInput is a Kafka publish as the send console collects it.
+ * 
+ * Deliberately not MessageService's PublishInput. That one carries an exchange,
+ * a routing key, mandatory, persistent, a TTL and a priority - AMQP's, none of
+ * which Kafka has. A Kafka record has a partition it can be pinned to, a key
+ * that decides the partition when it is not, and an acknowledgement level that
+ * decides what a confirmation is worth.
+ */
+export class RecordInput {
+    "topic": string;
+
+    /**
+     * Partition pins the record. -1 lets the key decide, which is what
+     * ordering by key depends on.
+     */
+    "partition": number;
+
+    /**
+     * HasKey separates a record with no key from one with an empty key. Kafka
+     * treats them differently: the first is spread across partitions, the
+     * second is pinned like any other.
+     */
+    "hasKey": boolean;
+    "key": string;
+    "value": string;
+    "headers": { [_ in string]?: string };
+
+    /**
+     * Timestamp in milliseconds. Zero stamps it now.
+     */
+    "timestamp": number;
+
+    /**
+     * Acks is none, leader or all.
+     */
+    "acks": string;
+    "count": number;
+
+    /** Creates a new RecordInput instance. */
+    constructor($$source: Partial<RecordInput> = {}) {
+        if (!("topic" in $$source)) {
+            this["topic"] = "";
+        }
+        if (!("partition" in $$source)) {
+            this["partition"] = 0;
+        }
+        if (!("hasKey" in $$source)) {
+            this["hasKey"] = false;
+        }
+        if (!("key" in $$source)) {
+            this["key"] = "";
+        }
+        if (!("value" in $$source)) {
+            this["value"] = "";
+        }
+        if (!("headers" in $$source)) {
+            this["headers"] = {};
+        }
+        if (!("timestamp" in $$source)) {
+            this["timestamp"] = 0;
+        }
+        if (!("acks" in $$source)) {
+            this["acks"] = "";
+        }
+        if (!("count" in $$source)) {
+            this["count"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new RecordInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): RecordInput {
+        const $$createField5_0 = $$createType3;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("headers" in $$parsedSource) {
+            $$parsedSource["headers"] = $$createField5_0($$parsedSource["headers"]);
+        }
+        return new RecordInput($$parsedSource as Partial<RecordInput>);
+    }
+}
+
+/**
  * ReplayInput carries a replay-to-one-consumer request.
  */
 export class ReplayInput {
