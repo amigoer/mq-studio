@@ -292,3 +292,127 @@ func TestLiveSecureSCRAMUserRoundTrip(t *testing.T) {
 		}
 	}
 }
+
+/*
+ * Quotas against a cluster that authenticates, because a quota on a user is
+ * only meaningful where users exist.
+ */
+func TestLiveSecureQuotaRoundTrip(t *testing.T) {
+	requireSecureCluster(t)
+	conn := secureConn(t, secureUser, securePassword)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	entity := []model.QuotaEntity{{Type: QuotaUser, Name: "mqs-test-quota-user"}}
+	t.Cleanup(func() {
+		cleanup, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+		defer cancel()
+		_ = conn.RemoveQuota(cleanup, entity, KnownQuotaLimits())
+	})
+
+	if err := conn.AlterQuota(ctx, entity, map[string]float64{
+		"producer_byte_rate": 1048576,
+		"request_percentage": 50,
+	}, nil); err != nil {
+		t.Fatalf("AlterQuota: %v", err)
+	}
+
+	find := func() *model.ClientQuota {
+		t.Helper()
+		quotas, err := conn.ListQuotas(ctx)
+		if err != nil {
+			t.Fatalf("ListQuotas: %v", err)
+		}
+		for _, quota := range quotas {
+			if len(quota.Entity) == 1 && quota.Entity[0].Name == "mqs-test-quota-user" {
+				return quota
+			}
+		}
+		return nil
+	}
+
+	quota := find()
+	if quota == nil {
+		t.Fatal("a quota that was just written is not listed")
+	}
+	if quota.Limits["producer_byte_rate"] != 1048576 {
+		t.Errorf("producer_byte_rate = %v", quota.Limits["producer_byte_rate"])
+	}
+	if quota.Limits["request_percentage"] != 50 {
+		t.Errorf("request_percentage = %v", quota.Limits["request_percentage"])
+	}
+
+	/*
+	 * Removing is not setting zero.
+	 *
+	 * Zero is a real quota that throttles a client to nothing, so an operator
+	 * who meant "no limit" and got that would have stopped the thing they were
+	 * trying to unblock. After a removal the key is absent, not zero.
+	 */
+	if err := conn.AlterQuota(ctx, entity, nil, []string{"request_percentage"}); err != nil {
+		t.Fatalf("remove one limit: %v", err)
+	}
+	quota = find()
+	if quota == nil {
+		t.Fatal("removing one limit removed the whole quota")
+	}
+	if _, present := quota.Limits["request_percentage"]; present {
+		t.Errorf("the removed limit is still there: %v", quota.Limits)
+	}
+	if quota.Limits["producer_byte_rate"] != 1048576 {
+		t.Errorf("removing one limit changed another: %v", quota.Limits)
+	}
+
+	// And clearing every limit is how a quota stops existing: Kafka has no
+	// delete, only a set of removals.
+	if err := conn.RemoveQuota(ctx, entity, KnownQuotaLimits()); err != nil {
+		t.Fatalf("RemoveQuota: %v", err)
+	}
+	if find() != nil {
+		t.Error("a quota with every limit removed is still listed")
+	}
+}
+
+// The default is a row of its own: every client of that type with no quota of
+// their own inherits it.
+func TestLiveSecureDefaultQuota(t *testing.T) {
+	requireSecureCluster(t)
+	conn := secureConn(t, secureUser, securePassword)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	entity := []model.QuotaEntity{{Type: QuotaClientID, Default: true}}
+	t.Cleanup(func() {
+		cleanup, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+		defer cancel()
+		_ = conn.RemoveQuota(cleanup, entity, KnownQuotaLimits())
+	})
+
+	if err := conn.AlterQuota(ctx, entity,
+		map[string]float64{"consumer_byte_rate": 2097152}, nil); err != nil {
+		t.Fatalf("AlterQuota: %v", err)
+	}
+
+	quotas, err := conn.ListQuotas(ctx)
+	if err != nil {
+		t.Fatalf("ListQuotas: %v", err)
+	}
+	found := false
+	for _, quota := range quotas {
+		if len(quota.Entity) != 1 || quota.Entity[0].Type != QuotaClientID {
+			continue
+		}
+		if !quota.Entity[0].Default {
+			continue
+		}
+		found = true
+		if quota.Limits["consumer_byte_rate"] != 2097152 {
+			t.Errorf("consumer_byte_rate = %v", quota.Limits["consumer_byte_rate"])
+		}
+	}
+	if !found {
+		t.Errorf("the default client-id quota is not listed: %v", quotas)
+	}
+}

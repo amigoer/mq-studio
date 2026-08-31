@@ -393,3 +393,46 @@ func (s *Service) CancelReassignment(
 	defer cancel()
 	return api.CancelReassignment(ctx, topic, partition)
 }
+
+// Quotas reports the limits attached to clients rather than to topics.
+func (s *Service) Quotas(ctx context.Context, connID int) ([]*model.ClientQuota, error) {
+	api, err := port[driver.QuotaAdmin](s, connID, model.CapQuotaList)
+	if err != nil {
+		if notConnected(err) {
+			return []*model.ClientQuota{}, nil
+		}
+		return nil, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.ListQuotas(ctx)
+}
+
+// AlterQuota sets the limits in set and removes the keys in remove. A removal
+// is not a set to zero: zero throttles a client to nothing.
+func (s *Service) AlterQuota(
+	ctx context.Context, connID int,
+	entity []model.QuotaEntity, set map[string]float64, remove []string,
+) error {
+	api, err := port[driver.QuotaAdmin](s, connID, model.CapQuotaAdmin)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.AlterQuota(ctx, entity, set, remove)
+}
+
+// RemoveQuota clears every limit on an entity, which is how a quota stops
+// existing: Kafka has no delete, only a set of removals.
+func (s *Service) RemoveQuota(
+	ctx context.Context, connID int, entity []model.QuotaEntity, keys []string,
+) error {
+	api, err := port[driver.QuotaAdmin](s, connID, model.CapQuotaAdmin)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.RemoveQuota(ctx, entity, keys)
+}

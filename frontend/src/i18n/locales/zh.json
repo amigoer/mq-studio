@@ -539,7 +539,8 @@
         "producer": "生产者",
         "cluster": "Broker",
         "alerts": "告警",
-        "acl": "ACL"
+        "acl": "ACL",
+        "quotas": "配额"
       },
       "rabbitmq": {
         "overview": "总览",
@@ -2640,6 +2641,34 @@
         "deleteUpstreamDesc": "它的所有链路会断开，两个 broker 之间不再同步。",
         "upstreamDeleted": "已删除上游「{{name}}」",
         "deleteFailed": "删除失败"
+      }
+    },
+    "quotas": {
+      "kafka": {
+        "title": "配额",
+        "subtitle": "集群总共允许某个客户端用掉多少",
+        "search": "搜索",
+        "appliesTo": "作用于",
+        "name": "名称",
+        "everyone": "其余全部",
+        "isDefault": "设为默认",
+        "isDefaultHint": "该类型下所有没有单独配额的客户端",
+        "noLimit": "不限制",
+        "newQuota": "新建配额",
+        "saved": "配额已保存",
+        "deleted": "已移除 {{entity}} 的配额",
+        "deleteTitle": "移除 {{entity}} 的配额？",
+        "deleteBody": "该实体上的全部限制都会被清除。原本受它约束的客户端会回退到同类型的默认配额；如果没有默认配额，就不再受限。",
+        "zeroNote": "留空表示不改动该项。填 0 是一个真实的配额，会把客户端限制到完全不能用 —— 它不是「不限制」的写法。",
+        "empty": "这个集群没有设置任何客户端配额，每个客户端要多少就能用多少。",
+        "invalid": {
+          "entityRequired": "请选择配额作用于什么",
+          "nameRequired": "请填写名称，或者设为默认",
+          "duplicateType": "每个维度只能出现一次",
+          "ipCombination": "IP 配额在任何人认证之前就开始限流，因此不能和用户或 client id 组合",
+          "limitRequired": "至少设置一项限制",
+          "limitInvalid": "限制值必须是非负数字"
+        }
       }
     }
   }

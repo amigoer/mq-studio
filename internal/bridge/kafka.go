@@ -327,3 +327,41 @@ func (s *KafkaService) Reassign(connID int, topic string, partition int32, broke
 func (s *KafkaService) CancelReassignment(connID int, topic string, partition int32) error {
 	return s.service.CancelReassignment(context.Background(), connID, topic, partition)
 }
+
+// QuotaView is the quotas page in one answer.
+type QuotaView struct {
+	Quotas []*model.ClientQuota `json:"quotas"`
+
+	// EntityTypes and Limits are what a quota may be built from. The entity
+	// types are a closed set because Kafka's are; the limits are the four
+	// worth naming rather than all there are, because a cluster knows keys
+	// this build has never heard of.
+	EntityTypes []string `json:"entityTypes"`
+	Limits      []string `json:"limits"`
+}
+
+// Quotas reports the limits attached to clients rather than to topics.
+func (s *KafkaService) Quotas(connID int) (*QuotaView, error) {
+	quotas, err := s.service.Quotas(context.Background(), connID)
+	if err != nil {
+		return nil, err
+	}
+	return &QuotaView{
+		Quotas:      quotas,
+		EntityTypes: kafkadriver.KnownQuotaEntityTypes(),
+		Limits:      kafkadriver.KnownQuotaLimits(),
+	}, nil
+}
+
+// AlterQuota sets the limits in set and removes the keys in remove.
+func (s *KafkaService) AlterQuota(
+	connID int, entity []model.QuotaEntity, set map[string]float64, remove []string,
+) error {
+	return s.service.AlterQuota(context.Background(), connID, entity, set, remove)
+}
+
+// RemoveQuota clears every limit on an entity, which is how a quota stops
+// existing.
+func (s *KafkaService) RemoveQuota(connID int, entity []model.QuotaEntity, keys []string) error {
+	return s.service.RemoveQuota(context.Background(), connID, entity, keys)
+}

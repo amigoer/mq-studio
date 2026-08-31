@@ -177,3 +177,34 @@ type PartitionReassignment struct {
 	Adding   []int32 `json:"adding"`
 	Removing []int32 `json:"removing"`
 }
+
+// ClientQuota caps what one client may do to a cluster.
+//
+// Only Kafka has this shape: a limit is attached to an entity - a user, a
+// client id, an IP address, or a combination - rather than to a destination,
+// and an entity with no name is the default every unmatched client falls back
+// to. That default is the whole reason the model needs a flag rather than an
+// empty string: a quota on the user named "" and the quota every user without
+// one of their own inherits are different rows.
+type ClientQuota struct {
+	// Entity is the identity this quota applies to, one component per
+	// dimension, sorted so two equal quotas read the same.
+	Entity []QuotaEntity `json:"entity"`
+
+	// Limits are Kafka's own keys - producer_byte_rate, consumer_byte_rate,
+	// request_percentage, controller_mutation_rate - passed through as given.
+	// This app does not curate the list: a cluster knows keys this build has
+	// never heard of.
+	Limits map[string]float64 `json:"limits"`
+}
+
+// QuotaEntity is one dimension of a quota's identity.
+type QuotaEntity struct {
+	// Type is "user", "client-id" or "ip".
+	Type string `json:"type"`
+	// Name is the entity's name. Meaningless when Default is set.
+	Name string `json:"name"`
+	// Default marks the fallback every client of this type inherits when no
+	// quota names them. Not the same as an empty name.
+	Default bool `json:"default"`
+}

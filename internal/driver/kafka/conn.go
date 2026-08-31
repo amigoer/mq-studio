@@ -139,6 +139,8 @@ func capabilities() []model.Capability {
 		model.CapLogDirs,
 
 		model.CapAccessDirectory,
+		model.CapQuotaList,
+		model.CapQuotaAdmin,
 	}
 }
 

@@ -39,6 +39,13 @@ export function AccessControl(connID: number): $CancellablePromise<$models.Acces
 }
 
 /**
+ * AlterQuota sets the limits in set and removes the keys in remove.
+ */
+export function AlterQuota(connID: number, entity: model$0.QuotaEntity[], $set: { [_ in string]?: number }, remove: string[]): $CancellablePromise<void> {
+    return $Call.ByID(4076537529, connID, entity, $set, remove);
+}
+
+/**
  * AlterTopicConfigs changes only the settings it is given. An empty value puts
  * a setting back to the cluster default rather than setting it to nothing.
  */
@@ -139,6 +146,15 @@ export function PutPrincipal(connID: number, spec: model$0.AccessPrincipalSpec):
 }
 
 /**
+ * Quotas reports the limits attached to clients rather than to topics.
+ */
+export function Quotas(connID: number): $CancellablePromise<$models.QuotaView | null> {
+    return $Call.ByID(638473040, connID).then(($result: any) => {
+        return $$createType5($result);
+    });
+}
+
+/**
  * Reassign rewrites where one partition's replicas live. The order matters:
  * the first broker becomes the preferred leader.
  */
@@ -151,7 +167,7 @@ export function Reassign(connID: number, topic: string, partition: number, broke
  */
 export function Reassignments(connID: number): $CancellablePromise<(model$0.PartitionReassignment | null)[]> {
     return $Call.ByID(3514506134, connID).then(($result: any) => {
-        return $$createType6($result);
+        return $$createType8($result);
     });
 }
 
@@ -170,6 +186,14 @@ export function RemovePrincipal(connID: number, name: string): $CancellablePromi
 }
 
 /**
+ * RemoveQuota clears every limit on an entity, which is how a quota stops
+ * existing.
+ */
+export function RemoveQuota(connID: number, entity: model$0.QuotaEntity[], keys: string[]): $CancellablePromise<void> {
+    return $Call.ByID(3802176027, connID, entity, keys);
+}
+
+/**
  * ResetGroupOffsets writes a consumer group's committed offsets.
  * 
  * Kafka refuses this while the group has live members. That refusal reaches
@@ -185,7 +209,7 @@ export function ResetGroupOffsets(connID: number, input: $models.OffsetResetInpu
  */
 export function SendRecord(connID: number, input: $models.RecordInput): $CancellablePromise<kafka$0.RecordResult | null> {
     return $Call.ByID(2137680894, connID, input).then(($result: any) => {
-        return $$createType8($result);
+        return $$createType10($result);
     });
 }
 
@@ -204,8 +228,10 @@ const $$createType0 = $models.AccessView.createFrom;
 const $$createType1 = $Create.Nullable($$createType0);
 const $$createType2 = $models.LogDirView.createFrom;
 const $$createType3 = $Create.Nullable($$createType2);
-const $$createType4 = model$0.PartitionReassignment.createFrom;
+const $$createType4 = $models.QuotaView.createFrom;
 const $$createType5 = $Create.Nullable($$createType4);
-const $$createType6 = $Create.Array($$createType5);
-const $$createType7 = kafka$0.RecordResult.createFrom;
-const $$createType8 = $Create.Nullable($$createType7);
+const $$createType6 = model$0.PartitionReassignment.createFrom;
+const $$createType7 = $Create.Nullable($$createType6);
+const $$createType8 = $Create.Array($$createType7);
+const $$createType9 = kafka$0.RecordResult.createFrom;
+const $$createType10 = $Create.Nullable($$createType9);

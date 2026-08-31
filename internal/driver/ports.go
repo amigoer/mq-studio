@@ -249,6 +249,20 @@ type ConfigInspector interface {
 	DirectoryConfig(ctx context.Context) (map[string]string, error)
 }
 
+// QuotaAdmin manages the limits attached to a client rather than to a
+// destination: what one user, application or address may do to the cluster.
+//
+// The entity carries its own default flag rather than an empty name, because
+// the two are different rows: a quota on the client named "" and the quota
+// every unnamed client inherits are not the same thing.
+type QuotaAdmin interface {
+	ListQuotas(ctx context.Context) ([]*model.ClientQuota, error)
+	// AlterQuota sets the limits in set and removes the keys in remove. A
+	// removal is not a set to zero - zero throttles a client to nothing.
+	AlterQuota(ctx context.Context, entity []model.QuotaEntity, set map[string]float64, remove []string) error
+	RemoveQuota(ctx context.Context, entity []model.QuotaEntity, keys []string) error
+}
+
 // PartitionReassigner moves a destination's replicas between nodes.
 //
 // Separate from QueueActions, whose rebalance elects a new leader from the

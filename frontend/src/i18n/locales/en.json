@@ -539,7 +539,8 @@
         "producer": "Producer",
         "cluster": "Brokers",
         "alerts": "Alerts",
-        "acl": "ACL"
+        "acl": "ACL",
+        "quotas": "Quotas"
       },
       "rabbitmq": {
         "overview": "Overview",
@@ -2640,6 +2641,34 @@
         "deleteUpstreamDesc": "Its links close and the two brokers stop keeping each other in step.",
         "upstreamDeleted": "Deleted {{name}}",
         "deleteFailed": "Could not delete"
+      }
+    },
+    "quotas": {
+      "kafka": {
+        "title": "Quotas",
+        "subtitle": "What the cluster will let one client do, in total",
+        "search": "Search",
+        "appliesTo": "Applies to",
+        "name": "Name",
+        "everyone": "everyone else",
+        "isDefault": "Make it the default",
+        "isDefaultHint": "every client of this type with no quota of its own",
+        "noLimit": "no limit",
+        "newQuota": "New quota",
+        "saved": "Quota saved",
+        "deleted": "Removed the quota on {{entity}}",
+        "deleteTitle": "Remove the quota on {{entity}}?",
+        "deleteBody": "Every limit on this entity is cleared. Clients it covered fall back to the default for their type, or to no limit at all if there is none.",
+        "zeroNote": "A blank field leaves a limit alone. A zero is a real quota that throttles the client to nothing, so it is not the way to say “no limit”.",
+        "empty": "This cluster enforces no client quotas. Every client can use as much of it as it asks for.",
+        "invalid": {
+          "entityRequired": "Pick what the quota applies to",
+          "nameRequired": "Enter a name, or make it the default",
+          "duplicateType": "Each dimension can only appear once",
+          "ipCombination": "An IP quota throttles connections before anyone authenticates, so it cannot be combined with a user or client id",
+          "limitRequired": "Set at least one limit",
+          "limitInvalid": "A limit is a number and cannot be negative"
+        }
       }
     }
   }

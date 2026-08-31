@@ -45,6 +45,7 @@ import { ProducerRabbitMQ } from "./boards/producer/ProducerRabbitMQ";
 import { Alerts } from "./boards/alerts/Alerts";
 import { Acl } from "./boards/acl/Acl";
 import { AclKafka } from "./boards/acl/AclKafka";
+import { QuotasKafka } from "./boards/quotas/QuotasKafka";
 
 import { ClusterRocketMQ } from "./boards/cluster/ClusterRocketMQ";
 import { BrokersKafka } from "./boards/cluster/BrokersKafka";
@@ -112,6 +113,7 @@ const BOARDS: Partial<
   policies: { rabbitmq: PoliciesRabbitMQ },
   definitions: { rabbitmq: DefinitionsRabbitMQ },
   replication: { rabbitmq: ReplicationRabbitMQ },
+  quotas: { kafka: QuotasKafka },
   consumers: {
     rocketmq: ConsumersRocketMQ,
     kafka: ConsumersKafka,

@@ -704,6 +704,15 @@ export enum Capability {
     CapReassign = "destination.reassign",
 
     /**
+     * CapQuotaList and CapQuotaAdmin are limits attached to a client rather
+     * than to a destination - what one user, application or address may do to
+     * the cluster as a whole. Only a family that throttles by identity has
+     * them.
+     */
+    CapQuotaList = "quota.list",
+    CapQuotaAdmin = "quota.admin",
+
+    /**
      * CapLogDirs is a broker that reports what its partitions occupy on disk.
      * Distinct from CapNodeConfig, which is what a node is running with: this
      * is where its space has gone, and it is the only disk figure Kafka has -
@@ -1079,6 +1088,60 @@ export class ClientConnection {
 }
 
 /**
+ * ClientQuota caps what one client may do to a cluster.
+ * 
+ * Only Kafka has this shape: a limit is attached to an entity - a user, a
+ * client id, an IP address, or a combination - rather than to a destination,
+ * and an entity with no name is the default every unmatched client falls back
+ * to. That default is the whole reason the model needs a flag rather than an
+ * empty string: a quota on the user named "" and the quota every user without
+ * one of their own inherits are different rows.
+ */
+export class ClientQuota {
+    /**
+     * Entity is the identity this quota applies to, one component per
+     * dimension, sorted so two equal quotas read the same.
+     */
+    "entity": QuotaEntity[];
+
+    /**
+     * Limits are Kafka's own keys - producer_byte_rate, consumer_byte_rate,
+     * request_percentage, controller_mutation_rate - passed through as given.
+     * This app does not curate the list: a cluster knows keys this build has
+     * never heard of.
+     */
+    "limits": { [_ in string]?: number };
+
+    /** Creates a new ClientQuota instance. */
+    constructor($$source: Partial<ClientQuota> = {}) {
+        if (!("entity" in $$source)) {
+            this["entity"] = [];
+        }
+        if (!("limits" in $$source)) {
+            this["limits"] = {};
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ClientQuota instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ClientQuota {
+        const $$createField0_0 = $$createType20;
+        const $$createField1_0 = $$createType21;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("entity" in $$parsedSource) {
+            $$parsedSource["entity"] = $$createField0_0($$parsedSource["entity"]);
+        }
+        if ("limits" in $$parsedSource) {
+            $$parsedSource["limits"] = $$createField1_0($$parsedSource["limits"]);
+        }
+        return new ClientQuota($$parsedSource as Partial<ClientQuota>);
+    }
+}
+
+/**
  * CloneOffsetRequest copies one subscription's read position onto another.
  * 
  * The usual reason is standing up a replacement consumer group without
@@ -1318,7 +1381,7 @@ export class DeadLetterQueue {
      * Creates a new DeadLetterQueue instance from a string or object.
      */
     static createFrom($$source: any = {}): DeadLetterQueue {
-        const $$createField4_0 = $$createType21;
+        const $$createField4_0 = $$createType24;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("sources" in $$parsedSource) {
             $$parsedSource["sources"] = $$createField4_0($$parsedSource["sources"]);
@@ -1413,7 +1476,7 @@ export class Definitions {
      * Creates a new Definitions instance from a string or object.
      */
     static createFrom($$source: any = {}): Definitions {
-        const $$createField2_0 = $$createType22;
+        const $$createField2_0 = $$createType25;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("counts" in $$parsedSource) {
             $$parsedSource["counts"] = $$createField2_0($$parsedSource["counts"]);
@@ -1560,7 +1623,7 @@ export class Destination {
      * Creates a new Destination instance from a string or object.
      */
     static createFrom($$source: any = {}): Destination {
-        const $$createField1_0 = $$createType23;
+        const $$createField1_0 = $$createType26;
         const $$createField8_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("ref" in $$parsedSource) {
@@ -1647,7 +1710,7 @@ export class DriverDescriptor {
      * Creates a new DriverDescriptor instance from a string or object.
      */
     static createFrom($$source: any = {}): DriverDescriptor {
-        const $$createField2_0 = $$createType25;
+        const $$createField2_0 = $$createType28;
         const $$createField3_0 = $$createType17;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("form" in $$parsedSource) {
@@ -1927,8 +1990,8 @@ export class FormField {
      * Creates a new FormField instance from a string or object.
      */
     static createFrom($$source: any = {}): FormField {
-        const $$createField7_0 = $$createType27;
-        const $$createField8_0 = $$createType29;
+        const $$createField7_0 = $$createType30;
+        const $$createField8_0 = $$createType32;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("visibleWhen" in $$parsedSource) {
             $$parsedSource["visibleWhen"] = $$createField7_0($$parsedSource["visibleWhen"]);
@@ -2080,7 +2143,7 @@ export class Identity {
      */
     static createFrom($$source: any = {}): Identity {
         const $$createField1_0 = $$createType0;
-        const $$createField3_0 = $$createType32;
+        const $$createField3_0 = $$createType35;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("tags" in $$parsedSource) {
             $$parsedSource["tags"] = $$createField1_0($$parsedSource["tags"]);
@@ -2544,7 +2607,7 @@ export class Namespace {
      */
     static createFrom($$source: any = {}): Namespace {
         const $$createField2_0 = $$createType0;
-        const $$createField8_0 = $$createType22;
+        const $$createField8_0 = $$createType25;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("tags" in $$parsedSource) {
             $$parsedSource["tags"] = $$createField2_0($$parsedSource["tags"]);
@@ -2738,10 +2801,10 @@ export class Node {
      * Creates a new Node instance from a string or object.
      */
     static createFrom($$source: any = {}): Node {
-        const $$createField10_0 = $$createType33;
-        const $$createField11_0 = $$createType34;
-        const $$createField12_0 = $$createType34;
-        const $$createField13_0 = $$createType36;
+        const $$createField10_0 = $$createType36;
+        const $$createField11_0 = $$createType37;
+        const $$createField12_0 = $$createType37;
+        const $$createField13_0 = $$createType39;
         const $$createField14_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("tpsHistoryTimestamps" in $$parsedSource) {
@@ -2835,9 +2898,9 @@ export class PartitionReassignment {
      * Creates a new PartitionReassignment instance from a string or object.
      */
     static createFrom($$source: any = {}): PartitionReassignment {
-        const $$createField2_0 = $$createType37;
-        const $$createField3_0 = $$createType37;
-        const $$createField4_0 = $$createType37;
+        const $$createField2_0 = $$createType40;
+        const $$createField3_0 = $$createType40;
+        const $$createField4_0 = $$createType40;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("replicas" in $$parsedSource) {
             $$parsedSource["replicas"] = $$createField2_0($$parsedSource["replicas"]);
@@ -3125,6 +3188,50 @@ export class QueuePosition {
     static createFrom($$source: any = {}): QueuePosition {
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         return new QueuePosition($$parsedSource as Partial<QueuePosition>);
+    }
+}
+
+/**
+ * QuotaEntity is one dimension of a quota's identity.
+ */
+export class QuotaEntity {
+    /**
+     * Type is "user", "client-id" or "ip".
+     */
+    "type": string;
+
+    /**
+     * Name is the entity's name. Meaningless when Default is set.
+     */
+    "name": string;
+
+    /**
+     * Default marks the fallback every client of this type inherits when no
+     * quota names them. Not the same as an empty name.
+     */
+    "default": boolean;
+
+    /** Creates a new QuotaEntity instance. */
+    constructor($$source: Partial<QuotaEntity> = {}) {
+        if (!("type" in $$source)) {
+            this["type"] = "";
+        }
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("default" in $$source)) {
+            this["default"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new QuotaEntity instance from a string or object.
+     */
+    static createFrom($$source: any = {}): QuotaEntity {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new QuotaEntity($$parsedSource as Partial<QuotaEntity>);
     }
 }
 
@@ -3473,8 +3580,8 @@ export class StreamClients {
      * Creates a new StreamClients instance from a string or object.
      */
     static createFrom($$source: any = {}): StreamClients {
-        const $$createField0_0 = $$createType40;
-        const $$createField1_0 = $$createType43;
+        const $$createField0_0 = $$createType43;
+        const $$createField1_0 = $$createType46;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("publishers" in $$parsedSource) {
             $$parsedSource["publishers"] = $$createField0_0($$parsedSource["publishers"]);
@@ -3694,7 +3801,7 @@ export class Subscription {
      * Creates a new Subscription instance from a string or object.
      */
     static createFrom($$source: any = {}): Subscription {
-        const $$createField1_0 = $$createType44;
+        const $$createField1_0 = $$createType47;
         const $$createField8_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("ref" in $$parsedSource) {
@@ -3760,8 +3867,8 @@ export class SubscriptionClient {
      * Creates a new SubscriptionClient instance from a string or object.
      */
     static createFrom($$source: any = {}): SubscriptionClient {
-        const $$createField1_0 = $$createType46;
-        const $$createField2_0 = $$createType48;
+        const $$createField1_0 = $$createType49;
+        const $$createField2_0 = $$createType51;
         const $$createField3_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("assignments" in $$parsedSource) {
@@ -3860,8 +3967,8 @@ export class TailBatch {
      * Creates a new TailBatch instance from a string or object.
      */
     static createFrom($$source: any = {}): TailBatch {
-        const $$createField0_0 = $$createType51;
-        const $$createField1_0 = $$createType52;
+        const $$createField0_0 = $$createType54;
+        const $$createField1_0 = $$createType55;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("messages" in $$parsedSource) {
             $$parsedSource["messages"] = $$createField0_0($$parsedSource["messages"]);
@@ -3896,7 +4003,7 @@ export class TailCursor {
      * Creates a new TailCursor instance from a string or object.
      */
     static createFrom($$source: any = {}): TailCursor {
-        const $$createField0_0 = $$createType54;
+        const $$createField0_0 = $$createType57;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("positions" in $$parsedSource) {
             $$parsedSource["positions"] = $$createField0_0($$parsedSource["positions"]);
@@ -3974,39 +4081,42 @@ const $$createType15 = $Create.Nullable($$createType14);
 const $$createType16 = $Create.Array($$createType15);
 const $$createType17 = $Create.Array($Create.Any);
 const $$createType18 = $Create.Map($Create.Any, $Create.Any);
-const $$createType19 = DeadLetterSource.createFrom;
-const $$createType20 = $Create.Nullable($$createType19);
-const $$createType21 = $Create.Array($$createType20);
-const $$createType22 = $Create.Map($Create.Any, $Create.Any);
-const $$createType23 = DestinationRef.createFrom;
-const $$createType24 = FormField.createFrom;
-const $$createType25 = $Create.Array($$createType24);
-const $$createType26 = FieldCond.createFrom;
-const $$createType27 = $Create.Nullable($$createType26);
-const $$createType28 = FormOption.createFrom;
-const $$createType29 = $Create.Array($$createType28);
-const $$createType30 = NamespacePermission.createFrom;
-const $$createType31 = $Create.Nullable($$createType30);
+const $$createType19 = QuotaEntity.createFrom;
+const $$createType20 = $Create.Array($$createType19);
+const $$createType21 = $Create.Map($Create.Any, $Create.Any);
+const $$createType22 = DeadLetterSource.createFrom;
+const $$createType23 = $Create.Nullable($$createType22);
+const $$createType24 = $Create.Array($$createType23);
+const $$createType25 = $Create.Map($Create.Any, $Create.Any);
+const $$createType26 = DestinationRef.createFrom;
+const $$createType27 = FormField.createFrom;
+const $$createType28 = $Create.Array($$createType27);
+const $$createType29 = FieldCond.createFrom;
+const $$createType30 = $Create.Nullable($$createType29);
+const $$createType31 = FormOption.createFrom;
 const $$createType32 = $Create.Array($$createType31);
-const $$createType33 = $Create.Array($Create.Any);
-const $$createType34 = $Create.Array($Create.Any);
-const $$createType35 = ReplicaStatus.createFrom;
-const $$createType36 = $Create.Array($$createType35);
+const $$createType33 = NamespacePermission.createFrom;
+const $$createType34 = $Create.Nullable($$createType33);
+const $$createType35 = $Create.Array($$createType34);
+const $$createType36 = $Create.Array($Create.Any);
 const $$createType37 = $Create.Array($Create.Any);
-const $$createType38 = StreamPublisher.createFrom;
-const $$createType39 = $Create.Nullable($$createType38);
-const $$createType40 = $Create.Array($$createType39);
-const $$createType41 = StreamConsumer.createFrom;
+const $$createType38 = ReplicaStatus.createFrom;
+const $$createType39 = $Create.Array($$createType38);
+const $$createType40 = $Create.Array($Create.Any);
+const $$createType41 = StreamPublisher.createFrom;
 const $$createType42 = $Create.Nullable($$createType41);
 const $$createType43 = $Create.Array($$createType42);
-const $$createType44 = SubscriptionRef.createFrom;
-const $$createType45 = QueueAssignment.createFrom;
+const $$createType44 = StreamConsumer.createFrom;
+const $$createType45 = $Create.Nullable($$createType44);
 const $$createType46 = $Create.Array($$createType45);
-const $$createType47 = ConsumeThroughput.createFrom;
-const $$createType48 = $Create.Array($$createType47);
-const $$createType49 = MessageItem.createFrom;
-const $$createType50 = $Create.Nullable($$createType49);
+const $$createType47 = SubscriptionRef.createFrom;
+const $$createType48 = QueueAssignment.createFrom;
+const $$createType49 = $Create.Array($$createType48);
+const $$createType50 = ConsumeThroughput.createFrom;
 const $$createType51 = $Create.Array($$createType50);
-const $$createType52 = TailCursor.createFrom;
-const $$createType53 = QueuePosition.createFrom;
+const $$createType52 = MessageItem.createFrom;
+const $$createType53 = $Create.Nullable($$createType52);
 const $$createType54 = $Create.Array($$createType53);
+const $$createType55 = TailCursor.createFrom;
+const $$createType56 = QueuePosition.createFrom;
+const $$createType57 = $Create.Array($$createType56);

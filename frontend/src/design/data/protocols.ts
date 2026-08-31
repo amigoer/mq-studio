@@ -17,6 +17,7 @@ import {
   Boxes,
   Cable,
   FileJson,
+  Gauge,
   House,
   Layers,
   Mail,
@@ -48,6 +49,7 @@ export type PageId =
   | "policies"
   | "definitions"
   | "replication"
+  | "quotas"
   | "consumers"
   | "messages"
   | "dlq"
@@ -127,8 +129,9 @@ export const PROTOCOLS: Record<ProtocolId, Protocol> = {
         label: OPS,
         items: [
           { id: "cluster", icon: Server, label: "shell.nav.kafka.cluster" },
-          { id: "alerts", icon: BellRing, label: "shell.nav.kafka.alerts" },
           { id: "acl", icon: Shield, label: "shell.nav.kafka.acl" },
+          { id: "quotas", icon: Gauge, label: "shell.nav.kafka.quotas" },
+          { id: "alerts", icon: BellRing, label: "shell.nav.kafka.alerts" },
         ],
       },
     ],

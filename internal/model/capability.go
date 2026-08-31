@@ -91,6 +91,13 @@ const (
 	// log to its new home in the background.
 	CapReassign Capability = "destination.reassign"
 
+	// CapQuotaList and CapQuotaAdmin are limits attached to a client rather
+	// than to a destination - what one user, application or address may do to
+	// the cluster as a whole. Only a family that throttles by identity has
+	// them.
+	CapQuotaList  Capability = "quota.list"
+	CapQuotaAdmin Capability = "quota.admin"
+
 	// CapLogDirs is a broker that reports what its partitions occupy on disk.
 	// Distinct from CapNodeConfig, which is what a node is running with: this
 	// is where its space has gone, and it is the only disk figure Kafka has -

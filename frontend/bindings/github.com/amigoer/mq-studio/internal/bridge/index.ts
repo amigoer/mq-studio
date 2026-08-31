@@ -60,6 +60,7 @@ export {
     PublishInput,
     QueueInput,
     QueueOffsetInput,
+    QuotaView,
     RabbitPolicyInput,
     RecordInput,
     ReplayInput,

@@ -210,6 +210,8 @@ func TestCapabilitiesMatchTheSidebarContract(t *testing.T) {
 		"cluster.logDirs",
 
 		"access.directory",
+		"quota.list",
+		"quota.admin",
 	}
 
 	declared := make(map[string]bool, len(capabilities()))

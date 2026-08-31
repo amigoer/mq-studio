@@ -1320,6 +1320,57 @@ export class QueueOffsetInput {
 }
 
 /**
+ * QuotaView is the quotas page in one answer.
+ */
+export class QuotaView {
+    "quotas": (model$0.ClientQuota | null)[];
+
+    /**
+     * EntityTypes and Limits are what a quota may be built from. The entity
+     * types are a closed set because Kafka's are; the limits are the four
+     * worth naming rather than all there are, because a cluster knows keys
+     * this build has never heard of.
+     */
+    "entityTypes": string[];
+    "limits": string[];
+
+    /** Creates a new QuotaView instance. */
+    constructor($$source: Partial<QuotaView> = {}) {
+        if (!("quotas" in $$source)) {
+            this["quotas"] = [];
+        }
+        if (!("entityTypes" in $$source)) {
+            this["entityTypes"] = [];
+        }
+        if (!("limits" in $$source)) {
+            this["limits"] = [];
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new QuotaView instance from a string or object.
+     */
+    static createFrom($$source: any = {}): QuotaView {
+        const $$createField0_0 = $$createType24;
+        const $$createField1_0 = $$createType0;
+        const $$createField2_0 = $$createType0;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("quotas" in $$parsedSource) {
+            $$parsedSource["quotas"] = $$createField0_0($$parsedSource["quotas"]);
+        }
+        if ("entityTypes" in $$parsedSource) {
+            $$parsedSource["entityTypes"] = $$createField1_0($$parsedSource["entityTypes"]);
+        }
+        if ("limits" in $$parsedSource) {
+            $$parsedSource["limits"] = $$createField2_0($$parsedSource["limits"]);
+        }
+        return new QuotaView($$parsedSource as Partial<QuotaView>);
+    }
+}
+
+/**
  * RabbitPolicyInput creates a policy or replaces one of the same name.
  * 
  * Qualified because "policy" means two different things across the families
@@ -2082,3 +2133,6 @@ const $$createType18 = model$0.LogDirPartition.createFrom;
 const $$createType19 = $Create.Nullable($$createType18);
 const $$createType20 = $Create.Array($$createType19);
 const $$createType21 = $Create.Array($Create.Any);
+const $$createType22 = model$0.ClientQuota.createFrom;
+const $$createType23 = $Create.Nullable($$createType22);
+const $$createType24 = $Create.Array($$createType23);

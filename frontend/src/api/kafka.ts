@@ -1,7 +1,7 @@
 import { KafkaService } from "@bindings/bridge";
 import type { KafkaTopicInput } from "@bindings/bridge/models";
 import { present, required } from "./client";
-import type { AccessPrincipalSpec, AccessRule } from "@bindings/model/models";
+import type { AccessPrincipalSpec, AccessRule, QuotaEntity } from "@bindings/model/models";
 
 export type { KafkaTopicInput };
 
@@ -166,3 +166,28 @@ export const cancelKafkaReassignment = (
   topic: string,
   partition: number,
 ): Promise<void> => KafkaService.CancelReassignment(connID, topic, partition);
+
+/** The quotas page in one answer. */
+export const getKafkaQuotas = (connID: number) =>
+  KafkaService.Quotas(connID).then(required);
+
+/**
+ * Sets the limits in `set` and removes the keys in `remove`.
+ *
+ * Removing is not setting zero: zero is a real quota that throttles a client to
+ * nothing, so an operator who meant "no limit" and got that would have stopped
+ * the thing they were trying to unblock.
+ */
+export const alterKafkaQuota = (
+  connID: number,
+  entity: QuotaEntity[],
+  set: Record<string, number>,
+  remove: string[],
+): Promise<void> => KafkaService.AlterQuota(connID, entity, set, remove);
+
+/** Clears every limit on an entity, which is how a quota stops existing. */
+export const removeKafkaQuota = (
+  connID: number,
+  entity: QuotaEntity[],
+  keys: string[],
+): Promise<void> => KafkaService.RemoveQuota(connID, entity, keys);

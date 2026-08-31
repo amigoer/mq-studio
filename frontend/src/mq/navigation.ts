@@ -32,6 +32,8 @@ const requires: Record<string, Capability | Capability[]> = {
   policies: Capability.CapPolicyList,
   definitions: Capability.CapDefinitionsExport,
   replication: Capability.CapReplication,
+  // Only Kafka throttles by identity rather than by destination.
+  quotas: Capability.CapQuotaList,
   producer: Capability.CapPublish,
   cluster: Capability.CapClusterTopology,
   // Three, because three families answer this page by three different means.
