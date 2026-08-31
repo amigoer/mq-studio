@@ -1069,7 +1069,8 @@
       "copied": "Copied",
       "edit": "Edit",
       "moreOptions": "{{count}} more — keep typing to narrow it down",
-      "apply": "Apply"
+      "apply": "Apply",
+      "create": "Create"
     },
     "notDesigned": {
       "title": "Not yet designed",
@@ -1645,16 +1646,39 @@
         "deleteKey": "Delete key"
       },
       "kafka": {
-        "subtitle": "42 topics · internal hidden",
+        "subtitle": "Topics the cluster holds, internal ones hidden",
         "showInternal": "Show internal topics",
+        "internal": "internal",
         "replicas": "Replicas",
-        "produceRate": "Produce rate",
-        "partitionInfo": "24 partitions · replication factor 3",
-        "urpWarn": "1 partition is under-replicated",
-        "endOffset": "End offset",
-        "missing2": "(2 missing)",
-        "morePartitions": "… 20 more partitions",
-        "addPartitions": "Add partitions"
+        "minIsr": "Min ISR",
+        "records": "Records",
+        "cleanup": "Cleanup",
+        "startOffset": "Start",
+        "endOffset": "End",
+        "noLeader": "none",
+        "settings": "Topic settings",
+        "settingsNote": "As the broker reports them. A value the broker withholds - a password, for instance - is absent rather than blank.",
+        "empty": "This cluster has no topics yet. Internal topics are hidden; turn them on to see what the cluster keeps for itself.",
+        "newTitle": "New topic",
+        "name": "Name",
+        "partitionsHint": "cannot be reduced later",
+        "replicasHint": "fixed at creation",
+        "clusterDefault": "cluster default",
+        "retentionHint": "-1 keeps forever",
+        "extraConfigs": "Other settings",
+        "extraConfigsHint": "one key=value per line",
+        "partitionsWarning": "Partitions can be added later but never removed.",
+        "created": "Created {{name}}",
+        "deleted": "Deleted {{name}}",
+        "deleteTitle": "Delete {{name}}?",
+        "deleteBody": "Every record in the topic goes with it. Consumer groups reading it lose their committed offsets. This cannot be undone.",
+        "invalid": {
+          "nameRequired": "Enter a topic name",
+          "nameInvalid": "A topic name may only contain letters, digits, dots, underscores and hyphens",
+          "nameTooLong": "A topic name is at most 249 characters",
+          "notANumber": "Enter a whole number, or leave it blank for the cluster default",
+          "configLine": "Each extra setting is one key=value per line"
+        }
       },
       "pulsar": {
         "subtitle": "Tenant ecommerce · namespace orders · 18 topics",

@@ -1069,7 +1069,8 @@
       "copied": "已复制",
       "edit": "编辑",
       "moreOptions": "还有 {{count}} 项，继续输入以缩小范围",
-      "apply": "应用"
+      "apply": "应用",
+      "create": "创建"
     },
     "notDesigned": {
       "title": "设计稿待补",
@@ -1645,16 +1646,39 @@
         "deleteKey": "删除 key"
       },
       "kafka": {
-        "subtitle": "42 个 · 内部 Topic 已隐藏",
-        "showInternal": "显示内部 Topic",
-        "replicas": "副本",
-        "produceRate": "生产速率",
-        "partitionInfo": "24 分区 · 副本因子 3",
-        "urpWarn": "1 个分区未完全同步",
-        "endOffset": "结束位点",
-        "missing2": "(缺 2)",
-        "morePartitions": "… 其余 20 个分区",
-        "addPartitions": "增加分区"
+        "subtitle": "集群里的 topic，默认隐藏内部 topic",
+        "showInternal": "显示内部 topic",
+        "internal": "内部",
+        "replicas": "副本数",
+        "minIsr": "最小同步副本",
+        "records": "消息数",
+        "cleanup": "清理策略",
+        "startOffset": "起始",
+        "endOffset": "末端",
+        "noLeader": "无",
+        "settings": "Topic 配置",
+        "settingsNote": "broker 报出来的原样。broker 不回显的值（比如密码）是缺失而不是空。",
+        "empty": "这个集群还没有 topic。内部 topic 默认隐藏，打开开关可以看到集群自己用的那些。",
+        "newTitle": "新建 Topic",
+        "name": "名称",
+        "partitionsHint": "之后只能加不能减",
+        "replicasHint": "创建后不可改",
+        "clusterDefault": "集群默认",
+        "retentionHint": "-1 表示永久保留",
+        "extraConfigs": "其他配置",
+        "extraConfigsHint": "每行一个 key=value",
+        "partitionsWarning": "分区数之后可以增加，但永远不能减少。",
+        "created": "已创建 {{name}}",
+        "deleted": "已删除 {{name}}",
+        "deleteTitle": "删除 {{name}}？",
+        "deleteBody": "topic 里的全部消息会一起删除，正在读它的消费组会丢失已提交的位点。此操作不可撤销。",
+        "invalid": {
+          "nameRequired": "请填写 topic 名称",
+          "nameInvalid": "topic 名称只能包含字母、数字、点、下划线和连字符",
+          "nameTooLong": "topic 名称最长 249 个字符",
+          "notANumber": "请填写整数，留空则使用集群默认值",
+          "configLine": "其他配置每行一个 key=value"
+        }
       },
       "pulsar": {
         "subtitle": "租户 ecommerce · 命名空间 orders · 18 个 Topic",

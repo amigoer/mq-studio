@@ -59,6 +59,35 @@ func (c *Conn) Ping(ctx context.Context) error {
 	return c.client.Ping(ctx)
 }
 
+// topologyChanged is called after this app alters the cluster.
+//
+// It nudges the client's own metadata, which routes produce and fetch, so a
+// record sent right after a topic is created does not go looking for a leader
+// that was not there a moment ago. Reads do not depend on it - they go through
+// fresh below.
+func (c *Conn) topologyChanged() {
+	c.client.ForceMetadataRefresh()
+}
+
+/*
+ * fresh asks for metadata that has not been cached.
+ *
+ * Every kadm listing reads through franz-go's metadata cache, and a console
+ * cannot use one. Deleting a topic whose detail panel was open left the topic
+ * listed and its detail readable: the panel had populated the cache moments
+ * earlier, the delete does not invalidate it, and the entry outlived the thing
+ * it described. An operator seeing that deletes it again.
+ *
+ * WithAuthorizedOps is the only exported way to make kadm bypass the cache -
+ * it marks the context so metadata is requested directly rather than served.
+ * Asking for authorized operations along the way is harmless; kadm already
+ * requests them at the cluster level on every call, and this adds the
+ * per-topic ones.
+ */
+func fresh(ctx context.Context) context.Context {
+	return kadm.WithAuthorizedOps(ctx)
+}
+
 // Capabilities is what this endpoint can do.
 func (c *Conn) Capabilities() model.Capabilities { return c.capabilities }
 
@@ -77,6 +106,12 @@ func (c *Conn) Close() error {
 // rather than as a promise the connection cannot keep.
 func capabilities() []model.Capability {
 	return []model.Capability{
+		model.CapDestinationList,
+		model.CapDestinationCreate,
+		model.CapDestinationUpdate,
+		model.CapDestinationDelete,
+		model.CapPartitions,
+
 		model.CapClusterTopology,
 		model.CapClusterMetrics,
 	}

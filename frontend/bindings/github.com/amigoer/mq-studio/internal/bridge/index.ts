@@ -6,6 +6,7 @@ import * as ClusterService from "./clusterservice.js";
 import * as ConnectionService from "./connectionservice.js";
 import * as ConsumerService from "./consumerservice.js";
 import * as DriverService from "./driverservice.js";
+import * as KafkaService from "./kafkaservice.js";
 import * as MessageService from "./messageservice.js";
 import * as RabbitMQService from "./rabbitmqservice.js";
 import * as RoutingService from "./routingservice.js";
@@ -21,6 +22,7 @@ export {
     ConnectionService,
     ConsumerService,
     DriverService,
+    KafkaService,
     MessageService,
     RabbitMQService,
     RoutingService,
@@ -44,6 +46,7 @@ export {
     DriverInfo,
     ExchangeInput,
     IdentityInput,
+    KafkaTopicInput,
     MaintenanceTaskView,
     MessageQuery,
     MoveInput,

@@ -212,3 +212,182 @@ func TestLiveClusterOverview(t *testing.T) {
 		t.Error("internal topics were not counted separately")
 	}
 }
+
+// A full round trip against a real cluster: declare, read back every field the
+// board draws, change one, and delete. Replication factor 3 because the e2e
+// cluster has three brokers and an ISR of one proves nothing.
+func TestLiveTopicRoundTrip(t *testing.T) {
+	requireLiveCluster(t)
+	conn := liveConn(t, liveSeeds)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	const name = "mqs-test-live-topic-round-trip"
+	ref := model.DestinationRef{Name: name}
+	t.Cleanup(func() {
+		cleanup, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+		defer cancel()
+		_ = conn.RemoveDestination(cleanup, ref)
+	})
+
+	if err := conn.CreateDestination(ctx, model.DestinationSpec{
+		Ref:        ref,
+		Partitions: 3,
+		Attributes: map[string]string{
+			AttrReplicationFactor: "3",
+			"cleanup.policy":      "compact",
+			"min.insync.replicas": "2",
+		},
+	}); err != nil {
+		t.Fatalf("CreateDestination: %v", err)
+	}
+
+	detail, err := conn.DestinationDetail(ctx, ref)
+	if err != nil {
+		t.Fatalf("DestinationDetail: %v", err)
+	}
+	if detail.Partitions != 3 {
+		t.Errorf("partitions = %d, want 3", detail.Partitions)
+	}
+	if got := detail.Attribute(AttrReplicationFactor); got != "3" {
+		t.Errorf("replication factor = %q, want 3", got)
+	}
+	if got := detail.Attribute(AttrCleanupPolicy); got != "compact" {
+		t.Errorf("cleanup policy = %q, want compact", got)
+	}
+	if got := detail.Attribute(AttrMinISR); got != "2" {
+		t.Errorf("min ISR = %q, want 2", got)
+	}
+	// A brand new topic on a healthy cluster: every replica in sync.
+	if got := detail.Attribute(AttrTopicUnderRep); got != "0" {
+		t.Errorf("under-replicated = %q on a fresh topic, want 0", got)
+	}
+	// Nothing has been produced, so the readable range is empty - and that is
+	// a measured zero, not the unknown sentinel.
+	if detail.Depth != 0 {
+		t.Errorf("depth = %d on an empty topic, want a measured 0", detail.Depth)
+	}
+
+	stats, err := conn.DestinationStats(ctx, ref)
+	if err != nil {
+		t.Fatalf("DestinationStats: %v", err)
+	}
+	rows, _ := stats["partitions"].([]map[string]interface{})
+	if len(rows) != 3 {
+		t.Fatalf("partition rows = %d, want 3", len(rows))
+	}
+	for _, row := range rows {
+		isr, _ := row["isr"].([]int32)
+		replicas, _ := row["replicas"].([]int32)
+		if len(replicas) != 3 || len(isr) != 3 {
+			t.Errorf("partition %v has %d replicas and %d in sync, want 3 and 3",
+				row["partition"], len(replicas), len(isr))
+		}
+		if leader, _ := row["leader"].(int32); leader < 0 {
+			t.Errorf("partition %v has no leader", row["partition"])
+		}
+	}
+
+	if err := conn.UpdateDestination(ctx, model.DestinationSpec{
+		Ref:        ref,
+		Attributes: map[string]string{"cleanup.policy": "delete", "retention.ms": "3600000"},
+	}); err != nil {
+		t.Fatalf("UpdateDestination: %v", err)
+	}
+	altered, err := conn.DestinationDetail(ctx, ref)
+	if err != nil {
+		t.Fatalf("DestinationDetail after alter: %v", err)
+	}
+	if got := altered.Attribute(AttrCleanupPolicy); got != "delete" {
+		t.Errorf("cleanup policy after alter = %q, want delete", got)
+	}
+	if got := altered.Attribute(AttrRetentionMs); got != "3600000" {
+		t.Errorf("retention after alter = %q, want 3600000", got)
+	}
+	// min.insync.replicas was not in the alter, so it must be untouched: an
+	// incremental alter is the difference between changing one setting and
+	// resetting every other one to its default.
+	if got := altered.Attribute(AttrMinISR); got != "2" {
+		t.Errorf("min ISR after altering something else = %q, want 2", got)
+	}
+
+	if err := conn.RemoveDestination(ctx, ref); err != nil {
+		t.Fatalf("RemoveDestination: %v", err)
+	}
+	if _, err := conn.DestinationDetail(ctx, ref); err == nil {
+		t.Error("a deleted topic still has a detail")
+	}
+}
+
+// The internal topics a cluster makes for itself are not the operator's, and
+// counting them makes an empty cluster look populated.
+func TestLiveInternalTopicsAreHiddenByDefault(t *testing.T) {
+	requireLiveCluster(t)
+	conn := liveConn(t, liveSeeds)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
+	visible, err := conn.ListDestinations(ctx, model.DestinationFilter{})
+	if err != nil {
+		t.Fatalf("ListDestinations: %v", err)
+	}
+	for _, destination := range visible {
+		if destination.Attribute(AttrInternal) == "true" {
+			t.Errorf("%s is internal but was listed by default", destination.Ref.Name)
+		}
+	}
+
+	all, err := conn.ListDestinations(ctx, model.DestinationFilter{IncludeInternal: true})
+	if err != nil {
+		t.Fatalf("ListDestinations(internal): %v", err)
+	}
+	if len(all) < len(visible) {
+		t.Errorf("asking for internal topics returned fewer: %d < %d", len(all), len(visible))
+	}
+}
+
+/*
+ * Read-after-write on a real cluster, which is where it actually fails.
+ *
+ * Both halves of a topic's life are asynchronous: the controller accepts a
+ * create or a delete and metadata catches up around fifty milliseconds later.
+ * That is long enough to lose the race with a board re-reading on success, and
+ * the in-process fake cannot catch it because it applies both at once.
+ *
+ * No sleep and no retry here. The next read is the one the board makes.
+ */
+func TestLiveATopicIsVisibleAndGoneWhenItSaysSo(t *testing.T) {
+	requireLiveCluster(t)
+	conn := liveConn(t, liveSeeds)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	const name = "mqs-test-live-read-after-write"
+	ref := model.DestinationRef{Name: name}
+	t.Cleanup(func() {
+		cleanup, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+		defer cancel()
+		_ = conn.RemoveDestination(cleanup, ref)
+	})
+
+	for attempt := 1; attempt <= 3; attempt++ {
+		if err := conn.CreateDestination(ctx, model.DestinationSpec{
+			Ref: ref, Partitions: 1, Attributes: map[string]string{AttrReplicationFactor: "1"},
+		}); err != nil {
+			t.Fatalf("attempt %d, CreateDestination: %v", attempt, err)
+		}
+		if _, err := conn.DestinationDetail(ctx, ref); err != nil {
+			t.Fatalf("attempt %d: a topic that was just created is not readable: %v", attempt, err)
+		}
+
+		if err := conn.RemoveDestination(ctx, ref); err != nil {
+			t.Fatalf("attempt %d, RemoveDestination: %v", attempt, err)
+		}
+		if _, err := conn.DestinationDetail(ctx, ref); err == nil {
+			t.Fatalf("attempt %d: a topic that was just deleted is still readable", attempt)
+		}
+	}
+}

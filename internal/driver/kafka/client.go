@@ -26,6 +26,17 @@ const (
 	// An operator reading a broker log, a quota entry or a consumer group's
 	// members should be able to tell this app apart from their own services.
 	clientName = "mq-studio"
+
+	// metadataMinAge is how stale the topology may be.
+	//
+	// kadm reads every listing through franz-go's metadata cache, whose
+	// default floor is five seconds. That is right for a producer and wrong
+	// for a console: an operator who deletes a topic and sees it still listed
+	// deletes it again. A hundred milliseconds is short enough that the round
+	// trip between a mutation and the board's re-read cannot fit inside it,
+	// and long enough that one page load's burst of calls still shares a
+	// single metadata fetch.
+	metadataMinAge = 100 * time.Millisecond
 )
 
 // clientConfig is one connection profile read into what franz-go needs.
@@ -223,6 +234,7 @@ func dialOptions(config clientConfig) ([]kgo.Opt, error) {
 		// its own: a broker that never answers SYN consumes the whole budget
 		// before the first byte.
 		kgo.DialTimeout(config.DialTimeout),
+		kgo.MetadataMinAge(metadataMinAge),
 	}
 	if mechanism != nil {
 		options = append(options, kgo.SASL(mechanism))

@@ -40,6 +40,7 @@ func Services(
 		application.NewService(&DriverService{conns: services.Conns}),
 		application.NewService(&RoutingService{service: services.Routing}),
 		application.NewService(&RabbitMQService{service: services.RabbitMQ}),
+		application.NewService(&KafkaService{service: services.Kafka}),
 		// Wails' own service, registered rather than wrapped: it is a platform
 		// capability like WindowService, not business data to reshape. On macOS
 		// it only delivers from a packaged, signed bundle -- the renderer falls

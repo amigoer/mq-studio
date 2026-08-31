@@ -17,6 +17,11 @@ import type { CapabilityState } from "./capabilities";
  * two halves cannot drift apart without one of them failing.
  */
 const KAFKA_CAPABILITIES: Capability[] = [
+  Capability.CapDestinationList,
+  Capability.CapDestinationCreate,
+  Capability.CapDestinationUpdate,
+  Capability.CapDestinationDelete,
+  Capability.CapPartitions,
   Capability.CapClusterTopology,
   Capability.CapClusterMetrics,
 ];
@@ -69,7 +74,7 @@ describe("the sidebar a Kafka connection draws", () => {
     const nav = navAvailability(state(KAFKA_CAPABILITIES), true);
     const reachable = drawn.filter((id) => nav.visible(id) && !nav.disabled(id));
 
-    expect(reachable).toEqual(["overview", "cluster", "alerts"]);
+    expect(reachable).toEqual(["overview", "topics", "cluster", "alerts"]);
   });
 
   // A degraded capability keeps its page in the sidebar and says why, which is

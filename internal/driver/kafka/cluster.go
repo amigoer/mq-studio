@@ -40,7 +40,7 @@ const (
 
 // ListNodes reports the brokers the cluster is made of.
 func (c *Conn) ListNodes(ctx context.Context) ([]*model.Node, error) {
-	metadata, err := c.admin.BrokerMetadata(ctx)
+	metadata, err := c.admin.BrokerMetadata(fresh(ctx))
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +68,7 @@ func (c *Conn) NodeDetail(ctx context.Context, address string) (*model.Node, err
 // the metadata of every topic, which is one request, and that walk is the only
 // place the health of the cluster exists at all.
 func (c *Conn) ClusterOverview(ctx context.Context) (*model.ClusterOverview, error) {
-	metadata, err := c.admin.Metadata(ctx)
+	metadata, err := c.admin.Metadata(fresh(ctx))
 	if err != nil {
 		return nil, err
 	}

@@ -571,6 +571,64 @@ export class IdentityInput {
 }
 
 /**
+ * KafkaTopicInput is a topic declaration as the Kafka form collects it.
+ * 
+ * Deliberately not TopicService.Create's shape. That one takes a broker
+ * address, a read queue count, a write queue count and a permission string,
+ * which is RocketMQ's vocabulary: a Kafka topic has none of those, and a form
+ * that filled them in with placeholders would be lying about what it sent.
+ */
+export class KafkaTopicInput {
+    "name": string;
+
+    /**
+     * Partitions and ReplicationFactor are fixed at creation. Zero means "let
+     * the broker use its own default", which is what an operator who left the
+     * field alone meant.
+     */
+    "partitions": number;
+    "replicationFactor": number;
+
+    /**
+     * Configs are Kafka's own setting names - cleanup.policy, retention.ms -
+     * passed through as given. This app does not curate the list: a cluster
+     * knows settings this build has never heard of, and refusing them would
+     * make the form less capable than kafka-topics.sh.
+     */
+    "configs": { [_ in string]?: string };
+
+    /** Creates a new KafkaTopicInput instance. */
+    constructor($$source: Partial<KafkaTopicInput> = {}) {
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("partitions" in $$source)) {
+            this["partitions"] = 0;
+        }
+        if (!("replicationFactor" in $$source)) {
+            this["replicationFactor"] = 0;
+        }
+        if (!("configs" in $$source)) {
+            this["configs"] = {};
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new KafkaTopicInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): KafkaTopicInput {
+        const $$createField3_0 = $$createType3;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("configs" in $$parsedSource) {
+            $$parsedSource["configs"] = $$createField3_0($$parsedSource["configs"]);
+        }
+        return new KafkaTopicInput($$parsedSource as Partial<KafkaTopicInput>);
+    }
+}
+
+/**
  * MaintenanceTaskView is one offerable housekeeping job.
  */
 export class MaintenanceTaskView {

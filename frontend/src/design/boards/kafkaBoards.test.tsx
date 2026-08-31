@@ -37,13 +37,23 @@ function stateOf<T>(over: Partial<BrokerState<T>>): BrokerState<T> {
 }
 
 const clusterState = vi.hoisted(() => ({ current: null as unknown }));
+const topicsState = vi.hoisted(() => ({ current: null as unknown }));
+const topicDetailState = vi.hoisted(() => ({ current: null as unknown }));
 
 vi.mock("@/hooks/kafka/useKafkaCluster", () => ({
   useKafkaCluster: () => clusterState.current,
 }));
+vi.mock("@/hooks/kafka/useKafkaTopics", () => ({
+  useKafkaTopics: () => topicsState.current,
+  useKafkaTopicDetail: () => topicDetailState.current,
+}));
+vi.mock("@/mq/ConnectionScope", () => ({
+  useConnectionScope: () => ({ id: 1, kind: "kafka", key: "k1", online: true }),
+}));
 
 let render: (element: React.ReactElement) => string;
 let OverviewKafka: typeof import("./overview/OverviewKafka").OverviewKafka;
+let TopicsKafka: typeof import("./topics/TopicsKafka").TopicsKafka;
 
 beforeAll(async () => {
   const storage = { getItem: () => null, setItem() {}, removeItem() {} };
@@ -56,9 +66,10 @@ beforeAll(async () => {
   });
   vi.stubGlobal("localStorage", storage);
 
-  const [server, overview, ui, i18n, settings] = await Promise.all([
+  const [server, overview, topics, ui, i18n, settings] = await Promise.all([
     import("react-dom/server"),
     import("./overview/OverviewKafka"),
+    import("./topics/TopicsKafka"),
     import("@/components"),
     import("@/i18n"),
     import("@/hooks/useSettings"),
@@ -71,6 +82,7 @@ beforeAll(async () => {
       </ui.ConfirmProvider>,
     );
   OverviewKafka = overview.OverviewKafka;
+  TopicsKafka = topics.TopicsKafka;
 });
 
 /** A healthy three-broker cluster, shaped the way the driver sends it. */
@@ -207,5 +219,103 @@ describe("the Kafka overview board", () => {
   it("shows no per-second figure anywhere", () => {
     clusterState.current = stateOf({ data: healthyCluster });
     expect(render(<OverviewKafka />)).not.toMatch(/\/s\b/);
+  });
+});
+
+/** Two topics as the driver sends them, one of them internal. */
+const topicRows = [
+  {
+    id: 1,
+    ref: { namespace: "", name: "orders.created" },
+    partitions: 3,
+    subscribers: -1,
+    depth: 88204771,
+    rateIn: -1,
+    rateOut: -1,
+    lastUpdated: "",
+    attributes: {
+      internal: "false",
+      replicationFactor: "3",
+      minInsyncReplicas: "2",
+      cleanupPolicy: "delete",
+      underReplicatedPartitions: "1",
+      offlinePartitions: "0",
+      leaderlessPartitions: "0",
+    },
+  },
+  {
+    id: 2,
+    ref: { namespace: "", name: "__consumer_offsets" },
+    partitions: 50,
+    subscribers: -1,
+    depth: -1,
+    rateIn: -1,
+    rateOut: -1,
+    lastUpdated: "",
+    attributes: {
+      internal: "true",
+      replicationFactor: "3",
+      underReplicatedPartitions: "0",
+      offlinePartitions: "0",
+      leaderlessPartitions: "0",
+    },
+  },
+];
+
+describe("the Kafka topics board", () => {
+  it("draws the offline notice with nothing dialled", () => {
+    topicsState.current = stateOf({ online: false });
+    topicDetailState.current = stateOf({});
+    expect(render(<TopicsKafka />)).toContain("未连接");
+  });
+
+  it("draws the failure and its reason", () => {
+    topicsState.current = stateOf({ error: "mq.kafka.degraded.forbidden" });
+    topicDetailState.current = stateOf({});
+    const html = render(<TopicsKafka />);
+    expect(html).not.toContain("mq.kafka.degraded.forbidden");
+    expect(html).toContain("没有描述集群的权限");
+  });
+
+  it("says so when a cluster has no topics of its own", () => {
+    topicsState.current = stateOf({ data: [] });
+    topicDetailState.current = stateOf({});
+    expect(render(<TopicsKafka />)).toContain("还没有 topic");
+  });
+
+  // Internal topics exist on every cluster and nobody made them. They stay out
+  // of the list until asked for, which is what the empty state above says.
+  it("hides internal topics by default", () => {
+    topicsState.current = stateOf({ data: topicRows });
+    topicDetailState.current = stateOf({});
+    const html = render(<TopicsKafka />);
+
+    expect(html).toContain("orders.created");
+    expect(html).not.toContain("__consumer_offsets");
+  });
+
+  it("marks a topic whose replicas are behind", () => {
+    topicsState.current = stateOf({ data: topicRows });
+    topicDetailState.current = stateOf({});
+    expect(render(<TopicsKafka />)).toContain("URP 1");
+  });
+
+  // A topic the cluster would not answer for shows an em dash, never a zero:
+  // "no records" and "nobody asked" are different facts.
+  it("draws an unreported count as absent", () => {
+    const first = topicRows[0]!;
+    topicsState.current = stateOf({
+      data: [{ ...first, depth: -1, attributes: { ...first.attributes, minInsyncReplicas: "" } }],
+    });
+    topicDetailState.current = stateOf({});
+    expect(render(<TopicsKafka />)).toContain("—");
+  });
+
+  // The canvas drew a produce rate and a backlog. Kafka reports no rate, and a
+  // backlog belongs to a group reading a topic rather than to the topic.
+  it("shows no per-second figure", () => {
+    topicsState.current = stateOf({ data: topicRows });
+    topicDetailState.current = stateOf({});
+    expect(render(<TopicsKafka />)).not.toMatch(/\/s\b/);
   });
 });
