@@ -95,6 +95,12 @@ jobs:
       - name: Start Kafka
         run: npm run e2e:kafka:up
 
+      # A second cluster with SASL and an authorizer. What a rejected
+      # credential looks like and what an ACL round trip does cannot be
+      # asserted against the first one, which runs without either.
+      - name: Start the secure Kafka
+        run: npm run e2e:kafka:secure:up
+
       - name: Run checks
         run: npm run check
 

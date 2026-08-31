@@ -306,3 +306,70 @@ func TestCreatingAConsumerGroupIsRefused(t *testing.T) {
 		t.Error("editing a consumer group was accepted")
 	}
 }
+
+/*
+ * A group whose lag could not be worked out is still a group.
+ *
+ * kadm.Lag fails outright on a group that has committed nothing - it builds a
+ * metadata request with no topic in it - which a console consumer leaves
+ * behind every time it runs. One of those used to make the whole consumer list
+ * an error, so the listing is built from the describe and the lag is merged in
+ * where it exists.
+ */
+func TestAGroupSurvivesALagItCouldNotWorkOut(t *testing.T) {
+	described := kadm.DescribedGroup{
+		Group:        "console-consumer-1",
+		State:        groupStateStable,
+		ProtocolType: "consumer",
+		Protocol:     "range",
+		Coordinator:  kadm.BrokerDetail{NodeID: 2},
+		Members:      []kadm.DescribedGroupMember{{MemberID: "m-1", ClientID: "c-1"}},
+	}
+
+	subscription := subscriptionFrom(1, mergeLag(described, nil))
+
+	if subscription.Ref.Name != "console-consumer-1" {
+		t.Errorf("name = %q", subscription.Ref.Name)
+	}
+	// Everything the describe knows survives.
+	if subscription.Members != 1 {
+		t.Errorf("members = %d, want 1", subscription.Members)
+	}
+	if subscription.Attribute(AttrGroupCoordinator) != "2" {
+		t.Errorf("coordinator = %q", subscription.Attribute(AttrGroupCoordinator))
+	}
+	if subscription.Status != model.SubscriptionOnline {
+		t.Errorf("status = %q, want online", subscription.Status)
+	}
+	// And the backlog is unknown rather than zero: nothing was measured, and a
+	// caught-up group must not look the same as an unmeasurable one.
+	if subscription.Backlog != model.UnknownMetric {
+		t.Errorf("backlog = %d, want unknown", subscription.Backlog)
+	}
+}
+
+// And when the lag is there, it wins: the merged group is the measured one.
+func TestALagThatWorkedOutIsUsed(t *testing.T) {
+	described := kadm.DescribedGroup{Group: "settle", State: groupStateStable}
+	lags := kadm.DescribedGroupLags{"settle": {
+		Group: "settle", State: groupStateStable,
+		Lag: kadm.GroupLag{"orders": {0: memberLag("orders", 0, 100, 0, 400, 300)}},
+	}}
+
+	subscription := subscriptionFrom(1, mergeLag(described, lags))
+	if subscription.Backlog != 300 {
+		t.Errorf("backlog = %d, want 300", subscription.Backlog)
+	}
+}
+
+// A group the lag call answered but could not describe falls back too: an
+// entry with a describe error carries nothing worth merging.
+func TestALagWithADescribeErrorFallsBack(t *testing.T) {
+	described := kadm.DescribedGroup{Group: "settle", State: groupStateEmpty}
+	lags := kadm.DescribedGroupLags{"settle": {Group: "settle", DescribeErr: kerr.GroupIDNotFound}}
+
+	merged := mergeLag(described, lags)
+	if merged.State != groupStateEmpty {
+		t.Errorf("state = %q, want the describe's own", merged.State)
+	}
+}

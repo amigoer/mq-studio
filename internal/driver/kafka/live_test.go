@@ -1025,3 +1025,66 @@ func TestLiveProduceRecord(t *testing.T) {
 		}
 	})
 }
+
+/*
+ * A group that has committed nothing must not take the page down with it.
+ *
+ * kadm.Lag fails outright on such a group - it builds a metadata request with
+ * no topic in it - and a console consumer leaves one behind every time it
+ * runs, as does any group whose offsets have expired. One of them used to make
+ * the whole consumer list an error.
+ */
+func TestLiveAGroupWithNoOffsetsIsStillListed(t *testing.T) {
+	requireLiveCluster(t)
+	conn := liveConn(t, liveSeeds)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	const topic = "mqs-test-empty-group"
+	const group = "mqs-test-no-offsets"
+	seededTopic(t, conn, topic, 1, 5)
+	t.Cleanup(func() {
+		cleanup, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+		defer cancel()
+		_ = conn.RemoveSubscription(cleanup, model.SubscriptionRef{Name: group})
+	})
+
+	// Commit and then forget, which is the state a console consumer leaves and
+	// what an expired group becomes: the group exists and has no position.
+	if err := conn.ResetGroupOffsets(ctx, OffsetResetRequest{
+		Group: group, Topic: topic, Target: OffsetEarliest,
+	}); err != nil {
+		t.Fatalf("seed the group: %v", err)
+	}
+	if err := conn.DeleteGroupOffsets(ctx, group, []string{topic}); err != nil {
+		t.Fatalf("DeleteGroupOffsets: %v", err)
+	}
+
+	listed, err := conn.ListSubscriptions(ctx)
+	if err != nil {
+		t.Fatalf("a group with no offsets broke the whole listing: %v", err)
+	}
+	var found *model.Subscription
+	for _, subscription := range listed {
+		if subscription.Ref.Name == group {
+			found = subscription
+		}
+	}
+	if found == nil {
+		t.Fatalf("a group with no offsets is not listed: %v", listed)
+	}
+	// A group with no position owes the whole partition, which is what Kafka
+	// works out for it and a real number rather than a sentinel.
+	if found.Backlog != 5 {
+		t.Errorf("backlog = %d, want the five records it has not read", found.Backlog)
+	}
+
+	// And the detail and its panel open rather than failing.
+	if _, err := conn.SubscriptionDetail(ctx, model.SubscriptionRef{Name: group}); err != nil {
+		t.Errorf("SubscriptionDetail: %v", err)
+	}
+	if _, err := conn.SubscriptionStats(ctx, model.SubscriptionRef{Name: group}); err != nil {
+		t.Errorf("SubscriptionStats: %v", err)
+	}
+}

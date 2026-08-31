@@ -35,12 +35,20 @@ const (
 	groupStateComplet = "CompletingRebalance"
 )
 
-// ListSubscriptions reports the consumer groups the cluster knows offsets for.
-//
-// One Lag call rather than list-then-describe-then-fetch: it answers the state,
-// the coordinator, the members and the per-partition lag together, and those
-// four assembled from separate requests could disagree with each other about a
-// group that rebalanced in between.
+/*
+ * ListSubscriptions reports the consumer groups the cluster knows about.
+ *
+ * Describe first, then lag, rather than one Lag call for both. Lag is the
+ * better answer when it works - it assembles the state, the members and the
+ * per-partition arithmetic from one consistent view - but it fails outright on
+ * a group that has committed nothing, which a console consumer leaves behind
+ * and an expired group becomes. One such group used to take the whole page
+ * down with it.
+ *
+ * So the describe is what the listing is built from, and the lag is merged in
+ * where it exists. A group whose lag could not be worked out is listed with an
+ * unknown backlog, which is the truth about it.
+ */
 func (c *Conn) ListSubscriptions(ctx context.Context) ([]*model.Subscription, error) {
 	listed, err := c.admin.ListGroups(ctx)
 	if err != nil {
@@ -52,35 +60,62 @@ func (c *Conn) ListSubscriptions(ctx context.Context) ([]*model.Subscription, er
 	}
 	sort.Strings(names)
 
-	lags, err := c.admin.Lag(ctx, names...)
+	described, err := c.admin.DescribeGroups(ctx, names...)
 	if err != nil {
 		return nil, err
 	}
+	lags := c.lagsFor(ctx, names)
 
 	subscriptions := make([]*model.Subscription, 0, len(names))
 	for index, name := range names {
-		lag, ok := lags[name]
-		if !ok {
+		group, ok := described[name]
+		if !ok || group.Err != nil {
 			continue
 		}
-		subscriptions = append(subscriptions, subscriptionFrom(index+1, lag))
+		subscriptions = append(subscriptions, subscriptionFrom(index+1, mergeLag(group, lags)))
 	}
 	return subscriptions, nil
+}
+
+// lagsFor is best effort: a cluster that will not compute lag still has groups
+// worth listing.
+func (c *Conn) lagsFor(ctx context.Context, names []string) kadm.DescribedGroupLags {
+	lags, err := c.admin.Lag(ctx, names...)
+	if err != nil {
+		return nil
+	}
+	return lags
+}
+
+// mergeLag puts a described group and its lag back together, and stands on its
+// own when the lag is missing.
+func mergeLag(group kadm.DescribedGroup, lags kadm.DescribedGroupLags) kadm.DescribedGroupLag {
+	if lag, ok := lags[group.Group]; ok && lag.DescribeErr == nil {
+		return lag
+	}
+	return kadm.DescribedGroupLag{
+		Group:        group.Group,
+		Coordinator:  group.Coordinator,
+		State:        group.State,
+		ProtocolType: group.ProtocolType,
+		Protocol:     group.Protocol,
+		Members:      group.Members,
+	}
 }
 
 // SubscriptionDetail reports one group.
 func (c *Conn) SubscriptionDetail(
 	ctx context.Context, ref model.SubscriptionRef,
 ) (*model.Subscription, error) {
-	lags, err := c.admin.Lag(ctx, ref.Name)
+	described, err := c.admin.DescribeGroups(ctx, ref.Name)
 	if err != nil {
 		return nil, err
 	}
-	lag, ok := lags[ref.Name]
-	if !ok || lag.DescribeErr != nil {
+	group, ok := described[ref.Name]
+	if !ok || group.Err != nil {
 		return nil, fmt.Errorf("consumer group not found: %s", ref.Name)
 	}
-	return subscriptionFrom(1, lag), nil
+	return subscriptionFrom(1, mergeLag(group, c.lagsFor(ctx, []string{ref.Name}))), nil
 }
 
 /*
@@ -123,15 +158,18 @@ func (c *Conn) RemoveSubscription(ctx context.Context, ref model.SubscriptionRef
 func (c *Conn) SubscriptionStats(
 	ctx context.Context, ref model.SubscriptionRef,
 ) (map[string]interface{}, error) {
-	lags, err := c.admin.Lag(ctx, ref.Name)
+	described, err := c.admin.DescribeGroups(ctx, ref.Name)
 	if err != nil {
 		return nil, err
 	}
-	lag, ok := lags[ref.Name]
-	if !ok || lag.DescribeErr != nil {
+	group, ok := described[ref.Name]
+	if !ok || group.Err != nil {
 		return nil, fmt.Errorf("consumer group not found: %s", ref.Name)
 	}
 
+	// A group that has committed nothing has members and no progress, and the
+	// panel says so with an empty table rather than an error.
+	lag := mergeLag(group, c.lagsFor(ctx, []string{ref.Name}))
 	return map[string]interface{}{
 		"partitions": partitionLagRows(lag.Lag),
 		"members":    memberRows(lag.Members),

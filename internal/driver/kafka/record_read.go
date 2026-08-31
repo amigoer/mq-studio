@@ -194,9 +194,7 @@ func (c *Conn) startOffsets(
 
 	// Reading back from the end shares the budget across the partitions, so a
 	// topic with twelve of them does not return twelve times what was asked.
-	// Rounded up rather than up-by-one: asking for ten on one partition has to
-	// read exactly the last ten, not eleven.
-	perPartition := (int64(limit) + int64(len(wanted)) - 1) / int64(len(wanted))
+	shares := latestShares(params.Topic, wanted, limit, starts, ends)
 
 	offsets := make(map[int32]int64, len(wanted))
 	for _, partition := range wanted {
@@ -209,7 +207,7 @@ func (c *Conn) startOffsets(
 		var from int64
 		switch mode {
 		case ModeLatest:
-			from = end - perPartition
+			from = end - shares[partition]
 		case ModeKey:
 			// A scan has to start where the log does, or a key written long
 			// ago is invisible for no stated reason.
@@ -241,6 +239,60 @@ func (c *Conn) startOffsets(
 		offsets[partition] = from
 	}
 	return offsets, nil
+}
+
+/*
+ * latestShares decides how many records to take from each partition.
+ *
+ * An even split is the obvious answer and the wrong one: records are spread
+ * unevenly, so a topic holding ten records over two partitions - six and four -
+ * answers "the latest ten" with nine, because the five-record share on the
+ * four-record partition wastes one.
+ *
+ * So the budget is handed out in rounds. Every partition takes one record per
+ * round until it has nothing left or the budget runs out, which spends the
+ * whole budget when the topic can fill it and stays even when it cannot.
+ */
+func latestShares(
+	topic string, partitions []int32, limit int, starts, ends kadm.ListedOffsets,
+) map[int32]int64 {
+	available := make(map[int32]int64, len(partitions))
+	shares := make(map[int32]int64, len(partitions))
+	total := int64(0)
+	for _, partition := range partitions {
+		start := offsetAt(starts, topic, partition)
+		end := offsetAt(ends, topic, partition)
+		if start < 0 || end < 0 || end <= start {
+			continue
+		}
+		available[partition] = end - start
+		total += end - start
+	}
+
+	budget := int64(limit)
+	if total < budget {
+		budget = total
+	}
+	for budget > 0 {
+		spent := false
+		for _, partition := range partitions {
+			if budget == 0 {
+				break
+			}
+			if shares[partition] >= available[partition] {
+				continue
+			}
+			shares[partition]++
+			budget--
+			spent = true
+		}
+		// Nothing left anywhere, which the budget cap above should already
+		// have prevented; the guard is what stops a miscount spinning.
+		if !spent {
+			break
+		}
+	}
+	return shares
 }
 
 // requestedPartitions is every partition, or the one the board named.

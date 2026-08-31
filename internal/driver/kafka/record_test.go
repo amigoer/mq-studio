@@ -105,13 +105,15 @@ func offsetsFor(topic string, values map[int32]int64) kadm.ListedOffsets {
 }
 
 /*
- * Reading back from the end shares the budget across partitions.
+ * Reading back from the end spends the whole budget, and spends it where the
+ * records are.
  *
- * Asking for a hundred records on a twelve-partition topic must not return
- * twelve hundred, and each partition must start inside its own log rather than
- * at a negative offset.
+ * Ninety records asked for across three partitions holding a thousand, five
+ * and a hundred: the small one gives up all five and the other two split what
+ * is left. An even thirty each would have wasted twenty-five of the budget on
+ * a partition that does not have them.
  */
-func TestLatestSharesTheBudgetAcrossPartitions(t *testing.T) {
+func TestLatestSpendsTheWholeBudget(t *testing.T) {
 	conn := newConn(nil, nil, clientConfig{})
 	starts := offsetsFor("orders", map[int32]int64{0: 0, 1: 0, 2: 900})
 	ends := offsetsFor("orders", map[int32]int64{0: 1000, 1: 5, 2: 1000})
@@ -126,18 +128,19 @@ func TestLatestSharesTheBudgetAcrossPartitions(t *testing.T) {
 	if len(offsets) != 3 {
 		t.Fatalf("partitions = %d, want 3", len(offsets))
 	}
-	// 90 over three partitions is 30 each, so a partition of 1000 starts at 970.
-	if offsets[0] != 970 {
-		t.Errorf("partition 0 starts at %d, want 970", offsets[0])
-	}
-	// A partition with fewer records than the share starts at its own start,
-	// not below it.
+	// A partition with fewer records than an even share gives up all of them
+	// and starts at its own start, never below it.
 	if offsets[1] != 0 {
 		t.Errorf("partition 1 starts at %d, want 0", offsets[1])
 	}
-	// And one whose retention has moved starts where the log now does.
-	if offsets[2] != 970 {
-		t.Errorf("partition 2 starts at %d, want 970", offsets[2])
+	// The other two take what is left: 85 over two, so 43 and 42.
+	read := (1000 - offsets[0]) + (5 - offsets[1]) + (1000 - offsets[2])
+	if read != 90 {
+		t.Errorf("the window covers %d records, want the whole budget of 90", read)
+	}
+	// And the one whose retention has moved still starts inside its own log.
+	if offsets[2] < 900 {
+		t.Errorf("partition 2 starts at %d, before its log does", offsets[2])
 	}
 }
 
@@ -323,5 +326,48 @@ func TestAcksBelowAllDisableIdempotence(t *testing.T) {
 	}
 	if len(acksOption(AcksAll)) != 1 {
 		t.Error("acks=all should keep idempotent writes on")
+	}
+}
+
+/*
+ * The budget is handed out in rounds rather than divided.
+ *
+ * An even split under-reads on an uneven topic: ten records over two
+ * partitions holding six and four answers "the latest ten" with nine, because
+ * the five-record share on the four-record partition wastes one.
+ */
+func TestTheLatestBudgetIsSpentWhereTheRecordsAre(t *testing.T) {
+	shares := latestShares("orders", []int32{0, 1}, 10,
+		offsetsFor("orders", map[int32]int64{0: 0, 1: 0}),
+		offsetsFor("orders", map[int32]int64{0: 6, 1: 4}))
+
+	if shares[0]+shares[1] != 10 {
+		t.Errorf("shares = %v, want ten records in total", shares)
+	}
+	if shares[0] != 6 || shares[1] != 4 {
+		t.Errorf("shares = %v, want everything both partitions hold", shares)
+	}
+}
+
+// And it stays even when the topic can fill it: a hundred records over two
+// partitions asked for ten is five each, not ten from the first.
+func TestTheLatestBudgetStaysEvenWhenItCan(t *testing.T) {
+	shares := latestShares("orders", []int32{0, 1}, 10,
+		offsetsFor("orders", map[int32]int64{0: 0, 1: 0}),
+		offsetsFor("orders", map[int32]int64{0: 100, 1: 100}))
+
+	if shares[0] != 5 || shares[1] != 5 {
+		t.Errorf("shares = %v, want five each", shares)
+	}
+}
+
+// A topic with fewer records than the budget gives up all of them and no more.
+func TestTheLatestBudgetCannotExceedTheTopic(t *testing.T) {
+	shares := latestShares("orders", []int32{0, 1}, 100,
+		offsetsFor("orders", map[int32]int64{0: 0, 1: 0}),
+		offsetsFor("orders", map[int32]int64{0: 3, 1: 2}))
+
+	if shares[0] != 3 || shares[1] != 2 {
+		t.Errorf("shares = %v, want everything and nothing beyond it", shares)
 	}
 }

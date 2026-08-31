@@ -9,7 +9,9 @@ ARCH ?=
 	test test-go test-frontend e2e e2e-up e2e-seed e2e-down \
 	e2e-acl-up e2e-acl-down \
 	e2e-rabbitmq-up e2e-rabbitmq-seed e2e-rabbitmq-down \
-	e2e-rabbitmq-plain-up e2e-rabbitmq-plain-down check ci clean
+	e2e-rabbitmq-plain-up e2e-rabbitmq-plain-down \
+	e2e-kafka-up e2e-kafka-seed e2e-kafka-down \
+	e2e-kafka-secure-up e2e-kafka-secure-down check ci clean
 
 help: ## Show all available targets
 	@awk 'BEGIN { FS = ":.*## " } /^[a-zA-Z0-9_.-]+:.*## / { printf "  %-20s %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
@@ -78,6 +80,21 @@ e2e-rabbitmq-plain-up: ## Start the plugin-free RabbitMQ used by the degraded-pa
 
 e2e-rabbitmq-plain-down: ## Stop the plugin-free RabbitMQ environment
 	npm run e2e:rabbitmq:plain:down
+
+e2e-kafka-up: ## Start the three-broker KRaft Kafka cluster the live tests use
+	npm run e2e:kafka:up
+
+e2e-kafka-seed: ## Seed the Kafka cluster with topics, records and consumer groups
+	npm run e2e:kafka:seed
+
+e2e-kafka-down: ## Stop the Kafka E2E cluster and remove its volumes
+	npm run e2e:kafka:down
+
+e2e-kafka-secure-up: ## Start the SASL and authorizer Kafka used by the access-control tests
+	npm run e2e:kafka:secure:up
+
+e2e-kafka-secure-down: ## Stop the secure Kafka environment
+	npm run e2e:kafka:secure:down
 
 e2e: ## Run the live tests against a running, seeded RocketMQ E2E environment
 	npm run test:e2e
