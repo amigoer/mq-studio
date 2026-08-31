@@ -33,6 +33,7 @@ import { readSession, restoreSession, writeSession } from "@/design/data/session
 import { ConnectionsList } from "@/design/boards/connections/ConnectionsList";
 import { ConnectionsEmpty } from "@/design/boards/connections/ConnectionsEmpty";
 import { NewConnectionDialog } from "@/design/boards/connections/NewConnectionDialog";
+import { UpdateDialog } from "@/design/shell/UpdateDialog";
 import { Settings, type SectionId } from "@/design/boards/settings/Settings";
 
 /** Global views sit beside the connection tabs rather than inside one. */
@@ -525,6 +526,9 @@ export function DesignApp(): JSX.Element {
             onCheckUpdate={() => void checkUpdate()}
             onClose={() => setPaletteOpen(false)}
           />
+          {/* Opens over whatever is on screen: the release is announced by the
+              title bar and by a toast, and both hand off to this. */}
+          <UpdateDialog />
         </>
       }
     >

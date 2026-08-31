@@ -50,6 +50,11 @@ interface UpdaterContextValue {
   busy: boolean;
   /** True while a check alone is in flight -- what the title bar icon turns on. */
   checking: boolean;
+  /** Whether the update dialog is up. It is shell state, so it lives here
+      rather than in a board: the title bar and the toast both open it. */
+  dialogOpen: boolean;
+  openDialog: () => void;
+  closeDialog: () => void;
   check: () => Promise<void>;
   download: () => Promise<void>;
   cancel: () => void;
@@ -68,6 +73,7 @@ function useUpdaterState(): UpdaterContextValue {
   // covers the call from the click to that event and the checks Go answers
   // without ever entering the phase, such as on a development build.
   const [checking, setChecking] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
   // The release the toast has already reported. Read from Go once, then kept
   // here: a restart must not re-announce a version the user has declined.
   const announced = useRef<string | null>(null);
@@ -75,6 +81,9 @@ function useUpdaterState(): UpdaterContextValue {
   // to be reachable without re-subscribing every time the language changes.
   const translate = useRef(t);
   translate.current = t;
+
+  const openDialog = useCallback(() => setDialogOpen(true), []);
+  const closeDialog = useCallback(() => setDialogOpen(false), []);
 
   const openReleases = useCallback(() => {
     void openExternal(RELEASES_URL).catch(() => {});
@@ -200,6 +209,9 @@ function useUpdaterState(): UpdaterContextValue {
       available: hasUpdate(state) ? state.latestVersion : null,
       busy: checking || isUpdateBusy(state),
       checking: checking || state.phase === Phase.PhaseChecking,
+      dialogOpen,
+      openDialog,
+      closeDialog,
       check,
       download,
       cancel,
@@ -207,7 +219,19 @@ function useUpdaterState(): UpdaterContextValue {
       skip,
       openReleases,
     }),
-    [cancel, check, checking, download, install, openReleases, skip, state],
+    [
+      cancel,
+      check,
+      checking,
+      closeDialog,
+      dialogOpen,
+      download,
+      install,
+      openDialog,
+      openReleases,
+      skip,
+      state,
+    ],
   );
 }
 
