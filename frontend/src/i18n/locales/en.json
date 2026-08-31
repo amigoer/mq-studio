@@ -192,7 +192,13 @@
       "groupOffline": "Consumer group has no online instances",
       "groupLag": "Consumer group lag",
       "diskUsage": "Broker disk usage",
-      "dlqGrowth": "Dead-letter queue not empty"
+      "dlqGrowth": "Dead-letter queue not empty",
+      "resourceAlarm": "Broker resource alarm",
+      "nodePartition": "Node network partition",
+      "memoryUsage": "Memory near its watermark",
+      "queueBacklog": "Queue backlog",
+      "queueNoConsumer": "Queue with no consumer",
+      "flowControl": "Connections being throttled"
     },
     "tabs": {
       "active": "Active",
@@ -218,14 +224,26 @@
       "groupOffline": "{{group}} has no online instances",
       "groupLag": "{{group}} is over its backlog threshold",
       "diskUsage": "{{broker}} disk at {{usage}}%",
-      "dlqGrowth": "{{group}} has dead letters"
+      "dlqGrowth": "{{group}} has dead letters",
+      "resourceAlarm": "{{broker}} has stopped accepting publishes",
+      "nodePartition": "{{broker}} has lost {{count}} node(s)",
+      "memoryUsage": "{{broker}} memory at {{usage}}%",
+      "queueBacklog": "{{queue}} is over the backlog threshold",
+      "queueNoConsumer": "Nothing is reading {{queue}}",
+      "flowControl": "{{count}} connection(s) are being throttled"
     },
     "detail": {
       "brokerOffline": "{{broker}} ({{address}})",
       "groupOffline": "{{group}} · lag {{lag}}",
       "groupLag": "{{group}} · lag {{lag}} > {{threshold}}",
       "diskUsage": "{{broker}} · {{usage}}% ≥ {{threshold}}%",
-      "dlqGrowth": "{{group}} · {{count}} dead letters"
+      "dlqGrowth": "{{group}} · {{count}} dead letters",
+      "resourceAlarm": "{{broker}} · the {{resource}} alarm blocks every publisher on this node",
+      "nodePartition": "{{broker}} cannot reach {{peers}}",
+      "memoryUsage": "{{broker}} · {{usage}}% ≥ {{threshold}}%",
+      "queueBacklog": "{{queue}} · {{lag}} waiting > {{threshold}}",
+      "queueNoConsumer": "{{queue}} · {{lag}} waiting, no consumer attached",
+      "flowControl": "{{count}} connection(s) in flow or blocked, such as {{peer}}"
     },
     "duration": {
       "minutes": "for {{count}} min",

@@ -192,7 +192,13 @@
       "groupOffline": "消费者组无在线实例",
       "groupLag": "消费组持续堆积",
       "diskUsage": "磁盘水位偏高",
-      "dlqGrowth": "死信队列非空"
+      "dlqGrowth": "死信队列非空",
+      "resourceAlarm": "Broker 资源告警",
+      "nodePartition": "节点网络分区",
+      "memoryUsage": "内存水位偏高",
+      "queueBacklog": "队列堆积",
+      "queueNoConsumer": "队列无人消费",
+      "flowControl": "连接被限流"
     },
     "tabs": {
       "active": "活跃告警",
@@ -218,14 +224,26 @@
       "groupOffline": "{{group}} 无在线实例",
       "groupLag": "{{group}} 堆积超阈值",
       "diskUsage": "{{broker}} 磁盘水位 {{usage}}%",
-      "dlqGrowth": "{{group}} 死信队列非空"
+      "dlqGrowth": "{{group}} 死信队列非空",
+      "resourceAlarm": "{{broker}} 资源告警，已阻塞生产者",
+      "nodePartition": "{{broker}} 与 {{count}} 个节点失联",
+      "memoryUsage": "{{broker}} 内存水位 {{usage}}%",
+      "queueBacklog": "{{queue}} 堆积超阈值",
+      "queueNoConsumer": "{{queue}} 无人消费",
+      "flowControl": "{{count}} 个连接被限流"
     },
     "detail": {
       "brokerOffline": "{{broker}}（{{address}}）",
       "groupOffline": "{{group}} · 堆积 {{lag}}",
       "groupLag": "{{group}} · 堆积 {{lag}} > {{threshold}}",
       "diskUsage": "{{broker}} · {{usage}}% ≥ {{threshold}}%",
-      "dlqGrowth": "{{group}} · {{count}} 条死信"
+      "dlqGrowth": "{{group}} · {{count}} 条死信",
+      "resourceAlarm": "{{broker}} · {{resource}} 告警期间该节点不再接收发送",
+      "nodePartition": "{{broker}} 认为失联：{{peers}}",
+      "memoryUsage": "{{broker}} · {{usage}}% ≥ {{threshold}}%",
+      "queueBacklog": "{{queue}} · 堆积 {{lag}} > {{threshold}}",
+      "queueNoConsumer": "{{queue}} · {{lag}} 条待消费，无消费者",
+      "flowControl": "{{count}} 个连接处于 flow/blocked，如 {{peer}}"
     },
     "duration": {
       "minutes": "持续 {{count}} 分钟",

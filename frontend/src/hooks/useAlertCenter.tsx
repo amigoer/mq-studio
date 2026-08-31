@@ -24,13 +24,16 @@ import {
 import { useTranslation } from "react-i18next";
 import * as clusterApi from "@/api/cluster";
 import * as consumerApi from "@/api/consumer";
+import * as rabbitApi from "@/api/rabbitmq";
+import * as topicApi from "@/api/topic";
 import { present } from "@/api/client";
-import type { MQKind } from "@bindings/model/models";
-import type { Connection, Subscription } from "@/api/models";
+import { MQKind } from "@bindings/model/models";
+import type { ClientConnection } from "@bindings/model/models";
+import type { Connection, Destination, Subscription } from "@/api/models";
 import { useConnectionProfiles } from "@/hooks/useConnectionProfiles";
 import { useAlertRules } from "@/hooks/useAlertRules";
 import { useSettings } from "@/hooks/useSettings";
-import { deriveAlerts, type AlertFacts, type DerivedAlert } from "@/lib/alertDerive";
+import { deriveAlerts, NO_FACTS, type AlertFacts, type DerivedAlert } from "@/lib/alertDerive";
 import {
   loadReadIds,
   mergeAlerts,
@@ -47,7 +50,7 @@ import { alertBody, alertTitle } from "@/lib/alertText";
 /** Slower than a board's 30s, because this one runs against every connection. */
 export const ALERT_POLL_MS = 60_000;
 
-const NO_FACTS: AlertFacts = { nodes: [], consumerGroups: [] };
+
 
 /** One connection's rows, in the order the popover draws them. */
 export interface AlertGroup {
@@ -76,18 +79,40 @@ const AlertCenterContext = createContext<AlertCenterValue | null>(null);
 /** A poll of one connection: null facts mean the request failed. */
 type Sweep = { id: number; facts: AlertFacts | null };
 
+/*
+ * Only what the family's rules read.
+ *
+ * This runs on a timer against every open connection, so a list nobody's rules
+ * consult is a request nobody needed - RabbitMQ has no consumer groups, and
+ * RocketMQ's rules never look at a queue's depth or a connection's state.
+ */
 async function sweepConnection(profile: Connection): Promise<Sweep> {
   if (profile.status !== "online") return { id: profile.id, facts: NO_FACTS };
+  const rabbit = profile.kind === MQKind.KindRabbitMQ;
   try {
-    const [cluster, groups] = await Promise.all([
+    const [cluster, groups, destinations, connections] = await Promise.all([
       clusterApi.getClusterView(profile.id),
-      // Groups are the slowest read and the likeliest to fail on their own;
-      // losing the broker rules with them would be the worse outcome.
-      consumerApi.getConsumerGroups(profile.id).catch(() => [] as Subscription[]),
+      // The slowest read and the likeliest to fail on its own; losing the
+      // broker rules with it would be the worse outcome. Each of these three
+      // degrades to nothing rather than taking the sweep down with it.
+      rabbit
+        ? Promise.resolve([] as Subscription[])
+        : consumerApi.getConsumerGroups(profile.id).catch(() => [] as Subscription[]),
+      rabbit
+        ? topicApi.getTopics(profile.id).catch(() => [] as Destination[])
+        : Promise.resolve([] as Destination[]),
+      rabbit
+        ? rabbitApi.getClientConnections(profile.id, "").catch(() => [] as ClientConnection[])
+        : Promise.resolve([] as ClientConnection[]),
     ]);
     return {
       id: profile.id,
-      facts: { nodes: present(cluster?.nodes), consumerGroups: groups },
+      facts: {
+        nodes: present(cluster?.nodes),
+        consumerGroups: groups,
+        destinations,
+        connections,
+      },
     };
   } catch {
     // A request that did not answer is not evidence that anything cleared.
@@ -158,20 +183,28 @@ function useAlertCenterStore(): AlertCenterValue {
    * Derivation is separate from the sweep so a threshold or a rule toggle
    * reaches the bell at once, rather than at the next minute boundary.
    */
+  // Which rules apply is decided by the family, so the derivation needs the
+  // kind alongside the facts.
+  const kinds = useMemo(() => {
+    const out = new Map<number, MQKind | undefined>();
+    for (const profile of profiles) out.set(profile.id, profile.kind);
+    return out;
+  }, [profiles]);
+
   const observed = useMemo(() => {
     const out = new Map<number, readonly DerivedAlert[]>();
     for (const [id, connectionFacts] of Object.entries(facts)) {
       if (connectionFacts == null) continue;
       out.set(
         Number(id),
-        deriveAlerts(connectionFacts, rules, {
+        deriveAlerts(kinds.get(Number(id)), connectionFacts, rules, {
           lag: settings.lagAlertThreshold ?? 10000,
           disk: settings.diskAlertThreshold ?? 75,
         }),
       );
     }
     return out;
-  }, [facts, rules, settings.lagAlertThreshold, settings.diskAlertThreshold]);
+  }, [facts, kinds, rules, settings.lagAlertThreshold, settings.diskAlertThreshold]);
 
   const known = useMemo(
     () => new Set(profiles.map((profile) => profile.id)),
