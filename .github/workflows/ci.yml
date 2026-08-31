@@ -8,7 +8,13 @@ on:
     paths-ignore:
       - '**.md'
       - 'docs/**'
+  # Same list as the push filter: a docs-only change is treated the same way
+  # whether it arrives as a PR or as a push. Actions has no YAML anchors, so
+  # the two lists have to be kept in step by hand.
   pull_request:
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
   workflow_dispatch:
 
 concurrency:
