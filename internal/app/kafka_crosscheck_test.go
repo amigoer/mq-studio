@@ -192,16 +192,16 @@ func crossCheckTopic(t *testing.T, stack *kafkaStack, name string, partitions in
 /*
  * agreeOn compares a figure both systems report, on a cluster that is moving.
  *
- * Reading mq-studio's answer and then Kafka's own is not one observation of
- * one cluster: a docker exec takes seconds, and the driver package's live
- * tests create and delete topics against these same brokers while this runs -
- * go test runs the two packages at once. Comparing snapshots taken that far
- * apart failed on counts that were never wrong.
+ * mq-studio is read on both sides of the CLI call: equal before and after
+ * means nothing changed while the CLI was looking, so a disagreement is real;
+ * different means the comparison proves nothing and is taken again.
  *
- * So mq-studio is read on both sides of the CLI call. Equal before and after
- * means nothing changed while the CLI was looking, which makes a disagreement
- * real; different means the cluster moved and the comparison proves nothing,
- * so it is taken again rather than reported. A genuine miscount never settles.
+ * That is enough for a figure whose steady-state value is stable - the health
+ * counters - and not enough for a count of topics, which is why the topic
+ * check below compares names instead. Two clients ask two different brokers,
+ * and a broker that has not yet applied a delete is not wrong, it is behind;
+ * no amount of re-reading makes two clients agree on a number the cluster
+ * does not hold centrally.
  */
 func agreeOn(t *testing.T, what string, mine func() string, theirs func() string) {
 	t.Helper()
@@ -219,6 +219,44 @@ func agreeOn(t *testing.T, what string, mine func() string, theirs func() string
 		return
 	}
 	t.Errorf("%s: the cluster changed under every attempt to compare it", what)
+}
+
+// churned reports whether a name belongs to another suite running right now.
+//
+// The driver package's live tests create and delete mqs-test-* against these
+// same brokers, and go test runs the two packages at once. Nothing here can
+// say anything true about those topics; everything else it can.
+func churned(name string) bool {
+	return strings.HasPrefix(name, "mqs-test-") || strings.HasPrefix(name, "mqs-churn-")
+}
+
+// topicNames is a set, with the internal topics and anything another suite is
+// churning taken out.
+func topicNames(names []string) map[string]bool {
+	set := make(map[string]bool, len(names))
+	for _, name := range names {
+		if strings.HasPrefix(name, "__") || churned(name) {
+			continue
+		}
+		set[name] = true
+	}
+	return set
+}
+
+/*
+ * A budget of its own, for one comparison.
+ *
+ * These subtests used to share a single deadline set at the top of the test.
+ * One of them running long then spent everybody's budget, and the failure
+ * landed on whichever subtest happened to be next - reporting a broken log
+ * directory listing when nothing was wrong with it but the clock. Each takes
+ * its own now, so a subtest can only run itself out of time.
+ */
+func crossCheckContext(t *testing.T) context.Context {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	t.Cleanup(cancel)
+	return ctx
 }
 
 func TestLiveKafkaCrossCheck(t *testing.T) {
@@ -258,6 +296,7 @@ func TestLiveKafkaCrossCheck(t *testing.T) {
 	}
 
 	t.Run("the overview counts what the cluster counts", func(t *testing.T) {
+		ctx := crossCheckContext(t)
 		overview := func() *model.ClusterOverview {
 			view, _, err := stack.cluster.Overview(ctx, stack.connID)
 			if err != nil {
@@ -284,19 +323,58 @@ func TestLiveKafkaCrossCheck(t *testing.T) {
 				len(nodes), view.TotalNodes, brokers)
 		}
 
-		// Topics, against kafka-topics.sh --list. The CLI lists internal
-		// topics too, so they are counted the same way here.
-		agreeOn(t, "topics",
+		/*
+		 * Topics, as names rather than as a count.
+		 *
+		 * A count is the weaker assertion and the one that cannot be made to
+		 * hold: mq-studio and the CLI ask different brokers, and mid-delete
+		 * they honestly report different numbers. Names catch everything a
+		 * count would - an internal topic counted, one missed, one counted
+		 * twice - and say which topic it was.
+		 */
+		mine, err := stack.destinations.List(ctx, stack.connID, model.DestinationFilter{})
+		if err != nil {
+			t.Fatalf("List: %v", err)
+		}
+		names := make([]string, 0, len(mine))
+		for _, destination := range mine {
+			names = append(names, destination.Ref.Name)
+		}
+		ours := topicNames(names)
+		theirs := topicNames(lines(cli(t, "kafka-topics.sh", "--list")))
+		for name := range ours {
+			if !theirs[name] {
+				t.Errorf("mq-studio lists %s, kafka-topics.sh does not", name)
+			}
+		}
+		for name := range theirs {
+			if !ours[name] {
+				t.Errorf("kafka-topics.sh lists %s, mq-studio does not", name)
+			}
+		}
+
+		/*
+		 * And the counting rule, checked against mq-studio's own list rather
+		 * than the cluster: the overview must exclude internal topics, which
+		 * is the only judgement it makes here.
+		 */
+		internal := 0
+		for _, name := range names {
+			if strings.HasPrefix(name, "__") {
+				internal++
+			}
+		}
+		if internal != 0 {
+			t.Errorf("the topic list carries %d internal topic(s); it should not", internal)
+		}
+		agreeOn(t, "the overview's topic count against its own list",
 			func() string { return strconv.Itoa(overview().Destinations) },
 			func() string {
-				listed := lines(cli(t, "kafka-topics.sh", "--list"))
-				internal := 0
-				for _, name := range listed {
-					if strings.HasPrefix(name, "__") {
-						internal++
-					}
+				listed, err := stack.destinations.List(ctx, stack.connID, model.DestinationFilter{})
+				if err != nil {
+					t.Fatalf("List: %v", err)
 				}
-				return strconv.Itoa(len(listed) - internal)
+				return strconv.Itoa(len(listed))
 			})
 
 		// Partition health, against kafka-topics.sh --describe
@@ -317,6 +395,7 @@ func TestLiveKafkaCrossCheck(t *testing.T) {
 	})
 
 	t.Run("a topic matches what kafka-topics.sh describes", func(t *testing.T) {
+		ctx := crossCheckContext(t)
 		detail, err := stack.destinations.Detail(ctx, stack.connID, model.DestinationRef{Name: topic})
 		if err != nil {
 			t.Fatalf("Detail: %v", err)
@@ -361,6 +440,7 @@ func TestLiveKafkaCrossCheck(t *testing.T) {
 	})
 
 	t.Run("a topic's settings match kafka-configs.sh", func(t *testing.T) {
+		ctx := crossCheckContext(t)
 		detail, err := stack.destinations.Detail(ctx, stack.connID, model.DestinationRef{Name: topic})
 		if err != nil {
 			t.Fatalf("Detail: %v", err)
@@ -381,6 +461,7 @@ func TestLiveKafkaCrossCheck(t *testing.T) {
 	})
 
 	t.Run("a consumer group's lag matches kafka-consumer-groups.sh", func(t *testing.T) {
+		ctx := crossCheckContext(t)
 		// The list is what the consumer board reads; there is no per-group
 		// detail call, because one Lag request answers every group at once.
 		listed, err := stack.subscription.List(ctx, stack.connID)
@@ -434,6 +515,7 @@ func TestLiveKafkaCrossCheck(t *testing.T) {
 	})
 
 	t.Run("the readable range matches kafka-get-offsets.sh", func(t *testing.T) {
+		ctx := crossCheckContext(t)
 		detail, err := stack.destinations.Detail(ctx, stack.connID, model.DestinationRef{Name: topic})
 		if err != nil {
 			t.Fatalf("Detail: %v", err)
@@ -464,6 +546,7 @@ func TestLiveKafkaCrossCheck(t *testing.T) {
 	})
 
 	t.Run("a record reads back as the console consumer sees it", func(t *testing.T) {
+		ctx := crossCheckContext(t)
 		records, err := stack.messages.Query(ctx, stack.connID, model.MessageQueryParams{
 			Topic: topic, MaxResults: 40,
 			Filters: map[string]string{kafkadriver.FilterMode: kafkadriver.ModeOffset,
@@ -490,6 +573,7 @@ func TestLiveKafkaCrossCheck(t *testing.T) {
 	})
 
 	t.Run("the log directories match kafka-log-dirs.sh", func(t *testing.T) {
+		ctx := crossCheckContext(t)
 		dirs, err := stack.kafka.LogDirs(ctx, stack.connID)
 		if err != nil {
 			t.Fatalf("LogDirs: %v", err)
