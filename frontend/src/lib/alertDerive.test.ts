@@ -283,6 +283,44 @@ describe("the RabbitMQ rules", () => {
     expect(alerts[0]?.params.peer).toBe("10.0.0.2");
   });
 
+  /*
+   * The exact attribute map a RabbitMQ 4 node sends while a memory alarm is
+   * actually up, copied off the e2e broker with the watermark forced down.
+   *
+   * The hand-built fixtures above prove the rules work; this proves they are
+   * reading the keys the driver really writes. An attribute key that drifts
+   * makes every alarm rule silently read false, which is the failure this
+   * whole file exists to prevent - and nothing else in the suite would notice.
+   */
+  it("fires on the attribute map a real broker sends during an alarm", () => {
+    const observed = {
+      diskFree: "12539916288",
+      diskFreeAlarm: "false",
+      diskFreeLimit: "50000000",
+      erlangProcessLimit: "1048576",
+      erlangProcesses: "449",
+      fileDescriptorLimit: "1048576",
+      fileDescriptorsUsed: "41",
+      memoryAlarm: "true",
+      memoryLimit: "50000000",
+      memoryUsed: "162992128",
+      nodeType: "disc",
+      partitions: "",
+      runQueue: "1",
+      schedulers: "8",
+      uptime: "2570712",
+    };
+    // The broker calls a node with an alarm up "warning", not offline: it is
+    // answering perfectly well, it has just stopped accepting publishes.
+    const alerts = derive({
+      nodes: [node(observed, { name: "rabbit@f1503fbeaee8", status: NodeStatus.NodeWarning })],
+    });
+
+    expect(alerts.map((alert) => alert.ruleKey)).toEqual(["resourceAlarm"]);
+    expect(alerts[0]?.params.resource).toBe("memory");
+    expect(alerts[0]?.params.broker).toBe("rabbit@f1503fbeaee8");
+  });
+
   it("says nothing about a broker with nothing wrong with it", () => {
     expect(
       derive({

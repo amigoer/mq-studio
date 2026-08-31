@@ -3003,3 +3003,64 @@ func TestLiveStreamClientsAreSupportedWhenThePluginIsOn(t *testing.T) {
 		t.Fatalf("stream clients are unavailable on a broker with the plugin on: %q", reason)
 	}
 }
+
+/*
+ * The capability set the sidebar is derived from.
+ *
+ * The conformance check above proves every declared capability has an
+ * implementation behind it. It cannot prove the set is the one the app was
+ * built for: dropping a capability compiles, passes conformance, and silently
+ * removes a finished page from the sidebar.
+ *
+ * The same list is asserted from the other side in
+ * frontend/src/mq/navigation.rabbitmq.test.ts, which turns it into the pages a
+ * connection can reach. Change one and this fails; change both deliberately
+ * and neither does.
+ */
+func TestCapabilitiesMatchTheSidebarContract(t *testing.T) {
+	want := []model.Capability{
+		"destination.list", "destination.create", "destination.delete",
+		"destination.purge", "destination.move", "destination.rebalance",
+		"subscription.list", "subscription.lag",
+		"message.query", "message.dlqTopology", "message.publish", "message.publishRich",
+		"cluster.topology", "cluster.metrics", "cluster.census",
+		"client.inspect", "client.close", "cluster.health",
+		"namespace.list", "namespace.admin", "namespace.limits",
+		"identity.list", "identity.admin", "identity.permissions",
+		"policy.list", "policy.admin", "parameter.admin",
+		"definitions.export", "definitions.import",
+		"replication.admin", "stream.clients",
+		"routing.exchanges", "routing.admin",
+	}
+
+	declared := map[model.Capability]bool{}
+	for _, capability := range capabilities() {
+		declared[capability] = true
+	}
+	expected := map[model.Capability]bool{}
+	for _, capability := range want {
+		expected[capability] = true
+		if !declared[capability] {
+			t.Errorf("%s is no longer declared; its page has left the sidebar", capability)
+		}
+	}
+	for _, capability := range capabilities() {
+		if !expected[capability] {
+			t.Errorf("%s is newly declared; add it to navigation.rabbitmq.test.ts too", capability)
+		}
+	}
+
+	/*
+	 * RocketMQ's access capability stays absent on purpose. Its port is shaped
+	 * around access keys and topic/group rules; RabbitMQ has users and
+	 * per-vhost permission regexes, and two of the five methods have no
+	 * counterpart at all. The permissions page is reached through the identity
+	 * capability instead.
+	 */
+	if declared[model.CapAccessControl] {
+		t.Error("declares access.control, which is RocketMQ's ACL shape rather than RabbitMQ's")
+	}
+	if !declared[model.CapIdentityList] {
+		t.Error("does not declare identity.list, so the permissions page is unreachable")
+	}
+}
