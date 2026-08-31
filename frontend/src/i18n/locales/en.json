@@ -505,6 +505,7 @@
         "producer": "Producer",
         "cluster": "Nodes",
         "vhosts": "Virtual hosts",
+        "policies": "Policies",
         "alerts": "Alerts",
         "acl": "Users / vhosts"
       },
@@ -2286,6 +2287,50 @@
         "deleteDesc": "Its queues, {{count}} messages, exchanges, bindings, policies and permissions go with it. There is no undo.",
         "deleted": "Deleted {{name}}",
         "deleteFailed": "Could not delete the virtual host"
+      }
+    },
+    "policies": {
+      "rabbitmq": {
+        "title": "Policies",
+        "subtitle": "A queue's arguments are fixed once declared; a policy is the only way to change a running one",
+        "search": "Search names or patterns…",
+        "new": "New policy",
+        "edit": "Edit policy",
+        "none": "No policies yet",
+        "noMatch": "No policy matches",
+        "tabPolicies": "Policies",
+        "tabParameters": "Runtime parameters, {{count}}",
+        "name": "Name",
+        "nameRequired": "A name is required",
+        "nameFixed": "The name is the identity; a rename is a new policy",
+        "pattern": "Pattern",
+        "patternRequired": "A pattern is required",
+        "patternHint": "A regular expression matched against queue or exchange names. ^order\\\\. matches everything starting with order.",
+        "applyTo": "Applies to",
+        "applyToHint": "A definition meant for quorum queues applied to all queues is rejected on every classic queue it matches, and the broker reports that per queue rather than when the policy is saved",
+        "priority": "Priority",
+        "priorityHint": "Only one policy applies to a given queue - the highest-priority match. Policies do not merge.",
+        "priorityNote": "Only the highest-priority matching policy applies. The others have no effect at all; they are not merged.",
+        "kind": "Kind",
+        "userPolicy": "User policy",
+        "operatorPolicy": "Operator policy",
+        "operatorHint": "Operator policies are set by whoever runs the broker; where both set the same key, the more restrictive value wins",
+        "definition": "Definition",
+        "definitionHint": "JSON, for example {\"max-length\": 5000, \"message-ttl\": 30000}",
+        "definitionInvalid": "The definition is not valid JSON",
+        "definitionNotObject": "The definition must be a JSON object",
+        "definitionEmpty": "The definition is empty - this policy would match queues and change nothing about them",
+        "vhostRequired": "Pick a virtual host",
+        "saved": "Saved {{name}}",
+        "deleteTitle": "Delete policy {{name}}",
+        "deleteDesc": "Every queue matched by {{pattern}} reverts to whatever it was declared with, immediately and with no warning from the broker.",
+        "deleted": "Deleted {{name}}",
+        "deleteFailed": "Could not delete",
+        "noParameters": "No runtime parameters",
+        "parameterHint": "Configuration the broker stores for its plugins. Shovels and federation upstreams live here - read and delete only, because a parameter's shape belongs to whichever plugin owns it and nothing here can validate one.",
+        "deleteParameterTitle": "Delete parameter {{name}}",
+        "deleteParameterDesc": "It belongs to the {{component}} component, whose configuration it is.",
+        "parameterDeleted": "Deleted {{name}}"
       }
     }
   }

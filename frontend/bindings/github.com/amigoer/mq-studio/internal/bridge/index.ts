@@ -53,6 +53,7 @@ export {
     PublishInput,
     QueueInput,
     QueueOffsetInput,
+    RabbitPolicyInput,
     ReplayInput,
     ResendInput,
     SendInput,

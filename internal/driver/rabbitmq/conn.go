@@ -103,6 +103,9 @@ func capabilities() []model.Capability {
 		model.CapIdentityList,
 		model.CapIdentityAdmin,
 		model.CapIdentityPermissions,
+		model.CapPolicyList,
+		model.CapPolicyAdmin,
+		model.CapParameterAdmin,
 
 		model.CapRouting,
 		model.CapRoutingAdmin,

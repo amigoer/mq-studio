@@ -463,3 +463,79 @@ func (s *Service) RevokeTopicPermission(ctx context.Context, connID int, namespa
 	defer cancel()
 	return api.RemoveTopicPermission(ctx, namespace, identity)
 }
+
+// Policies returns both user and operator policies, marked apart.
+func (s *Service) Policies(ctx context.Context, connID int) ([]*model.Policy, error) {
+	api, err := port[driver.PolicyAdmin](s, connID, model.CapPolicyList)
+	if err != nil {
+		if notConnected(err) {
+			return []*model.Policy{}, nil
+		}
+		return nil, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.ListPolicies(ctx)
+}
+
+// MatchingPolicies asks the broker which policies actually apply to one
+// destination.
+func (s *Service) MatchingPolicies(ctx context.Context, connID int, ref model.DestinationRef, kind string) ([]*model.Policy, error) {
+	api, err := port[driver.PolicyAdmin](s, connID, model.CapPolicyList)
+	if err != nil {
+		if notConnected(err) {
+			return []*model.Policy{}, nil
+		}
+		return nil, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.MatchingPolicies(ctx, ref, kind)
+}
+
+// SavePolicy creates a policy or replaces one of the same name.
+func (s *Service) SavePolicy(ctx context.Context, connID int, policy model.Policy) error {
+	api, err := port[driver.PolicyAdmin](s, connID, model.CapPolicyAdmin)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.SavePolicy(ctx, policy)
+}
+
+// DeletePolicy removes one, and every destination it applied to reverts.
+func (s *Service) DeletePolicy(ctx context.Context, connID int, namespace, name string, operator bool) error {
+	api, err := port[driver.PolicyAdmin](s, connID, model.CapPolicyAdmin)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.RemovePolicy(ctx, namespace, name, operator)
+}
+
+// RuntimeParameters returns the component configuration the broker stores.
+func (s *Service) RuntimeParameters(ctx context.Context, connID int) ([]*model.RuntimeParameter, error) {
+	api, err := port[driver.ParameterAdmin](s, connID, model.CapParameterAdmin)
+	if err != nil {
+		if notConnected(err) {
+			return []*model.RuntimeParameter{}, nil
+		}
+		return nil, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.ListRuntimeParameters(ctx)
+}
+
+// DeleteRuntimeParameter removes one component's stored configuration.
+func (s *Service) DeleteRuntimeParameter(ctx context.Context, connID int, component, namespace, name string) error {
+	api, err := port[driver.ParameterAdmin](s, connID, model.CapParameterAdmin)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.RemoveRuntimeParameter(ctx, component, namespace, name)
+}

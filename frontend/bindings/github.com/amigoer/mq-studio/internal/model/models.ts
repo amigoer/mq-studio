@@ -727,6 +727,20 @@ export enum Capability {
     CapIdentityList = "identity.list",
     CapIdentityAdmin = "identity.admin",
     CapIdentityPermissions = "identity.permissions",
+
+    /**
+     * CapPolicyList and CapPolicyAdmin are settings applied to destinations by
+     * pattern rather than at declaration. Only a family whose destinations are
+     * otherwise immutable needs them, which is what makes them RabbitMQ's.
+     */
+    CapPolicyList = "policy.list",
+    CapPolicyAdmin = "policy.admin",
+
+    /**
+     * CapParameterAdmin reads and removes the component configuration the
+     * broker stores for its plugins.
+     */
+    CapParameterAdmin = "parameter.admin",
     CapRouting = "routing.exchanges",
 
     /**
@@ -2429,6 +2443,85 @@ export enum NodeStatus {
 };
 
 /**
+ * Policy applies settings to every destination whose name matches a pattern.
+ * 
+ * It is the answer to something RabbitMQ otherwise cannot do: a queue's
+ * arguments are fixed at declaration, so the only way to change a live queue's
+ * TTL, length limit or dead-letter exchange is a policy matching it. That
+ * makes this page the edit form the queue page does not have.
+ * 
+ * Only one policy applies to a given queue - the highest priority that matches
+ * - which is the rule most people get wrong. Policies do not merge.
+ */
+export class Policy {
+    "namespace": string;
+    "name": string;
+
+    /**
+     * Pattern is a regular expression matched against the destination's name.
+     */
+    "pattern": string;
+
+    /**
+     * ApplyTo is "queues", "exchanges", "classic_queues", "quorum_queues",
+     * "streams" or "all".
+     */
+    "applyTo": string;
+
+    /**
+     * Priority breaks ties. Higher wins, and only the winner applies.
+     */
+    "priority": number;
+
+    /**
+     * Definition is the settings applied, as JSON so the types survive.
+     */
+    "definition": string;
+
+    /**
+     * Operator marks a policy set by the operator rather than the user. The
+     * broker applies both, and where they set the same key the operator's more
+     * restrictive value wins - which is the point of them.
+     */
+    "operator": boolean;
+
+    /** Creates a new Policy instance. */
+    constructor($$source: Partial<Policy> = {}) {
+        if (!("namespace" in $$source)) {
+            this["namespace"] = "";
+        }
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("pattern" in $$source)) {
+            this["pattern"] = "";
+        }
+        if (!("applyTo" in $$source)) {
+            this["applyTo"] = "";
+        }
+        if (!("priority" in $$source)) {
+            this["priority"] = 0;
+        }
+        if (!("definition" in $$source)) {
+            this["definition"] = "";
+        }
+        if (!("operator" in $$source)) {
+            this["operator"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new Policy instance from a string or object.
+     */
+    static createFrom($$source: any = {}): Policy {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new Policy($$parsedSource as Partial<Policy>);
+    }
+}
+
+/**
  * ProducerClient is one connected publisher.
  * 
  * There is no list of publishers the way there is of subscriptions: a broker
@@ -2796,6 +2889,53 @@ export class ResourceAlarm {
     static createFrom($$source: any = {}): ResourceAlarm {
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         return new ResourceAlarm($$parsedSource as Partial<ResourceAlarm>);
+    }
+}
+
+/**
+ * RuntimeParameter is a component's configuration, kept by the broker rather
+ * than in a file.
+ * 
+ * Shovels and federation upstreams are stored as these, which is why the page
+ * shows them: a parameter with an unfamiliar component name is usually a
+ * plugin's configuration, and being able to see it is the difference between
+ * diagnosing one and guessing.
+ */
+export class RuntimeParameter {
+    "component": string;
+    "namespace": string;
+    "name": string;
+
+    /**
+     * Value is JSON, because a parameter's shape is defined by whichever
+     * plugin owns the component and this app cannot know it.
+     */
+    "value": string;
+
+    /** Creates a new RuntimeParameter instance. */
+    constructor($$source: Partial<RuntimeParameter> = {}) {
+        if (!("component" in $$source)) {
+            this["component"] = "";
+        }
+        if (!("namespace" in $$source)) {
+            this["namespace"] = "";
+        }
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("value" in $$source)) {
+            this["value"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new RuntimeParameter instance from a string or object.
+     */
+    static createFrom($$source: any = {}): RuntimeParameter {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new RuntimeParameter($$parsedSource as Partial<RuntimeParameter>);
     }
 }
 

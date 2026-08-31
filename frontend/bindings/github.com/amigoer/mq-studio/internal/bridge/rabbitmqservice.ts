@@ -130,6 +130,13 @@ export function DeleteNamespace(connID: number, name: string): $CancellablePromi
 }
 
 /**
+ * DeletePolicy removes one. Every destination it applied to reverts at once.
+ */
+export function DeletePolicy(connID: number, vhost: string, name: string, operator: boolean): $CancellablePromise<void> {
+    return $Call.ByID(3230703960, connID, vhost, name, operator);
+}
+
+/**
  * DeleteQueue removes a queue and everything in it.
  * 
  * ifUnused and ifEmpty are the broker's own preconditions. They are checked
@@ -138,6 +145,13 @@ export function DeleteNamespace(connID: number, name: string): $CancellablePromi
  */
 export function DeleteQueue(connID: number, vhost: string, name: string, ifUnused: boolean, ifEmpty: boolean): $CancellablePromise<void> {
     return $Call.ByID(1602678449, connID, vhost, name, ifUnused, ifEmpty);
+}
+
+/**
+ * DeleteRuntimeParameter removes one component's stored configuration.
+ */
+export function DeleteRuntimeParameter(connID: number, component: string, vhost: string, name: string): $CancellablePromise<void> {
+    return $Call.ByID(926421657, connID, component, vhost, name);
 }
 
 /**
@@ -168,6 +182,16 @@ export function Identities(connID: number): $CancellablePromise<(model$0.Identit
 }
 
 /**
+ * MatchingPolicies asks the broker which policies actually apply to one
+ * destination. Only the highest-priority match does, and they do not merge.
+ */
+export function MatchingPolicies(connID: number, vhost: string, name: string, kind: string): $CancellablePromise<(model$0.Policy | null)[]> {
+    return $Call.ByID(4267174108, connID, vhost, name, kind).then(($result: any) => {
+        return $$createType18($result);
+    });
+}
+
+/**
  * MoveMessages returns how many reached the target, which is meaningful even
  * when the call also returns an error: that count already moved.
  */
@@ -180,6 +204,15 @@ export function MoveMessages(connID: number, input: $models.MoveInput): $Cancell
  */
 export function Namespaces(connID: number): $CancellablePromise<(model$0.Namespace | null)[]> {
     return $Call.ByID(2045585925, connID).then(($result: any) => {
+        return $$createType21($result);
+    });
+}
+
+/**
+ * Policies returns both user and operator policies, marked apart.
+ */
+export function Policies(connID: number): $CancellablePromise<(model$0.Policy | null)[]> {
+    return $Call.ByID(1992342523, connID).then(($result: any) => {
         return $$createType18($result);
     });
 }
@@ -190,7 +223,7 @@ export function Namespaces(connID: number): $CancellablePromise<(model$0.Namespa
  */
 export function Publish(connID: number, input: $models.PublishInput): $CancellablePromise<model$0.PublishResult | null> {
     return $Call.ByID(718367916, connID, input).then(($result: any) => {
-        return $$createType20($result);
+        return $$createType23($result);
     });
 }
 
@@ -226,6 +259,16 @@ export function RevokeTopicPermission(connID: number, vhost: string, identity: s
 }
 
 /**
+ * RuntimeParameters returns the component configuration the broker stores for
+ * its plugins - shovels and federation upstreams live here.
+ */
+export function RuntimeParameters(connID: number): $CancellablePromise<(model$0.RuntimeParameter | null)[]> {
+    return $Call.ByID(2741188367, connID).then(($result: any) => {
+        return $$createType26($result);
+    });
+}
+
+/**
  * SaveIdentity creates a user or updates one.
  */
 export function SaveIdentity(connID: number, input: $models.IdentityInput): $CancellablePromise<void> {
@@ -237,6 +280,13 @@ export function SaveIdentity(connID: number, input: $models.IdentityInput): $Can
  */
 export function SaveNamespace(connID: number, input: $models.NamespaceInput): $CancellablePromise<void> {
     return $Call.ByID(2223265787, connID, input);
+}
+
+/**
+ * SavePolicy creates a policy or replaces one of the same name.
+ */
+export function SavePolicy(connID: number, input: $models.RabbitPolicyInput): $CancellablePromise<void> {
+    return $Call.ByID(915666862, connID, input);
 }
 
 /**
@@ -267,7 +317,7 @@ export function SetTopicPermission(connID: number, input: $models.TopicPermissio
  */
 export function TopicPermissions(connID: number): $CancellablePromise<(model$0.TopicPermission | null)[]> {
     return $Call.ByID(1841620516, connID).then(($result: any) => {
-        return $$createType23($result);
+        return $$createType29($result);
     });
 }
 
@@ -288,11 +338,17 @@ const $$createType12 = $Create.Nullable($$createType11);
 const $$createType13 = model$0.Identity.createFrom;
 const $$createType14 = $Create.Nullable($$createType13);
 const $$createType15 = $Create.Array($$createType14);
-const $$createType16 = model$0.Namespace.createFrom;
+const $$createType16 = model$0.Policy.createFrom;
 const $$createType17 = $Create.Nullable($$createType16);
 const $$createType18 = $Create.Array($$createType17);
-const $$createType19 = model$0.PublishResult.createFrom;
+const $$createType19 = model$0.Namespace.createFrom;
 const $$createType20 = $Create.Nullable($$createType19);
-const $$createType21 = model$0.TopicPermission.createFrom;
-const $$createType22 = $Create.Nullable($$createType21);
-const $$createType23 = $Create.Array($$createType22);
+const $$createType21 = $Create.Array($$createType20);
+const $$createType22 = model$0.PublishResult.createFrom;
+const $$createType23 = $Create.Nullable($$createType22);
+const $$createType24 = model$0.RuntimeParameter.createFrom;
+const $$createType25 = $Create.Nullable($$createType24);
+const $$createType26 = $Create.Array($$createType25);
+const $$createType27 = model$0.TopicPermission.createFrom;
+const $$createType28 = $Create.Nullable($$createType27);
+const $$createType29 = $Create.Array($$createType28);

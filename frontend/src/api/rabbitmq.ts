@@ -16,7 +16,9 @@ import type {
   DeadLetterQueue,
   Identity,
   Namespace,
+  Policy,
   PublishResult,
+  RuntimeParameter,
   TopicPermission,
 } from "@bindings/model/models";
 import { present } from "./client";
@@ -34,7 +36,9 @@ export type {
   Identity,
   Namespace,
   NamespacePermission,
+  Policy,
   PublishResult,
+  RuntimeParameter,
   TopicPermission,
   HealthCheck,
   ResourceAlarm,
@@ -326,3 +330,54 @@ export const revokePermission = (
 /** The per-exchange narrowing applied on top of the namespace permissions. */
 export const getTopicPermissions = (connID: number): Promise<TopicPermission[]> =>
   RabbitMQService.TopicPermissions(connID).then(present);
+
+/** Both user and operator policies, marked apart by the `operator` flag. */
+export const getPolicies = (connID: number): Promise<Policy[]> =>
+  RabbitMQService.Policies(connID).then(present);
+
+/**
+ * Which policies the broker says actually apply to one destination.
+ *
+ * Worth asking rather than working out: only the highest-priority match
+ * applies and policies do not merge, which is the rule most people get wrong.
+ */
+export const getMatchingPolicies = (
+  connID: number,
+  vhost: string,
+  name: string,
+  kind: "queue" | "exchange",
+): Promise<Policy[]> =>
+  RabbitMQService.MatchingPolicies(connID, vhost, name, kind).then(present);
+
+export interface PolicyInput {
+  vhost: string;
+  name: string;
+  pattern: string;
+  applyTo: string;
+  priority: number;
+  /** The settings applied, as JSON so an integer stays an integer. */
+  definition: string;
+  operator: boolean;
+}
+
+export const savePolicy = (connID: number, input: PolicyInput): Promise<void> =>
+  RabbitMQService.SavePolicy(connID, input);
+
+/** Deletes a policy. Every destination it applied to reverts at once. */
+export const deletePolicy = (
+  connID: number,
+  vhost: string,
+  name: string,
+  operator: boolean,
+): Promise<void> => RabbitMQService.DeletePolicy(connID, vhost, name, operator);
+
+/** The component configuration the broker stores - shovels and federation live here. */
+export const getRuntimeParameters = (connID: number): Promise<RuntimeParameter[]> =>
+  RabbitMQService.RuntimeParameters(connID).then(present);
+
+export const deleteRuntimeParameter = (
+  connID: number,
+  component: string,
+  vhost: string,
+  name: string,
+): Promise<void> => RabbitMQService.DeleteRuntimeParameter(connID, component, vhost, name);

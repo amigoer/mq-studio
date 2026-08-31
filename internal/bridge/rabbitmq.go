@@ -375,3 +375,60 @@ func (s *RabbitMQService) SetTopicPermission(connID int, input TopicPermissionIn
 func (s *RabbitMQService) RevokeTopicPermission(connID int, vhost, identity string) error {
 	return s.service.RevokeTopicPermission(context.Background(), connID, vhost, identity)
 }
+
+// Policies returns both user and operator policies, marked apart.
+func (s *RabbitMQService) Policies(connID int) ([]*model.Policy, error) {
+	return s.service.Policies(context.Background(), connID)
+}
+
+// MatchingPolicies asks the broker which policies actually apply to one
+// destination. Only the highest-priority match does, and they do not merge.
+func (s *RabbitMQService) MatchingPolicies(connID int, vhost, name, kind string) ([]*model.Policy, error) {
+	return s.service.MatchingPolicies(context.Background(), connID,
+		model.DestinationRef{Namespace: vhost, Name: name}, kind)
+}
+
+// RabbitPolicyInput creates a policy or replaces one of the same name.
+//
+// Qualified because "policy" means two different things across the families
+// this bridge serves: RocketMQ's PolicyInput is an ACL rule, and this is a
+// pattern that applies settings to destinations.
+type RabbitPolicyInput struct {
+	Vhost    string `json:"vhost"`
+	Name     string `json:"name"`
+	Pattern  string `json:"pattern"`
+	ApplyTo  string `json:"applyTo"`
+	Priority int    `json:"priority"`
+	// Definition as JSON, so an integer stays an integer.
+	Definition string `json:"definition"`
+	Operator   bool   `json:"operator"`
+}
+
+// SavePolicy creates a policy or replaces one of the same name.
+func (s *RabbitMQService) SavePolicy(connID int, input RabbitPolicyInput) error {
+	return s.service.SavePolicy(context.Background(), connID, model.Policy{
+		Namespace:  input.Vhost,
+		Name:       input.Name,
+		Pattern:    input.Pattern,
+		ApplyTo:    input.ApplyTo,
+		Priority:   input.Priority,
+		Definition: input.Definition,
+		Operator:   input.Operator,
+	})
+}
+
+// DeletePolicy removes one. Every destination it applied to reverts at once.
+func (s *RabbitMQService) DeletePolicy(connID int, vhost, name string, operator bool) error {
+	return s.service.DeletePolicy(context.Background(), connID, vhost, name, operator)
+}
+
+// RuntimeParameters returns the component configuration the broker stores for
+// its plugins - shovels and federation upstreams live here.
+func (s *RabbitMQService) RuntimeParameters(connID int) ([]*model.RuntimeParameter, error) {
+	return s.service.RuntimeParameters(context.Background(), connID)
+}
+
+// DeleteRuntimeParameter removes one component's stored configuration.
+func (s *RabbitMQService) DeleteRuntimeParameter(connID int, component, vhost, name string) error {
+	return s.service.DeleteRuntimeParameter(context.Background(), connID, component, vhost, name)
+}

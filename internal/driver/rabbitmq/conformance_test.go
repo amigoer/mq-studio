@@ -2371,3 +2371,176 @@ func TestLiveIdentityWithoutPasswordIsDeliberate(t *testing.T) {
 		t.Error("asking for no password left one in place")
 	}
 }
+
+// The whole life of a policy, and the answer only the broker can give: which
+// one actually applies to a queue.
+func TestLivePolicyLifecycle(t *testing.T) {
+	conn := liveConn(t)
+	defer func() { _ = conn.Close() }()
+
+	ctx := context.Background()
+	const name = "mqs-test-policy"
+	const queue = "mqs-test-policy-q"
+
+	if err := conn.CreateDestination(ctx, model.DestinationSpec{
+		Ref:        model.DestinationRef{Namespace: "/", Name: queue},
+		Attributes: map[string]string{AttrDurable: "true"},
+	}); err != nil {
+		t.Fatalf("declare queue: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = conn.RemoveDestination(context.Background(),
+			model.DestinationRef{Namespace: "/", Name: queue})
+	})
+
+	if err := conn.SavePolicy(ctx, model.Policy{
+		Namespace: "/", Name: name, Pattern: "^mqs-test-policy-",
+		ApplyTo: "queues", Priority: 5,
+		Definition: `{"message-ttl":30000,"max-length":5000}`,
+	}); err != nil {
+		t.Fatalf("save policy: %v", err)
+	}
+	t.Cleanup(func() { _ = conn.RemovePolicy(context.Background(), "/", name, false) })
+
+	find := func() *model.Policy {
+		t.Helper()
+		policies, err := conn.ListPolicies(ctx)
+		if err != nil {
+			t.Fatalf("list policies: %v", err)
+		}
+		for _, policy := range policies {
+			if policy.Name == name {
+				return policy
+			}
+		}
+		return nil
+	}
+
+	saved := find()
+	if saved == nil {
+		t.Fatal("the policy just saved is missing")
+	}
+	if saved.Priority != 5 || saved.ApplyTo != "queues" {
+		t.Errorf("priority/applyTo = %d/%q", saved.Priority, saved.ApplyTo)
+	}
+	if saved.Operator {
+		t.Error("a user policy came back marked as an operator policy")
+	}
+	// The definition's integers have to have survived JSON's single number
+	// type, exactly as queue arguments do.
+	var definition map[string]interface{}
+	if err := json.Unmarshal([]byte(saved.Definition), &definition); err != nil {
+		t.Fatalf("definition is not decodable: %v", err)
+	}
+	if ttl, ok := definition["message-ttl"].(float64); !ok || ttl != 30000 {
+		t.Errorf("message-ttl = %#v", definition["message-ttl"])
+	}
+
+	// The broker's own answer to which policy applies, which is the call that
+	// makes this page worth having.
+	matching, err := conn.MatchingPolicies(ctx,
+		model.DestinationRef{Namespace: "/", Name: queue}, "queue")
+	if err != nil {
+		t.Fatalf("matching policies: %v", err)
+	}
+	found := false
+	for _, policy := range matching {
+		if policy.Name == name {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("the broker does not report %q as applying to %q", name, queue)
+	}
+
+	// The queue itself reports the policy that matched it, which is what the
+	// queue detail panel shows. It polls: the broker attributes a new policy to
+	// its matching queues asynchronously, so this is not true the instant the
+	// policy is saved.
+	if !waitForPolicyOn(t, conn, queue, name) {
+		detail, _ := conn.DestinationDetail(ctx, model.DestinationRef{Namespace: "/", Name: queue})
+		t.Errorf("the queue reports policy %q, want %q", detail.Attributes[AttrPolicy], name)
+	}
+
+	if err := conn.RemovePolicy(ctx, "/", name, false); err != nil {
+		t.Fatalf("remove policy: %v", err)
+	}
+	if find() != nil {
+		t.Error("the policy survived its deletion")
+	}
+}
+
+func waitForPolicyOn(t *testing.T, conn *Conn, queue, policy string) bool {
+	t.Helper()
+	deadline := time.Now().Add(10 * time.Second)
+	for {
+		detail, err := conn.DestinationDetail(context.Background(),
+			model.DestinationRef{Namespace: "/", Name: queue})
+		if err == nil && detail.Attributes[AttrPolicy] == policy {
+			return true
+		}
+		if time.Now().After(deadline) {
+			return false
+		}
+		time.Sleep(200 * time.Millisecond)
+	}
+}
+
+// An operator policy is a different object on a different endpoint, and the
+// listing has to keep them apart - it decides who can change one and which
+// value wins where both set the same key.
+func TestLiveOperatorPolicyIsMarkedApart(t *testing.T) {
+	conn := liveConn(t)
+	defer func() { _ = conn.Close() }()
+
+	ctx := context.Background()
+	const name = "mqs-test-operator-policy"
+
+	if err := conn.SavePolicy(ctx, model.Policy{
+		Namespace: "/", Name: name, Pattern: "^mqs-test-", ApplyTo: "queues",
+		Definition: `{"max-length":100}`, Operator: true,
+	}); err != nil {
+		t.Fatalf("save operator policy: %v", err)
+	}
+	t.Cleanup(func() { _ = conn.RemovePolicy(context.Background(), "/", name, true) })
+
+	policies, err := conn.ListPolicies(ctx)
+	if err != nil {
+		t.Fatalf("list: %v", err)
+	}
+	var mine *model.Policy
+	for _, policy := range policies {
+		if policy.Name == name {
+			mine = policy
+		}
+	}
+	if mine == nil {
+		t.Fatal("the operator policy is missing from the listing")
+	}
+	if !mine.Operator {
+		t.Error("an operator policy came back marked as a user policy")
+	}
+}
+
+// Shovels and federation upstreams are stored as runtime parameters, which is
+// why the page shows them - and why the driver only reads and deletes.
+func TestLiveRuntimeParametersAreReadable(t *testing.T) {
+	conn := liveConn(t)
+	defer func() { _ = conn.Close() }()
+
+	// A stock broker has none, which is a result rather than an error.
+	parameters, err := conn.ListRuntimeParameters(context.Background())
+	if err != nil {
+		t.Fatalf("list runtime parameters: %v", err)
+	}
+	for _, parameter := range parameters {
+		if parameter.Component == "" || parameter.Name == "" {
+			t.Errorf("parameter %+v is missing a component or a name", parameter)
+		}
+		// The value crosses as JSON, because its shape belongs to the plugin.
+		var decoded interface{}
+		if err := json.Unmarshal([]byte(parameter.Value), &decoded); err != nil {
+			t.Errorf("parameter %q has an undecodable value %q", parameter.Name, parameter.Value)
+		}
+	}
+}

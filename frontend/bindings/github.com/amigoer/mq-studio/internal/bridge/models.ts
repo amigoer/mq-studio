@@ -1024,6 +1024,62 @@ export class QueueOffsetInput {
 }
 
 /**
+ * RabbitPolicyInput creates a policy or replaces one of the same name.
+ * 
+ * Qualified because "policy" means two different things across the families
+ * this bridge serves: RocketMQ's PolicyInput is an ACL rule, and this is a
+ * pattern that applies settings to destinations.
+ */
+export class RabbitPolicyInput {
+    "vhost": string;
+    "name": string;
+    "pattern": string;
+    "applyTo": string;
+    "priority": number;
+
+    /**
+     * Definition as JSON, so an integer stays an integer.
+     */
+    "definition": string;
+    "operator": boolean;
+
+    /** Creates a new RabbitPolicyInput instance. */
+    constructor($$source: Partial<RabbitPolicyInput> = {}) {
+        if (!("vhost" in $$source)) {
+            this["vhost"] = "";
+        }
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("pattern" in $$source)) {
+            this["pattern"] = "";
+        }
+        if (!("applyTo" in $$source)) {
+            this["applyTo"] = "";
+        }
+        if (!("priority" in $$source)) {
+            this["priority"] = 0;
+        }
+        if (!("definition" in $$source)) {
+            this["definition"] = "";
+        }
+        if (!("operator" in $$source)) {
+            this["operator"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new RabbitPolicyInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): RabbitPolicyInput {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new RabbitPolicyInput($$parsedSource as Partial<RabbitPolicyInput>);
+    }
+}
+
+/**
  * ReplayInput carries a replay-to-one-consumer request.
  */
 export class ReplayInput {

@@ -136,7 +136,16 @@ const (
 	CapIdentityList        Capability = "identity.list"
 	CapIdentityAdmin       Capability = "identity.admin"
 	CapIdentityPermissions Capability = "identity.permissions"
-	CapRouting             Capability = "routing.exchanges"
+
+	// CapPolicyList and CapPolicyAdmin are settings applied to destinations by
+	// pattern rather than at declaration. Only a family whose destinations are
+	// otherwise immutable needs them, which is what makes them RabbitMQ's.
+	CapPolicyList  Capability = "policy.list"
+	CapPolicyAdmin Capability = "policy.admin"
+	// CapParameterAdmin reads and removes the component configuration the
+	// broker stores for its plugins.
+	CapParameterAdmin Capability = "parameter.admin"
+	CapRouting        Capability = "routing.exchanges"
 
 	// CapRoutingAdmin creates and deletes exchanges and bindings. Separate
 	// from reading them: a connection may list a topology it has no permission

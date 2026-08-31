@@ -505,6 +505,7 @@
         "producer": "生产者",
         "cluster": "节点",
         "vhosts": "虚拟主机",
+        "policies": "策略",
         "alerts": "告警",
         "acl": "用户 / vhost"
       },
@@ -2286,6 +2287,50 @@
         "deleteDesc": "里面的队列、{{count}} 条消息、交换机、绑定、策略和权限会一并删除。此操作无法撤销。",
         "deleted": "已删除虚拟主机「{{name}}」",
         "deleteFailed": "删除虚拟主机失败"
+      }
+    },
+    "policies": {
+      "rabbitmq": {
+        "title": "策略",
+        "subtitle": "队列声明后参数就不能改了，策略是唯一能改运行中队列行为的东西",
+        "search": "搜索策略名或匹配模式…",
+        "new": "新建策略",
+        "edit": "编辑策略",
+        "none": "还没有任何策略",
+        "noMatch": "没有匹配的策略",
+        "tabPolicies": "策略",
+        "tabParameters": "运行时参数 · {{count}}",
+        "name": "名称",
+        "nameRequired": "请填写策略名",
+        "nameFixed": "名称即身份，不能修改；改名请新建一条",
+        "pattern": "匹配模式",
+        "patternRequired": "请填写匹配模式",
+        "patternHint": "正则，匹配队列或交换机的名字。^order\\\\. 匹配所有 order. 开头的。",
+        "applyTo": "作用于",
+        "applyToHint": "写给仲裁队列的定义如果作用于全部队列，会在每个 classic 队列上被拒绝，而且 broker 是逐个队列报错，不是保存时报",
+        "priority": "优先级",
+        "priorityHint": "同一个队列只会命中一条策略 —— 优先级最高的那条。策略之间不会合并。",
+        "priorityNote": "注意：一个队列只应用命中的最高优先级策略，其余的完全不生效，不会合并。",
+        "kind": "类型",
+        "userPolicy": "用户策略",
+        "operatorPolicy": "操作员策略",
+        "operatorHint": "操作员策略由 broker 运维方设置；两者设了同一个键时，取更严格的那个值",
+        "definition": "定义",
+        "definitionHint": "JSON。比如 {\"max-length\": 5000, \"message-ttl\": 30000}",
+        "definitionInvalid": "定义不是合法的 JSON",
+        "definitionNotObject": "定义必须是一个 JSON 对象",
+        "definitionEmpty": "定义是空的 —— 这条策略会匹配队列但什么都不改",
+        "vhostRequired": "请选择虚拟主机",
+        "saved": "已保存策略「{{name}}」",
+        "deleteTitle": "删除策略「{{name}}」",
+        "deleteDesc": "所有被「{{pattern}}」匹配到的队列会立刻恢复成声明时的参数，broker 不会有任何提示。",
+        "deleted": "已删除策略「{{name}}」",
+        "deleteFailed": "删除失败",
+        "noParameters": "没有运行时参数",
+        "parameterHint": "broker 为插件保存的配置。Shovel 和 Federation 的上游就存在这里 —— 只读和删除：参数的结构由对应插件定义，这里没法校验。",
+        "deleteParameterTitle": "删除参数「{{name}}」",
+        "deleteParameterDesc": "属于组件 {{component}}，删除后该组件的这项配置就没了。",
+        "parameterDeleted": "已删除参数「{{name}}」"
       }
     }
   }

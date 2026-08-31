@@ -20,6 +20,7 @@ import {
   Mail,
   Plug,
   Radio,
+  ScrollText,
   Send,
   Server,
   Shield,
@@ -42,6 +43,7 @@ export type PageId =
   | "topics"
   | "exchanges"
   | "vhosts"
+  | "policies"
   | "consumers"
   | "messages"
   | "dlq"
@@ -151,6 +153,7 @@ export const PROTOCOLS: Record<ProtocolId, Protocol> = {
         items: [
           { id: "cluster", icon: Server, label: "shell.nav.rabbitmq.cluster" },
           { id: "vhosts", icon: Boxes, label: "shell.nav.rabbitmq.vhosts" },
+          { id: "policies", icon: ScrollText, label: "shell.nav.rabbitmq.policies" },
           { id: "alerts", icon: BellRing, label: "shell.nav.rabbitmq.alerts" },
           { id: "acl", icon: Shield, label: "shell.nav.rabbitmq.acl" },
         ],

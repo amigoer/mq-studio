@@ -380,6 +380,35 @@ type IdentityPermissions interface {
 	RemoveTopicPermission(ctx context.Context, namespace, identity string) error
 }
 
+// PolicyAdmin manages settings applied to destinations by pattern.
+//
+// It exists for a family whose destinations are immutable once declared: a
+// RabbitMQ queue's arguments are fixed, so a policy matching it is the only
+// way to change a live queue's TTL, length limit or dead-letter exchange. A
+// family that can simply update a destination has no need of one.
+type PolicyAdmin interface {
+	ListPolicies(ctx context.Context) ([]*model.Policy, error)
+	// MatchingPolicies asks the broker which policies actually apply to one
+	// destination, which is not something a caller can work out reliably by
+	// matching patterns itself - only the highest-priority match applies, and
+	// policies do not merge.
+	MatchingPolicies(ctx context.Context, ref model.DestinationRef, kind string) ([]*model.Policy, error)
+	SavePolicy(ctx context.Context, policy model.Policy) error
+	RemovePolicy(ctx context.Context, namespace, name string, operator bool) error
+}
+
+// ParameterAdmin reads the component configuration a broker stores for its
+// plugins.
+//
+// Read and delete only. A parameter's shape belongs to whichever plugin owns
+// the component, so a generic setter would be a way to write configuration
+// nothing validates; components this app understands get typed surfaces of
+// their own.
+type ParameterAdmin interface {
+	ListRuntimeParameters(ctx context.Context) ([]*model.RuntimeParameter, error)
+	RemoveRuntimeParameter(ctx context.Context, component, namespace, name string) error
+}
+
 // RoutingMutator creates and deletes exchanges and bindings.
 //
 // Separate from RoutingAdmin because reading a topology and changing it are
