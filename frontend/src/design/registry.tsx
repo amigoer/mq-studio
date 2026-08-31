@@ -35,7 +35,6 @@ import { MessagesPulsar } from "./boards/messages/MessagesPulsar";
 import { MessagesRedis } from "./boards/messages/MessagesRedis";
 
 import { DlqRocketMQ } from "./boards/dlq/DlqRocketMQ";
-import { DlqKafka } from "./boards/dlq/DlqKafka";
 import { DlqRabbitMQ } from "./boards/dlq/DlqRabbitMQ";
 import { DlqPulsar } from "./boards/dlq/DlqPulsar";
 import { PelRedis } from "./boards/dlq/PelRedis";
@@ -129,7 +128,6 @@ const BOARDS: Partial<
   },
   dlq: {
     rocketmq: DlqRocketMQ,
-    kafka: DlqKafka,
     rabbitmq: DlqRabbitMQ,
     pulsar: DlqPulsar,
     redis: PelRedis,

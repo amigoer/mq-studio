@@ -529,7 +529,6 @@
         "topics": "Topics",
         "consumers": "Consumer groups",
         "messages": "Messages",
-        "dlq": "DLT",
         "producer": "Producer",
         "cluster": "Brokers",
         "alerts": "Alerts",
@@ -2066,17 +2065,6 @@
         "xackDrop": "XACK (drop)"
       },
       "last24h": "Last 24 hours",
-      "kafka": {
-        "title": "Dead letters (DLT)",
-        "subtitle": "Found by the .DLT suffix convention · 3 DLTs",
-        "convention": "Convention…",
-        "source": "Source: orders.created",
-        "target": "→ orders.created.DLT (12)",
-        "exception": "Exception (header)",
-        "hint": "Kafka cannot delete a single record — a DLT is cleared by retention",
-        "resend": "Resend to orders.created",
-        "changeTarget": "Change target topic…"
-      },
       "pulsar": {
         "title": "Dead letters (DLQ)",
         "subtitle": "Subscription settle-sub · order-created-settle-sub-DLQ · 8 messages",

@@ -120,7 +120,6 @@ export const PROTOCOLS: Record<ProtocolId, Protocol> = {
           { id: "topics", icon: Layers, label: "shell.nav.kafka.topics" },
           { id: "consumers", icon: Users, label: "shell.nav.kafka.consumers" },
           { id: "messages", icon: Mail, label: "shell.nav.kafka.messages" },
-          { id: "dlq", icon: TriangleAlert, label: "shell.nav.kafka.dlq" },
           { id: "producer", icon: Send, label: "shell.nav.kafka.producer" },
         ],
       },

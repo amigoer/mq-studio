@@ -529,7 +529,6 @@
         "topics": "Topic",
         "consumers": "消费者组",
         "messages": "消息",
-        "dlq": "死信 DLT",
         "producer": "生产者",
         "cluster": "Broker",
         "alerts": "告警",
@@ -2066,17 +2065,6 @@
         "xackDrop": "XACK 放弃"
       },
       "last24h": "近 24 小时",
-      "kafka": {
-        "title": "死信 DLT",
-        "subtitle": "按 .DLT 后缀约定自动发现 · 3 个 DLT",
-        "convention": "配置约定…",
-        "source": "源：orders.created",
-        "target": "→ orders.created.DLT（12 条）",
-        "exception": "异常（header）",
-        "hint": "Kafka 不支持删除单条 · DLT 依赖 retention 清理",
-        "resend": "重发到 orders.created",
-        "changeTarget": "改目标 Topic…"
-      },
       "pulsar": {
         "title": "死信 DLQ",
         "subtitle": "订阅 settle-sub · order-created-settle-sub-DLQ · 8 条",
