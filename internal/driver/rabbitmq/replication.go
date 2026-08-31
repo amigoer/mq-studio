@@ -18,21 +18,29 @@ import (
 // runtime parameter, and its state is transient. The difference matters - a
 // shovel can be perfectly defined and permanently failing to connect, and only
 // the second says so.
+//
+// The status comes first because it is also the proof the plugin is loaded. A
+// definition lives in the parameter store, which is core, so a broker with no
+// shovel plugin answers that call with an empty list - and "no shovels are
+// configured" is the wrong thing to tell someone whose shovels are simply not
+// being run.
 func (c *Conn) ListShovels(ctx context.Context) ([]*model.Shovel, error) {
+	reported, err := call(ctx, c.mgmt, func(client *rabbithole.Client) ([]rabbithole.ShovelStatus, error) {
+		return client.ListShovelStatus("")
+	})
+	if err != nil {
+		return nil, fmt.Errorf("list shovels: %w", err)
+	}
+	states := map[string]rabbithole.ShovelStatus{}
+	for _, status := range reported {
+		states[status.Vhost+"/"+status.Name] = status
+	}
+
 	defined, err := call(ctx, c.mgmt, func(client *rabbithole.Client) ([]rabbithole.ShovelInfo, error) {
 		return client.ListShovels()
 	})
 	if err != nil {
 		return nil, fmt.Errorf("list shovels: %w", err)
-	}
-
-	states := map[string]rabbithole.ShovelStatus{}
-	if reported, statusErr := call(ctx, c.mgmt, func(client *rabbithole.Client) ([]rabbithole.ShovelStatus, error) {
-		return client.ListShovelStatus("")
-	}); statusErr == nil {
-		for _, status := range reported {
-			states[status.Vhost+"/"+status.Name] = status
-		}
 	}
 
 	shovels := make([]*model.Shovel, 0, len(defined))
@@ -190,15 +198,33 @@ func redactURI(raw string) string {
 	return parsed.String()
 }
 
-// hasReplicationPlugins reports whether the broker can answer about shovels at
-// all. A 404 means the plugin is off, which is a deployment choice rather than
-// a failure.
+// hasReplicationPlugins reports whether the broker can answer about either
+// half of this page. A 404 means the plugin is off, which is a deployment
+// choice rather than a failure.
 //
 // Checked once at connect rather than per page load, so the sidebar can say
 // "this needs a plugin" instead of the page failing when someone opens it.
+//
+// Deliberately not the definition endpoints: a shovel is stored as a runtime
+// parameter, and /api/parameters/shovel answers on a broker with no shovel
+// plugin at all because the parameter store is core. Only the plugins' own
+// endpoints - the shovel status and the federation links - 404 when they are
+// absent, which is what has to be asked.
+//
+// Either one is enough. They are two independent plugins, and a broker with
+// one of them has a page worth opening.
 func (c *Conn) hasReplicationPlugins(ctx context.Context) error {
-	_, err := call(ctx, c.mgmt, func(client *rabbithole.Client) ([]rabbithole.ShovelInfo, error) {
-		return client.ListShovels()
+	_, shovelErr := call(ctx, c.mgmt, func(client *rabbithole.Client) ([]rabbithole.ShovelStatus, error) {
+		return client.ListShovelStatus("")
 	})
-	return err
+	if shovelErr == nil {
+		return nil
+	}
+	_, federationErr := call(ctx, c.mgmt, func(client *rabbithole.Client) (rabbithole.FederationLinkMap, error) {
+		return client.ListFederationLinks()
+	})
+	if federationErr == nil {
+		return nil
+	}
+	return shovelErr
 }

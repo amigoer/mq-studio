@@ -82,6 +82,12 @@ jobs:
       - name: Start RabbitMQ
         run: npm run e2e:rabbitmq:up
 
+      # A second broker with none of the optional plugins. What a missing
+      # plugin degrades to cannot be asserted against the first one, which
+      # turns them on so their pages have something to read.
+      - name: Start the plugin-free RabbitMQ
+        run: npm run e2e:rabbitmq:plain:up
+
       - name: Run checks
         run: npm run check
 

@@ -1,0 +1,26 @@
+name: mq-studio-e2e-rabbitmq-plain
+
+# A stock broker, for the degraded paths.
+#
+# The main environment turns on shovel, federation and the stream protocol so
+# their pages have something to read. This one deliberately does not: with the
+# management plugin present and those absent, the broker answers 404 on their
+# endpoints, which is the case the driver has to report as "this needs a
+# plugin" rather than as a broken connection.
+#
+# It runs on its own ports so both can be up at once.
+services:
+  rabbitmq:
+    image: rabbitmq:4-management
+    ports:
+      - '127.0.0.1:5682:5672'
+      - '127.0.0.1:15682:15672'
+    environment:
+      RABBITMQ_DEFAULT_USER: mqstudio
+      RABBITMQ_DEFAULT_PASS: mqstudio
+    healthcheck:
+      test: ['CMD', 'rabbitmq-diagnostics', 'check_port_connectivity']
+      interval: 5s
+      timeout: 10s
+      retries: 12
+    restart: unless-stopped
