@@ -21,8 +21,7 @@ func brokerDetail(id int32, host string, port int32, rack string) kadm.BrokerDet
 
 func TestNodesFromMetadata(t *testing.T) {
 	nodes := nodesFrom(kadm.Metadata{
-		Cluster:    "test-cluster",
-		Controller: 2,
+		Cluster: "test-cluster",
 		// Deliberately out of order: metadata arrives in whatever order the
 		// broker sends, and a list that reshuffles between refreshes is
 		// unreadable.
@@ -31,7 +30,7 @@ func TestNodesFromMetadata(t *testing.T) {
 			brokerDetail(1, "kafka-1", 9092, "eu-west-1a"),
 			brokerDetail(2, "kafka-2", 9094, ""),
 		},
-	})
+	}, 2)
 
 	if len(nodes) != 3 {
 		t.Fatalf("got %d nodes, want 3", len(nodes))
@@ -52,7 +51,7 @@ func TestNodesFromMetadata(t *testing.T) {
 		t.Errorf("a broker with no rack reported %q", nodes[2].Attribute(AttrRack))
 	}
 
-	// Exactly one controller, and it is the one metadata named.
+	// Exactly one controller, and it is the one that was named.
 	controllers := []string{}
 	for _, node := range nodes {
 		if node.Attribute(AttrController) == "true" {
@@ -70,7 +69,7 @@ func TestNodesFromMetadata(t *testing.T) {
 func TestNodesReportUnmeasuredFiguresAsUnknown(t *testing.T) {
 	nodes := nodesFrom(kadm.Metadata{
 		Brokers: kadm.BrokerDetails{brokerDetail(1, "kafka-1", 9092, "")},
-	})
+	}, noController)
 
 	node := nodes[0]
 	if node.RateIn != model.UnknownMetric || node.RateOut != model.UnknownMetric {
@@ -84,10 +83,10 @@ func TestNodesReportUnmeasuredFiguresAsUnknown(t *testing.T) {
 // A cluster with no controller sends -1, and rendering that as a broker id
 // would invent a broker nobody can find.
 func TestControllerNameIsEmptyWhenThereIsNone(t *testing.T) {
-	if got := controllerName(kadm.Metadata{Controller: -1}); got != "" {
+	if got := controllerName(noController); got != "" {
 		t.Errorf("controller = %q, want empty", got)
 	}
-	if got := controllerName(kadm.Metadata{Controller: 0}); got != "0" {
+	if got := controllerName(0); got != "0" {
 		t.Errorf("controller = %q, want 0 - broker 0 is a real broker", got)
 	}
 }

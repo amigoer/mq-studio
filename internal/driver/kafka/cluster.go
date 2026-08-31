@@ -44,7 +44,7 @@ func (c *Conn) ListNodes(ctx context.Context) ([]*model.Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	return nodesFrom(metadata), nil
+	return nodesFrom(metadata, c.activeController(ctx, metadata.Controller)), nil
 }
 
 // NodeDetail reports one broker, found by the address ListNodes gave it.
@@ -73,6 +73,7 @@ func (c *Conn) ClusterOverview(ctx context.Context) (*model.ClusterOverview, err
 		return nil, err
 	}
 	health := healthOf(metadata)
+	controller := c.activeController(ctx, metadata.Controller)
 
 	overview := &model.ClusterOverview{
 		Name:        metadata.Cluster,
@@ -87,7 +88,7 @@ func (c *Conn) ClusterOverview(ctx context.Context) (*model.ClusterOverview, err
 		Subscriptions: model.UnknownMetric,
 		Attributes: map[string]string{
 			AttrClusterID:           metadata.Cluster,
-			AttrControllerNode:      controllerName(metadata),
+			AttrControllerNode:      controllerName(controller),
 			AttrBrokerCount:         strconv.Itoa(len(metadata.Brokers)),
 			AttrTopicCount:          strconv.Itoa(health.topics),
 			AttrInternalTopicCount:  strconv.Itoa(health.internalTopics),
@@ -149,13 +150,13 @@ func healthOf(metadata kadm.Metadata) clusterHealth {
 	return health
 }
 
-func nodesFrom(metadata kadm.Metadata) []*model.Node {
+func nodesFrom(metadata kadm.Metadata, controller int32) []*model.Node {
 	brokers := append(kadm.BrokerDetails(nil), metadata.Brokers...)
 	sort.Slice(brokers, func(i, j int) bool { return brokers[i].NodeID < brokers[j].NodeID })
 
 	nodes := make([]*model.Node, 0, len(brokers))
 	for _, broker := range brokers {
-		nodes = append(nodes, nodeFrom(broker, metadata.Controller))
+		nodes = append(nodes, nodeFrom(broker, controller))
 	}
 	return nodes
 }
@@ -201,9 +202,9 @@ func brokerAddress(broker kadm.BrokerDetail) string {
 // controllerName is the node id of the controller, or empty when the cluster
 // does not name one. -1 is what the protocol sends for "no controller", and
 // rendering that as a broker id would invent a broker.
-func controllerName(metadata kadm.Metadata) string {
-	if metadata.Controller < 0 {
+func controllerName(controller int32) string {
+	if controller < 0 {
 		return ""
 	}
-	return strconv.FormatInt(int64(metadata.Controller), 10)
+	return strconv.FormatInt(int64(controller), 10)
 }

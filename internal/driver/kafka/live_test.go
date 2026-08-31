@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"net"
 	"os"
+	"os/exec"
 	"strconv"
 	"strings"
 	"testing"
@@ -22,6 +23,13 @@ import (
 // docker still has a green suite - but in CI the skip is a failure, because a
 // contract test that can silently not run asserts nothing.
 const liveSeeds = "127.0.0.1:9092,127.0.0.1:9094,127.0.0.1:9096"
+
+// The same cluster from the inside, for the few checks that have to ask
+// Kafka's own tools rather than this driver.
+const (
+	liveContainer = "mq-studio-e2e-kafka-kafka-1-1"
+	liveInternal  = "kafka-1:19092"
+)
 
 func requireLiveCluster(t *testing.T) {
 	t.Helper()
@@ -1463,4 +1471,80 @@ func TestLiveAnUnfinishedTransactionHoldsReadersBack(t *testing.T) {
 	if detail.Depth == 0 {
 		t.Error("the topic reports no records, so the gap this panel explains is not visible")
 	}
+}
+
+/*
+ * The controller the app names is the one actually leading the cluster.
+ *
+ * Metadata's controller id cannot answer this. Under KRaft a broker fills that
+ * field with a randomly chosen live broker - its only purpose there is to give
+ * a client somewhere to forward an admin request - so asking repeatedly gets a
+ * different broker each time. The overview and the broker list read it
+ * separately and disagreed with each other on screen.
+ *
+ * Two assertions, because either alone would pass on a one-broker cluster: the
+ * answer matches the quorum leader, and it does not move when nothing has
+ * happened.
+ */
+func TestLiveTheControllerIsTheQuorumLeader(t *testing.T) {
+	requireLiveCluster(t)
+	conn := liveConn(t, liveSeeds)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	leader := quorumLeader(t)
+
+	first := ""
+	for attempt := 0; attempt < 5; attempt++ {
+		overview, err := conn.ClusterOverview(ctx)
+		if err != nil {
+			t.Fatalf("ClusterOverview: %v", err)
+		}
+		named := overview.Attribute(AttrControllerNode)
+		if named != leader {
+			t.Fatalf("the overview names broker %q as controller; the quorum leader is %q",
+				named, leader)
+		}
+		if first == "" {
+			first = named
+		} else if named != first {
+			t.Fatalf("the controller changed from %q to %q with nothing happening", first, named)
+		}
+
+		// And the badge on the broker list, which is a separate read and used
+		// to disagree with the header in the same refresh.
+		nodes, err := conn.ListNodes(ctx)
+		if err != nil {
+			t.Fatalf("ListNodes: %v", err)
+		}
+		badged := []string{}
+		for _, node := range nodes {
+			if node.Attribute(AttrController) == "true" {
+				badged = append(badged, node.Attribute(AttrNodeID))
+			}
+		}
+		if len(badged) != 1 || badged[0] != leader {
+			t.Fatalf("the broker list badges %v as controller; the quorum leader is %q",
+				badged, leader)
+		}
+	}
+}
+
+// quorumLeader asks the cluster's own tool who leads the metadata quorum.
+func quorumLeader(t *testing.T) string {
+	t.Helper()
+	output, err := exec.Command("docker", "exec", liveContainer,
+		"/opt/kafka/bin/kafka-metadata-quorum.sh",
+		"--bootstrap-server", liveInternal, "describe", "--status").Output()
+	if err != nil {
+		t.Fatalf("kafka-metadata-quorum.sh: %v", err)
+	}
+	for _, line := range strings.Split(string(output), "\n") {
+		if strings.HasPrefix(strings.TrimSpace(line), "LeaderId:") {
+			return strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(line), "LeaderId:"))
+		}
+	}
+	t.Fatalf("kafka-metadata-quorum.sh named no leader: %s", output)
+	return ""
 }
