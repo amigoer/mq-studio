@@ -506,6 +506,7 @@
         "cluster": "节点",
         "vhosts": "虚拟主机",
         "policies": "策略",
+        "definitions": "定义",
         "alerts": "告警",
         "acl": "用户 / vhost"
       },
@@ -2331,6 +2332,43 @@
         "deleteParameterTitle": "删除参数「{{name}}」",
         "deleteParameterDesc": "属于组件 {{component}}，删除后该组件的这项配置就没了。",
         "parameterDeleted": "已删除参数「{{name}}」"
+      }
+    },
+    "definitions": {
+      "rabbitmq": {
+        "title": "定义",
+        "subtitle": "整个拓扑导出成一个 JSON —— 除了消息，这是 RabbitMQ 唯一的备份手段",
+        "scope": "范围",
+        "wholeBroker": "整个 broker",
+        "brokerScopeHint": "包含所有用户和权限，也包含每个用户的密码哈希 —— 当作凭据文件对待",
+        "vhostScopeHint": "只含这个虚拟主机的队列、交换机、绑定、策略和参数，不含用户和权限（那是 broker 级的）",
+        "export": "导出",
+        "exportHint": "写成一个 JSON 文件。这是重建集群的依据。",
+        "exportAction": "导出到文件…",
+        "exported": "已导出到 {{path}}",
+        "import": "导入",
+        "importHint": "先选文件看清里面有什么，再决定要不要应用。",
+        "chooseFile": "选择文件…",
+        "preview": "将要导入的内容",
+        "file": "文件",
+        "contains": "包含",
+        "empty": "这个文件里什么都没有",
+        "showDocument": "查看完整文档",
+        "additiveWarn": "导入是「叠加 + 覆盖」，不是「同步」：文件里写到的对象会被创建或覆盖，文件里没写到的对象原样保留。所以它没法把集群变成和文件一样，只能把文件的内容塞进去。",
+        "importTitle": "导入到 {{scope}}",
+        "importDesc": "将创建或覆盖 {{count}} 个对象。同名的队列、交换机、策略、用户都会被文件里的版本覆盖，此操作无法撤销。",
+        "applyAction": "确认导入",
+        "imported": "导入完成",
+        "kinds": {
+          "vhosts": "虚拟主机",
+          "users": "用户",
+          "permissions": "权限",
+          "queues": "队列",
+          "exchanges": "交换机",
+          "bindings": "绑定",
+          "policies": "策略",
+          "parameters": "参数"
+        }
       }
     }
   }

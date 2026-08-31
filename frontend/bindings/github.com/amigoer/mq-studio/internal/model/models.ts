@@ -741,6 +741,14 @@ export enum Capability {
      * broker stores for its plugins.
      */
     CapParameterAdmin = "parameter.admin",
+
+    /**
+     * CapDefinitions is a broker that can hand back its whole topology as one
+     * document and take it back. It is the only backup some families offer of
+     * anything but message data.
+     */
+    CapDefinitionsExport = "definitions.export",
+    CapDefinitionsImport = "definitions.import",
     CapRouting = "routing.exchanges",
 
     /**
@@ -1277,6 +1285,59 @@ export class DeadLetterSource {
 }
 
 /**
+ * Definitions is a broker's whole topology, minus the messages.
+ * 
+ * It is the only backup RabbitMQ offers of anything but message data, and it
+ * is what a cluster is rebuilt from: virtual hosts, users and permissions,
+ * queues, exchanges, bindings, policies and parameters in one document.
+ */
+export class Definitions {
+    /**
+     * Namespace is set when the export was scoped to one virtual host, and
+     * empty for a whole-broker export.
+     */
+    "namespace": string;
+
+    /**
+     * Document is the JSON itself, laid out for reading.
+     */
+    "document": string;
+
+    /**
+     * Counts is what it contains, by kind. It is what makes an otherwise
+     * opaque file reviewable before it is applied somewhere else.
+     */
+    "counts": { [_ in string]?: number };
+
+    /** Creates a new Definitions instance. */
+    constructor($$source: Partial<Definitions> = {}) {
+        if (!("namespace" in $$source)) {
+            this["namespace"] = "";
+        }
+        if (!("document" in $$source)) {
+            this["document"] = "";
+        }
+        if (!("counts" in $$source)) {
+            this["counts"] = {};
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new Definitions instance from a string or object.
+     */
+    static createFrom($$source: any = {}): Definitions {
+        const $$createField2_0 = $$createType22;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("counts" in $$parsedSource) {
+            $$parsedSource["counts"] = $$createField2_0($$parsedSource["counts"]);
+        }
+        return new Definitions($$parsedSource as Partial<Definitions>);
+    }
+}
+
+/**
  * DeprecatedFeature is something this cluster still allows that a later
  * release will not.
  * 
@@ -1414,7 +1475,7 @@ export class Destination {
      * Creates a new Destination instance from a string or object.
      */
     static createFrom($$source: any = {}): Destination {
-        const $$createField1_0 = $$createType22;
+        const $$createField1_0 = $$createType23;
         const $$createField8_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("ref" in $$parsedSource) {
@@ -1501,7 +1562,7 @@ export class DriverDescriptor {
      * Creates a new DriverDescriptor instance from a string or object.
      */
     static createFrom($$source: any = {}): DriverDescriptor {
-        const $$createField2_0 = $$createType24;
+        const $$createField2_0 = $$createType25;
         const $$createField3_0 = $$createType17;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("form" in $$parsedSource) {
@@ -1697,8 +1758,8 @@ export class FormField {
      * Creates a new FormField instance from a string or object.
      */
     static createFrom($$source: any = {}): FormField {
-        const $$createField7_0 = $$createType26;
-        const $$createField8_0 = $$createType28;
+        const $$createField7_0 = $$createType27;
+        const $$createField8_0 = $$createType29;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("visibleWhen" in $$parsedSource) {
             $$parsedSource["visibleWhen"] = $$createField7_0($$parsedSource["visibleWhen"]);
@@ -1850,7 +1911,7 @@ export class Identity {
      */
     static createFrom($$source: any = {}): Identity {
         const $$createField1_0 = $$createType0;
-        const $$createField3_0 = $$createType31;
+        const $$createField3_0 = $$createType32;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("tags" in $$parsedSource) {
             $$parsedSource["tags"] = $$createField1_0($$parsedSource["tags"]);
@@ -2201,7 +2262,7 @@ export class Namespace {
      */
     static createFrom($$source: any = {}): Namespace {
         const $$createField2_0 = $$createType0;
-        const $$createField8_0 = $$createType32;
+        const $$createField8_0 = $$createType22;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("tags" in $$parsedSource) {
             $$parsedSource["tags"] = $$createField2_0($$parsedSource["tags"]);
@@ -3299,17 +3360,17 @@ const $$createType18 = $Create.Map($Create.Any, $Create.Any);
 const $$createType19 = DeadLetterSource.createFrom;
 const $$createType20 = $Create.Nullable($$createType19);
 const $$createType21 = $Create.Array($$createType20);
-const $$createType22 = DestinationRef.createFrom;
-const $$createType23 = FormField.createFrom;
-const $$createType24 = $Create.Array($$createType23);
-const $$createType25 = FieldCond.createFrom;
-const $$createType26 = $Create.Nullable($$createType25);
-const $$createType27 = FormOption.createFrom;
-const $$createType28 = $Create.Array($$createType27);
-const $$createType29 = NamespacePermission.createFrom;
-const $$createType30 = $Create.Nullable($$createType29);
-const $$createType31 = $Create.Array($$createType30);
-const $$createType32 = $Create.Map($Create.Any, $Create.Any);
+const $$createType22 = $Create.Map($Create.Any, $Create.Any);
+const $$createType23 = DestinationRef.createFrom;
+const $$createType24 = FormField.createFrom;
+const $$createType25 = $Create.Array($$createType24);
+const $$createType26 = FieldCond.createFrom;
+const $$createType27 = $Create.Nullable($$createType26);
+const $$createType28 = FormOption.createFrom;
+const $$createType29 = $Create.Array($$createType28);
+const $$createType30 = NamespacePermission.createFrom;
+const $$createType31 = $Create.Nullable($$createType30);
+const $$createType32 = $Create.Array($$createType31);
 const $$createType33 = $Create.Array($Create.Any);
 const $$createType34 = $Create.Array($Create.Any);
 const $$createType35 = ReplicaStatus.createFrom;

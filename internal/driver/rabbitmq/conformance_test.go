@@ -2544,3 +2544,75 @@ func TestLiveRuntimeParametersAreReadable(t *testing.T) {
 		}
 	}
 }
+
+// Exporting, counting and importing - the whole document round trip.
+func TestLiveDefinitionsRoundTrip(t *testing.T) {
+	conn := liveConn(t)
+	defer func() { _ = conn.Close() }()
+
+	ctx := context.Background()
+	const vhost = "mqs-test-definitions"
+	const queue = "mqs-test-definitions-q"
+
+	if err := conn.CreateNamespace(ctx, model.NamespaceSpec{Name: vhost}); err != nil {
+		t.Fatalf("create vhost: %v", err)
+	}
+	t.Cleanup(func() { _ = conn.RemoveNamespace(context.Background(), vhost) })
+
+	if err := conn.CreateDestination(ctx, model.DestinationSpec{
+		Ref:        model.DestinationRef{Namespace: vhost, Name: queue},
+		Attributes: map[string]string{AttrDurable: "true"},
+	}); err != nil {
+		t.Fatalf("declare queue: %v", err)
+	}
+
+	exported, err := conn.ExportDefinitions(ctx, vhost)
+	if err != nil {
+		t.Fatalf("export: %v", err)
+	}
+	if exported.Counts[model.DefinitionQueues] < 1 {
+		t.Errorf("the export counts %d queues, want at least the one declared",
+			exported.Counts[model.DefinitionQueues])
+	}
+	// A single-vhost export carries no users: they are broker-wide, and
+	// including them would put every password hash in a file about one
+	// application.
+	if exported.Counts[model.DefinitionUsers] != 0 {
+		t.Errorf("a per-vhost export carries %d users", exported.Counts[model.DefinitionUsers])
+	}
+
+	// Counting a document without applying it is what the import step shows.
+	counted, err := SummariseDefinitions(exported.Document)
+	if err != nil {
+		t.Fatalf("summarise: %v", err)
+	}
+	if counted[model.DefinitionQueues] != exported.Counts[model.DefinitionQueues] {
+		t.Errorf("summary counts %d queues, the export counted %d",
+			counted[model.DefinitionQueues], exported.Counts[model.DefinitionQueues])
+	}
+
+	// Delete the queue, then put the document back and check it returns.
+	if err := conn.RemoveDestination(ctx, model.DestinationRef{Namespace: vhost, Name: queue}); err != nil {
+		t.Fatalf("delete queue: %v", err)
+	}
+	if err := conn.ImportDefinitions(ctx, vhost, exported.Document); err != nil {
+		t.Fatalf("import: %v", err)
+	}
+	if _, err := conn.DestinationDetail(ctx, model.DestinationRef{Namespace: vhost, Name: queue}); err != nil {
+		t.Errorf("the queue did not come back from the import: %v", err)
+	}
+}
+
+// A document that is not JSON has to be refused before it reaches the broker,
+// because the failure there is far less legible.
+func TestLiveImportRefusesNonsense(t *testing.T) {
+	conn := liveConn(t)
+	defer func() { _ = conn.Close() }()
+
+	if err := conn.ImportDefinitions(context.Background(), "/", "not a document"); err == nil {
+		t.Error("an unparsable document was sent to the broker")
+	}
+	if _, err := SummariseDefinitions("{oops"); err == nil {
+		t.Error("an unparsable document was summarised")
+	}
+}

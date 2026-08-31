@@ -30,6 +30,7 @@ const requires: Record<string, Capability | Capability[]> = {
   dlq: [Capability.CapDLQ, Capability.CapDeadLetterTopology],
   vhosts: Capability.CapNamespaceList,
   policies: Capability.CapPolicyList,
+  definitions: Capability.CapDefinitionsExport,
   producer: Capability.CapPublish,
   cluster: Capability.CapClusterTopology,
   acl: [Capability.CapAccessControl, Capability.CapIdentityList],

@@ -106,6 +106,8 @@ func capabilities() []model.Capability {
 		model.CapPolicyList,
 		model.CapPolicyAdmin,
 		model.CapParameterAdmin,
+		model.CapDefinitionsExport,
+		model.CapDefinitionsImport,
 
 		model.CapRouting,
 		model.CapRoutingAdmin,

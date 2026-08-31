@@ -2,7 +2,13 @@ package bridge
 
 import (
 	"context"
+	"fmt"
+	"os"
 	"strconv"
+	"strings"
+	"time"
+
+	"github.com/wailsapp/wails/v3/pkg/application"
 
 	rabbitmqdriver "github.com/amigoer/mq-studio/internal/driver/rabbitmq"
 	"github.com/amigoer/mq-studio/internal/model"
@@ -431,4 +437,87 @@ func (s *RabbitMQService) RuntimeParameters(connID int) ([]*model.RuntimeParamet
 // DeleteRuntimeParameter removes one component's stored configuration.
 func (s *RabbitMQService) DeleteRuntimeParameter(connID int, component, vhost, name string) error {
 	return s.service.DeleteRuntimeParameter(context.Background(), connID, component, vhost, name)
+}
+
+// Definitions returns the broker's topology as one document, with a count of
+// what it holds. An empty vhost exports the whole broker.
+func (s *RabbitMQService) Definitions(connID int, vhost string) (*model.Definitions, error) {
+	return s.service.ExportDefinitions(context.Background(), connID, vhost)
+}
+
+// ExportDefinitionsToFile prompts for a destination and writes the document
+// there. It returns the written path, or an empty string when the user
+// cancels.
+//
+// The dialog is here rather than in the renderer because that is where the
+// application's window lives; the same pattern serves the settings export.
+func (s *RabbitMQService) ExportDefinitionsToFile(connID int, vhost string) (string, error) {
+	definitions, err := s.service.ExportDefinitions(context.Background(), connID, vhost)
+	if err != nil {
+		return "", err
+	}
+
+	scope := "broker"
+	if vhost != "" {
+		scope = strings.NewReplacer("/", "-", " ", "-").Replace(vhost)
+	}
+	target, err := application.Get().Dialog.SaveFile().
+		SetMessage("Export RabbitMQ definitions").
+		SetFilename(fmt.Sprintf("rabbitmq-definitions-%s-%s.json",
+			strings.TrimPrefix(scope, "-"), time.Now().Format("2006-01-02"))).
+		AddFilter("JSON", "*.json").
+		PromptForSingleSelection()
+	if err != nil {
+		return "", err
+	}
+	if target == "" {
+		return "", nil
+	}
+	if err := os.WriteFile(target, []byte(definitions.Document), 0o600); err != nil {
+		return "", fmt.Errorf("write definitions: %w", err)
+	}
+	return target, nil
+}
+
+// DefinitionsPreview is a chosen file, read and counted but not applied.
+type DefinitionsPreview struct {
+	// Path is empty when the user cancelled the dialog.
+	Path     string         `json:"path"`
+	Document string         `json:"document"`
+	Counts   map[string]int `json:"counts"`
+}
+
+// ReadDefinitionsFile prompts for a file and reports what is in it.
+//
+// Reading and applying are separate steps on purpose: the document is opaque,
+// and a count of what it will create is the only review anyone can actually
+// perform before it lands on a cluster.
+func (s *RabbitMQService) ReadDefinitionsFile() (*DefinitionsPreview, error) {
+	source, err := application.Get().Dialog.OpenFile().
+		SetTitle("Import RabbitMQ definitions").
+		CanChooseFiles(true).
+		CanChooseDirectories(false).
+		AddFilter("JSON", "*.json").
+		PromptForSingleSelection()
+	if err != nil {
+		return nil, err
+	}
+	if source == "" {
+		return &DefinitionsPreview{}, nil
+	}
+
+	document, err := os.ReadFile(source)
+	if err != nil {
+		return nil, fmt.Errorf("read %q: %w", source, err)
+	}
+	counts, err := rabbitmqdriver.SummariseDefinitions(string(document))
+	if err != nil {
+		return nil, err
+	}
+	return &DefinitionsPreview{Path: source, Document: string(document), Counts: counts}, nil
+}
+
+// ImportDefinitions applies a document. An empty vhost applies it broker-wide.
+func (s *RabbitMQService) ImportDefinitions(connID int, vhost, document string) error {
+	return s.service.ImportDefinitions(context.Background(), connID, vhost, document)
 }

@@ -411,6 +411,45 @@ export class ConsumerInput {
 }
 
 /**
+ * DefinitionsPreview is a chosen file, read and counted but not applied.
+ */
+export class DefinitionsPreview {
+    /**
+     * Path is empty when the user cancelled the dialog.
+     */
+    "path": string;
+    "document": string;
+    "counts": { [_ in string]?: number };
+
+    /** Creates a new DefinitionsPreview instance. */
+    constructor($$source: Partial<DefinitionsPreview> = {}) {
+        if (!("path" in $$source)) {
+            this["path"] = "";
+        }
+        if (!("document" in $$source)) {
+            this["document"] = "";
+        }
+        if (!("counts" in $$source)) {
+            this["counts"] = {};
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new DefinitionsPreview instance from a string or object.
+     */
+    static createFrom($$source: any = {}): DefinitionsPreview {
+        const $$createField2_0 = $$createType8;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("counts" in $$parsedSource) {
+            $$parsedSource["counts"] = $$createField2_0($$parsedSource["counts"]);
+        }
+        return new DefinitionsPreview($$parsedSource as Partial<DefinitionsPreview>);
+    }
+}
+
+/**
  * DriverInfo is one registered family.
  */
 export class DriverInfo {
@@ -1687,3 +1726,4 @@ const $$createType4 = model$0.ClusterOverview.createFrom;
 const $$createType5 = model$0.Node.createFrom;
 const $$createType6 = $Create.Nullable($$createType5);
 const $$createType7 = $Create.Array($$createType6);
+const $$createType8 = $Create.Map($Create.Any, $Create.Any);

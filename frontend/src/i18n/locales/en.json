@@ -506,6 +506,7 @@
         "cluster": "Nodes",
         "vhosts": "Virtual hosts",
         "policies": "Policies",
+        "definitions": "Definitions",
         "alerts": "Alerts",
         "acl": "Users / vhosts"
       },
@@ -2331,6 +2332,43 @@
         "deleteParameterTitle": "Delete parameter {{name}}",
         "deleteParameterDesc": "It belongs to the {{component}} component, whose configuration it is.",
         "parameterDeleted": "Deleted {{name}}"
+      }
+    },
+    "definitions": {
+      "rabbitmq": {
+        "title": "Definitions",
+        "subtitle": "The whole topology as one JSON document - RabbitMQ's only backup of anything but messages",
+        "scope": "Scope",
+        "wholeBroker": "The whole broker",
+        "brokerScopeHint": "Includes every user and permission, and every user's password hash - treat the file as a credential",
+        "vhostScopeHint": "Only this virtual host's queues, exchanges, bindings, policies and parameters. No users or permissions: those are broker-wide.",
+        "export": "Export",
+        "exportHint": "Written as a JSON file. It is what a cluster is rebuilt from.",
+        "exportAction": "Export to a file…",
+        "exported": "Written to {{path}}",
+        "import": "Import",
+        "importHint": "Choose a file, see what is in it, then decide whether to apply it.",
+        "chooseFile": "Choose a file…",
+        "preview": "What this would import",
+        "file": "File",
+        "contains": "Contains",
+        "empty": "There is nothing in this file",
+        "showDocument": "Show the whole document",
+        "additiveWarn": "Importing adds and overwrites; it does not synchronise. Anything named in the document is created or overwritten, and anything on the broker the document does not mention is left exactly as it is - so this cannot make a cluster match a file, only put the file's contents into it.",
+        "importTitle": "Import into {{scope}}",
+        "importDesc": "Creates or overwrites {{count}} objects. A queue, exchange, policy or user of the same name is replaced by the file's version, and there is no undo.",
+        "applyAction": "Import",
+        "imported": "Imported",
+        "kinds": {
+          "vhosts": "virtual hosts",
+          "users": "users",
+          "permissions": "permissions",
+          "queues": "queues",
+          "exchanges": "exchanges",
+          "bindings": "bindings",
+          "policies": "policies",
+          "parameters": "parameters"
+        }
       }
     }
   }

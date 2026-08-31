@@ -8,12 +8,14 @@
  * exchanges that come later.
  */
 import { RabbitMQService } from "@bindings/bridge";
+import type { DefinitionsPreview } from "@bindings/bridge/models";
 import type {
   BrokerCensus,
   BrokerHealth,
   ClientChannel,
   ClientConnection,
   DeadLetterQueue,
+  Definitions,
   Identity,
   Namespace,
   Policy,
@@ -23,6 +25,7 @@ import type {
 } from "@bindings/model/models";
 import { present } from "./client";
 
+export type { DefinitionsPreview } from "@bindings/bridge/models";
 export type {
   BrokerCensus,
   BrokerHealth,
@@ -32,6 +35,7 @@ export type {
   DeadLetterQueue,
   DeadLetterSource,
   DeprecatedFeature,
+  Definitions,
   FeatureFlag,
   Identity,
   Namespace,
@@ -381,3 +385,34 @@ export const deleteRuntimeParameter = (
   vhost: string,
   name: string,
 ): Promise<void> => RabbitMQService.DeleteRuntimeParameter(connID, component, vhost, name);
+
+/**
+ * The broker's topology as one document, with a count of what it holds.
+ *
+ * An empty vhost exports the whole broker; a named one exports just that
+ * virtual host, which carries no users or permissions - those are broker-wide,
+ * and including them would put every password hash in a file about one
+ * application.
+ */
+export const getDefinitions = (connID: number, vhost = ""): Promise<Definitions | null> =>
+  RabbitMQService.Definitions(connID, vhost);
+
+/** Prompts for a destination and writes the document. Empty when cancelled. */
+export const exportDefinitionsToFile = (connID: number, vhost = ""): Promise<string> =>
+  RabbitMQService.ExportDefinitionsToFile(connID, vhost);
+
+/**
+ * Prompts for a file and reports what is in it, without applying anything.
+ *
+ * Reading and applying are separate steps: the document is opaque, and a count
+ * of what it will create is the only review anyone can perform before it lands.
+ */
+export const readDefinitionsFile = (): Promise<DefinitionsPreview | null> =>
+  RabbitMQService.ReadDefinitionsFile();
+
+/** Applies a document. An empty vhost applies it broker-wide. */
+export const importDefinitions = (
+  connID: number,
+  vhost: string,
+  document: string,
+): Promise<void> => RabbitMQService.ImportDefinitions(connID, vhost, document);

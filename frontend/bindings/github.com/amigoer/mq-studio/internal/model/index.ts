@@ -21,6 +21,7 @@ export {
     ConsumeThroughput,
     DeadLetterQueue,
     DeadLetterSource,
+    Definitions,
     DeprecatedFeature,
     Destination,
     DestinationRef,

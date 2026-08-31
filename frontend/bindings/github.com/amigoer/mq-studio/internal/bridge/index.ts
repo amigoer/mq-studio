@@ -40,6 +40,7 @@ export {
     ConnectionInput,
     ConnectionView,
     ConsumerInput,
+    DefinitionsPreview,
     DriverInfo,
     ExchangeInput,
     IdentityInput,

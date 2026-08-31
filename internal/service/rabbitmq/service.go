@@ -539,3 +539,27 @@ func (s *Service) DeleteRuntimeParameter(ctx context.Context, connID int, compon
 	defer cancel()
 	return api.RemoveRuntimeParameter(ctx, component, namespace, name)
 }
+
+// ExportDefinitions returns the broker's topology as one document.
+func (s *Service) ExportDefinitions(ctx context.Context, connID int, namespace string) (*model.Definitions, error) {
+	api, err := port[driver.DefinitionsAdmin](s, connID, model.CapDefinitionsExport)
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.ExportDefinitions(ctx, namespace)
+}
+
+// ImportDefinitions applies a document to the broker.
+func (s *Service) ImportDefinitions(ctx context.Context, connID int, namespace, document string) error {
+	api, err := port[driver.DefinitionsAdmin](s, connID, model.CapDefinitionsImport)
+	if err != nil {
+		return err
+	}
+	// Its own timeout: a document describing a few hundred queues takes the
+	// broker longer to apply than any page read is allowed to wait.
+	ctx, cancel := context.WithTimeout(ctx, moveTimeout)
+	defer cancel()
+	return api.ImportDefinitions(ctx, namespace, document)
+}

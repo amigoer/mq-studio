@@ -409,6 +409,18 @@ type ParameterAdmin interface {
 	RemoveRuntimeParameter(ctx context.Context, component, namespace, name string) error
 }
 
+// DefinitionsAdmin exports and imports a broker's whole topology.
+//
+// Everything except the messages, in one document. Importing is additive
+// rather than a replace - anything named in the document is created or
+// overwritten and anything the document omits is left alone - so it cannot
+// make a cluster match a file, only put the file's contents into it. The page
+// says so; the driver does what it is told.
+type DefinitionsAdmin interface {
+	ExportDefinitions(ctx context.Context, namespace string) (*model.Definitions, error)
+	ImportDefinitions(ctx context.Context, namespace, document string) error
+}
+
 // RoutingMutator creates and deletes exchanges and bindings.
 //
 // Separate from RoutingAdmin because reading a topology and changing it are

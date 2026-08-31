@@ -145,7 +145,13 @@ const (
 	// CapParameterAdmin reads and removes the component configuration the
 	// broker stores for its plugins.
 	CapParameterAdmin Capability = "parameter.admin"
-	CapRouting        Capability = "routing.exchanges"
+
+	// CapDefinitions is a broker that can hand back its whole topology as one
+	// document and take it back. It is the only backup some families offer of
+	// anything but message data.
+	CapDefinitionsExport Capability = "definitions.export"
+	CapDefinitionsImport Capability = "definitions.import"
+	CapRouting           Capability = "routing.exchanges"
 
 	// CapRoutingAdmin creates and deletes exchanges and bindings. Separate
 	// from reading them: a connection may list a topology it has no permission
