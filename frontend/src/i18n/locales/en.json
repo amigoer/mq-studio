@@ -374,7 +374,27 @@
         "namespace": "Cluster",
         "backlog": "Lag"
       },
-      "name": "Kafka"
+      "name": "Kafka",
+      "form": {
+        "bootstrapServers": "Bootstrap servers",
+        "mechanism": "Authentication",
+        "authSaslPlain": "SASL/PLAIN",
+        "authSaslScram": "SASL/SCRAM",
+        "scramSha": "SCRAM digest",
+        "scramSha256": "SCRAM-SHA-256",
+        "scramSha512": "SCRAM-SHA-512",
+        "username": "Username",
+        "password": "Password",
+        "tls": "Use TLS",
+        "tlsCaFile": "CA certificate file",
+        "tlsSkipVerify": "Skip certificate verification"
+      },
+      "degraded": {
+        "credentials": "The cluster refused the credential. Check the username, password and SASL mechanism: a broker that rejects authentication may close the connection instead of explaining, so a wrong mechanism looks the same as a wrong password.",
+        "forbidden": "The credential was accepted but is not allowed to describe the cluster. That is fixed with an ACL on the broker, not in this form.",
+        "timeout": "The cluster accepted the connection and did not answer in time.",
+        "unreachable": "Nothing usable answered at this address. Check the bootstrap servers, and whether the listener expects TLS or a security protocol this connection is not using."
+      }
     },
     "rabbitmq": {
       "terms": {

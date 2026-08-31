@@ -7,6 +7,7 @@ import (
 
 	"github.com/amigoer/mq-studio/internal/crypto"
 	"github.com/amigoer/mq-studio/internal/driver"
+	"github.com/amigoer/mq-studio/internal/driver/kafka"
 	"github.com/amigoer/mq-studio/internal/driver/rabbitmq"
 	"github.com/amigoer/mq-studio/internal/driver/rocketmq"
 	"github.com/amigoer/mq-studio/internal/service/access"
@@ -60,6 +61,7 @@ func New() (*Services, error) {
 	// families exist, or opens a connection against one.
 	driver.Register(rocketmq.New())
 	driver.Register(rabbitmq.New())
+	driver.Register(kafka.New())
 
 	registry := driver.NewRegistry()
 	settingsService := settings.New(paths.SettingsFile)

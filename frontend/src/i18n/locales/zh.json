@@ -374,7 +374,27 @@
         "namespace": "集群",
         "backlog": "消费延迟"
       },
-      "name": "Kafka"
+      "name": "Kafka",
+      "form": {
+        "bootstrapServers": "Bootstrap 地址",
+        "mechanism": "认证方式",
+        "authSaslPlain": "SASL/PLAIN",
+        "authSaslScram": "SASL/SCRAM",
+        "scramSha": "SCRAM 摘要",
+        "scramSha256": "SCRAM-SHA-256",
+        "scramSha512": "SCRAM-SHA-512",
+        "username": "用户名",
+        "password": "密码",
+        "tls": "启用 TLS",
+        "tlsCaFile": "CA 证书文件",
+        "tlsSkipVerify": "跳过证书校验"
+      },
+      "degraded": {
+        "credentials": "集群拒绝了这组凭据。请检查用户名、密码与 SASL 机制：broker 拒绝认证时可能直接断开连接而不说明原因，所以机制填错和密码填错看起来是一样的。",
+        "forbidden": "凭据通过了认证，但没有描述集群的权限。这要在 broker 上改 ACL，不是在这个表单里改。",
+        "timeout": "集群接受了连接，但没有在超时时间内应答。",
+        "unreachable": "这个地址上没有可用的服务应答。请检查 Bootstrap 地址，以及该 listener 是否要求 TLS 或本连接未使用的安全协议。"
+      }
     },
     "rabbitmq": {
       "terms": {
