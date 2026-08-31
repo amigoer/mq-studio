@@ -1,6 +1,7 @@
 package connection
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -308,5 +309,234 @@ func TestSameSecretsComparesBothWays(t *testing.T) {
 	}
 	if sameSecrets(map[string]string{"a": "1", "b": "2"}, map[string]string{"a": "1"}) {
 		t.Error("a removed key compared equal")
+	}
+}
+
+/*
+ * Kafka is the first family whose profile carries more than a credential in
+ * its options, and the first where authenticating with nothing is a real
+ * choice rather than a blank form. Both are new ways for the store to lose
+ * something on the way to disk.
+ *
+ * The lesson from the RabbitMQ break above is that only the round trip tells
+ * the truth: the form's test button probes the profile it was handed, so it
+ * passes on the way in whatever the store then does with it.
+ */
+func TestKafkaProfileSurvivesAReload(t *testing.T) {
+	service := newTestService(t, nil)
+	input := model.ConnectionProfile{
+		Name:       "Kafka",
+		Kind:       model.KindKafka,
+		Endpoints:  "kafka-1:9092,kafka-2:9092",
+		TimeoutSec: 9,
+		Auth:       model.AuthConfig{Mechanism: model.AuthSASLScram},
+		Options: map[string]string{
+			"scramSha":      "256",
+			"tls":           "true",
+			"tlsCaFile":     "/etc/kafka/ca.pem",
+			"tlsSkipVerify": "true",
+		},
+	}
+	input.SetSecret("username", "admin")
+	input.SetSecret("password", "s3cret")
+
+	added, err := service.AddConnection(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	reopened := New(service.dataFilePath, fakeSettings{}, noopRuntime{})
+	stored, err := reopened.GetConnection(added.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if stored.Kind != model.KindKafka {
+		t.Errorf("kind after reload = %q, want kafka", stored.Kind)
+	}
+	// The digest is not decoration: SHA-256 and SHA-512 are separate
+	// credentials on the broker, so losing it authenticates as the wrong user.
+	for key, want := range map[string]string{
+		"scramSha":      "256",
+		"tls":           "true",
+		"tlsCaFile":     "/etc/kafka/ca.pem",
+		"tlsSkipVerify": "true",
+	} {
+		if got := stored.Option(key); got != want {
+			t.Errorf("option %q after reload = %q, want %q", key, got, want)
+		}
+	}
+	if stored.Secret("username") != "admin" || stored.Secret("password") != "s3cret" {
+		t.Errorf("stored username=%q password=%q, want both",
+			stored.Secret("username"), stored.Secret("password"))
+	}
+	if stored.Auth.Mechanism != model.AuthSASLScram {
+		t.Errorf("mechanism after reload = %q, want %q", stored.Auth.Mechanism, model.AuthSASLScram)
+	}
+	if stored.TimeoutSec != 9 {
+		t.Errorf("timeout after reload = %d, want 9", stored.TimeoutSec)
+	}
+}
+
+// An anonymous Kafka connection is a connection, not an unfinished form. It
+// has to come back as one rather than being repaired into something else.
+func TestAnonymousKafkaProfileSurvivesAReload(t *testing.T) {
+	service := newTestService(t, nil)
+	added, err := service.AddConnection(model.ConnectionProfile{
+		Name:       "Kafka dev",
+		Kind:       model.KindKafka,
+		Endpoints:  "localhost:9092",
+		TimeoutSec: 5,
+		Auth:       model.AuthConfig{Mechanism: model.AuthNone},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	reopened := New(service.dataFilePath, fakeSettings{}, noopRuntime{})
+	stored, err := reopened.GetConnection(added.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stored.Auth.Mechanism != model.AuthNone {
+		t.Errorf("mechanism after reload = %q, want none", stored.Auth.Mechanism)
+	}
+	if len(stored.ConfiguredSecrets()) != 0 {
+		t.Errorf("anonymous connection carries secrets: %v", stored.ConfiguredSecrets())
+	}
+}
+
+// Switching a stored SASL connection to anonymous has to take the credential
+// with it. One left behind would be used again the moment SASL is re-selected,
+// without the form ever having shown it.
+func TestKafkaDroppingSASLClearsTheStoredCredential(t *testing.T) {
+	service := newTestService(t, nil)
+	input := model.ConnectionProfile{
+		Name: "Kafka", Kind: model.KindKafka,
+		Endpoints: "localhost:9092", TimeoutSec: 5,
+		Auth: model.AuthConfig{Mechanism: model.AuthSASLPlain},
+	}
+	input.SetSecret("username", "admin")
+	input.SetSecret("password", "s3cret")
+	added, err := service.AddConnection(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := service.UpdateConnection(added.ID, model.ConnectionProfile{
+		Name: "Kafka", Kind: model.KindKafka,
+		Endpoints: "localhost:9092", TimeoutSec: 5,
+		Auth: model.AuthConfig{Mechanism: model.AuthNone},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	reopened := New(service.dataFilePath, fakeSettings{}, noopRuntime{})
+	stored, err := reopened.GetConnection(added.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stored.Auth.Mechanism != model.AuthNone {
+		t.Errorf("mechanism after reload = %q, want none", stored.Auth.Mechanism)
+	}
+	if stored.Secret("password") != "" {
+		t.Errorf("the password outlived the mechanism that used it")
+	}
+}
+
+// The address field is named for every family, so the message when it is empty
+// has to be too. A Kafka user told to fill in a NameServer has been sent to
+// look for a field that is not on the form.
+func TestEmptyEndpointsAreNotReportedAsAMissingNameServer(t *testing.T) {
+	service := newTestService(t, nil)
+	_, err := service.AddConnection(model.ConnectionProfile{
+		Name: "Kafka", Kind: model.KindKafka, Endpoints: "  ", TimeoutSec: 5,
+	})
+	if err == nil {
+		t.Fatal("a profile with no address was accepted")
+	}
+	if strings.Contains(err.Error(), "NameServer") {
+		t.Errorf("error names a RocketMQ field to a kafka connection: %v", err)
+	}
+}
+
+/*
+ * Clearing a credential has to actually remove it.
+ *
+ * applyCredentials only ever wrote the secrets it was handed, so a stored one
+ * the submission no longer carries stayed on the profile. SetACL hid it for
+ * RocketMQ by deleting the access key pair by name; every other family's
+ * credential simply survived being cleared, and the next connect used a
+ * password the form had reported as gone.
+ */
+func TestClearingCredentialsRemovesThem(t *testing.T) {
+	service := newTestService(t, nil)
+	input := model.ConnectionProfile{
+		Name: "RabbitMQ", Kind: model.KindRabbitMQ,
+		Endpoints: "http://127.0.0.1:15672", TimeoutSec: 5,
+		Auth: model.AuthConfig{Mechanism: model.AuthPlain},
+	}
+	input.SetSecret("username", "app")
+	input.SetSecret("password", "s3cret")
+	added, err := service.AddConnection(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// What the bridge submits for credentialsMode "clear": the same profile
+	// with no secrets on it at all.
+	if _, err := service.UpdateConnection(added.ID, model.ConnectionProfile{
+		Name: "RabbitMQ", Kind: model.KindRabbitMQ,
+		Endpoints: "http://127.0.0.1:15672", TimeoutSec: 5,
+		Auth: model.AuthConfig{Mechanism: model.AuthNone},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	stored, err := service.GetConnection(added.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(stored.ConfiguredSecrets()) != 0 {
+		t.Errorf("cleared credentials are still stored: %v", stored.ConfiguredSecrets())
+	}
+}
+
+// The other half of the same rule: a submission that carries a credential
+// replaces the stored one rather than being merged into it, so removing one
+// key of a pair removes it.
+func TestReplacingCredentialsDropsTheKeysNoLongerSent(t *testing.T) {
+	service := newTestService(t, nil)
+	input := model.ConnectionProfile{
+		Name: "Kafka", Kind: model.KindKafka,
+		Endpoints: "localhost:9092", TimeoutSec: 5,
+		Auth: model.AuthConfig{Mechanism: model.AuthSASLPlain},
+	}
+	input.SetSecret("username", "admin")
+	input.SetSecret("password", "s3cret")
+	added, err := service.AddConnection(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	replacement := model.ConnectionProfile{
+		Name: "Kafka", Kind: model.KindKafka,
+		Endpoints: "localhost:9092", TimeoutSec: 5,
+		Auth: model.AuthConfig{Mechanism: model.AuthSASLPlain},
+	}
+	replacement.SetSecret("username", "admin")
+	if _, err := service.UpdateConnection(added.ID, replacement); err != nil {
+		t.Fatal(err)
+	}
+
+	stored, err := service.GetConnection(added.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stored.Secret("username") != "admin" {
+		t.Errorf("username = %q, want admin", stored.Secret("username"))
+	}
+	if stored.Secret("password") != "" {
+		t.Errorf("password was not sent but is still stored")
 	}
 }

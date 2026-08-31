@@ -54,7 +54,8 @@ func (s *Service) AddConnection(input model.ConnectionProfile) (*model.Connectio
 }
 
 /*
- * applyCredentials copies what the form collected onto the stored profile.
+ * applyCredentials replaces the stored credentials with what the form
+ * collected.
  *
  * Every driver's credentials, not only RocketMQ's access key pair. Those two
  * are normalised separately because they alone have an enable flag and a
@@ -63,6 +64,18 @@ func (s *Service) AddConnection(input model.ConnectionProfile) (*model.Connectio
  * username and no password - and because the form's test button probes the
  * submitted profile rather than the stored one, it passed on the way in and
  * the connection could not open afterwards.
+ *
+ * Replaces rather than merges. The submission is the whole truth about
+ * credentials, so a key it does not carry is gone. Writing only what arrived
+ * meant clearing a credential did not clear it: SetACL removed the access key
+ * pair by name, so RocketMQ looked right, while every other family's password
+ * survived being cleared and the next connect used one the form had reported
+ * as gone.
+ *
+ * Building a fresh map rather than editing the old one also keeps
+ * UpdateConnection's rollback and its reconnect check honest: both compare
+ * against a shallow copy taken before this runs, which shared the very map
+ * this used to edit in place.
  */
 func applyCredentials(
 	connection *model.ConnectionProfile,
@@ -70,6 +83,7 @@ func applyCredentials(
 	enableACL bool,
 	accessKey, secretKey string,
 ) {
+	connection.Secrets = nil
 	for key, value := range input.Secrets {
 		if key == model.SecretAccessKey || key == model.SecretSecretKey {
 			continue

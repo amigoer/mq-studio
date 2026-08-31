@@ -38,17 +38,23 @@ func normalizeACLConfig(enableACL bool, accessKey, secretKey string) (bool, stri
 	return true, accessKey, secretKey, nil
 }
 
-func validateConnectionFields(name, nameServer string, timeoutSec int) (string, string, error) {
+// validateConnectionFields checks what every family's form has in common.
+//
+// The address is named for the family on the form - NameServers, a management
+// URL, bootstrap servers - so the message when it is empty must not be. It
+// used to say NameServer, which sent a Kafka or RabbitMQ user looking for a
+// field their form does not have.
+func validateConnectionFields(name, endpoints string, timeoutSec int) (string, string, error) {
 	name = strings.TrimSpace(name)
-	nameServer = strings.TrimSpace(nameServer)
+	endpoints = strings.TrimSpace(endpoints)
 	if name == "" {
 		return "", "", fmt.Errorf("connection name cannot be empty")
 	}
-	if !hasEndpoint(nameServer) {
-		return "", "", fmt.Errorf("NameServer address cannot be empty")
+	if !hasEndpoint(endpoints) {
+		return "", "", fmt.Errorf("connection address cannot be empty")
 	}
 	if timeoutSec < 0 || timeoutSec > 300 {
 		return "", "", fmt.Errorf("connection timeout must be between 1 and 300 seconds")
 	}
-	return name, nameServer, nil
+	return name, endpoints, nil
 }
