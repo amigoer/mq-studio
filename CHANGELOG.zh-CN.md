@@ -9,6 +9,62 @@
 
 ## [未发布]
 
+## [0.1.0] - 2026-08-31
+
+支持 RabbitMQ。管理面是完整的，消息面走 AMQP 而不是管理接口的 publish 与 get：
+发送会等 publisher confirm，浏览的行为和一个真正的消费者一致。
+
+### 新增
+
+**RabbitMQ 3.x 与 4.x**
+
+- 连接 broker 的 HTTP 管理插件，同时建立 AMQP 数据面连接。该连接在 broker 上以
+  `mq-studio: <连接名>` 标识自己，运维可以认出是哪个客户端。
+- 概览、队列、Exchange 与 Binding、连接与信道、消息、死信、发送台、节点。
+- 队列带完整 arguments：classic / quorum / stream、持久化、TTL、最大长度与
+  overflow、死信交换机与路由键、单活消费者。可声明、清空、在队列间搬运、删除。
+- Exchange 与 Binding：四种类型外加 alternate exchange；Binding 带路由键与
+  arguments，含 headers 交换机的 `x-match`。
+- 浏览走 AMQP 而不是管理接口，可按路由键或 header 过滤。队列被原样放回，页面也
+  写明浏览的代价：读过的消息回队列时会带上 redelivered 标记。
+- 带 confirm 的发送：目标交换机与路由键、mandatory、持久化、优先级、过期时间、
+  headers、correlation id、reply-to、content type。没有任何绑定能路由的消息会被
+  如实报告为不可路由，而不是假装成功。
+- 死信从 `x-death` 头还原：来自哪个队列、为什么被拒、被拒了几次、发生在什么时候。
+  可单条或批量重投回原队列或指定目标，也可以直接丢弃。
+- 连接与信道，含协议、心跳、prefetch、未确认数与流控状态，并可带原因强制关闭。
+- 节点，含内存分解、资源告警、网络分区、broker 自己的健康检查、特性开关，以及
+  哪些已弃用特性正在被真正使用。
+- 虚拟主机：增删改、默认队列类型、删除保护、tracing，以及连接数与队列数限流。
+- 用户与权限：用户与 tag、按虚拟主机的 configure/write/read 正则三元组、主题
+  权限、按用户的限流。改一个用户的 tag 不再需要知道他的密码。
+- 策略与操作员策略，含优先级、pattern 与 definition，并显示某条队列实际命中了
+  哪条策略；运行时参数与全局参数并列其中。
+- 定义：导出整个 broker 或单个虚拟主机到文件；导入前先看清它会创建什么。
+- Shovel 与 Federation：有哪些、是否在跑、没跑时 broker 自己给的那句话。只读与
+  删除 —— 定义里带着对端 broker 的凭据，凭据在离开驱动之前就被抹掉了。
+- stream 队列会报告通过流协议连上来的客户端，这些客户端从不出现在队列的 AMQP
+  消费者列表里。
+- 告警按 RabbitMQ 自己的指标推导：资源告警、网络分区、向水位线的逼近、队列堆积、
+  无人消费的队列，以及被 broker 限流的连接。
+
+### 修复
+
+- 告警规则对所有连接都读 RocketMQ 的属性键，于是 RabbitMQ 被拿着它根本不上报的
+  指标去衡量，无论 broker 有多糟都一条告警都不会触发。
+- 管理面请求无视连接上配置的超时时间，因为底层库不接受 context。broker 一慢，
+  页面就可以无限等下去。
+- 密码错误被报成「请启用 management 插件」，把人支去重新配置一个本来没问题的
+  broker。
+
+### 已知限制
+
+- Kafka、Pulsar、NATS、MQTT 等仍在界面上呈现但禁用。
+- Shovel、Federation 与流协议是 RabbitMQ 的插件。没装这些插件的 broker 仍然保留
+  对应页面，只是禁用并写明原因。
+- macOS 版本尚未使用 Apple 开发者证书签名，磁盘映像内附「首次运行」助手，用于
+  清除隔离标记。
+
 ## [0.0.1] - 2026-08-31
 
 重构后 MQ Studio 的首个版本。MQ Studio 是一个消息中间件桌面客户端，围绕驱动端口

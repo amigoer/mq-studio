@@ -17,5 +17,10 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
+    // The i18n sweep imports every board in the app before its first
+    // assertion, which is well past the 5s default on a loaded machine - and
+    // it grows with every board added. A hook that times out fails the whole
+    // file, so this is the difference between a slow test and a flaky one.
+    hookTimeout: 60_000,
   },
 })
