@@ -138,7 +138,7 @@ export function TitleBar({
         {updateAvailable != null && <Badge tone="var(--c-ok)" />}
       </IconBtn>
       <IconBtn onClick={onGithub} title={t("shell.titleBar.github")}>
-        <SiGithub className="size-[1.08rem]" color="var(--c-github-mark)" aria-hidden />
+        <SiGithub className="size-[14px]" color="var(--c-github-mark)" aria-hidden />
       </IconBtn>
       {/* Owns its own open state and unread count -- both come from the
           alert centre, which no longer has anything to tell the title bar. */}
