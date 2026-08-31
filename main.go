@@ -63,7 +63,7 @@ func run() error {
 
 	wailsApp := application.New(application.Options{
 		Name:        applicationName,
-		Description: "Local-first desktop client for RocketMQ",
+		Description: "Local-first desktop client for message queues",
 		Services:    bridge.Services(services, version, shellService, updates),
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),

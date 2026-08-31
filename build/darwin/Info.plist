@@ -5,7 +5,7 @@
 		<key>CFBundleExecutable</key>
 		<string>mq-studio</string>
 		<key>CFBundleGetInfoString</key>
-		<string>Local-first desktop client for RocketMQ</string>
+		<string>Local-first desktop client for message queues</string>
 		<key>CFBundleIconFile</key>
 		<string>icons</string>
 		<key>CFBundleIconName</key>

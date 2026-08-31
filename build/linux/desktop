@@ -2,15 +2,15 @@
 Version=1.0
 Type=Application
 Name=MQ Studio
-Comment=Local-first desktop client for RocketMQ
-Comment[zh_CN]=本地优先的 RocketMQ 桌面客户端
+Comment=Local-first desktop client for message queues
+Comment[zh_CN]=本地优先的消息队列桌面客户端
 # Resolved through PATH so the same file serves both the deb/rpm install at
 # /usr/local/bin and the AppImage, where the binary lives inside the bundle.
 Exec=mq-studio
 Icon=mq-studio
 Terminal=false
 Categories=Development;Network;
-Keywords=RocketMQ;RabbitMQ;MQ;Message Queue;Broker;
+Keywords=RocketMQ;RabbitMQ;Kafka;MQ;Message Queue;Broker;
 # Groups the running window onto the launcher icon in GNOME and KDE. The
 # `wails3 generate .desktop` command cannot emit this key at all, which is why
 # build/linux/Taskfile.yml copies this file instead of generating one.

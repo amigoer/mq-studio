@@ -6,10 +6,10 @@
 		"0000": {
 			"ProductVersion": "0.0.3",
 			"CompanyName": "amigoer",
-			"FileDescription": "Local-first desktop client for RocketMQ",
+			"FileDescription": "Local-first desktop client for message queues",
 			"LegalCopyright": "(c) 2026, amigoer",
 			"ProductName": "MQ Studio",
-			"Comments": "Local-first desktop client for RocketMQ"
+			"Comments": "Local-first desktop client for message queues"
 		}
 	}
 }

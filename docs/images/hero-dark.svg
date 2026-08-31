@@ -1,61 +1,81 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="340" viewBox="0 0 1200 340" role="img" aria-labelledby="t d">
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360" role="img" aria-labelledby="t d">
   <title id="t">MQ Studio</title>
-  <desc id="d">MQ Studio — see inside your message queues. Clusters, topics, consumers, and messages in one local-first desktop app, with no web console to deploy.</desc>
+  <desc id="d">MQ Studio — see inside your message queues. One local-first desktop app for RocketMQ, RabbitMQ, and Kafka, with more drivers landing and no web console to deploy.</desc>
 
   <!-- eyebrow -->
-  <text x="10" y="36" font-family="ui-monospace,'SF Mono',Menlo,Consolas,monospace" font-size="16.5" letter-spacing="3" fill="#9B9BA3">LOCAL-FIRST · CROSS-PLATFORM · OPEN SOURCE</text>
+  <text x="10" y="50" font-family="ui-monospace,'SF Mono',Menlo,Consolas,monospace" font-size="16.5" letter-spacing="3" fill="#9B9BA3">LOCAL-FIRST · NOTHING TO DEPLOY · OPEN SOURCE</text>
 
   <!-- logo tile + wordmark -->
   <g id="lockup">
-    <rect x="10" y="62" width="88" height="88" rx="22" fill="#EC3013"/>
-    <text x="52" y="118" text-anchor="middle" font-family="-apple-system,'PingFang SC','Segoe UI','Microsoft YaHei',system-ui,sans-serif" font-size="35" font-weight="800" letter-spacing="0.5" fill="#F6F2F1">MQ</text>
-    <line x1="70" y1="115" x2="82" y2="127" stroke="#201E1D" stroke-width="7.5" stroke-linecap="round"/>
-    <text x="126" y="128" font-family="-apple-system,'PingFang SC','Segoe UI','Microsoft YaHei',system-ui,sans-serif" font-size="60" font-weight="800" letter-spacing="-1" fill="#F4F4F5">MQ Studio</text>
+    <rect x="10" y="76" width="88" height="88" rx="19.8" fill="#EC3013"/>
+    <g transform="translate(22.86 96.761) scale(0.46478)" fill="none" stroke-width="10">
+      <path d="M12 74 L12 26 L34 55 L56 26 L56 74" stroke="#F3F2F2" stroke-linejoin="round" stroke-linecap="round"/>
+      <circle cx="98" cy="50" r="24" stroke="#F3F2F2"/>
+      <line x1="109" y1="63" x2="120" y2="74" stroke="#201E1D" stroke-linecap="round"/>
+    </g>
+    <text x="126" y="142" font-family="-apple-system,'PingFang SC','Segoe UI','Microsoft YaHei',system-ui,sans-serif" font-size="60" font-weight="800" letter-spacing="-1" fill="#F4F4F5">MQ Studio</text>
   </g>
 
   <!-- value -->
-  <text x="10" y="205" font-family="-apple-system,'PingFang SC','Segoe UI','Microsoft YaHei',system-ui,sans-serif" font-size="28" font-weight="600" fill="#C8C8CE">See inside your message queues.</text>
-  <text x="10" y="241" font-family="-apple-system,'PingFang SC','Segoe UI','Microsoft YaHei',system-ui,sans-serif" font-size="20.5" fill="#9B9BA3">Clusters, topics, consumers, messages — one desktop app, nothing to deploy.</text>
+  <text x="10" y="219" font-family="-apple-system,'PingFang SC','Segoe UI','Microsoft YaHei',system-ui,sans-serif" font-size="28" font-weight="600" fill="#C8C8CE">See inside your message queues.</text>
+  <text x="10" y="255" font-family="-apple-system,'PingFang SC','Segoe UI','Microsoft YaHei',system-ui,sans-serif" font-size="20.5" fill="#9B9BA3">One desktop app for clusters, topics, consumers, and messages.</text>
 
   <!-- metadata -->
   <g id="meta">
-    <rect x="10" y="272" width="234" height="36" rx="18" fill="none" stroke="#2E2E33" stroke-width="1.5"/>
-    <circle cx="32" cy="290" r="4.5" fill="#3DBB81"/>
-    <text x="46" y="296" font-family="ui-monospace,'SF Mono',Menlo,Consolas,monospace" font-size="16.5" fill="#B4B4BC">RocketMQ 4.x / 5.x</text>
-    <text x="272" y="296" font-family="ui-monospace,'SF Mono',Menlo,Consolas,monospace" font-size="16.5" fill="#9B9BA3">macOS · Windows · Linux&#160;&#160;·&#160;&#160;Apache-2.0</text>
+    <rect x="10" y="286" width="244" height="36" rx="18" fill="none" stroke="#2E2E33" stroke-width="1.5"/>
+    <circle cx="32" cy="304" r="4.5" fill="#3DBB81"/>
+    <text x="46" y="310" font-family="ui-monospace,'SF Mono',Menlo,Consolas,monospace" font-size="16.5" fill="#B4B4BC">3 drivers available</text>
+    <text x="282" y="310" font-family="ui-monospace,'SF Mono',Menlo,Consolas,monospace" font-size="16.5" fill="#9B9BA3">macOS · Windows · Linux&#160;&#160;·&#160;&#160;Apache-2.0</text>
   </g>
 
-  <!-- queue rails: messages flowing from producer to consumer -->
-  <g id="rails">
-    <line x1="748" y1="113" x2="1178" y2="113" stroke="#2A2A2E" stroke-width="1.5"/>
-    <circle cx="748" cy="113" r="5" fill="#9B9BA3"/>
-    <circle cx="1178" cy="113" r="5.5" fill="none" stroke="#9B9BA3" stroke-width="2"/>
-    <rect x="785" y="98" width="30" height="30" rx="9" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <rect x="845" y="98" width="30" height="30" rx="9" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <rect x="905" y="98" width="30" height="30" rx="9" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <rect x="1025" y="98" width="30" height="30" rx="9" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <rect x="1085" y="98" width="30" height="30" rx="9" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <line x1="748" y1="187" x2="1178" y2="187" stroke="#2A2A2E" stroke-width="1.5"/>
-    <circle cx="748" cy="187" r="5" fill="#9B9BA3"/>
-    <circle cx="1178" cy="187" r="5.5" fill="none" stroke="#9B9BA3" stroke-width="2"/>
-    <rect x="775" y="172" width="30" height="30" rx="9" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <rect x="853" y="172" width="30" height="30" rx="9" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <rect x="1003" y="172" width="30" height="30" rx="9" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <rect x="1081" y="172" width="30" height="30" rx="9" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <line x1="748" y1="261" x2="1178" y2="261" stroke="#2A2A2E" stroke-width="1.5"/>
-    <circle cx="748" cy="261" r="5" fill="#9B9BA3"/>
-    <circle cx="1178" cy="261" r="5.5" fill="none" stroke="#9B9BA3" stroke-width="2"/>
-    <rect x="805" y="246" width="30" height="30" rx="9" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <rect x="865" y="246" width="30" height="30" rx="9" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <rect x="985" y="246" width="30" height="30" rx="9" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <rect x="1045" y="246" width="30" height="30" rx="9" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <rect x="1105" y="246" width="30" height="30" rx="9" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
+  <!-- one client, a driver per broker: each lane carries its own messages -->
+  <g id="drivers">
+    <rect x="700" y="175" width="44" height="44" rx="9.9" fill="#EC3013"/>
+    <g transform="translate(706.43 185.38) scale(0.23239)" fill="none" stroke-width="10">
+      <path d="M12 74 L12 26 L34 55 L56 26 L56 74" stroke="#F3F2F2" stroke-linejoin="round" stroke-linecap="round"/>
+      <circle cx="98" cy="50" r="24" stroke="#F3F2F2"/>
+      <line x1="109" y1="63" x2="120" y2="74" stroke="#201E1D" stroke-linecap="round"/>
+    </g>
+    <line x1="744" y1="197" x2="768" y2="197" stroke="#3A3A40" stroke-width="1.5"/>
+    <line x1="768" y1="88" x2="768" y2="252" stroke="#3A3A40" stroke-width="1.5"/>
+    <line x1="768" y1="252" x2="768" y2="306" stroke="#3A3A40" stroke-width="1.5" stroke-dasharray="5 6"/>
+    <line x1="776" y1="88" x2="798" y2="88" stroke="#3A3A40" stroke-width="1.5"/>
+    <text x="884" y="93" text-anchor="end" font-family="ui-monospace,'SF Mono',Menlo,Consolas,monospace" font-size="15" fill="#B4B4BC">RocketMQ</text>
+    <line x1="896" y1="88" x2="1178" y2="88" stroke="#2A2A2E" stroke-width="1.5"/>
+    <circle cx="768" cy="88" r="4.5" fill="#9B9BA3"/>
+    <circle cx="1178" cy="88" r="5.5" fill="none" stroke="#9B9BA3" stroke-width="2"/>
+    <rect x="918" y="73" width="30" height="30" rx="9" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
+    <rect x="972" y="73" width="30" height="30" rx="9" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
+    <rect x="1026" y="73" width="30" height="30" rx="9" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
+    <rect x="1104" y="73" width="30" height="30" rx="9" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
+    <line x1="776" y1="170" x2="798" y2="170" stroke="#3A3A40" stroke-width="1.5"/>
+    <text x="884" y="175" text-anchor="end" font-family="ui-monospace,'SF Mono',Menlo,Consolas,monospace" font-size="15" fill="#B4B4BC">RabbitMQ</text>
+    <line x1="896" y1="170" x2="1178" y2="170" stroke="#2A2A2E" stroke-width="1.5"/>
+    <circle cx="768" cy="170" r="4.5" fill="#9B9BA3"/>
+    <circle cx="1178" cy="170" r="5.5" fill="none" stroke="#9B9BA3" stroke-width="2"/>
+    <rect x="910" y="155" width="30" height="30" rx="9" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
+    <rect x="964" y="155" width="30" height="30" rx="9" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
+    <rect x="1120" y="155" width="30" height="30" rx="9" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
+    <rect x="1042" y="153" width="34" height="34" rx="10" fill="#EC3013"/>
+    <line x1="776" y1="252" x2="825" y2="252" stroke="#3A3A40" stroke-width="1.5"/>
+    <text x="884" y="257" text-anchor="end" font-family="ui-monospace,'SF Mono',Menlo,Consolas,monospace" font-size="15" fill="#B4B4BC">Kafka</text>
+    <line x1="896" y1="252" x2="1178" y2="252" stroke="#2A2A2E" stroke-width="1.5"/>
+    <circle cx="768" cy="252" r="4.5" fill="#9B9BA3"/>
+    <circle cx="1178" cy="252" r="5.5" fill="none" stroke="#9B9BA3" stroke-width="2"/>
+    <rect x="924" y="237" width="30" height="30" rx="9" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
+    <rect x="978" y="237" width="30" height="30" rx="9" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
+    <rect x="1056" y="237" width="30" height="30" rx="9" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
+    <rect x="1110" y="237" width="30" height="30" rx="9" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
+    <line x1="776" y1="306" x2="816" y2="306" stroke="#3A3A40" stroke-width="1.5" stroke-dasharray="5 6"/>
+    <text x="884" y="311" text-anchor="end" font-family="ui-monospace,'SF Mono',Menlo,Consolas,monospace" font-size="15" fill="#6E6E76">+ more</text>
+    <line x1="896" y1="306" x2="1178" y2="306" stroke="#2A2A2E" stroke-width="1.5" stroke-dasharray="6 7"/>
+    <circle cx="768" cy="306" r="4.5" fill="none" stroke="#6E6E76" stroke-width="1.5"/>
+    <circle cx="1178" cy="306" r="5.5" fill="none" stroke="#6E6E76" stroke-width="2"/>
   </g>
 
-  <!-- featured message + magnifier echoing the logo's Q -->
+  <!-- magnifier echoing the logo's Q: any driver, same inspection -->
   <g id="inspect">
-    <rect x="926" y="170" width="34" height="34" rx="10" fill="#EC3013"/>
-    <circle cx="943" cy="187" r="31" fill="none" stroke="#E4E4E7" stroke-width="3.5"/>
-    <line x1="965" y1="209" x2="988" y2="232" stroke="#E4E4E7" stroke-width="7.5" stroke-linecap="round"/>
+    <circle cx="1059" cy="170" r="31" fill="none" stroke="#E4E4E7" stroke-width="3.5"/>
+    <line x1="1081" y1="192" x2="1104" y2="215" stroke="#E4E4E7" stroke-width="7.5" stroke-linecap="round"/>
   </g>
 </svg>
