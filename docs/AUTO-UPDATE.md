@@ -40,9 +40,35 @@ reads is a Go setting to begin with. The renderer only draws what the manager
 publishes on the `update:state` event.
 
 The only thing the renderer decides is when to speak: a release is announced
-once, and the announcement is remembered across restarts so a version the user
-has already declined does not come back on every launch. Pressing the button is
-different — that reports every outcome, including "already on the latest".
+once per launch, by a toast that stays until it is answered. That memory is the
+session's, not Go's — a release the user closed without acting on comes back
+the next time the app starts, and skipping it is what stops it for good.
+Pressing the button is different — that reports every outcome, including
+"already on the latest", and a check that finds a release opens the dialog
+rather than raising a toast about it.
+
+## Where the update is offered
+
+The dialog, `frontend/src/design/shell/UpdateDialog.tsx`, is the surface that
+takes the update: what changed, the download and its progress, and the restart.
+It opens from the title bar icon and from the toast, so nothing about updating
+requires a trip into the settings page — the settings card is still there, and
+draws the same states, but it is no longer the only way to install.
+
+The title bar icon is an up arrow rather than a refresh glyph, carries the
+pending version in its tooltip, and opens the dialog when there is a release to
+open. With nothing pending it starts a check, which is all it ever used to do.
+
+Release notes are the GitHub release body, which
+[`scripts/release-notes.mjs`](../scripts/release-notes.mjs) builds from
+`CHANGELOG.zh-CN.md`. `frontend/src/components/markdown.tsx` renders the subset
+that generator can produce — headings, lists with their wrapped continuations,
+emphasis, links, GitHub alert blocks, rules and fences — and degrades anything
+else to a paragraph rather than showing its markers. It emits React nodes and
+never HTML, because the body is remote content, and it opens links in the
+system browser, because the webview has no way back. Tables are the known gap;
+`Markdown` is the only export, so swapping the innards for a full parser would
+touch one file.
 
 ## What it will and will not install
 
@@ -135,6 +161,10 @@ internal/bridge/update.go       The renderer-facing service
 main.go                         Schedule start, and the quit-time install hook
 frontend/src/api/updates.ts     Typed calls and the state event
 frontend/src/hooks/useUpdater.ts             State, actions, announcing
+frontend/src/components/markdown.tsx         Release notes, as the notes are written
+frontend/src/lib/updateText.ts               Wording the two update surfaces share
+frontend/src/design/shell/UpdateDialog.tsx   Where the update is taken
+frontend/src/design/shell/TitleBar.tsx       The icon that announces and opens it
 frontend/src/design/boards/settings/UpdateCard.tsx   Settings > 关于
 ```
 
@@ -158,8 +188,14 @@ that `notify` downloads nothing, that `download` reaches a verified package,
 that only `auto` installs at quit, and that a finished download survives a
 restart while one the running build has overtaken is thrown away.
 
-On the frontend, `UpdateCard.test.tsx` renders every phase in both languages,
-which is also the coverage the board-level i18n test does not reach.
+On the frontend, `UpdateCard.test.tsx` and `UpdateDialog.test.tsx` render every
+phase in both languages, which is also the coverage the board-level i18n test
+does not reach — the dialog test mounts the panel rather than the dialog,
+because Radix renders content through a portal and server rendering follows
+portals nowhere. `markdown.test.tsx` runs a real published release body through
+the renderer and asserts that no marker survives to the reader, that a wrapped
+bullet stays one bullet, and that a link scheme the app will not open loses its
+link rather than its text.
 
 What tests cannot cover was checked by hand against the live release: the
 GitHub API shape, a real 7 MB asset fetched through GitHub's CDN redirect and
