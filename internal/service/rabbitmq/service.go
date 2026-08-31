@@ -563,3 +563,53 @@ func (s *Service) ImportDefinitions(ctx context.Context, connID int, namespace, 
 	defer cancel()
 	return api.ImportDefinitions(ctx, namespace, document)
 }
+
+// Shovels returns every shovel with the state the broker reports for it.
+func (s *Service) Shovels(ctx context.Context, connID int) ([]*model.Shovel, error) {
+	api, err := port[driver.ReplicationAdmin](s, connID, model.CapReplication)
+	if err != nil {
+		if notConnected(err) {
+			return []*model.Shovel{}, nil
+		}
+		return nil, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.ListShovels(ctx)
+}
+
+// DeleteShovel removes a shovel, stopping it.
+func (s *Service) DeleteShovel(ctx context.Context, connID int, namespace, name string) error {
+	api, err := port[driver.ReplicationAdmin](s, connID, model.CapReplication)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.RemoveShovel(ctx, namespace, name)
+}
+
+// FederationUpstreams returns the brokers this one federates from.
+func (s *Service) FederationUpstreams(ctx context.Context, connID int) ([]*model.FederationUpstream, error) {
+	api, err := port[driver.ReplicationAdmin](s, connID, model.CapReplication)
+	if err != nil {
+		if notConnected(err) {
+			return []*model.FederationUpstream{}, nil
+		}
+		return nil, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.ListFederationUpstreams(ctx)
+}
+
+// DeleteFederationUpstream removes an upstream, stopping its links.
+func (s *Service) DeleteFederationUpstream(ctx context.Context, connID int, namespace, name string) error {
+	api, err := port[driver.ReplicationAdmin](s, connID, model.CapReplication)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.RemoveFederationUpstream(ctx, namespace, name)
+}

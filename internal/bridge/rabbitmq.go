@@ -521,3 +521,25 @@ func (s *RabbitMQService) ReadDefinitionsFile() (*DefinitionsPreview, error) {
 func (s *RabbitMQService) ImportDefinitions(connID int, vhost, document string) error {
 	return s.service.ImportDefinitions(context.Background(), connID, vhost, document)
 }
+
+// Shovels returns every shovel with the state the broker reports for it. The
+// URIs come back with their passwords removed.
+func (s *RabbitMQService) Shovels(connID int) ([]*model.Shovel, error) {
+	return s.service.Shovels(context.Background(), connID)
+}
+
+// DeleteShovel removes a shovel, stopping it.
+func (s *RabbitMQService) DeleteShovel(connID int, vhost, name string) error {
+	return s.service.DeleteShovel(context.Background(), connID, vhost, name)
+}
+
+// FederationUpstreams returns the brokers this one federates from, with their
+// links' state.
+func (s *RabbitMQService) FederationUpstreams(connID int) ([]*model.FederationUpstream, error) {
+	return s.service.FederationUpstreams(context.Background(), connID)
+}
+
+// DeleteFederationUpstream removes an upstream, stopping its links.
+func (s *RabbitMQService) DeleteFederationUpstream(connID int, vhost, name string) error {
+	return s.service.DeleteFederationUpstream(context.Background(), connID, vhost, name)
+}

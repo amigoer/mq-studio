@@ -108,6 +108,7 @@ func capabilities() []model.Capability {
 		model.CapParameterAdmin,
 		model.CapDefinitionsExport,
 		model.CapDefinitionsImport,
+		model.CapReplication,
 
 		model.CapRouting,
 		model.CapRoutingAdmin,
@@ -135,6 +136,14 @@ func (c *Conn) probe(ctx context.Context) {
 		return
 	}
 	c.version = overview.RabbitMQVersion
+
+	// Shovels and federation are plugins. A broker without them answers 404,
+	// which is a deployment choice rather than a failure - so the capability
+	// is degraded with that reason and the sidebar says the page needs a
+	// plugin, instead of the page failing when someone opens it.
+	if err := c.hasReplicationPlugins(ctx); err != nil {
+		c.capabilities = c.capabilities.WithDegraded(model.CapReplication, replicationPluginMissing)
+	}
 
 	// The data plane is probed separately because it fails separately. A
 	// management user with no permission on the vhost can read every admin
@@ -225,4 +234,8 @@ const (
 	amqpAccessRefused = "mq.rabbitmq.degraded.amqpAccessRefused"
 	amqpTimedOut      = "mq.rabbitmq.degraded.amqpTimeout"
 	amqpUnreachable   = "mq.rabbitmq.degraded.amqpUnreachable"
+
+	// replicationPluginMissing is the shovel plugin being off, which is the
+	// usual case: a stock broker ships without it.
+	replicationPluginMissing = "mq.rabbitmq.degraded.replicationPlugin"
 )

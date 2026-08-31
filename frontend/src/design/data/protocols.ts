@@ -15,6 +15,7 @@
 import {
   BellRing,
   Boxes,
+  Cable,
   FileJson,
   House,
   Layers,
@@ -46,6 +47,7 @@ export type PageId =
   | "vhosts"
   | "policies"
   | "definitions"
+  | "replication"
   | "consumers"
   | "messages"
   | "dlq"
@@ -156,6 +158,7 @@ export const PROTOCOLS: Record<ProtocolId, Protocol> = {
           { id: "cluster", icon: Server, label: "shell.nav.rabbitmq.cluster" },
           { id: "vhosts", icon: Boxes, label: "shell.nav.rabbitmq.vhosts" },
           { id: "policies", icon: ScrollText, label: "shell.nav.rabbitmq.policies" },
+          { id: "replication", icon: Cable, label: "shell.nav.rabbitmq.replication" },
           { id: "definitions", icon: FileJson, label: "shell.nav.rabbitmq.definitions" },
           { id: "alerts", icon: BellRing, label: "shell.nav.rabbitmq.alerts" },
           { id: "acl", icon: Shield, label: "shell.nav.rabbitmq.acl" },

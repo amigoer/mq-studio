@@ -390,7 +390,8 @@
         "unreachable": "无法连接到管理 API。请确认地址与端口正确，并且 management 插件已启用 —— 插件未启用时管理端口根本不会监听，从客户端看两者是一样的。",
         "amqpAccessRefused": "管理 API 可用，但 AMQP 连接被拒绝：该用户在这个虚拟主机上没有权限。收发消息不可用，管理功能不受影响。",
         "amqpTimeout": "连接 AMQP 端口超时。请确认地址与端口正确，且没有被防火墙拦截。",
-        "amqpUnreachable": "无法连接到 AMQP 端口。管理功能仍可用，但收发消息不可用 —— 请检查 AMQP 地址与端口。"
+        "amqpUnreachable": "无法连接到 AMQP 端口。管理功能仍可用，但收发消息不可用 —— 请检查 AMQP 地址与端口。",
+        "replicationPlugin": "该 broker 没有启用 shovel / federation 插件，跨 broker 搬运的相关页面因此不可用。这是部署选择，不是故障 —— 需要时用 rabbitmq-plugins enable rabbitmq_shovel rabbitmq_shovel_management 打开。"
       },
       "routing": {
         "title": "交换机与绑定",
@@ -506,6 +507,7 @@
         "cluster": "节点",
         "vhosts": "虚拟主机",
         "policies": "策略",
+        "replication": "数据搬运",
         "definitions": "定义",
         "alerts": "告警",
         "acl": "用户 / vhost"
@@ -2369,6 +2371,36 @@
           "policies": "策略",
           "parameters": "参数"
         }
+      }
+    },
+    "replication": {
+      "rabbitmq": {
+        "title": "数据搬运",
+        "subtitle": "Shovel 和 Federation —— broker 之间搬消息的两种方式",
+        "tabShovels": "Shovel · {{count}}",
+        "tabFederation": "Federation · {{count}}",
+        "shovelHint": "Shovel 把消息从一处搬到另一处，搬完就完。定义由 URI 携带对端凭据，所以这里只读和删除 —— 建应该跟部署的其余部分写在一起。",
+        "federationHint": "Federation 让两个 broker 的交换机或队列持续保持同步。上游是配置，链路才是真正的连接。",
+        "noShovels": "没有配置任何 shovel",
+        "noUpstreams": "没有配置任何 federation 上游",
+        "from": "源",
+        "to": "目标",
+        "ackMode": "确认模式",
+        "since": "状态更新于",
+        "notStarted": "未启动",
+        "noLink": "无链路",
+        "upstream": "上游地址",
+        "federates": "同步对象",
+        "everything": "全部",
+        "maxHops": "最大跳数",
+        "redacted": "密码已被移除，不会离开 broker",
+        "deleteShovelTitle": "删除 shovel「{{name}}」",
+        "deleteShovelDesc": "它会立刻停止搬运。未搬完的消息留在源队列，不会丢失。",
+        "shovelDeleted": "已删除 shovel「{{name}}」",
+        "deleteUpstreamTitle": "删除上游「{{name}}」",
+        "deleteUpstreamDesc": "它的所有链路会断开，两个 broker 之间不再同步。",
+        "upstreamDeleted": "已删除上游「{{name}}」",
+        "deleteFailed": "删除失败"
       }
     }
   }

@@ -102,3 +102,102 @@ func TestCensusInjectsTheRequestDeadline(t *testing.T) {
 		t.Error("the driver was called with a context carrying no deadline")
 	}
 }
+
+// replicationConn is the read half of the shovel and federation page.
+type replicationConn struct {
+	fakeConn
+	gotDeadline bool
+	deleted     string
+}
+
+func (c *replicationConn) ListShovels(ctx context.Context) ([]*model.Shovel, error) {
+	_, c.gotDeadline = ctx.Deadline()
+	return []*model.Shovel{{Name: "orders-to-archive"}}, nil
+}
+
+func (c *replicationConn) RemoveShovel(_ context.Context, _, name string) error {
+	c.deleted = name
+	return nil
+}
+
+func (c *replicationConn) ListFederationUpstreams(context.Context) ([]*model.FederationUpstream, error) {
+	return []*model.FederationUpstream{{Name: "eu-west"}}, nil
+}
+
+func (c *replicationConn) RemoveFederationUpstream(_ context.Context, _, name string) error {
+	c.deleted = name
+	return nil
+}
+
+/*
+ * A broker without the shovel plugin is a deployment choice, not a failure.
+ * The capability is absent, the sidebar says why, and a page that loads anyway
+ * gets an empty list rather than an error banner on top of the explanation.
+ */
+func TestShovelsAreEmptyWhenNothingIsConnected(t *testing.T) {
+	shovels, err := serviceWith(nil).Shovels(context.Background(), 1)
+	if err != nil {
+		t.Fatalf("Shovels: %v", err)
+	}
+	if len(shovels) != 0 {
+		t.Errorf("shovels = %v, want none", shovels)
+	}
+}
+
+func TestShovelsRefuseABrokerWithoutTheCapability(t *testing.T) {
+	conn := &replicationConn{fakeConn: fakeConn{capabilities: supporting(model.CapDestinationList)}}
+
+	_, err := serviceWith(conn).Shovels(context.Background(), 1)
+	var unsupported *driver.UnsupportedError
+	if !errors.As(err, &unsupported) {
+		t.Fatalf("err = %v, want an UnsupportedError", err)
+	}
+	if unsupported.Capability != model.CapReplication {
+		t.Errorf("capability = %q, want %q", unsupported.Capability, model.CapReplication)
+	}
+}
+
+// Deleting is the destructive half, and it must be refused for the same reason
+// rather than reaching a driver that cannot service it.
+func TestDeletingAShovelIsRefusedWithoutTheCapability(t *testing.T) {
+	conn := &replicationConn{fakeConn: fakeConn{capabilities: supporting(model.CapDestinationList)}}
+
+	err := serviceWith(conn).DeleteShovel(context.Background(), 1, "/", "orders-to-archive")
+	var unsupported *driver.UnsupportedError
+	if !errors.As(err, &unsupported) {
+		t.Fatalf("err = %v, want an UnsupportedError", err)
+	}
+	if conn.deleted != "" {
+		t.Errorf("the driver deleted %q despite the refusal", conn.deleted)
+	}
+}
+
+func TestReplicationInjectsTheRequestDeadline(t *testing.T) {
+	conn := &replicationConn{fakeConn: fakeConn{capabilities: supporting(model.CapReplication)}}
+
+	if _, err := serviceWith(conn).Shovels(context.Background(), 1); err != nil {
+		t.Fatalf("Shovels: %v", err)
+	}
+	if !conn.gotDeadline {
+		t.Error("the driver was called with a context carrying no deadline")
+	}
+}
+
+func TestFederationUpstreamsReachTheDriverWhenSupported(t *testing.T) {
+	conn := &replicationConn{fakeConn: fakeConn{capabilities: supporting(model.CapReplication)}}
+
+	upstreams, err := serviceWith(conn).FederationUpstreams(context.Background(), 1)
+	if err != nil {
+		t.Fatalf("FederationUpstreams: %v", err)
+	}
+	if len(upstreams) != 1 || upstreams[0].Name != "eu-west" {
+		t.Errorf("upstreams = %v", upstreams)
+	}
+
+	if err := serviceWith(conn).DeleteFederationUpstream(context.Background(), 1, "/", "eu-west"); err != nil {
+		t.Fatalf("DeleteFederationUpstream: %v", err)
+	}
+	if conn.deleted != "eu-west" {
+		t.Errorf("deleted = %q, want eu-west", conn.deleted)
+	}
+}

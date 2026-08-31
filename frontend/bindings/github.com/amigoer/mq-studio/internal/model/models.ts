@@ -749,6 +749,14 @@ export enum Capability {
      */
     CapDefinitionsExport = "definitions.export",
     CapDefinitionsImport = "definitions.import",
+
+    /**
+     * CapReplication is moving messages between brokers - shovels and
+     * federation. It is the capability most likely to be reported as degraded
+     * rather than absent: both are plugins, so a broker that could do this
+     * perfectly well simply has not been asked to.
+     */
+    CapReplication = "replication.admin",
     CapRouting = "routing.exchanges",
 
     /**
@@ -1625,6 +1633,90 @@ export class FeatureFlag {
     static createFrom($$source: any = {}): FeatureFlag {
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         return new FeatureFlag($$parsedSource as Partial<FeatureFlag>);
+    }
+}
+
+/**
+ * FederationUpstream is another broker this one pulls from.
+ * 
+ * Different from a shovel in what it is for: a shovel moves messages once,
+ * from somewhere to somewhere; federation keeps two brokers' exchanges or
+ * queues in step continuously.
+ */
+export class FederationUpstream {
+    "namespace": string;
+    "name": string;
+
+    /**
+     * URI has its password removed.
+     */
+    "uri": string[];
+
+    /**
+     * Exchange and Queue are which of the two this upstream federates, and
+     * exactly one of them is set.
+     */
+    "exchange": string;
+    "queue": string;
+
+    /**
+     * MaxHops stops a federation loop between brokers from carrying a message
+     * forever.
+     */
+    "maxHops": number;
+    "ackMode": string;
+
+    /**
+     * State is the running link's status, and Error is why it is not running.
+     * An upstream is configuration; a link is a connection that either works
+     * or explains itself.
+     */
+    "state": string;
+    "error": string;
+
+    /** Creates a new FederationUpstream instance. */
+    constructor($$source: Partial<FederationUpstream> = {}) {
+        if (!("namespace" in $$source)) {
+            this["namespace"] = "";
+        }
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("uri" in $$source)) {
+            this["uri"] = [];
+        }
+        if (!("exchange" in $$source)) {
+            this["exchange"] = "";
+        }
+        if (!("queue" in $$source)) {
+            this["queue"] = "";
+        }
+        if (!("maxHops" in $$source)) {
+            this["maxHops"] = 0;
+        }
+        if (!("ackMode" in $$source)) {
+            this["ackMode"] = "";
+        }
+        if (!("state" in $$source)) {
+            this["state"] = "";
+        }
+        if (!("error" in $$source)) {
+            this["error"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new FederationUpstream instance from a string or object.
+     */
+    static createFrom($$source: any = {}): FederationUpstream {
+        const $$createField2_0 = $$createType0;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("uri" in $$parsedSource) {
+            $$parsedSource["uri"] = $$createField2_0($$parsedSource["uri"]);
+        }
+        return new FederationUpstream($$parsedSource as Partial<FederationUpstream>);
     }
 }
 
@@ -2997,6 +3089,101 @@ export class RuntimeParameter {
     static createFrom($$source: any = {}): RuntimeParameter {
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         return new RuntimeParameter($$parsedSource as Partial<RuntimeParameter>);
+    }
+}
+
+/**
+ * Shovel moves messages from one broker to another, or between two places on
+ * the same one.
+ * 
+ * It is a plugin rather than core RabbitMQ, which is why the capability can be
+ * degraded: a stock broker has none, and that is a deployment choice rather
+ * than a failure.
+ */
+export class Shovel {
+    "namespace": string;
+    "name": string;
+
+    /**
+     * State is what the broker reports it is doing - running, starting,
+     * terminated. Empty means it reported nothing, which itself says the
+     * shovel is defined and has not started.
+     */
+    "state": string;
+
+    /**
+     * Type is dynamic or static: a static shovel comes from the broker's
+     * config file and cannot be deleted from here.
+     */
+    "type": string;
+    "since": string;
+
+    /**
+     * Source and Target say what it moves, in words - one of a queue or an
+     * exchange at each end, never both.
+     */
+    "source": string;
+    "target": string;
+    "ackMode": string;
+
+    /**
+     * SourceURI and TargetURI have their passwords removed. They are the one
+     * place the management API stores another broker's credential in plain
+     * text and hands it back on request.
+     */
+    "sourceUri": string[];
+    "targetUri": string[];
+
+    /** Creates a new Shovel instance. */
+    constructor($$source: Partial<Shovel> = {}) {
+        if (!("namespace" in $$source)) {
+            this["namespace"] = "";
+        }
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("state" in $$source)) {
+            this["state"] = "";
+        }
+        if (!("type" in $$source)) {
+            this["type"] = "";
+        }
+        if (!("since" in $$source)) {
+            this["since"] = "";
+        }
+        if (!("source" in $$source)) {
+            this["source"] = "";
+        }
+        if (!("target" in $$source)) {
+            this["target"] = "";
+        }
+        if (!("ackMode" in $$source)) {
+            this["ackMode"] = "";
+        }
+        if (!("sourceUri" in $$source)) {
+            this["sourceUri"] = [];
+        }
+        if (!("targetUri" in $$source)) {
+            this["targetUri"] = [];
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new Shovel instance from a string or object.
+     */
+    static createFrom($$source: any = {}): Shovel {
+        const $$createField8_0 = $$createType0;
+        const $$createField9_0 = $$createType0;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("sourceUri" in $$parsedSource) {
+            $$parsedSource["sourceUri"] = $$createField8_0($$parsedSource["sourceUri"]);
+        }
+        if ("targetUri" in $$parsedSource) {
+            $$parsedSource["targetUri"] = $$createField9_0($$parsedSource["targetUri"]);
+        }
+        return new Shovel($$parsedSource as Partial<Shovel>);
     }
 }
 

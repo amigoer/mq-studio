@@ -421,6 +421,19 @@ type DefinitionsAdmin interface {
 	ImportDefinitions(ctx context.Context, namespace, document string) error
 }
 
+// ReplicationAdmin reads the links that move messages between brokers.
+//
+// Read and delete rather than create. A shovel or an upstream is defined by a
+// URI carrying another broker's credentials, and a form that collected one
+// would be storing a password in a place this app cannot verify - the pages
+// show what exists, say what it is doing, and let it be removed.
+type ReplicationAdmin interface {
+	ListShovels(ctx context.Context) ([]*model.Shovel, error)
+	RemoveShovel(ctx context.Context, namespace, name string) error
+	ListFederationUpstreams(ctx context.Context) ([]*model.FederationUpstream, error)
+	RemoveFederationUpstream(ctx context.Context, namespace, name string) error
+}
+
 // RoutingMutator creates and deletes exchanges and bindings.
 //
 // Separate from RoutingAdmin because reading a topology and changing it are

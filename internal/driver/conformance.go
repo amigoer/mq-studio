@@ -45,6 +45,7 @@ func backings() []capabilityBacking {
 	policies := func(c Conn) bool { _, ok := c.(PolicyAdmin); return ok }
 	parameters := func(c Conn) bool { _, ok := c.(ParameterAdmin); return ok }
 	definitions := func(c Conn) bool { _, ok := c.(DefinitionsAdmin); return ok }
+	replication := func(c Conn) bool { _, ok := c.(ReplicationAdmin); return ok }
 	routing := func(c Conn) bool { _, ok := c.(RoutingAdmin); return ok }
 	census := func(c Conn) bool { _, ok := c.(CensusReporter); return ok }
 	routingAdmin := func(c Conn) bool { _, ok := c.(RoutingMutator); return ok }
@@ -105,6 +106,7 @@ func backings() []capabilityBacking {
 		{model.CapParameterAdmin, "ParameterAdmin", parameters},
 		{model.CapDefinitionsExport, "DefinitionsAdmin", definitions},
 		{model.CapDefinitionsImport, "DefinitionsAdmin", definitions},
+		{model.CapReplication, "ReplicationAdmin", replication},
 		{model.CapRouting, "RoutingAdmin", routing},
 		{model.CapRoutingAdmin, "RoutingMutator", routingAdmin},
 		{model.CapClusterCensus, "CensusReporter", census},

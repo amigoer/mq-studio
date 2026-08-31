@@ -31,6 +31,7 @@ const requires: Record<string, Capability | Capability[]> = {
   vhosts: Capability.CapNamespaceList,
   policies: Capability.CapPolicyList,
   definitions: Capability.CapDefinitionsExport,
+  replication: Capability.CapReplication,
   producer: Capability.CapPublish,
   cluster: Capability.CapClusterTopology,
   acl: [Capability.CapAccessControl, Capability.CapIdentityList],

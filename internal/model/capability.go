@@ -151,7 +151,13 @@ const (
 	// anything but message data.
 	CapDefinitionsExport Capability = "definitions.export"
 	CapDefinitionsImport Capability = "definitions.import"
-	CapRouting           Capability = "routing.exchanges"
+
+	// CapReplication is moving messages between brokers - shovels and
+	// federation. It is the capability most likely to be reported as degraded
+	// rather than absent: both are plugins, so a broker that could do this
+	// perfectly well simply has not been asked to.
+	CapReplication Capability = "replication.admin"
+	CapRouting     Capability = "routing.exchanges"
 
 	// CapRoutingAdmin creates and deletes exchanges and bindings. Separate
 	// from reading them: a connection may list a topology it has no permission

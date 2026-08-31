@@ -17,6 +17,7 @@ import { VhostsRabbitMQ } from "./boards/vhosts/VhostsRabbitMQ";
 import { UsersRabbitMQ } from "./boards/acl/UsersRabbitMQ";
 import { PoliciesRabbitMQ } from "./boards/policies/PoliciesRabbitMQ";
 import { DefinitionsRabbitMQ } from "./boards/definitions/DefinitionsRabbitMQ";
+import { ReplicationRabbitMQ } from "./boards/replication/ReplicationRabbitMQ";
 import { TopicsPulsar } from "./boards/topics/TopicsPulsar";
 import { StreamsRedis } from "./boards/topics/StreamsRedis";
 
@@ -109,6 +110,7 @@ const BOARDS: Partial<
   vhosts: { rabbitmq: VhostsRabbitMQ },
   policies: { rabbitmq: PoliciesRabbitMQ },
   definitions: { rabbitmq: DefinitionsRabbitMQ },
+  replication: { rabbitmq: ReplicationRabbitMQ },
   consumers: {
     rocketmq: ConsumersRocketMQ,
     kafka: ConsumersKafka,

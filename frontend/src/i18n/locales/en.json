@@ -390,7 +390,8 @@
         "unreachable": "Cannot reach the management API. Check the address and port, and that the management plugin is enabled - with it off nothing listens on the management port at all, which looks the same from here as a wrong address.",
         "amqpAccessRefused": "The management API works but the AMQP connection was refused: this user has no permission on the virtual host. Browsing and publishing are unavailable; the admin views are not affected.",
         "amqpTimeout": "Timed out reaching the AMQP port. Check the address and port, and that nothing is filtering it.",
-        "amqpUnreachable": "Cannot reach the AMQP port. The admin views still work, but browsing and publishing do not - check the AMQP address and port."
+        "amqpUnreachable": "Cannot reach the AMQP port. The admin views still work, but browsing and publishing do not - check the AMQP address and port.",
+        "replicationPlugin": "The shovel and federation plugins are not enabled on this broker, so the cross-broker pages have nothing to read. That is a deployment choice rather than a failure - enable them with rabbitmq-plugins enable rabbitmq_shovel rabbitmq_shovel_management."
       },
       "routing": {
         "title": "Exchanges & bindings",
@@ -506,6 +507,7 @@
         "cluster": "Nodes",
         "vhosts": "Virtual hosts",
         "policies": "Policies",
+        "replication": "Replication",
         "definitions": "Definitions",
         "alerts": "Alerts",
         "acl": "Users / vhosts"
@@ -2369,6 +2371,36 @@
           "policies": "policies",
           "parameters": "parameters"
         }
+      }
+    },
+    "replication": {
+      "rabbitmq": {
+        "title": "Replication",
+        "subtitle": "Shovels and federation - the two ways messages move between brokers",
+        "tabShovels": "Shovels, {{count}}",
+        "tabFederation": "Federation, {{count}}",
+        "shovelHint": "A shovel moves messages from somewhere to somewhere and is done. Its definition carries the other broker's credentials in a URI, so these are read and delete only - one is declared where the rest of a deployment is.",
+        "federationHint": "Federation keeps two brokers' exchanges or queues in step continuously. An upstream is configuration; the link is the connection.",
+        "noShovels": "No shovels are configured",
+        "noUpstreams": "No federation upstreams are configured",
+        "from": "From",
+        "to": "To",
+        "ackMode": "Ack mode",
+        "since": "State since",
+        "notStarted": "not started",
+        "noLink": "no link",
+        "upstream": "Upstream",
+        "federates": "Federates",
+        "everything": "everything",
+        "maxHops": "Max hops",
+        "redacted": "The password was removed before this left the broker",
+        "deleteShovelTitle": "Delete shovel {{name}}",
+        "deleteShovelDesc": "It stops moving messages at once. Anything not yet moved stays in the source queue; nothing is lost.",
+        "shovelDeleted": "Deleted {{name}}",
+        "deleteUpstreamTitle": "Delete upstream {{name}}",
+        "deleteUpstreamDesc": "Its links close and the two brokers stop keeping each other in step.",
+        "upstreamDeleted": "Deleted {{name}}",
+        "deleteFailed": "Could not delete"
       }
     }
   }

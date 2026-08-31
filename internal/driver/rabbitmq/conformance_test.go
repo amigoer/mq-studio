@@ -2616,3 +2616,270 @@ func TestLiveImportRefusesNonsense(t *testing.T) {
 		t.Error("an unparsable document was summarised")
 	}
 }
+
+// A shovel, from declaration through running state to deletion.
+//
+// The state half is the point: a shovel that is defined and a shovel that is
+// running are different facts, and the page exists to show the second.
+func TestLiveShovelLifecycle(t *testing.T) {
+	conn := liveConn(t)
+	defer func() { _ = conn.Close() }()
+
+	ctx := context.Background()
+	const name = "mqs-test-shovel"
+	const source = "mqs-test-shovel-src"
+	const target = "mqs-test-shovel-dst"
+
+	for _, queue := range []string{source, target} {
+		if err := conn.CreateDestination(ctx, model.DestinationSpec{
+			Ref:        model.DestinationRef{Namespace: "/", Name: queue},
+			Attributes: map[string]string{AttrDurable: "true"},
+		}); err != nil {
+			t.Fatalf("declare %s: %v", queue, err)
+		}
+		t.Cleanup(func() {
+			_ = conn.RemoveDestination(context.Background(),
+				model.DestinationRef{Namespace: "/", Name: queue})
+		})
+	}
+
+	// The password in the URI is what the page has to remove, so the test
+	// declares one with a password rather than a bare address.
+	const uri = "amqp://mqstudio:mqstudio@127.0.0.1:5672/%2F"
+	if err := exec(ctx, conn.mgmt, func(client *rabbithole.Client) (*http.Response, error) {
+		return client.DeclareShovel("/", name, rabbithole.ShovelDefinition{
+			SourceURI:        rabbithole.URISet{uri},
+			DestinationURI:   rabbithole.URISet{uri},
+			SourceQueue:      source,
+			DestinationQueue: target,
+			AckMode:          "on-confirm",
+		})
+	}); err != nil {
+		t.Fatalf("declare shovel: %v", err)
+	}
+	t.Cleanup(func() { _ = conn.RemoveShovel(context.Background(), "/", name) })
+
+	found := waitForShovel(t, conn, name)
+	if found == nil {
+		t.Fatalf("the declared shovel never appeared in the listing")
+	}
+	if found.Source != "queue "+source {
+		t.Errorf("source = %q, want %q", found.Source, "queue "+source)
+	}
+	if found.Target != "queue "+target {
+		t.Errorf("target = %q, want %q", found.Target, "queue "+target)
+	}
+	if found.AckMode != "on-confirm" {
+		t.Errorf("ack mode = %q", found.AckMode)
+	}
+	// A shovel between two local queues has nothing to stop it, so anything
+	// other than running means the driver is reading the wrong field.
+	if found.State != "running" {
+		t.Errorf("state = %q, want running", found.State)
+	}
+
+	// The credential must not survive the trip out of the driver: this page
+	// is exactly the sort of thing that ends up in a screenshot.
+	for _, address := range append(append([]string{}, found.SourceURI...), found.TargetURI...) {
+		if strings.Contains(address, "mqstudio:mqstudio") {
+			t.Errorf("a shovel URI carried its password out of the driver: %q", address)
+		}
+		if !strings.Contains(address, "127.0.0.1") {
+			t.Errorf("redaction removed the host as well: %q", address)
+		}
+	}
+
+	if err := conn.RemoveShovel(ctx, "/", name); err != nil {
+		t.Fatalf("remove shovel: %v", err)
+	}
+	if waitForShovelToGo(t, conn, name) == false {
+		t.Error("the shovel survived its deletion")
+	}
+}
+
+// A shovel that moves messages actually moves them - which is what separates a
+// definition the broker accepted from one that works.
+func TestLiveShovelMovesMessages(t *testing.T) {
+	conn := liveConn(t)
+	defer func() { _ = conn.Close() }()
+
+	ctx := context.Background()
+	const name = "mqs-test-shovel-moves"
+	const source = "mqs-test-shovel-moves-src"
+	const target = "mqs-test-shovel-moves-dst"
+
+	for _, queue := range []string{source, target} {
+		if err := conn.CreateDestination(ctx, model.DestinationSpec{
+			Ref:        model.DestinationRef{Namespace: "/", Name: queue},
+			Attributes: map[string]string{AttrDurable: "true"},
+		}); err != nil {
+			t.Fatalf("declare %s: %v", queue, err)
+		}
+		t.Cleanup(func() {
+			_ = conn.RemoveDestination(context.Background(),
+				model.DestinationRef{Namespace: "/", Name: queue})
+		})
+	}
+
+	if _, err := conn.SendMessage(ctx, source, "", "", "shovelled", 0); err != nil {
+		t.Fatalf("publish: %v", err)
+	}
+
+	const uri = "amqp://mqstudio:mqstudio@127.0.0.1:5672/%2F"
+	if err := exec(ctx, conn.mgmt, func(client *rabbithole.Client) (*http.Response, error) {
+		return client.DeclareShovel("/", name, rabbithole.ShovelDefinition{
+			SourceURI:        rabbithole.URISet{uri},
+			DestinationURI:   rabbithole.URISet{uri},
+			SourceQueue:      source,
+			DestinationQueue: target,
+			AckMode:          "on-confirm",
+		})
+	}); err != nil {
+		t.Fatalf("declare shovel: %v", err)
+	}
+	t.Cleanup(func() { _ = conn.RemoveShovel(context.Background(), "/", name) })
+
+	waitForDepth(t, conn, target, 1)
+	waitForDepth(t, conn, source, 0)
+}
+
+// A federation upstream, and the link that is its running half.
+func TestLiveFederationUpstreamLifecycle(t *testing.T) {
+	conn := liveConn(t)
+	defer func() { _ = conn.Close() }()
+
+	ctx := context.Background()
+	const name = "mqs-test-upstream"
+
+	const uri = "amqp://mqstudio:mqstudio@127.0.0.1:5672/%2F"
+	if err := exec(ctx, conn.mgmt, func(client *rabbithole.Client) (*http.Response, error) {
+		return client.PutFederationUpstream("/", name, rabbithole.FederationDefinition{
+			Uri:     rabbithole.URISet{uri},
+			MaxHops: 2,
+			AckMode: "on-confirm",
+		})
+	}); err != nil {
+		t.Fatalf("declare upstream: %v", err)
+	}
+	t.Cleanup(func() { _ = conn.RemoveFederationUpstream(context.Background(), "/", name) })
+
+	found := waitForUpstream(t, conn, name)
+	if found == nil {
+		t.Fatalf("the declared upstream never appeared in the listing")
+	}
+	if found.MaxHops != 2 {
+		t.Errorf("max hops = %d, want 2", found.MaxHops)
+	}
+	if found.AckMode != "on-confirm" {
+		t.Errorf("ack mode = %q", found.AckMode)
+	}
+	// Nothing is bound to this upstream, so it has no link - and an upstream
+	// with no link is the case the page names rather than leaves blank.
+	if found.State != "" && found.State != "running" {
+		t.Errorf("state = %q, want running or none", found.State)
+	}
+	for _, address := range found.URI {
+		if strings.Contains(address, "mqstudio:mqstudio") {
+			t.Errorf("an upstream URI carried its password out of the driver: %q", address)
+		}
+	}
+
+	if err := conn.RemoveFederationUpstream(ctx, "/", name); err != nil {
+		t.Fatalf("remove upstream: %v", err)
+	}
+	upstreams, err := conn.ListFederationUpstreams(ctx)
+	if err != nil {
+		t.Fatalf("list upstreams: %v", err)
+	}
+	for _, upstream := range upstreams {
+		if upstream.Name == name {
+			t.Error("the upstream survived its deletion")
+		}
+	}
+}
+
+// The plugins are on in the e2e environment, so the capability must be plain
+// supported. The degraded path is covered against a broker without them.
+func TestLiveReplicationIsSupportedWhenThePluginsAreOn(t *testing.T) {
+	conn := liveConn(t)
+	defer func() { _ = conn.Close() }()
+
+	capabilities := conn.Capabilities()
+	if !capabilities.Has(model.CapReplication) {
+		t.Fatal("replication is absent on a broker with the shovel plugin on")
+	}
+	if reason, degraded := capabilities.DegradedReason(model.CapReplication); degraded {
+		t.Errorf("replication is degraded with %q on a broker that has the plugins", reason)
+	}
+}
+
+// A shovel's definition and its status are two calls on the broker, and the
+// status arrives on its own schedule: a new shovel reports no state, then
+// starting, and only then whatever it settles on.
+func waitForShovel(t *testing.T, conn *Conn, name string) *model.Shovel {
+	t.Helper()
+	deadline := time.Now().Add(15 * time.Second)
+	var last *model.Shovel
+	for {
+		shovels, err := conn.ListShovels(context.Background())
+		if err != nil {
+			t.Fatalf("list shovels: %v", err)
+		}
+		for _, shovel := range shovels {
+			if shovel.Name == name {
+				last = shovel
+				if shovel.State != "" && shovel.State != "starting" {
+					return shovel
+				}
+			}
+		}
+		if time.Now().After(deadline) {
+			return last
+		}
+		time.Sleep(250 * time.Millisecond)
+	}
+}
+
+func waitForShovelToGo(t *testing.T, conn *Conn, name string) bool {
+	t.Helper()
+	deadline := time.Now().Add(15 * time.Second)
+	for {
+		shovels, err := conn.ListShovels(context.Background())
+		if err != nil {
+			t.Fatalf("list shovels: %v", err)
+		}
+		gone := true
+		for _, shovel := range shovels {
+			if shovel.Name == name {
+				gone = false
+			}
+		}
+		if gone {
+			return true
+		}
+		if time.Now().After(deadline) {
+			return false
+		}
+		time.Sleep(250 * time.Millisecond)
+	}
+}
+
+func waitForUpstream(t *testing.T, conn *Conn, name string) *model.FederationUpstream {
+	t.Helper()
+	deadline := time.Now().Add(15 * time.Second)
+	for {
+		upstreams, err := conn.ListFederationUpstreams(context.Background())
+		if err != nil {
+			t.Fatalf("list upstreams: %v", err)
+		}
+		for _, upstream := range upstreams {
+			if upstream.Name == name {
+				return upstream
+			}
+		}
+		if time.Now().After(deadline) {
+			return nil
+		}
+		time.Sleep(250 * time.Millisecond)
+	}
+}

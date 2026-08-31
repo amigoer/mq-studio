@@ -42,6 +42,7 @@ const clientsState = vi.hoisted(() => ({ current: null as unknown }));
 const clusterState = vi.hoisted(() => ({ current: null as unknown }));
 const messagesState = vi.hoisted(() => ({ current: null as unknown }));
 const deadLetterState = vi.hoisted(() => ({ current: null as unknown }));
+const replicationState = vi.hoisted(() => ({ current: null as unknown }));
 
 vi.mock("@/hooks/rabbitmq/useRabbitOverview", () => ({
   useRabbitOverview: () => overviewState.current,
@@ -64,6 +65,9 @@ vi.mock("@/hooks/rabbitmq/useRabbitMessages", () => ({
 vi.mock("@/hooks/rabbitmq/useRabbitDeadLetters", () => ({
   useRabbitDeadLetters: () => deadLetterState.current,
 }));
+vi.mock("@/hooks/rabbitmq/useRabbitReplication", () => ({
+  useRabbitReplication: () => replicationState.current,
+}));
 
 /**
  * The boards are rendered inside the providers main.tsx gives them, because a
@@ -79,6 +83,7 @@ let ChannelsRabbitMQ: typeof import("./consumers/ChannelsRabbitMQ").ChannelsRabb
 let NodesRabbitMQ: typeof import("./cluster/NodesRabbitMQ").NodesRabbitMQ;
 let MessagesRabbitMQ: typeof import("./messages/MessagesRabbitMQ").MessagesRabbitMQ;
 let DlqRabbitMQ: typeof import("./dlq/DlqRabbitMQ").DlqRabbitMQ;
+let ReplicationRabbitMQ: typeof import("./replication/ReplicationRabbitMQ").ReplicationRabbitMQ;
 
 beforeAll(async () => {
   const storage = { getItem: () => null, setItem() {}, removeItem() {} };
@@ -91,8 +96,19 @@ beforeAll(async () => {
   });
   vi.stubGlobal("localStorage", storage);
 
-  const [server, overview, queues, exchanges, clients, cluster, messages, dlq, ui, i18n] =
-    await Promise.all([
+  const [
+    server,
+    overview,
+    queues,
+    exchanges,
+    clients,
+    cluster,
+    messages,
+    dlq,
+    replication,
+    ui,
+    i18n,
+  ] = await Promise.all([
     import("react-dom/server"),
     import("./overview/OverviewRabbitMQ"),
     import("./topics/QueuesRabbitMQ"),
@@ -101,6 +117,7 @@ beforeAll(async () => {
     import("./cluster/NodesRabbitMQ"),
     import("./messages/MessagesRabbitMQ"),
     import("./dlq/DlqRabbitMQ"),
+    import("./replication/ReplicationRabbitMQ"),
     import("@/components"),
     import("@/i18n"),
   ]);
@@ -114,6 +131,7 @@ beforeAll(async () => {
   NodesRabbitMQ = cluster.NodesRabbitMQ;
   MessagesRabbitMQ = messages.MessagesRabbitMQ;
   DlqRabbitMQ = dlq.DlqRabbitMQ;
+  ReplicationRabbitMQ = replication.ReplicationRabbitMQ;
 });
 
 const census = {
@@ -846,5 +864,114 @@ describe("the RabbitMQ dead-letter board", () => {
     expect(() =>
       renderWith({ data: [deadLetterQueue({ sources: [null] })] }),
     ).not.toThrow();
+  });
+});
+
+const shovel = (over: Record<string, unknown> = {}) => ({
+  namespace: "/",
+  name: "orders-to-archive",
+  state: "running",
+  type: "dynamic",
+  since: "2026-08-31T09:00:00Z",
+  source: "queue orders.done",
+  target: "queue archive.in",
+  ackMode: "on-confirm",
+  sourceUri: ["amqp://app:***@127.0.0.1:5672/%2F"],
+  targetUri: ["amqp://app:***@archive.internal:5672/%2F"],
+  ...over,
+});
+
+const upstream = (over: Record<string, unknown> = {}) => ({
+  namespace: "/",
+  name: "eu-west",
+  uri: ["amqp://app:***@eu-west.internal:5672/%2F"],
+  exchange: "ex.events",
+  queue: "",
+  maxHops: 1,
+  ackMode: "on-confirm",
+  state: "running",
+  error: "",
+  ...over,
+});
+
+describe("the RabbitMQ replication board", () => {
+  const renderWith = (over: Partial<BrokerState<unknown>>) => {
+    replicationState.current = stateOf(over);
+    return render(<ReplicationRabbitMQ />);
+  };
+
+  it("draws a not-connected notice rather than an empty list", () => {
+    const html = renderWith({ online: false });
+    expect(html).not.toContain("orders-to-archive");
+    expect(html.length).toBeGreaterThan(0);
+  });
+
+  it("draws a loading state without touching the data", () => {
+    expect(() => renderWith({ loading: true })).not.toThrow();
+  });
+
+  it("draws the failure rather than an empty page", () => {
+    const html = renderWith({ error: "the shovel plugin is not enabled" });
+    expect(html).not.toContain("orders-to-archive");
+  });
+
+  it("says nothing is configured rather than showing a blank page", () => {
+    const html = renderWith({ data: { shovels: [], upstreams: [] } });
+    expect(html).toContain("没有配置任何 shovel");
+  });
+
+  it("shows what a shovel moves and where", () => {
+    const html = renderWith({ data: { shovels: [shovel()], upstreams: [] } });
+    expect(html).toContain("orders-to-archive");
+    expect(html).toContain("queue orders.done");
+    expect(html).toContain("queue archive.in");
+    expect(html).toContain("on-confirm");
+  });
+
+  /*
+   * A defined shovel reporting no state has not started, which is a different
+   * problem from one that started and failed. A blank cell would leave the two
+   * looking the same.
+   */
+  it("names the state a shovel that never started reports", () => {
+    expect(renderWith({ data: { shovels: [shovel({ state: "" })], upstreams: [] } })).toContain(
+      "未启动",
+    );
+  });
+
+  /*
+   * A static shovel comes from the broker's configuration file and cannot be
+   * deleted through the API, so offering the button would be offering a
+   * failure.
+   */
+  it("offers no delete for a shovel the API cannot delete", () => {
+    const configured = renderWith({
+      data: { shovels: [shovel({ type: "static" })], upstreams: [] },
+    });
+    const dynamic = renderWith({ data: { shovels: [shovel()], upstreams: [] } });
+    expect(configured).toContain("static");
+    expect(configured.match(/mqs-linkbtn/g) ?? []).toHaveLength(0);
+    expect((dynamic.match(/mqs-linkbtn/g) ?? []).length).toBeGreaterThan(0);
+  });
+
+  it("survives a shovel with no state, no ack mode and no addresses", () => {
+    expect(() =>
+      renderWith({
+        data: {
+          shovels: [
+            shovel({ state: "", ackMode: "", since: "", sourceUri: [], targetUri: [] }),
+          ],
+          upstreams: [],
+        },
+      }),
+    ).not.toThrow();
+  });
+
+  // The credential is stripped in the driver, and a page that showed one would
+  // put it in every screenshot of this view.
+  it("shows only redacted addresses", () => {
+    const html = renderWith({ data: { shovels: [shovel()], upstreams: [upstream()] } });
+    expect(html).toContain("***");
+    expect(html).not.toMatch(/amqp:\/\/[^*"<]*:[^*"<@]+@/);
   });
 });

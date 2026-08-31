@@ -126,6 +126,13 @@ export function DeleteExchange(connID: number, vhost: string, name: string): $Ca
 }
 
 /**
+ * DeleteFederationUpstream removes an upstream, stopping its links.
+ */
+export function DeleteFederationUpstream(connID: number, vhost: string, name: string): $CancellablePromise<void> {
+    return $Call.ByID(1372449806, connID, vhost, name);
+}
+
+/**
  * DeleteIdentity removes a user, its permissions and its open connections.
  */
 export function DeleteIdentity(connID: number, name: string): $CancellablePromise<void> {
@@ -165,6 +172,13 @@ export function DeleteRuntimeParameter(connID: number, component: string, vhost:
 }
 
 /**
+ * DeleteShovel removes a shovel, stopping it.
+ */
+export function DeleteShovel(connID: number, vhost: string, name: string): $CancellablePromise<void> {
+    return $Call.ByID(878180193, connID, vhost, name);
+}
+
+/**
  * DropMessages discards a bounded batch from the head of a queue and reports
  * how many are gone. There is no undo.
  */
@@ -185,12 +199,22 @@ export function ExportDefinitionsToFile(connID: number, vhost: string): $Cancell
 }
 
 /**
+ * FederationUpstreams returns the brokers this one federates from, with their
+ * links' state.
+ */
+export function FederationUpstreams(connID: number): $CancellablePromise<(model$0.FederationUpstream | null)[]> {
+    return $Call.ByID(1567088666, connID).then(($result: any) => {
+        return $$createType15($result);
+    });
+}
+
+/**
  * Health runs the broker's own checks, and reads its feature flags and the
  * deprecated features it still allows.
  */
 export function Health(connID: number): $CancellablePromise<model$0.BrokerHealth | null> {
     return $Call.ByID(483013203, connID).then(($result: any) => {
-        return $$createType14($result);
+        return $$createType17($result);
     });
 }
 
@@ -199,7 +223,7 @@ export function Health(connID: number): $CancellablePromise<model$0.BrokerHealth
  */
 export function Identities(connID: number): $CancellablePromise<(model$0.Identity | null)[]> {
     return $Call.ByID(2632006727, connID).then(($result: any) => {
-        return $$createType17($result);
+        return $$createType20($result);
     });
 }
 
@@ -216,7 +240,7 @@ export function ImportDefinitions(connID: number, vhost: string, document: strin
  */
 export function MatchingPolicies(connID: number, vhost: string, name: string, kind: string): $CancellablePromise<(model$0.Policy | null)[]> {
     return $Call.ByID(4267174108, connID, vhost, name, kind).then(($result: any) => {
-        return $$createType20($result);
+        return $$createType23($result);
     });
 }
 
@@ -233,7 +257,7 @@ export function MoveMessages(connID: number, input: $models.MoveInput): $Cancell
  */
 export function Namespaces(connID: number): $CancellablePromise<(model$0.Namespace | null)[]> {
     return $Call.ByID(2045585925, connID).then(($result: any) => {
-        return $$createType23($result);
+        return $$createType26($result);
     });
 }
 
@@ -242,7 +266,7 @@ export function Namespaces(connID: number): $CancellablePromise<(model$0.Namespa
  */
 export function Policies(connID: number): $CancellablePromise<(model$0.Policy | null)[]> {
     return $Call.ByID(1992342523, connID).then(($result: any) => {
-        return $$createType20($result);
+        return $$createType23($result);
     });
 }
 
@@ -252,7 +276,7 @@ export function Policies(connID: number): $CancellablePromise<(model$0.Policy | 
  */
 export function Publish(connID: number, input: $models.PublishInput): $CancellablePromise<model$0.PublishResult | null> {
     return $Call.ByID(718367916, connID, input).then(($result: any) => {
-        return $$createType25($result);
+        return $$createType28($result);
     });
 }
 
@@ -272,7 +296,7 @@ export function PurgeQueue(connID: number, vhost: string, name: string): $Cancel
  */
 export function ReadDefinitionsFile(): $CancellablePromise<$models.DefinitionsPreview | null> {
     return $Call.ByID(998757875).then(($result: any) => {
-        return $$createType27($result);
+        return $$createType30($result);
     });
 }
 
@@ -306,7 +330,7 @@ export function RevokeTopicPermission(connID: number, vhost: string, identity: s
  */
 export function RuntimeParameters(connID: number): $CancellablePromise<(model$0.RuntimeParameter | null)[]> {
     return $Call.ByID(2741188367, connID).then(($result: any) => {
-        return $$createType30($result);
+        return $$createType33($result);
     });
 }
 
@@ -354,12 +378,22 @@ export function SetTopicPermission(connID: number, input: $models.TopicPermissio
 }
 
 /**
+ * Shovels returns every shovel with the state the broker reports for it. The
+ * URIs come back with their passwords removed.
+ */
+export function Shovels(connID: number): $CancellablePromise<(model$0.Shovel | null)[]> {
+    return $Call.ByID(644647587, connID).then(($result: any) => {
+        return $$createType36($result);
+    });
+}
+
+/**
  * TopicPermissions returns the per-exchange narrowing on top of the namespace
  * permissions.
  */
 export function TopicPermissions(connID: number): $CancellablePromise<(model$0.TopicPermission | null)[]> {
     return $Call.ByID(1841620516, connID).then(($result: any) => {
-        return $$createType33($result);
+        return $$createType39($result);
     });
 }
 
@@ -377,24 +411,30 @@ const $$createType9 = $Create.Nullable($$createType8);
 const $$createType10 = $Create.Array($$createType9);
 const $$createType11 = model$0.Definitions.createFrom;
 const $$createType12 = $Create.Nullable($$createType11);
-const $$createType13 = model$0.BrokerHealth.createFrom;
+const $$createType13 = model$0.FederationUpstream.createFrom;
 const $$createType14 = $Create.Nullable($$createType13);
-const $$createType15 = model$0.Identity.createFrom;
-const $$createType16 = $Create.Nullable($$createType15);
-const $$createType17 = $Create.Array($$createType16);
-const $$createType18 = model$0.Policy.createFrom;
+const $$createType15 = $Create.Array($$createType14);
+const $$createType16 = model$0.BrokerHealth.createFrom;
+const $$createType17 = $Create.Nullable($$createType16);
+const $$createType18 = model$0.Identity.createFrom;
 const $$createType19 = $Create.Nullable($$createType18);
 const $$createType20 = $Create.Array($$createType19);
-const $$createType21 = model$0.Namespace.createFrom;
+const $$createType21 = model$0.Policy.createFrom;
 const $$createType22 = $Create.Nullable($$createType21);
 const $$createType23 = $Create.Array($$createType22);
-const $$createType24 = model$0.PublishResult.createFrom;
+const $$createType24 = model$0.Namespace.createFrom;
 const $$createType25 = $Create.Nullable($$createType24);
-const $$createType26 = $models.DefinitionsPreview.createFrom;
-const $$createType27 = $Create.Nullable($$createType26);
-const $$createType28 = model$0.RuntimeParameter.createFrom;
-const $$createType29 = $Create.Nullable($$createType28);
-const $$createType30 = $Create.Array($$createType29);
-const $$createType31 = model$0.TopicPermission.createFrom;
+const $$createType26 = $Create.Array($$createType25);
+const $$createType27 = model$0.PublishResult.createFrom;
+const $$createType28 = $Create.Nullable($$createType27);
+const $$createType29 = $models.DefinitionsPreview.createFrom;
+const $$createType30 = $Create.Nullable($$createType29);
+const $$createType31 = model$0.RuntimeParameter.createFrom;
 const $$createType32 = $Create.Nullable($$createType31);
 const $$createType33 = $Create.Array($$createType32);
+const $$createType34 = model$0.Shovel.createFrom;
+const $$createType35 = $Create.Nullable($$createType34);
+const $$createType36 = $Create.Array($$createType35);
+const $$createType37 = model$0.TopicPermission.createFrom;
+const $$createType38 = $Create.Nullable($$createType37);
+const $$createType39 = $Create.Array($$createType38);

@@ -16,11 +16,13 @@ import type {
   ClientConnection,
   DeadLetterQueue,
   Definitions,
+  FederationUpstream,
   Identity,
   Namespace,
   Policy,
   PublishResult,
   RuntimeParameter,
+  Shovel,
   TopicPermission,
 } from "@bindings/model/models";
 import { present } from "./client";
@@ -37,12 +39,14 @@ export type {
   DeprecatedFeature,
   Definitions,
   FeatureFlag,
+  FederationUpstream,
   Identity,
   Namespace,
   NamespacePermission,
   Policy,
   PublishResult,
   RuntimeParameter,
+  Shovel,
   TopicPermission,
   HealthCheck,
   ResourceAlarm,
@@ -416,3 +420,28 @@ export const importDefinitions = (
   vhost: string,
   document: string,
 ): Promise<void> => RabbitMQService.ImportDefinitions(connID, vhost, document);
+
+/**
+ * Every shovel, with the state the broker reports for it.
+ *
+ * The URIs come back with their passwords removed: they are the one place the
+ * management API stores another broker's credential in plain text and hands it
+ * back on request.
+ */
+export const getShovels = (connID: number): Promise<Shovel[]> =>
+  RabbitMQService.Shovels(connID).then(present);
+
+/** Removes a shovel, stopping it. */
+export const deleteShovel = (connID: number, vhost: string, name: string): Promise<void> =>
+  RabbitMQService.DeleteShovel(connID, vhost, name);
+
+/** The brokers this one federates from, with their links' state. */
+export const getFederationUpstreams = (connID: number): Promise<FederationUpstream[]> =>
+  RabbitMQService.FederationUpstreams(connID).then(present);
+
+/** Removes an upstream, stopping its links. */
+export const deleteFederationUpstream = (
+  connID: number,
+  vhost: string,
+  name: string,
+): Promise<void> => RabbitMQService.DeleteFederationUpstream(connID, vhost, name);
