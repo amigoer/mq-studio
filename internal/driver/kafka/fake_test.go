@@ -335,3 +335,60 @@ func TestWritingARuleWaitsUntilTheClusterListsIt(t *testing.T) {
 	}
 	t.Fatalf("the rule is not listed straight after being written: %v", rules)
 }
+
+/*
+ * A send waits for a topic that is on its way.
+ *
+ * franz-go stops after four metadata queries that do not know the topic, and
+ * with this driver's short refresh that is under half a second - so producing
+ * to a topic created moments earlier failed with "this server does not host
+ * this topic-partition", which reads as a wrong name rather than as a wait.
+ * Kafka creates a topic on the controller and the brokers learn about it
+ * afterwards, so there is always a gap; on a loaded cluster it outlasted the
+ * default budget.
+ *
+ * The topic here appears while the produce is already trying, which is that
+ * gap made deliberate rather than hoped for.
+ */
+func TestASendWaitsForATopicThatIsStillPropagating(t *testing.T) {
+	cluster, err := kfake.NewCluster()
+	if err != nil {
+		t.Fatalf("start the fake cluster: %v", err)
+	}
+	t.Cleanup(cluster.Close)
+
+	conn := openProfile(t, model.ConnectionProfile{
+		Name:      "fake",
+		Endpoints: strings.Join(cluster.ListenAddrs(), ","),
+	})
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	const topic = "orders.created"
+	// Longer than the default budget of four queries, shorter than the one
+	// this driver sets. A send that gives up early fails; one that waits does
+	// not.
+	const appearsAfter = 800 * time.Millisecond
+
+	created := make(chan error, 1)
+	go func() {
+		time.Sleep(appearsAfter)
+		created <- conn.CreateDestination(ctx, model.DestinationSpec{
+			Ref: model.DestinationRef{Name: topic}, Partitions: 1,
+			Attributes: map[string]string{AttrReplicationFactor: "1"},
+		})
+	}()
+
+	result, err := conn.SendRecord(ctx, RecordRequest{
+		Topic: topic, Value: "waiting", Count: 1,
+	})
+	if err := <-created; err != nil {
+		t.Fatalf("CreateDestination: %v", err)
+	}
+	if err != nil {
+		t.Fatalf("the send gave up on a topic that arrived %s later: %v", appearsAfter, err)
+	}
+	if result.Sent != 1 || result.Failed != 0 {
+		t.Errorf("sent %d, failed %d (%s); want one sent", result.Sent, result.Failed, result.Reason)
+	}
+}

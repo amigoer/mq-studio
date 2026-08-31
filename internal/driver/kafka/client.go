@@ -37,6 +37,10 @@ const (
 	// and long enough that one page load's burst of calls still shares a
 	// single metadata fetch.
 	metadataMinAge = 100 * time.Millisecond
+
+	// unknownTopicRetries is how many metadata queries a produce waits through
+	// before deciding the topic is not there.
+	unknownTopicRetries = 20
 )
 
 // clientConfig is one connection profile read into what franz-go needs.
@@ -235,6 +239,14 @@ func dialOptions(config clientConfig) ([]kgo.Opt, error) {
 		// before the first byte.
 		kgo.DialTimeout(config.DialTimeout),
 		kgo.MetadataMinAge(metadataMinAge),
+		// A topic that was made a moment ago is not a topic that does not
+		// exist. franz-go gives up after four metadata queries, and with the
+		// short refresh above that is under half a second - so a send to a
+		// topic still propagating failed with "this server does not host this
+		// topic-partition", which reads as a mistake rather than as a wait.
+		// Twenty covers propagation and still fails a name that really is
+		// wrong well inside the request deadline, with the right error.
+		kgo.UnknownTopicRetries(unknownTopicRetries),
 	}
 	if mechanism != nil {
 		options = append(options, kgo.SASL(mechanism))
