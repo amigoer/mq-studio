@@ -231,11 +231,6 @@
   --wails-draggable: no-drag;
 }
 /*
- * The canvas drew 26px boxes, which left the cluster the shortest thing in a
- * bar of 30px tabs; 28px lines it up with those and gives the icons room. The
- * font-size is the canvas's and now carries nothing -- every child is an SVG.
- */
-/*
  * 检查更新 turns its icon for as long as the check is in flight. TitleBar drops
  * the class on an iteration boundary rather than the moment the answer lands,
  * so the icon always comes to rest upright and a check answered in 50ms still

@@ -101,11 +101,19 @@ export function TitleBar({
         {tabs ?? <span style={{ flex: 1 }} />}
       </div>
 
+      {/*
+       * 28px and 12.5px rather than shadcn's `sm`, which is 32px and 14px:
+       * those are page defaults and this is a 40px bar. At 32 it stood taller
+       * than everything beside it, and its label ran a size larger than the
+       * tabs' own. Level with the icon cluster, the right of the bar reads as
+       * one group -- and the border still gives it the weight a ghost icon
+       * has not.
+       */}
       <Button
         variant="outline"
         size="sm"
         className={cn(
-          "flex-none bg-background font-normal text-muted-foreground",
+          "h-7 flex-none bg-background px-2.5 text-[12.5px] font-normal text-muted-foreground",
           dimmed && "text-(--c-disabled)",
         )}
         onClick={onSearch}
@@ -138,7 +146,7 @@ export function TitleBar({
         {updateAvailable != null && <Badge tone="var(--c-ok)" />}
       </IconBtn>
       <IconBtn onClick={onGithub} title={t("shell.titleBar.github")}>
-        <SiGithub className="size-[1.08rem]" color="var(--c-github-mark)" aria-hidden />
+        <SiGithub className="size-[14px]" color="var(--c-github-mark)" aria-hidden />
       </IconBtn>
       {/* Owns its own open state and unread count -- both come from the
           alert centre, which no longer has anything to tell the title bar. */}
