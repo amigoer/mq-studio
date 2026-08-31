@@ -24,7 +24,7 @@ figures Kafka does not report left out rather than filled in.
   separate credentials on the broker: a user that exists under one fails under
   the other, and reporting that as a wrong password would be a lie.
 - Overview, topics, consumer groups, messages, a send console, the cluster,
-  access control, and alerts.
+  access control, client quotas, and alerts.
 - Topics with their partitions, leaders, in-sync replicas and offline replicas,
   their replication factor and minimum in-sync replicas, and the whole settings
   document behind a row. Create, alter and delete; an alter touches only the
@@ -43,6 +43,22 @@ figures Kafka does not report left out rather than filled in.
   which partitions are taking the space.
 - ACLs grouped by principal, and the SCRAM users a cluster stores. Both degrade
   with a reason on a cluster running without an authorizer, rather than failing.
+- Emptying a topic, which is Kafka's own truncation: every record becomes
+  unreadable and the offsets do not restart, so a consumer sitting at 900 stays
+  at 900 and is simply caught up.
+- Moving a partition to different brokers, watching the move, and cancelling
+  one in flight. A move has no completion event on Kafka - it is done when the
+  partition stops reporting one - so the page reads the cluster rather than
+  claiming it finished. Preferred-leader election alongside it, for putting the
+  leadership back where the replica list says it belongs.
+- Client quotas: the limits attached to who is calling rather than to what they
+  are calling, for a user, an application or an address, and for the default
+  each of them falls back to when no quota names them.
+- Transactions on the cluster page: which transactional producers exist, what
+  each is holding, how long it has held it, and whether it has outlived the
+  timeout the coordinator undertook to abort it by. It is the only page that
+  shows a pipeline stopped by a producer that died mid-transaction, because
+  everything else about such a cluster reads healthy.
 - Alerts from partition health - under-replicated, offline and leaderless
   counted separately - and from consumer group lag.
 
