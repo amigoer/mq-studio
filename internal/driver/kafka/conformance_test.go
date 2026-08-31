@@ -165,3 +165,68 @@ func TestDescriptorIsSelfConsistent(t *testing.T) {
 		t.Errorf("descriptor promises %s but a connection neither supports nor degrades it", capability)
 	}
 }
+
+/*
+ * The sidebar contract, from the Go side.
+ *
+ * The list below is the one frontend/src/mq/navigation.kafka.test.ts holds,
+ * and that test asserts which pages those capabilities make reachable. This
+ * one asserts the driver still declares exactly them.
+ *
+ * Neither half is worth much alone. A capability dropped here takes a finished
+ * page out of the sidebar and nothing else notices; a page added there with no
+ * capability behind it is drawn and fails when opened. Together they cannot
+ * drift without one of them going red, which is the only thing standing
+ * between a working driver and a working app.
+ *
+ * The failure messages say what to do rather than what is different, because
+ * the fix is never in this file alone.
+ */
+func TestCapabilitiesMatchTheSidebarContract(t *testing.T) {
+	sidebar := []string{
+		"destination.list",
+		"destination.create",
+		"destination.update",
+		"destination.delete",
+		"destination.partitions",
+
+		"subscription.list",
+		"subscription.delete",
+		"subscription.lag",
+		"subscription.resetOffset",
+		"subscription.cloneOffset",
+		"subscription.queueOffset",
+
+		"message.query",
+		"message.byId",
+		"message.liveTail",
+		"message.publish",
+
+		"cluster.topology",
+		"cluster.metrics",
+		"cluster.nodeConfig",
+		"cluster.logDirs",
+
+		"access.directory",
+	}
+
+	declared := make(map[string]bool, len(capabilities()))
+	for _, capability := range capabilities() {
+		declared[string(capability)] = true
+	}
+	expected := make(map[string]bool, len(sidebar))
+	for _, capability := range sidebar {
+		expected[capability] = true
+	}
+
+	for _, capability := range sidebar {
+		if !declared[capability] {
+			t.Errorf("%s is no longer declared; its page has left the sidebar", capability)
+		}
+	}
+	for capability := range declared {
+		if !expected[capability] {
+			t.Errorf("%s is newly declared; add it to navigation.kafka.test.ts too", capability)
+		}
+	}
+}

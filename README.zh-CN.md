@@ -112,7 +112,8 @@ MQ Studio 通过可插拔驱动对接各类消息中间件。每个驱动声明�
 | --- | --- | --- |
 | **RocketMQ** 4.x / 5.x | ✅ 已发布 | 通过 Admin API 提供完整功能 |
 | **RabbitMQ** 3.x / 4.x | ✅ 已支持 | 完整管理面：队列、Exchange 与 Binding、连接与信道、基于 AMQP 的浏览与发送、死信、虚拟主机、用户与权限、策略、定义导入导出、Shovel 与 Federation |
-| Kafka · Pulsar · NATS · MQTT · SQS 等 | 📋 计划中 | 完整矩阵见下方折叠内容 |
+| **Kafka** 3.x / 4.x | ✅ 已支持 | Topic 及其分区、副本与配置；消费组的分区级 lag 与 Kafka 的五种位点重置；日志浏览与实时跟随；带 key、header 与 acks 的发送；Broker 的生效配置与日志目录；ACL 与 SCRAM 用户 |
+| Pulsar · NATS · MQTT · SQS 等 | 📋 计划中 | 完整矩阵见下方折叠内容 |
 
 <details>
 <summary><strong>计划中的驱动、协议兼容系统与范围边界</strong></summary>
@@ -120,7 +121,6 @@ MQ Studio 通过可插拔驱动对接各类消息中间件。每个驱动声明�
 
 | 驱动 | 状态 | 说明 |
 | --- | --- | --- |
-| **Kafka** | 📋 计划中 | |
 | **Pulsar** | 📋 计划中 | |
 | **ActiveMQ / Artemis** | 📋 计划中 | 通过 Jolokia 管理接口访问 JMS 队列与主题 |
 | **Redis Stream** | 📋 计划中 | Stream 与消费组；没有集群管理面 |
@@ -156,7 +156,7 @@ ACL 与部分高级操作是否可用，取决于 Broker 版本和配置。表�
 | --- | --- | --- |
 | 1 | RocketMQ 4.x / 5.x | ✅ 已完成 |
 | 2 | RabbitMQ | ✅ 已完成 |
-| 3 | Kafka | 📋 下一个 |
+| 3 | Kafka | ✅ 已完成 |
 | 4 | 其余驱动，按「驱动支持」中列出的顺序推进 | 📋 计划中 |
 | 5 | Agent 相关功能 | 📋 计划中 |
 

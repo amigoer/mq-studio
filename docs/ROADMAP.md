@@ -19,7 +19,21 @@ This is the delivery plan. The contract it delivers against is
   dead letters, nodes with health checks and feature flags, virtual hosts, users and
   permissions, policies and parameters, definitions import and export, shovels and federation,
   and stream queues.
-- **Designed, not yet implemented** — the thirteen families below.
+- **Shipped** — Kafka 3.x / 4.x over the Kafka protocol itself, through franz-go and its kadm
+  package. Topics with their partitions, replicas and settings; consumer groups with
+  per-partition lag and all five of Kafka's offset resets; browsing a log by offset, timestamp
+  or key and following its end; producing with a key, headers, a pinned partition and a chosen
+  acknowledgement level; brokers with their effective settings and their log directories; ACLs
+  and SCRAM users.
+
+  Three things it deliberately does not have. There is no dead-letter page: Kafka has no
+  broker-side dead-letter queue, and the .DLT suffix is Spring Kafka's convention rather than
+  Kafka's. There is no rate anywhere: the admin protocol reports none, so a produce or consume
+  rate would have to be invented or read from JMX, which this app does not speak. And there is
+  no disk percentage: Kafka reports the bytes its partitions occupy and nothing about the
+  filesystem holding them, so there is no denominator to build one from.
+
+- **Designed, not yet implemented** — the twelve families below.
 
 ## Delivery order
 
@@ -27,17 +41,22 @@ This is the delivery plan. The contract it delivers against is
 | --- | --- | --- |
 | 0–3 | The driver seam itself: contracts, backend ports, storage and bridge, frontend registry | RocketMQ behaves exactly as before, screen for screen |
 | 4 | **RabbitMQ** | Done. An Exchanges/Bindings page exists and no offset concept leaks into the UI |
-| 5 | **Kafka** | Topics, consumer groups, lag, browse and publish work end to end |
+| 5 | **Kafka** | Done. Topics, consumer groups, lag, browse and publish work end to end, and no rate or dead-letter page pretends to exist |
 | 6 | **Pulsar**, then **Redis Stream**, then **NATS**, then **MQTT** | Each is purely additive — no canonical page changes shape |
 | 7 | **ActiveMQ / Artemis**, then **NSQ** | Still additive; ActiveMQ tests whether JMS semantics fit the canonical pages |
 | 8 | **Amazon SQS**, **Google Cloud Pub/Sub**, **Azure Service Bus**, **Amazon Kinesis**, then **IBM MQ** and **Solace PubSub+** | The connection form can express "no address, only a region and a credential" |
 
 Two ordering decisions worth keeping in view.
 
-**RabbitMQ comes before Kafka on purpose.** Kafka is close enough to RocketMQ that it would
-pass even if the abstraction were wrong, so it cannot validate anything. RabbitMQ disagrees
-with RocketMQ about offsets, partitions and consumer groups, and that disagreement is what
-makes it a real test.
+**RabbitMQ came before Kafka on purpose.** Kafka is close enough to RocketMQ that it would
+have passed even if the abstraction were wrong, so it could not validate anything. RabbitMQ
+disagrees with RocketMQ about offsets, partitions and consumer groups, and that disagreement
+was the real test.
+
+Kafka then found the opposite kind of problem. Where RabbitMQ pushed on the canonical model,
+Kafka pushed on the canonical model's *silences*: rates and disk percentages that every other
+family reports and Kafka does not, and a dead-letter page the canonical page set assumes. The
+answer in each case was to cut the column rather than to fill it in.
 
 **The hosted tier changes the connection form, not just the driver.** Every family through
 phase 7 is "an address plus optional credentials". The hosted tier is "a region plus a
@@ -61,7 +80,7 @@ and `Access`.
 | --- | --- | --- | --- |
 | **RocketMQ** 4.x / 5.x | Admin API over the remoting protocol | All six | A Proxy endpoint answers far less than a NameServer; capabilities narrow on connect |
 | **RabbitMQ** | HTTP management plugin, plus AMQP 0-9-1 for messages | All six, plus Exchanges/Bindings, Connections, Dead letters, Virtual hosts, Policies, Definitions, Replication | No offsets or partitions; no named consumer groups; no stable message id; browsing requeues what it read and carries a caveat; shovel, federation and the stream protocol are plugins and degrade with a reason when absent |
-| **Kafka** | AdminClient over the Kafka protocol | All six | ACL depends on the configured authorizer; browse is an offset-range fetch, not random access |
+| **Kafka** | The Kafka protocol itself, through franz-go and kadm | All six, plus log directories and SCRAM users | Confirmed: browse is an offset-range fetch rather than random access, and a key search is a scan. ACLs degrade with a reason on a cluster with no authorizer. No rate of any kind is reported, and no disk percentage exists; there is no broker-side dead-letter queue |
 | **Pulsar** | Admin REST API | All six | Tenant and namespace become a scope selector rather than a page |
 | **ActiveMQ / Artemis** | Jolokia REST over JMX | All six | Classic 5.x and Artemis expose different management trees; the driver probes which one answered |
 | **Redis Stream** | `XINFO`, `XRANGE`, `XADD` | Destinations, Subscriptions, Messages, Publish | No cluster topology and no per-destination access control |
