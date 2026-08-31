@@ -47,6 +47,7 @@ export {
     ExchangeInput,
     IdentityInput,
     KafkaTopicInput,
+    LogDirView,
     MaintenanceTaskView,
     MessageQuery,
     MoveInput,

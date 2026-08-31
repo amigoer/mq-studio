@@ -1182,18 +1182,20 @@
     },
     "cluster": {
       "kafka": {
-        "parts1": "分区 130 · leader 44",
-        "parts2": "分区 128 · leader 42",
-        "disk58": "磁盘 58%",
-        "disk61": "磁盘 61%",
-        "disk74": "磁盘 74%",
-        "isrShrink": "ISR 收缩",
-        "configSummary": "集群配置摘要",
-        "urp": "未同步分区（URP）",
-        "reelect": "重新选举 leader…",
-        "missingReplicas": "缺失副本",
-        "lagRow1": "2（kafka-2 落后 4 210）",
-        "lagRow2": "3（追赶中）"
+        "title": "集群",
+        "brokers": "Broker",
+        "storage": "存储",
+        "effectiveConfig": "生效配置",
+        "effectiveNote": "这个 broker 实际运行的配置，未必等于它配置文件里写的。broker 不回显的项是缺失而不是空。",
+        "totalSize": "已占用",
+        "dirs": "日志目录",
+        "unreadableDirs": "读不到的目录",
+        "storageNote": "Kafka 只报分区占用的字节数，不报承载它的文件系统——没有容量、没有剩余空间、没有百分比。读不到的目录单独计数，不按 0 计入总量。",
+        "dirsTitle": "日志目录",
+        "path": "路径",
+        "size": "大小",
+        "largest": "最大的分区",
+        "moving": "迁移中"
       },
       "pulsar": {
         "load44": "负载 44%",

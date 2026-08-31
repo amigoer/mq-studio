@@ -41,9 +41,13 @@ const topicsState = vi.hoisted(() => ({ current: null as unknown }));
 const topicDetailState = vi.hoisted(() => ({ current: null as unknown }));
 const groupsState = vi.hoisted(() => ({ current: null as unknown }));
 const groupDetailState = vi.hoisted(() => ({ current: null as unknown }));
+const logDirState = vi.hoisted(() => ({ current: null as unknown }));
+const brokerConfigState = vi.hoisted(() => ({ current: null as unknown }));
 
 vi.mock("@/hooks/kafka/useKafkaCluster", () => ({
   useKafkaCluster: () => clusterState.current,
+  useKafkaLogDirs: () => logDirState.current,
+  useKafkaBrokerConfig: () => brokerConfigState.current,
 }));
 vi.mock("@/hooks/kafka/useKafkaTopics", () => ({
   useKafkaTopics: () => topicsState.current,
@@ -61,6 +65,7 @@ let render: (element: React.ReactElement) => string;
 let OverviewKafka: typeof import("./overview/OverviewKafka").OverviewKafka;
 let TopicsKafka: typeof import("./topics/TopicsKafka").TopicsKafka;
 let ConsumersKafka: typeof import("./consumers/ConsumersKafka").ConsumersKafka;
+let BrokersKafka: typeof import("./cluster/BrokersKafka").BrokersKafka;
 
 beforeAll(async () => {
   const storage = { getItem: () => null, setItem() {}, removeItem() {} };
@@ -73,11 +78,12 @@ beforeAll(async () => {
   });
   vi.stubGlobal("localStorage", storage);
 
-  const [server, overview, topics, consumers, ui, i18n, settings] = await Promise.all([
+  const [server, overview, topics, consumers, brokers, ui, i18n, settings] = await Promise.all([
     import("react-dom/server"),
     import("./overview/OverviewKafka"),
     import("./topics/TopicsKafka"),
     import("./consumers/ConsumersKafka"),
+    import("./cluster/BrokersKafka"),
     import("@/components"),
     import("@/i18n"),
     import("@/hooks/useSettings"),
@@ -92,6 +98,7 @@ beforeAll(async () => {
   OverviewKafka = overview.OverviewKafka;
   TopicsKafka = topics.TopicsKafka;
   ConsumersKafka = consumers.ConsumersKafka;
+  BrokersKafka = brokers.BrokersKafka;
 });
 
 /** A healthy three-broker cluster, shaped the way the driver sends it. */
@@ -438,5 +445,41 @@ describe("the Kafka consumer groups board", () => {
     groupsState.current = stateOf({ data: [group()] });
     groupDetailState.current = stateOf({ data: groupDetail });
     expect(render(<ConsumersKafka />)).not.toMatch(/\/s\b/);
+  });
+});
+
+describe("the Kafka cluster board", () => {
+  it("draws the offline notice with nothing dialled", () => {
+    clusterState.current = stateOf({ online: false });
+    logDirState.current = stateOf({});
+    brokerConfigState.current = stateOf({});
+    expect(render(<BrokersKafka />)).toContain("未连接");
+  });
+
+  it("lists the brokers and marks the controller", () => {
+    clusterState.current = stateOf({ data: healthyCluster });
+    logDirState.current = stateOf({});
+    brokerConfigState.current = stateOf({});
+    const html = render(<BrokersKafka />);
+
+    expect(html).toContain("127.0.0.1:9092");
+    expect(html).toContain("控制器");
+    expect(html).toContain("eu-west-1a");
+  });
+
+  /*
+   * The canvas drew a disk-usage percentage. Kafka reports occupied bytes per
+   * log directory and nothing about the filesystem holding them, so there is
+   * no denominator to build one from.
+   */
+  it("shows no disk percentage", () => {
+    clusterState.current = stateOf({ data: healthyCluster });
+    logDirState.current = stateOf({});
+    brokerConfigState.current = stateOf({});
+    const html = render(<BrokersKafka />);
+    // Percentages in inline layout styles are not a claim about a disk; only
+    // one inside rendered text would be.
+    const text = html.replace(/<[^>]*>/g, " ");
+    expect(text).not.toMatch(/\d+\s*%/);
   });
 });

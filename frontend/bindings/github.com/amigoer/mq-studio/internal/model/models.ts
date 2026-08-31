@@ -657,6 +657,14 @@ export enum Capability {
     CapClusterMetrics = "cluster.metrics",
 
     /**
+     * CapLogDirs is a broker that reports what its partitions occupy on disk.
+     * Distinct from CapNodeConfig, which is what a node is running with: this
+     * is where its space has gone, and it is the only disk figure Kafka has -
+     * the protocol reports no free space and no percentage anywhere.
+     */
+    CapLogDirs = "cluster.logDirs",
+
+    /**
      * CapClusterCensus is a broker that keeps its own running totals - object
      * counts, queued depth and message rates for the whole cluster in one
      * answer. A family whose figures can only be assembled by walking every
@@ -2034,6 +2042,119 @@ export class Identity {
             $$parsedSource["permissions"] = $$createField3_0($$parsedSource["permissions"]);
         }
         return new Identity($$parsedSource as Partial<Identity>);
+    }
+}
+
+/**
+ * LogDirPartition is one partition's footprint on disk.
+ */
+export class LogDirPartition {
+    "broker": number;
+    "dir": string;
+    "topic": string;
+    "partition": number;
+    "size": number;
+    "offsetLag": number;
+
+    /**
+     * IsFuture marks a replica being moved into this directory. Until the move
+     * finishes the broker holds two copies of the partition.
+     */
+    "isFuture": boolean;
+
+    /** Creates a new LogDirPartition instance. */
+    constructor($$source: Partial<LogDirPartition> = {}) {
+        if (!("broker" in $$source)) {
+            this["broker"] = 0;
+        }
+        if (!("dir" in $$source)) {
+            this["dir"] = "";
+        }
+        if (!("topic" in $$source)) {
+            this["topic"] = "";
+        }
+        if (!("partition" in $$source)) {
+            this["partition"] = 0;
+        }
+        if (!("size" in $$source)) {
+            this["size"] = 0;
+        }
+        if (!("offsetLag" in $$source)) {
+            this["offsetLag"] = 0;
+        }
+        if (!("isFuture" in $$source)) {
+            this["isFuture"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new LogDirPartition instance from a string or object.
+     */
+    static createFrom($$source: any = {}): LogDirPartition {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new LogDirPartition($$parsedSource as Partial<LogDirPartition>);
+    }
+}
+
+/**
+ * LogDirSummary is one directory a broker stores partitions in.
+ * 
+ * Kafka is the only family that reports this, and it reports only what is
+ * occupied: there is no free space and no percentage anywhere in its protocol.
+ * A cluster page therefore shows a size and not a meter, which is the honest
+ * rendering of what the broker knows.
+ */
+export class LogDirSummary {
+    "broker": number;
+    "path": string;
+    "size": number;
+    "partitions": number;
+
+    /**
+     * OffsetLag summed over the partitions here. Non-zero on a directory being
+     * moved into, which is the case an operator watches this for.
+     */
+    "offsetLag": number;
+
+    /**
+     * Err is why this directory could not be described, empty when it could.
+     * A directory that failed is not counted in any total: a disk that cannot
+     * answer must not make a cluster look smaller than it is.
+     */
+    "err": string;
+
+    /** Creates a new LogDirSummary instance. */
+    constructor($$source: Partial<LogDirSummary> = {}) {
+        if (!("broker" in $$source)) {
+            this["broker"] = 0;
+        }
+        if (!("path" in $$source)) {
+            this["path"] = "";
+        }
+        if (!("size" in $$source)) {
+            this["size"] = 0;
+        }
+        if (!("partitions" in $$source)) {
+            this["partitions"] = 0;
+        }
+        if (!("offsetLag" in $$source)) {
+            this["offsetLag"] = 0;
+        }
+        if (!("err" in $$source)) {
+            this["err"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new LogDirSummary instance from a string or object.
+     */
+    static createFrom($$source: any = {}): LogDirSummary {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new LogDirSummary($$parsedSource as Partial<LogDirSummary>);
     }
 }
 

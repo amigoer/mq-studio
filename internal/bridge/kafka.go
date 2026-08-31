@@ -137,3 +137,45 @@ func (s *KafkaService) CloneGroupOffsets(connID int, from, to, topic string) err
 func (s *KafkaService) DeleteGroup(connID int, group string) error {
 	return s.service.DeleteGroup(context.Background(), connID, group)
 }
+
+// LogDirView is the cluster page's storage tab in one round trip.
+type LogDirView struct {
+	Dirs []*model.LogDirSummary `json:"dirs"`
+	// Largest is the biggest partitions across the cluster, which is what an
+	// operator opens this for.
+	Largest []*model.LogDirPartition `json:"largest"`
+
+	// Total is the occupied bytes across every directory that answered, and
+	// Failed is how many did not. A directory that cannot be described is
+	// counted separately rather than as zero: a disk that will not answer must
+	// not make a cluster look smaller than it is.
+	Total  int64 `json:"total"`
+	Failed int   `json:"failed"`
+}
+
+// largestPartitions caps what the storage tab draws. A cluster with thousands
+// of partitions has a long tail nobody reads.
+const largestPartitions = 20
+
+// LogDirs reports where a cluster's disk has gone.
+func (s *KafkaService) LogDirs(connID int) (*LogDirView, error) {
+	ctx := context.Background()
+	dirs, err := s.service.LogDirs(ctx, connID)
+	if err != nil {
+		return nil, err
+	}
+	largest, err := s.service.LogDirPartitions(ctx, connID, largestPartitions)
+	if err != nil {
+		return nil, err
+	}
+
+	view := &LogDirView{Dirs: dirs, Largest: largest}
+	for _, dir := range dirs {
+		if dir.Err != "" {
+			view.Failed++
+			continue
+		}
+		view.Total += dir.Size
+	}
+	return view, nil
+}

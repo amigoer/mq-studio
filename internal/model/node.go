@@ -121,3 +121,40 @@ func KnownMaintenanceTasks() []MaintenanceTask {
 		TaskDeleteExpiredLogs,
 	}
 }
+
+// LogDirSummary is one directory a broker stores partitions in.
+//
+// Kafka is the only family that reports this, and it reports only what is
+// occupied: there is no free space and no percentage anywhere in its protocol.
+// A cluster page therefore shows a size and not a meter, which is the honest
+// rendering of what the broker knows.
+type LogDirSummary struct {
+	Broker int32  `json:"broker"`
+	Path   string `json:"path"`
+	Size   int64  `json:"size"`
+
+	Partitions int `json:"partitions"`
+
+	// OffsetLag summed over the partitions here. Non-zero on a directory being
+	// moved into, which is the case an operator watches this for.
+	OffsetLag int64 `json:"offsetLag"`
+
+	// Err is why this directory could not be described, empty when it could.
+	// A directory that failed is not counted in any total: a disk that cannot
+	// answer must not make a cluster look smaller than it is.
+	Err string `json:"err"`
+}
+
+// LogDirPartition is one partition's footprint on disk.
+type LogDirPartition struct {
+	Broker    int32  `json:"broker"`
+	Dir       string `json:"dir"`
+	Topic     string `json:"topic"`
+	Partition int32  `json:"partition"`
+	Size      int64  `json:"size"`
+	OffsetLag int64  `json:"offsetLag"`
+
+	// IsFuture marks a replica being moved into this directory. Until the move
+	// finishes the broker holds two copies of the partition.
+	IsFuture bool `json:"isFuture"`
+}

@@ -85,6 +85,12 @@ const (
 	CapNodeWritePerm  Capability = "cluster.writePerm"
 	CapClusterMetrics Capability = "cluster.metrics"
 
+	// CapLogDirs is a broker that reports what its partitions occupy on disk.
+	// Distinct from CapNodeConfig, which is what a node is running with: this
+	// is where its space has gone, and it is the only disk figure Kafka has -
+	// the protocol reports no free space and no percentage anywhere.
+	CapLogDirs Capability = "cluster.logDirs"
+
 	// CapClusterCensus is a broker that keeps its own running totals - object
 	// counts, queued depth and message rates for the whole cluster in one
 	// answer. A family whose figures can only be assembled by walking every

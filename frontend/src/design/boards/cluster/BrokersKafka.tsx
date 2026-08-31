@@ -1,6 +1,6 @@
-import { Star } from "lucide-react";
-import { Page, PageBody, PageHeader } from "@/design/shell";
-import { Button } from "@/components/ui/button";
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { ListArea, ListPane, Page, PageHeader, RefreshButton, Toolbar } from "@/design/shell";
 import {
   Table,
   TableBody,
@@ -10,131 +10,251 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  DetailPanel,
+  DetailPanelBody,
+  DetailPanelHeader,
   KV,
+  MiniStat,
   Panel,
+  Segmented,
   SectionLabel,
   Status,
 } from "@/components";
-import { Metric, NODE_CARD, NODE_GRID, NodeCard, TABLE_CARD } from "./_shared";
-import { useTranslation } from "react-i18next";
+import { BoardState } from "@/design/boards/BoardState";
+import {
+  useKafkaBrokerConfig,
+  useKafkaCluster,
+  useKafkaLogDirs,
+} from "@/hooks/kafka/useKafkaCluster";
+import { formatBytes, formatCount } from "@/lib/format";
+import { clusterID, controllerNode, isController, nodeID, rack } from "@/mq/kafka/cluster";
 
-const TAG = { fontSize: "10px" } as const;
+const R = { textAlign: "right" } as const;
 const MONO11 = { fontSize: "11px" } as const;
 
-/** Board 17a — Kafka brokers: controller star, URP and ISR shrink warnings. */
+type View = "brokers" | "storage";
+
+/**
+ * Board 17a — Kafka brokers.
+ *
+ * The canvas drew a disk-usage percentage. Kafka reports no such number: the
+ * whole protocol carries occupied bytes per log directory and nothing about
+ * the filesystem holding it - no capacity, no free space, no percentage. So
+ * the storage view shows sizes and says where they came from, rather than a
+ * meter filled in from a denominator nobody supplied.
+ *
+ * There is no per-broker throughput either, for the same reason every other
+ * Kafka board has none: rates are JMX metrics.
+ */
 export function BrokersKafka() {
   const { t } = useTranslation();
+  const [view, setView] = useState<View>("brokers");
+  const [selected, setSelected] = useState<string | null>(null);
+
+  const state = useKafkaCluster();
+  const storage = useKafkaLogDirs(view === "storage");
+  const config = useKafkaBrokerConfig(selected);
+
+  const overview = state.data?.overview ?? null;
+  const nodes = state.data?.nodes ?? [];
+  const dirs = storage.data?.dirs ?? [];
+  const largest = storage.data?.largest ?? [];
+
   return (
     <Page>
       <PageHeader
-        title="Broker"
-        subtitle="Kafka 3.7 · KRaft · Controller kafka-1"
-        actions={<Button variant="outline">{t("board.common.refresh")}</Button>}
-      />
-      <PageBody style={{ gap: "12px" }}>
-        <div className={NODE_GRID}>
-          <NodeCard
-            name="kafka-1"
-            badges={
-              <Status tone="ok" style={TAG}>
-                Controller
-                <Star size={10} fill="currentColor" aria-hidden />
-              </Status>
-            }
-            address="rack-a · 9092"
-            metrics={
-              <>
-                <Metric label={t("board.common.in")} value="1 820/s" />
-                <Metric label={t("board.common.out")} value="3 240/s" />
-                <span style={{ color: "var(--c-muted)" }}>{t("board.cluster.kafka.parts1")}</span>
-              </>
-            }
-            meters={[{ label: t("board.cluster.kafka.disk58"), value: 58 }]}
-          />
-          <NodeCard
-            name="kafka-2"
-            badges={<Status tone="ok" style={TAG}>Broker</Status>}
-            address="rack-b · 9092"
-            metrics={
-              <>
-                <Metric label={t("board.common.in")} value="1 704/s" />
-                <Metric label={t("board.common.out")} value="2 988/s" />
-                <span style={{ color: "var(--c-muted)" }}>{t("board.cluster.kafka.parts2")}</span>
-              </>
-            }
-            meters={[{ label: t("board.cluster.kafka.disk61"), value: 61 }]}
-          />
-          <NodeCard
-            name="kafka-3"
-            badges={
-              <>
-                <Status tone="ok" style={TAG}>Broker</Status>
-                <Status tone="warn" style={TAG}>{t("board.cluster.kafka.isrShrink")}</Status>
-              </>
-            }
-            address="rack-c · 9092"
-            metrics={
-              <>
-                <Metric label={t("board.common.in")} value="1 688/s" />
-                <Metric label={t("board.common.out")} value="2 901/s" />
-                <span style={{ color: "var(--c-warn-text)" }}>URP 2</span>
-              </>
-            }
-            meters={[{ label: t("board.cluster.kafka.disk74"), value: 74, color: "var(--c-warn)" }]}
-          />
-          <Panel style={NODE_CARD}>
-            <SectionLabel>{t("board.cluster.kafka.configSummary")}</SectionLabel>
-            <KV
-              rows={[
-                ["min.insync.replicas", <span className="mono3" style={MONO11}>2</span>],
-                ["default.replication", <span className="mono3" style={MONO11}>3</span>],
-                ["auto.create.topics", <span className="mono3" style={MONO11}>false</span>],
-              ]}
-            />
-          </Panel>
-        </div>
-
-        <Panel style={TABLE_CARD}>
-          <div
-            style={{
-              padding: "11px 16px",
-              borderBottom: "1px solid var(--c-border)",
-              display: "flex",
-              alignItems: "center",
+        title={t("board.cluster.kafka.title")}
+        subtitle={overview != null ? clusterID(overview) : ""}
+        actions={
+          <RefreshButton
+            refreshing={state.refreshing || storage.refreshing}
+            online={state.online}
+            onClick={() => {
+              void state.refresh();
+              if (view === "storage") void storage.refresh();
             }}
-          >
-            <b style={{ fontSize: "12.5px" }}>{t("board.cluster.kafka.urp")}</b>
-            <span className="flex-1" />
-            <span style={{ fontSize: "11.5px", color: "var(--c-fg-2)" }}>{t("board.cluster.kafka.reelect")}</span>
+          />
+        }
+      />
+      <Toolbar>
+        <Segmented<View>
+          options={[
+            { value: "brokers", label: t("board.cluster.kafka.brokers") },
+            { value: "storage", label: t("board.cluster.kafka.storage") },
+          ]}
+          value={view}
+          onChange={setView}
+        />
+        <span className="flex-1" />
+        {overview != null && controllerNode(overview) !== "" && (
+          <span style={{ fontSize: "11.5px", color: "var(--c-muted)" }}>
+            {t("board.overview.kafka.controllerIs", { id: controllerNode(overview) })}
+          </span>
+        )}
+      </Toolbar>
+
+      {view === "brokers" ? (
+        <BoardState state={state}>
+          <ListArea>
+            <ListPane>
+              <Table inset>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead style={R}>ID</TableHead>
+                    <TableHead>{t("board.common.address")}</TableHead>
+                    <TableHead>Rack</TableHead>
+                    <TableHead>{t("board.common.status")}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {nodes.map((node) => (
+                    <TableRow
+                      key={node.id}
+                      selected={selected === node.address}
+                      onClick={() => setSelected(node.address)}
+                    >
+                      <TableCell className="mono3" style={R}>{nodeID(node)}</TableCell>
+                      <TableCell className="mono3" style={MONO11}>{node.address}</TableCell>
+                      <TableCell className="mono3" style={MONO11}>
+                        {rack(node) === "" ? "—" : rack(node)}
+                      </TableCell>
+                      <TableCell>
+                        {isController(node) ? (
+                          <Status tone="ok">{t("board.overview.kafka.controller")}</Status>
+                        ) : (
+                          <Status tone="off">{t("board.overview.kafka.broker")}</Status>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </ListPane>
+
+            {selected != null && (
+              <DetailPanel width={440} onDismiss={() => setSelected(null)}>
+                <DetailPanelHeader
+                  title={selected}
+                  tabs={[{ id: "config", label: t("board.cluster.kafka.effectiveConfig") }]}
+                  activeTab="config"
+                  onTabChange={() => {}}
+                  onClose={() => setSelected(null)}
+                />
+                <DetailPanelBody>
+                  <BoardState state={config}>
+                    <span style={{ fontSize: "11px", color: "var(--c-muted)" }}>
+                      {t("board.cluster.kafka.effectiveNote")}
+                    </span>
+                    <KV
+                      rows={Object.keys(config.data ?? {})
+                        .sort()
+                        .map((key) => [key, (config.data ?? {})[key] ?? ""] as const)}
+                    />
+                  </BoardState>
+                </DetailPanelBody>
+              </DetailPanel>
+            )}
+          </ListArea>
+        </BoardState>
+      ) : (
+        <BoardState state={storage}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px", padding: "12px 14px", overflow: "auto" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px" }}>
+              <MiniStat
+                label={t("board.cluster.kafka.totalSize")}
+                value={formatBytes(storage.data?.total ?? 0)}
+                size={15}
+              />
+              <MiniStat
+                label={t("board.cluster.kafka.dirs")}
+                value={formatCount(dirs.length)}
+                size={15}
+              />
+              <MiniStat
+                label={t("board.cluster.kafka.unreadableDirs")}
+                value={formatCount(storage.data?.failed ?? 0)}
+                color={(storage.data?.failed ?? 0) > 0 ? "var(--c-err-text)" : undefined}
+                size={15}
+              />
+            </div>
+            <span style={{ fontSize: "11px", color: "var(--c-muted)" }}>
+              {t("board.cluster.kafka.storageNote")}
+            </span>
+
+            <div>
+              <SectionLabel style={{ marginBottom: "6px" }}>
+                {t("board.cluster.kafka.dirsTitle")}
+              </SectionLabel>
+              <Panel style={{ overflow: "hidden" }}>
+                <Table className="text-xs">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead style={R}>Broker</TableHead>
+                      <TableHead>{t("board.cluster.kafka.path")}</TableHead>
+                      <TableHead style={R}>{t("board.common.partition")}</TableHead>
+                      <TableHead style={R}>{t("board.cluster.kafka.size")}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {dirs.map((dir) => (
+                      <TableRow key={`${dir?.broker}/${dir?.path}`}>
+                        <TableCell className="mono3" style={R}>{dir?.broker}</TableCell>
+                        <TableCell className="mono3" style={MONO11}>
+                          {dir?.path}
+                          {dir?.err !== "" && (
+                            <span style={{ color: "var(--c-err-text)" }}> · {dir?.err}</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="mono3" style={R}>{dir?.partitions}</TableCell>
+                        <TableCell className="mono3" style={R}>
+                          {dir?.err === "" ? formatBytes(dir?.size ?? 0) : "—"}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </Panel>
+            </div>
+
+            <div>
+              <SectionLabel style={{ marginBottom: "6px" }}>
+                {t("board.cluster.kafka.largest")}
+              </SectionLabel>
+              <Panel style={{ overflow: "hidden" }}>
+                <Table className="text-xs">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Topic</TableHead>
+                      <TableHead style={R}>P</TableHead>
+                      <TableHead style={R}>Broker</TableHead>
+                      <TableHead style={R}>{t("board.cluster.kafka.size")}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {largest.map((partition) => (
+                      <TableRow key={`${partition?.broker}/${partition?.topic}/${partition?.partition}`}>
+                        <TableCell className="mono3" style={MONO11}>
+                          {partition?.topic}
+                          {partition?.isFuture === true && (
+                            <Status tone="warn" style={{ fontSize: "10px", marginLeft: "4px" }}>
+                              {t("board.cluster.kafka.moving")}
+                            </Status>
+                          )}
+                        </TableCell>
+                        <TableCell className="mono3" style={R}>{partition?.partition}</TableCell>
+                        <TableCell className="mono3" style={R}>{partition?.broker}</TableCell>
+                        <TableCell className="mono3" style={R}>
+                          {formatBytes(partition?.size ?? 0)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </Panel>
+            </div>
           </div>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Topic</TableHead>
-                <TableHead style={{ textAlign: "right" }}>{t("board.common.partition")}</TableHead>
-                <TableHead>ISR</TableHead>
-                <TableHead>{t("board.cluster.kafka.missingReplicas")}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              <TableRow>
-                <TableCell className="mono3" style={MONO11}>orders.created</TableCell>
-                <TableCell className="mono3" style={{ textAlign: "right" }}>2</TableCell>
-                <TableCell className="mono3" style={MONO11}>3,1</TableCell>
-                <TableCell className="mono3" style={{ ...MONO11, color: "var(--c-warn-text)" }}>
-                  {t("board.cluster.kafka.lagRow1")}
-                </TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell className="mono3" style={MONO11}>payments.captured</TableCell>
-                <TableCell className="mono3" style={{ textAlign: "right" }}>7</TableCell>
-                <TableCell className="mono3" style={MONO11}>1,2</TableCell>
-                <TableCell className="mono3" style={{ ...MONO11, color: "var(--c-warn-text)" }}>{t("board.cluster.kafka.lagRow2")}</TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </Panel>
-      </PageBody>
+        </BoardState>
+      )}
     </Page>
   );
 }

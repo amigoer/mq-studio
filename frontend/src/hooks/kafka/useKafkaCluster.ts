@@ -1,5 +1,7 @@
 import { useCallback } from "react";
-import { getClusterView } from "@/api/cluster";
+import { getClusterView, getNodeConfig, type ConfigDocument } from "@/api/cluster";
+import { getKafkaLogDirs } from "@/api/kafka";
+import type { LogDirView } from "@bindings/bridge/models";
 import type { ClusterOverview, Node } from "@/api/models";
 import { useBrokerData, type BrokerData } from "@/hooks/useBrokerData";
 
@@ -29,5 +31,36 @@ export function useKafkaCluster(): BrokerData<KafkaCluster> {
         })),
       [],
     ),
+  );
+}
+
+/**
+ * The cluster's storage.
+ *
+ * A request to every broker, so it is the cluster page's own call and never
+ * part of the overview: the numbers are worth a round trip only when somebody
+ * is looking at them.
+ */
+export function useKafkaLogDirs(enabled: boolean): BrokerData<LogDirView> {
+  return useBrokerData(
+    useCallback((connID: number) => getKafkaLogDirs(connID), []),
+    { enabled },
+  );
+}
+
+/**
+ * One broker's effective settings - what it is running with, which is not
+ * always what its properties file says.
+ */
+export function useKafkaBrokerConfig(address: string | null): BrokerData<ConfigDocument> {
+  return useBrokerData(
+    useCallback(
+      (connID: number) => {
+        if (address == null) throw new Error("no broker selected");
+        return getNodeConfig(connID, address);
+      },
+      [address],
+    ),
+    { enabled: address != null },
   );
 }

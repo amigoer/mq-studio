@@ -629,6 +629,62 @@ export class KafkaTopicInput {
 }
 
 /**
+ * LogDirView is the cluster page's storage tab in one round trip.
+ */
+export class LogDirView {
+    "dirs": (model$0.LogDirSummary | null)[];
+
+    /**
+     * Largest is the biggest partitions across the cluster, which is what an
+     * operator opens this for.
+     */
+    "largest": (model$0.LogDirPartition | null)[];
+
+    /**
+     * Total is the occupied bytes across every directory that answered, and
+     * Failed is how many did not. A directory that cannot be described is
+     * counted separately rather than as zero: a disk that will not answer must
+     * not make a cluster look smaller than it is.
+     */
+    "total": number;
+    "failed": number;
+
+    /** Creates a new LogDirView instance. */
+    constructor($$source: Partial<LogDirView> = {}) {
+        if (!("dirs" in $$source)) {
+            this["dirs"] = [];
+        }
+        if (!("largest" in $$source)) {
+            this["largest"] = [];
+        }
+        if (!("total" in $$source)) {
+            this["total"] = 0;
+        }
+        if (!("failed" in $$source)) {
+            this["failed"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new LogDirView instance from a string or object.
+     */
+    static createFrom($$source: any = {}): LogDirView {
+        const $$createField0_0 = $$createType11;
+        const $$createField1_0 = $$createType14;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("dirs" in $$parsedSource) {
+            $$parsedSource["dirs"] = $$createField0_0($$parsedSource["dirs"]);
+        }
+        if ("largest" in $$parsedSource) {
+            $$parsedSource["largest"] = $$createField1_0($$parsedSource["largest"]);
+        }
+        return new LogDirView($$parsedSource as Partial<LogDirView>);
+    }
+}
+
+/**
  * MaintenanceTaskView is one offerable housekeeping job.
  */
 export class MaintenanceTaskView {
@@ -872,7 +928,7 @@ export class OffsetResetInput {
      * Creates a new OffsetResetInput instance from a string or object.
      */
     static createFrom($$source: any = {}): OffsetResetInput {
-        const $$createField2_0 = $$createType9;
+        const $$createField2_0 = $$createType15;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("partitions" in $$parsedSource) {
             $$parsedSource["partitions"] = $$createField2_0($$parsedSource["partitions"]);
@@ -1854,4 +1910,10 @@ const $$createType5 = model$0.Node.createFrom;
 const $$createType6 = $Create.Nullable($$createType5);
 const $$createType7 = $Create.Array($$createType6);
 const $$createType8 = $Create.Map($Create.Any, $Create.Any);
-const $$createType9 = $Create.Array($Create.Any);
+const $$createType9 = model$0.LogDirSummary.createFrom;
+const $$createType10 = $Create.Nullable($$createType9);
+const $$createType11 = $Create.Array($$createType10);
+const $$createType12 = model$0.LogDirPartition.createFrom;
+const $$createType13 = $Create.Nullable($$createType12);
+const $$createType14 = $Create.Array($$createType13);
+const $$createType15 = $Create.Array($Create.Any);

@@ -1,5 +1,6 @@
 import { KafkaService } from "@bindings/bridge";
 import type { KafkaTopicInput } from "@bindings/bridge/models";
+import { required } from "./client";
 
 export type { KafkaTopicInput };
 
@@ -81,3 +82,7 @@ export const cloneKafkaGroupOffsets = (
 /** Removes a consumer group and the offsets it holds. */
 export const deleteKafkaGroup = (connID: number, group: string): Promise<void> =>
   KafkaService.DeleteGroup(connID, group);
+
+/** Where a cluster's disk has gone: one round trip for the storage tab. */
+export const getKafkaLogDirs = (connID: number) =>
+  KafkaService.LogDirs(connID).then(required);

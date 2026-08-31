@@ -30,6 +30,8 @@ const KAFKA_CAPABILITIES: Capability[] = [
   Capability.CapQueueOffset,
   Capability.CapClusterTopology,
   Capability.CapClusterMetrics,
+  Capability.CapNodeConfig,
+  Capability.CapLogDirs,
 ];
 
 function state(

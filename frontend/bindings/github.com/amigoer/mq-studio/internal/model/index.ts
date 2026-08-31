@@ -35,6 +35,8 @@ export {
     FormOption,
     HealthCheck,
     Identity,
+    LogDirPartition,
+    LogDirSummary,
     MQKind,
     MessageItem,
     MessageStatus,

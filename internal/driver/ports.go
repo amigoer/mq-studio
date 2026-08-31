@@ -249,6 +249,23 @@ type ConfigInspector interface {
 	DirectoryConfig(ctx context.Context) (map[string]string, error)
 }
 
+// LogDirInspector reports how much disk a broker's partitions occupy.
+//
+// Separate from ConfigInspector because it answers a different question at a
+// different cost: settings are what a node is running with, this is where its
+// space has gone, and it is a request to every broker rather than to one.
+//
+// A family whose brokers do not report their own storage does not implement
+// it. Kafka is the one that does, and it reports only occupied bytes: there is
+// no free space and no percentage anywhere in the protocol, which is why the
+// cluster page shows a size and not a meter.
+type LogDirInspector interface {
+	LogDirs(ctx context.Context) ([]*model.LogDirSummary, error)
+	// LogDirPartitions is what is inside them, largest first, capped by limit.
+	// The reason to open the page is to find what is filling a disk.
+	LogDirPartitions(ctx context.Context, limit int) ([]*model.LogDirPartition, error)
+}
+
 // NodeMaintenance runs a node's housekeeping on demand.
 //
 // Scoped to one node rather than a cluster: these reclaim disk, and an

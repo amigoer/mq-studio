@@ -73,6 +73,15 @@ export function DeleteTopic(connID: number, name: string): $CancellablePromise<v
 }
 
 /**
+ * LogDirs reports where a cluster's disk has gone.
+ */
+export function LogDirs(connID: number): $CancellablePromise<$models.LogDirView | null> {
+    return $Call.ByID(990165473, connID).then(($result: any) => {
+        return $$createType1($result);
+    });
+}
+
+/**
  * ResetGroupOffsets writes a consumer group's committed offsets.
  * 
  * Kafka refuses this while the group has live members. That refusal reaches
@@ -82,3 +91,7 @@ export function DeleteTopic(connID: number, name: string): $CancellablePromise<v
 export function ResetGroupOffsets(connID: number, input: $models.OffsetResetInput): $CancellablePromise<void> {
     return $Call.ByID(2590147649, connID, input);
 }
+
+// Private type creation functions
+const $$createType0 = $models.LogDirView.createFrom;
+const $$createType1 = $Create.Nullable($$createType0);

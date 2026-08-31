@@ -1182,18 +1182,20 @@
     },
     "cluster": {
       "kafka": {
-        "parts1": "130 partitions · 44 leaders",
-        "parts2": "128 partitions · 42 leaders",
-        "disk58": "Disk 58%",
-        "disk61": "Disk 61%",
-        "disk74": "Disk 74%",
-        "isrShrink": "ISR shrinking",
-        "configSummary": "Cluster configuration",
-        "urp": "Under-replicated partitions (URP)",
-        "reelect": "Re-elect leader…",
-        "missingReplicas": "Missing replicas",
-        "lagRow1": "2 (kafka-2 behind by 4 210)",
-        "lagRow2": "3 (catching up)"
+        "title": "Cluster",
+        "brokers": "Brokers",
+        "storage": "Storage",
+        "effectiveConfig": "Effective settings",
+        "effectiveNote": "What this broker is running with, which is not always what its properties file says. A setting the broker withholds is absent rather than blank.",
+        "totalSize": "Occupied",
+        "dirs": "Log directories",
+        "unreadableDirs": "Unreadable",
+        "storageNote": "Kafka reports the bytes its partitions occupy and nothing about the filesystem holding them - no capacity, no free space, no percentage. A directory that could not be described is counted apart rather than as zero.",
+        "dirsTitle": "Log directories",
+        "path": "Path",
+        "size": "Size",
+        "largest": "Largest partitions",
+        "moving": "moving"
       },
       "pulsar": {
         "load44": "Load 44%",

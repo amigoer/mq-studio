@@ -172,3 +172,37 @@ func (s *Service) DeleteGroup(ctx context.Context, connID int, group string) err
 	defer cancel()
 	return api.RemoveSubscription(ctx, model.SubscriptionRef{Name: group})
 }
+
+// LogDirs reports how much disk every broker's partitions occupy.
+//
+// Not connected yields nothing rather than an error: the board draws its own
+// state for that, and an error banner over it says the same thing twice.
+func (s *Service) LogDirs(ctx context.Context, connID int) ([]*model.LogDirSummary, error) {
+	api, err := port[driver.LogDirInspector](s, connID, model.CapLogDirs)
+	if err != nil {
+		if notConnected(err) {
+			return []*model.LogDirSummary{}, nil
+		}
+		return nil, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.LogDirs(ctx)
+}
+
+// LogDirPartitions is what is inside them, largest first. The reason to open
+// the page is to find what is filling a disk.
+func (s *Service) LogDirPartitions(
+	ctx context.Context, connID int, limit int,
+) ([]*model.LogDirPartition, error) {
+	api, err := port[driver.LogDirInspector](s, connID, model.CapLogDirs)
+	if err != nil {
+		if notConnected(err) {
+			return []*model.LogDirPartition{}, nil
+		}
+		return nil, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.LogDirPartitions(ctx, limit)
+}

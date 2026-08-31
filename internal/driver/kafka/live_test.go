@@ -667,3 +667,98 @@ func TestLiveOffsetClone(t *testing.T) {
 		t.Error("cloning from a group with no offsets was accepted")
 	}
 }
+
+// A broker's effective settings and where its disk has gone. Both are one
+// request per broker, which is why they are the cluster page's own calls.
+func TestLiveBrokerConfigAndLogDirs(t *testing.T) {
+	requireLiveCluster(t)
+	conn := liveConn(t, liveSeeds)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	nodes, err := conn.ListNodes(ctx)
+	if err != nil {
+		t.Fatalf("ListNodes: %v", err)
+	}
+	settings, err := conn.NodeConfig(ctx, nodes[0].Address)
+	if err != nil {
+		t.Fatalf("NodeConfig: %v", err)
+	}
+	// A broker reports a few hundred settings; these are the ones the e2e
+	// compose sets, so finding them proves the read reached the right broker.
+	for _, key := range []string{"broker.id", "process.roles", "num.partitions"} {
+		if settings[key] == "" {
+			t.Errorf("%s is missing from the effective settings", key)
+		}
+	}
+	/*
+	 * An empty value is kept, not dropped.
+	 *
+	 * Several Kafka settings default to an empty list -
+	 * kafka.metrics.reporters among them - and that is a real setting whose
+	 * value is nothing. Only a value the broker withholds arrives as no value
+	 * at all, and that one is dropped; the unit test covers it, because a
+	 * plaintext cluster has no sensitive setting to withhold.
+	 */
+	empties := 0
+	for _, value := range settings {
+		if value == "" {
+			empties++
+		}
+	}
+	if empties == 0 {
+		t.Error("no setting came back empty; a broker has several that default to an empty list")
+	}
+
+	dirs, err := conn.LogDirs(ctx)
+	if err != nil {
+		t.Fatalf("LogDirs: %v", err)
+	}
+	if len(dirs) < 3 {
+		t.Fatalf("log directories = %d, want at least one per broker", len(dirs))
+	}
+	brokers := make(map[int32]bool)
+	for _, dir := range dirs {
+		brokers[dir.Broker] = true
+		if dir.Path == "" {
+			t.Errorf("broker %d reported a directory with no path", dir.Broker)
+		}
+	}
+	if len(brokers) != 3 {
+		t.Errorf("directories came from %d brokers, want 3", len(brokers))
+	}
+
+	partitions, err := conn.LogDirPartitions(ctx, 5)
+	if err != nil {
+		t.Fatalf("LogDirPartitions: %v", err)
+	}
+	if len(partitions) > 5 {
+		t.Errorf("the limit was ignored: %d rows", len(partitions))
+	}
+	// Largest first, which is the whole reason to look.
+	for index := 1; index < len(partitions); index++ {
+		if partitions[index-1].Size < partitions[index].Size {
+			t.Errorf("partitions are not ordered by size: %d before %d",
+				partitions[index-1].Size, partitions[index].Size)
+		}
+	}
+}
+
+// KRaft controllers are brokers of the cluster, not a separate discovery tier,
+// so there is nothing to report and an empty map says so.
+func TestLiveThereIsNoDiscoveryTier(t *testing.T) {
+	requireLiveCluster(t)
+	conn := liveConn(t, liveSeeds)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
+	settings, err := conn.DirectoryConfig(ctx)
+	if err != nil {
+		t.Fatalf("DirectoryConfig: %v", err)
+	}
+	if len(settings) != 0 {
+		t.Errorf("a discovery tier was reported: %v", settings)
+	}
+}
