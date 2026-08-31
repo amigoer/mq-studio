@@ -14,6 +14,7 @@ import type {
   ClientChannel,
   ClientConnection,
   DeadLetterQueue,
+  Namespace,
   PublishResult,
 } from "@bindings/model/models";
 import { present } from "./client";
@@ -28,6 +29,7 @@ export type {
   DeadLetterSource,
   DeprecatedFeature,
   FeatureFlag,
+  Namespace,
   PublishResult,
   HealthCheck,
   ResourceAlarm,
@@ -227,3 +229,38 @@ export const closeUserConnections = (
   username: string,
   reason: string,
 ): Promise<void> => RabbitMQService.CloseUserConnections(connID, username, reason);
+
+/** Every virtual host, with the limits set on each. */
+export const getNamespaces = (connID: number): Promise<Namespace[]> =>
+  RabbitMQService.Namespaces(connID).then(present);
+
+export interface NamespaceInput {
+  name: string;
+  description: string;
+  tags: string[];
+  defaultQueueType: string;
+  tracing: boolean;
+}
+
+/** Creates a virtual host, or updates one that already exists. */
+export const saveNamespace = (connID: number, input: NamespaceInput): Promise<void> =>
+  RabbitMQService.SaveNamespace(connID, input);
+
+/** Deletes a virtual host and everything inside it. */
+export const deleteNamespace = (connID: number, name: string): Promise<void> =>
+  RabbitMQService.DeleteNamespace(connID, name);
+
+/**
+ * Caps a virtual host. A negative value lifts the cap entirely, which is not
+ * the same as a cap of zero - zero forbids everything.
+ */
+export const setNamespaceLimit = (
+  connID: number,
+  name: string,
+  limit: string,
+  value: number,
+): Promise<void> => RabbitMQService.SetNamespaceLimit(connID, name, limit, value);
+
+/** The limits a virtual host can carry, as the broker names them. */
+export const LIMIT_MAX_CONNECTIONS = "max-connections";
+export const LIMIT_MAX_QUEUES = "max-queues";

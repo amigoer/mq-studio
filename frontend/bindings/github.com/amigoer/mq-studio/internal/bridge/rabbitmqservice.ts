@@ -116,6 +116,13 @@ export function DeleteExchange(connID: number, vhost: string, name: string): $Ca
 }
 
 /**
+ * DeleteNamespace removes a virtual host and everything inside it.
+ */
+export function DeleteNamespace(connID: number, name: string): $CancellablePromise<void> {
+    return $Call.ByID(3210944853, connID, name);
+}
+
+/**
  * DeleteQueue removes a queue and everything in it.
  * 
  * ifUnused and ifEmpty are the broker's own preconditions. They are checked
@@ -153,12 +160,21 @@ export function MoveMessages(connID: number, input: $models.MoveInput): $Cancell
 }
 
 /**
+ * Namespaces returns every virtual host with its limits.
+ */
+export function Namespaces(connID: number): $CancellablePromise<(model$0.Namespace | null)[]> {
+    return $Call.ByID(2045585925, connID).then(($result: any) => {
+        return $$createType15($result);
+    });
+}
+
+/**
  * Publish sends a message and reports how many the broker kept and how many it
  * handed back as unroutable. Those are two different facts.
  */
 export function Publish(connID: number, input: $models.PublishInput): $CancellablePromise<model$0.PublishResult | null> {
     return $Call.ByID(718367916, connID, input).then(($result: any) => {
-        return $$createType14($result);
+        return $$createType17($result);
     });
 }
 
@@ -176,6 +192,21 @@ export function RebalanceQueues(connID: number): $CancellablePromise<void> {
     return $Call.ByID(3409348108, connID);
 }
 
+/**
+ * SaveNamespace creates a virtual host, or updates one that already exists.
+ */
+export function SaveNamespace(connID: number, input: $models.NamespaceInput): $CancellablePromise<void> {
+    return $Call.ByID(2223265787, connID, input);
+}
+
+/**
+ * SetNamespaceLimit caps a virtual host. A negative value lifts the cap, which
+ * is not the same as a cap of zero - zero forbids everything.
+ */
+export function SetNamespaceLimit(connID: number, name: string, limit: string, value: number): $CancellablePromise<void> {
+    return $Call.ByID(630753097, connID, name, limit, value);
+}
+
 // Private type creation functions
 const $$createType0 = model$0.BrokerCensus.createFrom;
 const $$createType1 = $Create.Nullable($$createType0);
@@ -190,5 +221,8 @@ const $$createType9 = $Create.Nullable($$createType8);
 const $$createType10 = $Create.Array($$createType9);
 const $$createType11 = model$0.BrokerHealth.createFrom;
 const $$createType12 = $Create.Nullable($$createType11);
-const $$createType13 = model$0.PublishResult.createFrom;
+const $$createType13 = model$0.Namespace.createFrom;
 const $$createType14 = $Create.Nullable($$createType13);
+const $$createType15 = $Create.Array($$createType14);
+const $$createType16 = model$0.PublishResult.createFrom;
+const $$createType17 = $Create.Nullable($$createType16);

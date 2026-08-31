@@ -275,6 +275,30 @@ type WritePermissionAdmin interface {
 	SetNodeWritable(ctx context.Context, name string, writable bool) (int, error)
 }
 
+// NamespaceAdmin manages the namespaces a broker's objects live in.
+//
+// Only a family whose namespaces are real objects implements it. RocketMQ and
+// Kafka have no counterpart: a topic name may look namespaced by convention,
+// but there is nothing to create, nothing to delete and nothing that isolates
+// one prefix from another.
+type NamespaceAdmin interface {
+	ListNamespaces(ctx context.Context) ([]*model.Namespace, error)
+	// CreateNamespace also updates: the broker spells both as one idempotent
+	// call, and unlike a queue a namespace's settings can genuinely change.
+	CreateNamespace(ctx context.Context, spec model.NamespaceSpec) error
+	RemoveNamespace(ctx context.Context, name string) error
+}
+
+// NamespaceLimits caps a namespace as a whole.
+//
+// Separate from NamespaceAdmin because it is a different endpoint and a
+// different permission, and because a limit's absence means something a value
+// cannot express: no cap at all, as opposed to a cap of zero.
+type NamespaceLimits interface {
+	SetNamespaceLimit(ctx context.Context, name, limit string, value int) error
+	RemoveNamespaceLimit(ctx context.Context, name, limit string) error
+}
+
 // AccessAdmin manages credential-based access control: an entry carries the
 // key, the secret and the permissions together.
 //

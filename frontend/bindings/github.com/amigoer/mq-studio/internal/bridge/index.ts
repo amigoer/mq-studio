@@ -45,6 +45,7 @@ export {
     MaintenanceTaskView,
     MessageQuery,
     MoveInput,
+    NamespaceInput,
     PolicyInput,
     PrincipalInput,
     PublishInput,

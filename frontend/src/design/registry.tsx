@@ -13,6 +13,7 @@ import { TopicsRocketMQ } from "./boards/topics/TopicsRocketMQ";
 import { TopicsKafka } from "./boards/topics/TopicsKafka";
 import { QueuesRabbitMQ } from "./boards/topics/QueuesRabbitMQ";
 import { ExchangesRabbitMQ } from "./boards/topics/ExchangesRabbitMQ";
+import { VhostsRabbitMQ } from "./boards/vhosts/VhostsRabbitMQ";
 import { TopicsPulsar } from "./boards/topics/TopicsPulsar";
 import { StreamsRedis } from "./boards/topics/StreamsRedis";
 
@@ -102,6 +103,7 @@ const BOARDS: Partial<
     mqtt: MqttWorkbench,
   },
   exchanges: { rabbitmq: ExchangesRabbitMQ },
+  vhosts: { rabbitmq: VhostsRabbitMQ },
   consumers: {
     rocketmq: ConsumersRocketMQ,
     kafka: ConsumersKafka,

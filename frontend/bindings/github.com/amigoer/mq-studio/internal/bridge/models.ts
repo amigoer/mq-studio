@@ -623,6 +623,50 @@ export class MoveInput {
 }
 
 /**
+ * NamespaceInput creates or updates a virtual host.
+ */
+export class NamespaceInput {
+    "name": string;
+    "description": string;
+    "tags": string[];
+    "defaultQueueType": string;
+    "tracing": boolean;
+
+    /** Creates a new NamespaceInput instance. */
+    constructor($$source: Partial<NamespaceInput> = {}) {
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("description" in $$source)) {
+            this["description"] = "";
+        }
+        if (!("tags" in $$source)) {
+            this["tags"] = [];
+        }
+        if (!("defaultQueueType" in $$source)) {
+            this["defaultQueueType"] = "";
+        }
+        if (!("tracing" in $$source)) {
+            this["tracing"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new NamespaceInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): NamespaceInput {
+        const $$createField2_0 = $$createType0;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("tags" in $$parsedSource) {
+            $$parsedSource["tags"] = $$createField2_0($$parsedSource["tags"]);
+        }
+        return new NamespaceInput($$parsedSource as Partial<NamespaceInput>);
+    }
+}
+
+/**
  * PolicyInput is one rule row of an access-rule form.
  */
 export class PolicyInput {

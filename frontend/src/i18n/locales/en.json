@@ -504,6 +504,7 @@
         "dlq": "DLX",
         "producer": "Producer",
         "cluster": "Nodes",
+        "vhosts": "Virtual hosts",
         "alerts": "Alerts",
         "acl": "Users / vhosts"
       },
@@ -1017,7 +1018,8 @@
       "noMatch": "Nothing matches the filter",
       "copied": "Copied",
       "edit": "Edit",
-      "moreOptions": "{{count}} more — keep typing to narrow it down"
+      "moreOptions": "{{count}} more — keep typing to narrow it down",
+      "apply": "Apply"
     },
     "notDesigned": {
       "title": "Not yet designed",
@@ -2185,6 +2187,45 @@
       "offlineHint": "This tab's connection is not open. Connect it from the connection list and this page will start reading.",
       "loading": "Reading…",
       "failed": "Could not read"
+    },
+    "vhosts": {
+      "rabbitmq": {
+        "title": "Virtual hosts",
+        "subtitle": "{{count}} of them - queues, exchanges, bindings, policies and permissions all live inside one and none is visible from another",
+        "search": "Search virtual hosts…",
+        "new": "New virtual host",
+        "edit": "Edit virtual host",
+        "none": "No virtual hosts could be read",
+        "noMatch": "No virtual host matches",
+        "name": "Name",
+        "nameRequired": "A name is required",
+        "nameHint": "Cannot be renamed afterwards - a rename is a new virtual host",
+        "nameFixed": "The name is the identity and cannot change",
+        "description": "Description",
+        "defaultQueueType": "Default queue type",
+        "defaultQueueTypeHint": "What a queue declared here without a type becomes. Most client libraries declare without one, so whatever is chosen here is what most queues will be.",
+        "brokerDefault": "broker default (classic)",
+        "tags": "Tags",
+        "tagsHint": "Comma separated, for people; the broker does nothing with them",
+        "tracing": "Tracing",
+        "tracingOn": "On",
+        "tracingOff": "Off",
+        "tracingHint": "Copies every message through this virtual host to a log exchange. It is expensive and is meant for minutes of diagnosis, not to be left on.",
+        "limits": "Limits",
+        "noLimits": "none",
+        "noLimit": "no limit",
+        "maxConnections": "Max connections",
+        "maxQueues": "Max queues",
+        "limitHint": "Empty means no limit - which is not the same as 0, and 0 allows none at all",
+        "limitSet": "{{limit}} set to {{value}}",
+        "limitLifted": "{{limit}} limit lifted",
+        "limitFailed": "Could not set the limit",
+        "saved": "Saved {{name}}",
+        "deleteTitle": "Delete virtual host {{name}}",
+        "deleteDesc": "Its queues, {{count}} messages, exchanges, bindings, policies and permissions go with it. There is no undo.",
+        "deleted": "Deleted {{name}}",
+        "deleteFailed": "Could not delete the virtual host"
+      }
     }
   }
 }

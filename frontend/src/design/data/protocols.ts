@@ -14,6 +14,7 @@
  */
 import {
   BellRing,
+  Boxes,
   House,
   Layers,
   Mail,
@@ -40,6 +41,7 @@ export type PageId =
   | "overview"
   | "topics"
   | "exchanges"
+  | "vhosts"
   | "consumers"
   | "messages"
   | "dlq"
@@ -148,6 +150,7 @@ export const PROTOCOLS: Record<ProtocolId, Protocol> = {
         label: OPS,
         items: [
           { id: "cluster", icon: Server, label: "shell.nav.rabbitmq.cluster" },
+          { id: "vhosts", icon: Boxes, label: "shell.nav.rabbitmq.vhosts" },
           { id: "alerts", icon: BellRing, label: "shell.nav.rabbitmq.alerts" },
           { id: "acl", icon: Shield, label: "shell.nav.rabbitmq.acl" },
         ],

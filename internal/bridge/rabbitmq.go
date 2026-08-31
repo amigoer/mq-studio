@@ -248,3 +248,39 @@ func (s *RabbitMQService) CloseClientConnection(connID int, name, reason string)
 func (s *RabbitMQService) CloseUserConnections(connID int, username, reason string) error {
 	return s.service.CloseUserConnections(context.Background(), connID, username, reason)
 }
+
+// Namespaces returns every virtual host with its limits.
+func (s *RabbitMQService) Namespaces(connID int) ([]*model.Namespace, error) {
+	return s.service.Namespaces(context.Background(), connID)
+}
+
+// NamespaceInput creates or updates a virtual host.
+type NamespaceInput struct {
+	Name             string   `json:"name"`
+	Description      string   `json:"description"`
+	Tags             []string `json:"tags"`
+	DefaultQueueType string   `json:"defaultQueueType"`
+	Tracing          bool     `json:"tracing"`
+}
+
+// SaveNamespace creates a virtual host, or updates one that already exists.
+func (s *RabbitMQService) SaveNamespace(connID int, input NamespaceInput) error {
+	return s.service.SaveNamespace(context.Background(), connID, model.NamespaceSpec{
+		Name:             input.Name,
+		Description:      input.Description,
+		Tags:             input.Tags,
+		DefaultQueueType: input.DefaultQueueType,
+		Tracing:          input.Tracing,
+	})
+}
+
+// DeleteNamespace removes a virtual host and everything inside it.
+func (s *RabbitMQService) DeleteNamespace(connID int, name string) error {
+	return s.service.DeleteNamespace(context.Background(), connID, name)
+}
+
+// SetNamespaceLimit caps a virtual host. A negative value lifts the cap, which
+// is not the same as a cap of zero - zero forbids everything.
+func (s *RabbitMQService) SetNamespaceLimit(connID int, name, limit string, value int) error {
+	return s.service.SetNamespaceLimit(context.Background(), connID, name, limit, value)
+}

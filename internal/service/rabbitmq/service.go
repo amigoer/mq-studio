@@ -314,3 +314,55 @@ func (s *Service) CloseUserConnections(ctx context.Context, connID int, username
 	defer cancel()
 	return api.CloseUserConnections(ctx, username, reason)
 }
+
+// Namespaces returns every virtual host with the limits set on each.
+func (s *Service) Namespaces(ctx context.Context, connID int) ([]*model.Namespace, error) {
+	api, err := port[driver.NamespaceAdmin](s, connID, model.CapNamespaceList)
+	if err != nil {
+		if notConnected(err) {
+			return []*model.Namespace{}, nil
+		}
+		return nil, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.ListNamespaces(ctx)
+}
+
+// SaveNamespace creates a virtual host or updates one that exists.
+func (s *Service) SaveNamespace(ctx context.Context, connID int, spec model.NamespaceSpec) error {
+	api, err := port[driver.NamespaceAdmin](s, connID, model.CapNamespaceAdmin)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.CreateNamespace(ctx, spec)
+}
+
+// DeleteNamespace removes a virtual host and everything inside it.
+func (s *Service) DeleteNamespace(ctx context.Context, connID int, name string) error {
+	api, err := port[driver.NamespaceAdmin](s, connID, model.CapNamespaceAdmin)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.RemoveNamespace(ctx, name)
+}
+
+// SetNamespaceLimit caps a virtual host, or lifts the cap when value is
+// negative - which is how the page says "no limit", since zero forbids
+// everything and is a different instruction.
+func (s *Service) SetNamespaceLimit(ctx context.Context, connID int, name, limit string, value int) error {
+	api, err := port[driver.NamespaceLimits](s, connID, model.CapNamespaceLimits)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	if value < 0 {
+		return api.RemoveNamespaceLimit(ctx, name, limit)
+	}
+	return api.SetNamespaceLimit(ctx, name, limit, value)
+}

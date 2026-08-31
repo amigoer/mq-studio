@@ -36,6 +36,7 @@ export {
     MessageItem,
     MessageStatus,
     MessageTrackItem,
+    Namespace,
     Node,
     NodeStatus,
     ProducerClient,

@@ -1984,3 +1984,142 @@ func TestLiveCloseRefusesAnEmptyName(t *testing.T) {
 		t.Error("a user close with no username was attempted")
 	}
 }
+
+// The whole life of a virtual host, including the limits that live on their
+// own endpoint.
+func TestLiveNamespaceLifecycle(t *testing.T) {
+	conn := liveConn(t)
+	defer func() { _ = conn.Close() }()
+
+	ctx := context.Background()
+	const name = "mqs-test-vhost"
+
+	if err := conn.CreateNamespace(ctx, model.NamespaceSpec{
+		Name:             name,
+		Description:      "created by a test",
+		Tags:             []string{"testing"},
+		DefaultQueueType: "quorum",
+	}); err != nil {
+		t.Fatalf("create: %v", err)
+	}
+	t.Cleanup(func() { _ = conn.RemoveNamespace(context.Background(), name) })
+
+	find := func() *model.Namespace {
+		t.Helper()
+		namespaces, err := conn.ListNamespaces(ctx)
+		if err != nil {
+			t.Fatalf("list: %v", err)
+		}
+		for _, namespace := range namespaces {
+			if namespace.Name == name {
+				return namespace
+			}
+		}
+		return nil
+	}
+
+	created := find()
+	if created == nil {
+		t.Fatal("the virtual host just created is missing")
+	}
+	if created.Description != "created by a test" {
+		t.Errorf("description = %q", created.Description)
+	}
+	// The default queue type is the setting worth having, and the one most
+	// likely to be dropped silently by a mapping.
+	if created.DefaultQueueType != "quorum" {
+		t.Errorf("defaultQueueType = %q, want quorum", created.DefaultQueueType)
+	}
+	// No limits set yet, and that has to read as absence rather than zero.
+	if len(created.Limits) != 0 {
+		t.Errorf("limits = %v, want none", created.Limits)
+	}
+
+	if err := conn.SetNamespaceLimit(ctx, name, LimitMaxQueues, 10); err != nil {
+		t.Fatalf("set limit: %v", err)
+	}
+	limited := find()
+	if limited == nil || limited.Limits[LimitMaxQueues] != 10 {
+		t.Fatalf("limits = %v, want max-queues 10", limited.Limits)
+	}
+
+	// Removing a limit is not setting it to zero: zero forbids everything.
+	if err := conn.RemoveNamespaceLimit(ctx, name, LimitMaxQueues); err != nil {
+		t.Fatalf("remove limit: %v", err)
+	}
+	lifted := find()
+	if lifted == nil {
+		t.Fatal("the virtual host disappeared")
+	}
+	if _, present := lifted.Limits[LimitMaxQueues]; present {
+		t.Errorf("the limit is still present as %v after being removed", lifted.Limits[LimitMaxQueues])
+	}
+
+	// Creating over an existing one updates it rather than failing, which is
+	// what lets the dialog be create and edit at once.
+	if err := conn.CreateNamespace(ctx, model.NamespaceSpec{
+		Name: name, Description: "updated", DefaultQueueType: "classic",
+	}); err != nil {
+		t.Fatalf("update: %v", err)
+	}
+	updated := find()
+	if updated == nil || updated.Description != "updated" || updated.DefaultQueueType != "classic" {
+		t.Errorf("the update did not take: %+v", updated)
+	}
+
+	if err := conn.RemoveNamespace(ctx, name); err != nil {
+		t.Fatalf("remove: %v", err)
+	}
+	if find() != nil {
+		t.Error("the virtual host survived its deletion")
+	}
+}
+
+// A queue declared in a virtual host is invisible from another, which is the
+// isolation the page exists to explain.
+func TestLiveNamespacesAreIsolated(t *testing.T) {
+	conn := liveConn(t)
+	defer func() { _ = conn.Close() }()
+
+	ctx := context.Background()
+	const other = "mqs-test-isolated"
+	const queue = "mqs-test-isolated-q"
+
+	if err := conn.CreateNamespace(ctx, model.NamespaceSpec{Name: other}); err != nil {
+		t.Fatalf("create vhost: %v", err)
+	}
+	t.Cleanup(func() { _ = conn.RemoveNamespace(context.Background(), other) })
+
+	if err := conn.CreateDestination(ctx, model.DestinationSpec{
+		Ref:        model.DestinationRef{Namespace: other, Name: queue},
+		Attributes: map[string]string{AttrDurable: "true"},
+	}); err != nil {
+		t.Fatalf("declare queue: %v", err)
+	}
+
+	// Present in its own virtual host.
+	inOther, err := conn.ListDestinations(ctx, model.DestinationFilter{Namespace: other})
+	if err != nil {
+		t.Fatalf("list in %q: %v", other, err)
+	}
+	found := false
+	for _, destination := range inOther {
+		if destination.Ref.Name == queue {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("the queue is missing from its own virtual host")
+	}
+
+	// Invisible from the root one.
+	inRoot, err := conn.ListDestinations(ctx, model.DestinationFilter{Namespace: "/"})
+	if err != nil {
+		t.Fatalf("list in /: %v", err)
+	}
+	for _, destination := range inRoot {
+		if destination.Ref.Name == queue {
+			t.Errorf("a queue in %q is visible from the root virtual host", other)
+		}
+	}
+}

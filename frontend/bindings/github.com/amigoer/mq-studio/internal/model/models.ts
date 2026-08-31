@@ -701,6 +701,21 @@ export enum Capability {
      * take a write for and never read back.
      */
     CapAccessDirectory = "access.directory",
+
+    /**
+     * CapNamespaceList and CapNamespaceAdmin are families whose namespaces are
+     * objects rather than labels - a RabbitMQ virtual host holds its own
+     * queues, exchanges, policies and permissions, and nothing crosses
+     * between two of them.
+     */
+    CapNamespaceList = "namespace.list",
+    CapNamespaceAdmin = "namespace.admin",
+
+    /**
+     * CapNamespaceLimits caps a namespace as a whole rather than one
+     * destination inside it.
+     */
+    CapNamespaceLimits = "namespace.limits",
     CapRouting = "routing.exchanges",
 
     /**
@@ -2007,6 +2022,105 @@ export class MessageTrackItem {
 }
 
 /**
+ * Namespace is one isolated world inside a broker.
+ * 
+ * A RabbitMQ virtual host is not a label: queues, exchanges, bindings, policies
+ * and permissions all live inside one and nothing crosses between them, so two
+ * vhosts can hold a queue of the same name that have nothing to do with each
+ * other. That is why it is a page rather than a filter.
+ * 
+ * The word is Namespace because the canonical vocabulary already uses it - a
+ * destination's Ref carries one - and RabbitMQ is the only family so far whose
+ * namespaces are objects you can create.
+ */
+export class Namespace {
+    "name": string;
+    "description": string;
+
+    /**
+     * Tags are free labels the operator sets, not the broker.
+     */
+    "tags": string[];
+
+    /**
+     * DefaultQueueType is what a queue declared here without a type becomes.
+     * Setting it to quorum is how a cluster stops accumulating classic queues
+     * by accident.
+     */
+    "defaultQueueType": string;
+
+    /**
+     * Tracing writes every message through this vhost to a log exchange. It is
+     * expensive and is meant to be switched on for minutes, not left on.
+     */
+    "tracing": boolean;
+
+    /**
+     * Messages is what its queues are collectively holding, split the same way
+     * a queue's depth is.
+     */
+    "messages": number;
+    "ready": number;
+    "unacknowledged": number;
+
+    /**
+     * Limits caps the vhost as a whole - max-connections, max-queues. Absent
+     * means uncapped, which is the default and is worth distinguishing from a
+     * limit of zero.
+     */
+    "limits": { [_ in string]?: number };
+
+    /** Creates a new Namespace instance. */
+    constructor($$source: Partial<Namespace> = {}) {
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("description" in $$source)) {
+            this["description"] = "";
+        }
+        if (!("tags" in $$source)) {
+            this["tags"] = [];
+        }
+        if (!("defaultQueueType" in $$source)) {
+            this["defaultQueueType"] = "";
+        }
+        if (!("tracing" in $$source)) {
+            this["tracing"] = false;
+        }
+        if (!("messages" in $$source)) {
+            this["messages"] = 0;
+        }
+        if (!("ready" in $$source)) {
+            this["ready"] = 0;
+        }
+        if (!("unacknowledged" in $$source)) {
+            this["unacknowledged"] = 0;
+        }
+        if (!("limits" in $$source)) {
+            this["limits"] = {};
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new Namespace instance from a string or object.
+     */
+    static createFrom($$source: any = {}): Namespace {
+        const $$createField2_0 = $$createType0;
+        const $$createField8_0 = $$createType29;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("tags" in $$parsedSource) {
+            $$parsedSource["tags"] = $$createField2_0($$parsedSource["tags"]);
+        }
+        if ("limits" in $$parsedSource) {
+            $$parsedSource["limits"] = $$createField8_0($$parsedSource["limits"]);
+        }
+        return new Namespace($$parsedSource as Partial<Namespace>);
+    }
+}
+
+/**
  * Node is one broker, RabbitMQ node or Kafka broker as the canonical Cluster
  * page sees it.
  * 
@@ -2130,10 +2244,10 @@ export class Node {
      * Creates a new Node instance from a string or object.
      */
     static createFrom($$source: any = {}): Node {
-        const $$createField10_0 = $$createType29;
-        const $$createField11_0 = $$createType30;
-        const $$createField12_0 = $$createType30;
-        const $$createField13_0 = $$createType32;
+        const $$createField10_0 = $$createType30;
+        const $$createField11_0 = $$createType31;
+        const $$createField12_0 = $$createType31;
+        const $$createField13_0 = $$createType33;
         const $$createField14_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("tpsHistoryTimestamps" in $$parsedSource) {
@@ -2625,7 +2739,7 @@ export class Subscription {
      * Creates a new Subscription instance from a string or object.
      */
     static createFrom($$source: any = {}): Subscription {
-        const $$createField1_0 = $$createType33;
+        const $$createField1_0 = $$createType34;
         const $$createField8_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("ref" in $$parsedSource) {
@@ -2691,8 +2805,8 @@ export class SubscriptionClient {
      * Creates a new SubscriptionClient instance from a string or object.
      */
     static createFrom($$source: any = {}): SubscriptionClient {
-        const $$createField1_0 = $$createType35;
-        const $$createField2_0 = $$createType37;
+        const $$createField1_0 = $$createType36;
+        const $$createField2_0 = $$createType38;
         const $$createField3_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("assignments" in $$parsedSource) {
@@ -2791,8 +2905,8 @@ export class TailBatch {
      * Creates a new TailBatch instance from a string or object.
      */
     static createFrom($$source: any = {}): TailBatch {
-        const $$createField0_0 = $$createType40;
-        const $$createField1_0 = $$createType41;
+        const $$createField0_0 = $$createType41;
+        const $$createField1_0 = $$createType42;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("messages" in $$parsedSource) {
             $$parsedSource["messages"] = $$createField0_0($$parsedSource["messages"]);
@@ -2827,7 +2941,7 @@ export class TailCursor {
      * Creates a new TailCursor instance from a string or object.
      */
     static createFrom($$source: any = {}): TailCursor {
-        const $$createField0_0 = $$createType43;
+        const $$createField0_0 = $$createType44;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("positions" in $$parsedSource) {
             $$parsedSource["positions"] = $$createField0_0($$parsedSource["positions"]);
@@ -2866,18 +2980,19 @@ const $$createType25 = FieldCond.createFrom;
 const $$createType26 = $Create.Nullable($$createType25);
 const $$createType27 = FormOption.createFrom;
 const $$createType28 = $Create.Array($$createType27);
-const $$createType29 = $Create.Array($Create.Any);
+const $$createType29 = $Create.Map($Create.Any, $Create.Any);
 const $$createType30 = $Create.Array($Create.Any);
-const $$createType31 = ReplicaStatus.createFrom;
-const $$createType32 = $Create.Array($$createType31);
-const $$createType33 = SubscriptionRef.createFrom;
-const $$createType34 = QueueAssignment.createFrom;
-const $$createType35 = $Create.Array($$createType34);
-const $$createType36 = ConsumeThroughput.createFrom;
-const $$createType37 = $Create.Array($$createType36);
-const $$createType38 = MessageItem.createFrom;
-const $$createType39 = $Create.Nullable($$createType38);
-const $$createType40 = $Create.Array($$createType39);
-const $$createType41 = TailCursor.createFrom;
-const $$createType42 = QueuePosition.createFrom;
-const $$createType43 = $Create.Array($$createType42);
+const $$createType31 = $Create.Array($Create.Any);
+const $$createType32 = ReplicaStatus.createFrom;
+const $$createType33 = $Create.Array($$createType32);
+const $$createType34 = SubscriptionRef.createFrom;
+const $$createType35 = QueueAssignment.createFrom;
+const $$createType36 = $Create.Array($$createType35);
+const $$createType37 = ConsumeThroughput.createFrom;
+const $$createType38 = $Create.Array($$createType37);
+const $$createType39 = MessageItem.createFrom;
+const $$createType40 = $Create.Nullable($$createType39);
+const $$createType41 = $Create.Array($$createType40);
+const $$createType42 = TailCursor.createFrom;
+const $$createType43 = QueuePosition.createFrom;
+const $$createType44 = $Create.Array($$createType43);

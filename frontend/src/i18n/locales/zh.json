@@ -504,6 +504,7 @@
         "dlq": "死信 DLX",
         "producer": "生产者",
         "cluster": "节点",
+        "vhosts": "虚拟主机",
         "alerts": "告警",
         "acl": "用户 / vhost"
       },
@@ -1017,7 +1018,8 @@
       "noMatch": "没有匹配的结果",
       "copied": "已复制",
       "edit": "编辑",
-      "moreOptions": "还有 {{count}} 项，继续输入以缩小范围"
+      "moreOptions": "还有 {{count}} 项，继续输入以缩小范围",
+      "apply": "应用"
     },
     "notDesigned": {
       "title": "设计稿待补",
@@ -2185,6 +2187,45 @@
       "offlineHint": "这个标签页的连接还没有打开。在连接列表里连上之后，这一页会开始读取数据。",
       "loading": "正在读取…",
       "failed": "读取失败"
+    },
+    "vhosts": {
+      "rabbitmq": {
+        "title": "虚拟主机",
+        "subtitle": "共 {{count}} 个 —— 队列、交换机、绑定、策略和权限都在各自的虚拟主机内，互不可见",
+        "search": "搜索虚拟主机…",
+        "new": "新建虚拟主机",
+        "edit": "编辑虚拟主机",
+        "none": "读不到任何虚拟主机",
+        "noMatch": "没有匹配的虚拟主机",
+        "name": "名称",
+        "nameRequired": "请填写虚拟主机名",
+        "nameHint": "创建后不能改名 —— 改名等于新建一个",
+        "nameFixed": "名称即身份，不能修改",
+        "description": "描述",
+        "defaultQueueType": "默认队列类型",
+        "defaultQueueTypeHint": "在此声明队列时若没指定类型，就用这个。大多数客户端库都不指定，所以这里选什么，绝大多数队列就是什么。",
+        "brokerDefault": "broker 默认（classic）",
+        "tags": "标签",
+        "tagsHint": "逗号分隔，仅供人看，broker 不做任何处理",
+        "tracing": "消息追踪",
+        "tracingOn": "已开启",
+        "tracingOff": "未开启",
+        "tracingHint": "把经过该虚拟主机的每条消息都复制到一个日志交换机。开销很大，只适合开几分钟排查问题。",
+        "limits": "限额",
+        "noLimits": "无限额",
+        "noLimit": "不限",
+        "maxConnections": "最大连接数",
+        "maxQueues": "最大队列数",
+        "limitHint": "留空表示不限制 —— 这和填 0 不同，0 表示一个都不允许",
+        "limitSet": "已设置 {{limit}} = {{value}}",
+        "limitLifted": "已取消 {{limit}} 限额",
+        "limitFailed": "设置限额失败",
+        "saved": "已保存虚拟主机「{{name}}」",
+        "deleteTitle": "删除虚拟主机「{{name}}」",
+        "deleteDesc": "里面的队列、{{count}} 条消息、交换机、绑定、策略和权限会一并删除。此操作无法撤销。",
+        "deleted": "已删除虚拟主机「{{name}}」",
+        "deleteFailed": "删除虚拟主机失败"
+      }
     }
   }
 }

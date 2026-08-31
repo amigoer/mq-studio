@@ -117,6 +117,16 @@ const (
 	// CapAccessControl, which is the credential-carrying kind a broker will
 	// take a write for and never read back.
 	CapAccessDirectory Capability = "access.directory"
+
+	// CapNamespaceList and CapNamespaceAdmin are families whose namespaces are
+	// objects rather than labels - a RabbitMQ virtual host holds its own
+	// queues, exchanges, policies and permissions, and nothing crosses
+	// between two of them.
+	CapNamespaceList  Capability = "namespace.list"
+	CapNamespaceAdmin Capability = "namespace.admin"
+	// CapNamespaceLimits caps a namespace as a whole rather than one
+	// destination inside it.
+	CapNamespaceLimits Capability = "namespace.limits"
 	CapRouting         Capability = "routing.exchanges"
 
 	// CapRoutingAdmin creates and deletes exchanges and bindings. Separate

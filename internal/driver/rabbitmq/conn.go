@@ -97,6 +97,10 @@ func capabilities() []model.Capability {
 		model.CapClientInspect,
 		model.CapClientClose,
 		model.CapClusterHealth,
+		model.CapNamespaceList,
+		model.CapNamespaceAdmin,
+		model.CapNamespaceLimits,
+
 		model.CapRouting,
 		model.CapRoutingAdmin,
 	}
