@@ -9,7 +9,7 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
-## [0.1.0] - 2026-08-31
+## [0.0.2] - 2026-08-31
 
 RabbitMQ support. The whole management plane, with messages carried over AMQP
 rather than the management API's publish and get endpoints, so a send waits for
@@ -75,6 +75,11 @@ a publisher confirm and a browse behaves like a real consumer.
   page open indefinitely.
 - A wrong password was reported as "enable the management plugin", sending the
   reader off to reconfigure a broker that was fine.
+- Saving a connection kept only RocketMQ's access key pair and dropped every
+  other credential, filing the connection as anonymous. Nothing could reach it
+  in 0.0.1, where RocketMQ was the only driver, but it made a RabbitMQ
+  connection impossible to save - and the form's test button passed, because it
+  probes what was submitted rather than what was stored.
 
 ### Known limitations
 
