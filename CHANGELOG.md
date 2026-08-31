@@ -9,6 +9,70 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.0.4] - 2026-09-01
+
+The update flow, end to end. A release now announces itself on every launch
+until it is answered, and the notice that announces it is also where the update
+is taken.
+
+### Added
+
+- A pending release is announced once per launch, by a notice that stays up
+  until it is acted on rather than clearing itself after a few seconds. The
+  memory is the session's, so a release closed without an answer comes back the
+  next time the app starts; skipping it is the one control that stops it for
+  good. A check the user pressed opens the dialog instead of raising a notice,
+  since they are already waiting on the answer.
+- The update dialog carries the whole of an update - what changed, the download
+  and its progress, and the restart - and opens from the title bar and from the
+  notice. Installing no longer means a trip to the settings page, which was the
+  only place that could do it. The release page stays reachable from every
+  phase, because it is the way through when the app cannot replace itself.
+- Release notes render as markdown rather than showing their own markers: bold,
+  links, the rule, GitHub's `> [!IMPORTANT]` banner, and a bullet wrapped
+  across source lines as one row rather than several. Links open in the system
+  browser, since the webview has no way back. The renderer emits no HTML and
+  degrades anything it does not recognise to a paragraph, because release notes
+  are remote content.
+
+### Changed
+
+- The title bar's update control is an up arrow rather than a refresh glyph,
+  and it leads where the update is: with a release pending it opens the dialog
+  and names the version in its tooltip, and with nothing pending it starts a
+  check as before.
+- Nothing describes itself as a RocketMQ client any more. The macOS bundle, the
+  Windows file description, the Linux desktop entry and package metadata, and
+  the window description now say "message queues", which does not go stale as
+  drivers arrive. The Linux keywords are where broker names belong, and they
+  gain Kafka.
+
+### Fixed
+
+- The title bar icons rendered 22% larger than the size they were written at.
+  They were expressed in `rem` against a base of 13, but the zoom ladder scales
+  the document instead of setting a root font size, so the browser's 16 was
+  what applied. The cluster is sized in pixels now, back to the 28px the 40px
+  bar was built around.
+- The search button stood taller than everything beside it and set its label a
+  size above the tabs', because it used shadcn's page default in a bar that is
+  not a page.
+- The command palette was pinned 96px from the top, which sits high in a window
+  at least 750px tall. It is centred now, at the cost of the input moving as
+  results are filtered.
+- The update notice stayed up after it had been answered: skipping a version
+  left a notice still claiming that version was waiting, and the same notice
+  sat through the download it had started.
+- A Chinese sentence that wrapped straight after an emphasis marker gained a
+  space in the middle of itself, because the join compared the marker rather
+  than the character a reader sees there.
+
+### Known limitations
+
+- Pulsar, Redis Stream and MQTT appear in the interface and are disabled.
+- macOS builds are not signed by a registered Apple developer. The disk image
+  carries a First Run helper that clears the quarantine flag.
+
 ## [0.0.3] - 2026-08-31
 
 Kafka support, over the Kafka protocol itself rather than a management API
