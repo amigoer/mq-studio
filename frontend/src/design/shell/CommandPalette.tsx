@@ -163,8 +163,10 @@ export function CommandPalette({
         if (!next) onClose?.();
       }}
     >
+      {/* Centred both ways, on the dialog's own default: the palette was
+          pinned 96px from the top, which sat high in a window this tall. */}
       <DialogContent
-        className="top-24 translate-y-0 overflow-hidden p-0 sm:max-w-[560px]"
+        className="overflow-hidden p-0 sm:max-w-[560px]"
         showCloseButton={false}
       >
         <DialogHeader className="sr-only">
