@@ -214,8 +214,10 @@ func TestDownloadPolicySkipsAReleaseTheUserDeclined(t *testing.T) {
 	if phase := h.manager.State().Phase; phase != PhaseAvailable {
 		t.Fatalf("phase = %q, want a skipped release to stop at %q", phase, PhaseAvailable)
 	}
-	if state := h.manager.State(); state.Announceable() {
-		t.Error("a skipped release should not be announceable")
+	// What the renderer keys on: the release it would announce is the one the
+	// user has already declined.
+	if state := h.manager.State(); state.Skipped != state.LatestVersion {
+		t.Errorf("skipped = %q, latest = %q, want a skipped release to match", state.Skipped, state.LatestVersion)
 	}
 }
 

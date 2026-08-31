@@ -13,14 +13,12 @@ import { useTranslation } from "react-i18next";
 import { useToast } from "@/components";
 import { openExternal } from "@/api/platform";
 import {
-  announcedUpdate,
   cancelUpdate,
   checkUpdate,
   downloadUpdate,
   hasUpdate,
   installUpdate,
   isUpdateBusy,
-  markUpdateAnnounced,
   onUpdateState,
   Phase,
   Policy,
@@ -36,8 +34,8 @@ import {
  *
  * Go owns the state machine, the schedule and the verified package; this reads
  * what it publishes and forwards the buttons. The one thing decided here is
- * when to speak: a release is announced once, and a check the user asked for
- * reports every outcome including "you are already on the latest".
+ * when to speak: a release is announced once a session, and a check the user
+ * asked for reports every outcome including "you are already on the latest".
  */
 
 const RELEASES_URL = "https://github.com/amigoer/mq-studio/releases/latest";
@@ -74,9 +72,13 @@ function useUpdaterState(): UpdaterContextValue {
   // without ever entering the phase, such as on a development build.
   const [checking, setChecking] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
-  // The release the toast has already reported. Read from Go once, then kept
-  // here: a restart must not re-announce a version the user has declined.
-  const announced = useRef<string | null>(null);
+  // The release this session has already put in front of the user.
+  //
+  // Session memory on purpose. Go used to persist this, so a version was
+  // announced exactly once in its lifetime -- miss the toast and the only
+  // remaining notice was a six-pixel dot on the title bar. Now it comes back on
+  // the next launch, and the only way to stop it for good is to skip it.
+  const announced = useRef("");
   // The background check reports on its own timetable, so the toast text has
   // to be reachable without re-subscribing every time the language changes.
   const translate = useRef(t);
@@ -94,37 +96,36 @@ function useUpdaterState(): UpdaterContextValue {
      because any of them can be the first to carry a release. */
   const announce = useCallback(
     (next: UpdateState) => {
-      if (announced.current == null) return;
       if (!hasUpdate(next) || next.latestVersion === announced.current) return;
       announced.current = next.latestVersion;
-      void markUpdateAnnounced(next.latestVersion).catch(() => {});
       const version = next.latestVersion;
       const ready = next.phase === Phase.PhaseReady;
       toast.info(
         translate.current(ready ? "update.readyTitle" : "update.availableTitle", { version }),
         {
-          description: translate.current(
-            ready ? "update.readyHint" : "update.availableHint",
-          ),
+          description: translate.current(ready ? "update.readyHint" : "update.availableHint"),
+          // Stays until it is answered. A pending update is a state rather than
+          // a passing event, and the notice that carries it should outlast the
+          // four seconds the reader might be looking elsewhere.
+          duration: 0,
           action: {
-            label: translate.current(ready ? "update.installNow" : "update.view"),
+            label: translate.current(ready ? "update.installNow" : "update.updateNow"),
             onClick: () => {
               if (ready) void installUpdate().catch(() => {});
-              else openReleases();
+              else openDialog();
             },
           },
         },
       );
     },
-    [openReleases, toast],
+    [openDialog, toast],
   );
 
   useEffect(() => {
     let cancelled = false;
-    void Promise.all([updateState(), announcedUpdate()])
-      .then(([current, seen]) => {
+    void updateState()
+      .then((current) => {
         if (cancelled) return;
-        announced.current = seen;
         setState(current);
         announce(current);
       })
@@ -161,10 +162,11 @@ function useUpdaterState(): UpdaterContextValue {
         toast.success(t("page.settings.about.upToDate", { version: next.currentVersion }));
         return;
       }
-      // A release the user skipped earlier is being asked about again, so it
-      // is theirs to see once more.
+      // The user pressed the button and is waiting on the answer, so the
+      // release itself is the answer: the dialog opens rather than a toast
+      // reporting that one exists and leaving the install somewhere else.
       announced.current = next.latestVersion;
-      void markUpdateAnnounced(next.latestVersion).catch(() => {});
+      openDialog();
     } catch (error) {
       toast.error(t("page.settings.about.updateCheckFailed"), {
         description: String(error),
@@ -173,7 +175,7 @@ function useUpdaterState(): UpdaterContextValue {
     } finally {
       setChecking(false);
     }
-  }, [openReleases, t, toast]);
+  }, [openDialog, openReleases, t, toast]);
 
   const download = useCallback(async () => {
     try {

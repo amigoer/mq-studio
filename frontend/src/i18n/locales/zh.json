@@ -620,7 +620,7 @@
     "readyOnQuit": "将在退出应用时自动安装，下次启动即为新版本",
     "installNow": "立即重启更新",
     "installing": "正在安装，稍后会自动重启…",
-    "view": "查看",
+    "updateNow": "立即更新",
     "later": "稍后",
     "viewOnGithub": "在 GitHub 上查看",
     "downloadFailed": "下载更新失败",

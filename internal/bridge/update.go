@@ -72,10 +72,3 @@ func (s *UpdateService) Install() error {
 
 // Skip stops a release from being announced again.
 func (s *UpdateService) Skip(version string) { s.manager.Skip(version) }
-
-// MarkAnnounced records that the user has been shown a release, so a restart
-// does not put the same one in front of them again.
-func (s *UpdateService) MarkAnnounced(version string) { s.manager.MarkAnnounced(version) }
-
-// Announced reports the release the user has already been shown.
-func (s *UpdateService) Announced() string { return s.manager.Announced() }
