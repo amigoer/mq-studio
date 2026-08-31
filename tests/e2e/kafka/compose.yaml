@@ -1,0 +1,107 @@
+name: mq-studio-e2e-kafka
+
+# Three brokers, not one.
+#
+# A single-node cluster forces every topic to replication factor 1, which
+# makes the ISR column trivially always complete and leaves under-replicated
+# and offline partitions - Kafka's whole health story, and what the overview
+# and topic boards are built around - impossible to reach. Three brokers give
+# real replica lists, a leader spread across nodes, and a way to produce a
+# genuine URP by stopping one.
+#
+# KRaft, so there is no ZooKeeper: every node runs both roles and the three
+# form the controller quorum.
+#
+# Two listeners per broker. INTERNAL carries inter-broker and controller
+# traffic over the compose network; EXTERNAL is what the host connects to, and
+# it advertises 127.0.0.1 because the tests and the app run outside docker. A
+# client bootstrapping on one broker is handed the advertised address of the
+# others, so all three EXTERNAL ports must be published.
+
+x-broker: &broker
+  image: apache/kafka:4.2.0
+  environment: &broker-env
+    KAFKA_PROCESS_ROLES: broker,controller
+    KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+    KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+    KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+    KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka-1:19093,2@kafka-2:19093,3@kafka-3:19093
+    CLUSTER_ID: mq-studio-e2e-kafka-0
+    # Replicate the internal topics too, or a stopped broker takes the
+    # consumer group coordinator down with it and the group tests fail for a
+    # reason that has nothing to do with what they assert.
+    KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: '3'
+    KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: '3'
+    KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: '2'
+    KAFKA_SHARE_COORDINATOR_STATE_TOPIC_REPLICATION_FACTOR: '3'
+    KAFKA_SHARE_COORDINATOR_STATE_TOPIC_MIN_ISR: '2'
+    KAFKA_DEFAULT_REPLICATION_FACTOR: '3'
+    KAFKA_MIN_INSYNC_REPLICAS: '2'
+    KAFKA_NUM_PARTITIONS: '3'
+    # Off on purpose. With auto-creation on, browsing a topic that does not
+    # exist creates it, and a test that asserts "this topic is gone" passes
+    # while quietly leaving one behind.
+    KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'false'
+    # A live test that joins a group should not wait three seconds for the
+    # first rebalance.
+    KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: '0'
+    KAFKA_HEAP_OPTS: -Xms256m -Xmx512m
+  restart: unless-stopped
+
+services:
+  kafka-1:
+    <<: *broker
+    hostname: kafka-1
+    ports:
+      - '127.0.0.1:9092:9092'
+    environment:
+      <<: *broker-env
+      KAFKA_NODE_ID: '1'
+      KAFKA_LISTENERS: CONTROLLER://:19093,INTERNAL://:19092,EXTERNAL://:9092
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka-1:19092,EXTERNAL://127.0.0.1:9092
+    healthcheck:
+      # Metadata, not a port check: a broker whose socket is open but whose
+      # quorum has not elected a controller answers nothing useful, and a
+      # driver that connects there sees an empty cluster.
+      #
+      # INTERNAL, not EXTERNAL. A client is handed the advertised addresses of
+      # the other brokers, and EXTERNAL advertises 127.0.0.1 - which inside a
+      # container is that container. Anything run with `docker exec`, the
+      # official CLI the cross-check test compares against included, has to
+      # bootstrap on kafka-N:19092 for the same reason.
+      test: ['CMD', '/opt/kafka/bin/kafka-topics.sh', '--bootstrap-server', 'kafka-1:19092', '--list']
+      interval: 5s
+      timeout: 10s
+      retries: 24
+
+  kafka-2:
+    <<: *broker
+    hostname: kafka-2
+    ports:
+      - '127.0.0.1:9094:9094'
+    environment:
+      <<: *broker-env
+      KAFKA_NODE_ID: '2'
+      KAFKA_LISTENERS: CONTROLLER://:19093,INTERNAL://:19092,EXTERNAL://:9094
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka-2:19092,EXTERNAL://127.0.0.1:9094
+    healthcheck:
+      test: ['CMD', '/opt/kafka/bin/kafka-topics.sh', '--bootstrap-server', 'kafka-2:19092', '--list']
+      interval: 5s
+      timeout: 10s
+      retries: 24
+
+  kafka-3:
+    <<: *broker
+    hostname: kafka-3
+    ports:
+      - '127.0.0.1:9096:9096'
+    environment:
+      <<: *broker-env
+      KAFKA_NODE_ID: '3'
+      KAFKA_LISTENERS: CONTROLLER://:19093,INTERNAL://:19092,EXTERNAL://:9096
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka-3:19092,EXTERNAL://127.0.0.1:9096
+    healthcheck:
+      test: ['CMD', '/opt/kafka/bin/kafka-topics.sh', '--bootstrap-server', 'kafka-3:19092', '--list']
+      interval: 5s
+      timeout: 10s
+      retries: 24

@@ -25,6 +25,8 @@
     "e2e:rabbitmq:seed": "bash scripts/e2e-rabbitmq-seed.sh",
     "e2e:rabbitmq:plain:up": "docker compose -f tests/e2e/rabbitmq-plain/compose.yaml up -d --wait",
     "e2e:rabbitmq:plain:down": "docker compose -f tests/e2e/rabbitmq-plain/compose.yaml down -v",
+    "e2e:kafka:up": "docker compose -f tests/e2e/kafka/compose.yaml up -d --wait",
+    "e2e:kafka:down": "docker compose -f tests/e2e/kafka/compose.yaml down -v",
     "e2e:down": "docker compose -f tests/e2e/rocketmq/compose.yaml down -v",
     "e2e:rabbitmq:down": "docker compose -f tests/e2e/rabbitmq/compose.yaml down -v",
     "check:bindings": "npm run generate:bindings && git diff --quiet -- frontend/bindings || (echo 'Generated bindings are stale; run npm run generate:bindings and commit the result.' >&2 && git diff --stat -- frontend/bindings && exit 1)",

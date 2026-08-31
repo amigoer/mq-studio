@@ -88,6 +88,13 @@ jobs:
       - name: Start the plugin-free RabbitMQ
         run: npm run e2e:rabbitmq:plain:up
 
+      # Three Kafka brokers. The kafka driver's live tests gate the same way
+      # the rabbitmq ones do - skip when nothing answers, fail outright when
+      # CI is set - so the cluster has to be up before the checks run or every
+      # commit from the driver onwards is red.
+      - name: Start Kafka
+        run: npm run e2e:kafka:up
+
       - name: Run checks
         run: npm run check
 
