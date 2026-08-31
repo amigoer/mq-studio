@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { RefreshCw, Settings } from "lucide-react";
+import { CircleFadingArrowUp, LoaderCircle, Settings } from "lucide-react";
 import { SiGithub } from "react-icons/si";
 import { AppLogo } from "@/design/icons/AppLogo";
 import { Button } from "@/components/ui/button";
@@ -25,11 +25,11 @@ export function TitleBar({
   tabs,
   homeActive,
   dimmed = false,
-  refreshing = false,
-  updateReady = false,
+  checking = false,
+  updateAvailable = null,
   onHome,
   onSearch,
-  onRefresh,
+  onUpdate,
   onGithub,
   onOpenAlertSettings,
   onOpenConnection,
@@ -40,12 +40,14 @@ export function TitleBar({
   homeActive?: boolean;
   /** 8b: with no connections the search and notification affordances read as inert. */
   dimmed?: boolean;
-  /** True while the update check the button starts is still out. */
-  refreshing?: boolean;
-  updateReady?: boolean;
+  /** True while an update check is still out. */
+  checking?: boolean;
+  /** The pending release, or null when there is nothing to offer. */
+  updateAvailable?: string | null;
   onHome?: () => void;
   onSearch?: () => void;
-  onRefresh?: () => void;
+  /** Opens the pending release, or starts a check when there is none. */
+  onUpdate?: () => void;
   onGithub?: () => void;
   /** The popover's footer link, into the thresholds that produce the alerts. */
   onOpenAlertSettings?: () => void;
@@ -56,18 +58,22 @@ export function TitleBar({
   const { t } = useTranslation();
   const mac = isMac();
   /*
-   * The update icon turns while the check is out, not for a fixed circle per
-   * click: a spin that ends before the answer does is theatre. It outlives the
-   * answer by at most the rest of the current turn -- `onAnimationIteration`
-   * ends it on a whole circle, so it never snaps back from a random angle.
+   * A spinner turns while the check is out, not for a fixed circle per click:
+   * a spin that ends before the answer does is theatre. It outlives the answer
+   * by at most the rest of the current turn -- `onAnimationIteration` ends it
+   * on a whole circle, so it never snaps back from a random angle.
+   *
+   * The idle glyph is an arrow rather than the spinner, because it means
+   * "upgrade" rather than "reload" -- the old RefreshCw read as a refresh
+   * button, and spinning an up arrow would read as neither.
    */
   const [spinning, setSpinning] = useState(false);
   useEffect(() => {
-    if (refreshing) setSpinning(true);
+    if (checking) setSpinning(true);
     // Motion turned off zeroes the duration, so no iteration will ever arrive
     // to close the turn -- and there is no turn to close.
     else if (document.documentElement.dataset.animations === "off") setSpinning(false);
-  }, [refreshing]);
+  }, [checking]);
 
   return (
     <div
@@ -108,18 +114,28 @@ export function TitleBar({
       </Button>
       <IconBtn
         style={{ position: "relative" }}
-        onClick={onRefresh}
-        aria-busy={refreshing || undefined}
-        title={t(refreshing ? "update.checking" : "shell.titleBar.checkUpdate")}
+        onClick={onUpdate}
+        aria-busy={checking || undefined}
+        title={
+          checking
+            ? t("update.checking")
+            : updateAvailable != null
+              ? t("shell.titleBar.updateAvailable", { version: updateAvailable })
+              : t("shell.titleBar.checkUpdate")
+        }
       >
-        <RefreshCw
-          className={cn(ICON_CLASS, spinning ? "mqs-refresh on" : "mqs-refresh")}
-          onAnimationIteration={() => {
-            if (!refreshing) setSpinning(false);
-          }}
-          aria-hidden
-        />
-        {updateReady && <Badge tone="var(--c-ok)" />}
+        {spinning ? (
+          <LoaderCircle
+            className={cn(ICON_CLASS, "mqs-refresh on")}
+            onAnimationIteration={() => {
+              if (!checking) setSpinning(false);
+            }}
+            aria-hidden
+          />
+        ) : (
+          <CircleFadingArrowUp className={ICON_CLASS} aria-hidden />
+        )}
+        {updateAvailable != null && <Badge tone="var(--c-ok)" />}
       </IconBtn>
       <IconBtn onClick={onGithub} title={t("shell.titleBar.github")}>
         <SiGithub className="size-[1.08rem]" color="var(--c-github-mark)" aria-hidden />

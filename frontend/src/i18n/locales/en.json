@@ -469,6 +469,7 @@
       "home": "Home",
       "search": "Search ⌘K",
       "checkUpdate": "Check for updates",
+      "updateAvailable": "Version {{version}} is available — click to see it",
       "github": "GitHub",
       "notifications": "Notifications",
       "notificationsUnread": "Notifications · {{count}} unread",

@@ -469,6 +469,7 @@
       "home": "首页",
       "search": "搜索 ⌘K",
       "checkUpdate": "检查更新",
+      "updateAvailable": "有新版本 {{version}}，点击查看",
       "github": "GitHub",
       "notifications": "通知",
       "notificationsUnread": "通知 · {{count}} 未读",
