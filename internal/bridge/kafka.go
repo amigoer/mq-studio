@@ -288,3 +288,42 @@ func (s *KafkaService) PutPrincipal(connID int, spec model.AccessPrincipalSpec) 
 func (s *KafkaService) RemovePrincipal(connID int, name string) error {
 	return s.service.RemovePrincipal(context.Background(), connID, name)
 }
+
+// TruncateTopic empties a topic without deleting it.
+//
+// The offsets do not restart: a consumer that was at 900 stays at 900 and is
+// simply caught up, which is what makes this safe on a topic something reads.
+func (s *KafkaService) TruncateTopic(connID int, name string) error {
+	return s.service.TruncateTopic(context.Background(), connID, name)
+}
+
+// DropOldestRecords takes a bounded batch off the head of each partition and
+// returns how many it actually removed - which is not always what was asked
+// for, because a partition holding less gives up only what it has.
+func (s *KafkaService) DropOldestRecords(connID int, name string, limit int) (int, error) {
+	return s.service.DropOldestRecords(context.Background(), connID, name, limit)
+}
+
+// ElectPreferredLeaders puts each partition's leadership back on the first
+// broker in its replica list, which is where Kafka put it when the topic was
+// created and where a broker restart moves it away from.
+func (s *KafkaService) ElectPreferredLeaders(connID int) error {
+	return s.service.ElectPreferredLeaders(context.Background(), connID)
+}
+
+// Reassignments reports the partitions being moved between brokers right now.
+func (s *KafkaService) Reassignments(connID int) ([]*model.PartitionReassignment, error) {
+	return s.service.Reassignments(context.Background(), connID)
+}
+
+// Reassign rewrites where one partition's replicas live. The order matters:
+// the first broker becomes the preferred leader.
+func (s *KafkaService) Reassign(connID int, topic string, partition int32, brokers []int32) error {
+	return s.service.Reassign(context.Background(), connID, topic, partition, brokers)
+}
+
+// CancelReassignment stops a move in flight, leaving the partition wherever it
+// has got to.
+func (s *KafkaService) CancelReassignment(connID int, topic string, partition int32) error {
+	return s.service.CancelReassignment(context.Background(), connID, topic, partition)
+}

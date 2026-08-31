@@ -28,7 +28,11 @@ import {
 import { BoardState } from "@/design/boards/BoardState";
 import { useConnectionScope } from "@/mq/ConnectionScope";
 import { useKafkaTopicDetail, useKafkaTopics } from "@/hooks/kafka/useKafkaTopics";
-import { deleteKafkaTopic } from "@/api/kafka";
+import {
+  deleteKafkaTopic,
+  electKafkaPreferredLeaders,
+  truncateKafkaTopic,
+} from "@/api/kafka";
 import { formatCount } from "@/lib/format";
 import { formatErrorMessage } from "@/lib/utils";
 import {
@@ -42,6 +46,9 @@ import {
   underReplicatedPartitions,
 } from "@/mq/kafka/destinations";
 import { TopicDialogKafka } from "./TopicDialogKafka";
+import { ReassignDialogKafka } from "./ReassignDialogKafka";
+import { useKafkaCluster } from "@/hooks/kafka/useKafkaCluster";
+import { nodeID } from "@/mq/kafka/cluster";
 
 const R = { textAlign: "right" } as const;
 const MONO11 = { fontSize: "11px" } as const;
@@ -80,9 +87,20 @@ export function TopicsKafka() {
   const [selected, setSelected] = useState<string | null>(null);
   const [tab, setTab] = useState<string>(TAB_PARTITIONS);
   const [creating, setCreating] = useState(false);
+  const [reassigning, setReassigning] = useState<number | null>(null);
 
   const state = useKafkaTopics();
   const detail = useKafkaTopicDetail(selected);
+  const cluster = useKafkaCluster();
+
+  const clusterBrokers = useMemo(
+    () =>
+      (cluster.data?.nodes ?? [])
+        .map((node) => Number.parseInt(nodeID(node), 10))
+        .filter((id) => !Number.isNaN(id))
+        .sort((left, right) => left - right),
+    [cluster.data],
+  );
 
   const rows = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -110,8 +128,48 @@ export function TopicsKafka() {
     }
   };
 
+  /*
+   * Emptying a topic is DeleteRecords, not a delete: the start offset moves
+   * forward to the end and the offsets keep counting, so a consumer sitting at
+   * 900 stays at 900 and is simply caught up. That is worth saying in the
+   * confirmation, because "empty the topic" sounds like it resets the log.
+   */
+  const truncate = async (name: string) => {
+    const ok = await confirm({
+      title: t("board.topics.kafka.truncateTitle", { name }),
+      description: t("board.topics.kafka.truncateBody"),
+      confirmLabel: t("board.topics.kafka.truncate"),
+      danger: true,
+    });
+    if (!ok) return;
+    try {
+      await truncateKafkaTopic(connID, name);
+      await Promise.all([state.refresh(), detail.refresh()]);
+      toast.success(t("board.topics.kafka.truncated", { name }));
+    } catch (failure) {
+      toast.error(formatErrorMessage(failure));
+    }
+  };
+
+  const rebalance = async () => {
+    const ok = await confirm({
+      title: t("board.topics.kafka.rebalanceTitle"),
+      description: t("board.topics.kafka.rebalanceBody"),
+      confirmLabel: t("board.topics.kafka.rebalance"),
+    });
+    if (!ok) return;
+    try {
+      await electKafkaPreferredLeaders(connID);
+      await Promise.all([state.refresh(), detail.refresh()]);
+      toast.success(t("board.topics.kafka.rebalanced"));
+    } catch (failure) {
+      toast.error(formatErrorMessage(failure));
+    }
+  };
+
   const partitions = detail.data?.partitions ?? [];
   const configs = detail.data?.configs ?? {};
+  const current = partitions.find((row) => row.partition === reassigning) ?? null;
 
   return (
     <Page>
@@ -125,6 +183,9 @@ export function TopicsKafka() {
               online={state.online}
               onClick={() => void state.refresh()}
             />
+            <Button variant="outline" onClick={() => void rebalance()}>
+              {t("board.topics.kafka.rebalance")}
+            </Button>
             <Button onClick={() => setCreating(true)}>{t("board.common.newTopic")}</Button>
           </>
         }
@@ -218,6 +279,7 @@ export function TopicsKafka() {
                             <TableHead>ISR</TableHead>
                             <TableHead style={R}>{t("board.topics.kafka.startOffset")}</TableHead>
                             <TableHead style={R}>{t("board.topics.kafka.endOffset")}</TableHead>
+                            <TableHead />
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -268,6 +330,15 @@ export function TopicsKafka() {
                               <TableCell className="mono3" style={R}>
                                 {partition.endOffset}
                               </TableCell>
+                              <TableCell style={R}>
+                                <Button
+                                  variant="outline"
+                                  size="xs"
+                                  onClick={() => setReassigning(partition.partition)}
+                                >
+                                  {t("board.topics.kafka.move")}
+                                </Button>
+                              </TableCell>
                             </TableRow>
                           ))}
                         </TableBody>
@@ -289,6 +360,9 @@ export function TopicsKafka() {
                 </BoardState>
               </DetailPanelBody>
               <DetailPanelFooter>
+                <Button variant="outline" onClick={() => void truncate(selected)}>
+                  {t("board.topics.kafka.truncate")}
+                </Button>
                 <span className="flex-1" />
                 <Button variant="destructive" onClick={() => void remove(selected)}>
                   {t("board.common.delete")}
@@ -304,6 +378,18 @@ export function TopicsKafka() {
         onClose={() => setCreating(false)}
         onCreated={() => void state.refresh()}
       />
+
+      {selected != null && current != null && (
+        <ReassignDialogKafka
+          open={reassigning != null}
+          topic={selected}
+          partition={current.partition}
+          replicas={current.replicas}
+          clusterBrokers={clusterBrokers}
+          onClose={() => setReassigning(null)}
+          onReassigned={() => void detail.refresh()}
+        />
+      )}
     </Page>
   );
 }

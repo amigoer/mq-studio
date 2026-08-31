@@ -47,6 +47,14 @@ export function AlterTopicConfigs(connID: number, name: string, configs: { [_ in
 }
 
 /**
+ * CancelReassignment stops a move in flight, leaving the partition wherever it
+ * has got to.
+ */
+export function CancelReassignment(connID: number, topic: string, partition: number): $CancellablePromise<void> {
+    return $Call.ByID(2318455311, connID, topic, partition);
+}
+
+/**
  * CloneGroupOffsets copies one group's positions onto another, which is how a
  * replacement consumer group starts where the old one is instead of replaying
  * everything it already handled.
@@ -89,6 +97,24 @@ export function DeleteTopic(connID: number, name: string): $CancellablePromise<v
 }
 
 /**
+ * DropOldestRecords takes a bounded batch off the head of each partition and
+ * returns how many it actually removed - which is not always what was asked
+ * for, because a partition holding less gives up only what it has.
+ */
+export function DropOldestRecords(connID: number, name: string, limit: number): $CancellablePromise<number> {
+    return $Call.ByID(3519862627, connID, name, limit);
+}
+
+/**
+ * ElectPreferredLeaders puts each partition's leadership back on the first
+ * broker in its replica list, which is where Kafka put it when the topic was
+ * created and where a broker restart moves it away from.
+ */
+export function ElectPreferredLeaders(connID: number): $CancellablePromise<void> {
+    return $Call.ByID(924902689, connID);
+}
+
+/**
  * LogDirs reports where a cluster's disk has gone.
  */
 export function LogDirs(connID: number): $CancellablePromise<$models.LogDirView | null> {
@@ -110,6 +136,23 @@ export function PutAccessRule(connID: number, rule: model$0.AccessRule): $Cancel
  */
 export function PutPrincipal(connID: number, spec: model$0.AccessPrincipalSpec): $CancellablePromise<void> {
     return $Call.ByID(3465574448, connID, spec);
+}
+
+/**
+ * Reassign rewrites where one partition's replicas live. The order matters:
+ * the first broker becomes the preferred leader.
+ */
+export function Reassign(connID: number, topic: string, partition: number, brokers: number[]): $CancellablePromise<void> {
+    return $Call.ByID(4005681561, connID, topic, partition, brokers);
+}
+
+/**
+ * Reassignments reports the partitions being moved between brokers right now.
+ */
+export function Reassignments(connID: number): $CancellablePromise<(model$0.PartitionReassignment | null)[]> {
+    return $Call.ByID(3514506134, connID).then(($result: any) => {
+        return $$createType6($result);
+    });
 }
 
 /**
@@ -142,8 +185,18 @@ export function ResetGroupOffsets(connID: number, input: $models.OffsetResetInpu
  */
 export function SendRecord(connID: number, input: $models.RecordInput): $CancellablePromise<kafka$0.RecordResult | null> {
     return $Call.ByID(2137680894, connID, input).then(($result: any) => {
-        return $$createType5($result);
+        return $$createType8($result);
     });
+}
+
+/**
+ * TruncateTopic empties a topic without deleting it.
+ * 
+ * The offsets do not restart: a consumer that was at 900 stays at 900 and is
+ * simply caught up, which is what makes this safe on a topic something reads.
+ */
+export function TruncateTopic(connID: number, name: string): $CancellablePromise<void> {
+    return $Call.ByID(1044981282, connID, name);
 }
 
 // Private type creation functions
@@ -151,5 +204,8 @@ const $$createType0 = $models.AccessView.createFrom;
 const $$createType1 = $Create.Nullable($$createType0);
 const $$createType2 = $models.LogDirView.createFrom;
 const $$createType3 = $Create.Nullable($$createType2);
-const $$createType4 = kafka$0.RecordResult.createFrom;
+const $$createType4 = model$0.PartitionReassignment.createFrom;
 const $$createType5 = $Create.Nullable($$createType4);
+const $$createType6 = $Create.Array($$createType5);
+const $$createType7 = kafka$0.RecordResult.createFrom;
+const $$createType8 = $Create.Nullable($$createType7);

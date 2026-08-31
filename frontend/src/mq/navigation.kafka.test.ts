@@ -22,6 +22,8 @@ const KAFKA_CAPABILITIES: Capability[] = [
   Capability.CapDestinationUpdate,
   Capability.CapDestinationDelete,
   Capability.CapPartitions,
+  Capability.CapDestinationPurge,
+  Capability.CapQueueRebalance,
   Capability.CapSubscriptionList,
   Capability.CapSubscriptionDelete,
   Capability.CapSubscriptionLag,

@@ -60,7 +60,6 @@ func TestConnDeclaresNoConceptKafkaDoesNotHave(t *testing.T) {
 		model.CapMessageTrack,
 		model.CapDelayedDelivery,
 		model.CapDestinationMove,
-		model.CapQueueRebalance,
 		model.CapSubscriptionCreate,
 		model.CapRouting,
 		model.CapRoutingAdmin,
@@ -189,6 +188,9 @@ func TestCapabilitiesMatchTheSidebarContract(t *testing.T) {
 		"destination.update",
 		"destination.delete",
 		"destination.partitions",
+		"destination.purge",
+		"destination.rebalance",
+		"destination.reassign",
 
 		"subscription.list",
 		"subscription.delete",

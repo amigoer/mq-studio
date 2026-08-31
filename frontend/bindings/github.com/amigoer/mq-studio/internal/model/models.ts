@@ -696,6 +696,14 @@ export enum Capability {
     CapClusterMetrics = "cluster.metrics",
 
     /**
+     * CapReassign is rewriting where a destination's replicas live. Only a
+     * family whose placement is data an administrator can edit has it, and
+     * only Kafka's is: the replica list is a field, and the cluster copies the
+     * log to its new home in the background.
+     */
+    CapReassign = "destination.reassign",
+
+    /**
      * CapLogDirs is a broker that reports what its partitions occupy on disk.
      * Distinct from CapNodeConfig, which is what a node is running with: this
      * is where its space has gone, and it is the only disk figure Kafka has -
@@ -2778,6 +2786,73 @@ export enum NodeStatus {
 };
 
 /**
+ * PartitionReassignment is one partition being moved between brokers.
+ * 
+ * Only Kafka has this: a partition's replica list is data an administrator can
+ * rewrite, and the cluster then copies the log to its new home in the
+ * background. What makes it worth a page of its own is that it is the one
+ * operation here with no completion event - the only way to know it finished
+ * is that the partition stops reporting one.
+ */
+export class PartitionReassignment {
+    "topic": string;
+    "partition": number;
+
+    /**
+     * Replicas is where the partition lives right now, which during a move is
+     * the union of where it was and where it is going.
+     */
+    "replicas": number[];
+
+    /**
+     * Adding and Removing are the two halves of the move still in flight.
+     */
+    "adding": number[];
+    "removing": number[];
+
+    /** Creates a new PartitionReassignment instance. */
+    constructor($$source: Partial<PartitionReassignment> = {}) {
+        if (!("topic" in $$source)) {
+            this["topic"] = "";
+        }
+        if (!("partition" in $$source)) {
+            this["partition"] = 0;
+        }
+        if (!("replicas" in $$source)) {
+            this["replicas"] = [];
+        }
+        if (!("adding" in $$source)) {
+            this["adding"] = [];
+        }
+        if (!("removing" in $$source)) {
+            this["removing"] = [];
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new PartitionReassignment instance from a string or object.
+     */
+    static createFrom($$source: any = {}): PartitionReassignment {
+        const $$createField2_0 = $$createType37;
+        const $$createField3_0 = $$createType37;
+        const $$createField4_0 = $$createType37;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("replicas" in $$parsedSource) {
+            $$parsedSource["replicas"] = $$createField2_0($$parsedSource["replicas"]);
+        }
+        if ("adding" in $$parsedSource) {
+            $$parsedSource["adding"] = $$createField3_0($$parsedSource["adding"]);
+        }
+        if ("removing" in $$parsedSource) {
+            $$parsedSource["removing"] = $$createField4_0($$parsedSource["removing"]);
+        }
+        return new PartitionReassignment($$parsedSource as Partial<PartitionReassignment>);
+    }
+}
+
+/**
  * Policy applies settings to every destination whose name matches a pattern.
  * 
  * It is the answer to something RabbitMQ otherwise cannot do: a queue's
@@ -3398,8 +3473,8 @@ export class StreamClients {
      * Creates a new StreamClients instance from a string or object.
      */
     static createFrom($$source: any = {}): StreamClients {
-        const $$createField0_0 = $$createType39;
-        const $$createField1_0 = $$createType42;
+        const $$createField0_0 = $$createType40;
+        const $$createField1_0 = $$createType43;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("publishers" in $$parsedSource) {
             $$parsedSource["publishers"] = $$createField0_0($$parsedSource["publishers"]);
@@ -3619,7 +3694,7 @@ export class Subscription {
      * Creates a new Subscription instance from a string or object.
      */
     static createFrom($$source: any = {}): Subscription {
-        const $$createField1_0 = $$createType43;
+        const $$createField1_0 = $$createType44;
         const $$createField8_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("ref" in $$parsedSource) {
@@ -3685,8 +3760,8 @@ export class SubscriptionClient {
      * Creates a new SubscriptionClient instance from a string or object.
      */
     static createFrom($$source: any = {}): SubscriptionClient {
-        const $$createField1_0 = $$createType45;
-        const $$createField2_0 = $$createType47;
+        const $$createField1_0 = $$createType46;
+        const $$createField2_0 = $$createType48;
         const $$createField3_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("assignments" in $$parsedSource) {
@@ -3785,8 +3860,8 @@ export class TailBatch {
      * Creates a new TailBatch instance from a string or object.
      */
     static createFrom($$source: any = {}): TailBatch {
-        const $$createField0_0 = $$createType50;
-        const $$createField1_0 = $$createType51;
+        const $$createField0_0 = $$createType51;
+        const $$createField1_0 = $$createType52;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("messages" in $$parsedSource) {
             $$parsedSource["messages"] = $$createField0_0($$parsedSource["messages"]);
@@ -3821,7 +3896,7 @@ export class TailCursor {
      * Creates a new TailCursor instance from a string or object.
      */
     static createFrom($$source: any = {}): TailCursor {
-        const $$createField0_0 = $$createType53;
+        const $$createField0_0 = $$createType54;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("positions" in $$parsedSource) {
             $$parsedSource["positions"] = $$createField0_0($$parsedSource["positions"]);
@@ -3917,20 +3992,21 @@ const $$createType33 = $Create.Array($Create.Any);
 const $$createType34 = $Create.Array($Create.Any);
 const $$createType35 = ReplicaStatus.createFrom;
 const $$createType36 = $Create.Array($$createType35);
-const $$createType37 = StreamPublisher.createFrom;
-const $$createType38 = $Create.Nullable($$createType37);
-const $$createType39 = $Create.Array($$createType38);
-const $$createType40 = StreamConsumer.createFrom;
-const $$createType41 = $Create.Nullable($$createType40);
-const $$createType42 = $Create.Array($$createType41);
-const $$createType43 = SubscriptionRef.createFrom;
-const $$createType44 = QueueAssignment.createFrom;
-const $$createType45 = $Create.Array($$createType44);
-const $$createType46 = ConsumeThroughput.createFrom;
-const $$createType47 = $Create.Array($$createType46);
-const $$createType48 = MessageItem.createFrom;
-const $$createType49 = $Create.Nullable($$createType48);
-const $$createType50 = $Create.Array($$createType49);
-const $$createType51 = TailCursor.createFrom;
-const $$createType52 = QueuePosition.createFrom;
-const $$createType53 = $Create.Array($$createType52);
+const $$createType37 = $Create.Array($Create.Any);
+const $$createType38 = StreamPublisher.createFrom;
+const $$createType39 = $Create.Nullable($$createType38);
+const $$createType40 = $Create.Array($$createType39);
+const $$createType41 = StreamConsumer.createFrom;
+const $$createType42 = $Create.Nullable($$createType41);
+const $$createType43 = $Create.Array($$createType42);
+const $$createType44 = SubscriptionRef.createFrom;
+const $$createType45 = QueueAssignment.createFrom;
+const $$createType46 = $Create.Array($$createType45);
+const $$createType47 = ConsumeThroughput.createFrom;
+const $$createType48 = $Create.Array($$createType47);
+const $$createType49 = MessageItem.createFrom;
+const $$createType50 = $Create.Nullable($$createType49);
+const $$createType51 = $Create.Array($$createType50);
+const $$createType52 = TailCursor.createFrom;
+const $$createType53 = QueuePosition.createFrom;
+const $$createType54 = $Create.Array($$createType53);

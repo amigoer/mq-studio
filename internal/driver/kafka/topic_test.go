@@ -2,15 +2,33 @@ package kafka
 
 import (
 	"context"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/twmb/franz-go/pkg/kadm"
+	"github.com/twmb/franz-go/pkg/kerr"
 	"github.com/twmb/franz-go/pkg/kfake"
+	"github.com/twmb/franz-go/pkg/kgo"
 
 	"github.com/amigoer/mq-studio/internal/model"
 )
+
+// produceTo writes n records so a test has something to purge or drop.
+func produceTo(t *testing.T, conn *Conn, topic string, n int) {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
+	records := make([]*kgo.Record, 0, n)
+	for i := 0; i < n; i++ {
+		records = append(records, &kgo.Record{Topic: topic, Value: []byte("v" + strconv.Itoa(i))})
+	}
+	if err := conn.client.ProduceSync(ctx, records...).FirstErr(); err != nil {
+		t.Fatalf("produce %d records to %s: %v", n, topic, err)
+	}
+}
 
 func listed(topic string, offsets map[int32]int64) kadm.ListedOffsets {
 	out := kadm.ListedOffsets{topic: {}}
@@ -451,5 +469,126 @@ func TestReadingAnOffsetOutsideTheLogIsRefused(t *testing.T) {
 	}
 	if _, err := conn.MessageByID(ctx, name, messageID(name, 7, 0)); err == nil {
 		t.Error("a partition the topic does not have returned a record")
+	}
+}
+
+/*
+ * A purge is not a delete: DeleteRecords moves each partition's start offset
+ * forward, so the records before it become unreadable and the offsets keep
+ * counting. A consumer that was at 900 stays at 900 and is simply caught up,
+ * which is what makes this safe on a topic something is reading.
+ */
+func TestPurgeMovesTheStartOffsetWithoutRestartingIt(t *testing.T) {
+	conn := fakeConn(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
+	const name = "mqs-test-purge"
+	if err := conn.CreateDestination(ctx, model.DestinationSpec{
+		Ref: model.DestinationRef{Name: name}, Partitions: 1,
+		Attributes: map[string]string{AttrReplicationFactor: "1"},
+	}); err != nil {
+		t.Fatalf("CreateDestination: %v", err)
+	}
+	produceTo(t, conn, name, 20)
+
+	before, err := conn.DestinationDetail(ctx, model.DestinationRef{Name: name})
+	if err != nil {
+		t.Fatalf("DestinationDetail: %v", err)
+	}
+	if before.Depth != 20 {
+		t.Fatalf("depth before the purge = %d, want 20", before.Depth)
+	}
+
+	if err := conn.PurgeQueue(ctx, model.DestinationRef{Name: name}); err != nil {
+		t.Fatalf("PurgeQueue: %v", err)
+	}
+
+	after, err := conn.DestinationStats(ctx, model.DestinationRef{Name: name})
+	if err != nil {
+		t.Fatalf("DestinationStats: %v", err)
+	}
+	rows, _ := after["partitions"].([]map[string]interface{})
+	if len(rows) != 1 {
+		t.Fatalf("partition rows = %d", len(rows))
+	}
+	start, _ := rows[0]["startOffset"].(int64)
+	end, _ := rows[0]["endOffset"].(int64)
+	if start != end {
+		t.Errorf("after a purge the range is %d..%d, want it empty", start, end)
+	}
+	// The offsets did not restart: the topic is empty at 20, not at 0.
+	if end != 20 {
+		t.Errorf("the end offset is %d, want 20 - a purge must not reset the log", end)
+	}
+}
+
+// Dropping takes a bounded batch off the head, and reports what it actually
+// dropped rather than what was asked for.
+func TestDropMessagesReportsWhatItActuallyDropped(t *testing.T) {
+	conn := fakeConn(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
+	const name = "mqs-test-drop"
+	if err := conn.CreateDestination(ctx, model.DestinationSpec{
+		Ref: model.DestinationRef{Name: name}, Partitions: 1,
+		Attributes: map[string]string{AttrReplicationFactor: "1"},
+	}); err != nil {
+		t.Fatalf("CreateDestination: %v", err)
+	}
+	produceTo(t, conn, name, 10)
+
+	dropped, err := conn.DropMessages(ctx, model.DestinationRef{Name: name}, 4)
+	if err != nil {
+		t.Fatalf("DropMessages: %v", err)
+	}
+	if dropped != 4 {
+		t.Errorf("dropped = %d, want 4", dropped)
+	}
+
+	// A partition holding less than the limit gives up only what it has, and
+	// saying otherwise would overstate what happened.
+	dropped, err = conn.DropMessages(ctx, model.DestinationRef{Name: name}, 100)
+	if err != nil {
+		t.Fatalf("DropMessages: %v", err)
+	}
+	if dropped != 6 {
+		t.Errorf("dropped = %d, want the six that were left", dropped)
+	}
+
+	if _, err := conn.DropMessages(ctx, model.DestinationRef{Name: name}, 0); err == nil {
+		t.Error("dropping zero records was accepted")
+	}
+}
+
+// There is no server-side move, and the method says so rather than pretending.
+func TestMovingMessagesIsRefused(t *testing.T) {
+	conn := newConn(nil, nil, clientConfig{})
+	if _, err := conn.MoveMessages(t.Context(), model.MoveRequest{}); err == nil {
+		t.Error("a server-side move was accepted")
+	}
+}
+
+/*
+ * A rebalance on a healthy cluster has little to do, and Kafka answers
+ * ELECTION_NOT_NEEDED for every partition already led by its preferred
+ * replica. Treating that as a failure would make a successful rebalance report
+ * an error every time it worked.
+ */
+func TestAnElectionThatWasNotNeededIsNotAFailure(t *testing.T) {
+	results := kadm.ElectLeadersResults{"orders": {
+		0: {Topic: "orders", Partition: 0, Err: kerr.ElectionNotNeeded},
+		1: {Topic: "orders", Partition: 1},
+	}}
+	if err := firstElectionError(results); err != nil {
+		t.Errorf("firstElectionError = %v, want nil", err)
+	}
+
+	results["orders"][2] = kadm.ElectLeadersResult{
+		Topic: "orders", Partition: 2, Err: kerr.PreferredLeaderNotAvailable,
+	}
+	if err := firstElectionError(results); err == nil {
+		t.Error("a real election failure was ignored")
 	}
 }

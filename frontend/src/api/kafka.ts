@@ -1,6 +1,6 @@
 import { KafkaService } from "@bindings/bridge";
 import type { KafkaTopicInput } from "@bindings/bridge/models";
-import { required } from "./client";
+import { present, required } from "./client";
 import type { AccessPrincipalSpec, AccessRule } from "@bindings/model/models";
 
 export type { KafkaTopicInput };
@@ -127,3 +127,42 @@ export const putKafkaPrincipal = (
 
 export const removeKafkaPrincipal = (connID: number, name: string): Promise<void> =>
   KafkaService.RemovePrincipal(connID, name);
+
+/**
+ * Empties a topic without deleting it.
+ *
+ * The offsets do not restart: a consumer that was at 900 stays at 900 and is
+ * simply caught up, which is what makes this safe on a topic something reads.
+ */
+export const truncateKafkaTopic = (connID: number, name: string): Promise<void> =>
+  KafkaService.TruncateTopic(connID, name);
+
+/** Takes a batch off the head of each partition; returns how many it removed. */
+export const dropOldestKafkaRecords = (
+  connID: number,
+  name: string,
+  limit: number,
+): Promise<number> => KafkaService.DropOldestRecords(connID, name, limit);
+
+/** Puts each partition's leadership back on the first broker in its replica list. */
+export const electKafkaPreferredLeaders = (connID: number): Promise<void> =>
+  KafkaService.ElectPreferredLeaders(connID);
+
+/** The partitions being moved between brokers right now. */
+export const getKafkaReassignments = (connID: number) =>
+  KafkaService.Reassignments(connID).then(present);
+
+/** Rewrites where a partition's replicas live. The first broker leads. */
+export const reassignKafkaPartition = (
+  connID: number,
+  topic: string,
+  partition: number,
+  brokers: number[],
+): Promise<void> => KafkaService.Reassign(connID, topic, partition, brokers);
+
+/** Stops a move in flight, leaving the partition wherever it has got to. */
+export const cancelKafkaReassignment = (
+  connID: number,
+  topic: string,
+  partition: number,
+): Promise<void> => KafkaService.CancelReassignment(connID, topic, partition);

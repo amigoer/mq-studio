@@ -1119,3 +1119,236 @@ func TestLiveAGroupWithNoOffsetsIsStillListed(t *testing.T) {
 		t.Errorf("SubscriptionStats: %v", err)
 	}
 }
+
+// Truncating a topic against a real log: the records go, the offsets do not
+// restart, and a consumer group's position is dragged forward with the start.
+func TestLiveTruncateATopic(t *testing.T) {
+	requireLiveCluster(t)
+	conn := liveConn(t, liveSeeds)
+
+	const topic = "mqs-test-live-truncate"
+	const group = "mqs-test-live-truncate-group"
+	seededTopic(t, conn, topic, 1, 30)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	ref := model.DestinationRef{Name: topic}
+	t.Cleanup(func() {
+		cleanup, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+		defer cancel()
+		_ = conn.RemoveSubscription(cleanup, model.SubscriptionRef{Name: group})
+	})
+
+	// A group sitting well behind, so the effect on it is visible.
+	if err := conn.ResetGroupOffsets(ctx, OffsetResetRequest{
+		Group: group, Topic: topic, Target: OffsetEarliest,
+	}); err != nil {
+		t.Fatalf("seed the group: %v", err)
+	}
+
+	t.Run("dropping a batch takes it off the head", func(t *testing.T) {
+		dropped, err := conn.DropMessages(ctx, ref, 10)
+		if err != nil {
+			t.Fatalf("DropMessages: %v", err)
+		}
+		if dropped != 10 {
+			t.Errorf("dropped = %d, want 10", dropped)
+		}
+		detail, err := conn.DestinationDetail(ctx, ref)
+		if err != nil {
+			t.Fatalf("DestinationDetail: %v", err)
+		}
+		if detail.Depth != 20 {
+			t.Errorf("records = %d, want the twenty that are left", detail.Depth)
+		}
+	})
+
+	/*
+	 * A group left below the new start keeps the lag Kafka gives it.
+	 *
+	 * The group is committed at 0 and the log now begins at 10, so ten of the
+	 * records it is behind on no longer exist - and its lag is still reported
+	 * as thirty, because Kafka computes end minus committed and does not clamp
+	 * to the start. kafka-consumer-groups.sh prints the same number.
+	 *
+	 * That is what this driver reports, deliberately. Clamping would make the
+	 * figure disagree with every other Kafka tool the operator has, and the
+	 * cross-check compares the two on purpose. What the consumer will actually
+	 * read on its next poll is twenty; that is a fact about the consumer's
+	 * auto.offset.reset rather than about the group's position.
+	 */
+	t.Run("a group left below the new start keeps kafka's own lag", func(t *testing.T) {
+		stats, err := conn.SubscriptionStats(ctx, model.SubscriptionRef{Name: group})
+		if err != nil {
+			t.Fatalf("SubscriptionStats: %v", err)
+		}
+		rows, _ := stats["partitions"].([]map[string]interface{})
+		if len(rows) != 1 {
+			t.Fatalf("partition rows = %d", len(rows))
+		}
+		if lag, _ := rows[0]["lag"].(int64); lag != 30 {
+			t.Errorf("lag after the truncate = %d, want the 30 kafka reports", lag)
+		}
+		// And the start moved under it, which is the fact that says those
+		// records are gone rather than merely unread.
+		if start, _ := rows[0]["start"].(int64); start != 10 {
+			t.Errorf("the partition start is %d, want 10", start)
+		}
+		if committed, _ := rows[0]["committed"].(int64); committed >= 10 {
+			t.Errorf("the group committed %d, want it left below the new start", committed)
+		}
+	})
+
+	t.Run("a purge empties the topic without restarting its offsets", func(t *testing.T) {
+		if err := conn.PurgeQueue(ctx, ref); err != nil {
+			t.Fatalf("PurgeQueue: %v", err)
+		}
+		detail, err := conn.DestinationDetail(ctx, ref)
+		if err != nil {
+			t.Fatalf("DestinationDetail: %v", err)
+		}
+		if detail.Depth != 0 {
+			t.Errorf("records after a purge = %d, want 0", detail.Depth)
+		}
+
+		stats, err := conn.DestinationStats(ctx, ref)
+		if err != nil {
+			t.Fatalf("DestinationStats: %v", err)
+		}
+		rows, _ := stats["partitions"].([]map[string]interface{})
+		end, _ := rows[0]["endOffset"].(int64)
+		// Thirty were written, so the empty topic sits at 30 rather than at 0:
+		// a purge moves the floor, it does not reset the log.
+		if end != 30 {
+			t.Errorf("the end offset is %d, want 30", end)
+		}
+	})
+}
+
+// Preferred-leader election against a real cluster. On a healthy one most
+// partitions are already right, and Kafka answers ELECTION_NOT_NEEDED for each
+// - which must not be reported as a failure.
+func TestLiveRebalanceLeaders(t *testing.T) {
+	requireLiveCluster(t)
+	conn := liveConn(t, liveSeeds)
+
+	const topic = "mqs-test-live-rebalance"
+	seededTopic(t, conn, topic, 6, 0)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	if err := conn.RebalanceQueues(ctx); err != nil {
+		t.Fatalf("RebalanceQueues on a healthy cluster: %v", err)
+	}
+
+	// And every partition is led by the first broker in its replica list,
+	// which is what a preferred election means.
+	stats, err := conn.DestinationStats(ctx, model.DestinationRef{Name: topic})
+	if err != nil {
+		t.Fatalf("DestinationStats: %v", err)
+	}
+	rows, _ := stats["partitions"].([]map[string]interface{})
+	for _, row := range rows {
+		replicas, _ := row["replicas"].([]int32)
+		leader, _ := row["leader"].(int32)
+		if len(replicas) == 0 {
+			continue
+		}
+		if leader != replicas[0] {
+			t.Errorf("partition %v is led by %d, want its preferred replica %d",
+				row["partition"], leader, replicas[0])
+		}
+	}
+}
+
+// Moving a partition to a different set of brokers, and the plan being
+// reported while it runs.
+func TestLiveReassignAPartition(t *testing.T) {
+	requireLiveCluster(t)
+	conn := liveConn(t, liveSeeds)
+
+	const topic = "mqs-test-live-reassign"
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	ref := model.DestinationRef{Name: topic}
+	t.Cleanup(func() {
+		cleanup, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+		defer cancel()
+		_ = conn.RemoveDestination(cleanup, ref)
+	})
+	// Replication factor 1, so there is somewhere to move it to.
+	if err := conn.CreateDestination(ctx, model.DestinationSpec{
+		Ref: ref, Partitions: 1, Attributes: map[string]string{AttrReplicationFactor: "1"},
+	}); err != nil {
+		t.Fatalf("CreateDestination: %v", err)
+	}
+	produce(t, conn, topic, 5)
+
+	before, err := conn.DestinationStats(ctx, ref)
+	if err != nil {
+		t.Fatalf("DestinationStats: %v", err)
+	}
+	rows, _ := before["partitions"].([]map[string]interface{})
+	current, _ := rows[0]["replicas"].([]int32)
+	if len(current) != 1 {
+		t.Fatalf("replicas = %v, want one", current)
+	}
+
+	// Somewhere else: the first broker that is not holding it.
+	brokers, err := conn.ListNodes(ctx)
+	if err != nil {
+		t.Fatalf("ListNodes: %v", err)
+	}
+	var target int32 = -1
+	for _, node := range brokers {
+		if int32(node.ID) != current[0] {
+			target = int32(node.ID)
+			break
+		}
+	}
+	if target < 0 {
+		t.Skip("this cluster has only one broker; there is nowhere to move to")
+	}
+
+	if err := conn.Reassign(ctx, topic, 0, []int32{target}); err != nil {
+		t.Fatalf("Reassign: %v", err)
+	}
+
+	// The move lands, eventually: the cluster copies in the background and
+	// there is no completion to wait for except the partition itself.
+	moved := false
+	for deadline := time.Now().Add(30 * time.Second); time.Now().Before(deadline); {
+		stats, err := conn.DestinationStats(ctx, ref)
+		if err == nil {
+			rows, _ := stats["partitions"].([]map[string]interface{})
+			if replicas, _ := rows[0]["replicas"].([]int32); len(replicas) == 1 && replicas[0] == target {
+				moved = true
+				break
+			}
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+	if !moved {
+		t.Fatalf("the partition never arrived on broker %d", target)
+	}
+
+	// And the records came with it, which is the whole point of a move rather
+	// than a recreate.
+	detail, err := conn.DestinationDetail(ctx, ref)
+	if err != nil {
+		t.Fatalf("DestinationDetail: %v", err)
+	}
+	if detail.Depth != 5 {
+		t.Errorf("records after the move = %d, want 5", detail.Depth)
+	}
+
+	// An idle cluster reports nothing in flight, which is how an operator
+	// knows the plan finished.
+	if moving, err := conn.ListReassignments(ctx); err != nil {
+		t.Errorf("ListReassignments: %v", err)
+	} else if len(moving) != 0 {
+		t.Errorf("%d partitions still report a move after it landed", len(moving))
+	}
+}

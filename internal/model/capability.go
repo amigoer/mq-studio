@@ -85,6 +85,12 @@ const (
 	CapNodeWritePerm  Capability = "cluster.writePerm"
 	CapClusterMetrics Capability = "cluster.metrics"
 
+	// CapReassign is rewriting where a destination's replicas live. Only a
+	// family whose placement is data an administrator can edit has it, and
+	// only Kafka's is: the replica list is a field, and the cluster copies the
+	// log to its new home in the background.
+	CapReassign Capability = "destination.reassign"
+
 	// CapLogDirs is a broker that reports what its partitions occupy on disk.
 	// Distinct from CapNodeConfig, which is what a node is running with: this
 	// is where its space has gone, and it is the only disk figure Kafka has -

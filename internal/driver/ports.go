@@ -249,6 +249,21 @@ type ConfigInspector interface {
 	DirectoryConfig(ctx context.Context) (map[string]string, error)
 }
 
+// PartitionReassigner moves a destination's replicas between nodes.
+//
+// Separate from QueueActions, whose rebalance elects a new leader from the
+// replicas a partition already has: this changes which nodes hold it at all,
+// which means copying the log. It is also the only operation in this file with
+// no completion - the cluster copies in the background, and the only way to
+// know it finished is that the partition stops reporting a move.
+type PartitionReassigner interface {
+	ListReassignments(ctx context.Context) ([]*model.PartitionReassignment, error)
+	// Reassign takes an ordered list: the first node is the preferred leader,
+	// so the same nodes in a different order is a different plan.
+	Reassign(ctx context.Context, destination string, partition int32, nodes []int32) error
+	CancelReassignment(ctx context.Context, destination string, partition int32) error
+}
+
 // LogDirInspector reports how much disk a broker's partitions occupy.
 //
 // Separate from ConfigInspector because it answers a different question at a

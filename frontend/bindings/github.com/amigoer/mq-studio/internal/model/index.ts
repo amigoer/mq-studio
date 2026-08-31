@@ -46,6 +46,7 @@ export {
     NamespacePermission,
     Node,
     NodeStatus,
+    PartitionReassignment,
     Policy,
     ProducerClient,
     PublishResult,

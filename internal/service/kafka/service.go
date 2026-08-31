@@ -305,3 +305,91 @@ func (s *Service) RemovePrincipal(ctx context.Context, connID int, name string) 
 	defer cancel()
 	return api.RemovePrincipal(ctx, name)
 }
+
+// TruncateTopic moves every partition's start offset to its end.
+//
+// Not a delete: the records before it become unreadable and the offsets keep
+// counting, so a consumer that was at 900 stays at 900 and is simply caught up.
+func (s *Service) TruncateTopic(ctx context.Context, connID int, name string) error {
+	api, err := port[driver.QueueActions](s, connID, model.CapDestinationPurge)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.PurgeQueue(ctx, model.DestinationRef{Name: name})
+}
+
+// DropOldestRecords takes a bounded batch off the head of each partition and
+// reports how many it actually removed.
+func (s *Service) DropOldestRecords(
+	ctx context.Context, connID int, name string, limit int,
+) (int, error) {
+	api, err := port[driver.QueueActions](s, connID, model.CapDestinationPurge)
+	if err != nil {
+		return 0, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.DropMessages(ctx, model.DestinationRef{Name: name}, limit)
+}
+
+// ElectPreferredLeaders puts each partition's leadership back on the first
+// broker in its replica list.
+func (s *Service) ElectPreferredLeaders(ctx context.Context, connID int) error {
+	api, err := port[driver.QueueActions](s, connID, model.CapQueueRebalance)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.RebalanceQueues(ctx)
+}
+
+// Reassignments reports the partitions currently being moved between brokers.
+//
+// Empty is the normal state and the useful one: a reassignment has no
+// completion event, so an empty list is how an operator knows the last plan
+// finished.
+func (s *Service) Reassignments(
+	ctx context.Context, connID int,
+) ([]*model.PartitionReassignment, error) {
+	api, err := port[driver.PartitionReassigner](s, connID, model.CapReassign)
+	if err != nil {
+		if notConnected(err) {
+			return []*model.PartitionReassignment{}, nil
+		}
+		return nil, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.ListReassignments(ctx)
+}
+
+// Reassign rewrites where one partition's replicas live. The list is ordered:
+// the first broker is the preferred leader.
+func (s *Service) Reassign(
+	ctx context.Context, connID int, topic string, partition int32, brokers []int32,
+) error {
+	api, err := port[driver.PartitionReassigner](s, connID, model.CapReassign)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.Reassign(ctx, topic, partition, brokers)
+}
+
+// CancelReassignment stops a move in flight, leaving the partition wherever it
+// has got to.
+func (s *Service) CancelReassignment(
+	ctx context.Context, connID int, topic string, partition int32,
+) error {
+	api, err := port[driver.PartitionReassigner](s, connID, model.CapReassign)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.CancelReassignment(ctx, topic, partition)
+}

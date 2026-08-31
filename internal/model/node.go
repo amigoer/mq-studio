@@ -158,3 +158,22 @@ type LogDirPartition struct {
 	// finishes the broker holds two copies of the partition.
 	IsFuture bool `json:"isFuture"`
 }
+
+// PartitionReassignment is one partition being moved between brokers.
+//
+// Only Kafka has this: a partition's replica list is data an administrator can
+// rewrite, and the cluster then copies the log to its new home in the
+// background. What makes it worth a page of its own is that it is the one
+// operation here with no completion event - the only way to know it finished
+// is that the partition stops reporting one.
+type PartitionReassignment struct {
+	Topic     string `json:"topic"`
+	Partition int32  `json:"partition"`
+
+	// Replicas is where the partition lives right now, which during a move is
+	// the union of where it was and where it is going.
+	Replicas []int32 `json:"replicas"`
+	// Adding and Removing are the two halves of the move still in flight.
+	Adding   []int32 `json:"adding"`
+	Removing []int32 `json:"removing"`
+}
