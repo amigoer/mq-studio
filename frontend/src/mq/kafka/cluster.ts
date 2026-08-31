@@ -108,12 +108,18 @@ export function transactionAge(startedAt: number, now: number): string {
  * coordinator undertook to abort the transaction after its timeout, so one
  * still open well past it is not a long-running job, it is a transaction
  * nothing is finishing.
+ *
+ * Which is why `open` is the first thing it asks. A cluster keeps a finished
+ * transaction listed for a while, and every one of those is older than its
+ * timeout - the panel flagged two completed transactions as overdue, which is
+ * true of the clock and false of the world.
  */
 export function transactionOverdue(
+  open: boolean,
   startedAt: number,
   timeoutMs: number,
   now: number,
 ): boolean {
-  if (startedAt < 0 || timeoutMs <= 0) return false;
+  if (!open || startedAt < 0 || timeoutMs <= 0) return false;
   return now - startedAt > timeoutMs;
 }

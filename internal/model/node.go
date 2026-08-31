@@ -234,9 +234,17 @@ type Transaction struct {
 	// not yet resolved. They are the ones whose readers are being held up.
 	Partitions []string `json:"partitions"`
 
+	// Open is whether the transaction has not finished: the coordinator is
+	// still going to write a marker for it. Derived from the state rather than
+	// reported, and derived here so that which states count is decided once.
+	//
+	// Separate from Holding because a transaction can be open and hold
+	// nothing - it has written to no partition yet - and because a finished
+	// transaction stays listed for a while, which is why the page must be able
+	// to tell "still running" from "ran".
+	Open bool `json:"open"`
+
 	// Holding is the driver's verdict on whether this transaction is actually
-	// keeping readers back. Derived rather than reported, and derived here so
-	// that the rule - which states count, and that partitions must be held -
-	// exists once rather than again in the page that draws it.
+	// keeping readers back: open, and holding at least one partition.
 	Holding bool `json:"holding"`
 }

@@ -295,7 +295,7 @@ export function KafkaTransactionsPanel({
   const { t } = useTranslation();
   const open = (state.data?.transactions ?? []).filter((txn) => txn != null);
   const overdue = open.filter((txn) =>
-    transactionOverdue(txn.startedAt, txn.timeoutMs, now),
+    transactionOverdue(txn.open, txn.startedAt, txn.timeoutMs, now),
   ).length;
 
   return (
@@ -342,7 +342,7 @@ export function KafkaTransactionsPanel({
                   <TableCell className="mono3" style={MONO11}>{txn.id}</TableCell>
                   <TableCell>
                     <Status tone={txn.holding ? "warn" : "off"}>{txn.state}</Status>
-                    {transactionOverdue(txn.startedAt, txn.timeoutMs, now) && (
+                    {transactionOverdue(txn.open, txn.startedAt, txn.timeoutMs, now) && (
                       <Status tone="err" style={{ fontSize: "10px", marginLeft: "4px" }}>
                         {t("board.cluster.kafka.txnPastTimeout")}
                       </Status>

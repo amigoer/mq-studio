@@ -33,8 +33,8 @@ func TestTransactionFromListAndDescribe(t *testing.T) {
 	if transaction.StartedAt != 1_756_000_000_000 {
 		t.Errorf("startedAt = %d", transaction.StartedAt)
 	}
-	if !transaction.Holding {
-		t.Error("an ongoing transaction holding two partitions is not flagged")
+	if !transaction.Open || !transaction.Holding {
+		t.Errorf("an ongoing transaction holding two partitions is not flagged: %+v", transaction)
 	}
 	// The partitions are what the transaction is holding up, sorted so the
 	// panel does not reshuffle between refreshes.
@@ -123,5 +123,47 @@ func TestWhichTransactionsAreHoldingReadersBack(t *testing.T) {
 	// Ongoing with nothing written yet holds nobody.
 	if holding(txnOngoing) {
 		t.Error("an ongoing transaction with no partitions is reported as holding")
+	}
+}
+
+/*
+ * Open is not the same question as holding, and the difference is what a
+ * finished transaction looks like.
+ *
+ * The cluster keeps a transaction listed after it ends. The panel flagged two
+ * of those as past their timeout - true of the clock, false of the world: a
+ * transaction that completed hours ago is not one nothing is finishing.
+ */
+func TestWhichTransactionsTheClusterHasStillToFinish(t *testing.T) {
+	open := func(state string) bool {
+		return TransactionIsOpen(&model.Transaction{State: state})
+	}
+
+	for _, state := range []string{txnOngoing, txnPrepareCommit, txnPrepareAbort} {
+		if !open(state) {
+			t.Errorf("%s is not reported as open", state)
+		}
+	}
+	for _, state := range []string{"CompleteCommit", "CompleteAbort", "Empty", "Dead"} {
+		if open(state) {
+			t.Errorf("%s is reported as open", state)
+		}
+	}
+
+	// A transaction that ended is open no matter how old it is, and holds
+	// nothing no matter what it once held.
+	ended := transactionFrom(
+		listedTxn("orders-writer", "CompleteAbort"),
+		kadm.DescribedTransaction{
+			TxnID: "orders-writer", State: "CompleteAbort",
+			TimeoutMillis: 60_000, StartTimestamp: 1,
+			Topics: kadm.TopicsSet{"orders": {0: struct{}{}}},
+		},
+	)
+	if ended.Open {
+		t.Error("a completed transaction is marked open")
+	}
+	if ended.Holding {
+		t.Error("a completed transaction is marked as holding readers back")
 	}
 }

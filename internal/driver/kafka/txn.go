@@ -75,6 +75,7 @@ func transactionFrom(
 		Partitions: []string{},
 	}
 	if described.Err != nil || described.TxnID == "" {
+		transaction.Open = TransactionIsOpen(transaction)
 		transaction.Holding = TransactionIsHolding(transaction)
 		return transaction
 	}
@@ -90,6 +91,7 @@ func transactionFrom(
 		transaction.State = described.State
 	}
 	transaction.Partitions = partitionLabels(described.Topics)
+	transaction.Open = TransactionIsOpen(transaction)
 	transaction.Holding = TransactionIsHolding(transaction)
 	return transaction
 }
@@ -113,9 +115,22 @@ func partitionLabels(topics kadm.TopicsSet) []string {
 // coordinator has decided and is still writing markers, and until it finishes
 // the partitions without one are as unreadable as they were before.
 func TransactionIsHolding(transaction *model.Transaction) bool {
+	return TransactionIsOpen(transaction) && len(transaction.Partitions) > 0
+}
+
+/*
+ * TransactionIsOpen reports whether the cluster has still to finish it.
+ *
+ * Ongoing is the obvious one. The two prepare states count as well: the
+ * coordinator has decided and is still writing markers, and a partition
+ * without one is as unreadable as it was before. Everything else - the
+ * complete states, and empty - is a transaction that has already ended, which
+ * the cluster keeps listed for a while afterwards.
+ */
+func TransactionIsOpen(transaction *model.Transaction) bool {
 	switch transaction.State {
 	case txnOngoing, txnPrepareCommit, txnPrepareAbort:
-		return len(transaction.Partitions) > 0
+		return true
 	default:
 		return false
 	}

@@ -512,6 +512,7 @@ const transaction = (over: Record<string, unknown> = {}) => ({
   startedAt: NOW - 90_000,
   timeoutMs: 60_000,
   partitions: ["orders.created:0", "orders.created:1"],
+  open: true,
   holding: true,
   ...over,
 });
@@ -608,9 +609,12 @@ describe("the Kafka transactions panel", () => {
             transactions: [
               transaction({
                 state: "CompleteCommit",
+                open: false,
                 holding: false,
                 partitions: [],
-                startedAt: NOW - 5_000,
+                // Long past its timeout, which is every finished transaction
+                // the cluster is still listing.
+                startedAt: NOW - 6 * 3600 * 1000,
               }),
             ],
             holding: 0,
