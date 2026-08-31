@@ -24,7 +24,14 @@ This is the delivery plan. The contract it delivers against is
   per-partition lag and all five of Kafka's offset resets; browsing a log by offset, timestamp
   or key and following its end; producing with a key, headers, a pinned partition and a chosen
   acknowledgement level; brokers with their effective settings and their log directories; ACLs
-  and SCRAM users.
+  and SCRAM users; client quotas; partition reassignment with preferred-leader election; and the
+  transactions a cluster is tracking, so a pipeline stopped by a producer that died
+  mid-transaction is visible somewhere.
+
+  Broker settings are read-only. Everything needed to write them is in place - the driver reads
+  them through the same incremental-alter path a topic's settings use - but the page offers no
+  editor, and a cluster-wide setting and a per-broker override are different writes that deserve
+  to be told apart before either is offered.
 
   Three things it deliberately does not have. There is no dead-letter page: Kafka has no
   broker-side dead-letter queue, and the .DLT suffix is Spring Kafka's convention rather than
@@ -41,7 +48,7 @@ This is the delivery plan. The contract it delivers against is
 | --- | --- | --- |
 | 0–3 | The driver seam itself: contracts, backend ports, storage and bridge, frontend registry | RocketMQ behaves exactly as before, screen for screen |
 | 4 | **RabbitMQ** | Done. An Exchanges/Bindings page exists and no offset concept leaks into the UI |
-| 5 | **Kafka** | Done. Topics, consumer groups, lag, browse and publish work end to end, and no rate or dead-letter page pretends to exist |
+| 5 | **Kafka** | Done. Topics, consumer groups, lag, browse and publish work end to end, alongside quotas, reassignment and transactions, and no rate or dead-letter page pretends to exist |
 | 6 | **Pulsar**, then **Redis Stream**, then **NATS**, then **MQTT** | Each is purely additive — no canonical page changes shape |
 | 7 | **ActiveMQ / Artemis**, then **NSQ** | Still additive; ActiveMQ tests whether JMS semantics fit the canonical pages |
 | 8 | **Amazon SQS**, **Google Cloud Pub/Sub**, **Azure Service Bus**, **Amazon Kinesis**, then **IBM MQ** and **Solace PubSub+** | The connection form can express "no address, only a region and a credential" |

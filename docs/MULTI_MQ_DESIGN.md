@@ -121,7 +121,7 @@ Sidekiq、BullMQ 是架在 Redis 或 RabbitMQ 之上的应用层任务队列，�
 | 形态 | 复用的规范页面 | 有正当理由的覆写 |
 | --- | --- | --- |
 | RocketMQ | 全部六个 | 无 |
-| Kafka | 全部六个 | 无（Cluster 通过列扩展出 controller/ISR 视图） |
+| Kafka | 全部六个 | Cluster 通过列扩展出 controller/ISR 视图；另加一个 Quotas 页与一个 Access 页 |
 | Pulsar | 全部六个 | 无（namespace 做成范围选择器，而不是一个页面） |
 | RabbitMQ | Messages、Publish、Cluster | Destinations 换成 Queues，外加一个新的 Exchanges/Bindings 页 |
 | Redis Stream | Destinations、Subscriptions、Messages、Publish | Cluster 和 Access 按能力隐藏 |
@@ -129,6 +129,11 @@ Sidekiq、BullMQ 是架在 Redis 或 RabbitMQ 之上的应用层任务队列，�
 
 只有这一种组织方式能做到：加 Kafka 几乎零成本，*同时*加 MQTT 不会留下一堆禁用
 导航的残骸。
+
+Kafka 接完之后，这张表里「无覆写」那一格被推翻了：配额挂在调用方（用户 / 应用 /
+IP）而不是挂在目的地上，规范页面里没有任何一个能表达它，所以它必须是一个 Kafka
+自己的页面。这不影响上面的主张 —— 六个规范页面确实全部复用了 —— 但「一个形态需要
+零个专属页面」这句话说得太满：真正成立的是「专属页面只用来放规范模型说不出的东西」。
 
 ### 三页地板
 
