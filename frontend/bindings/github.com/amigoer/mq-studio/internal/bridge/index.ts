@@ -42,10 +42,12 @@ export {
     ConsumerInput,
     DriverInfo,
     ExchangeInput,
+    IdentityInput,
     MaintenanceTaskView,
     MessageQuery,
     MoveInput,
     NamespaceInput,
+    PermissionInput,
     PolicyInput,
     PrincipalInput,
     PublishInput,
@@ -57,5 +59,6 @@ export {
     SettingsInput,
     SettingsView,
     ShellPage,
-    TopicInput
+    TopicInput,
+    TopicPermissionInput
 } from "./models.js";

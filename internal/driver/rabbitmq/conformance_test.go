@@ -2123,3 +2123,251 @@ func TestLiveNamespacesAreIsolated(t *testing.T) {
 		}
 	}
 }
+
+// A user's whole life, and the two systems that decide what it can do.
+func TestLiveIdentityLifecycle(t *testing.T) {
+	conn := liveConn(t)
+	defer func() { _ = conn.Close() }()
+
+	ctx := context.Background()
+	const name = "mqs-test-user"
+
+	if err := conn.SaveIdentity(ctx, model.IdentitySpec{
+		Name: name, Tags: []string{"management"}, Password: "s3cret",
+	}); err != nil {
+		t.Fatalf("create: %v", err)
+	}
+	t.Cleanup(func() { _ = conn.RemoveIdentity(context.Background(), name) })
+
+	find := func() *model.Identity {
+		t.Helper()
+		identities, err := conn.ListIdentities(ctx)
+		if err != nil {
+			t.Fatalf("list: %v", err)
+		}
+		for _, identity := range identities {
+			if identity.Name == name {
+				return identity
+			}
+		}
+		return nil
+	}
+
+	created := find()
+	if created == nil {
+		t.Fatal("the user just created is missing")
+	}
+	if len(created.Tags) != 1 || created.Tags[0] != "management" {
+		t.Errorf("tags = %v, want management", created.Tags)
+	}
+	// The password never comes back; the hash being present is the only thing
+	// that says one exists.
+	if !created.HasPassword {
+		t.Error("a user created with a password reports having none")
+	}
+	// A brand new user has no permissions anywhere, which is what makes it
+	// unusable until one is granted.
+	if len(created.Permissions) != 0 {
+		t.Errorf("a new user already has permissions: %v", created.Permissions)
+	}
+
+	// Editing tags without knowing the password is the case the empty-password
+	// path exists for.
+	if err := conn.SaveIdentity(ctx, model.IdentitySpec{
+		Name: name, Tags: []string{"monitoring", "policymaker"},
+	}); err != nil {
+		t.Fatalf("update tags: %v", err)
+	}
+	updated := find()
+	if updated == nil || len(updated.Tags) != 2 {
+		t.Fatalf("tags after update = %v", updated)
+	}
+	if !updated.HasPassword {
+		t.Error("updating tags with an empty password wiped the stored password")
+	}
+
+	if err := conn.RemoveIdentity(ctx, name); err != nil {
+		t.Fatalf("remove: %v", err)
+	}
+	if find() != nil {
+		t.Error("the user survived its deletion")
+	}
+}
+
+// Permissions, and the distinction the page is built around: an empty pattern
+// permits nothing, and no permission record at all is a different thing again.
+func TestLivePermissionLifecycle(t *testing.T) {
+	conn := liveConn(t)
+	defer func() { _ = conn.Close() }()
+
+	ctx := context.Background()
+	const name = "mqs-test-perm-user"
+
+	if err := conn.SaveIdentity(ctx, model.IdentitySpec{
+		Name: name, Tags: []string{"management"}, Password: "s3cret",
+	}); err != nil {
+		t.Fatalf("create user: %v", err)
+	}
+	t.Cleanup(func() { _ = conn.RemoveIdentity(context.Background(), name) })
+
+	permissionsOf := func() []*model.NamespacePermission {
+		t.Helper()
+		identities, err := conn.ListIdentities(ctx)
+		if err != nil {
+			t.Fatalf("list: %v", err)
+		}
+		for _, identity := range identities {
+			if identity.Name == name {
+				return identity.Permissions
+			}
+		}
+		t.Fatal("the user disappeared")
+		return nil
+	}
+
+	// Consume-only, which is the preset with the most room to be wrong: read
+	// everything, write and configure nothing.
+	if err := conn.SetPermission(ctx, model.NamespacePermission{
+		Namespace: "/", Identity: name, Configure: "", Write: "", Read: ".*",
+	}); err != nil {
+		t.Fatalf("set permission: %v", err)
+	}
+
+	granted := permissionsOf()
+	if len(granted) != 1 {
+		t.Fatalf("permissions = %d, want 1", len(granted))
+	}
+	if granted[0].Read != ".*" {
+		t.Errorf("read = %q, want .*", granted[0].Read)
+	}
+	// The empty patterns have to survive as empty rather than being dropped or
+	// defaulted, because empty is what denies.
+	if granted[0].Write != "" || granted[0].Configure != "" {
+		t.Errorf("write/configure = %q/%q, want both empty",
+			granted[0].Write, granted[0].Configure)
+	}
+
+	// Revoking removes the record entirely, which is not the same as granting
+	// nothing - the broker refuses the connection rather than admitting it.
+	if err := conn.RemovePermission(ctx, "/", name); err != nil {
+		t.Fatalf("revoke: %v", err)
+	}
+	if remaining := permissionsOf(); len(remaining) != 0 {
+		t.Errorf("permissions after revoking = %v, want none", remaining)
+	}
+}
+
+// Topic permissions are a filter over the permissions above rather than a
+// grant of their own, and they live on their own endpoint.
+func TestLiveTopicPermissions(t *testing.T) {
+	conn := liveConn(t)
+	defer func() { _ = conn.Close() }()
+
+	ctx := context.Background()
+	const name = "mqs-test-topic-perm"
+
+	if err := conn.SaveIdentity(ctx, model.IdentitySpec{
+		Name: name, Tags: []string{"management"}, Password: "s3cret",
+	}); err != nil {
+		t.Fatalf("create user: %v", err)
+	}
+	t.Cleanup(func() { _ = conn.RemoveIdentity(context.Background(), name) })
+
+	if err := conn.SetTopicPermission(ctx, model.TopicPermission{
+		Namespace: "/", Identity: name, Exchange: "amq.topic",
+		Write: "^order\\.", Read: "^order\\.",
+	}); err != nil {
+		t.Fatalf("set topic permission: %v", err)
+	}
+
+	found, err := conn.ListTopicPermissions(ctx)
+	if err != nil {
+		t.Fatalf("list topic permissions: %v", err)
+	}
+	var mine *model.TopicPermission
+	for _, permission := range found {
+		if permission.Identity == name {
+			mine = permission
+		}
+	}
+	if mine == nil {
+		t.Fatal("the topic permission just set is missing")
+	}
+	if mine.Exchange != "amq.topic" || mine.Write != "^order\\." {
+		t.Errorf("topic permission = %+v", mine)
+	}
+
+	if err := conn.RemoveTopicPermission(ctx, "/", name); err != nil {
+		t.Fatalf("clear topic permission: %v", err)
+	}
+	after, err := conn.ListTopicPermissions(ctx)
+	if err != nil {
+		t.Fatalf("list after clear: %v", err)
+	}
+	for _, permission := range after {
+		if permission.Identity == name {
+			t.Error("the topic permission survived being cleared")
+		}
+	}
+}
+
+// Asking for a user with no password is a different instruction from leaving
+// the field blank, and the broker has no way to express the difference - so
+// the driver has to.
+func TestLiveIdentityWithoutPasswordIsDeliberate(t *testing.T) {
+	conn := liveConn(t)
+	defer func() { _ = conn.Close() }()
+
+	ctx := context.Background()
+	const name = "mqs-test-nopassword"
+
+	if err := conn.SaveIdentity(ctx, model.IdentitySpec{
+		Name: name, Tags: []string{"management"}, WithoutPassword: true,
+	}); err != nil {
+		t.Fatalf("create: %v", err)
+	}
+	t.Cleanup(func() { _ = conn.RemoveIdentity(context.Background(), name) })
+
+	find := func() *model.Identity {
+		t.Helper()
+		identities, err := conn.ListIdentities(ctx)
+		if err != nil {
+			t.Fatalf("list: %v", err)
+		}
+		for _, identity := range identities {
+			if identity.Name == name {
+				return identity
+			}
+		}
+		return nil
+	}
+
+	created := find()
+	if created == nil {
+		t.Fatal("the user is missing")
+	}
+	if created.HasPassword {
+		t.Error("a user created without a password reports having one")
+	}
+
+	// Giving it one afterwards works, and the flag not being set is what makes
+	// the difference.
+	if err := conn.SaveIdentity(ctx, model.IdentitySpec{
+		Name: name, Tags: []string{"management"}, Password: "now-it-has-one",
+	}); err != nil {
+		t.Fatalf("set password: %v", err)
+	}
+	if withPassword := find(); withPassword == nil || !withPassword.HasPassword {
+		t.Error("setting a password on a passwordless user did not take")
+	}
+
+	// And taking it away again is the flag, not a blank field.
+	if err := conn.SaveIdentity(ctx, model.IdentitySpec{
+		Name: name, Tags: []string{"management"}, WithoutPassword: true,
+	}); err != nil {
+		t.Fatalf("clear password: %v", err)
+	}
+	if cleared := find(); cleared == nil || cleared.HasPassword {
+		t.Error("asking for no password left one in place")
+	}
+}

@@ -31,7 +31,7 @@ const requires: Record<string, Capability | Capability[]> = {
   vhosts: Capability.CapNamespaceList,
   producer: Capability.CapPublish,
   cluster: Capability.CapClusterTopology,
-  acl: Capability.CapAccessControl,
+  acl: [Capability.CapAccessControl, Capability.CapIdentityList],
   // Alerts needs no particular capability, only a connection to draw metrics
   // from, which the connected check below already covers.
   alerts: Capability.CapClusterMetrics,

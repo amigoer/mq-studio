@@ -116,6 +116,13 @@ export function DeleteExchange(connID: number, vhost: string, name: string): $Ca
 }
 
 /**
+ * DeleteIdentity removes a user, its permissions and its open connections.
+ */
+export function DeleteIdentity(connID: number, name: string): $CancellablePromise<void> {
+    return $Call.ByID(2155514932, connID, name);
+}
+
+/**
  * DeleteNamespace removes a virtual host and everything inside it.
  */
 export function DeleteNamespace(connID: number, name: string): $CancellablePromise<void> {
@@ -152,6 +159,15 @@ export function Health(connID: number): $CancellablePromise<model$0.BrokerHealth
 }
 
 /**
+ * Identities returns every user with its per-namespace permissions.
+ */
+export function Identities(connID: number): $CancellablePromise<(model$0.Identity | null)[]> {
+    return $Call.ByID(2632006727, connID).then(($result: any) => {
+        return $$createType15($result);
+    });
+}
+
+/**
  * MoveMessages returns how many reached the target, which is meaningful even
  * when the call also returns an error: that count already moved.
  */
@@ -164,7 +180,7 @@ export function MoveMessages(connID: number, input: $models.MoveInput): $Cancell
  */
 export function Namespaces(connID: number): $CancellablePromise<(model$0.Namespace | null)[]> {
     return $Call.ByID(2045585925, connID).then(($result: any) => {
-        return $$createType15($result);
+        return $$createType18($result);
     });
 }
 
@@ -174,7 +190,7 @@ export function Namespaces(connID: number): $CancellablePromise<(model$0.Namespa
  */
 export function Publish(connID: number, input: $models.PublishInput): $CancellablePromise<model$0.PublishResult | null> {
     return $Call.ByID(718367916, connID, input).then(($result: any) => {
-        return $$createType17($result);
+        return $$createType20($result);
     });
 }
 
@@ -193,6 +209,30 @@ export function RebalanceQueues(connID: number): $CancellablePromise<void> {
 }
 
 /**
+ * RevokePermission removes the permission record entirely, which stops the
+ * identity connecting to that virtual host at all - not the same as granting
+ * nothing.
+ */
+export function RevokePermission(connID: number, vhost: string, identity: string): $CancellablePromise<void> {
+    return $Call.ByID(875321072, connID, vhost, identity);
+}
+
+/**
+ * RevokeTopicPermission lifts the narrowing, leaving the namespace permissions
+ * alone.
+ */
+export function RevokeTopicPermission(connID: number, vhost: string, identity: string): $CancellablePromise<void> {
+    return $Call.ByID(2781287781, connID, vhost, identity);
+}
+
+/**
+ * SaveIdentity creates a user or updates one.
+ */
+export function SaveIdentity(connID: number, input: $models.IdentityInput): $CancellablePromise<void> {
+    return $Call.ByID(2854585134, connID, input);
+}
+
+/**
  * SaveNamespace creates a virtual host, or updates one that already exists.
  */
 export function SaveNamespace(connID: number, input: $models.NamespaceInput): $CancellablePromise<void> {
@@ -205,6 +245,30 @@ export function SaveNamespace(connID: number, input: $models.NamespaceInput): $C
  */
 export function SetNamespaceLimit(connID: number, name: string, limit: string, value: number): $CancellablePromise<void> {
     return $Call.ByID(630753097, connID, name, limit, value);
+}
+
+/**
+ * SetPermission grants an identity rights inside one namespace.
+ */
+export function SetPermission(connID: number, input: $models.PermissionInput): $CancellablePromise<void> {
+    return $Call.ByID(1852237624, connID, input);
+}
+
+/**
+ * SetTopicPermission narrows write and read on one topic exchange.
+ */
+export function SetTopicPermission(connID: number, input: $models.TopicPermissionInput): $CancellablePromise<void> {
+    return $Call.ByID(646115197, connID, input);
+}
+
+/**
+ * TopicPermissions returns the per-exchange narrowing on top of the namespace
+ * permissions.
+ */
+export function TopicPermissions(connID: number): $CancellablePromise<(model$0.TopicPermission | null)[]> {
+    return $Call.ByID(1841620516, connID).then(($result: any) => {
+        return $$createType23($result);
+    });
 }
 
 // Private type creation functions
@@ -221,8 +285,14 @@ const $$createType9 = $Create.Nullable($$createType8);
 const $$createType10 = $Create.Array($$createType9);
 const $$createType11 = model$0.BrokerHealth.createFrom;
 const $$createType12 = $Create.Nullable($$createType11);
-const $$createType13 = model$0.Namespace.createFrom;
+const $$createType13 = model$0.Identity.createFrom;
 const $$createType14 = $Create.Nullable($$createType13);
 const $$createType15 = $Create.Array($$createType14);
-const $$createType16 = model$0.PublishResult.createFrom;
+const $$createType16 = model$0.Namespace.createFrom;
 const $$createType17 = $Create.Nullable($$createType16);
+const $$createType18 = $Create.Array($$createType17);
+const $$createType19 = model$0.PublishResult.createFrom;
+const $$createType20 = $Create.Nullable($$createType19);
+const $$createType21 = model$0.TopicPermission.createFrom;
+const $$createType22 = $Create.Nullable($$createType21);
+const $$createType23 = $Create.Array($$createType22);

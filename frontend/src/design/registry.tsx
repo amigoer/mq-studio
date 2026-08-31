@@ -14,6 +14,7 @@ import { TopicsKafka } from "./boards/topics/TopicsKafka";
 import { QueuesRabbitMQ } from "./boards/topics/QueuesRabbitMQ";
 import { ExchangesRabbitMQ } from "./boards/topics/ExchangesRabbitMQ";
 import { VhostsRabbitMQ } from "./boards/vhosts/VhostsRabbitMQ";
+import { UsersRabbitMQ } from "./boards/acl/UsersRabbitMQ";
 import { TopicsPulsar } from "./boards/topics/TopicsPulsar";
 import { StreamsRedis } from "./boards/topics/StreamsRedis";
 
@@ -152,9 +153,14 @@ export function renderBoard(
   /* Alerts is one board for every family: the rules are numeric comparisons
      over a cluster snapshot, with nothing protocol-specific to draw. */
   if (page === "alerts") return <Alerts onOpenSettings={nav?.onOpenAlertSettings} />;
-  /* ACL is RocketMQ's for now: the board speaks its two access systems, and a
-     family with a different one gets its own rather than a shared shell. */
-  if (page === "acl" && protocol === "rocketmq") return <Acl />;
+  /* Access control is per family, and deliberately so: each speaks its own
+     model. RocketMQ has a credential pair carrying its own permissions;
+     RabbitMQ has users whose tags gate the management API and whose
+     per-virtual-host permissions gate AMQP, which are two systems on one name. */
+  if (page === "acl") {
+    if (protocol === "rocketmq") return <Acl />;
+    if (protocol === "rabbitmq") return <UsersRabbitMQ />;
+  }
 
   const Board = BOARDS[page]?.[protocol];
   if (Board) return <Board nav={nav} />;

@@ -40,6 +40,8 @@ func backings() []capabilityBacking {
 	accessDirectory := func(c Conn) bool { _, ok := c.(AccessDirectory); return ok }
 	namespaces := func(c Conn) bool { _, ok := c.(NamespaceAdmin); return ok }
 	namespaceLimits := func(c Conn) bool { _, ok := c.(NamespaceLimits); return ok }
+	identities := func(c Conn) bool { _, ok := c.(IdentityAdmin); return ok }
+	identityPerms := func(c Conn) bool { _, ok := c.(IdentityPermissions); return ok }
 	routing := func(c Conn) bool { _, ok := c.(RoutingAdmin); return ok }
 	census := func(c Conn) bool { _, ok := c.(CensusReporter); return ok }
 	routingAdmin := func(c Conn) bool { _, ok := c.(RoutingMutator); return ok }
@@ -92,6 +94,9 @@ func backings() []capabilityBacking {
 		{model.CapNamespaceList, "NamespaceAdmin", namespaces},
 		{model.CapNamespaceAdmin, "NamespaceAdmin", namespaces},
 		{model.CapNamespaceLimits, "NamespaceLimits", namespaceLimits},
+		{model.CapIdentityList, "IdentityAdmin", identities},
+		{model.CapIdentityAdmin, "IdentityAdmin", identities},
+		{model.CapIdentityPermissions, "IdentityPermissions", identityPerms},
 		{model.CapRouting, "RoutingAdmin", routing},
 		{model.CapRoutingAdmin, "RoutingMutator", routingAdmin},
 		{model.CapClusterCensus, "CensusReporter", census},

@@ -366,3 +366,100 @@ func (s *Service) SetNamespaceLimit(ctx context.Context, connID int, name, limit
 	}
 	return api.SetNamespaceLimit(ctx, name, limit, value)
 }
+
+// Identities returns every user with its permissions attached.
+func (s *Service) Identities(ctx context.Context, connID int) ([]*model.Identity, error) {
+	api, err := port[driver.IdentityAdmin](s, connID, model.CapIdentityList)
+	if err != nil {
+		if notConnected(err) {
+			return []*model.Identity{}, nil
+		}
+		return nil, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.ListIdentities(ctx)
+}
+
+// SaveIdentity creates a user or updates one.
+func (s *Service) SaveIdentity(ctx context.Context, connID int, spec model.IdentitySpec) error {
+	api, err := port[driver.IdentityAdmin](s, connID, model.CapIdentityAdmin)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.SaveIdentity(ctx, spec)
+}
+
+// DeleteIdentity removes a user, its permissions and its open connections.
+func (s *Service) DeleteIdentity(ctx context.Context, connID int, name string) error {
+	api, err := port[driver.IdentityAdmin](s, connID, model.CapIdentityAdmin)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.RemoveIdentity(ctx, name)
+}
+
+// SetPermission grants an identity rights inside one namespace.
+func (s *Service) SetPermission(ctx context.Context, connID int, permission model.NamespacePermission) error {
+	api, err := port[driver.IdentityPermissions](s, connID, model.CapIdentityPermissions)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.SetPermission(ctx, permission)
+}
+
+// RevokePermission removes an identity's permission record for one namespace,
+// which stops it connecting there at all.
+func (s *Service) RevokePermission(ctx context.Context, connID int, namespace, identity string) error {
+	api, err := port[driver.IdentityPermissions](s, connID, model.CapIdentityPermissions)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.RemovePermission(ctx, namespace, identity)
+}
+
+// TopicPermissions returns the per-exchange narrowing applied on top of the
+// namespace permissions.
+func (s *Service) TopicPermissions(ctx context.Context, connID int) ([]*model.TopicPermission, error) {
+	api, err := port[driver.IdentityPermissions](s, connID, model.CapIdentityPermissions)
+	if err != nil {
+		if notConnected(err) {
+			return []*model.TopicPermission{}, nil
+		}
+		return nil, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.ListTopicPermissions(ctx)
+}
+
+// SetTopicPermission narrows write and read on one topic exchange.
+func (s *Service) SetTopicPermission(ctx context.Context, connID int, permission model.TopicPermission) error {
+	api, err := port[driver.IdentityPermissions](s, connID, model.CapIdentityPermissions)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.SetTopicPermission(ctx, permission)
+}
+
+// RevokeTopicPermission lifts the narrowing, leaving the namespace permissions
+// alone.
+func (s *Service) RevokeTopicPermission(ctx context.Context, connID int, namespace, identity string) error {
+	api, err := port[driver.IdentityPermissions](s, connID, model.CapIdentityPermissions)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.RemoveTopicPermission(ctx, namespace, identity)
+}

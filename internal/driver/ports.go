@@ -348,6 +348,38 @@ type ClientCloser interface {
 	CloseUserConnections(ctx context.Context, username, reason string) error
 }
 
+// IdentityAdmin manages the principals a broker authenticates.
+//
+// A third access model beside AccessAdmin and AccessDirectory, and it is one
+// rather than a variation on them because RabbitMQ splits the question in two:
+// a user's tags decide what the management API lets it do, and its
+// per-namespace permissions decide what its connections may touch. A user with
+// every tag and no permission can read every page and open no queue. Merging
+// those would lose which of the two is refusing an operation.
+type IdentityAdmin interface {
+	ListIdentities(ctx context.Context) ([]*model.Identity, error)
+	// SaveIdentity creates or updates. An empty password keeps whatever is
+	// stored, which the driver has to arrange for: the broker's own endpoint
+	// replaces the whole user, so leaving the field out removes it.
+	SaveIdentity(ctx context.Context, spec model.IdentitySpec) error
+	RemoveIdentity(ctx context.Context, name string) error
+}
+
+// IdentityPermissions manages what an identity may touch inside a namespace.
+//
+// Separate from IdentityAdmin because they are separate endpoints and separate
+// permissions on the broker, and because revoking is not the same as granting
+// nothing: with no permission record the broker refuses the connection
+// outright, where empty patterns let it connect and do nothing.
+type IdentityPermissions interface {
+	SetPermission(ctx context.Context, permission model.NamespacePermission) error
+	RemovePermission(ctx context.Context, namespace, identity string) error
+
+	ListTopicPermissions(ctx context.Context) ([]*model.TopicPermission, error)
+	SetTopicPermission(ctx context.Context, permission model.TopicPermission) error
+	RemoveTopicPermission(ctx context.Context, namespace, identity string) error
+}
+
 // RoutingMutator creates and deletes exchanges and bindings.
 //
 // Separate from RoutingAdmin because reading a topology and changing it are

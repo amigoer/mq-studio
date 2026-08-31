@@ -127,7 +127,16 @@ const (
 	// CapNamespaceLimits caps a namespace as a whole rather than one
 	// destination inside it.
 	CapNamespaceLimits Capability = "namespace.limits"
-	CapRouting         Capability = "routing.exchanges"
+
+	// CapIdentityList and CapIdentityAdmin are a broker that keeps its own
+	// users, as opposed to one that authenticates against a credential pair
+	// stored in a config file. CapIdentityPermissions is the second half of
+	// that: what a user may touch, which RabbitMQ keeps separately from what
+	// it may administer.
+	CapIdentityList        Capability = "identity.list"
+	CapIdentityAdmin       Capability = "identity.admin"
+	CapIdentityPermissions Capability = "identity.permissions"
+	CapRouting             Capability = "routing.exchanges"
 
 	// CapRoutingAdmin creates and deletes exchanges and bindings. Separate
 	// from reading them: a connection may list a topology it has no permission

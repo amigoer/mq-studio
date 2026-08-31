@@ -32,11 +32,13 @@ export {
     FormField,
     FormOption,
     HealthCheck,
+    Identity,
     MQKind,
     MessageItem,
     MessageStatus,
     MessageTrackItem,
     Namespace,
+    NamespacePermission,
     Node,
     NodeStatus,
     ProducerClient,
@@ -52,5 +54,6 @@ export {
     SubscriptionRef,
     SubscriptionStatus,
     TailBatch,
-    TailCursor
+    TailCursor,
+    TopicPermission
 } from "./models.js";

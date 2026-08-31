@@ -716,6 +716,17 @@ export enum Capability {
      * destination inside it.
      */
     CapNamespaceLimits = "namespace.limits",
+
+    /**
+     * CapIdentityList and CapIdentityAdmin are a broker that keeps its own
+     * users, as opposed to one that authenticates against a credential pair
+     * stored in a config file. CapIdentityPermissions is the second half of
+     * that: what a user may touch, which RabbitMQ keeps separately from what
+     * it may administer.
+     */
+    CapIdentityList = "identity.list",
+    CapIdentityAdmin = "identity.admin",
+    CapIdentityPermissions = "identity.permissions",
     CapRouting = "routing.exchanges",
 
     /**
@@ -1770,6 +1781,74 @@ export class HealthCheck {
 }
 
 /**
+ * Identity is a principal the broker authenticates.
+ * 
+ * It is not AccessConfig and not AccessPrincipal. RocketMQ's plain_acl entry
+ * carries a key, a secret and its permissions together, and 5.3's auth store
+ * keeps rules attached to a subject; RabbitMQ keeps a user with tags in one
+ * place and its per-virtual-host permissions in another, and the tags decide
+ * what the management API lets it do while the permissions decide what its
+ * AMQP connections may touch. Those are two different systems on one name, and
+ * flattening them would lose which one is refusing an operation.
+ */
+export class Identity {
+    "name": string;
+
+    /**
+     * Tags gate the management API: administrator, monitoring, policymaker,
+     * management. They have nothing to do with the permissions below - a user
+     * with every tag and no permission can read every page and touch no queue.
+     */
+    "tags": string[];
+
+    /**
+     * HasPassword is false for a user that can only authenticate another way,
+     * which is a deliberate configuration rather than a broken one. The
+     * password itself never comes back.
+     */
+    "hasPassword": boolean;
+
+    /**
+     * Permissions is what this identity may do inside each namespace.
+     */
+    "permissions": (NamespacePermission | null)[];
+
+    /** Creates a new Identity instance. */
+    constructor($$source: Partial<Identity> = {}) {
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("tags" in $$source)) {
+            this["tags"] = [];
+        }
+        if (!("hasPassword" in $$source)) {
+            this["hasPassword"] = false;
+        }
+        if (!("permissions" in $$source)) {
+            this["permissions"] = [];
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new Identity instance from a string or object.
+     */
+    static createFrom($$source: any = {}): Identity {
+        const $$createField1_0 = $$createType0;
+        const $$createField3_0 = $$createType31;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("tags" in $$parsedSource) {
+            $$parsedSource["tags"] = $$createField1_0($$parsedSource["tags"]);
+        }
+        if ("permissions" in $$parsedSource) {
+            $$parsedSource["permissions"] = $$createField3_0($$parsedSource["permissions"]);
+        }
+        return new Identity($$parsedSource as Partial<Identity>);
+    }
+}
+
+/**
  * MQKind identifies a broker family.
  * 
  * The values are the key for the driver registry, the per-kind settings
@@ -2108,7 +2187,7 @@ export class Namespace {
      */
     static createFrom($$source: any = {}): Namespace {
         const $$createField2_0 = $$createType0;
-        const $$createField8_0 = $$createType29;
+        const $$createField8_0 = $$createType32;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("tags" in $$parsedSource) {
             $$parsedSource["tags"] = $$createField2_0($$parsedSource["tags"]);
@@ -2117,6 +2196,64 @@ export class Namespace {
             $$parsedSource["limits"] = $$createField8_0($$parsedSource["limits"]);
         }
         return new Namespace($$parsedSource as Partial<Namespace>);
+    }
+}
+
+/**
+ * NamespacePermission is one identity's rights inside one namespace.
+ * 
+ * The three fields are regular expressions matched against a resource's name,
+ * and the distinction between an empty one and ".*" is the whole model: empty
+ * matches nothing and permits nothing, ".*" matches everything. A page that
+ * rendered an empty pattern as "none set" would be describing the opposite of
+ * what it does.
+ */
+export class NamespacePermission {
+    "namespace": string;
+    "identity": string;
+
+    /**
+     * Configure is declaring and deleting queues and exchanges.
+     */
+    "configure": string;
+
+    /**
+     * Write is publishing to an exchange, and binding.
+     */
+    "write": string;
+
+    /**
+     * Read is consuming from a queue, and binding.
+     */
+    "read": string;
+
+    /** Creates a new NamespacePermission instance. */
+    constructor($$source: Partial<NamespacePermission> = {}) {
+        if (!("namespace" in $$source)) {
+            this["namespace"] = "";
+        }
+        if (!("identity" in $$source)) {
+            this["identity"] = "";
+        }
+        if (!("configure" in $$source)) {
+            this["configure"] = "";
+        }
+        if (!("write" in $$source)) {
+            this["write"] = "";
+        }
+        if (!("read" in $$source)) {
+            this["read"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new NamespacePermission instance from a string or object.
+     */
+    static createFrom($$source: any = {}): NamespacePermission {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new NamespacePermission($$parsedSource as Partial<NamespacePermission>);
     }
 }
 
@@ -2244,10 +2381,10 @@ export class Node {
      * Creates a new Node instance from a string or object.
      */
     static createFrom($$source: any = {}): Node {
-        const $$createField10_0 = $$createType30;
-        const $$createField11_0 = $$createType31;
-        const $$createField12_0 = $$createType31;
-        const $$createField13_0 = $$createType33;
+        const $$createField10_0 = $$createType33;
+        const $$createField11_0 = $$createType34;
+        const $$createField12_0 = $$createType34;
+        const $$createField13_0 = $$createType36;
         const $$createField14_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("tpsHistoryTimestamps" in $$parsedSource) {
@@ -2739,7 +2876,7 @@ export class Subscription {
      * Creates a new Subscription instance from a string or object.
      */
     static createFrom($$source: any = {}): Subscription {
-        const $$createField1_0 = $$createType34;
+        const $$createField1_0 = $$createType37;
         const $$createField8_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("ref" in $$parsedSource) {
@@ -2805,8 +2942,8 @@ export class SubscriptionClient {
      * Creates a new SubscriptionClient instance from a string or object.
      */
     static createFrom($$source: any = {}): SubscriptionClient {
-        const $$createField1_0 = $$createType36;
-        const $$createField2_0 = $$createType38;
+        const $$createField1_0 = $$createType39;
+        const $$createField2_0 = $$createType41;
         const $$createField3_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("assignments" in $$parsedSource) {
@@ -2905,8 +3042,8 @@ export class TailBatch {
      * Creates a new TailBatch instance from a string or object.
      */
     static createFrom($$source: any = {}): TailBatch {
-        const $$createField0_0 = $$createType41;
-        const $$createField1_0 = $$createType42;
+        const $$createField0_0 = $$createType44;
+        const $$createField1_0 = $$createType45;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("messages" in $$parsedSource) {
             $$parsedSource["messages"] = $$createField0_0($$parsedSource["messages"]);
@@ -2941,12 +3078,61 @@ export class TailCursor {
      * Creates a new TailCursor instance from a string or object.
      */
     static createFrom($$source: any = {}): TailCursor {
-        const $$createField0_0 = $$createType44;
+        const $$createField0_0 = $$createType47;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("positions" in $$parsedSource) {
             $$parsedSource["positions"] = $$createField0_0($$parsedSource["positions"]);
         }
         return new TailCursor($$parsedSource as Partial<TailCursor>);
+    }
+}
+
+/**
+ * TopicPermission narrows write and read further, for topic exchanges only.
+ * 
+ * Separate from NamespacePermission because it is a separate endpoint and
+ * because it does nothing on its own: it is a filter applied on top of the
+ * permissions above, and a user with no write permission gains none from a
+ * topic permission that would allow it.
+ */
+export class TopicPermission {
+    "namespace": string;
+    "identity": string;
+
+    /**
+     * Exchange is which topic exchange this applies to.
+     */
+    "exchange": string;
+    "write": string;
+    "read": string;
+
+    /** Creates a new TopicPermission instance. */
+    constructor($$source: Partial<TopicPermission> = {}) {
+        if (!("namespace" in $$source)) {
+            this["namespace"] = "";
+        }
+        if (!("identity" in $$source)) {
+            this["identity"] = "";
+        }
+        if (!("exchange" in $$source)) {
+            this["exchange"] = "";
+        }
+        if (!("write" in $$source)) {
+            this["write"] = "";
+        }
+        if (!("read" in $$source)) {
+            this["read"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new TopicPermission instance from a string or object.
+     */
+    static createFrom($$source: any = {}): TopicPermission {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new TopicPermission($$parsedSource as Partial<TopicPermission>);
     }
 }
 
@@ -2980,19 +3166,22 @@ const $$createType25 = FieldCond.createFrom;
 const $$createType26 = $Create.Nullable($$createType25);
 const $$createType27 = FormOption.createFrom;
 const $$createType28 = $Create.Array($$createType27);
-const $$createType29 = $Create.Map($Create.Any, $Create.Any);
-const $$createType30 = $Create.Array($Create.Any);
-const $$createType31 = $Create.Array($Create.Any);
-const $$createType32 = ReplicaStatus.createFrom;
-const $$createType33 = $Create.Array($$createType32);
-const $$createType34 = SubscriptionRef.createFrom;
-const $$createType35 = QueueAssignment.createFrom;
+const $$createType29 = NamespacePermission.createFrom;
+const $$createType30 = $Create.Nullable($$createType29);
+const $$createType31 = $Create.Array($$createType30);
+const $$createType32 = $Create.Map($Create.Any, $Create.Any);
+const $$createType33 = $Create.Array($Create.Any);
+const $$createType34 = $Create.Array($Create.Any);
+const $$createType35 = ReplicaStatus.createFrom;
 const $$createType36 = $Create.Array($$createType35);
-const $$createType37 = ConsumeThroughput.createFrom;
-const $$createType38 = $Create.Array($$createType37);
-const $$createType39 = MessageItem.createFrom;
-const $$createType40 = $Create.Nullable($$createType39);
+const $$createType37 = SubscriptionRef.createFrom;
+const $$createType38 = QueueAssignment.createFrom;
+const $$createType39 = $Create.Array($$createType38);
+const $$createType40 = ConsumeThroughput.createFrom;
 const $$createType41 = $Create.Array($$createType40);
-const $$createType42 = TailCursor.createFrom;
-const $$createType43 = QueuePosition.createFrom;
+const $$createType42 = MessageItem.createFrom;
+const $$createType43 = $Create.Nullable($$createType42);
 const $$createType44 = $Create.Array($$createType43);
+const $$createType45 = TailCursor.createFrom;
+const $$createType46 = QueuePosition.createFrom;
+const $$createType47 = $Create.Array($$createType46);

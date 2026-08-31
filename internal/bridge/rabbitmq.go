@@ -284,3 +284,94 @@ func (s *RabbitMQService) DeleteNamespace(connID int, name string) error {
 func (s *RabbitMQService) SetNamespaceLimit(connID int, name, limit string, value int) error {
 	return s.service.SetNamespaceLimit(context.Background(), connID, name, limit, value)
 }
+
+// Identities returns every user with its per-namespace permissions.
+func (s *RabbitMQService) Identities(connID int) ([]*model.Identity, error) {
+	return s.service.Identities(context.Background(), connID)
+}
+
+// IdentityInput creates or updates a user.
+type IdentityInput struct {
+	Name string   `json:"name"`
+	Tags []string `json:"tags"`
+	// Password empty keeps whatever is stored.
+	Password string `json:"password"`
+	// WithoutPassword asks for a user that cannot authenticate with one. It is
+	// the opposite instruction from an empty password, not the same one.
+	WithoutPassword bool `json:"withoutPassword"`
+}
+
+// SaveIdentity creates a user or updates one.
+func (s *RabbitMQService) SaveIdentity(connID int, input IdentityInput) error {
+	return s.service.SaveIdentity(context.Background(), connID, model.IdentitySpec{
+		Name:            input.Name,
+		Tags:            input.Tags,
+		Password:        input.Password,
+		WithoutPassword: input.WithoutPassword,
+	})
+}
+
+// DeleteIdentity removes a user, its permissions and its open connections.
+func (s *RabbitMQService) DeleteIdentity(connID int, name string) error {
+	return s.service.DeleteIdentity(context.Background(), connID, name)
+}
+
+// PermissionInput grants rights inside one namespace. The three patterns are
+// regular expressions: empty permits nothing, ".*" permits everything.
+type PermissionInput struct {
+	Vhost     string `json:"vhost"`
+	Identity  string `json:"identity"`
+	Configure string `json:"configure"`
+	Write     string `json:"write"`
+	Read      string `json:"read"`
+}
+
+// SetPermission grants an identity rights inside one namespace.
+func (s *RabbitMQService) SetPermission(connID int, input PermissionInput) error {
+	return s.service.SetPermission(context.Background(), connID, model.NamespacePermission{
+		Namespace: input.Vhost,
+		Identity:  input.Identity,
+		Configure: input.Configure,
+		Write:     input.Write,
+		Read:      input.Read,
+	})
+}
+
+// RevokePermission removes the permission record entirely, which stops the
+// identity connecting to that virtual host at all - not the same as granting
+// nothing.
+func (s *RabbitMQService) RevokePermission(connID int, vhost, identity string) error {
+	return s.service.RevokePermission(context.Background(), connID, vhost, identity)
+}
+
+// TopicPermissions returns the per-exchange narrowing on top of the namespace
+// permissions.
+func (s *RabbitMQService) TopicPermissions(connID int) ([]*model.TopicPermission, error) {
+	return s.service.TopicPermissions(context.Background(), connID)
+}
+
+// TopicPermissionInput narrows write and read on one topic exchange.
+type TopicPermissionInput struct {
+	Vhost    string `json:"vhost"`
+	Identity string `json:"identity"`
+	Exchange string `json:"exchange"`
+	Write    string `json:"write"`
+	Read     string `json:"read"`
+}
+
+// SetTopicPermission narrows write and read on one topic exchange.
+func (s *RabbitMQService) SetTopicPermission(connID int, input TopicPermissionInput) error {
+	return s.service.SetTopicPermission(context.Background(), connID, model.TopicPermission{
+		Namespace: input.Vhost,
+		Identity:  input.Identity,
+		Exchange:  input.Exchange,
+		Write:     input.Write,
+		Read:      input.Read,
+	})
+}
+
+// RevokeTopicPermission lifts the narrowing, leaving the namespace permissions
+// alone.
+func (s *RabbitMQService) RevokeTopicPermission(connID int, vhost, identity string) error {
+	return s.service.RevokeTopicPermission(context.Background(), connID, vhost, identity)
+}

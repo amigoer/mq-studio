@@ -14,8 +14,10 @@ import type {
   ClientChannel,
   ClientConnection,
   DeadLetterQueue,
+  Identity,
   Namespace,
   PublishResult,
+  TopicPermission,
 } from "@bindings/model/models";
 import { present } from "./client";
 
@@ -29,8 +31,11 @@ export type {
   DeadLetterSource,
   DeprecatedFeature,
   FeatureFlag,
+  Identity,
   Namespace,
+  NamespacePermission,
   PublishResult,
+  TopicPermission,
   HealthCheck,
   ResourceAlarm,
 } from "@bindings/model/models";
@@ -264,3 +269,60 @@ export const setNamespaceLimit = (
 /** The limits a virtual host can carry, as the broker names them. */
 export const LIMIT_MAX_CONNECTIONS = "max-connections";
 export const LIMIT_MAX_QUEUES = "max-queues";
+
+/** Every user, with its per-virtual-host permissions attached. */
+export const getIdentities = (connID: number): Promise<Identity[]> =>
+  RabbitMQService.Identities(connID).then(present);
+
+export interface IdentityInput {
+  name: string;
+  tags: string[];
+  /** Empty keeps whatever is stored, which is what lets tags be edited. */
+  password: string;
+  /**
+   * Asks for a user that cannot authenticate with a password at all -
+   * legitimate for certificate or OAuth authentication.
+   *
+   * A separate flag from an empty password because the two are opposite
+   * instructions: the broker's update endpoint replaces the whole user, so
+   * leaving the field out removes the password rather than keeping it, and
+   * only the driver can tell those apart.
+   */
+  withoutPassword: boolean;
+}
+
+export const saveIdentity = (connID: number, input: IdentityInput): Promise<void> =>
+  RabbitMQService.SaveIdentity(connID, input);
+
+/** Deletes a user, its permissions and any connection it holds. */
+export const deleteIdentity = (connID: number, name: string): Promise<void> =>
+  RabbitMQService.DeleteIdentity(connID, name);
+
+export interface PermissionInput {
+  vhost: string;
+  identity: string;
+  /** Regular expressions: empty permits nothing, ".*" permits everything. */
+  configure: string;
+  write: string;
+  read: string;
+}
+
+export const setPermission = (connID: number, input: PermissionInput): Promise<void> =>
+  RabbitMQService.SetPermission(connID, input);
+
+/**
+ * Removes the permission record entirely.
+ *
+ * Not the same as granting nothing: with no record the broker refuses the
+ * connection to that virtual host outright, where empty patterns let it
+ * connect and then do nothing - which is far harder to diagnose.
+ */
+export const revokePermission = (
+  connID: number,
+  vhost: string,
+  identity: string,
+): Promise<void> => RabbitMQService.RevokePermission(connID, vhost, identity);
+
+/** The per-exchange narrowing applied on top of the namespace permissions. */
+export const getTopicPermissions = (connID: number): Promise<TopicPermission[]> =>
+  RabbitMQService.TopicPermissions(connID).then(present);

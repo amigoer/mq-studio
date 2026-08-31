@@ -483,6 +483,55 @@ export class ExchangeInput {
 }
 
 /**
+ * IdentityInput creates or updates a user.
+ */
+export class IdentityInput {
+    "name": string;
+    "tags": string[];
+
+    /**
+     * Password empty keeps whatever is stored.
+     */
+    "password": string;
+
+    /**
+     * WithoutPassword asks for a user that cannot authenticate with one. It is
+     * the opposite instruction from an empty password, not the same one.
+     */
+    "withoutPassword": boolean;
+
+    /** Creates a new IdentityInput instance. */
+    constructor($$source: Partial<IdentityInput> = {}) {
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("tags" in $$source)) {
+            this["tags"] = [];
+        }
+        if (!("password" in $$source)) {
+            this["password"] = "";
+        }
+        if (!("withoutPassword" in $$source)) {
+            this["withoutPassword"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new IdentityInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): IdentityInput {
+        const $$createField1_0 = $$createType0;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("tags" in $$parsedSource) {
+            $$parsedSource["tags"] = $$createField1_0($$parsedSource["tags"]);
+        }
+        return new IdentityInput($$parsedSource as Partial<IdentityInput>);
+    }
+}
+
+/**
  * MaintenanceTaskView is one offerable housekeeping job.
  */
 export class MaintenanceTaskView {
@@ -663,6 +712,47 @@ export class NamespaceInput {
             $$parsedSource["tags"] = $$createField2_0($$parsedSource["tags"]);
         }
         return new NamespaceInput($$parsedSource as Partial<NamespaceInput>);
+    }
+}
+
+/**
+ * PermissionInput grants rights inside one namespace. The three patterns are
+ * regular expressions: empty permits nothing, ".*" permits everything.
+ */
+export class PermissionInput {
+    "vhost": string;
+    "identity": string;
+    "configure": string;
+    "write": string;
+    "read": string;
+
+    /** Creates a new PermissionInput instance. */
+    constructor($$source: Partial<PermissionInput> = {}) {
+        if (!("vhost" in $$source)) {
+            this["vhost"] = "";
+        }
+        if (!("identity" in $$source)) {
+            this["identity"] = "";
+        }
+        if (!("configure" in $$source)) {
+            this["configure"] = "";
+        }
+        if (!("write" in $$source)) {
+            this["write"] = "";
+        }
+        if (!("read" in $$source)) {
+            this["read"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new PermissionInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): PermissionInput {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new PermissionInput($$parsedSource as Partial<PermissionInput>);
     }
 }
 
@@ -1489,6 +1579,46 @@ export class TopicInput {
     static createFrom($$source: any = {}): TopicInput {
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         return new TopicInput($$parsedSource as Partial<TopicInput>);
+    }
+}
+
+/**
+ * TopicPermissionInput narrows write and read on one topic exchange.
+ */
+export class TopicPermissionInput {
+    "vhost": string;
+    "identity": string;
+    "exchange": string;
+    "write": string;
+    "read": string;
+
+    /** Creates a new TopicPermissionInput instance. */
+    constructor($$source: Partial<TopicPermissionInput> = {}) {
+        if (!("vhost" in $$source)) {
+            this["vhost"] = "";
+        }
+        if (!("identity" in $$source)) {
+            this["identity"] = "";
+        }
+        if (!("exchange" in $$source)) {
+            this["exchange"] = "";
+        }
+        if (!("write" in $$source)) {
+            this["write"] = "";
+        }
+        if (!("read" in $$source)) {
+            this["read"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new TopicPermissionInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): TopicPermissionInput {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new TopicPermissionInput($$parsedSource as Partial<TopicPermissionInput>);
     }
 }
 
