@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/twmb/franz-go/pkg/kgo"
+
 	"github.com/amigoer/mq-studio/internal/crypto"
 	"github.com/amigoer/mq-studio/internal/driver"
 	kafkadriver "github.com/amigoer/mq-studio/internal/driver/kafka"
@@ -183,7 +185,7 @@ func crossCheckTopic(t *testing.T, stack *kafkaStack, name string, partitions in
 
 func TestLiveKafkaCrossCheck(t *testing.T) {
 	stack := newKafkaStack(t)
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
 	defer cancel()
 
 	const topic = "mqs-xcheck-orders"
@@ -452,6 +454,161 @@ func TestLiveKafkaCrossCheck(t *testing.T) {
 			if !strings.Contains(described, dir.Path) {
 				t.Errorf("mq-studio reported directory %q, which kafka-log-dirs.sh did not", dir.Path)
 			}
+		}
+	})
+
+	/*
+	 * A quota written here and read back by the cluster's own tool.
+	 *
+	 * The write is the half worth cross-checking. A quota is stored as broker
+	 * configuration under an entity path, and getting that path wrong stores a
+	 * limit that throttles nobody while the page happily lists it back.
+	 */
+	t.Run("a quota matches kafka-configs.sh", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		const client = "mqs-xcheck-client"
+		entity := []model.QuotaEntity{{Type: "client-id", Name: client}}
+		t.Cleanup(func() {
+			cleanup, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+			defer cancel()
+			_ = stack.kafka.RemoveQuota(cleanup, stack.connID, entity,
+				[]string{"producer_byte_rate", "consumer_byte_rate"})
+		})
+
+		if err := stack.kafka.AlterQuota(ctx, stack.connID, entity, map[string]float64{
+			"producer_byte_rate": 1_048_576,
+			"consumer_byte_rate": 2_097_152,
+		}, nil); err != nil {
+			t.Fatalf("AlterQuota: %v", err)
+		}
+
+		described := cli(t, "kafka-configs.sh", "--describe",
+			"--entity-type", "clients", "--entity-name", client)
+		if !strings.Contains(described, "producer_byte_rate=1048576") {
+			t.Errorf("kafka-configs.sh does not report the producer limit: %s", described)
+		}
+		if !strings.Contains(described, "consumer_byte_rate=2097152") {
+			t.Errorf("kafka-configs.sh does not report the consumer limit: %s", described)
+		}
+
+		// And back the other way: the page must list what the cluster stores.
+		quotas, err := stack.kafka.Quotas(ctx, stack.connID)
+		if err != nil {
+			t.Fatalf("Quotas: %v", err)
+		}
+		found := false
+		for _, quota := range quotas {
+			for _, component := range quota.Entity {
+				if component.Type == "client-id" && component.Name == client {
+					found = true
+					if quota.Limits["producer_byte_rate"] != 1_048_576 {
+						t.Errorf("producer_byte_rate = %v", quota.Limits["producer_byte_rate"])
+					}
+				}
+			}
+		}
+		if !found {
+			t.Error("mq-studio does not list the quota it just wrote")
+		}
+	})
+
+	/*
+	 * An open transaction, against kafka-transactions.sh.
+	 *
+	 * The one page whose subject has to be manufactured: there is no way to
+	 * observe a stuck transaction without leaving one. This begins one, writes
+	 * to a partition, and never commits - which is exactly the failure the tab
+	 * exists to make visible.
+	 */
+	t.Run("an open transaction matches kafka-transactions.sh", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), 40*time.Second)
+		defer cancel()
+
+		const txnID = "mqs-xcheck-writer"
+		producer, err := kgo.NewClient(
+			kgo.SeedBrokers(strings.Split(kafkaSeeds, ",")...),
+			kgo.TransactionalID(txnID),
+			kgo.RequiredAcks(kgo.AllISRAcks()),
+		)
+		if err != nil {
+			t.Fatalf("build the transactional producer: %v", err)
+		}
+		t.Cleanup(func() {
+			// Without the abort the partitions stay held and the topic cannot
+			// be deleted, which would leave the next run a stuck transaction.
+			abort, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+			defer cancel()
+			_ = producer.EndTransaction(abort, kgo.TryAbort)
+			producer.Close()
+		})
+
+		if err := producer.BeginTransaction(); err != nil {
+			t.Fatalf("BeginTransaction: %v", err)
+		}
+		// Keyed because the cross-check topic is compacted, and a compacted
+		// topic rejects a record with no key.
+		if err := producer.ProduceSync(ctx, &kgo.Record{
+			Topic: topic, Key: []byte("mqs-xcheck-txn"), Value: []byte("uncommitted"),
+		}).FirstErr(); err != nil {
+			t.Fatalf("produce inside the transaction: %v", err)
+		}
+
+		var reported *model.Transaction
+		for deadline := time.Now().Add(20 * time.Second); time.Now().Before(deadline); {
+			transactions, err := stack.kafka.Transactions(ctx, stack.connID)
+			if err != nil {
+				t.Fatalf("Transactions: %v", err)
+			}
+			for _, transaction := range transactions {
+				if transaction.ID == txnID {
+					reported = transaction
+				}
+			}
+			if reported != nil && reported.Holding {
+				break
+			}
+			time.Sleep(250 * time.Millisecond)
+		}
+		if reported == nil {
+			t.Fatal("mq-studio does not report the open transaction")
+		}
+		if !reported.Holding {
+			t.Error("the transaction is not reported as holding readers back")
+		}
+
+		listed := cli(t, "kafka-transactions.sh", "list")
+		if !strings.Contains(listed, txnID) {
+			t.Fatalf("kafka-transactions.sh does not list it: %s", listed)
+		}
+
+		described := cli(t, "kafka-transactions.sh", "describe", "--transactional-id", txnID)
+		rows := lines(described)
+		if len(rows) < 2 {
+			t.Fatalf("kafka-transactions.sh describe returned no row: %s", described)
+		}
+		fields := strings.Fields(rows[1])
+		// COORDINATOR-ID  TRANSACTIONAL-ID  PRODUCER-ID  PRODUCER-EPOCH ...
+		if len(fields) < 4 {
+			t.Fatalf("unexpected describe row %q", rows[1])
+		}
+		if got := strconv.FormatInt(int64(reported.Coordinator), 10); got != fields[0] {
+			t.Errorf("coordinator = %s, kafka-transactions.sh says %s", got, fields[0])
+		}
+		if got := strconv.FormatInt(reported.ProducerID, 10); got != fields[2] {
+			t.Errorf("producer id = %s, kafka-transactions.sh says %s", got, fields[2])
+		}
+		if got := strconv.FormatInt(int64(reported.ProducerEpoch), 10); got != fields[3] {
+			t.Errorf("producer epoch = %s, kafka-transactions.sh says %s", got, fields[3])
+		}
+		if !strings.Contains(described, "Ongoing") || reported.State != "Ongoing" {
+			t.Errorf("state = %q, kafka-transactions.sh says %s", reported.State, described)
+		}
+		// The partition it is holding is what tells an operator whose pipeline
+		// stopped, so an empty list here is the panel failing at its one job.
+		if len(reported.Partitions) == 0 {
+			t.Error("mq-studio names no partition for the open transaction")
 		}
 	})
 }
