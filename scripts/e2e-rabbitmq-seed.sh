@@ -67,6 +67,18 @@ echo "seeding a policy"
 api PUT "/api/policies/$VHOST/mqs-seed-ttl" \
   '{"pattern":"^mqs-seed-audit$","definition":{"message-ttl":86400000},"priority":1,"apply-to":"queues"}' >/dev/null
 
+# A federation upstream pointed at a host that does not exist. It never
+# connects, so it stays put instead of moving messages around under the tests,
+# and it is the only way to see two things by hand: an upstream with no link,
+# and a URI with its password stripped.
+echo "seeding a federation upstream"
+if api PUT "/api/parameters/federation-upstream/$VHOST/mqs-seed-eu-west" \
+  '{"value":{"uri":"amqp://mqs-seed:mqs-seed-secret@upstream.invalid:5672/%2F","max-hops":2,"ack-mode":"on-confirm","exchange":"mqs-seed-orders"}}' >/dev/null 2>&1; then
+  :
+else
+  echo "  skipped: the federation plugin is not enabled on this broker" >&2
+fi
+
 echo "seeding a user"
 api PUT /api/users/mqs-seed-reader '{"password":"mqs-seed-reader","tags":"monitoring"}' >/dev/null
 # Read-only: an empty configure and write regex denies everything, which is
@@ -89,4 +101,4 @@ publish mqs-seed-orders order.audit 40
 publish mqs-seed-orders nothing.is.bound.to.this 5
 publish mqs-seed-dlx settle.failed 3
 
-echo "seeded: exchanges, queues, bindings, a policy, a read-only user and some messages"
+echo "seeded: exchanges, queues, bindings, a policy, a federation upstream, a read-only user and some messages"

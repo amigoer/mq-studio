@@ -108,6 +108,7 @@ beforeAll(async () => {
     replication,
     ui,
     i18n,
+    settings,
   ] = await Promise.all([
     import("react-dom/server"),
     import("./overview/OverviewRabbitMQ"),
@@ -120,10 +121,17 @@ beforeAll(async () => {
     import("./replication/ReplicationRabbitMQ"),
     import("@/components"),
     import("@/i18n"),
+    import("@/hooks/useSettings"),
   ]);
   await i18n.default.changeLanguage("zh");
+  // The providers main.tsx gives a board. Settings is one of them: a board
+  // that renders a timestamp reads the reader's timezone from it.
   render = (node) =>
-    server.renderToStaticMarkup(<ui.ConfirmProvider>{node}</ui.ConfirmProvider>);
+    server.renderToStaticMarkup(
+      <ui.ConfirmProvider>
+        <settings.SettingsProvider>{node}</settings.SettingsProvider>
+      </ui.ConfirmProvider>,
+    );
   OverviewRabbitMQ = overview.OverviewRabbitMQ;
   QueuesRabbitMQ = queues.QueuesRabbitMQ;
   ExchangesRabbitMQ = exchanges.ExchangesRabbitMQ;

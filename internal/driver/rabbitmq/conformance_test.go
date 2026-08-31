@@ -2678,6 +2678,18 @@ func TestLiveShovelLifecycle(t *testing.T) {
 		t.Errorf("state = %q, want running", found.State)
 	}
 
+	/*
+	 * The timestamp has to carry its zone. The broker reports UTC in a format
+	 * with no marker, and passed through it was drawn beside times rendered in
+	 * the reader's own zone - eight hours wrong for a reader eight hours from
+	 * UTC. The unit test covers the conversion; this covers it being called.
+	 */
+	if found.Since == "" {
+		t.Error("a running shovel reported no timestamp")
+	} else if _, err := time.Parse(time.RFC3339, found.Since); err != nil {
+		t.Errorf("state timestamp %q does not carry its zone: %v", found.Since, err)
+	}
+
 	// The credential must not survive the trip out of the driver: this page
 	// is exactly the sort of thing that ends up in a screenshot.
 	for _, address := range append(append([]string{}, found.SourceURI...), found.TargetURI...) {

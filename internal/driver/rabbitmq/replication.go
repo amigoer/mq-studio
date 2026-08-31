@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	rabbithole "github.com/michaelklishin/rabbit-hole/v3"
 
@@ -54,7 +55,7 @@ func (c *Conn) ListShovels(ctx context.Context) ([]*model.Shovel, error) {
 			// worth showing: a defined shovel with no state has not started.
 			State:     status.State,
 			Type:      status.Type,
-			Since:     status.Timestamp,
+			Since:     shovelTimestamp(status.Timestamp),
 			Source:    shovelSource(&shovel.Definition),
 			Target:    shovelTarget(&shovel.Definition),
 			AckMode:   shovel.Definition.AckMode,
@@ -129,6 +130,29 @@ func (c *Conn) RemoveFederationUpstream(ctx context.Context, namespace, name str
 		return fmt.Errorf("delete federation upstream %q: %w", name, err)
 	}
 	return nil
+}
+
+/*
+ * shovelTimestamp turns the broker's own format into one that carries its zone.
+ *
+ * The status endpoint reports UTC as "2026-08-31 4:15:18" - no marker, and a
+ * single-digit hour. Passed through as it stood, it was drawn beside times the
+ * app had rendered in the reader's own zone, so a reader eight hours from UTC
+ * read it as eight hours wrong. Re-emitted with the zone, the renderer can put
+ * it in their timezone like every other timestamp.
+ *
+ * A format this cannot read is passed through: a wrong-looking timestamp is
+ * better than no timestamp.
+ */
+func shovelTimestamp(raw string) string {
+	if raw == "" {
+		return ""
+	}
+	parsed, err := time.Parse("2006-1-2 15:4:5", raw)
+	if err != nil {
+		return raw
+	}
+	return parsed.UTC().Format(time.RFC3339)
 }
 
 // linkString reads one field out of a federation link, which the library

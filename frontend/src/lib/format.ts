@@ -62,7 +62,9 @@ export function formatQueues(read: number, write: number): string {
 export function formatBytes(value: number | string | undefined): string {
   const bytes = typeof value === "string" ? Number.parseInt(value, 10) : value;
   if (bytes == null || Number.isNaN(bytes) || isUnknown(bytes)) return UNKNOWN;
-  if (bytes < 1024) return `${bytes} B`;
+  // Rounded, because this also formats byte rates, which are fractional: a
+  // connection moving 1.6 B/s used to render every digit of the float.
+  if (bytes < 1024) return `${bytes < 10 ? Math.round(bytes * 10) / 10 : Math.round(bytes)} B`;
   const units = ["KiB", "MiB", "GiB", "TiB", "PiB"];
   let scaled = bytes / 1024;
   let unit = 0;

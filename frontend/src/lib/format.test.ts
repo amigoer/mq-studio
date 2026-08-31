@@ -106,3 +106,27 @@ describe("formatBytes", () => {
     expect(formatBytes(-1)).toBe("—");
   });
 });
+
+/*
+ * formatBytes also formats byte rates, which are fractional. A connection
+ * moving 1.6 bytes a second rendered every digit of the float:
+ * "1.600000023841858 B/s".
+ */
+describe("formatBytes on a fractional rate", () => {
+  it("rounds a small fraction to one decimal", () => {
+    expect(formatBytes(1.600000023841858)).toBe("1.6 B");
+    expect(formatBytes(0.5)).toBe("0.5 B");
+  });
+
+  it("drops the fraction once the figure is big enough not to need it", () => {
+    expect(formatBytes(62.4)).toBe("62 B");
+    expect(formatBytes(1023.7)).toBe("1024 B");
+  });
+
+  // Byte counts are integers, and they must render exactly as they did.
+  it("leaves whole byte counts alone", () => {
+    expect(formatBytes(0)).toBe("0 B");
+    expect(formatBytes(512)).toBe("512 B");
+    expect(formatBytes(1023)).toBe("1023 B");
+  });
+});

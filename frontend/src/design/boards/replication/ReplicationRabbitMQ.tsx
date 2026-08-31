@@ -15,6 +15,8 @@ import { BoardState } from "@/design/boards/BoardState";
 import { useRabbitReplication } from "@/hooks/rabbitmq/useRabbitReplication";
 import { useConnectionScope } from "@/mq/ConnectionScope";
 import { formatErrorMessage } from "@/lib/utils";
+import { formatMessageTime } from "@/lib/time";
+import { useSettings } from "@/hooks/useSettings";
 import * as rabbitApi from "@/api/rabbitmq";
 import type { FederationUpstream, Shovel } from "@/api/rabbitmq";
 
@@ -169,6 +171,9 @@ export function ReplicationRabbitMQ() {
 
 function ShovelCard({ shovel, onDelete }: { shovel: Shovel; onDelete: () => void }) {
   const { t } = useTranslation();
+  // The broker reports this in UTC; the driver re-emits it with its zone so it
+  // can be shown in the reader's, like every other timestamp in the app.
+  const { settings } = useSettings();
   /* A static shovel comes from the broker's configuration file and cannot be
      deleted through the API - offering the button would be offering a failure. */
   const isStatic = shovel.type === "static";
@@ -219,7 +224,12 @@ function ShovelCard({ shovel, onDelete }: { shovel: Shovel; onDelete: () => void
           ],
           [t("board.replication.rabbitmq.ackMode"), shovel.ackMode || "-"],
           ...(shovel.since !== ""
-            ? ([[t("board.replication.rabbitmq.since"), shovel.since]] as const)
+            ? ([
+                [
+                  t("board.replication.rabbitmq.since"),
+                  formatMessageTime(shovel.since, settings.timezone),
+                ],
+              ] as const)
             : []),
         ]}
       />
