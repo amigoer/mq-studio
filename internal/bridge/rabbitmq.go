@@ -543,3 +543,9 @@ func (s *RabbitMQService) FederationUpstreams(connID int) ([]*model.FederationUp
 func (s *RabbitMQService) DeleteFederationUpstream(connID int, vhost, name string) error {
 	return s.service.DeleteFederationUpstream(context.Background(), connID, vhost, name)
 }
+
+// StreamClients returns who is attached to a stream over the stream protocol,
+// which is nobody the AMQP consumer list would ever mention.
+func (s *RabbitMQService) StreamClients(connID int, vhost, name string) (*model.StreamClients, error) {
+	return s.service.StreamClients(context.Background(), connID, vhost, name)
+}

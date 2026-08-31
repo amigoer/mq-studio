@@ -421,6 +421,16 @@ type DefinitionsAdmin interface {
 	ImportDefinitions(ctx context.Context, namespace, document string) error
 }
 
+// StreamInspector reads who is attached to a stream over a protocol of its
+// own.
+//
+// Separate from SubscriptionLister because those clients are not subscribers
+// in the family's main protocol and do not appear among them: a stream read by
+// three applications can report zero consumers everywhere else.
+type StreamInspector interface {
+	StreamClients(ctx context.Context, ref model.DestinationRef) (*model.StreamClients, error)
+}
+
 // ReplicationAdmin reads the links that move messages between brokers.
 //
 // Read and delete rather than create. A shovel or an upstream is defined by a

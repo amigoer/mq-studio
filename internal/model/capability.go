@@ -157,7 +157,12 @@ const (
 	// rather than absent: both are plugins, so a broker that could do this
 	// perfectly well simply has not been asked to.
 	CapReplication Capability = "replication.admin"
-	CapRouting     Capability = "routing.exchanges"
+
+	// CapStreamClients is who is reading and writing a stream over a protocol
+	// that is not the family's main one. Degraded rather than absent for the
+	// same reason as replication: it is a plugin.
+	CapStreamClients Capability = "stream.clients"
+	CapRouting       Capability = "routing.exchanges"
 
 	// CapRoutingAdmin creates and deletes exchanges and bindings. Separate
 	// from reading them: a connection may list a topology it has no permission

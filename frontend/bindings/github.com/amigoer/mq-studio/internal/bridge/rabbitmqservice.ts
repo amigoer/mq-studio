@@ -388,12 +388,22 @@ export function Shovels(connID: number): $CancellablePromise<(model$0.Shovel | n
 }
 
 /**
+ * StreamClients returns who is attached to a stream over the stream protocol,
+ * which is nobody the AMQP consumer list would ever mention.
+ */
+export function StreamClients(connID: number, vhost: string, name: string): $CancellablePromise<model$0.StreamClients | null> {
+    return $Call.ByID(2768359987, connID, vhost, name).then(($result: any) => {
+        return $$createType38($result);
+    });
+}
+
+/**
  * TopicPermissions returns the per-exchange narrowing on top of the namespace
  * permissions.
  */
 export function TopicPermissions(connID: number): $CancellablePromise<(model$0.TopicPermission | null)[]> {
     return $Call.ByID(1841620516, connID).then(($result: any) => {
-        return $$createType39($result);
+        return $$createType41($result);
     });
 }
 
@@ -435,6 +445,8 @@ const $$createType33 = $Create.Array($$createType32);
 const $$createType34 = model$0.Shovel.createFrom;
 const $$createType35 = $Create.Nullable($$createType34);
 const $$createType36 = $Create.Array($$createType35);
-const $$createType37 = model$0.TopicPermission.createFrom;
+const $$createType37 = model$0.StreamClients.createFrom;
 const $$createType38 = $Create.Nullable($$createType37);
-const $$createType39 = $Create.Array($$createType38);
+const $$createType39 = model$0.TopicPermission.createFrom;
+const $$createType40 = $Create.Nullable($$createType39);
+const $$createType41 = $Create.Array($$createType40);

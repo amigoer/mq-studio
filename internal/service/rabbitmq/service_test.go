@@ -201,3 +201,62 @@ func TestFederationUpstreamsReachTheDriverWhenSupported(t *testing.T) {
 		t.Errorf("deleted = %q, want eu-west", conn.deleted)
 	}
 }
+
+// streamConn answers about the clients attached over a protocol of its own.
+type streamConn struct {
+	fakeConn
+	gotRef model.DestinationRef
+}
+
+func (c *streamConn) StreamClients(_ context.Context, ref model.DestinationRef) (*model.StreamClients, error) {
+	c.gotRef = ref
+	return &model.StreamClients{Consumers: []*model.StreamConsumer{{Offset: 42}}}, nil
+}
+
+/*
+ * The panel sits inside a queue detail that is otherwise complete, so a broker
+ * that cannot answer leaves one section explaining itself rather than failing
+ * the queue around it.
+ */
+func TestStreamClientsAreNilWhenNothingIsConnected(t *testing.T) {
+	clients, err := serviceWith(nil).StreamClients(context.Background(), 1, "/", "events")
+	if err != nil {
+		t.Fatalf("StreamClients: %v", err)
+	}
+	if clients != nil {
+		t.Errorf("clients = %+v, want nil", clients)
+	}
+}
+
+// The stream management plugin being off is a deployment choice, and the
+// refusal has to name the capability so the panel can explain which one.
+func TestStreamClientsAreRefusedWithoutTheCapability(t *testing.T) {
+	conn := &streamConn{fakeConn: fakeConn{capabilities: supporting(model.CapDestinationList)}}
+
+	_, err := serviceWith(conn).StreamClients(context.Background(), 1, "/", "events")
+	var unsupported *driver.UnsupportedError
+	if !errors.As(err, &unsupported) {
+		t.Fatalf("err = %v, want an UnsupportedError", err)
+	}
+	if unsupported.Capability != model.CapStreamClients {
+		t.Errorf("capability = %q, want %q", unsupported.Capability, model.CapStreamClients)
+	}
+}
+
+// The vhost and the queue name are two arguments across the bridge and one
+// ref below it, and swapping them would silently report another queue's
+// clients.
+func TestStreamClientsReachTheDriverWithTheirRef(t *testing.T) {
+	conn := &streamConn{fakeConn: fakeConn{capabilities: supporting(model.CapStreamClients)}}
+
+	clients, err := serviceWith(conn).StreamClients(context.Background(), 1, "orders", "events")
+	if err != nil {
+		t.Fatalf("StreamClients: %v", err)
+	}
+	if conn.gotRef.Namespace != "orders" || conn.gotRef.Name != "events" {
+		t.Errorf("ref = %+v", conn.gotRef)
+	}
+	if len(clients.Consumers) != 1 || clients.Consumers[0].Offset != 42 {
+		t.Errorf("clients = %+v", clients)
+	}
+}

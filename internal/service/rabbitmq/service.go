@@ -613,3 +613,21 @@ func (s *Service) DeleteFederationUpstream(ctx context.Context, connID int, name
 	defer cancel()
 	return api.RemoveFederationUpstream(ctx, namespace, name)
 }
+
+// StreamClients returns who is reading and writing a stream.
+//
+// Nil rather than an error when the broker cannot answer, because the panel
+// sits inside a queue detail that is otherwise complete: a missing plugin
+// should leave one section explaining itself, not fail the queue.
+func (s *Service) StreamClients(ctx context.Context, connID int, namespace, name string) (*model.StreamClients, error) {
+	api, err := port[driver.StreamInspector](s, connID, model.CapStreamClients)
+	if err != nil {
+		if notConnected(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.StreamClients(ctx, model.DestinationRef{Namespace: namespace, Name: name})
+}

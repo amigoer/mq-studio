@@ -391,7 +391,8 @@
         "amqpAccessRefused": "The management API works but the AMQP connection was refused: this user has no permission on the virtual host. Browsing and publishing are unavailable; the admin views are not affected.",
         "amqpTimeout": "Timed out reaching the AMQP port. Check the address and port, and that nothing is filtering it.",
         "amqpUnreachable": "Cannot reach the AMQP port. The admin views still work, but browsing and publishing do not - check the AMQP address and port.",
-        "replicationPlugin": "The shovel and federation plugins are not enabled on this broker, so the cross-broker pages have nothing to read. That is a deployment choice rather than a failure - enable them with rabbitmq-plugins enable rabbitmq_shovel rabbitmq_shovel_management."
+        "replicationPlugin": "The shovel and federation plugins are not enabled on this broker, so the cross-broker pages have nothing to read. That is a deployment choice rather than a failure - enable them with rabbitmq-plugins enable rabbitmq_shovel rabbitmq_shovel_management.",
+        "streamPlugin": "The broker does not have the rabbitmq_stream_management plugin enabled. A stream queue still works over AMQP; only its stream protocol clients are invisible."
       },
       "routing": {
         "title": "Exchanges & bindings",
@@ -1568,7 +1569,20 @@
         "unbindTitle": "Delete binding",
         "unbindDesc": "The binding from {{source}} to {{destination}} goes, and nothing is delivered that way afterwards.",
         "unbound": "Binding deleted",
-        "unbindFailed": "Could not delete the binding"
+        "unbindFailed": "Could not delete the binding",
+        "streamClients": "Stream protocol clients",
+        "noStreamClients": "Nothing is attached over the stream protocol. A stream is readable over AMQP too, and those consumers are counted in the consumer number above.",
+        "streamPublisher": "publisher",
+        "streamConsumer": "consumer",
+        "streamStandby": "standby",
+        "streamReference": "Reference",
+        "noStreamReference": "none, so a reconnect is not deduplicated",
+        "streamPublished": "Published",
+        "streamConfirmed": "Confirmed",
+        "streamErrored": "Failed",
+        "streamOffset": "Offset",
+        "streamLag": "Lag",
+        "streamConsumed": "Consumed"
       },
       "redis": {
         "subtitle": "Matching orders:* ; events:* · 12 found",

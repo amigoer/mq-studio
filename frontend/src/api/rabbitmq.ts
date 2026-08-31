@@ -23,6 +23,7 @@ import type {
   PublishResult,
   RuntimeParameter,
   Shovel,
+  StreamClients,
   TopicPermission,
 } from "@bindings/model/models";
 import { present } from "./client";
@@ -47,6 +48,9 @@ export type {
   PublishResult,
   RuntimeParameter,
   Shovel,
+  StreamClients,
+  StreamConsumer,
+  StreamPublisher,
   TopicPermission,
   HealthCheck,
   ResourceAlarm,
@@ -445,3 +449,17 @@ export const deleteFederationUpstream = (
   vhost: string,
   name: string,
 ): Promise<void> => RabbitMQService.DeleteFederationUpstream(connID, vhost, name);
+
+/**
+ * Who is attached to a stream over the stream protocol.
+ *
+ * Nobody the consumer list would ever mention: a stream protocol client
+ * connects on its own port and never appears among a queue's AMQP consumers,
+ * so a stream three applications are reading reports zero consumers
+ * everywhere else.
+ */
+export const getStreamClients = (
+  connID: number,
+  vhost: string,
+  name: string,
+): Promise<StreamClients | null> => RabbitMQService.StreamClients(connID, vhost, name);

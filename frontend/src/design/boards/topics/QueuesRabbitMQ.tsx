@@ -27,6 +27,7 @@ import {
   useConfirm,
 } from "@/components";
 import { BoardState, isBlocked } from "@/design/boards/BoardState";
+import { StreamClientsPanel } from "./StreamClientsPanel";
 import { useRabbitQueues } from "@/hooks/rabbitmq/useRabbitQueues";
 import { formatBytes, formatCount, formatRate } from "@/lib/format";
 import {
@@ -466,6 +467,12 @@ function QueueDetail({ queue }: { queue: Destination }) {
             : []),
         ]}
       />
+
+      {/* Only a stream has clients on a protocol of its own, and they are
+          invisible everywhere else in this app. */}
+      {queueType(queue) === "stream" && (
+        <StreamClientsPanel vhost={vhost(queue)} name={queue.ref.name} />
+      )}
 
       {/* Replication, for the queue types that have it. A classic queue lives
           on one node and reports none of this. */}

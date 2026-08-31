@@ -109,6 +109,7 @@ func capabilities() []model.Capability {
 		model.CapDefinitionsExport,
 		model.CapDefinitionsImport,
 		model.CapReplication,
+		model.CapStreamClients,
 
 		model.CapRouting,
 		model.CapRoutingAdmin,
@@ -143,6 +144,14 @@ func (c *Conn) probe(ctx context.Context) {
 	// plugin, instead of the page failing when someone opens it.
 	if err := c.hasReplicationPlugins(ctx); err != nil {
 		c.capabilities = c.capabilities.WithDegraded(model.CapReplication, replicationPluginMissing)
+	}
+
+	// The stream protocol is a plugin too, and its management endpoints are a
+	// second one. Without them a stream queue still works over AMQP, so the
+	// queue stays listed and only the panel naming its stream-protocol
+	// clients says why it cannot fill itself in.
+	if err := c.hasStreamPlugin(ctx); err != nil {
+		c.capabilities = c.capabilities.WithDegraded(model.CapStreamClients, streamPluginMissing)
 	}
 
 	// The data plane is probed separately because it fails separately. A
@@ -238,4 +247,9 @@ const (
 	// replicationPluginMissing is the shovel plugin being off, which is the
 	// usual case: a stock broker ships without it.
 	replicationPluginMissing = "mq.rabbitmq.degraded.replicationPlugin"
+
+	// streamPluginMissing is the stream management plugin being off, which
+	// leaves stream queues readable over AMQP and their stream-protocol
+	// clients invisible.
+	streamPluginMissing = "mq.rabbitmq.degraded.streamPlugin"
 )

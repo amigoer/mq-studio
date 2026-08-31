@@ -757,6 +757,13 @@ export enum Capability {
      * perfectly well simply has not been asked to.
      */
     CapReplication = "replication.admin",
+
+    /**
+     * CapStreamClients is who is reading and writing a stream over a protocol
+     * that is not the family's main one. Degraded rather than absent for the
+     * same reason as replication: it is a plugin.
+     */
+    CapStreamClients = "stream.clients",
     CapRouting = "routing.exchanges",
 
     /**
@@ -3188,6 +3195,179 @@ export class Shovel {
 }
 
 /**
+ * StreamClients is who is reading and writing a stream over the stream
+ * protocol.
+ * 
+ * Separate from the consumer list every other queue type has, because the
+ * stream protocol is not AMQP: a client on port 5552 never appears in
+ * /api/consumers. A stream being read by three applications reports zero
+ * consumers there, which is the misreading this exists to prevent.
+ */
+export class StreamClients {
+    "publishers": (StreamPublisher | null)[];
+    "consumers": (StreamConsumer | null)[];
+
+    /** Creates a new StreamClients instance. */
+    constructor($$source: Partial<StreamClients> = {}) {
+        if (!("publishers" in $$source)) {
+            this["publishers"] = [];
+        }
+        if (!("consumers" in $$source)) {
+            this["consumers"] = [];
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new StreamClients instance from a string or object.
+     */
+    static createFrom($$source: any = {}): StreamClients {
+        const $$createField0_0 = $$createType39;
+        const $$createField1_0 = $$createType42;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("publishers" in $$parsedSource) {
+            $$parsedSource["publishers"] = $$createField0_0($$parsedSource["publishers"]);
+        }
+        if ("consumers" in $$parsedSource) {
+            $$parsedSource["consumers"] = $$createField1_0($$parsedSource["consumers"]);
+        }
+        return new StreamClients($$parsedSource as Partial<StreamClients>);
+    }
+}
+
+/**
+ * StreamConsumer is one client reading a stream.
+ */
+export class StreamConsumer {
+    "connection": string;
+    "peerHost": string;
+    "user": string;
+    "node": string;
+
+    /**
+     * Offset is where in the stream this client has read to, and Lag is how
+     * far that is behind the end. A stream keeps its messages after they are
+     * read, so lag is the only thing that says whether a consumer is keeping
+     * up - there is no queue depth to fall behind on.
+     */
+    "offset": number;
+    "lag": number;
+    "consumed": number;
+
+    /**
+     * Credits is how many messages the broker may still send before the
+     * client asks for more. Zero on an active consumer means it has stopped
+     * asking.
+     */
+    "credits": number;
+
+    /**
+     * Active is false for a single-active-consumer subscription that is
+     * connected and waiting its turn, which is working rather than stuck.
+     */
+    "active": boolean;
+
+    /** Creates a new StreamConsumer instance. */
+    constructor($$source: Partial<StreamConsumer> = {}) {
+        if (!("connection" in $$source)) {
+            this["connection"] = "";
+        }
+        if (!("peerHost" in $$source)) {
+            this["peerHost"] = "";
+        }
+        if (!("user" in $$source)) {
+            this["user"] = "";
+        }
+        if (!("node" in $$source)) {
+            this["node"] = "";
+        }
+        if (!("offset" in $$source)) {
+            this["offset"] = 0;
+        }
+        if (!("lag" in $$source)) {
+            this["lag"] = 0;
+        }
+        if (!("consumed" in $$source)) {
+            this["consumed"] = 0;
+        }
+        if (!("credits" in $$source)) {
+            this["credits"] = 0;
+        }
+        if (!("active" in $$source)) {
+            this["active"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new StreamConsumer instance from a string or object.
+     */
+    static createFrom($$source: any = {}): StreamConsumer {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new StreamConsumer($$parsedSource as Partial<StreamConsumer>);
+    }
+}
+
+/**
+ * StreamPublisher is one client writing to a stream.
+ */
+export class StreamPublisher {
+    /**
+     * Reference is the publisher's own name, which the broker uses to
+     * deduplicate messages across a reconnect. Empty means the client sent
+     * none, so it gets no deduplication.
+     */
+    "reference": string;
+    "connection": string;
+    "peerHost": string;
+    "user": string;
+    "node": string;
+    "published": number;
+    "confirmed": number;
+    "errored": number;
+
+    /** Creates a new StreamPublisher instance. */
+    constructor($$source: Partial<StreamPublisher> = {}) {
+        if (!("reference" in $$source)) {
+            this["reference"] = "";
+        }
+        if (!("connection" in $$source)) {
+            this["connection"] = "";
+        }
+        if (!("peerHost" in $$source)) {
+            this["peerHost"] = "";
+        }
+        if (!("user" in $$source)) {
+            this["user"] = "";
+        }
+        if (!("node" in $$source)) {
+            this["node"] = "";
+        }
+        if (!("published" in $$source)) {
+            this["published"] = 0;
+        }
+        if (!("confirmed" in $$source)) {
+            this["confirmed"] = 0;
+        }
+        if (!("errored" in $$source)) {
+            this["errored"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new StreamPublisher instance from a string or object.
+     */
+    static createFrom($$source: any = {}): StreamPublisher {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new StreamPublisher($$parsedSource as Partial<StreamPublisher>);
+    }
+}
+
+/**
  * Subscription is a consumer group, a Pulsar subscription or a RabbitMQ queue
  * consumer, as the canonical pages see it.
  * 
@@ -3264,7 +3444,7 @@ export class Subscription {
      * Creates a new Subscription instance from a string or object.
      */
     static createFrom($$source: any = {}): Subscription {
-        const $$createField1_0 = $$createType37;
+        const $$createField1_0 = $$createType43;
         const $$createField8_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("ref" in $$parsedSource) {
@@ -3330,8 +3510,8 @@ export class SubscriptionClient {
      * Creates a new SubscriptionClient instance from a string or object.
      */
     static createFrom($$source: any = {}): SubscriptionClient {
-        const $$createField1_0 = $$createType39;
-        const $$createField2_0 = $$createType41;
+        const $$createField1_0 = $$createType45;
+        const $$createField2_0 = $$createType47;
         const $$createField3_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("assignments" in $$parsedSource) {
@@ -3430,8 +3610,8 @@ export class TailBatch {
      * Creates a new TailBatch instance from a string or object.
      */
     static createFrom($$source: any = {}): TailBatch {
-        const $$createField0_0 = $$createType44;
-        const $$createField1_0 = $$createType45;
+        const $$createField0_0 = $$createType50;
+        const $$createField1_0 = $$createType51;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("messages" in $$parsedSource) {
             $$parsedSource["messages"] = $$createField0_0($$parsedSource["messages"]);
@@ -3466,7 +3646,7 @@ export class TailCursor {
      * Creates a new TailCursor instance from a string or object.
      */
     static createFrom($$source: any = {}): TailCursor {
-        const $$createField0_0 = $$createType47;
+        const $$createField0_0 = $$createType53;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("positions" in $$parsedSource) {
             $$parsedSource["positions"] = $$createField0_0($$parsedSource["positions"]);
@@ -3562,14 +3742,20 @@ const $$createType33 = $Create.Array($Create.Any);
 const $$createType34 = $Create.Array($Create.Any);
 const $$createType35 = ReplicaStatus.createFrom;
 const $$createType36 = $Create.Array($$createType35);
-const $$createType37 = SubscriptionRef.createFrom;
-const $$createType38 = QueueAssignment.createFrom;
+const $$createType37 = StreamPublisher.createFrom;
+const $$createType38 = $Create.Nullable($$createType37);
 const $$createType39 = $Create.Array($$createType38);
-const $$createType40 = ConsumeThroughput.createFrom;
-const $$createType41 = $Create.Array($$createType40);
-const $$createType42 = MessageItem.createFrom;
-const $$createType43 = $Create.Nullable($$createType42);
-const $$createType44 = $Create.Array($$createType43);
-const $$createType45 = TailCursor.createFrom;
-const $$createType46 = QueuePosition.createFrom;
+const $$createType40 = StreamConsumer.createFrom;
+const $$createType41 = $Create.Nullable($$createType40);
+const $$createType42 = $Create.Array($$createType41);
+const $$createType43 = SubscriptionRef.createFrom;
+const $$createType44 = QueueAssignment.createFrom;
+const $$createType45 = $Create.Array($$createType44);
+const $$createType46 = ConsumeThroughput.createFrom;
 const $$createType47 = $Create.Array($$createType46);
+const $$createType48 = MessageItem.createFrom;
+const $$createType49 = $Create.Nullable($$createType48);
+const $$createType50 = $Create.Array($$createType49);
+const $$createType51 = TailCursor.createFrom;
+const $$createType52 = QueuePosition.createFrom;
+const $$createType53 = $Create.Array($$createType52);

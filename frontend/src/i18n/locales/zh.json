@@ -391,7 +391,8 @@
         "amqpAccessRefused": "管理 API 可用，但 AMQP 连接被拒绝：该用户在这个虚拟主机上没有权限。收发消息不可用，管理功能不受影响。",
         "amqpTimeout": "连接 AMQP 端口超时。请确认地址与端口正确，且没有被防火墙拦截。",
         "amqpUnreachable": "无法连接到 AMQP 端口。管理功能仍可用，但收发消息不可用 —— 请检查 AMQP 地址与端口。",
-        "replicationPlugin": "该 broker 没有启用 shovel / federation 插件，跨 broker 搬运的相关页面因此不可用。这是部署选择，不是故障 —— 需要时用 rabbitmq-plugins enable rabbitmq_shovel rabbitmq_shovel_management 打开。"
+        "replicationPlugin": "该 broker 没有启用 shovel / federation 插件，跨 broker 搬运的相关页面因此不可用。这是部署选择，不是故障 —— 需要时用 rabbitmq-plugins enable rabbitmq_shovel rabbitmq_shovel_management 打开。",
+        "streamPlugin": "Broker 没有启用 rabbitmq_stream_management 插件。流队列仍可通过 AMQP 读写，只是看不到流协议这一侧的客户端。"
       },
       "routing": {
         "title": "交换机与绑定",
@@ -1568,7 +1569,20 @@
         "unbindTitle": "删除绑定",
         "unbindDesc": "从「{{source}}」到「{{destination}}」的这条绑定将被删除，之后不再往这个目标投递。",
         "unbound": "已删除绑定",
-        "unbindFailed": "删除绑定失败"
+        "unbindFailed": "删除绑定失败",
+        "streamClients": "流协议客户端",
+        "noStreamClients": "没有客户端通过流协议连接。流队列也能用 AMQP 读写，那些消费者算在上面的消费者数里。",
+        "streamPublisher": "生产者",
+        "streamConsumer": "消费者",
+        "streamStandby": "待命",
+        "streamReference": "去重标识",
+        "noStreamReference": "未设置，重连后不去重",
+        "streamPublished": "已发送",
+        "streamConfirmed": "已确认",
+        "streamErrored": "发送失败",
+        "streamOffset": "读到位置",
+        "streamLag": "落后",
+        "streamConsumed": "已消费"
       },
       "redis": {
         "subtitle": "匹配 orders:* ; events:* · 12 个",

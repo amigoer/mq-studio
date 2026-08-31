@@ -2883,3 +2883,123 @@ func waitForUpstream(t *testing.T, conn *Conn, name string) *model.FederationUps
 		time.Sleep(250 * time.Millisecond)
 	}
 }
+
+// A stream queue, and the clients the rest of this app cannot see.
+//
+// The stream protocol is not AMQP: its clients connect on their own port and
+// never appear among a queue's consumers. This is the panel that says so, and
+// what it must not do is report an error on a stream nobody is streaming.
+func TestLiveStreamQueueReportsItsOwnClients(t *testing.T) {
+	conn := liveConn(t)
+	defer func() { _ = conn.Close() }()
+
+	ctx := context.Background()
+	const stream = "mqs-test-stream"
+	ref := model.DestinationRef{Namespace: "/", Name: stream}
+
+	if err := conn.CreateDestination(ctx, model.DestinationSpec{
+		Ref: ref,
+		Attributes: map[string]string{
+			AttrDurable:   "true",
+			AttrQueueType: "stream",
+		},
+	}); err != nil {
+		t.Fatalf("declare stream: %v", err)
+	}
+	t.Cleanup(func() { _ = conn.RemoveDestination(context.Background(), ref) })
+
+	detail, err := conn.DestinationDetail(ctx, ref)
+	if err != nil {
+		t.Fatalf("read the stream back: %v", err)
+	}
+	if got := detail.Attributes[AttrQueueType]; got != "stream" {
+		t.Fatalf("queue type = %q, want stream", got)
+	}
+
+	// Nothing is attached over the stream protocol, and that is a real answer
+	// rather than a failure - the panel says so in a sentence.
+	clients, err := conn.StreamClients(ctx, ref)
+	if err != nil {
+		t.Fatalf("stream clients: %v", err)
+	}
+	if clients == nil {
+		t.Fatal("stream clients = nil, want an empty set")
+	}
+	if len(clients.Publishers) != 0 || len(clients.Consumers) != 0 {
+		t.Errorf("a stream nobody is streaming reports %d publishers and %d consumers",
+			len(clients.Publishers), len(clients.Consumers))
+	}
+
+	/*
+	 * The separation this panel exists for: a stream read over AMQP is a
+	 * normal consumer and belongs in the consumer list, not here. If a
+	 * future change started folding AMQP consumers into this, the panel
+	 * would double-count every one of them.
+	 */
+	if err := conn.data.withChannel(ctx, func(channel *amqp.Channel) error {
+		// A stream consumer over AMQP needs a prefetch and an offset; the
+		// broker refuses the subscription without them.
+		if qosErr := channel.Qos(1, 0, false); qosErr != nil {
+			return qosErr
+		}
+		if _, consumeErr := channel.Consume(stream, "mqs-test-stream-amqp",
+			false, false, false, false, amqp.Table{"x-stream-offset": "first"}); consumeErr != nil {
+			return consumeErr
+		}
+
+		attached, clientsErr := conn.StreamClients(ctx, ref)
+		if clientsErr != nil {
+			return clientsErr
+		}
+		if len(attached.Consumers) != 0 {
+			t.Errorf("an AMQP consumer was counted as a stream protocol client: %+v",
+				attached.Consumers)
+		}
+		return nil
+	}); err != nil {
+		t.Fatalf("consume over amqp: %v", err)
+	}
+}
+
+// A stream in one virtual host must not report another's clients: the consumer
+// endpoint is per-vhost and the filtering is this driver's job.
+func TestLiveStreamClientsAreScopedToTheirStream(t *testing.T) {
+	conn := liveConn(t)
+	defer func() { _ = conn.Close() }()
+
+	ctx := context.Background()
+	for _, name := range []string{"mqs-test-stream-a", "mqs-test-stream-b"} {
+		ref := model.DestinationRef{Namespace: "/", Name: name}
+		if err := conn.CreateDestination(ctx, model.DestinationSpec{
+			Ref:        ref,
+			Attributes: map[string]string{AttrDurable: "true", AttrQueueType: "stream"},
+		}); err != nil {
+			t.Fatalf("declare %s: %v", name, err)
+		}
+		t.Cleanup(func() { _ = conn.RemoveDestination(context.Background(), ref) })
+
+		clients, err := conn.StreamClients(ctx, ref)
+		if err != nil {
+			t.Fatalf("stream clients for %s: %v", name, err)
+		}
+		for _, consumer := range clients.Consumers {
+			if consumer.Connection == "" {
+				t.Errorf("%s reported a consumer with no connection", name)
+			}
+		}
+	}
+}
+
+// The plugins are on in the e2e environment, so the capability is plainly
+// supported. Its absence degrades rather than fails, which is covered against
+// a broker without them.
+func TestLiveStreamClientsAreSupportedWhenThePluginIsOn(t *testing.T) {
+	conn := liveConn(t)
+	defer func() { _ = conn.Close() }()
+
+	capabilities := conn.Capabilities()
+	if !capabilities.Has(model.CapStreamClients) {
+		reason, _ := capabilities.DegradedReason(model.CapStreamClients)
+		t.Fatalf("stream clients are unavailable on a broker with the plugin on: %q", reason)
+	}
+}
