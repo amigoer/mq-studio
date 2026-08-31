@@ -43,9 +43,6 @@ export const downloadUpdate = (): Promise<void> => UpdateService.Download();
 export const cancelUpdate = (): Promise<void> => UpdateService.Cancel();
 export const installUpdate = (): Promise<void> => UpdateService.Install();
 export const skipUpdate = (version: string): Promise<void> => UpdateService.Skip(version);
-export const markUpdateAnnounced = (version: string): Promise<void> =>
-  UpdateService.MarkAnnounced(version);
-export const announcedUpdate = (): Promise<string> => UpdateService.Announced();
 
 /**
  * Subscribes to the manager publishing a new state. Keep the name in step with

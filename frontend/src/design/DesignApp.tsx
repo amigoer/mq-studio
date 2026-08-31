@@ -33,6 +33,7 @@ import { readSession, restoreSession, writeSession } from "@/design/data/session
 import { ConnectionsList } from "@/design/boards/connections/ConnectionsList";
 import { ConnectionsEmpty } from "@/design/boards/connections/ConnectionsEmpty";
 import { NewConnectionDialog } from "@/design/boards/connections/NewConnectionDialog";
+import { UpdateDialog } from "@/design/shell/UpdateDialog";
 import { Settings, type SectionId } from "@/design/boards/settings/Settings";
 
 /** Global views sit beside the connection tabs rather than inside one. */
@@ -99,8 +100,12 @@ export function DesignApp(): JSX.Element {
   // The marker stays lit for as long as an update is pending: it is a state,
   // not a notification, and it clears itself when the update is taken or
   // skipped.
-  const { available: updateAvailable, checking: updateChecking, check: checkUpdate } =
-    useUpdater();
+  const {
+    available: updateAvailable,
+    checking: updateChecking,
+    check: checkUpdate,
+    openDialog: openUpdate,
+  } = useUpdater();
 
   // Applied to the document, not to this tree: every board is drawn in absolute
   // px and the whole document is zoomed to the chosen size.
@@ -463,11 +468,13 @@ export function DesignApp(): JSX.Element {
         <TitleBar
           homeActive={atHome}
           dimmed={connections.length === 0}
-          refreshing={updateChecking}
-          updateReady={updateAvailable != null}
+          checking={updateChecking}
+          updateAvailable={updateAvailable}
           onHome={() => goto({ kind: "connections" })}
           onSearch={() => setPaletteOpen(true)}
-          onRefresh={() => void checkUpdate()}
+          /* A pending release opens where it can be taken; with nothing
+             pending the same button is what goes and looks. */
+          onUpdate={() => (updateAvailable != null ? openUpdate() : void checkUpdate())}
           onGithub={openGithub}
           onOpenAlertSettings={() => goto({ kind: "settings", section: "message" })}
           onOpenConnection={(id) => {
@@ -525,6 +532,9 @@ export function DesignApp(): JSX.Element {
             onCheckUpdate={() => void checkUpdate()}
             onClose={() => setPaletteOpen(false)}
           />
+          {/* Opens over whatever is on screen: the release is announced by the
+              title bar and by a toast, and both hand off to this. */}
+          <UpdateDialog />
         </>
       }
     >

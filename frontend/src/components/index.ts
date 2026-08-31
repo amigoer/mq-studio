@@ -30,5 +30,12 @@ export { CodeEditor } from "./code-editor";
 export { WarnBanner } from "./warn-banner";
 export { ChartBox } from "./chart-box";
 export { LineChart, type Series } from "./line-chart";
-export { toast, useToast, type ToastApi, type ToastOptions, type ToastTone } from "./toast";
+export {
+  toast,
+  useToast,
+  type ToastApi,
+  type ToastId,
+  type ToastOptions,
+  type ToastTone,
+} from "./toast";
 export { Toaster } from "./sonner";

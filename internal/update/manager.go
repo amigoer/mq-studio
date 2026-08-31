@@ -118,12 +118,6 @@ type State struct {
 	FailedStep FailedStep `json:"failedStep"`
 }
 
-// Announceable reports whether the state describes a release worth putting in
-// front of the user: newer, not skipped, and not one they have been shown.
-func (s State) Announceable() bool {
-	return s.LatestVersion != "" && s.LatestVersion != s.Skipped
-}
-
 // memory is the part of State that has to survive a restart: what was already
 // checked and skipped, and a package that finished downloading but was never
 // installed.
@@ -132,9 +126,6 @@ type memory struct {
 	Skipped      string `json:"skipped"`
 	ReadyVersion string `json:"readyVersion"`
 	ReadyPath    string `json:"readyPath"`
-	// The release a toast has already announced, so restarting does not
-	// re-announce a version the user has already declined once.
-	Announced string `json:"announced"`
 }
 
 // Options configures a Manager. Only Version and Directory are required; the
@@ -610,25 +601,6 @@ func (m *Manager) Skip(version string) {
 	m.state.Skipped = version
 	m.writeMemory()
 	m.publish()
-}
-
-// Announced records that the user has been told about a release, so a restart
-// does not put the same one in front of them again.
-func (m *Manager) Announced() string {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	return m.memory.Announced
-}
-
-// MarkAnnounced records the release the user has now been shown.
-func (m *Manager) MarkAnnounced(version string) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	if m.memory.Announced == version {
-		return
-	}
-	m.memory.Announced = version
-	m.writeMemory()
 }
 
 // Start runs the background schedule until Close. The first check waits out

@@ -15,9 +15,17 @@ import {
   Panel,
   SectionLabel,
 } from "@/components";
+import { Markdown } from "@/components/markdown";
 import { Blocker, Phase, Policy, updateProgress } from "@/api/updates";
 import { useUpdater } from "@/hooks/useUpdater";
 import { useSettings } from "@/hooks/useSettings";
+import {
+  blockerKey,
+  formatBytes,
+  formatDate,
+  formatDateTime,
+  updateLocale,
+} from "@/lib/updateText";
 
 /**
  * The whole of the update flow, in the one place people look for it.
@@ -28,108 +36,6 @@ import { useSettings } from "@/hooks/useSettings";
  * and reports every phase the Go manager can be in rather than only the two
  * the old toast could say.
  */
-
-/** Bytes as the download line shows them: one decimal, MB above a megabyte. */
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
-  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
-}
-
-/** A date the release carries, in the reader's own locale, or "" if unparsable. */
-function formatDate(value: string, locale: string): string {
-  if (!value) return "";
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return "";
-  return parsed.toLocaleDateString(locale, { year: "numeric", month: "short", day: "numeric" });
-}
-
-function formatDateTime(value: string, locale: string): string {
-  if (!value) return "";
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return "";
-  return parsed.toLocaleString(locale, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-/**
- * Release notes come out of the changelog as Markdown. Rather than pull in a
- * renderer for the three shapes they actually use, headings and bullets are
- * drawn here and anything else is left as a paragraph.
- */
-function Notes({ notes }: { notes: string }) {
-  const lines = notes.split("\n").filter((line) => line.trim() !== "");
-  if (lines.length === 0) return null;
-  return (
-    <div
-      style={{
-        marginTop: "12px",
-        padding: "10px 12px",
-        maxHeight: "168px",
-        overflowY: "auto",
-        border: "1px solid var(--c-border)",
-        borderRadius: "8px",
-        background: "var(--c-bar)",
-        fontSize: "11.5px",
-        lineHeight: 1.65,
-      }}
-    >
-      {lines.map((line, index) => {
-        const heading = line.match(/^#{1,6}\s+(.*)$/);
-        if (heading != null) {
-          return (
-            <div
-              key={index}
-              style={{
-                fontWeight: 600,
-                color: "var(--c-fg)",
-                marginTop: index === 0 ? 0 : "8px",
-                marginBottom: "2px",
-              }}
-            >
-              {heading[1]}
-            </div>
-          );
-        }
-        const bullet = line.match(/^\s*[-*]\s+(.*)$/);
-        if (bullet != null) {
-          return (
-            <div key={index} style={{ display: "flex", gap: "7px", color: "var(--c-fg-2)" }}>
-              <span style={{ color: "var(--c-muted-2)" }}>·</span>
-              <span style={{ minWidth: 0 }}>{bullet[1]}</span>
-            </div>
-          );
-        }
-        return (
-          <div key={index} style={{ color: "var(--c-fg-2)" }}>
-            {line}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-/** Why the app cannot replace itself here, said in the reader's terms. */
-function blockerKey(blocker: Blocker): string | null {
-  switch (blocker) {
-    case Blocker.BlockerPackageManager:
-      return "update.blocked.packageManager";
-    case Blocker.BlockerReadOnly:
-      return "update.blocked.readOnly";
-    case Blocker.BlockerNotPackaged:
-      return "update.blocked.notPackaged";
-    case Blocker.BlockerUnsupported:
-      return "update.blocked.unsupported";
-    default:
-      return null;
-  }
-}
 
 function Headline({ icon, tone, title, meta }: {
   icon: typeof CheckCircle2;
@@ -158,7 +64,7 @@ export function UpdateCard() {
   const { settings } = useSettings();
   const { state, available, busy, check, download, cancel, install, skip, openReleases } =
     useUpdater();
-  const locale = i18n.language === "en" ? "en-US" : "zh-CN";
+  const locale = updateLocale(i18n.language);
   const blocked = blockerKey(state.location?.blocker ?? Blocker.BlockerNone);
   const checkedAt = formatDateTime(state.checkedAt, locale);
 
@@ -169,7 +75,11 @@ export function UpdateCard() {
         {renderHeadline()}
         <div style={{ display: "flex", gap: "8px", flex: "none" }}>{renderActions()}</div>
       </div>
-      {available != null && state.notes !== "" && <Notes notes={state.notes} />}
+      {available != null && state.notes !== "" && (
+        <div className="mt-3 max-h-[168px] overflow-y-auto rounded-lg border border-(--c-border) bg-(--c-bar) px-3 py-2.5">
+          <Markdown source={state.notes} />
+        </div>
+      )}
       {renderFooter()}
     </Panel>
   );

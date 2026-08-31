@@ -13,6 +13,9 @@ import { toast as sonner } from "sonner";
 
 export type ToastTone = "success" | "error" | "info";
 
+/** Sonner's handle on a raised toast, for the few that outlive their own turn. */
+export type ToastId = string | number;
+
 export type ToastOptions = {
   description?: string;
   action?: { label: string; onClick: () => void };
@@ -23,12 +26,12 @@ export type ToastOptions = {
 /** Long enough to read the line; a failure earns the time to act on it. */
 const TIME_ON_SCREEN: Record<ToastTone, number> = { success: 4000, info: 4500, error: 7000 };
 
-type Show = (message: string, options?: ToastOptions) => void;
+type Show = (message: string, options?: ToastOptions) => ToastId;
 
 function show(tone: ToastTone): Show {
   return (message, options = {}) => {
     const { description, action, duration = TIME_ON_SCREEN[tone] } = options;
-    sonner[tone](message, {
+    return sonner[tone](message, {
       description,
       action,
       duration: duration <= 0 ? Number.POSITIVE_INFINITY : duration,
@@ -40,6 +43,9 @@ export const toast = {
   success: show("success"),
   error: show("error"),
   info: show("info"),
+  /* Only a toast that stays until it is answered needs this: the rest clear
+     themselves, and dismissing one the user is still reading is a bug. */
+  dismiss: (id: ToastId) => sonner.dismiss(id),
 } as const;
 
 export type ToastApi = typeof toast;

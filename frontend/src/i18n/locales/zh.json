@@ -469,6 +469,7 @@
       "home": "首页",
       "search": "搜索 ⌘K",
       "checkUpdate": "检查更新",
+      "updateAvailable": "有新版本 {{version}}，点击查看",
       "github": "GitHub",
       "notifications": "通知",
       "notificationsUnread": "通知 · {{count}} 未读",
@@ -590,6 +591,15 @@
       }
     }
   },
+  "markdown": {
+    "alert": {
+      "note": "说明",
+      "tip": "提示",
+      "important": "重要",
+      "warning": "注意",
+      "caution": "警告"
+    }
+  },
   "update": {
     "section": "应用更新",
     "checking": "正在检查更新…",
@@ -611,7 +621,9 @@
     "readyOnQuit": "将在退出应用时自动安装，下次启动即为新版本",
     "installNow": "立即重启更新",
     "installing": "正在安装，稍后会自动重启…",
-    "view": "查看",
+    "updateNow": "立即更新",
+    "later": "稍后",
+    "viewOnGithub": "在 GitHub 上查看",
     "downloadFailed": "下载更新失败",
     "installFailed": "安装更新失败",
     "failed": {

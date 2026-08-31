@@ -469,6 +469,7 @@
       "home": "Home",
       "search": "Search ⌘K",
       "checkUpdate": "Check for updates",
+      "updateAvailable": "Version {{version}} is available — click to see it",
       "github": "GitHub",
       "notifications": "Notifications",
       "notificationsUnread": "Notifications · {{count}} unread",
@@ -590,6 +591,15 @@
       }
     }
   },
+  "markdown": {
+    "alert": {
+      "note": "Note",
+      "tip": "Tip",
+      "important": "Important",
+      "warning": "Warning",
+      "caution": "Caution"
+    }
+  },
   "update": {
     "section": "Application updates",
     "checking": "Checking for updates…",
@@ -611,7 +621,9 @@
     "readyOnQuit": "It will be installed when you quit; the next launch is the new version",
     "installNow": "Restart and update",
     "installing": "Installing; the app will restart shortly…",
-    "view": "View",
+    "updateNow": "Update now",
+    "later": "Later",
+    "viewOnGithub": "View on GitHub",
     "downloadFailed": "Could not download the update",
     "installFailed": "Could not install the update",
     "failed": {

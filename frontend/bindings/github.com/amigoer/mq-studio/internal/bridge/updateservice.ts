@@ -15,13 +15,6 @@ import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Cr
 import * as update$0 from "../update/models.js";
 
 /**
- * Announced reports the release the user has already been shown.
- */
-export function Announced(): $CancellablePromise<string> {
-    return $Call.ByID(2218011251);
-}
-
-/**
  * Cancel stops a download in flight.
  */
 export function Cancel(): $CancellablePromise<void> {
@@ -51,14 +44,6 @@ export function Download(): $CancellablePromise<void> {
  */
 export function Install(): $CancellablePromise<void> {
     return $Call.ByID(488237709);
-}
-
-/**
- * MarkAnnounced records that the user has been shown a release, so a restart
- * does not put the same one in front of them again.
- */
-export function MarkAnnounced(version: string): $CancellablePromise<void> {
-    return $Call.ByID(2627153340, version);
 }
 
 /**

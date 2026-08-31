@@ -51,12 +51,15 @@ RocketMQ, RabbitMQ, and Kafka are the drivers available today; [Driver support](
 
 | Area | What you can do |
 | --- | --- |
-| **Connections** | Manage multiple clusters with free-text groups, NameServers, auto-connect, and ACL credentials |
-| **Topics & Messages** | Create and inspect topics; query, trace, resend, and produce messages; smart search with fuzzy matching and recently-used lists for Topic and consumer group selectors |
-| **Consumers** | View groups, clients, subscriptions, and lag; reset offsets; handle retry and DLQ |
-| **Cluster & Alerts** | Monitor brokers, runtime metrics, throughput, lag, disk usage, and desktop alerts |
-| **Administration** | Manage consumer settings, Topic settings, ACL, and global whitelist |
+| **Connections** | Manage multiple clusters with free-text groups, per-protocol endpoints and credentials, auto-connect, and encryption at rest |
+| **Topics & Queues** | Create and inspect topics, queues, exchanges, and bindings, with their partitions, settings, and arguments; selectors match on fuzzy input and remember what you used |
+| **Messages** | Query and trace, browse and follow a log, produce with keys and headers, resend and redeliver, and work through dead letters |
+| **Consumers** | View groups, clients, subscriptions, and lag; reset offsets; handle retry and dead letters |
+| **Cluster & Alerts** | Monitor brokers and nodes, runtime metrics, throughput, lag, disk usage, and desktop alerts |
+| **Administration** | Manage access control and users, quotas, policies, and the settings behind each topic, queue, and group |
 | **Personalization** | Switch theme and language, customize display, import or export configuration, and automatic update checks |
+
+The rows above are the union across drivers; [Driver support](#driver-support) says which broker gets what.
 
 ## Product tour
 
@@ -80,7 +83,7 @@ Select any screenshot to open it at full resolution.
     </td>
     <td width="50%" align="center">
       <a href="docs/images/readme/new-connection.png"><img src="docs/images/readme/new-connection.png" alt="New connection dialog"></a>
-      <sub><strong>Adding a connection</strong> — pick the protocol and version, then NameServer or gRPC Proxy, with optional ACL keys.</sub>
+      <sub><strong>Adding a connection</strong> — pick the protocol, then fill in only the endpoints and credentials that protocol needs.</sub>
     </td>
   </tr>
   <tr>
@@ -201,7 +204,7 @@ downloads against.
 ## Quick start
 
 1. Open MQ Studio and create a connection.
-2. Enter one or more NameServer addresses and optional ACL credentials.
+2. Pick the protocol, then enter the endpoints and credentials the form asks for.
 3. Save, connect, and choose a feature from the sidebar.
 
 Your profiles and settings stay in the local user configuration directory. Configuration
