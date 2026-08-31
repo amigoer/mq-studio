@@ -13,6 +13,11 @@ import { TopicsRocketMQ } from "./boards/topics/TopicsRocketMQ";
 import { TopicsKafka } from "./boards/topics/TopicsKafka";
 import { QueuesRabbitMQ } from "./boards/topics/QueuesRabbitMQ";
 import { ExchangesRabbitMQ } from "./boards/topics/ExchangesRabbitMQ";
+import { VhostsRabbitMQ } from "./boards/vhosts/VhostsRabbitMQ";
+import { UsersRabbitMQ } from "./boards/acl/UsersRabbitMQ";
+import { PoliciesRabbitMQ } from "./boards/policies/PoliciesRabbitMQ";
+import { DefinitionsRabbitMQ } from "./boards/definitions/DefinitionsRabbitMQ";
+import { ReplicationRabbitMQ } from "./boards/replication/ReplicationRabbitMQ";
 import { TopicsPulsar } from "./boards/topics/TopicsPulsar";
 import { StreamsRedis } from "./boards/topics/StreamsRedis";
 
@@ -36,6 +41,7 @@ import { DlqPulsar } from "./boards/dlq/DlqPulsar";
 import { PelRedis } from "./boards/dlq/PelRedis";
 
 import { Producer } from "./boards/producer/Producer";
+import { ProducerRabbitMQ } from "./boards/producer/ProducerRabbitMQ";
 import { Alerts } from "./boards/alerts/Alerts";
 import { Acl } from "./boards/acl/Acl";
 
@@ -101,6 +107,10 @@ const BOARDS: Partial<
     mqtt: MqttWorkbench,
   },
   exchanges: { rabbitmq: ExchangesRabbitMQ },
+  vhosts: { rabbitmq: VhostsRabbitMQ },
+  policies: { rabbitmq: PoliciesRabbitMQ },
+  definitions: { rabbitmq: DefinitionsRabbitMQ },
+  replication: { rabbitmq: ReplicationRabbitMQ },
   consumers: {
     rocketmq: ConsumersRocketMQ,
     kafka: ConsumersKafka,
@@ -138,13 +148,25 @@ export function renderBoard(
   page: PageId,
   nav?: BoardNav,
 ): JSX.Element {
-  if (page === "producer") return <Producer protocol={protocol} nav={nav} />;
+  /* The send console is per family, not shared: RabbitMQ's collects an
+     exchange, a routing key, headers and AMQP properties, and the shared one
+     collects a topic, tags, keys and a delay level - RocketMQ's vocabulary, of
+     which only the body means anything here. */
+  if (page === "producer") {
+    if (protocol === "rabbitmq") return <ProducerRabbitMQ />;
+    return <Producer protocol={protocol} nav={nav} />;
+  }
   /* Alerts is one board for every family: the rules are numeric comparisons
      over a cluster snapshot, with nothing protocol-specific to draw. */
   if (page === "alerts") return <Alerts onOpenSettings={nav?.onOpenAlertSettings} />;
-  /* ACL is RocketMQ's for now: the board speaks its two access systems, and a
-     family with a different one gets its own rather than a shared shell. */
-  if (page === "acl" && protocol === "rocketmq") return <Acl />;
+  /* Access control is per family, and deliberately so: each speaks its own
+     model. RocketMQ has a credential pair carrying its own permissions;
+     RabbitMQ has users whose tags gate the management API and whose
+     per-virtual-host permissions gate AMQP, which are two systems on one name. */
+  if (page === "acl") {
+    if (protocol === "rocketmq") return <Acl />;
+    if (protocol === "rabbitmq") return <UsersRabbitMQ />;
+  }
 
   const Board = BOARDS[page]?.[protocol];
   if (Board) return <Board nav={nav} />;

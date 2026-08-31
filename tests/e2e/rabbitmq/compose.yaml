@@ -21,6 +21,11 @@ services:
       retries: 12
     volumes:
       - rabbitmq-data:/var/lib/rabbitmq
+      # Shovel, federation and the stream protocol are plugins, off on a
+      # stock broker. The live tests for those pages need them on; the
+      # degraded path they take when a plugin is absent is covered
+      # separately, against a broker without it.
+      - ./enabled_plugins:/etc/rabbitmq/enabled_plugins:ro
     restart: unless-stopped
 
 volumes:

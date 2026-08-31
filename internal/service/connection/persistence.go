@@ -41,9 +41,17 @@ func (s *Service) loadConnectionsFromFile() error {
 			continue
 		}
 		current := record.Profile()
-		for _, key := range []string{model.SecretAccessKey, model.SecretSecretKey} {
-			stored := current.Secret(key)
-			if stored == "" {
+		/*
+		 * Every credential, because every one of them was encrypted on the way
+		 * out. Decrypting only RocketMQ's access key pair left a RabbitMQ
+		 * password loaded as its own ciphertext, which the driver then sent to
+		 * the broker as the password.
+		 *
+		 * A value with no marker is passed through: a file written before
+		 * encryption existed, or one edited by hand, is still readable.
+		 */
+		for key, stored := range current.Secrets {
+			if stored == "" || !crypto.IsEncrypted(stored) {
 				continue
 			}
 			plain, decryptErr := crypto.Decrypt(stored, key)
@@ -83,11 +91,19 @@ func buildConnectionState(connections []*model.ConnectionProfile) (map[int]*mode
 		current.Group = normalizeConnectionGroup(current.Group)
 		current.Status = model.StatusOffline
 		current.LastCheck = "-"
+		mechanism := current.Auth.Mechanism
 		enabled, accessKey, secretKey, err := normalizeACLConfig(current.ACLEnabled(), current.Secret(model.SecretAccessKey), current.Secret(model.SecretSecretKey))
 		if err != nil {
 			enabled, accessKey, secretKey = false, "", ""
 		}
 		current.SetACL(enabled, accessKey, secretKey)
+		// SetACL files a non-ACL connection as anonymous, which is what "no
+		// ACL" means for the one family whose only mechanism is ACL. Another
+		// family's mechanism has to survive the load, or every restart turned
+		// a RabbitMQ connection into an anonymous one.
+		if !enabled && mechanism != model.AuthACL {
+			current.Auth.Mechanism = mechanism
+		}
 
 		if current.IsDefault {
 			if hasDefault {

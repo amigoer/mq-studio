@@ -43,15 +43,21 @@ export function alertBody(t: TFunction, record: AlertLike): string {
 /**
  * The measurement drawn beside the headline in mono, where there is one.
  *
- * Disk carries its percentage inside the headline instead -- "broker-b 磁盘水位
- * 87%" reads as one phrase, and splitting the figure out of it would not.
+ * Disk and memory carry their percentage inside the headline instead --
+ * "broker-b 磁盘水位 87%" reads as one phrase, and splitting the figure out of
+ * it would not.
  */
 export function alertValue(record: AlertLike): string | undefined {
   const { params, ruleKey } = record;
-  if (ruleKey === "groupLag" || ruleKey === "groupOffline") {
+  if (
+    ruleKey === "groupLag" ||
+    ruleKey === "groupOffline" ||
+    ruleKey === "queueBacklog" ||
+    ruleKey === "queueNoConsumer"
+  ) {
     return typeof params.lag === "number" ? formatCount(params.lag) : undefined;
   }
-  if (ruleKey === "dlqGrowth") {
+  if (ruleKey === "dlqGrowth" || ruleKey === "flowControl") {
     return typeof params.count === "number" ? formatCount(params.count) : undefined;
   }
   return undefined;
@@ -89,7 +95,7 @@ function duration(t: TFunction, elapsedMs: number): string | undefined {
 function threshold(t: TFunction, record: AlertRecord): string | undefined {
   const value = record.params.threshold;
   if (value == null) return undefined;
-  return record.ruleKey === "diskUsage"
+  return record.ruleKey === "diskUsage" || record.ruleKey === "memoryUsage"
     ? t("alerts.meta.thresholdPercent", { value })
     : t("alerts.meta.threshold", { value: formatCount(Number(value)) });
 }

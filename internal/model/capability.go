@@ -14,6 +14,17 @@ const (
 	CapDestinationDelete Capability = "destination.delete"
 	CapPartitions        Capability = "destination.partitions"
 
+	// CapDestinationPurge empties a destination without deleting it, and
+	// CapDestinationMove drains one into another. Separate capabilities
+	// because they are separate buttons with very different blast radii: one
+	// discards, the other relocates.
+	CapDestinationPurge Capability = "destination.purge"
+	CapDestinationMove  Capability = "destination.move"
+
+	// CapQueueRebalance spreads replicated destinations' leaders back across
+	// the cluster. Only a family that elects a leader per destination has it.
+	CapQueueRebalance Capability = "destination.rebalance"
+
 	CapSubscriptionList   Capability = "subscription.list"
 	CapSubscriptionCreate Capability = "subscription.create"
 	CapSubscriptionDelete Capability = "subscription.delete"
@@ -44,6 +55,11 @@ const (
 	CapMessageLiveTail Capability = "message.liveTail"
 	CapDLQ             Capability = "message.dlq"
 	CapPublish         Capability = "message.publish"
+
+	// CapPublishRich is a send console that can set what the family's own
+	// protocol carries - an exchange and routing key, headers, and the
+	// delivery guarantees - rather than only a destination and a body.
+	CapPublishRich Capability = "message.publishRich"
 	// CapProducerInspect is asking who is currently publishing. It needs a
 	// producer group to ask about: the broker tracks connections per group and
 	// offers no way to enumerate the groups themselves.
@@ -68,13 +84,90 @@ const (
 	// back, which is how a broker is drained before it is stopped.
 	CapNodeWritePerm  Capability = "cluster.writePerm"
 	CapClusterMetrics Capability = "cluster.metrics"
-	CapAccessControl  Capability = "access.control"
+
+	// CapClusterCensus is a broker that keeps its own running totals - object
+	// counts, queued depth and message rates for the whole cluster in one
+	// answer. A family whose figures can only be assembled by walking every
+	// destination does not have it.
+	CapClusterCensus Capability = "cluster.census"
+
+	// CapClientInspect is a broker that can name the transport connections and
+	// channels open against it. Families that expose producers and consumers
+	// but not the sessions underneath them do not have it.
+	CapClientInspect Capability = "client.inspect"
+
+	// CapClientClose disconnects a client from the broker. Separate from
+	// inspecting them: a monitoring user can list every connection and close
+	// none.
+	CapClientClose Capability = "client.close"
+
+	// CapClusterHealth is a broker that answers questions about its own
+	// health, rather than one whose health has to be inferred from its
+	// metrics.
+	CapClusterHealth Capability = "cluster.health"
+
+	// CapDeadLetterTopology is a family whose dead-letter queues are ordinary
+	// queues something else points at, found by walking the topology, rather
+	// than a per-group topic the broker names for you. Both answer the same
+	// page; neither can answer it the other's way.
+	CapDeadLetterTopology Capability = "message.dlqTopology"
+	CapAccessControl      Capability = "access.control"
 	// CapAccessDirectory is identity-based access control: principals the
 	// broker authenticates and rules attached to a subject. Distinct from
 	// CapAccessControl, which is the credential-carrying kind a broker will
 	// take a write for and never read back.
 	CapAccessDirectory Capability = "access.directory"
-	CapRouting         Capability = "routing.exchanges"
+
+	// CapNamespaceList and CapNamespaceAdmin are families whose namespaces are
+	// objects rather than labels - a RabbitMQ virtual host holds its own
+	// queues, exchanges, policies and permissions, and nothing crosses
+	// between two of them.
+	CapNamespaceList  Capability = "namespace.list"
+	CapNamespaceAdmin Capability = "namespace.admin"
+	// CapNamespaceLimits caps a namespace as a whole rather than one
+	// destination inside it.
+	CapNamespaceLimits Capability = "namespace.limits"
+
+	// CapIdentityList and CapIdentityAdmin are a broker that keeps its own
+	// users, as opposed to one that authenticates against a credential pair
+	// stored in a config file. CapIdentityPermissions is the second half of
+	// that: what a user may touch, which RabbitMQ keeps separately from what
+	// it may administer.
+	CapIdentityList        Capability = "identity.list"
+	CapIdentityAdmin       Capability = "identity.admin"
+	CapIdentityPermissions Capability = "identity.permissions"
+
+	// CapPolicyList and CapPolicyAdmin are settings applied to destinations by
+	// pattern rather than at declaration. Only a family whose destinations are
+	// otherwise immutable needs them, which is what makes them RabbitMQ's.
+	CapPolicyList  Capability = "policy.list"
+	CapPolicyAdmin Capability = "policy.admin"
+	// CapParameterAdmin reads and removes the component configuration the
+	// broker stores for its plugins.
+	CapParameterAdmin Capability = "parameter.admin"
+
+	// CapDefinitions is a broker that can hand back its whole topology as one
+	// document and take it back. It is the only backup some families offer of
+	// anything but message data.
+	CapDefinitionsExport Capability = "definitions.export"
+	CapDefinitionsImport Capability = "definitions.import"
+
+	// CapReplication is moving messages between brokers - shovels and
+	// federation. It is the capability most likely to be reported as degraded
+	// rather than absent: both are plugins, so a broker that could do this
+	// perfectly well simply has not been asked to.
+	CapReplication Capability = "replication.admin"
+
+	// CapStreamClients is who is reading and writing a stream over a protocol
+	// that is not the family's main one. Degraded rather than absent for the
+	// same reason as replication: it is a plugin.
+	CapStreamClients Capability = "stream.clients"
+	CapRouting       Capability = "routing.exchanges"
+
+	// CapRoutingAdmin creates and deletes exchanges and bindings. Separate
+	// from reading them: a connection may list a topology it has no permission
+	// to change.
+	CapRoutingAdmin Capability = "routing.admin"
 )
 
 // Capabilities is what one live connection can actually do.

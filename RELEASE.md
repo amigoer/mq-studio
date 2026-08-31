@@ -29,6 +29,13 @@ Generated mirrors — set `info.version` in `build/config.yml`, then run
 > those — the template pins it to 12.0.0, which is why the build flags in
 > `build/darwin/Taskfile.yml` target 12.0 as well.
 
+> Three files it rewrites wholesale rather than merging, and they are entirely
+> hand-authored: `build/linux/desktop` (loses the categories, the keywords and
+> the Chinese comment), `build/linux/nfpm/nfpm.yaml` (loses the maintainer,
+> homepage and licence), and `build/darwin/entitlements.plist`, which it
+> deletes. Check `git status build/` after running it, restore those three, and
+> set the nfpm version by hand.
+
 ## 2. Write the changelogs
 
 Add a `## [<version>] - <date>` section to **both** `CHANGELOG.md` and

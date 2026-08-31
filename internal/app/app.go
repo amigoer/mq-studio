@@ -16,6 +16,7 @@ import (
 	"github.com/amigoer/mq-studio/internal/service/connection"
 	"github.com/amigoer/mq-studio/internal/service/destination"
 	"github.com/amigoer/mq-studio/internal/service/message"
+	rabbitmqservice "github.com/amigoer/mq-studio/internal/service/rabbitmq"
 	"github.com/amigoer/mq-studio/internal/service/routing"
 	"github.com/amigoer/mq-studio/internal/service/settings"
 	"github.com/amigoer/mq-studio/internal/service/subscription"
@@ -32,6 +33,7 @@ type Services struct {
 	Settings    *configuration.Service
 	ACL         *access.Service
 	Routing     *routing.Service
+	RabbitMQ    *rabbitmqservice.Service
 
 	// Conns resolves a profile id to a live connection. The bridge needs it to
 	// answer capability questions without going through a domain service.
@@ -74,6 +76,7 @@ func New() (*Services, error) {
 		Settings:    configurationService,
 		ACL:         access.New(conns, settingsService),
 		Routing:     routing.New(conns, settingsService),
+		RabbitMQ:    rabbitmqservice.New(conns, settingsService),
 		Conns:       conns,
 		Collector:   collector.New(sampleActiveConnection(clusterService, registry), registry.HasActive),
 		registry:    registry,

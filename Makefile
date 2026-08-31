@@ -7,7 +7,9 @@ ARCH ?=
 
 .PHONY: help install install-ci bindings icons dev run build package dmg \
 	test test-go test-frontend e2e e2e-up e2e-seed e2e-down \
-	e2e-acl-up e2e-acl-down check ci clean
+	e2e-acl-up e2e-acl-down \
+	e2e-rabbitmq-up e2e-rabbitmq-seed e2e-rabbitmq-down \
+	e2e-rabbitmq-plain-up e2e-rabbitmq-plain-down check ci clean
 
 help: ## Show all available targets
 	@awk 'BEGIN { FS = ":.*## " } /^[a-zA-Z0-9_.-]+:.*## / { printf "  %-20s %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
@@ -61,6 +63,21 @@ e2e-acl-up: ## Start the ACL-enabled RocketMQ used by the ACL live tests
 
 e2e-acl-down: ## Stop the ACL E2E environment and remove its volumes
 	npm run e2e:acl:down
+
+e2e-rabbitmq-up: ## Start RabbitMQ 4 with the shovel, federation and stream plugins on
+	npm run e2e:rabbitmq:up
+
+e2e-rabbitmq-seed: ## Seed the RabbitMQ E2E broker with a topology worth looking at
+	npm run e2e:rabbitmq:seed
+
+e2e-rabbitmq-down: ## Stop the RabbitMQ E2E environment and remove its volumes
+	npm run e2e:rabbitmq:down
+
+e2e-rabbitmq-plain-up: ## Start the plugin-free RabbitMQ used by the degraded-path tests
+	npm run e2e:rabbitmq:plain:up
+
+e2e-rabbitmq-plain-down: ## Stop the plugin-free RabbitMQ environment
+	npm run e2e:rabbitmq:plain:down
 
 e2e: ## Run the live tests against a running, seeded RocketMQ E2E environment
 	npm run test:e2e

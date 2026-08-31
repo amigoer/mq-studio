@@ -29,6 +29,7 @@ func backings() []capabilityBacking {
 	deadLetter := func(c Conn) bool { _, ok := c.(DeadLetterReader); return ok }
 	replayer := func(c Conn) bool { _, ok := c.(MessageReplayer); return ok }
 	publisher := func(c Conn) bool { _, ok := c.(MessagePublisher); return ok }
+	richPublisher := func(c Conn) bool { _, ok := c.(RichPublisher); return ok }
 	producers := func(c Conn) bool { _, ok := c.(ProducerInspector); return ok }
 	cluster := func(c Conn) bool { _, ok := c.(ClusterAdmin); return ok }
 	nodeConfig := func(c Conn) bool { _, ok := c.(ConfigInspector); return ok }
@@ -37,8 +38,24 @@ func backings() []capabilityBacking {
 	writePerm := func(c Conn) bool { _, ok := c.(WritePermissionAdmin); return ok }
 	access := func(c Conn) bool { _, ok := c.(AccessAdmin); return ok }
 	accessDirectory := func(c Conn) bool { _, ok := c.(AccessDirectory); return ok }
+	namespaces := func(c Conn) bool { _, ok := c.(NamespaceAdmin); return ok }
+	namespaceLimits := func(c Conn) bool { _, ok := c.(NamespaceLimits); return ok }
+	identities := func(c Conn) bool { _, ok := c.(IdentityAdmin); return ok }
+	identityPerms := func(c Conn) bool { _, ok := c.(IdentityPermissions); return ok }
+	policies := func(c Conn) bool { _, ok := c.(PolicyAdmin); return ok }
+	parameters := func(c Conn) bool { _, ok := c.(ParameterAdmin); return ok }
+	definitions := func(c Conn) bool { _, ok := c.(DefinitionsAdmin); return ok }
+	replication := func(c Conn) bool { _, ok := c.(ReplicationAdmin); return ok }
+	streamClients := func(c Conn) bool { _, ok := c.(StreamInspector); return ok }
 	routing := func(c Conn) bool { _, ok := c.(RoutingAdmin); return ok }
+	census := func(c Conn) bool { _, ok := c.(CensusReporter); return ok }
+	routingAdmin := func(c Conn) bool { _, ok := c.(RoutingMutator); return ok }
+	clients := func(c Conn) bool { _, ok := c.(ClientInspector); return ok }
+	clientClose := func(c Conn) bool { _, ok := c.(ClientCloser); return ok }
+	health := func(c Conn) bool { _, ok := c.(HealthInspector); return ok }
+	dlqTopology := func(c Conn) bool { _, ok := c.(DeadLetterTopology); return ok }
 	stats := func(c Conn) bool { _, ok := c.(DestinationStats); return ok }
+	actions := func(c Conn) bool { _, ok := c.(QueueActions); return ok }
 
 	return []capabilityBacking{
 		{model.CapDestinationList, "DestinationAdmin", destination},
@@ -46,6 +63,9 @@ func backings() []capabilityBacking {
 		{model.CapDestinationUpdate, "DestinationAdmin", destination},
 		{model.CapDestinationDelete, "DestinationAdmin", destination},
 		{model.CapPartitions, "DestinationStats", stats},
+		{model.CapDestinationPurge, "QueueActions", actions},
+		{model.CapDestinationMove, "QueueActions", actions},
+		{model.CapQueueRebalance, "QueueActions", actions},
 
 		{model.CapSubscriptionList, "SubscriptionAdmin", subscription},
 		{model.CapSubscriptionCreate, "SubscriptionAdmin", subscription},
@@ -65,6 +85,7 @@ func backings() []capabilityBacking {
 		{model.CapMessageReplay, "MessageReplayer", replayer},
 		{model.CapPublish, "MessagePublisher", publisher},
 		{model.CapDelayedDelivery, "MessagePublisher", publisher},
+		{model.CapPublishRich, "RichPublisher", richPublisher},
 		{model.CapProducerInspect, "ProducerInspector", producers},
 
 		{model.CapClusterTopology, "ClusterAdmin", cluster},
@@ -75,7 +96,26 @@ func backings() []capabilityBacking {
 		{model.CapNodeWritePerm, "WritePermissionAdmin", writePerm},
 		{model.CapAccessControl, "AccessAdmin", access},
 		{model.CapAccessDirectory, "AccessDirectory", accessDirectory},
+		{model.CapNamespaceList, "NamespaceAdmin", namespaces},
+		{model.CapNamespaceAdmin, "NamespaceAdmin", namespaces},
+		{model.CapNamespaceLimits, "NamespaceLimits", namespaceLimits},
+		{model.CapIdentityList, "IdentityAdmin", identities},
+		{model.CapIdentityAdmin, "IdentityAdmin", identities},
+		{model.CapIdentityPermissions, "IdentityPermissions", identityPerms},
+		{model.CapPolicyList, "PolicyAdmin", policies},
+		{model.CapPolicyAdmin, "PolicyAdmin", policies},
+		{model.CapParameterAdmin, "ParameterAdmin", parameters},
+		{model.CapDefinitionsExport, "DefinitionsAdmin", definitions},
+		{model.CapDefinitionsImport, "DefinitionsAdmin", definitions},
+		{model.CapReplication, "ReplicationAdmin", replication},
+		{model.CapStreamClients, "StreamInspector", streamClients},
 		{model.CapRouting, "RoutingAdmin", routing},
+		{model.CapRoutingAdmin, "RoutingMutator", routingAdmin},
+		{model.CapClusterCensus, "CensusReporter", census},
+		{model.CapClientInspect, "ClientInspector", clients},
+		{model.CapClientClose, "ClientCloser", clientClose},
+		{model.CapClusterHealth, "HealthInspector", health},
+		{model.CapDeadLetterTopology, "DeadLetterTopology", dlqTopology},
 	}
 }
 

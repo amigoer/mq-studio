@@ -14,7 +14,7 @@ info:
   description: "Local-first desktop client for RocketMQ"
   copyright: "(c) 2026, amigoer"
   comments: "Local-first desktop client for RocketMQ"
-  version: "0.0.1"
+  version: "0.0.2"
 
 # Dev mode configuration
 dev_mode:

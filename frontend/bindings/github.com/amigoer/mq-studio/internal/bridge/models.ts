@@ -106,6 +106,63 @@ export class AccessRuleInput {
 }
 
 /**
+ * BindingInput describes one route.
+ */
+export class BindingInput {
+    "vhost": string;
+    "source": string;
+    "destination": string;
+    "destinationKind": string;
+    "routingKey": string;
+    "arguments": { [_ in string]?: string };
+
+    /**
+     * PropertiesKey identifies an existing binding for deletion. It comes from
+     * the listing; a delete without it is refused rather than guessed at.
+     */
+    "propertiesKey": string;
+
+    /** Creates a new BindingInput instance. */
+    constructor($$source: Partial<BindingInput> = {}) {
+        if (!("vhost" in $$source)) {
+            this["vhost"] = "";
+        }
+        if (!("source" in $$source)) {
+            this["source"] = "";
+        }
+        if (!("destination" in $$source)) {
+            this["destination"] = "";
+        }
+        if (!("destinationKind" in $$source)) {
+            this["destinationKind"] = "";
+        }
+        if (!("routingKey" in $$source)) {
+            this["routingKey"] = "";
+        }
+        if (!("arguments" in $$source)) {
+            this["arguments"] = {};
+        }
+        if (!("propertiesKey" in $$source)) {
+            this["propertiesKey"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new BindingInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): BindingInput {
+        const $$createField5_0 = $$createType3;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("arguments" in $$parsedSource) {
+            $$parsedSource["arguments"] = $$createField5_0($$parsedSource["arguments"]);
+        }
+        return new BindingInput($$parsedSource as Partial<BindingInput>);
+    }
+}
+
+/**
  * ClusterView is the cluster page's snapshot: the header counters and the
  * nodes behind them, in one round trip.
  */
@@ -139,9 +196,9 @@ export class ClusterView {
      * Creates a new ClusterView instance from a string or object.
      */
     static createFrom($$source: any = {}): ClusterView {
-        const $$createField0_0 = $$createType3;
-        const $$createField1_0 = $$createType6;
-        const $$createField2_0 = $$createType6;
+        const $$createField0_0 = $$createType4;
+        const $$createField1_0 = $$createType7;
+        const $$createField2_0 = $$createType7;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("overview" in $$parsedSource) {
             $$parsedSource["overview"] = $$createField0_0($$parsedSource["overview"]);
@@ -219,8 +276,8 @@ export class ConnectionInput {
      * Creates a new ConnectionInput instance from a string or object.
      */
     static createFrom($$source: any = {}): ConnectionInput {
-        const $$createField6_0 = $$createType7;
-        const $$createField7_0 = $$createType7;
+        const $$createField6_0 = $$createType3;
+        const $$createField7_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("options" in $$parsedSource) {
             $$parsedSource["options"] = $$createField6_0($$parsedSource["options"]);
@@ -304,7 +361,7 @@ export class ConnectionView {
      * Creates a new ConnectionView instance from a string or object.
      */
     static createFrom($$source: any = {}): ConnectionView {
-        const $$createField7_0 = $$createType7;
+        const $$createField7_0 = $$createType3;
         const $$createField8_0 = $$createType0;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("options" in $$parsedSource) {
@@ -354,6 +411,45 @@ export class ConsumerInput {
 }
 
 /**
+ * DefinitionsPreview is a chosen file, read and counted but not applied.
+ */
+export class DefinitionsPreview {
+    /**
+     * Path is empty when the user cancelled the dialog.
+     */
+    "path": string;
+    "document": string;
+    "counts": { [_ in string]?: number };
+
+    /** Creates a new DefinitionsPreview instance. */
+    constructor($$source: Partial<DefinitionsPreview> = {}) {
+        if (!("path" in $$source)) {
+            this["path"] = "";
+        }
+        if (!("document" in $$source)) {
+            this["document"] = "";
+        }
+        if (!("counts" in $$source)) {
+            this["counts"] = {};
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new DefinitionsPreview instance from a string or object.
+     */
+    static createFrom($$source: any = {}): DefinitionsPreview {
+        const $$createField2_0 = $$createType8;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("counts" in $$parsedSource) {
+            $$parsedSource["counts"] = $$createField2_0($$parsedSource["counts"]);
+        }
+        return new DefinitionsPreview($$parsedSource as Partial<DefinitionsPreview>);
+    }
+}
+
+/**
  * DriverInfo is one registered family.
  */
 export class DriverInfo {
@@ -378,6 +474,99 @@ export class DriverInfo {
     static createFrom($$source: any = {}): DriverInfo {
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         return new DriverInfo($$parsedSource as Partial<DriverInfo>);
+    }
+}
+
+/**
+ * ExchangeInput is an exchange declaration as the form collects it.
+ */
+export class ExchangeInput {
+    "vhost": string;
+    "name": string;
+    "type": string;
+    "transient": boolean;
+    "autoDelete": boolean;
+    "arguments": string;
+
+    /** Creates a new ExchangeInput instance. */
+    constructor($$source: Partial<ExchangeInput> = {}) {
+        if (!("vhost" in $$source)) {
+            this["vhost"] = "";
+        }
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("type" in $$source)) {
+            this["type"] = "";
+        }
+        if (!("transient" in $$source)) {
+            this["transient"] = false;
+        }
+        if (!("autoDelete" in $$source)) {
+            this["autoDelete"] = false;
+        }
+        if (!("arguments" in $$source)) {
+            this["arguments"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ExchangeInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ExchangeInput {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ExchangeInput($$parsedSource as Partial<ExchangeInput>);
+    }
+}
+
+/**
+ * IdentityInput creates or updates a user.
+ */
+export class IdentityInput {
+    "name": string;
+    "tags": string[];
+
+    /**
+     * Password empty keeps whatever is stored.
+     */
+    "password": string;
+
+    /**
+     * WithoutPassword asks for a user that cannot authenticate with one. It is
+     * the opposite instruction from an empty password, not the same one.
+     */
+    "withoutPassword": boolean;
+
+    /** Creates a new IdentityInput instance. */
+    constructor($$source: Partial<IdentityInput> = {}) {
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("tags" in $$source)) {
+            this["tags"] = [];
+        }
+        if (!("password" in $$source)) {
+            this["password"] = "";
+        }
+        if (!("withoutPassword" in $$source)) {
+            this["withoutPassword"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new IdentityInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): IdentityInput {
+        const $$createField1_0 = $$createType0;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("tags" in $$parsedSource) {
+            $$parsedSource["tags"] = $$createField1_0($$parsedSource["tags"]);
+        }
+        return new IdentityInput($$parsedSource as Partial<IdentityInput>);
     }
 }
 
@@ -425,6 +614,14 @@ export class MessageQuery {
     "startTime": number;
     "endTime": number;
 
+    /**
+     * Filters carries what only one family can narrow by, keyed by names that
+     * family's driver and its frontend module agree on - a RabbitMQ routing
+     * key or header, a Kafka header. Tag stays its own field because the
+     * RocketMQ form has always sent it there.
+     */
+    "filters": { [_ in string]?: string };
+
     /** Creates a new MessageQuery instance. */
     constructor($$source: Partial<MessageQuery> = {}) {
         if (!("topic" in $$source)) {
@@ -445,6 +642,9 @@ export class MessageQuery {
         if (!("endTime" in $$source)) {
             this["endTime"] = 0;
         }
+        if (!("filters" in $$source)) {
+            this["filters"] = {};
+        }
 
         Object.assign(this, $$source);
     }
@@ -453,8 +653,145 @@ export class MessageQuery {
      * Creates a new MessageQuery instance from a string or object.
      */
     static createFrom($$source: any = {}): MessageQuery {
+        const $$createField6_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("filters" in $$parsedSource) {
+            $$parsedSource["filters"] = $$createField6_0($$parsedSource["filters"]);
+        }
         return new MessageQuery($$parsedSource as Partial<MessageQuery>);
+    }
+}
+
+/**
+ * MoveInput drains one queue into an exchange.
+ */
+export class MoveInput {
+    "vhost": string;
+    "from": string;
+
+    /**
+     * ToExchange empty is the default exchange, which routes by queue name.
+     */
+    "toExchange": string;
+
+    /**
+     * ToRoutingKey empty means each message keeps its own.
+     */
+    "toRoutingKey": string;
+    "limit": number;
+
+    /** Creates a new MoveInput instance. */
+    constructor($$source: Partial<MoveInput> = {}) {
+        if (!("vhost" in $$source)) {
+            this["vhost"] = "";
+        }
+        if (!("from" in $$source)) {
+            this["from"] = "";
+        }
+        if (!("toExchange" in $$source)) {
+            this["toExchange"] = "";
+        }
+        if (!("toRoutingKey" in $$source)) {
+            this["toRoutingKey"] = "";
+        }
+        if (!("limit" in $$source)) {
+            this["limit"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new MoveInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): MoveInput {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new MoveInput($$parsedSource as Partial<MoveInput>);
+    }
+}
+
+/**
+ * NamespaceInput creates or updates a virtual host.
+ */
+export class NamespaceInput {
+    "name": string;
+    "description": string;
+    "tags": string[];
+    "defaultQueueType": string;
+    "tracing": boolean;
+
+    /** Creates a new NamespaceInput instance. */
+    constructor($$source: Partial<NamespaceInput> = {}) {
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("description" in $$source)) {
+            this["description"] = "";
+        }
+        if (!("tags" in $$source)) {
+            this["tags"] = [];
+        }
+        if (!("defaultQueueType" in $$source)) {
+            this["defaultQueueType"] = "";
+        }
+        if (!("tracing" in $$source)) {
+            this["tracing"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new NamespaceInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): NamespaceInput {
+        const $$createField2_0 = $$createType0;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("tags" in $$parsedSource) {
+            $$parsedSource["tags"] = $$createField2_0($$parsedSource["tags"]);
+        }
+        return new NamespaceInput($$parsedSource as Partial<NamespaceInput>);
+    }
+}
+
+/**
+ * PermissionInput grants rights inside one namespace. The three patterns are
+ * regular expressions: empty permits nothing, ".*" permits everything.
+ */
+export class PermissionInput {
+    "vhost": string;
+    "identity": string;
+    "configure": string;
+    "write": string;
+    "read": string;
+
+    /** Creates a new PermissionInput instance. */
+    constructor($$source: Partial<PermissionInput> = {}) {
+        if (!("vhost" in $$source)) {
+            this["vhost"] = "";
+        }
+        if (!("identity" in $$source)) {
+            this["identity"] = "";
+        }
+        if (!("configure" in $$source)) {
+            this["configure"] = "";
+        }
+        if (!("write" in $$source)) {
+            this["write"] = "";
+        }
+        if (!("read" in $$source)) {
+            this["read"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new PermissionInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): PermissionInput {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new PermissionInput($$parsedSource as Partial<PermissionInput>);
     }
 }
 
@@ -540,6 +877,152 @@ export class PrincipalInput {
 }
 
 /**
+ * PublishInput is the send console's form.
+ */
+export class PublishInput {
+    "vhost": string;
+
+    /**
+     * Exchange empty is the default exchange, which routes by queue name.
+     */
+    "exchange": string;
+    "routingKey": string;
+    "body": string;
+    "persistent": boolean;
+    "mandatory": boolean;
+    "headers": { [_ in string]?: string };
+    "contentType": string;
+    "correlationId": string;
+    "replyTo": string;
+    "messageId": string;
+    "type": string;
+    "appId": string;
+    "expiration": string;
+    "priority": number;
+    "count": number;
+
+    /** Creates a new PublishInput instance. */
+    constructor($$source: Partial<PublishInput> = {}) {
+        if (!("vhost" in $$source)) {
+            this["vhost"] = "";
+        }
+        if (!("exchange" in $$source)) {
+            this["exchange"] = "";
+        }
+        if (!("routingKey" in $$source)) {
+            this["routingKey"] = "";
+        }
+        if (!("body" in $$source)) {
+            this["body"] = "";
+        }
+        if (!("persistent" in $$source)) {
+            this["persistent"] = false;
+        }
+        if (!("mandatory" in $$source)) {
+            this["mandatory"] = false;
+        }
+        if (!("headers" in $$source)) {
+            this["headers"] = {};
+        }
+        if (!("contentType" in $$source)) {
+            this["contentType"] = "";
+        }
+        if (!("correlationId" in $$source)) {
+            this["correlationId"] = "";
+        }
+        if (!("replyTo" in $$source)) {
+            this["replyTo"] = "";
+        }
+        if (!("messageId" in $$source)) {
+            this["messageId"] = "";
+        }
+        if (!("type" in $$source)) {
+            this["type"] = "";
+        }
+        if (!("appId" in $$source)) {
+            this["appId"] = "";
+        }
+        if (!("expiration" in $$source)) {
+            this["expiration"] = "";
+        }
+        if (!("priority" in $$source)) {
+            this["priority"] = 0;
+        }
+        if (!("count" in $$source)) {
+            this["count"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new PublishInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): PublishInput {
+        const $$createField6_0 = $$createType3;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("headers" in $$parsedSource) {
+            $$parsedSource["headers"] = $$createField6_0($$parsedSource["headers"]);
+        }
+        return new PublishInput($$parsedSource as Partial<PublishInput>);
+    }
+}
+
+/**
+ * QueueInput is a queue declaration as the form collects it.
+ * 
+ * Nothing like TopicInput, and it should not be: a RocketMQ topic is read and
+ * write queue counts and a permission bitmask, a RabbitMQ queue is a type, a
+ * lifetime and a bag of arguments the broker validates itself.
+ */
+export class QueueInput {
+    "vhost": string;
+    "name": string;
+    "queueType": string;
+    "durable": boolean;
+    "autoDelete": boolean;
+
+    /**
+     * Arguments is the declaration bag as JSON, so a number stays a number.
+     * RabbitMQ rejects a float where it wants an integer, and a string where
+     * it wants either.
+     */
+    "arguments": string;
+
+    /** Creates a new QueueInput instance. */
+    constructor($$source: Partial<QueueInput> = {}) {
+        if (!("vhost" in $$source)) {
+            this["vhost"] = "";
+        }
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("queueType" in $$source)) {
+            this["queueType"] = "";
+        }
+        if (!("durable" in $$source)) {
+            this["durable"] = false;
+        }
+        if (!("autoDelete" in $$source)) {
+            this["autoDelete"] = false;
+        }
+        if (!("arguments" in $$source)) {
+            this["arguments"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new QueueInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): QueueInput {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new QueueInput($$parsedSource as Partial<QueueInput>);
+    }
+}
+
+/**
  * QueueOffsetInput carries a per-queue offset form submission.
  */
 export class QueueOffsetInput {
@@ -576,6 +1059,62 @@ export class QueueOffsetInput {
     static createFrom($$source: any = {}): QueueOffsetInput {
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         return new QueueOffsetInput($$parsedSource as Partial<QueueOffsetInput>);
+    }
+}
+
+/**
+ * RabbitPolicyInput creates a policy or replaces one of the same name.
+ * 
+ * Qualified because "policy" means two different things across the families
+ * this bridge serves: RocketMQ's PolicyInput is an ACL rule, and this is a
+ * pattern that applies settings to destinations.
+ */
+export class RabbitPolicyInput {
+    "vhost": string;
+    "name": string;
+    "pattern": string;
+    "applyTo": string;
+    "priority": number;
+
+    /**
+     * Definition as JSON, so an integer stays an integer.
+     */
+    "definition": string;
+    "operator": boolean;
+
+    /** Creates a new RabbitPolicyInput instance. */
+    constructor($$source: Partial<RabbitPolicyInput> = {}) {
+        if (!("vhost" in $$source)) {
+            this["vhost"] = "";
+        }
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("pattern" in $$source)) {
+            this["pattern"] = "";
+        }
+        if (!("applyTo" in $$source)) {
+            this["applyTo"] = "";
+        }
+        if (!("priority" in $$source)) {
+            this["priority"] = 0;
+        }
+        if (!("definition" in $$source)) {
+            this["definition"] = "";
+        }
+        if (!("operator" in $$source)) {
+            this["operator"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new RabbitPolicyInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): RabbitPolicyInput {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new RabbitPolicyInput($$parsedSource as Partial<RabbitPolicyInput>);
     }
 }
 
@@ -1138,12 +1677,53 @@ export class TopicInput {
     }
 }
 
+/**
+ * TopicPermissionInput narrows write and read on one topic exchange.
+ */
+export class TopicPermissionInput {
+    "vhost": string;
+    "identity": string;
+    "exchange": string;
+    "write": string;
+    "read": string;
+
+    /** Creates a new TopicPermissionInput instance. */
+    constructor($$source: Partial<TopicPermissionInput> = {}) {
+        if (!("vhost" in $$source)) {
+            this["vhost"] = "";
+        }
+        if (!("identity" in $$source)) {
+            this["identity"] = "";
+        }
+        if (!("exchange" in $$source)) {
+            this["exchange"] = "";
+        }
+        if (!("write" in $$source)) {
+            this["write"] = "";
+        }
+        if (!("read" in $$source)) {
+            this["read"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new TopicPermissionInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): TopicPermissionInput {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new TopicPermissionInput($$parsedSource as Partial<TopicPermissionInput>);
+    }
+}
+
 // Private type creation functions
 const $$createType0 = $Create.Array($Create.Any);
 const $$createType1 = PolicyInput.createFrom;
 const $$createType2 = $Create.Array($$createType1);
-const $$createType3 = model$0.ClusterOverview.createFrom;
-const $$createType4 = model$0.Node.createFrom;
-const $$createType5 = $Create.Nullable($$createType4);
-const $$createType6 = $Create.Array($$createType5);
-const $$createType7 = $Create.Map($Create.Any, $Create.Any);
+const $$createType3 = $Create.Map($Create.Any, $Create.Any);
+const $$createType4 = model$0.ClusterOverview.createFrom;
+const $$createType5 = model$0.Node.createFrom;
+const $$createType6 = $Create.Nullable($$createType5);
+const $$createType7 = $Create.Array($$createType6);
+const $$createType8 = $Create.Map($Create.Any, $Create.Any);

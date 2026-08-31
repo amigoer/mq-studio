@@ -31,6 +31,7 @@ export const fetchLatestMessages = (
     maxResults,
     startTime: 0,
     endTime: 0,
+    filters: {},
   }).then(present);
 
 /**
@@ -56,6 +57,7 @@ export function queryMessagesByCondition(
     maxResults,
     startTime: condition.startTimeMs ?? 0,
     endTime: condition.endTimeMs ?? 0,
+    filters: {},
   }).then(present);
 }
 
@@ -146,3 +148,27 @@ export const tailMessages = (
   cursor: TailCursor,
   limit = 0,
 ): Promise<TailBatch> => MessageService.Tail(connID, topic, cursor, limit).then(required);
+
+/**
+ * Browses a queue with family-specific filters.
+ *
+ * Separate from queryMessagesByCondition because the shared form's fields -
+ * key, tag, time range - are not what RabbitMQ can narrow by. It has no key
+ * index and no time index; what it has is a routing key, headers and the
+ * payload itself, and those travel in the filter map.
+ */
+export const browseMessages = (
+  connID: number,
+  topic: string,
+  maxResults: number,
+  filters: Record<string, string>,
+): Promise<MessageItem[]> =>
+  MessageService.Query(connID, {
+    topic,
+    key: "",
+    tag: "",
+    maxResults,
+    startTime: 0,
+    endTime: 0,
+    filters,
+  }).then(present);

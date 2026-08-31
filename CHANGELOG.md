@@ -9,6 +9,87 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.0.2] - 2026-08-31
+
+RabbitMQ support. The whole management plane, with messages carried over AMQP
+rather than the management API's publish and get endpoints, so a send waits for
+a publisher confirm and a browse behaves like a real consumer.
+
+### Added
+
+**RabbitMQ 3.x and 4.x**
+
+- Connect to a broker's HTTP management plugin, with the AMQP data plane dialled
+  alongside it. The connection identifies itself on the broker as
+  `mq-studio: <name>`, so an operator can see which client is which.
+- Overview, queues, exchanges and bindings, connections and channels, messages,
+  dead letters, a send console, and nodes.
+- Queues with their full arguments: classic, quorum and stream, durability,
+  TTL, max length and overflow, dead-letter exchange and routing key, single
+  active consumer. Declare, purge, move between queues, and delete.
+- Exchanges and bindings: all four types plus alternate exchange, and bindings
+  with their routing key and arguments, including a headers exchange's
+  `x-match`.
+- Browse over AMQP rather than the management API, filtered by routing key or
+  header. The queue is left as it was found, and the page says what a browse
+  costs: what it read comes back flagged redelivered.
+- Publish with confirms: target exchange and routing key, mandatory,
+  persistent, priority, expiration, headers, correlation id, reply-to and
+  content type. A message nothing is bound to route is reported as unroutable
+  rather than as a success.
+- Dead letters read from the `x-death` header: which queue the message came
+  from, why it was rejected, how many times, and when. Republish one or many
+  back to their original queue or somewhere else, or drop them.
+- Connections and channels with protocol, heartbeat, prefetch, unacknowledged
+  count and flow-control state, and closing one with a reason.
+- Nodes with their memory breakdown, resource alarms, partitions, the broker's
+  own health checks, feature flags, and which deprecated features are actually
+  in use.
+- Virtual hosts: create, edit and delete, default queue type, deletion
+  protection, tracing, and the connection and queue limits.
+- Users and permissions: users and tags, the configure/write/read regex triple
+  per virtual host, topic permissions, and per-user limits. Editing a user's
+  tags no longer needs their password.
+- Policies and operator policies with priority, pattern and definition, plus
+  which policy a given queue actually matched; runtime and global parameters
+  alongside them.
+- Definitions: export the whole broker or one virtual host to a file, and
+  import one after seeing what it will create.
+- Shovels and federation: what exists, whether it is running, and the broker's
+  own sentence when it is not. Read and delete only - a definition carries
+  another broker's credentials, which are stripped before they leave the
+  driver.
+- Stream queues report the clients attached over the stream protocol, which
+  never appear among a queue's AMQP consumers.
+- Alerts derived from RabbitMQ's own figures: its resource alarms, network
+  partitions, the approach to either watermark, a queue with a backlog, a queue
+  with nobody reading it, and connections the broker is throttling.
+
+### Fixed
+
+- Alert rules read RocketMQ's attribute keys against every connection, so a
+  RabbitMQ broker was measured for figures it never reports and raised nothing
+  however badly it was doing.
+- Management requests ignored the request timeout configured on the connection,
+  because the underlying library takes no context. A slow broker could hold a
+  page open indefinitely.
+- A wrong password was reported as "enable the management plugin", sending the
+  reader off to reconfigure a broker that was fine.
+- Saving a connection kept only RocketMQ's access key pair and dropped every
+  other credential, filing the connection as anonymous. Nothing could reach it
+  in 0.0.1, where RocketMQ was the only driver, but it made a RabbitMQ
+  connection impossible to save - and the form's test button passed, because it
+  probes what was submitted rather than what was stored.
+
+### Known limitations
+
+- Kafka, Pulsar, NATS, MQTT and the rest appear in the interface and are
+  disabled.
+- Shovel, federation and the stream protocol are RabbitMQ plugins. A broker
+  without them keeps the page, disabled, with the reason on it.
+- macOS builds are not signed by a registered Apple developer. The disk image
+  carries a First Run helper that clears the quarantine flag.
+
 ## [0.0.1] - 2026-08-31
 
 First release of MQ Studio as a rebuilt project. MQ Studio is a desktop client

@@ -42,7 +42,7 @@ func (s *Service) AddConnection(input model.ConnectionProfile) (*model.Connectio
 		IsDefault:  len(s.connections) == 0,
 		Remark:     remark,
 	}
-	connection.SetACL(enableACL, accessKey, secretKey)
+	applyCredentials(connection, input, enableACL, accessKey, secretKey)
 	s.connections[connection.ID] = connection
 	if err := s.saveConnectionsLocked(); err != nil {
 		delete(s.connections, connection.ID)
@@ -51,6 +51,61 @@ func (s *Service) AddConnection(input model.ConnectionProfile) (*model.Connectio
 	s.nextID++
 	copy := *connection
 	return &copy, nil
+}
+
+/*
+ * applyCredentials copies what the form collected onto the stored profile.
+ *
+ * Every driver's credentials, not only RocketMQ's access key pair. Those two
+ * are normalised separately because they alone have an enable flag and a
+ * global fallback in settings; everything else is just what the form asked
+ * for. Keeping only the pair meant a RabbitMQ connection was saved with no
+ * username and no password - and because the form's test button probes the
+ * submitted profile rather than the stored one, it passed on the way in and
+ * the connection could not open afterwards.
+ */
+func applyCredentials(
+	connection *model.ConnectionProfile,
+	input model.ConnectionProfile,
+	enableACL bool,
+	accessKey, secretKey string,
+) {
+	for key, value := range input.Secrets {
+		if key == model.SecretAccessKey || key == model.SecretSecretKey {
+			continue
+		}
+		connection.SetSecret(key, value)
+	}
+	connection.SetACL(enableACL, accessKey, secretKey)
+
+	/*
+	 * SetACL owns the mechanism, which is right for a family whose only one is
+	 * ACL: off means anonymous. A family with a mechanism of its own - RabbitMQ
+	 * authenticates with a plain user and password - has to keep the one it
+	 * declared, or it is stored as an anonymous connection that cannot open.
+	 */
+	if !enableACL && input.Auth.Mechanism != "" {
+		connection.Auth.Mechanism = input.Auth.Mechanism
+	}
+}
+
+// sameSecrets reports whether two credential sets carry the same values.
+//
+// What decides whether an open client has to be dropped and redialled. It used
+// to compare only the access key pair, so changing a RabbitMQ password left
+// the old one connected until the app restarted.
+func sameSecrets(previous, current map[string]string) bool {
+	for key, value := range current {
+		if previous[key] != value {
+			return false
+		}
+	}
+	for key, value := range previous {
+		if current[key] != value {
+			return false
+		}
+	}
+	return true
 }
 
 // UpdateConnection updates and persists a connection profile.
@@ -89,13 +144,12 @@ func (s *Service) UpdateConnection(id int, input model.ConnectionProfile) (*mode
 		connection.Options = input.Options
 	}
 	connection.TimeoutSec = timeoutSec
-	connection.SetACL(enableACL, accessKey, secretKey)
+	applyCredentials(connection, input, enableACL, accessKey, secretKey)
 	connection.Remark = remark
 	clientConfigChanged := previous.Endpoints != connection.Endpoints ||
 		previous.TimeoutSec != connection.TimeoutSec ||
 		previous.ACLEnabled() != connection.ACLEnabled() ||
-		previous.Secret(model.SecretAccessKey) != connection.Secret(model.SecretAccessKey) ||
-		previous.Secret(model.SecretSecretKey) != connection.Secret(model.SecretSecretKey)
+		!sameSecrets(previous.Secrets, connection.Secrets)
 	wasOnline := previous.Status == model.StatusOnline
 	if clientConfigChanged {
 		connection.Status = model.StatusOffline

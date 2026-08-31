@@ -218,3 +218,33 @@ func TestUnsupportedCarriesTheDegradedReason(t *testing.T) {
 		t.Errorf("Reason = %q; want the driver's explanation", unsupported.Reason)
 	}
 }
+
+/*
+ * A degraded reason is an i18n key, and the renderer turns it into a sentence
+ * in the user's language. Wrapping it in an English frame put the key itself
+ * on screen: "rabbitmq does not support cluster.census here:
+ * mq.rabbitmq.degraded.credentials".
+ */
+func TestUnsupportedErrorIsTheReasonAlone(t *testing.T) {
+	withReason := &UnsupportedError{
+		Kind:       model.KindRabbitMQ,
+		Capability: model.CapClusterCensus,
+		Reason:     "mq.rabbitmq.degraded.credentials",
+	}
+	if got := withReason.Error(); got != "mq.rabbitmq.degraded.credentials" {
+		t.Errorf("Error() = %q, want the reason alone", got)
+	}
+	// The context is still reachable for anything that wants it.
+	if withReason.Capability != model.CapClusterCensus {
+		t.Error("the capability was lost with the message")
+	}
+}
+
+// With no reason there is nothing to translate, so the message stays the
+// developer-facing one rather than becoming empty.
+func TestUnsupportedErrorWithoutAReasonStillSaysSomething(t *testing.T) {
+	bare := &UnsupportedError{Kind: model.KindRabbitMQ, Capability: model.CapOffsetReset}
+	if got := bare.Error(); got == "" || !strings.Contains(got, string(model.CapOffsetReset)) {
+		t.Errorf("Error() = %q, want it to name the capability", got)
+	}
+}

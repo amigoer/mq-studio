@@ -7,6 +7,7 @@ import * as ConnectionService from "./connectionservice.js";
 import * as ConsumerService from "./consumerservice.js";
 import * as DriverService from "./driverservice.js";
 import * as MessageService from "./messageservice.js";
+import * as RabbitMQService from "./rabbitmqservice.js";
 import * as RoutingService from "./routingservice.js";
 import * as SettingsService from "./settingsservice.js";
 import * as ShellService from "./shellservice.js";
@@ -21,6 +22,7 @@ export {
     ConsumerService,
     DriverService,
     MessageService,
+    RabbitMQService,
     RoutingService,
     SettingsService,
     ShellService,
@@ -33,21 +35,32 @@ export {
 export {
     AccessConfigInput,
     AccessRuleInput,
+    BindingInput,
     ClusterView,
     ConnectionInput,
     ConnectionView,
     ConsumerInput,
+    DefinitionsPreview,
     DriverInfo,
+    ExchangeInput,
+    IdentityInput,
     MaintenanceTaskView,
     MessageQuery,
+    MoveInput,
+    NamespaceInput,
+    PermissionInput,
     PolicyInput,
     PrincipalInput,
+    PublishInput,
+    QueueInput,
     QueueOffsetInput,
+    RabbitPolicyInput,
     ReplayInput,
     ResendInput,
     SendInput,
     SettingsInput,
     SettingsView,
     ShellPage,
-    TopicInput
+    TopicInput,
+    TopicPermissionInput
 } from "./models.js";

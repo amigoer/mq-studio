@@ -58,3 +58,24 @@ type DestinationFilter struct {
 	Namespace       string `json:"namespace"`
 	IncludeInternal bool   `json:"includeInternal"`
 }
+
+// MoveRequest drains one queue into an exchange.
+//
+// The target is an exchange and a routing key rather than a queue, because
+// that is how a message enters RabbitMQ at all: publishing straight to a queue
+// means publishing to the default exchange with the queue's name as the key,
+// which the caller can ask for explicitly.
+type MoveRequest struct {
+	Namespace string `json:"namespace"`
+	From      string `json:"from"`
+	// ToExchange may be empty, which is the default exchange - it routes by
+	// queue name, so an empty exchange with a routing key sends straight to
+	// the queue of that name.
+	ToExchange string `json:"toExchange"`
+	// ToRoutingKey empty means each message keeps its own, which is what sends
+	// a batch back through the topology it originally took.
+	ToRoutingKey string `json:"toRoutingKey"`
+	// Limit caps one run. Moving is one round trip per message, so a page
+	// asks for a batch rather than for a whole backlog.
+	Limit int `json:"limit"`
+}

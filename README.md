@@ -113,7 +113,7 @@ capabilities, so the interface only offers what the connected broker can actuall
 | Driver | Status | Notes |
 | --- | --- | --- |
 | **RocketMQ** 4.x / 5.x | ✅ Available | Full feature set through Admin APIs |
-| **RabbitMQ** | 🚧 In development | Queues, consumers, browse and publish, cluster topology, exchanges and bindings |
+| **RabbitMQ** 3.x / 4.x | ✅ Available | Full management plane: queues, exchanges and bindings, connections and channels, browse and publish over AMQP, dead letters, virtual hosts, users and permissions, policies, definitions, shovels and federation |
 | Kafka · Pulsar · NATS · MQTT · SQS and more | 📋 Planned | Full matrix below |
 
 <details>
@@ -160,7 +160,7 @@ half-wired set of pages.
 | Phase | Scope | Status |
 | --- | --- | --- |
 | 1 | RocketMQ 4.x / 5.x | ✅ Done |
-| 2 | RabbitMQ | 🚧 In development |
+| 2 | RabbitMQ | ✅ Done |
 | 3 | Kafka | 📋 Next |
 | 4 | The remaining drivers, in the order listed under Driver support | 📋 Planned |
 | 5 | Agent features | 📋 Planned |

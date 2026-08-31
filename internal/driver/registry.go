@@ -28,9 +28,19 @@ type UnsupportedError struct {
 	Reason     string
 }
 
+/*
+ * Error is what the user reads, so when the driver supplied a reason it is the
+ * whole message.
+ *
+ * Reason is an i18n key, and the renderer turns it into a sentence in the
+ * user's language. Wrapping it in an English frame put the key itself on
+ * screen: "rabbitmq does not support cluster.census here:
+ * mq.rabbitmq.degraded.credentials". The kind and the capability are still on
+ * the struct for anything that wants them - errors.As reaches them.
+ */
 func (e *UnsupportedError) Error() string {
 	if e.Reason != "" {
-		return fmt.Sprintf("%s does not support %s here: %s", e.Kind, e.Capability, e.Reason)
+		return e.Reason
 	}
 	return fmt.Sprintf("%s does not support %s", e.Kind, e.Capability)
 }

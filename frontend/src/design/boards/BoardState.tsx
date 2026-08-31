@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/empty";
 import { Spinner } from "@/components/ui/spinner";
 import type { BrokerData } from "@/hooks/useBrokerData";
+import { isI18nKey } from "@/lib/utils";
 
 /**
  * The three states every data board reaches before it has rows.
@@ -56,7 +57,9 @@ export function BoardState({
           </Button>
         }
       >
-        {state.error}
+        {/* A driver reports a reason the user can act on as an i18n key, not a
+            sentence, so that the words are chosen in their language here. */}
+        {isI18nKey(state.error) ? t(state.error) : state.error}
       </Notice>
     );
   }

@@ -1,16 +1,69 @@
+import { MQKind } from "@bindings/model/models";
+
 export type AlertRuleKey =
-  "brokerOffline" | "groupOffline" | "groupLag" | "diskUsage" | "dlqGrowth";
+  | "brokerOffline"
+  | "groupOffline"
+  | "groupLag"
+  | "diskUsage"
+  | "dlqGrowth"
+  | "resourceAlarm"
+  | "nodePartition"
+  | "memoryUsage"
+  | "queueBacklog"
+  | "queueNoConsumer"
+  | "flowControl";
 
 export type AlertRulePrefs = Record<AlertRuleKey, boolean>;
 
 /** Every rule, in the order a list of them reads best: worst first. */
 export const ALERT_RULE_KEYS: readonly AlertRuleKey[] = [
   "brokerOffline",
+  "resourceAlarm",
+  "nodePartition",
+  "groupOffline",
+  "queueNoConsumer",
+  "groupLag",
+  "queueBacklog",
+  "diskUsage",
+  "memoryUsage",
+  "flowControl",
+  "dlqGrowth",
+];
+
+/*
+ * Which rules a family can actually raise.
+ *
+ * The switches are stored for every rule regardless, because a window can hold
+ * connections to two families at once and a toggle is a preference rather than
+ * a fact about a broker. What this decides is which ones are worth showing:
+ * offering "consumer group has no instances" against RabbitMQ would be
+ * offering a switch for something that cannot happen.
+ */
+const RULES_BY_KIND: Partial<Record<MQKind, readonly AlertRuleKey[]>> = {
+  [MQKind.KindRabbitMQ]: [
+    "brokerOffline",
+    "resourceAlarm",
+    "nodePartition",
+    "queueNoConsumer",
+    "queueBacklog",
+    "diskUsage",
+    "memoryUsage",
+    "flowControl",
+  ],
+};
+
+const ROCKETMQ_RULES: readonly AlertRuleKey[] = [
+  "brokerOffline",
   "groupOffline",
   "groupLag",
   "diskUsage",
   "dlqGrowth",
 ];
+
+export function rulesFor(kind: MQKind | undefined): readonly AlertRuleKey[] {
+  if (kind == null) return ALERT_RULE_KEYS;
+  return RULES_BY_KIND[kind] ?? ROCKETMQ_RULES;
+}
 
 const STORAGE_KEY = "mq-studio:alert-rules";
 
@@ -20,6 +73,12 @@ export const DEFAULT_ALERT_RULES: AlertRulePrefs = {
   groupLag: true,
   diskUsage: true,
   dlqGrowth: true,
+  resourceAlarm: true,
+  nodePartition: true,
+  memoryUsage: true,
+  queueBacklog: true,
+  queueNoConsumer: true,
+  flowControl: true,
 };
 
 function read(): AlertRulePrefs {

@@ -7,7 +7,8 @@ import { Switch } from "@/components/ui/switch";
 import { MiniStat, Panel, SectionLabel, Segmented, Status } from "@/components";
 import { Notice } from "@/design/boards/BoardState";
 import { useAlerts, type AlertEntry } from "@/hooks/useAlerts";
-import { ALERT_RULE_KEYS, type AlertRuleKey } from "@/lib/alertRules";
+import { rulesFor, type AlertRuleKey } from "@/lib/alertRules";
+import { useConnectionScope } from "@/mq/ConnectionScope";
 import type { AlertSeverity } from "@/lib/alertDerive";
 import type { StatusTone } from "@/components";
 
@@ -27,6 +28,12 @@ const RULE_SEVERITY: Record<AlertRuleKey, AlertSeverity> = {
   groupLag: "warn",
   diskUsage: "warn",
   dlqGrowth: "info",
+  resourceAlarm: "crit",
+  nodePartition: "crit",
+  memoryUsage: "warn",
+  queueNoConsumer: "crit",
+  queueBacklog: "warn",
+  flowControl: "warn",
 };
 
 /**
@@ -148,6 +155,11 @@ function Rules({
   onOpenSettings?: () => void;
 }) {
   const { t } = useTranslation();
+  /* Only the rules this family can raise. A switch for "consumer group has no
+     instances" against RabbitMQ would be a switch for something that cannot
+     happen. */
+  const { kind } = useConnectionScope();
+  const keys = rulesFor(kind);
 
   return (
     <div className="flex flex-col gap-3">
@@ -171,7 +183,7 @@ function Rules({
       </div>
 
       <Panel className="flex flex-col gap-0 px-4 py-1">
-        {ALERT_RULE_KEYS.map((key, index) => (
+        {keys.map((key, index) => (
           <div
             key={key}
             className="flex items-center gap-3 py-2.5"

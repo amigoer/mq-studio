@@ -21,6 +21,12 @@ type MessageQuery struct {
 	MaxResults int    `json:"maxResults"`
 	StartTime  int64  `json:"startTime"`
 	EndTime    int64  `json:"endTime"`
+
+	// Filters carries what only one family can narrow by, keyed by names that
+	// family's driver and its frontend module agree on - a RabbitMQ routing
+	// key or header, a Kafka header. Tag stays its own field because the
+	// RocketMQ form has always sent it there.
+	Filters map[string]string `json:"filters"`
 }
 
 // ResendInput identifies a message to push back to a consumer group.
@@ -51,8 +57,21 @@ func (s *MessageService) Query(connID int, query MessageQuery) ([]*model.Message
 		StartTime:  query.StartTime,
 		EndTime:    query.EndTime,
 		MaxResults: query.MaxResults,
-		Filters:    map[string]string{rocketmq.FilterTag: query.Tag},
+		Filters:    queryFilters(query),
 	})
+}
+
+// queryFilters merges the family-specific filters with the tag the RocketMQ
+// form sends in its own field.
+func queryFilters(query MessageQuery) map[string]string {
+	filters := make(map[string]string, len(query.Filters)+1)
+	for key, value := range query.Filters {
+		filters[key] = value
+	}
+	if query.Tag != "" {
+		filters[rocketmq.FilterTag] = query.Tag
+	}
+	return filters
 }
 
 // ByID returns a single message by its ID.

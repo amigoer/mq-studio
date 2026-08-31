@@ -7,11 +7,13 @@ package rabbitmq
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
+	"net"
+	"net/http"
 	"net/url"
 	"strings"
-
-	rabbithole "github.com/michaelklishin/rabbit-hole/v2"
+	"time"
 
 	"github.com/amigoer/mq-studio/internal/driver"
 	"github.com/amigoer/mq-studio/internal/model"
@@ -19,11 +21,14 @@ import (
 
 // Option and secret keys this driver stores in a connection profile.
 const (
-	OptionVHost     = "vhost"
-	SecretUsername  = "username"
-	SecretPassword  = "password"
-	defaultVHost    = "/"
-	defaultMgmtPort = "15672"
+	OptionVHost         = "vhost"
+	OptionAMQPEndpoint  = "amqpEndpoint"
+	OptionTLS           = "tls"
+	OptionTLSSkipVerify = "tlsSkipVerify"
+	SecretUsername      = "username"
+	SecretPassword      = "password"
+	defaultVHost        = "/"
+	defaultMgmtPort     = "15672"
 )
 
 // Driver is the RabbitMQ family.
@@ -59,6 +64,28 @@ func (d *Driver) Descriptor() model.DriverDescriptor {
 				Default:  defaultVHost,
 			},
 			{
+				Key:         OptionAMQPEndpoint,
+				Target:      model.TargetOption,
+				Type:        model.FieldText,
+				LabelKey:    "mq.rabbitmq.form.amqpUrl",
+				Placeholder: "amqp://localhost:5672",
+			},
+			{
+				Key:      OptionTLS,
+				Target:   model.TargetOption,
+				Type:     model.FieldSwitch,
+				LabelKey: "mq.rabbitmq.form.tls",
+				Default:  "false",
+			},
+			{
+				Key:         OptionTLSSkipVerify,
+				Target:      model.TargetOption,
+				Type:        model.FieldSwitch,
+				LabelKey:    "mq.rabbitmq.form.tlsSkipVerify",
+				Default:     "false",
+				VisibleWhen: &model.FieldCond{Field: OptionTLS, Equals: []string{"true"}},
+			},
+			{
 				Key:      "timeoutSec",
 				Target:   model.TargetOption,
 				Type:     model.FieldNumber,
@@ -90,22 +117,35 @@ func (d *Driver) Open(ctx context.Context, profile model.ConnectionProfile) (dri
 	if err != nil {
 		return nil, err
 	}
-	client, err := rabbithole.NewClient(
-		endpoint, profile.Secret(SecretUsername), profile.Secret(SecretPassword))
-	if err != nil {
-		return nil, fmt.Errorf("open rabbitmq connection: %w", err)
-	}
-
 	vhost := profile.Option(OptionVHost)
 	if vhost == "" {
 		vhost = defaultVHost
 	}
+	useTLS := profile.Option(OptionTLS) == "true"
+	uri, err := amqpAddress(
+		profile.Option(OptionAMQPEndpoint),
+		endpoint,
+		vhost,
+		profile.Secret(SecretUsername),
+		profile.Secret(SecretPassword),
+		useTLS,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	dial := dialTimeout(profile)
+	tlsConfig := tlsConfigFor(profile, useTLS, uri.Host)
 	conn := &Conn{
-		client:   client,
+		mgmt: newMgmt(
+			endpoint,
+			profile.Secret(SecretUsername),
+			profile.Secret(SecretPassword),
+			newTransport(dial, tlsConfig),
+		),
+		data:     newDataPlane(uri, connectionName(profile.Name), tlsConfig, dial),
 		vhost:    vhost,
 		endpoint: endpoint,
-		username: profile.Secret(SecretUsername),
-		password: profile.Secret(SecretPassword),
 	}
 	conn.probe(ctx)
 	return conn, nil
@@ -130,3 +170,47 @@ func normaliseEndpoint(raw string) (string, error) {
 	}
 	return strings.TrimSuffix(parsed.String(), "/"), nil
 }
+
+// newTransport is the HTTP transport one connection's management calls share.
+//
+// It exists per connection rather than per process because it carries that
+// profile's timeout, and later its TLS settings: two profiles against one
+// broker need not agree on either.
+func newTransport(dial time.Duration, tlsConfig *tls.Config) http.RoundTripper {
+	return &http.Transport{
+		Proxy:               http.ProxyFromEnvironment,
+		DialContext:         (&net.Dialer{Timeout: dial, KeepAlive: 30 * time.Second}).DialContext,
+		TLSClientConfig:     tlsConfig,
+		TLSHandshakeTimeout: dial,
+		MaxIdleConns:        8,
+		IdleConnTimeout:     60 * time.Second,
+	}
+}
+
+// tlsConfigFor is nil unless the profile asked for TLS, which leaves both
+// planes on their own defaults rather than an empty config that would change
+// how a plaintext connection behaves.
+func tlsConfigFor(profile model.ConnectionProfile, useTLS bool, serverName string) *tls.Config {
+	if !useTLS {
+		return nil
+	}
+	return &tls.Config{
+		ServerName: serverName,
+		// Opt-in, and named for what it does. Self-signed certificates are
+		// common on internal brokers; silently accepting them would not be.
+		InsecureSkipVerify: profile.Option(OptionTLSSkipVerify) == "true",
+	}
+}
+
+// dialTimeout is the profile's own timeout, which is what the connection form
+// collects. It bounds reaching the host at all - something a request deadline
+// cannot do on its own, because a host that never answers SYN consumes the
+// whole budget before the first byte.
+func dialTimeout(profile model.ConnectionProfile) time.Duration {
+	if profile.TimeoutSec > 0 {
+		return time.Duration(profile.TimeoutSec) * time.Second
+	}
+	return defaultDialTimeout
+}
+
+const defaultDialTimeout = 5 * time.Second

@@ -231,6 +231,15 @@ export class Binding {
     "routingKey": string;
     "arguments": { [_ in string]?: string };
 
+    /**
+     * PropertiesKey is the broker's own identifier for this binding, and the
+     * only way to delete one. A binding has no name, and the same source,
+     * destination and routing key can exist more than once with different
+     * arguments - so anything a caller made up would delete a different
+     * binding or none. It comes back with the listing.
+     */
+    "propertiesKey": string;
+
     /** Creates a new Binding instance. */
     constructor($$source: Partial<Binding> = {}) {
         if (!("id" in $$source)) {
@@ -254,6 +263,9 @@ export class Binding {
         if (!("arguments" in $$source)) {
             this["arguments"] = {};
         }
+        if (!("propertiesKey" in $$source)) {
+            this["propertiesKey"] = "";
+        }
 
         Object.assign(this, $$source);
     }
@@ -268,6 +280,194 @@ export class Binding {
             $$parsedSource["arguments"] = $$createField6_0($$parsedSource["arguments"]);
         }
         return new Binding($$parsedSource as Partial<Binding>);
+    }
+}
+
+/**
+ * BrokerCensus is a broker-wide snapshot: how many of each object exists, how
+ * much is sitting in queues, and how fast messages are moving through.
+ * 
+ * It is separate from ClusterOverview because the two answer different
+ * questions. ClusterOverview is the topology - how many nodes, how many are
+ * up - and every family has one. This is the broker's own running total, which
+ * only a family with a single endpoint that aggregates the cluster can report;
+ * RabbitMQ's management API is one, and RocketMQ has no counterpart.
+ * 
+ * Counts a family does not report carry UnknownMetric rather than zero, so the
+ * page renders an em dash instead of a measurement that was never taken.
+ */
+export class BrokerCensus {
+    "clusterName": string;
+    "version": string;
+    "runtimeVersion": string;
+    "queues": number;
+    "exchanges": number;
+    "connections": number;
+    "channels": number;
+    "consumers": number;
+
+    /**
+     * Ready is deliverable now, Unacknowledged is with a consumer that has not
+     * acked yet. Total is what the broker holds and is not always their sum:
+     * it counts messages in states neither covers.
+     */
+    "ready": number;
+    "unacknowledged": number;
+    "total": number;
+    "rates": BrokerRates;
+
+    /** Creates a new BrokerCensus instance. */
+    constructor($$source: Partial<BrokerCensus> = {}) {
+        if (!("clusterName" in $$source)) {
+            this["clusterName"] = "";
+        }
+        if (!("version" in $$source)) {
+            this["version"] = "";
+        }
+        if (!("runtimeVersion" in $$source)) {
+            this["runtimeVersion"] = "";
+        }
+        if (!("queues" in $$source)) {
+            this["queues"] = 0;
+        }
+        if (!("exchanges" in $$source)) {
+            this["exchanges"] = 0;
+        }
+        if (!("connections" in $$source)) {
+            this["connections"] = 0;
+        }
+        if (!("channels" in $$source)) {
+            this["channels"] = 0;
+        }
+        if (!("consumers" in $$source)) {
+            this["consumers"] = 0;
+        }
+        if (!("ready" in $$source)) {
+            this["ready"] = 0;
+        }
+        if (!("unacknowledged" in $$source)) {
+            this["unacknowledged"] = 0;
+        }
+        if (!("total" in $$source)) {
+            this["total"] = 0;
+        }
+        if (!("rates" in $$source)) {
+            this["rates"] = (new BrokerRates());
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new BrokerCensus instance from a string or object.
+     */
+    static createFrom($$source: any = {}): BrokerCensus {
+        const $$createField11_0 = $$createType4;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("rates" in $$parsedSource) {
+            $$parsedSource["rates"] = $$createField11_0($$parsedSource["rates"]);
+        }
+        return new BrokerCensus($$parsedSource as Partial<BrokerCensus>);
+    }
+}
+
+/**
+ * BrokerHealth is everything a cluster page asks beyond the node list.
+ */
+export class BrokerHealth {
+    "checks": (HealthCheck | null)[];
+    "alarms": (ResourceAlarm | null)[];
+    "featureFlags": (FeatureFlag | null)[];
+    "deprecatedFeatures": (DeprecatedFeature | null)[];
+
+    /** Creates a new BrokerHealth instance. */
+    constructor($$source: Partial<BrokerHealth> = {}) {
+        if (!("checks" in $$source)) {
+            this["checks"] = [];
+        }
+        if (!("alarms" in $$source)) {
+            this["alarms"] = [];
+        }
+        if (!("featureFlags" in $$source)) {
+            this["featureFlags"] = [];
+        }
+        if (!("deprecatedFeatures" in $$source)) {
+            this["deprecatedFeatures"] = [];
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new BrokerHealth instance from a string or object.
+     */
+    static createFrom($$source: any = {}): BrokerHealth {
+        const $$createField0_0 = $$createType7;
+        const $$createField1_0 = $$createType10;
+        const $$createField2_0 = $$createType13;
+        const $$createField3_0 = $$createType16;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("checks" in $$parsedSource) {
+            $$parsedSource["checks"] = $$createField0_0($$parsedSource["checks"]);
+        }
+        if ("alarms" in $$parsedSource) {
+            $$parsedSource["alarms"] = $$createField1_0($$parsedSource["alarms"]);
+        }
+        if ("featureFlags" in $$parsedSource) {
+            $$parsedSource["featureFlags"] = $$createField2_0($$parsedSource["featureFlags"]);
+        }
+        if ("deprecatedFeatures" in $$parsedSource) {
+            $$parsedSource["deprecatedFeatures"] = $$createField3_0($$parsedSource["deprecatedFeatures"]);
+        }
+        return new BrokerHealth($$parsedSource as Partial<BrokerHealth>);
+    }
+}
+
+/**
+ * BrokerRates is messages per second, as the broker computes them over its own
+ * sampling window rather than as anything measured here.
+ */
+export class BrokerRates {
+    "publish": number;
+    "deliver": number;
+    "ack": number;
+    "redeliver": number;
+
+    /**
+     * Unroutable is publishes that matched no binding. It has no counterpart
+     * in a family that publishes straight to a destination, and it is the
+     * first thing worth knowing when messages "disappear" on a topology whose
+     * bindings are wrong.
+     */
+    "unroutable": number;
+
+    /** Creates a new BrokerRates instance. */
+    constructor($$source: Partial<BrokerRates> = {}) {
+        if (!("publish" in $$source)) {
+            this["publish"] = 0;
+        }
+        if (!("deliver" in $$source)) {
+            this["deliver"] = 0;
+        }
+        if (!("ack" in $$source)) {
+            this["ack"] = 0;
+        }
+        if (!("redeliver" in $$source)) {
+            this["redeliver"] = 0;
+        }
+        if (!("unroutable" in $$source)) {
+            this["unroutable"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new BrokerRates instance from a string or object.
+     */
+    static createFrom($$source: any = {}): BrokerRates {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new BrokerRates($$parsedSource as Partial<BrokerRates>);
     }
 }
 
@@ -316,9 +516,9 @@ export class Capabilities {
      * Creates a new Capabilities instance from a string or object.
      */
     static createFrom($$source: any = {}): Capabilities {
-        const $$createField0_0 = $$createType4;
-        const $$createField1_0 = $$createType5;
-        const $$createField2_0 = $$createType5;
+        const $$createField0_0 = $$createType17;
+        const $$createField1_0 = $$createType18;
+        const $$createField2_0 = $$createType18;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("supported" in $$parsedSource) {
             $$parsedSource["supported"] = $$createField0_0($$parsedSource["supported"]);
@@ -351,6 +551,21 @@ export enum Capability {
     CapDestinationUpdate = "destination.update",
     CapDestinationDelete = "destination.delete",
     CapPartitions = "destination.partitions",
+
+    /**
+     * CapDestinationPurge empties a destination without deleting it, and
+     * CapDestinationMove drains one into another. Separate capabilities
+     * because they are separate buttons with very different blast radii: one
+     * discards, the other relocates.
+     */
+    CapDestinationPurge = "destination.purge",
+    CapDestinationMove = "destination.move",
+
+    /**
+     * CapQueueRebalance spreads replicated destinations' leaders back across
+     * the cluster. Only a family that elects a leader per destination has it.
+     */
+    CapQueueRebalance = "destination.rebalance",
     CapSubscriptionList = "subscription.list",
     CapSubscriptionCreate = "subscription.create",
     CapSubscriptionDelete = "subscription.delete",
@@ -394,6 +609,13 @@ export enum Capability {
     CapPublish = "message.publish",
 
     /**
+     * CapPublishRich is a send console that can set what the family's own
+     * protocol carries - an exchange and routing key, headers, and the
+     * delivery guarantees - rather than only a destination and a body.
+     */
+    CapPublishRich = "message.publishRich",
+
+    /**
      * CapProducerInspect is asking who is currently publishing. It needs a
      * producer group to ask about: the broker tracks connections per group and
      * offers no way to enumerate the groups themselves.
@@ -433,6 +655,43 @@ export enum Capability {
      */
     CapNodeWritePerm = "cluster.writePerm",
     CapClusterMetrics = "cluster.metrics",
+
+    /**
+     * CapClusterCensus is a broker that keeps its own running totals - object
+     * counts, queued depth and message rates for the whole cluster in one
+     * answer. A family whose figures can only be assembled by walking every
+     * destination does not have it.
+     */
+    CapClusterCensus = "cluster.census",
+
+    /**
+     * CapClientInspect is a broker that can name the transport connections and
+     * channels open against it. Families that expose producers and consumers
+     * but not the sessions underneath them do not have it.
+     */
+    CapClientInspect = "client.inspect",
+
+    /**
+     * CapClientClose disconnects a client from the broker. Separate from
+     * inspecting them: a monitoring user can list every connection and close
+     * none.
+     */
+    CapClientClose = "client.close",
+
+    /**
+     * CapClusterHealth is a broker that answers questions about its own
+     * health, rather than one whose health has to be inferred from its
+     * metrics.
+     */
+    CapClusterHealth = "cluster.health",
+
+    /**
+     * CapDeadLetterTopology is a family whose dead-letter queues are ordinary
+     * queues something else points at, found by walking the topology, rather
+     * than a per-group topic the broker names for you. Both answer the same
+     * page; neither can answer it the other's way.
+     */
+    CapDeadLetterTopology = "message.dlqTopology",
     CapAccessControl = "access.control",
 
     /**
@@ -442,8 +701,327 @@ export enum Capability {
      * take a write for and never read back.
      */
     CapAccessDirectory = "access.directory",
+
+    /**
+     * CapNamespaceList and CapNamespaceAdmin are families whose namespaces are
+     * objects rather than labels - a RabbitMQ virtual host holds its own
+     * queues, exchanges, policies and permissions, and nothing crosses
+     * between two of them.
+     */
+    CapNamespaceList = "namespace.list",
+    CapNamespaceAdmin = "namespace.admin",
+
+    /**
+     * CapNamespaceLimits caps a namespace as a whole rather than one
+     * destination inside it.
+     */
+    CapNamespaceLimits = "namespace.limits",
+
+    /**
+     * CapIdentityList and CapIdentityAdmin are a broker that keeps its own
+     * users, as opposed to one that authenticates against a credential pair
+     * stored in a config file. CapIdentityPermissions is the second half of
+     * that: what a user may touch, which RabbitMQ keeps separately from what
+     * it may administer.
+     */
+    CapIdentityList = "identity.list",
+    CapIdentityAdmin = "identity.admin",
+    CapIdentityPermissions = "identity.permissions",
+
+    /**
+     * CapPolicyList and CapPolicyAdmin are settings applied to destinations by
+     * pattern rather than at declaration. Only a family whose destinations are
+     * otherwise immutable needs them, which is what makes them RabbitMQ's.
+     */
+    CapPolicyList = "policy.list",
+    CapPolicyAdmin = "policy.admin",
+
+    /**
+     * CapParameterAdmin reads and removes the component configuration the
+     * broker stores for its plugins.
+     */
+    CapParameterAdmin = "parameter.admin",
+
+    /**
+     * CapDefinitions is a broker that can hand back its whole topology as one
+     * document and take it back. It is the only backup some families offer of
+     * anything but message data.
+     */
+    CapDefinitionsExport = "definitions.export",
+    CapDefinitionsImport = "definitions.import",
+
+    /**
+     * CapReplication is moving messages between brokers - shovels and
+     * federation. It is the capability most likely to be reported as degraded
+     * rather than absent: both are plugins, so a broker that could do this
+     * perfectly well simply has not been asked to.
+     */
+    CapReplication = "replication.admin",
+
+    /**
+     * CapStreamClients is who is reading and writing a stream over a protocol
+     * that is not the family's main one. Degraded rather than absent for the
+     * same reason as replication: it is a plugin.
+     */
+    CapStreamClients = "stream.clients",
     CapRouting = "routing.exchanges",
+
+    /**
+     * CapRoutingAdmin creates and deletes exchanges and bindings. Separate
+     * from reading them: a connection may list a topology it has no permission
+     * to change.
+     */
+    CapRoutingAdmin = "routing.admin",
 };
+
+/**
+ * ClientChannel is one multiplexed session inside a connection.
+ * 
+ * A channel is where the interesting failure lives: prefetch and
+ * unacknowledged counts are per channel, and a consumer that has stopped
+ * acknowledging shows up here long before the queue depth makes it obvious.
+ */
+export class ClientChannel {
+    "name": string;
+    "number": number;
+    "connection": string;
+    "namespace": string;
+    "user": string;
+    "node": string;
+
+    /**
+     * There is deliberately no state field. The management API reports one but
+     * the client library does not model it, and the two flags that matter -
+     * flow-blocked and idle-since - are here in full, so deriving a word from
+     * them would be inventing a field rather than reporting one.
+     */
+    "consumers": number;
+    "prefetchCount": number;
+
+    /**
+     * Unacknowledged is delivered and not yet acked. Unconfirmed is published
+     * and not yet confirmed back to the publisher. They are the two sides of
+     * in-flight work and fail for opposite reasons.
+     */
+    "unacknowledged": number;
+    "unconfirmed": number;
+
+    /**
+     * Confirms and Transactional are the two delivery guarantees a channel can
+     * be in, and they are mutually exclusive in AMQP.
+     */
+    "confirms": boolean;
+    "transactional": boolean;
+
+    /**
+     * FlowBlocked is the broker telling this channel to stop publishing. It is
+     * the single most useful field here: a publisher that has slowed down for
+     * no apparent reason is usually looking at this.
+     */
+    "flowBlocked": boolean;
+
+    /**
+     * IdleSince is when the channel last did anything, as the broker spells
+     * it. Empty means it is busy now.
+     */
+    "idleSince": string;
+
+    /** Creates a new ClientChannel instance. */
+    constructor($$source: Partial<ClientChannel> = {}) {
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("number" in $$source)) {
+            this["number"] = 0;
+        }
+        if (!("connection" in $$source)) {
+            this["connection"] = "";
+        }
+        if (!("namespace" in $$source)) {
+            this["namespace"] = "";
+        }
+        if (!("user" in $$source)) {
+            this["user"] = "";
+        }
+        if (!("node" in $$source)) {
+            this["node"] = "";
+        }
+        if (!("consumers" in $$source)) {
+            this["consumers"] = 0;
+        }
+        if (!("prefetchCount" in $$source)) {
+            this["prefetchCount"] = 0;
+        }
+        if (!("unacknowledged" in $$source)) {
+            this["unacknowledged"] = 0;
+        }
+        if (!("unconfirmed" in $$source)) {
+            this["unconfirmed"] = 0;
+        }
+        if (!("confirms" in $$source)) {
+            this["confirms"] = false;
+        }
+        if (!("transactional" in $$source)) {
+            this["transactional"] = false;
+        }
+        if (!("flowBlocked" in $$source)) {
+            this["flowBlocked"] = false;
+        }
+        if (!("idleSince" in $$source)) {
+            this["idleSince"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ClientChannel instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ClientChannel {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ClientChannel($$parsedSource as Partial<ClientChannel>);
+    }
+}
+
+/**
+ * ClientConnection is one application's connection to the broker.
+ * 
+ * It has no counterpart in the canonical vocabulary on purpose. RocketMQ and
+ * Kafka expose producers and consumers, which are roles; this is the transport
+ * underneath them, and an operator uses it for a different job - finding which
+ * host is holding a connection open, which one is being throttled, and which
+ * one to close when an application will not let go.
+ */
+export class ClientConnection {
+    /**
+     * Name is the broker's own identifier, of the form "host:port -> host:port".
+     * It is what a close request names, so it is the key rather than a label.
+     */
+    "name": string;
+
+    /**
+     * ClientName is what the application called itself, or "" when it said
+     * nothing. Most libraries send nothing, which is why the peer address
+     * stays the primary identifier.
+     */
+    "clientName": string;
+    "namespace": string;
+    "user": string;
+    "node": string;
+    "peerHost": string;
+    "peerPort": number;
+
+    /**
+     * Protocol is the wire protocol this connection speaks. A broker with the
+     * MQTT or STOMP plugins on carries connections that are not AMQP at all,
+     * and treating them alike would misreport both.
+     */
+    "protocol": string;
+    "state": string;
+    "channels": number;
+
+    /**
+     * TLS is whether the transport is encrypted, and Cipher names how. An
+     * empty cipher on a TLS connection means the broker did not report one.
+     */
+    "tls": boolean;
+    "cipher": string;
+
+    /**
+     * HeartbeatSec is what the two sides negotiated. Zero means heartbeats are
+     * off, which is worth seeing: a connection with none can sit half-open
+     * through a network partition and look healthy from both ends.
+     */
+    "heartbeatSec": number;
+    "recvBytes": number;
+    "sendBytes": number;
+    "recvByteRate": number;
+    "sendByteRate": number;
+
+    /**
+     * ConnectedAtMs is when the connection was established, in Unix
+     * milliseconds, or 0 when the broker did not report it.
+     */
+    "connectedAtMs": number;
+
+    /**
+     * BlockedBy is why the broker last stopped this connection publishing -
+     * a resource alarm, usually memory or disk. Empty means it was never
+     * blocked.
+     */
+    "blockedBy": string;
+
+    /** Creates a new ClientConnection instance. */
+    constructor($$source: Partial<ClientConnection> = {}) {
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("clientName" in $$source)) {
+            this["clientName"] = "";
+        }
+        if (!("namespace" in $$source)) {
+            this["namespace"] = "";
+        }
+        if (!("user" in $$source)) {
+            this["user"] = "";
+        }
+        if (!("node" in $$source)) {
+            this["node"] = "";
+        }
+        if (!("peerHost" in $$source)) {
+            this["peerHost"] = "";
+        }
+        if (!("peerPort" in $$source)) {
+            this["peerPort"] = 0;
+        }
+        if (!("protocol" in $$source)) {
+            this["protocol"] = "";
+        }
+        if (!("state" in $$source)) {
+            this["state"] = "";
+        }
+        if (!("channels" in $$source)) {
+            this["channels"] = 0;
+        }
+        if (!("tls" in $$source)) {
+            this["tls"] = false;
+        }
+        if (!("cipher" in $$source)) {
+            this["cipher"] = "";
+        }
+        if (!("heartbeatSec" in $$source)) {
+            this["heartbeatSec"] = 0;
+        }
+        if (!("recvBytes" in $$source)) {
+            this["recvBytes"] = 0;
+        }
+        if (!("sendBytes" in $$source)) {
+            this["sendBytes"] = 0;
+        }
+        if (!("recvByteRate" in $$source)) {
+            this["recvByteRate"] = 0;
+        }
+        if (!("sendByteRate" in $$source)) {
+            this["sendByteRate"] = 0;
+        }
+        if (!("connectedAtMs" in $$source)) {
+            this["connectedAtMs"] = 0;
+        }
+        if (!("blockedBy" in $$source)) {
+            this["blockedBy"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ClientConnection instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ClientConnection {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ClientConnection($$parsedSource as Partial<ClientConnection>);
+    }
+}
 
 /**
  * CloneOffsetRequest copies one subscription's read position onto another.
@@ -610,6 +1188,230 @@ export class ConsumeThroughput {
 }
 
 /**
+ * DeadLetterQueue is a queue that receives what other queues could not keep.
+ * 
+ * It is not the shape DeadLetterReader describes, and that is the point.
+ * RocketMQ gives every consumer group a dead-letter topic of its own, named
+ * after it, so a group name is enough to find one. RabbitMQ has no such thing:
+ * a queue is declared with a dead-letter exchange, that exchange routes like
+ * any other, and whatever it routes to becomes a dead-letter queue by
+ * convention rather than by declaration. Finding one means walking the
+ * topology backwards.
+ */
+export class DeadLetterQueue {
+    "namespace": string;
+
+    /**
+     * Name is the queue dead letters land in. It has no special status on the
+     * broker - it is an ordinary queue that something else points at.
+     */
+    "name": string;
+    "depth": number;
+
+    /**
+     * Consumers is how many are draining it. A dead-letter queue with a
+     * consumer is a retry pipeline; one without is a backlog nobody is
+     * looking at, which is the case worth surfacing.
+     */
+    "consumers": number;
+
+    /**
+     * Sources are the queues whose dead-letter exchange routes here, and the
+     * reason this queue matters. A dead-letter queue with no sources is one
+     * whose producers were deleted or reconfigured, and it will never receive
+     * anything again.
+     */
+    "sources": (DeadLetterSource | null)[];
+
+    /** Creates a new DeadLetterQueue instance. */
+    constructor($$source: Partial<DeadLetterQueue> = {}) {
+        if (!("namespace" in $$source)) {
+            this["namespace"] = "";
+        }
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("depth" in $$source)) {
+            this["depth"] = 0;
+        }
+        if (!("consumers" in $$source)) {
+            this["consumers"] = 0;
+        }
+        if (!("sources" in $$source)) {
+            this["sources"] = [];
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new DeadLetterQueue instance from a string or object.
+     */
+    static createFrom($$source: any = {}): DeadLetterQueue {
+        const $$createField4_0 = $$createType21;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("sources" in $$parsedSource) {
+            $$parsedSource["sources"] = $$createField4_0($$parsedSource["sources"]);
+        }
+        return new DeadLetterQueue($$parsedSource as Partial<DeadLetterQueue>);
+    }
+}
+
+/**
+ * DeadLetterSource is one queue that dead-letters into another.
+ */
+export class DeadLetterSource {
+    "queue": string;
+
+    /**
+     * Exchange is what the source queue was declared to dead-letter through.
+     */
+    "exchange": string;
+
+    /**
+     * RoutingKey is the key the message is re-published with. Empty means the
+     * message keeps its original routing key, which is the default and changes
+     * where it lands.
+     */
+    "routingKey": string;
+
+    /** Creates a new DeadLetterSource instance. */
+    constructor($$source: Partial<DeadLetterSource> = {}) {
+        if (!("queue" in $$source)) {
+            this["queue"] = "";
+        }
+        if (!("exchange" in $$source)) {
+            this["exchange"] = "";
+        }
+        if (!("routingKey" in $$source)) {
+            this["routingKey"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new DeadLetterSource instance from a string or object.
+     */
+    static createFrom($$source: any = {}): DeadLetterSource {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new DeadLetterSource($$parsedSource as Partial<DeadLetterSource>);
+    }
+}
+
+/**
+ * Definitions is a broker's whole topology, minus the messages.
+ * 
+ * It is the only backup RabbitMQ offers of anything but message data, and it
+ * is what a cluster is rebuilt from: virtual hosts, users and permissions,
+ * queues, exchanges, bindings, policies and parameters in one document.
+ */
+export class Definitions {
+    /**
+     * Namespace is set when the export was scoped to one virtual host, and
+     * empty for a whole-broker export.
+     */
+    "namespace": string;
+
+    /**
+     * Document is the JSON itself, laid out for reading.
+     */
+    "document": string;
+
+    /**
+     * Counts is what it contains, by kind. It is what makes an otherwise
+     * opaque file reviewable before it is applied somewhere else.
+     */
+    "counts": { [_ in string]?: number };
+
+    /** Creates a new Definitions instance. */
+    constructor($$source: Partial<Definitions> = {}) {
+        if (!("namespace" in $$source)) {
+            this["namespace"] = "";
+        }
+        if (!("document" in $$source)) {
+            this["document"] = "";
+        }
+        if (!("counts" in $$source)) {
+            this["counts"] = {};
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new Definitions instance from a string or object.
+     */
+    static createFrom($$source: any = {}): Definitions {
+        const $$createField2_0 = $$createType22;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("counts" in $$parsedSource) {
+            $$parsedSource["counts"] = $$createField2_0($$parsedSource["counts"]);
+        }
+        return new Definitions($$parsedSource as Partial<Definitions>);
+    }
+}
+
+/**
+ * DeprecatedFeature is something this cluster still allows that a later
+ * release will not.
+ * 
+ * The list of what is deprecated is background; the list of what is deprecated
+ * *and in use here* is a work item, which is why the two are reported
+ * separately rather than as one list with a flag.
+ */
+export class DeprecatedFeature {
+    "name": string;
+    "description": string;
+
+    /**
+     * Phase is how far along the removal is: permitted by default, denied by
+     * default, disconnected, or removed.
+     */
+    "phase": string;
+    "providedBy": string;
+    "docUrl": string;
+
+    /**
+     * InUse is set when the broker reports this feature is actually being
+     * used on this cluster, which turns it from background into a work item.
+     */
+    "inUse": boolean;
+
+    /** Creates a new DeprecatedFeature instance. */
+    constructor($$source: Partial<DeprecatedFeature> = {}) {
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("description" in $$source)) {
+            this["description"] = "";
+        }
+        if (!("phase" in $$source)) {
+            this["phase"] = "";
+        }
+        if (!("providedBy" in $$source)) {
+            this["providedBy"] = "";
+        }
+        if (!("docUrl" in $$source)) {
+            this["docUrl"] = "";
+        }
+        if (!("inUse" in $$source)) {
+            this["inUse"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new DeprecatedFeature instance from a string or object.
+     */
+    static createFrom($$source: any = {}): DeprecatedFeature {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new DeprecatedFeature($$parsedSource as Partial<DeprecatedFeature>);
+    }
+}
+
+/**
  * Destination is a topic, queue or stream as the canonical pages see it.
  * 
  * Attributes carries whatever the family has and the canonical model does not:
@@ -688,7 +1490,7 @@ export class Destination {
      * Creates a new Destination instance from a string or object.
      */
     static createFrom($$source: any = {}): Destination {
-        const $$createField1_0 = $$createType6;
+        const $$createField1_0 = $$createType23;
         const $$createField8_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("ref" in $$parsedSource) {
@@ -775,8 +1577,8 @@ export class DriverDescriptor {
      * Creates a new DriverDescriptor instance from a string or object.
      */
     static createFrom($$source: any = {}): DriverDescriptor {
-        const $$createField2_0 = $$createType8;
-        const $$createField3_0 = $$createType4;
+        const $$createField2_0 = $$createType25;
+        const $$createField3_0 = $$createType17;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("form" in $$parsedSource) {
             $$parsedSource["form"] = $$createField2_0($$parsedSource["form"]);
@@ -785,6 +1587,143 @@ export class DriverDescriptor {
             $$parsedSource["maxCapabilities"] = $$createField3_0($$parsedSource["maxCapabilities"]);
         }
         return new DriverDescriptor($$parsedSource as Partial<DriverDescriptor>);
+    }
+}
+
+/**
+ * FeatureFlag is a behaviour change that has to be enabled before the cluster
+ * can use it, and cannot be turned off again once it is.
+ * 
+ * It matters on a page about nodes because a flag that is not enabled
+ * everywhere blocks a rolling upgrade: the cluster cannot move to a version
+ * that requires it until every node agrees.
+ */
+export class FeatureFlag {
+    "name": string;
+    "description": string;
+
+    /**
+     * State is the broker's own word - "enabled", "disabled", "unavailable".
+     */
+    "state": string;
+    "stability": string;
+    "providedBy": string;
+    "docUrl": string;
+
+    /** Creates a new FeatureFlag instance. */
+    constructor($$source: Partial<FeatureFlag> = {}) {
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("description" in $$source)) {
+            this["description"] = "";
+        }
+        if (!("state" in $$source)) {
+            this["state"] = "";
+        }
+        if (!("stability" in $$source)) {
+            this["stability"] = "";
+        }
+        if (!("providedBy" in $$source)) {
+            this["providedBy"] = "";
+        }
+        if (!("docUrl" in $$source)) {
+            this["docUrl"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new FeatureFlag instance from a string or object.
+     */
+    static createFrom($$source: any = {}): FeatureFlag {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new FeatureFlag($$parsedSource as Partial<FeatureFlag>);
+    }
+}
+
+/**
+ * FederationUpstream is another broker this one pulls from.
+ * 
+ * Different from a shovel in what it is for: a shovel moves messages once,
+ * from somewhere to somewhere; federation keeps two brokers' exchanges or
+ * queues in step continuously.
+ */
+export class FederationUpstream {
+    "namespace": string;
+    "name": string;
+
+    /**
+     * URI has its password removed.
+     */
+    "uri": string[];
+
+    /**
+     * Exchange and Queue are which of the two this upstream federates, and
+     * exactly one of them is set.
+     */
+    "exchange": string;
+    "queue": string;
+
+    /**
+     * MaxHops stops a federation loop between brokers from carrying a message
+     * forever.
+     */
+    "maxHops": number;
+    "ackMode": string;
+
+    /**
+     * State is the running link's status, and Error is why it is not running.
+     * An upstream is configuration; a link is a connection that either works
+     * or explains itself.
+     */
+    "state": string;
+    "error": string;
+
+    /** Creates a new FederationUpstream instance. */
+    constructor($$source: Partial<FederationUpstream> = {}) {
+        if (!("namespace" in $$source)) {
+            this["namespace"] = "";
+        }
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("uri" in $$source)) {
+            this["uri"] = [];
+        }
+        if (!("exchange" in $$source)) {
+            this["exchange"] = "";
+        }
+        if (!("queue" in $$source)) {
+            this["queue"] = "";
+        }
+        if (!("maxHops" in $$source)) {
+            this["maxHops"] = 0;
+        }
+        if (!("ackMode" in $$source)) {
+            this["ackMode"] = "";
+        }
+        if (!("state" in $$source)) {
+            this["state"] = "";
+        }
+        if (!("error" in $$source)) {
+            this["error"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new FederationUpstream instance from a string or object.
+     */
+    static createFrom($$source: any = {}): FederationUpstream {
+        const $$createField2_0 = $$createType0;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("uri" in $$parsedSource) {
+            $$parsedSource["uri"] = $$createField2_0($$parsedSource["uri"]);
+        }
+        return new FederationUpstream($$parsedSource as Partial<FederationUpstream>);
     }
 }
 
@@ -918,8 +1857,8 @@ export class FormField {
      * Creates a new FormField instance from a string or object.
      */
     static createFrom($$source: any = {}): FormField {
-        const $$createField7_0 = $$createType10;
-        const $$createField8_0 = $$createType12;
+        const $$createField7_0 = $$createType27;
+        const $$createField8_0 = $$createType29;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("visibleWhen" in $$parsedSource) {
             $$parsedSource["visibleWhen"] = $$createField7_0($$parsedSource["visibleWhen"]);
@@ -956,6 +1895,130 @@ export class FormOption {
     static createFrom($$source: any = {}): FormOption {
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         return new FormOption($$parsedSource as Partial<FormOption>);
+    }
+}
+
+/**
+ * HealthCheck is one question the broker answers about itself.
+ * 
+ * RabbitMQ's health endpoints are deliberately narrow: each asks one thing and
+ * answers ok or not, with a sentence when not. Collapsing them into a single
+ * "healthy" flag would throw away the only part an operator can act on, which
+ * is which check failed and what it said.
+ */
+export class HealthCheck {
+    /**
+     * ID is a stable key the UI labels from, not a sentence.
+     */
+    "id": string;
+
+    /**
+     * Passed is false when the check failed and unknown when the broker could
+     * not run it at all, which is why Unavailable exists rather than a third
+     * value here.
+     */
+    "passed": boolean;
+
+    /**
+     * Unavailable means this endpoint is not on this broker - an older
+     * version, or a check that needs a plugin. It reads differently from a
+     * failure and must not be shown as one.
+     */
+    "unavailable": boolean;
+    "reason": string;
+
+    /** Creates a new HealthCheck instance. */
+    constructor($$source: Partial<HealthCheck> = {}) {
+        if (!("id" in $$source)) {
+            this["id"] = "";
+        }
+        if (!("passed" in $$source)) {
+            this["passed"] = false;
+        }
+        if (!("unavailable" in $$source)) {
+            this["unavailable"] = false;
+        }
+        if (!("reason" in $$source)) {
+            this["reason"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new HealthCheck instance from a string or object.
+     */
+    static createFrom($$source: any = {}): HealthCheck {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new HealthCheck($$parsedSource as Partial<HealthCheck>);
+    }
+}
+
+/**
+ * Identity is a principal the broker authenticates.
+ * 
+ * It is not AccessConfig and not AccessPrincipal. RocketMQ's plain_acl entry
+ * carries a key, a secret and its permissions together, and 5.3's auth store
+ * keeps rules attached to a subject; RabbitMQ keeps a user with tags in one
+ * place and its per-virtual-host permissions in another, and the tags decide
+ * what the management API lets it do while the permissions decide what its
+ * AMQP connections may touch. Those are two different systems on one name, and
+ * flattening them would lose which one is refusing an operation.
+ */
+export class Identity {
+    "name": string;
+
+    /**
+     * Tags gate the management API: administrator, monitoring, policymaker,
+     * management. They have nothing to do with the permissions below - a user
+     * with every tag and no permission can read every page and touch no queue.
+     */
+    "tags": string[];
+
+    /**
+     * HasPassword is false for a user that can only authenticate another way,
+     * which is a deliberate configuration rather than a broken one. The
+     * password itself never comes back.
+     */
+    "hasPassword": boolean;
+
+    /**
+     * Permissions is what this identity may do inside each namespace.
+     */
+    "permissions": (NamespacePermission | null)[];
+
+    /** Creates a new Identity instance. */
+    constructor($$source: Partial<Identity> = {}) {
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("tags" in $$source)) {
+            this["tags"] = [];
+        }
+        if (!("hasPassword" in $$source)) {
+            this["hasPassword"] = false;
+        }
+        if (!("permissions" in $$source)) {
+            this["permissions"] = [];
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new Identity instance from a string or object.
+     */
+    static createFrom($$source: any = {}): Identity {
+        const $$createField1_0 = $$createType0;
+        const $$createField3_0 = $$createType32;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("tags" in $$parsedSource) {
+            $$parsedSource["tags"] = $$createField1_0($$parsedSource["tags"]);
+        }
+        if ("permissions" in $$parsedSource) {
+            $$parsedSource["permissions"] = $$createField3_0($$parsedSource["permissions"]);
+        }
+        return new Identity($$parsedSource as Partial<Identity>);
     }
 }
 
@@ -1212,6 +2275,163 @@ export class MessageTrackItem {
 }
 
 /**
+ * Namespace is one isolated world inside a broker.
+ * 
+ * A RabbitMQ virtual host is not a label: queues, exchanges, bindings, policies
+ * and permissions all live inside one and nothing crosses between them, so two
+ * vhosts can hold a queue of the same name that have nothing to do with each
+ * other. That is why it is a page rather than a filter.
+ * 
+ * The word is Namespace because the canonical vocabulary already uses it - a
+ * destination's Ref carries one - and RabbitMQ is the only family so far whose
+ * namespaces are objects you can create.
+ */
+export class Namespace {
+    "name": string;
+    "description": string;
+
+    /**
+     * Tags are free labels the operator sets, not the broker.
+     */
+    "tags": string[];
+
+    /**
+     * DefaultQueueType is what a queue declared here without a type becomes.
+     * Setting it to quorum is how a cluster stops accumulating classic queues
+     * by accident.
+     */
+    "defaultQueueType": string;
+
+    /**
+     * Tracing writes every message through this vhost to a log exchange. It is
+     * expensive and is meant to be switched on for minutes, not left on.
+     */
+    "tracing": boolean;
+
+    /**
+     * Messages is what its queues are collectively holding, split the same way
+     * a queue's depth is.
+     */
+    "messages": number;
+    "ready": number;
+    "unacknowledged": number;
+
+    /**
+     * Limits caps the vhost as a whole - max-connections, max-queues. Absent
+     * means uncapped, which is the default and is worth distinguishing from a
+     * limit of zero.
+     */
+    "limits": { [_ in string]?: number };
+
+    /** Creates a new Namespace instance. */
+    constructor($$source: Partial<Namespace> = {}) {
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("description" in $$source)) {
+            this["description"] = "";
+        }
+        if (!("tags" in $$source)) {
+            this["tags"] = [];
+        }
+        if (!("defaultQueueType" in $$source)) {
+            this["defaultQueueType"] = "";
+        }
+        if (!("tracing" in $$source)) {
+            this["tracing"] = false;
+        }
+        if (!("messages" in $$source)) {
+            this["messages"] = 0;
+        }
+        if (!("ready" in $$source)) {
+            this["ready"] = 0;
+        }
+        if (!("unacknowledged" in $$source)) {
+            this["unacknowledged"] = 0;
+        }
+        if (!("limits" in $$source)) {
+            this["limits"] = {};
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new Namespace instance from a string or object.
+     */
+    static createFrom($$source: any = {}): Namespace {
+        const $$createField2_0 = $$createType0;
+        const $$createField8_0 = $$createType22;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("tags" in $$parsedSource) {
+            $$parsedSource["tags"] = $$createField2_0($$parsedSource["tags"]);
+        }
+        if ("limits" in $$parsedSource) {
+            $$parsedSource["limits"] = $$createField8_0($$parsedSource["limits"]);
+        }
+        return new Namespace($$parsedSource as Partial<Namespace>);
+    }
+}
+
+/**
+ * NamespacePermission is one identity's rights inside one namespace.
+ * 
+ * The three fields are regular expressions matched against a resource's name,
+ * and the distinction between an empty one and ".*" is the whole model: empty
+ * matches nothing and permits nothing, ".*" matches everything. A page that
+ * rendered an empty pattern as "none set" would be describing the opposite of
+ * what it does.
+ */
+export class NamespacePermission {
+    "namespace": string;
+    "identity": string;
+
+    /**
+     * Configure is declaring and deleting queues and exchanges.
+     */
+    "configure": string;
+
+    /**
+     * Write is publishing to an exchange, and binding.
+     */
+    "write": string;
+
+    /**
+     * Read is consuming from a queue, and binding.
+     */
+    "read": string;
+
+    /** Creates a new NamespacePermission instance. */
+    constructor($$source: Partial<NamespacePermission> = {}) {
+        if (!("namespace" in $$source)) {
+            this["namespace"] = "";
+        }
+        if (!("identity" in $$source)) {
+            this["identity"] = "";
+        }
+        if (!("configure" in $$source)) {
+            this["configure"] = "";
+        }
+        if (!("write" in $$source)) {
+            this["write"] = "";
+        }
+        if (!("read" in $$source)) {
+            this["read"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new NamespacePermission instance from a string or object.
+     */
+    static createFrom($$source: any = {}): NamespacePermission {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new NamespacePermission($$parsedSource as Partial<NamespacePermission>);
+    }
+}
+
+/**
  * Node is one broker, RabbitMQ node or Kafka broker as the canonical Cluster
  * page sees it.
  * 
@@ -1335,10 +2555,10 @@ export class Node {
      * Creates a new Node instance from a string or object.
      */
     static createFrom($$source: any = {}): Node {
-        const $$createField10_0 = $$createType13;
-        const $$createField11_0 = $$createType14;
-        const $$createField12_0 = $$createType14;
-        const $$createField13_0 = $$createType16;
+        const $$createField10_0 = $$createType33;
+        const $$createField11_0 = $$createType34;
+        const $$createField12_0 = $$createType34;
+        const $$createField13_0 = $$createType36;
         const $$createField14_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("tpsHistoryTimestamps" in $$parsedSource) {
@@ -1383,6 +2603,85 @@ export enum NodeStatus {
 };
 
 /**
+ * Policy applies settings to every destination whose name matches a pattern.
+ * 
+ * It is the answer to something RabbitMQ otherwise cannot do: a queue's
+ * arguments are fixed at declaration, so the only way to change a live queue's
+ * TTL, length limit or dead-letter exchange is a policy matching it. That
+ * makes this page the edit form the queue page does not have.
+ * 
+ * Only one policy applies to a given queue - the highest priority that matches
+ * - which is the rule most people get wrong. Policies do not merge.
+ */
+export class Policy {
+    "namespace": string;
+    "name": string;
+
+    /**
+     * Pattern is a regular expression matched against the destination's name.
+     */
+    "pattern": string;
+
+    /**
+     * ApplyTo is "queues", "exchanges", "classic_queues", "quorum_queues",
+     * "streams" or "all".
+     */
+    "applyTo": string;
+
+    /**
+     * Priority breaks ties. Higher wins, and only the winner applies.
+     */
+    "priority": number;
+
+    /**
+     * Definition is the settings applied, as JSON so the types survive.
+     */
+    "definition": string;
+
+    /**
+     * Operator marks a policy set by the operator rather than the user. The
+     * broker applies both, and where they set the same key the operator's more
+     * restrictive value wins - which is the point of them.
+     */
+    "operator": boolean;
+
+    /** Creates a new Policy instance. */
+    constructor($$source: Partial<Policy> = {}) {
+        if (!("namespace" in $$source)) {
+            this["namespace"] = "";
+        }
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("pattern" in $$source)) {
+            this["pattern"] = "";
+        }
+        if (!("applyTo" in $$source)) {
+            this["applyTo"] = "";
+        }
+        if (!("priority" in $$source)) {
+            this["priority"] = 0;
+        }
+        if (!("definition" in $$source)) {
+            this["definition"] = "";
+        }
+        if (!("operator" in $$source)) {
+            this["operator"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new Policy instance from a string or object.
+     */
+    static createFrom($$source: any = {}): Policy {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new Policy($$parsedSource as Partial<Policy>);
+    }
+}
+
+/**
  * ProducerClient is one connected publisher.
  * 
  * There is no list of publishers the way there is of subscriptions: a broker
@@ -1420,6 +2719,57 @@ export class ProducerClient {
     static createFrom($$source: any = {}): ProducerClient {
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         return new ProducerClient($$parsedSource as Partial<ProducerClient>);
+    }
+}
+
+/**
+ * PublishResult is what the broker said about the send.
+ * 
+ * Confirmed and Routed are different facts and the difference is the whole
+ * point of this type. A confirm means the broker took responsibility for the
+ * message; routing means something was bound to receive it. An unroutable
+ * publish is confirmed and then dropped, so a page reporting only the confirm
+ * would call that a success.
+ */
+export class PublishResult {
+    /**
+     * Sent is how many the broker confirmed.
+     */
+    "sent": number;
+
+    /**
+     * Unroutable is how many it handed back because nothing was bound. They
+     * were not delivered anywhere, and on a mandatory publish that is the only
+     * way to find out.
+     */
+    "unroutable": number;
+
+    /**
+     * Reason is the broker's own words for the last message handed back.
+     */
+    "reason": string;
+
+    /** Creates a new PublishResult instance. */
+    constructor($$source: Partial<PublishResult> = {}) {
+        if (!("sent" in $$source)) {
+            this["sent"] = 0;
+        }
+        if (!("unroutable" in $$source)) {
+            this["unroutable"] = 0;
+        }
+        if (!("reason" in $$source)) {
+            this["reason"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new PublishResult instance from a string or object.
+     */
+    static createFrom($$source: any = {}): PublishResult {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new PublishResult($$parsedSource as Partial<PublishResult>);
     }
 }
 
@@ -1672,6 +3022,352 @@ export class ResetOffsetRequest {
 }
 
 /**
+ * ResourceAlarm is a node that has crossed a memory or disk watermark.
+ * 
+ * While one is in effect the broker refuses publishes from every connection,
+ * which makes it the first thing worth showing on a cluster page.
+ */
+export class ResourceAlarm {
+    "node": string;
+    "resource": string;
+
+    /** Creates a new ResourceAlarm instance. */
+    constructor($$source: Partial<ResourceAlarm> = {}) {
+        if (!("node" in $$source)) {
+            this["node"] = "";
+        }
+        if (!("resource" in $$source)) {
+            this["resource"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ResourceAlarm instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ResourceAlarm {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ResourceAlarm($$parsedSource as Partial<ResourceAlarm>);
+    }
+}
+
+/**
+ * RuntimeParameter is a component's configuration, kept by the broker rather
+ * than in a file.
+ * 
+ * Shovels and federation upstreams are stored as these, which is why the page
+ * shows them: a parameter with an unfamiliar component name is usually a
+ * plugin's configuration, and being able to see it is the difference between
+ * diagnosing one and guessing.
+ */
+export class RuntimeParameter {
+    "component": string;
+    "namespace": string;
+    "name": string;
+
+    /**
+     * Value is JSON, because a parameter's shape is defined by whichever
+     * plugin owns the component and this app cannot know it.
+     */
+    "value": string;
+
+    /** Creates a new RuntimeParameter instance. */
+    constructor($$source: Partial<RuntimeParameter> = {}) {
+        if (!("component" in $$source)) {
+            this["component"] = "";
+        }
+        if (!("namespace" in $$source)) {
+            this["namespace"] = "";
+        }
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("value" in $$source)) {
+            this["value"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new RuntimeParameter instance from a string or object.
+     */
+    static createFrom($$source: any = {}): RuntimeParameter {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new RuntimeParameter($$parsedSource as Partial<RuntimeParameter>);
+    }
+}
+
+/**
+ * Shovel moves messages from one broker to another, or between two places on
+ * the same one.
+ * 
+ * It is a plugin rather than core RabbitMQ, which is why the capability can be
+ * degraded: a stock broker has none, and that is a deployment choice rather
+ * than a failure.
+ */
+export class Shovel {
+    "namespace": string;
+    "name": string;
+
+    /**
+     * State is what the broker reports it is doing - running, starting,
+     * terminated. Empty means it reported nothing, which itself says the
+     * shovel is defined and has not started.
+     */
+    "state": string;
+
+    /**
+     * Type is dynamic or static: a static shovel comes from the broker's
+     * config file and cannot be deleted from here.
+     */
+    "type": string;
+    "since": string;
+
+    /**
+     * Source and Target say what it moves, in words - one of a queue or an
+     * exchange at each end, never both.
+     */
+    "source": string;
+    "target": string;
+    "ackMode": string;
+
+    /**
+     * SourceURI and TargetURI have their passwords removed. They are the one
+     * place the management API stores another broker's credential in plain
+     * text and hands it back on request.
+     */
+    "sourceUri": string[];
+    "targetUri": string[];
+
+    /** Creates a new Shovel instance. */
+    constructor($$source: Partial<Shovel> = {}) {
+        if (!("namespace" in $$source)) {
+            this["namespace"] = "";
+        }
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("state" in $$source)) {
+            this["state"] = "";
+        }
+        if (!("type" in $$source)) {
+            this["type"] = "";
+        }
+        if (!("since" in $$source)) {
+            this["since"] = "";
+        }
+        if (!("source" in $$source)) {
+            this["source"] = "";
+        }
+        if (!("target" in $$source)) {
+            this["target"] = "";
+        }
+        if (!("ackMode" in $$source)) {
+            this["ackMode"] = "";
+        }
+        if (!("sourceUri" in $$source)) {
+            this["sourceUri"] = [];
+        }
+        if (!("targetUri" in $$source)) {
+            this["targetUri"] = [];
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new Shovel instance from a string or object.
+     */
+    static createFrom($$source: any = {}): Shovel {
+        const $$createField8_0 = $$createType0;
+        const $$createField9_0 = $$createType0;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("sourceUri" in $$parsedSource) {
+            $$parsedSource["sourceUri"] = $$createField8_0($$parsedSource["sourceUri"]);
+        }
+        if ("targetUri" in $$parsedSource) {
+            $$parsedSource["targetUri"] = $$createField9_0($$parsedSource["targetUri"]);
+        }
+        return new Shovel($$parsedSource as Partial<Shovel>);
+    }
+}
+
+/**
+ * StreamClients is who is reading and writing a stream over the stream
+ * protocol.
+ * 
+ * Separate from the consumer list every other queue type has, because the
+ * stream protocol is not AMQP: a client on port 5552 never appears in
+ * /api/consumers. A stream being read by three applications reports zero
+ * consumers there, which is the misreading this exists to prevent.
+ */
+export class StreamClients {
+    "publishers": (StreamPublisher | null)[];
+    "consumers": (StreamConsumer | null)[];
+
+    /** Creates a new StreamClients instance. */
+    constructor($$source: Partial<StreamClients> = {}) {
+        if (!("publishers" in $$source)) {
+            this["publishers"] = [];
+        }
+        if (!("consumers" in $$source)) {
+            this["consumers"] = [];
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new StreamClients instance from a string or object.
+     */
+    static createFrom($$source: any = {}): StreamClients {
+        const $$createField0_0 = $$createType39;
+        const $$createField1_0 = $$createType42;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("publishers" in $$parsedSource) {
+            $$parsedSource["publishers"] = $$createField0_0($$parsedSource["publishers"]);
+        }
+        if ("consumers" in $$parsedSource) {
+            $$parsedSource["consumers"] = $$createField1_0($$parsedSource["consumers"]);
+        }
+        return new StreamClients($$parsedSource as Partial<StreamClients>);
+    }
+}
+
+/**
+ * StreamConsumer is one client reading a stream.
+ */
+export class StreamConsumer {
+    "connection": string;
+    "peerHost": string;
+    "user": string;
+    "node": string;
+
+    /**
+     * Offset is where in the stream this client has read to, and Lag is how
+     * far that is behind the end. A stream keeps its messages after they are
+     * read, so lag is the only thing that says whether a consumer is keeping
+     * up - there is no queue depth to fall behind on.
+     */
+    "offset": number;
+    "lag": number;
+    "consumed": number;
+
+    /**
+     * Credits is how many messages the broker may still send before the
+     * client asks for more. Zero on an active consumer means it has stopped
+     * asking.
+     */
+    "credits": number;
+
+    /**
+     * Active is false for a single-active-consumer subscription that is
+     * connected and waiting its turn, which is working rather than stuck.
+     */
+    "active": boolean;
+
+    /** Creates a new StreamConsumer instance. */
+    constructor($$source: Partial<StreamConsumer> = {}) {
+        if (!("connection" in $$source)) {
+            this["connection"] = "";
+        }
+        if (!("peerHost" in $$source)) {
+            this["peerHost"] = "";
+        }
+        if (!("user" in $$source)) {
+            this["user"] = "";
+        }
+        if (!("node" in $$source)) {
+            this["node"] = "";
+        }
+        if (!("offset" in $$source)) {
+            this["offset"] = 0;
+        }
+        if (!("lag" in $$source)) {
+            this["lag"] = 0;
+        }
+        if (!("consumed" in $$source)) {
+            this["consumed"] = 0;
+        }
+        if (!("credits" in $$source)) {
+            this["credits"] = 0;
+        }
+        if (!("active" in $$source)) {
+            this["active"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new StreamConsumer instance from a string or object.
+     */
+    static createFrom($$source: any = {}): StreamConsumer {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new StreamConsumer($$parsedSource as Partial<StreamConsumer>);
+    }
+}
+
+/**
+ * StreamPublisher is one client writing to a stream.
+ */
+export class StreamPublisher {
+    /**
+     * Reference is the publisher's own name, which the broker uses to
+     * deduplicate messages across a reconnect. Empty means the client sent
+     * none, so it gets no deduplication.
+     */
+    "reference": string;
+    "connection": string;
+    "peerHost": string;
+    "user": string;
+    "node": string;
+    "published": number;
+    "confirmed": number;
+    "errored": number;
+
+    /** Creates a new StreamPublisher instance. */
+    constructor($$source: Partial<StreamPublisher> = {}) {
+        if (!("reference" in $$source)) {
+            this["reference"] = "";
+        }
+        if (!("connection" in $$source)) {
+            this["connection"] = "";
+        }
+        if (!("peerHost" in $$source)) {
+            this["peerHost"] = "";
+        }
+        if (!("user" in $$source)) {
+            this["user"] = "";
+        }
+        if (!("node" in $$source)) {
+            this["node"] = "";
+        }
+        if (!("published" in $$source)) {
+            this["published"] = 0;
+        }
+        if (!("confirmed" in $$source)) {
+            this["confirmed"] = 0;
+        }
+        if (!("errored" in $$source)) {
+            this["errored"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new StreamPublisher instance from a string or object.
+     */
+    static createFrom($$source: any = {}): StreamPublisher {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new StreamPublisher($$parsedSource as Partial<StreamPublisher>);
+    }
+}
+
+/**
  * Subscription is a consumer group, a Pulsar subscription or a RabbitMQ queue
  * consumer, as the canonical pages see it.
  * 
@@ -1748,7 +3444,7 @@ export class Subscription {
      * Creates a new Subscription instance from a string or object.
      */
     static createFrom($$source: any = {}): Subscription {
-        const $$createField1_0 = $$createType17;
+        const $$createField1_0 = $$createType43;
         const $$createField8_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("ref" in $$parsedSource) {
@@ -1814,8 +3510,8 @@ export class SubscriptionClient {
      * Creates a new SubscriptionClient instance from a string or object.
      */
     static createFrom($$source: any = {}): SubscriptionClient {
-        const $$createField1_0 = $$createType19;
-        const $$createField2_0 = $$createType21;
+        const $$createField1_0 = $$createType45;
+        const $$createField2_0 = $$createType47;
         const $$createField3_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("assignments" in $$parsedSource) {
@@ -1914,8 +3610,8 @@ export class TailBatch {
      * Creates a new TailBatch instance from a string or object.
      */
     static createFrom($$source: any = {}): TailBatch {
-        const $$createField0_0 = $$createType24;
-        const $$createField1_0 = $$createType25;
+        const $$createField0_0 = $$createType50;
+        const $$createField1_0 = $$createType51;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("messages" in $$parsedSource) {
             $$parsedSource["messages"] = $$createField0_0($$parsedSource["messages"]);
@@ -1950,7 +3646,7 @@ export class TailCursor {
      * Creates a new TailCursor instance from a string or object.
      */
     static createFrom($$source: any = {}): TailCursor {
-        const $$createField0_0 = $$createType27;
+        const $$createField0_0 = $$createType53;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("positions" in $$parsedSource) {
             $$parsedSource["positions"] = $$createField0_0($$parsedSource["positions"]);
@@ -1959,32 +3655,107 @@ export class TailCursor {
     }
 }
 
+/**
+ * TopicPermission narrows write and read further, for topic exchanges only.
+ * 
+ * Separate from NamespacePermission because it is a separate endpoint and
+ * because it does nothing on its own: it is a filter applied on top of the
+ * permissions above, and a user with no write permission gains none from a
+ * topic permission that would allow it.
+ */
+export class TopicPermission {
+    "namespace": string;
+    "identity": string;
+
+    /**
+     * Exchange is which topic exchange this applies to.
+     */
+    "exchange": string;
+    "write": string;
+    "read": string;
+
+    /** Creates a new TopicPermission instance. */
+    constructor($$source: Partial<TopicPermission> = {}) {
+        if (!("namespace" in $$source)) {
+            this["namespace"] = "";
+        }
+        if (!("identity" in $$source)) {
+            this["identity"] = "";
+        }
+        if (!("exchange" in $$source)) {
+            this["exchange"] = "";
+        }
+        if (!("write" in $$source)) {
+            this["write"] = "";
+        }
+        if (!("read" in $$source)) {
+            this["read"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new TopicPermission instance from a string or object.
+     */
+    static createFrom($$source: any = {}): TopicPermission {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new TopicPermission($$parsedSource as Partial<TopicPermission>);
+    }
+}
+
 // Private type creation functions
 const $$createType0 = $Create.Array($Create.Any);
 const $$createType1 = AccessPolicy.createFrom;
 const $$createType2 = $Create.Array($$createType1);
 const $$createType3 = $Create.Map($Create.Any, $Create.Any);
-const $$createType4 = $Create.Array($Create.Any);
-const $$createType5 = $Create.Map($Create.Any, $Create.Any);
-const $$createType6 = DestinationRef.createFrom;
-const $$createType7 = FormField.createFrom;
-const $$createType8 = $Create.Array($$createType7);
-const $$createType9 = FieldCond.createFrom;
-const $$createType10 = $Create.Nullable($$createType9);
-const $$createType11 = FormOption.createFrom;
-const $$createType12 = $Create.Array($$createType11);
-const $$createType13 = $Create.Array($Create.Any);
-const $$createType14 = $Create.Array($Create.Any);
-const $$createType15 = ReplicaStatus.createFrom;
+const $$createType4 = BrokerRates.createFrom;
+const $$createType5 = HealthCheck.createFrom;
+const $$createType6 = $Create.Nullable($$createType5);
+const $$createType7 = $Create.Array($$createType6);
+const $$createType8 = ResourceAlarm.createFrom;
+const $$createType9 = $Create.Nullable($$createType8);
+const $$createType10 = $Create.Array($$createType9);
+const $$createType11 = FeatureFlag.createFrom;
+const $$createType12 = $Create.Nullable($$createType11);
+const $$createType13 = $Create.Array($$createType12);
+const $$createType14 = DeprecatedFeature.createFrom;
+const $$createType15 = $Create.Nullable($$createType14);
 const $$createType16 = $Create.Array($$createType15);
-const $$createType17 = SubscriptionRef.createFrom;
-const $$createType18 = QueueAssignment.createFrom;
-const $$createType19 = $Create.Array($$createType18);
-const $$createType20 = ConsumeThroughput.createFrom;
+const $$createType17 = $Create.Array($Create.Any);
+const $$createType18 = $Create.Map($Create.Any, $Create.Any);
+const $$createType19 = DeadLetterSource.createFrom;
+const $$createType20 = $Create.Nullable($$createType19);
 const $$createType21 = $Create.Array($$createType20);
-const $$createType22 = MessageItem.createFrom;
-const $$createType23 = $Create.Nullable($$createType22);
-const $$createType24 = $Create.Array($$createType23);
-const $$createType25 = TailCursor.createFrom;
-const $$createType26 = QueuePosition.createFrom;
-const $$createType27 = $Create.Array($$createType26);
+const $$createType22 = $Create.Map($Create.Any, $Create.Any);
+const $$createType23 = DestinationRef.createFrom;
+const $$createType24 = FormField.createFrom;
+const $$createType25 = $Create.Array($$createType24);
+const $$createType26 = FieldCond.createFrom;
+const $$createType27 = $Create.Nullable($$createType26);
+const $$createType28 = FormOption.createFrom;
+const $$createType29 = $Create.Array($$createType28);
+const $$createType30 = NamespacePermission.createFrom;
+const $$createType31 = $Create.Nullable($$createType30);
+const $$createType32 = $Create.Array($$createType31);
+const $$createType33 = $Create.Array($Create.Any);
+const $$createType34 = $Create.Array($Create.Any);
+const $$createType35 = ReplicaStatus.createFrom;
+const $$createType36 = $Create.Array($$createType35);
+const $$createType37 = StreamPublisher.createFrom;
+const $$createType38 = $Create.Nullable($$createType37);
+const $$createType39 = $Create.Array($$createType38);
+const $$createType40 = StreamConsumer.createFrom;
+const $$createType41 = $Create.Nullable($$createType40);
+const $$createType42 = $Create.Array($$createType41);
+const $$createType43 = SubscriptionRef.createFrom;
+const $$createType44 = QueueAssignment.createFrom;
+const $$createType45 = $Create.Array($$createType44);
+const $$createType46 = ConsumeThroughput.createFrom;
+const $$createType47 = $Create.Array($$createType46);
+const $$createType48 = MessageItem.createFrom;
+const $$createType49 = $Create.Nullable($$createType48);
+const $$createType50 = $Create.Array($$createType49);
+const $$createType51 = TailCursor.createFrom;
+const $$createType52 = QueuePosition.createFrom;
+const $$createType53 = $Create.Array($$createType52);

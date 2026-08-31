@@ -14,11 +14,15 @@
  */
 import {
   BellRing,
+  Boxes,
+  Cable,
+  FileJson,
   House,
   Layers,
   Mail,
   Plug,
   Radio,
+  ScrollText,
   Send,
   Server,
   Shield,
@@ -40,6 +44,10 @@ export type PageId =
   | "overview"
   | "topics"
   | "exchanges"
+  | "vhosts"
+  | "policies"
+  | "definitions"
+  | "replication"
   | "consumers"
   | "messages"
   | "dlq"
@@ -138,6 +146,7 @@ export const PROTOCOLS: Record<ProtocolId, Protocol> = {
         items: [
           { id: "topics", icon: Layers, label: "shell.nav.rabbitmq.topics" },
           { id: "exchanges", icon: Waypoints, label: "shell.nav.rabbitmq.exchanges" },
+          { id: "consumers", icon: Users, label: "shell.nav.rabbitmq.consumers" },
           { id: "messages", icon: Mail, label: "shell.nav.rabbitmq.messages" },
           { id: "dlq", icon: TriangleAlert, label: "shell.nav.rabbitmq.dlq" },
           { id: "producer", icon: Send, label: "shell.nav.rabbitmq.producer" },
@@ -147,6 +156,10 @@ export const PROTOCOLS: Record<ProtocolId, Protocol> = {
         label: OPS,
         items: [
           { id: "cluster", icon: Server, label: "shell.nav.rabbitmq.cluster" },
+          { id: "vhosts", icon: Boxes, label: "shell.nav.rabbitmq.vhosts" },
+          { id: "policies", icon: ScrollText, label: "shell.nav.rabbitmq.policies" },
+          { id: "replication", icon: Cable, label: "shell.nav.rabbitmq.replication" },
+          { id: "definitions", icon: FileJson, label: "shell.nav.rabbitmq.definitions" },
           { id: "alerts", icon: BellRing, label: "shell.nav.rabbitmq.alerts" },
           { id: "acl", icon: Shield, label: "shell.nav.rabbitmq.acl" },
         ],
@@ -255,11 +268,14 @@ export function labelOf(protocol: ProtocolId, page: PageId): string {
 }
 
 /**
- * Protocols with a driver behind them. The other five are drawn in the picker
- * so the shell shows where it is going, but they cannot be selected -- wiring
- * one up is a matter of adding it here.
+ * Protocols whose boards read a real broker. The other four are drawn in the
+ * picker so the shell shows where it is going, but they cannot be selected: a
+ * board of invented figures beside a live cluster is worse than no board.
+ *
+ * Adding one here needs a driver, a form in
+ * boards/connections/connectionDraft.ts, and boards that read the endpoint.
  */
-const READY: ReadonlySet<ProtocolId> = new Set<ProtocolId>(["rocketmq"]);
+const READY: ReadonlySet<ProtocolId> = new Set<ProtocolId>(["rocketmq", "rabbitmq"]);
 
 export function isProtocolReady(protocol: ProtocolId): boolean {
   return READY.has(protocol);
