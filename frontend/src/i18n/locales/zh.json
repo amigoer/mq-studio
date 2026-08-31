@@ -393,7 +393,8 @@
         "credentials": "集群拒绝了这组凭据。请检查用户名、密码与 SASL 机制：broker 拒绝认证时可能直接断开连接而不说明原因，所以机制填错和密码填错看起来是一样的。",
         "forbidden": "凭据通过了认证，但没有描述集群的权限。这要在 broker 上改 ACL，不是在这个表单里改。",
         "timeout": "集群接受了连接，但没有在超时时间内应答。",
-        "unreachable": "这个地址上没有可用的服务应答。请检查 Bootstrap 地址，以及该 listener 是否要求 TLS 或本连接未使用的安全协议。"
+        "unreachable": "这个地址上没有可用的服务应答。请检查 Bootstrap 地址，以及该 listener 是否要求 TLS 或本连接未使用的安全协议。",
+        "accessControl": "这个集群没有配置 authorizer，因此不执行任何 ACL，所有访问控制调用都会返回 SECURITY_DISABLED。"
       }
     },
     "rabbitmq": {
@@ -1483,6 +1484,58 @@
         "deleteDesc": "该用户的全部权限一并删除，它当前持有的连接会被 broker 关闭。此操作无法撤销。",
         "deleted": "已删除用户「{{name}}」",
         "deleteFailed": "删除用户失败"
+      },
+      "kafka": {
+        "title": "访问控制",
+        "subtitle": "集群实际执行的规则，以及它自己保存的用户",
+        "rules": "规则",
+        "users": "SCRAM 用户",
+        "search": "搜索",
+        "principal": "主体",
+        "principalHint": "由类型和名字组成，例如 User:alice",
+        "grants": "授权",
+        "nPolicies": "{{n}} 条授权",
+        "noRules": "这个集群还没有任何规则。开了 authorizer 又没有规则命中时，访问会被拒绝。",
+        "noUsers": "这个集群没有保存 SCRAM 用户。用 mTLS 或 Kerberos 认证的集群，主体不由它保存，但仍会出现在规则里。",
+        "noAuthorizer": "这个集群没有配置 authorizer，因此不执行任何 ACL，所有访问控制调用都会返回 SECURITY_DISABLED。连接没有问题，只是这里没有东西可显示。",
+        "newRule": "新建规则",
+        "newUser": "新建用户",
+        "deleteRule": "删除全部规则",
+        "deleteRuleTitle": "删除 {{subject}} 的全部规则？",
+        "deleteRuleBody": "这个主体的所有授权会一次性删除。开了 authorizer 又没有规则命中时，它的访问从此被拒绝。",
+        "ruleDeleted": "已删除 {{subject}} 的规则",
+        "ruleSaved": "已写入 {{subject}} 的规则",
+        "deleteUserTitle": "删除 {{name}}？",
+        "deleteUserBody": "该用户在所有机制下的密码都会被删除，正在以它认证的客户端将无法再连接。",
+        "userDeleted": "已删除 {{name}}",
+        "userSaved": "已保存 {{name}}",
+        "user": "用户",
+        "mechanism": "机制",
+        "mechanisms": "机制",
+        "mechanismHint": "在 broker 上是两套独立凭据",
+        "passwordNote": "Kafka 把密码加盐保存，之后无法取回，所以没有“留空保持原密码”这回事：保存即替换。",
+        "resourceKind": "作用于",
+        "resourceName": "名称",
+        "clusterItself": "集群本身",
+        "prefixed": "前缀匹配",
+        "prefixedHint": "覆盖以它开头的所有名称",
+        "operation": "操作",
+        "effect": "效果",
+        "from": "来源",
+        "fromHint": "留空表示任意来源",
+        "anywhere": "任意来源",
+        "resource": "资源",
+        "denyNote": "Deny 优先于 Allow：只要有一条规则拒绝，无论多少条允许，结果都是拒绝。",
+        "invalid": {
+          "subjectRequired": "请填写主体",
+          "subjectShape": "主体由类型和名字组成，例如 User:alice",
+          "policyRequired": "至少添加一条授权",
+          "operationRequired": "至少选择一个操作",
+          "nameRequired": "请填写资源名称",
+          "prefixEmpty": "空前缀会匹配该类型的所有资源",
+          "nameColon": "用户名不能包含冒号",
+          "passwordRequired": "请填写密码"
+        }
       }
     },
     "topics": {

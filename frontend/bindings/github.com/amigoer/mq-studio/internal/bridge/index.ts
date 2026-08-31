@@ -37,6 +37,7 @@ export {
 export {
     AccessConfigInput,
     AccessRuleInput,
+    AccessView,
     BindingInput,
     ClusterView,
     ConnectionInput,

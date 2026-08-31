@@ -1,0 +1,83 @@
+name: mq-studio-e2e-kafka-secure
+
+# A single broker with SASL and an authorizer, for the paths the plain cluster
+# cannot reach.
+#
+# Three of them, and none is reachable without this: what a rejected credential
+# looks like, what an ACL round trip does, and what a SCRAM user is. The plain
+# cluster answers SECURITY_DISABLED to every ACL call, which is the degraded
+# path rather than the working one.
+#
+# One broker rather than three. Replication is the other cluster's job; this
+# one exists to be refused by, and a quorum would triple the startup cost of
+# every CI run for nothing.
+#
+# It runs on its own ports so both can be up at once.
+services:
+  kafka:
+    image: apache/kafka:4.2.0
+    hostname: kafka-secure
+    ports:
+      - '127.0.0.1:9192:9192'
+    environment:
+      KAFKA_NODE_ID: '1'
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_LISTENERS: CONTROLLER://:19193,INTERNAL://:19192,EXTERNAL://:9192
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka-secure:19192,EXTERNAL://127.0.0.1:9192
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:SASL_PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka-secure:19193
+      CLUSTER_ID: mq-studio-e2e-kafka-secure
+
+      # SCRAM over the external listener, which is the mechanism the connection
+      # form defaults to and the only one with users this app can then manage.
+      KAFKA_SASL_ENABLED_MECHANISMS: SCRAM-SHA-512
+      KAFKA_LISTENER_NAME_EXTERNAL_SASL_ENABLED_MECHANISMS: SCRAM-SHA-512
+      # The image turns an env name into a property by lowercasing it, mapping
+      # _ to . and ___ to -, so this is
+      # listener.name.external.scram-sha-512.sasl.jaas.config. Without it the
+      # broker refuses to start: a SASL listener needs a login module even when
+      # the credentials live in the cluster's own metadata.
+      KAFKA_LISTENER_NAME_EXTERNAL_SCRAM___SHA___512_SASL_JAAS_CONFIG: >-
+        org.apache.kafka.common.security.scram.ScramLoginModule required;
+
+      # The authorizer is the point. Without it every ACL call answers
+      # SECURITY_DISABLED, which is what the plain cluster is for.
+      KAFKA_AUTHORIZER_CLASS_NAME: org.apache.kafka.metadata.authorizer.StandardAuthorizer
+      KAFKA_SUPER_USERS: User:mqstudio;User:ANONYMOUS
+      # Inter-broker and controller traffic is plaintext and unauthenticated on
+      # this listener, so the broker must be allowed to talk to itself.
+      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: 'false'
+
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: '1'
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: '1'
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: '1'
+      KAFKA_SHARE_COORDINATOR_STATE_TOPIC_REPLICATION_FACTOR: '1'
+      KAFKA_SHARE_COORDINATOR_STATE_TOPIC_MIN_ISR: '1'
+      KAFKA_DEFAULT_REPLICATION_FACTOR: '1'
+      KAFKA_MIN_INSYNC_REPLICAS: '1'
+      KAFKA_NUM_PARTITIONS: '1'
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'false'
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: '0'
+      KAFKA_HEAP_OPTS: -Xms256m -Xmx512m
+    volumes:
+      - ./bootstrap.sh:/opt/mqs/bootstrap.sh:ro
+    # The superuser has to exist before anything can authenticate as it, and a
+    # SCRAM credential can only be stored once the broker is up - so the broker
+    # starts, and a moment later a script adds the user through the controller's
+    # own plaintext listener.
+    command: ['/bin/bash', '-c', '/opt/mqs/bootstrap.sh & exec /etc/kafka/docker/run']
+    healthcheck:
+      # Not a port check: the broker answers long before the superuser exists,
+      # and a test that connected then would be refused for the right reason at
+      # the wrong time.
+      test:
+        - CMD-SHELL
+        - >-
+          /opt/kafka/bin/kafka-configs.sh --bootstrap-server kafka-secure:19192
+          --describe --entity-type users --entity-name mqstudio | grep -q SCRAM
+      interval: 5s
+      timeout: 10s
+      retries: 30
+    restart: unless-stopped

@@ -111,6 +111,45 @@ export class AccessPrincipal {
 }
 
 /**
+ * AccessPrincipalSpec creates or updates a principal.
+ * 
+ * Secret is write-only and never travels back: the broker stores it hashed and
+ * there is nothing to show even if it did.
+ */
+export class AccessPrincipalSpec {
+    "name": string;
+    "secret": string;
+    "type": string;
+    "status": string;
+
+    /** Creates a new AccessPrincipalSpec instance. */
+    constructor($$source: Partial<AccessPrincipalSpec> = {}) {
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("secret" in $$source)) {
+            this["secret"] = "";
+        }
+        if (!("type" in $$source)) {
+            this["type"] = "";
+        }
+        if (!("status" in $$source)) {
+            this["status"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new AccessPrincipalSpec instance from a string or object.
+     */
+    static createFrom($$source: any = {}): AccessPrincipalSpec {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new AccessPrincipalSpec($$parsedSource as Partial<AccessPrincipalSpec>);
+    }
+}
+
+/**
  * AccessRule is everything one subject is permitted to do.
  * 
  * Identity-based rather than key-based, which is what separates it from

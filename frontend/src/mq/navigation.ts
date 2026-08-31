@@ -34,7 +34,16 @@ const requires: Record<string, Capability | Capability[]> = {
   replication: Capability.CapReplication,
   producer: Capability.CapPublish,
   cluster: Capability.CapClusterTopology,
-  acl: [Capability.CapAccessControl, Capability.CapIdentityList],
+  // Three, because three families answer this page by three different means.
+  // RocketMQ has a credential pair carrying its own permissions; RabbitMQ has
+  // users whose tags and per-vhost permissions are two systems on one name;
+  // Kafka has rules attached to a principal it may not even store. None can
+  // answer the page the others' way, and all three answer it.
+  acl: [
+    Capability.CapAccessControl,
+    Capability.CapIdentityList,
+    Capability.CapAccessDirectory,
+  ],
   // Alerts needs no particular capability, only a connection to draw metrics
   // from, which the connected check below already covers.
   alerts: Capability.CapClusterMetrics,

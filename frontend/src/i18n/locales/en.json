@@ -393,7 +393,8 @@
         "credentials": "The cluster refused the credential. Check the username, password and SASL mechanism: a broker that rejects authentication may close the connection instead of explaining, so a wrong mechanism looks the same as a wrong password.",
         "forbidden": "The credential was accepted but is not allowed to describe the cluster. That is fixed with an ACL on the broker, not in this form.",
         "timeout": "The cluster accepted the connection and did not answer in time.",
-        "unreachable": "Nothing usable answered at this address. Check the bootstrap servers, and whether the listener expects TLS or a security protocol this connection is not using."
+        "unreachable": "Nothing usable answered at this address. Check the bootstrap servers, and whether the listener expects TLS or a security protocol this connection is not using.",
+        "accessControl": "This cluster runs without an authorizer, so it enforces no ACLs and every access-control call answers SECURITY_DISABLED."
       }
     },
     "rabbitmq": {
@@ -1483,6 +1484,58 @@
         "deleteDesc": "Its permissions go with it and the broker closes any connection it currently holds. There is no undo.",
         "deleted": "Deleted {{name}}",
         "deleteFailed": "Could not delete the user"
+      },
+      "kafka": {
+        "title": "Access control",
+        "subtitle": "The rules the cluster enforces, and the users it stores",
+        "rules": "Rules",
+        "users": "SCRAM users",
+        "search": "Search",
+        "principal": "Principal",
+        "principalHint": "a type and a name, such as User:alice",
+        "grants": "Grants",
+        "nPolicies": "{{n}} grants",
+        "noRules": "This cluster enforces no rules yet. With an authorizer on and no rule matching, access is refused.",
+        "noUsers": "This cluster stores no SCRAM users. A cluster that authenticates over mTLS or Kerberos has principals it never stores, and they still appear in the rules.",
+        "noAuthorizer": "This cluster runs without an authorizer, so it enforces no ACLs and every access-control call answers SECURITY_DISABLED. Nothing is wrong with the connection; there is nothing here to show.",
+        "newRule": "New rule",
+        "newUser": "New user",
+        "deleteRule": "Delete every rule",
+        "deleteRuleTitle": "Delete every rule for {{subject}}?",
+        "deleteRuleBody": "All of this principal's grants go at once. With an authorizer on and no rule matching, its access is refused from that moment.",
+        "ruleDeleted": "Removed the rules for {{subject}}",
+        "ruleSaved": "Wrote the rule for {{subject}}",
+        "deleteUserTitle": "Delete {{name}}?",
+        "deleteUserBody": "The user's password is removed for every mechanism it has. Anything authenticating as it stops being able to connect.",
+        "userDeleted": "Deleted {{name}}",
+        "userSaved": "Saved {{name}}",
+        "user": "User",
+        "mechanism": "Mechanism",
+        "mechanisms": "Mechanisms",
+        "mechanismHint": "the two are separate credentials on the broker",
+        "passwordNote": "Kafka stores a password salted and cannot be asked for it again, so there is no keeping the old one: saving replaces it.",
+        "resourceKind": "Applies to",
+        "resourceName": "Name",
+        "clusterItself": "the cluster itself",
+        "prefixed": "Prefix match",
+        "prefixedHint": "covers every name starting with it",
+        "operation": "Operations",
+        "effect": "Effect",
+        "from": "From",
+        "fromHint": "blank means anywhere",
+        "anywhere": "anywhere",
+        "resource": "Resource",
+        "denyNote": "A Deny beats an Allow: if any rule denies an action, it is denied however many rules allow it.",
+        "invalid": {
+          "subjectRequired": "Enter a principal",
+          "subjectShape": "A principal is a type and a name, such as User:alice",
+          "policyRequired": "Add at least one grant",
+          "operationRequired": "Pick at least one operation",
+          "nameRequired": "Enter a resource name",
+          "prefixEmpty": "A prefix of nothing matches every resource",
+          "nameColon": "A user name cannot contain a colon",
+          "passwordRequired": "Enter a password"
+        }
       }
     },
     "topics": {

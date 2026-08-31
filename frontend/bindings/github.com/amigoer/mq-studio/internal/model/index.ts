@@ -4,6 +4,7 @@
 export {
     AccessPolicy,
     AccessPrincipal,
+    AccessPrincipalSpec,
     AccessRule,
     AclVersionInfo,
     AuthMechanism,

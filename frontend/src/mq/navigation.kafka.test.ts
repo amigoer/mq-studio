@@ -36,6 +36,7 @@ const KAFKA_CAPABILITIES: Capability[] = [
   Capability.CapClusterMetrics,
   Capability.CapNodeConfig,
   Capability.CapLogDirs,
+  Capability.CapAccessDirectory,
 ];
 
 function state(
@@ -94,6 +95,7 @@ describe("the sidebar a Kafka connection draws", () => {
       "producer",
       "cluster",
       "alerts",
+      "acl",
     ]);
   });
 

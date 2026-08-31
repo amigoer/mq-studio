@@ -21,10 +21,22 @@ import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Cr
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import * as kafka$0 from "../driver/kafka/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as model$0 from "../model/models.js";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import * as $models from "./models.js";
+
+/**
+ * AccessControl reports the cluster's ACLs and the users it stores.
+ */
+export function AccessControl(connID: number): $CancellablePromise<$models.AccessView | null> {
+    return $Call.ByID(3580281988, connID).then(($result: any) => {
+        return $$createType1($result);
+    });
+}
 
 /**
  * AlterTopicConfigs changes only the settings it is given. An empty value puts
@@ -81,8 +93,37 @@ export function DeleteTopic(connID: number, name: string): $CancellablePromise<v
  */
 export function LogDirs(connID: number): $CancellablePromise<$models.LogDirView | null> {
     return $Call.ByID(990165473, connID).then(($result: any) => {
-        return $$createType1($result);
+        return $$createType3($result);
     });
+}
+
+/**
+ * PutAccessRule writes every policy a subject should have.
+ */
+export function PutAccessRule(connID: number, rule: model$0.AccessRule): $CancellablePromise<void> {
+    return $Call.ByID(1337322702, connID, rule);
+}
+
+/**
+ * PutPrincipal creates or updates a SCRAM user. The password is write-only:
+ * Kafka stores it salted and cannot be asked for it again.
+ */
+export function PutPrincipal(connID: number, spec: model$0.AccessPrincipalSpec): $CancellablePromise<void> {
+    return $Call.ByID(3465574448, connID, spec);
+}
+
+/**
+ * RemoveAccessRule deletes every rule belonging to a principal.
+ */
+export function RemoveAccessRule(connID: number, subject: string): $CancellablePromise<void> {
+    return $Call.ByID(3569953445, connID, subject);
+}
+
+/**
+ * RemovePrincipal deletes a user's password for every mechanism it has.
+ */
+export function RemovePrincipal(connID: number, name: string): $CancellablePromise<void> {
+    return $Call.ByID(3436133945, connID, name);
 }
 
 /**
@@ -101,12 +142,14 @@ export function ResetGroupOffsets(connID: number, input: $models.OffsetResetInpu
  */
 export function SendRecord(connID: number, input: $models.RecordInput): $CancellablePromise<kafka$0.RecordResult | null> {
     return $Call.ByID(2137680894, connID, input).then(($result: any) => {
-        return $$createType3($result);
+        return $$createType5($result);
     });
 }
 
 // Private type creation functions
-const $$createType0 = $models.LogDirView.createFrom;
+const $$createType0 = $models.AccessView.createFrom;
 const $$createType1 = $Create.Nullable($$createType0);
-const $$createType2 = kafka$0.RecordResult.createFrom;
+const $$createType2 = $models.LogDirView.createFrom;
 const $$createType3 = $Create.Nullable($$createType2);
+const $$createType4 = kafka$0.RecordResult.createFrom;
+const $$createType5 = $Create.Nullable($$createType4);

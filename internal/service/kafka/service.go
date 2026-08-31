@@ -220,3 +220,88 @@ func (s *Service) SendRecord(
 	defer cancel()
 	return api.SendRecord(ctx, request)
 }
+
+// AccessControl is the access page in one round trip: whether the cluster has
+// an authorizer at all, the rules it holds, and the users it stores.
+//
+// One call because the three are read together and separately they can
+// disagree: a page that fetched rules and users apart could show a rule for a
+// user the same refresh says does not exist.
+func (s *Service) AccessControl(
+	ctx context.Context, connID int,
+) (bool, []*model.AccessRule, []*model.AccessPrincipal, error) {
+	api, err := port[driver.AccessDirectory](s, connID, model.CapAccessDirectory)
+	if err != nil {
+		if notConnected(err) {
+			return false, nil, nil, nil
+		}
+		return false, nil, nil, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+
+	enabled, err := api.DirectoryEnabled(ctx)
+	if err != nil {
+		return false, nil, nil, err
+	}
+	if !enabled {
+		// Not an error: the cluster runs without an authorizer, which the page
+		// explains rather than failing over.
+		return false, []*model.AccessRule{}, []*model.AccessPrincipal{}, nil
+	}
+
+	rules, err := api.ListAccessRules(ctx)
+	if err != nil {
+		return true, nil, nil, err
+	}
+	// A cluster can authenticate over mTLS or Kerberos and store no users at
+	// all, so a failure here does not cost the rules.
+	principals, _ := api.ListPrincipals(ctx)
+	return true, rules, principals, nil
+}
+
+// PutAccessRule writes every policy a subject should have.
+func (s *Service) PutAccessRule(ctx context.Context, connID int, rule model.AccessRule) error {
+	api, err := port[driver.AccessDirectory](s, connID, model.CapAccessDirectory)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.PutAccessRule(ctx, rule)
+}
+
+// RemoveAccessRule deletes every rule belonging to a principal.
+func (s *Service) RemoveAccessRule(ctx context.Context, connID int, subject string) error {
+	api, err := port[driver.AccessDirectory](s, connID, model.CapAccessDirectory)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.RemoveAccessRule(ctx, subject)
+}
+
+// PutPrincipal creates or updates a SCRAM user.
+func (s *Service) PutPrincipal(
+	ctx context.Context, connID int, spec model.AccessPrincipalSpec,
+) error {
+	api, err := port[driver.AccessDirectory](s, connID, model.CapAccessDirectory)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.PutPrincipal(ctx, spec)
+}
+
+// RemovePrincipal deletes a SCRAM user's password for every mechanism.
+func (s *Service) RemovePrincipal(ctx context.Context, connID int, name string) error {
+	api, err := port[driver.AccessDirectory](s, connID, model.CapAccessDirectory)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.RemovePrincipal(ctx, name)
+}

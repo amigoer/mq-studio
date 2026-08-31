@@ -62,7 +62,23 @@ func TestLiveConnect(t *testing.T) {
 	if err := conn.Ping(ctx); err != nil {
 		t.Fatalf("Ping failed against the live cluster: %v", err)
 	}
-	for capability, reason := range conn.Capabilities().Degraded {
+
+	/*
+	 * Exactly one capability is degraded, and it is the right one.
+	 *
+	 * This cluster runs without an authorizer, so every ACL call answers
+	 * SECURITY_DISABLED. That is a deployment choice rather than a fault: the
+	 * page stays in the sidebar and explains itself. Anything else degraded
+	 * here would be a driver reporting a capability the cluster does have.
+	 */
+	degraded := conn.Capabilities().Degraded
+	if reason := degraded[model.CapAccessDirectory]; reason != accessControlDisabled {
+		t.Errorf("access control degraded with %q, want %q", reason, accessControlDisabled)
+	}
+	for capability, reason := range degraded {
+		if capability == model.CapAccessDirectory {
+			continue
+		}
 		t.Errorf("%s was degraded (%s) against a cluster that answers", capability, reason)
 	}
 }

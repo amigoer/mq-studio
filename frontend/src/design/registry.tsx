@@ -44,6 +44,7 @@ import { ProducerKafka } from "./boards/producer/ProducerKafka";
 import { ProducerRabbitMQ } from "./boards/producer/ProducerRabbitMQ";
 import { Alerts } from "./boards/alerts/Alerts";
 import { Acl } from "./boards/acl/Acl";
+import { AclKafka } from "./boards/acl/AclKafka";
 
 import { ClusterRocketMQ } from "./boards/cluster/ClusterRocketMQ";
 import { BrokersKafka } from "./boards/cluster/BrokersKafka";
@@ -166,6 +167,7 @@ export function renderBoard(
   if (page === "acl") {
     if (protocol === "rocketmq") return <Acl />;
     if (protocol === "rabbitmq") return <UsersRabbitMQ />;
+    if (protocol === "kafka") return <AclKafka />;
   }
 
   const Board = BOARDS[page]?.[protocol];

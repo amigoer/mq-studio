@@ -1,6 +1,7 @@
 import { KafkaService } from "@bindings/bridge";
 import type { KafkaTopicInput } from "@bindings/bridge/models";
 import { required } from "./client";
+import type { AccessPrincipalSpec, AccessRule } from "@bindings/model/models";
 
 export type { KafkaTopicInput };
 
@@ -107,3 +108,22 @@ export interface KafkaRecordInput {
 /** Publishes and reports the partition and offset the record landed on. */
 export const sendKafkaRecord = (connID: number, input: KafkaRecordInput) =>
   KafkaService.SendRecord(connID, input).then(required);
+
+/** The access control page in one answer. */
+export const getKafkaAccessControl = (connID: number) =>
+  KafkaService.AccessControl(connID).then(required);
+
+export const putKafkaAccessRule = (connID: number, rule: AccessRule): Promise<void> =>
+  KafkaService.PutAccessRule(connID, rule);
+
+export const removeKafkaAccessRule = (connID: number, subject: string): Promise<void> =>
+  KafkaService.RemoveAccessRule(connID, subject);
+
+/** Creates or updates a SCRAM user. The password never comes back. */
+export const putKafkaPrincipal = (
+  connID: number,
+  spec: AccessPrincipalSpec,
+): Promise<void> => KafkaService.PutPrincipal(connID, spec);
+
+export const removeKafkaPrincipal = (connID: number, name: string): Promise<void> =>
+  KafkaService.RemovePrincipal(connID, name);

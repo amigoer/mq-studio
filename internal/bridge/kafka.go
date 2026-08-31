@@ -230,3 +230,61 @@ func (s *KafkaService) SendRecord(connID int, input RecordInput) (*kafkadriver.R
 	}
 	return s.service.SendRecord(context.Background(), connID, request)
 }
+
+// AccessView is the access control page in one answer.
+type AccessView struct {
+	// Enabled is false on a cluster running without an authorizer. Its ACL
+	// calls all answer SECURITY_DISABLED, which is a deployment choice rather
+	// than a fault, so the page says so instead of showing an error.
+	Enabled bool `json:"enabled"`
+
+	Rules []*model.AccessRule `json:"rules"`
+
+	// Principals are the SCRAM users the cluster stores. A cluster
+	// authenticating over mTLS or Kerberos has principals it never stores, so
+	// a rule can name someone who is not in this list - which is the truth
+	// rather than an omission.
+	Principals []*model.AccessPrincipal `json:"principals"`
+
+	// Operations and ResourceKinds are what a rule may be built from. The set
+	// is closed and comes from Go, so the renderer cannot write a grant that
+	// has not been reviewed.
+	Operations    []string `json:"operations"`
+	ResourceKinds []string `json:"resourceKinds"`
+}
+
+// AccessControl reports the cluster's ACLs and the users it stores.
+func (s *KafkaService) AccessControl(connID int) (*AccessView, error) {
+	enabled, rules, principals, err := s.service.AccessControl(context.Background(), connID)
+	if err != nil {
+		return nil, err
+	}
+	return &AccessView{
+		Enabled:       enabled,
+		Rules:         rules,
+		Principals:    principals,
+		Operations:    kafkadriver.KnownACLOperations(),
+		ResourceKinds: kafkadriver.KnownACLResourceKinds(),
+	}, nil
+}
+
+// PutAccessRule writes every policy a subject should have.
+func (s *KafkaService) PutAccessRule(connID int, rule model.AccessRule) error {
+	return s.service.PutAccessRule(context.Background(), connID, rule)
+}
+
+// RemoveAccessRule deletes every rule belonging to a principal.
+func (s *KafkaService) RemoveAccessRule(connID int, subject string) error {
+	return s.service.RemoveAccessRule(context.Background(), connID, subject)
+}
+
+// PutPrincipal creates or updates a SCRAM user. The password is write-only:
+// Kafka stores it salted and cannot be asked for it again.
+func (s *KafkaService) PutPrincipal(connID int, spec model.AccessPrincipalSpec) error {
+	return s.service.PutPrincipal(context.Background(), connID, spec)
+}
+
+// RemovePrincipal deletes a user's password for every mechanism it has.
+func (s *KafkaService) RemovePrincipal(connID int, name string) error {
+	return s.service.RemovePrincipal(context.Background(), connID, name)
+}

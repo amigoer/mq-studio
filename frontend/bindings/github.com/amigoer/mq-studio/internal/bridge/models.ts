@@ -106,6 +106,80 @@ export class AccessRuleInput {
 }
 
 /**
+ * AccessView is the access control page in one answer.
+ */
+export class AccessView {
+    /**
+     * Enabled is false on a cluster running without an authorizer. Its ACL
+     * calls all answer SECURITY_DISABLED, which is a deployment choice rather
+     * than a fault, so the page says so instead of showing an error.
+     */
+    "enabled": boolean;
+    "rules": (model$0.AccessRule | null)[];
+
+    /**
+     * Principals are the SCRAM users the cluster stores. A cluster
+     * authenticating over mTLS or Kerberos has principals it never stores, so
+     * a rule can name someone who is not in this list - which is the truth
+     * rather than an omission.
+     */
+    "principals": (model$0.AccessPrincipal | null)[];
+
+    /**
+     * Operations and ResourceKinds are what a rule may be built from. The set
+     * is closed and comes from Go, so the renderer cannot write a grant that
+     * has not been reviewed.
+     */
+    "operations": string[];
+    "resourceKinds": string[];
+
+    /** Creates a new AccessView instance. */
+    constructor($$source: Partial<AccessView> = {}) {
+        if (!("enabled" in $$source)) {
+            this["enabled"] = false;
+        }
+        if (!("rules" in $$source)) {
+            this["rules"] = [];
+        }
+        if (!("principals" in $$source)) {
+            this["principals"] = [];
+        }
+        if (!("operations" in $$source)) {
+            this["operations"] = [];
+        }
+        if (!("resourceKinds" in $$source)) {
+            this["resourceKinds"] = [];
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new AccessView instance from a string or object.
+     */
+    static createFrom($$source: any = {}): AccessView {
+        const $$createField1_0 = $$createType5;
+        const $$createField2_0 = $$createType8;
+        const $$createField3_0 = $$createType0;
+        const $$createField4_0 = $$createType0;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("rules" in $$parsedSource) {
+            $$parsedSource["rules"] = $$createField1_0($$parsedSource["rules"]);
+        }
+        if ("principals" in $$parsedSource) {
+            $$parsedSource["principals"] = $$createField2_0($$parsedSource["principals"]);
+        }
+        if ("operations" in $$parsedSource) {
+            $$parsedSource["operations"] = $$createField3_0($$parsedSource["operations"]);
+        }
+        if ("resourceKinds" in $$parsedSource) {
+            $$parsedSource["resourceKinds"] = $$createField4_0($$parsedSource["resourceKinds"]);
+        }
+        return new AccessView($$parsedSource as Partial<AccessView>);
+    }
+}
+
+/**
  * BindingInput describes one route.
  */
 export class BindingInput {
@@ -153,7 +227,7 @@ export class BindingInput {
      * Creates a new BindingInput instance from a string or object.
      */
     static createFrom($$source: any = {}): BindingInput {
-        const $$createField5_0 = $$createType3;
+        const $$createField5_0 = $$createType9;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("arguments" in $$parsedSource) {
             $$parsedSource["arguments"] = $$createField5_0($$parsedSource["arguments"]);
@@ -196,9 +270,9 @@ export class ClusterView {
      * Creates a new ClusterView instance from a string or object.
      */
     static createFrom($$source: any = {}): ClusterView {
-        const $$createField0_0 = $$createType4;
-        const $$createField1_0 = $$createType7;
-        const $$createField2_0 = $$createType7;
+        const $$createField0_0 = $$createType10;
+        const $$createField1_0 = $$createType13;
+        const $$createField2_0 = $$createType13;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("overview" in $$parsedSource) {
             $$parsedSource["overview"] = $$createField0_0($$parsedSource["overview"]);
@@ -276,8 +350,8 @@ export class ConnectionInput {
      * Creates a new ConnectionInput instance from a string or object.
      */
     static createFrom($$source: any = {}): ConnectionInput {
-        const $$createField6_0 = $$createType3;
-        const $$createField7_0 = $$createType3;
+        const $$createField6_0 = $$createType9;
+        const $$createField7_0 = $$createType9;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("options" in $$parsedSource) {
             $$parsedSource["options"] = $$createField6_0($$parsedSource["options"]);
@@ -361,7 +435,7 @@ export class ConnectionView {
      * Creates a new ConnectionView instance from a string or object.
      */
     static createFrom($$source: any = {}): ConnectionView {
-        const $$createField7_0 = $$createType3;
+        const $$createField7_0 = $$createType9;
         const $$createField8_0 = $$createType0;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("options" in $$parsedSource) {
@@ -440,7 +514,7 @@ export class DefinitionsPreview {
      * Creates a new DefinitionsPreview instance from a string or object.
      */
     static createFrom($$source: any = {}): DefinitionsPreview {
-        const $$createField2_0 = $$createType8;
+        const $$createField2_0 = $$createType14;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("counts" in $$parsedSource) {
             $$parsedSource["counts"] = $$createField2_0($$parsedSource["counts"]);
@@ -619,7 +693,7 @@ export class KafkaTopicInput {
      * Creates a new KafkaTopicInput instance from a string or object.
      */
     static createFrom($$source: any = {}): KafkaTopicInput {
-        const $$createField3_0 = $$createType3;
+        const $$createField3_0 = $$createType9;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("configs" in $$parsedSource) {
             $$parsedSource["configs"] = $$createField3_0($$parsedSource["configs"]);
@@ -671,8 +745,8 @@ export class LogDirView {
      * Creates a new LogDirView instance from a string or object.
      */
     static createFrom($$source: any = {}): LogDirView {
-        const $$createField0_0 = $$createType11;
-        const $$createField1_0 = $$createType14;
+        const $$createField0_0 = $$createType17;
+        const $$createField1_0 = $$createType20;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("dirs" in $$parsedSource) {
             $$parsedSource["dirs"] = $$createField0_0($$parsedSource["dirs"]);
@@ -767,7 +841,7 @@ export class MessageQuery {
      * Creates a new MessageQuery instance from a string or object.
      */
     static createFrom($$source: any = {}): MessageQuery {
-        const $$createField6_0 = $$createType3;
+        const $$createField6_0 = $$createType9;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("filters" in $$parsedSource) {
             $$parsedSource["filters"] = $$createField6_0($$parsedSource["filters"]);
@@ -928,7 +1002,7 @@ export class OffsetResetInput {
      * Creates a new OffsetResetInput instance from a string or object.
      */
     static createFrom($$source: any = {}): OffsetResetInput {
-        const $$createField2_0 = $$createType15;
+        const $$createField2_0 = $$createType21;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("partitions" in $$parsedSource) {
             $$parsedSource["partitions"] = $$createField2_0($$parsedSource["partitions"]);
@@ -1142,7 +1216,7 @@ export class PublishInput {
      * Creates a new PublishInput instance from a string or object.
      */
     static createFrom($$source: any = {}): PublishInput {
-        const $$createField6_0 = $$createType3;
+        const $$createField6_0 = $$createType9;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("headers" in $$parsedSource) {
             $$parsedSource["headers"] = $$createField6_0($$parsedSource["headers"]);
@@ -1377,7 +1451,7 @@ export class RecordInput {
      * Creates a new RecordInput instance from a string or object.
      */
     static createFrom($$source: any = {}): RecordInput {
-        const $$createField5_0 = $$createType3;
+        const $$createField5_0 = $$createType9;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("headers" in $$parsedSource) {
             $$parsedSource["headers"] = $$createField5_0($$parsedSource["headers"]);
@@ -1989,16 +2063,22 @@ export class TopicPermissionInput {
 const $$createType0 = $Create.Array($Create.Any);
 const $$createType1 = PolicyInput.createFrom;
 const $$createType2 = $Create.Array($$createType1);
-const $$createType3 = $Create.Map($Create.Any, $Create.Any);
-const $$createType4 = model$0.ClusterOverview.createFrom;
-const $$createType5 = model$0.Node.createFrom;
-const $$createType6 = $Create.Nullable($$createType5);
-const $$createType7 = $Create.Array($$createType6);
-const $$createType8 = $Create.Map($Create.Any, $Create.Any);
-const $$createType9 = model$0.LogDirSummary.createFrom;
-const $$createType10 = $Create.Nullable($$createType9);
-const $$createType11 = $Create.Array($$createType10);
-const $$createType12 = model$0.LogDirPartition.createFrom;
-const $$createType13 = $Create.Nullable($$createType12);
-const $$createType14 = $Create.Array($$createType13);
-const $$createType15 = $Create.Array($Create.Any);
+const $$createType3 = model$0.AccessRule.createFrom;
+const $$createType4 = $Create.Nullable($$createType3);
+const $$createType5 = $Create.Array($$createType4);
+const $$createType6 = model$0.AccessPrincipal.createFrom;
+const $$createType7 = $Create.Nullable($$createType6);
+const $$createType8 = $Create.Array($$createType7);
+const $$createType9 = $Create.Map($Create.Any, $Create.Any);
+const $$createType10 = model$0.ClusterOverview.createFrom;
+const $$createType11 = model$0.Node.createFrom;
+const $$createType12 = $Create.Nullable($$createType11);
+const $$createType13 = $Create.Array($$createType12);
+const $$createType14 = $Create.Map($Create.Any, $Create.Any);
+const $$createType15 = model$0.LogDirSummary.createFrom;
+const $$createType16 = $Create.Nullable($$createType15);
+const $$createType17 = $Create.Array($$createType16);
+const $$createType18 = model$0.LogDirPartition.createFrom;
+const $$createType19 = $Create.Nullable($$createType18);
+const $$createType20 = $Create.Array($$createType19);
+const $$createType21 = $Create.Array($Create.Any);

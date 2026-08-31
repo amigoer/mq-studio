@@ -134,6 +134,8 @@ func capabilities() []model.Capability {
 		model.CapClusterMetrics,
 		model.CapNodeConfig,
 		model.CapLogDirs,
+
+		model.CapAccessDirectory,
 	}
 }
 
@@ -152,6 +154,15 @@ func (c *Conn) probe(ctx context.Context) {
 		for _, capability := range capabilities() {
 			c.capabilities = c.capabilities.WithDegraded(capability, reason)
 		}
+		return
+	}
+
+	// A cluster with no authorizer answers SECURITY_DISABLED to every ACL
+	// call. That is a deployment choice rather than a failure, so the page is
+	// still drawn and says why it is empty - which is more use than an error
+	// that reads like the cluster is broken.
+	if enabled, err := c.DirectoryEnabled(ctx); err != nil || !enabled {
+		c.capabilities = c.capabilities.WithDegraded(model.CapAccessDirectory, accessControlDisabled)
 	}
 }
 
@@ -216,6 +227,11 @@ const (
 	credentialsForbidden = "mq.kafka.degraded.forbidden"
 	// endpointTimedOut is a host that accepted the connection and went quiet.
 	endpointTimedOut = "mq.kafka.degraded.timeout"
+	// accessControlDisabled is a cluster running without an authorizer. Its
+	// ACL calls all answer SECURITY_DISABLED, which is a deployment choice
+	// rather than a fault, so the page explains itself instead of failing.
+	accessControlDisabled = "mq.kafka.degraded.accessControl"
+
 	// endpointUnreachable is nothing answering at all. It also covers a
 	// listener reached over the wrong security protocol, which from here is
 	// indistinguishable: a plaintext client against a TLS listener simply
