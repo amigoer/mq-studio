@@ -18,7 +18,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Markdown, MeterRow } from "@/components";
+import { MeterRow } from "@/components";
+import { Markdown } from "@/components/markdown";
 import { Blocker, Phase, Policy, updateProgress } from "@/api/updates";
 import { useUpdater } from "@/hooks/useUpdater";
 import { useSettings } from "@/hooks/useSettings";

@@ -11,11 +11,11 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
-  Markdown,
   MeterRow,
   Panel,
   SectionLabel,
 } from "@/components";
+import { Markdown } from "@/components/markdown";
 import { Blocker, Phase, Policy, updateProgress } from "@/api/updates";
 import { useUpdater } from "@/hooks/useUpdater";
 import { useSettings } from "@/hooks/useSettings";
