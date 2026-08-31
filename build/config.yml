@@ -11,9 +11,9 @@ info:
   companyName: "amigoer"
   productName: "MQ Studio"
   productIdentifier: "com.mqstudio.app"
-  description: "Local-first desktop client for RocketMQ"
+  description: "Local-first desktop client for message queues"
   copyright: "(c) 2026, amigoer"
-  comments: "Local-first desktop client for RocketMQ"
+  comments: "Local-first desktop client for message queues"
   version: "0.0.3"
 
 # Dev mode configuration
