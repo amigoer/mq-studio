@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/amigoer/mq-studio/internal/driver"
+	kafkadriver "github.com/amigoer/mq-studio/internal/driver/kafka"
 	"github.com/amigoer/mq-studio/internal/model"
 )
 
@@ -112,4 +113,62 @@ func (s *Service) DeleteTopic(ctx context.Context, connID int, name string) erro
 	ctx, cancel := s.withTimeout(ctx)
 	defer cancel()
 	return api.RemoveDestination(ctx, model.DestinationRef{Name: name})
+}
+
+// ResetGroupOffsets writes a consumer group's committed offsets.
+//
+// Kafka refuses this while the group has live members, and that refusal is
+// passed through: committing on behalf of a running consumer would be
+// overwritten by it moments later, so a reset that appeared to work and then
+// undid itself is the worst of the three possible outcomes.
+func (s *Service) ResetGroupOffsets(
+	ctx context.Context, connID int, request kafkadriver.OffsetResetRequest,
+) error {
+	api, err := port[*kafkadriver.Conn](s, connID, model.CapOffsetReset)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.ResetGroupOffsets(ctx, request)
+}
+
+// DeleteGroupOffsets forgets a group's position on some topics.
+//
+// Different from a reset: a reset says where to read next, this says the group
+// has no position at all and the consumer's own auto.offset.reset decides.
+func (s *Service) DeleteGroupOffsets(
+	ctx context.Context, connID int, group string, topics []string,
+) error {
+	api, err := port[*kafkadriver.Conn](s, connID, model.CapOffsetReset)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.DeleteGroupOffsets(ctx, group, topics)
+}
+
+// CloneGroupOffsets copies one group's positions onto another.
+func (s *Service) CloneGroupOffsets(
+	ctx context.Context, connID int, request model.CloneOffsetRequest,
+) error {
+	api, err := port[driver.OffsetCloner](s, connID, model.CapOffsetClone)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.CloneOffset(ctx, request)
+}
+
+// DeleteGroup removes a consumer group and the offsets it holds.
+func (s *Service) DeleteGroup(ctx context.Context, connID int, group string) error {
+	api, err := port[driver.SubscriptionAdmin](s, connID, model.CapSubscriptionDelete)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.RemoveSubscription(ctx, model.SubscriptionRef{Name: group})
 }

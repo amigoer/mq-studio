@@ -31,10 +31,34 @@ export function AlterTopicConfigs(connID: number, name: string, configs: { [_ in
 }
 
 /**
+ * CloneGroupOffsets copies one group's positions onto another, which is how a
+ * replacement consumer group starts where the old one is instead of replaying
+ * everything it already handled.
+ */
+export function CloneGroupOffsets(connID: number, $from: string, to: string, topic: string): $CancellablePromise<void> {
+    return $Call.ByID(315480963, connID, $from, to, topic);
+}
+
+/**
  * CreateTopic declares a topic.
  */
 export function CreateTopic(connID: number, input: $models.KafkaTopicInput): $CancellablePromise<void> {
     return $Call.ByID(77144948, connID, input);
+}
+
+/**
+ * DeleteGroup removes a consumer group and the offsets it holds.
+ */
+export function DeleteGroup(connID: number, group: string): $CancellablePromise<void> {
+    return $Call.ByID(2945461861, connID, group);
+}
+
+/**
+ * DeleteGroupOffsets forgets a group's position on some topics without
+ * deleting the group.
+ */
+export function DeleteGroupOffsets(connID: number, group: string, topics: string[]): $CancellablePromise<void> {
+    return $Call.ByID(2128738747, connID, group, topics);
 }
 
 /**
@@ -46,4 +70,15 @@ export function CreateTopic(connID: number, input: $models.KafkaTopicInput): $Ca
  */
 export function DeleteTopic(connID: number, name: string): $CancellablePromise<void> {
     return $Call.ByID(2393614773, connID, name);
+}
+
+/**
+ * ResetGroupOffsets writes a consumer group's committed offsets.
+ * 
+ * Kafka refuses this while the group has live members. That refusal reaches
+ * the user as-is: the fix is to stop the consumers, and saying so is more use
+ * than a reset a running consumer would overwrite moments later.
+ */
+export function ResetGroupOffsets(connID: number, input: $models.OffsetResetInput): $CancellablePromise<void> {
+    return $Call.ByID(2590147649, connID, input);
 }

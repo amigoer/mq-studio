@@ -217,21 +217,27 @@ const propagationLimit = 3 * time.Second
  * left it missing from the list that refreshed on success and deleting one
  * left it there, and either way the operator does it again.
  *
- * Best effort and bounded. If the cluster is still catching up when time runs
- * out, the mutation has still been accepted, so the caller reports success
+ * What this cannot promise is that every broker agrees. Kafka's metadata is
+ * per-broker and each catches up on its own, so "the topic is gone" has no
+ * single answer at an instant: a client can be told yes by the broker it asks
+ * and no by the next one. This waits for one broker to agree, which closes the
+ * common case; the rest belongs to the protocol.
+ *
+ * Best effort and bounded. A transient metadata error is retried rather than
+ * taken as an answer, and if the cluster is still catching up when time runs
+ * out the mutation has still been accepted - so the caller reports success
  * rather than a failure that did not happen.
  */
 func (c *Conn) awaitTopic(ctx context.Context, topic string, wantPresent bool) {
 	deadline := time.Now().Add(propagationLimit)
 	for {
 		metadata, err := c.admin.Metadata(fresh(ctx), topic)
-		if err != nil {
-			return
-		}
-		detail, found := metadata.Topics[topic]
-		present := found && detail.Err == nil
-		if present == wantPresent {
-			return
+		if err == nil {
+			detail, found := metadata.Topics[topic]
+			present := found && detail.Err == nil
+			if present == wantPresent {
+				return
+			}
 		}
 		if time.Now().After(deadline) {
 			return

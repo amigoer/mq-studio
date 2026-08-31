@@ -112,6 +112,13 @@ func capabilities() []model.Capability {
 		model.CapDestinationDelete,
 		model.CapPartitions,
 
+		model.CapSubscriptionList,
+		model.CapSubscriptionDelete,
+		model.CapSubscriptionLag,
+		model.CapOffsetReset,
+		model.CapOffsetClone,
+		model.CapQueueOffset,
+
 		model.CapClusterTopology,
 		model.CapClusterMetrics,
 	}

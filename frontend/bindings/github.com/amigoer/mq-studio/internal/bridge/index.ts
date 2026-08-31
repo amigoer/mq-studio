@@ -51,6 +51,7 @@ export {
     MessageQuery,
     MoveInput,
     NamespaceInput,
+    OffsetResetInput,
     PermissionInput,
     PolicyInput,
     PrincipalInput,

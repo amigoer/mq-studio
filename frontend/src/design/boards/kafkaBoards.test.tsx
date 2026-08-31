@@ -39,6 +39,8 @@ function stateOf<T>(over: Partial<BrokerState<T>>): BrokerState<T> {
 const clusterState = vi.hoisted(() => ({ current: null as unknown }));
 const topicsState = vi.hoisted(() => ({ current: null as unknown }));
 const topicDetailState = vi.hoisted(() => ({ current: null as unknown }));
+const groupsState = vi.hoisted(() => ({ current: null as unknown }));
+const groupDetailState = vi.hoisted(() => ({ current: null as unknown }));
 
 vi.mock("@/hooks/kafka/useKafkaCluster", () => ({
   useKafkaCluster: () => clusterState.current,
@@ -47,6 +49,10 @@ vi.mock("@/hooks/kafka/useKafkaTopics", () => ({
   useKafkaTopics: () => topicsState.current,
   useKafkaTopicDetail: () => topicDetailState.current,
 }));
+vi.mock("@/hooks/kafka/useKafkaGroups", () => ({
+  useKafkaGroups: () => groupsState.current,
+  useKafkaGroupDetail: () => groupDetailState.current,
+}));
 vi.mock("@/mq/ConnectionScope", () => ({
   useConnectionScope: () => ({ id: 1, kind: "kafka", key: "k1", online: true }),
 }));
@@ -54,6 +60,7 @@ vi.mock("@/mq/ConnectionScope", () => ({
 let render: (element: React.ReactElement) => string;
 let OverviewKafka: typeof import("./overview/OverviewKafka").OverviewKafka;
 let TopicsKafka: typeof import("./topics/TopicsKafka").TopicsKafka;
+let ConsumersKafka: typeof import("./consumers/ConsumersKafka").ConsumersKafka;
 
 beforeAll(async () => {
   const storage = { getItem: () => null, setItem() {}, removeItem() {} };
@@ -66,10 +73,11 @@ beforeAll(async () => {
   });
   vi.stubGlobal("localStorage", storage);
 
-  const [server, overview, topics, ui, i18n, settings] = await Promise.all([
+  const [server, overview, topics, consumers, ui, i18n, settings] = await Promise.all([
     import("react-dom/server"),
     import("./overview/OverviewKafka"),
     import("./topics/TopicsKafka"),
+    import("./consumers/ConsumersKafka"),
     import("@/components"),
     import("@/i18n"),
     import("@/hooks/useSettings"),
@@ -83,6 +91,7 @@ beforeAll(async () => {
     );
   OverviewKafka = overview.OverviewKafka;
   TopicsKafka = topics.TopicsKafka;
+  ConsumersKafka = consumers.ConsumersKafka;
 });
 
 /** A healthy three-broker cluster, shaped the way the driver sends it. */
@@ -317,5 +326,117 @@ describe("the Kafka topics board", () => {
     topicsState.current = stateOf({ data: topicRows });
     topicDetailState.current = stateOf({});
     expect(render(<TopicsKafka />)).not.toMatch(/\/s\b/);
+  });
+});
+
+const group = (over: Record<string, unknown> = {}) => ({
+  id: 1,
+  ref: { namespace: "", name: "settle-consumer" },
+  status: "online",
+  members: 2,
+  destinations: 1,
+  backlog: 9820,
+  rateOut: -1,
+  lastUpdated: "",
+  attributes: {
+    state: "Stable",
+    protocol: "consumer",
+    assignor: "range",
+    coordinator: "2",
+    topics: "orders.created",
+    hasMembers: "true",
+  },
+  ...over,
+});
+
+const groupDetail = {
+  partitions: [
+    {
+      topic: "orders.created",
+      partition: 0,
+      member: "c-1@10.2.3.4",
+      committed: 88199021,
+      start: 0,
+      end: 88204771,
+      lag: 5750,
+    },
+    {
+      topic: "orders.created",
+      partition: 1,
+      member: "",
+      committed: -1,
+      start: 0,
+      end: 400,
+      lag: 400,
+    },
+  ],
+  members: [
+    {
+      memberId: "m-1",
+      clientId: "c-1",
+      clientHost: "10.2.3.4",
+      instanceId: "worker-a",
+      assigned: ["orders.created:0"],
+    },
+  ],
+};
+
+describe("the Kafka consumer groups board", () => {
+  it("draws the offline notice with nothing dialled", () => {
+    groupsState.current = stateOf({ online: false });
+    groupDetailState.current = stateOf({});
+    expect(render(<ConsumersKafka />)).toContain("未连接");
+  });
+
+  it("says so when no group has committed an offset yet", () => {
+    groupsState.current = stateOf({ data: [] });
+    groupDetailState.current = stateOf({});
+    expect(render(<ConsumersKafka />)).toContain("还没有消费组提交过位点");
+  });
+
+  it("draws a stable group with its lag and assignor", () => {
+    groupsState.current = stateOf({ data: [group()] });
+    groupDetailState.current = stateOf({ data: groupDetail });
+    const html = render(<ConsumersKafka />);
+
+    expect(html).toContain("settle-consumer");
+    expect(html).toContain("Stable");
+    expect(html).toContain("range");
+  });
+
+  /*
+   * Empty is the state worth naming. Offsets committed and nothing connected
+   * is either a gap between deployments or a consumer that died leaving a
+   * backlog growing, and the protocol does not say which - so the board names
+   * the state rather than folding it into "offline".
+   */
+  it("names an empty group rather than calling it offline", () => {
+    groupsState.current = stateOf({
+      data: [group({ status: "warning", members: 0, attributes: { ...group().attributes, state: "Empty", hasMembers: "false" } })],
+    });
+    groupDetailState.current = stateOf({ data: groupDetail });
+    expect(render(<ConsumersKafka />)).toContain("Empty");
+  });
+
+  it("marks a group that is rebalancing", () => {
+    groupsState.current = stateOf({
+      data: [group({ attributes: { ...group().attributes, state: "PreparingRebalance" } })],
+    });
+    groupDetailState.current = stateOf({ data: groupDetail });
+    expect(render(<ConsumersKafka />)).toContain("PreparingRebalance");
+  });
+
+  // A lag nobody could measure is not a caught-up group.
+  it("draws an unmeasurable lag as absent", () => {
+    groupsState.current = stateOf({ data: [group({ backlog: -1 })] });
+    groupDetailState.current = stateOf({ data: groupDetail });
+    expect(render(<ConsumersKafka />)).toContain("—");
+  });
+
+  // The canvas drew a consume rate. Kafka's admin protocol reports none.
+  it("shows no per-second figure", () => {
+    groupsState.current = stateOf({ data: [group()] });
+    groupDetailState.current = stateOf({ data: groupDetail });
+    expect(render(<ConsumersKafka />)).not.toMatch(/\/s\b/);
   });
 });

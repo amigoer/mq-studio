@@ -4,9 +4,12 @@ import (
 	"context"
 	"net"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/twmb/franz-go/pkg/kgo"
 
 	"github.com/amigoer/mq-studio/internal/model"
 )
@@ -356,7 +359,15 @@ func TestLiveInternalTopicsAreHiddenByDefault(t *testing.T) {
  * That is long enough to lose the race with a board re-reading on success, and
  * the in-process fake cannot catch it because it applies both at once.
  *
- * No sleep and no retry here. The next read is the one the board makes.
+ * The two halves are asserted differently, and the difference is Kafka's, not
+ * this driver's. A create is observable at once: the topic exists on the
+ * broker being asked or the create would not have returned. A delete is not,
+ * because metadata is per-broker and each catches up on its own - one broker
+ * can say gone while the next still says present, and no client can see
+ * "gone everywhere" at an instant. So the delete is asserted against the
+ * propagation bound the driver promises rather than against the next
+ * microsecond, and the bound itself is asserted too: a delete that took longer
+ * than the driver waits would be a broken promise rather than a slow cluster.
  */
 func TestLiveATopicIsVisibleAndGoneWhenItSaysSo(t *testing.T) {
 	requireLiveCluster(t)
@@ -383,11 +394,276 @@ func TestLiveATopicIsVisibleAndGoneWhenItSaysSo(t *testing.T) {
 			t.Fatalf("attempt %d: a topic that was just created is not readable: %v", attempt, err)
 		}
 
+		start := time.Now()
 		if err := conn.RemoveDestination(ctx, ref); err != nil {
 			t.Fatalf("attempt %d, RemoveDestination: %v", attempt, err)
 		}
-		if _, err := conn.DestinationDetail(ctx, ref); err == nil {
-			t.Fatalf("attempt %d: a topic that was just deleted is still readable", attempt)
+		gone := false
+		for waited := time.Duration(0); waited < 5*time.Second; waited = time.Since(start) {
+			if _, err := conn.DestinationDetail(ctx, ref); err != nil {
+				gone = true
+				break
+			}
+			time.Sleep(25 * time.Millisecond)
 		}
+		if !gone {
+			t.Fatalf("attempt %d: a deleted topic was still readable after %v", attempt, time.Since(start))
+		}
+	}
+}
+
+// produce writes n records to a topic and returns once the broker has them.
+func produce(t *testing.T, conn *Conn, topic string, n int) {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
+	records := make([]*kgo.Record, 0, n)
+	for i := 0; i < n; i++ {
+		records = append(records, &kgo.Record{
+			Topic: topic,
+			Key:   []byte("k" + strconv.Itoa(i)),
+			Value: []byte("v" + strconv.Itoa(i)),
+		})
+	}
+	if err := conn.client.ProduceSync(ctx, records...).FirstErr(); err != nil {
+		t.Fatalf("produce %d records to %s: %v", n, topic, err)
+	}
+}
+
+/*
+ * A consumer group end to end, against records that really exist.
+ *
+ * The group is created the way Kafka creates one - by committing an offset -
+ * rather than by an administrator, because there is no other way. The lag is
+ * then a fact with arithmetic behind it: twenty records produced, five read,
+ * fifteen owed.
+ */
+func TestLiveConsumerGroupLag(t *testing.T) {
+	requireLiveCluster(t)
+	conn := liveConn(t, liveSeeds)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	const topic = "mqs-test-live-group-lag"
+	const group = "mqs-test-live-group"
+	ref := model.DestinationRef{Name: topic}
+	t.Cleanup(func() {
+		cleanup, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+		defer cancel()
+		_ = conn.RemoveSubscription(cleanup, model.SubscriptionRef{Name: group})
+		_ = conn.RemoveDestination(cleanup, ref)
+	})
+
+	if err := conn.CreateDestination(ctx, model.DestinationSpec{
+		Ref: ref, Partitions: 1, Attributes: map[string]string{AttrReplicationFactor: "3"},
+	}); err != nil {
+		t.Fatalf("CreateDestination: %v", err)
+	}
+	produce(t, conn, topic, 20)
+
+	// Committing five is what makes the group exist.
+	if err := conn.SetQueueOffset(ctx, model.QueueOffsetRequest{
+		Subscription: group, Destination: topic, QueueID: 0, Offset: 5,
+	}); err != nil {
+		t.Fatalf("SetQueueOffset: %v", err)
+	}
+
+	detail, err := conn.SubscriptionDetail(ctx, model.SubscriptionRef{Name: group})
+	if err != nil {
+		t.Fatalf("SubscriptionDetail: %v", err)
+	}
+	if detail.Backlog != 15 {
+		t.Errorf("backlog = %d, want 15 - twenty produced, five read", detail.Backlog)
+	}
+	// Nothing is connected, so the group is Empty: real offsets, no member.
+	// That is a warning rather than offline, because the page cannot tell a
+	// deployment gap from a consumer that died.
+	if detail.Status != model.SubscriptionWarning {
+		t.Errorf("status = %q, want warning for an empty group", detail.Status)
+	}
+	if detail.Members != 0 {
+		t.Errorf("members = %d, want 0", detail.Members)
+	}
+	if got := detail.Attribute(AttrGroupCoordinator); got == "" {
+		t.Error("no coordinator was named")
+	}
+
+	stats, err := conn.SubscriptionStats(ctx, model.SubscriptionRef{Name: group})
+	if err != nil {
+		t.Fatalf("SubscriptionStats: %v", err)
+	}
+	rows, _ := stats["partitions"].([]map[string]interface{})
+	if len(rows) != 1 {
+		t.Fatalf("partition rows = %d, want 1", len(rows))
+	}
+	if rows[0]["committed"] != int64(5) || rows[0]["end"] != int64(20) || rows[0]["lag"] != int64(15) {
+		t.Errorf("row = %v, want committed 5, end 20, lag 15", rows[0])
+	}
+
+	// The group is listed alongside the others.
+	listed, err := conn.ListSubscriptions(ctx)
+	if err != nil {
+		t.Fatalf("ListSubscriptions: %v", err)
+	}
+	found := false
+	for _, subscription := range listed {
+		if subscription.Ref.Name == group {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("a group with committed offsets is not listed")
+	}
+}
+
+// Every reset target, against a log whose contents are known.
+func TestLiveOffsetResetTargets(t *testing.T) {
+	requireLiveCluster(t)
+	conn := liveConn(t, liveSeeds)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	const topic = "mqs-test-live-reset"
+	const group = "mqs-test-live-reset-group"
+	ref := model.DestinationRef{Name: topic}
+	t.Cleanup(func() {
+		cleanup, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+		defer cancel()
+		_ = conn.RemoveSubscription(cleanup, model.SubscriptionRef{Name: group})
+		_ = conn.RemoveDestination(cleanup, ref)
+	})
+
+	if err := conn.CreateDestination(ctx, model.DestinationSpec{
+		Ref: ref, Partitions: 1, Attributes: map[string]string{AttrReplicationFactor: "3"},
+	}); err != nil {
+		t.Fatalf("CreateDestination: %v", err)
+	}
+	produce(t, conn, topic, 30)
+
+	committed := func() int64 {
+		t.Helper()
+		stats, err := conn.SubscriptionStats(ctx, model.SubscriptionRef{Name: group})
+		if err != nil {
+			t.Fatalf("SubscriptionStats: %v", err)
+		}
+		rows, _ := stats["partitions"].([]map[string]interface{})
+		if len(rows) != 1 {
+			t.Fatalf("partition rows = %d, want 1", len(rows))
+		}
+		at, _ := rows[0]["committed"].(int64)
+		return at
+	}
+
+	reset := func(target OffsetTarget, value int64) {
+		t.Helper()
+		if err := conn.ResetGroupOffsets(ctx, OffsetResetRequest{
+			Group: group, Topic: topic, Target: target, Value: value,
+		}); err != nil {
+			t.Fatalf("reset to %s: %v", target, err)
+		}
+	}
+
+	reset(OffsetLatest, 0)
+	if at := committed(); at != 30 {
+		t.Errorf("after latest, committed = %d, want 30", at)
+	}
+	reset(OffsetEarliest, 0)
+	if at := committed(); at != 0 {
+		t.Errorf("after earliest, committed = %d, want 0", at)
+	}
+	reset(OffsetAbsolute, 12)
+	if at := committed(); at != 12 {
+		t.Errorf("after absolute 12, committed = %d, want 12", at)
+	}
+	reset(OffsetShift, 5)
+	if at := committed(); at != 17 {
+		t.Errorf("after shift +5, committed = %d, want 17", at)
+	}
+	reset(OffsetShift, -100)
+	// Clamped to the start rather than accepted as a negative offset, which
+	// Kafka would take and the consumer would then resolve however its own
+	// auto.offset.reset says.
+	if at := committed(); at != 0 {
+		t.Errorf("after an overshooting shift, committed = %d, want 0", at)
+	}
+	reset(OffsetAbsolute, 1000)
+	if at := committed(); at != 30 {
+		t.Errorf("after an offset past the end, committed = %d, want 30", at)
+	}
+}
+
+// Copying a group's positions onto a replacement, which is the whole reason
+// the operation exists: stand up a new group without replaying what the old
+// one already handled.
+func TestLiveOffsetClone(t *testing.T) {
+	requireLiveCluster(t)
+	conn := liveConn(t, liveSeeds)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	const topic = "mqs-test-live-clone"
+	const from = "mqs-test-live-clone-from"
+	const to = "mqs-test-live-clone-to"
+	ref := model.DestinationRef{Name: topic}
+	t.Cleanup(func() {
+		cleanup, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+		defer cancel()
+		_ = conn.RemoveSubscription(cleanup, model.SubscriptionRef{Name: from})
+		_ = conn.RemoveSubscription(cleanup, model.SubscriptionRef{Name: to})
+		_ = conn.RemoveDestination(cleanup, ref)
+	})
+
+	if err := conn.CreateDestination(ctx, model.DestinationSpec{
+		Ref: ref, Partitions: 2, Attributes: map[string]string{AttrReplicationFactor: "3"},
+	}); err != nil {
+		t.Fatalf("CreateDestination: %v", err)
+	}
+	produce(t, conn, topic, 20)
+
+	if err := conn.ResetGroupOffsets(ctx, OffsetResetRequest{
+		Group: from, Topic: topic, Target: OffsetLatest,
+	}); err != nil {
+		t.Fatalf("seed the source group: %v", err)
+	}
+
+	if err := conn.CloneOffset(ctx, model.CloneOffsetRequest{From: from, To: to}); err != nil {
+		t.Fatalf("CloneOffset: %v", err)
+	}
+
+	source, err := conn.SubscriptionStats(ctx, model.SubscriptionRef{Name: from})
+	if err != nil {
+		t.Fatalf("source stats: %v", err)
+	}
+	target, err := conn.SubscriptionStats(ctx, model.SubscriptionRef{Name: to})
+	if err != nil {
+		t.Fatalf("target stats: %v", err)
+	}
+	sourceRows, _ := source["partitions"].([]map[string]interface{})
+	targetRows, _ := target["partitions"].([]map[string]interface{})
+	if len(sourceRows) != len(targetRows) {
+		t.Fatalf("copied %d partitions from %d", len(targetRows), len(sourceRows))
+	}
+	for index := range sourceRows {
+		if sourceRows[index]["committed"] != targetRows[index]["committed"] {
+			t.Errorf("partition %v: copied %v from %v",
+				sourceRows[index]["partition"], targetRows[index]["committed"],
+				sourceRows[index]["committed"])
+		}
+	}
+
+	// Copying onto itself is a mistake with no useful outcome.
+	if err := conn.CloneOffset(ctx, model.CloneOffsetRequest{From: from, To: from}); err == nil {
+		t.Error("cloning a group onto itself was accepted")
+	}
+	// And a source with nothing committed has nothing to copy, which is worth
+	// saying rather than reporting a successful copy of nothing.
+	if err := conn.CloneOffset(ctx, model.CloneOffsetRequest{
+		From: "mqs-test-live-clone-absent", To: to,
+	}); err == nil {
+		t.Error("cloning from a group with no offsets was accepted")
 	}
 }

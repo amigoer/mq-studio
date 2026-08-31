@@ -80,3 +80,60 @@ func (s *KafkaService) AlterTopicConfigs(connID int, name string, configs map[st
 func (s *KafkaService) DeleteTopic(connID int, name string) error {
 	return s.service.DeleteTopic(context.Background(), connID, name)
 }
+
+// OffsetResetInput is an offset reset as the form collects it.
+//
+// Deliberately not ConsumerService's ResetOffset, which takes a group, a topic
+// and a timestamp: that is one of Kafka's five targets and the form offers all
+// five, because "start again", "skip everything" and "go back to when the
+// incident started" are different requests.
+type OffsetResetInput struct {
+	Group string `json:"group"`
+	Topic string `json:"topic"`
+
+	// Partitions narrows the reset. Empty means every partition of the topic.
+	Partitions []int32 `json:"partitions"`
+
+	// Target is earliest, latest, timestamp, offset or shift.
+	Target string `json:"target"`
+	// Timestamp is milliseconds, for the timestamp target.
+	Timestamp int64 `json:"timestamp"`
+	// Value is the offset for the offset target and the signed delta for shift.
+	Value int64 `json:"value"`
+}
+
+// ResetGroupOffsets writes a consumer group's committed offsets.
+//
+// Kafka refuses this while the group has live members. That refusal reaches
+// the user as-is: the fix is to stop the consumers, and saying so is more use
+// than a reset a running consumer would overwrite moments later.
+func (s *KafkaService) ResetGroupOffsets(connID int, input OffsetResetInput) error {
+	return s.service.ResetGroupOffsets(context.Background(), connID, kafkadriver.OffsetResetRequest{
+		Group:      input.Group,
+		Topic:      input.Topic,
+		Partitions: input.Partitions,
+		Target:     kafkadriver.OffsetTarget(input.Target),
+		Timestamp:  input.Timestamp,
+		Value:      input.Value,
+	})
+}
+
+// DeleteGroupOffsets forgets a group's position on some topics without
+// deleting the group.
+func (s *KafkaService) DeleteGroupOffsets(connID int, group string, topics []string) error {
+	return s.service.DeleteGroupOffsets(context.Background(), connID, group, topics)
+}
+
+// CloneGroupOffsets copies one group's positions onto another, which is how a
+// replacement consumer group starts where the old one is instead of replaying
+// everything it already handled.
+func (s *KafkaService) CloneGroupOffsets(connID int, from, to, topic string) error {
+	return s.service.CloneGroupOffsets(context.Background(), connID, model.CloneOffsetRequest{
+		From: from, To: to, Destination: topic,
+	})
+}
+
+// DeleteGroup removes a consumer group and the offsets it holds.
+func (s *KafkaService) DeleteGroup(connID int, group string) error {
+	return s.service.DeleteGroup(context.Background(), connID, group)
+}

@@ -35,3 +35,49 @@ export const alterKafkaTopicConfigs = (
  */
 export const deleteKafkaTopic = (connID: number, name: string): Promise<void> =>
   KafkaService.DeleteTopic(connID, name);
+
+/** Where an offset reset moves a group to. Kafka has five, and so does this. */
+export type KafkaOffsetTarget = "earliest" | "latest" | "timestamp" | "offset" | "shift";
+
+export interface KafkaOffsetReset {
+  group: string;
+  topic: string;
+  /** Empty means every partition of the topic. */
+  partitions: number[];
+  target: KafkaOffsetTarget;
+  /** Milliseconds, for the timestamp target. */
+  timestamp: number;
+  /** The offset for the offset target, the signed delta for shift. */
+  value: number;
+}
+
+/**
+ * Writes a consumer group's committed offsets.
+ *
+ * Kafka refuses this while the group has live members, and that refusal
+ * reaches the user as-is: the fix is to stop the consumers, and saying so is
+ * more use than a reset a running consumer would overwrite moments later.
+ */
+export const resetKafkaGroupOffsets = (
+  connID: number,
+  input: KafkaOffsetReset,
+): Promise<void> => KafkaService.ResetGroupOffsets(connID, input);
+
+/** Forgets a group's position on some topics without deleting the group. */
+export const deleteKafkaGroupOffsets = (
+  connID: number,
+  group: string,
+  topics: string[],
+): Promise<void> => KafkaService.DeleteGroupOffsets(connID, group, topics);
+
+/** Copies one group's positions onto another. An empty topic copies them all. */
+export const cloneKafkaGroupOffsets = (
+  connID: number,
+  from: string,
+  to: string,
+  topic: string,
+): Promise<void> => KafkaService.CloneGroupOffsets(connID, from, to, topic);
+
+/** Removes a consumer group and the offsets it holds. */
+export const deleteKafkaGroup = (connID: number, group: string): Promise<void> =>
+  KafkaService.DeleteGroup(connID, group);

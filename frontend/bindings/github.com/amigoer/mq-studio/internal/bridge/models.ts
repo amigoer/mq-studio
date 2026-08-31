@@ -813,6 +813,75 @@ export class NamespaceInput {
 }
 
 /**
+ * OffsetResetInput is an offset reset as the form collects it.
+ * 
+ * Deliberately not ConsumerService's ResetOffset, which takes a group, a topic
+ * and a timestamp: that is one of Kafka's five targets and the form offers all
+ * five, because "start again", "skip everything" and "go back to when the
+ * incident started" are different requests.
+ */
+export class OffsetResetInput {
+    "group": string;
+    "topic": string;
+
+    /**
+     * Partitions narrows the reset. Empty means every partition of the topic.
+     */
+    "partitions": number[];
+
+    /**
+     * Target is earliest, latest, timestamp, offset or shift.
+     */
+    "target": string;
+
+    /**
+     * Timestamp is milliseconds, for the timestamp target.
+     */
+    "timestamp": number;
+
+    /**
+     * Value is the offset for the offset target and the signed delta for shift.
+     */
+    "value": number;
+
+    /** Creates a new OffsetResetInput instance. */
+    constructor($$source: Partial<OffsetResetInput> = {}) {
+        if (!("group" in $$source)) {
+            this["group"] = "";
+        }
+        if (!("topic" in $$source)) {
+            this["topic"] = "";
+        }
+        if (!("partitions" in $$source)) {
+            this["partitions"] = [];
+        }
+        if (!("target" in $$source)) {
+            this["target"] = "";
+        }
+        if (!("timestamp" in $$source)) {
+            this["timestamp"] = 0;
+        }
+        if (!("value" in $$source)) {
+            this["value"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new OffsetResetInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): OffsetResetInput {
+        const $$createField2_0 = $$createType9;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("partitions" in $$parsedSource) {
+            $$parsedSource["partitions"] = $$createField2_0($$parsedSource["partitions"]);
+        }
+        return new OffsetResetInput($$parsedSource as Partial<OffsetResetInput>);
+    }
+}
+
+/**
  * PermissionInput grants rights inside one namespace. The three patterns are
  * regular expressions: empty permits nothing, ".*" permits everything.
  */
@@ -1785,3 +1854,4 @@ const $$createType5 = model$0.Node.createFrom;
 const $$createType6 = $Create.Nullable($$createType5);
 const $$createType7 = $Create.Array($$createType6);
 const $$createType8 = $Create.Map($Create.Any, $Create.Any);
+const $$createType9 = $Create.Array($Create.Any);
