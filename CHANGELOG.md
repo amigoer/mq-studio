@@ -9,6 +9,62 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.0.3] - 2026-08-31
+
+Kafka support, over the Kafka protocol itself rather than a management API
+beside it. Topics, consumer groups, records and access control, with the
+figures Kafka does not report left out rather than filled in.
+
+### Added
+
+**Kafka 3.x and 4.x**
+
+- Connect to a cluster over its own protocol, with SASL/PLAIN, SASL/SCRAM and
+  TLS. The SCRAM digest is a field of its own because SHA-256 and SHA-512 are
+  separate credentials on the broker: a user that exists under one fails under
+  the other, and reporting that as a wrong password would be a lie.
+- Overview, topics, consumer groups, messages, a send console, the cluster,
+  access control, and alerts.
+- Topics with their partitions, leaders, in-sync replicas and offline replicas,
+  their replication factor and minimum in-sync replicas, and the whole settings
+  document behind a row. Create, alter and delete; an alter touches only the
+  settings it is given, so nothing an operator never saw is reset to a default.
+- Consumer groups with lag per partition and per member, their state, their
+  coordinator and their assignor. All five of Kafka's offset resets - earliest,
+  latest, a moment in time, an exact offset and a signed shift - plus copying
+  one group's positions onto another and deleting a group.
+- Browsing a log by the latest window, an offset range, a moment in time, or a
+  key; and following the end of one. Browsing joins no consumer group and
+  commits nothing, so it is safe to point at production.
+- Producing with a key, headers, a pinned partition and a chosen
+  acknowledgement level, and being told the partition and offset the record
+  landed on.
+- Brokers with their effective settings and their log directories, including
+  which partitions are taking the space.
+- ACLs grouped by principal, and the SCRAM users a cluster stores. Both degrade
+  with a reason on a cluster running without an authorizer, rather than failing.
+- Alerts from partition health - under-replicated, offline and leaderless
+  counted separately - and from consumer group lag.
+
+### Fixed
+
+- Clearing a connection's credentials did not clear them. Only RocketMQ's
+  access key pair was removed by name; every other family's password survived
+  being cleared, and the next connect used one the form had reported as gone.
+  RabbitMQ has had this since it shipped.
+- The message shown when a connection has no address named a RocketMQ
+  NameServer, which sent Kafka and RabbitMQ users looking for a field their
+  form does not have.
+
+### Notes
+
+- Three things Kafka does not report, and this release does not invent. There
+  is no dead-letter page: Kafka has no broker-side dead-letter queue, and the
+  .DLT suffix belongs to Spring Kafka rather than to Kafka. There is no rate
+  anywhere, because the admin protocol reports none. And there is no disk
+  percentage, because Kafka reports the bytes its partitions occupy and nothing
+  about the filesystem holding them.
+
 ## [0.0.2] - 2026-08-31
 
 RabbitMQ support. The whole management plane, with messages carried over AMQP
