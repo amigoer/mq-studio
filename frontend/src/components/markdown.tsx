@@ -56,10 +56,20 @@ const ITEM = /^(\s*)(?:[-*+]|\d+[.)])\s+(.*)$/;
  */
 const CJK = /[⺀-〿㐀-䶿一-鿿豈-﫿︰-﹏＀-￯]/;
 
+/**
+ * The character a reader will actually see at a join, which is not always the
+ * one at the edge: a line ending in `**` closes emphasis, and comparing that
+ * asterisk instead of the ideograph before it puts the space back in.
+ */
+const TRAILING_MARKERS = /[*_`~]+$/;
+const LEADING_MARKERS = /^[*_`~]+/;
+
 function joinLines(lines: string[]): string {
   return lines.reduce((joined, line) => {
     if (joined === "") return line;
-    const glue = CJK.test(joined.slice(-1)) && CJK.test(line.slice(0, 1)) ? "" : " ";
+    const tail = joined.replace(TRAILING_MARKERS, "").slice(-1);
+    const head = line.replace(LEADING_MARKERS, "").slice(0, 1);
+    const glue = CJK.test(tail) && CJK.test(head) ? "" : " ";
     return joined + glue + line;
   }, "");
 }

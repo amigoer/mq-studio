@@ -145,6 +145,15 @@ describe("rendering a published release body", () => {
     expect(html).not.toContain('href="https://example.com/a的说明"');
   });
 
+  /* The banner wraps immediately after a `**`, and the marker is not what the
+     reader sees at the join -- the ideograph before it is. */
+  it("looks past emphasis markers when joining wrapped Chinese", async () => {
+    await useLanguage("zh");
+    // On the markup, not on `text()`: that helper turns every tag into a space,
+    // and the join being asserted here sits right against a closing one.
+    expect(render(RELEASE_BODY)).toContain("证书签名。</strong>将 MQ Studio");
+  });
+
   it("draws inline code as code", async () => {
     await useLanguage("zh");
     const html = render(RELEASE_BODY);
