@@ -30,13 +30,28 @@ import {
   OPTION_KAFKA_TLS_SKIP_VERIFY,
   OPTION_TLS,
   OPTION_TLS_SKIP_VERIFY,
+  OPTION_MQTT_CLEAN_START,
+  OPTION_MQTT_CLIENT_ID,
+  OPTION_MQTT_KEEP_ALIVE,
+  OPTION_MQTT_MANAGEMENT_URL,
+  OPTION_MQTT_PROTOCOL,
+  OPTION_MQTT_SESSION_EXPIRY,
+  OPTION_MQTT_TLS_CA_FILE,
+  OPTION_MQTT_TLS_SKIP_VERIFY,
+  OPTION_MQTT_TRANSPORT,
+  OPTION_MQTT_WS_PATH,
   OPTION_VERSION,
   OPTION_VHOST,
   emptyKafkaDraft,
+  emptyMqttDraft,
   emptyRabbitMQDraft,
   emptyRocketMQDraft,
   type KafkaDraft,
   type KafkaMechanism,
+  type MqttDraft,
+  type MqttMechanism,
+  type MqttProtocol,
+  type MqttTransport,
   type RabbitMQDraft,
   type RocketMQDraft,
 } from "./ConnectionForms";
@@ -50,10 +65,16 @@ export interface Submission {
 export type ProtocolDraft =
   | { protocol: "rocketmq"; value: RocketMQDraft }
   | { protocol: "rabbitmq"; value: RabbitMQDraft }
-  | { protocol: "kafka"; value: KafkaDraft };
+  | { protocol: "kafka"; value: KafkaDraft }
+  | { protocol: "mqtt"; value: MqttDraft };
 
 /** The protocols this file can build a submission for. */
-export const DRAFTABLE: readonly ProtocolDraft["protocol"][] = ["rocketmq", "rabbitmq", "kafka"];
+export const DRAFTABLE: readonly ProtocolDraft["protocol"][] = [
+  "rocketmq",
+  "rabbitmq",
+  "kafka",
+  "mqtt",
+];
 
 export function isDraftable(protocol: ProtocolId): protocol is ProtocolDraft["protocol"] {
   return (DRAFTABLE as readonly string[]).includes(protocol);
@@ -65,6 +86,8 @@ export function emptyDraft(protocol: ProtocolDraft["protocol"]): ProtocolDraft {
       return { protocol, value: emptyRabbitMQDraft() };
     case "kafka":
       return { protocol, value: emptyKafkaDraft() };
+    case "mqtt":
+      return { protocol, value: emptyMqttDraft() };
     default:
       return { protocol, value: emptyRocketMQDraft() };
   }
@@ -76,6 +99,8 @@ export function toSubmission(draft: ProtocolDraft): Submission {
       return rabbitMQSubmission(draft.value);
     case "kafka":
       return kafkaSubmission(draft.value);
+    case "mqtt":
+      return mqttSubmission(draft.value);
     default:
       return rocketMQSubmission(draft.value);
   }
@@ -88,6 +113,8 @@ export function toDraft(profile: ConnectionProfile): ProtocolDraft {
       return { protocol: "rabbitmq", value: toRabbitMQDraft(profile) };
     case MQKind.KindKafka:
       return { protocol: "kafka", value: toKafkaDraft(profile) };
+    case MQKind.KindMQTT:
+      return { protocol: "mqtt", value: toMqttDraft(profile) };
     default:
       return { protocol: "rocketmq", value: toRocketMQDraft(profile) };
   }
@@ -183,6 +210,119 @@ function kafkaSubmission(draft: KafkaDraft): Submission {
         ? "replace"
         : "preserve",
   };
+}
+
+/*
+ * MQTT is the one family here with two independent credentials: the broker's
+ * username and password authenticate the session, and the management API key
+ * authenticates a separate HTTP endpoint the protocol knows nothing about.
+ *
+ * That is why the mode is "preserve" wherever anything is stored, rather than
+ * "replace" the moment something is typed the way the single-credential forms
+ * do. Preserve fills blank fields per key, so typing a new API key keeps the
+ * broker password; replace would submit the untouched password as blank and
+ * wipe it.
+ *
+ * The cost is that a blank field can no longer mean "remove this one" - it
+ * means "keep it", which is what the field's own placeholder says. Removing a
+ * credential is the clear control, and it clears both, because the mode the
+ * bridge takes is per-connection rather than per-secret.
+ */
+function mqttSubmission(draft: MqttDraft): Submission {
+  const authenticating = draft.mechanism !== "none";
+  const username = authenticating ? draft.username.trim() : "";
+  const password = authenticating ? draft.password.trim() : "";
+  const managementUrl = draft.managementUrl.trim();
+  const managementKey = managementUrl === "" ? "" : draft.managementKey.trim();
+  const managementSecret = managementUrl === "" ? "" : draft.managementSecret.trim();
+  const keepStored = draft.credentialsStored && !draft.clearCredentials;
+  const encrypted = draft.transport === "tls" || draft.transport === "wss";
+  const webSocket = draft.transport === "ws" || draft.transport === "wss";
+
+  return {
+    draft: {
+      name: draft.name.trim(),
+      group: draft.group,
+      kind: MQKind.KindMQTT,
+      endpoints: draft.endpoints.trim(),
+      timeoutSec: draft.timeoutSec,
+      authMechanism: authenticating ? AuthMechanism.AuthPlain : AuthMechanism.AuthNone,
+      options: {
+        [OPTION_MQTT_PROTOCOL]: draft.protocol,
+        [OPTION_MQTT_TRANSPORT]: draft.transport,
+        // The path only means anything over WebSocket, and storing it
+        // otherwise would re-apply it the day someone switches transport.
+        [OPTION_MQTT_WS_PATH]: webSocket ? draft.wsPath.trim() : "",
+        [OPTION_MQTT_CLIENT_ID]: draft.clientId.trim(),
+        [OPTION_MQTT_KEEP_ALIVE]: String(draft.keepAliveSec),
+        [OPTION_MQTT_CLEAN_START]: String(draft.cleanStart),
+        // Session expiry is 5.0 only; 3.1.1 has no field for it.
+        [OPTION_MQTT_SESSION_EXPIRY]:
+          draft.protocol === "5" ? String(draft.sessionExpirySec) : "0",
+        [OPTION_MQTT_TLS_CA_FILE]: encrypted ? draft.tlsCaFile.trim() : "",
+        [OPTION_MQTT_TLS_SKIP_VERIFY]: String(encrypted && draft.tlsSkipVerify),
+        [OPTION_MQTT_MANAGEMENT_URL]: managementUrl,
+      },
+      secrets: {
+        username,
+        password,
+        managementApiKey: managementKey,
+        managementSecretKey: managementSecret,
+      },
+      remark: draft.remark,
+    },
+    credentialsMode: draft.clearCredentials ? "clear" : keepStored ? "preserve" : "replace",
+  };
+}
+
+function toMqttDraft(profile: ConnectionProfile): MqttDraft {
+  const transport = MQTT_TRANSPORTS.includes(
+    profile.options?.[OPTION_MQTT_TRANSPORT] as MqttTransport,
+  )
+    ? (profile.options?.[OPTION_MQTT_TRANSPORT] as MqttTransport)
+    : "tcp";
+  const encrypted = transport === "tls" || transport === "wss";
+  const protocol: MqttProtocol = profile.options?.[OPTION_MQTT_PROTOCOL] === "311" ? "311" : "5";
+  const mechanism: MqttMechanism =
+    profile.authMechanism === AuthMechanism.AuthPlain ? "plain" : "none";
+
+  return {
+    name: profile.name,
+    endpoints: profile.endpoints,
+    protocol,
+    transport,
+    wsPath: profile.options?.[OPTION_MQTT_WS_PATH] || "/mqtt",
+    clientId: profile.options?.[OPTION_MQTT_CLIENT_ID] ?? "",
+    keepAliveSec: numberOption(profile.options?.[OPTION_MQTT_KEEP_ALIVE], 60),
+    // Stored as a string, and only "false" turns it off: an older profile
+    // written before the field existed has no value and must not silently
+    // start resuming sessions.
+    cleanStart: profile.options?.[OPTION_MQTT_CLEAN_START] !== "false",
+    sessionExpirySec:
+      protocol === "5" ? numberOption(profile.options?.[OPTION_MQTT_SESSION_EXPIRY], 0) : 0,
+    mechanism,
+    username: "",
+    password: "",
+    tlsCaFile: encrypted ? (profile.options?.[OPTION_MQTT_TLS_CA_FILE] ?? "") : "",
+    tlsSkipVerify: encrypted && profile.options?.[OPTION_MQTT_TLS_SKIP_VERIFY] === "true",
+    managementUrl: profile.options?.[OPTION_MQTT_MANAGEMENT_URL] ?? "",
+    managementKey: "",
+    managementSecret: "",
+    group: profile.group,
+    remark: profile.remark,
+    timeoutSec: profile.timeoutSec,
+    // Either credential counts: a connection may authenticate to the broker,
+    // to the management API, or to both.
+    credentialsStored: profile.secretsConfigured.length > 0,
+    clearCredentials: false,
+  };
+}
+
+const MQTT_TRANSPORTS: readonly MqttTransport[] = ["tcp", "tls", "ws", "wss"];
+
+function numberOption(raw: string | undefined, fallback: number): number {
+  const parsed = Number.parseInt(raw ?? "", 10);
+  return Number.isNaN(parsed) ? fallback : parsed;
 }
 
 /** The form's three choices in the store's own vocabulary. */

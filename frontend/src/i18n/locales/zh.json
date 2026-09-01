@@ -775,8 +775,28 @@
           "version": "协议版本",
           "sessionExpiry": "会话过期",
           "sessionExpiryHint": "5.0",
-          "advanced": "遗嘱消息（LWT）：Topic · Payload · QoS · Retain",
-          "note": "TLS：CA / 客户端证书 · 跳过验证"
+          "advanced": "客户端 ID、心跳、清理会话、TLS 与管理 API",
+          "note": "遗嘱消息与消息顺序不在这里设置",
+          "versionHint": "两个版本是不同的线上协议",
+          "transport": "传输方式",
+          "transportHint": "取决于 broker 开了哪个监听器，不是偏好",
+          "mechanism": "认证方式",
+          "mechanismNone": "匿名",
+          "mechanismPlain": "用户名与密码",
+          "wsPath": "WebSocket 路径",
+          "wsPathHint": "EMQX 是 /mqtt，Mosquitto 是根路径",
+          "clientId": "客户端 ID",
+          "clientIdHint": "留空则每个连接自动生成一个",
+          "keepAlive": "心跳间隔",
+          "keepAliveHint": "秒；0 表示关闭",
+          "cleanStart": "清理会话",
+          "cleanStartHint": "开启新会话，而不是恢复上一次的",
+          "cleanStartOn": "丢弃这个客户端 ID 遗留的会话",
+          "management": "管理 API",
+          "managementHint": "EMQX 等自带；Mosquitto 没有",
+          "managementKey": "API Key",
+          "managementSecret": "API Secret",
+          "managementKeyRequired": "填了管理 API 地址就需要 API Key"
         },
         "secretStored": "已保存，留空保持不变",
         "clearCredentials": "清除凭证"
@@ -816,7 +836,8 @@
       "disconnectFailed": "断开失败",
       "managementRequired": "请填写管理 API 地址",
       "bootstrapRequired": "请填写 Bootstrap 地址",
-      "usernameRequired": "请填写用户名"
+      "usernameRequired": "请填写用户名",
+      "brokerRequired": "请填写 Broker 地址"
     },
     "settings": {
       "title": "设置",

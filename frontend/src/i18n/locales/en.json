@@ -775,8 +775,28 @@
           "version": "Protocol version",
           "sessionExpiry": "Session expiry",
           "sessionExpiryHint": "5.0 only",
-          "advanced": "Last will (LWT): topic · payload · QoS · retain",
-          "note": "TLS: CA / client certificate · skip verification"
+          "advanced": "Client ID, keep alive, clean start, TLS and the management API",
+          "note": "Last will and message ordering are not set here",
+          "versionHint": "the two versions are different wire protocols",
+          "transport": "Transport",
+          "transportHint": "the broker's listener, not a preference",
+          "mechanism": "Authentication",
+          "mechanismNone": "Anonymous",
+          "mechanismPlain": "Username and password",
+          "wsPath": "WebSocket path",
+          "wsPathHint": "EMQX serves /mqtt, Mosquitto the root",
+          "clientId": "Client ID",
+          "clientIdHint": "leave blank for one per connection",
+          "keepAlive": "Keep alive",
+          "keepAliveHint": "seconds; 0 turns it off",
+          "cleanStart": "Clean start",
+          "cleanStartHint": "start a fresh session rather than resume the last one",
+          "cleanStartOn": "Discard any session this client id left behind",
+          "management": "Management API",
+          "managementHint": "EMQX and its peers; Mosquitto has none",
+          "managementKey": "API key",
+          "managementSecret": "API secret",
+          "managementKeyRequired": "An API key is required for the management endpoint"
         },
         "secretStored": "Saved — leave blank to keep it",
         "clearCredentials": "Clear credentials"
@@ -816,7 +836,8 @@
       "disconnectFailed": "Could not disconnect",
       "managementRequired": "A management API address is required",
       "bootstrapRequired": "Enter the bootstrap servers",
-      "usernameRequired": "A username is required"
+      "usernameRequired": "A username is required",
+      "brokerRequired": "A broker address is required"
     },
     "settings": {
       "title": "Settings",

@@ -3,9 +3,11 @@ import { AuthMechanism, MQKind } from "@/api/connection";
 import type { Connection as ConnectionProfile } from "@/api/models";
 import {
   emptyKafkaDraft,
+  emptyMqttDraft,
   emptyRabbitMQDraft,
   emptyRocketMQDraft,
   type KafkaDraft,
+  type MqttDraft,
   type RabbitMQDraft,
   type RocketMQDraft,
 } from "./ConnectionForms";
@@ -437,9 +439,186 @@ describe("the Kafka connection draft", () => {
   });
 });
 
+/*
+ * MQTT is the only family here with two independent credentials: the broker's
+ * username and password authenticate the session, and the management API key
+ * authenticates a separate HTTP endpoint the protocol knows nothing about.
+ *
+ * That is why its mode rule differs from every other form's, and why these
+ * tests exist: "replace" on any keystroke - which is what the
+ * single-credential forms do - would submit the untouched half as blank and
+ * wipe it.
+ */
+describe("an mqtt submission", () => {
+  const draft = (over: Partial<MqttDraft> = {}): MqttDraft => ({
+    ...emptyMqttDraft(),
+    name: "iot",
+    endpoints: "iot.example.com:1883",
+    ...over,
+  });
+
+  it("stores the protocol version, transport and session settings", () => {
+    const { draft: stored } = toSubmission({
+      protocol: "mqtt",
+      value: draft({
+        protocol: "311",
+        transport: "ws",
+        wsPath: "/mqtt",
+        clientId: "gateway-console",
+        keepAliveSec: 30,
+        cleanStart: false,
+        sessionExpirySec: 600,
+      }),
+    });
+
+    expect(stored.kind).toBe(MQKind.KindMQTT);
+    expect(stored.options).toMatchObject({
+      protocolVersion: "311",
+      transport: "ws",
+      wsPath: "/mqtt",
+      clientId: "gateway-console",
+      keepAliveSec: "30",
+      cleanStart: "false",
+      // Session expiry is 5.0 only, so a 3.1.1 profile must not carry one.
+      sessionExpirySec: "0",
+    });
+  });
+
+  it("drops settings the chosen transport cannot use", () => {
+    const { draft: stored } = toSubmission({
+      protocol: "mqtt",
+      value: draft({
+        transport: "tcp",
+        wsPath: "/mqtt",
+        tlsCaFile: "/etc/ca.pem",
+        tlsSkipVerify: true,
+      }),
+    });
+
+    // Storing them would re-apply them silently the day someone switches to
+    // WebSocket or TLS.
+    expect(stored.options?.wsPath).toBe("");
+    expect(stored.options?.tlsCaFile).toBe("");
+    expect(stored.options?.tlsSkipVerify).toBe("false");
+  });
+
+  it("keeps both credentials when only one of them is retyped", () => {
+    const { credentialsMode } = toSubmission({
+      protocol: "mqtt",
+      value: draft({
+        mechanism: "plain",
+        managementUrl: "http://iot.example.com:18083",
+        managementKey: "a-new-key",
+        credentialsStored: true,
+      }),
+    });
+
+    // Preserve fills blank fields per key, so the untouched broker password
+    // survives. Replace would submit it as blank and wipe it.
+    expect(credentialsMode).toBe("preserve");
+  });
+
+  it("replaces on a connection with nothing stored yet", () => {
+    const { credentialsMode } = toSubmission({
+      protocol: "mqtt",
+      value: draft({ mechanism: "plain", username: "ops", password: "s3cret" }),
+    });
+    expect(credentialsMode).toBe("replace");
+  });
+
+  it("clears both credentials when the clear control was used", () => {
+    const { credentialsMode } = toSubmission({
+      protocol: "mqtt",
+      value: draft({ mechanism: "plain", credentialsStored: true, clearCredentials: true }),
+    });
+    expect(credentialsMode).toBe("clear");
+  });
+
+  it("sends no management key without a management endpoint", () => {
+    const { draft: stored } = toSubmission({
+      protocol: "mqtt",
+      value: draft({ managementUrl: "  ", managementKey: "orphan", managementSecret: "orphan" }),
+    });
+
+    expect(stored.options?.managementUrl).toBe("");
+    expect(stored.secrets?.managementApiKey).toBe("");
+    expect(stored.secrets?.managementSecretKey).toBe("");
+  });
+
+  it("reads a stored profile back into the form", () => {
+    const profile = {
+      id: 11,
+      name: "emqx-edge",
+      group: "",
+      kind: MQKind.KindMQTT,
+      endpoints: "iot.example.com:8883",
+      timeoutSec: 7,
+      authMechanism: AuthMechanism.AuthPlain,
+      options: {
+        protocolVersion: "5",
+        transport: "wss",
+        wsPath: "/mqtt",
+        clientId: "",
+        keepAliveSec: "45",
+        cleanStart: "false",
+        sessionExpirySec: "900",
+        tlsCaFile: "/etc/ca.pem",
+        tlsSkipVerify: "true",
+        managementUrl: "http://iot.example.com:18083",
+      },
+      secretsConfigured: ["password", "managementApiKey"],
+      remark: "",
+    } as unknown as ConnectionProfile;
+
+    const read = toDraft(profile);
+    expect(read.protocol).toBe("mqtt");
+    if (read.protocol !== "mqtt") return;
+    expect(read.value).toMatchObject({
+      endpoints: "iot.example.com:8883",
+      protocol: "5",
+      transport: "wss",
+      keepAliveSec: 45,
+      cleanStart: false,
+      sessionExpirySec: 900,
+      mechanism: "plain",
+      tlsCaFile: "/etc/ca.pem",
+      tlsSkipVerify: true,
+      managementUrl: "http://iot.example.com:18083",
+      credentialsStored: true,
+    });
+    // Secrets never come back from the store.
+    expect(read.value.password).toBe("");
+    expect(read.value.managementKey).toBe("");
+  });
+
+  // A profile written before the field existed carries no value, and must not
+  // silently start resuming sessions: a console that resumed would inherit
+  // whatever subscriptions the last window left behind.
+  it("defaults clean start on for a profile that predates the field", () => {
+    const profile = {
+      id: 12,
+      name: "old",
+      group: "",
+      kind: MQKind.KindMQTT,
+      endpoints: "iot.example.com:1883",
+      timeoutSec: 5,
+      authMechanism: AuthMechanism.AuthNone,
+      options: {},
+      secretsConfigured: [],
+      remark: "",
+    } as unknown as ConnectionProfile;
+
+    const read = toDraft(profile);
+    if (read.protocol !== "mqtt") throw new Error("expected an mqtt draft");
+    expect(read.value.cleanStart).toBe(true);
+    expect(read.value.transport).toBe("tcp");
+    expect(read.value.protocol).toBe("5");
+  });
+});
+
 describe("the draft registry", () => {
   it("has an empty draft for every protocol it claims to handle", () => {
-    for (const protocol of ["rocketmq", "rabbitmq", "kafka"] as const) {
+    for (const protocol of ["rocketmq", "rabbitmq", "kafka", "mqtt"] as const) {
       expect(isDraftable(protocol)).toBe(true);
       expect(emptyDraft(protocol).protocol).toBe(protocol);
     }
@@ -448,7 +627,7 @@ describe("the draft registry", () => {
   // The picker gates on this: a tile whose form cannot be built must not open
   // one, which is what disabling it is for.
   it("does not claim protocols with no form", () => {
-    for (const protocol of ["pulsar", "redis", "mqtt"] as const) {
+    for (const protocol of ["pulsar", "redis"] as const) {
       expect(isDraftable(protocol)).toBe(false);
     }
   });
