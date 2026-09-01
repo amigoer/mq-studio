@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ListArea, ListPane, Page, PageHeader, RefreshButton, Toolbar } from "@/design/shell";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -14,13 +15,20 @@ import {
 import {
   DetailPanel,
   DetailPanelBody,
+  DetailPanelFooter,
   DetailPanelHeader,
   KV,
   Panel,
   SectionLabel,
   Status,
+  toast,
+  useConfirm,
 } from "@/components";
 import { BoardState } from "@/design/boards/BoardState";
+import { StreamDialog } from "./StreamDialog";
+import { useConnectionScope } from "@/mq/ConnectionScope";
+import * as redisApi from "@/api/redis";
+import { formatErrorMessage } from "@/lib/utils";
 import { useRedisStreamDetail, useRedisStreams } from "@/hooks/redis/useRedisStreams";
 import { formatBytes, formatCount } from "@/lib/format";
 import {
@@ -65,9 +73,12 @@ function Metric({ value, format }: { value: number | null; format?: (value: numb
 export function StreamsRedis() {
   const { t } = useTranslation();
   const state = useRedisStreams();
+  const { id: connID } = useConnectionScope();
+  const confirm = useConfirm();
   const [search, setSearch] = useState("");
   const [withGroupsOnly, setWithGroupsOnly] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
 
   const streams = useMemo(() => state.data ?? [], [state.data]);
   const detail = useRedisStreamDetail(selected);
@@ -89,16 +100,62 @@ export function StreamsRedis() {
     return detail.data ?? streams.find((stream) => streamKey(stream) === selected) ?? null;
   }, [detail.data, selected, streams]);
 
+  const create = useCallback(
+    async (key: string) => {
+      await redisApi.createStream(connID, key);
+      toast.success(t("board.topics.redis.created", { name: key }));
+      await state.refresh();
+    },
+    [connID, state, t],
+  );
+
+  const remove = useCallback(
+    async (key: string, holding: number, groups: number) => {
+      const ok = await confirm({
+        title: t("board.topics.redis.deleteTitle", { name: key }),
+        /* The counts are the whole warning. DEL takes the entries and every
+           consumer group's position with them, and Redis offers no undo and no
+           delete-if-empty to fall back on. */
+        description:
+          holding > 0 || groups > 0
+            ? t("board.topics.redis.deleteHolding", { count: holding, groups })
+            : t("board.topics.redis.deleteEmpty"),
+        confirmLabel: t("board.common.delete"),
+        danger: true,
+      });
+      if (!ok) return;
+      try {
+        await redisApi.deleteStream(connID, key);
+        toast.success(t("board.topics.redis.deleted", { name: key }));
+        setSelected(null);
+        await state.refresh();
+      } catch (deleteError) {
+        toast.error(t("board.topics.redis.deleteFailed"), {
+          description: formatErrorMessage(deleteError),
+        });
+      }
+    },
+    [confirm, connID, state, t],
+  );
+
   return (
     <Page>
+      <StreamDialog open={creating} onOpenChange={setCreating} onCreate={create} />
       <PageHeader
         title="Stream"
         subtitle={t("board.topics.redis.subtitle")}
-        actions={<RefreshButton
-            refreshing={state.refreshing}
-            online={state.online}
-            onClick={() => void state.refresh()}
-          />}
+        actions={
+          <>
+            <Button onClick={() => setCreating(true)}>
+              {t("board.topics.redis.newStream")}
+            </Button>
+            <RefreshButton
+              refreshing={state.refreshing}
+              online={state.online}
+              onClick={() => void state.refresh()}
+            />
+          </>
+        }
       />
       <Toolbar>
         <Input
@@ -297,6 +354,17 @@ export function StreamsRedis() {
                   </div>
                 </div>
               </DetailPanelBody>
+              <DetailPanelFooter>
+                <span className="flex-1" />
+                <Button
+                  variant="destructive"
+                  onClick={() =>
+                    void remove(streamKey(panel), length(panel), groupCount(panel))
+                  }
+                >
+                  {t("board.topics.redis.deleteKey")}
+                </Button>
+              </DetailPanelFooter>
             </DetailPanel>
           )}
         </ListArea>

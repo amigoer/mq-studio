@@ -1772,7 +1772,17 @@
         "trimmed": "已裁剪",
         "entriesAdded": "entries-added",
         "nothingDeleted": "未删除过",
-        "noGroups": "没有消费组在读这个 Stream"
+        "noGroups": "没有消费组在读这个 Stream",
+        "newStream": "新建 Stream",
+        "newStreamHint": "Redis 没有创建空 Stream 的命令，这里用 MKSTREAM 建好后再把消费组删掉。它没有任何可配置项：没有上限、没有保留期、没有持久化选项。",
+        "streamKey": "Stream 键",
+        "created": "已创建 {{name}}",
+        "deleteKey": "DEL key",
+        "deleteTitle": "删除 {{name}}？",
+        "deleteHolding": "DEL 会连同 {{count}} 条消息和 {{groups}} 个消费组一起删掉，包括每个组的读取位置和待处理列表。Redis 没有撤销。",
+        "deleteEmpty": "该 Stream 为空，也没有消费组在读。Redis 没有撤销。",
+        "deleted": "已删除 {{name}}",
+        "deleteFailed": "删除 Stream 失败"
       },
       "kafka": {
         "subtitle": "集群里的 topic，默认隐藏内部 topic",

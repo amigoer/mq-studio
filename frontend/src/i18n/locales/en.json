@@ -1772,7 +1772,17 @@
         "trimmed": "trimmed",
         "entriesAdded": "entries-added",
         "nothingDeleted": "nothing deleted",
-        "noGroups": "No consumer group reads this stream"
+        "noGroups": "No consumer group reads this stream",
+        "newStream": "New stream",
+        "newStreamHint": "Redis has no command for an empty stream, so this creates one through MKSTREAM and removes the group again. It has no settings: no bound, no retention, no durability.",
+        "streamKey": "Stream key",
+        "created": "Created {{name}}",
+        "deleteKey": "DEL key",
+        "deleteTitle": "Delete {{name}}?",
+        "deleteHolding": "DEL takes {{count}} entries and {{groups}} consumer groups with it, including every group's read position and pending list. Redis has no undo.",
+        "deleteEmpty": "The stream is empty and no group reads it. Redis has no undo.",
+        "deleted": "Deleted {{name}}",
+        "deleteFailed": "Could not delete the stream"
       },
       "kafka": {
         "subtitle": "Topics the cluster holds, internal ones hidden",

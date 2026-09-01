@@ -186,3 +186,24 @@ describe("the Redis streams board", () => {
     expect(html).not.toContain("NaN");
   });
 });
+
+/*
+ * The create and delete controls are drawn only when the driver can do them,
+ * so their presence in the populated render is what says the board is wired to
+ * something rather than drawing a canvas leftover.
+ */
+describe("the Redis streams board's write controls", () => {
+  it("offers to create a stream", () => {
+    streamsState.current = stateOf({ data: [orders] });
+    streamDetailState.current = stateOf({ data: null });
+    expect(render(<StreamsRedis />)).toContain("新建 Stream");
+  });
+
+  it("offers to delete the selected stream, and not before one is selected", () => {
+    streamsState.current = stateOf({ data: [orders] });
+    streamDetailState.current = stateOf({ data: null });
+    // Nothing is selected on first render, so the detail panel and its
+    // destructive footer must not be there at all.
+    expect(render(<StreamsRedis />)).not.toContain("DEL key");
+  });
+});
