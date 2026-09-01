@@ -1062,3 +1062,176 @@ func TestLiveAddEntryReportsWhatItWroteBeforeFailing(t *testing.T) {
 		}
 	}
 }
+
+// livePendingFixture leaves a group holding work from two consumers.
+func livePendingFixture(t *testing.T, suffix string) (*Conn, model.SubscriptionRef) {
+	t.Helper()
+	conn := liveConn(t, map[string]string{OptionStreamFilter: liveStreams + suffix + ":*"}, nil)
+	ctx := liveContext(t)
+	key := liveStreams + suffix + ":orders"
+	seedLiveStream(t, conn, key, 20)
+	if err := conn.client.XGroupCreate(ctx, key, "settle-group", "0").Err(); err != nil {
+		t.Fatalf("create group: %v", err)
+	}
+	for consumer, count := range map[string]int64{"worker-1": 6, "worker-2": 3} {
+		err := conn.client.XReadGroup(ctx, &redis.XReadGroupArgs{
+			Group:    "settle-group",
+			Consumer: consumer,
+			Streams:  []string{key, ">"},
+			Count:    count,
+		}).Err()
+		if err != nil {
+			t.Fatalf("hand out to %s: %v", consumer, err)
+		}
+	}
+	return conn, model.SubscriptionRef{Namespace: key, Name: "settle-group"}
+}
+
+// The idle time is what an operator acts on, and only a real server advances
+// it: the in-process one reports whatever it reports, and a filter built on it
+// could be inverted without any offline test noticing.
+func TestLivePendingEntriesFilterByIdleTime(t *testing.T) {
+	conn, ref := livePendingFixture(t, "pel")
+	ctx := liveContext(t)
+
+	// Everything was handed out a moment ago, so a minimum idle of a minute
+	// must match none of it. Getting this backwards would show a healthy
+	// group's whole in-flight list as stuck work.
+	stuck, err := conn.PendingEntries(ctx, model.PendingQuery{Ref: ref, MinIdleMs: 60_000})
+	if err != nil {
+		t.Fatalf("entries: %v", err)
+	}
+	if len(stuck) != 0 {
+		t.Errorf("%d entries were reported idle for a minute moments after being handed out", len(stuck))
+	}
+
+	// And with no minimum, all nine.
+	all, err := conn.PendingEntries(ctx, model.PendingQuery{Ref: ref})
+	if err != nil {
+		t.Fatalf("entries: %v", err)
+	}
+	if len(all) != 9 {
+		t.Fatalf("listed %d entries, want 9", len(all))
+	}
+	for _, entry := range all {
+		if entry.IdleMs < 0 {
+			t.Errorf("entry %s reports a negative idle time", entry.ID)
+		}
+	}
+}
+
+// The guard that stops a claim taking work from a consumer that is merely
+// busy. Without it both consumers believe they own the same entry.
+func TestLiveClaimHonoursTheMinimumIdleTime(t *testing.T) {
+	conn, ref := livePendingFixture(t, "claimguard")
+	ctx := liveContext(t)
+
+	entries, err := conn.PendingEntries(ctx, model.PendingQuery{Ref: ref, Consumer: "worker-1"})
+	if err != nil {
+		t.Fatalf("entries: %v", err)
+	}
+	ids := []string{entries[0].ID}
+
+	// Handed out a moment ago, so a minute's guard must refuse it.
+	guarded, err := conn.ClaimEntries(ctx, model.ClaimRequest{
+		Ref:       ref,
+		Consumer:  "worker-3",
+		IDs:       ids,
+		MinIdleMs: 60_000,
+	})
+	if err != nil {
+		t.Fatalf("guarded claim: %v", err)
+	}
+	if len(guarded.Claimed) != 0 {
+		t.Errorf("a claim guarded by a minute took %v from a consumer that had just been given it", guarded.Claimed)
+	}
+
+	// With no guard it moves, which is the deliberate "that consumer is gone"
+	// case.
+	forced, err := conn.ClaimEntries(ctx, model.ClaimRequest{
+		Ref:      ref,
+		Consumer: "worker-3",
+		IDs:      ids,
+	})
+	if err != nil {
+		t.Fatalf("claim: %v", err)
+	}
+	if len(forced.Claimed) != 1 {
+		t.Errorf("claimed %v, want the one entry", forced.Claimed)
+	}
+}
+
+/*
+ * An auto-claim reports what it found gone as well as what it moved.
+ *
+ * An entry can be in a pending list and no longer in the stream - trimmed or
+ * deleted while owed to somebody - and the auto-claim drops those rather than
+ * moving them. That is work lost rather than reassigned, and go-redis's typed
+ * helper throws the list away, which is why this driver parses the reply
+ * itself. This is the test that would notice if it stopped.
+ */
+func TestLiveAutoClaimReportsWhatWasLost(t *testing.T) {
+	conn, ref := livePendingFixture(t, "autoclaim")
+	ctx := liveContext(t)
+
+	entries, err := conn.PendingEntries(ctx, model.PendingQuery{Ref: ref})
+	if err != nil {
+		t.Fatalf("entries: %v", err)
+	}
+	// Delete two entries out from under the consumers holding them.
+	gone := []string{entries[0].ID, entries[1].ID}
+	if _, err := conn.DeleteEntries(ctx, model.DestinationRef{Name: ref.Namespace}, gone); err != nil {
+		t.Fatalf("delete: %v", err)
+	}
+
+	result, err := conn.AutoClaim(ctx, model.AutoClaimRequest{
+		Ref:      ref,
+		Consumer: "worker-3",
+		Count:    100,
+	})
+	if err != nil {
+		t.Fatalf("auto-claim: %v", err)
+	}
+	if len(result.Claimed) != 7 {
+		t.Errorf("claimed %d entries, want the 7 that still exist", len(result.Claimed))
+	}
+	if len(result.Deleted) != 2 {
+		t.Errorf("reported %v as gone, want the two that were deleted", result.Deleted)
+	}
+	// "0-0" is the walk having reached the end, which is what a caller needs
+	// to know not to ask again.
+	if result.NextStart != "0-0" {
+		t.Errorf("next start = %q, want 0-0 after covering the whole list", result.NextStart)
+	}
+}
+
+// Inactive is Redis 7.2 and later, and is not the same as idle: a consumer
+// polling an empty stream is idle and not inactive. Reading the wrong one
+// would call a busy consumer dead.
+func TestLiveGroupConsumersReportIdleAndInactive(t *testing.T) {
+	conn, ref := livePendingFixture(t, "consumers")
+	ctx := liveContext(t)
+
+	consumers, err := conn.GroupConsumers(ctx, ref)
+	if err != nil {
+		t.Fatalf("consumers: %v", err)
+	}
+	if len(consumers) != 2 {
+		t.Fatalf("listed %d consumers, want 2", len(consumers))
+	}
+	byName := map[string]*model.GroupConsumer{}
+	for _, consumer := range consumers {
+		byName[consumer.Name] = consumer
+	}
+	if byName["worker-1"].Pending != 6 {
+		t.Errorf("worker-1 holds %d, want 6", byName["worker-1"].Pending)
+	}
+	if byName["worker-2"].Pending != 3 {
+		t.Errorf("worker-2 holds %d, want 3", byName["worker-2"].Pending)
+	}
+	for _, consumer := range consumers {
+		if consumer.IdleMs < 0 || consumer.InactiveMs < 0 {
+			t.Errorf("%s reports idle %d, inactive %d", consumer.Name, consumer.IdleMs, consumer.InactiveMs)
+		}
+	}
+}

@@ -180,6 +180,55 @@ export class AccessView {
 }
 
 /**
+ * AutoClaimInput moves whatever has been idle too long, without naming ids.
+ */
+export class AutoClaimInput {
+    "stream": string;
+    "group": string;
+    "consumer": string;
+    "minIdleMs": number;
+
+    /**
+     * Start is where to resume from when walking a long list. Empty starts at
+     * the beginning.
+     */
+    "start": string;
+    "count": number;
+
+    /** Creates a new AutoClaimInput instance. */
+    constructor($$source: Partial<AutoClaimInput> = {}) {
+        if (!("stream" in $$source)) {
+            this["stream"] = "";
+        }
+        if (!("group" in $$source)) {
+            this["group"] = "";
+        }
+        if (!("consumer" in $$source)) {
+            this["consumer"] = "";
+        }
+        if (!("minIdleMs" in $$source)) {
+            this["minIdleMs"] = 0;
+        }
+        if (!("start" in $$source)) {
+            this["start"] = "";
+        }
+        if (!("count" in $$source)) {
+            this["count"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new AutoClaimInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): AutoClaimInput {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new AutoClaimInput($$parsedSource as Partial<AutoClaimInput>);
+    }
+}
+
+/**
  * BindingInput describes one route.
  */
 export class BindingInput {
@@ -233,6 +282,60 @@ export class BindingInput {
             $$parsedSource["arguments"] = $$createField5_0($$parsedSource["arguments"]);
         }
         return new BindingInput($$parsedSource as Partial<BindingInput>);
+    }
+}
+
+/**
+ * ClaimInput moves named entries to another consumer.
+ */
+export class ClaimInput {
+    "stream": string;
+    "group": string;
+
+    /**
+     * Consumer is the new owner. It need not exist yet: claiming creates it,
+     * which is how a replacement worker takes over from a dead one.
+     */
+    "consumer": string;
+    "ids": string[];
+
+    /**
+     * MinIdleMs refuses to move anything touched more recently than this. Zero
+     * moves regardless, which is a choice rather than a default.
+     */
+    "minIdleMs": number;
+
+    /** Creates a new ClaimInput instance. */
+    constructor($$source: Partial<ClaimInput> = {}) {
+        if (!("stream" in $$source)) {
+            this["stream"] = "";
+        }
+        if (!("group" in $$source)) {
+            this["group"] = "";
+        }
+        if (!("consumer" in $$source)) {
+            this["consumer"] = "";
+        }
+        if (!("ids" in $$source)) {
+            this["ids"] = [];
+        }
+        if (!("minIdleMs" in $$source)) {
+            this["minIdleMs"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ClaimInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ClaimInput {
+        const $$createField3_0 = $$createType0;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("ids" in $$parsedSource) {
+            $$parsedSource["ids"] = $$createField3_0($$parsedSource["ids"]);
+        }
+        return new ClaimInput($$parsedSource as Partial<ClaimInput>);
     }
 }
 
@@ -1104,6 +1207,55 @@ export class OffsetResetInput {
             $$parsedSource["partitions"] = $$createField2_0($$parsedSource["partitions"]);
         }
         return new OffsetResetInput($$parsedSource as Partial<OffsetResetInput>);
+    }
+}
+
+/**
+ * PendingQueryInput narrows a pending listing as the board collects it.
+ */
+export class PendingQueryInput {
+    "stream": string;
+    "group": string;
+
+    /**
+     * Consumer narrows to one consumer's share. Empty is all of them.
+     */
+    "consumer": string;
+
+    /**
+     * MinIdleMs narrows to entries nothing has touched for at least this long,
+     * which is how the ones worth acting on are found.
+     */
+    "minIdleMs": number;
+    "count": number;
+
+    /** Creates a new PendingQueryInput instance. */
+    constructor($$source: Partial<PendingQueryInput> = {}) {
+        if (!("stream" in $$source)) {
+            this["stream"] = "";
+        }
+        if (!("group" in $$source)) {
+            this["group"] = "";
+        }
+        if (!("consumer" in $$source)) {
+            this["consumer"] = "";
+        }
+        if (!("minIdleMs" in $$source)) {
+            this["minIdleMs"] = 0;
+        }
+        if (!("count" in $$source)) {
+            this["count"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new PendingQueryInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): PendingQueryInput {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new PendingQueryInput($$parsedSource as Partial<PendingQueryInput>);
     }
 }
 

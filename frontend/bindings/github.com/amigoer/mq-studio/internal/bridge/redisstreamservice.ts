@@ -24,6 +24,16 @@ import * as model$0 from "../model/models.js";
 import * as $models from "./models.js";
 
 /**
+ * AckEntries settles entries so they stop being owed, and reports how many
+ * were actually owed - which is not how many were named.
+ */
+export function AckEntries(connID: number, stream: string, group: string, ids: string[]): $CancellablePromise<model$0.AckResult | null> {
+    return $Call.ByID(496926891, connID, stream, group, ids).then(($result: any) => {
+        return $$createType1($result);
+    });
+}
+
+/**
  * AddEntry writes to a stream and returns the ids the server assigned.
  * 
  * The ids rather than a count: an id is the only handle on an entry, so a
@@ -32,7 +42,26 @@ import * as $models from "./models.js";
  */
 export function AddEntry(connID: number, input: $models.EntryInput): $CancellablePromise<model$0.StreamAddResult | null> {
     return $Call.ByID(870285481, connID, input).then(($result: any) => {
-        return $$createType1($result);
+        return $$createType3($result);
+    });
+}
+
+/**
+ * AutoClaim moves whatever has been idle too long and reports what it found
+ * gone as well as what it moved.
+ */
+export function AutoClaim(connID: number, input: $models.AutoClaimInput): $CancellablePromise<model$0.ClaimResult | null> {
+    return $Call.ByID(2064203517, connID, input).then(($result: any) => {
+        return $$createType5($result);
+    });
+}
+
+/**
+ * ClaimEntries moves named entries to another consumer.
+ */
+export function ClaimEntries(connID: number, input: $models.ClaimInput): $CancellablePromise<model$0.ClaimResult | null> {
+    return $Call.ByID(220908984, connID, input).then(($result: any) => {
+        return $$createType5($result);
     });
 }
 
@@ -49,7 +78,7 @@ export function CreateGroup(connID: number, input: $models.GroupInput): $Cancell
  */
 export function DeleteEntries(connID: number, stream: string, ids: string[]): $CancellablePromise<model$0.TrimResult | null> {
     return $Call.ByID(3902121557, connID, stream, ids).then(($result: any) => {
-        return $$createType3($result);
+        return $$createType7($result);
     });
 }
 
@@ -58,6 +87,33 @@ export function DeleteEntries(connID: number, stream: string, ids: string[]): $C
  */
 export function DeleteGroup(connID: number, stream: string, group: string): $CancellablePromise<void> {
     return $Call.ByID(1274717142, connID, stream, group);
+}
+
+/**
+ * GroupConsumers lists a group's members and how long each has been quiet.
+ */
+export function GroupConsumers(connID: number, stream: string, group: string): $CancellablePromise<(model$0.GroupConsumer | null)[]> {
+    return $Call.ByID(2477625508, connID, stream, group).then(($result: any) => {
+        return $$createType10($result);
+    });
+}
+
+/**
+ * PendingEntries walks a group's pending list.
+ */
+export function PendingEntries(connID: number, input: $models.PendingQueryInput): $CancellablePromise<(model$0.PendingEntry | null)[]> {
+    return $Call.ByID(617713621, connID, input).then(($result: any) => {
+        return $$createType13($result);
+    });
+}
+
+/**
+ * PendingSummary returns a group's pending list at a glance.
+ */
+export function PendingSummary(connID: number, stream: string, group: string): $CancellablePromise<model$0.PendingSummary | null> {
+    return $Call.ByID(932081609, connID, stream, group).then(($result: any) => {
+        return $$createType15($result);
+    });
 }
 
 /**
@@ -74,12 +130,24 @@ export function SetGroupPosition(connID: number, stream: string, group: string, 
  */
 export function Trim(connID: number, input: $models.TrimInput): $CancellablePromise<model$0.TrimResult | null> {
     return $Call.ByID(2317148112, connID, input).then(($result: any) => {
-        return $$createType3($result);
+        return $$createType7($result);
     });
 }
 
 // Private type creation functions
-const $$createType0 = model$0.StreamAddResult.createFrom;
+const $$createType0 = model$0.AckResult.createFrom;
 const $$createType1 = $Create.Nullable($$createType0);
-const $$createType2 = model$0.TrimResult.createFrom;
+const $$createType2 = model$0.StreamAddResult.createFrom;
 const $$createType3 = $Create.Nullable($$createType2);
+const $$createType4 = model$0.ClaimResult.createFrom;
+const $$createType5 = $Create.Nullable($$createType4);
+const $$createType6 = model$0.TrimResult.createFrom;
+const $$createType7 = $Create.Nullable($$createType6);
+const $$createType8 = model$0.GroupConsumer.createFrom;
+const $$createType9 = $Create.Nullable($$createType8);
+const $$createType10 = $Create.Array($$createType9);
+const $$createType11 = model$0.PendingEntry.createFrom;
+const $$createType12 = $Create.Nullable($$createType11);
+const $$createType13 = $Create.Array($$createType12);
+const $$createType14 = model$0.PendingSummary.createFrom;
+const $$createType15 = $Create.Nullable($$createType14);

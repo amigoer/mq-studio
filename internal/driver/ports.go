@@ -192,6 +192,39 @@ type DeadLetterReader interface {
 	ResendMessage(ctx context.Context, consumerGroup, clientID, topic, messageID string) (string, error)
 }
 
+// PendingEntryReader browses what a subscription has been handed and not
+// acknowledged, and who is holding it.
+//
+// A third way of answering the dead-letter page, and it has to be its own.
+// DeadLetterReader returns messages from a per-group dead-letter topic;
+// DeadLetterTopology finds the queues something else dead-letters into. Redis
+// has neither: nothing is moved and nothing is given up on, and what there is
+// instead is a delivery record per unacknowledged entry - an id, its owner,
+// how long they have held it and how many times it has been tried.
+//
+// The consumers come from here rather than from SubscriptionRuntime because
+// they are the same question at a different grain: who is holding what.
+type PendingEntryReader interface {
+	PendingSummary(ctx context.Context, ref model.SubscriptionRef) (*model.PendingSummary, error)
+	PendingEntries(ctx context.Context, query model.PendingQuery) ([]*model.PendingEntry, error)
+	GroupConsumers(ctx context.Context, ref model.SubscriptionRef) ([]*model.GroupConsumer, error)
+}
+
+// PendingEntryActions settles or reassigns what a subscription is owed.
+//
+// Separate from reading it: taking work away from a consumer that is merely
+// slow is a different mistake from looking at a list, and acknowledging an
+// entry nobody processed discards it silently.
+type PendingEntryActions interface {
+	// AckEntries reports how many of the named ids were actually owed, which
+	// is not how many were asked for.
+	AckEntries(ctx context.Context, ref model.SubscriptionRef, ids []string) (*model.AckResult, error)
+	ClaimEntries(ctx context.Context, request model.ClaimRequest) (*model.ClaimResult, error)
+	// AutoClaim moves whatever has been idle too long without naming ids, and
+	// reports what it found gone as well as what it moved.
+	AutoClaim(ctx context.Context, request model.AutoClaimRequest) (*model.ClaimResult, error)
+}
+
 // DeadLetterTopology finds dead-letter queues by following the topology.
 //
 // Separate from DeadLetterReader because the two families disagree about what

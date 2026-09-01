@@ -239,6 +239,8 @@ func TestCapabilitiesMatchTheSidebarContract(t *testing.T) {
 		"message.query",
 		"message.byId",
 		"message.publishEntry",
+		"message.pending",
+		"message.pendingAdmin",
 	}
 
 	declared := make(map[string]bool, len(capabilities()))

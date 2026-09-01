@@ -151,3 +151,70 @@ func (s *Service) AddEntry(ctx context.Context, connID int, request model.Stream
 	defer cancel()
 	return api.AddEntry(ctx, request)
 }
+
+// PendingSummary is a group's pending list at a glance: how much is owed, over
+// what range, and who is holding it.
+func (s *Service) PendingSummary(ctx context.Context, connID int, ref model.SubscriptionRef) (*model.PendingSummary, error) {
+	api, err := port[driver.PendingEntryReader](s, connID, model.CapPendingEntries)
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.PendingSummary(ctx, ref)
+}
+
+// PendingEntries walks the list itself.
+func (s *Service) PendingEntries(ctx context.Context, connID int, query model.PendingQuery) ([]*model.PendingEntry, error) {
+	api, err := port[driver.PendingEntryReader](s, connID, model.CapPendingEntries)
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.PendingEntries(ctx, query)
+}
+
+// GroupConsumers lists a group's members and how long each has been quiet.
+func (s *Service) GroupConsumers(ctx context.Context, connID int, ref model.SubscriptionRef) ([]*model.GroupConsumer, error) {
+	api, err := port[driver.PendingEntryReader](s, connID, model.CapPendingEntries)
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.GroupConsumers(ctx, ref)
+}
+
+// AckEntries settles entries so they stop being owed.
+func (s *Service) AckEntries(ctx context.Context, connID int, ref model.SubscriptionRef, ids []string) (*model.AckResult, error) {
+	api, err := port[driver.PendingEntryActions](s, connID, model.CapPendingAdmin)
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.AckEntries(ctx, ref, ids)
+}
+
+// ClaimEntries moves named entries to another consumer.
+func (s *Service) ClaimEntries(ctx context.Context, connID int, request model.ClaimRequest) (*model.ClaimResult, error) {
+	api, err := port[driver.PendingEntryActions](s, connID, model.CapPendingAdmin)
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.ClaimEntries(ctx, request)
+}
+
+// AutoClaim moves whatever has been idle too long, without naming ids.
+func (s *Service) AutoClaim(ctx context.Context, connID int, request model.AutoClaimRequest) (*model.ClaimResult, error) {
+	api, err := port[driver.PendingEntryActions](s, connID, model.CapPendingAdmin)
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.AutoClaim(ctx, request)
+}

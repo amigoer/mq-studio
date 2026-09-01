@@ -27,7 +27,16 @@ const requires: Record<string, Capability | Capability[]> = {
   // family without them must not draw the entry at all.
   exchanges: Capability.CapRouting,
   messages: Capability.CapMessageQuery,
-  dlq: [Capability.CapDLQ, Capability.CapDeadLetterTopology],
+  // Three, because three families answer this page by three different means.
+  // RocketMQ reads a dead-letter topic per consumer group; RabbitMQ walks the
+  // topology to find the queues something else dead-letters into; Redis moves
+  // nothing at all and keeps, per group, a record of every delivery it has not
+  // had acknowledged. None can answer the page the others' way.
+  dlq: [
+    Capability.CapDLQ,
+    Capability.CapDeadLetterTopology,
+    Capability.CapPendingEntries,
+  ],
   vhosts: Capability.CapNamespaceList,
   policies: Capability.CapPolicyList,
   definitions: Capability.CapDefinitionsExport,

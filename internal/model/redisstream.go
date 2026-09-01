@@ -100,3 +100,136 @@ type StreamAddRequest struct {
 type StreamAddResult struct {
 	IDs []string `json:"ids"`
 }
+
+// GroupConsumer is one member of a consumer group.
+//
+// It is not the canonical SubscriptionClient, and cannot be: that is a set of
+// queue assignments with a broker and a queue id, pull and consume latencies,
+// and a locked flag for ordered delivery. A group consumer has a name, how
+// much it is holding, and how long it has been quiet - and filling the other
+// shape would mean inventing every field but one.
+//
+// It is also not model.StreamConsumer, which is RabbitMQ's: a client attached
+// over the stream protocol, with a connection, a peer host and an offset. The
+// two are different objects that both reasonably answer to "stream consumer",
+// which is why neither name is shared.
+type GroupConsumer struct {
+	Name string `json:"name"`
+	// Pending is how many entries this consumer has been handed and not
+	// acknowledged. They are its responsibility until it acknowledges them or
+	// somebody claims them away.
+	Pending int64 `json:"pending"`
+	// IdleMs is how long since it last read anything. A high idle with a
+	// pending count above zero is the shape of a consumer that died holding
+	// work.
+	IdleMs int64 `json:"idleMs"`
+	// InactiveMs is how long since it last did anything at all, which Redis
+	// tracks separately: a consumer polling an empty stream is idle but not
+	// inactive. Redis 7.2 and later; zero on an older server.
+	InactiveMs int64 `json:"inactiveMs"`
+}
+
+// PendingSummary is a group's pending list at a glance.
+type PendingSummary struct {
+	Ref SubscriptionRef `json:"ref"`
+
+	// Count is how many entries the group is owed in total.
+	Count int64 `json:"count"`
+	// MinID and MaxID bound them. The oldest is what an operator acts on: it
+	// is the entry that has been stuck the longest.
+	MinID string `json:"minId"`
+	MaxID string `json:"maxId"`
+
+	// PerConsumer says who is holding what, which is how a single dead
+	// consumer is told apart from a group that is generally behind.
+	PerConsumer []PendingByConsumer `json:"perConsumer"`
+}
+
+// PendingByConsumer is one consumer's share of a pending list.
+type PendingByConsumer struct {
+	Consumer string `json:"consumer"`
+	Count    int64  `json:"count"`
+}
+
+// PendingEntry is one delivery that has not been acknowledged.
+//
+// It is a delivery record rather than a message: what it carries is who was
+// given the entry, how long ago, and how many times. The entry's own contents
+// are a separate read, because a pending list of a thousand would otherwise
+// fetch a thousand bodies nobody asked to see.
+type PendingEntry struct {
+	Ref SubscriptionRef `json:"ref"`
+
+	ID       string `json:"id"`
+	Consumer string `json:"consumer"`
+	// IdleMs is how long since it was delivered. It is the column an operator
+	// sorts by: an entry idle for hours is one nothing is coming back for.
+	IdleMs int64 `json:"idleMs"`
+	// Deliveries counts how many times it has been handed out. Above one means
+	// something claimed it or a consumer restarted; climbing means an entry
+	// that keeps being retried and keeps failing.
+	Deliveries int64 `json:"deliveries"`
+}
+
+// PendingQuery narrows a group's pending list.
+type PendingQuery struct {
+	Ref SubscriptionRef `json:"ref"`
+
+	// Consumer narrows to one consumer's share. Empty is all of them.
+	Consumer string `json:"consumer"`
+	// MinIdleMs narrows to entries nothing has touched for at least this long,
+	// which is how the ones worth acting on are found.
+	MinIdleMs int64 `json:"minIdleMs"`
+	// Start and End bound the ids. Empty means the whole list.
+	Start string `json:"start"`
+	End   string `json:"end"`
+	Count int    `json:"count"`
+}
+
+// ClaimRequest moves named entries to another consumer.
+type ClaimRequest struct {
+	Ref SubscriptionRef `json:"ref"`
+	// Consumer is the new owner. It need not exist yet - claiming creates it,
+	// which is how a replacement worker takes over from a dead one.
+	Consumer string   `json:"consumer"`
+	IDs      []string `json:"ids"`
+	// MinIdleMs refuses to claim anything touched more recently than this. It
+	// is the guard against taking work from a consumer that is simply busy:
+	// zero claims regardless, which is a choice rather than a default.
+	MinIdleMs int64 `json:"minIdleMs"`
+}
+
+// AutoClaimRequest moves whatever has been idle too long, without naming ids.
+type AutoClaimRequest struct {
+	Ref       SubscriptionRef `json:"ref"`
+	Consumer  string          `json:"consumer"`
+	MinIdleMs int64           `json:"minIdleMs"`
+	// Start is where to resume from, for walking a long pending list. Empty
+	// starts at the beginning.
+	Start string `json:"start"`
+	Count int    `json:"count"`
+}
+
+// ClaimResult is what a claim moved.
+type ClaimResult struct {
+	// Claimed are the entries that changed owner.
+	Claimed []string `json:"claimed"`
+
+	// Deleted are ids that were in the pending list and no longer in the
+	// stream - trimmed or XDEL'd while owed to somebody. An auto-claim drops
+	// them from the pending list, and reporting them is the only way an
+	// operator learns that work was lost rather than moved.
+	Deleted []string `json:"deleted"`
+
+	// NextStart is where a further auto-claim would resume. "0-0" means the
+	// walk reached the end.
+	NextStart string `json:"nextStart"`
+}
+
+// AckResult is what an acknowledgement settled.
+type AckResult struct {
+	// Acknowledged is how many of the named ids were actually owed. It is not
+	// how many were asked for: acknowledging an id twice succeeds and settles
+	// nothing.
+	Acknowledged int64 `json:"acknowledged"`
+}

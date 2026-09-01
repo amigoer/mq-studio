@@ -190,6 +190,35 @@ export class AccessRule {
 }
 
 /**
+ * AckResult is what an acknowledgement settled.
+ */
+export class AckResult {
+    /**
+     * Acknowledged is how many of the named ids were actually owed. It is not
+     * how many were asked for: acknowledging an id twice succeeds and settles
+     * nothing.
+     */
+    "acknowledged": number;
+
+    /** Creates a new AckResult instance. */
+    constructor($$source: Partial<AckResult> = {}) {
+        if (!("acknowledged" in $$source)) {
+            this["acknowledged"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new AckResult instance from a string or object.
+     */
+    static createFrom($$source: any = {}): AckResult {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new AckResult($$parsedSource as Partial<AckResult>);
+    }
+}
+
+/**
  * AclVersionInfo holds ACL config version information.
  */
 export class AclVersionInfo {
@@ -655,6 +684,26 @@ export enum Capability {
      * group with nothing connected - simply has no answer.
      */
     CapSubscriptionRuntime = "subscription.runtime",
+
+    /**
+     * CapPendingEntries is a family that keeps, per subscription, a list of
+     * what it has handed out and not had acknowledged.
+     * 
+     * It answers the same page as CapDLQ and CapDeadLetterTopology and cannot
+     * do it their way. A dead letter is a message that was given up on and
+     * moved somewhere; a pending entry is a delivery record - an id, who holds
+     * it, how long they have held it and how many times it has been tried -
+     * and the entry itself never moves.
+     */
+    CapPendingEntries = "message.pending",
+
+    /**
+     * CapPendingAdmin is acting on that list: acknowledging entries so they
+     * stop being owed, and moving them to another consumer. Separate from
+     * reading it, because taking work from a consumer that is merely busy is a
+     * different permission and a different mistake.
+     */
+    CapPendingAdmin = "message.pendingAdmin",
     CapMessageQuery = "message.query",
     CapMessageByID = "message.byId",
     CapMessageTrack = "message.track",
@@ -878,6 +927,61 @@ export enum Capability {
      */
     CapRoutingAdmin = "routing.admin",
 };
+
+/**
+ * ClaimResult is what a claim moved.
+ */
+export class ClaimResult {
+    /**
+     * Claimed are the entries that changed owner.
+     */
+    "claimed": string[];
+
+    /**
+     * Deleted are ids that were in the pending list and no longer in the
+     * stream - trimmed or XDEL'd while owed to somebody. An auto-claim drops
+     * them from the pending list, and reporting them is the only way an
+     * operator learns that work was lost rather than moved.
+     */
+    "deleted": string[];
+
+    /**
+     * NextStart is where a further auto-claim would resume. "0-0" means the
+     * walk reached the end.
+     */
+    "nextStart": string;
+
+    /** Creates a new ClaimResult instance. */
+    constructor($$source: Partial<ClaimResult> = {}) {
+        if (!("claimed" in $$source)) {
+            this["claimed"] = [];
+        }
+        if (!("deleted" in $$source)) {
+            this["deleted"] = [];
+        }
+        if (!("nextStart" in $$source)) {
+            this["nextStart"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ClaimResult instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ClaimResult {
+        const $$createField0_0 = $$createType0;
+        const $$createField1_0 = $$createType0;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("claimed" in $$parsedSource) {
+            $$parsedSource["claimed"] = $$createField0_0($$parsedSource["claimed"]);
+        }
+        if ("deleted" in $$parsedSource) {
+            $$parsedSource["deleted"] = $$createField1_0($$parsedSource["deleted"]);
+        }
+        return new ClaimResult($$parsedSource as Partial<ClaimResult>);
+    }
+}
 
 /**
  * ClientChannel is one multiplexed session inside a connection.
@@ -2073,6 +2177,71 @@ export class FormOption {
 }
 
 /**
+ * GroupConsumer is one member of a consumer group.
+ * 
+ * It is not the canonical SubscriptionClient, and cannot be: that is a set of
+ * queue assignments with a broker and a queue id, pull and consume latencies,
+ * and a locked flag for ordered delivery. A group consumer has a name, how
+ * much it is holding, and how long it has been quiet - and filling the other
+ * shape would mean inventing every field but one.
+ * 
+ * It is also not model.StreamConsumer, which is RabbitMQ's: a client attached
+ * over the stream protocol, with a connection, a peer host and an offset. The
+ * two are different objects that both reasonably answer to "stream consumer",
+ * which is why neither name is shared.
+ */
+export class GroupConsumer {
+    "name": string;
+
+    /**
+     * Pending is how many entries this consumer has been handed and not
+     * acknowledged. They are its responsibility until it acknowledges them or
+     * somebody claims them away.
+     */
+    "pending": number;
+
+    /**
+     * IdleMs is how long since it last read anything. A high idle with a
+     * pending count above zero is the shape of a consumer that died holding
+     * work.
+     */
+    "idleMs": number;
+
+    /**
+     * InactiveMs is how long since it last did anything at all, which Redis
+     * tracks separately: a consumer polling an empty stream is idle but not
+     * inactive. Redis 7.2 and later; zero on an older server.
+     */
+    "inactiveMs": number;
+
+    /** Creates a new GroupConsumer instance. */
+    constructor($$source: Partial<GroupConsumer> = {}) {
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("pending" in $$source)) {
+            this["pending"] = 0;
+        }
+        if (!("idleMs" in $$source)) {
+            this["idleMs"] = 0;
+        }
+        if (!("inactiveMs" in $$source)) {
+            this["inactiveMs"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new GroupConsumer instance from a string or object.
+     */
+    static createFrom($$source: any = {}): GroupConsumer {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new GroupConsumer($$parsedSource as Partial<GroupConsumer>);
+    }
+}
+
+/**
  * HealthCheck is one question the broker answers about itself.
  * 
  * RabbitMQ's health endpoints are deliberately narrow: each asks one thing and
@@ -2957,6 +3126,156 @@ export class PartitionReassignment {
 }
 
 /**
+ * PendingByConsumer is one consumer's share of a pending list.
+ */
+export class PendingByConsumer {
+    "consumer": string;
+    "count": number;
+
+    /** Creates a new PendingByConsumer instance. */
+    constructor($$source: Partial<PendingByConsumer> = {}) {
+        if (!("consumer" in $$source)) {
+            this["consumer"] = "";
+        }
+        if (!("count" in $$source)) {
+            this["count"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new PendingByConsumer instance from a string or object.
+     */
+    static createFrom($$source: any = {}): PendingByConsumer {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new PendingByConsumer($$parsedSource as Partial<PendingByConsumer>);
+    }
+}
+
+/**
+ * PendingEntry is one delivery that has not been acknowledged.
+ * 
+ * It is a delivery record rather than a message: what it carries is who was
+ * given the entry, how long ago, and how many times. The entry's own contents
+ * are a separate read, because a pending list of a thousand would otherwise
+ * fetch a thousand bodies nobody asked to see.
+ */
+export class PendingEntry {
+    "ref": SubscriptionRef;
+    "id": string;
+    "consumer": string;
+
+    /**
+     * IdleMs is how long since it was delivered. It is the column an operator
+     * sorts by: an entry idle for hours is one nothing is coming back for.
+     */
+    "idleMs": number;
+
+    /**
+     * Deliveries counts how many times it has been handed out. Above one means
+     * something claimed it or a consumer restarted; climbing means an entry
+     * that keeps being retried and keeps failing.
+     */
+    "deliveries": number;
+
+    /** Creates a new PendingEntry instance. */
+    constructor($$source: Partial<PendingEntry> = {}) {
+        if (!("ref" in $$source)) {
+            this["ref"] = (new SubscriptionRef());
+        }
+        if (!("id" in $$source)) {
+            this["id"] = "";
+        }
+        if (!("consumer" in $$source)) {
+            this["consumer"] = "";
+        }
+        if (!("idleMs" in $$source)) {
+            this["idleMs"] = 0;
+        }
+        if (!("deliveries" in $$source)) {
+            this["deliveries"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new PendingEntry instance from a string or object.
+     */
+    static createFrom($$source: any = {}): PendingEntry {
+        const $$createField0_0 = $$createType41;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("ref" in $$parsedSource) {
+            $$parsedSource["ref"] = $$createField0_0($$parsedSource["ref"]);
+        }
+        return new PendingEntry($$parsedSource as Partial<PendingEntry>);
+    }
+}
+
+/**
+ * PendingSummary is a group's pending list at a glance.
+ */
+export class PendingSummary {
+    "ref": SubscriptionRef;
+
+    /**
+     * Count is how many entries the group is owed in total.
+     */
+    "count": number;
+
+    /**
+     * MinID and MaxID bound them. The oldest is what an operator acts on: it
+     * is the entry that has been stuck the longest.
+     */
+    "minId": string;
+    "maxId": string;
+
+    /**
+     * PerConsumer says who is holding what, which is how a single dead
+     * consumer is told apart from a group that is generally behind.
+     */
+    "perConsumer": PendingByConsumer[];
+
+    /** Creates a new PendingSummary instance. */
+    constructor($$source: Partial<PendingSummary> = {}) {
+        if (!("ref" in $$source)) {
+            this["ref"] = (new SubscriptionRef());
+        }
+        if (!("count" in $$source)) {
+            this["count"] = 0;
+        }
+        if (!("minId" in $$source)) {
+            this["minId"] = "";
+        }
+        if (!("maxId" in $$source)) {
+            this["maxId"] = "";
+        }
+        if (!("perConsumer" in $$source)) {
+            this["perConsumer"] = [];
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new PendingSummary instance from a string or object.
+     */
+    static createFrom($$source: any = {}): PendingSummary {
+        const $$createField0_0 = $$createType41;
+        const $$createField4_0 = $$createType43;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("ref" in $$parsedSource) {
+            $$parsedSource["ref"] = $$createField0_0($$parsedSource["ref"]);
+        }
+        if ("perConsumer" in $$parsedSource) {
+            $$parsedSource["perConsumer"] = $$createField4_0($$parsedSource["perConsumer"]);
+        }
+        return new PendingSummary($$parsedSource as Partial<PendingSummary>);
+    }
+}
+
+/**
  * Policy applies settings to every destination whose name matches a pattern.
  * 
  * It is the answer to something RabbitMQ otherwise cannot do: a queue's
@@ -3653,8 +3972,8 @@ export class StreamClients {
      * Creates a new StreamClients instance from a string or object.
      */
     static createFrom($$source: any = {}): StreamClients {
-        const $$createField0_0 = $$createType43;
-        const $$createField1_0 = $$createType46;
+        const $$createField0_0 = $$createType46;
+        const $$createField1_0 = $$createType49;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("publishers" in $$parsedSource) {
             $$parsedSource["publishers"] = $$createField0_0($$parsedSource["publishers"]);
@@ -3907,7 +4226,7 @@ export class Subscription {
      * Creates a new Subscription instance from a string or object.
      */
     static createFrom($$source: any = {}): Subscription {
-        const $$createField1_0 = $$createType47;
+        const $$createField1_0 = $$createType41;
         const $$createField8_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("ref" in $$parsedSource) {
@@ -3973,8 +4292,8 @@ export class SubscriptionClient {
      * Creates a new SubscriptionClient instance from a string or object.
      */
     static createFrom($$source: any = {}): SubscriptionClient {
-        const $$createField1_0 = $$createType49;
-        const $$createField2_0 = $$createType51;
+        const $$createField1_0 = $$createType51;
+        const $$createField2_0 = $$createType53;
         const $$createField3_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("assignments" in $$parsedSource) {
@@ -4073,8 +4392,8 @@ export class TailBatch {
      * Creates a new TailBatch instance from a string or object.
      */
     static createFrom($$source: any = {}): TailBatch {
-        const $$createField0_0 = $$createType54;
-        const $$createField1_0 = $$createType55;
+        const $$createField0_0 = $$createType56;
+        const $$createField1_0 = $$createType57;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("messages" in $$parsedSource) {
             $$parsedSource["messages"] = $$createField0_0($$parsedSource["messages"]);
@@ -4109,7 +4428,7 @@ export class TailCursor {
      * Creates a new TailCursor instance from a string or object.
      */
     static createFrom($$source: any = {}): TailCursor {
-        const $$createField0_0 = $$createType57;
+        const $$createField0_0 = $$createType59;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("positions" in $$parsedSource) {
             $$parsedSource["positions"] = $$createField0_0($$parsedSource["positions"]);
@@ -4337,20 +4656,22 @@ const $$createType37 = $Create.Array($Create.Any);
 const $$createType38 = ReplicaStatus.createFrom;
 const $$createType39 = $Create.Array($$createType38);
 const $$createType40 = $Create.Array($Create.Any);
-const $$createType41 = StreamPublisher.createFrom;
-const $$createType42 = $Create.Nullable($$createType41);
+const $$createType41 = SubscriptionRef.createFrom;
+const $$createType42 = PendingByConsumer.createFrom;
 const $$createType43 = $Create.Array($$createType42);
-const $$createType44 = StreamConsumer.createFrom;
+const $$createType44 = StreamPublisher.createFrom;
 const $$createType45 = $Create.Nullable($$createType44);
 const $$createType46 = $Create.Array($$createType45);
-const $$createType47 = SubscriptionRef.createFrom;
-const $$createType48 = QueueAssignment.createFrom;
+const $$createType47 = StreamConsumer.createFrom;
+const $$createType48 = $Create.Nullable($$createType47);
 const $$createType49 = $Create.Array($$createType48);
-const $$createType50 = ConsumeThroughput.createFrom;
+const $$createType50 = QueueAssignment.createFrom;
 const $$createType51 = $Create.Array($$createType50);
-const $$createType52 = MessageItem.createFrom;
-const $$createType53 = $Create.Nullable($$createType52);
-const $$createType54 = $Create.Array($$createType53);
-const $$createType55 = TailCursor.createFrom;
-const $$createType56 = QueuePosition.createFrom;
-const $$createType57 = $Create.Array($$createType56);
+const $$createType52 = ConsumeThroughput.createFrom;
+const $$createType53 = $Create.Array($$createType52);
+const $$createType54 = MessageItem.createFrom;
+const $$createType55 = $Create.Nullable($$createType54);
+const $$createType56 = $Create.Array($$createType55);
+const $$createType57 = TailCursor.createFrom;
+const $$createType58 = QueuePosition.createFrom;
+const $$createType59 = $Create.Array($$createType58);

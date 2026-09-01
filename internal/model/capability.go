@@ -62,6 +62,21 @@ const (
 	// group with nothing connected - simply has no answer.
 	CapSubscriptionRuntime Capability = "subscription.runtime"
 
+	// CapPendingEntries is a family that keeps, per subscription, a list of
+	// what it has handed out and not had acknowledged.
+	//
+	// It answers the same page as CapDLQ and CapDeadLetterTopology and cannot
+	// do it their way. A dead letter is a message that was given up on and
+	// moved somewhere; a pending entry is a delivery record - an id, who holds
+	// it, how long they have held it and how many times it has been tried -
+	// and the entry itself never moves.
+	CapPendingEntries Capability = "message.pending"
+	// CapPendingAdmin is acting on that list: acknowledging entries so they
+	// stop being owed, and moving them to another consumer. Separate from
+	// reading it, because taking work from a consumer that is merely busy is a
+	// different permission and a different mistake.
+	CapPendingAdmin Capability = "message.pendingAdmin"
+
 	CapMessageQuery  Capability = "message.query"
 	CapMessageByID   Capability = "message.byId"
 	CapMessageTrack  Capability = "message.track"

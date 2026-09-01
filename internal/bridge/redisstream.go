@@ -76,15 +76,14 @@ type GroupInput struct {
 // CreateGroup declares a consumer group on a stream.
 func (s *RedisStreamService) CreateGroup(connID int, input GroupInput) error {
 	return s.service.CreateGroup(context.Background(), connID, model.SubscriptionSpec{
-		Ref:        model.SubscriptionRef{Namespace: input.Stream, Name: input.Group},
+		Ref:        groupRefOf(input.Stream, input.Group),
 		Attributes: map[string]string{redisstreamdriver.AttrStartID: input.StartID},
 	})
 }
 
 // DeleteGroup destroys a consumer group and the pending entries it holds.
 func (s *RedisStreamService) DeleteGroup(connID int, stream string, group string) error {
-	return s.service.DeleteGroup(context.Background(), connID,
-		model.SubscriptionRef{Namespace: stream, Name: group})
+	return s.service.DeleteGroup(context.Background(), connID, groupRefOf(stream, group))
 }
 
 // SetGroupPosition moves a consumer group to an entry id, to "0" for the
@@ -92,7 +91,7 @@ func (s *RedisStreamService) DeleteGroup(connID int, stream string, group string
 // next.
 func (s *RedisStreamService) SetGroupPosition(connID int, stream string, group string, position string) error {
 	return s.service.SetGroupPosition(context.Background(), connID, model.PositionRequest{
-		Ref:      model.SubscriptionRef{Namespace: stream, Name: group},
+		Ref:      groupRefOf(stream, group),
 		Position: position,
 	})
 }
@@ -125,4 +124,95 @@ func (s *RedisStreamService) AddEntry(connID int, input EntryInput) (*model.Stre
 		ID:     input.ID,
 		Count:  input.Count,
 	})
+}
+
+// PendingSummary returns a group's pending list at a glance.
+func (s *RedisStreamService) PendingSummary(connID int, stream string, group string) (*model.PendingSummary, error) {
+	return s.service.PendingSummary(context.Background(), connID, groupRefOf(stream, group))
+}
+
+// PendingQueryInput narrows a pending listing as the board collects it.
+type PendingQueryInput struct {
+	Stream string `json:"stream"`
+	Group  string `json:"group"`
+	// Consumer narrows to one consumer's share. Empty is all of them.
+	Consumer string `json:"consumer"`
+	// MinIdleMs narrows to entries nothing has touched for at least this long,
+	// which is how the ones worth acting on are found.
+	MinIdleMs int64 `json:"minIdleMs"`
+	Count     int   `json:"count"`
+}
+
+// PendingEntries walks a group's pending list.
+func (s *RedisStreamService) PendingEntries(connID int, input PendingQueryInput) ([]*model.PendingEntry, error) {
+	return s.service.PendingEntries(context.Background(), connID, model.PendingQuery{
+		Ref:       groupRefOf(input.Stream, input.Group),
+		Consumer:  input.Consumer,
+		MinIdleMs: input.MinIdleMs,
+		Count:     input.Count,
+	})
+}
+
+// GroupConsumers lists a group's members and how long each has been quiet.
+func (s *RedisStreamService) GroupConsumers(connID int, stream string, group string) ([]*model.GroupConsumer, error) {
+	return s.service.GroupConsumers(context.Background(), connID, groupRefOf(stream, group))
+}
+
+// AckEntries settles entries so they stop being owed, and reports how many
+// were actually owed - which is not how many were named.
+func (s *RedisStreamService) AckEntries(connID int, stream string, group string, ids []string) (*model.AckResult, error) {
+	return s.service.AckEntries(context.Background(), connID, groupRefOf(stream, group), ids)
+}
+
+// ClaimInput moves named entries to another consumer.
+type ClaimInput struct {
+	Stream string `json:"stream"`
+	Group  string `json:"group"`
+	// Consumer is the new owner. It need not exist yet: claiming creates it,
+	// which is how a replacement worker takes over from a dead one.
+	Consumer string   `json:"consumer"`
+	IDs      []string `json:"ids"`
+	// MinIdleMs refuses to move anything touched more recently than this. Zero
+	// moves regardless, which is a choice rather than a default.
+	MinIdleMs int64 `json:"minIdleMs"`
+}
+
+// ClaimEntries moves named entries to another consumer.
+func (s *RedisStreamService) ClaimEntries(connID int, input ClaimInput) (*model.ClaimResult, error) {
+	return s.service.ClaimEntries(context.Background(), connID, model.ClaimRequest{
+		Ref:       groupRefOf(input.Stream, input.Group),
+		Consumer:  input.Consumer,
+		IDs:       input.IDs,
+		MinIdleMs: input.MinIdleMs,
+	})
+}
+
+// AutoClaimInput moves whatever has been idle too long, without naming ids.
+type AutoClaimInput struct {
+	Stream    string `json:"stream"`
+	Group     string `json:"group"`
+	Consumer  string `json:"consumer"`
+	MinIdleMs int64  `json:"minIdleMs"`
+	// Start is where to resume from when walking a long list. Empty starts at
+	// the beginning.
+	Start string `json:"start"`
+	Count int    `json:"count"`
+}
+
+// AutoClaim moves whatever has been idle too long and reports what it found
+// gone as well as what it moved.
+func (s *RedisStreamService) AutoClaim(connID int, input AutoClaimInput) (*model.ClaimResult, error) {
+	return s.service.AutoClaim(context.Background(), connID, model.AutoClaimRequest{
+		Ref:       groupRefOf(input.Stream, input.Group),
+		Consumer:  input.Consumer,
+		MinIdleMs: input.MinIdleMs,
+		Start:     input.Start,
+		Count:     input.Count,
+	})
+}
+
+// groupRefOf addresses a consumer group. Both halves are needed: a group's
+// name is unique only within the stream it reads.
+func groupRefOf(stream, group string) model.SubscriptionRef {
+	return model.SubscriptionRef{Namespace: stream, Name: group}
 }
