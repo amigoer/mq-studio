@@ -64,16 +64,17 @@ func (c *Conn) GetConsumerGroups(ctx context.Context) ([]*model.ConsumerGroupIte
 			// use, so reading it as the mode calls every untouched group
 			// broadcasting. enrichConsumerGroup fills in what a client reports.
 			item := &model.ConsumerGroupItem{
-				Group:         groupName,
-				Cluster:       brokerData.Cluster,
-				ConsumeMode:   model.ModeUnknown,
-				Status:        model.GroupOffline,
-				Lag:           -1,
-				DLQ:           -1,
-				MaxRetry:      config.RetryMaxTimes,
-				LastUpdate:    timestamp.Now(),
-				Subscriptions: make([]model.GroupSubscription, 0),
-				Clients:       make([]model.GroupClient, 0),
+				Group:            groupName,
+				Cluster:          brokerData.Cluster,
+				ConsumeMode:      model.ModeUnknown,
+				Status:           model.GroupOffline,
+				Lag:              -1,
+				DLQ:              -1,
+				MaxRetry:         config.RetryMaxTimes,
+				BroadcastEnabled: config.ConsumeBroadcastEnable,
+				LastUpdate:       timestamp.Now(),
+				Subscriptions:    make([]model.GroupSubscription, 0),
+				Clients:          make([]model.GroupClient, 0),
 			}
 			groupMap[groupName] = item
 		}
@@ -127,6 +128,7 @@ func (c *Conn) GetConsumerGroupDetail(ctx context.Context, groupName string) (*m
 	if err == nil && groupConfig != nil {
 		item.Cluster = groupConfig.Cluster
 		item.MaxRetry = groupConfig.Config.RetryMaxTimes
+		item.BroadcastEnabled = groupConfig.Config.ConsumeBroadcastEnable
 	}
 
 	c.enrichConsumerGroup(ctx, item, nil)

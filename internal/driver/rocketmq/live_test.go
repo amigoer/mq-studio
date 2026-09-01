@@ -2,26 +2,29 @@ package rocketmq_test
 
 import (
 	"context"
-	"os"
 	"testing"
 	"time"
 
 	"github.com/amigoer/mq-studio/internal/driver"
 	"github.com/amigoer/mq-studio/internal/driver/rocketmq"
+	"github.com/amigoer/mq-studio/internal/e2e"
 	"github.com/amigoer/mq-studio/internal/model"
 )
 
-// These run against the broker `npm run e2e:up` starts. They are opt-in: the
-// rest of the suite must pass with nothing listening, and CI has no broker.
+// These run against the broker `npm run e2e:up` starts. Locally they are
+// opt-in, so the rest of the suite passes with nothing listening; CI starts
+// the broker and the opt-in does not apply there. See internal/e2e.
 //
 //	npm run e2e:up && MQ_STUDIO_E2E=1 go test ./internal/driver/rocketmq/...
 const liveNameServer = "127.0.0.1:9876"
 
 func liveContext(t *testing.T) context.Context {
 	t.Helper()
-	if os.Getenv("MQ_STUDIO_E2E") == "" {
-		t.Skip("set MQ_STUDIO_E2E=1 and run `npm run e2e:up` to exercise a real broker")
-	}
+	e2e.Require(t, e2e.Env{
+		Name:  "the rocketmq broker",
+		Start: "npm run e2e:up",
+		Probe: e2e.DialTCP(liveNameServer),
+	})
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	t.Cleanup(cancel)
 	return ctx

@@ -35,7 +35,7 @@ jobs:
   check:
     name: Check
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     outputs:
       version: ${{ steps.meta.outputs.version }}
     steps:
@@ -87,11 +87,29 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci --prefix frontend
 
-      # The rabbitmq conformance tests skip when the broker is absent so a
-      # checkout without docker still has a green suite, but fail outright when
-      # CI is set - the contract they assert is worthless if CI can silently
-      # skip it. Same compose file a developer runs, so the image, the
-      # credentials and the management plugin match.
+      # Every live suite gates through internal/e2e: it skips when the
+      # environment it needs is absent, so a checkout without docker still has
+      # a green suite, and fails outright when CI is set, because a contract
+      # test that can silently not run asserts nothing. Each environment below
+      # therefore has to be up before the checks or the run is red - which is
+      # the point, and is what these tests could not do while an unset variable
+      # was allowed to skip them (#48).
+      #
+      # Same compose files a developer runs, so the images, the credentials and
+      # the plugins match.
+      - name: Start RocketMQ
+        run: npm run e2e:up
+
+      # The consumer group the live tests read. mq-studio cannot create one -
+      # see TestLiveConsumerGroupDelete for why - so the broker is seeded.
+      - name: Seed RocketMQ
+        run: npm run e2e:seed
+
+      # A third broker, with authentication on. Separate because a broker with
+      # ACL enabled refuses every unauthenticated call the other tests make.
+      - name: Start the ACL-enabled RocketMQ
+        run: npm run e2e:acl:up
+
       - name: Start RabbitMQ
         run: npm run e2e:rabbitmq:up
 
@@ -101,10 +119,8 @@ jobs:
       - name: Start the plugin-free RabbitMQ
         run: npm run e2e:rabbitmq:plain:up
 
-      # Three Kafka brokers. The kafka driver's live tests gate the same way
-      # the rabbitmq ones do - skip when nothing answers, fail outright when
-      # CI is set - so the cluster has to be up before the checks run or every
-      # commit from the driver onwards is red.
+      # Three Kafka brokers, which the app-layer cross-checks also drive
+      # through Kafka's own CLI inside the first container.
       - name: Start Kafka
         run: npm run e2e:kafka:up
 
@@ -115,6 +131,12 @@ jobs:
         run: npm run e2e:kafka:secure:up
 
       - name: Run checks
+        # The opt-in a developer sets locally. CI does not need it - internal/e2e
+        # does not consult it when CI is set, so that no unset variable can be
+        # the reason a suite did not run - but setting it here keeps the local
+        # repro of a CI failure the same command.
+        env:
+          MQ_STUDIO_E2E: '1'
         run: npm run check
 
   # Exercises the real packaging path for all six targets. It is skipped on pull

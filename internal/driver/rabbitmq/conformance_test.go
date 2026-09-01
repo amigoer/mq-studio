@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 	"testing"
@@ -15,6 +14,7 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 
 	"github.com/amigoer/mq-studio/internal/driver"
+	"github.com/amigoer/mq-studio/internal/e2e"
 	"github.com/amigoer/mq-studio/internal/model"
 )
 
@@ -26,15 +26,11 @@ const liveEndpoint = "http://127.0.0.1:15672"
 // requireLiveBroker skips, or in CI fails, when the e2e environment is absent.
 func requireLiveBroker(t *testing.T) {
 	t.Helper()
-	client := &http.Client{Timeout: 2 * time.Second}
-	response, err := client.Get(liveEndpoint + "/api/overview")
-	if err != nil {
-		if os.Getenv("CI") != "" {
-			t.Fatalf("rabbitmq must be running in CI: %v", err)
-		}
-		t.Skipf("rabbitmq is not running; start it with npm run e2e:rabbitmq:up (%v)", err)
-	}
-	_ = response.Body.Close()
+	e2e.Require(t, e2e.Env{
+		Name:  "rabbitmq",
+		Start: "npm run e2e:rabbitmq:up",
+		Probe: e2e.HTTPGet(liveEndpoint + "/api/overview"),
+	})
 }
 
 func liveConn(t *testing.T) *Conn {

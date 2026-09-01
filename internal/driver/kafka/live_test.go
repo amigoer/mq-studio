@@ -3,8 +3,6 @@ package kafka
 import (
 	"context"
 	"crypto/rand"
-	"net"
-	"os"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -13,6 +11,7 @@ import (
 
 	"github.com/twmb/franz-go/pkg/kgo"
 
+	"github.com/amigoer/mq-studio/internal/e2e"
 	"github.com/amigoer/mq-studio/internal/model"
 )
 
@@ -33,15 +32,11 @@ const (
 
 func requireLiveCluster(t *testing.T) {
 	t.Helper()
-	first := strings.Split(liveSeeds, ",")[0]
-	conn, err := net.DialTimeout("tcp", first, 2*time.Second)
-	if err != nil {
-		if os.Getenv("CI") != "" {
-			t.Fatalf("kafka must be running in CI: %v", err)
-		}
-		t.Skipf("kafka is not running; start it with npm run e2e:kafka:up (%v)", err)
-	}
-	_ = conn.Close()
+	e2e.Require(t, e2e.Env{
+		Name:  "kafka",
+		Start: "npm run e2e:kafka:up",
+		Probe: e2e.DialTCP(strings.Split(liveSeeds, ",")[0]),
+	})
 }
 
 func liveConn(t *testing.T, endpoints string) *Conn {

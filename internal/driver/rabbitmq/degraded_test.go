@@ -2,11 +2,9 @@ package rabbitmq
 
 import (
 	"context"
-	"net/http"
-	"os"
 	"testing"
-	"time"
 
+	"github.com/amigoer/mq-studio/internal/e2e"
 	"github.com/amigoer/mq-studio/internal/model"
 )
 
@@ -28,15 +26,11 @@ const plainEndpoint = "http://127.0.0.1:15682"
 
 func requirePlainBroker(t *testing.T) {
 	t.Helper()
-	client := &http.Client{Timeout: 2 * time.Second}
-	response, err := client.Get(plainEndpoint + "/api/overview")
-	if err != nil {
-		if os.Getenv("CI") != "" {
-			t.Fatalf("the plugin-free rabbitmq must be running in CI: %v", err)
-		}
-		t.Skipf("start it with npm run e2e:rabbitmq:plain:up (%v)", err)
-	}
-	_ = response.Body.Close()
+	e2e.Require(t, e2e.Env{
+		Name:  "the plugin-free rabbitmq",
+		Start: "npm run e2e:rabbitmq:plain:up",
+		Probe: e2e.HTTPGet(plainEndpoint + "/api/overview"),
+	})
 }
 
 func plainConn(t *testing.T) *Conn {

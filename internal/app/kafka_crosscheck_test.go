@@ -2,7 +2,6 @@ package app
 
 import (
 	"context"
-	"os"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -14,6 +13,7 @@ import (
 	"github.com/amigoer/mq-studio/internal/crypto"
 	"github.com/amigoer/mq-studio/internal/driver"
 	kafkadriver "github.com/amigoer/mq-studio/internal/driver/kafka"
+	"github.com/amigoer/mq-studio/internal/e2e"
 	"github.com/amigoer/mq-studio/internal/model"
 	"github.com/amigoer/mq-studio/internal/service/cluster"
 	"github.com/amigoer/mq-studio/internal/service/destination"
@@ -104,15 +104,13 @@ func newKafkaStack(t *testing.T) *kafkaStack {
 
 func requireKafkaCLI(t *testing.T) {
 	t.Helper()
-	if os.Getenv("MQ_STUDIO_E2E") == "" {
-		t.Skip("set MQ_STUDIO_E2E=1 and run `npm run e2e:kafka:up` to cross-check against a real cluster")
-	}
-	if err := exec.Command("docker", "inspect", kafkaContainer).Run(); err != nil {
-		if os.Getenv("CI") != "" {
-			t.Fatalf("the kafka e2e cluster must be running in CI: %v", err)
-		}
-		t.Skipf("the kafka e2e cluster is not running; start it with npm run e2e:kafka:up (%v)", err)
-	}
+	e2e.Require(t, e2e.Env{
+		Name:  "the kafka e2e cluster",
+		Start: "npm run e2e:kafka:up",
+		// The cross-checks run Kafka's own tools inside the container, so a
+		// reachable port is not enough to say the environment is there.
+		Probe: e2e.DockerContainer(kafkaContainer),
+	})
 }
 
 // cli runs one of Kafka's own tools inside the cluster and returns its output.
