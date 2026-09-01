@@ -54,6 +54,7 @@ import { BrokersKafka } from "./boards/cluster/BrokersKafka";
 import { NodesRabbitMQ } from "./boards/cluster/NodesRabbitMQ";
 import { BrokersPulsar } from "./boards/cluster/BrokersPulsar";
 import { NodeRedis } from "./boards/cluster/NodeRedis";
+import { NodesMqtt } from "./boards/cluster/NodesMqtt";
 
 import { MqttWorkbench } from "./boards/mqtt/MqttWorkbench";
 import { NotDesigned } from "./boards/misc/NotDesigned";
@@ -143,6 +144,7 @@ const BOARDS: Partial<
     rabbitmq: NodesRabbitMQ,
     pulsar: BrokersPulsar,
     redis: NodeRedis,
+    mqtt: NodesMqtt,
   },
 };
 

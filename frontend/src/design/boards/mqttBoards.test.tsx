@@ -68,6 +68,7 @@ let MqttWorkbench: typeof import("./mqtt/MqttWorkbench").MqttWorkbench;
 let ProducerMqtt: typeof import("./producer/ProducerMqtt").ProducerMqtt;
 let ClientsMqtt: typeof import("./consumers/ClientsMqtt").ClientsMqtt;
 let TopicsMqtt: typeof import("./topics/TopicsMqtt").TopicsMqtt;
+let NodesMqtt: typeof import("./cluster/NodesMqtt").NodesMqtt;
 
 beforeAll(async () => {
   const storage = { getItem: () => null, setItem() {}, removeItem() {} };
@@ -82,7 +83,7 @@ beforeAll(async () => {
   });
   vi.stubGlobal("localStorage", storage);
 
-  const [server, overview, workbench, producer, clients, topics, ui, i18n, settings] =
+  const [server, overview, workbench, producer, clients, topics, cluster, ui, i18n, settings] =
     await Promise.all([
     import("react-dom/server"),
     import("./overview/OverviewMqtt"),
@@ -90,6 +91,7 @@ beforeAll(async () => {
     import("./producer/ProducerMqtt"),
     import("./consumers/ClientsMqtt"),
     import("./topics/TopicsMqtt"),
+    import("./cluster/NodesMqtt"),
     import("@/components"),
     import("@/i18n"),
     import("@/hooks/useSettings"),
@@ -106,6 +108,7 @@ beforeAll(async () => {
   ProducerMqtt = producer.ProducerMqtt;
   ClientsMqtt = clients.ClientsMqtt;
   TopicsMqtt = topics.TopicsMqtt;
+  NodesMqtt = cluster.NodesMqtt;
 });
 
 /** A stream as the hook reports it. */
@@ -499,5 +502,65 @@ describe("the MQTT topics board", () => {
     // The branches are inferred from the leaves: no broker keeps a list of
     // the levels in between.
     expect(html).toContain("devices");
+  });
+});
+
+/** A cluster the management API enumerated, with the role only it reports. */
+const emqxCluster = {
+  overview: emqx.overview,
+  nodes: [
+    {
+      id: 1,
+      name: "emqx@127.0.0.1",
+      address: "emqx@127.0.0.1",
+      cluster: "",
+      version: "6.2.3",
+      status: "online",
+      rateIn: -1,
+      rateOut: -1,
+      diskUsage: -1,
+      lastSeen: "2026-09-02 03:00:00",
+      attributes: {
+        nodeRole: "core",
+        nodeEdition: "Enterprise",
+        nodeConnections: "2",
+        nodeSessions: "3",
+        memoryUsed: "7.07G",
+        memoryTotal: "11.74G",
+        load1: "7.14",
+        uptimeSeconds: "22",
+      },
+    },
+  ],
+};
+
+describe("the MQTT cluster board", () => {
+  /*
+   * One node is the whole truth over the protocol alone, not a limitation of
+   * the query: a session is one socket, and MQTT says nothing about how a
+   * broker is deployed. The page has to say which of the two it is looking at,
+   * because "one node" and "one node that we can see" are different claims.
+   */
+  it("says a single node came from the session rather than from a cluster", () => {
+    brokerState.current = stateOf({ data: mosquitto });
+    const html = render(<NodesMqtt />);
+
+    expect(html).toContain("127.0.0.1:1883");
+    expect(html).toContain("一个会话就是一条连接");
+  });
+
+  it("shows what only a management api can report", () => {
+    brokerState.current = stateOf({ data: emqxCluster });
+    const html = render(<NodesMqtt />);
+
+    expect(html).toContain("emqx@127.0.0.1");
+    expect(html).toContain("core");
+    expect(html).toContain("7.07G");
+    expect(html).toContain("集群自己给出的列表");
+  });
+
+  it("renders while the broker is still being read", () => {
+    brokerState.current = stateOf({ loading: true });
+    expect(render(<NodesMqtt />)).toContain("<");
   });
 });

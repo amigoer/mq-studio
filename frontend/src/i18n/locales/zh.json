@@ -1111,7 +1111,8 @@
       "edit": "编辑",
       "moreOptions": "还有 {{count}} 项，继续输入以缩小范围",
       "apply": "应用",
-      "create": "创建"
+      "create": "创建",
+      "version": "版本"
     },
     "notDesigned": {
       "title": "设计稿待补",
@@ -1402,6 +1403,27 @@
           "removed": "已移除",
           "unknown": "未知阶段"
         }
+      },
+      "mqtt": {
+        "title": "节点",
+        "node": "节点",
+        "nodes": "节点数",
+        "role": "角色",
+        "edition": "版本类型",
+        "clients": "在线客户端",
+        "subscriptions": "订阅数",
+        "connections": "连接数",
+        "sessions": "会话数",
+        "memory": "内存占用 / 总量",
+        "load": "负载（1 分钟）",
+        "uptime": "运行时长",
+        "detail": "节点详情",
+        "noNode": "未选择节点",
+        "fromApi": "来自 broker 的管理 API",
+        "fromSession": "本会话连接的那个 broker",
+        "enumerated": "集群自己给出的列表",
+        "oneSocket": "一个会话就是一条连接，所以它只知道这一个 broker",
+        "sessionOnly": "MQTT 对 broker 如何部署没有任何约定。没有管理 API 时，能报告的就只有本会话连接的这一个 broker，再没有更多信息。"
       }
     },
     "acl": {
