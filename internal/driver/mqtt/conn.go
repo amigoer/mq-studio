@@ -1,0 +1,74 @@
+package mqtt
+
+import (
+	"context"
+	"errors"
+	"sync"
+
+	"github.com/amigoer/mq-studio/internal/model"
+)
+
+// errConnectionDown is the session having dropped, as opposed to a request
+// failing. The two lead somewhere different — one is the network, the other is
+// the broker's answer — so they must not arrive as the same error.
+var errConnectionDown = errors.New("mqtt session is not connected")
+
+// Conn is one live MQTT connection.
+//
+// There is one session, not a data plane and a management plane. When a
+// management API is reached later it will be a second endpoint over HTTP, but
+// it is optional: the session is what this connection is, and it staying up is
+// what every page here depends on.
+type Conn struct {
+	client mqttClient
+	config clientConfig
+
+	capabilities model.Capabilities
+	closeOnce    sync.Once
+}
+
+// newConn wraps an already-connected client. Tests hand it one pointed at an
+// in-process broker; Open hands it one built from a profile.
+func newConn(client mqttClient, config clientConfig) *Conn {
+	return &Conn{
+		client:       client,
+		config:       config,
+		capabilities: model.NewCapabilities(capabilities()...),
+	}
+}
+
+// Kind identifies the family.
+func (c *Conn) Kind() model.MQKind { return model.KindMQTT }
+
+// Ping asks the broker to answer, over the wire, every time. See pingFilter
+// for why an unsubscribe is what does the asking.
+func (c *Conn) Ping(ctx context.Context) error {
+	if c.client == nil {
+		return errConnectionDown
+	}
+	return c.client.Ping(ctx)
+}
+
+// Capabilities is what this endpoint can do.
+func (c *Conn) Capabilities() model.Capabilities { return c.capabilities }
+
+// Close ends the session. The registry closes on both disconnect and shutdown,
+// so the second call has to be the one that does nothing.
+func (c *Conn) Close() error {
+	c.closeOnce.Do(func() {
+		if c.client != nil {
+			_ = c.client.Disconnect()
+		}
+	})
+	return nil
+}
+
+// capabilities is the family's best case.
+//
+// It is empty because nothing is implemented yet beyond dialling, and
+// CheckConformance fails a capability with no interface behind it. Each one
+// arrives in the commit that implements its port, rather than as a promise the
+// connection cannot keep.
+func capabilities() []model.Capability {
+	return nil
+}
