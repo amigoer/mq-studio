@@ -11,7 +11,9 @@ ARCH ?=
 	e2e-rabbitmq-up e2e-rabbitmq-seed e2e-rabbitmq-down \
 	e2e-rabbitmq-plain-up e2e-rabbitmq-plain-down \
 	e2e-kafka-up e2e-kafka-seed e2e-kafka-down \
-	e2e-kafka-secure-up e2e-kafka-secure-down check ci clean \
+	e2e-kafka-secure-up e2e-kafka-secure-down \
+	e2e-mqtt-up e2e-mqtt-down e2e-mqtt-emqx-up e2e-mqtt-emqx-down \
+	check ci clean \
 	website-dev website-build
 
 help: ## Show all available targets
@@ -96,6 +98,18 @@ e2e-kafka-secure-up: ## Start the SASL and authorizer Kafka used by the access-c
 
 e2e-kafka-secure-down: ## Stop the secure Kafka environment
 	npm run e2e:kafka:secure:down
+
+e2e-mqtt-up: ## Start the Mosquitto used by the protocol and $SYS live tests
+	npm run e2e:mqtt:up
+
+e2e-mqtt-down: ## Stop the Mosquitto E2E environment
+	npm run e2e:mqtt:down
+
+e2e-mqtt-emqx-up: ## Start the EMQX used by the management-plane live tests
+	npm run e2e:mqtt:emqx:up
+
+e2e-mqtt-emqx-down: ## Stop the EMQX E2E environment
+	npm run e2e:mqtt:emqx:down
 
 e2e: ## Run the live tests against a running, seeded RocketMQ E2E environment
 	npm run test:e2e

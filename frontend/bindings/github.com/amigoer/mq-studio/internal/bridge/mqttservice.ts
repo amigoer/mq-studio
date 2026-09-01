@@ -7,10 +7,14 @@
  * It is one service rather than several because it is one family's surface,
  * the same reason KafkaService is one.
  * 
- * Reading retained topics, connected clients and the broker's nodes is not
- * here. Those are destinations, client connections and nodes, and the
- * canonical services already answer them; a second read path would be two
- * sources for one number.
+ * Reading retained topics and the broker's nodes is not here. Those are
+ * destinations and nodes, and the canonical services already answer them; a
+ * second read path would be two sources for one number.
+ * 
+ * Connected clients are here despite being a canonical model, because there
+ * is no canonical service to put them on: client inspection has never had one,
+ * and RabbitMQ exposes its own the same way. Adding a shared service for two
+ * families to use would be inventing a seam neither asked for.
  * @module
  */
 
@@ -48,11 +52,35 @@ export function ClientSubscriptions(connID: number, clientID: string): $Cancella
 }
 
 /**
+ * Clients is who the broker is holding a session for.
+ */
+export function Clients(connID: number): $CancellablePromise<(model$0.ClientConnection | null)[]> {
+    return $Call.ByID(2283137491, connID).then(($result: any) => {
+        return $$createType5($result);
+    });
+}
+
+/**
+ * KickClient ends one client's session. MQTT carries no reason on a
+ * disconnect, so there is none to pass.
+ */
+export function KickClient(connID: number, clientID: string): $CancellablePromise<void> {
+    return $Call.ByID(3418429124, connID, clientID);
+}
+
+/**
+ * KickUser ends every session a username holds.
+ */
+export function KickUser(connID: number, username: string): $CancellablePromise<void> {
+    return $Call.ByID(868684656, connID, username);
+}
+
+/**
  * PollSubscription drains what arrived after the caller's last sequence.
  */
 export function PollSubscription(connID: number, id: string, after: number, limit: number): $CancellablePromise<model$0.LiveBatch | null> {
     return $Call.ByID(3762917869, connID, id, after, limit).then(($result: any) => {
-        return $$createType4($result);
+        return $$createType7($result);
     });
 }
 
@@ -61,7 +89,7 @@ export function PollSubscription(connID: number, id: string, after: number, limi
  */
 export function Publish(connID: number, input: $models.MQTTPublishInput): $CancellablePromise<mqtt$0.PublishResult | null> {
     return $Call.ByID(1345607172, connID, input).then(($result: any) => {
-        return $$createType6($result);
+        return $$createType9($result);
     });
 }
 
@@ -74,7 +102,7 @@ export function Publish(connID: number, input: $models.MQTTPublishInput): $Cance
  */
 export function StartSubscription(connID: number, input: $models.MQTTSubscribeInput): $CancellablePromise<model$0.LiveSubscription | null> {
     return $Call.ByID(504085566, connID, input).then(($result: any) => {
-        return $$createType8($result);
+        return $$createType11($result);
     });
 }
 
@@ -90,7 +118,7 @@ export function StopSubscription(connID: number, id: string): $CancellablePromis
  */
 export function Subscriptions(connID: number): $CancellablePromise<(model$0.LiveSubscription | null)[]> {
     return $Call.ByID(1067240129, connID).then(($result: any) => {
-        return $$createType9($result);
+        return $$createType12($result);
     });
 }
 
@@ -98,10 +126,13 @@ export function Subscriptions(connID: number): $CancellablePromise<(model$0.Live
 const $$createType0 = mqtt$0.ClientSubscription.createFrom;
 const $$createType1 = $Create.Nullable($$createType0);
 const $$createType2 = $Create.Array($$createType1);
-const $$createType3 = model$0.LiveBatch.createFrom;
+const $$createType3 = model$0.ClientConnection.createFrom;
 const $$createType4 = $Create.Nullable($$createType3);
-const $$createType5 = mqtt$0.PublishResult.createFrom;
-const $$createType6 = $Create.Nullable($$createType5);
-const $$createType7 = model$0.LiveSubscription.createFrom;
-const $$createType8 = $Create.Nullable($$createType7);
-const $$createType9 = $Create.Array($$createType8);
+const $$createType5 = $Create.Array($$createType4);
+const $$createType6 = model$0.LiveBatch.createFrom;
+const $$createType7 = $Create.Nullable($$createType6);
+const $$createType8 = mqtt$0.PublishResult.createFrom;
+const $$createType9 = $Create.Nullable($$createType8);
+const $$createType10 = model$0.LiveSubscription.createFrom;
+const $$createType11 = $Create.Nullable($$createType10);
+const $$createType12 = $Create.Array($$createType11);

@@ -73,10 +73,17 @@ func (c *clientV5) Subscribe(ctx context.Context, filters []subscribeFilter) err
 		options[i] = paho.SubscribeOptions{
 			Topic: filter.Pattern,
 			QoS:   filter.QoS,
-			// Without this the broker echoes back everything this same
-			// connection publishes, so the send console would appear to be
-			// talking to itself in the workbench next to it.
-			NoLocal: true,
+			// NoLocal stays off, which is not the obvious choice. It would
+			// stop the broker echoing this connection's own publishes back,
+			// and the argument for it is that the send console should not
+			// appear to be talking to itself in the workbench next to it.
+			//
+			// Against it: publishing and watching it arrive is how a person
+			// checks a topic is right, and 3.1.1 has no such option at all -
+			// so turning it on would make the same two pages behave
+			// differently depending on which version the connection was made
+			// with. The consistency is worth more than the echo.
+			NoLocal: false,
 			// Deliver retained messages on the way in, and keep their flag
 			// set: a retained value and a live one look identical otherwise,
 			// and one of them may be hours old.
@@ -163,7 +170,7 @@ func (c *clientV5) resubscribe(manager *autopaho.ConnectionManager) {
 		options[i] = paho.SubscribeOptions{
 			Topic:             filter.Pattern,
 			QoS:               filter.QoS,
-			NoLocal:           true,
+			NoLocal:           false,
 			RetainAsPublished: true,
 		}
 	}
@@ -318,7 +325,10 @@ func (c *clientV5) clientConfig() autopaho.ClientConfig {
 		// never sends CONNACK holds the attempt for autopaho's own ten
 		// seconds, which can outlast the caller's whole request budget.
 		ConnectTimeout: c.config.DialTimeout,
-		OnConnectError: c.recordConnectError,
+		// Replaces autopaho's own dialler, which fragments a packet across
+		// WebSocket frames. See client_v5_ws.go.
+		AttemptConnection: wsDial(c.config),
+		OnConnectError:    c.recordConnectError,
 		// Must not block, so the resubscribe runs on its own goroutine.
 		OnConnectionUp: func(manager *autopaho.ConnectionManager, _ *paho.Connack) {
 			go c.resubscribe(manager)

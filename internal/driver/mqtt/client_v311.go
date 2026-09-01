@@ -111,11 +111,10 @@ func (c *clientV311) Unsubscribe(ctx context.Context, patterns []string) error {
 
 // handleMessage turns one delivery into the seam's shape.
 //
-// Everything 5.0 puts in properties is absent here, and so is NoLocal: 3.1.1
-// has no way to ask the broker not to echo this connection's own publishes
-// back, so a workbench watching a filter the send console publishes to will
-// see its own messages. That is the protocol, not a defect, and the alternative
-// - filtering them out by guessing - would hide a real duplicate.
+// Everything 5.0 puts in properties is absent here. So is NoLocal, which 3.1.1
+// has no way to express - and the 5.0 client leaves it off to match, so a
+// workbench sees this connection's own publishes on both versions rather than
+// on one.
 func (c *clientV311) handleMessage(_ paho3.Client, message paho3.Message) {
 	if c.onMessage == nil {
 		return

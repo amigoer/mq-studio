@@ -1,0 +1,36 @@
+name: mq-studio-e2e-mqtt-emqx
+
+# EMQX: the MQTT protocol plus the vendor REST management plane.
+#
+# This is the broker the management tier is written against. What it adds over
+# tests/e2e/mqtt is /api/v5 - connected clients, their subscriptions, the
+# cluster's nodes, and the ability to end a session - none of which the
+# protocol itself can express.
+#
+# It runs on its own ports so both can be up at once, and clear of everything
+# already listening: RocketMQ, Kafka, RabbitMQ, Pulsar and Redis.
+services:
+  emqx:
+    image: emqx/emqx:6
+    ports:
+      - '127.0.0.1:1884:1883'
+      - '127.0.0.1:8084:8083'
+      - '127.0.0.1:18083:18083'
+    environment:
+      EMQX_NODE__NAME: emqx@127.0.0.1
+      # The API key the live tests authenticate with. Bootstrapping it from a
+      # file is the only way to have one before a human has logged into the
+      # dashboard, which is what makes this environment startable from CI.
+      EMQX_API_KEY__BOOTSTRAP_FILE: '"/opt/emqx/etc/api_keys.bootstrap"'
+      # The default is a minute, which every test reading a counter would have
+      # to wait out.
+      EMQX_SYS_TOPICS__SYS_MSG_INTERVAL: 10s
+      EMQX_SYS_TOPICS__SYS_HEARTBEAT_INTERVAL: 10s
+    volumes:
+      - ./api_keys.bootstrap:/opt/emqx/etc/api_keys.bootstrap:ro
+    healthcheck:
+      test: ['CMD', '/opt/emqx/bin/emqx', 'ctl', 'status']
+      interval: 5s
+      timeout: 25s
+      retries: 24
+    restart: unless-stopped

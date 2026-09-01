@@ -1,0 +1,35 @@
+name: mq-studio-e2e-mqtt
+
+# Mosquitto: the MQTT protocol and nothing on top of it.
+#
+# Paired with tests/e2e/mqtt-emqx the way rabbitmq-plain is paired with
+# rabbitmq - one broker with the optional management plane and one deliberately
+# without, so both halves of the capability probe are exercised. Here the
+# absent half is the vendor REST API, which Mosquitto has never had.
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2
+    ports:
+      - '127.0.0.1:1883:1883'
+      - '127.0.0.1:9001:9001'
+    volumes:
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    healthcheck:
+      # There is no status endpoint, so the check is a real MQTT round trip.
+      test:
+        [
+          'CMD',
+          'mosquitto_sub',
+          '-h',
+          '127.0.0.1',
+          '-t',
+          '$$SYS/broker/version',
+          '-C',
+          '1',
+          '-W',
+          '3',
+        ]
+      interval: 5s
+      timeout: 10s
+      retries: 12
+    restart: unless-stopped
