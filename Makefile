@@ -11,7 +11,10 @@ ARCH ?=
 	e2e-rabbitmq-up e2e-rabbitmq-seed e2e-rabbitmq-down \
 	e2e-rabbitmq-plain-up e2e-rabbitmq-plain-down \
 	e2e-kafka-up e2e-kafka-seed e2e-kafka-down \
-	e2e-kafka-secure-up e2e-kafka-secure-down check ci clean \
+	e2e-kafka-secure-up e2e-kafka-secure-down \
+	e2e-redis-up e2e-redis-seed e2e-redis-down \
+	e2e-redis-cluster-up e2e-redis-cluster-down \
+	check ci clean \
 	website-dev website-build
 
 help: ## Show all available targets
@@ -96,6 +99,21 @@ e2e-kafka-secure-up: ## Start the SASL and authorizer Kafka used by the access-c
 
 e2e-kafka-secure-down: ## Stop the secure Kafka environment
 	npm run e2e:kafka:secure:down
+
+e2e-redis-up: ## Start the ACL-enabled Redis the live tests use
+	npm run e2e:redis:up
+
+e2e-redis-seed: ## Seed Redis with streams, groups and a pending entries list
+	npm run e2e:redis:seed
+
+e2e-redis-down: ## Stop the Redis environment and remove its volumes
+	npm run e2e:redis:down
+
+e2e-redis-cluster-up: ## Start the six-node Redis cluster used by the cluster tests
+	npm run e2e:redis:cluster:up
+
+e2e-redis-cluster-down: ## Stop the Redis cluster environment
+	npm run e2e:redis:cluster:down
 
 e2e: ## Run the live tests against a running, seeded RocketMQ E2E environment
 	npm run test:e2e
