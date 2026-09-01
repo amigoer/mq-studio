@@ -2242,16 +2242,20 @@
         "xdeath": "Dead-lettered {{count}} time(s), last from {{queue}}, reason {{reason}}"
       },
       "redis": {
-        "byIdRange": "By ID range",
-        "fieldCount": "Fields",
-        "fieldSummary": "Field summary",
-        "fields": "Fields (5) · field / value",
-        "acked": "notify-group acknowledged",
-        "inPel": "settle-group in PEL · idle 2.1h",
-        "notRead": "audit-group has not read it",
-        "xaddTemplate": "XADD from this as a template",
-        "older": "Older",
-        "newer": "Newer"
+        "subtitle": "A window of a stream, newest first",
+        "contains": "Field name or value contains…",
+        "read": "{{count}} read",
+        "pickAStream": "Choose a stream and read a window of it.",
+        "nothingRead": "Nothing in the window matched.",
+        "fieldCount": "fields",
+        "fieldSummary": "contents",
+        "fields": "Fields",
+        "copied": "Copied the entry",
+        "deleteTitle": "Delete entry {{id}}?",
+        "deleteHint": "XDEL removes the entry and leaves the gap: the ids around it keep the values they had, and max-deleted-entry-id records that the gap was deliberate. Redis has no undo.",
+        "deleted": "Deleted {{id}}",
+        "deleteMissing": "That entry had already gone; nothing was deleted.",
+        "deleteFailed": "Could not delete the entry"
       },
       "rocketmq": {
         "byMsgId": "By message ID",

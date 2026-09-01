@@ -70,6 +70,7 @@ func TestConnDeclaresNoConceptRedisStreamDoesNotHave(t *testing.T) {
 		model.CapDeadLetterTopology,
 		model.CapMessageResend,
 		model.CapMessageReplay,
+		model.CapMessageLiveTail,
 		model.CapMessageTrack,
 		model.CapDelayedDelivery,
 		model.CapProducerInspect,
@@ -232,6 +233,9 @@ func TestCapabilitiesMatchTheSidebarContract(t *testing.T) {
 		"subscription.delete",
 		"subscription.lag",
 		"subscription.position",
+
+		"message.query",
+		"message.byId",
 	}
 
 	declared := make(map[string]bool, len(capabilities()))

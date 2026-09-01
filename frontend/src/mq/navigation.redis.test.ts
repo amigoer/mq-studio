@@ -27,6 +27,8 @@ const REDIS_CAPABILITIES: Capability[] = [
   Capability.CapSubscriptionDelete,
   Capability.CapSubscriptionLag,
   Capability.CapSubscriptionPosition,
+  Capability.CapMessageQuery,
+  Capability.CapMessageByID,
 ];
 
 function state(
@@ -49,9 +51,9 @@ describe("the sidebar a Redis Stream connection draws", () => {
     const nav = navAvailability(state(REDIS_CAPABILITIES), true);
     const reachable = drawn.filter((id) => nav.visible(id) && !nav.disabled(id));
 
-    // Overview stands on its own; streams and consumers are the pages these
-    // capabilities exist for. The rest arrive with their ports.
-    expect(reachable).toEqual(["overview", "topics", "consumers"]);
+    // Overview stands on its own; the rest are the pages these capabilities
+    // exist for. What is still missing arrives with its port.
+    expect(reachable).toEqual(["overview", "topics", "consumers", "messages"]);
   });
 
   /*

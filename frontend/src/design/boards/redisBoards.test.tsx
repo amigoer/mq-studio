@@ -39,6 +39,7 @@ function stateOf<T>(over: Partial<BrokerState<T>>): BrokerState<T> {
 const streamsState = vi.hoisted(() => ({ current: null as unknown }));
 const streamDetailState = vi.hoisted(() => ({ current: null as unknown }));
 const groupsState = vi.hoisted(() => ({ current: null as unknown }));
+const entriesState = vi.hoisted(() => ({ current: null as unknown }));
 
 vi.mock("@/hooks/redis/useRedisStreams", () => ({
   useRedisStreams: () => streamsState.current,
@@ -47,10 +48,14 @@ vi.mock("@/hooks/redis/useRedisStreams", () => ({
 vi.mock("@/hooks/redis/useRedisGroups", () => ({
   useRedisGroups: () => groupsState.current,
 }));
+vi.mock("@/hooks/redis/useRedisEntries", () => ({
+  useRedisEntries: () => entriesState.current,
+}));
 
 let render: (element: React.ReactElement) => string;
 let StreamsRedis: typeof import("./topics/StreamsRedis").StreamsRedis;
 let ConsumersRedis: typeof import("./consumers/ConsumersRedis").ConsumersRedis;
+let MessagesRedis: typeof import("./messages/MessagesRedis").MessagesRedis;
 
 beforeAll(async () => {
   const storage = { getItem: () => null, setItem() {}, removeItem() {} };
@@ -63,10 +68,11 @@ beforeAll(async () => {
   });
   vi.stubGlobal("localStorage", storage);
 
-  const [server, streams, consumers, ui, i18n, settings] = await Promise.all([
+  const [server, streams, consumers, messages, ui, i18n, settings] = await Promise.all([
     import("react-dom/server"),
     import("./topics/StreamsRedis"),
     import("./consumers/ConsumersRedis"),
+    import("./messages/MessagesRedis"),
     import("@/components"),
     import("@/i18n"),
     import("@/hooks/useSettings"),
@@ -80,6 +86,7 @@ beforeAll(async () => {
     );
   StreamsRedis = streams.StreamsRedis;
   ConsumersRedis = consumers.ConsumersRedis;
+  MessagesRedis = messages.MessagesRedis;
 });
 
 /** A stream as internal/driver/redisstream/destination.go sends one. */
@@ -342,5 +349,84 @@ describe("the Redis consumer groups board's write controls", () => {
     groupsState.current = stateOf({ data: [] });
     streamsState.current = stateOf({ data: [orders] });
     expect(render(<ConsumersRedis />)).not.toContain("重置位置");
+  });
+});
+
+/** A browse result shaped the way the hook returns one. */
+function entriesOf(over: Partial<{ items: unknown[]; running: boolean; lastCount: number | null }>) {
+  const { items = [], running = false, lastCount = null } = over;
+  return {
+    items,
+    running,
+    lastCount,
+    query: async () => {},
+    state: { loading: false, error: null, online: true, refresh: async () => {} },
+  };
+}
+
+/** An entry as internal/driver/redisstream/message.go sends one. */
+const entry = {
+  id: 1,
+  topic: "orders:events",
+  messageId: "1756454646018-3",
+  body: '{"order":"A-1001","total":"42.50"}',
+  queueId: 0,
+  queueOffset: 0,
+  storeTime: "2026-08-29 14:24:06",
+  storeTimestamp: 1756454646018,
+  status: "normal",
+  properties: { order: "A-1001", total: "42.50" },
+};
+
+describe("the Redis messages board", () => {
+  it("says nothing is dialled rather than showing an empty list", () => {
+    entriesState.current = {
+      ...entriesOf({}),
+      state: { loading: false, error: null, online: false, refresh: async () => {} },
+    };
+    streamsState.current = stateOf({ online: false, data: null });
+    expect(render(<MessagesRedis />)).toContain("未连接");
+  });
+
+  /*
+   * Before the first read the page has not failed and is not empty - it has
+   * simply not been asked anything yet. Rendering that as "nothing found"
+   * would report an empty stream that was never read.
+   */
+  it("asks for a stream before anything has been read", () => {
+    entriesState.current = entriesOf({});
+    streamsState.current = stateOf({ data: [orders] });
+    const html = render(<MessagesRedis />);
+    expect(html).toContain("读取它的一段窗口");
+    expect(html).not.toContain("没有匹配");
+  });
+
+  it("says the window held nothing once a read has happened", () => {
+    entriesState.current = entriesOf({ lastCount: 0 });
+    streamsState.current = stateOf({ data: [orders] });
+    expect(render(<MessagesRedis />)).toContain("没有匹配");
+  });
+
+  it("lists entries with their field count and a summary of the contents", () => {
+    entriesState.current = entriesOf({ items: [entry], lastCount: 1 });
+    streamsState.current = stateOf({ data: [orders] });
+    const html = render(<MessagesRedis />);
+    expect(html).toContain("1756454646018-3");
+    expect(html).toContain("order=A-1001");
+    expect(html).toContain("2026-08-29 14:24:06");
+    // What the read returned, not what the stream holds.
+    expect(html).toContain("读到 1 条");
+  });
+
+  it("renders an entry with no fields without inventing any", () => {
+    entriesState.current = entriesOf({
+      items: [{ ...entry, body: "{}", properties: {} }],
+      lastCount: 1,
+    });
+    streamsState.current = stateOf({ data: [orders] });
+    const html = render(<MessagesRedis />);
+    expect(html).toContain("1756454646018-3");
+    expect(html).not.toContain("undefined");
+    expect(html).not.toContain("NaN");
   });
 });

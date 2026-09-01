@@ -8,9 +8,10 @@
  * three zeros to make a stream would read as though it were leaving something
  * out.
  */
-import { RedisStreamService } from "@bindings/bridge";
-import type { TrimResult } from "@bindings/model/models";
-import { required } from "./client";
+import { MessageService, RedisStreamService } from "@bindings/bridge";
+import type { MessageItem, TrimResult } from "@bindings/model/models";
+import { FILTER_CONTAINS, FILTER_FIELD } from "@/mq/redis/messages";
+import { present, required } from "./client";
 import * as topicApi from "./topic";
 
 /** Creates an empty stream. Redis needs nothing but the key. */
@@ -105,3 +106,44 @@ export const setGroupPosition = (
   group: string,
   position: string,
 ): Promise<void> => RedisStreamService.SetGroupPosition(connID, stream, group, position);
+
+/** How a browse narrows a stream. */
+export interface EntryQuery {
+  stream: string;
+  /** Zero lets the configured page size decide. */
+  maxResults?: number;
+  startTimeMs?: number;
+  endTimeMs?: number;
+  /** Only entries carrying a field of this name. */
+  field?: string;
+  /** Only entries where some field name or value contains this text. */
+  contains?: string;
+}
+
+/**
+ * Reads a window of a stream, newest first.
+ *
+ * The time range is native here rather than an approximation: a stream entry's
+ * id is milliseconds plus a sequence, so a start and end timestamp are
+ * literally a start and end id and the server answers the exact question.
+ */
+export const queryEntries = (connID: number, query: EntryQuery): Promise<MessageItem[]> =>
+  MessageService.Query(connID, {
+    topic: query.stream,
+    key: "",
+    tag: "",
+    maxResults: query.maxResults ?? 0,
+    startTime: query.startTimeMs ?? 0,
+    endTime: query.endTimeMs ?? 0,
+    filters: {
+      ...(query.field ? { [FILTER_FIELD]: query.field } : {}),
+      ...(query.contains ? { [FILTER_CONTAINS]: query.contains } : {}),
+    },
+  }).then(present);
+
+/** Reads one entry by its id, which in this family is an exact lookup. */
+export const entryById = (
+  connID: number,
+  stream: string,
+  id: string,
+): Promise<MessageItem | null> => MessageService.ByID(connID, stream, id);

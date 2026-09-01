@@ -75,6 +75,9 @@ func capabilities() []model.Capability {
 		model.CapSubscriptionDelete,
 		model.CapSubscriptionLag,
 		model.CapSubscriptionPosition,
+
+		model.CapMessageQuery,
+		model.CapMessageByID,
 	}
 }
 

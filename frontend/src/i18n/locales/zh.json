@@ -2242,16 +2242,20 @@
         "xdeath": "已死信 {{count}} 次 · 上次来自 {{queue}} · 原因 {{reason}}"
       },
       "redis": {
-        "byIdRange": "按 ID 范围",
+        "subtitle": "Stream 的一段窗口，从新到旧",
+        "contains": "字段名或值包含…",
+        "read": "读到 {{count}} 条",
+        "pickAStream": "选择一个 Stream，读取它的一段窗口。",
+        "nothingRead": "窗口内没有匹配的消息。",
         "fieldCount": "字段数",
-        "fieldSummary": "字段摘要",
-        "fields": "字段（5）· field / value",
-        "acked": "notify-group 已确认",
-        "inPel": "settle-group PEL 中 · idle 2.1h",
-        "notRead": "audit-group 未读到",
-        "xaddTemplate": "以此为模板 XADD",
-        "older": "更早",
-        "newer": "更新"
+        "fieldSummary": "内容",
+        "fields": "字段",
+        "copied": "已复制该条消息",
+        "deleteTitle": "删除消息 {{id}}？",
+        "deleteHint": "XDEL 删除该条并留下空缺：周围的 ID 保持原值，max-deleted-entry-id 会记录这个空缺是人为造成的。Redis 没有撤销。",
+        "deleted": "已删除 {{id}}",
+        "deleteMissing": "该条消息已经不存在，未删除任何内容。",
+        "deleteFailed": "删除消息失败"
       },
       "rocketmq": {
         "byMsgId": "按 MsgId",

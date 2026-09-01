@@ -852,3 +852,113 @@ func TestLiveRepositionToTheBeginningReplaysWhatSurvives(t *testing.T) {
 		t.Errorf("backlog = %d after moving to the beginning, want the 12 that survived the trim", after.Backlog)
 	}
 }
+
+/*
+ * The time window, against a server that generates the ids from its own clock.
+ *
+ * This is the one place the canonical query shape fits Redis without a seam,
+ * and the sequence bounds are what make it fit: entries written in the same
+ * millisecond share the id's first half, and a window that ended at <ms>-0
+ * would drop all but the first of them. On a busy stream that is most of the
+ * entries, and the loss would be invisible - the page would simply show fewer
+ * rows.
+ */
+func TestLiveQueryMessagesInATimeWindow(t *testing.T) {
+	conn := liveConn(t, map[string]string{OptionStreamFilter: liveStreams + "browse:*"}, nil)
+	ctx := liveContext(t)
+	key := liveStreams + "browse:orders"
+	// Written as fast as the loop goes, so several share a millisecond.
+	seedLiveStream(t, conn, key, 40)
+
+	all, err := conn.QueryMessages(ctx, model.MessageQueryParams{Topic: key, MaxResults: 100})
+	if err != nil {
+		t.Fatalf("query: %v", err)
+	}
+	if len(all) != 40 {
+		t.Fatalf("read %d entries, want 40", len(all))
+	}
+	// Newest first.
+	if all[0].StoreTimestamp < all[len(all)-1].StoreTimestamp {
+		t.Errorf("the newest entry is not first")
+	}
+
+	// A window covering exactly the millisecond of the newest entry has to
+	// include every entry stamped with it, not only the first.
+	newest := all[0].StoreTimestamp
+	sameMillisecond := 0
+	for _, item := range all {
+		if item.StoreTimestamp == newest {
+			sameMillisecond++
+		}
+	}
+	window, err := conn.QueryMessages(ctx, model.MessageQueryParams{
+		Topic:      key,
+		StartTime:  newest,
+		EndTime:    newest,
+		MaxResults: 100,
+	})
+	if err != nil {
+		t.Fatalf("windowed query: %v", err)
+	}
+	if len(window) != sameMillisecond {
+		t.Errorf("a window on one millisecond returned %d of the %d entries stamped with it",
+			len(window), sameMillisecond)
+	}
+}
+
+// The id is the timestamp: Redis generates it from its own clock, so the store
+// time the panel shows is the server's rather than anything derived here.
+func TestLiveEntryTimestampComesFromTheID(t *testing.T) {
+	conn := liveConn(t, map[string]string{OptionStreamFilter: liveStreams + "stamp:*"}, nil)
+	ctx := liveContext(t)
+	key := liveStreams + "stamp:orders"
+	seedLiveStream(t, conn, key, 1)
+
+	items, err := conn.QueryMessages(ctx, model.MessageQueryParams{Topic: key})
+	if err != nil {
+		t.Fatalf("query: %v", err)
+	}
+	if len(items) != 1 {
+		t.Fatalf("read %d entries, want 1", len(items))
+	}
+	head, _, _ := strings.Cut(items[0].MessageID, "-")
+	if strconv.FormatInt(items[0].StoreTimestamp, 10) != head {
+		t.Errorf("store timestamp %d does not match the id %q", items[0].StoreTimestamp, items[0].MessageID)
+	}
+	if items[0].StoreTime == "" {
+		t.Error("no formatted store time")
+	}
+}
+
+func TestLiveMessageByID(t *testing.T) {
+	conn := liveConn(t, map[string]string{OptionStreamFilter: liveStreams + "byid:*"}, nil)
+	ctx := liveContext(t)
+	key := liveStreams + "byid:orders"
+	seedLiveStream(t, conn, key, 5)
+
+	all, err := conn.QueryMessages(ctx, model.MessageQueryParams{Topic: key})
+	if err != nil {
+		t.Fatalf("query: %v", err)
+	}
+	target := all[2].MessageID
+
+	item, err := conn.MessageByID(ctx, key, target)
+	if err != nil {
+		t.Fatalf("by id: %v", err)
+	}
+	if item.MessageID != target {
+		t.Errorf("id = %q, want %q", item.MessageID, target)
+	}
+	if item.Properties["seq"] == "" {
+		t.Errorf("the entry came back with no fields: %+v", item.Properties)
+	}
+
+	// An entry that was deleted is gone rather than empty, and saying so is
+	// what stops the panel rendering a blank message.
+	if _, err := conn.DeleteEntries(ctx, model.DestinationRef{Name: key}, []string{target}); err != nil {
+		t.Fatalf("delete: %v", err)
+	}
+	if _, err := conn.MessageByID(ctx, key, target); err == nil {
+		t.Error("looking up a deleted entry succeeded")
+	}
+}
