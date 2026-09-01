@@ -78,3 +78,60 @@ const (
 	// which is the figure that turns a backlog count into an idea of size.
 	AttrTopicAverageMessageBytes = "pulsarAverageMessageBytes"
 )
+
+// Subscription.
+const (
+	// AttrSubscriptionTopic is the topic this subscription belongs to. Also in
+	// the ref's namespace field, and repeated here because the subscription
+	// board reads its columns through this module rather than through the ref.
+	AttrSubscriptionTopic = "pulsarSubscriptionTopic"
+
+	// AttrSubscriptionType is Exclusive, Shared, Failover or Key_Shared. It is
+	// chosen by the consumers that attach rather than stored as configuration,
+	// which is why it is reported and never edited.
+	AttrSubscriptionType = "pulsarSubscriptionType"
+
+	// AttrSubscriptionDurable distinguishes a cursor the broker persists from
+	// a reader's own position, which vanishes when it disconnects.
+	AttrSubscriptionDurable = "pulsarSubscriptionDurable"
+
+	// AttrSubscriptionUnacked is what has been delivered and not acknowledged.
+	// It is the figure behind a blocked subscription: past the broker's limit
+	// delivery stops entirely.
+	AttrSubscriptionUnacked = "pulsarSubscriptionUnacked"
+
+	// AttrSubscriptionDelayed is what is scheduled for later and therefore
+	// counted in the backlog while being nobody's fault.
+	AttrSubscriptionDelayed = "pulsarSubscriptionDelayed"
+
+	// AttrSubscriptionBacklogB is the backlog in bytes, which is what decides
+	// whether a namespace's backlog quota is about to bite.
+	AttrSubscriptionBacklogB = "pulsarSubscriptionBacklogBytes"
+
+	// AttrSubscriptionBlocked is the broker having stopped delivering because
+	// of unacknowledged messages. It looks exactly like a stalled consumer
+	// from the backlog alone and is fixed somewhere completely different.
+	AttrSubscriptionBlocked = "pulsarSubscriptionBlocked"
+
+	// AttrSubscriptionRedeliverRate is how fast messages are going round
+	// again, which is what a failing consumer looks like from the broker.
+	AttrSubscriptionRedeliverRate = "pulsarSubscriptionRedeliverRate"
+
+	// AttrSubscriptionActiveConsumer names the one consumer receiving on a
+	// Failover subscription, where the others are standing by.
+	AttrSubscriptionActiveConsumer = "pulsarSubscriptionActiveConsumer"
+
+	// AttrSubscriptionStartAt is a create-only input: where a new subscription
+	// begins reading.
+	AttrSubscriptionStartAt = "pulsarSubscriptionStartAt"
+)
+
+// Where a newly created subscription starts.
+//
+// Earliest is the default and the reason the control exists: a subscription
+// created at the latest position silently discards whatever is already on the
+// topic, which is the opposite of why somebody creates one ahead of a consumer.
+const (
+	StartAtEarliest = "earliest"
+	StartAtLatest   = "latest"
+)

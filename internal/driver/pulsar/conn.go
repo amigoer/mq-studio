@@ -150,6 +150,12 @@ func capabilities() []model.Capability {
 		model.CapDestinationUpdate,
 		model.CapDestinationDelete,
 		model.CapPartitions,
+		model.CapSubscriptionList,
+		model.CapSubscriptionCreate,
+		model.CapSubscriptionDelete,
+		model.CapSubscriptionLag,
+		model.CapSubscriptionRuntime,
+		model.CapOffsetReset,
 	}
 }
 

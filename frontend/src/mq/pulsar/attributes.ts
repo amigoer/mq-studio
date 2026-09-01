@@ -26,6 +26,18 @@ export const AttrTopicStorageBytes = "pulsarStorageBytes";
 export const AttrTopicProducers = "pulsarTopicProducers";
 export const AttrTopicAverageMessageBytes = "pulsarAverageMessageBytes";
 
+/** Subscription. */
+export const AttrSubscriptionTopic = "pulsarSubscriptionTopic";
+export const AttrSubscriptionType = "pulsarSubscriptionType";
+export const AttrSubscriptionDurable = "pulsarSubscriptionDurable";
+export const AttrSubscriptionUnacked = "pulsarSubscriptionUnacked";
+export const AttrSubscriptionDelayed = "pulsarSubscriptionDelayed";
+export const AttrSubscriptionBacklogBytes = "pulsarSubscriptionBacklogBytes";
+export const AttrSubscriptionBlocked = "pulsarSubscriptionBlocked";
+export const AttrSubscriptionRedeliverRate = "pulsarSubscriptionRedeliverRate";
+export const AttrSubscriptionActiveConsumer = "pulsarSubscriptionActiveConsumer";
+export const AttrSubscriptionStartAt = "pulsarSubscriptionStartAt";
+
 /** ClusterOverview. */
 export const AttrClusterName = "pulsarCluster";
 export const AttrClusterServiceURL = "pulsarClusterWebServiceUrl";

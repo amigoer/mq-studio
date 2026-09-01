@@ -69,6 +69,47 @@ func newFakeCluster(t *testing.T, routes map[string]string, status int) fakeClus
 	}
 }
 
+/*
+ * newRecordingCluster is the same fake, plus a log of the paths that were
+ * written to.
+ *
+ * Three of Pulsar's cursor operations differ only by endpoint - reset to a
+ * timestamp, reset to the earliest, and skip the backlog entirely - and all
+ * three arrive through one ResetOffsetRequest. Asserting on the response would
+ * not tell them apart, so the assertion is on where the request went.
+ */
+func newRecordingCluster(t *testing.T, routes map[string]string, calls *[]string) fakeCluster {
+	t.Helper()
+
+	admin := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			*calls = append(*calls, r.URL.Path)
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		body, known := routes[r.URL.Path]
+		w.Header().Set("Content-Type", "application/json")
+		if !known {
+			w.WriteHeader(http.StatusNotFound)
+			_, _ = w.Write([]byte(`{"reason":"no"}`))
+			return
+		}
+		_, _ = w.Write([]byte(body))
+	}))
+	t.Cleanup(admin.Close)
+
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("open a broker port: %v", err)
+	}
+	t.Cleanup(func() { _ = listener.Close() })
+
+	return fakeCluster{
+		adminURL:   admin.URL,
+		serviceURL: "pulsar://" + listener.Addr().String(),
+	}
+}
+
 // healthyCluster answers every question the probe asks.
 func healthyCluster(t *testing.T) fakeCluster {
 	t.Helper()

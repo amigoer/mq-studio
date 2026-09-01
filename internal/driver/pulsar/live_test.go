@@ -2,8 +2,11 @@ package pulsar
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
+
+	pulsarclient "github.com/apache/pulsar-client-go/pulsar"
 
 	"github.com/amigoer/mq-studio/internal/driver"
 	"github.com/amigoer/mq-studio/internal/e2e"
@@ -587,6 +590,193 @@ func findTopic(t *testing.T, conn *Conn, name string) *model.Destination {
 	for _, topic := range topics {
 		if topic.Ref.Name == name {
 			return topic
+		}
+	}
+	return nil
+}
+
+/*
+ * A subscription created from the admin API, found by the walk, and moved.
+ *
+ * Creating one before any consumer attaches is the whole point of the
+ * capability: it is how a consumer that has not started yet stops missing
+ * everything published before it does. Only a live cluster proves the create
+ * takes the position pulsaradmin sends and that the walk finds it afterwards.
+ */
+func TestLiveSubscriptionCreateThenDelete(t *testing.T) {
+	conn := liveConn(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	ref := model.DestinationRef{Namespace: "public/default", Name: "mq-studio-e2e-subs"}
+	_ = conn.RemoveDestination(ctx, ref)
+	if err := conn.CreateDestination(ctx, model.DestinationSpec{Ref: ref}); err != nil {
+		t.Fatalf("create the topic: %v", err)
+	}
+	t.Cleanup(func() {
+		cleanup, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		_ = conn.RemoveDestination(cleanup, ref)
+	})
+	waitForTopic(t, conn, ref.Name)
+
+	url := topicURL(ref, true)
+	subscription := subscriptionRef(url, "mq-studio-e2e-reader")
+	if err := conn.CreateSubscription(ctx,
+		model.SubscriptionSpec{Ref: subscription}); err != nil {
+		t.Fatalf("create the subscription: %v", err)
+	}
+
+	found := findSubscription(t, conn, subscription.Name)
+	if found == nil {
+		t.Fatal("the subscription just created is not in the walk")
+	}
+	if found.Ref.Namespace != url {
+		t.Errorf("ref namespace = %q, want the topic URL", found.Ref.Namespace)
+	}
+	// Nothing has been published, so an empty backlog here is a fact rather
+	// than a figure nobody read.
+	if found.Backlog != 0 {
+		t.Errorf("backlog = %d on a topic nothing was published to", found.Backlog)
+	}
+	// No consumer has attached, which is a state the page draws differently
+	// from one that is reading.
+	if found.Status != model.SubscriptionOffline {
+		t.Errorf("status = %q with no consumer attached", found.Status)
+	}
+
+	detail, err := conn.SubscriptionDetail(ctx, subscription)
+	if err != nil {
+		t.Fatalf("SubscriptionDetail: %v", err)
+	}
+	if detail.Attributes[AttrSubscriptionDurable] != "true" {
+		t.Error("a subscription created through the admin API is not durable")
+	}
+
+	if err := conn.RemoveSubscription(ctx, subscription); err != nil {
+		t.Fatalf("delete the subscription: %v", err)
+	}
+	if findSubscription(t, conn, subscription.Name) != nil {
+		t.Error("the subscription is still listed after being deleted")
+	}
+}
+
+/*
+ * A backlog built by publishing, then moved three different ways.
+ *
+ * This is the test that would catch the three cursor calls being mapped onto
+ * the wrong endpoints: a force that replayed instead of skipping hands a
+ * consumer a backlog somebody asked to discard, and neither shows up as an
+ * error.
+ */
+func TestLiveResetCursorMovesTheBacklog(t *testing.T) {
+	conn := liveConn(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+	defer cancel()
+
+	ref := model.DestinationRef{Namespace: "public/default", Name: "mq-studio-e2e-cursor"}
+	_ = conn.RemoveDestination(ctx, ref)
+	if err := conn.CreateDestination(ctx, model.DestinationSpec{Ref: ref}); err != nil {
+		t.Fatalf("create the topic: %v", err)
+	}
+	t.Cleanup(func() {
+		cleanup, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		_ = conn.RemoveDestination(cleanup, ref)
+	})
+	waitForTopic(t, conn, ref.Name)
+
+	url := topicURL(ref, true)
+	subscription := subscriptionRef(url, "mq-studio-e2e-cursor-reader")
+	if err := conn.CreateSubscription(ctx,
+		model.SubscriptionSpec{Ref: subscription}); err != nil {
+		t.Fatalf("create the subscription: %v", err)
+	}
+
+	// The subscription exists before anything is published, so every message
+	// below lands in its backlog. That is what makes the reset observable.
+	publishForTest(t, conn, url, 10)
+	waitForBacklog(t, conn, subscription, 10)
+
+	// Force skips rather than replays: the backlog is discarded.
+	if err := conn.ResetOffset(ctx, model.ResetOffsetRequest{
+		Group: subscription.Name, Topic: url, Force: true,
+	}); err != nil {
+		t.Fatalf("clear the backlog: %v", err)
+	}
+	waitForBacklog(t, conn, subscription, 0)
+
+	// And a reset to the earliest brings all ten back, which is the operation
+	// an operator reaches for when a consumer processed something wrongly.
+	if err := conn.ResetOffset(ctx, model.ResetOffsetRequest{
+		Group: subscription.Name, Topic: url,
+	}); err != nil {
+		t.Fatalf("reset to the earliest: %v", err)
+	}
+	waitForBacklog(t, conn, subscription, 10)
+}
+
+// publishForTest puts messages on a topic through the data plane client.
+//
+// The driver's own publish path arrives in a later commit; this needs only
+// something on the topic for the cursor to move over.
+func publishForTest(t *testing.T, conn *Conn, topic string, count int) {
+	t.Helper()
+
+	producer, err := conn.client.CreateProducer(pulsarclient.ProducerOptions{Topic: topic})
+	if err != nil {
+		t.Fatalf("create a producer on %s: %v", topic, err)
+	}
+	defer producer.Close()
+
+	for i := 0; i < count; i++ {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		_, err := producer.Send(ctx, &pulsarclient.ProducerMessage{
+			Payload: []byte(fmt.Sprintf("message-%d", i)),
+		})
+		cancel()
+		if err != nil {
+			t.Fatalf("send message %d: %v", i, err)
+		}
+	}
+}
+
+// waitForBacklog gives the broker a bounded moment to publish updated stats.
+//
+// The figures behind a subscription are refreshed on the broker's own timer,
+// so a read immediately after a reset can still report the previous value.
+func waitForBacklog(t *testing.T, conn *Conn, ref model.SubscriptionRef, want int64) {
+	t.Helper()
+
+	deadline := time.Now().Add(30 * time.Second)
+	var last int64 = -1
+	for {
+		found := findSubscription(t, conn, ref.Name)
+		if found != nil {
+			last = found.Backlog
+			if last == want {
+				return
+			}
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("backlog of %s settled at %d, want %d", ref.Name, last, want)
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+}
+
+func findSubscription(t *testing.T, conn *Conn, name string) *model.Subscription {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
+	subscriptions, err := conn.ListSubscriptions(ctx)
+	if err != nil {
+		t.Fatalf("ListSubscriptions: %v", err)
+	}
+	for _, subscription := range subscriptions {
+		if subscription.Ref.Name == name {
+			return subscription
 		}
 	}
 	return nil

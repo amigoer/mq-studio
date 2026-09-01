@@ -5,12 +5,17 @@ import type {
   PulsarTenantView,
   PulsarTopicInput,
 } from "@bindings/bridge/models";
-import type { Destination, Namespace } from "@bindings/model/models";
+import type {
+  Destination,
+  Namespace,
+  SubscriptionClient,
+} from "@bindings/model/models";
 import { present, required } from "./client";
 
 export type {
   Destination,
   Namespace,
+  SubscriptionClient,
   PulsarNamespaceInput,
   PulsarTenantInput,
   PulsarTenantView,
@@ -119,3 +124,40 @@ export const removePulsarTopic = (
   namespace: string,
   name: string,
 ): Promise<void> => PulsarService.DeleteTopic(connID, namespace, name);
+
+/**
+ * One subscription's figures.
+ *
+ * Topic-scoped, which the canonical consumer API is not: a Pulsar subscription
+ * has no identity without the topic it belongs to.
+ */
+export const getPulsarSubscriptionStats = (
+  connID: number,
+  topic: string,
+  subscription: string,
+): Promise<Record<string, unknown>> =>
+  PulsarService.SubscriptionStats(connID, topic, subscription);
+
+/** Who is attached, as the broker reports them. */
+export const getPulsarSubscriptionClients = (
+  connID: number,
+  topic: string,
+  subscription: string,
+): Promise<SubscriptionClient[]> =>
+  PulsarService.SubscriptionClients(connID, topic, subscription).then(present);
+
+/** Adds a subscription. "earliest" or "latest". */
+export const createPulsarSubscription = (
+  connID: number,
+  topic: string,
+  subscription: string,
+  startAt: string,
+): Promise<void> =>
+  PulsarService.CreateSubscription(connID, topic, subscription, startAt);
+
+/** Deletes one. Pulsar refuses while a consumer is attached. */
+export const removePulsarSubscription = (
+  connID: number,
+  topic: string,
+  subscription: string,
+): Promise<void> => PulsarService.DeleteSubscription(connID, topic, subscription);

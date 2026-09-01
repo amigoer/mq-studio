@@ -44,6 +44,18 @@ export function CreateNamespace(connID: number, input: $models.PulsarNamespaceIn
 }
 
 /**
+ * CreateSubscription adds one to a topic.
+ * 
+ * startAt is "earliest" or "latest". Earliest is the default because a
+ * subscription created at the latest position silently discards whatever is
+ * already on the topic, which is the opposite of why one is created ahead of
+ * the consumer that will use it.
+ */
+export function CreateSubscription(connID: number, topic: string, subscription: string, startAt: string): $CancellablePromise<void> {
+    return $Call.ByID(686098651, connID, topic, subscription, startAt);
+}
+
+/**
  * CreateTopic declares a topic.
  */
 export function CreateTopic(connID: number, input: $models.PulsarTopicInput): $CancellablePromise<void> {
@@ -56,6 +68,14 @@ export function CreateTopic(connID: number, input: $models.PulsarTopicInput): $C
  */
 export function DeleteNamespace(connID: number, name: string): $CancellablePromise<void> {
     return $Call.ByID(882977176, connID, name);
+}
+
+/**
+ * DeleteSubscription removes one. Pulsar refuses while a consumer is attached,
+ * and that refusal reaches the user.
+ */
+export function DeleteSubscription(connID: number, topic: string, subscription: string): $CancellablePromise<void> {
+    return $Call.ByID(425603228, connID, topic, subscription);
 }
 
 /**
@@ -115,11 +135,35 @@ export function SetNamespaceLimit(connID: number, name: string, limit: string, v
 }
 
 /**
+ * SubscriptionClients is who is attached, as the broker reports them. No round
+ * trip to any consumer: Pulsar carries their permits and rates in the topic's
+ * own stats.
+ */
+export function SubscriptionClients(connID: number, topic: string, subscription: string): $CancellablePromise<(model$0.SubscriptionClient | null)[]> {
+    return $Call.ByID(1693229665, connID, topic, subscription).then(($result: any) => {
+        return $$createType6($result);
+    });
+}
+
+/**
+ * SubscriptionStats is one subscription's figures.
+ * 
+ * Topic-scoped, which ConsumerService.Stats is not: it builds a ref with an
+ * empty namespace, and a Pulsar subscription has no identity without the topic
+ * it belongs to.
+ */
+export function SubscriptionStats(connID: number, topic: string, subscription: string): $CancellablePromise<{ [_ in string]?: any }> {
+    return $Call.ByID(2895460458, connID, topic, subscription).then(($result: any) => {
+        return $$createType7($result);
+    });
+}
+
+/**
  * Tenants lists every tenant on the cluster.
  */
 export function Tenants(connID: number): $CancellablePromise<($models.PulsarTenantView | null)[]> {
     return $Call.ByID(3205204843, connID).then(($result: any) => {
-        return $$createType6($result);
+        return $$createType10($result);
     });
 }
 
@@ -128,7 +172,7 @@ export function Tenants(connID: number): $CancellablePromise<($models.PulsarTena
  */
 export function TopicDetail(connID: number, $namespace: string, name: string): $CancellablePromise<model$0.Destination | null> {
     return $Call.ByID(1962758660, connID, $namespace, name).then(($result: any) => {
-        return $$createType8($result);
+        return $$createType12($result);
     });
 }
 
@@ -137,7 +181,7 @@ export function TopicDetail(connID: number, $namespace: string, name: string): $
  */
 export function TopicStats(connID: number, $namespace: string, name: string): $CancellablePromise<{ [_ in string]?: any }> {
     return $Call.ByID(1539980380, connID, $namespace, name).then(($result: any) => {
-        return $$createType9($result);
+        return $$createType7($result);
     });
 }
 
@@ -150,7 +194,7 @@ export function TopicStats(connID: number, $namespace: string, name: string): $C
  */
 export function Topics(connID: number, $namespace: string, includeInternal: boolean): $CancellablePromise<(model$0.Destination | null)[]> {
     return $Call.ByID(447707186, connID, $namespace, includeInternal).then(($result: any) => {
-        return $$createType10($result);
+        return $$createType13($result);
     });
 }
 
@@ -159,10 +203,13 @@ const $$createType0 = $Create.Array($Create.Any);
 const $$createType1 = model$0.Namespace.createFrom;
 const $$createType2 = $Create.Nullable($$createType1);
 const $$createType3 = $Create.Array($$createType2);
-const $$createType4 = $models.PulsarTenantView.createFrom;
+const $$createType4 = model$0.SubscriptionClient.createFrom;
 const $$createType5 = $Create.Nullable($$createType4);
 const $$createType6 = $Create.Array($$createType5);
-const $$createType7 = model$0.Destination.createFrom;
-const $$createType8 = $Create.Nullable($$createType7);
-const $$createType9 = $Create.Map($Create.Any, $Create.Any);
-const $$createType10 = $Create.Array($$createType8);
+const $$createType7 = $Create.Map($Create.Any, $Create.Any);
+const $$createType8 = $models.PulsarTenantView.createFrom;
+const $$createType9 = $Create.Nullable($$createType8);
+const $$createType10 = $Create.Array($$createType9);
+const $$createType11 = model$0.Destination.createFrom;
+const $$createType12 = $Create.Nullable($$createType11);
+const $$createType13 = $Create.Array($$createType12);

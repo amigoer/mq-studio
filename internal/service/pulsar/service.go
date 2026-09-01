@@ -290,3 +290,67 @@ func (s *Service) DeleteTopic(ctx context.Context, connID int, namespace, name s
 	defer cancel()
 	return api.RemoveDestination(ctx, model.DestinationRef{Namespace: namespace, Name: name})
 }
+
+// SubscriptionStats is one subscription's figures.
+//
+// Topic-scoped, which the canonical consumer service is not: its Stats builds
+// a ref with an empty namespace, and a Pulsar subscription has no identity
+// without the topic it belongs to - two topics can each have one called
+// "shared" and they are unrelated.
+func (s *Service) SubscriptionStats(
+	ctx context.Context, connID int, topic, subscription string,
+) (map[string]interface{}, error) {
+	api, err := port[driver.SubscriptionStats](s, connID, model.CapSubscriptionLag)
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.SubscriptionStats(ctx, model.SubscriptionRef{Namespace: topic, Name: subscription})
+}
+
+// SubscriptionClients is who is attached to one subscription, and what the
+// broker says each of them is doing.
+func (s *Service) SubscriptionClients(
+	ctx context.Context, connID int, topic, subscription string,
+) ([]*model.SubscriptionClient, error) {
+	api, err := port[driver.SubscriptionRuntime](s, connID, model.CapSubscriptionRuntime)
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.SubscriptionClients(ctx,
+		model.SubscriptionRef{Namespace: topic, Name: subscription})
+}
+
+// CreateSubscription adds one to a topic, at the earliest message it still
+// holds unless the form asked for the latest.
+func (s *Service) CreateSubscription(
+	ctx context.Context, connID int, topic, subscription, startAt string,
+) error {
+	api, err := port[driver.SubscriptionAdmin](s, connID, model.CapSubscriptionCreate)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.CreateSubscription(ctx, model.SubscriptionSpec{
+		Ref:        model.SubscriptionRef{Namespace: topic, Name: subscription},
+		Attributes: map[string]string{pulsardriver.AttrSubscriptionStartAt: startAt},
+	})
+}
+
+// DeleteSubscription removes one. Pulsar refuses while a consumer is attached.
+func (s *Service) DeleteSubscription(
+	ctx context.Context, connID int, topic, subscription string,
+) error {
+	api, err := port[driver.SubscriptionAdmin](s, connID, model.CapSubscriptionDelete)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.RemoveSubscription(ctx,
+		model.SubscriptionRef{Namespace: topic, Name: subscription})
+}

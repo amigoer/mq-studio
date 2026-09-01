@@ -197,3 +197,41 @@ func (s *PulsarService) TopicStats(
 func (s *PulsarService) DeleteTopic(connID int, namespace, name string) error {
 	return s.service.DeleteTopic(context.Background(), connID, namespace, name)
 }
+
+// SubscriptionStats is one subscription's figures.
+//
+// Topic-scoped, which ConsumerService.Stats is not: it builds a ref with an
+// empty namespace, and a Pulsar subscription has no identity without the topic
+// it belongs to.
+func (s *PulsarService) SubscriptionStats(
+	connID int, topic, subscription string,
+) (map[string]interface{}, error) {
+	return s.service.SubscriptionStats(context.Background(), connID, topic, subscription)
+}
+
+// SubscriptionClients is who is attached, as the broker reports them. No round
+// trip to any consumer: Pulsar carries their permits and rates in the topic's
+// own stats.
+func (s *PulsarService) SubscriptionClients(
+	connID int, topic, subscription string,
+) ([]*model.SubscriptionClient, error) {
+	return s.service.SubscriptionClients(context.Background(), connID, topic, subscription)
+}
+
+// CreateSubscription adds one to a topic.
+//
+// startAt is "earliest" or "latest". Earliest is the default because a
+// subscription created at the latest position silently discards whatever is
+// already on the topic, which is the opposite of why one is created ahead of
+// the consumer that will use it.
+func (s *PulsarService) CreateSubscription(
+	connID int, topic, subscription, startAt string,
+) error {
+	return s.service.CreateSubscription(context.Background(), connID, topic, subscription, startAt)
+}
+
+// DeleteSubscription removes one. Pulsar refuses while a consumer is attached,
+// and that refusal reaches the user.
+func (s *PulsarService) DeleteSubscription(connID int, topic, subscription string) error {
+	return s.service.DeleteSubscription(context.Background(), connID, topic, subscription)
+}
