@@ -270,14 +270,19 @@ export function labelOf(protocol: ProtocolId, page: PageId): string {
 }
 
 /**
- * Protocols whose boards read a real broker. The other four are drawn in the
+ * Protocols whose boards read a real broker. The other two are drawn in the
  * picker so the shell shows where it is going, but they cannot be selected: a
  * board of invented figures beside a live cluster is worse than no board.
  *
  * Adding one here needs a driver, a form in
  * boards/connections/connectionDraft.ts, and boards that read the endpoint.
  */
-const READY: ReadonlySet<ProtocolId> = new Set<ProtocolId>(["rocketmq", "rabbitmq", "kafka"]);
+const READY: ReadonlySet<ProtocolId> = new Set<ProtocolId>([
+  "rocketmq",
+  "rabbitmq",
+  "kafka",
+  "mqtt",
+]);
 
 export function isProtocolReady(protocol: ProtocolId): boolean {
   return READY.has(protocol);
