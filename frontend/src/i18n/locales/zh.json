@@ -1619,6 +1619,37 @@
           "nameColon": "用户名不能包含冒号",
           "passwordRequired": "请填写密码"
         }
+      },
+      "pulsar": {
+        "title": "Token",
+        "grant": "授权",
+        "grantTitle": "给角色授权",
+        "revoke": "撤销",
+        "revokeTitle": "确认撤销该权限？",
+        "revokeNamespaceBody": "{{role}} 将失去对 {{namespace}} 的全部权限。它在单个主题上的授权不受影响。",
+        "revokeTopicBody": "{{role}} 将失去对 {{topic}} 的权限。它在命名空间级的授权不受影响。",
+        "role": "角色",
+        "roleHint": "JWT 的 subject。Pulsar 不保存角色目录，所以可以先给一个还不存在的角色授权。",
+        "roleRequired": "请填写角色",
+        "roleInvalid": "角色名不能包含空格",
+        "scope": "范围",
+        "wholeNamespace": "整个命名空间（{{namespace}}）",
+        "topic": "主题",
+        "permissions": "权限",
+        "produce": "produce",
+        "consume": "consume",
+        "configure": "configure",
+        "produceHint": "produce —— 向它发送消息",
+        "consumeHint": "consume —— 订阅并消费",
+        "configureHint": "configure —— 部署 function、sink、source 和 package",
+        "nothingGranted": "至少勾选一项；空授权等同于撤销",
+        "replacesNote": "授权会替换该角色现有的权限而不是叠加，所以请把它最终该有的权限一次勾全。",
+        "namespaceGrants": "命名空间授权",
+        "topicGrants": "主题授权",
+        "noTopicGrants": "这个命名空间下没有主题设置了单独的授权。",
+        "rolesNote": "Pulsar 授权的是角色而不是用户：角色来自 Token 的 subject，集群不保存任何账号。",
+        "granted": "已授权 {{role}}",
+        "revoked": "已撤销 {{role}}"
       }
     },
     "topics": {

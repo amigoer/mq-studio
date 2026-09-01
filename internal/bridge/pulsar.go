@@ -316,3 +316,74 @@ func (s *PulsarService) Publish(connID int, input PulsarPublishInput) (*PulsarPu
 func (s *PulsarService) Producers(connID int, topic string) ([]*model.ProducerClient, error) {
 	return s.service.Producers(context.Background(), connID, topic)
 }
+
+// NamespacePermissions is every role granted access to a namespace.
+//
+// Roles rather than users: Pulsar authorises the subject of a token and keeps
+// no directory of them, so a grant may name a role that does not exist yet and
+// will be honoured when a token carrying it turns up.
+func (s *PulsarService) NamespacePermissions(
+	connID int, namespace string,
+) ([]*model.NamespacePermission, error) {
+	return s.service.NamespacePermissions(context.Background(), connID, namespace)
+}
+
+// TopicPermissions is every per-topic grant in the connection's namespace.
+func (s *PulsarService) TopicPermissions(connID int) ([]*model.TopicPermission, error) {
+	return s.service.TopicPermissions(context.Background(), connID)
+}
+
+// PulsarGrantInput is a grant as the Tokens board collects it.
+//
+// Configure is namespace-only: functions, sinks and packages are deployed into
+// a namespace and not into a topic, so a topic grant is produce and consume.
+type PulsarGrantInput struct {
+	// Namespace is "tenant/namespace". Blank means the connection's own.
+	Namespace string `json:"namespace"`
+	// Topic narrows the grant to one topic. Blank grants the namespace.
+	Topic string `json:"topic"`
+	Role  string `json:"role"`
+
+	Configure bool `json:"configure"`
+	Write     bool `json:"write"`
+	Read      bool `json:"read"`
+}
+
+func allow(granted bool) string {
+	if granted {
+		return "allow"
+	}
+	return ""
+}
+
+// Grant gives a role access to a namespace, or to one topic within it.
+func (s *PulsarService) Grant(connID int, input PulsarGrantInput) error {
+	if input.Topic != "" {
+		return s.service.GrantTopic(context.Background(), connID, model.TopicPermission{
+			Namespace: input.Namespace,
+			Identity:  input.Role,
+			Exchange:  input.Topic,
+			Write:     allow(input.Write),
+			Read:      allow(input.Read),
+		})
+	}
+	return s.service.GrantNamespace(context.Background(), connID, model.NamespacePermission{
+		Namespace: input.Namespace,
+		Identity:  input.Role,
+		Configure: allow(input.Configure),
+		Write:     allow(input.Write),
+		Read:      allow(input.Read),
+	})
+}
+
+// RevokeNamespace takes a role's access to a whole namespace away.
+func (s *PulsarService) RevokeNamespace(connID int, namespace, role string) error {
+	return s.service.RevokeNamespace(context.Background(), connID, namespace, role)
+}
+
+// RevokeTopic takes a role's access to one topic away. Narrower than the
+// namespace revoke and a different endpoint, so the two are separate calls
+// rather than one with a scope argument.
+func (s *PulsarService) RevokeTopic(connID int, topic, role string) error {
+	return s.service.RevokeTopic(context.Background(), connID, topic, role)
+}

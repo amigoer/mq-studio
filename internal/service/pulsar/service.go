@@ -403,3 +403,87 @@ func (s *Service) Producers(
 	// both the better question and the only one it can answer.
 	return api.ProducerClients(ctx, "", topic)
 }
+
+// NamespacePermissions is every role granted access to a namespace.
+//
+// Not through the canonical identity service: that reads permissions off an
+// Identity, and Pulsar has no identities to read them off - a grant names a
+// role that arrives inside a token and that the cluster keeps no directory of.
+func (s *Service) NamespacePermissions(
+	ctx context.Context, connID int, namespace string,
+) ([]*model.NamespacePermission, error) {
+	conn, err := s.pulsarConn(connID)
+	if err != nil {
+		return nil, err
+	}
+	if !conn.Capabilities().Has(model.CapIdentityPermissions) {
+		return nil, driver.Unsupported(conn, model.CapIdentityPermissions)
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return conn.NamespacePermissions(ctx, namespace)
+}
+
+// TopicPermissions is every per-topic grant in the connection's namespace.
+func (s *Service) TopicPermissions(
+	ctx context.Context, connID int,
+) ([]*model.TopicPermission, error) {
+	api, err := port[driver.IdentityPermissions](s, connID, model.CapIdentityPermissions)
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.ListTopicPermissions(ctx)
+}
+
+// GrantNamespace gives a role access to a namespace.
+func (s *Service) GrantNamespace(
+	ctx context.Context, connID int, permission model.NamespacePermission,
+) error {
+	api, err := port[driver.IdentityPermissions](s, connID, model.CapIdentityPermissions)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.SetPermission(ctx, permission)
+}
+
+// RevokeNamespace takes a role's namespace access away entirely.
+func (s *Service) RevokeNamespace(
+	ctx context.Context, connID int, namespace, role string,
+) error {
+	api, err := port[driver.IdentityPermissions](s, connID, model.CapIdentityPermissions)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.RemovePermission(ctx, namespace, role)
+}
+
+// GrantTopic gives a role access to one topic.
+func (s *Service) GrantTopic(
+	ctx context.Context, connID int, permission model.TopicPermission,
+) error {
+	api, err := port[driver.IdentityPermissions](s, connID, model.CapIdentityPermissions)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.SetTopicPermission(ctx, permission)
+}
+
+// RevokeTopic takes a role's access to one topic away, which is a narrower
+// gesture than revoking the namespace and reaches a different endpoint.
+func (s *Service) RevokeTopic(ctx context.Context, connID int, topic, role string) error {
+	api, err := port[driver.IdentityPermissions](s, connID, model.CapIdentityPermissions)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.RemoveTopicPermission(ctx, topic, role)
+}

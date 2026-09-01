@@ -103,12 +103,32 @@ export function DeleteTopic(connID: number, $namespace: string, name: string): $
 }
 
 /**
+ * Grant gives a role access to a namespace, or to one topic within it.
+ */
+export function Grant(connID: number, input: $models.PulsarGrantInput): $CancellablePromise<void> {
+    return $Call.ByID(2592918240, connID, input);
+}
+
+/**
+ * NamespacePermissions is every role granted access to a namespace.
+ * 
+ * Roles rather than users: Pulsar authorises the subject of a token and keeps
+ * no directory of them, so a grant may name a role that does not exist yet and
+ * will be honoured when a token carrying it turns up.
+ */
+export function NamespacePermissions(connID: number, $namespace: string): $CancellablePromise<(model$0.NamespacePermission | null)[]> {
+    return $Call.ByID(2018332847, connID, $namespace).then(($result: any) => {
+        return $$createType6($result);
+    });
+}
+
+/**
  * Namespaces returns every namespace under the profile's tenant, with the
  * limits that are actually set on it.
  */
 export function Namespaces(connID: number): $CancellablePromise<(model$0.Namespace | null)[]> {
     return $Call.ByID(1291508398, connID).then(($result: any) => {
-        return $$createType6($result);
+        return $$createType9($result);
     });
 }
 
@@ -119,7 +139,7 @@ export function Namespaces(connID: number): $CancellablePromise<(model$0.Namespa
  */
 export function Producers(connID: number, topic: string): $CancellablePromise<(model$0.ProducerClient | null)[]> {
     return $Call.ByID(4154277477, connID, topic).then(($result: any) => {
-        return $$createType9($result);
+        return $$createType12($result);
     });
 }
 
@@ -128,7 +148,7 @@ export function Producers(connID: number, topic: string): $CancellablePromise<(m
  */
 export function Publish(connID: number, input: $models.PulsarPublishInput): $CancellablePromise<$models.PulsarPublishResult | null> {
     return $Call.ByID(2849280041, connID, input).then(($result: any) => {
-        return $$createType11($result);
+        return $$createType14($result);
     });
 }
 
@@ -157,6 +177,22 @@ export function RemoveTenant(connID: number, name: string): $CancellablePromise<
 }
 
 /**
+ * RevokeNamespace takes a role's access to a whole namespace away.
+ */
+export function RevokeNamespace(connID: number, $namespace: string, role: string): $CancellablePromise<void> {
+    return $Call.ByID(3804638447, connID, $namespace, role);
+}
+
+/**
+ * RevokeTopic takes a role's access to one topic away. Narrower than the
+ * namespace revoke and a different endpoint, so the two are separate calls
+ * rather than one with a scope argument.
+ */
+export function RevokeTopic(connID: number, topic: string, role: string): $CancellablePromise<void> {
+    return $Call.ByID(4270698607, connID, topic, role);
+}
+
+/**
  * SaveTenant creates a tenant or updates the one already there.
  */
 export function SaveTenant(connID: number, input: $models.PulsarTenantInput): $CancellablePromise<void> {
@@ -177,7 +213,7 @@ export function SetNamespaceLimit(connID: number, name: string, limit: string, v
  */
 export function SubscriptionClients(connID: number, topic: string, subscription: string): $CancellablePromise<(model$0.SubscriptionClient | null)[]> {
     return $Call.ByID(1693229665, connID, topic, subscription).then(($result: any) => {
-        return $$createType14($result);
+        return $$createType17($result);
     });
 }
 
@@ -190,7 +226,7 @@ export function SubscriptionClients(connID: number, topic: string, subscription:
  */
 export function SubscriptionStats(connID: number, topic: string, subscription: string): $CancellablePromise<{ [_ in string]?: any }> {
     return $Call.ByID(2895460458, connID, topic, subscription).then(($result: any) => {
-        return $$createType15($result);
+        return $$createType18($result);
     });
 }
 
@@ -199,7 +235,7 @@ export function SubscriptionStats(connID: number, topic: string, subscription: s
  */
 export function Tenants(connID: number): $CancellablePromise<($models.PulsarTenantView | null)[]> {
     return $Call.ByID(3205204843, connID).then(($result: any) => {
-        return $$createType18($result);
+        return $$createType21($result);
     });
 }
 
@@ -208,7 +244,16 @@ export function Tenants(connID: number): $CancellablePromise<($models.PulsarTena
  */
 export function TopicDetail(connID: number, $namespace: string, name: string): $CancellablePromise<model$0.Destination | null> {
     return $Call.ByID(1962758660, connID, $namespace, name).then(($result: any) => {
-        return $$createType20($result);
+        return $$createType23($result);
+    });
+}
+
+/**
+ * TopicPermissions is every per-topic grant in the connection's namespace.
+ */
+export function TopicPermissions(connID: number): $CancellablePromise<(model$0.TopicPermission | null)[]> {
+    return $Call.ByID(1329197363, connID).then(($result: any) => {
+        return $$createType26($result);
     });
 }
 
@@ -217,7 +262,7 @@ export function TopicDetail(connID: number, $namespace: string, name: string): $
  */
 export function TopicStats(connID: number, $namespace: string, name: string): $CancellablePromise<{ [_ in string]?: any }> {
     return $Call.ByID(1539980380, connID, $namespace, name).then(($result: any) => {
-        return $$createType15($result);
+        return $$createType18($result);
     });
 }
 
@@ -230,7 +275,7 @@ export function TopicStats(connID: number, $namespace: string, name: string): $C
  */
 export function Topics(connID: number, $namespace: string, includeInternal: boolean): $CancellablePromise<(model$0.Destination | null)[]> {
     return $Call.ByID(447707186, connID, $namespace, includeInternal).then(($result: any) => {
-        return $$createType21($result);
+        return $$createType27($result);
     });
 }
 
@@ -239,21 +284,27 @@ const $$createType0 = $Create.Array($Create.Any);
 const $$createType1 = model$0.DeadLetterQueue.createFrom;
 const $$createType2 = $Create.Nullable($$createType1);
 const $$createType3 = $Create.Array($$createType2);
-const $$createType4 = model$0.Namespace.createFrom;
+const $$createType4 = model$0.NamespacePermission.createFrom;
 const $$createType5 = $Create.Nullable($$createType4);
 const $$createType6 = $Create.Array($$createType5);
-const $$createType7 = model$0.ProducerClient.createFrom;
+const $$createType7 = model$0.Namespace.createFrom;
 const $$createType8 = $Create.Nullable($$createType7);
 const $$createType9 = $Create.Array($$createType8);
-const $$createType10 = $models.PulsarPublishResult.createFrom;
+const $$createType10 = model$0.ProducerClient.createFrom;
 const $$createType11 = $Create.Nullable($$createType10);
-const $$createType12 = model$0.SubscriptionClient.createFrom;
-const $$createType13 = $Create.Nullable($$createType12);
-const $$createType14 = $Create.Array($$createType13);
-const $$createType15 = $Create.Map($Create.Any, $Create.Any);
-const $$createType16 = $models.PulsarTenantView.createFrom;
-const $$createType17 = $Create.Nullable($$createType16);
-const $$createType18 = $Create.Array($$createType17);
-const $$createType19 = model$0.Destination.createFrom;
+const $$createType12 = $Create.Array($$createType11);
+const $$createType13 = $models.PulsarPublishResult.createFrom;
+const $$createType14 = $Create.Nullable($$createType13);
+const $$createType15 = model$0.SubscriptionClient.createFrom;
+const $$createType16 = $Create.Nullable($$createType15);
+const $$createType17 = $Create.Array($$createType16);
+const $$createType18 = $Create.Map($Create.Any, $Create.Any);
+const $$createType19 = $models.PulsarTenantView.createFrom;
 const $$createType20 = $Create.Nullable($$createType19);
 const $$createType21 = $Create.Array($$createType20);
+const $$createType22 = model$0.Destination.createFrom;
+const $$createType23 = $Create.Nullable($$createType22);
+const $$createType24 = model$0.TopicPermission.createFrom;
+const $$createType25 = $Create.Nullable($$createType24);
+const $$createType26 = $Create.Array($$createType25);
+const $$createType27 = $Create.Array($$createType23);

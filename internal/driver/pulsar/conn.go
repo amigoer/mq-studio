@@ -171,6 +171,7 @@ func capabilities() []model.Capability {
 		model.CapPublish,
 		model.CapDelayedDelivery,
 		model.CapProducerInspect,
+		model.CapIdentityPermissions,
 	}
 }
 

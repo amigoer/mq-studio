@@ -234,6 +234,7 @@ func TestCapabilitiesMatchTheSidebarContract(t *testing.T) {
 		model.CapPublish,
 		model.CapDelayedDelivery,
 		model.CapProducerInspect,
+		model.CapIdentityPermissions,
 	}
 
 	got := capabilities()

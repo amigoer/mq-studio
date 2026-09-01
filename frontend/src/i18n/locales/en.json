@@ -1619,6 +1619,37 @@
           "nameColon": "A user name cannot contain a colon",
           "passwordRequired": "Enter a password"
         }
+      },
+      "pulsar": {
+        "title": "Tokens",
+        "grant": "Grant",
+        "grantTitle": "Grant access to a role",
+        "revoke": "Revoke",
+        "revokeTitle": "Revoke this access?",
+        "revokeNamespaceBody": "{{role}} loses all access to {{namespace}}. Any per-topic grant it has stays.",
+        "revokeTopicBody": "{{role}} loses its access to {{topic}}. Any namespace-wide grant it has stays.",
+        "role": "Role",
+        "roleHint": "The subject of the JWT. Pulsar keeps no directory, so a role that does not exist yet can be granted now.",
+        "roleRequired": "A role is required",
+        "roleInvalid": "A role cannot contain a space",
+        "scope": "Scope",
+        "wholeNamespace": "The whole namespace ({{namespace}})",
+        "topic": "Topic",
+        "permissions": "Permissions",
+        "produce": "produce",
+        "consume": "consume",
+        "configure": "configure",
+        "produceHint": "produce — publish to it",
+        "consumeHint": "consume — subscribe and read",
+        "configureHint": "configure — deploy functions, sinks, sources and packages",
+        "nothingGranted": "Tick at least one permission; an empty grant would revoke instead",
+        "replacesNote": "A grant replaces this role's permissions rather than adding to them, so tick everything it should end up with.",
+        "namespaceGrants": "Namespace grants",
+        "topicGrants": "Topic grants",
+        "noTopicGrants": "No topic in this namespace has a grant of its own.",
+        "rolesNote": "Pulsar authorises roles, not users: a role is the subject of a token and the cluster stores no accounts.",
+        "granted": "Granted {{role}}",
+        "revoked": "Revoked {{role}}"
       }
     },
     "topics": {

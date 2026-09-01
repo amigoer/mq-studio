@@ -47,6 +47,7 @@ import { ProducerRabbitMQ } from "./boards/producer/ProducerRabbitMQ";
 import { Alerts } from "./boards/alerts/Alerts";
 import { Acl } from "./boards/acl/Acl";
 import { AclKafka } from "./boards/acl/AclKafka";
+import { TokensPulsar } from "./boards/acl/TokensPulsar";
 import { QuotasKafka } from "./boards/quotas/QuotasKafka";
 
 import { ClusterRocketMQ } from "./boards/cluster/ClusterRocketMQ";
@@ -176,6 +177,10 @@ export function renderBoard(
     if (protocol === "rocketmq") return <Acl />;
     if (protocol === "rabbitmq") return <UsersRabbitMQ />;
     if (protocol === "kafka") return <AclKafka />;
+    /* Pulsar has no users at all: it authorises the subject of a token and
+       keeps no directory of them, so the page lists grants rather than
+       accounts and is named for what it is. */
+    if (protocol === "pulsar") return <TokensPulsar />;
   }
 
   const Board = BOARDS[page]?.[protocol];

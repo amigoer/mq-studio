@@ -60,6 +60,7 @@ export {
     PolicyInput,
     PrincipalInput,
     PublishInput,
+    PulsarGrantInput,
     PulsarNamespaceInput,
     PulsarPublishInput,
     PulsarPublishResult,

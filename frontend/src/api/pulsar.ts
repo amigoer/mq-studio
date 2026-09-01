@@ -2,6 +2,7 @@ import { MessageService, PulsarService } from "@bindings/bridge";
 import type {
   PulsarNamespaceInput,
   PulsarTenantInput,
+  PulsarGrantInput,
   PulsarPublishInput,
   PulsarPublishResult,
   PulsarTenantView,
@@ -12,8 +13,10 @@ import type {
   Destination,
   MessageItem,
   Namespace,
+  NamespacePermission,
   ProducerClient,
   SubscriptionClient,
+  TopicPermission,
 } from "@bindings/model/models";
 import { present, required } from "./client";
 
@@ -22,14 +25,17 @@ export type {
   Destination,
   MessageItem,
   Namespace,
+  NamespacePermission,
   SubscriptionClient,
   PulsarNamespaceInput,
   ProducerClient,
+  PulsarGrantInput,
   PulsarPublishInput,
   PulsarPublishResult,
   PulsarTenantInput,
   PulsarTenantView,
   PulsarTopicInput,
+  TopicPermission,
 };
 
 /**
@@ -238,3 +244,34 @@ export const getPulsarProducers = (
   connID: number,
   topic: string,
 ): Promise<ProducerClient[]> => PulsarService.Producers(connID, topic).then(present);
+
+/** Every role granted access to a namespace. */
+export const getPulsarNamespaceGrants = (
+  connID: number,
+  namespace: string,
+): Promise<NamespacePermission[]> =>
+  PulsarService.NamespacePermissions(connID, namespace).then(present);
+
+/** Every per-topic grant in the connection's namespace. */
+export const getPulsarTopicGrants = (connID: number): Promise<TopicPermission[]> =>
+  PulsarService.TopicPermissions(connID).then(present);
+
+/** Gives a role access to a namespace, or to one topic within it. */
+export const grantPulsarRole = (
+  connID: number,
+  input: PulsarGrantInput,
+): Promise<void> => PulsarService.Grant(connID, input);
+
+/** Takes a role's namespace access away entirely. */
+export const revokePulsarNamespace = (
+  connID: number,
+  namespace: string,
+  role: string,
+): Promise<void> => PulsarService.RevokeNamespace(connID, namespace, role);
+
+/** Takes a role's access to one topic away, leaving any namespace grant. */
+export const revokePulsarTopic = (
+  connID: number,
+  topic: string,
+  role: string,
+): Promise<void> => PulsarService.RevokeTopic(connID, topic, role);

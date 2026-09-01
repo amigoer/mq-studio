@@ -1226,6 +1226,60 @@ export class PublishInput {
 }
 
 /**
+ * PulsarGrantInput is a grant as the Tokens board collects it.
+ * 
+ * Configure is namespace-only: functions, sinks and packages are deployed into
+ * a namespace and not into a topic, so a topic grant is produce and consume.
+ */
+export class PulsarGrantInput {
+    /**
+     * Namespace is "tenant/namespace". Blank means the connection's own.
+     */
+    "namespace": string;
+
+    /**
+     * Topic narrows the grant to one topic. Blank grants the namespace.
+     */
+    "topic": string;
+    "role": string;
+    "configure": boolean;
+    "write": boolean;
+    "read": boolean;
+
+    /** Creates a new PulsarGrantInput instance. */
+    constructor($$source: Partial<PulsarGrantInput> = {}) {
+        if (!("namespace" in $$source)) {
+            this["namespace"] = "";
+        }
+        if (!("topic" in $$source)) {
+            this["topic"] = "";
+        }
+        if (!("role" in $$source)) {
+            this["role"] = "";
+        }
+        if (!("configure" in $$source)) {
+            this["configure"] = false;
+        }
+        if (!("write" in $$source)) {
+            this["write"] = false;
+        }
+        if (!("read" in $$source)) {
+            this["read"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new PulsarGrantInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): PulsarGrantInput {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new PulsarGrantInput($$parsedSource as Partial<PulsarGrantInput>);
+    }
+}
+
+/**
  * PulsarNamespaceInput creates a namespace.
  * 
  * Only a name, because that is all Pulsar takes: a namespace is created empty

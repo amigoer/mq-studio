@@ -1251,3 +1251,110 @@ func TestLiveDelayedMessageIsWithheld(t *testing.T) {
 		t.Errorf("a message delayed by an hour arrived immediately: %q", early.Payload())
 	}
 }
+
+/*
+ * A grant, read back, then revoked - at both scopes.
+ *
+ * Pulsar's grant replaces a role's whole action list rather than adding to it,
+ * so the round trip is what proves the fold onto the canonical three is right
+ * in both directions. And the two revokes reach different endpoints: a topic
+ * revoke that hit the namespace one would take away far more than was asked,
+ * and nothing about the response would say so.
+ */
+func TestLiveGrantThenRevokeRoundTrip(t *testing.T) {
+	conn := liveConn(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	ref := model.DestinationRef{Namespace: "public/default", Name: "mq-studio-e2e-grants"}
+	url := prepareTopic(t, conn, ref)
+	const role = "mq-studio-e2e-role"
+
+	_ = conn.RemovePermission(ctx, "public/default", role)
+	t.Cleanup(func() {
+		cleanup, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+		defer cancel()
+		_ = conn.RemovePermission(cleanup, "public/default", role)
+	})
+
+	if err := conn.SetPermission(ctx, model.NamespacePermission{
+		Namespace: "public/default",
+		Identity:  role,
+		Configure: permissionAllow,
+		Read:      permissionAllow,
+	}); err != nil {
+		t.Fatalf("grant on the namespace: %v", err)
+	}
+
+	granted := findGrant(t, conn, role)
+	if granted == nil {
+		t.Fatal("the grant just made is not in the listing")
+	}
+	// Configure grants all four deploy actions, and reading them back must
+	// still say Configure rather than something else.
+	if granted.Configure != permissionAllow {
+		t.Errorf("configure = %q after granting it", granted.Configure)
+	}
+	if granted.Read != permissionAllow {
+		t.Errorf("read = %q after granting it", granted.Read)
+	}
+	if granted.Write != permissionNone {
+		t.Errorf("write = %q, which was never granted", granted.Write)
+	}
+
+	// A topic grant is narrower and stored separately.
+	if err := conn.SetTopicPermission(ctx, model.TopicPermission{
+		Identity: role, Exchange: url, Write: permissionAllow,
+	}); err != nil {
+		t.Fatalf("grant on the topic: %v", err)
+	}
+	topicGrants, err := conn.ListTopicPermissions(ctx)
+	if err != nil {
+		t.Fatalf("ListTopicPermissions: %v", err)
+	}
+	found := false
+	for _, permission := range topicGrants {
+		if permission.Identity == role && permission.Exchange == url {
+			found = true
+			if permission.Write != permissionAllow {
+				t.Errorf("topic write = %q after granting it", permission.Write)
+			}
+		}
+	}
+	if !found {
+		t.Error("the topic grant is not in the listing")
+	}
+
+	// Revoking the topic leaves the namespace grant standing, which is the
+	// whole reason they are two calls.
+	if err := conn.RemoveTopicPermission(ctx, url, role); err != nil {
+		t.Fatalf("revoke on the topic: %v", err)
+	}
+	if findGrant(t, conn, role) == nil {
+		t.Error("revoking a topic grant took the namespace grant with it")
+	}
+
+	if err := conn.RemovePermission(ctx, "public/default", role); err != nil {
+		t.Fatalf("revoke on the namespace: %v", err)
+	}
+	if findGrant(t, conn, role) != nil {
+		t.Error("the namespace grant survived being revoked")
+	}
+}
+
+func findGrant(t *testing.T, conn *Conn, role string) *model.NamespacePermission {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	permissions, err := conn.NamespacePermissions(ctx, "public/default")
+	if err != nil {
+		t.Fatalf("NamespacePermissions: %v", err)
+	}
+	for _, permission := range permissions {
+		if permission.Identity == role {
+			return permission
+		}
+	}
+	return nil
+}
