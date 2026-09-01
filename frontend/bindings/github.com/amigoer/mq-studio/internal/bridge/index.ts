@@ -8,6 +8,7 @@ import * as ConsumerService from "./consumerservice.js";
 import * as DriverService from "./driverservice.js";
 import * as KafkaService from "./kafkaservice.js";
 import * as MessageService from "./messageservice.js";
+import * as PulsarService from "./pulsarservice.js";
 import * as RabbitMQService from "./rabbitmqservice.js";
 import * as RoutingService from "./routingservice.js";
 import * as SettingsService from "./settingsservice.js";
@@ -24,6 +25,7 @@ export {
     DriverService,
     KafkaService,
     MessageService,
+    PulsarService,
     RabbitMQService,
     RoutingService,
     SettingsService,
@@ -58,6 +60,9 @@ export {
     PolicyInput,
     PrincipalInput,
     PublishInput,
+    PulsarNamespaceInput,
+    PulsarTenantInput,
+    PulsarTenantView,
     QueueInput,
     QueueOffsetInput,
     QuotaView,

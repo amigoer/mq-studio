@@ -22,6 +22,9 @@ const PULSAR_CAPABILITIES: Capability[] = [
   Capability.CapClusterMetrics,
   Capability.CapNodeConfig,
   Capability.CapClusterHealth,
+  Capability.CapNamespaceList,
+  Capability.CapNamespaceAdmin,
+  Capability.CapNamespaceLimits,
 ];
 
 function state(
@@ -66,7 +69,7 @@ describe("the sidebar a Pulsar connection draws", () => {
     const nav = navAvailability(state(PULSAR_CAPABILITIES), true);
     const reachable = drawn.filter((id) => nav.visible(id) && !nav.disabled(id));
 
-    expect(reachable).toEqual(["overview", "cluster", "alerts"]);
+    expect(reachable).toEqual(["overview", "vhosts", "cluster", "alerts"]);
   });
 
   /*

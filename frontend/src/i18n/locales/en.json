@@ -599,7 +599,8 @@
         "producer": "Producer",
         "cluster": "Brokers / Bookies",
         "alerts": "Alerts",
-        "acl": "Tokens"
+        "acl": "Tokens",
+        "vhosts": "Namespaces"
       },
       "redis": {
         "overview": "Overview",
@@ -2569,6 +2570,38 @@
         "deleteDesc": "Its queues, {{count}} messages, exchanges, bindings, policies and permissions go with it. There is no undo.",
         "deleted": "Deleted {{name}}",
         "deleteFailed": "Could not delete the virtual host"
+      },
+      "pulsar": {
+        "title": "Namespaces",
+        "new": "New namespace",
+        "newTitle": "New namespace",
+        "namespace": "Namespace",
+        "tenant": "Tenant",
+        "tenants": "Tenants",
+        "fullName": "Full name",
+        "name": "Name",
+        "nameHint": "Created under this connection's tenant. Letters, digits, dots, hyphens and underscores.",
+        "nameRequired": "A name is required",
+        "nameSlash": "A namespace name cannot contain a slash; the tenant is set by the connection",
+        "nameInvalid": "Only letters, digits, dots, hyphens and underscores",
+        "limitsSet": "Limits set",
+        "limits": "Limits",
+        "limitsHint": "Clearing a field hands the limit back to the broker's own default, which is not the same as setting it to zero.",
+        "uncapped": "uncapped",
+        "limitMessageTtl": "Message TTL (seconds)",
+        "limitRetentionTime": "Retention (minutes)",
+        "limitRetentionSize": "Retention (MB)",
+        "limitMaxProducers": "Max producers per topic",
+        "limitMaxConsumers": "Max consumers per topic",
+        "limitMaxConsumersPerSub": "Max consumers per subscription",
+        "retentionNote": "Pulsar stores the retention pair as one policy, so clearing either half clears both.",
+        "adminRoles": "Admin roles",
+        "allowedClusters": "Allowed clusters",
+        "namespaceCount": "Namespaces",
+        "created": "Created {{name}}",
+        "deleted": "Deleted {{name}}",
+        "deleteTitle": "Delete this namespace?",
+        "deleteBody": "{{name}} is removed. Pulsar refuses while it still holds topics."
       }
     },
     "policies": {

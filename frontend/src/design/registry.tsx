@@ -14,6 +14,7 @@ import { TopicsKafka } from "./boards/topics/TopicsKafka";
 import { QueuesRabbitMQ } from "./boards/topics/QueuesRabbitMQ";
 import { ExchangesRabbitMQ } from "./boards/topics/ExchangesRabbitMQ";
 import { VhostsRabbitMQ } from "./boards/vhosts/VhostsRabbitMQ";
+import { NamespacesPulsar } from "./boards/vhosts/NamespacesPulsar";
 import { UsersRabbitMQ } from "./boards/acl/UsersRabbitMQ";
 import { PoliciesRabbitMQ } from "./boards/policies/PoliciesRabbitMQ";
 import { DefinitionsRabbitMQ } from "./boards/definitions/DefinitionsRabbitMQ";
@@ -104,7 +105,7 @@ const BOARDS: Partial<
     mqtt: MqttWorkbench,
   },
   exchanges: { rabbitmq: ExchangesRabbitMQ },
-  vhosts: { rabbitmq: VhostsRabbitMQ },
+  vhosts: { rabbitmq: VhostsRabbitMQ, pulsar: NamespacesPulsar },
   policies: { rabbitmq: PoliciesRabbitMQ },
   definitions: { rabbitmq: DefinitionsRabbitMQ },
   replication: { rabbitmq: ReplicationRabbitMQ },

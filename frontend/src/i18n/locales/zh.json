@@ -599,7 +599,8 @@
         "producer": "生产者",
         "cluster": "Broker / Bookie",
         "alerts": "告警",
-        "acl": "Token"
+        "acl": "Token",
+        "vhosts": "命名空间"
       },
       "redis": {
         "overview": "总览",
@@ -2569,6 +2570,38 @@
         "deleteDesc": "里面的队列、{{count}} 条消息、交换机、绑定、策略和权限会一并删除。此操作无法撤销。",
         "deleted": "已删除虚拟主机「{{name}}」",
         "deleteFailed": "删除虚拟主机失败"
+      },
+      "pulsar": {
+        "title": "命名空间",
+        "new": "新建命名空间",
+        "newTitle": "新建命名空间",
+        "namespace": "命名空间",
+        "tenant": "租户",
+        "tenants": "租户",
+        "fullName": "完整名称",
+        "name": "名称",
+        "nameHint": "创建在当前连接的租户下。可用字母、数字、点、连字符和下划线。",
+        "nameRequired": "请填写名称",
+        "nameSlash": "命名空间名称不能包含斜杠，租户由连接决定",
+        "nameInvalid": "只能包含字母、数字、点、连字符和下划线",
+        "limitsSet": "已设限额",
+        "limits": "限额",
+        "limitsHint": "清空输入框会把该限额交回 Broker 的默认值，这和设成 0 不是一回事。",
+        "uncapped": "不限",
+        "limitMessageTtl": "消息 TTL（秒）",
+        "limitRetentionTime": "保留时长（分钟）",
+        "limitRetentionSize": "保留大小（MB）",
+        "limitMaxProducers": "每主题最大生产者数",
+        "limitMaxConsumers": "每主题最大消费者数",
+        "limitMaxConsumersPerSub": "每订阅最大消费者数",
+        "retentionNote": "Pulsar 把保留时长和保留大小存成同一条策略，所以清空其中任意一个会把两个都清掉。",
+        "adminRoles": "管理角色",
+        "allowedClusters": "允许的集群",
+        "namespaceCount": "命名空间数",
+        "created": "已创建 {{name}}",
+        "deleted": "已删除 {{name}}",
+        "deleteTitle": "确认删除该命名空间？",
+        "deleteBody": "将删除 {{name}}。如果它下面还有主题，Pulsar 会拒绝。"
       }
     },
     "policies": {

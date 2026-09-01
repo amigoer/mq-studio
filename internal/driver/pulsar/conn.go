@@ -142,6 +142,9 @@ func capabilities() []model.Capability {
 		model.CapClusterMetrics,
 		model.CapNodeConfig,
 		model.CapClusterHealth,
+		model.CapNamespaceList,
+		model.CapNamespaceAdmin,
+		model.CapNamespaceLimits,
 	}
 }
 

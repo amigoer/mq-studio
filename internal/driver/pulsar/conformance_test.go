@@ -213,6 +213,9 @@ func TestCapabilitiesMatchTheSidebarContract(t *testing.T) {
 		model.CapClusterMetrics,
 		model.CapNodeConfig,
 		model.CapClusterHealth,
+		model.CapNamespaceList,
+		model.CapNamespaceAdmin,
+		model.CapNamespaceLimits,
 	}
 
 	got := capabilities()

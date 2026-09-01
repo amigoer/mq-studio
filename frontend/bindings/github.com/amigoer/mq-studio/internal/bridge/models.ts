@@ -1226,6 +1226,138 @@ export class PublishInput {
 }
 
 /**
+ * PulsarNamespaceInput creates a namespace.
+ * 
+ * Only a name, because that is all Pulsar takes: a namespace is created empty
+ * and its policies are set afterwards, one call each. A form that collected
+ * them here would have to either apply them in a second round the user cannot
+ * see fail, or pretend the create carried them.
+ */
+export class PulsarNamespaceInput {
+    /**
+     * Name may be bare or already tenant-qualified. A bare one is created
+     * under the tenant this connection is scoped to.
+     */
+    "name": string;
+
+    /** Creates a new PulsarNamespaceInput instance. */
+    constructor($$source: Partial<PulsarNamespaceInput> = {}) {
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new PulsarNamespaceInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): PulsarNamespaceInput {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new PulsarNamespaceInput($$parsedSource as Partial<PulsarNamespaceInput>);
+    }
+}
+
+/**
+ * PulsarTenantInput is a tenant as the form collects it.
+ */
+export class PulsarTenantInput {
+    "name": string;
+
+    /**
+     * AdminRoles are the roles allowed to administer this tenant's namespaces.
+     */
+    "adminRoles": string[];
+
+    /**
+     * AllowedClusters bounds where the tenant's namespaces may live. Empty
+     * means the cluster this connection is pointed at, which is what an
+     * operator who left the field alone meant.
+     */
+    "allowedClusters": string[];
+
+    /** Creates a new PulsarTenantInput instance. */
+    constructor($$source: Partial<PulsarTenantInput> = {}) {
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("adminRoles" in $$source)) {
+            this["adminRoles"] = [];
+        }
+        if (!("allowedClusters" in $$source)) {
+            this["allowedClusters"] = [];
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new PulsarTenantInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): PulsarTenantInput {
+        const $$createField1_0 = $$createType0;
+        const $$createField2_0 = $$createType0;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("adminRoles" in $$parsedSource) {
+            $$parsedSource["adminRoles"] = $$createField1_0($$parsedSource["adminRoles"]);
+        }
+        if ("allowedClusters" in $$parsedSource) {
+            $$parsedSource["allowedClusters"] = $$createField2_0($$parsedSource["allowedClusters"]);
+        }
+        return new PulsarTenantInput($$parsedSource as Partial<PulsarTenantInput>);
+    }
+}
+
+/**
+ * PulsarTenantView is a tenant as the tenants board draws it.
+ */
+export class PulsarTenantView {
+    "name": string;
+    "adminRoles": string[];
+    "allowedClusters": string[];
+
+    /**
+     * Namespaces is -1 when this credential could not list them, which happens
+     * for every tenant but its own on a connection that is not a superuser.
+     */
+    "namespaces": number;
+
+    /** Creates a new PulsarTenantView instance. */
+    constructor($$source: Partial<PulsarTenantView> = {}) {
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("adminRoles" in $$source)) {
+            this["adminRoles"] = [];
+        }
+        if (!("allowedClusters" in $$source)) {
+            this["allowedClusters"] = [];
+        }
+        if (!("namespaces" in $$source)) {
+            this["namespaces"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new PulsarTenantView instance from a string or object.
+     */
+    static createFrom($$source: any = {}): PulsarTenantView {
+        const $$createField1_0 = $$createType0;
+        const $$createField2_0 = $$createType0;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("adminRoles" in $$parsedSource) {
+            $$parsedSource["adminRoles"] = $$createField1_0($$parsedSource["adminRoles"]);
+        }
+        if ("allowedClusters" in $$parsedSource) {
+            $$parsedSource["allowedClusters"] = $$createField2_0($$parsedSource["allowedClusters"]);
+        }
+        return new PulsarTenantView($$parsedSource as Partial<PulsarTenantView>);
+    }
+}
+
+/**
  * QueueInput is a queue declaration as the form collects it.
  * 
  * Nothing like TopicInput, and it should not be: a RocketMQ topic is read and

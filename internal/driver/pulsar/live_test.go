@@ -308,3 +308,130 @@ func TestLiveBrokerConfigurationIsReadable(t *testing.T) {
 		t.Error("the metadata store address is empty")
 	}
 }
+
+/*
+ * A tenant and a namespace, created and removed against a real cluster.
+ *
+ * The unit tests prove the mapping from a policies document; only a live
+ * cluster proves the create actually takes the shape pulsaradmin sends, that
+ * the limit calls reach the endpoints they name, and that a delete of a
+ * non-empty object is refused rather than silently succeeding.
+ */
+func TestLiveTenantAndNamespaceRoundTrip(t *testing.T) {
+	conn := liveConn(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	const tenant = "mq-studio-e2e-tenant"
+	const namespace = tenant + "/orders"
+
+	// Idempotent: a previous run that failed part way leaves these behind, and
+	// a suite that only passes on a clean cluster is a suite nobody can rerun.
+	_ = conn.RemoveNamespace(ctx, namespace)
+	_ = conn.RemoveTenant(ctx, tenant)
+
+	if err := conn.SaveTenant(ctx, TenantSpec{Name: tenant}); err != nil {
+		t.Fatalf("create tenant: %v", err)
+	}
+	t.Cleanup(func() {
+		cleanup, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+		defer cancel()
+		_ = conn.RemoveNamespace(cleanup, namespace)
+		_ = conn.RemoveTenant(cleanup, tenant)
+	})
+
+	tenants, err := conn.Tenants(ctx)
+	if err != nil {
+		t.Fatalf("list tenants: %v", err)
+	}
+	var created *Tenant
+	for _, candidate := range tenants {
+		if candidate.Name == tenant {
+			created = candidate
+		}
+	}
+	if created == nil {
+		t.Fatalf("the tenant just created is not in the listing")
+	}
+	// A tenant with no allowed cluster can hold no namespace anywhere, so a
+	// blank form has to default to the local one rather than storing nothing.
+	if len(created.AllowedClusters) == 0 {
+		t.Error("a tenant created with no clusters was stored with none, and can hold nothing")
+	}
+
+	if err := conn.CreateNamespace(ctx, model.NamespaceSpec{Name: namespace}); err != nil {
+		t.Fatalf("create namespace: %v", err)
+	}
+
+	// A tenant that still holds a namespace cannot be deleted, and the refusal
+	// is what the page shows rather than a delete that appears to work.
+	if err := conn.RemoveTenant(ctx, tenant); err == nil {
+		t.Error("a tenant holding a namespace was deleted")
+	}
+
+	if err := conn.RemoveNamespace(ctx, namespace); err != nil {
+		t.Fatalf("delete namespace: %v", err)
+	}
+	if err := conn.RemoveTenant(ctx, tenant); err != nil {
+		t.Fatalf("delete the now-empty tenant: %v", err)
+	}
+}
+
+/*
+ * Setting a limit, reading it back, and clearing it are three different calls
+ * and all three have to reach the broker.
+ *
+ * Clearing is the one worth a live test: it is a DELETE to a different
+ * endpoint than the PUT that set it, so a driver that sent zero instead would
+ * pass every unit test and leave a namespace capped at nothing.
+ */
+func TestLiveNamespaceLimitRoundTrip(t *testing.T) {
+	conn := liveConn(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	const namespace = "public/default"
+
+	if err := conn.SetNamespaceLimit(ctx, namespace, LimitMessageTTLSeconds, 3600); err != nil {
+		t.Fatalf("set the message TTL: %v", err)
+	}
+	t.Cleanup(func() {
+		cleanup, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+		defer cancel()
+		_ = conn.RemoveNamespaceLimit(cleanup, namespace, LimitMessageTTLSeconds)
+	})
+
+	if got := liveLimit(t, conn, namespace, LimitMessageTTLSeconds); got == nil || *got != 3600 {
+		t.Fatalf("message TTL after set = %v, want 3600", got)
+	}
+
+	if err := conn.RemoveNamespaceLimit(ctx, namespace, LimitMessageTTLSeconds); err != nil {
+		t.Fatalf("remove the message TTL: %v", err)
+	}
+	if got := liveLimit(t, conn, namespace, LimitMessageTTLSeconds); got != nil && *got != 0 {
+		t.Errorf("message TTL after remove = %d, want it back at the broker's default", *got)
+	}
+}
+
+// liveLimit reads one limit off the live namespace listing.
+func liveLimit(t *testing.T, conn *Conn, namespace, limit string) *int {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	namespaces, err := conn.ListNamespaces(ctx)
+	if err != nil {
+		t.Fatalf("ListNamespaces: %v", err)
+	}
+	for _, candidate := range namespaces {
+		if candidate.Name != namespace {
+			continue
+		}
+		if value, ok := candidate.Limits[limit]; ok {
+			return &value
+		}
+		return nil
+	}
+	t.Fatalf("%s is not in the namespace listing", namespace)
+	return nil
+}
