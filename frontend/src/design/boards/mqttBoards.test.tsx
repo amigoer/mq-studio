@@ -67,6 +67,7 @@ let OverviewMqtt: typeof import("./overview/OverviewMqtt").OverviewMqtt;
 let MqttWorkbench: typeof import("./mqtt/MqttWorkbench").MqttWorkbench;
 let ProducerMqtt: typeof import("./producer/ProducerMqtt").ProducerMqtt;
 let ClientsMqtt: typeof import("./consumers/ClientsMqtt").ClientsMqtt;
+let TopicsMqtt: typeof import("./topics/TopicsMqtt").TopicsMqtt;
 
 beforeAll(async () => {
   const storage = { getItem: () => null, setItem() {}, removeItem() {} };
@@ -81,12 +82,14 @@ beforeAll(async () => {
   });
   vi.stubGlobal("localStorage", storage);
 
-  const [server, overview, workbench, producer, clients, ui, i18n, settings] = await Promise.all([
+  const [server, overview, workbench, producer, clients, topics, ui, i18n, settings] =
+    await Promise.all([
     import("react-dom/server"),
     import("./overview/OverviewMqtt"),
     import("./mqtt/MqttWorkbench"),
     import("./producer/ProducerMqtt"),
     import("./consumers/ClientsMqtt"),
+    import("./topics/TopicsMqtt"),
     import("@/components"),
     import("@/i18n"),
     import("@/hooks/useSettings"),
@@ -102,6 +105,7 @@ beforeAll(async () => {
   MqttWorkbench = workbench.MqttWorkbench;
   ProducerMqtt = producer.ProducerMqtt;
   ClientsMqtt = clients.ClientsMqtt;
+  TopicsMqtt = topics.TopicsMqtt;
 });
 
 /** A stream as the hook reports it. */
@@ -441,5 +445,59 @@ describe("the MQTT clients board", () => {
     expect(html).toContain("离线");
     // And the header counts them, so the page says so before anyone scrolls.
     expect(html).toContain("1");
+  });
+});
+
+/** A retained topic as the driver sends it. */
+function retained(name: string, bytes: string) {
+  return {
+    id: 1,
+    ref: { namespace: "", name },
+    partitions: -1,
+    subscribers: -1,
+    depth: -1,
+    rateIn: -1,
+    rateOut: -1,
+    lastUpdated: "2026-09-02 03:00:00",
+    attributes: { source: "retained", retainedBytes: bytes, qos: "0" },
+  };
+}
+
+describe("the MQTT topics board", () => {
+  it("renders while the retained set is still being collected", () => {
+    topicsState.current = stateOf({ loading: true });
+    expect(render(<TopicsMqtt />)).toContain("<");
+  });
+
+  it("renders a broker with nothing retained", () => {
+    topicsState.current = stateOf({ data: [] });
+    // An empty list is an ordinary answer here, not an error: a fleet that
+    // publishes without the retain flag has nothing to list.
+    expect(render(<TopicsMqtt />)).toContain("<");
+  });
+
+  /*
+   * The notice is the point of the page.
+   *
+   * Without it an operator reads an empty or short list as "my devices are
+   * not publishing", when what it means is "nothing published with the retain
+   * flag". MQTT cannot answer the other question at all.
+   */
+  it("says what the listing actually answers", () => {
+    topicsState.current = stateOf({ data: [retained("devices/a19f/status", "6")] });
+    expect(render(<TopicsMqtt />)).toContain("没有主题注册表");
+  });
+
+  it("lists the retained topics and builds a tree from their levels", () => {
+    topicsState.current = stateOf({
+      data: [retained("devices/a19f/status", "6"), retained("devices/b22c/status", "7")],
+    });
+    const html = render(<TopicsMqtt />);
+
+    expect(html).toContain("devices/a19f/status");
+    expect(html).toContain("devices/b22c/status");
+    // The branches are inferred from the leaves: no broker keeps a list of
+    // the levels in between.
+    expect(html).toContain("devices");
   });
 });

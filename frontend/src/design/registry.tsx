@@ -18,6 +18,7 @@ import { UsersRabbitMQ } from "./boards/acl/UsersRabbitMQ";
 import { PoliciesRabbitMQ } from "./boards/policies/PoliciesRabbitMQ";
 import { DefinitionsRabbitMQ } from "./boards/definitions/DefinitionsRabbitMQ";
 import { ReplicationRabbitMQ } from "./boards/replication/ReplicationRabbitMQ";
+import { TopicsMqtt } from "./boards/topics/TopicsMqtt";
 import { TopicsPulsar } from "./boards/topics/TopicsPulsar";
 import { StreamsRedis } from "./boards/topics/StreamsRedis";
 
@@ -106,8 +107,7 @@ const BOARDS: Partial<
     rabbitmq: QueuesRabbitMQ,
     pulsar: TopicsPulsar,
     redis: StreamsRedis,
-    // MQTT's topic tree only exists inside the 4b workbench.
-    mqtt: MqttWorkbench,
+    mqtt: TopicsMqtt,
   },
   exchanges: { rabbitmq: ExchangesRabbitMQ },
   vhosts: { rabbitmq: VhostsRabbitMQ },

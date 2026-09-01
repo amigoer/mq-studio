@@ -1894,6 +1894,18 @@
           "retry": "Retry",
           "dlq": "Dead letter"
         }
+      },
+      "mqtt": {
+        "count": "{{count}} topics hold a retained value",
+        "search": "Search topics…",
+        "retained": "Retained messages",
+        "retainedOnly": "MQTT has no topic registry: a topic exists only while a message is in flight to it. This lists the topics that hold a retained value, so a device publishing without the retain flag will not appear — that is the protocol, not a fault.",
+        "size": "Retained size",
+        "detail": "Topic",
+        "levels": "Levels",
+        "none": "No topic selected",
+        "why": "Why it is listed",
+        "whyBody": "The broker kept this as the topic's last known value and replays it to whoever subscribes next."
       }
     },
     "consumers": {
