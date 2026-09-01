@@ -149,6 +149,31 @@ type MessageTailer interface {
 	TailMessages(ctx context.Context, ref model.DestinationRef, cursor model.TailCursor, limit int) (*model.TailBatch, error)
 }
 
+// LiveSubscriber follows what a broker pushes, rather than what it stores.
+//
+// It exists because MessageTailer above assumes a durable log to be
+// incremental against, and MQTT has none: its messages exist only while
+// someone is subscribed, arrive unasked for, and are gone if nobody was
+// listening. A cursor into stored data is the wrong shape for that.
+//
+// So the driver holds a bounded buffer per subscription, fed by the broker,
+// and the caller drains it by sequence. Which half of the split a family lands
+// on is not an implementation choice - a log can be re-read from any offset
+// and a pushed stream cannot be re-read at all, and a UI that offered "go back
+// ten minutes" on the second would be lying.
+//
+// The caller still owns the loop, for the reason MessageTailer gives. What it
+// does not own is the subscription: that lives on the broker until it is
+// stopped, so StopLiveSubscription is not optional cleanup.
+type LiveSubscriber interface {
+	StartLiveSubscription(ctx context.Context, spec model.LiveSubscriptionSpec) (*model.LiveSubscription, error)
+	PollLiveSubscription(ctx context.Context, id string, after int64, limit int) (*model.LiveBatch, error)
+	StopLiveSubscription(ctx context.Context, id string) error
+	// LiveSubscriptions is what is running, so a panel that remounts can find
+	// its own stream again instead of starting a second one.
+	LiveSubscriptions(ctx context.Context) ([]*model.LiveSubscription, error)
+}
+
 // MessageTracker reports where a message got to. Only RocketMQ has a trace.
 type MessageTracker interface {
 	TrackMessage(ctx context.Context, topic, messageID string) ([]*model.MessageTrackItem, error)

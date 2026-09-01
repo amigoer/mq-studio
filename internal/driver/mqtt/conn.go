@@ -23,18 +23,47 @@ type Conn struct {
 	client mqttClient
 	config clientConfig
 
+	// streams are the live subscriptions this connection is buffering. They
+	// are state the driver holds, unlike everything else here, because MQTT
+	// messages exist only while someone is subscribed - nothing else in the
+	// process can go back for them.
+	streamsMu sync.RWMutex
+	streams   map[string]*stream
+
 	capabilities model.Capabilities
 	closeOnce    sync.Once
 }
 
-// newConn wraps an already-connected client. Tests hand it one pointed at an
-// in-process broker; Open hands it one built from a profile.
+// newConn wraps a client and installs the handlers it delivers through.
+//
+// The handlers go on before Connect rather than after, because a session that
+// reconnects resubscribes from inside the library's own connect callback: one
+// installed later would miss the first delivery after every reconnect.
 func newConn(client mqttClient, config clientConfig) *Conn {
-	return &Conn{
+	conn := &Conn{
 		client:       client,
 		config:       config,
+		streams:      make(map[string]*stream),
 		capabilities: model.NewCapabilities(capabilities()...),
 	}
+	if client != nil {
+		client.OnMessage(conn.deliver)
+		client.OnConnectionUp(conn.sessionUp)
+		client.OnConnectionDown(conn.sessionDown)
+	}
+	return conn
+}
+
+// sessionUp marks every stream live again and says what to resubscribe.
+func (c *Conn) sessionUp() []subscribeFilter {
+	c.setStreamsLive(true)
+	return c.resubscribeFilters()
+}
+
+// sessionDown marks the streams as no longer listening. A page that cannot
+// tell that from a quiet broker will show a stalled panel as a working one.
+func (c *Conn) sessionDown() {
+	c.setStreamsLive(false)
 }
 
 // Kind identifies the family.
@@ -77,5 +106,6 @@ func (c *Conn) Close() error {
 func capabilities() []model.Capability {
 	return []model.Capability{
 		model.CapPublish,
+		model.CapLiveStream,
 	}
 }

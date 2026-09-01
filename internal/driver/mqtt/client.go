@@ -294,9 +294,53 @@ type mqttClient interface {
 	// nothing for the broker to say.
 	Publish(ctx context.Context, request PublishRequest) (*publishAnswer, error)
 
+	// Subscribe adds filters to the session.
+	Subscribe(ctx context.Context, filters []subscribeFilter) error
+
+	// Unsubscribe drops them again. The broker holds a subscription until it
+	// is told otherwise, so this is not optional cleanup.
+	Unsubscribe(ctx context.Context, patterns []string) error
+
+	// OnMessage installs the single handler every delivery goes to. It is set
+	// before Connect, because a subscription resumed on connect can deliver
+	// before the call that established it returns.
+	OnMessage(handler func(inboundMessage))
+
+	// OnConnectionUp is called after every successful connect, reconnects
+	// included, and returns the filters to re-establish. Both libraries are
+	// configured for a clean session, which keeps none, so without this a
+	// dropped connection comes back silent - the worst failure a live
+	// workbench has, because it looks exactly like a quiet broker.
+	OnConnectionUp(handler func() []subscribeFilter)
+
+	// OnConnectionDown is called when the session drops, so a stream can say
+	// it stopped listening rather than let the page read it as silence.
+	OnConnectionDown(handler func())
+
 	// Disconnect closes the session. It tolerates being called more than once
 	// and being called after a failed Connect.
 	Disconnect() error
+}
+
+// subscribeFilter is one topic filter to subscribe at a QoS.
+type subscribeFilter struct {
+	Pattern string
+	QoS     byte
+}
+
+// inboundMessage is one delivery, in the shape both libraries can produce.
+// Everything below Retained is 5.0 only and stays empty under 3.1.1.
+type inboundMessage struct {
+	Topic    string
+	Payload  []byte
+	QoS      byte
+	Retained bool
+
+	ContentType     string
+	ResponseTopic   string
+	CorrelationData string
+	MessageExpiry   uint32
+	UserProperties  map[string]string
 }
 
 // publishAnswer is what a broker said about one publish, in the shape both

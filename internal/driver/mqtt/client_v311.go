@@ -2,6 +2,7 @@ package mqtt
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	paho3 "github.com/eclipse/paho.mqtt.golang"
@@ -14,6 +15,11 @@ import (
 // driver to a broker at a version the rest of it does not assume, and the
 // user picked 3.1.1 on the form.
 const protocolVersion311 = 4
+
+// subscribeFailure311 is the granted QoS a 3.1.1 broker returns for a filter
+// it refused. It arrives in the SUBACK as a value rather than as an error,
+// so a filter that was declined otherwise reads as a topic nobody publishes.
+const subscribeFailure311 = 0x80
 
 // clientV311 speaks MQTT 3.1.1 through paho.mqtt.golang.
 //
@@ -29,10 +35,116 @@ const protocolVersion311 = 4
 type clientV311 struct {
 	config clientConfig
 	client paho3.Client
+
+	onMessage func(inboundMessage)
+	onUp      func() []subscribeFilter
+	onDown    func()
 }
 
 func newClientV311(config clientConfig) (*clientV311, error) {
-	return &clientV311{config: config, client: paho3.NewClient(clientOptionsV311(config))}, nil
+	client := &clientV311{config: config}
+	client.client = paho3.NewClient(clientOptionsV311(config, client))
+	return client, nil
+}
+
+func (c *clientV311) OnMessage(handler func(inboundMessage))          { c.onMessage = handler }
+func (c *clientV311) OnConnectionUp(handler func() []subscribeFilter) { c.onUp = handler }
+func (c *clientV311) OnConnectionDown(handler func())                 { c.onDown = handler }
+
+// Subscribe adds filters to the session.
+//
+// One SubscribeMultiple rather than a call per filter, because 3.1.1 grants a
+// QoS per filter in a single SUBACK and this is the only way to read them
+// together. 0x80 there is a refusal, which arrives as a granted QoS rather
+// than as an error - so without the check below a filter the broker declined
+// reads as a topic nobody publishes to.
+func (c *clientV311) Subscribe(ctx context.Context, filters []subscribeFilter) error {
+	if len(filters) == 0 {
+		return nil
+	}
+	if !c.client.IsConnectionOpen() {
+		return errConnectionDown
+	}
+
+	wanted := make(map[string]byte, len(filters))
+	for _, filter := range filters {
+		wanted[filter.Pattern] = filter.QoS
+	}
+
+	token := c.client.SubscribeMultiple(wanted, c.handleMessage)
+	select {
+	case <-token.Done():
+		if err := token.Error(); err != nil {
+			return err
+		}
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+
+	if granted, ok := token.(*paho3.SubscribeToken); ok {
+		for pattern, qos := range granted.Result() {
+			if qos == subscribeFailure311 {
+				return fmt.Errorf("broker refused the subscription to %q", pattern)
+			}
+		}
+	}
+	return nil
+}
+
+// Unsubscribe drops filters from the session.
+func (c *clientV311) Unsubscribe(ctx context.Context, patterns []string) error {
+	if len(patterns) == 0 {
+		return nil
+	}
+	if !c.client.IsConnectionOpen() {
+		return errConnectionDown
+	}
+
+	token := c.client.Unsubscribe(patterns...)
+	select {
+	case <-token.Done():
+		return token.Error()
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
+// handleMessage turns one delivery into the seam's shape.
+//
+// Everything 5.0 puts in properties is absent here, and so is NoLocal: 3.1.1
+// has no way to ask the broker not to echo this connection's own publishes
+// back, so a workbench watching a filter the send console publishes to will
+// see its own messages. That is the protocol, not a defect, and the alternative
+// - filtering them out by guessing - would hide a real duplicate.
+func (c *clientV311) handleMessage(_ paho3.Client, message paho3.Message) {
+	if c.onMessage == nil {
+		return
+	}
+	c.onMessage(inboundMessage{
+		Topic:    message.Topic(),
+		Payload:  message.Payload(),
+		QoS:      message.Qos(),
+		Retained: message.Retained(),
+	})
+}
+
+// resubscribe re-establishes the live filters after a connect. Clean session
+// keeps none, so without this a reconnect comes back silent.
+func (c *clientV311) resubscribe() {
+	if c.onUp == nil {
+		return
+	}
+	filters := c.onUp()
+	if len(filters) == 0 {
+		return
+	}
+
+	wanted := make(map[string]byte, len(filters))
+	for _, filter := range filters {
+		wanted[filter.Pattern] = filter.QoS
+	}
+	token := c.client.SubscribeMultiple(wanted, c.handleMessage)
+	token.WaitTimeout(c.config.DialTimeout)
 }
 
 // Connect dials and waits for CONNACK.
@@ -102,8 +214,15 @@ func (c *clientV311) Disconnect() error {
 
 // clientOptionsV311 is this driver's profile expressed as the library's
 // options.
-func clientOptionsV311(config clientConfig) *paho3.ClientOptions {
+func clientOptionsV311(config clientConfig, owner *clientV311) *paho3.ClientOptions {
 	options := paho3.NewClientOptions()
+	// Called after every successful connect, reconnects included.
+	options.SetOnConnectHandler(func(paho3.Client) { go owner.resubscribe() })
+	options.SetConnectionLostHandler(func(paho3.Client, error) {
+		if owner.onDown != nil {
+			owner.onDown()
+		}
+	})
 	for _, server := range config.Servers {
 		options.AddBroker(server.String())
 	}

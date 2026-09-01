@@ -53,8 +53,13 @@ const (
 	// which puts a copy back on the retry path for whoever picks it up.
 	CapMessageReplay   Capability = "message.replay"
 	CapMessageLiveTail Capability = "message.liveTail"
-	CapDLQ             Capability = "message.dlq"
-	CapPublish         Capability = "message.publish"
+	// CapLiveStream is following what a broker pushes rather than what it
+	// stores. Distinct from CapMessageLiveTail, which is an incremental read
+	// of a durable log: a family can have one and not the other, and MQTT has
+	// no log to tail at all.
+	CapLiveStream Capability = "message.liveStream"
+	CapDLQ        Capability = "message.dlq"
+	CapPublish    Capability = "message.publish"
 
 	// CapPublishRich is a send console that can set what the family's own
 	// protocol carries - an exchange and routing key, headers, and the

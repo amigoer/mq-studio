@@ -644,6 +644,14 @@ export enum Capability {
      */
     CapMessageReplay = "message.replay",
     CapMessageLiveTail = "message.liveTail",
+
+    /**
+     * CapLiveStream is following what a broker pushes rather than what it
+     * stores. Distinct from CapMessageLiveTail, which is an incremental read
+     * of a durable log: a family can have one and not the other, and MQTT has
+     * no log to tail at all.
+     */
+    CapLiveStream = "message.liveStream",
     CapDLQ = "message.dlq",
     CapPublish = "message.publish",
 

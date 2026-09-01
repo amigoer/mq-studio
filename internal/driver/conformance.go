@@ -26,6 +26,7 @@ func backings() []capabilityBacking {
 	reader := func(c Conn) bool { _, ok := c.(MessageReader); return ok }
 	tracker := func(c Conn) bool { _, ok := c.(MessageTracker); return ok }
 	tailer := func(c Conn) bool { _, ok := c.(MessageTailer); return ok }
+	liveStream := func(c Conn) bool { _, ok := c.(LiveSubscriber); return ok }
 	deadLetter := func(c Conn) bool { _, ok := c.(DeadLetterReader); return ok }
 	replayer := func(c Conn) bool { _, ok := c.(MessageReplayer); return ok }
 	publisher := func(c Conn) bool { _, ok := c.(MessagePublisher); return ok }
@@ -88,6 +89,7 @@ func backings() []capabilityBacking {
 		{model.CapMessageByID, "MessageReader", reader},
 		{model.CapMessageTrack, "MessageTracker", tracker},
 		{model.CapMessageLiveTail, "MessageTailer", tailer},
+		{model.CapLiveStream, "LiveSubscriber", liveStream},
 		{model.CapDLQ, "DeadLetterReader", deadLetter},
 		{model.CapMessageResend, "DeadLetterReader", deadLetter},
 		{model.CapMessageReplay, "MessageReplayer", replayer},

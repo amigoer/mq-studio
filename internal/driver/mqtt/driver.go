@@ -260,9 +260,13 @@ func (d *Driver) Open(ctx context.Context, profile model.ConnectionProfile) (dri
 	if err != nil {
 		return nil, err
 	}
+	// The connection is built before the dial, not after: it owns the handlers
+	// the client delivers through, and a session that reconnects resubscribes
+	// from inside the library's own connect callback.
+	conn := newConn(client, config)
 	if err := client.Connect(ctx); err != nil {
-		_ = client.Disconnect()
+		_ = conn.Close()
 		return nil, err
 	}
-	return newConn(client, config), nil
+	return conn, nil
 }

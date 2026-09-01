@@ -40,16 +40,136 @@ type clientV5 struct {
 	// manager runs the connect-and-reconnect loop. Its context is this
 	// client's lifetime, not any one call's, so it is cancelled by Disconnect
 	// rather than by the ctx that opened the connection.
-	manager    *autopaho.ConnectionManager
-	cancel     context.CancelFunc
-	closeOnce  sync.Once
-	lastErrMu  sync.Mutex
-	lastErr    error
-	registered bool
+	manager   *autopaho.ConnectionManager
+	cancel    context.CancelFunc
+	closeOnce sync.Once
+	lastErrMu sync.Mutex
+	lastErr   error
+
+	onMessage func(inboundMessage)
+	onUp      func() []subscribeFilter
+	onDown    func()
 }
 
 func newClientV5(config clientConfig) (*clientV5, error) {
 	return &clientV5{config: config}, nil
+}
+
+func (c *clientV5) OnMessage(handler func(inboundMessage))          { c.onMessage = handler }
+func (c *clientV5) OnConnectionUp(handler func() []subscribeFilter) { c.onUp = handler }
+func (c *clientV5) OnConnectionDown(handler func())                 { c.onDown = handler }
+
+// Subscribe adds filters to the session.
+func (c *clientV5) Subscribe(ctx context.Context, filters []subscribeFilter) error {
+	if c.manager == nil {
+		return errConnectionDown
+	}
+	if len(filters) == 0 {
+		return nil
+	}
+
+	options := make([]paho.SubscribeOptions, len(filters))
+	for i, filter := range filters {
+		options[i] = paho.SubscribeOptions{
+			Topic: filter.Pattern,
+			QoS:   filter.QoS,
+			// Without this the broker echoes back everything this same
+			// connection publishes, so the send console would appear to be
+			// talking to itself in the workbench next to it.
+			NoLocal: true,
+			// Deliver retained messages on the way in, and keep their flag
+			// set: a retained value and a live one look identical otherwise,
+			// and one of them may be hours old.
+			RetainHandling:    0,
+			RetainAsPublished: true,
+		}
+	}
+
+	answer, err := c.manager.Subscribe(ctx, &paho.Subscribe{Subscriptions: options})
+	if err != nil {
+		return err
+	}
+	// A SUBACK carries a reason code per filter, and a refusal arrives there
+	// rather than as an error - so without this a filter the broker declined
+	// reads as a topic nobody is publishing to.
+	for i, reason := range answer.Reasons {
+		if reason >= reasonUnspecifiedError {
+			return fmt.Errorf("broker refused the subscription to %q (reason %d)",
+				filters[i].Pattern, reason)
+		}
+	}
+	return nil
+}
+
+// Unsubscribe drops filters from the session.
+func (c *clientV5) Unsubscribe(ctx context.Context, patterns []string) error {
+	if c.manager == nil {
+		return errConnectionDown
+	}
+	if len(patterns) == 0 {
+		return nil
+	}
+	_, err := c.manager.Unsubscribe(ctx, &paho.Unsubscribe{Topics: patterns})
+	return err
+}
+
+// handlePublish turns one delivery into the seam's shape.
+func (c *clientV5) handlePublish(received paho.PublishReceived) (bool, error) {
+	if c.onMessage == nil || received.Packet == nil {
+		return false, nil
+	}
+
+	packet := received.Packet
+	message := inboundMessage{
+		Topic:    packet.Topic,
+		Payload:  packet.Payload,
+		QoS:      packet.QoS,
+		Retained: packet.Retain,
+	}
+	if properties := packet.Properties; properties != nil {
+		message.ContentType = properties.ContentType
+		message.ResponseTopic = properties.ResponseTopic
+		message.CorrelationData = string(properties.CorrelationData)
+		if properties.MessageExpiry != nil {
+			message.MessageExpiry = *properties.MessageExpiry
+		}
+		if len(properties.User) > 0 {
+			message.UserProperties = make(map[string]string, len(properties.User))
+			for _, property := range properties.User {
+				message.UserProperties[property.Key] = property.Value
+			}
+		}
+	}
+	c.onMessage(message)
+	return true, nil
+}
+
+// resubscribe re-establishes the live filters after a connect.
+//
+// autopaho hands the manager in rather than leaving it to be read from the
+// struct, because on the first connection this runs before Connect has stored
+// it - and subscribing through a nil manager would silently do nothing.
+func (c *clientV5) resubscribe(manager *autopaho.ConnectionManager) {
+	if c.onUp == nil {
+		return
+	}
+	filters := c.onUp()
+	if len(filters) == 0 {
+		return
+	}
+
+	options := make([]paho.SubscribeOptions, len(filters))
+	for i, filter := range filters {
+		options[i] = paho.SubscribeOptions{
+			Topic:             filter.Pattern,
+			QoS:               filter.QoS,
+			NoLocal:           true,
+			RetainAsPublished: true,
+		}
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), c.config.DialTimeout)
+	defer cancel()
+	_, _ = manager.Subscribe(ctx, &paho.Subscribe{Subscriptions: options})
 }
 
 // Connect dials, and gives up on the deadline rather than on the broker.
@@ -69,7 +189,6 @@ func (c *clientV5) Connect(ctx context.Context) error {
 		return fmt.Errorf("build mqtt client: %w", err)
 	}
 	c.manager = manager
-	c.registered = true
 
 	awaitCtx, awaitCancel := context.WithTimeout(ctx, c.config.DialTimeout)
 	defer awaitCancel()
@@ -200,8 +319,23 @@ func (c *clientV5) clientConfig() autopaho.ClientConfig {
 		// seconds, which can outlast the caller's whole request budget.
 		ConnectTimeout: c.config.DialTimeout,
 		OnConnectError: c.recordConnectError,
+		// Must not block, so the resubscribe runs on its own goroutine.
+		OnConnectionUp: func(manager *autopaho.ConnectionManager, _ *paho.Connack) {
+			go c.resubscribe(manager)
+		},
+		OnConnectionDown: func() bool {
+			if c.onDown != nil {
+				c.onDown()
+			}
+			// Keep reconnecting. Returning false here would strand the session
+			// after one drop, which is the case autopaho was chosen for.
+			return true
+		},
 		ClientConfig: paho.ClientConfig{
 			ClientID: c.config.ClientID,
+			// Set on the config rather than added afterwards: a resumed
+			// subscription can deliver before NewConnection returns.
+			OnPublishReceived: []func(paho.PublishReceived) (bool, error){c.handlePublish},
 		},
 	}
 	if c.config.Authenticates {
