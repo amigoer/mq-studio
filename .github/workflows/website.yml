@@ -80,7 +80,7 @@ jobs:
         run: |
           set -eu
           for page in website/dist/index.html website/dist/en/index.html; do
-            panels=$(grep -o 'role="tabpanel"' "$page" | wc -l | tr -d ' ')
+            panels=$(grep -o 'role="tabpanel"' "$page" | wc -l | tr -d ' ' || true)
             if [ "$panels" -ne 5 ]; then
               echo "expected 5 pre-rendered tab panels in ${page}, found ${panels}" >&2
               echo "the product tour must render every panel at build time" >&2
@@ -100,7 +100,7 @@ jobs:
 
             # Every platform's real filename has to survive into the markup, so
             # the cards work before -- and without -- the picker script.
-            names=$(grep -oE 'mq-studio-[0-9.]+-[a-z0-9]+-[a-z0-9]+\.[A-Za-z]+' "$page" | sort -u | wc -l | tr -d ' ')
+            names=$(grep -oE 'mq-studio-[0-9.]+-[a-z0-9]+-[a-z0-9]+\.[A-Za-z]+' "$page" | sort -u | wc -l | tr -d ' ' || true)
             if [ "$names" -ne 10 ]; then
               echo "expected 10 release filenames in ${page}, found ${names}" >&2
               exit 1
@@ -133,13 +133,13 @@ jobs:
           # empty pages, so assert the per-version routes came through.
           for prefix in '' 'en/'; do
             root="website/dist/${prefix}changelog"
-            pages=$(find "$root" -mindepth 2 -name index.html | wc -l | tr -d ' ')
+            pages=$(find "$root" -mindepth 2 -name index.html | wc -l | tr -d ' ' || true)
             if [ "$pages" -lt 3 ]; then
               echo "expected at least 3 per-version pages under ${root}, found ${pages}" >&2
               exit 1
             fi
             find "$root" -mindepth 2 -name index.html | while read -r page; do
-              arts=$(grep -o '<article' "$page" | wc -l | tr -d ' ')
+              arts=$(grep -o '<article' "$page" | wc -l | tr -d ' ' || true)
               if [ "$arts" -ne 1 ]; then
                 echo "${page} should document exactly one release, found ${arts}" >&2
                 exit 1
@@ -156,7 +156,7 @@ jobs:
           # that ever stops running the pages still build, full of dead links.
           for prefix in '' 'en/'; do
             root="website/dist/${prefix}docs"
-            pages=$(find "$root" -mindepth 2 -name index.html | wc -l | tr -d ' ')
+            pages=$(find "$root" -mindepth 2 -name index.html | wc -l | tr -d ' ' || true)
             if [ "$pages" -ne 3 ]; then
               echo "expected 3 doc pages under ${root}, found ${pages}" >&2
               exit 1
@@ -170,8 +170,8 @@ jobs:
               fi
               # Tables are wider than a phone; without the wrapper the page
               # itself scrolls sideways.
-              tables=$(grep -o '<table' "$page" | wc -l | tr -d ' ')
-              wraps=$(grep -o 'table-scroll' "$page" | wc -l | tr -d ' ')
+              tables=$(grep -o '<table' "$page" | wc -l | tr -d ' ' || true)
+              wraps=$(grep -o 'table-scroll' "$page" | wc -l | tr -d ' ' || true)
               if [ "$tables" -ne "$wraps" ]; then
                 echo "${page}: ${tables} tables but ${wraps} scroll wrappers" >&2
                 exit 1
@@ -258,7 +258,7 @@ jobs:
 
           # The whole point of dropping the framework runtime was the payload;
           # this fails the build if a dependency drags one back in.
-          js=$(find website/dist -name '*.js' -exec cat {} + 2>/dev/null | wc -c | tr -d ' ')
+          js=$(find website/dist -name '*.js' -exec cat {} + 2>/dev/null | wc -c | tr -d ' ' || true)
           if [ "$js" -gt 20000 ]; then
             echo "external JS grew to ${js} bytes; the page is meant to ship almost none" >&2
             exit 1
