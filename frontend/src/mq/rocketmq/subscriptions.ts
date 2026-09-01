@@ -6,6 +6,7 @@
 import type { Subscription } from "@bindings/model/models";
 
 const AttrConsumeMode = "consumeMode";
+const AttrBroadcast = "broadcastEnabled";
 const AttrMaxRetry = "maxRetry";
 const AttrRetryQps = "retryQps";
 const AttrDLQ = "dlq";
@@ -69,6 +70,16 @@ export const remark = (subscription: Subscription): string =>
  */
 export const consumeMode = (subscription: Subscription): ConsumeMode | null =>
   (attr(subscription, AttrConsumeMode) as ConsumeMode) || null;
+/**
+ * Whether the broker permits this group to consume in broadcast mode.
+ *
+ * Not the same question as consumeMode: this is the stored permission and is
+ * always known, that is what a client reports and is null while none is
+ * connected. The edit form rewrites the whole subscription config, so it reads
+ * this rather than inferring one from the other.
+ */
+export const broadcastEnabled = (subscription: Subscription): boolean =>
+  attr(subscription, AttrBroadcast) === "true";
 export const maxRetry = (subscription: Subscription): number =>
   numeric(subscription, AttrMaxRetry);
 export const retryQps = (subscription: Subscription): number =>

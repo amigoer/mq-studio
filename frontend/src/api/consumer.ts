@@ -23,14 +23,34 @@ export const getConsumerClients = (
 ): Promise<SubscriptionClient[]> =>
   ConsumerService.Clients(connID, group).then(present);
 
-/*
- * Creating and editing a group have no wrapper here on purpose. The bridge and
- * the driver both implement them, but rocketmq-admin-go sends the config in
- * extFields where RocketMQ 5.x reads it from the body, so the broker answers
- * every create and update with a NullPointerException.
- * TestLiveConsumerGroupDelete pins that; it turns red when the library is
- * fixed, and the form goes back in then.
+/**
+ * Creates a consumer group, or rewrites an existing one.
+ *
+ * The broker upserts either way; the two calls exist so the form can say which
+ * it meant and the caller can report it. brokerAddr empty means every master.
+ *
+ * consumeMode here is the broadcast *permission* the config stores, not the
+ * model a client reports - the driver maps BROADCASTING onto
+ * consumeBroadcastEnable. Because the whole config is rewritten, an edit must
+ * send the group's current permission back or it silently clears it.
  */
+export const createConsumerGroup = (
+  connID: number,
+  group: string,
+  brokerAddr: string,
+  consumeMode: string,
+  maxRetry: number,
+): Promise<void> =>
+  ConsumerService.Create(connID, { group, brokerAddr, consumeMode, maxRetry });
+export const updateConsumerGroup = (
+  connID: number,
+  group: string,
+  brokerAddr: string,
+  consumeMode: string,
+  maxRetry: number,
+): Promise<void> =>
+  ConsumerService.Update(connID, { group, brokerAddr, consumeMode, maxRetry });
+
 export const deleteConsumerGroup = (
   connID: number,
   group: string,

@@ -37,21 +37,25 @@ type GroupClient struct {
 
 // ConsumerGroupItem holds consumer group information.
 type ConsumerGroupItem struct {
-	ID            int                 `json:"id"`            // Consumer group ID
-	Group         string              `json:"group"`         // Consumer group name
-	Cluster       string              `json:"cluster"`       // Cluster name
-	ConsumeMode   ConsumeMode         `json:"consumeMode"`   // Consume mode
-	Status        GroupStatus         `json:"status"`        // Status
-	OnlineClients int                 `json:"onlineClients"` // Online client count
-	TopicCount    int                 `json:"topicCount"`    // Subscribed Topic count
-	Lag           int64               `json:"lag"`           // Message lag
-	RetryQps      int                 `json:"retryQps"`      // Retry QPS
-	DLQ           int                 `json:"dlq"`           // Dead-letter count
-	MaxRetry      int                 `json:"maxRetry"`      // Max retry times
-	LastUpdate    string              `json:"lastUpdate"`    // Last update time
-	Remark        string              `json:"remark"`        // Remark
-	Subscriptions []GroupSubscription `json:"subscriptions"` // Subscription list
-	Clients       []GroupClient       `json:"clients"`       // Client list
+	ID            int         `json:"id"`            // Consumer group ID
+	Group         string      `json:"group"`         // Consumer group name
+	Cluster       string      `json:"cluster"`       // Cluster name
+	ConsumeMode   ConsumeMode `json:"consumeMode"`   // Consume mode
+	Status        GroupStatus `json:"status"`        // Status
+	OnlineClients int         `json:"onlineClients"` // Online client count
+	TopicCount    int         `json:"topicCount"`    // Subscribed Topic count
+	Lag           int64       `json:"lag"`           // Message lag
+	RetryQps      int         `json:"retryQps"`      // Retry QPS
+	DLQ           int         `json:"dlq"`           // Dead-letter count
+	MaxRetry      int         `json:"maxRetry"`      // Max retry times
+	// BroadcastEnabled is the stored consumeBroadcastEnable permission, not
+	// ConsumeMode: one is what the group is allowed to do, the other what a
+	// connected client reports it is doing.
+	BroadcastEnabled bool                `json:"broadcastEnabled"`
+	LastUpdate       string              `json:"lastUpdate"`    // Last update time
+	Remark           string              `json:"remark"`        // Remark
+	Subscriptions    []GroupSubscription `json:"subscriptions"` // Subscription list
+	Clients          []GroupClient       `json:"clients"`       // Client list
 }
 
 // ConsumerGroupConfig holds consumer group create/update configuration.

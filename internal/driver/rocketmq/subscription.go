@@ -10,7 +10,14 @@ import (
 
 // Attribute keys this driver puts on a Subscription.
 const (
-	AttrConsumeMode   = "consumeMode"
+	AttrConsumeMode = "consumeMode"
+	// AttrBroadcast is the stored consumeBroadcastEnable permission. It is
+	// separate from AttrConsumeMode because they answer different questions:
+	// this is what the broker allows the group to do, that is what a connected
+	// client reports it is doing, and an idle group has the first and not the
+	// second. The edit form needs this one - it rewrites the whole config, so
+	// a form that guessed the permission would silently change it.
+	AttrBroadcast     = "broadcastEnabled"
 	AttrMaxRetry      = "maxRetry"
 	AttrRetryQps      = "retryQps"
 	AttrDLQ           = "dlq"
@@ -88,6 +95,7 @@ func subscriptionFromGroup(group *model.ConsumerGroupItem) *model.Subscription {
 	}
 	attributes := map[string]string{
 		AttrConsumeMode: string(group.ConsumeMode),
+		AttrBroadcast:   strconv.FormatBool(group.BroadcastEnabled),
 		AttrMaxRetry:    strconv.Itoa(group.MaxRetry),
 		AttrRetryQps:    strconv.Itoa(group.RetryQps),
 		AttrDLQ:         strconv.Itoa(group.DLQ),
@@ -124,19 +132,20 @@ func GroupFromSubscription(subscription *model.Subscription) *model.ConsumerGrou
 		return nil
 	}
 	group := &model.ConsumerGroupItem{
-		ID:            subscription.ID,
-		Group:         subscription.Ref.Name,
-		Cluster:       subscription.Attribute(AttrCluster),
-		ConsumeMode:   model.ConsumeMode(subscription.Attribute(AttrConsumeMode)),
-		Status:        groupStatusFrom(subscription.Status),
-		OnlineClients: subscription.Members,
-		TopicCount:    subscription.Destinations,
-		Lag:           subscription.Backlog,
-		RetryQps:      atoiOr(subscription.Attribute(AttrRetryQps), 0),
-		DLQ:           atoiOr(subscription.Attribute(AttrDLQ), 0),
-		MaxRetry:      atoiOr(subscription.Attribute(AttrMaxRetry), 0),
-		LastUpdate:    subscription.LastUpdated,
-		Remark:        subscription.Attribute(AttrRemark),
+		ID:               subscription.ID,
+		Group:            subscription.Ref.Name,
+		Cluster:          subscription.Attribute(AttrCluster),
+		ConsumeMode:      model.ConsumeMode(subscription.Attribute(AttrConsumeMode)),
+		Status:           groupStatusFrom(subscription.Status),
+		OnlineClients:    subscription.Members,
+		TopicCount:       subscription.Destinations,
+		Lag:              subscription.Backlog,
+		RetryQps:         atoiOr(subscription.Attribute(AttrRetryQps), 0),
+		DLQ:              atoiOr(subscription.Attribute(AttrDLQ), 0),
+		MaxRetry:         atoiOr(subscription.Attribute(AttrMaxRetry), 0),
+		LastUpdate:       subscription.LastUpdated,
+		BroadcastEnabled: subscription.Attribute(AttrBroadcast) == "true",
+		Remark:           subscription.Attribute(AttrRemark),
 	}
 	if encoded := subscription.Attribute(AttrSubscriptions); encoded != "" {
 		var subs []model.GroupSubscription

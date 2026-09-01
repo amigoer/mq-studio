@@ -3,7 +3,7 @@ module github.com/amigoer/mq-studio
 go 1.25.0
 
 require (
-	github.com/amigoer/rocketmq-admin-go v1.3.1
+	github.com/amigoer/rocketmq-admin-go v1.3.2
 	github.com/apache/rocketmq-client-go/v2 v2.1.2
 	github.com/michaelklishin/rabbit-hole/v3 v3.5.0
 	github.com/rabbitmq/amqp091-go v1.14.0
