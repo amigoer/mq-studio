@@ -90,6 +90,14 @@ async function sweepConnection(profile: Connection): Promise<Sweep> {
   if (profile.status !== "online") return { id: profile.id, facts: NO_FACTS };
   const rabbit = profile.kind === MQKind.KindRabbitMQ;
   const kafka = profile.kind === MQKind.KindKafka;
+  /*
+   * Pulsar reads subscriptions and nothing else. Its rules are about a
+   * subscription's own state - blocked, idle with a backlog, behind - and its
+   * broker memory, which arrives with the cluster view. It deliberately does
+   * not read topics: on this family that is a request per topic, the same walk
+   * the subscription listing already pays for, and doubling a sixty-second
+   * sweep for the dead-letter rule was not worth it.
+   */
   try {
     const [cluster, groups, destinations, connections] = await Promise.all([
       clusterApi.getClusterView(profile.id),

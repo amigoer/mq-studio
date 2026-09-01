@@ -201,7 +201,8 @@
       "flowControl": "Connections being throttled",
       "partitionUnderReplicated": "Partitions under-replicated",
       "partitionOffline": "Partitions with an unreachable replica",
-      "partitionLeaderless": "Partitions with no leader"
+      "partitionLeaderless": "Partitions with no leader",
+      "subscriptionBlocked": "Subscription blocked by unacknowledged messages"
     },
     "tabs": {
       "active": "Active",
@@ -233,7 +234,8 @@
       "memoryUsage": "{{broker}} memory at {{usage}}%",
       "queueBacklog": "{{queue}} is over the backlog threshold",
       "queueNoConsumer": "Nothing is reading {{queue}}",
-      "flowControl": "{{count}} connection(s) are being throttled"
+      "flowControl": "{{count}} connection(s) are being throttled",
+      "subscriptionBlocked": "Subscription blocked"
     },
     "detail": {
       "brokerOffline": "{{broker}} ({{address}})",
@@ -249,7 +251,8 @@
       "flowControl": "{{count}} connection(s) in flow or blocked, such as {{peer}}",
       "partitionUnderReplicated": "{{topic}} · {{count}} partitions",
       "partitionOffline": "{{topic}} · {{count}} partitions",
-      "partitionLeaderless": "{{topic}} · {{count}} partitions neither readable nor writable"
+      "partitionLeaderless": "{{topic}} · {{count}} partitions neither readable nor writable",
+      "subscriptionBlocked": "{{subscription}} · {{unacked}} unacknowledged; the broker has stopped delivering"
     },
     "duration": {
       "minutes": "for {{count}} min",

@@ -24,6 +24,7 @@ import type { AlertRuleKey, AlertRulePrefs } from "@/lib/alertRules";
 import { deriveRocketMQAlerts } from "@/mq/rocketmq/alerts";
 import { deriveRabbitMQAlerts } from "@/mq/rabbitmq/alerts";
 import { deriveKafkaAlerts } from "@/mq/kafka/alerts";
+import { derivePulsarAlerts } from "@/mq/pulsar/alerts";
 
 export type AlertSeverity = "crit" | "warn" | "info";
 
@@ -79,13 +80,8 @@ export function deriveAlerts(
       ? deriveRabbitMQAlerts(facts, rules, thresholds)
       : kind === MQKind.KindKafka
         ? deriveKafkaAlerts(facts, rules, thresholds)
-        : /* Pulsar declares no rules yet, so it derives none. Without this arm
-             it would fall through to RocketMQ's, which read a backlog off a
-             consumer group and a disk figure off a broker - neither of which
-             Pulsar reports - and produce an empty alerts page that looks like
-             a healthy cluster rather than an unwritten one. */
-          kind === MQKind.KindPulsar
-          ? []
+        : kind === MQKind.KindPulsar
+          ? derivePulsarAlerts(facts, rules, thresholds)
           : /* Every other family is read with RocketMQ's rules, which is what
              they were before this dispatch existed. A family whose vocabulary
              they do not fit reports nothing rather than something wrong, and

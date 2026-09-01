@@ -201,7 +201,8 @@
       "flowControl": "连接被限流",
       "partitionUnderReplicated": "分区副本不足",
       "partitionOffline": "分区有不可达的副本",
-      "partitionLeaderless": "分区没有 leader"
+      "partitionLeaderless": "分区没有 leader",
+      "subscriptionBlocked": "订阅因未确认消息过多被阻塞"
     },
     "tabs": {
       "active": "活跃告警",
@@ -233,7 +234,8 @@
       "memoryUsage": "{{broker}} 内存水位 {{usage}}%",
       "queueBacklog": "{{queue}} 堆积超阈值",
       "queueNoConsumer": "{{queue}} 无人消费",
-      "flowControl": "{{count}} 个连接被限流"
+      "flowControl": "{{count}} 个连接被限流",
+      "subscriptionBlocked": "订阅已阻塞"
     },
     "detail": {
       "brokerOffline": "{{broker}}（{{address}}）",
@@ -249,7 +251,8 @@
       "flowControl": "{{count}} 个连接处于 flow/blocked，如 {{peer}}",
       "partitionUnderReplicated": "{{topic}} · {{count}} 个分区",
       "partitionOffline": "{{topic}} · {{count}} 个分区",
-      "partitionLeaderless": "{{topic}} · {{count}} 个分区既不可读也不可写"
+      "partitionLeaderless": "{{topic}} · {{count}} 个分区既不可读也不可写",
+      "subscriptionBlocked": "{{subscription}} · {{unacked}} 条未确认，Broker 已停止投递"
     },
     "duration": {
       "minutes": "持续 {{count}} 分钟",

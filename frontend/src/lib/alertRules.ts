@@ -17,13 +17,23 @@ export type AlertRuleKey =
   // purpose and its operator wants that one off, not all three.
   | "partitionUnderReplicated"
   | "partitionOffline"
-  | "partitionLeaderless";
+  | "partitionLeaderless"
+  /*
+   * Pulsar's own, and it has no counterpart on any other family: past its
+   * unacknowledged limit the broker stops delivering to a subscription
+   * entirely. From the backlog alone that is indistinguishable from a slow
+   * consumer, and it is fixed by acknowledging or raising a limit rather than
+   * by looking at the consumer - so it is a separate switch and a separate
+   * alert.
+   */
+  | "subscriptionBlocked";
 
 export type AlertRulePrefs = Record<AlertRuleKey, boolean>;
 
 /** Every rule, in the order a list of them reads best: worst first. */
 export const ALERT_RULE_KEYS: readonly AlertRuleKey[] = [
   "brokerOffline",
+  "subscriptionBlocked",
   "resourceAlarm",
   "nodePartition",
   "partitionLeaderless",
@@ -58,16 +68,27 @@ const RULES_BY_KIND: Partial<Record<MQKind, readonly AlertRuleKey[]>> = {
     "groupLag",
   ],
   /*
-   * Pulsar has no rules yet, and an empty list is the point.
+   * No brokerOffline, no diskUsage and no dlqGrowth, and all three absences
+   * are deliberate.
+   * Pulsar's active-broker listing stops listing a broker that has gone rather
+   * than reporting it offline, so the driver never marks one - a switch for it
+   * would be a switch for something that cannot fire. The messages are
+   * BookKeeper's, so no broker reports a disk figure at all; memory is the
+   * watermark that actually stops one on this family.
    *
-   * Falling through to ROCKETMQ_RULES would leave the alerts page enabled with
-   * rules written against a vocabulary Pulsar does not share - they read
-   * backlogs off consumer groups and disk off brokers, neither of which this
-   * family reports the same way - so every one of them would evaluate to
-   * nothing and the page would look like a cluster with no problems. Reporting
-   * no rules is the honest version of that until they are written.
+   * dlqGrowth is the one left out for cost rather than for meaning. A Pulsar
+   * dead-letter topic is found by walking a namespace and reading every
+   * topic's depth, which is the same request-per-topic walk the subscription
+   * rules already pay for - offering it here would double the sweep against
+   * every open connection, every minute, for a page that answers the same
+   * question on demand.
    */
-  [MQKind.KindPulsar]: [],
+  [MQKind.KindPulsar]: [
+    "subscriptionBlocked",
+    "groupOffline",
+    "groupLag",
+    "memoryUsage",
+  ],
   [MQKind.KindRabbitMQ]: [
     "brokerOffline",
     "resourceAlarm",
@@ -107,6 +128,7 @@ export const DEFAULT_ALERT_RULES: AlertRulePrefs = {
   queueBacklog: true,
   queueNoConsumer: true,
   flowControl: true,
+  subscriptionBlocked: true,
   partitionUnderReplicated: true,
   partitionOffline: true,
   partitionLeaderless: true,
