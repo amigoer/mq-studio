@@ -2534,6 +2534,29 @@
           "countInvalid": "份数请填 1 到 10000 之间",
           "headerLine": "header 每行一个 key=value"
         }
+      },
+      "redis": {
+        "subtitle": "向 Stream 写入一条消息",
+        "streamHint": "这里不会创建 Stream。否则一个写错的键就会变成一个只装着一条测试消息的新 Stream。",
+        "streamRequired": "请选择要写入的 Stream。",
+        "noStreams": "键匹配模式没有找到可写入的 Stream。请先在 Stream 页面创建一个。",
+        "fields": "字段",
+        "fieldName": "字段名",
+        "fieldValue": "值",
+        "addField": "添加字段",
+        "fieldsHint": "字段顺序会被保留。读取 Stream 时顺序会丢失——客户端把字段还原成无序映射——所以这里是唯一保住顺序的地方。",
+        "fieldRequired": "一条消息至少需要一个有名字的字段。",
+        "entryId": "Entry ID",
+        "entryIdHint": "留空则由服务端按自己的时钟分配，这也是保证 Stream 有序的方式。",
+        "idInvalid": "Entry ID 的格式是 <毫秒> 或 <毫秒>-<序号>。",
+        "idWithCount": "指定的 Entry ID 只能用一次。请只写一条，或者让服务端分配 ID。",
+        "count": "份数",
+        "countHint": "把同一条消息写入这么多份，每份各有自己的 ID。",
+        "countRequired": "请填写要写入的份数。",
+        "countInvalid": "份数必须是不小于 1 的整数。",
+        "assigned": "分配到的 ID",
+        "sent": "已写入 {{count}} 条",
+        "sendFailed": "写入消息失败"
       }
     },
     "mqtt": {

@@ -34,7 +34,9 @@ const requires: Record<string, Capability | Capability[]> = {
   replication: Capability.CapReplication,
   // Only Kafka throttles by identity rather than by destination.
   quotas: Capability.CapQuotaList,
-  producer: Capability.CapPublish,
+  // Two, because a family whose message is an ordered set of named fields
+  // cannot be sent through a signature built for a topic with a body.
+  producer: [Capability.CapPublish, Capability.CapEntryPublish],
   cluster: Capability.CapClusterTopology,
   // Three, because three families answer this page by three different means.
   // RocketMQ has a credential pair carrying its own permissions; RabbitMQ has

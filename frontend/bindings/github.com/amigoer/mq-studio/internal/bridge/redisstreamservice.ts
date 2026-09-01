@@ -24,6 +24,19 @@ import * as model$0 from "../model/models.js";
 import * as $models from "./models.js";
 
 /**
+ * AddEntry writes to a stream and returns the ids the server assigned.
+ * 
+ * The ids rather than a count: an id is the only handle on an entry, so a
+ * console that reported "sent 5" would leave the user unable to find any of
+ * them.
+ */
+export function AddEntry(connID: number, input: $models.EntryInput): $CancellablePromise<model$0.StreamAddResult | null> {
+    return $Call.ByID(870285481, connID, input).then(($result: any) => {
+        return $$createType1($result);
+    });
+}
+
+/**
  * CreateGroup declares a consumer group on a stream.
  */
 export function CreateGroup(connID: number, input: $models.GroupInput): $CancellablePromise<void> {
@@ -36,7 +49,7 @@ export function CreateGroup(connID: number, input: $models.GroupInput): $Cancell
  */
 export function DeleteEntries(connID: number, stream: string, ids: string[]): $CancellablePromise<model$0.TrimResult | null> {
     return $Call.ByID(3902121557, connID, stream, ids).then(($result: any) => {
-        return $$createType1($result);
+        return $$createType3($result);
     });
 }
 
@@ -61,10 +74,12 @@ export function SetGroupPosition(connID: number, stream: string, group: string, 
  */
 export function Trim(connID: number, input: $models.TrimInput): $CancellablePromise<model$0.TrimResult | null> {
     return $Call.ByID(2317148112, connID, input).then(($result: any) => {
-        return $$createType1($result);
+        return $$createType3($result);
     });
 }
 
 // Private type creation functions
-const $$createType0 = model$0.TrimResult.createFrom;
+const $$createType0 = model$0.StreamAddResult.createFrom;
 const $$createType1 = $Create.Nullable($$createType0);
+const $$createType2 = model$0.TrimResult.createFrom;
+const $$createType3 = $Create.Nullable($$createType2);

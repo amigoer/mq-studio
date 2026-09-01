@@ -78,6 +78,14 @@ const (
 	// protocol carries - an exchange and routing key, headers, and the
 	// delivery guarantees - rather than only a destination and a body.
 	CapPublishRich Capability = "message.publishRich"
+	// CapEntryPublish is a send console for a family whose message is an
+	// ordered set of named fields rather than a body.
+	//
+	// A third shape beside CapPublish and CapPublishRich, and it has to be:
+	// the first is a topic with tags, keys and a delay level, the second is an
+	// exchange with a routing key and AMQP properties, and neither has
+	// anywhere to put a field list or an explicit id.
+	CapEntryPublish Capability = "message.publishEntry"
 	// CapProducerInspect is asking who is currently publishing. It needs a
 	// producer group to ask about: the broker tracks connections per group and
 	// offers no way to enumerate the groups themselves.

@@ -233,6 +233,22 @@ type RichPublisher interface {
 	Publish(ctx context.Context, request model.PublishRequest) (*model.PublishResult, error)
 }
 
+// EntryPublisher writes an entry made of named fields.
+//
+// Separate from MessagePublisher and RichPublisher because a log entry is
+// neither of the things those send. MessagePublisher's signature is RocketMQ's
+// - a topic, tags, keys and a delay level - and RichPublisher's is AMQP's, an
+// exchange and routing key with a body and properties. An entry is an ordered
+// list of named fields with an optional explicit id, and there is nowhere in
+// either of the others to put that.
+//
+// It returns the ids the server assigned, because an id is the only handle on
+// an entry: without it a caller that has just written something cannot look it
+// up, delete it, or point a group at it.
+type EntryPublisher interface {
+	AddEntry(ctx context.Context, request model.StreamAddRequest) (*model.StreamAddResult, error)
+}
+
 // ProducerInspector reports who is currently publishing to a destination.
 //
 // It takes a producer group because that is what a broker indexes connections

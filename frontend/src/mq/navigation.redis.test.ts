@@ -29,6 +29,7 @@ const REDIS_CAPABILITIES: Capability[] = [
   Capability.CapSubscriptionPosition,
   Capability.CapMessageQuery,
   Capability.CapMessageByID,
+  Capability.CapEntryPublish,
 ];
 
 function state(
@@ -53,7 +54,7 @@ describe("the sidebar a Redis Stream connection draws", () => {
 
     // Overview stands on its own; the rest are the pages these capabilities
     // exist for. What is still missing arrives with its port.
-    expect(reachable).toEqual(["overview", "topics", "consumers", "messages"]);
+    expect(reachable).toEqual(["overview", "topics", "consumers", "messages", "producer"]);
   });
 
   /*
@@ -107,5 +108,19 @@ describe("the sidebar a Redis Stream connection draws", () => {
     expect(nav.reason("topics")).toBe("mq.redis-stream.degraded.credentials");
     // Overview stands on its own and stays reachable to say what is wrong.
     expect(nav.disabled("overview")).toBe(false);
+  });
+});
+
+/*
+ * The send console is reached through a capability of its own. Gating it on
+ * CapPublish alone would hide a finished page: that signature is a topic with
+ * tags, keys and a delay level, and this family cannot implement it.
+ */
+describe("the Redis send console's gate", () => {
+  it("is reachable without the topic-shaped publish capability", () => {
+    const nav = navAvailability(state(REDIS_CAPABILITIES), true);
+    expect(REDIS_CAPABILITIES).not.toContain(Capability.CapPublish);
+    expect(nav.visible("producer")).toBe(true);
+    expect(nav.disabled("producer")).toBe(false);
   });
 });

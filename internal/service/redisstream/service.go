@@ -140,3 +140,14 @@ func (s *Service) SetGroupPosition(ctx context.Context, connID int, request mode
 	defer cancel()
 	return api.SetSubscriptionPosition(ctx, request)
 }
+
+// AddEntry writes entries to a stream and reports the ids the server assigned.
+func (s *Service) AddEntry(ctx context.Context, connID int, request model.StreamAddRequest) (*model.StreamAddResult, error) {
+	api, err := port[driver.EntryPublisher](s, connID, model.CapEntryPublish)
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.AddEntry(ctx, request)
+}

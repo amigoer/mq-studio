@@ -56,6 +56,7 @@ let render: (element: React.ReactElement) => string;
 let StreamsRedis: typeof import("./topics/StreamsRedis").StreamsRedis;
 let ConsumersRedis: typeof import("./consumers/ConsumersRedis").ConsumersRedis;
 let MessagesRedis: typeof import("./messages/MessagesRedis").MessagesRedis;
+let ProducerRedis: typeof import("./producer/ProducerRedis").ProducerRedis;
 
 beforeAll(async () => {
   const storage = { getItem: () => null, setItem() {}, removeItem() {} };
@@ -68,11 +69,12 @@ beforeAll(async () => {
   });
   vi.stubGlobal("localStorage", storage);
 
-  const [server, streams, consumers, messages, ui, i18n, settings] = await Promise.all([
+  const [server, streams, consumers, messages, producer, ui, i18n, settings] = await Promise.all([
     import("react-dom/server"),
     import("./topics/StreamsRedis"),
     import("./consumers/ConsumersRedis"),
     import("./messages/MessagesRedis"),
+    import("./producer/ProducerRedis"),
     import("@/components"),
     import("@/i18n"),
     import("@/hooks/useSettings"),
@@ -87,6 +89,7 @@ beforeAll(async () => {
   StreamsRedis = streams.StreamsRedis;
   ConsumersRedis = consumers.ConsumersRedis;
   MessagesRedis = messages.MessagesRedis;
+  ProducerRedis = producer.ProducerRedis;
 });
 
 /** A stream as internal/driver/redisstream/destination.go sends one. */
@@ -428,5 +431,38 @@ describe("the Redis messages board", () => {
     expect(html).toContain("1756454646018-3");
     expect(html).not.toContain("undefined");
     expect(html).not.toContain("NaN");
+  });
+});
+
+describe("the Redis send console", () => {
+  it("says nothing is dialled rather than showing an empty form", () => {
+    streamsState.current = stateOf({ online: false, data: null });
+    expect(render(<ProducerRedis />)).toContain("未连接");
+  });
+
+  /*
+   * The console will not create a stream, so with none found there is nothing
+   * to write to and the page says where to go rather than offering a text box
+   * that would fail.
+   */
+  it("says where to go when no stream was found", () => {
+    streamsState.current = stateOf({ data: [] });
+    const html = render(<ProducerRedis />);
+    expect(html).toContain("请先在 Stream 页面创建一个");
+  });
+
+  it("collects fields rather than a topic and a body", () => {
+    streamsState.current = stateOf({ data: [orders] });
+    const html = render(<ProducerRedis />);
+    expect(html).toContain("字段");
+    expect(html).toContain("Entry ID");
+    // None of RocketMQ's vocabulary belongs here.
+    expect(html).not.toContain("Tags");
+    expect(html).not.toContain("延迟");
+  });
+
+  it("says the order is kept, because reading loses it", () => {
+    streamsState.current = stateOf({ data: [orders] });
+    expect(render(<ProducerRedis />)).toContain("字段顺序会被保留");
   });
 });

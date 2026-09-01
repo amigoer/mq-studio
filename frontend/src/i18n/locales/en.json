@@ -2534,6 +2534,29 @@
           "countInvalid": "Send between 1 and 10000 copies",
           "headerLine": "Each header is one key=value per line"
         }
+      },
+      "redis": {
+        "subtitle": "Write an entry to a stream",
+        "streamHint": "This will not create a stream. A mistyped key would otherwise become a new one holding a single test entry.",
+        "streamRequired": "Choose a stream to write to.",
+        "noStreams": "The key pattern found no stream to write to. Create one on the stream page first.",
+        "fields": "Fields",
+        "fieldName": "name",
+        "fieldValue": "value",
+        "addField": "Add field",
+        "fieldsHint": "The order is kept. Reading a stream loses it - the client hands fields back unordered - so this is the only place it survives.",
+        "fieldRequired": "An entry needs at least one named field.",
+        "entryId": "Entry ID",
+        "entryIdHint": "Leave empty to let the server assign one from its clock, which is what keeps a stream ordered.",
+        "idInvalid": "A stream id is <milliseconds> or <milliseconds>-<sequence>.",
+        "idWithCount": "An explicit id can only be used once. Send a single copy, or let the server assign ids.",
+        "count": "Copies",
+        "countHint": "Writes the same entry this many times, each with its own id.",
+        "countRequired": "Enter how many copies to write.",
+        "countInvalid": "The number of copies must be a whole number of at least one.",
+        "assigned": "Assigned ids",
+        "sent": "Wrote {{count}} entries",
+        "sendFailed": "Could not write the entry"
       }
     },
     "mqtt": {

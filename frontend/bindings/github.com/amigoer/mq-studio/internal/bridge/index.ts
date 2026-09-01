@@ -47,6 +47,7 @@ export {
     ConsumerInput,
     DefinitionsPreview,
     DriverInfo,
+    EntryInput,
     ExchangeInput,
     GroupInput,
     IdentityInput,

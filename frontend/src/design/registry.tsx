@@ -42,6 +42,7 @@ import { PelRedis } from "./boards/dlq/PelRedis";
 import { Producer } from "./boards/producer/Producer";
 import { ProducerKafka } from "./boards/producer/ProducerKafka";
 import { ProducerRabbitMQ } from "./boards/producer/ProducerRabbitMQ";
+import { ProducerRedis } from "./boards/producer/ProducerRedis";
 import { Alerts } from "./boards/alerts/Alerts";
 import { Acl } from "./boards/acl/Acl";
 import { AclKafka } from "./boards/acl/AclKafka";
@@ -151,12 +152,14 @@ export function renderBoard(
   nav?: BoardNav,
 ): JSX.Element {
   /* The send console is per family, not shared: RabbitMQ's collects an
-     exchange, a routing key, headers and AMQP properties, and the shared one
+     exchange, a routing key, headers and AMQP properties, Redis's collects an
+     ordered list of named fields and an optional entry id, and the shared one
      collects a topic, tags, keys and a delay level - RocketMQ's vocabulary, of
-     which only the body means anything here. */
+     which only the body means anything to any of them. */
   if (page === "producer") {
     if (protocol === "rabbitmq") return <ProducerRabbitMQ />;
     if (protocol === "kafka") return <ProducerKafka />;
+    if (protocol === "redis") return <ProducerRedis />;
     return <Producer protocol={protocol} nav={nav} />;
   }
   /* Alerts is one board for every family: the rules are numeric comparisons

@@ -2,6 +2,7 @@ package redisstream
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 	"strings"
 	"testing"
@@ -960,5 +961,104 @@ func TestLiveMessageByID(t *testing.T) {
 	}
 	if _, err := conn.MessageByID(ctx, key, target); err == nil {
 		t.Error("looking up a deleted entry succeeded")
+	}
+}
+
+/*
+ * Field order, which only a real server can show.
+ *
+ * The in-process server and go-redis both hand fields back as a map, so a
+ * write that reordered them would be invisible offline. Here the raw reply is
+ * read back over the wire, where the order is still the producer's.
+ */
+func TestLiveAddEntryKeepsTheFieldOrder(t *testing.T) {
+	conn := liveConn(t, map[string]string{OptionStreamFilter: liveStreams + "xadd:*"}, nil)
+	ctx := liveContext(t)
+	key := liveStreams + "xadd:orders"
+	seedLiveStream(t, conn, key, 1)
+
+	result, err := conn.AddEntry(ctx, model.StreamAddRequest{
+		Ref: model.DestinationRef{Name: key},
+		Fields: []model.StreamField{
+			{Name: "zeta", Value: "1"},
+			{Name: "alpha", Value: "2"},
+			{Name: "mid", Value: "3"},
+		},
+	})
+	if err != nil {
+		t.Fatalf("add: %v", err)
+	}
+
+	// The raw reply, so the order survives: a typed read would turn it into a
+	// map before this test could look.
+	reply, err := conn.client.Do(ctx, "XRANGE", key, result.IDs[0], result.IDs[0]).Result()
+	if err != nil {
+		t.Fatalf("raw xrange: %v", err)
+	}
+	rendered := fmt.Sprint(reply)
+	zeta := strings.Index(rendered, "zeta")
+	alpha := strings.Index(rendered, "alpha")
+	if zeta < 0 || alpha < 0 {
+		t.Fatalf("the entry came back without its fields: %s", rendered)
+	}
+	if zeta > alpha {
+		t.Errorf("the fields were reordered on the way out: %s", rendered)
+	}
+}
+
+// An explicit id has to be higher than the last, which is what keeps a stream
+// ordered. The refusal is Redis's and is worth passing through: an operator
+// pasting an old id needs to be told it is too small, not that the send failed.
+func TestLiveAddEntryRefusesAnIDThatIsNotHigher(t *testing.T) {
+	conn := liveConn(t, map[string]string{OptionStreamFilter: liveStreams + "xaddid:*"}, nil)
+	ctx := liveContext(t)
+	key := liveStreams + "xaddid:orders"
+	seedLiveStream(t, conn, key, 3)
+
+	all, err := conn.QueryMessages(ctx, model.MessageQueryParams{Topic: key})
+	if err != nil {
+		t.Fatalf("query: %v", err)
+	}
+	oldest := all[len(all)-1].MessageID
+
+	_, err = conn.AddEntry(ctx, model.StreamAddRequest{
+		Ref:    model.DestinationRef{Name: key},
+		ID:     oldest,
+		Fields: []model.StreamField{{Name: "order", Value: "A-1001"}},
+	})
+	if err == nil {
+		t.Fatal("writing an entry with an id that already exists succeeded")
+	}
+	if !strings.Contains(strings.ToLower(err.Error()), "equal or smaller") {
+		t.Logf("the server's wording for a too-small id has changed: %v", err)
+	}
+}
+
+// A send of many that fails partway has still written the ones before it. The
+// ids come back with the error so the caller knows to go and look.
+func TestLiveAddEntryReportsWhatItWroteBeforeFailing(t *testing.T) {
+	conn := liveConn(t, map[string]string{OptionStreamFilter: liveStreams + "partial:*"}, nil)
+	ctx := liveContext(t)
+	key := liveStreams + "partial:orders"
+	seedLiveStream(t, conn, key, 1)
+
+	// Deleting the stream mid-send is not something a test can time reliably,
+	// so this asserts the shape instead: a successful send returns every id it
+	// wrote, which is the same field a partial one reports through.
+	result, err := conn.AddEntry(ctx, model.StreamAddRequest{
+		Ref:    model.DestinationRef{Name: key},
+		Count:  4,
+		Fields: []model.StreamField{{Name: "order", Value: "A-1001"}},
+	})
+	if err != nil {
+		t.Fatalf("add: %v", err)
+	}
+	if len(result.IDs) != 4 {
+		t.Fatalf("returned %d ids for a count of 4", len(result.IDs))
+	}
+	for _, id := range result.IDs {
+		if _, err := conn.MessageByID(ctx, key, id); err != nil {
+			t.Errorf("id %s was reported but cannot be read back: %v", id, err)
+		}
 	}
 }

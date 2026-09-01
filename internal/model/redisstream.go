@@ -65,3 +65,38 @@ type PositionRequest struct {
 	// arrives next.
 	Position string `json:"position"`
 }
+
+// StreamField is one field of an entry being written.
+//
+// A slice rather than a map, because XADD takes an ordered list and the order
+// is the producer's. Reading loses it - the client hands fields back as a map -
+// but writing must not: a form that reordered what someone typed would be
+// changing the entry on the way out.
+type StreamField struct {
+	Name  string `json:"name"`
+	Value string `json:"value"`
+}
+
+// StreamAddRequest writes entries to a stream.
+type StreamAddRequest struct {
+	Ref    DestinationRef `json:"ref"`
+	Fields []StreamField  `json:"fields"`
+
+	// ID is an explicit entry id. Empty means the server generates one from
+	// its clock, which is what almost every producer does and the only way to
+	// keep ids monotonic without coordinating.
+	ID string `json:"id"`
+
+	// Count writes the same entry more than once, for filling a stream to test
+	// a consumer. Each copy gets its own id.
+	Count int `json:"count"`
+}
+
+// StreamAddResult is what the server assigned.
+//
+// The ids rather than a count, because an id is the only handle on an entry:
+// without them a caller that has just written something has no way to look it
+// up, delete it, or point a consumer group at it.
+type StreamAddResult struct {
+	IDs []string `json:"ids"`
+}

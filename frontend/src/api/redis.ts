@@ -9,7 +9,7 @@
  * out.
  */
 import { MessageService, RedisStreamService } from "@bindings/bridge";
-import type { MessageItem, TrimResult } from "@bindings/model/models";
+import type { MessageItem, StreamAddResult, TrimResult } from "@bindings/model/models";
 import { FILTER_CONTAINS, FILTER_FIELD } from "@/mq/redis/messages";
 import { present, required } from "./client";
 import * as topicApi from "./topic";
@@ -147,3 +147,33 @@ export const entryById = (
   stream: string,
   id: string,
 ): Promise<MessageItem | null> => MessageService.ByID(connID, stream, id);
+
+/** One field of an entry being written. */
+export interface EntryField {
+  name: string;
+  value: string;
+}
+
+export interface EntryDraft {
+  stream: string;
+  fields: EntryField[];
+  /** An explicit entry id. Empty lets the server assign one. */
+  id?: string;
+  /** Writes the same entry more than once. Each copy gets its own id. */
+  count?: number;
+}
+
+/**
+ * Writes entries to a stream and returns the ids the server assigned.
+ *
+ * The ids rather than a count: an id is the only handle on an entry, so a
+ * console that reported "sent 5" would leave the user unable to find any of
+ * them again.
+ */
+export const addEntry = (connID: number, draft: EntryDraft): Promise<StreamAddResult> =>
+  RedisStreamService.AddEntry(connID, {
+    stream: draft.stream,
+    fields: draft.fields,
+    id: draft.id ?? "",
+    count: draft.count ?? 1,
+  }).then(required);

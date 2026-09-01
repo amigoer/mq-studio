@@ -96,3 +96,33 @@ func (s *RedisStreamService) SetGroupPosition(connID int, stream string, group s
 		Position: position,
 	})
 }
+
+// EntryInput is an entry as the send console collects it.
+//
+// The fields are a list rather than an object because XADD takes an ordered
+// one and the order is the producer's. A JSON object would arrive with
+// whatever order the renderer's serialiser chose.
+type EntryInput struct {
+	Stream string              `json:"stream"`
+	Fields []model.StreamField `json:"fields"`
+	// ID is an explicit entry id. Empty lets the server assign one, which is
+	// what almost every producer does.
+	ID string `json:"id"`
+	// Count writes the same entry more than once, for filling a stream to try
+	// a consumer against.
+	Count int `json:"count"`
+}
+
+// AddEntry writes to a stream and returns the ids the server assigned.
+//
+// The ids rather than a count: an id is the only handle on an entry, so a
+// console that reported "sent 5" would leave the user unable to find any of
+// them.
+func (s *RedisStreamService) AddEntry(connID int, input EntryInput) (*model.StreamAddResult, error) {
+	return s.service.AddEntry(context.Background(), connID, model.StreamAddRequest{
+		Ref:    model.DestinationRef{Name: input.Stream},
+		Fields: input.Fields,
+		ID:     input.ID,
+		Count:  input.Count,
+	})
+}

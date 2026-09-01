@@ -552,6 +552,60 @@ export class DriverInfo {
 }
 
 /**
+ * EntryInput is an entry as the send console collects it.
+ * 
+ * The fields are a list rather than an object because XADD takes an ordered
+ * one and the order is the producer's. A JSON object would arrive with
+ * whatever order the renderer's serialiser chose.
+ */
+export class EntryInput {
+    "stream": string;
+    "fields": model$0.StreamField[];
+
+    /**
+     * ID is an explicit entry id. Empty lets the server assign one, which is
+     * what almost every producer does.
+     */
+    "id": string;
+
+    /**
+     * Count writes the same entry more than once, for filling a stream to try
+     * a consumer against.
+     */
+    "count": number;
+
+    /** Creates a new EntryInput instance. */
+    constructor($$source: Partial<EntryInput> = {}) {
+        if (!("stream" in $$source)) {
+            this["stream"] = "";
+        }
+        if (!("fields" in $$source)) {
+            this["fields"] = [];
+        }
+        if (!("id" in $$source)) {
+            this["id"] = "";
+        }
+        if (!("count" in $$source)) {
+            this["count"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new EntryInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): EntryInput {
+        const $$createField1_0 = $$createType16;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("fields" in $$parsedSource) {
+            $$parsedSource["fields"] = $$createField1_0($$parsedSource["fields"]);
+        }
+        return new EntryInput($$parsedSource as Partial<EntryInput>);
+    }
+}
+
+/**
  * ExchangeInput is an exchange declaration as the form collects it.
  */
 export class ExchangeInput {
@@ -787,8 +841,8 @@ export class LogDirView {
      * Creates a new LogDirView instance from a string or object.
      */
     static createFrom($$source: any = {}): LogDirView {
-        const $$createField0_0 = $$createType17;
-        const $$createField1_0 = $$createType20;
+        const $$createField0_0 = $$createType19;
+        const $$createField1_0 = $$createType22;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("dirs" in $$parsedSource) {
             $$parsedSource["dirs"] = $$createField0_0($$parsedSource["dirs"]);
@@ -1044,7 +1098,7 @@ export class OffsetResetInput {
      * Creates a new OffsetResetInput instance from a string or object.
      */
     static createFrom($$source: any = {}): OffsetResetInput {
-        const $$createField2_0 = $$createType21;
+        const $$createField2_0 = $$createType23;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("partitions" in $$parsedSource) {
             $$parsedSource["partitions"] = $$createField2_0($$parsedSource["partitions"]);
@@ -1395,7 +1449,7 @@ export class QuotaView {
      * Creates a new QuotaView instance from a string or object.
      */
     static createFrom($$source: any = {}): QuotaView {
-        const $$createField0_0 = $$createType24;
+        const $$createField0_0 = $$createType26;
         const $$createField1_0 = $$createType0;
         const $$createField2_0 = $$createType0;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
@@ -2181,7 +2235,7 @@ export class TransactionView {
      * Creates a new TransactionView instance from a string or object.
      */
     static createFrom($$source: any = {}): TransactionView {
-        const $$createField0_0 = $$createType27;
+        const $$createField0_0 = $$createType29;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("transactions" in $$parsedSource) {
             $$parsedSource["transactions"] = $$createField0_0($$parsedSource["transactions"]);
@@ -2265,16 +2319,18 @@ const $$createType11 = model$0.Node.createFrom;
 const $$createType12 = $Create.Nullable($$createType11);
 const $$createType13 = $Create.Array($$createType12);
 const $$createType14 = $Create.Map($Create.Any, $Create.Any);
-const $$createType15 = model$0.LogDirSummary.createFrom;
-const $$createType16 = $Create.Nullable($$createType15);
-const $$createType17 = $Create.Array($$createType16);
-const $$createType18 = model$0.LogDirPartition.createFrom;
-const $$createType19 = $Create.Nullable($$createType18);
-const $$createType20 = $Create.Array($$createType19);
-const $$createType21 = $Create.Array($Create.Any);
-const $$createType22 = model$0.ClientQuota.createFrom;
-const $$createType23 = $Create.Nullable($$createType22);
-const $$createType24 = $Create.Array($$createType23);
-const $$createType25 = model$0.Transaction.createFrom;
-const $$createType26 = $Create.Nullable($$createType25);
-const $$createType27 = $Create.Array($$createType26);
+const $$createType15 = model$0.StreamField.createFrom;
+const $$createType16 = $Create.Array($$createType15);
+const $$createType17 = model$0.LogDirSummary.createFrom;
+const $$createType18 = $Create.Nullable($$createType17);
+const $$createType19 = $Create.Array($$createType18);
+const $$createType20 = model$0.LogDirPartition.createFrom;
+const $$createType21 = $Create.Nullable($$createType20);
+const $$createType22 = $Create.Array($$createType21);
+const $$createType23 = $Create.Array($Create.Any);
+const $$createType24 = model$0.ClientQuota.createFrom;
+const $$createType25 = $Create.Nullable($$createType24);
+const $$createType26 = $Create.Array($$createType25);
+const $$createType27 = model$0.Transaction.createFrom;
+const $$createType28 = $Create.Nullable($$createType27);
+const $$createType29 = $Create.Array($$createType28);

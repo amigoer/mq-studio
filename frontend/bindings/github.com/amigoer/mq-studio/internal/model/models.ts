@@ -678,6 +678,17 @@ export enum Capability {
     CapPublishRich = "message.publishRich",
 
     /**
+     * CapEntryPublish is a send console for a family whose message is an
+     * ordered set of named fields rather than a body.
+     * 
+     * A third shape beside CapPublish and CapPublishRich, and it has to be:
+     * the first is a topic with tags, keys and a delay level, the second is an
+     * exchange with a routing key and AMQP properties, and neither has
+     * anywhere to put a field list or an explicit id.
+     */
+    CapEntryPublish = "message.publishEntry",
+
+    /**
      * CapProducerInspect is asking who is currently publishing. It needs a
      * producer group to ask about: the broker tracks connections per group and
      * offers no way to enumerate the groups themselves.
@@ -3582,6 +3593,38 @@ export class Shovel {
 }
 
 /**
+ * StreamAddResult is what the server assigned.
+ * 
+ * The ids rather than a count, because an id is the only handle on an entry:
+ * without them a caller that has just written something has no way to look it
+ * up, delete it, or point a consumer group at it.
+ */
+export class StreamAddResult {
+    "ids": string[];
+
+    /** Creates a new StreamAddResult instance. */
+    constructor($$source: Partial<StreamAddResult> = {}) {
+        if (!("ids" in $$source)) {
+            this["ids"] = [];
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new StreamAddResult instance from a string or object.
+     */
+    static createFrom($$source: any = {}): StreamAddResult {
+        const $$createField0_0 = $$createType0;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("ids" in $$parsedSource) {
+            $$parsedSource["ids"] = $$createField0_0($$parsedSource["ids"]);
+        }
+        return new StreamAddResult($$parsedSource as Partial<StreamAddResult>);
+    }
+}
+
+/**
  * StreamClients is who is reading and writing a stream over the stream
  * protocol.
  * 
@@ -3694,6 +3737,39 @@ export class StreamConsumer {
     static createFrom($$source: any = {}): StreamConsumer {
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         return new StreamConsumer($$parsedSource as Partial<StreamConsumer>);
+    }
+}
+
+/**
+ * StreamField is one field of an entry being written.
+ * 
+ * A slice rather than a map, because XADD takes an ordered list and the order
+ * is the producer's. Reading loses it - the client hands fields back as a map -
+ * but writing must not: a form that reordered what someone typed would be
+ * changing the entry on the way out.
+ */
+export class StreamField {
+    "name": string;
+    "value": string;
+
+    /** Creates a new StreamField instance. */
+    constructor($$source: Partial<StreamField> = {}) {
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("value" in $$source)) {
+            this["value"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new StreamField instance from a string or object.
+     */
+    static createFrom($$source: any = {}): StreamField {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new StreamField($$parsedSource as Partial<StreamField>);
     }
 }
 
