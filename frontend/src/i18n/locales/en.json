@@ -1142,9 +1142,9 @@
       "mqtt": {
         "subtitle": "iot-broker · EMQX 5.4 · MQTT 5.0 · read from $SYS (read-only)",
         "onlineClients": "Online clients",
-        "peakClients": "Peak 1 402",
+        "peakClients": "peak {{count}}",
         "subscriptions": "Subscriptions",
-        "shared": "12 shared",
+        "shared": "{{count}} shared",
         "retained": "Retained",
         "inbound": "Inbound",
         "outbound": "Outbound 1 020/s",
@@ -1154,7 +1154,20 @@
         "clientChart": "Line chart placeholder ($SYS clients.count)",
         "rateChart": "Line chart placeholder (received / sent)",
         "sysMetrics": "$SYS key metrics",
-        "fullTree": "Full $SYS tree"
+        "fullTree": "Full $SYS tree",
+        "retainedHint": "the only state MQTT stores",
+        "messagesIn": "Messages received",
+        "messagesOut": "{{count}} sent",
+        "droppedHint": "since the broker started",
+        "broker": "Broker",
+        "uptime": "Uptime",
+        "topics": "Topics",
+        "bytesIn": "Bytes received",
+        "bytesOut": "Bytes sent",
+        "sessions": "Sessions",
+        "heap": "Heap in use",
+        "sysCount": "{{count}} topics",
+        "sysAbsent": "this broker publishes no $SYS tree"
       },
       "pulsar": {
         "subtitle": "pulsar-eu · Pulsar 3.2 · tenant ecommerce · Broker 3 / Bookie 4",

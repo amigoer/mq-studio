@@ -139,6 +139,47 @@ func (s *Service) Subscriptions(ctx context.Context, connID int) ([]*model.LiveS
 	return subscriber.LiveSubscriptions(callCtx)
 }
 
+// Clients is who the broker is holding a session for.
+//
+// The canonical client inspection has no bridge service of its own - RabbitMQ
+// exposes it on its own, and so does this - so the read lands here rather than
+// duplicating a shared one that does not exist.
+func (s *Service) Clients(ctx context.Context, connID int) ([]*model.ClientConnection, error) {
+	inspector, err := port[driver.ClientInspector](s, connID, model.CapClientInspect)
+	if err != nil {
+		return nil, err
+	}
+	callCtx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return inspector.ListClientConnections(callCtx, "")
+}
+
+// KickClient ends one client's session.
+//
+// MQTT carries no reason on a disconnect - the broker sends a reason code and
+// no text - so there is no reason argument to take. One that went nowhere
+// would have the operator believe the client was told why.
+func (s *Service) KickClient(ctx context.Context, connID int, clientID string) error {
+	closer, err := port[driver.ClientCloser](s, connID, model.CapClientClose)
+	if err != nil {
+		return err
+	}
+	callCtx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return closer.CloseClientConnection(callCtx, clientID, "")
+}
+
+// KickUser ends every session a username holds.
+func (s *Service) KickUser(ctx context.Context, connID int, username string) error {
+	closer, err := port[driver.ClientCloser](s, connID, model.CapClientClose)
+	if err != nil {
+		return err
+	}
+	callCtx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return closer.CloseUserConnections(callCtx, username, "")
+}
+
 // ClientSubscriptions is the topic filters one client holds, read from the
 // broker's own management API.
 func (s *Service) ClientSubscriptions(

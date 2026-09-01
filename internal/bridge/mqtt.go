@@ -13,10 +13,14 @@ import (
 // It is one service rather than several because it is one family's surface,
 // the same reason KafkaService is one.
 //
-// Reading retained topics, connected clients and the broker's nodes is not
-// here. Those are destinations, client connections and nodes, and the
-// canonical services already answer them; a second read path would be two
-// sources for one number.
+// Reading retained topics and the broker's nodes is not here. Those are
+// destinations and nodes, and the canonical services already answer them; a
+// second read path would be two sources for one number.
+//
+// Connected clients are here despite being a canonical model, because there
+// is no canonical service to put them on: client inspection has never had one,
+// and RabbitMQ exposes its own the same way. Adding a shared service for two
+// families to use would be inventing a seam neither asked for.
 type MQTTService struct {
 	service *mqtt.Service
 }
@@ -129,6 +133,24 @@ func (s *MQTTService) Subscriptions(
 	ctx context.Context, connID int,
 ) ([]*model.LiveSubscription, error) {
 	return s.service.Subscriptions(ctx, connID)
+}
+
+// Clients is who the broker is holding a session for.
+func (s *MQTTService) Clients(
+	ctx context.Context, connID int,
+) ([]*model.ClientConnection, error) {
+	return s.service.Clients(ctx, connID)
+}
+
+// KickClient ends one client's session. MQTT carries no reason on a
+// disconnect, so there is none to pass.
+func (s *MQTTService) KickClient(ctx context.Context, connID int, clientID string) error {
+	return s.service.KickClient(ctx, connID, clientID)
+}
+
+// KickUser ends every session a username holds.
+func (s *MQTTService) KickUser(ctx context.Context, connID int, username string) error {
+	return s.service.KickUser(ctx, connID, username)
 }
 
 // ClientSubscriptions is the topic filters one client holds.

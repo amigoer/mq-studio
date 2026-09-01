@@ -1142,9 +1142,9 @@
       "mqtt": {
         "subtitle": "iot-broker · EMQX 5.4 · MQTT 5.0 · 数据来自 $SYS（只读）",
         "onlineClients": "在线客户端",
-        "peakClients": "峰值 1 402",
+        "peakClients": "峰值 {{count}}",
         "subscriptions": "订阅总数",
-        "shared": "共享订阅 12",
+        "shared": "共享订阅 {{count}}",
         "retained": "保留消息",
         "inbound": "入站",
         "outbound": "出站 1 020/s",
@@ -1154,7 +1154,20 @@
         "clientChart": "折线图占位（$SYS clients.count）",
         "rateChart": "折线图占位（received / sent）",
         "sysMetrics": "$SYS 关键指标",
-        "fullTree": "完整 $SYS 树"
+        "fullTree": "完整 $SYS 树",
+        "retainedHint": "MQTT 唯一会存下来的状态",
+        "messagesIn": "收到消息",
+        "messagesOut": "发出 {{count}}",
+        "droppedHint": "自 broker 启动以来",
+        "broker": "Broker",
+        "uptime": "运行时长",
+        "topics": "主题数",
+        "bytesIn": "收到字节",
+        "bytesOut": "发出字节",
+        "sessions": "会话数",
+        "heap": "堆内存占用",
+        "sysCount": "{{count}} 个主题",
+        "sysAbsent": "该 broker 不发布 $SYS 树"
       },
       "pulsar": {
         "subtitle": "pulsar-eu · Pulsar 3.2 · 租户 ecommerce · Broker 3 / Bookie 4",
