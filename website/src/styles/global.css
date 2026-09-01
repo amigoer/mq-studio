@@ -1,0 +1,327 @@
+@import 'tailwindcss';
+
+/* Self-hosted so the page makes no third-party font request: a Google Fonts
+   round trip is unreliable from mainland China and costs LCP everywhere. */
+@import '@fontsource-variable/geist';
+@import '@fontsource-variable/geist-mono';
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * shadcn/ui tokens for the marketing site. Deliberately NOT shared with
+ * frontend/src/design/tokens.css: that layer is the desktop shell's, drawn at a
+ * 13px root and scaled by document zoom, while this is an ordinary 16px page.
+ * Values are the zinc scale, matching the design canvas the page was drawn from.
+ */
+:root {
+  --background: #ffffff;
+  --foreground: #09090b;
+  --card: #ffffff;
+  --card-foreground: #09090b;
+  --popover: #ffffff;
+  --popover-foreground: #09090b;
+  --primary: #18181b;
+  --primary-foreground: #fafafa;
+  --secondary: #f4f4f5;
+  --secondary-foreground: #18181b;
+  --muted: #fafafa;
+  --muted-foreground: #71717a;
+  --accent: #f4f4f5;
+  --accent-foreground: #18181b;
+  --destructive: #dc2626;
+  --destructive-foreground: #fafafa;
+  --success: #16a34a;
+  --border: #e4e4e7;
+  --input: #e4e4e7;
+  --ring: #09090b;
+  /* The canvas draws a third, lighter grey for filenames and captions that the
+     shadcn scale has no slot for. */
+  --subtle-foreground: #a1a1aa;
+  /* Dashed roadmap pills and the separators between them need more contrast
+     than a card border, which is what --border is sized for. */
+  --border-strong: #d4d4d8;
+  /* Solid-fill buttons darken on hover in light mode and lighten in dark, so
+     the shade cannot be a literal zinc step in the markup. */
+  --primary-hover: #27272a;
+  /*
+   * The announcement strip is deliberately not --primary. Flipping primary in
+   * dark mode would turn it into a full-width white glare across the top of the
+   * page; these keep it a contrasting band in both themes.
+   */
+  --banner: #18181b;
+  --banner-foreground: #fafafa;
+  --banner-muted: #a1a1aa;
+  --radius: 0.5rem;
+}
+
+/*
+ * Applied by the blocking script in Base.astro before first paint. The ladder is
+ * page -> section -> card -> control, so surfaces stay distinguishable without
+ * borders doing all the work: #09090b < #131316 < #1a1a1e < #27272a.
+ */
+.dark {
+  --background: #09090b;
+  --foreground: #fafafa;
+  --card: #1a1a1e;
+  --card-foreground: #fafafa;
+  --popover: #1a1a1e;
+  --popover-foreground: #fafafa;
+  --primary: #fafafa;
+  --primary-foreground: #18181b;
+  --primary-hover: #e4e4e7;
+  --secondary: #27272a;
+  --secondary-foreground: #fafafa;
+  --muted: #131316;
+  --muted-foreground: #a1a1aa;
+  --accent: #27272a;
+  --accent-foreground: #fafafa;
+  --destructive: #ef4444;
+  --destructive-foreground: #fafafa;
+  /* Lifted from 600 to 500: the darker green does not carry on a dark ground. */
+  --success: #22c55e;
+  --border: #27272a;
+  --input: #27272a;
+  --ring: #d4d4d8;
+  --subtle-foreground: #71717a;
+  --border-strong: #3f3f46;
+  --banner: #27272a;
+  --banner-foreground: #fafafa;
+  --banner-muted: #a1a1aa;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-subtle-foreground: var(--subtle-foreground);
+  --color-border-strong: var(--border-strong);
+  --color-primary-hover: var(--primary-hover);
+  --color-banner: var(--banner);
+  --color-banner-foreground: var(--banner-foreground);
+  --color-banner-muted: var(--banner-muted);
+
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
+  --radius-xl: calc(var(--radius) + 6px);
+
+  --font-sans:
+    'Geist Variable', -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei',
+    system-ui, sans-serif;
+  --font-mono: 'Geist Mono Variable', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    /* Lets the UA theme scrollbars, text selection and form controls to match,
+       which CSS variables alone cannot reach. */
+    color-scheme: light;
+  }
+
+  html.dark {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+
+  /* Anchor targets sit below the 56px sticky nav. */
+  [id] {
+    scroll-margin-top: 5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/*
+ * Rendered markdown. Hand-written rather than @tailwindcss/typography: the docs
+ * use only headings, prose, lists, tables and code, and this way the scale and
+ * the colours are the site's own instead of the plugin's defaults being fought.
+ */
+.doc-prose {
+  font-size: 14px;
+  line-height: 1.75;
+  /*
+   * Darker than --muted-foreground, which is tuned for short marketing copy and
+   * only clears 5:1 on white. A full page of prose wants more, and mixing
+   * against the background keeps one declaration correct in both themes.
+   */
+  color: color-mix(in oklab, var(--foreground) 78%, var(--background));
+}
+
+.doc-prose > :first-child {
+  margin-top: 0;
+}
+
+.doc-prose h1 {
+  margin: 0 0 1rem;
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  color: var(--foreground);
+}
+
+.doc-prose h2 {
+  margin: 2.5rem 0 0.875rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--foreground);
+}
+
+.doc-prose h3 {
+  margin: 1.75rem 0 0.625rem;
+  font-size: 15.5px;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.doc-prose h4 {
+  margin: 1.5rem 0 0.5rem;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.doc-prose p {
+  margin: 0.875rem 0;
+  text-wrap: pretty;
+}
+
+.doc-prose ul,
+.doc-prose ol {
+  margin: 0.875rem 0;
+  padding-left: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.doc-prose ul {
+  list-style: disc;
+}
+.doc-prose ol {
+  list-style: decimal;
+}
+.doc-prose li::marker {
+  color: var(--border);
+}
+
+.doc-prose strong {
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.doc-prose a {
+  color: var(--foreground);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--border);
+}
+.doc-prose a:hover {
+  text-decoration-color: var(--foreground);
+}
+
+/* Inline code only: `pre code` is left to the highlighter. */
+.doc-prose :not(pre) > code {
+  border-radius: 4px;
+  background: var(--secondary);
+  padding: 0.1em 0.35em;
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+  color: var(--foreground);
+}
+
+.doc-prose pre {
+  margin: 1.125rem 0;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.875rem 1rem;
+  font-size: 12.5px;
+  line-height: 1.7;
+}
+
+.doc-prose blockquote {
+  margin: 1.125rem 0;
+  border-left: 3px solid var(--border);
+  padding-left: 1rem;
+  color: var(--muted-foreground);
+}
+
+.doc-prose hr {
+  margin: 2rem 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+
+/* Tables scroll inside their own box; the roadmap's are wider than a phone. */
+.doc-prose .table-scroll {
+  margin: 1.125rem 0;
+  overflow-x: auto;
+}
+
+.doc-prose table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.doc-prose th,
+.doc-prose td {
+  border: 1px solid var(--border);
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.doc-prose th {
+  background: var(--muted);
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--foreground);
+}
+
+/*
+ * Shiki emits both themes at once; the dark values ride along as custom
+ * properties and are swapped here, so highlighted code follows the site's own
+ * toggle without a second stylesheet or any JS.
+ */
+.dark .doc-prose .astro-code,
+.dark .doc-prose .astro-code span {
+  color: var(--shiki-dark) !important;
+  background-color: var(--shiki-dark-bg) !important;
+  font-style: var(--shiki-dark-font-style) !important;
+  font-weight: var(--shiki-dark-font-weight) !important;
+  text-decoration: var(--shiki-dark-text-decoration) !important;
+}

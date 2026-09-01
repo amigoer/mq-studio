@@ -1,0 +1,168 @@
+import zhSource from '@repo/CHANGELOG.zh-CN.md?raw';
+import enSource from '@repo/CHANGELOG.md?raw';
+import type { Locale } from '@/i18n';
+
+/*
+ * A parser for the repo's own CHANGELOG files rather than a markdown dependency.
+ * They follow Keep a Changelog strictly and use almost none of markdown: no
+ * links, code fences, tables or nested lists, only `**bold**` and `` `code` ``
+ * inline. Parsing the shape directly keeps the page dependency-free and lets the
+ * release headings become real anchors.
+ */
+
+export interface ListBlock {
+  type: 'list';
+  items: string[];
+}
+
+export interface SubheadingBlock {
+  type: 'subheading';
+  text: string;
+}
+
+export type Block = ListBlock | SubheadingBlock;
+
+export interface Section {
+  title: string;
+  blocks: Block[];
+}
+
+export interface Release {
+  /** "0.0.3", or the unreleased heading's own text. */
+  version: string;
+  /** Anchor and lookup key; slugified so "未发布" still yields a usable id. */
+  id: string;
+  date: string | null;
+  /** Paragraphs between the version heading and the first `###`. */
+  intro: string[];
+  sections: Section[];
+  /** True for the "[Unreleased]" / "[未发布]" heading, which has no date. */
+  unreleased: boolean;
+}
+
+const HEADING = /^##\s+\[([^\]]+)\](?:\s*-\s*(\S+))?\s*$/;
+const SECTION = /^###\s+(.+?)\s*$/;
+const SUBHEADING = /^\*\*(.+)\*\*\s*$/;
+const ITEM = /^-\s+(.+)$/;
+
+function slug(version: string): string {
+  const ascii = version.toLowerCase().replace(/[^a-z0-9.]+/g, '-').replace(/^-|-$/g, '');
+  // A non-ASCII heading such as 未发布 slugifies to nothing; fall back to a
+  // stable literal so the anchor still works. The `v` prefix keeps the id from
+  // starting with a digit: `#0.0.3` is a valid fragment but an invalid CSS
+  // selector, which would throw inside querySelector.
+  return ascii ? `v${ascii}` : 'unreleased';
+}
+
+function parse(source: string): Release[] {
+  const releases: Release[] = [];
+  let release: Release | null = null;
+  let section: Section | null = null;
+  let list: ListBlock | null = null;
+
+  const lines = source.split('\n');
+
+  for (const raw of lines) {
+    const line = raw.trimEnd();
+
+    const heading = HEADING.exec(line);
+    if (heading) {
+      const [, version, date] = heading;
+      release = {
+        version,
+        id: slug(version),
+        date: date ?? null,
+        intro: [],
+        sections: [],
+        unreleased: !date,
+      };
+      releases.push(release);
+      section = null;
+      list = null;
+      continue;
+    }
+
+    if (!release) continue;
+
+    const sectionMatch = SECTION.exec(line);
+    if (sectionMatch) {
+      section = { title: sectionMatch[1], blocks: [] };
+      release.sections.push(section);
+      list = null;
+      continue;
+    }
+
+    const subheading = SUBHEADING.exec(line);
+    if (subheading && section) {
+      section.blocks.push({ type: 'subheading', text: subheading[1] });
+      list = null;
+      continue;
+    }
+
+    const item = ITEM.exec(line);
+    if (item) {
+      if (!section) {
+        // A list before any `###`: give it an untitled section to live in.
+        section = { title: '', blocks: [] };
+        release.sections.push(section);
+      }
+      if (!list) {
+        list = { type: 'list', items: [] };
+        section.blocks.push(list);
+      }
+      list.items.push(item[1]);
+      continue;
+    }
+
+    if (!line.trim()) {
+      // A blank line ends the current list but not the section: the next `- `
+      // after one starts a new block rather than continuing the old one.
+      list = null;
+      continue;
+    }
+
+    // An indented line continues the previous bullet - the files wrap prose at
+    // 80 columns, so most bullets span several lines.
+    if (list && /^\s+/.test(raw)) {
+      list.items[list.items.length - 1] += ` ${line.trim()}`;
+      continue;
+    }
+
+    if (section) {
+      section.blocks.push({ type: 'subheading', text: line.trim() });
+    } else {
+      release.intro.push(line.trim());
+    }
+  }
+
+  // The unreleased heading is empty most of the time; showing it as a version
+  // with nothing under it just adds noise.
+  return releases.filter((r) => !(r.unreleased && r.sections.length === 0 && !r.intro.length));
+}
+
+const parsed: Record<Locale, Release[]> = {
+  zh: parse(zhSource),
+  en: parse(enSource),
+};
+
+export function releases(locale: Locale): Release[] {
+  return parsed[locale];
+}
+
+const ESCAPE: Record<string, string> = {
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;',
+};
+
+/**
+ * Renders the only two inline constructs the files use. The text is escaped
+ * first, so a future changelog entry containing markup cannot inject it.
+ */
+export function inline(text: string): string {
+  return text
+    .replace(/[&<>"]/g, (ch) => ESCAPE[ch])
+    .replace(/`([^`]+)`/g, '<code class="rounded bg-secondary px-1 py-0.5 font-mono text-[0.9em]">$1</code>')
+    .replace(/\*\*([^*]+)\*\*/g, '<strong class="font-semibold text-foreground">$1</strong>');
+}

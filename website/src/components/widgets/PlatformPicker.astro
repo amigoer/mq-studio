@@ -1,0 +1,131 @@
+---
+export interface Variant {
+  /** Composite key: the segment values joined by ':', in segment order. */
+  key: string;
+  name: string;
+  url: string;
+}
+
+export interface Segment {
+  label: string;
+  options: { value: string; label: string }[];
+  defaultValue: string;
+}
+
+interface Props {
+  cta: string;
+  segments: Segment[];
+  variants: Variant[];
+}
+
+const { cta, segments, variants } = Astro.props;
+
+const initialKey = segments.map((segment) => segment.defaultValue).join(':');
+const initial = variants.find((variant) => variant.key === initialKey) ?? variants[0]!;
+
+// Classes lifted from the shadcn ToggleGroup primitive.
+const group = 'flex w-fit items-center gap-1 rounded-lg bg-secondary p-1';
+const item =
+  'inline-flex h-7 items-center justify-center whitespace-nowrap rounded-md bg-transparent px-2.5 text-xs font-medium outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 aria-checked:bg-background aria-checked:text-accent-foreground aria-checked:shadow-sm';
+---
+
+<div
+  class="contents"
+  data-picker
+  data-variants={JSON.stringify(variants)}
+  data-selection={JSON.stringify(segments.map((segment) => segment.defaultValue))}
+>
+  <div class="flex flex-wrap gap-2 self-start">
+    {
+      segments.map((segment, segmentIndex) => (
+        <div class={group} role="radiogroup" aria-label={segment.label} data-segment={segmentIndex}>
+          {segment.options.map((option) => (
+            <button
+              type="button"
+              role="radio"
+              value={option.value}
+              aria-checked={option.value === segment.defaultValue ? 'true' : 'false'}
+              tabindex={option.value === segment.defaultValue ? 0 : -1}
+              class={item}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      ))
+    }
+  </div>
+
+  <a
+    href={initial.url}
+    data-picker-link
+    class="mt-auto inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg bg-primary text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary-hover"
+  >
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="7 10 12 15 17 10" />
+      <line x1="12" y1="15" x2="12" y2="3" />
+    </svg>
+    {cta}
+  </a>
+  <div class="truncate font-mono text-[11px] text-subtle-foreground" data-picker-file title={initial.name}>
+    {initial.name}
+  </div>
+</div>
+
+<script>
+  interface Variant {
+    key: string;
+    name: string;
+    url: string;
+  }
+
+  document.querySelectorAll<HTMLElement>('[data-picker]').forEach((root) => {
+    const variants: Variant[] = JSON.parse(root.dataset.variants ?? '[]');
+    const selection: string[] = JSON.parse(root.dataset.selection ?? '[]');
+    const link = root.querySelector<HTMLAnchorElement>('[data-picker-link]');
+    const file = root.querySelector<HTMLElement>('[data-picker-file]');
+
+    function apply() {
+      const match = variants.find((variant) => variant.key === selection.join(':'));
+      // The server rendered a working link for the default; a gap in the
+      // release must not turn it into a dead one.
+      if (!match || !link || !file) return;
+      link.href = match.url;
+      file.textContent = match.name;
+      file.title = match.name;
+    }
+
+    root.querySelectorAll<HTMLElement>('[data-segment]').forEach((segment) => {
+      const index = Number(segment.dataset.segment);
+      const options = [...segment.querySelectorAll<HTMLButtonElement>('[role="radio"]')];
+
+      function choose(option: HTMLButtonElement, moveFocus = false) {
+        selection[index] = option.value;
+        options.forEach((other) => {
+          const checked = other === option;
+          other.setAttribute('aria-checked', String(checked));
+          other.tabIndex = checked ? 0 : -1;
+        });
+        if (moveFocus) option.focus();
+        apply();
+      }
+
+      options.forEach((option, optionIndex) => {
+        option.addEventListener('click', () => choose(option));
+        option.addEventListener('keydown', (event) => {
+          const last = options.length - 1;
+          let next: number | null = null;
+          if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+            next = optionIndex === last ? 0 : optionIndex + 1;
+          } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+            next = optionIndex === 0 ? last : optionIndex - 1;
+          }
+          if (next === null) return;
+          event.preventDefault();
+          choose(options[next]!, true);
+        });
+      });
+    });
+  });
+</script>

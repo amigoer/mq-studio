@@ -1,0 +1,29 @@
+---
+import { t, type Locale } from '@/i18n';
+
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+const c = t(locale);
+---
+
+<section id="features" class="mx-auto max-w-[1120px] px-6 pb-20 pt-16 sm:pt-[88px]">
+  <h2 class="mb-3 text-center text-[26px] font-bold tracking-[-0.02em] sm:text-[32px]">
+    {c.features.title}
+  </h2>
+  <p class="mx-auto mb-9 max-w-[680px] text-center text-[15px] leading-relaxed text-muted-foreground text-pretty">
+    {c.features.lead}
+  </p>
+
+  <ul class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+    {
+      c.features.items.map((item) => (
+        <li class="rounded-xl border border-border bg-card p-6">
+          <h3 class="mb-2 text-[15px] font-bold tracking-tight">{item.title}</h3>
+          <p class="text-[13.5px] leading-[1.7] text-muted-foreground text-pretty">{item.body}</p>
+        </li>
+      ))
+    }
+  </ul>
+</section>

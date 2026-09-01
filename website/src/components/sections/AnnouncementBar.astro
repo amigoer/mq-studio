@@ -1,0 +1,53 @@
+---
+import { t, localePath, type Locale } from '@/i18n';
+
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+const c = t(locale);
+---
+
+<div
+  id="announcement"
+  class="relative bg-banner py-2 pl-6 pr-11 text-center text-[13px] text-banner-foreground"
+>
+  {c.banner.text}&nbsp;&nbsp;
+  <a
+    href={localePath(locale, 'changelog')}
+    class="text-banner-muted underline underline-offset-[3px] transition-colors hover:text-banner-foreground"
+    >{c.banner.linkLabel} →</a
+  >
+  <button
+    type="button"
+    data-dismiss
+    aria-label={c.banner.dismiss}
+    class="absolute right-3 top-1/2 -translate-y-1/2 rounded p-1 text-banner-muted transition-colors hover:text-banner-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-banner-muted"
+  >
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+      <path d="M18 6 6 18M6 6l12 12"></path>
+    </svg>
+  </button>
+</div>
+
+<script>
+  // Runs before paint via Astro's head-injected module: hiding the bar after
+  // first paint would shift the whole sticky-nav page down and cost CLS.
+  const KEY = 'mq-studio:announcement-dismissed';
+  const bar = document.getElementById('announcement');
+  if (bar) {
+    try {
+      if (localStorage.getItem(KEY) === '1') bar.hidden = true;
+    } catch {
+      // Private mode or blocked storage: leave the bar visible.
+    }
+    bar.querySelector('[data-dismiss]')?.addEventListener('click', () => {
+      bar.hidden = true;
+      try {
+        localStorage.setItem(KEY, '1');
+      } catch {
+        // Nothing to persist to; the bar still closes for this page view.
+      }
+    });
+  }
+</script>

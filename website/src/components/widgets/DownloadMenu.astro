@@ -1,0 +1,178 @@
+---
+import type { DownloadGroup } from '@/lib/menu';
+import PlatformIcon from './PlatformIcon.astro';
+
+interface Props {
+  groups: DownloadGroup[];
+  label: string;
+  primaryHref: string;
+  variant?: 'nav' | 'hero';
+  align?: 'center' | 'end';
+  id: string;
+}
+
+const { groups, label, primaryHref, variant = 'nav', align = 'end', id } = Astro.props;
+const hero = variant === 'hero';
+---
+
+<div
+  class:list={['relative flex', hero && 'w-full rounded-lg shadow-sm sm:w-auto']}
+  data-menu
+  id={id}
+>
+  <a
+    href={primaryHref}
+    data-menu-primary
+    class:list={[
+      'inline-flex items-center gap-2 bg-primary font-medium text-primary-foreground transition-colors hover:bg-primary-hover',
+      hero
+        ? 'h-11 flex-1 justify-center rounded-l-lg px-5 text-[15px] font-semibold sm:flex-none'
+        : 'h-[34px] rounded-l-md px-3.5 text-[13px]',
+    ]}
+  >
+    {
+      /*
+       * All four marks ship in the HTML and the detection script swaps which one
+       * is shown. The generic arrow is the one the server renders: it is the only
+       * honest choice before the platform is known, and the only one left
+       * standing if the script never runs.
+       */
+      hero && (
+        <span class="inline-flex shrink-0 items-center">
+          <span data-menu-icon="default">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+          </span>
+          <span data-menu-icon="mac" hidden><PlatformIcon platform="mac" size={16} /></span>
+          <span data-menu-icon="windows" hidden><PlatformIcon platform="windows" size={15} /></span>
+          <span data-menu-icon="linux" hidden><PlatformIcon platform="linux" size={16} /></span>
+        </span>
+      )
+    }
+    <span data-menu-label class="whitespace-nowrap">{label}</span>
+  </a>
+
+  <button
+    type="button"
+    data-menu-trigger
+    aria-expanded="false"
+    aria-haspopup="true"
+    aria-controls={`${id}-list`}
+    aria-label={label}
+    class:list={[
+      'inline-flex items-center justify-center border-l border-primary-foreground/20 bg-primary text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
+      hero ? 'h-11 w-9 rounded-r-lg' : 'h-[34px] w-8 rounded-r-md',
+    ]}
+  >
+    <svg width={hero ? '15' : '13'} height={hero ? '15' : '13'} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  </button>
+
+  <div
+    id={`${id}-list`}
+    data-menu-list
+    role="menu"
+    aria-label={label}
+    hidden
+    class:list={[
+      'absolute top-full z-50 w-[344px] pt-2 text-left',
+      align === 'center' ? 'left-1/2 -translate-x-1/2' : 'right-0',
+    ]}
+  >
+    <div class="rounded-xl border border-border bg-popover p-1.5 shadow-lg">
+    {
+      groups.map((group) => (
+        <div role="group" aria-label={group.name}>
+          <div class="flex items-center gap-1.5 px-2.5 pb-1 pt-2 text-[11px] font-semibold tracking-wide text-subtle-foreground">
+            <PlatformIcon platform={group.platform} size={13} class="opacity-75" />
+            {group.name}
+          </div>
+          {group.rows.map((row) => (
+            <a
+              href={row.href}
+              role="menuitem"
+              class="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-none"
+            >
+              <span class="whitespace-nowrap text-[13px] font-medium">{row.label}</span>
+              <span class="ml-auto truncate font-mono text-[10.5px] text-subtle-foreground">
+                {row.file}
+              </span>
+            </a>
+          ))}
+        </div>
+      ))
+    }
+    </div>
+  </div>
+</div>
+
+<script>
+  document.querySelectorAll<HTMLElement>('[data-menu]').forEach((root) => {
+    const trigger = root.querySelector<HTMLButtonElement>('[data-menu-trigger]');
+    const list = root.querySelector<HTMLElement>('[data-menu-list]');
+    if (!trigger || !list) return;
+
+    const items = () => [...list.querySelectorAll<HTMLAnchorElement>('[role="menuitem"]')];
+
+    function setOpen(open: boolean) {
+      list!.hidden = !open;
+      trigger!.setAttribute('aria-expanded', String(open));
+    }
+
+    trigger.addEventListener('click', () => {
+      // `hidden` widened to `boolean | 'until-found'` in newer DOM types.
+      const open = list.hidden !== false;
+      setOpen(open);
+      if (open) items()[0]?.focus();
+    });
+
+    // Pointer users expect the menu on hover; it stays click- and
+    // keyboard-operable for everyone else. Bound only where hover is real:
+    // on a touch screen the emulated mouseenter fights the click handler.
+    if (window.matchMedia('(hover: hover)').matches) {
+      let closeTimer: number | undefined;
+
+      root.addEventListener('mouseenter', () => {
+        clearTimeout(closeTimer);
+        setOpen(true);
+      });
+
+      // A grace period, on top of the wrapper's padding: the pointer can clip
+      // a corner on its way down to an item without the menu closing under it.
+      root.addEventListener('mouseleave', () => {
+        clearTimeout(closeTimer);
+        closeTimer = window.setTimeout(() => setOpen(false), 160);
+      });
+    }
+
+    root.addEventListener('keydown', (event) => {
+      const all = items();
+      const index = all.indexOf(document.activeElement as HTMLAnchorElement);
+      if (event.key === 'Escape') {
+        setOpen(false);
+        trigger.focus();
+      } else if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        setOpen(true);
+        all[index < 0 || index === all.length - 1 ? 0 : index + 1]?.focus();
+      } else if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        setOpen(true);
+        all[index <= 0 ? all.length - 1 : index - 1]?.focus();
+      }
+    });
+
+    // Tabbing or clicking away closes it; `focusout` fires before the next
+    // element gains focus, so the related target is what has to be tested.
+    root.addEventListener('focusout', (event) => {
+      if (!root.contains(event.relatedTarget as Node)) setOpen(false);
+    });
+    document.addEventListener('click', (event) => {
+      if (!root.contains(event.target as Node)) setOpen(false);
+    });
+  });
+</script>

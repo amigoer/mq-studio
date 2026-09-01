@@ -1,0 +1,30 @@
+---
+import { t, type Locale } from '@/i18n';
+
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+const c = t(locale);
+---
+
+<section id="drivers" class="mt-10 border-b border-secondary">
+  <div
+    class="mx-auto flex max-w-[1120px] flex-wrap items-center justify-center gap-x-[22px] gap-y-3 px-6 py-6 text-sm"
+  >
+    <span class="text-xs tracking-wider text-subtle-foreground">{c.drivers.label}</span>
+    {
+      c.drivers.supported.map((driver) => (
+        <span class="inline-flex items-center gap-1.5 font-semibold">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-success" aria-hidden="true">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+          {driver}
+        </span>
+      ))
+    }
+    <span class="text-subtle-foreground sm:border-l sm:border-border sm:pl-[22px]">
+      {c.drivers.planned}
+    </span>
+  </div>
+</section>

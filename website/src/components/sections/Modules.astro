@@ -1,0 +1,27 @@
+---
+import connections from '@shots/connections.png';
+import topics from '@shots/topics.png';
+import consumers from '@shots/consumers.png';
+import cluster from '@shots/cluster.png';
+import alerts from '@shots/alerts.png';
+import { t, type Locale } from '@/i18n';
+import ModuleTabs from '@/components/widgets/ModuleTabs.astro';
+
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+const c = t(locale);
+
+const images = { connections, topics, consumers, cluster, alerts };
+---
+
+<section id="modules" class="border-t border-secondary">
+  <div class="mx-auto max-w-[1120px] px-6 py-20">
+    <h2 class="mb-3 text-center text-[26px] font-bold tracking-[-0.02em] sm:text-[32px]">
+      {c.modules.title}
+    </h2>
+    <p class="mb-9 text-center text-[15px] text-muted-foreground text-pretty">{c.modules.lead}</p>
+    <ModuleTabs tabs={c.modules.tabs} images={images} />
+  </div>
+</section>

@@ -1,0 +1,28 @@
+{
+  "name": "mq-studio-website",
+  "private": true,
+  "version": "0.0.3",
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "start": "astro dev",
+    "build": "node ../scripts/fetch-release.mjs && node ../scripts/fetch-community.mjs && astro check && astro build",
+    "build:fast": "astro build",
+    "preview": "astro preview",
+    "type-check": "astro check"
+  },
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
+  "dependencies": {
+    "@astrojs/check": "^0.9.10",
+    "@astrojs/markdown-satteri": "^0.3.8",
+    "@astrojs/sitemap": "^3.7.3",
+    "@fontsource-variable/geist": "^5.3.0",
+    "@fontsource-variable/geist-mono": "^5.3.0",
+    "@tailwindcss/vite": "^4.3.3",
+    "astro": "^7.2.9",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^6.0.3"
+  }
+}
