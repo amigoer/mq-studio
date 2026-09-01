@@ -47,6 +47,15 @@ const (
 	// from CapOffsetReset, which moves a whole subscription to a moment in
 	// time and lets the broker find each queue's position for itself.
 	CapQueueOffset Capability = "subscription.queueOffset"
+	// CapSubscriptionPosition is moving a subscription to a named place in the
+	// log rather than to a moment in time.
+	//
+	// Distinct from CapOffsetReset for a reason that is not cosmetic: a stream
+	// entry's id is milliseconds plus a sequence within them, so a timestamp
+	// cannot pick between entries sharing a millisecond, and has no way to
+	// spell "the end" at all. A family whose positions are ids needs to say
+	// which id.
+	CapSubscriptionPosition Capability = "subscription.position"
 	// CapSubscriptionRuntime is asking a connected consumer what it is doing:
 	// which queues it holds and how fast it is getting through them. Only a
 	// live client can answer, so a family without client introspection - or a

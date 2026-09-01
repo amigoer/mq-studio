@@ -328,3 +328,19 @@ describe("the Redis consumer groups board", () => {
     expect(render(<ConsumersRedis />)).toContain("disabled");
   });
 });
+
+describe("the Redis consumer groups board's write controls", () => {
+  it("offers to reposition and to delete each group", () => {
+    groupsState.current = stateOf({ data: [settleGroup] });
+    streamsState.current = stateOf({ data: [orders] });
+    const html = render(<ConsumersRedis />);
+    expect(html).toContain("重置位置");
+    expect(html).toContain("删除");
+  });
+
+  it("offers neither when there are no groups to act on", () => {
+    groupsState.current = stateOf({ data: [] });
+    streamsState.current = stateOf({ data: [orders] });
+    expect(render(<ConsumersRedis />)).not.toContain("重置位置");
+  });
+});

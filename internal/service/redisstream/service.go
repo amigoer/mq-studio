@@ -125,3 +125,18 @@ func (s *Service) DeleteGroup(ctx context.Context, connID int, ref model.Subscri
 	defer cancel()
 	return api.RemoveSubscription(ctx, ref)
 }
+
+// SetGroupPosition moves a consumer group to a named place in the log.
+//
+// It leaves the pending list alone: entries already handed out stay owed to
+// the consumers holding them, wherever the group now reads from. That is the
+// server's behaviour rather than a choice made here, and the page says so.
+func (s *Service) SetGroupPosition(ctx context.Context, connID int, request model.PositionRequest) error {
+	api, err := port[driver.StreamPositionAdmin](s, connID, model.CapSubscriptionPosition)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.SetSubscriptionPosition(ctx, request)
+}

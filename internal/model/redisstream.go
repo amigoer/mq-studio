@@ -49,3 +49,19 @@ type TrimRequest struct {
 type TrimResult struct {
 	Removed int64 `json:"removed"`
 }
+
+// PositionRequest moves where a subscription reads to a named place in the log.
+//
+// Separate from ResetOffsetRequest, which names a moment in time. A stream
+// entry's id already is a moment - milliseconds and a sequence within them -
+// so a timestamp alone cannot say which of the entries sharing a millisecond
+// to start from, and cannot say "the end" at all. On a busy stream that
+// sequence is the difference between replaying a batch and skipping it.
+type PositionRequest struct {
+	Ref SubscriptionRef `json:"ref"`
+
+	// Position is an entry id, or one of the two the family spells specially:
+	// "0" for the beginning of what the stream still holds, "$" for whatever
+	// arrives next.
+	Position string `json:"position"`
+}

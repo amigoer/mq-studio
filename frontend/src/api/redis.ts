@@ -87,3 +87,21 @@ export const createGroup = (
  */
 export const deleteGroup = (connID: number, stream: string, group: string): Promise<void> =>
   RedisStreamService.DeleteGroup(connID, stream, group);
+
+/**
+ * Moves a consumer group to a named place in the log.
+ *
+ * The position is an entry id, "0" for the beginning of what the stream still
+ * holds, or "$" for whatever arrives next.
+ *
+ * It does not clear the group's pending list. Entries already handed out stay
+ * owed to the consumers holding them wherever the group now reads from, and
+ * nothing is redelivered on its own - consumers see entries after the new
+ * position when they next ask.
+ */
+export const setGroupPosition = (
+  connID: number,
+  stream: string,
+  group: string,
+  position: string,
+): Promise<void> => RedisStreamService.SetGroupPosition(connID, stream, group, position);

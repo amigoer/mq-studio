@@ -86,3 +86,13 @@ func (s *RedisStreamService) DeleteGroup(connID int, stream string, group string
 	return s.service.DeleteGroup(context.Background(), connID,
 		model.SubscriptionRef{Namespace: stream, Name: group})
 }
+
+// SetGroupPosition moves a consumer group to an entry id, to "0" for the
+// beginning of what the stream still holds, or to "$" for whatever arrives
+// next.
+func (s *RedisStreamService) SetGroupPosition(connID int, stream string, group string, position string) error {
+	return s.service.SetGroupPosition(context.Background(), connID, model.PositionRequest{
+		Ref:      model.SubscriptionRef{Namespace: stream, Name: group},
+		Position: position,
+	})
+}

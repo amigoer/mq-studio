@@ -48,6 +48,15 @@ export function DeleteGroup(connID: number, stream: string, group: string): $Can
 }
 
 /**
+ * SetGroupPosition moves a consumer group to an entry id, to "0" for the
+ * beginning of what the stream still holds, or to "$" for whatever arrives
+ * next.
+ */
+export function SetGroupPosition(connID: number, stream: string, group: string, position: string): $CancellablePromise<void> {
+    return $Call.ByID(4179560028, connID, stream, group, position);
+}
+
+/**
  * Trim discards entries from the head of a stream and reports how many went.
  */
 export function Trim(connID: number, input: $models.TrimInput): $CancellablePromise<model$0.TrimResult | null> {

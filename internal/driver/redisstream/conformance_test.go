@@ -74,6 +74,7 @@ func TestConnDeclaresNoConceptRedisStreamDoesNotHave(t *testing.T) {
 		model.CapDelayedDelivery,
 		model.CapProducerInspect,
 		model.CapSubscriptionRuntime,
+		model.CapOffsetReset,
 		model.CapOffsetClone,
 		model.CapQueueOffset,
 		model.CapRouting,
@@ -230,6 +231,7 @@ func TestCapabilitiesMatchTheSidebarContract(t *testing.T) {
 		"subscription.create",
 		"subscription.delete",
 		"subscription.lag",
+		"subscription.position",
 	}
 
 	declared := make(map[string]bool, len(capabilities()))

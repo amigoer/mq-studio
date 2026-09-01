@@ -15,6 +15,7 @@ import {
 import { Status, toast, useConfirm } from "@/components";
 import { BoardState } from "@/design/boards/BoardState";
 import { GroupDialog } from "./GroupDialog";
+import { PositionDialog } from "./PositionDialog";
 import { useRedisGroups } from "@/hooks/redis/useRedisGroups";
 import { useRedisStreams } from "@/hooks/redis/useRedisStreams";
 import { useConnectionScope } from "@/mq/ConnectionScope";
@@ -73,6 +74,7 @@ export function ConsumersRedis() {
   const [search, setSearch] = useState("");
   const [stalledOnly, setStalledOnly] = useState(false);
   const [declaring, setDeclaring] = useState(false);
+  const [moving, setMoving] = useState<{ stream: string; group: string } | null>(null);
 
   const groups = useMemo(() => state.data ?? [], [state.data]);
 
@@ -102,6 +104,17 @@ export function ConsumersRedis() {
       await state.refresh();
     },
     [connID, state, t],
+  );
+
+  const move = useCallback(
+    async (position: string) => {
+      if (moving == null) return;
+      await redisApi.setGroupPosition(connID, moving.stream, moving.group, position);
+      toast.success(t("board.consumers.redis.position.done", { name: moving.group }));
+      setMoving(null);
+      await state.refresh();
+    },
+    [connID, moving, state, t],
   );
 
   const remove = useCallback(
@@ -139,6 +152,13 @@ export function ConsumersRedis() {
         streams={streamKeys}
         onOpenChange={setDeclaring}
         onCreate={create}
+      />
+      <PositionDialog
+        stream={moving?.stream ?? null}
+        group={moving?.group ?? null}
+        open={moving != null}
+        onOpenChange={(open) => !open && setMoving(null)}
+        onMove={move}
       />
       <PageHeader
         title={t("board.common.consumerGroup")}
@@ -255,6 +275,15 @@ export function ConsumersRedis() {
                         <Metric value={lag(group)} />
                       </TableCell>
                       <TableCell style={RIGHT}>
+                        <Button
+                          variant="ghost"
+                          size="xs"
+                          onClick={() =>
+                            setMoving({ stream: groupStream(group), group: groupName(group) })
+                          }
+                        >
+                          {t("board.consumers.redis.position.action")}
+                        </Button>
                         <Button
                           variant="ghost"
                           size="xs"

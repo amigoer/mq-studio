@@ -715,3 +715,140 @@ func TestLiveRemoveSubscriptionLeavesTheStream(t *testing.T) {
 		t.Errorf("the stream holds %d entries after its group was removed, want 5", length)
 	}
 }
+
+/*
+ * Repositioning a group, and the two things it does not do.
+ *
+ * Both surprises cost someone a debugging session. Moving a group forward does
+ * not clear the entries it has already been handed and not acknowledged - they
+ * stay owed to the consumers holding them - and nothing is redelivered on its
+ * own. A page that called this a "reset" would send an operator looking for
+ * messages that were never going to arrive.
+ */
+func TestLiveSetSubscriptionPosition(t *testing.T) {
+	conn := liveConn(t, map[string]string{OptionStreamFilter: liveStreams + "setid:*"}, nil)
+	ctx := liveContext(t)
+	key := liveStreams + "setid:orders"
+	seedLiveStream(t, conn, key, 10)
+	ref := model.SubscriptionRef{Namespace: key, Name: "settle-group"}
+	if err := conn.CreateSubscription(ctx, model.SubscriptionSpec{
+		Ref:        ref,
+		Attributes: map[string]string{AttrStartID: "0"},
+	}); err != nil {
+		t.Fatalf("create group: %v", err)
+	}
+	// Hand out four entries and acknowledge none, so there is a pending list
+	// to watch across the reposition.
+	if err := conn.client.XReadGroup(ctx, &redis.XReadGroupArgs{
+		Group:    "settle-group",
+		Consumer: "worker-1",
+		Streams:  []string{key, ">"},
+		Count:    4,
+	}).Err(); err != nil {
+		t.Fatalf("read: %v", err)
+	}
+
+	entries, err := conn.client.XRange(ctx, key, "-", "+").Result()
+	if err != nil {
+		t.Fatalf("xrange: %v", err)
+	}
+	target := entries[7].ID
+
+	if err := conn.SetSubscriptionPosition(ctx, model.PositionRequest{
+		Ref:      ref,
+		Position: target,
+	}); err != nil {
+		t.Fatalf("reposition: %v", err)
+	}
+
+	detail, err := conn.SubscriptionDetail(ctx, ref)
+	if err != nil {
+		t.Fatalf("detail: %v", err)
+	}
+	if got := detail.Attributes[AttrLastDeliveredID]; got != target {
+		t.Errorf("last-delivered-id = %q, want %q", got, target)
+	}
+	// The pending list is untouched. This is the assertion worth having: a
+	// reposition that silently discarded unacknowledged work would look like
+	// it had succeeded and would have lost four entries' worth of state.
+	if got := detail.Attributes[AttrPending]; got != "4" {
+		t.Errorf("pending = %q after repositioning, want the four still owed", got)
+	}
+}
+
+// Moving a group to the end is how an operator abandons a backlog they have
+// decided not to process. The lag has to reflect it, or the page would keep
+// reporting work that is never coming.
+func TestLiveRepositionToTheEndClearsTheLag(t *testing.T) {
+	conn := liveConn(t, map[string]string{OptionStreamFilter: liveStreams + "skip:*"}, nil)
+	ctx := liveContext(t)
+	key := liveStreams + "skip:orders"
+	seedLiveStream(t, conn, key, 25)
+	ref := model.SubscriptionRef{Namespace: key, Name: "settle-group"}
+	if err := conn.CreateSubscription(ctx, model.SubscriptionSpec{
+		Ref:        ref,
+		Attributes: map[string]string{AttrStartID: "0"},
+	}); err != nil {
+		t.Fatalf("create group: %v", err)
+	}
+
+	before, err := conn.SubscriptionDetail(ctx, ref)
+	if err != nil {
+		t.Fatalf("detail before: %v", err)
+	}
+	if before.Backlog != 25 {
+		t.Fatalf("backlog before = %d, want the whole stream", before.Backlog)
+	}
+
+	if err := conn.SetSubscriptionPosition(ctx, model.PositionRequest{
+		Ref:      ref,
+		Position: PositionEnd,
+	}); err != nil {
+		t.Fatalf("reposition: %v", err)
+	}
+	after, err := conn.SubscriptionDetail(ctx, ref)
+	if err != nil {
+		t.Fatalf("detail after: %v", err)
+	}
+	if after.Backlog != 0 {
+		t.Errorf("backlog after moving to the end = %d, want 0", after.Backlog)
+	}
+}
+
+// And the other direction: back to the beginning replays what the stream still
+// holds, which is not what it ever held - trimmed entries do not come back.
+func TestLiveRepositionToTheBeginningReplaysWhatSurvives(t *testing.T) {
+	conn := liveConn(t, map[string]string{OptionStreamFilter: liveStreams + "replay:*"}, nil)
+	ctx := liveContext(t)
+	key := liveStreams + "replay:orders"
+	seedLiveStream(t, conn, key, 20)
+	ref := model.SubscriptionRef{Namespace: key, Name: "settle-group"}
+	if err := conn.CreateSubscription(ctx, model.SubscriptionSpec{
+		Ref:        ref,
+		Attributes: map[string]string{AttrStartID: "$"},
+	}); err != nil {
+		t.Fatalf("create group: %v", err)
+	}
+	// Trim first, so what comes back is what survives rather than everything.
+	if _, err := conn.Trim(ctx, model.TrimRequest{
+		Ref:      model.DestinationRef{Name: key},
+		Strategy: model.TrimMaxLen,
+		MaxLen:   12,
+	}); err != nil {
+		t.Fatalf("trim: %v", err)
+	}
+
+	if err := conn.SetSubscriptionPosition(ctx, model.PositionRequest{
+		Ref:      ref,
+		Position: PositionBeginning,
+	}); err != nil {
+		t.Fatalf("reposition: %v", err)
+	}
+	after, err := conn.SubscriptionDetail(ctx, ref)
+	if err != nil {
+		t.Fatalf("detail: %v", err)
+	}
+	if after.Backlog != 12 {
+		t.Errorf("backlog = %d after moving to the beginning, want the 12 that survived the trim", after.Backlog)
+	}
+}

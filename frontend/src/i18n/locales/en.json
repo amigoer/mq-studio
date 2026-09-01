@@ -2159,6 +2159,22 @@
           "consuming": "consuming",
           "stalled": "stalled",
           "idle": "idle"
+        },
+        "position": {
+          "action": "Reposition",
+          "title": "Move {{name}} on {{stream}}",
+          "moveTo": "Move to",
+          "beginning": "The beginning",
+          "end": "The end",
+          "entry": "An entry id",
+          "beginningHint": "Replays everything the stream still holds. Entries already trimmed away do not come back, so this is the beginning of what survives rather than of what ever existed.",
+          "endHint": "Skips to whatever arrives next. Everything the group has not read is abandoned, which is how a backlog nobody intends to process is dropped.",
+          "entryHint": "Starts from the entry after the id given. Copy one from the message browser to resume from a known point.",
+          "idRequired": "Enter the entry id to move to.",
+          "idInvalid": "A stream id is <milliseconds> or <milliseconds>-<sequence>.",
+          "caveat": "This does not clear the pending list: entries already handed out stay owed to the consumers holding them. Nothing is redelivered on its own either - consumers see entries after the new position when they next ask.",
+          "run": "Move",
+          "done": "Moved {{name}}"
         }
       }
     },

@@ -61,6 +61,7 @@ func backings() []capabilityBacking {
 	stats := func(c Conn) bool { _, ok := c.(DestinationStats); return ok }
 	actions := func(c Conn) bool { _, ok := c.(QueueActions); return ok }
 	trimmer := func(c Conn) bool { _, ok := c.(StreamTrimmer); return ok }
+	position := func(c Conn) bool { _, ok := c.(StreamPositionAdmin); return ok }
 
 	return []capabilityBacking{
 		{model.CapDestinationList, "DestinationAdmin", destination},
@@ -85,6 +86,7 @@ func backings() []capabilityBacking {
 		{model.CapSubscriptionRuntime, "SubscriptionRuntime", runtime},
 		{model.CapOffsetClone, "OffsetCloner", cloner},
 		{model.CapQueueOffset, "QueueProgressAdmin", queueProgress},
+		{model.CapSubscriptionPosition, "StreamPositionAdmin", position},
 
 		{model.CapMessageQuery, "MessageReader", reader},
 		{model.CapMessageByID, "MessageReader", reader},

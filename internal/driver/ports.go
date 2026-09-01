@@ -126,6 +126,17 @@ type ProgressAdmin interface {
 	ResetOffset(ctx context.Context, request model.ResetOffsetRequest) error
 }
 
+// StreamPositionAdmin moves a subscription to a named place in the log.
+//
+// Separate from ProgressAdmin because the two ask different questions.
+// ResetOffset names a moment and lets the broker work out where that lands;
+// this names the place itself, because in a log the position is an id and the
+// caller already has it - from the entry they were looking at, or from one of
+// the two the family spells specially.
+type StreamPositionAdmin interface {
+	SetSubscriptionPosition(ctx context.Context, request model.PositionRequest) error
+}
+
 // QueueProgressAdmin writes one queue's read position directly.
 //
 // Separate from ProgressAdmin because the two are different gestures with

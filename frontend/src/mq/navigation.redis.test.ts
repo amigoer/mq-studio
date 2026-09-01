@@ -26,6 +26,7 @@ const REDIS_CAPABILITIES: Capability[] = [
   Capability.CapSubscriptionCreate,
   Capability.CapSubscriptionDelete,
   Capability.CapSubscriptionLag,
+  Capability.CapSubscriptionPosition,
 ];
 
 function state(
