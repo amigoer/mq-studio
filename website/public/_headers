@@ -1,0 +1,17 @@
+# Cloudflare Pages response headers. Later, more specific rules override the
+# headers they repeat, so the catch-all sets the safe default and /_astro/*
+# opts the fingerprinted assets into a long cache.
+
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: DENY
+  # Pages are served without a file extension (/changelog/, not .html), so this
+  # is where the HTML policy has to live: revalidate, or a new release would
+  # keep serving the old download links.
+  Cache-Control: public, max-age=0, must-revalidate
+
+# Astro fingerprints these filenames, so a given URL's bytes never change.
+# Covers the hashed CSS, images and self-hosted fonts alike.
+/_astro/*
+  Cache-Control: public, max-age=31536000, immutable
