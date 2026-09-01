@@ -2324,6 +2324,28 @@
           "done": "Republished to {{group}}",
           "failed": "Republish failed"
         }
+      },
+      "pulsar": {
+        "title": "Messages",
+        "search": "Search",
+        "tail": "Tail",
+        "stopTail": "Stop",
+        "messageId": "Message ID",
+        "key": "Key",
+        "orderingKey": "Ordering key",
+        "producer": "Producer",
+        "partition": "Partition",
+        "publishedAt": "Published",
+        "eventTime": "Event time",
+        "redelivery": "Redelivered",
+        "body": "Body",
+        "topic": "Topic",
+        "properties": "Producer properties",
+        "noProperties": "This message carries no properties of its own.",
+        "idPlaceholder": "ledger:entry:partition",
+        "keyPlaceholder": "key",
+        "propertyPlaceholder": "property name=value",
+        "propertyNameRequired": "A property filter needs a name before the ="
       }
     },
     "dlq": {

@@ -2324,6 +2324,28 @@
           "done": "已重新发布到 {{group}}",
           "failed": "重新发布失败"
         }
+      },
+      "pulsar": {
+        "title": "消息",
+        "search": "查询",
+        "tail": "实时跟踪",
+        "stopTail": "停止",
+        "messageId": "消息 ID",
+        "key": "Key",
+        "orderingKey": "顺序 Key",
+        "producer": "生产者",
+        "partition": "分区",
+        "publishedAt": "发布时间",
+        "eventTime": "事件时间",
+        "redelivery": "重投次数",
+        "body": "消息体",
+        "topic": "主题",
+        "properties": "生产者属性",
+        "noProperties": "这条消息没有自带任何属性。",
+        "idPlaceholder": "ledger:entry:partition",
+        "keyPlaceholder": "key",
+        "propertyPlaceholder": "属性名=值",
+        "propertyNameRequired": "属性筛选的等号前面需要属性名"
       }
     },
     "dlq": {

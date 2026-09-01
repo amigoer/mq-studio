@@ -31,6 +31,7 @@ import { ChannelsRabbitMQ } from "./boards/consumers/ChannelsRabbitMQ";
 
 import { MessagesRocketMQ } from "./boards/messages/MessagesRocketMQ";
 import { MessagesKafka } from "./boards/messages/MessagesKafka";
+import { MessagesPulsar } from "./boards/messages/MessagesPulsar";
 import { MessagesRabbitMQ } from "./boards/messages/MessagesRabbitMQ";
 import { MessagesRedis } from "./boards/messages/MessagesRedis";
 
@@ -126,6 +127,7 @@ const BOARDS: Partial<
     rocketmq: MessagesRocketMQ,
     kafka: MessagesKafka,
     rabbitmq: MessagesRabbitMQ,
+    pulsar: MessagesPulsar,
     redis: MessagesRedis,
   },
   dlq: {

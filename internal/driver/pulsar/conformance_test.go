@@ -227,6 +227,9 @@ func TestCapabilitiesMatchTheSidebarContract(t *testing.T) {
 		model.CapSubscriptionLag,
 		model.CapSubscriptionRuntime,
 		model.CapOffsetReset,
+		model.CapMessageQuery,
+		model.CapMessageByID,
+		model.CapMessageLiveTail,
 	}
 
 	got := capabilities()

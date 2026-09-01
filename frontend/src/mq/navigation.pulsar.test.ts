@@ -36,6 +36,9 @@ const PULSAR_CAPABILITIES: Capability[] = [
   Capability.CapSubscriptionLag,
   Capability.CapSubscriptionRuntime,
   Capability.CapOffsetReset,
+  Capability.CapMessageQuery,
+  Capability.CapMessageByID,
+  Capability.CapMessageLiveTail,
 ];
 
 function state(
@@ -85,6 +88,7 @@ describe("the sidebar a Pulsar connection draws", () => {
       "vhosts",
       "topics",
       "consumers",
+      "messages",
       "cluster",
       "alerts",
     ]);

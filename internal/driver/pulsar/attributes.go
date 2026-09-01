@@ -135,3 +135,34 @@ const (
 	StartAtEarliest = "earliest"
 	StartAtLatest   = "latest"
 )
+
+// MessageItem property keys.
+//
+// These are properties on the item rather than attributes, because
+// model.MessageItem has a Properties map and no Attributes one - and because
+// the message's own properties live there too, which is the point: a Pulsar
+// producer puts in a property what a RocketMQ one would put in a tag.
+//
+// They are prefixed so they cannot collide with a property a producer set.
+const (
+	// PropertyBatchIndex is the only thing that tells two messages published
+	// in one batch apart. It has no field on MessageItem: ledger and entry are
+	// shared by the whole batch.
+	PropertyBatchIndex = "pulsar.batchIndex"
+
+	// PropertyProducer is the name the producer registered under, which is how
+	// a message is traced back to what sent it.
+	PropertyProducer = "pulsar.producer"
+
+	// PropertyOrderingKey is what Pulsar orders by when it is set, which is
+	// not the same as the routing key even though both are called keys.
+	PropertyOrderingKey = "pulsar.orderingKey"
+
+	// PropertyEventTime is when the producer said the event happened, as
+	// opposed to when the broker stored it.
+	PropertyEventTime = "pulsar.eventTime"
+
+	// PropertyRedeliveryCount is how many times this message has come round
+	// again, which is what a message about to be dead-lettered looks like.
+	PropertyRedeliveryCount = "pulsar.redeliveryCount"
+)

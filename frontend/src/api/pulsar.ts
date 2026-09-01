@@ -1,4 +1,4 @@
-import { PulsarService } from "@bindings/bridge";
+import { MessageService, PulsarService } from "@bindings/bridge";
 import type {
   PulsarNamespaceInput,
   PulsarTenantInput,
@@ -7,6 +7,7 @@ import type {
 } from "@bindings/bridge/models";
 import type {
   Destination,
+  MessageItem,
   Namespace,
   SubscriptionClient,
 } from "@bindings/model/models";
@@ -14,6 +15,7 @@ import { present, required } from "./client";
 
 export type {
   Destination,
+  MessageItem,
   Namespace,
   SubscriptionClient,
   PulsarNamespaceInput,
@@ -161,3 +163,45 @@ export const removePulsarSubscription = (
   topic: string,
   subscription: string,
 ): Promise<void> => PulsarService.DeleteSubscription(connID, topic, subscription);
+
+/**
+ * Browses a topic with the filters this family has.
+ *
+ * Separate from queryMessagesByCondition because the shared form's fields do
+ * not fit: Pulsar has no tag, so what every other family narrows by has no
+ * value here, and what replaces it is a filter on the message's own
+ * properties. The topic is a full URL, which is how a Pulsar topic is
+ * addressed at all.
+ */
+export const browsePulsarMessages = (
+  connID: number,
+  topic: string,
+  condition: {
+    messageId?: string;
+    messageKey?: string;
+    property?: string;
+    startTimeMs?: number;
+    endTimeMs?: number;
+  },
+  maxResults = 0,
+): Promise<MessageItem[]> => {
+  const id = condition.messageId?.trim() ?? "";
+  if (id !== "") {
+    return MessageService.ByID(connID, topic, id).then((item) => (item ? [item] : []));
+  }
+  const filters: Record<string, string> = {};
+  const property = condition.property?.trim() ?? "";
+  if (property !== "") filters["property"] = property;
+
+  return MessageService.Query(connID, {
+    topic,
+    key: condition.messageKey?.trim() ?? "",
+    // Pulsar has no tag. Sending an empty one is not a gap in the form - there
+    // is nothing on this family for it to mean.
+    tag: "",
+    maxResults,
+    startTime: condition.startTimeMs ?? 0,
+    endTime: condition.endTimeMs ?? 0,
+    filters,
+  }).then(present);
+};

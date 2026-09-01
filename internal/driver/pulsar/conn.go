@@ -156,13 +156,19 @@ func capabilities() []model.Capability {
 		model.CapSubscriptionLag,
 		model.CapSubscriptionRuntime,
 		model.CapOffsetReset,
+		model.CapMessageQuery,
+		model.CapMessageByID,
+		model.CapMessageLiveTail,
 	}
 }
 
 // dataPlaneCapabilities are the ones the binary protocol carries. Everything
 // else is admin and survives a data plane that is down.
 func dataPlaneCapabilities() []model.Capability {
-	return []model.Capability{}
+	return []model.Capability{
+		model.CapMessageQuery,
+		model.CapMessageLiveTail,
+	}
 }
 
 // probe narrows the family's best case to what this endpoint actually answers.

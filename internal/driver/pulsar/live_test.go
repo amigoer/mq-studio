@@ -781,3 +781,231 @@ func findSubscription(t *testing.T, conn *Conn, name string) *model.Subscription
 	}
 	return nil
 }
+
+/*
+ * A browse finds what was published, and finds it by key.
+ *
+ * Every filter on this family is applied after reading, because Pulsar has no
+ * message-search endpoint - so a live test is the only thing that proves the
+ * Reader actually walks the log rather than the filter quietly matching
+ * nothing.
+ */
+func TestLiveBrowseFindsAProducedMessage(t *testing.T) {
+	conn := liveConn(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+	defer cancel()
+
+	ref := model.DestinationRef{Namespace: "public/default", Name: "mq-studio-e2e-browse"}
+	url := prepareTopic(t, conn, ref)
+
+	publishKeyed(t, conn, url, []keyedMessage{
+		{key: "alpha", body: "first"},
+		{key: "beta", body: "second"},
+		{key: "alpha", body: "third"},
+	})
+
+	all, err := conn.QueryMessages(ctx, model.MessageQueryParams{Topic: url, MaxResults: 50})
+	if err != nil {
+		t.Fatalf("QueryMessages: %v", err)
+	}
+	if len(all) != 3 {
+		t.Fatalf("browsed %d messages, want the 3 that were published", len(all))
+	}
+	// Oldest first, which is the order the board appends in and the order the
+	// log is written in.
+	if all[0].Body != "first" || all[2].Body != "third" {
+		t.Errorf("browse returned %q then %q, want first then third",
+			all[0].Body, all[2].Body)
+	}
+	if all[0].MessageID == "" {
+		t.Error("a browsed message carries no id")
+	}
+
+	byKey, err := conn.QueryMessages(ctx, model.MessageQueryParams{
+		Topic: url, MessageKey: "alpha", MaxResults: 50,
+	})
+	if err != nil {
+		t.Fatalf("QueryMessages by key: %v", err)
+	}
+	if len(byKey) != 2 {
+		t.Fatalf("browsing by key found %d, want the 2 with that key", len(byKey))
+	}
+
+	// And the id round-trips: what the browse printed can be looked up again,
+	// which is the whole point of printing Pulsar's own form.
+	found, err := conn.MessageByID(ctx, url, all[1].MessageID)
+	if err != nil {
+		t.Fatalf("MessageByID(%s): %v", all[1].MessageID, err)
+	}
+	if found.Body != "second" {
+		t.Errorf("looking up %s gave %q, want second", all[1].MessageID, found.Body)
+	}
+}
+
+// A property filter is how this family narrows a browse, because Pulsar has no
+// tag - what RocketMQ puts in one, a Pulsar producer puts in a property.
+func TestLiveBrowseFiltersOnAProperty(t *testing.T) {
+	conn := liveConn(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+	defer cancel()
+
+	ref := model.DestinationRef{Namespace: "public/default", Name: "mq-studio-e2e-props"}
+	url := prepareTopic(t, conn, ref)
+
+	publishKeyed(t, conn, url, []keyedMessage{
+		{body: "paid", properties: map[string]string{"stage": "paid"}},
+		{body: "shipped", properties: map[string]string{"stage": "shipped"}},
+		{body: "plain"},
+	})
+
+	matched, err := conn.QueryMessages(ctx, model.MessageQueryParams{
+		Topic:      url,
+		MaxResults: 50,
+		Filters:    map[string]string{FilterProperty: "stage=paid"},
+	})
+	if err != nil {
+		t.Fatalf("QueryMessages by property: %v", err)
+	}
+	if len(matched) != 1 || matched[0].Body != "paid" {
+		t.Fatalf("filtering on stage=paid gave %d messages", len(matched))
+	}
+
+	// A bare name asks "which messages carry this at all", which is a
+	// different and useful question.
+	present, err := conn.QueryMessages(ctx, model.MessageQueryParams{
+		Topic:      url,
+		MaxResults: 50,
+		Filters:    map[string]string{FilterProperty: "stage"},
+	})
+	if err != nil {
+		t.Fatalf("QueryMessages by property presence: %v", err)
+	}
+	if len(present) != 2 {
+		t.Errorf("filtering on the property name gave %d, want the 2 that carry it",
+			len(present))
+	}
+}
+
+/*
+ * A tail shows what arrives next and never shows it twice.
+ *
+ * This is the invariant the whole cursor design exists for. A tail that
+ * returned an empty cursor would send the next poll back to the end of the
+ * topic and silently skip whatever arrived in between; one that resumed
+ * inclusively would repeat its last line on every poll. Both look like working
+ * software on a quiet topic.
+ */
+func TestLiveTailDoesNotReplayWhatItAlreadyReturned(t *testing.T) {
+	conn := liveConn(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+	defer cancel()
+
+	ref := model.DestinationRef{Namespace: "public/default", Name: "mq-studio-e2e-tail"}
+	url := prepareTopic(t, conn, ref)
+	tailRef := model.DestinationRef{Namespace: ref.Namespace, Name: url}
+
+	// Published before the tail opens, and therefore never shown: a tail is
+	// what arrives from now on, which is what makes it different from a
+	// browse.
+	publishKeyed(t, conn, url, []keyedMessage{{body: "before"}})
+
+	first, err := conn.TailMessages(ctx, tailRef, model.TailCursor{}, 50)
+	if err != nil {
+		t.Fatalf("open the tail: %v", err)
+	}
+	for _, message := range first.Messages {
+		if message.Body == "before" {
+			t.Error("the tail replayed a message published before it opened")
+		}
+	}
+
+	publishKeyed(t, conn, url, []keyedMessage{{body: "one"}, {body: "two"}})
+
+	second, err := conn.TailMessages(ctx, tailRef, first.Cursor, 50)
+	if err != nil {
+		t.Fatalf("second poll: %v", err)
+	}
+	seen := bodies(second.Messages)
+	if len(seen) != 2 {
+		t.Fatalf("the second poll returned %v, want one and two", seen)
+	}
+
+	// The third poll has nothing to show, and must still hand back somewhere
+	// to resume from.
+	third, err := conn.TailMessages(ctx, tailRef, second.Cursor, 50)
+	if err != nil {
+		t.Fatalf("third poll: %v", err)
+	}
+	if len(third.Messages) != 0 {
+		t.Errorf("a quiet poll replayed %v", bodies(third.Messages))
+	}
+	if len(third.Cursor.Positions) == 0 {
+		t.Fatal("a poll with no messages returned no cursor, so the next one would restart")
+	}
+
+	// And a fourth poll from that cursor still sees what arrives after it.
+	publishKeyed(t, conn, url, []keyedMessage{{body: "three"}})
+	fourth, err := conn.TailMessages(ctx, tailRef, third.Cursor, 50)
+	if err != nil {
+		t.Fatalf("fourth poll: %v", err)
+	}
+	if got := bodies(fourth.Messages); len(got) != 1 || got[0] != "three" {
+		t.Errorf("the fourth poll returned %v, want three", got)
+	}
+}
+
+type keyedMessage struct {
+	key        string
+	body       string
+	properties map[string]string
+}
+
+// prepareTopic creates a topic for one test and removes it afterwards.
+func prepareTopic(t *testing.T, conn *Conn, ref model.DestinationRef) string {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	_ = conn.RemoveDestination(ctx, ref)
+	if err := conn.CreateDestination(ctx, model.DestinationSpec{Ref: ref}); err != nil {
+		t.Fatalf("create %s: %v", ref.Name, err)
+	}
+	t.Cleanup(func() {
+		cleanup, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		_ = conn.RemoveDestination(cleanup, ref)
+	})
+	waitForTopic(t, conn, ref.Name)
+	return topicURL(ref, true)
+}
+
+func publishKeyed(t *testing.T, conn *Conn, topic string, messages []keyedMessage) {
+	t.Helper()
+
+	producer, err := conn.client.CreateProducer(pulsarclient.ProducerOptions{Topic: topic})
+	if err != nil {
+		t.Fatalf("create a producer on %s: %v", topic, err)
+	}
+	defer producer.Close()
+
+	for i, message := range messages {
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		_, err := producer.Send(ctx, &pulsarclient.ProducerMessage{
+			Key:        message.key,
+			Payload:    []byte(message.body),
+			Properties: message.properties,
+		})
+		cancel()
+		if err != nil {
+			t.Fatalf("send message %d: %v", i, err)
+		}
+	}
+}
+
+func bodies(messages []*model.MessageItem) []string {
+	out := make([]string, 0, len(messages))
+	for _, message := range messages {
+		out = append(out, message.Body)
+	}
+	return out
+}
