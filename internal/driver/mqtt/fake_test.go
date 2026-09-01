@@ -28,6 +28,14 @@ import (
 // fakeBroker starts a broker that accepts anyone, and returns its address.
 func fakeBroker(t *testing.T) string {
 	t.Helper()
+	_, address := startBroker(t, listeners.TypeTCP, new(auth.AllowHook), nil)
+	return address
+}
+
+// fakeBrokerServer is the same broker with the server handed back, for tests
+// that need to watch what arrived from the broker's own side.
+func fakeBrokerServer(t *testing.T) (*mochi.Server, string) {
+	t.Helper()
 	return startBroker(t, listeners.TypeTCP, new(auth.AllowHook), nil)
 }
 
@@ -36,7 +44,8 @@ func fakeBroker(t *testing.T) string {
 // on a real broker too.
 func fakeWebSocketBroker(t *testing.T) string {
 	t.Helper()
-	return startBroker(t, listeners.TypeWS, new(auth.AllowHook), nil)
+	_, address := startBroker(t, listeners.TypeWS, new(auth.AllowHook), nil)
+	return address
 }
 
 // fakeBrokerWithCredentials only admits the one username and password, which
@@ -50,16 +59,21 @@ func fakeBrokerWithCredentials(t *testing.T, username, password string) string {
 			Allow:    true,
 		}},
 	}
-	return startBroker(t, listeners.TypeTCP, new(auth.Hook), &auth.Options{Ledger: ledger})
+	_, address := startBroker(t, listeners.TypeTCP, new(auth.Hook), &auth.Options{Ledger: ledger})
+	return address
 }
 
-func startBroker(t *testing.T, kind string, hook mochi.Hook, config any) string {
+func startBroker(t *testing.T, kind string, hook mochi.Hook, config any) (*mochi.Server, string) {
 	t.Helper()
 
 	server := mochi.New(&mochi.Options{
 		// The broker logs every connection at info, which buries the actual
 		// test output. Errors still surface as test failures.
 		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)),
+		// Lets a test subscribe from the broker's own side, which is how a
+		// publish is checked to have actually arrived rather than merely to
+		// have been accepted.
+		InlineClient: true,
 	})
 	if err := server.AddHook(hook, config); err != nil {
 		t.Fatalf("add auth hook: %v", err)
@@ -86,7 +100,7 @@ func startBroker(t *testing.T, kind string, hook mochi.Hook, config any) string 
 
 	address := listener.Address()
 	waitForListener(t, address)
-	return address
+	return server, address
 }
 
 // freePort finds an address nothing is using, by taking it and giving it back.

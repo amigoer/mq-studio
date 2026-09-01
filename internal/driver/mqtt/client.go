@@ -290,9 +290,22 @@ type mqttClient interface {
 	// Ping proves the session is still live, over the wire.
 	Ping(ctx context.Context) error
 
+	// Publish sends one message. The answer is nil at QoS 0, where there is
+	// nothing for the broker to say.
+	Publish(ctx context.Context, request PublishRequest) (*publishAnswer, error)
+
 	// Disconnect closes the session. It tolerates being called more than once
 	// and being called after a failed Connect.
 	Disconnect() error
+}
+
+// publishAnswer is what a broker said about one publish, in the shape both
+// libraries can produce. A 3.1.1 broker fills in nothing at all: PUBACK
+// carries no reason code before 5.0, so "accepted" is the whole answer.
+type publishAnswer struct {
+	ReasonCode            int
+	Reason                string
+	NoMatchingSubscribers bool
 }
 
 // newClient builds the client the profile's protocol version calls for.

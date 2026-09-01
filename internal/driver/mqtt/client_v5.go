@@ -16,6 +16,17 @@ import (
 // broker that will not take the packet is about to lose the socket anyway.
 const disconnectGrace = 2 * time.Second
 
+// MQTT 5.0 reason codes this driver reads by name.
+const (
+	// reasonNoMatchingSubscribers is the broker reporting that it accepted the
+	// message and had nobody to deliver it to. Success, and worth saying.
+	reasonNoMatchingSubscribers = 0x10
+	// reasonUnspecifiedError is where the refusals start: every code from 0x80
+	// up is the broker declining, and they arrive on an acknowledgement rather
+	// than as a transport failure.
+	reasonUnspecifiedError = 0x80
+)
+
 // clientV5 speaks MQTT 5.0 through paho.golang's autopaho.
 //
 // autopaho rather than the bare paho package because everything this driver
@@ -85,6 +96,78 @@ func (c *clientV5) Ping(ctx context.Context) error {
 	}
 	_, err := c.manager.Unsubscribe(ctx, &paho.Unsubscribe{Topics: []string{pingFilter}})
 	return err
+}
+
+// Publish sends one message and returns the broker's own answer.
+func (c *clientV5) Publish(ctx context.Context, request PublishRequest) (*publishAnswer, error) {
+	if c.manager == nil {
+		return nil, errConnectionDown
+	}
+
+	response, err := c.manager.Publish(ctx, &paho.Publish{
+		Topic:      request.Topic,
+		QoS:        request.QoS,
+		Retain:     request.Retain,
+		Payload:    []byte(request.Payload),
+		Properties: publishProperties(request),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return publishAnswerOf(response)
+}
+
+// publishAnswerOf reads a PUBACK or PUBCOMP.
+//
+// Split out from the call because the two codes worth naming are hard to
+// provoke from a test broker and easy to get wrong: 16 is a success the
+// console should still report, and everything from 0x80 up is a refusal that
+// arrives on an acknowledgement rather than as a transport error — so without
+// this a rejected publish would be reported as sent.
+func publishAnswerOf(response *paho.PublishResponse) (*publishAnswer, error) {
+	// QoS 0 is acknowledged by nothing, so there is no response to read.
+	if response == nil {
+		return nil, nil
+	}
+
+	answer := &publishAnswer{
+		ReasonCode:            int(response.ReasonCode),
+		NoMatchingSubscribers: response.ReasonCode == reasonNoMatchingSubscribers,
+	}
+	if response.Properties != nil {
+		answer.Reason = response.Properties.ReasonString
+	}
+	if response.ReasonCode >= reasonUnspecifiedError {
+		return answer, fmt.Errorf("broker refused the publish (reason %d): %s",
+			answer.ReasonCode, answer.Reason)
+	}
+	return answer, nil
+}
+
+// publishProperties is nil unless the request set one, because an empty
+// properties struct still puts a properties block on the wire.
+func publishProperties(request PublishRequest) *paho.PublishProperties {
+	properties := &paho.PublishProperties{
+		ContentType:     request.ContentType,
+		ResponseTopic:   request.ResponseTopic,
+		CorrelationData: []byte(request.CorrelationData),
+	}
+	set := request.ContentType != "" || request.ResponseTopic != "" ||
+		request.CorrelationData != ""
+
+	if request.MessageExpiry > 0 {
+		expiry := request.MessageExpiry
+		properties.MessageExpiry = &expiry
+		set = true
+	}
+	for name, value := range request.UserProperties {
+		properties.User.Add(name, value)
+		set = true
+	}
+	if !set {
+		return nil
+	}
+	return properties
 }
 
 // Disconnect ends the session and stops the reconnection loop. The registry

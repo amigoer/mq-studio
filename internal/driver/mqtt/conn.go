@@ -65,10 +65,17 @@ func (c *Conn) Close() error {
 
 // capabilities is the family's best case.
 //
-// It is empty because nothing is implemented yet beyond dialling, and
-// CheckConformance fails a capability with no interface behind it. Each one
-// arrives in the commit that implements its port, rather than as a promise the
-// connection cannot keep.
+// It grows one port at a time: CheckConformance fails a capability with no
+// interface behind it, so each one arrives in the commit that implements it
+// rather than as a promise the connection cannot keep.
+//
+// CapPublishRich is deliberately absent even though this driver publishes with
+// QoS, retain and 5.0 properties. That capability is backed by RichPublisher,
+// whose model.PublishRequest is AMQP-shaped, and answering it would mean a
+// send console of exchange and routing-key controls that do nothing. The rich
+// publish is MQTT's own, on MQTT's own service.
 func capabilities() []model.Capability {
-	return nil
+	return []model.Capability{
+		model.CapPublish,
+	}
 }

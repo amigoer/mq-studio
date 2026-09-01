@@ -69,6 +69,30 @@ func (c *clientV311) Ping(ctx context.Context) error {
 	}
 }
 
+// Publish sends one message.
+//
+// The answer is always empty: 3.1.1's PUBACK carries no reason code, so
+// "accepted" is everything the broker says, and there is no way to learn that
+// nothing was subscribed. The connection check is not redundant with that —
+// the library queues QoS 1 and 2 publishes while it reconnects, so without it
+// a send into a dead session reports success and may never leave the process.
+func (c *clientV311) Publish(ctx context.Context, request PublishRequest) (*publishAnswer, error) {
+	if !c.client.IsConnectionOpen() {
+		return nil, errConnectionDown
+	}
+
+	token := c.client.Publish(request.Topic, request.QoS, request.Retain, []byte(request.Payload))
+	select {
+	case <-token.Done():
+		if err := token.Error(); err != nil {
+			return nil, err
+		}
+		return nil, nil
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+}
+
 // Disconnect ends the session. The library's own Disconnect is a no-op when
 // the client is already disconnected, so this needs no guard of its own.
 func (c *clientV311) Disconnect() error {
