@@ -2133,15 +2133,33 @@
         "unsubscribe": "Unsubscribe"
       },
       "redis": {
-        "subtitle": "orders:events · 3 groups · PEL 37",
-        "lag": "Lag",
-        "bulkHint": "Tick rows to act on them together",
-        "deliveries": "Deliveries",
-        "idleHint": "Entries idle over 2h are worth claiming or acknowledging",
-        "claimTo": "XCLAIM to",
-        "xack": "XACK",
-        "pelOf": "PEL for {{group}} (29)",
-        "selected": "{{n}} selected"
+        "subtitle": "Consumer groups on the streams the key pattern found",
+        "search": "Search groups or streams…",
+        "stalledOnly": "Only stalled groups",
+        "found": "{{count}} found",
+        "noGroups": "No stream the key pattern found has a consumer group.",
+        "noMatches": "No group matches the search.",
+        "lag": "lag",
+        "newGroup": "New group",
+        "streamHint": "A group belongs to one stream, and its name is unique only within it.",
+        "streamRequired": "Choose the stream the group reads.",
+        "groupRequired": "Enter a name for the group.",
+        "startAt": "Start reading at",
+        "startNow": "What arrives next",
+        "startBeginning": "The beginning",
+        "startNowHint": "The group sees entries added from now on. Everything already in the stream is skipped, and only a reposition brings it back.",
+        "startBeginningHint": "The group replays everything the stream still holds. On a large stream that is a lot of work for whatever attaches first.",
+        "created": "Created {{name}}",
+        "deleteTitle": "Delete {{name}}?",
+        "deletePending": "The group is still holding {{count}} entries. They stay in the stream but stop being owed to anyone, which is not the same as being delivered. Redis has no undo.",
+        "deleteEmpty": "The group holds no pending entries. Redis has no undo.",
+        "deleted": "Deleted {{name}}",
+        "deleteFailed": "Could not delete the group",
+        "health": {
+          "consuming": "consuming",
+          "stalled": "stalled",
+          "idle": "idle"
+        }
       }
     },
     "messages": {

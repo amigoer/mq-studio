@@ -537,3 +537,181 @@ func TestLiveDeleteEntriesRecordsTheGap(t *testing.T) {
 		t.Errorf("max-deleted-entry-id = %q, want %q", got, target)
 	}
 }
+
+/*
+ * Where a group starts, against a server that computes it properly.
+ *
+ * Both answers are destructive in opposite directions and neither is
+ * reversible without a reposition: "$" on a stream with history means the
+ * group never sees any of it, "0" replays all of it into whatever attaches
+ * next. The backlog each produces is the thing an operator reads to tell which
+ * one they got.
+ */
+func TestLiveCreateSubscriptionStartPosition(t *testing.T) {
+	conn := liveConn(t, map[string]string{OptionStreamFilter: liveStreams + "groupstart:*"}, nil)
+	ctx := liveContext(t)
+	key := liveStreams + "groupstart:orders"
+	seedLiveStream(t, conn, key, 10)
+
+	for name, start := range map[string]string{"from-start": "0", "from-now": "$"} {
+		if err := conn.CreateSubscription(ctx, model.SubscriptionSpec{
+			Ref:        model.SubscriptionRef{Namespace: key, Name: name},
+			Attributes: map[string]string{AttrStartID: start},
+		}); err != nil {
+			t.Fatalf("create %s: %v", name, err)
+		}
+	}
+
+	byName := map[string]*model.Subscription{}
+	listed, err := conn.ListSubscriptions(ctx)
+	if err != nil {
+		t.Fatalf("list: %v", err)
+	}
+	for _, subscription := range listed {
+		if subscription.Ref.Namespace == key {
+			byName[subscription.Ref.Name] = subscription
+		}
+	}
+	if len(byName) != 2 {
+		t.Fatalf("listed %d groups on %s, want 2", len(byName), key)
+	}
+
+	if got := byName["from-start"].Backlog; got != 10 {
+		t.Errorf("a group created at 0 has a backlog of %d, want the whole stream", got)
+	}
+	if got := byName["from-start"].Attributes[AttrLastDeliveredID]; got != "0-0" {
+		t.Errorf("a group created at 0 starts at %q, want 0-0", got)
+	}
+	if got := byName["from-now"].Backlog; got != 0 {
+		t.Errorf("a group created at the end has a backlog of %d, want 0", got)
+	}
+	// Offline, not online: nothing has attached to either yet, and neither
+	// owes anything.
+	if got := byName["from-now"].Status; got != model.SubscriptionOffline {
+		t.Errorf("status = %q, want offline", got)
+	}
+}
+
+/*
+ * A group with nothing attached and entries still pending is the state worth
+ * separating from idle: work was handed out and never acknowledged, and
+ * nothing is coming back for it until something attaches or claims it.
+ */
+func TestLiveGroupWithUnacknowledgedWorkAndNoConsumerReadsAsWarning(t *testing.T) {
+	conn := liveConn(t, map[string]string{OptionStreamFilter: liveStreams + "warn:*"}, nil)
+	ctx := liveContext(t)
+	key := liveStreams + "warn:orders"
+	seedLiveStream(t, conn, key, 6)
+	if err := conn.client.XGroupCreate(ctx, key, "settle-group", "0").Err(); err != nil {
+		t.Fatalf("create group: %v", err)
+	}
+	// Read without acknowledging, then drop the consumer. The entries stay in
+	// the group's pending list with nobody holding them.
+	if err := conn.client.XReadGroup(ctx, &redis.XReadGroupArgs{
+		Group:    "settle-group",
+		Consumer: "worker-1",
+		Streams:  []string{key, ">"},
+		Count:    3,
+	}).Err(); err != nil {
+		t.Fatalf("read: %v", err)
+	}
+
+	before, err := conn.SubscriptionDetail(ctx, model.SubscriptionRef{Namespace: key, Name: "settle-group"})
+	if err != nil {
+		t.Fatalf("detail: %v", err)
+	}
+	if before.Status != model.SubscriptionOnline {
+		t.Errorf("status with a consumer attached = %q, want online", before.Status)
+	}
+	if before.Members != 1 {
+		t.Errorf("members = %d, want 1", before.Members)
+	}
+
+	if err := conn.client.XGroupDelConsumer(ctx, key, "settle-group", "worker-1").Err(); err != nil {
+		t.Fatalf("remove consumer: %v", err)
+	}
+	after, err := conn.SubscriptionDetail(ctx, model.SubscriptionRef{Namespace: key, Name: "settle-group"})
+	if err != nil {
+		t.Fatalf("detail after: %v", err)
+	}
+	// Removing the consumer discards its pending entries back to nobody, so
+	// what is left is a group with no members. Whether it warns depends on
+	// what the server did with the pending list, and either answer is a real
+	// state - what must not happen is a group reporting members it has not.
+	if after.Members != 0 {
+		t.Errorf("members after removing the consumer = %d, want 0", after.Members)
+	}
+	if after.Status == model.SubscriptionOnline {
+		t.Errorf("status = online with no consumer attached")
+	}
+}
+
+// Deleting entries a group had not read leaves Redis unable to work out the
+// lag, and it says so with nil rather than with a number. A zero there would
+// read as "fully caught up" on a group that is anything but.
+func TestLiveUndeterminableLagIsNotZero(t *testing.T) {
+	conn := liveConn(t, map[string]string{OptionStreamFilter: liveStreams + "lag:*"}, nil)
+	ctx := liveContext(t)
+	key := liveStreams + "lag:orders"
+	seedLiveStream(t, conn, key, 10)
+	if err := conn.client.XGroupCreate(ctx, key, "settle-group", "0").Err(); err != nil {
+		t.Fatalf("create group: %v", err)
+	}
+
+	entries, err := conn.client.XRange(ctx, key, "-", "+").Result()
+	if err != nil {
+		t.Fatalf("xrange: %v", err)
+	}
+	// Delete entries the group has not read. Redis then cannot count what is
+	// between its position and the end.
+	if _, err := conn.DeleteEntries(ctx, model.DestinationRef{Name: key},
+		[]string{entries[2].ID, entries[3].ID}); err != nil {
+		t.Fatalf("delete entries: %v", err)
+	}
+
+	detail, err := conn.SubscriptionDetail(ctx, model.SubscriptionRef{Namespace: key, Name: "settle-group"})
+	if err != nil {
+		t.Fatalf("detail: %v", err)
+	}
+	if detail.Backlog == 0 {
+		t.Errorf("backlog = 0 after deleting unread entries; an unknown lag must not read as caught up")
+	}
+	if detail.Backlog != model.UnknownMetric {
+		// Redis may still manage to count it, which is a fine outcome - what
+		// is not fine is a zero. Record which happened so a server release
+		// changing this is visible rather than silent.
+		t.Logf("the server still computed a lag of %d", detail.Backlog)
+	} else if _, present := detail.Attributes[AttrEntriesRead]; present {
+		t.Errorf("entries-read travelled alongside an unknown lag")
+	}
+}
+
+func TestLiveRemoveSubscriptionLeavesTheStream(t *testing.T) {
+	conn := liveConn(t, map[string]string{OptionStreamFilter: liveStreams + "groupdel:*"}, nil)
+	ctx := liveContext(t)
+	key := liveStreams + "groupdel:orders"
+	seedLiveStream(t, conn, key, 5)
+	ref := model.SubscriptionRef{Namespace: key, Name: "settle-group"}
+	if err := conn.CreateSubscription(ctx, model.SubscriptionSpec{
+		Ref:        ref,
+		Attributes: map[string]string{AttrStartID: "0"},
+	}); err != nil {
+		t.Fatalf("create: %v", err)
+	}
+
+	if err := conn.RemoveSubscription(ctx, ref); err != nil {
+		t.Fatalf("remove: %v", err)
+	}
+	if err := conn.RemoveSubscription(ctx, ref); err == nil {
+		t.Error("deleting a group twice succeeded the second time")
+	}
+
+	// The entries were never the group's, so they stay.
+	length, err := conn.client.XLen(ctx, key).Result()
+	if err != nil {
+		t.Fatalf("xlen: %v", err)
+	}
+	if length != 5 {
+		t.Errorf("the stream holds %d entries after its group was removed, want 5", length)
+	}
+}

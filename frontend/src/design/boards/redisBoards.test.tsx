@@ -38,14 +38,19 @@ function stateOf<T>(over: Partial<BrokerState<T>>): BrokerState<T> {
 
 const streamsState = vi.hoisted(() => ({ current: null as unknown }));
 const streamDetailState = vi.hoisted(() => ({ current: null as unknown }));
+const groupsState = vi.hoisted(() => ({ current: null as unknown }));
 
 vi.mock("@/hooks/redis/useRedisStreams", () => ({
   useRedisStreams: () => streamsState.current,
   useRedisStreamDetail: () => streamDetailState.current,
 }));
+vi.mock("@/hooks/redis/useRedisGroups", () => ({
+  useRedisGroups: () => groupsState.current,
+}));
 
 let render: (element: React.ReactElement) => string;
 let StreamsRedis: typeof import("./topics/StreamsRedis").StreamsRedis;
+let ConsumersRedis: typeof import("./consumers/ConsumersRedis").ConsumersRedis;
 
 beforeAll(async () => {
   const storage = { getItem: () => null, setItem() {}, removeItem() {} };
@@ -58,9 +63,10 @@ beforeAll(async () => {
   });
   vi.stubGlobal("localStorage", storage);
 
-  const [server, streams, ui, i18n, settings] = await Promise.all([
+  const [server, streams, consumers, ui, i18n, settings] = await Promise.all([
     import("react-dom/server"),
     import("./topics/StreamsRedis"),
+    import("./consumers/ConsumersRedis"),
     import("@/components"),
     import("@/i18n"),
     import("@/hooks/useSettings"),
@@ -73,6 +79,7 @@ beforeAll(async () => {
       </ui.ConfirmProvider>,
     );
   StreamsRedis = streams.StreamsRedis;
+  ConsumersRedis = consumers.ConsumersRedis;
 });
 
 /** A stream as internal/driver/redisstream/destination.go sends one. */
@@ -207,5 +214,117 @@ describe("the Redis streams board's write controls", () => {
     const html = render(<StreamsRedis />);
     expect(html).not.toContain("DEL key");
     expect(html).not.toContain("XTRIM");
+  });
+});
+
+/** A group as internal/driver/redisstream/subscription.go sends one. */
+const settleGroup = {
+  id: 1,
+  ref: { namespace: "orders:events", name: "settle-group" },
+  status: "online",
+  members: 2,
+  destinations: 1,
+  backlog: 29,
+  rateOut: -1,
+  lastUpdated: "",
+  attributes: {
+    stream: "orders:events",
+    pending: "29",
+    lastDeliveredId: "1756454641773-2",
+    entriesRead: "1204742",
+  },
+};
+
+/** Nothing attached, entries still owed: the state worth separating from idle. */
+const stalledGroup = {
+  id: 2,
+  ref: { namespace: "payments:captured", name: "capture-group" },
+  status: "warning",
+  members: 0,
+  destinations: 1,
+  // Redis could not count the lag: entries this group had not read were
+  // deleted, and it reports nil rather than a number.
+  backlog: -1,
+  rateOut: -1,
+  lastUpdated: "",
+  attributes: { stream: "payments:captured", pending: "12", lastDeliveredId: "1756454600000-0" },
+};
+
+describe("the Redis consumer groups board", () => {
+  it("says nothing is dialled rather than showing an empty list", () => {
+    groupsState.current = stateOf({ online: false, data: null });
+    streamsState.current = stateOf({ online: false, data: null });
+    const html = render(<ConsumersRedis />);
+    expect(html).toContain("未连接");
+    expect(html).not.toContain("settle-group");
+  });
+
+  it("says it is reading while the first load is in flight", () => {
+    groupsState.current = stateOf({ loading: true });
+    streamsState.current = stateOf({ loading: true });
+    expect(render(<ConsumersRedis />)).toContain("正在读取");
+  });
+
+  it("shows the driver's reason when the read failed", () => {
+    groupsState.current = stateOf({ error: "mq.redis-stream.degraded.credentials" });
+    streamsState.current = stateOf({ data: [] });
+    const html = render(<ConsumersRedis />);
+    expect(html).not.toContain("mq.redis-stream.degraded.credentials");
+    expect(html).toContain("拒绝");
+  });
+
+  it("says when no stream it found has a group", () => {
+    groupsState.current = stateOf({ data: [] });
+    streamsState.current = stateOf({ data: [orders] });
+    expect(render(<ConsumersRedis />)).toContain("都没有消费组");
+  });
+
+  /*
+   * The stream is a column, not a detail. Two groups called "settle-group" on
+   * different streams are unrelated objects, and a table showing the name
+   * alone would look like it had a duplicate row.
+   */
+  it("shows which stream each group reads", () => {
+    groupsState.current = stateOf({ data: [settleGroup, stalledGroup] });
+    streamsState.current = stateOf({ data: [orders] });
+    const html = render(<ConsumersRedis />);
+    expect(html).toContain("settle-group");
+    expect(html).toContain("orders:events");
+    expect(html).toContain("capture-group");
+    expect(html).toContain("payments:captured");
+  });
+
+  /*
+   * Stalled and idle must not read the same. Nothing attached with entries
+   * still owed is work that was handed out and never came back; nothing
+   * attached with nothing owed is an application that is not running.
+   */
+  it("separates a stalled group from an idle one", () => {
+    groupsState.current = stateOf({ data: [stalledGroup] });
+    streamsState.current = stateOf({ data: [orders] });
+    const html = render(<ConsumersRedis />);
+    expect(html).toContain("停滞");
+    expect(html).not.toContain("空闲");
+  });
+
+  // An uncountable lag renders as a dash. A zero would report a group that is
+  // arbitrarily far behind as caught up.
+  it("draws a dash where the lag could not be counted", () => {
+    groupsState.current = stateOf({ data: [stalledGroup] });
+    streamsState.current = stateOf({ data: [orders] });
+    const html = render(<ConsumersRedis />);
+    expect(html).toContain("—");
+    expect(html).not.toContain("NaN");
+  });
+
+  /*
+   * A group cannot exist without a stream to read, so with none found there is
+   * nothing the dialog could offer and the control says so by being disabled
+   * rather than opening onto an empty picker.
+   */
+  it("cannot declare a group when no stream was found", () => {
+    groupsState.current = stateOf({ data: [] });
+    streamsState.current = stateOf({ data: [] });
+    expect(render(<ConsumersRedis />)).toContain("disabled");
   });
 });

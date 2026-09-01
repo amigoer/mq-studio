@@ -24,6 +24,13 @@ import * as model$0 from "../model/models.js";
 import * as $models from "./models.js";
 
 /**
+ * CreateGroup declares a consumer group on a stream.
+ */
+export function CreateGroup(connID: number, input: $models.GroupInput): $CancellablePromise<void> {
+    return $Call.ByID(3890704243, connID, input);
+}
+
+/**
  * DeleteEntries removes named entries and reports how many were there to
  * remove, which is not the same as how many were asked for.
  */
@@ -31,6 +38,13 @@ export function DeleteEntries(connID: number, stream: string, ids: string[]): $C
     return $Call.ByID(3902121557, connID, stream, ids).then(($result: any) => {
         return $$createType1($result);
     });
+}
+
+/**
+ * DeleteGroup destroys a consumer group and the pending entries it holds.
+ */
+export function DeleteGroup(connID: number, stream: string, group: string): $CancellablePromise<void> {
+    return $Call.ByID(1274717142, connID, stream, group);
 }
 
 /**

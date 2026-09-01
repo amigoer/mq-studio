@@ -48,6 +48,7 @@ export {
     DefinitionsPreview,
     DriverInfo,
     ExchangeInput,
+    GroupInput,
     IdentityInput,
     KafkaTopicInput,
     LogDirView,

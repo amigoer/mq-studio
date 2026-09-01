@@ -62,3 +62,28 @@ export const deleteEntries = (
   stream: string,
   ids: string[],
 ): Promise<TrimResult> => RedisStreamService.DeleteEntries(connID, stream, ids).then(required);
+
+/** Where a new consumer group begins reading. */
+export type GroupStart = "0" | "$";
+
+/**
+ * Declares a consumer group on a stream.
+ *
+ * Not the canonical consumer API: that one addresses a group by name and a
+ * broker address, and a Redis group's name is unique only within its stream.
+ */
+export const createGroup = (
+  connID: number,
+  stream: string,
+  group: string,
+  startId: GroupStart,
+): Promise<void> => RedisStreamService.CreateGroup(connID, { stream, group, startId });
+
+/**
+ * Destroys a consumer group and every pending entry it holds.
+ *
+ * The entries stay in the stream. They are simply no longer owed to anyone,
+ * which is not the same as being delivered.
+ */
+export const deleteGroup = (connID: number, stream: string, group: string): Promise<void> =>
+  RedisStreamService.DeleteGroup(connID, stream, group);

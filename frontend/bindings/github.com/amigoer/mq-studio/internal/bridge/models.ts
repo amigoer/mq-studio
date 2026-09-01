@@ -596,6 +596,48 @@ export class ExchangeInput {
 }
 
 /**
+ * GroupInput is a consumer group as the form collects it.
+ * 
+ * The stream is a field rather than part of the name because a group's name is
+ * unique only within its stream: two streams may each hold a "settle-group"
+ * and they are unrelated objects.
+ */
+export class GroupInput {
+    "stream": string;
+    "group": string;
+
+    /**
+     * StartID is where the group begins reading: "0" for everything the stream
+     * still holds, "$" for only what arrives next. Empty means "$", which is
+     * the answer that cannot flood a consumer with history.
+     */
+    "startId": string;
+
+    /** Creates a new GroupInput instance. */
+    constructor($$source: Partial<GroupInput> = {}) {
+        if (!("stream" in $$source)) {
+            this["stream"] = "";
+        }
+        if (!("group" in $$source)) {
+            this["group"] = "";
+        }
+        if (!("startId" in $$source)) {
+            this["startId"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new GroupInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): GroupInput {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new GroupInput($$parsedSource as Partial<GroupInput>);
+    }
+}
+
+/**
  * IdentityInput creates or updates a user.
  */
 export class IdentityInput {

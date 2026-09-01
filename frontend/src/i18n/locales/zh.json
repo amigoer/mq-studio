@@ -2133,15 +2133,33 @@
         "unsubscribe": "解除订阅"
       },
       "redis": {
-        "subtitle": "orders:events · 3 组 · PEL 37",
-        "lag": "滞后",
-        "bulkHint": "勾选后可批量操作",
-        "deliveries": "投递次数",
-        "idleHint": "idle 超 2h 的条目建议认领或确认",
-        "claimTo": "XCLAIM 认领给",
-        "xack": "XACK 确认",
-        "pelOf": "{{group}} 的 PEL（29）",
-        "selected": "已选 {{n}} 条"
+        "subtitle": "键匹配模式找到的 Stream 上的消费组",
+        "search": "搜索消费组或 Stream…",
+        "stalledOnly": "仅看停滞的组",
+        "found": "找到 {{count}} 个",
+        "noGroups": "键匹配模式找到的 Stream 上都没有消费组。",
+        "noMatches": "没有匹配搜索条件的消费组。",
+        "lag": "堆积",
+        "newGroup": "新建消费组",
+        "streamHint": "一个消费组只属于一个 Stream，组名也只在该 Stream 内唯一。",
+        "streamRequired": "请选择该组要读取的 Stream。",
+        "groupRequired": "请填写消费组名称。",
+        "startAt": "起始读取位置",
+        "startNow": "从新消息开始",
+        "startBeginning": "从头开始",
+        "startNowHint": "该组只能看到此刻之后新增的消息。Stream 中已有的消息会被跳过，只有重置位置才能取回。",
+        "startBeginningHint": "该组会重放 Stream 中现存的全部消息。在大 Stream 上，这对第一个接入的消费者是不小的负担。",
+        "created": "已创建 {{name}}",
+        "deleteTitle": "删除 {{name}}？",
+        "deletePending": "该组还持有 {{count}} 条未确认的消息。这些消息仍留在 Stream 中，但不再归属于任何消费者——这和已投递完成不是一回事。Redis 没有撤销。",
+        "deleteEmpty": "该组没有待处理的消息。Redis 没有撤销。",
+        "deleted": "已删除 {{name}}",
+        "deleteFailed": "删除消费组失败",
+        "health": {
+          "consuming": "消费中",
+          "stalled": "停滞",
+          "idle": "空闲"
+        }
       }
     },
     "messages": {

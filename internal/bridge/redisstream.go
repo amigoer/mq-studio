@@ -3,6 +3,7 @@ package bridge
 import (
 	"context"
 
+	redisstreamdriver "github.com/amigoer/mq-studio/internal/driver/redisstream"
 	"github.com/amigoer/mq-studio/internal/model"
 	"github.com/amigoer/mq-studio/internal/service/redisstream"
 )
@@ -56,4 +57,32 @@ func (s *RedisStreamService) Trim(connID int, input TrimInput) (*model.TrimResul
 func (s *RedisStreamService) DeleteEntries(connID int, stream string, ids []string) (*model.TrimResult, error) {
 	return s.service.DeleteEntries(context.Background(), connID,
 		model.DestinationRef{Name: stream}, ids)
+}
+
+// GroupInput is a consumer group as the form collects it.
+//
+// The stream is a field rather than part of the name because a group's name is
+// unique only within its stream: two streams may each hold a "settle-group"
+// and they are unrelated objects.
+type GroupInput struct {
+	Stream string `json:"stream"`
+	Group  string `json:"group"`
+	// StartID is where the group begins reading: "0" for everything the stream
+	// still holds, "$" for only what arrives next. Empty means "$", which is
+	// the answer that cannot flood a consumer with history.
+	StartID string `json:"startId"`
+}
+
+// CreateGroup declares a consumer group on a stream.
+func (s *RedisStreamService) CreateGroup(connID int, input GroupInput) error {
+	return s.service.CreateGroup(context.Background(), connID, model.SubscriptionSpec{
+		Ref:        model.SubscriptionRef{Namespace: input.Stream, Name: input.Group},
+		Attributes: map[string]string{redisstreamdriver.AttrStartID: input.StartID},
+	})
+}
+
+// DeleteGroup destroys a consumer group and the pending entries it holds.
+func (s *RedisStreamService) DeleteGroup(connID int, stream string, group string) error {
+	return s.service.DeleteGroup(context.Background(), connID,
+		model.SubscriptionRef{Namespace: stream, Name: group})
 }

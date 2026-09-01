@@ -97,3 +97,31 @@ func notConnected(err error) bool {
 }
 
 var _ = notConnected
+
+// CreateGroup declares a consumer group on a stream.
+//
+// It goes through the canonical SubscriptionAdmin port - the port fits - but
+// not through the canonical service, because ConsumerService addresses a group
+// by name and a broker address. A Redis group's name is unique only within its
+// stream, so a reference that cannot carry the stream cannot name it at all.
+func (s *Service) CreateGroup(ctx context.Context, connID int, spec model.SubscriptionSpec) error {
+	api, err := port[driver.SubscriptionAdmin](s, connID, model.CapSubscriptionCreate)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.CreateSubscription(ctx, spec)
+}
+
+// DeleteGroup destroys a consumer group and every pending entry it holds. The
+// entries stay in the stream; they are simply no longer owed to anyone.
+func (s *Service) DeleteGroup(ctx context.Context, connID int, ref model.SubscriptionRef) error {
+	api, err := port[driver.SubscriptionAdmin](s, connID, model.CapSubscriptionDelete)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.RemoveSubscription(ctx, ref)
+}
