@@ -8,13 +8,20 @@ on:
     paths-ignore:
       - '**.md'
       - 'docs/**'
+      - 'website/**'
   # Same list as the push filter: a docs-only change is treated the same way
   # whether it arrives as a PR or as a push. Actions has no YAML anchors, so
   # the two lists have to be kept in step by hand.
+  #
+  # website/** is excluded because none of this job applies to it and all of it
+  # is expensive: the GTK headers and the four broker clusters below cost about
+  # twenty minutes, which a copy edit should not spend. website.yml gates that
+  # directory instead.
   pull_request:
     paths-ignore:
       - '**.md'
       - 'docs/**'
+      - 'website/**'
   workflow_dispatch:
 
 concurrency:
