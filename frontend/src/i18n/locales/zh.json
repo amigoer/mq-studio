@@ -457,7 +457,39 @@
       "name": "Pulsar"
     },
     "redis-stream": {
-      "name": "Redis Stream"
+      "terms": {
+        "destination": "Stream",
+        "destinationPlural": "Stream",
+        "subscription": "消费组",
+        "subscriptionPlural": "消费组",
+        "node": "节点",
+        "nodePlural": "节点",
+        "namespace": "数据库",
+        "backlog": "堆积"
+      },
+      "name": "Redis Stream",
+      "form": {
+        "deployment": "部署方式",
+        "standalone": "单机",
+        "sentinel": "哨兵",
+        "cluster": "集群",
+        "addresses": "地址",
+        "masterName": "主节点名称",
+        "db": "数据库",
+        "streamFilter": "Stream 键匹配模式",
+        "tls": "启用 TLS",
+        "tlsSkipVerify": "跳过证书校验",
+        "username": "用户名",
+        "password": "密码"
+      },
+      "degraded": {
+        "credentials": "服务端拒绝了该凭据。请检查用户名和密码：Redis 6 之前没有用户概念，密码本身就是全部凭据，因此在一台本可连通的服务器上填了用户名同样会失败。",
+        "credentialsNotRequired": "服务端没有设置密码，却收到了本连接发来的密码，因而拒绝。请清空密码字段，而不是修改它。",
+        "forbidden": "凭据本身被接受，但其 ACL 不允许执行该命令。这需要在服务端用 ACL SETUSER 修改，不是在此表单里改。",
+        "loading": "服务端正在把数据集读回内存，暂时不应答。它会自行恢复，这里无需改动。",
+        "timeout": "服务端接受了连接，但未在超时时间内应答。",
+        "unreachable": "该地址上没有任何可用服务应答。仅支持 TLS 的服务端在未启用 TLS 时表现完全相同，因此除地址外也请检查该开关。"
+      }
     },
     "mqtt": {
       "name": "MQTT"

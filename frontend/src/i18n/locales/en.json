@@ -457,7 +457,39 @@
       "name": "Pulsar"
     },
     "redis-stream": {
-      "name": "Redis Stream"
+      "terms": {
+        "destination": "Stream",
+        "destinationPlural": "Streams",
+        "subscription": "Consumer group",
+        "subscriptionPlural": "Consumer groups",
+        "node": "Node",
+        "nodePlural": "Nodes",
+        "namespace": "Database",
+        "backlog": "Lag"
+      },
+      "name": "Redis Stream",
+      "form": {
+        "deployment": "Deployment",
+        "standalone": "Standalone",
+        "sentinel": "Sentinel",
+        "cluster": "Cluster",
+        "addresses": "Addresses",
+        "masterName": "Master name",
+        "db": "Database",
+        "streamFilter": "Stream key pattern",
+        "tls": "Use TLS",
+        "tlsSkipVerify": "Skip certificate verification",
+        "username": "Username",
+        "password": "Password"
+      },
+      "degraded": {
+        "credentials": "The server refused the credential. Check the username and password: before Redis 6 there are no users and the password alone is the credential, so an unexpected username fails against a server that is otherwise reachable.",
+        "credentialsNotRequired": "The server has no password set and refused the one this connection sent. Clear the password field rather than correcting it.",
+        "forbidden": "The credential was accepted but its ACL does not allow this command. That is fixed with ACL SETUSER on the server, not in this form.",
+        "loading": "The server is reading its dataset back into memory and is not answering yet. It recovers on its own; nothing here needs changing.",
+        "timeout": "The server accepted the connection and did not answer in time.",
+        "unreachable": "Nothing usable answered at this address. A TLS-only server reached without TLS looks the same from here, so check that setting as well as the address."
+      }
     },
     "mqtt": {
       "name": "MQTT"
