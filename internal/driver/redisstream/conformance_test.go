@@ -247,6 +247,9 @@ func TestCapabilitiesMatchTheSidebarContract(t *testing.T) {
 		"cluster.nodeConfig",
 		"cluster.nodeMaintenance",
 		"cluster.slowLog",
+
+		"client.inspect",
+		"client.close",
 	}
 
 	declared := make(map[string]bool, len(capabilities()))

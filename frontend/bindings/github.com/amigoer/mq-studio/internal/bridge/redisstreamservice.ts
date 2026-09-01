@@ -66,6 +66,34 @@ export function ClaimEntries(connID: number, input: $models.ClaimInput): $Cancel
 }
 
 /**
+ * ClientConnections lists what is connected to the server.
+ */
+export function ClientConnections(connID: number): $CancellablePromise<(model$0.ClientConnection | null)[]> {
+    return $Call.ByID(1103629136, connID).then(($result: any) => {
+        return $$createType8($result);
+    });
+}
+
+/**
+ * CloseClient disconnects one client.
+ * 
+ * It takes the connection's id rather than its address: Redis kills by either,
+ * and an address is reused the moment its port is - so a client that
+ * reconnected between the page being drawn and the button being pressed would
+ * be killed in place of the one the operator meant.
+ */
+export function CloseClient(connID: number, id: string): $CancellablePromise<void> {
+    return $Call.ByID(3883244311, connID, id);
+}
+
+/**
+ * CloseUserClients disconnects every connection one identity holds.
+ */
+export function CloseUserClients(connID: number, username: string): $CancellablePromise<void> {
+    return $Call.ByID(544453405, connID, username);
+}
+
+/**
  * CreateGroup declares a consumer group on a stream.
  */
 export function CreateGroup(connID: number, input: $models.GroupInput): $CancellablePromise<void> {
@@ -78,7 +106,7 @@ export function CreateGroup(connID: number, input: $models.GroupInput): $Cancell
  */
 export function DeleteEntries(connID: number, stream: string, ids: string[]): $CancellablePromise<model$0.TrimResult | null> {
     return $Call.ByID(3902121557, connID, stream, ids).then(($result: any) => {
-        return $$createType7($result);
+        return $$createType10($result);
     });
 }
 
@@ -94,7 +122,7 @@ export function DeleteGroup(connID: number, stream: string, group: string): $Can
  */
 export function GroupConsumers(connID: number, stream: string, group: string): $CancellablePromise<(model$0.GroupConsumer | null)[]> {
     return $Call.ByID(2477625508, connID, stream, group).then(($result: any) => {
-        return $$createType10($result);
+        return $$createType13($result);
     });
 }
 
@@ -103,7 +131,7 @@ export function GroupConsumers(connID: number, stream: string, group: string): $
  */
 export function PendingEntries(connID: number, input: $models.PendingQueryInput): $CancellablePromise<(model$0.PendingEntry | null)[]> {
     return $Call.ByID(617713621, connID, input).then(($result: any) => {
-        return $$createType13($result);
+        return $$createType16($result);
     });
 }
 
@@ -112,7 +140,7 @@ export function PendingEntries(connID: number, input: $models.PendingQueryInput)
  */
 export function PendingSummary(connID: number, stream: string, group: string): $CancellablePromise<model$0.PendingSummary | null> {
     return $Call.ByID(932081609, connID, stream, group).then(($result: any) => {
-        return $$createType15($result);
+        return $$createType18($result);
     });
 }
 
@@ -133,7 +161,7 @@ export function SetGroupPosition(connID: number, stream: string, group: string, 
  */
 export function SlowLog(connID: number, address: string, limit: number): $CancellablePromise<(model$0.SlowLogEntry | null)[]> {
     return $Call.ByID(1637452301, connID, address, limit).then(($result: any) => {
-        return $$createType18($result);
+        return $$createType21($result);
     });
 }
 
@@ -142,7 +170,7 @@ export function SlowLog(connID: number, address: string, limit: number): $Cancel
  */
 export function Trim(connID: number, input: $models.TrimInput): $CancellablePromise<model$0.TrimResult | null> {
     return $Call.ByID(2317148112, connID, input).then(($result: any) => {
-        return $$createType7($result);
+        return $$createType10($result);
     });
 }
 
@@ -153,16 +181,19 @@ const $$createType2 = model$0.StreamAddResult.createFrom;
 const $$createType3 = $Create.Nullable($$createType2);
 const $$createType4 = model$0.ClaimResult.createFrom;
 const $$createType5 = $Create.Nullable($$createType4);
-const $$createType6 = model$0.TrimResult.createFrom;
+const $$createType6 = model$0.ClientConnection.createFrom;
 const $$createType7 = $Create.Nullable($$createType6);
-const $$createType8 = model$0.GroupConsumer.createFrom;
-const $$createType9 = $Create.Nullable($$createType8);
-const $$createType10 = $Create.Array($$createType9);
-const $$createType11 = model$0.PendingEntry.createFrom;
+const $$createType8 = $Create.Array($$createType7);
+const $$createType9 = model$0.TrimResult.createFrom;
+const $$createType10 = $Create.Nullable($$createType9);
+const $$createType11 = model$0.GroupConsumer.createFrom;
 const $$createType12 = $Create.Nullable($$createType11);
 const $$createType13 = $Create.Array($$createType12);
-const $$createType14 = model$0.PendingSummary.createFrom;
+const $$createType14 = model$0.PendingEntry.createFrom;
 const $$createType15 = $Create.Nullable($$createType14);
-const $$createType16 = model$0.SlowLogEntry.createFrom;
-const $$createType17 = $Create.Nullable($$createType16);
-const $$createType18 = $Create.Array($$createType17);
+const $$createType16 = $Create.Array($$createType15);
+const $$createType17 = model$0.PendingSummary.createFrom;
+const $$createType18 = $Create.Nullable($$createType17);
+const $$createType19 = model$0.SlowLogEntry.createFrom;
+const $$createType20 = $Create.Nullable($$createType19);
+const $$createType21 = $Create.Array($$createType20);

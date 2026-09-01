@@ -87,6 +87,8 @@ func capabilities() []model.Capability {
 		model.CapNodeConfig,
 		model.CapNodeMaintenance,
 		model.CapSlowLog,
+		model.CapClientInspect,
+		model.CapClientClose,
 	}
 }
 

@@ -610,7 +610,8 @@
         "dlq": "待确认 PEL",
         "producer": "生产者",
         "cluster": "节点",
-        "alerts": "告警"
+        "alerts": "告警",
+        "clients": "客户端"
       },
       "mqtt": {
         "overview": "总览",
@@ -2891,6 +2892,25 @@
           "limitRequired": "至少设置一项限制",
           "limitInvalid": "限制值必须是非负数字"
         }
+      }
+    },
+    "clients": {
+      "redis": {
+        "title": "客户端",
+        "subtitle": "当前连到这台服务器上的连接",
+        "search": "按地址、名称、用户或命令搜索…",
+        "hideSelf": "隐藏本应用",
+        "found": "{{count}} 个连接",
+        "none": "没有任何连接——这不可能包括当前这条，试试刷新。",
+        "noMatches": "没有匹配搜索条件的连接。",
+        "unnamed": "未命名",
+        "thisApp": "本应用",
+        "close": "断开",
+        "closeTitle": "断开 {{name}}？",
+        "closeHint": "该客户端会被立即断开。写得好的客户端会自动重连；正在执行命令的会丢掉那条命令的回复。",
+        "closeSelf": "这就是本页正在使用的连接。断开它会让控制台掉线，该标签页需要重新连接。",
+        "closed": "已断开 {{name}}",
+        "closeFailed": "断开连接失败"
       }
     }
   }

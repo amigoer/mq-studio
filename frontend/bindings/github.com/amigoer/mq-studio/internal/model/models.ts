@@ -1171,6 +1171,15 @@ export class ClientConnection {
      */
     "blockedBy": string;
 
+    /**
+     * Attributes carries family-specific detail the canonical fields have no
+     * home for, the same way Destination, Subscription and Node do: what a
+     * Redis connection was last running, how long it has been idle, and which
+     * client library it is. Its keys are a contract between one driver and
+     * that driver's frontend module.
+     */
+    "attributes": { [_ in string]?: string };
+
     /** Creates a new ClientConnection instance. */
     constructor($$source: Partial<ClientConnection> = {}) {
         if (!("name" in $$source)) {
@@ -1230,6 +1239,9 @@ export class ClientConnection {
         if (!("blockedBy" in $$source)) {
             this["blockedBy"] = "";
         }
+        if (!("attributes" in $$source)) {
+            this["attributes"] = {};
+        }
 
         Object.assign(this, $$source);
     }
@@ -1238,7 +1250,11 @@ export class ClientConnection {
      * Creates a new ClientConnection instance from a string or object.
      */
     static createFrom($$source: any = {}): ClientConnection {
+        const $$createField19_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("attributes" in $$parsedSource) {
+            $$parsedSource["attributes"] = $$createField19_0($$parsedSource["attributes"]);
+        }
         return new ClientConnection($$parsedSource as Partial<ClientConnection>);
     }
 }

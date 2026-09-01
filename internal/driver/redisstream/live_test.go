@@ -1446,3 +1446,100 @@ func TestLiveClusterOverview(t *testing.T) {
 		t.Errorf("the header counted objects it would have had to scan for: %+v", overview)
 	}
 }
+
+/*
+ * CLIENT LIST against a real server, which is the only place it exists: the
+ * in-process one does not implement the command at all.
+ */
+func TestLiveListClientConnections(t *testing.T) {
+	conn := liveConn(t, nil, nil)
+	ctx := liveContext(t)
+	// Make sure this connection has actually been used, so it appears with a
+	// command recorded against it rather than as a bare socket.
+	if err := conn.Ping(ctx); err != nil {
+		t.Fatalf("ping: %v", err)
+	}
+
+	connections, err := conn.ListClientConnections(ctx, "")
+	if err != nil {
+		t.Fatalf("list connections: %v", err)
+	}
+	if len(connections) == 0 {
+		t.Fatal("no connections listed; this one is at least there")
+	}
+
+	// This app's own, found by the name CLIENT SETNAME set from the profile.
+	var mine *model.ClientConnection
+	for _, connection := range connections {
+		if strings.HasPrefix(connection.ClientName, clientName) {
+			mine = connection
+			break
+		}
+	}
+	if mine == nil {
+		t.Fatalf("this connection is not in the list under %q; CLIENT SETNAME may not be reaching the server", clientName)
+	}
+	if mine.Name == "" {
+		t.Error("no client id, which is what a close request names")
+	}
+	if mine.PeerHost == "" || mine.PeerPort == 0 {
+		t.Errorf("peer = %q:%d", mine.PeerHost, mine.PeerPort)
+	}
+	if mine.User != liveUser {
+		t.Errorf("user = %q, want %q", mine.User, liveUser)
+	}
+	if mine.Attributes[AttrLastCommand] == "" {
+		t.Error("no last command recorded")
+	}
+	if mine.ConnectedAtMs == 0 {
+		t.Error("no connect time derived from the reported age")
+	}
+}
+
+/*
+ * Killing a client by id, and the case that makes the id matter: an address is
+ * reused the moment its port is, and an id never repeats. This opens a second
+ * connection, kills it, and checks the first one - this test's own - survived.
+ */
+func TestLiveCloseClientConnection(t *testing.T) {
+	conn := liveConn(t, nil, nil)
+	ctx := liveContext(t)
+
+	victim := openLive(t, liveAddr, nil, nil)
+	if err := victim.Ping(ctx); err != nil {
+		t.Fatalf("open the second connection: %v", err)
+	}
+
+	before, err := conn.ListClientConnections(ctx, "")
+	if err != nil {
+		t.Fatalf("list: %v", err)
+	}
+	// The one to kill is any connection that is not the one doing the killing.
+	self, err := conn.client.ClientID(ctx).Result()
+	if err != nil {
+		t.Fatalf("client id: %v", err)
+	}
+	target := ""
+	for _, connection := range before {
+		if connection.Name != strconv.FormatInt(self, 10) {
+			target = connection.Name
+			break
+		}
+	}
+	if target == "" {
+		e2e.Missing(t, "only one connection is open; nothing to close")
+	}
+
+	if err := conn.CloseClientConnection(ctx, target, "test"); err != nil {
+		t.Fatalf("close %s: %v", target, err)
+	}
+	// Killing an id that has already gone succeeds and closes nothing, which
+	// must not read as a second success.
+	if err := conn.CloseClientConnection(ctx, target, "test"); err == nil {
+		t.Error("closing the same client twice succeeded the second time")
+	}
+	// And the connection doing the killing is still usable.
+	if err := conn.Ping(ctx); err != nil {
+		t.Errorf("the connection that issued the kill did not survive it: %v", err)
+	}
+}

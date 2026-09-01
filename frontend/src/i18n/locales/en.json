@@ -610,7 +610,8 @@
         "dlq": "Pending PEL",
         "producer": "Producer",
         "cluster": "Nodes",
-        "alerts": "Alerts"
+        "alerts": "Alerts",
+        "clients": "Clients"
       },
       "mqtt": {
         "overview": "Overview",
@@ -2891,6 +2892,25 @@
           "limitRequired": "Set at least one limit",
           "limitInvalid": "A limit is a number and cannot be negative"
         }
+      }
+    },
+    "clients": {
+      "redis": {
+        "title": "Clients",
+        "subtitle": "The connections open against this server",
+        "search": "Search by address, name, user or command…",
+        "hideSelf": "Hide this app",
+        "found": "{{count}} open",
+        "none": "Nothing is connected, which cannot include this connection - try refreshing.",
+        "noMatches": "No connection matches the search.",
+        "unnamed": "unnamed",
+        "thisApp": "this app",
+        "close": "Kill",
+        "closeTitle": "Close {{name}}?",
+        "closeHint": "The client is disconnected immediately. A well-written one reconnects; anything mid-command loses that command's reply.",
+        "closeSelf": "This is the connection this page is using. Closing it disconnects the console, and the tab will need reconnecting.",
+        "closed": "Closed {{name}}",
+        "closeFailed": "Could not close the connection"
       }
     }
   }

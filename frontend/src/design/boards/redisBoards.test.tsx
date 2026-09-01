@@ -43,6 +43,7 @@ const entriesState = vi.hoisted(() => ({ current: null as unknown }));
 const pendingState = vi.hoisted(() => ({ current: null as unknown }));
 const serversState = vi.hoisted(() => ({ current: null as unknown }));
 const slowLogState = vi.hoisted(() => ({ current: null as unknown }));
+const clientsState = vi.hoisted(() => ({ current: null as unknown }));
 
 vi.mock("@/hooks/redis/useRedisStreams", () => ({
   useRedisStreams: () => streamsState.current,
@@ -61,6 +62,9 @@ vi.mock("@/hooks/redis/useRedisNodes", () => ({
   useRedisServers: () => serversState.current,
   useRedisSlowLog: () => slowLogState.current,
 }));
+vi.mock("@/hooks/redis/useRedisClients", () => ({
+  useRedisClients: () => clientsState.current,
+}));
 
 let render: (element: React.ReactElement) => string;
 let StreamsRedis: typeof import("./topics/StreamsRedis").StreamsRedis;
@@ -69,6 +73,7 @@ let MessagesRedis: typeof import("./messages/MessagesRedis").MessagesRedis;
 let ProducerRedis: typeof import("./producer/ProducerRedis").ProducerRedis;
 let PelRedis: typeof import("./dlq/PelRedis").PelRedis;
 let NodeRedis: typeof import("./cluster/NodeRedis").NodeRedis;
+let ClientsRedis: typeof import("./consumers/ClientsRedis").ClientsRedis;
 
 beforeAll(async () => {
   const storage = { getItem: () => null, setItem() {}, removeItem() {} };
@@ -81,7 +86,7 @@ beforeAll(async () => {
   });
   vi.stubGlobal("localStorage", storage);
 
-  const [server, streams, consumers, messages, producer, pel, cluster, ui, i18n, settings] =
+  const [server, streams, consumers, messages, producer, pel, cluster, clients, ui, i18n, settings] =
     await Promise.all([
     import("react-dom/server"),
     import("./topics/StreamsRedis"),
@@ -90,6 +95,7 @@ beforeAll(async () => {
     import("./producer/ProducerRedis"),
     import("./dlq/PelRedis"),
     import("./cluster/NodeRedis"),
+    import("./consumers/ClientsRedis"),
     import("@/components"),
     import("@/i18n"),
     import("@/hooks/useSettings"),
@@ -107,6 +113,7 @@ beforeAll(async () => {
   ProducerRedis = producer.ProducerRedis;
   PelRedis = pel.PelRedis;
   NodeRedis = cluster.NodeRedis;
+  ClientsRedis = clients.ClientsRedis;
 });
 
 /** A stream as internal/driver/redisstream/destination.go sends one. */
@@ -691,5 +698,85 @@ describe("the Redis server board", () => {
     const html = render(<NodeRedis />);
     expect(html).toContain("10923");
     expect(html).toContain("无法服务");
+  });
+});
+
+/** A connection as internal/driver/redisstream/connections.go sends one. */
+const connection = {
+  name: "42",
+  clientName: "reporting-service",
+  namespace: "0",
+  user: "mqstudio",
+  node: "127.0.0.1:6479",
+  peerHost: "10.2.0.44",
+  peerPort: 51234,
+  protocol: "RESP3",
+  state: "N",
+  channels: 0,
+  tls: false,
+  cipher: "",
+  heartbeatSec: 0,
+  recvBytes: 91204,
+  sendBytes: 884210,
+  recvByteRate: 0,
+  sendByteRate: 0,
+  connectedAtMs: 0,
+  blockedBy: "",
+  attributes: { lastCommand: "xrange", idleSeconds: "3", ageSeconds: "8402", libraryName: "go-redis" },
+};
+
+/** This app's own connection, which the page has to be able to point out. */
+const ownConnection = {
+  ...connection,
+  name: "43",
+  clientName: "mq-studio.prod-redis",
+  attributes: { lastCommand: "client", idleSeconds: "0", ageSeconds: "12" },
+};
+
+describe("the Redis clients board", () => {
+  it("says nothing is dialled rather than showing an empty list", () => {
+    clientsState.current = stateOf({ online: false, data: null });
+    expect(render(<ClientsRedis />)).toContain("未连接");
+  });
+
+  it("lists connections with what each is doing", () => {
+    clientsState.current = stateOf({ data: [connection] });
+    const html = render(<ClientsRedis />);
+    expect(html).toContain("reporting-service");
+    expect(html).toContain("10.2.0.44:51234");
+    expect(html).toContain("xrange");
+    expect(html).toContain("RESP3");
+    expect(html).toContain("go-redis");
+  });
+
+  /*
+   * Killing the connection this console is using disconnects the console. The
+   * page has to point that row out before somebody finds out the hard way.
+   */
+  it("marks this app's own connection", () => {
+    clientsState.current = stateOf({ data: [connection, ownConnection] });
+    expect(render(<ClientsRedis />)).toContain("本应用");
+  });
+
+  it("names an unnamed client rather than leaving the cell blank", () => {
+    clientsState.current = stateOf({ data: [{ ...connection, clientName: "" }] });
+    expect(render(<ClientsRedis />)).toContain("未命名");
+  });
+
+  /*
+   * Redis reports no TLS state, no heartbeat and no channel count per
+   * connection, so those columns are not drawn: an "off" or a "0" would be an
+   * answer the server never gave.
+   */
+  it("draws no column for what Redis does not report", () => {
+    clientsState.current = stateOf({ data: [connection] });
+    const html = render(<ClientsRedis />);
+    expect(html).not.toContain("heartbeat");
+    expect(html).not.toContain("TLS");
+  });
+
+  it("says the search matched nothing rather than showing an empty table", () => {
+    clientsState.current = stateOf({ data: [] });
+    expect(render(<ClientsRedis />)).toContain("没有任何连接");
   });
 });

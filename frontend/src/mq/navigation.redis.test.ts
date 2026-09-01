@@ -37,6 +37,8 @@ const REDIS_CAPABILITIES: Capability[] = [
   Capability.CapNodeConfig,
   Capability.CapNodeMaintenance,
   Capability.CapSlowLog,
+  Capability.CapClientInspect,
+  Capability.CapClientClose,
 ];
 
 function state(
@@ -69,6 +71,7 @@ describe("the sidebar a Redis Stream connection draws", () => {
       "dlq",
       "producer",
       "cluster",
+      "clients",
       "alerts",
     ]);
   });

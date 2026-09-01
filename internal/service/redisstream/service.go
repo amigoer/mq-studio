@@ -229,3 +229,40 @@ func (s *Service) SlowLog(ctx context.Context, connID int, address string, limit
 	defer cancel()
 	return api.SlowLog(ctx, address, limit)
 }
+
+// ClientConnections lists what is connected to the server.
+func (s *Service) ClientConnections(ctx context.Context, connID int) ([]*model.ClientConnection, error) {
+	api, err := port[driver.ClientInspector](s, connID, model.CapClientInspect)
+	if err != nil {
+		if notConnected(err) {
+			return []*model.ClientConnection{}, nil
+		}
+		return nil, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.ListClientConnections(ctx, "")
+}
+
+// CloseClient disconnects one client by its id.
+func (s *Service) CloseClient(ctx context.Context, connID int, id string) error {
+	api, err := port[driver.ClientCloser](s, connID, model.CapClientClose)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.CloseClientConnection(ctx, id, "")
+}
+
+// CloseUserClients disconnects every connection one identity holds, which is
+// how an application with several instances is actually evicted.
+func (s *Service) CloseUserClients(ctx context.Context, connID int, username string) error {
+	api, err := port[driver.ClientCloser](s, connID, model.CapClientClose)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.CloseUserConnections(ctx, username, "")
+}

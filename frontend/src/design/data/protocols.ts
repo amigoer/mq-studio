@@ -216,6 +216,7 @@ export const PROTOCOLS: Record<ProtocolId, Protocol> = {
         label: OPS,
         items: [
           { id: "cluster", icon: Server, label: "shell.nav.redis.cluster" },
+          { id: "clients", icon: Plug, label: "shell.nav.redis.clients" },
           { id: "alerts", icon: BellRing, label: "shell.nav.redis.alerts" },
         ],
       },

@@ -32,6 +32,7 @@ export type TrimResult = model.TrimResult;
 export type StreamAddResult = model.StreamAddResult;
 export type StreamField = model.StreamField;
 export type SlowLogEntry = model.SlowLogEntry;
+export type ClientConnection = model.ClientConnection;
 export type ClusterOverview = model.ClusterOverview;
 /** The cluster page snapshot: header counters plus the nodes behind them. */
 export type { ClusterView };

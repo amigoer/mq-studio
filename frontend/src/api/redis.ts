@@ -12,6 +12,7 @@ import { MessageService, RedisStreamService } from "@bindings/bridge";
 import type {
   AckResult,
   ClaimResult,
+  ClientConnection,
   GroupConsumer,
   MessageItem,
   PendingEntry,
@@ -300,3 +301,22 @@ export const slowLog = (
   address: string,
   limit = 0,
 ): Promise<SlowLogEntry[]> => RedisStreamService.SlowLog(connID, address, limit).then(present);
+
+/** Every connection open against the server. */
+export const clientConnections = (connID: number): Promise<ClientConnection[]> =>
+  RedisStreamService.ClientConnections(connID).then(present);
+
+/**
+ * Disconnects one client.
+ *
+ * By id rather than by address: Redis kills by either, and an address is
+ * reused the moment its port is - so a client that reconnected between the
+ * page being drawn and the button being pressed would be killed in place of
+ * the one meant.
+ */
+export const closeClient = (connID: number, id: string): Promise<void> =>
+  RedisStreamService.CloseClient(connID, id);
+
+/** Disconnects every connection one identity holds. */
+export const closeUserClients = (connID: number, username: string): Promise<void> =>
+  RedisStreamService.CloseUserClients(connID, username);

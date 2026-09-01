@@ -46,6 +46,9 @@ const requires: Record<string, Capability | Capability[]> = {
   // Two, because a family whose message is an ordered set of named fields
   // cannot be sent through a signature built for a topic with a body.
   producer: [Capability.CapPublish, Capability.CapEntryPublish],
+  // The page had no requirement at all, so every family listing it drew the
+  // entry whether or not its driver could answer it.
+  clients: Capability.CapClientInspect,
   cluster: Capability.CapClusterTopology,
   // Three, because three families answer this page by three different means.
   // RocketMQ has a credential pair carrying its own permissions; RabbitMQ has

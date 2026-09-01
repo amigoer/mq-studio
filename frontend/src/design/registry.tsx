@@ -26,6 +26,7 @@ import { ConsumersKafka } from "./boards/consumers/ConsumersKafka";
 import { SubscriptionsPulsar } from "./boards/consumers/SubscriptionsPulsar";
 import { ConsumersRedis } from "./boards/consumers/ConsumersRedis";
 import { ClientsMqtt } from "./boards/consumers/ClientsMqtt";
+import { ClientsRedis } from "./boards/consumers/ClientsRedis";
 import { ChannelsRabbitMQ } from "./boards/consumers/ChannelsRabbitMQ";
 
 import { MessagesRocketMQ } from "./boards/messages/MessagesRocketMQ";
@@ -123,7 +124,7 @@ const BOARDS: Partial<
     redis: ConsumersRedis,
   },
   subscribe: { mqtt: MqttWorkbench },
-  clients: { mqtt: ClientsMqtt },
+  clients: { mqtt: ClientsMqtt, redis: ClientsRedis },
   messages: {
     rocketmq: MessagesRocketMQ,
     kafka: MessagesKafka,

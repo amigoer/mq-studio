@@ -224,3 +224,23 @@ func groupRefOf(stream, group string) model.SubscriptionRef {
 func (s *RedisStreamService) SlowLog(connID int, address string, limit int) ([]*model.SlowLogEntry, error) {
 	return s.service.SlowLog(context.Background(), connID, address, limit)
 }
+
+// ClientConnections lists what is connected to the server.
+func (s *RedisStreamService) ClientConnections(connID int) ([]*model.ClientConnection, error) {
+	return s.service.ClientConnections(context.Background(), connID)
+}
+
+// CloseClient disconnects one client.
+//
+// It takes the connection's id rather than its address: Redis kills by either,
+// and an address is reused the moment its port is - so a client that
+// reconnected between the page being drawn and the button being pressed would
+// be killed in place of the one the operator meant.
+func (s *RedisStreamService) CloseClient(connID int, id string) error {
+	return s.service.CloseClient(context.Background(), connID, id)
+}
+
+// CloseUserClients disconnects every connection one identity holds.
+func (s *RedisStreamService) CloseUserClients(connID int, username string) error {
+	return s.service.CloseUserClients(context.Background(), connID, username)
+}
