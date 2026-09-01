@@ -57,6 +57,17 @@ const RULES_BY_KIND: Partial<Record<MQKind, readonly AlertRuleKey[]>> = {
     "groupOffline",
     "groupLag",
   ],
+  /*
+   * Pulsar has no rules yet, and an empty list is the point.
+   *
+   * Falling through to ROCKETMQ_RULES would leave the alerts page enabled with
+   * rules written against a vocabulary Pulsar does not share - they read
+   * backlogs off consumer groups and disk off brokers, neither of which this
+   * family reports the same way - so every one of them would evaluate to
+   * nothing and the page would look like a cluster with no problems. Reporting
+   * no rules is the honest version of that until they are written.
+   */
+  [MQKind.KindPulsar]: [],
   [MQKind.KindRabbitMQ]: [
     "brokerOffline",
     "resourceAlarm",

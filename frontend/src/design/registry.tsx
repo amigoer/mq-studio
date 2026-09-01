@@ -45,6 +45,7 @@ import { QuotasKafka } from "./boards/quotas/QuotasKafka";
 
 import { ClusterRocketMQ } from "./boards/cluster/ClusterRocketMQ";
 import { BrokersKafka } from "./boards/cluster/BrokersKafka";
+import { BrokersPulsar } from "./boards/cluster/BrokersPulsar";
 import { NodesRabbitMQ } from "./boards/cluster/NodesRabbitMQ";
 import { NodeRedis } from "./boards/cluster/NodeRedis";
 
@@ -131,6 +132,7 @@ const BOARDS: Partial<
     rocketmq: ClusterRocketMQ,
     kafka: BrokersKafka,
     rabbitmq: NodesRabbitMQ,
+    pulsar: BrokersPulsar,
     redis: NodeRedis,
   },
 };

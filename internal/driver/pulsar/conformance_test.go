@@ -208,7 +208,12 @@ func mechanismOffers(form []model.FormField, values []string) bool {
 // an operator a sidebar entry that opens nothing, so the two lists fail
 // together or not at all. It grows one entry per commit.
 func TestCapabilitiesMatchTheSidebarContract(t *testing.T) {
-	want := []model.Capability{}
+	want := []model.Capability{
+		model.CapClusterTopology,
+		model.CapClusterMetrics,
+		model.CapNodeConfig,
+		model.CapClusterHealth,
+	}
 
 	got := capabilities()
 	if len(got) != len(want) {

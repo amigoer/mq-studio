@@ -137,7 +137,12 @@ func (c *Conn) closeIdleAdminConnections() {
 // interface behind it, so each one arrives in the commit that implements it
 // rather than as a promise the connection cannot keep.
 func capabilities() []model.Capability {
-	return []model.Capability{}
+	return []model.Capability{
+		model.CapClusterTopology,
+		model.CapClusterMetrics,
+		model.CapNodeConfig,
+		model.CapClusterHealth,
+	}
 }
 
 // dataPlaneCapabilities are the ones the binary protocol carries. Everything
@@ -161,6 +166,16 @@ func (c *Conn) probe(ctx context.Context) {
 			c.capabilities = c.capabilities.WithDegraded(capability, reason)
 		}
 		return
+	}
+
+	// A cluster whose load manager publishes nothing has no rates to draw, and
+	// that is a configuration rather than a fault: NoopLoadManager is what the
+	// standalone image ships with. Degrading with the reason keeps the page in
+	// the sidebar and says why it is empty, instead of an alerts page that
+	// silently never fires.
+	if c.loadReport(ctx) == nil {
+		c.capabilities = c.capabilities.WithDegraded(
+			model.CapClusterMetrics, loadReportUnavailable)
 	}
 
 	// The data plane is probed separately because it fails separately. A
@@ -232,4 +247,8 @@ const (
 	// binary port does not, which is what a half-configured ingress looks
 	// like from here.
 	dataPlaneUnreachable = "mq.pulsar.degraded.dataPlaneUnreachable"
+	// loadReportUnavailable is a load manager that publishes no figures. Not a
+	// failure: NoopLoadManager is a valid choice and the standalone default,
+	// and this is what tells an operator why the rates are missing.
+	loadReportUnavailable = "mq.pulsar.degraded.loadReport"
 )

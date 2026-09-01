@@ -483,7 +483,8 @@
         "tenantMissing": "The cluster answered, and the tenant this connection is scoped to is not on it. Check the tenant name, or create it.",
         "timeout": "The admin API accepted the connection and did not answer in time.",
         "unreachable": "Nothing answered at the admin API address. Check the address, and whether the web service expects HTTPS.",
-        "dataPlaneUnreachable": "The admin API answers and the broker's binary port does not, so this connection can read but not publish. Check the service URL and whether that port is reachable from here."
+        "dataPlaneUnreachable": "The admin API answers and the broker's binary port does not, so this connection can read but not publish. Check the service URL and whether that port is reachable from here.",
+        "loadReport": "This cluster's load manager publishes no figures, so brokers report no rates or resource usage. NoopLoadManager - the standalone default - is the usual reason; a clustered deployment normally runs ModularLoadManagerImpl."
       }
     },
     "redis-stream": {
@@ -1126,7 +1127,8 @@
       "edit": "Edit",
       "moreOptions": "{{count}} more — keep typing to narrow it down",
       "apply": "Apply",
-      "create": "Create"
+      "create": "Create",
+      "version": "Version"
     },
     "notDesigned": {
       "title": "Not yet designed",
@@ -1174,7 +1176,21 @@
       "pulsar": {
         "subtitle": "pulsar-eu · Pulsar 3.2 · tenant ecommerce · Broker 3 / Bookie 4",
         "pending": "No Pulsar data yet",
-        "pendingHint": "This page is wired to the driver as each capability lands. Nothing here is invented in the meantime."
+        "pendingHint": "This page is wired to the driver as each capability lands. Nothing here is invented in the meantime.",
+        "leaderIs": "Leader: {{address}}",
+        "noLeader": "No leader reported",
+        "bundles": "Bundles",
+        "bundlesHint": "Ownership units, reported by the load manager",
+        "topicsHint": "On the brokers that reported",
+        "producers": "Producers",
+        "consumers": "Consumers",
+        "clientsHint": "Connected, on the brokers that reported",
+        "endpoints": "Endpoints",
+        "brokerServiceUrl": "Broker service",
+        "webServiceUrl": "Web service",
+        "metadataStore": "Metadata store",
+        "brokers": "Brokers",
+        "leader": "leader"
       },
       "rabbitmq": {
         "subtitle": "{{cluster}} · RabbitMQ {{version}}",
@@ -1384,6 +1400,25 @@
           "removed": "removed",
           "unknown": "unknown phase"
         }
+      },
+      "pulsar": {
+        "title": "Brokers",
+        "leader": "leader",
+        "bundles": "Bundles",
+        "producers": "Producers",
+        "consumers": "Consumers",
+        "load": "Load",
+        "resources": "Resources",
+        "memory": "Heap memory",
+        "directMemory": "Direct memory",
+        "endpoints": "Endpoints",
+        "serviceUrl": "Broker service",
+        "metadataStore": "Metadata store",
+        "ledgersRootPath": "Ledgers root",
+        "configuration": "Configuration",
+        "configurationNote": "Pulsar has no per-broker admin endpoint. These are the settings of whichever broker answered this connection's admin API, not necessarily the one selected.",
+        "undescribed": "{{count}} of these brokers report no figures: the load manager describes only the broker that answered.",
+        "notDescribed": "The load manager did not describe this broker, so it has no figures to show through this connection."
       }
     },
     "acl": {

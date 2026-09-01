@@ -22,12 +22,35 @@ type fakeCluster struct {
 	serviceURL string
 }
 
-func newFakeCluster(t *testing.T, status int, body string) fakeCluster {
+// adminRoutes is the smallest Pulsar admin API a probe is satisfied by.
+//
+// Path-aware rather than one canned body, because the probe asks two different
+// questions - can this credential list the tenant's namespaces, and does the
+// load manager publish figures - and a server that answered both the same way
+// would make the second look broken on a cluster where it works.
+func adminRoutes() map[string]string {
+	return map[string]string{
+		"/admin/v2/namespaces/public": `["public/default"]`,
+		"/admin/v2/broker-stats/load-report": `{"webServiceUrl":"http://127.0.0.1:8080",` +
+			`"brokerVersionString":"4.0.13","msgRateIn":0,"msgRateOut":0,` +
+			`"cpu":{"usage":4,"limit":800},"memory":{"usage":192,"limit":1024},` +
+			`"numTopics":6,"numBundles":4,"numProducers":2,"numConsumers":3}`,
+	}
+}
+
+func newFakeCluster(t *testing.T, routes map[string]string, status int) fakeCluster {
 	t.Helper()
 
-	admin := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	admin := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, known := routes[r.URL.Path]
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(status)
+		if !known {
+			// A path the test did not set up answers with the status it was
+			// given, which is how the refusal cases make every call fail.
+			w.WriteHeader(status)
+			_, _ = w.Write([]byte(`{"reason":"no"}`))
+			return
+		}
 		_, _ = w.Write([]byte(body))
 	}))
 	t.Cleanup(admin.Close)
@@ -44,6 +67,12 @@ func newFakeCluster(t *testing.T, status int, body string) fakeCluster {
 		adminURL:   admin.URL,
 		serviceURL: "pulsar://" + listener.Addr().String(),
 	}
+}
+
+// healthyCluster answers every question the probe asks.
+func healthyCluster(t *testing.T) fakeCluster {
+	t.Helper()
+	return newFakeCluster(t, adminRoutes(), http.StatusNotFound)
 }
 
 func (f fakeCluster) config() clientConfig {
@@ -78,7 +107,7 @@ func probedConn(t *testing.T, config clientConfig) *Conn {
 // draws whatever the capability list says and no page carries an explanation
 // it does not need.
 func TestProbeDegradesNothingAgainstAClusterThatAnswers(t *testing.T) {
-	cluster := newFakeCluster(t, http.StatusOK, `["public/default"]`)
+	cluster := healthyCluster(t)
 	conn := probedConn(t, cluster.config())
 
 	if len(conn.Capabilities().Degraded) != 0 {
@@ -107,7 +136,7 @@ func TestProbeReportsWhyTheAdminPlaneRefused(t *testing.T) {
 
 	for _, test := range cases {
 		t.Run(test.name, func(t *testing.T) {
-			cluster := newFakeCluster(t, test.status, `{"reason":"no"}`)
+			cluster := newFakeCluster(t, nil, test.status)
 			conn := probedConn(t, cluster.config())
 
 			for _, capability := range capabilities() {
@@ -133,7 +162,7 @@ func TestProbeReportsWhyTheAdminPlaneRefused(t *testing.T) {
  * port is shut would hide every listing the connection can still serve.
  */
 func TestProbeKeepsAdminCapabilitiesWhenOnlyTheDataPlaneIsDown(t *testing.T) {
-	cluster := newFakeCluster(t, http.StatusOK, `["public/default"]`)
+	cluster := healthyCluster(t)
 	config := cluster.config()
 	// A port nothing is listening on. Port 1 is reserved and never bound.
 	config.ServiceURL = "pulsar://127.0.0.1:1"
@@ -167,7 +196,7 @@ func TestProbeKeepsAdminCapabilitiesWhenOnlyTheDataPlaneIsDown(t *testing.T) {
 // be the one that does nothing. pulsar-client-go's Close is not documented as
 // repeatable, and a panic here would take the app down on quit.
 func TestCloseIsRepeatable(t *testing.T) {
-	cluster := newFakeCluster(t, http.StatusOK, `["public/default"]`)
+	cluster := healthyCluster(t)
 	conn := probedConn(t, cluster.config())
 
 	if err := conn.Close(); err != nil {

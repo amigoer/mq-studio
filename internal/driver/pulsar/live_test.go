@@ -177,3 +177,134 @@ func TestLiveMissingTenantReadsAsAMissingTenant(t *testing.T) {
 		t.Errorf("degradeReason = %q, want %q", got, tenantMissing)
 	}
 }
+
+// The cluster page's own reads, against a real broker.
+//
+// The unit tests prove the mapping from a load report; only a live cluster
+// proves the calls behind it exist, answer, and agree with the shapes
+// pulsaradmin declares.
+func TestLiveClusterOverviewCountsTheStandaloneBroker(t *testing.T) {
+	conn := liveConn(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	overview, err := conn.ClusterOverview(ctx)
+	if err != nil {
+		t.Fatalf("ClusterOverview: %v", err)
+	}
+	if overview.Name == "" {
+		t.Error("the overview names no cluster")
+	}
+	if overview.OnlineNodes < 1 {
+		t.Errorf("online brokers = %d, want at least one", overview.OnlineNodes)
+	}
+
+	nodes, err := conn.ListNodes(ctx)
+	if err != nil {
+		t.Fatalf("ListNodes: %v", err)
+	}
+	if len(nodes) != overview.TotalNodes {
+		t.Errorf("listed %d brokers, the overview counted %d", len(nodes), overview.TotalNodes)
+	}
+	for _, node := range nodes {
+		if node.Address == "" {
+			t.Error("a broker was listed with no address")
+		}
+		if node.Status != model.NodeOnline {
+			t.Errorf("%s is in the active listing with status %q", node.Address, node.Status)
+		}
+	}
+}
+
+/*
+ * The compose cluster runs a real load manager, so its figures must arrive.
+ *
+ * This is the assertion that would have caught the environment being wrong:
+ * standalone defaults to NoopLoadManager, which answers 204 here, and every
+ * rate on the cluster page would have been silently unknown in CI while
+ * working against any real deployment.
+ */
+func TestLiveBrokerReportsItsOwnFigures(t *testing.T) {
+	conn := liveConn(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	report := conn.loadReport(ctx)
+	if report == nil {
+		t.Fatal("the cluster published no load report; check loadManagerClassName in the compose file")
+	}
+
+	nodes, err := conn.ListNodes(ctx)
+	if err != nil {
+		t.Fatalf("ListNodes: %v", err)
+	}
+	described := 0
+	for _, node := range nodes {
+		if node.RateIn != model.UnknownMetric {
+			described++
+			if node.Version == "" {
+				t.Errorf("%s has rates but no version", node.Address)
+			}
+			if node.Attributes[AttrNodeBundles] == "" {
+				t.Errorf("%s has rates but no bundle count", node.Address)
+			}
+		}
+	}
+	if described != 1 {
+		t.Errorf("%d brokers carry the load report, want exactly the one that served it", described)
+	}
+}
+
+// Metrics stay supported against a cluster that publishes figures. The mirror
+// of the unit test that degrades them when it does not.
+func TestLiveMetricsAreNotDegraded(t *testing.T) {
+	conn := liveConn(t)
+
+	if reason, degraded := conn.Capabilities().DegradedReason(model.CapClusterMetrics); degraded {
+		t.Errorf("metrics degraded against a cluster with a load manager: %s", reason)
+	}
+}
+
+func TestLiveHealthCheckPasses(t *testing.T) {
+	conn := liveConn(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	health, err := conn.Health(ctx)
+	if err != nil {
+		t.Fatalf("Health: %v", err)
+	}
+	for _, check := range health.Checks {
+		if !check.Passed {
+			t.Errorf("check %q failed: %s", check.ID, check.Reason)
+		}
+	}
+}
+
+// The configuration pages read whatever the broker is running with. Both calls
+// are separate endpoints and either can need a superuser, so both are worth a
+// live assertion rather than only the mapping.
+func TestLiveBrokerConfigurationIsReadable(t *testing.T) {
+	conn := liveConn(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	config, err := conn.NodeConfig(ctx, "")
+	if err != nil {
+		t.Fatalf("NodeConfig: %v", err)
+	}
+	// The one this compose file sets, which proves the read reached the broker
+	// rather than returning an empty map that would also have passed.
+	if config["allowAutoTopicCreation"] != "false" {
+		t.Errorf("allowAutoTopicCreation = %q, want the compose file's false",
+			config["allowAutoTopicCreation"])
+	}
+
+	directory, err := conn.DirectoryConfig(ctx)
+	if err != nil {
+		t.Fatalf("DirectoryConfig: %v", err)
+	}
+	if directory["metadataStoreUrl"] == "" {
+		t.Error("the metadata store address is empty")
+	}
+}

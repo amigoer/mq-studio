@@ -17,7 +17,12 @@ import type { CapabilityState } from "./capabilities";
  * two halves cannot drift apart without one of them failing. It starts empty
  * and grows one entry per commit, as each port arrives.
  */
-const PULSAR_CAPABILITIES: Capability[] = [];
+const PULSAR_CAPABILITIES: Capability[] = [
+  Capability.CapClusterTopology,
+  Capability.CapClusterMetrics,
+  Capability.CapNodeConfig,
+  Capability.CapClusterHealth,
+];
 
 function state(
   supported: Capability[],
@@ -47,17 +52,21 @@ describe("the sidebar a Pulsar connection draws", () => {
   /*
    * The pages the driver can serve today.
    *
-   * This is the commit that connects to a cluster and declares nothing else,
-   * so overview is the only entry - and that is the point of the assertion.
    * The list grows one entry per commit, and it growing by accident is exactly
    * what it is here to catch: a page that appears before it can read anything
    * is a sidebar entry that opens a board with nothing behind it.
+   *
+   * Alerts is here because CapClusterMetrics unlocks it, and Pulsar derives no
+   * alerts yet. That is deliberate rather than an oversight - RULES_BY_KIND
+   * gives the family an empty rule list so it cannot fall through to
+   * RocketMQ's, which would draw an empty page that looks like a healthy
+   * cluster instead of an unwritten one.
    */
   it("reaches the pages the driver declares capabilities for", () => {
     const nav = navAvailability(state(PULSAR_CAPABILITIES), true);
     const reachable = drawn.filter((id) => nav.visible(id) && !nav.disabled(id));
 
-    expect(reachable).toEqual(["overview"]);
+    expect(reachable).toEqual(["overview", "cluster", "alerts"]);
   });
 
   /*

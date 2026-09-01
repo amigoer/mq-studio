@@ -79,7 +79,14 @@ export function deriveAlerts(
       ? deriveRabbitMQAlerts(facts, rules, thresholds)
       : kind === MQKind.KindKafka
         ? deriveKafkaAlerts(facts, rules, thresholds)
-        : /* Every other family is read with RocketMQ's rules, which is what
+        : /* Pulsar declares no rules yet, so it derives none. Without this arm
+             it would fall through to RocketMQ's, which read a backlog off a
+             consumer group and a disk figure off a broker - neither of which
+             Pulsar reports - and produce an empty alerts page that looks like
+             a healthy cluster rather than an unwritten one. */
+          kind === MQKind.KindPulsar
+          ? []
+          : /* Every other family is read with RocketMQ's rules, which is what
              they were before this dispatch existed. A family whose vocabulary
              they do not fit reports nothing rather than something wrong, and
              gets its own rules when it gets its own driver. */

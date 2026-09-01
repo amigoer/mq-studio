@@ -483,7 +483,8 @@
         "tenantMissing": "集群有应答，但这个连接指定的租户不在集群上。请检查租户名，或者先创建它。",
         "timeout": "管理 API 接受了连接，但没有在超时时间内应答。",
         "unreachable": "管理 API 地址上没有服务应答。请检查地址，以及 web service 是否要求 HTTPS。",
-        "dataPlaneUnreachable": "管理 API 有应答，但 broker 的二进制端口没有，所以这个连接能读不能发。请检查服务地址，以及该端口在当前网络下是否可达。"
+        "dataPlaneUnreachable": "管理 API 有应答，但 broker 的二进制端口没有，所以这个连接能读不能发。请检查服务地址，以及该端口在当前网络下是否可达。",
+        "loadReport": "这个集群的 load manager 不发布运行数据，所以 Broker 没有速率和资源占用可读。通常是因为用了 NoopLoadManager（standalone 的默认值）；集群部署一般用 ModularLoadManagerImpl。"
       }
     },
     "redis-stream": {
@@ -1126,7 +1127,8 @@
       "edit": "编辑",
       "moreOptions": "还有 {{count}} 项，继续输入以缩小范围",
       "apply": "应用",
-      "create": "创建"
+      "create": "创建",
+      "version": "版本"
     },
     "notDesigned": {
       "title": "设计稿待补",
@@ -1174,7 +1176,21 @@
       "pulsar": {
         "subtitle": "pulsar-eu · Pulsar 3.2 · 租户 ecommerce · Broker 3 / Bookie 4",
         "pending": "Pulsar 数据尚未接入",
-        "pendingHint": "这个页面会随着各项能力逐步接上驱动。在那之前，这里不会显示任何编造的数字。"
+        "pendingHint": "这个页面会随着各项能力逐步接上驱动。在那之前，这里不会显示任何编造的数字。",
+        "leaderIs": "Leader：{{address}}",
+        "noLeader": "未报告 Leader",
+        "bundles": "Bundle",
+        "bundlesHint": "归属单元，由 load manager 上报",
+        "topicsHint": "仅统计有上报的 Broker",
+        "producers": "生产者",
+        "consumers": "消费者",
+        "clientsHint": "已连接，仅统计有上报的 Broker",
+        "endpoints": "接入地址",
+        "brokerServiceUrl": "Broker 服务地址",
+        "webServiceUrl": "Web 服务地址",
+        "metadataStore": "元数据存储",
+        "brokers": "Broker",
+        "leader": "leader"
       },
       "rabbitmq": {
         "subtitle": "{{cluster}} · RabbitMQ {{version}}",
@@ -1384,6 +1400,25 @@
           "removed": "已移除",
           "unknown": "未知阶段"
         }
+      },
+      "pulsar": {
+        "title": "Broker",
+        "leader": "leader",
+        "bundles": "Bundle",
+        "producers": "生产者",
+        "consumers": "消费者",
+        "load": "负载",
+        "resources": "资源",
+        "memory": "堆内存",
+        "directMemory": "直接内存",
+        "endpoints": "接入地址",
+        "serviceUrl": "Broker 服务地址",
+        "metadataStore": "元数据存储",
+        "ledgersRootPath": "Ledger 根路径",
+        "configuration": "配置",
+        "configurationNote": "Pulsar 没有按 Broker 划分的管理接口。这里是应答本连接管理 API 的那个 Broker 的配置，不一定是选中的这个。",
+        "undescribed": "其中 {{count}} 个 Broker 没有上报数据：load manager 只描述应答请求的那个 Broker。",
+        "notDescribed": "load manager 没有描述这个 Broker，通过当前连接拿不到它的数据。"
       }
     },
     "acl": {
