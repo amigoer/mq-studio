@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"sort"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/apache/pulsar-client-go/pulsaradmin/pkg/utils"
@@ -54,9 +55,22 @@ func (c *Conn) ListDestinations(
 		return nil, fmt.Errorf("list the topics of %q: %w", namespace, err)
 	}
 
+	/*
+	 * A partitioned topic's own partitions come back in the second list as
+	 * topics in their own right, because on the wire that is what they are:
+	 * "orders" with three partitions is stored as orders-partition-0, -1 and
+	 * -2. An operator did not create four topics and does not want four rows,
+	 * so the partitions are dropped and the parent stands for them - which is
+	 * also what pulsar-admin's own list-partitioned-topics reports.
+	 */
 	urls := make([]string, 0, len(partitioned)+len(nonPartitioned))
 	urls = append(urls, partitioned...)
-	urls = append(urls, nonPartitioned...)
+	for _, url := range nonPartitioned {
+		if isPartitionOf(url, partitioned) {
+			continue
+		}
+		urls = append(urls, url)
+	}
 	sort.Strings(urls)
 
 	destinations := make([]*model.Destination, 0, len(urls))
@@ -393,6 +407,22 @@ func newDestination(id int, ref model.DestinationRef, persistent bool) *model.De
 			AttrTopicPersistent: strconv.FormatBool(persistent),
 		},
 	}
+}
+
+// isPartitionOf reports whether a topic is one partition of a partitioned
+// parent that is already in the listing.
+//
+// Matched against the parents rather than by the suffix alone: a topic
+// genuinely named "orders-partition-0" with no partitioned "orders" beside it
+// is a topic somebody created, and hiding it would make the page disagree with
+// the cluster about what exists.
+func isPartitionOf(url string, parents []string) bool {
+	for _, parent := range parents {
+		if strings.HasPrefix(url, parent+"-partition-") {
+			return true
+		}
+	}
+	return false
 }
 
 func isPersistent(destination *model.Destination) bool {

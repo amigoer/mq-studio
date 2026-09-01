@@ -301,3 +301,61 @@ func TestDestinationStatsBreaksDownByPartition(t *testing.T) {
 		t.Errorf("partition 0 backlog = %v, want 39", partitions[0]["backlog"])
 	}
 }
+
+/*
+ * A partitioned topic is one row, not one plus its partitions.
+ *
+ * On the wire "orders" with three partitions is stored as orders-partition-0,
+ * -1 and -2, and Pulsar's non-partitioned listing returns all three as topics
+ * in their own right. An operator created one topic and expects one row - and
+ * the cross-check against pulsar-admin's own list-partitioned-topics is what
+ * caught this listing four.
+ */
+func TestPartitionsAreNotListedAsTopics(t *testing.T) {
+	routes := topicRoutes()
+	routes["/admin/v2/persistent/public/default"] = `[
+		"persistent://public/default/audit",
+		"persistent://public/default/orders-partition-0",
+		"persistent://public/default/orders-partition-1",
+		"persistent://public/default/orders-partition-2"
+	]`
+	cluster := newFakeCluster(t, routes, http.StatusNotFound)
+	topics := listTopics(t, probedConn(t, cluster.config()), true)
+
+	if _, ok := topics["orders"]; !ok {
+		t.Error("the partitioned topic itself is missing")
+	}
+	for _, partition := range []string{
+		"orders-partition-0", "orders-partition-1", "orders-partition-2",
+	} {
+		if _, ok := topics[partition]; ok {
+			t.Errorf("%s is listed as a topic of its own", partition)
+		}
+	}
+	if _, ok := topics["audit"]; !ok {
+		t.Error("an ordinary topic was dropped with the partitions")
+	}
+}
+
+/*
+ * A topic that only looks like a partition is still a topic.
+ *
+ * Matching on the suffix alone would hide a topic somebody genuinely named
+ * "orders-partition-0" when there is no partitioned "orders" beside it, and
+ * the page would then disagree with the cluster about what exists.
+ */
+func TestATopicNamedLikeAPartitionSurvivesWithNoParent(t *testing.T) {
+	routes := topicRoutes()
+	routes["/admin/v2/persistent/public/default/partitioned"] = `[]`
+	routes["/admin/v2/persistent/public/default"] =
+		`["persistent://public/default/orders-partition-0"]`
+	routes["/admin/v2/persistent/public/default/orders-partition-0/stats"] = `{
+		"publishers": [], "subscriptions": {}
+	}`
+	cluster := newFakeCluster(t, routes, http.StatusNotFound)
+	topics := listTopics(t, probedConn(t, cluster.config()), true)
+
+	if _, ok := topics["orders-partition-0"]; !ok {
+		t.Error("a topic named like a partition was hidden with no parent to belong to")
+	}
+}

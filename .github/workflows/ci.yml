@@ -136,6 +136,12 @@ jobs:
       - name: Start Pulsar
         run: npm run e2e:pulsar:up
 
+      # Required, unlike the other seeds. The cross-check compares figures the
+      # app computes against the same figures from pulsar-admin, and comparing
+      # zero against zero would pass whatever the driver did.
+      - name: Seed Pulsar
+        run: npm run e2e:pulsar:seed
+
       - name: Run checks
         # The opt-in a developer sets locally. CI does not need it - internal/e2e
         # does not consult it when CI is set, so that no unset variable can be

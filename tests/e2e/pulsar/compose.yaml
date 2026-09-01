@@ -24,6 +24,10 @@ services:
       # exist creates it, and the tests that assert a listing would pass
       # against topics they made by looking for them.
       PULSAR_PREFIX_allowAutoTopicCreation: 'false'
+      # Off, or the broker garbage-collects every seeded topic that has no
+      # subscription and no messages within a minute - and the cross-check
+      # then compares against a namespace that has quietly emptied itself.
+      PULSAR_PREFIX_brokerDeleteInactiveTopicsEnabled: 'false'
       # The bundle unload tests need more than one bundle to move between.
       PULSAR_PREFIX_defaultNumberOfNamespaceBundles: '4'
       # Standalone defaults to NoopLoadManager, which answers 204 to

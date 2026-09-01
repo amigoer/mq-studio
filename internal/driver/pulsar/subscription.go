@@ -40,9 +40,16 @@ func (c *Conn) ListSubscriptions(ctx context.Context) ([]*model.Subscription, er
 		return nil, fmt.Errorf("list the topics of %q: %w", namespace, err)
 	}
 
+	// The partitions of a partitioned topic come back in the second list as
+	// topics of their own; the parent stands for them, so walking both would
+	// read every subscription once per partition.
 	urls := make([]string, 0, len(partitioned)+len(nonPartitioned))
 	urls = append(urls, partitioned...)
-	urls = append(urls, nonPartitioned...)
+	for _, url := range nonPartitioned {
+		if !isPartitionOf(url, partitioned) {
+			urls = append(urls, url)
+		}
+	}
 	sort.Strings(urls)
 	if len(urls) > listCap {
 		urls = urls[:listCap]

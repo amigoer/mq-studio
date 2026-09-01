@@ -33,6 +33,7 @@
     "e2e:kafka:secure:up": "docker compose -f tests/e2e/kafka-secure/compose.yaml up -d --wait",
     "e2e:kafka:secure:down": "docker compose -f tests/e2e/kafka-secure/compose.yaml down -v",
     "e2e:pulsar:up": "docker compose -f tests/e2e/pulsar/compose.yaml up -d --wait",
+    "e2e:pulsar:seed": "bash scripts/e2e-pulsar-seed.sh",
     "e2e:pulsar:down": "docker compose -f tests/e2e/pulsar/compose.yaml down -v",
     "e2e:down": "docker compose -f tests/e2e/rocketmq/compose.yaml down -v",
     "e2e:rabbitmq:down": "docker compose -f tests/e2e/rabbitmq/compose.yaml down -v",

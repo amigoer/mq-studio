@@ -12,7 +12,7 @@ ARCH ?=
 	e2e-rabbitmq-plain-up e2e-rabbitmq-plain-down \
 	e2e-kafka-up e2e-kafka-seed e2e-kafka-down \
 	e2e-kafka-secure-up e2e-kafka-secure-down \
-	e2e-pulsar-up e2e-pulsar-down check ci clean \
+	e2e-pulsar-up e2e-pulsar-seed e2e-pulsar-down check ci clean \
 	website-dev website-build
 
 help: ## Show all available targets
@@ -100,6 +100,9 @@ e2e-kafka-secure-down: ## Stop the secure Kafka environment
 
 e2e-pulsar-up: ## Start the Pulsar E2E environment
 	npm run e2e:pulsar:up
+
+e2e-pulsar-seed: ## Seed the Pulsar E2E environment for the cross-check
+	npm run e2e:pulsar:seed
 
 e2e-pulsar-down: ## Stop the Pulsar E2E environment
 	npm run e2e:pulsar:down
