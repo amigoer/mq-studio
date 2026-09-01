@@ -35,6 +35,7 @@ import { useConnectionScope } from "@/mq/ConnectionScope";
 import { SubscriptionStatus } from "@bindings/model/models";
 import type { SubscriptionClient } from "@bindings/model/models";
 import { CloneOffsetDialog } from "./CloneOffsetDialog";
+import { ConsumerGroupDialog, type ConsumerGroupForm } from "./ConsumerGroupDialog";
 import { QueueOffsetDialog, type QueueTarget } from "./QueueOffsetDialog";
 import { ResetOffsetDialog } from "./ResetOffsetDialog";
 import * as consumerApi from "@/api/consumer";
@@ -145,6 +146,9 @@ export function ConsumersRocketMQ() {
   const { settings } = useSettings();
   const toast = useToast();
   const confirm = useConfirm();
+  /* null editing means "create"; the whole state being null means closed,
+     which is how the topic board tells the two apart as well. */
+  const [dialog, setDialog] = useState<{ editing: string | null } | null>(null);
   const [resetting, setResetting] = useState<string | null>(null);
   const [cloning, setCloning] = useState<string | null>(null);
   const [queueOffset, setQueueOffset] = useState<QueueTarget | undefined>();
@@ -199,6 +203,15 @@ export function ConsumersRocketMQ() {
     await state.refresh();
   };
 
+  const submit = async (form: ConsumerGroupForm) => {
+    const write = dialog?.editing != null
+      ? consumerApi.updateConsumerGroup
+      : consumerApi.createConsumerGroup;
+    await write(connID, form.group, form.brokerAddr, form.consumeMode, form.maxRetry);
+    toast.success(t("board.consumers.rocketmq.form.saved", { name: form.group }));
+    await state.refresh();
+  };
+
   const remove = async (group: Subscription) => {
     const name = groupName(group);
     const confirmed = await confirm({
@@ -226,11 +239,16 @@ export function ConsumersRocketMQ() {
         title={t("board.common.consumerGroup")}
         subtitle={t("board.consumers.rocketmq.liveSubtitle", { count: groups.length })}
         actions={
-          <RefreshButton
-            refreshing={state.refreshing}
-            online={state.online}
-            onClick={() => void state.refresh()}
-          />
+          <>
+            <RefreshButton
+              refreshing={state.refreshing}
+              online={state.online}
+              onClick={() => void state.refresh()}
+            />
+            <Button disabled={!state.online} onClick={() => setDialog({ editing: null })}>
+              {t("board.consumers.rocketmq.form.newAction")}
+            </Button>
+          </>
         }
       />
       <Toolbar>
@@ -326,6 +344,7 @@ export function ConsumersRocketMQ() {
               lagThreshold={lagThreshold}
               onResetOffset={() => setResetting(groupName(current))}
               onCloneOffset={() => setCloning(groupName(current))}
+              onEdit={() => setDialog({ editing: groupName(current) })}
               onSetQueueOffset={setQueueOffset}
               onDelete={() => void remove(current)}
               onClose={() => setSelected(null)}
@@ -353,6 +372,16 @@ export function ConsumersRocketMQ() {
         groups={groups}
         onClose={() => setCloning(null)}
         onSubmit={cloneOffset}
+      />
+      <ConsumerGroupDialog
+        open={dialog != null}
+        editing={
+          dialog?.editing != null
+            ? groups.find((group) => groupName(group) === dialog.editing)
+            : undefined
+        }
+        onClose={() => setDialog(null)}
+        onSubmit={submit}
       />
     </Page>
   );
@@ -561,6 +590,7 @@ function GroupSheet({
   onResetOffset,
   onCloneOffset,
   onSetQueueOffset,
+  onEdit,
   onDelete,
   onClose,
 }: {
@@ -569,6 +599,7 @@ function GroupSheet({
   onResetOffset: () => void;
   onCloneOffset: () => void;
   onSetQueueOffset: (queue: QueueProgress) => void;
+  onEdit: () => void;
   onDelete: () => void;
   onClose: () => void;
 }) {
@@ -825,6 +856,9 @@ function GroupSheet({
         <Button variant="outline" onClick={onResetOffset}>{t("board.common.resetOffset")}</Button>
         <Button variant="outline" onClick={onCloneOffset}>
           {t("board.consumers.rocketmq.clone.action")}
+        </Button>
+        <Button variant="outline" onClick={onEdit}>
+          {t("board.common.edit")}
         </Button>
         <span className="flex-1" />
         <Button variant="destructive" onClick={onDelete}>

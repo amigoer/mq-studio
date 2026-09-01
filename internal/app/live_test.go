@@ -437,15 +437,16 @@ func TestLiveTopicDetailCarriesRoutes(t *testing.T) {
 	}
 }
 
-// Listing and deleting a consumer group work; creating and updating one does
-// not, and this pins which is which.
+// The whole consumer group lifecycle the form drives: create, read back,
+// update, read back, delete.
 //
-// rocketmq-admin-go puts a SubscriptionGroupConfig in the request's extFields,
-// but RocketMQ 5.x's updateAndCreateSubscriptionGroup decodes it from the
-// request body - so the broker answers a NullPointerException. Delete takes the
-// extFields route the broker does read. The group this deletes is created
-// through the broker's own mqadmin, which is the only way to get one here.
-func TestLiveConsumerGroupDelete(t *testing.T) {
+// Create and update were unbuildable until rocketmq-admin-go v1.3.2 - it put
+// the SubscriptionGroupConfig in the request's extFields while RocketMQ 5.x
+// decodes it from the body, so the broker answered every one with a
+// NullPointerException. What this asserts is the half that was missing: that
+// the settings sent are the settings stored, and that an update rewrites the
+// whole config rather than merging into it.
+func TestLiveConsumerGroupLifecycle(t *testing.T) {
 	connections, _, registry := liveStack(t)
 	ctx := context.Background()
 
@@ -459,32 +460,82 @@ func TestLiveConsumerGroupDelete(t *testing.T) {
 	conn, _ := registry.Get(profile.ID)
 	groups := conn.(driver.SubscriptionAdmin)
 
-	// Its own name, not the seeded group: the delete below is the point of the
-	// test, and pointing it at the shared group deleted it out from under
+	// Its own name, not the seeded group: this one deletes what it makes, and
+	// pointing it at the shared group deleted it out from under
 	// TestLiveResetOffset, which then skipped instead of asserting anything.
-	const name = "MQ_STUDIO_E2E_GROUP_DELETE"
+	const name = "MQ_STUDIO_E2E_GROUP_LIFECYCLE"
 	ref := model.SubscriptionRef{Name: name}
+	t.Cleanup(func() { _ = groups.RemoveSubscription(context.Background(), ref) })
 
-	// Creating through the driver is what fails today; assert that plainly, so
-	// this test starts failing the moment the library learns to send a body and
-	// the create path can be built.
-	createErr := groups.CreateSubscription(ctx, model.SubscriptionSpec{
-		Ref: ref,
-		Attributes: map[string]string{
-			rocketmq.AttrConsumeMode: string(model.ModeClustering),
-			rocketmq.AttrMaxRetry:    "16",
-		},
-	})
-	if createErr == nil {
-		t.Fatal("creating a consumer group now works - re-add the create and edit form")
+	spec := func(mode model.ConsumeMode, maxRetry string) model.SubscriptionSpec {
+		return model.SubscriptionSpec{
+			Ref: ref,
+			Attributes: map[string]string{
+				rocketmq.AttrConsumeMode: string(mode),
+				rocketmq.AttrMaxRetry:    maxRetry,
+			},
+		}
 	}
-	t.Logf("create still unsupported by the library: %v", createErr)
 
-	// Delete is the half that does work, so it has to answer for a group that
-	// is not there rather than hang or panic.
+	if err := groups.CreateSubscription(ctx, spec(model.ModeBroadcasting, "9")); err != nil {
+		t.Fatalf("create: %v", err)
+	}
+
+	created := findSubscription(t, ctx, groups, name)
+	if got := created.Attribute(rocketmq.AttrMaxRetry); got != "9" {
+		t.Errorf("maxRetry=%q want 9", got)
+	}
+	// The permission the config stores, which is the field the edit form has to
+	// read back rather than infer - the mode attribute is a client's report and
+	// is empty for a group nothing is attached to.
+	if got := created.Attribute(rocketmq.AttrBroadcast); got != "true" {
+		t.Errorf("broadcastEnabled=%q want true after creating a broadcasting group", got)
+	}
+
+	if err := groups.UpdateSubscription(ctx, spec(model.ModeClustering, "3")); err != nil {
+		t.Fatalf("update: %v", err)
+	}
+
+	updated := findSubscription(t, ctx, groups, name)
+	if got := updated.Attribute(rocketmq.AttrMaxRetry); got != "3" {
+		t.Errorf("maxRetry=%q want 3 after the update", got)
+	}
+	if got := updated.Attribute(rocketmq.AttrBroadcast); got != "false" {
+		t.Errorf("broadcastEnabled=%q want false after the update", got)
+	}
+
 	if err := groups.RemoveSubscription(ctx, ref); err != nil {
 		t.Fatalf("delete: %v", err)
 	}
+	for _, one := range listSubscriptions(t, ctx, groups) {
+		if one.Ref.Name == name {
+			t.Fatal("the group is still listed after being deleted")
+		}
+	}
+}
+
+func listSubscriptions(
+	t *testing.T, ctx context.Context, groups driver.SubscriptionAdmin,
+) []*model.Subscription {
+	t.Helper()
+	listed, err := groups.ListSubscriptions(ctx)
+	if err != nil {
+		t.Fatalf("list: %v", err)
+	}
+	return listed
+}
+
+func findSubscription(
+	t *testing.T, ctx context.Context, groups driver.SubscriptionAdmin, name string,
+) *model.Subscription {
+	t.Helper()
+	for _, one := range listSubscriptions(t, ctx, groups) {
+		if one.Ref.Name == name {
+			return one
+		}
+	}
+	t.Fatalf("%s is not listed", name)
+	return nil
 }
 
 // The consumer sheet's 重置位点 action.
@@ -851,23 +902,19 @@ func TestLiveNodeDetailReplicas(t *testing.T) {
 	t.Logf("%s reports %d replica(s)", detail.Address, len(detail.Replicas))
 }
 
-// Time-based consumer lag cannot be read, and this records why.
+// Time-based consumer lag is readable, which no page has claimed yet.
 //
 // "Four minutes behind" is the number an operator triages on - a backlog of
 // 982 is fine at 10k/s and an outage at 10/s - so QueryConsumeTimeSpan is what
-// a lag column would be built from. It returns nothing.
+// a lag column would be built from. It used to answer nothing: the broker
+// wraps the set in an object and the library decoded a bare array, and a bare
+// `continue` swallowed the mismatch, so an unreadable response and a group
+// that is caught up were the same answer. Fixed in rocketmq-admin-go v1.3.2.
 //
-// Two defects, the second worse than the first. Like GetConsumerRunningInfo it
-// unmarshals without the fixJSONBody pass its siblings apply; and the broker
-// answers with an object wrapping the set rather than a bare array, which is
-// not the shape it decodes into either way. Both failures are swallowed by a
-// `continue`, so the call returns an empty slice AND a nil error - a caller
-// cannot tell "this group is caught up" from "the response was unreadable".
-//
-// The field this would fill was reverted rather than shipped always-unknown.
-// This test asserts the call is still empty while the group demonstrably has
-// committed offsets, so it goes red when the library is fixed.
-func TestLiveConsumeTimeSpanBlockedByLibraryParse(t *testing.T) {
+// No driver method exposes it yet, so this reaches past the driver to the
+// library on purpose: it is the end-to-end record that the data is there to
+// build the column from, against a group with offsets it really committed.
+func TestLiveConsumeTimeSpanIsReadable(t *testing.T) {
 	connections, _, registry := liveStack(t)
 	ctx := context.Background()
 
@@ -918,13 +965,36 @@ func TestLiveConsumeTimeSpanBlockedByLibraryParse(t *testing.T) {
 
 	spans, err := client.QueryConsumeTimeSpan(ctx, seededTopic, seededGroup)
 	if err != nil {
-		t.Fatalf("QueryConsumeTimeSpan now returns an error rather than silence: %v", err)
+		t.Fatalf("QueryConsumeTimeSpan: %v", err)
 	}
-	if len(spans) != 0 {
-		t.Fatalf("QueryConsumeTimeSpan returns %d span(s) now - a time-based lag column "+
-			"can be built on it", len(spans))
+	if len(spans) == 0 {
+		t.Fatalf("no time span for a group with %d committed offset(s); "+
+			"the wrapper decode has regressed", offsets)
 	}
-	t.Logf("group has %d committed offsets and still no readable time span - as expected", offsets)
+
+	// A queue the group has consumed carries all three stamps. An untouched
+	// queue reports -1 for each, which is the broker saying "nothing here"
+	// rather than a time, so a lag column has to tell those apart.
+	consumed := 0
+	for _, span := range spans {
+		if span.MinTimeStamp <= 0 {
+			continue
+		}
+		consumed++
+		if span.MaxTimeStamp < span.MinTimeStamp {
+			t.Errorf("queue %d: max %d is before min %d",
+				span.MessageQueue.QueueId, span.MaxTimeStamp, span.MinTimeStamp)
+		}
+		if span.ConsumeTimeStamp <= 0 {
+			t.Errorf("queue %d has messages and no consume timestamp",
+				span.MessageQueue.QueueId)
+		}
+	}
+	if consumed == 0 {
+		t.Fatalf("%d span(s), none with a timestamp, for a group with %d committed offset(s)",
+			len(spans), offsets)
+	}
+	t.Logf("%d span(s), %d carrying timestamps", len(spans), consumed)
 }
 
 // One broker's effective settings.

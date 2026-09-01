@@ -2032,6 +2032,22 @@
           "risky": "Affects this one queue only",
           "note": "Unlike a reset, which finds a position by time and moves the whole group, this writes a number to one queue. Past the latest skips what has not arrived; before the earliest is pulled forward by the broker on its next fetch.",
           "done": "Set {{queue}} to offset {{offset}}"
+        },
+        "form": {
+          "newAction": "+ New group",
+          "newTitle": "New consumer group",
+          "editTitle": "Edit consumer group",
+          "nameLabel": "Group name",
+          "nameRequired": "Enter a group name",
+          "nameInvalid": "A group name cannot contain spaces or %",
+          "maxRetryLabel": "Max retries",
+          "broadcastLabel": "Broadcast",
+          "clustering": "Not allowed",
+          "broadcasting": "Allowed",
+          "brokerHint": "all by default",
+          "allMasters": "All masters ({{count}})",
+          "broadcastNote": "This sets the broadcast permission the broker stores, not the mode in the list - that is what a connected client reports, and an idle group has none. Saving rewrites the whole subscription config, so untouched fields are written back as they stand.",
+          "saved": "Saved {{name}}"
         }
       },
       "pulsar": {

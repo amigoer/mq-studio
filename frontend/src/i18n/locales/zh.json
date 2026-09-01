@@ -2032,6 +2032,22 @@
           "risky": "只影响这一个队列",
           "note": "与「重置位点」不同：重置是按时间找位置、动整个组，这里是直接给一个队列写一个数。写到最新之后会跳过还没到的消息；写到最旧之前，Broker 下次拉取时会自动往前对齐。",
           "done": "已把 {{queue}} 的位点设为 {{offset}}"
+        },
+        "form": {
+          "newAction": "+ 新建消费组",
+          "newTitle": "新建消费组",
+          "editTitle": "编辑消费组",
+          "nameLabel": "消费组名称",
+          "nameRequired": "请填写消费组名称",
+          "nameInvalid": "消费组名称不能包含空格或 %",
+          "maxRetryLabel": "最大重试次数",
+          "broadcastLabel": "广播消费",
+          "clustering": "不允许",
+          "broadcasting": "允许",
+          "brokerHint": "默认写到全部",
+          "allMasters": "所有 Master（{{count}}）",
+          "broadcastNote": "这里改的是 Broker 存的广播权限，不是列表里那个模式——模式由在线客户端上报，没有客户端时无从得知。保存会重写整份订阅配置，所以没动过的字段也会按当前值写回去。",
+          "saved": "已保存 {{name}}"
         }
       },
       "pulsar": {
