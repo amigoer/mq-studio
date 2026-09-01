@@ -46,12 +46,14 @@ const topicsState = vi.hoisted(() => ({ current: null as unknown }));
 const clientsState = vi.hoisted(() => ({ current: null as unknown }));
 const subscriptionsState = vi.hoisted(() => ({ current: null as unknown }));
 const streamState = vi.hoisted(() => ({ current: null as unknown }));
+const protocolFive = vi.hoisted(() => ({ current: true }));
 
 vi.mock("@/hooks/mqtt/useMqttBroker", () => ({
   useMqttBroker: () => brokerState.current,
   useMqttTopics: () => topicsState.current,
   useMqttClients: () => clientsState.current,
   useMqttSubscriptions: () => subscriptionsState.current,
+  useMqttProtocolIsFive: () => protocolFive.current,
 }));
 vi.mock("@/hooks/mqtt/useMqttStream", () => ({
   useMqttStream: () => streamState.current,
@@ -63,6 +65,7 @@ vi.mock("@/mq/ConnectionScope", () => ({
 let render: (element: React.ReactElement) => string;
 let OverviewMqtt: typeof import("./overview/OverviewMqtt").OverviewMqtt;
 let MqttWorkbench: typeof import("./mqtt/MqttWorkbench").MqttWorkbench;
+let ProducerMqtt: typeof import("./producer/ProducerMqtt").ProducerMqtt;
 
 beforeAll(async () => {
   const storage = { getItem: () => null, setItem() {}, removeItem() {} };
@@ -77,10 +80,11 @@ beforeAll(async () => {
   });
   vi.stubGlobal("localStorage", storage);
 
-  const [server, overview, workbench, ui, i18n, settings] = await Promise.all([
+  const [server, overview, workbench, producer, ui, i18n, settings] = await Promise.all([
     import("react-dom/server"),
     import("./overview/OverviewMqtt"),
     import("./mqtt/MqttWorkbench"),
+    import("./producer/ProducerMqtt"),
     import("@/components"),
     import("@/i18n"),
     import("@/hooks/useSettings"),
@@ -94,6 +98,7 @@ beforeAll(async () => {
     );
   OverviewMqtt = overview.OverviewMqtt;
   MqttWorkbench = workbench.MqttWorkbench;
+  ProducerMqtt = producer.ProducerMqtt;
 });
 
 /** A stream as the hook reports it. */
@@ -310,5 +315,30 @@ describe("the MQTT subscribe workbench", () => {
   it("renders a failed subscription", () => {
     streamState.current = streamOf({ error: "broker refused the subscription to \"a/#\"" });
     expect(render(<MqttWorkbench />)).toContain("broker refused the subscription");
+  });
+});
+
+describe("the MQTT send console", () => {
+  /*
+   * The 5.0 property fields are hidden rather than disabled on a 3.1.1
+   * connection, because they are not a setting that connection could turn on:
+   * the version was chosen when the connection was made, and the two versions
+   * are carried by different client libraries.
+   */
+  it("offers the 5.0 properties only on a 5.0 connection", () => {
+    protocolFive.current = true;
+    expect(render(<ProducerMqtt />)).toContain("MQTT 5.0");
+
+    protocolFive.current = false;
+    const html = render(<ProducerMqtt />);
+    expect(html).toContain("MQTT 3.1.1");
+    expect(html).not.toContain("关联数据");
+  });
+
+  it("explains that retain leaves something behind", () => {
+    protocolFive.current = true;
+    // The only way to leave state on an MQTT broker, and permanent until
+    // something overwrites it.
+    expect(render(<ProducerMqtt />)).toContain("最后已知值");
   });
 });

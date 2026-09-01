@@ -8,6 +8,9 @@ import {
 } from "@/api/mqtt";
 import type { ClientConnection, ClusterOverview, Destination, Node } from "@/api/models";
 import { useBrokerData, type BrokerData } from "@/hooks/useBrokerData";
+import { useConnectionProfiles } from "@/hooks/useConnectionProfiles";
+import { useConnectionScope } from "@/mq/ConnectionScope";
+import { OPTION_MQTT_PROTOCOL } from "@/design/boards/connections/ConnectionForms";
 
 export interface MqttBroker {
   overview: ClusterOverview;
@@ -67,4 +70,22 @@ export function useMqttSubscriptions(enabled: boolean): BrokerData<ClientSubscri
     useCallback((connID: number) => getMqttBrokerSubscriptions(connID), []),
     { enabled },
   );
+}
+
+/**
+ * Whether this connection speaks MQTT 5.0.
+ *
+ * Not a capability: both versions can publish and subscribe, and what differs
+ * is what a message can carry - reason codes, user properties, message expiry
+ * and shared subscriptions are 5.0 only. The send console needs it to refuse
+ * those fields before a round trip rather than after one, so it is read off
+ * the stored profile rather than probed.
+ */
+export function useMqttProtocolIsFive(): boolean {
+  const { id } = useConnectionScope();
+  const { profiles } = useConnectionProfiles();
+  const profile = profiles.find((candidate) => candidate.id === id);
+  // Unset means 5.0, which is what the form defaults to and what a profile
+  // written before the field existed would have meant.
+  return profile?.options?.[OPTION_MQTT_PROTOCOL] !== "311";
 }

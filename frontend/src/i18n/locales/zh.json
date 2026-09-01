@@ -2460,6 +2460,36 @@
           "countInvalid": "份数请填 1 到 10000 之间",
           "headerLine": "header 每行一个 key=value"
         }
+      },
+      "mqtt": {
+        "send": "发布",
+        "message": "消息",
+        "topic": "主题",
+        "count": "重复次数",
+        "payload": "消息体",
+        "retain": "保留",
+        "retainHint": "作为该主题的最后已知值保存，直到被覆盖",
+        "properties": "MQTT 5.0 属性",
+        "propertiesHint": "3.1.1 无法携带这些字段",
+        "contentType": "内容类型",
+        "responseTopic": "响应主题",
+        "correlation": "关联数据",
+        "expiry": "消息过期（秒）",
+        "userProps": "用户属性",
+        "result": "结果",
+        "accepted": "已接受",
+        "noSubscribers": "已接受，但无人订阅",
+        "sent": "已发送",
+        "acknowledged": "确认情况",
+        "byTheBroker": "broker 已确认",
+        "notAtQos0": "QoS 0 没有任何确认",
+        "reason": "broker 给出的原因",
+        "topicRequired": "请填写主题",
+        "topicWildcard": "发布的主题不能包含 + 或 #，那是订阅通配符",
+        "countInvalid": "重复次数需要在 1 到 1000 之间",
+        "expiryInvalid": "消息过期需要填秒数",
+        "propertyLine": "每条用户属性都要写成 name=value",
+        "needsFive": "这些属性是 MQTT 5.0 独有的，当前连接是 3.1.1"
       }
     },
     "mqtt": {

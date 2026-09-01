@@ -41,6 +41,7 @@ import { PelRedis } from "./boards/dlq/PelRedis";
 
 import { Producer } from "./boards/producer/Producer";
 import { ProducerKafka } from "./boards/producer/ProducerKafka";
+import { ProducerMqtt } from "./boards/producer/ProducerMqtt";
 import { ProducerRabbitMQ } from "./boards/producer/ProducerRabbitMQ";
 import { Alerts } from "./boards/alerts/Alerts";
 import { Acl } from "./boards/acl/Acl";
@@ -157,6 +158,7 @@ export function renderBoard(
   if (page === "producer") {
     if (protocol === "rabbitmq") return <ProducerRabbitMQ />;
     if (protocol === "kafka") return <ProducerKafka />;
+    if (protocol === "mqtt") return <ProducerMqtt />;
     return <Producer protocol={protocol} nav={nav} />;
   }
   /* Alerts is one board for every family: the rules are numeric comparisons

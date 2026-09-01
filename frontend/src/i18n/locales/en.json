@@ -2460,6 +2460,36 @@
           "countInvalid": "Send between 1 and 10000 copies",
           "headerLine": "Each header is one key=value per line"
         }
+      },
+      "mqtt": {
+        "send": "Publish",
+        "message": "Message",
+        "topic": "Topic",
+        "count": "Repeat",
+        "payload": "Payload",
+        "retain": "Retain",
+        "retainHint": "keeps this as the topic's last known value until something overwrites it",
+        "properties": "MQTT 5.0 properties",
+        "propertiesHint": "3.1.1 cannot carry any of these",
+        "contentType": "Content type",
+        "responseTopic": "Response topic",
+        "correlation": "Correlation data",
+        "expiry": "Message expiry (s)",
+        "userProps": "User properties",
+        "result": "Result",
+        "accepted": "Accepted",
+        "noSubscribers": "Accepted, nobody subscribed",
+        "sent": "Sent",
+        "acknowledged": "Acknowledged",
+        "byTheBroker": "by the broker",
+        "notAtQos0": "QoS 0 acknowledges nothing",
+        "reason": "Broker's reason",
+        "topicRequired": "A topic is required",
+        "topicWildcard": "A topic to publish to cannot contain + or #, which are subscription wildcards",
+        "countInvalid": "Repeat must be between 1 and 1000",
+        "expiryInvalid": "Message expiry must be a number of seconds",
+        "propertyLine": "Every user property must be name=value",
+        "needsFive": "These properties are MQTT 5.0 only and this connection is 3.1.1"
       }
     },
     "mqtt": {
