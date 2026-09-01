@@ -63,6 +63,7 @@ export {
     PulsarNamespaceInput,
     PulsarTenantInput,
     PulsarTenantView,
+    PulsarTopicInput,
     QueueInput,
     QueueOffsetInput,
     QuotaView,

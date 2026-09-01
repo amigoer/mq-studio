@@ -216,6 +216,11 @@ func TestCapabilitiesMatchTheSidebarContract(t *testing.T) {
 		model.CapNamespaceList,
 		model.CapNamespaceAdmin,
 		model.CapNamespaceLimits,
+		model.CapDestinationList,
+		model.CapDestinationCreate,
+		model.CapDestinationUpdate,
+		model.CapDestinationDelete,
+		model.CapPartitions,
 	}
 
 	got := capabilities()

@@ -20,6 +20,12 @@ export const AttrNodeTopics = "pulsarTopics";
 export const AttrNodeProducers = "pulsarProducers";
 export const AttrNodeConsumers = "pulsarConsumers";
 
+/** Destination. */
+export const AttrTopicPersistent = "pulsarPersistent";
+export const AttrTopicStorageBytes = "pulsarStorageBytes";
+export const AttrTopicProducers = "pulsarTopicProducers";
+export const AttrTopicAverageMessageBytes = "pulsarAverageMessageBytes";
+
 /** ClusterOverview. */
 export const AttrClusterName = "pulsarCluster";
 export const AttrClusterServiceURL = "pulsarClusterWebServiceUrl";

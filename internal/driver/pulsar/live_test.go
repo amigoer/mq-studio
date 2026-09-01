@@ -435,3 +435,159 @@ func liveLimit(t *testing.T, conn *Conn, namespace, limit string) *int {
 	t.Fatalf("%s is not in the namespace listing", namespace)
 	return nil
 }
+
+/*
+ * A topic created and then read back, against a real cluster.
+ *
+ * Pulsar assigns a topic to a namespace bundle asynchronously, so a stats read
+ * immediately after a create can 404 on a broker that has not taken ownership
+ * yet. The wait is bounded and the failure is reported rather than retried
+ * forever: a create that never becomes visible is a real problem, and a test
+ * that spins until it does would hide it.
+ */
+func TestLiveTopicRoundTripSurvivesPropagation(t *testing.T) {
+	conn := liveConn(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	ref := model.DestinationRef{Namespace: "public/default", Name: "mq-studio-e2e-orders"}
+	_ = conn.RemoveDestination(ctx, ref)
+
+	spec := model.DestinationSpec{Ref: ref, Partitions: 3}
+	if err := conn.CreateDestination(ctx, spec); err != nil {
+		t.Fatalf("create a partitioned topic: %v", err)
+	}
+	t.Cleanup(func() {
+		cleanup, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		_ = conn.RemoveDestination(cleanup, ref)
+	})
+
+	listed := waitForTopic(t, conn, ref.Name)
+	if listed.Partitions != 3 {
+		t.Errorf("partitions = %d, want 3", listed.Partitions)
+	}
+	if listed.Attributes[AttrTopicPersistent] != "true" {
+		t.Errorf("a topic created without a scheme is not persistent: %v", listed.Attributes)
+	}
+
+	// Raising is the only edit Pulsar offers, and it is one-way.
+	spec.Partitions = 5
+	if err := conn.UpdateDestination(ctx, spec); err != nil {
+		t.Fatalf("raise the partition count: %v", err)
+	}
+	detail, err := conn.DestinationDetail(ctx, ref)
+	if err != nil {
+		t.Fatalf("DestinationDetail: %v", err)
+	}
+	if detail.Partitions != 5 {
+		t.Errorf("partitions after the raise = %d, want 5", detail.Partitions)
+	}
+
+	spec.Partitions = 2
+	if err := conn.UpdateDestination(ctx, spec); err == nil {
+		t.Error("lowering a partition count was accepted by the cluster")
+	}
+
+	if err := conn.RemoveDestination(ctx, ref); err != nil {
+		t.Fatalf("delete the partitioned topic: %v", err)
+	}
+}
+
+/*
+ * A non-partitioned topic is a different shape, and the delete has to know it.
+ *
+ * Pulsar's delete takes a nonPartitioned flag and asking to delete a
+ * partitioned topic as non-partitioned leaves every partition behind. Only a
+ * live cluster proves the driver reads the shape before it deletes.
+ */
+func TestLiveNonPartitionedTopicRoundTrip(t *testing.T) {
+	conn := liveConn(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	ref := model.DestinationRef{Namespace: "public/default", Name: "mq-studio-e2e-audit"}
+	_ = conn.RemoveDestination(ctx, ref)
+
+	if err := conn.CreateDestination(ctx, model.DestinationSpec{Ref: ref}); err != nil {
+		t.Fatalf("create a non-partitioned topic: %v", err)
+	}
+	t.Cleanup(func() {
+		cleanup, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		_ = conn.RemoveDestination(cleanup, ref)
+	})
+
+	// Zero partitions is a fact about this topic, not a figure nobody read.
+	if listed := waitForTopic(t, conn, ref.Name); listed.Partitions != 0 {
+		t.Errorf("partitions = %d, want an explicit 0", listed.Partitions)
+	}
+	if err := conn.RemoveDestination(ctx, ref); err != nil {
+		t.Fatalf("delete the non-partitioned topic: %v", err)
+	}
+	if listed := findTopic(t, conn, ref.Name); listed != nil {
+		t.Error("the topic is still listed after being deleted")
+	}
+}
+
+// A non-persistent topic is listed beside the persistent ones, and carries the
+// scheme a later delete needs.
+func TestLiveNonPersistentTopicIsListedWithItsScheme(t *testing.T) {
+	conn := liveConn(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	ref := model.DestinationRef{Namespace: "public/default", Name: "mq-studio-e2e-telemetry"}
+	spec := model.DestinationSpec{
+		Ref:        ref,
+		Attributes: map[string]string{AttrTopicPersistent: "false"},
+	}
+	_ = conn.RemoveDestination(ctx, ref)
+
+	if err := conn.CreateDestination(ctx, spec); err != nil {
+		t.Fatalf("create a non-persistent topic: %v", err)
+	}
+	t.Cleanup(func() {
+		cleanup, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		_ = conn.RemoveDestination(cleanup, ref)
+	})
+
+	listed := waitForTopic(t, conn, ref.Name)
+	if listed.Attributes[AttrTopicPersistent] != "false" {
+		t.Errorf("a non-persistent topic is listed as persistent: %v", listed.Attributes)
+	}
+}
+
+// waitForTopic gives the cluster a bounded moment to make a new topic visible.
+func waitForTopic(t *testing.T, conn *Conn, name string) *model.Destination {
+	t.Helper()
+
+	deadline := time.Now().Add(20 * time.Second)
+	for {
+		if found := findTopic(t, conn, name); found != nil {
+			return found
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("%s never appeared in the listing", name)
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+}
+
+func findTopic(t *testing.T, conn *Conn, name string) *model.Destination {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	topics, err := conn.ListDestinations(ctx, model.DestinationFilter{IncludeInternal: true})
+	if err != nil {
+		t.Fatalf("ListDestinations: %v", err)
+	}
+	for _, topic := range topics {
+		if topic.Ref.Name == name {
+			return topic
+		}
+	}
+	return nil
+}

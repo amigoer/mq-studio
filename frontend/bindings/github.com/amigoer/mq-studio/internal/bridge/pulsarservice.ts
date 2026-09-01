@@ -44,11 +44,26 @@ export function CreateNamespace(connID: number, input: $models.PulsarNamespaceIn
 }
 
 /**
+ * CreateTopic declares a topic.
+ */
+export function CreateTopic(connID: number, input: $models.PulsarTopicInput): $CancellablePromise<void> {
+    return $Call.ByID(1503351697, connID, input);
+}
+
+/**
  * DeleteNamespace removes one. Pulsar refuses while it still holds topics, and
  * that refusal reaches the user rather than being forced through.
  */
 export function DeleteNamespace(connID: number, name: string): $CancellablePromise<void> {
     return $Call.ByID(882977176, connID, name);
+}
+
+/**
+ * DeleteTopic removes one. Pulsar refuses while a producer or consumer is
+ * still attached, and that refusal reaches the user.
+ */
+export function DeleteTopic(connID: number, $namespace: string, name: string): $CancellablePromise<void> {
+    return $Call.ByID(1055217916, connID, $namespace, name);
 }
 
 /**
@@ -59,6 +74,14 @@ export function Namespaces(connID: number): $CancellablePromise<(model$0.Namespa
     return $Call.ByID(1291508398, connID).then(($result: any) => {
         return $$createType3($result);
     });
+}
+
+/**
+ * RaisePartitions adds partitions to a partitioned topic. Pulsar cannot remove
+ * them, and cannot partition a topic that was created without partitions.
+ */
+export function RaisePartitions(connID: number, input: $models.PulsarTopicInput): $CancellablePromise<void> {
+    return $Call.ByID(1275442749, connID, input);
 }
 
 /**
@@ -100,6 +123,37 @@ export function Tenants(connID: number): $CancellablePromise<($models.PulsarTena
     });
 }
 
+/**
+ * TopicDetail is one topic in one namespace.
+ */
+export function TopicDetail(connID: number, $namespace: string, name: string): $CancellablePromise<model$0.Destination | null> {
+    return $Call.ByID(1962758660, connID, $namespace, name).then(($result: any) => {
+        return $$createType8($result);
+    });
+}
+
+/**
+ * TopicStats is the per-partition breakdown the detail panel draws.
+ */
+export function TopicStats(connID: number, $namespace: string, name: string): $CancellablePromise<{ [_ in string]?: any }> {
+    return $Call.ByID(1539980380, connID, $namespace, name).then(($result: any) => {
+        return $$createType9($result);
+    });
+}
+
+/**
+ * Topics returns every topic in one namespace.
+ * 
+ * Namespace-scoped, which TopicService is not: a Pulsar topic is addressed as
+ * tenant/namespace/name, and the canonical service's Detail builds a ref with
+ * no namespace in it at all.
+ */
+export function Topics(connID: number, $namespace: string, includeInternal: boolean): $CancellablePromise<(model$0.Destination | null)[]> {
+    return $Call.ByID(447707186, connID, $namespace, includeInternal).then(($result: any) => {
+        return $$createType10($result);
+    });
+}
+
 // Private type creation functions
 const $$createType0 = $Create.Array($Create.Any);
 const $$createType1 = model$0.Namespace.createFrom;
@@ -108,3 +162,7 @@ const $$createType3 = $Create.Array($$createType2);
 const $$createType4 = $models.PulsarTenantView.createFrom;
 const $$createType5 = $Create.Nullable($$createType4);
 const $$createType6 = $Create.Array($$createType5);
+const $$createType7 = model$0.Destination.createFrom;
+const $$createType8 = $Create.Nullable($$createType7);
+const $$createType9 = $Create.Map($Create.Any, $Create.Any);
+const $$createType10 = $Create.Array($$createType8);

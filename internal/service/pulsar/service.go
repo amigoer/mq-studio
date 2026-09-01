@@ -202,3 +202,91 @@ func (s *Service) RemoveNamespaceLimit(
 	defer cancel()
 	return api.RemoveNamespaceLimit(ctx, name, limit)
 }
+
+// CreateTopic declares a topic.
+//
+// Partitions is the decision that cannot be taken back: Pulsar can raise the
+// count but never lower it, and a non-partitioned topic can never become
+// partitioned.
+func (s *Service) CreateTopic(ctx context.Context, connID int, spec model.DestinationSpec) error {
+	api, err := port[driver.DestinationAdmin](s, connID, model.CapDestinationCreate)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.CreateDestination(ctx, spec)
+}
+
+// RaisePartitions is the only edit Pulsar offers on a topic.
+func (s *Service) RaisePartitions(
+	ctx context.Context, connID int, spec model.DestinationSpec,
+) error {
+	api, err := port[driver.DestinationAdmin](s, connID, model.CapDestinationUpdate)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.UpdateDestination(ctx, spec)
+}
+
+// Topics is every topic in one namespace.
+//
+// Namespace-scoped, which the canonical destination service is not: its List
+// takes a connection and a filter whose namespace no other family fills in,
+// and its Detail builds a ref with no namespace at all. A Pulsar topic is
+// addressed as tenant/namespace/name, so a read that lost the namespace would
+// address a different topic - or none.
+func (s *Service) Topics(
+	ctx context.Context, connID int, namespace string, includeInternal bool,
+) ([]*model.Destination, error) {
+	api, err := port[driver.DestinationAdmin](s, connID, model.CapDestinationList)
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.ListDestinations(ctx, model.DestinationFilter{
+		Namespace:       namespace,
+		IncludeInternal: includeInternal,
+	})
+}
+
+// TopicDetail is one topic in one namespace.
+func (s *Service) TopicDetail(
+	ctx context.Context, connID int, namespace, name string,
+) (*model.Destination, error) {
+	api, err := port[driver.DestinationAdmin](s, connID, model.CapDestinationList)
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.DestinationDetail(ctx, model.DestinationRef{Namespace: namespace, Name: name})
+}
+
+// TopicStats is the per-partition breakdown the detail panel draws.
+func (s *Service) TopicStats(
+	ctx context.Context, connID int, namespace, name string,
+) (map[string]interface{}, error) {
+	api, err := port[driver.DestinationStats](s, connID, model.CapPartitions)
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.DestinationStats(ctx, model.DestinationRef{Namespace: namespace, Name: name})
+}
+
+// DeleteTopic removes one. Pulsar refuses while a producer or consumer is
+// still attached, and that refusal is passed through rather than forced.
+func (s *Service) DeleteTopic(ctx context.Context, connID int, namespace, name string) error {
+	api, err := port[driver.DestinationAdmin](s, connID, model.CapDestinationDelete)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.RemoveDestination(ctx, model.DestinationRef{Namespace: namespace, Name: name})
+}

@@ -1892,6 +1892,38 @@
           "retry": "Retry",
           "dlq": "Dead letter"
         }
+      },
+      "pulsar": {
+        "title": "Topics",
+        "new": "New topic",
+        "newTitle": "New topic",
+        "namespace": "Namespace",
+        "name": "Name",
+        "storage": "Storage",
+        "partitions": "Partitions",
+        "partitionsHint": "Blank or 0 is a non-partitioned topic, which can never become partitioned.",
+        "partitionsInvalid": "Partitions must be a whole number, 0 or more",
+        "partition": "Partition",
+        "perPartition": "Per partition",
+        "backlog": "Backlog",
+        "subscriptions": "Subs",
+        "size": "Size",
+        "address": "Address",
+        "producers": "Producers",
+        "averageSize": "Average message",
+        "notPartitioned": "none",
+        "includeInternal": "Show Pulsar's own topics",
+        "persistentHint": "Kept in BookKeeper and retained by the namespace's policy.",
+        "nonPersistentHint": "Kept nowhere. A message no consumer is connected to receive is dropped.",
+        "oneWayNote": "Neither choice can be undone: partitions can be raised but never lowered, and storage is fixed at creation.",
+        "nameRequired": "A name is required",
+        "nameScheme": "Leave the scheme out; the storage switch below chooses it",
+        "nameSlash": "A topic name cannot start or end with a slash",
+        "namePartitionSuffix": "A -partition-N name shadows a real partition and would be unreachable",
+        "created": "Created {{name}}",
+        "deleted": "Deleted {{name}}",
+        "deleteTitle": "Delete this topic?",
+        "deleteBody": "{{name}} and everything it holds are removed. Pulsar refuses while a producer or consumer is still attached."
       }
     },
     "consumers": {

@@ -3,11 +3,19 @@ import type {
   PulsarNamespaceInput,
   PulsarTenantInput,
   PulsarTenantView,
+  PulsarTopicInput,
 } from "@bindings/bridge/models";
-import type { Namespace } from "@bindings/model/models";
-import { present } from "./client";
+import type { Destination, Namespace } from "@bindings/model/models";
+import { present, required } from "./client";
 
-export type { Namespace, PulsarNamespaceInput, PulsarTenantInput, PulsarTenantView };
+export type {
+  Destination,
+  Namespace,
+  PulsarNamespaceInput,
+  PulsarTenantInput,
+  PulsarTenantView,
+  PulsarTopicInput,
+};
 
 /**
  * What only Pulsar has.
@@ -64,3 +72,50 @@ export const removePulsarNamespaceLimit = (
   name: string,
   limit: string,
 ): Promise<void> => PulsarService.RemoveNamespaceLimit(connID, name, limit);
+
+/**
+ * Every topic in one namespace.
+ *
+ * Namespace-scoped, which the canonical topic API is not: a Pulsar topic is
+ * addressed as tenant/namespace/name, and TopicService.Detail builds a ref
+ * with no namespace in it at all.
+ */
+export const getPulsarTopics = (
+  connID: number,
+  namespace: string,
+  includeInternal = false,
+): Promise<Destination[]> =>
+  PulsarService.Topics(connID, namespace, includeInternal).then(present);
+
+export const getPulsarTopicDetail = (
+  connID: number,
+  namespace: string,
+  name: string,
+): Promise<Destination> =>
+  PulsarService.TopicDetail(connID, namespace, name).then(required);
+
+/** The per-partition breakdown the detail panel draws. */
+export const getPulsarTopicStats = (
+  connID: number,
+  namespace: string,
+  name: string,
+): Promise<Record<string, unknown>> => PulsarService.TopicStats(connID, namespace, name);
+
+/** Declares a topic. Zero partitions is a non-partitioned topic, not a default. */
+export const createPulsarTopic = (
+  connID: number,
+  input: PulsarTopicInput,
+): Promise<void> => PulsarService.CreateTopic(connID, input);
+
+/** Adds partitions. Pulsar can never remove them. */
+export const raisePulsarPartitions = (
+  connID: number,
+  input: PulsarTopicInput,
+): Promise<void> => PulsarService.RaisePartitions(connID, input);
+
+/** Deletes a topic. Pulsar refuses while a client is still attached. */
+export const removePulsarTopic = (
+  connID: number,
+  namespace: string,
+  name: string,
+): Promise<void> => PulsarService.DeleteTopic(connID, namespace, name);

@@ -1358,6 +1358,62 @@ export class PulsarTenantView {
 }
 
 /**
+ * PulsarTopicInput is a topic declaration as the Pulsar form collects it.
+ * 
+ * Deliberately not TopicService.Create's shape. That one takes a broker
+ * address, a read queue count, a write queue count and a permission string,
+ * which is RocketMQ's vocabulary: a Pulsar topic has none of those. It has a
+ * namespace, a name, a partition count and a storage kind.
+ */
+export class PulsarTopicInput {
+    /**
+     * Namespace is "tenant/namespace". Blank means the one this connection is
+     * scoped to, which is what the form's cascade starts on.
+     */
+    "namespace": string;
+    "name": string;
+
+    /**
+     * Partitions of 0 is a non-partitioned topic, which is a different object
+     * from one with a single partition - the second is addressed as
+     * name-partition-0 and can grow, the first can never be partitioned.
+     */
+    "partitions": number;
+
+    /**
+     * Persistent chooses the storage. A non-persistent topic keeps nothing on
+     * disk: a message nobody is connected to receive is dropped.
+     */
+    "persistent": boolean;
+
+    /** Creates a new PulsarTopicInput instance. */
+    constructor($$source: Partial<PulsarTopicInput> = {}) {
+        if (!("namespace" in $$source)) {
+            this["namespace"] = "";
+        }
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("partitions" in $$source)) {
+            this["partitions"] = 0;
+        }
+        if (!("persistent" in $$source)) {
+            this["persistent"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new PulsarTopicInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): PulsarTopicInput {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new PulsarTopicInput($$parsedSource as Partial<PulsarTopicInput>);
+    }
+}
+
+/**
  * QueueInput is a queue declaration as the form collects it.
  * 
  * Nothing like TopicInput, and it should not be: a RocketMQ topic is read and

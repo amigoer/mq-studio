@@ -42,6 +42,10 @@ type clientConfig struct {
 	TLSSkipVerify bool
 }
 
+// scope is the tenant/namespace every page is read within, in the form the
+// admin API uses.
+func (c clientConfig) scope() string { return c.Tenant + "/" + c.Namespace }
+
 // configOf reads a profile into a config, rejecting what cannot be dialled.
 func configOf(profile model.ConnectionProfile) (clientConfig, error) {
 	service, err := normaliseServiceURL(profile.Endpoints)

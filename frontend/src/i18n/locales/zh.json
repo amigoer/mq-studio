@@ -1892,6 +1892,38 @@
           "retry": "重试",
           "dlq": "死信"
         }
+      },
+      "pulsar": {
+        "title": "主题",
+        "new": "新建主题",
+        "newTitle": "新建主题",
+        "namespace": "命名空间",
+        "name": "名称",
+        "storage": "存储",
+        "partitions": "分区数",
+        "partitionsHint": "留空或填 0 表示非分区主题，之后无法再改成分区主题。",
+        "partitionsInvalid": "分区数必须是 0 或正整数",
+        "partition": "分区",
+        "perPartition": "按分区",
+        "backlog": "积压",
+        "subscriptions": "订阅数",
+        "size": "占用",
+        "address": "地址",
+        "producers": "生产者",
+        "averageSize": "平均消息大小",
+        "notPartitioned": "无",
+        "includeInternal": "显示 Pulsar 内部主题",
+        "persistentHint": "存入 BookKeeper，按命名空间的保留策略保留。",
+        "nonPersistentHint": "不落盘。没有消费者在线接收的消息会被直接丢弃。",
+        "oneWayNote": "这两项都不可撤销：分区数只能增加不能减少，存储方式在创建时就定死了。",
+        "nameRequired": "请填写名称",
+        "nameScheme": "不要带 scheme，下面的存储开关会决定它",
+        "nameSlash": "主题名不能以斜杠开头或结尾",
+        "namePartitionSuffix": "以 -partition-N 结尾的名字会盖住真实分区，之后无法访问",
+        "created": "已创建 {{name}}",
+        "deleted": "已删除 {{name}}",
+        "deleteTitle": "确认删除该主题？",
+        "deleteBody": "将删除 {{name}} 及其全部数据。如果还有生产者或消费者连着，Pulsar 会拒绝。"
       }
     },
     "consumers": {

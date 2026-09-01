@@ -2,6 +2,7 @@ package bridge
 
 import (
 	"context"
+	"strconv"
 
 	pulsardriver "github.com/amigoer/mq-studio/internal/driver/pulsar"
 	"github.com/amigoer/mq-studio/internal/model"
@@ -121,4 +122,78 @@ func (s *PulsarService) SetNamespaceLimit(connID int, name, limit string, value 
 // same as setting zero: zero producers is a namespace nothing can publish to.
 func (s *PulsarService) RemoveNamespaceLimit(connID int, name, limit string) error {
 	return s.service.RemoveNamespaceLimit(context.Background(), connID, name, limit)
+}
+
+// PulsarTopicInput is a topic declaration as the Pulsar form collects it.
+//
+// Deliberately not TopicService.Create's shape. That one takes a broker
+// address, a read queue count, a write queue count and a permission string,
+// which is RocketMQ's vocabulary: a Pulsar topic has none of those. It has a
+// namespace, a name, a partition count and a storage kind.
+type PulsarTopicInput struct {
+	// Namespace is "tenant/namespace". Blank means the one this connection is
+	// scoped to, which is what the form's cascade starts on.
+	Namespace string `json:"namespace"`
+	Name      string `json:"name"`
+
+	// Partitions of 0 is a non-partitioned topic, which is a different object
+	// from one with a single partition - the second is addressed as
+	// name-partition-0 and can grow, the first can never be partitioned.
+	Partitions int `json:"partitions"`
+
+	// Persistent chooses the storage. A non-persistent topic keeps nothing on
+	// disk: a message nobody is connected to receive is dropped.
+	Persistent bool `json:"persistent"`
+}
+
+func (input PulsarTopicInput) spec() model.DestinationSpec {
+	return model.DestinationSpec{
+		Ref:        model.DestinationRef{Namespace: input.Namespace, Name: input.Name},
+		Partitions: input.Partitions,
+		Attributes: map[string]string{
+			pulsardriver.AttrTopicPersistent: strconv.FormatBool(input.Persistent),
+		},
+	}
+}
+
+// CreateTopic declares a topic.
+func (s *PulsarService) CreateTopic(connID int, input PulsarTopicInput) error {
+	return s.service.CreateTopic(context.Background(), connID, input.spec())
+}
+
+// RaisePartitions adds partitions to a partitioned topic. Pulsar cannot remove
+// them, and cannot partition a topic that was created without partitions.
+func (s *PulsarService) RaisePartitions(connID int, input PulsarTopicInput) error {
+	return s.service.RaisePartitions(context.Background(), connID, input.spec())
+}
+
+// Topics returns every topic in one namespace.
+//
+// Namespace-scoped, which TopicService is not: a Pulsar topic is addressed as
+// tenant/namespace/name, and the canonical service's Detail builds a ref with
+// no namespace in it at all.
+func (s *PulsarService) Topics(
+	connID int, namespace string, includeInternal bool,
+) ([]*model.Destination, error) {
+	return s.service.Topics(context.Background(), connID, namespace, includeInternal)
+}
+
+// TopicDetail is one topic in one namespace.
+func (s *PulsarService) TopicDetail(
+	connID int, namespace, name string,
+) (*model.Destination, error) {
+	return s.service.TopicDetail(context.Background(), connID, namespace, name)
+}
+
+// TopicStats is the per-partition breakdown the detail panel draws.
+func (s *PulsarService) TopicStats(
+	connID int, namespace, name string,
+) (map[string]interface{}, error) {
+	return s.service.TopicStats(context.Background(), connID, namespace, name)
+}
+
+// DeleteTopic removes one. Pulsar refuses while a producer or consumer is
+// still attached, and that refusal reaches the user.
+func (s *PulsarService) DeleteTopic(connID int, namespace, name string) error {
+	return s.service.DeleteTopic(context.Background(), connID, namespace, name)
 }

@@ -57,3 +57,24 @@ const (
 	// family has to a name server worth naming on a page.
 	AttrClusterMetadataStore = "pulsarMetadataStore"
 )
+
+// Destination.
+const (
+	// AttrTopicPersistent is the scheme a topic was declared with. It is an
+	// attribute rather than part of the ref because it is a property of the
+	// topic, not part of its address within a namespace.
+	AttrTopicPersistent = "pulsarPersistent"
+
+	// AttrTopicStorageBytes is what the topic occupies in BookKeeper. Distinct
+	// from the backlog: retention keeps acknowledged messages on disk, so a
+	// topic every subscription has caught up with still has a size.
+	AttrTopicStorageBytes = "pulsarStorageBytes"
+
+	// AttrTopicProducers is how many are currently attached. Pulsar reports
+	// them per topic, which is why this family can answer the question at all.
+	AttrTopicProducers = "pulsarTopicProducers"
+
+	// AttrTopicAverageMessageBytes is what the broker has seen on this topic,
+	// which is the figure that turns a backlog count into an idea of size.
+	AttrTopicAverageMessageBytes = "pulsarAverageMessageBytes"
+)

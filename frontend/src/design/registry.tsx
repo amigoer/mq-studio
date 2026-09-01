@@ -11,6 +11,7 @@ import { OverviewMqtt } from "./boards/overview/OverviewMqtt";
 
 import { TopicsRocketMQ } from "./boards/topics/TopicsRocketMQ";
 import { TopicsKafka } from "./boards/topics/TopicsKafka";
+import { TopicsPulsar } from "./boards/topics/TopicsPulsar";
 import { QueuesRabbitMQ } from "./boards/topics/QueuesRabbitMQ";
 import { ExchangesRabbitMQ } from "./boards/topics/ExchangesRabbitMQ";
 import { VhostsRabbitMQ } from "./boards/vhosts/VhostsRabbitMQ";
@@ -100,6 +101,7 @@ const BOARDS: Partial<
     rocketmq: TopicsRocketMQ,
     kafka: TopicsKafka,
     rabbitmq: QueuesRabbitMQ,
+    pulsar: TopicsPulsar,
     redis: StreamsRedis,
     // MQTT's topic tree only exists inside the 4b workbench.
     mqtt: MqttWorkbench,
