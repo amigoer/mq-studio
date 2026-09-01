@@ -640,3 +640,17 @@ describe("the Redis connection draft", () => {
     expect(draft.value.masterName).toBe("");
   });
 });
+
+/*
+ * The picker gate and the draft registry have to agree. A tile that can be
+ * selected and has no form behind it opens an empty dialog; one with a form
+ * that cannot be selected is a driver nobody can reach.
+ */
+describe("the picker and the draft registry", () => {
+  it("offers exactly the protocols a form can be built for", async () => {
+    const { PROTOCOL_ORDER, isProtocolReady } = await import("@/design/data/protocols");
+    for (const protocol of PROTOCOL_ORDER) {
+      expect(isProtocolReady(protocol), protocol).toBe(isDraftable(protocol));
+    }
+  });
+});

@@ -1210,17 +1210,17 @@
         "noConsumer": "No consumer"
       },
       "redis": {
-        "subtitle": "redis-stream-01 · Redis 7.2 · standalone · db0 · read-only off",
-        "standalone": "Standalone",
-        "match": "Matching orders:* ; events:*",
-        "consumers": "21 consumers",
-        "pel": "PEL pending",
-        "idle": "Longest idle 2.1h",
-        "cmdRate": "Command rate",
-        "memUsage": "Memory used",
-        "topLength": "Top streams by length",
-        "maxlen": "maxlen policy",
-        "unbounded": "Unbounded · consider XTRIM"
+        "subtitle": "What this server holds and how fast it is going",
+        "uptime": "uptime {{uptime}}",
+        "found": "found by the key pattern",
+        "stalled": "{{count}} stalled",
+        "allConsuming": "all consuming or idle",
+        "noCap": "no maxmemory set",
+        "pel": "Pending",
+        "pelHint": "handed out and not acknowledged",
+        "throughput": "Throughput",
+        "topLength": "Longest streams",
+        "noGroup": "none"
       },
       "rocketmq": {
         "systemHidden": "System topics hidden",

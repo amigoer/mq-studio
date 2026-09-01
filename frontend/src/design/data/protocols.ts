@@ -278,7 +278,12 @@ export function labelOf(protocol: ProtocolId, page: PageId): string {
  * Adding one here needs a driver, a form in
  * boards/connections/connectionDraft.ts, and boards that read the endpoint.
  */
-const READY: ReadonlySet<ProtocolId> = new Set<ProtocolId>(["rocketmq", "rabbitmq", "kafka"]);
+const READY: ReadonlySet<ProtocolId> = new Set<ProtocolId>([
+  "rocketmq",
+  "rabbitmq",
+  "kafka",
+  "redis",
+]);
 
 export function isProtocolReady(protocol: ProtocolId): boolean {
   return READY.has(protocol);

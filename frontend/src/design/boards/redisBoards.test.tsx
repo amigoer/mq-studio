@@ -74,6 +74,7 @@ let ProducerRedis: typeof import("./producer/ProducerRedis").ProducerRedis;
 let PelRedis: typeof import("./dlq/PelRedis").PelRedis;
 let NodeRedis: typeof import("./cluster/NodeRedis").NodeRedis;
 let ClientsRedis: typeof import("./consumers/ClientsRedis").ClientsRedis;
+let OverviewRedis: typeof import("./overview/OverviewRedis").OverviewRedis;
 
 beforeAll(async () => {
   const storage = { getItem: () => null, setItem() {}, removeItem() {} };
@@ -86,8 +87,20 @@ beforeAll(async () => {
   });
   vi.stubGlobal("localStorage", storage);
 
-  const [server, streams, consumers, messages, producer, pel, cluster, clients, ui, i18n, settings] =
-    await Promise.all([
+  const [
+    server,
+    streams,
+    consumers,
+    messages,
+    producer,
+    pel,
+    cluster,
+    clients,
+    overview,
+    ui,
+    i18n,
+    settings,
+  ] = await Promise.all([
     import("react-dom/server"),
     import("./topics/StreamsRedis"),
     import("./consumers/ConsumersRedis"),
@@ -96,6 +109,7 @@ beforeAll(async () => {
     import("./dlq/PelRedis"),
     import("./cluster/NodeRedis"),
     import("./consumers/ClientsRedis"),
+    import("./overview/OverviewRedis"),
     import("@/components"),
     import("@/i18n"),
     import("@/hooks/useSettings"),
@@ -114,6 +128,7 @@ beforeAll(async () => {
   PelRedis = pel.PelRedis;
   NodeRedis = cluster.NodeRedis;
   ClientsRedis = clients.ClientsRedis;
+  OverviewRedis = overview.OverviewRedis;
 });
 
 /** A stream as internal/driver/redisstream/destination.go sends one. */
@@ -778,5 +793,67 @@ describe("the Redis clients board", () => {
   it("says the search matched nothing rather than showing an empty table", () => {
     clientsState.current = stateOf({ data: [] });
     expect(render(<ClientsRedis />)).toContain("没有任何连接");
+  });
+});
+
+describe("the Redis overview board", () => {
+  const serverData = { overview: null, nodes: [server], directory: [] };
+
+  it("says nothing is dialled rather than showing an empty summary", () => {
+    serversState.current = stateOf({ online: false, data: null });
+    streamsState.current = stateOf({ online: false, data: null });
+    groupsState.current = stateOf({ online: false, data: null });
+    expect(render(<OverviewRedis />)).toContain("未连接");
+  });
+
+  it("counts what the listings found, and says that is what it is", () => {
+    serversState.current = stateOf({ data: serverData });
+    streamsState.current = stateOf({ data: [orders, fresh] });
+    groupsState.current = stateOf({ data: [settleGroup] });
+    const html = render(<OverviewRedis />);
+    // SCAN is a cursor and the walk is capped, so this is what the listing
+    // saw rather than what the server holds.
+    expect(html).toContain("按键匹配模式找到");
+  });
+
+  /*
+   * The pending total is summed from the group list rather than asked for
+   * separately: every group already carries what it is owed, and a per-group
+   * XPENDING would be one round trip each to fill one tile.
+   */
+  it("sums what the groups are owed", () => {
+    serversState.current = stateOf({ data: serverData });
+    streamsState.current = stateOf({ data: [orders] });
+    groupsState.current = stateOf({ data: [settleGroup, stalledGroup] });
+    const html = render(<OverviewRedis />);
+    // 29 owed to settle-group plus 12 to capture-group.
+    expect(html).toContain("41");
+    expect(html).toContain("1 个停滞");
+  });
+
+  /*
+   * The canvas drew a command-rate chart. Nothing in this app records a series
+   * for Redis and the server reports an instantaneous figure only, so a chart
+   * would be a line through one point.
+   */
+  it("shows the instantaneous figures rather than a chart of one point", () => {
+    serversState.current = stateOf({ data: serverData });
+    streamsState.current = stateOf({ data: [orders] });
+    groupsState.current = stateOf({ data: [] });
+    const html = render(<OverviewRedis />);
+    expect(html).toContain("吞吐");
+    expect(html).toContain("3,420");
+    expect(html).not.toContain("图表");
+  });
+
+  it("lists the longest streams, and marks one nothing reads", () => {
+    serversState.current = stateOf({ data: serverData });
+    streamsState.current = stateOf({ data: [orders, fresh] });
+    groupsState.current = stateOf({ data: [] });
+    const html = render(<OverviewRedis />);
+    expect(html).toContain("orders:events");
+    // The fresh stream has no group, which is a real state worth marking
+    // rather than a zero in a column.
+    expect(html).toContain("orders:new");
   });
 });

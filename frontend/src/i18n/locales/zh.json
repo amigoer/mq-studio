@@ -1210,17 +1210,17 @@
         "noConsumer": "无消费者"
       },
       "redis": {
-        "subtitle": "redis-stream-01 · Redis 7.2 · 单机 · db0 · 只读模式关闭",
-        "standalone": "单机",
-        "match": "匹配 orders:* ; events:*",
-        "consumers": "消费者 21",
-        "pel": "PEL 待确认",
-        "idle": "最长空闲 2.1h",
-        "cmdRate": "命令速率",
-        "memUsage": "内存使用",
-        "topLength": "长度 TOP Stream",
-        "maxlen": "maxlen 策略",
-        "unbounded": "无上限 · 建议 XTRIM"
+        "subtitle": "这台服务器装着什么、跑得多快",
+        "uptime": "已运行 {{uptime}}",
+        "found": "按键匹配模式找到",
+        "stalled": "{{count}} 个停滞",
+        "allConsuming": "都在消费或空闲",
+        "noCap": "未设置 maxmemory",
+        "pel": "待处理",
+        "pelHint": "已派发但未确认",
+        "throughput": "吞吐",
+        "topLength": "最长的 Stream",
+        "noGroup": "无"
       },
       "rocketmq": {
         "systemHidden": "系统 Topic 已隐藏",
