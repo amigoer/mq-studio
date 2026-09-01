@@ -2420,6 +2420,19 @@
         "dropDesc": "Takes up to {{count}} from the head and acknowledges them. Acknowledging removes them from the broker with no dead-lettering and no copy anywhere. There is no undo.",
         "dropped": "Discarded {{count}}",
         "dropFailed": "Could not discard"
+      },
+      "pulsar": {
+        "title": "Dead letters",
+        "topic": "Topic",
+        "kind": "Kind",
+        "source": "From topic",
+        "subscription": "From subscription",
+        "depth": "Held",
+        "consumers": "Draining",
+        "orphan": "origin gone",
+        "none": "No topic in this namespace follows the dead-letter naming convention.",
+        "conventionNote": "Found by name: a consumer with a DLQ policy republishes to <topic>-<subscription>-DLQ. Pulsar records no link on the broker.",
+        "orphanBanner": "{{count}} of these have no origin topic left: nothing will ever drain them, and nothing points at them any more."
       }
     },
     "producer": {

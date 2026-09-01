@@ -6,6 +6,7 @@ import type {
   PulsarTopicInput,
 } from "@bindings/bridge/models";
 import type {
+  DeadLetterQueue,
   Destination,
   MessageItem,
   Namespace,
@@ -14,6 +15,7 @@ import type {
 import { present, required } from "./client";
 
 export type {
+  DeadLetterQueue,
   Destination,
   MessageItem,
   Namespace,
@@ -205,3 +207,16 @@ export const browsePulsarMessages = (
     filters,
   }).then(present);
 };
+
+/**
+ * The topics dead letters land in, and the subscription each came from.
+ *
+ * A Pulsar dead-letter topic is a naming convention in the client libraries,
+ * not a broker object, so this is a walk of the namespace rather than a
+ * question about a consumer group.
+ */
+export const getPulsarDeadLetterQueues = (
+  connID: number,
+  namespace: string,
+): Promise<DeadLetterQueue[]> =>
+  PulsarService.DeadLetterQueues(connID, namespace).then(present);

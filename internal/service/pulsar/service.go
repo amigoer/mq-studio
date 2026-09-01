@@ -354,3 +354,21 @@ func (s *Service) DeleteSubscription(
 	return api.RemoveSubscription(ctx,
 		model.SubscriptionRef{Namespace: topic, Name: subscription})
 }
+
+// DeadLetterQueues finds the topics dead letters land in.
+//
+// Named by the official client libraries' convention rather than declared on
+// the broker: a consumer with a DLQ policy republishes to
+// "<topic>-<subscription>-DLQ". Nothing on the cluster records the link, so
+// the page is a walk of the namespace rather than a question about a group.
+func (s *Service) DeadLetterQueues(
+	ctx context.Context, connID int, namespace string,
+) ([]*model.DeadLetterQueue, error) {
+	api, err := port[driver.DeadLetterTopology](s, connID, model.CapDeadLetterTopology)
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.DeadLetterQueues(ctx, namespace)
+}

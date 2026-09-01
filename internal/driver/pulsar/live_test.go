@@ -1009,3 +1009,68 @@ func bodies(messages []*model.MessageItem) []string {
 	}
 	return out
 }
+
+/*
+ * A dead-letter topic is found by its name, and traced back to the
+ * subscription that gave up.
+ *
+ * Nothing on the broker records the link, so this is the test that proves the
+ * walk finds real topics rather than the pattern matching nothing: the topics
+ * below are created exactly as the client library would name them.
+ */
+func TestLiveDeadLetterTopicIsFoundFromItsName(t *testing.T) {
+	conn := liveConn(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+	defer cancel()
+
+	origin := model.DestinationRef{Namespace: "public/default", Name: "mq-studio-e2e-dlq-src"}
+	dead := model.DestinationRef{
+		Namespace: "public/default", Name: "mq-studio-e2e-dlq-src-worker-DLQ",
+	}
+	orphan := model.DestinationRef{
+		Namespace: "public/default", Name: "mq-studio-e2e-nothing-reader-DLQ",
+	}
+	prepareTopic(t, conn, origin)
+	deadURL := prepareTopic(t, conn, dead)
+	prepareTopic(t, conn, orphan)
+
+	// Something in the dead-letter topic, so the depth column is not zero for
+	// the trivial reason.
+	publishKeyed(t, conn, deadURL, []keyedMessage{{body: "failed once"}})
+
+	queues, err := conn.DeadLetterQueues(ctx, "public/default")
+	if err != nil {
+		t.Fatalf("DeadLetterQueues: %v", err)
+	}
+
+	byName := make(map[string]*model.DeadLetterQueue, len(queues))
+	for _, queue := range queues {
+		byName[queue.Name] = queue
+	}
+
+	found, ok := byName[dead.Name]
+	if !ok {
+		t.Fatalf("the dead-letter topic was not found; got %v", byName)
+	}
+	if len(found.Sources) != 1 || found.Sources[0].Queue != origin.Name {
+		t.Errorf("sources = %+v, want the origin topic", found.Sources)
+	}
+	if len(found.Sources) == 1 && found.Sources[0].Subscription != "worker" {
+		t.Errorf("subscription = %q, want worker", found.Sources[0].Subscription)
+	}
+
+	// The orphan is on the page and says it has no source, which is the row an
+	// operator most needs to see.
+	stray, ok := byName[orphan.Name]
+	if !ok {
+		t.Fatal("a dead-letter topic with no origin was dropped from the walk")
+	}
+	if len(stray.Sources) != 0 {
+		t.Errorf("an orphan claims a source: %+v", stray.Sources)
+	}
+
+	// And the origin topic itself is not on this page.
+	if _, ok := byName[origin.Name]; ok {
+		t.Error("an ordinary topic is listed as a dead-letter queue")
+	}
+}

@@ -2420,6 +2420,19 @@
         "dropDesc": "将从队首取出最多 {{count}} 条并确认丢弃。确认即从 broker 移除，不会再转入死信，也不会留任何副本，无法撤销。",
         "dropped": "已丢弃 {{count}} 条",
         "dropFailed": "丢弃失败"
+      },
+      "pulsar": {
+        "title": "死信",
+        "topic": "主题",
+        "kind": "类型",
+        "source": "来源主题",
+        "subscription": "来源订阅",
+        "depth": "堆积",
+        "consumers": "消费中",
+        "orphan": "来源已删除",
+        "none": "这个命名空间里没有符合死信命名约定的主题。",
+        "conventionNote": "按名字识别：配置了 DLQ 策略的消费者会把消息重新发到 <topic>-<subscription>-DLQ。Pulsar 在 Broker 上不记录这层关联。",
+        "orphanBanner": "有 {{count}} 个的来源主题已经不在了：不会再有人消费它们，也不会再有东西指向它们。"
       }
     },
     "producer": {

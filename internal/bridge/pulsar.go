@@ -235,3 +235,17 @@ func (s *PulsarService) CreateSubscription(
 func (s *PulsarService) DeleteSubscription(connID int, topic, subscription string) error {
 	return s.service.DeleteSubscription(context.Background(), connID, topic, subscription)
 }
+
+// DeadLetterQueues finds the topics dead letters land in, and the subscription
+// each of them came from.
+//
+// A Pulsar dead-letter topic is a naming convention in the client libraries,
+// not a broker object, so this walks the namespace for names that follow it.
+// One whose origin topic is gone is reported without a source rather than
+// dropped: it holds a backlog nothing will drain, which is the row most worth
+// seeing.
+func (s *PulsarService) DeadLetterQueues(
+	connID int, namespace string,
+) ([]*model.DeadLetterQueue, error) {
+	return s.service.DeadLetterQueues(context.Background(), connID, namespace)
+}

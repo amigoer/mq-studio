@@ -37,6 +37,7 @@ import { MessagesRedis } from "./boards/messages/MessagesRedis";
 
 import { DlqRocketMQ } from "./boards/dlq/DlqRocketMQ";
 import { DlqRabbitMQ } from "./boards/dlq/DlqRabbitMQ";
+import { DlqPulsar } from "./boards/dlq/DlqPulsar";
 import { PelRedis } from "./boards/dlq/PelRedis";
 
 import { Producer } from "./boards/producer/Producer";
@@ -133,6 +134,7 @@ const BOARDS: Partial<
   dlq: {
     rocketmq: DlqRocketMQ,
     rabbitmq: DlqRabbitMQ,
+    pulsar: DlqPulsar,
     redis: PelRedis,
   },
   cluster: {

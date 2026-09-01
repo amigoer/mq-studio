@@ -230,6 +230,7 @@ func TestCapabilitiesMatchTheSidebarContract(t *testing.T) {
 		model.CapMessageQuery,
 		model.CapMessageByID,
 		model.CapMessageLiveTail,
+		model.CapDeadLetterTopology,
 	}
 
 	got := capabilities()
