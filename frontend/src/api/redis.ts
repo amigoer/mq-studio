@@ -9,7 +9,16 @@
  * out.
  */
 import { MessageService, RedisStreamService } from "@bindings/bridge";
-import type { MessageItem, StreamAddResult, TrimResult } from "@bindings/model/models";
+import type {
+  AckResult,
+  ClaimResult,
+  GroupConsumer,
+  MessageItem,
+  PendingEntry,
+  PendingSummary,
+  StreamAddResult,
+  TrimResult,
+} from "@bindings/model/models";
 import { FILTER_CONTAINS, FILTER_FIELD } from "@/mq/redis/messages";
 import { present, required } from "./client";
 import * as topicApi from "./topic";
@@ -176,4 +185,105 @@ export const addEntry = (connID: number, draft: EntryDraft): Promise<StreamAddRe
     fields: draft.fields,
     id: draft.id ?? "",
     count: draft.count ?? 1,
+  }).then(required);
+
+/** A group's pending list at a glance. */
+export const pendingSummary = (
+  connID: number,
+  stream: string,
+  group: string,
+): Promise<PendingSummary> =>
+  RedisStreamService.PendingSummary(connID, stream, group).then(required);
+
+export interface PendingQuery {
+  stream: string;
+  group: string;
+  /** One consumer's share. Empty is all of them. */
+  consumer?: string;
+  /** Only entries nothing has touched for at least this long. */
+  minIdleMs?: number;
+  count?: number;
+}
+
+/** Walks a group's pending list. */
+export const pendingEntries = (
+  connID: number,
+  query: PendingQuery,
+): Promise<PendingEntry[]> =>
+  RedisStreamService.PendingEntries(connID, {
+    stream: query.stream,
+    group: query.group,
+    consumer: query.consumer ?? "",
+    minIdleMs: query.minIdleMs ?? 0,
+    count: query.count ?? 0,
+  }).then(present);
+
+/** A group's members, and how long each has been quiet. */
+export const groupConsumers = (
+  connID: number,
+  stream: string,
+  group: string,
+): Promise<GroupConsumer[]> =>
+  RedisStreamService.GroupConsumers(connID, stream, group).then(present);
+
+/**
+ * Settles entries so they stop being owed.
+ *
+ * Quietly destructive: the entry stays in the stream and the group never reads
+ * it again, and nothing about the outcome distinguishes that from a job well
+ * done. The count returned is how many were actually owed - not how many were
+ * named - so a zero means somebody else settled them first.
+ */
+export const ackEntries = (
+  connID: number,
+  stream: string,
+  group: string,
+  ids: string[],
+): Promise<AckResult> =>
+  RedisStreamService.AckEntries(connID, stream, group, ids).then(required);
+
+export interface ClaimRequest {
+  stream: string;
+  group: string;
+  /** The new owner. It need not exist yet - claiming creates it. */
+  consumer: string;
+  ids: string[];
+  /** Refuses to move anything touched more recently than this. */
+  minIdleMs?: number;
+}
+
+/** Moves named entries to another consumer. */
+export const claimEntries = (connID: number, request: ClaimRequest): Promise<ClaimResult> =>
+  RedisStreamService.ClaimEntries(connID, {
+    stream: request.stream,
+    group: request.group,
+    consumer: request.consumer,
+    ids: request.ids,
+    minIdleMs: request.minIdleMs ?? 0,
+  }).then(required);
+
+export interface AutoClaimRequest {
+  stream: string;
+  group: string;
+  consumer: string;
+  minIdleMs: number;
+  count?: number;
+}
+
+/**
+ * Moves whatever has been idle too long, without naming ids.
+ *
+ * It reports what it found gone as well as what it moved: an entry can be in a
+ * pending list and no longer in the stream, and those are dropped rather than
+ * reassigned - work lost rather than moved, which is the one thing about this
+ * gesture worth saying out loud.
+ */
+export const autoClaim = (connID: number, request: AutoClaimRequest): Promise<ClaimResult> =>
+  RedisStreamService.AutoClaim(connID, {
+    stream: request.stream,
+    group: request.group,
+    consumer: request.consumer,
+    minIdleMs: request.minIdleMs,
+    start: "",
+    count: request.count ?? 0,
   }).then(required);

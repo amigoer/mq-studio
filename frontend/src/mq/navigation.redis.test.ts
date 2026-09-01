@@ -30,6 +30,8 @@ const REDIS_CAPABILITIES: Capability[] = [
   Capability.CapMessageQuery,
   Capability.CapMessageByID,
   Capability.CapEntryPublish,
+  Capability.CapPendingEntries,
+  Capability.CapPendingAdmin,
 ];
 
 function state(
@@ -54,7 +56,14 @@ describe("the sidebar a Redis Stream connection draws", () => {
 
     // Overview stands on its own; the rest are the pages these capabilities
     // exist for. What is still missing arrives with its port.
-    expect(reachable).toEqual(["overview", "topics", "consumers", "messages", "producer"]);
+    expect(reachable).toEqual([
+      "overview",
+      "topics",
+      "consumers",
+      "messages",
+      "dlq",
+      "producer",
+    ]);
   });
 
   /*
@@ -122,5 +131,21 @@ describe("the Redis send console's gate", () => {
     expect(REDIS_CAPABILITIES).not.toContain(Capability.CapPublish);
     expect(nav.visible("producer")).toBe(true);
     expect(nav.disabled("producer")).toBe(false);
+  });
+});
+
+/*
+ * The pending-entries page is reached through a capability of its own, beside
+ * the two dead-letter ones. Redis moves nothing aside and gives up on nothing,
+ * so neither of those can describe it - and gating on them would have hidden a
+ * finished page.
+ */
+describe("the Redis pending entries gate", () => {
+  it("is reachable without either dead-letter capability", () => {
+    const nav = navAvailability(state(REDIS_CAPABILITIES), true);
+    expect(REDIS_CAPABILITIES).not.toContain(Capability.CapDLQ);
+    expect(REDIS_CAPABILITIES).not.toContain(Capability.CapDeadLetterTopology);
+    expect(nav.visible("dlq")).toBe(true);
+    expect(nav.disabled("dlq")).toBe(false);
   });
 });

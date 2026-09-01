@@ -40,6 +40,7 @@ const streamsState = vi.hoisted(() => ({ current: null as unknown }));
 const streamDetailState = vi.hoisted(() => ({ current: null as unknown }));
 const groupsState = vi.hoisted(() => ({ current: null as unknown }));
 const entriesState = vi.hoisted(() => ({ current: null as unknown }));
+const pendingState = vi.hoisted(() => ({ current: null as unknown }));
 
 vi.mock("@/hooks/redis/useRedisStreams", () => ({
   useRedisStreams: () => streamsState.current,
@@ -51,12 +52,16 @@ vi.mock("@/hooks/redis/useRedisGroups", () => ({
 vi.mock("@/hooks/redis/useRedisEntries", () => ({
   useRedisEntries: () => entriesState.current,
 }));
+vi.mock("@/hooks/redis/useRedisPending", () => ({
+  useRedisPending: () => pendingState.current,
+}));
 
 let render: (element: React.ReactElement) => string;
 let StreamsRedis: typeof import("./topics/StreamsRedis").StreamsRedis;
 let ConsumersRedis: typeof import("./consumers/ConsumersRedis").ConsumersRedis;
 let MessagesRedis: typeof import("./messages/MessagesRedis").MessagesRedis;
 let ProducerRedis: typeof import("./producer/ProducerRedis").ProducerRedis;
+let PelRedis: typeof import("./dlq/PelRedis").PelRedis;
 
 beforeAll(async () => {
   const storage = { getItem: () => null, setItem() {}, removeItem() {} };
@@ -69,12 +74,14 @@ beforeAll(async () => {
   });
   vi.stubGlobal("localStorage", storage);
 
-  const [server, streams, consumers, messages, producer, ui, i18n, settings] = await Promise.all([
+  const [server, streams, consumers, messages, producer, pel, ui, i18n, settings] =
+    await Promise.all([
     import("react-dom/server"),
     import("./topics/StreamsRedis"),
     import("./consumers/ConsumersRedis"),
     import("./messages/MessagesRedis"),
     import("./producer/ProducerRedis"),
+    import("./dlq/PelRedis"),
     import("@/components"),
     import("@/i18n"),
     import("@/hooks/useSettings"),
@@ -90,6 +97,7 @@ beforeAll(async () => {
   ConsumersRedis = consumers.ConsumersRedis;
   MessagesRedis = messages.MessagesRedis;
   ProducerRedis = producer.ProducerRedis;
+  PelRedis = pel.PelRedis;
 });
 
 /** A stream as internal/driver/redisstream/destination.go sends one. */
@@ -464,5 +472,91 @@ describe("the Redis send console", () => {
   it("says the order is kept, because reading loses it", () => {
     streamsState.current = stateOf({ data: [orders] });
     expect(render(<ProducerRedis />)).toContain("字段顺序会被保留");
+  });
+});
+
+/** A pending view as the hook returns one. */
+function pendingOf(over: Partial<{ summary: unknown; entries: unknown[]; consumers: unknown[] }>) {
+  const { summary = null, entries = [], consumers = [] } = over;
+  return stateOf({ data: { summary, entries, consumers } });
+}
+
+const pendingEntry = {
+  ref: { namespace: "orders:events", name: "settle-group" },
+  id: "1756447200104-0",
+  consumer: "settle-1",
+  idleMs: 7_560_000,
+  deliveries: 17,
+};
+
+const pendingSummary = {
+  ref: { namespace: "orders:events", name: "settle-group" },
+  count: 29,
+  minId: "1756447200104-0",
+  maxId: "1756454646018-0",
+  perConsumer: [
+    { consumer: "settle-1", count: 25 },
+    { consumer: "settle-2", count: 4 },
+  ],
+};
+
+describe("the Redis pending entries board", () => {
+  it("says nothing is dialled rather than showing an empty list", () => {
+    groupsState.current = stateOf({ online: false, data: null });
+    pendingState.current = stateOf({ online: false, data: null });
+    expect(render(<PelRedis />)).toContain("未连接");
+  });
+
+  it("says there is nothing owed rather than showing an empty table", () => {
+    groupsState.current = stateOf({ data: [settleGroup] });
+    pendingState.current = pendingOf({ summary: { ...pendingSummary, count: 0 } });
+    expect(render(<PelRedis />)).toContain("每一条都已确认");
+  });
+
+  it("lists pending entries with their idle time and delivery count", () => {
+    groupsState.current = stateOf({ data: [settleGroup] });
+    pendingState.current = pendingOf({ summary: pendingSummary, entries: [pendingEntry] });
+    const html = render(<PelRedis />);
+    expect(html).toContain("1756447200104-0");
+    expect(html).toContain("settle-1");
+    // Milliseconds are what the server reports; a column of seven-digit
+    // numbers is not what the page is for.
+    expect(html).toContain("2.1h");
+    expect(html).not.toContain("7560000");
+    expect(html).toContain("17");
+  });
+
+  /*
+   * One consumer holding most of what the group is owed and a group that is
+   * generally behind look identical in the total. Naming the first is what
+   * turns the page into something an operator can act on.
+   */
+  it("names a consumer holding most of the backlog", () => {
+    groupsState.current = stateOf({ data: [settleGroup] });
+    pendingState.current = pendingOf({ summary: pendingSummary, entries: [pendingEntry] });
+    expect(render(<PelRedis />)).toContain("settle-1 一个人占了 25 条");
+  });
+
+  it("shows each consumer with what it holds and how long it has been quiet", () => {
+    groupsState.current = stateOf({ data: [settleGroup] });
+    pendingState.current = pendingOf({
+      summary: pendingSummary,
+      entries: [pendingEntry],
+      consumers: [
+        { name: "settle-1", pending: 25, idleMs: 7_560_000, inactiveMs: 0 },
+        { name: "settle-2", pending: 4, idleMs: 900, inactiveMs: 0 },
+      ],
+    });
+    const html = render(<PelRedis />);
+    expect(html).toContain("settle-1");
+    expect(html).toContain("settle-2");
+  });
+
+  // The bulk bar is the only route to the destructive actions, so it must not
+  // be drawn before anything is selected.
+  it("offers no bulk action until entries are selected", () => {
+    groupsState.current = stateOf({ data: [settleGroup] });
+    pendingState.current = pendingOf({ summary: pendingSummary, entries: [pendingEntry] });
+    expect(render(<PelRedis />)).not.toContain("XACK");
   });
 });

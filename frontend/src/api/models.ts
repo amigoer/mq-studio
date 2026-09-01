@@ -18,6 +18,19 @@ export type AccessPrincipal = model.AccessPrincipal;
 export type AccessRule = model.AccessRule;
 export type AccessPolicy = model.AccessPolicy;
 export type Node = model.Node;
+
+// Redis Streams' own shapes. A pending entry is a delivery record rather than
+// a message, and a group consumer is not the canonical SubscriptionClient, so
+// both keep their own names here.
+export type PendingSummary = model.PendingSummary;
+export type PendingEntry = model.PendingEntry;
+export type PendingByConsumer = model.PendingByConsumer;
+export type GroupConsumer = model.GroupConsumer;
+export type ClaimResult = model.ClaimResult;
+export type AckResult = model.AckResult;
+export type TrimResult = model.TrimResult;
+export type StreamAddResult = model.StreamAddResult;
+export type StreamField = model.StreamField;
 export type ClusterOverview = model.ClusterOverview;
 /** The cluster page snapshot: header counters plus the nodes behind them. */
 export type { ClusterView };
