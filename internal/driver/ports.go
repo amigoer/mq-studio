@@ -328,6 +328,17 @@ type ConfigInspector interface {
 	DirectoryConfig(ctx context.Context) (map[string]string, error)
 }
 
+// SlowLogReader reads the record a broker keeps of its slowest commands.
+//
+// Separate from ConfigInspector because it answers a different question:
+// settings are what a node is running with, this is what has actually been
+// slow on it. It is also the only view in this app of a single request rather
+// than of an aggregate, which is what makes it the thing to open when every
+// other figure looks healthy and the server still is not keeping up.
+type SlowLogReader interface {
+	SlowLog(ctx context.Context, address string, limit int) ([]*model.SlowLogEntry, error)
+}
+
 // TransactionInspector reports the transactional producers a cluster is
 // tracking.
 //

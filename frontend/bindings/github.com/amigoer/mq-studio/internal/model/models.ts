@@ -803,6 +803,17 @@ export enum Capability {
     CapQuotaAdmin = "quota.admin",
 
     /**
+     * CapSlowLog is a broker that keeps a record of the commands that took
+     * longest.
+     * 
+     * Distinct from CapNodeConfig, which is what a node is running with: this
+     * is what has actually been slow on it, and it is the first thing anyone
+     * looks at when a server is fine on every other figure and still not
+     * keeping up.
+     */
+    CapSlowLog = "cluster.slowLog",
+
+    /**
      * CapLogDirs is a broker that reports what its partitions occupy on disk.
      * Distinct from CapNodeConfig, which is what a node is running with: this
      * is where its space has gone, and it is the only disk figure Kafka has -
@@ -3908,6 +3919,81 @@ export class Shovel {
             $$parsedSource["targetUri"] = $$createField9_0($$parsedSource["targetUri"]);
         }
         return new Shovel($$parsedSource as Partial<Shovel>);
+    }
+}
+
+/**
+ * SlowLogEntry is one command the server recorded as slow.
+ * 
+ * It is the only view in this app of a single request rather than of an
+ * aggregate, which is what makes it worth having: an average hides the one
+ * KEYS somebody ran against a million-key database, and that one command is
+ * usually the whole answer.
+ */
+export class SlowLogEntry {
+    /**
+     * ID is the server's own sequence number, which only ever increases. It is
+     * how a reader tells a new entry from one they have already looked at.
+     */
+    "id": number;
+
+    /**
+     * TimestampMs is when the command ran, and DurationMicros how long it took
+     * - microseconds because the threshold that captured it is set in them,
+     * and rounding to milliseconds would put most entries at zero.
+     */
+    "timestampMs": number;
+    "durationMicros": number;
+
+    /**
+     * Command is the command and its arguments as the server recorded them.
+     * Redis truncates both the argument count and each argument's length, so
+     * this is what was logged rather than what was sent.
+     */
+    "command": string[];
+
+    /**
+     * Client is who ran it. The name is whatever that connection set with
+     * CLIENT SETNAME, which for this app is the profile name - so an operator
+     * can tell their own console apart from the service they are debugging.
+     */
+    "clientAddress": string;
+    "clientName": string;
+
+    /** Creates a new SlowLogEntry instance. */
+    constructor($$source: Partial<SlowLogEntry> = {}) {
+        if (!("id" in $$source)) {
+            this["id"] = 0;
+        }
+        if (!("timestampMs" in $$source)) {
+            this["timestampMs"] = 0;
+        }
+        if (!("durationMicros" in $$source)) {
+            this["durationMicros"] = 0;
+        }
+        if (!("command" in $$source)) {
+            this["command"] = [];
+        }
+        if (!("clientAddress" in $$source)) {
+            this["clientAddress"] = "";
+        }
+        if (!("clientName" in $$source)) {
+            this["clientName"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new SlowLogEntry instance from a string or object.
+     */
+    static createFrom($$source: any = {}): SlowLogEntry {
+        const $$createField3_0 = $$createType0;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("command" in $$parsedSource) {
+            $$parsedSource["command"] = $$createField3_0($$parsedSource["command"]);
+        }
+        return new SlowLogEntry($$parsedSource as Partial<SlowLogEntry>);
     }
 }
 

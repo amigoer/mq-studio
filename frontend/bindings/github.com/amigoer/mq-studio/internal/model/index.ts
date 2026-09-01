@@ -66,6 +66,7 @@ export {
     ResourceAlarm,
     RuntimeParameter,
     Shovel,
+    SlowLogEntry,
     StreamAddResult,
     StreamClients,
     StreamConsumer,

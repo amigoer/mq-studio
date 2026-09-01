@@ -81,6 +81,12 @@ func capabilities() []model.Capability {
 		model.CapEntryPublish,
 		model.CapPendingEntries,
 		model.CapPendingAdmin,
+
+		model.CapClusterTopology,
+		model.CapClusterMetrics,
+		model.CapNodeConfig,
+		model.CapNodeMaintenance,
+		model.CapSlowLog,
 	}
 }
 

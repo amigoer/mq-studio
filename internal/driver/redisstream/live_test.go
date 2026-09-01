@@ -1235,3 +1235,214 @@ func TestLiveGroupConsumersReportIdleAndInactive(t *testing.T) {
 		}
 	}
 }
+
+/*
+ * INFO against a real server, which is the only place most of it exists: the
+ * in-process one answers connected_clients and nothing else, so every other
+ * figure on the node board is covered here or by the parser tests over
+ * captured output.
+ */
+func TestLiveListNodesOnAStandaloneServer(t *testing.T) {
+	conn := liveConn(t, nil, nil)
+	ctx := liveContext(t)
+
+	nodes, err := conn.ListNodes(ctx)
+	if err != nil {
+		t.Fatalf("list nodes: %v", err)
+	}
+	if len(nodes) != 1 {
+		t.Fatalf("listed %d nodes for a standalone server, want 1", len(nodes))
+	}
+	node := nodes[0]
+	if node.Address != liveAddr {
+		t.Errorf("address = %q, want %q", node.Address, liveAddr)
+	}
+	if node.Version == "" {
+		t.Error("no version reported")
+	}
+	if node.Status != model.NodeOnline {
+		t.Errorf("status = %q, want online", node.Status)
+	}
+	for _, key := range []string{AttrRole, AttrMode, AttrUptimeSeconds, AttrConnectedClients, AttrUsedMemory, AttrOpsPerSec} {
+		if node.Attributes[key] == "" {
+			t.Errorf("attribute %s is empty; the node board would show a gap", key)
+		}
+	}
+	// Redis reports memory, not disk. A percentage here would be a figure the
+	// server never gave.
+	if node.DiskUsage != model.UnknownMetric {
+		t.Errorf("disk usage = %d, want UnknownMetric", node.DiskUsage)
+	}
+}
+
+func TestLiveNodeConfig(t *testing.T) {
+	conn := liveConn(t, nil, nil)
+	ctx := liveContext(t)
+
+	settings, err := conn.NodeConfig(ctx, liveAddr)
+	if err != nil {
+		t.Fatalf("node config: %v", err)
+	}
+	if len(settings) < 50 {
+		t.Fatalf("read %d settings; CONFIG GET * should answer with hundreds", len(settings))
+	}
+	// The two this environment sets deliberately, so a config read that
+	// silently returned defaults would be caught.
+	if settings["appendonly"] != "yes" {
+		t.Errorf("appendonly = %q, want yes", settings["appendonly"])
+	}
+	if settings["slowlog-log-slower-than"] != "0" {
+		t.Errorf("slowlog-log-slower-than = %q, want 0", settings["slowlog-log-slower-than"])
+	}
+}
+
+/*
+ * The slow log, which the environment makes assertable by logging every
+ * command. What is checked is the shape of an entry rather than that Redis was
+ * slow: the client name is this app's own, which is what lets an operator tell
+ * their console apart from the service they are debugging.
+ */
+func TestLiveSlowLog(t *testing.T) {
+	conn := liveConn(t, nil, nil)
+	ctx := liveContext(t)
+
+	// Run something recognisable, then look for it.
+	if err := conn.client.Ping(ctx).Err(); err != nil {
+		t.Fatalf("ping: %v", err)
+	}
+
+	entries, err := conn.SlowLog(ctx, liveAddr, 50)
+	if err != nil {
+		t.Fatalf("slow log: %v", err)
+	}
+	if len(entries) == 0 {
+		e2e.Missing(t, "the slow log is empty; this environment sets slowlog-log-slower-than to 0")
+	}
+
+	// Newest first: the page is opened after something went wrong.
+	for index := 1; index < len(entries); index++ {
+		if entries[index-1].ID < entries[index].ID {
+			t.Fatalf("entry %d has a lower id than the one after it", index-1)
+		}
+	}
+	newest := entries[0]
+	if newest.TimestampMs == 0 {
+		t.Error("no timestamp")
+	}
+	if len(newest.Command) == 0 {
+		t.Error("no command recorded")
+	}
+	if newest.ClientAddress == "" {
+		t.Error("no client address; go-redis's typed helper drops this field, which is why the reply is parsed here")
+	}
+	// The client name is this connection's, set from the profile name at
+	// connect time.
+	found := false
+	for _, entry := range entries {
+		if strings.HasPrefix(entry.ClientName, clientName) {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Errorf("no entry carries this app's client name; CLIENT SETNAME may not be reaching the server")
+	}
+}
+
+/*
+ * Both of Redis's maintenance tasks are additive - a snapshot writes the
+ * dataset down and a rewrite compacts the append-only file - so unlike a
+ * retention sweep neither loses anything. What they are is asynchronous: the
+ * server accepts the request and the outcome shows up in INFO afterwards.
+ */
+func TestLiveRunMaintenance(t *testing.T) {
+	conn := liveConn(t, nil, nil)
+	ctx := liveContext(t)
+
+	for _, task := range []model.MaintenanceTask{model.TaskSnapshot, model.TaskRewriteAppendLog} {
+		if err := conn.RunMaintenance(ctx, liveAddr, task); err != nil {
+			t.Errorf("%s: %v", task, err)
+		}
+	}
+
+	// The status the node board reads back. It is the only place the outcome
+	// appears, since the commands return as soon as the child process starts.
+	node, err := conn.NodeDetail(ctx, liveAddr)
+	if err != nil {
+		t.Fatalf("node detail: %v", err)
+	}
+	if node.Attributes[AttrRDBLastStatus] == "" {
+		t.Error("no last-snapshot status reported")
+	}
+}
+
+// A cluster is every master and replica, and the roles come from CLUSTER NODES
+// rather than from each node's INFO: during a failover the two disagree, and
+// the topology is the authority on which is which.
+func TestLiveListNodesOnACluster(t *testing.T) {
+	requireRedisCluster(t)
+	conn := openLive(t, liveClusterAddr,
+		map[string]string{OptionDeployment: string(DeploymentCluster)},
+		map[string]string{SecretPassword: livePassword})
+	ctx := liveContext(t)
+
+	nodes, err := conn.ListNodes(ctx)
+	if err != nil {
+		t.Fatalf("list nodes: %v", err)
+	}
+	if len(nodes) != 6 {
+		t.Fatalf("listed %d nodes, want the cluster's 6", len(nodes))
+	}
+
+	masters, replicas := 0, 0
+	for _, node := range nodes {
+		switch node.Attributes[AttrRole] {
+		case "master":
+			masters++
+		case "replica":
+			replicas++
+		default:
+			t.Errorf("node %s has role %q", node.Address, node.Attributes[AttrRole])
+		}
+		if node.Attributes[AttrNodeID] == "" {
+			t.Errorf("node %s carries no cluster id", node.Address)
+		}
+		// Every node is filled in from its own INFO, which is what a serial
+		// walk of a six-node cluster would make slow and a per-node client is
+		// what makes possible at all.
+		if node.Version == "" {
+			t.Errorf("node %s was listed without reaching it", node.Address)
+		}
+	}
+	if masters != 3 || replicas != 3 {
+		t.Errorf("read %d masters and %d replicas, want 3 and 3", masters, replicas)
+	}
+}
+
+func TestLiveClusterOverview(t *testing.T) {
+	requireRedisCluster(t)
+	conn := openLive(t, liveClusterAddr,
+		map[string]string{OptionDeployment: string(DeploymentCluster)},
+		map[string]string{SecretPassword: livePassword})
+
+	overview, err := conn.ClusterOverview(liveContext(t))
+	if err != nil {
+		t.Fatalf("overview: %v", err)
+	}
+	if overview.TotalNodes != 6 || overview.OnlineNodes != 6 {
+		t.Errorf("nodes = %d total, %d online", overview.TotalNodes, overview.OnlineNodes)
+	}
+	// A cluster that has lost slots cannot serve the keys in them, and nothing
+	// in the node list says so.
+	if overview.Attributes[AttrClusterState] != "ok" {
+		t.Errorf("cluster state = %q", overview.Attributes[AttrClusterState])
+	}
+	if overview.Attributes[AttrClusterSlots] != "16384" {
+		t.Errorf("slots assigned = %q, want the full range", overview.Attributes[AttrClusterSlots])
+	}
+	// Counting streams and groups would mean scanning the keyspace on every
+	// header refresh. The pages that list them count what they list.
+	if overview.Destinations != model.UnknownMetric || overview.Subscriptions != model.UnknownMetric {
+		t.Errorf("the header counted objects it would have had to scan for: %+v", overview)
+	}
+}

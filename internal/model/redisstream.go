@@ -233,3 +233,32 @@ type AckResult struct {
 	// nothing.
 	Acknowledged int64 `json:"acknowledged"`
 }
+
+// SlowLogEntry is one command the server recorded as slow.
+//
+// It is the only view in this app of a single request rather than of an
+// aggregate, which is what makes it worth having: an average hides the one
+// KEYS somebody ran against a million-key database, and that one command is
+// usually the whole answer.
+type SlowLogEntry struct {
+	// ID is the server's own sequence number, which only ever increases. It is
+	// how a reader tells a new entry from one they have already looked at.
+	ID int64 `json:"id"`
+
+	// TimestampMs is when the command ran, and DurationMicros how long it took
+	// - microseconds because the threshold that captured it is set in them,
+	// and rounding to milliseconds would put most entries at zero.
+	TimestampMs    int64 `json:"timestampMs"`
+	DurationMicros int64 `json:"durationMicros"`
+
+	// Command is the command and its arguments as the server recorded them.
+	// Redis truncates both the argument count and each argument's length, so
+	// this is what was logged rather than what was sent.
+	Command []string `json:"command"`
+
+	// Client is who ran it. The name is whatever that connection set with
+	// CLIENT SETNAME, which for this app is the profile name - so an operator
+	// can tell their own console apart from the service they are debugging.
+	ClientAddress string `json:"clientAddress"`
+	ClientName    string `json:"clientName"`
+}

@@ -216,3 +216,11 @@ func (s *RedisStreamService) AutoClaim(connID int, input AutoClaimInput) (*model
 func groupRefOf(stream, group string) model.SubscriptionRef {
 	return model.SubscriptionRef{Namespace: stream, Name: group}
 }
+
+// SlowLog reads the record a server keeps of its slowest commands.
+//
+// It is not on ClusterService because no other family has one: what a node is
+// running with is a shared question, what has been slow on it is Redis's.
+func (s *RedisStreamService) SlowLog(connID int, address string, limit int) ([]*model.SlowLogEntry, error) {
+	return s.service.SlowLog(context.Background(), connID, address, limit)
+}

@@ -16,6 +16,7 @@ import type {
   MessageItem,
   PendingEntry,
   PendingSummary,
+  SlowLogEntry,
   StreamAddResult,
   TrimResult,
 } from "@bindings/model/models";
@@ -287,3 +288,15 @@ export const autoClaim = (connID: number, request: AutoClaimRequest): Promise<Cl
     start: "",
     count: request.count ?? 0,
   }).then(required);
+
+/**
+ * The record a server keeps of its slowest commands.
+ *
+ * Not on the cluster API because no other family has one: what a node is
+ * running with is a shared question, what has been slow on it is Redis's.
+ */
+export const slowLog = (
+  connID: number,
+  address: string,
+  limit = 0,
+): Promise<SlowLogEntry[]> => RedisStreamService.SlowLog(connID, address, limit).then(present);

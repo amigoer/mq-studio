@@ -32,6 +32,11 @@ const REDIS_CAPABILITIES: Capability[] = [
   Capability.CapEntryPublish,
   Capability.CapPendingEntries,
   Capability.CapPendingAdmin,
+  Capability.CapClusterTopology,
+  Capability.CapClusterMetrics,
+  Capability.CapNodeConfig,
+  Capability.CapNodeMaintenance,
+  Capability.CapSlowLog,
 ];
 
 function state(
@@ -63,6 +68,8 @@ describe("the sidebar a Redis Stream connection draws", () => {
       "messages",
       "dlq",
       "producer",
+      "cluster",
+      "alerts",
     ]);
   });
 

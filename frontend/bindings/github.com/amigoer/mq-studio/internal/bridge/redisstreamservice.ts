@@ -126,6 +126,18 @@ export function SetGroupPosition(connID: number, stream: string, group: string, 
 }
 
 /**
+ * SlowLog reads the record a server keeps of its slowest commands.
+ * 
+ * It is not on ClusterService because no other family has one: what a node is
+ * running with is a shared question, what has been slow on it is Redis's.
+ */
+export function SlowLog(connID: number, address: string, limit: number): $CancellablePromise<(model$0.SlowLogEntry | null)[]> {
+    return $Call.ByID(1637452301, connID, address, limit).then(($result: any) => {
+        return $$createType18($result);
+    });
+}
+
+/**
  * Trim discards entries from the head of a stream and reports how many went.
  */
 export function Trim(connID: number, input: $models.TrimInput): $CancellablePromise<model$0.TrimResult | null> {
@@ -151,3 +163,6 @@ const $$createType12 = $Create.Nullable($$createType11);
 const $$createType13 = $Create.Array($$createType12);
 const $$createType14 = model$0.PendingSummary.createFrom;
 const $$createType15 = $Create.Nullable($$createType14);
+const $$createType16 = model$0.SlowLogEntry.createFrom;
+const $$createType17 = $Create.Nullable($$createType16);
+const $$createType18 = $Create.Array($$createType17);

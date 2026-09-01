@@ -41,6 +41,8 @@ const streamDetailState = vi.hoisted(() => ({ current: null as unknown }));
 const groupsState = vi.hoisted(() => ({ current: null as unknown }));
 const entriesState = vi.hoisted(() => ({ current: null as unknown }));
 const pendingState = vi.hoisted(() => ({ current: null as unknown }));
+const serversState = vi.hoisted(() => ({ current: null as unknown }));
+const slowLogState = vi.hoisted(() => ({ current: null as unknown }));
 
 vi.mock("@/hooks/redis/useRedisStreams", () => ({
   useRedisStreams: () => streamsState.current,
@@ -55,6 +57,10 @@ vi.mock("@/hooks/redis/useRedisEntries", () => ({
 vi.mock("@/hooks/redis/useRedisPending", () => ({
   useRedisPending: () => pendingState.current,
 }));
+vi.mock("@/hooks/redis/useRedisNodes", () => ({
+  useRedisServers: () => serversState.current,
+  useRedisSlowLog: () => slowLogState.current,
+}));
 
 let render: (element: React.ReactElement) => string;
 let StreamsRedis: typeof import("./topics/StreamsRedis").StreamsRedis;
@@ -62,6 +68,7 @@ let ConsumersRedis: typeof import("./consumers/ConsumersRedis").ConsumersRedis;
 let MessagesRedis: typeof import("./messages/MessagesRedis").MessagesRedis;
 let ProducerRedis: typeof import("./producer/ProducerRedis").ProducerRedis;
 let PelRedis: typeof import("./dlq/PelRedis").PelRedis;
+let NodeRedis: typeof import("./cluster/NodeRedis").NodeRedis;
 
 beforeAll(async () => {
   const storage = { getItem: () => null, setItem() {}, removeItem() {} };
@@ -74,7 +81,7 @@ beforeAll(async () => {
   });
   vi.stubGlobal("localStorage", storage);
 
-  const [server, streams, consumers, messages, producer, pel, ui, i18n, settings] =
+  const [server, streams, consumers, messages, producer, pel, cluster, ui, i18n, settings] =
     await Promise.all([
     import("react-dom/server"),
     import("./topics/StreamsRedis"),
@@ -82,6 +89,7 @@ beforeAll(async () => {
     import("./messages/MessagesRedis"),
     import("./producer/ProducerRedis"),
     import("./dlq/PelRedis"),
+    import("./cluster/NodeRedis"),
     import("@/components"),
     import("@/i18n"),
     import("@/hooks/useSettings"),
@@ -98,6 +106,7 @@ beforeAll(async () => {
   MessagesRedis = messages.MessagesRedis;
   ProducerRedis = producer.ProducerRedis;
   PelRedis = pel.PelRedis;
+  NodeRedis = cluster.NodeRedis;
 });
 
 /** A stream as internal/driver/redisstream/destination.go sends one. */
@@ -558,5 +567,129 @@ describe("the Redis pending entries board", () => {
     groupsState.current = stateOf({ data: [settleGroup] });
     pendingState.current = pendingOf({ summary: pendingSummary, entries: [pendingEntry] });
     expect(render(<PelRedis />)).not.toContain("XACK");
+  });
+});
+
+/** A server as internal/driver/redisstream/cluster.go sends one. */
+const server = {
+  id: 1,
+  name: "127.0.0.1:6479",
+  address: "127.0.0.1:6479",
+  cluster: "",
+  version: "8.10.1",
+  status: "online",
+  rateIn: -1,
+  rateOut: -1,
+  diskUsage: -1,
+  lastSeen: "",
+  attributes: {
+    role: "master",
+    mode: "standalone",
+    uptimeSeconds: "8294400",
+    connectedClients: "86",
+    usedMemory: "432013312",
+    maxMemory: "2147483648",
+    opsPerSec: "3420",
+    keyspaceHits: "9920000",
+    keyspaceMisses: "80000",
+    aofEnabled: "1",
+    rdbLastBgsaveStatus: "ok",
+    rdbChangesSinceLastSave: "1204",
+    connectedReplicas: "2",
+  },
+};
+
+const slowEntry = {
+  id: 14,
+  timestampMs: 1756454646000,
+  durationMicros: 41200,
+  command: ["KEYS", "*"],
+  clientAddress: "10.2.0.44:51234",
+  clientName: "reporting-service",
+};
+
+describe("the Redis server board", () => {
+  it("says nothing is dialled rather than showing an empty server", () => {
+    serversState.current = stateOf({ online: false, data: null });
+    slowLogState.current = stateOf({ online: false, data: null });
+    expect(render(<NodeRedis />)).toContain("未连接");
+  });
+
+  it("shows what the server reported, under its own headings", () => {
+    serversState.current = stateOf({ data: { overview: null, nodes: [server], directory: [] } });
+    slowLogState.current = stateOf({ data: [] });
+    const html = render(<NodeRedis />);
+    expect(html).toContain("127.0.0.1:6479");
+    expect(html).toContain("master");
+    expect(html).toContain("v8.10.1");
+    // Commands, not messages: Redis counts one and not the other.
+    expect(html).toContain("命令/秒");
+    expect(html).toContain("99.2%");
+  });
+
+  /*
+   * A server with no maxmemory has no cap to be full of. Drawing a meter would
+   * report an unbounded server as one at some percentage of a limit it does
+   * not have.
+   */
+  it("draws no memory meter on a server with no cap", () => {
+    const uncapped = { ...server, attributes: { ...server.attributes, maxMemory: "0" } };
+    serversState.current = stateOf({ data: { overview: null, nodes: [uncapped], directory: [] } });
+    slowLogState.current = stateOf({ data: [] });
+    expect(render(<NodeRedis />)).toContain("未设置 maxmemory");
+  });
+
+  it("separates a persistence job that failed from one that never ran", () => {
+    const never = {
+      ...server,
+      attributes: {
+        ...server.attributes,
+        rdbLastBgsaveStatus: "",
+      },
+    };
+    serversState.current = stateOf({ data: { overview: null, nodes: [never], directory: [] } });
+    slowLogState.current = stateOf({ data: [] });
+    expect(render(<NodeRedis />)).toContain("从未执行");
+  });
+
+  it("lists the slow log with the client that ran each command", () => {
+    serversState.current = stateOf({ data: { overview: null, nodes: [server], directory: [] } });
+    slowLogState.current = stateOf({ data: [slowEntry] });
+    const html = render(<NodeRedis />);
+    expect(html).toContain("KEYS *");
+    // The client name is the field go-redis's typed helper drops, and the
+    // reason the reply is parsed by hand.
+    expect(html).toContain("reporting-service");
+    expect(html).toContain("µs");
+  });
+
+  it("says the slow log is empty rather than showing a bare table", () => {
+    serversState.current = stateOf({ data: { overview: null, nodes: [server], directory: [] } });
+    slowLogState.current = stateOf({ data: [] });
+    expect(render(<NodeRedis />)).toContain("slowlog-log-slower-than");
+  });
+
+  /*
+   * Every node online and a slot range belonging to none of them is a cluster
+   * that cannot serve those keys, and the node list alone looks healthy.
+   */
+  it("warns when a cluster is short of slots", () => {
+    const clusterOverview = {
+      name: "redis-cluster",
+      totalNodes: 6,
+      onlineNodes: 6,
+      destinations: -1,
+      subscriptions: -1,
+      avgDiskUsage: -1,
+      attributes: { clusterState: "ok", clusterSlots: "10923" },
+    };
+    const replica = { ...server, address: "127.0.0.1:6503", attributes: { ...server.attributes, role: "replica", nodeId: "abc" } };
+    serversState.current = stateOf({
+      data: { overview: clusterOverview, nodes: [server, replica], directory: [] },
+    });
+    slowLogState.current = stateOf({ data: [] });
+    const html = render(<NodeRedis />);
+    expect(html).toContain("10923");
+    expect(html).toContain("无法服务");
   });
 });

@@ -218,3 +218,14 @@ func (s *Service) AutoClaim(ctx context.Context, connID int, request model.AutoC
 	defer cancel()
 	return api.AutoClaim(ctx, request)
 }
+
+// SlowLog reads what has actually been slow on a server.
+func (s *Service) SlowLog(ctx context.Context, connID int, address string, limit int) ([]*model.SlowLogEntry, error) {
+	api, err := port[driver.SlowLogReader](s, connID, model.CapSlowLog)
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.SlowLog(ctx, address, limit)
+}

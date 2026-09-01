@@ -144,6 +144,15 @@ const (
 	CapQuotaList  Capability = "quota.list"
 	CapQuotaAdmin Capability = "quota.admin"
 
+	// CapSlowLog is a broker that keeps a record of the commands that took
+	// longest.
+	//
+	// Distinct from CapNodeConfig, which is what a node is running with: this
+	// is what has actually been slow on it, and it is the first thing anyone
+	// looks at when a server is fine on every other figure and still not
+	// keeping up.
+	CapSlowLog Capability = "cluster.slowLog"
+
 	// CapLogDirs is a broker that reports what its partitions occupy on disk.
 	// Distinct from CapNodeConfig, which is what a node is running with: this
 	// is where its space has gone, and it is the only disk figure Kafka has -
