@@ -27,6 +27,12 @@ const requires: Record<string, Capability | Capability[]> = {
   // family without them must not draw the entry at all.
   exchanges: Capability.CapRouting,
   messages: Capability.CapMessageQuery,
+  // MQTT's two pages, and the only two entries here that no other family
+  // draws. A live subscription is not a message query: there is nothing
+  // stored to query, so the page needs its own capability rather than
+  // borrowing one that promises history.
+  subscribe: Capability.CapLiveStream,
+  clients: Capability.CapClientInspect,
   dlq: [Capability.CapDLQ, Capability.CapDeadLetterTopology],
   vhosts: Capability.CapNamespaceList,
   policies: Capability.CapPolicyList,
