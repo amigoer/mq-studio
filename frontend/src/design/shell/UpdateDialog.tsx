@@ -43,7 +43,13 @@ export function UpdateDialog() {
   const { dialogOpen, closeDialog } = useUpdater();
   return (
     <Dialog open={dialogOpen} onOpenChange={(next) => !next && closeDialog()}>
-      <DialogContent className="gap-0 p-0 sm:max-w-[560px]" showCloseButton={false}>
+      {/* Clipped to the dialog's own radius: the header and footer bars run
+          edge to edge, and their square corners would otherwise paint over
+          the rounded ones. */}
+      <DialogContent
+        className="gap-0 overflow-hidden p-0 sm:max-w-[560px]"
+        showCloseButton={false}
+      >
         <UpdatePanel />
       </DialogContent>
     </Dialog>
