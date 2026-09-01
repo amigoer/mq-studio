@@ -281,11 +281,26 @@ func (c *Conn) filterInUse(pattern string) bool {
 	return false
 }
 
-// deliver routes one arrival to every stream that asked for it.
+// deliver routes one arrival to every stream that asked for it, and to a
+// topic listing if one is collecting.
 //
 // Every stream, not the first: two panels watching overlapping filters are one
 // subscription on the broker and both have to see the message.
+//
+// A listing subscribes to # and the broker replays its retained messages to
+// the whole session, so a stream watching a matching filter sees them again
+// while a listing runs. They are not dropped on the way past: they really were
+// delivered, they carry the retained flag that says what they are, and
+// discarding them would mean losing a genuinely new retained publish that
+// happened to land inside the window.
 func (c *Conn) deliver(message inboundMessage) {
+	c.collectMu.Lock()
+	collector := c.collector
+	c.collectMu.Unlock()
+	if collector != nil {
+		collector.accept(message)
+	}
+
 	c.streamsMu.RLock()
 	streams := make([]*stream, 0, len(c.streams))
 	for _, live := range c.streams {

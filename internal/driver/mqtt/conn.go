@@ -30,6 +30,12 @@ type Conn struct {
 	streamsMu sync.RWMutex
 	streams   map[string]*stream
 
+	// collector is set while a topic listing is gathering the broker's
+	// retained replay. It is separate from the streams so that refreshing the
+	// topic board does not route the whole retained set through them.
+	collectMu sync.Mutex
+	collector *retainedCollector
+
 	capabilities model.Capabilities
 	closeOnce    sync.Once
 }
@@ -105,6 +111,7 @@ func (c *Conn) Close() error {
 // publish is MQTT's own, on MQTT's own service.
 func capabilities() []model.Capability {
 	return []model.Capability{
+		model.CapDestinationList,
 		model.CapPublish,
 		model.CapLiveStream,
 	}
