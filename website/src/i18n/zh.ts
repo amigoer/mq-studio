@@ -1,0 +1,219 @@
+import type { Content } from './types';
+
+export const zh: Content = {
+  htmlLang: 'zh-CN',
+  meta: {
+    title: 'MQ Studio — 一套界面，连接所有消息队列',
+    description:
+      'MQ Studio 是本地优先的消息队列桌面客户端，RocketMQ、RabbitMQ 与 Kafka 共用同一套界面和操作，无需部署和值守 Web 控制台。支持 macOS、Windows、Linux，Apache-2.0 开源。',
+    ogAlt: 'MQ Studio 集群概览界面',
+  },
+  banner: {
+    text: 'Kafka 驱动已支持 — Topic、消费组、ACL 与配额全覆盖',
+    linkLabel: '更新日志',
+    dismiss: '关闭公告',
+  },
+  nav: {
+    features: '功能',
+    modules: '产品一览',
+    roadmap: '开发计划',
+    docs: '文档',
+    changelog: '更新日志',
+    github: 'GitHub',
+    download: '下载',
+    skipToContent: '跳到主要内容',
+    languageLabel: 'English',
+    menu: '打开菜单',
+    theme: '切换深浅主题',
+  },
+  hero: {
+    badgeSuffix: '现已发布 · Apache-2.0 开源',
+    title: '一套界面，连接所有消息队列',
+    subtitle:
+      'MQ Studio 是本地优先的消息队列桌面客户端 — RocketMQ、RabbitMQ 与 Kafka 同一套界面、同一套操作，无需部署和值守 Web 控制台。',
+    downloadFallback: '下载 MQ Studio',
+    downloadFor: (platform: string) => `下载 ${platform} 版`,
+    installGuide: '安装说明',
+    note: '自动识别当前系统 · 免费开源 · macOS 12+ / Windows 10+ / Linux（GTK 4）',
+  },
+  shot: {
+    caption: '连接之后，集群健康、实时吞吐、消费堆积与 Broker 状态一眼可见。',
+  },
+  drivers: {
+    label: '已支持',
+    supported: ['RocketMQ 4.x / 5.x', 'RabbitMQ 3.x / 4.x', 'Kafka 3.x / 4.x'],
+    planned: '计划中：Pulsar · NATS · MQTT · Amazon SQS 等',
+  },
+  features: {
+    title: '为什么用 MQ Studio',
+    lead: '每一种消息队列都自带一个控制台，界面不同、叫法不同，还都是要部署、要值守的服务。MQ Studio 是它们共同的客户端。',
+    items: [
+      {
+        title: '一套界面，所有中间件',
+        body: '每种中间件通过驱动接入同一套接口，不管连的是哪个系统，页面和操作方式都是同一套。',
+      },
+      {
+        title: '如实呈现所连端点',
+        body: '每个连接上报它究竟能做什么，界面据此绘制 — 不会给出中间件本身做不到的操作。',
+      },
+      {
+        title: '安装即用',
+        body: '下载、连接、开工 — 没有需要部署、加固和值守的服务端组件。',
+      },
+      {
+        title: '数据留在本机',
+        body: '配置保存在当前设备，凭证加密存储；导入导出由你掌控。',
+      },
+      {
+        title: '跨平台与双语',
+        body: '支持 macOS、Windows、Linux 三端，提供中英文界面，主题跟随系统。',
+      },
+      {
+        title: '开源可审计',
+        body: 'Apache-2.0 许可，代码完全公开，附 SHA256 校验文件核对下载完整性。',
+      },
+    ],
+  },
+  modules: {
+    title: '从 Topic 到告警，都在一个客户端里',
+    lead: '每个驱动都做到同样的深度 — 下面是 RocketMQ 连接下的真实界面。',
+    tabs: [
+      {
+        id: 'connections',
+        label: '连接',
+        title: '连接管理',
+        desc: '所有集群集中在一个列表，双击任意一行在新标签页中打开。支持自由文本分组与自动连接。',
+        points: ['按协议填写真正需要的地址与凭证', '凭证加密存储在本机', '配置可导入导出，随设备迁移'],
+        alt: 'MQ Studio 连接列表界面',
+      },
+      {
+        id: 'topics',
+        label: 'Topic',
+        title: 'Topic 操作',
+        desc: '按类型筛选 Topic，在详情面板查看队列、路由与订阅关系。',
+        points: ['创建和查看 Topic、队列、交换机与绑定', '查看分区、配置与参数', '选择器支持模糊匹配与最近使用记忆'],
+        alt: 'MQ Studio Topic 列表与详情面板',
+      },
+      {
+        id: 'consumers',
+        label: '消费组',
+        title: '消费诊断',
+        desc: '逐组查看堆积、消费 TPS 与客户端；按队列重置或克隆位点。',
+        points: ['查看消费组、客户端与订阅关系', '按队列重置位点', '处理重试队列与死信'],
+        alt: 'MQ Studio 消费者组列表与详情面板',
+      },
+      {
+        id: 'cluster',
+        label: '集群',
+        title: '集群监控',
+        desc: 'Broker 角色、吞吐、磁盘水位与今日进出消息量，实时刷新。',
+        points: ['监控 Broker 与节点运行指标', '观察吞吐与消费堆积趋势', '跟踪磁盘水位与今日消息量'],
+        alt: 'MQ Studio 集群监控界面',
+      },
+      {
+        id: 'alerts',
+        label: '告警',
+        title: '告警',
+        desc: '基于实时集群指标的活跃告警，背后的规则可自行配置。',
+        points: ['规则由你定义，阈值可调', '触发时发送桌面通知', '与集群指标同源，无需额外采集'],
+        alt: 'MQ Studio 告警界面',
+      },
+    ],
+  },
+  roadmap: {
+    title: '开发计划',
+    body: '驱动逐个推进：每接入一个，都做到 RocketMQ 现有的深度，再开始下一个。这是一个顺序，不是排期。',
+    linkLabel: '完整路线图',
+    stages: [
+      { label: 'RocketMQ', done: true },
+      { label: 'RabbitMQ', done: true },
+      { label: 'Kafka', done: true },
+      { label: '更多驱动', done: false },
+      { label: 'Agent', done: false },
+    ],
+  },
+  changelog: {
+    navLabel: '更新日志',
+    title: '更新日志',
+    lead: '每个版本改了什么，都记在这里。版本号遵循语义化版本，格式遵循 Keep a Changelog。',
+    metaTitle: 'MQ Studio 更新日志 — 每个版本的变更记录',
+    metaDescription:
+      'MQ Studio 各版本的完整更新日志：新增功能、修复的问题与已知限制，按版本倒序排列。',
+    latest: '最新',
+    onThisPage: '版本列表',
+    inThisRelease: '本次更新',
+    backHome: '返回首页',
+    onGitHub: '在 GitHub 上查看',
+  },
+  docs: {
+    navLabel: '文档',
+    sectionTitle: '文档',
+    titles: {
+      install: '安装说明',
+      architecture: '架构说明',
+      roadmap: '路线图',
+    },
+    untranslated: '本页暂无中文版，以下为英文原文。',
+    onThisPage: '本页内容',
+    editOnGitHub: '在 GitHub 上编辑',
+  },
+  community: {
+    title: '开源共建',
+    lead: '代码完全公开，Issue 与讨论都在 GitHub 上。用得不顺手、缺了什么驱动，欢迎直接开一个 Issue。',
+    stars: 'Stars',
+    forks: 'Forks',
+    contributors: '贡献者',
+    license: '许可证',
+    builtBy: '目前由以下开发者维护',
+    ctaIssues: '提一个 Issue',
+    ctaRepo: '查看源码',
+  },
+  download: {
+    title: '下载 MQ Studio',
+    leadPrefix: '当前版本',
+    leadSuffix: '每个版本附 SHA256SUMS.txt 校验文件',
+    platforms: {
+      mac: { name: 'macOS', requirement: 'macOS 12 及以上', cta: '下载 .dmg' },
+      windows: { name: 'Windows', requirement: 'Windows 10 及以上', cta: '下载 .exe' },
+      linux: { name: 'Linux', requirement: 'GTK 4 · WebKitGTK 6.0', cta: '下载 Linux 版' },
+    },
+    archLabels: { amd64: 'Intel / x64', arm64: 'Apple 芯片', winAmd64: 'x64', winArm64: 'ARM64' },
+    noteMac: 'macOS 版尚未使用开发者证书签名，首次打开需多一步操作，磁盘映像内附处理脚本 — 见',
+    noteMacLink: '安装说明',
+    noteLinux: 'Linux 包需要 Ubuntu 24.04+ / Debian 13+ 或其他发行版的同期版本 · 历史版本见',
+    noteLinuxLink: '全部 Releases',
+    selectArch: '选择架构',
+    selectFormat: '选择格式',
+  },
+  footer: {
+    tagline: '本地优先的消息队列桌面客户端。',
+    copyright: '© 2026 amigoer · Apache-2.0',
+    groups: [
+      {
+        title: '产品',
+        links: [
+          { label: '功能', href: '#features' },
+          { label: '产品一览', href: '#modules' },
+          { label: '开发计划', href: '#roadmap' },
+          { label: '下载', href: '#download' },
+        ],
+      },
+      {
+        title: '资源',
+        links: [
+          { label: '安装说明', href: '/docs/install/' },
+          { label: '架构说明', href: '/docs/architecture/' },
+          { label: '更新日志', href: '/changelog/' },
+          { label: '路线图', href: '/docs/roadmap/' },
+        ],
+      },
+      {
+        title: '社区',
+        links: [
+          { label: 'GitHub', href: 'https://github.com/amigoer/mq-studio' },
+          { label: 'Issues', href: 'https://github.com/amigoer/mq-studio/issues' },
+        ],
+      },
+    ],
+  },
+};

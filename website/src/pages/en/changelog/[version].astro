@@ -1,0 +1,15 @@
+---
+import type { GetStaticPaths } from 'astro';
+import ChangelogPage from '@/components/ChangelogPage.astro';
+import { releases } from '@/lib/changelog';
+
+export const getStaticPaths = (() =>
+  releases('en').map((entry) => ({
+    params: { version: entry.id },
+    props: { entry },
+  }))) satisfies GetStaticPaths;
+
+const { entry } = Astro.props;
+---
+
+<ChangelogPage locale="en" current={entry} />

@@ -1,0 +1,107 @@
+---
+import { Image } from 'astro:assets';
+import type { ImageMetadata } from 'astro';
+import { t, type Locale } from '@/i18n';
+import { COMMUNITY, ISSUES_URL, compact } from '@/lib/community';
+import { REPO_URL } from '@/lib/downloads';
+
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+const c = t(locale);
+
+// Avatars are downloaded by scripts/fetch-community.mjs and committed, so they
+// go through astro:assets like any other local image and cost no third-party
+// request. eager: the set is one small file per contributor.
+const avatars = import.meta.glob<{ default: ImageMetadata }>('../../assets/avatars/*.png', {
+  eager: true,
+});
+
+function avatarFor(file: string) {
+  const hit = Object.entries(avatars).find(([path]) => path.endsWith(`/${file}`));
+  return hit?.[1].default;
+}
+
+const stats = [
+  { value: compact(COMMUNITY.stars), label: c.community.stars },
+  { value: compact(COMMUNITY.forks), label: c.community.forks },
+  { value: String(COMMUNITY.contributors.length), label: c.community.contributors },
+  { value: 'Apache-2.0', label: c.community.license },
+];
+---
+
+<section id="community" class="border-t border-secondary">
+  <div class="mx-auto max-w-[1120px] px-6 py-20">
+    <h2 class="mb-3 text-center text-[26px] font-bold tracking-[-0.02em] sm:text-[32px]">
+      {c.community.title}
+    </h2>
+    <p
+      class="mx-auto mb-10 max-w-[620px] text-center text-[15px] leading-relaxed text-muted-foreground text-pretty"
+    >
+      {c.community.lead}
+    </p>
+
+    <dl class="mx-auto grid max-w-[680px] grid-cols-2 gap-3 sm:grid-cols-4">
+      {
+        stats.map((stat) => (
+          <div class="rounded-xl border border-border bg-muted px-4 py-5 text-center">
+            <dd class="text-[22px] font-bold tracking-tight tabular-nums">{stat.value}</dd>
+            <dt class="mt-1 text-[12.5px] text-muted-foreground">{stat.label}</dt>
+          </div>
+        ))
+      }
+    </dl>
+
+    <div class="mt-10 flex flex-col items-center gap-4">
+      <p class="text-[12.5px] text-subtle-foreground">{c.community.builtBy}</p>
+      <ul class="flex flex-wrap justify-center gap-3">
+        {
+          COMMUNITY.contributors.map((person) => {
+            const image = avatarFor(person.avatar);
+            return (
+              <li>
+                <a
+                  href={person.htmlUrl}
+                  class="flex items-center gap-2.5 rounded-full border border-border bg-background py-1.5 pl-1.5 pr-4 transition-colors hover:bg-secondary"
+                >
+                  {image ? (
+                    <Image
+                      src={image}
+                      alt=""
+                      width={32}
+                      height={32}
+                      loading="lazy"
+                      class="size-8 rounded-full"
+                    />
+                  ) : (
+                    <span
+                      aria-hidden="true"
+                      class="flex size-8 items-center justify-center rounded-full bg-secondary text-[13px] font-semibold uppercase"
+                    >
+                      {person.login.slice(0, 1)}
+                    </span>
+                  )}
+                  <span class="text-[13.5px] font-medium">{person.login}</span>
+                </a>
+              </li>
+            );
+          })
+        }
+      </ul>
+    </div>
+
+    <div class="mt-9 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
+      <a
+        href={ISSUES_URL}
+        class="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary-hover"
+        >{c.community.ctaIssues}</a
+      >
+      <a
+        href={REPO_URL}
+        class="inline-flex h-10 items-center justify-center rounded-lg border border-border bg-background px-5 text-sm font-medium transition-colors hover:bg-secondary"
+        >{c.community.ctaRepo}</a
+      >
+    </div>
+  </div>
+</section>

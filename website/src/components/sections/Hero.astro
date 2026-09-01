@@ -1,0 +1,111 @@
+---
+import { t, type Locale } from '@/i18n';
+import { RELEASE, mac, windows, linux } from '@/lib/downloads';
+import { downloadGroups } from '@/lib/menu';
+import DownloadMenu from '@/components/widgets/DownloadMenu.astro';
+
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+const c = t(locale);
+
+// Consumed by the detection script below. The server renders the neutral
+// fallback label so the button is correct before -- and without -- JS.
+const targets = {
+  macArm: { label: c.hero.downloadFor('macOS · Apple'), href: mac('arm64').url, icon: 'mac' },
+  macIntel: { label: c.hero.downloadFor('macOS · Intel'), href: mac('amd64').url, icon: 'mac' },
+  windows: { label: c.hero.downloadFor('Windows'), href: windows('amd64').url, icon: 'windows' },
+  linux: { label: c.hero.downloadFor('Linux'), href: linux('amd64', 'deb').url, icon: 'linux' },
+};
+---
+
+<section id="top" class="mx-auto max-w-[1120px] px-6 pb-12 pt-16 text-center sm:pt-[88px]">
+  <div
+    class="inline-flex items-center gap-2 rounded-full border border-border bg-muted px-3.5 py-1.5 text-[12.5px] text-muted-foreground"
+  >
+    <span class="size-1.5 rounded-full bg-success" aria-hidden="true"></span>
+    {RELEASE.tag} {c.hero.badgeSuffix}
+  </div>
+
+  <h1
+    class="mx-auto mb-4.5 mt-5.5 max-w-[760px] text-[34px] font-extrabold leading-[1.12] tracking-[-0.03em] text-balance sm:text-[44px] lg:text-[54px]"
+  >
+    {c.hero.title}
+  </h1>
+  <p class="mx-auto max-w-[620px] text-base leading-[1.65] text-muted-foreground text-pretty sm:text-[17px]">
+    {c.hero.subtitle}
+  </p>
+
+  <!-- Stacked below sm, the two buttons sized themselves to their own text and
+       centred independently, so neither edge lined up. Stretching them to a
+       shared, capped width puts the stack back on one axis. -->
+  <div
+    class="mx-auto mb-3.5 mt-7 flex max-w-[340px] flex-col items-stretch gap-3 sm:max-w-none sm:flex-row sm:items-center sm:justify-center"
+  >
+    <DownloadMenu
+      id="hero-download"
+      groups={downloadGroups(c)}
+      label={c.hero.downloadFallback}
+      primaryHref={RELEASE.htmlUrl}
+      variant="hero"
+      align="center"
+    />
+    <a
+      href="#download"
+      class="inline-flex h-11 items-center justify-center rounded-lg border border-border bg-background px-6 text-[15px] font-medium transition-colors hover:bg-secondary"
+      >{c.hero.installGuide}</a
+    >
+  </div>
+  <p class="text-[12.5px] text-subtle-foreground">{c.hero.note}</p>
+</section>
+
+<script is:inline define:vars={{ targets }}>
+  // Retargets the primary half of the split button at the visitor's own build.
+  // The dropdown still lists every platform, so a wrong guess costs one click.
+  (function () {
+    var link = document.querySelector('#hero-download [data-menu-primary]');
+    var label = document.querySelector('#hero-download [data-menu-label]');
+    if (!link || !label) return;
+    var ua = navigator.userAgent;
+    var pick = null;
+    if (/Mac/i.test(ua)) {
+      // navigator.platform is "MacIntel" on Apple silicon too - it was frozen
+      // years ago - so it cannot tell the two apart and must not be consulted.
+      // Apple silicon is the safe default; getHighEntropyValues below corrects
+      // it on the browsers that will answer, and the menu covers the rest.
+      pick = targets.macArm;
+    } else if (/Win/i.test(ua)) {
+      pick = targets.windows;
+    } else if (/Linux|X11/i.test(ua) && !/Android/i.test(ua)) {
+      pick = targets.linux;
+    }
+    if (!pick) return;
+
+    var icons = document.querySelectorAll('#hero-download [data-menu-icon]');
+
+    function apply(target) {
+      link.setAttribute('href', target.href);
+      label.textContent = target.label;
+      // Trade the generic arrow for the platform's own mark.
+      for (var i = 0; i < icons.length; i++) {
+        icons[i].hidden = icons[i].getAttribute('data-menu-icon') !== target.icon;
+      }
+    }
+    apply(pick);
+
+    // Chromium reports the real architecture here; Safari and Firefox do not
+    // implement it, which is why the default above has to be the common case.
+    var data = navigator.userAgentData;
+    if (pick === targets.macArm && data && data.getHighEntropyValues) {
+      data
+        .getHighEntropyValues(['architecture'])
+        .then(function (values) {
+          if (values.architecture === 'x86') apply(targets.macIntel);
+        })
+        .catch(function () {
+          // Declined or unsupported: the Apple silicon default stands.
+        });
+    }
+  })();
+</script>

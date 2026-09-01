@@ -1,0 +1,144 @@
+---
+// The vector source, not appicon.png: astro:assets was downscaling the 1024px
+// raster to a 24px webp, which is soft on any 2x display. This is 526 bytes and
+// sharp at every density.
+import AppIcon from '@brand/appicon.svg';
+import { t, localePath, switchLocale, type Locale } from '@/i18n';
+import { RELEASE, REPO_URL, LATEST_URL } from '@/lib/downloads';
+import { COMMUNITY, compact } from '@/lib/community';
+import { downloadGroups } from '@/lib/menu';
+import DownloadMenu from '@/components/widgets/DownloadMenu.astro';
+import ThemeToggle from '@/components/widgets/ThemeToggle.astro';
+
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+const c = t(locale);
+const other: Locale = locale === 'zh' ? 'en' : 'zh';
+// Derived from the URL so every route gets this for free.
+const otherHref = switchLocale(Astro.url.pathname, other);
+
+
+const links = [
+  { label: c.nav.features, href: '#features' },
+  { label: c.nav.modules, href: '#modules' },
+  { label: c.nav.roadmap, href: '#roadmap' },
+  { label: c.nav.changelog, href: localePath(locale, 'changelog') },
+  { label: c.nav.docs, href: localePath(locale, 'docs/architecture') },
+];
+---
+
+<header
+  class="sticky top-0 z-50 border-b border-border bg-background/85 backdrop-blur-md supports-[backdrop-filter]:bg-background/85"
+>
+  <nav class="mx-auto flex h-14 max-w-[1120px] items-center gap-3 px-4 sm:gap-4 sm:px-6 lg:gap-7">
+    <a href={localePath(locale)} class="flex flex-none items-center gap-2 whitespace-nowrap text-[15px] font-bold">
+      <AppIcon width={24} height={24} class="rounded-[5px]" aria-hidden="true" />
+      MQ Studio
+    </a>
+    <a
+      href={LATEST_URL}
+      class="-ml-2 hidden flex-none rounded-full border border-border bg-muted px-2.5 py-0.5 font-mono text-[11px] text-muted-foreground transition-colors hover:text-foreground sm:block"
+      >{RELEASE.tag}</a
+    >
+
+    <div class="hidden gap-[22px] text-[13.5px] lg:flex">
+      {
+        links.map((link) => (
+          <a href={link.href} class="whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground">
+            {link.label}
+          </a>
+        ))
+      }
+    </div>
+
+    <div class="ml-auto flex items-center gap-2 sm:gap-2.5">
+      <!-- Below sm this does not fit beside the theme, menu and download
+           controls, so the disclosure menu carries it instead. -->
+      <a
+        href={otherHref}
+        class="hidden h-[34px] items-center whitespace-nowrap rounded-md px-2 text-[13px] text-muted-foreground transition-colors hover:text-foreground sm:inline-flex sm:px-2.5"
+        >{c.nav.languageLabel}</a
+      >
+
+      <ThemeToggle label={c.nav.theme} />
+
+      <!-- The links above collapse below md; <details> gives them back with no
+           JS, and native disclosure semantics for screen readers. -->
+      <details class="relative lg:hidden" data-nav-menu>
+        <summary
+          aria-label={c.nav.menu}
+          class="inline-flex size-[34px] cursor-pointer list-none items-center justify-center rounded-md border border-border bg-background transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden"
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <path d="M3 6h18M3 12h18M3 18h18" />
+          </svg>
+        </summary>
+        <div
+          class="absolute right-0 top-full mt-2 w-56 rounded-xl border border-border bg-popover p-1.5 shadow-lg"
+        >
+          {
+            links.map((link) => (
+              <a
+                href={link.href}
+                class="block rounded-md px-2.5 py-2 text-[13px] font-medium transition-colors hover:bg-accent"
+              >
+                {link.label}
+              </a>
+            ))
+          }
+          <a
+            href={REPO_URL}
+            class="block rounded-md px-2.5 py-2 text-[13px] font-medium transition-colors hover:bg-accent"
+            >{c.nav.github}</a
+          >
+          <a
+            href={otherHref}
+            class="block rounded-md px-2.5 py-2 text-[13px] font-medium transition-colors hover:bg-accent sm:hidden"
+            >{c.nav.languageLabel}</a
+          >
+        </div>
+      </details>
+      <a
+        href={REPO_URL}
+        class="hidden h-[34px] items-center gap-1.5 rounded-md border border-border bg-background px-3.5 text-[13px] font-medium transition-colors hover:bg-secondary lg:inline-flex"
+      >
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted-foreground" aria-hidden="true">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+        </svg>
+        {c.nav.github}
+        {
+          COMMUNITY.stars > 0 && (
+            <span class="ml-0.5 border-l border-border pl-2 font-normal text-muted-foreground">
+              {compact(COMMUNITY.stars)}
+            </span>
+          )
+        }
+      </a>
+      <DownloadMenu
+        id="nav-download"
+        groups={downloadGroups(c)}
+        label={c.nav.download}
+        primaryHref="#download"
+        variant="nav"
+        align="end"
+      />
+    </div>
+  </nav>
+</header>
+
+<script>
+  // The links are in-page anchors, so the panel has to close itself once one is
+  // taken; otherwise it covers the section it just scrolled to.
+  document.querySelectorAll<HTMLDetailsElement>('[data-nav-menu]').forEach((menu) => {
+    menu.querySelectorAll('a').forEach((link) => {
+      link.addEventListener('click', () => {
+        menu.open = false;
+      });
+    });
+    document.addEventListener('click', (event) => {
+      if (!menu.contains(event.target as Node)) menu.open = false;
+    });
+  });
+</script>

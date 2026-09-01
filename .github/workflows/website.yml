@@ -1,0 +1,294 @@
+# Gates the marketing site. ci.yml ignores website/** because none of its Go
+# toolchain, GTK headers or broker clusters apply here and all of them are slow;
+# this is the cheap job that runs in their place.
+name: Website
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'website/**'
+      - 'scripts/fetch-release.mjs'
+      - 'scripts/fetch-community.mjs'
+      - '.github/workflows/website.yml'
+      # The screenshots are read straight out of the docs tree, so a replaced
+      # image can break the build without touching website/.
+      - 'docs/images/readme/**'
+      # The changelog page is parsed from these, so a release note edit has to
+      # rebuild the site.
+      - 'CHANGELOG.md'
+      - 'CHANGELOG.zh-CN.md'
+  pull_request:
+    paths:
+      - 'website/**'
+      - 'scripts/fetch-release.mjs'
+      - 'scripts/fetch-community.mjs'
+      - '.github/workflows/website.yml'
+      - 'docs/images/readme/**'
+      - 'CHANGELOG.md'
+      - 'CHANGELOG.zh-CN.md'
+  # release.yml publishes a draft, and the download page reads /releases/latest,
+  # which does not see drafts. Rebuilding when the draft is created would pin the
+  # site to the previous version, so the rebuild waits for publication instead.
+  release:
+    types: [published]
+  workflow_dispatch:
+
+concurrency:
+  group: website-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build
+    if: github.event_name != 'release'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: website/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --prefix website
+
+      # Type-checks .astro, .ts and .tsx together. Kept separate from the build
+      # so a type error reports as its own failed step rather than as a build.
+      - name: Type check
+        run: npm --prefix website run type-check
+
+      # The build refreshes src/data/release.json from the GitHub API first. The
+      # token lifts the anonymous 60/hour limit, and the script falls back to the
+      # committed copy rather than failing if the call does not work out.
+      - name: Build
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: npm run website:build
+
+      # The download page is worthless if a crawler cannot see the product copy,
+      # and the tabs are the one place that could silently regress into
+      # client-only rendering. Assert the built HTML, not the source.
+      - name: Verify the pre-rendered HTML
+        shell: bash
+        run: |
+          set -eu
+          for page in website/dist/index.html website/dist/en/index.html; do
+            panels=$(grep -o 'role="tabpanel"' "$page" | wc -l | tr -d ' ' || true)
+            if [ "$panels" -ne 5 ]; then
+              echo "expected 5 pre-rendered tab panels in ${page}, found ${panels}" >&2
+              echo "the product tour must render every panel at build time" >&2
+              exit 1
+            fi
+
+            for tag in canonical 'og:title' 'application/ld+json' hreflang; do
+              grep -q "$tag" "$page" || { echo "missing ${tag} in ${page}" >&2; exit 1; }
+            done
+
+            # Self-hosted fonts: a third-party font request is unreliable from
+            # mainland China and costs LCP everywhere.
+            if grep -qE 'fonts\.(googleapis|gstatic)\.com' "$page"; then
+              echo "${page} must not request fonts from a third party" >&2
+              exit 1
+            fi
+
+            # Every platform's real filename has to survive into the markup, so
+            # the cards work before -- and without -- the picker script.
+            names=$(grep -oE 'mq-studio-[0-9.]+-[a-z0-9]+-[a-z0-9]+\.[A-Za-z]+' "$page" | sort -u | wc -l | tr -d ' ' || true)
+            if [ "$names" -ne 10 ]; then
+              echo "expected 10 release filenames in ${page}, found ${names}" >&2
+              exit 1
+            fi
+
+            grep -q 'data-theme-toggle' "$page" || {
+              echo "${page} lost the theme toggle" >&2; exit 1; }
+
+            # The theme script has to sit inside <head> and ahead of the
+            # stylesheet. Turning it into a module, or letting it drift below the
+            # CSS, flashes the light theme at every dark-mode visitor. Compared
+            # by byte offset because the markup spans many lines.
+            node -e '
+              const fs = require("fs");
+              const html = fs.readFileSync(process.argv[1], "utf8");
+              const theme = html.indexOf("mq-studio:theme");
+              const css = html.indexOf("rel=\"stylesheet\"");
+              const headEnd = html.indexOf("</head>");
+              const fail = (m) => { console.error(process.argv[1] + ": " + m); process.exit(1); };
+              if (theme < 0) fail("the pre-paint theme script is gone");
+              if (headEnd < 0 || theme > headEnd) fail("the theme script is not inside <head>");
+              if (css >= 0 && theme > css) fail("the theme script must come before the stylesheet");
+            ' "$page"
+
+            echo "${page}: ${panels} panels, ${names} filenames, head tags present"
+          done
+
+          # The changelog is parsed by hand from a Keep a Changelog file. A
+          # format change would not fail the build, it would silently render
+          # empty pages, so assert the per-version routes came through.
+          for prefix in '' 'en/'; do
+            root="website/dist/${prefix}changelog"
+            pages=$(find "$root" -mindepth 2 -name index.html | wc -l | tr -d ' ' || true)
+            if [ "$pages" -lt 3 ]; then
+              echo "expected at least 3 per-version pages under ${root}, found ${pages}" >&2
+              exit 1
+            fi
+            find "$root" -mindepth 2 -name index.html | while read -r page; do
+              arts=$(grep -o '<article' "$page" | wc -l | tr -d ' ' || true)
+              if [ "$arts" -ne 1 ]; then
+                echo "${page} should document exactly one release, found ${arts}" >&2
+                exit 1
+              fi
+              # The rail has to say which release you are reading.
+              grep -q 'aria-current="page"' "$page" || {
+                echo "${page} does not mark the current version in the rail" >&2; exit 1; }
+            done
+            echo "${root}: ${pages} version pages"
+          done
+
+          # The docs are rendered from the repo's own markdown. Their sibling
+          # .md links only work on GitHub, so a hast plugin rewrites them; if
+          # that ever stops running the pages still build, full of dead links.
+          for prefix in '' 'en/'; do
+            root="website/dist/${prefix}docs"
+            pages=$(find "$root" -mindepth 2 -name index.html | wc -l | tr -d ' ' || true)
+            if [ "$pages" -ne 3 ]; then
+              echo "expected 3 doc pages under ${root}, found ${pages}" >&2
+              exit 1
+            fi
+            find "$root" -mindepth 2 -name index.html | while read -r page; do
+              dead=$(grep -oE 'href="[^"]*\.md[^"]*"' "$page" | grep -v 'github\.com' | sort -u || true)
+              if [ -n "$dead" ]; then
+                echo "${page} still links to raw markdown:" >&2
+                echo "$dead" >&2
+                exit 1
+              fi
+              # Tables are wider than a phone; without the wrapper the page
+              # itself scrolls sideways.
+              tables=$(grep -o '<table' "$page" | wc -l | tr -d ' ' || true)
+              wraps=$(grep -o 'table-scroll' "$page" | wc -l | tr -d ' ' || true)
+              if [ "$tables" -ne "$wraps" ]; then
+                echo "${page}: ${tables} tables but ${wraps} scroll wrappers" >&2
+                exit 1
+              fi
+            done
+            echo "${root}: ${pages} pages, no raw markdown links"
+          done
+
+          # ARCHITECTURE has no Chinese translation; the Chinese route renders
+          # the English text and must say so.
+          grep -q 'class="mb-6 rounded-lg' website/dist/docs/architecture/index.html || {
+            echo "the Chinese architecture page lost its untranslated notice" >&2; exit 1; }
+
+          # The language switch keeps the reader on the same page, which only
+          # works while both locales generate the same routes. The two
+          # changelogs are hand-maintained in separate files, so one of them
+          # gaining a release first would silently 404 the switch.
+          node -e '
+            const fs = require("fs"), path = require("path");
+            const root = "website/dist";
+            const pages = [];
+            (function walk(dir) {
+              for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+                const p = path.join(dir, entry.name);
+                if (entry.isDirectory()) walk(p);
+                else if (entry.name === "index.html") pages.push(p);
+              }
+            })(root);
+            let broken = 0;
+            for (const file of pages) {
+              const url = "/" + path.relative(root, file).replace(/index\.html$/, "");
+              const html = fs.readFileSync(file, "utf8");
+              const match = [...html.matchAll(/<a[^>]*href="([^"]*)"[^>]*>\s*(English|\u4e2d\u6587)\s*<\/a>/g)];
+              if (!match.length) {
+                console.error(`${url}: no language switch link`);
+                broken++;
+                continue;
+              }
+              const target = match[0][1];
+              if (!fs.existsSync(path.join(root, target, "index.html"))) {
+                console.error(`${url}: language switch points at ${target}, which was not generated`);
+                broken++;
+              }
+            }
+            if (broken) {
+              console.error(`${broken} page(s) would 404 on the language switch`);
+              process.exit(1);
+            }
+            console.log(`language switch reaches its counterpart on all ${pages.length} pages`);
+          '
+
+          # /changelog/ renders the newest release and must defer to that
+          # release's own page, or the two compete for the same content.
+          for page in website/dist/changelog/index.html website/dist/en/changelog/index.html; do
+            grep -qE 'rel="canonical" href="[^"]*/changelog/v[0-9.]+/"' "$page" || {
+              echo "${page} must point its canonical at the newest release page" >&2; exit 1; }
+          done
+
+          # Same for the community section: an empty contributor list means the
+          # fetch script or the committed JSON broke.
+          grep -q 'id="community"' website/dist/index.html || {
+            echo "the community section is missing" >&2; exit 1; }
+          if ! grep -q 'github.com/amigoer"' website/dist/index.html; then
+            echo "the community section lists no contributors" >&2
+            exit 1
+          fi
+
+          # Avatars are committed and optimised locally; a remote one would
+          # reintroduce the third-party request the fonts rule exists to avoid.
+          if grep -q 'avatars.githubusercontent.com' website/dist/index.html; then
+            echo "contributor avatars must be served locally, not from GitHub" >&2
+            exit 1
+          fi
+
+          # Dark mode lives entirely in this token block; without it every
+          # `dark:` utility silently resolves to the light value.
+          grep -rq '^\.dark\s*{' website/src/styles/global.css || {
+            echo "the .dark token block is gone from global.css" >&2; exit 1; }
+
+          # The nav and footer marks must stay vector: astro:assets was
+          # downscaling the 1024px raster to a soft 24px webp.
+          grep -q 'favicon.svg' website/dist/index.html || {
+            echo "the SVG favicon is missing" >&2; exit 1; }
+
+          # The whole point of dropping the framework runtime was the payload;
+          # this fails the build if a dependency drags one back in.
+          js=$(find website/dist -name '*.js' -exec cat {} + 2>/dev/null | wc -c | tr -d ' ' || true)
+          if [ "$js" -gt 20000 ]; then
+            echo "external JS grew to ${js} bytes; the page is meant to ship almost none" >&2
+            exit 1
+          fi
+          echo "external JS: ${js} bytes"
+
+  # Cloudflare builds from its own git integration, so all this has to do is ask
+  # it to start. The site refetches the release data during that build, which is
+  # what puts the new version on the download page.
+  redeploy:
+    name: Trigger a Cloudflare rebuild
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ping the deploy hook
+        env:
+          HOOK: ${{ secrets.CF_PAGES_DEPLOY_HOOK }}
+        shell: bash
+        run: |
+          set -eu
+          # Not configured yet is a normal state for a fork or a fresh clone; the
+          # site just keeps serving the previous build until someone deploys.
+          if [ -z "${HOOK:-}" ]; then
+            echo "CF_PAGES_DEPLOY_HOOK is not set; skipping the rebuild" >&2
+            exit 0
+          fi
+          status=$(curl -sS -X POST -o /dev/null -w '%{http_code}' "$HOOK")
+          echo "deploy hook returned ${status}"
+          case "$status" in
+            2*) ;;
+            *) echo "deploy hook rejected the request" >&2; exit 1 ;;
+          esac

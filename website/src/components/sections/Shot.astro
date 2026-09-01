@@ -1,0 +1,24 @@
+---
+import { Image } from 'astro:assets';
+import overview from '@shots/overview.png';
+import { t, type Locale } from '@/i18n';
+
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+const c = t(locale);
+---
+
+<section class="mx-auto max-w-[1180px] px-6">
+  <Image
+    src={overview}
+    alt={c.meta.ogAlt}
+    widths={[640, 1024, 1440, 1920]}
+    sizes="(min-width: 1180px) 1132px, 100vw"
+    loading="eager"
+    fetchpriority="high"
+    class="block w-full rounded-xl border border-border shadow-sm"
+  />
+  <p class="mt-2 text-center text-[13px] text-subtle-foreground">{c.shot.caption}</p>
+</section>

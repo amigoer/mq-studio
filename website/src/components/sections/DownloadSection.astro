@@ -1,0 +1,120 @@
+---
+import { t, localePath, type Locale } from '@/i18n';
+import { RELEASE, RELEASES_URL, mac, windows, linux } from '@/lib/downloads';
+import PlatformPicker, { type Segment, type Variant } from '@/components/widgets/PlatformPicker.astro';
+import PlatformIcon from '@/components/widgets/PlatformIcon.astro';
+
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+const c = t(locale);
+const d = c.download;
+const a = d.archLabels;
+
+const installDoc = localePath(locale, 'docs/install');
+
+const macSegments: Segment[] = [
+  {
+    label: d.selectArch,
+    defaultValue: 'arm64',
+    options: [
+      { value: 'arm64', label: a.arm64 },
+      { value: 'amd64', label: a.amd64 },
+    ],
+  },
+];
+const macVariants: Variant[] = (['arm64', 'amd64'] as const).map((arch) => ({
+  key: arch,
+  ...mac(arch),
+}));
+
+const winSegments: Segment[] = [
+  {
+    label: d.selectArch,
+    defaultValue: 'amd64',
+    options: [
+      { value: 'amd64', label: a.winAmd64 },
+      { value: 'arm64', label: a.winArm64 },
+    ],
+  },
+];
+const winVariants: Variant[] = (['amd64', 'arm64'] as const).map((arch) => ({
+  key: arch,
+  ...windows(arch),
+}));
+
+const linuxFormats = ['deb', 'rpm', 'AppImage'] as const;
+const linuxArches = ['amd64', 'arm64'] as const;
+const linuxSegments: Segment[] = [
+  {
+    label: d.selectFormat,
+    defaultValue: 'deb',
+    options: linuxFormats.map((format) => ({
+      value: format,
+      label: format === 'AppImage' ? 'AppImage' : `.${format}`,
+    })),
+  },
+  {
+    label: d.selectArch,
+    defaultValue: 'amd64',
+    options: [
+      { value: 'amd64', label: a.winAmd64 },
+      { value: 'arm64', label: a.winArm64 },
+    ],
+  },
+];
+const linuxVariants: Variant[] = linuxFormats.flatMap((format) =>
+  linuxArches.map((arch) => ({ key: `${format}:${arch}`, ...linux(arch, format) })),
+);
+
+const cards = [
+  { id: 'mac', platform: d.platforms.mac, segments: macSegments, variants: macVariants },
+  { id: 'windows', platform: d.platforms.windows, segments: winSegments, variants: winVariants },
+  { id: 'linux', platform: d.platforms.linux, segments: linuxSegments, variants: linuxVariants },
+] as const;
+---
+
+<section id="download" class="border-t border-border bg-muted">
+  <div class="mx-auto max-w-[1120px] px-6 py-20">
+    <h2 class="mb-3 text-center text-[26px] font-bold tracking-[-0.02em] sm:text-[32px]">
+      {d.title}
+    </h2>
+    <p class="mb-11 text-center text-[15px] text-muted-foreground">
+      {d.leadPrefix} {RELEASE.tag} · {d.leadSuffix}
+    </p>
+
+    <div class="grid gap-5 md:grid-cols-3">
+      {
+        cards.map((card) => (
+          <div class="flex flex-col gap-3.5 rounded-xl border border-border bg-card p-6 shadow-sm">
+            <div class="flex items-start gap-3">
+              <PlatformIcon platform={card.id} size={20} class="mt-0.5 shrink-0" />
+              <div>
+                <div class="text-[17px] font-bold">{card.platform.name}</div>
+                <div class="mt-0.5 text-[12.5px] text-subtle-foreground">
+                  {card.platform.requirement}
+                </div>
+              </div>
+            </div>
+            <PlatformPicker
+              cta={card.platform.cta}
+              segments={card.segments}
+              variants={card.variants}
+            />
+          </div>
+        ))
+      }
+    </div>
+
+    <p class="mt-7 text-center text-[12.5px] leading-[1.8] text-muted-foreground">
+      {d.noteMac}{' '}
+      <a href={installDoc} class="font-medium underline underline-offset-[3px]">{d.noteMacLink}</a>
+      <br />
+      {d.noteLinux}{' '}
+      <a href={RELEASES_URL} class="font-medium underline underline-offset-[3px]">
+        {d.noteLinuxLink}
+      </a>
+    </p>
+  </div>
+</section>

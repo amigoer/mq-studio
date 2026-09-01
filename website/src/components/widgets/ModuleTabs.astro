@@ -1,0 +1,116 @@
+---
+import { Image } from 'astro:assets';
+import type { ImageMetadata } from 'astro';
+import type { ModuleTab } from '@/i18n/types';
+
+interface Props {
+  tabs: readonly ModuleTab[];
+  images: Record<string, ImageMetadata>;
+}
+
+const { tabs, images } = Astro.props;
+
+// Classes lifted from the shadcn Tabs primitive, minus the dark-mode and
+// vertical-orientation branches this page never enters.
+const list = 'inline-flex w-fit items-center justify-center gap-1 rounded-[10px] bg-secondary p-1';
+const trigger =
+  'relative inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md border border-transparent px-3.5 py-1.5 text-[13.5px] font-medium text-foreground/60 transition-all hover:text-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-1 focus-visible:outline-ring aria-selected:bg-background aria-selected:text-foreground aria-selected:shadow-sm';
+---
+
+<div data-tabs>
+  <!-- The five labels come to within a few px of a 375px viewport, and a
+       translation or a different font would push them over; scrolling the strip
+       is better than letting it break the layout. -->
+  <div class="mb-7 flex justify-start overflow-x-auto sm:justify-center [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <div class={list} role="tablist">
+      {
+        tabs.map((tab, index) => (
+          <button
+            type="button"
+            role="tab"
+            id={`tab-${tab.id}`}
+            aria-controls={`panel-${tab.id}`}
+            aria-selected={index === 0 ? 'true' : 'false'}
+            tabindex={index === 0 ? 0 : -1}
+            class={trigger}
+          >
+            {tab.label}
+          </button>
+        ))
+      }
+    </div>
+  </div>
+
+  {
+    tabs.map((tab, index) => (
+      <div
+        role="tabpanel"
+        id={`panel-${tab.id}`}
+        aria-labelledby={`tab-${tab.id}`}
+        hidden={index !== 0}
+        class="outline-none"
+      >
+        <div class="grid items-center gap-9 rounded-2xl border border-border bg-muted p-6 sm:p-9 lg:grid-cols-[360px_1fr]">
+          <div>
+            <h3 class="mb-2.5 text-[21px] font-bold tracking-tight">{tab.title}</h3>
+            <p class="mb-4.5 text-sm leading-[1.7] text-muted-foreground text-pretty">{tab.desc}</p>
+            <ul class="flex flex-col gap-2.5">
+              {tab.points.map((point) => (
+                <li class="flex items-start gap-2.5 text-[13.5px] leading-normal">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="mt-0.5 shrink-0 text-success" aria-hidden="true">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  {point}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <Image
+            src={images[tab.id]!}
+            alt={tab.alt}
+            widths={[640, 1024, 1440]}
+            sizes="(min-width: 1024px) 700px, 100vw"
+            loading={index === 0 ? 'eager' : 'lazy'}
+            class="block w-full min-w-0 rounded-lg border border-border"
+          />
+        </div>
+      </div>
+    ))
+  }
+</div>
+
+<script>
+  // Every panel is in the HTML and only `hidden` toggles, so all five are
+  // available to crawlers and to a visitor whose JS never arrives.
+  document.querySelectorAll<HTMLElement>('[data-tabs]').forEach((root) => {
+    const tabs = [...root.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
+
+    function select(index: number, moveFocus = true) {
+      tabs.forEach((tab, i) => {
+        const active = i === index;
+        tab.setAttribute('aria-selected', String(active));
+        tab.tabIndex = active ? 0 : -1;
+        const panel = document.getElementById(tab.getAttribute('aria-controls')!);
+        if (panel) panel.hidden = !active;
+      });
+      if (moveFocus) tabs[index]?.focus();
+    }
+
+    tabs.forEach((tab, index) => {
+      tab.addEventListener('click', () => select(index, false));
+      tab.addEventListener('keydown', (event) => {
+        // The WAI-ARIA tabs pattern: arrows move and activate, Home/End jump.
+        const last = tabs.length - 1;
+        const key = event.key;
+        let next: number | null = null;
+        if (key === 'ArrowRight') next = index === last ? 0 : index + 1;
+        else if (key === 'ArrowLeft') next = index === 0 ? last : index - 1;
+        else if (key === 'Home') next = 0;
+        else if (key === 'End') next = last;
+        if (next === null) return;
+        event.preventDefault();
+        select(next);
+      });
+    });
+  });
+</script>

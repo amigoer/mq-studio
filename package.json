@@ -13,6 +13,8 @@
     "go:vet": "go vet ./...",
     "frontend:type-check": "npm --prefix frontend run type-check",
     "build:frontend": "npm --prefix frontend run build",
+    "website:dev": "npm --prefix website run dev",
+    "website:build": "npm --prefix website run build",
     "test": "npm run test:go && npm run test:frontend",
     "test:go": "go test ./...",
     "test:frontend": "npm --prefix frontend test",

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://mq-studio.amigoer.com/sitemap-index.xml

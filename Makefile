@@ -11,7 +11,8 @@ ARCH ?=
 	e2e-rabbitmq-up e2e-rabbitmq-seed e2e-rabbitmq-down \
 	e2e-rabbitmq-plain-up e2e-rabbitmq-plain-down \
 	e2e-kafka-up e2e-kafka-seed e2e-kafka-down \
-	e2e-kafka-secure-up e2e-kafka-secure-down check ci clean
+	e2e-kafka-secure-up e2e-kafka-secure-down check ci clean \
+	website-dev website-build
 
 help: ## Show all available targets
 	@awk 'BEGIN { FS = ":.*## " } /^[a-zA-Z0-9_.-]+:.*## / { printf "  %-20s %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
@@ -101,6 +102,12 @@ e2e: ## Run the live tests against a running, seeded RocketMQ E2E environment
 
 e2e-down: ## Stop the RocketMQ E2E environment and remove test volumes
 	npm run e2e:down
+
+website-dev: ## Run the marketing site with hot reload
+	npm run website:dev
+
+website-build: ## Build the marketing site into website/out
+	npm run website:build
 
 check: ## Run version, frontend build, gofmt, vet, tests, and bindings drift checks
 	npm run check

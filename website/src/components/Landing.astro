@@ -1,0 +1,36 @@
+---
+import Base from '@/layouts/Base.astro';
+import AnnouncementBar from '@/components/sections/AnnouncementBar.astro';
+import Nav from '@/components/sections/Nav.astro';
+import Hero from '@/components/sections/Hero.astro';
+import Shot from '@/components/sections/Shot.astro';
+import Drivers from '@/components/sections/Drivers.astro';
+import Features from '@/components/sections/Features.astro';
+import Modules from '@/components/sections/Modules.astro';
+import Roadmap from '@/components/sections/Roadmap.astro';
+import Community from '@/components/sections/Community.astro';
+import DownloadSection from '@/components/sections/DownloadSection.astro';
+import Footer from '@/components/sections/Footer.astro';
+import type { Locale } from '@/i18n';
+
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+---
+
+<Base locale={locale}>
+  <AnnouncementBar locale={locale} />
+  <Nav locale={locale} />
+  <main>
+    <Hero locale={locale} />
+    <Shot locale={locale} />
+    <Drivers locale={locale} />
+    <Features locale={locale} />
+    <Modules locale={locale} />
+    <Roadmap locale={locale} />
+    <Community locale={locale} />
+    <DownloadSection locale={locale} />
+  </main>
+  <Footer locale={locale} />
+</Base>

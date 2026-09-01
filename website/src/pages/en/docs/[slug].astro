@@ -1,0 +1,12 @@
+---
+import type { GetStaticPaths } from 'astro';
+import DocPage from '@/components/DocPage.astro';
+import { DOC_SLUGS } from '@/lib/docs';
+
+export const getStaticPaths = (() =>
+  DOC_SLUGS.map((slug) => ({ params: { slug }, props: { slug } }))) satisfies GetStaticPaths;
+
+const { slug } = Astro.props;
+---
+
+<DocPage locale="en" slug={slug} />

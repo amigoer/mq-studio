@@ -1,0 +1,9 @@
+---
+import ChangelogPage from '@/components/ChangelogPage.astro';
+import { releases } from '@/lib/changelog';
+
+const entries = releases('en');
+const latest = entries.find((entry) => !entry.unreleased) ?? entries[0];
+---
+
+<ChangelogPage locale="en" current={latest} isIndex />

@@ -1,0 +1,131 @@
+---
+import '@/styles/global.css';
+import { getImage } from 'astro:assets';
+import { t, localePath, HREFLANG, LOCALES, type Locale } from '@/i18n';
+import { RELEASE, REPO_URL } from '@/lib/downloads';
+import overview from '@shots/overview.png';
+
+interface Props {
+  locale: Locale;
+  /** Overrides for subpages; the landing page uses the locale defaults. */
+  title?: string;
+  description?: string;
+  /**
+   * Path of this page relative to its locale root, without a leading slash.
+   * Feeds hreflang, so `changelog` points each language at its own changelog
+   * rather than at the home page.
+   */
+  path?: string;
+  /**
+   * Overrides the canonical URL. /changelog/ renders the newest release, which
+   * is also its own versioned page, so it points there instead of competing
+   * with it for the same content.
+   */
+  canonicalPath?: string;
+}
+
+const { locale, title, description, path = '', canonicalPath } = Astro.props;
+const c = t(locale);
+const pageTitle = title ?? c.meta.title;
+const pageDescription = description ?? c.meta.description;
+const site = Astro.site ?? new URL('https://mq-studio.amigoer.com');
+const canonical = new URL(canonicalPath ?? Astro.url.pathname, site);
+
+// The 2526px original is 697kB; social crawlers fetch this on every share and
+// several cap the download. JPEG rather than WebP because the crawlers are the
+// one audience that still has gaps in WebP support.
+const ogImage = await getImage({ src: overview, width: 1200, format: 'jpeg', quality: 82 });
+const ogUrl = new URL(ogImage.src, site);
+
+// The desktop app is the product; SoftwareApplication is what search engines
+// use to render the download-oriented rich result.
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'MQ Studio',
+  description: c.meta.description,
+  url: site.href,
+  applicationCategory: 'DeveloperApplication',
+  operatingSystem: 'macOS 12+, Windows 10+, Linux',
+  softwareVersion: RELEASE.version,
+  downloadUrl: `${REPO_URL}/releases/latest`,
+  license: 'https://www.apache.org/licenses/LICENSE-2.0',
+  isAccessibleForFree: true,
+  offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+  author: { '@type': 'Person', name: 'amigoer', url: 'https://github.com/amigoer' },
+};
+---
+
+<!doctype html>
+<html lang={c.htmlLang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- SVG first at 526 bytes; the PNG is the fallback for the browsers and
+         crawlers that still will not take a vector favicon. -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="1024x1024" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/favicon.png" />
+    <title>{pageTitle}</title>
+    <meta name="description" content={pageDescription} />
+    <link rel="canonical" href={canonical.href} />
+
+    {
+      LOCALES.map((l) => (
+        <link
+          rel="alternate"
+          hreflang={HREFLANG[l]}
+          href={new URL(localePath(l, path), site).href}
+        />
+      ))
+    }
+    <link rel="alternate" hreflang="x-default" href={site.href} />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="MQ Studio" />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={pageDescription} />
+    <meta property="og:url" content={canonical.href} />
+    <meta property="og:image" content={ogUrl.href} />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content={String(ogImage.attributes.width ?? 1200)} />
+    <meta property="og:image:height" content={String(ogImage.attributes.height ?? 847)} />
+    <meta property="og:image:alt" content={c.meta.ogAlt} />
+    <meta property="og:locale" content={locale === 'zh' ? 'zh_CN' : 'en_US'} />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={pageTitle} />
+    <meta name="twitter:description" content={pageDescription} />
+    <meta name="twitter:image" content={ogUrl.href} />
+
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#09090b" />
+
+    <!--
+      Blocking on purpose, and before the stylesheet: deferring this would paint
+      the light theme first and flash it at everyone who prefers dark.
+    -->
+    <script is:inline>
+      (function () {
+        try {
+          var stored = localStorage.getItem('mq-studio:theme');
+          var dark =
+            stored === 'dark' ||
+            (stored !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          if (dark) document.documentElement.classList.add('dark');
+        } catch (error) {
+          // Blocked storage: fall through to the light default.
+        }
+      })();
+    </script>
+    <script is:inline type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+  </head>
+  <body class="min-h-screen bg-background text-foreground">
+    <a
+      href="#top"
+      class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:text-primary-foreground"
+      >{c.nav.skipToContent}</a
+    >
+    <slot />
+  </body>
+</html>
