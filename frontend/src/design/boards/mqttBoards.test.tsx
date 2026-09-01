@@ -45,6 +45,7 @@ const brokerState = vi.hoisted(() => ({ current: null as unknown }));
 const topicsState = vi.hoisted(() => ({ current: null as unknown }));
 const clientsState = vi.hoisted(() => ({ current: null as unknown }));
 const subscriptionsState = vi.hoisted(() => ({ current: null as unknown }));
+const streamState = vi.hoisted(() => ({ current: null as unknown }));
 
 vi.mock("@/hooks/mqtt/useMqttBroker", () => ({
   useMqttBroker: () => brokerState.current,
@@ -52,12 +53,16 @@ vi.mock("@/hooks/mqtt/useMqttBroker", () => ({
   useMqttClients: () => clientsState.current,
   useMqttSubscriptions: () => subscriptionsState.current,
 }));
+vi.mock("@/hooks/mqtt/useMqttStream", () => ({
+  useMqttStream: () => streamState.current,
+}));
 vi.mock("@/mq/ConnectionScope", () => ({
   useConnectionScope: () => ({ id: 1, kind: "mqtt", key: "m1", online: true }),
 }));
 
 let render: (element: React.ReactElement) => string;
 let OverviewMqtt: typeof import("./overview/OverviewMqtt").OverviewMqtt;
+let MqttWorkbench: typeof import("./mqtt/MqttWorkbench").MqttWorkbench;
 
 beforeAll(async () => {
   const storage = { getItem: () => null, setItem() {}, removeItem() {} };
@@ -72,9 +77,10 @@ beforeAll(async () => {
   });
   vi.stubGlobal("localStorage", storage);
 
-  const [server, overview, ui, i18n, settings] = await Promise.all([
+  const [server, overview, workbench, ui, i18n, settings] = await Promise.all([
     import("react-dom/server"),
     import("./overview/OverviewMqtt"),
+    import("./mqtt/MqttWorkbench"),
     import("@/components"),
     import("@/i18n"),
     import("@/hooks/useSettings"),
@@ -87,7 +93,35 @@ beforeAll(async () => {
       </ui.ConfirmProvider>,
     );
   OverviewMqtt = overview.OverviewMqtt;
+  MqttWorkbench = workbench.MqttWorkbench;
 });
+
+/** A stream as the hook reports it. */
+function streamOf(over: Record<string, unknown> = {}) {
+  return {
+    messages: [],
+    running: false,
+    live: true,
+    received: 0,
+    dropped: 0,
+    error: null,
+    start: () => {},
+    stop: () => {},
+    clear: () => {},
+    ...over,
+  };
+}
+
+/** A message as the driver sends it, attribute keys included. */
+const arrival = {
+  seq: 1,
+  destination: "sensors/room-1/temperature",
+  filter: "sensors/#",
+  receivedAt: "2026-09-02 03:24:07",
+  body: '{"c":21.5}',
+  truncated: false,
+  attributes: { qos: "1", retained: "false" },
+};
 
 /** A Mosquitto: a full $SYS tree, and no way to count topics. */
 const mosquitto = {
@@ -224,5 +258,57 @@ describe("the MQTT overview board", () => {
       },
     });
     expect(render(<OverviewMqtt />)).toContain("—");
+  });
+});
+
+describe("the MQTT subscribe workbench", () => {
+  it("says nothing is subscribed before anything is", () => {
+    streamState.current = streamOf();
+    const html = render(<MqttWorkbench />);
+    expect(html).toContain("尚未订阅");
+  });
+
+  it("shows a message with the filter that matched it", () => {
+    streamState.current = streamOf({ running: true, received: 1, messages: [arrival] });
+    const html = render(<MqttWorkbench />);
+
+    expect(html).toContain("sensors/room-1/temperature");
+    expect(html).toContain("21.5");
+    // A wildcard subscription cannot be read back from the topic alone.
+    expect(html).toContain("sensors/#");
+  });
+
+  /*
+   * The buffer behind this page is bounded, so a stream faster than the page
+   * loses messages. Saying so is the whole reason the driver counts them: a
+   * gap in the traffic and a gap in what was kept look identical otherwise.
+   */
+  it("says how many messages it had to drop", () => {
+    streamState.current = streamOf({ running: true, received: 500, dropped: 120, messages: [arrival] });
+    expect(render(<MqttWorkbench />)).toContain("120");
+  });
+
+  /*
+   * A dropped session and a quiet broker both show an empty list. Only one of
+   * them is a reason to go and look at something.
+   */
+  it("says when the session dropped rather than letting it read as silence", () => {
+    streamState.current = streamOf({ running: true, live: false, messages: [] });
+    expect(render(<MqttWorkbench />)).toContain("会话已断开");
+  });
+
+  // A retained value can be hours old and arrives looking like something that
+  // just happened.
+  it("marks a retained message as retained", () => {
+    streamState.current = streamOf({
+      running: true,
+      messages: [{ ...arrival, attributes: { qos: "1", retained: "true" } }],
+    });
+    expect(render(<MqttWorkbench />)).toContain("保留");
+  });
+
+  it("renders a failed subscription", () => {
+    streamState.current = streamOf({ error: "broker refused the subscription to \"a/#\"" });
+    expect(render(<MqttWorkbench />)).toContain("broker refused the subscription");
   });
 });

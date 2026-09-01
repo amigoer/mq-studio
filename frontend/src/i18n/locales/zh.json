@@ -2474,7 +2474,23 @@
       "exportNdjson": "导出 NDJSON",
       "userProps": "用户属性 · MQTT 5",
       "sameTopic": "历史同主题",
-      "publishTemplate": "以此为模板发布"
+      "publishTemplate": "以此为模板发布",
+      "subscribedTo": "正在订阅 {{pattern}} · 已收到 {{count}} 条",
+      "notSubscribed": "尚未订阅",
+      "stop": "停止",
+      "live": "实时",
+      "topic": "主题",
+      "payload": "消息体",
+      "detail": "消息详情",
+      "matched": "匹配的过滤器",
+      "held": "缓存 {{count}} 条",
+      "retained": "保留",
+      "truncated": "（已截断）",
+      "waiting": "等待消息",
+      "startToSee": "先订阅一个过滤器",
+      "sessionDown": "会话已断开，重连之前不会再收到消息。",
+      "dropped": "已丢弃 {{count}} 条：消息到达的速度超过了本页读取的速度。",
+      "noHistory": "MQTT 不保存历史。本次订阅开始至今收到 {{count}} 条，关闭页面即丢失。"
     },
     "docs": {
       "capability": {

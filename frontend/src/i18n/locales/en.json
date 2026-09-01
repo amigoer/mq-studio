@@ -2474,7 +2474,23 @@
       "exportNdjson": "Export NDJSON",
       "userProps": "User properties · MQTT 5",
       "sameTopic": "History for this topic",
-      "publishTemplate": "Publish from this as a template"
+      "publishTemplate": "Publish from this as a template",
+      "subscribedTo": "watching {{pattern}} · {{count}} seen",
+      "notSubscribed": "nothing subscribed",
+      "stop": "Stop",
+      "live": "Live",
+      "topic": "Topic",
+      "payload": "Payload",
+      "detail": "Message",
+      "matched": "Matched filter",
+      "held": "{{count}} held",
+      "retained": "retained",
+      "truncated": "(truncated)",
+      "waiting": "Waiting for a message",
+      "startToSee": "Subscribe to a filter to see messages",
+      "sessionDown": "The session dropped. Nothing is arriving until it reconnects.",
+      "dropped": "{{count}} messages were dropped: the stream is arriving faster than this page reads it.",
+      "noHistory": "MQTT stores no history. {{count}} messages have arrived since this subscription started, and closing the page loses them."
     },
     "docs": {
       "capability": {
