@@ -1,0 +1,10 @@
+{
+  // Assets-only: there is no Worker script, so every request is served straight
+  // from dist/ and none of them are billed. `_headers` in public/ still applies,
+  // because that rule only stops at responses a Worker generates.
+  "name": "mq-studio",
+  "compatibility_date": "2026-09-02",
+  "assets": {
+    "directory": "./dist"
+  }
+}
