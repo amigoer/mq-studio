@@ -1763,16 +1763,16 @@
         "streamConsumed": "已消费"
       },
       "redis": {
-        "subtitle": "匹配 orders:* ; events:* · 12 个",
-        "newStream": "+ 新建 Stream（XADD）",
-        "searchKey": "搜索 key…",
-        "showAllKeys": "显示全部 key",
-        "sortByXlen": "按 XLEN 排序",
-        "unbounded": "无上限",
-        "xaddRate": "XADD 速率",
-        "groupPel": "组 / PEL",
-        "groupPelValue": "3 组 · 待确认 37",
-        "deleteKey": "删除 key"
+        "subtitle": "按键匹配模式在当前库中找到的 Stream",
+        "searchKey": "搜索键…",
+        "withGroupsOnly": "仅看有消费组的",
+        "found": "找到 {{count}} 个",
+        "noStreams": "扫描没有找到 Stream。请检查连接上的键匹配模式。",
+        "noMatches": "没有匹配搜索条件的 Stream 键。",
+        "trimmed": "已裁剪",
+        "entriesAdded": "entries-added",
+        "nothingDeleted": "未删除过",
+        "noGroups": "没有消费组在读这个 Stream"
       },
       "kafka": {
         "subtitle": "集群里的 topic，默认隐藏内部 topic",

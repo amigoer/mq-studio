@@ -2,6 +2,7 @@ package redisstream
 
 import (
 	"context"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -217,16 +218,182 @@ func TestLiveForbiddenCommandReadsAsForbidden(t *testing.T) {
 	}
 }
 
-// Nothing is declared yet, so a healthy connection declares nothing and a
-// broken one degrades nothing. Both halves are worth pinning: this is the
-// state every later capability is added on top of.
-func TestLiveConnectionDeclaresNothingYet(t *testing.T) {
+// A healthy connection declares the family's whole best case and degrades
+// nothing. The interesting half is the second: a capability quietly degraded
+// against a working server takes a finished page out of the sidebar, and the
+// user is told the broker cannot do something it can.
+func TestLiveConnectionDeclaresTheFullCapabilitySet(t *testing.T) {
 	conn := liveConn(t, nil, nil)
-	capabilities := conn.Capabilities()
-	if got := len(capabilities.Supported); got != 0 {
-		t.Errorf("a live connection declares %d capabilities, want none yet", got)
+	declared := conn.Capabilities()
+	for _, capability := range capabilities() {
+		if !declared.Has(capability) {
+			t.Errorf("%s is not supported against a healthy server", capability)
+		}
 	}
-	if got := len(capabilities.Degraded); got != 0 {
-		t.Errorf("a live connection degrades %d capabilities, want none yet", got)
+	if got := len(declared.Degraded); got != 0 {
+		t.Errorf("a healthy connection degrades %d capabilities: %v", got, declared.Degraded)
+	}
+}
+
+// liveStreams is a key prefix outside the seed's, so a test's own fixtures
+// never collide with what `npm run e2e:redis:seed` left for a person to look
+// at, and a failed run cannot delete it.
+const liveStreams = "mqs-live:"
+
+// seedLiveStream writes entries and removes the key afterwards, whatever the
+// test did with it.
+func seedLiveStream(t *testing.T, conn *Conn, key string, count int) {
+	t.Helper()
+	ctx := liveContext(t)
+	t.Cleanup(func() { _ = conn.client.Del(context.Background(), key).Err() })
+	for i := range count {
+		err := conn.client.XAdd(ctx, &redis.XAddArgs{
+			Stream: key,
+			Values: map[string]any{"seq": strconv.Itoa(i)},
+		}).Err()
+		if err != nil {
+			t.Fatalf("seed %s: %v", key, err)
+		}
+	}
+}
+
+func TestLiveListDestinations(t *testing.T) {
+	conn := liveConn(t, map[string]string{OptionStreamFilter: liveStreams + "list:*"}, nil)
+	ctx := liveContext(t)
+
+	seedLiveStream(t, conn, liveStreams+"list:orders", 5)
+	seedLiveStream(t, conn, liveStreams+"list:payments", 2)
+	// A key of another type inside the same pattern. The scan is filtered by
+	// the server, and this is what proves the filter is on the wire rather
+	// than applied afterwards.
+	if err := conn.client.Set(ctx, liveStreams+"list:counter", "7", time.Minute).Err(); err != nil {
+		t.Fatalf("seed string: %v", err)
+	}
+	t.Cleanup(func() { _ = conn.client.Del(context.Background(), liveStreams+"list:counter").Err() })
+
+	listed, err := conn.ListDestinations(ctx, model.DestinationFilter{})
+	if err != nil {
+		t.Fatalf("list: %v", err)
+	}
+	byName := map[string]*model.Destination{}
+	for _, destination := range listed {
+		byName[destination.Ref.Name] = destination
+	}
+	if len(listed) != 2 {
+		t.Fatalf("listed %d entries, want the two streams: %v", len(listed), byName)
+	}
+	orders := byName[liveStreams+"list:orders"]
+	if orders == nil {
+		t.Fatalf("the orders stream was not listed")
+	}
+	if orders.Depth != 5 {
+		t.Errorf("depth = %d, want 5", orders.Depth)
+	}
+	if orders.Attributes[AttrLastEntryID] == "" {
+		t.Errorf("no last entry id on a stream with entries")
+	}
+	// MEMORY USAGE is not something the in-process server answers, so this is
+	// the only place the column is known to be filled at all.
+	if orders.Attributes[AttrMemoryBytes] == "" {
+		t.Errorf("no memory figure; the list column would be empty")
+	}
+}
+
+// XINFO STREAM's own group count is what the listing uses, and the in-process
+// server does not fill it in - so this is the only test that can catch it
+// being read from the wrong field.
+func TestLiveListDestinationsCountsGroups(t *testing.T) {
+	conn := liveConn(t, map[string]string{OptionStreamFilter: liveStreams + "groups:*"}, nil)
+	ctx := liveContext(t)
+	key := liveStreams + "groups:orders"
+	seedLiveStream(t, conn, key, 3)
+	for _, group := range []string{"settle-group", "notify-group"} {
+		if err := conn.client.XGroupCreate(ctx, key, group, "0").Err(); err != nil {
+			t.Fatalf("create group %s: %v", group, err)
+		}
+	}
+
+	listed, err := conn.ListDestinations(ctx, model.DestinationFilter{})
+	if err != nil {
+		t.Fatalf("list: %v", err)
+	}
+	if len(listed) != 1 {
+		t.Fatalf("listed %d streams, want 1", len(listed))
+	}
+	if listed[0].Subscribers != 2 {
+		t.Errorf("subscribers = %d, want 2", listed[0].Subscribers)
+	}
+}
+
+func TestLiveCreateAndRemoveDestination(t *testing.T) {
+	conn := liveConn(t, map[string]string{OptionStreamFilter: liveStreams + "lifecycle:*"}, nil)
+	ctx := liveContext(t)
+	key := liveStreams + "lifecycle:orders"
+	t.Cleanup(func() { _ = conn.client.Del(context.Background(), key).Err() })
+
+	if err := conn.CreateDestination(ctx, model.DestinationSpec{
+		Ref: model.DestinationRef{Name: key},
+	}); err != nil {
+		t.Fatalf("create: %v", err)
+	}
+
+	listed, err := conn.ListDestinations(ctx, model.DestinationFilter{})
+	if err != nil {
+		t.Fatalf("list: %v", err)
+	}
+	if len(listed) != 1 || listed[0].Ref.Name != key {
+		t.Fatalf("listed %d streams after creating one", len(listed))
+	}
+	// The bootstrap group MKSTREAM needed must not survive: an operator
+	// opening the new stream would find a consumer group they did not make.
+	if listed[0].Subscribers != 0 {
+		t.Errorf("the new stream reports %d groups, want none", listed[0].Subscribers)
+	}
+	if listed[0].Depth != 0 {
+		t.Errorf("the new stream holds %d entries, want none", listed[0].Depth)
+	}
+
+	if err := conn.RemoveDestination(ctx, model.DestinationRef{Name: key}); err != nil {
+		t.Fatalf("remove: %v", err)
+	}
+	listed, err = conn.ListDestinations(ctx, model.DestinationFilter{})
+	if err != nil {
+		t.Fatalf("list after remove: %v", err)
+	}
+	if len(listed) != 0 {
+		t.Errorf("the stream is still listed after being deleted")
+	}
+}
+
+// A cluster keeps its keyspace on several masters and SCAN answers for one
+// node, so a driver that asked the node it dialled would list a third of the
+// streams and look entirely correct doing it.
+func TestLiveClusterListsStreamsFromEveryMaster(t *testing.T) {
+	requireRedisCluster(t)
+	conn := openLive(t, liveClusterAddr, map[string]string{
+		OptionDeployment:   string(DeploymentCluster),
+		OptionStreamFilter: liveStreams + "cluster:*",
+	}, map[string]string{SecretPassword: livePassword})
+	ctx := liveContext(t)
+
+	// Twelve keys, so the hash slots spread them across all three masters.
+	// With one per node the test would pass on a driver that got lucky.
+	const count = 12
+	for i := range count {
+		key := liveStreams + "cluster:" + strconv.Itoa(i)
+		seedLiveStream(t, conn, key, 1)
+	}
+
+	listed, err := conn.ListDestinations(ctx, model.DestinationFilter{})
+	if err != nil {
+		t.Fatalf("list: %v", err)
+	}
+	if len(listed) != count {
+		t.Fatalf("listed %d of %d streams; a scan that asked one master would look like this", len(listed), count)
+	}
+	for _, destination := range listed {
+		if destination.Depth != 1 {
+			t.Errorf("%s depth = %d, want 1", destination.Ref.Name, destination.Depth)
+		}
 	}
 }

@@ -1763,16 +1763,16 @@
         "streamConsumed": "Consumed"
       },
       "redis": {
-        "subtitle": "Matching orders:* ; events:* · 12 found",
-        "newStream": "+ New stream (XADD)",
+        "subtitle": "Streams the key pattern found in this database",
         "searchKey": "Search keys…",
-        "showAllKeys": "Show all keys",
-        "sortByXlen": "Sort by XLEN",
-        "unbounded": "Unbounded",
-        "xaddRate": "XADD rate",
-        "groupPel": "Groups / PEL",
-        "groupPelValue": "3 groups · 37 pending",
-        "deleteKey": "Delete key"
+        "withGroupsOnly": "Only streams with groups",
+        "found": "{{count}} found",
+        "noStreams": "The scan found no streams. Check the key pattern on the connection.",
+        "noMatches": "No stream key matches the search.",
+        "trimmed": "trimmed",
+        "entriesAdded": "entries-added",
+        "nothingDeleted": "nothing deleted",
+        "noGroups": "No consumer group reads this stream"
       },
       "kafka": {
         "subtitle": "Topics the cluster holds, internal ones hidden",

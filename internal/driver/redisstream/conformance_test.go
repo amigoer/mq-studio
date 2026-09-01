@@ -214,13 +214,15 @@ func TestEveryDeploymentOptionIsUnderstood(t *testing.T) {
  * page out of the sidebar and nothing else notices; a page added there with no
  * capability behind it is drawn and fails when opened.
  *
- * It is empty today, and that is the contract: the driver connects and
- * declares nothing, because CheckConformance fails a capability with no port
- * behind it. Every entry arrives with the commit that implements it, and this
- * test is what makes adding one without telling the frontend a red build.
+ * Every entry arrives with the commit that implements the port behind it, and
+ * this test is what makes adding one without telling the frontend a red build.
  */
 func TestCapabilitiesMatchTheSidebarContract(t *testing.T) {
-	sidebar := []string{}
+	sidebar := []string{
+		"destination.list",
+		"destination.create",
+		"destination.delete",
+	}
 
 	declared := make(map[string]bool, len(capabilities()))
 	for _, capability := range capabilities() {

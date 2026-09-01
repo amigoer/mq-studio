@@ -64,7 +64,11 @@ func (c *Conn) Close() error {
 // interface behind it, so each one arrives in the commit that implements it
 // rather than as a promise the connection cannot keep.
 func capabilities() []model.Capability {
-	return []model.Capability{}
+	return []model.Capability{
+		model.CapDestinationList,
+		model.CapDestinationCreate,
+		model.CapDestinationDelete,
+	}
 }
 
 // probe narrows the family's best case to what this endpoint actually answers.
