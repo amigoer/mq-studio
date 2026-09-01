@@ -15,7 +15,20 @@ MQ Studio 正在成为一个覆盖所有消息队列的桌面客户端。每种�
   管理接口的 publish 与 get。管理面是完整的：带完整 arguments 的队列、Exchange 与
   Binding、连接与信道、死信、带健康检查与特性开关的节点、虚拟主机、用户与权限、策略与
   参数、定义导入导出、Shovel 与 Federation，以及 stream 队列。
-- **已完成设计，尚未实现** — 下面列出的十三种形态。
+- **已发布** — Kafka 3.x / 4.x，直接走 Kafka 协议本身（franz-go 与 kadm）。带分区、副本与
+  配置的 Topic；带每分区 lag 与 Kafka 全部五种 offset 重置的消费组；按 offset、时间戳或
+  key 浏览日志并跟随末尾；带 key、header、指定分区与 ack 级别的发送；带生效配置与日志目录
+  的 Broker；ACL 与 SCRAM 用户；客户端配额；分区重分配与优先副本选举；以及集群正在跟踪的
+  事务。
+- **已发布** — MQTT 3.1.1 与 5.0，走 Paho 的两个 Go 库——它们互不重叠：一个只说 3.1.1，
+  另一个只说 5.0，而配置成其中一种的 broker 会拒绝另一种的 CONNECT。这是第一个自身没有
+  管理面的家族，所以一条连接能做什么是在拨号时按三层决定的：协议本身、多数 broker 会发布
+  的 $SYS 树，以及 EMQX 等自带的 REST API。带 QoS、retain 与 5.0 属性的发布；实时订阅
+  工作台，会报告丢弃了多少条、会话何时断开；从保留消息得出的主题列表——那是 MQTT 唯一
+  能枚举的东西；来自 $SYS 的 broker 计数；以及在管理 API 有应答时，在线客户端与它们的
+  会话、订阅、集群节点，并可断开某个会话。探测不到的那一层会连同原因一起上报，而不是
+  让页面空着。
+- **已完成设计，尚未实现** — 下面列出的十一种形态。
 
 ## 交付顺序
 
@@ -24,9 +37,10 @@ MQ Studio 正在成为一个覆盖所有消息队列的桌面客户端。每种�
 | 0–3 | 驱动接缝本身：契约、后端端口、存储与 bridge、前端注册表 | 对 RocketMQ 而言逐屏与之前完全一致 |
 | 4 | **RabbitMQ** | 已完成。Exchanges/Bindings 页面存在，且没有 offset 概念泄漏进 UI |
 | 5 | **Kafka** | Topic、消费组、lag、浏览与发布端到端可用 |
-| 6 | **Pulsar**，然后 **Redis Stream**，然后 **NATS**，然后 **MQTT** | 每个都是纯增量：不改动任何规范页面 |
-| 7 | **ActiveMQ / Artemis**，然后 **NSQ** | 仍是纯增量；ActiveMQ 用来检验 JMS 语义能否套进规范页面 |
-| 8 | **Amazon SQS**、**Google Cloud Pub/Sub**、**Azure Service Bus**、**Amazon Kinesis**，然后 **IBM MQ** 与 **Solace PubSub+** | 连接表单能表达「没有地址，只有 region 与凭证」 |
+| 6 | **MQTT** | 已完成。第一个自身没有管理面的家族：能做什么在连接时按三层探测——协议层、$SYS 树、broker 自带的 REST API——探测不到的那层会说明原因，而不是默默变空 |
+| 7 | **Pulsar**，然后 **Redis Stream**，然后 **NATS** | 每个都是纯增量：不改动任何规范页面 |
+| 8 | **ActiveMQ / Artemis**，然后 **NSQ** | 仍是纯增量；ActiveMQ 用来检验 JMS 语义能否套进规范页面 |
+| 9 | **Amazon SQS**、**Google Cloud Pub/Sub**、**Azure Service Bus**、**Amazon Kinesis**，然后 **IBM MQ** 与 **Solace PubSub+** | 连接表单能表达「没有地址，只有 region 与凭证」 |
 
 有两个排序决定值得一直放在视野里。
 
@@ -58,7 +72,7 @@ MQ Studio 正在成为一个覆盖所有消息队列的桌面客户端。每种�
 | **Redis Stream** | `XINFO`、`XRANGE`、`XADD` | Destinations、Subscriptions、Messages、Publish | 没有集群拓扑，也没有按目标划分的访问控制 |
 | **NATS** | JetStream API 加服务端监控端点 | Destinations、Subscriptions、Messages、Publish、Cluster | 未启用 JetStream 时，端点退化为仅发布与订阅 |
 | **NSQ** | nsqd 与 nsqlookupd HTTP 接口 | Destinations、Subscriptions、Publish、Cluster | 没有消息历史，因此没有浏览 |
-| **MQTT** | 无 —— 该协议本身没有管理面 | Publish，外加实时 Subscribe 页 | 其余全部。EMQX、HiveMQ 等各自带 REST 管理面，驱动可在运行时探测并把它们点亮 |
+| **MQTT** | 协议本身没有。连接时探测：$SYS 树，以及 broker 自带的 REST API（如果有）| 概览、主题、订阅、发布、客户端、集群、告警 | 没有消费组、没有 offset、没有历史——消息只在传输途中存在，无人订阅就没了。主题列的是持有保留消息的那些，因为别的都枚举不出来。客户端页需要管理 API，Mosquitto 没有 |
 
 ### 云托管
 

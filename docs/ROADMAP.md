@@ -27,6 +27,16 @@ This is the delivery plan. The contract it delivers against is
   and SCRAM users; client quotas; partition reassignment with preferred-leader election; and the
   transactions a cluster is tracking, so a pipeline stopped by a producer that died
   mid-transaction is visible somewhere.
+- **Shipped** — MQTT 3.1.1 and 5.0, over Paho's two Go libraries, which do not overlap: one
+  speaks 3.1.1 and the other 5.0, and a broker configured for either refuses the other's
+  CONNECT. The first family here with no administrative plane of its own, so what a connection
+  can do is decided when it dials, in three tiers — the protocol, the $SYS tree most brokers
+  publish, and the REST API EMQX and its peers add. Publishing with QoS, retain and the 5.0
+  properties; a live subscribe workbench that reports what it dropped and when the session went
+  down; topics from the retained set, which is the only thing MQTT can enumerate; broker
+  counters from $SYS; and, where a management API answers, connected clients and their sessions,
+  their subscriptions, the cluster's nodes, and disconnecting a session. A tier that does not
+  answer is reported with its reason rather than leaving a page empty.
 
   Broker settings are read-only. Everything needed to write them is in place - the driver reads
   them through the same incremental-alter path a topic's settings use - but the page offers no
@@ -40,7 +50,7 @@ This is the delivery plan. The contract it delivers against is
   no disk percentage: Kafka reports the bytes its partitions occupy and nothing about the
   filesystem holding them, so there is no denominator to build one from.
 
-- **Designed, not yet implemented** — the twelve families below.
+- **Designed, not yet implemented** — the eleven families below.
 
 ## Delivery order
 
@@ -49,9 +59,10 @@ This is the delivery plan. The contract it delivers against is
 | 0–3 | The driver seam itself: contracts, backend ports, storage and bridge, frontend registry | RocketMQ behaves exactly as before, screen for screen |
 | 4 | **RabbitMQ** | Done. An Exchanges/Bindings page exists and no offset concept leaks into the UI |
 | 5 | **Kafka** | Done. Topics, consumer groups, lag, browse and publish work end to end, alongside quotas, reassignment and transactions, and no rate or dead-letter page pretends to exist |
-| 6 | **Pulsar**, then **Redis Stream**, then **NATS**, then **MQTT** | Each is purely additive — no canonical page changes shape |
-| 7 | **ActiveMQ / Artemis**, then **NSQ** | Still additive; ActiveMQ tests whether JMS semantics fit the canonical pages |
-| 8 | **Amazon SQS**, **Google Cloud Pub/Sub**, **Azure Service Bus**, **Amazon Kinesis**, then **IBM MQ** and **Solace PubSub+** | The connection form can express "no address, only a region and a credential" |
+| 6 | **MQTT** | Done. The first family with no admin plane of its own: what it can do is probed at connect time in three tiers — the protocol, the $SYS tree, and the broker's own REST API — and a tier that does not answer says why rather than going quiet |
+| 7 | **Pulsar**, then **Redis Stream**, then **NATS** | Each is purely additive — no canonical page changes shape |
+| 8 | **ActiveMQ / Artemis**, then **NSQ** | Still additive; ActiveMQ tests whether JMS semantics fit the canonical pages |
+| 9 | **Amazon SQS**, **Google Cloud Pub/Sub**, **Azure Service Bus**, **Amazon Kinesis**, then **IBM MQ** and **Solace PubSub+** | The connection form can express "no address, only a region and a credential" |
 
 Two ordering decisions worth keeping in view.
 
@@ -93,7 +104,7 @@ and `Access`.
 | **Redis Stream** | `XINFO`, `XRANGE`, `XADD` | Destinations, Subscriptions, Messages, Publish | No cluster topology and no per-destination access control |
 | **NATS** | JetStream API plus the server monitoring endpoints | Destinations, Subscriptions, Messages, Publish, Cluster | Without JetStream the endpoint drops to publish and subscribe only |
 | **NSQ** | nsqd and nsqlookupd HTTP APIs | Destinations, Subscriptions, Publish, Cluster | No message history, so no browse |
-| **MQTT** | None — the protocol has no admin plane | Publish, plus a live Subscribe page | Everything else. EMQX, HiveMQ and their peers expose their own REST management, which the driver can probe and light up at runtime |
+| **MQTT** | None in the protocol. Probed at connect time: the $SYS tree, and the broker's own REST API where it has one | Overview, Topics, Subscribe, Publish, Clients, Cluster, Alerts | No consumer groups, no offsets and no stored history — a message exists while it is in flight and is gone if nobody was subscribed. Topics are those holding a retained value, because nothing else is enumerable. Clients need a management API, which Mosquitto does not have |
 
 ### Hosted
 

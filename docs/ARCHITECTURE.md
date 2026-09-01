@@ -76,6 +76,8 @@ internal/
   driver/                The broker seam: ports, capabilities, conformance
     rocketmq/            RocketMQ driver
     rabbitmq/            RabbitMQ driver
+    kafka/               Kafka driver
+    mqtt/                MQTT driver, with emqx/ for the vendor management API
   model/                 Domain models and the capability vocabulary
   crypto/                Local encryption helpers
   storage/               On-disk layout and atomic writes
@@ -99,6 +101,10 @@ tests/
   e2e/rocketmq-acl/      RocketMQ with ACL on, for the access-control tests
   e2e/rabbitmq/          RabbitMQ with the optional plugins on
   e2e/rabbitmq-plain/    RabbitMQ with none of them, for the degraded paths
+  e2e/kafka/             Three-broker KRaft cluster
+  e2e/kafka-secure/      Kafka with SASL and an authorizer
+  e2e/mqtt/              Mosquitto: a $SYS tree and no management API
+  e2e/mqtt-emqx/         EMQX: a management API and no readable $SYS
   throughput-load/       Load generator for the throughput charts (own module)
 ```
 

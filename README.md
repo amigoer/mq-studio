@@ -118,7 +118,8 @@ capabilities, so the interface only offers what the connected broker can actuall
 | **RocketMQ** 4.x / 5.x | ✅ Available | Full feature set through Admin APIs |
 | **RabbitMQ** 3.x / 4.x | ✅ Available | Full management plane: queues, exchanges and bindings, connections and channels, browse and publish over AMQP, dead letters, virtual hosts, users and permissions, policies, definitions, shovels and federation |
 | **Kafka** 3.x / 4.x | ✅ Available | Topics with their partitions, replicas and settings; consumer groups with per-partition lag and every offset reset Kafka offers; browsing and following a log; producing with keys, headers and an acknowledgement level; brokers, their effective settings and their log directories; ACLs and SCRAM users; client quotas; partition reassignment and preferred-leader election; and the cluster's open transactions |
-| Pulsar · NATS · MQTT · SQS and more | 📋 Planned | Full matrix below |
+| **MQTT** 3.1.1 / 5.0 | ✅ Available | Publish with QoS, retain and the 5.0 properties; a live subscribe workbench that reports what it dropped and when the session went down; topics from the broker's retained set; the $SYS tree where a broker publishes one; and — where the broker offers a management API, as EMQX and its peers do — connected clients and their sessions, their subscriptions, the cluster's nodes, and disconnecting a session. Mosquitto, EMQX, HiveMQ and VerneMQ |
+| Pulsar · NATS · Redis Stream · SQS and more | 📋 Planned | Full matrix below |
 
 <details>
 <summary><strong>Planned drivers, wire-compatible systems, and scope</strong></summary>
@@ -131,7 +132,6 @@ capabilities, so the interface only offers what the connected broker can actuall
 | **Redis Stream** | 📋 Planned | Streams and consumer groups; no cluster plane |
 | **NATS** | 📋 Planned | JetStream streams and consumers; NATS core is publish/subscribe only |
 | **NSQ** | 📋 Planned | Topics and channels over the nsqd HTTP API |
-| **MQTT** | 📋 Planned | Publish and subscribe only — the protocol has no admin plane |
 | **Amazon SQS** | 📋 Planned | Queues, attributes, and dead-letter redrive |
 | **Google Cloud Pub/Sub** | 📋 Planned | Topics and subscriptions with backlog |
 | **Azure Service Bus** | 📋 Planned | Queues, topics, subscriptions, rules, dead-letter queues |
