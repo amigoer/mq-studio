@@ -66,6 +66,7 @@ let render: (element: React.ReactElement) => string;
 let OverviewMqtt: typeof import("./overview/OverviewMqtt").OverviewMqtt;
 let MqttWorkbench: typeof import("./mqtt/MqttWorkbench").MqttWorkbench;
 let ProducerMqtt: typeof import("./producer/ProducerMqtt").ProducerMqtt;
+let ClientsMqtt: typeof import("./consumers/ClientsMqtt").ClientsMqtt;
 
 beforeAll(async () => {
   const storage = { getItem: () => null, setItem() {}, removeItem() {} };
@@ -80,11 +81,12 @@ beforeAll(async () => {
   });
   vi.stubGlobal("localStorage", storage);
 
-  const [server, overview, workbench, producer, ui, i18n, settings] = await Promise.all([
+  const [server, overview, workbench, producer, clients, ui, i18n, settings] = await Promise.all([
     import("react-dom/server"),
     import("./overview/OverviewMqtt"),
     import("./mqtt/MqttWorkbench"),
     import("./producer/ProducerMqtt"),
+    import("./consumers/ClientsMqtt"),
     import("@/components"),
     import("@/i18n"),
     import("@/hooks/useSettings"),
@@ -99,6 +101,7 @@ beforeAll(async () => {
   OverviewMqtt = overview.OverviewMqtt;
   MqttWorkbench = workbench.MqttWorkbench;
   ProducerMqtt = producer.ProducerMqtt;
+  ClientsMqtt = clients.ClientsMqtt;
 });
 
 /** A stream as the hook reports it. */
@@ -340,5 +343,103 @@ describe("the MQTT send console", () => {
     // The only way to leave state on an MQTT broker, and permanent until
     // something overwrites it.
     expect(render(<ProducerMqtt />)).toContain("最后已知值");
+  });
+});
+
+/** A client as the driver sends it, attribute keys included. */
+const connectedClient = {
+  name: "gateway-a19f",
+  clientName: "gateway-a19f",
+  namespace: "",
+  user: "iot-ops",
+  node: "emqx@127.0.0.1",
+  peerHost: "10.0.0.9",
+  peerPort: 50240,
+  protocol: "MQTT 5.0",
+  state: "connected",
+  channels: 0,
+  tls: false,
+  cipher: "",
+  heartbeatSec: 60,
+  recvBytes: 900,
+  sendBytes: 1200,
+  recvByteRate: 0,
+  sendByteRate: 0,
+  connectedAtMs: 1_780_000_000_000,
+  blockedBy: "",
+  attributes: {
+    cleanStart: "true",
+    sessionExpiry: "0",
+    subscriptions: "3",
+    inflight: "0",
+    queued: "0",
+    queueDropped: "0",
+    listener: "tcp:default",
+    durable: "false",
+  },
+};
+
+/*
+ * A session with nobody on it.
+ *
+ * The row the page exists to find: the broker is still queueing for a client
+ * that is not there, it costs memory, and nothing on the device's side shows
+ * it.
+ */
+const orphanedSession = {
+  ...connectedClient,
+  name: "gateway-b22c",
+  clientName: "gateway-b22c",
+  state: "disconnected",
+  attributes: {
+    ...connectedClient.attributes,
+    cleanStart: "false",
+    sessionExpiry: "3600",
+    durable: "true",
+    queued: "42",
+    queueDropped: "7",
+  },
+};
+
+describe("the MQTT clients board", () => {
+  it("renders while the clients are still being read", () => {
+    clientsState.current = stateOf({ loading: true });
+    expect(render(<ClientsMqtt />)).toContain("<");
+  });
+
+  /*
+   * A broker with no management API cannot answer this page at all, and the
+   * error has to reach the screen: an empty table would say nobody is
+   * connected, which is a claim the app is in no position to make.
+   */
+  it("shows why it could not read a broker with no management api", () => {
+    clientsState.current = stateOf({ error: "mqtt does not support client.inspect" });
+    expect(render(<ClientsMqtt />)).toContain("client.inspect");
+  });
+
+  it("renders a broker with no sessions at all", () => {
+    clientsState.current = stateOf({ data: [] });
+    expect(render(<ClientsMqtt />)).toContain("<");
+  });
+
+  it("shows a connected client with what its session holds", () => {
+    clientsState.current = stateOf({ data: [connectedClient] });
+    const html = render(<ClientsMqtt />);
+
+    expect(html).toContain("gateway-a19f");
+    expect(html).toContain("iot-ops");
+    expect(html).toContain("10.0.0.9");
+    expect(html).toContain("MQTT 5.0");
+  });
+
+  // A session that outlived its connection is the one row worth finding.
+  it("marks a session with nobody connected to it", () => {
+    clientsState.current = stateOf({ data: [connectedClient, orphanedSession] });
+    const html = render(<ClientsMqtt />);
+
+    expect(html).toContain("gateway-b22c");
+    expect(html).toContain("离线");
+    // And the header counts them, so the page says so before anyone scrolls.
+    expect(html).toContain("1");
   });
 });

@@ -1,5 +1,7 @@
-import { useState } from "react";
-import { ListArea, ListPane, Page, PageHeader, SkeletonRows, Toolbar } from "@/design/shell";
+import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { Unplug } from "lucide-react";
+import { Page, PageBody, PageHeader, RefreshButton } from "@/design/shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -10,162 +12,222 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  DetailPanel,
-  DetailPanelBody,
-  DetailPanelFooter,
-  DetailPanelHeader,
-  KV,
-  Panel,
-  SectionLabel,
-  Segmented,
-  SelectField,
-  Status,
-} from "@/components";
-import { useTranslation } from "react-i18next";
+import { KV, Panel, PanelHeader, SectionLabel, Status, WarnBanner, useConfirm } from "@/components";
+import { BoardState } from "@/design/boards/BoardState";
+import { useMqttClients } from "@/hooks/mqtt/useMqttBroker";
+import { clientSession, isOrphanedSession } from "@/mq/mqtt/clients";
+import { kickMqttClient } from "@/api/mqtt";
+import { useConnectionScope } from "@/mq/ConnectionScope";
+import { formatBytes, formatCount } from "@/lib/format";
+import { formatErrorMessage } from "@/lib/utils";
+import type { ClientConnection } from "@/api/models";
 
-const SHEET_TABS = ["board.common.subscription", "board.consumers.mqtt.session", "board.consumers.mqtt.stats"] as const;
-const R = { textAlign: "right" } as const;
-const DIM = { color: "var(--c-muted)" } as const;
-const NAME = { fontSize: "11.5px" } as const;
 const MONO11 = { fontSize: "11px" } as const;
 
-const FILTERS = [
-  { value: "all", label: "board.common.all" },
-  { value: "online", label: "board.common.online" },
-  { value: "offline", label: "board.consumers.mqtt.offlinePersistent" },
-] as const;
-
-const SUBS = [
-  { filter: "iot/device/cmd/A19F", qos: "1" },
-  { filter: "iot/broadcast/#", qos: "0" },
-  { filter: "$share/gw/iot/task/#", qos: "1" },
-];
+function reported(value: number | null): string {
+  return value == null ? "—" : formatCount(value);
+}
 
 /**
- * Board 14d — MQTT has no consumer-group model, so the slot becomes a client
- * and session list: subscriptions, in-flight window, and kick / clear-session.
+ * Board 11c — MQTT clients and sessions.
+ *
+ * A row here is a session rather than a socket, and that distinction is what
+ * the page exists for. An MQTT session can outlive the connection that made
+ * it: with clean start off and a session expiry set, the broker keeps queueing
+ * messages for a client that is not there, and nothing on the device's side
+ * shows it. Those rows are the ones worth finding, so they are marked.
+ *
+ * The whole page needs a management API. MQTT itself cannot enumerate who is
+ * connected - there is no protocol surface for it at all - so on a Mosquitto
+ * this entry is drawn disabled with the reason rather than showing an empty
+ * table, which would say nobody is connected.
  */
 export function ClientsMqtt() {
-  const [filter, setFilter] = useState<(typeof FILTERS)[number]["value"]>("all");
-  const [selected, setSelected] = useState<string | null>(null);
-  const [tab, setTab] = useState<string>(SHEET_TABS[0]);
-
   const { t } = useTranslation();
+  const state = useMqttClients();
+  const confirm = useConfirm();
+  const { id: connID } = useConnectionScope();
+
+  const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const clients = useMemo(() => state.data ?? [], [state.data]);
+  const shown = useMemo(() => {
+    const needle = search.trim().toLowerCase();
+    if (needle === "") return clients;
+    return clients.filter(
+      (client) =>
+        client.name.toLowerCase().includes(needle) ||
+        client.peerHost.toLowerCase().includes(needle) ||
+        client.user.toLowerCase().includes(needle),
+    );
+  }, [clients, search]);
+
+  const detail = useMemo(
+    () => shown.find((client) => client.name === selected) ?? shown[0] ?? null,
+    [shown, selected],
+  );
+
+  const orphaned = useMemo(() => clients.filter(isOrphanedSession).length, [clients]);
+
+  const kick = async (client: ClientConnection) => {
+    const ok = await confirm({
+      title: t("board.consumers.mqtt.kickTitle", { client: client.name }),
+      /* Most clients reconnect at once, so this is a nudge rather than an
+         eviction - and on a persistent session it also leaves the queued
+         messages behind, which is usually the point of doing it. */
+      description: t("board.consumers.mqtt.kickDesc"),
+      confirmLabel: t("board.consumers.mqtt.kick"),
+      danger: true,
+    });
+    if (!ok || connID === 0) return;
+    try {
+      await kickMqttClient(connID, client.name);
+      await state.refresh();
+    } catch (cause: unknown) {
+      setError(formatErrorMessage(cause));
+    }
+  };
+
   return (
     <Page>
-      <PageHeader title={t("board.consumers.mqtt.title")} subtitle={t("board.consumers.mqtt.subtitle")} />
-      <Toolbar>
-        <Input className="w-[220px] flex-none" placeholder={t("board.consumers.mqtt.search")} />
-        <Segmented options={FILTERS.map((o) => ({ ...o, label: t(o.label) }))} value={filter} onChange={setFilter} />
-        <span className="flex-1" />
-        <SelectField value="opt" options={[{ value: "opt", label: t("board.consumers.mqtt.byConnectTime") }]} />
-      </Toolbar>
-
-      <ListArea>
-        <ListPane>
-          <Table inset>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Client ID</TableHead>
-                <TableHead>{t("board.common.user")}</TableHead>
-                <TableHead>IP</TableHead>
-                <TableHead>{t("board.common.protocol")}</TableHead>
-                <TableHead style={R}>{t("board.common.subscription")}</TableHead>
-                <TableHead style={R}>{t("board.consumers.mqtt.inflightQueued")}</TableHead>
-                <TableHead>{t("board.common.status")}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              <TableRow selected={selected === "sensor-gw-A19F"} onClick={() => setSelected("sensor-gw-A19F")}>
-                <TableCell>
-                  <b className="mono3" style={{ fontWeight: 500, fontSize: "11.5px" }}>sensor-gw-A19F</b>
-                </TableCell>
-                <TableCell>iot-ops</TableCell>
-                <TableCell className="mono3" style={MONO11}>10.8.0.21</TableCell>
-                <TableCell>5.0</TableCell>
-                <TableCell className="mono3" style={R}>4</TableCell>
-                <TableCell className="mono3" style={R}>2 / 0</TableCell>
-                <TableCell><Status tone="ok">{t("board.consumers.mqtt.online6d")}</Status></TableCell>
-              </TableRow>
-              <TableRow selected={selected === "sensor-gw-B22C"} onClick={() => setSelected("sensor-gw-B22C")}>
-                <TableCell className="mono3" style={NAME}>sensor-gw-B22C</TableCell>
-                <TableCell>iot-ops</TableCell>
-                <TableCell className="mono3" style={MONO11}>10.8.0.22</TableCell>
-                <TableCell>5.0</TableCell>
-                <TableCell className="mono3" style={R}>4</TableCell>
-                <TableCell className="mono3" style={R}>1 / 0</TableCell>
-                <TableCell><Status tone="ok">{t("board.consumers.mqtt.online6d")}</Status></TableCell>
-              </TableRow>
-              <TableRow selected={selected === "dash-web-9921"} onClick={() => setSelected("dash-web-9921")}>
-                <TableCell className="mono3" style={{ ...NAME, ...DIM }}>dash-web-9921</TableCell>
-                <TableCell style={DIM}>viewer</TableCell>
-                <TableCell className="mono3" style={{ ...MONO11, ...DIM }}>—</TableCell>
-                <TableCell style={DIM}>3.1.1</TableCell>
-                <TableCell className="mono3" style={{ ...R, ...DIM }}>12</TableCell>
-                <TableCell className="mono3" style={{ ...R, ...DIM }}>0 / 128</TableCell>
-                <TableCell><Status tone="off">{t("board.consumers.mqtt.offline1h")}</Status></TableCell>
-              </TableRow>
-              <SkeletonRows colSpan={7} widths={["64%", "48%"]} />
-            </TableBody>
-          </Table>
-        </ListPane>
-
-        {selected != null && (
-          <DetailPanel width={410} onDismiss={() => setSelected(null)}>
-            <DetailPanelHeader
-              title={selected}
-              badge={<Status tone="ok" style={{ fontSize: "10px" }}>{t("board.common.online")}</Status>}
-              tabs={SHEET_TABS.map((id) => ({ id, label: t(id) }))}
-              activeTab={tab}
-              onTabChange={setTab}
-              onClose={() => setSelected(null)}
+      <PageHeader
+        title={t("board.consumers.mqtt.title")}
+        subtitle={t("board.consumers.mqtt.count", {
+          total: clients.length,
+          orphaned,
+        })}
+        actions={
+          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            <Input
+              style={{ width: "200px" }}
+              value={search}
+              placeholder={t("board.consumers.mqtt.search")}
+              onChange={(event) => setSearch(event.target.value)}
             />
-            <DetailPanelBody>
-              <div>
-                <SectionLabel style={{ marginBottom: "6px" }}>{t("board.consumers.mqtt.subsCount")}</SectionLabel>
-                <Panel style={{ overflow: "hidden" }}>
-                  <Table className="text-xs">
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>topic filter</TableHead>
-                        <TableHead style={R}>QoS</TableHead>
+            <RefreshButton
+              refreshing={state.refreshing}
+              online={state.online}
+              onClick={() => void state.refresh()}
+            />
+          </div>
+        }
+      />
+      <BoardState state={state}>
+        <PageBody>
+          {error != null && <WarnBanner>{error}</WarnBanner>}
+          <div style={{ display: "flex", gap: "12px", minHeight: 0, flex: 1 }}>
+            <Panel style={{ flex: 1, minWidth: 0 }}>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Client ID</TableHead>
+                    <TableHead>{t("board.consumers.mqtt.user")}</TableHead>
+                    <TableHead>{t("board.consumers.mqtt.address")}</TableHead>
+                    <TableHead>{t("board.common.protocol")}</TableHead>
+                    <TableHead>{t("board.consumers.mqtt.subsCount")}</TableHead>
+                    <TableHead>{t("board.consumers.mqtt.state")}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {shown.map((client) => {
+                    const session = clientSession(client);
+                    return (
+                      <TableRow
+                        key={client.name}
+                        onClick={() => setSelected(client.name)}
+                        aria-selected={detail?.name === client.name}
+                      >
+                        <TableCell className="mono3" style={MONO11}>
+                          {client.name}
+                        </TableCell>
+                        <TableCell>{client.user === "" ? "—" : client.user}</TableCell>
+                        <TableCell className="mono3" style={MONO11}>
+                          {client.peerHost}:{client.peerPort}
+                        </TableCell>
+                        <TableCell style={MONO11}>{client.protocol}</TableCell>
+                        <TableCell className="mono3" style={MONO11}>
+                          {reported(session.subscriptions)}
+                        </TableCell>
+                        <TableCell>
+                          {session.connected ? (
+                            <Status tone="ok">{t("board.consumers.mqtt.online")}</Status>
+                          ) : (
+                            // A session with nobody on it, still queueing.
+                            <Status tone="warn">
+                              {t("board.consumers.mqtt.offlinePersistent")}
+                            </Status>
+                          )}
+                        </TableCell>
                       </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {SUBS.map((s) => (
-                        <TableRow key={s.filter}>
-                          <TableCell className="mono3">{s.filter}</TableCell>
-                          <TableCell className="mono3" style={R}>{s.qos}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </Panel>
-              </div>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </Panel>
 
-              <KV
-                rows={[
-                  ["Keep Alive", t("board.consumers.mqtt.keepAlive")],
-                  ["Clean Start", t("board.consumers.mqtt.cleanStart")],
-                  [t("board.consumers.mqtt.inflightWindow"), <span className="mono3" style={MONO11}>2 / 32</span>],
-                  [t("board.consumers.mqtt.rxTx"), <span className="mono3" style={MONO11}>1.2M / 8.4K msg</span>],
-                ]}
+            <Panel style={{ width: "300px", flex: "none" }}>
+              <PanelHeader
+                title={t("board.consumers.mqtt.session")}
+                action={
+                  detail != null && (
+                    <Button variant="outline" onClick={() => void kick(detail)}>
+                      <Unplug size={14} aria-hidden />
+                      {t("board.consumers.mqtt.kick")}
+                    </Button>
+                  )
+                }
               />
-
-              <div style={{ fontSize: "11px", color: "var(--c-muted)" }}>
-                {t("board.consumers.mqtt.will")}
-              </div>
-            </DetailPanelBody>
-            <DetailPanelFooter>
-              <Button variant="outline">{t("board.consumers.mqtt.liveMessages")}</Button>
-              <span className="flex-1" />
-              <Button variant="destructive">{t("board.consumers.mqtt.clearSession")}</Button>
-              <Button variant="destructive">{t("board.consumers.mqtt.kick")}</Button>
-            </DetailPanelFooter>
-          </DetailPanel>
-        )}
-      </ListArea>
+              {detail == null ? (
+                <div style={{ padding: "14px", fontSize: "12px", color: "var(--c-muted)" }}>
+                  {t("board.consumers.mqtt.noClients")}
+                </div>
+              ) : (
+                <div style={{ padding: "12px 14px", display: "flex", flexDirection: "column", gap: "10px" }}>
+                  <SectionLabel>{t("board.consumers.mqtt.session")}</SectionLabel>
+                  <KV
+                    rows={[
+                      ["Client ID", detail.name],
+                      [t("board.consumers.mqtt.keepAlive"), `${detail.heartbeatSec}s`],
+                      [
+                        t("board.consumers.mqtt.cleanStart"),
+                        String(clientSession(detail).cleanStart),
+                      ],
+                      [
+                        t("board.consumers.mqtt.expiry"),
+                        reported(clientSession(detail).sessionExpirySec),
+                      ],
+                      [t("board.consumers.mqtt.listener"), clientSession(detail).listener],
+                    ]}
+                  />
+                  <SectionLabel>{t("board.consumers.mqtt.stats")}</SectionLabel>
+                  <KV
+                    rows={[
+                      [
+                        t("board.consumers.mqtt.inflightQueued"),
+                        `${reported(clientSession(detail).inflight)} / ${reported(
+                          clientSession(detail).queued,
+                        )}`,
+                      ],
+                      // A broker that gave up queueing for a client drops the
+                      // messages silently; this is the only place it shows.
+                      [
+                        t("board.consumers.mqtt.queueDropped"),
+                        reported(clientSession(detail).queueDropped),
+                      ],
+                      [
+                        t("board.consumers.mqtt.rxTx"),
+                        `${formatBytes(detail.recvBytes)} / ${formatBytes(detail.sendBytes)}`,
+                      ],
+                    ]}
+                  />
+                </div>
+              )}
+            </Panel>
+          </div>
+        </PageBody>
+      </BoardState>
     </Page>
   );
 }

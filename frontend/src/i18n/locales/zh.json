@@ -1948,7 +1948,18 @@
         "will": "遗嘱：iot/device/status/A19F = offline · QoS1 · retain",
         "liveMessages": "查看实时消息",
         "clearSession": "清除会话",
-        "kick": "踢下线"
+        "kick": "踢下线",
+        "count": "{{total}} 个会话 · {{orphaned}} 个无人连接",
+        "user": "用户",
+        "address": "地址",
+        "state": "状态",
+        "online": "在线",
+        "expiry": "会话过期（秒）",
+        "listener": "监听器",
+        "queueDropped": "队列丢弃",
+        "noClients": "未选择会话",
+        "kickTitle": "断开 {{client}}？",
+        "kickDesc": "多数客户端会立刻重连，所以这更像是提醒而不是驱逐。持久会话里排队的消息会留下。"
       },
       "kafka": {
         "subtitle": "集群保存了已提交位点的消费组",

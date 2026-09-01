@@ -1948,7 +1948,18 @@
         "will": "Will: iot/device/status/A19F = offline · QoS1 · retain",
         "liveMessages": "View live messages",
         "clearSession": "Clear session",
-        "kick": "Disconnect"
+        "kick": "Disconnect",
+        "count": "{{total}} sessions · {{orphaned}} with nobody connected",
+        "user": "User",
+        "address": "Address",
+        "state": "State",
+        "online": "Connected",
+        "expiry": "Session expiry (s)",
+        "listener": "Listener",
+        "queueDropped": "Queue dropped",
+        "noClients": "No session selected",
+        "kickTitle": "Disconnect {{client}}?",
+        "kickDesc": "Most clients reconnect at once, so this is a nudge rather than an eviction. On a persistent session the queued messages stay behind."
       },
       "kafka": {
         "subtitle": "Groups the cluster holds committed offsets for",
