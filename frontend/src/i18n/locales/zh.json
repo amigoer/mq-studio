@@ -1782,7 +1782,24 @@
         "deleteHolding": "DEL 会连同 {{count}} 条消息和 {{groups}} 个消费组一起删掉，包括每个组的读取位置和待处理列表。Redis 没有撤销。",
         "deleteEmpty": "该 Stream 为空，也没有消费组在读。Redis 没有撤销。",
         "deleted": "已删除 {{name}}",
-        "deleteFailed": "删除 Stream 失败"
+        "deleteFailed": "删除 Stream 失败",
+        "trim": {
+          "title": "裁剪 {{name}}",
+          "strategy": "裁剪依据",
+          "maxlenHint": "保留最新的这么多条，其余最旧的一律丢弃。",
+          "minidHint": "保留从该 Entry ID 起的所有消息，之前的一律丢弃，不论有多少条。",
+          "length": "保留条数",
+          "lengthRequired": "请填写要保留的条数。",
+          "lengthInvalid": "保留条数必须是整数，且不能为负。",
+          "minId": "保留的最小 Entry ID",
+          "idRequired": "请填写要保留的最小 Entry ID。",
+          "idInvalid": "Entry ID 的格式是 <毫秒> 或 <毫秒>-<序号>。",
+          "emptiesWarning": "填 0 会清空整个 Stream。键本身、消费组及其读取位置都会保留，消息不会，且 Redis 没有撤销。",
+          "approx": "近似裁剪",
+          "approxNote": "允许服务端在节点边界处停下。实际保留的条数只会多于、不会少于填写的值，在大 Stream 上开销小得多。",
+          "run": "执行裁剪",
+          "done": "已删除 {{count}} 条"
+        }
       },
       "kafka": {
         "subtitle": "集群里的 topic，默认隐藏内部 topic",

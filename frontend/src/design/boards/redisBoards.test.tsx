@@ -204,6 +204,8 @@ describe("the Redis streams board's write controls", () => {
     streamDetailState.current = stateOf({ data: null });
     // Nothing is selected on first render, so the detail panel and its
     // destructive footer must not be there at all.
-    expect(render(<StreamsRedis />)).not.toContain("DEL key");
+    const html = render(<StreamsRedis />);
+    expect(html).not.toContain("DEL key");
+    expect(html).not.toContain("XTRIM");
   });
 });

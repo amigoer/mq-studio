@@ -9,6 +9,7 @@ import * as DriverService from "./driverservice.js";
 import * as KafkaService from "./kafkaservice.js";
 import * as MessageService from "./messageservice.js";
 import * as RabbitMQService from "./rabbitmqservice.js";
+import * as RedisStreamService from "./redisstreamservice.js";
 import * as RoutingService from "./routingservice.js";
 import * as SettingsService from "./settingsservice.js";
 import * as ShellService from "./shellservice.js";
@@ -25,6 +26,7 @@ export {
     KafkaService,
     MessageService,
     RabbitMQService,
+    RedisStreamService,
     RoutingService,
     SettingsService,
     ShellService,
@@ -71,5 +73,6 @@ export {
     ShellPage,
     TopicInput,
     TopicPermissionInput,
-    TransactionView
+    TransactionView,
+    TrimInput
 } from "./models.js";

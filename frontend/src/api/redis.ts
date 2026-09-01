@@ -8,6 +8,9 @@
  * three zeros to make a stream would read as though it were leaving something
  * out.
  */
+import { RedisStreamService } from "@bindings/bridge";
+import type { TrimResult } from "@bindings/model/models";
+import { required } from "./client";
 import * as topicApi from "./topic";
 
 /** Creates an empty stream. Redis needs nothing but the key. */
@@ -22,3 +25,40 @@ export const createStream = (connID: number, key: string): Promise<void> =>
  */
 export const deleteStream = (connID: number, key: string): Promise<void> =>
   topicApi.deleteTopic(connID, key, "");
+
+
+/** How a trim names the bound it keeps. */
+export type TrimStrategy = "maxlen" | "minid";
+
+export interface TrimRequest {
+  stream: string;
+  strategy: TrimStrategy;
+  /** How many of the newest entries to keep. Zero empties the stream. */
+  maxLen: number;
+  /** The lowest entry id to keep. */
+  minId: string;
+  /** Let the server stop at a node boundary: keeps at least maxLen, never fewer. */
+  approx: boolean;
+}
+
+/**
+ * Discards entries from the head of a stream, and reports how many went.
+ *
+ * The count matters even on an approximate trim, and especially then: it is
+ * the only way to tell "kept a few extra at a node boundary" from "matched
+ * nothing and did nothing at all".
+ */
+export const trimStream = (connID: number, request: TrimRequest): Promise<TrimResult> =>
+  RedisStreamService.Trim(connID, request).then(required);
+
+/**
+ * Removes named entries, and reports how many were there to remove.
+ *
+ * Not the same as how many were asked for: deleting an id twice succeeds and
+ * removes nothing.
+ */
+export const deleteEntries = (
+  connID: number,
+  stream: string,
+  ids: string[],
+): Promise<TrimResult> => RedisStreamService.DeleteEntries(connID, stream, ids).then(required);

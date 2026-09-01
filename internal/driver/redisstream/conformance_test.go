@@ -60,6 +60,7 @@ func TestConnDeclaresOnlyWhatItImplements(t *testing.T) {
 //     CONSUMERS; it is listed here so its arrival is a deliberate edit.
 func TestConnDeclaresNoConceptRedisStreamDoesNotHave(t *testing.T) {
 	absent := []model.Capability{
+		model.CapDestinationPurge,
 		model.CapPartitions,
 		model.CapReassign,
 		model.CapDestinationUpdate,
@@ -222,6 +223,7 @@ func TestCapabilitiesMatchTheSidebarContract(t *testing.T) {
 		"destination.list",
 		"destination.create",
 		"destination.delete",
+		"destination.trim",
 	}
 
 	declared := make(map[string]bool, len(capabilities()))

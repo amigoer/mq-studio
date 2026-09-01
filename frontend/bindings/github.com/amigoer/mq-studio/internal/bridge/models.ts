@@ -2148,6 +2148,65 @@ export class TransactionView {
     }
 }
 
+/**
+ * TrimInput is a trim as the dialog collects it.
+ * 
+ * The strategy is a string rather than two methods because it is one command
+ * with two ways of naming a bound, and a page that had to pick an endpoint
+ * before the user picked a strategy would be the wrong shape.
+ */
+export class TrimInput {
+    "stream": string;
+    "strategy": string;
+
+    /**
+     * MaxLen is how many of the newest entries to keep, for the maxlen
+     * strategy. Zero empties the stream and keeps the key, its groups and
+     * their positions.
+     */
+    "maxLen": number;
+
+    /**
+     * MinID is the lowest entry id to keep, for the minid strategy.
+     */
+    "minId": string;
+
+    /**
+     * Approx lets the server stop at a node boundary. The stream then keeps at
+     * least what was asked and possibly a little more, never less.
+     */
+    "approx": boolean;
+
+    /** Creates a new TrimInput instance. */
+    constructor($$source: Partial<TrimInput> = {}) {
+        if (!("stream" in $$source)) {
+            this["stream"] = "";
+        }
+        if (!("strategy" in $$source)) {
+            this["strategy"] = "";
+        }
+        if (!("maxLen" in $$source)) {
+            this["maxLen"] = 0;
+        }
+        if (!("minId" in $$source)) {
+            this["minId"] = "";
+        }
+        if (!("approx" in $$source)) {
+            this["approx"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new TrimInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): TrimInput {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new TrimInput($$parsedSource as Partial<TrimInput>);
+    }
+}
+
 // Private type creation functions
 const $$createType0 = $Create.Array($Create.Any);
 const $$createType1 = PolicyInput.createFrom;

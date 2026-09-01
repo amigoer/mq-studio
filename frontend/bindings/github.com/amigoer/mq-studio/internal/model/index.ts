@@ -70,5 +70,6 @@ export {
     TailBatch,
     TailCursor,
     TopicPermission,
-    Transaction
+    Transaction,
+    TrimResult
 } from "./models.js";

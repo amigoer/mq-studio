@@ -26,8 +26,10 @@ import {
 } from "@/components";
 import { BoardState } from "@/design/boards/BoardState";
 import { StreamDialog } from "./StreamDialog";
+import { TrimDialog } from "./TrimDialog";
 import { useConnectionScope } from "@/mq/ConnectionScope";
 import * as redisApi from "@/api/redis";
+import type { TrimRequest } from "@/api/redis";
 import { formatErrorMessage } from "@/lib/utils";
 import { useRedisStreamDetail, useRedisStreams } from "@/hooks/redis/useRedisStreams";
 import { formatBytes, formatCount } from "@/lib/format";
@@ -79,6 +81,7 @@ export function StreamsRedis() {
   const [withGroupsOnly, setWithGroupsOnly] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const [trimming, setTrimming] = useState<string | null>(null);
 
   const streams = useMemo(() => state.data ?? [], [state.data]);
   const detail = useRedisStreamDetail(selected);
@@ -104,6 +107,19 @@ export function StreamsRedis() {
     async (key: string) => {
       await redisApi.createStream(connID, key);
       toast.success(t("board.topics.redis.created", { name: key }));
+      await state.refresh();
+    },
+    [connID, state, t],
+  );
+
+  const trim = useCallback(
+    async (request: TrimRequest) => {
+      const { removed } = await redisApi.trimStream(connID, request);
+      /* The count is the report, not a formality. An approximate trim keeps at
+         least what was asked and may keep more, so "removed 0" is the only way
+         to tell a boundary the server would not split from a bound that
+         matched nothing at all. */
+      toast.success(t("board.topics.redis.trim.done", { count: removed }));
       await state.refresh();
     },
     [connID, state, t],
@@ -141,6 +157,12 @@ export function StreamsRedis() {
   return (
     <Page>
       <StreamDialog open={creating} onOpenChange={setCreating} onCreate={create} />
+      <TrimDialog
+        stream={trimming}
+        open={trimming != null}
+        onOpenChange={(open) => !open && setTrimming(null)}
+        onTrim={trim}
+      />
       <PageHeader
         title="Stream"
         subtitle={t("board.topics.redis.subtitle")}
@@ -355,6 +377,9 @@ export function StreamsRedis() {
                 </div>
               </DetailPanelBody>
               <DetailPanelFooter>
+                <Button variant="outline" onClick={() => setTrimming(streamKey(panel))}>
+                  XTRIM…
+                </Button>
                 <span className="flex-1" />
                 <Button
                   variant="destructive"

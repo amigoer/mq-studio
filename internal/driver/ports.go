@@ -63,6 +63,25 @@ type QueueActions interface {
 	RebalanceQueues(ctx context.Context) error
 }
 
+// StreamTrimmer discards entries from a destination that keeps a log.
+//
+// Separate from QueueActions because that is a queue's vocabulary - purge the
+// whole thing, move messages elsewhere, drop a batch from the head - and a log
+// has a different one. Trimming names a bound to keep rather than an amount to
+// remove, which is what lets the same call reclaim disk on a schedule and
+// empty a stream outright.
+//
+// It reports how many entries went, which is meaningful on every call and
+// necessary on an approximate one: only the count separates "kept a few extra
+// at a node boundary" from "matched nothing and did nothing".
+type StreamTrimmer interface {
+	Trim(ctx context.Context, request model.TrimRequest) (*model.TrimResult, error)
+	// DeleteEntries removes entries by id. The count is how many were there to
+	// remove, so a caller can tell a successful delete from a no-op on ids
+	// that had already gone.
+	DeleteEntries(ctx context.Context, ref model.DestinationRef, ids []string) (*model.TrimResult, error)
+}
+
 // DestinationStats reports per-partition read ranges. Families with no
 // partitions - RabbitMQ, MQTT - do not implement it.
 //

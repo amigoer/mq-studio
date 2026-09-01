@@ -1782,7 +1782,24 @@
         "deleteHolding": "DEL takes {{count}} entries and {{groups}} consumer groups with it, including every group's read position and pending list. Redis has no undo.",
         "deleteEmpty": "The stream is empty and no group reads it. Redis has no undo.",
         "deleted": "Deleted {{name}}",
-        "deleteFailed": "Could not delete the stream"
+        "deleteFailed": "Could not delete the stream",
+        "trim": {
+          "title": "Trim {{name}}",
+          "strategy": "Bound",
+          "maxlenHint": "Keep this many of the newest entries and let the oldest go, whatever they are.",
+          "minidHint": "Keep everything from this entry id onwards and let everything before it go, however many that is.",
+          "length": "Entries to keep",
+          "lengthRequired": "Enter how many entries to keep.",
+          "lengthInvalid": "The number of entries to keep must be a whole number, and cannot be negative.",
+          "minId": "Lowest entry id to keep",
+          "idRequired": "Enter the lowest entry id to keep.",
+          "idInvalid": "A stream id is <milliseconds> or <milliseconds>-<sequence>.",
+          "emptiesWarning": "Zero empties the stream. The key, its consumer groups and their read positions stay; the entries do not, and Redis has no undo.",
+          "approx": "Approximate",
+          "approxNote": "Let the server stop at a node boundary. It keeps at least what you asked for, never fewer, and is far cheaper on a large stream.",
+          "run": "Trim",
+          "done": "Removed {{count}} entries"
+        }
       },
       "kafka": {
         "subtitle": "Topics the cluster holds, internal ones hidden",

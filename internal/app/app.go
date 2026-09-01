@@ -20,6 +20,7 @@ import (
 	kafkaservice "github.com/amigoer/mq-studio/internal/service/kafka"
 	"github.com/amigoer/mq-studio/internal/service/message"
 	rabbitmqservice "github.com/amigoer/mq-studio/internal/service/rabbitmq"
+	redisstreamservice "github.com/amigoer/mq-studio/internal/service/redisstream"
 	"github.com/amigoer/mq-studio/internal/service/routing"
 	"github.com/amigoer/mq-studio/internal/service/settings"
 	"github.com/amigoer/mq-studio/internal/service/subscription"
@@ -38,6 +39,7 @@ type Services struct {
 	Routing     *routing.Service
 	RabbitMQ    *rabbitmqservice.Service
 	Kafka       *kafkaservice.Service
+	RedisStream *redisstreamservice.Service
 
 	// Conns resolves a profile id to a live connection. The bridge needs it to
 	// answer capability questions without going through a domain service.
@@ -84,6 +86,7 @@ func New() (*Services, error) {
 		Routing:     routing.New(conns, settingsService),
 		RabbitMQ:    rabbitmqservice.New(conns, settingsService),
 		Kafka:       kafkaservice.New(conns, settingsService),
+		RedisStream: redisstreamservice.New(conns, settingsService),
 		Conns:       conns,
 		Collector:   collector.New(sampleActiveConnection(clusterService, registry), registry.HasActive),
 		registry:    registry,

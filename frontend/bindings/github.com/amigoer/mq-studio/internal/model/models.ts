@@ -605,6 +605,17 @@ export enum Capability {
      * the cluster. Only a family that elects a leader per destination has it.
      */
     CapQueueRebalance = "destination.rebalance",
+
+    /**
+     * CapStreamTrim discards entries from the head of a destination that keeps
+     * a log, by count or by position, and deletes named entries outright.
+     * 
+     * Distinct from CapDestinationPurge, which empties a destination in one
+     * call and is the whole of what it can do. A trim is a bound the operator
+     * chooses, and emptying is one setting of it - a family with this needs no
+     * separate purge, and offering both would be two controls for one command.
+     */
+    CapStreamTrim = "destination.trim",
     CapSubscriptionList = "subscription.list",
     CapSubscriptionCreate = "subscription.create",
     CapSubscriptionDelete = "subscription.delete",
@@ -4165,6 +4176,34 @@ export class Transaction {
             $$parsedSource["partitions"] = $$createField7_0($$parsedSource["partitions"]);
         }
         return new Transaction($$parsedSource as Partial<Transaction>);
+    }
+}
+
+/**
+ * TrimResult is what the trim actually did.
+ * 
+ * The count matters even when Approx was set, and especially then: it is the
+ * only way to tell "kept a few extra at a node boundary" from "matched nothing
+ * and did nothing at all".
+ */
+export class TrimResult {
+    "removed": number;
+
+    /** Creates a new TrimResult instance. */
+    constructor($$source: Partial<TrimResult> = {}) {
+        if (!("removed" in $$source)) {
+            this["removed"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new TrimResult instance from a string or object.
+     */
+    static createFrom($$source: any = {}): TrimResult {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new TrimResult($$parsedSource as Partial<TrimResult>);
     }
 }
 

@@ -397,3 +397,143 @@ func TestLiveClusterListsStreamsFromEveryMaster(t *testing.T) {
 		}
 	}
 }
+
+func TestLiveTrimByLength(t *testing.T) {
+	conn := liveConn(t, map[string]string{OptionStreamFilter: liveStreams + "trim:*"}, nil)
+	ctx := liveContext(t)
+	key := liveStreams + "trim:orders"
+	seedLiveStream(t, conn, key, 20)
+
+	result, err := conn.Trim(ctx, model.TrimRequest{
+		Ref:      model.DestinationRef{Name: key},
+		Strategy: model.TrimMaxLen,
+		MaxLen:   5,
+	})
+	if err != nil {
+		t.Fatalf("trim: %v", err)
+	}
+	if result.Removed != 15 {
+		t.Errorf("removed = %d, want 15", result.Removed)
+	}
+
+	length, err := conn.client.XLen(ctx, key).Result()
+	if err != nil {
+		t.Fatalf("xlen: %v", err)
+	}
+	if length != 5 {
+		t.Errorf("kept %d entries, want exactly 5", length)
+	}
+}
+
+/*
+ * The approximate form, which only a real server models.
+ *
+ * Redis stops at a macro node boundary rather than splitting one, so the
+ * stream keeps at least the length asked for and possibly more. That is the
+ * contract the dialog promises, and the direction of the inequality is the
+ * whole of it: keeping fewer than asked would be data lost that the user was
+ * told would be kept.
+ */
+func TestLiveApproximateTrimNeverKeepsFewerThanAsked(t *testing.T) {
+	conn := liveConn(t, map[string]string{OptionStreamFilter: liveStreams + "approx:*"}, nil)
+	ctx := liveContext(t)
+	key := liveStreams + "approx:orders"
+	seedLiveStream(t, conn, key, 200)
+
+	if _, err := conn.Trim(ctx, model.TrimRequest{
+		Ref:      model.DestinationRef{Name: key},
+		Strategy: model.TrimMaxLen,
+		MaxLen:   50,
+		Approx:   true,
+	}); err != nil {
+		t.Fatalf("trim: %v", err)
+	}
+
+	length, err := conn.client.XLen(ctx, key).Result()
+	if err != nil {
+		t.Fatalf("xlen: %v", err)
+	}
+	if length < 50 {
+		t.Errorf("kept %d entries after asking to keep at least 50", length)
+	}
+}
+
+// Emptying a stream is a trim to zero, and it must leave the key and every
+// group's read position where they were. A page that reached for DEL here
+// would take the consumers' progress with it.
+func TestLiveTrimToZeroKeepsTheKeyAndTheGroups(t *testing.T) {
+	conn := liveConn(t, map[string]string{OptionStreamFilter: liveStreams + "empty:*"}, nil)
+	ctx := liveContext(t)
+	key := liveStreams + "empty:orders"
+	seedLiveStream(t, conn, key, 12)
+	if err := conn.client.XGroupCreate(ctx, key, "settle-group", "0").Err(); err != nil {
+		t.Fatalf("create group: %v", err)
+	}
+	if err := conn.client.XReadGroup(ctx, &redis.XReadGroupArgs{
+		Group:    "settle-group",
+		Consumer: "worker-1",
+		Streams:  []string{key, ">"},
+		Count:    4,
+	}).Err(); err != nil {
+		t.Fatalf("read: %v", err)
+	}
+	before, err := conn.client.XInfoGroups(ctx, key).Result()
+	if err != nil {
+		t.Fatalf("groups before: %v", err)
+	}
+
+	if _, err := conn.Trim(ctx, model.TrimRequest{
+		Ref:      model.DestinationRef{Name: key},
+		Strategy: model.TrimMaxLen,
+		MaxLen:   0,
+	}); err != nil {
+		t.Fatalf("trim: %v", err)
+	}
+
+	after, err := conn.client.XInfoGroups(ctx, key).Result()
+	if err != nil {
+		t.Fatalf("groups after: %v", err)
+	}
+	if len(after) != 1 {
+		t.Fatalf("the group did not survive emptying the stream: %+v", after)
+	}
+	if after[0].LastDeliveredID != before[0].LastDeliveredID {
+		t.Errorf("last-delivered-id moved from %s to %s; a trim is not a reset",
+			before[0].LastDeliveredID, after[0].LastDeliveredID)
+	}
+}
+
+// XDEL moves max-deleted-entry-id, which is the only record that a gap in the
+// ids was deliberate. Without it, a reader finding a missing id cannot tell a
+// deletion from a read that went wrong.
+func TestLiveDeleteEntriesRecordsTheGap(t *testing.T) {
+	conn := liveConn(t, map[string]string{OptionStreamFilter: liveStreams + "xdel:*"}, nil)
+	ctx := liveContext(t)
+	key := liveStreams + "xdel:orders"
+	seedLiveStream(t, conn, key, 6)
+
+	entries, err := conn.client.XRange(ctx, key, "-", "+").Result()
+	if err != nil {
+		t.Fatalf("xrange: %v", err)
+	}
+	target := entries[2].ID
+
+	result, err := conn.DeleteEntries(ctx, model.DestinationRef{Name: key}, []string{target})
+	if err != nil {
+		t.Fatalf("delete: %v", err)
+	}
+	if result.Removed != 1 {
+		t.Errorf("removed = %d, want 1", result.Removed)
+	}
+
+	listed, err := conn.ListDestinations(ctx, model.DestinationFilter{})
+	if err != nil {
+		t.Fatalf("list: %v", err)
+	}
+	if len(listed) != 1 {
+		t.Fatalf("listed %d streams", len(listed))
+	}
+	if got := listed[0].Attributes[AttrMaxDeletedEntryID]; got != target {
+		t.Errorf("max-deleted-entry-id = %q, want %q", got, target)
+	}
+}

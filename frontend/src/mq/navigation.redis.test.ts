@@ -21,6 +21,7 @@ const REDIS_CAPABILITIES: Capability[] = [
   Capability.CapDestinationList,
   Capability.CapDestinationCreate,
   Capability.CapDestinationDelete,
+  Capability.CapStreamTrim,
 ];
 
 function state(

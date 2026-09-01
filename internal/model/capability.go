@@ -25,6 +25,15 @@ const (
 	// the cluster. Only a family that elects a leader per destination has it.
 	CapQueueRebalance Capability = "destination.rebalance"
 
+	// CapStreamTrim discards entries from the head of a destination that keeps
+	// a log, by count or by position, and deletes named entries outright.
+	//
+	// Distinct from CapDestinationPurge, which empties a destination in one
+	// call and is the whole of what it can do. A trim is a bound the operator
+	// chooses, and emptying is one setting of it - a family with this needs no
+	// separate purge, and offering both would be two controls for one command.
+	CapStreamTrim Capability = "destination.trim"
+
 	CapSubscriptionList   Capability = "subscription.list"
 	CapSubscriptionCreate Capability = "subscription.create"
 	CapSubscriptionDelete Capability = "subscription.delete"
