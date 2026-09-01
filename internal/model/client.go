@@ -52,6 +52,13 @@ type ClientConnection struct {
 	// a resource alarm, usually memory or disk. Empty means it was never
 	// blocked.
 	BlockedBy string `json:"blockedBy"`
+
+	// Attributes carries family-specific detail the canonical fields have no
+	// place for, the same way Destination and Node do. MQTT's session state is
+	// the reason it is here: clean-start, session expiry, the queued and
+	// in-flight counts and whether the session outlives the connection are the
+	// whole substance of an MQTT client, and none of them is a field above.
+	Attributes map[string]string `json:"attributes"`
 }
 
 // ClientChannel is one multiplexed session inside a connection.

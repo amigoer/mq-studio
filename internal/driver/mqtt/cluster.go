@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/amigoer/mq-studio/internal/driver/mqtt/emqx"
 	"github.com/amigoer/mq-studio/internal/model"
 	"github.com/amigoer/mq-studio/internal/timestamp"
 )
@@ -32,6 +33,19 @@ const (
 	AttrUptimeSeconds       = "uptimeSeconds"
 	AttrBrokerVersion       = "brokerVersion"
 
+	// Attributes only a management API can fill in.
+	AttrNodeRole        = "nodeRole"
+	AttrNodeEdition     = "nodeEdition"
+	AttrNodeConnections = "nodeConnections"
+	AttrNodeLive        = "nodeLiveConnections"
+	AttrNodeSessions    = "nodeSessions"
+	AttrMemoryUsed      = "memoryUsed"
+	AttrMemoryTotal     = "memoryTotal"
+	AttrLoad1           = "load1"
+	AttrLoad5           = "load5"
+	AttrLoad15          = "load15"
+	AttrOTPRelease      = "otpRelease"
+
 	// AttrSysTopics is the whole tree, as "topic\tvalue" lines. The overview
 	// shows it verbatim, so a broker publishing counters this driver does not
 	// know by name still has them on screen rather than silently dropped.
@@ -50,8 +64,12 @@ const (
  * is the management tier's job and not this one's.
  */
 
-// ListNodes is the broker this session is connected to.
+// ListNodes is the cluster's members where the broker can name them, and
+// otherwise the one broker this session is connected to.
 func (c *Conn) ListNodes(ctx context.Context) ([]*model.Node, error) {
+	if c.emqx != nil {
+		return c.managedNodes(ctx)
+	}
 	node, err := c.brokerNode(ctx)
 	if err != nil {
 		return nil, err
@@ -59,22 +77,88 @@ func (c *Conn) ListNodes(ctx context.Context) ([]*model.Node, error) {
 	return []*model.Node{node}, nil
 }
 
-// NodeDetail is the same broker. The address is checked rather than ignored so
-// a stale link from another page fails visibly instead of silently answering
-// about a different node.
-func (c *Conn) NodeDetail(ctx context.Context, address string) (*model.Node, error) {
-	node, err := c.brokerNode(ctx)
+// managedNodes reads the real cluster from the management API.
+//
+// This is the difference the tier makes: over the protocol alone a session
+// knows about one broker, because a session is one socket. The API knows the
+// other members exist.
+func (c *Conn) managedNodes(ctx context.Context) ([]*model.Node, error) {
+	nodes, err := c.emqx.Nodes(ctx)
 	if err != nil {
 		return nil, err
 	}
-	if address != "" && address != node.Address {
-		return nil, fmt.Errorf("this connection has no node at %q", address)
+
+	converted := make([]*model.Node, 0, len(nodes))
+	for i, node := range nodes {
+		converted = append(converted, &model.Node{
+			ID:      i + 1,
+			Name:    node.Node,
+			Address: node.Node,
+			Version: node.Version,
+			Status:  nodeStatusOf(node.Status),
+			// EMQX reports running totals rather than rates. A rate derived
+			// from two polls here would be this app's arithmetic shown as the
+			// broker's figure.
+			RateIn:    model.UnknownMetric,
+			RateOut:   model.UnknownMetric,
+			DiskUsage: model.UnknownMetric,
+			LastSeen:  timestamp.Now(),
+			Attributes: map[string]string{
+				AttrNodeRole:        node.Role,
+				AttrNodeEdition:     node.Edition,
+				AttrNodeConnections: strconv.FormatInt(node.Connections, 10),
+				AttrNodeLive:        strconv.FormatInt(node.LiveConnections, 10),
+				AttrNodeSessions:    strconv.FormatInt(node.Sessions, 10),
+				AttrMemoryUsed:      node.MemoryUsed,
+				AttrMemoryTotal:     node.MemoryTotal,
+				AttrLoad1:           strconv.FormatFloat(node.Load1, 'f', 2, 64),
+				AttrLoad5:           strconv.FormatFloat(node.Load5, 'f', 2, 64),
+				AttrLoad15:          strconv.FormatFloat(node.Load15, 'f', 2, 64),
+				AttrOTPRelease:      node.OTPRelease,
+				// EMQX counts uptime in milliseconds; the boards read seconds,
+				// which is what $SYS reports on the other path.
+				AttrUptimeSeconds: strconv.FormatInt(node.Uptime/1000, 10),
+			},
+		})
 	}
-	return node, nil
+	return converted, nil
+}
+
+// nodeStatusOf maps EMQX's own word onto the canonical one. Anything that is
+// not "running" is reported as offline rather than guessed at: a node in an
+// unknown state is not a healthy one.
+func nodeStatusOf(status string) model.NodeStatus {
+	if status == "running" {
+		return model.NodeOnline
+	}
+	return model.NodeOffline
+}
+
+// NodeDetail is one named node. The address is checked rather than ignored so
+// a stale link from another page fails visibly instead of silently answering
+// about a different node.
+func (c *Conn) NodeDetail(ctx context.Context, address string) (*model.Node, error) {
+	nodes, err := c.ListNodes(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if address == "" && len(nodes) == 1 {
+		return nodes[0], nil
+	}
+	for _, node := range nodes {
+		if node.Address == address {
+			return node, nil
+		}
+	}
+	return nil, fmt.Errorf("this connection has no node at %q", address)
 }
 
 // ClusterOverview is the header figures the overview board reads.
 func (c *Conn) ClusterOverview(ctx context.Context) (*model.ClusterOverview, error) {
+	if c.emqx != nil {
+		return c.managedOverview(ctx)
+	}
+
 	tree, err := c.readSys(ctx)
 	if err != nil {
 		return nil, err
@@ -95,6 +179,79 @@ func (c *Conn) ClusterOverview(ctx context.Context) (*model.ClusterOverview, err
 		Attributes:   sysAttributes(tree),
 	}
 	return overview, nil
+}
+
+// managedOverview is the same header read from the management API, where the
+// figures are complete rather than whatever the broker chose to publish.
+func (c *Conn) managedOverview(ctx context.Context) (*model.ClusterOverview, error) {
+	nodes, err := c.emqx.Nodes(ctx)
+	if err != nil {
+		return nil, err
+	}
+	stats, err := c.emqx.Stats(ctx)
+	if err != nil {
+		return nil, err
+	}
+	metrics, err := c.emqx.Metrics(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	online := 0
+	for _, node := range nodes {
+		if nodeStatusOf(node.Status) == model.NodeOnline {
+			online++
+		}
+	}
+
+	// Every figure is per node and the header is cluster-wide, so they are
+	// summed. A single-node broker is the same arithmetic over one row.
+	var topics, subscriptions, connections, retained, shared int64
+	for _, stat := range stats {
+		topics += stat.TopicsCount
+		subscriptions += stat.SubscriptionsCount
+		connections += stat.ConnectionsCount
+		retained += stat.RetainedCount
+		shared += stat.SubscriptionsShared
+	}
+	var received, sent, dropped, bytesIn, bytesOut int64
+	for _, metric := range metrics {
+		received += metric.MessagesReceived
+		sent += metric.MessagesSent
+		dropped += metric.MessagesDropped
+		bytesIn += metric.BytesReceived
+		bytesOut += metric.BytesSent
+	}
+
+	return &model.ClusterOverview{
+		Name:        c.emqx.Endpoint(),
+		TotalNodes:  len(nodes),
+		OnlineNodes: online,
+		// EMQX does count topics, which the protocol cannot. This is the one
+		// figure the management tier can give that no amount of subscribing
+		// would produce.
+		Destinations:  int(topics),
+		Subscriptions: int(subscriptions),
+		AvgDiskUsage:  model.UnknownMetric,
+		Attributes: map[string]string{
+			AttrClientsConnected:    strconv.FormatInt(connections, 10),
+			AttrRetainedCount:       strconv.FormatInt(retained, 10),
+			AttrSharedSubscriptions: strconv.FormatInt(shared, 10),
+			AttrMessagesReceived:    strconv.FormatInt(received, 10),
+			AttrMessagesSent:        strconv.FormatInt(sent, 10),
+			AttrMessagesDropped:     strconv.FormatInt(dropped, 10),
+			AttrBytesReceived:       strconv.FormatInt(bytesIn, 10),
+			AttrBytesSent:           strconv.FormatInt(bytesOut, 10),
+			AttrBrokerVersion:       brokerVersionOf(nodes),
+		},
+	}, nil
+}
+
+func brokerVersionOf(nodes []emqx.Node) string {
+	if len(nodes) == 0 {
+		return ""
+	}
+	return nodes[0].Version
 }
 
 // brokerNode builds the single node from one $SYS read.

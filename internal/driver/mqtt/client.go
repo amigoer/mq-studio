@@ -62,6 +62,12 @@ type clientConfig struct {
 	SessionExpiry uint32
 	TLS           *tls.Config
 	DialTimeout   time.Duration
+
+	// The broker's own management API, empty when the profile names none.
+	// MQTT has no equivalent, so this is the whole management tier.
+	ManagementURL    string
+	ManagementKey    string
+	ManagementSecret string
 }
 
 // configOf reads a profile into dial parameters.
@@ -111,6 +117,10 @@ func configOf(profile model.ConnectionProfile) (clientConfig, error) {
 	if profile.TimeoutSec > 0 {
 		config.DialTimeout = time.Duration(profile.TimeoutSec) * time.Second
 	}
+
+	config.ManagementURL = strings.TrimSpace(profile.Option(OptionManagementURL))
+	config.ManagementKey = profile.Secret(SecretManagementKey)
+	config.ManagementSecret = profile.Secret(SecretManagementSalt)
 	return config, nil
 }
 

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"sync"
 
+	"github.com/amigoer/mq-studio/internal/driver/mqtt/emqx"
 	"github.com/amigoer/mq-studio/internal/model"
 )
 
@@ -35,6 +36,11 @@ type Conn struct {
 	// topic board does not route the whole retained set through them.
 	collectMu sync.Mutex
 	collector *retainedCollector
+
+	// emqx is the broker's own management API, set by the probe when one
+	// answered. Nil is the ordinary case rather than a failure: Mosquitto has
+	// no such endpoint at all.
+	emqx *emqx.Client
 
 	capabilities model.Capabilities
 	closeOnce    sync.Once
@@ -116,6 +122,8 @@ func capabilities() []model.Capability {
 		model.CapLiveStream,
 		model.CapClusterTopology,
 		model.CapClusterMetrics,
+		model.CapClientInspect,
+		model.CapClientClose,
 	}
 }
 
@@ -135,6 +143,15 @@ func capabilities() []model.Capability {
 func (c *Conn) probe(ctx context.Context) {
 	c.capabilities = model.NewCapabilities(capabilities()...)
 
+	// The management tier goes first: where it answers, it is also the better
+	// source for the cluster pages, so the $SYS read below is only needed
+	// where it does not.
+	if reason := c.probeManagement(ctx); reason != "" {
+		c.capabilities = c.capabilities.
+			WithDegraded(model.CapClientInspect, reason).
+			WithDegraded(model.CapClientClose, reason)
+	}
+
 	tree, err := c.readSys(ctx)
 	reason := ""
 	switch {
@@ -143,7 +160,10 @@ func (c *Conn) probe(ctx context.Context) {
 	case tree.empty():
 		reason = sysSilent
 	}
-	if reason == "" {
+	// A broker with a management API can answer the cluster pages without
+	// $SYS, which is exactly the EMQX case: its default authorisation refuses
+	// the subscription and its REST API has better figures anyway.
+	if reason == "" || c.emqx != nil {
 		return
 	}
 	c.capabilities = c.capabilities.

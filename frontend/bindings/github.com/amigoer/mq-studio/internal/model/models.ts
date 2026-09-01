@@ -1030,6 +1030,15 @@ export class ClientConnection {
      */
     "blockedBy": string;
 
+    /**
+     * Attributes carries family-specific detail the canonical fields have no
+     * place for, the same way Destination and Node do. MQTT's session state is
+     * the reason it is here: clean-start, session expiry, the queued and
+     * in-flight counts and whether the session outlives the connection are the
+     * whole substance of an MQTT client, and none of them is a field above.
+     */
+    "attributes": { [_ in string]?: string };
+
     /** Creates a new ClientConnection instance. */
     constructor($$source: Partial<ClientConnection> = {}) {
         if (!("name" in $$source)) {
@@ -1089,6 +1098,9 @@ export class ClientConnection {
         if (!("blockedBy" in $$source)) {
             this["blockedBy"] = "";
         }
+        if (!("attributes" in $$source)) {
+            this["attributes"] = {};
+        }
 
         Object.assign(this, $$source);
     }
@@ -1097,7 +1109,11 @@ export class ClientConnection {
      * Creates a new ClientConnection instance from a string or object.
      */
     static createFrom($$source: any = {}): ClientConnection {
+        const $$createField19_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("attributes" in $$parsedSource) {
+            $$parsedSource["attributes"] = $$createField19_0($$parsedSource["attributes"]);
+        }
         return new ClientConnection($$parsedSource as Partial<ClientConnection>);
     }
 }

@@ -119,6 +119,9 @@ func TestEveryStoredKeyIsOnTheForm(t *testing.T) {
 		OptionTLSSkipVerify,
 		SecretUsername,
 		SecretPassword,
+		OptionManagementURL,
+		SecretManagementKey,
+		SecretManagementSalt,
 	}
 
 	onForm := make(map[string]bool)

@@ -48,9 +48,12 @@ const (
 	OptionSessionExpiry   = "sessionExpirySec"
 	OptionTLSCAFile       = "tlsCaFile"
 	OptionTLSSkipVerify   = "tlsSkipVerify"
+	OptionManagementURL   = "managementUrl"
 
-	SecretUsername = "username"
-	SecretPassword = "password"
+	SecretUsername       = "username"
+	SecretPassword       = "password"
+	SecretManagementKey  = "managementApiKey"
+	SecretManagementSalt = "managementSecretKey"
 )
 
 // The protocol versions the form offers. They are stored as strings because
@@ -239,6 +242,30 @@ func (d *Driver) Descriptor() model.DriverDescriptor {
 					Field:  OptionTransport,
 					Equals: []string{transportTLS, transportWSS},
 				},
+			},
+			{
+				// The broker's own management API, which the protocol has no
+				// equivalent of. Optional, and the whole difference between a
+				// connection that can list who is connected and one that
+				// cannot: Mosquitto has no such endpoint at all.
+				Key:         OptionManagementURL,
+				Target:      model.TargetOption,
+				Type:        model.FieldText,
+				LabelKey:    "mq.mqtt.form.managementUrl",
+				Placeholder: "http://127.0.0.1:18083",
+				Validate:    "url",
+			},
+			{
+				Key:      SecretManagementKey,
+				Target:   model.TargetSecret,
+				Type:     model.FieldText,
+				LabelKey: "mq.mqtt.form.managementApiKey",
+			},
+			{
+				Key:      SecretManagementSalt,
+				Target:   model.TargetSecret,
+				Type:     model.FieldPassword,
+				LabelKey: "mq.mqtt.form.managementSecretKey",
 			},
 		},
 	}
