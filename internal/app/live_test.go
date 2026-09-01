@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -14,6 +13,7 @@ import (
 	"github.com/amigoer/mq-studio/internal/crypto"
 	"github.com/amigoer/mq-studio/internal/driver"
 	"github.com/amigoer/mq-studio/internal/driver/rocketmq"
+	"github.com/amigoer/mq-studio/internal/e2e"
 	"github.com/amigoer/mq-studio/internal/model"
 	"github.com/amigoer/mq-studio/internal/service/cluster"
 	"github.com/amigoer/mq-studio/internal/service/connection"
@@ -28,7 +28,8 @@ import (
 )
 
 // Exercises the stack the connection screen drives, against the broker
-// `npm run e2e:up` starts. Opt-in, like the driver's own live tests:
+// `npm run e2e:up` starts. Opt-in locally, mandatory in CI, like the driver's
+// own live tests - see internal/e2e:
 //
 //	npm run e2e:up && MQ_STUDIO_E2E=1 go test ./internal/app/...
 const liveNameServer = "127.0.0.1:9876"
@@ -49,13 +50,32 @@ const (
 	aclSecretKey  = "mqstudio-secret"
 )
 
+// requireLiveBroker gates on the broker `npm run e2e:up` starts. The ACL tests
+// gate on requireACLBroker as well: it is a different broker on its own port,
+// started separately, and one being up says nothing about the other.
+func requireLiveBroker(t *testing.T) {
+	t.Helper()
+	e2e.Require(t, e2e.Env{
+		Name:  "the rocketmq broker",
+		Start: "npm run e2e:up",
+		Probe: e2e.DialTCP(liveNameServer),
+	})
+}
+
+func requireACLBroker(t *testing.T) {
+	t.Helper()
+	e2e.Require(t, e2e.Env{
+		Name:  "the ACL-enabled rocketmq broker",
+		Start: "npm run e2e:acl:up",
+		Probe: e2e.DialTCP(aclNameServer),
+	})
+}
+
 // liveStack assembles the same pieces New does, rooted in a temp directory so
 // the test never touches the user's real configuration.
 func liveStack(t *testing.T) (*connection.Service, *destination.Service, *driver.Registry) {
 	t.Helper()
-	if os.Getenv("MQ_STUDIO_E2E") == "" {
-		t.Skip("set MQ_STUDIO_E2E=1 and run `npm run e2e:up` to exercise a real broker")
-	}
+	requireLiveBroker(t)
 	if _, ok := driver.Lookup(model.KindRocketMQ); !ok {
 		driver.Register(rocketmq.New())
 	}
@@ -439,7 +459,10 @@ func TestLiveConsumerGroupDelete(t *testing.T) {
 	conn, _ := registry.Get(profile.ID)
 	groups := conn.(driver.SubscriptionAdmin)
 
-	const name = "MQ_STUDIO_E2E_GROUP"
+	// Its own name, not the seeded group: the delete below is the point of the
+	// test, and pointing it at the shared group deleted it out from under
+	// TestLiveResetOffset, which then skipped instead of asserting anything.
+	const name = "MQ_STUDIO_E2E_GROUP_DELETE"
 	ref := model.SubscriptionRef{Name: name}
 
 	// Creating through the driver is what fails today; assert that plainly, so
@@ -490,7 +513,7 @@ func TestLiveResetOffset(t *testing.T) {
 		}
 	}
 	if !seeded {
-		t.Skipf("run `npm run e2e:seed` to create %s", seededGroup)
+		e2e.Missing(t, "run `npm run e2e:seed` to create %s", seededGroup)
 	}
 
 	// Something has to be in the topic for a reset to have a position to move
@@ -539,6 +562,7 @@ func TestLiveResetOffset(t *testing.T) {
 // with a Properties document and the library's json.Unmarshal of it fails,
 // leaving every setting inside a single "raw" string.
 func TestLiveACL(t *testing.T) {
+	requireACLBroker(t)
 	connections, _, registry := liveStack(t)
 	ctx := context.Background()
 
@@ -550,7 +574,7 @@ func TestLiveACL(t *testing.T) {
 		t.Fatal(err)
 	}
 	if err := connections.Connect(profile.ID); err != nil {
-		t.Skipf("run `npm run e2e:acl:up` for the ACL broker: %v", err)
+		t.Fatalf("connect to the ACL broker: %v", err)
 	}
 	conn, _ := registry.Get(profile.ID)
 	acl := conn.(driver.AccessAdmin)
@@ -619,6 +643,7 @@ func TestLiveACL(t *testing.T) {
 // anyway. It goes red the day the library signs its requests, which is when
 // the connection form's ACL fields start meaning something.
 func TestLiveACLCredentialsAreNotSigned(t *testing.T) {
+	requireACLBroker(t)
 	connections, _, registry := liveStack(t)
 	ctx := context.Background()
 
@@ -630,7 +655,7 @@ func TestLiveACLCredentialsAreNotSigned(t *testing.T) {
 		t.Fatal(err)
 	}
 	if err := connections.Connect(profile.ID); err != nil {
-		t.Skipf("run `npm run e2e:acl:up` for the ACL broker: %v", err)
+		t.Fatalf("connect to the ACL broker: %v", err)
 	}
 	conn, _ := registry.Get(profile.ID)
 
@@ -888,7 +913,7 @@ func TestLiveConsumeTimeSpanBlockedByLibraryParse(t *testing.T) {
 		}
 	}
 	if offsets == 0 {
-		t.Skip("the group never committed an offset; nothing to ask a time span about")
+		e2e.Missing(t, "the group never committed an offset in %s; nothing to ask a time span about", 20*time.Second)
 	}
 
 	spans, err := client.QueryConsumeTimeSpan(ctx, seededTopic, seededGroup)
@@ -1135,6 +1160,7 @@ func TestLiveCloneOffset(t *testing.T) {
 // authenticationEnabled and authorizationEnabled set, this exercises the whole
 // surface the ACL board is built on.
 func TestLiveAccessDirectory(t *testing.T) {
+	requireACLBroker(t)
 	connections, _, registry := liveStack(t)
 	ctx := context.Background()
 
@@ -1146,7 +1172,7 @@ func TestLiveAccessDirectory(t *testing.T) {
 		t.Fatal(err)
 	}
 	if err := connections.Connect(profile.ID); err != nil {
-		t.Skipf("run `npm run e2e:acl:up` for the ACL broker: %v", err)
+		t.Fatalf("connect to the ACL broker: %v", err)
 	}
 	conn, _ := registry.Get(profile.ID)
 	directory, ok := conn.(driver.AccessDirectory)

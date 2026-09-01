@@ -2,12 +2,11 @@ package kafka
 
 import (
 	"context"
-	"net"
-	"os"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/amigoer/mq-studio/internal/e2e"
 	"github.com/amigoer/mq-studio/internal/model"
 )
 
@@ -28,14 +27,11 @@ const (
 
 func requireSecureCluster(t *testing.T) {
 	t.Helper()
-	conn, err := net.DialTimeout("tcp", secureSeeds, 2*time.Second)
-	if err != nil {
-		if os.Getenv("CI") != "" {
-			t.Fatalf("the secure kafka cluster must be running in CI: %v", err)
-		}
-		t.Skipf("the secure kafka cluster is not running; start it with npm run e2e:kafka:secure:up (%v)", err)
-	}
-	_ = conn.Close()
+	e2e.Require(t, e2e.Env{
+		Name:  "the secure kafka cluster",
+		Start: "npm run e2e:kafka:secure:up",
+		Probe: e2e.DialTCP(secureSeeds),
+	})
 }
 
 func secureConn(t *testing.T, user, password string) *Conn {
