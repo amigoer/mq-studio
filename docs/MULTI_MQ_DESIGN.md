@@ -122,7 +122,7 @@ Sidekiq、BullMQ 是架在 Redis 或 RabbitMQ 之上的应用层任务队列，�
 | --- | --- | --- |
 | RocketMQ | 全部六个 | 无 |
 | Kafka | 全部六个 | Cluster 通过列扩展出 controller/ISR 视图；另加一个 Quotas 页与一个 Access 页 |
-| Pulsar | 全部六个 | 无（namespace 做成范围选择器，而不是一个页面） |
+| Pulsar | 全部六个 | 实际接入后 namespace 两者都做了：既是每个页面上的范围选择器，也复用 vhosts 槽位做了一个租户/命名空间页 —— 主题的地址就是 tenant/namespace/name，选择器的选项总得有来源。另有一个 Tokens 页（角色授权，不是账号）和自己的发送控制台 |
 | RabbitMQ | Messages、Publish、Cluster | Destinations 换成 Queues，外加一个新的 Exchanges/Bindings 页 |
 | Redis Stream | Destinations、Subscriptions、Messages、Publish | Cluster 和 Access 按能力隐藏 |
 | MQTT | 仅 Publish | Subscribe 页（实时 tail）；其余全部隐藏 |

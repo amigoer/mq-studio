@@ -49,9 +49,10 @@ This is the delivery plan. The contract it delivers against is
 | 0–3 | The driver seam itself: contracts, backend ports, storage and bridge, frontend registry | RocketMQ behaves exactly as before, screen for screen |
 | 4 | **RabbitMQ** | Done. An Exchanges/Bindings page exists and no offset concept leaks into the UI |
 | 5 | **Kafka** | Done. Topics, consumer groups, lag, browse and publish work end to end, alongside quotas, reassignment and transactions, and no rate or dead-letter page pretends to exist |
-| 6 | **Pulsar**, then **Redis Stream**, then **NATS**, then **MQTT** | Each is purely additive — no canonical page changes shape |
-| 7 | **ActiveMQ / Artemis**, then **NSQ** | Still additive; ActiveMQ tests whether JMS semantics fit the canonical pages |
-| 8 | **Amazon SQS**, **Google Cloud Pub/Sub**, **Azure Service Bus**, **Amazon Kinesis**, then **IBM MQ** and **Solace PubSub+** | The connection form can express "no address, only a region and a credential" |
+| 6 | **Pulsar** | Done. Topics, namespaces and the tenants above them, subscriptions and cursors, browse and tail, a send console, dead letters and role grants all work end to end, and no page pretends to a tag, a disk figure or a user directory this family does not have |
+| 7 | **Redis Stream**, then **NATS**, then **MQTT** | Each is purely additive — no canonical page changes shape |
+| 8 | **ActiveMQ / Artemis**, then **NSQ** | Still additive; ActiveMQ tests whether JMS semantics fit the canonical pages |
+| 9 | **Amazon SQS**, **Google Cloud Pub/Sub**, **Azure Service Bus**, **Amazon Kinesis**, then **IBM MQ** and **Solace PubSub+** | The connection form can express "no address, only a region and a credential" |
 
 Two ordering decisions worth keeping in view.
 
@@ -88,7 +89,7 @@ and `Access`.
 | **RocketMQ** 4.x / 5.x | Admin API over the remoting protocol | All six | A Proxy endpoint answers far less than a NameServer; capabilities narrow on connect |
 | **RabbitMQ** | HTTP management plugin, plus AMQP 0-9-1 for messages | All six, plus Exchanges/Bindings, Connections, Dead letters, Virtual hosts, Policies, Definitions, Replication | No offsets or partitions; no named consumer groups; no stable message id; browsing requeues what it read and carries a caveat; shovel, federation and the stream protocol are plugins and degrade with a reason when absent |
 | **Kafka** | The Kafka protocol itself, through franz-go and kadm | All six, plus log directories and SCRAM users | Confirmed: browse is an offset-range fetch rather than random access, and a key search is a scan. ACLs degrade with a reason on a cluster with no authorizer. No rate of any kind is reported, and no disk percentage exists; there is no broker-side dead-letter queue |
-| **Pulsar** | Admin REST API | All six | Tenant and namespace become a scope selector rather than a page |
+| **Pulsar** | Admin REST API + the binary protocol | All six | Done. The tenant and namespace ended up as both: a scope selector on every page, and a page of their own, because a topic is addressed as tenant/namespace/name and the selector needs somewhere to get its options from |
 | **ActiveMQ / Artemis** | Jolokia REST over JMX | All six | Classic 5.x and Artemis expose different management trees; the driver probes which one answered |
 | **Redis Stream** | `XINFO`, `XRANGE`, `XADD` | Destinations, Subscriptions, Messages, Publish | No cluster topology and no per-destination access control |
 | **NATS** | JetStream API plus the server monitoring endpoints | Destinations, Subscriptions, Messages, Publish, Cluster | Without JetStream the endpoint drops to publish and subscribe only |

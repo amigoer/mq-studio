@@ -9,6 +9,29 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Added
+
+- Apache Pulsar, as the fourth driver. Topics with their partitions and storage
+  kind, the namespaces and tenants above them, subscriptions with their
+  backlog and cursor, a message browser and live tail, a send console, brokers,
+  dead-letter topics, role grants and alerts. It speaks the binary protocol for
+  data and the admin REST API for everything else, and reports the two
+  separately: a connection whose web service answers while its broker port does
+  not can still read every page, and says why it cannot publish.
+- Pulsar's own vocabulary rather than a translation of another family's. There
+  is no tag anywhere - what a RocketMQ producer puts in one, a Pulsar producer
+  puts in a property, so the send console collects properties and the message
+  browser filters on them. Subscriptions are stored cursors that exist without
+  a consumer attached, so an idle one is a normal state rather than a group
+  that has gone away. And the tokens page lists role grants rather than
+  accounts, because Pulsar authorises the subject of a token and keeps no
+  directory of them.
+- A blocked-subscription alert, which no other family has. Past its
+  unacknowledged limit the broker stops delivering to a subscription entirely -
+  from the backlog alone that is indistinguishable from a slow consumer, and it
+  is fixed by acknowledging or raising a limit rather than by touching the
+  consumer.
+
 ## [0.0.4] - 2026-09-01
 
 The update flow, end to end. A release now announces itself on every launch
