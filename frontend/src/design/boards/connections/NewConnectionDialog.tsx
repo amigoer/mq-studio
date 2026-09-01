@@ -18,7 +18,7 @@ import { PROTOCOL_ORDER, isProtocolReady, type ProtocolId } from "@/design/data/
 import { cn, formatErrorMessage } from "@/lib/utils";
 import type { ConnectionDraft, CredentialsMode } from "@/api/connection";
 import type { Connection as ConnectionProfile } from "@/api/models";
-import { KafkaForm, RabbitMQForm, RocketMQForm } from "./ConnectionForms";
+import { KafkaForm, PulsarForm, RabbitMQForm, RocketMQForm } from "./ConnectionForms";
 import {
   emptyDraft,
   isDraftable,
@@ -127,6 +127,31 @@ export function NewConnectionDialog({
       }
       return null;
     }
+    if (draft.protocol === "pulsar") {
+      if (draft.value.service.trim() === "") {
+        return t("page.connections.serviceUrlRequired");
+      }
+      // The admin API is where every listing comes from, and it is a second
+      // address rather than one derived from the service URL, so a profile
+      // without it can connect and read nothing.
+      if (draft.value.admin.trim() === "") {
+        return t("page.connections.adminUrlRequired");
+      }
+      // A topic is addressed as tenant/namespace/name, so a profile naming
+      // neither has no scope to read within.
+      if (draft.value.tenant.trim() === "" || draft.value.namespace.trim() === "") {
+        return t("page.connections.scopeRequired");
+      }
+      // Anonymous is a real choice here, so the token is only required once
+      // Token has been picked.
+      if (draft.value.auth === "token") {
+        const stored = draft.value.credentialsStored && !draft.value.clearCredentials;
+        if (!stored && draft.value.token.trim() === "") {
+          return t("page.connections.tokenRequired");
+        }
+      }
+      return null;
+    }
     if (draft.value.endpoints.trim() === "") return t("page.connections.endpointsRequired");
     if (draft.value.version === "5.x" && draft.value.access === "proxy") {
       return t("page.connections.form.rocketmq.proxyNote");
@@ -225,6 +250,11 @@ export function NewConnectionDialog({
         <KafkaForm
           value={draft.value}
           onChange={(next) => setDraft({ protocol: "kafka", value: next })}
+        />
+      ) : draft.protocol === "pulsar" ? (
+        <PulsarForm
+          value={draft.value}
+          onChange={(next) => setDraft({ protocol: "pulsar", value: next })}
         />
       ) : (
         <RocketMQForm

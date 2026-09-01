@@ -130,6 +130,12 @@ jobs:
       - name: Start the secure Kafka
         run: npm run e2e:kafka:secure:up
 
+      # Standalone boots BookKeeper and the metadata store before the broker
+      # answers, so this is the slowest of the six to come up. Its compose
+      # healthcheck waits; --wait is what makes this step do the same.
+      - name: Start Pulsar
+        run: npm run e2e:pulsar:up
+
       - name: Run checks
         # The opt-in a developer sets locally. CI does not need it - internal/e2e
         # does not consult it when CI is set, so that no unset variable can be

@@ -8,6 +8,7 @@ import (
 	"github.com/amigoer/mq-studio/internal/crypto"
 	"github.com/amigoer/mq-studio/internal/driver"
 	"github.com/amigoer/mq-studio/internal/driver/kafka"
+	"github.com/amigoer/mq-studio/internal/driver/pulsar"
 	"github.com/amigoer/mq-studio/internal/driver/rabbitmq"
 	"github.com/amigoer/mq-studio/internal/driver/rocketmq"
 	"github.com/amigoer/mq-studio/internal/service/access"
@@ -64,6 +65,7 @@ func New() (*Services, error) {
 	driver.Register(rocketmq.New())
 	driver.Register(rabbitmq.New())
 	driver.Register(kafka.New())
+	driver.Register(pulsar.New())
 
 	registry := driver.NewRegistry()
 	settingsService := settings.New(paths.SettingsFile)

@@ -454,7 +454,37 @@
       "name": "RabbitMQ"
     },
     "pulsar": {
-      "name": "Pulsar"
+      "name": "Pulsar",
+      "terms": {
+        "destination": "Topic",
+        "destinationPlural": "Topics",
+        "subscription": "Subscription",
+        "subscriptionPlural": "Subscriptions",
+        "node": "Broker",
+        "nodePlural": "Brokers",
+        "namespace": "Namespace",
+        "backlog": "Backlog"
+      },
+      "form": {
+        "serviceUrl": "Service URL",
+        "adminUrl": "Admin API",
+        "tenant": "Tenant",
+        "namespace": "Namespace",
+        "mechanism": "Authentication",
+        "authToken": "Token",
+        "token": "Token",
+        "tls": "Use TLS",
+        "tlsCaFile": "CA certificate file",
+        "tlsSkipVerify": "Skip certificate verification"
+      },
+      "degraded": {
+        "credentials": "The cluster rejected the token. Check that it has not expired, and that it was issued by the authentication provider this cluster trusts.",
+        "forbidden": "The token was accepted but its role has no permission on this tenant. That is fixed with a grant on the cluster, not in this form.",
+        "tenantMissing": "The cluster answered, and the tenant this connection is scoped to is not on it. Check the tenant name, or create it.",
+        "timeout": "The admin API accepted the connection and did not answer in time.",
+        "unreachable": "Nothing answered at the admin API address. Check the address, and whether the web service expects HTTPS.",
+        "dataPlaneUnreachable": "The admin API answers and the broker's binary port does not, so this connection can read but not publish. Check the service URL and whether that port is reachable from here."
+      }
     },
     "redis-stream": {
       "name": "Redis Stream"
@@ -754,7 +784,9 @@
           "tenant": "Default tenant",
           "namespace": "Default namespace",
           "advanced": "Advanced: operation timeout · TLS CA · listener name",
-          "note": "The topics page browses by tenant / namespace"
+          "note": "The topics page browses by tenant / namespace",
+          "tls": "Encrypt both planes",
+          "tlsHint": "pulsar+ssl:// and https://"
         },
         "redis": {
           "mode": "Deployment",
@@ -816,7 +848,11 @@
       "disconnectFailed": "Could not disconnect",
       "managementRequired": "A management API address is required",
       "bootstrapRequired": "Enter the bootstrap servers",
-      "usernameRequired": "A username is required"
+      "usernameRequired": "A username is required",
+      "serviceUrlRequired": "A service URL is required",
+      "adminUrlRequired": "An admin API address is required",
+      "scopeRequired": "A tenant and a namespace are required",
+      "tokenRequired": "A token is required"
     },
     "settings": {
       "title": "Settings",
@@ -1137,15 +1173,8 @@
       },
       "pulsar": {
         "subtitle": "pulsar-eu · Pulsar 3.2 · tenant ecommerce · Broker 3 / Bookie 4",
-        "allOnline": "All online",
-        "tenants": "6 tenants",
-        "partitioned": "38 partitioned",
-        "outRate": "Out 2.1k/s",
-        "totalPending": "Total backlog",
-        "vsLastHour": "+6% vs 1h ago",
-        "ledgerBalanced": "Ledgers balanced · no read-only bookie",
-        "topPending": "Top subscriptions by backlog",
-        "bookieStorage": "Bookie storage"
+        "pending": "No Pulsar data yet",
+        "pendingHint": "This page is wired to the driver as each capability lands. Nothing here is invented in the meantime."
       },
       "rabbitmq": {
         "subtitle": "{{cluster}} · RabbitMQ {{version}}",
@@ -1228,19 +1257,6 @@
         "txnHolds": "Partitions held",
         "txnPastTimeout": "past timeout",
         "txnEmpty": "No transactional producer is registered with this cluster."
-      },
-      "pulsar": {
-        "load44": "Load 44%",
-        "load41": "Load 41%",
-        "writeLatency": "Write latency",
-        "readLatency": "Read latency",
-        "store58": "Storage 58%",
-        "store61": "Storage 61%",
-        "store57": "Storage 57%",
-        "store73": "Storage 73%",
-        "bundles": "Namespace bundle distribution",
-        "rebalance": "Trigger rebalance",
-        "distribution": "Distribution"
       },
       "rocketmq": {
         "title": "Cluster · DefaultCluster",
@@ -1788,26 +1804,6 @@
           "unchanged": "That is where the partition already is"
         }
       },
-      "pulsar": {
-        "subtitle": "Tenant ecommerce · namespace orders · 18 topics",
-        "tenant": "Tenant: ecommerce",
-        "namespace": "Namespace: orders",
-        "searchTopic": "Search topics…",
-        "persistentOnly": "persistent only",
-        "producers": "Producers",
-        "eightParts": "8 partitions",
-        "inOut": "In / out",
-        "storageSize": "Storage size",
-        "policies": "Policies (inherited from the namespace · overridable)",
-        "ttl": "Message TTL",
-        "sevenDays": "7 days",
-        "retention": "Retention",
-        "retentionValue": "50GB / 30 days",
-        "backlogQuota": "Backlog quota",
-        "quotaValue": "10GB · producer_exception when exceeded",
-        "schema": "JSON · BACKWARD compatible",
-        "unload": "Unload"
-      },
       "rocketmq": {
         "showSystem": "Show system topics",
         "queueRW": "Queues read/write",
@@ -2050,18 +2046,6 @@
           "saved": "Saved {{name}}"
         }
       },
-      "pulsar": {
-        "cursor": "Cursor",
-        "subtitle": "Namespace orders · 9 subscriptions",
-        "allTopics": "Topic: all",
-        "search": "Search subscriptions…",
-        "oldestUnacked": "Oldest unacked",
-        "oldestValue": "10:02:37 (22 minutes ago)",
-        "seekTime": "Seek to time…",
-        "skipN": "Skip N…",
-        "clearBacklog": "Clear backlog",
-        "unsubscribe": "Unsubscribe"
-      },
       "redis": {
         "subtitle": "orders:events · 3 groups · PEL 37",
         "lag": "Lag",
@@ -2103,16 +2087,6 @@
         "noHeaders": "This record carries no headers."
       },
       "deserialize": "Deserialised as JSON",
-      "pulsar": {
-        "peek": "Peek latest",
-        "byMsgId": "By message ID",
-        "byPublishTime": "By publish time",
-        "subscription": "Subscription: settle-sub",
-        "publishTime": "Publish time",
-        "publishEventTime": "Publish / event time",
-        "seekHere": "Seek to this message…",
-        "peekNote": "Peek does not move the subscription cursor · markDeletePosition 812:2:0"
-      },
       "rabbitmq": {
         "title": "Messages",
         "subtitle": "Take a batch from the head of a queue, look at it, put it back",
@@ -2266,16 +2240,6 @@
         "xackDrop": "XACK (drop)"
       },
       "last24h": "Last 24 hours",
-      "pulsar": {
-        "title": "Dead letters (DLQ)",
-        "subtitle": "Subscription settle-sub · order-created-settle-sub-DLQ · 8 messages",
-        "subscription": "Subscription: settle-sub",
-        "rule": "maxRedeliverCount=5 · past that it goes to the DLQ",
-        "lastException": "Last exception (properties)",
-        "hint": "Discarding acks it on the DLQ · the source subscription is untouched",
-        "resend": "Resend to the source topic",
-        "discard": "Discard"
-      },
       "rabbitmq": {
         "title": "Dead letters",
         "subtitle": "{{count}} queues are receiving dead letters",

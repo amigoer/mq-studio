@@ -28,15 +28,24 @@ import {
   OPTION_KAFKA_TLS,
   OPTION_KAFKA_TLS_CA_FILE,
   OPTION_KAFKA_TLS_SKIP_VERIFY,
+  OPTION_PULSAR_ADMIN_URL,
+  OPTION_PULSAR_NAMESPACE,
+  OPTION_PULSAR_TENANT,
+  OPTION_PULSAR_TLS,
+  OPTION_PULSAR_TLS_CA_FILE,
+  OPTION_PULSAR_TLS_SKIP_VERIFY,
   OPTION_TLS,
   OPTION_TLS_SKIP_VERIFY,
   OPTION_VERSION,
   OPTION_VHOST,
   emptyKafkaDraft,
+  emptyPulsarDraft,
   emptyRabbitMQDraft,
   emptyRocketMQDraft,
   type KafkaDraft,
   type KafkaMechanism,
+  type PulsarAuth,
+  type PulsarDraft,
   type RabbitMQDraft,
   type RocketMQDraft,
 } from "./ConnectionForms";
@@ -50,10 +59,16 @@ export interface Submission {
 export type ProtocolDraft =
   | { protocol: "rocketmq"; value: RocketMQDraft }
   | { protocol: "rabbitmq"; value: RabbitMQDraft }
-  | { protocol: "kafka"; value: KafkaDraft };
+  | { protocol: "kafka"; value: KafkaDraft }
+  | { protocol: "pulsar"; value: PulsarDraft };
 
 /** The protocols this file can build a submission for. */
-export const DRAFTABLE: readonly ProtocolDraft["protocol"][] = ["rocketmq", "rabbitmq", "kafka"];
+export const DRAFTABLE: readonly ProtocolDraft["protocol"][] = [
+  "rocketmq",
+  "rabbitmq",
+  "kafka",
+  "pulsar",
+];
 
 export function isDraftable(protocol: ProtocolId): protocol is ProtocolDraft["protocol"] {
   return (DRAFTABLE as readonly string[]).includes(protocol);
@@ -65,6 +80,8 @@ export function emptyDraft(protocol: ProtocolDraft["protocol"]): ProtocolDraft {
       return { protocol, value: emptyRabbitMQDraft() };
     case "kafka":
       return { protocol, value: emptyKafkaDraft() };
+    case "pulsar":
+      return { protocol, value: emptyPulsarDraft() };
     default:
       return { protocol, value: emptyRocketMQDraft() };
   }
@@ -76,6 +93,8 @@ export function toSubmission(draft: ProtocolDraft): Submission {
       return rabbitMQSubmission(draft.value);
     case "kafka":
       return kafkaSubmission(draft.value);
+    case "pulsar":
+      return pulsarSubmission(draft.value);
     default:
       return rocketMQSubmission(draft.value);
   }
@@ -88,6 +107,8 @@ export function toDraft(profile: ConnectionProfile): ProtocolDraft {
       return { protocol: "rabbitmq", value: toRabbitMQDraft(profile) };
     case MQKind.KindKafka:
       return { protocol: "kafka", value: toKafkaDraft(profile) };
+    case MQKind.KindPulsar:
+      return { protocol: "pulsar", value: toPulsarDraft(profile) };
     default:
       return { protocol: "rocketmq", value: toRocketMQDraft(profile) };
   }
@@ -191,6 +212,72 @@ const MECHANISM: Record<KafkaMechanism, AuthMechanism> = {
   "sasl-plain": AuthMechanism.AuthSASLPlain,
   "sasl-scram": AuthMechanism.AuthSASLScram,
 };
+
+function pulsarSubmission(draft: PulsarDraft): Submission {
+  const authenticating = draft.auth !== "none";
+  const token = authenticating ? draft.token.trim() : "";
+  const typed = token !== "";
+  const keepStored = authenticating && draft.credentialsStored && !draft.clearCredentials;
+
+  return {
+    draft: {
+      name: draft.name.trim(),
+      group: draft.group,
+      kind: MQKind.KindPulsar,
+      // The broker's binary address is the connection's own: it is what
+      // publishes and reads, and the admin API is a second address beside it
+      // rather than something derived from it.
+      endpoints: draft.service.trim(),
+      timeoutSec: draft.timeoutSec,
+      authMechanism: authenticating ? AuthMechanism.AuthToken : AuthMechanism.AuthNone,
+      options: {
+        [OPTION_PULSAR_ADMIN_URL]: draft.admin.trim(),
+        [OPTION_PULSAR_TENANT]: draft.tenant.trim(),
+        [OPTION_PULSAR_NAMESPACE]: draft.namespace.trim(),
+        [OPTION_PULSAR_TLS]: String(draft.tls),
+        // The CA file and skip-verify only mean anything with TLS on, and
+        // storing them otherwise would re-apply them silently the day someone
+        // turns TLS back on.
+        [OPTION_PULSAR_TLS_CA_FILE]: draft.tls ? draft.tlsCaFile.trim() : "",
+        [OPTION_PULSAR_TLS_SKIP_VERIFY]: String(draft.tls && draft.tlsSkipVerify),
+      },
+      secrets: { token },
+      remark: draft.remark,
+    },
+    // Anonymous is a real choice on Pulsar, not a blank one, so dropping to it
+    // clears the stored token rather than leaving one that would come back the
+    // day someone re-selects Token.
+    credentialsMode: !authenticating || draft.clearCredentials
+      ? "clear"
+      : typed || !keepStored
+        ? "replace"
+        : "preserve",
+  };
+}
+
+function toPulsarDraft(profile: ConnectionProfile): PulsarDraft {
+  const tls = profile.options?.[OPTION_PULSAR_TLS] === "true";
+  const auth: PulsarAuth = profile.authMechanism === AuthMechanism.AuthToken ? "token" : "none";
+  return {
+    name: profile.name,
+    service: profile.endpoints,
+    admin: profile.options?.[OPTION_PULSAR_ADMIN_URL] ?? "",
+    tenant: profile.options?.[OPTION_PULSAR_TENANT] ?? "public",
+    namespace: profile.options?.[OPTION_PULSAR_NAMESPACE] ?? "default",
+    auth,
+    token: "",
+    tls,
+    tlsCaFile: tls ? (profile.options?.[OPTION_PULSAR_TLS_CA_FILE] ?? "") : "",
+    tlsSkipVerify: tls && profile.options?.[OPTION_PULSAR_TLS_SKIP_VERIFY] === "true",
+    group: profile.group,
+    remark: profile.remark,
+    timeoutSec: profile.timeoutSec,
+    // A profile that authenticates with nothing has no credential to keep,
+    // whatever is still sitting in the secret store.
+    credentialsStored: auth !== "none" && profile.secretsConfigured.length > 0,
+    clearCredentials: false,
+  };
+}
 
 function toRocketMQDraft(profile: ConnectionProfile): RocketMQDraft {
   return {

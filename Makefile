@@ -11,7 +11,8 @@ ARCH ?=
 	e2e-rabbitmq-up e2e-rabbitmq-seed e2e-rabbitmq-down \
 	e2e-rabbitmq-plain-up e2e-rabbitmq-plain-down \
 	e2e-kafka-up e2e-kafka-seed e2e-kafka-down \
-	e2e-kafka-secure-up e2e-kafka-secure-down check ci clean \
+	e2e-kafka-secure-up e2e-kafka-secure-down \
+	e2e-pulsar-up e2e-pulsar-down check ci clean \
 	website-dev website-build
 
 help: ## Show all available targets
@@ -96,6 +97,12 @@ e2e-kafka-secure-up: ## Start the SASL and authorizer Kafka used by the access-c
 
 e2e-kafka-secure-down: ## Stop the secure Kafka environment
 	npm run e2e:kafka:secure:down
+
+e2e-pulsar-up: ## Start the Pulsar E2E environment
+	npm run e2e:pulsar:up
+
+e2e-pulsar-down: ## Stop the Pulsar E2E environment
+	npm run e2e:pulsar:down
 
 e2e: ## Run the live tests against a running, seeded RocketMQ E2E environment
 	npm run test:e2e

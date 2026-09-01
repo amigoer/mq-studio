@@ -18,12 +18,10 @@ import { UsersRabbitMQ } from "./boards/acl/UsersRabbitMQ";
 import { PoliciesRabbitMQ } from "./boards/policies/PoliciesRabbitMQ";
 import { DefinitionsRabbitMQ } from "./boards/definitions/DefinitionsRabbitMQ";
 import { ReplicationRabbitMQ } from "./boards/replication/ReplicationRabbitMQ";
-import { TopicsPulsar } from "./boards/topics/TopicsPulsar";
 import { StreamsRedis } from "./boards/topics/StreamsRedis";
 
 import { ConsumersRocketMQ } from "./boards/consumers/ConsumersRocketMQ";
 import { ConsumersKafka } from "./boards/consumers/ConsumersKafka";
-import { SubscriptionsPulsar } from "./boards/consumers/SubscriptionsPulsar";
 import { ConsumersRedis } from "./boards/consumers/ConsumersRedis";
 import { ClientsMqtt } from "./boards/consumers/ClientsMqtt";
 import { ChannelsRabbitMQ } from "./boards/consumers/ChannelsRabbitMQ";
@@ -31,12 +29,10 @@ import { ChannelsRabbitMQ } from "./boards/consumers/ChannelsRabbitMQ";
 import { MessagesRocketMQ } from "./boards/messages/MessagesRocketMQ";
 import { MessagesKafka } from "./boards/messages/MessagesKafka";
 import { MessagesRabbitMQ } from "./boards/messages/MessagesRabbitMQ";
-import { MessagesPulsar } from "./boards/messages/MessagesPulsar";
 import { MessagesRedis } from "./boards/messages/MessagesRedis";
 
 import { DlqRocketMQ } from "./boards/dlq/DlqRocketMQ";
 import { DlqRabbitMQ } from "./boards/dlq/DlqRabbitMQ";
-import { DlqPulsar } from "./boards/dlq/DlqPulsar";
 import { PelRedis } from "./boards/dlq/PelRedis";
 
 import { Producer } from "./boards/producer/Producer";
@@ -50,7 +46,6 @@ import { QuotasKafka } from "./boards/quotas/QuotasKafka";
 import { ClusterRocketMQ } from "./boards/cluster/ClusterRocketMQ";
 import { BrokersKafka } from "./boards/cluster/BrokersKafka";
 import { NodesRabbitMQ } from "./boards/cluster/NodesRabbitMQ";
-import { BrokersPulsar } from "./boards/cluster/BrokersPulsar";
 import { NodeRedis } from "./boards/cluster/NodeRedis";
 
 import { MqttWorkbench } from "./boards/mqtt/MqttWorkbench";
@@ -103,7 +98,6 @@ const BOARDS: Partial<
     rocketmq: TopicsRocketMQ,
     kafka: TopicsKafka,
     rabbitmq: QueuesRabbitMQ,
-    pulsar: TopicsPulsar,
     redis: StreamsRedis,
     // MQTT's topic tree only exists inside the 4b workbench.
     mqtt: MqttWorkbench,
@@ -118,7 +112,6 @@ const BOARDS: Partial<
     rocketmq: ConsumersRocketMQ,
     kafka: ConsumersKafka,
     rabbitmq: ChannelsRabbitMQ,
-    pulsar: SubscriptionsPulsar,
     redis: ConsumersRedis,
   },
   subscribe: { mqtt: MqttWorkbench },
@@ -127,20 +120,17 @@ const BOARDS: Partial<
     rocketmq: MessagesRocketMQ,
     kafka: MessagesKafka,
     rabbitmq: MessagesRabbitMQ,
-    pulsar: MessagesPulsar,
     redis: MessagesRedis,
   },
   dlq: {
     rocketmq: DlqRocketMQ,
     rabbitmq: DlqRabbitMQ,
-    pulsar: DlqPulsar,
     redis: PelRedis,
   },
   cluster: {
     rocketmq: ClusterRocketMQ,
     kafka: BrokersKafka,
     rabbitmq: NodesRabbitMQ,
-    pulsar: BrokersPulsar,
     redis: NodeRedis,
   },
 };

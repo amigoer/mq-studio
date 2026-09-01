@@ -454,7 +454,37 @@
       "name": "RabbitMQ"
     },
     "pulsar": {
-      "name": "Pulsar"
+      "name": "Pulsar",
+      "terms": {
+        "destination": "主题",
+        "destinationPlural": "主题",
+        "subscription": "订阅",
+        "subscriptionPlural": "订阅",
+        "node": "Broker",
+        "nodePlural": "Broker",
+        "namespace": "命名空间",
+        "backlog": "积压"
+      },
+      "form": {
+        "serviceUrl": "服务地址",
+        "adminUrl": "管理 API",
+        "tenant": "租户",
+        "namespace": "命名空间",
+        "mechanism": "认证方式",
+        "authToken": "Token",
+        "token": "Token",
+        "tls": "启用 TLS",
+        "tlsCaFile": "CA 证书文件",
+        "tlsSkipVerify": "跳过证书校验"
+      },
+      "degraded": {
+        "credentials": "集群拒绝了这个 Token。请检查它是否已过期，以及是否由该集群信任的认证方签发。",
+        "forbidden": "Token 通过了认证，但它的角色在这个租户上没有权限。这要在集群上授权，不是在这个表单里改。",
+        "tenantMissing": "集群有应答，但这个连接指定的租户不在集群上。请检查租户名，或者先创建它。",
+        "timeout": "管理 API 接受了连接，但没有在超时时间内应答。",
+        "unreachable": "管理 API 地址上没有服务应答。请检查地址，以及 web service 是否要求 HTTPS。",
+        "dataPlaneUnreachable": "管理 API 有应答，但 broker 的二进制端口没有，所以这个连接能读不能发。请检查服务地址，以及该端口在当前网络下是否可达。"
+      }
     },
     "redis-stream": {
       "name": "Redis Stream"
@@ -754,7 +784,9 @@
           "tenant": "默认租户",
           "namespace": "默认命名空间",
           "advanced": "高级：操作超时 · TLS CA · 监听器名称",
-          "note": "Topic 页按 租户 / 命名空间 级联浏览"
+          "note": "Topic 页按 租户 / 命名空间 级联浏览",
+          "tls": "两个平面都加密",
+          "tlsHint": "pulsar+ssl:// 与 https://"
         },
         "redis": {
           "mode": "部署模式",
@@ -816,7 +848,11 @@
       "disconnectFailed": "断开失败",
       "managementRequired": "请填写管理 API 地址",
       "bootstrapRequired": "请填写 Bootstrap 地址",
-      "usernameRequired": "请填写用户名"
+      "usernameRequired": "请填写用户名",
+      "serviceUrlRequired": "请填写服务地址",
+      "adminUrlRequired": "请填写管理 API 地址",
+      "scopeRequired": "请填写租户和命名空间",
+      "tokenRequired": "请填写 Token"
     },
     "settings": {
       "title": "设置",
@@ -1137,15 +1173,8 @@
       },
       "pulsar": {
         "subtitle": "pulsar-eu · Pulsar 3.2 · 租户 ecommerce · Broker 3 / Bookie 4",
-        "allOnline": "全部在线",
-        "tenants": "租户 6",
-        "partitioned": "分区 Topic 38",
-        "outRate": "出 2.1k/s",
-        "totalPending": "总积压",
-        "vsLastHour": "较 1h 前 +6%",
-        "ledgerBalanced": "Ledger 均衡 · 无只读 Bookie",
-        "topPending": "积压 TOP 订阅",
-        "bookieStorage": "Bookie 存储"
+        "pending": "Pulsar 数据尚未接入",
+        "pendingHint": "这个页面会随着各项能力逐步接上驱动。在那之前，这里不会显示任何编造的数字。"
       },
       "rabbitmq": {
         "subtitle": "{{cluster}} · RabbitMQ {{version}}",
@@ -1228,19 +1257,6 @@
         "txnHolds": "顶住的分区",
         "txnPastTimeout": "已超时",
         "txnEmpty": "该集群没有注册任何事务生产者。"
-      },
-      "pulsar": {
-        "load44": "负载 44%",
-        "load41": "负载 41%",
-        "writeLatency": "写延迟",
-        "readLatency": "读延迟",
-        "store58": "存储 58%",
-        "store61": "存储 61%",
-        "store57": "存储 57%",
-        "store73": "存储 73%",
-        "bundles": "命名空间 Bundle 分布",
-        "rebalance": "触发负载均衡",
-        "distribution": "分布"
       },
       "rocketmq": {
         "title": "集群 · DefaultCluster",
@@ -1788,26 +1804,6 @@
           "unchanged": "分区本来就在这个位置"
         }
       },
-      "pulsar": {
-        "subtitle": "租户 ecommerce · 命名空间 orders · 18 个 Topic",
-        "tenant": "租户：ecommerce",
-        "namespace": "命名空间：orders",
-        "searchTopic": "搜索 Topic…",
-        "persistentOnly": "仅 persistent",
-        "producers": "生产者",
-        "eightParts": "8 分区",
-        "inOut": "入 / 出",
-        "storageSize": "存储大小",
-        "policies": "策略（命名空间继承 · 可覆盖）",
-        "ttl": "消息 TTL",
-        "sevenDays": "7 天",
-        "retention": "保留",
-        "retentionValue": "大小 50GB / 时间 30 天",
-        "backlogQuota": "积压配额",
-        "quotaValue": "10GB · 超限 producer_exception",
-        "schema": "JSON · 兼容 BACKWARD",
-        "unload": "卸载 unload"
-      },
       "rocketmq": {
         "showSystem": "显示系统 Topic",
         "queueRW": "队列 读/写",
@@ -2050,18 +2046,6 @@
           "saved": "已保存 {{name}}"
         }
       },
-      "pulsar": {
-        "cursor": "游标",
-        "subtitle": "命名空间 orders · 9 个订阅",
-        "allTopics": "Topic：全部",
-        "search": "搜索订阅…",
-        "oldestUnacked": "最早未确认",
-        "oldestValue": "10:02:37（22 分钟前）",
-        "seekTime": "Seek 时间…",
-        "skipN": "跳过 N 条…",
-        "clearBacklog": "清空积压",
-        "unsubscribe": "解除订阅"
-      },
       "redis": {
         "subtitle": "orders:events · 3 组 · PEL 37",
         "lag": "滞后",
@@ -2103,16 +2087,6 @@
         "noHeaders": "这条消息没有 header。"
       },
       "deserialize": "反序列化：JSON",
-      "pulsar": {
-        "peek": "Peek 最新",
-        "byMsgId": "按 MessageId",
-        "byPublishTime": "按发布时间",
-        "subscription": "订阅：settle-sub",
-        "publishTime": "发布时间",
-        "publishEventTime": "发布 / 事件时间",
-        "seekHere": "Seek 到此消息…",
-        "peekNote": "peek 不影响订阅游标 · markDeletePosition 812:2:0"
-      },
       "rabbitmq": {
         "title": "消息",
         "subtitle": "从队列头部取一批消息查看，看完放回",
@@ -2266,16 +2240,6 @@
         "xackDrop": "XACK 放弃"
       },
       "last24h": "近 24 小时",
-      "pulsar": {
-        "title": "死信 DLQ",
-        "subtitle": "订阅 settle-sub · order-created-settle-sub-DLQ · 8 条",
-        "subscription": "订阅：settle-sub",
-        "rule": "maxRedeliverCount=5 · 超限入 DLQ",
-        "lastException": "最后异常（properties）",
-        "hint": "丢弃 = 在 DLQ 上 ack · 源订阅不受影响",
-        "resend": "重发到源 Topic",
-        "discard": "确认丢弃"
-      },
       "rabbitmq": {
         "title": "死信",
         "subtitle": "共 {{count}} 个队列在接收死信",
