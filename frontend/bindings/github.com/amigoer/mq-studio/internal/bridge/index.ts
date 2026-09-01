@@ -7,6 +7,7 @@ import * as ConnectionService from "./connectionservice.js";
 import * as ConsumerService from "./consumerservice.js";
 import * as DriverService from "./driverservice.js";
 import * as KafkaService from "./kafkaservice.js";
+import * as MQTTService from "./mqttservice.js";
 import * as MessageService from "./messageservice.js";
 import * as RabbitMQService from "./rabbitmqservice.js";
 import * as RoutingService from "./routingservice.js";
@@ -23,6 +24,7 @@ export {
     ConsumerService,
     DriverService,
     KafkaService,
+    MQTTService,
     MessageService,
     RabbitMQService,
     RoutingService,
@@ -49,6 +51,9 @@ export {
     IdentityInput,
     KafkaTopicInput,
     LogDirView,
+    MQTTFilterInput,
+    MQTTPublishInput,
+    MQTTSubscribeInput,
     MaintenanceTaskView,
     MessageQuery,
     MoveInput,

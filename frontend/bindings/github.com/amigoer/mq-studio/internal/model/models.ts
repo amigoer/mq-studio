@@ -2187,6 +2187,252 @@ export class Identity {
 }
 
 /**
+ * LiveBatch is one poll's worth of a stream.
+ */
+export class LiveBatch {
+    /**
+     * Messages are oldest first, which is the order a stream appends in.
+     */
+    "messages": (LiveMessage | null)[];
+
+    /**
+     * Cursor is what to pass next time. It advances even when nothing came
+     * back, so a caller that polls a quiet stream does not re-ask for the
+     * same window forever.
+     */
+    "cursor": number;
+
+    /**
+     * Dropped is every message this stream discarded because the buffer was
+     * full when it arrived — a running total, not a delta, so a caller that
+     * polls irregularly still sees the whole loss. A stream that is quietly
+     * losing messages and one that is quiet look the same without it.
+     */
+    "dropped": number;
+
+    /**
+     * Received is the running total the stream has seen.
+     */
+    "received": number;
+
+    /**
+     * Live mirrors LiveSubscription.Live at the moment of the poll.
+     */
+    "live": boolean;
+
+    /** Creates a new LiveBatch instance. */
+    constructor($$source: Partial<LiveBatch> = {}) {
+        if (!("messages" in $$source)) {
+            this["messages"] = [];
+        }
+        if (!("cursor" in $$source)) {
+            this["cursor"] = 0;
+        }
+        if (!("dropped" in $$source)) {
+            this["dropped"] = 0;
+        }
+        if (!("received" in $$source)) {
+            this["received"] = 0;
+        }
+        if (!("live" in $$source)) {
+            this["live"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new LiveBatch instance from a string or object.
+     */
+    static createFrom($$source: any = {}): LiveBatch {
+        const $$createField0_0 = $$createType38;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("messages" in $$parsedSource) {
+            $$parsedSource["messages"] = $$createField0_0($$parsedSource["messages"]);
+        }
+        return new LiveBatch($$parsedSource as Partial<LiveBatch>);
+    }
+}
+
+/**
+ * LiveFilter is one pattern a stream subscribes to.
+ */
+export class LiveFilter {
+    /**
+     * Pattern is the family's own filter syntax, unparsed. MQTT's + and #
+     * wildcards mean nothing to another family, and translating them into a
+     * neutral form would only lose the difference between them.
+     */
+    "pattern": string;
+
+    /**
+     * Options are the family's per-filter settings — for MQTT, the QoS to
+     * subscribe at.
+     */
+    "options": { [_ in string]?: string };
+
+    /** Creates a new LiveFilter instance. */
+    constructor($$source: Partial<LiveFilter> = {}) {
+        if (!("pattern" in $$source)) {
+            this["pattern"] = "";
+        }
+        if (!("options" in $$source)) {
+            this["options"] = {};
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new LiveFilter instance from a string or object.
+     */
+    static createFrom($$source: any = {}): LiveFilter {
+        const $$createField1_0 = $$createType3;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("options" in $$parsedSource) {
+            $$parsedSource["options"] = $$createField1_0($$parsedSource["options"]);
+        }
+        return new LiveFilter($$parsedSource as Partial<LiveFilter>);
+    }
+}
+
+/**
+ * LiveMessage is one message as it arrived.
+ */
+export class LiveMessage {
+    /**
+     * Seq orders the stream and is what the caller hands back to ask for more.
+     * It is unique within one subscription and means nothing outside it.
+     */
+    "seq": number;
+
+    /**
+     * Destination is where the message was actually published, which a
+     * wildcard subscription cannot infer from the filter that matched it.
+     */
+    "destination": string;
+
+    /**
+     * Filter is which of the subscription's filters matched, so a stream
+     * watching several can be read back apart.
+     */
+    "filter": string;
+    "receivedAt": string;
+    "body": string;
+
+    /**
+     * Truncated says the body was cut to the driver's per-message limit. A
+     * silently shortened payload reads as a malformed message.
+     */
+    "truncated": boolean;
+
+    /**
+     * Attributes carry what the family puts on a message — for MQTT, the QoS,
+     * the retain flag and the 5.0 properties.
+     */
+    "attributes": { [_ in string]?: string };
+
+    /** Creates a new LiveMessage instance. */
+    constructor($$source: Partial<LiveMessage> = {}) {
+        if (!("seq" in $$source)) {
+            this["seq"] = 0;
+        }
+        if (!("destination" in $$source)) {
+            this["destination"] = "";
+        }
+        if (!("filter" in $$source)) {
+            this["filter"] = "";
+        }
+        if (!("receivedAt" in $$source)) {
+            this["receivedAt"] = "";
+        }
+        if (!("body" in $$source)) {
+            this["body"] = "";
+        }
+        if (!("truncated" in $$source)) {
+            this["truncated"] = false;
+        }
+        if (!("attributes" in $$source)) {
+            this["attributes"] = {};
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new LiveMessage instance from a string or object.
+     */
+    static createFrom($$source: any = {}): LiveMessage {
+        const $$createField6_0 = $$createType3;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("attributes" in $$parsedSource) {
+            $$parsedSource["attributes"] = $$createField6_0($$parsedSource["attributes"]);
+        }
+        return new LiveMessage($$parsedSource as Partial<LiveMessage>);
+    }
+}
+
+/**
+ * LiveSubscription is one stream that was started.
+ */
+export class LiveSubscription {
+    "id": string;
+    "filters": LiveFilter[];
+    "startedAt": string;
+
+    /**
+     * Received is every message this stream has seen, including any it later
+     * had to drop.
+     */
+    "received": number;
+    "dropped": number;
+
+    /**
+     * Live is false once the session behind the stream dropped. The stream
+     * itself survives — a reconnect resubscribes it — so this is the
+     * difference between "nothing is being published" and "we stopped
+     * listening", which look identical otherwise.
+     */
+    "live": boolean;
+
+    /** Creates a new LiveSubscription instance. */
+    constructor($$source: Partial<LiveSubscription> = {}) {
+        if (!("id" in $$source)) {
+            this["id"] = "";
+        }
+        if (!("filters" in $$source)) {
+            this["filters"] = [];
+        }
+        if (!("startedAt" in $$source)) {
+            this["startedAt"] = "";
+        }
+        if (!("received" in $$source)) {
+            this["received"] = 0;
+        }
+        if (!("dropped" in $$source)) {
+            this["dropped"] = 0;
+        }
+        if (!("live" in $$source)) {
+            this["live"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new LiveSubscription instance from a string or object.
+     */
+    static createFrom($$source: any = {}): LiveSubscription {
+        const $$createField1_0 = $$createType40;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("filters" in $$parsedSource) {
+            $$parsedSource["filters"] = $$createField1_0($$parsedSource["filters"]);
+        }
+        return new LiveSubscription($$parsedSource as Partial<LiveSubscription>);
+    }
+}
+
+/**
  * LogDirPartition is one partition's footprint on disk.
  */
 export class LogDirPartition {
@@ -2832,10 +3078,10 @@ export class Node {
      * Creates a new Node instance from a string or object.
      */
     static createFrom($$source: any = {}): Node {
-        const $$createField10_0 = $$createType36;
-        const $$createField11_0 = $$createType37;
-        const $$createField12_0 = $$createType37;
-        const $$createField13_0 = $$createType39;
+        const $$createField10_0 = $$createType41;
+        const $$createField11_0 = $$createType42;
+        const $$createField12_0 = $$createType42;
+        const $$createField13_0 = $$createType44;
         const $$createField14_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("tpsHistoryTimestamps" in $$parsedSource) {
@@ -2929,9 +3175,9 @@ export class PartitionReassignment {
      * Creates a new PartitionReassignment instance from a string or object.
      */
     static createFrom($$source: any = {}): PartitionReassignment {
-        const $$createField2_0 = $$createType40;
-        const $$createField3_0 = $$createType40;
-        const $$createField4_0 = $$createType40;
+        const $$createField2_0 = $$createType45;
+        const $$createField3_0 = $$createType45;
+        const $$createField4_0 = $$createType45;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("replicas" in $$parsedSource) {
             $$parsedSource["replicas"] = $$createField2_0($$parsedSource["replicas"]);
@@ -3611,8 +3857,8 @@ export class StreamClients {
      * Creates a new StreamClients instance from a string or object.
      */
     static createFrom($$source: any = {}): StreamClients {
-        const $$createField0_0 = $$createType43;
-        const $$createField1_0 = $$createType46;
+        const $$createField0_0 = $$createType48;
+        const $$createField1_0 = $$createType51;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("publishers" in $$parsedSource) {
             $$parsedSource["publishers"] = $$createField0_0($$parsedSource["publishers"]);
@@ -3832,7 +4078,7 @@ export class Subscription {
      * Creates a new Subscription instance from a string or object.
      */
     static createFrom($$source: any = {}): Subscription {
-        const $$createField1_0 = $$createType47;
+        const $$createField1_0 = $$createType52;
         const $$createField8_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("ref" in $$parsedSource) {
@@ -3898,8 +4144,8 @@ export class SubscriptionClient {
      * Creates a new SubscriptionClient instance from a string or object.
      */
     static createFrom($$source: any = {}): SubscriptionClient {
-        const $$createField1_0 = $$createType49;
-        const $$createField2_0 = $$createType51;
+        const $$createField1_0 = $$createType54;
+        const $$createField2_0 = $$createType56;
         const $$createField3_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("assignments" in $$parsedSource) {
@@ -3998,8 +4244,8 @@ export class TailBatch {
      * Creates a new TailBatch instance from a string or object.
      */
     static createFrom($$source: any = {}): TailBatch {
-        const $$createField0_0 = $$createType54;
-        const $$createField1_0 = $$createType55;
+        const $$createField0_0 = $$createType59;
+        const $$createField1_0 = $$createType60;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("messages" in $$parsedSource) {
             $$parsedSource["messages"] = $$createField0_0($$parsedSource["messages"]);
@@ -4034,7 +4280,7 @@ export class TailCursor {
      * Creates a new TailCursor instance from a string or object.
      */
     static createFrom($$source: any = {}): TailCursor {
-        const $$createField0_0 = $$createType57;
+        const $$createField0_0 = $$createType62;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("positions" in $$parsedSource) {
             $$parsedSource["positions"] = $$createField0_0($$parsedSource["positions"]);
@@ -4229,25 +4475,30 @@ const $$createType32 = $Create.Array($$createType31);
 const $$createType33 = NamespacePermission.createFrom;
 const $$createType34 = $Create.Nullable($$createType33);
 const $$createType35 = $Create.Array($$createType34);
-const $$createType36 = $Create.Array($Create.Any);
-const $$createType37 = $Create.Array($Create.Any);
-const $$createType38 = ReplicaStatus.createFrom;
-const $$createType39 = $Create.Array($$createType38);
-const $$createType40 = $Create.Array($Create.Any);
-const $$createType41 = StreamPublisher.createFrom;
-const $$createType42 = $Create.Nullable($$createType41);
-const $$createType43 = $Create.Array($$createType42);
-const $$createType44 = StreamConsumer.createFrom;
-const $$createType45 = $Create.Nullable($$createType44);
-const $$createType46 = $Create.Array($$createType45);
-const $$createType47 = SubscriptionRef.createFrom;
-const $$createType48 = QueueAssignment.createFrom;
-const $$createType49 = $Create.Array($$createType48);
-const $$createType50 = ConsumeThroughput.createFrom;
+const $$createType36 = LiveMessage.createFrom;
+const $$createType37 = $Create.Nullable($$createType36);
+const $$createType38 = $Create.Array($$createType37);
+const $$createType39 = LiveFilter.createFrom;
+const $$createType40 = $Create.Array($$createType39);
+const $$createType41 = $Create.Array($Create.Any);
+const $$createType42 = $Create.Array($Create.Any);
+const $$createType43 = ReplicaStatus.createFrom;
+const $$createType44 = $Create.Array($$createType43);
+const $$createType45 = $Create.Array($Create.Any);
+const $$createType46 = StreamPublisher.createFrom;
+const $$createType47 = $Create.Nullable($$createType46);
+const $$createType48 = $Create.Array($$createType47);
+const $$createType49 = StreamConsumer.createFrom;
+const $$createType50 = $Create.Nullable($$createType49);
 const $$createType51 = $Create.Array($$createType50);
-const $$createType52 = MessageItem.createFrom;
-const $$createType53 = $Create.Nullable($$createType52);
+const $$createType52 = SubscriptionRef.createFrom;
+const $$createType53 = QueueAssignment.createFrom;
 const $$createType54 = $Create.Array($$createType53);
-const $$createType55 = TailCursor.createFrom;
-const $$createType56 = QueuePosition.createFrom;
-const $$createType57 = $Create.Array($$createType56);
+const $$createType55 = ConsumeThroughput.createFrom;
+const $$createType56 = $Create.Array($$createType55);
+const $$createType57 = MessageItem.createFrom;
+const $$createType58 = $Create.Nullable($$createType57);
+const $$createType59 = $Create.Array($$createType58);
+const $$createType60 = TailCursor.createFrom;
+const $$createType61 = QueuePosition.createFrom;
+const $$createType62 = $Create.Array($$createType61);
