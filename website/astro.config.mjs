@@ -7,10 +7,10 @@ import { satteri } from '@astrojs/markdown-satteri';
 import { hastDocLinks } from './src/lib/hast-doc-links.mjs';
 import { hastWrapTables } from './src/lib/hast-wrap-tables.mjs';
 
-// TODO: replace with the real domain once the Cloudflare Pages project has one.
-// `site` feeds canonical URLs, hreflang and the sitemap, so a wrong value here
-// ships wrong <link rel="canonical"> tags rather than failing the build.
-const SITE = 'https://mq-studio.pages.dev';
+// Feeds canonical URLs, hreflang and the sitemap. A wrong value here ships
+// wrong <link rel="canonical"> tags rather than failing the build, so it has to
+// match what the site is actually served from.
+const SITE = 'https://mq-studio.amigoer.com';
 
 export default defineConfig({
   site: SITE,

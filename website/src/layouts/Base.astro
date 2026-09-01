@@ -28,7 +28,7 @@ const { locale, title, description, path = '', canonicalPath } = Astro.props;
 const c = t(locale);
 const pageTitle = title ?? c.meta.title;
 const pageDescription = description ?? c.meta.description;
-const site = Astro.site ?? new URL('https://mq-studio.pages.dev');
+const site = Astro.site ?? new URL('https://mq-studio.amigoer.com');
 const canonical = new URL(canonicalPath ?? Astro.url.pathname, site);
 
 // The 2526px original is 697kB; social crawlers fetch this on every share and
