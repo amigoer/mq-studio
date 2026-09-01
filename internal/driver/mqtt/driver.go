@@ -268,5 +268,6 @@ func (d *Driver) Open(ctx context.Context, profile model.ConnectionProfile) (dri
 		_ = conn.Close()
 		return nil, err
 	}
+	conn.probe(ctx)
 	return conn, nil
 }

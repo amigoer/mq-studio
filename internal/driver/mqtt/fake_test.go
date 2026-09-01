@@ -74,6 +74,11 @@ func startBroker(t *testing.T, kind string, hook mochi.Hook, config any) (*mochi
 		// publish is checked to have actually arrived rather than merely to
 		// have been accepted.
 		InlineClient: true,
+		// mochi republishes its own $SYS tree every second by default, which
+		// overwrites anything a test put there. It is published once at Serve
+		// either way, so this leaves the broker's state still rather than
+		// silently racing whatever is reading it.
+		SysTopicResendInterval: 3600,
 	})
 	if err := server.AddHook(hook, config); err != nil {
 		t.Fatalf("add auth hook: %v", err)
@@ -259,6 +264,7 @@ func TestOpenReportsARejectedCredential(t *testing.T) {
 	for _, version := range []string{protocol5, protocol311} {
 		t.Run("mqtt"+version, func(t *testing.T) {
 			profile := testProfile(address, version, nil)
+			profile.TimeoutSec = 1
 			profile.Auth.Mechanism = model.AuthPlain
 			profile.Secrets = map[string]string{
 				SecretUsername: "mqstudio",
@@ -412,7 +418,9 @@ func TestPingFailsOnceTheBrokerIsGone(t *testing.T) {
 				t.Fatalf("close broker: %v", err)
 			}
 
-			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+			// Bounded tightly: the v5 client reconnects until its context
+			// ends, so this is how long the assertion costs.
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()
 			if err := conn.Ping(ctx); err == nil {
 				t.Error("ping succeeded against a broker that is gone")

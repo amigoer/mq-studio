@@ -162,6 +162,7 @@ func (c *Conn) collectRetainedFrom(ctx context.Context, filter string) (map[stri
 	collector := &retainedCollector{
 		messages: make(map[string]inboundMessage),
 		quiet:    time.NewTimer(discoveryWindow),
+		quietFor: quietPeriod,
 	}
 	defer collector.quiet.Stop()
 
@@ -214,6 +215,13 @@ type retainedCollector struct {
 	messages  map[string]inboundMessage
 	truncated bool
 	quiet     *time.Timer
+	// quietFor is how long a gap ends the collection. A topic listing and a
+	// $SYS read both infer the end from silence and give it different budgets.
+	quietFor time.Duration
+	// anyMessage takes live publishes as well as retained ones. A topic
+	// listing wants only what the broker stored; a $SYS read wants whatever
+	// arrives, because brokers disagree about whether that tree is retained.
+	anyMessage bool
 }
 
 func (r *retainedCollector) accept(message inboundMessage) {
@@ -222,7 +230,7 @@ func (r *retainedCollector) accept(message inboundMessage) {
 
 	// A live message arriving mid-listing is not a retained one and must not
 	// be reported as a topic's stored value.
-	if !message.Retained {
+	if !message.Retained && !r.anyMessage {
 		return
 	}
 	if len(r.messages) >= maxDiscovered {
@@ -230,7 +238,7 @@ func (r *retainedCollector) accept(message inboundMessage) {
 		return
 	}
 	r.messages[message.Topic] = message
-	r.quiet.Reset(quietPeriod)
+	r.quiet.Reset(r.quietFor)
 }
 
 func (r *retainedCollector) done() <-chan time.Time { return r.quiet.C }

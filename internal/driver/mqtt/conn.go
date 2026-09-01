@@ -114,5 +114,52 @@ func capabilities() []model.Capability {
 		model.CapDestinationList,
 		model.CapPublish,
 		model.CapLiveStream,
+		model.CapClusterTopology,
+		model.CapClusterMetrics,
 	}
 }
+
+// probe narrows the family's best case to what this broker actually answers.
+//
+// Only the $SYS tier is probed, because it is the only one that can be absent
+// on a connection that opened: publishing and subscribing are the protocol
+// itself, and a session that connected can do both. What differs between
+// brokers is whether they will talk about themselves - Mosquitto publishes a
+// full tree, EMQX's default authorisation refuses the subscription outright,
+// and an embedded broker may accept it and publish nothing.
+//
+// Those last two are reported apart. "The broker refused" sends an operator to
+// its access rules; "the broker publishes nothing" tells them there is nothing
+// to configure, and a single reason covering both would send half of them to
+// the wrong place.
+func (c *Conn) probe(ctx context.Context) {
+	c.capabilities = model.NewCapabilities(capabilities()...)
+
+	tree, err := c.readSys(ctx)
+	reason := ""
+	switch {
+	case err != nil:
+		reason = sysRefused
+	case tree.empty():
+		reason = sysSilent
+	}
+	if reason == "" {
+		return
+	}
+	c.capabilities = c.capabilities.
+		WithDegraded(model.CapClusterTopology, reason).
+		WithDegraded(model.CapClusterMetrics, reason)
+}
+
+// The reasons a connection reports for a tier it cannot read. They are i18n
+// keys rather than sentences: the renderer turns them into the user's own
+// language, because each one asks the user to go and do something.
+const (
+	// sysRefused is the broker declining the subscription. EMQX does this by
+	// default for any client that is not on the loopback, so it is the common
+	// case rather than an unusual one, and the fix is in its access rules.
+	sysRefused = "mq.mqtt.degraded.sysRefused"
+	// sysSilent is a broker that took the subscription and publishes no $SYS
+	// at all. There is nothing to configure; the tree simply does not exist.
+	sysSilent = "mq.mqtt.degraded.sysSilent"
+)
