@@ -3,6 +3,7 @@ package bridge
 import (
 	"context"
 	"strconv"
+	"time"
 
 	pulsardriver "github.com/amigoer/mq-studio/internal/driver/pulsar"
 	"github.com/amigoer/mq-studio/internal/model"
@@ -248,4 +249,70 @@ func (s *PulsarService) DeadLetterQueues(
 	connID int, namespace string,
 ) ([]*model.DeadLetterQueue, error) {
 	return s.service.DeadLetterQueues(context.Background(), connID, namespace)
+}
+
+// PulsarPublishInput is a send as the Pulsar console collects it.
+//
+// Deliberately not model.PublishRequest, which is AMQP: an exchange, a routing
+// key and a mandatory flag, none of which this family has. What Pulsar does
+// have - an ordering key, an event time, a delivery delay and arbitrary
+// properties - has no field there.
+type PulsarPublishInput struct {
+	// Topic is a full URL, which is how a Pulsar topic is addressed.
+	Topic string `json:"topic"`
+	// Key is what the broker partitions and compacts by.
+	Key string `json:"key"`
+	// OrderingKey orders delivery independently of the key, which is how a
+	// Key_Shared subscription keeps related messages on one consumer without
+	// forcing them onto one partition.
+	OrderingKey string            `json:"orderingKey"`
+	Properties  map[string]string `json:"properties"`
+	Body        string            `json:"body"`
+	// DeliverAfterMs holds the message back. Milliseconds because that is what
+	// crosses a JSON bridge without a unit anybody has to remember; the driver
+	// takes a duration.
+	DeliverAfterMs int64 `json:"deliverAfterMs"`
+	// EventTimeMs is when the producer says the event happened, as opposed to
+	// when the broker stores it. Zero leaves it unset rather than stamping
+	// 1970.
+	EventTimeMs int64 `json:"eventTimeMs"`
+	// Count sends the same message more than once, which makes a repeat
+	// deliberate rather than a button pressed several times.
+	Count int `json:"count"`
+}
+
+// PulsarPublishResult is what the broker acknowledged.
+type PulsarPublishResult struct {
+	// MessageIDs are in send order, in Pulsar's printed form, so each can be
+	// pasted straight into the browse box.
+	MessageIDs []string `json:"messageIds"`
+}
+
+// Publish sends one or more messages.
+func (s *PulsarService) Publish(connID int, input PulsarPublishInput) (*PulsarPublishResult, error) {
+	request := pulsardriver.PublishRequest{
+		Topic:        input.Topic,
+		Key:          input.Key,
+		OrderingKey:  input.OrderingKey,
+		Properties:   input.Properties,
+		Body:         input.Body,
+		DeliverAfter: time.Duration(input.DeliverAfterMs) * time.Millisecond,
+		Count:        input.Count,
+	}
+	if input.EventTimeMs > 0 {
+		request.EventTime = time.UnixMilli(input.EventTimeMs)
+	}
+
+	result, err := s.service.Publish(context.Background(), connID, request)
+	if err != nil {
+		return nil, err
+	}
+	return &PulsarPublishResult{MessageIDs: result.MessageIDs}, nil
+}
+
+// Producers is who is currently publishing to a topic. Pulsar reports them per
+// topic rather than per producer group, which is the better question of the
+// two and the only one it can answer.
+func (s *PulsarService) Producers(connID int, topic string) ([]*model.ProducerClient, error) {
+	return s.service.Producers(context.Background(), connID, topic)
 }

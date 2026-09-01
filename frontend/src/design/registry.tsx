@@ -42,6 +42,7 @@ import { PelRedis } from "./boards/dlq/PelRedis";
 
 import { Producer } from "./boards/producer/Producer";
 import { ProducerKafka } from "./boards/producer/ProducerKafka";
+import { ProducerPulsar } from "./boards/producer/ProducerPulsar";
 import { ProducerRabbitMQ } from "./boards/producer/ProducerRabbitMQ";
 import { Alerts } from "./boards/alerts/Alerts";
 import { Acl } from "./boards/acl/Acl";
@@ -158,6 +159,10 @@ export function renderBoard(
   if (page === "producer") {
     if (protocol === "rabbitmq") return <ProducerRabbitMQ />;
     if (protocol === "kafka") return <ProducerKafka />;
+    /* Pulsar's own too: the shared console collects tags and a RocketMQ delay
+       level, and this family has no tag at all - what a RocketMQ producer puts
+       in one, a Pulsar producer puts in a property. */
+    if (protocol === "pulsar") return <ProducerPulsar />;
     return <Producer protocol={protocol} nav={nav} />;
   }
   /* Alerts is one board for every family: the rules are numeric comparisons

@@ -113,6 +113,26 @@ export function Namespaces(connID: number): $CancellablePromise<(model$0.Namespa
 }
 
 /**
+ * Producers is who is currently publishing to a topic. Pulsar reports them per
+ * topic rather than per producer group, which is the better question of the
+ * two and the only one it can answer.
+ */
+export function Producers(connID: number, topic: string): $CancellablePromise<(model$0.ProducerClient | null)[]> {
+    return $Call.ByID(4154277477, connID, topic).then(($result: any) => {
+        return $$createType9($result);
+    });
+}
+
+/**
+ * Publish sends one or more messages.
+ */
+export function Publish(connID: number, input: $models.PulsarPublishInput): $CancellablePromise<$models.PulsarPublishResult | null> {
+    return $Call.ByID(2849280041, connID, input).then(($result: any) => {
+        return $$createType11($result);
+    });
+}
+
+/**
  * RaisePartitions adds partitions to a partitioned topic. Pulsar cannot remove
  * them, and cannot partition a topic that was created without partitions.
  */
@@ -157,7 +177,7 @@ export function SetNamespaceLimit(connID: number, name: string, limit: string, v
  */
 export function SubscriptionClients(connID: number, topic: string, subscription: string): $CancellablePromise<(model$0.SubscriptionClient | null)[]> {
     return $Call.ByID(1693229665, connID, topic, subscription).then(($result: any) => {
-        return $$createType9($result);
+        return $$createType14($result);
     });
 }
 
@@ -170,7 +190,7 @@ export function SubscriptionClients(connID: number, topic: string, subscription:
  */
 export function SubscriptionStats(connID: number, topic: string, subscription: string): $CancellablePromise<{ [_ in string]?: any }> {
     return $Call.ByID(2895460458, connID, topic, subscription).then(($result: any) => {
-        return $$createType10($result);
+        return $$createType15($result);
     });
 }
 
@@ -179,7 +199,7 @@ export function SubscriptionStats(connID: number, topic: string, subscription: s
  */
 export function Tenants(connID: number): $CancellablePromise<($models.PulsarTenantView | null)[]> {
     return $Call.ByID(3205204843, connID).then(($result: any) => {
-        return $$createType13($result);
+        return $$createType18($result);
     });
 }
 
@@ -188,7 +208,7 @@ export function Tenants(connID: number): $CancellablePromise<($models.PulsarTena
  */
 export function TopicDetail(connID: number, $namespace: string, name: string): $CancellablePromise<model$0.Destination | null> {
     return $Call.ByID(1962758660, connID, $namespace, name).then(($result: any) => {
-        return $$createType15($result);
+        return $$createType20($result);
     });
 }
 
@@ -197,7 +217,7 @@ export function TopicDetail(connID: number, $namespace: string, name: string): $
  */
 export function TopicStats(connID: number, $namespace: string, name: string): $CancellablePromise<{ [_ in string]?: any }> {
     return $Call.ByID(1539980380, connID, $namespace, name).then(($result: any) => {
-        return $$createType10($result);
+        return $$createType15($result);
     });
 }
 
@@ -210,7 +230,7 @@ export function TopicStats(connID: number, $namespace: string, name: string): $C
  */
 export function Topics(connID: number, $namespace: string, includeInternal: boolean): $CancellablePromise<(model$0.Destination | null)[]> {
     return $Call.ByID(447707186, connID, $namespace, includeInternal).then(($result: any) => {
-        return $$createType16($result);
+        return $$createType21($result);
     });
 }
 
@@ -222,13 +242,18 @@ const $$createType3 = $Create.Array($$createType2);
 const $$createType4 = model$0.Namespace.createFrom;
 const $$createType5 = $Create.Nullable($$createType4);
 const $$createType6 = $Create.Array($$createType5);
-const $$createType7 = model$0.SubscriptionClient.createFrom;
+const $$createType7 = model$0.ProducerClient.createFrom;
 const $$createType8 = $Create.Nullable($$createType7);
 const $$createType9 = $Create.Array($$createType8);
-const $$createType10 = $Create.Map($Create.Any, $Create.Any);
-const $$createType11 = $models.PulsarTenantView.createFrom;
-const $$createType12 = $Create.Nullable($$createType11);
-const $$createType13 = $Create.Array($$createType12);
-const $$createType14 = model$0.Destination.createFrom;
-const $$createType15 = $Create.Nullable($$createType14);
-const $$createType16 = $Create.Array($$createType15);
+const $$createType10 = $models.PulsarPublishResult.createFrom;
+const $$createType11 = $Create.Nullable($$createType10);
+const $$createType12 = model$0.SubscriptionClient.createFrom;
+const $$createType13 = $Create.Nullable($$createType12);
+const $$createType14 = $Create.Array($$createType13);
+const $$createType15 = $Create.Map($Create.Any, $Create.Any);
+const $$createType16 = $models.PulsarTenantView.createFrom;
+const $$createType17 = $Create.Nullable($$createType16);
+const $$createType18 = $Create.Array($$createType17);
+const $$createType19 = model$0.Destination.createFrom;
+const $$createType20 = $Create.Nullable($$createType19);
+const $$createType21 = $Create.Array($$createType20);

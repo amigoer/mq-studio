@@ -2549,6 +2549,37 @@
           "countInvalid": "Send between 1 and 10000 copies",
           "headerLine": "Each header is one key=value per line"
         }
+      },
+      "pulsar": {
+        "title": "Send",
+        "compose": "Message",
+        "namespace": "Namespace",
+        "topic": "Topic",
+        "key": "Key",
+        "keyHint": "What the broker partitions and compacts by.",
+        "orderingKey": "Ordering key",
+        "orderingKeyHint": "Orders delivery independently of the key, for Key_Shared subscriptions.",
+        "properties": "Properties",
+        "propertiesHint": "One name=value per line. Pulsar has no tag; this is where one goes, and the messages page filters on it.",
+        "body": "Body",
+        "delay": "Delay (seconds)",
+        "delayHint": "The broker holds the message and delivers when the time comes. 0 sends now.",
+        "count": "Send this many",
+        "countHint": "The same message, repeated. Capped at 1000.",
+        "send": "Send",
+        "sent": "The broker acknowledged {{count}}",
+        "acknowledged": "Message IDs",
+        "publishers": "Publishing to this topic",
+        "producer": "Producer",
+        "address": "Address",
+        "clientVersion": "Client",
+        "noPublishers": "Nothing is publishing to this topic right now.",
+        "topicRequired": "Choose a topic",
+        "bodyRequired": "A body is required",
+        "propertyLineInvalid": "Each property line needs name=value",
+        "delayInvalid": "The delay must be a whole number of seconds",
+        "countInvalid": "Send at least one message",
+        "countTooLarge": "A single send is capped at 1000 messages"
       }
     },
     "mqtt": {

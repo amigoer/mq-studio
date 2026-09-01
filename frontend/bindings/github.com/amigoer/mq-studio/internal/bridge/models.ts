@@ -1259,6 +1259,129 @@ export class PulsarNamespaceInput {
 }
 
 /**
+ * PulsarPublishInput is a send as the Pulsar console collects it.
+ * 
+ * Deliberately not model.PublishRequest, which is AMQP: an exchange, a routing
+ * key and a mandatory flag, none of which this family has. What Pulsar does
+ * have - an ordering key, an event time, a delivery delay and arbitrary
+ * properties - has no field there.
+ */
+export class PulsarPublishInput {
+    /**
+     * Topic is a full URL, which is how a Pulsar topic is addressed.
+     */
+    "topic": string;
+
+    /**
+     * Key is what the broker partitions and compacts by.
+     */
+    "key": string;
+
+    /**
+     * OrderingKey orders delivery independently of the key, which is how a
+     * Key_Shared subscription keeps related messages on one consumer without
+     * forcing them onto one partition.
+     */
+    "orderingKey": string;
+    "properties": { [_ in string]?: string };
+    "body": string;
+
+    /**
+     * DeliverAfterMs holds the message back. Milliseconds because that is what
+     * crosses a JSON bridge without a unit anybody has to remember; the driver
+     * takes a duration.
+     */
+    "deliverAfterMs": number;
+
+    /**
+     * EventTimeMs is when the producer says the event happened, as opposed to
+     * when the broker stores it. Zero leaves it unset rather than stamping
+     * 1970.
+     */
+    "eventTimeMs": number;
+
+    /**
+     * Count sends the same message more than once, which makes a repeat
+     * deliberate rather than a button pressed several times.
+     */
+    "count": number;
+
+    /** Creates a new PulsarPublishInput instance. */
+    constructor($$source: Partial<PulsarPublishInput> = {}) {
+        if (!("topic" in $$source)) {
+            this["topic"] = "";
+        }
+        if (!("key" in $$source)) {
+            this["key"] = "";
+        }
+        if (!("orderingKey" in $$source)) {
+            this["orderingKey"] = "";
+        }
+        if (!("properties" in $$source)) {
+            this["properties"] = {};
+        }
+        if (!("body" in $$source)) {
+            this["body"] = "";
+        }
+        if (!("deliverAfterMs" in $$source)) {
+            this["deliverAfterMs"] = 0;
+        }
+        if (!("eventTimeMs" in $$source)) {
+            this["eventTimeMs"] = 0;
+        }
+        if (!("count" in $$source)) {
+            this["count"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new PulsarPublishInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): PulsarPublishInput {
+        const $$createField3_0 = $$createType9;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("properties" in $$parsedSource) {
+            $$parsedSource["properties"] = $$createField3_0($$parsedSource["properties"]);
+        }
+        return new PulsarPublishInput($$parsedSource as Partial<PulsarPublishInput>);
+    }
+}
+
+/**
+ * PulsarPublishResult is what the broker acknowledged.
+ */
+export class PulsarPublishResult {
+    /**
+     * MessageIDs are in send order, in Pulsar's printed form, so each can be
+     * pasted straight into the browse box.
+     */
+    "messageIds": string[];
+
+    /** Creates a new PulsarPublishResult instance. */
+    constructor($$source: Partial<PulsarPublishResult> = {}) {
+        if (!("messageIds" in $$source)) {
+            this["messageIds"] = [];
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new PulsarPublishResult instance from a string or object.
+     */
+    static createFrom($$source: any = {}): PulsarPublishResult {
+        const $$createField0_0 = $$createType0;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("messageIds" in $$parsedSource) {
+            $$parsedSource["messageIds"] = $$createField0_0($$parsedSource["messageIds"]);
+        }
+        return new PulsarPublishResult($$parsedSource as Partial<PulsarPublishResult>);
+    }
+}
+
+/**
  * PulsarTenantInput is a tenant as the form collects it.
  */
 export class PulsarTenantInput {

@@ -2,6 +2,8 @@ import { MessageService, PulsarService } from "@bindings/bridge";
 import type {
   PulsarNamespaceInput,
   PulsarTenantInput,
+  PulsarPublishInput,
+  PulsarPublishResult,
   PulsarTenantView,
   PulsarTopicInput,
 } from "@bindings/bridge/models";
@@ -10,6 +12,7 @@ import type {
   Destination,
   MessageItem,
   Namespace,
+  ProducerClient,
   SubscriptionClient,
 } from "@bindings/model/models";
 import { present, required } from "./client";
@@ -21,6 +24,9 @@ export type {
   Namespace,
   SubscriptionClient,
   PulsarNamespaceInput,
+  ProducerClient,
+  PulsarPublishInput,
+  PulsarPublishResult,
   PulsarTenantInput,
   PulsarTenantView,
   PulsarTopicInput,
@@ -220,3 +226,15 @@ export const getPulsarDeadLetterQueues = (
   namespace: string,
 ): Promise<DeadLetterQueue[]> =>
   PulsarService.DeadLetterQueues(connID, namespace).then(present);
+
+/** Sends one or more messages in Pulsar's own vocabulary. */
+export const publishPulsarMessage = (
+  connID: number,
+  input: PulsarPublishInput,
+): Promise<PulsarPublishResult> => PulsarService.Publish(connID, input).then(required);
+
+/** Who is currently publishing to a topic, as the broker reports them. */
+export const getPulsarProducers = (
+  connID: number,
+  topic: string,
+): Promise<ProducerClient[]> => PulsarService.Producers(connID, topic).then(present);

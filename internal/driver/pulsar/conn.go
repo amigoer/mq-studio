@@ -28,6 +28,11 @@ type Conn struct {
 	// transport is the admin plane's, kept so Close can release its sockets.
 	transport http.RoundTripper
 
+	// producerCache holds one producer per topic. Reuse is not an
+	// optimisation: every producer registers a name the broker holds until it
+	// is closed, so one per send would exhaust maxProducersPerTopic.
+	producerCache
+
 	capabilities model.Capabilities
 	closeOnce    sync.Once
 }
@@ -114,6 +119,9 @@ func (c *Conn) Capabilities() model.Capabilities { return c.capabilities }
 // disconnected profile should not be holding.
 func (c *Conn) Close() error {
 	c.closeOnce.Do(func() {
+		// Producers first: closing the client underneath them would leave the
+		// broker holding their registered names until it times them out.
+		c.closeProducers()
 		if c.client != nil {
 			c.client.Close()
 		}
@@ -160,6 +168,9 @@ func capabilities() []model.Capability {
 		model.CapMessageByID,
 		model.CapMessageLiveTail,
 		model.CapDeadLetterTopology,
+		model.CapPublish,
+		model.CapDelayedDelivery,
+		model.CapProducerInspect,
 	}
 }
 
@@ -169,6 +180,8 @@ func dataPlaneCapabilities() []model.Capability {
 	return []model.Capability{
 		model.CapMessageQuery,
 		model.CapMessageLiveTail,
+		model.CapPublish,
+		model.CapDelayedDelivery,
 	}
 }
 

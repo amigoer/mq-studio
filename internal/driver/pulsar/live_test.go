@@ -1074,3 +1074,180 @@ func TestLiveDeadLetterTopicIsFoundFromItsName(t *testing.T) {
 		t.Error("an ordinary topic is listed as a dead-letter queue")
 	}
 }
+
+/*
+ * Producers are cached per topic and released on close.
+ *
+ * Not an optimisation, and the failure it prevents is not slow but total:
+ * every Pulsar producer registers a name the broker holds until it is closed,
+ * so one per send climbs to maxProducersPerTopic and the topic then refuses
+ * every further send - from this app and from the application publishing
+ * beside it. Only a real broker completes the handshake this needs.
+ */
+func TestLiveProducersAreReusedAndReleased(t *testing.T) {
+	conn := liveConn(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	first := model.DestinationRef{Namespace: "public/default", Name: "mq-studio-e2e-send"}
+	second := model.DestinationRef{Namespace: "public/default", Name: "mq-studio-e2e-send-2"}
+	firstURL := prepareTopic(t, conn, first)
+	secondURL := prepareTopic(t, conn, second)
+
+	for i := 0; i < 3; i++ {
+		if _, err := conn.Publish(ctx, PublishRequest{Topic: firstURL, Body: "x"}); err != nil {
+			t.Fatalf("send %d: %v", i, err)
+		}
+	}
+	if _, err := conn.Publish(ctx, PublishRequest{Topic: secondURL, Body: "y"}); err != nil {
+		t.Fatalf("send to the second topic: %v", err)
+	}
+
+	if len(conn.producers) != 2 {
+		t.Errorf("four sends across two topics opened %d producers, want 2",
+			len(conn.producers))
+	}
+
+	// And the broker agrees there is one, not three.
+	publishers, err := conn.ProducerClients(ctx, "", firstURL)
+	if err != nil {
+		t.Fatalf("ProducerClients: %v", err)
+	}
+	console := 0
+	for _, publisher := range publishers {
+		if publisher.ClientID == producerName {
+			console++
+		}
+	}
+	if console != 1 {
+		t.Errorf("the broker sees %d console producers on one topic, want 1", console)
+	}
+
+	if err := conn.Close(); err != nil {
+		t.Fatalf("close: %v", err)
+	}
+	if conn.producers != nil {
+		t.Error("closing the connection left producers registered on the broker")
+	}
+}
+
+/*
+ * A send lands, and the id it returns finds it again.
+ *
+ * The whole point of returning Pulsar's own printed form is that it can be
+ * pasted back into the browse box, so the round trip is the assertion.
+ */
+func TestLiveSendThenBrowseFindsIt(t *testing.T) {
+	conn := liveConn(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	ref := model.DestinationRef{Namespace: "public/default", Name: "mq-studio-e2e-console"}
+	url := prepareTopic(t, conn, ref)
+
+	result, err := conn.Publish(ctx, PublishRequest{
+		Topic:       url,
+		Key:         "customer-7",
+		OrderingKey: "customer-7",
+		Properties:  map[string]string{"stage": "paid"},
+		Body:        "from the console",
+		Count:       2,
+	})
+	if err != nil {
+		t.Fatalf("Publish: %v", err)
+	}
+	if len(result.MessageIDs) != 2 {
+		t.Fatalf("two messages produced %d ids", len(result.MessageIDs))
+	}
+
+	found, err := conn.MessageByID(ctx, url, result.MessageIDs[0])
+	if err != nil {
+		t.Fatalf("MessageByID(%s): %v", result.MessageIDs[0], err)
+	}
+	if found.Body != "from the console" {
+		t.Errorf("body = %q", found.Body)
+	}
+	if found.Properties["stage"] != "paid" {
+		t.Errorf("properties = %v, want the one that was sent", found.Properties)
+	}
+
+	// The canonical port's tag becomes a property, and the browse filter that
+	// replaces the tag search has to find it.
+	if _, err := conn.SendMessage(ctx, url, "shipped", "customer-9", "tagged", 0); err != nil {
+		t.Fatalf("SendMessage: %v", err)
+	}
+	tagged, err := conn.QueryMessages(ctx, model.MessageQueryParams{
+		Topic:      url,
+		MaxResults: 50,
+		Filters:    map[string]string{FilterProperty: "tag=shipped"},
+	})
+	if err != nil {
+		t.Fatalf("QueryMessages: %v", err)
+	}
+	if len(tagged) != 1 || tagged[0].Body != "tagged" {
+		t.Fatalf("filtering on the mapped tag found %d messages", len(tagged))
+	}
+}
+
+/*
+ * A delayed message is withheld, and that is the whole feature.
+ *
+ * Asserted by consuming rather than by reading a stat: the broker's msgDelayed
+ * counter only populates once a dispatcher is running, so a subscription with
+ * nothing attached reports zero for a message it is genuinely holding back.
+ * What a consumer receives is the behaviour anybody actually depends on.
+ *
+ * The unit matters and nothing else pins it: ports.go fixes none, so a driver
+ * reading the delay as milliseconds would deliver at once and one reading it
+ * as a RocketMQ level would schedule it for a wildly different time. Both look
+ * like a working send.
+ */
+func TestLiveDelayedMessageIsWithheld(t *testing.T) {
+	conn := liveConn(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+	defer cancel()
+
+	ref := model.DestinationRef{Namespace: "public/default", Name: "mq-studio-e2e-delayed"}
+	url := prepareTopic(t, conn, ref)
+
+	// Shared, because Pulsar only honours a per-message delay on a
+	// subscription type that dispatches individually.
+	consumer, err := conn.client.Subscribe(pulsarclient.ConsumerOptions{
+		Topic:            url,
+		SubscriptionName: "delayed-reader",
+		Type:             pulsarclient.Shared,
+	})
+	if err != nil {
+		t.Fatalf("subscribe: %v", err)
+	}
+	defer consumer.Close()
+
+	if _, err := conn.Publish(ctx, PublishRequest{
+		Topic: url, Body: "later", DeliverAfter: time.Hour,
+	}); err != nil {
+		t.Fatalf("send a delayed message: %v", err)
+	}
+	if _, err := conn.Publish(ctx, PublishRequest{Topic: url, Body: "now"}); err != nil {
+		t.Fatalf("send an immediate message: %v", err)
+	}
+
+	// The immediate one arrives.
+	receive, cancelReceive := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancelReceive()
+	first, err := consumer.Receive(receive)
+	if err != nil {
+		t.Fatalf("receive the immediate message: %v", err)
+	}
+	if string(first.Payload()) != "now" {
+		t.Fatalf("received %q first, want the undelayed message", first.Payload())
+	}
+	consumer.Ack(first)
+
+	// The delayed one does not, within a window far shorter than its delay.
+	// A driver that sent the delay in the wrong unit would deliver it here.
+	quiet, cancelQuiet := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancelQuiet()
+	if early, err := consumer.Receive(quiet); err == nil {
+		t.Errorf("a message delayed by an hour arrived immediately: %q", early.Payload())
+	}
+}

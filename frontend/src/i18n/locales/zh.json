@@ -2549,6 +2549,37 @@
           "countInvalid": "份数请填 1 到 10000 之间",
           "headerLine": "header 每行一个 key=value"
         }
+      },
+      "pulsar": {
+        "title": "发送",
+        "compose": "消息",
+        "namespace": "命名空间",
+        "topic": "主题",
+        "key": "Key",
+        "keyHint": "Broker 按它分区和压缩。",
+        "orderingKey": "顺序 Key",
+        "orderingKeyHint": "独立于 Key 决定投递顺序，供 Key_Shared 订阅使用。",
+        "properties": "属性",
+        "propertiesHint": "每行一个 name=value。Pulsar 没有 tag，标记信息放在这里，消息页也按它筛选。",
+        "body": "消息体",
+        "delay": "延迟（秒）",
+        "delayHint": "Broker 会先存下来，到点再投递。填 0 表示立即发送。",
+        "count": "发送条数",
+        "countHint": "重复发送同一条消息，上限 1000。",
+        "send": "发送",
+        "sent": "Broker 已确认 {{count}} 条",
+        "acknowledged": "消息 ID",
+        "publishers": "正在向该主题发送的生产者",
+        "producer": "生产者",
+        "address": "地址",
+        "clientVersion": "客户端",
+        "noPublishers": "当前没有生产者在向这个主题发送。",
+        "topicRequired": "请选择主题",
+        "bodyRequired": "请填写消息体",
+        "propertyLineInvalid": "属性每行都要写成 name=value",
+        "delayInvalid": "延迟必须是整数秒",
+        "countInvalid": "至少发送一条",
+        "countTooLarge": "单次发送上限为 1000 条"
       }
     },
     "mqtt": {

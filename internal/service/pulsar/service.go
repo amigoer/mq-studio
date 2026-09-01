@@ -372,3 +372,34 @@ func (s *Service) DeadLetterQueues(
 	defer cancel()
 	return api.DeadLetterQueues(ctx, namespace)
 }
+
+// Publish sends one or more messages in Pulsar's own vocabulary.
+func (s *Service) Publish(
+	ctx context.Context, connID int, request pulsardriver.PublishRequest,
+) (*pulsardriver.PublishResult, error) {
+	conn, err := s.pulsarConn(connID)
+	if err != nil {
+		return nil, err
+	}
+	if !conn.Capabilities().Has(model.CapPublish) {
+		return nil, driver.Unsupported(conn, model.CapPublish)
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return conn.Publish(ctx, request)
+}
+
+// Producers is who is currently publishing to a topic.
+func (s *Service) Producers(
+	ctx context.Context, connID int, topic string,
+) ([]*model.ProducerClient, error) {
+	api, err := port[driver.ProducerInspector](s, connID, model.CapProducerInspect)
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	// The group is empty because Pulsar reports publishers per topic, which is
+	// both the better question and the only one it can answer.
+	return api.ProducerClients(ctx, "", topic)
+}

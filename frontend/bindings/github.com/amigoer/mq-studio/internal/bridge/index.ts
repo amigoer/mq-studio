@@ -61,6 +61,8 @@ export {
     PrincipalInput,
     PublishInput,
     PulsarNamespaceInput,
+    PulsarPublishInput,
+    PulsarPublishResult,
     PulsarTenantInput,
     PulsarTenantView,
     PulsarTopicInput,

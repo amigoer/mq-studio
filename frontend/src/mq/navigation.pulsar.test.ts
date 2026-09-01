@@ -40,6 +40,9 @@ const PULSAR_CAPABILITIES: Capability[] = [
   Capability.CapMessageByID,
   Capability.CapMessageLiveTail,
   Capability.CapDeadLetterTopology,
+  Capability.CapPublish,
+  Capability.CapDelayedDelivery,
+  Capability.CapProducerInspect,
 ];
 
 function state(
@@ -91,6 +94,7 @@ describe("the sidebar a Pulsar connection draws", () => {
       "consumers",
       "messages",
       "dlq",
+      "producer",
       "cluster",
       "alerts",
     ]);
