@@ -192,6 +192,17 @@ const (
 	// take a write for and never read back.
 	CapAccessDirectory Capability = "access.directory"
 
+	// CapAclUsers is a broker whose access control lives entirely on the user:
+	// what it may run, which keys it may touch, which channels it may
+	// subscribe to.
+	//
+	// A third model beside CapAccessControl's credential pairs and
+	// CapAccessDirectory's rules attached to a subject. Redis attaches
+	// everything to the principal, including the key patterns that decide what
+	// data it can reach - and a page built for either of the others would show
+	// the commands and hide the half that contains the data.
+	CapAclUsers Capability = "access.aclUsers"
+
 	// CapNamespaceList and CapNamespaceAdmin are families whose namespaces are
 	// objects rather than labels - a RabbitMQ virtual host holds its own
 	// queues, exchanges, policies and permissions, and nothing crosses

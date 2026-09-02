@@ -3,6 +3,7 @@ package redisstream
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -1541,5 +1542,220 @@ func TestLiveCloseClientConnection(t *testing.T) {
 	// And the connection doing the killing is still usable.
 	if err := conn.Ping(ctx); err != nil {
 		t.Errorf("the connection that issued the kill did not survive it: %v", err)
+	}
+}
+
+/*
+ * The ACL surface against a real server, which is the only place it exists at
+ * all: the in-process one has no ACL commands.
+ */
+func TestLiveListAclUsers(t *testing.T) {
+	conn := liveConn(t, nil, nil)
+	ctx := liveContext(t)
+
+	users, err := conn.ListAclUsers(ctx)
+	if err != nil {
+		t.Fatalf("list acl users: %v", err)
+	}
+	byName := map[string]*model.AclUser{}
+	for _, user := range users {
+		byName[user.Name] = user
+	}
+
+	// The three tests/e2e/redis/users.acl declares.
+	for _, name := range []string{"default", liveUser, liveReadonlyUser} {
+		if byName[name] == nil {
+			e2e.Missing(t, "the acl user %q is not on this broker; check tests/e2e/redis/users.acl", name)
+		}
+	}
+
+	// default is off with no password at all, which is what makes an
+	// anonymous connection refusable and the degraded path assertable.
+	if byName["default"].Enabled {
+		t.Error("the default user is enabled; an anonymous connection would be accepted")
+	}
+	if byName["default"].NoPassword {
+		t.Error("the default user reads as nopass, which would accept any password")
+	}
+
+	// The restricted one is where the rules actually differ, and is why the
+	// environment declares it.
+	readonly := byName[liveReadonlyUser]
+	if !readonly.Enabled || readonly.PasswordCount == 0 {
+		t.Errorf("%s = %+v", liveReadonlyUser, readonly)
+	}
+	if len(readonly.KeyPatterns) == 0 {
+		t.Errorf("%s carries no key pattern; the column would be a constant", liveReadonlyUser)
+	}
+	if !strings.Contains(readonly.CommandRules, "+@read") {
+		t.Errorf("command rules = %q, want the read grant", readonly.CommandRules)
+	}
+	if readonly.Rule == "" {
+		t.Error("no rule line, which is the form an operator checks against")
+	}
+}
+
+func TestLiveAclCategories(t *testing.T) {
+	conn := liveConn(t, nil, nil)
+	categories, err := conn.AclCategories(liveContext(t))
+	if err != nil {
+		t.Fatalf("acl categories: %v", err)
+	}
+	if len(categories) < 10 {
+		t.Fatalf("read %d categories; a server reports around twenty", len(categories))
+	}
+	for _, want := range []string{"read", "write", "admin", "dangerous"} {
+		if !slices.Contains(categories, want) {
+			t.Errorf("@%s is not among the categories: %v", want, categories)
+		}
+	}
+}
+
+/*
+ * The reset, and the reason for it.
+ *
+ * SETUSER is additive, so an edit that removes a key pattern has to reset the
+ * user first or the pattern stays and the form has lied about what it saved.
+ * The cost of the reset is the passwords, which is why the save puts the
+ * existing hashes back - and this asserts both halves: the removed pattern is
+ * gone, and the user can still authenticate afterwards.
+ */
+func TestLiveSaveAclUserReplacesRatherThanMerges(t *testing.T) {
+	conn := liveConn(t, nil, nil)
+	ctx := liveContext(t)
+	const name = "mqs-live-acl"
+	t.Cleanup(func() { _ = conn.RemoveAclUser(context.Background(), name) })
+
+	if err := conn.SaveAclUser(ctx, model.AclUserSpec{
+		Name:            name,
+		Enabled:         true,
+		Password:        "first-password",
+		KeyPatterns:     []string{"~one:*", "~two:*"},
+		ChannelPatterns: []string{"&*"},
+		CommandRules:    []string{"-@all", "+@read"},
+	}); err != nil {
+		t.Fatalf("create: %v", err)
+	}
+
+	created, err := conn.aclUser(ctx, name)
+	if err != nil || created == nil {
+		t.Fatalf("the user was not created: %v", err)
+	}
+	if len(created.KeyPatterns) != 2 {
+		t.Fatalf("key patterns = %v, want both", created.KeyPatterns)
+	}
+
+	// Save again with one pattern removed and no password named.
+	if err := conn.SaveAclUser(ctx, model.AclUserSpec{
+		Name:            name,
+		Enabled:         true,
+		KeyPatterns:     []string{"~one:*"},
+		ChannelPatterns: []string{"&*"},
+		CommandRules:    []string{"-@all", "+@read"},
+	}); err != nil {
+		t.Fatalf("edit: %v", err)
+	}
+
+	edited, err := conn.aclUser(ctx, name)
+	if err != nil || edited == nil {
+		t.Fatalf("the user disappeared: %v", err)
+	}
+	if len(edited.KeyPatterns) != 1 || edited.KeyPatterns[0] != "~one:*" {
+		t.Errorf("key patterns = %v; the removed one survived the edit", edited.KeyPatterns)
+	}
+	// The password survived a save that was not about it. Without the hashes
+	// being re-applied this would be zero and the application would be locked
+	// out by an edit to its key patterns.
+	if edited.PasswordCount != 1 {
+		t.Errorf("password count = %d after an unrelated edit, want the password kept", edited.PasswordCount)
+	}
+
+	// And it still authenticates, which is the thing the count is standing in
+	// for. The user is granted @connection as well as @read, because PING is
+	// in the first and not the second - a read-only account that cannot ping
+	// is the subject of the next test rather than a problem with this one.
+	if err := conn.SaveAclUser(ctx, model.AclUserSpec{
+		Name:         name,
+		Enabled:      true,
+		KeyPatterns:  []string{"~one:*"},
+		CommandRules: []string{"-@all", "+@read", "+@connection"},
+	}); err != nil {
+		t.Fatalf("grant connection commands: %v", err)
+	}
+	check := openLive(t, liveAddr, nil, map[string]string{
+		SecretUsername: name,
+		SecretPassword: "first-password",
+	})
+	if err := check.Ping(ctx); err != nil {
+		t.Errorf("the user cannot authenticate after the edit: %v", err)
+	}
+}
+
+/*
+ * A restricted account can open a connection at all.
+ *
+ * This is a regression test for a real defect the ACL work found. The app
+ * labels its connections so an operator can tell it apart from their own
+ * services in CLIENT LIST - and go-redis's ClientName option issues CLIENT
+ * SETNAME during connection setup, where a failure takes the whole connection
+ * down. CLIENT SETNAME is in @connection, so a user granted only "-@all
+ * +@read" could not connect to this app at all, while working perfectly with
+ * redis-cli.
+ *
+ * The name is now set after the connection is up and its refusal ignored, so
+ * the account works and pays for it with an unnamed row on the clients page.
+ */
+func TestLiveRestrictedUserCanConnectWithoutClientSetname(t *testing.T) {
+	admin := liveConn(t, nil, nil)
+	ctx := liveContext(t)
+	const name = "mqs-live-acl-restricted"
+	t.Cleanup(func() { _ = admin.RemoveAclUser(context.Background(), name) })
+
+	// No @connection: this user cannot run CLIENT SETNAME, and cannot PING
+	// either. What it can do is read the keys it was granted.
+	if err := admin.SaveAclUser(ctx, model.AclUserSpec{
+		Name:         name,
+		Enabled:      true,
+		Password:     "restricted",
+		KeyPatterns:  []string{"~mqs-live-restricted:*"},
+		CommandRules: []string{"-@all", "+@read"},
+	}); err != nil {
+		t.Fatalf("create the restricted user: %v", err)
+	}
+
+	restricted := openLive(t, liveAddr, nil, map[string]string{
+		SecretUsername: name,
+		SecretPassword: "restricted",
+	})
+	// A command the grant allows. If CLIENT SETNAME had taken the connection
+	// down this would fail with a connection error rather than with NOPERM.
+	if err := restricted.client.Exists(ctx, "mqs-live-restricted:absent").Err(); err != nil {
+		t.Fatalf("a read-only account could not use its own grant: %v", err)
+	}
+	// And PING is genuinely refused, which is what says the account really is
+	// restricted rather than the test having granted too much.
+	if err := restricted.Ping(ctx); err == nil {
+		t.Error("the restricted account could ping; @connection was granted after all")
+	}
+}
+
+func TestLiveRemoveAclUser(t *testing.T) {
+	conn := liveConn(t, nil, nil)
+	ctx := liveContext(t)
+	const name = "mqs-live-acl-remove"
+	t.Cleanup(func() { _ = conn.RemoveAclUser(context.Background(), name) })
+
+	if err := conn.SaveAclUser(ctx, model.AclUserSpec{
+		Name: name, Enabled: true, Password: "x", CommandRules: []string{"-@all"},
+	}); err != nil {
+		t.Fatalf("create: %v", err)
+	}
+	if err := conn.RemoveAclUser(ctx, name); err != nil {
+		t.Fatalf("remove: %v", err)
+	}
+	// Removing one that is gone deletes nothing, and reporting that as done
+	// would have a row disappear for a user somebody else removed.
+	if err := conn.RemoveAclUser(ctx, name); err == nil {
+		t.Error("removing the same user twice succeeded the second time")
 	}
 }

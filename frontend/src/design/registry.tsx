@@ -47,6 +47,7 @@ import { ProducerRedis } from "./boards/producer/ProducerRedis";
 import { Alerts } from "./boards/alerts/Alerts";
 import { Acl } from "./boards/acl/Acl";
 import { AclKafka } from "./boards/acl/AclKafka";
+import { AclRedis } from "./boards/acl/AclRedis";
 import { QuotasKafka } from "./boards/quotas/QuotasKafka";
 
 import { ClusterRocketMQ } from "./boards/cluster/ClusterRocketMQ";
@@ -174,6 +175,7 @@ export function renderBoard(
     if (protocol === "rocketmq") return <Acl />;
     if (protocol === "rabbitmq") return <UsersRabbitMQ />;
     if (protocol === "kafka") return <AclKafka />;
+    if (protocol === "redis") return <AclRedis />;
   }
 
   const Board = BOARDS[page]?.[protocol];

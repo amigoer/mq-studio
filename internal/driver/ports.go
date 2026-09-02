@@ -483,6 +483,26 @@ type AccessDirectory interface {
 	RemoveAccessRule(ctx context.Context, subject string) error
 }
 
+// AclUserAdmin manages a family whose access control lives on the user.
+//
+// Separate from AccessAdmin and AccessDirectory because it is a third model
+// rather than a variation. AccessAdmin is a credential pair carrying its own
+// permissions and never read back; AccessDirectory is principals with rules
+// attached to a subject. Redis puts the command rules, the key patterns and
+// the channel patterns all on the user, and reads every one of them back.
+//
+// SaveAclUser replaces rather than merges. The server's own SETUSER is
+// additive, so an edit that removed a key pattern would leave it in place and
+// the form would be lying about what it saved.
+type AclUserAdmin interface {
+	ListAclUsers(ctx context.Context) ([]*model.AclUser, error)
+	SaveAclUser(ctx context.Context, spec model.AclUserSpec) error
+	RemoveAclUser(ctx context.Context, name string) error
+	// AclCategories are the command groups rules are written in terms of.
+	// They differ by server version, so they are read rather than listed here.
+	AclCategories(ctx context.Context) ([]string, error)
+}
+
 // ClientCloser disconnects a client from the broker.
 //
 // Only whole connections. Some families - RabbitMQ among them - multiplex

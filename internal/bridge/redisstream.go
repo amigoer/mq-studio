@@ -244,3 +244,53 @@ func (s *RedisStreamService) CloseClient(connID int, id string) error {
 func (s *RedisStreamService) CloseUserClients(connID int, username string) error {
 	return s.service.CloseUserClients(context.Background(), connID, username)
 }
+
+// AclUsers lists the principals the server authenticates.
+func (s *RedisStreamService) AclUsers(connID int) ([]*model.AclUser, error) {
+	return s.service.AclUsers(context.Background(), connID)
+}
+
+// AclCategories are the command groups rules are written in terms of. They
+// differ by server version, so the form offers what the server reports.
+func (s *RedisStreamService) AclCategories(connID int) ([]string, error) {
+	return s.service.AclCategories(context.Background(), connID)
+}
+
+// AclUserInput is a user as the form collects it.
+type AclUserInput struct {
+	Name    string `json:"name"`
+	Enabled bool   `json:"enabled"`
+	// Password is a new password. Empty keeps whatever is stored.
+	Password string `json:"password"`
+	// ClearPasswords leaves a user that cannot authenticate at all, which is
+	// the opposite of NoPassword rather than a milder form of it.
+	ClearPasswords bool `json:"clearPasswords"`
+	// NoPassword lets the user authenticate with anything.
+	NoPassword      bool     `json:"noPassword"`
+	KeyPatterns     []string `json:"keyPatterns"`
+	ChannelPatterns []string `json:"channelPatterns"`
+	CommandRules    []string `json:"commandRules"`
+}
+
+// SaveAclUser creates or replaces a user.
+//
+// Replaces: the server's own SETUSER is additive, so an edit that removed a
+// key pattern would leave it in place and the form would be lying about what
+// it saved.
+func (s *RedisStreamService) SaveAclUser(connID int, input AclUserInput) error {
+	return s.service.SaveAclUser(context.Background(), connID, model.AclUserSpec{
+		Name:            input.Name,
+		Enabled:         input.Enabled,
+		Password:        input.Password,
+		ClearPasswords:  input.ClearPasswords,
+		NoPassword:      input.NoPassword,
+		KeyPatterns:     input.KeyPatterns,
+		ChannelPatterns: input.ChannelPatterns,
+		CommandRules:    input.CommandRules,
+	})
+}
+
+// RemoveAclUser deletes a user. Redis closes whatever was authenticated as it.
+func (s *RedisStreamService) RemoveAclUser(connID int, name string) error {
+	return s.service.RemoveAclUser(context.Background(), connID, name)
+}

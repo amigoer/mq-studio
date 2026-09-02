@@ -7,6 +7,7 @@ export {
     AccessPrincipalSpec,
     AccessRule,
     AckResult,
+    AclUser,
     AclVersionInfo,
     AuthMechanism,
     Binding,

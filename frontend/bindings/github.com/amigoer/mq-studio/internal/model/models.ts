@@ -219,6 +219,116 @@ export class AckResult {
 }
 
 /**
+ * AclUser is one principal the server authenticates, as Redis states it.
+ * 
+ * A third access model beside AccessAdmin's credential pairs and
+ * AccessDirectory's principals-and-rules. Redis puts everything on the user:
+ * what it may run, which keys it may touch, which channels it may subscribe
+ * to, and - since 7.0 - selectors granting a different set for a subset of
+ * keys. None of that fits a permission attached to a subject, and a page that
+ * showed only the command rules would hide the half that actually contains
+ * the data.
+ */
+export class AclUser {
+    "name": string;
+
+    /**
+     * Enabled is the on/off flag. A disabled user still exists with all its
+     * rules, which is the difference between suspending an application and
+     * removing it.
+     */
+    "enabled": boolean;
+
+    /**
+     * NoPassword means the user authenticates with any password, or none. It
+     * is not the same as having no passwords set: that user cannot log in at
+     * all, and confusing the two is how a server is left open.
+     */
+    "noPassword": boolean;
+
+    /**
+     * PasswordCount is how many hashes are set. The hashes themselves never
+     * leave the driver.
+     */
+    "passwordCount": number;
+
+    /**
+     * KeyPatterns, ChannelPatterns and CommandRules are Redis's own words,
+     * passed through rather than interpreted: the rule language has more forms
+     * than a UI can model, and rewriting one is how a permission changes
+     * meaning on its way to the screen.
+     */
+    "keyPatterns": string[];
+    "channelPatterns": string[];
+    "commandRules": string;
+
+    /**
+     * Selectors are the parenthesised groups a user may carry. They are shown
+     * verbatim because nothing else here can express them.
+     */
+    "selectors": string[];
+
+    /**
+     * Rule is the whole line as the server stated it. It is what an operator
+     * checks against, and the only form guaranteed to be complete.
+     */
+    "rule": string;
+
+    /** Creates a new AclUser instance. */
+    constructor($$source: Partial<AclUser> = {}) {
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("enabled" in $$source)) {
+            this["enabled"] = false;
+        }
+        if (!("noPassword" in $$source)) {
+            this["noPassword"] = false;
+        }
+        if (!("passwordCount" in $$source)) {
+            this["passwordCount"] = 0;
+        }
+        if (!("keyPatterns" in $$source)) {
+            this["keyPatterns"] = [];
+        }
+        if (!("channelPatterns" in $$source)) {
+            this["channelPatterns"] = [];
+        }
+        if (!("commandRules" in $$source)) {
+            this["commandRules"] = "";
+        }
+        if (!("selectors" in $$source)) {
+            this["selectors"] = [];
+        }
+        if (!("rule" in $$source)) {
+            this["rule"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new AclUser instance from a string or object.
+     */
+    static createFrom($$source: any = {}): AclUser {
+        const $$createField4_0 = $$createType0;
+        const $$createField5_0 = $$createType0;
+        const $$createField7_0 = $$createType0;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("keyPatterns" in $$parsedSource) {
+            $$parsedSource["keyPatterns"] = $$createField4_0($$parsedSource["keyPatterns"]);
+        }
+        if ("channelPatterns" in $$parsedSource) {
+            $$parsedSource["channelPatterns"] = $$createField5_0($$parsedSource["channelPatterns"]);
+        }
+        if ("selectors" in $$parsedSource) {
+            $$parsedSource["selectors"] = $$createField7_0($$parsedSource["selectors"]);
+        }
+        return new AclUser($$parsedSource as Partial<AclUser>);
+    }
+}
+
+/**
  * AclVersionInfo holds ACL config version information.
  */
 export class AclVersionInfo {
@@ -866,6 +976,19 @@ export enum Capability {
      * take a write for and never read back.
      */
     CapAccessDirectory = "access.directory",
+
+    /**
+     * CapAclUsers is a broker whose access control lives entirely on the user:
+     * what it may run, which keys it may touch, which channels it may
+     * subscribe to.
+     * 
+     * A third model beside CapAccessControl's credential pairs and
+     * CapAccessDirectory's rules attached to a subject. Redis attaches
+     * everything to the principal, including the key patterns that decide what
+     * data it can reach - and a page built for either of the others would show
+     * the commands and hide the half that contains the data.
+     */
+    CapAclUsers = "access.aclUsers",
 
     /**
      * CapNamespaceList and CapNamespaceAdmin are families whose namespaces are

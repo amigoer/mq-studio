@@ -250,6 +250,7 @@ func TestCapabilitiesMatchTheSidebarContract(t *testing.T) {
 
 		"client.inspect",
 		"client.close",
+		"access.aclUsers",
 	}
 
 	declared := make(map[string]bool, len(capabilities()))

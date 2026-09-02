@@ -34,6 +34,25 @@ export function AckEntries(connID: number, stream: string, group: string, ids: s
 }
 
 /**
+ * AclCategories are the command groups rules are written in terms of. They
+ * differ by server version, so the form offers what the server reports.
+ */
+export function AclCategories(connID: number): $CancellablePromise<string[]> {
+    return $Call.ByID(978512212, connID).then(($result: any) => {
+        return $$createType2($result);
+    });
+}
+
+/**
+ * AclUsers lists the principals the server authenticates.
+ */
+export function AclUsers(connID: number): $CancellablePromise<(model$0.AclUser | null)[]> {
+    return $Call.ByID(3951763496, connID).then(($result: any) => {
+        return $$createType5($result);
+    });
+}
+
+/**
  * AddEntry writes to a stream and returns the ids the server assigned.
  * 
  * The ids rather than a count: an id is the only handle on an entry, so a
@@ -42,7 +61,7 @@ export function AckEntries(connID: number, stream: string, group: string, ids: s
  */
 export function AddEntry(connID: number, input: $models.EntryInput): $CancellablePromise<model$0.StreamAddResult | null> {
     return $Call.ByID(870285481, connID, input).then(($result: any) => {
-        return $$createType3($result);
+        return $$createType7($result);
     });
 }
 
@@ -52,7 +71,7 @@ export function AddEntry(connID: number, input: $models.EntryInput): $Cancellabl
  */
 export function AutoClaim(connID: number, input: $models.AutoClaimInput): $CancellablePromise<model$0.ClaimResult | null> {
     return $Call.ByID(2064203517, connID, input).then(($result: any) => {
-        return $$createType5($result);
+        return $$createType9($result);
     });
 }
 
@@ -61,7 +80,7 @@ export function AutoClaim(connID: number, input: $models.AutoClaimInput): $Cance
  */
 export function ClaimEntries(connID: number, input: $models.ClaimInput): $CancellablePromise<model$0.ClaimResult | null> {
     return $Call.ByID(220908984, connID, input).then(($result: any) => {
-        return $$createType5($result);
+        return $$createType9($result);
     });
 }
 
@@ -70,7 +89,7 @@ export function ClaimEntries(connID: number, input: $models.ClaimInput): $Cancel
  */
 export function ClientConnections(connID: number): $CancellablePromise<(model$0.ClientConnection | null)[]> {
     return $Call.ByID(1103629136, connID).then(($result: any) => {
-        return $$createType8($result);
+        return $$createType12($result);
     });
 }
 
@@ -106,7 +125,7 @@ export function CreateGroup(connID: number, input: $models.GroupInput): $Cancell
  */
 export function DeleteEntries(connID: number, stream: string, ids: string[]): $CancellablePromise<model$0.TrimResult | null> {
     return $Call.ByID(3902121557, connID, stream, ids).then(($result: any) => {
-        return $$createType10($result);
+        return $$createType14($result);
     });
 }
 
@@ -122,7 +141,7 @@ export function DeleteGroup(connID: number, stream: string, group: string): $Can
  */
 export function GroupConsumers(connID: number, stream: string, group: string): $CancellablePromise<(model$0.GroupConsumer | null)[]> {
     return $Call.ByID(2477625508, connID, stream, group).then(($result: any) => {
-        return $$createType13($result);
+        return $$createType17($result);
     });
 }
 
@@ -131,7 +150,7 @@ export function GroupConsumers(connID: number, stream: string, group: string): $
  */
 export function PendingEntries(connID: number, input: $models.PendingQueryInput): $CancellablePromise<(model$0.PendingEntry | null)[]> {
     return $Call.ByID(617713621, connID, input).then(($result: any) => {
-        return $$createType16($result);
+        return $$createType20($result);
     });
 }
 
@@ -140,8 +159,26 @@ export function PendingEntries(connID: number, input: $models.PendingQueryInput)
  */
 export function PendingSummary(connID: number, stream: string, group: string): $CancellablePromise<model$0.PendingSummary | null> {
     return $Call.ByID(932081609, connID, stream, group).then(($result: any) => {
-        return $$createType18($result);
+        return $$createType22($result);
     });
+}
+
+/**
+ * RemoveAclUser deletes a user. Redis closes whatever was authenticated as it.
+ */
+export function RemoveAclUser(connID: number, name: string): $CancellablePromise<void> {
+    return $Call.ByID(1927758299, connID, name);
+}
+
+/**
+ * SaveAclUser creates or replaces a user.
+ * 
+ * Replaces: the server's own SETUSER is additive, so an edit that removed a
+ * key pattern would leave it in place and the form would be lying about what
+ * it saved.
+ */
+export function SaveAclUser(connID: number, input: $models.AclUserInput): $CancellablePromise<void> {
+    return $Call.ByID(1225375772, connID, input);
 }
 
 /**
@@ -161,7 +198,7 @@ export function SetGroupPosition(connID: number, stream: string, group: string, 
  */
 export function SlowLog(connID: number, address: string, limit: number): $CancellablePromise<(model$0.SlowLogEntry | null)[]> {
     return $Call.ByID(1637452301, connID, address, limit).then(($result: any) => {
-        return $$createType21($result);
+        return $$createType25($result);
     });
 }
 
@@ -170,30 +207,34 @@ export function SlowLog(connID: number, address: string, limit: number): $Cancel
  */
 export function Trim(connID: number, input: $models.TrimInput): $CancellablePromise<model$0.TrimResult | null> {
     return $Call.ByID(2317148112, connID, input).then(($result: any) => {
-        return $$createType10($result);
+        return $$createType14($result);
     });
 }
 
 // Private type creation functions
 const $$createType0 = model$0.AckResult.createFrom;
 const $$createType1 = $Create.Nullable($$createType0);
-const $$createType2 = model$0.StreamAddResult.createFrom;
-const $$createType3 = $Create.Nullable($$createType2);
-const $$createType4 = model$0.ClaimResult.createFrom;
-const $$createType5 = $Create.Nullable($$createType4);
-const $$createType6 = model$0.ClientConnection.createFrom;
+const $$createType2 = $Create.Array($Create.Any);
+const $$createType3 = model$0.AclUser.createFrom;
+const $$createType4 = $Create.Nullable($$createType3);
+const $$createType5 = $Create.Array($$createType4);
+const $$createType6 = model$0.StreamAddResult.createFrom;
 const $$createType7 = $Create.Nullable($$createType6);
-const $$createType8 = $Create.Array($$createType7);
-const $$createType9 = model$0.TrimResult.createFrom;
-const $$createType10 = $Create.Nullable($$createType9);
-const $$createType11 = model$0.GroupConsumer.createFrom;
-const $$createType12 = $Create.Nullable($$createType11);
-const $$createType13 = $Create.Array($$createType12);
-const $$createType14 = model$0.PendingEntry.createFrom;
-const $$createType15 = $Create.Nullable($$createType14);
-const $$createType16 = $Create.Array($$createType15);
-const $$createType17 = model$0.PendingSummary.createFrom;
-const $$createType18 = $Create.Nullable($$createType17);
-const $$createType19 = model$0.SlowLogEntry.createFrom;
-const $$createType20 = $Create.Nullable($$createType19);
-const $$createType21 = $Create.Array($$createType20);
+const $$createType8 = model$0.ClaimResult.createFrom;
+const $$createType9 = $Create.Nullable($$createType8);
+const $$createType10 = model$0.ClientConnection.createFrom;
+const $$createType11 = $Create.Nullable($$createType10);
+const $$createType12 = $Create.Array($$createType11);
+const $$createType13 = model$0.TrimResult.createFrom;
+const $$createType14 = $Create.Nullable($$createType13);
+const $$createType15 = model$0.GroupConsumer.createFrom;
+const $$createType16 = $Create.Nullable($$createType15);
+const $$createType17 = $Create.Array($$createType16);
+const $$createType18 = model$0.PendingEntry.createFrom;
+const $$createType19 = $Create.Nullable($$createType18);
+const $$createType20 = $Create.Array($$createType19);
+const $$createType21 = model$0.PendingSummary.createFrom;
+const $$createType22 = $Create.Nullable($$createType21);
+const $$createType23 = model$0.SlowLogEntry.createFrom;
+const $$createType24 = $Create.Nullable($$createType23);
+const $$createType25 = $Create.Array($$createType24);

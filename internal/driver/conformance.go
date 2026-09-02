@@ -46,6 +46,7 @@ func backings() []capabilityBacking {
 	writePerm := func(c Conn) bool { _, ok := c.(WritePermissionAdmin); return ok }
 	access := func(c Conn) bool { _, ok := c.(AccessAdmin); return ok }
 	accessDirectory := func(c Conn) bool { _, ok := c.(AccessDirectory); return ok }
+	aclUsers := func(c Conn) bool { _, ok := c.(AclUserAdmin); return ok }
 	namespaces := func(c Conn) bool { _, ok := c.(NamespaceAdmin); return ok }
 	namespaceLimits := func(c Conn) bool { _, ok := c.(NamespaceLimits); return ok }
 	identities := func(c Conn) bool { _, ok := c.(IdentityAdmin); return ok }
@@ -117,6 +118,7 @@ func backings() []capabilityBacking {
 		{model.CapNodeWritePerm, "WritePermissionAdmin", writePerm},
 		{model.CapAccessControl, "AccessAdmin", access},
 		{model.CapAccessDirectory, "AccessDirectory", accessDirectory},
+		{model.CapAclUsers, "AclUserAdmin", aclUsers},
 		{model.CapNamespaceList, "NamespaceAdmin", namespaces},
 		{model.CapNamespaceAdmin, "NamespaceAdmin", namespaces},
 		{model.CapNamespaceLimits, "NamespaceLimits", namespaceLimits},

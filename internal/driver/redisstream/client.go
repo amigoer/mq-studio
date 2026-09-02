@@ -1,6 +1,7 @@
 package redisstream
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"net"
@@ -245,11 +246,11 @@ func connectionName(profile string) string {
 func universalOptions(config clientConfig) *redis.UniversalOptions {
 	options := &redis.UniversalOptions{
 		Addrs:       config.Addrs,
-		ClientName:  config.ClientName,
 		Username:    config.Username,
 		Password:    config.Password,
 		DialTimeout: config.DialTimeout,
 		TLSConfig:   tlsConfigFor(config),
+		OnConnect:   setClientName(config.ClientName),
 	}
 
 	switch config.Deployment {
@@ -269,6 +270,31 @@ func universalOptions(config clientConfig) *redis.UniversalOptions {
 		options.DB = config.DB
 	}
 	return options
+}
+
+/*
+ * setClientName labels the connection, and never fails it.
+ *
+ * The name is what makes CLIENT LIST and the slow log readable - an operator
+ * should be able to tell this app apart from the service they are debugging -
+ * but it is a nicety, and the ClientName option makes it a precondition:
+ * go-redis issues CLIENT SETNAME during connection setup and a failure there
+ * takes the whole connection down.
+ *
+ * That is not hypothetical. CLIENT SETNAME is in @connection, so a user
+ * granted only "-@all +@read" - a perfectly reasonable read-only account -
+ * cannot run it, and the app was unable to connect as one at all. Doing it
+ * here and ignoring the refusal means a restricted account works, and pays for
+ * it with an unnamed row on the clients page.
+ */
+func setClientName(name string) func(context.Context, *redis.Conn) error {
+	if name == "" {
+		return nil
+	}
+	return func(ctx context.Context, conn *redis.Conn) error {
+		_ = conn.ClientSetName(ctx, name).Err()
+		return nil
+	}
 }
 
 // tlsConfigFor is nil unless the profile asked for TLS, which leaves the dial

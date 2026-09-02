@@ -11,6 +11,7 @@
 import { MessageService, RedisStreamService } from "@bindings/bridge";
 import type {
   AckResult,
+  AclUser,
   ClaimResult,
   ClientConnection,
   GroupConsumer,
@@ -320,3 +321,50 @@ export const closeClient = (connID: number, id: string): Promise<void> =>
 /** Disconnects every connection one identity holds. */
 export const closeUserClients = (connID: number, username: string): Promise<void> =>
   RedisStreamService.CloseUserClients(connID, username);
+
+/** The principals the server authenticates. */
+export const aclUsers = (connID: number): Promise<AclUser[]> =>
+  RedisStreamService.AclUsers(connID).then(present);
+
+/** The command groups rules are written in terms of, as the server lists them. */
+export const aclCategories = (connID: number): Promise<string[]> =>
+  RedisStreamService.AclCategories(connID).then(present);
+
+export interface AclUserDraft {
+  name: string;
+  enabled: boolean;
+  /** A new password. Empty keeps whatever is stored. */
+  password?: string;
+  /** Leaves a user that cannot authenticate at all. */
+  clearPasswords?: boolean;
+  /** Lets the user authenticate with anything - the opposite of the above. */
+  noPassword?: boolean;
+  keyPatterns: string[];
+  channelPatterns: string[];
+  commandRules: string[];
+}
+
+/**
+ * Creates or replaces a user.
+ *
+ * Replaces, not merges: the server's SETUSER is additive, so an edit that
+ * removed a key pattern would leave it in place and the form would be lying
+ * about what it saved. The driver resets the user and re-applies the existing
+ * password hashes, so an edit that was not about the password does not lock an
+ * application out.
+ */
+export const saveAclUser = (connID: number, draft: AclUserDraft): Promise<void> =>
+  RedisStreamService.SaveAclUser(connID, {
+    name: draft.name,
+    enabled: draft.enabled,
+    password: draft.password ?? "",
+    clearPasswords: draft.clearPasswords ?? false,
+    noPassword: draft.noPassword ?? false,
+    keyPatterns: draft.keyPatterns,
+    channelPatterns: draft.channelPatterns,
+    commandRules: draft.commandRules,
+  });
+
+/** Deletes a user. Redis closes whatever was authenticated as it. */
+export const removeAclUser = (connID: number, name: string): Promise<void> =>
+  RedisStreamService.RemoveAclUser(connID, name);

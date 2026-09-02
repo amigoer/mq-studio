@@ -611,7 +611,8 @@
         "producer": "生产者",
         "cluster": "节点",
         "alerts": "告警",
-        "clients": "客户端"
+        "clients": "客户端",
+        "acl": "ACL"
       },
       "mqtt": {
         "overview": "总览",
@@ -1134,7 +1135,8 @@
       "edit": "编辑",
       "moreOptions": "还有 {{count}} 项，继续输入以缩小范围",
       "apply": "应用",
-      "create": "创建"
+      "create": "创建",
+      "save": "保存"
     },
     "notDesigned": {
       "title": "设计稿待补",
@@ -1635,6 +1637,50 @@
           "prefixEmpty": "空前缀会匹配该类型的所有资源",
           "nameColon": "用户名不能包含冒号",
           "passwordRequired": "请填写密码"
+        }
+      },
+      "redis": {
+        "title": "ACL 用户",
+        "subtitle": "Redis 把命令、键和频道的权限全部挂在用户上",
+        "search": "搜索用户…",
+        "newUser": "新建用户",
+        "none": "服务端没有报告任何用户——这不应该发生，它总是有一个 default。",
+        "noMatches": "没有匹配搜索条件的用户。",
+        "auth": "认证方式",
+        "keys": "键模式",
+        "channels": "频道模式",
+        "commands": "命令规则",
+        "allKeys": "全部键",
+        "selectors": "+{{count}} 个 selector",
+        "rules": "服务端原样给出的规则",
+        "anonymous": "default 用户处于开启状态且接受任意密码：这台服务器无需凭据即可访问。",
+        "saved": "已保存 {{name}}",
+        "deleteTitle": "删除 {{name}}？",
+        "deleteHint": "Redis 会主动断开以该用户认证的连接，因此正在使用它的应用会立刻失效，而不是等到下次重连。",
+        "deleted": "已删除 {{name}}",
+        "deleteFailed": "删除用户失败",
+        "mode": {
+          "password": "密码",
+          "any": "任意密码",
+          "none": "无法登录"
+        },
+        "form": {
+          "editTitle": "编辑 {{name}}",
+          "state": "启用",
+          "stateHint": "被禁用的用户保留全部规则但无法认证。这是暂停一个应用而不是删除它的方式。",
+          "keep": "保持不变",
+          "setPassword": "设置密码",
+          "keepHint": "保留已存的密码。保存会替换用户的其余部分，驱动会在之后把原有的密码哈希放回去。",
+          "setHint": "用这个密码替换掉已存的全部密码。",
+          "anyHint": "该用户用任意密码、甚至不带密码都能认证。服务器就是这样被无意间敞开的。",
+          "noneHint": "清除全部密码，该用户将完全无法登录。这和“接受任意密码”是相反的结果。",
+          "nameRequired": "请填写用户名。",
+          "nameSpaces": "用户名不能包含空格：规则语言以空白分隔，带空格会被当成两个参数。",
+          "passwordRequired": "请设置密码，或选择该用户在没有密码时如何认证。",
+          "keysHint": "使用 Redis 自己的语法：~前缀:* 表示模式，~* 表示全部键，%R~ 和 %W~ 可以分开读写。",
+          "commandsHint": "规则从左到右生效，所以先全部拒绝：-@all +@read。",
+          "categories": "这台服务器上的分类包括 {{categories}}。",
+          "replaces": "保存是替换而不是追加，表单里是什么，服务端之后就是什么。"
         }
       }
     },

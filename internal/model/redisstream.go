@@ -262,3 +262,70 @@ type SlowLogEntry struct {
 	ClientAddress string `json:"clientAddress"`
 	ClientName    string `json:"clientName"`
 }
+
+// AclUser is one principal the server authenticates, as Redis states it.
+//
+// A third access model beside AccessAdmin's credential pairs and
+// AccessDirectory's principals-and-rules. Redis puts everything on the user:
+// what it may run, which keys it may touch, which channels it may subscribe
+// to, and - since 7.0 - selectors granting a different set for a subset of
+// keys. None of that fits a permission attached to a subject, and a page that
+// showed only the command rules would hide the half that actually contains
+// the data.
+type AclUser struct {
+	Name string `json:"name"`
+
+	// Enabled is the on/off flag. A disabled user still exists with all its
+	// rules, which is the difference between suspending an application and
+	// removing it.
+	Enabled bool `json:"enabled"`
+
+	// NoPassword means the user authenticates with any password, or none. It
+	// is not the same as having no passwords set: that user cannot log in at
+	// all, and confusing the two is how a server is left open.
+	NoPassword bool `json:"noPassword"`
+	// PasswordCount is how many hashes are set. The hashes themselves never
+	// leave the driver.
+	PasswordCount int `json:"passwordCount"`
+
+	// KeyPatterns, ChannelPatterns and CommandRules are Redis's own words,
+	// passed through rather than interpreted: the rule language has more forms
+	// than a UI can model, and rewriting one is how a permission changes
+	// meaning on its way to the screen.
+	KeyPatterns     []string `json:"keyPatterns"`
+	ChannelPatterns []string `json:"channelPatterns"`
+	CommandRules    string   `json:"commandRules"`
+
+	// Selectors are the parenthesised groups a user may carry. They are shown
+	// verbatim because nothing else here can express them.
+	Selectors []string `json:"selectors"`
+
+	// Rule is the whole line as the server stated it. It is what an operator
+	// checks against, and the only form guaranteed to be complete.
+	Rule string `json:"rule"`
+}
+
+// AclUserSpec creates or replaces a user.
+//
+// Replaces, not merges: SETUSER is additive by default, so an edit that
+// removed a key pattern would leave it in place and the form would be lying
+// about what it saved. The driver resets the user and applies the whole spec,
+// which makes what is on screen what is on the server.
+type AclUserSpec struct {
+	Name    string `json:"name"`
+	Enabled bool   `json:"enabled"`
+
+	// Password is a new password. Empty keeps whatever is stored, which the
+	// driver arranges by re-applying the existing hashes after the reset.
+	Password string `json:"password"`
+	// ClearPasswords removes every password, leaving a user that cannot
+	// authenticate at all.
+	ClearPasswords bool `json:"clearPasswords"`
+	// NoPassword lets the user authenticate with anything. Deliberately
+	// separate from having no password, which is the opposite outcome.
+	NoPassword bool `json:"noPassword"`
+
+	KeyPatterns     []string `json:"keyPatterns"`
+	ChannelPatterns []string `json:"channelPatterns"`
+	CommandRules    []string `json:"commandRules"`
+}

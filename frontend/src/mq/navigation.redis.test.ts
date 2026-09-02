@@ -39,6 +39,7 @@ const REDIS_CAPABILITIES: Capability[] = [
   Capability.CapSlowLog,
   Capability.CapClientInspect,
   Capability.CapClientClose,
+  Capability.CapAclUsers,
 ];
 
 function state(
@@ -73,6 +74,7 @@ describe("the sidebar a Redis Stream connection draws", () => {
       "cluster",
       "clients",
       "alerts",
+      "acl",
     ]);
   });
 
@@ -157,5 +159,21 @@ describe("the Redis pending entries gate", () => {
     expect(REDIS_CAPABILITIES).not.toContain(Capability.CapDeadLetterTopology);
     expect(nav.visible("dlq")).toBe(true);
     expect(nav.disabled("dlq")).toBe(false);
+  });
+});
+
+/*
+ * Access control is the case the `requires` list exists for, and Redis is the
+ * fourth family to answer the page a different way. Gating it on any of the
+ * other three would hide a finished page.
+ */
+describe("the Redis ACL page's gate", () => {
+  it("is reachable without any other family's access capability", () => {
+    const nav = navAvailability(state(REDIS_CAPABILITIES), true);
+    expect(REDIS_CAPABILITIES).not.toContain(Capability.CapAccessControl);
+    expect(REDIS_CAPABILITIES).not.toContain(Capability.CapIdentityList);
+    expect(REDIS_CAPABILITIES).not.toContain(Capability.CapAccessDirectory);
+    expect(nav.visible("acl")).toBe(true);
+    expect(nav.disabled("acl")).toBe(false);
   });
 });

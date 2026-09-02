@@ -611,7 +611,8 @@
         "producer": "Producer",
         "cluster": "Nodes",
         "alerts": "Alerts",
-        "clients": "Clients"
+        "clients": "Clients",
+        "acl": "ACL"
       },
       "mqtt": {
         "overview": "Overview",
@@ -1134,7 +1135,8 @@
       "edit": "Edit",
       "moreOptions": "{{count}} more — keep typing to narrow it down",
       "apply": "Apply",
-      "create": "Create"
+      "create": "Create",
+      "save": "Save"
     },
     "notDesigned": {
       "title": "Not yet designed",
@@ -1635,6 +1637,50 @@
           "prefixEmpty": "A prefix of nothing matches every resource",
           "nameColon": "A user name cannot contain a colon",
           "passwordRequired": "Enter a password"
+        }
+      },
+      "redis": {
+        "title": "ACL users",
+        "subtitle": "Redis puts the commands, the keys and the channels all on the user",
+        "search": "Search users…",
+        "newUser": "New user",
+        "none": "The server reports no users, which cannot be right - it always has a default.",
+        "noMatches": "No user matches the search.",
+        "auth": "auth",
+        "keys": "key patterns",
+        "channels": "channel patterns",
+        "commands": "command rules",
+        "allKeys": "every key",
+        "selectors": "+{{count}} selector",
+        "rules": "The rules as the server states them",
+        "anonymous": "The default user is on and accepts any password: this server is reachable without credentials.",
+        "saved": "Saved {{name}}",
+        "deleteTitle": "Delete {{name}}?",
+        "deleteHint": "Redis closes the connections authenticated as this user itself, so anything using it stops working at once rather than at its next reconnect.",
+        "deleted": "Deleted {{name}}",
+        "deleteFailed": "Could not delete the user",
+        "mode": {
+          "password": "password",
+          "any": "any password",
+          "none": "cannot log in"
+        },
+        "form": {
+          "editTitle": "Edit {{name}}",
+          "state": "Enabled",
+          "stateHint": "A disabled user keeps all its rules and cannot authenticate. That is how an application is suspended rather than removed.",
+          "keep": "Keep",
+          "setPassword": "Set password",
+          "keepHint": "The stored password is kept. Saving replaces the rest of the user, and the driver puts the existing hashes back afterwards.",
+          "setHint": "Replaces every stored password with this one.",
+          "anyHint": "The user authenticates with any password, or none at all. This is how a server is left open by accident.",
+          "noneHint": "Every password is removed and the user cannot log in at all. Not the same as accepting any password.",
+          "nameRequired": "Enter a user name.",
+          "nameSpaces": "A user name cannot contain a space: the rule language is whitespace separated, and it would be read as two arguments.",
+          "passwordRequired": "Set a password, or choose how the user authenticates without one.",
+          "keysHint": "Redis's own syntax: ~prefix:* for a pattern, ~* for every key, %R~ and %W~ to split reads from writes.",
+          "commandsHint": "Applied left to right, so start by denying everything: -@all +@read.",
+          "categories": "Categories on this server include {{categories}}.",
+          "replaces": "Saving replaces the user rather than adding to it, so what is in this form is what the server will have."
         }
       }
     },

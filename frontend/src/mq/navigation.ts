@@ -55,10 +55,17 @@ const requires: Record<string, Capability | Capability[]> = {
   // users whose tags and per-vhost permissions are two systems on one name;
   // Kafka has rules attached to a principal it may not even store. None can
   // answer the page the others' way, and all three answer it.
+  // Four, because four families answer this page by four different means.
+  // RocketMQ has a credential pair carrying its own permissions; RabbitMQ has
+  // users whose tags and per-vhost permissions are two systems on one name;
+  // Kafka has rules attached to a principal it may not even store; Redis puts
+  // the commands, the key patterns and the channel patterns all on the user.
+  // None can answer the page the others' way, and all four answer it.
   acl: [
     Capability.CapAccessControl,
     Capability.CapIdentityList,
     Capability.CapAccessDirectory,
+    Capability.CapAclUsers,
   ],
   // Alerts needs no particular capability, only a connection to draw metrics
   // from, which the connected check below already covers.

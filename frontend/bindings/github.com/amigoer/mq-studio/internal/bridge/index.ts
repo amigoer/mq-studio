@@ -40,6 +40,7 @@ export {
     AccessConfigInput,
     AccessRuleInput,
     AccessView,
+    AclUserInput,
     AutoClaimInput,
     BindingInput,
     ClaimInput,

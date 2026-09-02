@@ -180,6 +180,83 @@ export class AccessView {
 }
 
 /**
+ * AclUserInput is a user as the form collects it.
+ */
+export class AclUserInput {
+    "name": string;
+    "enabled": boolean;
+
+    /**
+     * Password is a new password. Empty keeps whatever is stored.
+     */
+    "password": string;
+
+    /**
+     * ClearPasswords leaves a user that cannot authenticate at all, which is
+     * the opposite of NoPassword rather than a milder form of it.
+     */
+    "clearPasswords": boolean;
+
+    /**
+     * NoPassword lets the user authenticate with anything.
+     */
+    "noPassword": boolean;
+    "keyPatterns": string[];
+    "channelPatterns": string[];
+    "commandRules": string[];
+
+    /** Creates a new AclUserInput instance. */
+    constructor($$source: Partial<AclUserInput> = {}) {
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("enabled" in $$source)) {
+            this["enabled"] = false;
+        }
+        if (!("password" in $$source)) {
+            this["password"] = "";
+        }
+        if (!("clearPasswords" in $$source)) {
+            this["clearPasswords"] = false;
+        }
+        if (!("noPassword" in $$source)) {
+            this["noPassword"] = false;
+        }
+        if (!("keyPatterns" in $$source)) {
+            this["keyPatterns"] = [];
+        }
+        if (!("channelPatterns" in $$source)) {
+            this["channelPatterns"] = [];
+        }
+        if (!("commandRules" in $$source)) {
+            this["commandRules"] = [];
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new AclUserInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): AclUserInput {
+        const $$createField5_0 = $$createType0;
+        const $$createField6_0 = $$createType0;
+        const $$createField7_0 = $$createType0;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("keyPatterns" in $$parsedSource) {
+            $$parsedSource["keyPatterns"] = $$createField5_0($$parsedSource["keyPatterns"]);
+        }
+        if ("channelPatterns" in $$parsedSource) {
+            $$parsedSource["channelPatterns"] = $$createField6_0($$parsedSource["channelPatterns"]);
+        }
+        if ("commandRules" in $$parsedSource) {
+            $$parsedSource["commandRules"] = $$createField7_0($$parsedSource["commandRules"]);
+        }
+        return new AclUserInput($$parsedSource as Partial<AclUserInput>);
+    }
+}
+
+/**
  * AutoClaimInput moves whatever has been idle too long, without naming ids.
  */
 export class AutoClaimInput {

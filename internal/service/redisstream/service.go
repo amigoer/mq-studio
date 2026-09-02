@@ -266,3 +266,53 @@ func (s *Service) CloseUserClients(ctx context.Context, connID int, username str
 	defer cancel()
 	return api.CloseUserConnections(ctx, username, "")
 }
+
+// AclUsers lists the principals the server authenticates.
+func (s *Service) AclUsers(ctx context.Context, connID int) ([]*model.AclUser, error) {
+	api, err := port[driver.AclUserAdmin](s, connID, model.CapAclUsers)
+	if err != nil {
+		if notConnected(err) {
+			return []*model.AclUser{}, nil
+		}
+		return nil, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.ListAclUsers(ctx)
+}
+
+// AclCategories are the command groups rules are written in terms of.
+func (s *Service) AclCategories(ctx context.Context, connID int) ([]string, error) {
+	api, err := port[driver.AclUserAdmin](s, connID, model.CapAclUsers)
+	if err != nil {
+		if notConnected(err) {
+			return []string{}, nil
+		}
+		return nil, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.AclCategories(ctx)
+}
+
+// SaveAclUser creates or replaces a user.
+func (s *Service) SaveAclUser(ctx context.Context, connID int, spec model.AclUserSpec) error {
+	api, err := port[driver.AclUserAdmin](s, connID, model.CapAclUsers)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.SaveAclUser(ctx, spec)
+}
+
+// RemoveAclUser deletes a user and disconnects whatever was using it.
+func (s *Service) RemoveAclUser(ctx context.Context, connID int, name string) error {
+	api, err := port[driver.AclUserAdmin](s, connID, model.CapAclUsers)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.RemoveAclUser(ctx, name)
+}
