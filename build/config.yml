@@ -14,7 +14,7 @@ info:
   description: "Local-first desktop client for message queues"
   copyright: "(c) 2026, amigoer"
   comments: "Local-first desktop client for message queues"
-  version: "0.0.5"
+  version: "0.0.6"
 
 # Dev mode configuration
 dev_mode:

@@ -9,6 +9,19 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.0.6] - 2026-09-03
+
+NATS is the seventh driver, and the first family here whose answers come from
+four separate places — the protocol itself, JetStream, the server's HTTP
+monitoring endpoint, and the system account. All four are probed when a
+connection opens, and every page says which of them it is reading, or why it
+is empty.
+
+Alongside it, three credential bugs that only a real broker could show: a
+connection was dialled with its stored authentication mechanism reset to none,
+RocketMQ's global access key was stamped onto connections of other families,
+and RocketMQ's own key pair was never signed with at all.
+
 ### Added
 
 - NATS is the seventh driver, over the official Go client and its jetstream
@@ -74,6 +87,15 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   with a mechanism its driver does not implement, using a different broker's
   credentials — and only for the users who had configured that pair.
 
+- A failed connection test says why. The reason was computed and translated
+  and then written into a `title` attribute, which the macOS webview draws no
+  tooltip for, so the one button whose whole job is to produce it reported
+  only that it had failed. It is text beside the button now. Two fields side
+  by side also line up whatever their hints do — a hint that wrapped used to
+  push its own input down and leave its neighbour's at the top — and the NATS
+  hints, which were three times the length every other family uses, are one
+  clause each.
+
 - A RocketMQ connection's AccessKey and SecretKey are now actually sent. They
   were stored, decrypted and handed to the driver, and the client library then
   read neither - it had no signing code at all - so every admin call arrived
@@ -83,6 +105,14 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   in, made a promise nothing kept. Requests now carry the access key and an
   HMAC-SHA1 signature over the sorted header fields and the body, which is what
   the broker rebuilds and compares.
+
+- The update dialog's exits point at the site rather than at GitHub Releases.
+  The check-failed, install-failed and cannot-replace-itself buttons all
+  opened the releases page, which is a dead end for anyone who cannot reach
+  github.com. They open the site's download section now, and the dialog's
+  standing link opens the changelog there, both following the language the app
+  is running in. The check and the download themselves still go to GitHub, so
+  this is only where the buttons land. (#62)
 
 - Every launch now checks for a release, five seconds after the window comes
   up, instead of waiting out whatever was left of the twenty-four hour
