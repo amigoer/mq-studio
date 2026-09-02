@@ -23,6 +23,13 @@ func (s *Service) resolveACLCredentials(connection *model.ConnectionProfile) (bo
 	if connection.ACLEnabled() {
 		return true, connection.Secret(model.SecretAccessKey), connection.Secret(model.SecretSecretKey)
 	}
+	// The global pair is RocketMQ's, and it fills in a profile that named no
+	// mechanism of its own. A profile that named one keeps it: stamping ACL
+	// over a NATS or Kafka connection would dial it with a mechanism its
+	// driver does not implement, using credentials for a different broker.
+	if mechanism := connection.Auth.Mechanism; mechanism != "" && mechanism != model.AuthNone {
+		return false, "", ""
+	}
 	if s.settings != nil {
 		accessKey, secretKey := s.settings.GetGlobalACLCredentials()
 		if strings.TrimSpace(accessKey) != "" && strings.TrimSpace(secretKey) != "" {
@@ -52,6 +59,24 @@ func (s *Service) resolveForDial(connection *model.ConnectionProfile) model.Conn
 	resolved.TimeoutSec = int(s.getConnectTimeout(connection) / time.Second)
 	enableACL, accessKey, secretKey := s.resolveACLCredentials(connection)
 	resolved.SetACL(enableACL, accessKey, secretKey)
+
+	/*
+	 * SetACL owns the mechanism, which is right for a family whose only one is
+	 * ACL: off means anonymous. A family with a mechanism of its own has to
+	 * keep the one it was stored with, or it is dialled as an anonymous
+	 * connection whatever the form collected.
+	 *
+	 * The same correction applyCredentials makes on the way in, which this
+	 * path was missing - so a profile was stored correctly and then dialled
+	 * with its mechanism reset. It went unnoticed because the families that
+	 * had one until now read their credentials out of the secret map and
+	 * ignore the mechanism entirely; NATS is the first that reads it, because
+	 * six of its mechanisms are different kinds of credential rather than
+	 * different names for a password.
+	 */
+	if !enableACL && connection.Auth.Mechanism != "" {
+		resolved.Auth.Mechanism = connection.Auth.Mechanism
+	}
 	return *resolved
 }
 
