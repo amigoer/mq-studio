@@ -2,7 +2,12 @@ package redisstream
 
 import (
 	"context"
+	"strings"
+	"sync"
 	"testing"
+
+	"github.com/alicebob/miniredis/v2"
+	"github.com/alicebob/miniredis/v2/server"
 
 	"github.com/amigoer/mq-studio/internal/model"
 )
@@ -156,5 +161,71 @@ func TestDirectoryConfigIsEmpty(t *testing.T) {
 	}
 	if len(settings) != 0 {
 		t.Errorf("directory config = %v, want empty", settings)
+	}
+}
+
+// fakeSnapshots answers BGSAVE with a fixed reply and records the arguments it
+// was called with. miniredis has no BGSAVE of its own, so this is the only
+// place the snapshot path can be driven without a real server.
+func fakeSnapshots(t *testing.T, srv *miniredis.Miniredis, reply func(*server.Peer)) *[]string {
+	t.Helper()
+	var (
+		mu   sync.Mutex
+		args []string
+	)
+	err := srv.Server().Register("BGSAVE", func(peer *server.Peer, _ string, cmdArgs []string) {
+		mu.Lock()
+		args = append(args, cmdArgs...)
+		mu.Unlock()
+		reply(peer)
+	})
+	if err != nil {
+		t.Fatalf("register BGSAVE: %v", err)
+	}
+	return &args
+}
+
+/*
+ * A server takes one snapshot at a time and, with the default save points on,
+ * starts them by itself - so a click can land on a server that is already
+ * writing the dataset down. That is the outcome the caller asked for, not a
+ * failure, and reporting it as one put Redis's raw refusal on screen.
+ *
+ * The e2e broker proved the race is real rather than theoretical: its own
+ * "100 changes in 300 seconds" save fired between the live suite's writes and
+ * its BGSAVE.
+ */
+func TestRunMaintenanceAcceptsASnapshotAlreadyUnderway(t *testing.T) {
+	srv := fakeServer(t)
+	args := fakeSnapshots(t, srv, func(peer *server.Peer) {
+		peer.WriteError("ERR Background save already in progress")
+	})
+	conn := fakeConn(t, srv, nil, nil)
+
+	if err := conn.RunMaintenance(context.Background(), "", model.TaskSnapshot); err != nil {
+		t.Fatalf("snapshot: %v", err)
+	}
+	// SCHEDULE covers the other half of the race: a plain BGSAVE refuses
+	// outright while an append-log rewrite holds the child slot.
+	if len(*args) != 1 || !strings.EqualFold((*args)[0], "SCHEDULE") {
+		t.Errorf("BGSAVE args = %v, want [SCHEDULE]", *args)
+	}
+}
+
+// Only that one refusal is swallowed. Anything else is a server that could not
+// take a snapshot, which the node board has to say out loud.
+func TestRunMaintenanceReportsASnapshotRefusedForAnyOtherReason(t *testing.T) {
+	srv := fakeServer(t)
+	fakeSnapshots(t, srv, func(peer *server.Peer) {
+		peer.WriteError("ERR Can't BGSAVE while AOF log rewriting is in progress")
+	})
+	conn := fakeConn(t, srv, nil, nil)
+
+	err := conn.RunMaintenance(context.Background(), "", model.TaskSnapshot)
+	if err == nil {
+		t.Fatal("a refused snapshot was reported as a success")
+	}
+	if !strings.Contains(err.Error(), "AOF log rewriting") {
+		t.Errorf("error = %v, want the server's reason", err)
 	}
 }

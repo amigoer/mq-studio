@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/redis/go-redis/v9"
+
 	"github.com/amigoer/mq-studio/internal/model"
 )
 
@@ -50,6 +52,11 @@ func (c *Conn) DirectoryConfig(context.Context) (map[string]string, error) {
  * child process, so a success here means it started rather than finished; the
  * node page reads the last status back out of INFO, which is where the outcome
  * actually shows up.
+ *
+ * A server runs one such child at a time, and with the default save points on
+ * it starts them by itself, so either task can arrive while the other kind of
+ * child is running. Both spellings here answer that by queueing rather than
+ * refusing, because "housekeeping is under way" is what the caller asked for.
  */
 func (c *Conn) RunMaintenance(ctx context.Context, address string, task model.MaintenanceTask) error {
 	client, release := c.clientFor(address)
@@ -57,7 +64,12 @@ func (c *Conn) RunMaintenance(ctx context.Context, address string, task model.Ma
 
 	switch task {
 	case model.TaskSnapshot:
-		if err := client.BgSave(ctx).Err(); err != nil {
+		// SCHEDULE, because a plain BGSAVE refuses outright while an
+		// append-log rewrite holds the child slot and names this as the fix.
+		// It does not cover the other half: a snapshot already in flight is
+		// still an error, and that one is not a failure either - Redis is
+		// writing the dataset down at that moment, which is what was asked.
+		if err := client.Do(ctx, "BGSAVE", "SCHEDULE").Err(); err != nil && !snapshotUnderway(err) {
 			return fmt.Errorf("start a snapshot on %q: %w", address, err)
 		}
 	case model.TaskRewriteAppendLog:
@@ -71,6 +83,13 @@ func (c *Conn) RunMaintenance(ctx context.Context, address string, task model.Ma
 		return fmt.Errorf("redis has no %q maintenance task", task)
 	}
 	return nil
+}
+
+// snapshotUnderway reports whether Redis refused a snapshot because it is
+// already taking one. There is no code to match on - the reply is a plain
+// error string.
+func snapshotUnderway(err error) bool {
+	return redis.HasErrorPrefix(err, "Background save already in progress")
 }
 
 /*
