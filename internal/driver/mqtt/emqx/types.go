@@ -111,3 +111,16 @@ type Subscription struct {
 	RetainHandling    int  `json:"rh"`
 	Durable           bool `json:"durable"`
 }
+
+// RetainedMessage is one topic's stored last-known value.
+//
+// The payload is deliberately not read: the listing is a topic list, and a
+// broker holding a megabyte under each of ten thousand topics would serialise
+// all of it to answer one page.
+type RetainedMessage struct {
+	Topic      string `json:"topic"`
+	QoS        int    `json:"qos"`
+	MessageID  string `json:"msgid"`
+	FromClient string `json:"from_clientid"`
+	PublishAt  string `json:"publish_at"`
+}

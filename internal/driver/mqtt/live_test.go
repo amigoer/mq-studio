@@ -591,3 +591,68 @@ func awaitBatch(t *testing.T, conn *Conn, id string, want int) *model.LiveBatch 
 	t.Fatalf("only %d of %d messages arrived", len(collected.Messages), want)
 	return nil
 }
+
+/*
+ * Topics on a broker that will not let anything subscribe to "#".
+ *
+ * EMQX's default authorisation denies a subscription to exactly that, so the
+ * protocol-level discovery every other broker uses is refused outright and the
+ * page failed rather than coming back short. The management API answers it
+ * instead, which is the tiering doing its job - and it also has to exclude the
+ * broker's own $SYS tree, because the protocol-level path excludes it by the
+ * specification's wildcard rule and the same page must not mean two different
+ * things depending on who answered.
+ */
+func TestLiveEMQXListsTopicsThroughTheManagementApi(t *testing.T) {
+	requireEMQX(t)
+
+	conn := liveConn(t, managedLiveProfile(protocol5))
+	topic := liveTopic(t, "retained")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	if _, err := conn.Publish(ctx, PublishRequest{
+		Topic:   topic,
+		Payload: "online",
+		QoS:     1,
+		Retain:  true,
+	}); err != nil {
+		t.Fatalf("publish: %v", err)
+	}
+	t.Cleanup(func() {
+		clearCtx, clearCancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer clearCancel()
+		_, _ = conn.Publish(clearCtx, PublishRequest{Topic: topic, QoS: 1, Retain: true})
+	})
+
+	deadline := time.Now().Add(15 * time.Second)
+	for {
+		topics, err := conn.ListDestinations(ctx, model.DestinationFilter{})
+		if err != nil {
+			t.Fatalf("list destinations: %v", err)
+		}
+
+		var found bool
+		for _, destination := range topics {
+			if strings.HasPrefix(destination.Ref.Name, "$SYS/") {
+				t.Fatalf("the broker's own $SYS tree reached the topic list: %s",
+					destination.Ref.Name)
+			}
+			if destination.Ref.Name == topic {
+				found = true
+				if destination.Attributes[AttrSource] != sourceManagedList {
+					t.Errorf("source = %q, want %q",
+						destination.Attributes[AttrSource], sourceManagedList)
+				}
+			}
+		}
+		if found {
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("the retained topic never appeared in the listing of %d", len(topics))
+		}
+		time.Sleep(300 * time.Millisecond)
+	}
+}

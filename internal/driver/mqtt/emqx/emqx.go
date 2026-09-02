@@ -141,6 +141,16 @@ func (c *Client) Subscriptions(ctx context.Context, limit int) ([]Subscription, 
 	return getPaged[Subscription](ctx, c, "/subscriptions", limit)
 }
 
+// RetainedMessages is every topic the broker is holding a last-known value
+// for, which is the only list of topics MQTT can produce at all.
+//
+// It answers where subscribing to # does not: EMQX's default authorisation
+// denies a subscription to exactly "#", so the protocol-level discovery this
+// driver falls back to is refused on a stock EMQX.
+func (c *Client) RetainedMessages(ctx context.Context, limit int) ([]RetainedMessage, error) {
+	return getPaged[RetainedMessage](ctx, c, "/mqtt/retainer/messages", limit)
+}
+
 // ClientSubscriptions is one client's filters.
 func (c *Client) ClientSubscriptions(ctx context.Context, clientID string) ([]Subscription, error) {
 	return getList[Subscription](ctx, c, "/clients/"+url.PathEscape(clientID)+"/subscriptions", nil)

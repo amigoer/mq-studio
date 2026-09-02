@@ -30,6 +30,12 @@ const (
 	// match it - which is exactly what keeps $SYS out of the workbench.
 	sysFilter = "$SYS/#"
 
+	// sysPrefix is the reserved tree itself. A leading wildcard does not match
+	// it by the specification's own rule, which is what keeps it out of the
+	// protocol-level topic listing; a management API has no such rule, so that
+	// path has to exclude it by name.
+	sysPrefix = "$SYS/"
+
 	// sysWindow bounds a read. Mosquitto publishes its tree retained, so a
 	// subscriber has every current value within a round trip; this is the
 	// ceiling for a broker that answers more slowly, and the whole cost on one

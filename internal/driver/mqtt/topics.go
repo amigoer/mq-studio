@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -43,10 +44,11 @@ const (
 	AttrSource        = "source"
 	AttrRetainedBytes = "retainedBytes"
 
-	// sourceRetained says where the topic came from. It is the whole caveat of
-	// this listing in one attribute: the topic is here because it holds a
-	// retained value, not because the broker was asked what exists.
-	sourceRetained = "retained"
+	// The two ways a topic reaches this list, and both are the retained set -
+	// the difference is who was asked. A broker with a management API knows
+	// its own retained topics; without one they are collected by subscribing.
+	sourceRetained    = "retained"
+	sourceManagedList = "retained-api"
 )
 
 /*
@@ -71,17 +73,70 @@ const (
  */
 
 // ListDestinations discovers topics from the broker's retained messages.
+//
+// Through the management API where there is one. That is not only the cheaper
+// path: EMQX's default authorisation denies a subscription to exactly "#", so
+// the protocol-level discovery below is refused outright on a stock EMQX and
+// the page would fail rather than come back short.
 func (c *Conn) ListDestinations(
 	ctx context.Context, _ model.DestinationFilter,
 ) ([]*model.Destination, error) {
+	if c.emqx != nil {
+		return c.managedTopics(ctx)
+	}
+
 	retained, err := c.collectRetained(ctx)
+	if err != nil {
+		return nil, fmt.Errorf(
+			"this broker would not let the topic list subscribe to everything: %w", err)
+	}
+
+	destinations := make([]*model.Destination, 0, len(retained))
+	for _, message := range retained {
+		destinations = append(destinations, destinationOf(message))
+	}
+	sort.Slice(destinations, func(i, j int) bool {
+		return destinations[i].Ref.Name < destinations[j].Ref.Name
+	})
+	for i, destination := range destinations {
+		destination.ID = i + 1
+	}
+	return destinations, nil
+}
+
+// managedTopics reads the retained set from the broker's own API.
+func (c *Conn) managedTopics(ctx context.Context) ([]*model.Destination, error) {
+	retained, err := c.emqx.RetainedMessages(ctx, maxDiscovered)
 	if err != nil {
 		return nil, err
 	}
 
 	destinations := make([]*model.Destination, 0, len(retained))
 	for _, message := range retained {
-		destinations = append(destinations, destinationOf(message))
+		// The API returns the broker's own $SYS tree alongside real topics.
+		// It belongs on the overview, not in a list of the topics an
+		// operator's devices publish to - and the protocol-level listing
+		// excludes it by the specification's own wildcard rule, so including
+		// it here would make the same page mean two different things
+		// depending on which broker answered.
+		if strings.HasPrefix(message.Topic, sysPrefix) {
+			continue
+		}
+		destinations = append(destinations, &model.Destination{
+			Ref:         model.DestinationRef{Name: message.Topic},
+			Partitions:  model.UnknownMetric,
+			Subscribers: model.UnknownMetric,
+			Depth:       model.UnknownMetric,
+			RateIn:      model.UnknownMetric,
+			RateOut:     model.UnknownMetric,
+			// When the value was stored, which only the API reports - the
+			// protocol replays a retained message with no indication of age.
+			LastUpdated: message.PublishAt,
+			Attributes: map[string]string{
+				AttrSource: sourceManagedList,
+				AttrQoS:    strconv.Itoa(message.QoS),
+			},
+		})
 	}
 	sort.Slice(destinations, func(i, j int) bool {
 		return destinations[i].Ref.Name < destinations[j].Ref.Name
