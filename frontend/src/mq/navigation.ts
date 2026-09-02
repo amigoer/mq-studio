@@ -29,7 +29,7 @@ const requires: Record<string, Capability | Capability[]> = {
   messages: Capability.CapMessageQuery,
   // A live subscription is not a message query: there is nothing stored to
   // query, so the page needs its own capability rather than borrowing one
-  // that promises history. No other family draws this entry.
+  // that promises history. Only MQTT and NATS draw it.
   subscribe: Capability.CapLiveStream,
   // Three means for four families, because none can answer the page another's
   // way. RocketMQ reads a dead-letter topic per consumer group; RabbitMQ and

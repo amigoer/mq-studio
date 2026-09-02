@@ -1376,10 +1376,10 @@ export function emptyMqttDraft(): MqttDraft {
 /**
  * Board 6e - MQTT.
  *
- * Two credential blocks rather than one, which no other family here has: the
- * broker's username and password authenticate the session, and the management
- * API key authenticates a completely separate HTTP endpoint that the protocol
- * knows nothing about. A connection can have either, both or neither.
+ * Two credential blocks rather than one, as in NATS: the broker's username
+ * and password authenticate the session, and the management API key
+ * authenticates a completely separate HTTP endpoint that the protocol knows
+ * nothing about. A connection can have either, both or neither.
  */
 export function MqttForm({
   value,
