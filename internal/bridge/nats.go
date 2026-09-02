@@ -367,3 +367,28 @@ func (s *NATSService) Health(connID int) (*model.BrokerHealth, error) {
 func (s *NATSService) Usage(connID int) (*natsdriver.AccountUsage, error) {
 	return s.service.Usage(context.Background(), connID)
 }
+
+// Connections lists the sockets open against the cluster.
+//
+// Here rather than on a canonical service because there is none: client
+// inspection has never had one, and MQTT and RabbitMQ each expose their own
+// for the same reason. Adding a shared service for three families to use would
+// be inventing a seam none of them asked for.
+func (s *NATSService) Connections(connID int, account string) ([]*model.ClientConnection, error) {
+	return s.service.Connections(context.Background(), connID, account)
+}
+
+// CloseConnection disconnects one client.
+//
+// The name is the server holding it and its client id, joined - neither half
+// addresses a connection on its own, because a client id counts within one
+// server and two servers in a cluster each have a client 7.
+func (s *NATSService) CloseConnection(connID int, name, reason string) error {
+	return s.service.CloseConnection(context.Background(), connID, name, reason)
+}
+
+// CloseUserConnections closes every connection one identity holds, which is
+// how an application with several instances is actually evicted.
+func (s *NATSService) CloseUserConnections(connID int, user, reason string) error {
+	return s.service.CloseUserConnections(context.Background(), connID, user, reason)
+}

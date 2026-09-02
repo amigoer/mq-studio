@@ -290,3 +290,36 @@ func (s *Service) Usage(ctx context.Context, connID int) (*natsdriver.AccountUsa
 	defer cancel()
 	return conn.Usage(ctx)
 }
+
+// Connections lists the sockets open against the cluster.
+func (s *Service) Connections(ctx context.Context, connID int, account string) ([]*model.ClientConnection, error) {
+	api, err := port[driver.ClientInspector](s, connID, model.CapClientInspect)
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.ListClientConnections(ctx, account)
+}
+
+// CloseConnection disconnects one client.
+func (s *Service) CloseConnection(ctx context.Context, connID int, name, reason string) error {
+	api, err := port[driver.ClientCloser](s, connID, model.CapClientClose)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.CloseClientConnection(ctx, name, reason)
+}
+
+// CloseUserConnections closes every connection one identity holds.
+func (s *Service) CloseUserConnections(ctx context.Context, connID int, user, reason string) error {
+	api, err := port[driver.ClientCloser](s, connID, model.CapClientClose)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.CloseUserConnections(ctx, user, reason)
+}

@@ -43,6 +43,7 @@ const liveState = vi.hoisted(() => ({ current: null as unknown }));
 const clusterState = vi.hoisted(() => ({ current: null as unknown }));
 const configState = vi.hoisted(() => ({ current: null as unknown }));
 const brokerData = vi.hoisted(() => ({ queue: [] as unknown[] }));
+const clientsState = vi.hoisted(() => ({ current: null as unknown }));
 
 vi.mock("@/hooks/nats/useNatsStreams", () => ({
   useNatsStreams: () => streamsState.current,
@@ -66,6 +67,10 @@ vi.mock("@/hooks/nats/useNatsCluster", () => ({
 vi.mock("@/hooks/useBrokerData", () => ({
   useBrokerData: () => brokerData.queue.shift(),
 }));
+vi.mock("@/hooks/nats/useNatsClients", () => ({
+  useNatsClients: () => clientsState.current,
+}));
+
 
 let render: (element: React.ReactElement) => string;
 let StreamsNats: typeof import("./topics/StreamsNats").StreamsNats;
@@ -74,6 +79,7 @@ let MessagesNats: typeof import("./messages/MessagesNats").MessagesNats;
 let NatsWorkbench: typeof import("./nats/NatsWorkbench").NatsWorkbench;
 let ServersNats: typeof import("./cluster/ServersNats").ServersNats;
 let OverviewNats: typeof import("./overview/OverviewNats").OverviewNats;
+let ClientsNats: typeof import("./consumers/ClientsNats").ClientsNats;
 
 beforeAll(async () => {
   const storage = { getItem: () => null, setItem() {}, removeItem() {} };
@@ -86,8 +92,19 @@ beforeAll(async () => {
   });
   vi.stubGlobal("localStorage", storage);
 
-  const [server, streams, consumers, messages, workbench, cluster, overview, ui, i18n, settings] =
-    await Promise.all([
+  const [
+    server,
+    streams,
+    consumers,
+    messages,
+    workbench,
+    cluster,
+    overview,
+    clients,
+    ui,
+    i18n,
+    settings,
+  ] = await Promise.all([
     import("react-dom/server"),
     import("./topics/StreamsNats"),
     import("./consumers/ConsumersNats"),
@@ -95,6 +112,7 @@ beforeAll(async () => {
     import("./nats/NatsWorkbench"),
     import("./cluster/ServersNats"),
     import("./overview/OverviewNats"),
+    import("./consumers/ClientsNats"),
     import("@/components"),
     import("@/i18n"),
     import("@/hooks/useSettings"),
@@ -112,6 +130,7 @@ beforeAll(async () => {
   NatsWorkbench = workbench.NatsWorkbench;
   ServersNats = cluster.ServersNats;
   OverviewNats = overview.OverviewNats;
+  ClientsNats = clients.ClientsNats;
 });
 
 /** A replicated stream, as internal/driver/nats/stream.go sends one. */
@@ -775,5 +794,108 @@ describe("the NATS overview", () => {
     ];
     const html = render(<OverviewNats />);
     expect(html).toContain("no meta leader");
+  });
+});
+
+/** A connection as internal/driver/nats/clients.go reports one. */
+const client = {
+  name: "nats-1/7",
+  clientName: "orders-service",
+  namespace: "APP",
+  user: "mqstudio",
+  node: "nats-1",
+  peerHost: "192.168.1.20",
+  peerPort: 54321,
+  protocol: "nats",
+  state: "running",
+  channels: -1,
+  tls: false,
+  cipher: "",
+  heartbeatSec: -1,
+  recvBytes: 4096,
+  sendBytes: 8192,
+  recvByteRate: -1,
+  sendByteRate: -1,
+  connectedAtMs: 1788000000000,
+  blockedBy: "",
+  attributes: {
+    readVia: "system",
+    cid: "7",
+    kind: "Client",
+    language: "go",
+    libVersion: "1.53.1",
+    idle: "2s",
+    rtt: "241µs",
+    pendingBytes: "0",
+    inMsgs: "120",
+    outMsgs: "80",
+    account: "APP",
+    subjectList: "orders.>, events.tick",
+  },
+};
+
+describe("the NATS connections board", () => {
+  it("says the connection is offline rather than showing none", () => {
+    clientsState.current = stateOf({ online: false });
+    expect(() => render(<ClientsNats />)).not.toThrow();
+  });
+
+  it("lists a client with what it is subscribed to", () => {
+    clientsState.current = stateOf({ data: [client] });
+    const html = render(<ClientsNats />);
+    expect(html).toContain("orders-service");
+    expect(html).toContain("orders.&gt;");
+  });
+
+  /*
+   * A connection that subscribes to nothing only publishes, which is a fact
+   * about what it does rather than a field that failed to load.
+   */
+  it("names a publisher rather than leaving its subjects blank", () => {
+    const publisher = {
+      ...client,
+      attributes: { ...client.attributes, subjectList: "" },
+    };
+    clientsState.current = stateOf({ data: [publisher] });
+    expect(() => render(<ClientsNats />)).not.toThrow();
+  });
+
+  /*
+   * Pending bytes is what predicts a disconnection: a server drops a client
+   * whose backlog passes its limit. It is marked only when there is one, so a
+   * zero on every row does not train the eye past the one that is not.
+   */
+  it("marks a client the server is holding bytes for", () => {
+    const behind = {
+      ...client,
+      attributes: { ...client.attributes, pendingBytes: "1048576" },
+    };
+    clientsState.current = stateOf({ data: [behind] });
+    expect(() => render(<ClientsNats />)).not.toThrow();
+  });
+
+  it("renders the detail panel", () => {
+    clientsState.current = stateOf({ data: [client] });
+    expect(() => render(<ClientsNats />)).not.toThrow();
+  });
+
+  /*
+   * Disconnecting needs the system account, and the monitoring endpoint is
+   * read-only. The button is disabled rather than offered and refused.
+   */
+  it("disables the disconnect on a row read through the read-only endpoint", () => {
+    const monitored = {
+      ...client,
+      attributes: { ...client.attributes, readVia: "monitor" },
+    };
+    clientsState.current = stateOf({ data: [monitored] });
+    const html = render(<ClientsNats />);
+    expect(html).toContain("disabled");
+  });
+
+  it("renders a connection reported with almost nothing set", () => {
+    const bare = { ...client, clientName: "", attributes: {} };
+    clientsState.current = stateOf({ data: [bare] });
+    expect(() => render(<ClientsNats />)).not.toThrow();
   });
 });

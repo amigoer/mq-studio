@@ -131,6 +131,22 @@ var (
 		model.CapClusterMetrics,
 		model.CapNodeConfig,
 		model.CapClusterHealth,
+		model.CapClientInspect,
+		model.CapClientClose,
+	}
+
+	// systemOnlyCapabilities need the system account and cannot fall back to
+	// the monitoring endpoint, which is read-only by design. Closing a
+	// connection is a request, and there is no request on that endpoint.
+	systemOnlyCapabilities = []model.Capability{
+		model.CapClientClose,
+	}
+
+	// monitorOnlyCapabilities are the other way round: /healthz is the server
+	// answering about itself, and $SYS has no equivalent - a fan-out reports
+	// what each server is, not what it thinks of its own state.
+	monitorOnlyCapabilities = []model.Capability{
+		model.CapClusterHealth,
 	}
 )
 
@@ -205,6 +221,22 @@ func (c *Conn) declare() model.Capabilities {
 	if !c.tiers.system && !c.tiers.monitor {
 		for _, capability := range clusterCapabilities {
 			declared = declared.WithDegraded(capability, c.tiers.systemReason)
+		}
+		return declared
+	}
+
+	// The two that cannot fall back. Each names the tier it actually needs
+	// rather than the pair, because a connection with a monitoring endpoint
+	// and no system account is one credential away from closing a connection -
+	// and telling that operator to configure monitoring would be useless.
+	if !c.tiers.system {
+		for _, capability := range systemOnlyCapabilities {
+			declared = declared.WithDegraded(capability, c.tiers.systemReason)
+		}
+	}
+	if !c.tiers.monitor {
+		for _, capability := range monitorOnlyCapabilities {
+			declared = declared.WithDegraded(capability, c.tiers.monitorReason)
 		}
 	}
 	return declared

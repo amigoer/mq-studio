@@ -32,6 +32,7 @@ import { ConsumersRedis } from "./boards/consumers/ConsumersRedis";
 import { ConsumersNats } from "./boards/consumers/ConsumersNats";
 import { ClientsMqtt } from "./boards/consumers/ClientsMqtt";
 import { ClientsRedis } from "./boards/consumers/ClientsRedis";
+import { ClientsNats } from "./boards/consumers/ClientsNats";
 import { ChannelsRabbitMQ } from "./boards/consumers/ChannelsRabbitMQ";
 
 import { MessagesRocketMQ } from "./boards/messages/MessagesRocketMQ";
@@ -140,7 +141,7 @@ const BOARDS: Partial<
     nats: ConsumersNats,
   },
   subscribe: { mqtt: MqttWorkbench, nats: NatsWorkbench },
-  clients: { mqtt: ClientsMqtt, redis: ClientsRedis },
+  clients: { mqtt: ClientsMqtt, redis: ClientsRedis, nats: ClientsNats },
   messages: {
     rocketmq: MessagesRocketMQ,
     kafka: MessagesKafka,

@@ -9,6 +9,7 @@ import type {
 import type {
   BrokerCensus,
   BrokerHealth,
+  ClientConnection,
   LiveBatch,
   LiveSubscription,
 } from "@bindings/model/models";
@@ -143,3 +144,30 @@ export const health = (connID: number): Promise<BrokerHealth> =>
  */
 export const usage = (connID: number): Promise<AccountUsage> =>
   NATSService.Usage(connID).then(required);
+
+/**
+ * The connections the cluster is holding.
+ *
+ * Here rather than on a canonical service because there is none: client
+ * inspection has never had one, and MQTT and RabbitMQ each expose their own
+ * for the same reason.
+ */
+export const connections = (connID: number, account: string): Promise<ClientConnection[]> =>
+  NATSService.Connections(connID, account).then(present);
+
+/**
+ * Disconnects one client.
+ *
+ * The name is the server holding it and its client id joined - neither half
+ * addresses a connection on its own, because a client id counts within one
+ * server.
+ */
+export const closeConnection = (connID: number, name: string, reason: string): Promise<void> =>
+  NATSService.CloseConnection(connID, name, reason);
+
+/** Closes every connection one identity holds. */
+export const closeUserConnections = (
+  connID: number,
+  user: string,
+  reason: string,
+): Promise<void> => NATSService.CloseUserConnections(connID, user, reason);

@@ -281,7 +281,10 @@ export const PROTOCOLS: Record<ProtocolId, Protocol> = {
       },
       {
         label: OPS,
-        items: [{ id: "cluster", icon: Server, label: "shell.nav.nats.cluster" }],
+        items: [
+          { id: "cluster", icon: Server, label: "shell.nav.nats.cluster" },
+          { id: "clients", icon: Plug, label: "shell.nav.nats.clients" },
+        ],
       },
     ],
   },

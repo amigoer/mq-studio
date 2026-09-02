@@ -39,6 +39,7 @@ func newMonitorClient(base string, timeout time.Duration) *monitorClient {
 const (
 	pathVarz    = "/varz"
 	pathHealthz = "/healthz"
+	pathConnz   = "/connz"
 )
 
 // varz is the server's own view of itself: identity, version, configuration

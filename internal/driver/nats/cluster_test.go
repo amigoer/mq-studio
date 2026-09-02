@@ -222,13 +222,66 @@ func TestClusterCapabilitiesDegradeWhenNeitherTierAnswers(t *testing.T) {
 	}
 }
 
-// One tier is enough. A monitoring endpoint alone answers for one server, and
-// one row is a great deal better than a page that will not open.
-func TestTheMonitoringEndpointAloneKeepsTheClusterPages(t *testing.T) {
+/*
+ * One tier is enough for the reading pages. A monitoring endpoint alone
+ * answers for one server, and one row is a great deal better than a page that
+ * will not open.
+ *
+ * Closing a connection is the exception, and it has to be: the monitoring
+ * endpoint is read-only by design, so there is no request to make. It degrades
+ * on its own with the system account's reason, because that operator is one
+ * credential away from being able to do it - telling them to configure
+ * monitoring, which they already have, would be useless.
+ */
+func TestTheMonitoringEndpointAloneKeepsTheReadingPages(t *testing.T) {
 	conn := monitorConn(t)
+	capabilities := conn.Capabilities()
+
 	for _, capability := range clusterCapabilities {
-		if !conn.Capabilities().Has(capability) {
+		if capability == model.CapClientClose {
+			continue
+		}
+		if !capabilities.Has(capability) {
 			t.Errorf("%s is missing with a monitoring endpoint available", capability)
 		}
+	}
+
+	if capabilities.Has(model.CapClientClose) {
+		t.Error("closing a connection is offered through a read-only endpoint")
+	}
+	reason, degraded := capabilities.DegradedReason(model.CapClientClose)
+	if !degraded {
+		t.Fatal("closing a connection vanished rather than explaining itself")
+	}
+	if reason != systemAbsent {
+		t.Errorf("reason = %q, want %q - it is the system account that is missing", reason, systemAbsent)
+	}
+}
+
+/*
+ * And the other way round. The health check is /healthz, which is the server
+ * answering about its own state; a $SYS fan-out reports what each server is,
+ * not what it thinks of itself, so there is no equivalent to fall back on.
+ */
+func TestTheSystemAccountAloneCannotAnswerHealth(t *testing.T) {
+	fake := startServer(t, serverOptions{
+		jetStream: true, jetStreamAccount: true, systemAccount: true,
+	})
+	conn := open(t, fake, false, true)
+	capabilities := conn.Capabilities()
+
+	if capabilities.Has(model.CapClusterHealth) {
+		t.Error("the health check is offered with no monitoring endpoint to run it on")
+	}
+	reason, degraded := capabilities.DegradedReason(model.CapClusterHealth)
+	if !degraded {
+		t.Fatal("the health check vanished rather than explaining itself")
+	}
+	if reason != monitorAbsent {
+		t.Errorf("reason = %q, want %q", reason, monitorAbsent)
+	}
+	// Everything else still works through the system account.
+	if !capabilities.Has(model.CapClusterTopology) {
+		t.Error("the servers page is missing with a system account available")
 	}
 }

@@ -301,6 +301,8 @@ func TestCapabilitiesMatchTheSidebarContract(t *testing.T) {
 		"cluster.metrics",
 		"cluster.nodeConfig",
 		"cluster.health",
+		"client.inspect",
+		"client.close",
 		"destination.list",
 		"destination.create",
 		"destination.update",

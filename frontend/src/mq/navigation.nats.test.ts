@@ -27,6 +27,8 @@ const NATS_CAPABILITIES: Capability[] = [
   Capability.CapClusterMetrics,
   Capability.CapNodeConfig,
   Capability.CapClusterHealth,
+  Capability.CapClientInspect,
+  Capability.CapClientClose,
   Capability.CapDestinationList,
   Capability.CapDestinationCreate,
   Capability.CapDestinationUpdate,

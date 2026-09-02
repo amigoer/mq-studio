@@ -62,8 +62,11 @@ func (s *systemClient) close() {
 
 // The $SYS endpoints this driver asks for. Each is a suffix on both the PING
 // subject, which every server answers, and the per-server subject, which one
-// does. More arrive with the pages that read them.
-const endpointVarz = "VARZ"
+// does.
+const (
+	endpointVarz  = "VARZ"
+	endpointConnz = "CONNZ"
+)
 
 // systemReply is the envelope every $SYS answer arrives in: which server
 // replied, and what it said.
@@ -90,6 +93,15 @@ type systemReply struct {
 // the number. A cluster where one server is wedged answers with the rest,
 // which is exactly the case an operator opened the page to look at.
 func (s *systemClient) ping(ctx context.Context, endpoint string, expect int) ([]systemReply, error) {
+	return s.pingWithBody(ctx, endpoint, nil, expect)
+}
+
+// pingWithBody is the same fan-out carrying a request document.
+//
+// Several $SYS endpoints take options - which account to narrow to, how many
+// rows to return - and send them as the request body rather than as a query
+// string, which is the one way they differ from the monitoring endpoint.
+func (s *systemClient) pingWithBody(ctx context.Context, endpoint string, body any, expect int) ([]systemReply, error) {
 	if s.nc == nil {
 		return nil, errConnectionDown
 	}
@@ -111,7 +123,16 @@ func (s *systemClient) ping(ctx context.Context, endpoint string, expect int) ([
 		return nil, err
 	}
 	defer func() { _ = subscription.Unsubscribe() }()
-	if err := s.nc.PublishRequest(subject, inbox, nil); err != nil {
+
+	var payload []byte
+	if body != nil {
+		encoded, err := json.Marshal(body)
+		if err != nil {
+			return nil, err
+		}
+		payload = encoded
+	}
+	if err := s.nc.PublishRequest(subject, inbox, payload); err != nil {
 		return nil, err
 	}
 	if err := s.nc.FlushWithContext(ctx); err != nil {
@@ -170,4 +191,51 @@ func serverList(servers []string) string { return strings.Join(servers, ",") }
 // asked for.
 func unmarshalReply(reply systemReply, out any) error {
 	return json.Unmarshal(reply.Data, out)
+}
+
+// kick disconnects one client from the server holding it.
+//
+// Addressed to that server rather than fanned out, because a client id counts
+// within one server: two servers in a cluster will each have a client 7, and a
+// broadcast kick would disconnect both.
+//
+// The response is checked rather than assumed. The server answers with an
+// error object when it refuses - an unknown client id, or credentials that
+// reach $SYS and are not permitted to close connections - and a request that
+// returned is not a request that worked.
+func (s *systemClient) kick(ctx context.Context, server string, cid uint64) error {
+	if s.nc == nil {
+		return errConnectionDown
+	}
+	if _, ok := ctx.Deadline(); !ok {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, defaultDialTimeout)
+		defer cancel()
+	}
+
+	subject := fmt.Sprintf("$SYS.REQ.SERVER.%s.KICK", server)
+	body, err := json.Marshal(map[string]any{"cid": cid})
+	if err != nil {
+		return err
+	}
+
+	reply, err := s.nc.RequestWithContext(ctx, subject, body)
+	if err != nil {
+		return fmt.Errorf("server %q did not answer the disconnect: %w", server, err)
+	}
+
+	var response struct {
+		Error *struct {
+			Description string `json:"description"`
+			Code        int    `json:"code"`
+		} `json:"error"`
+	}
+	if err := json.Unmarshal(reply.Data, &response); err != nil {
+		return fmt.Errorf("server %q answered the disconnect with something unexpected: %w", server, err)
+	}
+	if response.Error != nil {
+		return fmt.Errorf("server %q refused to disconnect client %d: %s",
+			server, cid, response.Error.Description)
+	}
+	return nil
 }
