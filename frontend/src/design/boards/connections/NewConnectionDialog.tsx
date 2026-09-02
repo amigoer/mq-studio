@@ -432,10 +432,25 @@ function ProbeResult({ state }: { state: ProbeState }) {
       </span>
     );
   }
+  /*
+   * The reason is shown, not hovered.
+   *
+   * It used to live in a title attribute, which on WKWebView is no tooltip at
+   * all - so a failed test said "could not connect" and nothing else, and the
+   * one piece of information the button exists to produce was unreachable.
+   */
   return (
-    <span style={{ ...style, color: "var(--c-err)" }} title={state.message}>
-      <X size={13} aria-hidden />
-      {t("page.connections.probeFailed")}
+    <span
+      style={{ ...style, color: "var(--c-err)", alignItems: "flex-start" }}
+      title={state.message}
+    >
+      <X size={13} aria-hidden style={{ flex: "none", marginTop: "2px" }} />
+      <span style={{ minWidth: 0 }}>
+        {t("page.connections.probeFailed")}
+        <span style={{ display: "block", color: "var(--c-muted)", overflowWrap: "anywhere" }}>
+          {state.message}
+        </span>
+      </span>
     </span>
   );
 }

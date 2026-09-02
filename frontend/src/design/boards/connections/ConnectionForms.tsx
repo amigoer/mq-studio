@@ -26,7 +26,11 @@ function Fld({
       className="flex min-w-0 flex-col gap-1.5 text-xs"
       style={span ? { gridColumn: "1/3" } : undefined}
     >
-      <span className="font-medium">
+      {/* The label grows and the input sits at the bottom, so two fields side
+          by side line up whatever their hints do. Without this a hint that
+          wraps pushes its own input down and leaves its neighbour's floating
+          half a field above it. */}
+      <span className="flex-1 font-medium">
         {label} {hint != null && <span className="font-normal text-(--c-muted-2)">{hint}</span>}
       </span>
       {children}
