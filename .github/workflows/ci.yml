@@ -1,5 +1,13 @@
-# Runs the same gate as `npm run check` locally: version consistency, gofmt,
-# go vet, frontend type checks, unit tests, and generated-binding drift.
+# The same gate as `npm run check` locally - version consistency, gofmt, go
+# vet, frontend type checks, unit tests, generated-binding drift and the live
+# suites - but split across jobs that run at the same time.
+#
+# The split is not free: sharding the live suites by broker family means a test
+# can go unrun without anything turning red, because every shard that does not
+# claim it skips it. That is the shape of issue #48. The `coverage` job at the
+# bottom is what makes the split safe - it asserts over the shards' combined
+# output that every test passed somewhere. Nothing here is allowed to assert
+# less than the single serial job it replaced.
 name: CI
 
 on:
@@ -14,8 +22,8 @@ on:
   # the two lists have to be kept in step by hand.
   #
   # website/** is excluded because none of this job applies to it and all of it
-  # is expensive: the GTK headers and the four broker clusters below cost about
-  # twenty minutes, which a copy edit should not spend. website.yml gates that
+  # is expensive: the GTK headers and the broker clusters below cost real
+  # minutes, which a copy edit should not spend. website.yml gates that
   # directory instead.
   pull_request:
     paths-ignore:
@@ -32,17 +40,18 @@ permissions:
   contents: read
 
 jobs:
-  check:
-    name: Check
+  # Names the CI artifacts <version>+<short sha> so a downloaded build can be
+  # traced back to its commit without opening the run. Its own job because
+  # `package` needs the value and should not wait on a heavy job to learn it.
+  meta:
+    name: Meta
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 5
     outputs:
       version: ${{ steps.meta.outputs.version }}
     steps:
       - uses: actions/checkout@v7
 
-      # Names the CI artifacts <version>+<short sha> so a downloaded build can
-      # be traced back to its commit without opening the run.
       - name: Resolve the build version
         id: meta
         shell: bash
@@ -50,6 +59,50 @@ jobs:
           set -eu
           version="$(node -p "require('./package.json').version")"
           echo "version=${version}+${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Check the version is consistent across the tree
+        run: npm run check:version
+
+  # Node only. None of this needs Go, Docker or the GTK headers, and it used to
+  # wait behind all three.
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci --prefix frontend
+
+      # type-check and vite build, which is what `npm run build:frontend` is.
+      - name: Type-check and build the frontend
+        run: npm run build:frontend
+
+      - name: Run the frontend tests
+        run: npm run test:frontend
+
+  # Everything that needs the whole tree to compile: vet, the generated-binding
+  # drift check, and the tests that need no broker.
+  #
+  # The unit tests live here rather than in a job of their own because this job
+  # already compiles the tree for vet, and because `./...` reaches
+  # internal/bridge and internal/tray - the only packages that import wails, and
+  # so the only reason the GTK headers are installed anywhere in this file. Its
+  # results are also the test inventory the coverage job checks the shards
+  # against, which has to be a run that names every test in the repository.
+  static:
+    name: Static checks and unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-go@v6
         with:
@@ -76,116 +129,220 @@ jobs:
             libwebkitgtk-6.0-dev
 
       # The binding drift check regenerates them, so the CLI has to match the
-      # version the module pins.
-      - name: Install the Wails CLI
+      # version the module pins - which is also why the cache key can only go
+      # stale by changing go.mod, at which point the key changes with it.
+      - name: Resolve the Wails CLI version
+        id: wails
         run: |
           set -eu
-          wails_version="$(awk '/github.com\/wailsapp\/wails\/v3/ { print $2; exit }' go.mod)"
-          go install "github.com/wailsapp/wails/v3/cmd/wails3@${wails_version}"
-          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+          echo "version=$(awk '/github.com\/wailsapp\/wails\/v3/ { print $2; exit }' go.mod)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache the Wails CLI
+        id: wails-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/go/bin/wails3
+          key: wails3-${{ runner.os }}-${{ steps.wails.outputs.version }}
+
+      - name: Install the Wails CLI
+        if: steps.wails-cache.outputs.cache-hit != 'true'
+        run: go install "github.com/wailsapp/wails/v3/cmd/wails3@${{ steps.wails.outputs.version }}"
+
+      - name: Put the Wails CLI on PATH
+        run: echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
 
       - name: Install frontend dependencies
         run: npm ci --prefix frontend
 
-      # Every live suite gates through internal/e2e: it skips when the
-      # environment it needs is absent, so a checkout without docker still has
-      # a green suite, and fails outright when CI is set, because a contract
-      # test that can silently not run asserts nothing. Each environment below
-      # therefore has to be up before the checks or the run is red - which is
-      # the point, and is what these tests could not do while an unset variable
-      # was allowed to skip them (#48).
-      #
+      # main.go embeds frontend/dist, which is gitignored, so the tree does not
+      # compile without it. A placeholder would satisfy the embed and stop it
+      # being checked, so this is the real build - minus the type check, which
+      # is the frontend job's to run and not worth paying for twice.
+      - name: Build the frontend for the embed
+        working-directory: frontend
+        run: npx vite build --mode production
+
+      - name: Check gofmt
+        run: npm run go:fmt:check
+
+      - name: Vet
+        run: npm run go:vet
+
+      # No broker is running here, so this claims no families and every live
+      # test skips. The e2e shards below are where they run, and the coverage
+      # job is what proves it.
+      - name: Run the tests that need no broker
+        env:
+          MQ_STUDIO_E2E_FAMILIES: none
+        run: |
+          set -euo pipefail
+          go test -json -count=1 ./... | tee results-unit.json | jq -j 'select(.Action == "output") | .Output'
+
+      - name: Upload the unit results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: results-unit
+          path: results-unit.json
+          retention-days: 7
+
+      - name: Check for generated-binding drift
+        run: npm run check:bindings
+
+  # One job per broker family. Each starts only its own compose stacks and
+  # claims only its own family, so the families run at the same time instead of
+  # queueing behind each other in a single `go test ./...`.
+  #
+  # None of these install the GTK headers, the Wails CLI or the frontend
+  # dependencies: no package under internal/app or internal/driver reaches
+  # wails, and the e2e:* scripts are shells around docker compose that the
+  # runner's own node can run without an install.
+  #
+  # Adding a family here is not optional - internal/e2e.AllFamilies is pinned
+  # against this matrix by TestEveryFamilyHasACIShard, and a family with no
+  # shard would skip in every job of the run.
+  e2e:
+    name: E2E (${{ matrix.family }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      # A red family should not cancel the others: which families still pass
+      # is most of what says whether a failure is the change or the cluster.
+      fail-fast: false
+      matrix:
+        include:
+          - family: rocketmq
+            packages: ./internal/app/... ./internal/driver/rocketmq/...
+            # The consumer group the live tests read. mq-studio cannot create
+            # one - see TestLiveConsumerGroupDelete for why - so it is seeded.
+            # The second broker has authentication on, and is separate because
+            # a broker with ACL enabled refuses every unauthenticated call the
+            # other tests make.
+            up: |
+              npm run e2e:up
+              npm run e2e:seed
+              npm run e2e:acl:up
+          - family: rabbitmq
+            packages: ./internal/app/... ./internal/driver/rabbitmq/...
+            # The second broker has none of the optional plugins. What a
+            # missing plugin degrades to cannot be asserted against the first
+            # one, which turns them on so their pages have something to read.
+            up: |
+              npm run e2e:rabbitmq:up
+              npm run e2e:rabbitmq:plain:up
+          - family: kafka
+            packages: ./internal/app/... ./internal/driver/kafka/...
+            # Three brokers, which the app-layer cross-checks also drive
+            # through Kafka's own CLI inside the first container. The second
+            # cluster has SASL and an authorizer: what a rejected credential
+            # looks like and what an ACL round trip does cannot be asserted
+            # against the first one, which runs without either.
+            up: |
+              npm run e2e:kafka:up
+              npm run e2e:kafka:secure:up
+          - family: pulsar
+            packages: ./internal/app/... ./internal/driver/pulsar/...
+            # The seed is required, unlike the others. The cross-check compares
+            # figures the app computes against the same figures from
+            # pulsar-admin, and comparing zero against zero would pass whatever
+            # the driver did.
+            up: |
+              npm run e2e:pulsar:up
+              npm run e2e:pulsar:seed
+          - family: redis
+            packages: ./internal/app/... ./internal/driver/redisstream/...
+            # ACL on rather than a bare password: the driver has a page for it.
+            # The cluster is six nodes, because a single server cannot produce a
+            # CLUSTER NODES with more than one row, a slot that belongs to a
+            # node you did not ask, or a refused cross-slot command.
+            up: |
+              npm run e2e:redis:up
+              npm run e2e:redis:cluster:up
+          - family: mqtt
+            packages: ./internal/app/... ./internal/driver/mqtt/...
+            # Mosquitto has no management API and publishes a full $SYS tree;
+            # EMQX refuses a remote client's $SYS subscription and answers over
+            # REST instead. Neither broker alone covers both tiers.
+            up: |
+              npm run e2e:mqtt:up
+              npm run e2e:mqtt:emqx:up
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+
       # Same compose files a developer runs, so the images, the credentials and
       # the plugins match.
-      - name: Start RocketMQ
-        run: npm run e2e:up
+      - name: Start ${{ matrix.family }}
+        run: ${{ matrix.up }}
 
-      # The consumer group the live tests read. mq-studio cannot create one -
-      # see TestLiveConsumerGroupDelete for why - so the broker is seeded.
-      - name: Seed RocketMQ
-        run: npm run e2e:seed
-
-      # A third broker, with authentication on. Separate because a broker with
-      # ACL enabled refuses every unauthenticated call the other tests make.
-      - name: Start the ACL-enabled RocketMQ
-        run: npm run e2e:acl:up
-
-      - name: Start RabbitMQ
-        run: npm run e2e:rabbitmq:up
-
-      # A second broker with none of the optional plugins. What a missing
-      # plugin degrades to cannot be asserted against the first one, which
-      # turns them on so their pages have something to read.
-      - name: Start the plugin-free RabbitMQ
-        run: npm run e2e:rabbitmq:plain:up
-
-      # Three Kafka brokers, which the app-layer cross-checks also drive
-      # through Kafka's own CLI inside the first container.
-      - name: Start Kafka
-        run: npm run e2e:kafka:up
-
-      # A second cluster with SASL and an authorizer. What a rejected
-      # credential looks like and what an ACL round trip does cannot be
-      # asserted against the first one, which runs without either.
-      - name: Start the secure Kafka
-        run: npm run e2e:kafka:secure:up
-
-      # Standalone boots BookKeeper and the metadata store before the broker
-      # answers, so this is the slowest of the six to come up. Its compose
-      # healthcheck waits; --wait is what makes this step do the same.
-      - name: Start Pulsar
-        run: npm run e2e:pulsar:up
-
-      # Required, unlike the other seeds. The cross-check compares figures the
-      # app computes against the same figures from pulsar-admin, and comparing
-      # zero against zero would pass whatever the driver did.
-      - name: Seed Pulsar
-        run: npm run e2e:pulsar:seed
-      # ACL on rather than a bare password: the driver has a page for it, and
-      # a broker with no users to read would leave both the ACL board and the
-      # rejected-credentials path untested.
-      - name: Start Redis
-        run: npm run e2e:redis:up
-
-      # Six nodes. A single server cannot produce a CLUSTER NODES with more
-      # than one row, a slot that belongs to a node you did not ask, or a
-      # refused cross-slot command, and those are what the cluster board and
-      # the driver's per-key call shape exist for.
-      - name: Start the Redis cluster
-        run: npm run e2e:redis:cluster:up
-      # Mosquitto has no management API at all and publishes a full $SYS tree.
-      # It is the broker the degraded management path is asserted against, and
-      # the only one either half of the $SYS reader can be checked on.
-      - name: Start Mosquitto
-        run: npm run e2e:mqtt:up
-
-      # EMQX is the other half: its default authorisation refuses a remote
-      # client's $SYS subscription and its REST API answers everything the
-      # protocol cannot. Neither broker alone covers both tiers.
-      - name: Start EMQX
-        run: npm run e2e:mqtt:emqx:up
-
-      - name: Run checks
-        # The opt-in a developer sets locally. CI does not need it - internal/e2e
-        # does not consult it when CI is set, so that no unset variable can be
-        # the reason a suite did not run - but setting it here keeps the local
-        # repro of a CI failure the same command.
+      # MQ_STUDIO_E2E is the opt-in a developer sets locally. CI does not need
+      # it - internal/e2e does not consult it when CI is set, so that no unset
+      # variable can be the reason a suite did not run - but setting it here
+      # keeps the local repro of a CI failure the same command.
+      #
+      # MQ_STUDIO_E2E_FAMILIES is what makes the shard a shard: the families it
+      # does not name skip, and the ones it does still fail rather than skip
+      # when their environment is absent.
+      - name: Run the ${{ matrix.family }} suite
         env:
           MQ_STUDIO_E2E: '1'
-        run: npm run check
+          MQ_STUDIO_E2E_FAMILIES: ${{ matrix.family }}
+        run: |
+          set -euo pipefail
+          go test -json -count=1 ${{ matrix.packages }} \
+            | tee "results-${{ matrix.family }}.json" \
+            | jq -j 'select(.Action == "output") | .Output'
 
-  # Exercises the real packaging path for all six targets. It is skipped on pull
-  # requests to keep review feedback fast, but running it on every push to main
-  # means a packaging break surfaces then rather than on release day, which is
-  # when it used to.
+      - name: Upload the ${{ matrix.family }} results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: results-${{ matrix.family }}
+          path: results-${{ matrix.family }}.json
+          retention-days: 7
+
+  # The reason the split above is allowed to exist. Sharding lets a test go
+  # unrun without anything turning red; this asserts over every shard's output
+  # that each test passed somewhere, and fails when the only thing that
+  # happened to it was the gate skipping it.
+  coverage:
+    name: Live coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [static, e2e]
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Download every shard's results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: results-*
+          path: results
+          merge-multiple: true
+
+      - name: Check that every test ran somewhere
+        run: node scripts/ci-coverage.mjs results
+
+  # Exercises the real packaging path for all six targets. It is skipped on
+  # pull requests to keep review feedback fast, but running it on every push to
+  # main means a packaging break surfaces then rather than on release day,
+  # which is when it used to.
+  #
+  # It waits on the live coverage rather than only on the shards, so an
+  # artifact is never produced from a run that quietly tested less than it
+  # should have.
   package:
     name: Package
     if: github.event_name != 'pull_request'
-    needs: check
+    needs: [meta, frontend, static, e2e, coverage]
     uses: ./.github/workflows/package.yml
     with:
       ref: ${{ github.sha }}
-      package-version: ${{ needs.check.outputs.version }}
+      package-version: ${{ needs.meta.outputs.version }}
       sign: false
       retention-days: 7
     # No secrets passed: an unsigned build has no use for the signing material,

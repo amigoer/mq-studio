@@ -21,8 +21,9 @@ const (
 func requireLiveCluster(t *testing.T) {
 	t.Helper()
 	e2e.Require(t, e2e.Env{
-		Name:  "pulsar",
-		Start: "npm run e2e:pulsar:up",
+		Name:   "pulsar",
+		Family: e2e.Pulsar,
+		Start:  "npm run e2e:pulsar:up",
 		// The admin plane, not the broker port: standalone binds 6650 before
 		// the broker has registered, so a dial would pass against a cluster
 		// that cannot answer anything yet.

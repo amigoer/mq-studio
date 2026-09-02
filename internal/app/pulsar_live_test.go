@@ -21,9 +21,10 @@ const (
 func requireLivePulsar(t *testing.T) {
 	t.Helper()
 	e2e.Require(t, e2e.Env{
-		Name:  "pulsar",
-		Start: "npm run e2e:pulsar:up",
-		Probe: e2e.HTTPGet(livePulsarAdmin + "/admin/v2/brokers/health"),
+		Name:   "pulsar",
+		Family: e2e.Pulsar,
+		Start:  "npm run e2e:pulsar:up",
+		Probe:  e2e.HTTPGet(livePulsarAdmin + "/admin/v2/brokers/health"),
 	})
 }
 

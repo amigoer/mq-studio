@@ -28,9 +28,10 @@ const (
 func requireSecureCluster(t *testing.T) {
 	t.Helper()
 	e2e.Require(t, e2e.Env{
-		Name:  "the secure kafka cluster",
-		Start: "npm run e2e:kafka:secure:up",
-		Probe: e2e.DialTCP(secureSeeds),
+		Name:   "the secure kafka cluster",
+		Family: e2e.Kafka,
+		Start:  "npm run e2e:kafka:secure:up",
+		Probe:  e2e.DialTCP(secureSeeds),
 	})
 }
 
