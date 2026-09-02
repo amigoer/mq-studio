@@ -44,7 +44,6 @@ permissions:
 jobs:
   build:
     name: Build
-    if: github.event_name != 'release'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -284,30 +283,68 @@ jobs:
           fi
           echo "external JS: ${js} bytes"
 
-  # Cloudflare builds from its own git integration, so all this has to do is ask
-  # it to start. The site refetches the release data during that build, which is
-  # what puts the new version on the download page.
-  redeploy:
-    name: Trigger a Cloudflare rebuild
+  # Cloudflare builds from its own git integration, and that only ever sees a
+  # push. Publishing a release is not one - it flips a flag on a tag that already
+  # exists - so on its own it leaves the site serving the previous version until
+  # something unrelated lands on main. Committing the refreshed release data is
+  # that push. The same commit keeps the fallback copy current, which is what a
+  # build serves when the API call does not work out.
+  #
+  # A push by GITHUB_TOKEN deliberately starts no workflow run, so this cannot
+  # loop; Cloudflare hears it anyway, because its git integration is a GitHub App
+  # webhook rather than an Actions trigger.
+  refresh:
+    name: Refresh the release data
     if: github.event_name == 'release'
+    needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: write
     steps:
-      - name: Ping the deploy hook
+      # The release event points at the tag; the commit belongs on main. Full
+      # history because the push below rebases if main moved.
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+
+      - name: Fetch the published release
         env:
-          HOOK: ${{ secrets.CF_PAGES_DEPLOY_HOOK }}
-        shell: bash
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/fetch-release.mjs
+
+      # The script asks for /releases/latest rather than this tag, and it falls
+      # back to the committed copy instead of failing. Either can leave the wrong
+      # version here, and committing that would serve it as though it were right.
+      - name: Check it picked up this release
+        env:
+          EXPECTED: ${{ github.event.release.tag_name }}
         run: |
           set -eu
-          # Not configured yet is a normal state for a fork or a fresh clone; the
-          # site just keeps serving the previous build until someone deploys.
-          if [ -z "${HOOK:-}" ]; then
-            echo "CF_PAGES_DEPLOY_HOOK is not set; skipping the rebuild" >&2
+          got=$(node -p "require('./website/src/data/release.json').tag")
+          if [ "$got" != "$EXPECTED" ]; then
+            echo "release.json says ${got}, expected ${EXPECTED}" >&2
+            exit 1
+          fi
+          echo "release.json is at ${got}"
+
+      - name: Commit and push
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          set -eu
+          if git diff --quiet -- website/src/data/release.json; then
+            echo "release data is already current; nothing to push"
             exit 0
           fi
-          status=$(curl -sS -X POST -o /dev/null -w '%{http_code}' "$HOOK")
-          echo "deploy hook returned ${status}"
-          case "$status" in
-            2*) ;;
-            *) echo "deploy hook rejected the request" >&2; exit 1 ;;
-          esac
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add website/src/data/release.json
+          git commit -m "chore(website): refresh release data for ${TAG}"
+          git pull --rebase origin main
+          git push origin HEAD:main

@@ -109,6 +109,24 @@ Before publishing:
 - install at least the macOS image by hand, on a machine that has not built it,
   downloading through a browser so the quarantine flag is really applied
 
+## 6. Check the site picked it up
+
+Publishing is also what updates <https://mq-studio.amigoer.com>. Cloudflare
+builds the site from its own git integration, which only ever sees a push, and
+publishing a release is not one - it flips a flag on a tag that already exists.
+So `website.yml` closes the gap: on `release: published` it rewrites
+`website/src/data/release.json` from the published release and commits it to
+`main`, and that commit is the push Cloudflare reacts to.
+
+None of it is manual. It is worth a glance anyway, because a failure here is
+quiet - the release itself is fine and only the site stays behind:
+
+- `main` gains a `chore(website): refresh release data for v<version>` commit
+- the nav badge and the download cards name the new version
+
+If the badge still names the previous release, check the **Website** run for
+this release first, then Cloudflare's own build.
+
 ## What the in-app updater needs from a release
 
 The app updates itself from these artifacts, so the release is a contract, not
