@@ -2367,7 +2367,18 @@
           "subjectsRequired": "流至少要接住一个主题。",
           "subjectInvalid": "有一个主题写得不对。> 匹配主题剩余部分，必须放在最后；通配符是一整段，不能只占一段的一部分。",
           "replicasInvalid": "副本数只能是 1 到 5。"
-        }
+        },
+        "purge": "清理",
+        "purgeTitle": "清理 {{name}}",
+        "purgeStrategy": "保留方式",
+        "purgeKeep": "最新 N 条",
+        "purgeFrom": "从某个序号起",
+        "purgeKeepLabel": "保留条数",
+        "purgeKeepHint": "留下最新的 N 条，更旧的全部清掉——不管那是多少条。",
+        "purgeKeepZero": "填 0 就是清空整个流。JetStream 只有这一个清理命令，没有单独的「清空」。",
+        "purgeFromLabel": "保留的最小序号",
+        "purgeFromHint": "小于这个序号的全部清掉，这一条本身保留。JetStream 的消息用一个贯穿整个流的序号定位。",
+        "purged": "清掉了 {{count}} 条"
       }
     },
     "consumers": {

@@ -300,6 +300,7 @@ func TestCapabilitiesMatchTheSidebarContract(t *testing.T) {
 		"destination.update",
 		"destination.delete",
 		"destination.partitions",
+		"destination.trim",
 	}
 
 	declared := make(map[string]bool, len(capabilities()))

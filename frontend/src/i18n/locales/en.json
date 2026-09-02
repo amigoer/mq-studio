@@ -2367,7 +2367,18 @@
           "subjectsRequired": "A stream needs at least one subject to capture.",
           "subjectInvalid": "One of those subjects is not valid. A > matches the rest of a subject and must come last; a wildcard is a whole token, not part of one.",
           "replicasInvalid": "Replicas must be between 1 and 5."
-        }
+        },
+        "purge": "Purge",
+        "purgeTitle": "Purge {{name}}",
+        "purgeStrategy": "Keep by",
+        "purgeKeep": "Newest N",
+        "purgeFrom": "From a sequence",
+        "purgeKeepLabel": "Messages to keep",
+        "purgeKeepHint": "The newest N survive and everything older goes, however many that turns out to be.",
+        "purgeKeepZero": "Keeping none empties the stream. That is the only purge JetStream has — there is no separate command.",
+        "purgeFromLabel": "Lowest sequence to keep",
+        "purgeFromHint": "Everything below this sequence goes and the message at it survives. A JetStream message is addressed by one number for the whole stream.",
+        "purged": "Removed {{count}} messages"
       }
     },
     "consumers": {

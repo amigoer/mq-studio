@@ -25,9 +25,10 @@ import {
 } from "@/components";
 import { BoardState } from "@/design/boards/BoardState";
 import { StreamDialogNats } from "./StreamDialogNats";
+import { PurgeDialogNats } from "./PurgeDialogNats";
 import { useConnectionScope } from "@/mq/ConnectionScope";
 import * as natsApi from "@/api/nats";
-import type { StreamInput } from "@/api/nats";
+import type { PurgeInput, StreamInput } from "@/api/nats";
 import { formatErrorMessage } from "@/lib/utils";
 import { useNatsStreamDetail, useNatsStreams } from "@/hooks/nats/useNatsStreams";
 import { formatBytes, formatCount } from "@/lib/format";
@@ -113,6 +114,7 @@ export function StreamsNats() {
   const [selected, setSelected] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Destination | null>(null);
+  const [purging, setPurging] = useState<string | null>(null);
 
   const streams = useMemo(() => state.data ?? [], [state.data]);
   const detail = useNatsStreamDetail(selected);
@@ -154,6 +156,18 @@ export function StreamsNats() {
     [connID, state, t],
   );
 
+  const purge = useCallback(
+    async (input: PurgeInput) => {
+      const { removed } = await natsApi.purgeStream(connID, input);
+      /* The count is the whole report. A bound that already held and one that
+         matched nothing both remove zero, and only saying the number lets the
+         reader tell which happened. */
+      toast.success(t("board.topics.nats.purged", { count: removed }));
+      await state.refresh();
+    },
+    [connID, state, t],
+  );
+
   const remove = useCallback(
     async (stream: Destination) => {
       const held = messages(stream);
@@ -187,6 +201,12 @@ export function StreamsNats() {
 
   return (
     <Page>
+      <PurgeDialogNats
+        stream={purging}
+        open={purging != null}
+        onOpenChange={(open) => !open && setPurging(null)}
+        onPurge={purge}
+      />
       <StreamDialogNats
         open={dialogOpen}
         onOpenChange={(open) => {
@@ -517,6 +537,16 @@ export function StreamsNats() {
                     a button that was going to be refused is worse than one that
                     is not there: the reason belongs beside it, not in a toast
                     after the click. */}
+                {/* Purge and delete are disabled by different settings, so
+                    each gates on its own: a stream may refuse purges and still
+                    allow being deleted outright. */}
+                <Button
+                  variant="outline"
+                  disabled={sealed(panel) || denyPurge(panel)}
+                  onClick={() => setPurging(streamName(panel))}
+                >
+                  {t("board.topics.nats.purge")}
+                </Button>
                 <Button
                   variant="destructive"
                   disabled={sealed(panel) || denyDelete(panel)}

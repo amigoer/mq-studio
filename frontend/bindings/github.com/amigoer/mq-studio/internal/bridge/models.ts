@@ -2076,6 +2076,58 @@ export class PulsarTopicInput {
 }
 
 /**
+ * PurgeInput is a trim as the dialog collects it.
+ * 
+ * The strategy is a string rather than two methods because it is one command
+ * with two ways of naming a bound, and a page that had to pick an endpoint
+ * before the user picked a strategy would be the wrong shape.
+ */
+export class PurgeInput {
+    "stream": string;
+    "strategy": string;
+
+    /**
+     * Keep is how many of the newest messages to leave, for the keep strategy.
+     * Zero empties the stream, which is the only purge JetStream has - there
+     * is no separate command, and offering one under another name would be two
+     * controls for one thing.
+     */
+    "keep": number;
+
+    /**
+     * Sequence is the lowest sequence to keep, for the sequence strategy.
+     * Everything below it goes, and the message at it survives.
+     */
+    "sequence": string;
+
+    /** Creates a new PurgeInput instance. */
+    constructor($$source: Partial<PurgeInput> = {}) {
+        if (!("stream" in $$source)) {
+            this["stream"] = "";
+        }
+        if (!("strategy" in $$source)) {
+            this["strategy"] = "";
+        }
+        if (!("keep" in $$source)) {
+            this["keep"] = 0;
+        }
+        if (!("sequence" in $$source)) {
+            this["sequence"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new PurgeInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): PurgeInput {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new PurgeInput($$parsedSource as Partial<PurgeInput>);
+    }
+}
+
+/**
  * QueueInput is a queue declaration as the form collects it.
  * 
  * Nothing like TopicInput, and it should not be: a RocketMQ topic is read and

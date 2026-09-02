@@ -1,7 +1,9 @@
 import { NATSService } from "@bindings/bridge";
-import type { StreamInput } from "@bindings/bridge/models";
+import type { PurgeInput, StreamInput } from "@bindings/bridge/models";
+import type { TrimResult } from "@bindings/model/models";
+import { required } from "./client";
 
-export type { StreamInput };
+export type { PurgeInput, StreamInput };
 
 /**
  * The NATS-only half of the surface.
@@ -31,3 +33,20 @@ export const updateStream = (connID: number, input: StreamInput): Promise<void> 
 /** Removes a stream and every message in it. */
 export const deleteStream = (connID: number, name: string): Promise<void> =>
   NATSService.DeleteStream(connID, name);
+
+/**
+ * Discards messages from the head of a stream.
+ *
+ * The count that comes back is the report rather than a formality: it is the
+ * only way to tell a bound that already held from one that matched nothing at
+ * all, and those look identical on the page.
+ */
+export const purgeStream = (connID: number, input: PurgeInput): Promise<TrimResult> =>
+  NATSService.PurgeStream(connID, input).then(required);
+
+/** Removes messages by sequence, and reports how many were there to remove. */
+export const deleteMessages = (
+  connID: number,
+  stream: string,
+  sequences: string[],
+): Promise<TrimResult> => NATSService.DeleteMessages(connID, stream, sequences).then(required);

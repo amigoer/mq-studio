@@ -124,3 +124,44 @@ func (s *NATSService) UpdateStream(connID int, input StreamInput) error {
 func (s *NATSService) DeleteStream(connID int, name string) error {
 	return s.service.DeleteStream(context.Background(), connID, name)
 }
+
+// PurgeInput is a trim as the dialog collects it.
+//
+// The strategy is a string rather than two methods because it is one command
+// with two ways of naming a bound, and a page that had to pick an endpoint
+// before the user picked a strategy would be the wrong shape.
+type PurgeInput struct {
+	Stream   string `json:"stream"`
+	Strategy string `json:"strategy"`
+	// Keep is how many of the newest messages to leave, for the keep strategy.
+	// Zero empties the stream, which is the only purge JetStream has - there
+	// is no separate command, and offering one under another name would be two
+	// controls for one thing.
+	Keep int64 `json:"keep"`
+	// Sequence is the lowest sequence to keep, for the sequence strategy.
+	// Everything below it goes, and the message at it survives.
+	Sequence string `json:"sequence"`
+}
+
+func (input PurgeInput) request() model.TrimRequest {
+	return model.TrimRequest{
+		Ref:      model.DestinationRef{Name: input.Stream},
+		Strategy: model.TrimStrategy(input.Strategy),
+		MaxLen:   input.Keep,
+		MinID:    input.Sequence,
+	}
+}
+
+// PurgeStream discards messages from a stream and reports how many went.
+//
+// The count is the report rather than a formality: it is the only way to tell
+// a bound that already held from one that matched nothing at all, and those
+// look identical on the page.
+func (s *NATSService) PurgeStream(connID int, input PurgeInput) (*model.TrimResult, error) {
+	return s.service.Trim(context.Background(), connID, input.request())
+}
+
+// DeleteMessages removes messages by sequence.
+func (s *NATSService) DeleteMessages(connID int, stream string, sequences []string) (*model.TrimResult, error) {
+	return s.service.DeleteMessages(context.Background(), connID, stream, sequences)
+}

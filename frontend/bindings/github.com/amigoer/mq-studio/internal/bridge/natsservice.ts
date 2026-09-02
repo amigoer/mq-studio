@@ -21,6 +21,10 @@ import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Cr
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
+import * as model$0 from "../model/models.js";
+
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
 import * as $models from "./models.js";
 
 /**
@@ -37,10 +41,32 @@ export function CreateStream(connID: number, input: $models.StreamInput): $Cance
 }
 
 /**
+ * DeleteMessages removes messages by sequence.
+ */
+export function DeleteMessages(connID: number, stream: string, sequences: string[]): $CancellablePromise<model$0.TrimResult | null> {
+    return $Call.ByID(1024039200, connID, stream, sequences).then(($result: any) => {
+        return $$createType1($result);
+    });
+}
+
+/**
  * DeleteStream removes a stream and every message in it.
  */
 export function DeleteStream(connID: number, name: string): $CancellablePromise<void> {
     return $Call.ByID(866834476, connID, name);
+}
+
+/**
+ * PurgeStream discards messages from a stream and reports how many went.
+ * 
+ * The count is the report rather than a formality: it is the only way to tell
+ * a bound that already held from one that matched nothing at all, and those
+ * look identical on the page.
+ */
+export function PurgeStream(connID: number, input: $models.PurgeInput): $CancellablePromise<model$0.TrimResult | null> {
+    return $Call.ByID(816427434, connID, input).then(($result: any) => {
+        return $$createType1($result);
+    });
 }
 
 /**
@@ -54,3 +80,7 @@ export function DeleteStream(connID: number, name: string): $CancellablePromise<
 export function UpdateStream(connID: number, input: $models.StreamInput): $CancellablePromise<void> {
     return $Call.ByID(2515295686, connID, input);
 }
+
+// Private type creation functions
+const $$createType0 = model$0.TrimResult.createFrom;
+const $$createType1 = $Create.Nullable($$createType0);

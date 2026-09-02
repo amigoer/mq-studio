@@ -102,3 +102,27 @@ func (s *Service) DeleteStream(ctx context.Context, connID int, name string) err
 	defer cancel()
 	return api.RemoveDestination(ctx, model.DestinationRef{Name: name})
 }
+
+// Trim discards messages from the head of a stream, by a bound the caller
+// names.
+func (s *Service) Trim(ctx context.Context, connID int, request model.TrimRequest) (*model.TrimResult, error) {
+	api, err := port[driver.StreamTrimmer](s, connID, model.CapStreamTrim)
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.Trim(ctx, request)
+}
+
+// DeleteMessages removes messages by sequence and reports how many were there
+// to remove, which is not how many were asked for.
+func (s *Service) DeleteMessages(ctx context.Context, connID int, name string, sequences []string) (*model.TrimResult, error) {
+	api, err := port[driver.StreamTrimmer](s, connID, model.CapStreamTrim)
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.DeleteEntries(ctx, model.DestinationRef{Name: name}, sequences)
+}
