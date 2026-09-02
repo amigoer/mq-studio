@@ -1,0 +1,56 @@
+name: mq-studio-e2e-pulsar
+
+services:
+  pulsar:
+    # Standalone runs the broker, the bookie and the metadata store in one
+    # process. A real cluster would be four services and prove nothing extra:
+    # the driver talks to a web service URL and a broker port either way.
+    image: apachepulsar/pulsar:4.0.13
+    # apply-config-from-env.py is what turns the PULSAR_PREFIX_* variables
+    # below into conf/standalone.conf. `bin/pulsar standalone` does not run it
+    # on its own, so without this line every setting here is silently ignored
+    # and the broker comes up on its defaults.
+    command:
+      - bash
+      - -c
+      - bin/apply-config-from-env.py conf/standalone.conf && exec bin/pulsar standalone
+    ports:
+      # The binary protocol the data plane dials.
+      - '127.0.0.1:6650:6650'
+      # The web service the admin plane calls.
+      - '127.0.0.1:8080:8080'
+    environment:
+      # Off on purpose. With auto-creation on, browsing a topic that does not
+      # exist creates it, and the tests that assert a listing would pass
+      # against topics they made by looking for them.
+      PULSAR_PREFIX_allowAutoTopicCreation: 'false'
+      # Off, or the broker garbage-collects every seeded topic that has no
+      # subscription and no messages within a minute - and the cross-check
+      # then compares against a namespace that has quietly emptied itself.
+      PULSAR_PREFIX_brokerDeleteInactiveTopicsEnabled: 'false'
+      # The bundle unload tests need more than one bundle to move between.
+      PULSAR_PREFIX_defaultNumberOfNamespaceBundles: '4'
+      # Standalone defaults to NoopLoadManager, which answers 204 to
+      # broker-stats/load-report - so the cluster page's rates would be
+      # untestable here and only break against a real deployment. A real load
+      # manager makes this environment exercise the path the app uses.
+      PULSAR_PREFIX_loadManagerClassName: org.apache.pulsar.broker.loadbalance.impl.ModularLoadManagerImpl
+      PULSAR_MEM: -Xms512m -Xmx1g -XX:MaxDirectMemorySize=512m
+    healthcheck:
+      # Ask the broker whether it considers itself healthy, not whether the
+      # port is open. Standalone binds 8080 well before the broker has
+      # registered itself, and a driver that connects in that window sees a
+      # cluster with no brokers in it.
+      test: ['CMD', 'curl', '-sf', 'http://localhost:8080/admin/v2/brokers/health']
+      interval: 5s
+      timeout: 10s
+      # Standalone boots BookKeeper and the metadata store before the broker,
+      # which is a long way past Kafka's start-up. Five minutes of headroom
+      # is what keeps a cold CI runner from failing on a slow pull.
+      retries: 60
+    volumes:
+      - pulsar-data:/pulsar/data
+    restart: unless-stopped
+
+volumes:
+  pulsar-data:

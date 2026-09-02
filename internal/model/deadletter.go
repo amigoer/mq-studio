@@ -30,6 +30,14 @@ type DeadLetterQueue struct {
 // DeadLetterSource is one queue that dead-letters into another.
 type DeadLetterSource struct {
 	Queue string `json:"queue"`
+	// Subscription is which reader of the source queue dead-lettered, where
+	// the family attaches the policy to a subscriber rather than to the queue.
+	// A Pulsar dead-letter topic is named "<topic>-<subscription>-DLQ", so
+	// without this the page could name the topic and not who gave up on it -
+	// and one topic read by five subscriptions has five separate answers.
+	//
+	// Empty on RabbitMQ, where the policy belongs to the queue itself.
+	Subscription string `json:"subscription"`
 	// Exchange is what the source queue was declared to dead-letter through.
 	Exchange string `json:"exchange"`
 	// RoutingKey is the key the message is re-published with. Empty means the

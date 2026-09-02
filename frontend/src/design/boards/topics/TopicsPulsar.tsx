@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { ListArea, ListPane, Page, PageHeader, SkeletonRows, Toolbar } from "@/design/shell";
+import { useTranslation } from "react-i18next";
+import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import {
   Table,
@@ -14,150 +14,284 @@ import {
 import {
   DetailPanel,
   DetailPanelBody,
-  DetailPanelFooter,
   DetailPanelHeader,
   KV,
+  OutlineTag,
   Panel,
   SectionLabel,
   SelectField,
   Status,
+  toast,
+  useConfirm,
 } from "@/components";
-import { useTranslation } from "react-i18next";
+import { ListArea, ListPane, Page, PageHeader, RefreshButton, Toolbar } from "@/design/shell";
+import { BoardState } from "@/design/boards/BoardState";
+import { useConnectionScope } from "@/mq/ConnectionScope";
+import { usePulsarNamespaces } from "@/hooks/pulsar/usePulsarNamespaces";
+import { usePulsarTopicDetail, usePulsarTopics } from "@/hooks/pulsar/usePulsarTopics";
+import * as pulsarApi from "@/api/pulsar";
+import {
+  averageMessageBytes,
+  isPartitioned,
+  isPersistent,
+  producerCount,
+  reported,
+  storageBytes,
+  topicURL,
+} from "@/mq/pulsar/destinations";
+import { parsePartitions } from "@/mq/pulsar/destinations";
+import { formatBytes, formatCount } from "@/lib/format";
+import { formatErrorMessage } from "@/lib/utils";
+import { TopicDialogPulsar, type PulsarTopicForm } from "./TopicDialogPulsar";
 
-const SHEET_TABS = ["board.common.overview", "board.common.partition", "board.common.subscription", "board.common.policy"] as const;
-const NAME = { fontSize: "11.5px" } as const;
+const R = { textAlign: "right" } as const;
 
-/** Board 12a — Pulsar topics, scoped by a tenant / namespace cascade. */
+/** A figure the driver did not report, drawn as absent rather than as zero. */
+function shown(value: number | null): string {
+  return value == null ? "—" : formatCount(value);
+}
+
+/**
+ * Board 12a — Pulsar topics, scoped by a tenant / namespace cascade.
+ *
+ * The cascade is not a filter bolted on top: a Pulsar topic is addressed as
+ * tenant/namespace/name, so a listing with no namespace has no scope at all.
+ * That is why the namespace selector sits in the toolbar rather than in an
+ * advanced panel, and why it defaults to the one the connection was configured
+ * with.
+ *
+ * Two columns exist here that no other family has. Persistence is a property
+ * of the topic and decides whether anything is kept at all - a non-persistent
+ * topic drops a message nobody is connected to receive - and it is part of
+ * every address the driver builds. Partitioned is a shape rather than a count:
+ * a non-partitioned topic can never become partitioned, and a partitioned one
+ * with a single partition can grow.
+ */
 export function TopicsPulsar() {
-  const [persistentOnly, setPersistentOnly] = useState(true);
-  const [selected, setSelected] = useState<string | null>(null);
-  const [tab, setTab] = useState<string>(SHEET_TABS[0]);
-
   const { t } = useTranslation();
+  const { id: connID } = useConnectionScope();
+  const confirm = useConfirm();
+
+  const namespaces = usePulsarNamespaces();
+  const [namespace, setNamespace] = useState("");
+  const [includeInternal, setIncludeInternal] = useState(false);
+  const [selected, setSelected] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+
+  const scope = namespace || (namespaces.data?.[0]?.name ?? "");
+  const state = usePulsarTopics(scope);
+  const topics = (state.data ?? []).filter(
+    (topic) => includeInternal || !topic.ref.name.startsWith("__"),
+  );
+  const detail = usePulsarTopicDetail(scope, selected);
+
+  const create = async (form: PulsarTopicForm) => {
+    const partitions = parsePartitions(form.partitions);
+    if ("error" in partitions) return;
+    await pulsarApi.createPulsarTopic(connID, {
+      namespace: scope,
+      name: form.name,
+      partitions: partitions.value,
+      persistent: form.persistent,
+    } as pulsarApi.PulsarTopicInput);
+    await state.refresh();
+    toast.success(t("board.topics.pulsar.created", { name: form.name }));
+  };
+
+  const remove = async (name: string) => {
+    const ok = await confirm({
+      title: t("board.topics.pulsar.deleteTitle"),
+      description: t("board.topics.pulsar.deleteBody", { name }),
+      confirmLabel: t("board.common.delete"),
+      danger: true,
+    });
+    if (!ok) return;
+    try {
+      await pulsarApi.removePulsarTopic(connID, scope, name);
+      setSelected(null);
+      await state.refresh();
+      toast.success(t("board.topics.pulsar.deleted", { name }));
+    } catch (failure) {
+      // Pulsar refuses while a producer or consumer is still attached. That is
+      // the message worth showing: it names what has to be dealt with first.
+      toast.error(formatErrorMessage(failure));
+    }
+  };
+
   return (
     <Page>
       <PageHeader
-        title="Topic"
-        subtitle={t("board.topics.pulsar.subtitle")}
-        actions={<Button>{t("board.common.newTopic")}</Button>}
+        title={t("board.topics.pulsar.title")}
+        subtitle={scope}
+        actions={
+          <>
+            <Button size="sm" onClick={() => setCreating(true)} disabled={!state.online}>
+              <Plus size={14} aria-hidden />
+              {t("board.topics.pulsar.new")}
+            </Button>
+            <RefreshButton
+              refreshing={state.refreshing}
+              online={state.online}
+              onClick={() => void state.refresh()}
+            />
+          </>
+        }
       />
       <Toolbar>
-        <SelectField value="opt" options={[{ value: "opt", label: t("board.topics.pulsar.tenant") }]} />
-        <SelectField value="opt" options={[{ value: "opt", label: t("board.topics.pulsar.namespace") }]} />
-        <Input className="w-[180px] flex-none" placeholder={t("board.topics.pulsar.searchTopic")} />
-        <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11.5px", color: "var(--c-mono-dim)" }}>
-          <Switch checked={persistentOnly} onCheckedChange={setPersistentOnly} />
-          {t("board.topics.pulsar.persistentOnly")}
-        </span>
-        <span className="flex-1" />
-        <SelectField value="opt" options={[{ value: "opt", label: t("board.common.sortByPending") }]} />
+        <SelectField
+          value={scope}
+          options={(namespaces.data ?? []).map((entry) => ({
+            value: entry.name,
+            label: entry.name,
+          }))}
+          onValueChange={(next) => {
+            setNamespace(next);
+            setSelected(null);
+          }}
+        />
+        <label className="flex items-center gap-2 text-xs text-muted-foreground">
+          <Switch checked={includeInternal} onCheckedChange={setIncludeInternal} />
+          {t("board.topics.pulsar.includeInternal")}
+        </label>
       </Toolbar>
+      <BoardState state={state}>
+        <ListArea>
+          <ListPane>
+            <Panel>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t("board.topics.pulsar.name")}</TableHead>
+                    <TableHead>{t("board.topics.pulsar.storage")}</TableHead>
+                    <TableHead style={R}>{t("board.topics.pulsar.partitions")}</TableHead>
+                    <TableHead style={R}>{t("board.topics.pulsar.backlog")}</TableHead>
+                    <TableHead style={R}>{t("board.topics.pulsar.subscriptions")}</TableHead>
+                    <TableHead style={R}>{t("board.topics.pulsar.size")}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {topics.map((topic) => (
+                    <TableRow
+                      key={topic.ref.name}
+                      data-state={topic.ref.name === selected ? "selected" : undefined}
+                      onClick={() => setSelected(topic.ref.name)}
+                    >
+                      <TableCell className="mono3">{topic.ref.name}</TableCell>
+                      <TableCell>
+                        {isPersistent(topic) ? (
+                          <OutlineTag>persistent</OutlineTag>
+                        ) : (
+                          /* Warned rather than tagged: this topic keeps
+                             nothing, so a message nobody is connected to
+                             receive is gone, and that is worth reading as a
+                             property and not a label. */
+                          <Status tone="warn">non-persistent</Status>
+                        )}
+                      </TableCell>
+                      <TableCell style={R}>
+                        {isPartitioned(topic)
+                          ? shown(reported(topic.partitions))
+                          : t("board.topics.pulsar.notPartitioned")}
+                      </TableCell>
+                      <TableCell style={R}>{shown(reported(Number(topic.depth)))}</TableCell>
+                      <TableCell style={R}>{shown(reported(topic.subscribers))}</TableCell>
+                      <TableCell style={R}>
+                        {storageBytes(topic) == null
+                          ? "—"
+                          : formatBytes(storageBytes(topic) ?? 0)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </Panel>
+          </ListPane>
 
-      <ListArea>
-        <ListPane>
-          <Table inset>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Topic</TableHead>
-                <TableHead style={{ textAlign: "right" }}>{t("board.common.partition")}</TableHead>
-                <TableHead style={{ textAlign: "right" }}>{t("board.topics.pulsar.producers")}</TableHead>
-                <TableHead style={{ textAlign: "right" }}>{t("board.common.subscription")}</TableHead>
-                <TableHead style={{ textAlign: "right" }}>{t("board.common.inRate")}</TableHead>
-                <TableHead style={{ textAlign: "right" }}>{t("board.common.pending")}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              <TableRow selected={selected === "order-created"} onClick={() => setSelected("order-created")}>
-                <TableCell>
-                  <b className="mono3" style={{ fontWeight: 500, fontSize: "11.5px" }}>
-                    persistent://ecommerce/orders/order-created
-                  </b>
-                </TableCell>
-                <TableCell className="mono3" style={{ textAlign: "right" }}>8</TableCell>
-                <TableCell className="mono3" style={{ textAlign: "right" }}>4</TableCell>
-                <TableCell className="mono3" style={{ textAlign: "right" }}>3</TableCell>
-                <TableCell className="mono3" style={{ textAlign: "right" }}>1 104/s</TableCell>
-                <TableCell className="mono3" style={{ textAlign: "right", color: "var(--c-warn-text)" }}>6 591</TableCell>
-              </TableRow>
-              <TableRow selected={selected === "payment-captured"} onClick={() => setSelected("payment-captured")}>
-                <TableCell className="mono3" style={NAME}>persistent://ecommerce/orders/payment-captured</TableCell>
-                <TableCell className="mono3" style={{ textAlign: "right" }}>4</TableCell>
-                <TableCell className="mono3" style={{ textAlign: "right" }}>2</TableCell>
-                <TableCell className="mono3" style={{ textAlign: "right" }}>2</TableCell>
-                <TableCell className="mono3" style={{ textAlign: "right" }}>880/s</TableCell>
-                <TableCell className="mono3" style={{ textAlign: "right" }}>1 830</TableCell>
-              </TableRow>
-              <TableRow selected={selected === "metrics-tick"} onClick={() => setSelected("metrics-tick")}>
-                <TableCell className="mono3" style={{ ...NAME, color: "var(--c-muted)" }}>
-                  non-persistent://ecommerce/orders/metrics-tick
-                </TableCell>
-                <TableCell className="mono3" style={{ textAlign: "right", color: "var(--c-muted)" }}>1</TableCell>
-                <TableCell className="mono3" style={{ textAlign: "right", color: "var(--c-muted)" }}>1</TableCell>
-                <TableCell className="mono3" style={{ textAlign: "right", color: "var(--c-muted)" }}>1</TableCell>
-                <TableCell className="mono3" style={{ textAlign: "right", color: "var(--c-muted)" }}>2 400/s</TableCell>
-                <TableCell className="mono3" style={{ textAlign: "right", color: "var(--c-muted)" }}>—</TableCell>
-              </TableRow>
-              <SkeletonRows colSpan={6} widths={["70%", "52%"]} />
-            </TableBody>
-          </Table>
-        </ListPane>
+          {selected != null && (
+            <DetailPanel>
+              <DetailPanelHeader title={selected} onClose={() => setSelected(null)} />
+              <DetailPanelBody>
+                <BoardState state={detail}>
+                  {detail.data != null && (
+                    <>
+                      <KV
+                        rows={[
+                          [
+                            t("board.topics.pulsar.address"),
+                            <span className="mono3">{topicURL(detail.data.topic)}</span>,
+                          ],
+                          [
+                            t("board.topics.pulsar.producers"),
+                            shown(producerCount(detail.data.topic)),
+                          ],
+                          [
+                            t("board.topics.pulsar.averageSize"),
+                            averageMessageBytes(detail.data.topic) == null
+                              ? "—"
+                              : formatBytes(averageMessageBytes(detail.data.topic) ?? 0),
+                          ],
+                        ]}
+                      />
 
-        {selected != null && (
-          <DetailPanel width={390} onDismiss={() => setSelected(null)}>
-            <DetailPanelHeader
-              title={selected}
-              badge={<Status tone="off" style={{ fontSize: "10px" }}>{t("board.topics.pulsar.eightParts")}</Status>}
-              tabs={SHEET_TABS.map((id) => ({ id, label: t(id) }))}
-              activeTab={tab}
-              onTabChange={setTab}
-              onClose={() => setSelected(null)}
-            />
-            <DetailPanelBody>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-                <Panel style={{ padding: "9px 12px" }}>
-                  <div style={{ fontSize: "10.5px", color: "var(--c-muted)" }}>{t("board.topics.pulsar.inOut")}</div>
-                  <div className="mono3" style={{ fontSize: "15px", fontWeight: 600, marginTop: "2px" }}>
-                    1 104 / 2 987
-                  </div>
-                </Panel>
-                <Panel style={{ padding: "9px 12px" }}>
-                  <div style={{ fontSize: "10.5px", color: "var(--c-muted)" }}>{t("board.topics.pulsar.storageSize")}</div>
-                  <div className="mono3" style={{ fontSize: "15px", fontWeight: 600, marginTop: "2px" }}>
-                    18.2 GB
-                  </div>
-                </Panel>
-              </div>
+                      {detail.data.partitions.length > 0 && (
+                        <>
+                          <SectionLabel>{t("board.topics.pulsar.perPartition")}</SectionLabel>
+                          {/* The view that shows one partition carrying the
+                              whole topic, which a total cannot. */}
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>{t("board.topics.pulsar.partition")}</TableHead>
+                                <TableHead style={R}>
+                                  {t("board.topics.pulsar.backlog")}
+                                </TableHead>
+                                <TableHead style={R}>{t("board.topics.pulsar.size")}</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {detail.data.partitions.map((partition) => (
+                                <TableRow key={partition.name}>
+                                  <TableCell className="mono3">
+                                    {partition.name.split("/").pop()}
+                                  </TableCell>
+                                  <TableCell style={R}>{shown(partition.backlog)}</TableCell>
+                                  <TableCell style={R}>
+                                    {partition.storageSize == null
+                                      ? "—"
+                                      : formatBytes(partition.storageSize)}
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </>
+                      )}
 
-              <div>
-                <SectionLabel style={{ marginBottom: "6px" }}>{t("board.topics.pulsar.policies")}</SectionLabel>
-                <KV
-                  rows={[
-                    [t("board.topics.pulsar.ttl"), t("board.topics.pulsar.sevenDays")],
-                    [t("board.topics.pulsar.retention"), t("board.topics.pulsar.retentionValue")],
-                    [t("board.topics.pulsar.backlogQuota"), t("board.topics.pulsar.quotaValue")],
-                    ["Schema", t("board.topics.pulsar.schema")],
-                  ]}
-                />
-              </div>
+                      <div className="flex justify-end">
+                        <Button
+                          size="xs"
+                          variant="outline"
+                          onClick={() => void remove(selected)}
+                        >
+                          <Trash2 size={13} aria-hidden />
+                          {t("board.common.delete")}
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                </BoardState>
+              </DetailPanelBody>
+            </DetailPanel>
+          )}
+        </ListArea>
+      </BoardState>
 
-              <div>
-                <SectionLabel style={{ marginBottom: "6px" }}>{t("board.common.subscription")}</SectionLabel>
-                <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-                  <Status tone="warn">settle-sub · 6 210</Status>
-                  <Status tone="ok">notify-sub</Status>
-                  <Status tone="ok">audit-sub</Status>
-                </div>
-              </div>
-            </DetailPanelBody>
-            <DetailPanelFooter>
-              <Button variant="outline">{t("board.common.viewMessages")}</Button>
-              <Button variant="outline">{t("board.topics.pulsar.unload")}</Button>
-              <span className="flex-1" />
-              <Button variant="destructive">{t("board.common.delete")}</Button>
-            </DetailPanelFooter>
-          </DetailPanel>
-        )}
-      </ListArea>
+      <TopicDialogPulsar
+        open={creating}
+        namespace={scope}
+        onClose={() => setCreating(false)}
+        onSubmit={create}
+      />
     </Page>
   );
 }

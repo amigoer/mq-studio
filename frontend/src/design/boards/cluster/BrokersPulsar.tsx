@@ -1,5 +1,6 @@
-import { Page, PageBody, PageHeader } from "@/design/shell";
-import { Button } from "@/components/ui/button";
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { ListArea, ListPane, Page, PageHeader, RefreshButton } from "@/design/shell";
 import {
   Table,
   TableBody,
@@ -9,129 +10,260 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  DetailPanel,
+  DetailPanelBody,
+  DetailPanelHeader,
+  KV,
+  MeterRow,
+  MiniStat,
   Panel,
+  SectionLabel,
   Status,
+  WarnBanner,
 } from "@/components";
-import { Metric, NODE_GRID, NodeCard, TABLE_CARD } from "./_shared";
-import { useTranslation } from "react-i18next";
+import { BoardState } from "@/design/boards/BoardState";
+import {
+  usePulsarBrokerConfig,
+  usePulsarCluster,
+  usePulsarMetadataStore,
+} from "@/hooks/pulsar/usePulsarCluster";
+import { formatCount } from "@/lib/format";
+import {
+  brokerServiceURL,
+  brokerVersion,
+  bundleCount,
+  clusterName,
+  consumerCount,
+  cpuPercent,
+  directMemoryPercent,
+  isDescribed,
+  isLeader,
+  memoryPercent,
+  producerCount,
+  topicCount,
+} from "@/mq/pulsar/cluster";
 
-const TAG = { fontSize: "10px" } as const;
-const MONO11 = { fontSize: "11px" } as const;
+const R = { textAlign: "right" } as const;
 
-/** Board 17c — Pulsar's two tiers: broker load above, bookie storage below. */
+/** A figure the load manager did not report, drawn as absent, never as zero. */
+function reported(value: number | null): string {
+  return value == null ? "—" : formatCount(value);
+}
+
+/**
+ * Board 15c — Pulsar brokers.
+ *
+ * Pulsar brokers are peers. There is no master and slave to colour the rows
+ * by, no replica set to show trailing behind a leader, and no disk figure at
+ * all - the messages are BookKeeper's and this admin API is the broker's.
+ *
+ * So the page is about load rather than topology, which is what an operator
+ * actually opens it for on this family: who holds which bundles, and is one
+ * broker carrying the cluster. The rows the load manager did not describe say
+ * so rather than showing dashes with no explanation - behind a load balancer
+ * it describes whichever broker answered, and the rest cannot be asked
+ * through this connection.
+ */
 export function BrokersPulsar() {
   const { t } = useTranslation();
+  const state = usePulsarCluster();
+  const [selected, setSelected] = useState<string | null>(null);
+
+  const overview = state.data?.overview ?? null;
+  const nodes = state.data?.nodes ?? [];
+  const node = nodes.find((candidate) => candidate.address === selected) ?? null;
+
+  const config = usePulsarBrokerConfig(node != null ? node.address : null);
+  const metadata = usePulsarMetadataStore(node != null);
+
+  const undescribed = nodes.filter((candidate) => !isDescribed(candidate)).length;
+
   return (
     <Page>
       <PageHeader
-        title="Broker / Bookie"
-        subtitle="Pulsar 3.2 · Broker 3 · Bookie 4"
-        actions={<Button variant="outline">{t("board.common.refresh")}</Button>}
+        title={t("board.cluster.pulsar.title")}
+        subtitle={overview != null ? clusterName(overview) : ""}
+        actions={
+          <RefreshButton
+            refreshing={state.refreshing}
+            online={state.online}
+            onClick={() => void state.refresh()}
+          />
+        }
       />
-      <PageBody style={{ gap: "12px" }}>
-        <div className={NODE_GRID}>
-          <NodeCard
-            name="broker-1"
-            badges={<Status tone="ok" style={TAG}>Broker</Status>}
-            address="6650"
-            metrics={
-              <>
-                <Metric label="Topic" value="82" />
-                <Metric label={t("board.common.in")} value="720/s" />
-                <Metric label={t("board.common.out")} value="804/s" />
-              </>
-            }
-            meters={[{ label: t("board.cluster.pulsar.load44"), value: 44 }]}
-          />
-          <NodeCard
-            name="broker-2"
-            badges={<Status tone="ok" style={TAG}>Broker</Status>}
-            address="6650"
-            metrics={
-              <>
-                <Metric label="Topic" value="76" />
-                <Metric label={t("board.common.in")} value="648/s" />
-                <Metric label={t("board.common.out")} value="701/s" />
-              </>
-            }
-            meters={[{ label: t("board.cluster.pulsar.load41"), value: 41 }]}
-          />
-          <NodeCard
-            name="bookie-1 / 2"
-            badges={<Status tone="ok" style={TAG}>Bookie</Status>}
-            address="3181"
-            metrics={
-              <>
-                <Metric label={t("board.cluster.pulsar.writeLatency")} value="1.8ms" />
-                <Metric label={t("board.cluster.pulsar.readLatency")} value="0.9ms" />
-              </>
-            }
-            meters={[
-              { label: t("board.cluster.pulsar.store58"), value: 58 },
-              { label: t("board.cluster.pulsar.store61"), value: 61 },
-            ]}
-          />
-          <NodeCard
-            name="bookie-3 / 4"
-            badges={
-              <>
-                <Status tone="ok" style={TAG}>Bookie</Status>
-                <Status tone="warn" style={TAG}>bookie-4 73%</Status>
-              </>
-            }
-            address="3181"
-            metrics={
-              <>
-                <Metric label={t("board.cluster.pulsar.writeLatency")} value="2.1ms" />
-                <Metric label={t("board.cluster.pulsar.readLatency")} value="1.0ms" />
-              </>
-            }
-            meters={[
-              { label: t("board.cluster.pulsar.store57"), value: 57 },
-              { label: t("board.cluster.pulsar.store73"), value: 73, color: "var(--c-warn)" },
-            ]}
-          />
-        </div>
+      <BoardState state={state}>
+        <ListArea>
+          <ListPane>
+            {undescribed > 0 && (
+              <WarnBanner>
+                {t("board.cluster.pulsar.undescribed", { count: undescribed })}
+              </WarnBanner>
+            )}
+            <Panel>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t("board.common.address")}</TableHead>
+                    <TableHead>{t("board.common.status")}</TableHead>
+                    <TableHead>{t("board.common.version")}</TableHead>
+                    <TableHead style={R}>{t("board.cluster.pulsar.bundles")}</TableHead>
+                    <TableHead style={R}>Topic</TableHead>
+                    <TableHead style={R}>CPU</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {nodes.map((row) => (
+                    <TableRow
+                      key={row.address}
+                      data-state={row.address === selected ? "selected" : undefined}
+                      onClick={() => setSelected(row.address)}
+                    >
+                      <TableCell className="mono3">
+                        {row.address}
+                        {isLeader(row) && (
+                          <span className="ml-2 text-(--c-muted)">
+                            {t("board.cluster.pulsar.leader")}
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Status tone="ok" dot>
+                          {t("board.common.online")}
+                        </Status>
+                      </TableCell>
+                      <TableCell className="mono3">{brokerVersion(row) || "—"}</TableCell>
+                      <TableCell style={R}>{reported(bundleCount(row))}</TableCell>
+                      <TableCell style={R}>{reported(topicCount(row))}</TableCell>
+                      <TableCell style={R}>
+                        {cpuPercent(row) == null ? "—" : `${String(cpuPercent(row))}%`}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </Panel>
+          </ListPane>
 
-        <Panel style={TABLE_CARD}>
-          <div
-            style={{
-              padding: "11px 16px",
-              borderBottom: "1px solid var(--c-border)",
-              display: "flex",
-              alignItems: "center",
-            }}
-          >
-            <b style={{ fontSize: "12.5px" }}>{t("board.cluster.pulsar.bundles")}</b>
-            <span className="flex-1" />
-            <span style={{ fontSize: "11.5px", color: "var(--c-fg-2)" }}>{t("board.cluster.pulsar.rebalance")}</span>
-          </div>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t("board.common.namespace")}</TableHead>
-                <TableHead style={{ textAlign: "right" }}>bundle</TableHead>
-                <TableHead>{t("board.cluster.pulsar.distribution")}</TableHead>
-                <TableHead style={{ textAlign: "right" }}>{t("board.common.throughputShort")}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              <TableRow>
-                <TableCell className="mono3" style={MONO11}>ecommerce/orders</TableCell>
-                <TableCell className="mono3" style={{ textAlign: "right" }}>16</TableCell>
-                <TableCell className="mono3" style={MONO11}>b1×6 · b2×5 · b3×5</TableCell>
-                <TableCell className="mono3" style={{ textAlign: "right" }}>1.8k/s</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell className="mono3" style={MONO11}>ecommerce/payments</TableCell>
-                <TableCell className="mono3" style={{ textAlign: "right" }}>8</TableCell>
-                <TableCell className="mono3" style={MONO11}>b1×3 · b2×3 · b3×2</TableCell>
-                <TableCell className="mono3" style={{ textAlign: "right" }}>880/s</TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </Panel>
-      </PageBody>
+          {node != null && (
+            <DetailPanel>
+              <DetailPanelHeader title={node.address} onClose={() => setSelected(null)} />
+              <DetailPanelBody>
+                {!isDescribed(node) ? (
+                  <WarnBanner>{t("board.cluster.pulsar.notDescribed")}</WarnBanner>
+                ) : (
+                  <>
+                    <SectionLabel>{t("board.cluster.pulsar.load")}</SectionLabel>
+                    <div className="flex gap-3">
+                      <MiniStat
+                        label={t("board.cluster.pulsar.bundles")}
+                        value={reported(bundleCount(node))}
+                      />
+                      <MiniStat label="Topic" value={reported(topicCount(node))} />
+                      <MiniStat
+                        label={t("board.cluster.pulsar.producers")}
+                        value={reported(producerCount(node))}
+                      />
+                      <MiniStat
+                        label={t("board.cluster.pulsar.consumers")}
+                        value={reported(consumerCount(node))}
+                      />
+                    </div>
+
+                    <SectionLabel>{t("board.cluster.pulsar.resources")}</SectionLabel>
+                    {/* CPU is reported scaled across every core, so the broker's
+                        own limit is what turns it into a percentage. Direct
+                        memory is separate from the heap and is where Pulsar
+                        holds its network buffers, which is why it is worth its
+                        own row rather than folded into memory. */}
+                    <Meter label="CPU" percent={cpuPercent(node)} />
+                    <Meter
+                      label={t("board.cluster.pulsar.memory")}
+                      percent={memoryPercent(node)}
+                    />
+                    <Meter
+                      label={t("board.cluster.pulsar.directMemory")}
+                      percent={directMemoryPercent(node)}
+                    />
+                  </>
+                )}
+
+                <SectionLabel>{t("board.cluster.pulsar.endpoints")}</SectionLabel>
+                <KV
+                  rows={[
+                    [
+                      t("board.cluster.pulsar.serviceUrl"),
+                      <span className="mono3">{brokerServiceURL(node) || "—"}</span>,
+                    ],
+                    [
+                      t("board.cluster.pulsar.metadataStore"),
+                      <span className="mono3">
+                        {metadata.data?.["metadataStoreUrl"] ?? "—"}
+                      </span>,
+                    ],
+                    [
+                      t("board.cluster.pulsar.ledgersRootPath"),
+                      <span className="mono3">{metadata.data?.["ledgersRootPath"] ?? "—"}</span>,
+                    ],
+                  ]}
+                />
+
+                <SectionLabel>{t("board.cluster.pulsar.configuration")}</SectionLabel>
+                {/* Pulsar has no per-broker admin endpoint: every call goes to
+                    the web service address this profile names, and it answers
+                    for whichever broker served it. Saying so is better than a
+                    panel that implies these are this row's settings. */}
+                <p className="text-xs text-muted-foreground">
+                  {t("board.cluster.pulsar.configurationNote")}
+                </p>
+                <KV
+                  rows={notableConfig(config.data).map(([key, value]) => [
+                    <span className="mono3">{key}</span>,
+                    <span className="mono3">{value}</span>,
+                  ])}
+                />
+              </DetailPanelBody>
+            </DetailPanel>
+          )}
+        </ListArea>
+      </BoardState>
     </Page>
   );
+}
+
+/**
+ * A resource meter whose bar and figure both say "not reported".
+ *
+ * MeterRow defaults its label to `${value}%`, so a missing percentage passed
+ * as 0 draws an empty bar reading "0%" - which is a claim that the broker is
+ * idle, not that nobody asked. Only the second is true when the load manager
+ * described a different broker.
+ */
+function Meter({ label, percent }: { label: string; percent: number | null }) {
+  return <MeterRow label={label} value={percent ?? 0} display={percent == null ? "—" : `${String(percent)}%`} />;
+}
+
+/**
+ * The handful of settings worth a panel, out of the several hundred a broker
+ * reports.
+ *
+ * A full dump belongs behind a search box, not in a detail panel; these are
+ * the ones that change what the other pages can do, so an empty topics list or
+ * a refused create is explained here rather than guessed at.
+ */
+const NOTABLE = [
+  "clusterName",
+  "allowAutoTopicCreation",
+  "allowAutoTopicCreationType",
+  "brokerDeleteInactiveTopicsEnabled",
+  "defaultNumberOfNamespaceBundles",
+  "loadManagerClassName",
+  "authenticationEnabled",
+  "authorizationEnabled",
+] as const;
+
+function notableConfig(
+  config: Record<string, string | undefined> | null | undefined,
+): [string, string][] {
+  if (config == null) return [];
+  return NOTABLE.filter((key) => config[key] != null).map((key) => [key, config[key] ?? ""]);
 }

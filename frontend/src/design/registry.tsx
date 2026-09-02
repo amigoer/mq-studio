@@ -11,15 +11,16 @@ import { OverviewMqtt } from "./boards/overview/OverviewMqtt";
 
 import { TopicsRocketMQ } from "./boards/topics/TopicsRocketMQ";
 import { TopicsKafka } from "./boards/topics/TopicsKafka";
+import { TopicsPulsar } from "./boards/topics/TopicsPulsar";
 import { QueuesRabbitMQ } from "./boards/topics/QueuesRabbitMQ";
 import { ExchangesRabbitMQ } from "./boards/topics/ExchangesRabbitMQ";
 import { VhostsRabbitMQ } from "./boards/vhosts/VhostsRabbitMQ";
+import { NamespacesPulsar } from "./boards/vhosts/NamespacesPulsar";
 import { UsersRabbitMQ } from "./boards/acl/UsersRabbitMQ";
 import { PoliciesRabbitMQ } from "./boards/policies/PoliciesRabbitMQ";
 import { DefinitionsRabbitMQ } from "./boards/definitions/DefinitionsRabbitMQ";
 import { ReplicationRabbitMQ } from "./boards/replication/ReplicationRabbitMQ";
 import { TopicsMqtt } from "./boards/topics/TopicsMqtt";
-import { TopicsPulsar } from "./boards/topics/TopicsPulsar";
 import { StreamsRedis } from "./boards/topics/StreamsRedis";
 
 import { ConsumersRocketMQ } from "./boards/consumers/ConsumersRocketMQ";
@@ -32,8 +33,8 @@ import { ChannelsRabbitMQ } from "./boards/consumers/ChannelsRabbitMQ";
 
 import { MessagesRocketMQ } from "./boards/messages/MessagesRocketMQ";
 import { MessagesKafka } from "./boards/messages/MessagesKafka";
-import { MessagesRabbitMQ } from "./boards/messages/MessagesRabbitMQ";
 import { MessagesPulsar } from "./boards/messages/MessagesPulsar";
+import { MessagesRabbitMQ } from "./boards/messages/MessagesRabbitMQ";
 import { MessagesRedis } from "./boards/messages/MessagesRedis";
 
 import { DlqRocketMQ } from "./boards/dlq/DlqRocketMQ";
@@ -44,18 +45,20 @@ import { PelRedis } from "./boards/dlq/PelRedis";
 import { Producer } from "./boards/producer/Producer";
 import { ProducerKafka } from "./boards/producer/ProducerKafka";
 import { ProducerMqtt } from "./boards/producer/ProducerMqtt";
+import { ProducerPulsar } from "./boards/producer/ProducerPulsar";
 import { ProducerRabbitMQ } from "./boards/producer/ProducerRabbitMQ";
 import { ProducerRedis } from "./boards/producer/ProducerRedis";
 import { Alerts } from "./boards/alerts/Alerts";
 import { Acl } from "./boards/acl/Acl";
 import { AclKafka } from "./boards/acl/AclKafka";
+import { TokensPulsar } from "./boards/acl/TokensPulsar";
 import { AclRedis } from "./boards/acl/AclRedis";
 import { QuotasKafka } from "./boards/quotas/QuotasKafka";
 
 import { ClusterRocketMQ } from "./boards/cluster/ClusterRocketMQ";
 import { BrokersKafka } from "./boards/cluster/BrokersKafka";
-import { NodesRabbitMQ } from "./boards/cluster/NodesRabbitMQ";
 import { BrokersPulsar } from "./boards/cluster/BrokersPulsar";
+import { NodesRabbitMQ } from "./boards/cluster/NodesRabbitMQ";
 import { NodeRedis } from "./boards/cluster/NodeRedis";
 import { NodesMqtt } from "./boards/cluster/NodesMqtt";
 
@@ -114,7 +117,7 @@ const BOARDS: Partial<
     mqtt: TopicsMqtt,
   },
   exchanges: { rabbitmq: ExchangesRabbitMQ },
-  vhosts: { rabbitmq: VhostsRabbitMQ },
+  vhosts: { rabbitmq: VhostsRabbitMQ, pulsar: NamespacesPulsar },
   policies: { rabbitmq: PoliciesRabbitMQ },
   definitions: { rabbitmq: DefinitionsRabbitMQ },
   replication: { rabbitmq: ReplicationRabbitMQ },
@@ -164,6 +167,10 @@ export function renderBoard(
   if (page === "producer") {
     if (protocol === "rabbitmq") return <ProducerRabbitMQ />;
     if (protocol === "kafka") return <ProducerKafka />;
+    /* Pulsar's own too: the shared console collects tags and a RocketMQ delay
+       level, and this family has no tag at all - what a RocketMQ producer puts
+       in one, a Pulsar producer puts in a property. */
+    if (protocol === "pulsar") return <ProducerPulsar />;
     if (protocol === "redis") return <ProducerRedis />;
     if (protocol === "mqtt") return <ProducerMqtt />;
     return <Producer protocol={protocol} nav={nav} />;
@@ -179,6 +186,10 @@ export function renderBoard(
     if (protocol === "rocketmq") return <Acl />;
     if (protocol === "rabbitmq") return <UsersRabbitMQ />;
     if (protocol === "kafka") return <AclKafka />;
+    /* Pulsar has no users at all: it authorises the subject of a token and
+       keeps no directory of them, so the page lists grants rather than
+       accounts and is named for what it is. */
+    if (protocol === "pulsar") return <TokensPulsar />;
     if (protocol === "redis") return <AclRedis />;
   }
 

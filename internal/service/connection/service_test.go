@@ -1,6 +1,7 @@
 package connection
 
 import (
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -441,6 +442,69 @@ func TestKafkaDroppingSASLClearsTheStoredCredential(t *testing.T) {
 	}
 	if stored.Secret("password") != "" {
 		t.Errorf("the password outlived the mechanism that used it")
+	}
+}
+
+/*
+ * Pulsar's token has to survive the disk, not only the form.
+ *
+ * The connection form's test button probes the profile it was handed, never
+ * the stored one, so a credential that is dropped on save passes on the way in
+ * and fails on the next start. That is exactly how the pre-2026-08-31 layer
+ * lost every family's secrets but RocketMQ's, and a driver whose whole
+ * authentication is one bearer token has nothing left when it goes.
+ */
+func TestPulsarTokenSurvivesAReload(t *testing.T) {
+	service := newTestService(t, nil)
+	input := model.ConnectionProfile{
+		Name: "Pulsar", Kind: model.KindPulsar,
+		Endpoints: "pulsar://127.0.0.1:6650", TimeoutSec: 5,
+		Auth:    model.AuthConfig{Mechanism: model.AuthToken},
+		Options: map[string]string{"adminUrl": "http://127.0.0.1:8080"},
+	}
+	input.SetSecret("token", "a-jwt")
+	added, err := service.AddConnection(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	reopened := New(service.dataFilePath, fakeSettings{}, noopRuntime{})
+	stored, err := reopened.GetConnection(added.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stored.Secret("token") != "a-jwt" {
+		t.Errorf("token after reload = %q", stored.Secret("token"))
+	}
+	if stored.Auth.Mechanism != model.AuthToken {
+		t.Errorf("mechanism after reload = %q, want token", stored.Auth.Mechanism)
+	}
+	// The two addresses are separate listeners, and the admin one lives in
+	// Options. A profile that came back without it can dial and read nothing.
+	if stored.Option("adminUrl") != "http://127.0.0.1:8080" {
+		t.Errorf("admin URL after reload = %q", stored.Option("adminUrl"))
+	}
+}
+
+// The token is stored encrypted, so the file must not be readable as one.
+func TestPulsarTokenIsNotStoredInTheClear(t *testing.T) {
+	service := newTestService(t, nil)
+	input := model.ConnectionProfile{
+		Name: "Pulsar", Kind: model.KindPulsar,
+		Endpoints: "pulsar://127.0.0.1:6650", TimeoutSec: 5,
+		Auth: model.AuthConfig{Mechanism: model.AuthToken},
+	}
+	input.SetSecret("token", "a-very-secret-jwt")
+	if _, err := service.AddConnection(input); err != nil {
+		t.Fatal(err)
+	}
+
+	written, err := os.ReadFile(service.dataFilePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(written), "a-very-secret-jwt") {
+		t.Error("the token is on disk in the clear")
 	}
 }
 

@@ -64,6 +64,12 @@ const requires: Record<string, Capability | Capability[]> = {
     Capability.CapAccessControl,
     Capability.CapIdentityList,
     Capability.CapAccessDirectory,
+    /* Pulsar has no principal store to enumerate: it authorises the subject of
+       a token, and the cluster keeps no directory of them. What it has is
+       grants, so the page is reachable through the permissions capability
+       alone - without this entry a family that can read and write every grant
+       on the cluster would have no page to draw them on. */
+    Capability.CapIdentityPermissions,
     Capability.CapAclUsers,
   ],
   // Alerts needs no particular capability, only a connection to draw metrics

@@ -1,4 +1,5 @@
-import { Page, PageBody } from "@/design/shell";
+import { useTranslation } from "react-i18next";
+import { Page, PageBody, PageHeader, RefreshButton } from "@/design/shell";
 import {
   Table,
   TableBody,
@@ -7,90 +8,176 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { KV, Panel, PanelHeader, StatTile, Status } from "@/components";
+import { BoardState } from "@/design/boards/BoardState";
+import { usePulsarCluster } from "@/hooks/pulsar/usePulsarCluster";
+import { formatCount } from "@/lib/format";
 import {
-  ChartBox,
-  MeterRow,
-  Panel,
-  PanelHeader,
-  StatTile,
-} from "@/components";
-import { CHART_CARD, CHART_ROW, KPI_GRID, NAME_CELL, OverviewHeader, TABLE_CARD, ViewAll } from "./_shared";
-import { useTranslation } from "react-i18next";
+  brokerVersion,
+  bundleCount,
+  clusterBrokerServiceURL,
+  clusterName,
+  clusterServiceURL,
+  consumerCount,
+  isDescribed,
+  isLeader,
+  metadataStore,
+  producerCount,
+  topicCount,
+} from "@/mq/pulsar/cluster";
+import { KPI_GRID, TABLE_CARD } from "./_shared";
 
-/** Board 11c — Pulsar overview. Two storage tiers: brokers and bookies. */
+/** A count the cluster did not report, drawn as absent rather than as zero. */
+function reported(value: number | null): string {
+  return value == null ? "—" : formatCount(value);
+}
+
+/**
+ * Board 11c — Pulsar overview.
+ *
+ * The canvas drew a broker/bookie pair, a namespace count, a topic count and a
+ * cluster-wide pending total. Two of them survive; two do not, and what
+ * replaced them is the honest part of this page.
+ *
+ * There is no bookie figure, because the admin API this driver speaks is the
+ * broker's: BookKeeper has its own and Pulsar does not proxy it. There is no
+ * cluster topic total either - counting topics means walking every namespace,
+ * which is the topics page's job and costs a request each - so the header says
+ * it does not know rather than showing a zero that reads as an empty cluster.
+ *
+ * What is here instead is what the load manager actually reports, and it is a
+ * better page for it: bundles. A namespace is split into them, each is owned
+ * by exactly one broker, and an uneven spread is what an unbalanced cluster
+ * looks like long before it shows up in the traffic.
+ */
 export function OverviewPulsar() {
   const { t } = useTranslation();
+  const state = usePulsarCluster();
+
+  const overview = state.data?.overview ?? null;
+  const nodes = state.data?.nodes ?? [];
+  const described = nodes.filter(isDescribed);
+  const leader = nodes.find(isLeader) ?? null;
+
   return (
     <Page>
-      <OverviewHeader subtitle={t("board.overview.pulsar.subtitle")} />
-      <PageBody>
-        <div className={KPI_GRID}>
-          <StatTile label="Broker / Bookie" value="3 / 4" hint={t("board.overview.pulsar.allOnline")} />
-          <StatTile label={t("board.common.namespace")} value="14" hint={t("board.overview.pulsar.tenants")} />
-          <StatTile label="Topic" value="220" hint={t("board.overview.pulsar.partitioned")} />
-          <StatTile label={t("board.common.throughputShort")} value="1.8k/s" hint={t("board.overview.pulsar.outRate")} />
-          <StatTile label={t("board.overview.pulsar.totalPending")} value="8 421" valueColor="var(--c-warn-text)" hint={t("board.overview.pulsar.vsLastHour")} />
-        </div>
+      <PageHeader
+        title={t("board.common.overview")}
+        subtitle={overview != null ? clusterName(overview) : ""}
+        actions={
+          <RefreshButton
+            refreshing={state.refreshing}
+            online={state.online}
+            onClick={() => void state.refresh()}
+          />
+        }
+      />
+      <BoardState state={state}>
+        <PageBody>
+          <div className={KPI_GRID}>
+            <StatTile
+              label="Broker"
+              value={reported(nodes.length === 0 ? null : nodes.length)}
+              hint={
+                leader != null
+                  ? t("board.overview.pulsar.leaderIs", { address: leader.address })
+                  : t("board.overview.pulsar.noLeader")
+              }
+            />
+            <StatTile
+              label={t("board.overview.pulsar.bundles")}
+              value={reported(sum(described.map(bundleCount)))}
+              hint={t("board.overview.pulsar.bundlesHint")}
+            />
+            <StatTile
+              label="Topic"
+              value={reported(sum(described.map(topicCount)))}
+              hint={t("board.overview.pulsar.topicsHint")}
+            />
+            <StatTile
+              label={t("board.overview.pulsar.producers")}
+              value={reported(sum(described.map(producerCount)))}
+              hint={t("board.overview.pulsar.clientsHint")}
+            />
+            <StatTile
+              label={t("board.overview.pulsar.consumers")}
+              value={reported(sum(described.map(consumerCount)))}
+              hint={t("board.overview.pulsar.clientsHint")}
+            />
+          </div>
 
-        <div className={CHART_ROW}>
-          <Panel style={CHART_CARD}>
-            <b style={{ fontSize: "12.5px" }}>{t("board.common.throughput")}</b>
-            <div style={{ display: "flex", gap: "12px", fontSize: "10.5px" }}>
-              <span style={{ color: "var(--c-fg)" }}>— in msg/s</span>
-              <span style={{ color: "var(--c-muted)" }}>— out msg/s</span>
-            </div>
-            <ChartBox style={{ flex: 1 }}>{t("board.common.chartPlaceholder")}</ChartBox>
-          </Panel>
-          <Panel style={CHART_CARD}>
-            <b style={{ fontSize: "12.5px" }}>{t("board.overview.pulsar.bookieStorage")}</b>
-            <MeterRow label="bookie-1" value={58} />
-            <MeterRow label="bookie-2" value={61} />
-            <MeterRow label="bookie-3" value={57} />
-            <MeterRow label="bookie-4" value={73} />
-            <div style={{ fontSize: "10.5px", color: "var(--c-muted)" }}>{t("board.overview.pulsar.ledgerBalanced")}</div>
-          </Panel>
-        </div>
+          {overview != null && (
+            <Panel style={{ padding: "13px 16px", display: "flex", flexDirection: "column", gap: "10px" }}>
+              <PanelHeader title={t("board.overview.pulsar.endpoints")} />
+              <KV
+                rows={[
+                  [
+                    t("board.overview.pulsar.brokerServiceUrl"),
+                    <span className="mono3">{clusterBrokerServiceURL(overview) || "—"}</span>,
+                  ],
+                  [
+                    t("board.overview.pulsar.webServiceUrl"),
+                    <span className="mono3">{clusterServiceURL(overview) || "—"}</span>,
+                  ],
+                  [
+                    t("board.overview.pulsar.metadataStore"),
+                    <span className="mono3">{metadataStore(overview) || "—"}</span>,
+                  ],
+                ]}
+              />
+            </Panel>
+          )}
 
-        <Panel style={TABLE_CARD}>
-          <PanelHeader title={t("board.overview.pulsar.topPending")} action={<ViewAll />} />
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t("board.common.subscription")}</TableHead>
-                <TableHead>Topic</TableHead>
-                <TableHead>{t("board.common.type")}</TableHead>
-                <TableHead style={{ textAlign: "right" }}>{t("board.common.pending")}</TableHead>
-                <TableHead style={{ textAlign: "right" }}>{t("board.common.outRate")}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              <TableRow>
-                <TableCell>settle-sub</TableCell>
-                <TableCell className="mono3" style={NAME_CELL}>
-                  persistent://ecommerce/orders/order-created
-                </TableCell>
-                <TableCell>Shared</TableCell>
-                <TableCell className="mono3" style={{ textAlign: "right", color: "var(--c-warn-text)" }}>6 210</TableCell>
-                <TableCell className="mono3" style={{ textAlign: "right" }}>1 104/s</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>audit-sub</TableCell>
-                <TableCell className="mono3" style={NAME_CELL}>…/orders/payment-captured</TableCell>
-                <TableCell>Failover</TableCell>
-                <TableCell className="mono3" style={{ textAlign: "right" }}>1 830</TableCell>
-                <TableCell className="mono3" style={{ textAlign: "right" }}>880/s</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>notify-sub</TableCell>
-                <TableCell className="mono3" style={NAME_CELL}>…/orders/order-created</TableCell>
-                <TableCell>Key_Shared</TableCell>
-                <TableCell className="mono3" style={{ textAlign: "right" }}>381</TableCell>
-                <TableCell className="mono3" style={{ textAlign: "right" }}>2 003/s</TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </Panel>
-      </PageBody>
+          <Panel style={TABLE_CARD}>
+            <PanelHeader title={t("board.overview.pulsar.brokers")} />
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("board.common.address")}</TableHead>
+                  <TableHead>{t("board.common.status")}</TableHead>
+                  <TableHead>{t("board.common.version")}</TableHead>
+                  <TableHead className="text-right">{t("board.overview.pulsar.bundles")}</TableHead>
+                  <TableHead className="text-right">Topic</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {nodes.map((node) => (
+                  <TableRow key={node.address}>
+                    <TableCell className="mono3">
+                      {node.address}
+                      {isLeader(node) && (
+                        <span className="ml-2 text-(--c-muted)">
+                          {t("board.overview.pulsar.leader")}
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Status tone="ok">{t("board.common.online")}</Status>
+                    </TableCell>
+                    <TableCell className="mono3">{brokerVersion(node) || "—"}</TableCell>
+                    <TableCell className="text-right">{reported(bundleCount(node))}</TableCell>
+                    <TableCell className="text-right">{reported(topicCount(node))}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Panel>
+        </PageBody>
+      </BoardState>
     </Page>
   );
+}
+
+/**
+ * A total over the brokers that reported, or null when none did.
+ *
+ * Summing only the described brokers is deliberate and is why the tiles carry
+ * the "reported by" hint: behind a load balancer the load manager describes
+ * one broker, so this is a total over part of the cluster. Showing it as the
+ * whole would be wrong; showing nothing would throw away the only figures
+ * there are.
+ */
+function sum(values: (number | null)[]): number | null {
+  const known = values.filter((value): value is number => value != null);
+  return known.length === 0 ? null : known.reduce((total, value) => total + value, 0);
 }

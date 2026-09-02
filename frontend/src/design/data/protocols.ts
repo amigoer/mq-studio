@@ -178,6 +178,10 @@ export const PROTOCOLS: Record<ProtocolId, Protocol> = {
       {
         label: BROWSE,
         items: [
+          /* Not an optional organising page the way a RabbitMQ vhost list is:
+             a Pulsar topic is addressed as tenant/namespace/name, so this is
+             where the topics page's scope comes from. */
+          { id: "vhosts", icon: Boxes, label: "shell.nav.pulsar.vhosts" },
           { id: "topics", icon: Layers, label: "shell.nav.pulsar.topics" },
           { id: "consumers", icon: Users, label: "shell.nav.pulsar.consumers" },
           { id: "messages", icon: Mail, label: "shell.nav.pulsar.messages" },
@@ -283,6 +287,7 @@ const READY: ReadonlySet<ProtocolId> = new Set<ProtocolId>([
   "rocketmq",
   "rabbitmq",
   "kafka",
+  "pulsar",
   "redis",
   "mqtt",
 ]);

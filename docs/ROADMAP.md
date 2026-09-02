@@ -54,6 +54,22 @@ This is the delivery plan. The contract it delivers against is
   anywhere - Redis counts commands rather than messages, and reports memory rather than
   disk.
 
+- **Shipped** — Apache Pulsar 3.x / 4.x, over the binary protocol for data and the admin REST
+  API for everything else. Topics with their partitions and storage kind, the namespaces and
+  tenants above them, subscriptions with their backlog and cursor, a message browser and live
+  tail, a send console, brokers, dead-letter topics, role grants and alerts. The two planes are
+  reported separately: a connection whose web service answers while its broker port does not can
+  still read every page, and says why it cannot publish.
+
+  Pulsar's own vocabulary rather than a translation of another family's. There is no tag
+  anywhere - what a RocketMQ producer puts in one, a Pulsar producer puts in a property. A
+  subscription is a stored cursor that exists without a consumer attached, so an idle one is a
+  normal state rather than a group that has gone away. The tokens page lists role grants rather
+  than accounts, because Pulsar authorises the subject of a token and keeps no directory of
+  them. And it has a blocked-subscription alert no other family needs: past its unacknowledged
+  limit the broker stops delivering entirely, which from the backlog alone is indistinguishable
+  from a slow consumer.
+
 - **Shipped** — MQTT 3.1.1 and 5.0, over Paho's two Go libraries, which do not overlap: one
   speaks 3.1.1 and the other 5.0, and a broker configured for either refuses the other's
   CONNECT. The first family here with no administrative plane of its own, so what a connection
@@ -65,7 +81,7 @@ This is the delivery plan. The contract it delivers against is
   their subscriptions, the cluster's nodes, and disconnecting a session. A tier that does not
   answer is reported with its reason rather than leaving a page empty.
 
-- **Designed, not yet implemented** — the ten families below.
+- **Designed, not yet implemented** — the nine families below.
 
 ## Delivery order
 
@@ -75,10 +91,11 @@ This is the delivery plan. The contract it delivers against is
 | 4 | **RabbitMQ** | Done. An Exchanges/Bindings page exists and no offset concept leaks into the UI |
 | 5 | **Kafka** | Done. Topics, consumer groups, lag, browse and publish work end to end, alongside quotas, reassignment and transactions, and no rate or dead-letter page pretends to exist |
 | 6 | **Redis Stream** | Done. Streams, groups, browse, publish, the pending entries list, the server and its cluster, clients and ACL users all read a real broker, and no maxlen or message rate pretends to exist. Additive as predicted, with four new ports: a log's trim, a subscription's position, an entry publish, and the pending list |
-| 7 | **MQTT** | Done. The first family with no admin plane of its own: what it can do is probed at connect time in three tiers — the protocol, the $SYS tree, and the broker's own REST API — and a tier that does not answer says why rather than going quiet |
-| 8 | **Pulsar**, then **NATS** | Each is purely additive — no canonical page changes shape |
-| 9 | **ActiveMQ / Artemis**, then **NSQ** | Still additive; ActiveMQ tests whether JMS semantics fit the canonical pages |
-| 10 | **Amazon SQS**, **Google Cloud Pub/Sub**, **Azure Service Bus**, **Amazon Kinesis**, then **IBM MQ** and **Solace PubSub+** | The connection form can express "no address, only a region and a credential" |
+| 7 | **Pulsar** | Done. Topics, namespaces and the tenants above them, subscriptions and cursors, browse and tail, a send console, dead letters and role grants all work end to end, and no page pretends to a tag, a disk figure or a user directory this family does not have |
+| 8 | **MQTT** | Done. The first family with no admin plane of its own: what it can do is probed at connect time in three tiers — the protocol, the $SYS tree, and the broker's own REST API — and a tier that does not answer says why rather than going quiet |
+| 9 | **NATS** | Purely additive — no canonical page changes shape |
+| 10 | **ActiveMQ / Artemis**, then **NSQ** | Still additive; ActiveMQ tests whether JMS semantics fit the canonical pages |
+| 11 | **Amazon SQS**, **Google Cloud Pub/Sub**, **Azure Service Bus**, **Amazon Kinesis**, then **IBM MQ** and **Solace PubSub+** | The connection form can express "no address, only a region and a credential" |
 
 Two ordering decisions worth keeping in view.
 
@@ -115,7 +132,7 @@ and `Access`.
 | **RocketMQ** 4.x / 5.x | Admin API over the remoting protocol | All six | A Proxy endpoint answers far less than a NameServer; capabilities narrow on connect |
 | **RabbitMQ** | HTTP management plugin, plus AMQP 0-9-1 for messages | All six, plus Exchanges/Bindings, Connections, Dead letters, Virtual hosts, Policies, Definitions, Replication | No offsets or partitions; no named consumer groups; no stable message id; browsing requeues what it read and carries a caveat; shovel, federation and the stream protocol are plugins and degrade with a reason when absent |
 | **Kafka** | The Kafka protocol itself, through franz-go and kadm | All six, plus log directories and SCRAM users | Confirmed: browse is an offset-range fetch rather than random access, and a key search is a scan. ACLs degrade with a reason on a cluster with no authorizer. No rate of any kind is reported, and no disk percentage exists; there is no broker-side dead-letter queue |
-| **Pulsar** | Admin REST API | All six | Tenant and namespace become a scope selector rather than a page |
+| **Pulsar** | Admin REST API + the binary protocol | All six | Done. The tenant and namespace ended up as both: a scope selector on every page, and a page of their own, because a topic is addressed as tenant/namespace/name and the selector needs somewhere to get its options from |
 | **ActiveMQ / Artemis** | Jolokia REST over JMX | All six | Classic 5.x and Artemis expose different management trees; the driver probes which one answered |
 | **Redis Stream** | The Redis protocol itself, through go-redis | All six, plus Pending entries, Clients and ACL users | Confirmed: no per-destination access control - the key patterns are on the user. The prediction that there would be no cluster topology was wrong: `CLUSTER NODES` answers it, and the driver reads every master and replica. A stream has no partitions, nothing about it is editable, and there is no dead-letter queue - what replaces it is the pending entries list, which is delivery records rather than messages. No message rate and no disk figure are reported anywhere |
 | **NATS** | JetStream API plus the server monitoring endpoints | Destinations, Subscriptions, Messages, Publish, Cluster | Without JetStream the endpoint drops to publish and subscribe only |

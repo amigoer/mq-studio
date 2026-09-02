@@ -52,16 +52,6 @@ function FormNote({ advanced, note }: { advanced: ReactNode; note: ReactNode }) 
   );
 }
 
-/** A hint the canvas marked with a ▸: fields the form does not draw. */
-function Adv({ children }: { children: ReactNode }) {
-  return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: "3px" }}>
-      <ChevronRight size={12} aria-hidden />
-      {children}
-    </span>
-  );
-}
-
 /** Layout for a switch and its explanation on one row. */
 const SWITCH_ROW: CSSProperties = {
   display: "flex",
@@ -761,55 +751,270 @@ export function RabbitMQForm({
   );
 }
 
-/** Board 6d — Pulsar. */
-export function PulsarForm() {
+/** Option and secret keys the Pulsar driver reads back off a stored profile. */
+export const OPTION_PULSAR_ADMIN_URL = "adminUrl";
+export const OPTION_PULSAR_TENANT = "tenant";
+export const OPTION_PULSAR_NAMESPACE = "namespace";
+export const OPTION_PULSAR_TLS = "tls";
+export const OPTION_PULSAR_TLS_CA_FILE = "tlsCaFile";
+export const OPTION_PULSAR_TLS_SKIP_VERIFY = "tlsSkipVerify";
+
+/** The two authentications this driver implements. */
+export type PulsarAuth = "none" | "token";
+
+/**
+ * What the Pulsar form collects.
+ *
+ * Two addresses, because Pulsar is two listeners: the web service answers the
+ * admin pages over HTTP and the broker port carries messages over the binary
+ * protocol. Neither is derived from the other - they are routinely behind
+ * different ingresses, and guessing 8080 from a 6650 host is wrong the moment
+ * either is proxied.
+ *
+ * The tenant and namespace are part of the connection rather than a filter on
+ * a page: a Pulsar topic is addressed as tenant/namespace/name, so a profile
+ * that names neither has no scope to read within.
+ */
+export interface PulsarDraft {
+  name: string;
+  /** The broker's binary address. This is the profile's endpoints field. */
+  service: string;
+  admin: string;
+  tenant: string;
+  namespace: string;
+  auth: PulsarAuth;
+  token: string;
+  tls: boolean;
+  tlsCaFile: string;
+  tlsSkipVerify: boolean;
+  group: string;
+  remark: string;
+  timeoutSec: number;
+  /** A stored token never comes back, so blank means "keep it". */
+  credentialsStored: boolean;
+  clearCredentials: boolean;
+}
+
+export function emptyPulsarDraft(): PulsarDraft {
+  return {
+    name: "",
+    service: "",
+    admin: "",
+    tenant: "public",
+    namespace: "default",
+    auth: "none",
+    token: "",
+    tls: false,
+    tlsCaFile: "",
+    tlsSkipVerify: false,
+    group: "",
+    remark: "",
+    timeoutSec: DEFAULT_TIMEOUT_SEC,
+    credentialsStored: false,
+    clearCredentials: false,
+  };
+}
+
+/** Board 6d — Pulsar. The auth choice decides whether the token row shows. */
+export function PulsarForm({
+  value,
+  onChange,
+}: {
+  value: PulsarDraft;
+  onChange: (next: PulsarDraft) => void;
+}) {
   const { t } = useTranslation();
-  const [auth, setAuth] = useState<"none" | "token" | "oauth2" | "mtls">("token");
+  const set = <K extends keyof PulsarDraft>(key: K, next: PulsarDraft[K]) =>
+    onChange({ ...value, [key]: next });
+  const [advancedOpen, setAdvancedOpen] = useState(
+    value.timeoutSec !== DEFAULT_TIMEOUT_SEC || value.remark !== "" || value.tls,
+  );
+  const stored = value.credentialsStored && !value.clearCredentials;
+
   return (
     <>
       <div style={GRID}>
         <Fld label={t("page.connections.form.name")}>
-          <Input defaultValue="pulsar-eu" />
+          <Input
+            value={value.name}
+            placeholder="pulsar-staging"
+            onChange={(event) => set("name", event.target.value)}
+          />
         </Fld>
-        <Fld label={t("page.connections.form.pulsar.service")} hint={t("page.connections.form.pulsar.serviceHint")}>
-          <Input className="mono3" style={MONO} defaultValue="pulsar+ssl://pulsar-eu:6651" />
-        </Fld>
-        <Fld label={t("page.connections.form.pulsar.admin")} hint={t("page.connections.form.pulsar.adminHint")}>
-          <Input className="mono3" style={MONO} defaultValue="https://pulsar-eu:8443" />
-        </Fld>
-        <Fld span label={t("page.connections.form.pulsar.auth")}>
-          <Segmented
-            style={{ alignSelf: "flex-start" }}
-            value={auth}
-            onChange={setAuth}
+        <Fld label={t("page.connections.form.pulsar.auth")}>
+          <SelectField<PulsarAuth>
+            value={value.auth}
             options={[
               { value: "none", label: t("page.connections.form.pulsar.authNone") },
               { value: "token", label: "Token" },
-              { value: "oauth2", label: "OAuth2" },
-              { value: "mtls", label: "mTLS" },
             ]}
+            onValueChange={(next) =>
+              // Dropping to anonymous drops the token with it. Keeping it would
+              // put the old credential back the day someone re-selects Token,
+              // without them being shown that it was still there.
+              onChange({ ...value, auth: next, token: next === "none" ? "" : value.token })
+            }
           />
         </Fld>
-        {auth === "token" && (
-          <Fld span label="Token">
+        <Fld
+          span
+          label={t("page.connections.form.pulsar.service")}
+          hint={t("page.connections.form.pulsar.serviceHint")}
+        >
+          <Input
+            className="mono3"
+            style={MONO}
+            value={value.service}
+            placeholder="pulsar://localhost:6650"
+            onChange={(event) => set("service", event.target.value)}
+          />
+        </Fld>
+        <Fld
+          span
+          label={t("page.connections.form.pulsar.admin")}
+          hint={t("page.connections.form.pulsar.adminHint")}
+        >
+          <Input
+            className="mono3"
+            style={MONO}
+            value={value.admin}
+            placeholder="http://localhost:8080"
+            onChange={(event) => set("admin", event.target.value)}
+          />
+        </Fld>
+        {value.auth === "token" && (
+          <Fld
+            span
+            label="Token"
+            hint={
+              stored ? (
+                <button
+                  type="button"
+                  className="mqs-linkbtn"
+                  onClick={() => set("clearCredentials", true)}
+                >
+                  {t("page.connections.form.clearCredentials")}
+                </button>
+              ) : undefined
+            }
+          >
             <Input
+              type="password"
               className="mono3"
-              style={{ fontSize: "11px", overflow: "hidden", textOverflow: "ellipsis" }}
-              defaultValue="eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJtcS1zdHVkaW8ifQ…"
+              style={MONO}
+              value={value.token}
+              placeholder={stored ? t("page.connections.form.secretStored") : undefined}
+              onChange={(event) => set("token", event.target.value)}
             />
           </Fld>
         )}
         <Fld label={t("page.connections.form.pulsar.tenant")}>
-          <Input className="mono3" style={MONO} defaultValue="ecommerce" />
+          <Input
+            className="mono3"
+            style={MONO}
+            value={value.tenant}
+            placeholder="public"
+            onChange={(event) => set("tenant", event.target.value)}
+          />
         </Fld>
         <Fld label={t("page.connections.form.pulsar.namespace")}>
-          <Input className="mono3" style={MONO} defaultValue="orders" />
+          <Input
+            className="mono3"
+            style={MONO}
+            value={value.namespace}
+            placeholder="default"
+            onChange={(event) => set("namespace", event.target.value)}
+          />
         </Fld>
       </div>
       <FormNote
-        advanced={<Adv>{t("page.connections.form.pulsar.advanced")}</Adv>}
+        advanced={
+          <button
+            type="button"
+            className="mqs-disclosure"
+            aria-expanded={advancedOpen}
+            onClick={() => setAdvancedOpen((open) => !open)}
+          >
+            <ChevronRight size={12} aria-hidden />
+            {t("page.connections.form.pulsar.advanced")}
+          </button>
+        }
         note={t("page.connections.form.pulsar.note")}
       />
+      {advancedOpen && (
+        <div style={GRID}>
+          <Fld
+            label={t("page.connections.form.rocketmq.timeout")}
+            hint={t("page.connections.form.rocketmq.timeoutHint")}
+          >
+            <Input
+              type="number"
+              min={1}
+              max={300}
+              value={value.timeoutSec > 0 ? String(value.timeoutSec) : ""}
+              onChange={(event) => {
+                const seconds = Number.parseInt(event.target.value, 10);
+                set("timeoutSec", Number.isNaN(seconds) ? 0 : seconds);
+              }}
+            />
+          </Fld>
+          <Fld label={t("page.connections.form.remark")} hint={t("page.connections.form.remarkHint")}>
+            <Input value={value.remark} onChange={(event) => set("remark", event.target.value)} />
+          </Fld>
+          <Fld span label="TLS" hint={t("page.connections.form.pulsar.tlsHint")}>
+            <div style={SWITCH_ROW}>
+              <Switch
+                checked={value.tls}
+                onCheckedChange={(next: boolean) =>
+                  // The CA file and skip-verify only mean anything with TLS on,
+                  // and leaving them set would silently re-apply them.
+                  onChange({
+                    ...value,
+                    tls: next,
+                    tlsCaFile: next ? value.tlsCaFile : "",
+                    tlsSkipVerify: next && value.tlsSkipVerify,
+                  })
+                }
+              />
+              <span style={{ color: "var(--c-muted)" }}>
+                {t("page.connections.form.pulsar.tls")}
+              </span>
+            </div>
+          </Fld>
+          {value.tls && (
+            <>
+              <Fld
+                span
+                label={t("page.connections.form.kafka.caFile")}
+                hint={t("page.connections.form.kafka.caFileHint")}
+              >
+                <Input
+                  className="mono3"
+                  style={MONO}
+                  value={value.tlsCaFile}
+                  placeholder="/etc/pulsar/ca.pem"
+                  onChange={(event) => set("tlsCaFile", event.target.value)}
+                />
+              </Fld>
+              <Fld
+                span
+                label={t("page.connections.form.kafka.skipVerify")}
+                hint={t("page.connections.form.kafka.skipVerifyHint")}
+              >
+                <div style={SWITCH_ROW}>
+                  <Switch
+                    checked={value.tlsSkipVerify}
+                    onCheckedChange={(next: boolean) => set("tlsSkipVerify", next)}
+                  />
+                  <span style={{ color: "var(--c-muted)" }}>
+                    {t("page.connections.form.kafka.skipVerifyNote")}
+                  </span>
+                </div>
+              </Fld>
+            </>
+          )}
+        </div>
+      )}
     </>
   );
 }

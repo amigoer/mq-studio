@@ -130,6 +130,17 @@ jobs:
       - name: Start the secure Kafka
         run: npm run e2e:kafka:secure:up
 
+      # Standalone boots BookKeeper and the metadata store before the broker
+      # answers, so this is the slowest of the six to come up. Its compose
+      # healthcheck waits; --wait is what makes this step do the same.
+      - name: Start Pulsar
+        run: npm run e2e:pulsar:up
+
+      # Required, unlike the other seeds. The cross-check compares figures the
+      # app computes against the same figures from pulsar-admin, and comparing
+      # zero against zero would pass whatever the driver did.
+      - name: Seed Pulsar
+        run: npm run e2e:pulsar:seed
       # ACL on rather than a bare password: the driver has a page for it, and
       # a broker with no users to read would leave both the ACL board and the
       # rejected-credentials path untested.
