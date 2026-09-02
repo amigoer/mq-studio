@@ -4,6 +4,7 @@ import {
   SiApachepulsar,
   SiApacherocketmq,
   SiMqtt,
+  SiNatsdotio,
   SiRabbitmq,
   SiRedis,
 } from "react-icons/si";
@@ -26,6 +27,7 @@ const GLYPH: Record<ProtocolId, { icon: IconType; color: string }> = {
   pulsar: { icon: SiApachepulsar, color: "#188FFF" },
   redis: { icon: SiRedis, color: "#FF4438" },
   mqtt: { icon: SiMqtt, color: "var(--c-brand-mqtt)" },
+  nats: { icon: SiNatsdotio, color: "#27AAE1" },
 };
 
 export function ProtocolIcon({

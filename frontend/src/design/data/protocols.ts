@@ -39,7 +39,8 @@ export type ProtocolId =
   | "rabbitmq"
   | "pulsar"
   | "redis"
-  | "mqtt";
+  | "mqtt"
+  | "nats";
 
 export type PageId =
   | "overview"
@@ -252,6 +253,21 @@ export const PROTOCOLS: Record<ProtocolId, Protocol> = {
       },
     ],
   },
+  nats: {
+    id: "nats",
+    name: "NATS",
+    badge: "NATS 2.x",
+    badgeClass: "pNAT",
+    /* One entry for now, and the rest arrive with the capabilities that make
+       them answerable. navigation.nats.test.ts pins the rule: an entry the
+       declared capabilities cannot reach is drawn and then fails when it is
+       opened, which reads as a broken app rather than as a broker that cannot
+       answer. Overview needs none, because it renders whatever the connection
+       does report. */
+    nav: [
+      { items: [{ id: "overview", icon: House, label: "shell.nav.nats.overview" }] },
+    ],
+  },
 };
 
 export const PROTOCOL_ORDER: ProtocolId[] = [
@@ -261,6 +277,7 @@ export const PROTOCOL_ORDER: ProtocolId[] = [
   "pulsar",
   "redis",
   "mqtt",
+  "nats",
 ];
 
 /** Every page the protocol's sidebar can reach, flattened. */
@@ -290,6 +307,7 @@ const READY: ReadonlySet<ProtocolId> = new Set<ProtocolId>([
   "pulsar",
   "redis",
   "mqtt",
+  "nats",
 ]);
 
 export function isProtocolReady(protocol: ProtocolId): boolean {

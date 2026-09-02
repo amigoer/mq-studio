@@ -21,6 +21,7 @@ import type { Connection as ConnectionProfile } from "@/api/models";
 import {
   KafkaForm,
   MqttForm,
+  NatsForm,
   PulsarForm,
   RabbitMQForm,
   RedisForm,
@@ -42,6 +43,7 @@ const TILE: Record<ProtocolId, { name: string; versions: string }> = {
   pulsar: { name: "Pulsar", versions: "2.x / 3.x" },
   redis: { name: "Redis Stream", versions: "6.0+" },
   mqtt: { name: "MQTT", versions: "3.1 / 5.0" },
+  nats: { name: "NATS", versions: "2.x" },
 };
 
 /** What the probe last reported, drawn in the footer beside the test button. */
@@ -201,6 +203,45 @@ export function NewConnectionDialog({
       }
       return null;
     }
+    if (draft.protocol === "nats") {
+      if (draft.value.endpoints.trim() === "") {
+        return t("page.connections.form.nats.serversRequired");
+      }
+      // Anonymous is a real choice on NATS, so a credential is only required
+      // once the user has picked a mechanism that needs one. Each mechanism
+      // needs a different one, and naming the wrong field would send them
+      // looking at a row that is not on screen.
+      const stored = draft.value.credentialsStored && !draft.value.clearCredentials;
+      if (!stored) {
+        if (draft.value.mechanism === "plain" && draft.value.username.trim() === "") {
+          return t("page.connections.usernameRequired");
+        }
+        if (draft.value.mechanism === "token" && draft.value.token.trim() === "") {
+          return t("page.connections.form.nats.tokenRequired");
+        }
+        if (draft.value.mechanism === "nkey" && draft.value.nkeySeed.trim() === "") {
+          return t("page.connections.form.nats.nkeySeedRequired");
+        }
+      }
+      // A creds file is a path rather than a secret, so it is required whether
+      // or not credentials are already stored.
+      if (draft.value.mechanism === "creds" && draft.value.credsFile.trim() === "") {
+        return t("page.connections.form.nats.credsFileRequired");
+      }
+      // Mutual TLS needs both halves: a certificate with no key cannot be
+      // presented, and the server would report it as a failed handshake.
+      if (draft.value.mechanism === "mtls") {
+        if (draft.value.tlsCertFile.trim() === "" || draft.value.tlsKeyFile.trim() === "") {
+          return t("page.connections.form.nats.certPairRequired");
+        }
+      }
+      // A system user with no password reaches $SYS and is refused on every
+      // call, which reads as a broken endpoint rather than a missing half.
+      if (!stored && draft.value.systemUser.trim() !== "" && draft.value.systemPassword.trim() === "") {
+        return t("page.connections.form.nats.systemPasswordRequired");
+      }
+      return null;
+    }
     if (draft.value.endpoints.trim() === "") return t("page.connections.endpointsRequired");
     if (draft.value.version === "5.x" && draft.value.access === "proxy") {
       return t("page.connections.form.rocketmq.proxyNote");
@@ -314,6 +355,11 @@ export function NewConnectionDialog({
         <MqttForm
           value={draft.value}
           onChange={(next) => setDraft({ protocol: "mqtt", value: next })}
+        />
+      ) : draft.protocol === "nats" ? (
+        <NatsForm
+          value={draft.value}
+          onChange={(next) => setDraft({ protocol: "nats", value: next })}
         />
       ) : (
         <RocketMQForm
