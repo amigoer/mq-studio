@@ -2881,6 +2881,119 @@ export class ShellPage {
 }
 
 /**
+ * StreamInput is a stream as the dialog collects it.
+ * 
+ * Deliberately not TopicService.Create's shape. Every field there is
+ * RocketMQ's vocabulary and none of it has a JetStream meaning, and there is
+ * nowhere in it to put a subject list, a retention policy, or a limit - which
+ * is most of what declaring a stream is.
+ * 
+ * The limits are strings rather than numbers so that "not set" and "set to
+ * zero" stay different. -1 is how the server spells no limit, 0 means a stream
+ * that can hold nothing, and a numeric field that arrived empty would have to
+ * pick one of those for the user.
+ */
+export class StreamInput {
+    "name": string;
+    "description": string;
+
+    /**
+     * Subjects is the list the stream captures, however the form separated it.
+     * A mirror has none.
+     */
+    "subjects": string;
+
+    /**
+     * Retention is limits, interest or workqueue. Work queue is the one where
+     * reading the stream changes what it holds.
+     */
+    "retention": string;
+    "storage": string;
+    "discard": string;
+    "replicas": number;
+    "maxMsgs": string;
+    "maxBytes": string;
+    "maxMsgsPerSubject": string;
+    "maxMsgSize": string;
+
+    /**
+     * MaxAge and DuplicateWindow are Go durations - "24h", "2m" - because that
+     * is what the server reports and what an operator writes.
+     */
+    "maxAge": string;
+    "duplicateWindow": string;
+    "compression": string;
+    "denyDelete": boolean;
+    "denyPurge": boolean;
+    "allowRollup": boolean;
+
+    /** Creates a new StreamInput instance. */
+    constructor($$source: Partial<StreamInput> = {}) {
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("description" in $$source)) {
+            this["description"] = "";
+        }
+        if (!("subjects" in $$source)) {
+            this["subjects"] = "";
+        }
+        if (!("retention" in $$source)) {
+            this["retention"] = "";
+        }
+        if (!("storage" in $$source)) {
+            this["storage"] = "";
+        }
+        if (!("discard" in $$source)) {
+            this["discard"] = "";
+        }
+        if (!("replicas" in $$source)) {
+            this["replicas"] = 0;
+        }
+        if (!("maxMsgs" in $$source)) {
+            this["maxMsgs"] = "";
+        }
+        if (!("maxBytes" in $$source)) {
+            this["maxBytes"] = "";
+        }
+        if (!("maxMsgsPerSubject" in $$source)) {
+            this["maxMsgsPerSubject"] = "";
+        }
+        if (!("maxMsgSize" in $$source)) {
+            this["maxMsgSize"] = "";
+        }
+        if (!("maxAge" in $$source)) {
+            this["maxAge"] = "";
+        }
+        if (!("duplicateWindow" in $$source)) {
+            this["duplicateWindow"] = "";
+        }
+        if (!("compression" in $$source)) {
+            this["compression"] = "";
+        }
+        if (!("denyDelete" in $$source)) {
+            this["denyDelete"] = false;
+        }
+        if (!("denyPurge" in $$source)) {
+            this["denyPurge"] = false;
+        }
+        if (!("allowRollup" in $$source)) {
+            this["allowRollup"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new StreamInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): StreamInput {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new StreamInput($$parsedSource as Partial<StreamInput>);
+    }
+}
+
+/**
  * TopicInput carries a topic form submission.
  */
 export class TopicInput {

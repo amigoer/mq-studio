@@ -9,6 +9,7 @@ import * as DriverService from "./driverservice.js";
 import * as KafkaService from "./kafkaservice.js";
 import * as MQTTService from "./mqttservice.js";
 import * as MessageService from "./messageservice.js";
+import * as NATSService from "./natsservice.js";
 import * as PulsarService from "./pulsarservice.js";
 import * as RabbitMQService from "./rabbitmqservice.js";
 import * as RedisStreamService from "./redisstreamservice.js";
@@ -28,6 +29,7 @@ export {
     KafkaService,
     MQTTService,
     MessageService,
+    NATSService,
     PulsarService,
     RabbitMQService,
     RedisStreamService,
@@ -91,6 +93,7 @@ export {
     SettingsInput,
     SettingsView,
     ShellPage,
+    StreamInput,
     TopicInput,
     TopicPermissionInput,
     TransactionView,

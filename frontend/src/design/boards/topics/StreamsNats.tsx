@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ListArea, ListPane, Page, PageHeader, RefreshButton, Toolbar } from "@/design/shell";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Table,
@@ -13,15 +14,24 @@ import {
 import {
   DetailPanel,
   DetailPanelBody,
+  DetailPanelFooter,
   DetailPanelHeader,
   KV,
   Panel,
   SectionLabel,
   Status,
+  toast,
+  useConfirm,
 } from "@/components";
 import { BoardState } from "@/design/boards/BoardState";
+import { StreamDialogNats } from "./StreamDialogNats";
+import { useConnectionScope } from "@/mq/ConnectionScope";
+import * as natsApi from "@/api/nats";
+import type { StreamInput } from "@/api/nats";
+import { formatErrorMessage } from "@/lib/utils";
 import { useNatsStreamDetail, useNatsStreams } from "@/hooks/nats/useNatsStreams";
 import { formatBytes, formatCount } from "@/lib/format";
+import type { Destination } from "@bindings/model/models";
 import {
   allowRollup,
   bytes,
@@ -97,8 +107,12 @@ function Limit({ value, format }: { value: number | null; format?: (value: numbe
 export function StreamsNats() {
   const { t } = useTranslation();
   const state = useNatsStreams();
+  const { id: connID } = useConnectionScope();
+  const confirm = useConfirm();
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editing, setEditing] = useState<Destination | null>(null);
 
   const streams = useMemo(() => state.data ?? [], [state.data]);
   const detail = useNatsStreamDetail(selected);
@@ -126,17 +140,81 @@ export function StreamsNats() {
     return detail.data ?? streams.find((stream) => streamName(stream) === selected) ?? null;
   }, [detail.data, selected, streams]);
 
+  const save = useCallback(
+    async (input: StreamInput, update: boolean) => {
+      if (update) {
+        await natsApi.updateStream(connID, input);
+        toast.success(t("board.topics.nats.streamUpdated", { name: input.name }));
+      } else {
+        await natsApi.createStream(connID, input);
+        toast.success(t("board.topics.nats.streamCreated", { name: input.name }));
+      }
+      await state.refresh();
+    },
+    [connID, state, t],
+  );
+
+  const remove = useCallback(
+    async (stream: Destination) => {
+      const held = messages(stream);
+      const bound = consumerCount(stream);
+      const ok = await confirm({
+        title: t("board.topics.nats.deleteTitle", { name: streamName(stream) }),
+        /* The counts are the whole warning. Deleting a stream takes every
+           message in it and every consumer's position with them, and JetStream
+           has no undo and no delete-if-empty to fall back on. */
+        description:
+          held > 0 || bound > 0
+            ? t("board.topics.nats.deleteHolding", { count: held, consumers: bound })
+            : t("board.topics.nats.deleteEmpty"),
+        confirmLabel: t("board.common.delete"),
+        danger: true,
+      });
+      if (!ok) return;
+      try {
+        await natsApi.deleteStream(connID, streamName(stream));
+        toast.success(t("board.topics.nats.streamDeleted", { name: streamName(stream) }));
+        setSelected(null);
+        await state.refresh();
+      } catch (deleteError) {
+        toast.error(t("board.topics.nats.deleteFailed"), {
+          description: formatErrorMessage(deleteError),
+        });
+      }
+    },
+    [confirm, connID, state, t],
+  );
+
   return (
     <Page>
+      <StreamDialogNats
+        open={dialogOpen}
+        onOpenChange={(open) => {
+          setDialogOpen(open);
+          if (!open) setEditing(null);
+        }}
+        editing={editing}
+        onSubmit={save}
+      />
       <PageHeader
         title={t("board.topics.nats.title")}
         subtitle={t("board.topics.nats.subtitle")}
         actions={
-          <RefreshButton
-            refreshing={state.refreshing}
-            online={state.online}
-            onClick={() => void state.refresh()}
-          />
+          <>
+            <Button
+              onClick={() => {
+                setEditing(null);
+                setDialogOpen(true);
+              }}
+            >
+              {t("board.topics.nats.newStream")}
+            </Button>
+            <RefreshButton
+              refreshing={state.refreshing}
+              online={state.online}
+              onClick={() => void state.refresh()}
+            />
+          </>
         }
       />
       <Toolbar>
@@ -425,6 +503,28 @@ export function StreamsNats() {
                   </div>
                 )}
               </DetailPanelBody>
+              <DetailPanelFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setEditing(panel);
+                    setDialogOpen(true);
+                  }}
+                >
+                  {t("board.common.edit")}
+                </Button>
+                {/* Sealed and deny-delete are the server's own protections, and
+                    a button that was going to be refused is worse than one that
+                    is not there: the reason belongs beside it, not in a toast
+                    after the click. */}
+                <Button
+                  variant="destructive"
+                  disabled={sealed(panel) || denyDelete(panel)}
+                  onClick={() => void remove(panel)}
+                >
+                  {t("board.common.delete")}
+                </Button>
+              </DetailPanelFooter>
             </DetailPanel>
           )}
         </ListArea>
