@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360" role="img" aria-labelledby="t d">
   <title id="t">MQ Studio</title>
-  <desc id="d">MQ Studio：本地优先的消息队列桌面客户端。一套界面连接 RocketMQ、RabbitMQ 与 Kafka，更多驱动陆续接入，无需部署 Web 控制台。</desc>
+  <desc id="d">MQ Studio：本地优先的消息队列桌面客户端。一套界面连接 RocketMQ、RabbitMQ、Kafka、Pulsar、Redis Stream 与 MQTT，更多驱动陆续接入，无需部署 Web 控制台。</desc>
 
   <!-- eyebrow -->
   <text x="10" y="50" font-family="ui-monospace,'SF Mono',Menlo,Consolas,monospace" font-size="16.5" letter-spacing="3" fill="#71717A">LOCAL-FIRST · NOTHING TO DEPLOY · OPEN SOURCE</text>
@@ -24,7 +24,7 @@
   <g id="meta">
     <rect x="10" y="286" width="202" height="36" rx="18" fill="none" stroke="#E0E0E3" stroke-width="1.5"/>
     <circle cx="32" cy="304" r="4.5" fill="#29915D"/>
-    <text x="46" y="310" font-family="-apple-system,'PingFang SC','Segoe UI','Microsoft YaHei',system-ui,sans-serif" font-size="16.5" fill="#52525B">已支持 3 个驱动</text>
+    <text x="46" y="310" font-family="-apple-system,'PingFang SC','Segoe UI','Microsoft YaHei',system-ui,sans-serif" font-size="16.5" fill="#52525B">已支持 6 个驱动</text>
     <text x="240" y="310" font-family="ui-monospace,'SF Mono',Menlo,Consolas,monospace" font-size="16.5" fill="#71717A">macOS · Windows · Linux&#160;&#160;·&#160;&#160;Apache-2.0</text>
   </g>
 
@@ -37,45 +37,63 @@
       <line x1="109" y1="63" x2="120" y2="74" stroke="#201E1D" stroke-linecap="round"/>
     </g>
     <line x1="744" y1="197" x2="768" y2="197" stroke="#D4D4D8" stroke-width="1.5"/>
-    <line x1="768" y1="88" x2="768" y2="252" stroke="#D4D4D8" stroke-width="1.5"/>
-    <line x1="768" y1="252" x2="768" y2="306" stroke="#D4D4D8" stroke-width="1.5" stroke-dasharray="5 6"/>
-    <line x1="776" y1="88" x2="798" y2="88" stroke="#D4D4D8" stroke-width="1.5"/>
-    <text x="884" y="93" text-anchor="end" font-family="ui-monospace,'SF Mono',Menlo,Consolas,monospace" font-size="15" fill="#52525B">RocketMQ</text>
-    <line x1="896" y1="88" x2="1178" y2="88" stroke="#E4E4E7" stroke-width="1.5"/>
-    <circle cx="768" cy="88" r="4.5" fill="#71717A"/>
-    <circle cx="1178" cy="88" r="5.5" fill="none" stroke="#71717A" stroke-width="2"/>
-    <rect x="918" y="73" width="30" height="30" rx="9" fill="#FAFAFA" stroke="#D4D4D8" stroke-width="1.5"/>
-    <rect x="972" y="73" width="30" height="30" rx="9" fill="#FAFAFA" stroke="#D4D4D8" stroke-width="1.5"/>
-    <rect x="1026" y="73" width="30" height="30" rx="9" fill="#FAFAFA" stroke="#D4D4D8" stroke-width="1.5"/>
-    <rect x="1104" y="73" width="30" height="30" rx="9" fill="#FAFAFA" stroke="#D4D4D8" stroke-width="1.5"/>
-    <line x1="776" y1="170" x2="798" y2="170" stroke="#D4D4D8" stroke-width="1.5"/>
-    <text x="884" y="175" text-anchor="end" font-family="ui-monospace,'SF Mono',Menlo,Consolas,monospace" font-size="15" fill="#52525B">RabbitMQ</text>
-    <line x1="896" y1="170" x2="1178" y2="170" stroke="#E4E4E7" stroke-width="1.5"/>
-    <circle cx="768" cy="170" r="4.5" fill="#71717A"/>
-    <circle cx="1178" cy="170" r="5.5" fill="none" stroke="#71717A" stroke-width="2"/>
-    <rect x="910" y="155" width="30" height="30" rx="9" fill="#FAFAFA" stroke="#D4D4D8" stroke-width="1.5"/>
-    <rect x="964" y="155" width="30" height="30" rx="9" fill="#FAFAFA" stroke="#D4D4D8" stroke-width="1.5"/>
-    <rect x="1120" y="155" width="30" height="30" rx="9" fill="#FAFAFA" stroke="#D4D4D8" stroke-width="1.5"/>
-    <rect x="1042" y="153" width="34" height="34" rx="10" fill="#EC3013"/>
-    <line x1="776" y1="252" x2="825" y2="252" stroke="#D4D4D8" stroke-width="1.5"/>
-    <text x="884" y="257" text-anchor="end" font-family="ui-monospace,'SF Mono',Menlo,Consolas,monospace" font-size="15" fill="#52525B">Kafka</text>
-    <line x1="896" y1="252" x2="1178" y2="252" stroke="#E4E4E7" stroke-width="1.5"/>
-    <circle cx="768" cy="252" r="4.5" fill="#71717A"/>
-    <circle cx="1178" cy="252" r="5.5" fill="none" stroke="#71717A" stroke-width="2"/>
-    <rect x="924" y="237" width="30" height="30" rx="9" fill="#FAFAFA" stroke="#D4D4D8" stroke-width="1.5"/>
-    <rect x="978" y="237" width="30" height="30" rx="9" fill="#FAFAFA" stroke="#D4D4D8" stroke-width="1.5"/>
-    <rect x="1056" y="237" width="30" height="30" rx="9" fill="#FAFAFA" stroke="#D4D4D8" stroke-width="1.5"/>
-    <rect x="1110" y="237" width="30" height="30" rx="9" fill="#FAFAFA" stroke="#D4D4D8" stroke-width="1.5"/>
-    <line x1="776" y1="306" x2="810" y2="306" stroke="#D4D4D8" stroke-width="1.5" stroke-dasharray="5 6"/>
-    <text x="884" y="311" text-anchor="end" font-family="-apple-system,'PingFang SC','Segoe UI','Microsoft YaHei',system-ui,sans-serif" font-size="15" fill="#A1A1AA">更多驱动</text>
-    <line x1="896" y1="306" x2="1178" y2="306" stroke="#E4E4E7" stroke-width="1.5" stroke-dasharray="6 7"/>
-    <circle cx="768" cy="306" r="4.5" fill="none" stroke="#A1A1AA" stroke-width="1.5"/>
-    <circle cx="1178" cy="306" r="5.5" fill="none" stroke="#A1A1AA" stroke-width="2"/>
+    <line x1="768" y1="85" x2="768" y2="310" stroke="#D4D4D8" stroke-width="1.5"/>
+    <line x1="776" y1="85" x2="842" y2="85" stroke="#D4D4D8" stroke-width="1.5"/>
+    <text x="928" y="90" text-anchor="end" font-family="ui-monospace,'SF Mono',Menlo,Consolas,monospace" font-size="15" fill="#52525B">RocketMQ</text>
+    <line x1="940" y1="85" x2="1178" y2="85" stroke="#E4E4E7" stroke-width="1.5"/>
+    <circle cx="768" cy="85" r="4.5" fill="#71717A"/>
+    <circle cx="1178" cy="85" r="5.5" fill="none" stroke="#71717A" stroke-width="2"/>
+    <rect x="962" y="70" width="30" height="30" rx="9" fill="#FAFAFA" stroke="#D4D4D8" stroke-width="1.5"/>
+    <rect x="1016" y="70" width="30" height="30" rx="9" fill="#FAFAFA" stroke="#D4D4D8" stroke-width="1.5"/>
+    <rect x="1070" y="70" width="30" height="30" rx="9" fill="#FAFAFA" stroke="#D4D4D8" stroke-width="1.5"/>
+    <rect x="1124" y="70" width="30" height="30" rx="9" fill="#FAFAFA" stroke="#D4D4D8" stroke-width="1.5"/>
+    <line x1="776" y1="130" x2="842" y2="130" stroke="#D4D4D8" stroke-width="1.5"/>
+    <text x="928" y="135" text-anchor="end" font-family="ui-monospace,'SF Mono',Menlo,Consolas,monospace" font-size="15" fill="#52525B">RabbitMQ</text>
+    <line x1="940" y1="130" x2="1178" y2="130" stroke="#E4E4E7" stroke-width="1.5"/>
+    <circle cx="768" cy="130" r="4.5" fill="#71717A"/>
+    <circle cx="1178" cy="130" r="5.5" fill="none" stroke="#71717A" stroke-width="2"/>
+    <rect x="954" y="115" width="30" height="30" rx="9" fill="#FAFAFA" stroke="#D4D4D8" stroke-width="1.5"/>
+    <rect x="1008" y="115" width="30" height="30" rx="9" fill="#FAFAFA" stroke="#D4D4D8" stroke-width="1.5"/>
+    <rect x="1100" y="115" width="30" height="30" rx="9" fill="#FAFAFA" stroke="#D4D4D8" stroke-width="1.5"/>
+    <line x1="776" y1="175" x2="869" y2="175" stroke="#D4D4D8" stroke-width="1.5"/>
+    <text x="928" y="180" text-anchor="end" font-family="ui-monospace,'SF Mono',Menlo,Consolas,monospace" font-size="15" fill="#52525B">Kafka</text>
+    <line x1="940" y1="175" x2="1178" y2="175" stroke="#E4E4E7" stroke-width="1.5"/>
+    <circle cx="768" cy="175" r="4.5" fill="#71717A"/>
+    <circle cx="1178" cy="175" r="5.5" fill="none" stroke="#71717A" stroke-width="2"/>
+    <rect x="950" y="160" width="30" height="30" rx="9" fill="#FAFAFA" stroke="#D4D4D8" stroke-width="1.5"/>
+    <rect x="1004" y="160" width="30" height="30" rx="9" fill="#FAFAFA" stroke="#D4D4D8" stroke-width="1.5"/>
+    <rect x="1110" y="160" width="30" height="30" rx="9" fill="#FAFAFA" stroke="#D4D4D8" stroke-width="1.5"/>
+    <rect x="1045" y="160" width="30" height="30" rx="9" fill="#EC3013"/>
+    <line x1="776" y1="220" x2="860" y2="220" stroke="#D4D4D8" stroke-width="1.5"/>
+    <text x="928" y="225" text-anchor="end" font-family="ui-monospace,'SF Mono',Menlo,Consolas,monospace" font-size="15" fill="#52525B">Pulsar</text>
+    <line x1="940" y1="220" x2="1178" y2="220" stroke="#E4E4E7" stroke-width="1.5"/>
+    <circle cx="768" cy="220" r="4.5" fill="#71717A"/>
+    <circle cx="1178" cy="220" r="5.5" fill="none" stroke="#71717A" stroke-width="2"/>
+    <rect x="968" y="205" width="30" height="30" rx="9" fill="#FAFAFA" stroke="#D4D4D8" stroke-width="1.5"/>
+    <rect x="1022" y="205" width="30" height="30" rx="9" fill="#FAFAFA" stroke="#D4D4D8" stroke-width="1.5"/>
+    <rect x="1120" y="205" width="30" height="30" rx="9" fill="#FAFAFA" stroke="#D4D4D8" stroke-width="1.5"/>
+    <line x1="776" y1="265" x2="806" y2="265" stroke="#D4D4D8" stroke-width="1.5"/>
+    <text x="928" y="270" text-anchor="end" font-family="ui-monospace,'SF Mono',Menlo,Consolas,monospace" font-size="15" fill="#52525B">Redis Stream</text>
+    <line x1="940" y1="265" x2="1178" y2="265" stroke="#E4E4E7" stroke-width="1.5"/>
+    <circle cx="768" cy="265" r="4.5" fill="#71717A"/>
+    <circle cx="1178" cy="265" r="5.5" fill="none" stroke="#71717A" stroke-width="2"/>
+    <rect x="958" y="250" width="30" height="30" rx="9" fill="#FAFAFA" stroke="#D4D4D8" stroke-width="1.5"/>
+    <rect x="1012" y="250" width="30" height="30" rx="9" fill="#FAFAFA" stroke="#D4D4D8" stroke-width="1.5"/>
+    <rect x="1066" y="250" width="30" height="30" rx="9" fill="#FAFAFA" stroke="#D4D4D8" stroke-width="1.5"/>
+    <rect x="1132" y="250" width="30" height="30" rx="9" fill="#FAFAFA" stroke="#D4D4D8" stroke-width="1.5"/>
+    <line x1="776" y1="310" x2="878" y2="310" stroke="#D4D4D8" stroke-width="1.5"/>
+    <text x="928" y="315" text-anchor="end" font-family="ui-monospace,'SF Mono',Menlo,Consolas,monospace" font-size="15" fill="#52525B">MQTT</text>
+    <line x1="940" y1="310" x2="1178" y2="310" stroke="#E4E4E7" stroke-width="1.5"/>
+    <circle cx="768" cy="310" r="4.5" fill="#71717A"/>
+    <circle cx="1178" cy="310" r="5.5" fill="none" stroke="#71717A" stroke-width="2"/>
+    <rect x="976" y="295" width="30" height="30" rx="9" fill="#FAFAFA" stroke="#D4D4D8" stroke-width="1.5"/>
+    <rect x="1030" y="295" width="30" height="30" rx="9" fill="#FAFAFA" stroke="#D4D4D8" stroke-width="1.5"/>
+    <rect x="1108" y="295" width="30" height="30" rx="9" fill="#FAFAFA" stroke="#D4D4D8" stroke-width="1.5"/>
   </g>
 
   <!-- magnifier echoing the logo's Q: any driver, same inspection -->
   <g id="inspect">
-    <circle cx="1059" cy="170" r="31" fill="none" stroke="#18181B" stroke-width="3.5"/>
-    <line x1="1081" y1="192" x2="1104" y2="215" stroke="#18181B" stroke-width="7.5" stroke-linecap="round"/>
+    <circle cx="1060" cy="175" r="22" fill="none" stroke="#18181B" stroke-width="3"/>
+    <line x1="1075.6" y1="190.6" x2="1091" y2="206" stroke="#18181B" stroke-width="6" stroke-linecap="round"/>
   </g>
 </svg>
