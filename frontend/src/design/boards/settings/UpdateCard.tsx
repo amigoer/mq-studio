@@ -62,7 +62,7 @@ function Headline({ icon, tone, title, meta }: {
 export function UpdateCard() {
   const { t, i18n } = useTranslation();
   const { settings } = useSettings();
-  const { state, available, busy, check, download, cancel, install, skip, openReleases } =
+  const { state, available, busy, check, download, cancel, install, skip, openDownloads } =
     useUpdater();
   const locale = updateLocale(i18n.language);
   const blocked = blockerKey(state.location?.blocker ?? Blocker.BlockerNone);
@@ -159,15 +159,16 @@ export function UpdateCard() {
   }
 
   function renderActions() {
-    /* A failure always leaves a way out. Releases is the one that works even
-       when whatever the app tried does not -- a release with no checksum list,
-       a disk image that will not mount, a download that keeps failing. */
+    /* A failure always leaves a way out. The site's download page is the one
+       that works even when whatever the app tried does not -- a release with no
+       checksum list, a disk image that will not mount, a download that keeps
+       failing. */
     if (state.phase === Phase.PhaseError) {
       return (
         <>
-          <Button variant="outline" onClick={openReleases}>
+          <Button variant="outline" onClick={openDownloads}>
             <ExternalLink size={13} aria-hidden />
-            {t("page.settings.about.openReleases")}
+            {t("page.settings.about.openDownloads")}
           </Button>
           <Button
             disabled={busy}
@@ -207,9 +208,9 @@ export function UpdateCard() {
               {t("update.download")}
             </Button>
           ) : (
-            <Button onClick={openReleases}>
+            <Button onClick={openDownloads}>
               <ExternalLink size={13} aria-hidden />
-              {t("page.settings.about.openReleases")}
+              {t("page.settings.about.openDownloads")}
             </Button>
           )}
         </>

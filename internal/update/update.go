@@ -12,8 +12,10 @@ import (
 	"time"
 )
 
-// ReleasesURL is the human-facing downloads page.
-const ReleasesURL = "https://github.com/amigoer/mq-studio/releases/latest"
+// DownloadsURL is the human-facing downloads page. It points at the site rather
+// than at GitHub Releases: the site offers the same packages and is reachable on
+// networks that cannot open github.com.
+const DownloadsURL = "https://mq-studio.amigoer.com/#download"
 
 const latestReleaseAPI = "https://api.github.com/repos/amigoer/mq-studio/releases/latest"
 

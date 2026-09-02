@@ -710,7 +710,7 @@
     "installing": "正在安装，稍后会自动重启…",
     "updateNow": "立即更新",
     "later": "稍后",
-    "viewOnGithub": "在 GitHub 上查看",
+    "viewNotes": "查看更新说明",
     "downloadFailed": "下载更新失败",
     "installFailed": "安装更新失败",
     "failed": {
@@ -719,8 +719,8 @@
       "install": "安装更新失败"
     },
     "blocked": {
-      "packageManager": "这份安装由系统包管理器接管，应用无法自行替换。请用 apt / dnf 升级，或从 Releases 下载新的安装包。",
-      "readOnly": "当前安装位置不可写，应用无法自行替换。请把它移到「应用程序」目录，或从 Releases 手动安装。",
+      "packageManager": "这份安装由系统包管理器接管，应用无法自行替换。请用 apt / dnf 升级，或从官网下载新的安装包。",
+      "readOnly": "当前安装位置不可写，应用无法自行替换。请把它移到「应用程序」目录，或从官网下载后手动安装。",
       "notPackaged": "当前运行的不是已安装的应用（可能是开发构建或裸二进制），无法自行替换。",
       "unsupported": "当前系统或架构没有对应的发布包，无法自动更新。"
     }
@@ -1102,7 +1102,7 @@
         "resetDesc": "所有应用设置将回到初始值。连接与 ACL 配置不受影响。",
         "resetDone": "设置已恢复默认",
         "resetFailed": "恢复默认失败",
-        "openReleases": "打开 Releases",
+        "openDownloads": "打开下载页",
         "aheadOfRelease": "当前 v{{current}} 新于线上 v{{latest}}",
         "upToDate": "已是最新版本 v{{version}}",
         "updateCheckFailed": "无法检查更新",

@@ -76,7 +76,8 @@ export function UpdatePanel() {
     install,
     skip,
     check,
-    openReleases,
+    openDownloads,
+    openNotes,
   } = useUpdater();
 
   const locale = updateLocale(i18n.language);
@@ -159,16 +160,16 @@ export function UpdatePanel() {
       )}
 
       <DialogFooter className="items-center border-t border-(--c-border) bg-(--c-bar) px-[18px] py-3 sm:justify-start">
-        {/* Always reachable: if the notes render poorly, or the app cannot
-            replace itself, the release page is the way through. */}
+        {/* Always reachable: if the notes render poorly, the changelog on the
+            site carries the same text in full. */}
         <Button
           variant="ghost"
           size="sm"
           className="font-normal text-(--c-muted)"
-          onClick={openReleases}
+          onClick={openNotes}
         >
           <ExternalLink size={13} aria-hidden />
-          {t("update.viewOnGithub")}
+          {t("update.viewNotes")}
         </Button>
         <span className="flex-1" />
         {renderActions()}
@@ -262,9 +263,9 @@ export function UpdatePanel() {
             {t("update.download")}
           </Button>
         ) : (
-          <Button size="sm" onClick={openReleases}>
+          <Button size="sm" onClick={openDownloads}>
             <ExternalLink size={13} aria-hidden />
-            {t("page.settings.about.openReleases")}
+            {t("page.settings.about.openDownloads")}
           </Button>
         )}
       </>

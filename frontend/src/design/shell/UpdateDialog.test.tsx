@@ -106,7 +106,8 @@ beforeAll(async () => {
         return Promise.resolve();
       },
       skip: () => calls.push("skip"),
-      openReleases: () => calls.push("openReleases"),
+      openDownloads: () => calls.push("openDownloads"),
+      openNotes: () => calls.push("openNotes"),
     }),
   }));
   vi.doMock("@/hooks/useSettings", () => ({
@@ -157,12 +158,12 @@ describe("the update dialog", () => {
     expect(body).toContain("稍后");
   });
 
-  /* The release page works even when whatever the app tries does not, so it is
-     on every phase rather than only on the failures. */
-  it("always leaves a way out to the release page", async () => {
+  /* The notes on the site work even when whatever the app tries does not, so
+     the link is on every phase rather than only on the failures. */
+  it("always leaves a way out to the release notes", async () => {
     await useLanguage("zh");
     for (const phase of ["available", "downloading", "ready", "error"]) {
-      expect(text(render({ phase })), phase).toContain("在 GitHub 上查看");
+      expect(text(render({ phase })), phase).toContain("查看更新说明");
     }
   });
 
@@ -205,7 +206,7 @@ describe("the update dialog", () => {
   });
 
   // An install the app cannot perform must not offer a button that would fail.
-  it("replaces the download with Releases when it cannot replace itself", async () => {
+  it("replaces the download with the download page when it cannot replace itself", async () => {
     await useLanguage("zh");
     const body = text(render({
       location: {
@@ -216,7 +217,7 @@ describe("the update dialog", () => {
       },
     }));
     expect(body).toContain("包管理器");
-    expect(body).toContain("打开 Releases");
+    expect(body).toContain("打开下载页");
     expect(body).not.toContain("下载并安装");
   });
 
