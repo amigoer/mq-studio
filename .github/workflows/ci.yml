@@ -165,6 +165,24 @@ jobs:
       - name: Start EMQX
         run: npm run e2e:mqtt:emqx:up
 
+      # Three servers, because a single one has an empty route table and can
+      # place no stream on more than itself - the servers board and every
+      # replica figure a stream reports would be untestable against it.
+      - name: Start the NATS cluster
+        run: npm run e2e:nats:up
+
+      # The cross-check compares what the app computes against the nats CLI,
+      # and comparing zero against zero proves nothing.
+      - name: Seed the NATS cluster
+        run: npm run e2e:nats:seed
+
+      # Core NATS with JetStream and the system account switched off. Two of
+      # the driver's four tiers are absent here, which is the only way to
+      # assert that it says which one is missing rather than reporting a
+      # blanket failure.
+      - name: Start the JetStream-free NATS
+        run: npm run e2e:nats:plain:up
+
       - name: Run checks
         # The opt-in a developer sets locally. CI does not need it - internal/e2e
         # does not consult it when CI is set, so that no unset variable can be

@@ -16,6 +16,8 @@ ARCH ?=
 	e2e-redis-up e2e-redis-seed e2e-redis-down \
 	e2e-redis-cluster-up e2e-redis-cluster-down \
 	e2e-mqtt-up e2e-mqtt-down e2e-mqtt-emqx-up e2e-mqtt-emqx-down \
+	e2e-nats-up e2e-nats-seed e2e-nats-down \
+	e2e-nats-plain-up e2e-nats-plain-down \
 	check ci clean \
 	website-dev website-build
 
@@ -135,6 +137,21 @@ e2e-mqtt-emqx-up: ## Start the EMQX used by the management-plane live tests
 
 e2e-mqtt-emqx-down: ## Stop the EMQX E2E environment
 	npm run e2e:mqtt:emqx:down
+
+e2e-nats-up: ## Start the three-server NATS cluster used by the JetStream live tests
+	npm run e2e:nats:up
+
+e2e-nats-seed: ## Fill the NATS cluster with streams and consumers for the cross-check
+	npm run e2e:nats:seed
+
+e2e-nats-down: ## Stop the NATS cluster environment
+	npm run e2e:nats:down
+
+e2e-nats-plain-up: ## Start the NATS server with JetStream and the system account off
+	npm run e2e:nats:plain:up
+
+e2e-nats-plain-down: ## Stop the JetStream-free NATS environment
+	npm run e2e:nats:plain:down
 
 e2e: ## Run the live tests against a running, seeded RocketMQ E2E environment
 	npm run test:e2e
