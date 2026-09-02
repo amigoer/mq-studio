@@ -1,5 +1,5 @@
 ---
-import { t, type Locale } from '@/i18n';
+import { t, localePath, type Locale } from '@/i18n';
 import { RELEASE, mac, windows, linux } from '@/lib/downloads';
 import { downloadGroups } from '@/lib/menu';
 import DownloadMenu from '@/components/widgets/DownloadMenu.astro';
@@ -52,7 +52,7 @@ const targets = {
       align="center"
     />
     <a
-      href="#download"
+      href={localePath(locale, 'docs/install')}
       class="inline-flex h-11 items-center justify-center rounded-lg border border-border bg-background px-6 text-prose font-medium transition-colors hover:bg-secondary"
       >{c.hero.installGuide}</a
     >

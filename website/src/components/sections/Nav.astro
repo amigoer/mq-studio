@@ -3,7 +3,7 @@
 // raster to a 24px webp, which is soft on any 2x display. This is 526 bytes and
 // sharp at every density.
 import AppIcon from '@brand/appicon.svg';
-import { t, localePath, switchLocale, type Locale } from '@/i18n';
+import { t, localePath, switchLocale, stripLocale, type Locale } from '@/i18n';
 import { RELEASE, REPO_URL, LATEST_URL } from '@/lib/downloads';
 import { COMMUNITY, compact } from '@/lib/community';
 import { downloadGroups } from '@/lib/menu';
@@ -18,14 +18,21 @@ const c = t(locale);
 const other: Locale = locale === 'zh' ? 'en' : 'zh';
 // Derived from the URL so every route gets this for free.
 const otherHref = switchLocale(Astro.url.pathname, other);
-
+const here = stripLocale(Astro.url.pathname);
+// Section anchors carry the home path: on the landing page that is the same
+// document, from a subpage it is the way back to the section.
+const home = localePath(locale);
 
 const links = [
-  { label: c.nav.features, href: '#features' },
-  { label: c.nav.modules, href: '#modules' },
-  { label: c.nav.roadmap, href: '#roadmap' },
-  { label: c.nav.changelog, href: localePath(locale, 'changelog') },
-  { label: c.nav.docs, href: localePath(locale, 'docs/architecture') },
+  { label: c.nav.features, href: `${home}#features`, current: false },
+  { label: c.nav.modules, href: `${home}#modules`, current: false },
+  { label: c.nav.roadmap, href: `${home}#roadmap`, current: false },
+  {
+    label: c.nav.changelog,
+    href: localePath(locale, 'changelog'),
+    current: here === 'changelog' || here.startsWith('changelog/'),
+  },
+  { label: c.nav.docs, href: localePath(locale, 'docs/architecture'), current: here.startsWith('docs/') },
 ];
 ---
 
@@ -46,7 +53,11 @@ const links = [
     <div class="hidden gap-[22px] text-ui lg:flex">
       {
         links.map((link) => (
-          <a href={link.href} class="whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground">
+          <a
+            href={link.href}
+            aria-current={link.current ? 'page' : undefined}
+            class="whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground aria-[current=page]:font-medium aria-[current=page]:text-foreground"
+          >
             {link.label}
           </a>
         ))
@@ -82,7 +93,8 @@ const links = [
             links.map((link) => (
               <a
                 href={link.href}
-                class="block rounded-md px-2.5 py-2 text-ui font-medium transition-colors hover:bg-accent"
+                aria-current={link.current ? 'page' : undefined}
+                class="block rounded-md px-2.5 py-2 text-ui font-medium transition-colors hover:bg-accent aria-[current=page]:bg-secondary"
               >
                 {link.label}
               </a>

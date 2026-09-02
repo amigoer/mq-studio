@@ -225,6 +225,13 @@ jobs:
             echo "${root}: ${pages} pages, no raw markdown links"
           done
 
+          # The docs open with a link to their own translation, written for
+          # GitHub; the nav already switches language, so the plugin drops it.
+          if grep -q '<p><a href="/en/docs/roadmap/">English</a></p>' website/dist/docs/roadmap/index.html; then
+            echo "the roadmap page still carries the in-prose language link" >&2
+            exit 1
+          fi
+
           # ARCHITECTURE has no Chinese translation; the Chinese route renders
           # the English text and must say so.
           grep -q 'class="mb-6 rounded-lg' website/dist/docs/architecture/index.html || {

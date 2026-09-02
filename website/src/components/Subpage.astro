@@ -1,0 +1,155 @@
+---
+import Base from '@/layouts/Base.astro';
+import Nav from '@/components/sections/Nav.astro';
+import Footer from '@/components/sections/Footer.astro';
+import { t, localePath, type Locale } from '@/i18n';
+
+export interface TocEntry {
+  href: string;
+  label: string;
+}
+
+/*
+ * The shell shared by the changelog and the docs: breadcrumb, an optional
+ * page header, then rail / content / table of contents. Each page renders its
+ * own rail list and its own <article>; nothing here adds one, because the CI
+ * verify step counts exactly one per version page.
+ */
+interface Props {
+  locale: Locale;
+  title: string;
+  description: string;
+  /** Path relative to the locale root, for hreflang. */
+  path: string;
+  canonicalPath?: string;
+  /** Last crumb: the page's own name. */
+  crumb: string;
+  heading?: string;
+  lead?: string;
+  railLabel: string;
+  toc?: TocEntry[];
+  tocLabel?: string;
+}
+
+const {
+  locale,
+  title,
+  description,
+  path,
+  canonicalPath,
+  crumb,
+  heading,
+  lead,
+  railLabel,
+  toc = [],
+  tocLabel,
+} = Astro.props;
+const c = t(locale);
+// A one-entry index is noise; below xl the column is not worth its width.
+const showToc = toc.length > 1 && !!tocLabel;
+---
+
+<Base locale={locale} path={path} canonicalPath={canonicalPath} title={title} description={description}>
+  <Nav locale={locale} />
+
+  <main id="top" class="mx-auto max-w-[1240px] px-6 py-10 sm:py-14">
+    <nav aria-label={c.nav.breadcrumb} class="text-ui text-muted-foreground">
+      <ol class="flex items-center gap-1.5">
+        <li>
+          <a href={localePath(locale)} class="transition-colors hover:text-foreground">{c.nav.home}</a>
+        </li>
+        <li aria-hidden="true" class="text-subtle-foreground">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m9 18 6-6-6-6" />
+          </svg>
+        </li>
+        <li class="text-foreground">{crumb}</li>
+      </ol>
+    </nav>
+
+    {
+      heading && (
+        <header class="mt-6 max-w-measure">
+          <h1 class="text-title font-bold tracking-heading">{heading}</h1>
+          {lead && <p class="mt-2 text-body text-muted-foreground text-pretty">{lead}</p>}
+        </header>
+      )
+    }
+
+    <div
+      class:list={[
+        'mt-7 lg:grid lg:grid-cols-[200px_minmax(0,1fr)] lg:gap-10',
+        showToc && 'xl:grid-cols-[200px_minmax(0,1fr)_200px]',
+      ]}
+    >
+      <!-- A sticky rail on large screens, a scrolling strip of pills above the
+           content on small ones. The list itself is the page's. -->
+      <nav aria-label={railLabel} class="lg:sticky lg:top-20 lg:self-start">
+        <p class="mb-3 hidden text-ui font-semibold lg:block">{railLabel}</p>
+        <slot name="rail" />
+      </nav>
+
+      <div class="mt-8 min-w-0 lg:mt-0">
+        <slot />
+      </div>
+
+      {
+        showToc && (
+          <nav aria-label={tocLabel} data-toc class="hidden xl:sticky xl:top-20 xl:block xl:self-start">
+            <p class="mb-3 text-caption font-semibold text-muted-foreground">{tocLabel}</p>
+            <ul class="flex flex-col gap-2 border-l border-border">
+              {toc.map((entry) => (
+                <li>
+                  <a
+                    href={entry.href}
+                    class="-ml-px block border-l border-transparent pl-3 text-ui text-muted-foreground transition-colors hover:border-foreground hover:text-foreground aria-[current=location]:border-foreground aria-[current=location]:text-foreground"
+                  >
+                    {entry.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        )
+      }
+    </div>
+  </main>
+
+  <Footer locale={locale} />
+</Base>
+
+<script>
+  // Marks the entry whose target is highest in the reading zone: the band
+  // below the sticky nav and above the middle of the viewport. When nothing
+  // is in the band, the last mark stays, so a long section keeps its entry.
+  document.querySelectorAll<HTMLElement>('[data-toc]').forEach((toc) => {
+    if (!('IntersectionObserver' in window)) return;
+    const links = [...toc.querySelectorAll<HTMLAnchorElement>('a[href^="#"]')];
+    const byTarget = new Map<Element, HTMLAnchorElement>();
+    for (const link of links) {
+      const target = document.getElementById(decodeURIComponent(link.hash.slice(1)));
+      if (target) byTarget.set(target, link);
+    }
+    const targets = [...byTarget.keys()];
+    if (!targets.length) return;
+
+    const visible = new Set<Element>();
+    let current: HTMLAnchorElement | null = null;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) visible.add(entry.target);
+          else visible.delete(entry.target);
+        }
+        const top = targets.find((target) => visible.has(target));
+        const link = top ? byTarget.get(top) : null;
+        if (!link || link === current) return;
+        current?.removeAttribute('aria-current');
+        link.setAttribute('aria-current', 'location');
+        current = link;
+      },
+      { rootMargin: '-80px 0px -55% 0px' },
+    );
+    targets.forEach((target) => observer.observe(target));
+  });
+</script>

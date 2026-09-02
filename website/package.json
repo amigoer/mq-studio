@@ -6,8 +6,8 @@
   "scripts": {
     "dev": "astro dev",
     "start": "astro dev",
-    "build": "node ../scripts/fetch-release.mjs && node ../scripts/fetch-community.mjs && astro check && astro build",
-    "build:fast": "astro build",
+    "build": "node ../scripts/fetch-release.mjs && node ../scripts/fetch-community.mjs && astro check && astro build --force",
+    "build:fast": "astro build --force",
     "preview": "astro preview",
     "type-check": "astro check",
     "test": "node --test test/*.test.ts"

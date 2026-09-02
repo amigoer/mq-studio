@@ -1,6 +1,6 @@
 ---
 import AppIcon from '@brand/appicon.svg';
-import { t, type Locale } from '@/i18n';
+import { t, localePath, type Locale } from '@/i18n';
 
 interface Props {
   locale: Locale;
@@ -36,7 +36,7 @@ const c = t(locale);
             {group.links.map((link) => (
               <li>
                 <a
-                  href={link.href}
+                  href={link.href.startsWith('#') ? `${localePath(locale)}${link.href}` : link.href}
                   class="text-ui text-muted-foreground transition-colors hover:text-foreground"
                 >
                   {link.label}

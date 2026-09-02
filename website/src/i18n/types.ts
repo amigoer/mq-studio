@@ -26,6 +26,8 @@ export interface Content {
     github: string;
     download: string;
     skipToContent: string;
+    home: string;
+    breadcrumb: string;
     languageLabel: string;
     menu: string;
     theme: string;
@@ -62,7 +64,9 @@ export interface Content {
     latest: string;
     onThisPage: string;
     inThisRelease: string;
-    backHome: string;
+    pagination: string;
+    newer: string;
+    older: string;
     onGitHub: string;
   };
   docs: {
