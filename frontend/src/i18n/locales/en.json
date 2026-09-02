@@ -545,6 +545,27 @@
         "managementCredentials": "The management API refused the API key. Check the key and secret in the connection's advanced settings — on EMQX they are created in its dashboard under API keys, and are not the dashboard login.",
         "managementUnknown": "Something answered at that address and it was not this broker's management API. The address is most likely off by a port, or a proxy is in front of a broker that has no such API."
       }
+    },
+    "nats": {
+      "name": "NATS",
+      "terms": {
+        "destination": "Stream",
+        "destinationPlural": "Streams",
+        "subscription": "Consumer",
+        "subscriptionPlural": "Consumers",
+        "node": "Server",
+        "nodePlural": "Servers",
+        "namespace": "Account",
+        "backlog": "Pending"
+      },
+      "degraded": {
+        "jetstreamDisabled": "This server was started without JetStream, so it stores nothing: there are no streams, no consumers and no message history to read. Start the server with --jetstream, or point this connection at one that already runs it.",
+        "jetstreamNoAccount": "The server runs JetStream and this account may not use it. Nothing needs to change about how the server was started — add a jetstream block to the account in the server's configuration, or connect as one that already has one.",
+        "monitorAbsent": "This connection names no monitoring endpoint, and the protocol itself cannot say what a server is doing — there is no such request in NATS. The endpoint is served on port 8222 when the server is started with -m; its address goes in the connection's advanced settings.",
+        "monitorUnreachable": "The monitoring endpoint named on this connection did not answer. Check the address and port in the connection's advanced settings, and that the server was started with -m — the client port is a different one.",
+        "systemAbsent": "This connection carries no system-account credentials, so the cluster can only be asked about the one server the monitoring endpoint belongs to. The system account is a separate account with its own user; its credentials go in the connection's advanced settings.",
+        "systemForbidden": "The system-account credentials on this connection were refused. An ordinary account cannot reach $SYS however valid it is — these have to be a user inside the account named by system_account in the server's configuration."
+      }
     }
   },
   "shell": {

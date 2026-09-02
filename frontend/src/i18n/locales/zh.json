@@ -545,6 +545,27 @@
         "managementCredentials": "管理 API 拒绝了这个 API Key。请检查连接高级设置里的 Key 与 Secret——在 EMQX 上它们是在控制台的 API 密钥里创建的，不是控制台的登录账号。",
         "managementUnknown": "那个地址上有东西应答，但不是这个 broker 的管理 API。多半是端口填错了，或者前面挡了一层代理而后面的 broker 并没有这类接口。"
       }
+    },
+    "nats": {
+      "name": "NATS",
+      "terms": {
+        "destination": "流",
+        "destinationPlural": "流",
+        "subscription": "消费者",
+        "subscriptionPlural": "消费者",
+        "node": "服务器",
+        "nodePlural": "服务器",
+        "namespace": "账户",
+        "backlog": "待处理"
+      },
+      "degraded": {
+        "jetstreamDisabled": "这台服务器启动时没有开启 JetStream，不会存储任何消息：没有流、没有消费者，也没有可供查看的历史。给服务器加上 --jetstream 重启，或把这个连接指向已经开启的集群。",
+        "jetstreamNoAccount": "服务器开了 JetStream，但当前账户无权使用。不用改服务器的启动方式——在配置里给这个账户加一行 jetstream，或改用已经有授权的账户连接。",
+        "monitorAbsent": "这个连接没有填监控地址，而 NATS 协议本身问不出服务器在做什么——协议里没有这类请求。服务器加 -m 启动后会在 8222 端口提供它，地址填在连接的高级设置里。",
+        "monitorUnreachable": "连接上填的监控地址没有应答。检查高级设置里的地址和端口，以及服务器是否加了 -m 启动——客户端端口不是同一个。",
+        "systemAbsent": "这个连接没有系统账户凭据，所以只能问到监控地址所属的那一台服务器。系统账户是另一个独立账户，有自己的用户，凭据填在连接的高级设置里。",
+        "systemForbidden": "连接上的系统账户凭据被拒绝了。普通账户再怎么正确也到不了 $SYS——这里需要的是服务器配置里 system_account 指向的那个账户的用户。"
+      }
     }
   },
   "shell": {

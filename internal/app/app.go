@@ -9,6 +9,7 @@ import (
 	"github.com/amigoer/mq-studio/internal/driver"
 	"github.com/amigoer/mq-studio/internal/driver/kafka"
 	"github.com/amigoer/mq-studio/internal/driver/mqtt"
+	natsdriver "github.com/amigoer/mq-studio/internal/driver/nats"
 	"github.com/amigoer/mq-studio/internal/driver/pulsar"
 	"github.com/amigoer/mq-studio/internal/driver/rabbitmq"
 	"github.com/amigoer/mq-studio/internal/driver/redisstream"
@@ -76,6 +77,7 @@ func New() (*Services, error) {
 	driver.Register(mqtt.New())
 	driver.Register(pulsar.New())
 	driver.Register(redisstream.New())
+	driver.Register(natsdriver.New())
 
 	registry := driver.NewRegistry()
 	settingsService := settings.New(paths.SettingsFile)

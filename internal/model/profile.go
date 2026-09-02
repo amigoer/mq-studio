@@ -13,6 +13,16 @@ const (
 	AuthSASLScram AuthMechanism = "sasl-scram"
 	AuthToken     AuthMechanism = "token"
 	AuthMutualTLS AuthMechanism = "mtls"
+
+	// AuthNKey is a challenge signed with an Ed25519 seed, and AuthCreds is
+	// that seed packaged with a JWT in a file the client library reads.
+	//
+	// Neither is a variation on the pairs above. A token is a shared string the
+	// server compares; an nkey proves possession of a private key against a
+	// nonce the server issues, and a creds file additionally carries the claims
+	// that say what the bearer may do. NATS is the family that has them.
+	AuthNKey  AuthMechanism = "nkey"
+	AuthCreds AuthMechanism = "creds"
 )
 
 // AuthConfig carries the non-secret half of a connection's credentials.
