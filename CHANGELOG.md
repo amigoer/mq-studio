@@ -9,6 +9,12 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Fixed
+
+- The About page names all seven drivers. It listed six, leaving NATS out, and
+  spelled Redis Stream as "Redis" — the one family list in the tree the seventh
+  driver had left behind.
+
 ## [0.0.6] - 2026-09-03
 
 NATS is the seventh driver, and the first family here whose answers come from
