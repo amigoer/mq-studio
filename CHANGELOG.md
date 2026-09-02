@@ -18,7 +18,8 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   ID" control had been drawn for it, and the namespace is shown beside the
   address in the connection list and the tab status bar so a reader can tell a
   scoped connection from an unscoped one. Leaving it empty is unchanged
-  behaviour: the connection sees the cluster whole, raw names included.
+  behaviour: the connection sees the cluster whole, raw names
+  included. (#61, #63)
 
   This is the namespace RocketMQ 5.x actually implements — the client-side one,
   where `orders` goes on the wire as `ns%orders` and a consumer group's retry
