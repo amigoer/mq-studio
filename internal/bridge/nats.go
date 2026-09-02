@@ -343,3 +343,27 @@ func (s *NATSService) StopSubscription(connID int, id string) error {
 func (s *NATSService) Subscriptions(connID int) ([]*model.LiveSubscription, error) {
 	return s.service.Subscriptions(context.Background(), connID)
 }
+
+// Census counts what the account holds.
+func (s *NATSService) Census(connID int) (*model.BrokerCensus, error) {
+	return s.service.Census(context.Background(), connID)
+}
+
+// Health runs the server's own checks.
+//
+// Three of them rather than one, because /healthz answers a different question
+// per set of parameters: a server can be up and serving core NATS perfectly
+// while its JetStream assets are still being recovered, and an operator needs
+// to know which part is unhealthy.
+func (s *NATSService) Health(connID int) (*model.BrokerHealth, error) {
+	return s.service.Health(context.Background(), connID)
+}
+
+// Usage reads the account's JetStream meters, limits included.
+//
+// The limits travel with the usage because a meter needs both, and -1 is how
+// the server spells "no cap" - a bar drawn against -1 can never move, so the
+// page has to be able to tell that from a limit of zero.
+func (s *NATSService) Usage(connID int) (*natsdriver.AccountUsage, error) {
+	return s.service.Usage(context.Background(), connID)
+}

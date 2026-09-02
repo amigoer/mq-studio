@@ -120,6 +120,7 @@ var (
 		model.CapMessageQuery,
 		model.CapMessageByID,
 		model.CapMessageLiveTail,
+		model.CapClusterCensus,
 	}
 
 	// clusterCapabilities are answered by the monitoring endpoint or by the
@@ -129,6 +130,7 @@ var (
 		model.CapClusterTopology,
 		model.CapClusterMetrics,
 		model.CapNodeConfig,
+		model.CapClusterHealth,
 	}
 )
 

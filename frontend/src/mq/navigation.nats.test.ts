@@ -26,6 +26,7 @@ const NATS_CAPABILITIES: Capability[] = [
   Capability.CapClusterTopology,
   Capability.CapClusterMetrics,
   Capability.CapNodeConfig,
+  Capability.CapClusterHealth,
   Capability.CapDestinationList,
   Capability.CapDestinationCreate,
   Capability.CapDestinationUpdate,
@@ -39,6 +40,7 @@ const NATS_CAPABILITIES: Capability[] = [
   Capability.CapMessageQuery,
   Capability.CapMessageByID,
   Capability.CapMessageLiveTail,
+  Capability.CapClusterCensus,
 ];
 
 function state(

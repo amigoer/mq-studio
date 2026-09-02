@@ -6,7 +6,13 @@ import type {
   PurgeInput,
   StreamInput,
 } from "@bindings/bridge/models";
-import type { LiveBatch, LiveSubscription } from "@bindings/model/models";
+import type {
+  BrokerCensus,
+  BrokerHealth,
+  LiveBatch,
+  LiveSubscription,
+} from "@bindings/model/models";
+import type { AccountUsage } from "@bindings/driver/nats/models";
 import type { PublishResult } from "@bindings/driver/nats/models";
 import type { TrimResult } from "@bindings/model/models";
 import { present, required } from "./client";
@@ -114,3 +120,26 @@ export const stopSubscription = (connID: number, id: string): Promise<void> =>
 /** What is running, so a panel that remounts finds its own stream again. */
 export const subscriptions = (connID: number): Promise<LiveSubscription[]> =>
   NATSService.Subscriptions(connID).then(present);
+
+/** Counts what the account holds, in one request. */
+export const census = (connID: number): Promise<BrokerCensus> =>
+  NATSService.Census(connID).then(required);
+
+/**
+ * Runs the server's own health checks.
+ *
+ * Three of them, because /healthz answers a different question per set of
+ * parameters: a server can be up and serving core NATS perfectly while its
+ * JetStream assets are still being recovered.
+ */
+export const health = (connID: number): Promise<BrokerHealth> =>
+  NATSService.Health(connID).then(required);
+
+/**
+ * Reads the account's JetStream meters, limits included.
+ *
+ * The limits come with the usage because a meter needs both, and -1 is how the
+ * server spells "no cap" - a bar drawn against it can never move.
+ */
+export const usage = (connID: number): Promise<AccountUsage> =>
+  NATSService.Usage(connID).then(required);

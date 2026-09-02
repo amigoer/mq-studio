@@ -252,3 +252,41 @@ func (s *Service) Subscriptions(ctx context.Context, connID int) ([]*model.LiveS
 	defer cancel()
 	return api.LiveSubscriptions(ctx)
 }
+
+// Census counts what the account holds, in one request.
+func (s *Service) Census(ctx context.Context, connID int) (*model.BrokerCensus, error) {
+	api, err := port[driver.CensusReporter](s, connID, model.CapClusterCensus)
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.Census(ctx)
+}
+
+// Health runs the server's own checks, which are its opinion about itself
+// rather than a judgement this app makes from its metrics.
+func (s *Service) Health(ctx context.Context, connID int) (*model.BrokerHealth, error) {
+	api, err := port[driver.HealthInspector](s, connID, model.CapClusterHealth)
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.Health(ctx)
+}
+
+// Usage reads the account's JetStream meters.
+//
+// Not through a canonical port, because there is none: what an account is
+// using against what it may use is not a question the shared vocabulary has,
+// and the limits matter as much as the figures.
+func (s *Service) Usage(ctx context.Context, connID int) (*natsdriver.AccountUsage, error) {
+	conn, err := s.natsConn(connID)
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return conn.Usage(ctx)
+}

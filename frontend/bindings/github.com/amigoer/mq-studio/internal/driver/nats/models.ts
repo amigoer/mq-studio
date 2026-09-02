@@ -6,6 +6,80 @@
 import { Create as $Create } from "@wailsio/runtime";
 
 /**
+ * AccountUsage is what the account is using against what it may use.
+ * 
+ * Its own type rather than part of the census, because the census is a count
+ * of objects and this is a pair of meters. The limits matter as much as the
+ * usage: -1 means no cap, and a meter drawn against -1 can never move.
+ */
+export class AccountUsage {
+    "memoryUsed": number;
+    "memoryLimit": number;
+    "storeUsed": number;
+    "storeLimit": number;
+    "streams": number;
+    "streamLimit": number;
+    "consumers": number;
+    "consumerLimit": number;
+
+    /**
+     * Domain is set where the cluster has been split by a leaf node. Empty is
+     * the ordinary case.
+     */
+    "domain": string;
+
+    /**
+     * Tier names which limit set applies, on an account with several. Empty
+     * where the account has one, which is almost always.
+     */
+    "tier": string;
+
+    /** Creates a new AccountUsage instance. */
+    constructor($$source: Partial<AccountUsage> = {}) {
+        if (!("memoryUsed" in $$source)) {
+            this["memoryUsed"] = 0;
+        }
+        if (!("memoryLimit" in $$source)) {
+            this["memoryLimit"] = 0;
+        }
+        if (!("storeUsed" in $$source)) {
+            this["storeUsed"] = 0;
+        }
+        if (!("storeLimit" in $$source)) {
+            this["storeLimit"] = 0;
+        }
+        if (!("streams" in $$source)) {
+            this["streams"] = 0;
+        }
+        if (!("streamLimit" in $$source)) {
+            this["streamLimit"] = 0;
+        }
+        if (!("consumers" in $$source)) {
+            this["consumers"] = 0;
+        }
+        if (!("consumerLimit" in $$source)) {
+            this["consumerLimit"] = 0;
+        }
+        if (!("domain" in $$source)) {
+            this["domain"] = "";
+        }
+        if (!("tier" in $$source)) {
+            this["tier"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new AccountUsage instance from a string or object.
+     */
+    static createFrom($$source: any = {}): AccountUsage {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new AccountUsage($$parsedSource as Partial<AccountUsage>);
+    }
+}
+
+/**
  * PublishResult is what the server said, which depends on how much was asked.
  */
 export class PublishResult {

@@ -1424,6 +1424,31 @@
           "create": "New topic",
           "reset": "Reset offsets"
         }
+      },
+      "nats": {
+        "title": "Overview",
+        "servers": "Servers",
+        "ledBy": "metadata led by {{server}}",
+        "connections": "Connections",
+        "subscriptions": "Subscriptions",
+        "slow": "Slow consumers",
+        "slowHint": "Clients disconnected for not keeping up, since each server started",
+        "storage": "What this account is storing",
+        "onDisk": "On disk",
+        "inMemory": "In memory",
+        "noLimit": "no limit set",
+        "streams": "Streams",
+        "consumers": "Consumers",
+        "domain": "Domain",
+        "health": "What the server says about itself",
+        "checkPassed": "passing",
+        "checkFailed": "failing",
+        "checkUnavailable": "not asked",
+        "check": {
+          "server": "The server is running and serving clients",
+          "jetstream": "JetStream is enabled and its metadata group has a leader",
+          "assets": "Every stream and consumer this server holds has been recovered"
+        }
       }
     },
     "cluster": {

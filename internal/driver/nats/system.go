@@ -165,3 +165,9 @@ const fanOutSettle = 300 * time.Millisecond
 
 // serverList is the comma-separated form nats.Connect takes.
 func serverList(servers []string) string { return strings.Join(servers, ",") }
+
+// unmarshalReply decodes one $SYS answer's data into the shape the caller
+// asked for.
+func unmarshalReply(reply systemReply, out any) error {
+	return json.Unmarshal(reply.Data, out)
+}

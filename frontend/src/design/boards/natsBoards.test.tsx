@@ -42,6 +42,7 @@ const browseState = vi.hoisted(() => ({ current: null as unknown }));
 const liveState = vi.hoisted(() => ({ current: null as unknown }));
 const clusterState = vi.hoisted(() => ({ current: null as unknown }));
 const configState = vi.hoisted(() => ({ current: null as unknown }));
+const brokerData = vi.hoisted(() => ({ queue: [] as unknown[] }));
 
 vi.mock("@/hooks/nats/useNatsStreams", () => ({
   useNatsStreams: () => streamsState.current,
@@ -60,6 +61,11 @@ vi.mock("@/hooks/nats/useNatsCluster", () => ({
   useNatsCluster: () => clusterState.current,
   useNatsServerConfig: () => configState.current,
 }));
+/* The overview reaches for useBrokerData twice - usage, then health - so the
+   stub hands them out in that order. */
+vi.mock("@/hooks/useBrokerData", () => ({
+  useBrokerData: () => brokerData.queue.shift(),
+}));
 
 let render: (element: React.ReactElement) => string;
 let StreamsNats: typeof import("./topics/StreamsNats").StreamsNats;
@@ -67,6 +73,7 @@ let ConsumersNats: typeof import("./consumers/ConsumersNats").ConsumersNats;
 let MessagesNats: typeof import("./messages/MessagesNats").MessagesNats;
 let NatsWorkbench: typeof import("./nats/NatsWorkbench").NatsWorkbench;
 let ServersNats: typeof import("./cluster/ServersNats").ServersNats;
+let OverviewNats: typeof import("./overview/OverviewNats").OverviewNats;
 
 beforeAll(async () => {
   const storage = { getItem: () => null, setItem() {}, removeItem() {} };
@@ -79,7 +86,7 @@ beforeAll(async () => {
   });
   vi.stubGlobal("localStorage", storage);
 
-  const [server, streams, consumers, messages, workbench, cluster, ui, i18n, settings] =
+  const [server, streams, consumers, messages, workbench, cluster, overview, ui, i18n, settings] =
     await Promise.all([
     import("react-dom/server"),
     import("./topics/StreamsNats"),
@@ -87,6 +94,7 @@ beforeAll(async () => {
     import("./messages/MessagesNats"),
     import("./nats/NatsWorkbench"),
     import("./cluster/ServersNats"),
+    import("./overview/OverviewNats"),
     import("@/components"),
     import("@/i18n"),
     import("@/hooks/useSettings"),
@@ -103,6 +111,7 @@ beforeAll(async () => {
   MessagesNats = messages.MessagesNats;
   NatsWorkbench = workbench.NatsWorkbench;
   ServersNats = cluster.ServersNats;
+  OverviewNats = overview.OverviewNats;
 });
 
 /** A replicated stream, as internal/driver/nats/stream.go sends one. */
@@ -674,5 +683,97 @@ describe("the NATS servers board", () => {
     clusterState.current = stateOf({ data: clusterOf([bare]) });
     configState.current = stateOf({ data: {} });
     expect(() => render(<ServersNats />)).not.toThrow();
+  });
+});
+
+const usageReported = {
+  memoryUsed: 0,
+  memoryLimit: 67108864,
+  storeUsed: 12288,
+  storeLimit: 1073741824,
+  streams: 3,
+  streamLimit: 100,
+  consumers: 4,
+  consumerLimit: 1000,
+  domain: "",
+  tier: "",
+};
+
+const healthReported = {
+  checks: [
+    { id: "server", passed: true, unavailable: false, reason: "" },
+    { id: "jetstream", passed: true, unavailable: false, reason: "" },
+    { id: "assets", passed: true, unavailable: false, reason: "" },
+  ],
+  alarms: [],
+  featureFlags: [],
+  deprecatedFeatures: [],
+};
+
+describe("the NATS overview", () => {
+  it("says the connection is offline rather than showing zeros", () => {
+    clusterState.current = stateOf({ online: false });
+    brokerData.queue = [stateOf({}), stateOf({})];
+    expect(() => render(<OverviewNats />)).not.toThrow();
+  });
+
+  it("renders the figures every source reported", () => {
+    clusterState.current = stateOf({ data: clusterOf([natsOne]) });
+    brokerData.queue = [stateOf({ data: usageReported }), stateOf({ data: healthReported })];
+    const html = render(<OverviewNats />);
+    expect(html).toContain("nats-2");
+  });
+
+  /*
+   * -1 is how the server spells "no limit". A bar drawn against it can never
+   * move, so where there is no cap the figure is a number and no bar appears -
+   * a bar stuck at zero would read as an empty account.
+   */
+  it("draws no meter for a limit the account does not have", () => {
+    clusterState.current = stateOf({ data: clusterOf([natsOne]) });
+    brokerData.queue = [
+      stateOf({ data: { ...usageReported, storeLimit: -1, memoryLimit: -1 } }),
+      stateOf({ data: healthReported }),
+    ];
+    expect(() => render(<OverviewNats />)).not.toThrow();
+  });
+
+  /*
+   * JetStream can be absent while the servers and connections above still
+   * answer, so its failure belongs in its own panel rather than taking the
+   * page down.
+   */
+  it("keeps the rest of the page when JetStream is missing", () => {
+    clusterState.current = stateOf({ data: clusterOf([natsOne]) });
+    brokerData.queue = [
+      stateOf({ error: "JetStream is not enabled on this server" }),
+      stateOf({ data: healthReported }),
+    ];
+    const html = render(<OverviewNats />);
+    expect(html).toContain("JetStream");
+  });
+
+  /*
+   * A check the endpoint could not be reached for is not a check that failed.
+   * Drawing it red would send somebody looking for a cluster problem instead
+   * of a connection one.
+   */
+  it("tells an unreachable check apart from a failing one", () => {
+    clusterState.current = stateOf({ data: clusterOf([natsOne]) });
+    brokerData.queue = [
+      stateOf({ data: usageReported }),
+      stateOf({
+        data: {
+          ...healthReported,
+          checks: [
+            { id: "server", passed: true, unavailable: false, reason: "" },
+            { id: "jetstream", passed: false, unavailable: false, reason: "no meta leader" },
+            { id: "assets", passed: false, unavailable: true, reason: "connection refused" },
+          ],
+        },
+      }),
+    ];
+    const html = render(<OverviewNats />);
+    expect(html).toContain("no meta leader");
   });
 });

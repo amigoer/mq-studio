@@ -1424,6 +1424,31 @@
           "create": "新建 Topic",
           "reset": "重置消费进度"
         }
+      },
+      "nats": {
+        "title": "概览",
+        "servers": "服务器",
+        "ledBy": "元数据由 {{server}} 主导",
+        "connections": "连接数",
+        "subscriptions": "订阅数",
+        "slow": "慢消费者",
+        "slowHint": "各服务器启动至今，因跟不上而被断开的客户端",
+        "storage": "这个账户存了多少",
+        "onDisk": "磁盘",
+        "inMemory": "内存",
+        "noLimit": "未设上限",
+        "streams": "流",
+        "consumers": "消费者",
+        "domain": "域",
+        "health": "服务器自己怎么说",
+        "checkPassed": "通过",
+        "checkFailed": "未通过",
+        "checkUnavailable": "没问到",
+        "check": {
+          "server": "服务器正在运行并对外服务",
+          "jetstream": "JetStream 已开启，元数据组也选出了 leader",
+          "assets": "这台服务器负责的流和消费者都已恢复完毕"
+        }
       }
     },
     "cluster": {

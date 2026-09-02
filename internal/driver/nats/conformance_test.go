@@ -300,6 +300,7 @@ func TestCapabilitiesMatchTheSidebarContract(t *testing.T) {
 		"cluster.topology",
 		"cluster.metrics",
 		"cluster.nodeConfig",
+		"cluster.health",
 		"destination.list",
 		"destination.create",
 		"destination.update",
@@ -313,6 +314,7 @@ func TestCapabilitiesMatchTheSidebarContract(t *testing.T) {
 		"message.query",
 		"message.byId",
 		"message.liveTail",
+		"cluster.census",
 	}
 
 	declared := make(map[string]bool, len(capabilities()))

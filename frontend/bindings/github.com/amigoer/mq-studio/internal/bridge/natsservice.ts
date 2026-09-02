@@ -31,6 +31,15 @@ import * as model$0 from "../model/models.js";
 import * as $models from "./models.js";
 
 /**
+ * Census counts what the account holds.
+ */
+export function Census(connID: number): $CancellablePromise<model$0.BrokerCensus | null> {
+    return $Call.ByID(2922778064, connID).then(($result: any) => {
+        return $$createType1($result);
+    });
+}
+
+/**
  * CreateConsumer declares a consumer that does not exist yet.
  */
 export function CreateConsumer(connID: number, input: $models.NATSConsumerInput): $CancellablePromise<void> {
@@ -62,7 +71,7 @@ export function DeleteConsumer(connID: number, stream: string, name: string): $C
  */
 export function DeleteMessages(connID: number, stream: string, sequences: string[]): $CancellablePromise<model$0.TrimResult | null> {
     return $Call.ByID(1024039200, connID, stream, sequences).then(($result: any) => {
-        return $$createType1($result);
+        return $$createType3($result);
     });
 }
 
@@ -74,11 +83,25 @@ export function DeleteStream(connID: number, name: string): $CancellablePromise<
 }
 
 /**
+ * Health runs the server's own checks.
+ * 
+ * Three of them rather than one, because /healthz answers a different question
+ * per set of parameters: a server can be up and serving core NATS perfectly
+ * while its JetStream assets are still being recovered, and an operator needs
+ * to know which part is unhealthy.
+ */
+export function Health(connID: number): $CancellablePromise<model$0.BrokerHealth | null> {
+    return $Call.ByID(3003156433, connID).then(($result: any) => {
+        return $$createType5($result);
+    });
+}
+
+/**
  * PollSubscription drains what has arrived since the caller's cursor.
  */
 export function PollSubscription(connID: number, id: string, after: number, limit: number): $CancellablePromise<model$0.LiveBatch | null> {
     return $Call.ByID(2853870003, connID, id, after, limit).then(($result: any) => {
-        return $$createType3($result);
+        return $$createType7($result);
     });
 }
 
@@ -88,7 +111,7 @@ export function PollSubscription(connID: number, id: string, after: number, limi
  */
 export function Publish(connID: number, input: $models.NATSPublishInput): $CancellablePromise<nats$0.PublishResult | null> {
     return $Call.ByID(852775886, connID, input).then(($result: any) => {
-        return $$createType5($result);
+        return $$createType9($result);
     });
 }
 
@@ -101,7 +124,7 @@ export function Publish(connID: number, input: $models.NATSPublishInput): $Cance
  */
 export function PurgeStream(connID: number, input: $models.PurgeInput): $CancellablePromise<model$0.TrimResult | null> {
     return $Call.ByID(816427434, connID, input).then(($result: any) => {
-        return $$createType1($result);
+        return $$createType3($result);
     });
 }
 
@@ -110,7 +133,7 @@ export function PurgeStream(connID: number, input: $models.PurgeInput): $Cancell
  */
 export function StartSubscription(connID: number, input: $models.NATSSubscribeInput): $CancellablePromise<model$0.LiveSubscription | null> {
     return $Call.ByID(1106287356, connID, input).then(($result: any) => {
-        return $$createType7($result);
+        return $$createType11($result);
     });
 }
 
@@ -127,7 +150,7 @@ export function StopSubscription(connID: number, id: string): $CancellablePromis
  */
 export function Subscriptions(connID: number): $CancellablePromise<(model$0.LiveSubscription | null)[]> {
     return $Call.ByID(3948587227, connID).then(($result: any) => {
-        return $$createType8($result);
+        return $$createType12($result);
     });
 }
 
@@ -154,13 +177,32 @@ export function UpdateStream(connID: number, input: $models.StreamInput): $Cance
     return $Call.ByID(2515295686, connID, input);
 }
 
+/**
+ * Usage reads the account's JetStream meters, limits included.
+ * 
+ * The limits travel with the usage because a meter needs both, and -1 is how
+ * the server spells "no cap" - a bar drawn against -1 can never move, so the
+ * page has to be able to tell that from a limit of zero.
+ */
+export function Usage(connID: number): $CancellablePromise<nats$0.AccountUsage | null> {
+    return $Call.ByID(4276773670, connID).then(($result: any) => {
+        return $$createType14($result);
+    });
+}
+
 // Private type creation functions
-const $$createType0 = model$0.TrimResult.createFrom;
+const $$createType0 = model$0.BrokerCensus.createFrom;
 const $$createType1 = $Create.Nullable($$createType0);
-const $$createType2 = model$0.LiveBatch.createFrom;
+const $$createType2 = model$0.TrimResult.createFrom;
 const $$createType3 = $Create.Nullable($$createType2);
-const $$createType4 = nats$0.PublishResult.createFrom;
+const $$createType4 = model$0.BrokerHealth.createFrom;
 const $$createType5 = $Create.Nullable($$createType4);
-const $$createType6 = model$0.LiveSubscription.createFrom;
+const $$createType6 = model$0.LiveBatch.createFrom;
 const $$createType7 = $Create.Nullable($$createType6);
-const $$createType8 = $Create.Array($$createType7);
+const $$createType8 = nats$0.PublishResult.createFrom;
+const $$createType9 = $Create.Nullable($$createType8);
+const $$createType10 = model$0.LiveSubscription.createFrom;
+const $$createType11 = $Create.Nullable($$createType10);
+const $$createType12 = $Create.Array($$createType11);
+const $$createType13 = nats$0.AccountUsage.createFrom;
+const $$createType14 = $Create.Nullable($$createType13);

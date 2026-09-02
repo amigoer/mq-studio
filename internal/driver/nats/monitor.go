@@ -36,7 +36,10 @@ func newMonitorClient(base string, timeout time.Duration) *monitorClient {
 // The endpoints this driver reads. They are spelled out rather than built from
 // a caller's string so that a typo is a compile error. More arrive with the
 // pages that read them.
-const pathVarz = "/varz"
+const (
+	pathVarz    = "/varz"
+	pathHealthz = "/healthz"
+)
 
 // varz is the server's own view of itself: identity, version, configuration
 // and running totals.

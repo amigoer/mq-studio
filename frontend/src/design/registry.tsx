@@ -8,6 +8,7 @@ import { OverviewRabbitMQ } from "./boards/overview/OverviewRabbitMQ";
 import { OverviewPulsar } from "./boards/overview/OverviewPulsar";
 import { OverviewRedis } from "./boards/overview/OverviewRedis";
 import { OverviewMqtt } from "./boards/overview/OverviewMqtt";
+import { OverviewNats } from "./boards/overview/OverviewNats";
 
 import { TopicsRocketMQ } from "./boards/topics/TopicsRocketMQ";
 import { TopicsKafka } from "./boards/topics/TopicsKafka";
@@ -113,6 +114,7 @@ const BOARDS: Partial<
     pulsar: OverviewPulsar,
     redis: OverviewRedis,
     mqtt: OverviewMqtt,
+    nats: OverviewNats,
   },
   topics: {
     rocketmq: TopicsRocketMQ,
