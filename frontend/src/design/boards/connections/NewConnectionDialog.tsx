@@ -54,10 +54,10 @@ type ProbeState =
   | { kind: "failed"; message: string };
 
 /**
- * Board 3a with one form per protocol. The canvas drew a field set for each of
- * the six; a tile is offered only where a driver and a form both exist, and
- * anything without both is shown disabled rather than offering a form that
- * cannot be saved.
+ * Board 3a with one form per protocol. The canvas drew a field set for every
+ * family it imagined; a tile is offered only where a driver and a form both
+ * exist, and anything without both is shown disabled rather than offering a
+ * form that cannot be saved.
  *
  * `editing` turns the dialog into the edit form for a stored profile, which
  * the canvas never drew separately because the field set is the same one.

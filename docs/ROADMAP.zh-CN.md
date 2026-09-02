@@ -28,7 +28,24 @@ MQ Studio 正在成为一个覆盖所有消息队列的桌面客户端。每种�
   能枚举的东西；来自 $SYS 的 broker 计数；以及在管理 API 有应答时，在线客户端与它们的
   会话、订阅、集群节点，并可断开某个会话。探测不到的那一层会连同原因一起上报，而不是
   让页面空着。
-- **已完成设计，尚未实现** — 下面列出的十一种形态。
+- **已发布** — NATS 2.x，走官方 Go 客户端及其 jetstream 子包。这是第二个自身没有管理面
+  的家族，也是「可能缺席的东西」最多的一个：连接建立时探测四层——协议、JetStream、服务端的
+  HTTP 监控端点、以及系统账户——后三层每一层都有两种不同的缺席原因，指向不同的修复位置，
+  所以上报六条退化原因而不是一条。JetStream 的流及其主题、留存策略、存储方式与副本集；
+  push 与 pull 两种消费者；按 sequence 浏览与跟随；按 subject 发布，并支持等待回复的
+  request；按条数、sequence 或 subject 清理；集群里的服务器与它们的生效配置；客户端连接
+  以及断开其中一条；还有账户页，显示各自的 JetStream 用量与被给到的上限。
+
+  核心 NATS 是唯一放不进既有页面的部分，所以它单独占一页。一个 subject 什么都不留：消息
+  发给此刻在听的人，之后就没了——没有历史可以往回翻，所以订阅台是实时视图，而不是加了
+  过滤条件的消息浏览页。
+
+  有四样东西是明确不做的。没有死信页：消费者用完 max_deliver 之后只是停止重投并发一条
+  advisory，消息哪儿也没去。没有位点重置：消费者的起始位置在创建时就定死了，API 不接受
+  修改，唯一的「重置」是删掉重建，而那会换掉它的身份。没有未确认投递清单，因为 JetStream
+  只报未确认的数量，不报是哪些。账户是只读的：无论配置模式还是 operator 模式，没有任何
+  NATS 服务端提供创建账户的请求。
+- **已完成设计，尚未实现** — 下面列出的十种形态。
 
 ## 交付顺序
 
@@ -40,7 +57,7 @@ MQ Studio 正在成为一个覆盖所有消息队列的桌面客户端。每种�
 | 6 | **Redis Stream** | 已完成。Stream、消费组、浏览、发送、待处理列表（PEL）、服务器与其集群、客户端连接和 ACL 用户都读的是真实实例，也没有去假装存在 maxlen 或消息速率。和预期一样是纯增量，新增四个端口：日志的裁剪、订阅的位置、消息的写入，以及待处理列表 |
 | 7 | **Pulsar** | 已完成。主题、命名空间与其上的租户、订阅与游标、浏览与跟随、发送控制台、死信与角色授权全部端到端可用；并且没有任何页面去假装这个中间件有 tag、磁盘用量或用户目录 |
 | 8 | **MQTT** | 已完成。第一个自身没有管理面的家族：能做什么在连接时按三层探测——协议层、$SYS 树、broker 自带的 REST API——探测不到的那层会说明原因，而不是默默变空 |
-| 9 | **NATS** | 纯增量：不改动任何规范页面 |
+| 9 | **NATS** | 已完成。和预期一样是纯增量——没有任何规范页面改变形状——但它是第一个驱动会去读 profile 认证方式（而不只是读凭据）的家族，也正因此暴露了一个拨号时把 RocketMQ 之外所有家族的认证方式重置掉的缺陷 |
 | 10 | **ActiveMQ / Artemis**，然后 **NSQ** | 仍是纯增量；ActiveMQ 用来检验 JMS 语义能否套进规范页面 |
 | 11 | **Amazon SQS**、**Google Cloud Pub/Sub**、**Azure Service Bus**、**Amazon Kinesis**，然后 **IBM MQ** 与 **Solace PubSub+** | 连接表单能表达「没有地址，只有 region 与凭证」 |
 
@@ -72,7 +89,7 @@ MQ Studio 正在成为一个覆盖所有消息队列的桌面客户端。每种�
 | **Pulsar** | Admin REST API + 二进制协议 | 全部六个 | 已完成。tenant 与 namespace 最后两者都做了：既是每个页面上的范围选择器，也有自己的页面 —— 因为主题的地址就是 tenant/namespace/name，选择器的选项总得有个来源 |
 | **ActiveMQ / Artemis** | 基于 JMX 的 Jolokia REST | 全部六个 | Classic 5.x 与 Artemis 暴露的管理树不同，驱动需探测实际应答的是哪一种 |
 | **Redis Stream** | `XINFO`、`XRANGE`、`XADD` 等命令 | 全部六个 | 已完成。集群拓扑和 ACL 最后都做了：单机、哨兵与集群三种部署都能读，ACL 用户带键、频道与命令规则 |
-| **NATS** | JetStream API 加服务端监控端点 | Destinations、Subscriptions、Messages、Publish、Cluster | 未启用 JetStream 时，端点退化为仅发布与订阅 |
+| **NATS** | JetStream API、服务端监控端点与 $SYS 账户 | Destinations、Subscriptions、Messages、Publish、Subjects、Cluster、Connections、Accounts、Alerts | 已完成。四层，每一层都在连接时探测：未启用 JetStream 时端点退化为仅发布与订阅；集群相关页面需要监控端点或系统账户其一——监控端点只答一台服务器，$SYS 才答整个集群 |
 | **NSQ** | nsqd 与 nsqlookupd HTTP 接口 | Destinations、Subscriptions、Publish、Cluster | 没有消息历史，因此没有浏览 |
 | **MQTT** | 协议本身没有。连接时探测：$SYS 树，以及 broker 自带的 REST API（如果有）| 概览、主题、订阅、发布、客户端、集群、告警 | 没有消费组、没有 offset、没有历史——消息只在传输途中存在，无人订阅就没了。主题列的是持有保留消息的那些，因为别的都枚举不出来。客户端页需要管理 API，Mosquitto 没有 |
 

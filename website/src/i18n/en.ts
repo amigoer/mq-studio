@@ -5,11 +5,11 @@ export const en: Content = {
   meta: {
     title: 'MQ Studio — One interface for every message queue',
     description:
-      'MQ Studio is a local-first desktop client for message queues. RocketMQ, RabbitMQ, Kafka, Pulsar, Redis Stream, and MQTT share one interface and one workflow, with no web console to deploy or keep alive. macOS, Windows, and Linux. Apache-2.0.',
+      'MQ Studio is a local-first desktop client for message queues. RocketMQ, RabbitMQ, Kafka, Pulsar, Redis Stream, MQTT, and NATS share one interface and one workflow, with no web console to deploy or keep alive. macOS, Windows, and Linux. Apache-2.0.',
     ogAlt: 'The MQ Studio cluster overview',
   },
   banner: {
-    text: 'Three more drivers have landed — Redis Stream, Pulsar, and MQTT',
+    text: 'NATS has landed — JetStream streams and consumers, subjects, and the cluster',
     linkLabel: 'Changelog',
     dismiss: 'Dismiss announcement',
   },
@@ -30,7 +30,7 @@ export const en: Content = {
     badgeSuffix: 'is out · Apache-2.0',
     title: 'One interface for every message queue',
     subtitle:
-      'MQ Studio is a local-first desktop client for message queues — RocketMQ, RabbitMQ, Kafka, Pulsar, Redis Stream, and MQTT behind the same pages and the same workflow, with no web console to deploy or keep alive.',
+      'MQ Studio is a local-first desktop client for message queues — RocketMQ, RabbitMQ, Kafka, Pulsar, Redis Stream, MQTT, and NATS behind the same pages and the same workflow, with no web console to deploy or keep alive.',
     downloadFallback: 'Download MQ Studio',
     downloadFor: (platform: string) => `Download for ${platform}`,
     installGuide: 'Install guide',
@@ -49,8 +49,9 @@ export const en: Content = {
       'Pulsar 3.x / 4.x',
       'Redis Stream 6.0+',
       'MQTT 3.1.1 / 5.0',
+      'NATS 2.x',
     ],
-    planned: 'Planned: NATS · ActiveMQ · Amazon SQS and more',
+    planned: 'Planned: ActiveMQ · Amazon SQS · Google Cloud Pub/Sub and more',
   },
   features: {
     title: 'Why MQ Studio',
@@ -159,6 +160,7 @@ export const en: Content = {
       { label: 'Redis Stream', done: true },
       { label: 'Pulsar', done: true },
       { label: 'MQTT', done: true },
+      { label: 'NATS', done: true },
       { label: 'More drivers', done: false },
       { label: 'Agent', done: false },
     ],

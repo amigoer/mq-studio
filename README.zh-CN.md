@@ -1,7 +1,7 @@
 <div align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/images/hero-dark.zh-CN.svg">
-    <img src="docs/images/hero-light.zh-CN.svg" width="100%" alt="MQ Studio — 本地优先的消息队列桌面客户端。一套界面连接 RocketMQ、RabbitMQ、Kafka、Pulsar、Redis Stream 与 MQTT，更多驱动陆续接入，无需部署 Web 控制台。">
+    <img src="docs/images/hero-light.zh-CN.svg" width="100%" alt="MQ Studio — 本地优先的消息队列桌面客户端。一套界面连接 RocketMQ、RabbitMQ、Kafka、Pulsar、Redis Stream、MQTT 与 NATS，更多驱动陆续接入，无需部署 Web 控制台。">
   </picture>
 </div>
 
@@ -43,7 +43,7 @@ MQ Studio 是它们共同的客户端。每一种消息中间件都通过一个�
 - **数据留在本机** — 配置保存在当前设备，凭证加密存储
 - **跨平台与双语** — 支持 macOS、Windows、Linux，提供中英文界面
 
-目前可以连接的驱动是 RocketMQ、RabbitMQ、Kafka、Pulsar、Redis Stream 和 MQTT，其余进度见[驱动支持](#驱动支持)。
+目前可以连接的驱动是 RocketMQ、RabbitMQ、Kafka、Pulsar、Redis Stream、MQTT 和 NATS，其余进度见[驱动支持](#驱动支持)。
 
 ## 功能
 
@@ -119,7 +119,8 @@ MQ Studio 通过可插拔驱动对接各类消息中间件。每个驱动声明�
 | **Pulsar** 3.x / 4.x | ✅ 已支持 | 主题及其分区与存储方式；命名空间与其上的租户，含 TTL、保留策略与按主题的限额；订阅的积压、延迟投递与未确认数量，阻塞订阅识别，以及按时间或回到最早消息的游标移动；不占用订阅的日志浏览与实时跟随；带 key、顺序 key、属性与延迟投递的发送；Broker 的 Bundle 归属与资源占用；按官方客户端命名约定发现的死信与重试主题；命名空间与主题上的角色授权 |
 | **Redis Stream** 6.0+ | ✅ 已支持 | Stream 的长度、内存占用与消息 ID 区间；消费组的堆积量，以及 XGROUP SETID 支持的全部重置方式；按时间窗口或 ID 浏览消息，并以有序字段写入；待处理消息列表（PEL）及认领、自动认领与确认；服务器的内存、持久化与慢日志；单机、哨兵与集群三种部署；客户端连接；带键、频道与命令规则的 ACL 用户 |
 | **MQTT** 3.1.1 / 5.0 | ✅ 已支持 | 带 QoS、retain 与 5.0 属性的发布；实时订阅工作台，会报告丢弃了多少条、会话何时断开；从 broker 的保留消息得出的主题列表；broker 发布 $SYS 时读取它；以及在 broker 提供管理 API 时（EMQX 等）读取在线客户端与会话、它们的订阅、集群节点，并可断开某个会话。支持 Mosquitto、EMQX、HiveMQ、VerneMQ |
-| NATS · ActiveMQ · SQS 等 | 📋 计划中 | 完整矩阵见下方折叠内容 |
+| **NATS** 2.x | ✅ 已支持 | JetStream 的流，含主题、留存策略、存储方式与副本集；push / pull 两种消费者，带待处理、未确认与重投计数；按 sequence 浏览与实时跟随；按 subject 发布，支持等待回复的 request；为核心 NATS 准备的订阅台——它什么都不存，只发给此刻在听的人；按条数、sequence 或 subject 清理，以及删除单条消息；集群里的服务器及其路由与生效配置，走 $SYS 或监控端点读取；客户端连接及各自订阅了什么，并可以断开其中一条；还有账户页，显示各账户的 JetStream 用量与它们被给到的上限 |
+| ActiveMQ · SQS · Pub/Sub 等 | 📋 计划中 | 完整矩阵见下方折叠内容 |
 
 <details>
 <summary><strong>计划中的驱动、协议兼容系统与范围边界</strong></summary>
@@ -128,7 +129,6 @@ MQ Studio 通过可插拔驱动对接各类消息中间件。每个驱动声明�
 | 驱动 | 状态 | 说明 |
 | --- | --- | --- |
 | **ActiveMQ / Artemis** | 📋 计划中 | 通过 Jolokia 管理接口访问 JMS 队列与主题 |
-| **NATS** | 📋 计划中 | JetStream 的 Stream 与 Consumer；NATS Core 仅支持发布与订阅 |
 | **NSQ** | 📋 计划中 | 通过 nsqd HTTP 接口访问 Topic 与 Channel |
 | **Amazon SQS** | 📋 计划中 | 队列、属性与死信重投 |
 | **Google Cloud Pub/Sub** | 📋 计划中 | Topic、Subscription 与积压量 |
@@ -163,12 +163,13 @@ ACL 与部分高级操作是否可用，取决于 Broker 版本和配置。表�
 | 4 | Redis Stream | ✅ 已完成 |
 | 5 | Pulsar | ✅ 已完成 |
 | 6 | MQTT | ✅ 已完成 |
-| 7 | 其余驱动，按「驱动支持」中列出的顺序推进 | 📋 计划中 |
-| 8 | Agent 相关功能 | 📋 计划中 |
+| 7 | NATS | ✅ 已完成 |
+| 8 | 其余驱动，按「驱动支持」中列出的顺序推进 | 📋 计划中 |
+| 9 | Agent 相关功能 | 📋 计划中 |
 
 Agent 相关的功能会等驱动接入完成之后再开始，不会提前。每个驱动都会声明所连中间件真正支持
 的能力，这套能力模型正是 Agent 跨中间件工作的前提 —— 不会给出中间件本身做不到的操作。
-具体范围会在第 6 阶段完成后在这里公布。
+具体范围会在其余驱动接入完成后在这里公布。
 
 这是一个顺序，不是排期：没有绑定时间点；Pulsar 之后的顺序也可能因为呼声调整。
 
