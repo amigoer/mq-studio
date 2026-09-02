@@ -6,14 +6,15 @@
 </div>
 
 <p align="center">
-  <a href="https://github.com/amigoer/mq-studio/releases/latest"><img src="https://img.shields.io/github/v/release/amigoer/mq-studio?style=flat-square&label=release&labelColor=1A1A1E&color=EC3013" alt="最新版本"></a>
+  <a href="https://mq-studio.amigoer.com/"><img src="https://img.shields.io/badge/website-mq--studio.amigoer.com-EC3013?style=flat-square&labelColor=1A1A1E" alt="官网"></a>
+  <a href="https://github.com/amigoer/mq-studio/releases/latest"><img src="https://img.shields.io/github/v/release/amigoer/mq-studio?style=flat-square&label=release&labelColor=1A1A1E&color=3F3F46" alt="最新版本"></a>
   <a href="https://github.com/amigoer/mq-studio/releases"><img src="https://img.shields.io/github/downloads/amigoer/mq-studio/total?style=flat-square&label=downloads&labelColor=1A1A1E&color=3F3F46" alt="下载量"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-3F3F46?style=flat-square&labelColor=1A1A1E" alt="Apache-2.0 许可证"></a>
 </p>
 
 <p align="center">
   <a href="README.md">English</a>&nbsp;&nbsp;·&nbsp;&nbsp;
-  <a href="https://github.com/amigoer/mq-studio/releases">下载</a>&nbsp;&nbsp;·&nbsp;&nbsp;
+  <a href="https://mq-studio.amigoer.com/">下载</a>&nbsp;&nbsp;·&nbsp;&nbsp;
   <a href="docs/INSTALL.zh-CN.md">安装说明</a>&nbsp;&nbsp;·&nbsp;&nbsp;
   <a href="#开发计划">开发计划</a>&nbsp;&nbsp;·&nbsp;&nbsp;
   <a href="docs/ARCHITECTURE.md">文档</a>
@@ -174,9 +175,8 @@ Agent 相关的功能会等驱动接入完成之后再开始，不会提前。�
 
 ## 下载
 
-前往 **[GitHub Releases](https://github.com/amigoer/mq-studio/releases)** 下载最新版本。
-安装包统一命名为 `mq-studio-<版本>-<系统>-<架构>.<后缀>`，系统取值 `mac`、`windows`、
-`linux`，架构取值 `amd64`、`arm64`。
+最省事的方式是 **[mq-studio.amigoer.com](https://mq-studio.amigoer.com/)**：页面上的下载按钮
+已经指向当前系统对应的安装包，旁边的菜单里是其余平台。
 
 | 平台 | 安装包 | 系统要求 |
 | --- | --- | --- |
@@ -189,11 +189,15 @@ Agent 相关的功能会等驱动接入完成之后再开始，不会提前。�
 Linux 包基于 GTK 4 构建，因此需要 Ubuntu 24.04 及以上、Debian 13 及以上，以及其他发行版的
 同期版本。更早的发行版自带的是 WebKit2GTK 4.1，无法运行这些包。
 
-Mac 上在「关于本机」里可以看到该选 `arm64` 还是 `amd64`。
+安装包统一命名为 `mq-studio-<版本>-<系统>-<架构>.<后缀>`，系统取值 `mac`、`windows`、
+`linux`，架构取值 `amd64`、`arm64`。Mac 上在「关于本机」里可以看到该选 `arm64`
+还是 `amd64`。
 
 macOS 版本尚未使用 Apple 开发者证书签名，首次打开需要多一步操作——磁盘映像里自带了
-处理脚本。这一步以及各平台的安装步骤见 **[安装说明](docs/INSTALL.zh-CN.md)**。每个
-版本同时附带 `SHA256SUMS.txt` 校验文件，可用于核对下载完整性。
+处理脚本。这一步以及各平台的安装步骤见 **[安装说明](docs/INSTALL.zh-CN.md)**。
+
+[GitHub Releases](https://github.com/amigoer/mq-studio/releases) 上是同一批文件，另外还有用于
+核对下载完整性的 `SHA256SUMS.txt` 和全部历史版本。
 
 ## 快速开始
 

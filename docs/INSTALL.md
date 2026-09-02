@@ -1,7 +1,10 @@
 # Installing MQ Studio
 
-Packages are named `mq-studio-<version>-<os>-<arch>.<ext>`. Download them from
-[Releases](https://github.com/amigoer/mq-studio/releases).
+Download from **[mq-studio.amigoer.com](https://mq-studio.amigoer.com/en/)**, where the
+button already points at the build for the system you are on. Packages are named
+`mq-studio-<version>-<os>-<arch>.<ext>`, and
+[GitHub Releases](https://github.com/amigoer/mq-studio/releases) carries all of them
+alongside every earlier version.
 
 Every release ships `SHA256SUMS.txt`. To verify a download:
 

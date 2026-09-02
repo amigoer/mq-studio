@@ -6,14 +6,15 @@
 </div>
 
 <p align="center">
-  <a href="https://github.com/amigoer/mq-studio/releases/latest"><img src="https://img.shields.io/github/v/release/amigoer/mq-studio?style=flat-square&label=release&labelColor=1A1A1E&color=EC3013" alt="Latest release"></a>
+  <a href="https://mq-studio.amigoer.com/en/"><img src="https://img.shields.io/badge/website-mq--studio.amigoer.com-EC3013?style=flat-square&labelColor=1A1A1E" alt="Website"></a>
+  <a href="https://github.com/amigoer/mq-studio/releases/latest"><img src="https://img.shields.io/github/v/release/amigoer/mq-studio?style=flat-square&label=release&labelColor=1A1A1E&color=3F3F46" alt="Latest release"></a>
   <a href="https://github.com/amigoer/mq-studio/releases"><img src="https://img.shields.io/github/downloads/amigoer/mq-studio/total?style=flat-square&label=downloads&labelColor=1A1A1E&color=3F3F46" alt="Total downloads"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-3F3F46?style=flat-square&labelColor=1A1A1E" alt="Apache-2.0 license"></a>
 </p>
 
 <p align="center">
   <a href="README.zh-CN.md">简体中文</a>&nbsp;&nbsp;·&nbsp;&nbsp;
-  <a href="https://github.com/amigoer/mq-studio/releases">Download</a>&nbsp;&nbsp;·&nbsp;&nbsp;
+  <a href="https://mq-studio.amigoer.com/en/">Download</a>&nbsp;&nbsp;·&nbsp;&nbsp;
   <a href="docs/INSTALL.md">Install guide</a>&nbsp;&nbsp;·&nbsp;&nbsp;
   <a href="#roadmap">Roadmap</a>&nbsp;&nbsp;·&nbsp;&nbsp;
   <a href="docs/ARCHITECTURE.md">Documentation</a>
@@ -181,9 +182,9 @@ change if there is enough demand for a driver further down the list.
 
 ## Download
 
-Grab the latest package from **[GitHub Releases](https://github.com/amigoer/mq-studio/releases)**.
-Packages are named `mq-studio-<version>-<os>-<arch>.<ext>`, where `os` is `mac`, `windows`, or
-`linux` and `arch` is `amd64` or `arm64`.
+**[mq-studio.amigoer.com](https://mq-studio.amigoer.com/en/)** is the shortest way in: the
+download button on that page already points at the build for the system you are on, and the menu
+beside it lists every other one.
 
 | Platform | Package | Requires |
 | --- | --- | --- |
@@ -197,12 +198,16 @@ The Linux packages are built against the GTK 4 stack, which means Ubuntu 24.04 o
 Debian 13 or later, and equivalent releases elsewhere. Earlier distributions ship
 WebKit2GTK 4.1 and cannot run these packages.
 
-On a Mac, About This Mac tells you whether to take `arm64` or `amd64`.
+Packages are named `mq-studio-<version>-<os>-<arch>.<ext>`, where `os` is `mac`, `windows`, or
+`linux` and `arch` is `amd64` or `arm64`. On a Mac, About This Mac tells you whether to take
+`arm64` or `amd64`.
 
 macOS builds are not signed by a registered Apple developer yet, so the first launch needs one
 extra step — the disk image ships a helper for it. See **[INSTALL](docs/INSTALL.md)** for that
-and for the per-platform install steps. Every release ships a `SHA256SUMS.txt` you can verify
-downloads against.
+and for the per-platform install steps.
+
+[GitHub Releases](https://github.com/amigoer/mq-studio/releases) carries the same files, plus the
+`SHA256SUMS.txt` to verify a download against and every earlier version.
 
 ## Quick start
 
