@@ -77,10 +77,10 @@ const cards = [
 
 <section id="download" class="border-t border-border bg-muted">
   <div class="mx-auto max-w-[1120px] px-6 py-20">
-    <h2 class="mb-3 text-center text-[26px] font-bold tracking-[-0.02em] sm:text-[32px]">
+    <h2 class="mb-3 text-center text-display-sm font-bold tracking-heading sm:text-display">
       {d.title}
     </h2>
-    <p class="mb-11 text-center text-[15px] text-muted-foreground">
+    <p class="mb-11 text-center text-prose text-muted-foreground">
       {d.leadPrefix} {RELEASE.tag} · {d.leadSuffix}
     </p>
 
@@ -91,8 +91,8 @@ const cards = [
             <div class="flex items-start gap-3">
               <PlatformIcon platform={card.id} size={20} class="mt-0.5 shrink-0" />
               <div>
-                <div class="text-[17px] font-bold">{card.platform.name}</div>
-                <div class="mt-0.5 text-[12.5px] text-subtle-foreground">
+                <div class="text-lead font-bold">{card.platform.name}</div>
+                <div class="mt-0.5 text-caption text-subtle-foreground">
                   {card.platform.requirement}
                 </div>
               </div>
@@ -107,7 +107,7 @@ const cards = [
       }
     </div>
 
-    <p class="mt-7 text-center text-[12.5px] leading-[1.8] text-muted-foreground">
+    <p class="mt-7 text-center text-caption text-muted-foreground">
       {d.noteMac}{' '}
       <a href={installDoc} class="font-medium underline underline-offset-[3px]">{d.noteMacLink}</a>
       <br />

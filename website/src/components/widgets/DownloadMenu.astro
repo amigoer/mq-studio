@@ -26,8 +26,8 @@ const hero = variant === 'hero';
     class:list={[
       'inline-flex items-center gap-2 bg-primary font-medium text-primary-foreground transition-colors hover:bg-primary-hover',
       hero
-        ? 'h-11 flex-1 justify-center rounded-l-lg px-5 text-[15px] font-semibold sm:flex-none'
-        : 'h-[34px] rounded-l-md px-3.5 text-[13px]',
+        ? 'h-11 flex-1 justify-center rounded-l-lg px-5 text-prose font-semibold sm:flex-none'
+        : 'h-[34px] rounded-l-md px-3.5 text-ui',
     ]}
   >
     {
@@ -87,7 +87,7 @@ const hero = variant === 'hero';
     {
       groups.map((group) => (
         <div role="group" aria-label={group.name}>
-          <div class="flex items-center gap-1.5 px-2.5 pb-1 pt-2 text-[11px] font-semibold tracking-wide text-subtle-foreground">
+          <div class="flex items-center gap-1.5 px-2.5 pb-1 pt-2 text-2xs font-semibold tracking-wide text-subtle-foreground">
             <PlatformIcon platform={group.platform} size={13} class="opacity-75" />
             {group.name}
           </div>
@@ -97,8 +97,8 @@ const hero = variant === 'hero';
               role="menuitem"
               class="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-none"
             >
-              <span class="whitespace-nowrap text-[13px] font-medium">{row.label}</span>
-              <span class="ml-auto truncate font-mono text-[10.5px] text-subtle-foreground">
+              <span class="whitespace-nowrap text-ui font-medium">{row.label}</span>
+              <span class="ml-auto truncate font-mono text-2xs text-subtle-foreground">
                 {row.file}
               </span>
             </a>

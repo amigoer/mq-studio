@@ -61,5 +61,7 @@ function render(escaped: string): string {
  * future changelog entry containing markup cannot inject it.
  */
 export function inline(text: string): string {
-  return render(text.replace(/[&<>"]/g, (ch) => ESCAPE[ch]));
+  // Glue a Chinese dash to the word before it, so a line never opens with it.
+  const glued = text.replace(/ ——/g, '\u00a0——');
+  return render(glued.replace(/[&<>"]/g, (ch) => ESCAPE[ch]));
 }

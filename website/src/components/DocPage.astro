@@ -38,7 +38,7 @@ const sourceUrl = `${REPO_URL}/blob/main/docs/${file}`;
       <!-- Document list: a sticky rail on large screens, a scrolling strip of
            pills above the content on small ones. -->
       <nav aria-label={c.docs.sectionTitle} class="lg:sticky lg:top-20 lg:self-start">
-        <p class="mb-3 hidden text-[13px] font-semibold lg:block">{c.docs.sectionTitle}</p>
+        <p class="mb-3 hidden text-ui font-semibold lg:block">{c.docs.sectionTitle}</p>
         <ul
           class="flex gap-2 overflow-x-auto pb-2 [scrollbar-width:none] lg:flex-col lg:gap-1 lg:pb-0 [&::-webkit-scrollbar]:hidden"
         >
@@ -51,7 +51,7 @@ const sourceUrl = `${REPO_URL}/blob/main/docs/${file}`;
                     href={localePath(locale, `docs/${candidate}`)}
                     aria-current={active ? 'page' : undefined}
                     class:list={[
-                      'block whitespace-nowrap rounded-lg px-3 py-1.5 text-[13px] transition-colors lg:py-2',
+                      'block whitespace-nowrap rounded-lg px-3 py-1.5 text-ui transition-colors lg:py-2',
                       active
                         ? 'bg-secondary font-semibold text-foreground'
                         : 'border border-border text-muted-foreground hover:bg-secondary hover:text-foreground lg:border-transparent',
@@ -69,7 +69,7 @@ const sourceUrl = `${REPO_URL}/blob/main/docs/${file}`;
       <article class="mt-8 min-w-0 lg:mt-0">
         {
           untranslated && (
-            <p class="mb-6 rounded-lg border border-border bg-muted px-4 py-3 text-[13px] text-muted-foreground">
+            <p class="mb-6 rounded-lg border border-border bg-muted px-4 py-3 text-ui text-muted-foreground">
               {c.docs.untranslated}
             </p>
           )
@@ -82,7 +82,7 @@ const sourceUrl = `${REPO_URL}/blob/main/docs/${file}`;
         <div class="mt-12 border-t border-border pt-5">
           <a
             href={sourceUrl}
-            class="inline-flex items-center gap-1.5 text-[13.5px] font-medium transition-colors hover:text-muted-foreground"
+            class="inline-flex items-center gap-1.5 text-ui font-medium transition-colors hover:text-muted-foreground"
           >
             {c.docs.editOnGitHub} →
           </a>
@@ -92,13 +92,13 @@ const sourceUrl = `${REPO_URL}/blob/main/docs/${file}`;
       {
         toc.length > 1 && (
           <nav aria-label={c.docs.onThisPage} class="hidden xl:sticky xl:top-20 xl:block xl:self-start">
-            <p class="mb-3 text-[12.5px] font-semibold text-muted-foreground">{c.docs.onThisPage}</p>
+            <p class="mb-3 text-caption font-semibold text-muted-foreground">{c.docs.onThisPage}</p>
             <ul class="flex flex-col gap-2 border-l border-border">
               {toc.map((heading) => (
                 <li>
                   <a
                     href={`#${heading.slug}`}
-                    class="-ml-px block border-l border-transparent pl-3 text-[13px] leading-snug text-muted-foreground transition-colors hover:border-foreground hover:text-foreground"
+                    class="-ml-px block border-l border-transparent pl-3 text-ui text-muted-foreground transition-colors hover:border-foreground hover:text-foreground"
                   >
                     {heading.text}
                   </a>

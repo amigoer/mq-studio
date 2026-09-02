@@ -9,10 +9,10 @@ const c = t(locale);
 ---
 
 <section id="features" class="mx-auto max-w-[1120px] px-6 pb-20 pt-16 sm:pt-[88px]">
-  <h2 class="mb-3 text-center text-[26px] font-bold tracking-[-0.02em] sm:text-[32px]">
+  <h2 class="mb-3 text-center text-display-sm font-bold tracking-heading sm:text-display">
     {c.features.title}
   </h2>
-  <p class="mx-auto mb-9 max-w-[680px] text-center text-[15px] leading-relaxed text-muted-foreground text-pretty">
+  <p class="mx-auto mb-9 max-w-[680px] text-center text-prose text-muted-foreground text-pretty">
     {c.features.lead}
   </p>
 
@@ -20,8 +20,8 @@ const c = t(locale);
     {
       c.features.items.map((item) => (
         <li class="rounded-xl border border-border bg-card p-6">
-          <h3 class="mb-2 text-[15px] font-bold tracking-tight">{item.title}</h3>
-          <p class="text-[13.5px] leading-[1.7] text-muted-foreground text-pretty">{item.body}</p>
+          <h3 class="mb-2 text-prose font-bold tracking-tight">{item.title}</h3>
+          <p class="text-body text-muted-foreground text-pretty">{item.body}</p>
         </li>
       ))
     }

@@ -12,15 +12,15 @@ const roadmapDoc = localePath(locale, 'docs/roadmap');
 <section id="roadmap" class="border-t border-secondary">
   <div class="mx-auto flex max-w-[1120px] flex-wrap items-center gap-8 px-6 py-14">
     <div class="min-w-0 flex-1 sm:min-w-[300px]">
-      <h2 class="mb-2 text-[22px] font-bold tracking-[-0.01em]">{c.roadmap.title}</h2>
-      <p class="text-[13.5px] leading-[1.65] text-muted-foreground text-pretty">
+      <h2 class="mb-2 text-title font-bold tracking-heading">{c.roadmap.title}</h2>
+      <p class="text-body text-muted-foreground text-pretty">
         {c.roadmap.body}{' '}
         <a href={roadmapDoc} class="font-medium text-foreground underline underline-offset-[3px]">
           {c.roadmap.linkLabel} →
         </a>
       </p>
     </div>
-    <ol class="flex flex-wrap items-center gap-2 text-[12.5px]">
+    <ol class="flex flex-wrap items-center gap-2 text-caption">
       {
         c.roadmap.stages.map((stage, index) => (
           <>

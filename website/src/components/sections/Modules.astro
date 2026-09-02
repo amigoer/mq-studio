@@ -18,10 +18,10 @@ const images = { connections, topics, consumers, cluster, alerts };
 
 <section id="modules" class="border-t border-secondary">
   <div class="mx-auto max-w-[1120px] px-6 py-20">
-    <h2 class="mb-3 text-center text-[26px] font-bold tracking-[-0.02em] sm:text-[32px]">
+    <h2 class="mb-3 text-center text-display-sm font-bold tracking-heading sm:text-display">
       {c.modules.title}
     </h2>
-    <p class="mb-9 text-center text-[15px] text-muted-foreground text-pretty">{c.modules.lead}</p>
+    <p class="mb-9 text-center text-prose text-muted-foreground text-pretty">{c.modules.lead}</p>
     <ModuleTabs tabs={c.modules.tabs} images={images} />
   </div>
 </section>
