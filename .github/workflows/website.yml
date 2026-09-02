@@ -147,6 +147,25 @@ jobs:
               # The rail has to say which release you are reading.
               grep -q 'aria-current="page"' "$page" || {
                 echo "${page} does not mark the current version in the rail" >&2; exit 1; }
+              # A bullet writes the issue it answers as a bare "#61", and the
+              # parser turns it into a link. If that rule ever stops running the
+              # page still builds, carrying a number the reader cannot follow.
+              # Code spans are dropped first, because a reference written inside
+              # backticks is a literal and is meant to stay one; the article is
+              # sliced out because the chrome around it carries hex colours.
+              node -e '
+                const fs = require("fs");
+                const html = fs.readFileSync(process.argv[1], "utf8");
+                const article = html.slice(html.indexOf("<article"), html.indexOf("</article>"));
+                const prose = article
+                  .replace(/<code[^>]*>[\s\S]*?<\/code>/g, "")
+                  .replace(/<a[^>]*\/issues\/\d+"[^>]*>#\d+<\/a>/g, "");
+                const bare = /#\d+/.exec(prose);
+                if (bare) {
+                  console.error(process.argv[1] + ": unlinked issue reference " + bare[0]);
+                  process.exit(1);
+                }
+              ' "$page"
             done
             echo "${root}: ${pages} version pages"
           done

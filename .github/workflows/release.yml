@@ -71,6 +71,16 @@ jobs:
           echo "version=${RELEASE_TAG#v}" >> "$GITHUB_OUTPUT"
           echo "commit=$tag_commit" >> "$GITHUB_OUTPUT"
 
+      # The notes are only traceable if the sections name the issues they
+      # answer. Checked here rather than in the packaging matrix: one run
+      # instead of six, and it fails before the builds rather than after them.
+      # The checkout above is fetch-depth: 0, which is what lets it find the
+      # tag before this one.
+      - name: Check the changelog names every issue this release closes
+        env:
+          RELEASE_TAG: ${{ github.event.inputs.tag || github.ref_name }}
+        run: npm run check:refs
+
   package:
     name: Package
     needs: resolve

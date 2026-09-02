@@ -1,13 +1,16 @@
 import zhSource from '@repo/CHANGELOG.zh-CN.md?raw';
 import enSource from '@repo/CHANGELOG.md?raw';
 import type { Locale } from '@/i18n';
+import { REPO_URL } from '@/lib/downloads';
 
 /*
  * A parser for the repo's own CHANGELOG files rather than a markdown dependency.
  * They follow Keep a Changelog strictly and use almost none of markdown: no
- * links, code fences, tables or nested lists, only `**bold**` and `` `code` ``
- * inline. Parsing the shape directly keeps the page dependency-free and lets the
- * release headings become real anchors.
+ * markdown links, code fences, tables or nested lists, only `**bold**` and
+ * `` `code` `` inline, plus a bare `#61` where a bullet answers an issue --
+ * written bare because the files wrap at 80 columns, and turned into a link by
+ * `inline` below. Parsing the shape directly keeps the page dependency-free and
+ * lets the release headings become real anchors.
  */
 
 export interface ListBlock {
@@ -163,12 +166,35 @@ const ESCAPE: Record<string, string> = {
 };
 
 /**
- * Renders the only two inline constructs the files use. The text is escaped
- * first, so a future changelog entry containing markup cannot inject it.
+ * One pass, alternation ordered by precedence: code first, so a bullet writing
+ * `#61` as a literal keeps it. Replacing in a single pass is what makes the
+ * issue rule safe - `replace` never rescans its own output, so the class names
+ * and the href emitted here can never be read back as markup.
+ *
+ * The text is escaped before it gets here, and bold recurses on the already
+ * escaped run: code nested inside bold rendered back when this was three
+ * sequential replaces, and a trailing reference has to link inside one too.
+ */
+const INLINE = /`([^`\n]+)`|\*\*([^*]+)\*\*|#(\d+)/g;
+
+function render(escaped: string): string {
+  return escaped.replace(INLINE, (_all, code?: string, strong?: string, issue?: string) => {
+    if (code !== undefined) {
+      return `<code class="rounded bg-secondary px-1 py-0.5 font-mono text-[0.9em]">${code}</code>`;
+    }
+    if (strong !== undefined) {
+      return `<strong class="font-semibold text-foreground">${render(strong)}</strong>`;
+    }
+    // `/issues/` is right for a pull request too - GitHub redirects it - so the
+    // two never have to be told apart.
+    return `<a class="underline underline-offset-2 hover:text-foreground" href="${REPO_URL}/issues/${issue}">#${issue}</a>`;
+  });
+}
+
+/**
+ * Renders the inline constructs the files use. The text is escaped first, so a
+ * future changelog entry containing markup cannot inject it.
  */
 export function inline(text: string): string {
-  return text
-    .replace(/[&<>"]/g, (ch) => ESCAPE[ch])
-    .replace(/`([^`]+)`/g, '<code class="rounded bg-secondary px-1 py-0.5 font-mono text-[0.9em]">$1</code>')
-    .replace(/\*\*([^*]+)\*\*/g, '<strong class="font-semibold text-foreground">$1</strong>');
+  return render(text.replace(/[&<>"]/g, (ch) => ESCAPE[ch]));
 }
