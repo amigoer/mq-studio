@@ -21,12 +21,15 @@ func digestOf(content []byte) string {
 }
 
 func TestParseChecksumsReadsWhatTheWorkflowWrites(t *testing.T) {
-	// The `shasum -a 256` output the publish job concatenates, plus the two
-	// spellings other checksum tools produce for the same thing.
+	// The `shasum -a 256` output the publish job concatenates, plus the
+	// spellings other checksum tools produce for the same thing. The Windows
+	// runner writes both markers at once, which is the form a published
+	// SHA256SUMS.txt actually carries - checked against v0.0.5's.
 	content := strings.Join([]string{
 		"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  mq-studio-0.1.3-mac-arm64.dmg",
 		"da39a3ee5e6b4b0d3255bfef95601890afd80709da39a3ee5e6b4b0d3255bfef *mq-studio-0.1.3-windows-amd64.exe",
 		"0000000000000000000000000000000000000000000000000000000000000000  ./mq-studio-0.1.3-linux-amd64.AppImage",
+		"1111111111111111111111111111111111111111111111111111111111111111 *./mq-studio-0.1.3-windows-arm64.exe",
 		"",
 		"not a checksum line",
 		"short  mq-studio-0.1.3-linux-arm64.deb",
@@ -34,8 +37,8 @@ func TestParseChecksumsReadsWhatTheWorkflowWrites(t *testing.T) {
 	}, "\n")
 
 	sums := ParseChecksums(content)
-	if len(sums) != 3 {
-		t.Fatalf("parsed %d entries, want 3: %v", len(sums), sums)
+	if len(sums) != 4 {
+		t.Fatalf("parsed %d entries, want 4: %v", len(sums), sums)
 	}
 	if got := sums["mq-studio-0.1.3-mac-arm64.dmg"]; got != "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855" {
 		t.Errorf("dmg digest = %q", got)
@@ -45,6 +48,12 @@ func TestParseChecksumsReadsWhatTheWorkflowWrites(t *testing.T) {
 	}
 	if _, ok := sums["mq-studio-0.1.3-linux-amd64.AppImage"]; !ok {
 		t.Error("the ./ prefix should be stripped from the name")
+	}
+	// Both markers together, and in that order. Stripping them the other way
+	// round leaves the name prefixed, and every Windows update is then refused
+	// for having no published checksum - which nothing else here would catch.
+	if _, ok := sums["mq-studio-0.1.3-windows-arm64.exe"]; !ok {
+		t.Error("a name carrying both the * marker and the ./ prefix should be stripped of both")
 	}
 	if _, ok := sums["bad-hex.rpm"]; ok {
 		t.Error("a non-hex digest should be skipped")
