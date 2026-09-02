@@ -138,6 +138,18 @@ type harness struct {
 
 func newManager(t *testing.T, policy Policy, options release) *harness {
 	t.Helper()
+	return build(t, policy, options, 0)
+}
+
+// newManagerWithDelay is newManager for the tests that let Start run: the
+// launch delay is a seam so they do not have to wait out StartupDelay.
+func newManagerWithDelay(t *testing.T, policy Policy, delay time.Duration) *harness {
+	t.Helper()
+	return build(t, policy, release{}, delay)
+}
+
+func build(t *testing.T, policy Policy, options release, delay time.Duration) *harness {
+	t.Helper()
 	published := newRelease(t, options)
 	watch := newWatcher()
 	commander := &fakeCommander{}
@@ -150,6 +162,7 @@ func newManager(t *testing.T, policy Policy, options release) *harness {
 		Client:    published.server.Client(),
 		Commander: commander,
 		Location:  &testLocation,
+		Delay:     delay,
 		Check: func(string, *http.Client) (Result, error) {
 			return published.result(), nil
 		},
@@ -218,6 +231,103 @@ func TestDownloadPolicySkipsAReleaseTheUserDeclined(t *testing.T) {
 	// user has already declined.
 	if state := h.manager.State(); state.Skipped != state.LatestVersion {
 		t.Errorf("skipped = %q, latest = %q, want a skipped release to match", state.Skipped, state.LatestVersion)
+	}
+}
+
+/*
+ * Skipping is "stop telling me about this", not "never offer it again": the
+ * button that asks is the one gesture that has to get an answer. Without this
+ * the check the user pressed for reported the release as skipped, which the
+ * renderer draws as "you are up to date" -- and nothing could ever take the
+ * release back off the list.
+ */
+func TestAManualCheckTakesTheReleaseBackOffTheSkipList(t *testing.T) {
+	h := newManager(t, PolicyNotify, release{})
+	h.manager.Skip("9.9.9")
+
+	state, err := h.manager.Check(context.Background(), true)
+	if err != nil {
+		t.Fatalf("Check() error = %v", err)
+	}
+	if state.Skipped != "" {
+		t.Errorf("skipped = %q, want a manual check to clear it", state.Skipped)
+	}
+	if state.LatestVersion != "9.9.9" || state.Phase != PhaseAvailable {
+		t.Errorf("latest = %q, phase = %q, want the release offered again",
+			state.LatestVersion, state.Phase)
+	}
+
+	// And it is off the list for good: a restart must not bring it back.
+	restarted := New(Options{
+		Version: "1.0.0", Directory: h.directory,
+		Policy: func() Policy { return PolicyNotify }, Location: &testLocation,
+	})
+	t.Cleanup(restarted.Close)
+	if got := restarted.State().Skipped; got != "" {
+		t.Errorf("skipped = %q after a restart, want the clear to have been written", got)
+	}
+}
+
+// A release the user declined stays declined for the checks they did not ask
+// for, which is the whole point of the list.
+func TestAScheduledCheckLeavesTheSkipListAlone(t *testing.T) {
+	h := newManager(t, PolicyNotify, release{})
+	h.manager.Skip("9.9.9")
+
+	state, err := h.manager.Check(context.Background(), false)
+	if err != nil {
+		t.Fatalf("Check() error = %v", err)
+	}
+	if state.Skipped != "9.9.9" {
+		t.Errorf("skipped = %q, want a scheduled check to leave it", state.Skipped)
+	}
+}
+
+/*
+ * A launch checks whatever the clock says. The schedule used to wait out the
+ * remainder of CheckInterval instead, so an application opened and closed a few
+ * times a day never reached the end of one: no background check ever ran, and
+ * a release was only ever found by pressing the button.
+ */
+func TestALaunchChecksEvenWhenOneRanMinutesAgo(t *testing.T) {
+	published := newRelease(t, release{})
+	directory := t.TempDir()
+	recent := time.Now().UTC().Add(-time.Minute).Format(time.RFC3339)
+	if err := os.WriteFile(filepath.Join(directory, memoryFile),
+		[]byte(`{"checkedAt":`+strconv.Quote(recent)+`}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	watch := newWatcher()
+	manager := New(Options{
+		Version:   "1.0.0",
+		Directory: directory,
+		Policy:    func() Policy { return PolicyNotify },
+		Emit:      watch.emit,
+		Client:    published.server.Client(),
+		Location:  &testLocation,
+		Delay:     10 * time.Millisecond,
+		Check: func(string, *http.Client) (Result, error) {
+			return published.result(), nil
+		},
+	})
+	t.Cleanup(manager.Close)
+
+	manager.Start(context.Background())
+	if state := watch.await(t, manager, PhaseAvailable); state.LatestVersion != "9.9.9" {
+		t.Errorf("latest = %q, want the launch check to have found the release", state.LatestVersion)
+	}
+}
+
+// The one thing the schedule still will not do is check behind a policy that
+// says not to.
+func TestALaunchChecksNothingWhenUpdatesAreOff(t *testing.T) {
+	h := newManagerWithDelay(t, PolicyOff, 10*time.Millisecond)
+
+	h.manager.Start(context.Background())
+	time.Sleep(150 * time.Millisecond)
+	if phase := h.manager.State().Phase; phase != PhaseIdle {
+		t.Errorf("phase = %q, want %q with updates off", phase, PhaseIdle)
 	}
 }
 

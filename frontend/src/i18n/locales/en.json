@@ -740,6 +740,8 @@
     "currentIs": "currently on {{version}}",
     "download": "Download and install",
     "skip": "Skip this version",
+    "skippedTitle": "Version {{version}} was skipped",
+    "skippedHint": "Check for updates to be offered it again",
     "downloading": "Downloading {{version}}",
     "cancel": "Cancel download",
     "retry": "Try again",

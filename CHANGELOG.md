@@ -84,6 +84,27 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   HMAC-SHA1 signature over the sorted header fields and the body, which is what
   the broker rebuilds and compares.
 
+- Every launch now checks for a release, five seconds after the window comes
+  up, instead of waiting out whatever was left of the twenty-four hour
+  interval. An application that is opened and closed a few times a day never
+  reached the end of one, so no background check ever ran and the only way to
+  hear about a release was to press the button in settings. The interval is
+  unchanged for a session that stays up. (#67)
+
+- Skipping a version no longer disables the check button. "Skip this version"
+  means stop announcing it, so a check the user presses for now takes the
+  release back off the skip list and offers it: it used to be answered with
+  "you are up to date" naming the version already running, and nothing
+  anywhere could undo a skip. The settings card also says a release was
+  skipped rather than going on announcing it beside a button offering to look
+  for one. (#66)
+
+- The update dialog's bottom corners are square no longer. The footer is the
+  one bar with an opaque background, and clipping it to the dialog's radius is
+  not enough on WebKit, which drops that clip on a transformed, animated box
+  whose subtree scrolls -- which is every one of the dialog's own classes. It
+  now carries the radius itself. (#53)
+
 ## [0.0.5] - 2026-09-02
 
 Three drivers at once — Redis Stream, Pulsar and MQTT — which takes the count

@@ -740,6 +740,8 @@
     "currentIs": "当前 {{version}}",
     "download": "下载并安装",
     "skip": "跳过此版本",
+    "skippedTitle": "已跳过版本 {{version}}",
+    "skippedHint": "再次检查更新即可重新获取",
     "downloading": "正在下载 {{version}}",
     "cancel": "取消下载",
     "retry": "重试",
