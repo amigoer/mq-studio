@@ -144,6 +144,13 @@ func (c *Conn) ListAccessRules(ctx context.Context) ([]*model.AccessRule, error)
 // It replaces rather than merges, because that is what the broker does with
 // the policy set it is handed - sending one policy for a subject that has
 // three leaves it with one.
+//
+// A policy's Resource is passed through unchanged even on a connection with a
+// namespace, deliberately: it is the broker's own resource syntax rather than
+// a topic name - "Topic:orders", "Group:GID", "Cluster:DefaultCluster" - and
+// access control is administered on the names the broker stores. Whoever
+// writes a rule for a namespaced topic types the namespaced name, the same way
+// they would in mqadmin.
 func (c *Conn) PutAccessRule(ctx context.Context, rule model.AccessRule) error {
 	subject := strings.TrimSpace(rule.Subject)
 	if subject == "" {

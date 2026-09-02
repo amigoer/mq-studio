@@ -22,9 +22,9 @@ import (
 // The message is consumed for real. On a client with auto-commit the offset
 // moves, so this is a diagnostic with a side effect rather than a dry run.
 func (c *Conn) ReplayMessage(ctx context.Context, request model.ReplayRequest) (*model.ReplayResult, error) {
-	group := strings.TrimSpace(request.Subscription)
+	group := c.wrap(strings.TrimSpace(request.Subscription))
 	client := strings.TrimSpace(request.ClientID)
-	topic := strings.TrimSpace(request.Destination)
+	topic := c.wrap(strings.TrimSpace(request.Destination))
 	messageID := strings.TrimSpace(request.MessageID)
 	switch {
 	case group == "":

@@ -105,8 +105,9 @@ func newKafkaStack(t *testing.T) *kafkaStack {
 func requireKafkaCLI(t *testing.T) {
 	t.Helper()
 	e2e.Require(t, e2e.Env{
-		Name:  "the kafka e2e cluster",
-		Start: "npm run e2e:kafka:up",
+		Name:   "the kafka e2e cluster",
+		Family: e2e.Kafka,
+		Start:  "npm run e2e:kafka:up",
 		// The cross-checks run Kafka's own tools inside the container, so a
 		// reachable port is not enough to say the environment is there.
 		Probe: e2e.DockerContainer(kafkaContainer),

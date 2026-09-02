@@ -52,8 +52,9 @@ const (
 func requireLiveNats(t *testing.T) {
 	t.Helper()
 	e2e.Require(t, e2e.Env{
-		Name:  "the nats e2e cluster",
-		Start: "npm run e2e:nats:up",
+		Family: e2e.NATS,
+		Name:   "the nats e2e cluster",
+		Start:  "npm run e2e:nats:up",
 		// /healthz rather than the client port: a JetStream server binds 4222
 		// well before its meta group has elected a leader, and a connection
 		// opened in that window finds a cluster that cannot answer anything

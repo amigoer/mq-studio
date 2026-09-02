@@ -43,6 +43,25 @@ Add a `## [<version>] - <date>` section to **both** `CHANGELOG.md` and
 empty. The brackets are Keep a Changelog's spelling and nothing defines them
 as links, so there is nothing to update at the bottom of either file.
 
+A bullet that answers an issue names it, and the pull request that brought it,
+as a trailing parenthetical:
+
+```
+- RocketMQ 连接可以填写命名空间…… (#61, #63)
+```
+
+Write the number bare -- never a markdown link. The files wrap at 80 columns
+and the website parses them by hand, so the three renderers each turn `#61`
+into a link of their own instead. Not every bullet has one: plenty of changes
+answer nobody's issue.
+
+`npm run check:refs` is the gate. It reads every `Closes #NN` footer in the
+commits since the last tag and fails when the changelog does not name one,
+printing the numbers and the commit each arrived on so the section can be
+written from the failure. `Refs #NN` means the issue deliberately stays open,
+so it is reported and never required, and the two files have to name the same
+set. Releases up to and including 0.0.5 predate the rule and are not checked.
+
 The release notes are generated from these two files. A tag whose version has
 no changelog section fails the release rather than publishing empty notes, and
 `node scripts/release-notes.mjs <version>` prints what the release will carry.
@@ -86,6 +105,7 @@ Before publishing:
 - 11 files are attached: 2 `.dmg`, 2 `.exe`, 2 `.AppImage`, 2 `.deb`, 2 `.rpm`,
   and `SHA256SUMS.txt`
 - the notes carry both language sections
+- the issue references in the notes are links, not bare `#61`
 - install at least the macOS image by hand, on a machine that has not built it,
   downloading through a browser so the quarantine flag is really applied
 
@@ -105,10 +125,6 @@ than being told, and refuses anything it cannot verify.
   publishes no list at all. The panel then offers the releases page instead.
 - **Draft and pre-release tags are invisible to it**, which is what makes the
   draft step above safe: nothing reaches an installed copy until you publish.
-
-Releases before v0.1.4 predate both rules -- v0.1.3 ships `rocket-leaf-*` names
-and no checksum file -- which costs nothing, since an update is only ever
-fetched *forward*.
 
 ## Signing
 

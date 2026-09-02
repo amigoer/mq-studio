@@ -53,7 +53,7 @@ func (c *Conn) GetConsumerGroups(ctx context.Context) ([]*model.ConsumerGroupIte
 		}
 		successfulBrokerReads++
 		for groupName, config := range subscriptionGroups {
-			if config == nil || resource.IsSystemGroup(groupName) {
+			if config == nil || resource.IsSystemGroup(groupName) || !c.owns(groupName) {
 				continue
 			}
 			if _, exists := groupMap[groupName]; exists {
@@ -164,7 +164,7 @@ func (c *Conn) GetConsumeStats(ctx context.Context, groupName string) (map[strin
 			}
 			queue := parseMessageQueueKey(key)
 			queues = append(queues, map[string]interface{}{
-				"topic":          queue.Topic,
+				"topic":          c.unwrap(queue.Topic),
 				"brokerName":     queue.BrokerName,
 				"queueId":        queue.QueueID,
 				"brokerOffset":   offset.BrokerOffset,
@@ -176,7 +176,7 @@ func (c *Conn) GetConsumeStats(ctx context.Context, groupName string) (map[strin
 		sortQueueRows(queues)
 
 		result = map[string]interface{}{
-			"group":      groupName,
+			"group":      c.unwrap(groupName),
 			"consumeTps": stats.ConsumeTps,
 			"diffTotal":  totalDifference,
 			"queues":     queues,

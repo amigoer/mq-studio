@@ -103,10 +103,16 @@ jobs:
           ref: ${{ inputs.ref }}
           fetch-depth: 0
 
+      # No Go cache here on purpose. Each target builds once on a runner of its
+      # own and reuses nothing, so the cache buys these jobs almost nothing -
+      # but six of them saving ~1 GB each was pushing the repository past the
+      # 10 GB Actions cache limit on every push to main, which evicted the one
+      # cache that does pay off: ci.yml's, whose absence made every CI run
+      # recompile the cgo tree from cold.
       - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
-          cache-dependency-path: go.sum
+          cache: false
 
       - uses: actions/setup-node@v7
         with:

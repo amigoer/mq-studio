@@ -166,6 +166,22 @@ describe("rendering a published release body", () => {
     const html = render(RELEASE_BODY);
     expect(html.match(/<li/g)).toHaveLength(3);
   });
+
+  /* A bullet names the issues it answers as a bare `(#61, #63)`, which
+     scripts/release-notes.mjs expands before the body ever reaches here. */
+  it("links the issue references the release notes expanded", async () => {
+    await useLanguage("zh");
+    const issue = "https://github.com/amigoer/mq-studio/issues";
+    const html = render(
+      `- RocketMQ 连接可以填写命名空间。([#61](${issue}/61), [#63](${issue}/63))`,
+    );
+    expect(html).toContain(`href="${issue}/61"`);
+    expect(html).toContain(`href="${issue}/63"`);
+    // On the markup, not on `text()`: the punctuation between two adjacent
+    // links is the part that could break, and that helper turns every tag into
+    // a space, which is exactly the gap being asserted against.
+    expect(html).toMatch(/。\(<a [^>]*>#61<\/a>, <a [^>]*>#63<\/a>\)/);
+  });
 });
 
 describe("refusing what it should not render", () => {

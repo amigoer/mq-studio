@@ -90,7 +90,16 @@ describe("the RocketMQ connection draft", () => {
 
   it("carries the version and access mode the driver reads back", () => {
     const { draft } = toSubmission(rocketmq({ ...newConnection(), version: "4.x", access: "ns" }));
-    expect(draft.options).toEqual({ version: "4.x", access: "ns" });
+    expect(draft.options).toEqual({ version: "4.x", access: "ns", namespace: "" });
+  });
+
+  it("carries the namespace, trimmed, and keeps it out of the way when unset", () => {
+    const scoped = toSubmission(rocketmq({ ...newConnection(), namespace: "  MQ_INST_1  " }));
+    expect(scoped.draft.options.namespace).toBe("MQ_INST_1");
+    // Empty rather than absent: Go reads it back off the options map either
+    // way, and an unset namespace is what turns the scoping off.
+    const unscoped = toSubmission(rocketmq(newConnection()));
+    expect(unscoped.draft.options.namespace).toBe("");
   });
 
   // The form draws neither, but an edit that dropped them would silently undo
@@ -104,7 +113,7 @@ describe("the RocketMQ connection draft", () => {
       endpoints: "ns:9876",
       timeoutSec: 12,
       authMechanism: AuthMechanism.AuthACL,
-      options: { version: "4.x", access: "ns" },
+      options: { version: "4.x", access: "ns", namespace: "MQ_INST_1" },
       secretsConfigured: ["accessKey", "secretKey"],
       status: "online",
       lastCheck: "2026-08-30 10:22:11",
@@ -114,6 +123,7 @@ describe("the RocketMQ connection draft", () => {
 
     const draft = toDraft(stored);
     if (draft.protocol !== "rocketmq") throw new Error("a RocketMQ profile read back as " + draft.protocol);
+    expect(draft.value.namespace).toBe("MQ_INST_1");
     expect(draft.value.credentialsStored).toBe(true);
     expect(draft.value.accessKey).toBe("");
     expect(draft.value.secretKey).toBe("");
@@ -122,7 +132,7 @@ describe("the RocketMQ connection draft", () => {
     expect(submitted.group).toBe("staging");
     expect(submitted.remark).toBe("order cluster");
     expect(submitted.timeoutSec).toBe(12);
-    expect(submitted.options).toEqual({ version: "4.x", access: "ns" });
+    expect(submitted.options).toEqual({ version: "4.x", access: "ns", namespace: "MQ_INST_1" });
   });
 });
 

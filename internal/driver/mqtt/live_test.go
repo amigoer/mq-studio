@@ -42,18 +42,20 @@ const (
 func requireMosquitto(t *testing.T) {
 	t.Helper()
 	e2e.Require(t, e2e.Env{
-		Name:  "mosquitto",
-		Start: "npm run e2e:mqtt:up",
-		Probe: e2e.DialTCP(liveMosquitto),
+		Name:   "mosquitto",
+		Family: e2e.MQTT,
+		Start:  "npm run e2e:mqtt:up",
+		Probe:  e2e.DialTCP(liveMosquitto),
 	})
 }
 
 func requireEMQX(t *testing.T) {
 	t.Helper()
 	e2e.Require(t, e2e.Env{
-		Name:  "emqx",
-		Start: "npm run e2e:mqtt:emqx:up",
-		Probe: e2e.HTTPGet(liveEMQXAPI + "/api/v5/status"),
+		Name:   "emqx",
+		Family: e2e.MQTT,
+		Start:  "npm run e2e:mqtt:emqx:up",
+		Probe:  e2e.HTTPGet(liveEMQXAPI + "/api/v5/status"),
 	})
 }
 
@@ -175,9 +177,10 @@ func TestLivePublishReachesASubscription(t *testing.T) {
  */
 func TestLiveWebSocketTransportConnects(t *testing.T) {
 	e2e.Require(t, e2e.Env{
-		Name:  "mosquitto over websocket",
-		Start: "npm run e2e:mqtt:up",
-		Probe: e2e.DialTCP(liveMosquittoWS),
+		Name:   "mosquitto over websocket",
+		Family: e2e.MQTT,
+		Start:  "npm run e2e:mqtt:up",
+		Probe:  e2e.DialTCP(liveMosquittoWS),
 	})
 
 	for _, version := range []string{protocol5, protocol311} {

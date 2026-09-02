@@ -16,7 +16,7 @@ func (c *Conn) ResendMessage(ctx context.Context, consumerGroup, clientID, topic
 	_ = consumerGroup
 	_ = clientID
 
-	item, err := c.QueryMessageByID(ctx, topic, messageID)
+	item, err := c.QueryMessageByID(ctx, c.wrap(topic), messageID)
 	if err != nil {
 		return "", fmt.Errorf("读取原消息失败: %w", err)
 	}
@@ -47,6 +47,12 @@ func (c *Conn) SendMessage(ctx context.Context, topic, tags, keys, body string, 
 	if delayLevel < 0 || delayLevel > 18 {
 		return "", fmt.Errorf("发送消息失败: 延迟等级必须在 0-18 之间")
 	}
+
+	// The namespace is applied here rather than through producer.WithNamespace:
+	// that option concatenates with no idempotence guard and tests for an
+	// existing prefix with strings.Contains, so a name that merely contains the
+	// namespace is left unwrapped. One implementation, one set of rules.
+	topic = c.wrap(topic)
 
 	// The producer is dialled from this connection's own parameters, so a
 	// message always goes to the cluster the page was showing.

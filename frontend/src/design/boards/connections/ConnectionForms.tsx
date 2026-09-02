@@ -67,6 +67,7 @@ const SWITCH_ROW: CSSProperties = {
 /** Option keys the RocketMQ driver reads back off a stored profile. */
 export const OPTION_VERSION = "version";
 export const OPTION_ACCESS = "access";
+export const OPTION_NAMESPACE = "namespace";
 
 /** What Go falls back to when the profile asks for no timeout of its own. */
 const DEFAULT_TIMEOUT_SEC = 5;
@@ -86,6 +87,12 @@ export interface RocketMQDraft {
   group: string;
   remark: string;
   timeoutSec: number;
+  /**
+   * RocketMQ 5.x namespace, empty for a connection that sees the cluster
+   * unscoped. It is not a filter: the driver wraps every topic and group name
+   * it sends, the way a client's ClientConfig.namespace does.
+   */
+  namespace: string;
   /**
    * Editing a profile that already has ACL credentials. Go never sends a
    * stored secret back, so the fields show that one exists rather than a value,
@@ -108,6 +115,7 @@ export function emptyRocketMQDraft(): RocketMQDraft {
     group: "",
     remark: "",
     timeoutSec: DEFAULT_TIMEOUT_SEC,
+    namespace: "",
     credentialsStored: false,
     clearCredentials: false,
   };
@@ -127,7 +135,7 @@ export function RocketMQForm({
   // Opens on a profile that already sets one of these, so editing never hides
   // a value the connection is actually using.
   const [advancedOpen, setAdvancedOpen] = useState(
-    value.timeoutSec !== DEFAULT_TIMEOUT_SEC || value.remark !== "",
+    value.timeoutSec !== DEFAULT_TIMEOUT_SEC || value.remark !== "" || value.namespace !== "",
   );
   // Once cleared, the fields are empty and typing into them is what sets new
   // credentials, so the placeholder and the clear control both go away.
@@ -246,15 +254,19 @@ export function RocketMQForm({
           <Fld label={t("page.connections.form.remark")} hint={t("page.connections.form.remarkHint")}>
             <Input value={value.remark} onChange={(event) => set("remark", event.target.value)} />
           </Fld>
-          {/* Drawn but dead: the admin library dials with name servers, a
-              timeout and ACL, and nothing else, so a namespace, a trace topic
-              or TLS has nowhere to go until it grows the options. */}
           <Fld
-            label={t("page.connections.form.rocketmq.instanceId")}
-            hint={t("page.connections.soon")}
+            label={t("page.connections.form.rocketmq.namespace")}
+            hint={t("page.connections.form.rocketmq.namespaceHint")}
           >
-            <Input disabled placeholder="MQ_INST_1234567890_xxxxxxx" />
+            <Input
+              value={value.namespace}
+              placeholder="MQ_INST_1234567890_xxxxxxx"
+              onChange={(event) => set("namespace", event.target.value)}
+            />
           </Fld>
+          {/* Still dead: the admin library dials with name servers, a timeout
+              and ACL, and nothing else, so a trace topic and TLS have nowhere
+              to go until it grows the options. */}
           <Fld
             label={t("page.connections.form.rocketmq.traceTopic")}
             hint={t("page.connections.soon")}

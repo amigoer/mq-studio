@@ -38,7 +38,15 @@ import {
  * asked for reports every outcome including "you are already on the latest".
  */
 
-const RELEASES_URL = "https://github.com/amigoer/mq-studio/releases/latest";
+// Every way out of the updater points at the site rather than at GitHub: it
+// carries the same packages and the same notes, and it is reachable on networks
+// that cannot open github.com.
+const SITE_URL = "https://mq-studio.amigoer.com";
+
+/** zh is the site's default locale and stays unprefixed; en lives under /en/. */
+function sitePath(language: string, path: string): string {
+  return `${SITE_URL}${language.startsWith("en") ? "/en" : ""}${path}`;
+}
 
 interface UpdaterContextValue {
   state: UpdateState;
@@ -58,13 +66,17 @@ interface UpdaterContextValue {
   cancel: () => void;
   install: () => Promise<void>;
   skip: () => void;
-  openReleases: () => void;
+  /** Opens the site's download section -- the way through when the app cannot
+      install the release itself. */
+  openDownloads: () => void;
+  /** Opens the site's changelog, for notes the dialog cannot render. */
+  openNotes: () => void;
 }
 
 const UpdaterContext = createContext<UpdaterContextValue | null>(null);
 
 function useUpdaterState(): UpdaterContextValue {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const toast = useToast();
   const [state, setState] = useState<UpdateState>(UNKNOWN_UPDATE_STATE);
   // A check the user is waiting on. Go publishes PhaseChecking too, but this
@@ -100,9 +112,13 @@ function useUpdaterState(): UpdaterContextValue {
   }, [dismissAnnouncement]);
   const closeDialog = useCallback(() => setDialogOpen(false), []);
 
-  const openReleases = useCallback(() => {
-    void openExternal(RELEASES_URL).catch(() => {});
-  }, []);
+  const openDownloads = useCallback(() => {
+    void openExternal(sitePath(i18n.language, "/#download")).catch(() => {});
+  }, [i18n.language]);
+
+  const openNotes = useCallback(() => {
+    void openExternal(sitePath(i18n.language, "/changelog/")).catch(() => {});
+  }, [i18n.language]);
 
   /* Announcing is the only thing the renderer decides. It happens on whatever
      state arrives -- the first read, a background check, a finished download --
@@ -189,12 +205,12 @@ function useUpdaterState(): UpdaterContextValue {
     } catch (error) {
       toast.error(t("page.settings.about.updateCheckFailed"), {
         description: String(error),
-        action: { label: t("page.settings.about.openReleases"), onClick: openReleases },
+        action: { label: t("page.settings.about.openDownloads"), onClick: openDownloads },
       });
     } finally {
       setChecking(false);
     }
-  }, [openDialog, openReleases, t, toast]);
+  }, [openDialog, openDownloads, t, toast]);
 
   const download = useCallback(async () => {
     try {
@@ -210,10 +226,10 @@ function useUpdaterState(): UpdaterContextValue {
     } catch (error) {
       toast.error(t("update.installFailed"), {
         description: String(error),
-        action: { label: t("page.settings.about.openReleases"), onClick: openReleases },
+        action: { label: t("page.settings.about.openDownloads"), onClick: openDownloads },
       });
     }
-  }, [openReleases, t, toast]);
+  }, [openDownloads, t, toast]);
 
   const cancel = useCallback(() => void cancelUpdate().catch(() => {}), []);
 
@@ -238,7 +254,8 @@ function useUpdaterState(): UpdaterContextValue {
       cancel,
       install,
       skip,
-      openReleases,
+      openDownloads,
+      openNotes,
     }),
     [
       cancel,
@@ -249,7 +266,8 @@ function useUpdaterState(): UpdaterContextValue {
       download,
       install,
       openDialog,
-      openReleases,
+      openDownloads,
+      openNotes,
       skip,
       state,
     ],

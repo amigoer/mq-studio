@@ -40,18 +40,20 @@ const (
 func requireLiveMosquitto(t *testing.T) {
 	t.Helper()
 	e2e.Require(t, e2e.Env{
-		Name:  "mosquitto",
-		Start: "npm run e2e:mqtt:up",
-		Probe: e2e.DialTCP(liveMosquitto),
+		Name:   "mosquitto",
+		Family: e2e.MQTT,
+		Start:  "npm run e2e:mqtt:up",
+		Probe:  e2e.DialTCP(liveMosquitto),
 	})
 }
 
 func requireLiveEMQX(t *testing.T) {
 	t.Helper()
 	e2e.Require(t, e2e.Env{
-		Name:  "emqx",
-		Start: "npm run e2e:mqtt:emqx:up",
-		Probe: e2e.HTTPGet(liveEMQXAPI + "/api/v5/status"),
+		Name:   "emqx",
+		Family: e2e.MQTT,
+		Start:  "npm run e2e:mqtt:emqx:up",
+		Probe:  e2e.HTTPGet(liveEMQXAPI + "/api/v5/status"),
 	})
 }
 

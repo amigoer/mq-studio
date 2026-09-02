@@ -21,6 +21,13 @@ export type Connection = {
   protocol: ProtocolId | null;
   protocolLabel: string;
   address: string;
+  /**
+   * What the connection is scoped to inside that address, when it is scoped to
+   * anything: a RocketMQ namespace today. It is shown beside the address
+   * because every page then draws short names, and a reader with no marker
+   * would have no way to tell a namespaced connection from an unscoped one.
+   */
+  scope?: string;
   status: ConnectionStatus;
   latency?: string;
   lastUsed: string;
@@ -46,6 +53,13 @@ export function protocolOfKind(kind: MQKind): ProtocolId | null {
   return PROTOCOL_BY_KIND[kind] ?? null;
 }
 
+/** Only RocketMQ scopes a connection by name today. */
+function scopeOf(profile: ConnectionProfile): string | undefined {
+  if (profile.kind !== MQKind.KindRocketMQ) return undefined;
+  const namespace = profile.options?.namespace ?? "";
+  return namespace === "" ? undefined : namespace;
+}
+
 export function toShellConnection(profile: ConnectionProfile): Connection {
   const protocol = protocolOfKind(profile.kind);
   return {
@@ -56,6 +70,7 @@ export function toShellConnection(profile: ConnectionProfile): Connection {
     // A family with no board still names itself; the raw kind is all there is.
     protocolLabel: protocol != null ? PROTOCOLS[protocol].name : profile.kind,
     address: profile.endpoints,
+    scope: scopeOf(profile),
     status: profile.status === "online" ? "online" : "offline",
     lastUsed: profile.lastCheck,
     isDefault: profile.isDefault,

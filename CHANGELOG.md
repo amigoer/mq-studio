@@ -42,6 +42,23 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   disconnected clients for falling behind.
 - Two authentication mechanisms: an nkey seed, and a credentials file signed
   by an operator.
+- A RocketMQ connection can name a namespace, which scopes everything it does
+  to that namespace: topics and consumer groups are listed under their short
+  names, and every request the connection makes carries the wrapped ones. The
+  field is in the connection form's advanced block, where a disabled "Instance
+  ID" control had been drawn for it, and the namespace is shown beside the
+  address in the connection list and the tab status bar so a reader can tell a
+  scoped connection from an unscoped one. Leaving it empty is unchanged
+  behaviour: the connection sees the cluster whole, raw names
+  included. (#61, #63)
+
+  This is the namespace RocketMQ 5.x actually implements — the client-side one,
+  where `orders` goes on the wire as `ns%orders` and a consumer group's retry
+  topic as `%RETRY%ns%GID`. The broker stores an ordinary topic and knows
+  nothing about it, which is why it works on a stock cluster with no broker
+  configuration. It is not `namespaceV2`: that sends two request-header fields
+  no code in apache/rocketmq reads, so nothing here would honour them and
+  nothing available could show them working.
 
 ### Fixed
 

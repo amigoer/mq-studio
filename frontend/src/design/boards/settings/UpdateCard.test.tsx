@@ -86,7 +86,8 @@ beforeAll(async () => {
       cancel: () => calls.push("cancel"),
       install: () => { calls.push("install"); return Promise.resolve(); },
       skip: () => calls.push("skip"),
-      openReleases: () => calls.push("openReleases"),
+      openDownloads: () => calls.push("openDownloads"),
+      openNotes: () => calls.push("openNotes"),
     }),
   }));
   vi.doMock("@/hooks/useSettings", () => ({
@@ -193,14 +194,14 @@ describe("the update card", () => {
     }));
     expect(body).toContain("下载更新失败");
     expect(body).toContain("checksum");
-    // Releases works even when whatever the app tried does not.
-    expect(body).toContain("打开 Releases");
+    // The download page works even when whatever the app tried does not.
+    expect(body).toContain("打开下载页");
     expect(body).toContain("重试");
   });
 
   // A release with no SHA256SUMS.txt is refused rather than trusted, and the
   // card has to say so and send the reader somewhere useful.
-  it("offers Releases when a release publishes no checksums", async () => {
+  it("offers the download page when a release publishes no checksums", async () => {
     await useLanguage("zh");
     const body = text(render({
       phase: models.Phase.PhaseError,
@@ -209,12 +210,12 @@ describe("the update card", () => {
       error: "release 0.2.0 publishes no SHA256SUMS.txt",
     }));
     expect(body).toContain("SHA256SUMS.txt");
-    expect(body).toContain("打开 Releases");
+    expect(body).toContain("打开下载页");
   });
 
   // An install the app cannot perform must not offer a button that would fail;
-  // it sends the user to Releases and explains why.
-  it("replaces the download with Releases when it cannot replace itself", async () => {
+  // it sends the user to the download page and explains why.
+  it("replaces the download with the download page when it cannot replace itself", async () => {
     await useLanguage("zh");
     const body = text(render({
       ...available,
@@ -225,7 +226,7 @@ describe("the update card", () => {
         target: {},
       },
     }));
-    expect(body).toContain("打开 Releases");
+    expect(body).toContain("打开下载页");
     expect(body).not.toContain("下载并安装");
     expect(body).toContain("包管理器");
   });

@@ -1,7 +1,8 @@
 # 安装 MQ Studio
 
-安装包统一命名为 `mq-studio-<版本>-<系统>-<架构>.<后缀>`，从
-[Releases](https://github.com/amigoer/mq-studio/releases) 下载。
+从 **[mq-studio.amigoer.com](https://mq-studio.amigoer.com/)** 下载，页面上的按钮已经
+指向当前系统对应的安装包。安装包统一命名为 `mq-studio-<版本>-<系统>-<架构>.<后缀>`，
+[GitHub Releases](https://github.com/amigoer/mq-studio/releases) 上是全部文件与历史版本。
 
 每个版本都附带 `SHA256SUMS.txt`，校验下载文件：
 

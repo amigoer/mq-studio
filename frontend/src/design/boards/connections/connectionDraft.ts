@@ -38,6 +38,7 @@ import {
   OPTION_MQTT_TLS_SKIP_VERIFY,
   OPTION_MQTT_TRANSPORT,
   OPTION_MQTT_WS_PATH,
+  OPTION_NAMESPACE,
   OPTION_NATS_CREDS_FILE,
   OPTION_NATS_JS_DOMAIN,
   OPTION_NATS_MONITOR_URL,
@@ -186,7 +187,11 @@ function rocketMQSubmission(draft: RocketMQDraft): Submission {
       endpoints: draft.endpoints.trim(),
       timeoutSec: draft.timeoutSec,
       authMechanism: typed || keepStored ? AuthMechanism.AuthACL : AuthMechanism.AuthNone,
-      options: { [OPTION_VERSION]: draft.version, [OPTION_ACCESS]: draft.access },
+      options: {
+        [OPTION_VERSION]: draft.version,
+        [OPTION_ACCESS]: draft.access,
+        [OPTION_NAMESPACE]: draft.namespace.trim(),
+      },
       secrets: { accessKey, secretKey },
       remark: draft.remark,
     },
@@ -610,6 +615,7 @@ function toRocketMQDraft(profile: ConnectionProfile): RocketMQDraft {
     group: profile.group,
     remark: profile.remark,
     timeoutSec: profile.timeoutSec,
+    namespace: profile.options?.[OPTION_NAMESPACE] ?? "",
     credentialsStored: profile.secretsConfigured.length > 0,
     clearCredentials: false,
   };

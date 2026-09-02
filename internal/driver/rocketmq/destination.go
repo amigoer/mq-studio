@@ -49,38 +49,38 @@ func (c *Conn) ListDestinations(ctx context.Context, filter model.DestinationFil
 	if err != nil {
 		return nil, err
 	}
-	return destinationsFromTopics(topics), nil
+	return c.destinationsFromTopics(topics), nil
 }
 
 // DestinationStats reports the per-queue offset ranges of a topic.
 func (c *Conn) DestinationStats(ctx context.Context, ref model.DestinationRef) (map[string]interface{}, error) {
-	return c.GetTopicStats(ctx, ref.Name)
+	return c.GetTopicStats(ctx, c.wrap(ref.Name))
 }
 
 // DestinationDetail returns one topic with its routes.
 func (c *Conn) DestinationDetail(ctx context.Context, ref model.DestinationRef) (*model.Destination, error) {
-	topic, err := c.GetTopicDetail(ctx, ref.Name)
+	topic, err := c.GetTopicDetail(ctx, c.wrap(ref.Name))
 	if err != nil {
 		return nil, err
 	}
-	return destinationFromTopic(topic), nil
+	return c.destinationFromTopic(topic), nil
 }
 
 // CreateDestination adds a topic on the target broker.
 func (c *Conn) CreateDestination(ctx context.Context, spec model.DestinationSpec) error {
 	broker, read, write, perm := topicConfigFromSpec(spec)
-	return c.CreateTopic(ctx, spec.Ref.Name, broker, read, write, perm)
+	return c.CreateTopic(ctx, c.wrap(spec.Ref.Name), broker, read, write, perm)
 }
 
 // UpdateDestination changes an existing topic's configuration.
 func (c *Conn) UpdateDestination(ctx context.Context, spec model.DestinationSpec) error {
 	broker, read, write, perm := topicConfigFromSpec(spec)
-	return c.UpdateTopic(ctx, spec.Ref.Name, broker, read, write, perm)
+	return c.UpdateTopic(ctx, c.wrap(spec.Ref.Name), broker, read, write, perm)
 }
 
 // RemoveDestination deletes a topic from the cluster.
 func (c *Conn) RemoveDestination(ctx context.Context, ref model.DestinationRef) error {
-	return c.DeleteTopic(ctx, ref.Name, ref.Namespace)
+	return c.DeleteTopic(ctx, c.wrap(ref.Name), ref.Namespace)
 }
 
 func topicConfigFromSpec(spec model.DestinationSpec) (broker string, read, write int, perm string) {
@@ -91,10 +91,10 @@ func topicConfigFromSpec(spec model.DestinationSpec) (broker string, read, write
 	return broker, read, write, perm
 }
 
-func destinationsFromTopics(topics []*model.TopicItem) []*model.Destination {
+func (c *Conn) destinationsFromTopics(topics []*model.TopicItem) []*model.Destination {
 	destinations := make([]*model.Destination, 0, len(topics))
 	for _, topic := range topics {
-		destinations = append(destinations, destinationFromTopic(topic))
+		destinations = append(destinations, c.destinationFromTopic(topic))
 	}
 	return destinations
 }
@@ -105,7 +105,11 @@ func destinationsFromTopics(topics []*model.TopicItem) []*model.Destination {
 // code that fills it is careful, well covered, and moving it onto a different
 // struct would have meant rewriting its tests, which is exactly what this
 // refactor is not allowed to do.
-func destinationFromTopic(topic *model.TopicItem) *model.Destination {
+//
+// It is also where a namespaced connection stops speaking broker-real names:
+// everything upstream of here works on "ns%orders", everything downstream sees
+// "orders".
+func (c *Conn) destinationFromTopic(topic *model.TopicItem) *model.Destination {
 	if topic == nil {
 		return nil
 	}
@@ -124,13 +128,20 @@ func destinationFromTopic(topic *model.TopicItem) *model.Destination {
 		}
 	}
 	if len(topic.Subscribers) > 0 {
-		if encoded, err := json.Marshal(topic.Subscribers); err == nil {
+		subscribers := make([]string, 0, len(topic.Subscribers))
+		for _, group := range topic.Subscribers {
+			subscribers = append(subscribers, c.unwrap(group))
+		}
+		if encoded, err := json.Marshal(subscribers); err == nil {
 			attributes[AttrSubscribers] = string(encoded)
 		}
 	}
 
+	// Ref.Namespace is the cluster here, not the RocketMQ namespace: a family
+	// whose namespaces are real objects fills that slot, and RocketMQ's are a
+	// naming convention with nothing to select between.
 	return &model.Destination{
-		Ref:         model.DestinationRef{Namespace: topic.Cluster, Name: topic.Topic},
+		Ref:         model.DestinationRef{Namespace: topic.Cluster, Name: c.unwrap(topic.Topic)},
 		Partitions:  topic.WriteQueue,
 		Subscribers: topic.ConsumerGroups,
 		Depth:       model.UnknownMetric,

@@ -22,8 +22,11 @@ import (
 // SubscriptionClients: a producer that is idle between sends is normal, while a
 // consumer group with nothing attached is an outage.
 func (c *Conn) ProducerClients(ctx context.Context, group, destination string) ([]*model.ProducerClient, error) {
-	group = strings.TrimSpace(group)
-	destination = strings.TrimSpace(destination)
+	// The producer group is wrapped as well as the topic: DefaultMQProducer
+	// namespaces its own group, so an unwrapped one would ask about connections
+	// nothing publishes under.
+	group = c.wrap(strings.TrimSpace(group))
+	destination = c.wrap(strings.TrimSpace(destination))
 	if group == "" || destination == "" {
 		return nil, fmt.Errorf("获取生产者连接失败: 生产者组和 Topic 都不能为空")
 	}

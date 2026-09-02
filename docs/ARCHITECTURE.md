@@ -136,7 +136,23 @@ and MQ Studio starts empty. Copying those files over by hand does not help
 either, because `crypto.hkdfInfoPrefix` feeds key derivation and was renamed
 too, so the stored `ENC:` values no longer decrypt.
 
-`.github/workflows/ci.yml` runs the same gate on pushes and pull requests.
+`.github/workflows/ci.yml` runs the same gate on pushes and pull requests, but
+splits it across jobs that run at the same time: the frontend build and tests
+need neither Go nor Docker, the static checks are the only thing that needs the
+GTK headers, and the live suites are sharded one job per broker family, each
+starting only its own compose stacks.
+
+That last split is not free. `MQ_STUDIO_E2E_FAMILIES` tells `internal/e2e`
+which families a shard is responsible for, and the ones it does not name skip -
+so a test can now go unrun without anything turning red, which is how issue #48
+went unnoticed. Two things stop that. `TestEveryFamilyHasACIShard` pins
+`e2e.AllFamilies` against the workflow's shard matrix, and the `coverage` job
+runs `scripts/ci-coverage.mjs` over every shard's `go test -json` output to
+assert that each test passed in at least one of them. A skip only counts as
+deliberate if it did not come from the gate, which is what `e2e.SkipMarker`
+distinguishes. `package` waits on that job, so an artifact is never produced
+from a run that tested less than it should have.
+
 `release.yml` packages a tag. Its runner matrix follows what each platform needs
 to compile: macOS builds both slices from one SDK and joins them with `lipo`,
 Windows cross-compiles both architectures from one runner because it does not

@@ -34,18 +34,20 @@ const (
 func requireCluster(t *testing.T) {
 	t.Helper()
 	e2e.Require(t, e2e.Env{
-		Name:  "the nats cluster",
-		Start: "npm run e2e:nats:up",
-		Probe: e2e.HTTPGet(liveMonitorURL + "/healthz"),
+		Family: e2e.NATS,
+		Name:   "the nats cluster",
+		Start:  "npm run e2e:nats:up",
+		Probe:  e2e.HTTPGet(liveMonitorURL + "/healthz"),
 	})
 }
 
 func requirePlain(t *testing.T) {
 	t.Helper()
 	e2e.Require(t, e2e.Env{
-		Name:  "the jetstream-free nats",
-		Start: "npm run e2e:nats:plain:up",
-		Probe: e2e.HTTPGet(plainMonitorURL + "/healthz"),
+		Family: e2e.NATS,
+		Name:   "the jetstream-free nats",
+		Start:  "npm run e2e:nats:plain:up",
+		Probe:  e2e.HTTPGet(plainMonitorURL + "/healthz"),
 	})
 }
 

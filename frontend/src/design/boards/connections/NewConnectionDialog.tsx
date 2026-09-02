@@ -246,6 +246,12 @@ export function NewConnectionDialog({
     if (draft.value.version === "5.x" && draft.value.access === "proxy") {
       return t("page.connections.form.rocketmq.proxyNote");
     }
+    // '%' is what RocketMQ joins a namespace to a topic with, so one inside the
+    // namespace would produce a name nothing could take apart again. The rest
+    // is the broker's own rule for a topic or group, minus that separator.
+    if (!/^[\w|-]*$/.test(draft.value.namespace.trim())) {
+      return t("page.connections.form.rocketmq.namespaceInvalid");
+    }
     return null;
   }, [draft, t]);
 

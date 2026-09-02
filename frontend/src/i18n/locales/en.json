@@ -375,7 +375,8 @@
         "enableAcl": "Enable ACL",
         "authAcl": "ACL",
         "accessKey": "AccessKey",
-        "secretKey": "SecretKey"
+        "secretKey": "SecretKey",
+        "namespace": "Namespace"
       }
     },
     "kafka": {
@@ -749,7 +750,7 @@
     "installing": "Installing; the app will restart shortly…",
     "updateNow": "Update now",
     "later": "Later",
-    "viewOnGithub": "View on GitHub",
+    "viewNotes": "View release notes",
     "downloadFailed": "Could not download the update",
     "installFailed": "Could not install the update",
     "failed": {
@@ -758,8 +759,8 @@
       "install": "Could not install the update"
     },
     "blocked": {
-      "packageManager": "This install is managed by your package manager, so the app cannot replace itself. Update through apt or dnf, or download the new package from Releases.",
-      "readOnly": "The install location is not writable, so the app cannot replace itself. Move it to your Applications folder, or install the new version from Releases by hand.",
+      "packageManager": "This install is managed by your package manager, so the app cannot replace itself. Update through apt or dnf, or download the new package from the website.",
+      "readOnly": "The install location is not writable, so the app cannot replace itself. Move it to your Applications folder, or install the new version from the website by hand.",
       "notPackaged": "This is not an installed application (a development build or a bare binary), so it cannot replace itself.",
       "unsupported": "No release is built for this operating system or architecture, so it cannot update itself."
     }
@@ -832,7 +833,9 @@
           "advanced": "Advanced",
           "timeout": "Request timeout",
           "timeoutHint": "seconds · blank takes the app setting",
-          "instanceId": "Instance ID (cloud)",
+          "namespace": "Namespace",
+          "namespaceHint": "RocketMQ 5.x; on a public cloud this is the instance id",
+          "namespaceInvalid": "A namespace can only contain letters, digits, _ and -",
           "traceTopic": "Trace topic",
           "tlsNote": "Opens once the driver library supports it",
           "note": "Switching to 4.x hides Proxy and the 5.x-only fields",
@@ -1178,7 +1181,7 @@
         "resetDesc": "Every app setting returns to its initial value. Connections and ACLs are untouched.",
         "resetDone": "Settings restored to defaults",
         "resetFailed": "Could not restore the defaults",
-        "openReleases": "Open Releases",
+        "openDownloads": "Open the download page",
         "aheadOfRelease": "Local v{{current}} is newer than published v{{latest}}",
         "upToDate": "You are on the latest version v{{version}}",
         "updateCheckFailed": "Could not check for updates",

@@ -90,11 +90,29 @@ function headingAnchor(changelog, path) {
     .replace(/ /g, '-')
 }
 
+/**
+ * Expands a bullet's bare `#61` into a link. The changelogs write references
+ * bare because they wrap at 80 columns and the website parses them by hand, so
+ * this is where the number becomes something a reader can follow. `/issues/`
+ * is right for a pull request too - GitHub redirects it.
+ *
+ * Code spans and links are matched only so they can be skipped: a bullet may
+ * write a literal `#61`, and this runs on the extracted section rather than on
+ * the assembled body because the English link's anchor is `#005---2026-09-02`.
+ */
+const REFERENCE = /`[^`\n]*`|\[[^\]]*\]\([^)]*\)|#(\d+)/g
+
+function linkReferences(section) {
+  return section.replace(REFERENCE, (all, number) =>
+    number === undefined ? all : `[#${number}](${repository}/issues/${number})`,
+  )
+}
+
 const zhChangelog = await readFile(resolve(root, ZH_CHANGELOG), 'utf8')
 const enChangelog = await readFile(resolve(root, EN_CHANGELOG), 'utf8')
 const anchor = headingAnchor(enChangelog, EN_CHANGELOG)
 const englishLink = `[English](${repository}/blob/main/${EN_CHANGELOG}#${anchor})`
-const sections = [englishLink, extractSection(zhChangelog, ZH_CHANGELOG)]
+const sections = [englishLink, linkReferences(extractSection(zhChangelog, ZH_CHANGELOG))]
 
 // Link comparisons are only meaningful once a previous release exists. The
 // fallback points at the default branch because the very first release
