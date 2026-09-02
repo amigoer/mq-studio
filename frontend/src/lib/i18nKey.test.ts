@@ -16,6 +16,12 @@ describe("telling a degraded reason from an error message", () => {
       "mq.rabbitmq.degraded.streamPlugin",
       "mq.rabbitmq.caveat.browseAltersQueue",
       "mq.rocketmq.degraded.proxyEndpoint",
+      // The namespace is built from the family's MQKind, and this one carries
+      // a hyphen. Every reason the Redis driver reports was rendered as the
+      // raw key until the pattern allowed it.
+      "mq.redis-stream.degraded.credentials",
+      "mq.redis-stream.degraded.credentialsNotRequired",
+      "mq.redis-stream.terms.destination",
     ]) {
       expect(isI18nKey(key), key).toBe(true);
     }
@@ -29,6 +35,9 @@ describe("telling a degraded reason from an error message", () => {
       "dial tcp 127.0.0.1:15672: connect: connection refused",
       "rabbitmq does not support offset.reset",
       "404 Object Not Found",
+      // A hyphen inside a segment is allowed; one leading a sentence is not.
+      "-not.a.key",
+      "redis-stream does not support message.publish",
       "",
     ]) {
       expect(isI18nKey(message), message).toBe(false);

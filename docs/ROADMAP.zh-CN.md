@@ -24,10 +24,11 @@ MQ Studio 正在成为一个覆盖所有消息队列的桌面客户端。每种�
 | 0–3 | 驱动接缝本身：契约、后端端口、存储与 bridge、前端注册表 | 对 RocketMQ 而言逐屏与之前完全一致 |
 | 4 | **RabbitMQ** | 已完成。Exchanges/Bindings 页面存在，且没有 offset 概念泄漏进 UI |
 | 5 | **Kafka** | Topic、消费组、lag、浏览与发布端到端可用 |
-| 6 | **Pulsar** | 已完成。主题、命名空间与其上的租户、订阅与游标、浏览与跟随、发送控制台、死信与角色授权全部端到端可用；并且没有任何页面去假装这个中间件有 tag、磁盘用量或用户目录 |
-| 7 | **Redis Stream**，然后 **NATS**，然后 **MQTT** | 每个都是纯增量：不改动任何规范页面 |
-| 8 | **ActiveMQ / Artemis**，然后 **NSQ** | 仍是纯增量；ActiveMQ 用来检验 JMS 语义能否套进规范页面 |
-| 9 | **Amazon SQS**、**Google Cloud Pub/Sub**、**Azure Service Bus**、**Amazon Kinesis**，然后 **IBM MQ** 与 **Solace PubSub+** | 连接表单能表达「没有地址，只有 region 与凭证」 |
+| 6 | **Redis Stream** | 已完成。Stream、消费组、浏览、发送、待处理列表（PEL）、服务器与其集群、客户端连接和 ACL 用户都读的是真实实例，也没有去假装存在 maxlen 或消息速率。和预期一样是纯增量，新增四个端口：日志的裁剪、订阅的位置、消息的写入，以及待处理列表 |
+| 7 | **Pulsar** | 已完成。主题、命名空间与其上的租户、订阅与游标、浏览与跟随、发送控制台、死信与角色授权全部端到端可用；并且没有任何页面去假装这个中间件有 tag、磁盘用量或用户目录 |
+| 8 | **NATS**，然后 **MQTT** | 每个都是纯增量：不改动任何规范页面 |
+| 9 | **ActiveMQ / Artemis**，然后 **NSQ** | 仍是纯增量；ActiveMQ 用来检验 JMS 语义能否套进规范页面 |
+| 10 | **Amazon SQS**、**Google Cloud Pub/Sub**、**Azure Service Bus**、**Amazon Kinesis**，然后 **IBM MQ** 与 **Solace PubSub+** | 连接表单能表达「没有地址，只有 region 与凭证」 |
 
 有两个排序决定值得一直放在视野里。
 
@@ -56,7 +57,7 @@ MQ Studio 正在成为一个覆盖所有消息队列的桌面客户端。每种�
 | **Kafka** | 基于 Kafka 协议的 AdminClient | 全部六个 | ACL 取决于所配置的 authorizer；浏览是按 offset 区间拉取，不是随机访问 |
 | **Pulsar** | Admin REST API + 二进制协议 | 全部六个 | 已完成。tenant 与 namespace 最后两者都做了：既是每个页面上的范围选择器，也有自己的页面 —— 因为主题的地址就是 tenant/namespace/name，选择器的选项总得有个来源 |
 | **ActiveMQ / Artemis** | 基于 JMX 的 Jolokia REST | 全部六个 | Classic 5.x 与 Artemis 暴露的管理树不同，驱动需探测实际应答的是哪一种 |
-| **Redis Stream** | `XINFO`、`XRANGE`、`XADD` | Destinations、Subscriptions、Messages、Publish | 没有集群拓扑，也没有按目标划分的访问控制 |
+| **Redis Stream** | `XINFO`、`XRANGE`、`XADD` 等命令 | 全部六个 | 已完成。集群拓扑和 ACL 最后都做了：单机、哨兵与集群三种部署都能读，ACL 用户带键、频道与命令规则 |
 | **NATS** | JetStream API 加服务端监控端点 | Destinations、Subscriptions、Messages、Publish、Cluster | 未启用 JetStream 时，端点退化为仅发布与订阅 |
 | **NSQ** | nsqd 与 nsqlookupd HTTP 接口 | Destinations、Subscriptions、Publish、Cluster | 没有消息历史，因此没有浏览 |
 | **MQTT** | 无 —— 该协议本身没有管理面 | Publish，外加实时 Subscribe 页 | 其余全部。EMQX、HiveMQ 等各自带 REST 管理面，驱动可在运行时探测并把它们点亮 |

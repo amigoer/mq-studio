@@ -27,20 +27,40 @@ const requires: Record<string, Capability | Capability[]> = {
   // family without them must not draw the entry at all.
   exchanges: Capability.CapRouting,
   messages: Capability.CapMessageQuery,
-  dlq: [Capability.CapDLQ, Capability.CapDeadLetterTopology],
+  // Three, because three families answer this page by three different means.
+  // RocketMQ reads a dead-letter topic per consumer group; RabbitMQ walks the
+  // topology to find the queues something else dead-letters into; Redis moves
+  // nothing at all and keeps, per group, a record of every delivery it has not
+  // had acknowledged. None can answer the page the others' way.
+  dlq: [
+    Capability.CapDLQ,
+    Capability.CapDeadLetterTopology,
+    Capability.CapPendingEntries,
+  ],
   vhosts: Capability.CapNamespaceList,
   policies: Capability.CapPolicyList,
   definitions: Capability.CapDefinitionsExport,
   replication: Capability.CapReplication,
   // Only Kafka throttles by identity rather than by destination.
   quotas: Capability.CapQuotaList,
-  producer: Capability.CapPublish,
+  // Two, because a family whose message is an ordered set of named fields
+  // cannot be sent through a signature built for a topic with a body.
+  producer: [Capability.CapPublish, Capability.CapEntryPublish],
+  // The page had no requirement at all, so every family listing it drew the
+  // entry whether or not its driver could answer it.
+  clients: Capability.CapClientInspect,
   cluster: Capability.CapClusterTopology,
   // Three, because three families answer this page by three different means.
   // RocketMQ has a credential pair carrying its own permissions; RabbitMQ has
   // users whose tags and per-vhost permissions are two systems on one name;
   // Kafka has rules attached to a principal it may not even store. None can
   // answer the page the others' way, and all three answer it.
+  // Four, because four families answer this page by four different means.
+  // RocketMQ has a credential pair carrying its own permissions; RabbitMQ has
+  // users whose tags and per-vhost permissions are two systems on one name;
+  // Kafka has rules attached to a principal it may not even store; Redis puts
+  // the commands, the key patterns and the channel patterns all on the user.
+  // None can answer the page the others' way, and all four answer it.
   acl: [
     Capability.CapAccessControl,
     Capability.CapIdentityList,
@@ -51,6 +71,7 @@ const requires: Record<string, Capability | Capability[]> = {
        alone - without this entry a family that can read and write every grant
        on the cluster would have no page to draw them on. */
     Capability.CapIdentityPermissions,
+    Capability.CapAclUsers,
   ],
   // Alerts needs no particular capability, only a connection to draw metrics
   // from, which the connected check below already covers.

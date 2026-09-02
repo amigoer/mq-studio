@@ -1,0 +1,50 @@
+name: mq-studio-e2e-redis
+
+# The primary Redis environment: one server, ACL on.
+#
+# ACL is on rather than a bare requirepass because the driver has a page for
+# it. A broker with no users to read would leave the ACL board and the
+# rejected-credentials path both untested, and those are exactly the two
+# things a password-only broker cannot show.
+services:
+  redis:
+    image: redis:8-alpine
+    ports:
+      - '127.0.0.1:6479:6379'
+    command:
+      - redis-server
+      # The node board reads INFO persistence and offers BGREWRITEAOF, which
+      # does nothing on a server with the append-only file off.
+      - --appendonly
+      - 'yes'
+      # Log every command, not just the slow ones. The default threshold is
+      # 10ms and nothing on an idle test broker takes that long, so the slow
+      # log would be permanently empty and the page unassertable. What the
+      # tests check is the shape of an entry, not that Redis is slow.
+      - --slowlog-log-slower-than
+      - '0'
+      - --aclfile
+      - /etc/redis/users.acl
+    volumes:
+      - ./users.acl:/etc/redis/users.acl:ro
+      - redis-data:/data
+    healthcheck:
+      # Authenticated, because the default user is off: an unauthenticated
+      # PING answers NOAUTH, so a plain ping would report a healthy broker as
+      # unhealthy forever and `up -d --wait` would never return.
+      test:
+        - CMD
+        - redis-cli
+        - --user
+        - mqstudio
+        - --pass
+        - mqstudio
+        - --no-auth-warning
+        - ping
+      interval: 5s
+      timeout: 10s
+      retries: 12
+    restart: unless-stopped
+
+volumes:
+  redis-data:

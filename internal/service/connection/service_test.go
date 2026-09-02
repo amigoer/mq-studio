@@ -604,3 +604,98 @@ func TestReplacingCredentialsDropsTheKeysNoLongerSent(t *testing.T) {
 		t.Errorf("password was not sent but is still stored")
 	}
 }
+
+/*
+ * A Redis profile has to survive the disk round trip whole.
+ *
+ * This is the check the RabbitMQ integration learned to make the hard way:
+ * the connection layer once stored only RocketMQ's access key pair, so every
+ * other family's credential was dropped on save and its auth mechanism forced
+ * back to none. Nothing pointed at it, because the connection form's test
+ * button probes the profile that was submitted rather than the one that was
+ * stored - it passed on the way in and the connection failed afterwards.
+ *
+ * Redis brings a second thing worth pinning beside the credential: the options
+ * are what decide which client go-redis builds. A deployment or a master name
+ * lost in storage does not fail to connect - it connects to the wrong thing.
+ */
+func TestRedisStreamProfileSurvivesAReload(t *testing.T) {
+	service := newTestService(t, nil)
+	input := model.ConnectionProfile{
+		Name: "Redis Stream", Kind: model.KindRedisStream,
+		Endpoints: "s1:26379,s2:26379", TimeoutSec: 9,
+		Auth: model.AuthConfig{Mechanism: model.AuthPlain},
+		Options: map[string]string{
+			"deployment":    "sentinel",
+			"masterName":    "mymaster",
+			"db":            "4",
+			"streamFilter":  "orders:*",
+			"tls":           "true",
+			"tlsSkipVerify": "true",
+		},
+	}
+	input.SetSecret("username", "mqstudio")
+	input.SetSecret("password", "s3cret")
+	added, err := service.AddConnection(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	reopened := New(service.dataFilePath, fakeSettings{}, noopRuntime{})
+	stored, err := reopened.GetConnection(added.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if stored.Secret("username") != "mqstudio" {
+		t.Errorf("username after reload = %q", stored.Secret("username"))
+	}
+	if stored.Secret("password") != "s3cret" {
+		t.Errorf("password after reload = %q", stored.Secret("password"))
+	}
+	if stored.Auth.Mechanism != model.AuthPlain {
+		t.Errorf("mechanism after reload = %q, want plain", stored.Auth.Mechanism)
+	}
+	for key, want := range input.Options {
+		if got := stored.Option(key); got != want {
+			t.Errorf("option %q after reload = %q, want %q", key, got, want)
+		}
+	}
+	if stored.Endpoints != input.Endpoints {
+		t.Errorf("endpoints after reload = %q", stored.Endpoints)
+	}
+	if stored.TimeoutSec != 9 {
+		t.Errorf("timeout after reload = %d", stored.TimeoutSec)
+	}
+}
+
+// Redis before 6.0 has no users, so a password with no username is a whole
+// credential. A connection layer that treated a pair as all-or-nothing would
+// store neither, and the profile would connect anonymously to a server that
+// requires a password.
+func TestRedisStreamKeepsAPasswordWithNoUsername(t *testing.T) {
+	service := newTestService(t, nil)
+	input := model.ConnectionProfile{
+		Name: "Redis 5", Kind: model.KindRedisStream,
+		Endpoints: "127.0.0.1:6379",
+		Auth:      model.AuthConfig{Mechanism: model.AuthPlain},
+		Options:   map[string]string{"deployment": "standalone"},
+	}
+	input.SetSecret("password", "only-a-password")
+	added, err := service.AddConnection(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	reopened := New(service.dataFilePath, fakeSettings{}, noopRuntime{})
+	stored, err := reopened.GetConnection(added.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stored.Secret("password") != "only-a-password" {
+		t.Errorf("password after reload = %q", stored.Secret("password"))
+	}
+	if stored.Auth.Mechanism != model.AuthPlain {
+		t.Errorf("mechanism after reload = %q, want plain", stored.Auth.Mechanism)
+	}
+}

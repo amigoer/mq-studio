@@ -25,6 +25,7 @@ import { deriveRocketMQAlerts } from "@/mq/rocketmq/alerts";
 import { deriveRabbitMQAlerts } from "@/mq/rabbitmq/alerts";
 import { deriveKafkaAlerts } from "@/mq/kafka/alerts";
 import { derivePulsarAlerts } from "@/mq/pulsar/alerts";
+import { deriveRedisAlerts } from "@/mq/redis/alerts";
 
 export type AlertSeverity = "crit" | "warn" | "info";
 
@@ -82,11 +83,14 @@ export function deriveAlerts(
         ? deriveKafkaAlerts(facts, rules, thresholds)
         : kind === MQKind.KindPulsar
           ? derivePulsarAlerts(facts, rules, thresholds)
-          : /* Every other family is read with RocketMQ's rules, which is what
-             they were before this dispatch existed. A family whose vocabulary
-             they do not fit reports nothing rather than something wrong, and
-             gets its own rules when it gets its own driver. */
-          deriveRocketMQAlerts(facts, rules, thresholds);
+          : kind === MQKind.KindRedisStream
+            ? deriveRedisAlerts(facts, rules, thresholds)
+            : /* Every other family is read with RocketMQ's rules, which is what
+                 they were before this dispatch existed. A family whose
+                 vocabulary they do not fit reports nothing rather than
+                 something wrong, and gets its own rules when it gets its own
+                 driver. */
+              deriveRocketMQAlerts(facts, rules, thresholds);
 
   return derived.sort(
     (left, right) => severityWeight(right.severity) - severityWeight(left.severity),

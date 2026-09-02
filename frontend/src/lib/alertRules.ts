@@ -99,6 +99,19 @@ const RULES_BY_KIND: Partial<Record<MQKind, readonly AlertRuleKey[]>> = {
     "memoryUsage",
     "flowControl",
   ],
+  /*
+   * Redis has no partitions, no dead-letter topic and no disk figure, so the
+   * rules it can raise are its own: memory against its own cap, a background
+   * save that failed, and a consumer group holding work with nothing attached
+   * to finish it.
+   */
+  [MQKind.KindRedisStream]: [
+    "brokerOffline",
+    "resourceAlarm",
+    "memoryUsage",
+    "groupOffline",
+    "groupLag",
+  ],
 };
 
 const ROCKETMQ_RULES: readonly AlertRuleKey[] = [

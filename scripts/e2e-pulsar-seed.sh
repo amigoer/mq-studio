@@ -39,7 +39,11 @@ try admin namespaces create "$NAMESPACE"
 
 # A namespace policy, so the namespaces page has something other than defaults
 # to show and the cross-check has a value to compare.
-try admin namespaces set-message-ttl "$NAMESPACE" --messageTTL 3600
+#
+# A day rather than an hour, because this TTL applies to the seeded messages
+# too: a short one expires the backlog the cross-check is comparing against,
+# and the suite then fails with "no backlog" for anyone who seeded a while ago.
+try admin namespaces set-message-ttl "$NAMESPACE" --messageTTL 86400
 try admin namespaces set-retention "$NAMESPACE" --size 512M --time 60m
 
 # Both topic shapes. They answer at different endpoints - a non-partitioned

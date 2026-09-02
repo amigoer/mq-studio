@@ -1,0 +1,37 @@
+name: mq-studio-e2e-redis-cluster
+
+# The clustered Redis, on its own ports so it and the standalone one can both
+# be up.
+#
+# It exists because three things are only real here: CLUSTER NODES has more
+# than one row, a stream lives on the node that owns its slot rather than on
+# the one you asked, and a command touching two keys in different slots is
+# refused outright. None of those can be reached against a single server, and
+# the first is what the cluster board is for.
+#
+# See cluster.sh for why the six nodes share a container.
+services:
+  redis-cluster:
+    image: redis:8-alpine
+    ports:
+      - '127.0.0.1:6500-6505:6500-6505'
+    entrypoint: ['/usr/local/bin/cluster.sh']
+    volumes:
+      - ./cluster.sh:/usr/local/bin/cluster.sh:ro
+      - redis-cluster-data:/data
+    healthcheck:
+      # cluster_state:ok, not a ping. Every node answers PING from the moment
+      # it starts, including before the slots are assigned - so a ping would
+      # report the environment ready while the cluster still had no keyspace.
+      test:
+        - CMD-SHELL
+        - >-
+          redis-cli -p 6500 -a mqstudio --no-auth-warning cluster info
+          | grep -q 'cluster_state:ok'
+      interval: 5s
+      timeout: 10s
+      retries: 24
+    restart: unless-stopped
+
+volumes:
+  redis-cluster-data:

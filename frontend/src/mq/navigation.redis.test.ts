@@ -1,0 +1,179 @@
+import { describe, expect, it } from "vitest";
+import { Capability } from "@bindings/model/models";
+import { navAvailability } from "./navigation";
+import { PROTOCOLS } from "@/design/data/protocols";
+import type { CapabilityState } from "./capabilities";
+
+/**
+ * The sidebar a real Redis Stream connection draws.
+ *
+ * The last thing between a working driver and a working app: every page is
+ * wired, and the one that decides whether you can reach it is this derivation.
+ * A capability dropped on the Go side, or a `requires` entry naming the wrong
+ * one, takes a whole finished page out of the app and nothing else notices.
+ *
+ * The list below is what `capabilities()` in
+ * internal/driver/redisstream/conn.go declares. A Go test asserts the driver
+ * still declares exactly this, so the two halves cannot drift apart without
+ * one of them failing.
+ */
+const REDIS_CAPABILITIES: Capability[] = [
+  Capability.CapDestinationList,
+  Capability.CapDestinationCreate,
+  Capability.CapDestinationDelete,
+  Capability.CapStreamTrim,
+  Capability.CapSubscriptionList,
+  Capability.CapSubscriptionCreate,
+  Capability.CapSubscriptionDelete,
+  Capability.CapSubscriptionLag,
+  Capability.CapSubscriptionPosition,
+  Capability.CapMessageQuery,
+  Capability.CapMessageByID,
+  Capability.CapEntryPublish,
+  Capability.CapPendingEntries,
+  Capability.CapPendingAdmin,
+  Capability.CapClusterTopology,
+  Capability.CapClusterMetrics,
+  Capability.CapNodeConfig,
+  Capability.CapNodeMaintenance,
+  Capability.CapSlowLog,
+  Capability.CapClientInspect,
+  Capability.CapClientClose,
+  Capability.CapAclUsers,
+];
+
+function state(
+  supported: Capability[],
+  degraded: Partial<Record<Capability, string>> = {},
+): CapabilityState {
+  return {
+    has: (capability) => supported.includes(capability),
+    degradedReason: (capability) => degraded[capability],
+    caveat: () => undefined,
+    loading: false,
+  };
+}
+
+/** Every page the Redis sidebar is built from, in the order it draws them. */
+const drawn = PROTOCOLS.redis.nav.flatMap((group) => group.items.map((item) => item.id));
+
+describe("the sidebar a Redis Stream connection draws", () => {
+  it("reaches the pages the driver has ports for so far", () => {
+    const nav = navAvailability(state(REDIS_CAPABILITIES), true);
+    const reachable = drawn.filter((id) => nav.visible(id) && !nav.disabled(id));
+
+    // Overview stands on its own; the rest are the pages these capabilities
+    // exist for. What is still missing arrives with its port.
+    expect(reachable).toEqual([
+      "overview",
+      "topics",
+      "consumers",
+      "messages",
+      "dlq",
+      "producer",
+      "cluster",
+      "clients",
+      "alerts",
+      "acl",
+    ]);
+  });
+
+  /*
+   * A page whose capability the family has no concept of is not drawn at all,
+   * as opposed to drawn and greyed out. Redis has no exchanges and no virtual
+   * hosts, and a sidebar offering them would describe a different broker.
+   */
+  it("does not draw pages Redis has no concept of", () => {
+    const nav = navAvailability(state(REDIS_CAPABILITIES), true);
+    for (const id of ["exchanges", "vhosts", "policies", "replication", "definitions", "quotas"]) {
+      expect(nav.visible(id), id).toBe(false);
+    }
+    // And none of them is in the sidebar this protocol declares either.
+    expect(drawn).not.toContain("exchanges");
+    expect(drawn).not.toContain("vhosts");
+  });
+
+  /*
+   * Nothing is dialled yet, so nothing is known. Hiding pages that would come
+   * back the moment a connection opens reads as an app with no features.
+   */
+  it("draws every page while the connection is not open", () => {
+    const nav = navAvailability(state([]), false);
+    for (const id of drawn) {
+      expect(nav.visible(id), id).toBe(true);
+      expect(nav.disabled(id), id).toBe(false);
+    }
+  });
+
+  /*
+   * A server that refused the credential degrades everything, and the sidebar
+   * has to stay drawn with the reason on it: an empty one reads as an app with
+   * no features rather than an endpoint that needs a password fixed.
+   */
+  it("keeps the stream page drawn and disabled when the credential was refused", () => {
+    const nav = navAvailability(
+      state(
+        [],
+        Object.fromEntries(
+          REDIS_CAPABILITIES.map((capability) => [
+            capability,
+            "mq.redis-stream.degraded.credentials",
+          ]),
+        ),
+      ),
+      true,
+    );
+
+    expect(nav.visible("topics")).toBe(true);
+    expect(nav.disabled("topics")).toBe(true);
+    expect(nav.reason("topics")).toBe("mq.redis-stream.degraded.credentials");
+    // Overview stands on its own and stays reachable to say what is wrong.
+    expect(nav.disabled("overview")).toBe(false);
+  });
+});
+
+/*
+ * The send console is reached through a capability of its own. Gating it on
+ * CapPublish alone would hide a finished page: that signature is a topic with
+ * tags, keys and a delay level, and this family cannot implement it.
+ */
+describe("the Redis send console's gate", () => {
+  it("is reachable without the topic-shaped publish capability", () => {
+    const nav = navAvailability(state(REDIS_CAPABILITIES), true);
+    expect(REDIS_CAPABILITIES).not.toContain(Capability.CapPublish);
+    expect(nav.visible("producer")).toBe(true);
+    expect(nav.disabled("producer")).toBe(false);
+  });
+});
+
+/*
+ * The pending-entries page is reached through a capability of its own, beside
+ * the two dead-letter ones. Redis moves nothing aside and gives up on nothing,
+ * so neither of those can describe it - and gating on them would have hidden a
+ * finished page.
+ */
+describe("the Redis pending entries gate", () => {
+  it("is reachable without either dead-letter capability", () => {
+    const nav = navAvailability(state(REDIS_CAPABILITIES), true);
+    expect(REDIS_CAPABILITIES).not.toContain(Capability.CapDLQ);
+    expect(REDIS_CAPABILITIES).not.toContain(Capability.CapDeadLetterTopology);
+    expect(nav.visible("dlq")).toBe(true);
+    expect(nav.disabled("dlq")).toBe(false);
+  });
+});
+
+/*
+ * Access control is the case the `requires` list exists for, and Redis is the
+ * fourth family to answer the page a different way. Gating it on any of the
+ * other three would hide a finished page.
+ */
+describe("the Redis ACL page's gate", () => {
+  it("is reachable without any other family's access capability", () => {
+    const nav = navAvailability(state(REDIS_CAPABILITIES), true);
+    expect(REDIS_CAPABILITIES).not.toContain(Capability.CapAccessControl);
+    expect(REDIS_CAPABILITIES).not.toContain(Capability.CapIdentityList);
+    expect(REDIS_CAPABILITIES).not.toContain(Capability.CapAccessDirectory);
+    expect(nav.visible("acl")).toBe(true);
+    expect(nav.disabled("acl")).toBe(false);
+  });
+});

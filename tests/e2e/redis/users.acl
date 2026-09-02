@@ -1,0 +1,19 @@
+# The users this broker authenticates.
+#
+# Loaded with --aclfile, and mounted read-only: ACL SETUSER during a test
+# changes memory only, so nothing a test creates survives a restart and no
+# test can rewrite this file by calling ACL SAVE.
+
+# Off, and deliberately not merely passworded. Something has to refuse an
+# anonymous connection, or the driver's rejected-credentials path has nothing
+# to report and the degraded state it produces cannot be asserted.
+user default off
+
+# What the app and the live tests connect as.
+user mqstudio on >mqstudio ~* &* +@all
+
+# A user with real restrictions, so the ACL board has a rule worth drawing.
+# With every user holding +@all the key-pattern and command-rule columns would
+# be constants, and a page that renders the same string for every row proves
+# nothing about whether it read the broker.
+user mqs-seed-readonly on >readonly ~mqs-seed:* &* +@read +@connection

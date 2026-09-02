@@ -141,6 +141,18 @@ jobs:
       # zero against zero would pass whatever the driver did.
       - name: Seed Pulsar
         run: npm run e2e:pulsar:seed
+      # ACL on rather than a bare password: the driver has a page for it, and
+      # a broker with no users to read would leave both the ACL board and the
+      # rejected-credentials path untested.
+      - name: Start Redis
+        run: npm run e2e:redis:up
+
+      # Six nodes. A single server cannot produce a CLUSTER NODES with more
+      # than one row, a slot that belongs to a node you did not ask, or a
+      # refused cross-slot command, and those are what the cluster board and
+      # the driver's per-key call shape exist for.
+      - name: Start the Redis cluster
+        run: npm run e2e:redis:cluster:up
 
       - name: Run checks
         # The opt-in a developer sets locally. CI does not need it - internal/e2e

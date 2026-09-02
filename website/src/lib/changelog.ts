@@ -45,25 +45,19 @@ const SECTION = /^###\s+(.+?)\s*$/;
 const SUBHEADING = /^\*\*(.+)\*\*\s*$/;
 const ITEM = /^-\s+(.+)$/;
 
-/*
- * The id one release is addressed by, in both languages.
- *
- * `unreleased` is passed rather than derived from the heading, because the two
- * bundles word it differently and the language switch assumes a page exists at
- * the same slug on both sides. "Unreleased" slugified to `vunreleased` while
- * 未发布 stripped to nothing and fell back to `unreleased`, so as soon as the
- * section had content in both files - it is filtered out while empty, which is
- * why this stayed hidden - each language linked at a page the other had not
- * generated.
- *
- * The `v` prefix on a version keeps the id from starting with a digit:
- * `#0.0.3` is a valid fragment but an invalid CSS selector, which would throw
- * inside querySelector.
- */
 function slug(version: string, unreleased: boolean): string {
+  // The unreleased heading is the one page whose id cannot come from its own
+  // text: it is written "Unreleased" in one language and "未发布" in the other,
+  // and the two have to land on the same path or the language switch 404s.
+  // That stayed invisible for as long as the section was empty in both files
+  // at once, because an empty one is dropped below.
   if (unreleased) return 'unreleased';
+
   const ascii = version.toLowerCase().replace(/[^a-z0-9.]+/g, '-').replace(/^-|-$/g, '');
-  return ascii ? `v${ascii}` : 'unreleased';
+  // A heading that slugifies to nothing still needs a usable id. The `v`
+  // prefix keeps it from starting with a digit: `#0.0.3` is a valid fragment
+  // but an invalid CSS selector, which would throw inside querySelector.
+  return ascii ? `v${ascii}` : 'release';
 }
 
 function parse(source: string): Release[] {

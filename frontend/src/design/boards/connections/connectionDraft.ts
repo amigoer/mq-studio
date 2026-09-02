@@ -34,6 +34,12 @@ import {
   OPTION_PULSAR_TLS,
   OPTION_PULSAR_TLS_CA_FILE,
   OPTION_PULSAR_TLS_SKIP_VERIFY,
+  OPTION_REDIS_DB,
+  OPTION_REDIS_DEPLOYMENT,
+  OPTION_REDIS_MASTER_NAME,
+  OPTION_REDIS_STREAM_FILTER,
+  OPTION_REDIS_TLS,
+  OPTION_REDIS_TLS_SKIP_VERIFY,
   OPTION_TLS,
   OPTION_TLS_SKIP_VERIFY,
   OPTION_VERSION,
@@ -41,12 +47,15 @@ import {
   emptyKafkaDraft,
   emptyPulsarDraft,
   emptyRabbitMQDraft,
+  emptyRedisDraft,
   emptyRocketMQDraft,
   type KafkaDraft,
   type KafkaMechanism,
   type PulsarAuth,
   type PulsarDraft,
   type RabbitMQDraft,
+  type RedisDeployment,
+  type RedisDraft,
   type RocketMQDraft,
 } from "./ConnectionForms";
 
@@ -60,7 +69,8 @@ export type ProtocolDraft =
   | { protocol: "rocketmq"; value: RocketMQDraft }
   | { protocol: "rabbitmq"; value: RabbitMQDraft }
   | { protocol: "kafka"; value: KafkaDraft }
-  | { protocol: "pulsar"; value: PulsarDraft };
+  | { protocol: "pulsar"; value: PulsarDraft }
+  | { protocol: "redis"; value: RedisDraft };
 
 /** The protocols this file can build a submission for. */
 export const DRAFTABLE: readonly ProtocolDraft["protocol"][] = [
@@ -68,6 +78,7 @@ export const DRAFTABLE: readonly ProtocolDraft["protocol"][] = [
   "rabbitmq",
   "kafka",
   "pulsar",
+  "redis",
 ];
 
 export function isDraftable(protocol: ProtocolId): protocol is ProtocolDraft["protocol"] {
@@ -82,6 +93,8 @@ export function emptyDraft(protocol: ProtocolDraft["protocol"]): ProtocolDraft {
       return { protocol, value: emptyKafkaDraft() };
     case "pulsar":
       return { protocol, value: emptyPulsarDraft() };
+    case "redis":
+      return { protocol, value: emptyRedisDraft() };
     default:
       return { protocol, value: emptyRocketMQDraft() };
   }
@@ -95,6 +108,8 @@ export function toSubmission(draft: ProtocolDraft): Submission {
       return kafkaSubmission(draft.value);
     case "pulsar":
       return pulsarSubmission(draft.value);
+    case "redis":
+      return redisSubmission(draft.value);
     default:
       return rocketMQSubmission(draft.value);
   }
@@ -109,6 +124,8 @@ export function toDraft(profile: ConnectionProfile): ProtocolDraft {
       return { protocol: "kafka", value: toKafkaDraft(profile) };
     case MQKind.KindPulsar:
       return { protocol: "pulsar", value: toPulsarDraft(profile) };
+    case MQKind.KindRedisStream:
+      return { protocol: "redis", value: toRedisDraft(profile) };
     default:
       return { protocol: "rocketmq", value: toRocketMQDraft(profile) };
   }
@@ -203,6 +220,45 @@ function kafkaSubmission(draft: KafkaDraft): Submission {
       : typed || !keepStored
         ? "replace"
         : "preserve",
+  };
+}
+
+function redisSubmission(draft: RedisDraft): Submission {
+  const username = draft.username.trim();
+  const password = draft.password.trim();
+  const typed = username !== "" || password !== "";
+  const keepStored = draft.credentialsStored && !draft.clearCredentials;
+  const cluster = draft.deployment === "cluster";
+
+  return {
+    draft: {
+      name: draft.name.trim(),
+      group: draft.group,
+      kind: MQKind.KindRedisStream,
+      endpoints: draft.endpoints.trim(),
+      timeoutSec: draft.timeoutSec,
+      // Redis before 6 has no users and a password alone is the credential,
+      // and 6 onwards treats an omitted username as the default user - so an
+      // empty pair is an anonymous server rather than an unfinished form.
+      authMechanism: typed || keepStored ? AuthMechanism.AuthPlain : AuthMechanism.AuthNone,
+      options: {
+        [OPTION_REDIS_DEPLOYMENT]: draft.deployment,
+        // Only a sentinel connection has a master to name, and keeping a
+        // stale one would send a standalone profile looking for it the day
+        // someone switched back.
+        [OPTION_REDIS_MASTER_NAME]: draft.deployment === "sentinel" ? draft.masterName.trim() : "",
+        // A cluster has one database and refuses SELECT.
+        [OPTION_REDIS_DB]: cluster ? "0" : String(draft.db),
+        [OPTION_REDIS_STREAM_FILTER]: draft.streamFilter.trim(),
+        [OPTION_REDIS_TLS]: String(draft.tls),
+        // Only meaningful with TLS on, and storing it otherwise would re-apply
+        // it silently the day someone turns TLS back on.
+        [OPTION_REDIS_TLS_SKIP_VERIFY]: String(draft.tls && draft.tlsSkipVerify),
+      },
+      secrets: { username, password },
+      remark: draft.remark,
+    },
+    credentialsMode: draft.clearCredentials ? "clear" : typed || !keepStored ? "replace" : "preserve",
   };
 }
 
@@ -341,3 +397,36 @@ function toRabbitMQDraft(profile: ConnectionProfile): RabbitMQDraft {
     clearCredentials: false,
   };
 }
+
+
+function toRedisDraft(profile: ConnectionProfile): RedisDraft {
+  const deployment = REDIS_DEPLOYMENTS.includes(
+    profile.options?.[OPTION_REDIS_DEPLOYMENT] as RedisDeployment,
+  )
+    ? (profile.options?.[OPTION_REDIS_DEPLOYMENT] as RedisDeployment)
+    : // A profile saved before this field existed is the standalone server it
+      // has always connected to, which is what the driver assumes too.
+      "standalone";
+  const tls = profile.options?.[OPTION_REDIS_TLS] === "true";
+  const db = Number.parseInt(profile.options?.[OPTION_REDIS_DB] ?? "0", 10);
+
+  return {
+    name: profile.name,
+    deployment,
+    endpoints: profile.endpoints,
+    masterName: deployment === "sentinel" ? (profile.options?.[OPTION_REDIS_MASTER_NAME] ?? "") : "",
+    db: deployment === "cluster" || Number.isNaN(db) || db < 0 ? 0 : db,
+    streamFilter: profile.options?.[OPTION_REDIS_STREAM_FILTER] ?? "",
+    username: "",
+    password: "",
+    tls,
+    tlsSkipVerify: tls && profile.options?.[OPTION_REDIS_TLS_SKIP_VERIFY] === "true",
+    group: profile.group,
+    remark: profile.remark,
+    timeoutSec: profile.timeoutSec,
+    credentialsStored: profile.secretsConfigured.length > 0,
+    clearCredentials: false,
+  };
+}
+
+const REDIS_DEPLOYMENTS: readonly RedisDeployment[] = ["standalone", "sentinel", "cluster"];

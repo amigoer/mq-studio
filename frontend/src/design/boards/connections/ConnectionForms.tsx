@@ -1018,53 +1018,279 @@ export function PulsarForm({
   );
 }
 
+/** Option keys the Redis Stream driver reads back off a stored profile. */
+export const OPTION_REDIS_DEPLOYMENT = "deployment";
+export const OPTION_REDIS_MASTER_NAME = "masterName";
+export const OPTION_REDIS_DB = "db";
+export const OPTION_REDIS_STREAM_FILTER = "streamFilter";
+export const OPTION_REDIS_TLS = "tls";
+export const OPTION_REDIS_TLS_SKIP_VERIFY = "tlsSkipVerify";
+
+/** How a profile reaches Redis. The three are different clients, not a style. */
+export type RedisDeployment = "standalone" | "sentinel" | "cluster";
+
+/**
+ * What the Redis Stream form collects.
+ *
+ * The deployment is asked for rather than guessed, because one host:port is a
+ * server, a sentinel, or a cluster's configuration endpoint and nothing in the
+ * address says which. It also decides what the rest of the form means: a
+ * sentinel needs the master's name, and a cluster has one database and refuses
+ * SELECT, so the index is not collected for it at all.
+ *
+ * The stream filter is here rather than on the list page because it is what
+ * the SCAN that finds streams matches on. A production keyspace holds far more
+ * than streams, and narrowing the scan once at connect time is what keeps that
+ * page usable.
+ */
+export interface RedisDraft {
+  name: string;
+  deployment: RedisDeployment;
+  /** One address for standalone; a seed list for sentinel and cluster. */
+  endpoints: string;
+  masterName: string;
+  db: number;
+  streamFilter: string;
+  username: string;
+  password: string;
+  tls: boolean;
+  tlsSkipVerify: boolean;
+  group: string;
+  remark: string;
+  timeoutSec: number;
+  /** A stored password never comes back, so blank means "keep it". */
+  credentialsStored: boolean;
+  clearCredentials: boolean;
+}
+
+export function emptyRedisDraft(): RedisDraft {
+  return {
+    name: "",
+    deployment: "standalone",
+    endpoints: "",
+    masterName: "",
+    db: 0,
+    streamFilter: "",
+    username: "",
+    password: "",
+    tls: false,
+    tlsSkipVerify: false,
+    group: "",
+    remark: "",
+    timeoutSec: DEFAULT_TIMEOUT_SEC,
+    credentialsStored: false,
+    clearCredentials: false,
+  };
+}
+
 /** Board 6e — Redis Stream. The key filter decides the left-hand Stream list. */
-export function RedisForm() {
+export function RedisForm({
+  value,
+  onChange,
+}: {
+  value: RedisDraft;
+  onChange: (next: RedisDraft) => void;
+}) {
   const { t } = useTranslation();
-  const [mode, setMode] = useState<"standalone" | "sentinel" | "cluster">("standalone");
+  const set = <K extends keyof RedisDraft>(key: K, next: RedisDraft[K]) =>
+    onChange({ ...value, [key]: next });
+  const [advancedOpen, setAdvancedOpen] = useState(
+    value.timeoutSec !== DEFAULT_TIMEOUT_SEC || value.remark !== "" || value.tls,
+  );
+  const stored = value.credentialsStored && !value.clearCredentials;
+  const cluster = value.deployment === "cluster";
+
   return (
     <>
       <div style={GRID}>
-        <Fld span label={t("page.connections.form.name")}>
-          <Input defaultValue="redis-stream-01" />
+        <Fld label={t("page.connections.form.name")}>
+          <Input
+            value={value.name}
+            placeholder="redis-stream-01"
+            onChange={(event) => set("name", event.target.value)}
+          />
         </Fld>
         <Fld span label={t("page.connections.form.redis.mode")}>
           <Segmented
             style={{ alignSelf: "flex-start" }}
-            value={mode}
-            onChange={setMode}
+            value={value.deployment}
+            onChange={(next: RedisDeployment) =>
+              // A cluster has one database and refuses SELECT, so a stored
+              // index must not survive the switch and come back the day
+              // someone picks standalone again.
+              onChange({
+                ...value,
+                deployment: next,
+                db: next === "cluster" ? 0 : value.db,
+                masterName: next === "sentinel" ? value.masterName : "",
+              })
+            }
             options={[
               { value: "standalone", label: t("page.connections.form.redis.standalone") },
               { value: "sentinel", label: t("page.connections.form.redis.sentinel") },
-              { value: "cluster", label: "Cluster" },
+              { value: "cluster", label: t("page.connections.form.redis.cluster") },
             ]}
           />
         </Fld>
-        <Fld label={t("page.connections.form.redis.address")}>
-          <Input className="mono3" style={MONO} defaultValue="rediss://10.2.0.8:6379" />
-        </Fld>
-        <Fld label={t("page.connections.form.redis.db")} hint={t("page.connections.form.redis.dbHint")}>
+        <Fld
+          span={value.deployment === "standalone"}
+          label={t("page.connections.form.redis.address")}
+          hint={
+            value.deployment === "standalone"
+              ? undefined
+              : t("page.connections.form.redis.addressHint")
+          }
+        >
           <Input
             className="mono3"
             style={MONO}
-            defaultValue="0"
-            disabled={mode === "cluster"}
+            value={value.endpoints}
+            placeholder={
+              value.deployment === "standalone"
+                ? "10.2.0.8:6379"
+                : "10.2.0.8:6379, 10.2.0.9:6379"
+            }
+            onChange={(event) => set("endpoints", event.target.value)}
           />
         </Fld>
-        <Fld label={t("page.connections.form.username")} hint={t("page.connections.form.redis.usernameHint")}>
-          <Input defaultValue="default" />
+        {value.deployment === "sentinel" && (
+          <Fld
+            label={t("page.connections.form.redis.masterName")}
+            hint={t("page.connections.form.redis.masterNameHint")}
+          >
+            <Input
+              className="mono3"
+              style={MONO}
+              value={value.masterName}
+              placeholder="mymaster"
+              onChange={(event) => set("masterName", event.target.value)}
+            />
+          </Fld>
+        )}
+        {!cluster && (
+          <Fld label={t("page.connections.form.redis.db")} hint={t("page.connections.form.redis.dbHint")}>
+            <Input
+              className="mono3"
+              style={MONO}
+              type="number"
+              min={0}
+              max={15}
+              value={String(value.db)}
+              onChange={(event) => {
+                const index = Number.parseInt(event.target.value, 10);
+                set("db", Number.isNaN(index) || index < 0 ? 0 : index);
+              }}
+            />
+          </Fld>
+        )}
+        <Fld
+          label={t("page.connections.form.username")}
+          hint={
+            stored ? (
+              <button type="button" className="mqs-linkbtn" onClick={() => set("clearCredentials", true)}>
+                {t("page.connections.form.clearCredentials")}
+              </button>
+            ) : (
+              t("page.connections.form.redis.usernameHint")
+            )
+          }
+        >
+          <Input
+            value={value.username}
+            placeholder={stored ? t("page.connections.form.secretStored") : "default"}
+            onChange={(event) => set("username", event.target.value)}
+          />
         </Fld>
         <Fld label={t("page.connections.form.password")}>
-          <Input type="password" defaultValue="password" />
+          <Input
+            type="password"
+            value={value.password}
+            placeholder={stored ? t("page.connections.form.secretStored") : undefined}
+            onChange={(event) => set("password", event.target.value)}
+          />
         </Fld>
-        <Fld span label={t("page.connections.form.redis.streamFilter")} hint={t("page.connections.form.redis.streamFilterHint")}>
-          <Input className="mono3" style={MONO} defaultValue="orders:* ; events:*" />
+        <Fld
+          span
+          label={t("page.connections.form.redis.streamFilter")}
+          hint={t("page.connections.form.redis.streamFilterHint")}
+        >
+          <Input
+            className="mono3"
+            style={MONO}
+            value={value.streamFilter}
+            placeholder="orders:*"
+            onChange={(event) => set("streamFilter", event.target.value)}
+          />
         </Fld>
       </div>
       <FormNote
-        advanced={<Adv>{t("page.connections.form.redis.advanced")}</Adv>}
+        advanced={
+          <button
+            type="button"
+            className="mqs-disclosure"
+            aria-expanded={advancedOpen}
+            onClick={() => setAdvancedOpen((open) => !open)}
+          >
+            <ChevronRight size={12} aria-hidden />
+            {t("page.connections.form.redis.advanced")}
+          </button>
+        }
         note={t("page.connections.form.redis.note")}
       />
+      {advancedOpen && (
+        <div style={GRID}>
+          <Fld
+            label={t("page.connections.form.rocketmq.timeout")}
+            hint={t("page.connections.form.rocketmq.timeoutHint")}
+          >
+            <Input
+              type="number"
+              min={1}
+              max={300}
+              value={value.timeoutSec > 0 ? String(value.timeoutSec) : ""}
+              onChange={(event) => {
+                const seconds = Number.parseInt(event.target.value, 10);
+                set("timeoutSec", Number.isNaN(seconds) ? 0 : seconds);
+              }}
+            />
+          </Fld>
+          <Fld label={t("page.connections.form.remark")} hint={t("page.connections.form.remarkHint")}>
+            <Input value={value.remark} onChange={(event) => set("remark", event.target.value)} />
+          </Fld>
+          <Fld span label="TLS" hint={t("page.connections.form.redis.tlsHint")}>
+            <div style={SWITCH_ROW}>
+              <Switch
+                checked={value.tls}
+                onCheckedChange={(next: boolean) =>
+                  // Skipping verification only means anything with TLS on, and
+                  // leaving it set while TLS is off would silently re-apply it.
+                  onChange({ ...value, tls: next, tlsSkipVerify: next && value.tlsSkipVerify })
+                }
+              />
+              <span style={{ color: "var(--c-muted)" }}>
+                {t("page.connections.form.redis.tls")}
+              </span>
+            </div>
+          </Fld>
+          {value.tls && (
+            <Fld
+              span
+              label={t("page.connections.form.redis.tlsSkipVerify")}
+              hint={t("page.connections.form.redis.tlsSkipVerifyHint")}
+            >
+              <div style={SWITCH_ROW}>
+                <Switch
+                  checked={value.tlsSkipVerify}
+                  onCheckedChange={(next: boolean) => set("tlsSkipVerify", next)}
+                />
+                <span style={{ color: "var(--c-muted)" }}>
+                  {t("page.connections.form.redis.tlsSkipVerifyNote")}
+                </span>
+              </div>
+            </Fld>
+          )}
+        </div>
+      )}
     </>
   );
 }
