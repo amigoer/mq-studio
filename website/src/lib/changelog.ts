@@ -45,12 +45,24 @@ const SECTION = /^###\s+(.+?)\s*$/;
 const SUBHEADING = /^\*\*(.+)\*\*\s*$/;
 const ITEM = /^-\s+(.+)$/;
 
-function slug(version: string): string {
+/*
+ * The id one release is addressed by, in both languages.
+ *
+ * `unreleased` is passed rather than derived from the heading, because the two
+ * bundles word it differently and the language switch assumes a page exists at
+ * the same slug on both sides. "Unreleased" slugified to `vunreleased` while
+ * 未发布 stripped to nothing and fell back to `unreleased`, so as soon as the
+ * section had content in both files - it is filtered out while empty, which is
+ * why this stayed hidden - each language linked at a page the other had not
+ * generated.
+ *
+ * The `v` prefix on a version keeps the id from starting with a digit:
+ * `#0.0.3` is a valid fragment but an invalid CSS selector, which would throw
+ * inside querySelector.
+ */
+function slug(version: string, unreleased: boolean): string {
+  if (unreleased) return 'unreleased';
   const ascii = version.toLowerCase().replace(/[^a-z0-9.]+/g, '-').replace(/^-|-$/g, '');
-  // A non-ASCII heading such as 未发布 slugifies to nothing; fall back to a
-  // stable literal so the anchor still works. The `v` prefix keeps the id from
-  // starting with a digit: `#0.0.3` is a valid fragment but an invalid CSS
-  // selector, which would throw inside querySelector.
   return ascii ? `v${ascii}` : 'unreleased';
 }
 
@@ -70,7 +82,7 @@ function parse(source: string): Release[] {
       const [, version, date] = heading;
       release = {
         version,
-        id: slug(version),
+        id: slug(version, !date),
         date: date ?? null,
         intro: [],
         sections: [],
