@@ -56,6 +56,12 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   skipped rather than going on announcing it beside a button offering to look
   for one. (#66)
 
+- The update dialog's bottom corners are square no longer. The footer is the
+  one bar with an opaque background, and clipping it to the dialog's radius is
+  not enough on WebKit, which drops that clip on a transformed, animated box
+  whose subtree scrolls -- which is every one of the dialog's own classes. It
+  now carries the radius itself. (#53)
+
 ## [0.0.5] - 2026-09-02
 
 Three drivers at once — Redis Stream, Pulsar and MQTT — which takes the count
