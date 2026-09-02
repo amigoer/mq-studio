@@ -279,6 +279,10 @@ export const PROTOCOLS: Record<ProtocolId, Protocol> = {
           { id: "subscribe", icon: Radio, label: "shell.nav.nats.subscribe" },
         ],
       },
+      {
+        label: OPS,
+        items: [{ id: "cluster", icon: Server, label: "shell.nav.nats.cluster" }],
+      },
     ],
   },
 };

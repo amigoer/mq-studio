@@ -65,6 +65,7 @@ import { BrokersPulsar } from "./boards/cluster/BrokersPulsar";
 import { NodesRabbitMQ } from "./boards/cluster/NodesRabbitMQ";
 import { NodeRedis } from "./boards/cluster/NodeRedis";
 import { NodesMqtt } from "./boards/cluster/NodesMqtt";
+import { ServersNats } from "./boards/cluster/ServersNats";
 
 import { MqttWorkbench } from "./boards/mqtt/MqttWorkbench";
 import { NatsWorkbench } from "./boards/nats/NatsWorkbench";
@@ -159,6 +160,7 @@ const BOARDS: Partial<
     pulsar: BrokersPulsar,
     redis: NodeRedis,
     mqtt: NodesMqtt,
+    nats: ServersNats,
   },
 };
 

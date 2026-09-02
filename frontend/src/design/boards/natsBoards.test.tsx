@@ -40,6 +40,8 @@ const streamDetailState = vi.hoisted(() => ({ current: null as unknown }));
 const consumersState = vi.hoisted(() => ({ current: null as unknown }));
 const browseState = vi.hoisted(() => ({ current: null as unknown }));
 const liveState = vi.hoisted(() => ({ current: null as unknown }));
+const clusterState = vi.hoisted(() => ({ current: null as unknown }));
+const configState = vi.hoisted(() => ({ current: null as unknown }));
 
 vi.mock("@/hooks/nats/useNatsStreams", () => ({
   useNatsStreams: () => streamsState.current,
@@ -54,12 +56,17 @@ vi.mock("@/hooks/nats/useNatsMessages", () => ({
 vi.mock("@/hooks/nats/useNatsStream", () => ({
   useNatsStream: () => liveState.current,
 }));
+vi.mock("@/hooks/nats/useNatsCluster", () => ({
+  useNatsCluster: () => clusterState.current,
+  useNatsServerConfig: () => configState.current,
+}));
 
 let render: (element: React.ReactElement) => string;
 let StreamsNats: typeof import("./topics/StreamsNats").StreamsNats;
 let ConsumersNats: typeof import("./consumers/ConsumersNats").ConsumersNats;
 let MessagesNats: typeof import("./messages/MessagesNats").MessagesNats;
 let NatsWorkbench: typeof import("./nats/NatsWorkbench").NatsWorkbench;
+let ServersNats: typeof import("./cluster/ServersNats").ServersNats;
 
 beforeAll(async () => {
   const storage = { getItem: () => null, setItem() {}, removeItem() {} };
@@ -72,13 +79,14 @@ beforeAll(async () => {
   });
   vi.stubGlobal("localStorage", storage);
 
-  const [server, streams, consumers, messages, workbench, ui, i18n, settings] =
+  const [server, streams, consumers, messages, workbench, cluster, ui, i18n, settings] =
     await Promise.all([
     import("react-dom/server"),
     import("./topics/StreamsNats"),
     import("./consumers/ConsumersNats"),
     import("./messages/MessagesNats"),
     import("./nats/NatsWorkbench"),
+    import("./cluster/ServersNats"),
     import("@/components"),
     import("@/i18n"),
     import("@/hooks/useSettings"),
@@ -94,6 +102,7 @@ beforeAll(async () => {
   ConsumersNats = consumers.ConsumersNats;
   MessagesNats = messages.MessagesNats;
   NatsWorkbench = workbench.NatsWorkbench;
+  ServersNats = cluster.ServersNats;
 });
 
 /** A replicated stream, as internal/driver/nats/stream.go sends one. */
@@ -544,5 +553,126 @@ describe("the NATS subject workbench", () => {
   it("shows what a failed subscription said", () => {
     liveState.current = liveOf({ error: "nothing is listening" });
     expect(render(<NatsWorkbench />)).toContain("nothing is listening");
+  });
+});
+
+/** A server as internal/driver/nats/cluster.go reports one. */
+const natsOne = {
+  id: 1,
+  name: "nats-1",
+  address: "127.0.0.1:4222",
+  cluster: "mqstudio",
+  version: "2.14.6",
+  status: "online",
+  rateIn: -1,
+  rateOut: -1,
+  diskUsage: -1,
+  lastSeen: "2026-09-02 10:38:04",
+  tpsHistoryTimestamps: [],
+  tpsInHistory: [],
+  tpsOutHistory: [],
+  replicas: [],
+  attributes: {
+    readVia: "system",
+    serverId: "NB4IFQ…",
+    goVersion: "go1.26.7",
+    uptime: "1m5s",
+    connections: "3",
+    totalConnections: "12",
+    subscriptions: "226",
+    routes: "8",
+    remotes: "2",
+    leafNodes: "0",
+    slowConsumers: "0",
+    memoryBytes: "19288064",
+    cores: "8",
+    cpuPercent: "0",
+    maxPayload: "1048576",
+    maxConnections: "65536",
+    authRequired: "true",
+    tlsRequired: "false",
+    jetstreamEnabled: "true",
+    jetstreamMemory: "0",
+    jetstreamStorage: "12288",
+    metaLeader: "nats-2",
+    isMetaLeader: "false",
+  },
+};
+
+function clusterOf(nodes: unknown[], over: Record<string, unknown> = {}) {
+  return {
+    overview: {
+      name: "mqstudio",
+      totalNodes: nodes.length,
+      onlineNodes: nodes.length,
+      destinations: -1,
+      subscriptions: -1,
+      avgDiskUsage: -1,
+      attributes: { readVia: "system", metaLeader: "nats-2" },
+      ...over,
+    },
+    nodes,
+    directory: [],
+  };
+}
+
+describe("the NATS servers board", () => {
+  it("says the connection is offline rather than showing an empty cluster", () => {
+    clusterState.current = stateOf({ online: false });
+    configState.current = stateOf({});
+    expect(() => render(<ServersNats />)).not.toThrow();
+  });
+
+  it("shows what failed rather than an empty list", () => {
+    clusterState.current = stateOf({ error: "mq.nats.degraded.systemAbsent" });
+    configState.current = stateOf({});
+    const html = render(<ServersNats />);
+    expect(html).not.toContain("mq.nats.degraded.systemAbsent");
+  });
+
+  it("lists the servers that answered", () => {
+    clusterState.current = stateOf({ data: clusterOf([natsOne]) });
+    configState.current = stateOf({});
+    const html = render(<ServersNats />);
+    expect(html).toContain("nats-1");
+    expect(html).toContain("2.14.6");
+  });
+
+  /*
+   * A listing that came from the monitoring endpoint is one server because
+   * that is all the connection can reach, not because the cluster has one. The
+   * banner is what stops a three-server cluster reading as a single node.
+   */
+  it("says when a single row is all the connection can see", () => {
+    const monitored = {
+      ...natsOne,
+      attributes: { ...natsOne.attributes, readVia: "monitor" },
+    };
+    clusterState.current = stateOf({
+      data: clusterOf([monitored], { attributes: { readVia: "monitor" } }),
+    });
+    configState.current = stateOf({});
+    expect(() => render(<ServersNats />)).not.toThrow();
+  });
+
+  it("draws no banner when the whole cluster answered", () => {
+    clusterState.current = stateOf({ data: clusterOf([natsOne]) });
+    configState.current = stateOf({});
+    expect(() => render(<ServersNats />)).not.toThrow();
+  });
+
+  it("renders the detail panel with its settings", () => {
+    clusterState.current = stateOf({ data: clusterOf([natsOne]) });
+    configState.current = stateOf({ data: { server_name: "nats-1", port: "4222" } });
+    expect(() => render(<ServersNats />)).not.toThrow();
+  });
+
+  /* A server reported with almost nothing set is where a missing attribute
+     throws rather than rendering a dash. */
+  it("renders a server reported with almost nothing set", () => {
+    const bare = { ...natsOne, attributes: { readVia: "monitor" } };
+    clusterState.current = stateOf({ data: clusterOf([bare]) });
+    configState.current = stateOf({ data: {} });
+    expect(() => render(<ServersNats />)).not.toThrow();
   });
 });

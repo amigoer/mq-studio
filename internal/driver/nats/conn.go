@@ -125,7 +125,11 @@ var (
 	// clusterCapabilities are answered by the monitoring endpoint or by the
 	// system account, so they survive either one being absent and go only when
 	// both are.
-	clusterCapabilities = []model.Capability{}
+	clusterCapabilities = []model.Capability{
+		model.CapClusterTopology,
+		model.CapClusterMetrics,
+		model.CapNodeConfig,
+	}
 )
 
 // capabilities is the family's best case.

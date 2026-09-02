@@ -297,6 +297,9 @@ func TestCapabilitiesMatchTheSidebarContract(t *testing.T) {
 	sidebar := []string{
 		"message.publish",
 		"message.liveStream",
+		"cluster.topology",
+		"cluster.metrics",
+		"cluster.nodeConfig",
 		"destination.list",
 		"destination.create",
 		"destination.update",
