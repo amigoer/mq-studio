@@ -9,6 +9,15 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.0.5] - 2026-09-02
+
+Three drivers at once — Redis Stream, Pulsar and MQTT — which takes the count
+to six. Each is written in its own family's vocabulary rather than as a
+translation of another's: Redis keeps a pending entries list where the others
+have a dead-letter queue, Pulsar carries properties where RocketMQ carries
+tags, and MQTT has no administrative plane at all, so what a connection can do
+is probed when it dials rather than declared up front.
+
 ### Added
 
 - Redis Stream is the fourth driver. Streams with their length, memory and
@@ -101,6 +110,11 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   CONNECT. Both are used, and the protocol version is a field on the connection
   form rather than something negotiated.
 - TCP, TLS, WebSocket and WebSocket over TLS are all supported.
+
+### Known limitations
+
+- macOS builds are not signed by a registered Apple developer. The disk image
+  carries a First Run helper that clears the quarantine flag.
 
 ## [0.0.4] - 2026-09-01
 
