@@ -49,9 +49,10 @@ This is the delivery plan. The contract it delivers against is
 | 0–3 | The driver seam itself: contracts, backend ports, storage and bridge, frontend registry | RocketMQ behaves exactly as before, screen for screen |
 | 4 | **RabbitMQ** | Done. An Exchanges/Bindings page exists and no offset concept leaks into the UI |
 | 5 | **Kafka** | Done. Topics, consumer groups, lag, browse and publish work end to end, alongside quotas, reassignment and transactions, and no rate or dead-letter page pretends to exist |
-| 6 | **Pulsar**, then **Redis Stream**, then **NATS**, then **MQTT** | Each is purely additive — no canonical page changes shape |
-| 7 | **ActiveMQ / Artemis**, then **NSQ** | Still additive; ActiveMQ tests whether JMS semantics fit the canonical pages |
-| 8 | **Amazon SQS**, **Google Cloud Pub/Sub**, **Azure Service Bus**, **Amazon Kinesis**, then **IBM MQ** and **Solace PubSub+** | The connection form can express "no address, only a region and a credential" |
+| 6 | **Redis Stream** | Done. Streams, groups, browse, publish, the pending entries list, the server and its cluster, clients and ACL users all read a real broker, and no maxlen or message rate pretends to exist. Additive as predicted, with four new ports: a log's trim, a subscription's position, an entry publish, and the pending list |
+| 7 | **Pulsar**, then **NATS**, then **MQTT** | Each is purely additive — no canonical page changes shape |
+| 8 | **ActiveMQ / Artemis**, then **NSQ** | Still additive; ActiveMQ tests whether JMS semantics fit the canonical pages |
+| 9 | **Amazon SQS**, **Google Cloud Pub/Sub**, **Azure Service Bus**, **Amazon Kinesis**, then **IBM MQ** and **Solace PubSub+** | The connection form can express "no address, only a region and a credential" |
 
 Two ordering decisions worth keeping in view.
 
@@ -90,7 +91,7 @@ and `Access`.
 | **Kafka** | The Kafka protocol itself, through franz-go and kadm | All six, plus log directories and SCRAM users | Confirmed: browse is an offset-range fetch rather than random access, and a key search is a scan. ACLs degrade with a reason on a cluster with no authorizer. No rate of any kind is reported, and no disk percentage exists; there is no broker-side dead-letter queue |
 | **Pulsar** | Admin REST API | All six | Tenant and namespace become a scope selector rather than a page |
 | **ActiveMQ / Artemis** | Jolokia REST over JMX | All six | Classic 5.x and Artemis expose different management trees; the driver probes which one answered |
-| **Redis Stream** | `XINFO`, `XRANGE`, `XADD` | Destinations, Subscriptions, Messages, Publish | No cluster topology and no per-destination access control |
+| **Redis Stream** | The Redis protocol itself, through go-redis | All six, plus Pending entries, Clients and ACL users | Confirmed: no per-destination access control - the key patterns are on the user. The prediction that there would be no cluster topology was wrong: `CLUSTER NODES` answers it, and the driver reads every master and replica. A stream has no partitions, nothing about it is editable, and there is no dead-letter queue - what replaces it is the pending entries list, which is delivery records rather than messages. No message rate and no disk figure are reported anywhere |
 | **NATS** | JetStream API plus the server monitoring endpoints | Destinations, Subscriptions, Messages, Publish, Cluster | Without JetStream the endpoint drops to publish and subscribe only |
 | **NSQ** | nsqd and nsqlookupd HTTP APIs | Destinations, Subscriptions, Publish, Cluster | No message history, so no browse |
 | **MQTT** | None — the protocol has no admin plane | Publish, plus a live Subscribe page | Everything else. EMQX, HiveMQ and their peers expose their own REST management, which the driver can probe and light up at runtime |

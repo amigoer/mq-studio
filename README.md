@@ -1,7 +1,7 @@
 <div align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/images/hero-dark.svg">
-    <img src="docs/images/hero-light.svg" width="100%" alt="MQ Studio — see inside your message queues. One local-first desktop app for RocketMQ, RabbitMQ, and Kafka, with more drivers landing and no web console to deploy.">
+    <img src="docs/images/hero-light.svg" width="100%" alt="MQ Studio — see inside your message queues. One local-first desktop app for RocketMQ, RabbitMQ, Kafka, and Redis Stream, with more drivers landing and no web console to deploy.">
   </picture>
 </div>
 
@@ -45,7 +45,7 @@ component to deploy, secure, or keep alive.
 - **Private by default** — configuration stays on your device and credentials are encrypted at rest
 - **Cross-platform** — macOS, Windows, and Linux, with English and Chinese interfaces
 
-RocketMQ, RabbitMQ, and Kafka are the drivers available today; [Driver support](#driver-support) has the rest.
+RocketMQ, RabbitMQ, Kafka, and Redis Stream are the drivers available today; [Driver support](#driver-support) has the rest.
 
 ## Features
 
@@ -118,6 +118,7 @@ capabilities, so the interface only offers what the connected broker can actuall
 | **RocketMQ** 4.x / 5.x | ✅ Available | Full feature set through Admin APIs |
 | **RabbitMQ** 3.x / 4.x | ✅ Available | Full management plane: queues, exchanges and bindings, connections and channels, browse and publish over AMQP, dead letters, virtual hosts, users and permissions, policies, definitions, shovels and federation |
 | **Kafka** 3.x / 4.x | ✅ Available | Topics with their partitions, replicas and settings; consumer groups with per-partition lag and every offset reset Kafka offers; browsing and following a log; producing with keys, headers and an acknowledgement level; brokers, their effective settings and their log directories; ACLs and SCRAM users; client quotas; partition reassignment and preferred-leader election; and the cluster's open transactions |
+| **Redis Stream** 6.0+ | ✅ Available | Streams with their length, memory and entry range; consumer groups with lag and every reposition XGROUP SETID offers; browsing entries by time window or id, and writing them as ordered fields; the pending entries list with claim, auto-claim and acknowledge; the server's memory, persistence and slow log; standalone, sentinel and cluster; client connections; and ACL users with their key, channel and command rules |
 | Pulsar · NATS · MQTT · SQS and more | 📋 Planned | Full matrix below |
 
 <details>
@@ -128,7 +129,6 @@ capabilities, so the interface only offers what the connected broker can actuall
 | --- | --- | --- |
 | **Pulsar** | 📋 Planned | |
 | **ActiveMQ / Artemis** | 📋 Planned | JMS queues and topics over the Jolokia management API |
-| **Redis Stream** | 📋 Planned | Streams and consumer groups; no cluster plane |
 | **NATS** | 📋 Planned | JetStream streams and consumers; NATS core is publish/subscribe only |
 | **NSQ** | 📋 Planned | Topics and channels over the nsqd HTTP API |
 | **MQTT** | 📋 Planned | Publish and subscribe only — the protocol has no admin plane |
@@ -165,15 +165,16 @@ half-wired set of pages.
 | 1 | RocketMQ 4.x / 5.x | ✅ Done |
 | 2 | RabbitMQ | ✅ Done |
 | 3 | Kafka | ✅ Done |
-| 4 | The remaining drivers, in the order listed under Driver support | 📋 Next |
-| 5 | Agent features | 📋 Planned |
+| 4 | Redis Stream | ✅ Done |
+| 5 | The remaining drivers, in the order listed under Driver support | 📋 Next |
+| 6 | Agent features | 📋 Planned |
 
 Agent work starts once driver coverage is in place, not before. Every driver already declares
 what the connected broker can actually do, and that capability model is the foundation an agent
 needs to work across brokers without offering operations the broker cannot perform. The scope
-will be published here once phase 4 lands.
+will be published here once phase 5 lands.
 
-This is a sequence, not a schedule: no dates are attached to it, and the order after Kafka can
+This is a sequence, not a schedule: no dates are attached to it, and the order after Redis Stream can
 change if there is enough demand for a driver further down the list.
 
 ## Download

@@ -9,6 +9,39 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Added
+
+- Redis Stream is the fourth driver. Streams with their length, memory and
+  entry range; consumer groups with lag and every reposition XGROUP SETID
+  offers; browsing entries by time window or by id, and writing them as the
+  ordered field lists they are; the pending entries list with claim,
+  auto-claim and acknowledge; the server's memory, persistence and slow log;
+  its client connections; and ACL users with their key, channel and command
+  rules. Standalone, sentinel and cluster all connect, and a cluster's streams
+  are listed from every master rather than from the node that was dialled.
+
+- Two figures the other drivers report are deliberately absent, because Redis
+  does not have them. It counts commands rather than messages, so there is a
+  command rate under its own heading and no message rate; and it reports
+  memory rather than disk, so there is a memory meter and no disk percentage.
+  A server with no maxmemory has no meter at all, since there is no cap to be
+  a percentage of.
+
+- The pending entries list replaces the dead-letter page for this family.
+  Redis moves nothing aside and gives up on nothing: an entry handed to a
+  consumer stays in the stream and stays owed to that consumer until it is
+  acknowledged or claimed away. Acknowledging is confirmed as destructive
+  because it quietly is - it settles the entry with nothing having processed
+  it - and an auto-claim reports what it found already gone as well as what it
+  moved, which is the only moment anything says work was lost rather than
+  reassigned.
+
+### Fixed
+
+- A degraded reason from a driver whose family name contains a hyphen was
+  rendered as the raw key rather than as a sentence. No family had one until
+  now.
+
 ## [0.0.4] - 2026-09-01
 
 The update flow, end to end. A release now announces itself on every launch
