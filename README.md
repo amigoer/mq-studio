@@ -120,7 +120,8 @@ capabilities, so the interface only offers what the connected broker can actuall
 | **Kafka** 3.x / 4.x | ✅ Available | Topics with their partitions, replicas and settings; consumer groups with per-partition lag and every offset reset Kafka offers; browsing and following a log; producing with keys, headers and an acknowledgement level; brokers, their effective settings and their log directories; ACLs and SCRAM users; client quotas; partition reassignment and preferred-leader election; and the cluster's open transactions |
 | **Pulsar** 3.x / 4.x | ✅ Available | Topics with their partitions and storage kind; namespaces and the tenants above them, with TTL, retention and per-topic limits; subscriptions with backlog, delayed and unacknowledged counts, blocked-subscription detection, and cursor moves by time or to the earliest message; browsing and following a log without taking a subscription; sending with keys, ordering keys, properties and delayed delivery; brokers with their bundles and resource usage; dead-letter and retry topics found by the client libraries' naming convention; and role grants on namespaces and topics |
 | **Redis Stream** 6.0+ | ✅ Available | Streams with their length, memory and entry range; consumer groups with lag and every reposition XGROUP SETID offers; browsing entries by time window or id, and writing them as ordered fields; the pending entries list with claim, auto-claim and acknowledge; the server's memory, persistence and slow log; standalone, sentinel and cluster; client connections; and ACL users with their key, channel and command rules |
-| NATS · MQTT · SQS and more | 📋 Planned | Full matrix below |
+| **MQTT** 3.1.1 / 5.0 | ✅ Available | Publish with QoS, retain and the 5.0 properties; a live subscribe workbench that reports what it dropped and when the session went down; topics from the broker's retained set; the $SYS tree where a broker publishes one; and — where the broker offers a management API, as EMQX and its peers do — connected clients and their sessions, their subscriptions, the cluster's nodes, and disconnecting a session. Mosquitto, EMQX, HiveMQ and VerneMQ |
+| NATS · ActiveMQ · SQS and more | 📋 Planned | Full matrix below |
 
 <details>
 <summary><strong>Planned drivers, wire-compatible systems, and scope</strong></summary>
@@ -131,7 +132,6 @@ capabilities, so the interface only offers what the connected broker can actuall
 | **ActiveMQ / Artemis** | 📋 Planned | JMS queues and topics over the Jolokia management API |
 | **NATS** | 📋 Planned | JetStream streams and consumers; NATS core is publish/subscribe only |
 | **NSQ** | 📋 Planned | Topics and channels over the nsqd HTTP API |
-| **MQTT** | 📋 Planned | Publish and subscribe only — the protocol has no admin plane |
 | **Amazon SQS** | 📋 Planned | Queues, attributes, and dead-letter redrive |
 | **Google Cloud Pub/Sub** | 📋 Planned | Topics and subscriptions with backlog |
 | **Azure Service Bus** | 📋 Planned | Queues, topics, subscriptions, rules, dead-letter queues |

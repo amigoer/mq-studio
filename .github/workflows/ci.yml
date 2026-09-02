@@ -153,6 +153,17 @@ jobs:
       # the driver's per-key call shape exist for.
       - name: Start the Redis cluster
         run: npm run e2e:redis:cluster:up
+      # Mosquitto has no management API at all and publishes a full $SYS tree.
+      # It is the broker the degraded management path is asserted against, and
+      # the only one either half of the $SYS reader can be checked on.
+      - name: Start Mosquitto
+        run: npm run e2e:mqtt:up
+
+      # EMQX is the other half: its default authorisation refuses a remote
+      # client's $SYS subscription and its REST API answers everything the
+      # protocol cannot. Neither broker alone covers both tiers.
+      - name: Start EMQX
+        run: npm run e2e:mqtt:emqx:up
 
       - name: Run checks
         # The opt-in a developer sets locally. CI does not need it - internal/e2e

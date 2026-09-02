@@ -526,7 +526,25 @@
       }
     },
     "mqtt": {
-      "name": "MQTT"
+      "name": "MQTT",
+      "terms": {
+        "destination": "Topic",
+        "destinationPlural": "Topics",
+        "subscription": "Subscription",
+        "subscriptionPlural": "Subscriptions",
+        "node": "Broker",
+        "nodePlural": "Brokers",
+        "namespace": "Broker",
+        "backlog": "Queued"
+      },
+      "degraded": {
+        "sysRefused": "The broker refused a subscription to its $SYS tree. That is a rule rather than a fault — EMQX denies it to any client that is not local — so the figures come from its management API instead where there is one. To read $SYS, allow the subscription in the broker's authorisation.",
+        "sysSilent": "The broker took the subscription and publishes no $SYS tree at all. There is nothing to configure: this broker simply does not report on itself, and the pages that would read it stay empty.",
+        "managementAbsent": "This connection names no management API, and MQTT itself cannot say who is connected — there is no such request in the protocol. Mosquitto has no such API at all; EMQX and its peers do, and its address goes in the connection's advanced settings.",
+        "managementUnreachable": "The management API named on this connection did not answer. The address and port are in the connection's advanced settings; the broker's own MQTT port is a different one.",
+        "managementCredentials": "The management API refused the API key. Check the key and secret in the connection's advanced settings — on EMQX they are created in its dashboard under API keys, and are not the dashboard login.",
+        "managementUnknown": "Something answered at that address and it was not this broker's management API. The address is most likely off by a port, or a proxy is in front of a broker that has no such API."
+      }
     }
   },
   "shell": {
@@ -655,7 +673,7 @@
         "subscribe": "Subscribe",
         "producer": "Publish",
         "clients": "Clients / sessions",
-        "cluster": "$SYS",
+        "cluster": "Nodes",
         "alerts": "Alerts"
       }
     }
@@ -857,8 +875,28 @@
           "version": "Protocol version",
           "sessionExpiry": "Session expiry",
           "sessionExpiryHint": "5.0 only",
-          "advanced": "Last will (LWT): topic · payload · QoS · retain",
-          "note": "TLS: CA / client certificate · skip verification"
+          "advanced": "Client ID, keep alive, clean start, TLS and the management API",
+          "note": "Last will and message ordering are not set here",
+          "versionHint": "the two versions are different wire protocols",
+          "transport": "Transport",
+          "transportHint": "the broker's listener, not a preference",
+          "mechanism": "Authentication",
+          "mechanismNone": "Anonymous",
+          "mechanismPlain": "Username and password",
+          "wsPath": "WebSocket path",
+          "wsPathHint": "EMQX serves /mqtt, Mosquitto the root",
+          "clientId": "Client ID",
+          "clientIdHint": "leave blank for one per connection",
+          "keepAlive": "Keep alive",
+          "keepAliveHint": "seconds; 0 turns it off",
+          "cleanStart": "Clean start",
+          "cleanStartHint": "start a fresh session rather than resume the last one",
+          "cleanStartOn": "Discard any session this client id left behind",
+          "management": "Management API",
+          "managementHint": "EMQX and its peers; Mosquitto has none",
+          "managementKey": "API key",
+          "managementSecret": "API secret",
+          "managementKeyRequired": "An API key is required for the management endpoint"
         },
         "secretStored": "Saved — leave blank to keep it",
         "clearCredentials": "Clear credentials"
@@ -899,6 +937,7 @@
       "managementRequired": "A management API address is required",
       "bootstrapRequired": "Enter the bootstrap servers",
       "usernameRequired": "A username is required",
+      "brokerRequired": "A broker address is required",
       "serviceUrlRequired": "A service URL is required",
       "adminUrlRequired": "An admin API address is required",
       "scopeRequired": "A tenant and a namespace are required",
@@ -1209,9 +1248,9 @@
       "mqtt": {
         "subtitle": "iot-broker · EMQX 5.4 · MQTT 5.0 · read from $SYS (read-only)",
         "onlineClients": "Online clients",
-        "peakClients": "Peak 1 402",
+        "peakClients": "peak {{count}}",
         "subscriptions": "Subscriptions",
-        "shared": "12 shared",
+        "shared": "{{count}} shared",
         "retained": "Retained",
         "inbound": "Inbound",
         "outbound": "Outbound 1 020/s",
@@ -1221,7 +1260,20 @@
         "clientChart": "Line chart placeholder ($SYS clients.count)",
         "rateChart": "Line chart placeholder (received / sent)",
         "sysMetrics": "$SYS key metrics",
-        "fullTree": "Full $SYS tree"
+        "fullTree": "Full $SYS tree",
+        "retainedHint": "the broker's own total, which counts its $SYS tree",
+        "messagesIn": "Messages received",
+        "messagesOut": "{{count}} sent",
+        "droppedHint": "since the broker started",
+        "broker": "Broker",
+        "uptime": "Uptime",
+        "topics": "Topics",
+        "bytesIn": "Bytes received",
+        "bytesOut": "Bytes sent",
+        "sessions": "Sessions",
+        "heap": "Heap in use",
+        "sysCount": "{{count}} topics",
+        "sysAbsent": "this broker publishes no $SYS tree"
       },
       "pulsar": {
         "subtitle": "pulsar-eu · Pulsar 3.2 · tenant ecommerce · Broker 3 / Bookie 4",
@@ -1513,6 +1565,27 @@
           "removed": "removed",
           "unknown": "unknown phase"
         }
+      },
+      "mqtt": {
+        "title": "Nodes",
+        "node": "Node",
+        "nodes": "Nodes",
+        "role": "Role",
+        "edition": "Edition",
+        "clients": "Connected clients",
+        "subscriptions": "Subscriptions",
+        "connections": "Connections",
+        "sessions": "Sessions",
+        "memory": "Memory used / total",
+        "load": "Load (1m)",
+        "uptime": "Uptime",
+        "detail": "Node",
+        "noNode": "No node selected",
+        "fromApi": "named by the broker's api",
+        "fromSession": "the broker this session is on",
+        "enumerated": "the cluster's own list",
+        "oneSocket": "a session is one socket, so this is the only broker it knows about",
+        "sessionOnly": "MQTT says nothing about how a broker is deployed. Without a management API there is one broker to report — the one this session is connected to — and nothing further about it."
       }
     },
     "acl": {
@@ -2135,6 +2208,18 @@
           "retry": "Retry",
           "dlq": "Dead letter"
         }
+      },
+      "mqtt": {
+        "count": "{{count}} topics hold a retained value",
+        "search": "Search topics…",
+        "retained": "Retained messages",
+        "retainedOnly": "MQTT has no topic registry: a topic exists only while a message is in flight to it. This lists the topics that hold a retained value, so a device publishing without the retain flag will not appear — that is the protocol, not a fault. The broker's own $SYS tree is left out; it is on the overview, and on an idle broker it is most of what the retained count above is counting.",
+        "size": "Retained size",
+        "detail": "Topic",
+        "levels": "Levels",
+        "none": "No topic selected",
+        "why": "Why it is listed",
+        "whyBody": "The broker kept this as the topic's last known value and replays it to whoever subscribes next."
       }
     },
     "consumers": {
@@ -2181,15 +2266,26 @@
         "inflightQueued": "Inflight/queued",
         "online6d": "Online 6d",
         "offline1h": "Offline · session kept 1h",
-        "subsCount": "Subscriptions (4)",
-        "keepAlive": "60s · last heartbeat 3s ago",
-        "cleanStart": "false · session expiry 3600s",
+        "subsCount": "Subscriptions",
+        "keepAlive": "Keep alive",
+        "cleanStart": "Clean start",
         "inflightWindow": "Inflight window",
         "rxTx": "Rx / tx",
         "will": "Will: iot/device/status/A19F = offline · QoS1 · retain",
         "liveMessages": "View live messages",
         "clearSession": "Clear session",
-        "kick": "Disconnect"
+        "kick": "Disconnect",
+        "count": "{{total}} sessions · {{orphaned}} with nobody connected",
+        "user": "User",
+        "address": "Address",
+        "state": "State",
+        "online": "Connected",
+        "expiry": "Session expiry (s)",
+        "listener": "Listener",
+        "queueDropped": "Queue dropped",
+        "noClients": "No session selected",
+        "kickTitle": "Disconnect {{client}}?",
+        "kickDesc": "Most clients reconnect at once, so this is a nudge rather than an eviction. On a persistent session the queued messages stay behind."
       },
       "kafka": {
         "subtitle": "Groups the cluster holds committed offsets for",
@@ -2872,6 +2968,36 @@
         "sent": "Wrote {{count}} entries",
         "sendFailed": "Could not write the entry"
       },
+      "mqtt": {
+        "send": "Publish",
+        "message": "Message",
+        "topic": "Topic",
+        "count": "Repeat",
+        "payload": "Payload",
+        "retain": "Retain",
+        "retainHint": "keeps this as the topic's last known value until something overwrites it",
+        "properties": "MQTT 5.0 properties",
+        "propertiesHint": "3.1.1 cannot carry any of these",
+        "contentType": "Content type",
+        "responseTopic": "Response topic",
+        "correlation": "Correlation data",
+        "expiry": "Message expiry (s)",
+        "userProps": "User properties",
+        "result": "Result",
+        "accepted": "Accepted",
+        "noSubscribers": "Accepted, nobody subscribed",
+        "sent": "Sent",
+        "acknowledged": "Acknowledged",
+        "byTheBroker": "by the broker",
+        "notAtQos0": "QoS 0 acknowledges nothing",
+        "reason": "Broker's reason",
+        "topicRequired": "A topic is required",
+        "topicWildcard": "A topic to publish to cannot contain + or #, which are subscription wildcards",
+        "countInvalid": "Repeat must be between 1 and 1000",
+        "expiryInvalid": "Message expiry must be a number of seconds",
+        "propertyLine": "Every user property must be name=value",
+        "needsFive": "These properties are MQTT 5.0 only and this connection is 3.1.1"
+      },
       "pulsar": {
         "title": "Send",
         "compose": "Message",
@@ -2906,17 +3032,25 @@
     },
     "mqtt": {
       "topicTree": "Topic tree",
-      "subscribe": "+ Subscribe",
-      "subscribed": "2 subscribed · 2 000 buffered",
-      "autoResume": "Subscriptions resume after a disconnect",
-      "subscribing": "Subscribed",
+      "subscribe": "Subscribe",
       "filter": "Filter payloads…",
-      "allQos": "All QoS",
-      "rate": "412 msg/s · auto-scrolling",
-      "exportNdjson": "Export NDJSON",
       "userProps": "User properties · MQTT 5",
-      "sameTopic": "History for this topic",
-      "publishTemplate": "Publish from this as a template"
+      "subscribedTo": "watching {{pattern}} · {{count}} seen",
+      "notSubscribed": "nothing subscribed",
+      "stop": "Stop",
+      "live": "Live",
+      "topic": "Topic",
+      "payload": "Payload",
+      "detail": "Message",
+      "matched": "Matched filter",
+      "held": "{{count}} held",
+      "retained": "retained",
+      "truncated": "(truncated)",
+      "waiting": "Waiting for a message",
+      "startToSee": "Subscribe to a filter to see messages",
+      "sessionDown": "The session dropped. Nothing is arriving until it reconnects.",
+      "dropped": "{{count}} messages were dropped: the stream is arriving faster than this page reads it.",
+      "noHistory": "MQTT stores no history. {{count}} messages have arrived since this subscription started, and closing the page loses them."
     },
     "docs": {
       "capability": {

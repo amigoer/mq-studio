@@ -54,10 +54,14 @@ type ClientConnection struct {
 	BlockedBy string `json:"blockedBy"`
 
 	// Attributes carries family-specific detail the canonical fields have no
-	// home for, the same way Destination, Subscription and Node do: what a
-	// Redis connection was last running, how long it has been idle, and which
-	// client library it is. Its keys are a contract between one driver and
-	// that driver's frontend module.
+	// home for, the same way Destination, Subscription and Node do. Two
+	// families arrived at it independently, which is the argument for it being
+	// here: MQTT's session state - clean start, session expiry, the queued and
+	// in-flight counts, whether the session outlives the connection - is the
+	// whole substance of one of its clients, and Redis reports what a
+	// connection was last running, how long it has been idle and which library
+	// it is. Its keys are a contract between one driver and that driver's
+	// frontend module.
 	Attributes map[string]string `json:"attributes"`
 }
 

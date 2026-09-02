@@ -1,0 +1,585 @@
+import { beforeAll, describe, expect, it, vi } from "vitest";
+
+/**
+ * Every MQTT board, through the states it can be in.
+ *
+ * The i18n sweep renders each board once with nothing connected, which covers
+ * the offline notice and the strings. It cannot cover the rest: a board only
+ * touches its data on the path where data exists, and that is exactly where a
+ * missing field or an empty list throws.
+ *
+ * MQTT needs a fifth state the other families do not have. Which figures a
+ * broker reports depends on which tier answered - a plain Mosquitto publishes
+ * a $SYS tree and cannot count topics, a default EMQX refuses $SYS and answers
+ * over HTTP - so "connected and reporting nothing" is an ordinary state here
+ * rather than a fault, and a board that renders a zero for it would be making
+ * a claim the broker never made.
+ *
+ * The stubs return the shapes the Go side actually sends, attribute keys
+ * included, so a driver that renames one breaks a board test rather than a
+ * screenshot nobody is looking at.
+ */
+
+type BrokerState<T> = {
+  data: T | null;
+  loading: boolean;
+  refreshing: boolean;
+  error: string | null;
+  online: boolean;
+  refresh: () => Promise<void>;
+};
+
+function stateOf<T>(over: Partial<BrokerState<T>>): BrokerState<T> {
+  return {
+    data: null,
+    loading: false,
+    refreshing: false,
+    error: null,
+    online: true,
+    refresh: async () => {},
+    ...over,
+  };
+}
+
+const brokerState = vi.hoisted(() => ({ current: null as unknown }));
+const topicsState = vi.hoisted(() => ({ current: null as unknown }));
+const clientsState = vi.hoisted(() => ({ current: null as unknown }));
+const subscriptionsState = vi.hoisted(() => ({ current: null as unknown }));
+const streamState = vi.hoisted(() => ({ current: null as unknown }));
+const protocolFive = vi.hoisted(() => ({ current: true }));
+
+vi.mock("@/hooks/mqtt/useMqttBroker", () => ({
+  useMqttBroker: () => brokerState.current,
+  useMqttTopics: () => topicsState.current,
+  useMqttClients: () => clientsState.current,
+  useMqttSubscriptions: () => subscriptionsState.current,
+  useMqttProtocolIsFive: () => protocolFive.current,
+}));
+vi.mock("@/hooks/mqtt/useMqttStream", () => ({
+  useMqttStream: () => streamState.current,
+}));
+vi.mock("@/mq/ConnectionScope", () => ({
+  useConnectionScope: () => ({ id: 1, kind: "mqtt", key: "m1", online: true }),
+}));
+
+let render: (element: React.ReactElement) => string;
+let OverviewMqtt: typeof import("./overview/OverviewMqtt").OverviewMqtt;
+let MqttWorkbench: typeof import("./mqtt/MqttWorkbench").MqttWorkbench;
+let ProducerMqtt: typeof import("./producer/ProducerMqtt").ProducerMqtt;
+let ClientsMqtt: typeof import("./consumers/ClientsMqtt").ClientsMqtt;
+let TopicsMqtt: typeof import("./topics/TopicsMqtt").TopicsMqtt;
+let NodesMqtt: typeof import("./cluster/NodesMqtt").NodesMqtt;
+
+beforeAll(async () => {
+  const storage = { getItem: () => null, setItem() {}, removeItem() {} };
+  vi.stubGlobal("window", {
+    _wails: { environment: { OS: "darwin" } },
+    matchMedia: () => ({ matches: false, addEventListener() {}, removeEventListener() {} }),
+    localStorage: storage,
+    addEventListener() {},
+    removeEventListener() {},
+    setInterval: () => 0,
+    clearInterval: () => {},
+  });
+  vi.stubGlobal("localStorage", storage);
+
+  const [server, overview, workbench, producer, clients, topics, cluster, ui, i18n, settings] =
+    await Promise.all([
+    import("react-dom/server"),
+    import("./overview/OverviewMqtt"),
+    import("./mqtt/MqttWorkbench"),
+    import("./producer/ProducerMqtt"),
+    import("./consumers/ClientsMqtt"),
+    import("./topics/TopicsMqtt"),
+    import("./cluster/NodesMqtt"),
+    import("@/components"),
+    import("@/i18n"),
+    import("@/hooks/useSettings"),
+  ]);
+  await i18n.default.changeLanguage("zh");
+  render = (node) =>
+    server.renderToStaticMarkup(
+      <ui.ConfirmProvider>
+        <settings.SettingsProvider>{node}</settings.SettingsProvider>
+      </ui.ConfirmProvider>,
+    );
+  OverviewMqtt = overview.OverviewMqtt;
+  MqttWorkbench = workbench.MqttWorkbench;
+  ProducerMqtt = producer.ProducerMqtt;
+  ClientsMqtt = clients.ClientsMqtt;
+  TopicsMqtt = topics.TopicsMqtt;
+  NodesMqtt = cluster.NodesMqtt;
+});
+
+/** A stream as the hook reports it. */
+function streamOf(over: Record<string, unknown> = {}) {
+  return {
+    messages: [],
+    filters: [],
+    running: false,
+    live: true,
+    received: 0,
+    dropped: 0,
+    error: null,
+    start: () => {},
+    stop: () => {},
+    clear: () => {},
+    ...over,
+  };
+}
+
+/** A message as the driver sends it, attribute keys included. */
+const arrival = {
+  seq: 1,
+  destination: "sensors/room-1/temperature",
+  filter: "sensors/#",
+  receivedAt: "2026-09-02 03:24:07",
+  body: '{"c":21.5}',
+  truncated: false,
+  attributes: { qos: "1", retained: "false" },
+};
+
+/** A Mosquitto: a full $SYS tree, and no way to count topics. */
+const mosquitto = {
+  overview: {
+    name: "127.0.0.1:1883",
+    totalNodes: 1,
+    onlineNodes: 1,
+    // MQTT cannot enumerate topics, so the driver sends the not-reported
+    // marker rather than a zero.
+    destinations: -1,
+    subscriptions: 128,
+    avgDiskUsage: -1,
+    attributes: {
+      brokerVersion: "mosquitto version 2.1.2",
+      uptimeSeconds: "3600",
+      clientsConnected: "12",
+      clientsTotal: "40",
+      clientsMaximum: "51",
+      retainedCount: "55",
+      messagesReceived: "9000",
+      messagesSent: "12000",
+      messagesDropped: "3",
+      bytesReceived: "480000",
+      bytesSent: "512000",
+      heapCurrent: "839641",
+      sysTopics: "$SYS/broker/version\tmosquitto version 2.1.2\n$SYS/broker/uptime\t3600 seconds\n",
+    },
+  },
+  nodes: [
+    {
+      id: 1,
+      name: "127.0.0.1:1883",
+      address: "127.0.0.1:1883",
+      cluster: "",
+      version: "mosquitto version 2.1.2",
+      status: "online",
+      rateIn: 2,
+      rateOut: 4,
+      diskUsage: -1,
+      lastSeen: "2026-09-02 03:00:00",
+      attributes: { uptimeSeconds: "3600" },
+    },
+  ],
+};
+
+/** An EMQX: no $SYS tree, and a topic count only its API can give. */
+const emqx = {
+  overview: {
+    name: "http://127.0.0.1:18083",
+    totalNodes: 1,
+    onlineNodes: 1,
+    destinations: 5,
+    subscriptions: 7,
+    avgDiskUsage: -1,
+    attributes: {
+      brokerVersion: "6.2.3",
+      clientsConnected: "2",
+      retainedCount: "4",
+      sharedSubscriptions: "1",
+      messagesReceived: "11",
+      messagesSent: "12",
+      messagesDropped: "1",
+      bytesReceived: "175",
+      bytesSent: "86",
+      // No uptime, no heap and no $SYS tree: EMQX refuses that subscription
+      // by default and its API reports uptime per node instead.
+      sysTopics: "",
+    },
+  },
+  nodes: [],
+};
+
+describe("the MQTT overview board", () => {
+  it("renders while the broker is still being read", () => {
+    brokerState.current = stateOf({ loading: true });
+    expect(render(<OverviewMqtt />)).toContain("<");
+  });
+
+  it("renders when the broker could not be read", () => {
+    brokerState.current = stateOf({ error: "broker refused the subscription" });
+    expect(render(<OverviewMqtt />)).toContain("broker refused the subscription");
+  });
+
+  it("shows what a broker with a $SYS tree reports", () => {
+    brokerState.current = stateOf({ data: mosquitto });
+    const html = render(<OverviewMqtt />);
+
+    expect(html).toContain("mosquitto version 2.1.2");
+    expect(html).toContain("12");
+    expect(html).toContain("55");
+    // The whole tree is shown verbatim, because a broker publishes counters
+    // this app has never heard of.
+    expect(html).toContain("$SYS/broker/uptime");
+  });
+
+  /*
+   * The reason every tile reads through a not-reported check.
+   *
+   * MQTT cannot enumerate topics. A plain broker therefore has no count, and
+   * drawing 0 would say there are none - which is a claim about the broker
+   * rather than about what it reports.
+   */
+  it("leaves a figure the broker cannot produce blank rather than zero", () => {
+    brokerState.current = stateOf({ data: mosquitto });
+    const html = render(<OverviewMqtt />);
+    expect(html).toContain("—");
+  });
+
+  it("shows what a broker with no $SYS tree reports over its api", () => {
+    brokerState.current = stateOf({ data: emqx });
+    const html = render(<OverviewMqtt />);
+
+    expect(html).toContain("6.2.3");
+    // The topic count is the one figure only the management tier can give.
+    expect(html).toContain("5");
+    // And with no tree, the panel says so rather than drawing an empty table.
+    expect(html).not.toContain("$SYS/broker");
+  });
+
+  // Connected and reporting nothing is an ordinary state on MQTT, not a fault.
+  it("renders a broker that reports nothing at all", () => {
+    brokerState.current = stateOf({
+      data: {
+        overview: {
+          name: "127.0.0.1:1883",
+          totalNodes: 1,
+          onlineNodes: 1,
+          destinations: -1,
+          subscriptions: -1,
+          avgDiskUsage: -1,
+          attributes: {},
+        },
+        nodes: [],
+      },
+    });
+    expect(render(<OverviewMqtt />)).toContain("—");
+  });
+});
+
+describe("the MQTT subscribe workbench", () => {
+  it("says nothing is subscribed before anything is", () => {
+    streamState.current = streamOf();
+    const html = render(<MqttWorkbench />);
+    expect(html).toContain("尚未订阅");
+  });
+
+  it("shows a message with the filter that matched it", () => {
+    streamState.current = streamOf({ running: true, received: 1, messages: [arrival] });
+    const html = render(<MqttWorkbench />);
+
+    expect(html).toContain("sensors/room-1/temperature");
+    expect(html).toContain("21.5");
+    // A wildcard subscription cannot be read back from the topic alone.
+    expect(html).toContain("sensors/#");
+  });
+
+  /*
+   * The buffer behind this page is bounded, so a stream faster than the page
+   * loses messages. Saying so is the whole reason the driver counts them: a
+   * gap in the traffic and a gap in what was kept look identical otherwise.
+   */
+  it("says how many messages it had to drop", () => {
+    streamState.current = streamOf({ running: true, received: 500, dropped: 120, messages: [arrival] });
+    expect(render(<MqttWorkbench />)).toContain("120");
+  });
+
+  /*
+   * A dropped session and a quiet broker both show an empty list. Only one of
+   * them is a reason to go and look at something.
+   */
+  it("says when the session dropped rather than letting it read as silence", () => {
+    streamState.current = streamOf({ running: true, live: false, messages: [] });
+    expect(render(<MqttWorkbench />)).toContain("会话已断开");
+  });
+
+  // A retained value can be hours old and arrives looking like something that
+  // just happened.
+  it("marks a retained message as retained", () => {
+    streamState.current = streamOf({
+      running: true,
+      messages: [{ ...arrival, attributes: { qos: "1", retained: "true" } }],
+    });
+    expect(render(<MqttWorkbench />)).toContain("保留");
+  });
+
+  /*
+   * A stream outlives the panel that started it, so a panel that remounts onto
+   * one shows what is actually being watched rather than the default it opens
+   * with. It used to stop on unmount, which made publishing on one page and
+   * watching on another impossible - the stream was always gone before the
+   * message existed, and MQTT keeps no history to recover it from.
+   */
+  it("shows the filter of a stream that was already running", () => {
+    streamState.current = streamOf({
+      running: true,
+      filters: ["sensors/#"],
+      messages: [arrival],
+    });
+    const html = render(<MqttWorkbench />);
+    expect(html).toContain("sensors/#");
+    expect(html).not.toContain("尚未订阅");
+  });
+
+  it("renders a failed subscription", () => {
+    streamState.current = streamOf({ error: "broker refused the subscription to \"a/#\"" });
+    expect(render(<MqttWorkbench />)).toContain("broker refused the subscription");
+  });
+});
+
+describe("the MQTT send console", () => {
+  /*
+   * The 5.0 property fields are hidden rather than disabled on a 3.1.1
+   * connection, because they are not a setting that connection could turn on:
+   * the version was chosen when the connection was made, and the two versions
+   * are carried by different client libraries.
+   */
+  it("offers the 5.0 properties only on a 5.0 connection", () => {
+    protocolFive.current = true;
+    expect(render(<ProducerMqtt />)).toContain("MQTT 5.0");
+
+    protocolFive.current = false;
+    const html = render(<ProducerMqtt />);
+    expect(html).toContain("MQTT 3.1.1");
+    expect(html).not.toContain("关联数据");
+  });
+
+  it("explains that retain leaves something behind", () => {
+    protocolFive.current = true;
+    // The only way to leave state on an MQTT broker, and permanent until
+    // something overwrites it.
+    expect(render(<ProducerMqtt />)).toContain("最后已知值");
+  });
+});
+
+/** A client as the driver sends it, attribute keys included. */
+const connectedClient = {
+  name: "gateway-a19f",
+  clientName: "gateway-a19f",
+  namespace: "",
+  user: "iot-ops",
+  node: "emqx@127.0.0.1",
+  peerHost: "10.0.0.9",
+  peerPort: 50240,
+  protocol: "MQTT 5.0",
+  state: "connected",
+  channels: 0,
+  tls: false,
+  cipher: "",
+  heartbeatSec: 60,
+  recvBytes: 900,
+  sendBytes: 1200,
+  recvByteRate: 0,
+  sendByteRate: 0,
+  connectedAtMs: 1_780_000_000_000,
+  blockedBy: "",
+  attributes: {
+    cleanStart: "true",
+    sessionExpiry: "0",
+    subscriptions: "3",
+    inflight: "0",
+    queued: "0",
+    queueDropped: "0",
+    listener: "tcp:default",
+    durable: "false",
+  },
+};
+
+/*
+ * A session with nobody on it.
+ *
+ * The row the page exists to find: the broker is still queueing for a client
+ * that is not there, it costs memory, and nothing on the device's side shows
+ * it.
+ */
+const orphanedSession = {
+  ...connectedClient,
+  name: "gateway-b22c",
+  clientName: "gateway-b22c",
+  state: "disconnected",
+  attributes: {
+    ...connectedClient.attributes,
+    cleanStart: "false",
+    sessionExpiry: "3600",
+    durable: "true",
+    queued: "42",
+    queueDropped: "7",
+  },
+};
+
+describe("the MQTT clients board", () => {
+  it("renders while the clients are still being read", () => {
+    clientsState.current = stateOf({ loading: true });
+    expect(render(<ClientsMqtt />)).toContain("<");
+  });
+
+  /*
+   * A broker with no management API cannot answer this page at all, and the
+   * error has to reach the screen: an empty table would say nobody is
+   * connected, which is a claim the app is in no position to make.
+   */
+  it("shows why it could not read a broker with no management api", () => {
+    clientsState.current = stateOf({ error: "mqtt does not support client.inspect" });
+    expect(render(<ClientsMqtt />)).toContain("client.inspect");
+  });
+
+  it("renders a broker with no sessions at all", () => {
+    clientsState.current = stateOf({ data: [] });
+    expect(render(<ClientsMqtt />)).toContain("<");
+  });
+
+  it("shows a connected client with what its session holds", () => {
+    clientsState.current = stateOf({ data: [connectedClient] });
+    const html = render(<ClientsMqtt />);
+
+    expect(html).toContain("gateway-a19f");
+    expect(html).toContain("iot-ops");
+    expect(html).toContain("10.0.0.9");
+    expect(html).toContain("MQTT 5.0");
+  });
+
+  // A session that outlived its connection is the one row worth finding.
+  it("marks a session with nobody connected to it", () => {
+    clientsState.current = stateOf({ data: [connectedClient, orphanedSession] });
+    const html = render(<ClientsMqtt />);
+
+    expect(html).toContain("gateway-b22c");
+    expect(html).toContain("离线");
+    // And the header counts them, so the page says so before anyone scrolls.
+    expect(html).toContain("1");
+  });
+});
+
+/** A retained topic as the driver sends it. */
+function retained(name: string, bytes: string) {
+  return {
+    id: 1,
+    ref: { namespace: "", name },
+    partitions: -1,
+    subscribers: -1,
+    depth: -1,
+    rateIn: -1,
+    rateOut: -1,
+    lastUpdated: "2026-09-02 03:00:00",
+    attributes: { source: "retained", retainedBytes: bytes, qos: "0" },
+  };
+}
+
+describe("the MQTT topics board", () => {
+  it("renders while the retained set is still being collected", () => {
+    topicsState.current = stateOf({ loading: true });
+    expect(render(<TopicsMqtt />)).toContain("<");
+  });
+
+  it("renders a broker with nothing retained", () => {
+    topicsState.current = stateOf({ data: [] });
+    // An empty list is an ordinary answer here, not an error: a fleet that
+    // publishes without the retain flag has nothing to list.
+    expect(render(<TopicsMqtt />)).toContain("<");
+  });
+
+  /*
+   * The notice is the point of the page.
+   *
+   * Without it an operator reads an empty or short list as "my devices are
+   * not publishing", when what it means is "nothing published with the retain
+   * flag". MQTT cannot answer the other question at all.
+   */
+  it("says what the listing actually answers", () => {
+    topicsState.current = stateOf({ data: [retained("devices/a19f/status", "6")] });
+    expect(render(<TopicsMqtt />)).toContain("没有主题注册表");
+  });
+
+  it("lists the retained topics and builds a tree from their levels", () => {
+    topicsState.current = stateOf({
+      data: [retained("devices/a19f/status", "6"), retained("devices/b22c/status", "7")],
+    });
+    const html = render(<TopicsMqtt />);
+
+    expect(html).toContain("devices/a19f/status");
+    expect(html).toContain("devices/b22c/status");
+    // The branches are inferred from the leaves: no broker keeps a list of
+    // the levels in between.
+    expect(html).toContain("devices");
+  });
+});
+
+/** A cluster the management API enumerated, with the role only it reports. */
+const emqxCluster = {
+  overview: emqx.overview,
+  nodes: [
+    {
+      id: 1,
+      name: "emqx@127.0.0.1",
+      address: "emqx@127.0.0.1",
+      cluster: "",
+      version: "6.2.3",
+      status: "online",
+      rateIn: -1,
+      rateOut: -1,
+      diskUsage: -1,
+      lastSeen: "2026-09-02 03:00:00",
+      attributes: {
+        nodeRole: "core",
+        nodeEdition: "Enterprise",
+        nodeConnections: "2",
+        nodeSessions: "3",
+        memoryUsed: "7.07G",
+        memoryTotal: "11.74G",
+        load1: "7.14",
+        uptimeSeconds: "22",
+      },
+    },
+  ],
+};
+
+describe("the MQTT cluster board", () => {
+  /*
+   * One node is the whole truth over the protocol alone, not a limitation of
+   * the query: a session is one socket, and MQTT says nothing about how a
+   * broker is deployed. The page has to say which of the two it is looking at,
+   * because "one node" and "one node that we can see" are different claims.
+   */
+  it("says a single node came from the session rather than from a cluster", () => {
+    brokerState.current = stateOf({ data: mosquitto });
+    const html = render(<NodesMqtt />);
+
+    expect(html).toContain("127.0.0.1:1883");
+    expect(html).toContain("一个会话就是一条连接");
+  });
+
+  it("shows what only a management api can report", () => {
+    brokerState.current = stateOf({ data: emqxCluster });
+    const html = render(<NodesMqtt />);
+
+    expect(html).toContain("emqx@127.0.0.1");
+    expect(html).toContain("core");
+    expect(html).toContain("7.07G");
+    expect(html).toContain("集群自己给出的列表");
+  });
+
+  it("renders while the broker is still being read", () => {
+    brokerState.current = stateOf({ loading: true });
+    expect(render(<NodesMqtt />)).toContain("<");
+  });
+});

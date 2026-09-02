@@ -389,11 +389,13 @@
 }
 /* A page this endpoint cannot open. It stays in the list because the reason
    sits on it, and a missing entry explains nothing. */
-.ni:disabled {
+.ni:disabled,
+.ni[aria-disabled='true'] {
   color: var(--c-muted);
   cursor: not-allowed;
 }
-.ni:disabled .nic {
+.ni:disabled .nic,
+.ni[aria-disabled='true'] .nic {
   opacity: 0.5;
 }
 /*

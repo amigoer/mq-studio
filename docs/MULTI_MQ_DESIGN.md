@@ -62,14 +62,14 @@ Sidekiq、BullMQ 是架在 Redis 或 RabbitMQ 之上的应用层任务队列，�
 | --- | --- | --- | --- | --- | --- | --- |
 | 端点 | NameServer 列表 | bootstrap servers | AMQP URI + HTTP 管理接口 | service URL + admin URL | host:port + db | broker host |
 | 命名空间 | cluster | cluster | vhost | tenant / namespace | db index | 无 |
-| 投递目标 | Topic | Topic | Queue（+ Exchange） | Topic | Stream key | Topic filter |
+| 投递目标 | Topic | Topic | Queue（+ Exchange） | Topic | Stream key | Topic（无注册表，只在有消息经过时存在） |
 | 分区 | MessageQueue | Partition | 无 | Partition | 无 | 无 |
 | 订阅方 | ConsumerGroup | ConsumerGroup | Queue consumer | Subscription | Group | Session |
 | 消费进度 | consumer offset | offset | ack / unacked | cursor | last-delivered-id | 无 |
 | 积压 | diff | lag | ready + unacked | backlog | XPENDING | 无 |
 | 重试 / 死信 | `%RETRY%` / `%DLQ%` | 应用层自理 | 死信交换机 | 重试 / 死信 topic | XPENDING + XCLAIM | 无 |
 | 历史回溯 | 按 offset 拉取 | 从 offset fetch | `basic.get`（破坏性） | Reader API | XRANGE | 不可能 |
-| 管理面 | Admin API | AdminClient | HTTP 管理插件 | Admin REST | Redis 命令 | 无 |
+| 管理面 | Admin API | AdminClient | HTTP 管理插件 | Admin REST | Redis 命令 | 协议无；$SYS 与厂商 REST 在连接时探测 |
 
 要竖着读列，而不是横着读行：
 
@@ -80,7 +80,7 @@ Sidekiq、BullMQ 是架在 Redis 或 RabbitMQ 之上的应用层任务队列，�
   binding 是一等对象，别处没有任何对应物。
 - **Redis Stream** 有消费组和 pending 条目，但没有集群拓扑，也没有按目标划分的
   权限。
-- **MQTT** 基本没有管理面。无法枚举、无历史、无消费组，只支持发布和订阅。
+- **MQTT** 协议本身没有管理面：无法枚举主题、没有历史、没有消费组。已实现，且实现方式是在连接时按三层探测——协议本身、多数 broker 会发布的 $SYS 树、以及 EMQX 等自带的 REST API。主题列的是持有保留消息的那些，因为那是唯一能枚举的东西；探测不到的那层带原因上报。
 
 由此得出两个结论，而它们的方向恰好相反：
 
@@ -125,7 +125,7 @@ Sidekiq、BullMQ 是架在 Redis 或 RabbitMQ 之上的应用层任务队列，�
 | Pulsar | 全部六个 | 实际接入后 namespace 两者都做了：既是每个页面上的范围选择器，也复用 vhosts 槽位做了一个租户/命名空间页 —— 主题的地址就是 tenant/namespace/name，选择器的选项总得有来源。另有一个 Tokens 页（角色授权，不是账号）和自己的发送控制台 |
 | RabbitMQ | Messages、Publish、Cluster | Destinations 换成 Queues，外加一个新的 Exchanges/Bindings 页 |
 | Redis Stream | Destinations、Subscriptions、Messages、Publish | Cluster 和 Access 按能力隐藏 |
-| MQTT | 仅 Publish | Subscribe 页（实时 tail）；其余全部隐藏 |
+| MQTT | Publish、Subscribe（实时流）、Topics（保留消息）、Clients、Cluster、Overview | 消费组、消息查询、DLQ、ACL 全部隐藏；Clients 与 Cluster 在没有管理 API 时以「已降级 + 原因」呈现 |
 
 只有这一种组织方式能做到：加 Kafka 几乎零成本，*同时*加 MQTT 不会留下一堆禁用
 导航的残骸。

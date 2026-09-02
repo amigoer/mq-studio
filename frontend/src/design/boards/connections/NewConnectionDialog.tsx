@@ -20,6 +20,7 @@ import type { ConnectionDraft, CredentialsMode } from "@/api/connection";
 import type { Connection as ConnectionProfile } from "@/api/models";
 import {
   KafkaForm,
+  MqttForm,
   PulsarForm,
   RabbitMQForm,
   RedisForm,
@@ -177,6 +178,29 @@ export function NewConnectionDialog({
       }
       return null;
     }
+    if (draft.protocol === "mqtt") {
+      if (draft.value.endpoints.trim() === "") {
+        return t("page.connections.brokerRequired");
+      }
+      // Anonymous is a real choice on MQTT, so the credential is only required
+      // once the user has asked to authenticate.
+      if (draft.value.mechanism !== "none") {
+        const stored = draft.value.credentialsStored && !draft.value.clearCredentials;
+        if (!stored && draft.value.username.trim() === "") {
+          return t("page.connections.usernameRequired");
+        }
+      }
+      // A management endpoint with no key would reach EMQX and be refused on
+      // every call, which reads as a broken endpoint rather than a missing
+      // credential.
+      if (draft.value.managementUrl.trim() !== "") {
+        const stored = draft.value.credentialsStored && !draft.value.clearCredentials;
+        if (!stored && draft.value.managementKey.trim() === "") {
+          return t("page.connections.form.mqtt.managementKeyRequired");
+        }
+      }
+      return null;
+    }
     if (draft.value.endpoints.trim() === "") return t("page.connections.endpointsRequired");
     if (draft.value.version === "5.x" && draft.value.access === "proxy") {
       return t("page.connections.form.rocketmq.proxyNote");
@@ -285,6 +309,11 @@ export function NewConnectionDialog({
         <RedisForm
           value={draft.value}
           onChange={(next) => setDraft({ protocol: "redis", value: next })}
+        />
+      ) : draft.protocol === "mqtt" ? (
+        <MqttForm
+          value={draft.value}
+          onChange={(next) => setDraft({ protocol: "mqtt", value: next })}
         />
       ) : (
         <RocketMQForm

@@ -20,6 +20,7 @@ import { UsersRabbitMQ } from "./boards/acl/UsersRabbitMQ";
 import { PoliciesRabbitMQ } from "./boards/policies/PoliciesRabbitMQ";
 import { DefinitionsRabbitMQ } from "./boards/definitions/DefinitionsRabbitMQ";
 import { ReplicationRabbitMQ } from "./boards/replication/ReplicationRabbitMQ";
+import { TopicsMqtt } from "./boards/topics/TopicsMqtt";
 import { StreamsRedis } from "./boards/topics/StreamsRedis";
 
 import { ConsumersRocketMQ } from "./boards/consumers/ConsumersRocketMQ";
@@ -43,6 +44,7 @@ import { PelRedis } from "./boards/dlq/PelRedis";
 
 import { Producer } from "./boards/producer/Producer";
 import { ProducerKafka } from "./boards/producer/ProducerKafka";
+import { ProducerMqtt } from "./boards/producer/ProducerMqtt";
 import { ProducerPulsar } from "./boards/producer/ProducerPulsar";
 import { ProducerRabbitMQ } from "./boards/producer/ProducerRabbitMQ";
 import { ProducerRedis } from "./boards/producer/ProducerRedis";
@@ -58,6 +60,7 @@ import { BrokersKafka } from "./boards/cluster/BrokersKafka";
 import { BrokersPulsar } from "./boards/cluster/BrokersPulsar";
 import { NodesRabbitMQ } from "./boards/cluster/NodesRabbitMQ";
 import { NodeRedis } from "./boards/cluster/NodeRedis";
+import { NodesMqtt } from "./boards/cluster/NodesMqtt";
 
 import { MqttWorkbench } from "./boards/mqtt/MqttWorkbench";
 import { NotDesigned } from "./boards/misc/NotDesigned";
@@ -111,8 +114,7 @@ const BOARDS: Partial<
     rabbitmq: QueuesRabbitMQ,
     pulsar: TopicsPulsar,
     redis: StreamsRedis,
-    // MQTT's topic tree only exists inside the 4b workbench.
-    mqtt: MqttWorkbench,
+    mqtt: TopicsMqtt,
   },
   exchanges: { rabbitmq: ExchangesRabbitMQ },
   vhosts: { rabbitmq: VhostsRabbitMQ, pulsar: NamespacesPulsar },
@@ -148,6 +150,7 @@ const BOARDS: Partial<
     rabbitmq: NodesRabbitMQ,
     pulsar: BrokersPulsar,
     redis: NodeRedis,
+    mqtt: NodesMqtt,
   },
 };
 
@@ -169,6 +172,7 @@ export function renderBoard(
        in one, a Pulsar producer puts in a property. */
     if (protocol === "pulsar") return <ProducerPulsar />;
     if (protocol === "redis") return <ProducerRedis />;
+    if (protocol === "mqtt") return <ProducerMqtt />;
     return <Producer protocol={protocol} nav={nav} />;
   }
   /* Alerts is one board for every family: the rules are numeric comparisons

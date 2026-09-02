@@ -1035,6 +1035,166 @@ export class LogDirView {
 }
 
 /**
+ * MQTTFilterInput is one filter and the QoS to subscribe at.
+ */
+export class MQTTFilterInput {
+    "pattern": string;
+    "qos": number;
+
+    /** Creates a new MQTTFilterInput instance. */
+    constructor($$source: Partial<MQTTFilterInput> = {}) {
+        if (!("pattern" in $$source)) {
+            this["pattern"] = "";
+        }
+        if (!("qos" in $$source)) {
+            this["qos"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new MQTTFilterInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): MQTTFilterInput {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new MQTTFilterInput($$parsedSource as Partial<MQTTFilterInput>);
+    }
+}
+
+/**
+ * MQTTPublishInput is a publish as the MQTT send console collects it.
+ * 
+ * Deliberately not MessageService.Publish's shape. That one carries an
+ * exchange, a routing key, a mandatory flag and a priority, which are AMQP's
+ * vocabulary and have no MQTT meaning - and it has nowhere to put QoS, the
+ * retain flag, or the 5.0 properties, which are most of what an MQTT publish
+ * is. A form that filled the first set in with placeholders would be lying
+ * about what it sent.
+ */
+export class MQTTPublishInput {
+    "topic": string;
+    "payload": string;
+
+    /**
+     * QoS decides what an acknowledgement can mean. At 0 there is none at all,
+     * and the result says so rather than reporting a delivery.
+     */
+    "qos": number;
+
+    /**
+     * Retain keeps this as the topic's last known value, replayed to whoever
+     * subscribes next. It is the only stored state MQTT has.
+     */
+    "retain": boolean;
+
+    /**
+     * Count sends the same message more than once, for filling a board.
+     */
+    "count": number;
+
+    /**
+     * Everything below is MQTT 5.0 only, and refused rather than dropped on a
+     * 3.1.1 connection.
+     */
+    "contentType": string;
+    "responseTopic": string;
+    "correlationData": string;
+    "messageExpiry": number;
+    "userProperties": { [_ in string]?: string };
+
+    /** Creates a new MQTTPublishInput instance. */
+    constructor($$source: Partial<MQTTPublishInput> = {}) {
+        if (!("topic" in $$source)) {
+            this["topic"] = "";
+        }
+        if (!("payload" in $$source)) {
+            this["payload"] = "";
+        }
+        if (!("qos" in $$source)) {
+            this["qos"] = 0;
+        }
+        if (!("retain" in $$source)) {
+            this["retain"] = false;
+        }
+        if (!("count" in $$source)) {
+            this["count"] = 0;
+        }
+        if (!("contentType" in $$source)) {
+            this["contentType"] = "";
+        }
+        if (!("responseTopic" in $$source)) {
+            this["responseTopic"] = "";
+        }
+        if (!("correlationData" in $$source)) {
+            this["correlationData"] = "";
+        }
+        if (!("messageExpiry" in $$source)) {
+            this["messageExpiry"] = 0;
+        }
+        if (!("userProperties" in $$source)) {
+            this["userProperties"] = {};
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new MQTTPublishInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): MQTTPublishInput {
+        const $$createField9_0 = $$createType9;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("userProperties" in $$parsedSource) {
+            $$parsedSource["userProperties"] = $$createField9_0($$parsedSource["userProperties"]);
+        }
+        return new MQTTPublishInput($$parsedSource as Partial<MQTTPublishInput>);
+    }
+}
+
+/**
+ * MQTTSubscribeInput asks for a live stream.
+ */
+export class MQTTSubscribeInput {
+    /**
+     * Filters are MQTT topic filters, with + and # as the protocol spells
+     * them. They are not translated into a neutral form: the two wildcards
+     * mean different things and a family-neutral pattern would lose that.
+     */
+    "filters": MQTTFilterInput[];
+
+    /**
+     * Buffer bounds what is held between two polls. Zero takes the driver's
+     * default.
+     */
+    "buffer": number;
+
+    /** Creates a new MQTTSubscribeInput instance. */
+    constructor($$source: Partial<MQTTSubscribeInput> = {}) {
+        if (!("filters" in $$source)) {
+            this["filters"] = [];
+        }
+        if (!("buffer" in $$source)) {
+            this["buffer"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new MQTTSubscribeInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): MQTTSubscribeInput {
+        const $$createField0_0 = $$createType24;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("filters" in $$parsedSource) {
+            $$parsedSource["filters"] = $$createField0_0($$parsedSource["filters"]);
+        }
+        return new MQTTSubscribeInput($$parsedSource as Partial<MQTTSubscribeInput>);
+    }
+}
+
+/**
  * MaintenanceTaskView is one offerable housekeeping job.
  */
 export class MaintenanceTaskView {
@@ -1278,7 +1438,7 @@ export class OffsetResetInput {
      * Creates a new OffsetResetInput instance from a string or object.
      */
     static createFrom($$source: any = {}): OffsetResetInput {
-        const $$createField2_0 = $$createType23;
+        const $$createField2_0 = $$createType25;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("partitions" in $$parsedSource) {
             $$parsedSource["partitions"] = $$createField2_0($$parsedSource["partitions"]);
@@ -2043,7 +2203,7 @@ export class QuotaView {
      * Creates a new QuotaView instance from a string or object.
      */
     static createFrom($$source: any = {}): QuotaView {
-        const $$createField0_0 = $$createType26;
+        const $$createField0_0 = $$createType28;
         const $$createField1_0 = $$createType0;
         const $$createField2_0 = $$createType0;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
@@ -2829,7 +2989,7 @@ export class TransactionView {
      * Creates a new TransactionView instance from a string or object.
      */
     static createFrom($$source: any = {}): TransactionView {
-        const $$createField0_0 = $$createType29;
+        const $$createField0_0 = $$createType31;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("transactions" in $$parsedSource) {
             $$parsedSource["transactions"] = $$createField0_0($$parsedSource["transactions"]);
@@ -2921,10 +3081,12 @@ const $$createType19 = $Create.Array($$createType18);
 const $$createType20 = model$0.LogDirPartition.createFrom;
 const $$createType21 = $Create.Nullable($$createType20);
 const $$createType22 = $Create.Array($$createType21);
-const $$createType23 = $Create.Array($Create.Any);
-const $$createType24 = model$0.ClientQuota.createFrom;
-const $$createType25 = $Create.Nullable($$createType24);
-const $$createType26 = $Create.Array($$createType25);
-const $$createType27 = model$0.Transaction.createFrom;
-const $$createType28 = $Create.Nullable($$createType27);
-const $$createType29 = $Create.Array($$createType28);
+const $$createType23 = MQTTFilterInput.createFrom;
+const $$createType24 = $Create.Array($$createType23);
+const $$createType25 = $Create.Array($Create.Any);
+const $$createType26 = model$0.ClientQuota.createFrom;
+const $$createType27 = $Create.Nullable($$createType26);
+const $$createType28 = $Create.Array($$createType27);
+const $$createType29 = model$0.Transaction.createFrom;
+const $$createType30 = $Create.Nullable($$createType29);
+const $$createType31 = $Create.Array($$createType30);

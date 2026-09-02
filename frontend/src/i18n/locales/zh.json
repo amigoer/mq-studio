@@ -526,7 +526,25 @@
       }
     },
     "mqtt": {
-      "name": "MQTT"
+      "name": "MQTT",
+      "terms": {
+        "destination": "主题",
+        "destinationPlural": "主题",
+        "subscription": "订阅",
+        "subscriptionPlural": "订阅",
+        "node": "Broker",
+        "nodePlural": "Broker",
+        "namespace": "Broker",
+        "backlog": "排队消息"
+      },
+      "degraded": {
+        "sysRefused": "broker 拒绝了对它 $SYS 树的订阅。这是规则而不是故障——EMQX 默认就拒绝所有非本机客户端——所以有管理 API 时这些数字改从那里读。想读 $SYS，需要在 broker 的授权配置里放行这个订阅。",
+        "sysSilent": "broker 接受了订阅，但根本不发布 $SYS 树。这没有什么可配置的：这个 broker 就是不上报自己的状态，依赖它的页面会保持空白。",
+        "managementAbsent": "这条连接没有填管理 API，而 MQTT 协议本身查不出谁连着——协议里没有这个请求。Mosquitto 完全没有这类接口；EMQX 等有，地址填在连接的高级设置里。",
+        "managementUnreachable": "这条连接填的管理 API 地址没有响应。地址和端口在连接的高级设置里；注意它和 broker 的 MQTT 端口不是同一个。",
+        "managementCredentials": "管理 API 拒绝了这个 API Key。请检查连接高级设置里的 Key 与 Secret——在 EMQX 上它们是在控制台的 API 密钥里创建的，不是控制台的登录账号。",
+        "managementUnknown": "那个地址上有东西应答，但不是这个 broker 的管理 API。多半是端口填错了，或者前面挡了一层代理而后面的 broker 并没有这类接口。"
+      }
     }
   },
   "shell": {
@@ -655,7 +673,7 @@
         "subscribe": "订阅监听",
         "producer": "发布",
         "clients": "客户端 / 会话",
-        "cluster": "$SYS",
+        "cluster": "节点",
         "alerts": "告警"
       }
     }
@@ -857,8 +875,28 @@
           "version": "协议版本",
           "sessionExpiry": "会话过期",
           "sessionExpiryHint": "5.0",
-          "advanced": "遗嘱消息（LWT）：Topic · Payload · QoS · Retain",
-          "note": "TLS：CA / 客户端证书 · 跳过验证"
+          "advanced": "客户端 ID、心跳、清理会话、TLS 与管理 API",
+          "note": "遗嘱消息与消息顺序不在这里设置",
+          "versionHint": "两个版本是不同的线上协议",
+          "transport": "传输方式",
+          "transportHint": "取决于 broker 开了哪个监听器，不是偏好",
+          "mechanism": "认证方式",
+          "mechanismNone": "匿名",
+          "mechanismPlain": "用户名与密码",
+          "wsPath": "WebSocket 路径",
+          "wsPathHint": "EMQX 是 /mqtt，Mosquitto 是根路径",
+          "clientId": "客户端 ID",
+          "clientIdHint": "留空则每个连接自动生成一个",
+          "keepAlive": "心跳间隔",
+          "keepAliveHint": "秒；0 表示关闭",
+          "cleanStart": "清理会话",
+          "cleanStartHint": "开启新会话，而不是恢复上一次的",
+          "cleanStartOn": "丢弃这个客户端 ID 遗留的会话",
+          "management": "管理 API",
+          "managementHint": "EMQX 等自带；Mosquitto 没有",
+          "managementKey": "API Key",
+          "managementSecret": "API Secret",
+          "managementKeyRequired": "填了管理 API 地址就需要 API Key"
         },
         "secretStored": "已保存，留空保持不变",
         "clearCredentials": "清除凭证"
@@ -899,6 +937,7 @@
       "managementRequired": "请填写管理 API 地址",
       "bootstrapRequired": "请填写 Bootstrap 地址",
       "usernameRequired": "请填写用户名",
+      "brokerRequired": "请填写 Broker 地址",
       "serviceUrlRequired": "请填写服务地址",
       "adminUrlRequired": "请填写管理 API 地址",
       "scopeRequired": "请填写租户和命名空间",
@@ -1209,9 +1248,9 @@
       "mqtt": {
         "subtitle": "iot-broker · EMQX 5.4 · MQTT 5.0 · 数据来自 $SYS（只读）",
         "onlineClients": "在线客户端",
-        "peakClients": "峰值 1 402",
+        "peakClients": "峰值 {{count}}",
         "subscriptions": "订阅总数",
-        "shared": "共享订阅 12",
+        "shared": "共享订阅 {{count}}",
         "retained": "保留消息",
         "inbound": "入站",
         "outbound": "出站 1 020/s",
@@ -1221,7 +1260,20 @@
         "clientChart": "折线图占位（$SYS clients.count）",
         "rateChart": "折线图占位（received / sent）",
         "sysMetrics": "$SYS 关键指标",
-        "fullTree": "完整 $SYS 树"
+        "fullTree": "完整 $SYS 树",
+        "retainedHint": "broker 自己的总数，含它的 $SYS 树",
+        "messagesIn": "收到消息",
+        "messagesOut": "发出 {{count}}",
+        "droppedHint": "自 broker 启动以来",
+        "broker": "Broker",
+        "uptime": "运行时长",
+        "topics": "主题数",
+        "bytesIn": "收到字节",
+        "bytesOut": "发出字节",
+        "sessions": "会话数",
+        "heap": "堆内存占用",
+        "sysCount": "{{count}} 个主题",
+        "sysAbsent": "该 broker 不发布 $SYS 树"
       },
       "pulsar": {
         "subtitle": "pulsar-eu · Pulsar 3.2 · 租户 ecommerce · Broker 3 / Bookie 4",
@@ -1513,6 +1565,27 @@
           "removed": "已移除",
           "unknown": "未知阶段"
         }
+      },
+      "mqtt": {
+        "title": "节点",
+        "node": "节点",
+        "nodes": "节点数",
+        "role": "角色",
+        "edition": "版本类型",
+        "clients": "在线客户端",
+        "subscriptions": "订阅数",
+        "connections": "连接数",
+        "sessions": "会话数",
+        "memory": "内存占用 / 总量",
+        "load": "负载（1 分钟）",
+        "uptime": "运行时长",
+        "detail": "节点详情",
+        "noNode": "未选择节点",
+        "fromApi": "来自 broker 的管理 API",
+        "fromSession": "本会话连接的那个 broker",
+        "enumerated": "集群自己给出的列表",
+        "oneSocket": "一个会话就是一条连接，所以它只知道这一个 broker",
+        "sessionOnly": "MQTT 对 broker 如何部署没有任何约定。没有管理 API 时，能报告的就只有本会话连接的这一个 broker，再没有更多信息。"
       }
     },
     "acl": {
@@ -2135,6 +2208,18 @@
           "retry": "重试",
           "dlq": "死信"
         }
+      },
+      "mqtt": {
+        "count": "{{count}} 个主题有保留消息",
+        "search": "搜索主题…",
+        "retained": "保留消息",
+        "retainedOnly": "MQTT 没有主题注册表：主题只在有消息经过时才存在。这里列出的是持有保留消息的主题，所以不带 retain 标志发布的设备不会出现在这里——这是协议本身如此，不是故障。broker 自己的 $SYS 树不在这里，它在概览页；而在一个空闲的 broker 上，概览里那个保留消息数几乎全是它。",
+        "size": "保留消息大小",
+        "detail": "主题",
+        "levels": "层级数",
+        "none": "未选择主题",
+        "why": "为什么会列在这里",
+        "whyBody": "broker 把它作为该主题的最后已知值保存了下来，并会重放给下一个订阅者。"
       }
     },
     "consumers": {
@@ -2181,15 +2266,26 @@
         "inflightQueued": "飞行/队列",
         "online6d": "在线 6d",
         "offline1h": "离线 · 会话保留 1h",
-        "subsCount": "订阅（4）",
-        "keepAlive": "60s · 最后心跳 3s 前",
-        "cleanStart": "false · 会话过期 3600s",
+        "subsCount": "订阅",
+        "keepAlive": "心跳间隔",
+        "cleanStart": "清理会话",
         "inflightWindow": "飞行窗口",
         "rxTx": "收 / 发",
         "will": "遗嘱：iot/device/status/A19F = offline · QoS1 · retain",
         "liveMessages": "查看实时消息",
         "clearSession": "清除会话",
-        "kick": "踢下线"
+        "kick": "踢下线",
+        "count": "{{total}} 个会话 · {{orphaned}} 个无人连接",
+        "user": "用户",
+        "address": "地址",
+        "state": "状态",
+        "online": "在线",
+        "expiry": "会话过期（秒）",
+        "listener": "监听器",
+        "queueDropped": "队列丢弃",
+        "noClients": "未选择会话",
+        "kickTitle": "断开 {{client}}？",
+        "kickDesc": "多数客户端会立刻重连，所以这更像是提醒而不是驱逐。持久会话里排队的消息会留下。"
       },
       "kafka": {
         "subtitle": "集群保存了已提交位点的消费组",
@@ -2872,6 +2968,36 @@
         "sent": "已写入 {{count}} 条",
         "sendFailed": "写入消息失败"
       },
+      "mqtt": {
+        "send": "发布",
+        "message": "消息",
+        "topic": "主题",
+        "count": "重复次数",
+        "payload": "消息体",
+        "retain": "保留",
+        "retainHint": "作为该主题的最后已知值保存，直到被覆盖",
+        "properties": "MQTT 5.0 属性",
+        "propertiesHint": "3.1.1 无法携带这些字段",
+        "contentType": "内容类型",
+        "responseTopic": "响应主题",
+        "correlation": "关联数据",
+        "expiry": "消息过期（秒）",
+        "userProps": "用户属性",
+        "result": "结果",
+        "accepted": "已接受",
+        "noSubscribers": "已接受，但无人订阅",
+        "sent": "已发送",
+        "acknowledged": "确认情况",
+        "byTheBroker": "broker 已确认",
+        "notAtQos0": "QoS 0 没有任何确认",
+        "reason": "broker 给出的原因",
+        "topicRequired": "请填写主题",
+        "topicWildcard": "发布的主题不能包含 + 或 #，那是订阅通配符",
+        "countInvalid": "重复次数需要在 1 到 1000 之间",
+        "expiryInvalid": "消息过期需要填秒数",
+        "propertyLine": "每条用户属性都要写成 name=value",
+        "needsFive": "这些属性是 MQTT 5.0 独有的，当前连接是 3.1.1"
+      },
       "pulsar": {
         "title": "发送",
         "compose": "消息",
@@ -2906,17 +3032,25 @@
     },
     "mqtt": {
       "topicTree": "主题树",
-      "subscribe": "+ 订阅",
-      "subscribed": "已订阅 2 · 缓冲 2 000 条",
-      "autoResume": "断开后订阅自动恢复",
-      "subscribing": "订阅中",
+      "subscribe": "订阅",
       "filter": "payload 关键字过滤…",
-      "allQos": "全部 QoS",
-      "rate": "412 msg/s · 自动滚动",
-      "exportNdjson": "导出 NDJSON",
       "userProps": "用户属性 · MQTT 5",
-      "sameTopic": "历史同主题",
-      "publishTemplate": "以此为模板发布"
+      "subscribedTo": "正在订阅 {{pattern}} · 已收到 {{count}} 条",
+      "notSubscribed": "尚未订阅",
+      "stop": "停止",
+      "live": "实时",
+      "topic": "主题",
+      "payload": "消息体",
+      "detail": "消息详情",
+      "matched": "匹配的过滤器",
+      "held": "缓存 {{count}} 条",
+      "retained": "保留",
+      "truncated": "（已截断）",
+      "waiting": "等待消息",
+      "startToSee": "先订阅一个过滤器",
+      "sessionDown": "会话已断开，重连之前不会再收到消息。",
+      "dropped": "已丢弃 {{count}} 条：消息到达的速度超过了本页读取的速度。",
+      "noHistory": "MQTT 不保存历史。本次订阅开始至今收到 {{count}} 条，关闭页面即丢失。"
     },
     "docs": {
       "capability": {

@@ -56,12 +56,51 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   from the backlog alone that is indistinguishable from a slow consumer, and it
   is fixed by acknowledging or raising a limit rather than by touching the
   consumer.
+- **MQTT 3.1.1 and 5.0.** The first broker family here with no administrative
+  plane of its own, so what a connection can do is decided when it dials rather
+  than declared up front, in three tiers: the protocol itself, the `$SYS` tree
+  most brokers publish about themselves, and the REST management API EMQX and
+  its peers add. A tier that does not answer is reported with its reason, so a
+  page says why it is empty instead of looking broken — and the two are told
+  apart, because "this broker refused the subscription" and "this broker
+  publishes no such tree" are fixed in different places.
+- Publishing with QoS, the retain flag and the MQTT 5.0 properties. The result
+  says which kind of success it was: at QoS 0 nothing is acknowledged, at QoS 1
+  and 2 the broker answers, and under 5.0 it can answer that it accepted the
+  message and had nobody to give it to.
+- A live subscribe workbench. It reports how many messages it had to drop and
+  whether the session is still up, because a stream that is quietly losing and
+  one that is quiet look identical otherwise, and so do a dropped connection
+  and a silent broker.
+- A topic list built from the broker's retained messages, which is the only
+  thing MQTT can enumerate — the page says so, so a device publishing without
+  the retain flag is not read as a device that has stopped publishing.
+- Clients and sessions, their subscriptions, the cluster's nodes and
+  disconnecting a session, where the broker offers a management API. A session
+  that outlived its connection is marked: the broker keeps queueing for a
+  client that is not there, and nothing on the device's side shows it.
+- Alert rules of MQTT's own. It had been falling through to RocketMQ's, which
+  read a broker ordinal, a commit log's disk usage and a dead-letter topic —
+  three things MQTT never reports — so no MQTT connection could raise an alert
+  at all.
 
 ### Fixed
 
 - A degraded reason from a driver whose family name contains a hyphen was
   rendered as the raw key rather than as a sentence. No family had one until
   now.
+- A degraded page's reason was invisible in every family. The sidebar entry
+  carrying it was disabled, so it received no pointer events at all; the reason
+  itself was a `title` attribute, which the macOS webview does not render; and a
+  family with no reason strings of its own showed the key instead of a sentence.
+
+### Notes
+
+- Paho ships two Go libraries that do not overlap: one speaks MQTT 3.1.1 and
+  the other 5.0, and a broker configured for either refuses the other's
+  CONNECT. Both are used, and the protocol version is a field on the connection
+  form rather than something negotiated.
+- TCP, TLS, WebSocket and WebSocket over TLS are all supported.
 
 ## [0.0.4] - 2026-09-01
 

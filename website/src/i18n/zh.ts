@@ -41,8 +41,8 @@ export const zh: Content = {
   },
   drivers: {
     label: '已支持',
-    supported: ['RocketMQ 4.x / 5.x', 'RabbitMQ 3.x / 4.x', 'Kafka 3.x / 4.x'],
-    planned: '计划中：Pulsar · NATS · MQTT · Amazon SQS 等',
+    supported: ['RocketMQ 4.x / 5.x', 'RabbitMQ 3.x / 4.x', 'Kafka 3.x / 4.x', 'MQTT 3.1.1 / 5.0'],
+    planned: '计划中：Pulsar · NATS · Redis Stream · Amazon SQS 等',
   },
   features: {
     title: '为什么用 MQ Studio',

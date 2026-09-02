@@ -8,6 +8,7 @@ import (
 	"github.com/amigoer/mq-studio/internal/crypto"
 	"github.com/amigoer/mq-studio/internal/driver"
 	"github.com/amigoer/mq-studio/internal/driver/kafka"
+	"github.com/amigoer/mq-studio/internal/driver/mqtt"
 	"github.com/amigoer/mq-studio/internal/driver/pulsar"
 	"github.com/amigoer/mq-studio/internal/driver/rabbitmq"
 	"github.com/amigoer/mq-studio/internal/driver/redisstream"
@@ -20,6 +21,7 @@ import (
 	"github.com/amigoer/mq-studio/internal/service/destination"
 	kafkaservice "github.com/amigoer/mq-studio/internal/service/kafka"
 	"github.com/amigoer/mq-studio/internal/service/message"
+	mqttservice "github.com/amigoer/mq-studio/internal/service/mqtt"
 	pulsarservice "github.com/amigoer/mq-studio/internal/service/pulsar"
 	rabbitmqservice "github.com/amigoer/mq-studio/internal/service/rabbitmq"
 	redisstreamservice "github.com/amigoer/mq-studio/internal/service/redisstream"
@@ -41,6 +43,7 @@ type Services struct {
 	Routing     *routing.Service
 	RabbitMQ    *rabbitmqservice.Service
 	Kafka       *kafkaservice.Service
+	MQTT        *mqttservice.Service
 	Pulsar      *pulsarservice.Service
 	RedisStream *redisstreamservice.Service
 
@@ -70,6 +73,7 @@ func New() (*Services, error) {
 	driver.Register(rocketmq.New())
 	driver.Register(rabbitmq.New())
 	driver.Register(kafka.New())
+	driver.Register(mqtt.New())
 	driver.Register(pulsar.New())
 	driver.Register(redisstream.New())
 
@@ -90,6 +94,7 @@ func New() (*Services, error) {
 		Routing:     routing.New(conns, settingsService),
 		RabbitMQ:    rabbitmqservice.New(conns, settingsService),
 		Kafka:       kafkaservice.New(conns, settingsService),
+		MQTT:        mqttservice.New(conns, settingsService),
 		Pulsar:      pulsarservice.New(conns, settingsService),
 		RedisStream: redisstreamservice.New(conns, settingsService),
 		Conns:       conns,

@@ -71,6 +71,29 @@ describe("the sidebar's reason for a blocked entry", () => {
     expect(html).toContain("SECURITY_DISABLED");
   });
 
+  /*
+   * The reason has to be reachable, not merely rendered.
+   *
+   * These entries were `disabled`, and a disabled button receives no pointer
+   * events - so the tooltip carrying the reason never appeared, and the whole
+   * explanation was computed, translated and invisible. Found by hovering a
+   * degraded entry in the running app for five seconds and getting nothing.
+   *
+   * The two assertions are the fix: the entry still reads as disabled to
+   * assistive technology and to the stylesheet, and is not the attribute that
+   * suppresses the hover.
+   */
+  it("leaves a blocked entry hoverable, or nobody ever reads the reason", () => {
+    capabilities.current = state({
+      [Capability.CapAccessDirectory]: "mq.kafka.degraded.accessControl",
+    });
+
+    const html = render(<Sidebar protocol="kafka" active="overview" />);
+
+    expect(html).toContain('aria-disabled="true"');
+    expect(html).not.toContain("disabled=\"\"");
+  });
+
   // A reason that is not a key must survive rather than disappear: i18next
   // hands back what it was given when it knows no such key.
   it("passes through a reason that has no translation", () => {

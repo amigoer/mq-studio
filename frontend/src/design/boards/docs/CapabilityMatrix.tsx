@@ -25,15 +25,15 @@ import { cn } from "@/lib/utils";
 type Cell = string;
 
 const ROWS: readonly (readonly [string, ...Cell[]])[] = [
-  ["board.docs.capability.overviewMetrics", "●", "●", "●", "●", "●", "◐ $SYS"],
+  ["board.docs.capability.overviewMetrics", "●", "●", "●", "●", "●", "◐ $SYS / REST"],
   ["board.docs.capability.topicMgmt", "●", "●", "● board.docs.capability.queuesExchanges", "● board.docs.capability.withNamespace", "● Stream", "◐ board.docs.capability.treeReadOnly"],
   ["board.docs.capability.messageQuery", "● board.docs.capability.byKeyIdTime", "● board.docs.capability.byOffsetTime", "◐ board.docs.capability.headOnly", "● board.docs.capability.cursor", "● XRANGE", "◐ board.docs.capability.liveOnly"],
   ["board.docs.capability.trace", "●", "—", "—", "—", "—", "—"],
   ["board.docs.capability.send", "●", "●", "●", "●", "●", "●"],
-  ["board.docs.capability.groups", "● board.docs.capability.group", "● board.docs.capability.group", "◐ board.docs.capability.connChannel", "● board.docs.capability.subscription", "● board.docs.capability.group", "● board.docs.capability.session"],
+  ["board.docs.capability.groups", "● board.docs.capability.group", "● board.docs.capability.group", "◐ board.docs.capability.connChannel", "● board.docs.capability.subscription", "● board.docs.capability.group", "◐ board.docs.capability.session"],
   ["board.docs.capability.dlq", "●", "◐ board.docs.capability.dltConvention", "● DLX", "●", "◐ PEL/claim", "—"],
   ["board.docs.capability.resetOffset", "●", "●", "—", "● seek", "● XSETID", "—"],
-  ["board.docs.capability.nodeOps", "● Broker/NS", "● Broker/Ctrl", "● board.docs.capability.node", "◐ Broker+Bookie", "◐ INFO", "◐ board.docs.capability.sysReadOnly"],
+  ["board.docs.capability.nodeOps", "● Broker/NS", "● Broker/Ctrl", "● board.docs.capability.node", "◐ Broker+Bookie", "◐ INFO", "◐ $SYS / REST"],
   ["board.docs.capability.acl", "●", "●", "◐ board.docs.capability.userVhost", "◐ board.docs.capability.tokenReadOnly", "—", "—"],
   ["board.docs.capability.delayed", "●", "—", "◐ board.docs.capability.plugin", "●", "—", "—"],
 ];

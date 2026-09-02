@@ -118,7 +118,8 @@ MQ Studio 通过可插拔驱动对接各类消息中间件。每个驱动声明�
 | **Kafka** 3.x / 4.x | ✅ 已支持 | Topic 及其分区、副本与配置；消费组的分区级 lag 与 Kafka 的五种位点重置；日志浏览与实时跟随；带 key、header 与 acks 的发送；Broker 的生效配置与日志目录；ACL 与 SCRAM 用户；客户端配额；分区迁移与优先副本选举；集群未结束的事务 |
 | **Pulsar** 3.x / 4.x | ✅ 已支持 | 主题及其分区与存储方式；命名空间与其上的租户，含 TTL、保留策略与按主题的限额；订阅的积压、延迟投递与未确认数量，阻塞订阅识别，以及按时间或回到最早消息的游标移动；不占用订阅的日志浏览与实时跟随；带 key、顺序 key、属性与延迟投递的发送；Broker 的 Bundle 归属与资源占用；按官方客户端命名约定发现的死信与重试主题；命名空间与主题上的角色授权 |
 | **Redis Stream** 6.0+ | ✅ 已支持 | Stream 的长度、内存占用与消息 ID 区间；消费组的堆积量，以及 XGROUP SETID 支持的全部重置方式；按时间窗口或 ID 浏览消息，并以有序字段写入；待处理消息列表（PEL）及认领、自动认领与确认；服务器的内存、持久化与慢日志；单机、哨兵与集群三种部署；客户端连接；带键、频道与命令规则的 ACL 用户 |
-| NATS · MQTT · SQS 等 | 📋 计划中 | 完整矩阵见下方折叠内容 |
+| **MQTT** 3.1.1 / 5.0 | ✅ 已支持 | 带 QoS、retain 与 5.0 属性的发布；实时订阅工作台，会报告丢弃了多少条、会话何时断开；从 broker 的保留消息得出的主题列表；broker 发布 $SYS 时读取它；以及在 broker 提供管理 API 时（EMQX 等）读取在线客户端与会话、它们的订阅、集群节点，并可断开某个会话。支持 Mosquitto、EMQX、HiveMQ、VerneMQ |
+| NATS · ActiveMQ · SQS 等 | 📋 计划中 | 完整矩阵见下方折叠内容 |
 
 <details>
 <summary><strong>计划中的驱动、协议兼容系统与范围边界</strong></summary>
@@ -129,7 +130,6 @@ MQ Studio 通过可插拔驱动对接各类消息中间件。每个驱动声明�
 | **ActiveMQ / Artemis** | 📋 计划中 | 通过 Jolokia 管理接口访问 JMS 队列与主题 |
 | **NATS** | 📋 计划中 | JetStream 的 Stream 与 Consumer；NATS Core 仅支持发布与订阅 |
 | **NSQ** | 📋 计划中 | 通过 nsqd HTTP 接口访问 Topic 与 Channel |
-| **MQTT** | 📋 计划中 | 仅发布与订阅 — 该协议本身没有管理面 |
 | **Amazon SQS** | 📋 计划中 | 队列、属性与死信重投 |
 | **Google Cloud Pub/Sub** | 📋 计划中 | Topic、Subscription 与积压量 |
 | **Azure Service Bus** | 📋 计划中 | 队列、Topic、Subscription、规则与死信队列 |

@@ -1,6 +1,6 @@
 import { useState, type CSSProperties, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { ChevronRight, RefreshCw } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -49,16 +49,6 @@ function FormNote({ advanced, note }: { advanced: ReactNode; note: ReactNode }) 
       <span>{advanced}</span>
       <span>{note}</span>
     </div>
-  );
-}
-
-/** A hint the canvas marked with a ▸: fields the form does not draw. */
-function Adv({ children }: { children: ReactNode }) {
-  return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: "3px" }}>
-      <ChevronRight size={12} aria-hidden />
-      {children}
-    </span>
   );
 }
 
@@ -544,6 +534,17 @@ export function KafkaForm({
 }
 
 /** Option keys the RabbitMQ driver reads back off a stored profile. */
+export const OPTION_MQTT_PROTOCOL = "protocolVersion";
+export const OPTION_MQTT_TRANSPORT = "transport";
+export const OPTION_MQTT_WS_PATH = "wsPath";
+export const OPTION_MQTT_CLIENT_ID = "clientId";
+export const OPTION_MQTT_KEEP_ALIVE = "keepAliveSec";
+export const OPTION_MQTT_CLEAN_START = "cleanStart";
+export const OPTION_MQTT_SESSION_EXPIRY = "sessionExpirySec";
+export const OPTION_MQTT_TLS_CA_FILE = "tlsCaFile";
+export const OPTION_MQTT_TLS_SKIP_VERIFY = "tlsSkipVerify";
+export const OPTION_MQTT_MANAGEMENT_URL = "managementUrl";
+
 export const OPTION_VHOST = "vhost";
 export const OPTION_AMQP = "amqpEndpoint";
 export const OPTION_TLS = "tls";
@@ -1296,61 +1297,387 @@ export function RedisForm({
 }
 
 /** Board 6f — MQTT. Clean Start and session expiry are 5.0-only. */
-export function MqttForm() {
+export type MqttProtocol = "5" | "311";
+export type MqttTransport = "tcp" | "tls" | "ws" | "wss";
+export type MqttMechanism = "none" | "plain";
+
+export interface MqttDraft {
+  name: string;
+  /** host:port, one or more. This is the profile's endpoints field. */
+  endpoints: string;
+  protocol: MqttProtocol;
+  transport: MqttTransport;
+  wsPath: string;
+  /** Empty means the driver generates one per connection. */
+  clientId: string;
+  keepAliveSec: number;
+  cleanStart: boolean;
+  sessionExpirySec: number;
+  mechanism: MqttMechanism;
+  username: string;
+  password: string;
+  tlsCaFile: string;
+  tlsSkipVerify: boolean;
+  /** The broker's own management API. MQTT has none of its own. */
+  managementUrl: string;
+  managementKey: string;
+  managementSecret: string;
+  group: string;
+  remark: string;
+  timeoutSec: number;
+  /** A stored secret never comes back, so blank means "keep it". */
+  credentialsStored: boolean;
+  clearCredentials: boolean;
+}
+
+export function emptyMqttDraft(): MqttDraft {
+  return {
+    name: "",
+    endpoints: "",
+    protocol: "5",
+    transport: "tcp",
+    wsPath: "/mqtt",
+    clientId: "",
+    keepAliveSec: 60,
+    cleanStart: true,
+    sessionExpirySec: 0,
+    mechanism: "none",
+    username: "",
+    password: "",
+    tlsCaFile: "",
+    tlsSkipVerify: false,
+    managementUrl: "",
+    managementKey: "",
+    managementSecret: "",
+    group: "",
+    remark: "",
+    timeoutSec: DEFAULT_TIMEOUT_SEC,
+    credentialsStored: false,
+    clearCredentials: false,
+  };
+}
+
+/**
+ * Board 6e - MQTT.
+ *
+ * Two credential blocks rather than one, which no other family here has: the
+ * broker's username and password authenticate the session, and the management
+ * API key authenticates a completely separate HTTP endpoint that the protocol
+ * knows nothing about. A connection can have either, both or neither.
+ */
+export function MqttForm({
+  value,
+  onChange,
+}: {
+  value: MqttDraft;
+  onChange: (next: MqttDraft) => void;
+}) {
   const { t } = useTranslation();
-  const [version, setVersion] = useState<"3.1.1" | "5.0">("5.0");
-  const [cleanStart, setCleanStart] = useState(true);
+  const set = <K extends keyof MqttDraft>(key: K, next: MqttDraft[K]) =>
+    onChange({ ...value, [key]: next });
+  const [advancedOpen, setAdvancedOpen] = useState(
+    value.timeoutSec !== DEFAULT_TIMEOUT_SEC ||
+      value.remark !== "" ||
+      value.clientId !== "" ||
+      value.managementUrl !== "",
+  );
+  const authenticating = value.mechanism !== "none";
+  const encrypted = value.transport === "tls" || value.transport === "wss";
+  const webSocket = value.transport === "ws" || value.transport === "wss";
+  const stored = value.credentialsStored && !value.clearCredentials;
+
   return (
     <>
       <div style={GRID}>
         <Fld label={t("page.connections.form.name")}>
-          <Input defaultValue="iot-broker" />
-        </Fld>
-        <Fld label={t("page.connections.form.mqtt.broker")} hint={t("page.connections.form.mqtt.brokerHint")}>
-          <Input className="mono3" style={MONO} defaultValue="mqtts://iot.example.com:8883" />
-        </Fld>
-        <Fld label={t("page.connections.form.mqtt.version")}>
-          <Segmented
-            style={{ alignSelf: "flex-start" }}
-            value={version}
-            onChange={setVersion}
-            options={[
-              { value: "3.1.1", label: "3.1.1" },
-              { value: "5.0", label: "5.0" },
-            ]}
+          <Input
+            value={value.name}
+            placeholder="iot-broker"
+            onChange={(event) => set("name", event.target.value)}
           />
         </Fld>
-        <Fld label="Client ID">
-          <span
-            className="mono3 flex items-center rounded-md border bg-background px-2.5 py-1 text-xs whitespace-nowrap text-muted-foreground"
+        <Fld
+          label={t("page.connections.form.mqtt.version")}
+          hint={t("page.connections.form.mqtt.versionHint")}
+        >
+          <Segmented<MqttProtocol>
+            style={{ alignSelf: "flex-start" }}
+            value={value.protocol}
+            options={[
+              { value: "311", label: "3.1.1" },
+              { value: "5", label: "5.0" },
+            ]}
+            onChange={(next) =>
+              // Session expiry is 5.0 only. Leaving a value behind would send
+              // it to a 3.1.1 broker that has no field for it.
+              onChange({
+                ...value,
+                protocol: next,
+                sessionExpirySec: next === "5" ? value.sessionExpirySec : 0,
+              })
+            }
+          />
+        </Fld>
+        <Fld
+          span
+          label={t("page.connections.form.mqtt.broker")}
+          hint={t("page.connections.form.mqtt.brokerHint")}
+        >
+          <Input
+            className="mono3"
             style={MONO}
+            value={value.endpoints}
+            placeholder="iot.example.com:1883"
+            onChange={(event) => set("endpoints", event.target.value)}
+          />
+        </Fld>
+        <Fld
+          label={t("page.connections.form.mqtt.transport")}
+          hint={t("page.connections.form.mqtt.transportHint")}
+        >
+          <SelectField<MqttTransport>
+            value={value.transport}
+            options={[
+              { value: "tcp", label: "TCP" },
+              { value: "tls", label: "TLS" },
+              { value: "ws", label: "WebSocket" },
+              { value: "wss", label: "WebSocket + TLS" },
+            ]}
+            onValueChange={(next) =>
+              // The TLS fields only mean anything on an encrypted transport,
+              // and leaving them set would silently re-apply them.
+              onChange({
+                ...value,
+                transport: next,
+                tlsCaFile: next === "tls" || next === "wss" ? value.tlsCaFile : "",
+                tlsSkipVerify: (next === "tls" || next === "wss") && value.tlsSkipVerify,
+              })
+            }
+          />
+        </Fld>
+        <Fld label={t("page.connections.form.mqtt.mechanism")}>
+          <SelectField<MqttMechanism>
+            value={value.mechanism}
+            options={[
+              { value: "none", label: t("page.connections.form.mqtt.mechanismNone") },
+              { value: "plain", label: t("page.connections.form.mqtt.mechanismPlain") },
+            ]}
+            onValueChange={(next) =>
+              onChange({
+                ...value,
+                mechanism: next,
+                username: next === "none" ? "" : value.username,
+                password: next === "none" ? "" : value.password,
+              })
+            }
+          />
+        </Fld>
+        {webSocket && (
+          <Fld
+            span
+            label={t("page.connections.form.mqtt.wsPath")}
+            hint={t("page.connections.form.mqtt.wsPathHint")}
           >
-            mq-studio-8f21c3
-            <RefreshCw size={12} className="ml-auto text-(--c-ok)" aria-hidden />
-          </span>
-        </Fld>
-        <Fld label="Keep Alive">
-          <Input className="mono3" style={MONO} defaultValue="60 s" />
-        </Fld>
-        <Fld label={t("page.connections.form.username")}>
-          <Input defaultValue="iot-ops" />
-        </Fld>
-        <Fld label={t("page.connections.form.password")}>
-          <Input type="password" defaultValue="password" />
-        </Fld>
-        <Fld label="Clean Start">
-          <Switch checked={cleanStart} onCheckedChange={setCleanStart} aria-label="Clean Start" style={{ marginTop: "3px" }} />
-        </Fld>
-        {version === "5.0" && (
-          <Fld label={t("page.connections.form.mqtt.sessionExpiry")} hint={t("page.connections.form.mqtt.sessionExpiryHint")}>
-            <Input className="mono3" style={MONO} defaultValue="3600 s" />
+            <Input
+              className="mono3"
+              style={MONO}
+              value={value.wsPath}
+              placeholder="/mqtt"
+              onChange={(event) => set("wsPath", event.target.value)}
+            />
+          </Fld>
+        )}
+        {authenticating && (
+          <>
+            <Fld
+              label={t("page.connections.form.username")}
+              hint={
+                stored ? (
+                  <button
+                    type="button"
+                    className="mqs-linkbtn"
+                    onClick={() => set("clearCredentials", true)}
+                  >
+                    {t("page.connections.form.clearCredentials")}
+                  </button>
+                ) : undefined
+              }
+            >
+              <Input
+                value={value.username}
+                placeholder={stored ? t("page.connections.form.secretStored") : undefined}
+                onChange={(event) => set("username", event.target.value)}
+              />
+            </Fld>
+            <Fld label={t("page.connections.form.password")}>
+              <Input
+                type="password"
+                value={value.password}
+                placeholder={stored ? t("page.connections.form.secretStored") : undefined}
+                onChange={(event) => set("password", event.target.value)}
+              />
+            </Fld>
+          </>
+        )}
+        {value.protocol === "5" && (
+          <Fld
+            label={t("page.connections.form.mqtt.sessionExpiry")}
+            hint={t("page.connections.form.mqtt.sessionExpiryHint")}
+          >
+            <Input
+              type="number"
+              min={0}
+              value={String(value.sessionExpirySec)}
+              onChange={(event) => {
+                const seconds = Number.parseInt(event.target.value, 10);
+                set("sessionExpirySec", Number.isNaN(seconds) ? 0 : seconds);
+              }}
+            />
           </Fld>
         )}
       </div>
       <FormNote
-        advanced={<Adv>{t("page.connections.form.mqtt.advanced")}</Adv>}
-        note={<Adv>{t("page.connections.form.mqtt.note")}</Adv>}
+        advanced={
+          <button
+            type="button"
+            className="mqs-disclosure"
+            aria-expanded={advancedOpen}
+            onClick={() => setAdvancedOpen((open) => !open)}
+          >
+            <ChevronRight size={12} aria-hidden />
+            {t("page.connections.form.mqtt.advanced")}
+          </button>
+        }
+        note={t("page.connections.form.mqtt.note")}
       />
+      {advancedOpen && (
+        <div style={GRID}>
+          <Fld
+            label={t("page.connections.form.rocketmq.timeout")}
+            hint={t("page.connections.form.rocketmq.timeoutHint")}
+          >
+            <Input
+              type="number"
+              min={1}
+              max={300}
+              value={value.timeoutSec > 0 ? String(value.timeoutSec) : ""}
+              onChange={(event) => {
+                const seconds = Number.parseInt(event.target.value, 10);
+                set("timeoutSec", Number.isNaN(seconds) ? 0 : seconds);
+              }}
+            />
+          </Fld>
+          <Fld label={t("page.connections.form.remark")} hint={t("page.connections.form.remarkHint")}>
+            <Input value={value.remark} onChange={(event) => set("remark", event.target.value)} />
+          </Fld>
+          <Fld
+            label={t("page.connections.form.mqtt.clientId")}
+            hint={t("page.connections.form.mqtt.clientIdHint")}
+          >
+            <Input
+              className="mono3"
+              style={MONO}
+              value={value.clientId}
+              placeholder="mq-studio-…"
+              onChange={(event) => set("clientId", event.target.value)}
+            />
+          </Fld>
+          <Fld
+            label={t("page.connections.form.mqtt.keepAlive")}
+            hint={t("page.connections.form.mqtt.keepAliveHint")}
+          >
+            <Input
+              type="number"
+              min={0}
+              max={65535}
+              value={String(value.keepAliveSec)}
+              onChange={(event) => {
+                const seconds = Number.parseInt(event.target.value, 10);
+                set("keepAliveSec", Number.isNaN(seconds) ? 0 : seconds);
+              }}
+            />
+          </Fld>
+          <Fld
+            span
+            label={t("page.connections.form.mqtt.cleanStart")}
+            hint={t("page.connections.form.mqtt.cleanStartHint")}
+          >
+            <div style={SWITCH_ROW}>
+              <Switch
+                checked={value.cleanStart}
+                onCheckedChange={(next: boolean) => set("cleanStart", next)}
+              />
+              <span style={{ color: "var(--c-muted)" }}>
+                {t("page.connections.form.mqtt.cleanStartOn")}
+              </span>
+            </div>
+          </Fld>
+          {encrypted && (
+            <>
+              <Fld
+                span
+                label={t("page.connections.form.kafka.caFile")}
+                hint={t("page.connections.form.kafka.caFileHint")}
+              >
+                <Input
+                  className="mono3"
+                  style={MONO}
+                  value={value.tlsCaFile}
+                  placeholder="/etc/mosquitto/ca.pem"
+                  onChange={(event) => set("tlsCaFile", event.target.value)}
+                />
+              </Fld>
+              <Fld
+                span
+                label={t("page.connections.form.kafka.skipVerify")}
+                hint={t("page.connections.form.kafka.skipVerifyHint")}
+              >
+                <div style={SWITCH_ROW}>
+                  <Switch
+                    checked={value.tlsSkipVerify}
+                    onCheckedChange={(next: boolean) => set("tlsSkipVerify", next)}
+                  />
+                  <span style={{ color: "var(--c-muted)" }}>
+                    {t("page.connections.form.kafka.skipVerifyNote")}
+                  </span>
+                </div>
+              </Fld>
+            </>
+          )}
+          <Fld
+            span
+            label={t("page.connections.form.mqtt.management")}
+            hint={t("page.connections.form.mqtt.managementHint")}
+          >
+            <Input
+              className="mono3"
+              style={MONO}
+              value={value.managementUrl}
+              placeholder="http://iot.example.com:18083"
+              onChange={(event) => set("managementUrl", event.target.value)}
+            />
+          </Fld>
+          {value.managementUrl.trim() !== "" && (
+            <>
+              <Fld label={t("page.connections.form.mqtt.managementKey")}>
+                <Input
+                  value={value.managementKey}
+                  placeholder={stored ? t("page.connections.form.secretStored") : undefined}
+                  onChange={(event) => set("managementKey", event.target.value)}
+                />
+              </Fld>
+              <Fld label={t("page.connections.form.mqtt.managementSecret")}>
+                <Input
+                  type="password"
+                  value={value.managementSecret}
+                  placeholder={stored ? t("page.connections.form.secretStored") : undefined}
+                  onChange={(event) => set("managementSecret", event.target.value)}
+                />
+              </Fld>
+            </>
+          )}
+        </div>
+      )}
     </>
   );
 }

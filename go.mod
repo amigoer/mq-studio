@@ -7,7 +7,11 @@ require (
 	github.com/amigoer/rocketmq-admin-go v1.3.2
 	github.com/apache/pulsar-client-go v0.21.0
 	github.com/apache/rocketmq-client-go/v2 v2.1.2
+	github.com/eclipse/paho.golang v0.23.0
+	github.com/eclipse/paho.mqtt.golang v1.5.1
+	github.com/gorilla/websocket v1.5.3
 	github.com/michaelklishin/rabbit-hole/v3 v3.5.0
+	github.com/mochi-mqtt/server/v2 v2.7.9
 	github.com/rabbitmq/amqp091-go v1.14.0
 	github.com/redis/go-redis/v9 v9.22.0
 	github.com/twmb/franz-go v1.21.6
@@ -59,6 +63,7 @@ require (
 	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/common v0.55.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
+	github.com/rs/xid v1.4.0 // indirect
 	github.com/sirupsen/logrus v1.9.4 // indirect
 	github.com/smartystreets/goconvey v1.8.1 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
@@ -72,6 +77,7 @@ require (
 	golang.org/x/mod v0.37.0 // indirect
 	golang.org/x/net v0.56.0 // indirect
 	golang.org/x/oauth2 v0.35.0 // indirect
+	golang.org/x/sync v0.21.0 // indirect
 	golang.org/x/sys v0.46.0 // indirect
 	golang.org/x/text v0.39.0 // indirect
 	google.golang.org/protobuf v1.36.5 // indirect

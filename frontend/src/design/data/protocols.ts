@@ -276,7 +276,7 @@ export function labelOf(protocol: ProtocolId, page: PageId): string {
 }
 
 /**
- * Protocols whose boards read a real broker. The other four are drawn in the
+ * Protocols whose boards read a real broker. The other two are drawn in the
  * picker so the shell shows where it is going, but they cannot be selected: a
  * board of invented figures beside a live cluster is worse than no board.
  *
@@ -289,6 +289,7 @@ const READY: ReadonlySet<ProtocolId> = new Set<ProtocolId>([
   "kafka",
   "pulsar",
   "redis",
+  "mqtt",
 ]);
 
 export function isProtocolReady(protocol: ProtocolId): boolean {
