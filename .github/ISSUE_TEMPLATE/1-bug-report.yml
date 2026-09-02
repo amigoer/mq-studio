@@ -1,0 +1,108 @@
+name: "\U0001F41E Bug report"
+description: Something in the app behaves differently from what it should
+labels: ["type:bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        中文用户请改用 **Bug 反馈** 模板。
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before you start
+      options:
+        - label: I searched the [open and closed issues](https://github.com/amigoer/mq-studio/issues?q=is%3Aissue) and this is not one of them
+          required: true
+        - label: It still happens on the [latest release](https://github.com/amigoer/mq-studio/releases/latest)
+          required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: MQ Studio version
+      description: Settings → About shows it.
+      placeholder: 0.0.6
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - macOS (Apple silicon)
+        - macOS (Intel)
+        - Windows
+        - Linux
+    validations:
+      required: true
+
+  - type: dropdown
+    id: driver
+    attributes:
+      label: Which broker
+      description: >
+        The driver the bug shows up under. Choose "Not broker-specific" for the
+        window, settings, the connection list, or updating the app.
+      options:
+        - Not broker-specific
+        - RocketMQ
+        - Kafka
+        - RabbitMQ
+        - Pulsar
+        - Redis Stream
+        - NATS
+        - MQTT
+    validations:
+      required: true
+
+  - type: input
+    id: broker-version
+    attributes:
+      label: Broker version and how it runs
+      description: Leave empty if the bug is not broker-specific.
+      placeholder: RocketMQ 5.3.1, single node in Docker
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected instead
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: From opening the app to the point it goes wrong.
+      value: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Screenshots, and any error the app showed
+      description: >
+        Paste error text as text where you can, rather than a picture of it.
+        Redact hosts, keys and anything else you cannot share — the report is
+        public.
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Anything else
+      description: >
+        Whether it started after an update, whether a second connection is
+        fine, whether it comes and goes.

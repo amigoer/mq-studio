@@ -234,7 +234,7 @@ Use `make check` to run project checks, `make package` to build a distributable,
 
 ## Docs
 
-[Architecture](docs/ARCHITECTURE.md) · [Install](docs/INSTALL.md) · [Changelog](CHANGELOG.md) · [Releasing](RELEASE.md) · [Roadmap](docs/ROADMAP.md)
+[Architecture](docs/ARCHITECTURE.md) · [Install](docs/INSTALL.md) · [Contributing](CONTRIBUTING.md) · [Changelog](CHANGELOG.md) · [Releasing](RELEASE.md) · [Roadmap](docs/ROADMAP.md)
 
 ## Community
 
