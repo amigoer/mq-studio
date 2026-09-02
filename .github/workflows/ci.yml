@@ -105,6 +105,7 @@ jobs:
       - uses: actions/checkout@v7
 
       - uses: actions/setup-go@v6
+        id: go
         with:
           go-version-file: go.mod
           cache-dependency-path: go.sum
@@ -137,12 +138,21 @@ jobs:
           set -eu
           echo "version=$(awk '/github.com\/wailsapp\/wails\/v3/ { print $2; exit }' go.mod)" >> "$GITHUB_OUTPUT"
 
+      # Keyed on the Go version as well as the CLI's own.
+      #
+      # wails3 parses this module's source to generate the bindings, using the
+      # go/packages copy compiled into it - so a CLI built by an older Go
+      # cannot read a package that declares a newer one. Raising the go
+      # directive to 1.26 left a 1.25-built binary in the cache, and every
+      # package in the repository came back as "requires newer Go version":
+      # ten annotations on a job that still passed, and a drift check reading
+      # source it admitted it might not understand.
       - name: Cache the Wails CLI
         id: wails-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/go/bin/wails3
-          key: wails3-${{ runner.os }}-${{ steps.wails.outputs.version }}
+          key: wails3-${{ runner.os }}-${{ steps.wails.outputs.version }}-go${{ steps.go.outputs.go-version }}
 
       - name: Install the Wails CLI
         if: steps.wails-cache.outputs.cache-hit != 'true'
@@ -180,7 +190,7 @@ jobs:
 
       - name: Upload the unit results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: results-unit
           path: results-unit.json
@@ -312,7 +322,7 @@ jobs:
 
       - name: Upload the ${{ matrix.family }} results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: results-${{ matrix.family }}
           path: results-${{ matrix.family }}.json
@@ -331,7 +341,7 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Download every shard's results
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: results-*
           path: results
