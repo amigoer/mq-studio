@@ -1,0 +1,147 @@
+{
+  "$comment": [
+    "The label set for this repository, kept here so it can be reviewed in a diff",
+    "rather than remembered. `npm run labels:sync` reports what differs; the same",
+    "command with --apply writes it to GitHub.",
+    "",
+    "Three axes and one workflow group. An issue normally carries one type, one",
+    "area, and a driver when the report is family-specific.",
+    "",
+    "`from` is a rename: the label already exists under that name and carries",
+    "issues, so it is renamed in place rather than replaced, which would drop",
+    "every assignment."
+  ],
+
+  "type": [
+    {
+      "name": "type:bug",
+      "from": "bug",
+      "color": "D73A4A",
+      "description": "Behaves differently from what it should"
+    },
+    {
+      "name": "type:feature",
+      "from": "enhancement",
+      "color": "A2EEEF",
+      "description": "A capability the app should have and does not"
+    },
+    {
+      "name": "type:driver",
+      "color": "EC3013",
+      "description": "A broker family MQ Studio does not connect to yet"
+    },
+    {
+      "name": "type:docs",
+      "from": "documentation",
+      "color": "0075CA",
+      "description": "The README, docs/, or the contributor guides"
+    },
+    {
+      "name": "type:question",
+      "from": "question",
+      "color": "D876E3",
+      "description": "A usage question rather than a defect"
+    }
+  ],
+
+  "area": [
+    {
+      "name": "area:connections",
+      "color": "3F3F46",
+      "description": "The connection list, credentials, endpoints, auto-connect"
+    },
+    {
+      "name": "area:topics",
+      "color": "3F3F46",
+      "description": "Topics, queues, exchanges and bindings"
+    },
+    {
+      "name": "area:messages",
+      "color": "3F3F46",
+      "description": "Query, browse, produce, resend, dead letters"
+    },
+    {
+      "name": "area:consumers",
+      "color": "3F3F46",
+      "description": "Groups, clients, subscriptions, lag, offsets"
+    },
+    {
+      "name": "area:cluster",
+      "color": "3F3F46",
+      "description": "Brokers, nodes, runtime metrics, throughput, alerts"
+    },
+    {
+      "name": "area:admin",
+      "color": "3F3F46",
+      "description": "Access control, users, quotas, policies"
+    },
+    {
+      "name": "area:app",
+      "color": "3F3F46",
+      "description": "The window, settings, updates, packaging"
+    },
+    {
+      "name": "area:i18n",
+      "color": "3F3F46",
+      "description": "Translations and the locale files"
+    },
+    {
+      "name": "area:website",
+      "color": "3F3F46",
+      "description": "The marketing site under website/"
+    },
+    {
+      "name": "area:ci",
+      "color": "3F3F46",
+      "description": "Workflows, checks, and the test environments"
+    }
+  ],
+
+  "driver": [
+    { "name": "driver:rocketmq", "color": "BFDADC", "description": "RocketMQ" },
+    { "name": "driver:kafka", "color": "BFDADC", "description": "Kafka" },
+    { "name": "driver:rabbitmq", "color": "BFDADC", "description": "RabbitMQ" },
+    { "name": "driver:pulsar", "color": "BFDADC", "description": "Pulsar" },
+    { "name": "driver:redis-stream", "color": "BFDADC", "description": "Redis Stream" },
+    { "name": "driver:nats", "color": "BFDADC", "description": "NATS" },
+    { "name": "driver:mqtt", "color": "BFDADC", "description": "MQTT" }
+  ],
+
+  "workflow": [
+    {
+      "name": "needs:info",
+      "color": "FBCA04",
+      "description": "Waiting on the reporter for something"
+    },
+    {
+      "name": "needs:repro",
+      "color": "FBCA04",
+      "description": "Cannot be reproduced here yet"
+    },
+    {
+      "name": "blocked:upstream",
+      "color": "B60205",
+      "description": "Waiting on a fix in a library or in the broker itself"
+    },
+    {
+      "name": "good first issue",
+      "color": "7057FF",
+      "description": "A small, self-contained place to start"
+    },
+    {
+      "name": "help wanted",
+      "color": "008672",
+      "description": "Needs a cluster or a pair of hands this project does not have"
+    },
+    {
+      "name": "duplicate",
+      "color": "CFD3D7",
+      "description": "Already tracked somewhere else"
+    },
+    {
+      "name": "wontfix",
+      "color": "FFFFFF",
+      "description": "Understood, and deliberately not being changed"
+    }
+  ]
+}

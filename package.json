@@ -10,6 +10,7 @@
     "package": "wails3 task package",
     "check:version": "node scripts/check-version.mjs",
     "check:refs": "node scripts/check-refs.mjs",
+    "labels:sync": "node scripts/sync-labels.mjs",
     "go:fmt:check": "bash -c 'files=$(gofmt -l . ); [ -z \"$files\" ] || { echo \"The following Go files are not gofmt-clean:\"; echo \"$files\"; echo \"Run: gofmt -w .\"; exit 1; }'",
     "go:vet": "go vet ./...",
     "frontend:type-check": "npm --prefix frontend run type-check",
