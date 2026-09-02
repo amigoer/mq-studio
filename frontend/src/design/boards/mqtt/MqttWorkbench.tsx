@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { CirclePause, CirclePlay, Trash2 } from "lucide-react";
 import { Page, PageBody, PageHeader } from "@/design/shell";
@@ -58,6 +58,13 @@ export function MqttWorkbench() {
   const { t } = useTranslation();
   const stream = useMqttStream();
   const [pattern, setPattern] = useState("#");
+
+  // A stream started before this panel mounted keeps running, so the box shows
+  // what is actually being watched rather than the default it opens with.
+  const adopted = stream.filters[0];
+  useEffect(() => {
+    if (adopted != null && adopted !== "") setPattern(adopted);
+  }, [adopted]);
   const [qos, setQos] = useState("0");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<number | null>(null);

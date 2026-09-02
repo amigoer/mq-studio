@@ -460,7 +460,25 @@
       "name": "Redis Stream"
     },
     "mqtt": {
-      "name": "MQTT"
+      "name": "MQTT",
+      "terms": {
+        "destination": "Topic",
+        "destinationPlural": "Topics",
+        "subscription": "Subscription",
+        "subscriptionPlural": "Subscriptions",
+        "node": "Broker",
+        "nodePlural": "Brokers",
+        "namespace": "Broker",
+        "backlog": "Queued"
+      },
+      "degraded": {
+        "sysRefused": "The broker refused a subscription to its $SYS tree. That is a rule rather than a fault — EMQX denies it to any client that is not local — so the figures come from its management API instead where there is one. To read $SYS, allow the subscription in the broker's authorisation.",
+        "sysSilent": "The broker took the subscription and publishes no $SYS tree at all. There is nothing to configure: this broker simply does not report on itself, and the pages that would read it stay empty.",
+        "managementAbsent": "This connection names no management API, and MQTT itself cannot say who is connected — there is no such request in the protocol. Mosquitto has no such API at all; EMQX and its peers do, and its address goes in the connection's advanced settings.",
+        "managementUnreachable": "The management API named on this connection did not answer. The address and port are in the connection's advanced settings; the broker's own MQTT port is a different one.",
+        "managementCredentials": "The management API refused the API key. Check the key and secret in the connection's advanced settings — on EMQX they are created in its dashboard under API keys, and are not the dashboard login.",
+        "managementUnknown": "Something answered at that address and it was not this broker's management API. The address is most likely off by a port, or a proxy is in front of a broker that has no such API."
+      }
     }
   },
   "shell": {
@@ -586,7 +604,7 @@
         "subscribe": "Subscribe",
         "producer": "Publish",
         "clients": "Clients / sessions",
-        "cluster": "$SYS",
+        "cluster": "Nodes",
         "alerts": "Alerts"
       }
     }
@@ -1974,9 +1992,9 @@
         "inflightQueued": "Inflight/queued",
         "online6d": "Online 6d",
         "offline1h": "Offline · session kept 1h",
-        "subsCount": "Subscriptions (4)",
-        "keepAlive": "60s · last heartbeat 3s ago",
-        "cleanStart": "false · session expiry 3600s",
+        "subsCount": "Subscriptions",
+        "keepAlive": "Keep alive",
+        "cleanStart": "Clean start",
         "inflightWindow": "Inflight window",
         "rxTx": "Rx / tx",
         "will": "Will: iot/device/status/A19F = offline · QoS1 · retain",
@@ -2539,17 +2557,9 @@
     },
     "mqtt": {
       "topicTree": "Topic tree",
-      "subscribe": "+ Subscribe",
-      "subscribed": "2 subscribed · 2 000 buffered",
-      "autoResume": "Subscriptions resume after a disconnect",
-      "subscribing": "Subscribed",
+      "subscribe": "Subscribe",
       "filter": "Filter payloads…",
-      "allQos": "All QoS",
-      "rate": "412 msg/s · auto-scrolling",
-      "exportNdjson": "Export NDJSON",
       "userProps": "User properties · MQTT 5",
-      "sameTopic": "History for this topic",
-      "publishTemplate": "Publish from this as a template",
       "subscribedTo": "watching {{pattern}} · {{count}} seen",
       "notSubscribed": "nothing subscribed",
       "stop": "Stop",

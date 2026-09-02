@@ -656,3 +656,46 @@ func TestLiveEMQXListsTopicsThroughTheManagementApi(t *testing.T) {
 		time.Sleep(300 * time.Millisecond)
 	}
 }
+
+/*
+ * A refusal a person can act on.
+ *
+ * EMQX's default authorisation denies a subscription to exactly "#", which is
+ * the filter the workbench opens with - so the first thing anyone tries on the
+ * commonest managed broker fails. The libraries pass the broker's own answer
+ * through and it is empty: "failed to subscribe to topic:" with nothing after
+ * the colon is what reached the screen.
+ */
+func TestLiveEMQXRefusesSubscribingToEverythingReadably(t *testing.T) {
+	requireEMQX(t)
+
+	conn := liveConn(t, managedLiveProfile(protocol5))
+
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
+	_, err := conn.StartLiveSubscription(ctx, model.LiveSubscriptionSpec{
+		Filters: []model.LiveFilter{{Pattern: "#"}},
+	})
+	if err == nil {
+		t.Fatal("EMQX accepted a subscription to #; its default authorisation denies one")
+	}
+	for _, want := range []string{"refused", `"#"`, "narrower filter"} {
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("the refusal does not mention %q: %v", want, err)
+		}
+	}
+
+	// And a narrower filter is accepted, so the advice the message gives is
+	// advice that works.
+	narrow := liveTopic(t, "narrow") + "/#"
+	subscription, err := conn.StartLiveSubscription(ctx, model.LiveSubscriptionSpec{
+		Filters: []model.LiveFilter{{Pattern: narrow}},
+	})
+	if err != nil {
+		t.Fatalf("EMQX refused %q as well, so the message sends people nowhere: %v", narrow, err)
+	}
+	stopCtx, stopCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer stopCancel()
+	_ = conn.StopLiveSubscription(stopCtx, subscription.ID)
+}

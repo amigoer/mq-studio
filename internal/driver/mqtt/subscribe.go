@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/amigoer/mq-studio/internal/model"
@@ -201,7 +202,7 @@ func (c *Conn) StartLiveSubscription(
 		c.streamsMu.Lock()
 		delete(c.streams, id)
 		c.streamsMu.Unlock()
-		return nil, err
+		return nil, subscribeFailure(subscriptions, err)
 	}
 	return live.snapshot(), nil
 }
@@ -405,6 +406,31 @@ func filterQoS(filter model.LiveFilter) (byte, error) {
 		return 0, fmt.Errorf("qos must be 0, 1 or 2, not %q", raw)
 	}
 	return byte(qos), nil
+}
+
+// subscribeFailure says which filter was refused and, for the one refusal that
+// is a broker policy rather than a mistake, what to do about it.
+//
+// The libraries pass the broker's own answer through, and it is often empty -
+// "failed to subscribe to topic:" with nothing after the colon is what a user
+// saw. Worse, the commonest cause is a rule rather than a fault: EMQX's
+// default authorisation denies a subscription to exactly "#", so the obvious
+// first thing anyone tries is the one thing that does not work.
+func subscribeFailure(filters []subscribeFilter, cause error) error {
+	patterns := make([]string, 0, len(filters))
+	for _, filter := range filters {
+		patterns = append(patterns, filter.Pattern)
+	}
+	joined := strings.Join(patterns, ", ")
+
+	for _, filter := range filters {
+		if filter.Pattern == "#" {
+			return fmt.Errorf(
+				"the broker refused a subscription to %q: many brokers deny subscribing to "+
+					"everything, so try a narrower filter such as sensors/# (%w)", joined, cause)
+		}
+	}
+	return fmt.Errorf("the broker refused a subscription to %q: %w", joined, cause)
 }
 
 func streamID() string {

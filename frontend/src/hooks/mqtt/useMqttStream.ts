@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  getMqttSubscriptions,
   pollMqttSubscription,
   startMqttSubscription,
   stopMqttSubscription,
@@ -18,6 +19,12 @@ const KEEP = 500;
 export interface MqttStream {
   /** Newest last, the order the stream appends in. */
   messages: LiveMessage[];
+  /**
+   * The filters the running stream subscribed to, so a panel that remounted
+   * onto an existing one can show what it is watching rather than its own
+   * empty box.
+   */
+  filters: string[];
   /** True while a subscription is open. */
   running: boolean;
   /**
@@ -57,6 +64,7 @@ export interface MqttStream {
 export function useMqttStream(): MqttStream {
   const { id: connID } = useConnectionScope();
   const [messages, setMessages] = useState<LiveMessage[]>([]);
+  const [filters, setFilters] = useState<string[]>([]);
   const [running, setRunning] = useState(false);
   const [live, setLive] = useState(true);
   const [received, setReceived] = useState(0);
@@ -74,6 +82,7 @@ export function useMqttStream(): MqttStream {
     const id = subscription.current;
     subscription.current = null;
     setRunning(false);
+    setFilters([]);
     if (id == null || connection.current === 0) return;
     // The stop is fire and forget: the panel is already closing, and a failure
     // to unsubscribe is the broker's to notice on the next disconnect.
@@ -103,6 +112,7 @@ export function useMqttStream(): MqttStream {
       void startMqttSubscription(id, input)
         .then((started) => {
           subscription.current = started.id;
+          setFilters((started.filters ?? []).map((filter) => filter?.pattern ?? ""));
           setRunning(true);
         })
         .catch((cause: unknown) => {
@@ -153,8 +163,42 @@ export function useMqttStream(): MqttStream {
     };
   }, [running]);
 
-  // Unmounting stops the subscription on the broker, not just the polling.
-  useEffect(() => stop, [stop]);
+  /*
+   * A stream outlives the panel that started it.
+   *
+   * Unmounting used to stop it, which made two things impossible that the rest
+   * of this driver was built for. Publishing and watching it arrive is one
+   * page and then the other, so the stream was always stopped before the
+   * message existed - and MQTT keeps no history, so coming back could not
+   * recover it. It also made the driver's own LiveSubscriptions dead code,
+   * whose whole purpose is letting a panel find its stream again.
+   *
+   * So the lifetime is the user's: a stream runs until they stop it or the
+   * connection closes, and closing the connection drops it on the broker too.
+   * On mount the panel adopts whatever is already running.
+   */
+  useEffect(() => {
+    const id = connection.current;
+    if (id === 0 || subscription.current != null) return;
 
-  return { messages, running, live, received, dropped, error, start, stop, clear };
+    let cancelled = false;
+    void getMqttSubscriptions(id)
+      .then((existing) => {
+        const adopted = existing[0];
+        if (cancelled || adopted == null) return;
+        subscription.current = adopted.id;
+        cursor.current = 0;
+        setFilters((adopted.filters ?? []).map((filter) => filter?.pattern ?? ""));
+        setRunning(true);
+      })
+      .catch(() => {
+        // A connection that cannot list its streams has none to adopt, and
+        // the panel is perfectly usable starting a new one.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [connID]);
+
+  return { messages, filters, running, live, received, dropped, error, start, stop, clear };
 }

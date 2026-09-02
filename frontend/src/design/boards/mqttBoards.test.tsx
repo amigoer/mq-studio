@@ -115,6 +115,7 @@ beforeAll(async () => {
 function streamOf(over: Record<string, unknown> = {}) {
   return {
     messages: [],
+    filters: [],
     running: false,
     live: true,
     received: 0,
@@ -320,6 +321,24 @@ describe("the MQTT subscribe workbench", () => {
       messages: [{ ...arrival, attributes: { qos: "1", retained: "true" } }],
     });
     expect(render(<MqttWorkbench />)).toContain("保留");
+  });
+
+  /*
+   * A stream outlives the panel that started it, so a panel that remounts onto
+   * one shows what is actually being watched rather than the default it opens
+   * with. It used to stop on unmount, which made publishing on one page and
+   * watching on another impossible - the stream was always gone before the
+   * message existed, and MQTT keeps no history to recover it from.
+   */
+  it("shows the filter of a stream that was already running", () => {
+    streamState.current = streamOf({
+      running: true,
+      filters: ["sensors/#"],
+      messages: [arrival],
+    });
+    const html = render(<MqttWorkbench />);
+    expect(html).toContain("sensors/#");
+    expect(html).not.toContain("尚未订阅");
   });
 
   it("renders a failed subscription", () => {

@@ -1,10 +1,20 @@
 import { Fragment } from "react";
 import { useTranslation } from "react-i18next";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
-import { PROTOCOLS, type PageId, type ProtocolId } from "@/design/data/protocols";
+import {
+  PROTOCOLS,
+  type PageId,
+  type ProtocolId,
+} from "@/design/data/protocols";
 import { useCapabilities } from "@/mq/capabilities";
 import { useConnectionScope } from "@/mq/ConnectionScope";
 import { navAvailability } from "@/mq/navigation";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 /*
@@ -47,62 +57,113 @@ export function Sidebar({
   const nav = navAvailability(capabilities, online);
 
   return (
-    <nav className={cn("side3", collapsed && "side3--rail")}>
-      {PROTOCOLS[protocol].nav.map((group, gi) => {
-        const items = group.items.filter(({ id }) => nav.visible(id));
-        if (items.length === 0) return null;
-        return (
-          <Fragment key={group.label ?? `g${gi}`}>
-            {group.label != null && <div className="gl">{t(group.label)}</div>}
-            {items.map(({ id, icon: Icon, label }) => {
-              const disabled = nav.disabled(id);
-              const reason = disabled ? nav.reason(id) : undefined;
-              return (
-                <button
-                  key={id}
-                  type="button"
-                  disabled={disabled}
-                  aria-current={id === active ? "page" : undefined}
-                  className={cn("ni", id === active && "on")}
-                  /* The label is the only thing naming the icon once it is
+    // delayDuration 0 is the primitive's default and wrong for a rail the
+    // pointer crosses on its way somewhere else: every entry would flash a
+    // tooltip. Half a second is long enough to mean the pointer stopped.
+    <TooltipProvider delayDuration={500}>
+      <nav className={cn("side3", collapsed && "side3--rail")}>
+        {PROTOCOLS[protocol].nav.map((group, gi) => {
+          const items = group.items.filter(({ id }) => nav.visible(id));
+          if (items.length === 0) return null;
+          return (
+            <Fragment key={group.label ?? `g${gi}`}>
+              {group.label != null && (
+                <div className="gl">{t(group.label)}</div>
+              )}
+              {items.map(({ id, icon: Icon, label }) => {
+                const disabled = nav.disabled(id);
+                const reason = disabled ? nav.reason(id) : undefined;
+                /*
+                 * The tooltip is a component rather than the title attribute.
+                 *
+                 * WKWebView, which is what this app renders in, does not show
+                 * HTML title tooltips at all - so the reason a page is blocked
+                 * was computed, translated, and then invisible in every build.
+                 * The attribute stays for assistive technology and for anything
+                 * reading the markup; what a person sees is this.
+                 */
+                const hint = [
+                  collapsed ? t(label) : null,
+                  reason == null ? null : t(reason),
+                ]
+                  .filter(Boolean)
+                  .join(" · ");
+                const entry = (
+                  <button
+                    key={id}
+                    type="button"
+                    /* aria-disabled rather than disabled, because the reason
+                     below is the whole point of keeping the entry: a disabled
+                     button receives no pointer events, so its title tooltip
+                     never appears and the explanation is computed, translated
+                     and then invisible. The click is guarded instead. */
+                    aria-disabled={disabled || undefined}
+                    aria-current={id === active ? "page" : undefined}
+                    className={cn("ni", id === active && "on")}
+                    /* The label is the only thing naming the icon once it is
                      gone; a blocked entry adds why it cannot be opened. The
                      reason is a translation key - drivers report keys, not
                      sentences - and it was going into the tooltip raw, so a
                      degraded entry explained itself as
                      "mq.kafka.degraded.accessControl". */
-                  title={
-                    [collapsed ? t(label) : null, reason == null ? null : t(reason)]
-                      .filter(Boolean)
-                      .join(" · ") || undefined
-                  }
-                  onClick={() => onSelect?.(id)}
-                >
-                  <span className="nic">
-                    <Icon size={ICON} aria-hidden />
-                  </span>
-                  <span className="nil">{t(label)}</span>
-                </button>
-              );
-            })}
-          </Fragment>
-        );
-      })}
+                    title={hint || undefined}
+                    onClick={() => {
+                      if (disabled) return;
+                      onSelect?.(id);
+                    }}
+                  >
+                    <span className="nic">
+                      <Icon size={ICON} aria-hidden />
+                    </span>
+                    <span className="nil">{t(label)}</span>
+                  </button>
+                );
 
-      <div style={{ flex: 1 }} />
+                if (hint === "") return entry;
+                return (
+                  <Tooltip key={id}>
+                    <TooltipTrigger asChild>{entry}</TooltipTrigger>
+                    {/* A degraded reason is a couple of sentences, not a label:
+                      without a width it runs off the side of the window. */}
+                  <TooltipContent
+                    side="right"
+                    className="max-w-80 text-xs leading-relaxed whitespace-normal"
+                  >
+                    {hint}
+                  </TooltipContent>
+                  </Tooltip>
+                );
+              })}
+            </Fragment>
+          );
+        })}
 
-      <button
-        type="button"
-        className="ni side3-toggle"
-        aria-expanded={!collapsed}
-        aria-label={collapsed ? t("shell.sidebar.expand") : t("shell.sidebar.collapse")}
-        title={collapsed ? t("shell.sidebar.expandTitle") : t("shell.sidebar.collapseTitle")}
-        onClick={onToggle}
-      >
-        <span className="nic">
-          {collapsed ? <PanelLeftOpen size={ICON} aria-hidden /> : <PanelLeftClose size={ICON} aria-hidden />}
-        </span>
-        <span className="nil">{t("shell.sidebar.collapseItem")}</span>
-      </button>
-    </nav>
+        <div style={{ flex: 1 }} />
+
+        <button
+          type="button"
+          className="ni side3-toggle"
+          aria-expanded={!collapsed}
+          aria-label={
+            collapsed ? t("shell.sidebar.expand") : t("shell.sidebar.collapse")
+          }
+          title={
+            collapsed
+              ? t("shell.sidebar.expandTitle")
+              : t("shell.sidebar.collapseTitle")
+          }
+          onClick={onToggle}
+        >
+          <span className="nic">
+            {collapsed ? (
+              <PanelLeftOpen size={ICON} aria-hidden />
+            ) : (
+              <PanelLeftClose size={ICON} aria-hidden />
+            )}
+          </span>
+          <span className="nil">{t("shell.sidebar.collapseItem")}</span>
+        </button>
+      </nav>
+    </TooltipProvider>
   );
 }

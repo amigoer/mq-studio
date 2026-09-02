@@ -460,7 +460,25 @@
       "name": "Redis Stream"
     },
     "mqtt": {
-      "name": "MQTT"
+      "name": "MQTT",
+      "terms": {
+        "destination": "主题",
+        "destinationPlural": "主题",
+        "subscription": "订阅",
+        "subscriptionPlural": "订阅",
+        "node": "Broker",
+        "nodePlural": "Broker",
+        "namespace": "Broker",
+        "backlog": "排队消息"
+      },
+      "degraded": {
+        "sysRefused": "broker 拒绝了对它 $SYS 树的订阅。这是规则而不是故障——EMQX 默认就拒绝所有非本机客户端——所以有管理 API 时这些数字改从那里读。想读 $SYS，需要在 broker 的授权配置里放行这个订阅。",
+        "sysSilent": "broker 接受了订阅，但根本不发布 $SYS 树。这没有什么可配置的：这个 broker 就是不上报自己的状态，依赖它的页面会保持空白。",
+        "managementAbsent": "这条连接没有填管理 API，而 MQTT 协议本身查不出谁连着——协议里没有这个请求。Mosquitto 完全没有这类接口；EMQX 等有，地址填在连接的高级设置里。",
+        "managementUnreachable": "这条连接填的管理 API 地址没有响应。地址和端口在连接的高级设置里；注意它和 broker 的 MQTT 端口不是同一个。",
+        "managementCredentials": "管理 API 拒绝了这个 API Key。请检查连接高级设置里的 Key 与 Secret——在 EMQX 上它们是在控制台的 API 密钥里创建的，不是控制台的登录账号。",
+        "managementUnknown": "那个地址上有东西应答，但不是这个 broker 的管理 API。多半是端口填错了，或者前面挡了一层代理而后面的 broker 并没有这类接口。"
+      }
     }
   },
   "shell": {
@@ -586,7 +604,7 @@
         "subscribe": "订阅监听",
         "producer": "发布",
         "clients": "客户端 / 会话",
-        "cluster": "$SYS",
+        "cluster": "节点",
         "alerts": "告警"
       }
     }
@@ -1974,9 +1992,9 @@
         "inflightQueued": "飞行/队列",
         "online6d": "在线 6d",
         "offline1h": "离线 · 会话保留 1h",
-        "subsCount": "订阅（4）",
-        "keepAlive": "60s · 最后心跳 3s 前",
-        "cleanStart": "false · 会话过期 3600s",
+        "subsCount": "订阅",
+        "keepAlive": "心跳间隔",
+        "cleanStart": "清理会话",
         "inflightWindow": "飞行窗口",
         "rxTx": "收 / 发",
         "will": "遗嘱：iot/device/status/A19F = offline · QoS1 · retain",
@@ -2539,17 +2557,9 @@
     },
     "mqtt": {
       "topicTree": "主题树",
-      "subscribe": "+ 订阅",
-      "subscribed": "已订阅 2 · 缓冲 2 000 条",
-      "autoResume": "断开后订阅自动恢复",
-      "subscribing": "订阅中",
+      "subscribe": "订阅",
       "filter": "payload 关键字过滤…",
-      "allQos": "全部 QoS",
-      "rate": "412 msg/s · 自动滚动",
-      "exportNdjson": "导出 NDJSON",
       "userProps": "用户属性 · MQTT 5",
-      "sameTopic": "历史同主题",
-      "publishTemplate": "以此为模板发布",
       "subscribedTo": "正在订阅 {{pattern}} · 已收到 {{count}} 条",
       "notSubscribed": "尚未订阅",
       "stop": "停止",
