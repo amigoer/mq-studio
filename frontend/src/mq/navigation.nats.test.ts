@@ -20,7 +20,13 @@ import type { CapabilityState } from "./capabilities";
  * entry at a time: a capability with no port behind it fails conformance, so
  * each arrives in the commit that implements it.
  */
-const NATS_CAPABILITIES: Capability[] = [];
+const NATS_CAPABILITIES: Capability[] = [
+  Capability.CapDestinationList,
+  Capability.CapDestinationCreate,
+  Capability.CapDestinationUpdate,
+  Capability.CapDestinationDelete,
+  Capability.CapPartitions,
+];
 
 function state(
   supported: Capability[],
@@ -80,8 +86,16 @@ describe("the sidebar a NATS connection draws", () => {
    * account was denied it read differently to whoever is looking.
    */
   it("explains a page a tier could not answer rather than hiding it", () => {
+    // Degraded means gone from Supported, not listed in both: model.Capabilities
+    // .WithDegraded drops it from one as it adds it to the other, precisely so
+    // the UI never has to choose between drawing the control and explaining its
+    // absence. A fixture that left it supported would test a state the driver
+    // cannot produce.
+    const withoutJetStream = NATS_CAPABILITIES.filter(
+      (capability) => capability !== Capability.CapDestinationList,
+    );
     const nav = navAvailability(
-      state(NATS_CAPABILITIES, {
+      state(withoutJetStream, {
         [Capability.CapDestinationList]: "mq.nats.degraded.jetstreamDisabled",
       }),
       true,

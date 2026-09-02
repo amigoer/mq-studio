@@ -1,4 +1,5 @@
-// Package timestamp formats timestamps returned by RocketMQ service models.
+// Package timestamp formats the timestamps drivers report, in one display
+// format so two boards never spell the same instant differently.
 package timestamp
 
 import "time"
@@ -18,4 +19,16 @@ func FromUnixMilli(milliseconds int64) string {
 		return ""
 	}
 	return time.UnixMilli(milliseconds).Format("2006-01-02 15:04:05")
+}
+
+// FromTime formats a time a driver was handed as a time.Time.
+//
+// Same rule as above: the zero value becomes an empty string rather than
+// 1970. A JetStream stream with no messages reports a zero first and last
+// time, and rendering those as dates would invent two events.
+func FromTime(moment time.Time) string {
+	if moment.IsZero() {
+		return ""
+	}
+	return moment.Format("2006-01-02 15:04:05")
 }

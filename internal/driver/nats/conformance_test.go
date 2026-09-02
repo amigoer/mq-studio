@@ -294,7 +294,13 @@ func TestEveryStoredKeyIsOnTheForm(t *testing.T) {
  * the fix is never in this file alone.
  */
 func TestCapabilitiesMatchTheSidebarContract(t *testing.T) {
-	sidebar := []string{}
+	sidebar := []string{
+		"destination.list",
+		"destination.create",
+		"destination.update",
+		"destination.delete",
+		"destination.partitions",
+	}
 
 	declared := make(map[string]bool, len(capabilities()))
 	for _, capability := range capabilities() {

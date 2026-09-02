@@ -22,6 +22,7 @@ import { DefinitionsRabbitMQ } from "./boards/definitions/DefinitionsRabbitMQ";
 import { ReplicationRabbitMQ } from "./boards/replication/ReplicationRabbitMQ";
 import { TopicsMqtt } from "./boards/topics/TopicsMqtt";
 import { StreamsRedis } from "./boards/topics/StreamsRedis";
+import { StreamsNats } from "./boards/topics/StreamsNats";
 
 import { ConsumersRocketMQ } from "./boards/consumers/ConsumersRocketMQ";
 import { ConsumersKafka } from "./boards/consumers/ConsumersKafka";
@@ -115,6 +116,7 @@ const BOARDS: Partial<
     pulsar: TopicsPulsar,
     redis: StreamsRedis,
     mqtt: TopicsMqtt,
+    nats: StreamsNats,
   },
   exchanges: { rabbitmq: ExchangesRabbitMQ },
   vhosts: { rabbitmq: VhostsRabbitMQ, pulsar: NamespacesPulsar },

@@ -266,6 +266,10 @@ export const PROTOCOLS: Record<ProtocolId, Protocol> = {
        does report. */
     nav: [
       { items: [{ id: "overview", icon: House, label: "shell.nav.nats.overview" }] },
+      {
+        label: BROWSE,
+        items: [{ id: "topics", icon: Layers, label: "shell.nav.nats.topics" }],
+      },
     ],
   },
 };

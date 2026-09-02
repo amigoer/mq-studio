@@ -80,13 +80,44 @@ func (c *Conn) Close() error {
 	return nil
 }
 
+// The capabilities, grouped by the tier that answers them.
+//
+// Grouped rather than listed flat because the grouping is this driver's whole
+// shape: which tier a capability belongs to is what decides whether a
+// connection keeps it, and a flat list plus a separate degrade table would be
+// two places to add a capability and one place to forget.
+var (
+	// protocolCapabilities need nothing but a connection, so they never
+	// degrade: a connection that opened can do them.
+	protocolCapabilities = []model.Capability{}
+
+	// jetStreamCapabilities go when the persistence layer does.
+	jetStreamCapabilities = []model.Capability{
+		model.CapDestinationList,
+		model.CapDestinationCreate,
+		model.CapDestinationUpdate,
+		model.CapDestinationDelete,
+		model.CapPartitions,
+	}
+
+	// clusterCapabilities are answered by the monitoring endpoint or by the
+	// system account, so they survive either one being absent and go only when
+	// both are.
+	clusterCapabilities = []model.Capability{}
+)
+
 // capabilities is the family's best case.
 //
 // It grows one port at a time: CheckConformance fails a capability with no
 // interface behind it, so each one arrives in the commit that implements it
 // rather than as a promise the connection cannot keep.
 func capabilities() []model.Capability {
-	return []model.Capability{}
+	all := make([]model.Capability, 0,
+		len(protocolCapabilities)+len(jetStreamCapabilities)+len(clusterCapabilities))
+	all = append(all, protocolCapabilities...)
+	all = append(all, jetStreamCapabilities...)
+	all = append(all, clusterCapabilities...)
+	return all
 }
 
 // tiers is which of the four sources answered, and why the others did not.
@@ -126,7 +157,29 @@ func (c *Conn) probe(ctx context.Context) {
 // standing up a server for each of eight would be slow and would still not
 // cover the ones no server can produce.
 func (c *Conn) declare() model.Capabilities {
-	return model.NewCapabilities(capabilities()...)
+	declared := model.NewCapabilities(capabilities()...)
+
+	// Degraded rather than absent, and that distinction is the whole point of
+	// the middle state: a server without JetStream still has streams as a
+	// concept, so the page stays in the sidebar and says why it is empty. A
+	// page that vanished would read as an app that had lost a feature.
+	if !c.tiers.jetStream {
+		for _, capability := range jetStreamCapabilities {
+			declared = declared.WithDegraded(capability, c.tiers.jetStreamReason)
+		}
+	}
+
+	// The cluster pages take whichever of the two sources answered. The
+	// reason reported when neither did is the system account's, because that
+	// is the one that would answer for the whole cluster - the monitoring
+	// endpoint would answer for one server, and telling somebody to configure
+	// the lesser of the two first is the wrong order to fix it in.
+	if !c.tiers.system && !c.tiers.monitor {
+		for _, capability := range clusterCapabilities {
+			declared = declared.WithDegraded(capability, c.tiers.systemReason)
+		}
+	}
+	return declared
 }
 
 // probeJetStream asks the account what its JetStream limits are, which is the
