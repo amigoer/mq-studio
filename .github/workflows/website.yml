@@ -63,6 +63,11 @@ jobs:
       - name: Type check
         run: npm --prefix website run type-check
 
+      # The changelog parser is hand-written; its tests pin the paragraph and
+      # CJK join rules against lines taken from the real files.
+      - name: Test
+        run: npm --prefix website test
+
       # The build refreshes src/data/release.json from the GitHub API first. The
       # token lifts the anonymous 60/hour limit, and the script falls back to the
       # committed copy rather than failing if the call does not work out.
@@ -163,6 +168,28 @@ jobs:
                 if (bare) {
                   console.error(process.argv[1] + ": unlinked issue reference " + bare[0]);
                   process.exit(1);
+                }
+                const fail = (m) => { console.error(process.argv[1] + ": " + m); process.exit(1); };
+                // The files wrap at 80 columns and the parser joins the lines.
+                // A space between two CJK characters means the join regressed.
+                // A literal space on purpose: the docs keep their soft breaks
+                // as newlines, which the browser drops on its own. Code spans
+                // become a letter rather than nothing, because the files do
+                // write a space on either side of inline code.
+                const text = article
+                  .replace(/<code[^>]*>[\s\S]*?<\/code>/g, "x")
+                  .replace(/<[^>]+>/g, "\n");
+                const cjk = "[\\u2e80-\\u303f\\u3400-\\u4dbf\\u4e00-\\u9fff\\uf900-\\ufaff\\uff00-\\uffef]";
+                const gap = new RegExp(cjk + " +" + cjk).exec(text);
+                if (gap) fail("wrapped Chinese joined with a space: " + JSON.stringify(gap[0]));
+                // No release intro runs past two paragraphs; more means the
+                // parser is splitting wrapped lines into paragraphs again.
+                const intro = ((article.match(/<div data-changelog-intro[^>]*>([\s\S]*?)<\/div>/) || ["", ""])[1].match(/<p[\s>]/g) || []).length;
+                if (intro > 3) fail(intro + " intro paragraphs; wrapped lines are being split again");
+                // A bold line is a sub-section title. One the length of a
+                // paragraph is a paragraph that fell through to that branch.
+                for (const m of article.matchAll(/<p[^>]*data-subheading[^>]*>([\s\S]*?)<\/p>/g)) {
+                  if (m[1].replace(/<[^>]+>/g, "").length > 80) fail("a subheading is paragraph-length: " + m[1].slice(0, 40));
                 }
               ' "$page"
             done

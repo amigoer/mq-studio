@@ -9,7 +9,8 @@
     "build": "node ../scripts/fetch-release.mjs && node ../scripts/fetch-community.mjs && astro check && astro build",
     "build:fast": "astro build",
     "preview": "astro preview",
-    "type-check": "astro check"
+    "type-check": "astro check",
+    "test": "node --test test/*.test.ts"
   },
   "engines": {
     "node": "^20.19.0 || >=22.12.0"
