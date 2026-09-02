@@ -27,6 +27,7 @@ const ROWS: readonly { page: string; strategy: Strategy; note: string }[] = [
   { page: "board.docs.reuse.mqttPage", strategy: "separate", note: "board.docs.reuse.mqttNote" },
   { page: "board.docs.reuse.pulsarPage", strategy: "adapt", note: "board.docs.reuse.pulsarNote" },
   { page: "board.docs.reuse.redisPage", strategy: "adapt", note: "board.docs.reuse.redisNote" },
+  { page: "board.docs.reuse.natsPage", strategy: "adapt", note: "board.docs.reuse.natsNote" },
 ];
 
 /** Board 4d — how each page is built across protocols. */

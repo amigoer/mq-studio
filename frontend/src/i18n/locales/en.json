@@ -3467,6 +3467,8 @@
         "pulsarNote": "A tenant / namespace cascade above the topics page; the rest is the Kafka view",
         "redisPage": "Redis Stream PEL / claim",
         "redisNote": "A PEL (pending entries) table and XCLAIM actions inside the consumer-groups page",
+        "natsPage": "NATS streams / consumers / subjects workbench",
+        "natsNote": "JetStream fills the topics and consumer-groups skeletons; core NATS keeps nothing, so the subjects workbench is its own page and the accounts page is read-only",
         "reuse": "Reuse",
         "adapt": "Adapt",
         "separate": "Separate",

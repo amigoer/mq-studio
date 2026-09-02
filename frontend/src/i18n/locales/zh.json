@@ -3467,6 +3467,8 @@
         "pulsarNote": "Topic 页顶部加 tenant / namespace 级联选择，其余同 Kafka 视图",
         "redisPage": "Redis Stream PEL / claim",
         "redisNote": "消费者组页内加 PEL（待确认列表）表和 XCLAIM 操作",
+        "natsPage": "NATS 流 / 消费者 / 主题订阅台",
+        "natsNote": "JetStream 套进 topics 和消费者组的骨架；核心 NATS 什么都不存，所以订阅台是独立的一页，账户页只读",
         "reuse": "复用",
         "adapt": "适配复用",
         "separate": "独立",
