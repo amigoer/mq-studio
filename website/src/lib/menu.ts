@@ -1,11 +1,20 @@
 import type { Content } from '@/i18n/types';
-import { linux, mac, windows } from './downloads';
+import { formatSize, linux, mac, windows, type ReleaseFile } from './downloads';
 
 export interface DownloadRow {
   label: string;
   file: string;
   href: string;
+  /** Already formatted: the menu is markup, not a script. */
+  size: string;
 }
+
+const row = (label: string, file: ReleaseFile): DownloadRow => ({
+  label,
+  file: file.name,
+  href: file.url,
+  size: formatSize(file.size),
+});
 
 export interface DownloadGroup {
   name: string;
@@ -21,30 +30,20 @@ export function downloadGroups(c: Content): DownloadGroup[] {
     {
       name: p.mac.name,
       platform: 'mac',
-      rows: [
-        { label: a.arm64, file: mac('arm64').name, href: mac('arm64').url },
-        { label: a.amd64, file: mac('amd64').name, href: mac('amd64').url },
-      ],
+      rows: [row(a.arm64, mac('arm64')), row(a.amd64, mac('amd64'))],
     },
     {
       name: p.windows.name,
       platform: 'windows',
-      rows: [
-        { label: a.winAmd64, file: windows('amd64').name, href: windows('amd64').url },
-        { label: a.winArm64, file: windows('arm64').name, href: windows('arm64').url },
-      ],
+      rows: [row(a.winAmd64, windows('amd64')), row(a.winArm64, windows('arm64'))],
     },
     {
       name: p.linux.name,
       platform: 'linux',
       rows: [
-        { label: `.deb · ${a.winAmd64}`, file: linux('amd64', 'deb').name, href: linux('amd64', 'deb').url },
-        { label: `.rpm · ${a.winAmd64}`, file: linux('amd64', 'rpm').name, href: linux('amd64', 'rpm').url },
-        {
-          label: `AppImage · ${a.winAmd64}`,
-          file: linux('amd64', 'AppImage').name,
-          href: linux('amd64', 'AppImage').url,
-        },
+        row(`.deb · ${a.winAmd64}`, linux('amd64', 'deb')),
+        row(`.rpm · ${a.winAmd64}`, linux('amd64', 'rpm')),
+        row(`AppImage · ${a.winAmd64}`, linux('amd64', 'AppImage')),
       ],
     },
   ];

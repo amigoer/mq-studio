@@ -38,6 +38,17 @@ export function switchLocale(pathname: string, target: Locale): string {
   return localePath(target, stripLocale(pathname));
 }
 
+/**
+ * "2026年9月3日" / "September 3, 2026" for a release date. UTC, so the date
+ * written in the changelog is the date shown whichever machine builds.
+ */
+export function formatDate(iso: string, locale: Locale): string {
+  return new Intl.DateTimeFormat(locale === 'zh' ? 'zh-CN' : 'en-US', {
+    dateStyle: 'long',
+    timeZone: 'UTC',
+  }).format(new Date(iso));
+}
+
 /** BCP 47 tags for <link rel="alternate" hreflang>. */
 export const HREFLANG: Record<Locale, string> = { zh: 'zh-Hans', en: 'en' };
 

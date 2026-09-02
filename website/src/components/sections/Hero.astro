@@ -1,5 +1,5 @@
 ---
-import { t, type Locale } from '@/i18n';
+import { t, localePath, type Locale } from '@/i18n';
 import { RELEASE, mac, windows, linux } from '@/lib/downloads';
 import { downloadGroups } from '@/lib/menu';
 import DownloadMenu from '@/components/widgets/DownloadMenu.astro';
@@ -22,18 +22,18 @@ const targets = {
 
 <section id="top" class="mx-auto max-w-[1120px] px-6 pb-12 pt-16 text-center sm:pt-[88px]">
   <div
-    class="inline-flex items-center gap-2 rounded-full border border-border bg-muted px-3.5 py-1.5 text-[12.5px] text-muted-foreground"
+    class="inline-flex items-center gap-2 rounded-full border border-border bg-muted px-3.5 py-1.5 text-caption text-muted-foreground"
   >
     <span class="size-1.5 rounded-full bg-success" aria-hidden="true"></span>
     {RELEASE.tag} {c.hero.badgeSuffix}
   </div>
 
   <h1
-    class="mx-auto mb-4.5 mt-5.5 max-w-[760px] text-[34px] font-extrabold leading-[1.12] tracking-[-0.03em] text-balance sm:text-[44px] lg:text-[54px]"
+    class="mx-auto mb-4.5 mt-5.5 max-w-[760px] text-[34px] font-extrabold leading-[1.12] tracking-display text-balance sm:text-[44px] lg:text-[54px]"
   >
     {c.hero.title}
   </h1>
-  <p class="mx-auto max-w-[620px] text-base leading-[1.65] text-muted-foreground text-pretty sm:text-[17px]">
+  <p class="mx-auto max-w-[620px] text-prose text-muted-foreground text-pretty sm:text-lead">
     {c.hero.subtitle}
   </p>
 
@@ -47,17 +47,19 @@ const targets = {
       id="hero-download"
       groups={downloadGroups(c)}
       label={c.hero.downloadFallback}
+      labels={Object.values(targets).map((target) => target.label)}
+      menuLabel={c.nav.moreDownloads}
       primaryHref={RELEASE.htmlUrl}
       variant="hero"
       align="center"
     />
     <a
-      href="#download"
-      class="inline-flex h-11 items-center justify-center rounded-lg border border-border bg-background px-6 text-[15px] font-medium transition-colors hover:bg-secondary"
+      href={localePath(locale, 'docs/install')}
+      class="inline-flex h-11 items-center justify-center rounded-lg border border-border bg-background px-6 text-prose font-medium transition-colors hover:bg-secondary"
       >{c.hero.installGuide}</a
     >
   </div>
-  <p class="text-[12.5px] text-subtle-foreground">{c.hero.note}</p>
+  <p class="text-caption text-subtle-foreground">{c.hero.note}</p>
 </section>
 
 <script is:inline define:vars={{ targets }}>

@@ -113,6 +113,11 @@ const jsonLd = {
             stored === 'dark' ||
             (stored !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
           if (dark) document.documentElement.classList.add('dark');
+          // Same reason: hiding the announcement after first paint would
+          // shift the whole page up under a returning visitor.
+          if (localStorage.getItem('mq-studio:announcement-dismissed') === '1') {
+            document.documentElement.classList.add('no-announcement');
+          }
         } catch (error) {
           // Blocked storage: fall through to the light default.
         }
@@ -123,7 +128,7 @@ const jsonLd = {
   <body class="min-h-screen bg-background text-foreground">
     <a
       href="#top"
-      class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:text-primary-foreground"
+      class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-body focus:text-primary-foreground"
       >{c.nav.skipToContent}</a
     >
     <slot />

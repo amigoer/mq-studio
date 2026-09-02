@@ -33,13 +33,29 @@ export function rewriteDocHref(href) {
   return `${BLOB}${repoPath}${suffix}`;
 }
 
+/** The docs open with a link to their own translation, for GitHub's benefit. */
+const LANGUAGE_LINK = /^(English|简体中文|中文)$/;
+
 export const hastDocLinks = {
   name: 'doc-links',
   element: {
     filter: ['a'],
     visit(node, ctx) {
       const next = rewriteDocHref(node.properties?.href);
-      if (next) ctx.setProperty(node, 'href', next);
+      if (!next) return;
+      ctx.setProperty(node, 'href', next);
+
+      // The nav already switches language on every page, so a paragraph that
+      // is nothing but that link would sit above the first heading twice.
+      if (!next.startsWith('/')) return;
+      const parent = ctx.parent(node);
+      if (
+        parent?.type === 'element' &&
+        parent.tagName === 'p' &&
+        LANGUAGE_LINK.test(ctx.textContent(parent).trim())
+      ) {
+        ctx.removeNode(parent);
+      }
     },
   },
 };

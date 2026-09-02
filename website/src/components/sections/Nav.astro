@@ -3,7 +3,7 @@
 // raster to a 24px webp, which is soft on any 2x display. This is 526 bytes and
 // sharp at every density.
 import AppIcon from '@brand/appicon.svg';
-import { t, localePath, switchLocale, type Locale } from '@/i18n';
+import { t, localePath, switchLocale, stripLocale, type Locale } from '@/i18n';
 import { RELEASE, REPO_URL, LATEST_URL } from '@/lib/downloads';
 import { COMMUNITY, compact } from '@/lib/community';
 import { downloadGroups } from '@/lib/menu';
@@ -18,14 +18,21 @@ const c = t(locale);
 const other: Locale = locale === 'zh' ? 'en' : 'zh';
 // Derived from the URL so every route gets this for free.
 const otherHref = switchLocale(Astro.url.pathname, other);
-
+const here = stripLocale(Astro.url.pathname);
+// Section anchors carry the home path: on the landing page that is the same
+// document, from a subpage it is the way back to the section.
+const home = localePath(locale);
 
 const links = [
-  { label: c.nav.features, href: '#features' },
-  { label: c.nav.modules, href: '#modules' },
-  { label: c.nav.roadmap, href: '#roadmap' },
-  { label: c.nav.changelog, href: localePath(locale, 'changelog') },
-  { label: c.nav.docs, href: localePath(locale, 'docs/architecture') },
+  { label: c.nav.features, href: `${home}#features`, current: false },
+  { label: c.nav.modules, href: `${home}#modules`, current: false },
+  { label: c.nav.roadmap, href: `${home}#roadmap`, current: false },
+  {
+    label: c.nav.changelog,
+    href: localePath(locale, 'changelog'),
+    current: here === 'changelog' || here.startsWith('changelog/'),
+  },
+  { label: c.nav.docs, href: localePath(locale, 'docs/architecture'), current: here.startsWith('docs/') },
 ];
 ---
 
@@ -33,20 +40,24 @@ const links = [
   class="sticky top-0 z-50 border-b border-border bg-background/85 backdrop-blur-md supports-[backdrop-filter]:bg-background/85"
 >
   <nav class="mx-auto flex h-14 max-w-[1120px] items-center gap-3 px-4 sm:gap-4 sm:px-6 lg:gap-7">
-    <a href={localePath(locale)} class="flex flex-none items-center gap-2 whitespace-nowrap text-[15px] font-bold">
+    <a href={localePath(locale)} class="flex flex-none items-center gap-2 whitespace-nowrap text-prose font-bold">
       <AppIcon width={24} height={24} class="rounded-[5px]" aria-hidden="true" />
       MQ Studio
     </a>
     <a
       href={LATEST_URL}
-      class="-ml-2 hidden flex-none rounded-full border border-border bg-muted px-2.5 py-0.5 font-mono text-[11px] text-muted-foreground transition-colors hover:text-foreground sm:block"
+      class="-ml-2 hidden flex-none rounded-full border border-border bg-muted px-2.5 py-0.5 font-mono text-2xs text-muted-foreground transition-colors hover:text-foreground sm:block"
       >{RELEASE.tag}</a
     >
 
-    <div class="hidden gap-[22px] text-[13.5px] lg:flex">
+    <div class="hidden gap-[22px] text-ui lg:flex">
       {
         links.map((link) => (
-          <a href={link.href} class="whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground">
+          <a
+            href={link.href}
+            aria-current={link.current ? 'page' : undefined}
+            class="whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground aria-[current=page]:font-medium aria-[current=page]:text-foreground"
+          >
             {link.label}
           </a>
         ))
@@ -58,7 +69,7 @@ const links = [
            controls, so the disclosure menu carries it instead. -->
       <a
         href={otherHref}
-        class="hidden h-[34px] items-center whitespace-nowrap rounded-md px-2 text-[13px] text-muted-foreground transition-colors hover:text-foreground sm:inline-flex sm:px-2.5"
+        class="hidden h-[34px] items-center whitespace-nowrap rounded-md px-2 text-ui text-muted-foreground transition-colors hover:text-foreground sm:inline-flex sm:px-2.5"
         >{c.nav.languageLabel}</a
       >
 
@@ -82,7 +93,8 @@ const links = [
             links.map((link) => (
               <a
                 href={link.href}
-                class="block rounded-md px-2.5 py-2 text-[13px] font-medium transition-colors hover:bg-accent"
+                aria-current={link.current ? 'page' : undefined}
+                class="block rounded-md px-2.5 py-2 text-ui font-medium transition-colors hover:bg-accent aria-[current=page]:bg-secondary"
               >
                 {link.label}
               </a>
@@ -90,19 +102,19 @@ const links = [
           }
           <a
             href={REPO_URL}
-            class="block rounded-md px-2.5 py-2 text-[13px] font-medium transition-colors hover:bg-accent"
+            class="block rounded-md px-2.5 py-2 text-ui font-medium transition-colors hover:bg-accent"
             >{c.nav.github}</a
           >
           <a
             href={otherHref}
-            class="block rounded-md px-2.5 py-2 text-[13px] font-medium transition-colors hover:bg-accent sm:hidden"
+            class="block rounded-md px-2.5 py-2 text-ui font-medium transition-colors hover:bg-accent sm:hidden"
             >{c.nav.languageLabel}</a
           >
         </div>
       </details>
       <a
         href={REPO_URL}
-        class="hidden h-[34px] items-center gap-1.5 rounded-md border border-border bg-background px-3.5 text-[13px] font-medium transition-colors hover:bg-secondary lg:inline-flex"
+        class="hidden h-[34px] items-center gap-1.5 rounded-md border border-border bg-background px-3.5 text-ui font-medium transition-colors hover:bg-secondary lg:inline-flex"
       >
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted-foreground" aria-hidden="true">
           <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
@@ -120,7 +132,8 @@ const links = [
         id="nav-download"
         groups={downloadGroups(c)}
         label={c.nav.download}
-        primaryHref="#download"
+        menuLabel={c.nav.moreDownloads}
+        primaryHref={`${home}#download`}
         variant="nav"
         align="end"
       />
@@ -139,6 +152,11 @@ const links = [
     });
     document.addEventListener('click', (event) => {
       if (!menu.contains(event.target as Node)) menu.open = false;
+    });
+    menu.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape' || !menu.open) return;
+      menu.open = false;
+      menu.querySelector('summary')?.focus();
     });
   });
 </script>

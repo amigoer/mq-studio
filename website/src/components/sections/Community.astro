@@ -33,11 +33,11 @@ const stats = [
 
 <section id="community" class="border-t border-secondary">
   <div class="mx-auto max-w-[1120px] px-6 py-20">
-    <h2 class="mb-3 text-center text-[26px] font-bold tracking-[-0.02em] sm:text-[32px]">
+    <h2 class="mb-3 text-center text-display-sm font-bold tracking-heading sm:text-display">
       {c.community.title}
     </h2>
     <p
-      class="mx-auto mb-10 max-w-[620px] text-center text-[15px] leading-relaxed text-muted-foreground text-pretty"
+      class="mx-auto mb-10 max-w-[620px] text-center text-prose text-muted-foreground text-pretty"
     >
       {c.community.lead}
     </p>
@@ -45,16 +45,18 @@ const stats = [
     <dl class="mx-auto grid max-w-[680px] grid-cols-2 gap-3 sm:grid-cols-4">
       {
         stats.map((stat) => (
-          <div class="rounded-xl border border-border bg-muted px-4 py-5 text-center">
-            <dd class="text-[22px] font-bold tracking-tight tabular-nums">{stat.value}</dd>
-            <dt class="mt-1 text-[12.5px] text-muted-foreground">{stat.label}</dt>
+          /* Term first, as a <dl> requires; reversed visually so the number
+             stays on top. */
+          <div class="flex flex-col-reverse rounded-xl border border-border bg-muted px-4 py-5 text-center">
+            <dt class="mt-1 text-caption text-muted-foreground">{stat.label}</dt>
+            <dd class="text-title font-bold tracking-tight tabular-nums">{stat.value}</dd>
           </div>
         ))
       }
     </dl>
 
     <div class="mt-10 flex flex-col items-center gap-4">
-      <p class="text-[12.5px] text-subtle-foreground">{c.community.builtBy}</p>
+      <p class="text-caption text-subtle-foreground">{c.community.builtBy}</p>
       <ul class="flex flex-wrap justify-center gap-3">
         {
           COMMUNITY.contributors.map((person) => {
@@ -77,12 +79,12 @@ const stats = [
                   ) : (
                     <span
                       aria-hidden="true"
-                      class="flex size-8 items-center justify-center rounded-full bg-secondary text-[13px] font-semibold uppercase"
+                      class="flex size-8 items-center justify-center rounded-full bg-secondary text-ui font-semibold uppercase"
                     >
                       {person.login.slice(0, 1)}
                     </span>
                   )}
-                  <span class="text-[13.5px] font-medium">{person.login}</span>
+                  <span class="text-ui font-medium">{person.login}</span>
                 </a>
               </li>
             );
@@ -94,12 +96,12 @@ const stats = [
     <div class="mt-9 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
       <a
         href={ISSUES_URL}
-        class="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary-hover"
+        class="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-5 text-body font-semibold text-primary-foreground transition-colors hover:bg-primary-hover"
         >{c.community.ctaIssues}</a
       >
       <a
         href={REPO_URL}
-        class="inline-flex h-10 items-center justify-center rounded-lg border border-border bg-background px-5 text-sm font-medium transition-colors hover:bg-secondary"
+        class="inline-flex h-10 items-center justify-center rounded-lg border border-border bg-background px-5 text-body font-medium transition-colors hover:bg-secondary"
         >{c.community.ctaRepo}</a
       >
     </div>

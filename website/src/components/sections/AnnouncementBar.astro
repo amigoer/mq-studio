@@ -10,7 +10,7 @@ const c = t(locale);
 
 <div
   id="announcement"
-  class="relative bg-banner py-2 pl-6 pr-11 text-center text-[13px] text-banner-foreground"
+  class="relative bg-banner py-2 pl-6 pr-11 text-center text-ui text-banner-foreground"
 >
   {c.banner.text}&nbsp;&nbsp;
   <a
@@ -31,16 +31,11 @@ const c = t(locale);
 </div>
 
 <script>
-  // Runs before paint via Astro's head-injected module: hiding the bar after
-  // first paint would shift the whole sticky-nav page down and cost CLS.
+  // Whether a returning visitor sees the bar at all is decided by the
+  // blocking script in Base.astro, before first paint; this only closes it.
   const KEY = 'mq-studio:announcement-dismissed';
   const bar = document.getElementById('announcement');
   if (bar) {
-    try {
-      if (localStorage.getItem(KEY) === '1') bar.hidden = true;
-    } catch {
-      // Private mode or blocked storage: leave the bar visible.
-    }
     bar.querySelector('[data-dismiss]')?.addEventListener('click', () => {
       bar.hidden = true;
       try {

@@ -14,7 +14,7 @@ const { tabs, images } = Astro.props;
 // vertical-orientation branches this page never enters.
 const list = 'inline-flex w-fit items-center justify-center gap-1 rounded-[10px] bg-secondary p-1';
 const trigger =
-  'relative inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md border border-transparent px-3.5 py-1.5 text-[13.5px] font-medium text-foreground/60 transition-all hover:text-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-1 focus-visible:outline-ring aria-selected:bg-background aria-selected:text-foreground aria-selected:shadow-sm';
+  'relative inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md border border-transparent px-3.5 py-1.5 text-ui font-medium text-foreground/60 transition-all hover:text-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-1 focus-visible:outline-ring aria-selected:bg-background aria-selected:text-foreground aria-selected:shadow-sm';
 ---
 
 <div data-tabs>
@@ -52,11 +52,11 @@ const trigger =
       >
         <div class="grid items-center gap-9 rounded-2xl border border-border bg-muted p-6 sm:p-9 lg:grid-cols-[360px_1fr]">
           <div>
-            <h3 class="mb-2.5 text-[21px] font-bold tracking-tight">{tab.title}</h3>
-            <p class="mb-4.5 text-sm leading-[1.7] text-muted-foreground text-pretty">{tab.desc}</p>
+            <h3 class="mb-2.5 text-title-sm font-bold tracking-tight">{tab.title}</h3>
+            <p class="mb-4.5 text-body text-muted-foreground text-pretty">{tab.desc}</p>
             <ul class="flex flex-col gap-2.5">
               {tab.points.map((point) => (
-                <li class="flex items-start gap-2.5 text-[13.5px] leading-normal">
+                <li class="flex items-start gap-2.5 text-body">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="mt-0.5 shrink-0 text-success" aria-hidden="true">
                     <polyline points="20 6 9 17 4 12" />
                   </svg>

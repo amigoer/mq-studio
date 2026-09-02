@@ -9,7 +9,7 @@ export const zh: Content = {
     ogAlt: 'MQ Studio 集群概览界面',
   },
   banner: {
-    text: 'NATS 驱动已支持 —— JetStream 的流与消费者、主题订阅、集群',
+    text: 'NATS 驱动已支持\u00a0—— JetStream 的流与消费者、主题订阅、集群',
     linkLabel: '更新日志',
     dismiss: '关闭公告',
   },
@@ -21,7 +21,10 @@ export const zh: Content = {
     changelog: '更新日志',
     github: 'GitHub',
     download: '下载',
+    moreDownloads: '更多下载选项',
     skipToContent: '跳到主要内容',
+    home: '首页',
+    breadcrumb: '当前位置',
     languageLabel: 'English',
     menu: '打开菜单',
     theme: '切换深浅主题',
@@ -30,7 +33,7 @@ export const zh: Content = {
     badgeSuffix: '现已发布 · Apache-2.0 开源',
     title: '一套界面，连接所有消息队列',
     subtitle:
-      'MQ Studio 是本地优先的消息队列桌面客户端 — RocketMQ、RabbitMQ、Kafka、Pulsar、Redis Stream、MQTT 与 NATS 同一套界面、同一套操作，无需部署和值守 Web 控制台。',
+      'MQ Studio 是本地优先的消息队列桌面客户端\u00a0—— RocketMQ、RabbitMQ、Kafka、Pulsar、Redis Stream、MQTT 与 NATS 同一套界面、同一套操作，无需部署和值守 Web 控制台。',
     downloadFallback: '下载 MQ Studio',
     downloadFor: (platform: string) => `下载 ${platform} 版`,
     installGuide: '安装说明',
@@ -62,11 +65,11 @@ export const zh: Content = {
       },
       {
         title: '如实呈现所连端点',
-        body: '每个连接上报它究竟能做什么，界面据此绘制 — 不会给出中间件本身做不到的操作。',
+        body: '每个连接上报它究竟能做什么，界面据此绘制\u00a0—— 不会给出中间件本身做不到的操作。',
       },
       {
         title: '安装即用',
-        body: '下载、连接、开工 — 没有需要部署、加固和值守的服务端组件。',
+        body: '下载、连接、开工\u00a0—— 没有需要部署、加固和值守的服务端组件。',
       },
       {
         title: '数据留在本机',
@@ -84,7 +87,7 @@ export const zh: Content = {
   },
   modules: {
     title: '从 Topic 到告警，都在一个客户端里',
-    lead: '每个驱动都做到同样的深度 — 下面是 RocketMQ 连接下的真实界面。',
+    lead: '每个驱动都做到同样的深度\u00a0—— 下面是 RocketMQ 连接下的真实界面。',
     tabs: [
       {
         id: 'connections',
@@ -154,7 +157,9 @@ export const zh: Content = {
     latest: '最新',
     onThisPage: '版本列表',
     inThisRelease: '本次更新',
-    backHome: '返回首页',
+    pagination: '相邻版本',
+    newer: '更新的版本',
+    older: '更早的版本',
     onGitHub: '在 GitHub 上查看',
   },
   docs: {
@@ -183,14 +188,14 @@ export const zh: Content = {
   download: {
     title: '下载 MQ Studio',
     leadPrefix: '当前版本',
-    leadSuffix: '每个版本附 SHA256SUMS.txt 校验文件',
+    leadSuffix: '每个版本附 {checksums} 校验文件',
     platforms: {
       mac: { name: 'macOS', requirement: 'macOS 12 及以上', cta: '下载 .dmg' },
       windows: { name: 'Windows', requirement: 'Windows 10 及以上', cta: '下载 .exe' },
       linux: { name: 'Linux', requirement: 'GTK 4 · WebKitGTK 6.0', cta: '下载 Linux 版' },
     },
     archLabels: { amd64: 'Intel / x64', arm64: 'Apple 芯片', winAmd64: 'x64', winArm64: 'ARM64' },
-    noteMac: 'macOS 版尚未使用开发者证书签名，首次打开需多一步操作，磁盘映像内附处理脚本 — 见',
+    noteMac: 'macOS 版尚未使用开发者证书签名，首次打开需多一步操作，磁盘映像内附处理脚本\u00a0—— 见',
     noteMacLink: '安装说明',
     noteLinux: 'Linux 包需要 Ubuntu 24.04+ / Debian 13+ 或其他发行版的同期版本 · 历史版本见',
     noteLinuxLink: '全部 Releases',

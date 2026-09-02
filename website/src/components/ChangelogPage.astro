@@ -1,8 +1,6 @@
 ---
-import Base from '@/layouts/Base.astro';
-import Nav from '@/components/sections/Nav.astro';
-import Footer from '@/components/sections/Footer.astro';
-import { t, localePath, type Locale } from '@/i18n';
+import Subpage from '@/components/Subpage.astro';
+import { t, localePath, formatDate, type Locale } from '@/i18n';
 import { releases, inline, type Release } from '@/lib/changelog';
 import { RELEASES_URL } from '@/lib/downloads';
 
@@ -22,17 +20,21 @@ const c = t(locale);
 const entries = releases(locale);
 const latest = entries.find((entry) => !entry.unreleased);
 
-/** /changelog/ for the newest release, /changelog/<id>/ for the rest. */
+/** /changelog/<id>/ for every release, the newest included. */
 function pathFor(entry: Release): string {
   return localePath(locale, `changelog/${entry.id}`);
 }
 
 const selfPath = pathFor(current);
-const title = `${current.version} · ${c.changelog.title} — MQ Studio`;
-const description = `MQ Studio ${current.version}${current.date ? ` (${current.date})` : ''} — ${c.changelog.metaDescription}`;
+const title = isIndex ? c.changelog.metaTitle : `${current.version} · ${c.changelog.title} — MQ Studio`;
+const date = current.date ? formatDate(current.date, locale) : null;
+const description = `MQ Studio ${current.version}${date ? ` (${date})` : ''} — ${c.changelog.metaDescription}`;
 
-// Section titles double as the right-hand table of contents.
-const toc = current.sections.filter((section) => section.title);
+// Newest first in the file, so the neighbour above is the newer release.
+const position = entries.findIndex((entry) => entry.id === current.id);
+const newer = position > 0 ? entries[position - 1] : null;
+const older = position >= 0 && position < entries.length - 1 ? entries[position + 1] : null;
+
 // The index alone already makes these unique; the slug is only there to make
 // the fragment readable, and a Chinese heading slugifies to nothing.
 const sectionId = (title: string, index: number) => {
@@ -42,167 +44,157 @@ const sectionId = (title: string, index: number) => {
     .replace(/^-|-$/g, '');
   return slug ? `s-${index}-${slug}` : `s-${index}`;
 };
+
+// Section titles double as the right-hand table of contents.
+const toc = current.sections.flatMap((section, index) =>
+  section.title ? [{ href: `#${sectionId(section.title, index)}`, label: section.title }] : [],
+);
 ---
 
-<Base
+<Subpage
   locale={locale}
   path={`changelog/${current.id}`}
   canonicalPath={isIndex ? selfPath : undefined}
   title={title}
   description={description}
+  crumb={c.changelog.title}
+  heading={c.changelog.title}
+  lead={c.changelog.lead}
+  railLabel={c.changelog.onThisPage}
+  toc={toc}
+  tocLabel={c.changelog.inThisRelease}
 >
-  <Nav locale={locale} />
-
-  <main id="top" class="mx-auto max-w-[1240px] px-6 py-10 sm:py-14">
-    <a
-      href={localePath(locale)}
-      class="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground transition-colors hover:text-foreground"
-    >
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="m15 18-6-6 6-6" />
-      </svg>
-      {c.changelog.backHome}
-    </a>
-
-    <div class="mt-5 lg:grid lg:grid-cols-[200px_minmax(0,1fr)] lg:gap-10 xl:grid-cols-[200px_minmax(0,1fr)_180px]">
-      <!-- Version list. A sticky rail on large screens, a scrolling strip of
-           pills above the content on small ones. -->
-      <nav aria-label={c.changelog.onThisPage} class="lg:sticky lg:top-20 lg:self-start">
-        <p class="mb-3 hidden items-center gap-2 text-[13px] font-semibold lg:flex">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted-foreground" aria-hidden="true">
-            <path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z" />
-            <circle cx="7.5" cy="7.5" r=".5" fill="currentColor" />
-          </svg>
-          {c.changelog.onThisPage}
-        </p>
-        <ul
-          class="flex gap-2 overflow-x-auto pb-2 [scrollbar-width:none] lg:max-h-[calc(100vh-10rem)] lg:flex-col lg:gap-1 lg:overflow-y-auto lg:pb-0 [&::-webkit-scrollbar]:hidden"
-        >
-          {
-            entries.map((entry) => {
-              const active = entry.id === current.id;
-              return (
-                <li class="flex-none lg:flex-auto">
-                  <a
-                    href={pathFor(entry)}
-                    aria-current={active ? 'page' : undefined}
-                    class:list={[
-                      'flex items-center justify-between gap-2 whitespace-nowrap rounded-lg px-3 py-1.5 font-mono text-[12.5px] transition-colors lg:px-3 lg:py-2',
-                      active
-                        ? 'bg-secondary font-semibold text-foreground'
-                        : 'border border-border text-muted-foreground hover:bg-secondary hover:text-foreground lg:border-transparent',
-                    ]}
-                  >
-                    {entry.version}
-                    {/* Text, not the bare dot this used to be: the dot was
-                        aria-hidden, so the rail told a screen reader nothing
-                        about which release is current. */}
-                    {entry === latest && (
-                      <span class="rounded-full bg-success/10 px-1.5 py-0.5 font-sans text-[10px] font-semibold text-success">
-                        {c.changelog.latest}
-                      </span>
-                    )}
-                  </a>
-                </li>
-              );
-            })
-          }
-        </ul>
-      </nav>
-
-      <article class="mt-8 min-w-0 lg:mt-0">
-        <header class="border-b border-border pb-4">
-          <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
-            <h1 class="text-[30px] font-extrabold tracking-[-0.03em] sm:text-[36px]">
-              {current.version}
-            </h1>
-            {
-              current === latest && (
-                <span class="rounded-full bg-success/10 px-2.5 py-1 text-[11px] font-semibold text-success">
+  <ul
+    slot="rail"
+    class="flex gap-2 overflow-x-auto pb-2 [scrollbar-width:none] lg:max-h-[calc(100vh-10rem)] lg:flex-col lg:gap-1 lg:overflow-y-auto lg:pb-0 [&::-webkit-scrollbar]:hidden"
+  >
+    {
+      entries.map((entry) => {
+        const active = entry.id === current.id;
+        return (
+          <li class="flex-none lg:flex-auto">
+            <a
+              href={pathFor(entry)}
+              aria-current={active ? 'page' : undefined}
+              class:list={[
+                'flex items-center justify-between gap-2 whitespace-nowrap rounded-lg px-3 py-1.5 font-mono text-caption transition-colors lg:px-3 lg:py-2',
+                active
+                  ? 'bg-secondary font-semibold text-foreground'
+                  : 'border border-border text-muted-foreground hover:bg-secondary hover:text-foreground lg:border-transparent',
+              ]}
+            >
+              {entry.version}
+              {/* Text, not a bare dot: a dot would be aria-hidden, and the rail
+                  has to tell a screen reader which release is current. */}
+              {entry === latest && (
+                <span class="rounded-full bg-success/10 px-1.5 py-0.5 font-sans text-2xs font-semibold text-success">
                   {c.changelog.latest}
                 </span>
-              )
-            }
-          </div>
-          {
-            current.date && (
-              <time datetime={current.date} class="mt-1.5 block font-mono text-[13px] text-subtle-foreground">
-                {current.date}
-              </time>
-            )
-          }
-        </header>
-
-        {
-          current.intro.map((paragraph) => (
-            <p
-              class="mt-5 text-[14.5px] leading-[1.75] text-muted-foreground text-pretty"
-              set:html={inline(paragraph)}
-            />
-          ))
-        }
-
-        {
-          current.sections.map((section, index) => (
-            <section id={section.title ? sectionId(section.title, index) : undefined} class="mt-9 scroll-mt-24">
-              {section.title && (
-                <h2 class="text-[15px] font-bold tracking-tight">{section.title}</h2>
               )}
-              {section.blocks.map((block) =>
-                block.type === 'subheading' ? (
-                  <p class="mt-5 text-[13.5px] font-semibold" set:html={inline(block.text)} />
-                ) : (
-                  <ul class="mt-3 flex flex-col gap-2.5">
-                    {block.items.map((item) => (
-                      <li class="flex gap-2.5 text-[13.5px] leading-[1.75] text-muted-foreground">
-                        <span aria-hidden="true" class="mt-[10px] size-1 shrink-0 rounded-full bg-border" />
-                        <span set:html={inline(item)} />
-                      </li>
-                    ))}
-                  </ul>
-                ),
-              )}
-            </section>
-          ))
+            </a>
+          </li>
+        );
+      })
+    }
+  </ul>
+
+  <article class="max-w-measure">
+    <header class="border-b border-border pb-4">
+      <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <h2 class="text-display-sm font-extrabold tracking-display">{current.version}</h2>
+        {
+          current === latest && (
+            <span class="rounded-full bg-success/10 px-2.5 py-1 text-2xs font-semibold text-success">
+              {c.changelog.latest}
+            </span>
+          )
         }
-
-        <div class="mt-12 border-t border-border pt-5">
-          <a
-            href={`${RELEASES_URL}/tag/v${current.version}`}
-            class="inline-flex items-center gap-1.5 text-[13.5px] font-medium transition-colors hover:text-muted-foreground"
-          >
-            {c.changelog.onGitHub} →
-          </a>
-        </div>
-      </article>
-
-      <!-- Section index for the release being read. Large screens only: below
-           xl it would push the content column too narrow to be worth it. -->
+      </div>
       {
-        toc.length > 1 && (
-          <nav aria-label={c.changelog.inThisRelease} class="hidden xl:sticky xl:top-20 xl:block xl:self-start">
-            <p class="mb-3 text-[12.5px] font-semibold text-muted-foreground">
-              {c.changelog.inThisRelease}
-            </p>
-            <ul class="flex flex-col gap-2 border-l border-border">
-              {current.sections.map((section, index) =>
-                section.title ? (
-                  <li>
-                    <a
-                      href={`#${sectionId(section.title, index)}`}
-                      class="-ml-px block border-l border-transparent pl-3 text-[13px] text-muted-foreground transition-colors hover:border-foreground hover:text-foreground"
-                    >
-                      {section.title}
-                    </a>
-                  </li>
-                ) : null,
-              )}
-            </ul>
-          </nav>
+        current.date && (
+          <time datetime={current.date} class="mt-1.5 block text-ui text-subtle-foreground">
+            {date}
+          </time>
         )
       }
-    </div>
-  </main>
+    </header>
 
-  <Footer locale={locale} />
-</Base>
+    <!-- The wrapper is what the CI verify step counts paragraphs inside. -->
+    <div data-changelog-intro>
+      {
+        current.intro.map((paragraph) => (
+          <p class="mt-5 text-prose text-prose-foreground text-pretty" set:html={inline(paragraph)} />
+        ))
+      }
+    </div>
+
+    {
+      current.sections.map((section, index) => (
+        <section id={section.title ? sectionId(section.title, index) : undefined} class="mt-9 scroll-mt-24">
+          {section.title && <h3 class="text-lead font-bold tracking-tight">{section.title}</h3>}
+          {section.blocks.map((block) =>
+            block.type === 'subheading' ? (
+              <p data-subheading class="mt-6 text-prose font-semibold" set:html={inline(block.text)} />
+            ) : block.type === 'paragraph' ? (
+              <p class="mt-4 text-prose text-prose-foreground text-pretty" set:html={inline(block.text)} />
+            ) : (
+              <ul class="mt-3 list-disc space-y-2.5 pl-5 marker:text-subtle-foreground">
+                {block.items.map((item) => (
+                  <li class="pl-1 text-prose text-prose-foreground">
+                    {item.paragraphs.map((paragraph, paragraphIndex) => (
+                      <p class:list={[paragraphIndex > 0 && 'mt-2']} set:html={inline(paragraph)} />
+                    ))}
+                  </li>
+                ))}
+              </ul>
+            ),
+          )}
+        </section>
+      ))
+    }
+
+    <div class="mt-12 border-t border-border pt-5">
+      <a
+        href={`${RELEASES_URL}/tag/v${current.version}`}
+        class="inline-flex items-center gap-1.5 text-ui font-medium transition-colors hover:text-muted-foreground"
+      >
+        {c.changelog.onGitHub} →
+      </a>
+    </div>
+  </article>
+
+  <!-- Outside the article: the verify step wants the article to hold exactly
+       one release, and these name two others. -->
+  {
+    (older || newer) && (
+      <nav aria-label={c.changelog.pagination} class="mt-6 flex max-w-measure justify-between gap-4 text-ui">
+        {older ? (
+          <a
+            href={pathFor(older)}
+            class="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="m15 18-6-6 6-6" />
+            </svg>
+            <span class="text-caption">{c.changelog.older}</span>
+            <span class="font-mono font-medium text-foreground">{older.version}</span>
+          </a>
+        ) : (
+          <span />
+        )}
+        {newer && (
+          <a
+            href={pathFor(newer)}
+            class="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+          >
+            <span class="text-caption">{c.changelog.newer}</span>
+            <span class="font-mono font-medium text-foreground">{newer.version}</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="m9 18 6-6-6-6" />
+            </svg>
+          </a>
+        )}
+      </nav>
+    )
+  }
+</Subpage>

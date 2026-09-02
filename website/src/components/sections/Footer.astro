@@ -1,6 +1,6 @@
 ---
 import AppIcon from '@brand/appicon.svg';
-import { t, type Locale } from '@/i18n';
+import { t, localePath, type Locale } from '@/i18n';
 
 interface Props {
   locale: Locale;
@@ -21,23 +21,23 @@ const c = t(locale);
     class="mx-auto grid max-w-[1120px] grid-cols-3 gap-x-4 gap-y-7 px-6 py-9 sm:gap-x-6 lg:grid-cols-4 lg:gap-y-10 lg:py-14"
   >
     <div class="order-last col-span-3 lg:order-first lg:col-span-1">
-      <div class="flex items-center gap-2 text-[15px] font-bold">
+      <div class="flex items-center gap-2 text-prose font-bold">
         <AppIcon width={22} height={22} class="rounded-[5px]" aria-hidden="true" />
         MQ Studio
       </div>
-      <p class="mt-2 text-[13px] leading-relaxed text-muted-foreground">{c.footer.tagline}</p>
-      <p class="mt-2.5 text-[12.5px] text-subtle-foreground">{c.footer.copyright}</p>
+      <p class="mt-2 text-ui text-muted-foreground">{c.footer.tagline}</p>
+      <p class="mt-2.5 text-caption text-subtle-foreground">{c.footer.copyright}</p>
     </div>
     {
       c.footer.groups.map((group) => (
         <div class="min-w-0">
-          <div class="mb-2.5 text-[13px] font-semibold">{group.title}</div>
+          <div class="mb-2.5 text-ui font-semibold">{group.title}</div>
           <ul class="flex flex-col gap-1.5 sm:gap-2.5">
             {group.links.map((link) => (
               <li>
                 <a
-                  href={link.href}
-                  class="text-[13px] leading-snug text-muted-foreground transition-colors hover:text-foreground"
+                  href={link.href.startsWith('#') ? `${localePath(locale)}${link.href}` : link.href}
+                  class="text-ui text-muted-foreground transition-colors hover:text-foreground"
                 >
                   {link.label}
                 </a>

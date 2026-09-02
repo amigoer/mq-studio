@@ -1,8 +1,6 @@
 ---
 import { render } from 'astro:content';
-import Base from '@/layouts/Base.astro';
-import Nav from '@/components/sections/Nav.astro';
-import Footer from '@/components/sections/Footer.astro';
+import Subpage from '@/components/Subpage.astro';
 import { t, localePath, type Locale } from '@/i18n';
 import { DOC_SLUGS, resolveDoc, type DocSlug } from '@/lib/docs';
 import { REPO_URL } from '@/lib/downloads';
@@ -24,92 +22,69 @@ const description = c.meta.description;
 
 // h2 only: the docs nest to h4 and a flat rail reads better than an indented
 // tree for pages this short.
-const toc = headings.filter((heading) => heading.depth === 2);
+const toc = headings
+  .filter((heading) => heading.depth === 2)
+  .map((heading) => ({ href: `#${heading.slug}`, label: heading.text }));
 const sourceUrl = `${REPO_URL}/blob/main/docs/${file}`;
 ---
 
-<Base locale={locale} path={`docs/${slug}`} title={title} description={description}>
-  <Nav locale={locale} />
+<Subpage
+  locale={locale}
+  path={`docs/${slug}`}
+  title={title}
+  description={description}
+  crumb={c.docs.titles[slug]}
+  railLabel={c.docs.sectionTitle}
+  toc={toc}
+  tocLabel={c.docs.onThisPage}
+>
+  <ul
+    slot="rail"
+    class="flex gap-2 overflow-x-auto pb-2 [scrollbar-width:none] lg:flex-col lg:gap-1 lg:pb-0 [&::-webkit-scrollbar]:hidden"
+  >
+    {
+      DOC_SLUGS.map((candidate) => {
+        const active = candidate === slug;
+        return (
+          <li class="flex-none lg:flex-auto">
+            <a
+              href={localePath(locale, `docs/${candidate}`)}
+              aria-current={active ? 'page' : undefined}
+              class:list={[
+                'block whitespace-nowrap rounded-lg px-3 py-1.5 text-ui transition-colors lg:py-2',
+                active
+                  ? 'bg-secondary font-semibold text-foreground'
+                  : 'border border-border text-muted-foreground hover:bg-secondary hover:text-foreground lg:border-transparent',
+              ]}
+            >
+              {c.docs.titles[candidate]}
+            </a>
+          </li>
+        );
+      })
+    }
+  </ul>
 
-  <main id="top" class="mx-auto max-w-[1240px] px-6 py-10 sm:py-14">
-    <div
-      class="lg:grid lg:grid-cols-[190px_minmax(0,1fr)] lg:gap-10 xl:grid-cols-[190px_minmax(0,1fr)_190px]"
-    >
-      <!-- Document list: a sticky rail on large screens, a scrolling strip of
-           pills above the content on small ones. -->
-      <nav aria-label={c.docs.sectionTitle} class="lg:sticky lg:top-20 lg:self-start">
-        <p class="mb-3 hidden text-[13px] font-semibold lg:block">{c.docs.sectionTitle}</p>
-        <ul
-          class="flex gap-2 overflow-x-auto pb-2 [scrollbar-width:none] lg:flex-col lg:gap-1 lg:pb-0 [&::-webkit-scrollbar]:hidden"
-        >
-          {
-            DOC_SLUGS.map((candidate) => {
-              const active = candidate === slug;
-              return (
-                <li class="flex-none lg:flex-auto">
-                  <a
-                    href={localePath(locale, `docs/${candidate}`)}
-                    aria-current={active ? 'page' : undefined}
-                    class:list={[
-                      'block whitespace-nowrap rounded-lg px-3 py-1.5 text-[13px] transition-colors lg:py-2',
-                      active
-                        ? 'bg-secondary font-semibold text-foreground'
-                        : 'border border-border text-muted-foreground hover:bg-secondary hover:text-foreground lg:border-transparent',
-                    ]}
-                  >
-                    {c.docs.titles[candidate]}
-                  </a>
-                </li>
-              );
-            })
-          }
-        </ul>
-      </nav>
+  <article class="max-w-measure">
+    {
+      untranslated && (
+        <p class="mb-6 rounded-lg border border-border bg-muted px-4 py-3 text-ui text-muted-foreground">
+          {c.docs.untranslated}
+        </p>
+      )
+    }
 
-      <article class="mt-8 min-w-0 lg:mt-0">
-        {
-          untranslated && (
-            <p class="mb-6 rounded-lg border border-border bg-muted px-4 py-3 text-[13px] text-muted-foreground">
-              {c.docs.untranslated}
-            </p>
-          )
-        }
-
-        <div class="doc-prose">
-          <Content />
-        </div>
-
-        <div class="mt-12 border-t border-border pt-5">
-          <a
-            href={sourceUrl}
-            class="inline-flex items-center gap-1.5 text-[13.5px] font-medium transition-colors hover:text-muted-foreground"
-          >
-            {c.docs.editOnGitHub} →
-          </a>
-        </div>
-      </article>
-
-      {
-        toc.length > 1 && (
-          <nav aria-label={c.docs.onThisPage} class="hidden xl:sticky xl:top-20 xl:block xl:self-start">
-            <p class="mb-3 text-[12.5px] font-semibold text-muted-foreground">{c.docs.onThisPage}</p>
-            <ul class="flex flex-col gap-2 border-l border-border">
-              {toc.map((heading) => (
-                <li>
-                  <a
-                    href={`#${heading.slug}`}
-                    class="-ml-px block border-l border-transparent pl-3 text-[13px] leading-snug text-muted-foreground transition-colors hover:border-foreground hover:text-foreground"
-                  >
-                    {heading.text}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </nav>
-        )
-      }
+    <div class="doc-prose">
+      <Content />
     </div>
-  </main>
 
-  <Footer locale={locale} />
-</Base>
+    <div class="mt-12 border-t border-border pt-5">
+      <a
+        href={sourceUrl}
+        class="inline-flex items-center gap-1.5 text-ui font-medium transition-colors hover:text-muted-foreground"
+      >
+        {c.docs.editOnGitHub} →
+      </a>
+    </div>
+  </article>
+</Subpage>

@@ -21,7 +21,10 @@ export const en: Content = {
     changelog: 'Changelog',
     github: 'GitHub',
     download: 'Download',
+    moreDownloads: 'More download options',
     skipToContent: 'Skip to main content',
+    home: 'Home',
+    breadcrumb: 'Breadcrumb',
     languageLabel: '中文',
     menu: 'Open menu',
     theme: 'Toggle theme',
@@ -175,7 +178,9 @@ export const en: Content = {
     latest: 'Latest',
     onThisPage: 'Releases',
     inThisRelease: 'In this release',
-    backHome: 'Back to home',
+    pagination: 'Adjacent releases',
+    newer: 'Newer release',
+    older: 'Older release',
     onGitHub: 'View on GitHub',
   },
   docs: {
@@ -204,7 +209,7 @@ export const en: Content = {
   download: {
     title: 'Download MQ Studio',
     leadPrefix: 'Current release',
-    leadSuffix: 'every release ships a SHA256SUMS.txt',
+    leadSuffix: 'every release ships a {checksums}',
     platforms: {
       mac: { name: 'macOS', requirement: 'macOS 12 and later', cta: 'Download .dmg' },
       windows: { name: 'Windows', requirement: 'Windows 10 and later', cta: 'Download .exe' },
