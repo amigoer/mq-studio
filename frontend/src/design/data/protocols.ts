@@ -287,6 +287,7 @@ export const PROTOCOLS: Record<ProtocolId, Protocol> = {
           /* Accounts, which is NATS's isolation boundary and its only one:
              not a label on a subject but a wall between two of them. */
           { id: "vhosts", icon: Boxes, label: "shell.nav.nats.vhosts" },
+          { id: "alerts", icon: BellRing, label: "shell.nav.nats.alerts" },
         ],
       },
     ],

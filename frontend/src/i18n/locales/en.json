@@ -202,7 +202,10 @@
       "partitionUnderReplicated": "Partitions under-replicated",
       "partitionOffline": "Partitions with an unreachable replica",
       "partitionLeaderless": "Partitions with no leader",
-      "subscriptionBlocked": "Subscription blocked by unacknowledged messages"
+      "subscriptionBlocked": "Subscription blocked by unacknowledged messages",
+      "streamNoLeader": "Stream with no leader",
+      "streamUnderReplicated": "Stream replica behind or offline",
+      "slowConsumer": "Clients dropped for falling behind"
     },
     "tabs": {
       "active": "Active",
@@ -252,7 +255,10 @@
       "partitionUnderReplicated": "{{topic}} · {{count}} partitions",
       "partitionOffline": "{{topic}} · {{count}} partitions",
       "partitionLeaderless": "{{topic}} · {{count}} partitions neither readable nor writable",
-      "subscriptionBlocked": "{{subscription}} · {{unacked}} unacknowledged; the broker has stopped delivering"
+      "subscriptionBlocked": "{{subscription}} · {{unacked}} unacknowledged; the broker has stopped delivering",
+      "streamNoLeader": "{{stream}} · {{replicas}} replica(s), none leading — the stream takes no publishes and answers no reads",
+      "streamUnderReplicated": "{{stream}} · not all {{replicas}} replicas are current",
+      "slowConsumer": "{{broker}} · {{count}} client(s) disconnected since the server started; what they missed is gone"
     },
     "duration": {
       "minutes": "for {{count}} min",
@@ -706,7 +712,6 @@
         "subscribe": "Subjects",
         "cluster": "Servers",
         "clients": "Connections",
-        "accounts": "Accounts",
         "alerts": "Alerts",
         "vhosts": "Accounts"
       }

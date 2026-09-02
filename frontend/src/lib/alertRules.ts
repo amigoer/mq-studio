@@ -26,19 +26,39 @@ export type AlertRuleKey =
    * by looking at the consumer - so it is a separate switch and a separate
    * alert.
    */
-  | "subscriptionBlocked";
+  | "subscriptionBlocked"
+  /*
+   * NATS's three, none of which any other family here can raise.
+   *
+   * A JetStream stream is a Raft group rather than a set of partitions, so
+   * Kafka's three partition rules say the wrong thing about it in the wrong
+   * words - "3 partitions neither readable nor writable" describes nothing a
+   * stream can be. Two keys rather than one for the reason Kafka has three: a
+   * stream that has just been given another replica is behind on purpose while
+   * it catches up, and the operator doing that wants that switch off without
+   * losing the leaderless alarm.
+   *
+   * A slow consumer is NATS dropping a subscriber that fell behind, which is
+   * neither a blocked publisher nor a growing queue - the two shapes the other
+   * families take - because the messages are simply gone.
+   */
+  | "streamNoLeader"
+  | "streamUnderReplicated"
+  | "slowConsumer";
 
 export type AlertRulePrefs = Record<AlertRuleKey, boolean>;
 
 /** Every rule, in the order a list of them reads best: worst first. */
 export const ALERT_RULE_KEYS: readonly AlertRuleKey[] = [
   "brokerOffline",
+  "streamNoLeader",
   "subscriptionBlocked",
   "resourceAlarm",
   "nodePartition",
   "partitionLeaderless",
   "partitionOffline",
   "partitionUnderReplicated",
+  "streamUnderReplicated",
   "groupOffline",
   "queueNoConsumer",
   "groupLag",
@@ -46,6 +66,7 @@ export const ALERT_RULE_KEYS: readonly AlertRuleKey[] = [
   "diskUsage",
   "memoryUsage",
   "flowControl",
+  "slowConsumer",
   "dlqGrowth",
 ];
 
@@ -105,6 +126,21 @@ const RULES_BY_KIND: Partial<Record<MQKind, readonly AlertRuleKey[]>> = {
    * save that failed, and a consumer group holding work with nothing attached
    * to finish it.
    */
+  /*
+   * No brokerOffline, and that is the same absence Pulsar has: a NATS server
+   * that has gone stops answering the fan-out rather than reporting itself
+   * down, so no row is ever marked offline and a switch for it would be a
+   * switch for something that cannot fire. No disk figure exists anywhere in
+   * NATS either - JetStream reports an account's usage against its limit,
+   * which is a different question and one the accounts page answers.
+   */
+  [MQKind.KindNATS]: [
+    "streamNoLeader",
+    "groupOffline",
+    "streamUnderReplicated",
+    "groupLag",
+    "slowConsumer",
+  ],
   [MQKind.KindRedisStream]: [
     "brokerOffline",
     "resourceAlarm",
@@ -145,6 +181,9 @@ export const DEFAULT_ALERT_RULES: AlertRulePrefs = {
   partitionUnderReplicated: true,
   partitionOffline: true,
   partitionLeaderless: true,
+  streamNoLeader: true,
+  streamUnderReplicated: true,
+  slowConsumer: true,
 };
 
 function read(): AlertRulePrefs {

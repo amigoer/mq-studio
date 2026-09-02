@@ -202,7 +202,10 @@
       "partitionUnderReplicated": "分区副本不足",
       "partitionOffline": "分区有不可达的副本",
       "partitionLeaderless": "分区没有 leader",
-      "subscriptionBlocked": "订阅因未确认消息过多被阻塞"
+      "subscriptionBlocked": "订阅因未确认消息过多被阻塞",
+      "streamNoLeader": "流没有 leader",
+      "streamUnderReplicated": "流的副本落后或离线",
+      "slowConsumer": "有客户端因为跟不上被踢掉"
     },
     "tabs": {
       "active": "活跃告警",
@@ -252,7 +255,10 @@
       "partitionUnderReplicated": "{{topic}} · {{count}} 个分区",
       "partitionOffline": "{{topic}} · {{count}} 个分区",
       "partitionLeaderless": "{{topic}} · {{count}} 个分区既不可读也不可写",
-      "subscriptionBlocked": "{{subscription}} · {{unacked}} 条未确认，Broker 已停止投递"
+      "subscriptionBlocked": "{{subscription}} · {{unacked}} 条未确认，Broker 已停止投递",
+      "streamNoLeader": "{{stream}} · {{replicas}} 个副本，没有一个是 leader——这个流既写不进也读不出",
+      "streamUnderReplicated": "{{stream}} · {{replicas}} 个副本里有跟不上的",
+      "slowConsumer": "{{broker}} · 服务器启动以来断开了 {{count}} 个客户端；它们错过的消息没有了"
     },
     "duration": {
       "minutes": "持续 {{count}} 分钟",
@@ -706,7 +712,6 @@
         "subscribe": "订阅台",
         "cluster": "服务器",
         "clients": "连接",
-        "accounts": "账户",
         "alerts": "告警",
         "vhosts": "账户"
       }
