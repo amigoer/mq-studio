@@ -43,6 +43,7 @@ const NATS_CAPABILITIES: Capability[] = [
   Capability.CapMessageByID,
   Capability.CapMessageLiveTail,
   Capability.CapClusterCensus,
+  Capability.CapNamespaceList,
 ];
 
 function state(

@@ -88,6 +88,18 @@ func TestConnDeclaresNoConceptNATSDoesNotHave(t *testing.T) {
 				"heading would be the same table twice.",
 		},
 		{
+			model.CapNamespaceAdmin,
+			"nothing in NATS creates an account. In configuration mode it is a block " +
+				"in the server's file that appears on reload; in operator mode it is a " +
+				"JWT nsc signs and pushes. Neither is a request a client can make, so " +
+				"a permanently disabled button would be the only thing to draw.",
+		},
+		{
+			model.CapNamespaceLimits,
+			"and an account's limits are written in the same two places, read back " +
+				"through JetStream and never set through it.",
+		},
+		{
 			model.CapTransactions,
 			"NATS has no transactional producer. A publish is acknowledged or it is not.",
 		},
@@ -303,6 +315,7 @@ func TestCapabilitiesMatchTheSidebarContract(t *testing.T) {
 		"cluster.health",
 		"client.inspect",
 		"client.close",
+		"namespace.list",
 		"destination.list",
 		"destination.create",
 		"destination.update",

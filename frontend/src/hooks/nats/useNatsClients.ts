@@ -6,8 +6,9 @@ import { useBrokerData, type BrokerData } from "@/hooks/useBrokerData";
 /**
  * Every connection the cluster is holding.
  *
- * Through the canonical client API, because a connection is a connection - what
- * only NATS has, the subjects it is subscribed to and which server holds it,
+ * Through the NATS service, because client inspection has no canonical one -
+ * MQTT and RabbitMQ each expose their own for the same reason. What only NATS
+ * has, the subjects a connection is subscribed to and which server holds it,
  * rides in the attribute map.
  *
  * How many servers are covered depends on which tier answered: /connz reports

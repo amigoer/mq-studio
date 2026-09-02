@@ -281,3 +281,141 @@ func TestLiveMonitoringReasonsAreToldApart(t *testing.T) {
 		}
 	})
 }
+
+/*
+ * The accounts the seeded cluster carries, read through both tiers.
+ *
+ * The cluster defines three - APP, NOJS and SYS - which is what makes it worth
+ * asking on a real one: only APP has JetStream, only SYS is the system
+ * account, and a fixture with a single account could show neither distinction.
+ */
+func TestLiveAccountsAreListedWithTheirJetStreamFootprint(t *testing.T) {
+	requireCluster(t)
+	conn := openLive(t, liveProfile(true, true))
+
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	accounts, err := conn.ListNamespaces(ctx)
+	if err != nil {
+		t.Fatalf("ListNamespaces: %v", err)
+	}
+
+	byName := make(map[string]*model.Namespace, len(accounts))
+	for _, account := range accounts {
+		byName[account.Name] = account
+	}
+	for _, name := range []string{"APP", "NOJS", "SYS"} {
+		if byName[name] == nil {
+			t.Fatalf("account %q is missing; listed %d accounts", name, len(accounts))
+		}
+	}
+
+	app := byName["APP"]
+	// The seed put three streams in this account, so the storage figure is a
+	// number rather than a zero that would prove nothing.
+	if app.Attributes[AttrAccountJetStream] != "true" {
+		t.Error("APP does not report JetStream, and the seed streams live in it")
+	}
+	if app.Attributes[AttrJSStorage] == "" || app.Attributes[AttrJSStorage] == "0" {
+		t.Errorf("APP storage = %q, want the seeded streams", app.Attributes[AttrJSStorage])
+	}
+	// The caps tests/e2e/nats/nats.conf gives this account, read back off a
+	// real server. Uncapped is what arrives as a huge unsigned number, so a
+	// limit that survives the round trip is what proves the two are told
+	// apart on the wire rather than only in a unit test.
+	if app.Limits[LimitStorage] != 1<<30 {
+		t.Errorf("APP storage limit = %d, want the configured 1GB", app.Limits[LimitStorage])
+	}
+	if app.Limits[LimitMemory] != 64<<20 {
+		t.Errorf("APP memory limit = %d, want the configured 64MB", app.Limits[LimitMemory])
+	}
+	// The account the cluster withheld JetStream from. Absent rather than
+	// zero: it is a fact about the account, not a figure that failed.
+	if got := byName["NOJS"].Attributes[AttrAccountJetStream]; got != "" {
+		t.Errorf("NOJS jetstream = %q, want nothing", got)
+	}
+	if byName["SYS"].Attributes[AttrIsSystemAccount] != "true" {
+		t.Error("SYS is not marked as the system account")
+	}
+
+	// The system account fans out, so every server contributed. This is the
+	// figure the board shows to say whether the counts are the cluster's or
+	// one server's share of it.
+	if app.Attributes[AttrServersReporting] != "3" {
+		t.Errorf("servers reporting = %q, want 3", app.Attributes[AttrServersReporting])
+	}
+	if app.Attributes[AttrSource] != SourceSystem {
+		t.Errorf("read via %q, want %q", app.Attributes[AttrSource], SourceSystem)
+	}
+}
+
+// The same listing through the monitoring endpoint alone, which answers for
+// one server and says so.
+func TestLiveAccountsFallBackToTheMonitoringEndpoint(t *testing.T) {
+	requireCluster(t)
+	conn := openLive(t, liveProfile(true, false))
+
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	accounts, err := conn.ListNamespaces(ctx)
+	if err != nil {
+		t.Fatalf("ListNamespaces: %v", err)
+	}
+
+	var app *model.Namespace
+	for _, account := range accounts {
+		if account.Name == "APP" {
+			app = account
+		}
+	}
+	if app == nil {
+		t.Fatalf("APP is missing; listed %d accounts", len(accounts))
+	}
+	if app.Attributes[AttrSource] != SourceMonitor {
+		t.Errorf("read via %q, want %q", app.Attributes[AttrSource], SourceMonitor)
+	}
+	if app.Attributes[AttrServersReporting] != "1" {
+		t.Errorf("servers reporting = %q, want 1 - monitoring answers for one server",
+			app.Attributes[AttrServersReporting])
+	}
+	// JetStream usage is tracked cluster-wide, so the one server this endpoint
+	// belongs to still reports the account's whole footprint. Summing the
+	// three servers' answers would have reported it three times over.
+	if app.Attributes[AttrJSStorage] == "" || app.Attributes[AttrJSStorage] == "0" {
+		t.Errorf("APP storage = %q, want the seeded streams", app.Attributes[AttrJSStorage])
+	}
+}
+
+// A server with no accounts block still has one account: the global one
+// everything lives in. Listing it is honest, and an empty page would not be.
+func TestPlainBrokerListsItsOneAccount(t *testing.T) {
+	requirePlain(t)
+
+	profile := model.ConnectionProfile{
+		ID:        2,
+		Name:      "nats plain e2e",
+		Kind:      model.KindNATS,
+		Endpoints: plainServer,
+		Auth:      model.AuthConfig{Mechanism: model.AuthPlain},
+		Options:   map[string]string{OptionMonitorURL: plainMonitorURL},
+		Secrets:   map[string]string{},
+	}
+	profile.SetSecret(SecretUsername, liveUser)
+	profile.SetSecret(SecretPassword, livePassword)
+	conn := openLive(t, profile)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	accounts, err := conn.ListNamespaces(ctx)
+	if err != nil {
+		t.Fatalf("ListNamespaces: %v", err)
+	}
+	if len(accounts) == 0 {
+		t.Fatal("a running server listed no accounts at all")
+	}
+	for _, account := range accounts {
+		if account.Attributes[AttrAccountJetStream] == "true" {
+			t.Errorf("account %q reports JetStream on a server built without it", account.Name)
+		}
+	}
+}

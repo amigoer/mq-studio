@@ -12,6 +12,7 @@ import type {
   ClientConnection,
   LiveBatch,
   LiveSubscription,
+  Namespace,
 } from "@bindings/model/models";
 import type { AccountUsage } from "@bindings/driver/nats/models";
 import type { PublishResult } from "@bindings/driver/nats/models";
@@ -171,3 +172,12 @@ export const closeUserConnections = (
   user: string,
   reason: string,
 ): Promise<void> => NATSService.CloseUserConnections(connID, user, reason);
+
+/**
+ * The accounts on the cluster.
+ *
+ * Read-only: nothing in NATS creates an account over a connection, so there is
+ * no write half of this to expose.
+ */
+export const accounts = (connID: number): Promise<Namespace[]> =>
+  NATSService.Accounts(connID).then(present);

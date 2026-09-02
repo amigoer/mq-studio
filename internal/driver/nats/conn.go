@@ -133,6 +133,7 @@ var (
 		model.CapClusterHealth,
 		model.CapClientInspect,
 		model.CapClientClose,
+		model.CapNamespaceList,
 	}
 
 	// systemOnlyCapabilities need the system account and cannot fall back to

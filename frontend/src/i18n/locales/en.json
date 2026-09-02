@@ -707,7 +707,8 @@
         "cluster": "Servers",
         "clients": "Connections",
         "accounts": "Accounts",
-        "alerts": "Alerts"
+        "alerts": "Alerts",
+        "vhosts": "Accounts"
       }
     }
   },
@@ -3573,6 +3574,34 @@
         "deleted": "Deleted {{name}}",
         "deleteTitle": "Delete this namespace?",
         "deleteBody": "{{name}} is removed. Pulsar refuses while it still holds topics."
+      },
+      "nats": {
+        "title": "Accounts",
+        "subtitle": "The isolation boundaries on this cluster",
+        "search": "Search an account",
+        "found": "{{count}} found",
+        "readOnly": "Accounts come from the server's configuration file, or from a JWT signed with nsc — there is no request that creates one.",
+        "oneServer": "These figures are from the one server the monitoring endpoint belongs to.",
+        "account": "Account",
+        "systemAccount": "system",
+        "connections": "Connections",
+        "leafNodes": "Leaf nodes",
+        "subscriptions": "Subscriptions",
+        "slowConsumers": "Slow consumers",
+        "messages": "Messages",
+        "bytes": "Bytes",
+        "jetstream": "JetStream",
+        "enabled": "on",
+        "notEnabled": "off",
+        "noJetStream": "This account has no JetStream. It can publish and subscribe; nothing it sends is stored.",
+        "storage": "Storage",
+        "memory": "Memory",
+        "uncapped": "no cap",
+        "apiRequests": "API requests",
+        "apiErrors": "{{count}} failed",
+        "readVia": "Read from",
+        "viaSystem": "the system account, {{count}} server(s)",
+        "viaMonitor": "the monitoring endpoint, one server"
       }
     },
     "policies": {

@@ -44,6 +44,7 @@ const clusterState = vi.hoisted(() => ({ current: null as unknown }));
 const configState = vi.hoisted(() => ({ current: null as unknown }));
 const brokerData = vi.hoisted(() => ({ queue: [] as unknown[] }));
 const clientsState = vi.hoisted(() => ({ current: null as unknown }));
+const accountsState = vi.hoisted(() => ({ current: null as unknown }));
 
 vi.mock("@/hooks/nats/useNatsStreams", () => ({
   useNatsStreams: () => streamsState.current,
@@ -70,6 +71,9 @@ vi.mock("@/hooks/useBrokerData", () => ({
 vi.mock("@/hooks/nats/useNatsClients", () => ({
   useNatsClients: () => clientsState.current,
 }));
+vi.mock("@/hooks/nats/useNatsAccounts", () => ({
+  useNatsAccounts: () => accountsState.current,
+}));
 
 
 let render: (element: React.ReactElement) => string;
@@ -80,6 +84,7 @@ let NatsWorkbench: typeof import("./nats/NatsWorkbench").NatsWorkbench;
 let ServersNats: typeof import("./cluster/ServersNats").ServersNats;
 let OverviewNats: typeof import("./overview/OverviewNats").OverviewNats;
 let ClientsNats: typeof import("./consumers/ClientsNats").ClientsNats;
+let AccountsNats: typeof import("./vhosts/AccountsNats").AccountsNats;
 
 beforeAll(async () => {
   const storage = { getItem: () => null, setItem() {}, removeItem() {} };
@@ -101,6 +106,7 @@ beforeAll(async () => {
     cluster,
     overview,
     clients,
+    accounts,
     ui,
     i18n,
     settings,
@@ -113,6 +119,7 @@ beforeAll(async () => {
     import("./cluster/ServersNats"),
     import("./overview/OverviewNats"),
     import("./consumers/ClientsNats"),
+    import("./vhosts/AccountsNats"),
     import("@/components"),
     import("@/i18n"),
     import("@/hooks/useSettings"),
@@ -131,6 +138,7 @@ beforeAll(async () => {
   ServersNats = cluster.ServersNats;
   OverviewNats = overview.OverviewNats;
   ClientsNats = clients.ClientsNats;
+  AccountsNats = accounts.AccountsNats;
 });
 
 /** A replicated stream, as internal/driver/nats/stream.go sends one. */
@@ -897,5 +905,98 @@ describe("the NATS connections board", () => {
     const bare = { ...client, clientName: "", attributes: {} };
     clientsState.current = stateOf({ data: [bare] });
     expect(() => render(<ClientsNats />)).not.toThrow();
+  });
+});
+
+/** An account as internal/driver/nats/account.go reports one. */
+const account = {
+  name: "APP",
+  description: "",
+  tags: [],
+  defaultQueueType: "",
+  tracing: false,
+  messages: -1,
+  ready: -1,
+  unacknowledged: -1,
+  limits: { maxStorage: 1048576, maxMemory: 524288 },
+  attributes: {
+    readVia: "system",
+    serversReporting: "3",
+    jetstream: "true",
+    connections: "4",
+    leafNodes: "0",
+    subscriptions: "18",
+    slowConsumers: "0",
+    inMsgs: "1200",
+    inBytes: "48000",
+    outMsgs: "980",
+    outBytes: "39000",
+    jetstreamMemory: "0",
+    jetstreamStorage: "262144",
+    apiTotal: "310",
+    apiErrors: "2",
+  },
+};
+
+describe("the NATS accounts board", () => {
+  it("says the connection is offline rather than showing none", () => {
+    accountsState.current = stateOf({ online: false });
+    expect(() => render(<AccountsNats />)).not.toThrow();
+  });
+
+  it("lists an account with what it is carrying", () => {
+    accountsState.current = stateOf({ data: [account] });
+    const html = render(<AccountsNats />);
+    expect(html).toContain("APP");
+    expect(html).toContain("18");
+  });
+
+  /*
+   * The system account is the one $SYS.REQ.* answers on, and a list of names
+   * gives no other way to tell which it is.
+   */
+  it("marks the system account", () => {
+    const system = {
+      ...account,
+      name: "SYS",
+      attributes: { ...account.attributes, systemAccount: "true" },
+    };
+    accountsState.current = stateOf({ data: [system] });
+    expect(() => render(<AccountsNats />)).not.toThrow();
+  });
+
+  /*
+   * An account with no JetStream is a fact about the account, not a figure
+   * that failed to load: /jsz lists the accounts that have it and only those.
+   */
+  it("says an account has no JetStream rather than drawing an empty meter", () => {
+    const plain = {
+      ...account,
+      limits: {},
+      attributes: { ...account.attributes, jetstream: "", jetstreamStorage: "" },
+    };
+    accountsState.current = stateOf({ data: [plain] });
+    expect(() => render(<AccountsNats />)).not.toThrow();
+  });
+
+  /*
+   * A meter with no cap behind it can never move, so an uncapped account gets
+   * the figure on its own instead of a bar that is always empty.
+   */
+  it("shows an uncapped account's usage without a meter", () => {
+    const uncapped = { ...account, limits: {} };
+    accountsState.current = stateOf({ data: [uncapped] });
+    expect(() => render(<AccountsNats />)).not.toThrow();
+  });
+
+  it("renders the detail panel", () => {
+    accountsState.current = stateOf({ data: [account] });
+    expect(() => render(<AccountsNats />)).not.toThrow();
+  });
+
+  it("renders an account reported with almost nothing set", () => {
+    const bare = { ...account, limits: {}, attributes: {} };
+    accountsState.current = stateOf({ data: [bare] });
+    expect(() => render(<AccountsNats />)).not.toThrow();
   });
 });

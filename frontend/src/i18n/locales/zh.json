@@ -707,7 +707,8 @@
         "cluster": "服务器",
         "clients": "连接",
         "accounts": "账户",
-        "alerts": "告警"
+        "alerts": "告警",
+        "vhosts": "账户"
       }
     }
   },
@@ -3573,6 +3574,34 @@
         "deleted": "已删除 {{name}}",
         "deleteTitle": "确认删除该命名空间？",
         "deleteBody": "将删除 {{name}}。如果它下面还有主题，Pulsar 会拒绝。"
+      },
+      "nats": {
+        "title": "账户",
+        "subtitle": "这个集群上的隔离边界",
+        "search": "搜索账户",
+        "found": "找到 {{count}} 个",
+        "readOnly": "账户来自服务端的配置文件，或者 nsc 签发的 JWT——没有任何请求能创建一个。",
+        "oneServer": "这些数字只来自监控端点所在的那一台服务器。",
+        "account": "账户",
+        "systemAccount": "系统账户",
+        "connections": "连接数",
+        "leafNodes": "叶子节点",
+        "subscriptions": "订阅数",
+        "slowConsumers": "慢消费者",
+        "messages": "消息",
+        "bytes": "字节",
+        "jetstream": "JetStream",
+        "enabled": "已开启",
+        "notEnabled": "未开启",
+        "noJetStream": "这个账户没有 JetStream。它能发能订，但发出去的东西不会被存下来。",
+        "storage": "磁盘",
+        "memory": "内存",
+        "uncapped": "无上限",
+        "apiRequests": "API 请求",
+        "apiErrors": "{{count}} 个失败",
+        "readVia": "读取来源",
+        "viaSystem": "系统账户，{{count}} 台服务器",
+        "viaMonitor": "监控端点，一台服务器"
       }
     },
     "policies": {

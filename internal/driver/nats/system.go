@@ -102,6 +102,22 @@ func (s *systemClient) ping(ctx context.Context, endpoint string, expect int) ([
 // rows to return - and send them as the request body rather than as a query
 // string, which is the one way they differ from the monitoring endpoint.
 func (s *systemClient) pingWithBody(ctx context.Context, endpoint string, body any, expect int) ([]systemReply, error) {
+	return s.fanOut(ctx, fmt.Sprintf("$SYS.REQ.SERVER.PING.%s", endpoint), endpoint, body, expect)
+}
+
+// pingAccounts is the same fan-out on the account tree rather than the server
+// one.
+//
+// A separate subject rather than a parameter on the one above, because they
+// are separate subscriptions on the server with separate handlers: $SYS.REQ
+// .SERVER.PING.* asks each server about itself, and $SYS.REQ.ACCOUNT.PING.*
+// asks each server about every account it is holding. Only STATZ answers on
+// the account tree - the rest are addressed to one named account at a time.
+func (s *systemClient) pingAccounts(ctx context.Context, endpoint string, body any, expect int) ([]systemReply, error) {
+	return s.fanOut(ctx, fmt.Sprintf("$SYS.REQ.ACCOUNT.PING.%s", endpoint), endpoint, body, expect)
+}
+
+func (s *systemClient) fanOut(ctx context.Context, subject, endpoint string, body any, expect int) ([]systemReply, error) {
 	if s.nc == nil {
 		return nil, errConnectionDown
 	}
@@ -114,8 +130,6 @@ func (s *systemClient) pingWithBody(ctx context.Context, endpoint string, body a
 		defer cancel()
 	}
 	deadline, _ := ctx.Deadline()
-
-	subject := fmt.Sprintf("$SYS.REQ.SERVER.PING.%s", endpoint)
 
 	inbox := s.nc.NewRespInbox()
 	subscription, err := s.nc.SubscribeSync(inbox)

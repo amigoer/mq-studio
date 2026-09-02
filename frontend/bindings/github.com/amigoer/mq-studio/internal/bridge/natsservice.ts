@@ -31,11 +31,25 @@ import * as model$0 from "../model/models.js";
 import * as $models from "./models.js";
 
 /**
+ * Accounts lists the accounts on the cluster.
+ * 
+ * On this service rather than a canonical one because there is no canonical
+ * namespace service: RabbitMQ's vhosts are read through its own, for the same
+ * reason. What an account carries is nothing like what a vhost does, and a
+ * shared service would have to be the union of two families' vocabularies.
+ */
+export function Accounts(connID: number): $CancellablePromise<(model$0.Namespace | null)[]> {
+    return $Call.ByID(2628890563, connID).then(($result: any) => {
+        return $$createType2($result);
+    });
+}
+
+/**
  * Census counts what the account holds.
  */
 export function Census(connID: number): $CancellablePromise<model$0.BrokerCensus | null> {
     return $Call.ByID(2922778064, connID).then(($result: any) => {
-        return $$createType1($result);
+        return $$createType4($result);
     });
 }
 
@@ -68,7 +82,7 @@ export function CloseUserConnections(connID: number, user: string, reason: strin
  */
 export function Connections(connID: number, account: string): $CancellablePromise<(model$0.ClientConnection | null)[]> {
     return $Call.ByID(1158508356, connID, account).then(($result: any) => {
-        return $$createType4($result);
+        return $$createType7($result);
     });
 }
 
@@ -104,7 +118,7 @@ export function DeleteConsumer(connID: number, stream: string, name: string): $C
  */
 export function DeleteMessages(connID: number, stream: string, sequences: string[]): $CancellablePromise<model$0.TrimResult | null> {
     return $Call.ByID(1024039200, connID, stream, sequences).then(($result: any) => {
-        return $$createType6($result);
+        return $$createType9($result);
     });
 }
 
@@ -125,7 +139,7 @@ export function DeleteStream(connID: number, name: string): $CancellablePromise<
  */
 export function Health(connID: number): $CancellablePromise<model$0.BrokerHealth | null> {
     return $Call.ByID(3003156433, connID).then(($result: any) => {
-        return $$createType8($result);
+        return $$createType11($result);
     });
 }
 
@@ -134,7 +148,7 @@ export function Health(connID: number): $CancellablePromise<model$0.BrokerHealth
  */
 export function PollSubscription(connID: number, id: string, after: number, limit: number): $CancellablePromise<model$0.LiveBatch | null> {
     return $Call.ByID(2853870003, connID, id, after, limit).then(($result: any) => {
-        return $$createType10($result);
+        return $$createType13($result);
     });
 }
 
@@ -144,7 +158,7 @@ export function PollSubscription(connID: number, id: string, after: number, limi
  */
 export function Publish(connID: number, input: $models.NATSPublishInput): $CancellablePromise<nats$0.PublishResult | null> {
     return $Call.ByID(852775886, connID, input).then(($result: any) => {
-        return $$createType12($result);
+        return $$createType15($result);
     });
 }
 
@@ -157,7 +171,7 @@ export function Publish(connID: number, input: $models.NATSPublishInput): $Cance
  */
 export function PurgeStream(connID: number, input: $models.PurgeInput): $CancellablePromise<model$0.TrimResult | null> {
     return $Call.ByID(816427434, connID, input).then(($result: any) => {
-        return $$createType6($result);
+        return $$createType9($result);
     });
 }
 
@@ -166,7 +180,7 @@ export function PurgeStream(connID: number, input: $models.PurgeInput): $Cancell
  */
 export function StartSubscription(connID: number, input: $models.NATSSubscribeInput): $CancellablePromise<model$0.LiveSubscription | null> {
     return $Call.ByID(1106287356, connID, input).then(($result: any) => {
-        return $$createType14($result);
+        return $$createType17($result);
     });
 }
 
@@ -183,7 +197,7 @@ export function StopSubscription(connID: number, id: string): $CancellablePromis
  */
 export function Subscriptions(connID: number): $CancellablePromise<(model$0.LiveSubscription | null)[]> {
     return $Call.ByID(3948587227, connID).then(($result: any) => {
-        return $$createType15($result);
+        return $$createType18($result);
     });
 }
 
@@ -219,26 +233,29 @@ export function UpdateStream(connID: number, input: $models.StreamInput): $Cance
  */
 export function Usage(connID: number): $CancellablePromise<nats$0.AccountUsage | null> {
     return $Call.ByID(4276773670, connID).then(($result: any) => {
-        return $$createType17($result);
+        return $$createType20($result);
     });
 }
 
 // Private type creation functions
-const $$createType0 = model$0.BrokerCensus.createFrom;
+const $$createType0 = model$0.Namespace.createFrom;
 const $$createType1 = $Create.Nullable($$createType0);
-const $$createType2 = model$0.ClientConnection.createFrom;
-const $$createType3 = $Create.Nullable($$createType2);
-const $$createType4 = $Create.Array($$createType3);
-const $$createType5 = model$0.TrimResult.createFrom;
+const $$createType2 = $Create.Array($$createType1);
+const $$createType3 = model$0.BrokerCensus.createFrom;
+const $$createType4 = $Create.Nullable($$createType3);
+const $$createType5 = model$0.ClientConnection.createFrom;
 const $$createType6 = $Create.Nullable($$createType5);
-const $$createType7 = model$0.BrokerHealth.createFrom;
-const $$createType8 = $Create.Nullable($$createType7);
-const $$createType9 = model$0.LiveBatch.createFrom;
-const $$createType10 = $Create.Nullable($$createType9);
-const $$createType11 = nats$0.PublishResult.createFrom;
-const $$createType12 = $Create.Nullable($$createType11);
-const $$createType13 = model$0.LiveSubscription.createFrom;
-const $$createType14 = $Create.Nullable($$createType13);
-const $$createType15 = $Create.Array($$createType14);
-const $$createType16 = nats$0.AccountUsage.createFrom;
+const $$createType7 = $Create.Array($$createType6);
+const $$createType8 = model$0.TrimResult.createFrom;
+const $$createType9 = $Create.Nullable($$createType8);
+const $$createType10 = model$0.BrokerHealth.createFrom;
+const $$createType11 = $Create.Nullable($$createType10);
+const $$createType12 = model$0.LiveBatch.createFrom;
+const $$createType13 = $Create.Nullable($$createType12);
+const $$createType14 = nats$0.PublishResult.createFrom;
+const $$createType15 = $Create.Nullable($$createType14);
+const $$createType16 = model$0.LiveSubscription.createFrom;
 const $$createType17 = $Create.Nullable($$createType16);
+const $$createType18 = $Create.Array($$createType17);
+const $$createType19 = nats$0.AccountUsage.createFrom;
+const $$createType20 = $Create.Nullable($$createType19);

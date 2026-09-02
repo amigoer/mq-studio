@@ -284,6 +284,9 @@ export const PROTOCOLS: Record<ProtocolId, Protocol> = {
         items: [
           { id: "cluster", icon: Server, label: "shell.nav.nats.cluster" },
           { id: "clients", icon: Plug, label: "shell.nav.nats.clients" },
+          /* Accounts, which is NATS's isolation boundary and its only one:
+             not a label on a subject but a wall between two of them. */
+          { id: "vhosts", icon: Boxes, label: "shell.nav.nats.vhosts" },
         ],
       },
     ],

@@ -392,3 +392,13 @@ func (s *NATSService) CloseConnection(connID int, name, reason string) error {
 func (s *NATSService) CloseUserConnections(connID int, user, reason string) error {
 	return s.service.CloseUserConnections(context.Background(), connID, user, reason)
 }
+
+// Accounts lists the accounts on the cluster.
+//
+// On this service rather than a canonical one because there is no canonical
+// namespace service: RabbitMQ's vhosts are read through its own, for the same
+// reason. What an account carries is nothing like what a vhost does, and a
+// shared service would have to be the union of two families' vocabularies.
+func (s *NATSService) Accounts(connID int) ([]*model.Namespace, error) {
+	return s.service.Accounts(context.Background(), connID)
+}

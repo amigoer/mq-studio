@@ -323,3 +323,18 @@ func (s *Service) CloseUserConnections(ctx context.Context, connID int, user, re
 	defer cancel()
 	return api.CloseUserConnections(ctx, user, reason)
 }
+
+// Accounts lists the accounts on the cluster.
+//
+// Read-only: no NATS server creates an account over a connection, so the
+// capability that would allow it is never declared and there is nothing here
+// that writes.
+func (s *Service) Accounts(ctx context.Context, connID int) ([]*model.Namespace, error) {
+	api, err := port[driver.NamespaceAdmin](s, connID, model.CapNamespaceList)
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.ListNamespaces(ctx)
+}

@@ -3213,6 +3213,15 @@ export class Namespace {
      */
     "limits": { [_ in string]?: number };
 
+    /**
+     * Attributes carries family-specific detail, the same way Node and
+     * Destination do. A NATS account is an isolation boundary with none of a
+     * vhost's furniture: no queue type to default, nothing to trace, and
+     * instead a system-account flag, a JetStream footprint and a note of how
+     * many servers the figures came from.
+     */
+    "attributes": { [_ in string]?: string };
+
     /** Creates a new Namespace instance. */
     constructor($$source: Partial<Namespace> = {}) {
         if (!("name" in $$source)) {
@@ -3242,6 +3251,9 @@ export class Namespace {
         if (!("limits" in $$source)) {
             this["limits"] = {};
         }
+        if (!("attributes" in $$source)) {
+            this["attributes"] = {};
+        }
 
         Object.assign(this, $$source);
     }
@@ -3252,12 +3264,16 @@ export class Namespace {
     static createFrom($$source: any = {}): Namespace {
         const $$createField2_0 = $$createType0;
         const $$createField8_0 = $$createType25;
+        const $$createField9_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("tags" in $$parsedSource) {
             $$parsedSource["tags"] = $$createField2_0($$parsedSource["tags"]);
         }
         if ("limits" in $$parsedSource) {
             $$parsedSource["limits"] = $$createField8_0($$parsedSource["limits"]);
+        }
+        if ("attributes" in $$parsedSource) {
+            $$parsedSource["attributes"] = $$createField9_0($$parsedSource["attributes"]);
         }
         return new Namespace($$parsedSource as Partial<Namespace>);
     }

@@ -17,6 +17,7 @@ import { QueuesRabbitMQ } from "./boards/topics/QueuesRabbitMQ";
 import { ExchangesRabbitMQ } from "./boards/topics/ExchangesRabbitMQ";
 import { VhostsRabbitMQ } from "./boards/vhosts/VhostsRabbitMQ";
 import { NamespacesPulsar } from "./boards/vhosts/NamespacesPulsar";
+import { AccountsNats } from "./boards/vhosts/AccountsNats";
 import { UsersRabbitMQ } from "./boards/acl/UsersRabbitMQ";
 import { PoliciesRabbitMQ } from "./boards/policies/PoliciesRabbitMQ";
 import { DefinitionsRabbitMQ } from "./boards/definitions/DefinitionsRabbitMQ";
@@ -127,7 +128,7 @@ const BOARDS: Partial<
     nats: StreamsNats,
   },
   exchanges: { rabbitmq: ExchangesRabbitMQ },
-  vhosts: { rabbitmq: VhostsRabbitMQ, pulsar: NamespacesPulsar },
+  vhosts: { rabbitmq: VhostsRabbitMQ, pulsar: NamespacesPulsar, nats: AccountsNats },
   policies: { rabbitmq: PoliciesRabbitMQ },
   definitions: { rabbitmq: DefinitionsRabbitMQ },
   replication: { rabbitmq: ReplicationRabbitMQ },

@@ -42,6 +42,11 @@ type serverOptions struct {
 	// systemAccount defines $SYS with a user in it. Without it the system tier
 	// cannot be reached whatever credentials are offered.
 	systemAccount bool
+	// jetStreamLimit caps the account's allowance instead of granting it
+	// uncapped. Both spellings are needed: an uncapped account reports its
+	// reservation as int64 -1 published as uint64, and reading that as a
+	// number draws a limit of sixteen exabytes.
+	jetStreamLimit bool
 }
 
 // fakeServer is a running server and the addresses to reach it on.
@@ -56,6 +61,9 @@ const (
 	fakePassword       = "app-secret"
 	fakeSystemUser     = "sys"
 	fakeSystemPassword = "sys-secret"
+
+	fakeMemoryLimit = 8 << 20
+	fakeStoreLimit  = 16 << 20
 )
 
 // startServer runs a server for one test and stops it afterwards.
@@ -115,7 +123,12 @@ func serverConf(options serverOptions, storeDir string) string {
 	// server that has JetStream is the second way it can be missing, and the
 	// one the driver has to report differently.
 	if options.jetStream && options.jetStreamAccount {
-		conf.WriteString("    jetstream: enabled\n")
+		if options.jetStreamLimit {
+			fmt.Fprintf(&conf, "    jetstream: { max_mem: %d, max_file: %d }\n",
+				fakeMemoryLimit, fakeStoreLimit)
+		} else {
+			conf.WriteString("    jetstream: enabled\n")
+		}
 	}
 	fmt.Fprintf(&conf, "    users: [ { user: %s, password: %s } ]\n", fakeUser, fakePassword)
 	conf.WriteString("  }\n")
