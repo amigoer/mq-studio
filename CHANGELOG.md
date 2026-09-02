@@ -48,6 +48,14 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   hear about a release was to press the button in settings. The interval is
   unchanged for a session that stays up. (#67)
 
+- Skipping a version no longer disables the check button. "Skip this version"
+  means stop announcing it, so a check the user presses for now takes the
+  release back off the skip list and offers it: it used to be answered with
+  "you are up to date" naming the version already running, and nothing
+  anywhere could undo a skip. The settings card also says a release was
+  skipped rather than going on announcing it beside a button offering to look
+  for one. (#66)
+
 ## [0.0.5] - 2026-09-02
 
 Three drivers at once — Redis Stream, Pulsar and MQTT — which takes the count

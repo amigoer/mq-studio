@@ -142,6 +142,18 @@ describe("the update card", () => {
     expect(body).toContain("自动更新");
   });
 
+  /* Skipping does not move the phase -- the release is still the newest one --
+     so the card used to go on announcing a version it was no longer offering,
+     beside a button asking whether to look for one. */
+  it("says a release was skipped rather than announcing it", async () => {
+    await useLanguage("zh");
+    const body = text(render({ ...available, skipped: "0.2.0" }));
+    expect(body).toContain("已跳过版本 0.2.0");
+    expect(body).toContain("检查更新");
+    expect(body).not.toContain("发现新版本");
+    expect(body).not.toContain("下载并安装");
+  });
+
   it("shows progress and only a cancel while downloading", async () => {
     await useLanguage("zh");
     const body = text(render({
@@ -250,6 +262,7 @@ describe("the update card in English", () => {
     ["installing", { phase: "installing" }],
     ["error", { phase: "error", failedStep: "install", error: "boom" }],
     ["blocked", { ...available, location: { kind: "managed", blocker: "packageManager", root: "", target: {} } }],
+    ["skipped", { ...available, skipped: "0.2.0" }],
   ];
 
   it.each(states)("resolves every key and leaves no Chinese in %s", async (_name, state) => {

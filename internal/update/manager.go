@@ -352,8 +352,8 @@ func (m *Manager) Check(ctx context.Context, manual bool) (State, error) {
 	m.busy = false
 	m.memory.CheckedAt = m.now().UTC().Format(time.RFC3339)
 	m.state.CheckedAt = m.memory.CheckedAt
-	m.writeMemory()
 	if err != nil {
+		m.writeMemory()
 		m.setError(StepCheck, err)
 		state := m.snapshot()
 		m.mu.Unlock()
@@ -362,6 +362,14 @@ func (m *Manager) Check(ctx context.Context, manual bool) (State, error) {
 
 	m.state.ReleaseURL = result.ReleaseURL
 	m.state.Outcome = result.Status
+	// Asking for a check is the opposite of not wanting to hear about it, so a
+	// manual one takes the release back off the skip list. Without this the
+	// answer to the button is the "you are up to date" the skip bought, and a
+	// release declined once could never be taken again.
+	if manual && result.Status == StatusAvailable && m.memory.Skipped == result.LatestVersion {
+		m.memory.Skipped, m.state.Skipped = "", ""
+	}
+	m.writeMemory()
 	if result.Status != StatusAvailable {
 		// Nothing newer: drop any release the state was still carrying so the
 		// markers in the UI clear themselves.

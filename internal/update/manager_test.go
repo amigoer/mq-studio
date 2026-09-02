@@ -235,6 +235,55 @@ func TestDownloadPolicySkipsAReleaseTheUserDeclined(t *testing.T) {
 }
 
 /*
+ * Skipping is "stop telling me about this", not "never offer it again": the
+ * button that asks is the one gesture that has to get an answer. Without this
+ * the check the user pressed for reported the release as skipped, which the
+ * renderer draws as "you are up to date" -- and nothing could ever take the
+ * release back off the list.
+ */
+func TestAManualCheckTakesTheReleaseBackOffTheSkipList(t *testing.T) {
+	h := newManager(t, PolicyNotify, release{})
+	h.manager.Skip("9.9.9")
+
+	state, err := h.manager.Check(context.Background(), true)
+	if err != nil {
+		t.Fatalf("Check() error = %v", err)
+	}
+	if state.Skipped != "" {
+		t.Errorf("skipped = %q, want a manual check to clear it", state.Skipped)
+	}
+	if state.LatestVersion != "9.9.9" || state.Phase != PhaseAvailable {
+		t.Errorf("latest = %q, phase = %q, want the release offered again",
+			state.LatestVersion, state.Phase)
+	}
+
+	// And it is off the list for good: a restart must not bring it back.
+	restarted := New(Options{
+		Version: "1.0.0", Directory: h.directory,
+		Policy: func() Policy { return PolicyNotify }, Location: &testLocation,
+	})
+	t.Cleanup(restarted.Close)
+	if got := restarted.State().Skipped; got != "" {
+		t.Errorf("skipped = %q after a restart, want the clear to have been written", got)
+	}
+}
+
+// A release the user declined stays declined for the checks they did not ask
+// for, which is the whole point of the list.
+func TestAScheduledCheckLeavesTheSkipListAlone(t *testing.T) {
+	h := newManager(t, PolicyNotify, release{})
+	h.manager.Skip("9.9.9")
+
+	state, err := h.manager.Check(context.Background(), false)
+	if err != nil {
+		t.Fatalf("Check() error = %v", err)
+	}
+	if state.Skipped != "9.9.9" {
+		t.Errorf("skipped = %q, want a scheduled check to leave it", state.Skipped)
+	}
+}
+
+/*
  * A launch checks whatever the clock says. The schedule used to wait out the
  * remainder of CheckInterval instead, so an application opened and closed a few
  * times a day never reached the end of one: no background check ever ran, and

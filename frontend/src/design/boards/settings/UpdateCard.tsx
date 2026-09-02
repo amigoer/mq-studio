@@ -3,6 +3,7 @@ import {
   AlertCircle,
   ArrowDownToLine,
   CheckCircle2,
+  CircleSlash,
   Download,
   ExternalLink,
   RefreshCw,
@@ -121,6 +122,20 @@ export function UpdateCard() {
           />
         );
       case Phase.PhaseAvailable:
+        /* A skipped release is still the newest one, so the phase does not
+           change when it is declined -- only whether there is anything to
+           offer. Announcing it anyway left the card saying a version was
+           found beside a button offering to look for one. */
+        if (available == null) {
+          return (
+            <Headline
+              icon={CircleSlash}
+              tone="var(--c-muted)"
+              title={t("update.skippedTitle", { version: state.latestVersion })}
+              meta={t("update.skippedHint")}
+            />
+          );
+        }
         return (
           <Headline
             icon={Download}
