@@ -1,7 +1,7 @@
 <div align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/images/hero-dark.svg">
-    <img src="docs/images/hero-light.svg" width="100%" alt="MQ Studio — see inside your message queues. One local-first desktop app for RocketMQ, RabbitMQ, Kafka, Pulsar, Redis Stream, and MQTT, with more drivers landing and no web console to deploy.">
+    <img src="docs/images/hero-light.svg" width="100%" alt="MQ Studio — see inside your message queues. One local-first desktop app for RocketMQ, RabbitMQ, Kafka, Pulsar, Redis Stream, MQTT, and NATS, with more drivers landing and no web console to deploy.">
   </picture>
 </div>
 
@@ -46,7 +46,7 @@ component to deploy, secure, or keep alive.
 - **Private by default** — configuration stays on your device and credentials are encrypted at rest
 - **Cross-platform** — macOS, Windows, and Linux, with English and Chinese interfaces
 
-RocketMQ, RabbitMQ, Kafka, Pulsar, Redis Stream, and MQTT are the drivers available today; [Driver support](#driver-support) has the rest.
+RocketMQ, RabbitMQ, Kafka, Pulsar, Redis Stream, MQTT, and NATS are the drivers available today; [Driver support](#driver-support) has the rest.
 
 ## Features
 
@@ -122,7 +122,8 @@ capabilities, so the interface only offers what the connected broker can actuall
 | **Pulsar** 3.x / 4.x | ✅ Available | Topics with their partitions and storage kind; namespaces and the tenants above them, with TTL, retention and per-topic limits; subscriptions with backlog, delayed and unacknowledged counts, blocked-subscription detection, and cursor moves by time or to the earliest message; browsing and following a log without taking a subscription; sending with keys, ordering keys, properties and delayed delivery; brokers with their bundles and resource usage; dead-letter and retry topics found by the client libraries' naming convention; and role grants on namespaces and topics |
 | **Redis Stream** 6.0+ | ✅ Available | Streams with their length, memory and entry range; consumer groups with lag and every reposition XGROUP SETID offers; browsing entries by time window or id, and writing them as ordered fields; the pending entries list with claim, auto-claim and acknowledge; the server's memory, persistence and slow log; standalone, sentinel and cluster; client connections; and ACL users with their key, channel and command rules |
 | **MQTT** 3.1.1 / 5.0 | ✅ Available | Publish with QoS, retain and the 5.0 properties; a live subscribe workbench that reports what it dropped and when the session went down; topics from the broker's retained set; the $SYS tree where a broker publishes one; and — where the broker offers a management API, as EMQX and its peers do — connected clients and their sessions, their subscriptions, the cluster's nodes, and disconnecting a session. Mosquitto, EMQX, HiveMQ and VerneMQ |
-| NATS · ActiveMQ · SQS and more | 📋 Planned | Full matrix below |
+| **NATS** 2.x | ✅ Available | JetStream streams with their subjects, retention, storage and replica set; consumers push and pull, with pending, unacknowledged and redelivered counts; browsing and following a stream by sequence; publishing on a subject, with a request that waits for a reply; a subjects workbench for core NATS, which stores nothing and delivers only to whoever is listening; purge by count, sequence or subject and deleting single messages; the cluster's servers with their routes and effective settings, read through $SYS or the monitoring endpoint; client connections with what each is subscribed to, and disconnecting one; and the accounts, with their JetStream usage against the caps they were given |
+| ActiveMQ · SQS · Pub/Sub and more | 📋 Planned | Full matrix below |
 
 <details>
 <summary><strong>Planned drivers, wire-compatible systems, and scope</strong></summary>
@@ -131,7 +132,6 @@ capabilities, so the interface only offers what the connected broker can actuall
 | Driver | Status | Notes |
 | --- | --- | --- |
 | **ActiveMQ / Artemis** | 📋 Planned | JMS queues and topics over the Jolokia management API |
-| **NATS** | 📋 Planned | JetStream streams and consumers; NATS core is publish/subscribe only |
 | **NSQ** | 📋 Planned | Topics and channels over the nsqd HTTP API |
 | **Amazon SQS** | 📋 Planned | Queues, attributes, and dead-letter redrive |
 | **Google Cloud Pub/Sub** | 📋 Planned | Topics and subscriptions with backlog |
@@ -169,13 +169,14 @@ half-wired set of pages.
 | 4 | Redis Stream | ✅ Done |
 | 5 | Pulsar | ✅ Done |
 | 6 | MQTT | ✅ Done |
-| 7 | The remaining drivers, in the order listed under Driver support | 📋 Next |
-| 8 | Agent features | 📋 Planned |
+| 7 | NATS | ✅ Done |
+| 8 | The remaining drivers, in the order listed under Driver support | 📋 Next |
+| 9 | Agent features | 📋 Planned |
 
 Agent work starts once driver coverage is in place, not before. Every driver already declares
 what the connected broker can actually do, and that capability model is the foundation an agent
 needs to work across brokers without offering operations the broker cannot perform. The scope
-will be published here once phase 6 lands.
+will be published here once the remaining drivers land.
 
 This is a sequence, not a schedule: no dates are attached to it, and the order after Redis Stream can
 change if there is enough demand for a driver further down the list.

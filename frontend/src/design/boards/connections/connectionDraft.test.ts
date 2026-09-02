@@ -795,7 +795,15 @@ describe("the Pulsar connection draft", () => {
 
 describe("the draft registry", () => {
   it("has an empty draft for every protocol it claims to handle", () => {
-    for (const protocol of ["rocketmq", "rabbitmq", "kafka", "pulsar", "redis", "mqtt"] as const) {
+    for (const protocol of [
+      "rocketmq",
+      "rabbitmq",
+      "kafka",
+      "pulsar",
+      "redis",
+      "mqtt",
+      "nats",
+    ] as const) {
       expect(isDraftable(protocol)).toBe(true);
       expect(emptyDraft(protocol).protocol).toBe(protocol);
     }
@@ -810,7 +818,7 @@ describe("the draft registry", () => {
     for (const protocol of Object.values(PROTOCOLS)) {
       expect(isDraftable(protocol.id)).toBe(true);
     }
-    expect(isDraftable("nats" as unknown as ProtocolId)).toBe(false);
+    expect(isDraftable("activemq" as unknown as ProtocolId)).toBe(false);
   });
 });
 

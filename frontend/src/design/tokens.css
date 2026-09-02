@@ -539,12 +539,14 @@
 .pPLS { background: #e0f2fe; color: #0369a1; }
 .pRDS { background: #fee2e2; color: #b91c1c; }
 .pMQT { background: #ede9fe; color: #6d28d9; }
+.pNAT { background: #d9f7ee; color: #047857; }
 :root.dark .pRMQ { background: #3a1f0c; color: #fdba74; }
 :root.dark .pKFK { background: #26262a; color: #e4e4e7; }
 :root.dark .pAMQ { background: #3a2a08; color: #fcd34d; }
 :root.dark .pPLS { background: #0c2a3a; color: #7dd3fc; }
 :root.dark .pRDS { background: #3a1414; color: #fca5a5; }
 :root.dark .pMQT { background: #241a3a; color: #c4b5fd; }
+:root.dark .pNAT { background: #0c2f26; color: #6ee7b7; }
 
 /* misc primitives */
 /*

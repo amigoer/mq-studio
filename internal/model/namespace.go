@@ -33,6 +33,13 @@ type Namespace struct {
 	// means uncapped, which is the default and is worth distinguishing from a
 	// limit of zero.
 	Limits map[string]int `json:"limits"`
+
+	// Attributes carries family-specific detail, the same way Node and
+	// Destination do. A NATS account is an isolation boundary with none of a
+	// vhost's furniture: no queue type to default, nothing to trace, and
+	// instead a system-account flag, a JetStream footprint and a note of how
+	// many servers the figures came from.
+	Attributes map[string]string `json:"attributes"`
 }
 
 // NamespaceSpec creates or updates a namespace.

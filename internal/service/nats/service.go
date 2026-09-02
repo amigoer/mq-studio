@@ -1,0 +1,340 @@
+// Package nats orchestrates the operations only NATS has.
+//
+// It exists beside the canonical services rather than inside them because the
+// requests are NATS's own shape. A stream is a destination and a consumer is a
+// subscription, so the canonical services answer the read side in full - what
+// they cannot express is the writing. TopicService.Create collects a broker
+// address, a read queue, a write queue and a permission mask, which is
+// RocketMQ's vocabulary and has no NATS counterpart; a stream is declared with
+// a subject list, a retention policy and a set of limits, and there is nowhere
+// in that signature to put any of it.
+//
+// Nothing here duplicates a canonical service. Where one can express the
+// operation, the board calls it.
+package nats
+
+import (
+	"context"
+	"time"
+
+	"github.com/amigoer/mq-studio/internal/driver"
+	natsdriver "github.com/amigoer/mq-studio/internal/driver/nats"
+	"github.com/amigoer/mq-studio/internal/model"
+)
+
+// Settings exposes only what these operations need.
+type Settings interface {
+	GetRequestTimeout() time.Duration
+}
+
+// ConnSource yields the connection a request runs against.
+type ConnSource func(connID int) (driver.Conn, error)
+
+// Service is the orchestration layer between the bridge and the driver.
+type Service struct {
+	conns    ConnSource
+	settings Settings
+}
+
+// New creates the service.
+func New(conns ConnSource, settings Settings) *Service {
+	return &Service{conns: conns, settings: settings}
+}
+
+func (s *Service) withTimeout(ctx context.Context) (context.Context, context.CancelFunc) {
+	return context.WithTimeout(ctx, s.settings.GetRequestTimeout())
+}
+
+// port resolves the connection and asserts it implements what the caller
+// needs, checking the declared capability first.
+//
+// The capability check comes before the type assertion for the same reason it
+// does in every other service: a driver should not have to refuse an operation
+// the interface was never meant to offer, and the reason a page gets back
+// should name the capability rather than the Go type.
+func port[T any](s *Service, connID int, capability model.Capability) (T, error) {
+	var zero T
+	conn, err := s.conns(connID)
+	if err != nil {
+		return zero, err
+	}
+	if !conn.Capabilities().Has(capability) {
+		return zero, driver.Unsupported(conn, capability)
+	}
+	api, ok := conn.(T)
+	if !ok {
+		return zero, driver.Unsupported(conn, capability)
+	}
+	return api, nil
+}
+
+// SaveStream declares a stream or rewrites an existing one.
+//
+// One method for both, because the form is one form: the difference between
+// creating and updating is which of them the server will accept, not what the
+// caller collected. Which one is sent is the caller's choice rather than a
+// guess made here - a create that silently became an update would rewrite
+// somebody else's subjects, and an update that silently became a create would
+// hide a stream that had been deleted underneath the page.
+func (s *Service) SaveStream(ctx context.Context, connID int, spec model.DestinationSpec, update bool) error {
+	capability := model.CapDestinationCreate
+	if update {
+		capability = model.CapDestinationUpdate
+	}
+	api, err := port[driver.DestinationAdmin](s, connID, capability)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	if update {
+		return api.UpdateDestination(ctx, spec)
+	}
+	return api.CreateDestination(ctx, spec)
+}
+
+// DeleteStream removes a stream and everything it holds.
+func (s *Service) DeleteStream(ctx context.Context, connID int, name string) error {
+	api, err := port[driver.DestinationAdmin](s, connID, model.CapDestinationDelete)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.RemoveDestination(ctx, model.DestinationRef{Name: name})
+}
+
+// Trim discards messages from the head of a stream, by a bound the caller
+// names.
+func (s *Service) Trim(ctx context.Context, connID int, request model.TrimRequest) (*model.TrimResult, error) {
+	api, err := port[driver.StreamTrimmer](s, connID, model.CapStreamTrim)
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.Trim(ctx, request)
+}
+
+// DeleteMessages removes messages by sequence and reports how many were there
+// to remove, which is not how many were asked for.
+func (s *Service) DeleteMessages(ctx context.Context, connID int, name string, sequences []string) (*model.TrimResult, error) {
+	api, err := port[driver.StreamTrimmer](s, connID, model.CapStreamTrim)
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.DeleteEntries(ctx, model.DestinationRef{Name: name}, sequences)
+}
+
+// SaveConsumer declares a consumer on a stream or rewrites an existing one.
+//
+// Which of the two is the caller's choice for the same reason it is for a
+// stream: a create that silently became an update would move another
+// application's position, and an update that silently became a create would
+// hide a consumer somebody had deleted underneath the page.
+func (s *Service) SaveConsumer(ctx context.Context, connID int, spec model.SubscriptionSpec, update bool) error {
+	// Both gate on the create capability. The vocabulary has no separate one
+	// for editing a subscription - CapSubscriptionCreate is what says a family
+	// can declare them at all - and inventing a second here would put a
+	// capability in the sidebar contract that no driver declares.
+	api, err := port[driver.SubscriptionAdmin](s, connID, model.CapSubscriptionCreate)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	if update {
+		return api.UpdateSubscription(ctx, spec)
+	}
+	return api.CreateSubscription(ctx, spec)
+}
+
+// DeleteConsumer removes a consumer and the position it held.
+func (s *Service) DeleteConsumer(ctx context.Context, connID int, stream, name string) error {
+	api, err := port[driver.SubscriptionAdmin](s, connID, model.CapSubscriptionDelete)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.RemoveSubscription(ctx, model.SubscriptionRef{Namespace: stream, Name: name})
+}
+
+// Publish sends a message on a subject.
+//
+// It reaches the driver's own request rather than the canonical one, because
+// the canonical MessagePublisher takes a topic, tags, keys and a delay level -
+// RocketMQ's vocabulary, of which only the body means anything here, and with
+// nowhere for headers, a persistence choice, or a reply timeout.
+func (s *Service) Publish(ctx context.Context, connID int, request natsdriver.PublishRequest) (*natsdriver.PublishResult, error) {
+	conn, err := s.natsConn(connID)
+	if err != nil {
+		return nil, err
+	}
+	// A longer deadline than the request timeout when a reply is being waited
+	// for: the user chose that wait, and cutting it short at the shared
+	// timeout would report "nothing answered" for a service that was about to.
+	timeout := s.settings.GetRequestTimeout()
+	if wait := time.Duration(request.ReplyTimeoutMs) * time.Millisecond; wait > timeout {
+		timeout = wait + time.Second
+	}
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+	return conn.Publish(ctx, request)
+}
+
+// natsConn resolves the connection and asserts it is this family's.
+//
+// A type assertion rather than a capability check, because what these
+// operations need is not a capability the vocabulary has a name for - it is
+// the NATS driver itself.
+func (s *Service) natsConn(connID int) (*natsdriver.Conn, error) {
+	conn, err := s.conns(connID)
+	if err != nil {
+		return nil, err
+	}
+	api, ok := conn.(*natsdriver.Conn)
+	if !ok {
+		return nil, driver.Unsupported(conn, model.CapPublish)
+	}
+	return api, nil
+}
+
+// StartSubscription begins following one or more subjects.
+//
+// The subscription lives on the server until it is stopped, so this is one of
+// the few operations here that leaves state behind. The connection owns it -
+// closing the connection ends every one - but a page that starts a stream and
+// forgets it leaves this app receiving everything on that subject for as long
+// as it stays open.
+func (s *Service) StartSubscription(ctx context.Context, connID int, spec model.LiveSubscriptionSpec) (*model.LiveSubscription, error) {
+	api, err := port[driver.LiveSubscriber](s, connID, model.CapLiveStream)
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.StartLiveSubscription(ctx, spec)
+}
+
+// PollSubscription drains what has arrived since the caller's cursor.
+func (s *Service) PollSubscription(ctx context.Context, connID int, id string, after int64, limit int) (*model.LiveBatch, error) {
+	api, err := port[driver.LiveSubscriber](s, connID, model.CapLiveStream)
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.PollLiveSubscription(ctx, id, after, limit)
+}
+
+// StopSubscription ends one.
+func (s *Service) StopSubscription(ctx context.Context, connID int, id string) error {
+	api, err := port[driver.LiveSubscriber](s, connID, model.CapLiveStream)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.StopLiveSubscription(ctx, id)
+}
+
+// Subscriptions is what is running, so a panel that remounts finds its own
+// stream again instead of starting a second one.
+func (s *Service) Subscriptions(ctx context.Context, connID int) ([]*model.LiveSubscription, error) {
+	api, err := port[driver.LiveSubscriber](s, connID, model.CapLiveStream)
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.LiveSubscriptions(ctx)
+}
+
+// Census counts what the account holds, in one request.
+func (s *Service) Census(ctx context.Context, connID int) (*model.BrokerCensus, error) {
+	api, err := port[driver.CensusReporter](s, connID, model.CapClusterCensus)
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.Census(ctx)
+}
+
+// Health runs the server's own checks, which are its opinion about itself
+// rather than a judgement this app makes from its metrics.
+func (s *Service) Health(ctx context.Context, connID int) (*model.BrokerHealth, error) {
+	api, err := port[driver.HealthInspector](s, connID, model.CapClusterHealth)
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.Health(ctx)
+}
+
+// Usage reads the account's JetStream meters.
+//
+// Not through a canonical port, because there is none: what an account is
+// using against what it may use is not a question the shared vocabulary has,
+// and the limits matter as much as the figures.
+func (s *Service) Usage(ctx context.Context, connID int) (*natsdriver.AccountUsage, error) {
+	conn, err := s.natsConn(connID)
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return conn.Usage(ctx)
+}
+
+// Connections lists the sockets open against the cluster.
+func (s *Service) Connections(ctx context.Context, connID int, account string) ([]*model.ClientConnection, error) {
+	api, err := port[driver.ClientInspector](s, connID, model.CapClientInspect)
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.ListClientConnections(ctx, account)
+}
+
+// CloseConnection disconnects one client.
+func (s *Service) CloseConnection(ctx context.Context, connID int, name, reason string) error {
+	api, err := port[driver.ClientCloser](s, connID, model.CapClientClose)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.CloseClientConnection(ctx, name, reason)
+}
+
+// CloseUserConnections closes every connection one identity holds.
+func (s *Service) CloseUserConnections(ctx context.Context, connID int, user, reason string) error {
+	api, err := port[driver.ClientCloser](s, connID, model.CapClientClose)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.CloseUserConnections(ctx, user, reason)
+}
+
+// Accounts lists the accounts on the cluster.
+//
+// Read-only: no NATS server creates an account over a connection, so the
+// capability that would allow it is never declared and there is nothing here
+// that writes.
+func (s *Service) Accounts(ctx context.Context, connID int) ([]*model.Namespace, error) {
+	api, err := port[driver.NamespaceAdmin](s, connID, model.CapNamespaceList)
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.ListNamespaces(ctx)
+}

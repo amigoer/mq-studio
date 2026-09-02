@@ -26,7 +26,11 @@ function Fld({
       className="flex min-w-0 flex-col gap-1.5 text-xs"
       style={span ? { gridColumn: "1/3" } : undefined}
     >
-      <span className="font-medium">
+      {/* The label grows and the input sits at the bottom, so two fields side
+          by side line up whatever their hints do. Without this a hint that
+          wraps pushes its own input down and leaves its neighbour's floating
+          half a field above it. */}
+      <span className="flex-1 font-medium">
         {label} {hint != null && <span className="font-normal text-(--c-muted-2)">{hint}</span>}
       </span>
       {children}
@@ -1684,6 +1688,422 @@ export function MqttForm({
                   value={value.managementSecret}
                   placeholder={stored ? t("page.connections.form.secretStored") : undefined}
                   onChange={(event) => set("managementSecret", event.target.value)}
+                />
+              </Fld>
+            </>
+          )}
+        </div>
+      )}
+    </>
+  );
+}
+
+/** Option keys the NATS driver reads back off a stored profile. */
+export const OPTION_NATS_TLS = "tls";
+export const OPTION_NATS_TLS_CA_FILE = "tlsCaFile";
+export const OPTION_NATS_TLS_CERT_FILE = "tlsCertFile";
+export const OPTION_NATS_TLS_KEY_FILE = "tlsKeyFile";
+export const OPTION_NATS_TLS_SKIP_VERIFY = "tlsSkipVerify";
+export const OPTION_NATS_MONITOR_URL = "monitorUrl";
+export const OPTION_NATS_JS_DOMAIN = "jsDomain";
+export const OPTION_NATS_CREDS_FILE = "credsFile";
+
+/**
+ * Five mechanisms, and none of them is a preference.
+ *
+ * A NATS server is configured for one and refuses the others, so this is a
+ * statement about the server rather than a choice about how careful to be. An
+ * nkey signs a nonce the server issues; a creds file adds the JWT claims that
+ * say what the bearer may do; a token is a shared string the server compares.
+ */
+export type NatsMechanism = "none" | "plain" | "token" | "nkey" | "creds" | "mtls";
+
+export interface NatsDraft {
+  name: string;
+  /** nats://host:port, one or more. This is the profile's endpoints field. */
+  endpoints: string;
+  mechanism: NatsMechanism;
+  username: string;
+  password: string;
+  token: string;
+  /** The seed itself, not a path: it is the whole credential. */
+  nkeySeed: string;
+  /** A path, because a creds file carries a JWT the library reads too. */
+  credsFile: string;
+  tls: boolean;
+  tlsCaFile: string;
+  tlsCertFile: string;
+  tlsKeyFile: string;
+  tlsSkipVerify: boolean;
+  /** The server's HTTP monitoring port. NATS has nothing like it in-protocol. */
+  monitorUrl: string;
+  /** The system account is a second account, so a second credential. */
+  systemUser: string;
+  systemPassword: string;
+  jsDomain: string;
+  group: string;
+  remark: string;
+  timeoutSec: number;
+  /** A stored secret never comes back, so blank means "keep it". */
+  credentialsStored: boolean;
+  clearCredentials: boolean;
+}
+
+export function emptyNatsDraft(): NatsDraft {
+  return {
+    name: "",
+    endpoints: "",
+    mechanism: "none",
+    username: "",
+    password: "",
+    token: "",
+    nkeySeed: "",
+    credsFile: "",
+    tls: false,
+    tlsCaFile: "",
+    tlsCertFile: "",
+    tlsKeyFile: "",
+    tlsSkipVerify: false,
+    monitorUrl: "",
+    systemUser: "",
+    systemPassword: "",
+    jsDomain: "",
+    group: "",
+    remark: "",
+    timeoutSec: DEFAULT_TIMEOUT_SEC,
+    credentialsStored: false,
+    clearCredentials: false,
+  };
+}
+
+/**
+ * NATS.
+ *
+ * Two credential blocks, like MQTT and for a related reason - but here they
+ * are not a protocol and an API bolted beside it. The system account is an
+ * ordinary NATS account that happens to receive the server's own events, and
+ * an account is an isolation boundary: the credentials on the left cannot
+ * reach $SYS however many permissions they carry. Without the second pair the
+ * cluster can only be asked about the one server the monitoring address names.
+ *
+ * Both are optional, and a connection with neither still works - it just sees
+ * one server instead of the cluster.
+ */
+export function NatsForm({
+  value,
+  onChange,
+}: {
+  value: NatsDraft;
+  onChange: (next: NatsDraft) => void;
+}) {
+  const { t } = useTranslation();
+  const set = <K extends keyof NatsDraft>(key: K, next: NatsDraft[K]) =>
+    onChange({ ...value, [key]: next });
+  const [advancedOpen, setAdvancedOpen] = useState(
+    value.timeoutSec !== DEFAULT_TIMEOUT_SEC ||
+      value.remark !== "" ||
+      value.monitorUrl !== "" ||
+      value.jsDomain !== "" ||
+      value.systemUser !== "",
+  );
+  const stored = value.credentialsStored && !value.clearCredentials;
+  const encrypted = value.tls || value.mechanism === "mtls";
+
+  return (
+    <>
+      <div style={GRID}>
+        <Fld label={t("page.connections.form.name")}>
+          <Input
+            value={value.name}
+            placeholder="nats-prod"
+            onChange={(event) => set("name", event.target.value)}
+          />
+        </Fld>
+        <Fld label={t("page.connections.form.nats.mechanism")}>
+          <SelectField<NatsMechanism>
+            value={value.mechanism}
+            options={[
+              { value: "none", label: t("page.connections.form.nats.mechanismNone") },
+              { value: "plain", label: t("page.connections.form.nats.mechanismPlain") },
+              { value: "token", label: t("page.connections.form.nats.mechanismToken") },
+              { value: "nkey", label: t("page.connections.form.nats.mechanismNkey") },
+              { value: "creds", label: t("page.connections.form.nats.mechanismCreds") },
+              { value: "mtls", label: t("page.connections.form.nats.mechanismMtls") },
+            ]}
+            onValueChange={(next) =>
+              // Each mechanism reads one credential and the driver ignores the
+              // rest, so leaving the others filled in would store secrets
+              // nothing will ever send.
+              onChange({
+                ...value,
+                mechanism: next,
+                username: next === "plain" ? value.username : "",
+                password: next === "plain" ? value.password : "",
+                token: next === "token" ? value.token : "",
+                nkeySeed: next === "nkey" ? value.nkeySeed : "",
+                credsFile: next === "creds" ? value.credsFile : "",
+                tlsCertFile: next === "mtls" ? value.tlsCertFile : "",
+                tlsKeyFile: next === "mtls" ? value.tlsKeyFile : "",
+              })
+            }
+          />
+        </Fld>
+        <Fld
+          span
+          label={t("page.connections.form.nats.servers")}
+          hint={t("page.connections.form.nats.serversHint")}
+        >
+          <Input
+            className="mono3"
+            style={MONO}
+            value={value.endpoints}
+            placeholder="nats://nats.example.com:4222"
+            onChange={(event) => set("endpoints", event.target.value)}
+          />
+        </Fld>
+        {value.mechanism === "plain" && (
+          <>
+            <Fld
+              label={t("page.connections.form.username")}
+              hint={
+                stored ? (
+                  <button
+                    type="button"
+                    className="mqs-linkbtn"
+                    onClick={() => set("clearCredentials", true)}
+                  >
+                    {t("page.connections.form.clearCredentials")}
+                  </button>
+                ) : undefined
+              }
+            >
+              <Input
+                value={value.username}
+                placeholder={stored ? t("page.connections.form.secretStored") : undefined}
+                onChange={(event) => set("username", event.target.value)}
+              />
+            </Fld>
+            <Fld label={t("page.connections.form.password")}>
+              <Input
+                type="password"
+                value={value.password}
+                placeholder={stored ? t("page.connections.form.secretStored") : undefined}
+                onChange={(event) => set("password", event.target.value)}
+              />
+            </Fld>
+          </>
+        )}
+        {value.mechanism === "token" && (
+          <Fld
+            span
+            label={t("page.connections.form.nats.token")}
+            hint={
+              stored ? (
+                <button
+                  type="button"
+                  className="mqs-linkbtn"
+                  onClick={() => set("clearCredentials", true)}
+                >
+                  {t("page.connections.form.clearCredentials")}
+                </button>
+              ) : undefined
+            }
+          >
+            <Input
+              type="password"
+              value={value.token}
+              placeholder={stored ? t("page.connections.form.secretStored") : undefined}
+              onChange={(event) => set("token", event.target.value)}
+            />
+          </Fld>
+        )}
+        {value.mechanism === "nkey" && (
+          <Fld
+            span
+            label={t("page.connections.form.nats.nkeySeed")}
+            hint={t("page.connections.form.nats.nkeySeedHint")}
+          >
+            <Input
+              type="password"
+              className="mono3"
+              style={MONO}
+              value={value.nkeySeed}
+              placeholder={stored ? t("page.connections.form.secretStored") : "SUA…"}
+              onChange={(event) => set("nkeySeed", event.target.value)}
+            />
+          </Fld>
+        )}
+        {value.mechanism === "creds" && (
+          <Fld
+            span
+            label={t("page.connections.form.nats.credsFile")}
+            hint={t("page.connections.form.nats.credsFileHint")}
+          >
+            <Input
+              className="mono3"
+              style={MONO}
+              value={value.credsFile}
+              placeholder="~/.nkeys/creds/op/acct/user.creds"
+              onChange={(event) => set("credsFile", event.target.value)}
+            />
+          </Fld>
+        )}
+        <Fld
+          span
+          label={t("page.connections.form.nats.tls")}
+          hint={t("page.connections.form.nats.tlsHint")}
+        >
+          <div style={SWITCH_ROW}>
+            <Switch
+              checked={value.tls}
+              onCheckedChange={(next: boolean) =>
+                // The TLS files only mean anything on an encrypted transport,
+                // and leaving them set would silently re-apply them.
+                onChange({
+                  ...value,
+                  tls: next,
+                  tlsCaFile: next ? value.tlsCaFile : "",
+                  tlsSkipVerify: next && value.tlsSkipVerify,
+                })
+              }
+            />
+            <span style={{ color: "var(--c-muted)" }}>
+              {t("page.connections.form.nats.tlsNote")}
+            </span>
+          </div>
+        </Fld>
+      </div>
+      <FormNote
+        advanced={
+          <button
+            type="button"
+            className="mqs-disclosure"
+            aria-expanded={advancedOpen}
+            onClick={() => setAdvancedOpen((open) => !open)}
+          >
+            <ChevronRight size={12} aria-hidden />
+            {t("page.connections.form.nats.advanced")}
+          </button>
+        }
+        note={t("page.connections.form.nats.note")}
+      />
+      {advancedOpen && (
+        <div style={GRID}>
+          <Fld
+            label={t("page.connections.form.rocketmq.timeout")}
+            hint={t("page.connections.form.rocketmq.timeoutHint")}
+          >
+            <Input
+              type="number"
+              min={1}
+              max={300}
+              value={value.timeoutSec > 0 ? String(value.timeoutSec) : ""}
+              onChange={(event) => {
+                const seconds = Number.parseInt(event.target.value, 10);
+                set("timeoutSec", Number.isNaN(seconds) ? 0 : seconds);
+              }}
+            />
+          </Fld>
+          <Fld label={t("page.connections.form.remark")} hint={t("page.connections.form.remarkHint")}>
+            <Input value={value.remark} onChange={(event) => set("remark", event.target.value)} />
+          </Fld>
+          <Fld
+            span
+            label={t("page.connections.form.nats.monitor")}
+            hint={t("page.connections.form.nats.monitorHint")}
+          >
+            <Input
+              className="mono3"
+              style={MONO}
+              value={value.monitorUrl}
+              placeholder="http://nats.example.com:8222"
+              onChange={(event) => set("monitorUrl", event.target.value)}
+            />
+          </Fld>
+          <Fld
+            label={t("page.connections.form.nats.systemUser")}
+            hint={t("page.connections.form.nats.systemUserHint")}
+          >
+            <Input
+              value={value.systemUser}
+              placeholder={stored ? t("page.connections.form.secretStored") : undefined}
+              onChange={(event) => set("systemUser", event.target.value)}
+            />
+          </Fld>
+          <Fld label={t("page.connections.form.nats.systemPassword")}>
+            <Input
+              type="password"
+              value={value.systemPassword}
+              placeholder={stored ? t("page.connections.form.secretStored") : undefined}
+              onChange={(event) => set("systemPassword", event.target.value)}
+            />
+          </Fld>
+          <Fld
+            span
+            label={t("page.connections.form.nats.jsDomain")}
+            hint={t("page.connections.form.nats.jsDomainHint")}
+          >
+            <Input
+              className="mono3"
+              style={MONO}
+              value={value.jsDomain}
+              onChange={(event) => set("jsDomain", event.target.value)}
+            />
+          </Fld>
+          {encrypted && (
+            <>
+              <Fld
+                span
+                label={t("page.connections.form.kafka.caFile")}
+                hint={t("page.connections.form.kafka.caFileHint")}
+              >
+                <Input
+                  className="mono3"
+                  style={MONO}
+                  value={value.tlsCaFile}
+                  placeholder="/etc/nats/ca.pem"
+                  onChange={(event) => set("tlsCaFile", event.target.value)}
+                />
+              </Fld>
+              <Fld
+                span
+                label={t("page.connections.form.kafka.skipVerify")}
+                hint={t("page.connections.form.kafka.skipVerifyHint")}
+              >
+                <div style={SWITCH_ROW}>
+                  <Switch
+                    checked={value.tlsSkipVerify}
+                    onCheckedChange={(next: boolean) => set("tlsSkipVerify", next)}
+                  />
+                  <span style={{ color: "var(--c-muted)" }}>
+                    {t("page.connections.form.kafka.skipVerifyNote")}
+                  </span>
+                </div>
+              </Fld>
+            </>
+          )}
+          {value.mechanism === "mtls" && (
+            <>
+              <Fld
+                span
+                label={t("page.connections.form.nats.certFile")}
+                hint={t("page.connections.form.nats.certFileHint")}
+              >
+                <Input
+                  className="mono3"
+                  style={MONO}
+                  value={value.tlsCertFile}
+                  placeholder="/etc/nats/client-cert.pem"
+                  onChange={(event) => set("tlsCertFile", event.target.value)}
+                />
+              </Fld>
+              <Fld span label={t("page.connections.form.nats.keyFile")}>
+                <Input
+                  className="mono3"
+                  style={MONO}
+                  value={value.tlsKeyFile}
+                  placeholder="/etc/nats/client-key.pem"
+                  onChange={(event) => set("tlsKeyFile", event.target.value)}
                 />
               </Fld>
             </>

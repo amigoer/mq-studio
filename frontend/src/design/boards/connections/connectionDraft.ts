@@ -39,6 +39,14 @@ import {
   OPTION_MQTT_TRANSPORT,
   OPTION_MQTT_WS_PATH,
   OPTION_NAMESPACE,
+  OPTION_NATS_CREDS_FILE,
+  OPTION_NATS_JS_DOMAIN,
+  OPTION_NATS_MONITOR_URL,
+  OPTION_NATS_TLS,
+  OPTION_NATS_TLS_CA_FILE,
+  OPTION_NATS_TLS_CERT_FILE,
+  OPTION_NATS_TLS_KEY_FILE,
+  OPTION_NATS_TLS_SKIP_VERIFY,
   OPTION_PULSAR_ADMIN_URL,
   OPTION_PULSAR_NAMESPACE,
   OPTION_PULSAR_TENANT,
@@ -57,6 +65,7 @@ import {
   OPTION_VHOST,
   emptyKafkaDraft,
   emptyMqttDraft,
+  emptyNatsDraft,
   emptyPulsarDraft,
   emptyRabbitMQDraft,
   emptyRedisDraft,
@@ -67,6 +76,8 @@ import {
   type MqttMechanism,
   type MqttProtocol,
   type MqttTransport,
+  type NatsDraft,
+  type NatsMechanism,
   type PulsarAuth,
   type PulsarDraft,
   type RabbitMQDraft,
@@ -87,7 +98,8 @@ export type ProtocolDraft =
   | { protocol: "kafka"; value: KafkaDraft }
   | { protocol: "pulsar"; value: PulsarDraft }
   | { protocol: "redis"; value: RedisDraft }
-  | { protocol: "mqtt"; value: MqttDraft };
+  | { protocol: "mqtt"; value: MqttDraft }
+  | { protocol: "nats"; value: NatsDraft };
 
 /** The protocols this file can build a submission for. */
 export const DRAFTABLE: readonly ProtocolDraft["protocol"][] = [
@@ -97,6 +109,7 @@ export const DRAFTABLE: readonly ProtocolDraft["protocol"][] = [
   "pulsar",
   "redis",
   "mqtt",
+  "nats",
 ];
 
 export function isDraftable(protocol: ProtocolId): protocol is ProtocolDraft["protocol"] {
@@ -115,6 +128,8 @@ export function emptyDraft(protocol: ProtocolDraft["protocol"]): ProtocolDraft {
       return { protocol, value: emptyRedisDraft() };
     case "mqtt":
       return { protocol, value: emptyMqttDraft() };
+    case "nats":
+      return { protocol, value: emptyNatsDraft() };
     default:
       return { protocol, value: emptyRocketMQDraft() };
   }
@@ -132,6 +147,8 @@ export function toSubmission(draft: ProtocolDraft): Submission {
       return redisSubmission(draft.value);
     case "mqtt":
       return mqttSubmission(draft.value);
+    case "nats":
+      return natsSubmission(draft.value);
     default:
       return rocketMQSubmission(draft.value);
   }
@@ -150,6 +167,8 @@ export function toDraft(profile: ConnectionProfile): ProtocolDraft {
       return { protocol: "redis", value: toRedisDraft(profile) };
     case MQKind.KindMQTT:
       return { protocol: "mqtt", value: toMqttDraft(profile) };
+    case MQKind.KindNATS:
+      return { protocol: "nats", value: toNatsDraft(profile) };
     default:
       return { protocol: "rocketmq", value: toRocketMQDraft(profile) };
   }
@@ -395,6 +414,115 @@ function toMqttDraft(profile: ConnectionProfile): MqttDraft {
     clearCredentials: false,
   };
 }
+
+
+/*
+ * NATS collects up to two credentials, and which of the first one it collects
+ * depends on the mechanism.
+ *
+ * Only the credential the chosen mechanism uses is submitted. The driver reads
+ * exactly one and ignores the rest, so sending the others would store secrets
+ * nothing will ever send - and a user who switched from a token to a password
+ * would leave the token behind on disk.
+ *
+ * The system-account pair is submitted whatever the mechanism, because it is a
+ * different account rather than a different way into the same one.
+ */
+function natsSubmission(draft: NatsDraft): Submission {
+  const mechanism = draft.mechanism;
+  const monitorUrl = draft.monitorUrl.trim();
+  const keepStored = draft.credentialsStored && !draft.clearCredentials;
+  const encrypted = draft.tls || mechanism === "mtls";
+
+  return {
+    draft: {
+      name: draft.name.trim(),
+      group: draft.group,
+      kind: MQKind.KindNATS,
+      endpoints: draft.endpoints.trim(),
+      timeoutSec: draft.timeoutSec,
+      authMechanism: NATS_MECHANISMS[mechanism],
+      options: {
+        [OPTION_NATS_TLS]: String(draft.tls),
+        [OPTION_NATS_TLS_CA_FILE]: encrypted ? draft.tlsCaFile.trim() : "",
+        [OPTION_NATS_TLS_SKIP_VERIFY]: String(encrypted && draft.tlsSkipVerify),
+        // A client certificate is only presented under mutual TLS. Storing it
+        // otherwise would re-apply it the day somebody changes mechanism.
+        [OPTION_NATS_TLS_CERT_FILE]: mechanism === "mtls" ? draft.tlsCertFile.trim() : "",
+        [OPTION_NATS_TLS_KEY_FILE]: mechanism === "mtls" ? draft.tlsKeyFile.trim() : "",
+        [OPTION_NATS_CREDS_FILE]: mechanism === "creds" ? draft.credsFile.trim() : "",
+        [OPTION_NATS_MONITOR_URL]: monitorUrl,
+        [OPTION_NATS_JS_DOMAIN]: draft.jsDomain.trim(),
+      },
+      secrets: {
+        username: mechanism === "plain" ? draft.username.trim() : "",
+        password: mechanism === "plain" ? draft.password.trim() : "",
+        token: mechanism === "token" ? draft.token.trim() : "",
+        nkeySeed: mechanism === "nkey" ? draft.nkeySeed.trim() : "",
+        systemUser: draft.systemUser.trim(),
+        systemPassword: draft.systemPassword.trim(),
+      },
+      remark: draft.remark,
+    },
+    // "preserve" rather than "replace", for the reason MQTT has it: with two
+    // credentials on one form, a user editing the monitoring address would
+    // otherwise wipe whichever of them they did not retype.
+    credentialsMode: draft.clearCredentials ? "clear" : keepStored ? "preserve" : "replace",
+  };
+}
+
+const NATS_MECHANISMS: Record<NatsMechanism, AuthMechanism> = {
+  none: AuthMechanism.AuthNone,
+  plain: AuthMechanism.AuthPlain,
+  token: AuthMechanism.AuthToken,
+  nkey: AuthMechanism.AuthNKey,
+  creds: AuthMechanism.AuthCreds,
+  mtls: AuthMechanism.AuthMutualTLS,
+};
+
+function toNatsDraft(profile: ConnectionProfile): NatsDraft {
+  const mechanism = NATS_MECHANISM_OF[profile.authMechanism] ?? "none";
+  const tls = profile.options?.[OPTION_NATS_TLS] === "true";
+  const encrypted = tls || mechanism === "mtls";
+
+  return {
+    name: profile.name,
+    endpoints: profile.endpoints,
+    mechanism,
+    // Secrets never come back from the store. Blank with credentialsStored set
+    // is what tells the form to say "kept" rather than "empty".
+    username: "",
+    password: "",
+    token: "",
+    nkeySeed: "",
+    credsFile: mechanism === "creds" ? (profile.options?.[OPTION_NATS_CREDS_FILE] ?? "") : "",
+    tls,
+    tlsCaFile: encrypted ? (profile.options?.[OPTION_NATS_TLS_CA_FILE] ?? "") : "",
+    tlsCertFile:
+      mechanism === "mtls" ? (profile.options?.[OPTION_NATS_TLS_CERT_FILE] ?? "") : "",
+    tlsKeyFile: mechanism === "mtls" ? (profile.options?.[OPTION_NATS_TLS_KEY_FILE] ?? "") : "",
+    tlsSkipVerify: encrypted && profile.options?.[OPTION_NATS_TLS_SKIP_VERIFY] === "true",
+    monitorUrl: profile.options?.[OPTION_NATS_MONITOR_URL] ?? "",
+    systemUser: "",
+    systemPassword: "",
+    jsDomain: profile.options?.[OPTION_NATS_JS_DOMAIN] ?? "",
+    group: profile.group,
+    remark: profile.remark,
+    timeoutSec: profile.timeoutSec,
+    // Either credential counts: a connection may authenticate to its own
+    // account, to the system account, or to both.
+    credentialsStored: profile.secretsConfigured.length > 0,
+    clearCredentials: false,
+  };
+}
+
+const NATS_MECHANISM_OF: Partial<Record<AuthMechanism, NatsMechanism>> = {
+  [AuthMechanism.AuthPlain]: "plain",
+  [AuthMechanism.AuthToken]: "token",
+  [AuthMechanism.AuthNKey]: "nkey",
+  [AuthMechanism.AuthCreds]: "creds",
+  [AuthMechanism.AuthMutualTLS]: "mtls",
+};
 
 const MQTT_TRANSPORTS: readonly MqttTransport[] = ["tcp", "tls", "ws", "wss"];
 

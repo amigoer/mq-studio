@@ -77,7 +77,10 @@ internal/
     rocketmq/            RocketMQ driver
     rabbitmq/            RabbitMQ driver
     kafka/               Kafka driver
+    pulsar/              Pulsar driver
+    redisstream/         Redis Stream driver
     mqtt/                MQTT driver, with emqx/ for the vendor management API
+    nats/                NATS driver, JetStream and the $SYS account
   model/                 Domain models and the capability vocabulary
   crypto/                Local encryption helpers
   storage/               On-disk layout and atomic writes
@@ -103,8 +106,13 @@ tests/
   e2e/rabbitmq-plain/    RabbitMQ with none of them, for the degraded paths
   e2e/kafka/             Three-broker KRaft cluster
   e2e/kafka-secure/      Kafka with SASL and an authorizer
+  e2e/pulsar/            Pulsar standalone with the admin API
+  e2e/redis/             Redis standalone with ACL users
+  e2e/redis-cluster/     Redis in cluster mode, for the multi-master paths
   e2e/mqtt/              Mosquitto: a $SYS tree and no management API
   e2e/mqtt-emqx/         EMQX: a management API and no readable $SYS
+  e2e/nats/              Three-server NATS cluster with JetStream and $SYS
+  e2e/nats-plain/        NATS with neither, for the degraded paths
   throughput-load/       Load generator for the throughput charts (own module)
 ```
 

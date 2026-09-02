@@ -39,7 +39,8 @@ export type ProtocolId =
   | "rabbitmq"
   | "pulsar"
   | "redis"
-  | "mqtt";
+  | "mqtt"
+  | "nats";
 
 export type PageId =
   | "overview"
@@ -252,6 +253,45 @@ export const PROTOCOLS: Record<ProtocolId, Protocol> = {
       },
     ],
   },
+  nats: {
+    id: "nats",
+    name: "NATS",
+    badge: "NATS 2.x",
+    badgeClass: "pNAT",
+    /* One entry for now, and the rest arrive with the capabilities that make
+       them answerable. navigation.nats.test.ts pins the rule: an entry the
+       declared capabilities cannot reach is drawn and then fails when it is
+       opened, which reads as a broken app rather than as a broker that cannot
+       answer. Overview needs none, because it renders whatever the connection
+       does report. */
+    nav: [
+      { items: [{ id: "overview", icon: House, label: "shell.nav.nats.overview" }] },
+      {
+        label: BROWSE,
+        items: [
+          { id: "topics", icon: Layers, label: "shell.nav.nats.topics" },
+          { id: "consumers", icon: Users, label: "shell.nav.nats.consumers" },
+          { id: "messages", icon: Mail, label: "shell.nav.nats.messages" },
+          { id: "producer", icon: Send, label: "shell.nav.nats.producer" },
+          /* Core NATS delivers to whoever is listening and keeps nothing,
+             so this is not the messages page with a filter on it: there is
+             no history to page back through and nothing to re-read. */
+          { id: "subscribe", icon: Radio, label: "shell.nav.nats.subscribe" },
+        ],
+      },
+      {
+        label: OPS,
+        items: [
+          { id: "cluster", icon: Server, label: "shell.nav.nats.cluster" },
+          { id: "clients", icon: Plug, label: "shell.nav.nats.clients" },
+          /* Accounts, which is NATS's isolation boundary and its only one:
+             not a label on a subject but a wall between two of them. */
+          { id: "vhosts", icon: Boxes, label: "shell.nav.nats.vhosts" },
+          { id: "alerts", icon: BellRing, label: "shell.nav.nats.alerts" },
+        ],
+      },
+    ],
+  },
 };
 
 export const PROTOCOL_ORDER: ProtocolId[] = [
@@ -261,6 +301,7 @@ export const PROTOCOL_ORDER: ProtocolId[] = [
   "pulsar",
   "redis",
   "mqtt",
+  "nats",
 ];
 
 /** Every page the protocol's sidebar can reach, flattened. */
@@ -290,6 +331,7 @@ const READY: ReadonlySet<ProtocolId> = new Set<ProtocolId>([
   "pulsar",
   "redis",
   "mqtt",
+  "nats",
 ]);
 
 export function isProtocolReady(protocol: ProtocolId): boolean {

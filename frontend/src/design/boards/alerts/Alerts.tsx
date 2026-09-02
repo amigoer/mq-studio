@@ -42,6 +42,13 @@ const RULE_SEVERITY: Record<AlertRuleKey, AlertSeverity> = {
   partitionUnderReplicated: "warn",
   partitionOffline: "crit",
   partitionLeaderless: "crit",
+  // A NATS stream with no leader is neither readable nor writable; one with a
+  // replica behind is still serving and is only unprotected. A server that
+  // has dropped clients is a warning because the counter never resets - it
+  // says this happened, not that it is happening.
+  streamNoLeader: "crit",
+  streamUnderReplicated: "warn",
+  slowConsumer: "warn",
 };
 
 /**

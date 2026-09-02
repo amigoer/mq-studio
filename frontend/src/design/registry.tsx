@@ -8,6 +8,7 @@ import { OverviewRabbitMQ } from "./boards/overview/OverviewRabbitMQ";
 import { OverviewPulsar } from "./boards/overview/OverviewPulsar";
 import { OverviewRedis } from "./boards/overview/OverviewRedis";
 import { OverviewMqtt } from "./boards/overview/OverviewMqtt";
+import { OverviewNats } from "./boards/overview/OverviewNats";
 
 import { TopicsRocketMQ } from "./boards/topics/TopicsRocketMQ";
 import { TopicsKafka } from "./boards/topics/TopicsKafka";
@@ -16,19 +17,23 @@ import { QueuesRabbitMQ } from "./boards/topics/QueuesRabbitMQ";
 import { ExchangesRabbitMQ } from "./boards/topics/ExchangesRabbitMQ";
 import { VhostsRabbitMQ } from "./boards/vhosts/VhostsRabbitMQ";
 import { NamespacesPulsar } from "./boards/vhosts/NamespacesPulsar";
+import { AccountsNats } from "./boards/vhosts/AccountsNats";
 import { UsersRabbitMQ } from "./boards/acl/UsersRabbitMQ";
 import { PoliciesRabbitMQ } from "./boards/policies/PoliciesRabbitMQ";
 import { DefinitionsRabbitMQ } from "./boards/definitions/DefinitionsRabbitMQ";
 import { ReplicationRabbitMQ } from "./boards/replication/ReplicationRabbitMQ";
 import { TopicsMqtt } from "./boards/topics/TopicsMqtt";
 import { StreamsRedis } from "./boards/topics/StreamsRedis";
+import { StreamsNats } from "./boards/topics/StreamsNats";
 
 import { ConsumersRocketMQ } from "./boards/consumers/ConsumersRocketMQ";
 import { ConsumersKafka } from "./boards/consumers/ConsumersKafka";
 import { SubscriptionsPulsar } from "./boards/consumers/SubscriptionsPulsar";
 import { ConsumersRedis } from "./boards/consumers/ConsumersRedis";
+import { ConsumersNats } from "./boards/consumers/ConsumersNats";
 import { ClientsMqtt } from "./boards/consumers/ClientsMqtt";
 import { ClientsRedis } from "./boards/consumers/ClientsRedis";
+import { ClientsNats } from "./boards/consumers/ClientsNats";
 import { ChannelsRabbitMQ } from "./boards/consumers/ChannelsRabbitMQ";
 
 import { MessagesRocketMQ } from "./boards/messages/MessagesRocketMQ";
@@ -36,6 +41,7 @@ import { MessagesKafka } from "./boards/messages/MessagesKafka";
 import { MessagesPulsar } from "./boards/messages/MessagesPulsar";
 import { MessagesRabbitMQ } from "./boards/messages/MessagesRabbitMQ";
 import { MessagesRedis } from "./boards/messages/MessagesRedis";
+import { MessagesNats } from "./boards/messages/MessagesNats";
 
 import { DlqRocketMQ } from "./boards/dlq/DlqRocketMQ";
 import { DlqRabbitMQ } from "./boards/dlq/DlqRabbitMQ";
@@ -48,6 +54,7 @@ import { ProducerMqtt } from "./boards/producer/ProducerMqtt";
 import { ProducerPulsar } from "./boards/producer/ProducerPulsar";
 import { ProducerRabbitMQ } from "./boards/producer/ProducerRabbitMQ";
 import { ProducerRedis } from "./boards/producer/ProducerRedis";
+import { ProducerNats } from "./boards/producer/ProducerNats";
 import { Alerts } from "./boards/alerts/Alerts";
 import { Acl } from "./boards/acl/Acl";
 import { AclKafka } from "./boards/acl/AclKafka";
@@ -61,8 +68,10 @@ import { BrokersPulsar } from "./boards/cluster/BrokersPulsar";
 import { NodesRabbitMQ } from "./boards/cluster/NodesRabbitMQ";
 import { NodeRedis } from "./boards/cluster/NodeRedis";
 import { NodesMqtt } from "./boards/cluster/NodesMqtt";
+import { ServersNats } from "./boards/cluster/ServersNats";
 
 import { MqttWorkbench } from "./boards/mqtt/MqttWorkbench";
+import { NatsWorkbench } from "./boards/nats/NatsWorkbench";
 import { NotDesigned } from "./boards/misc/NotDesigned";
 
 /**
@@ -107,6 +116,7 @@ const BOARDS: Partial<
     pulsar: OverviewPulsar,
     redis: OverviewRedis,
     mqtt: OverviewMqtt,
+    nats: OverviewNats,
   },
   topics: {
     rocketmq: TopicsRocketMQ,
@@ -115,9 +125,10 @@ const BOARDS: Partial<
     pulsar: TopicsPulsar,
     redis: StreamsRedis,
     mqtt: TopicsMqtt,
+    nats: StreamsNats,
   },
   exchanges: { rabbitmq: ExchangesRabbitMQ },
-  vhosts: { rabbitmq: VhostsRabbitMQ, pulsar: NamespacesPulsar },
+  vhosts: { rabbitmq: VhostsRabbitMQ, pulsar: NamespacesPulsar, nats: AccountsNats },
   policies: { rabbitmq: PoliciesRabbitMQ },
   definitions: { rabbitmq: DefinitionsRabbitMQ },
   replication: { rabbitmq: ReplicationRabbitMQ },
@@ -128,15 +139,17 @@ const BOARDS: Partial<
     rabbitmq: ChannelsRabbitMQ,
     pulsar: SubscriptionsPulsar,
     redis: ConsumersRedis,
+    nats: ConsumersNats,
   },
-  subscribe: { mqtt: MqttWorkbench },
-  clients: { mqtt: ClientsMqtt, redis: ClientsRedis },
+  subscribe: { mqtt: MqttWorkbench, nats: NatsWorkbench },
+  clients: { mqtt: ClientsMqtt, redis: ClientsRedis, nats: ClientsNats },
   messages: {
     rocketmq: MessagesRocketMQ,
     kafka: MessagesKafka,
     rabbitmq: MessagesRabbitMQ,
     pulsar: MessagesPulsar,
     redis: MessagesRedis,
+    nats: MessagesNats,
   },
   dlq: {
     rocketmq: DlqRocketMQ,
@@ -151,6 +164,7 @@ const BOARDS: Partial<
     pulsar: BrokersPulsar,
     redis: NodeRedis,
     mqtt: NodesMqtt,
+    nats: ServersNats,
   },
 };
 
@@ -173,6 +187,11 @@ export function renderBoard(
     if (protocol === "pulsar") return <ProducerPulsar />;
     if (protocol === "redis") return <ProducerRedis />;
     if (protocol === "mqtt") return <ProducerMqtt />;
+    /* NATS's own too: the shared console collects a topic, tags, keys and a
+       delay level, and this family has none of those - what a NATS publish
+       needs instead is headers, the choice between a core send and a stored
+       one, and a reply timeout. */
+    if (protocol === "nats") return <ProducerNats />;
     return <Producer protocol={protocol} nav={nav} />;
   }
   /* Alerts is one board for every family: the rules are numeric comparisons

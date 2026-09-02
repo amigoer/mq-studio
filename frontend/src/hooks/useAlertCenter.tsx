@@ -90,6 +90,7 @@ async function sweepConnection(profile: Connection): Promise<Sweep> {
   if (profile.status !== "online") return { id: profile.id, facts: NO_FACTS };
   const rabbit = profile.kind === MQKind.KindRabbitMQ;
   const kafka = profile.kind === MQKind.KindKafka;
+  const nats = profile.kind === MQKind.KindNATS;
   /*
    * Pulsar reads subscriptions and nothing else. Its rules are about a
    * subscription's own state - blocked, idle with a backlog, behind - and its
@@ -114,7 +115,10 @@ async function sweepConnection(profile: Connection): Promise<Sweep> {
         : consumerApi.getConsumerGroups(profile.id).catch(() => [] as Subscription[]),
       // Kafka's rules read a topic's partition health, which is the whole of
       // what it reports about being unwell, so it needs the topic list too.
-      rabbit || kafka
+      // NATS reads its streams for the same reason and at the same price: a
+      // stream's Raft group is where JetStream goes wrong, and the listing is
+      // one call rather than a walk.
+      rabbit || kafka || nats
         ? topicApi.getTopics(profile.id).catch(() => [] as Destination[])
         : Promise.resolve([] as Destination[]),
       // Only RabbitMQ reports flow control on a connection; Kafka's admin

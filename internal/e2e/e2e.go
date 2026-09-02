@@ -54,12 +54,13 @@ const (
 	Pulsar   Family = "pulsar"
 	Redis    Family = "redis"
 	MQTT     Family = "mqtt"
+	NATS     Family = "nats"
 )
 
 // AllFamilies is the list every other place derives from - the CI shard matrix
 // included, which a test in this package pins against it. Enumerating families
 // twice is how the lists drift apart.
-var AllFamilies = []Family{RocketMQ, RabbitMQ, Kafka, Pulsar, Redis, MQTT}
+var AllFamilies = []Family{RocketMQ, RabbitMQ, Kafka, Pulsar, Redis, MQTT, NATS}
 
 // Env is one broker environment a live test needs.
 type Env struct {

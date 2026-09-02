@@ -1,0 +1,99 @@
+name: mq-studio-e2e-nats
+
+# Three servers, not one.
+#
+# A single server has an empty route table, one entry in every cluster
+# listing, and no way to place a stream on three nodes - so the servers board,
+# the replica state a stream reports, and the difference between asking one
+# server and asking the cluster would all be untestable here and would only
+# break against a real deployment.
+#
+# It costs almost nothing: a NATS server is up in well under a second, which
+# is why this is three where Pulsar is one.
+#
+# Each server advertises 127.0.0.1 to clients. NATS gossips the other servers'
+# addresses to whoever connects, and the container addresses it would
+# otherwise hand out are unreachable from the host - so a driver that
+# connected to one server and then followed the gossip would be sent nowhere.
+# All three client ports are published for the same reason.
+
+x-server: &server
+  image: nats:2.14-alpine
+  volumes:
+    - ./nats.conf:/etc/nats/nats.conf:ro
+  healthcheck:
+    # /healthz, not a port check. A JetStream server binds its client port
+    # long before the meta group has elected a leader, and a driver that
+    # connects in that window finds a cluster that cannot answer anything
+    # about its own streams.
+    test: ['CMD', 'wget', '--spider', '-q', 'http://127.0.0.1:8222/healthz']
+    interval: 5s
+    timeout: 10s
+    retries: 24
+  restart: unless-stopped
+
+services:
+  nats-1:
+    <<: *server
+    hostname: nats-1
+    command:
+      ['-c', '/etc/nats/nats.conf', '--name', 'nats-1', '--client_advertise', '127.0.0.1:4222']
+    ports:
+      - '127.0.0.1:4222:4222'
+      - '127.0.0.1:8222:8222'
+    volumes:
+      - ./nats.conf:/etc/nats/nats.conf:ro
+      - nats-1-data:/data
+
+  nats-2:
+    <<: *server
+    hostname: nats-2
+    command:
+      ['-c', '/etc/nats/nats.conf', '--name', 'nats-2', '--client_advertise', '127.0.0.1:4223']
+    ports:
+      - '127.0.0.1:4223:4222'
+      - '127.0.0.1:8223:8222'
+    volumes:
+      - ./nats.conf:/etc/nats/nats.conf:ro
+      - nats-2-data:/data
+
+  nats-3:
+    <<: *server
+    hostname: nats-3
+    command:
+      ['-c', '/etc/nats/nats.conf', '--name', 'nats-3', '--client_advertise', '127.0.0.1:4224']
+    ports:
+      - '127.0.0.1:4224:4222'
+      - '127.0.0.1:8224:8222'
+    volumes:
+      - ./nats.conf:/etc/nats/nats.conf:ro
+      - nats-3-data:/data
+
+  # The official CLI, kept alive so the cross-check has an independent source
+  # to compare against - the same role redis-cli, kafka-topics.sh and
+  # pulsar-admin play for the other families. It is a separate image because
+  # the server image ships the server and nothing else.
+  nats-box:
+    image: natsio/nats-box:0.19.7
+    entrypoint: ['sleep']
+    command: ['infinity']
+    environment:
+      # Every server, so the CLI keeps working while a test is doing something
+      # to one of them. These are the container addresses, not the advertised
+      # ones: this runs inside the compose network.
+      NATS_URL: nats://nats-1:4222,nats://nats-2:4222,nats://nats-3:4222
+      NATS_USER: mqstudio
+      NATS_PASSWORD: mqstudio
+    depends_on:
+      nats-1:
+        condition: service_healthy
+      nats-2:
+        condition: service_healthy
+      nats-3:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  nats-1-data:
+  nats-2-data:
+  nats-3-data:

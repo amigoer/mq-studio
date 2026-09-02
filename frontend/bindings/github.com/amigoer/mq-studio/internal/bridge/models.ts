@@ -1335,6 +1335,248 @@ export class MoveInput {
 }
 
 /**
+ * NATSConsumerInput is a consumer as the NATS dialog collects it.
+ * 
+ * The name carries the family because every bridge type shares one Go package
+ * and ConsumerService already has a ConsumerInput of its own - which is the
+ * RocketMQ-shaped one this exists instead of.
+ * 
+ * Deliberately not ConsumerService.Create's shape. That collects a group name,
+ * a broker address, a consume mode and a retry count - RocketMQ's vocabulary -
+ * and has nowhere for the stream a JetStream consumer lives on, which is half
+ * of its address.
+ */
+export class NATSConsumerInput {
+    /**
+     * Stream is not optional. Two streams may both have a consumer called
+     * "worker", so a name alone does not identify one.
+     */
+    "stream": string;
+    "name": string;
+
+    /**
+     * Durable keeps the consumer and its position when nothing is using it.
+     * An ephemeral one is cleaned up, which is what makes this a choice rather
+     * than a default.
+     */
+    "durable": boolean;
+
+    /**
+     * DeliverPolicy is where a new consumer starts. It cannot be changed
+     * afterwards - the server refuses - which is why this driver offers no
+     * offset reset.
+     */
+    "deliverPolicy": string;
+    "ackPolicy": string;
+    "ackWait": string;
+    "maxDeliver": string;
+    "maxAckPending": string;
+
+    /**
+     * FilterSubject narrows what this consumer takes from the stream. Several
+     * may be given, separated however the form separated them.
+     */
+    "filterSubject": string;
+    "replayPolicy": string;
+
+    /**
+     * DeliverSubject makes it a push consumer: the server sends to that
+     * subject instead of waiting to be asked. Empty is a pull consumer, which
+     * is the ordinary case.
+     */
+    "deliverSubject": string;
+    "deliverGroup": string;
+
+    /** Creates a new NATSConsumerInput instance. */
+    constructor($$source: Partial<NATSConsumerInput> = {}) {
+        if (!("stream" in $$source)) {
+            this["stream"] = "";
+        }
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("durable" in $$source)) {
+            this["durable"] = false;
+        }
+        if (!("deliverPolicy" in $$source)) {
+            this["deliverPolicy"] = "";
+        }
+        if (!("ackPolicy" in $$source)) {
+            this["ackPolicy"] = "";
+        }
+        if (!("ackWait" in $$source)) {
+            this["ackWait"] = "";
+        }
+        if (!("maxDeliver" in $$source)) {
+            this["maxDeliver"] = "";
+        }
+        if (!("maxAckPending" in $$source)) {
+            this["maxAckPending"] = "";
+        }
+        if (!("filterSubject" in $$source)) {
+            this["filterSubject"] = "";
+        }
+        if (!("replayPolicy" in $$source)) {
+            this["replayPolicy"] = "";
+        }
+        if (!("deliverSubject" in $$source)) {
+            this["deliverSubject"] = "";
+        }
+        if (!("deliverGroup" in $$source)) {
+            this["deliverGroup"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new NATSConsumerInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): NATSConsumerInput {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new NATSConsumerInput($$parsedSource as Partial<NATSConsumerInput>);
+    }
+}
+
+/**
+ * NATSPublishInput is a publish as the NATS send console collects it.
+ * 
+ * Deliberately not MessageService.Publish's shape. That one carries an
+ * exchange, a routing key, a mandatory flag and a priority - AMQP's vocabulary
+ * - and has nowhere for a subject's headers, for the choice between a core
+ * send and a stored one, or for a reply timeout, which are most of what a NATS
+ * publish is.
+ */
+export class NATSPublishInput {
+    "subject": string;
+    "payload": string;
+    "headers": { [_ in string]?: string };
+
+    /**
+     * Count sends the same message more than once, for filling a board.
+     */
+    "count": number;
+
+    /**
+     * Persist waits for a stream to say it stored the message. Without it the
+     * send is core NATS: it reaches whoever is listening at that instant and
+     * the server says nothing back.
+     */
+    "persist": boolean;
+
+    /**
+     * ExpectStream refuses the send unless that stream is the one capturing
+     * the subject, which is the guard against a typo landing somewhere else.
+     */
+    "expectStream": string;
+
+    /**
+     * DeduplicationID is Nats-Msg-Id, honoured inside the stream's duplicate
+     * window.
+     */
+    "deduplicationId": string;
+
+    /**
+     * ReplyTimeoutMs turns the send into a request and waits that long.
+     */
+    "replyTimeoutMs": number;
+
+    /** Creates a new NATSPublishInput instance. */
+    constructor($$source: Partial<NATSPublishInput> = {}) {
+        if (!("subject" in $$source)) {
+            this["subject"] = "";
+        }
+        if (!("payload" in $$source)) {
+            this["payload"] = "";
+        }
+        if (!("headers" in $$source)) {
+            this["headers"] = {};
+        }
+        if (!("count" in $$source)) {
+            this["count"] = 0;
+        }
+        if (!("persist" in $$source)) {
+            this["persist"] = false;
+        }
+        if (!("expectStream" in $$source)) {
+            this["expectStream"] = "";
+        }
+        if (!("deduplicationId" in $$source)) {
+            this["deduplicationId"] = "";
+        }
+        if (!("replyTimeoutMs" in $$source)) {
+            this["replyTimeoutMs"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new NATSPublishInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): NATSPublishInput {
+        const $$createField2_0 = $$createType9;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("headers" in $$parsedSource) {
+            $$parsedSource["headers"] = $$createField2_0($$parsedSource["headers"]);
+        }
+        return new NATSPublishInput($$parsedSource as Partial<NATSPublishInput>);
+    }
+}
+
+/**
+ * NATSSubscribeInput is a live subscription as the workbench asks for one.
+ */
+export class NATSSubscribeInput {
+    /**
+     * Subjects are patterns, so wildcards are the point here rather than the
+     * mistake they are on a publish.
+     */
+    "subjects": string[];
+
+    /**
+     * QueueGroup shares the messages between everything subscribed under that
+     * name instead of each receiving all of them. It is offered because
+     * watching a subject a service is already consuming is otherwise a way to
+     * take its traffic.
+     */
+    "queueGroup": string;
+
+    /**
+     * Buffer is how many messages to hold between polls. Zero takes the
+     * driver's default.
+     */
+    "buffer": number;
+
+    /** Creates a new NATSSubscribeInput instance. */
+    constructor($$source: Partial<NATSSubscribeInput> = {}) {
+        if (!("subjects" in $$source)) {
+            this["subjects"] = [];
+        }
+        if (!("queueGroup" in $$source)) {
+            this["queueGroup"] = "";
+        }
+        if (!("buffer" in $$source)) {
+            this["buffer"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new NATSSubscribeInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): NATSSubscribeInput {
+        const $$createField0_0 = $$createType0;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("subjects" in $$parsedSource) {
+            $$parsedSource["subjects"] = $$createField0_0($$parsedSource["subjects"]);
+        }
+        return new NATSSubscribeInput($$parsedSource as Partial<NATSSubscribeInput>);
+    }
+}
+
+/**
  * NamespaceInput creates or updates a virtual host.
  */
 export class NamespaceInput {
@@ -2072,6 +2314,58 @@ export class PulsarTopicInput {
     static createFrom($$source: any = {}): PulsarTopicInput {
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         return new PulsarTopicInput($$parsedSource as Partial<PulsarTopicInput>);
+    }
+}
+
+/**
+ * PurgeInput is a trim as the dialog collects it.
+ * 
+ * The strategy is a string rather than two methods because it is one command
+ * with two ways of naming a bound, and a page that had to pick an endpoint
+ * before the user picked a strategy would be the wrong shape.
+ */
+export class PurgeInput {
+    "stream": string;
+    "strategy": string;
+
+    /**
+     * Keep is how many of the newest messages to leave, for the keep strategy.
+     * Zero empties the stream, which is the only purge JetStream has - there
+     * is no separate command, and offering one under another name would be two
+     * controls for one thing.
+     */
+    "keep": number;
+
+    /**
+     * Sequence is the lowest sequence to keep, for the sequence strategy.
+     * Everything below it goes, and the message at it survives.
+     */
+    "sequence": string;
+
+    /** Creates a new PurgeInput instance. */
+    constructor($$source: Partial<PurgeInput> = {}) {
+        if (!("stream" in $$source)) {
+            this["stream"] = "";
+        }
+        if (!("strategy" in $$source)) {
+            this["strategy"] = "";
+        }
+        if (!("keep" in $$source)) {
+            this["keep"] = 0;
+        }
+        if (!("sequence" in $$source)) {
+            this["sequence"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new PurgeInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): PurgeInput {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new PurgeInput($$parsedSource as Partial<PurgeInput>);
     }
 }
 
@@ -2877,6 +3171,119 @@ export class ShellPage {
     static createFrom($$source: any = {}): ShellPage {
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         return new ShellPage($$parsedSource as Partial<ShellPage>);
+    }
+}
+
+/**
+ * StreamInput is a stream as the dialog collects it.
+ * 
+ * Deliberately not TopicService.Create's shape. Every field there is
+ * RocketMQ's vocabulary and none of it has a JetStream meaning, and there is
+ * nowhere in it to put a subject list, a retention policy, or a limit - which
+ * is most of what declaring a stream is.
+ * 
+ * The limits are strings rather than numbers so that "not set" and "set to
+ * zero" stay different. -1 is how the server spells no limit, 0 means a stream
+ * that can hold nothing, and a numeric field that arrived empty would have to
+ * pick one of those for the user.
+ */
+export class StreamInput {
+    "name": string;
+    "description": string;
+
+    /**
+     * Subjects is the list the stream captures, however the form separated it.
+     * A mirror has none.
+     */
+    "subjects": string;
+
+    /**
+     * Retention is limits, interest or workqueue. Work queue is the one where
+     * reading the stream changes what it holds.
+     */
+    "retention": string;
+    "storage": string;
+    "discard": string;
+    "replicas": number;
+    "maxMsgs": string;
+    "maxBytes": string;
+    "maxMsgsPerSubject": string;
+    "maxMsgSize": string;
+
+    /**
+     * MaxAge and DuplicateWindow are Go durations - "24h", "2m" - because that
+     * is what the server reports and what an operator writes.
+     */
+    "maxAge": string;
+    "duplicateWindow": string;
+    "compression": string;
+    "denyDelete": boolean;
+    "denyPurge": boolean;
+    "allowRollup": boolean;
+
+    /** Creates a new StreamInput instance. */
+    constructor($$source: Partial<StreamInput> = {}) {
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("description" in $$source)) {
+            this["description"] = "";
+        }
+        if (!("subjects" in $$source)) {
+            this["subjects"] = "";
+        }
+        if (!("retention" in $$source)) {
+            this["retention"] = "";
+        }
+        if (!("storage" in $$source)) {
+            this["storage"] = "";
+        }
+        if (!("discard" in $$source)) {
+            this["discard"] = "";
+        }
+        if (!("replicas" in $$source)) {
+            this["replicas"] = 0;
+        }
+        if (!("maxMsgs" in $$source)) {
+            this["maxMsgs"] = "";
+        }
+        if (!("maxBytes" in $$source)) {
+            this["maxBytes"] = "";
+        }
+        if (!("maxMsgsPerSubject" in $$source)) {
+            this["maxMsgsPerSubject"] = "";
+        }
+        if (!("maxMsgSize" in $$source)) {
+            this["maxMsgSize"] = "";
+        }
+        if (!("maxAge" in $$source)) {
+            this["maxAge"] = "";
+        }
+        if (!("duplicateWindow" in $$source)) {
+            this["duplicateWindow"] = "";
+        }
+        if (!("compression" in $$source)) {
+            this["compression"] = "";
+        }
+        if (!("denyDelete" in $$source)) {
+            this["denyDelete"] = false;
+        }
+        if (!("denyPurge" in $$source)) {
+            this["denyPurge"] = false;
+        }
+        if (!("allowRollup" in $$source)) {
+            this["allowRollup"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new StreamInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): StreamInput {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new StreamInput($$parsedSource as Partial<StreamInput>);
     }
 }
 

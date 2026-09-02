@@ -744,3 +744,73 @@ func TestRedisStreamKeepsAPasswordWithNoUsername(t *testing.T) {
 		t.Errorf("mechanism after reload = %q, want plain", stored.Auth.Mechanism)
 	}
 }
+
+/*
+ * A profile is dialled with the mechanism it was stored with.
+ *
+ * SetACL owns the mechanism, which is right for a family whose only one is
+ * ACL: off means anonymous. applyCredentials already restores a family's own
+ * mechanism on the way in, and this path did not - so a profile was stored
+ * correctly and then handed to the driver with its mechanism reset to none.
+ *
+ * It went unnoticed because every family that had a mechanism until now reads
+ * its credentials straight out of the secret map and ignores the mechanism.
+ * NATS is the first that reads it, because six of its mechanisms are
+ * different kinds of credential rather than different names for a password -
+ * an nkey seed is signed, a creds file is a path, a token is neither.
+ */
+func TestDiallingKeepsTheStoredMechanism(t *testing.T) {
+	service := newTestService(t, nil)
+	profile := &model.ConnectionProfile{
+		Name: "NATS", Kind: model.KindNATS,
+		Endpoints: "nats://127.0.0.1:4222", TimeoutSec: 5,
+		Auth: model.AuthConfig{Mechanism: model.AuthPlain},
+	}
+	profile.SetSecret("username", "app")
+	profile.SetSecret("password", "s3cret")
+
+	resolved := service.resolveForDial(profile)
+	if resolved.Auth.Mechanism != model.AuthPlain {
+		t.Errorf("dialled with %q, want plain - the driver would authenticate as nobody",
+			resolved.Auth.Mechanism)
+	}
+	if resolved.Secret("password") != "s3cret" {
+		t.Error("the password did not survive being resolved for dialling")
+	}
+}
+
+/*
+ * The global access key pair is RocketMQ's, and it fills in a profile that
+ * named no mechanism of its own.
+ *
+ * A profile that named one keeps it. Stamping ACL over a NATS connection
+ * because the settings page happens to hold RocketMQ credentials would dial it
+ * with a mechanism its driver does not implement, using a different broker's
+ * credentials - and it would do so only for the users who configured them,
+ * which is the worst way for it to fail.
+ */
+func TestGlobalACLCredentialsLeaveAnotherFamilyAlone(t *testing.T) {
+	service := newTestService(t, fakeSettings{accessKey: "global-ak", secretKey: "global-sk"})
+	profile := &model.ConnectionProfile{
+		Name: "NATS", Kind: model.KindNATS,
+		Endpoints: "nats://127.0.0.1:4222", TimeoutSec: 5,
+		Auth: model.AuthConfig{Mechanism: model.AuthPlain},
+	}
+
+	resolved := service.resolveForDial(profile)
+	if resolved.Auth.Mechanism != model.AuthPlain {
+		t.Errorf("dialled with %q, want plain", resolved.Auth.Mechanism)
+	}
+	if resolved.Secret(model.SecretAccessKey) != "" {
+		t.Error("RocketMQ's global access key was stamped onto a NATS connection")
+	}
+
+	// And the fallback still applies where it belongs: a profile that named
+	// no mechanism is what the setting exists for.
+	rocket := &model.ConnectionProfile{Name: "RocketMQ", Kind: model.KindRocketMQ}
+	filled := service.resolveForDial(rocket)
+	if filled.Auth.Mechanism != model.AuthACL || filled.Secret(model.SecretAccessKey) != "global-ak" {
+		t.Errorf("the global pair no longer fills in a profile with no mechanism: %q / %q",
+			filled.Auth.Mechanism, filled.Secret(model.SecretAccessKey))
+	}
+}

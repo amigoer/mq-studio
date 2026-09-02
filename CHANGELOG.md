@@ -11,6 +11,37 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
+- NATS is the seventh driver, over the official Go client and its jetstream
+  subpackage. JetStream streams with their subjects, retention, storage and
+  replica set; push and pull consumers with their pending, unacknowledged and
+  redelivered counts; browsing and following a stream by sequence; publishing
+  on a subject, with a request that waits for a reply; purge by count,
+  sequence or subject, and deleting single messages; the cluster's servers
+  with their routes and effective settings; client connections with what each
+  is subscribed to, and disconnecting one; and the accounts, with their
+  JetStream usage against the caps they were given.
+- A subjects workbench for core NATS, which is the part that fits no existing
+  page. A subject stores nothing: a message reaches whoever is listening at
+  that moment and is then gone, so there is no history to page back through
+  and the workbench is a live view rather than the message browser with a
+  filter on it.
+- Four tiers are probed when a NATS connection opens — the protocol,
+  JetStream, the server's HTTP monitoring endpoint, and the system account —
+  and each of the last three can be missing for two different reasons that
+  lead somewhere different. A server built without JetStream is not an account
+  denied it; a monitoring address nobody entered is not one that does not
+  answer; credentials never given are not credentials refused. Six reasons are
+  reported rather than one, because each sends the reader somewhere else.
+- The cluster pages take whichever of the monitoring endpoint and the system
+  account answered. The endpoint reports the one server whose port was named,
+  and `$SYS` fans out to every server in the cluster, so each row records
+  which source it came from and the page says when a figure covers one server
+  out of several.
+- Three alert rules NATS needs and no other family has: a stream whose Raft
+  group has no leader, a stream with a replica behind, and a server that has
+  disconnected clients for falling behind.
+- Two authentication mechanisms: an nkey seed, and a credentials file signed
+  by an operator.
 - A RocketMQ connection can name a namespace, which scopes everything it does
   to that namespace: topics and consumer groups are listed under their short
   names, and every request the connection makes carries the wrapped ones. The
@@ -30,6 +61,18 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   nothing available could show them working.
 
 ### Fixed
+
+- A connection is now dialled with the authentication mechanism it was stored
+  with. Resolving a profile for dialling reset it to none on every family
+  except RocketMQ, so a connection saved with a username and password
+  authenticated as nobody. It went unnoticed because the drivers that had a
+  mechanism until now read their credentials straight out of the stored secrets
+  and ignore it.
+- RocketMQ's global access key pair in settings is no longer stamped onto a
+  connection of another family. It filled in any profile that carried no
+  credentials of its own, which meant a NATS or Kafka connection was dialled
+  with a mechanism its driver does not implement, using a different broker's
+  credentials — and only for the users who had configured that pair.
 
 - A RocketMQ connection's AccessKey and SecretKey are now actually sent. They
   were stored, decrypted and handed to the driver, and the client library then

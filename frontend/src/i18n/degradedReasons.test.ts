@@ -29,6 +29,20 @@ const REASONS: Record<string, string[]> = {
   ],
   // internal/driver/kafka/conn.go
   kafka: ["credentials", "forbidden", "timeout", "accessControl", "unreachable"],
+  // internal/driver/nats/conn.go
+  //
+  // Six rather than three, because each pair is one tier that can be missing
+  // two ways, and the two ways have different fixes. A server built without
+  // JetStream is not an account denied it; an endpoint nobody named is not one
+  // that did not answer; credentials never given are not credentials refused.
+  nats: [
+    "jetstreamDisabled",
+    "jetstreamNoAccount",
+    "monitorAbsent",
+    "monitorUnreachable",
+    "systemAbsent",
+    "systemForbidden",
+  ],
 };
 
 type Bundle = Record<string, unknown>;

@@ -266,6 +266,19 @@ jobs:
             up: |
               npm run e2e:mqtt:up
               npm run e2e:mqtt:emqx:up
+          - family: nats
+            packages: ./internal/app/... ./internal/driver/nats/...
+            # Three servers, because a single one has an empty route table and
+            # can place no stream on more than itself. The seed is required:
+            # the cross-check compares what the app computes against the nats
+            # CLI, and comparing zero against zero proves nothing. The second
+            # server has JetStream and the system account switched off, which
+            # is the only way to assert the driver names the tier that is
+            # missing rather than reporting a blanket failure.
+            up: |
+              npm run e2e:nats:up
+              npm run e2e:nats:seed
+              npm run e2e:nats:plain:up
     steps:
       - uses: actions/checkout@v7
 

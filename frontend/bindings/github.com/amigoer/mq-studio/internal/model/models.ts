@@ -384,6 +384,18 @@ export enum AuthMechanism {
     AuthSASLScram = "sasl-scram",
     AuthToken = "token",
     AuthMutualTLS = "mtls",
+
+    /**
+     * AuthNKey is a challenge signed with an Ed25519 seed, and AuthCreds is
+     * that seed packaged with a JWT in a file the client library reads.
+     * 
+     * Neither is a variation on the pairs above. A token is a shared string the
+     * server compares; an nkey proves possession of a private key against a
+     * nonce the server issues, and a creds file additionally carries the claims
+     * that say what the bearer may do. NATS is the family that has them.
+     */
+    AuthNKey = "nkey",
+    AuthCreds = "creds",
 };
 
 /**
@@ -3201,6 +3213,15 @@ export class Namespace {
      */
     "limits": { [_ in string]?: number };
 
+    /**
+     * Attributes carries family-specific detail, the same way Node and
+     * Destination do. A NATS account is an isolation boundary with none of a
+     * vhost's furniture: no queue type to default, nothing to trace, and
+     * instead a system-account flag, a JetStream footprint and a note of how
+     * many servers the figures came from.
+     */
+    "attributes": { [_ in string]?: string };
+
     /** Creates a new Namespace instance. */
     constructor($$source: Partial<Namespace> = {}) {
         if (!("name" in $$source)) {
@@ -3230,6 +3251,9 @@ export class Namespace {
         if (!("limits" in $$source)) {
             this["limits"] = {};
         }
+        if (!("attributes" in $$source)) {
+            this["attributes"] = {};
+        }
 
         Object.assign(this, $$source);
     }
@@ -3240,12 +3264,16 @@ export class Namespace {
     static createFrom($$source: any = {}): Namespace {
         const $$createField2_0 = $$createType0;
         const $$createField8_0 = $$createType25;
+        const $$createField9_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("tags" in $$parsedSource) {
             $$parsedSource["tags"] = $$createField2_0($$parsedSource["tags"]);
         }
         if ("limits" in $$parsedSource) {
             $$parsedSource["limits"] = $$createField8_0($$parsedSource["limits"]);
+        }
+        if ("attributes" in $$parsedSource) {
+            $$parsedSource["attributes"] = $$createField9_0($$parsedSource["attributes"]);
         }
         return new Namespace($$parsedSource as Partial<Namespace>);
     }

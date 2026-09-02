@@ -81,7 +81,31 @@ This is the delivery plan. The contract it delivers against is
   their subscriptions, the cluster's nodes, and disconnecting a session. A tier that does not
   answer is reported with its reason rather than leaving a page empty.
 
-- **Designed, not yet implemented** — the nine families below.
+- **Shipped** — NATS 2.x, over the official Go client and its jetstream subpackage. The
+  second family with no administrative plane of its own, and the one with the most that can be
+  missing: four tiers are probed when a connection opens - the protocol, JetStream, the server's
+  HTTP monitoring endpoint, and the system account - and each of the last three can be absent
+  for two different reasons that lead somewhere different, so six degraded reasons are reported
+  rather than one. JetStream streams with their subjects, retention, storage and replica set;
+  push and pull consumers; browsing and following by sequence; publishing on a subject, with a
+  request that waits for a reply; purge by count, sequence or subject; the cluster's servers and
+  their effective settings; client connections and disconnecting one; and the accounts, with
+  their JetStream usage against the caps they were given.
+
+  Core NATS is the part that does not fit any existing page, and it gets its own. A subject
+  keeps nothing: a message is delivered to whoever is listening at that moment and is then gone,
+  so there is no history to page back through and the subjects workbench is a live view rather
+  than the message browser with a filter on it.
+
+  Four things it deliberately does not have. There is no dead-letter page: a consumer that
+  exhausts max_deliver stops redelivering and publishes an advisory, and the message is moved
+  nowhere. There is no offset reset: a consumer's start position is fixed when it is created and
+  the API refuses to change it, so the only way to move one is to delete it and make another -
+  which changes its identity. There is no pending-entries list, because JetStream reports how
+  many deliveries are unacknowledged and nothing about which. And accounts are read-only: no
+  NATS server has a request that creates one, in configuration mode or in operator mode.
+
+- **Designed, not yet implemented** — the eight families below.
 
 ## Delivery order
 
@@ -93,7 +117,7 @@ This is the delivery plan. The contract it delivers against is
 | 6 | **Redis Stream** | Done. Streams, groups, browse, publish, the pending entries list, the server and its cluster, clients and ACL users all read a real broker, and no maxlen or message rate pretends to exist. Additive as predicted, with four new ports: a log's trim, a subscription's position, an entry publish, and the pending list |
 | 7 | **Pulsar** | Done. Topics, namespaces and the tenants above them, subscriptions and cursors, browse and tail, a send console, dead letters and role grants all work end to end, and no page pretends to a tag, a disk figure or a user directory this family does not have |
 | 8 | **MQTT** | Done. The first family with no admin plane of its own: what it can do is probed at connect time in three tiers — the protocol, the $SYS tree, and the broker's own REST API — and a tier that does not answer says why rather than going quiet |
-| 9 | **NATS** | Purely additive — no canonical page changes shape |
+| 9 | **NATS** | Done. Additive as predicted - no canonical page changed shape - but the first family whose driver reads the profile's auth mechanism rather than only its secrets, which is what found a dial-time bug that reset that mechanism on every family but RocketMQ |
 | 10 | **ActiveMQ / Artemis**, then **NSQ** | Still additive; ActiveMQ tests whether JMS semantics fit the canonical pages |
 | 11 | **Amazon SQS**, **Google Cloud Pub/Sub**, **Azure Service Bus**, **Amazon Kinesis**, then **IBM MQ** and **Solace PubSub+** | The connection form can express "no address, only a region and a credential" |
 
@@ -135,7 +159,7 @@ and `Access`.
 | **Pulsar** | Admin REST API + the binary protocol | All six | Done. The tenant and namespace ended up as both: a scope selector on every page, and a page of their own, because a topic is addressed as tenant/namespace/name and the selector needs somewhere to get its options from |
 | **ActiveMQ / Artemis** | Jolokia REST over JMX | All six | Classic 5.x and Artemis expose different management trees; the driver probes which one answered |
 | **Redis Stream** | The Redis protocol itself, through go-redis | All six, plus Pending entries, Clients and ACL users | Confirmed: no per-destination access control - the key patterns are on the user. The prediction that there would be no cluster topology was wrong: `CLUSTER NODES` answers it, and the driver reads every master and replica. A stream has no partitions, nothing about it is editable, and there is no dead-letter queue - what replaces it is the pending entries list, which is delivery records rather than messages. No message rate and no disk figure are reported anywhere |
-| **NATS** | JetStream API plus the server monitoring endpoints | Destinations, Subscriptions, Messages, Publish, Cluster | Without JetStream the endpoint drops to publish and subscribe only |
+| **NATS** | JetStream API, the server monitoring endpoints and the $SYS account | Destinations, Subscriptions, Messages, Publish, Subjects, Cluster, Connections, Accounts, Alerts | Done. Four tiers, each probed on connect: without JetStream the endpoint drops to publish and subscribe, and the cluster pages need either the monitoring endpoint or the system account - the monitoring endpoint answers for one server, $SYS for all of them |
 | **NSQ** | nsqd and nsqlookupd HTTP APIs | Destinations, Subscriptions, Publish, Cluster | No message history, so no browse |
 | **MQTT** | None in the protocol. Probed at connect time: the $SYS tree, and the broker's own REST API where it has one | Overview, Topics, Subscribe, Publish, Clients, Cluster, Alerts | No consumer groups, no offsets and no stored history — a message exists while it is in flight and is gone if nobody was subscribed. Topics are those holding a retained value, because nothing else is enumerable. Clients need a management API, which Mosquitto does not have |
 

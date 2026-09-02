@@ -1,0 +1,28 @@
+name: mq-studio-e2e-nats-plain
+
+# Core NATS with no JetStream and no system account.
+#
+# Paired with tests/e2e/nats the way rabbitmq-plain is paired with rabbitmq
+# and Mosquitto with EMQX: one environment where every tier answers, and one
+# deliberately without, so both halves of the capability probe are exercised.
+#
+# Here the absent halves are JetStream - which takes the streams, consumers
+# and message pages with it - and the system account, which takes the
+# cluster-wide fan-out. What is left is the protocol and the monitoring
+# endpoint, and the boards that stand on those two have to keep working.
+
+services:
+  nats:
+    image: nats:2.14-alpine
+    command: ['-c', '/etc/nats/nats.conf', '--name', 'nats-plain']
+    ports:
+      - '127.0.0.1:4225:4222'
+      - '127.0.0.1:8225:8222'
+    volumes:
+      - ./nats.conf:/etc/nats/nats.conf:ro
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', '-q', 'http://127.0.0.1:8222/healthz']
+      interval: 5s
+      timeout: 10s
+      retries: 24
+    restart: unless-stopped
