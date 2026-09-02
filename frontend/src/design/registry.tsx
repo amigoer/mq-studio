@@ -26,6 +26,7 @@ import { ConsumersKafka } from "./boards/consumers/ConsumersKafka";
 import { SubscriptionsPulsar } from "./boards/consumers/SubscriptionsPulsar";
 import { ConsumersRedis } from "./boards/consumers/ConsumersRedis";
 import { ClientsMqtt } from "./boards/consumers/ClientsMqtt";
+import { ClientsRedis } from "./boards/consumers/ClientsRedis";
 import { ChannelsRabbitMQ } from "./boards/consumers/ChannelsRabbitMQ";
 
 import { MessagesRocketMQ } from "./boards/messages/MessagesRocketMQ";
@@ -42,9 +43,11 @@ import { PelRedis } from "./boards/dlq/PelRedis";
 import { Producer } from "./boards/producer/Producer";
 import { ProducerKafka } from "./boards/producer/ProducerKafka";
 import { ProducerRabbitMQ } from "./boards/producer/ProducerRabbitMQ";
+import { ProducerRedis } from "./boards/producer/ProducerRedis";
 import { Alerts } from "./boards/alerts/Alerts";
 import { Acl } from "./boards/acl/Acl";
 import { AclKafka } from "./boards/acl/AclKafka";
+import { AclRedis } from "./boards/acl/AclRedis";
 import { QuotasKafka } from "./boards/quotas/QuotasKafka";
 
 import { ClusterRocketMQ } from "./boards/cluster/ClusterRocketMQ";
@@ -122,7 +125,7 @@ const BOARDS: Partial<
     redis: ConsumersRedis,
   },
   subscribe: { mqtt: MqttWorkbench },
-  clients: { mqtt: ClientsMqtt },
+  clients: { mqtt: ClientsMqtt, redis: ClientsRedis },
   messages: {
     rocketmq: MessagesRocketMQ,
     kafka: MessagesKafka,
@@ -151,12 +154,14 @@ export function renderBoard(
   nav?: BoardNav,
 ): JSX.Element {
   /* The send console is per family, not shared: RabbitMQ's collects an
-     exchange, a routing key, headers and AMQP properties, and the shared one
+     exchange, a routing key, headers and AMQP properties, Redis's collects an
+     ordered list of named fields and an optional entry id, and the shared one
      collects a topic, tags, keys and a delay level - RocketMQ's vocabulary, of
-     which only the body means anything here. */
+     which only the body means anything to any of them. */
   if (page === "producer") {
     if (protocol === "rabbitmq") return <ProducerRabbitMQ />;
     if (protocol === "kafka") return <ProducerKafka />;
+    if (protocol === "redis") return <ProducerRedis />;
     return <Producer protocol={protocol} nav={nav} />;
   }
   /* Alerts is one board for every family: the rules are numeric comparisons
@@ -170,6 +175,7 @@ export function renderBoard(
     if (protocol === "rocketmq") return <Acl />;
     if (protocol === "rabbitmq") return <UsersRabbitMQ />;
     if (protocol === "kafka") return <AclKafka />;
+    if (protocol === "redis") return <AclRedis />;
   }
 
   const Board = BOARDS[page]?.[protocol];

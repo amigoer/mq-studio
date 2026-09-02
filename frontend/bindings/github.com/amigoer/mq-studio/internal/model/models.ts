@@ -190,6 +190,145 @@ export class AccessRule {
 }
 
 /**
+ * AckResult is what an acknowledgement settled.
+ */
+export class AckResult {
+    /**
+     * Acknowledged is how many of the named ids were actually owed. It is not
+     * how many were asked for: acknowledging an id twice succeeds and settles
+     * nothing.
+     */
+    "acknowledged": number;
+
+    /** Creates a new AckResult instance. */
+    constructor($$source: Partial<AckResult> = {}) {
+        if (!("acknowledged" in $$source)) {
+            this["acknowledged"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new AckResult instance from a string or object.
+     */
+    static createFrom($$source: any = {}): AckResult {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new AckResult($$parsedSource as Partial<AckResult>);
+    }
+}
+
+/**
+ * AclUser is one principal the server authenticates, as Redis states it.
+ * 
+ * A third access model beside AccessAdmin's credential pairs and
+ * AccessDirectory's principals-and-rules. Redis puts everything on the user:
+ * what it may run, which keys it may touch, which channels it may subscribe
+ * to, and - since 7.0 - selectors granting a different set for a subset of
+ * keys. None of that fits a permission attached to a subject, and a page that
+ * showed only the command rules would hide the half that actually contains
+ * the data.
+ */
+export class AclUser {
+    "name": string;
+
+    /**
+     * Enabled is the on/off flag. A disabled user still exists with all its
+     * rules, which is the difference between suspending an application and
+     * removing it.
+     */
+    "enabled": boolean;
+
+    /**
+     * NoPassword means the user authenticates with any password, or none. It
+     * is not the same as having no passwords set: that user cannot log in at
+     * all, and confusing the two is how a server is left open.
+     */
+    "noPassword": boolean;
+
+    /**
+     * PasswordCount is how many hashes are set. The hashes themselves never
+     * leave the driver.
+     */
+    "passwordCount": number;
+
+    /**
+     * KeyPatterns, ChannelPatterns and CommandRules are Redis's own words,
+     * passed through rather than interpreted: the rule language has more forms
+     * than a UI can model, and rewriting one is how a permission changes
+     * meaning on its way to the screen.
+     */
+    "keyPatterns": string[];
+    "channelPatterns": string[];
+    "commandRules": string;
+
+    /**
+     * Selectors are the parenthesised groups a user may carry. They are shown
+     * verbatim because nothing else here can express them.
+     */
+    "selectors": string[];
+
+    /**
+     * Rule is the whole line as the server stated it. It is what an operator
+     * checks against, and the only form guaranteed to be complete.
+     */
+    "rule": string;
+
+    /** Creates a new AclUser instance. */
+    constructor($$source: Partial<AclUser> = {}) {
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("enabled" in $$source)) {
+            this["enabled"] = false;
+        }
+        if (!("noPassword" in $$source)) {
+            this["noPassword"] = false;
+        }
+        if (!("passwordCount" in $$source)) {
+            this["passwordCount"] = 0;
+        }
+        if (!("keyPatterns" in $$source)) {
+            this["keyPatterns"] = [];
+        }
+        if (!("channelPatterns" in $$source)) {
+            this["channelPatterns"] = [];
+        }
+        if (!("commandRules" in $$source)) {
+            this["commandRules"] = "";
+        }
+        if (!("selectors" in $$source)) {
+            this["selectors"] = [];
+        }
+        if (!("rule" in $$source)) {
+            this["rule"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new AclUser instance from a string or object.
+     */
+    static createFrom($$source: any = {}): AclUser {
+        const $$createField4_0 = $$createType0;
+        const $$createField5_0 = $$createType0;
+        const $$createField7_0 = $$createType0;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("keyPatterns" in $$parsedSource) {
+            $$parsedSource["keyPatterns"] = $$createField4_0($$parsedSource["keyPatterns"]);
+        }
+        if ("channelPatterns" in $$parsedSource) {
+            $$parsedSource["channelPatterns"] = $$createField5_0($$parsedSource["channelPatterns"]);
+        }
+        if ("selectors" in $$parsedSource) {
+            $$parsedSource["selectors"] = $$createField7_0($$parsedSource["selectors"]);
+        }
+        return new AclUser($$parsedSource as Partial<AclUser>);
+    }
+}
+
+/**
  * AclVersionInfo holds ACL config version information.
  */
 export class AclVersionInfo {
@@ -605,6 +744,17 @@ export enum Capability {
      * the cluster. Only a family that elects a leader per destination has it.
      */
     CapQueueRebalance = "destination.rebalance",
+
+    /**
+     * CapStreamTrim discards entries from the head of a destination that keeps
+     * a log, by count or by position, and deletes named entries outright.
+     * 
+     * Distinct from CapDestinationPurge, which empties a destination in one
+     * call and is the whole of what it can do. A trim is a bound the operator
+     * chooses, and emptying is one setting of it - a family with this needs no
+     * separate purge, and offering both would be two controls for one command.
+     */
+    CapStreamTrim = "destination.trim",
     CapSubscriptionList = "subscription.list",
     CapSubscriptionCreate = "subscription.create",
     CapSubscriptionDelete = "subscription.delete",
@@ -626,12 +776,44 @@ export enum Capability {
     CapQueueOffset = "subscription.queueOffset",
 
     /**
+     * CapSubscriptionPosition is moving a subscription to a named place in the
+     * log rather than to a moment in time.
+     * 
+     * Distinct from CapOffsetReset for a reason that is not cosmetic: a stream
+     * entry's id is milliseconds plus a sequence within them, so a timestamp
+     * cannot pick between entries sharing a millisecond, and has no way to
+     * spell "the end" at all. A family whose positions are ids needs to say
+     * which id.
+     */
+    CapSubscriptionPosition = "subscription.position",
+
+    /**
      * CapSubscriptionRuntime is asking a connected consumer what it is doing:
      * which queues it holds and how fast it is getting through them. Only a
      * live client can answer, so a family without client introspection - or a
      * group with nothing connected - simply has no answer.
      */
     CapSubscriptionRuntime = "subscription.runtime",
+
+    /**
+     * CapPendingEntries is a family that keeps, per subscription, a list of
+     * what it has handed out and not had acknowledged.
+     * 
+     * It answers the same page as CapDLQ and CapDeadLetterTopology and cannot
+     * do it their way. A dead letter is a message that was given up on and
+     * moved somewhere; a pending entry is a delivery record - an id, who holds
+     * it, how long they have held it and how many times it has been tried -
+     * and the entry itself never moves.
+     */
+    CapPendingEntries = "message.pending",
+
+    /**
+     * CapPendingAdmin is acting on that list: acknowledging entries so they
+     * stop being owed, and moving them to another consumer. Separate from
+     * reading it, because taking work from a consumer that is merely busy is a
+     * different permission and a different mistake.
+     */
+    CapPendingAdmin = "message.pendingAdmin",
     CapMessageQuery = "message.query",
     CapMessageByID = "message.byId",
     CapMessageTrack = "message.track",
@@ -653,6 +835,17 @@ export enum Capability {
      * delivery guarantees - rather than only a destination and a body.
      */
     CapPublishRich = "message.publishRich",
+
+    /**
+     * CapEntryPublish is a send console for a family whose message is an
+     * ordered set of named fields rather than a body.
+     * 
+     * A third shape beside CapPublish and CapPublishRich, and it has to be:
+     * the first is a topic with tags, keys and a delay level, the second is an
+     * exchange with a routing key and AMQP properties, and neither has
+     * anywhere to put a field list or an explicit id.
+     */
+    CapEntryPublish = "message.publishEntry",
 
     /**
      * CapProducerInspect is asking who is currently publishing. It needs a
@@ -720,6 +913,17 @@ export enum Capability {
     CapQuotaAdmin = "quota.admin",
 
     /**
+     * CapSlowLog is a broker that keeps a record of the commands that took
+     * longest.
+     * 
+     * Distinct from CapNodeConfig, which is what a node is running with: this
+     * is what has actually been slow on it, and it is the first thing anyone
+     * looks at when a server is fine on every other figure and still not
+     * keeping up.
+     */
+    CapSlowLog = "cluster.slowLog",
+
+    /**
      * CapLogDirs is a broker that reports what its partitions occupy on disk.
      * Distinct from CapNodeConfig, which is what a node is running with: this
      * is where its space has gone, and it is the only disk figure Kafka has -
@@ -772,6 +976,19 @@ export enum Capability {
      * take a write for and never read back.
      */
     CapAccessDirectory = "access.directory",
+
+    /**
+     * CapAclUsers is a broker whose access control lives entirely on the user:
+     * what it may run, which keys it may touch, which channels it may
+     * subscribe to.
+     * 
+     * A third model beside CapAccessControl's credential pairs and
+     * CapAccessDirectory's rules attached to a subject. Redis attaches
+     * everything to the principal, including the key patterns that decide what
+     * data it can reach - and a page built for either of the others would show
+     * the commands and hide the half that contains the data.
+     */
+    CapAclUsers = "access.aclUsers",
 
     /**
      * CapNamespaceList and CapNamespaceAdmin are families whose namespaces are
@@ -844,6 +1061,61 @@ export enum Capability {
      */
     CapRoutingAdmin = "routing.admin",
 };
+
+/**
+ * ClaimResult is what a claim moved.
+ */
+export class ClaimResult {
+    /**
+     * Claimed are the entries that changed owner.
+     */
+    "claimed": string[];
+
+    /**
+     * Deleted are ids that were in the pending list and no longer in the
+     * stream - trimmed or XDEL'd while owed to somebody. An auto-claim drops
+     * them from the pending list, and reporting them is the only way an
+     * operator learns that work was lost rather than moved.
+     */
+    "deleted": string[];
+
+    /**
+     * NextStart is where a further auto-claim would resume. "0-0" means the
+     * walk reached the end.
+     */
+    "nextStart": string;
+
+    /** Creates a new ClaimResult instance. */
+    constructor($$source: Partial<ClaimResult> = {}) {
+        if (!("claimed" in $$source)) {
+            this["claimed"] = [];
+        }
+        if (!("deleted" in $$source)) {
+            this["deleted"] = [];
+        }
+        if (!("nextStart" in $$source)) {
+            this["nextStart"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ClaimResult instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ClaimResult {
+        const $$createField0_0 = $$createType0;
+        const $$createField1_0 = $$createType0;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("claimed" in $$parsedSource) {
+            $$parsedSource["claimed"] = $$createField0_0($$parsedSource["claimed"]);
+        }
+        if ("deleted" in $$parsedSource) {
+            $$parsedSource["deleted"] = $$createField1_0($$parsedSource["deleted"]);
+        }
+        return new ClaimResult($$parsedSource as Partial<ClaimResult>);
+    }
+}
 
 /**
  * ClientChannel is one multiplexed session inside a connection.
@@ -1022,6 +1294,15 @@ export class ClientConnection {
      */
     "blockedBy": string;
 
+    /**
+     * Attributes carries family-specific detail the canonical fields have no
+     * home for, the same way Destination, Subscription and Node do: what a
+     * Redis connection was last running, how long it has been idle, and which
+     * client library it is. Its keys are a contract between one driver and
+     * that driver's frontend module.
+     */
+    "attributes": { [_ in string]?: string };
+
     /** Creates a new ClientConnection instance. */
     constructor($$source: Partial<ClientConnection> = {}) {
         if (!("name" in $$source)) {
@@ -1081,6 +1362,9 @@ export class ClientConnection {
         if (!("blockedBy" in $$source)) {
             this["blockedBy"] = "";
         }
+        if (!("attributes" in $$source)) {
+            this["attributes"] = {};
+        }
 
         Object.assign(this, $$source);
     }
@@ -1089,7 +1373,11 @@ export class ClientConnection {
      * Creates a new ClientConnection instance from a string or object.
      */
     static createFrom($$source: any = {}): ClientConnection {
+        const $$createField19_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("attributes" in $$parsedSource) {
+            $$parsedSource["attributes"] = $$createField19_0($$parsedSource["attributes"]);
+        }
         return new ClientConnection($$parsedSource as Partial<ClientConnection>);
     }
 }
@@ -2039,6 +2327,71 @@ export class FormOption {
 }
 
 /**
+ * GroupConsumer is one member of a consumer group.
+ * 
+ * It is not the canonical SubscriptionClient, and cannot be: that is a set of
+ * queue assignments with a broker and a queue id, pull and consume latencies,
+ * and a locked flag for ordered delivery. A group consumer has a name, how
+ * much it is holding, and how long it has been quiet - and filling the other
+ * shape would mean inventing every field but one.
+ * 
+ * It is also not model.StreamConsumer, which is RabbitMQ's: a client attached
+ * over the stream protocol, with a connection, a peer host and an offset. The
+ * two are different objects that both reasonably answer to "stream consumer",
+ * which is why neither name is shared.
+ */
+export class GroupConsumer {
+    "name": string;
+
+    /**
+     * Pending is how many entries this consumer has been handed and not
+     * acknowledged. They are its responsibility until it acknowledges them or
+     * somebody claims them away.
+     */
+    "pending": number;
+
+    /**
+     * IdleMs is how long since it last read anything. A high idle with a
+     * pending count above zero is the shape of a consumer that died holding
+     * work.
+     */
+    "idleMs": number;
+
+    /**
+     * InactiveMs is how long since it last did anything at all, which Redis
+     * tracks separately: a consumer polling an empty stream is idle but not
+     * inactive. Redis 7.2 and later; zero on an older server.
+     */
+    "inactiveMs": number;
+
+    /** Creates a new GroupConsumer instance. */
+    constructor($$source: Partial<GroupConsumer> = {}) {
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("pending" in $$source)) {
+            this["pending"] = 0;
+        }
+        if (!("idleMs" in $$source)) {
+            this["idleMs"] = 0;
+        }
+        if (!("inactiveMs" in $$source)) {
+            this["inactiveMs"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new GroupConsumer instance from a string or object.
+     */
+    static createFrom($$source: any = {}): GroupConsumer {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new GroupConsumer($$parsedSource as Partial<GroupConsumer>);
+    }
+}
+
+/**
  * HealthCheck is one question the broker answers about itself.
  * 
  * RabbitMQ's health endpoints are deliberately narrow: each asks one thing and
@@ -2923,6 +3276,156 @@ export class PartitionReassignment {
 }
 
 /**
+ * PendingByConsumer is one consumer's share of a pending list.
+ */
+export class PendingByConsumer {
+    "consumer": string;
+    "count": number;
+
+    /** Creates a new PendingByConsumer instance. */
+    constructor($$source: Partial<PendingByConsumer> = {}) {
+        if (!("consumer" in $$source)) {
+            this["consumer"] = "";
+        }
+        if (!("count" in $$source)) {
+            this["count"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new PendingByConsumer instance from a string or object.
+     */
+    static createFrom($$source: any = {}): PendingByConsumer {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new PendingByConsumer($$parsedSource as Partial<PendingByConsumer>);
+    }
+}
+
+/**
+ * PendingEntry is one delivery that has not been acknowledged.
+ * 
+ * It is a delivery record rather than a message: what it carries is who was
+ * given the entry, how long ago, and how many times. The entry's own contents
+ * are a separate read, because a pending list of a thousand would otherwise
+ * fetch a thousand bodies nobody asked to see.
+ */
+export class PendingEntry {
+    "ref": SubscriptionRef;
+    "id": string;
+    "consumer": string;
+
+    /**
+     * IdleMs is how long since it was delivered. It is the column an operator
+     * sorts by: an entry idle for hours is one nothing is coming back for.
+     */
+    "idleMs": number;
+
+    /**
+     * Deliveries counts how many times it has been handed out. Above one means
+     * something claimed it or a consumer restarted; climbing means an entry
+     * that keeps being retried and keeps failing.
+     */
+    "deliveries": number;
+
+    /** Creates a new PendingEntry instance. */
+    constructor($$source: Partial<PendingEntry> = {}) {
+        if (!("ref" in $$source)) {
+            this["ref"] = (new SubscriptionRef());
+        }
+        if (!("id" in $$source)) {
+            this["id"] = "";
+        }
+        if (!("consumer" in $$source)) {
+            this["consumer"] = "";
+        }
+        if (!("idleMs" in $$source)) {
+            this["idleMs"] = 0;
+        }
+        if (!("deliveries" in $$source)) {
+            this["deliveries"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new PendingEntry instance from a string or object.
+     */
+    static createFrom($$source: any = {}): PendingEntry {
+        const $$createField0_0 = $$createType41;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("ref" in $$parsedSource) {
+            $$parsedSource["ref"] = $$createField0_0($$parsedSource["ref"]);
+        }
+        return new PendingEntry($$parsedSource as Partial<PendingEntry>);
+    }
+}
+
+/**
+ * PendingSummary is a group's pending list at a glance.
+ */
+export class PendingSummary {
+    "ref": SubscriptionRef;
+
+    /**
+     * Count is how many entries the group is owed in total.
+     */
+    "count": number;
+
+    /**
+     * MinID and MaxID bound them. The oldest is what an operator acts on: it
+     * is the entry that has been stuck the longest.
+     */
+    "minId": string;
+    "maxId": string;
+
+    /**
+     * PerConsumer says who is holding what, which is how a single dead
+     * consumer is told apart from a group that is generally behind.
+     */
+    "perConsumer": PendingByConsumer[];
+
+    /** Creates a new PendingSummary instance. */
+    constructor($$source: Partial<PendingSummary> = {}) {
+        if (!("ref" in $$source)) {
+            this["ref"] = (new SubscriptionRef());
+        }
+        if (!("count" in $$source)) {
+            this["count"] = 0;
+        }
+        if (!("minId" in $$source)) {
+            this["minId"] = "";
+        }
+        if (!("maxId" in $$source)) {
+            this["maxId"] = "";
+        }
+        if (!("perConsumer" in $$source)) {
+            this["perConsumer"] = [];
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new PendingSummary instance from a string or object.
+     */
+    static createFrom($$source: any = {}): PendingSummary {
+        const $$createField0_0 = $$createType41;
+        const $$createField4_0 = $$createType43;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("ref" in $$parsedSource) {
+            $$parsedSource["ref"] = $$createField0_0($$parsedSource["ref"]);
+        }
+        if ("perConsumer" in $$parsedSource) {
+            $$parsedSource["perConsumer"] = $$createField4_0($$parsedSource["perConsumer"]);
+        }
+        return new PendingSummary($$parsedSource as Partial<PendingSummary>);
+    }
+}
+
+/**
  * Policy applies settings to every destination whose name matches a pattern.
  * 
  * It is the answer to something RabbitMQ otherwise cannot do: a queue's
@@ -3559,6 +4062,113 @@ export class Shovel {
 }
 
 /**
+ * SlowLogEntry is one command the server recorded as slow.
+ * 
+ * It is the only view in this app of a single request rather than of an
+ * aggregate, which is what makes it worth having: an average hides the one
+ * KEYS somebody ran against a million-key database, and that one command is
+ * usually the whole answer.
+ */
+export class SlowLogEntry {
+    /**
+     * ID is the server's own sequence number, which only ever increases. It is
+     * how a reader tells a new entry from one they have already looked at.
+     */
+    "id": number;
+
+    /**
+     * TimestampMs is when the command ran, and DurationMicros how long it took
+     * - microseconds because the threshold that captured it is set in them,
+     * and rounding to milliseconds would put most entries at zero.
+     */
+    "timestampMs": number;
+    "durationMicros": number;
+
+    /**
+     * Command is the command and its arguments as the server recorded them.
+     * Redis truncates both the argument count and each argument's length, so
+     * this is what was logged rather than what was sent.
+     */
+    "command": string[];
+
+    /**
+     * Client is who ran it. The name is whatever that connection set with
+     * CLIENT SETNAME, which for this app is the profile name - so an operator
+     * can tell their own console apart from the service they are debugging.
+     */
+    "clientAddress": string;
+    "clientName": string;
+
+    /** Creates a new SlowLogEntry instance. */
+    constructor($$source: Partial<SlowLogEntry> = {}) {
+        if (!("id" in $$source)) {
+            this["id"] = 0;
+        }
+        if (!("timestampMs" in $$source)) {
+            this["timestampMs"] = 0;
+        }
+        if (!("durationMicros" in $$source)) {
+            this["durationMicros"] = 0;
+        }
+        if (!("command" in $$source)) {
+            this["command"] = [];
+        }
+        if (!("clientAddress" in $$source)) {
+            this["clientAddress"] = "";
+        }
+        if (!("clientName" in $$source)) {
+            this["clientName"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new SlowLogEntry instance from a string or object.
+     */
+    static createFrom($$source: any = {}): SlowLogEntry {
+        const $$createField3_0 = $$createType0;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("command" in $$parsedSource) {
+            $$parsedSource["command"] = $$createField3_0($$parsedSource["command"]);
+        }
+        return new SlowLogEntry($$parsedSource as Partial<SlowLogEntry>);
+    }
+}
+
+/**
+ * StreamAddResult is what the server assigned.
+ * 
+ * The ids rather than a count, because an id is the only handle on an entry:
+ * without them a caller that has just written something has no way to look it
+ * up, delete it, or point a consumer group at it.
+ */
+export class StreamAddResult {
+    "ids": string[];
+
+    /** Creates a new StreamAddResult instance. */
+    constructor($$source: Partial<StreamAddResult> = {}) {
+        if (!("ids" in $$source)) {
+            this["ids"] = [];
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new StreamAddResult instance from a string or object.
+     */
+    static createFrom($$source: any = {}): StreamAddResult {
+        const $$createField0_0 = $$createType0;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("ids" in $$parsedSource) {
+            $$parsedSource["ids"] = $$createField0_0($$parsedSource["ids"]);
+        }
+        return new StreamAddResult($$parsedSource as Partial<StreamAddResult>);
+    }
+}
+
+/**
  * StreamClients is who is reading and writing a stream over the stream
  * protocol.
  * 
@@ -3587,8 +4197,8 @@ export class StreamClients {
      * Creates a new StreamClients instance from a string or object.
      */
     static createFrom($$source: any = {}): StreamClients {
-        const $$createField0_0 = $$createType43;
-        const $$createField1_0 = $$createType46;
+        const $$createField0_0 = $$createType46;
+        const $$createField1_0 = $$createType49;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("publishers" in $$parsedSource) {
             $$parsedSource["publishers"] = $$createField0_0($$parsedSource["publishers"]);
@@ -3671,6 +4281,39 @@ export class StreamConsumer {
     static createFrom($$source: any = {}): StreamConsumer {
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         return new StreamConsumer($$parsedSource as Partial<StreamConsumer>);
+    }
+}
+
+/**
+ * StreamField is one field of an entry being written.
+ * 
+ * A slice rather than a map, because XADD takes an ordered list and the order
+ * is the producer's. Reading loses it - the client hands fields back as a map -
+ * but writing must not: a form that reordered what someone typed would be
+ * changing the entry on the way out.
+ */
+export class StreamField {
+    "name": string;
+    "value": string;
+
+    /** Creates a new StreamField instance. */
+    constructor($$source: Partial<StreamField> = {}) {
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("value" in $$source)) {
+            this["value"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new StreamField instance from a string or object.
+     */
+    static createFrom($$source: any = {}): StreamField {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new StreamField($$parsedSource as Partial<StreamField>);
     }
 }
 
@@ -3808,7 +4451,7 @@ export class Subscription {
      * Creates a new Subscription instance from a string or object.
      */
     static createFrom($$source: any = {}): Subscription {
-        const $$createField1_0 = $$createType47;
+        const $$createField1_0 = $$createType41;
         const $$createField8_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("ref" in $$parsedSource) {
@@ -3874,8 +4517,8 @@ export class SubscriptionClient {
      * Creates a new SubscriptionClient instance from a string or object.
      */
     static createFrom($$source: any = {}): SubscriptionClient {
-        const $$createField1_0 = $$createType49;
-        const $$createField2_0 = $$createType51;
+        const $$createField1_0 = $$createType51;
+        const $$createField2_0 = $$createType53;
         const $$createField3_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("assignments" in $$parsedSource) {
@@ -3974,8 +4617,8 @@ export class TailBatch {
      * Creates a new TailBatch instance from a string or object.
      */
     static createFrom($$source: any = {}): TailBatch {
-        const $$createField0_0 = $$createType54;
-        const $$createField1_0 = $$createType55;
+        const $$createField0_0 = $$createType56;
+        const $$createField1_0 = $$createType57;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("messages" in $$parsedSource) {
             $$parsedSource["messages"] = $$createField0_0($$parsedSource["messages"]);
@@ -4010,7 +4653,7 @@ export class TailCursor {
      * Creates a new TailCursor instance from a string or object.
      */
     static createFrom($$source: any = {}): TailCursor {
-        const $$createField0_0 = $$createType57;
+        const $$createField0_0 = $$createType59;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("positions" in $$parsedSource) {
             $$parsedSource["positions"] = $$createField0_0($$parsedSource["positions"]);
@@ -4168,6 +4811,34 @@ export class Transaction {
     }
 }
 
+/**
+ * TrimResult is what the trim actually did.
+ * 
+ * The count matters even when Approx was set, and especially then: it is the
+ * only way to tell "kept a few extra at a node boundary" from "matched nothing
+ * and did nothing at all".
+ */
+export class TrimResult {
+    "removed": number;
+
+    /** Creates a new TrimResult instance. */
+    constructor($$source: Partial<TrimResult> = {}) {
+        if (!("removed" in $$source)) {
+            this["removed"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new TrimResult instance from a string or object.
+     */
+    static createFrom($$source: any = {}): TrimResult {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new TrimResult($$parsedSource as Partial<TrimResult>);
+    }
+}
+
 // Private type creation functions
 const $$createType0 = $Create.Array($Create.Any);
 const $$createType1 = AccessPolicy.createFrom;
@@ -4210,20 +4881,22 @@ const $$createType37 = $Create.Array($Create.Any);
 const $$createType38 = ReplicaStatus.createFrom;
 const $$createType39 = $Create.Array($$createType38);
 const $$createType40 = $Create.Array($Create.Any);
-const $$createType41 = StreamPublisher.createFrom;
-const $$createType42 = $Create.Nullable($$createType41);
+const $$createType41 = SubscriptionRef.createFrom;
+const $$createType42 = PendingByConsumer.createFrom;
 const $$createType43 = $Create.Array($$createType42);
-const $$createType44 = StreamConsumer.createFrom;
+const $$createType44 = StreamPublisher.createFrom;
 const $$createType45 = $Create.Nullable($$createType44);
 const $$createType46 = $Create.Array($$createType45);
-const $$createType47 = SubscriptionRef.createFrom;
-const $$createType48 = QueueAssignment.createFrom;
+const $$createType47 = StreamConsumer.createFrom;
+const $$createType48 = $Create.Nullable($$createType47);
 const $$createType49 = $Create.Array($$createType48);
-const $$createType50 = ConsumeThroughput.createFrom;
+const $$createType50 = QueueAssignment.createFrom;
 const $$createType51 = $Create.Array($$createType50);
-const $$createType52 = MessageItem.createFrom;
-const $$createType53 = $Create.Nullable($$createType52);
-const $$createType54 = $Create.Array($$createType53);
-const $$createType55 = TailCursor.createFrom;
-const $$createType56 = QueuePosition.createFrom;
-const $$createType57 = $Create.Array($$createType56);
+const $$createType52 = ConsumeThroughput.createFrom;
+const $$createType53 = $Create.Array($$createType52);
+const $$createType54 = MessageItem.createFrom;
+const $$createType55 = $Create.Nullable($$createType54);
+const $$createType56 = $Create.Array($$createType55);
+const $$createType57 = TailCursor.createFrom;
+const $$createType58 = QueuePosition.createFrom;
+const $$createType59 = $Create.Array($$createType58);

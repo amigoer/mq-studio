@@ -457,7 +457,39 @@
       "name": "Pulsar"
     },
     "redis-stream": {
-      "name": "Redis Stream"
+      "terms": {
+        "destination": "Stream",
+        "destinationPlural": "Streams",
+        "subscription": "Consumer group",
+        "subscriptionPlural": "Consumer groups",
+        "node": "Node",
+        "nodePlural": "Nodes",
+        "namespace": "Database",
+        "backlog": "Lag"
+      },
+      "name": "Redis Stream",
+      "form": {
+        "deployment": "Deployment",
+        "standalone": "Standalone",
+        "sentinel": "Sentinel",
+        "cluster": "Cluster",
+        "addresses": "Addresses",
+        "masterName": "Master name",
+        "db": "Database",
+        "streamFilter": "Stream key pattern",
+        "tls": "Use TLS",
+        "tlsSkipVerify": "Skip certificate verification",
+        "username": "Username",
+        "password": "Password"
+      },
+      "degraded": {
+        "credentials": "The server refused the credential. Check the username and password: before Redis 6 there are no users and the password alone is the credential, so an unexpected username fails against a server that is otherwise reachable.",
+        "credentialsNotRequired": "The server has no password set and refused the one this connection sent. Clear the password field rather than correcting it.",
+        "forbidden": "The credential was accepted but its ACL does not allow this command. That is fixed with ACL SETUSER on the server, not in this form.",
+        "loading": "The server is reading its dataset back into memory and is not answering yet. It recovers on its own; nothing here needs changing.",
+        "timeout": "The server accepted the connection and did not answer in time.",
+        "unreachable": "Nothing usable answered at this address. A TLS-only server reached without TLS looks the same from here, so check that setting as well as the address."
+      }
     },
     "mqtt": {
       "name": "MQTT"
@@ -578,7 +610,9 @@
         "dlq": "Pending PEL",
         "producer": "Producer",
         "cluster": "Nodes",
-        "alerts": "Alerts"
+        "alerts": "Alerts",
+        "clients": "Clients",
+        "acl": "ACL"
       },
       "mqtt": {
         "overview": "Overview",
@@ -760,14 +794,25 @@
           "mode": "Deployment",
           "standalone": "Standalone",
           "sentinel": "Sentinel",
+          "cluster": "Cluster",
           "address": "Address",
+          "addressHint": "Seed list, comma separated",
+          "oneAddressOnly": "A standalone connection takes one address. Choose the cluster or sentinel deployment for a list.",
+          "masterName": "Master name",
+          "masterNameHint": "What the sentinels call it",
+          "masterNameRequired": "A sentinel connection needs the name of the master to ask for.",
           "db": "Database",
-          "dbHint": "Disabled in cluster mode",
+          "dbHint": "A cluster has only database 0",
           "usernameHint": "Optional, for ACL",
-          "streamFilter": "Stream key filter",
-          "streamFilterHint": "Drives the list on the left; wildcards allowed",
-          "advanced": "Advanced: connect timeout · TLS · read-only mode",
-          "note": "Read-only mode disables XADD / XDEL / XTRIM"
+          "streamFilter": "Stream key pattern",
+          "streamFilterHint": "What the scan for streams matches; wildcards allowed",
+          "tls": "Connect over TLS",
+          "tlsHint": "For a server behind stunnel or a managed endpoint",
+          "tlsSkipVerify": "Certificate verification",
+          "tlsSkipVerifyHint": "Only for a self-signed certificate",
+          "tlsSkipVerifyNote": "Do not verify the server certificate",
+          "advanced": "Advanced: connect timeout · remark · TLS",
+          "note": "Streams only. Pub/Sub channels keep nothing, so there is nothing to browse."
         },
         "mqtt": {
           "broker": "Broker address",
@@ -1090,7 +1135,8 @@
       "edit": "Edit",
       "moreOptions": "{{count}} more — keep typing to narrow it down",
       "apply": "Apply",
-      "create": "Create"
+      "create": "Create",
+      "save": "Save"
     },
     "notDesigned": {
       "title": "Not yet designed",
@@ -1166,17 +1212,17 @@
         "noConsumer": "No consumer"
       },
       "redis": {
-        "subtitle": "redis-stream-01 · Redis 7.2 · standalone · db0 · read-only off",
-        "standalone": "Standalone",
-        "match": "Matching orders:* ; events:*",
-        "consumers": "21 consumers",
-        "pel": "PEL pending",
-        "idle": "Longest idle 2.1h",
-        "cmdRate": "Command rate",
-        "memUsage": "Memory used",
-        "topLength": "Top streams by length",
-        "maxlen": "maxlen policy",
-        "unbounded": "Unbounded · consider XTRIM"
+        "subtitle": "What this server holds and how fast it is going",
+        "uptime": "uptime {{uptime}}",
+        "found": "found by the key pattern",
+        "stalled": "{{count}} stalled",
+        "allConsuming": "all consuming or idle",
+        "noCap": "no maxmemory set",
+        "pel": "Pending",
+        "pelHint": "handed out and not acknowledged",
+        "throughput": "Throughput",
+        "topLength": "Longest streams",
+        "noGroup": "none"
       },
       "rocketmq": {
         "systemHidden": "System topics hidden",
@@ -1317,15 +1363,40 @@
         "disk": "Disk {{percent}}%"
       },
       "redis": {
-        "subtitle": "redis-stream-01 · standalone · Redis 7.2.4",
-        "hitRate": "Hit rate",
-        "memory": "Memory 412MB / 2GB 20%",
-        "aof": "everysec · rewrite 02:00",
-        "rdb": "Last 08:00 · took 1.2s",
-        "noReplica": "No replicas (standalone)",
-        "slowlog": "Slow log (&gt;10ms)",
-        "command": "Command",
-        "elapsed": "Elapsed"
+        "subtitle": "What this server holds, and what has been slow on it",
+        "nodes": "Nodes",
+        "ops": "commands/s",
+        "hitRate": "keyspace hit rate",
+        "uptime": "uptime",
+        "memory": "memory",
+        "memoryNoCap": "{{used}} in use. No maxmemory is set, so there is no cap to be full of.",
+        "aofOn": "on",
+        "aofOff": "off",
+        "unsavedChanges": "writes since the last snapshot",
+        "lastResult": "last snapshot / rewrite",
+        "neverRun": "never run",
+        "saveFailed": "failed",
+        "replicas": "connected replicas",
+        "fragmentation": "memory fragmentation",
+        "nodeId": "node id",
+        "slots": "slots",
+        "noSlots": "none",
+        "slotsMissing": "{{assigned}} of {{total}} slots assigned; the keys in the rest cannot be served",
+        "slowlog": "Slow log",
+        "slowlogEmpty": "Nothing has been recorded as slow. The threshold is slowlog-log-slower-than, in microseconds.",
+        "command": "command",
+        "elapsed": "elapsed",
+        "task": {
+          "snapshot": "BGSAVE",
+          "snapshotTitle": "Write the dataset to disk now?",
+          "snapshotHint": "This writes a snapshot in a child process. It removes nothing: a server running with no save rule has everything in memory and nothing on disk, and this is what closes that gap before a restart. It costs memory and disk while it runs.",
+          "rewriteAppendLog": "BGREWRITEAOF",
+          "rewriteAppendLogTitle": "Compact the append-only file now?",
+          "rewriteAppendLogHint": "This rewrites the append-only file into the smallest set of commands that rebuilds the same dataset. Nothing is lost; it reclaims disk. It costs CPU and disk while it runs.",
+          "run": "Run",
+          "started": "The server started the job. Its result appears under persistence once it finishes.",
+          "failed": "Could not start the job"
+        }
       },
       "rabbitmq": {
         "subtitle": "{{cluster}} · RabbitMQ {{version}} · Erlang {{erlang}}",
@@ -1567,6 +1638,50 @@
           "nameColon": "A user name cannot contain a colon",
           "passwordRequired": "Enter a password"
         }
+      },
+      "redis": {
+        "title": "ACL users",
+        "subtitle": "Redis puts the commands, the keys and the channels all on the user",
+        "search": "Search users…",
+        "newUser": "New user",
+        "none": "The server reports no users, which cannot be right - it always has a default.",
+        "noMatches": "No user matches the search.",
+        "auth": "auth",
+        "keys": "key patterns",
+        "channels": "channel patterns",
+        "commands": "command rules",
+        "allKeys": "every key",
+        "selectors": "+{{count}} selector",
+        "rules": "The rules as the server states them",
+        "anonymous": "The default user is on and accepts any password: this server is reachable without credentials.",
+        "saved": "Saved {{name}}",
+        "deleteTitle": "Delete {{name}}?",
+        "deleteHint": "Redis closes the connections authenticated as this user itself, so anything using it stops working at once rather than at its next reconnect.",
+        "deleted": "Deleted {{name}}",
+        "deleteFailed": "Could not delete the user",
+        "mode": {
+          "password": "password",
+          "any": "any password",
+          "none": "cannot log in"
+        },
+        "form": {
+          "editTitle": "Edit {{name}}",
+          "state": "Enabled",
+          "stateHint": "A disabled user keeps all its rules and cannot authenticate. That is how an application is suspended rather than removed.",
+          "keep": "Keep",
+          "setPassword": "Set password",
+          "keepHint": "The stored password is kept. Saving replaces the rest of the user, and the driver puts the existing hashes back afterwards.",
+          "setHint": "Replaces every stored password with this one.",
+          "anyHint": "The user authenticates with any password, or none at all. This is how a server is left open by accident.",
+          "noneHint": "Every password is removed and the user cannot log in at all. Not the same as accepting any password.",
+          "nameRequired": "Enter a user name.",
+          "nameSpaces": "A user name cannot contain a space: the rule language is whitespace separated, and it would be read as two arguments.",
+          "passwordRequired": "Set a password, or choose how the user authenticates without one.",
+          "keysHint": "Redis's own syntax: ~prefix:* for a pattern, ~* for every key, %R~ and %W~ to split reads from writes.",
+          "commandsHint": "Applied left to right, so start by denying everything: -@all +@read.",
+          "categories": "Categories on this server include {{categories}}.",
+          "replaces": "Saving replaces the user rather than adding to it, so what is in this form is what the server will have."
+        }
       }
     },
     "topics": {
@@ -1720,16 +1835,43 @@
         "streamConsumed": "Consumed"
       },
       "redis": {
-        "subtitle": "Matching orders:* ; events:* · 12 found",
-        "newStream": "+ New stream (XADD)",
+        "subtitle": "Streams the key pattern found in this database",
         "searchKey": "Search keys…",
-        "showAllKeys": "Show all keys",
-        "sortByXlen": "Sort by XLEN",
-        "unbounded": "Unbounded",
-        "xaddRate": "XADD rate",
-        "groupPel": "Groups / PEL",
-        "groupPelValue": "3 groups · 37 pending",
-        "deleteKey": "Delete key"
+        "withGroupsOnly": "Only streams with groups",
+        "found": "{{count}} found",
+        "noStreams": "The scan found no streams. Check the key pattern on the connection.",
+        "noMatches": "No stream key matches the search.",
+        "trimmed": "trimmed",
+        "entriesAdded": "entries-added",
+        "nothingDeleted": "nothing deleted",
+        "noGroups": "No consumer group reads this stream",
+        "newStream": "New stream",
+        "newStreamHint": "Redis has no command for an empty stream, so this creates one through MKSTREAM and removes the group again. It has no settings: no bound, no retention, no durability.",
+        "streamKey": "Stream key",
+        "created": "Created {{name}}",
+        "deleteKey": "DEL key",
+        "deleteTitle": "Delete {{name}}?",
+        "deleteHolding": "DEL takes {{count}} entries and {{groups}} consumer groups with it, including every group's read position and pending list. Redis has no undo.",
+        "deleteEmpty": "The stream is empty and no group reads it. Redis has no undo.",
+        "deleted": "Deleted {{name}}",
+        "deleteFailed": "Could not delete the stream",
+        "trim": {
+          "title": "Trim {{name}}",
+          "strategy": "Bound",
+          "maxlenHint": "Keep this many of the newest entries and let the oldest go, whatever they are.",
+          "minidHint": "Keep everything from this entry id onwards and let everything before it go, however many that is.",
+          "length": "Entries to keep",
+          "lengthRequired": "Enter how many entries to keep.",
+          "lengthInvalid": "The number of entries to keep must be a whole number, and cannot be negative.",
+          "minId": "Lowest entry id to keep",
+          "idRequired": "Enter the lowest entry id to keep.",
+          "idInvalid": "A stream id is <milliseconds> or <milliseconds>-<sequence>.",
+          "emptiesWarning": "Zero empties the stream. The key, its consumer groups and their read positions stay; the entries do not, and Redis has no undo.",
+          "approx": "Approximate",
+          "approxNote": "Let the server stop at a node boundary. It keeps at least what you asked for, never fewer, and is far cheaper on a large stream.",
+          "run": "Trim",
+          "done": "Removed {{count}} entries"
+        }
       },
       "kafka": {
         "subtitle": "Topics the cluster holds, internal ones hidden",
@@ -2063,15 +2205,49 @@
         "unsubscribe": "Unsubscribe"
       },
       "redis": {
-        "subtitle": "orders:events · 3 groups · PEL 37",
-        "lag": "Lag",
-        "bulkHint": "Tick rows to act on them together",
-        "deliveries": "Deliveries",
-        "idleHint": "Entries idle over 2h are worth claiming or acknowledging",
-        "claimTo": "XCLAIM to",
-        "xack": "XACK",
-        "pelOf": "PEL for {{group}} (29)",
-        "selected": "{{n}} selected"
+        "subtitle": "Consumer groups on the streams the key pattern found",
+        "search": "Search groups or streams…",
+        "stalledOnly": "Only stalled groups",
+        "found": "{{count}} found",
+        "noGroups": "No stream the key pattern found has a consumer group.",
+        "noMatches": "No group matches the search.",
+        "lag": "lag",
+        "newGroup": "New group",
+        "streamHint": "A group belongs to one stream, and its name is unique only within it.",
+        "streamRequired": "Choose the stream the group reads.",
+        "groupRequired": "Enter a name for the group.",
+        "startAt": "Start reading at",
+        "startNow": "What arrives next",
+        "startBeginning": "The beginning",
+        "startNowHint": "The group sees entries added from now on. Everything already in the stream is skipped, and only a reposition brings it back.",
+        "startBeginningHint": "The group replays everything the stream still holds. On a large stream that is a lot of work for whatever attaches first.",
+        "created": "Created {{name}}",
+        "deleteTitle": "Delete {{name}}?",
+        "deletePending": "The group is still holding {{count}} entries. They stay in the stream but stop being owed to anyone, which is not the same as being delivered. Redis has no undo.",
+        "deleteEmpty": "The group holds no pending entries. Redis has no undo.",
+        "deleted": "Deleted {{name}}",
+        "deleteFailed": "Could not delete the group",
+        "health": {
+          "consuming": "consuming",
+          "stalled": "stalled",
+          "idle": "idle"
+        },
+        "position": {
+          "action": "Reposition",
+          "title": "Move {{name}} on {{stream}}",
+          "moveTo": "Move to",
+          "beginning": "The beginning",
+          "end": "The end",
+          "entry": "An entry id",
+          "beginningHint": "Replays everything the stream still holds. Entries already trimmed away do not come back, so this is the beginning of what survives rather than of what ever existed.",
+          "endHint": "Skips to whatever arrives next. Everything the group has not read is abandoned, which is how a backlog nobody intends to process is dropped.",
+          "entryHint": "Starts from the entry after the id given. Copy one from the message browser to resume from a known point.",
+          "idRequired": "Enter the entry id to move to.",
+          "idInvalid": "A stream id is <milliseconds> or <milliseconds>-<sequence>.",
+          "caveat": "This does not clear the pending list: entries already handed out stay owed to the consumers holding them. Nothing is redelivered on its own either - consumers see entries after the new position when they next ask.",
+          "run": "Move",
+          "done": "Moved {{name}}"
+        }
       }
     },
     "messages": {
@@ -2138,16 +2314,20 @@
         "xdeath": "Dead-lettered {{count}} time(s), last from {{queue}}, reason {{reason}}"
       },
       "redis": {
-        "byIdRange": "By ID range",
-        "fieldCount": "Fields",
-        "fieldSummary": "Field summary",
-        "fields": "Fields (5) · field / value",
-        "acked": "notify-group acknowledged",
-        "inPel": "settle-group in PEL · idle 2.1h",
-        "notRead": "audit-group has not read it",
-        "xaddTemplate": "XADD from this as a template",
-        "older": "Older",
-        "newer": "Newer"
+        "subtitle": "A window of a stream, newest first",
+        "contains": "Field name or value contains…",
+        "read": "{{count}} read",
+        "pickAStream": "Choose a stream and read a window of it.",
+        "nothingRead": "Nothing in the window matched.",
+        "fieldCount": "fields",
+        "fieldSummary": "contents",
+        "fields": "Fields",
+        "copied": "Copied the entry",
+        "deleteTitle": "Delete entry {{id}}?",
+        "deleteHint": "XDEL removes the entry and leaves the gap: the ids around it keep the values they had, and max-deleted-entry-id records that the gap was deliberate. Redis has no undo.",
+        "deleted": "Deleted {{id}}",
+        "deleteMissing": "That entry had already gone; nothing was deleted.",
+        "deleteFailed": "Could not delete the entry"
       },
       "rocketmq": {
         "byMsgId": "By message ID",
@@ -2253,17 +2433,43 @@
         "resendFailed": "{{count}} message(s) could not be redelivered"
       },
       "redis": {
-        "title": "Pending entries (PEL)",
-        "subtitle": "Entries idle ≥ 30 minutes · 5 found",
-        "threshold": "Threshold 30 minutes",
-        "allStreams": "Stream: all",
-        "allGroups": "Group: all",
-        "autoclaim": "XAUTOCLAIM in bulk…",
-        "streamGroup": "Stream / group",
-        "deliveries": "Deliveries",
-        "hint": "Claiming resets idle and adds one to the delivery count",
-        "claimTo": "XCLAIM to settle-2",
-        "xackDrop": "XACK (drop)"
+        "title": "Pending entries",
+        "subtitle": "Redis moves nothing aside; what is not acknowledged stays owed to the consumer that was handed it",
+        "idleAtLeast": "Idle at least",
+        "anyIdle": "Any",
+        "autoclaim": "XAUTOCLAIM…",
+        "deliveries": "deliveries",
+        "noGroups": "No consumer group was found, so nothing is owed to anyone.",
+        "nothingPending": "This group has nothing outstanding: every entry it was handed has been acknowledged.",
+        "nothingIdle": "Nothing has been sitting that long. Lower the threshold to see work still in flight.",
+        "owed": "{{count}} owed",
+        "oldest": "oldest",
+        "dominant": "{{consumer}} holds {{count}} of them",
+        "consumers": "Consumers · pending · idle",
+        "bulkHint": "Claiming moves the entries to another consumer. Acknowledging settles them without anything having processed them.",
+        "ackTitle": "Acknowledge {{count}} entries?",
+        "ackHint": "This settles them without anything having processed them. The entries stay in the stream and this group never reads them again, and nothing afterwards distinguishes that from work that was done. Redis has no undo.",
+        "ackConfirm": "Acknowledge",
+        "acked": "Acknowledged {{count}} entries",
+        "ackNone": "None of those were still owed; somebody settled them first.",
+        "ackFailed": "Could not acknowledge the entries",
+        "claim": {
+          "action": "Claim…",
+          "title": "Claim {{count}} entries",
+          "autoTitle": "Claim whatever has been idle",
+          "consumer": "New owner",
+          "consumerHint": "It need not exist yet: claiming creates it, which is how a replacement takes over from a dead worker.",
+          "consumerRequired": "Enter the consumer to move the entries to.",
+          "minIdle": "Only entries idle at least (minutes)",
+          "minIdleHint": "The guard against taking work from a consumer that is simply busy. Without it both would believe they own the same entry.",
+          "minIdleZero": "Zero moves the entries whatever their idle time. Right when the consumer is known to be gone; wrong whenever it is merely busy.",
+          "idleInvalid": "The idle threshold must be a whole number of minutes.",
+          "autoHint": "This walks the pending list rather than a selection, and moves everything past the threshold.",
+          "run": "Claim",
+          "done": "Moved {{count}} entries to {{consumer}}",
+          "none": "Nothing moved: every entry had been touched more recently than the threshold allows.",
+          "lost": "{{count}} entries were owed but no longer in the stream. They were dropped from the pending list rather than moved: that work is gone."
+        }
       },
       "last24h": "Last 24 hours",
       "pulsar": {
@@ -2426,6 +2632,29 @@
           "countInvalid": "Send between 1 and 10000 copies",
           "headerLine": "Each header is one key=value per line"
         }
+      },
+      "redis": {
+        "subtitle": "Write an entry to a stream",
+        "streamHint": "This will not create a stream. A mistyped key would otherwise become a new one holding a single test entry.",
+        "streamRequired": "Choose a stream to write to.",
+        "noStreams": "The key pattern found no stream to write to. Create one on the stream page first.",
+        "fields": "Fields",
+        "fieldName": "name",
+        "fieldValue": "value",
+        "addField": "Add field",
+        "fieldsHint": "The order is kept. Reading a stream loses it - the client hands fields back unordered - so this is the only place it survives.",
+        "fieldRequired": "An entry needs at least one named field.",
+        "entryId": "Entry ID",
+        "entryIdHint": "Leave empty to let the server assign one from its clock, which is what keeps a stream ordered.",
+        "idInvalid": "A stream id is <milliseconds> or <milliseconds>-<sequence>.",
+        "idWithCount": "An explicit id can only be used once. Send a single copy, or let the server assign ids.",
+        "count": "Copies",
+        "countHint": "Writes the same entry this many times, each with its own id.",
+        "countRequired": "Enter how many copies to write.",
+        "countInvalid": "The number of copies must be a whole number of at least one.",
+        "assigned": "Assigned ids",
+        "sent": "Wrote {{count}} entries",
+        "sendFailed": "Could not write the entry"
       }
     },
     "mqtt": {
@@ -2709,6 +2938,25 @@
           "limitRequired": "Set at least one limit",
           "limitInvalid": "A limit is a number and cannot be negative"
         }
+      }
+    },
+    "clients": {
+      "redis": {
+        "title": "Clients",
+        "subtitle": "The connections open against this server",
+        "search": "Search by address, name, user or command…",
+        "hideSelf": "Hide this app",
+        "found": "{{count}} open",
+        "none": "Nothing is connected, which cannot include this connection - try refreshing.",
+        "noMatches": "No connection matches the search.",
+        "unnamed": "unnamed",
+        "thisApp": "this app",
+        "close": "Kill",
+        "closeTitle": "Close {{name}}?",
+        "closeHint": "The client is disconnected immediately. A well-written one reconnects; anything mid-command loses that command's reply.",
+        "closeSelf": "This is the connection this page is using. Closing it disconnects the console, and the tab will need reconnecting.",
+        "closed": "Closed {{name}}",
+        "closeFailed": "Could not close the connection"
       }
     }
   }

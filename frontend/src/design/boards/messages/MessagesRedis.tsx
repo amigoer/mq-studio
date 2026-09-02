@@ -1,10 +1,7 @@
-import { useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { ListArea, ListPane, Page, PageHeader, SkeletonRows, Toolbar } from "@/design/shell";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { ListArea, ListPane, Page, PageHeader, Toolbar } from "@/design/shell";
 import { Button } from "@/components/ui/button";
-import {
-  Panel,
-} from "@/components";
 import { Input } from "@/components/ui/input";
 import {
   Table,
@@ -19,158 +16,262 @@ import {
   DetailPanelBody,
   DetailPanelFooter,
   DetailPanelHeader,
+  KV,
   SectionLabel,
-  Segmented,
   SelectField,
   Status,
+  toast,
+  useConfirm,
 } from "@/components";
-import { useTranslation } from "react-i18next";
+import { BoardState } from "@/design/boards/BoardState";
+import { useRedisEntries } from "@/hooks/redis/useRedisEntries";
+import { useRedisStreams } from "@/hooks/redis/useRedisStreams";
+import { useConnectionScope } from "@/mq/ConnectionScope";
+import * as redisApi from "@/api/redis";
+import { formatErrorMessage } from "@/lib/utils";
+import { copyText } from "@/api/platform";
+import {
+  addedAt,
+  asJson,
+  entryId,
+  fieldCount,
+  fields,
+  summary,
+} from "@/mq/redis/messages";
+import { streamKey } from "@/mq/redis/destinations";
 
-const MODES = [
-  { value: "latest", label: "board.common.latestN" },
-  { value: "range", label: "board.messages.redis.byIdRange" },
-  { value: "time", label: "board.common.byTime" },
-] as const;
-
-const SHEET_TABS = ["board.common.field", "board.common.consumeState"] as const;
 const MONO11 = { fontSize: "11px" } as const;
-const DIM11 = { fontSize: "11px", color: "var(--c-mono-dim)" } as const;
-const R = { textAlign: "right" } as const;
+const RIGHT = { textAlign: "right" } as const;
 
-const FIELDS = [
-  ["orderId", "ORD-88213"],
-  ["amount", "129.00"],
-  ["currency", "CNY"],
-  ["status", "CREATED"],
-  ["ts", "1756454646"],
-] as const;
-
-/** Board 13d — Redis Stream. Entries are field/value pairs, not a JSON body. */
+/**
+ * Board 13d — Redis Stream entries.
+ *
+ * An entry is a set of field/value pairs rather than a payload with metadata
+ * attached, so the list shows how many fields and a summary of them, and the
+ * panel shows every one. There is no body to render on its own: Redis has no
+ * convention naming one field the payload, and picking one would be inventing
+ * a schema the server does not have.
+ *
+ * The time window is the one place the canonical query fits Redis exactly. An
+ * entry id is milliseconds plus a sequence, so "from" and "to" are the id
+ * range the server takes - no scan and no client-side date matching.
+ */
 export function MessagesRedis() {
-  const [mode, setMode] = useState<(typeof MODES)[number]["value"]>("latest");
-  const [selected, setSelected] = useState<string | null>(null);
-  const [tab, setTab] = useState<string>(SHEET_TABS[0]);
-
   const { t } = useTranslation();
+  const streams = useRedisStreams();
+  const entries = useRedisEntries();
+  const { id: connID } = useConnectionScope();
+  const confirm = useConfirm();
+
+  const [stream, setStream] = useState("");
+  const [contains, setContains] = useState("");
+  const [selected, setSelected] = useState<string | null>(null);
+
+  const streamKeys = useMemo(
+    () => (streams.data ?? []).map((candidate) => streamKey(candidate)).sort(),
+    [streams.data],
+  );
+
+  /* Land on a stream as soon as one is known, so the page has something to
+     read rather than an empty picker. */
+  useEffect(() => {
+    const first = streamKeys[0];
+    if (stream === "" && first != null) setStream(first);
+  }, [stream, streamKeys]);
+
+  const run = useCallback(() => {
+    if (stream === "") return;
+    void entries.query({ stream, contains: contains.trim() || undefined });
+  }, [contains, entries, stream]);
+
+  const detail = useMemo(
+    () => entries.items.find((item) => entryId(item) === selected) ?? null,
+    [entries.items, selected],
+  );
+
+  const remove = useCallback(
+    async (id: string) => {
+      const ok = await confirm({
+        title: t("board.messages.redis.deleteTitle", { id }),
+        description: t("board.messages.redis.deleteHint"),
+        confirmLabel: t("board.common.delete"),
+        danger: true,
+      });
+      if (!ok) return;
+      try {
+        const { removed } = await redisApi.deleteEntries(connID, stream, [id]);
+        if (removed === 0) {
+          /* XDEL succeeds on an id that has already gone and removes nothing.
+             Reporting that as a deletion would have the row vanish from the
+             page while the entry it named was removed by someone else. */
+          toast.error(t("board.messages.redis.deleteMissing"));
+        } else {
+          toast.success(t("board.messages.redis.deleted", { id }));
+        }
+        setSelected(null);
+        run();
+      } catch (deleteError) {
+        toast.error(t("board.messages.redis.deleteFailed"), {
+          description: formatErrorMessage(deleteError),
+        });
+      }
+    },
+    [confirm, connID, run, stream, t],
+  );
+
   return (
     <Page>
-      <PageHeader title={t("board.common.messageQuery")} subtitle="" />
+      <PageHeader
+        title={t("board.common.messageQuery")}
+        subtitle={t("board.messages.redis.subtitle")}
+      />
       <Toolbar>
         <SelectField
-          value="orders:events"
+          value={stream}
           prefix="Stream："
-          options={[{ value: "orders:events" }]}
+          options={streamKeys.map((key) => ({ value: key }))}
+          onValueChange={(next: string) => {
+            setStream(next);
+            setSelected(null);
+          }}
         />
-        <Segmented options={MODES.map((o) => ({ ...o, label: t(o.label) }))} value={mode} onChange={setMode} />
-        <Input className="mono3 w-[150px] flex-none" defaultValue="- ～ +" />
-        <Input className="mono3 w-[70px] flex-none" defaultValue="100" />
-        <Button>{t("board.common.query")}</Button>
-      </Toolbar>
-
-      <ListArea>
-        <ListPane>
-          <Table inset>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Entry ID</TableHead>
-                <TableHead style={R}>{t("board.messages.redis.fieldCount")}</TableHead>
-                <TableHead>{t("board.messages.redis.fieldSummary")}</TableHead>
-                <TableHead>{t("board.common.time")}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              <TableRow
-                selected={selected === "1756454646018-0"}
-                onClick={() => setSelected("1756454646018-0")}
-              >
-                <TableCell className="mono3" style={MONO11}>1756454646018-0</TableCell>
-                <TableCell className="mono3" style={R}>5</TableCell>
-                <TableCell className="mono3" style={DIM11}>
-                  orderId=ORD-88213 · amount=129.00 · status=CREATED …
-                </TableCell>
-                <TableCell className="mono3" style={MONO11}>10:24:06.018</TableCell>
-              </TableRow>
-              <TableRow selected={selected === "1756454646018-1"} onClick={() => setSelected("1756454646018-1")}>
-                <TableCell className="mono3" style={MONO11}>1756454646018-1</TableCell>
-                <TableCell className="mono3" style={R}>5</TableCell>
-                <TableCell className="mono3" style={DIM11}>
-                  orderId=ORD-88214 · amount=45.00 · status=CREATED …
-                </TableCell>
-                <TableCell className="mono3" style={MONO11}>10:24:06.018</TableCell>
-              </TableRow>
-              <TableRow selected={selected === "1756454647221-0"} onClick={() => setSelected("1756454647221-0")}>
-                <TableCell className="mono3" style={MONO11}>1756454647221-0</TableCell>
-                <TableCell className="mono3" style={R}>6</TableCell>
-                <TableCell className="mono3" style={DIM11}>
-                  orderId=ORD-88215 · amount=268.00 · coupon=NEW10 …
-                </TableCell>
-                <TableCell className="mono3" style={MONO11}>10:24:07.221</TableCell>
-              </TableRow>
-              <SkeletonRows colSpan={4} widths={["70%", "52%"]} />
-            </TableBody>
-          </Table>
-        </ListPane>
-
-        {selected != null && (
-          <DetailPanel width={410} onDismiss={() => setSelected(null)}>
-            <DetailPanelHeader
-              title={selected}
-              badge={<Status tone="off" style={{ fontSize: "10px" }}>entry</Status>}
-              tabs={SHEET_TABS.map((id) => ({ id, label: t(id) }))}
-              activeTab={tab}
-              onTabChange={setTab}
-              onClose={() => setSelected(null)}
-            />
-            <DetailPanelBody>
-              <div>
-                <SectionLabel style={{ marginBottom: "6px" }}>{t("board.messages.redis.fields")}</SectionLabel>
-                <Panel style={{ overflow: "hidden" }}>
-                  <Table className="text-xs">
-                    <TableBody>
-                      {FIELDS.map(([k, v]) => (
-                        <TableRow key={k}>
-                          <TableCell className="mono3" style={{ color: "var(--c-muted)", width: "90px" }}>{k}</TableCell>
-                          <TableCell className="mono3">{v}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </Panel>
-              </div>
-
-              <div>
-                <SectionLabel style={{ marginBottom: "6px" }}>{t("board.common.consumeState")}</SectionLabel>
-                <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-                  <Status tone="ok">{t("board.messages.redis.acked")}</Status>
-                  <Status tone="warn">{t("board.messages.redis.inPel")}</Status>
-                  <Status tone="off">{t("board.messages.redis.notRead")}</Status>
-                </div>
-              </div>
-            </DetailPanelBody>
-            <DetailPanelFooter>
-              <Button variant="outline">{t("board.common.copy")}</Button>
-              <Button variant="outline">{t("board.messages.redis.xaddTemplate")}</Button>
-              <span className="flex-1" />
-              <Button variant="destructive">XDEL</Button>
-            </DetailPanelFooter>
-          </DetailPanel>
-        )}
-      </ListArea>
-
-      <Toolbar style={{ borderTop: "1px solid var(--c-border)", borderBottom: "none" }}>
-        <span className="mono3" style={{ fontSize: "11px", color: "var(--c-muted)" }}>
-          XRANGE orders:events - + COUNT 100
-        </span>
+        <Input
+          className="mono3 w-[220px] flex-none"
+          style={MONO11}
+          placeholder={t("board.messages.redis.contains")}
+          value={contains}
+          onChange={(event) => setContains(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") run();
+          }}
+        />
+        <Button disabled={stream === "" || entries.running} onClick={run}>
+          {t("board.common.query")}
+        </Button>
         <span className="flex-1" />
-        <Button variant="outline">
-          <ChevronLeft size={13} aria-hidden />
-          {t("board.messages.redis.older")}
-        </Button>
-        <Button variant="outline">
-          {t("board.messages.redis.newer")}
-          <ChevronRight size={13} aria-hidden />
-        </Button>
+        {entries.lastCount != null && (
+          <span style={{ fontSize: "11px", color: "var(--c-muted)" }}>
+            {/* What the read returned, not what the stream holds. A window is
+                a page and the filter is applied over a bounded scan, so this
+                is deliberately not called a total. */}
+            {t("board.messages.redis.read", { count: entries.lastCount })}
+          </span>
+        )}
       </Toolbar>
+
+      <BoardState
+        state={entries.state}
+        empty={
+          entries.items.length === 0 ? (
+            <ListArea>
+              <ListPane>
+                <div
+                  style={{
+                    padding: "24px",
+                    fontSize: "11.5px",
+                    color: "var(--c-muted)",
+                    textAlign: "center",
+                  }}
+                >
+                  {entries.lastCount === null
+                    ? t("board.messages.redis.pickAStream")
+                    : t("board.messages.redis.nothingRead")}
+                </div>
+              </ListPane>
+            </ListArea>
+          ) : undefined
+        }
+      >
+        <ListArea>
+          <ListPane>
+            <Table inset>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Entry ID</TableHead>
+                  <TableHead style={RIGHT}>{t("board.messages.redis.fieldCount")}</TableHead>
+                  <TableHead>{t("board.messages.redis.fieldSummary")}</TableHead>
+                  <TableHead>{t("board.common.time")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {entries.items.map((item) => {
+                  const id = entryId(item);
+                  return (
+                    <TableRow key={id} selected={selected === id} onClick={() => setSelected(id)}>
+                      <TableCell className="mono3" style={MONO11}>
+                        {id}
+                      </TableCell>
+                      <TableCell className="mono3" style={RIGHT}>
+                        {fieldCount(item)}
+                      </TableCell>
+                      <TableCell className="mono3" style={MONO11}>
+                        {summary(item)}
+                      </TableCell>
+                      <TableCell className="mono3" style={MONO11}>
+                        {addedAt(item)}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </ListPane>
+
+          {detail != null && (
+            <DetailPanel width={420} onDismiss={() => setSelected(null)}>
+              <DetailPanelHeader
+                title={entryId(detail)}
+                badge={
+                  <Status tone="off" style={{ fontSize: "10px" }}>
+                    entry
+                  </Status>
+                }
+                onClose={() => setSelected(null)}
+              />
+              <DetailPanelBody>
+                <div>
+                  <SectionLabel style={{ marginBottom: "6px" }}>
+                    {t("board.messages.redis.fields")}
+                  </SectionLabel>
+                  <KV
+                    rows={fields(detail).map(({ name, value }) => [
+                      name,
+                      <span className="mono3" style={MONO11}>
+                        {value}
+                      </span>,
+                    ])}
+                  />
+                </div>
+                <KV
+                  rows={[
+                    [
+                      t("board.common.time"),
+                      <span className="mono3" style={MONO11}>
+                        {addedAt(detail)}
+                      </span>,
+                    ],
+                  ]}
+                />
+              </DetailPanelBody>
+              <DetailPanelFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    void copyText(asJson(detail));
+                    toast.success(t("board.messages.redis.copied"));
+                  }}
+                >
+                  {t("board.common.copy")}
+                </Button>
+                <span className="flex-1" />
+                <Button variant="destructive" onClick={() => void remove(entryId(detail))}>
+                  XDEL
+                </Button>
+              </DetailPanelFooter>
+            </DetailPanel>
+          )}
+        </ListArea>
+      </BoardState>
     </Page>
   );
 }

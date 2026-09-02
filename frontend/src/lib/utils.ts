@@ -104,8 +104,13 @@ export function formatErrorMessage(e: unknown): string {
  * Deliberately strict. Anything with a space, a colon or capitals is a
  * sentence the broker or the runtime produced, and handing one of those to
  * i18next would let it split on the separators it reserves.
+ *
+ * A segment may carry a hyphen because a family's key namespace is built from
+ * its MQKind, and one of those is `redis-stream`. Without it every reason that
+ * driver reports was rendered as the raw key: a hyphen cannot be mistaken for
+ * a sentence, and i18next splits on `.` and `:` rather than on it.
  */
-const I18N_KEY = /^[a-z][a-z0-9]*(\.[a-zA-Z0-9_]+)+$/;
+const I18N_KEY = /^[a-z][a-z0-9]*(\.[a-zA-Z0-9_-]+)+$/;
 
 export function isI18nKey(value: string): boolean {
   return I18N_KEY.test(value);

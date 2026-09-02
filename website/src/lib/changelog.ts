@@ -45,13 +45,19 @@ const SECTION = /^###\s+(.+?)\s*$/;
 const SUBHEADING = /^\*\*(.+)\*\*\s*$/;
 const ITEM = /^-\s+(.+)$/;
 
-function slug(version: string): string {
+function slug(version: string, unreleased: boolean): string {
+  // The unreleased heading is the one page whose id cannot come from its own
+  // text: it is written "Unreleased" in one language and "未发布" in the other,
+  // and the two have to land on the same path or the language switch 404s.
+  // That stayed invisible for as long as the section was empty in both files
+  // at once, because an empty one is dropped below.
+  if (unreleased) return 'unreleased';
+
   const ascii = version.toLowerCase().replace(/[^a-z0-9.]+/g, '-').replace(/^-|-$/g, '');
-  // A non-ASCII heading such as 未发布 slugifies to nothing; fall back to a
-  // stable literal so the anchor still works. The `v` prefix keeps the id from
-  // starting with a digit: `#0.0.3` is a valid fragment but an invalid CSS
-  // selector, which would throw inside querySelector.
-  return ascii ? `v${ascii}` : 'unreleased';
+  // A heading that slugifies to nothing still needs a usable id. The `v`
+  // prefix keeps it from starting with a digit: `#0.0.3` is a valid fragment
+  // but an invalid CSS selector, which would throw inside querySelector.
+  return ascii ? `v${ascii}` : 'release';
 }
 
 function parse(source: string): Release[] {
@@ -70,7 +76,7 @@ function parse(source: string): Release[] {
       const [, version, date] = heading;
       release = {
         version,
-        id: slug(version),
+        id: slug(version, !date),
         date: date ?? null,
         intro: [],
         sections: [],

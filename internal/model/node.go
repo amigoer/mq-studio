@@ -105,6 +105,17 @@ const (
 	// deletes message data that is past retention but may still be within
 	// what someone expected to be able to replay.
 	TaskDeleteExpiredLogs MaintenanceTask = "deleteExpiredLogs"
+
+	// TaskSnapshot writes the dataset to disk now rather than at whatever
+	// point the save rules would next reach. It removes nothing: a server that
+	// has been running a while with no save rule has everything in memory and
+	// nothing on disk, and this is what closes that gap before a restart.
+	TaskSnapshot MaintenanceTask = "snapshot"
+
+	// TaskRewriteAppendLog compacts the append-only file into the smallest set
+	// of commands that rebuilds the same dataset. It reclaims disk without
+	// losing anything, which is the opposite of a retention sweep.
+	TaskRewriteAppendLog MaintenanceTask = "rewriteAppendLog"
 )
 
 // Destructive reports whether a task removes message data rather than only
@@ -113,7 +124,15 @@ func (t MaintenanceTask) Destructive() bool {
 	return t == TaskDeleteExpiredLogs
 }
 
-// KnownMaintenanceTasks lists every task, for a UI that offers them.
+// KnownMaintenanceTasks lists the retention sweeps, for the dialog that offers
+// them.
+//
+// It is not every task in the vocabulary, and must not become one. What a node
+// can be asked to run differs by family, and a dialog offering the union would
+// put controls in front of an operator that their broker refuses - so a family
+// with tasks of its own names them on its own board. The two Redis has are not
+// here for that reason: they are additive rather than sweeps, and the dialog
+// this feeds confirms every entry as though it deleted something.
 func KnownMaintenanceTasks() []MaintenanceTask {
 	return []MaintenanceTask{
 		TaskCleanExpiredQueues,

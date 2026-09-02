@@ -4,9 +4,11 @@ import type { Connection as ConnectionProfile } from "@/api/models";
 import {
   emptyKafkaDraft,
   emptyRabbitMQDraft,
+  emptyRedisDraft,
   emptyRocketMQDraft,
   type KafkaDraft,
   type RabbitMQDraft,
+  type RedisDraft,
   type RocketMQDraft,
 } from "./ConnectionForms";
 import { emptyDraft, isDraftable, toDraft, toSubmission, type ProtocolDraft } from "./connectionDraft";
@@ -14,6 +16,7 @@ import { emptyDraft, isDraftable, toDraft, toSubmission, type ProtocolDraft } fr
 const rocketmq = (value: RocketMQDraft): ProtocolDraft => ({ protocol: "rocketmq", value });
 const rabbitmq = (value: RabbitMQDraft): ProtocolDraft => ({ protocol: "rabbitmq", value });
 const kafka = (value: KafkaDraft): ProtocolDraft => ({ protocol: "kafka", value });
+const redis = (value: RedisDraft): ProtocolDraft => ({ protocol: "redis", value });
 
 /**
  * Both halves of an ACL pair are stored encrypted and neither comes back, so
@@ -439,7 +442,7 @@ describe("the Kafka connection draft", () => {
 
 describe("the draft registry", () => {
   it("has an empty draft for every protocol it claims to handle", () => {
-    for (const protocol of ["rocketmq", "rabbitmq", "kafka"] as const) {
+    for (const protocol of ["rocketmq", "rabbitmq", "kafka", "redis"] as const) {
       expect(isDraftable(protocol)).toBe(true);
       expect(emptyDraft(protocol).protocol).toBe(protocol);
     }
@@ -448,8 +451,206 @@ describe("the draft registry", () => {
   // The picker gates on this: a tile whose form cannot be built must not open
   // one, which is what disabling it is for.
   it("does not claim protocols with no form", () => {
-    for (const protocol of ["pulsar", "redis", "mqtt"] as const) {
+    for (const protocol of ["pulsar", "mqtt"] as const) {
       expect(isDraftable(protocol)).toBe(false);
+    }
+  });
+});
+
+/**
+ * The deployment is the field the rest of the Redis form hangs off, so what
+ * has to be pinned is what happens when it changes. A master name left behind
+ * by a sentinel profile, or a database index left behind by a standalone one,
+ * would be sent to a driver that reads them - and a cluster refuses SELECT
+ * outright, so a stale 3 is a connection that fails on its first command.
+ */
+describe("the Redis connection draft", () => {
+  const newConnection = () => ({
+    ...emptyRedisDraft(),
+    name: "  redis-orders  ",
+    endpoints: "  10.2.0.8:6379  ",
+  });
+
+  it("trims the name and the address, and stores the deployment", () => {
+    const { draft, credentialsMode } = toSubmission(redis(newConnection()));
+    expect(draft.kind).toBe(MQKind.KindRedisStream);
+    expect(draft.name).toBe("redis-orders");
+    expect(draft.endpoints).toBe("10.2.0.8:6379");
+    expect(draft.options.deployment).toBe("standalone");
+    // Nothing typed and nothing stored is an anonymous server, which Redis
+    // genuinely allows - not an unfinished form.
+    expect(draft.authMechanism).toBe(AuthMechanism.AuthNone);
+    expect(credentialsMode).toBe("replace");
+  });
+
+  it("marks a connection that carries a credential as authenticating", () => {
+    const { draft, credentialsMode } = toSubmission(
+      redis({ ...newConnection(), username: "mqstudio", password: "mqstudio" }),
+    );
+    expect(draft.authMechanism).toBe(AuthMechanism.AuthPlain);
+    expect(draft.secrets).toEqual({ username: "mqstudio", password: "mqstudio" });
+    expect(credentialsMode).toBe("replace");
+  });
+
+  // Redis before 6 has no users at all, so a password with no username is a
+  // complete credential rather than half of one.
+  it("takes a password with no username", () => {
+    const { draft } = toSubmission(redis({ ...newConnection(), password: "hunter2" }));
+    expect(draft.authMechanism).toBe(AuthMechanism.AuthPlain);
+    expect(draft.secrets).toEqual({ username: "", password: "hunter2" });
+  });
+
+  it("keeps a stored credential when the fields are left blank on an edit", () => {
+    const { draft, credentialsMode } = toSubmission(
+      redis({ ...newConnection(), credentialsStored: true }),
+    );
+    expect(draft.authMechanism).toBe(AuthMechanism.AuthPlain);
+    expect(credentialsMode).toBe("preserve");
+  });
+
+  it("clears a stored credential when the clear control was used", () => {
+    const { draft, credentialsMode } = toSubmission(
+      redis({ ...newConnection(), credentialsStored: true, clearCredentials: true }),
+    );
+    expect(draft.authMechanism).toBe(AuthMechanism.AuthNone);
+    expect(credentialsMode).toBe("clear");
+  });
+
+  it("stores the master name only for a sentinel connection", () => {
+    const sentinel = toSubmission(
+      redis({ ...newConnection(), deployment: "sentinel", masterName: "  mymaster  " }),
+    );
+    expect(sentinel.draft.options.masterName).toBe("mymaster");
+
+    // The form hides the field rather than clearing it, so a profile switched
+    // back to standalone still carries the text. It must not be stored.
+    const standalone = toSubmission(
+      redis({ ...newConnection(), deployment: "standalone", masterName: "mymaster" }),
+    );
+    expect(standalone.draft.options.masterName).toBe("");
+  });
+
+  it("never sends a database index for a cluster", () => {
+    const { draft } = toSubmission(redis({ ...newConnection(), deployment: "cluster", db: 3 }));
+    expect(draft.options.deployment).toBe("cluster");
+    expect(draft.options.db).toBe("0");
+  });
+
+  it("keeps the database index for standalone and sentinel", () => {
+    expect(toSubmission(redis({ ...newConnection(), db: 4 })).draft.options.db).toBe("4");
+    expect(
+      toSubmission(redis({ ...newConnection(), deployment: "sentinel", masterName: "m", db: 4 }))
+        .draft.options.db,
+    ).toBe("4");
+  });
+
+  it("only stores skip-verify while TLS is on", () => {
+    const off = toSubmission(redis({ ...newConnection(), tls: false, tlsSkipVerify: true }));
+    expect(off.draft.options.tls).toBe("false");
+    expect(off.draft.options.tlsSkipVerify).toBe("false");
+
+    const on = toSubmission(redis({ ...newConnection(), tls: true, tlsSkipVerify: true }));
+    expect(on.draft.options.tls).toBe("true");
+    expect(on.draft.options.tlsSkipVerify).toBe("true");
+  });
+
+  it("trims the stream filter", () => {
+    const { draft } = toSubmission(redis({ ...newConnection(), streamFilter: "  orders:*  " }));
+    expect(draft.options.streamFilter).toBe("orders:*");
+  });
+
+  it("reads a stored profile back into the form", () => {
+    const profile = {
+      id: 7,
+      name: "redis-orders",
+      group: "prod",
+      kind: MQKind.KindRedisStream,
+      endpoints: "s1:26379,s2:26379",
+      timeoutSec: 9,
+      authMechanism: AuthMechanism.AuthPlain,
+      options: {
+        deployment: "sentinel",
+        masterName: "mymaster",
+        db: "4",
+        streamFilter: "orders:*",
+        tls: "true",
+        tlsSkipVerify: "true",
+      },
+      secretsConfigured: ["username", "password"],
+      remark: "the order cluster",
+    } as unknown as ConnectionProfile;
+
+    const draft = toDraft(profile);
+    expect(draft.protocol).toBe("redis");
+    if (draft.protocol !== "redis") return;
+    expect(draft.value.deployment).toBe("sentinel");
+    expect(draft.value.masterName).toBe("mymaster");
+    expect(draft.value.db).toBe(4);
+    expect(draft.value.streamFilter).toBe("orders:*");
+    expect(draft.value.tls).toBe(true);
+    expect(draft.value.tlsSkipVerify).toBe(true);
+    expect(draft.value.timeoutSec).toBe(9);
+    // The stored secrets never come back; what comes back is that there are
+    // some, so the form can offer to keep them.
+    expect(draft.value.username).toBe("");
+    expect(draft.value.password).toBe("");
+    expect(draft.value.credentialsStored).toBe(true);
+  });
+
+  // A profile stored before the deployment field existed is the standalone
+  // server it has always connected to, which is what the driver assumes too.
+  it("reads a profile with no deployment as standalone", () => {
+    const profile = {
+      name: "old",
+      group: "",
+      kind: MQKind.KindRedisStream,
+      endpoints: "10.2.0.8:6379",
+      timeoutSec: 0,
+      authMechanism: AuthMechanism.AuthNone,
+      options: {},
+      secretsConfigured: [],
+      remark: "",
+    } as unknown as ConnectionProfile;
+
+    const draft = toDraft(profile);
+    if (draft.protocol !== "redis") throw new Error("expected a redis draft");
+    expect(draft.value.deployment).toBe("standalone");
+    expect(draft.value.db).toBe(0);
+    expect(draft.value.masterName).toBe("");
+  });
+
+  // A stored index from a profile that used to be standalone must not travel
+  // into a cluster draft, where SELECT is refused outright.
+  it("drops a stored database index when the profile is a cluster", () => {
+    const profile = {
+      name: "moved",
+      group: "",
+      kind: MQKind.KindRedisStream,
+      endpoints: "a:6379,b:6379",
+      timeoutSec: 0,
+      authMechanism: AuthMechanism.AuthNone,
+      options: { deployment: "cluster", db: "7", masterName: "stale" },
+      secretsConfigured: [],
+      remark: "",
+    } as unknown as ConnectionProfile;
+
+    const draft = toDraft(profile);
+    if (draft.protocol !== "redis") throw new Error("expected a redis draft");
+    expect(draft.value.db).toBe(0);
+    expect(draft.value.masterName).toBe("");
+  });
+});
+
+/*
+ * The picker gate and the draft registry have to agree. A tile that can be
+ * selected and has no form behind it opens an empty dialog; one with a form
+ * that cannot be selected is a driver nobody can reach.
+ */
+describe("the picker and the draft registry", () => {
+  it("offers exactly the protocols a form can be built for", async () => {
+    const { PROTOCOL_ORDER, isProtocolReady } = await import("@/design/data/protocols");
+    for (const protocol of PROTOCOL_ORDER) {
+      expect(isProtocolReady(protocol), protocol).toBe(isDraftable(protocol));
     }
   });
 });

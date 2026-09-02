@@ -18,7 +18,7 @@ import { PROTOCOL_ORDER, isProtocolReady, type ProtocolId } from "@/design/data/
 import { cn, formatErrorMessage } from "@/lib/utils";
 import type { ConnectionDraft, CredentialsMode } from "@/api/connection";
 import type { Connection as ConnectionProfile } from "@/api/models";
-import { KafkaForm, RabbitMQForm, RocketMQForm } from "./ConnectionForms";
+import { KafkaForm, RabbitMQForm, RedisForm, RocketMQForm } from "./ConnectionForms";
 import {
   emptyDraft,
   isDraftable,
@@ -127,6 +127,25 @@ export function NewConnectionDialog({
       }
       return null;
     }
+    if (draft.protocol === "redis") {
+      if (draft.value.endpoints.trim() === "") {
+        return t("page.connections.endpointsRequired");
+      }
+      // go-redis builds a cluster client the moment it is handed a second
+      // address, so a standalone profile with two would stop being standalone
+      // without saying so. The driver refuses it; saying so here means the
+      // user finds out while the field is still in front of them.
+      if (draft.value.deployment === "standalone" && countAddresses(draft.value.endpoints) > 1) {
+        return t("page.connections.form.redis.oneAddressOnly");
+      }
+      // Without a master name a sentinel connection has nothing to ask for,
+      // and would end up talking to the sentinels themselves - which answer
+      // PING and hold no streams at all.
+      if (draft.value.deployment === "sentinel" && draft.value.masterName.trim() === "") {
+        return t("page.connections.form.redis.masterNameRequired");
+      }
+      return null;
+    }
     if (draft.value.endpoints.trim() === "") return t("page.connections.endpointsRequired");
     if (draft.value.version === "5.x" && draft.value.access === "proxy") {
       return t("page.connections.form.rocketmq.proxyNote");
@@ -226,6 +245,11 @@ export function NewConnectionDialog({
           value={draft.value}
           onChange={(next) => setDraft({ protocol: "kafka", value: next })}
         />
+      ) : draft.protocol === "redis" ? (
+        <RedisForm
+          value={draft.value}
+          onChange={(next) => setDraft({ protocol: "redis", value: next })}
+        />
       ) : (
         <RocketMQForm
           value={draft.value}
@@ -303,4 +327,17 @@ function ProbeResult({ state }: { state: ProbeState }) {
       {t("page.connections.probeFailed")}
     </span>
   );
+}
+
+/**
+ * How many addresses a comma-, semicolon- or whitespace-separated field holds.
+ *
+ * It mirrors the driver's own parseAddrs so the form refuses what the driver
+ * would refuse. The two are separate implementations on purpose - one is
+ * validation the user sees while typing, the other is the last word - but they
+ * have to agree on the count, which is what internal/driver/redisstream's
+ * TestStandaloneRefusesASecondAddress and this file's tests each pin.
+ */
+export function countAddresses(raw: string): number {
+  return raw.split(/[,;\s]+/).filter((part) => part.trim() !== "").length;
 }

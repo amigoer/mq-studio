@@ -216,7 +216,9 @@ export const PROTOCOLS: Record<ProtocolId, Protocol> = {
         label: OPS,
         items: [
           { id: "cluster", icon: Server, label: "shell.nav.redis.cluster" },
+          { id: "clients", icon: Plug, label: "shell.nav.redis.clients" },
           { id: "alerts", icon: BellRing, label: "shell.nav.redis.alerts" },
+          { id: "acl", icon: Shield, label: "shell.nav.redis.acl" },
         ],
       },
     ],
@@ -277,7 +279,12 @@ export function labelOf(protocol: ProtocolId, page: PageId): string {
  * Adding one here needs a driver, a form in
  * boards/connections/connectionDraft.ts, and boards that read the endpoint.
  */
-const READY: ReadonlySet<ProtocolId> = new Set<ProtocolId>(["rocketmq", "rabbitmq", "kafka"]);
+const READY: ReadonlySet<ProtocolId> = new Set<ProtocolId>([
+  "rocketmq",
+  "rabbitmq",
+  "kafka",
+  "redis",
+]);
 
 export function isProtocolReady(protocol: ProtocolId): boolean {
   return READY.has(protocol);
