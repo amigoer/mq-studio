@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/amigoer/mq-studio/internal/driver/rocketmq/resource"
 	"github.com/amigoer/mq-studio/internal/model"
 
 	admin "github.com/amigoer/rocketmq-admin-go"
@@ -39,6 +40,33 @@ func NewConn(client *admin.Client, config ClientConfig, endpoint string) *Conn {
 
 // Kind identifies the family.
 func (c *Conn) Kind() model.MQKind { return model.KindRocketMQ }
+
+// The three namespace boundaries.
+//
+// A RocketMQ namespace is a naming convention rather than a broker object, so
+// this connection is scoped by wrapping every name it sends and unwrapping
+// every name it shows. Inside the driver a name is always broker-real, which
+// is what lets the retry and dead-letter composition ("%DLQ%" + group) stay as
+// it was and still come out as RocketMQ's "%DLQ%ns%group".
+//
+// All three are the identity function on a connection with no namespace, so
+// the unscoped path is unchanged rather than merely equivalent.
+
+// wrap turns a name a page passed in into the one the broker stores.
+func (c *Conn) wrap(name string) string {
+	return resource.Wrap(c.config.Namespace, name)
+}
+
+// unwrap turns a name the broker returned into the one a page shows.
+func (c *Conn) unwrap(name string) string {
+	return resource.Unwrap(c.config.Namespace, name)
+}
+
+// owns reports whether a broker-real name is in this connection's scope. It is
+// what the topic and group listings filter on.
+func (c *Conn) owns(name string) bool {
+	return resource.In(c.config.Namespace, name)
+}
 
 // current returns the client to issue the next request on.
 func (c *Conn) current() *admin.Client {

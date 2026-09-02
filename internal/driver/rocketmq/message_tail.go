@@ -44,7 +44,7 @@ func (c *Conn) TailMessages(
 	cursor model.TailCursor,
 	limit int,
 ) (*model.TailBatch, error) {
-	topic := strings.TrimSpace(ref.Name)
+	topic := c.wrap(strings.TrimSpace(ref.Name))
 	if topic == "" {
 		return nil, fmt.Errorf("Topic 名称不能为空")
 	}

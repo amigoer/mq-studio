@@ -544,6 +544,7 @@ export function DesignApp(): JSX.Element {
           <TabStatusBar
             connection={connection.name}
             address={connection.address}
+            scope={connection.scope}
             status={connection.status}
             latency={connection.latency}
             tabCount={openTabs.length}

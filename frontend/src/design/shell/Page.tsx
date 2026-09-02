@@ -207,6 +207,7 @@ const STATUS_TONE: Record<string, string> = {
 export function TabStatusBar({
   connection,
   address,
+  scope,
   status,
   latency,
   tabCount,
@@ -215,6 +216,8 @@ export function TabStatusBar({
   connection: string;
   /** The endpoint this tab is reading, which is known whether or not it is up. */
   address: string;
+  /** What the connection is scoped to, when it is scoped to anything. */
+  scope?: string;
   status: string;
   /** Undefined until a dial in this session timed one. */
   latency?: string;
@@ -241,6 +244,7 @@ export function TabStatusBar({
         {connection}
       </span>
       <span className="mono3">{address}</span>
+      {scope != null && <span className="mono3">{scope}</span>}
       {latency != null && <span className="mono3">{latency}</span>}
       <span style={{ flex: 1 }} />
       <span>{t("shell.status.tabs", { tabs: tabCount, online: onlineCount })}</span>

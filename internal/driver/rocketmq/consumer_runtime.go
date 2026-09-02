@@ -21,7 +21,7 @@ import (
 // The two mean different things - nobody is consuming, versus everyone is
 // consuming nothing - and a page that shows them the same way hides an outage.
 func (c *Conn) SubscriptionClients(ctx context.Context, ref model.SubscriptionRef) ([]*model.SubscriptionClient, error) {
-	group := strings.TrimSpace(ref.Name)
+	group := c.wrap(strings.TrimSpace(ref.Name))
 	if group == "" {
 		return nil, fmt.Errorf("获取消费端运行信息失败: 消费者组不能为空")
 	}
@@ -57,7 +57,7 @@ func (c *Conn) SubscriptionClients(ctx context.Context, ref model.SubscriptionRe
 		// One unreachable client must not lose the others: a rebalancing or
 		// half-dead consumer is exactly what someone opens this page to find.
 		if runErr == nil && info != nil {
-			applyRunningInfo(client, info)
+			c.applyRunningInfo(client, info)
 		}
 		clients = append(clients, client)
 	}
@@ -68,13 +68,13 @@ func (c *Conn) SubscriptionClients(ctx context.Context, ref model.SubscriptionRe
 	return clients, nil
 }
 
-func applyRunningInfo(client *model.SubscriptionClient, info *admin.ConsumerRunningInfo) {
+func (c *Conn) applyRunningInfo(client *model.SubscriptionClient, info *admin.ConsumerRunningInfo) {
 	client.Properties = info.Properties
 
 	for key, queue := range info.MqTable {
 		broker, queueID := parseMQKey(key)
 		client.Assignments = append(client.Assignments, model.QueueAssignment{
-			Destination: topicFromMQKey(key),
+			Destination: c.unwrap(topicFromMQKey(key)),
 			Node:        broker,
 			QueueID:     queueID,
 			Pending:     queue.CachedMsgCount,
@@ -99,7 +99,7 @@ func applyRunningInfo(client *model.SubscriptionClient, info *admin.ConsumerRunn
 
 	for destination, status := range info.StatusTable {
 		client.Throughput = append(client.Throughput, model.ConsumeThroughput{
-			Destination:      destination,
+			Destination:      c.unwrap(destination),
 			PullLatencyMs:    status.PullRT,
 			PullRate:         status.PullTPS,
 			ConsumeLatencyMs: status.ConsumeRT,

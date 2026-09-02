@@ -255,6 +255,9 @@ export function ConnectionsList({
                   style={{ color: "var(--c-mono-dim)", fontSize: "11px", maxWidth: "420px" }}
                 >
                   {c.address}
+                  {c.scope != null && (
+                    <span style={{ color: "var(--c-muted)" }}> · {c.scope}</span>
+                  )}
                 </TableCell>
                 <TableCell style={showsFailure ? FAILURE_COLUMN : undefined}>
                   <StatusCell connection={c} error={errors?.[c.id]} />

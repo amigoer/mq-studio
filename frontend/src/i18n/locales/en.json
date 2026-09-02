@@ -369,7 +369,8 @@
         "enableAcl": "Enable ACL",
         "authAcl": "ACL",
         "accessKey": "AccessKey",
-        "secretKey": "SecretKey"
+        "secretKey": "SecretKey",
+        "namespace": "Namespace"
       }
     },
     "kafka": {
@@ -793,7 +794,9 @@
           "advanced": "Advanced",
           "timeout": "Request timeout",
           "timeoutHint": "seconds · blank takes the app setting",
-          "instanceId": "Instance ID (cloud)",
+          "namespace": "Namespace",
+          "namespaceHint": "RocketMQ 5.x; on a public cloud this is the instance id",
+          "namespaceInvalid": "A namespace can only contain letters, digits, _ and -",
           "traceTopic": "Trace topic",
           "tlsNote": "Opens once the driver library supports it",
           "note": "Switching to 4.x hides Proxy and the 5.x-only fields",

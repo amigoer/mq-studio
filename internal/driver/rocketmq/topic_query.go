@@ -28,6 +28,10 @@ func newTopicItem(topicName string) *model.TopicItem {
 }
 
 // GetTopics returns all non-system topics.
+//
+// A namespaced connection drops the topics it does not own here rather than on
+// the way out, because enrichTopics below costs a broker round trip per topic:
+// filtering afterwards would pay for every other namespace on the cluster.
 func (c *Conn) GetTopics(ctx context.Context) ([]*model.TopicItem, error) {
 
 	result := make([]*model.TopicItem, 0)
@@ -43,7 +47,7 @@ func (c *Conn) GetTopics(ctx context.Context) ([]*model.TopicItem, error) {
 
 		topics := make([]*model.TopicItem, 0, len(topicList.TopicList))
 		for _, topicName := range topicList.TopicList {
-			if resource.IsSystemTopic(topicName) {
+			if resource.IsSystemTopic(topicName) || !c.owns(topicName) {
 				continue
 			}
 			topics = append(topics, newTopicItem(topicName))
@@ -74,6 +78,9 @@ func (c *Conn) GetAllTopics(ctx context.Context) ([]*model.TopicItem, error) {
 
 		topics := make([]*model.TopicItem, 0, len(topicList.TopicList))
 		for _, topicName := range topicList.TopicList {
+			if !c.owns(topicName) {
+				continue
+			}
 			item := newTopicItem(topicName)
 			if resource.IsSystemTopic(topicName) {
 				item.Description = "系统"
@@ -106,7 +113,7 @@ func (c *Conn) GetTopicsByCluster(ctx context.Context, clusterName string) ([]*m
 
 		topics := make([]*model.TopicItem, 0, len(topicList.TopicList))
 		for _, topicName := range topicList.TopicList {
-			if resource.IsSystemTopic(topicName) {
+			if resource.IsSystemTopic(topicName) || !c.owns(topicName) {
 				continue
 			}
 			item := newTopicItem(topicName)

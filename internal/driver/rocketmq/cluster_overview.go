@@ -148,11 +148,14 @@ func (c *Conn) enrichBrokers(ctx context.Context, result *model.ClusterInfo) {
 }
 
 // enrichResourceTotals adds best-effort topic and consumer-group totals.
+//
+// Scoped to the connection's namespace, so the overview cannot report a
+// hundred topics while the topic page lists four of them.
 func (c *Conn) enrichResourceTotals(ctx context.Context, clusterInfo *admin.ClusterInfo, result *model.ClusterInfo) {
 	topicCtx, topicCancel := context.WithTimeout(context.Background(), timeoutFrom(ctx))
 	if topicList, err := c.current().FetchAllTopicList(topicCtx); err == nil && topicList != nil {
 		for _, topic := range topicList.TopicList {
-			if !resource.IsSystemTopic(topic) {
+			if !resource.IsSystemTopic(topic) && c.owns(topic) {
 				result.TotalTopics++
 			}
 		}
@@ -176,7 +179,7 @@ func (c *Conn) enrichResourceTotals(ctx context.Context, clusterInfo *admin.Clus
 			continue
 		}
 		for groupName := range subscriptionGroups {
-			if !resource.IsSystemGroup(groupName) {
+			if !resource.IsSystemGroup(groupName) && c.owns(groupName) {
 				groups[groupName] = struct{}{}
 			}
 		}

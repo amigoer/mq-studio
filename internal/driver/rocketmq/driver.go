@@ -3,6 +3,7 @@ package rocketmq
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/amigoer/mq-studio/internal/driver"
@@ -39,6 +40,12 @@ func (d *Driver) Descriptor() model.DriverDescriptor {
 				LabelKey: "mq.rocketmq.form.nameServer",
 				Required: true,
 				Validate: "host-port",
+			},
+			{
+				Key:      OptionNamespace,
+				Target:   model.TargetOption,
+				Type:     model.FieldText,
+				LabelKey: "mq.rocketmq.form.namespace",
 			},
 			{
 				Key:      "timeoutSec",
@@ -83,6 +90,11 @@ const (
 	AccessProxy  = "proxy"
 )
 
+// OptionNamespace scopes the connection to one RocketMQ 5.x namespace: the
+// same thing a client sets as ClientConfig.namespace and a public cloud calls
+// the instance id. Empty means the connection sees the cluster unscoped.
+const OptionNamespace = "namespace"
+
 // configOf reads a profile into the parameters this driver dials with.
 //
 // A Proxy endpoint is refused rather than dialled. The 5.x Proxy is a data
@@ -98,10 +110,19 @@ func configOf(profile model.ConnectionProfile) (ClientConfig, error) {
 	if timeout <= 0 {
 		timeout = defaultRequestTimeout
 	}
-	return NewClientConfig(
+	config, err := NewClientConfig(
 		profile.Endpoints, timeout,
 		profile.Auth.Mechanism == model.AuthACL,
 		profile.Secret(SecretAccessKey), profile.Secret(SecretSecretKey))
+	if err != nil {
+		return ClientConfig{}, err
+	}
+	namespace := strings.TrimSpace(profile.Option(OptionNamespace))
+	if err := ValidateNamespace(namespace); err != nil {
+		return ClientConfig{}, err
+	}
+	config.Namespace = namespace
+	return config, nil
 }
 
 // Open dials the NameServers in the profile.

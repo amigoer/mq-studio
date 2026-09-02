@@ -49,7 +49,7 @@ func (c *Conn) GetTopicStats(ctx context.Context, topicName string) (map[string]
 		})
 
 		result = map[string]interface{}{
-			"topic":          topicName,
+			"topic":          c.unwrap(topicName),
 			"queueCount":     len(queues),
 			"totalMinOffset": totalMinOffset,
 			"totalMaxOffset": totalMaxOffset,
