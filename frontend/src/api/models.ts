@@ -51,7 +51,6 @@ export type ProducerClient = model.ProducerClient;
 export type ReplayResult = model.ReplayResult;
 export type TailBatch = model.TailBatch;
 export type TailCursor = model.TailCursor;
-export type ClientConnection = model.ClientConnection;
 export type LiveSubscription = model.LiveSubscription;
 export type LiveBatch = model.LiveBatch;
 export type LiveMessage = model.LiveMessage;

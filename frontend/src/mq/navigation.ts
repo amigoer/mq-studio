@@ -27,12 +27,10 @@ const requires: Record<string, Capability | Capability[]> = {
   // family without them must not draw the entry at all.
   exchanges: Capability.CapRouting,
   messages: Capability.CapMessageQuery,
-  // MQTT's two pages, and the only two entries here that no other family
-  // draws. A live subscription is not a message query: there is nothing
-  // stored to query, so the page needs its own capability rather than
-  // borrowing one that promises history.
+  // A live subscription is not a message query: there is nothing stored to
+  // query, so the page needs its own capability rather than borrowing one
+  // that promises history. No other family draws this entry.
   subscribe: Capability.CapLiveStream,
-  clients: Capability.CapClientInspect,
   // Three, because three families answer this page by three different means.
   // RocketMQ reads a dead-letter topic per consumer group; RabbitMQ walks the
   // topology to find the queues something else dead-letters into; Redis moves
@@ -56,11 +54,6 @@ const requires: Record<string, Capability | Capability[]> = {
   // entry whether or not its driver could answer it.
   clients: Capability.CapClientInspect,
   cluster: Capability.CapClusterTopology,
-  // Three, because three families answer this page by three different means.
-  // RocketMQ has a credential pair carrying its own permissions; RabbitMQ has
-  // users whose tags and per-vhost permissions are two systems on one name;
-  // Kafka has rules attached to a principal it may not even store. None can
-  // answer the page the others' way, and all three answer it.
   // Four, because four families answer this page by four different means.
   // RocketMQ has a credential pair carrying its own permissions; RabbitMQ has
   // users whose tags and per-vhost permissions are two systems on one name;

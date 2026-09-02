@@ -268,13 +268,6 @@ function redisSubmission(draft: RedisDraft): Submission {
   };
 }
 
-/** The form's three choices in the store's own vocabulary. */
-const MECHANISM: Record<KafkaMechanism, AuthMechanism> = {
-  none: AuthMechanism.AuthNone,
-  "sasl-plain": AuthMechanism.AuthSASLPlain,
-  "sasl-scram": AuthMechanism.AuthSASLScram,
-};
-
 /*
  * MQTT is the one family here with two independent credentials: the broker's
  * username and password authenticate the session, and the management API key
