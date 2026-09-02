@@ -305,6 +305,9 @@ func TestCapabilitiesMatchTheSidebarContract(t *testing.T) {
 		"subscription.create",
 		"subscription.delete",
 		"subscription.lag",
+		"message.query",
+		"message.byId",
+		"message.liveTail",
 	}
 
 	declared := make(map[string]bool, len(capabilities()))

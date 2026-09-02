@@ -38,6 +38,7 @@ import { MessagesKafka } from "./boards/messages/MessagesKafka";
 import { MessagesPulsar } from "./boards/messages/MessagesPulsar";
 import { MessagesRabbitMQ } from "./boards/messages/MessagesRabbitMQ";
 import { MessagesRedis } from "./boards/messages/MessagesRedis";
+import { MessagesNats } from "./boards/messages/MessagesNats";
 
 import { DlqRocketMQ } from "./boards/dlq/DlqRocketMQ";
 import { DlqRabbitMQ } from "./boards/dlq/DlqRabbitMQ";
@@ -141,6 +142,7 @@ const BOARDS: Partial<
     rabbitmq: MessagesRabbitMQ,
     pulsar: MessagesPulsar,
     redis: MessagesRedis,
+    nats: MessagesNats,
   },
   dlq: {
     rocketmq: DlqRocketMQ,

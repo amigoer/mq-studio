@@ -2946,6 +2946,28 @@
           "done": "已重新发布到 {{group}}",
           "failed": "重新发布失败"
         }
+      },
+      "nats": {
+        "title": "消息",
+        "subtitle": "查看流里存着什么",
+        "pickStream": "流",
+        "subject": "主题",
+        "fromSequence": "起始序号",
+        "headerName": "Header",
+        "headerValue": "值",
+        "search": "查询",
+        "found": "找到 {{count}} 条",
+        "startHere": "先选一个流再查。不点就不读——一次浏览要走一遍流，自动读的话就是替没人看的页面白跑一趟。",
+        "noMatches": "这个流里没有匹配的消息。",
+        "headerFilterNote": "JetStream 只能按主题过滤，所以 Header 过滤是消息取回来之后在这边做的。它省的是阅读量，不是网络。",
+        "sequence": "序号",
+        "stored": "存入时间",
+        "body": "内容",
+        "headers": "Headers",
+        "noHeaders": "这条消息没有 header。",
+        "dedupId": "Nats-Msg-Id",
+        "emptyBody": "这条消息没有内容。在 NATS 里这很正常——单独一个主题本身就是信号，请求-应答也经常发空消息。",
+        "emptyShort": "空"
       }
     },
     "dlq": {

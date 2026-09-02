@@ -2946,6 +2946,28 @@
           "done": "Republished to {{group}}",
           "failed": "Republish failed"
         }
+      },
+      "nats": {
+        "title": "Messages",
+        "subtitle": "Browse what a stream is holding",
+        "pickStream": "Stream",
+        "subject": "Subject",
+        "fromSequence": "From sequence",
+        "headerName": "Header",
+        "headerValue": "Value",
+        "search": "Search",
+        "found": "{{count}} found",
+        "startHere": "Pick a stream and search. Nothing is read until you ask — a browse walks the stream, and doing it on its own would re-read one nobody is looking at.",
+        "noMatches": "No message in that stream matched.",
+        "headerFilterNote": "JetStream narrows by subject and by nothing else, so the header filter runs here after the messages arrive. It saves reading, not fetching.",
+        "sequence": "Sequence",
+        "stored": "Stored",
+        "body": "Body",
+        "headers": "Headers",
+        "noHeaders": "This message carries no headers.",
+        "dedupId": "Nats-Msg-Id",
+        "emptyBody": "This message has no payload. That is ordinary in NATS — a subject on its own is a signal, and request/reply uses empty messages routinely.",
+        "emptyShort": "no payload"
       }
     },
     "dlq": {

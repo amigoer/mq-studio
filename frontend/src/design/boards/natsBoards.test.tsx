@@ -38,6 +38,7 @@ function stateOf<T>(over: Partial<BrokerState<T>>): BrokerState<T> {
 const streamsState = vi.hoisted(() => ({ current: null as unknown }));
 const streamDetailState = vi.hoisted(() => ({ current: null as unknown }));
 const consumersState = vi.hoisted(() => ({ current: null as unknown }));
+const browseState = vi.hoisted(() => ({ current: null as unknown }));
 
 vi.mock("@/hooks/nats/useNatsStreams", () => ({
   useNatsStreams: () => streamsState.current,
@@ -46,10 +47,14 @@ vi.mock("@/hooks/nats/useNatsStreams", () => ({
 vi.mock("@/hooks/nats/useNatsConsumers", () => ({
   useNatsConsumers: () => consumersState.current,
 }));
+vi.mock("@/hooks/nats/useNatsMessages", () => ({
+  useNatsBrowse: () => browseState.current,
+}));
 
 let render: (element: React.ReactElement) => string;
 let StreamsNats: typeof import("./topics/StreamsNats").StreamsNats;
 let ConsumersNats: typeof import("./consumers/ConsumersNats").ConsumersNats;
+let MessagesNats: typeof import("./messages/MessagesNats").MessagesNats;
 
 beforeAll(async () => {
   const storage = { getItem: () => null, setItem() {}, removeItem() {} };
@@ -62,10 +67,11 @@ beforeAll(async () => {
   });
   vi.stubGlobal("localStorage", storage);
 
-  const [server, streams, consumers, ui, i18n, settings] = await Promise.all([
+  const [server, streams, consumers, messages, ui, i18n, settings] = await Promise.all([
     import("react-dom/server"),
     import("./topics/StreamsNats"),
     import("./consumers/ConsumersNats"),
+    import("./messages/MessagesNats"),
     import("@/components"),
     import("@/i18n"),
     import("@/hooks/useSettings"),
@@ -79,6 +85,7 @@ beforeAll(async () => {
     );
   StreamsNats = streams.StreamsNats;
   ConsumersNats = consumers.ConsumersNats;
+  MessagesNats = messages.MessagesNats;
 });
 
 /** A replicated stream, as internal/driver/nats/stream.go sends one. */
@@ -348,5 +355,92 @@ describe("the NATS consumers board", () => {
     consumersState.current = stateOf({ data: [bare] });
     streamsState.current = stateOf({ data: [] });
     expect(() => render(<ConsumersNats />)).not.toThrow();
+  });
+});
+
+/** A message as internal/driver/nats/message.go sends one. */
+const message = {
+  id: 42,
+  cluster: "",
+  topic: "MQS_SEED_ORDERS",
+  messageId: "42",
+  tags: "mqs.seed.orders.created",
+  keys: "order-42",
+  queueId: -1,
+  queueOffset: 42,
+  storeHost: "",
+  bornHost: "",
+  storeTime: "2026-09-02 10:38:03",
+  storeTimestamp: 1788000000000,
+  status: "normal",
+  retryTimes: -1,
+  body: '{"id":42}',
+  properties: { Region: "eu", "Nats-Msg-Id": "order-42" },
+};
+
+function browseOf(over: Record<string, unknown>) {
+  return {
+    messages: [],
+    loading: false,
+    error: null,
+    searched: false,
+    run: async () => {},
+    ...over,
+  };
+}
+
+describe("the NATS messages board", () => {
+  /*
+   * Nothing is read until somebody asks. The empty state has to say that,
+   * because "no results" would read as a stream that is empty.
+   */
+  it("invites a search rather than reading a stream on its own", () => {
+    browseState.current = browseOf({});
+    streamsState.current = stateOf({ data: [] });
+    expect(() => render(<MessagesNats />)).not.toThrow();
+  });
+
+  it("renders while a search is running", () => {
+    browseState.current = browseOf({ loading: true });
+    streamsState.current = stateOf({ data: [] });
+    expect(() => render(<MessagesNats />)).not.toThrow();
+  });
+
+  it("shows what a failed search said", () => {
+    browseState.current = browseOf({ error: "stream ABSENT does not exist", searched: true });
+    streamsState.current = stateOf({ data: [] });
+    expect(render(<MessagesNats />)).toContain("ABSENT");
+  });
+
+  it("distinguishes a search that matched nothing from one nobody ran", () => {
+    browseState.current = browseOf({ searched: true });
+    streamsState.current = stateOf({ data: [] });
+    expect(() => render(<MessagesNats />)).not.toThrow();
+  });
+
+  it("lists a message with its subject and sequence", () => {
+    browseState.current = browseOf({ messages: [message], searched: true });
+    streamsState.current = stateOf({ data: [orders] });
+    const html = render(<MessagesNats />);
+    expect(html).toContain("mqs.seed.orders.created");
+    expect(html).toContain("42");
+  });
+
+  /*
+   * An empty body is ordinary in NATS - a subject alone is a signal - so the
+   * row names it rather than showing a blank cell that reads as a failed load.
+   */
+  it("names an empty payload rather than leaving the cell blank", () => {
+    const empty = { ...message, body: "", properties: {} };
+    browseState.current = browseOf({ messages: [empty], searched: true });
+    streamsState.current = stateOf({ data: [] });
+    expect(() => render(<MessagesNats />)).not.toThrow();
+  });
+
+  it("renders a message with no headers at all", () => {
+    const bare = { ...message, keys: "", properties: {} };
+    browseState.current = browseOf({ messages: [bare], searched: true });
+    streamsState.current = stateOf({ data: [] });
+    expect(() => render(<MessagesNats />)).not.toThrow();
   });
 });

@@ -31,6 +31,9 @@ const NATS_CAPABILITIES: Capability[] = [
   Capability.CapSubscriptionCreate,
   Capability.CapSubscriptionDelete,
   Capability.CapSubscriptionLag,
+  Capability.CapMessageQuery,
+  Capability.CapMessageByID,
+  Capability.CapMessageLiveTail,
 ];
 
 function state(

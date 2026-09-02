@@ -103,6 +103,9 @@ var (
 		model.CapSubscriptionCreate,
 		model.CapSubscriptionDelete,
 		model.CapSubscriptionLag,
+		model.CapMessageQuery,
+		model.CapMessageByID,
+		model.CapMessageLiveTail,
 	}
 
 	// clusterCapabilities are answered by the monitoring endpoint or by the
