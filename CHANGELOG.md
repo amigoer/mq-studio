@@ -41,6 +41,13 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   HMAC-SHA1 signature over the sorted header fields and the body, which is what
   the broker rebuilds and compares.
 
+- Every launch now checks for a release, five seconds after the window comes
+  up, instead of waiting out whatever was left of the twenty-four hour
+  interval. An application that is opened and closed a few times a day never
+  reached the end of one, so no background check ever ran and the only way to
+  hear about a release was to press the button in settings. The interval is
+  unchanged for a session that stays up. (#67)
+
 ## [0.0.5] - 2026-09-02
 
 Three drivers at once — Redis Stream, Pulsar and MQTT — which takes the count

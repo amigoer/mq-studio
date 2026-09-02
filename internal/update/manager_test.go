@@ -138,6 +138,18 @@ type harness struct {
 
 func newManager(t *testing.T, policy Policy, options release) *harness {
 	t.Helper()
+	return build(t, policy, options, 0)
+}
+
+// newManagerWithDelay is newManager for the tests that let Start run: the
+// launch delay is a seam so they do not have to wait out StartupDelay.
+func newManagerWithDelay(t *testing.T, policy Policy, delay time.Duration) *harness {
+	t.Helper()
+	return build(t, policy, release{}, delay)
+}
+
+func build(t *testing.T, policy Policy, options release, delay time.Duration) *harness {
+	t.Helper()
 	published := newRelease(t, options)
 	watch := newWatcher()
 	commander := &fakeCommander{}
@@ -150,6 +162,7 @@ func newManager(t *testing.T, policy Policy, options release) *harness {
 		Client:    published.server.Client(),
 		Commander: commander,
 		Location:  &testLocation,
+		Delay:     delay,
 		Check: func(string, *http.Client) (Result, error) {
 			return published.result(), nil
 		},
@@ -218,6 +231,54 @@ func TestDownloadPolicySkipsAReleaseTheUserDeclined(t *testing.T) {
 	// user has already declined.
 	if state := h.manager.State(); state.Skipped != state.LatestVersion {
 		t.Errorf("skipped = %q, latest = %q, want a skipped release to match", state.Skipped, state.LatestVersion)
+	}
+}
+
+/*
+ * A launch checks whatever the clock says. The schedule used to wait out the
+ * remainder of CheckInterval instead, so an application opened and closed a few
+ * times a day never reached the end of one: no background check ever ran, and
+ * a release was only ever found by pressing the button.
+ */
+func TestALaunchChecksEvenWhenOneRanMinutesAgo(t *testing.T) {
+	published := newRelease(t, release{})
+	directory := t.TempDir()
+	recent := time.Now().UTC().Add(-time.Minute).Format(time.RFC3339)
+	if err := os.WriteFile(filepath.Join(directory, memoryFile),
+		[]byte(`{"checkedAt":`+strconv.Quote(recent)+`}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	watch := newWatcher()
+	manager := New(Options{
+		Version:   "1.0.0",
+		Directory: directory,
+		Policy:    func() Policy { return PolicyNotify },
+		Emit:      watch.emit,
+		Client:    published.server.Client(),
+		Location:  &testLocation,
+		Delay:     10 * time.Millisecond,
+		Check: func(string, *http.Client) (Result, error) {
+			return published.result(), nil
+		},
+	})
+	t.Cleanup(manager.Close)
+
+	manager.Start(context.Background())
+	if state := watch.await(t, manager, PhaseAvailable); state.LatestVersion != "9.9.9" {
+		t.Errorf("latest = %q, want the launch check to have found the release", state.LatestVersion)
+	}
+}
+
+// The one thing the schedule still will not do is check behind a policy that
+// says not to.
+func TestALaunchChecksNothingWhenUpdatesAreOff(t *testing.T) {
+	h := newManagerWithDelay(t, PolicyOff, 10*time.Millisecond)
+
+	h.manager.Start(context.Background())
+	time.Sleep(150 * time.Millisecond)
+	if phase := h.manager.State().Phase; phase != PhaseIdle {
+		t.Errorf("phase = %q, want %q with updates off", phase, PhaseIdle)
 	}
 }
 

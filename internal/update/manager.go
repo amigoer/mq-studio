@@ -139,11 +139,14 @@ type Options struct {
 	Policy func() Policy
 	// Emit publishes a state change to the renderer. Optional.
 	Emit func(State)
-	// Client, Commander, Location and Now are seams for the tests.
+	// Client, Commander, Location, Now and Delay are seams for the tests.
 	Client    *http.Client
 	Commander Commander
 	Location  *Location
 	Now       func() time.Time
+	// Delay is how long Start waits before the launch check. Zero means
+	// StartupDelay.
+	Delay time.Duration
 	// Check replaces the GitHub call. Optional.
 	Check func(version string, client *http.Client) (Result, error)
 }
@@ -161,6 +164,7 @@ type Manager struct {
 	location  Location
 	now       func() time.Time
 	check     func(string, *http.Client) (Result, error)
+	delay     time.Duration
 
 	state    State
 	memory   memory
@@ -179,8 +183,8 @@ type Manager struct {
 // check nobody is waiting for.
 const StartupDelay = 5 * time.Second
 
-// CheckInterval is how often the background check runs. A check is also made
-// at startup when this much has passed since the last one.
+// CheckInterval is how often the background check runs while the application
+// stays up. A launch checks regardless of when the last one was.
 const CheckInterval = 24 * time.Hour
 
 // isDevelopmentBuild reports a build with no release to compare against.
@@ -200,6 +204,7 @@ func New(options Options) *Manager {
 		commander: options.Commander,
 		now:       options.Now,
 		check:     options.Check,
+		delay:     options.Delay,
 		stop:      make(chan struct{}),
 		notify:    make(chan struct{}, 1),
 	}
@@ -214,6 +219,9 @@ func New(options Options) *Manager {
 	}
 	if manager.check == nil {
 		manager.check = CheckLatest
+	}
+	if manager.delay <= 0 {
+		manager.delay = StartupDelay
 	}
 	if options.Location != nil {
 		manager.location = *options.Location
@@ -603,21 +611,19 @@ func (m *Manager) Skip(version string) {
 	m.publish()
 }
 
-// Start runs the background schedule until Close. The first check waits out
-// whatever is left of the interval, with StartupDelay as the floor so a launch
-// is never slowed by it.
+// Start runs the background schedule until Close. Every launch checks, once
+// StartupDelay has let the window come up, and every CheckInterval after that.
+//
+// A launch used to wait out whatever was left of the interval instead. An
+// application that is opened and closed a few times a day never reaches the end
+// of one, so the only check that ever ran was the one the user pressed for --
+// which is no way to hear about a release.
 func (m *Manager) Start(ctx context.Context) {
 	if isDevelopmentBuild(m.version) {
 		return
 	}
 	go func() {
-		delay := StartupDelay
-		if since, ok := m.sinceLastCheck(); ok {
-			if remaining := CheckInterval - since; remaining > delay {
-				delay = remaining
-			}
-		}
-		timer := time.NewTimer(delay)
+		timer := time.NewTimer(m.delay)
 		defer timer.Stop()
 		for {
 			select {
@@ -639,19 +645,6 @@ func (m *Manager) Start(ctx context.Context) {
 func (m *Manager) Close() {
 	m.stopOnce.Do(func() { close(m.stop) })
 	m.Cancel()
-}
-
-func (m *Manager) sinceLastCheck() (time.Duration, bool) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	if m.memory.CheckedAt == "" {
-		return 0, false
-	}
-	at, err := time.Parse(time.RFC3339, m.memory.CheckedAt)
-	if err != nil {
-		return 0, false
-	}
-	return m.now().Sub(at), true
 }
 
 // memoryFile is where the bits that outlive a session are kept.
