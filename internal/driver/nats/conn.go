@@ -36,6 +36,13 @@ type Conn struct {
 	// the same reason - most profiles will not carry those credentials.
 	system *systemClient
 
+	// streams are the live subscriptions this connection is buffering. They
+	// are state the driver holds, unlike everything else here, because a core
+	// NATS message exists only while somebody is subscribed - nothing else in
+	// the process can go back for it.
+	streamsMu sync.RWMutex
+	streams   map[string]*liveStream
+
 	tiers        tiers
 	capabilities model.Capabilities
 	closeOnce    sync.Once
@@ -70,6 +77,10 @@ func (c *Conn) Capabilities() model.Capabilities { return c.capabilities }
 // shutdown, so the second call has to be the one that does nothing.
 func (c *Conn) Close() error {
 	c.closeOnce.Do(func() {
+		// The subscriptions go first. They live on the server until they are
+		// stopped, and closing the socket underneath them leaves the server
+		// tearing them down on a timeout rather than on request.
+		c.stopLiveStreams()
 		if c.system != nil {
 			c.system.close()
 		}
@@ -91,6 +102,7 @@ var (
 	// degrade: a connection that opened can do them.
 	protocolCapabilities = []model.Capability{
 		model.CapPublish,
+		model.CapLiveStream,
 	}
 
 	// jetStreamCapabilities go when the persistence layer does.

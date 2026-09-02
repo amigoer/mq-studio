@@ -74,12 +74,21 @@ export function DeleteStream(connID: number, name: string): $CancellablePromise<
 }
 
 /**
+ * PollSubscription drains what has arrived since the caller's cursor.
+ */
+export function PollSubscription(connID: number, id: string, after: number, limit: number): $CancellablePromise<model$0.LiveBatch | null> {
+    return $Call.ByID(2853870003, connID, id, after, limit).then(($result: any) => {
+        return $$createType3($result);
+    });
+}
+
+/**
  * Publish sends a message and reports what the server said, which depends on
  * how much was asked of it.
  */
 export function Publish(connID: number, input: $models.NATSPublishInput): $CancellablePromise<nats$0.PublishResult | null> {
     return $Call.ByID(852775886, connID, input).then(($result: any) => {
-        return $$createType3($result);
+        return $$createType5($result);
     });
 }
 
@@ -93,6 +102,32 @@ export function Publish(connID: number, input: $models.NATSPublishInput): $Cance
 export function PurgeStream(connID: number, input: $models.PurgeInput): $CancellablePromise<model$0.TrimResult | null> {
     return $Call.ByID(816427434, connID, input).then(($result: any) => {
         return $$createType1($result);
+    });
+}
+
+/**
+ * StartSubscription begins following one or more subjects.
+ */
+export function StartSubscription(connID: number, input: $models.NATSSubscribeInput): $CancellablePromise<model$0.LiveSubscription | null> {
+    return $Call.ByID(1106287356, connID, input).then(($result: any) => {
+        return $$createType7($result);
+    });
+}
+
+/**
+ * StopSubscription ends one. Not optional: it lives on the server until it is
+ * stopped.
+ */
+export function StopSubscription(connID: number, id: string): $CancellablePromise<void> {
+    return $Call.ByID(2584103042, connID, id);
+}
+
+/**
+ * Subscriptions is what is running.
+ */
+export function Subscriptions(connID: number): $CancellablePromise<(model$0.LiveSubscription | null)[]> {
+    return $Call.ByID(3948587227, connID).then(($result: any) => {
+        return $$createType8($result);
     });
 }
 
@@ -122,5 +157,10 @@ export function UpdateStream(connID: number, input: $models.StreamInput): $Cance
 // Private type creation functions
 const $$createType0 = model$0.TrimResult.createFrom;
 const $$createType1 = $Create.Nullable($$createType0);
-const $$createType2 = nats$0.PublishResult.createFrom;
+const $$createType2 = model$0.LiveBatch.createFrom;
 const $$createType3 = $Create.Nullable($$createType2);
+const $$createType4 = nats$0.PublishResult.createFrom;
+const $$createType5 = $Create.Nullable($$createType4);
+const $$createType6 = model$0.LiveSubscription.createFrom;
+const $$createType7 = $Create.Nullable($$createType6);
+const $$createType8 = $Create.Array($$createType7);

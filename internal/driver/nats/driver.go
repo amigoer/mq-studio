@@ -273,16 +273,30 @@ func (d *Driver) Open(ctx context.Context, profile model.ConnectionProfile) (dri
 	if err != nil {
 		return nil, err
 	}
+	conn := &Conn{config: config, streams: make(map[string]*liveStream)}
+
 	options, err := config.dialOptions("")
 	if err != nil {
 		return nil, err
 	}
+	// The handlers go on before the dial, not after. A session that reconnects
+	// resubscribes from inside the library's own callback, and a page that
+	// cannot tell a dropped session from a quiet subject shows a stalled panel
+	// as a working one.
+	options = append(options,
+		natsclient.DisconnectErrHandler(func(*natsclient.Conn, error) {
+			conn.setLiveStreamsLive(false)
+		}),
+		natsclient.ReconnectHandler(func(*natsclient.Conn) {
+			conn.setLiveStreamsLive(true)
+		}),
+	)
+
 	nc, err := natsclient.Connect(serverList(config.Servers), options...)
 	if err != nil {
 		return nil, err
 	}
-
-	conn := &Conn{nc: nc, config: config}
+	conn.nc = nc
 	// The JetStream handle is built whether or not the server has JetStream:
 	// it is a subject prefix and a codec, not a session, so constructing it
 	// cannot fail for a server that lacks the subsystem. Finding that out is

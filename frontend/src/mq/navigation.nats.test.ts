@@ -22,6 +22,7 @@ import type { CapabilityState } from "./capabilities";
  */
 const NATS_CAPABILITIES: Capability[] = [
   Capability.CapPublish,
+  Capability.CapLiveStream,
   Capability.CapDestinationList,
   Capability.CapDestinationCreate,
   Capability.CapDestinationUpdate,

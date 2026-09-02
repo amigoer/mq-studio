@@ -3672,6 +3672,28 @@
         "closed": "Closed {{name}}",
         "closeFailed": "Could not close the connection"
       }
+    },
+    "subscribe": {
+      "nats": {
+        "title": "Subjects",
+        "subtitle": "Watch messages as they go past",
+        "subjects": "Subjects to watch",
+        "queueGroup": "Queue group",
+        "start": "Start",
+        "stop": "Stop",
+        "clear": "Clear",
+        "listening": "listening",
+        "notListening": "not listening — the connection dropped",
+        "received": "{{count}} seen",
+        "dropped": "{{count}} dropped",
+        "notStarted": "Name one or more subjects and start. Wildcards work here — this is a subscription, not an address.",
+        "waiting": "Listening. Nothing has been published on those subjects yet.",
+        "disconnected": "The connection dropped, so nothing is being received. It will resume on its own when the connection comes back.",
+        "request": "request",
+        "truncated": "truncated",
+        "emptyBody": "no payload",
+        "matched": "matched {{filter}}"
+      }
     }
   }
 }

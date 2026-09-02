@@ -2,14 +2,16 @@ import { NATSService } from "@bindings/bridge";
 import type {
   NATSConsumerInput,
   NATSPublishInput,
+  NATSSubscribeInput,
   PurgeInput,
   StreamInput,
 } from "@bindings/bridge/models";
+import type { LiveBatch, LiveSubscription } from "@bindings/model/models";
 import type { PublishResult } from "@bindings/driver/nats/models";
 import type { TrimResult } from "@bindings/model/models";
-import { required } from "./client";
+import { present, required } from "./client";
 
-export type { NATSConsumerInput, NATSPublishInput, PurgeInput, StreamInput };
+export type { NATSConsumerInput, NATSPublishInput, NATSSubscribeInput, PurgeInput, StreamInput };
 
 /**
  * The NATS-only half of the surface.
@@ -85,3 +87,30 @@ export const deleteConsumer = (connID: number, stream: string, name: string): Pr
  */
 export const publish = (connID: number, input: NATSPublishInput): Promise<PublishResult> =>
   NATSService.Publish(connID, input).then(required);
+
+/**
+ * Begins following one or more subjects.
+ *
+ * The subscription is real on the server until it is stopped, so whoever
+ * starts one owns ending it. Closing the connection ends every one.
+ */
+export const startSubscription = (
+  connID: number,
+  input: NATSSubscribeInput,
+): Promise<LiveSubscription> => NATSService.StartSubscription(connID, input).then(required);
+
+/** Drains what has arrived since the cursor. */
+export const pollSubscription = (
+  connID: number,
+  id: string,
+  after: number,
+  limit: number,
+): Promise<LiveBatch> => NATSService.PollSubscription(connID, id, after, limit).then(required);
+
+/** Ends one. Not optional cleanup. */
+export const stopSubscription = (connID: number, id: string): Promise<void> =>
+  NATSService.StopSubscription(connID, id);
+
+/** What is running, so a panel that remounts finds its own stream again. */
+export const subscriptions = (connID: number): Promise<LiveSubscription[]> =>
+  NATSService.Subscriptions(connID).then(present);

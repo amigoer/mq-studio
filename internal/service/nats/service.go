@@ -201,3 +201,54 @@ func (s *Service) natsConn(connID int) (*natsdriver.Conn, error) {
 	}
 	return api, nil
 }
+
+// StartSubscription begins following one or more subjects.
+//
+// The subscription lives on the server until it is stopped, so this is one of
+// the few operations here that leaves state behind. The connection owns it -
+// closing the connection ends every one - but a page that starts a stream and
+// forgets it leaves this app receiving everything on that subject for as long
+// as it stays open.
+func (s *Service) StartSubscription(ctx context.Context, connID int, spec model.LiveSubscriptionSpec) (*model.LiveSubscription, error) {
+	api, err := port[driver.LiveSubscriber](s, connID, model.CapLiveStream)
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.StartLiveSubscription(ctx, spec)
+}
+
+// PollSubscription drains what has arrived since the caller's cursor.
+func (s *Service) PollSubscription(ctx context.Context, connID int, id string, after int64, limit int) (*model.LiveBatch, error) {
+	api, err := port[driver.LiveSubscriber](s, connID, model.CapLiveStream)
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.PollLiveSubscription(ctx, id, after, limit)
+}
+
+// StopSubscription ends one.
+func (s *Service) StopSubscription(ctx context.Context, connID int, id string) error {
+	api, err := port[driver.LiveSubscriber](s, connID, model.CapLiveStream)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.StopLiveSubscription(ctx, id)
+}
+
+// Subscriptions is what is running, so a panel that remounts finds its own
+// stream again instead of starting a second one.
+func (s *Service) Subscriptions(ctx context.Context, connID int) ([]*model.LiveSubscription, error) {
+	api, err := port[driver.LiveSubscriber](s, connID, model.CapLiveStream)
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.LiveSubscriptions(ctx)
+}

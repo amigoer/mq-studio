@@ -273,6 +273,10 @@ export const PROTOCOLS: Record<ProtocolId, Protocol> = {
           { id: "consumers", icon: Users, label: "shell.nav.nats.consumers" },
           { id: "messages", icon: Mail, label: "shell.nav.nats.messages" },
           { id: "producer", icon: Send, label: "shell.nav.nats.producer" },
+          /* Core NATS delivers to whoever is listening and keeps nothing,
+             so this is not the messages page with a filter on it: there is
+             no history to page back through and nothing to re-read. */
+          { id: "subscribe", icon: Radio, label: "shell.nav.nats.subscribe" },
         ],
       },
     ],

@@ -70,6 +70,7 @@ export {
     MoveInput,
     NATSConsumerInput,
     NATSPublishInput,
+    NATSSubscribeInput,
     NamespaceInput,
     OffsetResetInput,
     PendingQueryInput,

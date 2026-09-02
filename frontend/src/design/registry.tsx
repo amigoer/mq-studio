@@ -67,6 +67,7 @@ import { NodeRedis } from "./boards/cluster/NodeRedis";
 import { NodesMqtt } from "./boards/cluster/NodesMqtt";
 
 import { MqttWorkbench } from "./boards/mqtt/MqttWorkbench";
+import { NatsWorkbench } from "./boards/nats/NatsWorkbench";
 import { NotDesigned } from "./boards/misc/NotDesigned";
 
 /**
@@ -135,7 +136,7 @@ const BOARDS: Partial<
     redis: ConsumersRedis,
     nats: ConsumersNats,
   },
-  subscribe: { mqtt: MqttWorkbench },
+  subscribe: { mqtt: MqttWorkbench, nats: NatsWorkbench },
   clients: { mqtt: ClientsMqtt, redis: ClientsRedis },
   messages: {
     rocketmq: MessagesRocketMQ,

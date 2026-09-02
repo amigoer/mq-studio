@@ -39,6 +39,7 @@ const streamsState = vi.hoisted(() => ({ current: null as unknown }));
 const streamDetailState = vi.hoisted(() => ({ current: null as unknown }));
 const consumersState = vi.hoisted(() => ({ current: null as unknown }));
 const browseState = vi.hoisted(() => ({ current: null as unknown }));
+const liveState = vi.hoisted(() => ({ current: null as unknown }));
 
 vi.mock("@/hooks/nats/useNatsStreams", () => ({
   useNatsStreams: () => streamsState.current,
@@ -50,11 +51,15 @@ vi.mock("@/hooks/nats/useNatsConsumers", () => ({
 vi.mock("@/hooks/nats/useNatsMessages", () => ({
   useNatsBrowse: () => browseState.current,
 }));
+vi.mock("@/hooks/nats/useNatsStream", () => ({
+  useNatsStream: () => liveState.current,
+}));
 
 let render: (element: React.ReactElement) => string;
 let StreamsNats: typeof import("./topics/StreamsNats").StreamsNats;
 let ConsumersNats: typeof import("./consumers/ConsumersNats").ConsumersNats;
 let MessagesNats: typeof import("./messages/MessagesNats").MessagesNats;
+let NatsWorkbench: typeof import("./nats/NatsWorkbench").NatsWorkbench;
 
 beforeAll(async () => {
   const storage = { getItem: () => null, setItem() {}, removeItem() {} };
@@ -67,11 +72,13 @@ beforeAll(async () => {
   });
   vi.stubGlobal("localStorage", storage);
 
-  const [server, streams, consumers, messages, ui, i18n, settings] = await Promise.all([
+  const [server, streams, consumers, messages, workbench, ui, i18n, settings] =
+    await Promise.all([
     import("react-dom/server"),
     import("./topics/StreamsNats"),
     import("./consumers/ConsumersNats"),
     import("./messages/MessagesNats"),
+    import("./nats/NatsWorkbench"),
     import("@/components"),
     import("@/i18n"),
     import("@/hooks/useSettings"),
@@ -86,6 +93,7 @@ beforeAll(async () => {
   StreamsNats = streams.StreamsNats;
   ConsumersNats = consumers.ConsumersNats;
   MessagesNats = messages.MessagesNats;
+  NatsWorkbench = workbench.NatsWorkbench;
 });
 
 /** A replicated stream, as internal/driver/nats/stream.go sends one. */
@@ -442,5 +450,99 @@ describe("the NATS messages board", () => {
     browseState.current = browseOf({ messages: [bare], searched: true });
     streamsState.current = stateOf({ data: [] });
     expect(() => render(<MessagesNats />)).not.toThrow();
+  });
+});
+
+function liveOf(over: Record<string, unknown>) {
+  return {
+    messages: [],
+    subjects: [],
+    running: false,
+    live: true,
+    received: 0,
+    dropped: 0,
+    error: null,
+    start: () => {},
+    stop: () => {},
+    clear: () => {},
+    ...over,
+  };
+}
+
+/** One message off the wire, as internal/driver/nats/subscribe.go sends it. */
+const wireMessage = {
+  seq: 1,
+  destination: "orders.created",
+  filter: "orders.>",
+  receivedAt: "2026-09-02 10:38:03",
+  body: '{"id":42}',
+  truncated: false,
+  attributes: { sizeBytes: "9" },
+};
+
+describe("the NATS subject workbench", () => {
+  /*
+   * Three empty pages that must not read the same: nothing started, listening
+   * with nothing published, and the connection gone. Only the second is a
+   * quiet subject; the third is this app not receiving anything at all.
+   */
+  it("invites a subscription before one has been started", () => {
+    liveState.current = liveOf({});
+    expect(() => render(<NatsWorkbench />)).not.toThrow();
+  });
+
+  it("says it is listening when a subject has gone quiet", () => {
+    liveState.current = liveOf({ running: true, subjects: ["orders.>"] });
+    const html = render(<NatsWorkbench />);
+    expect(() => html).not.toThrow();
+  });
+
+  it("says the connection dropped rather than showing a quiet subject", () => {
+    liveState.current = liveOf({ running: true, live: false, subjects: ["orders.>"] });
+    expect(() => render(<NatsWorkbench />)).not.toThrow();
+  });
+
+  it("renders messages as they arrive", () => {
+    liveState.current = liveOf({
+      running: true,
+      subjects: ["orders.>"],
+      messages: [wireMessage],
+      received: 1,
+    });
+    const html = render(<NatsWorkbench />);
+    expect(html).toContain("orders.created");
+  });
+
+  /*
+   * A stream quietly losing messages looks exactly like a quiet one, so the
+   * dropped count is drawn only when it happened - and then prominently.
+   */
+  it("shows the dropped count when messages were lost", () => {
+    liveState.current = liveOf({
+      running: true,
+      subjects: ["orders.>"],
+      messages: [wireMessage],
+      received: 500,
+      dropped: 120,
+    });
+    expect(() => render(<NatsWorkbench />)).not.toThrow();
+  });
+
+  it("renders a request and a truncated body without throwing", () => {
+    liveState.current = liveOf({
+      running: true,
+      subjects: ["ask.>"],
+      messages: [
+        { ...wireMessage, seq: 2, attributes: { replyTo: "_INBOX.abc" } },
+        { ...wireMessage, seq: 3, truncated: true, body: "xxxx" },
+        { ...wireMessage, seq: 4, body: "", attributes: {} },
+      ],
+    });
+    expect(() => render(<NatsWorkbench />)).not.toThrow();
+  });
+
+  it("shows what a failed subscription said", () => {
+    liveState.current = liveOf({ error: "nothing is listening" });
+    expect(render(<NatsWorkbench />)).toContain("nothing is listening");
   });
 });

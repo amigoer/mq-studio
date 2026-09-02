@@ -3672,6 +3672,28 @@
         "closed": "已断开 {{name}}",
         "closeFailed": "断开连接失败"
       }
+    },
+    "subscribe": {
+      "nats": {
+        "title": "订阅台",
+        "subtitle": "看着消息从眼前过去",
+        "subjects": "要看的主题",
+        "queueGroup": "队列组",
+        "start": "开始",
+        "stop": "停止",
+        "clear": "清空",
+        "listening": "在听",
+        "notListening": "没在听 —— 连接断了",
+        "received": "已收 {{count}} 条",
+        "dropped": "丢了 {{count}} 条",
+        "notStarted": "填一个或多个主题再开始。这里可以用通配符——这是订阅，不是地址。",
+        "waiting": "正在听。这些主题上还没有人发过消息。",
+        "disconnected": "连接断了，收不到任何东西。连接恢复后会自动接着收。",
+        "request": "请求",
+        "truncated": "已截断",
+        "emptyBody": "空内容",
+        "matched": "匹配 {{filter}}"
+      }
     }
   }
 }

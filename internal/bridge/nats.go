@@ -295,3 +295,51 @@ func (input NATSPublishInput) request() natsdriver.PublishRequest {
 func (s *NATSService) Publish(connID int, input NATSPublishInput) (*natsdriver.PublishResult, error) {
 	return s.service.Publish(context.Background(), connID, input.request())
 }
+
+// NATSSubscribeInput is a live subscription as the workbench asks for one.
+type NATSSubscribeInput struct {
+	// Subjects are patterns, so wildcards are the point here rather than the
+	// mistake they are on a publish.
+	Subjects []string `json:"subjects"`
+	// QueueGroup shares the messages between everything subscribed under that
+	// name instead of each receiving all of them. It is offered because
+	// watching a subject a service is already consuming is otherwise a way to
+	// take its traffic.
+	QueueGroup string `json:"queueGroup"`
+	// Buffer is how many messages to hold between polls. Zero takes the
+	// driver's default.
+	Buffer int `json:"buffer"`
+}
+
+func (input NATSSubscribeInput) spec() model.LiveSubscriptionSpec {
+	filters := make([]model.LiveFilter, 0, len(input.Subjects))
+	for _, subject := range input.Subjects {
+		filter := model.LiveFilter{Pattern: subject}
+		if input.QueueGroup != "" {
+			filter.Options = map[string]string{natsdriver.LiveOptionQueueGroup: input.QueueGroup}
+		}
+		filters = append(filters, filter)
+	}
+	return model.LiveSubscriptionSpec{Filters: filters, Buffer: input.Buffer}
+}
+
+// StartSubscription begins following one or more subjects.
+func (s *NATSService) StartSubscription(connID int, input NATSSubscribeInput) (*model.LiveSubscription, error) {
+	return s.service.StartSubscription(context.Background(), connID, input.spec())
+}
+
+// PollSubscription drains what has arrived since the caller's cursor.
+func (s *NATSService) PollSubscription(connID int, id string, after int64, limit int) (*model.LiveBatch, error) {
+	return s.service.PollSubscription(context.Background(), connID, id, after, limit)
+}
+
+// StopSubscription ends one. Not optional: it lives on the server until it is
+// stopped.
+func (s *NATSService) StopSubscription(connID int, id string) error {
+	return s.service.StopSubscription(context.Background(), connID, id)
+}
+
+// Subscriptions is what is running.
+func (s *NATSService) Subscriptions(connID int) ([]*model.LiveSubscription, error) {
+	return s.service.Subscriptions(context.Background(), connID)
+}

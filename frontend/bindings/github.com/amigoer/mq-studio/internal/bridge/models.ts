@@ -1525,6 +1525,58 @@ export class NATSPublishInput {
 }
 
 /**
+ * NATSSubscribeInput is a live subscription as the workbench asks for one.
+ */
+export class NATSSubscribeInput {
+    /**
+     * Subjects are patterns, so wildcards are the point here rather than the
+     * mistake they are on a publish.
+     */
+    "subjects": string[];
+
+    /**
+     * QueueGroup shares the messages between everything subscribed under that
+     * name instead of each receiving all of them. It is offered because
+     * watching a subject a service is already consuming is otherwise a way to
+     * take its traffic.
+     */
+    "queueGroup": string;
+
+    /**
+     * Buffer is how many messages to hold between polls. Zero takes the
+     * driver's default.
+     */
+    "buffer": number;
+
+    /** Creates a new NATSSubscribeInput instance. */
+    constructor($$source: Partial<NATSSubscribeInput> = {}) {
+        if (!("subjects" in $$source)) {
+            this["subjects"] = [];
+        }
+        if (!("queueGroup" in $$source)) {
+            this["queueGroup"] = "";
+        }
+        if (!("buffer" in $$source)) {
+            this["buffer"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new NATSSubscribeInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): NATSSubscribeInput {
+        const $$createField0_0 = $$createType0;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("subjects" in $$parsedSource) {
+            $$parsedSource["subjects"] = $$createField0_0($$parsedSource["subjects"]);
+        }
+        return new NATSSubscribeInput($$parsedSource as Partial<NATSSubscribeInput>);
+    }
+}
+
+/**
  * NamespaceInput creates or updates a virtual host.
  */
 export class NamespaceInput {
