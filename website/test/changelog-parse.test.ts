@@ -142,8 +142,12 @@ test('the real changelogs parse into the same routes and clean text', () => {
     }
   }
   // The bullet that motivated the second-paragraph rule, in both languages.
-  const bullet = (releases: typeof zh) =>
-    items(releases[0].sections[0].blocks.at(-1)).at(-1)?.paragraphs ?? [];
+  // Looked up by version: an unreleased section, once it has content, is the
+  // first entry in the file.
+  const bullet = (releases: typeof zh) => {
+    const release = releases.find((candidate) => candidate.version === '0.0.6');
+    return items(release?.sections[0]?.blocks.at(-1)).at(-1)?.paragraphs ?? [];
+  };
   assert.equal(bullet(zh).length, 2);
   assert.equal(bullet(en).length, 2);
   assert.match(bullet(en)[1], /^This is the namespace RocketMQ 5\.x actually implements/);
