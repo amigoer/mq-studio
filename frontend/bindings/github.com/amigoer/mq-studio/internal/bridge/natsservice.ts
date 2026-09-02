@@ -21,6 +21,9 @@ import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Cr
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
+import * as nats$0 from "../driver/nats/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
 import * as model$0 from "../model/models.js";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -71,6 +74,16 @@ export function DeleteStream(connID: number, name: string): $CancellablePromise<
 }
 
 /**
+ * Publish sends a message and reports what the server said, which depends on
+ * how much was asked of it.
+ */
+export function Publish(connID: number, input: $models.NATSPublishInput): $CancellablePromise<nats$0.PublishResult | null> {
+    return $Call.ByID(852775886, connID, input).then(($result: any) => {
+        return $$createType3($result);
+    });
+}
+
+/**
  * PurgeStream discards messages from a stream and reports how many went.
  * 
  * The count is the report rather than a formality: it is the only way to tell
@@ -109,3 +122,5 @@ export function UpdateStream(connID: number, input: $models.StreamInput): $Cance
 // Private type creation functions
 const $$createType0 = model$0.TrimResult.createFrom;
 const $$createType1 = $Create.Nullable($$createType0);
+const $$createType2 = nats$0.PublishResult.createFrom;
+const $$createType3 = $Create.Nullable($$createType2);

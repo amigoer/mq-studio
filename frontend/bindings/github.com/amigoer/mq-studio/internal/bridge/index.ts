@@ -69,6 +69,7 @@ export {
     MessageQuery,
     MoveInput,
     NATSConsumerInput,
+    NATSPublishInput,
     NamespaceInput,
     OffsetResetInput,
     PendingQueryInput,

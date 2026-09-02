@@ -1439,6 +1439,92 @@ export class NATSConsumerInput {
 }
 
 /**
+ * NATSPublishInput is a publish as the NATS send console collects it.
+ * 
+ * Deliberately not MessageService.Publish's shape. That one carries an
+ * exchange, a routing key, a mandatory flag and a priority - AMQP's vocabulary
+ * - and has nowhere for a subject's headers, for the choice between a core
+ * send and a stored one, or for a reply timeout, which are most of what a NATS
+ * publish is.
+ */
+export class NATSPublishInput {
+    "subject": string;
+    "payload": string;
+    "headers": { [_ in string]?: string };
+
+    /**
+     * Count sends the same message more than once, for filling a board.
+     */
+    "count": number;
+
+    /**
+     * Persist waits for a stream to say it stored the message. Without it the
+     * send is core NATS: it reaches whoever is listening at that instant and
+     * the server says nothing back.
+     */
+    "persist": boolean;
+
+    /**
+     * ExpectStream refuses the send unless that stream is the one capturing
+     * the subject, which is the guard against a typo landing somewhere else.
+     */
+    "expectStream": string;
+
+    /**
+     * DeduplicationID is Nats-Msg-Id, honoured inside the stream's duplicate
+     * window.
+     */
+    "deduplicationId": string;
+
+    /**
+     * ReplyTimeoutMs turns the send into a request and waits that long.
+     */
+    "replyTimeoutMs": number;
+
+    /** Creates a new NATSPublishInput instance. */
+    constructor($$source: Partial<NATSPublishInput> = {}) {
+        if (!("subject" in $$source)) {
+            this["subject"] = "";
+        }
+        if (!("payload" in $$source)) {
+            this["payload"] = "";
+        }
+        if (!("headers" in $$source)) {
+            this["headers"] = {};
+        }
+        if (!("count" in $$source)) {
+            this["count"] = 0;
+        }
+        if (!("persist" in $$source)) {
+            this["persist"] = false;
+        }
+        if (!("expectStream" in $$source)) {
+            this["expectStream"] = "";
+        }
+        if (!("deduplicationId" in $$source)) {
+            this["deduplicationId"] = "";
+        }
+        if (!("replyTimeoutMs" in $$source)) {
+            this["replyTimeoutMs"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new NATSPublishInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): NATSPublishInput {
+        const $$createField2_0 = $$createType9;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("headers" in $$parsedSource) {
+            $$parsedSource["headers"] = $$createField2_0($$parsedSource["headers"]);
+        }
+        return new NATSPublishInput($$parsedSource as Partial<NATSPublishInput>);
+    }
+}
+
+/**
  * NamespaceInput creates or updates a virtual host.
  */
 export class NamespaceInput {

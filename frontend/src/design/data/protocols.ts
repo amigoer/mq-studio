@@ -272,6 +272,7 @@ export const PROTOCOLS: Record<ProtocolId, Protocol> = {
           { id: "topics", icon: Layers, label: "shell.nav.nats.topics" },
           { id: "consumers", icon: Users, label: "shell.nav.nats.consumers" },
           { id: "messages", icon: Mail, label: "shell.nav.nats.messages" },
+          { id: "producer", icon: Send, label: "shell.nav.nats.producer" },
         ],
       },
     ],

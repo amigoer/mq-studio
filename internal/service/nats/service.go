@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/amigoer/mq-studio/internal/driver"
+	natsdriver "github.com/amigoer/mq-studio/internal/driver/nats"
 	"github.com/amigoer/mq-studio/internal/model"
 )
 
@@ -159,4 +160,44 @@ func (s *Service) DeleteConsumer(ctx context.Context, connID int, stream, name s
 	ctx, cancel := s.withTimeout(ctx)
 	defer cancel()
 	return api.RemoveSubscription(ctx, model.SubscriptionRef{Namespace: stream, Name: name})
+}
+
+// Publish sends a message on a subject.
+//
+// It reaches the driver's own request rather than the canonical one, because
+// the canonical MessagePublisher takes a topic, tags, keys and a delay level -
+// RocketMQ's vocabulary, of which only the body means anything here, and with
+// nowhere for headers, a persistence choice, or a reply timeout.
+func (s *Service) Publish(ctx context.Context, connID int, request natsdriver.PublishRequest) (*natsdriver.PublishResult, error) {
+	conn, err := s.natsConn(connID)
+	if err != nil {
+		return nil, err
+	}
+	// A longer deadline than the request timeout when a reply is being waited
+	// for: the user chose that wait, and cutting it short at the shared
+	// timeout would report "nothing answered" for a service that was about to.
+	timeout := s.settings.GetRequestTimeout()
+	if wait := time.Duration(request.ReplyTimeoutMs) * time.Millisecond; wait > timeout {
+		timeout = wait + time.Second
+	}
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+	return conn.Publish(ctx, request)
+}
+
+// natsConn resolves the connection and asserts it is this family's.
+//
+// A type assertion rather than a capability check, because what these
+// operations need is not a capability the vocabulary has a name for - it is
+// the NATS driver itself.
+func (s *Service) natsConn(connID int) (*natsdriver.Conn, error) {
+	conn, err := s.conns(connID)
+	if err != nil {
+		return nil, err
+	}
+	api, ok := conn.(*natsdriver.Conn)
+	if !ok {
+		return nil, driver.Unsupported(conn, model.CapPublish)
+	}
+	return api, nil
 }

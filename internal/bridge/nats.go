@@ -248,3 +248,50 @@ func (s *NATSService) UpdateConsumer(connID int, input NATSConsumerInput) error 
 func (s *NATSService) DeleteConsumer(connID int, stream, name string) error {
 	return s.service.DeleteConsumer(context.Background(), connID, stream, name)
 }
+
+// NATSPublishInput is a publish as the NATS send console collects it.
+//
+// Deliberately not MessageService.Publish's shape. That one carries an
+// exchange, a routing key, a mandatory flag and a priority - AMQP's vocabulary
+// - and has nowhere for a subject's headers, for the choice between a core
+// send and a stored one, or for a reply timeout, which are most of what a NATS
+// publish is.
+type NATSPublishInput struct {
+	Subject string            `json:"subject"`
+	Payload string            `json:"payload"`
+	Headers map[string]string `json:"headers"`
+	// Count sends the same message more than once, for filling a board.
+	Count int `json:"count"`
+
+	// Persist waits for a stream to say it stored the message. Without it the
+	// send is core NATS: it reaches whoever is listening at that instant and
+	// the server says nothing back.
+	Persist bool `json:"persist"`
+	// ExpectStream refuses the send unless that stream is the one capturing
+	// the subject, which is the guard against a typo landing somewhere else.
+	ExpectStream string `json:"expectStream"`
+	// DeduplicationID is Nats-Msg-Id, honoured inside the stream's duplicate
+	// window.
+	DeduplicationID string `json:"deduplicationId"`
+	// ReplyTimeoutMs turns the send into a request and waits that long.
+	ReplyTimeoutMs int `json:"replyTimeoutMs"`
+}
+
+func (input NATSPublishInput) request() natsdriver.PublishRequest {
+	return natsdriver.PublishRequest{
+		Subject:         input.Subject,
+		Payload:         input.Payload,
+		Headers:         input.Headers,
+		Count:           input.Count,
+		Persist:         input.Persist,
+		ExpectStream:    input.ExpectStream,
+		DeduplicationID: input.DeduplicationID,
+		ReplyTimeoutMs:  input.ReplyTimeoutMs,
+	}
+}
+
+// Publish sends a message and reports what the server said, which depends on
+// how much was asked of it.
+func (s *NATSService) Publish(connID int, input NATSPublishInput) (*natsdriver.PublishResult, error) {
+	return s.service.Publish(context.Background(), connID, input.request())
+}

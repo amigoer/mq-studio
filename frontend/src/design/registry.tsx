@@ -51,6 +51,7 @@ import { ProducerMqtt } from "./boards/producer/ProducerMqtt";
 import { ProducerPulsar } from "./boards/producer/ProducerPulsar";
 import { ProducerRabbitMQ } from "./boards/producer/ProducerRabbitMQ";
 import { ProducerRedis } from "./boards/producer/ProducerRedis";
+import { ProducerNats } from "./boards/producer/ProducerNats";
 import { Alerts } from "./boards/alerts/Alerts";
 import { Acl } from "./boards/acl/Acl";
 import { AclKafka } from "./boards/acl/AclKafka";
@@ -179,6 +180,11 @@ export function renderBoard(
     if (protocol === "pulsar") return <ProducerPulsar />;
     if (protocol === "redis") return <ProducerRedis />;
     if (protocol === "mqtt") return <ProducerMqtt />;
+    /* NATS's own too: the shared console collects a topic, tags, keys and a
+       delay level, and this family has none of those - what a NATS publish
+       needs instead is headers, the choice between a core send and a stored
+       one, and a reply timeout. */
+    if (protocol === "nats") return <ProducerNats />;
     return <Producer protocol={protocol} nav={nav} />;
   }
   /* Alerts is one board for every family: the rules are numeric comparisons

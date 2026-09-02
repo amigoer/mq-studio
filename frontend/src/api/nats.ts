@@ -1,13 +1,15 @@
 import { NATSService } from "@bindings/bridge";
 import type {
   NATSConsumerInput,
+  NATSPublishInput,
   PurgeInput,
   StreamInput,
 } from "@bindings/bridge/models";
+import type { PublishResult } from "@bindings/driver/nats/models";
 import type { TrimResult } from "@bindings/model/models";
 import { required } from "./client";
 
-export type { NATSConsumerInput, PurgeInput, StreamInput };
+export type { NATSConsumerInput, NATSPublishInput, PurgeInput, StreamInput };
 
 /**
  * The NATS-only half of the surface.
@@ -72,3 +74,14 @@ export const updateConsumer = (connID: number, input: NATSConsumerInput): Promis
 /** Removes a consumer and the position it held. */
 export const deleteConsumer = (connID: number, stream: string, name: string): Promise<void> =>
   NATSService.DeleteConsumer(connID, stream, name);
+
+/**
+ * Sends a message on a subject.
+ *
+ * What comes back says which kind of send it was. A core publish reports how
+ * many went out and no acknowledgement, because NATS has none to give; a
+ * stored one names the stream and sequence it landed at; a request carries the
+ * answer, and says whether there was one at all.
+ */
+export const publish = (connID: number, input: NATSPublishInput): Promise<PublishResult> =>
+  NATSService.Publish(connID, input).then(required);

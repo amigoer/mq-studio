@@ -89,7 +89,9 @@ func (c *Conn) Close() error {
 var (
 	// protocolCapabilities need nothing but a connection, so they never
 	// degrade: a connection that opened can do them.
-	protocolCapabilities = []model.Capability{}
+	protocolCapabilities = []model.Capability{
+		model.CapPublish,
+	}
 
 	// jetStreamCapabilities go when the persistence layer does.
 	jetStreamCapabilities = []model.Capability{

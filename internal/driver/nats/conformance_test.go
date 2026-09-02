@@ -295,6 +295,7 @@ func TestEveryStoredKeyIsOnTheForm(t *testing.T) {
  */
 func TestCapabilitiesMatchTheSidebarContract(t *testing.T) {
 	sidebar := []string{
+		"message.publish",
 		"destination.list",
 		"destination.create",
 		"destination.update",

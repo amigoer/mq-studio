@@ -21,6 +21,7 @@ import type { CapabilityState } from "./capabilities";
  * each arrives in the commit that implements it.
  */
 const NATS_CAPABILITIES: Capability[] = [
+  Capability.CapPublish,
   Capability.CapDestinationList,
   Capability.CapDestinationCreate,
   Capability.CapDestinationUpdate,
