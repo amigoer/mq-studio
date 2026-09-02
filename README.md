@@ -1,7 +1,7 @@
 <div align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/images/hero-dark.svg">
-    <img src="docs/images/hero-light.svg" width="100%" alt="MQ Studio — see inside your message queues. One local-first desktop app for RocketMQ, RabbitMQ, Kafka, Pulsar, and Redis Stream, with more drivers landing and no web console to deploy.">
+    <img src="docs/images/hero-light.svg" width="100%" alt="MQ Studio — see inside your message queues. One local-first desktop app for RocketMQ, RabbitMQ, Kafka, Pulsar, Redis Stream, and MQTT, with more drivers landing and no web console to deploy.">
   </picture>
 </div>
 
@@ -45,7 +45,7 @@ component to deploy, secure, or keep alive.
 - **Private by default** — configuration stays on your device and credentials are encrypted at rest
 - **Cross-platform** — macOS, Windows, and Linux, with English and Chinese interfaces
 
-RocketMQ, RabbitMQ, Kafka, Pulsar, and Redis Stream are the drivers available today; [Driver support](#driver-support) has the rest.
+RocketMQ, RabbitMQ, Kafka, Pulsar, Redis Stream, and MQTT are the drivers available today; [Driver support](#driver-support) has the rest.
 
 ## Features
 
@@ -167,8 +167,9 @@ half-wired set of pages.
 | 3 | Kafka | ✅ Done |
 | 4 | Redis Stream | ✅ Done |
 | 5 | Pulsar | ✅ Done |
-| 6 | The remaining drivers, in the order listed under Driver support | 📋 Next |
-| 7 | Agent features | 📋 Planned |
+| 6 | MQTT | ✅ Done |
+| 7 | The remaining drivers, in the order listed under Driver support | 📋 Next |
+| 8 | Agent features | 📋 Planned |
 
 Agent work starts once driver coverage is in place, not before. Every driver already declares
 what the connected broker can actually do, and that capability model is the foundation an agent

@@ -1,7 +1,7 @@
 <div align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/images/hero-dark.zh-CN.svg">
-    <img src="docs/images/hero-light.zh-CN.svg" width="100%" alt="MQ Studio — 本地优先的消息队列桌面客户端。一套界面连接 RocketMQ、RabbitMQ、Kafka、Pulsar 与 Redis Stream，更多驱动陆续接入，无需部署 Web 控制台。">
+    <img src="docs/images/hero-light.zh-CN.svg" width="100%" alt="MQ Studio — 本地优先的消息队列桌面客户端。一套界面连接 RocketMQ、RabbitMQ、Kafka、Pulsar、Redis Stream 与 MQTT，更多驱动陆续接入，无需部署 Web 控制台。">
   </picture>
 </div>
 
@@ -43,7 +43,7 @@ MQ Studio 是它们共同的客户端。每一种消息中间件都通过一个�
 - **数据留在本机** — 配置保存在当前设备，凭证加密存储
 - **跨平台与双语** — 支持 macOS、Windows、Linux，提供中英文界面
 
-目前可以连接的驱动是 RocketMQ、RabbitMQ、Kafka、Pulsar 和 Redis Stream，其余进度见[驱动支持](#驱动支持)。
+目前可以连接的驱动是 RocketMQ、RabbitMQ、Kafka、Pulsar、Redis Stream 和 MQTT，其余进度见[驱动支持](#驱动支持)。
 
 ## 功能
 
@@ -162,8 +162,9 @@ ACL 与部分高级操作是否可用，取决于 Broker 版本和配置。表�
 | 3 | Kafka | ✅ 已完成 |
 | 4 | Redis Stream | ✅ 已完成 |
 | 5 | Pulsar | ✅ 已完成 |
-| 6 | 其余驱动，按「驱动支持」中列出的顺序推进 | 📋 计划中 |
-| 7 | Agent 相关功能 | 📋 计划中 |
+| 6 | MQTT | ✅ 已完成 |
+| 7 | 其余驱动，按「驱动支持」中列出的顺序推进 | 📋 计划中 |
+| 8 | Agent 相关功能 | 📋 计划中 |
 
 Agent 相关的功能会等驱动接入完成之后再开始，不会提前。每个驱动都会声明所连中间件真正支持
 的能力，这套能力模型正是 Agent 跨中间件工作的前提 —— 不会给出中间件本身做不到的操作。
