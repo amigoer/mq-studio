@@ -1,0 +1,98 @@
+name: "\U0001F50C 驱动支持请求"
+description: 希望支持一个目前连不上的消息队列
+labels: ["type:driver"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        English speakers please use the **Driver request** template instead.
+
+        驱动是一个一个接入的，每接一个都会做到和现有驱动同样的深度，再开始下一个 ——
+        顺序见[开发计划](https://github.com/amigoer/mq-studio/blob/main/docs/ROADMAP.zh-CN.md)。
+        能让一个家族往前排的，是知道确实有人在用它，以及知道应用能对着什么说话。
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: 提交之前
+      options:
+        - label: 我搜索过[已有的 issue](https://github.com/amigoer/mq-studio/issues?q=is%3Aissue)（含已关闭的），还没有人提过这个消息队列
+          required: true
+        - label: 我看过[开发计划](https://github.com/amigoer/mq-studio/blob/main/docs/ROADMAP.zh-CN.md)
+          required: true
+
+  - type: dropdown
+    id: broker
+    attributes:
+      label: 哪个消息队列
+      options:
+        - ActiveMQ
+        - NSQ
+        - Amazon SQS
+        - Google Pub/Sub
+        - Azure Service Bus
+        - Amazon Kinesis
+        - IBM MQ
+        - Solace
+        - 其他
+    validations:
+      required: true
+
+  - type: input
+    id: other
+    attributes:
+      label: 上面选了「其他」的话，请写出名字
+      placeholder: Apache Artemis
+
+  - type: input
+    id: deployment
+    attributes:
+      label: 版本与部署方式
+      placeholder: ActiveMQ Artemis 2.33，Kubernetes 上的三节点集群
+    validations:
+      required: true
+
+  - type: textarea
+    id: admin-plane
+    attributes:
+      label: 桌面端能连到什么，怎么连
+      description: >
+        这一项决定了驱动能不能做。MQ Studio 没有服务端：连接是你机器上的应用自己发起的，
+        所以驱动需要一个它能直接访问、并且能回答管理类问题的入口 —— 列出目的地、
+        读到消费者和堆积、在不消费的前提下浏览消息。知道的话请写清楚是什么
+        （管理用的 HTTP API、JMX、协议自带的管理命令），以及它是应用所在的位置就能访问，
+        还是只有集群内部才能访问。
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: needs
+    attributes:
+      label: 你最先需要它做到什么
+      description: 可以多选。这决定了页面的建设顺序。
+      options:
+        - label: 能连上，能列出主题或队列
+        - label: 查询和浏览消息
+        - label: 发送、重发与重投
+        - label: 消费组、堆积与位点
+        - label: 死信
+        - label: 集群健康、节点与指标
+        - label: 权限、用户与配额
+
+  - type: checkboxes
+    id: help
+    attributes:
+      label: 你能搭把手吗
+      description: >
+        都不勾也完全没关系。中间那条最有价值：这里每个驱动都由真实环境的测试把关，
+        而这需要一套 CI 能启动的环境。
+      options:
+        - label: 我可以拿真实集群帮忙验证构建
+        - label: 我可以提供一份测试套件能跑的 Docker Compose
+        - label: 我想自己来写这个驱动
+
+  - type: textarea
+    id: context
+    attributes:
+      label: 其他补充
+      description: 你现在用什么来管理它，以及哪里不够用。

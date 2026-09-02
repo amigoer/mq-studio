@@ -1,0 +1,77 @@
+name: "\U00002728 功能建议"
+description: 希望应用支持、但目前做不到的事
+labels: ["type:feature"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        English speakers please use the **Feature request** template instead.
+
+        希望支持一个目前连不上的消息队列，请改用 **驱动支持请求** 模板。
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: 提交之前
+      options:
+        - label: 我搜索过[已有的 issue](https://github.com/amigoer/mq-studio/issues?q=is%3Aissue)（含已关闭的），没有找到相同的建议
+          required: true
+        - label: 我看过[开发计划](https://github.com/amigoer/mq-studio/blob/main/docs/ROADMAP.zh-CN.md)
+          required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: 涉及应用的哪一部分
+      options:
+        - 连接管理
+        - 主题、队列与交换机
+        - 消息 —— 查询、浏览、发送、死信
+        - 消费者 —— 消费组、堆积、位点
+        - 集群、指标与告警
+        - 管理 —— 权限、用户、配额、策略
+        - 应用本体 —— 窗口、设置、更新、语言
+        - 其他
+    validations:
+      required: true
+
+  - type: dropdown
+    id: driver
+    attributes:
+      label: 涉及哪个消息队列
+      description: 这是某一个家族特有的概念，还是所有连接都该有的能力。
+      options:
+        - 所有消息队列
+        - RocketMQ
+        - Kafka
+        - RabbitMQ
+        - Pulsar
+        - Redis Stream
+        - NATS
+        - MQTT
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: 你想完成的事情是什么
+      description: >
+        具体的场景，以及现在卡在哪一步。现在改用什么方式绕过去（命令行、服务端自带的控制台、脚本），
+        这一段信息价值最大。
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 你希望它做成什么样
+      description: 大概放在应用的哪个位置，展示什么、能操作什么。
+    validations:
+      required: true
+
+  - type: textarea
+    id: prior-art
+    attributes:
+      label: 其他工具是怎么做的
+      description: 如果别的客户端或控制台有类似功能，附一张截图或链接。

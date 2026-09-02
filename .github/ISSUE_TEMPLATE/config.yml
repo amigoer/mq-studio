@@ -1,0 +1,16 @@
+# The picker offers three kinds in two languages. Blank issues are off because
+# every field below exists to save a round trip asking for it.
+blank_issues_enabled: false
+
+contact_links:
+  - name: Install and download help / 安装与下载帮助
+    url: https://mq-studio.amigoer.com/en/
+    about: Download links and the install guide, before opening an issue about either. / 下载地址与安装指南，遇到安装问题请先看这里。
+
+  - name: Which driver comes next / 驱动路线图
+    url: https://github.com/amigoer/mq-studio/blob/main/docs/ROADMAP.md
+    about: The planned order and what each phase covers. / 驱动的推进顺序与每个阶段的范围。
+
+  - name: Chinese community / 中文社区
+    url: https://linux.do
+    about: Usage questions and general discussion, in Chinese. / 使用问题与日常讨论。
