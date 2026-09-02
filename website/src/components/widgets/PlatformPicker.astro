@@ -4,6 +4,8 @@ export interface Variant {
   key: string;
   name: string;
   url: string;
+  /** Already formatted, so the script only has to write it out. */
+  size: string;
 }
 
 export interface Segment {
@@ -68,8 +70,9 @@ const item =
     </svg>
     {cta}
   </a>
-  <div class="truncate font-mono text-2xs text-subtle-foreground" data-picker-file title={initial.name}>
-    {initial.name}
+  <div class="flex items-baseline gap-2 font-mono text-2xs text-subtle-foreground">
+    <span class="truncate" data-picker-file title={initial.name}>{initial.name}</span>
+    <span class="shrink-0 tabular-nums" data-picker-size>{initial.size}</span>
   </div>
 </div>
 
@@ -78,6 +81,7 @@ const item =
     key: string;
     name: string;
     url: string;
+    size: string;
   }
 
   document.querySelectorAll<HTMLElement>('[data-picker]').forEach((root) => {
@@ -85,6 +89,7 @@ const item =
     const selection: string[] = JSON.parse(root.dataset.selection ?? '[]');
     const link = root.querySelector<HTMLAnchorElement>('[data-picker-link]');
     const file = root.querySelector<HTMLElement>('[data-picker-file]');
+    const size = root.querySelector<HTMLElement>('[data-picker-size]');
 
     function apply() {
       const match = variants.find((variant) => variant.key === selection.join(':'));
@@ -94,6 +99,7 @@ const item =
       link.href = match.url;
       file.textContent = match.name;
       file.title = match.name;
+      if (size) size.textContent = match.size;
     }
 
     root.querySelectorAll<HTMLElement>('[data-segment]').forEach((segment) => {

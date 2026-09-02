@@ -47,6 +47,8 @@ const targets = {
       id="hero-download"
       groups={downloadGroups(c)}
       label={c.hero.downloadFallback}
+      labels={Object.values(targets).map((target) => target.label)}
+      menuLabel={c.nav.moreDownloads}
       primaryHref={RELEASE.htmlUrl}
       variant="hero"
       align="center"

@@ -5,13 +5,17 @@ import PlatformIcon from './PlatformIcon.astro';
 interface Props {
   groups: DownloadGroup[];
   label: string;
+  /** Every label a script may swap in later; the button is sized for the widest. */
+  labels?: string[];
+  /** The trigger's own name: it opens the list, it does not download. */
+  menuLabel: string;
   primaryHref: string;
   variant?: 'nav' | 'hero';
   align?: 'center' | 'end';
   id: string;
 }
 
-const { groups, label, primaryHref, variant = 'nav', align = 'end', id } = Astro.props;
+const { groups, label, labels = [], menuLabel, primaryHref, variant = 'nav', align = 'end', id } = Astro.props;
 const hero = variant === 'hero';
 ---
 
@@ -52,7 +56,18 @@ const hero = variant === 'hero';
         </span>
       )
     }
-    <span data-menu-label class="whitespace-nowrap">{label}</span>
+    <!-- One grid cell holds every possible label, so retargeting the button
+         at the visitor's platform changes the text without moving anything. -->
+    <span class="grid justify-items-center whitespace-nowrap">
+      {
+        labels.map((text) => (
+          <span aria-hidden="true" class="invisible col-start-1 row-start-1">
+            {text}
+          </span>
+        ))
+      }
+      <span data-menu-label class="col-start-1 row-start-1">{label}</span>
+    </span>
   </a>
 
   <button
@@ -61,7 +76,7 @@ const hero = variant === 'hero';
     aria-expanded="false"
     aria-haspopup="true"
     aria-controls={`${id}-list`}
-    aria-label={label}
+    aria-label={menuLabel}
     class:list={[
       'inline-flex items-center justify-center border-l border-primary-foreground/20 bg-primary text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
       hero ? 'h-11 w-9 rounded-r-lg' : 'h-[34px] w-8 rounded-r-md',
@@ -101,6 +116,7 @@ const hero = variant === 'hero';
               <span class="ml-auto truncate font-mono text-2xs text-subtle-foreground">
                 {row.file}
               </span>
+              <span class="shrink-0 font-mono text-2xs text-subtle-foreground tabular-nums">{row.size}</span>
             </a>
           ))}
         </div>

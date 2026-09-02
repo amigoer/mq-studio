@@ -132,7 +132,8 @@ const links = [
         id="nav-download"
         groups={downloadGroups(c)}
         label={c.nav.download}
-        primaryHref="#download"
+        menuLabel={c.nav.moreDownloads}
+        primaryHref={`${home}#download`}
         variant="nav"
         align="end"
       />
@@ -151,6 +152,11 @@ const links = [
     });
     document.addEventListener('click', (event) => {
       if (!menu.contains(event.target as Node)) menu.open = false;
+    });
+    menu.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape' || !menu.open) return;
+      menu.open = false;
+      menu.querySelector('summary')?.focus();
     });
   });
 </script>

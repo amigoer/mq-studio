@@ -25,6 +25,7 @@ export interface Content {
     changelog: string;
     github: string;
     download: string;
+    moreDownloads: string;
     skipToContent: string;
     home: string;
     breadcrumb: string;

@@ -113,6 +113,11 @@ const jsonLd = {
             stored === 'dark' ||
             (stored !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
           if (dark) document.documentElement.classList.add('dark');
+          // Same reason: hiding the announcement after first paint would
+          // shift the whole page up under a returning visitor.
+          if (localStorage.getItem('mq-studio:announcement-dismissed') === '1') {
+            document.documentElement.classList.add('no-announcement');
+          }
         } catch (error) {
           // Blocked storage: fall through to the light default.
         }

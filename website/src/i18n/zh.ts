@@ -21,6 +21,7 @@ export const zh: Content = {
     changelog: '更新日志',
     github: 'GitHub',
     download: '下载',
+    moreDownloads: '更多下载选项',
     skipToContent: '跳到主要内容',
     home: '首页',
     breadcrumb: '当前位置',
@@ -187,7 +188,7 @@ export const zh: Content = {
   download: {
     title: '下载 MQ Studio',
     leadPrefix: '当前版本',
-    leadSuffix: '每个版本附 SHA256SUMS.txt 校验文件',
+    leadSuffix: '每个版本附 {checksums} 校验文件',
     platforms: {
       mac: { name: 'macOS', requirement: 'macOS 12 及以上', cta: '下载 .dmg' },
       windows: { name: 'Windows', requirement: 'Windows 10 及以上', cta: '下载 .exe' },

@@ -220,11 +220,41 @@
   [id] {
     scroll-margin-top: 5rem;
   }
+
+  /* Links and disclosure toggles; buttons carry their own ring. Zero
+     specificity, so a component's focus-visible: utilities still win. */
+  :where(a, summary):focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+}
+
+/* A returning visitor who closed the announcement never sees it paint. */
+.no-announcement #announcement {
+  display: none;
+}
+
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    translate: 0 -4px;
+  }
+}
+
+[data-menu-list]:not([hidden]) > div,
+details[data-nav-menu][open] > div {
+  animation: menu-in 120ms ease-out;
 }
 
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
+  }
+
+  [data-menu-list]:not([hidden]) > div,
+  details[data-nav-menu][open] > div {
+    animation: none;
   }
 }
 

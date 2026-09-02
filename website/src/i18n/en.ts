@@ -21,6 +21,7 @@ export const en: Content = {
     changelog: 'Changelog',
     github: 'GitHub',
     download: 'Download',
+    moreDownloads: 'More download options',
     skipToContent: 'Skip to main content',
     home: 'Home',
     breadcrumb: 'Breadcrumb',
@@ -208,7 +209,7 @@ export const en: Content = {
   download: {
     title: 'Download MQ Studio',
     leadPrefix: 'Current release',
-    leadSuffix: 'every release ships a SHA256SUMS.txt',
+    leadSuffix: 'every release ships a {checksums}',
     platforms: {
       mac: { name: 'macOS', requirement: 'macOS 12 and later', cta: 'Download .dmg' },
       windows: { name: 'Windows', requirement: 'Windows 10 and later', cta: 'Download .exe' },

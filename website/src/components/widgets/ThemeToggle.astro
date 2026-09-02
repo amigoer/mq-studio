@@ -43,7 +43,10 @@ const { label } = Astro.props;
   document.querySelectorAll<HTMLButtonElement>('[data-theme-toggle]').forEach((button) => {
     button.addEventListener('click', () => {
       const dark = root.classList.toggle('dark');
-      store(dark ? 'dark' : 'light');
+      // A choice that lands on the OS preference is not an override, so
+      // nothing is stored and the page follows the OS again from here.
+      const system = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      store(dark === system ? null : dark ? 'dark' : 'light');
     });
   });
 

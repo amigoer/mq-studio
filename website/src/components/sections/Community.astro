@@ -45,9 +45,11 @@ const stats = [
     <dl class="mx-auto grid max-w-[680px] grid-cols-2 gap-3 sm:grid-cols-4">
       {
         stats.map((stat) => (
-          <div class="rounded-xl border border-border bg-muted px-4 py-5 text-center">
-            <dd class="text-title font-bold tracking-tight tabular-nums">{stat.value}</dd>
+          /* Term first, as a <dl> requires; reversed visually so the number
+             stays on top. */
+          <div class="flex flex-col-reverse rounded-xl border border-border bg-muted px-4 py-5 text-center">
             <dt class="mt-1 text-caption text-muted-foreground">{stat.label}</dt>
+            <dd class="text-title font-bold tracking-tight tabular-nums">{stat.value}</dd>
           </div>
         ))
       }
