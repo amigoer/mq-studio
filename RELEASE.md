@@ -39,10 +39,13 @@ Generated mirrors — set `info.version` in `build/config.yml`, then run
 ## 2. Write the changelogs
 
 Add a `## [<version>] - <date>` section to **both** `CHANGELOG.md` and
-`CHANGELOG.zh-CN.md`, and update the link definitions at the bottom of each.
+`CHANGELOG.zh-CN.md`, below the `Unreleased` heading, which stays and is left
+empty. The brackets are Keep a Changelog's spelling and nothing defines them
+as links, so there is nothing to update at the bottom of either file.
 
 The release notes are generated from these two files. A tag whose version has
-no changelog section fails the release rather than publishing empty notes.
+no changelog section fails the release rather than publishing empty notes, and
+`node scripts/release-notes.mjs <version>` prints what the release will carry.
 
 ## 3. Check locally
 
