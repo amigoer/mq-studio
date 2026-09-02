@@ -1,0 +1,44 @@
+# Asserts that the changelog names the issues the pending release closes.
+#
+# Its own workflow rather than a job in ci.yml, because of that file's
+# `paths-ignore: ['**.md']`. The fix for a failure here is an edit to
+# CHANGELOG.md, and under that filter the commit that fixes it would not start
+# a run - the pull request would sit on the failed one with no way to re-green
+# it. A gate whose own fix cannot clear it is worse than no gate.
+#
+# So it runs on everything, which it can afford to: no broker, no toolchain, no
+# node_modules. scripts/check-refs.mjs has no dependencies, and the whole job is
+# a checkout and one node process.
+#
+# release.yml runs the same script over the tag's range. This is the earlier of
+# the two, and the one that reports while the change is still being reviewed.
+name: Changelog
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: changelog-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  references:
+    name: Issue references
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # fetch-depth: 0 is what makes this a gate rather than a skip. The script
+      # needs the tag before HEAD to know the range a release covers, and on a
+      # shallow clone it declines to assert anything rather than pretend to.
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Check the changelog names every issue closed since the last tag
+        run: npm run check:refs
