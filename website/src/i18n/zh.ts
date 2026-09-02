@@ -5,11 +5,11 @@ export const zh: Content = {
   meta: {
     title: 'MQ Studio — 一套界面，连接所有消息队列',
     description:
-      'MQ Studio 是本地优先的消息队列桌面客户端，RocketMQ、RabbitMQ 与 Kafka 共用同一套界面和操作，无需部署和值守 Web 控制台。支持 macOS、Windows、Linux，Apache-2.0 开源。',
+      'MQ Studio 是本地优先的消息队列桌面客户端，RocketMQ、RabbitMQ、Kafka、Pulsar、Redis Stream 与 MQTT 共用同一套界面和操作，无需部署和值守 Web 控制台。支持 macOS、Windows、Linux，Apache-2.0 开源。',
     ogAlt: 'MQ Studio 集群概览界面',
   },
   banner: {
-    text: 'Kafka 驱动已支持 — Topic、消费组、ACL 与配额全覆盖',
+    text: 'Redis Stream、Pulsar 与 MQTT 三个驱动已支持',
     linkLabel: '更新日志',
     dismiss: '关闭公告',
   },
@@ -30,7 +30,7 @@ export const zh: Content = {
     badgeSuffix: '现已发布 · Apache-2.0 开源',
     title: '一套界面，连接所有消息队列',
     subtitle:
-      'MQ Studio 是本地优先的消息队列桌面客户端 — RocketMQ、RabbitMQ 与 Kafka 同一套界面、同一套操作，无需部署和值守 Web 控制台。',
+      'MQ Studio 是本地优先的消息队列桌面客户端 — RocketMQ、RabbitMQ、Kafka、Pulsar、Redis Stream 与 MQTT 同一套界面、同一套操作，无需部署和值守 Web 控制台。',
     downloadFallback: '下载 MQ Studio',
     downloadFor: (platform: string) => `下载 ${platform} 版`,
     installGuide: '安装说明',
@@ -41,8 +41,15 @@ export const zh: Content = {
   },
   drivers: {
     label: '已支持',
-    supported: ['RocketMQ 4.x / 5.x', 'RabbitMQ 3.x / 4.x', 'Kafka 3.x / 4.x', 'MQTT 3.1.1 / 5.0'],
-    planned: '计划中：Pulsar · NATS · Redis Stream · Amazon SQS 等',
+    supported: [
+      'RocketMQ 4.x / 5.x',
+      'RabbitMQ 3.x / 4.x',
+      'Kafka 3.x / 4.x',
+      'Pulsar 3.x / 4.x',
+      'Redis Stream 6.0+',
+      'MQTT 3.1.1 / 5.0',
+    ],
+    planned: '计划中：NATS · ActiveMQ · Amazon SQS 等',
   },
   features: {
     title: '为什么用 MQ Studio',
@@ -128,6 +135,9 @@ export const zh: Content = {
       { label: 'RocketMQ', done: true },
       { label: 'RabbitMQ', done: true },
       { label: 'Kafka', done: true },
+      { label: 'Redis Stream', done: true },
+      { label: 'Pulsar', done: true },
+      { label: 'MQTT', done: true },
       { label: '更多驱动', done: false },
       { label: 'Agent', done: false },
     ],

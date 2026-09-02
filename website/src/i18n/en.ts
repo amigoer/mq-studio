@@ -5,11 +5,11 @@ export const en: Content = {
   meta: {
     title: 'MQ Studio — One interface for every message queue',
     description:
-      'MQ Studio is a local-first desktop client for message queues. RocketMQ, RabbitMQ, and Kafka share one interface and one workflow, with no web console to deploy or keep alive. macOS, Windows, and Linux. Apache-2.0.',
+      'MQ Studio is a local-first desktop client for message queues. RocketMQ, RabbitMQ, Kafka, Pulsar, Redis Stream, and MQTT share one interface and one workflow, with no web console to deploy or keep alive. macOS, Windows, and Linux. Apache-2.0.',
     ogAlt: 'The MQ Studio cluster overview',
   },
   banner: {
-    text: 'The Kafka driver has landed — topics, consumer groups, ACLs, and quotas',
+    text: 'Three more drivers have landed — Redis Stream, Pulsar, and MQTT',
     linkLabel: 'Changelog',
     dismiss: 'Dismiss announcement',
   },
@@ -30,7 +30,7 @@ export const en: Content = {
     badgeSuffix: 'is out · Apache-2.0',
     title: 'One interface for every message queue',
     subtitle:
-      'MQ Studio is a local-first desktop client for message queues — RocketMQ, RabbitMQ, and Kafka behind the same pages and the same workflow, with no web console to deploy or keep alive.',
+      'MQ Studio is a local-first desktop client for message queues — RocketMQ, RabbitMQ, Kafka, Pulsar, Redis Stream, and MQTT behind the same pages and the same workflow, with no web console to deploy or keep alive.',
     downloadFallback: 'Download MQ Studio',
     downloadFor: (platform: string) => `Download for ${platform}`,
     installGuide: 'Install guide',
@@ -42,8 +42,15 @@ export const en: Content = {
   },
   drivers: {
     label: 'Available',
-    supported: ['RocketMQ 4.x / 5.x', 'RabbitMQ 3.x / 4.x', 'Kafka 3.x / 4.x', 'MQTT 3.1.1 / 5.0'],
-    planned: 'Planned: Pulsar · NATS · Redis Stream · Amazon SQS and more',
+    supported: [
+      'RocketMQ 4.x / 5.x',
+      'RabbitMQ 3.x / 4.x',
+      'Kafka 3.x / 4.x',
+      'Pulsar 3.x / 4.x',
+      'Redis Stream 6.0+',
+      'MQTT 3.1.1 / 5.0',
+    ],
+    planned: 'Planned: NATS · ActiveMQ · Amazon SQS and more',
   },
   features: {
     title: 'Why MQ Studio',
@@ -149,6 +156,9 @@ export const en: Content = {
       { label: 'RocketMQ', done: true },
       { label: 'RabbitMQ', done: true },
       { label: 'Kafka', done: true },
+      { label: 'Redis Stream', done: true },
+      { label: 'Pulsar', done: true },
+      { label: 'MQTT', done: true },
       { label: 'More drivers', done: false },
       { label: 'Agent', done: false },
     ],
