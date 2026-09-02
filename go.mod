@@ -4,7 +4,7 @@ go 1.25.0
 
 require (
 	github.com/alicebob/miniredis/v2 v2.38.0
-	github.com/amigoer/rocketmq-admin-go v1.3.2
+	github.com/amigoer/rocketmq-admin-go v1.4.0
 	github.com/apache/pulsar-client-go v0.21.0
 	github.com/apache/rocketmq-client-go/v2 v2.1.2
 	github.com/eclipse/paho.golang v0.23.0

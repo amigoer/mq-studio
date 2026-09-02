@@ -672,7 +672,12 @@ func TestLiveACL(t *testing.T) {
 	// signed - so the write has to keep the seed's entries and only add to
 	// them, and put them back afterwards. Replacing it with a narrower list
 	// locks the next run out of the broker.
-	seedWhiteList := []string{"127.0.0.1", "172.*.*.*", "192.168.*.*"}
+	// What plain_acl.seed.yml carries: one address that is never the caller.
+	// The whitelist is matched before any signature is, so restoring a wide one
+	// would quietly re-open every test that follows - and restoring an empty
+	// one is worse, because RocketMQ reads the empty string as a strategy that
+	// matches everybody.
+	seedWhiteList := []string{"127.0.0.1"}
 	t.Cleanup(func() { _ = acl.SetGlobalWhiteAddrs(context.Background(), seedWhiteList) })
 	if err := acl.SetGlobalWhiteAddrs(ctx, append(append([]string{}, seedWhiteList...), "10.*.*.*")); err != nil {
 		t.Fatalf("SetGlobalWhiteAddrs: %v", err)
@@ -682,40 +687,53 @@ func TestLiveACL(t *testing.T) {
 	}
 }
 
-// The credentials a connection profile carries are never actually sent.
+// The credentials a connection profile carries actually reach the Broker.
 //
-// rocketmq-admin-go stores AccessKey and SecretKey in its options and contains
-// no signing code at all - no HMAC, no signature - so every admin call arrives
-// unauthenticated. On an ACL broker it succeeds only when the global whitelist
-// covers the caller, which is why the E2E broker's whitelist has to include the
-// Docker gateway.
+// TestLiveACL is the other half of this: it does the same work with the right
+// pair and the E2E broker has no global whitelist, so a signature is the only
+// way either of them gets in.
 //
-// This connects with deliberately wrong credentials and expects it to work
-// anyway. It goes red the day the library signs its requests, which is when
-// the connection form's ACL fields start meaning something.
-func TestLiveACLCredentialsAreNotSigned(t *testing.T) {
+// Both halves are here because they fail differently, and only one of them
+// proves the signature was computed. A wrong access key is refused on identity
+// alone - the Broker never reaches the HMAC - so a client that sent the field
+// and signed nothing would pass that half.
+func TestLiveACLCredentialsAreSigned(t *testing.T) {
 	requireACLBroker(t)
 	connections, _, registry := liveStack(t)
 	ctx := context.Background()
 
-	input := liveProfileInput("acl-wrong-credentials")
-	input.Endpoints = aclNameServer
-	input.SetACL(true, "not-a-real-key", "not-a-real-secret")
-	profile, err := connections.AddConnection(input)
-	if err != nil {
-		t.Fatal(err)
+	cases := []struct {
+		name      string
+		accessKey string
+		secretKey string
+		refusal   string
+	}{
+		{"an unknown access key", "not-a-real-key", "not-a-real-secret", "No acl config"},
+		{"the right key with the wrong secret", aclAccessKey, "not-the-secret", "signature"},
 	}
-	if err := connections.Connect(profile.ID); err != nil {
-		t.Fatalf("connect to the ACL broker: %v", err)
-	}
-	conn, _ := registry.Get(profile.ID)
 
-	enabled, err := conn.(driver.AccessAdmin).AccessEnabled(ctx)
-	if err != nil {
-		t.Fatalf("credentials are signed now - rebuild the ACL story: %v", err)
-	}
-	if !enabled {
-		t.Fatal("AccessEnabled reported false on a broker with aclEnable=true")
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			input := liveProfileInput("acl-" + tc.accessKey)
+			input.Endpoints = aclNameServer
+			input.SetACL(true, tc.accessKey, tc.secretKey)
+			profile, err := connections.AddConnection(input)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := connections.Connect(profile.ID); err != nil {
+				t.Fatalf("connect to the ACL broker: %v", err)
+			}
+			conn, _ := registry.Get(profile.ID)
+
+			_, err = conn.(driver.AccessAdmin).AccessEnabled(ctx)
+			if err == nil {
+				t.Fatal("the broker accepted a request these credentials cannot sign")
+			}
+			if !strings.Contains(err.Error(), tc.refusal) {
+				t.Errorf("refused for the wrong reason, wanted %q: %v", tc.refusal, err)
+			}
+		})
 	}
 }
 

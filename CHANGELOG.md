@@ -9,6 +9,18 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Fixed
+
+- A RocketMQ connection's AccessKey and SecretKey are now actually sent. They
+  were stored, decrypted and handed to the driver, and the client library then
+  read neither - it had no signing code at all - so every admin call arrived
+  unauthenticated. On a cluster with `aclEnable=true` that worked only where the
+  broker's global whitelist happened to cover the caller, and the connection
+  form's two credential fields, plus the global pair in settings that fills them
+  in, made a promise nothing kept. Requests now carry the access key and an
+  HMAC-SHA1 signature over the sorted header fields and the body, which is what
+  the broker rebuilds and compares.
+
 ## [0.0.5] - 2026-09-02
 
 Three drivers at once — Redis Stream, Pulsar and MQTT — which takes the count
