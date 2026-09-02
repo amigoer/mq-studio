@@ -28,6 +28,13 @@ import * as model$0 from "../model/models.js";
 import * as $models from "./models.js";
 
 /**
+ * CreateConsumer declares a consumer that does not exist yet.
+ */
+export function CreateConsumer(connID: number, input: $models.NATSConsumerInput): $CancellablePromise<void> {
+    return $Call.ByID(1430825063, connID, input);
+}
+
+/**
  * CreateStream declares a stream that does not exist yet.
  * 
  * Separate from UpdateStream rather than one idempotent call, because the two
@@ -38,6 +45,13 @@ import * as $models from "./models.js";
  */
 export function CreateStream(connID: number, input: $models.StreamInput): $CancellablePromise<void> {
     return $Call.ByID(4242838671, connID, input);
+}
+
+/**
+ * DeleteConsumer removes a consumer and the position it held.
+ */
+export function DeleteConsumer(connID: number, stream: string, name: string): $CancellablePromise<void> {
+    return $Call.ByID(2165136952, connID, stream, name);
 }
 
 /**
@@ -67,6 +81,17 @@ export function PurgeStream(connID: number, input: $models.PurgeInput): $Cancell
     return $Call.ByID(816427434, connID, input).then(($result: any) => {
         return $$createType1($result);
     });
+}
+
+/**
+ * UpdateConsumer rewrites an existing consumer's configuration.
+ * 
+ * Not its position: the server refuses to change where a consumer starts once
+ * it exists, and the only way to move one is to delete it and make another -
+ * which changes its identity and drops what it had acknowledged.
+ */
+export function UpdateConsumer(connID: number, input: $models.NATSConsumerInput): $CancellablePromise<void> {
+    return $Call.ByID(873423062, connID, input);
 }
 
 /**

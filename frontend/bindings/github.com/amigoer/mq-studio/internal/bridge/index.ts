@@ -68,6 +68,7 @@ export {
     MaintenanceTaskView,
     MessageQuery,
     MoveInput,
+    NATSConsumerInput,
     NamespaceInput,
     OffsetResetInput,
     PendingQueryInput,

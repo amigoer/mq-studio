@@ -268,7 +268,10 @@ export const PROTOCOLS: Record<ProtocolId, Protocol> = {
       { items: [{ id: "overview", icon: House, label: "shell.nav.nats.overview" }] },
       {
         label: BROWSE,
-        items: [{ id: "topics", icon: Layers, label: "shell.nav.nats.topics" }],
+        items: [
+          { id: "topics", icon: Layers, label: "shell.nav.nats.topics" },
+          { id: "consumers", icon: Users, label: "shell.nav.nats.consumers" },
+        ],
       },
     ],
   },

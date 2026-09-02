@@ -165,3 +165,86 @@ func (s *NATSService) PurgeStream(connID int, input PurgeInput) (*model.TrimResu
 func (s *NATSService) DeleteMessages(connID int, stream string, sequences []string) (*model.TrimResult, error) {
 	return s.service.DeleteMessages(context.Background(), connID, stream, sequences)
 }
+
+// NATSConsumerInput is a consumer as the NATS dialog collects it.
+//
+// The name carries the family because every bridge type shares one Go package
+// and ConsumerService already has a ConsumerInput of its own - which is the
+// RocketMQ-shaped one this exists instead of.
+//
+// Deliberately not ConsumerService.Create's shape. That collects a group name,
+// a broker address, a consume mode and a retry count - RocketMQ's vocabulary -
+// and has nowhere for the stream a JetStream consumer lives on, which is half
+// of its address.
+type NATSConsumerInput struct {
+	// Stream is not optional. Two streams may both have a consumer called
+	// "worker", so a name alone does not identify one.
+	Stream string `json:"stream"`
+	Name   string `json:"name"`
+	// Durable keeps the consumer and its position when nothing is using it.
+	// An ephemeral one is cleaned up, which is what makes this a choice rather
+	// than a default.
+	Durable bool `json:"durable"`
+
+	// DeliverPolicy is where a new consumer starts. It cannot be changed
+	// afterwards - the server refuses - which is why this driver offers no
+	// offset reset.
+	DeliverPolicy string `json:"deliverPolicy"`
+	AckPolicy     string `json:"ackPolicy"`
+	AckWait       string `json:"ackWait"`
+	MaxDeliver    string `json:"maxDeliver"`
+	MaxAckPending string `json:"maxAckPending"`
+	// FilterSubject narrows what this consumer takes from the stream. Several
+	// may be given, separated however the form separated them.
+	FilterSubject string `json:"filterSubject"`
+	ReplayPolicy  string `json:"replayPolicy"`
+
+	// DeliverSubject makes it a push consumer: the server sends to that
+	// subject instead of waiting to be asked. Empty is a pull consumer, which
+	// is the ordinary case.
+	DeliverSubject string `json:"deliverSubject"`
+	DeliverGroup   string `json:"deliverGroup"`
+}
+
+func (input NATSConsumerInput) spec() model.SubscriptionSpec {
+	attributes := map[string]string{
+		natsdriver.AttrDeliverPolicy: input.DeliverPolicy,
+		natsdriver.AttrAckPolicy:     input.AckPolicy,
+		natsdriver.AttrAckWait:       input.AckWait,
+		natsdriver.AttrMaxDeliver:    input.MaxDeliver,
+		natsdriver.AttrMaxAckPending: input.MaxAckPending,
+		natsdriver.AttrFilterSubject: input.FilterSubject,
+		natsdriver.AttrReplayPolicy:  input.ReplayPolicy,
+		natsdriver.AttrDeliverTo:     input.DeliverSubject,
+		natsdriver.AttrDeliverGroup:  input.DeliverGroup,
+	}
+	// Written only when the answer is no. The driver reads a missing attribute
+	// as durable, which is the safer default: an ephemeral consumer somebody
+	// meant to keep disappears the moment nothing is using it.
+	if !input.Durable {
+		attributes[natsdriver.AttrDurable] = "false"
+	}
+	return model.SubscriptionSpec{
+		Ref:        model.SubscriptionRef{Namespace: input.Stream, Name: input.Name},
+		Attributes: attributes,
+	}
+}
+
+// CreateConsumer declares a consumer that does not exist yet.
+func (s *NATSService) CreateConsumer(connID int, input NATSConsumerInput) error {
+	return s.service.SaveConsumer(context.Background(), connID, input.spec(), false)
+}
+
+// UpdateConsumer rewrites an existing consumer's configuration.
+//
+// Not its position: the server refuses to change where a consumer starts once
+// it exists, and the only way to move one is to delete it and make another -
+// which changes its identity and drops what it had acknowledged.
+func (s *NATSService) UpdateConsumer(connID int, input NATSConsumerInput) error {
+	return s.service.SaveConsumer(context.Background(), connID, input.spec(), true)
+}
+
+// DeleteConsumer removes a consumer and the position it held.
+func (s *NATSService) DeleteConsumer(connID int, stream, name string) error {
+	return s.service.DeleteConsumer(context.Background(), connID, stream, name)
+}

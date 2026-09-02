@@ -1,9 +1,13 @@
 import { NATSService } from "@bindings/bridge";
-import type { PurgeInput, StreamInput } from "@bindings/bridge/models";
+import type {
+  NATSConsumerInput,
+  PurgeInput,
+  StreamInput,
+} from "@bindings/bridge/models";
 import type { TrimResult } from "@bindings/model/models";
 import { required } from "./client";
 
-export type { PurgeInput, StreamInput };
+export type { NATSConsumerInput, PurgeInput, StreamInput };
 
 /**
  * The NATS-only half of the surface.
@@ -50,3 +54,21 @@ export const deleteMessages = (
   stream: string,
   sequences: string[],
 ): Promise<TrimResult> => NATSService.DeleteMessages(connID, stream, sequences).then(required);
+
+/** Declares a consumer on a stream. Refused if one of that name exists. */
+export const createConsumer = (connID: number, input: NATSConsumerInput): Promise<void> =>
+  NATSService.CreateConsumer(connID, input);
+
+/**
+ * Rewrites an existing consumer's configuration.
+ *
+ * Not where it reads from: the server refuses to change a consumer's delivery
+ * policy after it exists, which is why there is no reset-position call here at
+ * all.
+ */
+export const updateConsumer = (connID: number, input: NATSConsumerInput): Promise<void> =>
+  NATSService.UpdateConsumer(connID, input);
+
+/** Removes a consumer and the position it held. */
+export const deleteConsumer = (connID: number, stream: string, name: string): Promise<void> =>
+  NATSService.DeleteConsumer(connID, stream, name);

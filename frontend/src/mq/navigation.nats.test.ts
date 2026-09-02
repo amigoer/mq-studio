@@ -27,6 +27,10 @@ const NATS_CAPABILITIES: Capability[] = [
   Capability.CapDestinationDelete,
   Capability.CapPartitions,
   Capability.CapStreamTrim,
+  Capability.CapSubscriptionList,
+  Capability.CapSubscriptionCreate,
+  Capability.CapSubscriptionDelete,
+  Capability.CapSubscriptionLag,
 ];
 
 function state(

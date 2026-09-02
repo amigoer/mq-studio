@@ -37,14 +37,19 @@ function stateOf<T>(over: Partial<BrokerState<T>>): BrokerState<T> {
 
 const streamsState = vi.hoisted(() => ({ current: null as unknown }));
 const streamDetailState = vi.hoisted(() => ({ current: null as unknown }));
+const consumersState = vi.hoisted(() => ({ current: null as unknown }));
 
 vi.mock("@/hooks/nats/useNatsStreams", () => ({
   useNatsStreams: () => streamsState.current,
   useNatsStreamDetail: () => streamDetailState.current,
 }));
+vi.mock("@/hooks/nats/useNatsConsumers", () => ({
+  useNatsConsumers: () => consumersState.current,
+}));
 
 let render: (element: React.ReactElement) => string;
 let StreamsNats: typeof import("./topics/StreamsNats").StreamsNats;
+let ConsumersNats: typeof import("./consumers/ConsumersNats").ConsumersNats;
 
 beforeAll(async () => {
   const storage = { getItem: () => null, setItem() {}, removeItem() {} };
@@ -57,9 +62,10 @@ beforeAll(async () => {
   });
   vi.stubGlobal("localStorage", storage);
 
-  const [server, streams, ui, i18n, settings] = await Promise.all([
+  const [server, streams, consumers, ui, i18n, settings] = await Promise.all([
     import("react-dom/server"),
     import("./topics/StreamsNats"),
+    import("./consumers/ConsumersNats"),
     import("@/components"),
     import("@/i18n"),
     import("@/hooks/useSettings"),
@@ -72,6 +78,7 @@ beforeAll(async () => {
       </ui.ConfirmProvider>,
     );
   StreamsNats = streams.StreamsNats;
+  ConsumersNats = consumers.ConsumersNats;
 });
 
 /** A replicated stream, as internal/driver/nats/stream.go sends one. */
@@ -223,5 +230,123 @@ describe("the NATS streams board", () => {
     streamsState.current = stateOf({ data: [bare] });
     streamDetailState.current = stateOf({ data: bare });
     expect(() => render(<StreamsNats />)).not.toThrow();
+  });
+});
+
+/** A pull consumer, as internal/driver/nats/consumer.go sends one. */
+const worker = {
+  id: 1,
+  ref: { namespace: "MQS_SEED_ORDERS", name: "seed-worker" },
+  status: "online",
+  members: -1,
+  destinations: 1,
+  backlog: 80,
+  rateOut: -1,
+  lastUpdated: "2026-09-02 10:38:04",
+  attributes: {
+    stream: "MQS_SEED_ORDERS",
+    durable: "seed-worker",
+    deliverPolicy: "all",
+    ackPolicy: "explicit",
+    ackWait: "30s",
+    maxDeliver: "-1",
+    maxAckPending: "1000",
+    replayPolicy: "instant",
+    consumerKind: "pull",
+    waitingRequests: "0",
+    ackPending: "0",
+    redelivered: "0",
+    deliveredSeq: "120",
+    ackFloorSeq: "120",
+    consumerCreated: "2026-09-02 10:38:04",
+  },
+};
+
+/** A push consumer holding unacknowledged work, which is the warning state. */
+const pusher = {
+  ...worker,
+  id: 2,
+  ref: { namespace: "MQS_SEED_ORDERS", name: "seed-stuck" },
+  status: "warning",
+  members: 0,
+  backlog: 195,
+  attributes: {
+    ...worker.attributes,
+    consumerKind: "push",
+    deliverSubject: "deliver.orders",
+    deliverGroup: "workers",
+    ackWait: "1h0m0s",
+    ackPending: "5",
+    filterSubject: "orders.shipped",
+    waitingRequests: undefined as unknown as string,
+  },
+};
+
+describe("the NATS consumers board", () => {
+  it("says the connection is offline rather than showing an empty list", () => {
+    consumersState.current = stateOf({ online: false });
+    streamsState.current = stateOf({});
+    expect(() => render(<ConsumersNats />)).not.toThrow();
+  });
+
+  it("renders while the first request is in flight", () => {
+    consumersState.current = stateOf({ loading: true });
+    streamsState.current = stateOf({});
+    expect(() => render(<ConsumersNats />)).not.toThrow();
+  });
+
+  /*
+   * An account whose streams have no consumers is ordinary, not broken. The
+   * notice has to say what a consumer is for, because "no results" reads as a
+   * page that failed to load.
+   */
+  it("explains an account whose streams have no consumers", () => {
+    consumersState.current = stateOf({ data: [] });
+    streamsState.current = stateOf({ data: [] });
+    expect(() => render(<ConsumersNats />)).not.toThrow();
+  });
+
+  it("lists a consumer with its stream and its backlog", () => {
+    consumersState.current = stateOf({ data: [worker, pusher] });
+    streamsState.current = stateOf({ data: [] });
+    const html = render(<ConsumersNats />);
+    expect(html).toContain("seed-worker");
+    expect(html).toContain("MQS_SEED_ORDERS");
+  });
+
+  /*
+   * A pull consumer has no member count. Rendering zero would call a working
+   * consumer unattended, so the column shows a dash.
+   */
+  it("draws no member count for a pull consumer", () => {
+    consumersState.current = stateOf({ data: [worker] });
+    streamsState.current = stateOf({ data: [] });
+    expect(render(<ConsumersNats />)).toContain("—");
+  });
+
+  it("renders the detail panel for a pull consumer", () => {
+    consumersState.current = stateOf({ data: [worker] });
+    streamsState.current = stateOf({ data: [] });
+    expect(() => render(<ConsumersNats />)).not.toThrow();
+  });
+
+  /*
+   * The push branch of the panel reads entirely different fields, which is
+   * where a missing attribute throws rather than rendering a dash.
+   */
+  it("renders the detail panel for a push consumer", () => {
+    consumersState.current = stateOf({ data: [pusher] });
+    streamsState.current = stateOf({ data: [] });
+    expect(() => render(<ConsumersNats />)).not.toThrow();
+  });
+
+  it("renders a consumer reported with almost nothing set", () => {
+    const bare = {
+      ...worker,
+      attributes: { consumerKind: "pull" },
+    };
+    consumersState.current = stateOf({ data: [bare] });
+    streamsState.current = stateOf({ data: [] });
+    expect(() => render(<ConsumersNats />)).not.toThrow();
   });
 });

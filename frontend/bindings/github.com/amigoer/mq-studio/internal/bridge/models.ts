@@ -1335,6 +1335,110 @@ export class MoveInput {
 }
 
 /**
+ * NATSConsumerInput is a consumer as the NATS dialog collects it.
+ * 
+ * The name carries the family because every bridge type shares one Go package
+ * and ConsumerService already has a ConsumerInput of its own - which is the
+ * RocketMQ-shaped one this exists instead of.
+ * 
+ * Deliberately not ConsumerService.Create's shape. That collects a group name,
+ * a broker address, a consume mode and a retry count - RocketMQ's vocabulary -
+ * and has nowhere for the stream a JetStream consumer lives on, which is half
+ * of its address.
+ */
+export class NATSConsumerInput {
+    /**
+     * Stream is not optional. Two streams may both have a consumer called
+     * "worker", so a name alone does not identify one.
+     */
+    "stream": string;
+    "name": string;
+
+    /**
+     * Durable keeps the consumer and its position when nothing is using it.
+     * An ephemeral one is cleaned up, which is what makes this a choice rather
+     * than a default.
+     */
+    "durable": boolean;
+
+    /**
+     * DeliverPolicy is where a new consumer starts. It cannot be changed
+     * afterwards - the server refuses - which is why this driver offers no
+     * offset reset.
+     */
+    "deliverPolicy": string;
+    "ackPolicy": string;
+    "ackWait": string;
+    "maxDeliver": string;
+    "maxAckPending": string;
+
+    /**
+     * FilterSubject narrows what this consumer takes from the stream. Several
+     * may be given, separated however the form separated them.
+     */
+    "filterSubject": string;
+    "replayPolicy": string;
+
+    /**
+     * DeliverSubject makes it a push consumer: the server sends to that
+     * subject instead of waiting to be asked. Empty is a pull consumer, which
+     * is the ordinary case.
+     */
+    "deliverSubject": string;
+    "deliverGroup": string;
+
+    /** Creates a new NATSConsumerInput instance. */
+    constructor($$source: Partial<NATSConsumerInput> = {}) {
+        if (!("stream" in $$source)) {
+            this["stream"] = "";
+        }
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("durable" in $$source)) {
+            this["durable"] = false;
+        }
+        if (!("deliverPolicy" in $$source)) {
+            this["deliverPolicy"] = "";
+        }
+        if (!("ackPolicy" in $$source)) {
+            this["ackPolicy"] = "";
+        }
+        if (!("ackWait" in $$source)) {
+            this["ackWait"] = "";
+        }
+        if (!("maxDeliver" in $$source)) {
+            this["maxDeliver"] = "";
+        }
+        if (!("maxAckPending" in $$source)) {
+            this["maxAckPending"] = "";
+        }
+        if (!("filterSubject" in $$source)) {
+            this["filterSubject"] = "";
+        }
+        if (!("replayPolicy" in $$source)) {
+            this["replayPolicy"] = "";
+        }
+        if (!("deliverSubject" in $$source)) {
+            this["deliverSubject"] = "";
+        }
+        if (!("deliverGroup" in $$source)) {
+            this["deliverGroup"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new NATSConsumerInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): NATSConsumerInput {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new NATSConsumerInput($$parsedSource as Partial<NATSConsumerInput>);
+    }
+}
+
+/**
  * NamespaceInput creates or updates a virtual host.
  */
 export class NamespaceInput {

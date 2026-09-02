@@ -126,3 +126,37 @@ func (s *Service) DeleteMessages(ctx context.Context, connID int, name string, s
 	defer cancel()
 	return api.DeleteEntries(ctx, model.DestinationRef{Name: name}, sequences)
 }
+
+// SaveConsumer declares a consumer on a stream or rewrites an existing one.
+//
+// Which of the two is the caller's choice for the same reason it is for a
+// stream: a create that silently became an update would move another
+// application's position, and an update that silently became a create would
+// hide a consumer somebody had deleted underneath the page.
+func (s *Service) SaveConsumer(ctx context.Context, connID int, spec model.SubscriptionSpec, update bool) error {
+	// Both gate on the create capability. The vocabulary has no separate one
+	// for editing a subscription - CapSubscriptionCreate is what says a family
+	// can declare them at all - and inventing a second here would put a
+	// capability in the sidebar contract that no driver declares.
+	api, err := port[driver.SubscriptionAdmin](s, connID, model.CapSubscriptionCreate)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	if update {
+		return api.UpdateSubscription(ctx, spec)
+	}
+	return api.CreateSubscription(ctx, spec)
+}
+
+// DeleteConsumer removes a consumer and the position it held.
+func (s *Service) DeleteConsumer(ctx context.Context, connID int, stream, name string) error {
+	api, err := port[driver.SubscriptionAdmin](s, connID, model.CapSubscriptionDelete)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+	return api.RemoveSubscription(ctx, model.SubscriptionRef{Namespace: stream, Name: name})
+}

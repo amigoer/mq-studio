@@ -99,6 +99,10 @@ var (
 		model.CapDestinationDelete,
 		model.CapPartitions,
 		model.CapStreamTrim,
+		model.CapSubscriptionList,
+		model.CapSubscriptionCreate,
+		model.CapSubscriptionDelete,
+		model.CapSubscriptionLag,
 	}
 
 	// clusterCapabilities are answered by the monitoring endpoint or by the
