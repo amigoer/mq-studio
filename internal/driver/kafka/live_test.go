@@ -33,9 +33,10 @@ const (
 func requireLiveCluster(t *testing.T) {
 	t.Helper()
 	e2e.Require(t, e2e.Env{
-		Name:  "kafka",
-		Start: "npm run e2e:kafka:up",
-		Probe: e2e.DialTCP(strings.Split(liveSeeds, ",")[0]),
+		Name:   "kafka",
+		Family: e2e.Kafka,
+		Start:  "npm run e2e:kafka:up",
+		Probe:  e2e.DialTCP(strings.Split(liveSeeds, ",")[0]),
 	})
 }
 

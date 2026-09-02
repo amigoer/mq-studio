@@ -27,9 +27,10 @@ const plainEndpoint = "http://127.0.0.1:15682"
 func requirePlainBroker(t *testing.T) {
 	t.Helper()
 	e2e.Require(t, e2e.Env{
-		Name:  "the plugin-free rabbitmq",
-		Start: "npm run e2e:rabbitmq:plain:up",
-		Probe: e2e.HTTPGet(plainEndpoint + "/api/overview"),
+		Name:   "the plugin-free rabbitmq",
+		Family: e2e.RabbitMQ,
+		Start:  "npm run e2e:rabbitmq:plain:up",
+		Probe:  e2e.HTTPGet(plainEndpoint + "/api/overview"),
 	})
 }
 

@@ -27,9 +27,10 @@ const liveEndpoint = "http://127.0.0.1:15672"
 func requireLiveBroker(t *testing.T) {
 	t.Helper()
 	e2e.Require(t, e2e.Env{
-		Name:  "rabbitmq",
-		Start: "npm run e2e:rabbitmq:up",
-		Probe: e2e.HTTPGet(liveEndpoint + "/api/overview"),
+		Name:   "rabbitmq",
+		Family: e2e.RabbitMQ,
+		Start:  "npm run e2e:rabbitmq:up",
+		Probe:  e2e.HTTPGet(liveEndpoint + "/api/overview"),
 	})
 }
 

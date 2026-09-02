@@ -22,9 +22,10 @@ const liveNameServer = "127.0.0.1:9876"
 func liveContext(t *testing.T) context.Context {
 	t.Helper()
 	e2e.Require(t, e2e.Env{
-		Name:  "the rocketmq broker",
-		Start: "npm run e2e:up",
-		Probe: e2e.DialTCP(liveNameServer),
+		Name:   "the rocketmq broker",
+		Family: e2e.RocketMQ,
+		Start:  "npm run e2e:up",
+		Probe:  e2e.DialTCP(liveNameServer),
 	})
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	t.Cleanup(cancel)

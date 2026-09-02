@@ -13,6 +13,8 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"sort"
+	"strings"
 	"testing"
 	"time"
 )
@@ -20,29 +22,120 @@ import (
 // OptIn is the variable a developer sets to run the live suites locally.
 const OptIn = "MQ_STUDIO_E2E"
 
+// ShardVar names the families the current run is responsible for, so CI can
+// split the live suites across jobs that each start one broker family. Unset
+// means every family, which is what a local run and any unsharded run get.
+const ShardVar = "MQ_STUDIO_E2E_FAMILIES"
+
+// NoFamilies is the value a run sets to claim nothing at all - the unit job,
+// which starts no broker. It is a word rather than the empty string on
+// purpose: an empty value is far more likely to be a variable somebody meant
+// to fill in, and silently claiming nothing is the shape of #48.
+const NoFamilies = "none"
+
+// SkipMarker prefixes every skip this gate produces. The CI coverage check
+// greps for it to tell a test no shard claimed - a sharding bug - from a test
+// that skipped itself because the broker lacks the feature it covers, which is
+// a deliberate omission and not a regression.
+const SkipMarker = "[e2e-gate]"
+
 // probeTimeout is how long an environment has to answer that it is there. It
 // is not how long the tests then give it to work.
 const probeTimeout = 2 * time.Second
+
+// Family is the broker family an environment belongs to. CI shards on it, so
+// it is also the unit in which live coverage is accounted for.
+type Family string
+
+const (
+	RocketMQ Family = "rocketmq"
+	RabbitMQ Family = "rabbitmq"
+	Kafka    Family = "kafka"
+	Pulsar   Family = "pulsar"
+	Redis    Family = "redis"
+	MQTT     Family = "mqtt"
+)
+
+// AllFamilies is the list every other place derives from - the CI shard matrix
+// included, which a test in this package pins against it. Enumerating families
+// twice is how the lists drift apart.
+var AllFamilies = []Family{RocketMQ, RabbitMQ, Kafka, Pulsar, Redis, MQTT}
 
 // Env is one broker environment a live test needs.
 type Env struct {
 	// Name reads inside a sentence: "kafka is not running".
 	Name string
+	// Family is which broker family Name belongs to. Required: a test whose
+	// environment declares none cannot be claimed by any shard, and would go
+	// unrun rather than red.
+	Family Family
 	// Start is the npm script that brings it up.
 	Start string
 	// Probe reports whether the environment is answering.
 	Probe func() error
 }
 
+// shard is the set of families this run is responsible for. A nil shard claims
+// every family: that is the unsharded case, and it keeps a local `go test` and
+// a plain `npm run test:e2e` behaving exactly as they did before sharding.
+type shard map[Family]bool
+
+func (s shard) claims(f Family) bool { return s == nil || s[f] }
+
 // verdict is what the gate decided to do with a test.
 type verdict int
 
 const (
-	run        verdict = iota
-	skipOptOut         // locally, and the developer did not ask for the live suites
-	skipAbsent         // locally, and the environment is not up
-	failAbsent         // in CI, where an absent environment is the run's problem
+	run            verdict = iota
+	skipOptOut             // locally, and the developer did not ask for the live suites
+	skipAbsent             // locally, and the environment is not up
+	skipUnclaimed          // another shard of this run owns the family
+	failAbsent             // in CI, where an absent environment is the run's problem
+	failUndeclared         // the Env named no family, so no shard can own it
 )
+
+// parseShard reads ShardVar. The zero value of set is what an unset variable
+// gives, and returns a nil shard - every family claimed.
+//
+// Every other unrecognised input is an error rather than a quiet fallback. A
+// misspelled family name that resolved to "claims nothing" would take a whole
+// suite out of CI without turning anything red, which is the defect this
+// package was written to make impossible.
+func parseShard(raw string, set bool) (shard, error) {
+	if !set {
+		return nil, nil
+	}
+	if strings.TrimSpace(raw) == "" {
+		return nil, fmt.Errorf("is set but empty; use %q to claim no families", NoFamilies)
+	}
+	if strings.TrimSpace(raw) == NoFamilies {
+		return shard{}, nil
+	}
+
+	known := make(map[Family]bool, len(AllFamilies))
+	for _, family := range AllFamilies {
+		known[family] = true
+	}
+
+	claimed := shard{}
+	for _, field := range strings.Split(raw, ",") {
+		family := Family(strings.TrimSpace(field))
+		if !known[family] {
+			return nil, fmt.Errorf("names unknown family %q; known families are %s", family, strings.Join(familyNames(), ", "))
+		}
+		claimed[family] = true
+	}
+	return claimed, nil
+}
+
+func familyNames() []string {
+	names := make([]string, 0, len(AllFamilies))
+	for _, family := range AllFamilies {
+		names = append(names, string(family))
+	}
+	sort.Strings(names)
+	return names
+}
 
 // decide is the policy, kept apart from testing.T so it can be pinned by a
 // test of its own rather than only by the CI run it governs.
@@ -54,9 +147,19 @@ const (
 // did not run. That last clause is the whole fix - reading the opt-in first is
 // what kept the app-layer suite silent in every CI run (#48).
 //
+// A shard that does not claim the family skips, which is the one skip CI
+// tolerates. It is safe only because the coverage job asserts that every test
+// passed in some shard, so a family no shard claims is still caught.
+//
 // It returns the probe's error too, so the caller reports what it saw without
 // probing a second time.
-func decide(ci bool, optIn string, probe func() error) (verdict, error) {
+func decide(ci bool, optIn string, s shard, family Family, probe func() error) (verdict, error) {
+	if family == "" {
+		return failUndeclared, nil
+	}
+	if !s.claims(family) {
+		return skipUnclaimed, nil
+	}
 	if !ci && optIn == "" {
 		return skipOptOut, nil
 	}
@@ -73,13 +176,24 @@ func decide(ci bool, optIn string, probe func() error) (verdict, error) {
 // Require skips the test when env is absent, and fails instead when CI is set.
 func Require(t *testing.T, env Env) {
 	t.Helper()
-	switch decision, err := decide(inCI(), os.Getenv(OptIn), env.Probe); decision {
+
+	raw, set := os.LookupEnv(ShardVar)
+	claimed, err := parseShard(raw, set)
+	if err != nil {
+		t.Fatalf("%s %v", ShardVar, err)
+	}
+
+	switch decision, probeErr := decide(inCI(), os.Getenv(OptIn), claimed, env.Family, env.Probe); decision {
+	case failUndeclared:
+		t.Fatalf("the %s environment declares no Family; every e2e.Env needs one or no CI shard can claim it", env.Name)
+	case skipUnclaimed:
+		t.Skipf("%s this run covers %s=%s, and %s is in the %s family", SkipMarker, ShardVar, raw, env.Name, env.Family)
 	case skipOptOut:
-		t.Skipf("set %s=1 and run `%s` to exercise %s", OptIn, env.Start, env.Name)
+		t.Skipf("%s set %s=1 and run `%s` to exercise %s", SkipMarker, OptIn, env.Start, env.Name)
 	case skipAbsent:
-		t.Skipf("%s is not running; start it with `%s` (%v)", env.Name, env.Start, err)
+		t.Skipf("%s %s is not running; start it with `%s` (%v)", SkipMarker, env.Name, env.Start, probeErr)
 	case failAbsent:
-		t.Fatalf("%s must be running in CI: %v", env.Name, err)
+		t.Fatalf("%s must be running in CI: %v", env.Name, probeErr)
 	}
 }
 

@@ -56,18 +56,20 @@ const (
 func requireLiveBroker(t *testing.T) {
 	t.Helper()
 	e2e.Require(t, e2e.Env{
-		Name:  "the rocketmq broker",
-		Start: "npm run e2e:up",
-		Probe: e2e.DialTCP(liveNameServer),
+		Name:   "the rocketmq broker",
+		Family: e2e.RocketMQ,
+		Start:  "npm run e2e:up",
+		Probe:  e2e.DialTCP(liveNameServer),
 	})
 }
 
 func requireACLBroker(t *testing.T) {
 	t.Helper()
 	e2e.Require(t, e2e.Env{
-		Name:  "the ACL-enabled rocketmq broker",
-		Start: "npm run e2e:acl:up",
-		Probe: e2e.DialTCP(aclNameServer),
+		Name:   "the ACL-enabled rocketmq broker",
+		Family: e2e.RocketMQ,
+		Start:  "npm run e2e:acl:up",
+		Probe:  e2e.DialTCP(aclNameServer),
 	})
 }
 

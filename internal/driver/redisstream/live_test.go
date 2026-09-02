@@ -38,18 +38,20 @@ const (
 func requireRedis(t *testing.T) {
 	t.Helper()
 	e2e.Require(t, e2e.Env{
-		Name:  "redis",
-		Start: "npm run e2e:redis:up",
-		Probe: e2e.DialTCP(liveAddr),
+		Name:   "redis",
+		Family: e2e.Redis,
+		Start:  "npm run e2e:redis:up",
+		Probe:  e2e.DialTCP(liveAddr),
 	})
 }
 
 func requireRedisCluster(t *testing.T) {
 	t.Helper()
 	e2e.Require(t, e2e.Env{
-		Name:  "the redis cluster",
-		Start: "npm run e2e:redis:cluster:up",
-		Probe: e2e.DialTCP(liveClusterAddr),
+		Name:   "the redis cluster",
+		Family: e2e.Redis,
+		Start:  "npm run e2e:redis:cluster:up",
+		Probe:  e2e.DialTCP(liveClusterAddr),
 	})
 }
 

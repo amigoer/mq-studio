@@ -112,8 +112,9 @@ func newRedisStack(t *testing.T) *redisStack {
 func requireRedisCLI(t *testing.T) {
 	t.Helper()
 	e2e.Require(t, e2e.Env{
-		Name:  "the redis e2e server",
-		Start: "npm run e2e:redis:up",
+		Name:   "the redis e2e server",
+		Family: e2e.Redis,
+		Start:  "npm run e2e:redis:up",
 		// The cross-checks run redis-cli inside the container, so a reachable
 		// port is not enough: the container itself has to be there.
 		Probe: e2e.DockerContainer(redisContainer),
