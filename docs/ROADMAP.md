@@ -27,17 +27,6 @@ This is the delivery plan. The contract it delivers against is
   and SCRAM users; client quotas; partition reassignment with preferred-leader election; and the
   transactions a cluster is tracking, so a pipeline stopped by a producer that died
   mid-transaction is visible somewhere.
-- **Shipped** — MQTT 3.1.1 and 5.0, over Paho's two Go libraries, which do not overlap: one
-  speaks 3.1.1 and the other 5.0, and a broker configured for either refuses the other's
-  CONNECT. The first family here with no administrative plane of its own, so what a connection
-  can do is decided when it dials, in three tiers — the protocol, the $SYS tree most brokers
-  publish, and the REST API EMQX and its peers add. Publishing with QoS, retain and the 5.0
-  properties; a live subscribe workbench that reports what it dropped and when the session went
-  down; topics from the retained set, which is the only thing MQTT can enumerate; broker
-  counters from $SYS; and, where a management API answers, connected clients and their sessions,
-  their subscriptions, the cluster's nodes, and disconnecting a session. A tier that does not
-  answer is reported with its reason rather than leaving a page empty.
-
   Broker settings are read-only. Everything needed to write them is in place - the driver reads
   them through the same incremental-alter path a topic's settings use - but the page offers no
   editor, and a cluster-wide setting and a per-broker override are different writes that deserve
@@ -50,7 +39,33 @@ This is the delivery plan. The contract it delivers against is
   no disk percentage: Kafka reports the bytes its partitions occupy and nothing about the
   filesystem holding them, so there is no denominator to build one from.
 
-- **Designed, not yet implemented** — the eleven families below.
+- **Shipped** — Redis Stream 6.0+ over the Redis protocol itself, through go-redis. Streams
+  with their length, memory and entry range; consumer groups with lag and every reposition
+  XGROUP SETID offers; browsing entries by time window or by id, and writing them as the
+  ordered field lists they are; the pending entries list with claim, auto-claim and
+  acknowledge; the server's memory, persistence and slow log; its client connections; and ACL
+  users with their key, channel and command rules. Standalone, sentinel and cluster all
+  connect, and a cluster's streams are listed from every master rather than from the node that
+  was dialled.
+
+  The pending entries list stands in for the dead-letter page, because Redis moves nothing
+  aside: an entry handed to a consumer stays in the stream and stays owed to that consumer
+  until it is acknowledged or claimed away. No message rate and no disk figure are reported
+  anywhere - Redis counts commands rather than messages, and reports memory rather than
+  disk.
+
+- **Shipped** — MQTT 3.1.1 and 5.0, over Paho's two Go libraries, which do not overlap: one
+  speaks 3.1.1 and the other 5.0, and a broker configured for either refuses the other's
+  CONNECT. The first family here with no administrative plane of its own, so what a connection
+  can do is decided when it dials, in three tiers — the protocol, the $SYS tree most brokers
+  publish, and the REST API EMQX and its peers add. Publishing with QoS, retain and the 5.0
+  properties; a live subscribe workbench that reports what it dropped and when the session went
+  down; topics from the retained set, which is the only thing MQTT can enumerate; broker
+  counters from $SYS; and, where a management API answers, connected clients and their sessions,
+  their subscriptions, the cluster's nodes, and disconnecting a session. A tier that does not
+  answer is reported with its reason rather than leaving a page empty.
+
+- **Designed, not yet implemented** — the ten families below.
 
 ## Delivery order
 
