@@ -34,11 +34,11 @@ func (c *Conn) GetMessageTrack(ctx context.Context, topic, messageID string) ([]
 
 	tracks := make([]*model.MessageTrackItem, 0, len(groups))
 	for _, group := range groups {
-		if resource.IsSystemGroup(group) {
+		if resource.IsSystemGroup(group) || !c.owns(group) {
 			continue
 		}
 		track := &model.MessageTrackItem{
-			ConsumerGroup: group,
+			ConsumerGroup: c.unwrap(group),
 			TrackType:     "UNKNOWN",
 			ConsumeStatus: "未知",
 		}

@@ -152,8 +152,8 @@ func newSubscriptionGroupConfig(groupName, consumeMode string, maxRetry int) adm
 // Nothing is read back, so a caller wanting to verify has to query the
 // destination's own progress afterwards.
 func (c *Conn) CloneOffset(ctx context.Context, request model.CloneOffsetRequest) error {
-	from := strings.TrimSpace(request.From)
-	to := strings.TrimSpace(request.To)
+	from := c.wrap(strings.TrimSpace(request.From))
+	to := c.wrap(strings.TrimSpace(request.To))
 	if from == "" || to == "" {
 		return fmt.Errorf("复制消费位点失败: 源消费组和目标消费组都不能为空")
 	}
@@ -163,7 +163,7 @@ func (c *Conn) CloneOffset(ctx context.Context, request model.CloneOffsetRequest
 
 	err := c.execWithTimeout(timeoutFrom(ctx), func(ctx context.Context, retryClient *admin.Client) error {
 		return retryClient.CloneGroupOffset(ctx,
-			from, to, strings.TrimSpace(request.Destination), request.FromOffline)
+			from, to, c.wrap(strings.TrimSpace(request.Destination)), request.FromOffline)
 	})
 	if err != nil {
 		return fmt.Errorf("复制消费位点失败: %w", err)

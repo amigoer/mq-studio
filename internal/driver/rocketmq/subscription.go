@@ -35,47 +35,48 @@ func (c *Conn) ListSubscriptions(ctx context.Context) ([]*model.Subscription, er
 	}
 	subscriptions := make([]*model.Subscription, 0, len(groups))
 	for _, group := range groups {
-		subscriptions = append(subscriptions, subscriptionFromGroup(group))
+		subscriptions = append(subscriptions, c.subscriptionFromGroup(group))
 	}
 	return subscriptions, nil
 }
 
 // SubscriptionDetail returns one consumer group with its clients.
 func (c *Conn) SubscriptionDetail(ctx context.Context, ref model.SubscriptionRef) (*model.Subscription, error) {
-	group, err := c.GetConsumerGroupDetail(ctx, ref.Name)
+	group, err := c.GetConsumerGroupDetail(ctx, c.wrap(ref.Name))
 	if err != nil {
 		return nil, err
 	}
-	return subscriptionFromGroup(group), nil
+	return c.subscriptionFromGroup(group), nil
 }
 
 // CreateSubscription adds a consumer group on the target broker.
 func (c *Conn) CreateSubscription(ctx context.Context, spec model.SubscriptionSpec) error {
-	return c.CreateConsumerGroup(ctx, spec.Ref.Name,
+	return c.CreateConsumerGroup(ctx, c.wrap(spec.Ref.Name),
 		spec.Attributes[AttrBrokerAddr], spec.Attributes[AttrConsumeMode],
 		atoiOr(spec.Attributes[AttrMaxRetry], 0))
 }
 
 // RemoveSubscription deletes a consumer group.
 func (c *Conn) RemoveSubscription(ctx context.Context, ref model.SubscriptionRef) error {
-	return c.DeleteConsumerGroup(ctx, ref.Name, ref.Namespace)
+	return c.DeleteConsumerGroup(ctx, c.wrap(ref.Name), ref.Namespace)
 }
 
 // UpdateSubscription changes an existing consumer group's configuration.
 func (c *Conn) UpdateSubscription(ctx context.Context, spec model.SubscriptionSpec) error {
-	return c.UpdateConsumerGroup(ctx, spec.Ref.Name,
+	return c.UpdateConsumerGroup(ctx, c.wrap(spec.Ref.Name),
 		spec.Attributes[AttrBrokerAddr], spec.Attributes[AttrConsumeMode],
 		atoiOr(spec.Attributes[AttrMaxRetry], 0))
 }
 
 // ResetOffset moves a consumer group's read position.
 func (c *Conn) ResetOffset(ctx context.Context, request model.ResetOffsetRequest) error {
-	return c.ResetConsumerOffset(ctx, request.Group, request.Topic, request.Timestamp, request.Force)
+	return c.ResetConsumerOffset(ctx, c.wrap(request.Group), c.wrap(request.Topic),
+		request.Timestamp, request.Force)
 }
 
 // SubscriptionStats reports the per-queue consume progress of a group.
 func (c *Conn) SubscriptionStats(ctx context.Context, ref model.SubscriptionRef) (map[string]interface{}, error) {
-	return c.GetConsumeStats(ctx, ref.Name)
+	return c.GetConsumeStats(ctx, c.wrap(ref.Name))
 }
 
 func subscriptionStatusFrom(status model.GroupStatus) model.SubscriptionStatus {
@@ -89,7 +90,9 @@ func subscriptionStatusFrom(status model.GroupStatus) model.SubscriptionStatus {
 	}
 }
 
-func subscriptionFromGroup(group *model.ConsumerGroupItem) *model.Subscription {
+// subscriptionFromGroup is where a namespaced connection stops speaking
+// broker-real names, the counterpart of destinationFromTopic.
+func (c *Conn) subscriptionFromGroup(group *model.ConsumerGroupItem) *model.Subscription {
 	if group == nil {
 		return nil
 	}
@@ -103,7 +106,12 @@ func subscriptionFromGroup(group *model.ConsumerGroupItem) *model.Subscription {
 		AttrCluster:     group.Cluster,
 	}
 	if len(group.Subscriptions) > 0 {
-		if encoded, err := json.Marshal(group.Subscriptions); err == nil {
+		subscriptions := make([]model.GroupSubscription, len(group.Subscriptions))
+		for i, subscription := range group.Subscriptions {
+			subscription.Topic = c.unwrap(subscription.Topic)
+			subscriptions[i] = subscription
+		}
+		if encoded, err := json.Marshal(subscriptions); err == nil {
 			attributes[AttrSubscriptions] = string(encoded)
 		}
 	}
@@ -114,7 +122,7 @@ func subscriptionFromGroup(group *model.ConsumerGroupItem) *model.Subscription {
 	}
 
 	return &model.Subscription{
-		Ref:          model.SubscriptionRef{Namespace: group.Cluster, Name: group.Group},
+		Ref:          model.SubscriptionRef{Namespace: group.Cluster, Name: c.unwrap(group.Group)},
 		Status:       subscriptionStatusFrom(group.Status),
 		Members:      group.OnlineClients,
 		Destinations: group.TopicCount,

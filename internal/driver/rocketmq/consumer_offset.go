@@ -23,8 +23,8 @@ import (
 // deliberate uses, and refusing them here would be this layer deciding what an
 // operator meant.
 func (c *Conn) SetQueueOffset(ctx context.Context, request model.QueueOffsetRequest) error {
-	group := strings.TrimSpace(request.Subscription)
-	topic := strings.TrimSpace(request.Destination)
+	group := c.wrap(strings.TrimSpace(request.Subscription))
+	topic := c.wrap(strings.TrimSpace(request.Destination))
 	node := strings.TrimSpace(request.Node)
 	switch {
 	case group == "":

@@ -369,7 +369,8 @@
         "enableAcl": "启用 ACL",
         "authAcl": "ACL",
         "accessKey": "AccessKey",
-        "secretKey": "SecretKey"
+        "secretKey": "SecretKey",
+        "namespace": "命名空间"
       }
     },
     "kafka": {
@@ -793,7 +794,9 @@
           "advanced": "高级",
           "timeout": "请求超时",
           "timeoutHint": "秒 · 留空用设置里的值",
-          "instanceId": "实例 ID（公有云）",
+          "namespace": "命名空间",
+          "namespaceHint": "RocketMQ 5.x，公有云填实例 ID",
+          "namespaceInvalid": "命名空间只能包含字母、数字、下划线和短横线",
           "traceTopic": "消息轨迹 Topic",
           "tlsNote": "驱动库支持后开放",
           "note": "切到 4.x 时自动隐藏 Proxy 与 5.x 专属项",

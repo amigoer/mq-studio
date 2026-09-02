@@ -22,6 +22,12 @@ type ClientConfig struct {
 	EnableACL   bool
 	AccessKey   string
 	SecretKey   string
+
+	// Namespace scopes every topic and group this connection names. It is not
+	// a dial parameter: RocketMQ namespaces are a client-side naming
+	// convention, so it never reaches the admin library - the driver wraps the
+	// names it sends and unwraps the ones it shows. Empty means unscoped.
+	Namespace string
 }
 
 // ParseNameServers converts semicolon-, comma-, or whitespace-delimited addresses into a client address list.
@@ -67,9 +73,28 @@ func NewClientConfig(endpoints string, timeout time.Duration, enableACL bool, ac
 	return config, nil
 }
 
+// ValidateNamespace checks a namespace can be composed into a resource name.
+//
+// '%' is the separator RocketMQ joins with, so a namespace carrying one would
+// produce a name nothing could take apart again. The rest follows the broker's
+// own rule for a topic or group, ^[%|a-zA-Z0-9_-]+$, minus the separator.
+func ValidateNamespace(namespace string) error {
+	for _, r := range namespace {
+		switch {
+		case r >= 'a' && r <= 'z', r >= 'A' && r <= 'Z', r >= '0' && r <= '9', r == '_', r == '-', r == '|':
+		default:
+			return fmt.Errorf("Namespace 只能包含字母、数字、下划线和短横线: %q", namespace)
+		}
+	}
+	return nil
+}
+
 // Address renders the config's NameServers the way a profile writes them.
 func (c ClientConfig) Address() string { return strings.Join(c.NameServers, ";") }
 
+// options are the dial parameters. Namespace is deliberately absent: the admin
+// library has no namespace option, and adding one here would suggest the
+// library honours something it never sees.
 func (c ClientConfig) options() []admin.Option {
 	options := []admin.Option{
 		admin.WithNameServers(c.NameServers),

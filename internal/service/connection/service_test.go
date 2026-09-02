@@ -323,6 +323,51 @@ func TestSameSecretsComparesBothWays(t *testing.T) {
  * the truth: the form's test button probes the profile it was handed, so it
  * passes on the way in whatever the store then does with it.
  */
+// A RocketMQ namespace decides which topics and groups a connection can even
+// address, so losing it on the way to disk would leave a connection pointing
+// at the whole cluster with no sign that anything changed. The form's test
+// button probes the submitted profile rather than the stored one, so nothing
+// in the app would have caught that.
+func TestRocketMQNamespaceSurvivesAReload(t *testing.T) {
+	service := newTestService(t, nil)
+	input := model.ConnectionProfile{
+		Name:       "RocketMQ",
+		Kind:       model.KindRocketMQ,
+		Endpoints:  "ns-a:9876;ns-b:9876",
+		TimeoutSec: 5,
+		Options:    map[string]string{"namespace": "MQ_INST_1", "version": "5.x", "access": "ns"},
+	}
+
+	added, err := service.AddConnection(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	reopened := New(service.dataFilePath, fakeSettings{}, noopRuntime{})
+	stored, err := reopened.GetConnection(added.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := stored.Option("namespace"); got != "MQ_INST_1" {
+		t.Errorf("namespace after reload = %q, want MQ_INST_1", got)
+	}
+	// An unscoped connection is the common case and must stay unscoped: an
+	// empty option and a missing one both have to mean the whole cluster.
+	delete(input.Options, "namespace")
+	unscoped, err := service.AddConnection(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	reopened = New(service.dataFilePath, fakeSettings{}, noopRuntime{})
+	stored, err = reopened.GetConnection(unscoped.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := stored.Option("namespace"); got != "" {
+		t.Errorf("namespace after reload = %q, want empty", got)
+	}
+}
+
 func TestKafkaProfileSurvivesAReload(t *testing.T) {
 	service := newTestService(t, nil)
 	input := model.ConnectionProfile{
