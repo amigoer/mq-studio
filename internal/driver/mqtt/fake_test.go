@@ -100,7 +100,16 @@ func startBroker(t *testing.T, kind string, hook mochi.Hook, config any) (*mochi
 	if err := server.AddListener(listener); err != nil {
 		t.Fatalf("add listener: %v", err)
 	}
-	go func() { _ = server.Serve() }()
+	// Serve does not block: it starts the listeners, publishes mochi's own
+	// $SYS tree once, and returns. Running it here rather than in a goroutine
+	// is what puts that publish before anything a test writes. In a goroutine
+	// it lands at an arbitrary moment, and a test writing Mosquitto's key
+	// names loses whichever of the two dozen names the brokers share had
+	// already been written - a different subset every run, because a map is
+	// walked in a different order every time.
+	if err := server.Serve(); err != nil {
+		t.Fatalf("serve: %v", err)
+	}
 	t.Cleanup(func() { _ = server.Close() })
 
 	address := listener.Address()
