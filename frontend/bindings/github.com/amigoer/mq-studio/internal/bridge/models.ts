@@ -1551,6 +1551,371 @@ export class PublishInput {
 }
 
 /**
+ * PulsarGrantInput is a grant as the Tokens board collects it.
+ * 
+ * Configure is namespace-only: functions, sinks and packages are deployed into
+ * a namespace and not into a topic, so a topic grant is produce and consume.
+ */
+export class PulsarGrantInput {
+    /**
+     * Namespace is "tenant/namespace". Blank means the connection's own.
+     */
+    "namespace": string;
+
+    /**
+     * Topic narrows the grant to one topic. Blank grants the namespace.
+     */
+    "topic": string;
+    "role": string;
+    "configure": boolean;
+    "write": boolean;
+    "read": boolean;
+
+    /** Creates a new PulsarGrantInput instance. */
+    constructor($$source: Partial<PulsarGrantInput> = {}) {
+        if (!("namespace" in $$source)) {
+            this["namespace"] = "";
+        }
+        if (!("topic" in $$source)) {
+            this["topic"] = "";
+        }
+        if (!("role" in $$source)) {
+            this["role"] = "";
+        }
+        if (!("configure" in $$source)) {
+            this["configure"] = false;
+        }
+        if (!("write" in $$source)) {
+            this["write"] = false;
+        }
+        if (!("read" in $$source)) {
+            this["read"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new PulsarGrantInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): PulsarGrantInput {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new PulsarGrantInput($$parsedSource as Partial<PulsarGrantInput>);
+    }
+}
+
+/**
+ * PulsarNamespaceInput creates a namespace.
+ * 
+ * Only a name, because that is all Pulsar takes: a namespace is created empty
+ * and its policies are set afterwards, one call each. A form that collected
+ * them here would have to either apply them in a second round the user cannot
+ * see fail, or pretend the create carried them.
+ */
+export class PulsarNamespaceInput {
+    /**
+     * Name may be bare or already tenant-qualified. A bare one is created
+     * under the tenant this connection is scoped to.
+     */
+    "name": string;
+
+    /** Creates a new PulsarNamespaceInput instance. */
+    constructor($$source: Partial<PulsarNamespaceInput> = {}) {
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new PulsarNamespaceInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): PulsarNamespaceInput {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new PulsarNamespaceInput($$parsedSource as Partial<PulsarNamespaceInput>);
+    }
+}
+
+/**
+ * PulsarPublishInput is a send as the Pulsar console collects it.
+ * 
+ * Deliberately not model.PublishRequest, which is AMQP: an exchange, a routing
+ * key and a mandatory flag, none of which this family has. What Pulsar does
+ * have - an ordering key, an event time, a delivery delay and arbitrary
+ * properties - has no field there.
+ */
+export class PulsarPublishInput {
+    /**
+     * Topic is a full URL, which is how a Pulsar topic is addressed.
+     */
+    "topic": string;
+
+    /**
+     * Key is what the broker partitions and compacts by.
+     */
+    "key": string;
+
+    /**
+     * OrderingKey orders delivery independently of the key, which is how a
+     * Key_Shared subscription keeps related messages on one consumer without
+     * forcing them onto one partition.
+     */
+    "orderingKey": string;
+    "properties": { [_ in string]?: string };
+    "body": string;
+
+    /**
+     * DeliverAfterMs holds the message back. Milliseconds because that is what
+     * crosses a JSON bridge without a unit anybody has to remember; the driver
+     * takes a duration.
+     */
+    "deliverAfterMs": number;
+
+    /**
+     * EventTimeMs is when the producer says the event happened, as opposed to
+     * when the broker stores it. Zero leaves it unset rather than stamping
+     * 1970.
+     */
+    "eventTimeMs": number;
+
+    /**
+     * Count sends the same message more than once, which makes a repeat
+     * deliberate rather than a button pressed several times.
+     */
+    "count": number;
+
+    /** Creates a new PulsarPublishInput instance. */
+    constructor($$source: Partial<PulsarPublishInput> = {}) {
+        if (!("topic" in $$source)) {
+            this["topic"] = "";
+        }
+        if (!("key" in $$source)) {
+            this["key"] = "";
+        }
+        if (!("orderingKey" in $$source)) {
+            this["orderingKey"] = "";
+        }
+        if (!("properties" in $$source)) {
+            this["properties"] = {};
+        }
+        if (!("body" in $$source)) {
+            this["body"] = "";
+        }
+        if (!("deliverAfterMs" in $$source)) {
+            this["deliverAfterMs"] = 0;
+        }
+        if (!("eventTimeMs" in $$source)) {
+            this["eventTimeMs"] = 0;
+        }
+        if (!("count" in $$source)) {
+            this["count"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new PulsarPublishInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): PulsarPublishInput {
+        const $$createField3_0 = $$createType9;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("properties" in $$parsedSource) {
+            $$parsedSource["properties"] = $$createField3_0($$parsedSource["properties"]);
+        }
+        return new PulsarPublishInput($$parsedSource as Partial<PulsarPublishInput>);
+    }
+}
+
+/**
+ * PulsarPublishResult is what the broker acknowledged.
+ */
+export class PulsarPublishResult {
+    /**
+     * MessageIDs are in send order, in Pulsar's printed form, so each can be
+     * pasted straight into the browse box.
+     */
+    "messageIds": string[];
+
+    /** Creates a new PulsarPublishResult instance. */
+    constructor($$source: Partial<PulsarPublishResult> = {}) {
+        if (!("messageIds" in $$source)) {
+            this["messageIds"] = [];
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new PulsarPublishResult instance from a string or object.
+     */
+    static createFrom($$source: any = {}): PulsarPublishResult {
+        const $$createField0_0 = $$createType0;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("messageIds" in $$parsedSource) {
+            $$parsedSource["messageIds"] = $$createField0_0($$parsedSource["messageIds"]);
+        }
+        return new PulsarPublishResult($$parsedSource as Partial<PulsarPublishResult>);
+    }
+}
+
+/**
+ * PulsarTenantInput is a tenant as the form collects it.
+ */
+export class PulsarTenantInput {
+    "name": string;
+
+    /**
+     * AdminRoles are the roles allowed to administer this tenant's namespaces.
+     */
+    "adminRoles": string[];
+
+    /**
+     * AllowedClusters bounds where the tenant's namespaces may live. Empty
+     * means the cluster this connection is pointed at, which is what an
+     * operator who left the field alone meant.
+     */
+    "allowedClusters": string[];
+
+    /** Creates a new PulsarTenantInput instance. */
+    constructor($$source: Partial<PulsarTenantInput> = {}) {
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("adminRoles" in $$source)) {
+            this["adminRoles"] = [];
+        }
+        if (!("allowedClusters" in $$source)) {
+            this["allowedClusters"] = [];
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new PulsarTenantInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): PulsarTenantInput {
+        const $$createField1_0 = $$createType0;
+        const $$createField2_0 = $$createType0;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("adminRoles" in $$parsedSource) {
+            $$parsedSource["adminRoles"] = $$createField1_0($$parsedSource["adminRoles"]);
+        }
+        if ("allowedClusters" in $$parsedSource) {
+            $$parsedSource["allowedClusters"] = $$createField2_0($$parsedSource["allowedClusters"]);
+        }
+        return new PulsarTenantInput($$parsedSource as Partial<PulsarTenantInput>);
+    }
+}
+
+/**
+ * PulsarTenantView is a tenant as the tenants board draws it.
+ */
+export class PulsarTenantView {
+    "name": string;
+    "adminRoles": string[];
+    "allowedClusters": string[];
+
+    /**
+     * Namespaces is -1 when this credential could not list them, which happens
+     * for every tenant but its own on a connection that is not a superuser.
+     */
+    "namespaces": number;
+
+    /** Creates a new PulsarTenantView instance. */
+    constructor($$source: Partial<PulsarTenantView> = {}) {
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("adminRoles" in $$source)) {
+            this["adminRoles"] = [];
+        }
+        if (!("allowedClusters" in $$source)) {
+            this["allowedClusters"] = [];
+        }
+        if (!("namespaces" in $$source)) {
+            this["namespaces"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new PulsarTenantView instance from a string or object.
+     */
+    static createFrom($$source: any = {}): PulsarTenantView {
+        const $$createField1_0 = $$createType0;
+        const $$createField2_0 = $$createType0;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("adminRoles" in $$parsedSource) {
+            $$parsedSource["adminRoles"] = $$createField1_0($$parsedSource["adminRoles"]);
+        }
+        if ("allowedClusters" in $$parsedSource) {
+            $$parsedSource["allowedClusters"] = $$createField2_0($$parsedSource["allowedClusters"]);
+        }
+        return new PulsarTenantView($$parsedSource as Partial<PulsarTenantView>);
+    }
+}
+
+/**
+ * PulsarTopicInput is a topic declaration as the Pulsar form collects it.
+ * 
+ * Deliberately not TopicService.Create's shape. That one takes a broker
+ * address, a read queue count, a write queue count and a permission string,
+ * which is RocketMQ's vocabulary: a Pulsar topic has none of those. It has a
+ * namespace, a name, a partition count and a storage kind.
+ */
+export class PulsarTopicInput {
+    /**
+     * Namespace is "tenant/namespace". Blank means the one this connection is
+     * scoped to, which is what the form's cascade starts on.
+     */
+    "namespace": string;
+    "name": string;
+
+    /**
+     * Partitions of 0 is a non-partitioned topic, which is a different object
+     * from one with a single partition - the second is addressed as
+     * name-partition-0 and can grow, the first can never be partitioned.
+     */
+    "partitions": number;
+
+    /**
+     * Persistent chooses the storage. A non-persistent topic keeps nothing on
+     * disk: a message nobody is connected to receive is dropped.
+     */
+    "persistent": boolean;
+
+    /** Creates a new PulsarTopicInput instance. */
+    constructor($$source: Partial<PulsarTopicInput> = {}) {
+        if (!("namespace" in $$source)) {
+            this["namespace"] = "";
+        }
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("partitions" in $$source)) {
+            this["partitions"] = 0;
+        }
+        if (!("persistent" in $$source)) {
+            this["persistent"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new PulsarTopicInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): PulsarTopicInput {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new PulsarTopicInput($$parsedSource as Partial<PulsarTopicInput>);
+    }
+}
+
+/**
  * QueueInput is a queue declaration as the form collects it.
  * 
  * Nothing like TopicInput, and it should not be: a RocketMQ topic is read and

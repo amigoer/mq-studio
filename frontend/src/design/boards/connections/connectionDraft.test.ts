@@ -3,10 +3,12 @@ import { AuthMechanism, MQKind } from "@/api/connection";
 import type { Connection as ConnectionProfile } from "@/api/models";
 import {
   emptyKafkaDraft,
+  emptyPulsarDraft,
   emptyRabbitMQDraft,
   emptyRedisDraft,
   emptyRocketMQDraft,
   type KafkaDraft,
+  type PulsarDraft,
   type RabbitMQDraft,
   type RedisDraft,
   type RocketMQDraft,
@@ -16,6 +18,7 @@ import { emptyDraft, isDraftable, toDraft, toSubmission, type ProtocolDraft } fr
 const rocketmq = (value: RocketMQDraft): ProtocolDraft => ({ protocol: "rocketmq", value });
 const rabbitmq = (value: RabbitMQDraft): ProtocolDraft => ({ protocol: "rabbitmq", value });
 const kafka = (value: KafkaDraft): ProtocolDraft => ({ protocol: "kafka", value });
+const pulsar = (value: PulsarDraft): ProtocolDraft => ({ protocol: "pulsar", value });
 const redis = (value: RedisDraft): ProtocolDraft => ({ protocol: "redis", value });
 
 /**
@@ -440,9 +443,169 @@ describe("the Kafka connection draft", () => {
   });
 });
 
+/**
+ * Pulsar stores one secret, and the switch that turns it off has to mean it.
+ *
+ * The two addresses are the other half: they are separate listeners, routinely
+ * behind separate ingresses, and neither is derived from the other. A
+ * submission that dropped one would produce a connection that dials a broker
+ * it can never administer, or administers a cluster it can never publish to.
+ */
+describe("the Pulsar connection draft", () => {
+  const newConnection = () => ({
+    ...emptyPulsarDraft(),
+    name: "  pulsar-orders  ",
+    service: "  pulsar://broker:6650  ",
+    admin: "  http://broker:8080  ",
+    tenant: "  ecommerce  ",
+    namespace: "  orders  ",
+  });
+
+  it("trims what the user typed and names the family", () => {
+    const { draft } = toSubmission(pulsar(newConnection()));
+    expect(draft.name).toBe("pulsar-orders");
+    expect(draft.kind).toBe(MQKind.KindPulsar);
+    // The broker's own address is the connection's endpoints; the admin API
+    // is a second address beside it.
+    expect(draft.endpoints).toBe("pulsar://broker:6650");
+    expect(draft.options.adminUrl).toBe("http://broker:8080");
+    expect(draft.options.tenant).toBe("ecommerce");
+    expect(draft.options.namespace).toBe("orders");
+  });
+
+  it("leaves authentication off until Token is chosen", () => {
+    const submission = toSubmission(pulsar(newConnection()));
+    expect(submission.draft.authMechanism).toBe(AuthMechanism.AuthNone);
+    expect(submission.draft.secrets).toEqual({ token: "" });
+  });
+
+  it("carries the token once Token is chosen", () => {
+    const submission = toSubmission(
+      pulsar({ ...newConnection(), auth: "token", token: "  a-jwt  " }),
+    );
+    expect(submission.draft.authMechanism).toBe(AuthMechanism.AuthToken);
+    expect(submission.draft.secrets).toEqual({ token: "a-jwt" });
+    expect(submission.credentialsMode).toBe("replace");
+  });
+
+  it("keeps a stored token when an edit leaves the field blank", () => {
+    const submission = toSubmission(
+      pulsar({ ...newConnection(), auth: "token", credentialsStored: true }),
+    );
+    // Editing only the namespace must not submit a blank over the token.
+    expect(submission.credentialsMode).toBe("preserve");
+  });
+
+  /*
+   * Turning authentication off clears the stored token.
+   *
+   * Preserving it would leave a credential nobody can see attached to a
+   * connection that says it authenticates with nothing - and it would come
+   * back the day someone re-selects Token, without ever being shown.
+   */
+  it("clears the stored token when authentication is switched off", () => {
+    const submission = toSubmission(
+      pulsar({ ...newConnection(), auth: "none", credentialsStored: true }),
+    );
+    expect(submission.draft.authMechanism).toBe(AuthMechanism.AuthNone);
+    expect(submission.draft.secrets).toEqual({ token: "" });
+    expect(submission.credentialsMode).toBe("clear");
+  });
+
+  it("clears it on request even while Token is selected", () => {
+    const submission = toSubmission(
+      pulsar({
+        ...newConnection(),
+        auth: "token",
+        credentialsStored: true,
+        clearCredentials: true,
+      }),
+    );
+    expect(submission.credentialsMode).toBe("clear");
+  });
+
+  // TLS settings that are stored while TLS is off come back the day someone
+  // turns it on, without being shown. The submission drops them instead.
+  it("does not store TLS settings while TLS is off", () => {
+    const submission = toSubmission(
+      pulsar({ ...newConnection(), tls: false, tlsCaFile: "/etc/pulsar/ca.pem", tlsSkipVerify: true }),
+    );
+    expect(submission.draft.options.tlsCaFile).toBe("");
+    expect(submission.draft.options.tlsSkipVerify).toBe("false");
+  });
+
+  it("reads a stored profile back into the form it came from", () => {
+    const profile = {
+      id: 11,
+      name: "pulsar-orders",
+      group: "prod",
+      kind: MQKind.KindPulsar,
+      endpoints: "pulsar+ssl://broker:6651",
+      timeoutSec: 9,
+      authMechanism: AuthMechanism.AuthToken,
+      options: {
+        adminUrl: "https://broker:8443",
+        tenant: "ecommerce",
+        namespace: "orders",
+        tls: "true",
+        tlsCaFile: "/etc/pulsar/ca.pem",
+        tlsSkipVerify: "true",
+      },
+      secretsConfigured: ["token"],
+      remark: "orders cluster",
+    } as unknown as ConnectionProfile;
+
+    const draft = toDraft(profile);
+    expect(draft.protocol).toBe("pulsar");
+    if (draft.protocol !== "pulsar") return;
+    expect(draft.value).toMatchObject({
+      name: "pulsar-orders",
+      service: "pulsar+ssl://broker:6651",
+      admin: "https://broker:8443",
+      tenant: "ecommerce",
+      namespace: "orders",
+      auth: "token",
+      tls: true,
+      tlsCaFile: "/etc/pulsar/ca.pem",
+      tlsSkipVerify: true,
+      credentialsStored: true,
+    });
+    // A stored token never comes back, and a form that showed one would be
+    // showing something it cannot submit.
+    expect(draft.value.token).toBe("");
+  });
+
+  /*
+   * A profile that authenticates with nothing has no credential to keep,
+   * whatever is still sitting in the secret store.
+   *
+   * Reading it as stored would open the form on a token nobody can see, and
+   * the next save would preserve a credential the connection does not use.
+   */
+  it("does not report a stored token on a profile that authenticates with none", () => {
+    const profile = {
+      id: 12,
+      name: "pulsar-open",
+      group: "",
+      kind: MQKind.KindPulsar,
+      endpoints: "pulsar://broker:6650",
+      timeoutSec: 5,
+      authMechanism: AuthMechanism.AuthNone,
+      options: { adminUrl: "http://broker:8080" },
+      secretsConfigured: ["token"],
+      remark: "",
+    } as unknown as ConnectionProfile;
+
+    const draft = toDraft(profile);
+    if (draft.protocol !== "pulsar") throw new Error("expected a pulsar draft");
+    expect(draft.value.auth).toBe("none");
+    expect(draft.value.credentialsStored).toBe(false);
+  });
+});
+
 describe("the draft registry", () => {
   it("has an empty draft for every protocol it claims to handle", () => {
-    for (const protocol of ["rocketmq", "rabbitmq", "kafka", "redis"] as const) {
+    for (const protocol of ["rocketmq", "rabbitmq", "kafka", "pulsar", "redis"] as const) {
       expect(isDraftable(protocol)).toBe(true);
       expect(emptyDraft(protocol).protocol).toBe(protocol);
     }
@@ -451,7 +614,7 @@ describe("the draft registry", () => {
   // The picker gates on this: a tile whose form cannot be built must not open
   // one, which is what disabling it is for.
   it("does not claim protocols with no form", () => {
-    for (const protocol of ["pulsar", "mqtt"] as const) {
+    for (const protocol of ["mqtt"] as const) {
       expect(isDraftable(protocol)).toBe(false);
     }
   });

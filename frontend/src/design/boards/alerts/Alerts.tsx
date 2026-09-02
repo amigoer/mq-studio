@@ -24,6 +24,9 @@ const SEVERITY_TONE: Record<AlertSeverity, StatusTone> = {
 /** What a rule fires as, so its row reads at the weight it will arrive at. */
 const RULE_SEVERITY: Record<AlertRuleKey, AlertSeverity> = {
   brokerOffline: "crit",
+  // A blocked Pulsar subscription is an outage for whoever reads it: the
+  // broker has stopped delivering, and no consumer will catch up.
+  subscriptionBlocked: "crit",
   groupOffline: "crit",
   groupLag: "warn",
   diskUsage: "warn",

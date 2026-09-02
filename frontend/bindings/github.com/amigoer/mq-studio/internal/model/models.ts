@@ -1692,6 +1692,17 @@ export class DeadLetterSource {
     "queue": string;
 
     /**
+     * Subscription is which reader of the source queue dead-lettered, where
+     * the family attaches the policy to a subscriber rather than to the queue.
+     * A Pulsar dead-letter topic is named "<topic>-<subscription>-DLQ", so
+     * without this the page could name the topic and not who gave up on it -
+     * and one topic read by five subscriptions has five separate answers.
+     * 
+     * Empty on RabbitMQ, where the policy belongs to the queue itself.
+     */
+    "subscription": string;
+
+    /**
      * Exchange is what the source queue was declared to dead-letter through.
      */
     "exchange": string;
@@ -1707,6 +1718,9 @@ export class DeadLetterSource {
     constructor($$source: Partial<DeadLetterSource> = {}) {
         if (!("queue" in $$source)) {
             this["queue"] = "";
+        }
+        if (!("subscription" in $$source)) {
+            this["subscription"] = "";
         }
         if (!("exchange" in $$source)) {
             this["exchange"] = "";

@@ -8,6 +8,7 @@ import (
 	"github.com/amigoer/mq-studio/internal/crypto"
 	"github.com/amigoer/mq-studio/internal/driver"
 	"github.com/amigoer/mq-studio/internal/driver/kafka"
+	"github.com/amigoer/mq-studio/internal/driver/pulsar"
 	"github.com/amigoer/mq-studio/internal/driver/rabbitmq"
 	"github.com/amigoer/mq-studio/internal/driver/redisstream"
 	"github.com/amigoer/mq-studio/internal/driver/rocketmq"
@@ -19,6 +20,7 @@ import (
 	"github.com/amigoer/mq-studio/internal/service/destination"
 	kafkaservice "github.com/amigoer/mq-studio/internal/service/kafka"
 	"github.com/amigoer/mq-studio/internal/service/message"
+	pulsarservice "github.com/amigoer/mq-studio/internal/service/pulsar"
 	rabbitmqservice "github.com/amigoer/mq-studio/internal/service/rabbitmq"
 	redisstreamservice "github.com/amigoer/mq-studio/internal/service/redisstream"
 	"github.com/amigoer/mq-studio/internal/service/routing"
@@ -39,6 +41,7 @@ type Services struct {
 	Routing     *routing.Service
 	RabbitMQ    *rabbitmqservice.Service
 	Kafka       *kafkaservice.Service
+	Pulsar      *pulsarservice.Service
 	RedisStream *redisstreamservice.Service
 
 	// Conns resolves a profile id to a live connection. The bridge needs it to
@@ -67,6 +70,7 @@ func New() (*Services, error) {
 	driver.Register(rocketmq.New())
 	driver.Register(rabbitmq.New())
 	driver.Register(kafka.New())
+	driver.Register(pulsar.New())
 	driver.Register(redisstream.New())
 
 	registry := driver.NewRegistry()
@@ -86,6 +90,7 @@ func New() (*Services, error) {
 		Routing:     routing.New(conns, settingsService),
 		RabbitMQ:    rabbitmqservice.New(conns, settingsService),
 		Kafka:       kafkaservice.New(conns, settingsService),
+		Pulsar:      pulsarservice.New(conns, settingsService),
 		RedisStream: redisstreamservice.New(conns, settingsService),
 		Conns:       conns,
 		Collector:   collector.New(sampleActiveConnection(clusterService, registry), registry.HasActive),

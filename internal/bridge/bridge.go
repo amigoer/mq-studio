@@ -41,6 +41,7 @@ func Services(
 		application.NewService(&RoutingService{service: services.Routing}),
 		application.NewService(&RabbitMQService{service: services.RabbitMQ}),
 		application.NewService(&KafkaService{service: services.Kafka}),
+		application.NewService(&PulsarService{service: services.Pulsar}),
 		application.NewService(&RedisStreamService{service: services.RedisStream}),
 		// Wails' own service, registered rather than wrapped: it is a platform
 		// capability like WindowService, not business data to reshape. On macOS

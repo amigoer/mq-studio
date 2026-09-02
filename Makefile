@@ -12,6 +12,7 @@ ARCH ?=
 	e2e-rabbitmq-plain-up e2e-rabbitmq-plain-down \
 	e2e-kafka-up e2e-kafka-seed e2e-kafka-down \
 	e2e-kafka-secure-up e2e-kafka-secure-down \
+	e2e-pulsar-up e2e-pulsar-seed e2e-pulsar-down \
 	e2e-redis-up e2e-redis-seed e2e-redis-down \
 	e2e-redis-cluster-up e2e-redis-cluster-down \
 	check ci clean \
@@ -100,6 +101,14 @@ e2e-kafka-secure-up: ## Start the SASL and authorizer Kafka used by the access-c
 e2e-kafka-secure-down: ## Stop the secure Kafka environment
 	npm run e2e:kafka:secure:down
 
+e2e-pulsar-up: ## Start the Pulsar E2E environment
+	npm run e2e:pulsar:up
+
+e2e-pulsar-seed: ## Seed the Pulsar E2E environment for the cross-check
+	npm run e2e:pulsar:seed
+
+e2e-pulsar-down: ## Stop the Pulsar E2E environment
+	npm run e2e:pulsar:down
 e2e-redis-up: ## Start the ACL-enabled Redis the live tests use
 	npm run e2e:redis:up
 
