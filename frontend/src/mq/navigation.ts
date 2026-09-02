@@ -31,11 +31,12 @@ const requires: Record<string, Capability | Capability[]> = {
   // query, so the page needs its own capability rather than borrowing one
   // that promises history. No other family draws this entry.
   subscribe: Capability.CapLiveStream,
-  // Three, because three families answer this page by three different means.
-  // RocketMQ reads a dead-letter topic per consumer group; RabbitMQ walks the
-  // topology to find the queues something else dead-letters into; Redis moves
-  // nothing at all and keeps, per group, a record of every delivery it has not
-  // had acknowledged. None can answer the page the others' way.
+  // Three means for four families, because none can answer the page another's
+  // way. RocketMQ reads a dead-letter topic per consumer group; RabbitMQ and
+  // Pulsar both go looking for what something else dead-letters into, the
+  // first through the topology and the second by the naming convention the
+  // client libraries use; Redis moves nothing at all and keeps, per group, a
+  // record of every delivery it has not had acknowledged.
   dlq: [
     Capability.CapDLQ,
     Capability.CapDeadLetterTopology,
@@ -54,12 +55,13 @@ const requires: Record<string, Capability | Capability[]> = {
   // entry whether or not its driver could answer it.
   clients: Capability.CapClientInspect,
   cluster: Capability.CapClusterTopology,
-  // Four, because four families answer this page by four different means.
+  // Five, because five families answer this page by five different means.
   // RocketMQ has a credential pair carrying its own permissions; RabbitMQ has
   // users whose tags and per-vhost permissions are two systems on one name;
   // Kafka has rules attached to a principal it may not even store; Redis puts
-  // the commands, the key patterns and the channel patterns all on the user.
-  // None can answer the page the others' way, and all four answer it.
+  // the commands, the key patterns and the channel patterns all on the user;
+  // Pulsar has grants and no principal store at all, for the reason below.
+  // None can answer the page the others' way, and all five answer it.
   acl: [
     Capability.CapAccessControl,
     Capability.CapIdentityList,
