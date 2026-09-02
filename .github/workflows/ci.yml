@@ -130,6 +130,18 @@ jobs:
       - name: Start the secure Kafka
         run: npm run e2e:kafka:secure:up
 
+      # ACL on rather than a bare password: the driver has a page for it, and
+      # a broker with no users to read would leave both the ACL board and the
+      # rejected-credentials path untested.
+      - name: Start Redis
+        run: npm run e2e:redis:up
+
+      # Six nodes. A single server cannot produce a CLUSTER NODES with more
+      # than one row, a slot that belongs to a node you did not ask, or a
+      # refused cross-slot command, and those are what the cluster board and
+      # the driver's per-key call shape exist for.
+      - name: Start the Redis cluster
+        run: npm run e2e:redis:cluster:up
       # Mosquitto has no management API at all and publishes a full $SYS tree.
       # It is the broker the degraded management path is asserted against, and
       # the only one either half of the $SYS reader can be checked on.

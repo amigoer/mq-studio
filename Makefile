@@ -12,6 +12,8 @@ ARCH ?=
 	e2e-rabbitmq-plain-up e2e-rabbitmq-plain-down \
 	e2e-kafka-up e2e-kafka-seed e2e-kafka-down \
 	e2e-kafka-secure-up e2e-kafka-secure-down \
+	e2e-redis-up e2e-redis-seed e2e-redis-down \
+	e2e-redis-cluster-up e2e-redis-cluster-down \
 	e2e-mqtt-up e2e-mqtt-down e2e-mqtt-emqx-up e2e-mqtt-emqx-down \
 	check ci clean \
 	website-dev website-build
@@ -99,6 +101,20 @@ e2e-kafka-secure-up: ## Start the SASL and authorizer Kafka used by the access-c
 e2e-kafka-secure-down: ## Stop the secure Kafka environment
 	npm run e2e:kafka:secure:down
 
+e2e-redis-up: ## Start the ACL-enabled Redis the live tests use
+	npm run e2e:redis:up
+
+e2e-redis-seed: ## Seed Redis with streams, groups and a pending entries list
+	npm run e2e:redis:seed
+
+e2e-redis-down: ## Stop the Redis environment and remove its volumes
+	npm run e2e:redis:down
+
+e2e-redis-cluster-up: ## Start the six-node Redis cluster used by the cluster tests
+	npm run e2e:redis:cluster:up
+
+e2e-redis-cluster-down: ## Stop the Redis cluster environment
+	npm run e2e:redis:cluster:down
 e2e-mqtt-up: ## Start the Mosquitto used by the protocol and $SYS live tests
 	npm run e2e:mqtt:up
 

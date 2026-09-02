@@ -63,6 +63,25 @@ type QueueActions interface {
 	RebalanceQueues(ctx context.Context) error
 }
 
+// StreamTrimmer discards entries from a destination that keeps a log.
+//
+// Separate from QueueActions because that is a queue's vocabulary - purge the
+// whole thing, move messages elsewhere, drop a batch from the head - and a log
+// has a different one. Trimming names a bound to keep rather than an amount to
+// remove, which is what lets the same call reclaim disk on a schedule and
+// empty a stream outright.
+//
+// It reports how many entries went, which is meaningful on every call and
+// necessary on an approximate one: only the count separates "kept a few extra
+// at a node boundary" from "matched nothing and did nothing".
+type StreamTrimmer interface {
+	Trim(ctx context.Context, request model.TrimRequest) (*model.TrimResult, error)
+	// DeleteEntries removes entries by id. The count is how many were there to
+	// remove, so a caller can tell a successful delete from a no-op on ids
+	// that had already gone.
+	DeleteEntries(ctx context.Context, ref model.DestinationRef, ids []string) (*model.TrimResult, error)
+}
+
 // DestinationStats reports per-partition read ranges. Families with no
 // partitions - RabbitMQ, MQTT - do not implement it.
 //
@@ -105,6 +124,17 @@ type SubscriptionRuntime interface {
 // different things: RabbitMQ reports a backlog but has no position to move.
 type ProgressAdmin interface {
 	ResetOffset(ctx context.Context, request model.ResetOffsetRequest) error
+}
+
+// StreamPositionAdmin moves a subscription to a named place in the log.
+//
+// Separate from ProgressAdmin because the two ask different questions.
+// ResetOffset names a moment and lets the broker work out where that lands;
+// this names the place itself, because in a log the position is an id and the
+// caller already has it - from the entry they were looking at, or from one of
+// the two the family spells specially.
+type StreamPositionAdmin interface {
+	SetSubscriptionPosition(ctx context.Context, request model.PositionRequest) error
 }
 
 // QueueProgressAdmin writes one queue's read position directly.
@@ -187,6 +217,39 @@ type DeadLetterReader interface {
 	ResendMessage(ctx context.Context, consumerGroup, clientID, topic, messageID string) (string, error)
 }
 
+// PendingEntryReader browses what a subscription has been handed and not
+// acknowledged, and who is holding it.
+//
+// A third way of answering the dead-letter page, and it has to be its own.
+// DeadLetterReader returns messages from a per-group dead-letter topic;
+// DeadLetterTopology finds the queues something else dead-letters into. Redis
+// has neither: nothing is moved and nothing is given up on, and what there is
+// instead is a delivery record per unacknowledged entry - an id, its owner,
+// how long they have held it and how many times it has been tried.
+//
+// The consumers come from here rather than from SubscriptionRuntime because
+// they are the same question at a different grain: who is holding what.
+type PendingEntryReader interface {
+	PendingSummary(ctx context.Context, ref model.SubscriptionRef) (*model.PendingSummary, error)
+	PendingEntries(ctx context.Context, query model.PendingQuery) ([]*model.PendingEntry, error)
+	GroupConsumers(ctx context.Context, ref model.SubscriptionRef) ([]*model.GroupConsumer, error)
+}
+
+// PendingEntryActions settles or reassigns what a subscription is owed.
+//
+// Separate from reading it: taking work away from a consumer that is merely
+// slow is a different mistake from looking at a list, and acknowledging an
+// entry nobody processed discards it silently.
+type PendingEntryActions interface {
+	// AckEntries reports how many of the named ids were actually owed, which
+	// is not how many were asked for.
+	AckEntries(ctx context.Context, ref model.SubscriptionRef, ids []string) (*model.AckResult, error)
+	ClaimEntries(ctx context.Context, request model.ClaimRequest) (*model.ClaimResult, error)
+	// AutoClaim moves whatever has been idle too long without naming ids, and
+	// reports what it found gone as well as what it moved.
+	AutoClaim(ctx context.Context, request model.AutoClaimRequest) (*model.ClaimResult, error)
+}
+
 // DeadLetterTopology finds dead-letter queues by following the topology.
 //
 // Separate from DeadLetterReader because the two families disagree about what
@@ -226,6 +289,22 @@ type MessagePublisher interface {
 // and not one.
 type RichPublisher interface {
 	Publish(ctx context.Context, request model.PublishRequest) (*model.PublishResult, error)
+}
+
+// EntryPublisher writes an entry made of named fields.
+//
+// Separate from MessagePublisher and RichPublisher because a log entry is
+// neither of the things those send. MessagePublisher's signature is RocketMQ's
+// - a topic, tags, keys and a delay level - and RichPublisher's is AMQP's, an
+// exchange and routing key with a body and properties. An entry is an ordered
+// list of named fields with an optional explicit id, and there is nowhere in
+// either of the others to put that.
+//
+// It returns the ids the server assigned, because an id is the only handle on
+// an entry: without it a caller that has just written something cannot look it
+// up, delete it, or point a group at it.
+type EntryPublisher interface {
+	AddEntry(ctx context.Context, request model.StreamAddRequest) (*model.StreamAddResult, error)
 }
 
 // ProducerInspector reports who is currently publishing to a destination.
@@ -272,6 +351,17 @@ type ConfigInspector interface {
 	// discovery - a RocketMQ name server, a Kafka controller. Families with no
 	// separate discovery tier return an empty map rather than an error.
 	DirectoryConfig(ctx context.Context) (map[string]string, error)
+}
+
+// SlowLogReader reads the record a broker keeps of its slowest commands.
+//
+// Separate from ConfigInspector because it answers a different question:
+// settings are what a node is running with, this is what has actually been
+// slow on it. It is also the only view in this app of a single request rather
+// than of an aggregate, which is what makes it the thing to open when every
+// other figure looks healthy and the server still is not keeping up.
+type SlowLogReader interface {
+	SlowLog(ctx context.Context, address string, limit int) ([]*model.SlowLogEntry, error)
 }
 
 // TransactionInspector reports the transactional producers a cluster is
@@ -416,6 +506,26 @@ type AccessDirectory interface {
 	ListAccessRules(ctx context.Context) ([]*model.AccessRule, error)
 	PutAccessRule(ctx context.Context, rule model.AccessRule) error
 	RemoveAccessRule(ctx context.Context, subject string) error
+}
+
+// AclUserAdmin manages a family whose access control lives on the user.
+//
+// Separate from AccessAdmin and AccessDirectory because it is a third model
+// rather than a variation. AccessAdmin is a credential pair carrying its own
+// permissions and never read back; AccessDirectory is principals with rules
+// attached to a subject. Redis puts the command rules, the key patterns and
+// the channel patterns all on the user, and reads every one of them back.
+//
+// SaveAclUser replaces rather than merges. The server's own SETUSER is
+// additive, so an edit that removed a key pattern would leave it in place and
+// the form would be lying about what it saved.
+type AclUserAdmin interface {
+	ListAclUsers(ctx context.Context) ([]*model.AclUser, error)
+	SaveAclUser(ctx context.Context, spec model.AclUserSpec) error
+	RemoveAclUser(ctx context.Context, name string) error
+	// AclCategories are the command groups rules are written in terms of.
+	// They differ by server version, so they are read rather than listed here.
+	AclCategories(ctx context.Context) ([]string, error)
 }
 
 // ClientCloser disconnects a client from the broker.

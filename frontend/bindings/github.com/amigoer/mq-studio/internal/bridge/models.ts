@@ -180,6 +180,132 @@ export class AccessView {
 }
 
 /**
+ * AclUserInput is a user as the form collects it.
+ */
+export class AclUserInput {
+    "name": string;
+    "enabled": boolean;
+
+    /**
+     * Password is a new password. Empty keeps whatever is stored.
+     */
+    "password": string;
+
+    /**
+     * ClearPasswords leaves a user that cannot authenticate at all, which is
+     * the opposite of NoPassword rather than a milder form of it.
+     */
+    "clearPasswords": boolean;
+
+    /**
+     * NoPassword lets the user authenticate with anything.
+     */
+    "noPassword": boolean;
+    "keyPatterns": string[];
+    "channelPatterns": string[];
+    "commandRules": string[];
+
+    /** Creates a new AclUserInput instance. */
+    constructor($$source: Partial<AclUserInput> = {}) {
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("enabled" in $$source)) {
+            this["enabled"] = false;
+        }
+        if (!("password" in $$source)) {
+            this["password"] = "";
+        }
+        if (!("clearPasswords" in $$source)) {
+            this["clearPasswords"] = false;
+        }
+        if (!("noPassword" in $$source)) {
+            this["noPassword"] = false;
+        }
+        if (!("keyPatterns" in $$source)) {
+            this["keyPatterns"] = [];
+        }
+        if (!("channelPatterns" in $$source)) {
+            this["channelPatterns"] = [];
+        }
+        if (!("commandRules" in $$source)) {
+            this["commandRules"] = [];
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new AclUserInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): AclUserInput {
+        const $$createField5_0 = $$createType0;
+        const $$createField6_0 = $$createType0;
+        const $$createField7_0 = $$createType0;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("keyPatterns" in $$parsedSource) {
+            $$parsedSource["keyPatterns"] = $$createField5_0($$parsedSource["keyPatterns"]);
+        }
+        if ("channelPatterns" in $$parsedSource) {
+            $$parsedSource["channelPatterns"] = $$createField6_0($$parsedSource["channelPatterns"]);
+        }
+        if ("commandRules" in $$parsedSource) {
+            $$parsedSource["commandRules"] = $$createField7_0($$parsedSource["commandRules"]);
+        }
+        return new AclUserInput($$parsedSource as Partial<AclUserInput>);
+    }
+}
+
+/**
+ * AutoClaimInput moves whatever has been idle too long, without naming ids.
+ */
+export class AutoClaimInput {
+    "stream": string;
+    "group": string;
+    "consumer": string;
+    "minIdleMs": number;
+
+    /**
+     * Start is where to resume from when walking a long list. Empty starts at
+     * the beginning.
+     */
+    "start": string;
+    "count": number;
+
+    /** Creates a new AutoClaimInput instance. */
+    constructor($$source: Partial<AutoClaimInput> = {}) {
+        if (!("stream" in $$source)) {
+            this["stream"] = "";
+        }
+        if (!("group" in $$source)) {
+            this["group"] = "";
+        }
+        if (!("consumer" in $$source)) {
+            this["consumer"] = "";
+        }
+        if (!("minIdleMs" in $$source)) {
+            this["minIdleMs"] = 0;
+        }
+        if (!("start" in $$source)) {
+            this["start"] = "";
+        }
+        if (!("count" in $$source)) {
+            this["count"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new AutoClaimInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): AutoClaimInput {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new AutoClaimInput($$parsedSource as Partial<AutoClaimInput>);
+    }
+}
+
+/**
  * BindingInput describes one route.
  */
 export class BindingInput {
@@ -233,6 +359,60 @@ export class BindingInput {
             $$parsedSource["arguments"] = $$createField5_0($$parsedSource["arguments"]);
         }
         return new BindingInput($$parsedSource as Partial<BindingInput>);
+    }
+}
+
+/**
+ * ClaimInput moves named entries to another consumer.
+ */
+export class ClaimInput {
+    "stream": string;
+    "group": string;
+
+    /**
+     * Consumer is the new owner. It need not exist yet: claiming creates it,
+     * which is how a replacement worker takes over from a dead one.
+     */
+    "consumer": string;
+    "ids": string[];
+
+    /**
+     * MinIdleMs refuses to move anything touched more recently than this. Zero
+     * moves regardless, which is a choice rather than a default.
+     */
+    "minIdleMs": number;
+
+    /** Creates a new ClaimInput instance. */
+    constructor($$source: Partial<ClaimInput> = {}) {
+        if (!("stream" in $$source)) {
+            this["stream"] = "";
+        }
+        if (!("group" in $$source)) {
+            this["group"] = "";
+        }
+        if (!("consumer" in $$source)) {
+            this["consumer"] = "";
+        }
+        if (!("ids" in $$source)) {
+            this["ids"] = [];
+        }
+        if (!("minIdleMs" in $$source)) {
+            this["minIdleMs"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ClaimInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ClaimInput {
+        const $$createField3_0 = $$createType0;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("ids" in $$parsedSource) {
+            $$parsedSource["ids"] = $$createField3_0($$parsedSource["ids"]);
+        }
+        return new ClaimInput($$parsedSource as Partial<ClaimInput>);
     }
 }
 
@@ -552,6 +732,60 @@ export class DriverInfo {
 }
 
 /**
+ * EntryInput is an entry as the send console collects it.
+ * 
+ * The fields are a list rather than an object because XADD takes an ordered
+ * one and the order is the producer's. A JSON object would arrive with
+ * whatever order the renderer's serialiser chose.
+ */
+export class EntryInput {
+    "stream": string;
+    "fields": model$0.StreamField[];
+
+    /**
+     * ID is an explicit entry id. Empty lets the server assign one, which is
+     * what almost every producer does.
+     */
+    "id": string;
+
+    /**
+     * Count writes the same entry more than once, for filling a stream to try
+     * a consumer against.
+     */
+    "count": number;
+
+    /** Creates a new EntryInput instance. */
+    constructor($$source: Partial<EntryInput> = {}) {
+        if (!("stream" in $$source)) {
+            this["stream"] = "";
+        }
+        if (!("fields" in $$source)) {
+            this["fields"] = [];
+        }
+        if (!("id" in $$source)) {
+            this["id"] = "";
+        }
+        if (!("count" in $$source)) {
+            this["count"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new EntryInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): EntryInput {
+        const $$createField1_0 = $$createType16;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("fields" in $$parsedSource) {
+            $$parsedSource["fields"] = $$createField1_0($$parsedSource["fields"]);
+        }
+        return new EntryInput($$parsedSource as Partial<EntryInput>);
+    }
+}
+
+/**
  * ExchangeInput is an exchange declaration as the form collects it.
  */
 export class ExchangeInput {
@@ -592,6 +826,48 @@ export class ExchangeInput {
     static createFrom($$source: any = {}): ExchangeInput {
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         return new ExchangeInput($$parsedSource as Partial<ExchangeInput>);
+    }
+}
+
+/**
+ * GroupInput is a consumer group as the form collects it.
+ * 
+ * The stream is a field rather than part of the name because a group's name is
+ * unique only within its stream: two streams may each hold a "settle-group"
+ * and they are unrelated objects.
+ */
+export class GroupInput {
+    "stream": string;
+    "group": string;
+
+    /**
+     * StartID is where the group begins reading: "0" for everything the stream
+     * still holds, "$" for only what arrives next. Empty means "$", which is
+     * the answer that cannot flood a consumer with history.
+     */
+    "startId": string;
+
+    /** Creates a new GroupInput instance. */
+    constructor($$source: Partial<GroupInput> = {}) {
+        if (!("stream" in $$source)) {
+            this["stream"] = "";
+        }
+        if (!("group" in $$source)) {
+            this["group"] = "";
+        }
+        if (!("startId" in $$source)) {
+            this["startId"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new GroupInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): GroupInput {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new GroupInput($$parsedSource as Partial<GroupInput>);
     }
 }
 
@@ -745,8 +1021,8 @@ export class LogDirView {
      * Creates a new LogDirView instance from a string or object.
      */
     static createFrom($$source: any = {}): LogDirView {
-        const $$createField0_0 = $$createType17;
-        const $$createField1_0 = $$createType20;
+        const $$createField0_0 = $$createType19;
+        const $$createField1_0 = $$createType22;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("dirs" in $$parsedSource) {
             $$parsedSource["dirs"] = $$createField0_0($$parsedSource["dirs"]);
@@ -909,7 +1185,7 @@ export class MQTTSubscribeInput {
      * Creates a new MQTTSubscribeInput instance from a string or object.
      */
     static createFrom($$source: any = {}): MQTTSubscribeInput {
-        const $$createField0_0 = $$createType22;
+        const $$createField0_0 = $$createType24;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("filters" in $$parsedSource) {
             $$parsedSource["filters"] = $$createField0_0($$parsedSource["filters"]);
@@ -1162,12 +1438,61 @@ export class OffsetResetInput {
      * Creates a new OffsetResetInput instance from a string or object.
      */
     static createFrom($$source: any = {}): OffsetResetInput {
-        const $$createField2_0 = $$createType23;
+        const $$createField2_0 = $$createType25;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("partitions" in $$parsedSource) {
             $$parsedSource["partitions"] = $$createField2_0($$parsedSource["partitions"]);
         }
         return new OffsetResetInput($$parsedSource as Partial<OffsetResetInput>);
+    }
+}
+
+/**
+ * PendingQueryInput narrows a pending listing as the board collects it.
+ */
+export class PendingQueryInput {
+    "stream": string;
+    "group": string;
+
+    /**
+     * Consumer narrows to one consumer's share. Empty is all of them.
+     */
+    "consumer": string;
+
+    /**
+     * MinIdleMs narrows to entries nothing has touched for at least this long,
+     * which is how the ones worth acting on are found.
+     */
+    "minIdleMs": number;
+    "count": number;
+
+    /** Creates a new PendingQueryInput instance. */
+    constructor($$source: Partial<PendingQueryInput> = {}) {
+        if (!("stream" in $$source)) {
+            this["stream"] = "";
+        }
+        if (!("group" in $$source)) {
+            this["group"] = "";
+        }
+        if (!("consumer" in $$source)) {
+            this["consumer"] = "";
+        }
+        if (!("minIdleMs" in $$source)) {
+            this["minIdleMs"] = 0;
+        }
+        if (!("count" in $$source)) {
+            this["count"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new PendingQueryInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): PendingQueryInput {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new PendingQueryInput($$parsedSource as Partial<PendingQueryInput>);
     }
 }
 
@@ -1513,7 +1838,7 @@ export class QuotaView {
      * Creates a new QuotaView instance from a string or object.
      */
     static createFrom($$source: any = {}): QuotaView {
-        const $$createField0_0 = $$createType26;
+        const $$createField0_0 = $$createType28;
         const $$createField1_0 = $$createType0;
         const $$createField2_0 = $$createType0;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
@@ -2299,12 +2624,71 @@ export class TransactionView {
      * Creates a new TransactionView instance from a string or object.
      */
     static createFrom($$source: any = {}): TransactionView {
-        const $$createField0_0 = $$createType29;
+        const $$createField0_0 = $$createType31;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("transactions" in $$parsedSource) {
             $$parsedSource["transactions"] = $$createField0_0($$parsedSource["transactions"]);
         }
         return new TransactionView($$parsedSource as Partial<TransactionView>);
+    }
+}
+
+/**
+ * TrimInput is a trim as the dialog collects it.
+ * 
+ * The strategy is a string rather than two methods because it is one command
+ * with two ways of naming a bound, and a page that had to pick an endpoint
+ * before the user picked a strategy would be the wrong shape.
+ */
+export class TrimInput {
+    "stream": string;
+    "strategy": string;
+
+    /**
+     * MaxLen is how many of the newest entries to keep, for the maxlen
+     * strategy. Zero empties the stream and keeps the key, its groups and
+     * their positions.
+     */
+    "maxLen": number;
+
+    /**
+     * MinID is the lowest entry id to keep, for the minid strategy.
+     */
+    "minId": string;
+
+    /**
+     * Approx lets the server stop at a node boundary. The stream then keeps at
+     * least what was asked and possibly a little more, never less.
+     */
+    "approx": boolean;
+
+    /** Creates a new TrimInput instance. */
+    constructor($$source: Partial<TrimInput> = {}) {
+        if (!("stream" in $$source)) {
+            this["stream"] = "";
+        }
+        if (!("strategy" in $$source)) {
+            this["strategy"] = "";
+        }
+        if (!("maxLen" in $$source)) {
+            this["maxLen"] = 0;
+        }
+        if (!("minId" in $$source)) {
+            this["minId"] = "";
+        }
+        if (!("approx" in $$source)) {
+            this["approx"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new TrimInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): TrimInput {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new TrimInput($$parsedSource as Partial<TrimInput>);
     }
 }
 
@@ -2324,18 +2708,20 @@ const $$createType11 = model$0.Node.createFrom;
 const $$createType12 = $Create.Nullable($$createType11);
 const $$createType13 = $Create.Array($$createType12);
 const $$createType14 = $Create.Map($Create.Any, $Create.Any);
-const $$createType15 = model$0.LogDirSummary.createFrom;
-const $$createType16 = $Create.Nullable($$createType15);
-const $$createType17 = $Create.Array($$createType16);
-const $$createType18 = model$0.LogDirPartition.createFrom;
-const $$createType19 = $Create.Nullable($$createType18);
-const $$createType20 = $Create.Array($$createType19);
-const $$createType21 = MQTTFilterInput.createFrom;
+const $$createType15 = model$0.StreamField.createFrom;
+const $$createType16 = $Create.Array($$createType15);
+const $$createType17 = model$0.LogDirSummary.createFrom;
+const $$createType18 = $Create.Nullable($$createType17);
+const $$createType19 = $Create.Array($$createType18);
+const $$createType20 = model$0.LogDirPartition.createFrom;
+const $$createType21 = $Create.Nullable($$createType20);
 const $$createType22 = $Create.Array($$createType21);
-const $$createType23 = $Create.Array($Create.Any);
-const $$createType24 = model$0.ClientQuota.createFrom;
-const $$createType25 = $Create.Nullable($$createType24);
-const $$createType26 = $Create.Array($$createType25);
-const $$createType27 = model$0.Transaction.createFrom;
-const $$createType28 = $Create.Nullable($$createType27);
-const $$createType29 = $Create.Array($$createType28);
+const $$createType23 = MQTTFilterInput.createFrom;
+const $$createType24 = $Create.Array($$createType23);
+const $$createType25 = $Create.Array($Create.Any);
+const $$createType26 = model$0.ClientQuota.createFrom;
+const $$createType27 = $Create.Nullable($$createType26);
+const $$createType28 = $Create.Array($$createType27);
+const $$createType29 = model$0.Transaction.createFrom;
+const $$createType30 = $Create.Nullable($$createType29);
+const $$createType31 = $Create.Array($$createType30);

@@ -10,6 +10,7 @@ import * as KafkaService from "./kafkaservice.js";
 import * as MQTTService from "./mqttservice.js";
 import * as MessageService from "./messageservice.js";
 import * as RabbitMQService from "./rabbitmqservice.js";
+import * as RedisStreamService from "./redisstreamservice.js";
 import * as RoutingService from "./routingservice.js";
 import * as SettingsService from "./settingsservice.js";
 import * as ShellService from "./shellservice.js";
@@ -27,6 +28,7 @@ export {
     MQTTService,
     MessageService,
     RabbitMQService,
+    RedisStreamService,
     RoutingService,
     SettingsService,
     ShellService,
@@ -40,14 +42,19 @@ export {
     AccessConfigInput,
     AccessRuleInput,
     AccessView,
+    AclUserInput,
+    AutoClaimInput,
     BindingInput,
+    ClaimInput,
     ClusterView,
     ConnectionInput,
     ConnectionView,
     ConsumerInput,
     DefinitionsPreview,
     DriverInfo,
+    EntryInput,
     ExchangeInput,
+    GroupInput,
     IdentityInput,
     KafkaTopicInput,
     LogDirView,
@@ -59,6 +66,7 @@ export {
     MoveInput,
     NamespaceInput,
     OffsetResetInput,
+    PendingQueryInput,
     PermissionInput,
     PolicyInput,
     PrincipalInput,
@@ -76,5 +84,6 @@ export {
     ShellPage,
     TopicInput,
     TopicPermissionInput,
-    TransactionView
+    TransactionView,
+    TrimInput
 } from "./models.js";

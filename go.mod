@@ -3,6 +3,7 @@ module github.com/amigoer/mq-studio
 go 1.25.0
 
 require (
+	github.com/alicebob/miniredis/v2 v2.38.0
 	github.com/amigoer/rocketmq-admin-go v1.3.2
 	github.com/apache/rocketmq-client-go/v2 v2.1.2
 	github.com/eclipse/paho.golang v0.23.0
@@ -11,6 +12,7 @@ require (
 	github.com/michaelklishin/rabbit-hole/v3 v3.5.0
 	github.com/mochi-mqtt/server/v2 v2.7.9
 	github.com/rabbitmq/amqp091-go v1.14.0
+	github.com/redis/go-redis/v9 v9.22.0
 	github.com/twmb/franz-go v1.21.6
 	github.com/twmb/franz-go/pkg/kadm v1.18.0
 	github.com/twmb/franz-go/pkg/kfake v0.0.0-20260820024614-9b174ed31afe
@@ -21,6 +23,7 @@ require (
 require (
 	git.sr.ht/~jackmordaunt/go-toast/v2 v2.0.3 // indirect
 	github.com/adrg/xdg v0.5.3 // indirect
+	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/coder/websocket v1.8.14 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
@@ -43,6 +46,7 @@ require (
 	github.com/tidwall/gjson v1.18.0 // indirect
 	github.com/tidwall/match v1.2.0 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
+	github.com/yuin/gopher-lua v1.1.1 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
 	golang.org/x/crypto v0.53.0 // indirect
 	golang.org/x/net v0.56.0 // indirect

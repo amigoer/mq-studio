@@ -28,21 +28,26 @@ func backings() []capabilityBacking {
 	tailer := func(c Conn) bool { _, ok := c.(MessageTailer); return ok }
 	liveStream := func(c Conn) bool { _, ok := c.(LiveSubscriber); return ok }
 	deadLetter := func(c Conn) bool { _, ok := c.(DeadLetterReader); return ok }
+	pendingReader := func(c Conn) bool { _, ok := c.(PendingEntryReader); return ok }
+	pendingActions := func(c Conn) bool { _, ok := c.(PendingEntryActions); return ok }
 	replayer := func(c Conn) bool { _, ok := c.(MessageReplayer); return ok }
 	publisher := func(c Conn) bool { _, ok := c.(MessagePublisher); return ok }
 	richPublisher := func(c Conn) bool { _, ok := c.(RichPublisher); return ok }
+	entryPublisher := func(c Conn) bool { _, ok := c.(EntryPublisher); return ok }
 	producers := func(c Conn) bool { _, ok := c.(ProducerInspector); return ok }
 	cluster := func(c Conn) bool { _, ok := c.(ClusterAdmin); return ok }
 	nodeConfig := func(c Conn) bool { _, ok := c.(ConfigInspector); return ok }
 	directory := func(c Conn) bool { _, ok := c.(DirectoryAdmin); return ok }
 	maintenance := func(c Conn) bool { _, ok := c.(NodeMaintenance); return ok }
 	logDirs := func(c Conn) bool { _, ok := c.(LogDirInspector); return ok }
+	slowLog := func(c Conn) bool { _, ok := c.(SlowLogReader); return ok }
 	reassign := func(c Conn) bool { _, ok := c.(PartitionReassigner); return ok }
 	quotas := func(c Conn) bool { _, ok := c.(QuotaAdmin); return ok }
 	transactions := func(c Conn) bool { _, ok := c.(TransactionInspector); return ok }
 	writePerm := func(c Conn) bool { _, ok := c.(WritePermissionAdmin); return ok }
 	access := func(c Conn) bool { _, ok := c.(AccessAdmin); return ok }
 	accessDirectory := func(c Conn) bool { _, ok := c.(AccessDirectory); return ok }
+	aclUsers := func(c Conn) bool { _, ok := c.(AclUserAdmin); return ok }
 	namespaces := func(c Conn) bool { _, ok := c.(NamespaceAdmin); return ok }
 	namespaceLimits := func(c Conn) bool { _, ok := c.(NamespaceLimits); return ok }
 	identities := func(c Conn) bool { _, ok := c.(IdentityAdmin); return ok }
@@ -61,6 +66,8 @@ func backings() []capabilityBacking {
 	dlqTopology := func(c Conn) bool { _, ok := c.(DeadLetterTopology); return ok }
 	stats := func(c Conn) bool { _, ok := c.(DestinationStats); return ok }
 	actions := func(c Conn) bool { _, ok := c.(QueueActions); return ok }
+	trimmer := func(c Conn) bool { _, ok := c.(StreamTrimmer); return ok }
+	position := func(c Conn) bool { _, ok := c.(StreamPositionAdmin); return ok }
 
 	return []capabilityBacking{
 		{model.CapDestinationList, "DestinationAdmin", destination},
@@ -71,6 +78,7 @@ func backings() []capabilityBacking {
 		{model.CapDestinationPurge, "QueueActions", actions},
 		{model.CapDestinationMove, "QueueActions", actions},
 		{model.CapQueueRebalance, "QueueActions", actions},
+		{model.CapStreamTrim, "StreamTrimmer", trimmer},
 		{model.CapReassign, "PartitionReassigner", reassign},
 		{model.CapQuotaList, "QuotaAdmin", quotas},
 		{model.CapQuotaAdmin, "QuotaAdmin", quotas},
@@ -84,6 +92,7 @@ func backings() []capabilityBacking {
 		{model.CapSubscriptionRuntime, "SubscriptionRuntime", runtime},
 		{model.CapOffsetClone, "OffsetCloner", cloner},
 		{model.CapQueueOffset, "QueueProgressAdmin", queueProgress},
+		{model.CapSubscriptionPosition, "StreamPositionAdmin", position},
 
 		{model.CapMessageQuery, "MessageReader", reader},
 		{model.CapMessageByID, "MessageReader", reader},
@@ -91,11 +100,14 @@ func backings() []capabilityBacking {
 		{model.CapMessageLiveTail, "MessageTailer", tailer},
 		{model.CapLiveStream, "LiveSubscriber", liveStream},
 		{model.CapDLQ, "DeadLetterReader", deadLetter},
+		{model.CapPendingEntries, "PendingEntryReader", pendingReader},
+		{model.CapPendingAdmin, "PendingEntryActions", pendingActions},
 		{model.CapMessageResend, "DeadLetterReader", deadLetter},
 		{model.CapMessageReplay, "MessageReplayer", replayer},
 		{model.CapPublish, "MessagePublisher", publisher},
 		{model.CapDelayedDelivery, "MessagePublisher", publisher},
 		{model.CapPublishRich, "RichPublisher", richPublisher},
+		{model.CapEntryPublish, "EntryPublisher", entryPublisher},
 		{model.CapProducerInspect, "ProducerInspector", producers},
 
 		{model.CapClusterTopology, "ClusterAdmin", cluster},
@@ -103,10 +115,12 @@ func backings() []capabilityBacking {
 		{model.CapDirectory, "DirectoryAdmin", directory},
 		{model.CapNodeConfig, "ConfigInspector", nodeConfig},
 		{model.CapLogDirs, "LogDirInspector", logDirs},
+		{model.CapSlowLog, "SlowLogReader", slowLog},
 		{model.CapNodeMaintenance, "NodeMaintenance", maintenance},
 		{model.CapNodeWritePerm, "WritePermissionAdmin", writePerm},
 		{model.CapAccessControl, "AccessAdmin", access},
 		{model.CapAccessDirectory, "AccessDirectory", accessDirectory},
+		{model.CapAclUsers, "AclUserAdmin", aclUsers},
 		{model.CapNamespaceList, "NamespaceAdmin", namespaces},
 		{model.CapNamespaceAdmin, "NamespaceAdmin", namespaces},
 		{model.CapNamespaceLimits, "NamespaceLimits", namespaceLimits},

@@ -25,6 +25,15 @@ const (
 	// the cluster. Only a family that elects a leader per destination has it.
 	CapQueueRebalance Capability = "destination.rebalance"
 
+	// CapStreamTrim discards entries from the head of a destination that keeps
+	// a log, by count or by position, and deletes named entries outright.
+	//
+	// Distinct from CapDestinationPurge, which empties a destination in one
+	// call and is the whole of what it can do. A trim is a bound the operator
+	// chooses, and emptying is one setting of it - a family with this needs no
+	// separate purge, and offering both would be two controls for one command.
+	CapStreamTrim Capability = "destination.trim"
+
 	CapSubscriptionList   Capability = "subscription.list"
 	CapSubscriptionCreate Capability = "subscription.create"
 	CapSubscriptionDelete Capability = "subscription.delete"
@@ -38,11 +47,35 @@ const (
 	// from CapOffsetReset, which moves a whole subscription to a moment in
 	// time and lets the broker find each queue's position for itself.
 	CapQueueOffset Capability = "subscription.queueOffset"
+	// CapSubscriptionPosition is moving a subscription to a named place in the
+	// log rather than to a moment in time.
+	//
+	// Distinct from CapOffsetReset for a reason that is not cosmetic: a stream
+	// entry's id is milliseconds plus a sequence within them, so a timestamp
+	// cannot pick between entries sharing a millisecond, and has no way to
+	// spell "the end" at all. A family whose positions are ids needs to say
+	// which id.
+	CapSubscriptionPosition Capability = "subscription.position"
 	// CapSubscriptionRuntime is asking a connected consumer what it is doing:
 	// which queues it holds and how fast it is getting through them. Only a
 	// live client can answer, so a family without client introspection - or a
 	// group with nothing connected - simply has no answer.
 	CapSubscriptionRuntime Capability = "subscription.runtime"
+
+	// CapPendingEntries is a family that keeps, per subscription, a list of
+	// what it has handed out and not had acknowledged.
+	//
+	// It answers the same page as CapDLQ and CapDeadLetterTopology and cannot
+	// do it their way. A dead letter is a message that was given up on and
+	// moved somewhere; a pending entry is a delivery record - an id, who holds
+	// it, how long they have held it and how many times it has been tried -
+	// and the entry itself never moves.
+	CapPendingEntries Capability = "message.pending"
+	// CapPendingAdmin is acting on that list: acknowledging entries so they
+	// stop being owed, and moving them to another consumer. Separate from
+	// reading it, because taking work from a consumer that is merely busy is a
+	// different permission and a different mistake.
+	CapPendingAdmin Capability = "message.pendingAdmin"
 
 	CapMessageQuery  Capability = "message.query"
 	CapMessageByID   Capability = "message.byId"
@@ -65,6 +98,14 @@ const (
 	// protocol carries - an exchange and routing key, headers, and the
 	// delivery guarantees - rather than only a destination and a body.
 	CapPublishRich Capability = "message.publishRich"
+	// CapEntryPublish is a send console for a family whose message is an
+	// ordered set of named fields rather than a body.
+	//
+	// A third shape beside CapPublish and CapPublishRich, and it has to be:
+	// the first is a topic with tags, keys and a delay level, the second is an
+	// exchange with a routing key and AMQP properties, and neither has
+	// anywhere to put a field list or an explicit id.
+	CapEntryPublish Capability = "message.publishEntry"
 	// CapProducerInspect is asking who is currently publishing. It needs a
 	// producer group to ask about: the broker tracks connections per group and
 	// offers no way to enumerate the groups themselves.
@@ -108,6 +149,15 @@ const (
 	CapQuotaList  Capability = "quota.list"
 	CapQuotaAdmin Capability = "quota.admin"
 
+	// CapSlowLog is a broker that keeps a record of the commands that took
+	// longest.
+	//
+	// Distinct from CapNodeConfig, which is what a node is running with: this
+	// is what has actually been slow on it, and it is the first thing anyone
+	// looks at when a server is fine on every other figure and still not
+	// keeping up.
+	CapSlowLog Capability = "cluster.slowLog"
+
 	// CapLogDirs is a broker that reports what its partitions occupy on disk.
 	// Distinct from CapNodeConfig, which is what a node is running with: this
 	// is where its space has gone, and it is the only disk figure Kafka has -
@@ -146,6 +196,17 @@ const (
 	// CapAccessControl, which is the credential-carrying kind a broker will
 	// take a write for and never read back.
 	CapAccessDirectory Capability = "access.directory"
+
+	// CapAclUsers is a broker whose access control lives entirely on the user:
+	// what it may run, which keys it may touch, which channels it may
+	// subscribe to.
+	//
+	// A third model beside CapAccessControl's credential pairs and
+	// CapAccessDirectory's rules attached to a subject. Redis attaches
+	// everything to the principal, including the key patterns that decide what
+	// data it can reach - and a page built for either of the others would show
+	// the commands and hide the half that contains the data.
+	CapAclUsers Capability = "access.aclUsers"
 
 	// CapNamespaceList and CapNamespaceAdmin are families whose namespaces are
 	// objects rather than labels - a RabbitMQ virtual host holds its own

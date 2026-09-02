@@ -96,6 +96,11 @@ async function sweepConnection(profile: Connection): Promise<Sweep> {
       // The slowest read and the likeliest to fail on its own; losing the
       // broker rules with it would be the worse outcome. Each of these three
       // degrades to nothing rather than taking the sweep down with it.
+      // Redis reaches this too, and its group listing is a keyspace scan
+      // rather than one call - which on a large server is the most expensive
+      // thing this sweep does. The connection's stream key pattern is what
+      // narrows it, and the driver caps the walk; a server where that is still
+      // too much wants the pattern set.
       rabbit
         ? Promise.resolve([] as Subscription[])
         : consumerApi.getConsumerGroups(profile.id).catch(() => [] as Subscription[]),

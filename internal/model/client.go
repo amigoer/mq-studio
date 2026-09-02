@@ -54,11 +54,20 @@ type ClientConnection struct {
 	BlockedBy string `json:"blockedBy"`
 
 	// Attributes carries family-specific detail the canonical fields have no
-	// place for, the same way Destination and Node do. MQTT's session state is
-	// the reason it is here: clean-start, session expiry, the queued and
-	// in-flight counts and whether the session outlives the connection are the
-	// whole substance of an MQTT client, and none of them is a field above.
+	// home for, the same way Destination, Subscription and Node do. Two
+	// families arrived at it independently, which is the argument for it being
+	// here: MQTT's session state - clean start, session expiry, the queued and
+	// in-flight counts, whether the session outlives the connection - is the
+	// whole substance of one of its clients, and Redis reports what a
+	// connection was last running, how long it has been idle and which library
+	// it is. Its keys are a contract between one driver and that driver's
+	// frontend module.
 	Attributes map[string]string `json:"attributes"`
+}
+
+// Attribute returns a driver-specific field.
+func (c *ClientConnection) Attribute(key string) string {
+	return c.Attributes[key]
 }
 
 // ClientChannel is one multiplexed session inside a connection.
