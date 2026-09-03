@@ -170,6 +170,69 @@ jobs:
             > "$RUNNER_TEMP/release-notes.md"
           cat "$RUNNER_TEMP/release-notes.md"
 
+      # What the updater and the website read instead of the GitHub releases
+      # API. Built here rather than in the packaging matrix because it names
+      # every platform's digest, and it lands in release-files/ so it ships as
+      # a release asset too - that is what makes GitHub a mirror that can
+      # answer the check as well as serve the download.
+      - name: Build the release manifest
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ needs.resolve.outputs.tag }}
+        run: |
+          set -eu
+          node scripts/build-manifest.mjs \
+            --dir release-files \
+            --notes "$RUNNER_TEMP/release-notes.md" \
+            --out release-files/manifest.json
+          cat release-files/manifest.json
+
+      # Uploaded while the release is still a draft, deliberately. These keys
+      # are version-scoped and nothing points at them until promote.yml writes
+      # latest.json, so publishing stays one small write and the CDN is warm
+      # before anyone can reach it.
+      #
+      # It also has to happen before that pointer flips rather than after: a
+      # client resolves the manifest on whichever mirror answers first and may
+      # fall back to a different one for the download itself, so every mirror
+      # needs the packages in place the moment any mirror starts naming them.
+      - name: Upload the release to R2
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ needs.resolve.outputs.tag }}
+          R2_BUCKET: ${{ vars.R2_BUCKET }}
+          R2_ACCOUNT_ID: ${{ vars.R2_ACCOUNT_ID }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          # R2 rejects the additional CRC32 integrity headers the AWS CLI has
+          # sent by default since v2.23.
+          AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+          AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
+        run: |
+          set -eu
+          configured=0
+          for value in "${R2_BUCKET:-}" "${R2_ACCOUNT_ID:-}" \
+                       "${AWS_ACCESS_KEY_ID:-}" "${AWS_SECRET_ACCESS_KEY:-}"; do
+            if [ -n "$value" ]; then configured=$((configured + 1)); fi
+          done
+          # Absent is the expected state until the bucket exists: the release
+          # still publishes, with GitHub as its only mirror. Partially set is
+          # not - that is a typo away from a release nobody can download.
+          if [ "$configured" -eq 0 ]; then
+            echo '::warning::R2 is not configured; publishing to GitHub only.'
+            exit 0
+          fi
+          if [ "$configured" -ne 4 ]; then
+            echo 'R2 is partially configured. Needs variables R2_BUCKET and' >&2
+            echo 'R2_ACCOUNT_ID, and secrets R2_ACCESS_KEY_ID and R2_SECRET_ACCESS_KEY.' >&2
+            exit 1
+          fi
+          aws s3 sync release-files "s3://${R2_BUCKET}/${RELEASE_TAG}/" \
+            --endpoint-url "https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com" \
+            --cache-control 'public, max-age=31536000, immutable' \
+            --no-progress
+
       - name: Create draft GitHub Release
         # v3 is the Node 24 runtime line; v2 targets the deprecated Node 20.
         uses: softprops/action-gh-release@v3

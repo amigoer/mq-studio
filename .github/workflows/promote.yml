@@ -1,0 +1,139 @@
+# Points R2 at a release once a human has published it.
+#
+# release.yml uploads every package to /<tag>/ while the release is still a
+# draft, where nothing refers to them. This copies that version's manifest to
+# /latest.json, which is the only object clients look up by a fixed name - so
+# writing it is what "released" means, and it is a few KB rather than 290 MB.
+#
+# Triggered by the release being published rather than run by hand on purpose:
+# a second manual switch would drift from the first, and with several mirrors
+# that drift means half the users see the new version and half do not.
+#
+# Rolling back is the same copy pointed at the previous tag, run from the
+# Actions tab with workflow_dispatch. That deliberately bypasses the
+# no-going-backwards check below, which is why it asks for the tag by hand.
+#
+# Note that a workflow triggered by `release` runs the file as it existed at
+# the tagged commit, so publishing a draft tagged before this file was added
+# promotes nothing.
+#
+# Configuration (same four as release.yml):
+#   variables  R2_BUCKET, R2_ACCOUNT_ID
+#   secrets    R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY
+name: Promote release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: SemVer tag to point latest.json at, for example v1.4.0
+        required: true
+        type: string
+      allow-rollback:
+        description: Permit pointing at an older release than the current one.
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: promote
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  promote:
+    name: Point latest.json at the release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Promote
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ github.event.inputs.tag || github.event.release.tag_name }}
+          ALLOW_ROLLBACK: ${{ github.event.inputs.allow-rollback || 'false' }}
+          R2_BUCKET: ${{ vars.R2_BUCKET }}
+          R2_ACCOUNT_ID: ${{ vars.R2_ACCOUNT_ID }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          # R2 rejects the additional CRC32 integrity headers the AWS CLI has
+          # sent by default since v2.23.
+          AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+          AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
+        run: |
+          set -eu
+
+          configured=0
+          for value in "${R2_BUCKET:-}" "${R2_ACCOUNT_ID:-}" \
+                       "${AWS_ACCESS_KEY_ID:-}" "${AWS_SECRET_ACCESS_KEY:-}"; do
+            if [ -n "$value" ]; then configured=$((configured + 1)); fi
+          done
+          if [ "$configured" -eq 0 ]; then
+            echo '::warning::R2 is not configured; nothing to promote.'
+            exit 0
+          fi
+          if [ "$configured" -ne 4 ]; then
+            echo 'R2 is partially configured. Needs variables R2_BUCKET and' >&2
+            echo 'R2_ACCOUNT_ID, and secrets R2_ACCESS_KEY_ID and R2_SECRET_ACCESS_KEY.' >&2
+            exit 1
+          fi
+
+          if ! [[ "$RELEASE_TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "not a stable release tag: $RELEASE_TAG" >&2
+            exit 1
+          fi
+          version="${RELEASE_TAG#v}"
+          endpoint="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+          source="s3://${R2_BUCKET}/${RELEASE_TAG}/manifest.json"
+
+          # A draft built before R2 was configured has no manifest to promote.
+          # Failing here is right: the alternative is latest.json naming files
+          # that are not there.
+          if ! aws s3api head-object --bucket "$R2_BUCKET" --key "${RELEASE_TAG}/manifest.json" \
+               --endpoint-url "$endpoint" > /dev/null 2>&1; then
+            echo "$source does not exist; was this release packaged after R2 was set up?" >&2
+            exit 1
+          fi
+
+          # Publishing an old draft would otherwise walk every client backwards
+          # onto a version they already have, which reads to them as the update
+          # having been withdrawn.
+          current=''
+          if aws s3api head-object --bucket "$R2_BUCKET" --key latest.json \
+             --endpoint-url "$endpoint" > /dev/null 2>&1; then
+            aws s3 cp "s3://${R2_BUCKET}/latest.json" "$RUNNER_TEMP/current.json" \
+              --endpoint-url "$endpoint" --no-progress > /dev/null
+            current="$(jq -r '.version // empty' "$RUNNER_TEMP/current.json")"
+          fi
+          if [ -n "$current" ] && [ "$ALLOW_ROLLBACK" != 'true' ]; then
+            highest="$(printf '%s\n%s\n' "$current" "$version" | sort -V | tail -1)"
+            if [ "$version" = "$current" ] || [ "$version" != "$highest" ]; then
+              echo "refusing: latest.json is $current, this release is $version" >&2
+              echo 'Re-run with workflow_dispatch and allow-rollback to override.' >&2
+              exit 1
+            fi
+          fi
+
+          # A same-bucket copy, so the 290 MB stays where it is; only the
+          # caching metadata differs, which is what REPLACE is for.
+          aws s3 cp "$source" "s3://${R2_BUCKET}/latest.json" \
+            --endpoint-url "$endpoint" \
+            --content-type application/json \
+            --cache-control 'public, max-age=60, s-maxage=60, stale-while-revalidate=300' \
+            --metadata-directive REPLACE \
+            --no-progress
+
+          # Reads it back rather than trusting the copy: a silent no-op here
+          # looks exactly like a successful release until someone reports that
+          # the update never appeared.
+          aws s3 cp "s3://${R2_BUCKET}/latest.json" "$RUNNER_TEMP/promoted.json" \
+            --endpoint-url "$endpoint" --no-progress > /dev/null
+          promoted="$(jq -r '.version // empty' "$RUNNER_TEMP/promoted.json")"
+          if [ "$promoted" != "$version" ]; then
+            echo "latest.json reads $promoted after promoting $version" >&2
+            exit 1
+          fi
+          echo "latest.json now points at $version (was ${current:-none})"
