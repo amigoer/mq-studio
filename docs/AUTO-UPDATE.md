@@ -1,9 +1,12 @@
 # In-app updates
 
-The app checks GitHub for a newer release, downloads the package for the
-platform it is running on, verifies it against the release's own checksum list,
-replaces the installation and comes back. How much of that it does without
-being asked is a setting.
+The app reads a small manifest that says what the latest release is, downloads
+the package for the platform it is running on, verifies it against the digest
+the manifest published, replaces the installation and comes back. How much of
+that it does without being asked is a setting.
+
+The manifest is served by several mirrors, and which one answers is measured on
+the user's own machine - see [Mirrors](#mirrors-and-how-one-is-chosen).
 
 This describes what is implemented. The release-side contract it depends on is
 in [RELEASE.md](../RELEASE.md#what-the-in-app-updater-needs-from-a-release).
@@ -30,7 +33,7 @@ to wait.
 
 Five seconds after launch, and every 24 hours after that. The startup check is
 skipped when the last one was less than 24 hours ago, so relaunching repeatedly
-does not re-query GitHub — the timestamp survives restarts, and a check that
+does not re-query the mirrors — the timestamp survives restarts, and a check that
 failed still counts, so being offline does not turn the interval into a retry
 loop.
 
@@ -46,6 +49,46 @@ the next time the app starts, and skipping it is what stops it for good.
 Pressing the button is different — that reports every outcome, including
 "already on the latest", and a check that finds a release opens the dialog
 rather than raising a toast about it.
+
+## Mirrors, and how one is chosen
+
+A release lives on more than one host. `scripts/mirrors.json` is the list, and
+the app compiles in its own copy of it (`BootstrapMirrors`), so the two are
+pinned together by a test.
+
+Which one a given user should use is not knowable in advance. A host reachable
+from one network is blocked on the next, and neither GeoDNS nor a server-side
+redirect can see that - a server that routes traffic is itself something that
+can be unreachable. So the app measures it, on the user's own machine.
+
+**The manifest is the probe.** It is a few KB, every mirror has to serve it, and
+a check has to fetch it anyway. Racing mirrors for it therefore costs nothing
+and answers exactly the question that matters, and whichever wins is handed the
+package download that follows.
+
+The mirrors do not start together. Each one begins 400 ms after the one before
+it, so a working first choice means no other request is ever made — having
+several mirrors costs nothing until one of them is actually needed. The first
+readable manifest wins and the rest are cancelled.
+
+The winner is remembered. The next check goes straight to it, alone, with a two
+second budget: a routine check is one request and no race at all. If it does not
+answer, the cost of having been wrong is that one request and the full race
+follows. The preference is re-measured after seven days regardless, which both
+releases a mirror that has since gone bad and gives one added later a turn.
+
+A manifest can also name mirrors, and those are merged into the list and kept.
+That is what lets a mirror added to a future release reach a build that shipped
+before it existed - which matters most for exactly the users who need it, since
+a user who cannot reach any mirror cannot update to a build that knows about a
+new one. The merge only ever adds: an entry from a manifest can neither remove a
+compiled-in mirror nor redefine one, so the shipped path stays reachable
+whatever a mirror says.
+
+If a mirror stops answering partway through the package download, the next one
+is tried. That is safe only because the digest travels in the manifest rather
+than in a file fetched alongside the package - otherwise whoever served the
+bytes would also be attesting to them.
 
 ## Where the update is offered
 
@@ -126,11 +169,16 @@ These are keys, not prose: the renderer translates them.
 
 Nothing is code-signed yet (see [RELEASE.md](../RELEASE.md#signing)). What the
 updater guarantees today is integrity, not provenance: the package is what the
-release said it was, fetched over HTTPS from GitHub. It does not prove the
-release itself was published by whoever should have published it — a compromised
-GitHub account could publish a matching checksum for a malicious package. An
-update-signing key pinned into the build is what closes that, and it is worth
-having before this is advertised.
+manifest said it was, fetched over HTTPS. It does not prove the manifest itself
+came from whoever should have published it.
+
+Mirrors sharpen that. Because the digests are in the manifest, whoever serves
+the manifest decides what counts as a valid package — so every mirror is as
+trusted as the release itself. That is acceptable while the mirrors are all
+first-party, and it stops being acceptable the moment a third-party CDN is
+added. The `signature` field is reserved for an ed25519 signature over the
+manifest, with the public key compiled into the build; it needs to land before
+any mirror that is not ours does, not after.
 
 One macOS detail worth recording, because it is the opposite of what a
 downloaded-installer flow does. Gatekeeper's "damaged, move to Trash" error
@@ -152,7 +200,8 @@ Gatekeeper rules, not a substitute for signing.
 
 ```
 internal/update/
-  update.go     GitHub release lookup: version comparison, notes, assets
+  update.go     The check: version comparison and what the renderer is told
+  mirror.go     The mirror list, the manifest, and racing for it
   target.go     Where this build is installed and whether it can be replaced
   download.go   Streaming download, progress, SHA-256 verification
   apply.go      The three replacement routines and the relaunch trampoline
@@ -180,10 +229,14 @@ delivered, in order, off the lock.
 
 ## Tests
 
-49 Go tests in `internal/update`, race-clean. They cover the install-shape
+70 Go tests in `internal/update`, race-clean. They cover the install-shape
 rules per platform, checksum parsing in the shapes the tooling emits, download
 verification and cancellation, each replacement routine against a fake
-commander including the failure paths, and the policy ladder end to end —
+commander including the failure paths, mirror selection — that a healthy first
+choice leaves the others unasked, that a hung one does not hold up the check,
+that a remembered winner is used alone and then re-measured, and that a mirror
+serving the wrong bytes is caught and passed over — and the policy ladder end to
+end —
 that `notify` downloads nothing, that `download` reaches a verified package,
 that only `auto` installs at quit, and that a finished download survives a
 restart while one the running build has overtaken is thrown away.
@@ -197,9 +250,9 @@ the renderer and asserts that no marker survives to the reader, that a wrapped
 bullet stays one bullet, and that a link scheme the app will not open loses its
 link rather than its text.
 
-What tests cannot cover was checked by hand against the live release: the
-GitHub API shape, a real 7 MB asset fetched through GitHub's CDN redirect and
-verified by digest, and a wrong digest being rejected with the file removed.
+What tests cannot cover was checked by hand against the live release: a real
+7 MB asset fetched through a CDN redirect and verified by digest, and a wrong
+digest being rejected with the file removed.
 
 ## Why not the framework updater
 

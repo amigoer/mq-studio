@@ -100,10 +100,23 @@ The workflow creates a **draft** release. Nothing reaches users until you press
 Publish — in particular the in-app update check only ever sees published
 releases.
 
+The packages are already on R2 by this point, under `/<tag>/`, but nothing
+refers to them: clients only ever look up `/latest.json`, which still names the
+previous release. Uploading early is deliberate - it warms the CDN, and it means
+every mirror holds the files before any mirror starts naming them, which matters
+because a client resolves the manifest on whichever mirror answers first and may
+fall back to a different one for the download itself.
+
+Pressing Publish is the single switch. It flips what GitHub's `releases/latest`
+resolves to, and `promote.yml` copies that release's manifest to `/latest.json`
+on R2 within about a minute. There is deliberately no second thing to press: two
+switches would drift, and with several mirrors a drift means half the users see
+the new version and half do not.
+
 Before publishing:
 
-- 11 files are attached: 2 `.dmg`, 2 `.exe`, 2 `.AppImage`, 2 `.deb`, 2 `.rpm`,
-  and `SHA256SUMS.txt`
+- 12 files are attached: 2 `.dmg`, 2 `.exe`, 2 `.AppImage`, 2 `.deb`, 2 `.rpm`,
+  `SHA256SUMS.txt` and `manifest.json`
 - the notes carry both language sections
 - the issue references in the notes are links, not bare `#61`
 - install at least the macOS image by hand, on a machine that has not built it,
@@ -115,8 +128,10 @@ Publishing is also what updates <https://mq-studio.amigoer.com>. Cloudflare
 builds the site from its own git integration, which only ever sees a push, and
 publishing a release is not one - it flips a flag on a tag that already exists.
 So `website.yml` closes the gap: on `release: published` it rewrites
-`website/src/data/release.json` from the published release and commits it to
-`main`, and that commit is the push Cloudflare reacts to.
+`website/src/data/release.json` from the published manifest and commits it to
+`main`, and that commit is the push Cloudflare reacts to. It retries for a
+couple of minutes, because it runs on the same event as `promote.yml` and the
+preferred mirror serves the previous release until that finishes.
 
 None of it is manual. It is worth a glance anyway, because a failure here is
 quiet - the release itself is fine and only the site stays behind:
@@ -138,9 +153,20 @@ than being told, and refuses anything it cannot verify.
   from the running platform. `TestPackageNameMatchesTheReleaseWorkflow` pins
   the two together; changing the scheme in the workflow without changing it
   there leaves every installed copy looking for a file that is not attached.
-- **`SHA256SUMS.txt` must be attached.** A package whose name is absent from
-  it is refused rather than installed unverified, and so is a release that
-  publishes no list at all. The panel then offers the releases page instead.
+- **`manifest.json` must be attached and uploaded to every mirror.** It is what
+  the app reads instead of the releases API: the version, the notes, the mirror
+  list, and a SHA-256 for every package. `build-manifest.mjs` writes it from the
+  packages themselves and fails the release if any of them is missing from
+  `SHA256SUMS.txt` or named a version other than the tag.
+- **The digests live in the manifest, not beside the packages.** That is what
+  lets a download fall over from one mirror to another safely: a mirror carries
+  bytes but does not get to say what they are. `SHA256SUMS.txt` is still
+  attached, for people verifying a download by hand.
+- **The mirrors come from `scripts/mirrors.json`.** The app compiles in its own
+  copy, so `TestBootstrapMirrorsMatchTheReleaseTooling` pins the two together.
+  Adding a mirror is a change to that file alone: clients merge what a manifest
+  names into the list they shipped with, so a mirror added now reaches builds
+  released before it existed.
 - **Draft and pre-release tags are invisible to it**, which is what makes the
   draft step above safe: nothing reaches an installed copy until you publish.
 
