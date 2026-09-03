@@ -142,6 +142,33 @@ quiet - the release itself is fine and only the site stays behind:
 If the badge still names the previous release, check the **Website** run for
 this release first, then Cloudflare's own build.
 
+## 7. Rolling back
+
+A release is named by two mirrors, and publishing moves both at once: GitHub
+resolves its own `releases/latest`, and `promote.yml` writes R2's `latest.json`
+on the same event. Withdrawing one does not have that property. Both have to be
+moved by hand, and until both are, which version a user is offered depends on
+which mirror won their race.
+
+1. **On GitHub, mark the withdrawn release as a pre-release.** That is what
+   makes `releases/latest` resolve to the one before it, because the updater
+   ignores pre-release tags entirely. Do this first: it is one click and takes
+   effect immediately, where the second step takes a minute plus the cache.
+   Prefer it to deleting the release, which throws away the notes and breaks
+   links people already have.
+2. **Run `promote.yml` from the Actions tab**, passing the tag to go back to and
+   `allow-rollback`. Without that input it refuses, since pointing `latest.json`
+   backwards is otherwise always a mistake.
+
+Doing only the second step is the failure worth naming: R2 offers the old
+version, GitHub still offers the withdrawn one, and half the users never see the
+rollback at all.
+
+R2 keeps only the most recent few tags, so a rollback cannot reach arbitrarily
+far back. It fails with a clear message rather than writing a `latest.json` that
+names files which are no longer there - GitHub still has them, but that mirror
+is not what `latest.json` describes.
+
 ## What the in-app updater needs from a release
 
 The app updates itself from these artifacts, so the release is a contract, not
