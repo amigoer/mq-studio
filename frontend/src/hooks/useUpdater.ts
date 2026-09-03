@@ -12,6 +12,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { useToast, type ToastId } from "@/components";
 import { openExternal } from "@/api/platform";
+import { formatErrorMessage } from "@/lib/utils";
 import {
   cancelUpdate,
   checkUpdate,
@@ -204,7 +205,7 @@ function useUpdaterState(): UpdaterContextValue {
       openDialog();
     } catch (error) {
       toast.error(t("page.settings.about.updateCheckFailed"), {
-        description: String(error),
+        description: formatErrorMessage(error),
         action: { label: t("page.settings.about.openDownloads"), onClick: openDownloads },
       });
     } finally {
@@ -216,7 +217,7 @@ function useUpdaterState(): UpdaterContextValue {
     try {
       await downloadUpdate();
     } catch (error) {
-      toast.error(t("update.downloadFailed"), { description: String(error) });
+      toast.error(t("update.downloadFailed"), { description: formatErrorMessage(error) });
     }
   }, [t, toast]);
 
@@ -225,7 +226,7 @@ function useUpdaterState(): UpdaterContextValue {
       await installUpdate();
     } catch (error) {
       toast.error(t("update.installFailed"), {
-        description: String(error),
+        description: formatErrorMessage(error),
         action: { label: t("page.settings.about.openDownloads"), onClick: openDownloads },
       });
     }
