@@ -14,18 +14,18 @@ import (
 	"time"
 )
 
-// release stands in for a published GitHub release: the package this platform
-// would install, and the checksum list it is verified against.
+// release stands in for a published release: the package this platform would
+// install, and the manifest that attests to it.
 type release struct {
 	version string
 	payload []byte
 	server  *httptest.Server
-	// corrupt serves content that does not match the published digest.
+	// corrupt serves content that does not match the digest in the manifest.
 	corrupt bool
-	// omitSums leaves SHA256SUMS.txt off the release.
-	omitSums bool
-	// unlisted publishes the checksum file without this platform's package.
+	// unlisted publishes a manifest with no package for this platform.
 	unlisted bool
+	// nodigest publishes the package with no checksum against it.
+	nodigest bool
 }
 
 const testTarget = "mq-studio-9.9.9-mac-arm64.dmg"
@@ -49,45 +49,71 @@ func newRelease(t *testing.T, options release) *release {
 		served = []byte("something else entirely")
 	}
 	name := Target{OS: "mac", Arch: "arm64", Ext: "dmg"}.PackageName(options.version)
-	listed := name
-	if options.unlisted {
-		listed = "mq-studio-" + options.version + "-linux-amd64.AppImage"
-	}
-	sums := digestOf(options.payload) + "  " + listed + "\n"
 
 	options.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case "/" + checksumAssetName:
-			w.Header().Set("Content-Length", strconv.Itoa(len(sums)))
-			_, _ = w.Write([]byte(sums))
-		case "/" + name:
+		if r.URL.Path == "/v"+options.version+"/"+name {
 			w.Header().Set("Content-Length", strconv.Itoa(len(served)))
 			_, _ = w.Write(served)
-		default:
-			w.WriteHeader(http.StatusNotFound)
+			return
 		}
+		w.WriteHeader(http.StatusNotFound)
 	}))
 	t.Cleanup(options.server.Close)
 	return &options
 }
 
-func (r *release) result() Result {
-	assets := []Asset{{
-		Name: Target{OS: "mac", Arch: "arm64", Ext: "dmg"}.PackageName(r.version),
-		URL:  r.server.URL + "/" + Target{OS: "mac", Arch: "arm64", Ext: "dmg"}.PackageName(r.version),
-		Size: int64(len(r.payload)),
-	}}
-	if !r.omitSums {
-		assets = append(assets, Asset{Name: checksumAssetName, URL: r.server.URL + "/" + checksumAssetName})
+// mirror points at this release's own server. Plain HTTP because httptest is,
+// which is fine here: Mirror.Valid only gates the lists that come off the wire.
+func (r *release) mirror() Mirror {
+	return Mirror{
+		Name:        "test",
+		ManifestURL: r.server.URL + "/manifest.json",
+		AssetBase:   r.server.URL,
 	}
+}
+
+// manifest is what a mirror would have served for this release.
+func (r *release) manifest() Manifest {
+	name := Target{OS: "mac", Arch: "arm64", Ext: "dmg"}.PackageName(r.version)
+	listed := name
+	if r.unlisted {
+		listed = "mq-studio-" + r.version + "-linux-amd64.AppImage"
+	}
+	digest := digestOf(r.payload)
+	if r.nodigest {
+		digest = ""
+	}
+	return Manifest{
+		Schema:      SupportedSchema,
+		Version:     r.version,
+		Tag:         "v" + r.version,
+		PublishedAt: "2026-08-30T00:00:00Z",
+		ReleaseURL:  "https://github.com/amigoer/mq-studio/releases/tag/v" + r.version,
+		Notes:       "## What changed\n- everything",
+		Checksums:   "v" + r.version + "/" + checksumAssetName,
+		Files: map[string]ManifestFile{
+			listed: {
+				Path:   "v" + r.version + "/" + name,
+				Size:   int64(len(r.payload)),
+				SHA256: digest,
+			},
+		},
+	}
+}
+
+func (r *release) result() Result {
+	manifest := r.manifest()
+	mirror := r.mirror()
 	return Result{
 		Status:         StatusAvailable,
 		CurrentVersion: "1.0.0",
 		LatestVersion:  r.version,
-		Notes:          "## What changed\n- everything",
-		PublishedAt:    "2026-08-30T00:00:00Z",
-		ReleaseURL:     "https://github.com/amigoer/mq-studio/releases/tag/v" + r.version,
-		Assets:         assets,
+		Notes:          manifest.Notes,
+		PublishedAt:    manifest.PublishedAt,
+		ReleaseURL:     manifest.ReleaseURL,
+		Manifest:       manifest,
+		Mirror:         mirror,
+		Order:          []Mirror{mirror},
 	}
 }
 
@@ -163,7 +189,7 @@ func build(t *testing.T, policy Policy, options release, delay time.Duration) *h
 		Commander: commander,
 		Location:  &testLocation,
 		Delay:     delay,
-		Check: func(string, *http.Client) (Result, error) {
+		Check: func(context.Context, string, *http.Client, []Mirror) (Result, error) {
 			return published.result(), nil
 		},
 	})
@@ -307,7 +333,7 @@ func TestALaunchChecksEvenWhenOneRanMinutesAgo(t *testing.T) {
 		Client:    published.server.Client(),
 		Location:  &testLocation,
 		Delay:     10 * time.Millisecond,
-		Check: func(string, *http.Client) (Result, error) {
+		Check: func(context.Context, string, *http.Client, []Mirror) (Result, error) {
 			return published.result(), nil
 		},
 	})
@@ -435,19 +461,25 @@ func TestDownloadRejectsAPackageThatFailsVerification(t *testing.T) {
 	}
 }
 
-func TestDownloadRefusesAReleaseWithNoChecksums(t *testing.T) {
-	h := newManager(t, PolicyDownload, release{omitSums: true})
+// A release cannot lose its checksum list any more - the digests are part of
+// the manifest - but a manifest naming a package it does not attest to still
+// has to go nowhere, so the refusal is pinned at the last line of defence.
+func TestDownloadRefusesAPackageWithNoPublishedChecksum(t *testing.T) {
+	h := newManager(t, PolicyDownload, release{nodigest: true})
 	err := h.manager.Download(context.Background(), Result{})
-	if err == nil || !strings.Contains(err.Error(), checksumAssetName) {
-		t.Fatalf("Download() error = %v, want it to name the missing checksum list", err)
+	if err == nil || !strings.Contains(err.Error(), "without a published checksum") {
+		t.Fatalf("Download() error = %v, want it to refuse an unattested package", err)
+	}
+	if _, err := os.Stat(filepath.Join(h.directory, testTarget)); !os.IsNotExist(err) {
+		t.Error("nothing may be written for a package with no checksum")
 	}
 }
 
-func TestDownloadRefusesAPackageThatIsNotInTheChecksumList(t *testing.T) {
+func TestDownloadRefusesAReleaseWithNoPackageForThisPlatform(t *testing.T) {
 	h := newManager(t, PolicyDownload, release{unlisted: true})
 	err := h.manager.Download(context.Background(), Result{})
-	if err == nil || !strings.Contains(err.Error(), "not listed") {
-		t.Fatalf("Download() error = %v, want it to refuse an unlisted package", err)
+	if err == nil || !strings.Contains(err.Error(), "no package for this platform") {
+		t.Fatalf("Download() error = %v, want it to refuse a release without this platform", err)
 	}
 }
 
@@ -492,7 +524,7 @@ func TestCheckClearsAReleaseThatIsNoLongerNewer(t *testing.T) {
 
 	// The second check answers "you are up to date", as it would after an
 	// install: the marker in the UI has to clear itself.
-	h.manager.check = func(string, *http.Client) (Result, error) {
+	h.manager.check = func(context.Context, string, *http.Client, []Mirror) (Result, error) {
 		return Result{Status: StatusCurrent, CurrentVersion: "1.0.0", LatestVersion: "1.0.0"}, nil
 	}
 	state, err := h.manager.Check(context.Background(), true)
@@ -506,7 +538,7 @@ func TestCheckClearsAReleaseThatIsNoLongerNewer(t *testing.T) {
 
 func TestCheckRecordsWhenItLastRanEvenWhenItFails(t *testing.T) {
 	h := newManager(t, PolicyNotify, release{})
-	h.manager.check = func(string, *http.Client) (Result, error) {
+	h.manager.check = func(context.Context, string, *http.Client, []Mirror) (Result, error) {
 		return Result{}, errors.New("offline")
 	}
 	moment := time.Date(2026, 8, 30, 9, 0, 0, 0, time.UTC)
@@ -530,7 +562,7 @@ func TestDevelopmentBuildsHaveNothingToCompareAgainst(t *testing.T) {
 		Directory: t.TempDir(),
 		Policy:    func() Policy { return PolicyAuto },
 		Location:  &testLocation,
-		Check: func(string, *http.Client) (Result, error) {
+		Check: func(context.Context, string, *http.Client, []Mirror) (Result, error) {
 			t.Error("a development build must not query GitHub")
 			return Result{}, nil
 		},
@@ -625,7 +657,7 @@ func TestCheckReportsWhatItConcluded(t *testing.T) {
 	}
 	for _, testCase := range cases {
 		h := newManager(t, PolicyNotify, release{})
-		h.manager.check = func(string, *http.Client) (Result, error) {
+		h.manager.check = func(context.Context, string, *http.Client, []Mirror) (Result, error) {
 			return Result{Status: testCase.status, CurrentVersion: "1.0.0", LatestVersion: "0.9.0"}, nil
 		}
 		state, err := h.manager.Check(context.Background(), true)

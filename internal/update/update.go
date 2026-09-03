@@ -1,9 +1,8 @@
-// Package update compares the running build against the latest GitHub release.
+// Package update compares the running build against the latest published release.
 package update
 
 import (
-	"encoding/json"
-	"errors"
+	"context"
 	"fmt"
 	"net/http"
 	"regexp"
@@ -16,8 +15,6 @@ import (
 // than at GitHub Releases: the site offers the same packages and is reachable on
 // networks that cannot open github.com.
 const DownloadsURL = "https://mq-studio.amigoer.com/#download"
-
-const latestReleaseAPI = "https://api.github.com/repos/amigoer/mq-studio/releases/latest"
 
 const requestTimeout = 10 * time.Second
 
@@ -37,14 +34,6 @@ const (
 	StatusAhead Status = "ahead"
 )
 
-// Asset is one file attached to a release. The updater picks the one matching
-// the running platform and verifies it against the release's SHA256SUMS.txt.
-type Asset struct {
-	Name string `json:"name"`
-	URL  string `json:"url"`
-	Size int64  `json:"size"`
-}
-
 // Result is the outcome of an update check.
 type Result struct {
 	Status         Status `json:"status"`
@@ -52,23 +41,17 @@ type Result struct {
 	LatestVersion  string `json:"latestVersion"`
 	// Release notes, as written in the changelog the workflow publishes.
 	Notes string `json:"notes"`
-	// RFC3339, or empty when GitHub reported no publication date.
+	// RFC3339, or empty when the release names no publication date.
 	PublishedAt string `json:"publishedAt"`
 	ReleaseURL  string `json:"releaseURL"`
-	// Everything attached to the release, including SHA256SUMS.txt. Resolving
-	// which one this build installs is the caller's job -- CheckLatest knows
-	// nothing about the host it is running on.
-	Assets []Asset `json:"assets"`
-}
-
-// Find returns the named asset. The second result reports whether it exists.
-func (r Result) Find(name string) (Asset, bool) {
-	for _, asset := range r.Assets {
-		if asset.Name == name {
-			return asset, true
-		}
-	}
-	return Asset{}, false
+	// Manifest is the whole release as the winning mirror described it.
+	// Resolving which package this build installs is the caller's job --
+	// CheckLatest knows nothing about the host it is running on.
+	Manifest Manifest `json:"manifest"`
+	// Mirror answered the check and is where the download starts; Order is the
+	// sequence to fall through if it stops answering partway.
+	Mirror Mirror   `json:"mirror"`
+	Order  []Mirror `json:"order"`
 }
 
 type stableVersion struct {
@@ -127,22 +110,19 @@ func statusFromComparison(comparison int) Status {
 	}
 }
 
-type releasePayload struct {
-	TagName     string `json:"tag_name"`
-	Draft       bool   `json:"draft"`
-	Prerelease  bool   `json:"prerelease"`
-	Body        string `json:"body"`
-	PublishedAt string `json:"published_at"`
-	HTMLURL     string `json:"html_url"`
-	Assets      []struct {
-		Name string `json:"name"`
-		URL  string `json:"browser_download_url"`
-		Size int64  `json:"size"`
-	} `json:"assets"`
-}
-
-// CheckLatest queries the GitHub latest release and compares it to current.
-func CheckLatest(currentVersion string, client *http.Client) (Result, error) {
+// CheckLatest races the mirrors for the release manifest and compares what the
+// winner reports to the running build. An empty mirror list falls back to the
+// ones compiled in.
+//
+// It takes the whole list rather than one URL because reaching a release is the
+// thing that fails: the check and the download that follows both go to whichever
+// mirror answers, and that is not knowable ahead of time.
+func CheckLatest(
+	ctx context.Context,
+	currentVersion string,
+	client *http.Client,
+	mirrors []Mirror,
+) (Result, error) {
 	current, err := parseStableVersion(currentVersion)
 	if err != nil {
 		return Result{}, err
@@ -150,37 +130,16 @@ func CheckLatest(currentVersion string, client *http.Client) (Result, error) {
 	if client == nil {
 		client = &http.Client{Timeout: requestTimeout}
 	}
+	if len(mirrors) == 0 {
+		mirrors = BootstrapMirrors()
+	}
 
-	request, err := http.NewRequest(http.MethodGet, latestReleaseAPI, nil)
+	fetched, err := RaceManifest(ctx, client, mirrors, MirrorStagger)
 	if err != nil {
 		return Result{}, err
 	}
-	request.Header.Set("Accept", "application/vnd.github+json")
-	request.Header.Set("User-Agent", "MQ-Studio/"+current.normalized)
-	request.Header.Set("X-GitHub-Api-Version", "2022-11-28")
 
-	response, err := client.Do(request)
-	if err != nil {
-		return Result{}, err
-	}
-	defer func() { _ = response.Body.Close() }()
-
-	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		return Result{}, fmt.Errorf("GitHub latest release request failed (%d)", response.StatusCode)
-	}
-
-	var payload releasePayload
-	if err := json.NewDecoder(response.Body).Decode(&payload); err != nil {
-		return Result{}, errors.New("GitHub latest release response is missing tag_name")
-	}
-	if strings.TrimSpace(payload.TagName) == "" {
-		return Result{}, errors.New("GitHub latest release response is missing tag_name")
-	}
-	if payload.Draft || payload.Prerelease {
-		return Result{}, errors.New("GitHub latest release response is not a stable release")
-	}
-
-	latest, err := parseStableVersion(payload.TagName)
+	latest, err := parseStableVersion(fetched.Manifest.Version)
 	if err != nil {
 		return Result{}, err
 	}
@@ -188,17 +147,15 @@ func CheckLatest(currentVersion string, client *http.Client) (Result, error) {
 	if err != nil {
 		return Result{}, err
 	}
-	assets := make([]Asset, 0, len(payload.Assets))
-	for _, asset := range payload.Assets {
-		assets = append(assets, Asset{Name: asset.Name, URL: asset.URL, Size: asset.Size})
-	}
 	return Result{
 		Status:         statusFromComparison(comparison),
 		CurrentVersion: current.normalized,
 		LatestVersion:  latest.normalized,
-		Notes:          strings.TrimSpace(payload.Body),
-		PublishedAt:    strings.TrimSpace(payload.PublishedAt),
-		ReleaseURL:     strings.TrimSpace(payload.HTMLURL),
-		Assets:         assets,
+		Notes:          strings.TrimSpace(fetched.Manifest.Notes),
+		PublishedAt:    strings.TrimSpace(fetched.Manifest.PublishedAt),
+		ReleaseURL:     strings.TrimSpace(fetched.Manifest.ReleaseURL),
+		Manifest:       fetched.Manifest,
+		Mirror:         fetched.Mirror,
+		Order:          fetched.Order,
 	}, nil
 }

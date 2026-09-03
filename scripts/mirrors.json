@@ -1,0 +1,12 @@
+[
+  {
+    "name": "r2",
+    "manifest": "https://dl.amigoer.com/latest.json",
+    "assets": "https://dl.amigoer.com"
+  },
+  {
+    "name": "github",
+    "manifest": "https://github.com/amigoer/mq-studio/releases/latest/download/manifest.json",
+    "assets": "https://github.com/amigoer/mq-studio/releases/download"
+  }
+]

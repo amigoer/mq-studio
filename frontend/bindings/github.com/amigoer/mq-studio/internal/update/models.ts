@@ -260,6 +260,13 @@ export class State {
     "total": number;
 
     /**
+     * Mirror is the one currently being read from, "" before any has been
+     * chosen. It is in the state so a failure can be diagnosed after the fact:
+     * which route a user took is otherwise invisible to everyone.
+     */
+    "mirror": string;
+
+    /**
      * What the last check concluded. Empty until one has run: it is a fact
      * about a check, not a phase, which is why it sits beside Phase rather
      * than in it.
@@ -319,6 +326,9 @@ export class State {
         if (!("total" in $$source)) {
             this["total"] = 0;
         }
+        if (!("mirror" in $$source)) {
+            this["mirror"] = "";
+        }
         if (!("outcome" in $$source)) {
             this["outcome"] = Status.$zero;
         }
@@ -345,10 +355,10 @@ export class State {
      * Creates a new State instance from a string or object.
      */
     static createFrom($$source: any = {}): State {
-        const $$createField13_0 = $$createType1;
+        const $$createField14_0 = $$createType1;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("location" in $$parsedSource) {
-            $$parsedSource["location"] = $$createField13_0($$parsedSource["location"]);
+            $$parsedSource["location"] = $$createField14_0($$parsedSource["location"]);
         }
         return new State($$parsedSource as Partial<State>);
     }

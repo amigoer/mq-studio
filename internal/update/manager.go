@@ -103,6 +103,10 @@ type State struct {
 	// Bytes fetched and expected. Total is -1 when the server sent no length.
 	Downloaded int64 `json:"downloaded"`
 	Total      int64 `json:"total"`
+	// Mirror is the one currently being read from, "" before any has been
+	// chosen. It is in the state so a failure can be diagnosed after the fact:
+	// which route a user took is otherwise invisible to everyone.
+	Mirror string `json:"mirror"`
 	// What the last check concluded. Empty until one has run: it is a fact
 	// about a check, not a phase, which is why it sits beside Phase rather
 	// than in it.
@@ -126,6 +130,14 @@ type memory struct {
 	Skipped      string `json:"skipped"`
 	ReadyVersion string `json:"readyVersion"`
 	ReadyPath    string `json:"readyPath"`
+	// PreferredMirror won the last race and MirrorMeasured is when. Reused on
+	// its own for MirrorPreferenceTTL, which is what keeps a routine check to a
+	// single request.
+	PreferredMirror string `json:"preferredMirror,omitempty"`
+	MirrorMeasured  string `json:"mirrorMeasured,omitempty"`
+	// LearnedMirrors are the ones a manifest named. Kept so a mirror added to a
+	// later release reaches builds that shipped before it existed.
+	LearnedMirrors []Mirror `json:"learnedMirrors,omitempty"`
 }
 
 // Options configures a Manager. Only Version and Directory are required; the
@@ -147,8 +159,8 @@ type Options struct {
 	// Delay is how long Start waits before the launch check. Zero means
 	// StartupDelay.
 	Delay time.Duration
-	// Check replaces the GitHub call. Optional.
-	Check func(version string, client *http.Client) (Result, error)
+	// Check replaces the network call. Optional.
+	Check func(ctx context.Context, version string, client *http.Client, mirrors []Mirror) (Result, error)
 }
 
 // Manager owns the update lifecycle.
@@ -163,7 +175,7 @@ type Manager struct {
 	commander Commander
 	location  Location
 	now       func() time.Time
-	check     func(string, *http.Client) (Result, error)
+	check     func(context.Context, string, *http.Client, []Mirror) (Result, error)
 	delay     time.Duration
 
 	state    State
@@ -321,7 +333,67 @@ func (m *Manager) setError(step FailedStep, err error) {
 	m.publish()
 }
 
-// Check queries GitHub and folds the answer into the state. A manual check
+// plan returns the mirrors to try, and the one to try first on its own when a
+// recent race already picked a winner.
+func (m *Manager) plan() ([]Mirror, *Mirror) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	mirrors := MergeMirrors(BootstrapMirrors(), m.memory.LearnedMirrors)
+	// With one mirror there is nothing to prefer: racing it is the same call.
+	if m.memory.PreferredMirror == "" || len(mirrors) < 2 {
+		return mirrors, nil
+	}
+	measured, err := time.Parse(time.RFC3339, m.memory.MirrorMeasured)
+	if err != nil || m.now().Sub(measured) >= MirrorPreferenceTTL {
+		// Re-measure rather than stay on a choice that may have gone bad, and
+		// so a mirror added since the last race gets a chance to win.
+		return mirrors, nil
+	}
+	if mirror, found := findMirror(mirrors, m.memory.PreferredMirror); found {
+		return mirrors, &mirror
+	}
+	return mirrors, nil
+}
+
+// runCheck resolves the release, preferring whichever mirror answered last.
+//
+// The remembered winner is tried alone and briefly: when it answers, a routine
+// check costs one request and no race at all. When it does not, being wrong
+// costs that one request and the full race follows.
+func (m *Manager) runCheck(ctx context.Context) (Result, error) {
+	mirrors, preferred := m.plan()
+	if preferred != nil {
+		quick, cancel := context.WithTimeout(ctx, PreferenceTimeout)
+		result, err := m.check(quick, m.version, m.client, []Mirror{*preferred})
+		cancel()
+		if err == nil {
+			m.rememberMirror(result)
+			return result, nil
+		}
+	}
+	result, err := m.check(ctx, m.version, m.client, mirrors)
+	if err == nil {
+		m.rememberMirror(result)
+	}
+	return result, err
+}
+
+// rememberMirror records which mirror answered and folds in any the manifest
+// named, so a mirror added to a later release reaches this build too.
+func (m *Manager) rememberMirror(result Result) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if result.Mirror.Name != "" {
+		m.memory.PreferredMirror = result.Mirror.Name
+		m.memory.MirrorMeasured = m.now().UTC().Format(time.RFC3339)
+	}
+	if len(result.Manifest.Mirrors) > 0 {
+		m.memory.LearnedMirrors = MergeMirrors(m.memory.LearnedMirrors, result.Manifest.Mirrors)
+	}
+	m.writeMemory()
+}
+
+// Check resolves the release and folds the answer into the state. A manual check
 // reports every outcome; a scheduled one is silent unless something is found.
 //
 // When the policy downloads on its own and the check finds a release that is
@@ -343,10 +415,9 @@ func (m *Manager) Check(ctx context.Context, manual bool) (State, error) {
 	m.state.Phase = PhaseChecking
 	m.state.Error, m.state.FailedStep = "", StepNone
 	m.publish()
-	client, check := m.client, m.check
 	m.mu.Unlock()
 
-	result, err := check(m.version, client)
+	result, err := m.runCheck(ctx)
 
 	m.mu.Lock()
 	m.busy = false
@@ -411,7 +482,7 @@ func (m *Manager) Check(ctx context.Context, manual bool) (State, error) {
 // Result re-checks first, which is what the renderer's download button does.
 func (m *Manager) Download(ctx context.Context, release Result) error {
 	if release.LatestVersion == "" {
-		checked, err := m.check(m.version, m.client)
+		checked, err := m.runCheck(ctx)
 		if err != nil {
 			m.mu.Lock()
 			m.setError(StepDownload, err)
@@ -476,8 +547,14 @@ func (m *Manager) Download(ctx context.Context, release Result) error {
 	return nil
 }
 
-// fetch resolves this build's asset, verifies it against the release's own
-// checksum list and leaves the package on disk.
+// fetch resolves this build's package from the manifest and downloads it,
+// trying each mirror in turn and leaving the verified file on disk.
+//
+// Falling through to another mirror is safe because of the digest the manifest
+// published: a mirror carries bytes but does not get to say what they are, so
+// the worst a bad one costs is the attempt. That is also why the digest is in
+// the manifest rather than in a file fetched next to the package -- otherwise
+// whoever served the package would be attesting to it as well.
 func (m *Manager) fetch(
 	ctx context.Context,
 	client *http.Client,
@@ -486,21 +563,13 @@ func (m *Manager) fetch(
 	release Result,
 ) (string, error) {
 	name := location.Target.PackageName(release.LatestVersion)
-	asset, found := release.Find(name)
-	if !found {
+	file, listed := release.Manifest.Files[name]
+	if !listed {
 		return "", fmt.Errorf("release %s has no package for this platform (%s)", release.LatestVersion, name)
 	}
-	sumsAsset, found := release.Find(checksumAssetName)
-	if !found {
-		return "", fmt.Errorf("release %s publishes no %s", release.LatestVersion, checksumAssetName)
-	}
-	sums, err := FetchChecksums(ctx, client, sumsAsset.URL)
-	if err != nil {
-		return "", err
-	}
-	want, listed := sums[name]
-	if !listed {
-		return "", fmt.Errorf("%s is not listed in %s", name, checksumAssetName)
+	mirrors := release.Order
+	if len(mirrors) == 0 {
+		mirrors = []Mirror{release.Mirror}
 	}
 
 	// Old packages are of no use once a newer one is being fetched, and they
@@ -514,10 +583,28 @@ func (m *Manager) fetch(
 		m.publish()
 		m.mu.Unlock()
 	}
-	if err := Download(ctx, client, asset.URL, path, want, progress); err != nil {
-		return "", err
+
+	failure := newMirrorFailure(name + " could not be downloaded")
+	for _, mirror := range mirrors {
+		m.mu.Lock()
+		m.state.Mirror = mirror.Name
+		// Each attempt starts from nothing, so the bar does not appear to run
+		// backwards when one mirror gives up partway.
+		m.state.Downloaded, m.state.Total = 0, -1
+		m.publish()
+		m.mu.Unlock()
+
+		err := Download(ctx, client, mirror.AssetURL(file.Path), path, file.SHA256, progress)
+		if err == nil {
+			return path, nil
+		}
+		// A cancel is the user's answer and applies to every mirror.
+		if errors.Is(err, context.Canceled) {
+			return "", err
+		}
+		failure.add(mirror, err)
 	}
-	return path, nil
+	return "", failure
 }
 
 // checksumAssetName is what the release workflow attaches the digests as.
