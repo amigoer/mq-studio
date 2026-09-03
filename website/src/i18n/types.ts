@@ -93,6 +93,8 @@ export interface Content {
     title: string;
     leadPrefix: string;
     leadSuffix: string;
+    /** Link to the same file on the second mirror. */
+    mirror: string;
     platforms: Record<'mac' | 'windows' | 'linux', { name: string; requirement: string; cta: string }>;
     archLabels: { amd64: string; arm64: string; winAmd64: string; winArm64: string };
     noteMac: string;

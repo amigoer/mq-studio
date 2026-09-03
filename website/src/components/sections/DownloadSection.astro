@@ -20,6 +20,7 @@ const variant = (key: string, file: ReleaseFile): Variant => ({
   key,
   name: file.name,
   url: file.url,
+  alternate: file.alternate,
   size: formatSize(file.size),
 });
 
@@ -112,6 +113,7 @@ const cards = [
             </div>
             <PlatformPicker
               cta={card.platform.cta}
+              mirror={d.mirror}
               segments={card.segments}
               variants={card.variants}
             />

@@ -8,6 +8,12 @@ export type LinuxFormat = 'deb' | 'rpm' | 'AppImage';
 export interface ReleaseFile {
   name: string;
   url: string;
+  /**
+   * The same file on the next mirror, '' when the release named only one. The
+   * site ships no JavaScript, so it cannot measure which mirror a visitor can
+   * reach - offering both statically is the most it can honestly do.
+   */
+  alternate: string;
   size: number;
 }
 
@@ -29,7 +35,7 @@ export const REPO_URL = 'https://github.com/amigoer/mq-studio';
  * asset is missing - a partially published release must not strand the visitor.
  */
 function pick(key: string): ReleaseFile {
-  return files[key] ?? { name: '', url: LATEST_URL, size: 0 };
+  return files[key] ?? { name: '', url: LATEST_URL, alternate: '', size: 0 };
 }
 
 export const mac = (arch: MacArch) => pick(`mac-${arch}`);

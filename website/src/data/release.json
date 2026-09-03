@@ -4,56 +4,70 @@
   "publishedAt": "2026-09-02T17:00:17Z",
   "htmlUrl": "https://github.com/amigoer/mq-studio/releases/tag/v0.0.6",
   "checksums": "https://github.com/amigoer/mq-studio/releases/download/v0.0.6/SHA256SUMS.txt",
+  "mirrors": {
+    "primary": "github",
+    "alternate": null
+  },
   "files": {
     "linux-amd64-AppImage": {
       "name": "mq-studio-0.0.6-linux-amd64.AppImage",
       "url": "https://github.com/amigoer/mq-studio/releases/download/v0.0.6/mq-studio-0.0.6-linux-amd64.AppImage",
-      "size": 88304120
+      "size": 88304120,
+      "alternate": ""
     },
     "linux-amd64-deb": {
       "name": "mq-studio-0.0.6-linux-amd64.deb",
       "url": "https://github.com/amigoer/mq-studio/releases/download/v0.0.6/mq-studio-0.0.6-linux-amd64.deb",
-      "size": 15914828
+      "size": 15914828,
+      "alternate": ""
     },
     "linux-amd64-rpm": {
       "name": "mq-studio-0.0.6-linux-amd64.rpm",
       "url": "https://github.com/amigoer/mq-studio/releases/download/v0.0.6/mq-studio-0.0.6-linux-amd64.rpm",
-      "size": 16542120
+      "size": 16542120,
+      "alternate": ""
     },
     "linux-arm64-AppImage": {
       "name": "mq-studio-0.0.6-linux-arm64.AppImage",
       "url": "https://github.com/amigoer/mq-studio/releases/download/v0.0.6/mq-studio-0.0.6-linux-arm64.AppImage",
-      "size": 87202312
+      "size": 87202312,
+      "alternate": ""
     },
     "linux-arm64-deb": {
       "name": "mq-studio-0.0.6-linux-arm64.deb",
       "url": "https://github.com/amigoer/mq-studio/releases/download/v0.0.6/mq-studio-0.0.6-linux-arm64.deb",
-      "size": 14322920
+      "size": 14322920,
+      "alternate": ""
     },
     "linux-arm64-rpm": {
       "name": "mq-studio-0.0.6-linux-arm64.rpm",
       "url": "https://github.com/amigoer/mq-studio/releases/download/v0.0.6/mq-studio-0.0.6-linux-arm64.rpm",
-      "size": 14810775
+      "size": 14810775,
+      "alternate": ""
     },
     "mac-amd64": {
       "name": "mq-studio-0.0.6-mac-amd64.dmg",
       "url": "https://github.com/amigoer/mq-studio/releases/download/v0.0.6/mq-studio-0.0.6-mac-amd64.dmg",
-      "size": 18526058
+      "size": 18526058,
+      "alternate": ""
     },
     "mac-arm64": {
       "name": "mq-studio-0.0.6-mac-arm64.dmg",
       "url": "https://github.com/amigoer/mq-studio/releases/download/v0.0.6/mq-studio-0.0.6-mac-arm64.dmg",
-      "size": 16344624
+      "size": 16344624,
+      "alternate": ""
     },
     "windows-amd64": {
       "name": "mq-studio-0.0.6-windows-amd64.exe",
       "url": "https://github.com/amigoer/mq-studio/releases/download/v0.0.6/mq-studio-0.0.6-windows-amd64.exe",
-      "size": 17313069
+      "size": 17313069,
+      "alternate": ""
     },
     "windows-arm64": {
       "name": "mq-studio-0.0.6-windows-arm64.exe",
       "url": "https://github.com/amigoer/mq-studio/releases/download/v0.0.6/mq-studio-0.0.6-windows-arm64.exe",
-      "size": 15432487
+      "size": 15432487,
+      "alternate": ""
     }
   },
   "generatedAt": "2026-09-02T17:21:58.662Z"

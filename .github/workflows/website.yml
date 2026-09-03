@@ -347,25 +347,31 @@ jobs:
         with:
           node-version: '22'
 
+      # The script reads whichever mirror answers first and falls back to the
+      # committed copy rather than failing, so the tag has to be checked here:
+      # committing the wrong version would serve it as though it were right.
+      #
+      # It is retried because promote.yml is pointing R2 at this release on the
+      # same event, in parallel with this job - until it lands, and for up to
+      # the 60s latest.json is cached for, the preferred mirror still serves the
+      # release before this one.
       - name: Fetch the published release
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        run: node scripts/fetch-release.mjs
-
-      # The script asks for /releases/latest rather than this tag, and it falls
-      # back to the committed copy instead of failing. Either can leave the wrong
-      # version here, and committing that would serve it as though it were right.
-      - name: Check it picked up this release
         env:
           EXPECTED: ${{ github.event.release.tag_name }}
         run: |
           set -eu
-          got=$(node -p "require('./website/src/data/release.json').tag")
-          if [ "$got" != "$EXPECTED" ]; then
-            echo "release.json says ${got}, expected ${EXPECTED}" >&2
-            exit 1
-          fi
-          echo "release.json is at ${got}"
+          for attempt in 1 2 3 4 5 6; do
+            node scripts/fetch-release.mjs
+            got=$(node -p "require('./website/src/data/release.json').tag")
+            if [ "$got" = "$EXPECTED" ]; then
+              echo "release.json is at ${got}"
+              exit 0
+            fi
+            echo "release.json says ${got}; waiting for the mirrors (${attempt}/6)"
+            sleep 20
+          done
+          echo "no mirror served ${EXPECTED}" >&2
+          exit 1
 
       - name: Commit and push
         env:

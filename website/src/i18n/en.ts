@@ -210,6 +210,7 @@ export const en: Content = {
     title: 'Download MQ Studio',
     leadPrefix: 'Current release',
     leadSuffix: 'every release ships a {checksums}',
+    mirror: 'Alternate',
     platforms: {
       mac: { name: 'macOS', requirement: 'macOS 12 and later', cta: 'Download .dmg' },
       windows: { name: 'Windows', requirement: 'Windows 10 and later', cta: 'Download .exe' },

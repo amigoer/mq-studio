@@ -189,6 +189,7 @@ export const zh: Content = {
     title: '下载 MQ Studio',
     leadPrefix: '当前版本',
     leadSuffix: '每个版本附 {checksums} 校验文件',
+    mirror: '备用地址',
     platforms: {
       mac: { name: 'macOS', requirement: 'macOS 12 及以上', cta: '下载 .dmg' },
       windows: { name: 'Windows', requirement: 'Windows 10 及以上', cta: '下载 .exe' },

@@ -4,6 +4,8 @@ export interface Variant {
   key: string;
   name: string;
   url: string;
+  /** The same file on another mirror, '' when there is only one. */
+  alternate: string;
   /** Already formatted, so the script only has to write it out. */
   size: string;
 }
@@ -16,11 +18,13 @@ export interface Segment {
 
 interface Props {
   cta: string;
+  /** Label for the second mirror's link. */
+  mirror: string;
   segments: Segment[];
   variants: Variant[];
 }
 
-const { cta, segments, variants } = Astro.props;
+const { cta, mirror, segments, variants } = Astro.props;
 
 const initialKey = segments.map((segment) => segment.defaultValue).join(':');
 const initial = variants.find((variant) => variant.key === initialKey) ?? variants[0]!;
@@ -73,6 +77,14 @@ const item =
   <div class="flex items-baseline gap-2 font-mono text-2xs text-subtle-foreground">
     <span class="truncate" data-picker-file title={initial.name}>{initial.name}</span>
     <span class="shrink-0 tabular-nums" data-picker-size>{initial.size}</span>
+    <a
+      href={initial.alternate || undefined}
+      data-picker-alt
+      hidden={!initial.alternate}
+      class="ml-auto shrink-0 underline underline-offset-[3px] hover:text-foreground"
+    >
+      {mirror}
+    </a>
   </div>
 </div>
 
@@ -81,6 +93,7 @@ const item =
     key: string;
     name: string;
     url: string;
+    alternate: string;
     size: string;
   }
 
@@ -90,6 +103,7 @@ const item =
     const link = root.querySelector<HTMLAnchorElement>('[data-picker-link]');
     const file = root.querySelector<HTMLElement>('[data-picker-file]');
     const size = root.querySelector<HTMLElement>('[data-picker-size]');
+    const alt = root.querySelector<HTMLAnchorElement>('[data-picker-alt]');
 
     function apply() {
       const match = variants.find((variant) => variant.key === selection.join(':'));
@@ -100,6 +114,10 @@ const item =
       file.textContent = match.name;
       file.title = match.name;
       if (size) size.textContent = match.size;
+      if (alt) {
+        alt.hidden = !match.alternate;
+        if (match.alternate) alt.href = match.alternate;
+      }
     }
 
     root.querySelectorAll<HTMLElement>('[data-segment]').forEach((segment) => {
