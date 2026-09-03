@@ -12,6 +12,14 @@
 # Rolling back is the same copy pointed at the previous tag, run from the
 # Actions tab with workflow_dispatch. That deliberately bypasses the
 # no-going-backwards check below, which is why it asks for the tag by hand.
+# Note that it only moves this mirror: GitHub resolves its own `latest`, so a
+# rollback is not complete until the withdrawn release is marked a pre-release
+# there as well.
+#
+# R2 holds a window of releases rather than all of them, trimmed by the prune
+# step once the promotion has landed. GitHub keeps every release and is the
+# fallback compiled into every build, so a tag that falls out of the window is
+# still installable, just not from the fast mirror.
 #
 # Note that a workflow triggered by `release` runs the file as it existed at
 # the tagged commit, so publishing a draft tagged before this file was added
@@ -48,21 +56,22 @@ jobs:
   promote:
     name: Point latest.json at the release
     runs-on: ubuntu-latest
+    env:
+      RELEASE_TAG: ${{ github.event.inputs.tag || github.event.release.tag_name }}
+      ALLOW_ROLLBACK: ${{ github.event.inputs.allow-rollback || 'false' }}
+      R2_BUCKET: ${{ vars.R2_BUCKET }}
+      R2_ACCOUNT_ID: ${{ vars.R2_ACCOUNT_ID }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: auto
+      # R2 rejects the additional CRC32 integrity headers the AWS CLI has
+      # sent by default since v2.23.
+      AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+      AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
     steps:
       - name: Promote
+        id: promote
         shell: bash
-        env:
-          RELEASE_TAG: ${{ github.event.inputs.tag || github.event.release.tag_name }}
-          ALLOW_ROLLBACK: ${{ github.event.inputs.allow-rollback || 'false' }}
-          R2_BUCKET: ${{ vars.R2_BUCKET }}
-          R2_ACCOUNT_ID: ${{ vars.R2_ACCOUNT_ID }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: auto
-          # R2 rejects the additional CRC32 integrity headers the AWS CLI has
-          # sent by default since v2.23.
-          AWS_REQUEST_CHECKSUM_CALCULATION: when_required
-          AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
         run: |
           set -eu
 
@@ -73,6 +82,7 @@ jobs:
           done
           if [ "$configured" -eq 0 ]; then
             echo '::warning::R2 is not configured; nothing to promote.'
+            echo 'configured=false' >> "$GITHUB_OUTPUT"
             exit 0
           fi
           if [ "$configured" -ne 4 ]; then
@@ -80,6 +90,7 @@ jobs:
             echo 'R2_ACCOUNT_ID, and secrets R2_ACCESS_KEY_ID and R2_SECRET_ACCESS_KEY.' >&2
             exit 1
           fi
+          echo 'configured=true' >> "$GITHUB_OUTPUT"
 
           if ! [[ "$RELEASE_TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
             echo "not a stable release tag: $RELEASE_TAG" >&2
@@ -137,3 +148,45 @@ jobs:
             exit 1
           fi
           echo "latest.json now points at $version (was ${current:-none})"
+
+      # After the promotion rather than before it, so the set is trimmed against
+      # the release that is actually being served.
+      - name: Prune old releases from R2
+        if: steps.promote.outputs.configured == 'true'
+        shell: bash
+        env:
+          # The floor is how far back a rollback might reach: promoting refuses
+          # a tag whose manifest is gone, so pruning too deep shortens the
+          # rollback window rather than failing quietly later.
+          KEEP: '5'
+        run: |
+          set -eu
+          endpoint="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+
+          # What latest.json points at now, which is not always the newest tag
+          # in the bucket - a rollback promotes an older one, and that one has
+          # to survive the prune whatever its position.
+          serving="$(jq -r '.tag // empty' "$RUNNER_TEMP/promoted.json")"
+          if [ -z "$serving" ]; then
+            echo 'the promoted manifest names no tag; refusing to prune' >&2
+            exit 1
+          fi
+
+          # Top-level tag directories only. latest.json is a key rather than a
+          # prefix, so it is never a candidate here, and the pattern means a
+          # deletion target can only ever be a stable tag.
+          tags="$(aws s3api list-objects-v2 --bucket "$R2_BUCKET" --delimiter / \
+                    --query 'CommonPrefixes[].Prefix' --output text \
+                    --endpoint-url "$endpoint" \
+                  | tr '\t' '\n' | sed 's:/$::' \
+                  | grep -E '^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$' || true)"
+
+          newest="$(printf '%s\n' "$tags" | sort -V | tail -n "$KEEP")"
+          keep="$(printf '%s\n%s\n' "$newest" "$serving" | sort -u)"
+
+          for tag in $(printf '%s\n' "$tags" | sort -V); do
+            if printf '%s\n' "$keep" | grep -qx "$tag"; then continue; fi
+            echo "removing $tag"
+            aws s3 rm "s3://${R2_BUCKET}/${tag}/" --recursive --endpoint-url "$endpoint"
+          done
+          echo "kept $(printf '%s' "$keep" | tr '\n' ' ')"
