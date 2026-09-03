@@ -139,8 +139,8 @@ func locate(goos, goarch, executable, appImage string, writable func(string) boo
 			location.Blocker = BlockerNotPackaged
 			return location
 		}
-		// No writability check: the NSIS installer elevates on its own when the
-		// install directory needs it.
+		// No writability check: the NSIS installer is launched elevated and
+		// raises its own prompt, so the install directory need not be ours.
 		location.Root = executable
 		return location
 

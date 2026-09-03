@@ -13,9 +13,11 @@ import (
 // fakeCommander records what would have been run, and can be told to fail one
 // of the commands so the recovery paths are exercised too.
 type fakeCommander struct {
-	ran     []string
-	started []string
-	failOn  string
+	ran        []string
+	started    []string
+	elevated   []string
+	elevateErr error
+	failOn     string
 	// onRun runs before the command is recorded, so a test can make the world
 	// look the way the real tool would have left it.
 	onRun func(name string, args []string) error
@@ -37,6 +39,17 @@ func (f *fakeCommander) Run(_ context.Context, name string, args ...string) erro
 
 func (f *fakeCommander) Start(name string, args ...string) error {
 	f.started = append(f.started, strings.Join(append([]string{name}, args...), " "))
+	if f.failOn != "" && strings.Contains(name, f.failOn) {
+		return fmt.Errorf("%s failed", name)
+	}
+	return nil
+}
+
+func (f *fakeCommander) Elevate(name string, args ...string) error {
+	f.elevated = append(f.elevated, strings.Join(append([]string{name}, args...), " "))
+	if f.elevateErr != nil {
+		return f.elevateErr
+	}
 	if f.failOn != "" && strings.Contains(name, f.failOn) {
 		return fmt.Errorf("%s failed", name)
 	}
@@ -230,6 +243,25 @@ func TestApplyAppImageReplacesTheFileInPlace(t *testing.T) {
 	}
 }
 
+// A dismissed UAC prompt reaches the user as text, so it must not arrive
+// wrapped in a sentence calling their own answer a failure.
+func TestApplyInstallerReportsADeclinedPromptAsItself(t *testing.T) {
+	installer := filepath.Join(t.TempDir(), "mq-studio-1.0.0-windows-amd64.exe")
+	if err := os.WriteFile(installer, []byte("installer"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	commander := &fakeCommander{elevateErr: ErrElevationDeclined}
+	location := Location{Kind: KindInstaller, Root: `C:\Program Files\MQ Studio\mq-studio.exe`}
+	err := Apply(context.Background(), commander, location, installer)
+	if !errors.Is(err, ErrElevationDeclined) {
+		t.Fatalf("Apply() error = %v, want ErrElevationDeclined", err)
+	}
+	if strings.Contains(err.Error(), "failed to start") {
+		t.Errorf("Apply() error = %q, want the declined message on its own", err)
+	}
+}
+
 func TestApplyInstallerHandsTheFileToWindows(t *testing.T) {
 	installer := filepath.Join(t.TempDir(), "mq-studio-1.0.0-windows-amd64.exe")
 	if err := os.WriteFile(installer, []byte("installer"), 0o755); err != nil {
@@ -241,8 +273,13 @@ func TestApplyInstallerHandsTheFileToWindows(t *testing.T) {
 	if err := Apply(context.Background(), commander, location, installer); err != nil {
 		t.Fatalf("Apply() error = %v", err)
 	}
-	if len(commander.started) != 1 || commander.started[0] != installer {
-		t.Fatalf("started %v, want the installer itself", commander.started)
+	if len(commander.elevated) != 1 || commander.elevated[0] != installer {
+		t.Fatalf("elevated %v, want the installer itself", commander.elevated)
+	}
+	// Start is the call that cannot raise a UAC prompt. Asserting it is unused
+	// is what stops this regressing to a launcher that never runs on Windows.
+	if len(commander.started) != 0 {
+		t.Fatalf("started %v, want the installer elevated instead", commander.started)
 	}
 	if len(commander.ran) != 0 {
 		t.Errorf("ran %v, want nothing waited on", commander.ran)

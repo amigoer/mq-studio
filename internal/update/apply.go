@@ -27,12 +27,21 @@ import (
 // something that was never installed at all.
 var ErrNotInstallable = errors.New("this installation cannot be updated in place")
 
+// ErrElevationDeclined reports that the user dismissed the Windows elevation
+// prompt. Nothing was installed because nothing was permitted to start, which
+// is a different thing to tell someone than a failure.
+var ErrElevationDeclined = errors.New("the update was not given permission to install")
+
 // Commander runs external tools. Run waits for the command; Start spawns it and
 // returns, which is what the trampolines below need -- they outlive the process
 // that started them on purpose.
 type Commander interface {
 	Run(ctx context.Context, name string, args ...string) error
 	Start(name string, args ...string) error
+	// Elevate starts a program that may need administrator rights. On Windows
+	// that is a different system call from Start, because the one Start uses
+	// cannot raise a privilege prompt; everywhere else the two are the same.
+	Elevate(name string, args ...string) error
 }
 
 // execCommander is the real implementation.
@@ -57,6 +66,10 @@ func (execCommander) Start(name string, args ...string) error {
 	}
 	// Released rather than waited on: the trampoline is meant to outlive us.
 	return command.Process.Release()
+}
+
+func (execCommander) Elevate(name string, args ...string) error {
+	return elevate(name, args...)
 }
 
 // SystemCommander runs updates through the real operating system.
@@ -152,14 +165,25 @@ func applyAppImage(current, downloaded string) error {
 }
 
 // applyInstaller hands the NSIS installer to Windows and returns. It runs with
-// its own window rather than silently: the installer is what asks for elevation
-// and what handles the files of an application that is still shutting down, and
-// a silent run gives the user nothing to look at while it does.
+// its own window rather than silently: the installer is what handles the files
+// of an application that is still shutting down, and a silent run gives the
+// user nothing to look at while it does.
+//
+// Elevate rather than Start, because the installer asks for administrator and
+// only one of the two launchers can answer that. Start could not: it fails with
+// ERROR_ELEVATION_REQUIRED without ever prompting.
 func applyInstaller(commander Commander, installer string) error {
-	if err := commander.Start(installer); err != nil {
-		return fmt.Errorf("failed to start the installer: %w", err)
+	err := commander.Elevate(installer)
+	if err == nil {
+		return nil
 	}
-	return nil
+	// A declined prompt is already a whole sentence about what happened, and
+	// the user is the one who caused it. Wrapping it in "failed to start"
+	// would report their own answer back to them as a fault.
+	if errors.Is(err, ErrElevationDeclined) {
+		return err
+	}
+	return fmt.Errorf("failed to start the installer: %w", err)
 }
 
 // Relaunch starts the installed application again once this process is gone.
