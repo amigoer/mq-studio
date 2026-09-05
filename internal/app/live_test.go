@@ -1525,3 +1525,83 @@ func TestLiveOverviewCarriesRecordedTPSHistory(t *testing.T) {
 		}
 	}
 }
+
+// The namespaced fixtures the same seed creates, under their own base names so
+// a scoped and an unscoped view can be told apart. See the driver's live tests.
+const (
+	seededRocketNamespace = "NS_E2E"
+	seededNamespacedTopic = "MQ_STUDIO_E2E_NS"
+)
+
+/*
+ * Switching the namespace from the shell, end to end.
+ *
+ * The switch is a store and a redial, and the redial is the half that used to
+ * be missing: the option reached connections.json and the open client went on
+ * dialled with the old one, so every page kept reading the previous namespace
+ * with nothing on screen saying so. This asserts through the topic list, which
+ * is what the user would have been looking at.
+ */
+func TestLiveSwitchingTheNamespaceRepointsAnOpenConnection(t *testing.T) {
+	connections, topics, _ := liveStack(t)
+	ctx := context.Background()
+
+	names := func(id int) []string {
+		t.Helper()
+		listed, err := topics.List(ctx, id, model.DestinationFilter{})
+		if err != nil {
+			t.Fatalf("list topics: %v", err)
+		}
+		found := make([]string, 0, len(listed))
+		for _, destination := range listed {
+			found = append(found, destination.Ref.Name)
+		}
+		return found
+	}
+	holds := func(found []string, want string) bool {
+		for _, name := range found {
+			if name == want {
+				return true
+			}
+		}
+		return false
+	}
+
+	profile, err := connections.AddConnection(liveProfileInput("live-scope"))
+	if err != nil {
+		t.Fatalf("add connection: %v", err)
+	}
+	if err := connections.Connect(profile.ID); err != nil {
+		t.Fatalf("connect: %v", err)
+	}
+
+	unscoped := names(profile.ID)
+	if !holds(unscoped, seededTopic) {
+		e2e.Missing(t, "%s is not seeded; run `npm run e2e:seed` (got %v)", seededTopic, unscoped)
+	}
+
+	switched, err := connections.SetOption(profile.ID, rocketmq.OptionNamespace, seededRocketNamespace)
+	if err != nil {
+		t.Fatalf("switch namespace: %v", err)
+	}
+	if switched.Status != model.StatusOnline {
+		t.Fatalf("status = %q, want the redial to have completed", switched.Status)
+	}
+
+	scoped := names(profile.ID)
+	if !holds(scoped, seededNamespacedTopic) {
+		t.Fatalf("the switched connection does not list %s; got %v", seededNamespacedTopic, scoped)
+	}
+	if holds(scoped, seededTopic) {
+		t.Fatalf("the switched connection still lists %s, so the redial did not take", seededTopic)
+	}
+
+	// And back, because a one-way switch is not a switcher.
+	if _, err := connections.SetOption(profile.ID, rocketmq.OptionNamespace, ""); err != nil {
+		t.Fatalf("switch back to unscoped: %v", err)
+	}
+	back := names(profile.ID)
+	if !holds(back, seededTopic) || holds(back, seededNamespacedTopic) {
+		t.Fatalf("switching back did not restore the unscoped view; got %v", back)
+	}
+}

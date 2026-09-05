@@ -471,6 +471,21 @@ type NamespaceLimits interface {
 	RemoveNamespaceLimit(ctx context.Context, name, limit string) error
 }
 
+// ScopeInspector reports the values a connection's scope can be pointed at.
+//
+// Distinct from NamespaceAdmin, whose namespaces are broker objects that can
+// be created and removed. A scope is a naming convention, so this only ever
+// reads: the names are discovered from the prefixes the cluster's own
+// resources carry, and a name nothing carries yet is still perfectly usable -
+// which is what ValidateScope is for.
+type ScopeInspector interface {
+	ListScopes(ctx context.Context) ([]*model.Scope, error)
+	// ValidateScope reports whether a name the listing did not offer can be
+	// composed into a resource name at all. An empty name is the unscoped
+	// connection and is always valid.
+	ValidateScope(name string) error
+}
+
 // AccessAdmin manages credential-based access control: an entry carries the
 // key, the secret and the permissions together.
 //

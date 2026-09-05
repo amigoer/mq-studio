@@ -72,6 +72,7 @@ export function DesignApp(): JSX.Element {
     connect,
     disconnect,
     test,
+    switchScope,
     create,
     update,
   } = useConnectionProfiles();
@@ -297,6 +298,24 @@ export function DesignApp(): JSX.Element {
     if (editingID == null) await connect(saved.id);
   };
 
+  /*
+   * A namespace switch is a reconnect: the profile is re-pointed and dialled
+   * again, so the pages behind it are reading a different set of names as soon
+   * as it lands. Leaving the tab where it is - same page, same connection - is
+   * the whole point of putting the switch in the chrome.
+   */
+  const switchConnectionScope = async (connection: Connection, next: string) => {
+    if ((connection.scope ?? "") === next) return;
+    const result = await switchScope(connection.id, next);
+    if (!result.ok) {
+      toast.error(t("shell.scope.switchFailed"), { description: result.error });
+      return;
+    }
+    toast.success(
+      next === "" ? t("shell.scope.switchedUnscoped") : t("shell.scope.switched", { scope: next }),
+    );
+  };
+
   const promoteConnection = async (connection: Connection) => {
     try {
       await makeDefault(connection.id);
@@ -348,13 +367,16 @@ export function DesignApp(): JSX.Element {
   const atHome = view.kind === "connections" || (view.kind === "tab" && !onConnection);
 
   const sidebar =
-    onConnection && protocol != null ? (
+    onConnection && protocol != null && connection != null ? (
       <Sidebar
         protocol={protocol}
         active={pagesOf(protocol).includes(page) ? page : "overview"}
         collapsed={navCollapsed}
+        scope={connection.scope ?? ""}
+        switchingScope={pending[connection.id] === "connecting"}
         onSelect={selectPage}
         onToggle={() => setNavCollapsed((collapsed) => !collapsed)}
+        onSwitchScope={(next) => void switchConnectionScope(connection, next)}
       />
     ) : undefined;
 
@@ -448,11 +470,17 @@ export function DesignApp(): JSX.Element {
    * on its own -- a different board is a different component, a different tab
    * is a different connection -- so keying on it costs nothing the switch was
    * not already paying, and gives the change one fade to arrive on.
+   *
+   * The scope is the exception: it changes under a board that would otherwise
+   * stay mounted, and every board reads on mount and then on its own 30-second
+   * timer. Without it, switching namespace left the previous one's topics on
+   * screen for up to half a minute with nothing saying so.
    */
   const viewKey = [
     view.kind,
     view.kind === "settings" ? "" : (activeTab ?? ""),
     onConnection ? page : "",
+    onConnection ? (connection?.scope ?? "") : "",
     onConnection ? String(focus?.seq ?? 0) : "",
   ].join(":");
 

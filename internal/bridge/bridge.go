@@ -30,7 +30,7 @@ func Services(
 		application.NewService(NewUpdateService(updates)),
 		application.NewService(&WindowService{}),
 		application.NewService(shell),
-		application.NewService(&ConnectionService{service: services.Connections}),
+		application.NewService(&ConnectionService{service: services.Connections, scopes: services.Scopes}),
 		application.NewService(&SettingsService{service: services.Settings}),
 		application.NewService(&ClusterService{service: services.Cluster}),
 		application.NewService(&TopicService{service: services.Topics}),

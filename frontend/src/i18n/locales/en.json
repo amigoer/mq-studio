@@ -602,6 +602,20 @@
     "status": {
       "tabs": "{{tabs}} tabs · {{online}} online"
     },
+    "scope": {
+      "label": "Namespace: {{scope}}",
+      "unscoped": "All namespaces",
+      "unscopedHint": "The whole cluster, names unchanged",
+      "search": "Filter or type a namespace",
+      "loading": "Reading the namespaces in use…",
+      "empty": "No name on this cluster carries a namespace yet",
+      "counts": "{{destinations}} topics · {{subscriptions}} groups",
+      "useTyped": "Switch to \u201c{{scope}}\u201d",
+      "more": "{{count}} more not shown",
+      "switched": "Switched to {{scope}}",
+      "switchedUnscoped": "Now reading the whole cluster",
+      "switchFailed": "Could not switch namespace"
+    },
     "palette": {
       "label": "Global search",
       "placeholder": "Search connections and pages, or run a command",

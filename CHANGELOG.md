@@ -9,6 +9,16 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Added
+
+- A RocketMQ namespace can be switched from the sidebar. It sits above the
+  pages because it scopes all of them — a namespace is a prefix the client puts
+  on every topic and group it names, so changing it re-points the whole tab —
+  and picking one stores it on the connection and dials again, which means the
+  tab reopens where it was left. The list is read off the cluster's own names,
+  since RocketMQ keeps no namespace registry, and a namespace nothing carries
+  yet can be typed in. (#78)
+
 ### Fixed
 
 - Editing a connection's driver settings — a RocketMQ namespace, a Kafka

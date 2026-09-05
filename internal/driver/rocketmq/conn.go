@@ -138,6 +138,8 @@ func rocketMQCapabilities() []model.Capability {
 		model.CapNodeWritePerm,
 		model.CapAccessControl,
 		model.CapAccessDirectory,
+
+		model.CapConnectionScope,
 	}
 }
 

@@ -258,6 +258,15 @@ const (
 	// from reading them: a connection may list a topology it has no permission
 	// to change.
 	CapRoutingAdmin Capability = "routing.admin"
+
+	// CapConnectionScope is a family whose connection carries a scope that is
+	// a naming convention rather than a broker object - a RocketMQ namespace
+	// is a prefix the client puts on every resource it names.
+	//
+	// Distinct from CapNamespaceList, whose namespaces are objects one page
+	// browses. This one re-points the whole connection, every page at once,
+	// which is why the shell offers the switch and no page does.
+	CapConnectionScope Capability = "connection.scope"
 )
 
 // Capabilities is what one live connection can actually do.

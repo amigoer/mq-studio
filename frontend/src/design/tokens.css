@@ -450,6 +450,65 @@
   overflow: hidden;
 }
 /*
+ * The namespace switcher, above the pages because it scopes all of them.
+ *
+ * A bordered pill rather than another `.ni` row: it is not a page, and reading
+ * as one would put a seventh destination at the top of a list of six. It keeps
+ * the row's icon column so its glyph lands on the same x as the pages' -- in
+ * the rail that column is the whole button, and nothing may slide sideways
+ * while the width animates.
+ */
+.side3 .side3-scope {
+  margin-bottom: 8px;
+  /* The border eats into the content box, so the padding gives that pixel
+     back: without it the glyph sits one px right of every page icon below,
+     which is visible in a rail that is nothing but a column of glyphs. */
+  padding-left: 9px;
+  padding-right: 9px;
+  border: 1px solid var(--c-border);
+  background: var(--c-panel);
+  color: var(--c-fg-2);
+  overflow: hidden;
+  transition:
+    background-color var(--mo-fast) ease,
+    border-color var(--mo-fast) ease,
+    color var(--mo-fast) ease;
+}
+.side3 .side3-scope:hover:not(:disabled) {
+  border-color: var(--c-border-strong);
+}
+/* Held open while its panel is: a control that gives nothing back once it is
+   clicked reads as one that did not take the click. */
+.side3 .side3-scope[data-state='open'] {
+  background: var(--c-fill);
+  border-color: var(--c-border-strong);
+  color: var(--c-fg);
+}
+.side3 .side3-scope:disabled {
+  cursor: default;
+}
+.side3-scope-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: var(--app-monospace-font, 'JetBrains Mono', ui-monospace, Menlo, monospace);
+  font-size: 11.5px;
+}
+.side3-scope-caret {
+  margin-left: auto;
+  flex: none;
+  opacity: 0.5;
+  transition: transform var(--mo-fast) ease;
+}
+.side3-scope[data-state='open'] .side3-scope-caret {
+  transform: rotate(180deg);
+}
+/* No room for it beside the glyph, and in the rail the glyph is the button. */
+.side3--rail .side3-scope-caret {
+  display: none;
+}
+
+/*
  * Chrome rather than navigation, so it reads a step quieter than the pages --
  * the grey the group labels use. Two classes to outrank `button.ni`'s reset.
  */
@@ -1191,6 +1250,44 @@ html[data-animations='off'] .mqs-toaster [data-sonner-toast] {
 .mqs-slide-right[data-state='open'] {
   opacity: 1;
   transform: none;
+}
+
+/*
+ * A menu panel, on the same ladder as everything else that moves.
+ *
+ * `.mqs-drop` above says what a menu should do -- drop 4px from its trigger,
+ * over `--mo-fast` -- but it says it as a transition, and a Radix panel is
+ * held mounted for its exit by `animationend`. A transition never fires one,
+ * so the panel would unmount before it had moved. These are the same two
+ * numbers written as keyframes.
+ *
+ * It replaces what tw-animate-css draws by default: a 150ms literal, its own
+ * easing and a 5% zoom, which is a third motion vocabulary beside the `--mo-*`
+ * durations and the `.mqs-*` overlays. This file is imported unlayered, so it
+ * wins over the utilities without either side having to grow a specificity
+ * fight -- and it answers the 界面过渡动画 switch through the variables rather
+ * than through the blanket at the foot of the file.
+ *
+ * The origin is left to Radix, which measures where the panel actually landed:
+ * flipped above its trigger for want of room, it has to grow from the bottom.
+ */
+.mqs-menu[data-state='open'] {
+  animation: mqs-menu-in var(--mo-fast) var(--mo-ease-out);
+}
+.mqs-menu[data-state='closed'] {
+  animation: mqs-menu-out var(--mo-fast) var(--mo-ease-out);
+}
+@keyframes mqs-menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+}
+@keyframes mqs-menu-out {
+  to {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
 }
 
 /*

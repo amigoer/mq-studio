@@ -602,6 +602,20 @@
     "status": {
       "tabs": "{{tabs}} 个标签 · {{online}} 在线"
     },
+    "scope": {
+      "label": "命名空间：{{scope}}",
+      "unscoped": "全部命名空间",
+      "unscopedHint": "整个集群，名字不加前缀",
+      "search": "筛选或输入命名空间",
+      "loading": "正在读取已在使用的命名空间…",
+      "empty": "这个集群上还没有任何名字带命名空间",
+      "counts": "{{destinations}} 个主题 · {{subscriptions}} 个消费组",
+      "useTyped": "切换到「{{scope}}」",
+      "more": "还有 {{count}} 个未显示",
+      "switched": "已切换到 {{scope}}",
+      "switchedUnscoped": "已切换为读取整个集群",
+      "switchFailed": "切换命名空间失败"
+    },
     "palette": {
       "label": "全局搜索",
       "placeholder": "搜索连接与页面，或运行一个操作",

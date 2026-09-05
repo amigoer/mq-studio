@@ -1,15 +1,23 @@
 package bridge
 
 import (
+	"context"
 	"errors"
+	"fmt"
 
+	"github.com/amigoer/mq-studio/internal/driver"
 	"github.com/amigoer/mq-studio/internal/model"
 	"github.com/amigoer/mq-studio/internal/service/connection"
+	"github.com/amigoer/mq-studio/internal/service/scope"
 )
 
 // ConnectionService exposes connection management to the frontend.
 type ConnectionService struct {
 	service *connection.Service
+	// scopes answers what a live connection could be re-pointed at. It sits
+	// here rather than on its own service because the two halves of a scope
+	// switch - what is on offer, and taking one - are one gesture in the shell.
+	scopes *scope.Service
 }
 
 // ConnectionView is the connection shape sent to the frontend.
@@ -198,6 +206,47 @@ func (s *ConnectionService) ConnectDefault() error {
 // SetDefault marks a connection as the default one.
 func (s *ConnectionService) SetDefault(id int) error {
 	return s.service.SetDefaultConnection(id)
+}
+
+// Scopes lists what this connection could be re-pointed at, for a family whose
+// scope is a naming convention rather than a broker object.
+func (s *ConnectionService) Scopes(connID int) ([]*model.Scope, error) {
+	return s.scopes.List(context.Background(), connID)
+}
+
+/*
+ * SetScope re-points a connection at another scope and redials it.
+ *
+ * The option key comes from the driver descriptor rather than from the
+ * renderer, so the shell asks for "this scope" and never has to know that
+ * RocketMQ spells it `namespace`.
+ *
+ * Validated before it is stored, against the live connection. Storing a name
+ * the driver would refuse leaves a profile that no longer opens at all, and
+ * the switcher is gated on being connected - so the user would have no way
+ * back to a working one.
+ */
+func (s *ConnectionService) SetScope(connID int, name string) (*ConnectionView, error) {
+	profile, err := s.service.GetConnection(connID)
+	if err != nil {
+		return nil, err
+	}
+	found, ok := driver.Lookup(profile.Kind)
+	if !ok {
+		return nil, driver.ErrUnknownKind
+	}
+	option := found.Descriptor().ScopeOption
+	if option == "" {
+		return nil, fmt.Errorf("%s connections carry no switchable scope", profile.Kind)
+	}
+	if err := s.scopes.Validate(connID, name); err != nil {
+		return nil, err
+	}
+	updated, err := s.service.SetOption(connID, option, name)
+	if err != nil {
+		return nil, err
+	}
+	return redactConnection(updated), nil
 }
 
 // Test probes a connection and reports the resulting status.

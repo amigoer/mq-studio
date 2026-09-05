@@ -68,6 +68,7 @@ func backings() []capabilityBacking {
 	actions := func(c Conn) bool { _, ok := c.(QueueActions); return ok }
 	trimmer := func(c Conn) bool { _, ok := c.(StreamTrimmer); return ok }
 	position := func(c Conn) bool { _, ok := c.(StreamPositionAdmin); return ok }
+	scopes := func(c Conn) bool { _, ok := c.(ScopeInspector); return ok }
 
 	return []capabilityBacking{
 		{model.CapDestinationList, "DestinationAdmin", destination},
@@ -141,6 +142,7 @@ func backings() []capabilityBacking {
 		{model.CapClientClose, "ClientCloser", clientClose},
 		{model.CapClusterHealth, "HealthInspector", health},
 		{model.CapDeadLetterTopology, "DeadLetterTopology", dlqTopology},
+		{model.CapConnectionScope, "ScopeInspector", scopes},
 	}
 }
 

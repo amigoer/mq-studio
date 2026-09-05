@@ -32,6 +32,7 @@ func (d *Driver) Descriptor() model.DriverDescriptor {
 		Kind:            model.KindRocketMQ,
 		DefaultPort:     "9876",
 		MaxCapabilities: rocketMQCapabilities(),
+		ScopeOption:     OptionNamespace,
 		Form: []model.FormField{
 			{
 				Key:      "endpoints",

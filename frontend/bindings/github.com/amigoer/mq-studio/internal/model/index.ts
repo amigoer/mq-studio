@@ -70,6 +70,7 @@ export {
     ResetOffsetRequest,
     ResourceAlarm,
     RuntimeParameter,
+    Scope,
     Shovel,
     SlowLogEntry,
     StreamAddResult,

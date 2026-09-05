@@ -3,6 +3,7 @@ package connection
 import (
 	"fmt"
 	"maps"
+	"strings"
 
 	"github.com/amigoer/mq-studio/internal/model"
 )
@@ -176,6 +177,73 @@ func (s *Service) UpdateConnection(id int, input model.ConnectionProfile) (*mode
 	s.mu.Unlock()
 
 	if clientConfigChanged && wasOnline {
+		s.runtime.Remove(id)
+		if err := s.connectRuntimeLocked(id); err != nil {
+			return &result, fmt.Errorf("connection config saved, but reconnect with new config failed: %w", err)
+		}
+		return s.GetConnection(id)
+	}
+	return &result, nil
+}
+
+/*
+ * SetOption replaces one stored option and redials a connection the change
+ * invalidates.
+ *
+ * Distinct from UpdateConnection, which takes a whole form submission. A
+ * caller changing one setting has no business resubmitting the credentials to
+ * do it, and the round trip through the form is exactly where a stored secret
+ * gets lost.
+ *
+ * An empty value removes the key rather than storing a blank, because Option
+ * cannot tell the two apart and a blank one would sit in connections.json
+ * saying nothing.
+ */
+func (s *Service) SetOption(id int, key, value string) (*model.ConnectionProfile, error) {
+	key = strings.TrimSpace(key)
+	if key == "" {
+		return nil, fmt.Errorf("option key is required")
+	}
+
+	defer s.notifyChanged()
+	s.runtimeMu.Lock()
+	defer s.runtimeMu.Unlock()
+
+	s.mu.Lock()
+	connection, exists := s.connections[id]
+	if !exists {
+		s.mu.Unlock()
+		return nil, fmt.Errorf("connection not found: %d", id)
+	}
+	previous := *connection
+	options := maps.Clone(previous.Options)
+	if options == nil {
+		options = make(map[string]string, 1)
+	}
+	if value == "" {
+		delete(options, key)
+	} else {
+		options[key] = value
+	}
+	// Setting an option to what it already holds must not drop a working
+	// client: the switcher offers the current scope like any other.
+	if maps.Equal(previous.Options, options) {
+		result := *connection
+		s.mu.Unlock()
+		return &result, nil
+	}
+	connection.Options = options
+	wasOnline := previous.Status == model.StatusOnline
+	connection.Status = model.StatusOffline
+	if err := s.saveConnectionsLocked(); err != nil {
+		*connection = previous
+		s.mu.Unlock()
+		return nil, fmt.Errorf("failed to save connection config: %w", err)
+	}
+	result := *connection
+	s.mu.Unlock()
+
+	if wasOnline {
 		s.runtime.Remove(id)
 		if err := s.connectRuntimeLocked(id); err != nil {
 			return &result, fmt.Errorf("connection config saved, but reconnect with new config failed: %w", err)

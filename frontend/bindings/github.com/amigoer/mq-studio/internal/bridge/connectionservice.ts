@@ -12,6 +12,10 @@ import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Cr
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
+import * as model$0 from "../model/models.js";
+
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
 import * as $models from "./models.js";
 
 /**
@@ -72,10 +76,38 @@ export function Remove(id: number): $CancellablePromise<void> {
 }
 
 /**
+ * Scopes lists what this connection could be re-pointed at, for a family whose
+ * scope is a naming convention rather than a broker object.
+ */
+export function Scopes(connID: number): $CancellablePromise<(model$0.Scope | null)[]> {
+    return $Call.ByID(1287254622, connID).then(($result: any) => {
+        return $$createType5($result);
+    });
+}
+
+/**
  * SetDefault marks a connection as the default one.
  */
 export function SetDefault(id: number): $CancellablePromise<void> {
     return $Call.ByID(3271949170, id);
+}
+
+/**
+ *  * SetScope re-points a connection at another scope and redials it.
+ *  *
+ *  * The option key comes from the driver descriptor rather than from the
+ *  * renderer, so the shell asks for "this scope" and never has to know that
+ *  * RocketMQ spells it `namespace`.
+ *  *
+ *  * Validated before it is stored, against the live connection. Storing a name
+ *  * the driver would refuse leaves a profile that no longer opens at all, and
+ *  * the switcher is gated on being connected - so the user would have no way
+ *  * back to a working one.
+ */
+export function SetScope(connID: number, name: string): $CancellablePromise<$models.ConnectionView | null> {
+    return $Call.ByID(4146218863, connID, name).then(($result: any) => {
+        return $$createType1($result);
+    });
 }
 
 /**
@@ -99,3 +131,6 @@ export function Update(id: number, input: $models.ConnectionInput): $Cancellable
 const $$createType0 = $models.ConnectionView.createFrom;
 const $$createType1 = $Create.Nullable($$createType0);
 const $$createType2 = $Create.Array($$createType1);
+const $$createType3 = model$0.Scope.createFrom;
+const $$createType4 = $Create.Nullable($$createType3);
+const $$createType5 = $Create.Array($$createType4);

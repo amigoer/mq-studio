@@ -311,3 +311,80 @@ func TestLiveNamespaceSendThenQuery(t *testing.T) {
 		t.Fatalf("the broker does not hold the message under %s", liveNamespacedRaw)
 	}
 }
+
+/*
+ * The switcher's options, off a real cluster.
+ *
+ * Two things it has to get right and no unit test can show. The listing must
+ * be blind to the connection's own namespace - a connection already inside
+ * NS_E2E has to be able to see it and to see whatever else is there, or the
+ * switch is one-way. And the counts have to be the seeded objects rather than
+ * every broker's copy of them: consumer groups are read per broker, so a
+ * multi-broker cluster is where a double count would show.
+ */
+func TestLiveScopeListingIsBlindToTheConnectionsOwnNamespace(t *testing.T) {
+	ctx := liveContext(t)
+
+	named := func(conn driver.Conn) map[string]*model.Scope {
+		t.Helper()
+		scopes, err := conn.(driver.ScopeInspector).ListScopes(ctx)
+		if err != nil {
+			t.Fatalf("list scopes: %v", err)
+		}
+		byName := make(map[string]*model.Scope, len(scopes))
+		for _, scope := range scopes {
+			byName[scope.Name] = scope
+		}
+		return byName
+	}
+
+	fromScoped := named(liveConn(t, 47, "scoped-scopes", liveNamespace))
+	fromUnscoped := named(liveConn(t, 48, "unscoped-scopes", ""))
+
+	seeded, listed := fromScoped[liveNamespace], fromUnscoped[liveNamespace]
+	if seeded == nil {
+		e2e.Missing(t, "the namespace %s is not seeded; run `npm run e2e:seed` (got %v)",
+			liveNamespace, fromScoped)
+	}
+	if listed == nil {
+		t.Fatalf("an unscoped connection did not find %s; got %v", liveNamespace, fromUnscoped)
+	}
+	// Both connections read the same cluster, so both must report the same
+	// thing: the listing is deliberately unfiltered by the caller's own scope.
+	if *seeded != *listed {
+		t.Fatalf("scoped saw %+v and unscoped saw %+v for the same namespace", *seeded, *listed)
+	}
+
+	if seeded.Destinations < 1 {
+		t.Errorf("%s reported %d topics, and %s is seeded in it",
+			liveNamespace, seeded.Destinations, liveNamespacedRaw)
+	}
+	// Seeded once. Counted per broker, it would be one per broker.
+	if seeded.Subscriptions != 1 {
+		t.Errorf("%s reported %d consumer groups, want the one seeded (%s)",
+			liveNamespace, seeded.Subscriptions, liveNamespacedGrp)
+	}
+
+	// The unscoped topics are the absence of a namespace, not a namespace of
+	// their own: nothing may appear under an empty name.
+	if _, present := fromUnscoped[""]; present {
+		t.Error("the listing invented a namespace for the names that carry none")
+	}
+}
+
+// A name the cluster has never carried is still a name the connection can be
+// switched to, because a namespace is a prefix rather than an object. The
+// separator is the one thing it cannot contain.
+func TestLiveScopeValidationMatchesWhatOpenWouldAccept(t *testing.T) {
+	liveContext(t)
+	conn := liveConn(t, 49, "scope-validation", "").(driver.ScopeInspector)
+
+	for _, name := range []string{"", "NS_E2E", "nothing_has_ever_used_this"} {
+		if err := conn.ValidateScope(name); err != nil {
+			t.Errorf("ValidateScope(%q) = %v, want nil", name, err)
+		}
+	}
+	if err := conn.ValidateScope("bad%ns"); err == nil {
+		t.Error("a namespace carrying the separator was accepted")
+	}
+}

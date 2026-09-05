@@ -1080,6 +1080,17 @@ export enum Capability {
      * to change.
      */
     CapRoutingAdmin = "routing.admin",
+
+    /**
+     * CapConnectionScope is a family whose connection carries a scope that is
+     * a naming convention rather than a broker object - a RocketMQ namespace
+     * is a prefix the client puts on every resource it names.
+     * 
+     * Distinct from CapNamespaceList, whose namespaces are objects one page
+     * browses. This one re-points the whole connection, every page at once,
+     * which is why the shell offers the switch and no page does.
+     */
+    CapConnectionScope = "connection.scope",
 };
 
 /**
@@ -2021,6 +2032,14 @@ export class DriverDescriptor {
      */
     "maxCapabilities": Capability[];
 
+    /**
+     * ScopeOption names the option field the shell's scope switcher writes,
+     * for a family that declares CapConnectionScope. Empty everywhere else:
+     * a connection whose scope is a broker object is not re-pointed by
+     * editing its profile.
+     */
+    "scopeOption": string;
+
     /** Creates a new DriverDescriptor instance. */
     constructor($$source: Partial<DriverDescriptor> = {}) {
         if (!("kind" in $$source)) {
@@ -2034,6 +2053,9 @@ export class DriverDescriptor {
         }
         if (!("maxCapabilities" in $$source)) {
             this["maxCapabilities"] = [];
+        }
+        if (!("scopeOption" in $$source)) {
+            this["scopeOption"] = "";
         }
 
         Object.assign(this, $$source);
@@ -4263,6 +4285,50 @@ export class RuntimeParameter {
     static createFrom($$source: any = {}): RuntimeParameter {
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         return new RuntimeParameter($$parsedSource as Partial<RuntimeParameter>);
+    }
+}
+
+/**
+ * Scope is one value a connection's scope can be pointed at.
+ * 
+ * Distinct from Namespace, which is a broker object carrying its own settings,
+ * limits and permissions. A scope is a naming convention - a RocketMQ
+ * namespace is a prefix the client puts in front of every resource it names -
+ * so nothing creates one, nothing removes one, and the only evidence one
+ * exists is that some topic or group carries it. The counts are therefore not
+ * decoration: they are the whole answer to whether a name means anything on
+ * this cluster.
+ */
+export class Scope {
+    "name": string;
+
+    /**
+     * Destinations and Subscriptions are how many of each carry the name.
+     */
+    "destinations": number;
+    "subscriptions": number;
+
+    /** Creates a new Scope instance. */
+    constructor($$source: Partial<Scope> = {}) {
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("destinations" in $$source)) {
+            this["destinations"] = 0;
+        }
+        if (!("subscriptions" in $$source)) {
+            this["subscriptions"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new Scope instance from a string or object.
+     */
+    static createFrom($$source: any = {}): Scope {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new Scope($$parsedSource as Partial<Scope>);
     }
 }
 

@@ -2,9 +2,11 @@ import { ConnectionService } from "@bindings/bridge";
 import type { ConnectionInput } from "@bindings/bridge/models";
 import { AuthMechanism, MQKind } from "@bindings/model/models";
 import type { Connection } from "./models";
+import type { Scope } from "@bindings/model/models";
 import { present, required } from "./client";
 
 export { AuthMechanism, MQKind };
+export type { Scope };
 
 /** What the connection form submits, before secrets policy is applied. */
 export interface ConnectionDraft {
@@ -80,6 +82,21 @@ export const setDefaultConnection = (id: number): Promise<void> =>
   ConnectionService.SetDefault(id);
 export const testConnection = (id: number): Promise<string> =>
   ConnectionService.Test(id);
+
+/**
+ * The scopes this connection could be re-pointed at.
+ *
+ * Only a family whose scope is a naming convention answers: RocketMQ has no
+ * namespace registry, so these are read out of the prefixes the cluster's own
+ * topics and groups carry. A namespace nothing carries yet is absent from the
+ * list and is still usable -- the switcher takes a typed one.
+ */
+export const listScopes = (id: number): Promise<Scope[]> =>
+  ConnectionService.Scopes(id).then(present);
+
+/** Re-points a connection at another scope, storing it and redialling. */
+export const setScope = (id: number, scope: string): Promise<Connection> =>
+  ConnectionService.SetScope(id, scope).then(required);
 
 /**
  * Tests a form submission that has not been saved.

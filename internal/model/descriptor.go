@@ -67,4 +67,10 @@ type DriverDescriptor struct {
 	// only narrow it, never widen it, and the driver conformance test asserts
 	// every entry is backed by an implemented interface.
 	MaxCapabilities []Capability `json:"maxCapabilities"`
+
+	// ScopeOption names the option field the shell's scope switcher writes,
+	// for a family that declares CapConnectionScope. Empty everywhere else:
+	// a connection whose scope is a broker object is not re-pointed by
+	// editing its profile.
+	ScopeOption string `json:"scopeOption"`
 }

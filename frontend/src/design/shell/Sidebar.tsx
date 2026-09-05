@@ -16,6 +16,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { ScopeSwitcher } from "./ScopeSwitcher";
 
 /*
  * The icons ink 13.3px of their 16px box against a 12.5px label -- the ratio a
@@ -42,14 +43,22 @@ export function Sidebar({
   protocol,
   active,
   collapsed = false,
+  scope = "",
+  switchingScope = false,
   onSelect,
   onToggle,
+  onSwitchScope,
 }: {
   protocol: ProtocolId;
   active: PageId;
   collapsed?: boolean;
+  /** What the connection is scoped to, for the families that carry one. */
+  scope?: string;
+  /** True while a scope switch is redialling. */
+  switchingScope?: boolean;
   onSelect?: (page: PageId) => void;
   onToggle?: () => void;
+  onSwitchScope?: (next: string) => void;
 }) {
   const { t } = useTranslation();
   const capabilities = useCapabilities();
@@ -62,6 +71,13 @@ export function Sidebar({
     // tooltip. Half a second is long enough to mean the pointer stopped.
     <TooltipProvider delayDuration={500}>
       <nav className={cn("side3", collapsed && "side3--rail")}>
+        {/* Above the pages because it scopes all of them: a RocketMQ namespace
+            is a prefix on every name the connection sends, so switching it
+            re-points the whole tab rather than filtering one board. Draws
+            itself only where the connection has such a scope. */}
+        {onSwitchScope != null && (
+          <ScopeSwitcher scope={scope} switching={switchingScope} onSwitch={onSwitchScope} />
+        )}
         {PROTOCOLS[protocol].nav.map((group, gi) => {
           const items = group.items.filter(({ id }) => nav.visible(id));
           if (items.length === 0) return null;

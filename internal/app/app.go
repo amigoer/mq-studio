@@ -28,6 +28,7 @@ import (
 	rabbitmqservice "github.com/amigoer/mq-studio/internal/service/rabbitmq"
 	redisstreamservice "github.com/amigoer/mq-studio/internal/service/redisstream"
 	"github.com/amigoer/mq-studio/internal/service/routing"
+	"github.com/amigoer/mq-studio/internal/service/scope"
 	"github.com/amigoer/mq-studio/internal/service/settings"
 	"github.com/amigoer/mq-studio/internal/service/subscription"
 	"github.com/amigoer/mq-studio/internal/storage/layout"
@@ -43,6 +44,7 @@ type Services struct {
 	Settings    *configuration.Service
 	ACL         *access.Service
 	Routing     *routing.Service
+	Scopes      *scope.Service
 	RabbitMQ    *rabbitmqservice.Service
 	Kafka       *kafkaservice.Service
 	MQTT        *mqttservice.Service
@@ -96,6 +98,7 @@ func New() (*Services, error) {
 		Settings:    configurationService,
 		ACL:         access.New(conns, settingsService),
 		Routing:     routing.New(conns, settingsService),
+		Scopes:      scope.New(conns, settingsService),
 		RabbitMQ:    rabbitmqservice.New(conns, settingsService),
 		Kafka:       kafkaservice.New(conns, settingsService),
 		MQTT:        mqttservice.New(conns, settingsService),

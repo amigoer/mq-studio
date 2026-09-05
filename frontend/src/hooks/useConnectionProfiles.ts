@@ -15,6 +15,7 @@ import {
   disconnect as disconnectProfile,
   getConnections,
   setDefaultConnection,
+  setScope,
   testConnection,
   updateConnection,
   type ConnectionDraft,
@@ -70,6 +71,12 @@ interface ConnectionProfilesContextValue {
   connect: (id: number) => Promise<ConnectionResult>;
   disconnect: (id: number) => Promise<ConnectionResult>;
   test: (id: number) => Promise<ConnectionResult>;
+  /**
+   * Re-points a connection at another scope. It is a dial, not an edit: the
+   * option is stored and the open client is dropped and replaced, so it
+   * reports itself the same way connecting does.
+   */
+  switchScope: (id: number, scope: string) => Promise<ConnectionResult>;
   create: (draft: ConnectionDraft) => Promise<ConnectionProfile>;
   update: (
     id: number,
@@ -180,6 +187,11 @@ function useConnectionProfilesStore(): ConnectionProfilesContextValue {
     [dial],
   );
 
+  const switchScope = useCallback(
+    (id: number, scope: string) => dial(id, "connecting", () => setScope(id, scope)),
+    [dial],
+  );
+
   const disconnect = useCallback(
     async (id: number) => {
       const result = await dial(id, "disconnecting", () => disconnectProfile(id));
@@ -259,6 +271,7 @@ function useConnectionProfilesStore(): ConnectionProfilesContextValue {
       connect,
       disconnect,
       test,
+      switchScope,
       create,
       update,
     }),
@@ -275,6 +288,7 @@ function useConnectionProfilesStore(): ConnectionProfilesContextValue {
       pending,
       reload,
       remove,
+      switchScope,
       test,
       update,
     ],
