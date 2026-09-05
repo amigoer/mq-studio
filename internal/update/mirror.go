@@ -71,8 +71,8 @@ func BootstrapMirrors() []Mirror {
 	return []Mirror{
 		{
 			Name:        "r2",
-			ManifestURL: "https://dl.amigoer.com/latest.json",
-			AssetBase:   "https://dl.amigoer.com",
+			ManifestURL: "https://dl.amigoer.com/mq-studio/latest.json",
+			AssetBase:   "https://dl.amigoer.com/mq-studio",
 		},
 		{
 			Name:        "github",

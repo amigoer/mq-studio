@@ -1,8 +1,8 @@
 [
   {
     "name": "r2",
-    "manifest": "https://dl.amigoer.com/latest.json",
-    "assets": "https://dl.amigoer.com"
+    "manifest": "https://dl.amigoer.com/mq-studio/latest.json",
+    "assets": "https://dl.amigoer.com/mq-studio"
   },
   {
     "name": "github",

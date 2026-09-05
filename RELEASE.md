@@ -100,16 +100,19 @@ The workflow creates a **draft** release. Nothing reaches users until you press
 Publish — in particular the in-app update check only ever sees published
 releases.
 
-The packages are already on R2 by this point, under `/<tag>/`, but nothing
-refers to them: clients only ever look up `/latest.json`, which still names the
-previous release. Uploading early is deliberate - it warms the CDN, and it means
+The packages are already on R2 by this point, under `/mq-studio/<tag>/`, but
+nothing refers to them: clients only ever look up `/mq-studio/latest.json`,
+which still names the previous release. The `mq-studio/` prefix is there because
+the bucket serves several projects; it is the path half of the `r2` entry in
+`scripts/mirrors.json`, and `TestReleaseToolingUsesTheMirrorPrefix` keeps the
+workflows equal to it. Uploading early is deliberate - it warms the CDN, and it means
 every mirror holds the files before any mirror starts naming them, which matters
 because a client resolves the manifest on whichever mirror answers first and may
 fall back to a different one for the download itself.
 
 Pressing Publish is the single switch. It flips what GitHub's `releases/latest`
-resolves to, and `promote.yml` copies that release's manifest to `/latest.json`
-on R2 within about a minute. There is deliberately no second thing to press: two
+resolves to, and `promote.yml` copies that release's manifest to
+`/mq-studio/latest.json` on R2 within about a minute. There is deliberately no second thing to press: two
 switches would drift, and with several mirrors a drift means half the users see
 the new version and half do not.
 

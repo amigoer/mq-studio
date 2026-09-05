@@ -61,6 +61,11 @@ jobs:
       ALLOW_ROLLBACK: ${{ github.event.inputs.allow-rollback || 'false' }}
       R2_BUCKET: ${{ vars.R2_BUCKET }}
       R2_ACCOUNT_ID: ${{ vars.R2_ACCOUNT_ID }}
+      # The bucket serves several projects; everything this one writes lives
+      # under one prefix, equal to the path half of the r2 mirror in
+      # scripts/mirrors.json. It is also what keeps the prune below from ever
+      # listing, let alone deleting, another project's objects.
+      R2_PREFIX: mq-studio
       AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
       AWS_DEFAULT_REGION: auto
@@ -98,12 +103,12 @@ jobs:
           fi
           version="${RELEASE_TAG#v}"
           endpoint="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
-          source="s3://${R2_BUCKET}/${RELEASE_TAG}/manifest.json"
+          source="s3://${R2_BUCKET}/${R2_PREFIX}/${RELEASE_TAG}/manifest.json"
 
           # A draft built before R2 was configured has no manifest to promote.
           # Failing here is right: the alternative is latest.json naming files
           # that are not there.
-          if ! aws s3api head-object --bucket "$R2_BUCKET" --key "${RELEASE_TAG}/manifest.json" \
+          if ! aws s3api head-object --bucket "$R2_BUCKET" --key "${R2_PREFIX}/${RELEASE_TAG}/manifest.json" \
                --endpoint-url "$endpoint" > /dev/null 2>&1; then
             echo "$source does not exist; was this release packaged after R2 was set up?" >&2
             exit 1
@@ -113,9 +118,9 @@ jobs:
           # onto a version they already have, which reads to them as the update
           # having been withdrawn.
           current=''
-          if aws s3api head-object --bucket "$R2_BUCKET" --key latest.json \
+          if aws s3api head-object --bucket "$R2_BUCKET" --key "${R2_PREFIX}/latest.json" \
              --endpoint-url "$endpoint" > /dev/null 2>&1; then
-            aws s3 cp "s3://${R2_BUCKET}/latest.json" "$RUNNER_TEMP/current.json" \
+            aws s3 cp "s3://${R2_BUCKET}/${R2_PREFIX}/latest.json" "$RUNNER_TEMP/current.json" \
               --endpoint-url "$endpoint" --no-progress > /dev/null
             current="$(jq -r '.version // empty' "$RUNNER_TEMP/current.json")"
           fi
@@ -130,7 +135,7 @@ jobs:
 
           # A same-bucket copy, so the 290 MB stays where it is; only the
           # caching metadata differs, which is what REPLACE is for.
-          aws s3 cp "$source" "s3://${R2_BUCKET}/latest.json" \
+          aws s3 cp "$source" "s3://${R2_BUCKET}/${R2_PREFIX}/latest.json" \
             --endpoint-url "$endpoint" \
             --content-type application/json \
             --cache-control 'public, max-age=60, s-maxage=60, stale-while-revalidate=300' \
@@ -140,7 +145,7 @@ jobs:
           # Reads it back rather than trusting the copy: a silent no-op here
           # looks exactly like a successful release until someone reports that
           # the update never appeared.
-          aws s3 cp "s3://${R2_BUCKET}/latest.json" "$RUNNER_TEMP/promoted.json" \
+          aws s3 cp "s3://${R2_BUCKET}/${R2_PREFIX}/latest.json" "$RUNNER_TEMP/promoted.json" \
             --endpoint-url "$endpoint" --no-progress > /dev/null
           promoted="$(jq -r '.version // empty' "$RUNNER_TEMP/promoted.json")"
           if [ "$promoted" != "$version" ]; then
@@ -172,13 +177,15 @@ jobs:
             exit 1
           fi
 
-          # Top-level tag directories only. latest.json is a key rather than a
-          # prefix, so it is never a candidate here, and the pattern means a
-          # deletion target can only ever be a stable tag.
+          # This project's tag directories only. The prefix is what keeps a
+          # shared bucket's other projects out of the listing, latest.json is a
+          # key rather than a prefix so it is never a candidate, and the pattern
+          # means a deletion target can only ever be a stable tag.
           tags="$(aws s3api list-objects-v2 --bucket "$R2_BUCKET" --delimiter / \
+                    --prefix "${R2_PREFIX}/" \
                     --query 'CommonPrefixes[].Prefix' --output text \
                     --endpoint-url "$endpoint" \
-                  | tr '\t' '\n' | sed 's:/$::' \
+                  | tr '\t' '\n' | sed "s:^${R2_PREFIX}/::; s:/\$::" \
                   | grep -E '^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$' || true)"
 
           newest="$(printf '%s\n' "$tags" | sort -V | tail -n "$KEEP")"
@@ -187,6 +194,6 @@ jobs:
           for tag in $(printf '%s\n' "$tags" | sort -V); do
             if printf '%s\n' "$keep" | grep -qx "$tag"; then continue; fi
             echo "removing $tag"
-            aws s3 rm "s3://${R2_BUCKET}/${tag}/" --recursive --endpoint-url "$endpoint"
+            aws s3 rm "s3://${R2_BUCKET}/${R2_PREFIX}/${tag}/" --recursive --endpoint-url "$endpoint"
           done
           echo "kept $(printf '%s' "$keep" | tr '\n' ' ')"

@@ -8,6 +8,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -186,8 +187,11 @@ func TestMergeMirrorsCannotRemoveOrRedefineACompiledInMirror(t *testing.T) {
 	if !found {
 		t.Fatal("the compiled-in r2 mirror was dropped")
 	}
-	if r2.AssetBase != "https://dl.amigoer.com" {
-		t.Errorf("r2 base = %q, want the compiled-in one to win", r2.AssetBase)
+	// Compared against the compiled-in mirror rather than a literal: what this
+	// pins is that the manifest lost, not what the URL happens to be.
+	compiled, _ := findMirror(BootstrapMirrors(), "r2")
+	if r2 != compiled {
+		t.Errorf("r2 = %+v, want the compiled-in %+v to win", r2, compiled)
 	}
 	if _, found := findMirror(merged, "github"); !found {
 		t.Error("the compiled-in github mirror was dropped")
@@ -441,6 +445,38 @@ func TestBootstrapMirrorsMatchTheReleaseTooling(t *testing.T) {
 	for index, want := range shared {
 		if compiled[index] != want {
 			t.Errorf("mirror %d is %+v in the build and %+v in scripts/mirrors.json", index, compiled[index], want)
+		}
+	}
+}
+
+// The workflows write to a prefix inside a bucket that serves several projects,
+// and the app reads from the URL that prefix produces. Nothing at runtime
+// connects the two: a release uploaded under the wrong prefix publishes and
+// promotes cleanly, and only fails later, on a user's machine, as a mirror that
+// 404s. So the literal in the workflows is pinned to the mirror list here.
+func TestReleaseToolingUsesTheMirrorPrefix(t *testing.T) {
+	r2, found := findMirror(BootstrapMirrors(), "r2")
+	if !found {
+		t.Fatal("no r2 mirror to take a prefix from")
+	}
+	parsed, err := url.Parse(r2.AssetBase)
+	if err != nil {
+		t.Fatalf("the r2 asset base is not a URL: %v", err)
+	}
+	prefix := strings.Trim(parsed.Path, "/")
+	if prefix == "" {
+		t.Fatal("the r2 asset base names no prefix; a shared bucket needs one")
+	}
+
+	want := "R2_PREFIX: " + prefix
+	for _, workflow := range []string{"release.yml", "promote.yml"} {
+		path := filepath.Join("..", "..", ".github", "workflows", workflow)
+		content, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatalf("reading %s: %v", path, err)
+		}
+		if !strings.Contains(string(content), want) {
+			t.Errorf("%s does not set %q, so it would write where the app does not look", path, want)
 		}
 	}
 }
