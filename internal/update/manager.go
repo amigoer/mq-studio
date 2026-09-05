@@ -329,7 +329,7 @@ func (m *Manager) publish() {
 func (m *Manager) setError(step FailedStep, err error) {
 	m.state.Phase = PhaseError
 	m.state.FailedStep = step
-	m.state.Error = err.Error()
+	m.state.Error = present(err).Error()
 	m.publish()
 }
 
@@ -428,7 +428,7 @@ func (m *Manager) Check(ctx context.Context, manual bool) (State, error) {
 		m.setError(StepCheck, err)
 		state := m.snapshot()
 		m.mu.Unlock()
-		return state, err
+		return state, present(err)
 	}
 
 	m.state.ReleaseURL = result.ReleaseURL
@@ -487,7 +487,7 @@ func (m *Manager) Download(ctx context.Context, release Result) error {
 			m.mu.Lock()
 			m.setError(StepDownload, err)
 			m.mu.Unlock()
-			return err
+			return present(err)
 		}
 		if checked.Status != StatusAvailable {
 			return nil
@@ -504,7 +504,7 @@ func (m *Manager) Download(ctx context.Context, release Result) error {
 		err := fmt.Errorf("%w (%s)", ErrNotInstallable, m.location.Blocker)
 		m.setError(StepDownload, err)
 		m.mu.Unlock()
-		return err
+		return present(err)
 	}
 	m.busy = true
 	downloadCtx, cancel := context.WithCancel(ctx)
@@ -538,7 +538,7 @@ func (m *Manager) Download(ctx context.Context, release Result) error {
 			return nil
 		}
 		m.setError(StepDownload, err)
-		return err
+		return present(err)
 	}
 	m.memory.ReadyVersion, m.memory.ReadyPath = release.LatestVersion, path
 	m.writeMemory()
@@ -655,7 +655,7 @@ func (m *Manager) Install(ctx context.Context) error {
 		m.state.Phase = PhaseReady
 		m.setError(StepInstall, err)
 		m.mu.Unlock()
-		return err
+		return present(err)
 	}
 
 	m.mu.Lock()
@@ -678,7 +678,7 @@ func (m *Manager) InstallOnQuit(ctx context.Context) (bool, error) {
 	m.mu.Unlock()
 
 	if err := Apply(ctx, commander, location, path); err != nil {
-		return false, err
+		return false, present(err)
 	}
 	m.mu.Lock()
 	m.forgetReady()

@@ -1,4 +1,5 @@
 import { Blocker } from "@/api/updates";
+import { isI18nKey } from "@/lib/utils";
 
 /**
  * The wording the update surfaces share.
@@ -56,6 +57,19 @@ export function blockerKey(blocker: Blocker): string | null {
     default:
       return null;
   }
+}
+
+/**
+ * A failure as the reader should see it.
+ *
+ * The updater reports one of two things: an i18n key, when the meaning is
+ * closed enough to have a translation, or the message itself, when the detail
+ * is the point -- which mirror timed out, what status it returned. Only the
+ * first is translated. Handing i18next a sentence would let it split on the
+ * separators it reserves.
+ */
+export function errorText(value: string, t: (key: string) => string): string {
+  return isI18nKey(value) ? t(value) : value;
 }
 
 /** The locale the two panels format dates in, from the active language. */

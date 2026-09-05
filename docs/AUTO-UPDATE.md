@@ -165,6 +165,22 @@ link to the releases page instead of a button that would fail:
 
 These are keys, not prose: the renderer translates them.
 
+Failures work the same way, but only some of them. A failure whose meaning is
+closed - the elevation prompt was dismissed, this build cannot read the release
+index, this install cannot replace itself - is reported as an `update.error.*`
+key, because the English sentence in the sentinel is the wrong thing to put in
+front of someone who does not read English. Everything else is reported as
+written, because the detail is the report: which mirror timed out, what status
+it returned, which mirrors all served bad bytes. `isI18nKey` is what tells the
+two apart, so an unkeyed failure still arrives as its own message rather than as
+a missing translation.
+
+The keys are written in Go (`reasonKeys` in `internal/update/present.go`), which
+puts them outside the reach of `keys.test.ts` - that reads literal `t("...")`
+calls out of the TypeScript sources. `TestEveryReasonKeyIsTranslated` is the
+other half: it reads both bundles and fails if a key this package can emit has
+no translation behind it.
+
 ## Signing, and what verification does and does not cover
 
 Nothing is code-signed yet (see [RELEASE.md](../RELEASE.md#signing)). What the

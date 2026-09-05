@@ -765,6 +765,11 @@
       "readOnly": "The install location is not writable, so the app cannot replace itself. Move it to your Applications folder, or install the new version from the website by hand.",
       "notPackaged": "This is not an installed application (a development build or a bare binary), so it cannot replace itself.",
       "unsupported": "No release is built for this operating system or architecture, so it cannot update itself."
+    },
+    "error": {
+      "elevationDeclined": "Installing needs administrator permission and the prompt was dismissed. Start the install again and choose Yes when Windows asks.",
+      "notInstallable": "This installation cannot replace itself. Download the new version from the site and install it by hand.",
+      "schemaTooNew": "This build is too old to read the release index. Download the latest version from the site and install it by hand."
     }
   },
   "page": {

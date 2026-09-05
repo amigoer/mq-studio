@@ -23,7 +23,7 @@ import { Markdown } from "@/components/markdown";
 import { Blocker, Phase, Policy, updateProgress } from "@/api/updates";
 import { useUpdater } from "@/hooks/useUpdater";
 import { useSettings } from "@/hooks/useSettings";
-import { blockerKey, formatBytes, formatDate, updateLocale } from "@/lib/updateText";
+import { blockerKey, errorText, formatBytes, formatDate, updateLocale } from "@/lib/updateText";
 
 /**
  * The update, offered where it is announced.
@@ -119,7 +119,7 @@ export function UpdatePanel() {
   /* The meta line under the title. A failure replaces it with its own reason:
      what went wrong matters more here than when the release was published. */
   const meta = () => {
-    if (state.phase === Phase.PhaseError) return state.error;
+    if (state.phase === Phase.PhaseError) return errorText(state.error, t);
     if (state.phase === Phase.PhaseReady) {
       return settings.updatePolicy === Policy.PolicyAuto
         ? t("update.readyOnQuit")

@@ -22,6 +22,7 @@ import { useUpdater } from "@/hooks/useUpdater";
 import { useSettings } from "@/hooks/useSettings";
 import {
   blockerKey,
+  errorText,
   formatBytes,
   formatDate,
   formatDateTime,
@@ -118,7 +119,7 @@ export function UpdateCard() {
             icon={AlertCircle}
             tone="var(--c-err-text)"
             title={t(`update.failed.${state.failedStep || "check"}`)}
-            meta={state.error}
+            meta={errorText(state.error, t)}
           />
         );
       case Phase.PhaseAvailable:
