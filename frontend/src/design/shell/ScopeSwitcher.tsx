@@ -175,7 +175,7 @@ export function ScopeSwitcher({
        * downwards it covers the page list, which nobody is reading while they
        * pick a namespace.
        */}
-      <PopoverContent align="start" side="bottom" sideOffset={6} className="mqs-menu w-80 p-0">
+      <PopoverContent align="start" side="bottom" sideOffset={6} className="w-80 p-0">
         <Command shouldFilter={false}>
           <CommandInput
             placeholder={t("shell.scope.search")}

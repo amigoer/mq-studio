@@ -1220,24 +1220,14 @@ html[data-animations='off'] .mqs-toaster [data-sonner-toast] {
 }
 
 /*
- * Overlay motion. Everything that enters the window over the page carries one
- * of these and a `data-state`, which lib/motion's usePresence drives: the
- * element renders one frame closed, flips to open, and on the way out is held
- * mounted for the length below. The direction each takes is where it comes
- * from -- a modal rises into the middle, a menu drops from its trigger, the
- * detail sheet comes in off the right edge it is docked to.
+ * The detail sheet, coming in off the right edge it is docked to. It carries a
+ * `data-state` that lib/motion's useEnter flips one frame after mount, so the
+ * transition has a start value to run from.
+ *
+ * The last of what was once a set: a scrim, a modal that rose into the middle
+ * and a menu that dropped from its trigger went with the move to shadcn, whose
+ * overlays bring their own. This one stayed because the sheet is ours.
  */
-.mqs-scrim[data-state='open'] {
-  opacity: 1;
-}
-.mqs-drop {
-  opacity: 0;
-  transform: translateY(-4px) scale(0.98);
-  transform-origin: top center;
-  transition:
-    opacity var(--mo-fast) var(--mo-ease-out),
-    transform var(--mo-fast) var(--mo-ease-out);
-}
 .mqs-slide-right {
   opacity: 0;
   transform: translateX(16px);
@@ -1245,36 +1235,36 @@ html[data-animations='off'] .mqs-toaster [data-sonner-toast] {
     opacity var(--mo-base) var(--mo-ease),
     transform var(--mo-base) var(--mo-ease);
 }
-.mqs-pop[data-state='open'],
-.mqs-drop[data-state='open'],
 .mqs-slide-right[data-state='open'] {
   opacity: 1;
   transform: none;
 }
 
 /*
- * A menu panel, on the same ladder as everything else that moves.
+ * Every popover panel, on the same ladder as everything else that moves: the
+ * notification centre, each Combobox, the namespace switcher.
  *
- * `.mqs-drop` above says what a menu should do -- drop 4px from its trigger,
- * over `--mo-fast` -- but it says it as a transition, and a Radix panel is
- * held mounted for its exit by `animationend`. A transition never fires one,
- * so the panel would unmount before it had moved. These are the same two
- * numbers written as keyframes.
+ * It replaces what tw-animate-css draws by default -- a 150ms literal, a plain
+ * `ease` and a 5% zoom -- which was a second motion vocabulary beside the
+ * `--mo-*` durations the rest of the shell is built on. This file is imported
+ * unlayered, so it wins over the utilities without either side having to grow
+ * a specificity fight, and it answers the 界面过渡动画 switch through the
+ * variables rather than through the blanket at the foot of the file.
  *
- * It replaces what tw-animate-css draws by default: a 150ms literal, its own
- * easing and a 5% zoom, which is a third motion vocabulary beside the `--mo-*`
- * durations and the `.mqs-*` overlays. This file is imported unlayered, so it
- * wins over the utilities without either side having to grow a specificity
- * fight -- and it answers the 界面过渡动画 switch through the variables rather
- * than through the blanket at the foot of the file.
+ * Bound to the slot rather than to a class of our own, because the class would
+ * have to be threaded through every call site and the shadcn primitive that
+ * stamps this attribute is regenerated from a registry: an edit there is lost
+ * on the next `shadcn add`. The five other primitives carrying the same
+ * defaults -- dialog, sheet, select, dropdown-menu, alert-dialog -- are still
+ * on the library's own numbers.
  *
  * The origin is left to Radix, which measures where the panel actually landed:
  * flipped above its trigger for want of room, it has to grow from the bottom.
  */
-.mqs-menu[data-state='open'] {
+[data-slot='popover-content'][data-state='open'] {
   animation: mqs-menu-in var(--mo-fast) var(--mo-ease-out);
 }
-.mqs-menu[data-state='closed'] {
+[data-slot='popover-content'][data-state='closed'] {
   animation: mqs-menu-out var(--mo-fast) var(--mo-ease-out);
 }
 @keyframes mqs-menu-in {
