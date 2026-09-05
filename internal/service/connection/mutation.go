@@ -2,6 +2,7 @@ package connection
 
 import (
 	"fmt"
+	"maps"
 
 	"github.com/amigoer/mq-studio/internal/model"
 )
@@ -103,23 +104,24 @@ func applyCredentials(
 	}
 }
 
-// sameSecrets reports whether two credential sets carry the same values.
-//
-// What decides whether an open client has to be dropped and redialled. It used
-// to compare only the access key pair, so changing a RabbitMQ password left
-// the old one connected until the app restarted.
-func sameSecrets(previous, current map[string]string) bool {
-	for key, value := range current {
-		if previous[key] != value {
-			return false
-		}
-	}
-	for key, value := range previous {
-		if current[key] != value {
-			return false
-		}
-	}
-	return true
+/*
+ * dialParametersChanged reports whether an open client is now dialled with
+ * something the stored profile no longer says.
+ *
+ * Options count. Every driver reads them in its configOf - a RocketMQ
+ * namespace, a Kafka security protocol, a Pulsar tenant - so leaving them out
+ * meant editing one and finding the connection still scoped to the old value
+ * until the app was restarted. Nothing on screen said so.
+ *
+ * Name, group and remark deliberately do not: they are labels, and dropping a
+ * working client to rename it would be a surprise, not a correction.
+ */
+func dialParametersChanged(previous, current model.ConnectionProfile) bool {
+	return previous.Endpoints != current.Endpoints ||
+		previous.TimeoutSec != current.TimeoutSec ||
+		previous.ACLEnabled() != current.ACLEnabled() ||
+		!maps.Equal(previous.Options, current.Options) ||
+		!maps.Equal(previous.Secrets, current.Secrets)
 }
 
 // UpdateConnection updates and persists a connection profile.
@@ -160,10 +162,7 @@ func (s *Service) UpdateConnection(id int, input model.ConnectionProfile) (*mode
 	connection.TimeoutSec = timeoutSec
 	applyCredentials(connection, input, enableACL, accessKey, secretKey)
 	connection.Remark = remark
-	clientConfigChanged := previous.Endpoints != connection.Endpoints ||
-		previous.TimeoutSec != connection.TimeoutSec ||
-		previous.ACLEnabled() != connection.ACLEnabled() ||
-		!sameSecrets(previous.Secrets, connection.Secrets)
+	clientConfigChanged := dialParametersChanged(previous, *connection)
 	wasOnline := previous.Status == model.StatusOnline
 	if clientConfigChanged {
 		connection.Status = model.StatusOffline

@@ -297,19 +297,38 @@ func TestChangingADriverSecretForcesAReconnect(t *testing.T) {
 	}
 }
 
-func TestSameSecretsComparesBothWays(t *testing.T) {
-	if !sameSecrets(map[string]string{"a": "1"}, map[string]string{"a": "1"}) {
-		t.Error("identical sets compared unequal")
+func TestDialParametersChangedCoversEveryDialInput(t *testing.T) {
+	base := model.ConnectionProfile{
+		Endpoints:  "127.0.0.1:9876",
+		TimeoutSec: 5,
+		Options:    map[string]string{"namespace": "ns"},
+		Secrets:    map[string]string{"accessKey": "a"},
 	}
-	if sameSecrets(map[string]string{"a": "1"}, map[string]string{"a": "2"}) {
-		t.Error("a changed value compared equal")
+	if dialParametersChanged(base, base) {
+		t.Error("an unchanged profile reported a changed dial")
 	}
-	// A key added on one side only, in each direction.
-	if sameSecrets(map[string]string{"a": "1"}, map[string]string{"a": "1", "b": "2"}) {
-		t.Error("an added key compared equal")
+
+	cases := map[string]func(*model.ConnectionProfile){
+		"endpoints":  func(p *model.ConnectionProfile) { p.Endpoints = "127.0.0.1:9877" },
+		"timeout":    func(p *model.ConnectionProfile) { p.TimeoutSec = 9 },
+		"acl":        func(p *model.ConnectionProfile) { p.Auth.Mechanism = model.AuthACL },
+		"option":     func(p *model.ConnectionProfile) { p.Options = map[string]string{"namespace": "other"} },
+		"optionGone": func(p *model.ConnectionProfile) { p.Options = nil },
+		"secret":     func(p *model.ConnectionProfile) { p.Secrets = map[string]string{"accessKey": "b"} },
 	}
-	if sameSecrets(map[string]string{"a": "1", "b": "2"}, map[string]string{"a": "1"}) {
-		t.Error("a removed key compared equal")
+	for name, mutate := range cases {
+		changed := base
+		mutate(&changed)
+		if !dialParametersChanged(base, changed) {
+			t.Errorf("%s: a changed dial parameter reported no change", name)
+		}
+	}
+
+	// Labels are not dial parameters: renaming must not drop a working client.
+	renamed := base
+	renamed.Name, renamed.Group, renamed.Remark = "other", "prod", "note"
+	if dialParametersChanged(base, renamed) {
+		t.Error("renaming reported a changed dial")
 	}
 }
 
@@ -812,5 +831,35 @@ func TestGlobalACLCredentialsLeaveAnotherFamilyAlone(t *testing.T) {
 	if filled.Auth.Mechanism != model.AuthACL || filled.Secret(model.SecretAccessKey) != "global-ak" {
 		t.Errorf("the global pair no longer fills in a profile with no mechanism: %q / %q",
 			filled.Auth.Mechanism, filled.Secret(model.SecretAccessKey))
+	}
+}
+
+// Editing an option through the form has to redial too. It used to not:
+// clientConfigChanged watched the endpoints, the timeout and the credentials
+// only, so a namespace changed on an online connection was saved and then
+// ignored until the app restarted.
+func TestUpdateConnectionRedialsWhenOnlyAnOptionChanged(t *testing.T) {
+	service := newTestService(t, fakeSettings{connectTimeout: 3 * time.Second, autoConnect: true})
+	var resolved model.ConnectionProfile
+	runtime := newRecordingRuntime()
+	service.runtime = &capturingRuntime{recordingRuntime: runtime, seen: &resolved}
+
+	input := profileOf("p", "", "ns:9876", 5, false, "", "", "")
+	input.SetOption("namespace", "before")
+	profile, err := service.AddConnection(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := service.Connect(profile.ID); err != nil {
+		t.Fatal(err)
+	}
+
+	edited := profileOf("p", "", "ns:9876", 5, false, "", "", "")
+	edited.SetOption("namespace", "after")
+	if _, err := service.UpdateConnection(profile.ID, edited); err != nil {
+		t.Fatal(err)
+	}
+	if resolved.Option("namespace") != "after" {
+		t.Fatalf("runtime dialled with namespace %q, want the edited one", resolved.Option("namespace"))
 	}
 }

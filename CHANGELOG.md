@@ -9,6 +9,14 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Fixed
+
+- Editing a connection's driver settings — a RocketMQ namespace, a Kafka
+  security protocol — while it was connected saved the change and went on
+  reading with the old one until the app was restarted, with nothing on screen
+  saying so. Only the endpoints, the timeout and the credentials were being
+  watched for a redial.
+
 ## [0.0.8] - 2026-09-05
 
 A single change, to where releases are stored. The fast mirror is a bucket that
