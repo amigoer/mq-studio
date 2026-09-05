@@ -9,8 +9,60 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.0.7] - 2026-09-05
+
+This release is about how an update reaches you. Everything went through
+github.com — the check, the download, and the site's own buttons — so a network
+that could not reach it could neither learn that an update existed nor install
+one. A release is now described by a small manifest that several hosts serve,
+and which host answers is measured on your own machine rather than decided in
+advance.
+
+The Windows installer also never ran. Pressing install failed with an elevation
+error, because the app started it with a call that cannot raise the permission
+prompt. That fix cannot deliver itself: if you are on 0.0.6 or earlier on
+Windows, install this one by hand.
+
+### Added
+
+- A release is mirrored. It is described by a manifest every mirror serves,
+  with each package's digest written into it, and the app races the mirrors for
+  that manifest — a check has to fetch it anyway, so the fetch doubles as the
+  measurement of which host this network can reach. The winner is remembered
+  for a week, so a routine check is one request and no race at all. If a mirror
+  stops answering partway through a download the next one continues it, which
+  is safe only because the digest travels in the manifest rather than beside
+  the package: a mirror carries bytes without getting to say what they are.
+  (#62)
+- A manifest can name mirrors of its own, and those are merged into the list a
+  build shipped with, so a mirror added to a future release reaches builds
+  released before it existed. The merge only ever adds — nothing a mirror says
+  can remove or redefine a path compiled into the app.
+- The download buttons on the site carry a mirror link and a fallback, both
+  resolved when the page is built. The site ships no JavaScript, so it cannot
+  measure which one a visitor can reach; offering both is the most it can
+  honestly do.
+
+### Changed
+
+- The update check reads that manifest instead of the GitHub releases API, and
+  so does the site when it builds its download cards. The two can no longer
+  disagree about what the latest release is.
+
 ### Fixed
 
+- Installing an update on Windows failed with "The requested operation requires
+  elevation" and never showed a permission prompt. The installer was started
+  through a call that does not read a program's manifest and cannot elevate, so
+  against an installer asking for administrator it did not prompt and did not
+  run. (#77)
+- Update failures showed the runtime's own error text with its class name in
+  front, so "RuntimeError: failed to start the installer: fork/exec
+  C:\Users\..." reached the reader exactly as written here.
+- Failures whose meaning is fixed are now said in your language: a dismissed
+  permission prompt, an install that cannot replace itself, a build too old to
+  read the release index. Failures where the detail is the point — which mirror
+  timed out and what it returned — are still shown as reported.
 - The About page names all seven drivers. It listed six, leaving NATS out, and
   spelled Redis Stream as "Redis" — the one family list in the tree the seventh
   driver had left behind.
