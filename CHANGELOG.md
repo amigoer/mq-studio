@@ -9,6 +9,25 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.0.8] - 2026-09-05
+
+A single change, to where releases are stored. The fast mirror is a bucket that
+serves more than this project, and a release was writing to its root — two
+projects publishing the same tag would have collided there.
+
+### Changed
+
+- Packages on the fast mirror moved from `dl.amigoer.com/<tag>/` to
+  `dl.amigoer.com/mq-studio/<tag>/`. The GitHub mirror is unchanged, and so is
+  every published digest: this moves where the files are served from, not what
+  they are.
+- A 0.0.7 install reaches this release through GitHub rather than the fast
+  mirror. The path it was built with points at the old location, and nothing a
+  manifest says is allowed to redefine a mirror a build shipped with — that
+  rule is what stops a mirror from redirecting an installed app, and the cost
+  of it is one release spent moving over. From 0.0.8 both mirrors are used
+  again.
+
 ## [0.0.7] - 2026-09-05
 
 This release is about how an update reaches you. Everything went through
