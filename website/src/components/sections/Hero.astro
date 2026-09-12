@@ -20,20 +20,23 @@ const targets = {
 };
 ---
 
-<section id="top" class="mx-auto max-w-[1120px] px-6 pb-12 pt-16 text-center sm:pt-[88px]">
+<section id="top" class="mx-auto max-w-page px-6 pb-14 pt-16 text-center sm:pb-16 sm:pt-24">
   <div
-    class="inline-flex items-center gap-2 rounded-full border border-border bg-muted px-3.5 py-1.5 text-caption text-muted-foreground"
+    class="inline-flex items-center gap-2 rounded-full border border-border px-3 py-1 text-caption text-muted-foreground"
   >
     <span class="size-1.5 rounded-full bg-success" aria-hidden="true"></span>
     {RELEASE.tag} {c.hero.badgeSuffix}
   </div>
 
+  <!-- The one place the scale is stepped over: a headline is sized to the
+       viewport, and the zh block cannot reach an arbitrary leading. 1.1 is the
+       compromise that neither crowds the ideographs nor loosens the Latin. -->
   <h1
-    class="mx-auto mb-4.5 mt-5.5 max-w-[760px] text-[34px] font-extrabold leading-[1.12] tracking-display text-balance sm:text-[44px] lg:text-[54px]"
+    class="mx-auto mb-5 mt-6 max-w-[780px] text-[38px] font-medium leading-[1.1] tracking-display text-balance sm:text-[50px] lg:text-[58px]"
   >
     {c.hero.title}
   </h1>
-  <p class="mx-auto max-w-[620px] text-prose text-muted-foreground text-pretty sm:text-lead">
+  <p class="mx-auto max-w-[620px] text-prose text-muted-foreground text-pretty">
     {c.hero.subtitle}
   </p>
 
@@ -41,7 +44,7 @@ const targets = {
        centred independently, so neither edge lined up. Stretching them to a
        shared, capped width puts the stack back on one axis. -->
   <div
-    class="mx-auto mb-3.5 mt-7 flex max-w-[340px] flex-col items-stretch gap-3 sm:max-w-none sm:flex-row sm:items-center sm:justify-center"
+    class="mx-auto mb-4 mt-8 flex max-w-[340px] flex-col items-stretch gap-2.5 sm:max-w-none sm:flex-row sm:items-center sm:justify-center"
   >
     <DownloadMenu
       id="hero-download"
@@ -55,7 +58,7 @@ const targets = {
     />
     <a
       href={localePath(locale, 'docs/install')}
-      class="inline-flex h-11 items-center justify-center rounded-lg border border-border bg-background px-6 text-prose font-medium transition-colors hover:bg-secondary"
+      class="inline-flex h-10 items-center justify-center rounded-md border border-border px-5 text-body font-medium transition-colors hover:bg-secondary"
       >{c.hero.installGuide}</a
     >
   </div>

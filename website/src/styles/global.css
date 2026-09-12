@@ -11,35 +11,41 @@
  * shadcn/ui tokens for the marketing site. Deliberately NOT shared with
  * frontend/src/design/tokens.css: that layer is the desktop shell's, drawn at a
  * 13px root and scaled by document zoom, while this is an ordinary 16px page.
- * Values are the zinc scale, matching the design canvas the page was drawn from.
+ *
+ * Surfaces and borders are a mix of the foreground into transparent rather than
+ * a ladder of opaque greys. One declaration then reads correctly on the page,
+ * inside a card, and inside a card nested in a card - which is what lets a
+ * grouped block stack two levels without inventing a third grey - and the
+ * .dark block below only has to restate the two ends of the scale.
  */
 :root {
   --background: #ffffff;
   --foreground: #09090b;
-  --card: #ffffff;
-  --card-foreground: #09090b;
+  --card: color-mix(in oklab, var(--foreground) 2.5%, transparent);
+  --card-foreground: var(--foreground);
+  /* Menus float over content, so these two stay opaque. */
   --popover: #ffffff;
   --popover-foreground: #09090b;
   --primary: #18181b;
   --primary-foreground: #fafafa;
-  --secondary: #f4f4f5;
-  --secondary-foreground: #18181b;
-  --muted: #fafafa;
-  --muted-foreground: #71717a;
-  --accent: #f4f4f5;
-  --accent-foreground: #18181b;
+  --secondary: color-mix(in oklab, var(--foreground) 5%, transparent);
+  --secondary-foreground: var(--foreground);
+  --muted: color-mix(in oklab, var(--foreground) 2.5%, transparent);
+  --muted-foreground: color-mix(in oklab, var(--foreground) 58%, var(--background));
+  --accent: color-mix(in oklab, var(--foreground) 6%, transparent);
+  --accent-foreground: var(--foreground);
   --destructive: #dc2626;
   --destructive-foreground: #fafafa;
   --success: #16a34a;
-  --border: #e4e4e7;
-  --input: #e4e4e7;
+  --border: color-mix(in oklab, var(--foreground) 10%, transparent);
+  --input: var(--border);
   --ring: #09090b;
-  /* The canvas draws a third, lighter grey for filenames and captions that the
-     shadcn scale has no slot for. */
-  --subtle-foreground: #a1a1aa;
+  /* A third, lighter grey for filenames and captions that the shadcn scale has
+     no slot for. */
+  --subtle-foreground: color-mix(in oklab, var(--foreground) 42%, var(--background));
   /* Dashed roadmap pills and the separators between them need more contrast
      than a card border, which is what --border is sized for. */
-  --border-strong: #d4d4d8;
+  --border-strong: color-mix(in oklab, var(--foreground) 20%, transparent);
   /* Solid-fill buttons darken on hover in light mode and lighten in dark, so
      the shade cannot be a literal zinc step in the markup. */
   --primary-hover: #27272a;
@@ -54,44 +60,34 @@
   --radius: 0.5rem;
   /*
    * Long-form text. --muted-foreground is tuned for short marketing copy and
-   * only clears 5:1 on white; a page of prose wants more. Mixing against the
-   * background keeps one declaration correct in both themes, because .dark
-   * sits on the same element this is declared on.
+   * only clears 5:1 on white; a page of prose wants more.
    */
   --prose-foreground: color-mix(in oklab, var(--foreground) 78%, var(--background));
 }
 
 /*
- * Applied by the blocking script in Base.astro before first paint. The ladder is
- * page -> section -> card -> control, so surfaces stay distinguishable without
- * borders doing all the work: #09090b < #131316 < #1a1a1e < #27272a.
+ * Applied by the blocking script in Base.astro before first paint. Only the two
+ * ends of the scale and the opaque exceptions are restated; everything above is
+ * mixed from --foreground and --background and follows on its own.
+ *
+ * The ground is lifted off pure black on purpose: a hairline card border is
+ * white at 10%, and it does not read as an edge until the surface under it has
+ * somewhere to sit.
  */
 .dark {
-  --background: #09090b;
+  --background: #0e0e11;
   --foreground: #fafafa;
-  --card: #1a1a1e;
-  --card-foreground: #fafafa;
-  --popover: #1a1a1e;
+  --popover: #17171b;
   --popover-foreground: #fafafa;
   --primary: #fafafa;
   --primary-foreground: #18181b;
   --primary-hover: #e4e4e7;
-  --secondary: #27272a;
-  --secondary-foreground: #fafafa;
-  --muted: #131316;
-  --muted-foreground: #a1a1aa;
-  --accent: #27272a;
-  --accent-foreground: #fafafa;
   --destructive: #ef4444;
   --destructive-foreground: #fafafa;
   /* Lifted from 600 to 500: the darker green does not carry on a dark ground. */
   --success: #22c55e;
-  --border: #27272a;
-  --input: #27272a;
   --ring: #d4d4d8;
-  --subtle-foreground: #71717a;
-  --border-strong: #3f3f46;
-  --banner: #27272a;
+  --banner: #1c1c21;
   --banner-foreground: #fafafa;
   --banner-muted: #a1a1aa;
 }
@@ -137,10 +133,14 @@
 }
 
 /*
- * The site's type scale: ten steps, each carrying its own line-height, so a
+ * The site's type scale: nine steps, each carrying its own line-height, so a
  * component picks a role (text-ui, text-prose) rather than a pixel value.
  * Static because .doc-prose reads these directly and must not depend on a
  * utility happening to be used somewhere.
+ *
+ * Headings are set in the 500-600 range, not 700-800. At this scale the size
+ * already separates a heading from its paragraph, and the extra weight only
+ * costs the page its evenness of colour.
  */
 @theme static {
   --text-2xs: 11px;
@@ -159,30 +159,30 @@
   --text-title-sm--line-height: 1.3;
   --text-title: 24px;
   --text-title--line-height: 1.25;
-  --text-display-sm: 28px;
+  --text-display-sm: 30px;
   --text-display-sm--line-height: 1.2;
-  --text-display: 34px;
-  --text-display--line-height: 1.15;
 
-  --tracking-display: -0.03em;
-  --tracking-heading: -0.02em;
+  --tracking-display: -0.025em;
+  /* Section headings sit at 30px, where negative tracking starts to close the
+     counters rather than tighten the line. */
+  --tracking-heading: 0em;
 
   /* About 45 Chinese or 85 Latin characters at --text-prose. */
   --container-measure: 42.5rem;
+  /* The text column. Everything on the landing page lines up on this. */
+  --container-page: 64rem;
+  /* Screenshots break out past the text column rather than being framed by it. */
+  --container-wide: 76rem;
 }
 
 /*
  * Chinese pages. The utilities resolve to these variables, so one block
- * re-tunes the whole site: PingFang SC stops at Semibold, so an 800 heading
- * only makes its Latin fragments heavier than the characters around them;
- * negative tracking crushes ideographs; and a CJK paragraph needs more
- * leading than a Latin one before it stops looking cramped. Unlayered on
- * purpose, so it wins over Tailwind's theme layer.
+ * re-tunes the whole site: negative tracking crushes ideographs, and a CJK
+ * paragraph needs more leading than a Latin one before it stops looking
+ * cramped. Unlayered on purpose, so it wins over Tailwind's theme layer.
  */
 :root:lang(zh-CN) {
-  --font-weight-extrabold: 700;
   --tracking-display: 0;
-  --tracking-heading: 0;
   --tracking-tight: 0;
   --tracking-wider: 0;
   --text-prose--line-height: 1.8;
@@ -247,6 +247,34 @@ details[data-nav-menu][open] > div {
   animation: menu-in 120ms ease-out;
 }
 
+@keyframes reveal {
+  from {
+    opacity: 0;
+    translate: 0 10px;
+  }
+}
+
+/*
+ * Scroll-linked, so the whole effect costs no JavaScript and cannot delay
+ * anything. Only Chromium implements view(); the @supports guard is what keeps
+ * every other browser showing the section outright instead of running the
+ * animation once on load, which is what an unsupported animation-timeline
+ * falls back to. Anything already on screen at load is past its entry range
+ * and paints in its final state, so the hero never fades in.
+ */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    [data-reveal] {
+      animation: reveal linear both;
+      animation-timeline: view();
+      /* A length, not a percentage: a percentage of the cover range is a
+         different distance for a tall section than for a short one, which left
+         the taller ones still transparent well after they had appeared. */
+      animation-range: entry 0% entry 260px;
+    }
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
@@ -277,8 +305,8 @@ details[data-nav-menu][open] > div {
 .doc-prose h1 {
   margin: 0 0 1rem;
   font-size: var(--text-display-sm);
-  font-weight: var(--font-weight-extrabold);
-  letter-spacing: var(--tracking-display);
+  font-weight: 500;
+  letter-spacing: var(--tracking-heading);
   line-height: var(--text-display-sm--line-height);
   color: var(--foreground);
 }
@@ -288,7 +316,7 @@ details[data-nav-menu][open] > div {
   padding-top: 1.5rem;
   border-top: 1px solid var(--border);
   font-size: var(--text-title-sm);
-  font-weight: var(--font-weight-bold);
+  font-weight: 500;
   letter-spacing: var(--tracking-heading);
   line-height: var(--text-title-sm--line-height);
   color: var(--foreground);
@@ -297,7 +325,7 @@ details[data-nav-menu][open] > div {
 .doc-prose h3 {
   margin: 1.75rem 0 0.625rem;
   font-size: var(--text-lead);
-  font-weight: var(--font-weight-bold);
+  font-weight: 600;
   line-height: var(--text-lead--line-height);
   color: var(--foreground);
 }
@@ -305,7 +333,7 @@ details[data-nav-menu][open] > div {
 .doc-prose h4 {
   margin: 1.5rem 0 0.5rem;
   font-size: var(--text-prose);
-  font-weight: var(--font-weight-semibold);
+  font-weight: 600;
   color: var(--foreground);
 }
 
@@ -334,7 +362,7 @@ details[data-nav-menu][open] > div {
 }
 
 .doc-prose strong {
-  font-weight: var(--font-weight-semibold);
+  font-weight: 600;
   color: var(--foreground);
 }
 
@@ -342,7 +370,7 @@ details[data-nav-menu][open] > div {
   color: var(--foreground);
   text-decoration: underline;
   text-underline-offset: 3px;
-  text-decoration-color: var(--border);
+  text-decoration-color: var(--border-strong);
 }
 .doc-prose a:hover {
   text-decoration-color: var(--foreground);
@@ -350,7 +378,7 @@ details[data-nav-menu][open] > div {
 
 /* Inline code only: `pre code` is left to the highlighter. */
 .doc-prose :not(pre) > code {
-  border-radius: 4px;
+  border-radius: 5px;
   background: var(--secondary);
   padding: 0.1em 0.35em;
   font-family: var(--font-mono);
@@ -362,7 +390,7 @@ details[data-nav-menu][open] > div {
   margin: 1.125rem 0;
   overflow-x: auto;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 0.875rem 1rem;
   font-size: var(--text-ui);
   line-height: 1.7;
@@ -370,7 +398,7 @@ details[data-nav-menu][open] > div {
 
 .doc-prose blockquote {
   margin: 1.125rem 0;
-  border-left: 3px solid var(--border);
+  border-left: 2px solid var(--border-strong);
   padding-left: 1rem;
   color: var(--muted-foreground);
 }
@@ -385,6 +413,8 @@ details[data-nav-menu][open] > div {
 .doc-prose .table-scroll {
   margin: 1.125rem 0;
   overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 12px;
 }
 
 .doc-prose table {
@@ -395,15 +425,20 @@ details[data-nav-menu][open] > div {
 
 .doc-prose th,
 .doc-prose td {
-  border: 1px solid var(--border);
-  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  padding: 0.6rem 0.85rem;
   text-align: left;
   vertical-align: top;
 }
 
+/* The wrapper draws the outer edge, so the last row must not draw a second. */
+.doc-prose tr:last-child td {
+  border-bottom: 0;
+}
+
 .doc-prose th {
   background: var(--muted);
-  font-weight: 600;
+  font-weight: 500;
   white-space: nowrap;
   color: var(--foreground);
 }

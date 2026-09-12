@@ -12,16 +12,16 @@ const { tabs, images } = Astro.props;
 
 // Classes lifted from the shadcn Tabs primitive, minus the dark-mode and
 // vertical-orientation branches this page never enters.
-const list = 'inline-flex w-fit items-center justify-center gap-1 rounded-[10px] bg-secondary p-1';
+const list = 'inline-flex w-fit items-center justify-center gap-1 rounded-full border border-border p-1';
 const trigger =
-  'relative inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md border border-transparent px-3.5 py-1.5 text-ui font-medium text-foreground/60 transition-all hover:text-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-1 focus-visible:outline-ring aria-selected:bg-background aria-selected:text-foreground aria-selected:shadow-sm';
+  'relative inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-full border border-transparent px-3.5 py-1.5 text-ui text-muted-foreground transition-colors hover:text-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-1 focus-visible:outline-ring aria-selected:bg-secondary aria-selected:text-foreground';
 ---
 
 <div data-tabs>
   <!-- The five labels come to within a few px of a 375px viewport, and a
        translation or a different font would push them over; scrolling the strip
        is better than letting it break the layout. -->
-  <div class="mb-7 flex justify-start overflow-x-auto sm:justify-center [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+  <div class="mb-6 flex justify-start overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
     <div class={list} role="tablist">
       {
         tabs.map((tab, index) => (
@@ -50,10 +50,10 @@ const trigger =
         hidden={index !== 0}
         class="outline-none"
       >
-        <div class="grid items-center gap-9 rounded-2xl border border-border bg-muted p-6 sm:p-9 lg:grid-cols-[360px_1fr]">
+        <div class="grid items-center gap-8 rounded-2xl border border-border bg-card p-6 sm:p-8 lg:grid-cols-[340px_1fr]">
           <div>
-            <h3 class="mb-2.5 text-title-sm font-bold tracking-tight">{tab.title}</h3>
-            <p class="mb-4.5 text-body text-muted-foreground text-pretty">{tab.desc}</p>
+            <h3 class="mb-2.5 text-title-sm font-medium">{tab.title}</h3>
+            <p class="mb-5 text-body text-muted-foreground text-pretty">{tab.desc}</p>
             <ul class="flex flex-col gap-2.5">
               {tab.points.map((point) => (
                 <li class="flex items-start gap-2.5 text-body">
@@ -69,9 +69,9 @@ const trigger =
             src={images[tab.id]!}
             alt={tab.alt}
             widths={[640, 1024, 1440]}
-            sizes="(min-width: 1024px) 700px, 100vw"
+            sizes="(min-width: 1024px) 640px, 100vw"
             loading={index === 0 ? 'eager' : 'lazy'}
-            class="block w-full min-w-0 rounded-lg border border-border"
+            class="block w-full min-w-0 rounded-xl border border-border"
           />
         </div>
       </div>

@@ -9,44 +9,41 @@ const c = t(locale);
 const roadmapDoc = localePath(locale, 'docs/roadmap');
 ---
 
-<section id="roadmap" class="border-t border-secondary">
-  <div class="mx-auto flex max-w-[1120px] flex-wrap items-center gap-8 px-6 py-14">
-    <div class="min-w-0 flex-1 sm:min-w-[300px]">
-      <h2 class="mb-2 text-title font-bold tracking-heading">{c.roadmap.title}</h2>
-      <p class="text-body text-muted-foreground text-pretty">
-        {c.roadmap.body}{' '}
-        <a href={roadmapDoc} class="font-medium text-foreground underline underline-offset-[3px]">
-          {c.roadmap.linkLabel} →
-        </a>
-      </p>
-    </div>
-    <ol class="flex flex-wrap items-center gap-2 text-caption">
-      {
-        c.roadmap.stages.map((stage, index) => (
-          <>
-            <li
-              class:list={[
-                'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5',
-                stage.done
-                  ? 'border border-border bg-background font-medium'
-                  : 'border border-dashed border-border-strong text-muted-foreground',
-              ]}
-            >
-              {stage.done && (
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-success" aria-hidden="true">
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-              )}
-              {stage.label}
-            </li>
-            {index < c.roadmap.stages.length - 1 && (
-              <li aria-hidden="true" class="hidden text-border-strong sm:block">
-                —
-              </li>
+<section id="roadmap" class="mx-auto max-w-page px-6 py-20 sm:py-28" data-reveal>
+  <h2 class="text-display-sm font-medium tracking-heading">{c.roadmap.title}</h2>
+  <p class="mt-2.5 max-w-measure text-body text-muted-foreground text-pretty">
+    {c.roadmap.body}{' '}
+    <a href={roadmapDoc} class="text-foreground underline underline-offset-[3px] decoration-border-strong transition-colors hover:decoration-foreground">
+      {c.roadmap.linkLabel} →
+    </a>
+  </p>
+
+  <ol class="mt-8 flex flex-wrap items-center gap-2 text-caption">
+    {
+      c.roadmap.stages.map((stage, index) => (
+        <>
+          <li
+            class:list={[
+              'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5',
+              stage.done
+                ? 'border border-border bg-card'
+                : 'border border-dashed border-border-strong text-muted-foreground',
+            ]}
+          >
+            {stage.done && (
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-success" aria-hidden="true">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
             )}
-          </>
-        ))
-      }
-    </ol>
-  </div>
+            {stage.label}
+          </li>
+          {index < c.roadmap.stages.length - 1 && (
+            <li aria-hidden="true" class="hidden text-border-strong sm:block">
+              —
+            </li>
+          )}
+        </>
+      ))
+    }
+  </ol>
 </section>

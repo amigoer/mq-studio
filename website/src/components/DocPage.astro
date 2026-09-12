@@ -51,9 +51,9 @@ const sourceUrl = `${REPO_URL}/blob/main/docs/${file}`;
               href={localePath(locale, `docs/${candidate}`)}
               aria-current={active ? 'page' : undefined}
               class:list={[
-                'block whitespace-nowrap rounded-lg px-3 py-1.5 text-ui transition-colors lg:py-2',
+                'block whitespace-nowrap rounded-md px-3 py-1.5 text-ui transition-colors lg:py-2',
                 active
-                  ? 'bg-secondary font-semibold text-foreground'
+                  ? 'bg-secondary font-medium text-foreground'
                   : 'border border-border text-muted-foreground hover:bg-secondary hover:text-foreground lg:border-transparent',
               ]}
             >
@@ -68,7 +68,7 @@ const sourceUrl = `${REPO_URL}/blob/main/docs/${file}`;
   <article class="max-w-measure">
     {
       untranslated && (
-        <p class="mb-6 rounded-lg border border-border bg-muted px-4 py-3 text-ui text-muted-foreground">
+        <p data-untranslated class="mb-6 rounded-xl border border-border bg-card px-4 py-3 text-ui text-muted-foreground">
           {c.docs.untranslated}
         </p>
       )
@@ -81,7 +81,7 @@ const sourceUrl = `${REPO_URL}/blob/main/docs/${file}`;
     <div class="mt-12 border-t border-border pt-5">
       <a
         href={sourceUrl}
-        class="inline-flex items-center gap-1.5 text-ui font-medium transition-colors hover:text-muted-foreground"
+        class="inline-flex items-center gap-1.5 text-ui transition-colors hover:text-muted-foreground"
       >
         {c.docs.editOnGitHub} →
       </a>
