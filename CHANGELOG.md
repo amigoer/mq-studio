@@ -9,6 +9,49 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-09-12
+
+Three places in the app answered a click with nothing, and each read as a fault
+rather than as the answer it was. That is most of this release. Alongside it the
+site was rebuilt, and the tree loses about four thousand lines the board rebuild
+had stranded.
+
+### Fixed
+
+- The connection test flashed its spinner for a single frame on a 10ms probe,
+  grew the button's width under the pointer, and left the last verdict standing
+  after the address had changed. It now holds "testing" for one turn of the
+  spinner, keeps the button's label and width, drops a verdict whose settings no
+  longer match, and opens a failure's reason above the footer instead of
+  squeezing it in beside the buttons.
+
+- The detail sheet sized its label column to the longest key it held, which gave
+  a Kafka broker's config list 367px of a 407px panel and wrapped every value a
+  character at a time down the 30px left over. The column has a ceiling now, and
+  the sheet crosses its own width on the way in rather than nudging 16px, and
+  has a way out at all.
+
+- A page the connection cannot answer was greyed out and swallowed the click, so
+  the driver's reason — a cluster running no authorizer, a plugin nobody
+  installed — could only be read by hovering the entry for half a second. The
+  entry opens now and lands on that reason, and a mark in the sidebar says the
+  limit is there before the click.
+
+### Changed
+
+- The site was rebuilt around a single column: lighter headings, hairline cards,
+  space rather than divider rules between sections, and sections that fade in as
+  they arrive. It still ships no external JavaScript.
+
+- About four thousand lines the board rebuild had stranded are gone — whole page
+  vocabularies (5,195 translation keys down to 4,687, the same set in both
+  languages), the per-driver module registry the shell replaced, the shadcn
+  parts no board composes, and two dozen API wrappers for driver calls the UI
+  never grew a screen for. The updater drops its old SHA256SUMS fetch path with
+  them: downloads have verified against the per-file digest in the mirror
+  manifest since the release flow moved off the GitHub releases API. None of it
+  changes what the app does.
+
 ## [0.1.0] - 2026-09-07
 
 Seven drivers land together, and with them the last families the roadmap named:
