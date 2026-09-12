@@ -72,26 +72,24 @@ describe("the sidebar's reason for a blocked entry", () => {
   });
 
   /*
-   * The reason has to be reachable, not merely rendered.
+   * The reason has to be reachable, and a hover is not reachable enough.
    *
-   * These entries were `disabled`, and a disabled button receives no pointer
-   * events - so the tooltip carrying the reason never appeared, and the whole
-   * explanation was computed, translated and invisible. Found by hovering a
-   * degraded entry in the running app for five seconds and getting nothing.
-   *
-   * The two assertions are the fix: the entry still reads as disabled to
-   * assistive technology and to the stylesheet, and is not the attribute that
-   * suppresses the hover.
+   * These entries were `disabled` first, which took the pointer events and the
+   * tooltip with them; then `aria-disabled` with the click guarded, which left
+   * a grey row that did nothing when clicked. Both read as a broken app - the
+   * second one to a user, in as many words. The entry opens now, PageGate
+   * lands it on the reason, and the mark is what says there is one to read.
    */
-  it("leaves a blocked entry hoverable, or nobody ever reads the reason", () => {
+  it("opens a blocked entry rather than swallowing the click", () => {
     capabilities.current = state({
       [Capability.CapAccessDirectory]: "mq.kafka.degraded.accessControl",
     });
 
     const html = render(<Sidebar protocol="kafka" active="overview" />);
 
-    expect(html).toContain('aria-disabled="true"');
-    expect(html).not.toContain("disabled=\"\"");
+    expect(html).not.toContain("aria-disabled");
+    expect(html).not.toContain('disabled=""');
+    expect(html).toContain("nidot");
   });
 
   // A reason that is not a key must survive rather than disappear: i18next

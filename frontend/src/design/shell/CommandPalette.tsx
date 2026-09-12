@@ -96,7 +96,10 @@ export function CommandPalette({
     if (protocol != null) {
       for (const group of PROTOCOLS[protocol].nav) {
         for (const entry of group.items) {
-          if (!nav.visible(entry.id) || nav.disabled(entry.id)) continue;
+          /* Listed even where the connection cannot answer it: the page opens
+             on the reason now, and a command that is quietly absent is the
+             same dead end the sidebar used to be. */
+          if (!nav.visible(entry.id)) continue;
           const label = t(entry.label);
           if (!matches(label, entry.id)) continue;
           out.push({

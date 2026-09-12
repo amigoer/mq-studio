@@ -23,7 +23,7 @@ import {
   type GooglePubSubDraft,
   type AzureServiceBusDraft,
 } from "./ConnectionForms";
-import { emptyDraft, isDraftable, toDraft, toSubmission, type ProtocolDraft } from "./connectionDraft";
+import { emptyDraft, isDraftable, probeKey, toDraft, toSubmission, type ProtocolDraft } from "./connectionDraft";
 import { PROTOCOLS, type ProtocolId } from "@/design/data/protocols";
 
 const rocketmq = (value: RocketMQDraft): ProtocolDraft => ({ protocol: "rocketmq", value });
@@ -31,6 +31,30 @@ const rabbitmq = (value: RabbitMQDraft): ProtocolDraft => ({ protocol: "rabbitmq
 const kafka = (value: KafkaDraft): ProtocolDraft => ({ protocol: "kafka", value });
 const pulsar = (value: PulsarDraft): ProtocolDraft => ({ protocol: "pulsar", value });
 const redis = (value: RedisDraft): ProtocolDraft => ({ protocol: "redis", value });
+
+/**
+ * A connection test answers for the settings it ran against and no others. The
+ * name, group and remark are not among them: a result that vanished on every
+ * keystroke in the name field would teach people to stop reading it.
+ */
+describe("the key a connection test is recorded against", () => {
+  const tested = (): KafkaDraft => ({
+    ...emptyKafkaDraft(),
+    name: "orders",
+    endpoints: "127.0.0.1:9092",
+  });
+  const keyOf = (value: KafkaDraft) => probeKey(toSubmission(kafka(value)));
+
+  it("outlives renaming, regrouping and annotating the connection", () => {
+    expect(keyOf({ ...tested(), name: "orders-prod", group: "prod", remark: "primary" }))
+      .toBe(keyOf(tested()));
+  });
+
+  it("changes with where the connection goes and how long it waits", () => {
+    expect(keyOf({ ...tested(), endpoints: "127.0.0.1:9093" })).not.toBe(keyOf(tested()));
+    expect(keyOf({ ...tested(), timeoutSec: 42 })).not.toBe(keyOf(tested()));
+  });
+});
 
 /**
  * Both halves of an ACL pair are stored encrypted and neither comes back, so

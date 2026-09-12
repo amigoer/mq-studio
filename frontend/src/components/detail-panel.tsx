@@ -4,7 +4,7 @@ import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useEnter } from "@/lib/motion";
+import { useEnter, useLeave } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
 /*
@@ -43,6 +43,7 @@ export function DetailPanel({
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const state = useEnter();
+  useLeave(ref);
   const dismiss = useRef(onDismiss);
   dismiss.current = onDismiss;
 
@@ -71,7 +72,9 @@ export function DetailPanel({
     <div
       ref={ref}
       className={cn(
-        "mqs-slide-right absolute inset-y-0 right-0 z-10 flex flex-col overflow-hidden border-l bg-background shadow-[-16px_0_44px_rgba(0,0,0,0.13)]",
+        /* Two tight layers rather than one 44px blur, which laid a grey band a
+           finger wide across whatever list the sheet was describing. */
+        "mqs-slide-right absolute inset-y-0 right-0 z-10 flex flex-col overflow-hidden border-l bg-background shadow-[-10px_0_28px_-14px_rgba(0,0,0,0.22),-24px_0_48px_-24px_rgba(0,0,0,0.08)]",
         className,
       )}
       data-state={state}

@@ -133,15 +133,20 @@
    * Motion. Every duration in the shell is one of these, so 界面过渡动画 has a
    * single place to turn them off -- see the switch at the foot of the file.
    * Three lengths: `fast` for a colour under the cursor, `base` for anything
-   * that enters or leaves, `slow` for the two that cross the window.
+   * that enters or leaves, `slow` for the detail sheet, which crosses its own
+   * width to get there.
    */
   --mo-fast: 0.12s;
   --mo-base: 0.18s;
+  --mo-slow: 0.28s;
   /* One full turn of the update icon, which is a gesture rather than a fade. */
   --mo-turn: 0.6s;
   /* Decelerating, so a panel arrives rather than stops. */
   --mo-ease: cubic-bezier(0.32, 0.72, 0, 1);
   --mo-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  /* Accelerating, for the way out: easing to a stop on the way off screen
+     reads as hesitation. */
+  --mo-ease-in: cubic-bezier(0.32, 0, 0.67, 0);
 }
 
 /*
@@ -261,6 +266,46 @@
 /* Anything else waiting on Go turns the same way, at the same speed. */
 .mqs-turning {
   animation: mqs-turn var(--mo-turn) linear infinite;
+}
+/*
+ * 测试连接's answer slides out from the button rather than swapping in place,
+ * so a second test that gets the same answer still visibly got one.
+ */
+.mqs-probe-in {
+  animation: mqs-probe-in var(--mo-base) var(--mo-ease-out);
+}
+@keyframes mqs-probe-in {
+  from {
+    opacity: 0;
+    transform: translateX(-4px);
+  }
+}
+.mqs-probe-mark {
+  animation: mqs-probe-mark var(--mo-base) var(--mo-ease-out);
+}
+@keyframes mqs-probe-mark {
+  from {
+    transform: scale(0.4);
+  }
+}
+/*
+ * A failed test's reason opens rather than appears: the dialog is centred, so a
+ * block arriving at full height would jolt the whole form by half of it.
+ */
+.mqs-probe-reveal {
+  display: grid;
+  grid-template-rows: 1fr;
+  animation: mqs-probe-reveal var(--mo-base) var(--mo-ease-out);
+}
+.mqs-probe-reveal > * {
+  min-height: 0;
+  overflow: hidden;
+}
+@keyframes mqs-probe-reveal {
+  from {
+    grid-template-rows: 0fr;
+    opacity: 0;
+  }
 }
 /*
  * A control small enough to live inside a field's grey hint line. It borrows
@@ -413,12 +458,38 @@
   opacity: 0.5;
 }
 /*
+ * A page the endpoint answers with a reason rather than with data. It opens -
+ * what it opens on is the reason - so it is drawn as limited rather than as
+ * dead: muted, and marked so that there is something to hover.
+ */
+.ni.lim {
+  color: var(--c-muted);
+}
+.ni.lim .nic {
+  opacity: 0.6;
+}
+/* The selected row wins its colour back: muted text on the dark fill is
+   unreadable, and a limited page can be the one you are on. */
+.ni.lim.on {
+  color: var(--c-bg);
+}
+.nidot {
+  position: absolute;
+  top: 0;
+  right: -1px;
+  width: 5px;
+  height: 5px;
+  border-radius: 9999px;
+  background: var(--c-warn);
+}
+/*
  * Holds the canvas's 16px icon column now that what sits in it is an SVG and
  * not a Unicode symbol. The rail width is measured off this; Sidebar's own
  * ICON has to stay 16 to match.
  */
 .nic {
   width: 16px;
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1218,7 +1289,14 @@ html[data-animations='off'] .mqs-toaster [data-sonner-toast] {
 /*
  * The detail sheet, coming in off the right edge it is docked to. It carries a
  * `data-state` that lib/motion's useEnter flips one frame after mount, so the
- * transition has a start value to run from.
+ * transition has a start value to run from, and that useLeave's copy flips
+ * back to leave on.
+ *
+ * The whole way in from the edge, rather than the 16px nudge this was: across
+ * 440px of panel the nudge was lost and what was left was a fade, which reads
+ * as the sheet appearing rather than arriving. In on the decelerating curve,
+ * out faster on the accelerating one. The fade comes along so that the
+ * shadow's tail is not sitting at the window's edge before the panel is.
  *
  * The last of what was once a set: a scrim, a modal that rose into the middle
  * and a menu that dropped from its trigger went with the move to shadcn, whose
@@ -1226,14 +1304,17 @@ html[data-animations='off'] .mqs-toaster [data-sonner-toast] {
  */
 .mqs-slide-right {
   opacity: 0;
-  transform: translateX(16px);
+  transform: translateX(100%);
   transition:
-    opacity var(--mo-base) var(--mo-ease),
-    transform var(--mo-base) var(--mo-ease);
+    opacity var(--mo-base) var(--mo-ease-in),
+    transform var(--mo-base) var(--mo-ease-in);
 }
 .mqs-slide-right[data-state='open'] {
   opacity: 1;
   transform: none;
+  transition:
+    opacity var(--mo-fast) linear,
+    transform var(--mo-slow) var(--mo-ease);
 }
 
 /*
@@ -1312,6 +1393,7 @@ html[data-animations='off'] .mqs-toaster [data-sonner-toast] {
 :root[data-animations='off'] {
   --mo-fast: 0s;
   --mo-base: 0s;
+  --mo-slow: 0s;
   --mo-turn: 0s;
 }
 :root[data-animations='off'] *,

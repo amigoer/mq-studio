@@ -1060,6 +1060,7 @@
       "dialogTitleEdit": "编辑连接",
       "dialogSaveOnly": "保存",
       "probeOk": "连接成功 · {{latency}}",
+      "probeOkShort": "连接成功",
       "probeFailed": "连接失败",
       "soon": "开发中",
       "protocolSoonHint": "变灰的协议还没有驱动，会在后续版本里陆续开放。",
@@ -1350,6 +1351,9 @@
       "line2": "补稿后按同一套 shell 与组件实现即可。",
       "subtitle": "{{protocol}} · 本页在设计稿中尚无画板",
       "note": "「{{page}}」目前只在侧边栏中定义。"
+    },
+    "unavailable": {
+      "title": "这项功能在当前连接上不可用"
     },
     "overview": {
       "kafka": {

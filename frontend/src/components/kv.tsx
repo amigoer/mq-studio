@@ -9,6 +9,10 @@ import { cn } from "@/lib/utils";
  * compression.gzip.level does not fit, and a grid cell does not clip, so the
  * key was painted straight over its own value. Both halves wrap rather than
  * overflow, for the case where neither fits.
+ *
+ * It has a ceiling too. Sized to its longest label alone, a Kafka broker's
+ * config list gave the keys 367px of a 407px sheet, and every value wrapped a
+ * character at a time down the 30px that was left.
  */
 export function KV({
   rows,
@@ -22,14 +26,16 @@ export function KV({
   return (
     <div
       className={cn(
-        "grid grid-cols-[minmax(92px,auto)_1fr] items-baseline gap-x-2.5 gap-y-[5px] text-xs",
+        "grid grid-cols-[fit-content(60%)_1fr] items-baseline gap-x-2.5 gap-y-[5px] text-xs",
         className,
       )}
       style={style}
     >
       {rows.map(([key, value], i) => (
         <Fragment key={i}>
-          <span className="min-w-0 break-words text-muted-foreground">{key}</span>
+          {/* An explicit min-width, not min-w-0: it is the column's floor, and
+              it keeps an unbreakable label from pushing past the ceiling. */}
+          <span className="min-w-[92px] break-words text-muted-foreground">{key}</span>
           <span className="min-w-0 break-words">{value}</span>
         </Fragment>
       ))}
