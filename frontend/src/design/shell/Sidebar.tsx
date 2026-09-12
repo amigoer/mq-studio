@@ -87,8 +87,16 @@ export function Sidebar({
                 <div className="gl">{t(group.label)}</div>
               )}
               {items.map(({ id, icon: Icon, label }) => {
-                const disabled = nav.disabled(id);
-                const reason = disabled ? nav.reason(id) : undefined;
+                /*
+                 * A page the endpoint cannot answer is still worth opening.
+                 * The board behind it says what is off and why - a cluster
+                 * running no authorizer, a plugin nobody installed - while an
+                 * entry that greys out and then ignores the click reads as a
+                 * broken app. Being offline disables nothing here already, and
+                 * this is the same argument.
+                 */
+                const limited = nav.disabled(id);
+                const reason = limited ? nav.reason(id) : undefined;
                 /*
                  * The tooltip is a component rather than the title attribute.
                  *
@@ -108,14 +116,8 @@ export function Sidebar({
                   <button
                     key={id}
                     type="button"
-                    /* aria-disabled rather than disabled, because the reason
-                     below is the whole point of keeping the entry: a disabled
-                     button receives no pointer events, so its title tooltip
-                     never appears and the explanation is computed, translated
-                     and then invisible. The click is guarded instead. */
-                    aria-disabled={disabled || undefined}
                     aria-current={id === active ? "page" : undefined}
-                    className={cn("ni", id === active && "on")}
+                    className={cn("ni", id === active && "on", limited && "lim")}
                     /* The label is the only thing naming the icon once it is
                      gone; a blocked entry adds why it cannot be opened. The
                      reason is a translation key - drivers report keys, not
@@ -123,13 +125,14 @@ export function Sidebar({
                      degraded entry explained itself as
                      "mq.kafka.degraded.accessControl". */
                     title={hint || undefined}
-                    onClick={() => {
-                      if (disabled) return;
-                      onSelect?.(id);
-                    }}
+                    onClick={() => onSelect?.(id)}
                   >
                     <span className="nic">
                       <Icon size={ICON} aria-hidden />
+                      {/* A mark, because a muted label on its own reads as
+                          dead rather than as limited, and a reason nobody
+                          suspects is there is a reason nobody hovers for. */}
+                      {limited && <span className="nidot" aria-hidden />}
                     </span>
                     <span className="nil">{t(label)}</span>
                   </button>

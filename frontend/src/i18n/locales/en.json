@@ -1060,6 +1060,7 @@
       "dialogTitleEdit": "Edit connection",
       "dialogSaveOnly": "Save",
       "probeOk": "Connected · {{latency}}",
+      "probeOkShort": "Connected",
       "probeFailed": "Could not connect",
       "soon": "Coming soon",
       "protocolSoonHint": "The dimmed protocols have no driver yet; they open up in later versions.",
@@ -1350,6 +1351,9 @@
       "line2": "Once one is drawn it can be built from the same shell and components as everything else.",
       "subtitle": "{{protocol}} · this page has no artboard in the design yet",
       "note": "“{{page}}” is defined in the sidebar and nowhere else yet."
+    },
+    "unavailable": {
+      "title": "Not available on this connection"
     },
     "overview": {
       "kafka": {

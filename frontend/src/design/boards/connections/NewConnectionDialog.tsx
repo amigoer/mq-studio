@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Check, RefreshCw, X } from "lucide-react";
+import { Check, LoaderCircle, X } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -45,6 +46,7 @@ import {
 import {
   emptyDraft,
   isDraftable,
+  probeKey,
   toDraft,
   toSubmission,
   type ProtocolDraft,
@@ -98,12 +100,18 @@ const TILE: Record<ProtocolId, { name: string; versions: string }> = {
   solace: { name: "Solace PubSub+", versions: "9.4+" },
 };
 
-/** What the probe last reported, drawn in the footer beside the test button. */
-type ProbeState =
-  | { kind: "idle" }
-  | { kind: "running" }
+/** What the probe last reported, and the settings it was reporting on. */
+type ProbeVerdict = { key: string } & (
   | { kind: "ok"; latency: string }
-  | { kind: "failed"; message: string };
+  | { kind: "failed"; message: string }
+);
+
+/**
+ * The shortest time a test stays on "testing", about one turn of the spinner.
+ * A probe answered in 10ms would otherwise flash it for a frame, and a second
+ * test that got the same answer would look like no test at all.
+ */
+const PROBE_MIN_MS = 600;
 
 /**
  * Board 3a with one form per protocol. The canvas drew a field set for every
@@ -147,7 +155,10 @@ export function NewConnectionDialog({
    */
   const [step, setStep] = useState<"protocol" | "form">(editing == null ? "protocol" : "form");
   const [search, setSearch] = useState("");
-  const [probe, setProbe] = useState<ProbeState>({ kind: "idle" });
+  const [verdict, setVerdict] = useState<ProbeVerdict | null>(null);
+  const [probing, setProbing] = useState(false);
+  // Bumped whenever the form is replaced, so an answer about the old one is dropped.
+  const probeRun = useRef(0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -167,7 +178,7 @@ export function NewConnectionDialog({
     // edit where the protocol cannot change anyway.
     setStep(editing == null ? "protocol" : "form");
     setSearch("");
-    setProbe({ kind: "idle" });
+    resetProbe();
     setError(null);
     setSaving(false);
   }, [editing, initialProtocol, open]);
@@ -192,19 +203,39 @@ export function NewConnectionDialog({
 
   const invalid = useMemo(() => draftInvalidReason(draft, t), [draft, t]);
 
+  const draftKey = useMemo(() => probeKey(toSubmission(draft)), [draft]);
+  // A verdict on settings the form no longer holds says nothing about these.
+  const current = verdict?.key === draftKey ? verdict : null;
+
+  const resetProbe = () => {
+    probeRun.current += 1;
+    setVerdict(null);
+    setProbing(false);
+  };
+
   const runProbe = async () => {
-    if (invalid != null || onProbe == null) return;
-    setProbe({ kind: "running" });
+    if (invalid != null || onProbe == null || probing) return;
+    const run = ++probeRun.current;
+    const key = draftKey;
+    const started = performance.now();
+    setProbing(true);
+    let answer: ProbeVerdict;
     try {
       const submission = toSubmission(draft);
       const elapsed = await onProbe(submission.draft, submission.credentialsMode);
-      setProbe({
+      answer = {
+        key,
         kind: "ok",
         latency: elapsed < 1000 ? `${Math.round(elapsed)}ms` : `${(elapsed / 1000).toFixed(1)}s`,
-      });
+      };
     } catch (probeError) {
-      setProbe({ kind: "failed", message: formatErrorMessage(probeError) });
+      answer = { key, kind: "failed", message: formatErrorMessage(probeError) };
     }
+    const hold = PROBE_MIN_MS - (performance.now() - started);
+    if (hold > 0) await new Promise((resolve) => setTimeout(resolve, hold));
+    if (run !== probeRun.current) return;
+    setVerdict(answer);
+    setProbing(false);
   };
 
   const save = async () => {
@@ -270,7 +301,7 @@ export function NewConnectionDialog({
                         onClick={() => {
                           if (!isDraftable(p)) return;
                           setDraft(emptyDraft(p));
-                          setProbe({ kind: "idle" });
+                          resetProbe();
                           setError(null);
                           setStep("form");
                         }}
@@ -403,37 +434,62 @@ export function NewConnectionDialog({
         />
       )}
 
-        <DialogFooter className="items-center">
-          <Button
-            variant="outline"
-            disabled={invalid != null || probe.kind === "running"}
-            onClick={runProbe}
-          >
-            {probe.kind === "running" && <Spinner />}
-            {t("page.connections.dialogTest")}
-          </Button>
-          <ProbeResult state={probe} />
-          <span className="flex-1" />
-          {/* The blocking reason belongs beside the button it blocks, not in a
-              toast that appears after the click that did nothing. */}
-          {(invalid ?? error) != null && (
-            <span
-              className={
-                "max-w-80 text-right text-xs " +
-                (error != null ? "text-(--c-err)" : "text-muted-foreground")
-              }
-            >
-              {error ?? invalid}
-            </span>
+        {/* One box with the footer, so the dialog's gap opens with the reason
+            instead of arriving at full size before it. */}
+        <div>
+          {verdict?.kind === "failed" && (
+            <div className="mqs-probe-reveal">
+              <div>
+                {/* Shown, not hovered: a title attribute is no tooltip on
+                    WKWebView, and this is what the test exists to produce.
+                    Dimmed rather than dropped once the form moves on, because
+                    it is what somebody reads while correcting it. */}
+                <Alert
+                  className={cn(
+                    "mb-3.5 border-transparent bg-(--c-err-bg) px-3 py-2 transition-opacity duration-(--mo-base)",
+                    (probing || current == null) && "opacity-50",
+                  )}
+                >
+                  <AlertDescription className="text-xs text-(--c-err-text) [overflow-wrap:anywhere]">
+                    {verdict.message}
+                  </AlertDescription>
+                </Alert>
+              </div>
+            </div>
           )}
-          <Button variant="outline" onClick={onClose}>
-            {t("common.cancel")}
-          </Button>
-          <Button disabled={invalid != null || saving} onClick={save}>
-            {saving && <Spinner />}
-            {t(editing != null ? "page.connections.dialogSaveOnly" : "page.connections.dialogSave")}
-          </Button>
-        </DialogFooter>
+          <DialogFooter className="items-center">
+            <Button
+              variant="outline"
+              disabled={invalid != null}
+              aria-busy={probing || undefined}
+              className="active:scale-[0.97] aria-busy:cursor-progress"
+              onClick={runProbe}
+            >
+              {t("page.connections.dialogTest")}
+            </Button>
+            <ProbeStatus probing={probing} verdict={current} />
+            <span className="flex-1" />
+            {/* The blocking reason belongs beside the button it blocks, not in a
+                toast that appears after the click that did nothing. */}
+            {(invalid ?? error) != null && (
+              <span
+                className={
+                  "max-w-80 text-right text-xs " +
+                  (error != null ? "text-(--c-err)" : "text-muted-foreground")
+                }
+              >
+                {error ?? invalid}
+              </span>
+            )}
+            <Button variant="outline" onClick={onClose}>
+              {t("common.cancel")}
+            </Button>
+            <Button disabled={invalid != null || saving} onClick={save}>
+              {saving && <Spinner />}
+              {t(editing != null ? "page.connections.dialogSaveOnly" : "page.connections.dialogSave")}
+            </Button>
+          </DialogFooter>
+        </div>
         </>
       )}
       </DialogContent>
@@ -441,53 +497,34 @@ export function NewConnectionDialog({
   );
 }
 
-function ProbeResult({ state }: { state: ProbeState }) {
+/**
+ * The answer to 测试连接, beside the button that asked for it.
+ *
+ * The whole exchange happens here rather than in the button: the button keeps
+ * its label and width, so nothing next to it shifts when it is pressed, and
+ * there is one spinner instead of one in the button and another beside it.
+ */
+function ProbeStatus({ probing, verdict }: { probing: boolean; verdict: ProbeVerdict | null }) {
   const { t } = useTranslation();
-  if (state.kind === "idle") return null;
-
-  const style = {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: "5px",
-    fontSize: "11.5px",
-    maxWidth: "260px",
-  } as const;
-
-  if (state.kind === "running") {
-    return (
-      <span style={{ ...style, color: "var(--c-muted)" }}>
-        <RefreshCw size={13} className="mqs-turning" aria-hidden />
-        {t("page.connections.testing")}
-      </span>
-    );
-  }
-  if (state.kind === "ok") {
-    return (
-      <span style={{ ...style, color: "var(--c-ok-text)" }}>
-        <Check size={13} aria-hidden />
-        {t("page.connections.probeOk", { latency: state.latency })}
-      </span>
-    );
-  }
-  /*
-   * The reason is shown, not hovered.
-   *
-   * It used to live in a title attribute, which on WKWebView is no tooltip at
-   * all - so a failed test said "could not connect" and nothing else, and the
-   * one piece of information the button exists to produce was unreachable.
-   */
   return (
-    <span
-      style={{ ...style, color: "var(--c-err)", alignItems: "flex-start" }}
-      title={state.message}
-    >
-      <X size={13} aria-hidden style={{ flex: "none", marginTop: "2px" }} />
-      <span style={{ minWidth: 0 }}>
-        {t("page.connections.probeFailed")}
-        <span style={{ display: "block", color: "var(--c-muted)", overflowWrap: "anywhere" }}>
-          {state.message}
+    <span role="status" className="inline-flex min-w-0 items-center">
+      {probing ? (
+        <span className="mqs-probe-in inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+          <LoaderCircle className="mqs-turning size-3.5" aria-hidden />
+          {t("page.connections.testing")}
         </span>
-      </span>
+      ) : verdict?.kind === "ok" ? (
+        <span className="mqs-probe-in inline-flex h-6 items-center gap-1.5 rounded-full bg-(--c-ok-tint) px-2.5 text-xs font-medium text-(--c-ok-text)">
+          <Check className="mqs-probe-mark size-3.5" strokeWidth={2.5} aria-hidden />
+          {t("page.connections.probeOkShort")}
+          <span className="font-normal tabular-nums opacity-70">{verdict.latency}</span>
+        </span>
+      ) : verdict?.kind === "failed" ? (
+        <span className="mqs-probe-in inline-flex h-6 items-center gap-1.5 rounded-full bg-(--c-err-bg) px-2.5 text-xs font-medium text-(--c-err-text)">
+          <X className="mqs-probe-mark size-3.5" strokeWidth={2.5} aria-hidden />
+          {t("page.connections.probeFailed")}
+        </span>
+      ) : null}
     </span>
   );
 }

@@ -245,6 +245,14 @@ export function toSubmission(draft: ProtocolDraft): Submission {
   }
 }
 
+/**
+ * What a connection test depends on, as one comparable string: everything the
+ * probe sends except the fields that only label the connection.
+ */
+export function probeKey({ draft, credentialsMode }: Submission): string {
+  return JSON.stringify({ ...draft, name: "", group: "", remark: "", credentialsMode });
+}
+
 /** Reads a stored profile back into its own form's field set. */
 export function toDraft(profile: ConnectionProfile): ProtocolDraft {
   switch (profile.kind) {

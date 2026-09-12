@@ -12,6 +12,7 @@ import {
 import type { Connection } from "@/design/data/connections";
 import { labelOf, pagesOf, type PageId } from "@/design/data/protocols";
 import { renderBoard, type BoardFocus } from "@/design/registry";
+import { PageGate } from "@/design/boards/misc/Unavailable";
 import {
   onTrayNavigate,
   openExternal,
@@ -458,11 +459,20 @@ export function DesignApp(): JSX.Element {
             connectionsBoard
           );
         }
-        return renderBoard(protocol, pagesOf(protocol).includes(page) ? page : "overview", {
-          onOpenAlertSettings: () => goto({ kind: "settings", section: "message" }),
-          onOpenPage: selectPage,
-          focus: focus?.value,
-        });
+        {
+          const shown = pagesOf(protocol).includes(page) ? page : "overview";
+          /* The sidebar opens a page the connection cannot answer rather than
+             greying it out, so something has to be there when it does. */
+          return (
+            <PageGate page={shown} labelKey={labelOf(protocol, shown)}>
+              {renderBoard(protocol, shown, {
+                onOpenAlertSettings: () => goto({ kind: "settings", section: "message" }),
+                onOpenPage: selectPage,
+                focus: focus?.value,
+              })}
+            </PageGate>
+          );
+        }
     }
   })();
 
