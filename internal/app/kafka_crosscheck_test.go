@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -114,7 +115,16 @@ func requireKafkaCLI(t *testing.T) {
 	})
 }
 
-// cli runs one of Kafka's own tools inside the cluster and returns its output.
+/*
+ * cli runs one of Kafka's own tools inside the cluster and returns its output.
+ *
+ * Retried, because internal/driver/kafka is a second package and therefore a
+ * second process, and `go test` runs it against this same cluster at the same
+ * time as this one. It spends its run creating and deleting topics, so a tool
+ * that walks the whole cluster can have one disappear between its metadata
+ * fetch and its describe - and it exits non-zero for that. That is churn, not
+ * an answer, and re-asking is sound because every call here is a read.
+ */
 func cli(t *testing.T, tool string, args ...string) string {
 	t.Helper()
 	full := append([]string{
@@ -122,11 +132,26 @@ func cli(t *testing.T, tool string, args ...string) string {
 		"--bootstrap-server", kafkaInternal,
 	}, args...)
 
-	output, err := exec.Command("docker", full...).Output()
-	if err != nil {
-		t.Fatalf("%s %v: %v", tool, args, err)
+	var err error
+	for attempt := 0; attempt < 4; attempt++ {
+		if attempt > 0 {
+			time.Sleep(time.Second)
+		}
+		var output []byte
+		if output, err = exec.Command("docker", full...).Output(); err == nil {
+			return string(output)
+		}
 	}
-	return string(output)
+
+	// Output() collects the tool's own diagnosis into the error's Stderr and
+	// prints none of it, so without this the failure reads "exit status 1" and
+	// says nothing about whether the cluster was moving or the call was wrong.
+	var exit *exec.ExitError
+	if errors.As(err, &exit) {
+		t.Fatalf("%s %v: %v: %s", tool, args, err, strings.TrimSpace(string(exit.Stderr)))
+	}
+	t.Fatalf("%s %v: %v", tool, args, err)
+	return ""
 }
 
 // lines drops the blank ones and the warnings the CLI prints to stdout.
