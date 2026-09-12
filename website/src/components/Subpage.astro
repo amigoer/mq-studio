@@ -52,7 +52,7 @@ const showToc = toc.length > 1 && !!tocLabel;
 <Base locale={locale} path={path} canonicalPath={canonicalPath} title={title} description={description}>
   <Nav locale={locale} />
 
-  <main id="top" class="mx-auto max-w-[1240px] px-6 py-10 sm:py-14">
+  <main id="top" class="mx-auto max-w-wide px-6 py-10 sm:py-14">
     <nav aria-label={c.nav.breadcrumb} class="text-ui text-muted-foreground">
       <ol class="flex items-center gap-1.5">
         <li>
@@ -70,7 +70,7 @@ const showToc = toc.length > 1 && !!tocLabel;
     {
       heading && (
         <header class="mt-6 max-w-measure">
-          <h1 class="text-title font-bold tracking-heading">{heading}</h1>
+          <h1 class="text-display-sm font-medium tracking-heading">{heading}</h1>
           {lead && <p class="mt-2 text-body text-muted-foreground text-pretty">{lead}</p>}
         </header>
       )
@@ -85,7 +85,7 @@ const showToc = toc.length > 1 && !!tocLabel;
       <!-- A sticky rail on large screens, a scrolling strip of pills above the
            content on small ones. The list itself is the page's. -->
       <nav aria-label={railLabel} class="lg:sticky lg:top-20 lg:self-start">
-        <p class="mb-3 hidden text-ui font-semibold lg:block">{railLabel}</p>
+        <p class="mb-3 hidden text-caption text-subtle-foreground lg:block">{railLabel}</p>
         <slot name="rail" />
       </nav>
 
@@ -96,7 +96,7 @@ const showToc = toc.length > 1 && !!tocLabel;
       {
         showToc && (
           <nav aria-label={tocLabel} data-toc class="hidden xl:sticky xl:top-20 xl:block xl:self-start">
-            <p class="mb-3 text-caption font-semibold text-muted-foreground">{tocLabel}</p>
+            <p class="mb-3 text-caption text-subtle-foreground">{tocLabel}</p>
             <ul class="flex flex-col gap-2 border-l border-border">
               {toc.map((entry) => (
                 <li>

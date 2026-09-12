@@ -20,7 +20,7 @@ const hero = variant === 'hero';
 ---
 
 <div
-  class:list={['relative flex', hero && 'w-full rounded-lg shadow-sm sm:w-auto']}
+  class:list={['relative flex', hero && 'w-full sm:w-auto']}
   data-menu
   id={id}
 >
@@ -30,7 +30,7 @@ const hero = variant === 'hero';
     class:list={[
       'inline-flex items-center gap-2 bg-primary font-medium text-primary-foreground transition-colors hover:bg-primary-hover',
       hero
-        ? 'h-11 flex-1 justify-center rounded-l-lg px-5 text-prose font-semibold sm:flex-none'
+        ? 'h-10 flex-1 justify-center rounded-l-md px-5 text-body sm:flex-none'
         : 'h-[34px] rounded-l-md px-3.5 text-ui',
     ]}
   >
@@ -79,7 +79,7 @@ const hero = variant === 'hero';
     aria-label={menuLabel}
     class:list={[
       'inline-flex items-center justify-center border-l border-primary-foreground/20 bg-primary text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
-      hero ? 'h-11 w-9 rounded-r-lg' : 'h-[34px] w-8 rounded-r-md',
+      hero ? 'h-10 w-9 rounded-r-md' : 'h-[34px] w-8 rounded-r-md',
     ]}
   >
     <svg width={hero ? '15' : '13'} height={hero ? '15' : '13'} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -102,7 +102,7 @@ const hero = variant === 'hero';
     {
       groups.map((group) => (
         <div role="group" aria-label={group.name}>
-          <div class="flex items-center gap-1.5 px-2.5 pb-1 pt-2 text-2xs font-semibold tracking-wide text-subtle-foreground">
+          <div class="flex items-center gap-1.5 px-2.5 pb-1 pt-2 text-2xs font-medium tracking-wide text-subtle-foreground">
             <PlatformIcon platform={group.platform} size={13} class="opacity-75" />
             {group.name}
           </div>

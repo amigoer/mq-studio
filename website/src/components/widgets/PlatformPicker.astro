@@ -30,9 +30,9 @@ const initialKey = segments.map((segment) => segment.defaultValue).join(':');
 const initial = variants.find((variant) => variant.key === initialKey) ?? variants[0]!;
 
 // Classes lifted from the shadcn ToggleGroup primitive.
-const group = 'flex w-fit items-center gap-1 rounded-lg bg-secondary p-1';
+const group = 'flex w-fit items-center gap-1 rounded-full border border-border p-1';
 const item =
-  'inline-flex h-7 items-center justify-center whitespace-nowrap rounded-md bg-transparent px-2.5 text-caption font-medium outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 aria-checked:bg-background aria-checked:text-accent-foreground aria-checked:shadow-sm';
+  'inline-flex h-7 items-center justify-center whitespace-nowrap rounded-full bg-transparent px-3 text-caption text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 aria-checked:bg-secondary aria-checked:text-foreground';
 ---
 
 <div
@@ -65,7 +65,7 @@ const item =
   <a
     href={initial.url}
     data-picker-link
-    class="mt-auto inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg bg-primary text-body font-semibold text-primary-foreground transition-colors hover:bg-primary-hover"
+    class="mt-auto inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-md bg-primary text-body font-medium text-primary-foreground transition-colors hover:bg-primary-hover"
   >
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />

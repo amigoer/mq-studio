@@ -8,20 +8,16 @@ const { locale } = Astro.props;
 const c = t(locale);
 ---
 
-<section id="features" class="mx-auto max-w-[1120px] px-6 pb-20 pt-16 sm:pt-[88px]">
-  <h2 class="mb-3 text-center text-display-sm font-bold tracking-heading sm:text-display">
-    {c.features.title}
-  </h2>
-  <p class="mx-auto mb-9 max-w-[680px] text-center text-prose text-muted-foreground text-pretty">
-    {c.features.lead}
-  </p>
+<section id="features" class="mx-auto max-w-page px-6 py-20 sm:py-28" data-reveal>
+  <h2 class="text-display-sm font-medium tracking-heading">{c.features.title}</h2>
+  <p class="mt-2.5 max-w-measure text-body text-muted-foreground text-pretty">{c.features.lead}</p>
 
-  <ul class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+  <ul class="mt-9 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
     {
       c.features.items.map((item) => (
-        <li class="rounded-xl border border-border bg-card p-6">
-          <h3 class="mb-2 text-prose font-bold tracking-tight">{item.title}</h3>
-          <p class="text-body text-muted-foreground text-pretty">{item.body}</p>
+        <li class="rounded-2xl border border-border bg-card p-6">
+          <h3 class="text-prose font-medium">{item.title}</h3>
+          <p class="mt-2 text-body text-muted-foreground text-pretty">{item.body}</p>
         </li>
       ))
     }
