@@ -730,6 +730,39 @@
       "edit": "Edit",
       "connect": "Connect",
       "retry": "Retry",
+      "bulk": {
+        "selected": "<b>{{count}}</b> selected",
+        "selectRow": "Select “{{name}}”",
+        "test": "Test",
+        "clear": "Clear selection",
+        "stop": "Stop",
+        "stopping": "Stopping…",
+        "queued": "Queued",
+        "running": {
+          "connect": "Connecting {{current}} of {{total}}",
+          "disconnect": "Disconnecting {{current}} of {{total}}",
+          "test": "Testing {{current}} of {{total}}",
+          "delete": "Deleting {{current}} of {{total}}"
+        },
+        "done": {
+          "connect": "Connected {{count}} connection(s)",
+          "disconnect": "Disconnected {{count}} connection(s)",
+          "test": "{{count}} connection(s) passed the test",
+          "delete": "Deleted {{count}} connection(s)"
+        },
+        "failed": {
+          "connect": "{{failed}} of {{total}} could not connect",
+          "disconnect": "{{failed}} of {{total}} could not disconnect",
+          "test": "{{failed}} of {{total}} failed the test",
+          "delete": "{{failed}} of {{total}} could not be deleted"
+        },
+        "failure": "{{name}}: {{error}}",
+        "stopped": "Stopped with {{count}} left untouched",
+        "deleteTitle": "Delete {{count}} connection(s)",
+        "deleteDesc": "These connections and the credentials stored with them are deleted. This cannot be undone.",
+        "andMore": "and {{count}} more",
+        "defaultKept": "The default connection “{{name}}” stays: make another connection the default before deleting it."
+      },
       "welcome": "Welcome to MQ Studio",
       "emptyLine1": "No connections yet. Create one to start managing your message queues,",
       "emptyLine2": "or import a config file you exported earlier.",

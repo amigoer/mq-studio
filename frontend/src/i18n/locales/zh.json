@@ -730,6 +730,39 @@
       "edit": "编辑",
       "connect": "连接",
       "retry": "重试",
+      "bulk": {
+        "selected": "已选 <b>{{count}}</b> 个连接",
+        "selectRow": "选择「{{name}}」",
+        "test": "测试",
+        "clear": "取消选择",
+        "stop": "停止",
+        "stopping": "正在停止…",
+        "queued": "排队中",
+        "running": {
+          "connect": "正在连接 {{current}} / {{total}}",
+          "disconnect": "正在断开 {{current}} / {{total}}",
+          "test": "正在测试 {{current}} / {{total}}",
+          "delete": "正在删除 {{current}} / {{total}}"
+        },
+        "done": {
+          "connect": "已连接 {{count}} 个连接",
+          "disconnect": "已断开 {{count}} 个连接",
+          "test": "{{count}} 个连接测试通过",
+          "delete": "已删除 {{count}} 个连接"
+        },
+        "failed": {
+          "connect": "{{total}} 个中有 {{failed}} 个连接失败",
+          "disconnect": "{{total}} 个中有 {{failed}} 个断开失败",
+          "test": "{{total}} 个中有 {{failed}} 个测试未通过",
+          "delete": "{{total}} 个中有 {{failed}} 个删除失败"
+        },
+        "failure": "{{name}}：{{error}}",
+        "stopped": "已停止，还有 {{count}} 个未处理",
+        "deleteTitle": "删除 {{count}} 个连接",
+        "deleteDesc": "将删除以下连接及其保存的凭证，且无法撤销。",
+        "andMore": "等 {{count}} 个",
+        "defaultKept": "默认连接「{{name}}」会保留：先把其他连接设为默认，才能删除它。"
+      },
       "welcome": "欢迎使用 MQ Studio",
       "emptyLine1": "还没有任何连接。新建一个连接开始管理你的消息队列，",
       "emptyLine2": "或导入之前导出的配置文件。",
