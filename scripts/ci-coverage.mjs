@@ -18,30 +18,67 @@
 // ("this broker runs plain_acl, not 5.3 authentication"), which is a
 // deliberate omission an unsharded run would make too.
 //
-// Usage: node scripts/ci-coverage.mjs <directory of results-*.json>
+// Only the latest attempt of each shard counts. Re-running a failed job leaves
+// the earlier attempt's results in the run, so a flake the re-run cleared
+// would otherwise keep this red for good. The attempt has to be in the
+// artifact name, not just the file: download-artifact keeps one artifact per
+// name, the one with the highest id, and ids are not in upload order. A test
+// that fails or goes unrun in a shard's latest attempt still fails here.
+//
+// Usage: node scripts/ci-coverage.mjs <directory of results-<shard>-attempt-<n>.json>
 
 import { readdir, readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 
 const SKIP_MARKER = '[e2e-gate]'
 
+// As ci.yml names every results file, with github.run_attempt as the attempt.
+const RESULTS = /^results-(.+)-attempt-([1-9]\d*)\.json$/
+
 // The unit job runs `go test ./...` with no broker, so its output is the only
 // one that names every test in the repository. Without it the inventory would
 // be whatever the shards happened to cover, which cannot catch a dropped one.
-const INVENTORY = 'results-unit.json'
+const INVENTORY = 'unit'
 
 const directory = process.argv[2]
 if (!directory) {
-  console.error('usage: node scripts/ci-coverage.mjs <directory of results-*.json>')
+  console.error('usage: node scripts/ci-coverage.mjs <directory of results-<shard>-attempt-<n>.json>')
   process.exit(2)
 }
 
-const files = (await readdir(directory)).filter((name) => name.endsWith('.json')).sort()
-if (!files.includes(INVENTORY)) {
-  console.error(`${INVENTORY} is missing from ${directory}: without it there is no full test inventory to check the shards against.`)
-  console.error(`found: ${files.join(', ') || '(nothing)'}`)
+const names = (await readdir(directory)).filter((name) => name.endsWith('.json')).sort()
+
+// Refused rather than skipped: skipping a file would drop its shard's failures
+// along with its passes.
+const unplaced = names.filter((name) => !RESULTS.test(name))
+if (unplaced.length > 0) {
+  console.error(`not named results-<shard>-attempt-<n>.json, so their shard and attempt are unknown: ${unplaced.join(', ')}`)
   process.exit(1)
 }
+
+/** shard -> { attempt, file } for the highest attempt seen of it. */
+const latest = new Map()
+const superseded = []
+for (const file of names) {
+  const [, shard, digits] = RESULTS.exec(file)
+  const attempt = Number(digits)
+  const current = latest.get(shard)
+  // Compared as numbers: by name, attempt-10 sorts before attempt-9.
+  if (current && current.attempt > attempt) {
+    superseded.push(file)
+    continue
+  }
+  if (current) superseded.push(current.file)
+  latest.set(shard, { attempt, file })
+}
+
+if (!latest.has(INVENTORY)) {
+  console.error(`results-${INVENTORY}-attempt-<n>.json is missing from ${directory}: without it there is no full test inventory to check the shards against.`)
+  console.error(`found: ${names.join(', ') || '(nothing)'}`)
+  process.exit(1)
+}
+
+const shards = [...latest.keys()].sort()
 
 /** One row per test, accumulated across every shard. */
 const tests = new Map()
@@ -53,9 +90,8 @@ function row(key) {
   return tests.get(key)
 }
 
-for (const file of files) {
-  const shard = file.replace(/^results-/, '').replace(/\.json$/, '')
-  const content = await readFile(resolve(directory, file), 'utf8')
+for (const shard of shards) {
+  const content = await readFile(resolve(directory, latest.get(shard).file), 'utf8')
 
   // Output events arrive before the pass/skip/fail that closes a test, so the
   // marker has to be remembered until the verdict lands.
@@ -97,7 +133,12 @@ for (const [key, result] of tests) {
 }
 
 const covered = tests.size - unrun.length - failed.length
-console.log(`shards: ${files.map((f) => f.replace(/^results-|\.json$/g, '')).join(', ')}`)
+const label = (shard) => {
+  const { attempt } = latest.get(shard)
+  return attempt > 1 ? `${shard} (attempt ${attempt})` : shard
+}
+console.log(`shards: ${shards.map(label).join(', ')}`)
+if (superseded.length > 0) console.log(`superseded by a later attempt, not read: ${superseded.join(', ')}`)
 console.log(`tests seen: ${tests.size}`)
 console.log(`covered:    ${covered}`)
 
