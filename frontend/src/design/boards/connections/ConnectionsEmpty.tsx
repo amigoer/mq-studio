@@ -3,7 +3,32 @@ import { Plus } from "lucide-react";
 import { AppLogo } from "@/design/icons/AppLogo";
 import { ProtocolIcon } from "@/design/icons/ProtocolIcon";
 import { Button } from "@/components/ui/button";
-import { PROTOCOLS, PROTOCOL_ORDER, isProtocolReady } from "@/design/data/protocols";
+import {
+  PROTOCOLS,
+  PROTOCOL_ORDER,
+  isProtocolReady,
+  type ProtocolId,
+} from "@/design/data/protocols";
+
+/*
+ * The family grid is capped, so the welcome page keeps its shape however many
+ * drivers ship: past this many cells the last one counts the rest and opens the
+ * picker, which lists every family with a search.
+ */
+const COLUMNS = 5;
+const ROWS = 3;
+/** Wide enough for "Azure Service Bus" on one line, with room for wider system fonts. */
+const CELL_WIDTH = 104;
+
+/** The families drawn in a grid of `cells`, and how many fold into its last cell. */
+export function foldProtocols(
+  protocols: readonly ProtocolId[],
+  cells: number,
+): { shown: ProtocolId[]; folded: number } {
+  if (protocols.length <= cells) return { shown: [...protocols], folded: 0 };
+  const shown = protocols.slice(0, cells - 1);
+  return { shown, folded: protocols.length - shown.length };
+}
 
 /** Board 8b — first launch, or after the last connection is deleted. */
 export function ConnectionsEmpty({
@@ -14,6 +39,11 @@ export function ConnectionsEmpty({
   onImport?: () => void;
 }) {
   const { t } = useTranslation();
+  const { shown, folded } = foldProtocols(PROTOCOL_ORDER, COLUMNS * ROWS);
+  const supported = t("page.connections.emptySupported", {
+    count: PROTOCOL_ORDER.filter(isProtocolReady).length,
+  });
+
   return (
     <div
       style={{
@@ -30,7 +60,6 @@ export function ConnectionsEmpty({
           flexDirection: "column",
           alignItems: "center",
           gap: 0,
-          maxWidth: "440px",
           textAlign: "center",
         }}
       >
@@ -70,22 +99,28 @@ export function ConnectionsEmpty({
             {t("page.connections.emptyImport")}
           </Button>
         </div>
-        <div style={{ display: "flex", gap: "18px", marginTop: "34px", alignItems: "center" }}>
-          {/* The five without a driver are greyed here too, so the strip
-              matches what the connection dialog will let you pick. */}
-          {PROTOCOL_ORDER.map((p) => {
+
+        <div className="mt-8 flex items-center gap-3 text-[11px] text-(--c-muted-2)">
+          <span className="h-px w-12 bg-border" aria-hidden />
+          {supported}
+          <span className="h-px w-12 bg-border" aria-hidden />
+        </div>
+        {/* A family without a driver is greyed here too, so the grid matches
+            what the connection dialog will let you pick. The last row centres,
+            since a partly filled one pinned left reads as something missing. */}
+        <ul
+          aria-label={supported}
+          className="mt-4 flex flex-wrap justify-center gap-y-3.5"
+          style={{ width: COLUMNS * CELL_WIDTH }}
+        >
+          {shown.map((p) => {
             const ready = isProtocolReady(p);
             return (
-              <span
+              <li
                 key={p}
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: "5px",
-                  fontSize: "10px",
-                  color: ready ? "var(--c-muted)" : "var(--c-muted-2)",
-                }}
+                title={PROTOCOLS[p].name}
+                className="flex flex-col items-center gap-1.5 text-[10.5px]"
+                style={{ width: CELL_WIDTH, color: ready ? "var(--c-muted)" : "var(--c-muted-2)" }}
               >
                 <ProtocolIcon
                   protocol={p}
@@ -93,11 +128,26 @@ export function ConnectionsEmpty({
                   className=""
                   style={ready ? undefined : { filter: "grayscale(1)", opacity: 0.4 }}
                 />
-                {PROTOCOLS[p].name}
-              </span>
+                <span className="max-w-full truncate px-1">{PROTOCOLS[p].name}</span>
+              </li>
             );
           })}
-        </div>
+          {folded > 0 && (
+            <li className="flex justify-center" style={{ width: CELL_WIDTH }}>
+              <Button
+                variant="ghost"
+                className="h-auto flex-col gap-1.5 px-2 py-1 text-[10.5px] font-normal text-(--c-muted)"
+                onClick={onNewConnection}
+              >
+                <span className="flex h-5 items-center text-xs font-semibold text-(--c-fg-2) tabular-nums">
+                  +{folded}
+                </span>
+                {t("page.connections.emptyAllProtocols")}
+              </Button>
+            </li>
+          )}
+        </ul>
+
         <div style={{ fontSize: "10.5px", color: "var(--c-muted-3)", marginTop: "26px" }}>
           {t("page.connections.emptyFooter")}
         </div>

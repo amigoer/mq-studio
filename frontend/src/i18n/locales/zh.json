@@ -768,6 +768,8 @@
       "emptyLine2": "或导入之前导出的配置文件。",
       "emptyNew": "新建连接",
       "emptyImport": "导入配置",
+      "emptySupported": "支持 {{count}} 种消息队列",
+      "emptyAllProtocols": "查看全部",
       "emptyFooter": "凭证加密存储在本机 · 配置不会上传",
       "dialogTitle": "新建连接",
       "dialogTest": "测试连接",

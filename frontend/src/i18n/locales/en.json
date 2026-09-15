@@ -768,6 +768,8 @@
       "emptyLine2": "or import a config file you exported earlier.",
       "emptyNew": "New connection",
       "emptyImport": "Import config",
+      "emptySupported": "Works with {{count}} message brokers",
+      "emptyAllProtocols": "See all",
       "emptyFooter": "Credentials are encrypted on this machine · nothing is uploaded",
       "dialogTitle": "New connection",
       "dialogTest": "Test connection",
