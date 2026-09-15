@@ -1318,6 +1318,54 @@ html[data-animations='off'] .mqs-toaster [data-sonner-toast] {
 }
 
 /*
+ * The connection list's footer and its selection bar, taking turns in one
+ * slot. Both stay mounted in a single grid cell, so the swap runs both ways on
+ * transitions alone and the slot never changes height under the table.
+ *
+ * The bar rises from the window's edge rather than fading in where the footer
+ * was: arriving is what ties it to the tick that summoned it. The footer only
+ * fades, since a second thing moving would read as the whole strip jumping.
+ */
+.mqs-footer-swap {
+  flex: none;
+  display: grid;
+  overflow: hidden;
+}
+.mqs-footer-swap > * {
+  grid-area: 1 / 1;
+  min-width: 0;
+  transition:
+    opacity var(--mo-base) var(--mo-ease-out),
+    transform var(--mo-base) var(--mo-ease-out);
+}
+.mqs-footer-swap > [data-layer='bulk'] {
+  opacity: 0;
+  transform: translateY(100%);
+}
+.mqs-footer-swap[data-state='open'] > [data-layer='bulk'] {
+  opacity: 1;
+  transform: none;
+}
+.mqs-footer-swap[data-state='open'] > [data-layer='status'] {
+  opacity: 0;
+}
+
+/*
+ * A tick lands rather than appears. Bound to the slot for the reason the
+ * popover rule below gives; only the checked state, so a partial header box
+ * filling up to a full one pops as well.
+ */
+[data-slot='checkbox-indicator'][data-state='checked'] {
+  animation: mqs-tick var(--mo-fast) var(--mo-ease-out);
+}
+@keyframes mqs-tick {
+  from {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+}
+
+/*
  * Every popover panel, on the same ladder as everything else that moves: the
  * notification centre, each Combobox, the namespace switcher.
  *

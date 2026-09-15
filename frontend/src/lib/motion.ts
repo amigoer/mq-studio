@@ -100,3 +100,18 @@ export function useLeave(ref: RefObject<HTMLElement | null>): void {
     };
   }, [ref]);
 }
+
+/**
+ * The last value seen while `holding` was false, for as long as it is true.
+ *
+ * For an element that stays mounted and transitions out after the state it
+ * draws is already gone: without it the content changes first and then leaves.
+ * `value` has to keep its identity between renders, or this renders forever.
+ */
+export function useHeld<T>(value: T, holding: boolean): T {
+  const [held, setHeld] = useState(value);
+  useEffect(() => {
+    if (!holding) setHeld(value);
+  }, [holding, value]);
+  return holding ? held : value;
+}

@@ -33,6 +33,7 @@ import {
 } from "@/api/connection";
 import { readSession, restoreSession, writeSession } from "@/design/data/session";
 import { ConnectionsList } from "@/design/boards/connections/ConnectionsList";
+import { useConnectionBulk } from "@/design/boards/connections/useConnectionBulk";
 import { ConnectionsEmpty } from "@/design/boards/connections/ConnectionsEmpty";
 import { NewConnectionDialog } from "@/design/boards/connections/NewConnectionDialog";
 import { UpdateDialog } from "@/design/shell/UpdateDialog";
@@ -191,6 +192,14 @@ export function DesignApp(): JSX.Element {
     });
   };
 
+  /** Drops the tabs of connections that were deleted or closed. */
+  const dropTabs = useCallback((keys: readonly string[]) => {
+    setOpenTabs((tabs) => tabs.filter((key) => !keys.includes(key)));
+    setActiveTab((current) => (current != null && keys.includes(current) ? null : current));
+  }, []);
+
+  const bulk = useConnectionBulk(dropTabs);
+
   /*
    * The tray menu's destination. A page only exists inside a tab, so a request
    * naming a connection opens or raises that tab first, and one that names
@@ -244,8 +253,7 @@ export function DesignApp(): JSX.Element {
     if (!confirmed) return;
     try {
       await remove(connection.id);
-      setOpenTabs((tabs) => tabs.filter((t) => t !== connection.key));
-      setActiveTab((current) => (current === connection.key ? null : current));
+      dropTabs([connection.key]);
       toast.success(t("page.connections.deleted", { name: connection.name }));
     } catch (error) {
       toast.error(t("page.connections.deleteFailed"), { description: String(error) });
@@ -271,8 +279,7 @@ export function DesignApp(): JSX.Element {
       return;
     }
     // A tab whose connection is closed would show pages that cannot answer.
-    setOpenTabs((tabs) => tabs.filter((key) => key !== connection.key));
-    setActiveTab((current) => (current === connection.key ? null : current));
+    dropTabs([connection.key]);
     toast.success(t("page.connections.disconnected", { name: connection.name }));
   };
 
@@ -425,6 +432,9 @@ export function DesignApp(): JSX.Element {
       onDisconnect={(connection) => void disconnectConnection(connection)}
       onTest={(connection) => void probeConnection(connection)}
       onEdit={(connection) => setDialog({ editing: connection.id })}
+      bulk={bulk.run}
+      onBulk={(action, targets) => void bulk.start(action, targets)}
+      onStopBulk={bulk.stop}
     />
   );
 
