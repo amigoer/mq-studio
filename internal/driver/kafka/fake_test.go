@@ -336,6 +336,88 @@ func TestWritingARuleWaitsUntilTheClusterListsIt(t *testing.T) {
 	t.Fatalf("the rule is not listed straight after being written: %v", rules)
 }
 
+// A subject is listed before its whole rule is. Each policy is a create of its
+// own, so a describe can show the subject with its last policy still missing -
+// and a subject that already had rules looks like that before the write
+// starts. Waiting for the subject alone returned there, with the deny not yet
+// listed.
+func TestWritingARuleWaitsForEveryPolicyNotJustTheSubject(t *testing.T) {
+	cluster, err := kfake.NewCluster()
+	if err != nil {
+		t.Fatalf("start the fake cluster: %v", err)
+	}
+	t.Cleanup(cluster.Close)
+
+	conn := openProfile(t, model.ConnectionProfile{
+		Name:      "fake",
+		Endpoints: strings.Join(cluster.ListenAddrs(), ","),
+	})
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
+	// Installed after Open, whose capability probe describes too, so every
+	// describe counted here is the write's own.
+	const subject = "User:alice"
+	const partial = 2
+	describes := 0
+	cluster.ControlKey(kmsg.DescribeACLs.Int16(),
+		func(request kmsg.Request) (kmsg.Response, error, bool) {
+			cluster.KeepControl()
+			describes++
+			if describes > partial {
+				return nil, nil, false
+			}
+			// The allow applied and the deny not yet.
+			response := request.ResponseKind().(*kmsg.DescribeACLsResponse)
+			response.Resources = []kmsg.DescribeACLsResponseResource{{
+				ResourceType:        kmsg.ACLResourceTypeTopic,
+				ResourceName:        "orders",
+				ResourcePatternType: kmsg.ACLResourcePatternTypeLiteral,
+				ACLs: []kmsg.DescribeACLsResponseResourceACL{{
+					Principal:      subject,
+					Host:           "*",
+					Operation:      kmsg.ACLOperationRead,
+					PermissionType: kmsg.ACLPermissionTypeAllow,
+				}},
+			}}
+			return response, nil, true
+		})
+
+	if err := conn.PutAccessRule(ctx, model.AccessRule{
+		Subject: subject,
+		Policies: []model.AccessPolicy{
+			{Resource: "topic:orders", Actions: []string{"READ"}, Effect: "Allow"},
+			{Resource: "topic:secrets", Actions: []string{"READ"}, Effect: "Deny",
+				SourceIPs: []string{"10.0.0.1"}},
+		},
+	}); err != nil {
+		t.Fatalf("PutAccessRule: %v", err)
+	}
+	if describes <= partial {
+		t.Fatalf("the write returned after %d describe(s) that did not list the deny", describes)
+	}
+	if describes > partial+1 {
+		t.Fatalf("the write kept waiting through %d describe(s) that listed the deny", describes-partial)
+	}
+
+	rules, err := conn.ListAccessRules(ctx)
+	if err != nil {
+		t.Fatalf("ListAccessRules: %v", err)
+	}
+	for _, rule := range rules {
+		if rule.Subject != subject {
+			continue
+		}
+		for _, policy := range rule.Policies {
+			if policy.Resource == "topic:secrets" && policy.Effect == "Deny" {
+				return
+			}
+		}
+		t.Fatalf("the deny is not listed straight after being written: %v", rule.Policies)
+	}
+	t.Fatalf("the rule is not listed straight after being written: %v", rules)
+}
+
 /*
  * A send waits for a topic that is on its way.
  *

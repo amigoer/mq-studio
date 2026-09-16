@@ -362,6 +362,7 @@ func (c *Conn) PutAccessRule(ctx context.Context, rule model.AccessRule) error {
 		return fmt.Errorf("a rule with no policies grants nothing; delete the subject instead")
 	}
 
+	var created kadm.CreateACLsResults
 	for _, policy := range rule.Policies {
 		builder, err := builderFor(rule.Subject, policy)
 		if err != nil {
@@ -376,37 +377,34 @@ func (c *Conn) PutAccessRule(ctx context.Context, rule model.AccessRule) error {
 				return result.Err
 			}
 		}
+		created = append(created, results...)
 	}
-	c.awaitAccessRule(ctx, rule.Subject, true)
+	c.awaitAccessRule(ctx, rule.Subject, created)
 	return nil
 }
 
 /*
- * awaitAccessRule waits for the cluster to agree that a subject does or does
- * not have rules.
+ * awaitAccessRule waits for the cluster to list what a write left: every
+ * binding it created, or - given none - no rules for the subject at all.
  *
  * The same lag as a credential, for the same reason: an authorizer writes its
  * rules to the metadata log and a describe is answered by whichever broker
  * took the request. A page that wrote a rule and immediately listed showed the
  * list without it, which reads as a write that did nothing.
  *
+ * Every binding rather than the subject. Each policy is a create of its own,
+ * and a describe can land after some of them are applied and before the rest:
+ * a subject is listed while its last policy is still on the way, and one that
+ * already had rules is listed before the write starts.
+ *
  * Bounded, and silent at the bound: the write succeeded either way, and a
  * cluster still catching up is not a failed create.
  */
-func (c *Conn) awaitAccessRule(ctx context.Context, subject string, want bool) {
+func (c *Conn) awaitAccessRule(ctx context.Context, subject string, created kadm.CreateACLsResults) {
 	deadline := time.Now().Add(propagationLimit)
 	for {
-		rules, err := c.ListAccessRules(ctx)
-		if err == nil {
-			listed := false
-			for _, rule := range rules {
-				if rule.Subject == subject {
-					listed = true
-				}
-			}
-			if listed == want {
-				return
-			}
+		if c.accessRuleListed(ctx, subject, created) {
+			return
 		}
 		if time.Now().After(deadline) {
 			return
@@ -417,6 +415,42 @@ func (c *Conn) awaitAccessRule(ctx context.Context, subject string, want bool) {
 		case <-time.After(25 * time.Millisecond):
 		}
 	}
+}
+
+func (c *Conn) accessRuleListed(ctx context.Context, subject string, created kadm.CreateACLsResults) bool {
+	results, err := c.admin.DescribeACLs(ctx, everyACL())
+	if err != nil {
+		return false
+	}
+	listed := make(map[kadm.DescribedACL]bool)
+	for _, result := range results {
+		if result.Err != nil {
+			return false
+		}
+		for _, described := range result.Described {
+			if described.Principal == subject {
+				listed[described] = true
+			}
+		}
+	}
+
+	if len(created) == 0 {
+		return len(listed) == 0
+	}
+	for _, binding := range created {
+		if !listed[kadm.DescribedACL{
+			Principal:  binding.Principal,
+			Host:       binding.Host,
+			Type:       binding.Type,
+			Name:       binding.Name,
+			Pattern:    binding.Pattern,
+			Operation:  binding.Operation,
+			Permission: binding.Permission,
+		}] {
+			return false
+		}
+	}
+	return true
 }
 
 // RemoveAccessRule deletes every ACL belonging to a principal.
@@ -439,7 +473,7 @@ func (c *Conn) RemoveAccessRule(ctx context.Context, subject string) error {
 			return result.Err
 		}
 	}
-	c.awaitAccessRule(ctx, subject, false)
+	c.awaitAccessRule(ctx, subject, nil)
 	return nil
 }
 
