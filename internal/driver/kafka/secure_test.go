@@ -276,6 +276,34 @@ func TestLiveSecureSCRAMUserRoundTrip(t *testing.T) {
 		t.Error("a user was created with no password")
 	}
 
+	// A second mechanism is a second credential on the same user, and the
+	// listing has to show both straight away: the user already exists, so
+	// nothing about the user itself says whether the new password arrived.
+	if err := conn.PutPrincipal(ctx, model.AccessPrincipalSpec{
+		Name: user, Secret: "a-password", Type: "SCRAM-SHA-256",
+	}); err != nil {
+		t.Fatalf("PutPrincipal SCRAM-SHA-256: %v", err)
+	}
+	principals, err = conn.ListPrincipals(ctx)
+	if err != nil {
+		t.Fatalf("ListPrincipals: %v", err)
+	}
+	found = nil
+	for _, principal := range principals {
+		if principal.Name == user {
+			found = principal
+		}
+	}
+	if found == nil {
+		t.Fatalf("the user is not listed after a second mechanism: %v", principals)
+	}
+	if !strings.Contains(found.Type, "SCRAM-SHA-256") || !strings.Contains(found.Type, "SCRAM-SHA-512") {
+		t.Errorf("mechanisms = %q straight after adding one, want both", found.Type)
+	}
+
+	// And now the delete has two passwords to remove, which is a request each:
+	// Kafka refuses to alter one user twice in the same request, and a single
+	// request for both removed neither.
 	if err := conn.RemovePrincipal(ctx, user); err != nil {
 		t.Fatalf("RemovePrincipal: %v", err)
 	}

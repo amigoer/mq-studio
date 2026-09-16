@@ -154,29 +154,28 @@ func (c *Conn) PutPrincipal(ctx context.Context, spec model.AccessPrincipalSpec)
 	if err := firstSCRAMError(altered); err != nil {
 		return err
 	}
-	c.awaitPrincipal(ctx, spec.Name, true)
+	c.awaitPrincipal(ctx, spec.Name, []kadm.CredInfo{{Mechanism: mechanism, Iterations: scramIterations}})
 	return nil
 }
 
 /*
- * awaitPrincipal waits for the cluster to agree that a user does or does not
- * exist.
+ * awaitPrincipal waits for the cluster to list what a write left: every
+ * credential it wrote, or - given none - no credential for the user at all.
  *
  * A credential is written to the metadata log and read back from whichever
  * broker answers, and the two are not the same instant: a user created and
  * immediately listed came back missing under load. Bounded, and silent when
  * the bound is reached - the alter succeeded either way, and refusing to
  * return would turn a slow cluster into a failed write.
+ *
+ * The credential rather than the user: a user holds one per mechanism, so one
+ * that already has SCRAM-SHA-256 is listed before SCRAM-SHA-512 is added.
  */
-func (c *Conn) awaitPrincipal(ctx context.Context, name string, want bool) {
+func (c *Conn) awaitPrincipal(ctx context.Context, name string, written []kadm.CredInfo) {
 	deadline := time.Now().Add(propagationLimit)
 	for {
-		described, err := c.admin.DescribeUserSCRAMs(ctx, name)
-		if err == nil {
-			user, listed := described[name]
-			if exists := listed && user.Err == nil && len(user.CredInfos) > 0; exists == want {
-				return
-			}
+		if c.principalListed(ctx, name, written) {
+			return
 		}
 		if time.Now().After(deadline) {
 			return
@@ -187,6 +186,29 @@ func (c *Conn) awaitPrincipal(ctx context.Context, name string, want bool) {
 		case <-time.After(25 * time.Millisecond):
 		}
 	}
+}
+
+func (c *Conn) principalListed(ctx context.Context, name string, written []kadm.CredInfo) bool {
+	described, err := c.admin.DescribeUserSCRAMs(ctx, name)
+	if err != nil {
+		return false
+	}
+	listed := make(map[kadm.CredInfo]bool)
+	if user, ok := described[name]; ok && user.Err == nil {
+		for _, info := range user.CredInfos {
+			listed[info] = true
+		}
+	}
+
+	if len(written) == 0 {
+		return len(listed) == 0
+	}
+	for _, info := range written {
+		if !listed[info] {
+			return false
+		}
+	}
+	return true
 }
 
 // RemovePrincipal deletes a user's password for every mechanism it has.
@@ -203,22 +225,20 @@ func (c *Conn) RemovePrincipal(ctx context.Context, name string) error {
 		return fmt.Errorf("no such user: %s", name)
 	}
 
-	deletes := make([]kadm.DeleteSCRAM, 0, len(user.CredInfos))
+	// One request each, because Kafka refuses to alter a user twice in the same
+	// one: both deletions together removed neither and answered
+	// DUPLICATE_RESOURCE, so a user with two mechanisms could not be deleted.
 	for _, info := range user.CredInfos {
-		deletes = append(deletes, kadm.DeleteSCRAM{User: name, Mechanism: info.Mechanism})
+		altered, err := c.admin.AlterUserSCRAMs(ctx,
+			[]kadm.DeleteSCRAM{{User: name, Mechanism: info.Mechanism}}, nil)
+		if err != nil {
+			return err
+		}
+		if err := firstSCRAMError(altered); err != nil {
+			return err
+		}
 	}
-	if len(deletes) == 0 {
-		return nil
-	}
-
-	altered, err := c.admin.AlterUserSCRAMs(ctx, deletes, nil)
-	if err != nil {
-		return err
-	}
-	if err := firstSCRAMError(altered); err != nil {
-		return err
-	}
-	c.awaitPrincipal(ctx, name, false)
+	c.awaitPrincipal(ctx, name, nil)
 	return nil
 }
 
@@ -362,6 +382,7 @@ func (c *Conn) PutAccessRule(ctx context.Context, rule model.AccessRule) error {
 		return fmt.Errorf("a rule with no policies grants nothing; delete the subject instead")
 	}
 
+	var created kadm.CreateACLsResults
 	for _, policy := range rule.Policies {
 		builder, err := builderFor(rule.Subject, policy)
 		if err != nil {
@@ -376,37 +397,34 @@ func (c *Conn) PutAccessRule(ctx context.Context, rule model.AccessRule) error {
 				return result.Err
 			}
 		}
+		created = append(created, results...)
 	}
-	c.awaitAccessRule(ctx, rule.Subject, true)
+	c.awaitAccessRule(ctx, rule.Subject, created)
 	return nil
 }
 
 /*
- * awaitAccessRule waits for the cluster to agree that a subject does or does
- * not have rules.
+ * awaitAccessRule waits for the cluster to list what a write left: every
+ * binding it created, or - given none - no rules for the subject at all.
  *
  * The same lag as a credential, for the same reason: an authorizer writes its
  * rules to the metadata log and a describe is answered by whichever broker
  * took the request. A page that wrote a rule and immediately listed showed the
  * list without it, which reads as a write that did nothing.
  *
+ * Every binding rather than the subject. Each policy is a create of its own,
+ * and a describe can land after some of them are applied and before the rest:
+ * a subject is listed while its last policy is still on the way, and one that
+ * already had rules is listed before the write starts.
+ *
  * Bounded, and silent at the bound: the write succeeded either way, and a
  * cluster still catching up is not a failed create.
  */
-func (c *Conn) awaitAccessRule(ctx context.Context, subject string, want bool) {
+func (c *Conn) awaitAccessRule(ctx context.Context, subject string, created kadm.CreateACLsResults) {
 	deadline := time.Now().Add(propagationLimit)
 	for {
-		rules, err := c.ListAccessRules(ctx)
-		if err == nil {
-			listed := false
-			for _, rule := range rules {
-				if rule.Subject == subject {
-					listed = true
-				}
-			}
-			if listed == want {
-				return
-			}
+		if c.accessRuleListed(ctx, subject, created) {
+			return
 		}
 		if time.Now().After(deadline) {
 			return
@@ -417,6 +435,42 @@ func (c *Conn) awaitAccessRule(ctx context.Context, subject string, want bool) {
 		case <-time.After(25 * time.Millisecond):
 		}
 	}
+}
+
+func (c *Conn) accessRuleListed(ctx context.Context, subject string, created kadm.CreateACLsResults) bool {
+	results, err := c.admin.DescribeACLs(ctx, everyACL())
+	if err != nil {
+		return false
+	}
+	listed := make(map[kadm.DescribedACL]bool)
+	for _, result := range results {
+		if result.Err != nil {
+			return false
+		}
+		for _, described := range result.Described {
+			if described.Principal == subject {
+				listed[described] = true
+			}
+		}
+	}
+
+	if len(created) == 0 {
+		return len(listed) == 0
+	}
+	for _, binding := range created {
+		if !listed[kadm.DescribedACL{
+			Principal:  binding.Principal,
+			Host:       binding.Host,
+			Type:       binding.Type,
+			Name:       binding.Name,
+			Pattern:    binding.Pattern,
+			Operation:  binding.Operation,
+			Permission: binding.Permission,
+		}] {
+			return false
+		}
+	}
+	return true
 }
 
 // RemoveAccessRule deletes every ACL belonging to a principal.
@@ -439,7 +493,7 @@ func (c *Conn) RemoveAccessRule(ctx context.Context, subject string) error {
 			return result.Err
 		}
 	}
-	c.awaitAccessRule(ctx, subject, false)
+	c.awaitAccessRule(ctx, subject, nil)
 	return nil
 }
 
