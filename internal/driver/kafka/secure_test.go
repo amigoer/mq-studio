@@ -301,6 +301,9 @@ func TestLiveSecureSCRAMUserRoundTrip(t *testing.T) {
 		t.Errorf("mechanisms = %q straight after adding one, want both", found.Type)
 	}
 
+	// And now the delete has two passwords to remove, which is a request each:
+	// Kafka refuses to alter one user twice in the same request, and a single
+	// request for both removed neither.
 	if err := conn.RemovePrincipal(ctx, user); err != nil {
 		t.Fatalf("RemovePrincipal: %v", err)
 	}

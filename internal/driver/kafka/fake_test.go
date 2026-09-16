@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/twmb/franz-go/pkg/kadm"
+	"github.com/twmb/franz-go/pkg/kerr"
 	"github.com/twmb/franz-go/pkg/kfake"
 	"github.com/twmb/franz-go/pkg/kmsg"
 
@@ -354,6 +355,75 @@ func TestAddingAMechanismWaitsForItNotJustTheUser(t *testing.T) {
 		}
 	}
 	t.Fatalf("the user is not listed straight after the write: %v", principals)
+}
+
+// Deleting a user means deleting a password per mechanism, and Kafka refuses a
+// request that alters one user twice - so sending both at once removed neither
+// and a user with two mechanisms could not be deleted at all. The rule is the
+// broker's, and the fake is what enforces it here: kfake takes the request.
+func TestDeletingAUserSendsOneRequestPerMechanism(t *testing.T) {
+	cluster, err := kfake.NewCluster()
+	if err != nil {
+		t.Fatalf("start the fake cluster: %v", err)
+	}
+	t.Cleanup(cluster.Close)
+
+	conn := openProfile(t, model.ConnectionProfile{
+		Name:      "fake",
+		Endpoints: strings.Join(cluster.ListenAddrs(), ","),
+	})
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
+	for _, mechanism := range []string{"SCRAM-SHA-256", "SCRAM-SHA-512"} {
+		if err := conn.PutPrincipal(ctx, model.AccessPrincipalSpec{
+			Name: "alice", Secret: "a-password", Type: mechanism,
+		}); err != nil {
+			t.Fatalf("PutPrincipal %s: %v", mechanism, err)
+		}
+	}
+
+	cluster.ControlKey(kmsg.AlterUserSCRAMCredentials.Int16(),
+		func(request kmsg.Request) (kmsg.Response, error, bool) {
+			cluster.KeepControl()
+			asked := request.(*kmsg.AlterUserSCRAMCredentialsRequest)
+			altered := make(map[string]int)
+			for _, deletion := range asked.Deletions {
+				altered[deletion.Name]++
+			}
+			for _, upsertion := range asked.Upsertions {
+				altered[upsertion.Name]++
+			}
+			for name, times := range altered {
+				if times == 1 {
+					continue
+				}
+				// Word for word what the broker answers, having applied nothing.
+				answer := asked.ResponseKind().(*kmsg.AlterUserSCRAMCredentialsResponse)
+				result := kmsg.NewAlterUserSCRAMCredentialsResponseResult()
+				result.User = name
+				result.ErrorCode = kerr.DuplicateResource.Code
+				result.ErrorMessage = kmsg.StringPtr(
+					"A user credential cannot be altered twice in the same request")
+				answer.Results = append(answer.Results, result)
+				return answer, nil, true
+			}
+			return nil, nil, false
+		})
+
+	if err := conn.RemovePrincipal(ctx, "alice"); err != nil {
+		t.Fatalf("RemovePrincipal on a user with two mechanisms: %v", err)
+	}
+
+	principals, err := conn.ListPrincipals(ctx)
+	if err != nil {
+		t.Fatalf("ListPrincipals: %v", err)
+	}
+	for _, principal := range principals {
+		if principal.Name == "alice" {
+			t.Fatalf("the user is still listed, with %q", principal.Type)
+		}
+	}
 }
 
 // The same lag on the other half of the access page. An authorizer writes its

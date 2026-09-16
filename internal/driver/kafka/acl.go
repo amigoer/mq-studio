@@ -225,20 +225,18 @@ func (c *Conn) RemovePrincipal(ctx context.Context, name string) error {
 		return fmt.Errorf("no such user: %s", name)
 	}
 
-	deletes := make([]kadm.DeleteSCRAM, 0, len(user.CredInfos))
+	// One request each, because Kafka refuses to alter a user twice in the same
+	// one: both deletions together removed neither and answered
+	// DUPLICATE_RESOURCE, so a user with two mechanisms could not be deleted.
 	for _, info := range user.CredInfos {
-		deletes = append(deletes, kadm.DeleteSCRAM{User: name, Mechanism: info.Mechanism})
-	}
-	if len(deletes) == 0 {
-		return nil
-	}
-
-	altered, err := c.admin.AlterUserSCRAMs(ctx, deletes, nil)
-	if err != nil {
-		return err
-	}
-	if err := firstSCRAMError(altered); err != nil {
-		return err
+		altered, err := c.admin.AlterUserSCRAMs(ctx,
+			[]kadm.DeleteSCRAM{{User: name, Mechanism: info.Mechanism}}, nil)
+		if err != nil {
+			return err
+		}
+		if err := firstSCRAMError(altered); err != nil {
+			return err
+		}
 	}
 	c.awaitPrincipal(ctx, name, nil)
 	return nil
