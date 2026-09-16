@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/twmb/franz-go/pkg/kadm"
 	"github.com/twmb/franz-go/pkg/kfake"
 	"github.com/twmb/franz-go/pkg/kmsg"
 
@@ -281,6 +282,78 @@ func TestCreatingAUserWaitsUntilTheClusterListsIt(t *testing.T) {
 		}
 	}
 	t.Fatalf("the user is not listed straight after being created: %v", principals)
+}
+
+// A user is listed before a new mechanism of theirs is. A user holds one
+// credential per mechanism, so adding SCRAM-SHA-512 to one that has
+// SCRAM-SHA-256 finds the user already there - and waiting for the user
+// returned before the new mechanism was listed.
+func TestAddingAMechanismWaitsForItNotJustTheUser(t *testing.T) {
+	cluster, err := kfake.NewCluster()
+	if err != nil {
+		t.Fatalf("start the fake cluster: %v", err)
+	}
+	t.Cleanup(cluster.Close)
+
+	conn := openProfile(t, model.ConnectionProfile{
+		Name:      "fake",
+		Endpoints: strings.Join(cluster.ListenAddrs(), ","),
+	})
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
+	if err := conn.PutPrincipal(ctx, model.AccessPrincipalSpec{
+		Name: "alice", Secret: "a-password", Type: "SCRAM-SHA-256",
+	}); err != nil {
+		t.Fatalf("PutPrincipal SCRAM-SHA-256: %v", err)
+	}
+
+	const stale = 2
+	describes := 0
+	cluster.ControlKey(kmsg.DescribeUserSCRAMCredentials.Int16(),
+		func(request kmsg.Request) (kmsg.Response, error, bool) {
+			cluster.KeepControl()
+			describes++
+			if describes > stale {
+				return nil, nil, false
+			}
+			// What the cluster said before the write: SCRAM-SHA-256 only.
+			info := kmsg.NewDescribeUserSCRAMCredentialsResponseResultCredentialInfo()
+			info.Mechanism = int8(kadm.ScramSha256)
+			info.Iterations = scramIterations
+			result := kmsg.NewDescribeUserSCRAMCredentialsResponseResult()
+			result.User = "alice"
+			result.CredentialInfos = append(result.CredentialInfos, info)
+			answer := request.ResponseKind().(*kmsg.DescribeUserSCRAMCredentialsResponse)
+			answer.Results = append(answer.Results, result)
+			return answer, nil, true
+		})
+
+	if err := conn.PutPrincipal(ctx, model.AccessPrincipalSpec{
+		Name: "alice", Secret: "a-password", Type: "SCRAM-SHA-512",
+	}); err != nil {
+		t.Fatalf("PutPrincipal SCRAM-SHA-512: %v", err)
+	}
+	if describes <= stale {
+		t.Fatalf("the write returned after %d describe(s) that did not list SCRAM-SHA-512", describes)
+	}
+	if describes > stale+1 {
+		t.Fatalf("the write kept waiting through %d describe(s) that listed SCRAM-SHA-512", describes-stale)
+	}
+
+	principals, err := conn.ListPrincipals(ctx)
+	if err != nil {
+		t.Fatalf("ListPrincipals: %v", err)
+	}
+	for _, principal := range principals {
+		if principal.Name == "alice" {
+			if principal.Type != "SCRAM-SHA-256, SCRAM-SHA-512" {
+				t.Fatalf("mechanisms = %q straight after adding one, want both", principal.Type)
+			}
+			return
+		}
+	}
+	t.Fatalf("the user is not listed straight after the write: %v", principals)
 }
 
 // The same lag on the other half of the access page. An authorizer writes its

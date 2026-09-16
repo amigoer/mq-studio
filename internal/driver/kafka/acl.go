@@ -154,29 +154,28 @@ func (c *Conn) PutPrincipal(ctx context.Context, spec model.AccessPrincipalSpec)
 	if err := firstSCRAMError(altered); err != nil {
 		return err
 	}
-	c.awaitPrincipal(ctx, spec.Name, true)
+	c.awaitPrincipal(ctx, spec.Name, []kadm.CredInfo{{Mechanism: mechanism, Iterations: scramIterations}})
 	return nil
 }
 
 /*
- * awaitPrincipal waits for the cluster to agree that a user does or does not
- * exist.
+ * awaitPrincipal waits for the cluster to list what a write left: every
+ * credential it wrote, or - given none - no credential for the user at all.
  *
  * A credential is written to the metadata log and read back from whichever
  * broker answers, and the two are not the same instant: a user created and
  * immediately listed came back missing under load. Bounded, and silent when
  * the bound is reached - the alter succeeded either way, and refusing to
  * return would turn a slow cluster into a failed write.
+ *
+ * The credential rather than the user: a user holds one per mechanism, so one
+ * that already has SCRAM-SHA-256 is listed before SCRAM-SHA-512 is added.
  */
-func (c *Conn) awaitPrincipal(ctx context.Context, name string, want bool) {
+func (c *Conn) awaitPrincipal(ctx context.Context, name string, written []kadm.CredInfo) {
 	deadline := time.Now().Add(propagationLimit)
 	for {
-		described, err := c.admin.DescribeUserSCRAMs(ctx, name)
-		if err == nil {
-			user, listed := described[name]
-			if exists := listed && user.Err == nil && len(user.CredInfos) > 0; exists == want {
-				return
-			}
+		if c.principalListed(ctx, name, written) {
+			return
 		}
 		if time.Now().After(deadline) {
 			return
@@ -187,6 +186,29 @@ func (c *Conn) awaitPrincipal(ctx context.Context, name string, want bool) {
 		case <-time.After(25 * time.Millisecond):
 		}
 	}
+}
+
+func (c *Conn) principalListed(ctx context.Context, name string, written []kadm.CredInfo) bool {
+	described, err := c.admin.DescribeUserSCRAMs(ctx, name)
+	if err != nil {
+		return false
+	}
+	listed := make(map[kadm.CredInfo]bool)
+	if user, ok := described[name]; ok && user.Err == nil {
+		for _, info := range user.CredInfos {
+			listed[info] = true
+		}
+	}
+
+	if len(written) == 0 {
+		return len(listed) == 0
+	}
+	for _, info := range written {
+		if !listed[info] {
+			return false
+		}
+	}
+	return true
 }
 
 // RemovePrincipal deletes a user's password for every mechanism it has.
@@ -218,7 +240,7 @@ func (c *Conn) RemovePrincipal(ctx context.Context, name string) error {
 	if err := firstSCRAMError(altered); err != nil {
 		return err
 	}
-	c.awaitPrincipal(ctx, name, false)
+	c.awaitPrincipal(ctx, name, nil)
 	return nil
 }
 
