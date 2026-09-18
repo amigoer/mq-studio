@@ -9,6 +9,7 @@ import {
   isProtocolReady,
   type ProtocolId,
 } from "@/design/data/protocols";
+import { cn } from "@/lib/utils";
 
 /*
  * The family grid is capped, so the welcome page keeps its shape however many
@@ -19,6 +20,15 @@ const COLUMNS = 5;
 const ROWS = 3;
 /** Wide enough for "Azure Service Bus" on one line, with room for wider system fonts. */
 const CELL_WIDTH = 104;
+
+/*
+ * The negative margin cancels the padding, so the hover box grows into the row
+ * gap instead of spacing the grid out.
+ */
+const TILE =
+  "-my-1.5 h-auto w-full flex-col gap-1.5 rounded-lg px-1 py-1.5 text-[10.5px] font-normal text-(--c-muted) active:scale-[0.97]";
+const LIFT =
+  "transition-transform duration-(--mo-base) ease-(--mo-ease-out) group-hover:-translate-y-0.5 group-hover:scale-110 group-focus-visible:-translate-y-0.5 group-focus-visible:scale-110";
 
 /** The families drawn in a grid of `cells`, and how many fold into its last cell. */
 export function foldProtocols(
@@ -35,7 +45,8 @@ export function ConnectionsEmpty({
   onNewConnection,
   onImport,
 }: {
-  onNewConnection?: () => void;
+  /** Given a family, the dialog opens on that family's form. */
+  onNewConnection?: (protocol?: ProtocolId) => void;
   onImport?: () => void;
 }) {
   const { t } = useTranslation();
@@ -86,7 +97,7 @@ export function ConnectionsEmpty({
           {t("page.connections.emptyLine2")}
         </div>
         <div style={{ display: "flex", gap: "10px", marginTop: "20px" }}>
-          <Button style={{ padding: "6px 16px" }} onClick={onNewConnection}>
+          <Button style={{ padding: "6px 16px" }} onClick={() => onNewConnection?.()}>
             <Plus size={13} aria-hidden />
             {t("page.connections.emptyNew")}
           </Button>
@@ -116,30 +127,38 @@ export function ConnectionsEmpty({
           {shown.map((p) => {
             const ready = isProtocolReady(p);
             return (
-              <li
-                key={p}
-                title={PROTOCOLS[p].name}
-                className="flex flex-col items-center gap-1.5 text-[10.5px]"
-                style={{ width: CELL_WIDTH, color: ready ? "var(--c-muted)" : "var(--c-muted-2)" }}
-              >
-                <ProtocolIcon
-                  protocol={p}
-                  size={20}
-                  className=""
-                  style={ready ? undefined : { filter: "grayscale(1)", opacity: 0.4 }}
-                />
-                <span className="max-w-full truncate px-1">{PROTOCOLS[p].name}</span>
+              <li key={p} className="flex" style={{ width: CELL_WIDTH }}>
+                <Button
+                  variant="ghost"
+                  title={PROTOCOLS[p].name}
+                  disabled={!ready}
+                  className={cn(
+                    TILE,
+                    "group has-[>svg]:px-1 disabled:text-(--c-muted-2) disabled:opacity-100",
+                  )}
+                  onClick={() => onNewConnection?.(p)}
+                >
+                  {/* A size- class keeps Button's icon rule from shrinking it. */}
+                  <ProtocolIcon
+                    protocol={p}
+                    size={20}
+                    className={cn("size-[20px]", LIFT)}
+                    style={ready ? undefined : { filter: "grayscale(1)", opacity: 0.4 }}
+                  />
+                  <span className="max-w-full truncate">{PROTOCOLS[p].name}</span>
+                </Button>
               </li>
             );
           })}
           {folded > 0 && (
-            <li className="flex justify-center" style={{ width: CELL_WIDTH }}>
-              <Button
-                variant="ghost"
-                className="h-auto flex-col gap-1.5 px-2 py-1 text-[10.5px] font-normal text-(--c-muted)"
-                onClick={onNewConnection}
-              >
-                <span className="flex h-5 items-center text-xs font-semibold text-(--c-fg-2) tabular-nums">
+            <li className="flex" style={{ width: CELL_WIDTH }}>
+              <Button variant="ghost" className={cn(TILE, "group")} onClick={() => onNewConnection?.()}>
+                <span
+                  className={cn(
+                    "flex h-5 items-center text-xs font-semibold text-(--c-fg-2) tabular-nums",
+                    LIFT,
+                  )}
+                >
                   +{folded}
                 </span>
                 {t("page.connections.emptyAllProtocols")}

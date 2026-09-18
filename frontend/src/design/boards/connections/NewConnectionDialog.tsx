@@ -44,10 +44,10 @@ import {
   AzureServiceBusForm,
 } from "./ConnectionForms";
 import {
+  dialogOpening,
   emptyDraft,
   isDraftable,
   probeKey,
-  toDraft,
   toSubmission,
   type ProtocolDraft,
 } from "./connectionDraft";
@@ -125,13 +125,14 @@ const PROBE_MIN_MS = 600;
 export function NewConnectionDialog({
   open,
   onClose,
-  initialProtocol = "rocketmq",
+  initialProtocol,
   editing,
   onSubmit,
   onProbe,
 }: {
   open: boolean;
   onClose?: () => void;
+  /** A family picked before opening: a new connection starts on its form. */
   initialProtocol?: ProtocolId;
   /** Set to edit a stored profile instead of creating one. */
   editing?: ConnectionProfile;
@@ -166,17 +167,9 @@ export function NewConnectionDialog({
   // whatever the last edit left in state.
   useEffect(() => {
     if (!open) return;
-    if (editing != null) {
-      setDraft(toDraft(editing));
-    } else {
-      const wanted = isProtocolReady(initialProtocol) && isDraftable(initialProtocol)
-        ? initialProtocol
-        : "rocketmq";
-      setDraft(emptyDraft(wanted));
-    }
-    // Open on a new connection so the whole list is browsable, shut on an
-    // edit where the protocol cannot change anyway.
-    setStep(editing == null ? "protocol" : "form");
+    const opening = dialogOpening(editing, initialProtocol);
+    setDraft(opening.draft);
+    setStep(opening.step);
     setSearch("");
     resetProbe();
     setError(null);

@@ -10,7 +10,7 @@ import {
   TitleBar,
 } from "@/design/shell";
 import type { Connection } from "@/design/data/connections";
-import { labelOf, pagesOf, type PageId } from "@/design/data/protocols";
+import { labelOf, pagesOf, type PageId, type ProtocolId } from "@/design/data/protocols";
 import { renderBoard, type BoardFocus } from "@/design/registry";
 import { PageGate } from "@/design/boards/misc/Unavailable";
 import {
@@ -116,8 +116,11 @@ export function DesignApp(): JSX.Element {
   const { setting: scaleSetting, fontSize, setSetting: setScale } = useUIScale();
 
   // One dialog serves both gestures: `editing` is the profile id being edited,
-  // or null for a new connection.
-  const [dialog, setDialog] = useState<{ editing: number | null } | null>(null);
+  // or null for a new connection, whose `protocol` was picked before opening.
+  const [dialog, setDialog] = useState<{
+    editing: number | null;
+    protocol?: ProtocolId;
+  } | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [paletteQuery, setPaletteQuery] = useState("");
 
@@ -443,7 +446,7 @@ export function DesignApp(): JSX.Element {
       case "connections":
         return connections.length === 0 ? (
           <ConnectionsEmpty
-            onNewConnection={() => setDialog({ editing: null })}
+            onNewConnection={(protocol) => setDialog({ editing: null, protocol })}
             onImport={() => void importConfig()}
           />
         ) : (
@@ -462,7 +465,7 @@ export function DesignApp(): JSX.Element {
         if (protocol == null) {
           return connections.length === 0 ? (
             <ConnectionsEmpty
-              onNewConnection={() => setDialog({ editing: null })}
+              onNewConnection={(protocol) => setDialog({ editing: null, protocol })}
               onImport={() => void importConfig()}
             />
           ) : (
@@ -559,6 +562,7 @@ export function DesignApp(): JSX.Element {
           <NewConnectionDialog
             open={dialog != null}
             onClose={() => setDialog(null)}
+            initialProtocol={dialog?.protocol}
             editing={editingProfile}
             onSubmit={saveConnection}
             onProbe={async (draft, credentialsMode) => {

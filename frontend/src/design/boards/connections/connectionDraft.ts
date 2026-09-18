@@ -20,7 +20,7 @@ import {
   type CredentialsMode,
 } from "@/api/connection";
 import type { Connection as ConnectionProfile } from "@/api/models";
-import type { ProtocolId } from "@/design/data/protocols";
+import { isProtocolReady, type ProtocolId } from "@/design/data/protocols";
 import {
   OPTION_ACCESS,
   OPTION_AMQP,
@@ -251,6 +251,21 @@ export function toSubmission(draft: ProtocolDraft): Submission {
  */
 export function probeKey({ draft, credentialsMode }: Submission): string {
   return JSON.stringify({ ...draft, name: "", group: "", remark: "", credentialsMode });
+}
+
+/**
+ * What the connection dialog opens on: an edit on its profile's form, a family
+ * picked before opening on that family's form, anything else on the picker.
+ */
+export function dialogOpening(
+  editing: ConnectionProfile | undefined,
+  family: ProtocolId | undefined,
+): { step: "protocol" | "form"; draft: ProtocolDraft } {
+  if (editing != null) return { step: "form", draft: toDraft(editing) };
+  if (family != null && isProtocolReady(family) && isDraftable(family)) {
+    return { step: "form", draft: emptyDraft(family) };
+  }
+  return { step: "protocol", draft: emptyDraft("rocketmq") };
 }
 
 /** Reads a stored profile back into its own form's field set. */
