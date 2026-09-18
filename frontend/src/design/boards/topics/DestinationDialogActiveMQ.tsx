@@ -121,7 +121,7 @@ export function DestinationDialogActiveMQ({
             </FieldDescription>
           </Field>
           {error != null && (
-            <FieldDescription style={{ color: "var(--c-danger)" }}>{error}</FieldDescription>
+            <FieldDescription style={{ color: "var(--c-err)" }}>{error}</FieldDescription>
           )}
         </FieldGroup>
         <DialogFooter>
@@ -205,7 +205,7 @@ export function MoveDialogActiveMQ({
             <FieldDescription>{t("board.activemq.destinations.moveHint")}</FieldDescription>
           </Field>
           {error != null && (
-            <FieldDescription style={{ color: "var(--c-danger)" }}>{error}</FieldDescription>
+            <FieldDescription style={{ color: "var(--c-err)" }}>{error}</FieldDescription>
           )}
         </FieldGroup>
         <DialogFooter>

@@ -96,7 +96,7 @@ export function ActiveMQWorkbench() {
         </div>
       </Toolbar>
       {stream.error != null && (
-        <p style={{ margin: "0 20px", fontSize: "11.5px", color: "var(--c-danger)" }}>
+        <p style={{ margin: "0 20px", fontSize: "11.5px", color: "var(--c-err)" }}>
           {stream.error}
         </p>
       )}

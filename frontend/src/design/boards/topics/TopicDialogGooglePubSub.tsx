@@ -11,6 +11,7 @@ import {
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
+import { Textarea } from "@/components/ui/textarea";
 import { formatErrorMessage } from "@/lib/utils";
 import { nameProblem, submittableName } from "@/mq/googlepubsub/names";
 import type { GooglePubSubTopicInput } from "@/api/googlepubsub";
@@ -179,7 +180,7 @@ export function TopicDialogGooglePubSub({
               value={String(draft.retentionSec)}
               onChange={(event) => set("retentionSec", numberField(event.target.value))}
             />
-            <FieldDescription style={retentionOutOfRange ? { color: "var(--c-danger)" } : undefined}>
+            <FieldDescription style={retentionOutOfRange ? { color: "var(--c-err)" } : undefined}>
               {retentionOutOfRange
                 ? t("board.google-pubsub.topics.retentionRange")
                 : t("board.google-pubsub.topics.retentionHint")}
@@ -190,9 +191,11 @@ export function TopicDialogGooglePubSub({
             <FieldLabel htmlFor="pubsub-topic-labels">
               {t("board.google-pubsub.topics.labels")}
             </FieldLabel>
-            <textarea
+            <Textarea
               id="pubsub-topic-labels"
-              className="mono3 min-h-16 rounded-md border border-(--c-line) bg-(--c-surface) px-2.5 py-2 text-xs outline-none focus-visible:border-(--c-accent)"
+              // Capped: the primitive grows with its content, and a topic holds
+              // up to 64 labels.
+              className="mono3 max-h-40 text-xs md:text-xs"
               spellCheck={false}
               value={draft.labels}
               placeholder="team=orders"
@@ -202,7 +205,7 @@ export function TopicDialogGooglePubSub({
           </Field>
         </FieldGroup>
         {error != null && (
-          <FieldDescription style={{ color: "var(--c-danger)" }}>{error}</FieldDescription>
+          <FieldDescription style={{ color: "var(--c-err)" }}>{error}</FieldDescription>
         )}
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>

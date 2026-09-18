@@ -223,7 +223,7 @@ export function SubscriptionDialogAzureServiceBus({
               value={String(draft.lockDurationSec)}
               onChange={(event) => set("lockDurationSec", numberField(event.target.value))}
             />
-            <FieldDescription style={lockOutOfRange ? { color: "var(--c-danger)" } : undefined}>
+            <FieldDescription style={lockOutOfRange ? { color: "var(--c-err)" } : undefined}>
               {lockOutOfRange
                 ? t("board.azure-servicebus.entities.lockRange")
                 : t("board.azure-servicebus.entities.lockHint")}
@@ -240,7 +240,7 @@ export function SubscriptionDialogAzureServiceBus({
               value={String(draft.maxDeliveryCount)}
               onChange={(event) => set("maxDeliveryCount", numberField(event.target.value))}
             />
-            <FieldDescription style={deliveryOutOfRange ? { color: "var(--c-danger)" } : undefined}>
+            <FieldDescription style={deliveryOutOfRange ? { color: "var(--c-err)" } : undefined}>
               {deliveryOutOfRange
                 ? t("board.azure-servicebus.entities.maxDeliveryRange")
                 : t("board.azure-servicebus.entities.maxDeliveryHint")}
@@ -319,7 +319,7 @@ export function SubscriptionDialogAzureServiceBus({
           )}
 
           {error != null && (
-            <FieldDescription style={{ color: "var(--c-danger)" }}>{error}</FieldDescription>
+            <FieldDescription style={{ color: "var(--c-err)" }}>{error}</FieldDescription>
           )}
         </FieldGroup>
         <DialogFooter>

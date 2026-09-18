@@ -112,7 +112,7 @@ export function ShardsKinesis() {
       <BoardState state={streams}>
         <PageBody>
           {shards.error != null && (
-            <p style={{ margin: "0 20px", fontSize: "11.5px", color: "var(--c-danger)" }}>
+            <p style={{ margin: "0 20px", fontSize: "11.5px", color: "var(--c-err)" }}>
               {shards.error}
             </p>
           )}

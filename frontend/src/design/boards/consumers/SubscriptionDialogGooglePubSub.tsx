@@ -355,7 +355,7 @@ export function SubscriptionDialogGooglePubSub({
           </Field>
         </FieldGroup>
         {error != null && (
-          <FieldDescription style={{ color: "var(--c-danger)" }}>{error}</FieldDescription>
+          <FieldDescription style={{ color: "var(--c-err)" }}>{error}</FieldDescription>
         )}
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
