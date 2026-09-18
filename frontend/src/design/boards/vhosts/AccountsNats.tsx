@@ -130,7 +130,7 @@ export function AccountsNats() {
                 padding: "8px 12px",
                 fontSize: "11px",
                 color: "var(--c-muted)",
-                borderBottom: "1px solid var(--c-line)",
+                borderBottom: "1px solid var(--c-border)",
               }}
             >
               {/* Where accounts come from, said plainly. Without it a
@@ -352,7 +352,7 @@ function Usage({
       <div className="mono3" style={{ ...MONO11, marginBottom: "3px" }}>
         {formatBytes(used)} / {formatBytes(cap ?? 0)}
       </div>
-      <Bar value={percent} color={percent >= 90 ? "var(--c-bad)" : "var(--c-ok)"} />
+      <Bar value={percent} color={percent >= 90 ? "var(--c-err)" : "var(--c-ok)"} />
     </div>
   );
 }

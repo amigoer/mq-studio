@@ -20,7 +20,7 @@ import * as activemqApi from "@/api/activemq";
 import { useConnectionScope } from "@/mq/ConnectionScope";
 import { formatErrorMessage } from "@/lib/utils";
 
-const MONO = { fontFamily: "var(--f-mono)", fontSize: "11.5px" } as const;
+const MONO = { fontSize: "11.5px" } as const;
 
 /**
  * The ActiveMQ send console.
@@ -132,6 +132,7 @@ export function ProducerActiveMQ() {
               <Field>
                 <FieldLabel>{t("board.activemq.producer.body")}</FieldLabel>
                 <Textarea
+                  className="mono3"
                   style={MONO}
                   rows={8}
                   value={draft.body}
@@ -144,13 +145,14 @@ export function ProducerActiveMQ() {
               <Field>
                 <FieldLabel>{t("board.activemq.producer.headers")}</FieldLabel>
                 <Textarea
+                  className="mono3"
                   style={MONO}
                   rows={4}
                   placeholder={"tenant: acme\nattempt: 3"}
                   value={draft.headers}
                   onChange={(event) => set("headers", event.target.value)}
                 />
-                <FieldDescription style={badLine != null ? { color: "var(--c-danger)" } : undefined}>
+                <FieldDescription style={badLine != null ? { color: "var(--c-err)" } : undefined}>
                   {badLine != null
                     ? t("board.activemq.producer.badHeader", { line: badLine })
                     : t("board.activemq.producer.headersHint")}

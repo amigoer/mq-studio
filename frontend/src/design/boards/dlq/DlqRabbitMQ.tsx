@@ -308,7 +308,9 @@ function DeadLetterCard({
         flexDirection: "column",
         gap: "6px",
         cursor: "pointer",
-        borderColor: selected ? "var(--c-accent)" : undefined,
+        // The shell has no accent colour: selected is the foreground, as on
+        // the protocol tiles.
+        borderColor: selected ? "var(--c-fg)" : undefined,
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>

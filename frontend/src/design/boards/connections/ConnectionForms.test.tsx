@@ -53,7 +53,7 @@ beforeAll(async () => {
  * key, so the bare key matches twice and the first half of the field is lost.
  */
 function fieldAfter(html: string, labelKey: string): string {
-  const rest = html.split(`${labelKey}</span>`)[1] ?? "";
+  const rest = html.split(`${labelKey}</label>`)[1] ?? "";
   return rest.slice(0, rest.indexOf("</div>"));
 }
 
@@ -79,7 +79,7 @@ describe("the RocketMQ connection form", () => {
     // an empty band where its own label belonged.
     const html = renderRocketMQForm("MQ_INST_1");
 
-    const label = html.indexOf(`${KEY}.namespace</span>`);
+    const label = html.indexOf(`${KEY}.namespace</label>`);
     const input = html.indexOf('value="MQ_INST_1"');
     const hint = html.indexOf(`${KEY}.namespaceHint`);
 

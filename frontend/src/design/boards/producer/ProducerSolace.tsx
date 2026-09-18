@@ -257,7 +257,7 @@ export function ProducerSolace() {
                 </Field>
 
                 {problem != null && (
-                  <FieldDescription style={{ color: "var(--c-danger)" }}>
+                  <FieldDescription style={{ color: "var(--c-err)" }}>
                     {t(`board.solace.producer.problem.${problem}`)}
                   </FieldDescription>
                 )}
