@@ -1,66 +1,101 @@
-import { useState, type CSSProperties, type ReactNode } from "react";
+import { useId, useState, type CSSProperties, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Segmented,
   SelectField,
 } from "@/components";
+import { cn } from "@/lib/utils";
 
-/** Label above the control, with the grey explanation under it. */
+const HINT = "text-[11px] leading-[1.6] text-pretty text-(--c-muted-2)";
+
+/**
+ * One field: the label, the control under it, the grey explanation under that.
+ *
+ * The label sits above rather than beside. A label column is as wide as its
+ * longest label, and every shorter one - most of them, in Chinese - left the
+ * rest of it blank, so the form hung off the right half of the dialog. Stacked,
+ * every label and every control starts on the dialog's left edge and ends on
+ * its right one.
+ */
 function Fld({
   label,
   hint,
-  span,
   children,
 }: {
   label: ReactNode;
   hint?: ReactNode;
-  /** Set to make the field span both grid columns. */
-  span?: boolean;
   children: ReactNode;
 }) {
+  const labelId = useId();
   return (
-    <div
-      className="flex min-w-0 flex-col gap-1.5 text-xs"
-      style={span ? { gridColumn: "1/3" } : undefined}
-    >
-      {/*
-        * The hint sits under the control, not on the label line.
-        *
-        * Both cells in a row are as tall as the taller one, so an explanation
-        * that wraps to four lines has to spend that height somewhere. Above
-        * the input it spent it twice over: it ran the label and the prose into
-        * one paragraph, and it left the one-line field beside it an empty band
-        * where its own label should have been. Below, every label and every
-        * input in the row still line up and only the slack falls ragged.
-        */}
-      <span className="font-medium">{label}</span>
+    // Named by its label rather than through htmlFor: a field's control can be
+    // a segmented switch or a switch row, which have no single input to point at.
+    <Field aria-labelledby={labelId} className="min-w-0 gap-1.5">
+      <FieldLabel id={labelId} className="text-xs">
+        {label}
+      </FieldLabel>
       {children}
       {hint != null && (
-        <span className="text-[11px] leading-[1.6] text-(--c-muted-2)">{hint}</span>
+        <FieldDescription className={HINT}>{hint}</FieldDescription>
       )}
+    </Field>
+  );
+}
+
+const ROWS = "flex flex-col gap-4";
+
+/**
+ * Two short fields that answer one question - a key and its secret, a name and
+ * its password - side by side.
+ *
+ * What explains the pair goes in `hint` and runs under both. Under one of them
+ * it wraps to a paragraph in half the width, and leaves the other field an
+ * empty band the height of it.
+ */
+function Pair({ hint, children }: { hint?: ReactNode; children: ReactNode }) {
+  return (
+    <div className="flex min-w-0 flex-col gap-1.5">
+      <div className="grid grid-cols-2 items-start gap-x-3">{children}</div>
+      {hint != null && <FieldDescription className={HINT}>{hint}</FieldDescription>}
     </div>
   );
 }
 
-const GRID = {
-  display: "grid",
-  gridTemplateColumns: "1fr 1fr",
-  // Rows are further apart than the 6px inside a field so a hint reads as
-  // belonging to the input above it rather than the label below.
-  gap: "16px 14px",
-} as const;
-
 const MONO = { fontSize: "11.5px" } as const;
 
-/** The 高级 disclosure line and the right-hand caveat under every form. */
-function FormNote({ advanced, note }: { advanced: ReactNode; note: ReactNode }) {
+/** The disclosure that opens a form's advanced fields, on a rule above them. */
+function Advanced({
+  open,
+  onToggle,
+  label,
+}: {
+  open: boolean;
+  onToggle: () => void;
+  label: ReactNode;
+}) {
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "var(--c-muted)" }}>
-      <span>{advanced}</span>
-      <span>{note}</span>
+    <div className="border-t border-(--c-border) pt-2.5">
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        aria-expanded={open}
+        // Pulled left by its own padding, so the chevron sits on the labels' edge.
+        className="-ml-2.5 max-w-full font-normal text-(--c-muted) hover:text-foreground"
+        onClick={onToggle}
+      >
+        <ChevronRight
+          className={cn("size-3.5 transition-transform duration-(--mo-fast)", open && "rotate-90")}
+          aria-hidden
+        />
+        <span className="truncate">{label}</span>
+      </Button>
     </div>
   );
 }
@@ -70,7 +105,6 @@ const SWITCH_ROW: CSSProperties = {
   display: "flex",
   alignItems: "center",
   gap: "8px",
-  marginTop: "3px",
 };
 
 /** Option keys the RocketMQ driver reads back off a stored profile. */
@@ -152,7 +186,7 @@ export function RocketMQForm({
 
   return (
     <>
-      <div style={GRID}>
+      <div className={ROWS}>
         <Fld label={t("page.connections.form.name")}>
           <Input
             value={value.name}
@@ -160,35 +194,42 @@ export function RocketMQForm({
             onChange={(event) => set("name", event.target.value)}
           />
         </Fld>
-        <Fld label={t("page.connections.form.rocketmq.version")}>
-          <Segmented
-            block
-            value={value.version}
-            onChange={(next: "4.x" | "5.x") =>
-              // 4.x has no Proxy, so leaving access on it would submit a mode
-              // the version cannot have.
-              onChange({ ...value, version: next, access: next === "4.x" ? "ns" : value.access })
-            }
-            options={[
-              { value: "4.x", label: "4.x" },
-              { value: "5.x", label: "5.x" },
-            ]}
-          />
-        </Fld>
-        {value.version === "5.x" && (
-          <Fld span label={t("page.connections.form.rocketmq.access")} hint={t("page.connections.form.rocketmq.accessHint")}>
+        {/* 4.x leaves the second cell empty rather than letting the version
+            stretch into it, so the switch does not change size under the
+            pointer that just pressed it. */}
+        <Pair>
+          <Fld label={t("page.connections.form.rocketmq.version")}>
             <Segmented
               block
-              value={value.access}
-              onChange={(next: "ns" | "proxy") => set("access", next)}
+              tone="soft"
+              value={value.version}
+              onChange={(next: "4.x" | "5.x") =>
+                // 4.x has no Proxy, so leaving access on it would submit a mode
+                // the version cannot have.
+                onChange({ ...value, version: next, access: next === "4.x" ? "ns" : value.access })
+              }
               options={[
-                { value: "ns", label: t("page.connections.form.rocketmq.accessDirect") },
-                { value: "proxy", label: "gRPC Proxy" },
+                { value: "4.x", label: "4.x" },
+                { value: "5.x", label: "5.x" },
               ]}
             />
           </Fld>
-        )}
-        <Fld span label={t("page.connections.form.rocketmq.nameServer")} hint={t("page.connections.form.rocketmq.nameServerHint")}>
+          {value.version === "5.x" && (
+            <Fld label={t("page.connections.form.rocketmq.access")} hint={t("page.connections.form.rocketmq.accessHint")}>
+              <Segmented
+                block
+                tone="soft"
+                value={value.access}
+                onChange={(next: "ns" | "proxy") => set("access", next)}
+                options={[
+                  { value: "ns", label: t("page.connections.form.rocketmq.accessDirect") },
+                  { value: "proxy", label: "gRPC Proxy" },
+                ]}
+              />
+            </Fld>
+          )}
+        </Pair>
+        <Fld label={t("page.connections.form.rocketmq.nameServer")} hint={t("page.connections.form.rocketmq.nameServerHint")}>
           <Input
             className="mono3"
             style={MONO}
@@ -197,8 +238,7 @@ export function RocketMQForm({
             onChange={(event) => set("endpoints", event.target.value)}
           />
         </Fld>
-        <Fld
-          label="AccessKey"
+        <Pair
           hint={
             stored ? (
               <button type="button" className="mqs-linkbtn" onClick={() => set("clearCredentials", true)}>
@@ -209,60 +249,51 @@ export function RocketMQForm({
             )
           }
         >
-          <Input
-            value={value.accessKey}
-            placeholder={stored ? t("page.connections.form.secretStored") : undefined}
-            onChange={(event) => set("accessKey", event.target.value)}
-          />
-        </Fld>
-        <Fld label="SecretKey">
-          <Input
-            type="password"
-            value={value.secretKey}
-            placeholder={stored ? t("page.connections.form.secretStored") : undefined}
-            onChange={(event) => set("secretKey", event.target.value)}
-          />
-        </Fld>
-      </div>
-      <FormNote
-        advanced={
-          <button
-            type="button"
-            className="mqs-disclosure"
-            aria-expanded={advancedOpen}
-            onClick={() => setAdvancedOpen((open) => !open)}
-          >
-            <ChevronRight size={12} aria-hidden />
-            {t("page.connections.form.rocketmq.advanced")}
-          </button>
-        }
-        note={
-          value.access === "proxy"
-            ? t("page.connections.form.rocketmq.proxyNote")
-            : t("page.connections.form.rocketmq.note")
-        }
-      />
-      {advancedOpen && (
-        <div style={GRID}>
-          <Fld
-            label={t("page.connections.form.rocketmq.timeout")}
-            hint={t("page.connections.form.rocketmq.timeoutHint")}
-          >
+          <Fld label="AccessKey">
             <Input
-              type="number"
-              min={1}
-              max={300}
-              // Blank is a real state: Go reads 0 as "use the default".
-              value={value.timeoutSec > 0 ? String(value.timeoutSec) : ""}
-              onChange={(event) => {
-                const seconds = Number.parseInt(event.target.value, 10);
-                set("timeoutSec", Number.isNaN(seconds) ? 0 : seconds);
-              }}
+              value={value.accessKey}
+              placeholder={stored ? t("page.connections.form.secretStored") : undefined}
+              onChange={(event) => set("accessKey", event.target.value)}
             />
           </Fld>
-          <Fld label={t("page.connections.form.remark")} hint={t("page.connections.form.remarkHint")}>
-            <Input value={value.remark} onChange={(event) => set("remark", event.target.value)} />
+          <Fld label="SecretKey">
+            <Input
+              type="password"
+              value={value.secretKey}
+              placeholder={stored ? t("page.connections.form.secretStored") : undefined}
+              onChange={(event) => set("secretKey", event.target.value)}
+            />
           </Fld>
+        </Pair>
+      </div>
+      <Advanced
+        open={advancedOpen}
+        onToggle={() => setAdvancedOpen((open) => !open)}
+        label={t("page.connections.form.rocketmq.advanced")}
+      />
+      {advancedOpen && (
+        <div className={ROWS}>
+          <Pair>
+            <Fld
+              label={t("page.connections.form.rocketmq.timeout")}
+              hint={t("page.connections.form.rocketmq.timeoutHint")}
+            >
+              <Input
+                type="number"
+                min={1}
+                max={300}
+                // Blank is a real state: Go reads 0 as "use the default".
+                value={value.timeoutSec > 0 ? String(value.timeoutSec) : ""}
+                onChange={(event) => {
+                  const seconds = Number.parseInt(event.target.value, 10);
+                  set("timeoutSec", Number.isNaN(seconds) ? 0 : seconds);
+                }}
+              />
+            </Fld>
+            <Fld label={t("page.connections.form.remark")} hint={t("page.connections.form.remarkHint")}>
+              <Input value={value.remark} onChange={(event) => set("remark", event.target.value)} />
+            </Fld>
+          </Pair>
           <Fld
             label={t("page.connections.form.rocketmq.namespace")}
             hint={t("page.connections.form.rocketmq.namespaceHint")}
@@ -282,8 +313,8 @@ export function RocketMQForm({
           >
             <Input disabled placeholder="RMQ_SYS_TRACE_TOPIC" />
           </Fld>
-          <Fld span label="TLS" hint={t("page.connections.soon")}>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "3px" }}>
+          <Fld label="TLS" hint={t("page.connections.soon")}>
+            <div style={SWITCH_ROW}>
               <Switch disabled />
               <span style={{ color: "var(--c-muted)" }}>
                 {t("page.connections.form.rocketmq.tlsNote")}
@@ -379,7 +410,7 @@ export function KafkaForm({
 
   return (
     <>
-      <div style={GRID}>
+      <div className={ROWS}>
         <Fld label={t("page.connections.form.name")}>
           <Input
             value={value.name}
@@ -389,6 +420,7 @@ export function KafkaForm({
         </Fld>
         <Fld label={t("page.connections.form.kafka.mechanism")}>
           <SelectField<KafkaMechanism>
+            size="default"
             value={value.mechanism}
             options={[
               { value: "none", label: t("page.connections.form.kafka.mechanismNone") },
@@ -409,7 +441,6 @@ export function KafkaForm({
           />
         </Fld>
         <Fld
-          span
           label={t("page.connections.form.kafka.bootstrap")}
           hint={t("page.connections.form.kafka.bootstrapHint")}
         >
@@ -422,17 +453,16 @@ export function KafkaForm({
           />
         </Fld>
         {authenticating && (
-          <>
-            <Fld
-              label={t("page.connections.form.username")}
-              hint={
-                stored ? (
-                  <button type="button" className="mqs-linkbtn" onClick={() => set("clearCredentials", true)}>
-                    {t("page.connections.form.clearCredentials")}
-                  </button>
-                ) : undefined
-              }
-            >
+          <Pair
+            hint={
+              stored ? (
+                <button type="button" className="mqs-linkbtn" onClick={() => set("clearCredentials", true)}>
+                  {t("page.connections.form.clearCredentials")}
+                </button>
+              ) : undefined
+            }
+          >
+            <Fld label={t("page.connections.form.username")}>
               <Input
                 value={value.username}
                 placeholder={stored ? t("page.connections.form.secretStored") : undefined}
@@ -447,15 +477,16 @@ export function KafkaForm({
                 onChange={(event) => set("password", event.target.value)}
               />
             </Fld>
-          </>
+          </Pair>
         )}
         {value.mechanism === "sasl-scram" && (
           <Fld
-            span
             label={t("page.connections.form.kafka.scramSha")}
             hint={t("page.connections.form.kafka.scramShaHint")}
           >
             <Segmented<KafkaScramSha>
+              block
+              tone="soft"
               options={[
                 { value: "256", label: "SCRAM-SHA-256" },
                 { value: "512", label: "SCRAM-SHA-512" },
@@ -466,41 +497,34 @@ export function KafkaForm({
           </Fld>
         )}
       </div>
-      <FormNote
-        advanced={
-          <button
-            type="button"
-            className="mqs-disclosure"
-            aria-expanded={advancedOpen}
-            onClick={() => setAdvancedOpen((open) => !open)}
-          >
-            <ChevronRight size={12} aria-hidden />
-            {t("page.connections.form.kafka.advanced")}
-          </button>
-        }
-        note={t("page.connections.form.kafka.note")}
+      <Advanced
+        open={advancedOpen}
+        onToggle={() => setAdvancedOpen((open) => !open)}
+        label={t("page.connections.form.kafka.advanced")}
       />
       {advancedOpen && (
-        <div style={GRID}>
-          <Fld
-            label={t("page.connections.form.rocketmq.timeout")}
-            hint={t("page.connections.form.rocketmq.timeoutHint")}
-          >
-            <Input
-              type="number"
-              min={1}
-              max={300}
-              value={value.timeoutSec > 0 ? String(value.timeoutSec) : ""}
-              onChange={(event) => {
-                const seconds = Number.parseInt(event.target.value, 10);
-                set("timeoutSec", Number.isNaN(seconds) ? 0 : seconds);
-              }}
-            />
-          </Fld>
-          <Fld label={t("page.connections.form.remark")} hint={t("page.connections.form.remarkHint")}>
-            <Input value={value.remark} onChange={(event) => set("remark", event.target.value)} />
-          </Fld>
-          <Fld span label="TLS" hint={t("page.connections.form.kafka.tlsHint")}>
+        <div className={ROWS}>
+          <Pair>
+            <Fld
+              label={t("page.connections.form.rocketmq.timeout")}
+              hint={t("page.connections.form.rocketmq.timeoutHint")}
+            >
+              <Input
+                type="number"
+                min={1}
+                max={300}
+                value={value.timeoutSec > 0 ? String(value.timeoutSec) : ""}
+                onChange={(event) => {
+                  const seconds = Number.parseInt(event.target.value, 10);
+                  set("timeoutSec", Number.isNaN(seconds) ? 0 : seconds);
+                }}
+              />
+            </Fld>
+            <Fld label={t("page.connections.form.remark")} hint={t("page.connections.form.remarkHint")}>
+              <Input value={value.remark} onChange={(event) => set("remark", event.target.value)} />
+            </Fld>
+          </Pair>
+          <Fld label="TLS" hint={t("page.connections.form.kafka.tlsHint")}>
             <div style={SWITCH_ROW}>
               <Switch
                 checked={value.tls}
@@ -523,7 +547,6 @@ export function KafkaForm({
           {value.tls && (
             <>
               <Fld
-                span
                 label={t("page.connections.form.kafka.caFile")}
                 hint={t("page.connections.form.kafka.caFileHint")}
               >
@@ -536,7 +559,6 @@ export function KafkaForm({
                 />
               </Fld>
               <Fld
-                span
                 label={t("page.connections.form.kafka.skipVerify")}
                 hint={t("page.connections.form.kafka.skipVerifyHint")}
               >
@@ -638,7 +660,7 @@ export function RabbitMQForm({
 
   return (
     <>
-      <div style={GRID}>
+      <div className={ROWS}>
         <Fld label={t("page.connections.form.name")}>
           <Input
             value={value.name}
@@ -656,7 +678,6 @@ export function RabbitMQForm({
           />
         </Fld>
         <Fld
-          span
           label={t("page.connections.form.rabbitmq.management")}
           hint={t("page.connections.form.rabbitmq.managementHint")}
         >
@@ -669,7 +690,6 @@ export function RabbitMQForm({
           />
         </Fld>
         <Fld
-          span
           label={t("page.connections.form.rabbitmq.amqp")}
           hint={t("page.connections.form.rabbitmq.amqpHint")}
         >
@@ -681,8 +701,7 @@ export function RabbitMQForm({
             onChange={(event) => set("amqp", event.target.value)}
           />
         </Fld>
-        <Fld
-          label={t("page.connections.form.username")}
+        <Pair
           hint={
             stored ? (
               <button type="button" className="mqs-linkbtn" onClick={() => set("clearCredentials", true)}>
@@ -693,56 +712,51 @@ export function RabbitMQForm({
             )
           }
         >
-          <Input
-            value={value.username}
-            placeholder={stored ? t("page.connections.form.secretStored") : undefined}
-            onChange={(event) => set("username", event.target.value)}
-          />
-        </Fld>
-        <Fld label={t("page.connections.form.password")}>
-          <Input
-            type="password"
-            value={value.password}
-            placeholder={stored ? t("page.connections.form.secretStored") : undefined}
-            onChange={(event) => set("password", event.target.value)}
-          />
-        </Fld>
-      </div>
-      <FormNote
-        advanced={
-          <button
-            type="button"
-            className="mqs-disclosure"
-            aria-expanded={advancedOpen}
-            onClick={() => setAdvancedOpen((open) => !open)}
-          >
-            <ChevronRight size={12} aria-hidden />
-            {t("page.connections.form.rabbitmq.advanced")}
-          </button>
-        }
-        note={t("page.connections.form.rabbitmq.note")}
-      />
-      {advancedOpen && (
-        <div style={GRID}>
-          <Fld
-            label={t("page.connections.form.rocketmq.timeout")}
-            hint={t("page.connections.form.rocketmq.timeoutHint")}
-          >
+          <Fld label={t("page.connections.form.username")}>
             <Input
-              type="number"
-              min={1}
-              max={300}
-              value={value.timeoutSec > 0 ? String(value.timeoutSec) : ""}
-              onChange={(event) => {
-                const seconds = Number.parseInt(event.target.value, 10);
-                set("timeoutSec", Number.isNaN(seconds) ? 0 : seconds);
-              }}
+              value={value.username}
+              placeholder={stored ? t("page.connections.form.secretStored") : undefined}
+              onChange={(event) => set("username", event.target.value)}
             />
           </Fld>
-          <Fld label={t("page.connections.form.remark")} hint={t("page.connections.form.remarkHint")}>
-            <Input value={value.remark} onChange={(event) => set("remark", event.target.value)} />
+          <Fld label={t("page.connections.form.password")}>
+            <Input
+              type="password"
+              value={value.password}
+              placeholder={stored ? t("page.connections.form.secretStored") : undefined}
+              onChange={(event) => set("password", event.target.value)}
+            />
           </Fld>
-          <Fld span label="TLS" hint={t("page.connections.form.rabbitmq.tlsHint")}>
+        </Pair>
+      </div>
+      <Advanced
+        open={advancedOpen}
+        onToggle={() => setAdvancedOpen((open) => !open)}
+        label={t("page.connections.form.rabbitmq.advanced")}
+      />
+      {advancedOpen && (
+        <div className={ROWS}>
+          <Pair>
+            <Fld
+              label={t("page.connections.form.rocketmq.timeout")}
+              hint={t("page.connections.form.rocketmq.timeoutHint")}
+            >
+              <Input
+                type="number"
+                min={1}
+                max={300}
+                value={value.timeoutSec > 0 ? String(value.timeoutSec) : ""}
+                onChange={(event) => {
+                  const seconds = Number.parseInt(event.target.value, 10);
+                  set("timeoutSec", Number.isNaN(seconds) ? 0 : seconds);
+                }}
+              />
+            </Fld>
+            <Fld label={t("page.connections.form.remark")} hint={t("page.connections.form.remarkHint")}>
+              <Input value={value.remark} onChange={(event) => set("remark", event.target.value)} />
+            </Fld>
+          </Pair>
+          <Fld label="TLS" hint={t("page.connections.form.rabbitmq.tlsHint")}>
             <div style={SWITCH_ROW}>
               <Switch
                 checked={value.tls}
@@ -758,7 +772,7 @@ export function RabbitMQForm({
             </div>
           </Fld>
           {value.tls && (
-            <Fld span label={t("page.connections.form.rabbitmq.tlsSkipVerify")} hint={t("page.connections.form.rabbitmq.tlsSkipVerifyHint")}>
+            <Fld label={t("page.connections.form.rabbitmq.tlsSkipVerify")} hint={t("page.connections.form.rabbitmq.tlsSkipVerifyHint")}>
               <div style={SWITCH_ROW}>
                 <Switch
                   checked={value.tlsSkipVerify}
@@ -858,7 +872,7 @@ export function PulsarForm({
 
   return (
     <>
-      <div style={GRID}>
+      <div className={ROWS}>
         <Fld label={t("page.connections.form.name")}>
           <Input
             value={value.name}
@@ -868,6 +882,7 @@ export function PulsarForm({
         </Fld>
         <Fld label={t("page.connections.form.pulsar.auth")}>
           <SelectField<PulsarAuth>
+            size="default"
             value={value.auth}
             options={[
               { value: "none", label: t("page.connections.form.pulsar.authNone") },
@@ -882,7 +897,6 @@ export function PulsarForm({
           />
         </Fld>
         <Fld
-          span
           label={t("page.connections.form.pulsar.service")}
           hint={t("page.connections.form.pulsar.serviceHint")}
         >
@@ -895,7 +909,6 @@ export function PulsarForm({
           />
         </Fld>
         <Fld
-          span
           label={t("page.connections.form.pulsar.admin")}
           hint={t("page.connections.form.pulsar.adminHint")}
         >
@@ -909,7 +922,6 @@ export function PulsarForm({
         </Fld>
         {value.auth === "token" && (
           <Fld
-            span
             label="Token"
             hint={
               stored ? (
@@ -933,60 +945,55 @@ export function PulsarForm({
             />
           </Fld>
         )}
-        <Fld label={t("page.connections.form.pulsar.tenant")}>
-          <Input
-            className="mono3"
-            style={MONO}
-            value={value.tenant}
-            placeholder="public"
-            onChange={(event) => set("tenant", event.target.value)}
-          />
-        </Fld>
-        <Fld label={t("page.connections.form.pulsar.namespace")}>
-          <Input
-            className="mono3"
-            style={MONO}
-            value={value.namespace}
-            placeholder="default"
-            onChange={(event) => set("namespace", event.target.value)}
-          />
-        </Fld>
-      </div>
-      <FormNote
-        advanced={
-          <button
-            type="button"
-            className="mqs-disclosure"
-            aria-expanded={advancedOpen}
-            onClick={() => setAdvancedOpen((open) => !open)}
-          >
-            <ChevronRight size={12} aria-hidden />
-            {t("page.connections.form.pulsar.advanced")}
-          </button>
-        }
-        note={t("page.connections.form.pulsar.note")}
-      />
-      {advancedOpen && (
-        <div style={GRID}>
-          <Fld
-            label={t("page.connections.form.rocketmq.timeout")}
-            hint={t("page.connections.form.rocketmq.timeoutHint")}
-          >
+        <Pair>
+          <Fld label={t("page.connections.form.pulsar.tenant")}>
             <Input
-              type="number"
-              min={1}
-              max={300}
-              value={value.timeoutSec > 0 ? String(value.timeoutSec) : ""}
-              onChange={(event) => {
-                const seconds = Number.parseInt(event.target.value, 10);
-                set("timeoutSec", Number.isNaN(seconds) ? 0 : seconds);
-              }}
+              className="mono3"
+              style={MONO}
+              value={value.tenant}
+              placeholder="public"
+              onChange={(event) => set("tenant", event.target.value)}
             />
           </Fld>
-          <Fld label={t("page.connections.form.remark")} hint={t("page.connections.form.remarkHint")}>
-            <Input value={value.remark} onChange={(event) => set("remark", event.target.value)} />
+          <Fld label={t("page.connections.form.pulsar.namespace")}>
+            <Input
+              className="mono3"
+              style={MONO}
+              value={value.namespace}
+              placeholder="default"
+              onChange={(event) => set("namespace", event.target.value)}
+            />
           </Fld>
-          <Fld span label="TLS" hint={t("page.connections.form.pulsar.tlsHint")}>
+        </Pair>
+      </div>
+      <Advanced
+        open={advancedOpen}
+        onToggle={() => setAdvancedOpen((open) => !open)}
+        label={t("page.connections.form.pulsar.advanced")}
+      />
+      {advancedOpen && (
+        <div className={ROWS}>
+          <Pair>
+            <Fld
+              label={t("page.connections.form.rocketmq.timeout")}
+              hint={t("page.connections.form.rocketmq.timeoutHint")}
+            >
+              <Input
+                type="number"
+                min={1}
+                max={300}
+                value={value.timeoutSec > 0 ? String(value.timeoutSec) : ""}
+                onChange={(event) => {
+                  const seconds = Number.parseInt(event.target.value, 10);
+                  set("timeoutSec", Number.isNaN(seconds) ? 0 : seconds);
+                }}
+              />
+            </Fld>
+            <Fld label={t("page.connections.form.remark")} hint={t("page.connections.form.remarkHint")}>
+              <Input value={value.remark} onChange={(event) => set("remark", event.target.value)} />
+            </Fld>
+          </Pair>
+          <Fld label="TLS" hint={t("page.connections.form.pulsar.tlsHint")}>
             <div style={SWITCH_ROW}>
               <Switch
                 checked={value.tls}
@@ -1009,7 +1016,6 @@ export function PulsarForm({
           {value.tls && (
             <>
               <Fld
-                span
                 label={t("page.connections.form.kafka.caFile")}
                 hint={t("page.connections.form.kafka.caFileHint")}
               >
@@ -1022,7 +1028,6 @@ export function PulsarForm({
                 />
               </Fld>
               <Fld
-                span
                 label={t("page.connections.form.kafka.skipVerify")}
                 hint={t("page.connections.form.kafka.skipVerifyHint")}
               >
@@ -1128,7 +1133,7 @@ export function RedisForm({
 
   return (
     <>
-      <div style={GRID}>
+      <div className={ROWS}>
         <Fld label={t("page.connections.form.name")}>
           <Input
             value={value.name}
@@ -1136,9 +1141,10 @@ export function RedisForm({
             onChange={(event) => set("name", event.target.value)}
           />
         </Fld>
-        <Fld span label={t("page.connections.form.redis.mode")}>
+        <Fld label={t("page.connections.form.redis.mode")}>
           <Segmented
-            style={{ alignSelf: "flex-start" }}
+            block
+            tone="soft"
             value={value.deployment}
             onChange={(next: RedisDeployment) =>
               // A cluster has one database and refuses SELECT, so a stored
@@ -1159,7 +1165,6 @@ export function RedisForm({
           />
         </Fld>
         <Fld
-          span={value.deployment === "standalone"}
           label={t("page.connections.form.redis.address")}
           hint={
             value.deployment === "standalone"
@@ -1209,8 +1214,7 @@ export function RedisForm({
             />
           </Fld>
         )}
-        <Fld
-          label={t("page.connections.form.username")}
+        <Pair
           hint={
             stored ? (
               <button type="button" className="mqs-linkbtn" onClick={() => set("clearCredentials", true)}>
@@ -1221,22 +1225,23 @@ export function RedisForm({
             )
           }
         >
-          <Input
-            value={value.username}
-            placeholder={stored ? t("page.connections.form.secretStored") : "default"}
-            onChange={(event) => set("username", event.target.value)}
-          />
-        </Fld>
-        <Fld label={t("page.connections.form.password")}>
-          <Input
-            type="password"
-            value={value.password}
-            placeholder={stored ? t("page.connections.form.secretStored") : undefined}
-            onChange={(event) => set("password", event.target.value)}
-          />
-        </Fld>
+          <Fld label={t("page.connections.form.username")}>
+            <Input
+              value={value.username}
+              placeholder={stored ? t("page.connections.form.secretStored") : "default"}
+              onChange={(event) => set("username", event.target.value)}
+            />
+          </Fld>
+          <Fld label={t("page.connections.form.password")}>
+            <Input
+              type="password"
+              value={value.password}
+              placeholder={stored ? t("page.connections.form.secretStored") : undefined}
+              onChange={(event) => set("password", event.target.value)}
+            />
+          </Fld>
+        </Pair>
         <Fld
-          span
           label={t("page.connections.form.redis.streamFilter")}
           hint={t("page.connections.form.redis.streamFilterHint")}
         >
@@ -1249,41 +1254,34 @@ export function RedisForm({
           />
         </Fld>
       </div>
-      <FormNote
-        advanced={
-          <button
-            type="button"
-            className="mqs-disclosure"
-            aria-expanded={advancedOpen}
-            onClick={() => setAdvancedOpen((open) => !open)}
-          >
-            <ChevronRight size={12} aria-hidden />
-            {t("page.connections.form.redis.advanced")}
-          </button>
-        }
-        note={t("page.connections.form.redis.note")}
+      <Advanced
+        open={advancedOpen}
+        onToggle={() => setAdvancedOpen((open) => !open)}
+        label={t("page.connections.form.redis.advanced")}
       />
       {advancedOpen && (
-        <div style={GRID}>
-          <Fld
-            label={t("page.connections.form.rocketmq.timeout")}
-            hint={t("page.connections.form.rocketmq.timeoutHint")}
-          >
-            <Input
-              type="number"
-              min={1}
-              max={300}
-              value={value.timeoutSec > 0 ? String(value.timeoutSec) : ""}
-              onChange={(event) => {
-                const seconds = Number.parseInt(event.target.value, 10);
-                set("timeoutSec", Number.isNaN(seconds) ? 0 : seconds);
-              }}
-            />
-          </Fld>
-          <Fld label={t("page.connections.form.remark")} hint={t("page.connections.form.remarkHint")}>
-            <Input value={value.remark} onChange={(event) => set("remark", event.target.value)} />
-          </Fld>
-          <Fld span label="TLS" hint={t("page.connections.form.redis.tlsHint")}>
+        <div className={ROWS}>
+          <Pair>
+            <Fld
+              label={t("page.connections.form.rocketmq.timeout")}
+              hint={t("page.connections.form.rocketmq.timeoutHint")}
+            >
+              <Input
+                type="number"
+                min={1}
+                max={300}
+                value={value.timeoutSec > 0 ? String(value.timeoutSec) : ""}
+                onChange={(event) => {
+                  const seconds = Number.parseInt(event.target.value, 10);
+                  set("timeoutSec", Number.isNaN(seconds) ? 0 : seconds);
+                }}
+              />
+            </Fld>
+            <Fld label={t("page.connections.form.remark")} hint={t("page.connections.form.remarkHint")}>
+              <Input value={value.remark} onChange={(event) => set("remark", event.target.value)} />
+            </Fld>
+          </Pair>
+          <Fld label="TLS" hint={t("page.connections.form.redis.tlsHint")}>
             <div style={SWITCH_ROW}>
               <Switch
                 checked={value.tls}
@@ -1300,7 +1298,6 @@ export function RedisForm({
           </Fld>
           {value.tls && (
             <Fld
-              span
               label={t("page.connections.form.redis.tlsSkipVerify")}
               hint={t("page.connections.form.redis.tlsSkipVerifyHint")}
             >
@@ -1413,7 +1410,7 @@ export function MqttForm({
 
   return (
     <>
-      <div style={GRID}>
+      <div className={ROWS}>
         <Fld label={t("page.connections.form.name")}>
           <Input
             value={value.name}
@@ -1426,7 +1423,8 @@ export function MqttForm({
           hint={t("page.connections.form.mqtt.versionHint")}
         >
           <Segmented<MqttProtocol>
-            style={{ alignSelf: "flex-start" }}
+            block
+            tone="soft"
             value={value.protocol}
             options={[
               { value: "311", label: "3.1.1" },
@@ -1444,7 +1442,6 @@ export function MqttForm({
           />
         </Fld>
         <Fld
-          span
           label={t("page.connections.form.mqtt.broker")}
           hint={t("page.connections.form.mqtt.brokerHint")}
         >
@@ -1461,6 +1458,7 @@ export function MqttForm({
           hint={t("page.connections.form.mqtt.transportHint")}
         >
           <SelectField<MqttTransport>
+            size="default"
             value={value.transport}
             options={[
               { value: "tcp", label: "TCP" },
@@ -1482,6 +1480,7 @@ export function MqttForm({
         </Fld>
         <Fld label={t("page.connections.form.mqtt.mechanism")}>
           <SelectField<MqttMechanism>
+            size="default"
             value={value.mechanism}
             options={[
               { value: "none", label: t("page.connections.form.mqtt.mechanismNone") },
@@ -1499,7 +1498,6 @@ export function MqttForm({
         </Fld>
         {webSocket && (
           <Fld
-            span
             label={t("page.connections.form.mqtt.wsPath")}
             hint={t("page.connections.form.mqtt.wsPathHint")}
           >
@@ -1513,21 +1511,20 @@ export function MqttForm({
           </Fld>
         )}
         {authenticating && (
-          <>
-            <Fld
-              label={t("page.connections.form.username")}
-              hint={
-                stored ? (
-                  <button
-                    type="button"
-                    className="mqs-linkbtn"
-                    onClick={() => set("clearCredentials", true)}
-                  >
-                    {t("page.connections.form.clearCredentials")}
-                  </button>
-                ) : undefined
-              }
-            >
+          <Pair
+            hint={
+              stored ? (
+                <button
+                  type="button"
+                  className="mqs-linkbtn"
+                  onClick={() => set("clearCredentials", true)}
+                >
+                  {t("page.connections.form.clearCredentials")}
+                </button>
+              ) : undefined
+            }
+          >
+            <Fld label={t("page.connections.form.username")}>
               <Input
                 value={value.username}
                 placeholder={stored ? t("page.connections.form.secretStored") : undefined}
@@ -1542,7 +1539,7 @@ export function MqttForm({
                 onChange={(event) => set("password", event.target.value)}
               />
             </Fld>
-          </>
+          </Pair>
         )}
         {value.protocol === "5" && (
           <Fld
@@ -1561,40 +1558,33 @@ export function MqttForm({
           </Fld>
         )}
       </div>
-      <FormNote
-        advanced={
-          <button
-            type="button"
-            className="mqs-disclosure"
-            aria-expanded={advancedOpen}
-            onClick={() => setAdvancedOpen((open) => !open)}
-          >
-            <ChevronRight size={12} aria-hidden />
-            {t("page.connections.form.mqtt.advanced")}
-          </button>
-        }
-        note={t("page.connections.form.mqtt.note")}
+      <Advanced
+        open={advancedOpen}
+        onToggle={() => setAdvancedOpen((open) => !open)}
+        label={t("page.connections.form.mqtt.advanced")}
       />
       {advancedOpen && (
-        <div style={GRID}>
-          <Fld
-            label={t("page.connections.form.rocketmq.timeout")}
-            hint={t("page.connections.form.rocketmq.timeoutHint")}
-          >
-            <Input
-              type="number"
-              min={1}
-              max={300}
-              value={value.timeoutSec > 0 ? String(value.timeoutSec) : ""}
-              onChange={(event) => {
-                const seconds = Number.parseInt(event.target.value, 10);
-                set("timeoutSec", Number.isNaN(seconds) ? 0 : seconds);
-              }}
-            />
-          </Fld>
-          <Fld label={t("page.connections.form.remark")} hint={t("page.connections.form.remarkHint")}>
-            <Input value={value.remark} onChange={(event) => set("remark", event.target.value)} />
-          </Fld>
+        <div className={ROWS}>
+          <Pair>
+            <Fld
+              label={t("page.connections.form.rocketmq.timeout")}
+              hint={t("page.connections.form.rocketmq.timeoutHint")}
+            >
+              <Input
+                type="number"
+                min={1}
+                max={300}
+                value={value.timeoutSec > 0 ? String(value.timeoutSec) : ""}
+                onChange={(event) => {
+                  const seconds = Number.parseInt(event.target.value, 10);
+                  set("timeoutSec", Number.isNaN(seconds) ? 0 : seconds);
+                }}
+              />
+            </Fld>
+            <Fld label={t("page.connections.form.remark")} hint={t("page.connections.form.remarkHint")}>
+              <Input value={value.remark} onChange={(event) => set("remark", event.target.value)} />
+            </Fld>
+          </Pair>
           <Fld
             label={t("page.connections.form.mqtt.clientId")}
             hint={t("page.connections.form.mqtt.clientIdHint")}
@@ -1623,7 +1613,6 @@ export function MqttForm({
             />
           </Fld>
           <Fld
-            span
             label={t("page.connections.form.mqtt.cleanStart")}
             hint={t("page.connections.form.mqtt.cleanStartHint")}
           >
@@ -1640,7 +1629,6 @@ export function MqttForm({
           {encrypted && (
             <>
               <Fld
-                span
                 label={t("page.connections.form.kafka.caFile")}
                 hint={t("page.connections.form.kafka.caFileHint")}
               >
@@ -1653,7 +1641,6 @@ export function MqttForm({
                 />
               </Fld>
               <Fld
-                span
                 label={t("page.connections.form.kafka.skipVerify")}
                 hint={t("page.connections.form.kafka.skipVerifyHint")}
               >
@@ -1670,7 +1657,6 @@ export function MqttForm({
             </>
           )}
           <Fld
-            span
             label={t("page.connections.form.mqtt.management")}
             hint={t("page.connections.form.mqtt.managementHint")}
           >
@@ -1683,7 +1669,7 @@ export function MqttForm({
             />
           </Fld>
           {value.managementUrl.trim() !== "" && (
-            <>
+            <Pair>
               <Fld label={t("page.connections.form.mqtt.managementKey")}>
                 <Input
                   value={value.managementKey}
@@ -1699,7 +1685,7 @@ export function MqttForm({
                   onChange={(event) => set("managementSecret", event.target.value)}
                 />
               </Fld>
-            </>
+            </Pair>
           )}
         </div>
       )}
@@ -1820,7 +1806,7 @@ export function NatsForm({
 
   return (
     <>
-      <div style={GRID}>
+      <div className={ROWS}>
         <Fld label={t("page.connections.form.name")}>
           <Input
             value={value.name}
@@ -1830,6 +1816,7 @@ export function NatsForm({
         </Fld>
         <Fld label={t("page.connections.form.nats.mechanism")}>
           <SelectField<NatsMechanism>
+            size="default"
             value={value.mechanism}
             options={[
               { value: "none", label: t("page.connections.form.nats.mechanismNone") },
@@ -1858,7 +1845,6 @@ export function NatsForm({
           />
         </Fld>
         <Fld
-          span
           label={t("page.connections.form.nats.servers")}
           hint={t("page.connections.form.nats.serversHint")}
         >
@@ -1871,21 +1857,20 @@ export function NatsForm({
           />
         </Fld>
         {value.mechanism === "plain" && (
-          <>
-            <Fld
-              label={t("page.connections.form.username")}
-              hint={
-                stored ? (
-                  <button
-                    type="button"
-                    className="mqs-linkbtn"
-                    onClick={() => set("clearCredentials", true)}
-                  >
-                    {t("page.connections.form.clearCredentials")}
-                  </button>
-                ) : undefined
-              }
-            >
+          <Pair
+            hint={
+              stored ? (
+                <button
+                  type="button"
+                  className="mqs-linkbtn"
+                  onClick={() => set("clearCredentials", true)}
+                >
+                  {t("page.connections.form.clearCredentials")}
+                </button>
+              ) : undefined
+            }
+          >
+            <Fld label={t("page.connections.form.username")}>
               <Input
                 value={value.username}
                 placeholder={stored ? t("page.connections.form.secretStored") : undefined}
@@ -1900,11 +1885,10 @@ export function NatsForm({
                 onChange={(event) => set("password", event.target.value)}
               />
             </Fld>
-          </>
+          </Pair>
         )}
         {value.mechanism === "token" && (
           <Fld
-            span
             label={t("page.connections.form.nats.token")}
             hint={
               stored ? (
@@ -1928,7 +1912,6 @@ export function NatsForm({
         )}
         {value.mechanism === "nkey" && (
           <Fld
-            span
             label={t("page.connections.form.nats.nkeySeed")}
             hint={t("page.connections.form.nats.nkeySeedHint")}
           >
@@ -1944,7 +1927,6 @@ export function NatsForm({
         )}
         {value.mechanism === "creds" && (
           <Fld
-            span
             label={t("page.connections.form.nats.credsFile")}
             hint={t("page.connections.form.nats.credsFileHint")}
           >
@@ -1958,7 +1940,6 @@ export function NatsForm({
           </Fld>
         )}
         <Fld
-          span
           label={t("page.connections.form.nats.tls")}
           hint={t("page.connections.form.nats.tlsHint")}
         >
@@ -1982,42 +1963,34 @@ export function NatsForm({
           </div>
         </Fld>
       </div>
-      <FormNote
-        advanced={
-          <button
-            type="button"
-            className="mqs-disclosure"
-            aria-expanded={advancedOpen}
-            onClick={() => setAdvancedOpen((open) => !open)}
-          >
-            <ChevronRight size={12} aria-hidden />
-            {t("page.connections.form.nats.advanced")}
-          </button>
-        }
-        note={t("page.connections.form.nats.note")}
+      <Advanced
+        open={advancedOpen}
+        onToggle={() => setAdvancedOpen((open) => !open)}
+        label={t("page.connections.form.nats.advanced")}
       />
       {advancedOpen && (
-        <div style={GRID}>
+        <div className={ROWS}>
+          <Pair>
+            <Fld
+              label={t("page.connections.form.rocketmq.timeout")}
+              hint={t("page.connections.form.rocketmq.timeoutHint")}
+            >
+              <Input
+                type="number"
+                min={1}
+                max={300}
+                value={value.timeoutSec > 0 ? String(value.timeoutSec) : ""}
+                onChange={(event) => {
+                  const seconds = Number.parseInt(event.target.value, 10);
+                  set("timeoutSec", Number.isNaN(seconds) ? 0 : seconds);
+                }}
+              />
+            </Fld>
+            <Fld label={t("page.connections.form.remark")} hint={t("page.connections.form.remarkHint")}>
+              <Input value={value.remark} onChange={(event) => set("remark", event.target.value)} />
+            </Fld>
+          </Pair>
           <Fld
-            label={t("page.connections.form.rocketmq.timeout")}
-            hint={t("page.connections.form.rocketmq.timeoutHint")}
-          >
-            <Input
-              type="number"
-              min={1}
-              max={300}
-              value={value.timeoutSec > 0 ? String(value.timeoutSec) : ""}
-              onChange={(event) => {
-                const seconds = Number.parseInt(event.target.value, 10);
-                set("timeoutSec", Number.isNaN(seconds) ? 0 : seconds);
-              }}
-            />
-          </Fld>
-          <Fld label={t("page.connections.form.remark")} hint={t("page.connections.form.remarkHint")}>
-            <Input value={value.remark} onChange={(event) => set("remark", event.target.value)} />
-          </Fld>
-          <Fld
-            span
             label={t("page.connections.form.nats.monitor")}
             hint={t("page.connections.form.nats.monitorHint")}
           >
@@ -2029,26 +2002,26 @@ export function NatsForm({
               onChange={(event) => set("monitorUrl", event.target.value)}
             />
           </Fld>
-          <Fld
-            label={t("page.connections.form.nats.systemUser")}
+          <Pair
             hint={t("page.connections.form.nats.systemUserHint")}
           >
-            <Input
-              value={value.systemUser}
-              placeholder={stored ? t("page.connections.form.secretStored") : undefined}
-              onChange={(event) => set("systemUser", event.target.value)}
-            />
-          </Fld>
-          <Fld label={t("page.connections.form.nats.systemPassword")}>
-            <Input
-              type="password"
-              value={value.systemPassword}
-              placeholder={stored ? t("page.connections.form.secretStored") : undefined}
-              onChange={(event) => set("systemPassword", event.target.value)}
-            />
-          </Fld>
+            <Fld label={t("page.connections.form.nats.systemUser")}>
+              <Input
+                value={value.systemUser}
+                placeholder={stored ? t("page.connections.form.secretStored") : undefined}
+                onChange={(event) => set("systemUser", event.target.value)}
+              />
+            </Fld>
+            <Fld label={t("page.connections.form.nats.systemPassword")}>
+              <Input
+                type="password"
+                value={value.systemPassword}
+                placeholder={stored ? t("page.connections.form.secretStored") : undefined}
+                onChange={(event) => set("systemPassword", event.target.value)}
+              />
+            </Fld>
+          </Pair>
           <Fld
-            span
             label={t("page.connections.form.nats.jsDomain")}
             hint={t("page.connections.form.nats.jsDomainHint")}
           >
@@ -2062,7 +2035,6 @@ export function NatsForm({
           {encrypted && (
             <>
               <Fld
-                span
                 label={t("page.connections.form.kafka.caFile")}
                 hint={t("page.connections.form.kafka.caFileHint")}
               >
@@ -2075,7 +2047,6 @@ export function NatsForm({
                 />
               </Fld>
               <Fld
-                span
                 label={t("page.connections.form.kafka.skipVerify")}
                 hint={t("page.connections.form.kafka.skipVerifyHint")}
               >
@@ -2092,12 +2063,10 @@ export function NatsForm({
             </>
           )}
           {value.mechanism === "mtls" && (
-            <>
-              <Fld
-                span
-                label={t("page.connections.form.nats.certFile")}
-                hint={t("page.connections.form.nats.certFileHint")}
-              >
+            <Pair
+              hint={t("page.connections.form.nats.certFileHint")}
+            >
+              <Fld label={t("page.connections.form.nats.certFile")}>
                 <Input
                   className="mono3"
                   style={MONO}
@@ -2106,7 +2075,7 @@ export function NatsForm({
                   onChange={(event) => set("tlsCertFile", event.target.value)}
                 />
               </Fld>
-              <Fld span label={t("page.connections.form.nats.keyFile")}>
+              <Fld label={t("page.connections.form.nats.keyFile")}>
                 <Input
                   className="mono3"
                   style={MONO}
@@ -2115,7 +2084,7 @@ export function NatsForm({
                   onChange={(event) => set("tlsKeyFile", event.target.value)}
                 />
               </Fld>
-            </>
+            </Pair>
           )}
         </div>
       )}
@@ -2226,7 +2195,7 @@ export function ActiveMQForm({
 
   return (
     <>
-      <div style={GRID}>
+      <div className={ROWS}>
         <Fld label={t("page.connections.form.name")}>
           <Input
             value={value.name}
@@ -2236,6 +2205,7 @@ export function ActiveMQForm({
         </Fld>
         <Fld label={t("page.connections.form.activemq.mechanism")}>
           <SelectField<ActiveMQMechanism>
+            size="default"
             value={value.mechanism}
             options={[
               { value: "plain", label: t("page.connections.form.activemq.mechanismPlain") },
@@ -2252,7 +2222,6 @@ export function ActiveMQForm({
           />
         </Fld>
         <Fld
-          span
           label={t("page.connections.form.activemq.console")}
           hint={t("page.connections.form.activemq.consoleHint")}
         >
@@ -2265,21 +2234,20 @@ export function ActiveMQForm({
           />
         </Fld>
         {value.mechanism === "plain" && (
-          <>
-            <Fld
-              label={t("page.connections.form.username")}
-              hint={
-                stored ? (
-                  <button
-                    type="button"
-                    className="mqs-linkbtn"
-                    onClick={() => set("clearCredentials", true)}
-                  >
-                    {t("page.connections.form.clearCredentials")}
-                  </button>
-                ) : undefined
-              }
-            >
+          <Pair
+            hint={
+              stored ? (
+                <button
+                  type="button"
+                  className="mqs-linkbtn"
+                  onClick={() => set("clearCredentials", true)}
+                >
+                  {t("page.connections.form.clearCredentials")}
+                </button>
+              ) : undefined
+            }
+          >
+            <Fld label={t("page.connections.form.username")}>
               <Input
                 value={value.username}
                 placeholder={stored ? t("page.connections.form.secretStored") : undefined}
@@ -2294,10 +2262,9 @@ export function ActiveMQForm({
                 onChange={(event) => set("password", event.target.value)}
               />
             </Fld>
-          </>
+          </Pair>
         )}
         <Fld
-          span
           label={t("page.connections.form.activemq.amqpUrl")}
           hint={t("page.connections.form.activemq.amqpUrlHint")}
         >
@@ -2310,11 +2277,10 @@ export function ActiveMQForm({
           />
         </Fld>
         {value.amqpUrl.trim() !== "" && (
-          <>
-            <Fld
-              label={t("page.connections.form.activemq.amqpUsername")}
-              hint={t("page.connections.form.activemq.amqpUsernameHint")}
-            >
+          <Pair
+            hint={t("page.connections.form.activemq.amqpUsernameHint")}
+          >
+            <Fld label={t("page.connections.form.activemq.amqpUsername")}>
               <Input
                 value={value.amqpUsername}
                 placeholder={stored ? t("page.connections.form.secretStored") : undefined}
@@ -2329,47 +2295,39 @@ export function ActiveMQForm({
                 onChange={(event) => set("amqpPassword", event.target.value)}
               />
             </Fld>
-          </>
+          </Pair>
         )}
       </div>
 
-      <FormNote
-        advanced={
-          <button
-            type="button"
-            className="mqs-disclosure"
-            aria-expanded={advancedOpen}
-            onClick={() => setAdvancedOpen((open) => !open)}
-          >
-            <ChevronRight size={12} aria-hidden />
-            {t("page.connections.form.rocketmq.advanced")}
-          </button>
-        }
-        note={t("page.connections.form.activemq.note")}
+      <Advanced
+        open={advancedOpen}
+        onToggle={() => setAdvancedOpen((open) => !open)}
+        label={t("page.connections.form.rocketmq.advanced")}
       />
       {advancedOpen && (
-        <div style={GRID}>
+        <div className={ROWS}>
+          <Pair>
+            <Fld
+              label={t("page.connections.form.rocketmq.timeout")}
+              hint={t("page.connections.form.rocketmq.timeoutHint")}
+            >
+              <Input
+                type="number"
+                value={value.timeoutSec > 0 ? String(value.timeoutSec) : ""}
+                onChange={(event) => {
+                  const seconds = Number.parseInt(event.target.value, 10);
+                  set("timeoutSec", Number.isNaN(seconds) ? 0 : seconds);
+                }}
+              />
+            </Fld>
+            <Fld
+              label={t("page.connections.form.remark")}
+              hint={t("page.connections.form.remarkHint")}
+            >
+              <Input value={value.remark} onChange={(event) => set("remark", event.target.value)} />
+            </Fld>
+          </Pair>
           <Fld
-            label={t("page.connections.form.rocketmq.timeout")}
-            hint={t("page.connections.form.rocketmq.timeoutHint")}
-          >
-            <Input
-              type="number"
-              value={value.timeoutSec > 0 ? String(value.timeoutSec) : ""}
-              onChange={(event) => {
-                const seconds = Number.parseInt(event.target.value, 10);
-                set("timeoutSec", Number.isNaN(seconds) ? 0 : seconds);
-              }}
-            />
-          </Fld>
-          <Fld
-            label={t("page.connections.form.remark")}
-            hint={t("page.connections.form.remarkHint")}
-          >
-            <Input value={value.remark} onChange={(event) => set("remark", event.target.value)} />
-          </Fld>
-          <Fld
-            span
             label={t("page.connections.form.activemq.jolokiaPath")}
             hint={t("page.connections.form.activemq.jolokiaPathHint")}
           >
@@ -2382,7 +2340,6 @@ export function ActiveMQForm({
             />
           </Fld>
           <Fld
-            span
             label={t("page.connections.form.activemq.brokerName")}
             hint={t("page.connections.form.activemq.brokerNameHint")}
           >
@@ -2395,7 +2352,6 @@ export function ActiveMQForm({
             />
           </Fld>
           <Fld
-            span
             label={t("page.connections.form.activemq.origin")}
             hint={t("page.connections.form.activemq.originHint")}
           >
@@ -2408,7 +2364,6 @@ export function ActiveMQForm({
             />
           </Fld>
           <Fld
-            span
             label={t("page.connections.form.kafka.skipVerify")}
             hint={t("page.connections.form.kafka.skipVerifyHint")}
           >
@@ -2494,8 +2449,8 @@ export function NsqForm({
 
   return (
     <>
-      <div style={GRID}>
-        <Fld span label={t("page.connections.form.name")}>
+      <div className={ROWS}>
+        <Fld label={t("page.connections.form.name")}>
           <Input
             value={value.name}
             placeholder="nsq-prod"
@@ -2503,7 +2458,6 @@ export function NsqForm({
           />
         </Fld>
         <Fld
-          span
           label={t("page.connections.form.nsq.nsqd")}
           hint={t("page.connections.form.nsq.nsqdHint")}
         >
@@ -2516,7 +2470,6 @@ export function NsqForm({
           />
         </Fld>
         <Fld
-          span
           label={t("page.connections.form.nsq.lookupd")}
           hint={t("page.connections.form.nsq.lookupdHint")}
         >
@@ -2530,43 +2483,35 @@ export function NsqForm({
         </Fld>
       </div>
 
-      <FormNote
-        advanced={
-          <button
-            type="button"
-            className="mqs-disclosure"
-            aria-expanded={advancedOpen}
-            onClick={() => setAdvancedOpen((open) => !open)}
-          >
-            <ChevronRight size={12} aria-hidden />
-            {t("page.connections.form.rocketmq.advanced")}
-          </button>
-        }
-        note={t("page.connections.form.nsq.note")}
+      <Advanced
+        open={advancedOpen}
+        onToggle={() => setAdvancedOpen((open) => !open)}
+        label={t("page.connections.form.rocketmq.advanced")}
       />
       {advancedOpen && (
-        <div style={GRID}>
+        <div className={ROWS}>
+          <Pair>
+            <Fld
+              label={t("page.connections.form.rocketmq.timeout")}
+              hint={t("page.connections.form.rocketmq.timeoutHint")}
+            >
+              <Input
+                type="number"
+                value={value.timeoutSec > 0 ? String(value.timeoutSec) : ""}
+                onChange={(event) => {
+                  const seconds = Number.parseInt(event.target.value, 10);
+                  set("timeoutSec", Number.isNaN(seconds) ? 0 : seconds);
+                }}
+              />
+            </Fld>
+            <Fld
+              label={t("page.connections.form.remark")}
+              hint={t("page.connections.form.remarkHint")}
+            >
+              <Input value={value.remark} onChange={(event) => set("remark", event.target.value)} />
+            </Fld>
+          </Pair>
           <Fld
-            label={t("page.connections.form.rocketmq.timeout")}
-            hint={t("page.connections.form.rocketmq.timeoutHint")}
-          >
-            <Input
-              type="number"
-              value={value.timeoutSec > 0 ? String(value.timeoutSec) : ""}
-              onChange={(event) => {
-                const seconds = Number.parseInt(event.target.value, 10);
-                set("timeoutSec", Number.isNaN(seconds) ? 0 : seconds);
-              }}
-            />
-          </Fld>
-          <Fld
-            label={t("page.connections.form.remark")}
-            hint={t("page.connections.form.remarkHint")}
-          >
-            <Input value={value.remark} onChange={(event) => set("remark", event.target.value)} />
-          </Fld>
-          <Fld
-            span
             label={t("page.connections.form.kafka.skipVerify")}
             hint={t("page.connections.form.kafka.skipVerifyHint")}
           >
@@ -2665,7 +2610,7 @@ export function SqsForm({
 
   return (
     <>
-      <div style={GRID}>
+      <div className={ROWS}>
         <Fld label={t("page.connections.form.name")}>
           <Input
             value={value.name}
@@ -2685,8 +2630,7 @@ export function SqsForm({
             onChange={(event) => set("region", event.target.value)}
           />
         </Fld>
-        <Fld
-          label={t("page.connections.form.sqs.accessKeyId")}
+        <Pair
           hint={
             stored ? (
               <button
@@ -2701,24 +2645,25 @@ export function SqsForm({
             )
           }
         >
-          <Input
-            className="mono3"
-            style={MONO}
-            value={value.accessKeyId}
-            placeholder={stored ? t("page.connections.form.secretStored") : "AKIA..."}
-            onChange={(event) => set("accessKeyId", event.target.value)}
-          />
-        </Fld>
-        <Fld label={t("page.connections.form.sqs.secretAccessKey")}>
-          <Input
-            type="password"
-            value={value.secretAccessKey}
-            placeholder={stored ? t("page.connections.form.secretStored") : undefined}
-            onChange={(event) => set("secretAccessKey", event.target.value)}
-          />
-        </Fld>
+          <Fld label={t("page.connections.form.sqs.accessKeyId")}>
+            <Input
+              className="mono3"
+              style={MONO}
+              value={value.accessKeyId}
+              placeholder={stored ? t("page.connections.form.secretStored") : "AKIA..."}
+              onChange={(event) => set("accessKeyId", event.target.value)}
+            />
+          </Fld>
+          <Fld label={t("page.connections.form.sqs.secretAccessKey")}>
+            <Input
+              type="password"
+              value={value.secretAccessKey}
+              placeholder={stored ? t("page.connections.form.secretStored") : undefined}
+              onChange={(event) => set("secretAccessKey", event.target.value)}
+            />
+          </Fld>
+        </Pair>
         <Fld
-          span
           label={t("page.connections.form.sqs.sessionToken")}
           hint={t("page.connections.form.sqs.sessionTokenHint")}
         >
@@ -2731,22 +2676,13 @@ export function SqsForm({
         </Fld>
       </div>
 
-      <FormNote
-        advanced={
-          <button
-            type="button"
-            className="mqs-disclosure"
-            aria-expanded={advancedOpen}
-            onClick={() => setAdvancedOpen((open) => !open)}
-          >
-            <ChevronRight size={12} aria-hidden />
-            {t("page.connections.form.rocketmq.advanced")}
-          </button>
-        }
-        note={t("page.connections.form.sqs.note")}
+      <Advanced
+        open={advancedOpen}
+        onToggle={() => setAdvancedOpen((open) => !open)}
+        label={t("page.connections.form.rocketmq.advanced")}
       />
       {advancedOpen && (
-        <div style={GRID}>
+        <div className={ROWS}>
           <Fld
             label={t("page.connections.form.sqs.queuePrefix")}
             hint={t("page.connections.form.sqs.queuePrefixHint")}
@@ -2773,7 +2709,6 @@ export function SqsForm({
             />
           </Fld>
           <Fld
-            span
             label={t("page.connections.form.sqs.endpointUrl")}
             hint={t("page.connections.form.sqs.endpointUrlHint")}
           >
@@ -2786,7 +2721,6 @@ export function SqsForm({
             />
           </Fld>
           <Fld
-            span
             label={t("page.connections.form.remark")}
             hint={t("page.connections.form.remarkHint")}
           >
@@ -2881,7 +2815,7 @@ export function GooglePubSubForm({
 
   return (
     <>
-      <div style={GRID}>
+      <div className={ROWS}>
         <Fld label={t("page.connections.form.name")}>
           <Input
             value={value.name}
@@ -2902,7 +2836,6 @@ export function GooglePubSubForm({
           />
         </Fld>
         <Fld
-          span
           label={t("page.connections.form.google-pubsub.credentialsJson")}
           hint={
             stored ? (
@@ -2921,8 +2854,8 @@ export function GooglePubSubForm({
           {/* A textarea rather than an input: a service account key is a
               JSON document of a dozen lines, and a single-line password
               field would show four characters of it. */}
-          <textarea
-            className="mono3 min-h-20 rounded-md border border-(--c-line) bg-(--c-surface) px-2.5 py-2 outline-none focus-visible:border-(--c-accent)"
+          <Textarea
+            className="mono3 max-h-40 min-h-20"
             style={MONO}
             spellCheck={false}
             value={value.credentialsJson}
@@ -2936,22 +2869,13 @@ export function GooglePubSubForm({
         </Fld>
       </div>
 
-      <FormNote
-        advanced={
-          <button
-            type="button"
-            className="mqs-disclosure"
-            aria-expanded={advancedOpen}
-            onClick={() => setAdvancedOpen((open) => !open)}
-          >
-            <ChevronRight size={12} aria-hidden />
-            {t("page.connections.form.rocketmq.advanced")}
-          </button>
-        }
-        note={t("page.connections.form.google-pubsub.note")}
+      <Advanced
+        open={advancedOpen}
+        onToggle={() => setAdvancedOpen((open) => !open)}
+        label={t("page.connections.form.rocketmq.advanced")}
       />
       {advancedOpen && (
-        <div style={GRID}>
+        <div className={ROWS}>
           <Fld
             label={t("page.connections.form.google-pubsub.resourcePrefix")}
             hint={t("page.connections.form.google-pubsub.resourcePrefixHint")}
@@ -2978,7 +2902,6 @@ export function GooglePubSubForm({
             />
           </Fld>
           <Fld
-            span
             label={t("page.connections.form.google-pubsub.emulatorHost")}
             hint={t("page.connections.form.google-pubsub.emulatorHostHint")}
           >
@@ -2991,7 +2914,6 @@ export function GooglePubSubForm({
             />
           </Fld>
           <Fld
-            span
             label={t("page.connections.form.remark")}
             hint={t("page.connections.form.remarkHint")}
           >
@@ -3094,7 +3016,7 @@ export function AzureServiceBusForm({
 
   return (
     <>
-      <div style={GRID}>
+      <div className={ROWS}>
         <Fld label={t("page.connections.form.name")}>
           <Input
             value={value.name}
@@ -3151,32 +3073,22 @@ export function AzureServiceBusForm({
         </Fld>
       </div>
 
-      <FormNote
-        advanced={
-          <button
-            type="button"
-            className="mqs-disclosure"
-            aria-expanded={advancedOpen}
-            onClick={() => setAdvancedOpen((open) => !open)}
-          >
-            <ChevronRight size={12} aria-hidden />
-            {t("page.connections.form.rocketmq.advanced")}
-          </button>
-        }
-        note={t("page.connections.form.azure-servicebus.note")}
+      <Advanced
+        open={advancedOpen}
+        onToggle={() => setAdvancedOpen((open) => !open)}
+        label={t("page.connections.form.rocketmq.advanced")}
       />
       {advancedOpen && (
-        <div style={GRID}>
+        <div className={ROWS}>
           <Fld
-            span
             label={t("page.connections.form.azure-servicebus.connectionString")}
             hint={t("page.connections.form.azure-servicebus.connectionStringHint")}
           >
             {/* A textarea rather than a password input: the string runs past
                 a hundred characters, and a form that showed four of them
                 could not be checked by the person pasting it. */}
-            <textarea
-              className="mono3 min-h-14 rounded-md border border-(--c-line) bg-(--c-surface) px-2.5 py-2 outline-none focus-visible:border-(--c-accent)"
+            <Textarea
+              className="mono3 max-h-40 min-h-14"
               style={MONO}
               spellCheck={false}
               value={value.connectionString}
@@ -3214,7 +3126,6 @@ export function AzureServiceBusForm({
             />
           </Fld>
           <Fld
-            span
             label={t("page.connections.form.azure-servicebus.emulatorManagement")}
             hint={t("page.connections.form.azure-servicebus.emulatorManagementHint")}
           >
@@ -3227,7 +3138,6 @@ export function AzureServiceBusForm({
             />
           </Fld>
           <Fld
-            span
             label={t("page.connections.form.remark")}
             hint={t("page.connections.form.remarkHint")}
           >
@@ -3313,7 +3223,7 @@ export function KinesisForm({
 
   return (
     <>
-      <div style={GRID}>
+      <div className={ROWS}>
         <Fld label={t("page.connections.form.name")}>
           <Input
             value={value.name}
@@ -3333,8 +3243,7 @@ export function KinesisForm({
             onChange={(event) => set("region", event.target.value)}
           />
         </Fld>
-        <Fld
-          label={t("page.connections.form.kinesis.accessKeyId")}
+        <Pair
           hint={
             stored ? (
               <button
@@ -3349,24 +3258,25 @@ export function KinesisForm({
             )
           }
         >
-          <Input
-            className="mono3"
-            style={MONO}
-            value={value.accessKeyId}
-            placeholder={stored ? t("page.connections.form.secretStored") : "AKIA..."}
-            onChange={(event) => set("accessKeyId", event.target.value)}
-          />
-        </Fld>
-        <Fld label={t("page.connections.form.kinesis.secretAccessKey")}>
-          <Input
-            type="password"
-            value={value.secretAccessKey}
-            placeholder={stored ? t("page.connections.form.secretStored") : undefined}
-            onChange={(event) => set("secretAccessKey", event.target.value)}
-          />
-        </Fld>
+          <Fld label={t("page.connections.form.kinesis.accessKeyId")}>
+            <Input
+              className="mono3"
+              style={MONO}
+              value={value.accessKeyId}
+              placeholder={stored ? t("page.connections.form.secretStored") : "AKIA..."}
+              onChange={(event) => set("accessKeyId", event.target.value)}
+            />
+          </Fld>
+          <Fld label={t("page.connections.form.kinesis.secretAccessKey")}>
+            <Input
+              type="password"
+              value={value.secretAccessKey}
+              placeholder={stored ? t("page.connections.form.secretStored") : undefined}
+              onChange={(event) => set("secretAccessKey", event.target.value)}
+            />
+          </Fld>
+        </Pair>
         <Fld
-          span
           label={t("page.connections.form.kinesis.sessionToken")}
           hint={t("page.connections.form.kinesis.sessionTokenHint")}
         >
@@ -3379,22 +3289,13 @@ export function KinesisForm({
         </Fld>
       </div>
 
-      <FormNote
-        advanced={
-          <button
-            type="button"
-            className="mqs-disclosure"
-            aria-expanded={advancedOpen}
-            onClick={() => setAdvancedOpen((open) => !open)}
-          >
-            <ChevronRight size={12} aria-hidden />
-            {t("page.connections.form.rocketmq.advanced")}
-          </button>
-        }
-        note={t("page.connections.form.kinesis.note")}
+      <Advanced
+        open={advancedOpen}
+        onToggle={() => setAdvancedOpen((open) => !open)}
+        label={t("page.connections.form.rocketmq.advanced")}
       />
       {advancedOpen && (
-        <div style={GRID}>
+        <div className={ROWS}>
           <Fld
             label={t("page.connections.form.kinesis.streamPrefix")}
             hint={t("page.connections.form.kinesis.streamPrefixHint")}
@@ -3421,7 +3322,6 @@ export function KinesisForm({
             />
           </Fld>
           <Fld
-            span
             label={t("page.connections.form.kinesis.endpointUrl")}
             hint={t("page.connections.form.kinesis.endpointUrlHint")}
           >
@@ -3434,7 +3334,6 @@ export function KinesisForm({
             />
           </Fld>
           <Fld
-            span
             label={t("page.connections.form.remark")}
             hint={t("page.connections.form.remarkHint")}
           >
@@ -3540,7 +3439,7 @@ export function IbmMqForm({
 
   return (
     <>
-      <div style={GRID}>
+      <div className={ROWS}>
         <Fld label={t("page.connections.form.name")}>
           <Input
             value={value.name}
@@ -3550,6 +3449,7 @@ export function IbmMqForm({
         </Fld>
         <Fld label={t("page.connections.form.ibmmq.mechanism")}>
           <SelectField<IbmMqMechanism>
+            size="default"
             value={value.mechanism}
             options={[
               { value: "plain", label: t("page.connections.form.ibmmq.mechanismPlain") },
@@ -3566,7 +3466,6 @@ export function IbmMqForm({
           />
         </Fld>
         <Fld
-          span
           label={t("page.connections.form.ibmmq.mqweb")}
           hint={t("page.connections.form.ibmmq.mqwebHint")}
         >
@@ -3579,7 +3478,6 @@ export function IbmMqForm({
           />
         </Fld>
         <Fld
-          span
           label={t("page.connections.form.ibmmq.queueManager")}
           hint={t("page.connections.form.ibmmq.queueManagerHint")}
         >
@@ -3592,23 +3490,22 @@ export function IbmMqForm({
           />
         </Fld>
         {value.mechanism === "plain" && (
-          <>
-            <Fld
-              label={t("page.connections.form.username")}
-              hint={
-                stored ? (
-                  <button
-                    type="button"
-                    className="mqs-linkbtn"
-                    onClick={() => set("clearCredentials", true)}
-                  >
-                    {t("page.connections.form.clearCredentials")}
-                  </button>
-                ) : (
-                  t("page.connections.form.ibmmq.adminHint")
-                )
-              }
-            >
+          <Pair
+            hint={
+              stored ? (
+                <button
+                  type="button"
+                  className="mqs-linkbtn"
+                  onClick={() => set("clearCredentials", true)}
+                >
+                  {t("page.connections.form.clearCredentials")}
+                </button>
+              ) : (
+                t("page.connections.form.ibmmq.adminHint")
+              )
+            }
+          >
+            <Fld label={t("page.connections.form.username")}>
               <Input
                 value={value.username}
                 placeholder={stored ? t("page.connections.form.secretStored") : undefined}
@@ -3623,65 +3520,58 @@ export function IbmMqForm({
                 onChange={(event) => set("password", event.target.value)}
               />
             </Fld>
-          </>
+          </Pair>
         )}
       </div>
 
-      <FormNote
-        advanced={
-          <button
-            type="button"
-            className="mqs-disclosure"
-            aria-expanded={advancedOpen}
-            onClick={() => setAdvancedOpen((open) => !open)}
-          >
-            <ChevronRight size={12} aria-hidden />
-            {t("page.connections.form.rocketmq.advanced")}
-          </button>
-        }
-        note={t("page.connections.form.ibmmq.note")}
+      <Advanced
+        open={advancedOpen}
+        onToggle={() => setAdvancedOpen((open) => !open)}
+        label={t("page.connections.form.rocketmq.advanced")}
       />
       {advancedOpen && (
-        <div style={GRID}>
-          <Fld
-            label={t("page.connections.form.ibmmq.messagingUsername")}
+        <div className={ROWS}>
+          <Pair
             hint={t("page.connections.form.ibmmq.messagingHint")}
           >
-            <Input
-              value={value.messagingUsername}
-              placeholder={stored ? t("page.connections.form.secretStored") : undefined}
-              onChange={(event) => set("messagingUsername", event.target.value)}
-            />
-          </Fld>
-          <Fld label={t("page.connections.form.ibmmq.messagingPassword")}>
-            <Input
-              type="password"
-              value={value.messagingPassword}
-              placeholder={stored ? t("page.connections.form.secretStored") : undefined}
-              onChange={(event) => set("messagingPassword", event.target.value)}
-            />
-          </Fld>
+            <Fld label={t("page.connections.form.ibmmq.messagingUsername")}>
+              <Input
+                value={value.messagingUsername}
+                placeholder={stored ? t("page.connections.form.secretStored") : undefined}
+                onChange={(event) => set("messagingUsername", event.target.value)}
+              />
+            </Fld>
+            <Fld label={t("page.connections.form.ibmmq.messagingPassword")}>
+              <Input
+                type="password"
+                value={value.messagingPassword}
+                placeholder={stored ? t("page.connections.form.secretStored") : undefined}
+                onChange={(event) => set("messagingPassword", event.target.value)}
+              />
+            </Fld>
+          </Pair>
+          <Pair>
+            <Fld
+              label={t("page.connections.form.rocketmq.timeout")}
+              hint={t("page.connections.form.rocketmq.timeoutHint")}
+            >
+              <Input
+                type="number"
+                value={value.timeoutSec > 0 ? String(value.timeoutSec) : ""}
+                onChange={(event) => {
+                  const seconds = Number.parseInt(event.target.value, 10);
+                  set("timeoutSec", Number.isNaN(seconds) ? 0 : seconds);
+                }}
+              />
+            </Fld>
+            <Fld
+              label={t("page.connections.form.remark")}
+              hint={t("page.connections.form.remarkHint")}
+            >
+              <Input value={value.remark} onChange={(event) => set("remark", event.target.value)} />
+            </Fld>
+          </Pair>
           <Fld
-            label={t("page.connections.form.rocketmq.timeout")}
-            hint={t("page.connections.form.rocketmq.timeoutHint")}
-          >
-            <Input
-              type="number"
-              value={value.timeoutSec > 0 ? String(value.timeoutSec) : ""}
-              onChange={(event) => {
-                const seconds = Number.parseInt(event.target.value, 10);
-                set("timeoutSec", Number.isNaN(seconds) ? 0 : seconds);
-              }}
-            />
-          </Fld>
-          <Fld
-            label={t("page.connections.form.remark")}
-            hint={t("page.connections.form.remarkHint")}
-          >
-            <Input value={value.remark} onChange={(event) => set("remark", event.target.value)} />
-          </Fld>
-          <Fld
-            span
             label={t("page.connections.form.ibmmq.skipVerify")}
             hint={t("page.connections.form.ibmmq.skipVerifyHint")}
           >
@@ -3801,7 +3691,7 @@ export function SolaceForm({
 
   return (
     <>
-      <div style={GRID}>
+      <div className={ROWS}>
         <Fld label={t("page.connections.form.name")}>
           <Input
             value={value.name}
@@ -3811,6 +3701,7 @@ export function SolaceForm({
         </Fld>
         <Fld label={t("page.connections.form.solace.mechanism")}>
           <SelectField<SolaceMechanism>
+            size="default"
             value={value.mechanism}
             options={[
               { value: "plain", label: t("page.connections.form.solace.mechanismPlain") },
@@ -3827,7 +3718,6 @@ export function SolaceForm({
           />
         </Fld>
         <Fld
-          span
           label={t("page.connections.form.solace.semp")}
           hint={t("page.connections.form.solace.sempHint")}
         >
@@ -3840,7 +3730,6 @@ export function SolaceForm({
           />
         </Fld>
         <Fld
-          span
           label={t("page.connections.form.solace.msgVpn")}
           hint={t("page.connections.form.solace.msgVpnHint")}
         >
@@ -3853,23 +3742,22 @@ export function SolaceForm({
           />
         </Fld>
         {value.mechanism === "plain" && (
-          <>
-            <Fld
-              label={t("page.connections.form.username")}
-              hint={
-                stored ? (
-                  <button
-                    type="button"
-                    className="mqs-linkbtn"
-                    onClick={() => set("clearCredentials", true)}
-                  >
-                    {t("page.connections.form.clearCredentials")}
-                  </button>
-                ) : (
-                  t("page.connections.form.solace.adminHint")
-                )
-              }
-            >
+          <Pair
+            hint={
+              stored ? (
+                <button
+                  type="button"
+                  className="mqs-linkbtn"
+                  onClick={() => set("clearCredentials", true)}
+                >
+                  {t("page.connections.form.clearCredentials")}
+                </button>
+              ) : (
+                t("page.connections.form.solace.adminHint")
+              )
+            }
+          >
+            <Fld label={t("page.connections.form.username")}>
               <Input
                 value={value.username}
                 placeholder={stored ? t("page.connections.form.secretStored") : undefined}
@@ -3884,28 +3772,18 @@ export function SolaceForm({
                 onChange={(event) => set("password", event.target.value)}
               />
             </Fld>
-          </>
+          </Pair>
         )}
       </div>
 
-      <FormNote
-        advanced={
-          <button
-            type="button"
-            className="mqs-disclosure"
-            aria-expanded={advancedOpen}
-            onClick={() => setAdvancedOpen((open) => !open)}
-          >
-            <ChevronRight size={12} aria-hidden />
-            {t("page.connections.form.rocketmq.advanced")}
-          </button>
-        }
-        note={t("page.connections.form.solace.note")}
+      <Advanced
+        open={advancedOpen}
+        onToggle={() => setAdvancedOpen((open) => !open)}
+        label={t("page.connections.form.rocketmq.advanced")}
       />
       {advancedOpen && (
-        <div style={GRID}>
+        <div className={ROWS}>
           <Fld
-            span
             label={t("page.connections.form.solace.restUrl")}
             hint={t("page.connections.form.solace.restUrlHint")}
           >
@@ -3917,45 +3795,47 @@ export function SolaceForm({
               onChange={(event) => set("restUrl", event.target.value)}
             />
           </Fld>
-          <Fld
-            label={t("page.connections.form.solace.restUsername")}
+          <Pair
             hint={t("page.connections.form.solace.restHint")}
           >
-            <Input
-              value={value.restUsername}
-              placeholder={stored ? t("page.connections.form.secretStored") : undefined}
-              onChange={(event) => set("restUsername", event.target.value)}
-            />
-          </Fld>
-          <Fld label={t("page.connections.form.solace.restPassword")}>
-            <Input
-              type="password"
-              value={value.restPassword}
-              placeholder={stored ? t("page.connections.form.secretStored") : undefined}
-              onChange={(event) => set("restPassword", event.target.value)}
-            />
-          </Fld>
+            <Fld label={t("page.connections.form.solace.restUsername")}>
+              <Input
+                value={value.restUsername}
+                placeholder={stored ? t("page.connections.form.secretStored") : undefined}
+                onChange={(event) => set("restUsername", event.target.value)}
+              />
+            </Fld>
+            <Fld label={t("page.connections.form.solace.restPassword")}>
+              <Input
+                type="password"
+                value={value.restPassword}
+                placeholder={stored ? t("page.connections.form.secretStored") : undefined}
+                onChange={(event) => set("restPassword", event.target.value)}
+              />
+            </Fld>
+          </Pair>
+          <Pair>
+            <Fld
+              label={t("page.connections.form.rocketmq.timeout")}
+              hint={t("page.connections.form.rocketmq.timeoutHint")}
+            >
+              <Input
+                type="number"
+                value={value.timeoutSec > 0 ? String(value.timeoutSec) : ""}
+                onChange={(event) => {
+                  const seconds = Number.parseInt(event.target.value, 10);
+                  set("timeoutSec", Number.isNaN(seconds) ? 0 : seconds);
+                }}
+              />
+            </Fld>
+            <Fld
+              label={t("page.connections.form.remark")}
+              hint={t("page.connections.form.remarkHint")}
+            >
+              <Input value={value.remark} onChange={(event) => set("remark", event.target.value)} />
+            </Fld>
+          </Pair>
           <Fld
-            label={t("page.connections.form.rocketmq.timeout")}
-            hint={t("page.connections.form.rocketmq.timeoutHint")}
-          >
-            <Input
-              type="number"
-              value={value.timeoutSec > 0 ? String(value.timeoutSec) : ""}
-              onChange={(event) => {
-                const seconds = Number.parseInt(event.target.value, 10);
-                set("timeoutSec", Number.isNaN(seconds) ? 0 : seconds);
-              }}
-            />
-          </Fld>
-          <Fld
-            label={t("page.connections.form.remark")}
-            hint={t("page.connections.form.remarkHint")}
-          >
-            <Input value={value.remark} onChange={(event) => set("remark", event.target.value)} />
-          </Fld>
-          <Fld
-            span
             label={t("page.connections.form.solace.skipVerify")}
             hint={t("page.connections.form.solace.skipVerifyHint")}
           >

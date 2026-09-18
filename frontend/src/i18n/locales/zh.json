@@ -771,7 +771,7 @@
       "emptySupported": "支持 {{count}} 种消息队列",
       "emptyAllProtocols": "查看全部",
       "emptyFooter": "凭证加密存储在本机 · 配置不会上传",
-      "dialogTitle": "新建连接",
+      "dialogTitle": "新建 {{protocol}} 连接",
       "dialogTest": "测试连接",
       "dialogSave": "保存并连接",
       "dialogProtocol": "协议",
@@ -1092,7 +1092,7 @@
         "redis": "连接成功 · Redis 7.2 · 扫描到 12 个 Stream",
         "mqtt": "连接失败 · 证书主机名不匹配（查看详情）"
       },
-      "dialogTitleEdit": "编辑连接",
+      "dialogTitleEdit": "编辑 {{protocol}} 连接",
       "dialogSaveOnly": "保存",
       "probeOk": "连接成功 · {{latency}}",
       "probeOkShort": "连接成功",
@@ -1126,7 +1126,7 @@
       "protocolSearch": "搜索协议",
       "protocolNoMatch": "没有匹配的协议。",
       "dialogTitleProtocol": "选择协议",
-      "protocolBack": "‹ 返回"
+      "protocolBack": "返回选择协议"
     },
     "settings": {
       "title": "设置",

@@ -771,7 +771,7 @@
       "emptySupported": "Works with {{count}} message brokers",
       "emptyAllProtocols": "See all",
       "emptyFooter": "Credentials are encrypted on this machine · nothing is uploaded",
-      "dialogTitle": "New connection",
+      "dialogTitle": "New {{protocol}} connection",
       "dialogTest": "Test connection",
       "dialogSave": "Save and connect",
       "dialogProtocol": "Protocol",
@@ -1092,7 +1092,7 @@
         "redis": "Connected · Redis 7.2 · 12 streams found",
         "mqtt": "Connection failed · certificate hostname mismatch (see details)"
       },
-      "dialogTitleEdit": "Edit connection",
+      "dialogTitleEdit": "Edit {{protocol}} connection",
       "dialogSaveOnly": "Save",
       "probeOk": "Connected · {{latency}}",
       "probeOkShort": "Connected",
@@ -1126,7 +1126,7 @@
       "protocolSearch": "Search protocols",
       "protocolNoMatch": "No protocol matches that.",
       "dialogTitleProtocol": "Choose a protocol",
-      "protocolBack": "‹ Back"
+      "protocolBack": "Back to protocols"
     },
     "settings": {
       "title": "Settings",
