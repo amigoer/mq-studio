@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { PROTOCOLS, PROTOCOL_ORDER, type ProtocolId } from "@/design/data/protocols";
+import {
+  PROTOCOLS,
+  PROTOCOL_ORDER,
+  isProtocolReady,
+  type ProtocolId,
+} from "@/design/data/protocols";
 import { ConnectionsEmpty, foldProtocols } from "./ConnectionsEmpty";
 
 /*
@@ -44,5 +49,17 @@ describe("the welcome page", () => {
     const named = PROTOCOL_ORDER.filter((p) => html.includes(`title="${PROTOCOLS[p].name}"`));
     const folded = Number(/>\+(\d+)</.exec(html)?.[1] ?? 0);
     expect(named.length + folded).toBe(PROTOCOL_ORDER.length);
+  });
+
+  // Each tile opens its family's form, so one without a driver must not be pressable.
+  it("draws every family as a button, disabled while it has no driver", () => {
+    const html = renderToStaticMarkup(<ConnectionsEmpty />);
+    const tiles = (html.match(/<button[^>]*>/g) ?? []).filter((tag) => tag.includes(" title="));
+    const drawn = PROTOCOL_ORDER.filter((p) => html.includes(`title="${PROTOCOLS[p].name}"`));
+    expect(tiles).toHaveLength(drawn.length);
+    for (const p of drawn) {
+      const tile = tiles.find((tag) => tag.includes(`title="${PROTOCOLS[p].name}"`));
+      expect(tile?.includes(' disabled=""'), p).toBe(!isProtocolReady(p));
+    }
   });
 });

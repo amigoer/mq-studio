@@ -164,7 +164,7 @@ export function SubscriptionDialogActiveMQ({
             </FieldDescription>
           </Field>
           {error != null && (
-            <FieldDescription style={{ color: "var(--c-danger)" }}>{error}</FieldDescription>
+            <FieldDescription style={{ color: "var(--c-err)" }}>{error}</FieldDescription>
           )}
         </FieldGroup>
         <DialogFooter>

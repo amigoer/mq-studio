@@ -23,8 +23,16 @@ import {
   type GooglePubSubDraft,
   type AzureServiceBusDraft,
 } from "./ConnectionForms";
-import { emptyDraft, isDraftable, probeKey, toDraft, toSubmission, type ProtocolDraft } from "./connectionDraft";
-import { PROTOCOLS, type ProtocolId } from "@/design/data/protocols";
+import {
+  dialogOpening,
+  emptyDraft,
+  isDraftable,
+  probeKey,
+  toDraft,
+  toSubmission,
+  type ProtocolDraft,
+} from "./connectionDraft";
+import { PROTOCOLS, PROTOCOL_ORDER, isProtocolReady, type ProtocolId } from "@/design/data/protocols";
 
 const rocketmq = (value: RocketMQDraft): ProtocolDraft => ({ protocol: "rocketmq", value });
 const rabbitmq = (value: RabbitMQDraft): ProtocolDraft => ({ protocol: "rabbitmq", value });
@@ -1542,6 +1550,35 @@ describe("the picker and the draft registry", () => {
     for (const protocol of PROTOCOL_ORDER) {
       expect(isProtocolReady(protocol), protocol).toBe(isDraftable(protocol));
     }
+  });
+});
+
+/** A welcome page tile names its family before the dialog opens. */
+describe("where the connection dialog opens", () => {
+  it("opens on the form of a family picked beforehand", () => {
+    for (const protocol of PROTOCOL_ORDER.filter(isProtocolReady)) {
+      const opening = dialogOpening(undefined, protocol);
+      expect(opening.step, protocol).toBe("form");
+      expect(opening.draft.protocol).toBe(protocol);
+    }
+  });
+
+  it("opens on the picker when no family was picked", () => {
+    expect(dialogOpening(undefined, undefined).step).toBe("protocol");
+  });
+
+  it("opens an edit on its own profile's form, whatever was picked", () => {
+    const stored = {
+      id: 7,
+      name: "kafka-orders",
+      kind: MQKind.KindKafka,
+      endpoints: "kafka-1:9092",
+      timeoutSec: 9,
+      authMechanism: AuthMechanism.AuthNone,
+      options: {},
+      secretsConfigured: [],
+    } as unknown as ConnectionProfile;
+    expect(dialogOpening(stored, "rabbitmq")).toEqual({ step: "form", draft: toDraft(stored) });
   });
 });
 

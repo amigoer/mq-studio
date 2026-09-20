@@ -108,7 +108,7 @@ export function SubscriptionDialogSolace({
           </Field>
 
           {error != null && (
-            <FieldDescription style={{ color: "var(--c-danger)" }}>{error}</FieldDescription>
+            <FieldDescription style={{ color: "var(--c-err)" }}>{error}</FieldDescription>
           )}
           <FieldDescription>{t("board.solace.routing.addNote")}</FieldDescription>
         </FieldGroup>
