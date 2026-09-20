@@ -9,6 +9,67 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-09-20
+
+The connections page gains bulk work and a way into a form from the welcome
+grid. Behind them the Kafka access page stops refreshing into a list missing
+what was just saved, and six colours that were read but never defined now come
+from tokens that exist.
+
+### Added
+
+- Connection rows can be ticked, shift-clicked as a range or cmd-clicked, and a
+  bar takes the footer's place to connect, disconnect, test or delete the
+  selection. Esc clears it, Cmd+A selects every visible row, and a filter drops
+  the rows it hides, so a bulk delete only ever reaches what is on screen. The
+  actions run one connection at a time: Go takes every dial, test and delete
+  under a single runtime lock, so sending them together would only queue them
+  there, and each queued dial would then report its wait as the connection's
+  latency.
+
+- The welcome page drew every broker family in one row, which by fifteen had
+  outgrown the page's column and wrapped long names onto lines of their own.
+  Families sit in a five-by-three grid now, each name on one line, and past
+  fifteen the last cell counts the rest and opens the protocol picker, so the
+  page keeps its size as drivers ship. A tile also opens the dialog on its own
+  family's form: the only way to one before was the button above the grid and
+  then the same families again inside the dialog. A family with no driver is
+  disabled rather than pressable.
+
+### Fixed
+
+- The Kafka access page could refresh to a list without what had just been
+  saved. A rule's wait compared only the subject, so a describe landing between
+  two of the creates returned early, and for a subject that already had rules it
+  returned on the first describe. A user's wait required only the user, so
+  adding SCRAM-SHA-512 to one that already held SCRAM-SHA-256 returned before
+  the new mechanism was listed. Both now wait for what they wrote: the bindings
+  the creates returned, field for field, and the credential's own mechanism and
+  iterations.
+
+- A Kafka user holding both SCRAM-SHA-256 and SCRAM-SHA-512 could not be deleted
+  at all. Both deletions went in one request, and Kafka refuses a request that
+  alters the same user twice, so it answered DUPLICATE_RESOURCE and removed
+  neither password. The deletions go one request per mechanism now.
+
+- The connection form hung off the right half of its dialog. Labels sat in a
+  fixed 10.5rem column, right-aligned, and a Chinese label is two to four
+  characters, so text began 83-166px from the left edge while the inputs ended
+  25px from the right one. Labels sit above full-width controls now, and the
+  title, the labels, the controls and the footer buttons share one gutter. The
+  title names the protocol, the sentence each form carries moves under it, and
+  fields that answer one question - a key and its secret - sit side by side to
+  keep the height.
+
+- Six custom properties were read in 32 places and defined nowhere. An undefined
+  var() throws nothing and fails no type check: the declaration is dropped and
+  the element quietly takes another value. So error text in the newer drivers'
+  dialogs was never red, in 25 places; the NATS storage bar was transparent from
+  90%, and its alarm state drew nothing; the strip above the NATS accounts table
+  had no rule under it; the ActiveMQ body and header editors lost their
+  monospace face; and a Pub/Sub textarea drew a black border. Each now reads the
+  token its siblings already use for the same job.
+
 ## [0.1.1] - 2026-09-12
 
 Three places in the app answered a click with nothing, and each read as a fault
