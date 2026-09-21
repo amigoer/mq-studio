@@ -165,3 +165,36 @@ func CheckCoverage(conn driver.Conn) []error {
 	}
 	return problems
 }
+
+// rank orders the blast radii by what they cost to get wrong, which is the
+// order an allowance widens in.
+var rank = map[Blast]int{BlastRead: 0, BlastMutate: 1, BlastDestructive: 2}
+
+// Permits reports whether an allowance covers an operation's blast radius.
+//
+// The allowance is a ceiling rather than a set: somebody who will let an agent
+// delete a queue is not thereby refusing it permission to publish, and a
+// caller that had to name each tier separately would eventually name them
+// wrongly.
+//
+// An unknown blast radius is permitted by nothing. A new tier must be placed
+// deliberately, and until it is, the safe answer is no.
+func Permits(allowed, blast Blast) bool {
+	ceiling, known := rank[allowed]
+	if !known {
+		return false
+	}
+	level, known := rank[blast]
+	return known && level <= ceiling
+}
+
+// Find returns the operation with an id. It is how a caller that knows the id
+// reaches the blast radius and the summary without walking the table.
+func Find(id string) (Operation, bool) {
+	for _, operation := range Operations {
+		if operation.ID == id {
+			return operation, true
+		}
+	}
+	return Operation{}, false
+}

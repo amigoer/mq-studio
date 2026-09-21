@@ -14,52 +14,167 @@ type connectionInput struct {
 	Connection int `json:"connection" jsonschema:"the connection id, as connections_list reports it"`
 }
 
-func (s *server) register(server *mcp.Server) {
+/*
+ * tools is every operation this server can perform, keyed by its catalogue id.
+ *
+ * What is NOT here is as deliberate as what is. The blast radius, and with it
+ * whether a tool is offered at all and what its annotations say, comes from
+ * the catalogue: two descriptions of how much damage one call can do would
+ * eventually disagree, and the one a client reads would be this one.
+ *
+ * The catalogue has 124 operations and this has a fraction of them. An
+ * operation with no tool is a fact about this server rather than about the
+ * endpoint, which is why capabilities_describe reports the two differently.
+ */
+var tools = map[string]toolInfo{
+	"destination.list": {
+		name:        "destinations_list",
+		title:       "List destinations",
+		description: "List the topics, queues or streams a connection holds.",
+	},
+	"destination.detail": {
+		name:  "destination_detail",
+		title: "Read a destination",
+		description: "Read one destination's configuration and figures, including the attributes " +
+			"only its own family has.",
+	},
+	"subscription.list": {
+		name:  "subscriptions_list",
+		title: "List subscriptions",
+		description: "List the consumer groups or subscriptions on a connection, with their " +
+			"backlog where the family reports one.",
+	},
+	"message.query": {
+		name:  "messages_browse",
+		title: "Browse messages",
+		description: "Browse stored messages on a destination. Whether reading takes a message " +
+			"away is the family's doing: when it does, the result says so in its caveat.",
+	},
+	"cluster.nodes": {
+		name:        "cluster_topology",
+		title:       "Read the cluster",
+		description: "Read the brokers a connection's cluster is made of, and their aggregate figures.",
+	},
+
+	"destination.create": {
+		name:  "destination_create",
+		title: "Create a destination",
+		description: "Create a topic, queue or stream. The settings a family accepts differ, and " +
+			"capabilities_describe lists them for this connection - send them in attributes.",
+	},
+	"message.send": {
+		name:  "message_publish",
+		title: "Publish a message",
+		description: "Publish a message. What it costs is whatever the consumers do with it, " +
+			"which is not something this application can see.",
+	},
+	"message.resend": {
+		name:  "message_resend",
+		title: "Resend a dead letter",
+		description: "Put a dead-lettered message back on the retry path for whichever member of " +
+			"the group picks it up.",
+	},
+	"subscription.resetOffset": {
+		name:  "subscription_reset_offset",
+		title: "Move a read position",
+		description: "Move a subscription's read position to a moment in time. Nothing is deleted, " +
+			"but a forward move skips everything between and a backward one redelivers it.",
+	},
+
+	"destination.purge": {
+		name:  "destination_purge",
+		title: "Empty a destination",
+		description: "Discard everything a destination is holding, keeping the destination itself. " +
+			"There is no undo and the messages are not somewhere else.",
+	},
+	"destination.delete": {
+		name:        "destination_delete",
+		title:       "Delete a destination",
+		description: "Delete a destination and everything it holds. There is no undo.",
+	},
+}
+
+// toolInfo is how one catalogue operation is presented.
+type toolInfo struct {
+	name        string
+	title       string
+	description string
+}
+
+// offer builds the tool for an operation, or reports that the allowance does
+// not reach it.
+func offer(operationID string, allow catalog.Blast) (*mcp.Tool, bool) {
+	info, present := tools[operationID]
+	if !present {
+		return nil, false
+	}
+	operation, known := catalog.Find(operationID)
+	if !known || !catalog.Permits(allow, operation.Blast) {
+		return nil, false
+	}
+	return &mcp.Tool{
+		Name:        info.name,
+		Description: info.description,
+		Annotations: annotate(info.title, operation.Blast),
+	}, true
+}
+
+func (s *server) register(server *mcp.Server, allow catalog.Blast) {
+	// The two that are about this installation rather than about a broker.
+	// Neither reaches a driver, so neither has a catalogue operation, and both
+	// are always offered: a caller that cannot list the connections cannot use
+	// any of the rest.
 	mcp.AddTool(server, &mcp.Tool{
-		Name:        "connections_list",
-		Description: "List the broker connections this installation has stored, with the family each speaks. Start here: every other tool takes one of these ids.",
-		Annotations: readOnly("List connections"),
+		Name: "connections_list",
+		Description: "List the broker connections this installation has stored, with the family " +
+			"each speaks. Start here: every other tool takes one of these ids.",
+		Annotations: annotate("List connections", catalog.BlastRead),
 	}, s.listConnections)
 
 	mcp.AddTool(server, &mcp.Tool{
 		Name: "capabilities_describe",
-		Description: "Describe what one connection can actually do: the operations available on it, " +
-			"the ones its family has but this endpoint does not, and the consequences attached to " +
-			"the ones that work. Call this before working a connection you have not seen - two " +
-			"endpoints of the same family can answer differently, and it is only knowable once connected.",
-		Annotations: readOnly("Describe a connection"),
+		Description: "Describe what one connection can actually do: the operations available on " +
+			"it, the ones its family has but this endpoint does not, the consequences attached " +
+			"to the ones that work, and the settings this family accepts where an operation " +
+			"takes them. Call this before working a connection you have not seen.",
+		Annotations: annotate("Describe a connection", catalog.BlastRead),
 	}, s.describeCapabilities)
 
-	mcp.AddTool(server, &mcp.Tool{
-		Name:        "destinations_list",
-		Description: "List the topics, queues or streams a connection holds.",
-		Annotations: readOnly("List destinations"),
-	}, s.listDestinations)
+	if tool, ok := offer("destination.list", allow); ok {
+		mcp.AddTool(server, tool, s.listDestinations)
+	}
+	if tool, ok := offer("destination.detail", allow); ok {
+		mcp.AddTool(server, tool, s.destinationDetail)
+	}
+	if tool, ok := offer("subscription.list", allow); ok {
+		mcp.AddTool(server, tool, s.listSubscriptions)
+	}
+	if tool, ok := offer("message.query", allow); ok {
+		mcp.AddTool(server, tool, s.browseMessages)
+	}
+	if tool, ok := offer("cluster.nodes", allow); ok {
+		mcp.AddTool(server, tool, s.clusterTopology)
+	}
 
-	mcp.AddTool(server, &mcp.Tool{
-		Name:        "destination_detail",
-		Description: "Read one destination's configuration and figures, including the attributes only its own family has.",
-		Annotations: readOnly("Read a destination"),
-	}, s.destinationDetail)
+	if tool, ok := offer("destination.create", allow); ok {
+		mcp.AddTool(server, tool, s.createDestination)
+	}
+	if tool, ok := offer("message.send", allow); ok {
+		mcp.AddTool(server, tool, s.publishMessage)
+	}
+	if tool, ok := offer("message.resend", allow); ok {
+		mcp.AddTool(server, tool, s.resendMessage)
+	}
+	if tool, ok := offer("subscription.resetOffset", allow); ok {
+		mcp.AddTool(server, tool, s.resetOffset)
+	}
 
-	mcp.AddTool(server, &mcp.Tool{
-		Name:        "subscriptions_list",
-		Description: "List the consumer groups or subscriptions on a connection, with their backlog where the family reports one.",
-		Annotations: readOnly("List subscriptions"),
-	}, s.listSubscriptions)
-
-	mcp.AddTool(server, &mcp.Tool{
-		Name: "messages_browse",
-		Description: "Browse stored messages on a destination. Whether reading takes a message away " +
-			"is the family's doing: when it does, the result says so in its caveat.",
-		Annotations: readOnly("Browse messages"),
-	}, s.browseMessages)
-
-	mcp.AddTool(server, &mcp.Tool{
-		Name:        "cluster_topology",
-		Description: "Read the brokers a connection's cluster is made of, and their aggregate figures.",
-		Annotations: readOnly("Read the cluster"),
-	}, s.clusterTopology)
+	if tool, ok := offer("destination.purge", allow); ok {
+		mcp.AddTool(server, tool, s.purgeDestination)
+	}
+	if tool, ok := offer("destination.delete", allow); ok {
+		mcp.AddTool(server, tool, s.deleteDestination)
+	}
 }
 
 // connectionSummary is a stored profile as a caller needs it.
@@ -107,10 +222,16 @@ type operationSummary struct {
 	Blast   string `json:"blast"`
 	Summary string `json:"summary"`
 	Caveat  string `json:"caveat,omitempty"`
-	// Tool names the tool that performs it, and is empty for an operation
-	// this server does not expose yet. An empty one is not a missing feature:
-	// the application can do it and this server is read-only.
+	// Tool names the tool that performs it, and is empty for an operation no
+	// tool reaches - either because this server has none, or because the
+	// allowance it was started with does not extend that far. Either way the
+	// endpoint can do it and this caller cannot, which is not the same as the
+	// endpoint being unable to.
 	Tool string `json:"tool,omitempty"`
+	// Attributes are the family settings this operation accepts here, for a
+	// write that carries them. They are the one part of a request a caller
+	// cannot discover from the tool's own schema.
+	Attributes []attributeSummary `json:"attributes,omitempty"`
 }
 
 // absence is a capability the family has and this endpoint does not.
@@ -137,11 +258,12 @@ func (s *server) describeCapabilities(
 	operations := make([]operationSummary, 0, len(resolved))
 	for _, operation := range resolved {
 		operations = append(operations, operationSummary{
-			ID:      operation.ID,
-			Blast:   string(operation.Blast),
-			Summary: operation.Summary,
-			Caveat:  operation.Caveat,
-			Tool:    toolFor[operation.ID],
+			ID:         operation.ID,
+			Blast:      string(operation.Blast),
+			Summary:    operation.Summary,
+			Caveat:     operation.Caveat,
+			Tool:       s.offered[operation.ID],
+			Attributes: describeAttributes(conn.Kind(), operation.ID),
 		})
 	}
 
@@ -156,21 +278,6 @@ func (s *server) describeCapabilities(
 		Operations:  operations,
 		Unavailable: unavailable,
 	}, nil
-}
-
-// toolFor maps a catalogue operation to the tool that performs it.
-//
-// Only the read-only ones are here, which is the whole of this server today.
-// The map is what lets capabilities_describe tell a caller the difference
-// between an operation this endpoint cannot do and one it can do that no tool
-// reaches yet - two very different things to be told.
-var toolFor = map[string]string{
-	"destination.list":   "destinations_list",
-	"destination.detail": "destination_detail",
-	"subscription.list":  "subscriptions_list",
-	"message.query":      "messages_browse",
-	"cluster.nodes":      "cluster_topology",
-	"cluster.overview":   "cluster_topology",
 }
 
 type destinationsInput struct {

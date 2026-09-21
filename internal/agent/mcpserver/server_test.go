@@ -32,9 +32,10 @@ func (c *fakeConn) Capabilities() model.Capabilities { return c.capabilities }
 func (c *fakeConn) Close() error                     { return nil }
 
 func serverWith(conn driver.Conn) *server {
-	return &server{services: &app.Services{
-		Conns: func(int) (driver.Conn, error) { return conn, nil },
-	}}
+	return &server{
+		services: &app.Services{Conns: func(int) (driver.Conn, error) { return conn, nil }},
+		offered:  offeredTools(catalog.BlastDestructive),
+	}
 }
 
 // The connection service is real, over a temporary store with nothing in it.
@@ -68,13 +69,13 @@ func emptyConnections(t *testing.T) *connection.Service {
 // session runs a real client against a real server over the in-memory
 // transport. It is the protocol itself rather than a stand-in, so what the
 // test sees is what a client sees.
-func session(t *testing.T, services *app.Services) *mcp.ClientSession {
+func session(t *testing.T, services *app.Services, allow catalog.Blast) *mcp.ClientSession {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	t.Cleanup(cancel)
 
 	serverTransport, clientTransport := mcp.NewInMemoryTransports()
-	server := New(services, "test")
+	server := New(services, "test", allow)
 	go func() {
 		if err := server.Run(ctx, serverTransport); err != nil && ctx.Err() == nil {
 			t.Errorf("server stopped: %v", err)
@@ -99,11 +100,9 @@ func session(t *testing.T, services *app.Services) *mcp.ClientSession {
  * tool would work perfectly and nothing else would notice.
  */
 func TestEveryToolIsAnnotatedReadOnly(t *testing.T) {
-	clientSession := session(t, &app.Services{})
-
-	tools, err := clientSession.ListTools(context.Background(), nil)
-	if err != nil {
-		t.Fatalf("list tools: %v", err)
+	tools := struct{ Tools []*mcp.Tool }{}
+	for _, tool := range listed(t, catalog.BlastRead) {
+		tools.Tools = append(tools.Tools, tool)
 	}
 	if len(tools.Tools) == 0 {
 		t.Fatal("the server registered no tools")
@@ -129,41 +128,134 @@ func TestInstructionsPointAtTheCapabilityTool(t *testing.T) {
 	}
 }
 
-/*
- * toolFor is what capabilities_describe uses to tell a caller the difference
- * between an operation this endpoint cannot do and one it can do that no tool
- * reaches. Both halves have to be true for that to mean anything.
- */
-func TestToolForNamesRealOperationsAndRealTools(t *testing.T) {
-	operations := make(map[string]catalog.Operation, len(catalog.Operations))
-	for _, operation := range catalog.Operations {
-		operations[operation.ID] = operation
-	}
-
-	clientSession := session(t, &app.Services{})
-	tools, err := clientSession.ListTools(context.Background(), nil)
+// listed is the tool names a server offers at an allowance, read through the
+// protocol rather than off the table that built it.
+func listed(t *testing.T, allow catalog.Blast) map[string]*mcp.Tool {
+	t.Helper()
+	clientSession := session(t, &app.Services{}, allow)
+	result, err := clientSession.ListTools(context.Background(), nil)
 	if err != nil {
 		t.Fatalf("list tools: %v", err)
 	}
-	registered := make(map[string]bool, len(tools.Tools))
-	for _, tool := range tools.Tools {
-		registered[tool.Name] = true
+	byName := make(map[string]*mcp.Tool, len(result.Tools))
+	for _, tool := range result.Tools {
+		byName[tool.Name] = tool
+	}
+	return byName
+}
+
+func TestToolsTableNamesRealOperations(t *testing.T) {
+	for operationID, info := range tools {
+		if _, known := catalog.Find(operationID); !known {
+			t.Errorf("tools names %q, which is not a catalogue operation", operationID)
+		}
+		if info.name == "" || info.title == "" || info.description == "" {
+			t.Errorf("%s is presented incompletely: %#v", operationID, info)
+		}
+	}
+}
+
+/*
+ * The allowance is the whole of M3, and this is what it means.
+ *
+ * A tool that is absent from the list cannot be called by a model that was
+ * never told it exists, which is a stronger guarantee than refusing at call
+ * time - there is nothing to be talked out of. So the assertion is about the
+ * list, not about what a handler does when reached.
+ */
+func TestAllowanceDecidesWhatIsOffered(t *testing.T) {
+	expected := func(allow catalog.Blast) map[string]bool {
+		names := map[string]bool{"connections_list": true, "capabilities_describe": true}
+		for operationID, info := range tools {
+			operation, _ := catalog.Find(operationID)
+			if catalog.Permits(allow, operation.Blast) {
+				names[info.name] = true
+			}
+		}
+		return names
 	}
 
-	for id, tool := range toolFor {
-		operation, known := operations[id]
+	for _, allow := range []catalog.Blast{catalog.BlastRead, catalog.BlastMutate, catalog.BlastDestructive} {
+		offered := listed(t, allow)
+		want := expected(allow)
+		for name := range want {
+			if offered[name] == nil {
+				t.Errorf("at %q, %s is missing", allow, name)
+			}
+		}
+		for name := range offered {
+			if !want[name] {
+				t.Errorf("at %q, %s is offered and should not be", allow, name)
+			}
+		}
+	}
+}
+
+// The three tools the criterion names, spelled out rather than derived, so
+// that a change to the derivation above cannot quietly agree with itself.
+func TestTheDefaultOffersNothingThatWrites(t *testing.T) {
+	offered := listed(t, catalog.BlastRead)
+	for _, name := range []string{
+		"destination_purge", "destination_delete", "subscription_reset_offset",
+		"destination_create", "message_publish", "message_resend",
+	} {
+		if offered[name] != nil {
+			t.Errorf("%s is offered by a server nobody gave an allowance to", name)
+		}
+	}
+	for _, name := range []string{"connections_list", "destinations_list", "messages_browse"} {
+		if offered[name] == nil {
+			t.Errorf("%s is missing from the default server", name)
+		}
+	}
+}
+
+// An unrecognised allowance must not widen anything. A typo in a flag is the
+// one way this could go wrong without anybody noticing.
+func TestAnUnknownAllowanceOffersNoBrokerTools(t *testing.T) {
+	offered := listed(t, catalog.Blast("everything"))
+	if offered["destinations_list"] != nil {
+		t.Error("an unrecognised allowance offered a broker tool")
+	}
+	if offered["connections_list"] == nil {
+		t.Error("an unrecognised allowance dropped the tools that are always offered")
+	}
+}
+
+/*
+ * The annotations are the protocol's way of saying what the catalogue says
+ * with a blast radius, and a client decides how much to trust a tool by
+ * reading them. They are derived for exactly that reason, and this is what
+ * holds the derivation honest.
+ */
+func TestAnnotationsMatchTheCatalogue(t *testing.T) {
+	offered := listed(t, catalog.BlastDestructive)
+	for operationID, info := range tools {
+		operation, known := catalog.Find(operationID)
 		if !known {
-			t.Errorf("toolFor names %q, which is not a catalogue operation", id)
 			continue
 		}
-		// A write operation mapped to a tool here would advertise this server
-		// as able to do something it must not.
-		if operation.Blast != catalog.BlastRead {
-			t.Errorf("toolFor maps %s, whose blast radius is %s, to a tool on a read-only server",
-				id, operation.Blast)
+		tool := offered[info.name]
+		if tool == nil {
+			t.Errorf("%s is not offered even at the widest allowance", info.name)
+			continue
 		}
-		if !registered[tool] {
-			t.Errorf("%s is mapped to tool %q, which the server does not register", id, tool)
+		if tool.Annotations == nil {
+			t.Errorf("%s carries no annotations", info.name)
+			continue
+		}
+		if want := operation.Blast == catalog.BlastRead; tool.Annotations.ReadOnlyHint != want {
+			t.Errorf("%s: readOnlyHint = %v, but the catalogue calls it %s",
+				info.name, tool.Annotations.ReadOnlyHint, operation.Blast)
+		}
+		destructive := tool.Annotations.DestructiveHint
+		if destructive == nil {
+			t.Errorf("%s does not say whether it is destructive", info.name)
+			continue
+		}
+		if want := operation.Blast == catalog.BlastDestructive; *destructive != want {
+			t.Errorf("%s: destructiveHint = %v, but the catalogue calls it %s",
+				info.name, *destructive, operation.Blast)
 		}
 	}
 }
@@ -309,7 +401,7 @@ func TestToolsRefuseAnUnknownConnectionThroughTheProtocol(t *testing.T) {
 	clientSession := session(t, &app.Services{
 		Conns:       func(int) (driver.Conn, error) { return nil, driver.ErrNotConnected },
 		Connections: emptyConnections(t),
-	})
+	}, catalog.BlastRead)
 
 	arguments, err := json.Marshal(map[string]any{"connection": 404})
 	if err != nil {
@@ -325,4 +417,68 @@ func TestToolsRefuseAnUnknownConnectionThroughTheProtocol(t *testing.T) {
 	if !result.IsError {
 		t.Error("an unopenable connection answered as though it were open")
 	}
+}
+
+/*
+ * A family setting nobody reads is dropped in silence by the driver, and the
+ * call still succeeds. That is the failure this refusal exists to prevent: a
+ * caller that asked for a quorum queue and got a classic one has no way to
+ * tell afterwards.
+ */
+func TestUnknownAttributesAreRefusedByName(t *testing.T) {
+	s := serverWith(&fakeConn{kind: model.KindRabbitMQ})
+
+	err := s.checkAttributes(model.KindRabbitMQ, "destination.create",
+		map[string]string{"queueType": "quorum"})
+	if err != nil {
+		t.Errorf("a declared key was refused: %v", err)
+	}
+
+	err = s.checkAttributes(model.KindRabbitMQ, "destination.create",
+		map[string]string{"replicationFactor": "3"})
+	if err == nil {
+		t.Fatal("a key this family does not read was accepted and would have been ignored")
+	}
+	// The refusal has to name what would have worked, or a caller can only
+	// guess again.
+	if !strings.Contains(err.Error(), "queueType") {
+		t.Errorf("the refusal does not say what the family does take: %v", err)
+	}
+
+	// A family that reads nothing on an operation says so rather than listing
+	// an empty set.
+	err = s.checkAttributes(model.KindNATS, "destination.create",
+		map[string]string{"anything": "1"})
+	if err == nil || !strings.Contains(err.Error(), "takes no settings") {
+		t.Errorf("a family with no declared settings did not say so: %v", err)
+	}
+}
+
+// capabilities_describe is where a caller learns what to put in attributes,
+// and it is the only place: the tool's own schema says "a map of strings".
+func TestDescribeCarriesTheFamilysWriteSettings(t *testing.T) {
+	s := serverWith(&fakeConn{
+		kind:         model.KindRabbitMQ,
+		capabilities: model.NewCapabilities(model.CapDestinationCreate),
+	})
+
+	_, output, err := s.describeCapabilities(context.Background(), nil, connectionInput{Connection: 1})
+	if err != nil {
+		t.Fatalf("describe: %v", err)
+	}
+	for _, operation := range output.Operations {
+		if operation.ID != "destination.create" {
+			continue
+		}
+		if len(operation.Attributes) == 0 {
+			t.Fatal("rabbitmq declares settings for destination.create and none came back")
+		}
+		for _, attribute := range operation.Attributes {
+			if attribute.Key == "" || attribute.Type == "" || attribute.Summary == "" {
+				t.Errorf("an attribute came back incomplete: %#v", attribute)
+			}
+		}
+		return
+	}
+	t.Fatal("destination.create did not come back at all")
 }

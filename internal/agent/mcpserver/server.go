@@ -6,10 +6,12 @@
 // reshapes for the renderer, and this reshapes for a caller that has no screen
 // and has to be told what an operation costs.
 //
-// Read only, for now. Every tool here is an operation the catalogue marks
-// BlastRead, and a tool for anything else is M3's decision to make, not a
-// missing feature: a server that could purge a queue would have to have been
-// asked to.
+// How far it goes is decided when it is started, not here and not in the
+// application's settings. An allowance is a ceiling on the blast radius the
+// catalogue gives each operation: read by default, and nothing above it is
+// offered at all - a tool that is not in the list cannot be called by a model
+// that has not been told about it, which is a stronger guarantee than one that
+// refuses at call time.
 //
 // It never writes the profile store. The window owns that file and rewrites it
 // whole, so a second process that stamped a status onto it would be racing the
@@ -23,6 +25,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
+	"github.com/amigoer/mq-studio/internal/agent/catalog"
 	"github.com/amigoer/mq-studio/internal/app"
 	"github.com/amigoer/mq-studio/internal/driver"
 	"github.com/amigoer/mq-studio/internal/model"
@@ -37,41 +40,63 @@ const Name = "mq-studio"
 // It says the one thing that cannot be discovered from a tool list: what a
 // connection can do is a property of the endpoint, not of its family, and
 // asking is cheaper than finding out from a failure.
-const instructions = "Read the message brokers this installation has connections for. " +
-	"Start with connections_list, then capabilities_describe on the connection you mean to work: " +
-	"two endpoints of the same family can answer differently, and what one can do is only " +
-	"knowable once connected. Results carry a caveat when an operation has a consequence that " +
-	"survives it succeeding - reading a RabbitMQ queue, for instance, alters that queue's state. " +
-	"Everything here is read-only."
+const instructions = "Work the message brokers this installation has connections for. " +
+	"Start with connections_list, then capabilities_describe on the connection you mean to use: " +
+	"two endpoints of the same family can answer differently, what one can do is only knowable " +
+	"once connected, and for anything you intend to create it also names the settings that " +
+	"family accepts. Results carry a caveat when an operation has a consequence that survives " +
+	"it succeeding - reading a RabbitMQ queue alters that queue's state, and emptying a Kafka " +
+	"topic leaves its offsets counting. How far this server goes was decided when it was " +
+	"started: what is not in the tool list was not permitted, and asking for it will not change that."
 
 // server holds what the tools need. The domain services do the work; this
 // only resolves connections and turns a refusal into something a caller can
 // act on.
 type server struct {
 	services *app.Services
+	// offered maps a catalogue operation to the tool that performs it, for
+	// the tools this server actually registered. capabilities_describe reads
+	// it, so what it names is what the caller can really call - an operation
+	// the allowance kept out is reported as available on the endpoint and
+	// reachable by no tool, which is the truth.
+	offered map[string]string
 }
 
-// New builds the MCP server with every read-only tool registered.
-func New(services *app.Services, version string) *mcp.Server {
-	s := &server{services: services}
+// New builds the MCP server offering every tool up to the allowance.
+//
+// An unrecognised allowance offers nothing above reading, because
+// catalog.Permits refuses what it does not know: a typo in a flag must not
+// widen anything.
+func New(services *app.Services, version string, allow catalog.Blast) *mcp.Server {
+	s := &server{services: services, offered: offeredTools(allow)}
 	mcpServer := mcp.NewServer(&mcp.Implementation{
 		Name:    Name,
 		Title:   "MQ Studio",
 		Version: version,
 	}, &mcp.ServerOptions{Instructions: instructions})
-	s.register(mcpServer)
+	s.register(mcpServer, allow)
 	return mcpServer
 }
 
-// readOnly is the annotation every tool here carries. The hints are the
-// protocol's way of saying what this application says with a blast radius, and
-// leaving them off would make a reader assume the worst of a listing.
-func readOnly(title string) *mcp.ToolAnnotations {
+/*
+ * annotate turns a blast radius into the protocol's hints.
+ *
+ * Derived rather than written per tool, because these are the same fact twice
+ * and the copy a client reads is this one. A tool whose annotation said read
+ * while the catalogue said destructive would be trusted precisely where it
+ * should not be.
+ *
+ * The world is closed everywhere here: a broker this installation has a stored
+ * connection for is a named thing, not an open-ended search.
+ */
+func annotate(title string, blast catalog.Blast) *mcp.ToolAnnotations {
 	closedWorld := false
+	destructive := blast == catalog.BlastDestructive
 	return &mcp.ToolAnnotations{
-		Title:         title,
-		ReadOnlyHint:  true,
-		OpenWorldHint: &closedWorld,
+		Title:           title,
+		ReadOnlyHint:    blast == catalog.BlastRead,
+		DestructiveHint: &destructive,
+		OpenWorldHint:   &closedWorld,
 	}
 }
 

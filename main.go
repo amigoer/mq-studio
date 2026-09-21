@@ -44,7 +44,7 @@ const applicationName = "MQ Studio"
 
 func main() {
 	if len(os.Args) > 1 && os.Args[1] == mcpCommand {
-		if err := runMCP(); err != nil {
+		if err := runMCP(os.Args[2:]); err != nil {
 			log.Fatal(err)
 		}
 		return

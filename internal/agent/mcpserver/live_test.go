@@ -5,11 +5,13 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"os"
+	"strconv"
 	"testing"
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
+	"github.com/amigoer/mq-studio/internal/agent/catalog"
 	"github.com/amigoer/mq-studio/internal/agent/mcpserver"
 	"github.com/amigoer/mq-studio/internal/app"
 	"github.com/amigoer/mq-studio/internal/driver/rabbitmq"
@@ -67,7 +69,7 @@ func liveServices(t *testing.T, profile model.ConnectionProfile) (*app.Services,
 
 // mcpSession runs a real client against the real server over the in-memory
 // transport, so what the test calls is what a client calls.
-func mcpSession(t *testing.T, services *app.Services) *mcp.ClientSession {
+func mcpSession(t *testing.T, services *app.Services, allow catalog.Blast) *mcp.ClientSession {
 	t.Helper()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
@@ -75,7 +77,7 @@ func mcpSession(t *testing.T, services *app.Services) *mcp.ClientSession {
 
 	serverTransport, clientTransport := mcp.NewInMemoryTransports()
 	go func() {
-		if err := mcpserver.New(services, "test").Run(ctx, serverTransport); err != nil && ctx.Err() == nil {
+		if err := mcpserver.New(services, "test", allow).Run(ctx, serverTransport); err != nil && ctx.Err() == nil {
 			t.Errorf("server stopped: %v", err)
 		}
 	}()
@@ -144,7 +146,7 @@ func TestLiveMCPDestinationsMatchTheServiceLayer(t *testing.T) {
 	requireLiveRabbit(t)
 
 	services, connID, _ := liveServices(t, liveRabbitProfile())
-	session := mcpSession(t, services)
+	session := mcpSession(t, services, catalog.BlastRead)
 
 	type destinationsResult struct {
 		Destinations []*model.Destination `json:"destinations"`
@@ -185,7 +187,7 @@ func TestLiveMCPCarriesTheBrowseCaveat(t *testing.T) {
 	requireLiveRabbit(t)
 
 	services, connID, _ := liveServices(t, liveRabbitProfile())
-	session := mcpSession(t, services)
+	session := mcpSession(t, services, catalog.BlastRead)
 
 	type describeResult struct {
 		Family     string `json:"family"`
@@ -236,7 +238,7 @@ func TestLiveMCPLeavesTheProfileStoreAlone(t *testing.T) {
 	services, connID, paths := liveServices(t, liveRabbitProfile())
 	before := hashFile(t, paths.ConnectionsFile)
 
-	session := mcpSession(t, services)
+	session := mcpSession(t, services, catalog.BlastRead)
 	type destinationsResult struct {
 		Destinations []*model.Destination `json:"destinations"`
 	}
@@ -256,4 +258,166 @@ func hashFile(t *testing.T, path string) [32]byte {
 		t.Fatalf("read %s: %v", path, err)
 	}
 	return sha256.Sum256(contents)
+}
+
+/*
+ * The write tools against a real broker.
+ *
+ * What an offline test cannot show is that the effect a tool reports is true.
+ * "emptied the queue" is a sentence either way; only a broker can say whether
+ * the queue is empty afterwards, and that is the whole value of the line.
+ */
+func TestLiveMCPWritesDoWhatTheySay(t *testing.T) {
+	requireLiveRabbit(t)
+
+	services, connID, paths := liveServices(t, liveRabbitProfile())
+	session := mcpSession(t, services, catalog.BlastDestructive)
+	before := hashFile(t, paths.ConnectionsFile)
+
+	name := "mq-studio-mcp-" + strconv.FormatInt(time.Now().UnixNano(), 36)
+	ref := model.DestinationRef{Name: name}
+
+	type writeResult struct {
+		Effect struct {
+			Changed string `json:"changed"`
+			Caveat  string `json:"caveat"`
+		} `json:"effect"`
+		Reference string `json:"reference"`
+	}
+
+	created := call[writeResult](t, session, "destination_create", map[string]any{
+		"connection": connID,
+		"name":       name,
+		// Declared for this family by the catalogue, and read by the driver.
+		"attributes": map[string]string{"durable": "true", "queueType": "classic"},
+	})
+	if created.Effect.Changed == "" {
+		t.Error("creating a destination reported no effect")
+	}
+	t.Cleanup(func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+		defer cancel()
+		_ = services.Topics.Remove(ctx, connID, ref)
+	})
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	if _, err := services.Topics.Detail(ctx, connID, ref); err != nil {
+		t.Fatalf("the tool said it created %s and the broker does not have it: %v", name, err)
+	}
+
+	published := call[writeResult](t, session, "message_publish", map[string]any{
+		"connection":  connID,
+		"destination": name,
+		"body":        "from the mcp server",
+	})
+	if published.Effect.Changed == "" {
+		t.Error("publishing reported no effect")
+	}
+
+	// The broker counts asynchronously, so the depth is read until it shows
+	// the message rather than once, immediately. Absence here would otherwise
+	// be indistinguishable from a message that simply had not landed yet.
+	if depth := awaitDepth(t, services, connID, ref, func(depth int64) bool { return depth > 0 }); depth == 0 {
+		t.Fatal("the tool said it published and the queue never showed a message")
+	}
+
+	purged := call[writeResult](t, session, "destination_purge", map[string]any{
+		"connection": connID,
+		"name":       name,
+	})
+	if purged.Effect.Changed == "" {
+		t.Error("emptying reported no effect")
+	}
+	if depth := awaitDepth(t, services, connID, ref, func(depth int64) bool { return depth == 0 }); depth != 0 {
+		t.Errorf("the tool said it emptied %s and the queue still holds %d", name, depth)
+	}
+
+	deleted := call[writeResult](t, session, "destination_delete", map[string]any{
+		"connection": connID,
+		"name":       name,
+	})
+	if deleted.Effect.Changed == "" {
+		t.Error("deleting reported no effect")
+	}
+	if _, err := services.Topics.Detail(ctx, connID, ref); err == nil {
+		t.Errorf("the tool said it deleted %s and the broker still has it", name)
+	}
+
+	// Four writes to the broker and still not one to the profile store.
+	if after := hashFile(t, paths.ConnectionsFile); after != before {
+		t.Error("the MCP server rewrote the profile store")
+	}
+}
+
+// awaitDepth reads a destination's depth until it satisfies want, or gives up.
+func awaitDepth(
+	t *testing.T, services *app.Services, connID int,
+	ref model.DestinationRef, want func(int64) bool,
+) int64 {
+	t.Helper()
+
+	deadline := time.Now().Add(20 * time.Second)
+	var depth int64
+	for time.Now().Before(deadline) {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		destination, err := services.Topics.Detail(ctx, connID, ref)
+		cancel()
+		if err == nil && destination != nil {
+			depth = destination.Depth
+			if want(depth) {
+				return depth
+			}
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+	return depth
+}
+
+// A setting this family does not read has to be refused rather than dropped.
+// The driver would ignore it and the call would succeed, which is the one
+// outcome a caller cannot detect.
+func TestLiveMCPRefusesASettingTheFamilyIgnores(t *testing.T) {
+	requireLiveRabbit(t)
+
+	services, connID, _ := liveServices(t, liveRabbitProfile())
+	session := mcpSession(t, services, catalog.BlastDestructive)
+
+	arguments, err := json.Marshal(map[string]any{
+		"connection": connID,
+		"name":       "mq-studio-mcp-never-created",
+		"attributes": map[string]string{"replicationFactor": "3"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, err := session.CallTool(context.Background(), &mcp.CallToolParams{
+		Name:      "destination_create",
+		Arguments: json.RawMessage(arguments),
+	})
+	if err != nil {
+		t.Fatalf("call tool: %v", err)
+	}
+	if !result.IsError {
+		t.Fatal("a setting rabbitmq does not read was accepted")
+	}
+}
+
+// The default server is the one somebody gets by starting it without thinking
+// about it, and it must not be able to write at all.
+func TestLiveMCPDefaultServerCannotWrite(t *testing.T) {
+	requireLiveRabbit(t)
+
+	services, _, _ := liveServices(t, liveRabbitProfile())
+	session := mcpSession(t, services, catalog.BlastRead)
+
+	tools, err := session.ListTools(context.Background(), nil)
+	if err != nil {
+		t.Fatalf("list tools: %v", err)
+	}
+	for _, tool := range tools.Tools {
+		if tool.Annotations == nil || !tool.Annotations.ReadOnlyHint {
+			t.Errorf("%s is offered by a default server and is not read-only", tool.Name)
+		}
+	}
 }

@@ -153,7 +153,8 @@ func capabilities() []model.Capability {
 // getting right - "wrong password" and "wrong address" send an operator to
 // completely different places.
 func (c *Conn) probe(ctx context.Context) {
-	c.capabilities = model.NewCapabilities(capabilities()...)
+	c.capabilities = model.NewCapabilities(capabilities()...).
+		WithCaveat(model.CapDestinationPurge, truncateCaveat)
 
 	if err := c.Ping(ctx); err != nil {
 		reason := degradeReason(err, c.authenticating)
@@ -171,6 +172,23 @@ func (c *Conn) probe(ctx context.Context) {
 		c.capabilities = c.capabilities.WithDegraded(model.CapAccessDirectory, accessControlDisabled)
 	}
 }
+
+/*
+ * truncateCaveat is what emptying a Kafka topic actually does.
+ *
+ * On a queue a purge discards what is held and the consumers are back where
+ * they started. On a log it moves each partition's start offset to its end:
+ * the records become unreadable and the offsets keep counting, so a consumer
+ * sitting at 900 stays at 900 and is simply caught up rather than reset.
+ *
+ * The confirmation dialog has said this to the user for as long as the feature
+ * has existed. It is declared here as well because a caller with no dialog -
+ * the MCP server is one - would otherwise be told only that the topic can be
+ * emptied, which on this family is the more dangerous half of the truth.
+ */
+const truncateCaveat = "emptying a topic moves each partition's start offset to its end: " +
+	"the records become unreadable and the offsets keep counting, so a consumer at 900 " +
+	"stays at 900 and is caught up rather than reset"
 
 // degradeReason names why this cluster cannot be administered.
 //

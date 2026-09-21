@@ -8,7 +8,7 @@
 **本次终点：把每一个已交付的家族按能力门控暴露成一个 MCP server，由外部 agent
 驱动。应用内不跑模型，不存 provider 密钥，不做对话界面。**
 
-**状态：M1、M2 已完成（`internal/agent/catalog`、`internal/agent/mcpserver`）。M3 起未开工。**
+**状态：M1、M2、M3 已完成。M4 起未开工。**
 
 ## 0. 开工前查清的四件事
 
@@ -75,7 +75,7 @@ README 说「这套能力模型正是 Agent 跨中间件工作的前提」，这
 | --- | --- | --- |
 | M1 | 操作目录，不含任何 MCP 代码 | **已完成。** 124 个操作覆盖全部 71 个能力；15 个驱动的 conformance 测试各多一条 `catalog.CheckCoverage` |
 | M2 | 只读工具集 + `mq-studio mcp` 子命令 | **已完成。** 7 个只读工具；对真实 broker 的 live 测试断言工具与 service 层答案一致，且会话前后 profile 文件逐字节未变 |
-| M3 | 写操作与破坏半径门控 | 默认启动下，清空 / 删除 / 重置位点在 `tools/list` 里根本不出现 |
+| M3 | 写操作与破坏半径门控 | **已完成。** 默认 7 个工具全只读；`--allow mutate` 11 个，`--allow destructive` 13 个；写操作的效果与 caveat 都在返回值里，并有真 broker 验证 |
 | M4 | GUI 侧的开关与可见性 | 用户能看见 agent 正在动他的集群，并且能一键掐断 |
 | M5 | 文档 | README 第 16 项、ROADMAP 交付表、`ARCHITECTURE.md` 的进程模型三处同时为真 |
 
@@ -162,14 +162,42 @@ README 说「这套能力模型正是 Agent 跨中间件工作的前提」，这
 
 ### M3 · 写操作与破坏半径门控
 
-发消息、建删 destination、重置位点、清空、重投。
+**已完成。** 六个写工具：`destination_create`、`message_publish`、`message_resend`、
+`subscription_reset_offset`（mutate 档），`destination_purge`、`destination_delete`
+（destructive 档）。
 
-`destructive` 一档默认不出现在 `tools/list` 里，要显式开启——用命令行 flag 而不是
-应用设置项，因为决定权应该在启动 agent 的那个人手里，而不是在一个可能几周前点过一次
-的开关里。`mutate` 与 `destructive` 的每次返回都要带上它改动了什么。
+**门控做成了一个上限而不是一个集合**：`mq-studio mcp --allow read|mutate|destructive`，
+默认 `read`。上限之上的工具**根本不出现在 `tools/list` 里**——一个没被告知存在的工具，
+模型无法调用，这比调用时拒绝更强：没有可以被说服的余地。认不出的取值什么都不放行，
+所以 flag 打错字不会意外放宽。
 
-**判据：** 默认启动下清空、删除、重置位点不可见；开启后每次调用的返回里都说明了改动
-范围和对应的 caveat。
+**可见性和协议注解都从目录推导**，不是手写第二份。`catalog.Permits` 决定放不放行，
+`annotate()` 把 `Blast` 翻成 `readOnlyHint` / `destructiveHint`。一个注解说只读而目录
+说破坏的工具，会恰好在最不该被信任的地方被信任——所以这两处必须是同一个事实。
+
+**M1 的属性声明在这里第一次派上用场。** `destination_create` 收一个 `attributes`，
+而 `capabilities_describe` 现在会告诉调用方**这个家族在这个操作上到底收哪些键**（类型、
+必填、枚举取值、默认值）。更重要的是反过来那一半：**家族不读的键会被当场拒绝，并列出
+它真正收的那些**。驱动本来会静默丢弃它——调用方要了 quorum 队列、拿到 classic，而调用
+成功了，事后无从分辨。这是唯一一种调用方检测不到的失败。
+
+**每个写操作的返回都带 `effect.changed`**，用这个家族自己的说法讲它改了什么，外加连接
+声明的 caveat。
+
+**顺带补了一条驱动声明，因为是这次新暴露的危险点。** Kafka 的「清空」在 service 层叫
+`TruncateTopic`，语义和队列的清空不同：位点继续往前数，原本在 900 的消费者仍在 900、
+只是变成已追平。界面的确认框一直这么写，但驱动没把它声明成 caveat——也就是说人看得到、
+agent 看不到，而这一档恰恰是破坏性的。现在 `internal/driver/kafka/conn.go` 声明了它。
+
+> **查出来但没有扩张处理的一件事：** 整个代码库只有**一条** caveat 声明（RabbitMQ 的
+> 浏览），而 `frontend/src/mq/capabilities.ts` 的 `caveat` 访问器没有任何 board 在调用
+> ——界面是每个对话框自己硬写文案。也就是说这条通道在 Go 侧是通的、在渲染层是断的，
+> 而各家族的破坏性操作差异大多没有被声明。补齐它是一轮独立的驱动工作，不在本次范围内。
+
+**六条 live 测试，对着真 RabbitMQ 跑过：** 除 M2 的三条之外，新增一条完整写周期
+（建 → 发 → 清空 → 删，每一步都回broker 核对状态，而不是只看调用成功）、一条断言家族
+不读的设置会被拒绝、一条断言默认服务端提供的每个工具都是只读的。四次写 broker 之后，
+profile 文件依然逐字节未变。
 
 ### M4 · GUI 侧的开关与可见性
 
@@ -231,6 +259,6 @@ profile 存储是**整文件原子重写 + 进程内互斥**（`internal/service
 2. **工具粒度：** 一个 `destination.list` 吃下所有家族，还是按家族分开？倾向前者加
    `capabilities.describe`，但要先拿 IBM MQ 的 channel 和 Kinesis 的 shard 验一遍——这
    两样在规范页面里都没有对应物，各自拿了独立的端口和页面。
-3. **destructive 的开启方式：** flag、环境变量，还是每次调用都要确认。
+3. ~~**destructive 的开启方式：**~~ 已定：命令行 flag `--allow`，三档上限，默认最窄。
 4. **一次会话能不能同时操作多个 connID。** 技术上可以，registry 本来就按 id 分发；要
    先想清楚的是拨号串行（第 3 节）会让模型看到什么样的时序。
