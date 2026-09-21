@@ -101,3 +101,54 @@ func TestCheckCoverageRefusesOperationsOnADegradedCapability(t *testing.T) {
 		}
 	}
 }
+
+/*
+ * Two ports carry no capability of their own and ride on another, which means
+ * CheckConformance never asserts them. Twelve families declare
+ * CapSubscriptionLag and three implement SubscriptionStats: for the other nine
+ * the backlog arrives with the subscription listing and there is no
+ * per-partition call to make.
+ *
+ * Offering those nine the operation anyway would be the exact thing this
+ * application exists not to do - a control that fails when used.
+ */
+func TestARiderNeedsItsPortAndNotJustTheCapability(t *testing.T) {
+	lagOnly := &fakeConn{capabilities: model.NewCapabilities(model.CapSubscriptionLag)}
+	for _, operation := range For(lagOnly) {
+		if operation.ID == "subscription.lag" {
+			t.Error("subscription.lag was offered to a connection with no SubscriptionStats")
+		}
+	}
+
+	withPort := &statsConn{fakeConn: fakeConn{
+		capabilities: model.NewCapabilities(model.CapSubscriptionLag)}}
+	offered := false
+	for _, operation := range For(withPort) {
+		if operation.ID == "subscription.lag" {
+			offered = true
+		}
+	}
+	if !offered {
+		t.Error("subscription.lag was withheld from a connection that implements the port")
+	}
+
+	// The capability is still covered: CheckCoverage asks whether the
+	// catalogue has an operation for it at all, not whether this endpoint
+	// resolved one. A family that answers through its listing is not a gap.
+	if problems := CheckCoverage(lagOnly); len(problems) != 0 {
+		for _, problem := range problems {
+			t.Error(problem)
+		}
+	}
+}
+
+// statsConn is a connection that also implements the rider port.
+type statsConn struct {
+	fakeConn
+}
+
+func (c *statsConn) SubscriptionStats(
+	context.Context, model.SubscriptionRef,
+) (map[string]interface{}, error) {
+	return map[string]interface{}{}, nil
+}

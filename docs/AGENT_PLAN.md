@@ -266,6 +266,40 @@ M2/M3 都声称「caveat 走到了调用方手里」，而本地第一次真跑�
 同一种故障（「有人想知道页面为什么被挡住，看到的是 mq.mqtt.degraded.managementAbsent」）
 ——新加的 Kafka 条目也补进了它的清单。
 
+## 2.6 补上死信与消费进度，以及它暴露的一个目录缺陷
+
+**新增 8 个只读工具**，只读档从 7 个变成 15 个：
+
+- **死信**：`messages_dead_letters`、`messages_retry_queue`（重试和死信是两个阶段，前者还会
+  被投递，后者不会）、`dead_letter_queues`（按拓扑倒着找，给那些「死信队列是约定而不是对象」
+  的家族）。
+- **消费进度**：`subscription_lag`（分区级，回答「积压是摊开的还是压在一个分区上」）、
+  `subscription_consumers`、以及 PEL 那三个：`subscription_pending_summary`、
+  `subscription_pending_entries`、`subscription_group_consumers`。
+
+一半没有家族中立的 service 方法（死信拓扑和 PEL 都只活在家族服务里），按 purge 那次定下的
+规矩直接走端口——目录已经点名了每个家族都实现的那个接口，所以这条路不需要一份会过期的家族
+清单。
+
+**然后 live 测试撞出了一个目录缺陷，而它恰好是这个应用存在的理由所指的那种。**
+
+`subscription.lag` 的端口是 `SubscriptionStats`，而那是一个「搭车」端口：它没有自己的能力，
+`backings()` 里没有它，于是 `CheckConformance` 从不断言它。实际数字是
+**12 个家族声明 `CapSubscriptionLag`，只有 3 个实现 `SubscriptionStats`** ——其余 9 个的积压
+是随订阅列表一起回来的，根本没有分区级调用可做。
+
+也就是说：目录会在 9 个家族上宣称一个一调用就报错的操作，而 `capabilities_describe` 会说它
+可达。**这正是「不给出中间件做不到的操作」这条承诺的反面。**
+
+修法在目录层：`Operation` 多了一个 `Implemented func(driver.Conn) bool`，只有那两个搭车端口
+设置它，`For()` 据此过滤。`CheckCoverage` 不受影响——它问的是「目录里有没有这个能力的操作」，
+不是「这个端点解析出了几个」，而一个靠列表回答积压的家族并不是缺口。
+
+调用被拒时说的也是这件事本身，而不是「不支持」：
+
+> rabbitmq reports subscription.lag through its listing rather than through a call of its own,
+> so there is nothing more to read here
+
 ## 3. 传输与并发约束
 
 profile 存储是**整文件原子重写 + 进程内互斥**（`internal/service/connection/persistence.go`

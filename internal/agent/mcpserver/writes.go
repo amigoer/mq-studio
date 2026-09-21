@@ -244,15 +244,11 @@ type destinationTargetInput struct {
 func (s *server) purgeDestination(
 	ctx context.Context, _ *mcp.CallToolRequest, input destinationTargetInput,
 ) (*mcp.CallToolResult, writeOutput, error) {
-	conn, caveat, err := s.capable(input.Connection, model.CapDestinationPurge)
+	actions, caveat, err := port[driver.QueueActions](s, input.Connection, model.CapDestinationPurge)
 	if err != nil {
 		return nil, writeOutput{}, err
 	}
-	actions, ok := conn.(driver.QueueActions)
-	if !ok {
-		return nil, writeOutput{}, fmt.Errorf(
-			"%s declares it can empty a destination and does not implement it", conn.Kind())
-	}
+	conn, _ := s.conn(input.Connection)
 
 	ctx, cancel := s.withTimeout(ctx)
 	defer cancel()

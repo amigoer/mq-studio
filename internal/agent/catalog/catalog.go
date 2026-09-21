@@ -91,6 +91,22 @@ type Operation struct {
 	// Result is nil when the method returns only an error.
 	Result reflect.Type
 
+	/*
+	 * Implemented reports whether one connection actually carries this
+	 * operation, for the two ports that have no capability of their own.
+	 *
+	 * Those ride on another capability, which means CheckConformance never
+	 * asserts them: twelve families declare CapSubscriptionLag and three
+	 * implement SubscriptionStats, because for the other nine the backlog
+	 * arrives with the subscription listing and there is no per-partition
+	 * call to make. Without this the catalogue would offer those nine an
+	 * operation that fails when called, which is the one thing this
+	 * application exists not to do.
+	 *
+	 * Nil means the capability is enough, which is every other operation.
+	 */
+	Implemented func(driver.Conn) bool
+
 	// CarriesAttributes marks a Request with a family escape hatch in it -
 	// DestinationSpec.Attributes and its kin. What may go in there is declared
 	// per family in attributes.go, because it is the one part of a request
@@ -121,6 +137,9 @@ func For(conn driver.Conn) []Resolved {
 	resolved := make([]Resolved, 0, len(Operations))
 	for _, operation := range Operations {
 		if !capabilities.Has(operation.Capability) {
+			continue
+		}
+		if operation.Implemented != nil && !operation.Implemented(conn) {
 			continue
 		}
 		caveat, _ := capabilities.Caveat(operation.Capability)

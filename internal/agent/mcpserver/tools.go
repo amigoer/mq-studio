@@ -56,6 +56,59 @@ var tools = map[string]toolInfo{
 		description: "Read the brokers a connection's cluster is made of, and their aggregate figures.",
 	},
 
+	"message.dlq": {
+		name:  "messages_dead_letters",
+		title: "Read dead letters",
+		description: "Read what a consumer group gave up on. Start here when a message never " +
+			"arrived and the destination looks healthy.",
+	},
+	"message.retryQueue": {
+		name:  "messages_retry_queue",
+		title: "Read the retry backlog",
+		description: "Read what is being retried but has not been given up on yet. A message " +
+			"here is still going to be delivered; one in the dead letters is not.",
+	},
+	"message.deadLetterQueues": {
+		name:  "dead_letter_queues",
+		title: "Find dead-letter queues",
+		description: "Find the queues dead letters land in by following the topology, for a " +
+			"family where a dead-letter queue is a convention rather than an object. Reading " +
+			"one afterwards is an ordinary browse.",
+	},
+
+	"subscription.lag": {
+		name:  "subscription_lag",
+		title: "Read consume progress",
+		description: "Read one subscription's progress per partition. The subscription listing " +
+			"gives a total; this says whether the backlog is spread or sitting on one partition, " +
+			"which are different problems.",
+	},
+	"subscription.clients": {
+		name:  "subscription_consumers",
+		title: "Ask the consumers",
+		description: "Ask the connected consumers what they are doing. A subscription with " +
+			"nothing connected has no answer rather than an empty one, which is itself the " +
+			"answer when a backlog is not moving.",
+	},
+	"subscription.pendingSummary": {
+		name:  "subscription_pending_summary",
+		title: "Summarise unacknowledged work",
+		description: "Summarise what a group has been handed and not acknowledged: how much is " +
+			"owed, and for how long. For a family that moves nothing and gives up on nothing.",
+	},
+	"subscription.pendingEntries": {
+		name:  "subscription_pending_entries",
+		title: "List unacknowledged work",
+		description: "List the unacknowledged deliveries themselves, with who is holding each " +
+			"and how long they have had it. Narrow by idle time to find the ones worth acting on.",
+	},
+	"subscription.groupConsumers": {
+		name:  "subscription_group_consumers",
+		title: "List a group's consumers",
+		description: "List a group's consumers and what each is owed - who is holding what, at " +
+			"the grain the pending list uses.",
+	},
+
 	"destination.create": {
 		name:  "destination_create",
 		title: "Create a destination",
@@ -154,6 +207,30 @@ func (s *server) register(server *mcp.Server, allow catalog.Blast) {
 	}
 	if tool, ok := offer("cluster.nodes", allow); ok {
 		mcp.AddTool(server, tool, s.clusterTopology)
+	}
+	if tool, ok := offer("message.dlq", allow); ok {
+		mcp.AddTool(server, tool, s.deadLetters)
+	}
+	if tool, ok := offer("message.retryQueue", allow); ok {
+		mcp.AddTool(server, tool, s.retryQueue)
+	}
+	if tool, ok := offer("message.deadLetterQueues", allow); ok {
+		mcp.AddTool(server, tool, s.deadLetterQueues)
+	}
+	if tool, ok := offer("subscription.lag", allow); ok {
+		mcp.AddTool(server, tool, s.subscriptionLag)
+	}
+	if tool, ok := offer("subscription.clients", allow); ok {
+		mcp.AddTool(server, tool, s.subscriptionConsumers)
+	}
+	if tool, ok := offer("subscription.pendingSummary", allow); ok {
+		mcp.AddTool(server, tool, s.pendingSummary)
+	}
+	if tool, ok := offer("subscription.pendingEntries", allow); ok {
+		mcp.AddTool(server, tool, s.pendingEntries)
+	}
+	if tool, ok := offer("subscription.groupConsumers", allow); ok {
+		mcp.AddTool(server, tool, s.groupConsumers)
 	}
 
 	if tool, ok := offer("destination.create", allow); ok {

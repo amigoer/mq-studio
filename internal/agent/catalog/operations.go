@@ -3,6 +3,7 @@ package catalog
 import (
 	"reflect"
 
+	"github.com/amigoer/mq-studio/internal/driver"
 	"github.com/amigoer/mq-studio/internal/model"
 )
 
@@ -58,7 +59,8 @@ var Operations = []Operation{
 	{
 		ID: "destination.deleteGuarded", Capability: model.CapDestinationDelete,
 		Port: "QueueGuardedRemover", Method: "RemoveQueueGuarded",
-		Blast: BlastDestructive,
+		Implemented: func(conn driver.Conn) bool { _, ok := conn.(driver.QueueGuardedRemover); return ok },
+		Blast:       BlastDestructive,
 		Summary: "Delete a destination only if the broker agrees it is unused or empty. " +
 			"The guard is the broker's, so it is the only one that cannot race.",
 		Params: []Param{
@@ -227,7 +229,8 @@ var Operations = []Operation{
 	{
 		ID: "subscription.lag", Capability: model.CapSubscriptionLag,
 		Port: "SubscriptionStats", Method: "SubscriptionStats",
-		Blast: BlastRead, Summary: "Read one subscription's per-partition consume progress.",
+		Implemented: func(conn driver.Conn) bool { _, ok := conn.(driver.SubscriptionStats); return ok },
+		Blast:       BlastRead, Summary: "Read one subscription's per-partition consume progress.",
 		Request: reflect.TypeFor[model.SubscriptionRef](),
 		Result:  reflect.TypeFor[map[string]interface{}](),
 	},

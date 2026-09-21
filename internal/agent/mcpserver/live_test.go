@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -436,5 +437,83 @@ func TestLiveMCPDefaultServerCannotWrite(t *testing.T) {
 		if tool.Annotations == nil || !tool.Annotations.ReadOnlyHint {
 			t.Errorf("%s is offered by a default server and is not read-only", tool.Name)
 		}
+	}
+}
+
+/*
+ * The two tools that answer why rather than what.
+ *
+ * RabbitMQ is the family the dead-letter topology port was designed for: there
+ * is no per-group dead-letter object to read, so finding one means walking
+ * backwards from every queue that declares a dead-letter exchange. A tool that
+ * returned an empty list would look exactly like a broker with nothing wrong,
+ * which is why this asserts against a seed that has one.
+ */
+func TestLiveMCPFindsDeadLettersAndProgress(t *testing.T) {
+	requireLiveRabbit(t)
+
+	services, connID, _ := liveServices(t, liveRabbitProfile())
+	session := mcpSession(t, services, catalog.BlastRead)
+
+	type queuesResult struct {
+		Queues []*model.DeadLetterQueue `json:"queues"`
+		Caveat string                   `json:"caveat"`
+	}
+	found := call[queuesResult](t, session, "dead_letter_queues", map[string]any{"connection": connID})
+	if len(found.Queues) == 0 {
+		t.Fatal("the seed declares a dead-letter exchange and the topology walk found nothing")
+	}
+
+	// The seed's dead letters land in a queue of their own; the tool has to
+	// name it rather than the queue that feeds it.
+	names := make([]string, 0, len(found.Queues))
+	for _, queue := range found.Queues {
+		names = append(names, queue.Name)
+	}
+	if !slices.ContainsFunc(names, func(name string) bool {
+		return strings.Contains(name, "dlq")
+	}) {
+		t.Errorf("no dead-letter queue among %v", names)
+	}
+
+	/*
+	 * And the other half of the same question, which this family answers by
+	 * not answering it.
+	 *
+	 * RabbitMQ declares CapSubscriptionLag - a queue reports its backlog - and
+	 * implements no per-partition stats call, because it has no partitions.
+	 * Eleven other families declare the same capability and nine of them are
+	 * in the same position. The catalogue has to withhold the operation here
+	 * rather than offer one that fails when used.
+	 */
+	type describeResult struct {
+		Operations []struct {
+			ID   string `json:"id"`
+			Tool string `json:"tool"`
+		} `json:"operations"`
+	}
+	described := call[describeResult](t, session, "capabilities_describe",
+		map[string]any{"connection": connID})
+	for _, operation := range described.Operations {
+		if operation.ID == "subscription.lag" {
+			t.Errorf("subscription.lag was offered on a family with no per-partition stats (tool %q)",
+				operation.Tool)
+		}
+	}
+
+	// Calling it anyway has to say why, in terms of what this broker does
+	// instead - not "unsupported".
+	arguments, err := json.Marshal(map[string]any{"connection": connID, "group": "anything"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, err := session.CallTool(context.Background(), &mcp.CallToolParams{
+		Name: "subscription_lag", Arguments: json.RawMessage(arguments),
+	})
+	if err != nil {
+		t.Fatalf("call tool: %v", err)
+	}
+	if !result.IsError {
+		t.Fatal("subscription_lag answered on a family that has no such call")
 	}
 }
