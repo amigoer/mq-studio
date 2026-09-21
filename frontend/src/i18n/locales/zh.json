@@ -163,6 +163,9 @@
         "timeout": "集群接受了连接，但没有在超时时间内应答。",
         "unreachable": "这个地址上没有可用的服务应答。请检查 Bootstrap 地址，以及该 listener 是否要求 TLS 或本连接未使用的安全协议。",
         "accessControl": "这个集群没有配置 authorizer，因此不执行任何 ACL，所有访问控制调用都会返回 SECURITY_DISABLED。"
+      },
+      "caveat": {
+        "truncateKeepsOffsets": "清空 topic 会把每个分区的起始位点移到末尾：其中的记录变为不可读，而位点继续往前数，所以原本在 900 的消费者仍在 900，只是变成已追平，而不是被重置。"
       }
     },
     "rabbitmq": {

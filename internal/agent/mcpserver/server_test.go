@@ -33,9 +33,22 @@ func (c *fakeConn) Close() error                     { return nil }
 
 func serverWith(conn driver.Conn) *server {
 	return &server{
-		services: &app.Services{Conns: func(int) (driver.Conn, error) { return conn, nil }},
-		offered:  offeredTools(catalog.BlastDestructive),
+		services:  &app.Services{Conns: func(int) (driver.Conn, error) { return conn, nil }},
+		translate: testPhrases,
+		offered:   offeredTools(catalog.BlastDestructive),
 	}
+}
+
+// testPhrases stands in for the application's translations. The real ones are
+// the renderer's locale files, which only the composition root can reach.
+func testPhrases(key string) string {
+	if text, ok := map[string]string{
+		"mq.rabbitmq.caveat.browseAltersQueue": "browsing requeues the message flagged redelivered",
+		"mq.rocketmq.degraded.proxy":           "a Proxy endpoint is a data plane only",
+	}[key]; ok {
+		return text
+	}
+	return key
 }
 
 // The connection service is real, over a temporary store with nothing in it.
@@ -75,7 +88,7 @@ func session(t *testing.T, services *app.Services, allow catalog.Blast) *mcp.Cli
 	t.Cleanup(cancel)
 
 	serverTransport, clientTransport := mcp.NewInMemoryTransports()
-	server := New(services, "test", allow)
+	server := New(services, "test", allow, testPhrases)
 	go func() {
 		if err := server.Run(ctx, serverTransport); err != nil && ctx.Err() == nil {
 			t.Errorf("server stopped: %v", err)
@@ -265,19 +278,27 @@ func TestAnnotationsMatchTheCatalogue(t *testing.T) {
 // consequences on different families, and inventing one here would be a
 // warning nobody made.
 func TestCapableCarriesTheEndpointsCaveat(t *testing.T) {
-	const caveat = "browsing goes through basic.get, which alters queue state"
+	const key = "mq.rabbitmq.caveat.browseAltersQueue"
 	s := serverWith(&fakeConn{
 		kind: model.KindRabbitMQ,
 		capabilities: model.NewCapabilities(model.CapMessageQuery).
-			WithCaveat(model.CapMessageQuery, caveat),
+			WithCaveat(model.CapMessageQuery, key),
 	})
 
-	_, got, err := s.capable(1, model.CapMessageQuery)
+	got, _, err := func() (string, driver.Conn, error) {
+		conn, caveat, err := s.capable(1, model.CapMessageQuery)
+		return caveat, conn, err
+	}()
 	if err != nil {
 		t.Fatalf("capable: %v", err)
 	}
-	if got != caveat {
-		t.Errorf("caveat = %q, want the endpoint's own", got)
+	// What a driver stores is a key; what a caller with no renderer needs is
+	// the sentence behind it.
+	if got == key {
+		t.Errorf("the caveat came back as the raw key %q", got)
+	}
+	if got != testPhrases(key) {
+		t.Errorf("caveat = %q, want the resolved text", got)
 	}
 }
 
@@ -291,18 +312,18 @@ func TestCapableCarriesTheEndpointsCaveat(t *testing.T) {
  * the family has no concept of is not worth another attempt at all.
  */
 func TestCapableTellsRefusalsApart(t *testing.T) {
-	const reason = "a Proxy endpoint is a data plane only"
+	const reasonKey = "mq.rocketmq.degraded.proxy"
 	degraded := serverWith(&fakeConn{
 		kind: model.KindRocketMQ,
 		capabilities: model.NewCapabilities(model.CapDestinationList).
-			WithDegraded(model.CapDestinationList, reason),
+			WithDegraded(model.CapDestinationList, reasonKey),
 	})
 	_, _, err := degraded.capable(1, model.CapDestinationList)
 	if err == nil {
 		t.Fatal("a degraded capability answered as though it worked")
 	}
-	if !strings.Contains(err.Error(), reason) {
-		t.Errorf("the driver's reason did not travel: %v", err)
+	if !strings.Contains(err.Error(), testPhrases(reasonKey)) {
+		t.Errorf("the driver's reason did not travel, or travelled as a key: %v", err)
 	}
 
 	absent := serverWith(&fakeConn{

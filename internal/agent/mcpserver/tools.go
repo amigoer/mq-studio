@@ -261,7 +261,7 @@ func (s *server) describeCapabilities(
 			ID:         operation.ID,
 			Blast:      string(operation.Blast),
 			Summary:    operation.Summary,
-			Caveat:     operation.Caveat,
+			Caveat:     s.say(operation.Caveat),
 			Tool:       s.offered[operation.ID],
 			Attributes: describeAttributes(conn.Kind(), operation.ID),
 		})
@@ -270,7 +270,8 @@ func (s *server) describeCapabilities(
 	capabilities := conn.Capabilities()
 	unavailable := make([]absence, 0, len(capabilities.Degraded))
 	for capability, reason := range capabilities.Degraded {
-		unavailable = append(unavailable, absence{Capability: string(capability), Reason: reason})
+		unavailable = append(unavailable, absence{
+			Capability: string(capability), Reason: s.say(reason)})
 	}
 
 	return nil, describeOutput{

@@ -129,6 +129,11 @@ const CAVEATS: Record<string, string[]> = {
   // cannot do is return the message, because the API carries no payload
   // field at any version.
   solace: ["browseNoPayload"],
+  // internal/driver/kafka/conn.go - the only one here that is not about a
+  // read. Emptying a topic moves each partition's start offset to its end, so
+  // the records go and the offsets do not: a consumer stays where it was and
+  // is caught up rather than reset.
+  kafka: ["truncateKeepsOffsets"],
 };
 
 type Bundle = Record<string, unknown>;

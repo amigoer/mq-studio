@@ -54,6 +54,10 @@ const instructions = "Work the message brokers this installation has connections
 // act on.
 type server struct {
 	services *app.Services
+	// translate resolves the i18n keys the capability model carries into the
+	// language the application is set to. Injected because the translations
+	// live with the renderer's, and only the composition root can reach them.
+	translate func(string) string
 	// offered maps a catalogue operation to the tool that performs it, for
 	// the tools this server actually registered. capabilities_describe reads
 	// it, so what it names is what the caller can really call - an operation
@@ -67,8 +71,10 @@ type server struct {
 // An unrecognised allowance offers nothing above reading, because
 // catalog.Permits refuses what it does not know: a typo in a flag must not
 // widen anything.
-func New(services *app.Services, version string, allow catalog.Blast) *mcp.Server {
-	s := &server{services: services, offered: offeredTools(allow)}
+func New(
+	services *app.Services, version string, allow catalog.Blast, translate func(string) string,
+) *mcp.Server {
+	s := &server{services: services, translate: translate, offered: offeredTools(allow)}
 	mcpServer := mcp.NewServer(&mcp.Implementation{
 		Name:    Name,
 		Title:   "MQ Studio",
@@ -140,14 +146,29 @@ func (s *server) capable(id int, capability model.Capability) (driver.Conn, stri
 	capabilities := conn.Capabilities()
 	if capabilities.Has(capability) {
 		caveat, _ := capabilities.Caveat(capability)
-		return conn, caveat, nil
+		return conn, s.say(caveat), nil
 	}
 	if reason, degraded := capabilities.DegradedReason(capability); degraded {
 		return nil, "", fmt.Errorf(
-			"this %s endpoint cannot do %s: %s", conn.Kind(), capability, reason)
+			"this %s endpoint cannot do %s: %s", conn.Kind(), capability, s.say(reason))
 	}
 	return nil, "", fmt.Errorf(
 		"%s has no concept of %s, so there is nothing to read here", conn.Kind(), capability)
+}
+
+/*
+ * say resolves what a driver declared into something a caller can read.
+ *
+ * Every caveat and every degraded reason in this application is an i18n key,
+ * because the window has to show them in the reader's language. A caller with
+ * no window would otherwise be handed mq.rabbitmq.caveat.browseAltersQueue and
+ * have no way to find out that it means the browse alters the queue.
+ */
+func (s *server) say(key string) string {
+	if key == "" || s.translate == nil {
+		return key
+	}
+	return s.translate(key)
 }
 
 // withTimeout bounds one tool call the way the application bounds one page

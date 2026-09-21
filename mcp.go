@@ -90,5 +90,9 @@ func runMCP(arguments []string) error {
 	// the failure this whole tier exists to prevent.
 	log.Printf("[mcp] serving with tools up to %q", allow)
 
-	return mcpserver.New(services, version, allow).Run(ctx, &mcp.StdioTransport{})
+	// The application's own language, so the consequences read the way they do
+	// on screen rather than in whatever the server happened to default to.
+	translate := phrasebook(services.Settings.GetSettings().Language)
+
+	return mcpserver.New(services, version, allow, translate).Run(ctx, &mcp.StdioTransport{})
 }

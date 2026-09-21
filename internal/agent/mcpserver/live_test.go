@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"os"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -77,7 +78,7 @@ func mcpSession(t *testing.T, services *app.Services, allow catalog.Blast) *mcp.
 
 	serverTransport, clientTransport := mcp.NewInMemoryTransports()
 	go func() {
-		if err := mcpserver.New(services, "test", allow).Run(ctx, serverTransport); err != nil && ctx.Err() == nil {
+		if err := mcpserver.New(services, "test", allow, livePhrases).Run(ctx, serverTransport); err != nil && ctx.Err() == nil {
 			t.Errorf("server stopped: %v", err)
 		}
 	}()
@@ -89,6 +90,17 @@ func mcpSession(t *testing.T, services *app.Services, allow catalog.Blast) *mcp.
 	}
 	t.Cleanup(func() { _ = session.Close() })
 	return session
+}
+
+// livePhrases resolves the keys this suite expects to see. The real
+// translations are the renderer's locale files, which only package main can
+// embed; what matters here is that whatever a driver declared went through a
+// phrasebook rather than reaching the caller as a key.
+func livePhrases(key string) string {
+	if key == "mq.rabbitmq.caveat.browseAltersQueue" {
+		return "browsing requeues the message flagged redelivered"
+	}
+	return key
 }
 
 // call runs one tool and decodes its structured result.
@@ -218,6 +230,11 @@ func TestLiveMCPCarriesTheBrowseCaveat(t *testing.T) {
 	}
 	if browse.Caveat == "" {
 		t.Error("the browse caveat did not reach the tool; a caller would read it as side-effect free")
+	}
+	// The capability model stores i18n keys. One arriving unresolved is worse
+	// than useless: it looks like a warning and cannot be read as one.
+	if strings.HasPrefix(browse.Caveat, "mq.") {
+		t.Errorf("the caveat arrived as a raw key: %q", browse.Caveat)
 	}
 	if browse.Blast != "read" {
 		t.Errorf("browse blast radius = %q, want read", browse.Blast)

@@ -189,10 +189,13 @@ README 说「这套能力模型正是 Agent 跨中间件工作的前提」，这
 只是变成已追平。界面的确认框一直这么写，但驱动没把它声明成 caveat——也就是说人看得到、
 agent 看不到，而这一档恰恰是破坏性的。现在 `internal/driver/kafka/conn.go` 声明了它。
 
-> **查出来但没有扩张处理的一件事：** 整个代码库只有**一条** caveat 声明（RabbitMQ 的
-> 浏览），而 `frontend/src/mq/capabilities.ts` 的 `caveat` 访问器没有任何 board 在调用
-> ——界面是每个对话框自己硬写文案。也就是说这条通道在 Go 侧是通的、在渲染层是断的，
-> 而各家族的破坏性操作差异大多没有被声明。补齐它是一轮独立的驱动工作，不在本次范围内。
+> **更正一处我先前写错的数字。** 我一度以为整个代码库只有一条 caveat 声明，因为只
+> grep 了 `WithCaveat(`。实际有 **9 条、跨 7 个家族**：另一半是直接写在 `Caveats:` map
+> 字面量里的，还有一个家族名带连字符（`google-pubsub`）躲过了我的正则。所以这条通道
+> 比我说的健康得多。
+>
+> **仍然成立的那一半：** `frontend/src/mq/capabilities.ts` 的 `caveat` 访问器没有任何
+> board 在调用——界面是每个对话框自己硬写文案。这条通道在 Go 侧是通的、在渲染层是断的。
 
 **六条 live 测试，对着真 RabbitMQ 跑过：** 除 M2 的三条之外，新增一条完整写周期
 （建 → 发 → 清空 → 删，每一步都回broker 核对状态，而不是只看调用成功）、一条断言家族
@@ -236,6 +239,32 @@ profile 文件依然逐字节未变。
 **一处更正**：动手前我以为 `ARCHITECTURE.md` 里「没有本地 HTTP server、没有 auth token、
 没有要照看的子进程」这句会作废。实际读下来它对窗口依然成立——stdio server 不是窗口拉起的子
 进程，也没有监听端口。文档缺的不是更正而是补充：**第二个入口**。
+
+## 2.5 本地实跑查出的缺陷：i18n key 泄漏
+
+M2/M3 都声称「caveat 走到了调用方手里」，而本地第一次真跑就戳穿了它：回来的是
+`mq.rabbitmq.caveat.browseAltersQueue`，不是句子。
+
+**能力模型里的文案全是 i18n key**，由渲染层翻译——这对窗口是对的（文案要跟着读者的语言
+走，翻译也该和界面其余部分放在一起），但一个没有渲染层的调用方拿到的是一个无法解读的
+字符串。降级原因同理，而它的数量比 caveat 多得多。
+
+两处修正：
+
+1. **我自己加的 Kafka caveat 写成了英文原文**，违反了另外 8 条都遵守的约定——如果界面哪天
+   真的读 caveat，它会是唯一一条不翻译的。改成了 `mq.kafka.caveat.truncateKeepsOffsets`，
+   并补了中英两份译文。
+2. **MCP server 现在解析 key。** 译文嵌在 `phrasebook.go` 里——只能放在根包，因为
+   `go:embed` 出不了自己的包目录，而 `frontend/**` 只有根包够得着；解析器注入给
+   `mcpserver.New`，理由和 `registryRuntime` 住在 `internal/app` 是同一条：只有组装根
+   可以同时知道两边。语言跟随应用设置，解析不到的 key 原样返回——空字符串会被读成
+   「这个操作没有后果」。
+
+**测试**：`phrasebook_test.go` 用 `go/ast` 扫出每个驱动实际声明的 caveat（两种写法都认），
+断言它既是 i18n key、又能在中英两份文件里解析出来。这条测试第一次跑就抓到了我自己的
+英文原文。前端本来就有一份手抄的 `degradedReasons.test.ts` 做同样的事——注释里写的正是
+同一种故障（「有人想知道页面为什么被挡住，看到的是 mq.mqtt.degraded.managementAbsent」）
+——新加的 Kafka 条目也补进了它的清单。
 
 ## 3. 传输与并发约束
 
