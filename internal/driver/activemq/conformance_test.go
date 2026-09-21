@@ -3,6 +3,7 @@ package activemq
 import (
 	"testing"
 
+	"github.com/amigoer/mq-studio/internal/agent/catalog"
 	"github.com/amigoer/mq-studio/internal/driver"
 	"github.com/amigoer/mq-studio/internal/model"
 )
@@ -278,4 +279,18 @@ func isTranslationKey(reason string) bool {
 		}
 	}
 	return true
+}
+
+// The catalogue's half of the same contract.
+//
+// CheckConformance above makes the capability list and the interfaces agree.
+// This makes the capability list and the operation catalogue agree: a
+// capability declared here with no operation behind it is a page a person can
+// work and a caller reading the catalogue cannot reach at all.
+func TestCatalogueCoversWhatTheConnDeclares(t *testing.T) {
+	if problems := catalog.CheckCoverage(offlineConn()); len(problems) != 0 {
+		for _, problem := range problems {
+			t.Error(problem)
+		}
+	}
 }

@@ -8,7 +8,7 @@
 **本次终点：把每一个已交付的家族按能力门控暴露成一个 MCP server，由外部 agent
 驱动。应用内不跑模型，不存 provider 密钥，不做对话界面。**
 
-**状态：待评审，尚未开工。**
+**状态：M1 已完成（`internal/agent/catalog`）。M2 起未开工。**
 
 ## 0. 开工前查清的四件事
 
@@ -73,7 +73,7 @@ README 说「这套能力模型正是 Agent 跨中间件工作的前提」，这
 
 | 阶段 | 范围 | 完成判据 |
 | --- | --- | --- |
-| M1 | 操作目录，不含任何 MCP 代码 | 对任意一个 `Conn`，目录筛出的操作集合与 `CheckConformance` 认可的能力集合完全一致 |
+| M1 | 操作目录，不含任何 MCP 代码 | **已完成。** 124 个操作覆盖全部 71 个能力；15 个驱动的 conformance 测试各多一条 `catalog.CheckCoverage` |
 | M2 | 只读工具集 + `mq-studio mcp` 子命令 | GUI 完全没启动时，外部 agent 能读到任意已存 profile 的真实数据 |
 | M3 | 写操作与破坏半径门控 | 默认启动下，清空 / 删除 / 重置位点在 `tools/list` 里根本不出现 |
 | M4 | GUI 侧的开关与可见性 | 用户能看见 agent 正在动他的集群，并且能一键掐断 |
@@ -81,25 +81,46 @@ README 说「这套能力模型正是 Agent 跨中间件工作的前提」，这
 
 ### M1 · 操作目录
 
-位置暂定 `internal/agent/catalog`。产物是一张表，每行一个操作：
+**已完成**，落在 `internal/agent/catalog`：124 个操作，覆盖 `internal/model` 里全部
+71 个能力，不多也不少。每行声明能力、端口、方法、破坏半径、请求与返回类型，以及这个
+写操作是否带家族逃生舱。
 
-- **capability** —— 必须是 `internal/model/capability.go` 里那 71 个常量之一；
-- **port** —— 必须在 `conformance.go` 的 `backings()` 里有对应行；
-- **参数 schema** —— 含家族特有属性，逐个家族声明，不从 bridge 的输入结构继承；
-- **返回形状** —— 用 `internal/model` 的规范类型，不是 bridge 为界面重整过的形状；
-- **破坏半径** —— `read` / `mutate` / `destructive` 三档；
-- **caveat 继承** —— 指向连接实际声明的那条注意事项，不写死文案。
+每行的能力归属不是新做的判断，而是照抄 service 层已经做过的那个：`internal/service`
+里 151 处 `port[driver.X](s, connID, model.CapY)` 调用，每一处就是一个操作的「端口 +
+能力」配对，而且是应用真正在跑的那份。照它写，目录就不可能描述一个应用随后会拒绝的
+操作。破坏半径是这份目录自己的贡献，也是它手写而不是生成的原因——签名里没有任何东西
+说清空不可撤销而更新可以。
 
-破坏半径这件事代码里其实已经想清楚了，只是没落成字段：`capability.go` 里写着
-purge 和 move 分成两个能力的理由，就是「两个按钮，破坏半径差得很远」。
+**两处偏离原计划，都是往少写的方向：**
 
-**判据：**
+**一、目录不复述请求与返回的字段，只指向类型。** 原计划写的是「参数 schema」。但那些
+形状已经在 `internal/model` 里声明过一次，带着它们过桥用的 json tag；再抄一份就是第二
+个要保持同步的地方，而这个仓库的家族清单正是这样过期的。所以操作持有的是
+`reflect.Type`，由编译器盯着；从类型生成 JSON schema 是 M2 的事，确定性的。只有端口
+本身收散参数（没有请求结构体可指）时才退回逐个声明。
 
-- 目录里每个操作的 capability 和 port 都能在现有两张表里找到对应；
-- 对任意一个 `Conn`，目录筛出来的操作集合与 `CheckConformance` 认可的能力集合一致，
-  不多也不少；
-- 写操作会用到的属性键，在目录里都有声明和类型（只读返回里出现的键不要求）；
-- **这一步结束时仓库里还没有 server**，也没有新增任何 MCP 依赖。
+**二、写属性只声明写入侧的键。** 原计划的判据是「写操作会用到的属性键都有声明」。实际
+量下来是 11 个家族、40 个键，不是 519——读取侧返回几百个键，但调用方读结果时不需要
+预先知道它们，它们带着值和名字一起回来；组装写入的人才是什么都没有。
+
+**三条测试把目录钉在代码上：**
+
+- `TestEveryOperationIsBackedByItsPort` —— 每个操作的（能力，端口）配对必须在
+  `driver.CapabilityPorts()` 里有对应行。只有两个端口不在那张表上，各自搭在别的能力
+  上（`QueueGuardedRemover` 搭 `destination.delete`，`SubscriptionStats` 搭
+  `subscription.lag`），测试把这两个钉死，出现第三个就红。
+- `TestWriteAttributeKeysMatchWhatTheDriversRead` —— 用 `go/ast` 扫 `internal/driver`，
+  把每个驱动从写入 spec 里读出的属性键解析出来，与目录的声明双向比对。驱动读了而目录
+  没声明，或者目录声明了而没有驱动读，都是失败。这一条是「声明即契约」唯一的执法者，
+  因为这些键是索引进 `map[string]string` 的字符串常量，没有任何类型可反射。
+- `catalog.CheckCoverage(conn)` —— 加进了 15 个驱动各自的 conformance 测试，紧挨着
+  `driver.CheckConformance`。驱动声明了某个能力而目录没有对应操作，就是一个人能在界面
+  上操作、而读目录的调用方根本看不见的页面。
+
+**一个顺带查出来的事实：** `NamespaceSpec` 完全是有类型的，没有 `Attributes` 逃生舱。
+我一开始按别的 spec 的样子给 `namespace.save` 标了「带属性」，是错的。现在有一条反射
+断言：`CarriesAttributes` 为真，当且仅当请求类型确实有 `Attributes map[string]string`
+字段。这类错误不会再靠人眼发现。
 
 ### M2 · 只读工具集与 stdio 子命令
 

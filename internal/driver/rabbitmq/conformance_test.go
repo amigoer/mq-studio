@@ -13,6 +13,7 @@ import (
 	rabbithole "github.com/michaelklishin/rabbit-hole/v3"
 	amqp "github.com/rabbitmq/amqp091-go"
 
+	"github.com/amigoer/mq-studio/internal/agent/catalog"
 	"github.com/amigoer/mq-studio/internal/driver"
 	"github.com/amigoer/mq-studio/internal/e2e"
 	"github.com/amigoer/mq-studio/internal/model"
@@ -3071,5 +3072,19 @@ func TestCapabilitiesMatchTheSidebarContract(t *testing.T) {
 	}
 	if !declared[model.CapIdentityList] {
 		t.Error("does not declare identity.list, so the permissions page is unreachable")
+	}
+}
+
+// The catalogue's half of the same contract.
+//
+// CheckConformance above makes the capability list and the interfaces agree.
+// This makes the capability list and the operation catalogue agree: a
+// capability declared here with no operation behind it is a page a person can
+// work and a caller reading the catalogue cannot reach at all.
+func TestCatalogueCoversWhatTheConnDeclares(t *testing.T) {
+	if problems := catalog.CheckCoverage(liveConn(t)); len(problems) != 0 {
+		for _, problem := range problems {
+			t.Error(problem)
+		}
 	}
 }

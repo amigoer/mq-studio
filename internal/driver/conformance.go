@@ -198,3 +198,22 @@ func CheckConformance(conn Conn) []error {
 	}
 	return problems
 }
+
+// CapabilityPort is one row of the table above: a capability the UI gates on,
+// and the interface a driver has to implement to claim it.
+type CapabilityPort struct {
+	Capability model.Capability
+	Port       string
+}
+
+// CapabilityPorts is that table, for callers that reason about the mapping
+// itself rather than check one connection against it. CheckConformance stays
+// the only thing that decides whether a given Conn honours it.
+func CapabilityPorts() []CapabilityPort {
+	rows := backings()
+	ports := make([]CapabilityPort, 0, len(rows))
+	for _, row := range rows {
+		ports = append(ports, CapabilityPort{Capability: row.capability, Port: row.iface})
+	}
+	return ports
+}
