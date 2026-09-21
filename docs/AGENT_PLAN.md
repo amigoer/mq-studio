@@ -8,7 +8,7 @@
 **本次终点：把每一个已交付的家族按能力门控暴露成一个 MCP server，由外部 agent
 驱动。应用内不跑模型，不存 provider 密钥，不做对话界面。**
 
-**状态：M1 已完成（`internal/agent/catalog`）。M2 起未开工。**
+**状态：M1、M2 已完成（`internal/agent/catalog`、`internal/agent/mcpserver`）。M3 起未开工。**
 
 ## 0. 开工前查清的四件事
 
@@ -74,7 +74,7 @@ README 说「这套能力模型正是 Agent 跨中间件工作的前提」，这
 | 阶段 | 范围 | 完成判据 |
 | --- | --- | --- |
 | M1 | 操作目录，不含任何 MCP 代码 | **已完成。** 124 个操作覆盖全部 71 个能力；15 个驱动的 conformance 测试各多一条 `catalog.CheckCoverage` |
-| M2 | 只读工具集 + `mq-studio mcp` 子命令 | GUI 完全没启动时，外部 agent 能读到任意已存 profile 的真实数据 |
+| M2 | 只读工具集 + `mq-studio mcp` 子命令 | **已完成。** 7 个只读工具；对真实 broker 的 live 测试断言工具与 service 层答案一致，且会话前后 profile 文件逐字节未变 |
 | M3 | 写操作与破坏半径门控 | 默认启动下，清空 / 删除 / 重置位点在 `tools/list` 里根本不出现 |
 | M4 | GUI 侧的开关与可见性 | 用户能看见 agent 正在动他的集群，并且能一键掐断 |
 | M5 | 文档 | README 第 16 项、ROADMAP 交付表、`ARCHITECTURE.md` 的进程模型三处同时为真 |
@@ -124,23 +124,41 @@ README 说「这套能力模型正是 Agent 跨中间件工作的前提」，这
 
 ### M2 · 只读工具集与 stdio 子命令
 
-工具范围：`capabilities.describe`、`connections.list`、`destinations.list`、
-`destination.detail`、`subscriptions.list`（含 lag）、`messages.browse`、
-`cluster.topology`。
+**已完成**，落在 `internal/agent/mcpserver` 与根目录的 `mcp.go`。7 个工具：
+`connections_list`、`capabilities_describe`、`destinations_list`、
+`destination_detail`、`subscriptions_list`、`messages_browse`、`cluster_topology`，
+每个都带 `readOnlyHint` 注解。握手时的 instructions 直接告诉客户端从
+`connections_list` 开始、再对要操作的连接调 `capabilities_describe`——因为「能做什么」
+是端点的属性而不是家族的属性，这件事没法从工具列表里看出来。
 
-`capabilities.describe` 是第一个要做的工具，也应当是 agent 每次会话的第一次调用：
-它回答「这个连接能做什么、哪些做不到、为什么做不到」。没有它，模型只能靠试错去撞
-一个端点的边界，而这正是能力模型存在的理由。
+**未决问题 1 已定：用官方 SDK**（`modelcontextprotocol/go-sdk v1.8.0`）。实测代价
+**2.4 MB**（84.3 → 86.7 MB），不是空模块里量出来的 8.5 MB——这个应用本来就链接了 SDK
+依赖里的大部分。
 
-`main.go` 现在是直接 `run()` 进 Wails，这里加一个 argv 分支走 headless 路径。
+**开工后查出三件事，每一件都改了做法，而且都是同一类问题：这个进程不拥有那些文件。**
 
-**判据：**
+1. **`Connect` 会写 profile 存储。** `connectRuntimeLocked` 设完 `StatusOnline` 和
+   `LastCheck` 就整文件重写。所以加了 `connection.Service.OpenReadOnly`：解析路径和
+   `Connect` 一模一样（全局凭据、家族自己的认证方式都照走），只是什么都不记。
+2. **`app.New()` 还有两件事是窗口专属的，而且都写盘**：采集器按定时把 TPS 历史整文件
+   写出去，`ConnectDefault` 在后台走的正是 `Connect`。于是拆出 `app.NewReadOnly`，
+   两件都不做。
+3. **驱动注册是进程级的**，`Register` 对重复注册会 panic（这是对的：两个驱动抢同一个
+   kind 是构建错误）。一个进程里装配两次服务在此之前不可能发生，所以这一点从没暴露过；
+   现在注册包在 `sync.OnceFunc` 里。
 
-- GUI 完全没有启动的情况下，外部 agent 能连上，并读到已存 profile 的真实目标列表，
-  每个家族各验一次；
-- 对 profile 存储只读（理由见第 3 节）；
-- 每个家族的 live 套件里多一条断言：同一个问题，走 MCP 工具和走 bridge 方法必须得到
-  同一个答案。
+**三条 live 测试，对着 `npm run e2e:rabbitmq:up` 起的真 broker 跑过：**
+
+- 工具返回的 destination 集合与 `services.Topics.List` 完全一致——服务端是同一套
+  service 之上的第二个适配器，「答案相同」是它唯一的主张，而一个悄悄读了别处的工具能
+  通过这个仓库里所有离线测试。
+- 浏览的 caveat 走到了工具返回值里。RabbitMQ 的浏览走 `basic.get` 会改队列状态，而一个
+  没有界面的调用方没有第二个地方能知道这件事。
+- **一次完整会话（含打开一个此前未打开的连接）之后，profile 文件逐字节未变。** 把
+  `OpenReadOnly` 换回 `Connect` 这条就会红，试过。
+
+**没做的部分：** 另外 14 个家族的 live 平价断言。测试本身是家族无关的，加一个家族就是
+一次调用加一个 profile，但每个都要先把对应的 broker 起起来，所以这一轮只做了 RabbitMQ。
 
 ### M3 · 写操作与破坏半径门控
 
@@ -208,9 +226,8 @@ profile 存储是**整文件原子重写 + 进程内互斥**（`internal/service
 
 ## 6. 未决问题
 
-1. **MCP 实现用官方 Go SDK 还是自己写 stdio JSON-RPC？** 前者省事，但会给一个目前只有
-   34 个直接依赖的二进制再加一棵依赖树，而 [#73](https://github.com/amigoer/mq-studio/issues/73)
-   正是「依赖树把二进制撑大一倍」那张单子。开工前先量体积再决定。
+1. ~~**MCP 实现用官方 Go SDK 还是自己写 stdio JSON-RPC？**~~ 已定：官方 SDK，实测
+   2.4 MB。
 2. **工具粒度：** 一个 `destination.list` 吃下所有家族，还是按家族分开？倾向前者加
    `capabilities.describe`，但要先拿 IBM MQ 的 channel 和 Kinesis 的 shard 验一遍——这
    两样在规范页面里都没有对应物，各自拿了独立的端口和页面。

@@ -4,6 +4,7 @@ package app
 import (
 	"fmt"
 	"log"
+	"sync"
 
 	"github.com/amigoer/mq-studio/internal/crypto"
 	"github.com/amigoer/mq-studio/internal/driver"
@@ -87,33 +88,73 @@ type Services struct {
 	registry *driver.Registry
 }
 
-// New initializes the local encryption key and assembles all business services.
+// New initializes the local encryption key and assembles all business
+// services, for the process that owns the stored files.
 func New() (*Services, error) {
+	services, err := assemble()
+	if err != nil {
+		return nil, err
+	}
+	services.Collector.Start()
+
+	// Reopening the last connection used to happen lazily, on whichever data
+	// request first found no client. The registry never dials on its own, so
+	// the reconnect is explicit - in the background, because a NameServer that
+	// is down would otherwise hold the window shut for the dial timeout.
+	// ConnectDefault is a no-op when the user has turned auto-connect off.
+	go func() {
+		if err := services.Connections.ConnectDefault(); err != nil {
+			log.Printf("[app] 自动连接默认连接失败: %v", err)
+		}
+	}()
+	return services, nil
+}
+
+/*
+ * NewReadOnly assembles the same services for a process that does not own the
+ * stored files.
+ *
+ * Two of the things New does are the window's alone, and both of them write.
+ * The collector samples on a timer and keeps the TPS history on disk; auto
+ * connect dials the default profile through Connect, which stamps a status
+ * into the profile store and saves the whole file. Either one from a second
+ * process is a race for a file that is rewritten entire, with an in-process
+ * lock as its only guard.
+ *
+ * What is left still reads those files, and still dials - through
+ * Connections.OpenReadOnly, which resolves a profile exactly as Connect does
+ * and records nothing.
+ */
+func NewReadOnly() (*Services, error) {
+	return assemble()
+}
+
+// NewReadOnlyIn is NewReadOnly over a named directory rather than the one this
+// installation keeps its files in. It exists so a caller can have a whole
+// application against a store it owns outright - which today means a test that
+// must be able to say the profile file was not written.
+func NewReadOnlyIn(directory string) (*Services, error) {
+	return assembleIn(layout.In(directory))
+}
+
+// assemble builds the services without starting anything, under the
+// directory this installation keeps its files in.
+func assemble() (*Services, error) {
 	paths, err := layout.Default()
 	if err != nil {
 		return nil, err
 	}
+	return assembleIn(paths)
+}
+
+// assembleIn is assemble against a given directory, so a test can have a whole
+// application over a temporary one.
+func assembleIn(paths layout.Layout) (*Services, error) {
 	if err := crypto.InitKey(paths.Directory); err != nil {
 		return nil, fmt.Errorf("failed to initialize local encryption key: %w", err)
 	}
 
-	// Register the compiled-in drivers before anything asks the catalog what
-	// families exist, or opens a connection against one.
-	driver.Register(rocketmq.New())
-	driver.Register(rabbitmq.New())
-	driver.Register(kafka.New())
-	driver.Register(mqtt.New())
-	driver.Register(pulsar.New())
-	driver.Register(redisstream.New())
-	driver.Register(natsdriver.New())
-	driver.Register(activemq.New())
-	driver.Register(nsqdriver.New())
-	driver.Register(sqsdriver.New())
-	driver.Register(googlepubsubdriver.New())
-	driver.Register(azureservicebusdriver.New())
-	driver.Register(kinesisdriver.New())
-	driver.Register(ibmmqdriver.New())
-	driver.Register(solacedriver.New())
+	registerDrivers()
 
 	registry := driver.NewRegistry()
 	settingsService := settings.New(paths.SettingsFile)
@@ -150,18 +191,6 @@ func New() (*Services, error) {
 		Collector:    collector.New(sampleActiveConnection(clusterService, registry), registry.HasActive),
 		registry:     registry,
 	}
-	services.Collector.Start()
-
-	// Reopening the last connection used to happen lazily, on whichever data
-	// request first found no client. The registry never dials on its own, so
-	// the reconnect is explicit - in the background, because a NameServer that
-	// is down would otherwise hold the window shut for the dial timeout.
-	// ConnectDefault is a no-op when the user has turned auto-connect off.
-	go func() {
-		if err := connections.ConnectDefault(); err != nil {
-			log.Printf("[app] 自动连接默认连接失败: %v", err)
-		}
-	}()
 	return services, nil
 }
 
@@ -174,3 +203,29 @@ func (s *Services) Close() {
 		s.registry.CloseAll()
 	}
 }
+
+// registerDrivers makes the compiled-in families available to the catalog and
+// to anything opening a connection.
+//
+// The driver catalog is process-global and Register panics on a duplicate,
+// which is right: a second driver claiming a kind is a build mistake. That
+// makes this a once-per-process job rather than a once-per-Services one, which
+// only became visible when a second assembly in the same process became
+// possible.
+var registerDrivers = sync.OnceFunc(func() {
+	driver.Register(rocketmq.New())
+	driver.Register(rabbitmq.New())
+	driver.Register(kafka.New())
+	driver.Register(mqtt.New())
+	driver.Register(pulsar.New())
+	driver.Register(redisstream.New())
+	driver.Register(natsdriver.New())
+	driver.Register(activemq.New())
+	driver.Register(nsqdriver.New())
+	driver.Register(sqsdriver.New())
+	driver.Register(googlepubsubdriver.New())
+	driver.Register(azureservicebusdriver.New())
+	driver.Register(kinesisdriver.New())
+	driver.Register(ibmmqdriver.New())
+	driver.Register(solacedriver.New())
+})

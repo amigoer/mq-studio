@@ -10,6 +10,7 @@ import (
 	"context"
 	"log"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -39,6 +40,9 @@ type Collector struct {
 	stopOnce  sync.Once
 	stop      chan struct{}
 	done      chan struct{}
+	// started separates "the sampler is stopping" from "there was never a
+	// sampler". Only the first has a goroutine to wait for.
+	started atomic.Bool
 
 	// failing is only ever touched by the sampling goroutine.
 	failing bool
@@ -62,6 +66,7 @@ func newWithInterval(sampler Sampler, connected ConnectionProbe, interval time.D
 // Start begins sampling in the background. Calling it more than once is a no-op.
 func (c *Collector) Start() {
 	c.startOnce.Do(func() {
+		c.started.Store(true)
 		go c.loop()
 	})
 }
@@ -74,6 +79,12 @@ func (c *Collector) Stop() {
 		stopped = true
 	})
 	if !stopped {
+		return
+	}
+	// A collector that was never started has no sampler to wait for. A process
+	// that does not sample - the MCP server is one - would otherwise pay the
+	// timeout below on every exit, and log a stall that never happened.
+	if !c.started.Load() {
 		return
 	}
 	select {
