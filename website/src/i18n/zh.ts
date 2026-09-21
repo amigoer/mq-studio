@@ -61,7 +61,7 @@ export const zh: Content = {
       'IBM MQ',
       'Solace PubSub+ 10.x',
     ],
-    planned: '路线图上列出的驱动都已落地，接下来是 Agent 相关功能。',
+    planned: '路线图上列出的驱动都已落地；同一个二进制现在还能作为 MCP server 运行，让 agent 也用得上它们。',
   },
   features: {
     title: '为什么用 MQ Studio',
@@ -159,7 +159,7 @@ export const zh: Content = {
       { label: 'Amazon Kinesis', done: true },
       { label: 'IBM MQ', done: true },
       { label: 'Solace PubSub+', done: true },
-      { label: 'Agent', done: false },
+      { label: 'Agent', done: true },
     ],
   },
   changelog: {

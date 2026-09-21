@@ -264,7 +264,8 @@ MQ Studio 正在成为一个覆盖所有消息队列的桌面客户端。每种�
   是记录而不是队列。再加驱动现在是诉求驱动而不是计划驱动。
   [驱动申请](https://github.com/amigoer/mq-studio/issues/new?template=6-driver-request.zh-CN.yml)
   表单只问一个决定驱动能否存在的问题：桌面端能够到什么，以及怎么够到。驱动之后的工作是
-  Agent 相关能力，它建立在每个驱动已经声明的能力模型之上；范围确定后在 README 公布。
+  Agent 相关能力，它已经落地：同一个二进制可以作为 MCP server 运行，建立在每个驱动已经
+  声明的能力模型之上。范围与背后的决定见 [AGENT_PLAN.md](AGENT_PLAN.md)。
 
 ## 交付顺序
 

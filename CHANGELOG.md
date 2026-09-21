@@ -9,6 +9,37 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Added
+
+- The same binary runs as an MCP server, so an agent such as Claude Code can
+  work the connections this installation already holds, with no endpoints or
+  credentials entered a second time. `mq-studio mcp` is read-only. Writing is
+  allowed at startup as a ceiling rather than a list of switches: `--allow
+  mutate` adds creating a destination, publishing, resending a dead letter and
+  moving a read position, and `--allow destructive` adds emptying and deleting
+  one. Anything above the ceiling is left out of the tool list entirely, since
+  a model cannot call a tool it was never told about - which also puts the
+  decision with whoever starts the server, at the moment they start it, rather
+  than with a switch somebody set weeks ago.
+
+- What a connection can do reaches the agent as the endpoint's own answer.
+  `capabilities_describe` reports the operations available here, the ones the
+  family has that this endpoint does not and why, the consequences that survive
+  an operation succeeding, and - for a write that carries family settings -
+  which keys this family actually reads, with their types. A key it does not
+  read is refused by name rather than dropped in silence, which is the one
+  failure a caller cannot detect: the call succeeds and the setting simply does
+  not happen.
+
+### Fixed
+
+- Emptying a Kafka topic now says what it really does. The confirmation dialog
+  has always explained that the offsets keep counting, so a consumer at 900
+  stays at 900 and is caught up rather than reset, but the driver declared no
+  caveat alongside it. Anything reading the capabilities instead of the screen
+  was told only that the topic can be emptied, which on a log is the more
+  dangerous half of the truth.
+
 ## [0.1.2] - 2026-09-20
 
 The connections page gains bulk work and a way into a form from the welcome

@@ -181,12 +181,13 @@ half-wired set of pages.
 | 13 | Amazon Kinesis | ✅ Done |
 | 14 | IBM MQ | ✅ Done |
 | 15 | Solace PubSub+ | ✅ Done |
-| 16 | Agent features | 📋 Next |
+| 16 | Agent features | ✅ Done |
 
-Every driver the roadmap named has landed. Agent work starts from here: each driver already
-declares what the connected broker can actually do, and that capability model is the foundation
-an agent needs to work across brokers without offering operations the broker cannot perform. The
-scope will be published here as it is settled.
+Every driver the roadmap named has landed, and so has the agent work: the same binary runs as
+an MCP server, handing these families to an external agent. Each driver already declares what
+the connected broker can actually do, and that capability model is the foundation it works
+across brokers on, without offering operations the broker cannot perform. See
+[For agents (MCP)](#for-agents-mcp).
 
 A further driver is a request rather than a plan now. The
 [driver request](https://github.com/amigoer/mq-studio/issues/new?template=5-driver-request.yml)
@@ -230,6 +231,37 @@ and for the per-platform install steps.
 
 Your profiles and settings stay in the local user configuration directory. Configuration
 exports contain plaintext credentials and should be stored securely.
+
+## For agents (MCP)
+
+The same binary runs as an [MCP](https://modelcontextprotocol.io) server, so an agent such as
+Claude Code can work these connections. It reads the application's own profiles, so there are no
+endpoints or credentials to enter a second time:
+
+```bash
+claude mcp add mq-studio -- "/Applications/MQ Studio.app/Contents/MacOS/mq-studio" mcp
+```
+
+**Read-only by default.** Writing is allowed at startup, as a ceiling rather than a list of
+switches:
+
+| Started with | What it adds |
+| --- | --- |
+| nothing | List connections, destinations and subscriptions, browse messages, read the cluster |
+| `--allow mutate` | Create a destination, publish, resend a dead letter, move a read position |
+| `--allow destructive` | Empty a destination, delete a destination |
+
+Anything above the ceiling is left out of the tool list entirely - a model cannot call a tool it
+was never told about. The decision therefore belongs to whoever starts the server, at the moment
+they start it, rather than to a switch in the application somebody set weeks ago.
+
+Have the agent call `capabilities_describe` first: **what a connection can do is the endpoint's
+own answer**, two endpoints of one family can differ, and an operation the broker cannot perform
+is never offered. Operations with a consequence return it - browsing a RabbitMQ queue alters
+that queue's state, and emptying a Kafka topic leaves its offsets counting.
+
+It never writes the application's profiles: the window rewrites that file whole, and two writers
+would lose each other's edits.
 
 ## Development
 
