@@ -74,10 +74,13 @@ func (s *server) createDestination(
 	if err := s.services.Topics.Create(ctx, input.Connection, spec); err != nil {
 		return nil, writeOutput{}, err
 	}
-	return nil, writeOutput{Effect: effect{
-		Changed: fmt.Sprintf("created %s on %s", describeRef(spec.Ref), conn.Kind()),
-		Caveat:  caveat,
-	}}, nil
+	changed := fmt.Sprintf("created %s on %s", describeRef(spec.Ref), conn.Kind())
+	// Checked after, since nothing exists to check before; the effect is the
+	// one place a caller would otherwise read that it landed where it asked.
+	if err := s.resolvedIn(ctx, input.Connection, conn.Kind(), spec.Ref); err != nil {
+		changed = fmt.Sprintf("created %s on %s, but %v", input.Name, conn.Kind(), err)
+	}
+	return nil, writeOutput{Effect: effect{Changed: changed, Caveat: caveat}}, nil
 }
 
 /*
@@ -115,11 +118,13 @@ func (s *server) checkAttributes(kind model.MQKind, operationID string, given ma
 	return nil
 }
 
+// describeRef quotes the namespace rather than joining it on: RabbitMQ's
+// default vhost is "/", which joined reads as a path gone wrong.
 func describeRef(ref model.DestinationRef) string {
 	if ref.Namespace == "" {
 		return ref.Name
 	}
-	return ref.Namespace + "/" + ref.Name
+	return fmt.Sprintf("%s in %q", ref.Name, ref.Namespace)
 }
 
 type publishInput struct {
@@ -254,6 +259,9 @@ func (s *server) purgeDestination(
 	defer cancel()
 
 	ref := model.DestinationRef{Namespace: input.Namespace, Name: input.Name}
+	if err := s.resolvedIn(ctx, input.Connection, conn.Kind(), ref); err != nil {
+		return nil, writeOutput{}, err
+	}
 	if err := actions.PurgeQueue(ctx, ref); err != nil {
 		return nil, writeOutput{}, err
 	}
@@ -275,6 +283,9 @@ func (s *server) deleteDestination(
 	defer cancel()
 
 	ref := model.DestinationRef{Namespace: input.Namespace, Name: input.Name}
+	if err := s.resolvedIn(ctx, input.Connection, conn.Kind(), ref); err != nil {
+		return nil, writeOutput{}, err
+	}
 	if err := s.services.Topics.Remove(ctx, input.Connection, ref); err != nil {
 		return nil, writeOutput{}, err
 	}

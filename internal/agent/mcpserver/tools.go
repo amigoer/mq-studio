@@ -372,7 +372,7 @@ type destinationsOutput struct {
 func (s *server) listDestinations(
 	ctx context.Context, _ *mcp.CallToolRequest, input destinationsInput,
 ) (*mcp.CallToolResult, destinationsOutput, error) {
-	_, caveat, err := s.capable(input.Connection, model.CapDestinationList)
+	conn, caveat, err := s.capable(input.Connection, model.CapDestinationList)
 	if err != nil {
 		return nil, destinationsOutput{}, err
 	}
@@ -384,6 +384,13 @@ func (s *server) listDestinations(
 		IncludeInternal: input.IncludeInternal,
 	})
 	if err != nil {
+		return nil, destinationsOutput{}, err
+	}
+	answered := make([]string, 0, len(destinations))
+	for _, destination := range destinations {
+		answered = append(answered, destination.Ref.Namespace)
+	}
+	if err := consulted(conn.Kind(), input.Namespace, answered...); err != nil {
 		return nil, destinationsOutput{}, err
 	}
 	return nil, destinationsOutput{Destinations: destinations, Caveat: caveat}, nil
@@ -403,7 +410,7 @@ type destinationDetailOutput struct {
 func (s *server) destinationDetail(
 	ctx context.Context, _ *mcp.CallToolRequest, input destinationDetailInput,
 ) (*mcp.CallToolResult, destinationDetailOutput, error) {
-	_, caveat, err := s.capable(input.Connection, model.CapDestinationList)
+	conn, caveat, err := s.capable(input.Connection, model.CapDestinationList)
 	if err != nil {
 		return nil, destinationDetailOutput{}, err
 	}
@@ -416,6 +423,11 @@ func (s *server) destinationDetail(
 	})
 	if err != nil {
 		return nil, destinationDetailOutput{}, err
+	}
+	if destination != nil {
+		if err := consulted(conn.Kind(), input.Namespace, destination.Ref.Namespace); err != nil {
+			return nil, destinationDetailOutput{}, err
+		}
 	}
 	return nil, destinationDetailOutput{Destination: destination, Caveat: caveat}, nil
 }

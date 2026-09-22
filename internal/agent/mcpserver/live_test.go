@@ -368,6 +368,63 @@ func TestLiveMCPWritesDoWhatTheySay(t *testing.T) {
 	}
 }
 
+// The cycle again, naming the vhost. Before deleting, the server now checks
+// that the broker found the queue inside the namespace it was given, so a
+// family that really scopes by one has to be seen getting through.
+func TestLiveMCPActsInTheVhostItNames(t *testing.T) {
+	requireLiveRabbit(t)
+
+	services, connID, _ := liveServices(t, liveRabbitProfile())
+	session := mcpSession(t, services, catalog.BlastDestructive)
+
+	const vhost = "/"
+	name := "mq-studio-mcp-vhost-" + strconv.FormatInt(time.Now().UnixNano(), 36)
+	ref := model.DestinationRef{Namespace: vhost, Name: name}
+	t.Cleanup(func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+		defer cancel()
+		_ = services.Topics.Remove(ctx, connID, ref)
+	})
+
+	type writeResult struct {
+		Effect struct {
+			Changed string `json:"changed"`
+		} `json:"effect"`
+	}
+	created := call[writeResult](t, session, "destination_create", map[string]any{
+		"connection": connID, "name": name, "namespace": vhost,
+	})
+	if want := name + ` in "/" on rabbitmq`; !strings.HasSuffix(created.Effect.Changed, want) {
+		t.Errorf("effect %q does not say it landed in the vhost named", created.Effect.Changed)
+	}
+
+	type listing struct {
+		Destinations []*model.Destination `json:"destinations"`
+	}
+	listed := call[listing](t, session, "destinations_list", map[string]any{
+		"connection": connID, "namespace": vhost,
+	})
+	found := false
+	for _, destination := range listed.Destinations {
+		if destination.Ref.Namespace != vhost {
+			t.Errorf("%s listed from %q, not the vhost named", destination.Ref.Name, destination.Ref.Namespace)
+		}
+		found = found || destination.Ref.Name == name
+	}
+	if !found {
+		t.Errorf("%s is not listed in %q", name, vhost)
+	}
+
+	call[writeResult](t, session, "destination_delete", map[string]any{
+		"connection": connID, "name": name, "namespace": vhost,
+	})
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	if _, err := services.Topics.Detail(ctx, connID, ref); err == nil {
+		t.Errorf("the tool said it deleted %s in %q and the broker still has it", name, vhost)
+	}
+}
+
 // awaitDepth reads a destination's depth until it satisfies want, or gives up.
 func awaitDepth(
 	t *testing.T, services *app.Services, connID int,
