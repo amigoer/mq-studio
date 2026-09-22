@@ -40,6 +40,12 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   was told only that the topic can be emptied, which on a log is the more
   dangerous half of the truth.
 
+- Changing only how a connection authenticates now reconnects it. Switching
+  Kafka from SASL/PLAIN to SCRAM keeps the same user and password, and the
+  check for whether an open connection needs redialling asked only whether the
+  mechanism was ACL, so the connection went on authenticating the old way until
+  the app restarted.
+
 ## [0.1.2] - 2026-09-20
 
 The connections page gains bulk work and a way into a form from the welcome
