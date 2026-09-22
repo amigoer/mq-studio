@@ -177,14 +177,14 @@ func (s *server) register(server *mcp.Server, allow catalog.Blast) {
 	// Neither reaches a driver, so neither has a catalogue operation, and both
 	// are always offered: a caller that cannot list the connections cannot use
 	// any of the rest.
-	mcp.AddTool(server, &mcp.Tool{
+	addTool(server, &mcp.Tool{
 		Name: "connections_list",
 		Description: "List the broker connections this installation has stored, with the family " +
 			"each speaks. Start here: every other tool takes one of these ids.",
 		Annotations: annotate("List connections", catalog.BlastRead),
 	}, s.listConnections)
 
-	mcp.AddTool(server, &mcp.Tool{
+	addTool(server, &mcp.Tool{
 		Name: "capabilities_describe",
 		Description: "Describe what one connection can actually do: the operations available on " +
 			"it, the ones its family has but this endpoint does not, the consequences attached " +
@@ -194,63 +194,63 @@ func (s *server) register(server *mcp.Server, allow catalog.Blast) {
 	}, s.describeCapabilities)
 
 	if tool, ok := offer("destination.list", allow); ok {
-		mcp.AddTool(server, tool, s.listDestinations)
+		addTool(server, tool, s.listDestinations)
 	}
 	if tool, ok := offer("destination.detail", allow); ok {
-		mcp.AddTool(server, tool, s.destinationDetail)
+		addTool(server, tool, s.destinationDetail)
 	}
 	if tool, ok := offer("subscription.list", allow); ok {
-		mcp.AddTool(server, tool, s.listSubscriptions)
+		addTool(server, tool, s.listSubscriptions)
 	}
 	if tool, ok := offer("message.query", allow); ok {
-		mcp.AddTool(server, tool, s.browseMessages)
+		addTool(server, tool, s.browseMessages)
 	}
 	if tool, ok := offer("cluster.nodes", allow); ok {
-		mcp.AddTool(server, tool, s.clusterTopology)
+		addTool(server, tool, s.clusterTopology)
 	}
 	if tool, ok := offer("message.dlq", allow); ok {
-		mcp.AddTool(server, tool, s.deadLetters)
+		addTool(server, tool, s.deadLetters)
 	}
 	if tool, ok := offer("message.retryQueue", allow); ok {
-		mcp.AddTool(server, tool, s.retryQueue)
+		addTool(server, tool, s.retryQueue)
 	}
 	if tool, ok := offer("message.deadLetterQueues", allow); ok {
-		mcp.AddTool(server, tool, s.deadLetterQueues)
+		addTool(server, tool, s.deadLetterQueues)
 	}
 	if tool, ok := offer("subscription.lag", allow); ok {
-		mcp.AddTool(server, tool, s.subscriptionLag)
+		addTool(server, tool, s.subscriptionLag)
 	}
 	if tool, ok := offer("subscription.clients", allow); ok {
-		mcp.AddTool(server, tool, s.subscriptionConsumers)
+		addTool(server, tool, s.subscriptionConsumers)
 	}
 	if tool, ok := offer("subscription.pendingSummary", allow); ok {
-		mcp.AddTool(server, tool, s.pendingSummary)
+		addTool(server, tool, s.pendingSummary)
 	}
 	if tool, ok := offer("subscription.pendingEntries", allow); ok {
-		mcp.AddTool(server, tool, s.pendingEntries)
+		addTool(server, tool, s.pendingEntries)
 	}
 	if tool, ok := offer("subscription.groupConsumers", allow); ok {
-		mcp.AddTool(server, tool, s.groupConsumers)
+		addTool(server, tool, s.groupConsumers)
 	}
 
 	if tool, ok := offer("destination.create", allow); ok {
-		mcp.AddTool(server, tool, s.createDestination)
+		addTool(server, tool, s.createDestination)
 	}
 	if tool, ok := offer("message.send", allow); ok {
-		mcp.AddTool(server, tool, s.publishMessage)
+		addTool(server, tool, s.publishMessage)
 	}
 	if tool, ok := offer("message.resend", allow); ok {
-		mcp.AddTool(server, tool, s.resendMessage)
+		addTool(server, tool, s.resendMessage)
 	}
 	if tool, ok := offer("subscription.resetOffset", allow); ok {
-		mcp.AddTool(server, tool, s.resetOffset)
+		addTool(server, tool, s.resetOffset)
 	}
 
 	if tool, ok := offer("destination.purge", allow); ok {
-		mcp.AddTool(server, tool, s.purgeDestination)
+		addTool(server, tool, s.purgeDestination)
 	}
 	if tool, ok := offer("destination.delete", allow); ok {
-		mcp.AddTool(server, tool, s.deleteDestination)
+		addTool(server, tool, s.deleteDestination)
 	}
 }
 
