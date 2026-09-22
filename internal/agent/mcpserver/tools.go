@@ -109,6 +109,42 @@ var tools = map[string]toolInfo{
 			"the grain the pending list uses.",
 	},
 
+	"message.byId": {
+		name:  "message_by_id",
+		title: "Read one message",
+		description: "Read one message by the id its family identifies messages with, as " +
+			"messages_browse reports it. Start here when someone can name the message in question.",
+	},
+	"namespace.list": {
+		name:  "namespaces_list",
+		title: "List namespaces",
+		description: "List the namespaces a broker keeps as objects of their own - RabbitMQ virtual " +
+			"hosts, Pulsar namespaces, NATS accounts - with what each holds. Where a family keeps " +
+			"destinations apart by them, these are what the namespace argument of the other tools " +
+			"takes; where it does not, that argument is refused rather than ignored.",
+	},
+	"routing.exchanges": {
+		name:  "routing_exchanges",
+		title: "List exchanges",
+		description: "List what routes messages rather than holding them: RabbitMQ exchanges, " +
+			"Service Bus topics, Solace topic endpoints. With routing_bindings, this is how to find " +
+			"why a message went where it did, or nowhere.",
+	},
+	"routing.bindings": {
+		name:  "routing_bindings",
+		title: "List bindings",
+		description: "List the routes from what routes to what receives, with the key and arguments " +
+			"that decide a match: RabbitMQ bindings, Service Bus subscription rules, Solace queue " +
+			"subscriptions. A message nothing matches reaches no queue at all.",
+	},
+	"destination.partitions": {
+		name:  "destination_partitions",
+		title: "Read partitions",
+		description: "Read how one destination is divided and what each part holds - Kafka and " +
+			"Pulsar partitions, RocketMQ queues, NATS subjects. Totals hide a backlog piled on one " +
+			"part, and on Kafka a partition whose replicas have fallen out of sync.",
+	},
+
 	"destination.create": {
 		name:  "destination_create",
 		title: "Create a destination",
@@ -231,6 +267,21 @@ func (s *server) register(server *mcp.Server, allow catalog.Blast) {
 	}
 	if tool, ok := offer("subscription.groupConsumers", allow); ok {
 		addTool(server, tool, s.groupConsumers)
+	}
+	if tool, ok := offer("message.byId", allow); ok {
+		addTool(server, tool, s.messageByID)
+	}
+	if tool, ok := offer("namespace.list", allow); ok {
+		addTool(server, tool, s.listNamespaces)
+	}
+	if tool, ok := offer("routing.exchanges", allow); ok {
+		addTool(server, tool, s.listExchanges)
+	}
+	if tool, ok := offer("routing.bindings", allow); ok {
+		addTool(server, tool, s.listBindings)
+	}
+	if tool, ok := offer("destination.partitions", allow); ok {
+		addTool(server, tool, s.destinationPartitions)
 	}
 
 	if tool, ok := offer("destination.create", allow); ok {

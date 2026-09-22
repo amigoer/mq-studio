@@ -269,3 +269,37 @@ func (s *server) groupConsumers(
 	}
 	return nil, groupConsumersOutput{Consumers: consumers, Caveat: caveat}, nil
 }
+
+type messageByIDInput struct {
+	Connection  int    `json:"connection" jsonschema:"the connection id"`
+	Destination string `json:"destination" jsonschema:"the destination holding it"`
+	MessageID   string `json:"messageId" jsonschema:"the message id, as messages_browse reports it"`
+}
+
+type messageOutput struct {
+	Message *model.MessageItem `json:"message"`
+	Caveat  string             `json:"caveat,omitempty"`
+}
+
+func (s *server) messageByID(
+	ctx context.Context, _ *mcp.CallToolRequest, input messageByIDInput,
+) (*mcp.CallToolResult, messageOutput, error) {
+	conn, caveat, err := s.capable(input.Connection, model.CapMessageByID)
+	if err != nil {
+		return nil, messageOutput{}, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+
+	message, err := s.services.Messages.ByID(ctx, input.Connection, input.Destination, input.MessageID)
+	if err != nil {
+		return nil, messageOutput{}, err
+	}
+	// An empty answer is a finding, and has to read as one rather than as a
+	// successful call that happened to carry nothing.
+	if message == nil {
+		return nil, messageOutput{}, fmt.Errorf(
+			"%s holds no message %q in %s", conn.Kind(), input.MessageID, input.Destination)
+	}
+	return nil, messageOutput{Message: message, Caveat: caveat}, nil
+}

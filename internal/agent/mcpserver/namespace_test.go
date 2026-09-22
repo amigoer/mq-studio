@@ -58,6 +58,7 @@ func (c *namespacedConn) RemoveDestination(_ context.Context, ref model.Destinat
 type requestTimeout struct{}
 
 func (requestTimeout) GetRequestTimeout() time.Duration { return time.Second }
+func (requestTimeout) GetFetchLimit() int               { return 32 }
 
 // namespacedServer is a whole application whose one connection is conn.
 func namespacedServer(t *testing.T, conn *namespacedConn) *server {

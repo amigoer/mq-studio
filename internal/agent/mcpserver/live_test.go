@@ -107,20 +107,42 @@ func livePhrases(key string) string {
 // call runs one tool and decodes its structured result.
 func call[T any](t *testing.T, session *mcp.ClientSession, tool string, arguments map[string]any) T {
 	t.Helper()
+	return callWithin[T](t, session, tool, arguments, 1)
+}
+
+// callEventually is call for a read on a cluster whose other suite stops a
+// broker on purpose: a partition can be between leaders for a moment, and a
+// read is safe to ask again.
+func callEventually[T any](t *testing.T, session *mcp.ClientSession, tool string, arguments map[string]any) T {
+	t.Helper()
+	return callWithin[T](t, session, tool, arguments, 4)
+}
+
+func callWithin[T any](
+	t *testing.T, session *mcp.ClientSession, tool string, arguments map[string]any, attempts int,
+) T {
+	t.Helper()
 
 	encoded, err := json.Marshal(arguments)
 	if err != nil {
 		t.Fatal(err)
 	}
-	result, err := session.CallTool(context.Background(), &mcp.CallToolParams{
-		Name:      tool,
-		Arguments: json.RawMessage(encoded),
-	})
-	if err != nil {
-		t.Fatalf("%s: %v", tool, err)
-	}
-	if result.IsError {
-		t.Fatalf("%s refused: %v", tool, result.Content)
+	var result *mcp.CallToolResult
+	for attempt := 1; ; attempt++ {
+		result, err = session.CallTool(context.Background(), &mcp.CallToolParams{
+			Name:      tool,
+			Arguments: json.RawMessage(encoded),
+		})
+		if err != nil {
+			t.Fatalf("%s: %v", tool, err)
+		}
+		if !result.IsError {
+			break
+		}
+		if attempt == attempts {
+			t.Fatalf("%s refused: %v", tool, result.Content)
+		}
+		time.Sleep(time.Second)
 	}
 
 	var decoded T
@@ -192,6 +214,11 @@ func TestLiveMCPDestinationsMatchTheServiceLayer(t *testing.T) {
 		t.Log("the broker has no destinations; the comparison held but proved little")
 	}
 }
+
+// churn is the prefix the driver suite names what it creates with. It runs
+// beside this one against the same broker, so two listings taken a moment
+// apart can differ by whatever it made or removed in between.
+const churn = "mqs-test-"
 
 // The caveat is the point of the whole capability model reaching this far. A
 // RabbitMQ browse goes through basic.get and alters the queue, and a caller
@@ -365,6 +392,182 @@ func TestLiveMCPWritesDoWhatTheySay(t *testing.T) {
 	// Four writes to the broker and still not one to the profile store.
 	if after := hashFile(t, paths.ConnectionsFile); after != before {
 		t.Error("the MCP server rewrote the profile store")
+	}
+}
+
+// Namespaces and routing against the seeded broker, which binds queues to
+// exchanges in the default vhost. Each tool has to agree with the service
+// behind the pages, and naming that vhost has to get through the check that
+// refuses a namespace the family ignored.
+func TestLiveMCPReadsNamespacesAndRouting(t *testing.T) {
+	requireLiveRabbit(t)
+
+	services, connID, _ := liveServices(t, liveRabbitProfile())
+	session := mcpSession(t, services, catalog.BlastRead)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	type namespacesResult struct {
+		Namespaces []*model.Namespace `json:"namespaces"`
+	}
+	listed := call[namespacesResult](t, session, "namespaces_list", map[string]any{"connection": connID})
+	vhosts, err := services.RabbitMQ.Namespaces(ctx, connID)
+	if err != nil {
+		t.Fatalf("service layer: %v", err)
+	}
+	if got, want := namespaceNames(listed.Namespaces), namespaceNames(vhosts); !slices.Equal(got, want) {
+		t.Errorf("the tool listed %v and the service %v", got, want)
+	}
+	if !slices.Contains(namespaceNames(listed.Namespaces), "/") {
+		t.Error("the default vhost is not listed")
+	}
+
+	type exchangesResult struct {
+		Exchanges []*model.Destination `json:"exchanges"`
+	}
+	exchanges := call[exchangesResult](t, session, "routing_exchanges", map[string]any{
+		"connection": connID, "namespace": "/"})
+	fromService, err := services.Routing.Exchanges(ctx, connID, "/")
+	if err != nil {
+		t.Fatalf("service layer: %v", err)
+	}
+	if got, want := destinationNames(exchanges.Exchanges), destinationNames(fromService); !slices.Equal(got, want) {
+		t.Errorf("the tool listed exchanges %v and the service %v", got, want)
+	}
+	if !slices.Contains(destinationNames(exchanges.Exchanges), "mqs-seed-orders") {
+		t.Fatal("the seeded exchange is missing; run npm run e2e:rabbitmq:seed")
+	}
+
+	type bindingsResult struct {
+		Bindings []*model.Binding `json:"bindings"`
+	}
+	bindings := call[bindingsResult](t, session, "routing_bindings", map[string]any{
+		"connection": connID, "namespace": "/"})
+	routes, err := services.Routing.Bindings(ctx, connID, "/")
+	if err != nil {
+		t.Fatalf("service layer: %v", err)
+	}
+	if got, want := bindingRoutes(bindings.Bindings), bindingRoutes(routes); !slices.Equal(got, want) {
+		t.Errorf("the tool listed bindings %v and the service %v", got, want)
+	}
+	if !slices.Contains(bindingRoutes(bindings.Bindings), "mqs-seed-orders -> mqs-seed-audit") {
+		t.Error("the seeded binding from the orders exchange to the audit queue is missing")
+	}
+}
+
+func namespaceNames(namespaces []*model.Namespace) []string {
+	names := make([]string, 0, len(namespaces))
+	for _, namespace := range namespaces {
+		if !strings.HasPrefix(namespace.Name, churn) {
+			names = append(names, namespace.Name)
+		}
+	}
+	slices.Sort(names)
+	return names
+}
+
+func destinationNames(destinations []*model.Destination) []string {
+	names := make([]string, 0, len(destinations))
+	for _, destination := range destinations {
+		if !strings.HasPrefix(destination.Ref.Name, churn) {
+			names = append(names, destination.Ref.Name)
+		}
+	}
+	slices.Sort(names)
+	return names
+}
+
+func bindingRoutes(bindings []*model.Binding) []string {
+	routes := make([]string, 0, len(bindings))
+	for _, binding := range bindings {
+		if !strings.HasPrefix(binding.Source, churn) && !strings.HasPrefix(binding.Destination, churn) {
+			routes = append(routes, binding.Source+" -> "+binding.Destination)
+		}
+	}
+	slices.Sort(routes)
+	return routes
+}
+
+const (
+	liveKafkaSeeds     = "127.0.0.1:9092,127.0.0.1:9094,127.0.0.1:9096"
+	liveKafkaContainer = "mq-studio-e2e-kafka-kafka-1-1"
+	liveKafkaTopic     = "mqs-seed-orders"
+)
+
+func requireLiveKafka(t *testing.T) {
+	t.Helper()
+	e2e.Require(t, e2e.Env{
+		Name:   "the kafka e2e cluster",
+		Family: e2e.Kafka,
+		Start:  "npm run e2e:kafka:up && npm run e2e:kafka:seed",
+		Probe:  e2e.DockerContainer(liveKafkaContainer),
+	})
+}
+
+// Partitions and a single message, on the family that has both. The seeded
+// orders topic is six partitions replicated three times, so the figures only
+// a partition view carries - a leader, the in-sync replicas - are there to
+// come back wrong.
+func TestLiveMCPReadsPartitionsAndOneMessage(t *testing.T) {
+	requireLiveKafka(t)
+
+	services, connID, _ := liveServices(t, model.ConnectionProfile{
+		Kind: model.KindKafka, Name: "mcp-live-kafka", Endpoints: liveKafkaSeeds, TimeoutSec: 10,
+	})
+	session := mcpSession(t, services, catalog.BlastRead)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	type partitionsResult struct {
+		Stats struct {
+			Partitions []map[string]any `json:"partitions"`
+		} `json:"stats"`
+	}
+	viaTool := callEventually[partitionsResult](t, session, "destination_partitions", map[string]any{
+		"connection": connID, "name": liveKafkaTopic})
+	var viaService map[string]interface{}
+	var err error
+	for attempt := 0; attempt < 4; attempt++ {
+		if viaService, err = services.Topics.Stats(ctx, connID, model.DestinationRef{Name: liveKafkaTopic}); err == nil {
+			break
+		}
+		time.Sleep(time.Second)
+	}
+	if err != nil {
+		t.Fatalf("service layer: %v", err)
+	}
+	serviceRows, _ := viaService["partitions"].([]map[string]interface{})
+	if len(viaTool.Stats.Partitions) != len(serviceRows) {
+		t.Fatalf("the tool read %d partitions and the service %d", len(viaTool.Stats.Partitions), len(serviceRows))
+	}
+	if len(serviceRows) != 6 {
+		t.Fatalf("%s has %d partitions; the seed makes six - run npm run e2e:kafka:seed", liveKafkaTopic, len(serviceRows))
+	}
+	for _, partition := range viaTool.Stats.Partitions {
+		for _, figure := range []string{"leader", "isr", "replicas", "underReplicated"} {
+			if _, ok := partition[figure]; !ok {
+				t.Errorf("partition %v came back without %s", partition["partition"], figure)
+			}
+		}
+	}
+
+	type messagesResult struct {
+		Messages []*model.MessageItem `json:"messages"`
+	}
+	browsed := callEventually[messagesResult](t, session, "messages_browse", map[string]any{
+		"connection": connID, "destination": liveKafkaTopic, "maxResults": 1})
+	if len(browsed.Messages) == 0 {
+		t.Fatalf("%s holds no messages; run npm run e2e:kafka:seed", liveKafkaTopic)
+	}
+	named := browsed.Messages[0]
+
+	type messageResult struct {
+		Message *model.MessageItem `json:"message"`
+	}
+	found := callEventually[messageResult](t, session, "message_by_id", map[string]any{
+		"connection": connID, "destination": liveKafkaTopic, "messageId": named.MessageID})
+	if found.Message == nil || found.Message.MessageID != named.MessageID || found.Message.Body != named.Body {
+		t.Fatalf("looked up %q and got %+v", named.MessageID, found.Message)
 	}
 }
 
