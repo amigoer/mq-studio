@@ -248,22 +248,27 @@ jobs:
               npm run e2e:seed
               npm run e2e:acl:up
           - family: rabbitmq
-            packages: ./internal/app/... ./internal/driver/rabbitmq/...
+            packages: ./internal/app/... ./internal/driver/rabbitmq/... ./internal/agent/mcpserver/...
             # The second broker has none of the optional plugins. What a
             # missing plugin degrades to cannot be asserted against the first
             # one, which turns them on so their pages have something to read.
+            # The seed is what the MCP server's suite finds dead letters and
+            # routing in.
             up: |
               npm run e2e:rabbitmq:up
+              npm run e2e:rabbitmq:seed
               npm run e2e:rabbitmq:plain:up
           - family: kafka
-            packages: ./internal/app/... ./internal/driver/kafka/...
+            packages: ./internal/app/... ./internal/driver/kafka/... ./internal/agent/mcpserver/...
             # Three brokers, which the app-layer cross-checks also drive
             # through Kafka's own CLI inside the first container. The second
             # cluster has SASL and an authorizer: what a rejected credential
             # looks like and what an ACL round trip does cannot be asserted
-            # against the first one, which runs without either.
+            # against the first one, which runs without either. The seed is
+            # the partitioned topic the MCP server's suite reads.
             up: |
               npm run e2e:kafka:up
+              npm run e2e:kafka:seed
               npm run e2e:kafka:secure:up
           - family: pulsar
             packages: ./internal/app/... ./internal/driver/pulsar/...

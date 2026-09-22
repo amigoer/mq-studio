@@ -197,20 +197,10 @@ func TestLiveMCPDestinationsMatchTheServiceLayer(t *testing.T) {
 		t.Fatalf("list through the services: %v", err)
 	}
 
-	if len(viaTool.Destinations) != len(viaServices) {
-		t.Fatalf("the tool returned %d destinations, the services %d",
-			len(viaTool.Destinations), len(viaServices))
+	if got, want := destinationNames(viaTool.Destinations), destinationNames(viaServices); !slices.Equal(got, want) {
+		t.Fatalf("the tool listed %v and the services %v", got, want)
 	}
-	expected := make(map[model.DestinationRef]bool, len(viaServices))
-	for _, destination := range viaServices {
-		expected[destination.Ref] = true
-	}
-	for _, destination := range viaTool.Destinations {
-		if !expected[destination.Ref] {
-			t.Errorf("the tool returned %v, which the services did not", destination.Ref)
-		}
-	}
-	if len(viaServices) == 0 {
+	if len(destinationNames(viaServices)) == 0 {
 		t.Log("the broker has no destinations; the comparison held but proved little")
 	}
 }
