@@ -46,8 +46,10 @@ const instructions = "Work the message brokers this installation has connections
 	"once connected, and for anything you intend to create it also names the settings that " +
 	"family accepts. Results carry a caveat when an operation has a consequence that survives " +
 	"it succeeding - reading a RabbitMQ queue alters that queue's state, and emptying a Kafka " +
-	"topic leaves its offsets counting. How far this server goes was decided when it was " +
-	"started: what is not in the tool list was not permitted, and asking for it will not change that."
+	"topic leaves its offsets counting. A broker with no connection listed is added by the user in " +
+	"the MQ Studio window, and can be used here as soon as it is saved there. How far this server " +
+	"goes was decided when it was started: what is not in the tool list was not permitted, and " +
+	"asking for it will not change that."
 
 // server holds what the tools need. The domain services do the work; this
 // only resolves connections and turns a refusal into something a caller can
@@ -81,7 +83,30 @@ func New(
 		Version: version,
 	}, &mcp.ServerOptions{Instructions: instructions})
 	s.register(mcpServer, allow)
+	mcpServer.AddReceivingMiddleware(s.refreshing)
 	return mcpServer
+}
+
+/*
+ * refreshing re-reads what the window has saved before every tool call.
+ *
+ * Every call rather than a timer: a connection the user has just saved in the
+ * window is usable by the very next call, and a file that reads as it did
+ * costs a read and a comparison. A call that cannot catch up fails rather than
+ * answering from a copy that may list a connection the user deleted.
+ */
+func (s *server) refreshing(next mcp.MethodHandler) mcp.MethodHandler {
+	return func(ctx context.Context, method string, request mcp.Request) (mcp.Result, error) {
+		if method == "tools/call" {
+			if err := s.services.RefreshReadOnly(); err != nil {
+				result := &mcp.CallToolResult{}
+				result.SetError(fmt.Errorf(
+					"not called: %w, and answering from the copy read earlier could be wrong", err))
+				return result, nil
+			}
+		}
+		return next(ctx, method, request)
+	}
 }
 
 /*

@@ -54,6 +54,19 @@ func phrasebook(language string) func(string) string {
 	}
 }
 
+// livePhrasebook resolves in whatever language the application is set to at
+// the moment of asking, so a switch made in the window reaches a server that
+// started before it.
+func livePhrasebook(language func() string) func(string) string {
+	english, chinese := phrasebook("en"), phrasebook("zh")
+	return func(key string) string {
+		if language() == "zh" {
+			return chinese(key)
+		}
+		return english(key)
+	}
+}
+
 func loadLocale(language string) map[string]any {
 	name := "frontend/src/i18n/locales/en.json"
 	if language == "zh" {

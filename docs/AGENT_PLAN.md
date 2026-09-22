@@ -300,6 +300,32 @@ M2/M3 都声称「caveat 走到了调用方手里」，而本地第一次真跑�
 > rabbitmq reports subscription.lag through its listing rather than through a call of its own,
 > so there is nothing more to read here
 
+## 2.7 窗口的文件只在启动时读了一次
+
+第 3 节给 agent 的办法是「需要新连接时，让用户在界面里建」，而这条路此前走不通：
+`app.NewReadOnly()` 只在启动时读一次连接与设置，之后 `GetConnections` 和 `GetSettings`
+返回的都是内存里那份。用户在窗口里新建的连接 agent 看不见，删掉的还在列表里，改过密码的
+仍按旧密码拨号；`withTimeout` 注释里「窗口的改动能传到跑了几天的 server」这句也不成立。
+
+现在每次 `tools/call` 之前，中间件调 `app.Services.RefreshReadOnly`，先设置、后连接：
+
+- **文件没变就什么都不做。** 比较的是上次读到的字节，所以常见情况只多一次读文件，而且不碰
+  `runtimeMu`——拨号期间一直持有它。
+- **只丢掉真的变了的客户端。** 窗口每次连接都会重写整份文件（写状态），所以判断用的是窗口
+  自己编辑时用的 `dialParametersChanged`，比较对象是当初实际拨号用的那份，而不是文件里的旧值
+  ——只改了设置的情况（全局凭据）也因此能被发现。
+- **读不出来就让这次调用失败。** 启动时读到的旧副本可能列着用户已经删掉的连接，而答案里不会
+  有任何迹象。
+
+顺带修了三处：`dialParametersChanged` 原来只问认证方式是不是 ACL，Kafka 从 SASL/PLAIN 切到
+SCRAM 时窗口也不会重拨（单独一个提交，已进 CHANGELOG）；两个调用同时发现某个连接没打开时，
+第二次拨号会替换并关掉第一个调用正在用的客户端，现在 `OpenReadOnly` 见到已打开的就沿用；
+译文语言改为按调用时读取，窗口里切换语言会反映到 caveat 上。
+
+**测试**：连接服务 7 条（两个 `Service` 共用一个文件，模拟两个进程）、设置服务与译文各 1 条、协议层
+2 条；去掉中间件后协议层两条都红，失败信息就是缺陷本身。RabbitMQ live 套件 7 条照过，包括
+会话前后 profile 文件逐字节未变。
+
 ## 3. 传输与并发约束
 
 profile 存储是**整文件原子重写 + 进程内互斥**（`internal/service/connection/persistence.go`
@@ -309,7 +335,7 @@ profile 存储是**整文件原子重写 + 进程内互斥**（`internal/service
 由此定下两条：
 
 - **stdio 子命令对 profile 只读**：不建、不改、不删连接。agent 需要新连接时，让用户
-  在界面里建——这同时也满足约束 3。
+  在界面里建——这同时也满足约束 3。保存之后下一次工具调用就能用到，见 2.7。
 - 需要「操作用户此刻打开的那个连接」时，才需要 GUI 托管传输，那是 M4 而不是 M2。
 
 加密密钥不构成障碍：`crypto.InitKey` 读的是数据目录下同一个 `secret.key`，子进程解得

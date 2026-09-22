@@ -86,6 +86,9 @@ type Services struct {
 
 	// registry owns every open connection, one per connected profile.
 	registry *driver.Registry
+
+	// settings is what Settings fronts, reached directly only to refresh it.
+	settings *settings.Service
 }
 
 // New initializes the local encryption key and assembles all business
@@ -190,8 +193,30 @@ func assembleIn(paths layout.Layout) (*Services, error) {
 		Conns:        conns,
 		Collector:    collector.New(sampleActiveConnection(clusterService, registry), registry.HasActive),
 		registry:     registry,
+		settings:     settingsService,
 	}
 	return services, nil
+}
+
+// RefreshReadOnly brings a NewReadOnly assembly level with what the window has
+// written since it started. Settings go first: a profile that leans on the
+// global credentials is dialled from both files, and the connections judge
+// their open clients by what the settings say now.
+//
+// Never call it from the window's assembly, whose state in memory is the
+// authority over those files rather than a copy of them.
+func (s *Services) RefreshReadOnly() error {
+	if s.settings != nil {
+		if err := s.settings.RefreshReadOnly(); err != nil {
+			return fmt.Errorf("the saved settings could not be read again: %w", err)
+		}
+	}
+	if s.Connections != nil {
+		if err := s.Connections.RefreshReadOnly(); err != nil {
+			return fmt.Errorf("the saved connections could not be read again: %w", err)
+		}
+	}
+	return nil
 }
 
 // Close stops background sampling and releases every open connection.

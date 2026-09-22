@@ -25,6 +25,11 @@ type Service struct {
 	endpoints       EndpointPolicy
 	reconnectReload bool
 
+	// lastRead is the store as last read from disk and dialed is each profile
+	// as OpenReadOnly dialled it; only RefreshReadOnly reads them.
+	lastRead []byte
+	dialed   map[int]model.ConnectionProfile
+
 	listenersMu sync.RWMutex
 	listeners   []func([]*model.ConnectionProfile)
 }
@@ -44,6 +49,7 @@ func New(dataFilePath string, settings Settings, runtime ClientRuntime, endpoint
 		settings:     settings,
 		runtime:      runtime,
 		endpoints:    endpoints,
+		dialed:       make(map[int]model.ConnectionProfile),
 	}
 	if err := service.loadConnectionsFromFile(); err != nil {
 		log.Printf("[ConnectionService] failed to load connection config: %v", err)

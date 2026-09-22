@@ -68,13 +68,16 @@ refused when called. The protocol's own hints are derived from the catalogue's
 blast radius, so a tool cannot be annotated read-only while the catalogue calls
 it destructive.
 
-Two rules follow from this process not owning the stored files. It assembles
+Three rules follow from this process not owning the stored files. It assembles
 its services through `app.NewReadOnly`, which neither samples on a timer nor
 dials the default profile, because both of those write; and it dials through
 `connection.Service.OpenReadOnly`, which resolves a profile exactly as Connect
 does and records nothing. The profile store is rewritten whole under an
 in-process lock, so a second writer would lose the window's edits rather than
-merge with them.
+merge with them. And it reads both files again before every tool call, through
+`app.Services.RefreshReadOnly`: a connection saved in the window while an agent
+is working is usable by the next call, and a client whose profile or global
+credentials changed is redialled rather than kept.
 
 `docs/AGENT_PLAN.md` carries the scope and the decisions behind it.
 

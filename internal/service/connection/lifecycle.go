@@ -221,9 +221,16 @@ func (s *Service) disconnectRuntimeLocked(id int) error {
 // that leans on the global credentials or on a family's own auth mechanism is
 // dialled the way the window dials it, and the same registry, so whatever
 // opens here is reachable by id through the ordinary services.
+//
+// An open client is kept: callers that found none at the same moment queue
+// here, and a second dial would close the client the first is already using.
 func (s *Service) OpenReadOnly(id int) error {
 	s.runtimeMu.Lock()
 	defer s.runtimeMu.Unlock()
+
+	if s.runtime.HasClient(id) {
+		return nil
+	}
 
 	s.mu.Lock()
 	resolved, err := s.resolvedProfileLocked(id)
@@ -231,5 +238,12 @@ func (s *Service) OpenReadOnly(id int) error {
 	if err != nil {
 		return err
 	}
-	return s.runtime.Connect(resolved)
+	if err := s.runtime.Connect(resolved); err != nil {
+		return err
+	}
+
+	s.mu.Lock()
+	s.dialed[id] = resolved
+	s.mu.Unlock()
+	return nil
 }

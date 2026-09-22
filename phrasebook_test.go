@@ -102,6 +102,25 @@ func TestPhrasebookLeavesAnUnknownKeyReadable(t *testing.T) {
 	}
 }
 
+// A server runs for as long as the agent client does, and the language is the
+// window's to change in the meantime.
+func TestLivePhrasebookFollowsALanguageSwitch(t *testing.T) {
+	const key = "mq.rabbitmq.caveat.browseAltersQueue"
+	language := "en"
+	translate := livePhrasebook(func() string { return language })
+
+	english := translate(key)
+	language = "zh"
+	chinese := translate(key)
+
+	if english != phrasebook("en")(key) || chinese != phrasebook("zh")(key) {
+		t.Fatalf("resolved %q then %q, want each language's own text", english, chinese)
+	}
+	if english == chinese {
+		t.Fatal("the two languages read the same, so this proves nothing")
+	}
+}
+
 type caveatDeclaration struct {
 	name  string
 	value string

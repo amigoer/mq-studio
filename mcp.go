@@ -92,7 +92,7 @@ func runMCP(arguments []string) error {
 
 	// The application's own language, so the consequences read the way they do
 	// on screen rather than in whatever the server happened to default to.
-	translate := phrasebook(services.Settings.GetSettings().Language)
+	translate := livePhrasebook(func() string { return services.Settings.GetSettings().Language })
 
 	return mcpserver.New(services, version, allow, translate).Run(ctx, &mcp.StdioTransport{})
 }
