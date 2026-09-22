@@ -159,6 +159,7 @@ README 说「这套能力模型正是 Agent 跨中间件工作的前提」，这
 
 **没做的部分：** 另外 14 个家族的 live 平价断言。测试本身是家族无关的，加一个家族就是
 一次调用加一个 profile，但每个都要先把对应的 broker 起起来，所以这一轮只做了 RabbitMQ。
+Kafka 在 2.8 补上，余下 13 个。
 
 ### M3 · 写操作与破坏半径门控
 
@@ -325,6 +326,39 @@ SCRAM 时窗口也不会重拨（单独一个提交，已进 CHANGELOG）；两�
 **测试**：连接服务 7 条（两个 `Service` 共用一个文件，模拟两个进程）、设置服务与译文各 1 条、协议层
 2 条；去掉中间件后协议层两条都红，失败信息就是缺陷本身。RabbitMQ live 套件 7 条照过，包括
 会话前后 profile 文件逐字节未变。
+
+## 2.8 诊断读工具，以及它们查出的三件事
+
+**新增 5 个只读工具**，只读档从 15 个变成 20 个：`namespaces_list`、`message_by_id`、
+`routing_exchanges`、`routing_bindings`、`destination_partitions`。挑它们的标准是 agent
+此前根本答不了的问题：列表工具收 namespace，却没有工具能发现它的取值；RabbitMQ 上「消息
+没到」多半出在路由；Kafka 的积压压在一个分区上、或某个分区的副本掉出了 ISR，从 topic 的
+总数上看不出来；能叫出名字的消息该按 ID 取，而不是翻着找。
+
+**一、namespace 会被静默忽略。** 不按 namespace 划分目标的家族，驱动会丢掉这个参数，用
+连接自己的范围作答，读起来和那个 namespace 的内容一模一样。NATS 把账户列成 namespace，
+而没有任何 stream 调用收账户：让它删「另一个账户的 ORDERS」，删掉的是本账户的 ORDERS，
+effect 里写的还是被要求的那个。修法不维护家族清单，而是看返回值：按 namespace 划分的家族
+会把作答的 namespace 写在每个 ref 上（RabbitMQ 的 vhost、Pulsar 的 tenant/namespace、
+RocketMQ 的集群），对不上就拒绝；清空与删除先确认再动手，创建在事后如实说明落在了哪里。
+
+**二、一个 nil map 让整个调用失败。** SDK 推导输出 schema 用的库把 nil slice 读成 null、
+把 nil map 读成 object，而 encoding/json 两者都写成 null。于是任何驱动在答案里留下一个
+nil map，整个调用就在输出校验上失败，报的是 schema 错误而不是 broker 的事。已上线的 9 个
+工具里有 10 个 map 字段暴露在外，RabbitMQ 恰好都填上了，所以 live 套件从没见过；一个没设
+限额的 vhost 才第一次触发。现在所有工具经同一个注册函数，把每个 map 放宽成可为 null，另有
+一条测试遍历协议实际发给客户端的 schema。
+
+**三、这个包的 live 测试在 CI 里从没跑过。** 没有哪个分片列出 `internal/agent/mcpserver`，
+它的 live 测试在每个作业里都被门控跳过；而覆盖率作业以单元测试的输出为清单，要求每个测试
+至少在一个分片里通过，所以这个分支第一次推送就会红。现在 rabbitmq 与 kafka 分片跑这个包并
+先 seed。并行跑时暴露了一个假设 broker 静止的断言：destinations 平价在驱动套件增删
+`mqs-test-*` 队列时比两份整表。改为排除这些名字后再比，并在驱动套件搅动同一个 broker 的
+同时连跑 5 轮验证过。
+
+**Kafka 成为第二个有 live 覆盖的家族**：分区与按 ID 取消息都和 service 层对过。另外对
+Kafka 调了一遍全部只读工具，支持的都正常，不支持的都得到「没有这个概念」的拒绝，传入的
+namespace 被拒绝而不是被忽略。
 
 ## 3. 传输与并发约束
 

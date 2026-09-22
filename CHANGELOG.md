@@ -31,6 +31,20 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   failure a caller cannot detect: the call succeeds and the setting simply does
   not happen.
 
+- The read-only server answers the questions the app is opened for, not only
+  what exists. Where a message that never arrived went: dead letters, the retry
+  backlog, the queues dead letters land in, and the exchanges and bindings that
+  route - or fail to. Why a subscription is behind: its progress per partition,
+  its connected consumers and, on Redis, the entries handed out and never
+  acknowledged. What a destination holds part by part, a message looked up by
+  its id, and the namespaces a broker keeps. A namespace given to a family that
+  does not keep destinations apart by one is refused rather than dropped: the
+  answer would come from the connection's own scope and read as the namespace's.
+
+- A connection saved in the window while an agent is working can be used by its
+  next call. The server reads the profiles and settings again before each one,
+  and redials only a connection whose parameters actually changed.
+
 ### Fixed
 
 - Emptying a Kafka topic now says what it really does. The confirmation dialog

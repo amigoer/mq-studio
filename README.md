@@ -247,7 +247,7 @@ switches:
 
 | Started with | What it adds |
 | --- | --- |
-| nothing | List connections, destinations and subscriptions, browse messages, read the cluster |
+| nothing | List connections, namespaces, destinations and subscriptions; browse messages or read one by id; read the cluster, partitions, routing, dead letters and consume progress |
 | `--allow mutate` | Create a destination, publish, resend a dead letter, move a read position |
 | `--allow destructive` | Empty a destination, delete a destination |
 
@@ -258,10 +258,13 @@ they start it, rather than to a switch in the application somebody set weeks ago
 Have the agent call `capabilities_describe` first: **what a connection can do is the endpoint's
 own answer**, two endpoints of one family can differ, and an operation the broker cannot perform
 is never offered. Operations with a consequence return it - browsing a RabbitMQ queue alters
-that queue's state, and emptying a Kafka topic leaves its offsets counting.
+that queue's state, and emptying a Kafka topic leaves its offsets counting. A namespace is taken
+only by a family that keeps destinations apart by one; anywhere else it is refused rather than
+ignored.
 
 It never writes the application's profiles: the window rewrites that file whole, and two writers
-would lose each other's edits.
+would lose each other's edits. It reads them again before every call instead, so a connection
+saved in the window is usable by the agent's next one.
 
 ## Development
 

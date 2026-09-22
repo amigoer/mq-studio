@@ -232,7 +232,7 @@ claude mcp add mq-studio -- "/Applications/MQ Studio.app/Contents/MacOS/mq-studi
 
 | 启动参数 | 多出来的能力 |
 | --- | --- |
-| 不传 | 列连接、列目标与订阅、浏览消息、读集群 |
+| 不传 | 列连接、namespace、目标与订阅；浏览消息或按 ID 读一条；读集群、分区、路由、死信与消费进度 |
 | `--allow mutate` | 建目标、发消息、重投死信、移动读取位点 |
 | `--allow destructive` | 清空目标、删除目标 |
 
@@ -241,9 +241,11 @@ claude mcp add mq-studio -- "/Applications/MQ Studio.app/Contents/MacOS/mq-studi
 
 让 agent 先调 `capabilities_describe`：**一个连接能做什么由这个端点自己回答**，同一个家族的
 两个端点可以不同，而中间件做不到的操作不会被提供。带后果的操作会把后果一起返回 —— 浏览
-RabbitMQ 队列会改队列状态，清空 Kafka topic 则位点继续往前数。
+RabbitMQ 队列会改队列状态，清空 Kafka topic 则位点继续往前数。namespace 只有按它划分目标的
+家族才收，其余家族会直接拒绝，而不是悄悄忽略。
 
-它不会写应用的连接配置：那个文件由窗口整体重写，两个写者会互相覆盖。
+它不会写应用的连接配置：那个文件由窗口整体重写，两个写者会互相覆盖。但每次调用前都会重读一遍，
+所以在窗口里保存的连接，agent 的下一次调用就能用。
 
 ## 开发
 
