@@ -206,6 +206,15 @@ var tools = map[string]toolInfo{
 		description: "Publish a message. What it costs is whatever the consumers do with it, " +
 			"which is not something this application can see.",
 	},
+	"message.addEntry": {
+		name:  "message_add_entry",
+		title: "Append a stream entry",
+		description: "Append an entry to a stream: named values rather than a body, which is what a " +
+			"stream holds. The stream has to exist - a mistyped name is refused rather than made " +
+			"into a new stream. The server assigns the id unless one is given, and the ids come back " +
+			"as the only handle on the entries afterwards. count writes the same entry several times, " +
+			"for filling a stream to test a consumer.",
+	},
 	"message.resend": {
 		name:  "message_resend",
 		title: "Resend a dead letter",
@@ -306,6 +315,7 @@ func (s *server) register(server *mcp.Server) {
 
 	provide(s, server, "destination.create", s.createDestination)
 	provide(s, server, "message.send", s.publishMessage)
+	provide(s, server, "message.addEntry", s.addEntry)
 	provide(s, server, "message.resend", s.resendMessage)
 	provide(s, server, "subscription.resetOffset", s.resetOffset)
 

@@ -210,7 +210,7 @@ func (s *server) capable(id int, capability model.Capability) (driver.Conn, stri
 			"this %s endpoint cannot do %s: %s", conn.Kind(), capability, s.say(reason))
 	}
 	return nil, "", fmt.Errorf(
-		"%s has no concept of %s, so there is nothing to read here", conn.Kind(), capability)
+		"%s has no concept of %s, so there is nothing to ask it for", conn.Kind(), capability)
 }
 
 /*

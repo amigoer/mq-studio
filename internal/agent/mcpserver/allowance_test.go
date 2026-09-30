@@ -404,16 +404,34 @@ func requiredArguments(t *testing.T, tool *mcp.Tool, connection int) map[string]
 		if name == "connection" {
 			continue
 		}
-		switch schema.Properties[name].Type {
+		switch schemaType(schema.Properties[name].Type) {
 		case "integer", "number":
 			arguments[name] = 1
 		case "boolean":
 			arguments[name] = false
+		case "array":
+			arguments[name] = []any{}
+		case "object":
+			arguments[name] = map[string]any{}
 		default:
 			arguments[name] = "x"
 		}
 	}
 	return arguments
+}
+
+// schemaType is a property's type, which a schema may give as a list that
+// admits null beside it.
+func schemaType(declared any) string {
+	if types, ok := declared.([]any); ok {
+		for _, each := range types {
+			if name, _ := each.(string); name != "null" {
+				return name
+			}
+		}
+	}
+	name, _ := declared.(string)
+	return name
 }
 
 /*

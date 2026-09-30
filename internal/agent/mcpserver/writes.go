@@ -3,6 +3,7 @@ package mcpserver
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
@@ -52,6 +53,10 @@ type writeOutput struct {
 	// Reference is whatever the broker returned to name what was written - a
 	// message id, usually. Empty where the operation returns nothing.
 	Reference string `json:"reference,omitempty"`
+}
+
+func (output writeOutput) recorded() (string, string) {
+	return output.Effect.Changed, output.Reference
 }
 
 func (s *server) createDestination(
@@ -352,4 +357,88 @@ func describeAttributes(kind model.MQKind, operationID string) []attributeSummar
 		})
 	}
 	return summaries
+}
+
+type addEntryInput struct {
+	Connection  int                 `json:"connection" jsonschema:"the connection id"`
+	Destination string              `json:"destination" jsonschema:"the stream to append to"`
+	Fields      []model.StreamField `json:"fields" jsonschema:"the entry's named values, in order; a stream entry has fields rather than a body"`
+	ID          string              `json:"id,omitempty" jsonschema:"an explicit entry id, milliseconds or milliseconds-sequence; empty lets the server assign one from its clock, which is what almost every producer does"`
+	Count       int                 `json:"count,omitempty" jsonschema:"write the same entry this many times, each with its own id, to fill a stream for testing a consumer"`
+}
+
+func (input addEntryInput) target() int { return input.Connection }
+
+// logged keeps the values out of the audit log, as a message body is kept
+// out: the names say what was written, and the size and digest identify it.
+func (input addEntryInput) logged() any {
+	names := make([]string, 0, len(input.Fields))
+	size := 0
+	for _, field := range input.Fields {
+		names = append(names, field.Name)
+		size += len(field.Value)
+	}
+	return struct {
+		Connection   int      `json:"connection"`
+		Destination  string   `json:"destination"`
+		FieldNames   []string `json:"fieldNames"`
+		ValueBytes   int      `json:"valueBytes"`
+		ValuesSHA256 string   `json:"valuesSha256"`
+		ID           string   `json:"id,omitempty"`
+		Count        int      `json:"count,omitempty"`
+	}{input.Connection, input.Destination, names, size, digest(canonical(input.Fields)), input.ID, input.Count}
+}
+
+type addEntryOutput struct {
+	Effect effect `json:"effect"`
+	// IDs are what the server assigned, in order: the only handle on each
+	// entry afterwards, to look it up, delete it, or point a group at it.
+	IDs []string `json:"ids"`
+}
+
+func (output addEntryOutput) recorded() (string, string) {
+	return output.Effect.Changed, strings.Join(output.IDs, " ")
+}
+
+/*
+ * addEntry appends to a stream through the port: only one family writes
+ * entries of named fields, on a service of its own.
+ *
+ * A field with no name is refused rather than passed on. The driver skips one,
+ * which is right for a form with a blank row, and would be a value dropped in
+ * silence for a caller that meant to write it.
+ */
+func (s *server) addEntry(
+	ctx context.Context, _ *mcp.CallToolRequest, input addEntryInput,
+) (*mcp.CallToolResult, addEntryOutput, error) {
+	api, kind, caveat, err := portOf[driver.EntryPublisher](s, input.Connection, model.CapEntryPublish)
+	if err != nil {
+		return nil, addEntryOutput{}, err
+	}
+	for index, field := range input.Fields {
+		if strings.TrimSpace(field.Name) == "" {
+			return nil, addEntryOutput{}, fmt.Errorf(
+				"field %d has no name, and a stream entry is named values: it would have been dropped", index+1)
+		}
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+
+	added, err := api.AddEntry(ctx, model.StreamAddRequest{
+		Ref:    model.DestinationRef{Name: input.Destination},
+		Fields: input.Fields,
+		ID:     input.ID,
+		Count:  input.Count,
+	})
+	if err != nil {
+		return nil, addEntryOutput{}, err
+	}
+	ids := added.IDs
+	changed := fmt.Sprintf("appended one entry to %s on %s; whatever reads the stream will be handed it",
+		input.Destination, kind)
+	if len(ids) != 1 {
+		changed = fmt.Sprintf("appended %d entries to %s on %s; whatever reads the stream will be handed each of them",
+			len(ids), input.Destination, kind)
+	}
+	return nil, addEntryOutput{Effect: effect{Changed: changed, Caveat: caveat}, IDs: ids}, nil
 }

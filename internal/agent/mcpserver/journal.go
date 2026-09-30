@@ -206,10 +206,16 @@ func (r auditRecord) finished(output any, err error, took time.Duration) auditRe
 		return r
 	}
 	r.Phase = phaseDone
-	if written, ok := output.(writeOutput); ok {
-		r.Changed, r.Reference = written.Effect.Changed, written.Reference
+	if answer, ok := output.(written); ok {
+		r.Changed, r.Reference = answer.recorded()
 	}
 	return r
+}
+
+// written is a write tool's answer, as the audit log keeps it: what changed,
+// and whatever the broker returned to name what was written.
+type written interface {
+	recorded() (changed, reference string)
 }
 
 // clientOf names the agent client as it introduced itself.
