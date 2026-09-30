@@ -208,7 +208,7 @@ func offer(operationID string, allow catalog.Blast) (*mcp.Tool, bool) {
 	}, true
 }
 
-func (s *server) register(server *mcp.Server, allow catalog.Blast) {
+func (s *server) register(server *mcp.Server) {
 	// The two that are about this installation rather than about a broker.
 	// Neither reaches a driver, so neither has a catalogue operation, and both
 	// are always offered: a caller that cannot list the connections cannot use
@@ -216,7 +216,8 @@ func (s *server) register(server *mcp.Server, allow catalog.Blast) {
 	addTool(server, &mcp.Tool{
 		Name: "connections_list",
 		Description: "List the broker connections this installation has stored, with the family " +
-			"each speaks. Start here: every other tool takes one of these ids.",
+			"each speaks and how far this server may go on each. Start here: every other tool " +
+			"takes one of these ids.",
 		Annotations: annotate("List connections", catalog.BlastRead),
 	}, s.listConnections)
 
@@ -229,80 +230,32 @@ func (s *server) register(server *mcp.Server, allow catalog.Blast) {
 		Annotations: annotate("Describe a connection", catalog.BlastRead),
 	}, s.describeCapabilities)
 
-	if tool, ok := offer("destination.list", allow); ok {
-		addTool(server, tool, s.listDestinations)
-	}
-	if tool, ok := offer("destination.detail", allow); ok {
-		addTool(server, tool, s.destinationDetail)
-	}
-	if tool, ok := offer("subscription.list", allow); ok {
-		addTool(server, tool, s.listSubscriptions)
-	}
-	if tool, ok := offer("message.query", allow); ok {
-		addTool(server, tool, s.browseMessages)
-	}
-	if tool, ok := offer("cluster.nodes", allow); ok {
-		addTool(server, tool, s.clusterTopology)
-	}
-	if tool, ok := offer("message.dlq", allow); ok {
-		addTool(server, tool, s.deadLetters)
-	}
-	if tool, ok := offer("message.retryQueue", allow); ok {
-		addTool(server, tool, s.retryQueue)
-	}
-	if tool, ok := offer("message.deadLetterQueues", allow); ok {
-		addTool(server, tool, s.deadLetterQueues)
-	}
-	if tool, ok := offer("subscription.lag", allow); ok {
-		addTool(server, tool, s.subscriptionLag)
-	}
-	if tool, ok := offer("subscription.clients", allow); ok {
-		addTool(server, tool, s.subscriptionConsumers)
-	}
-	if tool, ok := offer("subscription.pendingSummary", allow); ok {
-		addTool(server, tool, s.pendingSummary)
-	}
-	if tool, ok := offer("subscription.pendingEntries", allow); ok {
-		addTool(server, tool, s.pendingEntries)
-	}
-	if tool, ok := offer("subscription.groupConsumers", allow); ok {
-		addTool(server, tool, s.groupConsumers)
-	}
-	if tool, ok := offer("message.byId", allow); ok {
-		addTool(server, tool, s.messageByID)
-	}
-	if tool, ok := offer("namespace.list", allow); ok {
-		addTool(server, tool, s.listNamespaces)
-	}
-	if tool, ok := offer("routing.exchanges", allow); ok {
-		addTool(server, tool, s.listExchanges)
-	}
-	if tool, ok := offer("routing.bindings", allow); ok {
-		addTool(server, tool, s.listBindings)
-	}
-	if tool, ok := offer("destination.partitions", allow); ok {
-		addTool(server, tool, s.destinationPartitions)
-	}
+	provide(s, server, "destination.list", s.listDestinations)
+	provide(s, server, "destination.detail", s.destinationDetail)
+	provide(s, server, "subscription.list", s.listSubscriptions)
+	provide(s, server, "message.query", s.browseMessages)
+	provide(s, server, "cluster.nodes", s.clusterTopology)
+	provide(s, server, "message.dlq", s.deadLetters)
+	provide(s, server, "message.retryQueue", s.retryQueue)
+	provide(s, server, "message.deadLetterQueues", s.deadLetterQueues)
+	provide(s, server, "subscription.lag", s.subscriptionLag)
+	provide(s, server, "subscription.clients", s.subscriptionConsumers)
+	provide(s, server, "subscription.pendingSummary", s.pendingSummary)
+	provide(s, server, "subscription.pendingEntries", s.pendingEntries)
+	provide(s, server, "subscription.groupConsumers", s.groupConsumers)
+	provide(s, server, "message.byId", s.messageByID)
+	provide(s, server, "namespace.list", s.listNamespaces)
+	provide(s, server, "routing.exchanges", s.listExchanges)
+	provide(s, server, "routing.bindings", s.listBindings)
+	provide(s, server, "destination.partitions", s.destinationPartitions)
 
-	if tool, ok := offer("destination.create", allow); ok {
-		addTool(server, tool, s.createDestination)
-	}
-	if tool, ok := offer("message.send", allow); ok {
-		addTool(server, tool, s.publishMessage)
-	}
-	if tool, ok := offer("message.resend", allow); ok {
-		addTool(server, tool, s.resendMessage)
-	}
-	if tool, ok := offer("subscription.resetOffset", allow); ok {
-		addTool(server, tool, s.resetOffset)
-	}
+	provide(s, server, "destination.create", s.createDestination)
+	provide(s, server, "message.send", s.publishMessage)
+	provide(s, server, "message.resend", s.resendMessage)
+	provide(s, server, "subscription.resetOffset", s.resetOffset)
 
-	if tool, ok := offer("destination.purge", allow); ok {
-		addTool(server, tool, s.purgeDestination)
-	}
-	if tool, ok := offer("destination.delete", allow); ok {
-		addTool(server, tool, s.deleteDestination)
-	}
+	provide(s, server, "destination.purge", s.purgeDestination)
+	provide(s, server, "destination.delete", s.deleteDestination)
 }
 
 // connectionSummary is a stored profile as a caller needs it.
@@ -317,6 +270,7 @@ type connectionSummary struct {
 	Endpoints string `json:"endpoints,omitempty"`
 	Group     string `json:"group,omitempty"`
 	Remark    string `json:"remark,omitempty"`
+	Allow     string `json:"allow" jsonschema:"how far this server may go on this connection: read, mutate or destructive"`
 }
 
 type connectionsOutput struct {
@@ -332,6 +286,7 @@ func (s *server) listConnections(
 		if profile == nil {
 			continue
 		}
+		allow, _ := s.ceiling(profile.ID)
 		summaries = append(summaries, connectionSummary{
 			ID:        profile.ID,
 			Name:      profile.Name,
@@ -339,6 +294,7 @@ func (s *server) listConnections(
 			Endpoints: profile.Endpoints,
 			Group:     profile.Group,
 			Remark:    profile.Remark,
+			Allow:     string(allow),
 		})
 	}
 	return nil, connectionsOutput{Connections: summaries}, nil
@@ -352,9 +308,9 @@ type operationSummary struct {
 	Caveat  string `json:"caveat,omitempty"`
 	// Tool names the tool that performs it, and is empty for an operation no
 	// tool reaches - either because this server has none, or because the
-	// allowance it was started with does not extend that far. Either way the
-	// endpoint can do it and this caller cannot, which is not the same as the
-	// endpoint being unable to.
+	// allowance it was started with does not extend that far on this
+	// connection. Either way the endpoint can do it and this caller cannot,
+	// which is not the same as the endpoint being unable to.
 	Tool string `json:"tool,omitempty"`
 	// Attributes are the family settings this operation accepts here, for a
 	// write that carries them. They are the one part of a request a caller
@@ -370,6 +326,7 @@ type absence struct {
 
 type describeOutput struct {
 	Family      string             `json:"family"`
+	Allow       string             `json:"allow" jsonschema:"how far this server may go on this connection: read, mutate or destructive"`
 	Operations  []operationSummary `json:"operations"`
 	Unavailable []absence          `json:"unavailable,omitempty"`
 }
@@ -382,15 +339,20 @@ func (s *server) describeCapabilities(
 		return nil, describeOutput{}, err
 	}
 
+	allow, _ := s.ceiling(input.Connection)
 	resolved := catalog.For(conn)
 	operations := make([]operationSummary, 0, len(resolved))
 	for _, operation := range resolved {
+		tool := s.offered[operation.ID]
+		if !catalog.Permits(allow, operation.Blast) {
+			tool = ""
+		}
 		operations = append(operations, operationSummary{
 			ID:         operation.ID,
 			Blast:      string(operation.Blast),
 			Summary:    operation.Summary,
 			Caveat:     s.say(operation.Caveat),
-			Tool:       s.offered[operation.ID],
+			Tool:       tool,
 			Attributes: describeAttributes(conn.Kind(), operation.ID),
 		})
 	}
@@ -404,6 +366,7 @@ func (s *server) describeCapabilities(
 
 	return nil, describeOutput{
 		Family:      string(conn.Kind()),
+		Allow:       string(allow),
 		Operations:  operations,
 		Unavailable: unavailable,
 	}, nil

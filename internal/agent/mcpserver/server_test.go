@@ -35,6 +35,7 @@ func serverWith(conn driver.Conn) *server {
 	return &server{
 		services:  &app.Services{Conns: func(int) (driver.Conn, error) { return conn, nil }},
 		translate: testPhrases,
+		grants:    Grants{everywhere: catalog.BlastDestructive},
 		offered:   offeredTools(catalog.BlastDestructive),
 	}
 }
@@ -84,11 +85,17 @@ func emptyConnections(t *testing.T) *connection.Service {
 // test sees is what a client sees.
 func session(t *testing.T, services *app.Services, allow catalog.Blast) *mcp.ClientSession {
 	t.Helper()
+	return grantedSession(t, services, Grants{everywhere: allow})
+}
+
+// grantedSession is session for a server started with connections named.
+func grantedSession(t *testing.T, services *app.Services, grants Grants) *mcp.ClientSession {
+	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	t.Cleanup(cancel)
 
 	serverTransport, clientTransport := mcp.NewInMemoryTransports()
-	server := New(services, "test", allow, testPhrases)
+	server := New(services, "test", grants, testPhrases)
 	go func() {
 		if err := server.Run(ctx, serverTransport); err != nil && ctx.Err() == nil {
 			t.Errorf("server stopped: %v", err)

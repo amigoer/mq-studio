@@ -45,6 +45,8 @@ type createDestinationInput struct {
 	Attributes map[string]string `json:"attributes,omitempty" jsonschema:"the family settings, as capabilities_describe lists them for this connection"`
 }
 
+func (input createDestinationInput) target() int { return input.Connection }
+
 type writeOutput struct {
 	Effect effect `json:"effect"`
 	// Reference is whatever the broker returned to name what was written - a
@@ -135,6 +137,8 @@ type publishInput struct {
 	Keys        string `json:"keys,omitempty" jsonschema:"the family's message keys, where it has them"`
 }
 
+func (input publishInput) target() int { return input.Connection }
+
 func (s *server) publishMessage(
 	ctx context.Context, _ *mcp.CallToolRequest, input publishInput,
 ) (*mcp.CallToolResult, writeOutput, error) {
@@ -171,6 +175,8 @@ type resendInput struct {
 	ClientID    string `json:"clientId,omitempty" jsonschema:"the client the broker attributes the resend to"`
 }
 
+func (input resendInput) target() int { return input.Connection }
+
 func (s *server) resendMessage(
 	ctx context.Context, _ *mcp.CallToolRequest, input resendInput,
 ) (*mcp.CallToolResult, writeOutput, error) {
@@ -204,6 +210,8 @@ type resetOffsetInput struct {
 	Force       bool   `json:"force,omitempty" jsonschema:"move it even while consumers are attached"`
 }
 
+func (input resetOffsetInput) target() int { return input.Connection }
+
 func (s *server) resetOffset(
 	ctx context.Context, _ *mcp.CallToolRequest, input resetOffsetInput,
 ) (*mcp.CallToolResult, writeOutput, error) {
@@ -236,6 +244,8 @@ type destinationTargetInput struct {
 	Name       string `json:"name" jsonschema:"the destination name"`
 	Namespace  string `json:"namespace,omitempty" jsonschema:"the namespace holding it, for a family that has them"`
 }
+
+func (input destinationTargetInput) target() int { return input.Connection }
 
 /*
  * purgeDestination goes to the port rather than to a service method.

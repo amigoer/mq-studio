@@ -133,6 +133,20 @@ func dialParametersChanged(previous, current model.ConnectionProfile) bool {
 		!maps.Equal(previous.Secrets, current.Secrets)
 }
 
+/*
+ * Repointed reports whether a profile now reaches somewhere other than it did,
+ * or as someone else.
+ *
+ * It is every dial parameter but the timeout, which is how long to wait rather
+ * than where. The credentials count as much as the address: on a hosted family
+ * they are what picks the account, so new keys under an unchanged region reach
+ * a different set of queues.
+ */
+func Repointed(previous, current model.ConnectionProfile) bool {
+	current.TimeoutSec = previous.TimeoutSec
+	return dialParametersChanged(previous, current)
+}
+
 // editedKind is the family the submission will be stored under.
 //
 // A form need not resubmit the kind, and a profile's family is not editable,

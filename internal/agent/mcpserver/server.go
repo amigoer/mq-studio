@@ -8,10 +8,12 @@
 //
 // How far it goes is decided when it is started, not here and not in the
 // application's settings. An allowance is a ceiling on the blast radius the
-// catalogue gives each operation: read by default, and nothing above it is
-// offered at all - a tool that is not in the list cannot be called by a model
-// that has not been told about it, which is a stronger guarantee than one that
-// refuses at call time.
+// catalogue gives each operation: read by default, higher on the connections
+// the person starting it named. Nothing above the widest is offered at all - a
+// tool that is not in the list cannot be called by a model that has not been
+// told about it, which is a stronger guarantee than one that refuses at call
+// time. A tool within it is still refused on a connection whose own ceiling
+// is lower, before anything is dialled.
 //
 // It never writes the profile store. The window owns that file and rewrites it
 // whole, so a second process that stamped a status onto it would be racing the
@@ -21,6 +23,7 @@ package mcpserver
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -48,8 +51,9 @@ const instructions = "Work the message brokers this installation has connections
 	"it succeeding - reading a RabbitMQ queue alters that queue's state, and emptying a Kafka " +
 	"topic leaves its offsets counting. A broker with no connection listed is added by the user in " +
 	"the MQ Studio window, and can be used here as soon as it is saved there. How far this server " +
-	"goes was decided when it was started: what is not in the tool list was not permitted, and " +
-	"asking for it will not change that."
+	"goes was decided when it was started, connection by connection, and connections_list says " +
+	"how far each may go: what is not in the tool list was not permitted anywhere, a tool that " +
+	"goes further than its connection may is refused on it, and asking will not change either."
 
 // server holds what the tools need. The domain services do the work; this
 // only resolves connections and turns a refusal into something a caller can
@@ -60,6 +64,19 @@ type server struct {
 	// language the application is set to. Injected because the translations
 	// live with the renderer's, and only the composition root can reach them.
 	translate func(string) string
+	// grants is how far each connection may go.
+	grants Grants
+	/*
+	 * refreshMu is held for writing by the refresh before every call, and for
+	 * reading by a call a grant was checked for, until it returns.
+	 *
+	 * The check reads the stored profile and the handler then dials by id, so
+	 * a refresh landing in between - another call's, since calls run at once -
+	 * could swap in a profile the window re-pointed, and the dial would go
+	 * where the check never looked. Nothing may wait on the client while
+	 * holding it: the client's next call would be waiting on this one.
+	 */
+	refreshMu sync.RWMutex
 	// offered maps a catalogue operation to the tool that performs it, for
 	// the tools this server actually registered. capabilities_describe reads
 	// it, so what it names is what the caller can really call - an operation
@@ -68,21 +85,26 @@ type server struct {
 	offered map[string]string
 }
 
-// New builds the MCP server offering every tool up to the allowance.
+// New builds the MCP server offering every tool some connection may use.
 //
-// An unrecognised allowance offers nothing above reading, because
+// An unrecognised ceiling offers nothing above reading, because
 // catalog.Permits refuses what it does not know: a typo in a flag must not
 // widen anything.
 func New(
-	services *app.Services, version string, allow catalog.Blast, translate func(string) string,
+	services *app.Services, version string, grants Grants, translate func(string) string,
 ) *mcp.Server {
-	s := &server{services: services, translate: translate, offered: offeredTools(allow)}
+	s := &server{
+		services:  services,
+		translate: translate,
+		grants:    grants,
+		offered:   offeredTools(grants.widest()),
+	}
 	mcpServer := mcp.NewServer(&mcp.Implementation{
 		Name:    Name,
 		Title:   "MQ Studio",
 		Version: version,
 	}, &mcp.ServerOptions{Instructions: instructions})
-	s.register(mcpServer, allow)
+	s.register(mcpServer)
 	mcpServer.AddReceivingMiddleware(s.refreshing)
 	return mcpServer
 }
@@ -98,7 +120,10 @@ func New(
 func (s *server) refreshing(next mcp.MethodHandler) mcp.MethodHandler {
 	return func(ctx context.Context, method string, request mcp.Request) (mcp.Result, error) {
 		if method == "tools/call" {
-			if err := s.services.RefreshReadOnly(); err != nil {
+			s.refreshMu.Lock()
+			err := s.services.RefreshReadOnly()
+			s.refreshMu.Unlock()
+			if err != nil {
 				result := &mcp.CallToolResult{}
 				result.SetError(fmt.Errorf(
 					"not called: %w, and answering from the copy read earlier could be wrong", err))

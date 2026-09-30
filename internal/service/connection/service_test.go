@@ -334,6 +334,40 @@ func TestDialParametersChangedCoversEveryDialInput(t *testing.T) {
 	}
 }
 
+// Repointed is the dial comparison less the timeout, and derived from it, so
+// a dial parameter added later is a new way to be repointed without anybody
+// remembering to say so here.
+func TestRepointedIsEveryDialInputButTheTimeout(t *testing.T) {
+	base := model.ConnectionProfile{
+		Endpoints:  "127.0.0.1:9876",
+		TimeoutSec: 5,
+		Options:    map[string]string{"namespace": "ns"},
+		Secrets:    map[string]string{"accessKey": "a"},
+	}
+
+	cases := map[string]func(*model.ConnectionProfile){
+		"endpoints": func(p *model.ConnectionProfile) { p.Endpoints = "127.0.0.1:9877" },
+		"mechanism": func(p *model.ConnectionProfile) { p.Auth.Mechanism = model.AuthSASLScram },
+		"kind":      func(p *model.ConnectionProfile) { p.Kind = model.KindKafka },
+		"option":    func(p *model.ConnectionProfile) { p.Options = map[string]string{"namespace": "other"} },
+		"secret":    func(p *model.ConnectionProfile) { p.Secrets = map[string]string{"accessKey": "b"} },
+	}
+	for name, mutate := range cases {
+		changed := base
+		mutate(&changed)
+		if !Repointed(base, changed) {
+			t.Errorf("%s: a profile that now reaches elsewhere was not repointed", name)
+		}
+	}
+
+	unchanged := base
+	unchanged.TimeoutSec = 30
+	unchanged.Name, unchanged.Group, unchanged.Remark = "other", "prod", "note"
+	if Repointed(base, unchanged) {
+		t.Error("a new timeout and new labels read as reaching somewhere else")
+	}
+}
+
 /*
  * Kafka is the first family whose profile carries more than a credential in
  * its options, and the first where authenticating with nothing is a real

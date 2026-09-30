@@ -74,7 +74,12 @@ func namespacedServer(t *testing.T, conn *namespacedConn) *server {
 	conns := func(int) (driver.Conn, error) { return conn, nil }
 	services.Conns = conns
 	services.Topics = destination.New(conns, requestTimeout{})
-	return &server{services: services, translate: testPhrases, offered: offeredTools(catalog.BlastDestructive)}
+	return &server{
+		services:  services,
+		translate: testPhrases,
+		grants:    Grants{everywhere: catalog.BlastDestructive},
+		offered:   offeredTools(catalog.BlastDestructive),
+	}
 }
 
 func TestAListingThatIgnoredTheNamespaceIsRefused(t *testing.T) {

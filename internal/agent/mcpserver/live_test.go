@@ -77,9 +77,13 @@ func mcpSession(t *testing.T, services *app.Services, allow catalog.Blast) *mcp.
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	t.Cleanup(cancel)
 
+	grants, err := mcpserver.Allowance{Everywhere: allow}.Grant(nil)
+	if err != nil {
+		t.Fatalf("grant %q everywhere: %v", allow, err)
+	}
 	serverTransport, clientTransport := mcp.NewInMemoryTransports()
 	go func() {
-		if err := mcpserver.New(services, "test", allow, livePhrases).Run(ctx, serverTransport); err != nil && ctx.Err() == nil {
+		if err := mcpserver.New(services, "test", grants, livePhrases).Run(ctx, serverTransport); err != nil && ctx.Err() == nil {
 			t.Errorf("server stopped: %v", err)
 		}
 	}()
