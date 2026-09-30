@@ -2,6 +2,7 @@ package redisstream
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -78,6 +79,13 @@ func (c *Conn) AddEntry(ctx context.Context, request model.StreamAddRequest) (*m
 			ID:         id,
 			Values:     values,
 		}).Result()
+		if errors.Is(err, redis.Nil) {
+			// NOMKSTREAM answers a missing stream with a nil reply, which the
+			// client reports as "redis: nil" - true, and no use to whoever is
+			// reading it.
+			return &model.StreamAddResult{IDs: ids}, fmt.Errorf(
+				"there is no stream %q, and a send does not create one: create it first", stream)
+		}
 		if err != nil {
 			// The ids already written are reported alongside the failure: a
 			// send of a hundred that stopped at forty has put forty entries in

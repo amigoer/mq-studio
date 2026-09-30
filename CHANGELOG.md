@@ -99,6 +99,11 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   mechanism was ACL, so the connection went on authenticating the old way until
   the app restarted.
 
+- Sending to a Redis stream that does not exist now says so. The send never
+  creates a stream - a mistyped key must not quietly become a new one holding
+  a test message - but the refusal reached the screen as "redis: nil", the
+  client library's name for an empty reply.
+
 ## [0.1.2] - 2026-09-20
 
 The connections page gains bulk work and a way into a form from the welcome
