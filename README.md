@@ -280,6 +280,14 @@ It never writes the application's profiles: the window rewrites that file whole,
 would lose each other's edits. It reads them again before every call instead, so a connection
 saved in the window is usable by the agent's next one.
 
+**Every write is recorded.** Each one the agent asks for - done, failed, or refused by the
+ceiling - is appended to `agent-audit.jsonl` in the application's data directory (Settings →
+Data and backup → Open directory), one JSON object per line: when, which client, which tool on
+which connection, with what arguments, and what changed. A write is recorded before it is made,
+and one that cannot be recorded is not made, so a start with no outcome after it means the server
+stopped before the broker answered. Message bodies are kept as a size and a SHA-256 digest, not
+copied. Reads are not recorded.
+
 ## Development
 
 Requires Go 1.25+, Node.js 20+, npm, and the [Wails 3 CLI](https://v3.wails.io).

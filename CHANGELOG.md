@@ -57,6 +57,15 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   taking it along, and a name that matches no connection, or several, stops the
   server from starting.
 
+- Every write an agent asks for is recorded in `agent-audit.jsonl` in the
+  application's data directory: done, failed or refused by the ceiling, with
+  the client, the tool, the connection, the arguments and what changed. The
+  agent client keeps a transcript of its own, but it belongs to the client and
+  is compacted or lost with the session; this outlives it. A write is recorded
+  before it is made and is not made if it cannot be, so a start with no outcome
+  after it is a server that stopped before the broker answered. Message bodies
+  are kept as a size and a digest rather than copied.
+
 ### Fixed
 
 - Emptying a Kafka topic now says what it really does. The confirmation dialog

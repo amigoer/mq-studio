@@ -86,6 +86,12 @@ merge with them. And it reads both files again before every tool call, through
 is working is usable by the next call, and a client whose profile or global
 credentials changed is redialled rather than kept.
 
+The one file it does write is its own. Every call to a tool that writes is
+appended to `agent-audit.jsonl` in the data directory - a start before the
+write is made, which is refused if the start cannot be recorded, and an outcome
+after it. The window never writes that file, so there is no whole-file rewrite
+to race: each record is a single append, synced before the write it announces.
+
 `docs/AGENT_PLAN.md` carries the scope and the decisions behind it.
 
 ## Frontend seams
