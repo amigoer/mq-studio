@@ -486,6 +486,36 @@ namespace 被拒绝而不是被忽略。
 另外用编译出的二进制对本机临时起的 Redis 走了一遍：老协议的 `elicitation/create` 与新协议的
 `input_required` 都按预期工作，拒绝后 stream 仍在、同意后才删除，重放的凭证被拒。
 
+## 2.12 再补六个只读工具，以及工具粒度的答案
+
+新增 6 个只读工具，只读档从 20 个变成 26 个：`message_track`（RocketMQ 自己的消息轨迹：每个
+订阅了这个 topic 的消费组是否消费了它）、`cluster_health`（broker 自己的健康检查：失败的检查
+项、资源告警、特性开关、仍在使用的废弃特性）、`client_connections` 与 `client_channels`（谁连
+着、从哪里、是否被阻止发布；信道里的 prefetch 与未确认数）、`destination_shards`（Kinesis 的
+分片谱系）、`channels_list`（IBM MQ 的通道）。
+
+- **未决问题 2 定了：工具粒度跟目录操作走。** 各家族都有的操作是一个工具，不按家族拆；只有
+  某个家族才有的对象（Kinesis 的 shard、IBM MQ 的 channel）各自一个工具，只在有对应能力的
+  连接上可用，`capabilities_describe` 会说明。没有出现「同一件事两种列法」：shard 没有塞进
+  `destination_partitions`，channel 也没有塞进 `client_connections`。
+- **`client_channels` 在 7 个家族里只有 1 个有内容。** 信道是连接内部复用的会话，只有 AMQP
+  有；其余 6 个家族的实现总是返回空，这是家族特性，不是没人连接。工具描述不点家族名（会过期），
+  而是让模型用 `client_connections` 里每个连接的信道数自己判断。
+- **Redis 把 DB 编号当作 namespace 报上来。** 在本机 Redis 上实跑 `client_connections` 时，每个
+  连接的 namespace 是 "0"，即 `CLIENT LIST` 里的 db 字段。所以传 namespace 时，拒绝的说法是
+  「从 "0" 作答而不是 "billing"」，比「不按 namespace 划分」更准确——这正是以返回值为证据、
+  不维护家族清单的好处。
+- **`producer.clients` 这一轮不做。** 它的两个实现对「生产者组」的理解相反：RocketMQ 必须同时
+  给组和 topic，Pulsar 完全忽略组、只看 topic；返回的 `ProducerClient` 又不带组字段，没法像
+  namespace 那样用返回值作证。照现状暴露，Pulsar 上传了组的调用会拿到整个 topic 的生产者，读起来
+  却像是那个组的——正是 namespace 那次修掉的那一类失败。要做，得先让端口说明它是否按组过滤。
+
+**测试**：协议层 1 条，六个工具经同一个实现了全部端口的假连接逐个调用，断言答案原样转交、
+caveat 随行；另 1 条断言连接与信道列表对不按 namespace 划分的家族拒绝 namespace，对按它划分
+的家族照常作答。去掉任一处 namespace 核对、漏注册一个工具、健康检查不转交答案，都会让测试变红。
+另外用编译出的二进制对本机 Redis 实跑：连接列表回来了 server 自己的那条连接，信道为空，传
+namespace 被拒，其余四个工具得到「没有这个概念」的拒绝。
+
 ## 3. 传输与并发约束
 
 profile 存储是**整文件原子重写 + 进程内互斥**（`internal/service/connection/persistence.go`
@@ -530,9 +560,8 @@ profile 存储是**整文件原子重写 + 进程内互斥**（`internal/service
 
 1. ~~**MCP 实现用官方 Go SDK 还是自己写 stdio JSON-RPC？**~~ 已定：官方 SDK，实测
    2.4 MB。
-2. **工具粒度：** 一个 `destination.list` 吃下所有家族，还是按家族分开？倾向前者加
-   `capabilities.describe`，但要先拿 IBM MQ 的 channel 和 Kinesis 的 shard 验一遍——这
-   两样在规范页面里都没有对应物，各自拿了独立的端口和页面。
+2. ~~**工具粒度：**~~ 已定：跟目录操作走，各家族都有的操作一个工具，只有一个家族才有的
+   对象各自一个工具，见 2.12。
 3. ~~**destructive 的开启方式：**~~ 已定：命令行 flag `--allow`，三档上限，默认最窄；
    可以按连接点名放宽，见 2.9。
 4. **一次会话能不能同时操作多个 connID。** 技术上可以，registry 本来就按 id 分发；要

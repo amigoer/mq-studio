@@ -41,6 +41,14 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   does not keep destinations apart by one is refused rather than dropped: the
   answer would come from the connection's own scope and read as the namespace's.
 
+- The read-only server also answers who is connected and how the broker is. It
+  traces a message through the broker's own record of which groups consumed
+  it, runs the broker's health checks - failing checks, resource alarms,
+  feature flags, deprecated features in use - and lists the client
+  connections and the channels inside them. The two objects only one family
+  has get a tool each, offered only where they exist: Kinesis shards with
+  their lineage, and IBM MQ channels with their state.
+
 - A connection saved in the window while an agent is working can be used by its
   next call. The server reads the profiles and settings again before each one,
   and redials only a connection whose parameters actually changed.

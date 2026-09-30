@@ -232,7 +232,7 @@ claude mcp add mq-studio -- "/Applications/MQ Studio.app/Contents/MacOS/mq-studi
 
 | 启动参数 | 多出来的能力 |
 | --- | --- |
-| 不传 | 列连接、namespace、目标与订阅；浏览消息或按 ID 读一条；读集群、分区、路由、死信与消费进度 |
+| 不传 | 列连接、namespace、目标与订阅；浏览消息、按 ID 读一条或追踪它的去向；读集群、健康检查、分区、路由、死信与消费进度；列出连着的客户端及其信道；读 Kinesis 的分片与 IBM MQ 的通道 |
 | `--allow mutate` | 建目标、发消息、重投死信、移动读取位点 |
 | `--allow destructive` | 清空目标、删除目标 |
 

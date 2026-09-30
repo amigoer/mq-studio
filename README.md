@@ -247,7 +247,7 @@ switches:
 
 | Started with | What it adds |
 | --- | --- |
-| nothing | List connections, namespaces, destinations and subscriptions; browse messages or read one by id; read the cluster, partitions, routing, dead letters and consume progress |
+| nothing | List connections, namespaces, destinations and subscriptions; browse messages, read one by id or trace where one went; read the cluster, its health checks, partitions, routing, dead letters and consume progress; list the clients connected and their channels; read Kinesis shards and IBM MQ channels |
 | `--allow mutate` | Create a destination, publish, resend a dead letter, move a read position |
 | `--allow destructive` | Empty a destination, delete a destination |
 
