@@ -49,6 +49,11 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   has get a tool each, offered only where they exist: Kinesis shards with
   their lineage, and IBM MQ channels with their state.
 
+- An agent at the mutate ceiling can append entries to a Redis stream: named
+  values rather than a body, with every id the server assigned coming back. A
+  field with no name is refused rather than dropped, and the stream has to
+  exist - a send never creates one.
+
 - A connection saved in the window while an agent is working can be used by its
   next call. The server reads the profiles and settings again before each one,
   and redials only a connection whose parameters actually changed.

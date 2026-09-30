@@ -233,7 +233,7 @@ claude mcp add mq-studio -- "/Applications/MQ Studio.app/Contents/MacOS/mq-studi
 | 启动参数 | 多出来的能力 |
 | --- | --- |
 | 不传 | 列连接、namespace、目标与订阅；浏览消息、按 ID 读一条或追踪它的去向；读集群、健康检查、分区、路由、死信与消费进度；列出连着的客户端及其信道；读 Kinesis 的分片与 IBM MQ 的通道 |
-| `--allow mutate` | 建目标、发消息、重投死信、移动读取位点 |
+| `--allow mutate` | 建目标、发消息或追加 stream 条目、重投死信、移动读取位点 |
 | `--allow destructive` | 清空目标、删除目标 |
 
 上限之上的工具根本不出现在工具列表里 —— 没被告知存在的工具，模型无法调用。决定权因此在
