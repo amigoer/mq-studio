@@ -307,10 +307,11 @@ type operationSummary struct {
 	Summary string `json:"summary"`
 	Caveat  string `json:"caveat,omitempty"`
 	// Tool names the tool that performs it, and is empty for an operation no
-	// tool reaches - either because this server has none, or because the
-	// allowance it was started with does not extend that far on this
-	// connection. Either way the endpoint can do it and this caller cannot,
-	// which is not the same as the endpoint being unable to.
+	// tool reaches - because this server has none, because the allowance it
+	// was started with does not extend that far on this connection, or
+	// because it destroys and this client cannot ask a person to confirm it.
+	// Either way the endpoint can do it and this caller cannot, which is not
+	// the same as the endpoint being unable to.
 	Tool string `json:"tool,omitempty"`
 	// Attributes are the family settings this operation accepts here, for a
 	// write that carries them. They are the one part of a request a caller
@@ -332,7 +333,7 @@ type describeOutput struct {
 }
 
 func (s *server) describeCapabilities(
-	_ context.Context, _ *mcp.CallToolRequest, input connectionInput,
+	_ context.Context, request *mcp.CallToolRequest, input connectionInput,
 ) (*mcp.CallToolResult, describeOutput, error) {
 	conn, err := s.conn(input.Connection)
 	if err != nil {
@@ -340,11 +341,13 @@ func (s *server) describeCapabilities(
 	}
 
 	allow, _ := s.ceiling(input.Connection)
+	confirms := canConfirm(request)
 	resolved := catalog.For(conn)
 	operations := make([]operationSummary, 0, len(resolved))
 	for _, operation := range resolved {
 		tool := s.offered[operation.ID]
-		if !catalog.Permits(allow, operation.Blast) {
+		if !catalog.Permits(allow, operation.Blast) ||
+			(operation.Blast == catalog.BlastDestructive && !confirms) {
 			tool = ""
 		}
 		operations = append(operations, operationSummary{

@@ -53,7 +53,9 @@ const instructions = "Work the message brokers this installation has connections
 	"the MQ Studio window, and can be used here as soon as it is saved there. How far this server " +
 	"goes was decided when it was started, connection by connection, and connections_list says " +
 	"how far each may go: what is not in the tool list was not permitted anywhere, a tool that " +
-	"goes further than its connection may is refused on it, and asking will not change either."
+	"goes further than its connection may is refused on it, and asking will not change either. " +
+	"Emptying or deleting anything first puts a question to the person at your client, and is " +
+	"refused where the client cannot ask one; when they decline, do not try again unless they ask."
 
 // server holds what the tools need. The domain services do the work; this
 // only resolves connections and turns a refusal into something a caller can
@@ -68,6 +70,8 @@ type server struct {
 	grants Grants
 	// journal is the audit log every write is recorded in.
 	journal *journal
+	// confirmations are the questions put to a person and not yet answered.
+	confirmations confirmations
 	/*
 	 * refreshMu is held for writing by the refresh before every call, and for
 	 * reading by a call a grant was checked for, until it returns.

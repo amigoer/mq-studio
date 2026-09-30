@@ -403,6 +403,14 @@
       }
     }
   },
+  "mcp": {
+    "confirm": {
+      "purge": "Empty {{destination}} on {{connection}} ({{family}})? The agent asked for it. Everything it holds is discarded and the destination stays; there is no undo.",
+      "delete": "Delete {{destination}} on {{connection}} ({{family}})? The agent asked for it. It goes with everything it holds, and producers addressing it will fail; there is no undo.",
+      "depth": "Messages it holds now: {{count}}.",
+      "caveat": "Also: {{caveat}}"
+    }
+  },
   "shell": {
     "titleBar": {
       "homeLabel": "MQ Studio home",

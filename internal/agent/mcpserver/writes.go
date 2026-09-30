@@ -260,6 +260,10 @@ type destinationTargetInput struct {
 
 func (input destinationTargetInput) target() int { return input.Connection }
 
+func (input destinationTargetInput) destination() model.DestinationRef {
+	return model.DestinationRef{Namespace: input.Namespace, Name: input.Name}
+}
+
 /*
  * purgeDestination goes to the port rather than to a service method.
  *
@@ -281,7 +285,7 @@ func (s *server) purgeDestination(
 	ctx, cancel := s.withTimeout(ctx)
 	defer cancel()
 
-	ref := model.DestinationRef{Namespace: input.Namespace, Name: input.Name}
+	ref := input.destination()
 	if err := s.resolvedIn(ctx, input.Connection, conn.Kind(), ref); err != nil {
 		return nil, writeOutput{}, err
 	}
@@ -305,7 +309,7 @@ func (s *server) deleteDestination(
 	ctx, cancel := s.withTimeout(ctx)
 	defer cancel()
 
-	ref := model.DestinationRef{Namespace: input.Namespace, Name: input.Name}
+	ref := input.destination()
 	if err := s.resolvedIn(ctx, input.Connection, conn.Kind(), ref); err != nil {
 		return nil, writeOutput{}, err
 	}

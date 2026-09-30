@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -224,4 +225,68 @@ func stringValue(expr ast.Expr) (string, bool) {
 		return "", false
 	}
 	return value, true
+}
+
+/*
+ * The questions the MCP server puts to a person are keys as well, resolved in
+ * the application's language. A key missing from one file reaches the person
+ * as mcp.confirm.delete, and a translation that lost a placeholder reads
+ * perfectly and names nothing - the English one is exercised by the server's
+ * own tests, so this holds the other to the same placeholders.
+ */
+func TestTheServersQuestionsResolveWithTheirPlaceholders(t *testing.T) {
+	// The tables themselves, not the phrasebook: it falls back to English, so
+	// a key missing from the Chinese file would still come back resolved.
+	english, chinese := loadLocale("en"), loadLocale("zh")
+	keys := serverKeys(t)
+	if len(keys) < 4 {
+		t.Fatalf("found %d keys in the MCP server; this test is looking in the wrong place", len(keys))
+	}
+	for _, key := range keys {
+		inEnglish, inBoth := lookup(english, key)
+		inChinese, inChineseToo := lookup(chinese, key)
+		if !inBoth || !inChineseToo {
+			t.Errorf("%s does not resolve in both languages", key)
+			continue
+		}
+		if !slices.Equal(placeholders(inEnglish), placeholders(inChinese)) {
+			t.Errorf("%s fills %v in English and %v in Chinese",
+				key, placeholders(inEnglish), placeholders(inChinese))
+		}
+	}
+}
+
+var placeholderPattern = regexp.MustCompile(`\{\{(\w+)\}\}`)
+
+func placeholders(text string) []string {
+	var names []string
+	for _, match := range placeholderPattern.FindAllStringSubmatch(text, -1) {
+		names = append(names, match[1])
+	}
+	slices.Sort(names)
+	return slices.Compact(names)
+}
+
+// serverKeys is every i18n key the MCP server names in its own words.
+func serverKeys(t *testing.T) []string {
+	t.Helper()
+	packages, err := parser.ParseDir(token.NewFileSet(), "internal/agent/mcpserver", func(info os.FileInfo) bool {
+		return !strings.HasSuffix(info.Name(), "_test.go")
+	}, 0)
+	if err != nil {
+		t.Fatalf("parse the server: %v", err)
+	}
+	var keys []string
+	for _, pkg := range packages {
+		ast.Inspect(pkg, func(node ast.Node) bool {
+			if value, ok := node.(ast.Expr); ok {
+				if text, ok := stringValue(value); ok && strings.HasPrefix(text, "mcp.") {
+					keys = append(keys, text)
+				}
+			}
+			return true
+		})
+	}
+	slices.Sort(keys)
+	return slices.Compact(keys)
 }

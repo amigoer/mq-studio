@@ -403,6 +403,14 @@
       }
     }
   },
+  "mcp": {
+    "confirm": {
+      "purge": "清空 {{connection}}（{{family}}）上的 {{destination}}？这是 agent 发起的操作。它持有的消息会全部丢弃，目标本身保留，无法撤销。",
+      "delete": "删除 {{connection}}（{{family}}）上的 {{destination}}？这是 agent 发起的操作。它会连同持有的消息一起删除，之后往它发送的生产者会失败，无法撤销。",
+      "depth": "它现在持有 {{count}} 条消息。",
+      "caveat": "另外：{{caveat}}"
+    }
+  },
   "shell": {
     "titleBar": {
       "homeLabel": "MQ Studio 首页",

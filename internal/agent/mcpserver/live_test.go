@@ -88,7 +88,13 @@ func mcpSession(t *testing.T, services *app.Services, allow catalog.Blast) *mcp.
 		}
 	}()
 
-	client := mcp.NewClient(&mcp.Implementation{Name: "test", Version: "test"}, nil)
+	// A person who agrees to everything: what this suite checks is what the
+	// broker does once they have, and the question itself is tested offline.
+	client := mcp.NewClient(&mcp.Implementation{Name: "test", Version: "test"}, &mcp.ClientOptions{
+		ElicitationHandler: func(context.Context, *mcp.ElicitRequest) (*mcp.ElicitResult, error) {
+			return &mcp.ElicitResult{Action: "accept"}, nil
+		},
+	})
 	session, err := client.Connect(ctx, clientTransport, nil)
 	if err != nil {
 		t.Fatalf("connect: %v", err)

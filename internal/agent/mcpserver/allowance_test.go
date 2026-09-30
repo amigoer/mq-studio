@@ -153,7 +153,8 @@ func newGrantedWorld(t *testing.T) grantedWorld {
 		conn: &namespacedConn{fakeConn: fakeConn{
 			kind: model.KindRabbitMQ,
 			capabilities: model.NewCapabilities(
-				model.CapDestinationList, model.CapDestinationCreate, model.CapDestinationDelete),
+				model.CapDestinationList, model.CapDestinationCreate, model.CapDestinationDelete,
+				model.CapDestinationPurge),
 		}},
 		dials: &atomic.Int32{},
 	}
@@ -193,8 +194,20 @@ func rabbitProfile(name, endpoints string) model.ConnectionProfile {
 	return profile
 }
 
-// session starts a server that allows destructive on scratch alone.
+// session starts a server that allows destructive on scratch alone, for a
+// client that cannot ask a person anything.
 func (w grantedWorld) session(t *testing.T) *mcp.ClientSession {
+	t.Helper()
+	return connect(t, w.server, w.grants(t), clientSetup{})
+}
+
+// confirming is session for a client whose person says yes to everything.
+func (w grantedWorld) confirming(t *testing.T) *mcp.ClientSession {
+	t.Helper()
+	return connect(t, w.server, w.grants(t), clientSetup{answer: accept})
+}
+
+func (w grantedWorld) grants(t *testing.T) Grants {
 	t.Helper()
 	grants, err := Allowance{
 		Everywhere: catalog.BlastRead,
@@ -203,7 +216,7 @@ func (w grantedWorld) session(t *testing.T) *mcp.ClientSession {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return grantedSession(t, w.server, grants)
+	return grants
 }
 
 func callTool(t *testing.T, clientSession *mcp.ClientSession, name string, arguments map[string]any) (bool, string) {
@@ -246,7 +259,7 @@ func allowedOn(t *testing.T, clientSession *mcp.ClientSession) map[string]string
  */
 func TestAGrantReachesOnlyTheConnectionItNames(t *testing.T) {
 	world := newGrantedWorld(t)
-	clientSession := world.session(t)
+	clientSession := world.confirming(t)
 
 	tools, err := clientSession.ListTools(t.Context(), nil)
 	if err != nil {
@@ -298,7 +311,7 @@ func TestAGrantReachesOnlyTheConnectionItNames(t *testing.T) {
 // operation this connection was not allowed must not name a tool for it.
 func TestDescribeNamesOnlyTheToolsThisConnectionMayUse(t *testing.T) {
 	world := newGrantedWorld(t)
-	clientSession := world.session(t)
+	clientSession := world.confirming(t)
 
 	for name, want := range map[string]string{"scratch": "destination_delete", "production": ""} {
 		result, err := clientSession.CallTool(t.Context(), &mcp.CallToolParams{
@@ -337,7 +350,7 @@ func TestDescribeNamesOnlyTheToolsThisConnectionMayUse(t *testing.T) {
  */
 func TestAGrantLapsesWhenItsConnectionIsPointedElsewhere(t *testing.T) {
 	world := newGrantedWorld(t)
-	clientSession := world.session(t)
+	clientSession := world.confirming(t)
 	id := world.ids["scratch"]
 
 	relabelled := rabbitProfile("scratch, renamed", "http://scratch.invalid:15672")
@@ -472,7 +485,7 @@ func TestARefreshWaitsForAWriteInFlight(t *testing.T) {
 	world := newGrantedWorld(t)
 	held := &heldConn{namespacedConn: world.conn, entered: make(chan struct{}), release: make(chan struct{})}
 	world.dialTo(held)
-	clientSession := world.session(t)
+	clientSession := world.confirming(t)
 	release := sync.OnceFunc(func() { close(held.release) })
 	t.Cleanup(release)
 	id := world.ids["scratch"]

@@ -47,7 +47,7 @@ func audited(t *testing.T, path string) []auditRecord {
  */
 func TestEveryWriteIsRecordedBeforeAndAfter(t *testing.T) {
 	world := newGrantedWorld(t)
-	clientSession := world.session(t)
+	clientSession := world.confirming(t)
 	scratch, production := world.ids["scratch"], world.ids["production"]
 
 	callTool(t, clientSession, "destinations_list", map[string]any{"connection": scratch})
@@ -61,14 +61,19 @@ func TestEveryWriteIsRecordedBeforeAndAfter(t *testing.T) {
 	callTool(t, clientSession, "destination_delete", map[string]any{"connection": production, "name": "orders"})
 
 	records := audited(t, world.paths.AgentAuditFile)
-	if len(records) != 5 {
-		t.Fatalf("recorded %d lines for two writes and a refusal, want 5: %+v", len(records), records)
+	if len(records) != 6 {
+		t.Fatalf("recorded %d lines for two writes and a refusal, want 6: %+v", len(records), records)
 	}
-	started, done, resent, failed, refused := records[0], records[1], records[2], records[3], records[4]
+	asked, started, done, resent, failed, refused := records[0], records[1], records[2], records[3],
+		records[4], records[5]
 
-	if started.Phase != phaseStarted || done.Phase != phaseDone ||
-		started.Call != done.Call || started.Session != done.Session {
-		t.Errorf("the delete is not a start and its outcome: %+v / %+v", started, done)
+	if asked.Phase != phaseAsked || started.Phase != phaseStarted || done.Phase != phaseDone ||
+		asked.Call != started.Call || started.Call != done.Call || started.Session != done.Session {
+		t.Errorf("the delete is not a question, a start and its outcome: %+v / %+v / %+v", asked, started, done)
+	}
+	if !strings.Contains(asked.Question, "Delete orders on scratch") || !started.Confirmed {
+		t.Errorf("the delete does not record what the person was asked and that they agreed: %+v / %+v",
+			asked, started)
 	}
 	if started.Tool != "destination_delete" || started.Operation != "destination.delete" ||
 		started.Blast != string(catalog.BlastDestructive) || started.Allow != string(catalog.BlastDestructive) {
@@ -110,15 +115,23 @@ func TestAWriteThatCannotBeRecordedIsNotMade(t *testing.T) {
 	if err := os.Mkdir(world.paths.AgentAuditFile, 0o700); err != nil {
 		t.Fatal(err)
 	}
-	clientSession := world.session(t)
+	clientSession := world.confirming(t)
 
-	refused, text := callTool(t, clientSession, "destination_delete",
+	refused, text := callTool(t, clientSession, "destination_create",
 		map[string]any{"connection": world.ids["scratch"], "name": "orders"})
 	if !refused || !strings.Contains(text, "not done") || !strings.Contains(text, "audit log") {
 		t.Fatalf("a write that could not be recorded was not refused for it: %q", text)
 	}
-	if world.dials.Load() != 0 || len(world.conn.removed) != 0 {
-		t.Fatalf("dialled %d times and removed %v without a record", world.dials.Load(), world.conn.removed)
+	if world.dials.Load() != 0 {
+		t.Fatalf("dialled %d times for a write with no record", world.dials.Load())
+	}
+
+	// A destructive one is refused before the question, which is recorded
+	// first: nobody is asked to agree to something that would then be refused.
+	refused, text = callTool(t, clientSession, "destination_delete",
+		map[string]any{"connection": world.ids["scratch"], "name": "orders"})
+	if !refused || !strings.Contains(text, "audit log") || len(world.conn.removed) != 0 {
+		t.Fatalf("a delete that could not be recorded: %q, removed %v", text, world.conn.removed)
 	}
 }
 
@@ -131,7 +144,8 @@ func TestAWriteThatCannotBeRecordedIsNotMade(t *testing.T) {
  */
 func TestEveryWriteToolIsRecordedWhateverTheAllowance(t *testing.T) {
 	world := newGrantedWorld(t)
-	clientSession := grantedSession(t, world.server, Grants{everywhere: catalog.BlastDestructive})
+	clientSession := connect(t, world.server, Grants{everywhere: catalog.BlastDestructive},
+		clientSetup{answer: accept})
 
 	tools, err := clientSession.ListTools(t.Context(), nil)
 	if err != nil {
@@ -152,6 +166,11 @@ func TestEveryWriteToolIsRecordedWhateverTheAllowance(t *testing.T) {
 		if start.Tool != tool.Name || start.Phase != phaseStarted ||
 			outcome.Call != start.Call || (outcome.Phase != phaseDone && outcome.Phase != phaseFailed) {
 			t.Errorf("%s was not recorded as a start and an outcome: %+v / %+v", tool.Name, start, outcome)
+		}
+		if destructive := tool.Annotations.DestructiveHint; destructive != nil && *destructive {
+			if asked := records[len(records)-3]; asked.Phase != phaseAsked || asked.Call != start.Call {
+				t.Errorf("%s destroys and was made without a question first: %+v", tool.Name, asked)
+			}
 		}
 	}
 	if written < 6 {

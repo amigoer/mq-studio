@@ -3,9 +3,11 @@ package mcpserver
 import (
 	"context"
 	"encoding/json"
+	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -41,16 +43,43 @@ func serverWith(conn driver.Conn) *server {
 }
 
 // testPhrases stands in for the application's translations. The real ones are
-// the renderer's locale files, which only the composition root can reach.
+// the renderer's locale files, which only the composition root can embed.
+//
+// What the server words itself - the questions put to a person - is read from
+// the real English file instead, so a placeholder renamed there fails these
+// tests rather than reaching somebody as {{destination}}.
 func testPhrases(key string) string {
 	if text, ok := map[string]string{
 		"mq.rabbitmq.caveat.browseAltersQueue": "browsing requeues the message flagged redelivered",
 		"mq.rocketmq.degraded.proxy":           "a Proxy endpoint is a data plane only",
+		"mq.test.caveat.deleteTakesBindings":   "the bindings to it go with it",
 	}[key]; ok {
 		return text
 	}
+	if strings.HasPrefix(key, "mcp.") {
+		var node any = englishLocale()
+		for segment := range strings.SplitSeq(key, ".") {
+			object, _ := node.(map[string]any)
+			node = object[segment]
+		}
+		if text, ok := node.(string); ok {
+			return text
+		}
+	}
 	return key
 }
+
+var englishLocale = sync.OnceValue(func() map[string]any {
+	data, err := os.ReadFile(filepath.Join("..", "..", "..", "frontend", "src", "i18n", "locales", "en.json"))
+	if err != nil {
+		panic(err)
+	}
+	var table map[string]any
+	if err := json.Unmarshal(data, &table); err != nil {
+		panic(err)
+	}
+	return table
+})
 
 // The connection service is real, over a temporary store with nothing in it.
 // A stub would answer the one question this exercises - what happens to a
@@ -91,6 +120,26 @@ func session(t *testing.T, services *app.Services, allow catalog.Blast) *mcp.Cli
 // grantedSession is session for a server started with connections named.
 func grantedSession(t *testing.T, services *app.Services, grants Grants) *mcp.ClientSession {
 	t.Helper()
+	return connect(t, services, grants, clientSetup{})
+}
+
+// clientSetup is how a test client presents itself.
+type clientSetup struct {
+	// answer, when set, makes the client one that can put a question to a
+	// person; the test answers in the person's place.
+	answer func(*mcp.ElicitRequest) *mcp.ElicitResult
+	// manual leaves input requests to the test instead of answering them and
+	// calling again, so it can send an answer the client never would.
+	manual bool
+	// protocol pins the version the client asks for; empty is the SDK's latest.
+	protocol string
+}
+
+// accept is a person who says yes to everything.
+func accept(*mcp.ElicitRequest) *mcp.ElicitResult { return &mcp.ElicitResult{Action: "accept"} }
+
+func connect(t *testing.T, services *app.Services, grants Grants, setup clientSetup) *mcp.ClientSession {
+	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	t.Cleanup(cancel)
 
@@ -102,8 +151,17 @@ func grantedSession(t *testing.T, services *app.Services, grants Grants) *mcp.Cl
 		}
 	}()
 
-	client := mcp.NewClient(&mcp.Implementation{Name: "test", Version: "test"}, nil)
-	clientSession, err := client.Connect(ctx, clientTransport, nil)
+	options := &mcp.ClientOptions{}
+	if setup.answer != nil {
+		options.ElicitationHandler = func(_ context.Context, request *mcp.ElicitRequest) (*mcp.ElicitResult, error) {
+			return setup.answer(request), nil
+		}
+	}
+	if setup.manual {
+		options.MultiRoundTrip = &mcp.MultiRoundTripOptions{Disabled: true}
+	}
+	client := mcp.NewClient(&mcp.Implementation{Name: "test", Version: "test"}, options)
+	clientSession, err := client.Connect(ctx, clientTransport, &mcp.ClientSessionOptions{ProtocolVersion: setup.protocol})
 	if err != nil {
 		t.Fatalf("connect: %v", err)
 	}

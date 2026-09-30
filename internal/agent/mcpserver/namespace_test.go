@@ -18,7 +18,9 @@ import (
 type namespacedConn struct {
 	fakeConn
 	scoped  bool
+	depth   int64
 	removed []model.DestinationRef
+	purged  []model.DestinationRef
 }
 
 func (c *namespacedConn) answerFrom(namespace string) string {
@@ -39,7 +41,7 @@ func (c *namespacedConn) DestinationDetail(
 	_ context.Context, ref model.DestinationRef,
 ) (*model.Destination, error) {
 	return &model.Destination{Ref: model.DestinationRef{
-		Namespace: c.answerFrom(ref.Namespace), Name: ref.Name}}, nil
+		Namespace: c.answerFrom(ref.Namespace), Name: ref.Name}, Depth: c.depth}, nil
 }
 
 func (c *namespacedConn) CreateDestination(context.Context, model.DestinationSpec) error {
@@ -54,6 +56,19 @@ func (c *namespacedConn) RemoveDestination(_ context.Context, ref model.Destinat
 	c.removed = append(c.removed, ref)
 	return nil
 }
+
+func (c *namespacedConn) PurgeQueue(_ context.Context, ref model.DestinationRef) error {
+	c.purged = append(c.purged, ref)
+	return nil
+}
+
+func (c *namespacedConn) MoveMessages(context.Context, model.MoveRequest) (int, error) { return 0, nil }
+
+func (c *namespacedConn) DropMessages(context.Context, model.DestinationRef, int) (int, error) {
+	return 0, nil
+}
+
+func (c *namespacedConn) RebalanceQueues(context.Context) error { return nil }
 
 type requestTimeout struct{}
 

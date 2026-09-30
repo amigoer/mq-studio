@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -38,8 +39,10 @@ import (
  */
 
 // The phases a write goes through in the log. A started write is followed by
-// done or failed; a refused one never started.
+// done or failed; a refused one never started. A destructive one is asked
+// first, and its answer - refused or started - carries the same call number.
 const (
+	phaseAsked   = "asked"
 	phaseRefused = "refused"
 	phaseStarted = "started"
 	phaseDone    = "done"
@@ -86,10 +89,14 @@ type auditRecord struct {
 	// makes a refusal readable afterwards.
 	Allow     string          `json:"allow"`
 	Arguments json.RawMessage `json:"arguments,omitempty"`
-	Changed   string          `json:"changed,omitempty"`
-	Reference string          `json:"reference,omitempty"`
-	Error     string          `json:"error,omitempty"`
-	Millis    *int64          `json:"ms,omitzero"`
+	// Question is what the person was shown, word for word, and Confirmed
+	// marks a write they said yes to.
+	Question  string `json:"question,omitempty"`
+	Confirmed bool   `json:"confirmed,omitzero"`
+	Changed   string `json:"changed,omitempty"`
+	Reference string `json:"reference,omitempty"`
+	Error     string `json:"error,omitempty"`
+	Millis    *int64 `json:"ms,omitzero"`
 }
 
 // auditConnection is a connection as it was named when the write was made.
@@ -132,6 +139,16 @@ func (j *journal) append(record auditRecord) error {
 	return file.Close()
 }
 
+// before appends a record a write waits on. When it cannot, the write is not
+// made, and the error says so in words a caller can pass on.
+func (j *journal) before(record auditRecord) error {
+	if err := j.append(record); err != nil {
+		return fmt.Errorf("not done: every write is recorded before it is made, and the audit log "+
+			"%s could not be written: %w", j.path, err)
+	}
+	return nil
+}
+
 // keep appends a record nothing waits on. One that cannot be written goes to
 // stderr whole, so what happened is not lost with it.
 func (j *journal) keep(record auditRecord) {
@@ -141,14 +158,19 @@ func (j *journal) keep(record auditRecord) {
 	}
 }
 
+// next numbers a call to a write tool within this session.
+func (j *journal) next() int64 {
+	return j.calls.Add(1)
+}
+
 // entry starts the records for one call to a write tool.
 func (s *server) entry(
-	request *mcp.CallToolRequest, tool string, operation catalog.Operation, id int, input any,
+	request *mcp.CallToolRequest, tool string, operation catalog.Operation, id int, input any, call int64,
 ) auditRecord {
 	allow, _ := s.ceiling(id)
 	return auditRecord{
 		Session:    s.journal.session,
-		Call:       s.journal.calls.Add(1),
+		Call:       call,
 		Client:     clientOf(request),
 		Tool:       tool,
 		Operation:  operation.ID,
@@ -159,8 +181,13 @@ func (s *server) entry(
 	}
 }
 
-func (r auditRecord) started() auditRecord {
-	r.Phase = phaseStarted
+func (r auditRecord) asked(question string) auditRecord {
+	r.Phase, r.Question = phaseAsked, question
+	return r
+}
+
+func (r auditRecord) started(confirmed bool) auditRecord {
+	r.Phase, r.Confirmed = phaseStarted, confirmed
 	return r
 }
 
