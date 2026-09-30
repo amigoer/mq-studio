@@ -269,6 +269,13 @@ saved later under the same name is not covered, and one pointed at another broke
 credentials in the window stops being covered. A name that matches no stored connection, or
 several, is refused at startup rather than quietly granting nothing.
 
+**Emptying and deleting are confirmed by a person.** Before either is done, the server puts the
+question to you through the agent client - the destination, its connection, how many messages it
+holds and any consequence its family carries, as the window's own dialog does - and only an
+explicit yes goes ahead. A client that cannot ask (one that did not offer MCP elicitation when it
+connected) is refused both outright. A no is final for that call, and a connection pointed
+elsewhere in the window while you read is left alone.
+
 Have the agent call `capabilities_describe` first: **what a connection can do is the endpoint's
 own answer**, two endpoints of one family can differ, and an operation the broker cannot perform
 is never offered. Operations with a consequence return it - browsing a RabbitMQ queue alters
@@ -283,10 +290,11 @@ saved in the window is usable by the agent's next one.
 **Every write is recorded.** Each one the agent asks for - done, failed, or refused by the
 ceiling - is appended to `agent-audit.jsonl` in the application's data directory (Settings →
 Data and backup → Open directory), one JSON object per line: when, which client, which tool on
-which connection, with what arguments, and what changed. A write is recorded before it is made,
-and one that cannot be recorded is not made, so a start with no outcome after it means the server
-stopped before the broker answered. Message bodies are kept as a size and a SHA-256 digest, not
-copied. Reads are not recorded.
+which connection, with what arguments, and what changed - and for emptying and deleting, the
+question the person was shown and their answer. A write is recorded before it is made, and one
+that cannot be recorded is not made, so a start with no outcome after it means the server stopped
+before the broker answered. Message bodies are kept as a size and a SHA-256 digest, not copied.
+Reads are not recorded.
 
 ## Development
 

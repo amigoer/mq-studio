@@ -66,6 +66,16 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   after it is a server that stopped before the broker answered. Message bodies
   are kept as a size and a digest rather than copied.
 
+- Emptying and deleting are put to a person first. The server asks through the
+  agent client - the destination, its connection, how many messages it holds
+  and any consequence its family carries, in the application's language - and
+  only an explicit yes goes ahead; a client that cannot ask is refused both.
+  The answer is tied to the call it was asked about by a token the server keeps
+  and accepts once, so it cannot be carried to another target or replayed, and
+  a connection re-pointed in the window while the person reads is left alone.
+  Clients on the current protocol answer through input requests, older ones
+  through elicitation.
+
 ### Fixed
 
 - Emptying a Kafka topic now says what it really does. The confirmation dialog

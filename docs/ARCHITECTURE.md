@@ -71,7 +71,10 @@ reads the connection from the input the handler itself receives and holds off
 the per-call refresh until the handler returns, so the check and the dial see
 one profile. A name is resolved once, at startup, and its grant lapses if that
 connection is later pointed at another broker or given other credentials
-(`connection.Repointed`). The protocol's own hints are derived from the
+(`connection.Repointed`). Emptying and deleting are put to a person through the
+client first - an MCP input request, elicitation on older clients - and the
+answer is matched to its call by a one-time token the server holds; a client
+that cannot ask is refused both. The protocol's own hints are derived from the
 catalogue's blast radius, so a tool cannot be annotated read-only while the
 catalogue calls it destructive.
 
