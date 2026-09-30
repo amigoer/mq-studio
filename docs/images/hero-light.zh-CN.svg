@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360" role="img" aria-labelledby="t d">
   <title id="t">MQ Studio</title>
-  <desc id="d">MQ Studio：本地优先的消息队列桌面客户端。一套界面连接 RocketMQ、RabbitMQ、Kafka、Pulsar、Redis Stream、MQTT、NATS、ActiveMQ、NSQ、Amazon SQS、Google Pub/Sub、Azure Service Bus、Amazon Kinesis、IBM MQ 与 Solace PubSub+，更多驱动陆续接入，无需部署 Web 控制台。</desc>
+  <desc id="d">MQ Studio：本地优先的消息队列桌面客户端。一套界面连接 RocketMQ、RabbitMQ、Kafka、Pulsar、Redis Stream、MQTT、NATS、ActiveMQ、NSQ、Amazon SQS、Google Pub/Sub、Azure Service Bus、Amazon Kinesis、IBM MQ 与 Solace PubSub+，无需部署 Web 控制台。</desc>
 
   <!-- eyebrow -->
   <text x="10" y="50" font-family="ui-monospace,'SF Mono',Menlo,Consolas,monospace" font-size="16.5" letter-spacing="3" fill="#71717A">LOCAL-FIRST · NOTHING TO DEPLOY · OPEN SOURCE</text>

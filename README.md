@@ -1,7 +1,7 @@
 <div align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/images/hero-dark.svg">
-    <img src="docs/images/hero-light.svg" width="100%" alt="MQ Studio — see inside your message queues. One local-first desktop app for RocketMQ, RabbitMQ, Kafka, Pulsar, Redis Stream, MQTT, NATS, ActiveMQ, NSQ, Amazon SQS, Google Pub/Sub, Azure Service Bus, Amazon Kinesis, IBM MQ, and Solace PubSub+, with more drivers landing and no web console to deploy.">
+    <img src="docs/images/hero-light.svg" width="100%" alt="MQ Studio — see inside your message queues. One local-first desktop app for RocketMQ, RabbitMQ, Kafka, Pulsar, Redis Stream, MQTT, NATS, ActiveMQ, NSQ, Amazon SQS, Google Pub/Sub, Azure Service Bus, Amazon Kinesis, IBM MQ, and Solace PubSub+, with no web console to deploy.">
   </picture>
 </div>
 
@@ -17,6 +17,7 @@
   <a href="README.zh-CN.md">简体中文</a>&nbsp;&nbsp;·&nbsp;&nbsp;
   <a href="https://mq-studio.amigoer.com/en/">Download</a>&nbsp;&nbsp;·&nbsp;&nbsp;
   <a href="docs/INSTALL.md">Install guide</a>&nbsp;&nbsp;·&nbsp;&nbsp;
+  <a href="#for-agents-mcp">For agents</a>&nbsp;&nbsp;·&nbsp;&nbsp;
   <a href="#roadmap">Roadmap</a>&nbsp;&nbsp;·&nbsp;&nbsp;
   <a href="docs/ARCHITECTURE.md">Documentation</a>
 </p>
@@ -43,12 +44,13 @@ component to deploy, secure, or keep alive.
 
 - **One interface, every broker** — drivers land one at a time, each taken to the same depth
 - **Honest about what it connects to** — every connection reports what its endpoint can actually do, and the pages are drawn from that
+- **Open to agents** — the same binary serves these connections over MCP, read-only unless you allow more
 - **Ready to use** — download, connect, work; no web console to stand up and maintain
 - **Private by default** — configuration stays on your device and credentials are encrypted at rest
 - **Cross-platform** — macOS, Windows, and Linux, with English and Chinese interfaces
 
 RocketMQ, RabbitMQ, Kafka, Pulsar, Redis Stream, MQTT, NATS, ActiveMQ, NSQ, Amazon SQS, Google Pub/Sub, Azure Service Bus, Amazon Kinesis, IBM MQ, and Solace PubSub+ are the drivers available
-today; [Driver support](#driver-support) has the rest.
+today; [Driver support](#driver-support) says what each one covers.
 
 ## Features
 
@@ -60,6 +62,7 @@ today; [Driver support](#driver-support) has the rest.
 | **Consumers** | View groups, clients, subscriptions, and lag; reset offsets; handle retry and dead letters |
 | **Cluster & Alerts** | Monitor brokers and nodes, runtime metrics, throughput, lag, disk usage, and desktop alerts |
 | **Administration** | Manage access control and users, quotas, policies, and the settings behind each topic, queue, and group |
+| **Agents (MCP)** | Hand the same connections to an agent: read-only by default, writes allowed per connection when the server starts, emptying and deleting confirmed by a person, and every write recorded |
 | **Personalization** | Switch theme and language, customize display, import or export configuration, and automatic update checks |
 
 The rows above are the union across drivers; [Driver support](#driver-support) says which broker gets what.
@@ -133,7 +136,7 @@ capabilities, so the interface only offers what the connected broker can actuall
 | **Amazon Kinesis** | ✅ Available | The fourth hosted family, back to a region and an AWS credential with no address to type. The one family whose central object the canonical pages had no room for: a shard is not a partition number, so it gets a page of its own — every shard a stream has, open or closed, with the slice of the hash space that decides which records land on it, the parent it was split from or the two it was merged out of, and the closed ones kept in the listing because they still hold their records until retention expires. Streams with their open shard count, capacity mode and retention; creating, resizing and deleting them, provisioned or on demand. Browsing that takes nothing at all — no record is hidden, consumed or marked, and any number of readers can read the same one — carrying instead the caveat that it spends the shard's read allowance, which every consumer on that shard shares. Sending with the partition key that places a record and the explicit hash key that aims it at a shard by name. Registered fan-out consumers, which are the only readers a stream knows about. No backlog, because nothing anywhere in the service keeps a reader's position |
 | **IBM MQ** | ✅ Available | The first enterprise family, and the second reached through a vendor's own HTTP management plane rather than a wire client — everything here goes over the two REST interfaces the mqweb server hosts, so no build of this app needs IBM's native client libraries. Channels get a page of their own, because nothing in the canonical vocabulary is shaped like one: a channel is a definition that exists with nothing connected, it is what decides whether an application may connect at all, and one of them carries a running instance per connected client. Queues and topics on one board, with the alias and remote definitions a message passes through on its way somewhere else; creating and deleting either. Browsing that genuinely takes nothing — the depth is the same afterwards — carrying instead the caveat that the server returns character data only, so a dead letter is listed and cannot be opened. Sending to a queue with the descriptor an MQ message actually carries. Subscriptions whose backlog is the depth of the queue they deliver to, and dead letters found by walking the queue manager's own DEADQ and every queue's backout queue backwards |
 | **Solace PubSub+** 10.x | ✅ Available | The second enterprise family and the last driver on the roadmap, reached entirely over SEMP v2 - plain HTTP with JSON, so no build of this app needs Solace's native client. A Message VPN is a scope rather than an address: one broker hosts many, every object lives inside one, and the sidebar re-points the whole connection at another without editing the profile. Queues with what they are actually holding, which is not the field that looks like it - spooledMsgCount is a lifetime statistic, so the depth is read from the message collection's own count; creating and deleting them, with the access type that decides whether one consumer takes everything or several share it. Routing gets a page, and this family has the strongest claim to one: a publisher never names a queue at all, so what has subscribed is the whole of what decides where a message lands - topic subscriptions added and removed on a queue, and topic endpoints whose name is their subscription. Browsing that takes nothing - the queue is byte-for-byte the same afterwards - carrying instead the caveat that SEMP returns no message payload at any version, so a message is listed with its sizes and delivery count and there is no body to open. Sending through the REST messaging interface on its own port, to a queue by name or to a topic to be matched, with the dead-message flag that decides whether a message given up on is moved or discarded. Dead messages found by inverting every endpoint's pointer - including the pointer every endpoint ships with, at a queue no broker creates, which is what makes an unconfigured Message VPN discard silently. The broker with its version and the spool this VPN is using, and who is connected |
-| More to come | 📋 Planned | Full matrix below |
+| More drivers | 📋 On request | Wire-compatible systems and scope below |
 
 <details>
 <summary><strong>Planned drivers, wire-compatible systems, and scope</strong></summary>
@@ -236,10 +239,24 @@ exports contain plaintext credentials and should be stored securely.
 
 The same binary runs as an [MCP](https://modelcontextprotocol.io) server, so an agent such as
 Claude Code can work these connections. It reads the application's own profiles, so there are no
-endpoints or credentials to enter a second time:
+endpoints or credentials to enter a second time, and the window does not need to be open:
 
 ```bash
 claude mcp add mq-studio -- "/Applications/MQ Studio.app/Contents/MacOS/mq-studio" mcp
+```
+
+A client configured by file takes the same two things, the executable and the argument `mcp`. In
+the `mcpServers` form most of them read:
+
+```json
+{
+  "mcpServers": {
+    "mq-studio": {
+      "command": "/Applications/MQ Studio.app/Contents/MacOS/mq-studio",
+      "args": ["mcp"]
+    }
+  }
+}
 ```
 
 **Read-only by default.** Writing is allowed at startup, as a ceiling rather than a list of
@@ -298,7 +315,8 @@ Reads are not recorded.
 
 ## Development
 
-Requires Go 1.25+, Node.js 20+, npm, and the [Wails 3 CLI](https://v3.wails.io).
+Requires Go (the version `go.mod` pins), Node.js 20.19+ or 22.12+, npm, and the
+[Wails 3 CLI](https://v3.wails.io).
 
 ```bash
 go install github.com/wailsapp/wails/v3/cmd/wails3@latest

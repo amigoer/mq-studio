@@ -1,7 +1,7 @@
 <div align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/images/hero-dark.zh-CN.svg">
-    <img src="docs/images/hero-light.zh-CN.svg" width="100%" alt="MQ Studio — 本地优先的消息队列桌面客户端。一套界面连接 RocketMQ、RabbitMQ、Kafka、Pulsar、Redis Stream、MQTT、NATS、ActiveMQ、NSQ、Amazon SQS、Google Pub/Sub、Azure Service Bus、Amazon Kinesis、IBM MQ 与 Solace PubSub+，更多驱动陆续接入，无需部署 Web 控制台。">
+    <img src="docs/images/hero-light.zh-CN.svg" width="100%" alt="MQ Studio — 本地优先的消息队列桌面客户端。一套界面连接 RocketMQ、RabbitMQ、Kafka、Pulsar、Redis Stream、MQTT、NATS、ActiveMQ、NSQ、Amazon SQS、Google Pub/Sub、Azure Service Bus、Amazon Kinesis、IBM MQ 与 Solace PubSub+，无需部署 Web 控制台。">
   </picture>
 </div>
 
@@ -17,6 +17,7 @@
   <a href="README.md">English</a>&nbsp;&nbsp;·&nbsp;&nbsp;
   <a href="https://mq-studio.amigoer.com/">下载</a>&nbsp;&nbsp;·&nbsp;&nbsp;
   <a href="docs/INSTALL.zh-CN.md">安装说明</a>&nbsp;&nbsp;·&nbsp;&nbsp;
+  <a href="#给-agent-用mcp">给 agent 用</a>&nbsp;&nbsp;·&nbsp;&nbsp;
   <a href="#开发计划">开发计划</a>&nbsp;&nbsp;·&nbsp;&nbsp;
   <a href="docs/ARCHITECTURE.md">文档</a>
 </p>
@@ -41,11 +42,12 @@ MQ Studio 是它们共同的客户端。每一种消息中间件都通过一个�
 
 - **一套界面，所有中间件** — 驱动一个一个接入，每一个都做到同样的深度
 - **如实呈现所连的端点** — 每个连接上报它究竟能做什么，界面据此绘制
+- **也能交给 agent** — 同一个二进制通过 MCP 提供这些连接，默认只读，写操作要你明确放行
 - **安装即用** — 下载、连接、开工，不需要搭建和维护 Web 控制台
 - **数据留在本机** — 配置保存在当前设备，凭证加密存储
 - **跨平台与双语** — 支持 macOS、Windows、Linux，提供中英文界面
 
-目前可以连接的驱动是 RocketMQ、RabbitMQ、Kafka、Pulsar、Redis Stream、MQTT、NATS、ActiveMQ、NSQ、Amazon SQS、Google Pub/Sub、Azure Service Bus、Amazon Kinesis、IBM MQ 和 Solace PubSub+，其余进度见[驱动支持](#驱动支持)。
+目前可以连接的驱动是 RocketMQ、RabbitMQ、Kafka、Pulsar、Redis Stream、MQTT、NATS、ActiveMQ、NSQ、Amazon SQS、Google Pub/Sub、Azure Service Bus、Amazon Kinesis、IBM MQ 和 Solace PubSub+，各自覆盖到哪里见[驱动支持](#驱动支持)。
 
 ## 功能
 
@@ -57,6 +59,7 @@ MQ Studio 是它们共同的客户端。每一种消息中间件都通过一个�
 | **消费者** | 查看消费组、客户端、订阅与堆积；重置位点；处理重试与死信 |
 | **集群与告警** | 监控 Broker 与节点、运行指标、吞吐、堆积、磁盘状态与桌面告警 |
 | **管理能力** | 管理访问控制与用户、配额、策略，以及每个 Topic、队列和消费组背后的配置 |
+| **Agent（MCP）** | 把同一批连接交给 agent：默认只读，写操作在 server 启动时按连接放行，清空与删除要人确认，每个写操作都留有记录 |
 | **个性化** | 切换主题与语言、自定义显示、导入或导出配置、自动检查更新 |
 
 上表是所有驱动的能力合集，具体哪个中间件支持哪些，见[驱动支持](#驱动支持)。
@@ -115,7 +118,7 @@ MQ Studio 通过可插拔驱动对接各类消息中间件。每个驱动声明�
 
 | 驱动 | 状态 | 说明 |
 | --- | --- | --- |
-| **RocketMQ** 4.x / 5.x | ✅ 已发布 | 通过 Admin API 提供完整功能 |
+| **RocketMQ** 4.x / 5.x | ✅ 已支持 | 通过 Admin API 提供完整功能 |
 | **RabbitMQ** 3.x / 4.x | ✅ 已支持 | 完整管理面：队列、Exchange 与 Binding、连接与信道、基于 AMQP 的浏览与发送、死信、虚拟主机、用户与权限、策略、定义导入导出、Shovel 与 Federation |
 | **Kafka** 3.x / 4.x | ✅ 已支持 | Topic 及其分区、副本与配置；消费组的分区级 lag 与 Kafka 的五种位点重置；日志浏览与实时跟随；带 key、header 与 acks 的发送；Broker 的生效配置与日志目录；ACL 与 SCRAM 用户；客户端配额；分区迁移与优先副本选举；集群未结束的事务 |
 | **Pulsar** 3.x / 4.x | ✅ 已支持 | 主题及其分区与存储方式；命名空间与其上的租户，含 TTL、保留策略与按主题的限额；订阅的积压、延迟投递与未确认数量，阻塞订阅识别，以及按时间或回到最早消息的游标移动；不占用订阅的日志浏览与实时跟随；带 key、顺序 key、属性与延迟投递的发送；Broker 的 Bundle 归属与资源占用；按官方客户端命名约定发现的死信与重试主题；命名空间与主题上的角色授权 |
@@ -130,7 +133,7 @@ MQ Studio 通过可插拔驱动对接各类消息中间件。每个驱动声明�
 | **Amazon Kinesis** | ✅ 已支持 | 第四个托管家族，又回到只填区域和 AWS 凭据、没有地址可填。它也是唯一一个核心对象放不进规范页面的家族：shard 不是分区编号，所以它有了自己的页面——一个流的全部分片，无论开放还是已关闭，带上决定记录落点的哈希键区间、它被拆分出来的父分片或被合并的两个父分片；已关闭的分片仍留在列表里，因为它们还保留着记录直到过期。流面板显示开放分片数、容量模式和保留时长；可以按预置或按需创建、调整容量和删除。浏览完全不拿走任何东西——记录不会被隐藏、消费或标记，任意多个读者都能读到同一条——它带的注意事项是另一回事：读取会消耗该分片上所有消费者共享的读取额度。发送时可填决定落点的分区键，以及把记录指向具体分片的显式哈希键。消费者页面列出注册的扇出消费者，它们是流唯一知道的读者。没有积压，因为服务里没有任何地方保存读者的位点 |
 | **IBM MQ** | ✅ 已支持 | 第一个企业级家族，也是继 ActiveMQ 之后第二个只通过厂商自带 HTTP 管理面访问的家族——所有操作都走 mqweb 服务器承载的两个 REST 接口，因此本项目的任何一次构建都不需要 IBM 的原生客户端库。通道单独占一页，因为规范词汇里没有与之对应的概念：通道是一份定义，即使无人连接也存在，它决定了应用能否连进来，而且一个定义会带着若干个运行实例。队列与主题同在一页，包括消息在途中会经过的别名与远程定义；两者都可创建与删除。浏览真正不取走任何东西——读完之后深度不变——它带的注意事项是另一回事：服务器只返回字符数据，所以死信能被列出却打不开。发送到队列时可填写 MQ 消息真正携带的描述符。订阅的积压量取自它投递到的那个队列的深度；死信则通过反向遍历队列管理器自身的 DEADQ 和每个队列的退回队列找到 |
 | **Solace PubSub+** 10.x | ✅ 已支持 | 第二个企业级家族，也是路线图上的最后一个驱动，完全通过 SEMP v2 访问——纯 HTTP 加 JSON，因此本项目的任何一次构建都不需要 Solace 的原生客户端。Message VPN 是作用域而不是地址：一个 Broker 承载多个 VPN，所有对象都在某一个之内，侧边栏可以在不编辑配置的前提下把整个连接切换过去。队列显示的是它当前真正持有的消息数，而这个数并不来自那个看起来像深度的字段——spooledMsgCount 是历史累计统计，当前深度取自消息集合自身的计数；创建与删除队列时要选择访问模式，它决定一个消费者独占全部消息还是多个消费者分担。路由拿到了独立页面，而且这个家族对它的诉求最强：发布者从不指定队列，消息落到哪里完全由订阅决定——队列上可增删的主题订阅，以及名称即订阅的主题端点。浏览不取走任何东西——读完之后队列逐字节相同——但带一条注意事项：SEMP 的任何版本都不返回消息正文，因此消息只能列出大小与投递次数，没有正文可以打开。发送走独立端口上的 REST 消息接口，可以按名称发往队列，也可以发往主题由 Broker 匹配，并可设置决定被放弃的消息是转移还是丢弃的死信标记。死信通过反向遍历每个端点的指针得到——包括每个端点出厂时就指向、而 Broker 从不会创建的那个队列，正是它让未经配置的 Message VPN 悄悄丢弃消息。此外还有 Broker 的版本与该 VPN 的存储占用，以及当前连接的客户端 |
-| 更多驱动 | 📋 计划中 | 完整矩阵见下方折叠内容 |
+| 更多驱动 | 📋 按需接入 | 协议兼容系统与范围边界见下方折叠内容 |
 
 <details>
 <summary><strong>计划中的驱动、协议兼容系统与范围边界</strong></summary>
@@ -222,10 +225,24 @@ macOS 版本尚未使用 Apple 开发者证书签名，首次打开需要多一�
 ## 给 agent 用（MCP）
 
 同一个二进制可以作为 [MCP](https://modelcontextprotocol.io) server 运行，让 Claude Code
-这类 agent 使用这些连接。它读的是应用自己的连接配置，不需要把地址和凭证再填一遍：
+这类 agent 使用这些连接。它读的是应用自己的连接配置，不需要把地址和凭证再填一遍，窗口也不必开着：
 
 ```bash
 claude mcp add mq-studio -- "/Applications/MQ Studio.app/Contents/MacOS/mq-studio" mcp
+```
+
+用配置文件接入的客户端，填的也是这两样：可执行文件，加上参数 `mcp`。多数客户端读的是
+`mcpServers` 这种写法：
+
+```json
+{
+  "mcpServers": {
+    "mq-studio": {
+      "command": "/Applications/MQ Studio.app/Contents/MacOS/mq-studio",
+      "args": ["mcp"]
+    }
+  }
+}
 ```
 
 **默认只读。** 写操作要在启动时显式放行，是一个上限而不是逐项开关：
@@ -273,7 +290,8 @@ RabbitMQ 队列会改队列状态，清空 Kafka topic 则位点继续往前数�
 
 ## 开发
 
-需要 Go 1.25+、Node.js 20+、npm 与 [Wails 3 CLI](https://v3.wails.io)。
+需要 Go（版本以 `go.mod` 为准）、Node.js 20.19+ 或 22.12+、npm 与
+[Wails 3 CLI](https://v3.wails.io)。
 
 ```bash
 go install github.com/wailsapp/wails/v3/cmd/wails3@latest

@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360" role="img" aria-labelledby="t d">
   <title id="t">MQ Studio</title>
-  <desc id="d">MQ Studio — see inside your message queues. One local-first desktop app for RocketMQ, RabbitMQ, Kafka, Pulsar, Redis Stream, MQTT, NATS, ActiveMQ, NSQ, Amazon SQS, Google Pub/Sub, Azure Service Bus, Amazon Kinesis, IBM MQ, and Solace PubSub+, with more drivers landing and no web console to deploy.</desc>
+  <desc id="d">MQ Studio — see inside your message queues. One local-first desktop app for RocketMQ, RabbitMQ, Kafka, Pulsar, Redis Stream, MQTT, NATS, ActiveMQ, NSQ, Amazon SQS, Google Pub/Sub, Azure Service Bus, Amazon Kinesis, IBM MQ, and Solace PubSub+, with no web console to deploy.</desc>
 
   <!-- eyebrow -->
   <text x="10" y="50" font-family="ui-monospace,'SF Mono',Menlo,Consolas,monospace" font-size="16.5" letter-spacing="3" fill="#71717A">LOCAL-FIRST · NOTHING TO DEPLOY · OPEN SOURCE</text>
