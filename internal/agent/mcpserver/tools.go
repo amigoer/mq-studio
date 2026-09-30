@@ -137,6 +137,55 @@ var tools = map[string]toolInfo{
 			"that decide a match: RabbitMQ bindings, Service Bus subscription rules, Solace queue " +
 			"subscriptions. A message nothing matches reaches no queue at all.",
 	},
+	"message.track": {
+		name:  "message_track",
+		title: "Trace one message",
+		description: "Read where one message got to: for each consumer group subscribed to its " +
+			"destination, whether that group consumed it, has yet to, or filtered it out - the " +
+			"broker's own trace. Start here when a consumer says a message never arrived and the " +
+			"producer says it was sent; no groups at all means nothing was subscribed to receive it.",
+	},
+	"cluster.health": {
+		name:  "cluster_health",
+		title: "Ask the broker how it is",
+		description: "Run the broker's own health checks: the checks that fail, the resource alarms " +
+			"holding publishers back, the feature flags, and the deprecated features still in use. " +
+			"This is the broker's opinion of itself and its answers name what to do; " +
+			"cluster_topology is the inventory.",
+	},
+	"client.connections": {
+		name:  "client_connections",
+		title: "List client connections",
+		description: "List the transport connections open against the broker right now: from where, " +
+			"as which user, over which protocol, since when, and whether the broker has blocked one " +
+			"from publishing. This is how to find out whether an application is connected at all.",
+	},
+	"client.channels": {
+		name:  "client_channels",
+		title: "List client channels",
+		description: "List the channels multiplexed inside those connections, with each one's " +
+			"prefetch and its unacknowledged and unconfirmed counts - a consumer that has stopped " +
+			"acknowledging shows here long before the queue depth makes it obvious. A family whose " +
+			"connections carry no channels (client_connections reports none on any of them) answers " +
+			"with an empty list: there is nothing of the kind to list, which is not the same as " +
+			"nothing being open.",
+	},
+	"destination.shards": {
+		name:  "destination_shards",
+		title: "List a stream's shards",
+		description: "List the shards a stream is divided into, open and closed, with the slice of " +
+			"hash space each takes and the shard it was split or merged from. A closed shard still " +
+			"holds its records until retention expires, so a stream that looks like it lost data " +
+			"usually has a closed parent nobody drained.",
+	},
+	"channel.list": {
+		name:  "channels_list",
+		title: "List channels",
+		description: "List the channel definitions applications and other queue managers connect " +
+			"through, with each one's state, what a running instance is waiting on, and how many " +
+			"instances run. A channel exists with nothing connected, which is exactly when somebody " +
+			"is asking why.",
+	},
 	"destination.partitions": {
 		name:  "destination_partitions",
 		title: "Read partitions",
@@ -248,6 +297,12 @@ func (s *server) register(server *mcp.Server) {
 	provide(s, server, "routing.exchanges", s.listExchanges)
 	provide(s, server, "routing.bindings", s.listBindings)
 	provide(s, server, "destination.partitions", s.destinationPartitions)
+	provide(s, server, "message.track", s.trackMessage)
+	provide(s, server, "cluster.health", s.clusterHealth)
+	provide(s, server, "client.connections", s.clientConnections)
+	provide(s, server, "client.channels", s.clientChannels)
+	provide(s, server, "destination.shards", s.destinationShards)
+	provide(s, server, "channel.list", s.listChannels)
 
 	provide(s, server, "destination.create", s.createDestination)
 	provide(s, server, "message.send", s.publishMessage)

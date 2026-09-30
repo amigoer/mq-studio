@@ -126,3 +126,62 @@ func (s *server) destinationPartitions(
 	}
 	return nil, partitionsOutput{Stats: stats, Caveat: caveat}, nil
 }
+
+/*
+ * The two objects the canonical pages had no room for.
+ *
+ * A Kinesis shard is not a partition number and an IBM MQ channel is not a
+ * destination, so each family got a port and a page of its own - and here a
+ * tool of its own, offered only where the capability is. The tools that are
+ * the same everywhere stay one tool across every family; these are what that
+ * leaves over, not a second way to list the same thing.
+ */
+
+type shardsInput struct {
+	Connection  int    `json:"connection" jsonschema:"the connection id"`
+	Destination string `json:"destination" jsonschema:"the stream whose shards to list"`
+}
+
+type shardsOutput struct {
+	Shards []*model.Shard `json:"shards"`
+	Caveat string         `json:"caveat,omitempty"`
+}
+
+func (s *server) destinationShards(
+	ctx context.Context, _ *mcp.CallToolRequest, input shardsInput,
+) (*mcp.CallToolResult, shardsOutput, error) {
+	api, caveat, err := port[driver.ShardInspector](s, input.Connection, model.CapShards)
+	if err != nil {
+		return nil, shardsOutput{}, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+
+	shards, err := api.ListShards(ctx, model.DestinationRef{Name: input.Destination})
+	if err != nil {
+		return nil, shardsOutput{}, err
+	}
+	return nil, shardsOutput{Shards: shards, Caveat: caveat}, nil
+}
+
+type channelsOutput struct {
+	Channels []*model.Channel `json:"channels"`
+	Caveat   string           `json:"caveat,omitempty"`
+}
+
+func (s *server) listChannels(
+	ctx context.Context, _ *mcp.CallToolRequest, input connectionInput,
+) (*mcp.CallToolResult, channelsOutput, error) {
+	api, caveat, err := port[driver.ChannelInspector](s, input.Connection, model.CapChannels)
+	if err != nil {
+		return nil, channelsOutput{}, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+
+	channels, err := api.ListChannels(ctx)
+	if err != nil {
+		return nil, channelsOutput{}, err
+	}
+	return nil, channelsOutput{Channels: channels, Caveat: caveat}, nil
+}

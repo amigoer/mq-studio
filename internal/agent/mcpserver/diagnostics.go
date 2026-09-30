@@ -29,18 +29,25 @@ import (
 // port resolves a capability and the interface behind it in one step, for an
 // operation the application has no family-neutral service method for.
 func port[T any](s *server, connID int, capability model.Capability) (T, string, error) {
+	api, _, caveat, err := portOf[T](s, connID, capability)
+	return api, caveat, err
+}
+
+// portOf is port for a caller that also needs the family - to check what came
+// back against the namespace it asked for.
+func portOf[T any](s *server, connID int, capability model.Capability) (T, model.MQKind, string, error) {
 	var zero T
 	conn, caveat, err := s.capable(connID, capability)
 	if err != nil {
-		return zero, "", err
+		return zero, "", "", err
 	}
 	api, ok := conn.(T)
 	if !ok {
-		return zero, "", fmt.Errorf(
+		return zero, "", "", fmt.Errorf(
 			"%s reports %s through its listing rather than through a call of its own, "+
 				"so there is nothing more to read here", conn.Kind(), capability)
 	}
-	return api, caveat, nil
+	return api, conn.Kind(), caveat, nil
 }
 
 type deadLetterInput struct {
@@ -302,4 +309,34 @@ func (s *server) messageByID(
 			"%s holds no message %q in %s", conn.Kind(), input.MessageID, input.Destination)
 	}
 	return nil, messageOutput{Message: message, Caveat: caveat}, nil
+}
+
+type trackInput struct {
+	Connection  int    `json:"connection" jsonschema:"the connection id"`
+	Destination string `json:"destination" jsonschema:"the destination the message was sent to"`
+	MessageID   string `json:"messageId" jsonschema:"the message id, as messages_browse reports it"`
+}
+
+type trackOutput struct {
+	// Groups is one entry per consumer group subscribed to the destination.
+	// None at all is itself the answer: nothing was ever going to consume it.
+	Groups []*model.MessageTrackItem `json:"groups"`
+	Caveat string                    `json:"caveat,omitempty"`
+}
+
+func (s *server) trackMessage(
+	ctx context.Context, _ *mcp.CallToolRequest, input trackInput,
+) (*mcp.CallToolResult, trackOutput, error) {
+	_, caveat, err := s.capable(input.Connection, model.CapMessageTrack)
+	if err != nil {
+		return nil, trackOutput{}, err
+	}
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+
+	groups, err := s.services.Messages.Track(ctx, input.Connection, input.Destination, input.MessageID)
+	if err != nil {
+		return nil, trackOutput{}, err
+	}
+	return nil, trackOutput{Groups: groups, Caveat: caveat}, nil
 }
