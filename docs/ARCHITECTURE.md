@@ -62,11 +62,18 @@ in `internal/model` rather than restated, and each operation's capability is
 the pairing `internal/service` already resolves before it calls in.
 
 `mcpserver` turns that into tools. How far it goes is decided when it is
-started - `--allow read`, `mutate` or `destructive`, defaulting to read - and
-anything above the ceiling is left out of the tool list entirely rather than
-refused when called. The protocol's own hints are derived from the catalogue's
-blast radius, so a tool cannot be annotated read-only while the catalogue calls
-it destructive.
+started - `--allow read`, `mutate` or `destructive`, defaulting to read, and
+higher on named connections with `--allow <name>=<tier>` - and anything above
+the widest ceiling is left out of the tool list entirely rather than refused
+when called. A tool above one connection's own ceiling is refused on it before
+anything is dialled, by a check wrapped around the handler at registration that
+reads the connection from the input the handler itself receives and holds off
+the per-call refresh until the handler returns, so the check and the dial see
+one profile. A name is resolved once, at startup, and its grant lapses if that
+connection is later pointed at another broker or given other credentials
+(`connection.Repointed`). The protocol's own hints are derived from the
+catalogue's blast radius, so a tool cannot be annotated read-only while the
+catalogue calls it destructive.
 
 Three rules follow from this process not owning the stored files. It assembles
 its services through `app.NewReadOnly`, which neither samples on a timer nor

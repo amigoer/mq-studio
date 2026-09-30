@@ -239,6 +239,19 @@ claude mcp add mq-studio -- "/Applications/MQ Studio.app/Contents/MacOS/mq-studi
 上限之上的工具根本不出现在工具列表里 —— 没被告知存在的工具，模型无法调用。决定权因此在
 启动它的人手里，而不是在应用里某个几周前点过的开关上。
 
+上限也可以只对某一个连接放宽，用它在窗口里显示的名字点名 —— 为了清空一个测试队列而开的
+destructive，就不会连生产集群一起放开：
+
+```bash
+claude mcp add mq-studio -- "/Applications/MQ Studio.app/Contents/MacOS/mq-studio" mcp --allow scratch=destructive
+```
+
+其余连接仍然只读（或者停在不带名字的 `--allow` 给的那一档），超出这一档的工具在它们上面会在
+拨号之前被拒绝；`connections_list` 会告诉 agent 每个连接能走多远。名字在 server 启动时绑定到
+它当时指的那个连接：之后用同一个名字保存的连接不在其内，在窗口里被改指到别的 broker 或换了
+凭据的连接也随即失效。名字对不上任何已存的连接、或者对上不止一个，server 会在启动时拒绝，
+而不是悄悄什么都不放行。
+
 让 agent 先调 `capabilities_describe`：**一个连接能做什么由这个端点自己回答**，同一个家族的
 两个端点可以不同，而中间件做不到的操作不会被提供。带后果的操作会把后果一起返回 —— 浏览
 RabbitMQ 队列会改队列状态，清空 Kafka topic 则位点继续往前数。namespace 只有按它划分目标的

@@ -255,6 +255,20 @@ Anything above the ceiling is left out of the tool list entirely - a model canno
 was never told about. The decision therefore belongs to whoever starts the server, at the moment
 they start it, rather than to a switch in the application somebody set weeks ago.
 
+A ceiling can also be raised on one connection alone, named as the window shows it, so that
+emptying a scratch queue does not also allow emptying production:
+
+```bash
+claude mcp add mq-studio -- "/Applications/MQ Studio.app/Contents/MacOS/mq-studio" mcp --allow scratch=destructive
+```
+
+Every other connection stays at read, or at what a bare `--allow` gives it, and a tool above that
+is refused there before anything is dialled; `connections_list` tells the agent how far each
+connection may go. A name is pinned, when the server starts, to the connection it names then: one
+saved later under the same name is not covered, and one pointed at another broker or given other
+credentials in the window stops being covered. A name that matches no stored connection, or
+several, is refused at startup rather than quietly granting nothing.
+
 Have the agent call `capabilities_describe` first: **what a connection can do is the endpoint's
 own answer**, two endpoints of one family can differ, and an operation the broker cannot perform
 is never offered. Operations with a consequence return it - browsing a RabbitMQ queue alters

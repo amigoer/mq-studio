@@ -45,6 +45,18 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   next call. The server reads the profiles and settings again before each one,
   and redials only a connection whose parameters actually changed.
 
+- A write ceiling can be raised on one connection alone. `--allow
+  scratch=destructive` lets the agent empty and delete on the connection the
+  window calls scratch while every other one stays read-only, where the single
+  ceiling allowed it everywhere at once - production included, since nothing in
+  a profile says which cluster that is. The tool is still listed, and is
+  refused on the other connections before anything is dialled;
+  `connections_list` says how far each one may go. The name is pinned to the
+  connection it named when the server started, so one later pointed at another
+  broker or given other credentials in the window loses the grant rather than
+  taking it along, and a name that matches no connection, or several, stops the
+  server from starting.
+
 ### Fixed
 
 - Emptying a Kafka topic now says what it really does. The confirmation dialog
