@@ -25,8 +25,9 @@ import (
 var assets embed.FS
 
 // Tray artwork, drawn from the matching build/*.svg. Wails squares the image
-// to the status bar thickness, so the 2:1 wordmark takes the full width and
-// gets about half that in height. `wails3 generate icons` does not touch them.
+// to the status bar thickness, so the template draws the lens at 16pt inside
+// its 22pt to sit level with the system's own glyphs. `wails3 generate icons`
+// does not touch them.
 var (
 	//go:embed build/trayicon.png
 	trayIcon []byte

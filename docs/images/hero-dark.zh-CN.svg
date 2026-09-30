@@ -8,10 +8,9 @@
   <!-- logo tile + wordmark -->
   <g id="lockup">
     <rect x="10" y="76" width="88" height="88" rx="19.8" fill="#EC3013"/>
-    <g transform="translate(22.86 96.761) scale(0.46478)" fill="none" stroke-width="10">
-      <path d="M12 74 L12 26 L34 55 L56 26 L56 74" stroke="#F3F2F2" stroke-linejoin="round" stroke-linecap="round"/>
-      <circle cx="98" cy="50" r="24" stroke="#F3F2F2"/>
-      <line x1="109" y1="63" x2="120" y2="74" stroke="#201E1D" stroke-linecap="round"/>
+    <g transform="translate(18.757 84.757) scale(0.70485)">
+      <path d="M50 14A36 36 0 0 1 74.9 24H25.1A36 36 0 0 1 50 14ZM20.407 29.5H79.593A36 36 0 0 1 84.435 39.5H15.565A36 36 0 0 1 20.407 29.5ZM15.565 60.5H84.435A36 36 0 0 1 79.593 70.5H20.407A36 36 0 0 1 15.565 60.5ZM25.1 76H74.9A36 36 0 0 1 50 86A36 36 0 0 1 25.1 76ZM14.349 45H28A5 5 0 0 1 28 55H14.349A36 36 0 0 1 14.349 45ZM72 45H85.651A36 36 0 0 1 85.651 55H72A5 5 0 0 1 72 45Z" fill="#F3F2F2"/>
+      <rect x="39" y="45" width="22" height="10" rx="5" fill="#201E1D"/>
     </g>
     <text x="126" y="142" font-family="-apple-system,'PingFang SC','Segoe UI','Microsoft YaHei',system-ui,sans-serif" font-size="60" font-weight="800" letter-spacing="-1" fill="#F4F4F5">MQ Studio</text>
   </g>
@@ -31,10 +30,9 @@
   <!-- one client, a driver per broker: each lane carries its own messages -->
   <g id="drivers">
     <rect x="700" y="168" width="44" height="44" rx="9.9" fill="#EC3013"/>
-    <g transform="translate(706.43 178.38) scale(0.23239)" fill="none" stroke-width="10">
-      <path d="M12 74 L12 26 L34 55 L56 26 L56 74" stroke="#F3F2F2" stroke-linejoin="round" stroke-linecap="round"/>
-      <circle cx="98" cy="50" r="24" stroke="#F3F2F2"/>
-      <line x1="109" y1="63" x2="120" y2="74" stroke="#201E1D" stroke-linecap="round"/>
+    <g transform="translate(704.379 172.379) scale(0.35243)">
+      <path d="M50 14A36 36 0 0 1 74.9 24H25.1A36 36 0 0 1 50 14ZM20.407 29.5H79.593A36 36 0 0 1 84.435 39.5H15.565A36 36 0 0 1 20.407 29.5ZM15.565 60.5H84.435A36 36 0 0 1 79.593 70.5H20.407A36 36 0 0 1 15.565 60.5ZM25.1 76H74.9A36 36 0 0 1 50 86A36 36 0 0 1 25.1 76ZM14.349 45H28A5 5 0 0 1 28 55H14.349A36 36 0 0 1 14.349 45ZM72 45H85.651A36 36 0 0 1 85.651 55H72A5 5 0 0 1 72 45Z" fill="#F3F2F2"/>
+      <rect x="39" y="45" width="22" height="10" rx="5" fill="#201E1D"/>
     </g>
     <line x1="744" y1="190" x2="768" y2="190" stroke="#3A3A40" stroke-width="1.5"/>
     <line x1="768" y1="32" x2="768" y2="340" stroke="#3A3A40" stroke-width="1.5"/>
@@ -172,9 +170,9 @@
     <rect x="1126" y="330" width="30" height="20" rx="8" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
   </g>
 
-  <!-- magnifier echoing the logo's Q: any driver, same inspection -->
+  <!-- the mark's lens over one lane: any driver, same inspection -->
   <g id="inspect">
-    <circle cx="1060" cy="175" r="22" fill="none" stroke="#E4E4E7" stroke-width="3"/>
-    <line x1="1075.6" y1="175.6" x2="1091" y2="191" stroke="#E4E4E7" stroke-width="6" stroke-linecap="round"/>
+    <rect x="1042" y="176" width="30" height="20" rx="8" fill="#EC3013"/>
+    <circle cx="1057" cy="186" r="21" fill="none" stroke="#E4E4E7" stroke-width="3"/>
   </g>
 </svg>

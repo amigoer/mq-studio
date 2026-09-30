@@ -1130,7 +1130,7 @@ function AboutPanel() {
     <>
       <Panel style={{ padding: "18px" }}>
         <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
-          <AppLogo width={40} height={28} />
+          <AppLogo size={40} />
           <div style={{ minWidth: 0, flex: 1 }}>
             <div
               style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: "8px" }}

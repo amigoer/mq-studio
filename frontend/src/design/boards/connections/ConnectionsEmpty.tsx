@@ -74,20 +74,7 @@ export function ConnectionsEmpty({
           textAlign: "center",
         }}
       >
-        <div
-          style={{
-            width: "64px",
-            height: "64px",
-            borderRadius: "16px",
-            background: "var(--c-bg)",
-            border: "1.5px solid var(--c-border)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <AppLogo width={40} height={27} />
-        </div>
+        <AppLogo size={64} />
         <div style={{ fontSize: "19px", fontWeight: 600, marginTop: "18px", letterSpacing: "-.01em" }}>
           {t("page.connections.welcome")}
         </div>
