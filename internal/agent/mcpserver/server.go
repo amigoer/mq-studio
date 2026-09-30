@@ -66,6 +66,8 @@ type server struct {
 	translate func(string) string
 	// grants is how far each connection may go.
 	grants Grants
+	// journal is the audit log every write is recorded in.
+	journal *journal
 	/*
 	 * refreshMu is held for writing by the refresh before every call, and for
 	 * reading by a call a grant was checked for, until it returns.
@@ -97,6 +99,7 @@ func New(
 		services:  services,
 		translate: translate,
 		grants:    grants,
+		journal:   newJournal(auditPath(services)),
 		offered:   offeredTools(grants.widest()),
 	}
 	mcpServer := mcp.NewServer(&mcp.Implementation{

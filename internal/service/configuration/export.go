@@ -65,6 +65,7 @@ func (s *Service) ExportAllConfigToFile(targetPath string) (string, error) {
 		s.layout.ConnectionsFile,
 		s.layout.TPSHistoryFile,
 		s.layout.SecretKeyFile,
+		s.layout.AgentAuditFile,
 	} {
 		reservedAbsolute, reservedErr := filepath.Abs(reservedPath)
 		if reservedErr != nil {

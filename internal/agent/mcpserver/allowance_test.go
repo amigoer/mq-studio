@@ -17,6 +17,7 @@ import (
 	"github.com/amigoer/mq-studio/internal/driver"
 	"github.com/amigoer/mq-studio/internal/model"
 	"github.com/amigoer/mq-studio/internal/service/destination"
+	"github.com/amigoer/mq-studio/internal/storage/layout"
 )
 
 func TestParseAllowanceReadsEachForm(t *testing.T) {
@@ -138,6 +139,7 @@ func TestGrantRefusesANameItCannotPin(t *testing.T) {
 // have come before any.
 type grantedWorld struct {
 	server, window *app.Services
+	paths          layout.Layout
 	ids            map[string]int
 	conn           *namespacedConn
 	dials          *atomic.Int32
@@ -145,9 +147,9 @@ type grantedWorld struct {
 
 func newGrantedWorld(t *testing.T) grantedWorld {
 	t.Helper()
-	server, window, _ := serverAndWindow(t)
+	server, window, paths := serverAndWindow(t)
 	world := grantedWorld{
-		server: server, window: window, ids: map[string]int{},
+		server: server, window: window, paths: paths, ids: map[string]int{},
 		conn: &namespacedConn{fakeConn: fakeConn{
 			kind: model.KindRabbitMQ,
 			capabilities: model.NewCapabilities(

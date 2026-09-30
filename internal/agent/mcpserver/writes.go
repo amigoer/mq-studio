@@ -139,6 +139,19 @@ type publishInput struct {
 
 func (input publishInput) target() int { return input.Connection }
 
+// logged keeps the body out of the audit log: its size and digest identify it
+// without storing somebody's payload in a second place.
+func (input publishInput) logged() any {
+	return struct {
+		Connection  int    `json:"connection"`
+		Destination string `json:"destination"`
+		Tags        string `json:"tags,omitempty"`
+		Keys        string `json:"keys,omitempty"`
+		BodyBytes   int    `json:"bodyBytes"`
+		BodySHA256  string `json:"bodySha256"`
+	}{input.Connection, input.Destination, input.Tags, input.Keys, len(input.Body), digest(input.Body)}
+}
+
 func (s *server) publishMessage(
 	ctx context.Context, _ *mcp.CallToolRequest, input publishInput,
 ) (*mcp.CallToolResult, writeOutput, error) {

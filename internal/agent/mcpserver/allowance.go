@@ -1,15 +1,12 @@
 package mcpserver
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"maps"
 	"slices"
 	"strconv"
 	"strings"
-
-	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/amigoer/mq-studio/internal/agent/catalog"
 	"github.com/amigoer/mq-studio/internal/model"
@@ -233,53 +230,4 @@ func (s *server) reaches(id int, tool string, blast catalog.Blast) error {
 	return fmt.Errorf("%s is %s, and connection %d may go no further than %s. How far each connection "+
 		"may go was decided when this server was started, and asking will not change it; "+
 		"connections_list says which ones go further", tool, blast, id, ceiling)
-}
-
-// targeted is a tool input that names the connection it acts on.
-type targeted interface{ target() int }
-
-/*
- * provide registers the tool for a catalogue operation, when some connection
- * may go as far as it does.
- *
- * One that goes further than every connection may is refused on the others
- * before anything is dialled. The check reads the connection from the very
- * value the handler is given rather than from the raw arguments, and no
- * refresh lands until the handler returns, so what was checked and what is
- * acted on cannot be two readings of one request.
- */
-func provide[In, Out any](
-	s *server, mcpServer *mcp.Server, operationID string, handler mcp.ToolHandlerFor[In, Out],
-) {
-	tool, ok := offer(operationID, s.grants.widest())
-	if !ok {
-		return
-	}
-	operation, _ := catalog.Find(operationID)
-	if !catalog.Permits(s.grants.everywhere, operation.Blast) {
-		var input In
-		if _, names := any(input).(targeted); !names {
-			// Registration runs at startup and in every test that lists the tools.
-			panic(fmt.Sprintf("%s goes further than every connection may, and its input names "+
-				"no connection to check", tool.Name))
-		}
-		tool.Description += " Refused on a connection this server was not started to allow it on; " +
-			"connections_list says how far each connection may go."
-		handler = gated(s, tool.Name, operation.Blast, handler)
-	}
-	addTool(mcpServer, tool, handler)
-}
-
-func gated[In, Out any](
-	s *server, name string, blast catalog.Blast, handler mcp.ToolHandlerFor[In, Out],
-) mcp.ToolHandlerFor[In, Out] {
-	return func(ctx context.Context, request *mcp.CallToolRequest, input In) (*mcp.CallToolResult, Out, error) {
-		s.refreshMu.RLock()
-		defer s.refreshMu.RUnlock()
-		if err := s.reaches(any(input).(targeted).target(), name, blast); err != nil {
-			var nothing Out
-			return nil, nothing, err
-		}
-		return handler(ctx, request, input)
-	}
 }
