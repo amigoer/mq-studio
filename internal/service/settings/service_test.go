@@ -165,3 +165,44 @@ func TestLegacyAutoCheckUpdateIsNotWrittenBack(t *testing.T) {
 		t.Errorf("updatePolicy = %s", stored["updatePolicy"])
 	}
 }
+
+// A server started before the window changed a setting keeps what it read
+// until it refreshes, and then takes the window's - credentials included,
+// since a profile that leans on the global pair is dialled with them.
+func TestRefreshReadOnlyTakesWhatTheWindowSaved(t *testing.T) {
+	window, path := newTestService(t)
+	reader := New(path)
+
+	next := *model.DefaultSettings()
+	next.Language = "en"
+	next.RequestTimeoutMs = 12000
+	next.GlobalAccessKey, next.GlobalSecretKey = "global-ak", "global-sk"
+	if _, err := window.UpdateSettings(next); err != nil {
+		t.Fatal(err)
+	}
+	written, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if reader.GetSettings().RequestTimeoutMs == 12000 {
+		t.Fatal("the reader saw the change before refreshing, so this proves nothing")
+	}
+
+	if err := reader.RefreshReadOnly(); err != nil {
+		t.Fatal(err)
+	}
+	current := reader.GetSettings()
+	if current.RequestTimeoutMs != 12000 || current.Language != "en" {
+		t.Fatalf("after a refresh: timeout %d, language %q; want the window's", current.RequestTimeoutMs, current.Language)
+	}
+	if accessKey, secretKey := reader.GetGlobalACLCredentials(); accessKey != "global-ak" || secretKey != "global-sk" {
+		t.Fatalf("global credentials %q/%q, want the window's, decrypted", accessKey, secretKey)
+	}
+	after, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(after, written) {
+		t.Fatal("the reader wrote the settings the window owns")
+	}
+}

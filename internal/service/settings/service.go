@@ -13,6 +13,8 @@ type Service struct {
 	mu           sync.RWMutex
 	settings     *model.AppSettings
 	dataFilePath string
+	// lastRead is the file as last loaded; only RefreshReadOnly reads it.
+	lastRead []byte
 }
 
 // New creates a settings service backed by dataFilePath.

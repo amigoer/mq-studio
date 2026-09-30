@@ -20,4 +20,7 @@ func TestInBuildsAllPersistentPaths(t *testing.T) {
 	if paths.SecretKeyFile != filepath.Join(directory, "secret.key") {
 		t.Fatalf("secret key path = %q", paths.SecretKeyFile)
 	}
+	if paths.AgentAuditFile != filepath.Join(directory, "agent-audit.jsonl") {
+		t.Fatalf("agent audit path = %q", paths.AgentAuditFile)
+	}
 }

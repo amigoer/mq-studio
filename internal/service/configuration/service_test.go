@@ -269,7 +269,9 @@ func TestExportRejectsReservedPathThroughSymlinkParent(t *testing.T) {
 	}
 
 	service := New(paths, &fakeSettings{current: model.DefaultSettings()}, &fakeConnections{})
-	for _, protectedPath := range []string{paths.SettingsFile, paths.ConnectionsFile, paths.SecretKeyFile} {
+	for _, protectedPath := range []string{
+		paths.SettingsFile, paths.ConnectionsFile, paths.SecretKeyFile, paths.AgentAuditFile,
+	} {
 		protectedPath := protectedPath
 		t.Run(filepath.Base(protectedPath), func(t *testing.T) {
 			targetPath := filepath.Join(linkPath, filepath.Base(protectedPath))

@@ -116,15 +116,35 @@ func applyCredentials(
  * meant editing one and finding the connection still scoped to the old value
  * until the app was restarted. Nothing on screen said so.
  *
+ * The mechanism counts whole, not only whether it is ACL: Kafka's PLAIN and
+ * SCRAM take the same user and password, so switching between them changes
+ * nothing else. Blank is not folded into none either - ActiveMQ, IBM MQ and
+ * Solace send credentials for anything but none.
+ *
  * Name, group and remark deliberately do not: they are labels, and dropping a
  * working client to rename it would be a surprise, not a correction.
  */
 func dialParametersChanged(previous, current model.ConnectionProfile) bool {
-	return previous.Endpoints != current.Endpoints ||
+	return previous.Kind != current.Kind ||
+		previous.Endpoints != current.Endpoints ||
 		previous.TimeoutSec != current.TimeoutSec ||
-		previous.ACLEnabled() != current.ACLEnabled() ||
+		previous.Auth.Mechanism != current.Auth.Mechanism ||
 		!maps.Equal(previous.Options, current.Options) ||
 		!maps.Equal(previous.Secrets, current.Secrets)
+}
+
+/*
+ * Repointed reports whether a profile now reaches somewhere other than it did,
+ * or as someone else.
+ *
+ * It is every dial parameter but the timeout, which is how long to wait rather
+ * than where. The credentials count as much as the address: on a hosted family
+ * they are what picks the account, so new keys under an unchanged region reach
+ * a different set of queues.
+ */
+func Repointed(previous, current model.ConnectionProfile) bool {
+	current.TimeoutSec = previous.TimeoutSec
+	return dialParametersChanged(previous, current)
 }
 
 // editedKind is the family the submission will be stored under.

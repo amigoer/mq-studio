@@ -260,7 +260,12 @@ MQ Studio 正在成为一个覆盖所有消息队列的桌面客户端。每种�
   DELETE SUB 可以做到），以及修改队列（ALTER 可以做到）——每个值得修改的字段对已连接的应用都有各自的
   后果，用一个控件把它们一起写掉不是应该提供的形态。
 
-- **已完成设计，尚未实现** — 下面列出的一种形态。
+- **设计里写下的东西没有一样还等着实现。** 这份计划点名的家族已经全部交付，下面的交付顺序表
+  是记录而不是队列。再加驱动现在是诉求驱动而不是计划驱动。
+  [驱动申请](https://github.com/amigoer/mq-studio/issues/new?template=6-driver-request.zh-CN.yml)
+  表单只问一个决定驱动能否存在的问题：桌面端能够到什么，以及怎么够到。驱动之后的工作是
+  Agent 相关能力，它已经落地：同一个二进制可以作为 MCP server 运行，建立在每个驱动已经
+  声明的能力模型之上。范围与背后的决定见 [AGENT_PLAN.md](AGENT_PLAN.md)。
 
 ## 交付顺序
 
@@ -306,7 +311,7 @@ descriptor 决定一个家族要不要地址，表单、profile 存储与探测�
 
 | 驱动 | 管理面 | 点亮的页面 | 主要缺口 |
 | --- | --- | --- | --- |
-| **RocketMQ** 4.x / 5.x | 基于 remoting 协议的 Admin API | 全部六个 | Proxy 端点能回答的远少于 NameServer，能力在连接时收窄 |
+| **RocketMQ** 4.x / 5.x | 基于 remoting 协议的 Admin API | 全部六个 | 5.x Proxy 会被直接拒绝而不是去拨：它只有数据面，不回答路由、拓扑与 ACL 请求，所以表单要的是 NameServer 地址，拒绝信息里会说明原因 |
 | **RabbitMQ** | HTTP 管理插件，消息面走 AMQP 0-9-1 | 全部六个，外加 Exchanges/Bindings、连接、死信、虚拟主机、策略、定义、数据搬运 | 没有 offset 与分区；没有具名消费组；没有稳定的消息 id；浏览会把读到的消息重新入队，因此带 caveat；Shovel、Federation 与 stream 协议都是插件，未装时能力降级并给出原因 |
 | **Kafka** | 基于 Kafka 协议的 AdminClient | 全部六个 | ACL 取决于所配置的 authorizer；浏览是按 offset 区间拉取，不是随机访问 |
 | **Pulsar** | Admin REST API + 二进制协议 | 全部六个 | 已完成。tenant 与 namespace 最后两者都做了：既是每个页面上的范围选择器，也有自己的页面 —— 因为主题的地址就是 tenant/namespace/name，选择器的选项总得有个来源 |
@@ -355,5 +360,10 @@ descriptor 决定一个家族要不要地址，表单、profile 存储与探测�
 - 恢复端到端 UI 覆盖。原有的 Playwright 套件通过 CDP 端点驱动 Electron，已随 Electron 一起
   移除；平台自带的 WebView 在 macOS 上没有等价方案。值得评估的选项：在 CI 中驱动 Linux
   WebKitGTK 构建，或用 Go 集成测试对 `tests/e2e/rocketmq` 环境覆盖相同流程。
-- 更新下载进度的专门界面
-- 更完整的 RocketMQ 5.x Proxy 与 ACL 管理能力
+- RocketMQ 还剩两处缺口，都在 `rocketmq-admin-go` 里而不在这个应用里。ACL 1.0 只能写进去、
+  读不回来：`GET_BROKER_CLUSTER_ACL_CONFIG`（请求码 54）是唯一返回 `globalWhiteAddrs` 与
+  `plainAccessConfigs` 的调用，而库里没有定义它 —— 所以访问控制板建立在它确实具备的
+  RocketMQ 5.3 认证接口之上，plain ACL 只作为写得进、读不出的兜底。另一处是
+  `GetAllProducerInfo` 把响应解析成扁平数组，而 broker 回答的是以生产者组为键的对象，所以
+  生产者组只能按名字查看，列不出来。连接 5.x Proxy 不在这份清单里：那是 Proxy 自身的限制，
+  驱动会直接拒绝，而不是去拨它。

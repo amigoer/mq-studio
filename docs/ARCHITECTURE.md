@@ -3,19 +3,30 @@
 ## Process model
 
 ```text
-React UI (system WebView)
-        │ Wails bindings — direct, in-process calls
-internal/bridge      ── the only layer allowed to reshape data for the UI
-        │
-internal/service     ── domain logic
-        │
-RocketMQ Admin API / local encrypted settings
+React UI (system WebView)              Agent (MCP client)
+        │ Wails bindings                        │ JSON-RPC over stdin/stdout
+internal/bridge                        internal/agent/mcpserver
+        │                                       │
+        └────────────► internal/service ◄───────┘
+                              │             domain logic
+                       internal/driver      one package per broker family
+                              │
+            broker admin APIs / local encrypted settings
 ```
 
-The application is a single process. The UI runs in the platform WebView
-(WKWebView on macOS, WebView2 on Windows, WebKitGTK on Linux) and reaches Go
-through generated bindings, so there is no local HTTP server, no auth token and
-no child process to supervise.
+Two adapters over one set of services. Neither is allowed to hold logic of its
+own: the bridge reshapes for the renderer, the MCP server reshapes for a caller
+that has no screen, and both delegate straight into `internal/service`.
+
+The window is a single process. The UI runs in the platform WebView (WKWebView
+on macOS, WebView2 on Windows, WebKitGTK on Linux) and reaches Go through
+generated bindings, so there is no local HTTP server, no auth token and no
+child process to supervise.
+
+The MCP server is the same binary started as `mq-studio mcp`, by the agent
+client rather than by the window. It speaks over stdin and stdout, so it adds
+no listening socket and no token either; what it is, to the window, is another
+process reading the same files.
 
 ## The bridge layer
 
@@ -35,6 +46,56 @@ the way out:
 `wails3 generate bindings` writes the TypeScript for these services into
 `frontend/bindings/`, typed directly from the Go structs. `npm run check` fails
 if the committed bindings drift from the Go source.
+
+## The MCP server
+
+`internal/agent` is the agent-facing half, and it is two packages because they
+answer different questions.
+
+`catalog` describes the operations a connection can be asked to perform. The
+capability model already says whether an endpoint can do a thing, which is all
+the UI needs to gate a control; a caller composing the call itself also needs
+to know what the operation takes, how much it can destroy, and which
+family-specific keys travel inside the attribute map. The catalogue adds those
+three columns and nothing else - request and result shapes stay named by type
+in `internal/model` rather than restated, and each operation's capability is
+the pairing `internal/service` already resolves before it calls in.
+
+`mcpserver` turns that into tools. How far it goes is decided when it is
+started - `--allow read`, `mutate` or `destructive`, defaulting to read, and
+higher on named connections with `--allow <name>=<tier>` - and anything above
+the widest ceiling is left out of the tool list entirely rather than refused
+when called. A tool above one connection's own ceiling is refused on it before
+anything is dialled, by a check wrapped around the handler at registration that
+reads the connection from the input the handler itself receives and holds off
+the per-call refresh until the handler returns, so the check and the dial see
+one profile. A name is resolved once, at startup, and its grant lapses if that
+connection is later pointed at another broker or given other credentials
+(`connection.Repointed`). Emptying and deleting are put to a person through the
+client first - an MCP input request, elicitation on older clients - and the
+answer is matched to its call by a one-time token the server holds; a client
+that cannot ask is refused both. The protocol's own hints are derived from the
+catalogue's blast radius, so a tool cannot be annotated read-only while the
+catalogue calls it destructive.
+
+Three rules follow from this process not owning the stored files. It assembles
+its services through `app.NewReadOnly`, which neither samples on a timer nor
+dials the default profile, because both of those write; and it dials through
+`connection.Service.OpenReadOnly`, which resolves a profile exactly as Connect
+does and records nothing. The profile store is rewritten whole under an
+in-process lock, so a second writer would lose the window's edits rather than
+merge with them. And it reads both files again before every tool call, through
+`app.Services.RefreshReadOnly`: a connection saved in the window while an agent
+is working is usable by the next call, and a client whose profile or global
+credentials changed is redialled rather than kept.
+
+The one file it does write is its own. Every call to a tool that writes is
+appended to `agent-audit.jsonl` in the data directory - a start before the
+write is made, which is refused if the start cannot be recorded, and an outcome
+after it. The window never writes that file, so there is no whole-file rewrite
+to race: each record is a single append, synced before the write it announces.
+
+`docs/AGENT_PLAN.md` carries the scope and the decisions behind it.
 
 ## Frontend seams
 

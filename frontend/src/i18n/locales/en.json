@@ -163,6 +163,9 @@
         "timeout": "The cluster accepted the connection and did not answer in time.",
         "unreachable": "Nothing usable answered at this address. Check the bootstrap servers, and whether the listener expects TLS or a security protocol this connection is not using.",
         "accessControl": "This cluster runs without an authorizer, so it enforces no ACLs and every access-control call answers SECURITY_DISABLED."
+      },
+      "caveat": {
+        "truncateKeepsOffsets": "Emptying a topic moves each partition's start offset to its end: the records become unreadable and the offsets keep counting, so a consumer at 900 stays at 900 and is caught up rather than reset."
       }
     },
     "rabbitmq": {
@@ -398,6 +401,14 @@
         "switchedUnscoped": "Now reading the broker's default Message VPN",
         "switchFailed": "Could not switch Message VPN"
       }
+    }
+  },
+  "mcp": {
+    "confirm": {
+      "purge": "Empty {{destination}} on {{connection}} ({{family}})? The agent asked for it. Everything it holds is discarded and the destination stays; there is no undo.",
+      "delete": "Delete {{destination}} on {{connection}} ({{family}})? The agent asked for it. It goes with everything it holds, and producers addressing it will fail; there is no undo.",
+      "depth": "Messages it holds now: {{count}}.",
+      "caveat": "Also: {{caveat}}"
     }
   },
   "shell": {

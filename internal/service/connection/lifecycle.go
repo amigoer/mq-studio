@@ -208,3 +208,42 @@ func (s *Service) disconnectRuntimeLocked(id int) error {
 	}
 	return s.saveConnectionsLocked()
 }
+
+// OpenReadOnly dials a stored profile without recording that it did.
+//
+// Connect writes the profile store: it stamps the status and the check time
+// and saves the whole file. That is right for the window, which owns the file,
+// and wrong for a second process reading the same one - the store is rewritten
+// whole under an in-process lock only, so two writers silently lose each
+// other's edits, and a status stamp is not worth a lost profile.
+//
+// Everything else is Connect's path exactly: the same resolution, so a profile
+// that leans on the global credentials or on a family's own auth mechanism is
+// dialled the way the window dials it, and the same registry, so whatever
+// opens here is reachable by id through the ordinary services.
+//
+// An open client is kept: callers that found none at the same moment queue
+// here, and a second dial would close the client the first is already using.
+func (s *Service) OpenReadOnly(id int) error {
+	s.runtimeMu.Lock()
+	defer s.runtimeMu.Unlock()
+
+	if s.runtime.HasClient(id) {
+		return nil
+	}
+
+	s.mu.Lock()
+	resolved, err := s.resolvedProfileLocked(id)
+	s.mu.Unlock()
+	if err != nil {
+		return err
+	}
+	if err := s.runtime.Connect(resolved); err != nil {
+		return err
+	}
+
+	s.mu.Lock()
+	s.dialed[id] = resolved
+	s.mu.Unlock()
+	return nil
+}

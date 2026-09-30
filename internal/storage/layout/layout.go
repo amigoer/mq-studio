@@ -16,6 +16,8 @@ type Layout struct {
 	ConnectionsFile string
 	TPSHistoryFile  string
 	SecretKeyFile   string
+	// AgentAuditFile is appended to by the MCP server and never by the window.
+	AgentAuditFile string
 }
 
 // Default resolves the current user's MQ Studio configuration layout.
@@ -35,5 +37,6 @@ func In(directory string) Layout {
 		ConnectionsFile: filepath.Join(directory, "connections.json"),
 		TPSHistoryFile:  filepath.Join(directory, "tps-history.json"),
 		SecretKeyFile:   filepath.Join(directory, "secret.key"),
+		AgentAuditFile:  filepath.Join(directory, "agent-audit.jsonl"),
 	}
 }

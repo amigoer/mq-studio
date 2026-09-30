@@ -2,6 +2,7 @@ package redisstream
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/amigoer/mq-studio/internal/model"
@@ -54,6 +55,12 @@ func TestAddEntryDoesNotCreateTheStream(t *testing.T) {
 	))
 	if err == nil {
 		t.Fatal("writing to a stream that does not exist succeeded")
+	}
+	// The server's answer is a nil reply, which the client reports as
+	// "redis: nil". That reached the screen once; the refusal has to name
+	// the stream and say why.
+	if !strings.Contains(err.Error(), `no stream "orders:typo"`) || strings.Contains(err.Error(), "redis: nil") {
+		t.Errorf("the refusal reads %q", err)
 	}
 	listed, err := conn.ListDestinations(ctx, model.DestinationFilter{})
 	if err != nil {

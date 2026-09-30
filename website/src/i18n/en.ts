@@ -62,7 +62,7 @@ export const en: Content = {
       'IBM MQ',
       'Solace PubSub+ 10.x',
     ],
-    planned: 'Every driver the roadmap named has landed. Agent features are next.',
+    planned: 'Every driver the roadmap named has landed, and the same binary now runs as an MCP server so an agent can work them too.',
   },
   features: {
     title: 'Why MQ Studio',
@@ -180,7 +180,7 @@ export const en: Content = {
       { label: 'Amazon Kinesis', done: true },
       { label: 'IBM MQ', done: true },
       { label: 'Solace PubSub+', done: true },
-      { label: 'Agent', done: false },
+      { label: 'Agent', done: true },
     ],
   },
   changelog: {

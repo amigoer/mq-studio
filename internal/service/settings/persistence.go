@@ -1,6 +1,7 @@
 package settings
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -22,6 +23,37 @@ func (s *Service) loadFromFile() error {
 		}
 		return err
 	}
+	return s.load(data)
+}
+
+// RefreshReadOnly re-reads the file for a process that may not write it, so a
+// change made in the window reaches one that started before it.
+func (s *Service) RefreshReadOnly() error {
+	data, err := os.ReadFile(s.dataFilePath)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if bytes.Equal(data, s.lastRead) {
+		return nil
+	}
+	return s.load(data)
+}
+
+// load replaces the settings in memory with the ones data holds. The caller
+// must hold mu, except during construction.
+func (s *Service) load(data []byte) (err error) {
+	// Remembered only once dealt with, so a refresh keeps reporting a file it
+	// could not decrypt rather than falling silent after the first time.
+	defer func() {
+		if err == nil {
+			s.lastRead = data
+		}
+	}()
 
 	var raw map[string]json.RawMessage
 	if err := json.Unmarshal(data, &raw); err != nil {

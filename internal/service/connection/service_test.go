@@ -312,6 +312,8 @@ func TestDialParametersChangedCoversEveryDialInput(t *testing.T) {
 		"endpoints":  func(p *model.ConnectionProfile) { p.Endpoints = "127.0.0.1:9877" },
 		"timeout":    func(p *model.ConnectionProfile) { p.TimeoutSec = 9 },
 		"acl":        func(p *model.ConnectionProfile) { p.Auth.Mechanism = model.AuthACL },
+		"mechanism":  func(p *model.ConnectionProfile) { p.Auth.Mechanism = model.AuthSASLScram },
+		"kind":       func(p *model.ConnectionProfile) { p.Kind = model.KindKafka },
 		"option":     func(p *model.ConnectionProfile) { p.Options = map[string]string{"namespace": "other"} },
 		"optionGone": func(p *model.ConnectionProfile) { p.Options = nil },
 		"secret":     func(p *model.ConnectionProfile) { p.Secrets = map[string]string{"accessKey": "b"} },
@@ -329,6 +331,40 @@ func TestDialParametersChangedCoversEveryDialInput(t *testing.T) {
 	renamed.Name, renamed.Group, renamed.Remark = "other", "prod", "note"
 	if dialParametersChanged(base, renamed) {
 		t.Error("renaming reported a changed dial")
+	}
+}
+
+// Repointed is the dial comparison less the timeout, and derived from it, so
+// a dial parameter added later is a new way to be repointed without anybody
+// remembering to say so here.
+func TestRepointedIsEveryDialInputButTheTimeout(t *testing.T) {
+	base := model.ConnectionProfile{
+		Endpoints:  "127.0.0.1:9876",
+		TimeoutSec: 5,
+		Options:    map[string]string{"namespace": "ns"},
+		Secrets:    map[string]string{"accessKey": "a"},
+	}
+
+	cases := map[string]func(*model.ConnectionProfile){
+		"endpoints": func(p *model.ConnectionProfile) { p.Endpoints = "127.0.0.1:9877" },
+		"mechanism": func(p *model.ConnectionProfile) { p.Auth.Mechanism = model.AuthSASLScram },
+		"kind":      func(p *model.ConnectionProfile) { p.Kind = model.KindKafka },
+		"option":    func(p *model.ConnectionProfile) { p.Options = map[string]string{"namespace": "other"} },
+		"secret":    func(p *model.ConnectionProfile) { p.Secrets = map[string]string{"accessKey": "b"} },
+	}
+	for name, mutate := range cases {
+		changed := base
+		mutate(&changed)
+		if !Repointed(base, changed) {
+			t.Errorf("%s: a profile that now reaches elsewhere was not repointed", name)
+		}
+	}
+
+	unchanged := base
+	unchanged.TimeoutSec = 30
+	unchanged.Name, unchanged.Group, unchanged.Remark = "other", "prod", "note"
+	if Repointed(base, unchanged) {
+		t.Error("a new timeout and new labels read as reaching somewhere else")
 	}
 }
 
@@ -861,6 +897,39 @@ func TestUpdateConnectionRedialsWhenOnlyAnOptionChanged(t *testing.T) {
 	}
 	if resolved.Option("namespace") != "after" {
 		t.Fatalf("runtime dialled with namespace %q, want the edited one", resolved.Option("namespace"))
+	}
+}
+
+// Switching Kafka from SASL/PLAIN to SCRAM keeps the same user and password,
+// so nothing but the mechanism differs - and the check used to see only
+// whether it was ACL, leaving the client authenticating the old way until the
+// app restarted.
+func TestUpdateConnectionRedialsWhenOnlyTheMechanismChanged(t *testing.T) {
+	service := newTestService(t, fakeSettings{connectTimeout: 3 * time.Second, autoConnect: true})
+	var resolved model.ConnectionProfile
+	runtime := newRecordingRuntime()
+	service.runtime = &capturingRuntime{recordingRuntime: runtime, seen: &resolved}
+
+	input := model.ConnectionProfile{
+		Name: "Kafka", Kind: model.KindKafka, Endpoints: "127.0.0.1:9092", TimeoutSec: 5,
+		Auth: model.AuthConfig{Mechanism: model.AuthSASLPlain},
+	}
+	input.SetSecret("username", "app")
+	input.SetSecret("password", "secret")
+	profile, err := service.AddConnection(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := service.Connect(profile.ID); err != nil {
+		t.Fatal(err)
+	}
+
+	input.Auth.Mechanism = model.AuthSASLScram
+	if _, err := service.UpdateConnection(profile.ID, input); err != nil {
+		t.Fatal(err)
+	}
+	if resolved.Auth.Mechanism != model.AuthSASLScram {
+		t.Fatalf("runtime dialled with mechanism %q, want the edited one", resolved.Auth.Mechanism)
 	}
 }
 

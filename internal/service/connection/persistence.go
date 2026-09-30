@@ -22,14 +22,26 @@ type store struct {
 }
 
 func (s *Service) loadConnectionsFromFile() error {
-	data, err := os.ReadFile(s.dataFilePath)
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return nil
-		}
+	data, err := readStore(s.dataFilePath)
+	if err != nil || data == nil {
 		return err
 	}
+	return s.loadConnections(data)
+}
 
+// readStore returns the stored profiles as bytes, and nil when nothing has
+// been stored yet.
+func readStore(path string) ([]byte, error) {
+	data, err := os.ReadFile(path)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil, nil
+	}
+	return data, err
+}
+
+// loadConnections replaces the profiles in memory with the ones data holds,
+// and leaves them as they were when data cannot be read.
+func (s *Service) loadConnections(data []byte) error {
 	var persisted store
 	if err := json.Unmarshal(data, &persisted); err != nil {
 		return err
@@ -64,6 +76,7 @@ func (s *Service) loadConnectionsFromFile() error {
 	}
 
 	s.connections, s.nextID = buildConnectionState(connections)
+	s.lastRead = data
 	return nil
 }
 

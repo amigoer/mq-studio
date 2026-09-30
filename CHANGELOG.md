@@ -9,6 +9,106 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Added
+
+- The same binary runs as an MCP server, so an agent such as Claude Code can
+  work the connections this installation already holds, with no endpoints or
+  credentials entered a second time. `mq-studio mcp` is read-only. Writing is
+  allowed at startup as a ceiling rather than a list of switches: `--allow
+  mutate` adds creating a destination, publishing, resending a dead letter and
+  moving a read position, and `--allow destructive` adds emptying and deleting
+  one. Anything above the ceiling is left out of the tool list entirely, since
+  a model cannot call a tool it was never told about - which also puts the
+  decision with whoever starts the server, at the moment they start it, rather
+  than with a switch somebody set weeks ago.
+
+- What a connection can do reaches the agent as the endpoint's own answer.
+  `capabilities_describe` reports the operations available here, the ones the
+  family has that this endpoint does not and why, the consequences that survive
+  an operation succeeding, and - for a write that carries family settings -
+  which keys this family actually reads, with their types. A key it does not
+  read is refused by name rather than dropped in silence, which is the one
+  failure a caller cannot detect: the call succeeds and the setting simply does
+  not happen.
+
+- The read-only server answers the questions the app is opened for, not only
+  what exists. Where a message that never arrived went: dead letters, the retry
+  backlog, the queues dead letters land in, and the exchanges and bindings that
+  route - or fail to. Why a subscription is behind: its progress per partition,
+  its connected consumers and, on Redis, the entries handed out and never
+  acknowledged. What a destination holds part by part, a message looked up by
+  its id, and the namespaces a broker keeps. A namespace given to a family that
+  does not keep destinations apart by one is refused rather than dropped: the
+  answer would come from the connection's own scope and read as the namespace's.
+
+- The read-only server also answers who is connected and how the broker is. It
+  traces a message through the broker's own record of which groups consumed
+  it, runs the broker's health checks - failing checks, resource alarms,
+  feature flags, deprecated features in use - and lists the client
+  connections and the channels inside them. The two objects only one family
+  has get a tool each, offered only where they exist: Kinesis shards with
+  their lineage, and IBM MQ channels with their state.
+
+- An agent at the mutate ceiling can append entries to a Redis stream: named
+  values rather than a body, with every id the server assigned coming back. A
+  field with no name is refused rather than dropped, and the stream has to
+  exist - a send never creates one.
+
+- A connection saved in the window while an agent is working can be used by its
+  next call. The server reads the profiles and settings again before each one,
+  and redials only a connection whose parameters actually changed.
+
+- A write ceiling can be raised on one connection alone. `--allow
+  scratch=destructive` lets the agent empty and delete on the connection the
+  window calls scratch while every other one stays read-only, where the single
+  ceiling allowed it everywhere at once - production included, since nothing in
+  a profile says which cluster that is. The tool is still listed, and is
+  refused on the other connections before anything is dialled;
+  `connections_list` says how far each one may go. The name is pinned to the
+  connection it named when the server started, so one later pointed at another
+  broker or given other credentials in the window loses the grant rather than
+  taking it along, and a name that matches no connection, or several, stops the
+  server from starting.
+
+- Every write an agent asks for is recorded in `agent-audit.jsonl` in the
+  application's data directory: done, failed or refused by the ceiling, with
+  the client, the tool, the connection, the arguments and what changed. The
+  agent client keeps a transcript of its own, but it belongs to the client and
+  is compacted or lost with the session; this outlives it. A write is recorded
+  before it is made and is not made if it cannot be, so a start with no outcome
+  after it is a server that stopped before the broker answered. Message bodies
+  are kept as a size and a digest rather than copied.
+
+- Emptying and deleting are put to a person first. The server asks through the
+  agent client - the destination, its connection, how many messages it holds
+  and any consequence its family carries, in the application's language - and
+  only an explicit yes goes ahead; a client that cannot ask is refused both.
+  The answer is tied to the call it was asked about by a token the server keeps
+  and accepts once, so it cannot be carried to another target or replayed, and
+  a connection re-pointed in the window while the person reads is left alone.
+  Clients on the current protocol answer through input requests, older ones
+  through elicitation.
+
+### Fixed
+
+- Emptying a Kafka topic now says what it really does. The confirmation dialog
+  has always explained that the offsets keep counting, so a consumer at 900
+  stays at 900 and is caught up rather than reset, but the driver declared no
+  caveat alongside it. Anything reading the capabilities instead of the screen
+  was told only that the topic can be emptied, which on a log is the more
+  dangerous half of the truth.
+
+- Changing only how a connection authenticates now reconnects it. Switching
+  Kafka from SASL/PLAIN to SCRAM keeps the same user and password, and the
+  check for whether an open connection needs redialling asked only whether the
+  mechanism was ACL, so the connection went on authenticating the old way until
+  the app restarted.
+
+- Sending to a Redis stream that does not exist now says so. The send never
+  creates a stream - a mistyped key must not quietly become a new one holding
+  a test message - but the refusal reached the screen as "redis: nil", the
+  client library's name for an empty reply.
+
 ## [0.1.2] - 2026-09-20
 
 The connections page gains bulk work and a way into a form from the welcome

@@ -399,7 +399,15 @@ This is the delivery plan. The contract it delivers against is
   and altering a queue, which ALTER would - each field worth changing has its own consequence for
   applications already connected, and one control writing them all is not the shape to offer.
 
-- **Designed, not yet implemented** — the one family below.
+- **Nothing designed is still waiting to be built.** Every family this plan named has
+  shipped, so the delivery table below is a record rather than a queue. A further driver is
+  a request rather than a plan now. The
+  [driver request](https://github.com/amigoer/mq-studio/issues/new?template=5-driver-request.yml)
+  form asks the one question that decides whether one is possible at all: what the app can
+  reach from a desktop, and how. What came after the drivers is agent work, and it has
+  shipped: the same binary runs as an MCP server, resting on the capability each driver
+  already declares. Its scope and the decisions behind it are in
+  [AGENT_PLAN.md](AGENT_PLAN.md).
 
 ## Delivery order
 
@@ -455,7 +463,7 @@ and `Access`.
 
 | Driver | Management plane | Pages it lights up | Notable gaps |
 | --- | --- | --- | --- |
-| **RocketMQ** 4.x / 5.x | Admin API over the remoting protocol | All six | A Proxy endpoint answers far less than a NameServer; capabilities narrow on connect |
+| **RocketMQ** 4.x / 5.x | Admin API over the remoting protocol | All six | A 5.x Proxy is refused rather than dialled: it is a data plane with no route, topology or ACL request, so the form takes a NameServer address and the refusal says why |
 | **RabbitMQ** | HTTP management plugin, plus AMQP 0-9-1 for messages | All six, plus Exchanges/Bindings, Connections, Dead letters, Virtual hosts, Policies, Definitions, Replication | No offsets or partitions; no named consumer groups; no stable message id; browsing requeues what it read and carries a caveat; shovel, federation and the stream protocol are plugins and degrade with a reason when absent |
 | **Kafka** | The Kafka protocol itself, through franz-go and kadm | All six, plus log directories and SCRAM users | Confirmed: browse is an offset-range fetch rather than random access, and a key search is a scan. ACLs degrade with a reason on a cluster with no authorizer. No rate of any kind is reported, and no disk percentage exists; there is no broker-side dead-letter queue |
 | **Pulsar** | Admin REST API + the binary protocol | All six | Done. The tenant and namespace ended up as both: a scope selector on every page, and a page of their own, because a topic is addressed as tenant/namespace/name and the selector needs somewhere to get its options from |
@@ -506,5 +514,11 @@ the endpoint actually answers.
   endpoint and was removed with it; the platform WebViews offer no equivalent on macOS.
   Options worth evaluating: driving the Linux WebKitGTK build in CI, or covering the same
   flows as Go integration tests against the `tests/e2e/rocketmq` environment.
-- Dedicated UI for update download progress
-- Broader RocketMQ 5.x Proxy and ACL management features
+- The two RocketMQ gaps that are left, both in `rocketmq-admin-go` rather than in this app.
+  ACL 1.0 can be written and never read back: `GET_BROKER_CLUSTER_ACL_CONFIG` (request code
+  54) is the only call that returns `globalWhiteAddrs` and `plainAccessConfigs`, and the
+  library does not define it — so the access board is built on the RocketMQ 5.3 auth surface
+  it does have, and plain ACL stays a write-blind fallback. And `GetAllProducerInfo` decodes
+  a flat array where the broker answers an object keyed by producer group, so a producer
+  group can be inspected by name but not listed. Connecting to a 5.x Proxy is not on this
+  list: that limit is the Proxy's own, and the driver refuses one rather than dialling it.
