@@ -271,6 +271,7 @@ var chatTurn = sse(
 
 var chatEnd = sse(
 	`data: {"choices":[{"index":0,"delta":{"content":"Behind."},"finish_reason":"stop"}]}`,
+	`data: {"choices":[],"usage":{"prompt_tokens":900,"completion_tokens":40,"prompt_tokens_details":{"cached_tokens":600}}}`,
 	`data: [DONE]`,
 )
 
@@ -307,6 +308,10 @@ func TestAChatCompletionTurnStreamsAndHandsBackItsCalls(t *testing.T) {
 	chat.Results([]Result{{CallID: "call_a", Content: "the group has no consumers", IsError: false}})
 	if turn, err = chat.Next(context.Background(), func(Delta) {}); err != nil || turn.Stop != StopDone || turn.Text != "Behind." {
 		t.Fatalf("second turn %+v %v", turn, err)
+	}
+	// Counted the way the Messages API counts: the cached part beside the rest.
+	if turn.Usage != (Usage{Input: 300, Output: 40, CacheRead: 600}) {
+		t.Errorf("usage %+v", turn.Usage)
 	}
 	history := service.body(t, 1)["messages"].([]any)
 	if len(history) != 4 {

@@ -55,7 +55,8 @@ const (
 	StopOther Stop = "other"
 )
 
-// Usage is what a turn cost, in tokens, where the service says.
+// Usage is what a turn cost, in tokens, where the service says. Input is
+// what was not read from the cache, in both protocols.
 type Usage struct {
 	Input      int64 `json:"input"`
 	Output     int64 `json:"output"`
