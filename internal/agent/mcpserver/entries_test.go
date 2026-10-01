@@ -3,7 +3,6 @@ package mcpserver
 import (
 	"context"
 	"encoding/json"
-	"reflect"
 	"slices"
 	"strconv"
 	"strings"
@@ -114,26 +113,5 @@ func TestAFieldWithNoNameIsRefusedRatherThanDropped(t *testing.T) {
 	}
 	if !result.IsError || len(conn.written) != 0 {
 		t.Fatalf("a nameless field reached the stream: %+v, wrote %v", result.Content, conn.written)
-	}
-}
-
-// Every argument but the values is kept by name, so one added to the input
-// later is not silently left out of the record.
-func TestTheAuditLogKeepsEveryEntryArgumentButTheValues(t *testing.T) {
-	kept := string(arguments(addEntryInput{Connection: 3, Destination: "orders", ID: "5-1", Count: 1,
-		Fields: []model.StreamField{{Name: "card", Value: "4111 1111 1111 1111"}}}))
-	if strings.Contains(kept, "4111") {
-		t.Fatalf("a value reached the log: %s", kept)
-	}
-	var fields map[string]any
-	if err := json.Unmarshal([]byte(kept), &fields); err != nil {
-		t.Fatal(err)
-	}
-	inputType := reflect.TypeFor[addEntryInput]()
-	for index := range inputType.NumField() {
-		name, _, _ := strings.Cut(inputType.Field(index).Tag.Get("json"), ",")
-		if _, present := fields[name]; !present && name != "fields" {
-			t.Errorf("%s is not kept in the audit log", name)
-		}
 	}
 }

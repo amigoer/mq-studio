@@ -1,27 +1,14 @@
-package mcpserver
+package toolset
 
 import (
 	"context"
 	"fmt"
 	"strings"
 
-	"github.com/modelcontextprotocol/go-sdk/mcp"
-
 	"github.com/amigoer/mq-studio/internal/agent/catalog"
 	"github.com/amigoer/mq-studio/internal/driver"
 	"github.com/amigoer/mq-studio/internal/model"
 )
-
-// offeredTools is the operations an allowance reaches, keyed as tools is.
-func offeredTools(allow catalog.Blast) map[string]string {
-	offered := make(map[string]string, len(tools))
-	for operationID, info := range tools {
-		if _, ok := offer(operationID, allow); ok {
-			offered[operationID] = info.name
-		}
-	}
-	return offered
-}
 
 /*
  * effect is what a write says it did.
@@ -46,7 +33,7 @@ type createDestinationInput struct {
 	Attributes map[string]string `json:"attributes,omitempty" jsonschema:"the family settings, as capabilities_describe lists them for this connection"`
 }
 
-func (input createDestinationInput) target() int { return input.Connection }
+func (input createDestinationInput) Target() int { return input.Connection }
 
 type writeOutput struct {
 	Effect effect `json:"effect"`
@@ -55,22 +42,20 @@ type writeOutput struct {
 	Reference string `json:"reference,omitempty"`
 }
 
-func (output writeOutput) recorded() (string, string) {
+func (output writeOutput) Recorded() (string, string) {
 	return output.Effect.Changed, output.Reference
 }
 
-func (s *server) createDestination(
-	ctx context.Context, _ *mcp.CallToolRequest, input createDestinationInput,
-) (*mcp.CallToolResult, writeOutput, error) {
-	conn, caveat, err := s.capable(input.Connection, model.CapDestinationCreate)
+func (e *Env) createDestination(ctx context.Context, input createDestinationInput) (writeOutput, error) {
+	conn, caveat, err := e.capable(input.Connection, model.CapDestinationCreate)
 	if err != nil {
-		return nil, writeOutput{}, err
+		return writeOutput{}, err
 	}
-	if err := s.checkAttributes(conn.Kind(), "destination.create", input.Attributes); err != nil {
-		return nil, writeOutput{}, err
+	if err := e.checkAttributes(conn.Kind(), "destination.create", input.Attributes); err != nil {
+		return writeOutput{}, err
 	}
 
-	ctx, cancel := s.withTimeout(ctx)
+	ctx, cancel := e.withTimeout(ctx)
 	defer cancel()
 
 	spec := model.DestinationSpec{
@@ -78,16 +63,16 @@ func (s *server) createDestination(
 		Partitions: input.Partitions,
 		Attributes: input.Attributes,
 	}
-	if err := s.services.Topics.Create(ctx, input.Connection, spec); err != nil {
-		return nil, writeOutput{}, err
+	if err := e.Services.Topics.Create(ctx, input.Connection, spec); err != nil {
+		return writeOutput{}, err
 	}
 	changed := fmt.Sprintf("created %s on %s", describeRef(spec.Ref), conn.Kind())
 	// Checked after, since nothing exists to check before; the effect is the
 	// one place a caller would otherwise read that it landed where it asked.
-	if err := s.resolvedIn(ctx, input.Connection, conn.Kind(), spec.Ref); err != nil {
+	if err := e.resolvedIn(ctx, input.Connection, conn.Kind(), spec.Ref); err != nil {
 		changed = fmt.Sprintf("created %s on %s, but %v", input.Name, conn.Kind(), err)
 	}
-	return nil, writeOutput{Effect: effect{Changed: changed, Caveat: caveat}}, nil
+	return writeOutput{Effect: effect{Changed: changed, Caveat: caveat}}, nil
 }
 
 /*
@@ -99,7 +84,7 @@ func (s *server) createDestination(
  * on the floor. The catalogue knows which keys each family reads, so the
  * refusal can name the ones that would have worked.
  */
-func (s *server) checkAttributes(kind model.MQKind, operationID string, given map[string]string) error {
+func (e *Env) checkAttributes(kind model.MQKind, operationID string, given map[string]string) error {
 	if len(given) == 0 {
 		return nil
 	}
@@ -142,11 +127,11 @@ type publishInput struct {
 	Keys        string `json:"keys,omitempty" jsonschema:"the family's message keys, where it has them"`
 }
 
-func (input publishInput) target() int { return input.Connection }
+func (input publishInput) Target() int { return input.Connection }
 
 // logged keeps the body out of the audit log: its size and digest identify it
 // without storing somebody's payload in a second place.
-func (input publishInput) logged() any {
+func (input publishInput) Logged() any {
 	return struct {
 		Connection  int    `json:"connection"`
 		Destination string `json:"destination"`
@@ -157,25 +142,23 @@ func (input publishInput) logged() any {
 	}{input.Connection, input.Destination, input.Tags, input.Keys, len(input.Body), digest(input.Body)}
 }
 
-func (s *server) publishMessage(
-	ctx context.Context, _ *mcp.CallToolRequest, input publishInput,
-) (*mcp.CallToolResult, writeOutput, error) {
-	_, caveat, err := s.capable(input.Connection, model.CapPublish)
+func (e *Env) publishMessage(ctx context.Context, input publishInput) (writeOutput, error) {
+	_, caveat, err := e.capable(input.Connection, model.CapPublish)
 	if err != nil {
-		return nil, writeOutput{}, err
+		return writeOutput{}, err
 	}
-	ctx, cancel := s.withTimeout(ctx)
+	ctx, cancel := e.withTimeout(ctx)
 	defer cancel()
 
 	// Delay level is left at zero here. It is gated on its own capability, and
 	// a field that silently did nothing on a family without it would be the
 	// same silence checkAttributes exists to refuse.
-	reference, err := s.services.Messages.Send(
+	reference, err := e.Services.Messages.Send(
 		ctx, input.Connection, input.Destination, input.Tags, input.Keys, input.Body, 0)
 	if err != nil {
-		return nil, writeOutput{}, err
+		return writeOutput{}, err
 	}
-	return nil, writeOutput{
+	return writeOutput{
 		Effect: effect{
 			Changed: fmt.Sprintf("published one message to %s; whatever consumes it has now run",
 				input.Destination),
@@ -193,24 +176,22 @@ type resendInput struct {
 	ClientID    string `json:"clientId,omitempty" jsonschema:"the client the broker attributes the resend to"`
 }
 
-func (input resendInput) target() int { return input.Connection }
+func (input resendInput) Target() int { return input.Connection }
 
-func (s *server) resendMessage(
-	ctx context.Context, _ *mcp.CallToolRequest, input resendInput,
-) (*mcp.CallToolResult, writeOutput, error) {
-	_, caveat, err := s.capable(input.Connection, model.CapMessageResend)
+func (e *Env) resendMessage(ctx context.Context, input resendInput) (writeOutput, error) {
+	_, caveat, err := e.capable(input.Connection, model.CapMessageResend)
 	if err != nil {
-		return nil, writeOutput{}, err
+		return writeOutput{}, err
 	}
-	ctx, cancel := s.withTimeout(ctx)
+	ctx, cancel := e.withTimeout(ctx)
 	defer cancel()
 
-	reference, err := s.services.Messages.Resend(
+	reference, err := e.Services.Messages.Resend(
 		ctx, input.Connection, input.Group, input.ClientID, input.Destination, input.MessageID)
 	if err != nil {
-		return nil, writeOutput{}, err
+		return writeOutput{}, err
 	}
-	return nil, writeOutput{
+	return writeOutput{
 		Effect: effect{
 			Changed: fmt.Sprintf("put %s back on %s's retry path; the next member to pick it up runs it again",
 				input.MessageID, input.Group),
@@ -228,27 +209,25 @@ type resetOffsetInput struct {
 	Force       bool   `json:"force,omitempty" jsonschema:"move it even while consumers are attached"`
 }
 
-func (input resetOffsetInput) target() int { return input.Connection }
+func (input resetOffsetInput) Target() int { return input.Connection }
 
-func (s *server) resetOffset(
-	ctx context.Context, _ *mcp.CallToolRequest, input resetOffsetInput,
-) (*mcp.CallToolResult, writeOutput, error) {
-	_, caveat, err := s.capable(input.Connection, model.CapOffsetReset)
+func (e *Env) resetOffset(ctx context.Context, input resetOffsetInput) (writeOutput, error) {
+	_, caveat, err := e.capable(input.Connection, model.CapOffsetReset)
 	if err != nil {
-		return nil, writeOutput{}, err
+		return writeOutput{}, err
 	}
-	ctx, cancel := s.withTimeout(ctx)
+	ctx, cancel := e.withTimeout(ctx)
 	defer cancel()
 
-	if err := s.services.Consumers.ResetOffset(ctx, input.Connection, model.ResetOffsetRequest{
+	if err := e.Services.Consumers.ResetOffset(ctx, input.Connection, model.ResetOffsetRequest{
 		Group:     input.Group,
 		Topic:     input.Destination,
 		Timestamp: input.Timestamp,
 		Force:     input.Force,
 	}); err != nil {
-		return nil, writeOutput{}, err
+		return writeOutput{}, err
 	}
-	return nil, writeOutput{Effect: effect{
+	return writeOutput{Effect: effect{
 		Changed: fmt.Sprintf(
 			"moved %s's position on %s to the broker's answer for that moment; "+
 				"messages either side of it are skipped or redelivered, and none are deleted",
@@ -263,9 +242,9 @@ type destinationTargetInput struct {
 	Namespace  string `json:"namespace,omitempty" jsonschema:"the namespace holding it, for a family that has them"`
 }
 
-func (input destinationTargetInput) target() int { return input.Connection }
+func (input destinationTargetInput) Target() int { return input.Connection }
 
-func (input destinationTargetInput) destination() model.DestinationRef {
+func (input destinationTargetInput) Destination() model.DestinationRef {
 	return model.DestinationRef{Namespace: input.Namespace, Name: input.Name}
 }
 
@@ -278,50 +257,46 @@ func (input destinationTargetInput) destination() model.DestinationRef {
  * implements for this capability, so going there directly is the thing that
  * does not need a list of families to keep in step.
  */
-func (s *server) purgeDestination(
-	ctx context.Context, _ *mcp.CallToolRequest, input destinationTargetInput,
-) (*mcp.CallToolResult, writeOutput, error) {
-	actions, caveat, err := port[driver.QueueActions](s, input.Connection, model.CapDestinationPurge)
+func (e *Env) purgeDestination(ctx context.Context, input destinationTargetInput) (writeOutput, error) {
+	actions, caveat, err := port[driver.QueueActions](e, input.Connection, model.CapDestinationPurge)
 	if err != nil {
-		return nil, writeOutput{}, err
+		return writeOutput{}, err
 	}
-	conn, _ := s.conn(input.Connection)
+	conn, _ := e.conn(input.Connection)
 
-	ctx, cancel := s.withTimeout(ctx)
+	ctx, cancel := e.withTimeout(ctx)
 	defer cancel()
 
-	ref := input.destination()
-	if err := s.resolvedIn(ctx, input.Connection, conn.Kind(), ref); err != nil {
-		return nil, writeOutput{}, err
+	ref := input.Destination()
+	if err := e.resolvedIn(ctx, input.Connection, conn.Kind(), ref); err != nil {
+		return writeOutput{}, err
 	}
 	if err := actions.PurgeQueue(ctx, ref); err != nil {
-		return nil, writeOutput{}, err
+		return writeOutput{}, err
 	}
-	return nil, writeOutput{Effect: effect{
+	return writeOutput{Effect: effect{
 		Changed: fmt.Sprintf("emptied %s on %s; the destination is still there and what it held is not",
 			describeRef(ref), conn.Kind()),
 		Caveat: caveat,
 	}}, nil
 }
 
-func (s *server) deleteDestination(
-	ctx context.Context, _ *mcp.CallToolRequest, input destinationTargetInput,
-) (*mcp.CallToolResult, writeOutput, error) {
-	conn, caveat, err := s.capable(input.Connection, model.CapDestinationDelete)
+func (e *Env) deleteDestination(ctx context.Context, input destinationTargetInput) (writeOutput, error) {
+	conn, caveat, err := e.capable(input.Connection, model.CapDestinationDelete)
 	if err != nil {
-		return nil, writeOutput{}, err
+		return writeOutput{}, err
 	}
-	ctx, cancel := s.withTimeout(ctx)
+	ctx, cancel := e.withTimeout(ctx)
 	defer cancel()
 
-	ref := input.destination()
-	if err := s.resolvedIn(ctx, input.Connection, conn.Kind(), ref); err != nil {
-		return nil, writeOutput{}, err
+	ref := input.Destination()
+	if err := e.resolvedIn(ctx, input.Connection, conn.Kind(), ref); err != nil {
+		return writeOutput{}, err
 	}
-	if err := s.services.Topics.Remove(ctx, input.Connection, ref); err != nil {
-		return nil, writeOutput{}, err
+	if err := e.Services.Topics.Remove(ctx, input.Connection, ref); err != nil {
+		return writeOutput{}, err
 	}
-	return nil, writeOutput{Effect: effect{
+	return writeOutput{Effect: effect{
 		Changed: fmt.Sprintf("deleted %s from %s, with everything it held; producers addressing it now fail",
 			describeRef(ref), conn.Kind()),
 		Caveat: caveat,
@@ -367,11 +342,11 @@ type addEntryInput struct {
 	Count       int                 `json:"count,omitempty" jsonschema:"write the same entry this many times, each with its own id, to fill a stream for testing a consumer"`
 }
 
-func (input addEntryInput) target() int { return input.Connection }
+func (input addEntryInput) Target() int { return input.Connection }
 
 // logged keeps the values out of the audit log, as a message body is kept
 // out: the names say what was written, and the size and digest identify it.
-func (input addEntryInput) logged() any {
+func (input addEntryInput) Logged() any {
 	names := make([]string, 0, len(input.Fields))
 	size := 0
 	for _, field := range input.Fields {
@@ -386,7 +361,7 @@ func (input addEntryInput) logged() any {
 		ValuesSHA256 string   `json:"valuesSha256"`
 		ID           string   `json:"id,omitempty"`
 		Count        int      `json:"count,omitempty"`
-	}{input.Connection, input.Destination, names, size, digest(canonical(input.Fields)), input.ID, input.Count}
+	}{input.Connection, input.Destination, names, size, digest(Canonical(input.Fields)), input.ID, input.Count}
 }
 
 type addEntryOutput struct {
@@ -396,7 +371,7 @@ type addEntryOutput struct {
 	IDs []string `json:"ids"`
 }
 
-func (output addEntryOutput) recorded() (string, string) {
+func (output addEntryOutput) Recorded() (string, string) {
 	return output.Effect.Changed, strings.Join(output.IDs, " ")
 }
 
@@ -408,20 +383,18 @@ func (output addEntryOutput) recorded() (string, string) {
  * which is right for a form with a blank row, and would be a value dropped in
  * silence for a caller that meant to write it.
  */
-func (s *server) addEntry(
-	ctx context.Context, _ *mcp.CallToolRequest, input addEntryInput,
-) (*mcp.CallToolResult, addEntryOutput, error) {
-	api, kind, caveat, err := portOf[driver.EntryPublisher](s, input.Connection, model.CapEntryPublish)
+func (e *Env) addEntry(ctx context.Context, input addEntryInput) (addEntryOutput, error) {
+	api, kind, caveat, err := portOf[driver.EntryPublisher](e, input.Connection, model.CapEntryPublish)
 	if err != nil {
-		return nil, addEntryOutput{}, err
+		return addEntryOutput{}, err
 	}
 	for index, field := range input.Fields {
 		if strings.TrimSpace(field.Name) == "" {
-			return nil, addEntryOutput{}, fmt.Errorf(
+			return addEntryOutput{}, fmt.Errorf(
 				"field %d has no name, and a stream entry is named values: it would have been dropped", index+1)
 		}
 	}
-	ctx, cancel := s.withTimeout(ctx)
+	ctx, cancel := e.withTimeout(ctx)
 	defer cancel()
 
 	added, err := api.AddEntry(ctx, model.StreamAddRequest{
@@ -431,7 +404,7 @@ func (s *server) addEntry(
 		Count:  input.Count,
 	})
 	if err != nil {
-		return nil, addEntryOutput{}, err
+		return addEntryOutput{}, err
 	}
 	ids := added.IDs
 	changed := fmt.Sprintf("appended one entry to %s on %s; whatever reads the stream will be handed it",
@@ -440,5 +413,5 @@ func (s *server) addEntry(
 		changed = fmt.Sprintf("appended %d entries to %s on %s; whatever reads the stream will be handed each of them",
 			len(ids), input.Destination, kind)
 	}
-	return nil, addEntryOutput{Effect: effect{Changed: changed, Caveat: caveat}, IDs: ids}, nil
+	return addEntryOutput{Effect: effect{Changed: changed, Caveat: caveat}, IDs: ids}, nil
 }

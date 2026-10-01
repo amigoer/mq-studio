@@ -211,6 +211,13 @@ func (s *server) ceiling(id int) (catalog.Blast, error) {
 	return granted.blast, nil
 }
 
+// allowed is how far a call on a connection may go now, for a reader that
+// only needs the answer.
+func (s *server) allowed(id int) catalog.Blast {
+	allow, _ := s.ceiling(id)
+	return allow
+}
+
 /*
  * reaches refuses a call that goes further than its connection may.
  *

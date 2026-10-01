@@ -1,6 +1,6 @@
 # 应用内 Agent 设计稿
 
-> 状态：设计已确认（2026-10-01，见第 8 节），从 A1 开始实现。上一轮（MCP server）的计划见
+> 状态：设计已确认（2026-10-01，见第 8 节）。A1 已完成，在 `refactor/agent-toolset` 分支上。上一轮（MCP server）的计划见
 > [AGENT_PLAN.md](AGENT_PLAN.md)；本文就是它第 5 节留到「另起一轮」的那部分：
 > 应用内对话助手、provider 配置、API key 存储。
 
@@ -131,12 +131,21 @@ internal/agent/assistant（新） ───────────► internal/
 
 **做法：**
 
-- **新包 `internal/agent/toolset`。** 每个工具描述为 `Tool{Name, Title, Description, Operation, InputSchema, OutputSchema, Run}`。处理函数签名统一成 `func(ctx, In) (Out, error)`，MCP 侧用一个泛型适配器包回去。
+- **新包 `internal/agent/toolset`。**
+  - 每个工具是一个 `Tool{Name, Title, Description, Operation, Blast, InputSchema, OutputSchema}`，带 `Decode`、`Run`、`Call` 三个方法。
+  - 处理函数统一成 `Env` 上的 `func(ctx, In) (Out, error)`，由泛型的 `define` 包成上面这种不带类型的条目。
+  - MCP 侧按 `json.RawMessage` 注册，并把 schema 显式交给 SDK。
 - **参数校验。** 现在是 MCP SDK 替我们按 schema 校验参数、填默认值；进程内路径改用 jsonschema-go 的 `Resolve`、`Validate`、`ApplyDefaults` 自己做，两边用同一份 schema。
-- **抽出两个接口。** 一是 `Confirmer`：MCP 用 elicitation / input request，侧栏用卡片。二是调用方身份，用于审计里的 client 字段。
-- **`capabilities_describe` 的「能否确认」** 改为由适配器传入。
-- **`connections_list` 加上在线状态**，侧栏和 MCP 都用得上。
-- **验收。** MCP 现有的单元测试和 live 套件一行不改，照样全部通过。
+- **确认与调用方。**
+  - 破坏性操作的问题文本（`Env.Question`）和对方回答后的复核（`Env.ChangedSince`）放进 toolset，两边共用。
+  - 问题怎么交到人手里，仍由各自的适配器决定：MCP 走 input request，侧栏走卡片。
+  - 每次调用带一个 `Caller`，目前只有「能否确认」一项，`capabilities_describe` 据此决定要不要列出破坏性工具。
+  - 审计日志暂时留在 mcpserver，到 A3 有了第二个写入方再移出来，审计里的 client 字段也到那时补上。
+- **`connections_list` 加上在线状态。** 只在工具只能用已打开连接的模式下给出，也就是侧栏。MCP 按需自己拨号，用不上这个字段；它从文件读到的状态也总是 offline（加载时会统一重置）。
+- **验收。** MCP 对外的行为不变，走协议的测试和 live 套件的断言一条没改，全部通过。
+  - 新旧两版各导出一次三档授权下的工具列表做对比：33 个工具的名称、描述、标注、输入和输出 schema 逐字节一致，只多了 `connections_list` 输出里那个可选的 `status`。
+  - 直接调用处理函数的白盒测试（命名空间、能力检查、describe、按 id 读消息等）跟着处理函数搬进 toolset，断言不变，只改了调用方式。
+  - 原来解码到包内类型的几处协议测试，改成解码到测试自己定义的结构体，和 live 测试的写法一样。
 
 **踩坑，这也是「agent 不自己拨号」的原因：**
 
@@ -252,7 +261,7 @@ type Provider interface {
 
 - **不需要真模型。** 一个假的 Provider 按脚本吐事件，覆盖这些情况：批准 / 拒绝 / 记住、破坏性确认、停止、工具出错、截断、审计记录。
 - **模型服务适配器。** 用 httptest 回放录好的 SSE 流（Anthropic 和 OpenAI 两种格式），包括工具调用被拆成多段、中途断开。
-- **工具集抽离。** MCP 现有的单元测试和 live 套件不改，照样通过。
+- **工具集抽离。** MCP 走协议的测试和 live 套件断言不变；白盒测试随处理函数搬进 toolset。
 - **前端。** 事件到消息列表的 reducer、批准卡片的状态、seq 断档后重拉。
 - **可选的真模型冒烟测试。** 只有设置了环境变量才跑，不进 CI。
 
@@ -260,7 +269,7 @@ type Provider interface {
 
 | 编号 | 内容 | 交付 |
 | --- | --- | --- |
-| A1 | 工具集抽离 | 界面无变化；MCP 测试全绿；`connections_list` 带在线状态 |
+| A1 | 工具集抽离（已完成） | 界面无变化；MCP 测试全绿；`connections_list` 带在线状态 |
 | A2 | 模型服务配置 | agent.json、Key 加密、设置页「AI 助手」、测试连接、获取模型列表 |
 | A3 | Agent 循环 | 两个 provider，批准 / 确认 / 审计，事件，停止；假 provider 测试 |
 | A4 | 侧栏 | 停靠布局、对话渲染、工具卡片、批准卡片、上下文 chip、快捷键和命令面板 |

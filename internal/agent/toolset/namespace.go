@@ -1,4 +1,4 @@
-package mcpserver
+package toolset
 
 import (
 	"context"
@@ -42,11 +42,11 @@ func consulted(kind model.MQKind, requested string, answered ...string) error {
 // resolvedIn confirms that the family finds a destination inside the namespace
 // named, before anything irreversible is done to it. Afterwards is too late:
 // the connection's own destination of the same name is what would have gone.
-func (s *server) resolvedIn(ctx context.Context, connID int, kind model.MQKind, ref model.DestinationRef) error {
+func (e *Env) resolvedIn(ctx context.Context, connID int, kind model.MQKind, ref model.DestinationRef) error {
 	if strings.TrimSpace(ref.Namespace) == "" {
 		return nil
 	}
-	destination, err := s.services.Topics.Detail(ctx, connID, ref)
+	destination, err := e.Services.Topics.Detail(ctx, connID, ref)
 	if err != nil {
 		return fmt.Errorf("could not confirm %s is in %q: %w", ref.Name, ref.Namespace, err)
 	}

@@ -6,6 +6,8 @@
 React UI (system WebView)              Agent (MCP client)
         │ Wails bindings                        │ JSON-RPC over stdin/stdout
 internal/bridge                        internal/agent/mcpserver
+        │                                       │ the tools, any transport
+        │                              internal/agent/toolset
         │                                       │
         └────────────► internal/service ◄───────┘
                               │             domain logic
@@ -61,7 +63,18 @@ three columns and nothing else - request and result shapes stay named by type
 in `internal/model` rather than restated, and each operation's capability is
 the pairing `internal/service` already resolves before it calls in.
 
-`mcpserver` turns that into tools. How far it goes is decided when it is
+`toolset` turns that into tools: what each one is called and described as,
+the schema it takes and answers in, the capability check before it reaches a
+driver, and the words its answers and its questions to a person are given in.
+It holds no transport. A tool is a typed handler behind a type-erased entry,
+so a caller can check a model's raw arguments against the input schema and
+run it (`Tool.Call`), and the schemas are inferred the way the MCP SDK infers
+them, so a tool reads the same whichever transport offers it. How a transport
+resolves a connection is its own choice: the MCP server dials what its process
+has not opened, and without that the tools use only what is already open,
+which is what a caller inside the window needs.
+
+`mcpserver` offers those tools over MCP. How far it goes is decided when it is
 started - `--allow read`, `mutate` or `destructive`, defaulting to read, and
 higher on named connections with `--allow <name>=<tier>` - and anything above
 the widest ceiling is left out of the tool list entirely rather than refused

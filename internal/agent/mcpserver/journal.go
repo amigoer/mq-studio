@@ -2,7 +2,6 @@ package mcpserver
 
 import (
 	"crypto/rand"
-	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -17,6 +16,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/amigoer/mq-studio/internal/agent/catalog"
+	"github.com/amigoer/mq-studio/internal/agent/toolset"
 	"github.com/amigoer/mq-studio/internal/app"
 	"github.com/amigoer/mq-studio/internal/storage/layout"
 )
@@ -177,7 +177,7 @@ func (s *server) entry(
 		Blast:      string(operation.Blast),
 		Connection: s.auditConnection(id),
 		Allow:      string(allow),
-		Arguments:  arguments(input),
+		Arguments:  toolset.Arguments(input),
 	}
 }
 
@@ -206,16 +206,10 @@ func (r auditRecord) finished(output any, err error, took time.Duration) auditRe
 		return r
 	}
 	r.Phase = phaseDone
-	if answer, ok := output.(written); ok {
-		r.Changed, r.Reference = answer.recorded()
+	if answer, ok := output.(toolset.Written); ok {
+		r.Changed, r.Reference = answer.Recorded()
 	}
 	return r
-}
-
-// written is a write tool's answer, as the audit log keeps it: what changed,
-// and whatever the broker returned to name what was written.
-type written interface {
-	recorded() (changed, reference string)
 }
 
 // clientOf names the agent client as it introduced itself.
@@ -239,26 +233,4 @@ func (s *server) auditConnection(id int) auditConnection {
 		connection.Name, connection.Family = profile.Name, string(profile.Kind)
 	}
 	return connection
-}
-
-// withholding is an input carrying content the audit log does not copy. What
-// logged returns is kept in its place.
-type withholding interface{ logged() any }
-
-// arguments is what a write was called with, as the log keeps it.
-func arguments(input any) json.RawMessage {
-	if content, ok := input.(withholding); ok {
-		input = content.logged()
-	}
-	encoded, err := json.Marshal(input)
-	if err != nil {
-		return nil
-	}
-	return encoded
-}
-
-// digest identifies content without keeping it.
-func digest(content string) string {
-	sum := sha256.Sum256([]byte(content))
-	return hex.EncodeToString(sum[:])
 }

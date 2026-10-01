@@ -1,9 +1,7 @@
-package mcpserver
+package toolset
 
 import (
 	"context"
-
-	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/amigoer/mq-studio/internal/driver"
 	"github.com/amigoer/mq-studio/internal/model"
@@ -16,21 +14,19 @@ type namespacesOutput struct {
 
 // listNamespaces goes to the port: the three families that list namespaces
 // each do it on a service of their own, and there is no neutral one to call.
-func (s *server) listNamespaces(
-	ctx context.Context, _ *mcp.CallToolRequest, input connectionInput,
-) (*mcp.CallToolResult, namespacesOutput, error) {
-	api, caveat, err := port[driver.NamespaceAdmin](s, input.Connection, model.CapNamespaceList)
+func (e *Env) listNamespaces(ctx context.Context, input connectionInput) (namespacesOutput, error) {
+	api, caveat, err := port[driver.NamespaceAdmin](e, input.Connection, model.CapNamespaceList)
 	if err != nil {
-		return nil, namespacesOutput{}, err
+		return namespacesOutput{}, err
 	}
-	ctx, cancel := s.withTimeout(ctx)
+	ctx, cancel := e.withTimeout(ctx)
 	defer cancel()
 
 	namespaces, err := api.ListNamespaces(ctx)
 	if err != nil {
-		return nil, namespacesOutput{}, err
+		return namespacesOutput{}, err
 	}
-	return nil, namespacesOutput{Namespaces: namespaces, Caveat: caveat}, nil
+	return namespacesOutput{Namespaces: namespaces, Caveat: caveat}, nil
 }
 
 type routingInput struct {
@@ -43,28 +39,26 @@ type exchangesOutput struct {
 	Caveat    string               `json:"caveat,omitempty"`
 }
 
-func (s *server) listExchanges(
-	ctx context.Context, _ *mcp.CallToolRequest, input routingInput,
-) (*mcp.CallToolResult, exchangesOutput, error) {
-	conn, caveat, err := s.capable(input.Connection, model.CapRouting)
+func (e *Env) listExchanges(ctx context.Context, input routingInput) (exchangesOutput, error) {
+	conn, caveat, err := e.capable(input.Connection, model.CapRouting)
 	if err != nil {
-		return nil, exchangesOutput{}, err
+		return exchangesOutput{}, err
 	}
-	ctx, cancel := s.withTimeout(ctx)
+	ctx, cancel := e.withTimeout(ctx)
 	defer cancel()
 
-	exchanges, err := s.services.Routing.Exchanges(ctx, input.Connection, input.Namespace)
+	exchanges, err := e.Services.Routing.Exchanges(ctx, input.Connection, input.Namespace)
 	if err != nil {
-		return nil, exchangesOutput{}, err
+		return exchangesOutput{}, err
 	}
 	answered := make([]string, 0, len(exchanges))
 	for _, exchange := range exchanges {
 		answered = append(answered, exchange.Ref.Namespace)
 	}
 	if err := consulted(conn.Kind(), input.Namespace, answered...); err != nil {
-		return nil, exchangesOutput{}, err
+		return exchangesOutput{}, err
 	}
-	return nil, exchangesOutput{Exchanges: exchanges, Caveat: caveat}, nil
+	return exchangesOutput{Exchanges: exchanges, Caveat: caveat}, nil
 }
 
 type bindingsOutput struct {
@@ -72,28 +66,26 @@ type bindingsOutput struct {
 	Caveat   string           `json:"caveat,omitempty"`
 }
 
-func (s *server) listBindings(
-	ctx context.Context, _ *mcp.CallToolRequest, input routingInput,
-) (*mcp.CallToolResult, bindingsOutput, error) {
-	conn, caveat, err := s.capable(input.Connection, model.CapRouting)
+func (e *Env) listBindings(ctx context.Context, input routingInput) (bindingsOutput, error) {
+	conn, caveat, err := e.capable(input.Connection, model.CapRouting)
 	if err != nil {
-		return nil, bindingsOutput{}, err
+		return bindingsOutput{}, err
 	}
-	ctx, cancel := s.withTimeout(ctx)
+	ctx, cancel := e.withTimeout(ctx)
 	defer cancel()
 
-	bindings, err := s.services.Routing.Bindings(ctx, input.Connection, input.Namespace)
+	bindings, err := e.Services.Routing.Bindings(ctx, input.Connection, input.Namespace)
 	if err != nil {
-		return nil, bindingsOutput{}, err
+		return bindingsOutput{}, err
 	}
 	answered := make([]string, 0, len(bindings))
 	for _, binding := range bindings {
 		answered = append(answered, binding.Namespace)
 	}
 	if err := consulted(conn.Kind(), input.Namespace, answered...); err != nil {
-		return nil, bindingsOutput{}, err
+		return bindingsOutput{}, err
 	}
-	return nil, bindingsOutput{Bindings: bindings, Caveat: caveat}, nil
+	return bindingsOutput{Bindings: bindings, Caveat: caveat}, nil
 }
 
 type partitionsOutput struct {
@@ -104,27 +96,25 @@ type partitionsOutput struct {
 	Caveat string         `json:"caveat,omitempty"`
 }
 
-func (s *server) destinationPartitions(
-	ctx context.Context, _ *mcp.CallToolRequest, input destinationDetailInput,
-) (*mcp.CallToolResult, partitionsOutput, error) {
-	conn, caveat, err := s.capable(input.Connection, model.CapPartitions)
+func (e *Env) destinationPartitions(ctx context.Context, input destinationDetailInput) (partitionsOutput, error) {
+	conn, caveat, err := e.capable(input.Connection, model.CapPartitions)
 	if err != nil {
-		return nil, partitionsOutput{}, err
+		return partitionsOutput{}, err
 	}
-	ctx, cancel := s.withTimeout(ctx)
+	ctx, cancel := e.withTimeout(ctx)
 	defer cancel()
 
 	// The figures carry no ref to show where they were read from, so the
 	// namespace is confirmed first, the way a destructive call confirms it.
 	ref := model.DestinationRef{Namespace: input.Namespace, Name: input.Name}
-	if err := s.resolvedIn(ctx, input.Connection, conn.Kind(), ref); err != nil {
-		return nil, partitionsOutput{}, err
+	if err := e.resolvedIn(ctx, input.Connection, conn.Kind(), ref); err != nil {
+		return partitionsOutput{}, err
 	}
-	stats, err := s.services.Topics.Stats(ctx, input.Connection, ref)
+	stats, err := e.Services.Topics.Stats(ctx, input.Connection, ref)
 	if err != nil {
-		return nil, partitionsOutput{}, err
+		return partitionsOutput{}, err
 	}
-	return nil, partitionsOutput{Stats: stats, Caveat: caveat}, nil
+	return partitionsOutput{Stats: stats, Caveat: caveat}, nil
 }
 
 /*
@@ -147,21 +137,19 @@ type shardsOutput struct {
 	Caveat string         `json:"caveat,omitempty"`
 }
 
-func (s *server) destinationShards(
-	ctx context.Context, _ *mcp.CallToolRequest, input shardsInput,
-) (*mcp.CallToolResult, shardsOutput, error) {
-	api, caveat, err := port[driver.ShardInspector](s, input.Connection, model.CapShards)
+func (e *Env) destinationShards(ctx context.Context, input shardsInput) (shardsOutput, error) {
+	api, caveat, err := port[driver.ShardInspector](e, input.Connection, model.CapShards)
 	if err != nil {
-		return nil, shardsOutput{}, err
+		return shardsOutput{}, err
 	}
-	ctx, cancel := s.withTimeout(ctx)
+	ctx, cancel := e.withTimeout(ctx)
 	defer cancel()
 
 	shards, err := api.ListShards(ctx, model.DestinationRef{Name: input.Destination})
 	if err != nil {
-		return nil, shardsOutput{}, err
+		return shardsOutput{}, err
 	}
-	return nil, shardsOutput{Shards: shards, Caveat: caveat}, nil
+	return shardsOutput{Shards: shards, Caveat: caveat}, nil
 }
 
 type channelsOutput struct {
@@ -169,19 +157,17 @@ type channelsOutput struct {
 	Caveat   string           `json:"caveat,omitempty"`
 }
 
-func (s *server) listChannels(
-	ctx context.Context, _ *mcp.CallToolRequest, input connectionInput,
-) (*mcp.CallToolResult, channelsOutput, error) {
-	api, caveat, err := port[driver.ChannelInspector](s, input.Connection, model.CapChannels)
+func (e *Env) listChannels(ctx context.Context, input connectionInput) (channelsOutput, error) {
+	api, caveat, err := port[driver.ChannelInspector](e, input.Connection, model.CapChannels)
 	if err != nil {
-		return nil, channelsOutput{}, err
+		return channelsOutput{}, err
 	}
-	ctx, cancel := s.withTimeout(ctx)
+	ctx, cancel := e.withTimeout(ctx)
 	defer cancel()
 
 	channels, err := api.ListChannels(ctx)
 	if err != nil {
-		return nil, channelsOutput{}, err
+		return channelsOutput{}, err
 	}
-	return nil, channelsOutput{Channels: channels, Caveat: caveat}, nil
+	return channelsOutput{Channels: channels, Caveat: caveat}, nil
 }

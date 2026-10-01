@@ -2,59 +2,68 @@ package mcpserver
 
 import (
 	"context"
-	"fmt"
+	"encoding/json"
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/amigoer/mq-studio/internal/agent/catalog"
+	"github.com/amigoer/mq-studio/internal/agent/toolset"
 )
 
-// targeted is a tool input that names the connection it acts on.
-type targeted interface{ target() int }
-
 /*
- * provide registers the tool for a catalogue operation, when some connection
- * may go as far as it does.
+ * provide registers a tool, when some connection may go as far as it does.
  *
  * Every tool that writes is recorded in the audit log whatever the allowance,
  * and every destructive one is put to a person first. One that goes further
  * than every connection may is also refused on the others before anything is
- * dialled. The checks read the connection from the very value the handler is
- * given rather than from the raw arguments, and no refresh lands between the
- * last of them and the handler returning, so what was checked and what is
- * acted on cannot be two readings of one request.
+ * dialled. The checks read the connection from the very value the tool is
+ * run on rather than from the raw arguments, and no refresh lands between the
+ * last of them and the tool returning, so what was checked and what is acted
+ * on cannot be two readings of one request.
+ *
+ * The SDK checks the arguments against the tool's schema before the handler
+ * sees them, and the schema is closed, so decoding them here is not a second
+ * reading that could differ from the first.
  */
-func provide[In, Out any](
-	s *server, mcpServer *mcp.Server, operationID string, handler mcp.ToolHandlerFor[In, Out],
-) {
-	tool, ok := offer(operationID, s.grants.widest())
+func provide(s *server, mcpServer *mcp.Server, tool toolset.Tool) {
+	presented, ok := offer(tool, s.grants.widest())
 	if !ok {
 		return
 	}
-	operation, _ := catalog.Find(operationID)
-	if operation.Blast != catalog.BlastRead {
-		// Registration runs at startup and in every test that lists the tools.
-		var input In
-		if _, names := any(input).(targeted); !names {
-			panic(fmt.Sprintf("%s writes, and its input names no connection to check or record", tool.Name))
-		}
-		confirmed := operation.Blast == catalog.BlastDestructive
+	handler := direct(s, tool)
+	if tool.Blast != catalog.BlastRead {
+		confirmed := tool.Blast == catalog.BlastDestructive
 		if confirmed {
-			if _, names := any(input).(confirmable); !names || questions[operationID] == "" {
-				panic(fmt.Sprintf("%s destroys, and there is no question to put to a person first", tool.Name))
-			}
-			tool.Description += " A person is asked to confirm it through your client first, and it is " +
+			presented.Description += " A person is asked to confirm it through your client first, and it is " +
 				"refused where the client cannot ask."
 		}
-		gated := !catalog.Permits(s.grants.everywhere, operation.Blast)
+		gated := !catalog.Permits(s.grants.everywhere, tool.Blast)
 		if gated {
-			tool.Description += " Refused on a connection this server was not started to allow it on; " +
+			presented.Description += " Refused on a connection this server was not started to allow it on; " +
 				"connections_list says how far each connection may go."
 		}
-		handler = guarded(s, tool.Name, operation, gated, confirmed, handler)
+		handler = guarded(s, tool, gated, confirmed)
 	}
-	addTool(mcpServer, tool, handler)
+	mcp.AddTool(mcpServer, presented, handler)
+}
+
+// direct runs a tool that only reads.
+func direct(s *server, tool toolset.Tool) mcp.ToolHandlerFor[json.RawMessage, any] {
+	return func(ctx context.Context, request *mcp.CallToolRequest, arguments json.RawMessage) (*mcp.CallToolResult, any, error) {
+		input, err := tool.Decode(arguments)
+		if err != nil {
+			return nil, nil, err
+		}
+		output, err := tool.Run(s.caller(ctx, request), s.env, input)
+		return nil, output, err
+	}
+}
+
+// caller tells the tools what they need to know about the client a call came
+// from.
+func (s *server) caller(ctx context.Context, request *mcp.CallToolRequest) context.Context {
+	return toolset.WithCaller(ctx, toolset.Caller{Confirms: canConfirm(request)})
 }
 
 /*
@@ -68,13 +77,14 @@ func provide[In, Out any](
  * again - the allowance, and that the connection is still the one the person
  * was shown - because either may have moved while they read.
  */
-func guarded[In, Out any](
-	s *server, name string, operation catalog.Operation, gated, confirmed bool,
-	handler mcp.ToolHandlerFor[In, Out],
-) mcp.ToolHandlerFor[In, Out] {
-	return func(ctx context.Context, request *mcp.CallToolRequest, input In) (*mcp.CallToolResult, Out, error) {
-		var nothing Out
-		id := any(input).(targeted).target()
+func guarded(s *server, tool toolset.Tool, gated, confirmed bool) mcp.ToolHandlerFor[json.RawMessage, any] {
+	operation, _ := catalog.Find(tool.Operation)
+	return func(ctx context.Context, request *mcp.CallToolRequest, arguments json.RawMessage) (*mcp.CallToolResult, any, error) {
+		input, err := tool.Decode(arguments)
+		if err != nil {
+			return nil, nil, err
+		}
+		id := input.(toolset.Targeted).Target()
 
 		var agreed *agreement
 		call := int64(0)
@@ -82,22 +92,22 @@ func guarded[In, Out any](
 			reply, token, answering := answerOf(request)
 			if !answering {
 				call = s.journal.next()
-				entry := s.entry(request, name, operation, id, input, call)
-				question, profile, err := s.question(ctx, request, name, operation, gated, id, input)
+				entry := s.entry(request, tool.Name, operation, id, input, call)
+				question, profile, err := s.question(ctx, request, tool, gated, id, input)
 				if err == nil {
 					err = s.journal.before(entry.asked(question))
 				}
 				if err != nil {
 					s.journal.keep(entry.refused(err))
-					return nil, nothing, err
+					return nil, nil, err
 				}
 				return s.confirmations.ask(question, agreement{
-					tool: name, arguments: canonical(input), profile: profile, call: call,
+					tool: tool.Name, arguments: toolset.Canonical(input), profile: profile, call: call,
 					expires: time.Now().Add(confirmationTTL),
-				}), nothing, nil
+				}), nil, nil
 			}
 
-			asked, err := s.confirmations.take(token, name, canonical(input))
+			asked, err := s.confirmations.take(token, tool.Name, toolset.Canonical(input))
 			if call = asked.call; call == 0 {
 				call = s.journal.next()
 			}
@@ -105,8 +115,8 @@ func guarded[In, Out any](
 				err = verdict(reply)
 			}
 			if err != nil {
-				s.journal.keep(s.entry(request, name, operation, id, input, call).refused(err))
-				return nil, nothing, err
+				s.journal.keep(s.entry(request, tool.Name, operation, id, input, call).refused(err))
+				return nil, nil, err
 			}
 			agreed = &asked
 		} else {
@@ -114,30 +124,30 @@ func guarded[In, Out any](
 		}
 
 		if gated || confirmed {
-			// Held until the handler returns: see refreshMu.
+			// Held until the tool returns: see refreshMu.
 			s.refreshMu.RLock()
 			defer s.refreshMu.RUnlock()
 		}
-		entry := s.entry(request, name, operation, id, input, call)
+		entry := s.entry(request, tool.Name, operation, id, input, call)
 		if gated {
-			if err := s.reaches(id, name, operation.Blast); err != nil {
+			if err := s.reaches(id, tool.Name, operation.Blast); err != nil {
 				s.journal.keep(entry.refused(err))
-				return nil, nothing, err
+				return nil, nil, err
 			}
 		}
 		if agreed != nil {
-			if err := s.changedSince(id, agreed.profile); err != nil {
+			if err := s.env.ChangedSince(id, agreed.profile); err != nil {
 				s.journal.keep(entry.refused(err))
-				return nil, nothing, err
+				return nil, nil, err
 			}
 		}
 		if err := s.journal.before(entry.started(agreed != nil)); err != nil {
-			return nil, nothing, err
+			return nil, nil, err
 		}
 
 		began := time.Now()
-		result, output, err := handler(ctx, request, input)
+		output, err := tool.Run(s.caller(ctx, request), s.env, input)
 		s.journal.keep(entry.finished(output, err, time.Since(began)))
-		return result, output, err
+		return nil, output, err
 	}
 }
