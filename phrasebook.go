@@ -74,12 +74,12 @@ func loadLocale(language string) map[string]any {
 	}
 	data, err := localeFiles.ReadFile(name)
 	if err != nil {
-		log.Printf("[mcp] no translations for %q: %v", language, err)
+		log.Printf("[i18n] no translations for %q: %v", language, err)
 		return nil
 	}
 	var table map[string]any
 	if err := json.Unmarshal(data, &table); err != nil {
-		log.Printf("[mcp] translations for %q are unreadable: %v", language, err)
+		log.Printf("[i18n] translations for %q are unreadable: %v", language, err)
 		return nil
 	}
 	return table

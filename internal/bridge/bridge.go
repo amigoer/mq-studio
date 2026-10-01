@@ -8,6 +8,7 @@ package bridge
 
 import (
 	"github.com/amigoer/mq-studio/internal/agent/assistant"
+	"github.com/amigoer/mq-studio/internal/agent/audit"
 	"github.com/amigoer/mq-studio/internal/app"
 	"github.com/amigoer/mq-studio/internal/storage/layout"
 	"github.com/amigoer/mq-studio/internal/update"
@@ -20,13 +21,34 @@ import (
 // The shell service and the update manager are passed in rather than built
 // here. Both outlive a single call: the shell's consumer is the system tray,
 // which cannot exist until the application is running, and the updater keeps a
-// background schedule the caller has to be able to stop.
+// background schedule the caller has to be able to stop. Translate resolves
+// i18n keys in the application's language; only the composition root can
+// embed the locale files it reads.
 func Services(
 	services *app.Services,
 	version string,
 	shell *ShellService,
 	updates *update.Manager,
+	translate func(string) string,
 ) []application.Service {
+	// Built here rather than in app.Services, which the MCP process assembles
+	// too: that process has no business with these keys.
+	paths := layout.In(services.Settings.DataDirectory())
+	agentStore := assistant.NewStore(paths.AgentFile)
+	agent := assistant.NewManager(assistant.Config{
+		Store:     agentStore,
+		Services:  services,
+		Translate: translate,
+		Journal:   audit.Open(paths.AgentAuditFile),
+		Client:    "MQ Studio " + version,
+		Emit: func(event assistant.Event) {
+			// Nil until application.New has run, which is before anybody
+			// can send a message.
+			if wailsApp := application.Get(); wailsApp != nil {
+				wailsApp.Event.Emit(AgentEvent, event)
+			}
+		},
+	})
 	return []application.Service{
 		application.NewService(&SystemService{settings: services.Settings, version: version}),
 		application.NewService(NewUpdateService(updates)),
@@ -34,10 +56,8 @@ func Services(
 		application.NewService(shell),
 		application.NewService(&ConnectionService{service: services.Connections, scopes: services.Scopes}),
 		application.NewService(&SettingsService{service: services.Settings}),
-		// Built here rather than in app.Services, which the MCP process
-		// assembles too: that process has no business with these keys.
-		application.NewService(NewAgentSettingsService(
-			assistant.NewStore(layout.In(services.Settings.DataDirectory()).AgentFile))),
+		application.NewService(NewAgentSettingsService(agentStore)),
+		application.NewService(NewAgentService(agent)),
 		application.NewService(&ClusterService{service: services.Cluster}),
 		application.NewService(&TopicService{service: services.Topics}),
 		application.NewService(&ConsumerService{service: services.Consumers}),

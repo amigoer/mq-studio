@@ -69,10 +69,14 @@ func run() error {
 	updates := newUpdateManager(services)
 	defer updates.Close()
 
+	// The assistant words its questions in the window's language, as the MCP
+	// server does.
+	translate := livePhrasebook(func() string { return services.Settings.GetSettings().Language })
+
 	wailsApp := application.New(application.Options{
 		Name:        applicationName,
 		Description: "Local-first desktop client for message queues",
-		Services:    bridge.Services(services, version, shellService, updates),
+		Services:    bridge.Services(services, version, shellService, updates, translate),
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),
 		},
