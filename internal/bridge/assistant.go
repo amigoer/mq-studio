@@ -37,6 +37,12 @@ func (s *AgentService) Send(session, text string, where assistant.Context) error
 	return s.manager.Send(session, text, where)
 }
 
+// Continue runs a conversation again from where a failed, stopped or limited
+// run left it, without anything new said.
+func (s *AgentService) Continue(session string) error {
+	return s.manager.Continue(session)
+}
+
 // Stop ends a conversation's run.
 func (s *AgentService) Stop(session string) error {
 	return s.manager.Stop(session)
