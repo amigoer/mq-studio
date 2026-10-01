@@ -56,6 +56,7 @@ import { QueueDialog } from "./QueueDialog";
 import { MoveDialog } from "./MoveDialog";
 import type { MoveRequest, QueueDeclaration } from "@/api/rabbitmq";
 import type { Destination } from "@/api/models";
+import { useReportSelection } from "@/design/agent/selection";
 
 const TAG = { fontSize: "10px" } as const;
 const MONO11 = { fontSize: "11px" } as const;
@@ -116,6 +117,7 @@ export function QueuesRabbitMQ() {
     () => rows.find((queue) => queueKey(queue) === selected) ?? null,
     [rows, selected],
   );
+  useReportSelection("queue", detail?.ref.name);
 
   /* The virtual host a new queue lands in. With a filter on it is that one;
      with none it is whichever the connection opened, which is what the

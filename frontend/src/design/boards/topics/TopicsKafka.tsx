@@ -49,6 +49,7 @@ import { TopicDialogKafka } from "./TopicDialogKafka";
 import { ReassignDialogKafka } from "./ReassignDialogKafka";
 import { useKafkaCluster } from "@/hooks/kafka/useKafkaCluster";
 import { nodeID } from "@/mq/kafka/cluster";
+import { useReportSelection } from "@/design/agent/selection";
 
 const R = { textAlign: "right" } as const;
 const MONO11 = { fontSize: "11px" } as const;
@@ -85,6 +86,7 @@ export function TopicsKafka() {
   const [showInternal, setShowInternal] = useState(false);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
+  useReportSelection("topic", selected);
   const [tab, setTab] = useState<string>(TAB_PARTITIONS);
   const [creating, setCreating] = useState(false);
   const [reassigning, setReassigning] = useState<number | null>(null);

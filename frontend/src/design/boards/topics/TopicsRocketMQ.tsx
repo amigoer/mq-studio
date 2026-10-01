@@ -57,6 +57,7 @@ import {
   writeQueue,
   type TopicRouteItem,
 } from "@/mq/rocketmq/destinations";
+import { useReportSelection } from "@/design/agent/selection";
 
 const SORTS = ["name", "produce"] as const;
 type Sort = (typeof SORTS)[number];
@@ -111,6 +112,7 @@ export function TopicsRocketMQ({ nav }: BoardProps = {}) {
   );
   const [showSystem, setShowSystem] = useState(false);
   const [selected, setSelected] = useState<string | null>(nav?.focus?.topic ?? null);
+  useReportSelection("topic", selected);
   const [query, setQuery] = useState("");
   const [kind, setKind] = useState<KindFilter>("all");
   // The name server hands topics back in no useful order, so name is the
