@@ -71,9 +71,9 @@ const TILE: Record<ProtocolId, { name: string; versions: string }> = {
   rocketmq: { name: "RocketMQ", versions: "4.x / 5.x" },
   kafka: { name: "Kafka", versions: "3.x / 4.x" },
   rabbitmq: { name: "RabbitMQ", versions: "3.x / 4.x" },
-  pulsar: { name: "Pulsar", versions: "2.x / 3.x" },
+  pulsar: { name: "Pulsar", versions: "3.x / 4.x" },
   redis: { name: "Redis Stream", versions: "6.0+" },
-  mqtt: { name: "MQTT", versions: "3.1 / 5.0" },
+  mqtt: { name: "MQTT", versions: "3.1.1 / 5.0" },
   nats: { name: "NATS", versions: "2.x" },
   // One tile for two products. Which one is behind the console is the
   // driver's to work out, so asking here would only let a user get it wrong.

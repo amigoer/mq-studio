@@ -109,6 +109,11 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   a test message - but the refusal reached the screen as "redis: nil", the
   client library's name for an empty reply.
 
+- The new-connection dialog names the versions each driver actually targets.
+  Pulsar read 2.x / 3.x, a value left over from the design canvas, while the
+  driver is tested against 4.x; MQTT read 3.1, a protocol the driver does not
+  speak, where the form beside it offers 3.1.1 and 5.0.
+
 ## [0.1.2] - 2026-09-20
 
 The connections page gains bulk work and a way into a form from the welcome
