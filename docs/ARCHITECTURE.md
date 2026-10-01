@@ -6,8 +6,9 @@
 React UI (system WebView)              Agent (MCP client)
         │ Wails bindings                        │ JSON-RPC over stdin/stdout
 internal/bridge                        internal/agent/mcpserver
-        │                                       │ the tools, any transport
-        │                              internal/agent/toolset
+        │                                       │
+        ├──► internal/agent/assistant ──► internal/agent/toolset
+        │    a model the window calls           │ the tools, any transport
         │                                       │
         └────────────► internal/service ◄───────┘
                               │             domain logic
@@ -18,7 +19,9 @@ internal/bridge                        internal/agent/mcpserver
 
 Two adapters over one set of services. Neither is allowed to hold logic of its
 own: the bridge reshapes for the renderer, the MCP server reshapes for a caller
-that has no screen, and both delegate straight into `internal/service`.
+that has no screen, and both delegate straight into `internal/service`. The
+window's assistant is the MCP server's tools run for a model the window calls
+itself, with the person on screen asked where the MCP server asks its client.
 
 The window is a single process. The UI runs in the platform WebView (WKWebView
 on macOS, WebView2 on Windows, WebKitGTK on Linux) and reaches Go through
@@ -102,16 +105,18 @@ merge with them. And it reads both files again before every tool call, through
 is working is usable by the next call, and a client whose profile or global
 credentials changed is redialled rather than kept.
 
-The one file it does write is its own. Every call to a tool that writes is
-appended to `agent-audit.jsonl` in the data directory - a start before the
-write is made, which is refused if the start cannot be recorded, and an outcome
-after it. The window never writes that file, so there is no whole-file rewrite
-to race: each record is a single append, synced before the write it announces.
+The one file it does write is the audit log (`internal/agent/audit`). Every
+call to a tool that writes is appended to `agent-audit.jsonl` in the data
+directory - a start before the write is made, which is refused if the start
+cannot be recorded, and an outcome after it. The window's assistant appends to
+the same file, and nothing ever rewrites it whole, so there is nothing to race:
+each record is a single append of one line, synced before the write it
+announces.
 
 `docs/AGENT_PLAN.md` carries the scope and the decisions behind it.
 
-The window is getting an assistant of its own, which runs the same tools in its
-own process (`docs/AGENT_IN_APP_PLAN.md`). What it runs on is set up in
+The window has an assistant of its own, which runs the same tools in its own
+process (`docs/AGENT_IN_APP_PLAN.md`). What it runs on is set up in
 Settings and kept in `agent.json`: the model services, each key encrypted with
 the same `secret.key` as the connection secrets and bound to the service it
 belongs to, and how writes are treated. It is not in `settings.json`, which the
@@ -122,6 +127,17 @@ and never back out, and an export can never be written over it.
 official SDK, and the OpenAI-compatible protocol over plain HTTP. Neither takes
 anything from the environment - no key, base URL or header that another tool
 exported - so a call carries only what was configured in the window.
+
+`internal/agent/assistant` runs the conversations, one run at a time in the
+whole window. A conversation is a list of items - what the person said, the
+model's text and thinking, each tool call and what came of it - and every
+change to one reaches the renderer as a numbered `agent:event`, so a renderer
+that missed one asks for a snapshot instead of guessing. Reads run at once. A
+write waits for the person to approve it, once or for the conversation, and a
+destruction is confirmed every time with the MCP server's question; both are
+recorded in the MCP server's audit log, with how they were let through. The
+tools reach only the connections the window has open: a dial from there would
+record no status and queue behind the person's own connects.
 
 ## Frontend seams
 
