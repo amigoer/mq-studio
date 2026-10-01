@@ -1,0 +1,16 @@
+{{ define "main" }}
+<div class="listing">
+  <header class="listing-header">
+    <h1>{{ .Page.Title }}</h1>
+  </header>
+  <ul class="release-list">
+    {{- range .Pages }}
+    <li class="release-item">
+      <h2><a href="{{ .RelPermalink }}">{{ .Title }}</a></h2>
+      {{- with .Description }}<p class="excerpt">{{ . }}</p>{{ end }}
+    </li>
+    {{- end }}
+  </ul>
+  {{ partial "pagination.html" . }}
+</div>
+{{ end }}

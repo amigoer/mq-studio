@@ -1,0 +1,46 @@
+{{- $s := .Site.ThemeSettings -}}
+{{- $root := or .Site.Params.root "/" -}}
+{{- $kind := printf "%s" .Page.Kind -}}
+{{- $type := .Page.Type -}}
+{{- /* A doc is drawn with the docs tree beside it, and a release with the
+       list of releases. */ -}}
+{{- $class := "" -}}
+{{- if eq $kind "home" }}{{ $class = "is-home" }}
+{{- else if eq $type "doc" }}{{ $class = "has-tree" }}
+{{- else if and (eq $kind "single") (eq $type "release") }}{{ $class = "has-tree has-rail" }}
+{{- end -}}
+<!DOCTYPE html>
+<html lang="{{ .Site.Language }}"{{ with $s.color_scheme }}{{ if or (eq . "light") (eq . "dark") }} data-theme="{{ . }}"{{ end }}{{ end }}>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  {{ partial "meta.html" . }}
+  {{ partial "theme-init.html" . }}
+  <link rel="preload" href="{{ $root }}mq-studio/fonts/geist.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="{{ $root }}mq-studio/site.css?v={{ .Site.Params.asset }}">
+  <script src="{{ $root }}mq-studio/site.js?v={{ .Site.Params.asset }}" defer></script>
+  {{ .Site.HeadHTML }}
+</head>
+<body{{ with $class }} class="{{ . }}"{{ end }}
+  data-copy="{{ T "copy" }}"
+  data-copied="{{ T "copied" }}"
+  data-anchor="{{ T "anchor" }}"
+  data-terminal="{{ T "terminal" }}"
+  data-search-label="{{ T "search_label" }}"
+  data-search-placeholder="{{ T "search_placeholder" }}"
+  data-search-empty="{{ T "search_empty" }}">
+  <a class="skip" href="#main">{{ T "skip" }}</a>
+  {{- /* The drawer of a narrow screen. A checkbox opens it without a script,
+         and it sits before everything it opens, as the stylesheet needs. */}}
+  <input type="checkbox" id="nav-toggle" class="nav-toggle" aria-controls="sidebar" aria-label="{{ T "menu" }}">
+  {{ partial "announcement.html" . }}
+  {{ partial "header.html" . }}
+  <label for="nav-toggle" class="backdrop" aria-hidden="true"></label>
+  <div class="layout">
+    {{ partial "sidebar.html" . }}
+    <main id="main" class="main">{{ block "main" . }}{{ end }}</main>
+  </div>
+  {{ partial "footer.html" . }}
+  {{ .Site.FooterHTML }}
+</body>
+</html>

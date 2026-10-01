@@ -1,0 +1,13 @@
+{{- /* A link from the settings or a menu. One to another site opens in a new
+       tab and says so. Called as: partial "link.html" (dict "label" L "url"
+       U), with "class", with "current" or "exact" when it leads to where the
+       reader is, and with "resolved" for an address a menu has put under the
+       site's path already. */ -}}
+{{- $external := or (str.HasPrefix "http://" .url) (str.HasPrefix "https://" .url) -}}
+{{- $href := .url -}}
+{{- if not .resolved }}{{ $href = url.Rel .url }}{{ end -}}
+{{- $class := "" -}}
+{{- with .class }}{{ $class = . }}{{ end -}}
+{{- if .current }}{{ $class = str.Trim (printf "%s current" $class) }}{{ end -}}
+<a href="{{ $href }}"{{ with $class }} class="{{ . }}"{{ end }}{{ if .exact }} aria-current="page"{{ end }}{{ if $external }} target="_blank" rel="noopener"{{ end }}>{{ .label }}{{ if $external }}{{ partial "icon.html" "external" }}<span class="sr-only">{{ T "new_tab" }}</span>{{ end }}</a>
+{{- /**/ -}}

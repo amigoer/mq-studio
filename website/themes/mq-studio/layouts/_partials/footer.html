@@ -1,0 +1,37 @@
+{{- $s := .Site.ThemeSettings -}}
+{{- $columns := len $s.footer_columns -}}
+<footer class="site-footer">
+  <div class="footer-inner">
+    {{- /* The site on the left, and its columns of links sharing the rest
+           evenly, however many there are. */}}
+    <div class="footer-main{{ if $columns }} has-columns{{ end }}"{{ if $columns }} style="--columns: {{ $columns }}"{{ end }}>
+      <div class="footer-brand">
+        {{ partial "brand.html" . }}
+        {{- with or $s.footer_text .Site.Description }}
+        <p class="footer-description">{{ . }}</p>
+        {{- end }}
+      </div>
+      {{- range $s.footer_columns }}
+      <div class="footer-column">
+        {{- with .title }}
+        <p class="footer-title">{{ . }}</p>
+        {{- end }}
+        <ul>
+          {{- range .links }}
+            {{- if and .label .url }}
+          <li>{{ partial "link.html" (dict "label" .label "url" .url) }}</li>
+            {{- end }}
+          {{- end }}
+        </ul>
+      </div>
+      {{- end }}
+    </div>
+    <div class="footer-bottom">
+      <p class="copyright">{{ with $s.copyright }}{{ . }}{{ else }}&copy; {{ time.Format "2006" .Site.BuildTime }} {{ .Site.Title }}{{ end }}</p>
+      <p class="credit">
+        <a href="{{ url.Rel "rss.xml" }}">{{ partial "icon.html" "rss" }}RSS</a>
+        <span class="powered">{{ T "powered_pre" }}<a href="https://github.com/kite-plus/kite" rel="noopener">Kite</a>{{ T "powered_post" }}</span>
+      </p>
+    </div>
+  </div>
+</footer>

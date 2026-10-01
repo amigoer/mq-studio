@@ -1,0 +1,35 @@
+{{ define "main" }}
+{{- $s := .Site.ThemeSettings -}}
+{{- $here := .Page.RelPermalink -}}
+{{- $toc := partial "toc-count.html" .Page -}}
+{{- $group := "" -}}
+{{- range $s.sidebar }}{{ $title := .title }}{{ range .pages }}{{ if and .url (not $group) (eq (url.Rel .url) $here) }}{{ $group = $title }}{{ end }}{{ end }}{{ end -}}
+<div class="doc{{ if $toc }} with-toc{{ end }}">
+  <article class="doc-body">
+    {{- with $group }}
+    <p class="crumb">{{ . }}</p>
+    {{- end }}
+    <header class="doc-header">
+      <h1>{{ .Page.Title }}</h1>
+      <p class="doc-meta">
+        {{- if not (time.IsZero .Page.Lastmod) }}
+        <span>{{ T "updated" (dict "Date" (time.Format (T "date_format") .Page.Lastmod)) }}</span><span class="sep" aria-hidden="true">·</span>
+        {{- end }}
+        <span>{{ T "minutes" (math.Max 1 (time.Minutes .Page.ReadingTime)) }}</span>
+        {{- with .Page.Params.source }}{{ with $s.github }}
+        <span class="sep" aria-hidden="true">·</span><a href="{{ . }}/blob/main/{{ $.Page.Params.source }}" target="_blank" rel="noopener">{{ T "edit" }}</a>
+        {{- end }}{{ end }}
+      </p>
+    </header>
+    {{- if .Page.Params.untranslated }}{{ with $s.untranslated }}
+    <p class="notice" data-untranslated>{{ . }}</p>
+    {{- end }}{{ end }}
+    {{- if $toc }}{{ partial "toc.html" (dict "page" .Page "inline" true) }}{{ end }}
+    <div class="prose">{{ .Page.Content }}</div>
+    <footer class="doc-footer">{{ partial "pager.html" . }}</footer>
+  </article>
+  {{- if $toc }}
+  <aside class="doc-aside">{{ partial "toc.html" (dict "page" .Page) }}</aside>
+  {{- end }}
+</div>
+{{ end }}

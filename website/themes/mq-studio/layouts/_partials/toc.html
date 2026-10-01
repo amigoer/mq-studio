@@ -1,0 +1,18 @@
+{{- /* The sections of a page, from its second and third level headings.
+       Called as: partial "toc.html" (dict "page" .Page), with
+       "inline" set for the disclosure drawn above the text on a narrow
+       screen instead of the column beside it. */ -}}
+{{- $label := T "on_this_page" -}}
+{{- $list := partial "toc-list.html" .page -}}
+{{- if .inline }}
+<details class="toc-inline">
+  <summary>{{ $label }}</summary>
+  {{ $list }}
+</details>
+{{- else }}
+<nav class="toc" aria-label="{{ $label }}">
+  <p class="toc-title">{{ partial "icon.html" "list" }}{{ $label }}</p>
+  {{ $list }}
+  <a class="toc-top" href="#">{{ partial "icon.html" "up" }}{{ T "top" }}</a>
+</nav>
+{{- end }}

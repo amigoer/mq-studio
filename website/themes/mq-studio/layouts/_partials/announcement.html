@@ -1,0 +1,16 @@
+{{- /* A line above the header on every page. Closing it is remembered
+       against announcement_id, so a new announcement shows again; the close
+       button stays hidden until the script that remembers it runs. */ -}}
+{{- $s := .Site.ThemeSettings -}}
+{{- if and $s.announcement $s.announcement_text }}
+<div class="announcement"{{ with $s.announcement_id }} data-announcement="{{ . }}"{{ end }}>
+  {{- with $s.announcement_link }}
+  <a href="{{ url.Rel . }}">{{ $s.announcement_text }}<span aria-hidden="true"> →</span></a>
+  {{- else }}
+  <p>{{ $s.announcement_text }}</p>
+  {{- end }}
+  {{- if $s.announcement_id }}
+  <button type="button" class="announcement-close" data-announcement-close aria-label="{{ T "close" }}" hidden>{{ partial "icon.html" "close" }}</button>
+  {{- end }}
+</div>
+{{- end }}

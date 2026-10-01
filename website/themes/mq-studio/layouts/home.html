@@ -1,0 +1,173 @@
+{{ define "main" }}
+{{- $s := .Site.ThemeSettings -}}
+{{- $p := .Site.Params -}}
+{{- $root := or $p.root "/" -}}
+<div class="home">
+<section class="hero" id="top">
+  <div class="hero-inner">
+    {{- /* Left to itself, the badge names the current release and links its
+           changelog, so it moves with every release on its own. */}}
+    {{- with $s.badge_text }}
+    {{- $tag := $s.badge_tag }}{{ $link := $s.badge_link }}
+    {{- with $p.release.version }}
+      {{- if not $tag }}{{ $tag = printf "v%s" . }}{{ end }}
+      {{- if not $link }}{{ $link = printf "changelog/v%s/" . }}{{ end }}
+    {{- end }}
+    {{- if $link }}<a class="badge" href="{{ url.Rel $link }}">{{ else }}<p class="badge">{{ end }}
+      {{- with $tag }}<span class="badge-tag">{{ . }}</span>{{ end }}<span>{{ . }}</span>
+    {{- if $link }}{{ partial "icon.html" "next" }}</a>{{ else }}</p>{{ end }}
+    {{- end }}
+    <h1 class="hero-title">
+      {{- with $s.hero_title }}{{ range $i, $line := str.Split "\n" . }}{{ if $i }}<br>{{ end }}{{ $line }}{{ end }}{{ else }}{{ $.Site.Title }}{{ end -}}
+    </h1>
+    {{- with or $s.hero_text .Site.Description }}
+    <p class="hero-tagline">{{ . }}</p>
+    {{- end }}
+    <div class="hero-actions">
+      {{- if $p.release }}
+      {{ partial "download-menu.html" . }}
+      {{- end }}
+      {{- if and $s.install_label $s.install_url }}
+      <a class="button" href="{{ url.Rel $s.install_url }}">{{ $s.install_label }}</a>
+      {{- end }}
+    </div>
+    {{- with $s.hero_note }}
+    <p class="hero-note">{{ . }}</p>
+    {{- end }}
+  </div>
+</section>
+
+{{- if $s.showcase_image }}
+<section class="showcase home-section" id="product">
+  {{ partial "section-head.html" (dict "label" $s.showcase_label "title" $s.showcase_title "text" $s.showcase_text) }}
+  <div class="stage{{ if not $s.showcase_image2 }} single{{ end }}">
+    <figure class="window window-main">{{ partial "shot.html" (dict "site" .Site "name" $s.showcase_image "dark" $s.showcase_image_dark "alt" $s.showcase_alt "sizes" "(min-width: 1280px) 900px, 76vw" "eager" true) }}</figure>
+    {{- with $s.showcase_image2 }}
+    <figure class="window window-over">{{ partial "shot.html" (dict "site" $.Site "name" . "alt" $s.showcase_alt2 "sizes" "(min-width: 1280px) 600px, 50vw") }}</figure>
+    {{- with $s.showcase_note }}
+    <p class="stage-note"><span>{{ . }}</span>{{ with $s.showcase_note_text }}<small>{{ . }}</small>{{ end }}</p>
+    {{- end }}
+    {{- end }}
+  </div>
+</section>
+{{- end }}
+
+{{- with $s.brokers }}
+<section class="brokers home-section" id="brokers">
+  {{ partial "section-head.html" (dict "label" $s.brokers_label "title" $s.brokers_title "text" $s.brokers_text) }}
+  <ul class="broker-grid">
+    {{- range . }}
+    <li><span class="broker-name">{{ .name }}</span>{{ with .versions }}<span class="broker-versions">{{ . }}</span>{{ end }}</li>
+    {{- end }}
+  </ul>
+</section>
+{{- end }}
+
+{{- with $s.features }}
+<section class="features home-section" id="features">
+  {{ partial "section-head.html" (dict "label" $s.features_label "title" $s.features_title "text" $s.features_text) }}
+  <ul class="feature-grid">
+    {{- range . }}
+    <li class="feature">
+      {{- with .icon }}<span class="feature-icon">{{ partial "icon.html" . }}</span>{{ end }}
+      <h3>{{ .title }}</h3>
+      {{- with .text }}<p>{{ . }}</p>{{ end }}
+    </li>
+    {{- end }}
+  </ul>
+</section>
+{{- end }}
+
+{{- with $s.tour }}
+<section class="tour" id="tour">
+  <div class="home-section">
+    {{ partial "section-head.html" (dict "label" $s.tour_label "title" $s.tour_title "text" $s.tour_text) }}
+    <ul class="photos">
+      {{- range . }}
+      <li>
+        <figure class="photo">
+          <div class="photo-frame">{{ partial "shot.html" (dict "site" $.Site "name" .image "alt" (or .alt .title) "sizes" "(min-width: 1280px) 580px, (min-width: 960px) 46vw, 92vw") }}</div>
+          <figcaption><b>{{ .title }}</b>{{ with .note }}<span>{{ . }}</span>{{ end }}</figcaption>
+        </figure>
+      </li>
+      {{- end }}
+    </ul>
+  </div>
+</section>
+{{- end }}
+
+{{- with $p.releases }}
+<section class="home-news home-section" id="releases">
+  <div class="news-head">
+    <h2>{{ $s.news_title }}</h2>
+    {{- with $s.news_text }}<p>{{ . }}</p>{{ end }}
+    <a class="more-link" href="{{ url.Rel "changelog/" }}">{{ T "all_releases" }}{{ partial "icon.html" "next" }}</a>
+  </div>
+  <ul class="news-rows">
+    {{- range $i, $r := . }}
+      {{- if lt $i 3 }}
+    <li><a class="news-row" href="{{ url.Rel $r.url }}">
+      <time datetime="{{ $r.date }}">{{ $r.date }}</time>
+      <span class="news-title">{{ $r.version }}{{ if eq $i 0 }}<span class="news-latest">{{ T "latest" }}</span>{{ end }}</span>
+      <span class="news-excerpt">{{ $r.summary }}</span>
+      {{- partial "icon.html" "arrow-up-right" }}
+    </a></li>
+      {{- end }}
+    {{- end }}
+  </ul>
+</section>
+{{- end }}
+
+{{- if $p.release }}
+<section class="download home-section" id="download">
+  <div class="section-head">
+    <h2 class="section-title">{{ or $s.download_title (T "download_fallback") }}</h2>
+    {{- with $s.download_text }}
+    {{- $text := str.Replace "{version}" $p.release.tag . }}
+    {{- $parts := str.Split "{checksums}" $text }}
+    <p class="section-lead">{{ index $parts 0 }}{{ if gt (len $parts) 1 }}{{ with $p.release.checksums }}<a href="{{ . }}">SHA256SUMS.txt</a>{{ else }}SHA256SUMS.txt{{ end }}{{ index $parts 1 }}{{ end }}</p>
+    {{- end }}
+  </div>
+  {{ partial "download-cards.html" . }}
+  <p class="download-notes">
+    {{- with $s.download_note_mac }}<span>{{ . }} <a href="{{ url.Rel (or $s.download_note_mac_link "docs/install/") }}">{{ T "install_guide" }}</a></span>{{ end }}
+    {{- with $s.download_note_linux }}<span>{{ . }} <a href="https://github.com/amigoer/mq-studio/releases">{{ T "all_github_releases" }}</a></span>{{ end }}
+  </p>
+</section>
+{{- end }}
+
+{{- with $s.more }}
+<section class="home-more home-section" id="community">
+  <div class="more-intro">
+    {{- with $s.more_title }}<h2>{{ . }}</h2>{{ end }}
+    {{- with $s.more_text }}<p>{{ . }}</p>{{ end }}
+    {{- with $p.community }}
+    <dl class="stats">
+      <div><dt>{{ T "stars" }}</dt><dd>{{ .stars }}</dd></div>
+      <div><dt>{{ T "forks" }}</dt><dd>{{ .forks }}</dd></div>
+      {{- with .contributors }}
+      <div class="stats-people"><dt>{{ T "maintained_by" }}</dt><dd>
+        {{- range . }}<a class="person" href="{{ .url }}" target="_blank" rel="noopener" title="{{ .login }}">{{ with .avatar }}<img src="{{ $root }}{{ . }}" alt="" width="28" height="28" loading="lazy" decoding="async">{{ end }}<span>{{ .login }}</span></a>{{ end -}}
+      </dd></div>
+      {{- end }}
+    </dl>
+    {{- end }}
+  </div>
+  <ul class="more-cards">
+    {{- range . }}
+      {{- if .title }}
+        {{- $external := and .link (or (str.HasPrefix "http://" .link) (str.HasPrefix "https://" .link)) }}
+    <li class="more-card">
+      <h3>{{ .title }}</h3>
+      {{- with .text }}<p>{{ . }}</p>{{ end }}
+      {{- if .link }}
+      <a href="{{ url.Rel .link }}"{{ if $external }} target="_blank" rel="noopener"{{ end }}>{{ .link_label }}{{ if $external }}{{ partial "icon.html" "arrow-up-right" }}<span class="sr-only">{{ T "new_tab" }}</span>{{ else }}{{ partial "icon.html" "next" }}{{ end }}</a>
+      {{- end }}
+    </li>
+      {{- end }}
+    {{- end }}
+  </ul>
+</section>
+{{- end }}
+</div>
+{{ end }}

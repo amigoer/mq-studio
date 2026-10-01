@@ -1,0 +1,16 @@
+{{ define "main" }}
+<div class="listing docs-index">
+  <header class="listing-header">
+    <h1>{{ T "docs" }}</h1>
+    <p class="lead">{{ T "docs_lead" }}</p>
+  </header>
+  <ul class="doc-cards">
+    {{- range .Pages }}
+    <li><a class="doc-card" href="{{ .RelPermalink }}">
+      <span class="doc-card-title">{{ .Title }}{{ partial "icon.html" "next" }}</span>
+      {{- with .Description }}<span class="doc-card-text">{{ . }}</span>{{ end }}
+    </a></li>
+    {{- end }}
+  </ul>
+</div>
+{{ end }}

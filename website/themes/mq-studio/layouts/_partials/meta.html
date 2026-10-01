@@ -1,0 +1,89 @@
+{{- /* What a page says about itself to browsers, search engines and the
+       apps a link is shared in. Called with the page's context. */ -}}
+{{- $s := .Site.ThemeSettings -}}
+{{- $p := .Site.Params -}}
+{{- $root := or $p.root "/" -}}
+{{- $origin := or $p.origin "" -}}
+{{- $kind := printf "%s" .Page.Kind -}}
+{{- $name := .Page.Title -}}
+{{- if eq $kind "404" }}{{ $name = T "notfound" }}
+{{- else if and (eq $kind "list") (eq .Page.Type "doc") }}{{ $name = T "docs" }}
+{{- else if and (eq $kind "list") (eq .Page.Type "release") }}{{ $name = T "changelog" }}
+{{- else if and (eq $kind "single") (eq .Page.Type "release") }}{{ $name = printf "%s · %s" .Page.Title (T "changelog") }}
+{{- end -}}
+{{- $title := printf "%s · %s" $name .Site.Title -}}
+{{- if eq $kind "home" }}
+  {{- $title = .Site.Title }}
+  {{- with $s.tagline }}{{ $title = printf "%s — %s" $.Site.Title . }}{{ end }}
+{{- end -}}
+<title>{{ $title }}</title>
+  {{- $description := .Site.Description }}
+  {{- with .Page.Description }}{{ $description = . }}{{ end }}
+  {{- with $description }}
+  <meta name="description" content="{{ . }}">
+  {{- end }}
+  {{- with .Site.Keywords }}
+  <meta name="keywords" content="{{ str.Join "," . }}">
+  {{- end }}
+  {{- with .Site.Author }}
+  <meta name="author" content="{{ . }}">
+  {{- end }}
+  {{- if .Site.NoIndex }}
+  <meta name="robots" content="noindex, nofollow">
+  {{- end }}
+  {{- with $s.favicon }}
+  <link rel="icon" type="image/svg+xml" href="{{ $root }}{{ str.TrimPrefix "/" . }}">
+  {{- end }}
+  {{- with $s.favicon_png }}
+  <link rel="icon" type="image/png" href="{{ $root }}{{ str.TrimPrefix "/" . }}">
+  <link rel="apple-touch-icon" href="{{ $root }}{{ str.TrimPrefix "/" . }}">
+  {{- end }}
+  {{- if ne $kind "404" }}
+  <link rel="canonical" href="{{ .Page.Permalink }}">
+  {{- /* Both languages carry the same routes, English under /en/. */}}
+  {{- $zh := .Page.RelPermalink }}
+  {{- $en := printf "/en%s" $zh }}
+  {{- if not (str.HasPrefix "zh" .Site.Language) }}{{ $en = $zh }}{{ $zh = str.TrimPrefix "/en" $en }}{{ end }}
+  <link rel="alternate" hreflang="zh-CN" href="{{ $origin }}{{ $zh }}">
+  <link rel="alternate" hreflang="en" href="{{ $origin }}{{ $en }}">
+  <link rel="alternate" hreflang="x-default" href="{{ $origin }}{{ $zh }}">
+  {{- end }}
+  {{- $image := "" }}
+  {{- with $s.share_image }}{{ $image = printf "%s/%s" $origin (str.TrimPrefix "/" .) }}{{ end }}
+  <meta property="og:type" content="{{ if and (eq $kind "single") (eq .Page.Type "release") }}article{{ else }}website{{ end }}">
+  <meta property="og:site_name" content="{{ .Site.Title }}">
+  <meta property="og:title" content="{{ $title }}">
+  {{- with $description }}
+  <meta property="og:description" content="{{ . }}">
+  {{- end }}
+  {{- if ne $kind "404" }}
+  <meta property="og:url" content="{{ .Page.Permalink }}">
+  {{- end }}
+  <meta property="og:locale" content="{{ if str.HasPrefix "zh" .Site.Language }}zh_CN{{ else }}en_US{{ end }}">
+  {{- with $image }}
+  <meta property="og:image" content="{{ . }}">
+  <meta property="og:image:type" content="image/jpeg">
+  {{- end }}
+  <meta name="twitter:card" content="{{ if $image }}summary_large_image{{ else }}summary{{ end }}">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0e0e11" media="(prefers-color-scheme: dark)">
+  <link rel="alternate" type="application/rss+xml" title="{{ .Site.Title }} · {{ T "changelog" }}" href="{{ url.Rel "rss.xml" }}">
+  {{- if eq $kind "home" }}
+  {{- /* The desktop app is the product; SoftwareApplication is what search
+         engines read for a download-oriented result. */}}
+  {{- $ld := dict
+      "@context" "https://schema.org"
+      "@type" "SoftwareApplication"
+      "name" .Site.Title
+      "description" .Site.Description
+      "url" .Site.BaseURL
+      "applicationCategory" "DeveloperApplication"
+      "operatingSystem" "macOS 12+, Windows 10+, Linux"
+      "softwareVersion" (or $p.release.version "")
+      "downloadUrl" "https://github.com/amigoer/mq-studio/releases/latest"
+      "license" "https://www.apache.org/licenses/LICENSE-2.0"
+      "isAccessibleForFree" true
+      "offers" (dict "@type" "Offer" "price" "0" "priceCurrency" "USD")
+      "author" (dict "@type" "Person" "name" "amigoer" "url" "https://github.com/amigoer") }}
+  <script type="application/ld+json">{{ $ld }}</script>
+  {{- end }}

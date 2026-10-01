@@ -1,0 +1,42 @@
+{{- $s := .Site.ThemeSettings -}}
+{{- $p := .Site.Params -}}
+{{- $kind := printf "%s" .Page.Kind -}}
+{{- $links := .Site.Menus.main -}}
+{{- $home := url.For "home" -}}
+<header class="site-header">
+  <div class="header-inner">
+    {{ partial "brand.html" . }}
+    {{- with $p.release.version }}
+    <a class="version" href="{{ url.Rel (printf "changelog/v%s/" .) }}">v{{ . }}</a>
+    {{- end }}
+    {{- if $links }}
+    <nav class="header-nav" aria-label="{{ T "main_nav" }}">
+      {{- partial "nav-links.html" $ }}
+    </nav>
+    {{- end }}
+    <div class="header-tools">
+      {{- $search := T "search_label" }}
+      <button type="button" class="search-button" data-search aria-label="{{ $search }}" hidden>{{ partial "icon.html" "search" }}<span class="search-text">{{ $search }}</span><kbd>/</kbd></button>
+      {{- with $s.alternate_label }}
+      {{- /* The same page in the other language: both carry the same routes,
+             English under /en/. */}}
+      {{- $here := $.Page.RelPermalink }}
+      {{- $other := printf "/en%s" $here }}
+      {{- if not (str.HasPrefix "zh" $.Site.Language) }}{{ $other = str.TrimPrefix "/en" $here }}{{ end }}
+      {{- if eq $kind "404" }}{{ $other = $s.alternate }}{{ end }}
+      <a class="lang-switch" href="{{ $other }}" hreflang="{{ if str.HasPrefix "zh" $.Site.Language }}en{{ else }}zh-CN{{ end }}" lang="{{ if str.HasPrefix "zh" $.Site.Language }}en{{ else }}zh-CN{{ end }}" title="{{ T "read_in" (dict "Language" .) }}">{{ partial "icon.html" "languages" }}<span>{{ . }}</span></a>
+      {{- end }}
+      {{- $modes := dict "auto" (T "theme_auto") "dark" (T "theme_dark") "light" (T "theme_light") }}
+      {{- $switchTo := T "theme_switch_to" }}
+      {{- $mode := "auto" }}{{ with $s.color_scheme }}{{ if or (eq . "light") (eq . "dark") }}{{ $mode = . }}{{ end }}{{ end }}
+      {{- $next := index (dict "auto" "dark" "dark" "light" "light" "auto") $mode }}
+      {{- $toggle := printf "%s · %s%s" (index $modes $mode) $switchTo (index $modes $next) }}
+      <button type="button" class="icon-button theme-toggle" data-theme-toggle data-auto="{{ $modes.auto }}" data-dark="{{ $modes.dark }}" data-light="{{ $modes.light }}" data-switch-to="{{ $switchTo }}" title="{{ $toggle }}" aria-label="{{ $toggle }}"><span data-theme-icon="auto">{{ partial "icon.html" "monitor" }}</span><span data-theme-icon="dark">{{ partial "icon.html" "moon" }}</span><span data-theme-icon="light">{{ partial "icon.html" "sun" }}</span></button>
+      {{- with $s.github }}
+      <a class="github-link" href="{{ . }}" target="_blank" rel="noopener" aria-label="GitHub{{ with $p.community.stars }} · {{ . }} {{ T "stars" }}{{ end }}">{{ partial "icon.html" "github" }}{{ with $p.community.stars }}<span class="star-count">{{ . }}</span>{{ end }}</a>
+      {{- end }}
+      <a class="button primary header-button" href="{{ if eq $kind "home" }}#download{{ else }}{{ $home }}#download{{ end }}">{{ partial "icon.html" "download" }}{{ T "download" }}</a>
+      <label for="nav-toggle" class="menu-button icon-button" title="{{ T "menu" }}" aria-hidden="true">{{ partial "icon.html" "menu" }}</label>
+    </div>
+  </div>
+</header>

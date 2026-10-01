@@ -1,0 +1,26 @@
+{{ define "main" }}
+<div class="listing changelog">
+  <header class="listing-header">
+    <h1>{{ T "changelog" }}</h1>
+    <p class="lead">{{ T "changelog_lead" }}</p>
+    <p class="listing-meta">
+      <span>{{ T "release_count" (len .Pages) }}</span>
+      <a href="{{ url.Rel "rss.xml" }}">{{ partial "icon.html" "rss" }}RSS</a>
+    </p>
+  </header>
+  <ul class="release-list">
+    {{- range $i, $page := .Pages }}
+    <li class="release-item">
+      {{- if not (time.IsZero .PublishDate) }}
+      <time datetime="{{ time.Format "2006-01-02" .PublishDate }}">{{ time.Format "2006-01-02" .PublishDate }}</time>
+      {{- end }}
+      <h2><a href="{{ .RelPermalink }}">{{ .Title }}</a>{{ if eq $i 0 }}<span class="title-tag">{{ T "latest" }}</span>{{ end }}</h2>
+      {{- with .Description }}
+      <p class="excerpt">{{ . }}</p>
+      {{- end }}
+    </li>
+    {{- end }}
+  </ul>
+  {{ partial "pagination.html" . }}
+</div>
+{{ end }}

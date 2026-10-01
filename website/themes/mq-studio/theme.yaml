@@ -1,0 +1,241 @@
+name: mq-studio
+title: MQ Studio
+version: 1.0.0
+apiVersion: kite/v1
+requires: ">=0.1.6 <2.0.0"
+description: The theme of the MQ Studio website. It is Vane 1.0.1, the documentation theme for Kite, redrawn in MQ Studio's own look - neutral surfaces, sans-serif headings, the brand red, and the app's screenshots in place of the paper sky - with a download section, a broker list and a changelog of its own.
+author:
+  name: amigoer
+  url: https://github.com/amigoer
+license: Apache-2.0
+homepage: https://github.com/amigoer/mq-studio/tree/main/website/themes/mq-studio
+tags: [docs, product, changelog, dark mode]
+
+capabilities: [static]
+contentTypes: [page]
+taxonomies: []
+
+menus:
+  - name: main
+    label: Header
+    description: The links across the top of every page, and in the drawer on a phone.
+
+layouts:
+  - name: wide
+    label: Wide page
+    description: Uses the full width, without the docs tree or a table of contents.
+    types: [page]
+
+settings:
+  - key: brand
+    type: section
+    label: Brand
+    fields:
+      - key: logo
+        type: image
+        label: Logo
+        help: Shown before the site title in the header and the footer.
+      - key: tagline
+        type: string
+        label: Subtitle
+        help: After the site's name in the home page's title, as tabs and search results show it.
+      - key: favicon
+        type: image
+        label: Site icon (SVG)
+      - key: favicon_png
+        type: image
+        label: Site icon (PNG)
+        help: For the browsers that do not take an SVG icon.
+      - key: share_image
+        type: image
+        label: Share picture
+        help: Shown when a page is shared in a chat or on a social network.
+      - key: color_scheme
+        type: select
+        label: Light or dark
+        default: auto
+        options:
+          - {value: auto, label: Follow the reader's system}
+          - {value: light, label: Light}
+          - {value: dark, label: Dark}
+      - key: github
+        type: url
+        label: GitHub repository
+        help: Linked from the header with its star count, and used for the edit links on the docs.
+      - key: alternate
+        type: url
+        label: The other language
+        help: The address of this site in the other language, such as /en/ or /. The language switch keeps the reader on the same page.
+      - key: alternate_label
+        type: string
+        label: The other language's name
+        placeholder: English
+
+  - key: notice
+    type: section
+    label: Announcement
+    fields:
+      - key: announcement
+        type: boolean
+        label: Show an announcement bar
+        default: false
+      - key: announcement_id
+        type: string
+        label: Announcement id
+        help: A reader who closes the bar is not shown it again until this changes, so give each new announcement a new one.
+        showIf: {announcement: true}
+      - key: announcement_text
+        type: string
+        label: Text
+        showIf: {announcement: true}
+      - key: announcement_link
+        type: url
+        label: Link
+        showIf: {announcement: true}
+
+  - key: home
+    type: section
+    label: "Home page: the headline"
+    preview: home
+    fields:
+      - {key: badge_tag, type: string, label: Badge tag, help: A version stamped at the start of the badge.}
+      - {key: badge_text, type: string, label: Badge}
+      - {key: badge_link, type: url, label: Badge link}
+      - {key: hero_title, type: text, label: Headline, help: Each line starts a new line in the headline.}
+      - {key: hero_text, type: text, label: Tagline}
+      - {key: hero_note, type: string, label: Note under the buttons}
+      - {key: install_label, type: string, label: Second button}
+      - {key: install_url, type: url, label: Second button address}
+
+  - key: home_showcase
+    type: section
+    label: "Home page: the product"
+    preview: home
+    fields:
+      - {key: showcase_label, type: string, label: Small heading}
+      - {key: showcase_title, type: string, label: Title}
+      - {key: showcase_text, type: text, label: Sentence}
+      - {key: showcase_image, type: string, label: Main window, help: "The name of a screenshot, such as overview."}
+      - {key: showcase_image_dark, type: string, label: Main window when dark}
+      - {key: showcase_alt, type: string, label: Main window description}
+      - {key: showcase_image2, type: string, label: Second window}
+      - {key: showcase_alt2, type: string, label: Second window description}
+      - {key: showcase_note, type: string, label: Note}
+      - {key: showcase_note_text, type: string, label: Smaller note}
+
+  - key: home_brokers
+    type: section
+    label: "Home page: the brokers"
+    preview: home
+    fields:
+      - {key: brokers_label, type: string, label: Small heading}
+      - {key: brokers_title, type: string, label: Title}
+      - {key: brokers_text, type: text, label: Sentence}
+      - key: brokers
+        type: repeat
+        label: Brokers
+        fields:
+          - {key: name, type: string, label: Name}
+          - {key: versions, type: string, label: Versions}
+
+  - key: home_features
+    type: section
+    label: "Home page: the features"
+    preview: home
+    fields:
+      - {key: features_label, type: string, label: Small heading}
+      - {key: features_title, type: string, label: Title}
+      - {key: features_text, type: text, label: Sentence}
+      - key: features
+        type: repeat
+        label: Features
+        fields:
+          - {key: icon, type: string, label: Icon}
+          - {key: title, type: string, label: Title}
+          - {key: text, type: text, label: Text}
+
+  - key: home_tour
+    type: section
+    label: "Home page: the tour"
+    preview: home
+    fields:
+      - {key: tour_label, type: string, label: Small heading}
+      - {key: tour_title, type: string, label: Title}
+      - {key: tour_text, type: text, label: Sentence}
+      - key: tour
+        type: repeat
+        label: Screens
+        fields:
+          - {key: image, type: string, label: Screenshot}
+          - {key: title, type: string, label: Title}
+          - {key: note, type: text, label: Note}
+          - {key: alt, type: string, label: Description}
+
+  - key: home_news
+    type: section
+    label: "Home page: releases and download"
+    preview: home
+    fields:
+      - {key: news_title, type: string, label: Releases title}
+      - {key: news_text, type: text, label: Releases sentence}
+      - {key: download_title, type: string, label: Download title}
+      - {key: download_text, type: text, label: Download sentence, help: "{version} and {checksums} are filled in from the release."}
+      - {key: mac_requirement, type: string, label: macOS requirement}
+      - {key: windows_requirement, type: string, label: Windows requirement}
+      - {key: linux_requirement, type: string, label: Linux requirement}
+      - {key: download_note_mac, type: string, label: macOS note}
+      - {key: download_note_mac_link, type: url, label: macOS note link}
+      - {key: download_note_linux, type: string, label: Linux note}
+
+  - key: home_more
+    type: section
+    label: "Home page: the closing cards"
+    preview: home
+    fields:
+      - {key: more_title, type: string, label: Title}
+      - {key: more_text, type: text, label: Sentence}
+      - key: more
+        type: repeat
+        label: Cards
+        fields:
+          - {key: title, type: string, label: Title}
+          - {key: text, type: text, label: Text}
+          - {key: link, type: url, label: Address}
+          - {key: link_label, type: string, label: Link text}
+
+  - key: docs
+    type: section
+    label: Docs
+    preview: page
+    fields:
+      - key: sidebar
+        type: repeat
+        label: Docs tree
+        help: The groups of the sidebar and the pages in each, in reading order.
+        fields:
+          - {key: title, type: string, label: Group title}
+          - key: pages
+            type: repeat
+            label: Pages
+            fields:
+              - {key: label, type: string, label: Title}
+              - {key: url, type: url, label: Address}
+      - {key: untranslated, type: text, label: Untranslated notice, help: Shown on a page that has no translation in this language.}
+
+  - key: footer
+    type: section
+    label: Footer
+    fields:
+      - key: footer_columns
+        type: repeat
+        label: Columns
+        fields:
+          - {key: title, type: string, label: Title}
+          - key: links
+            type: repeat
+            label: Links
+            fields:
+              - {key: label, type: string, label: Label}
+              - {key: url, type: url, label: Address}
+      - {key: footer_text, type: string, label: Line under the name, help: "Left empty, the site description is used."}
+      - {key: copyright, type: string, label: Copyright}

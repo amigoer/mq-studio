@@ -1,0 +1,32 @@
+{{- /* The pages before and after this one in the docs tree, across groups.
+       Called with the page's context. */ -}}
+{{- $here := .Page.RelPermalink -}}
+{{- $prev := false -}}
+{{- $next := false -}}
+{{- $last := false -}}
+{{- $found := false -}}
+{{- range .Site.ThemeSettings.sidebar }}
+  {{- range .pages }}
+    {{- if and .label .url }}
+      {{- $u := url.Rel .url }}
+      {{- if $found }}
+        {{- if not $next }}{{ $next = dict "label" .label "url" $u }}{{ end }}
+      {{- else if or (eq $u $here) (eq (printf "%s/" $u) $here) }}
+        {{- $found = true }}
+        {{- $prev = $last }}
+      {{- else }}
+        {{- $last = dict "label" .label "url" $u }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+{{- if or $prev $next }}
+<nav class="pager">
+  {{- with $prev }}
+  <a class="pager-link prev" rel="prev" href="{{ .url }}"><span class="pager-dir">{{ partial "icon.html" "prev" }}{{ T "prev" }}</span><span class="pager-title">{{ .label }}</span></a>
+  {{- end }}
+  {{- with $next }}
+  <a class="pager-link next" rel="next" href="{{ .url }}"><span class="pager-dir">{{ T "next" }}{{ partial "icon.html" "next" }}</span><span class="pager-title">{{ .label }}</span></a>
+  {{- end }}
+</nav>
+{{- end }}

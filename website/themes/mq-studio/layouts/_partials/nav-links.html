@@ -1,0 +1,11 @@
+{{- /* The header links, from the site's main menu. The one to where the
+       reader is is marked: anywhere in the docs the docs link is, and
+       anywhere in the changelog the changelog link. Called with the page's
+       context. */ -}}
+{{- $here := .Page.RelPermalink -}}
+{{- $type := .Page.Type -}}
+{{- range $item := .Site.Menus.main }}{{ with $item.URL }}
+  {{- $exact := eq . $here }}
+  {{- $current := or $exact (and (str.HasSuffix "/docs/" .) (eq $type "doc")) (and (str.HasSuffix "/changelog/" .) (eq $type "release")) }}
+  {{ partial "link.html" (dict "label" $item.Name "url" . "resolved" true "current" $current "exact" $exact) }}
+{{- end }}{{ end -}}
