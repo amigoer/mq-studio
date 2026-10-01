@@ -194,7 +194,9 @@ forgotten:
 | `docs/ROADMAP.md` | `docs/ROADMAP.zh-CN.md` |
 | `frontend/src/i18n/locales/en.json` | `frontend/src/i18n/locales/zh.json` |
 | `website/src/i18n/en.ts` | `website/src/i18n/zh.ts` |
-| `docs/images/hero-{light,dark}.svg` | `docs/images/hero-{light,dark}.zh-CN.svg` |
+| `docs/DRIVERS.md` | `docs/DRIVERS.zh-CN.md` |
+| `docs/MCP.md` | `docs/MCP.zh-CN.md` |
+| `docs/images/readme/<page>.en.png` | `docs/images/readme/<page>.png` |
 
 ## Adding a driver
 
@@ -210,14 +212,15 @@ single lines only one side touched, and the merge keeps one version silently.
 After adding a family, update all of these:
 
 - `internal/model/mqkind.go` — the kind and its display name.
-- `README.md` and `README.zh-CN.md` — the hero `alt` text, the sentence listing
-  the drivers available today, the driver support table, and the roadmap table.
+- `README.md` and `README.zh-CN.md` — the supported brokers table.
+- `docs/DRIVERS.md` and `docs/DRIVERS.zh-CN.md` — a section for the family.
 - `docs/ROADMAP.md` and `docs/ROADMAP.zh-CN.md`.
 - `docs/ARCHITECTURE.md` — the driver package and the e2e environment, in the
   repository tree.
-- `docs/images/hero-{light,dark}{,.zh-CN}.svg` — the `<desc>`, the driver count
-  badge, and one drawn lane per family. Four files, and the art needs
-  re-spacing rather than a text edit.
+- `docs/images/hero-{light,dark}.svg` — the family's name in the `<desc>`, and
+  its icon in the `families` row: one nested `<svg>` per family, 64 units
+  apart and centred, so adding one moves every icon 32 units left. The dark
+  file takes the icon's dark-theme colour.
 - `website/src/i18n/en.ts` and `zh.ts` — `meta.description`, `banner.text`,
   `hero.subtitle`, `drivers.supported`, `drivers.planned` and `roadmap.stages`.
   `planned` is the dangerous one: left alone it keeps asserting that a shipped

@@ -1,319 +1,133 @@
 <div align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/images/hero-dark.svg">
-    <img src="docs/images/hero-light.svg" width="100%" alt="MQ Studio — see inside your message queues. One local-first desktop app for RocketMQ, RabbitMQ, Kafka, Pulsar, Redis Stream, MQTT, NATS, ActiveMQ, NSQ, Amazon SQS, Google Pub/Sub, Azure Service Bus, Amazon Kinesis, IBM MQ, and Solace PubSub+, with no web console to deploy.">
+    <img src="docs/images/hero-light.svg" width="720" alt="MQ Studio, above the icons of the message brokers it connects to">
   </picture>
+
+  <h3>One interface for every message queue</h3>
+
+  <p>Look inside RocketMQ, Kafka, RabbitMQ, Pulsar, Redis Stream, NATS and more:<br>topics, consumers, messages and cluster health in one local-first desktop app, with nothing to deploy.</p>
+
+  <p>
+    <a href="https://github.com/amigoer/mq-studio/releases/latest"><img src="https://img.shields.io/github/v/release/amigoer/mq-studio?style=flat-square&label=release&labelColor=1A1A1E&color=EC3013" alt="Latest release"></a>
+    <a href="https://github.com/amigoer/mq-studio/releases"><img src="https://img.shields.io/github/downloads/amigoer/mq-studio/total?style=flat-square&label=downloads&labelColor=1A1A1E&color=3F3F46" alt="Total downloads"></a>
+    <a href="https://app.codecov.io/gh/amigoer/mq-studio"><img src="https://img.shields.io/codecov/c/github/amigoer/mq-studio?style=flat-square&label=coverage&labelColor=1A1A1E&color=3F3F46" alt="Coverage"></a>
+    <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-3F3F46?style=flat-square&labelColor=1A1A1E" alt="Apache-2.0 license"></a>
+  </p>
+
+  <p>
+    <a href="https://mq-studio.amigoer.com/en/"><strong>Download</strong></a>&nbsp;&nbsp;·&nbsp;&nbsp;
+    <a href="docs/INSTALL.md">Install guide</a>&nbsp;&nbsp;·&nbsp;&nbsp;
+    <a href="docs/DRIVERS.md">Brokers</a>&nbsp;&nbsp;·&nbsp;&nbsp;
+    <a href="docs/MCP.md">For agents</a>&nbsp;&nbsp;·&nbsp;&nbsp;
+    <a href="README.zh-CN.md">简体中文</a>
+  </p>
 </div>
-
-<p align="center">
-  <a href="https://mq-studio.amigoer.com/en/"><img src="https://img.shields.io/badge/website-mq--studio.amigoer.com-EC3013?style=flat-square&labelColor=1A1A1E" alt="Website"></a>
-  <a href="https://github.com/amigoer/mq-studio/releases/latest"><img src="https://img.shields.io/github/v/release/amigoer/mq-studio?style=flat-square&label=release&labelColor=1A1A1E&color=3F3F46" alt="Latest release"></a>
-  <a href="https://github.com/amigoer/mq-studio/releases"><img src="https://img.shields.io/github/downloads/amigoer/mq-studio/total?style=flat-square&label=downloads&labelColor=1A1A1E&color=3F3F46" alt="Total downloads"></a>
-  <a href="https://app.codecov.io/gh/amigoer/mq-studio"><img src="https://img.shields.io/codecov/c/github/amigoer/mq-studio?style=flat-square&label=coverage&labelColor=1A1A1E&color=3F3F46" alt="Coverage"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-3F3F46?style=flat-square&labelColor=1A1A1E" alt="Apache-2.0 license"></a>
-</p>
-
-<p align="center">
-  <a href="README.zh-CN.md">简体中文</a>&nbsp;&nbsp;·&nbsp;&nbsp;
-  <a href="https://mq-studio.amigoer.com/en/">Download</a>&nbsp;&nbsp;·&nbsp;&nbsp;
-  <a href="docs/INSTALL.md">Install guide</a>&nbsp;&nbsp;·&nbsp;&nbsp;
-  <a href="#for-agents-mcp">For agents</a>&nbsp;&nbsp;·&nbsp;&nbsp;
-  <a href="#roadmap">Roadmap</a>&nbsp;&nbsp;·&nbsp;&nbsp;
-  <a href="docs/ARCHITECTURE.md">Documentation</a>
-</p>
 
 <br>
 
-<p align="center">
-  <a href="docs/images/readme/overview.png"><img src="docs/images/readme/overview.png" alt="MQ Studio overview dashboard" width="100%"></a>
-</p>
-<p align="center">
-  <sub>Cluster health, live throughput, consumer lag, and broker status — one glance after connecting.</sub>
-</p>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/readme/overview.en.dark.png">
+  <img src="docs/images/readme/overview.en.png" width="100%" alt="MQ Studio showing a live RocketMQ cluster: brokers, topics, consumer groups, produce rate and total backlog, a throughput chart, broker health and the busiest topics">
+</picture>
 
 ## Why MQ Studio
 
-Every message queue arrives with a console of its own — RocketMQ has one, Kafka has another,
-RabbitMQ ships a management plugin. Different interfaces, different vocabulary, and every one
-of them a service to deploy and keep alive.
+Every broker comes with a console of its own: different pages, different words, and one more
+service to deploy and keep alive. MQ Studio puts all of them behind the same pages.
 
-MQ Studio is one client for all of them. Each broker is reached through a driver sitting
-behind the same interface, so the pages and the workflow stay the same whichever system you
-are connected to. Install the app, add a connection, and start working: there is no server
-component to deploy, secure, or keep alive.
+- **Nothing to deploy.** A desktop app for macOS, Windows and Linux. Profiles stay on your
+  machine, and credentials are encrypted at rest.
+- **One workflow for every broker.** Topics, consumers, messages, cluster and alerts work the
+  same way whichever broker you connect to.
+- **Honest about each broker.** Every connection reports what its endpoint can actually do, so
+  a feature the broker lacks is explained rather than faked.
+- **Open to agents.** The same binary serves your connections over MCP: read-only by default,
+  destructive steps confirmed by a person, every write recorded.
 
-- **One interface, every broker** — drivers land one at a time, each taken to the same depth
-- **Honest about what it connects to** — every connection reports what its endpoint can actually do, and the pages are drawn from that
-- **Open to agents** — the same binary serves these connections over MCP, read-only unless you allow more
-- **Ready to use** — download, connect, work; no web console to stand up and maintain
-- **Private by default** — configuration stays on your device and credentials are encrypted at rest
-- **Cross-platform** — macOS, Windows, and Linux, with English and Chinese interfaces
-
-RocketMQ, RabbitMQ, Kafka, Pulsar, Redis Stream, MQTT, NATS, ActiveMQ, NSQ, Amazon SQS, Google Pub/Sub, Azure Service Bus, Amazon Kinesis, IBM MQ, and Solace PubSub+ are the drivers available
-today; [Driver support](#driver-support) says what each one covers.
-
-## Features
-
-| Area | What you can do |
-| --- | --- |
-| **Connections** | Manage multiple clusters with free-text groups, per-protocol endpoints and credentials, auto-connect, and encryption at rest |
-| **Topics & Queues** | Create and inspect topics, queues, exchanges, and bindings, with their partitions, settings, and arguments; selectors match on fuzzy input and remember what you used |
-| **Messages** | Query and trace, browse and follow a log, produce with keys and headers, resend and redeliver, and work through dead letters |
-| **Consumers** | View groups, clients, subscriptions, and lag; reset offsets; handle retry and dead letters |
-| **Cluster & Alerts** | Monitor brokers and nodes, runtime metrics, throughput, lag, disk usage, and desktop alerts |
-| **Administration** | Manage access control and users, quotas, policies, and the settings behind each topic, queue, and group |
-| **Agents (MCP)** | Hand the same connections to an agent: read-only by default, writes allowed per connection when the server starts, emptying and deleting confirmed by a person, and every write recorded |
-| **Personalization** | Switch theme and language, customize display, import or export configuration, and automatic update checks |
-
-The rows above are the union across drivers; [Driver support](#driver-support) says which broker gets what.
-
-## Product tour
-
-Select any screenshot to open it at full resolution.
+## A closer look
 
 <table>
   <tr>
-    <td width="50%" align="center">
-      <a href="docs/images/readme/welcome-light.png"><img src="docs/images/readme/welcome-light.png" alt="Welcome screen"></a>
-      <sub><strong>First launch</strong> — no connection yet: create one, or import a previous export.</sub>
+    <td width="50%" valign="top">
+      <img src="docs/images/readme/messages.en.png" alt="Querying messages on a RocketMQ topic, with one order message open and its JSON body formatted">
+      <p><strong>Messages.</strong> Query by key, tag or id, open the body, and see which consumer groups have read it.</p>
     </td>
-    <td width="50%" align="center">
-      <a href="docs/images/readme/welcome-dark.png"><img src="docs/images/readme/welcome-dark.png" alt="Welcome screen in dark theme"></a>
-      <sub><strong>Dark theme</strong> — the whole interface follows the system theme, or the one you pick.</sub>
-    </td>
-  </tr>
-  <tr>
-    <td width="50%" align="center">
-      <a href="docs/images/readme/connections.png"><img src="docs/images/readme/connections.png" alt="Connection list"></a>
-      <sub><strong>Connections</strong> — every cluster in one list; double-click a row to open it in its own tab.</sub>
-    </td>
-    <td width="50%" align="center">
-      <a href="docs/images/readme/new-connection.png"><img src="docs/images/readme/new-connection.png" alt="New connection dialog"></a>
-      <sub><strong>Adding a connection</strong> — pick the protocol, then fill in only the endpoints and credentials that protocol needs.</sub>
+    <td width="50%" valign="top">
+      <img src="docs/images/readme/consumers.en.png" alt="Consumer groups sorted by backlog, with a lagging group open: no online clients, and the backlog of every queue it reads">
+      <p><strong>Consumer lag.</strong> See why a group is behind: backlog per queue, who is connected, and offsets to reset or clone.</p>
     </td>
   </tr>
   <tr>
-    <td width="50%" align="center">
-      <a href="docs/images/readme/topics.png"><img src="docs/images/readme/topics.png" alt="Topic list and detail panel"></a>
-      <sub><strong>Topic operations</strong> — filter by type, then inspect queues, routing, and subscriptions in the detail panel.</sub>
+    <td width="50%" valign="top">
+      <img src="docs/images/readme/topics.en.png" alt="Topics sorted by produce rate, with one topic open: its throughput, subscribed groups, and the offsets of every queue">
+      <p><strong>Topics.</strong> Throughput, queues and subscribers for every topic, read from the broker itself.</p>
     </td>
-    <td width="50%" align="center">
-      <a href="docs/images/readme/consumers.png"><img src="docs/images/readme/consumers.png" alt="Consumer group list and detail panel"></a>
-      <sub><strong>Consumer diagnostics</strong> — lag, consume TPS, and clients per group; reset or clone offsets queue by queue.</sub>
-    </td>
-  </tr>
-  <tr>
-    <td width="50%" align="center">
-      <a href="docs/images/readme/cluster.png"><img src="docs/images/readme/cluster.png" alt="Cluster page"></a>
-      <sub><strong>Cluster monitoring</strong> — broker roles, throughput, disk water level, and messages in and out today.</sub>
-    </td>
-    <td width="50%" align="center">
-      <a href="docs/images/readme/alerts.png"><img src="docs/images/readme/alerts.png" alt="Alerts page"></a>
-      <sub><strong>Alerts</strong> — active alerts derived from live cluster metrics, with the rules behind them.</sub>
+    <td width="50%" valign="top">
+      <img src="docs/images/readme/connections.en.png" alt="The connection list with RocketMQ, Kafka, RabbitMQ, Redis Stream, NATS, MQTT and NSQ clusters, all online">
+      <p><strong>Connections.</strong> Every cluster in one list, whatever the broker; each opens in its own tab.</p>
     </td>
   </tr>
 </table>
 
-## Driver support
+## Supported brokers
 
-MQ Studio reaches every broker through a pluggable driver. Each driver declares its own
-capabilities, so the interface only offers what the connected broker can actually do.
-
-| Driver | Status | Notes |
+| Broker | Versions | Good to know |
 | --- | --- | --- |
-| **RocketMQ** 4.x / 5.x | ✅ Available | Full feature set through Admin APIs |
-| **RabbitMQ** 3.x / 4.x | ✅ Available | Full management plane: queues, exchanges and bindings, connections and channels, browse and publish over AMQP, dead letters, virtual hosts, users and permissions, policies, definitions, shovels and federation |
-| **Kafka** 3.x / 4.x | ✅ Available | Topics with their partitions, replicas and settings; consumer groups with per-partition lag and every offset reset Kafka offers; browsing and following a log; producing with keys, headers and an acknowledgement level; brokers, their effective settings and their log directories; ACLs and SCRAM users; client quotas; partition reassignment and preferred-leader election; and the cluster's open transactions |
-| **Pulsar** 3.x / 4.x | ✅ Available | Topics with their partitions and storage kind; namespaces and the tenants above them, with TTL, retention and per-topic limits; subscriptions with backlog, delayed and unacknowledged counts, blocked-subscription detection, and cursor moves by time or to the earliest message; browsing and following a log without taking a subscription; sending with keys, ordering keys, properties and delayed delivery; brokers with their bundles and resource usage; dead-letter and retry topics found by the client libraries' naming convention; and role grants on namespaces and topics |
-| **Redis Stream** 6.0+ | ✅ Available | Streams with their length, memory and entry range; consumer groups with lag and every reposition XGROUP SETID offers; browsing entries by time window or id, and writing them as ordered fields; the pending entries list with claim, auto-claim and acknowledge; the server's memory, persistence and slow log; standalone, sentinel and cluster; client connections; and ACL users with their key, channel and command rules |
-| **MQTT** 3.1.1 / 5.0 | ✅ Available | Publish with QoS, retain and the 5.0 properties; a live subscribe workbench that reports what it dropped and when the session went down; topics from the broker's retained set; the $SYS tree where a broker publishes one; and — where the broker offers a management API, as EMQX and its peers do — connected clients and their sessions, their subscriptions, the cluster's nodes, and disconnecting a session. Mosquitto, EMQX, HiveMQ and VerneMQ |
-| **NATS** 2.x | ✅ Available | JetStream streams with their subjects, retention, storage and replica set; consumers push and pull, with pending, unacknowledged and redelivered counts; browsing and following a stream by sequence; publishing on a subject, with a request that waits for a reply; a subjects workbench for core NATS, which stores nothing and delivers only to whoever is listening; purge by count, sequence or subject and deleting single messages; the cluster's servers with their routes and effective settings, read through $SYS or the monitoring endpoint; client connections with what each is subscribed to, and disconnecting one; and the accounts, with their JetStream usage against the caps they were given |
-| **ActiveMQ** Classic 5.x / 6.x · Artemis 2.x | ✅ Available | One family, two brokers, told apart when the connection opens. Queues and topics with their depth, counters and settings; durable subscriptions on either product, created and removed; browsing that takes nothing off the destination, because it is a management operation on both; sending with JMS headers, properties and a priority; dead letters found by walking the declarations backwards, and retried back to the destinations they failed on; the broker with its store, journal and effective settings, and the brokers it bridges to; client connections with the protocol each speaks, and disconnecting one; and — where the broker's AMQP acceptor is reachable — watching a topic as messages arrive |
-| **NSQ** 1.x | ✅ Available | One family, no admin protocol: everything an operator can ask is an HTTP call on the daemons that carry the messages. Topics with the depth they hold, split between the topic's own queue and its channels', summed across every nsqd carrying them; channels, which are this family's consumer groups, with their backlog, in-flight and deferred counts; creating, emptying, pausing and deleting either, on every daemon at once and in the discovery tier as well; publishing to one named daemon, repeated or held back for a delivery time; the cluster's nsqd beside the nsqlookupd that tell consumers where they are, with a warning when the two disagree; and who is connected, in both roles nsqd reports them in: consumers with the ready count that says which of them has stopped asking for work, and producers with what each has published. No message browse and no dead letters: nsqd hands a message to a consumer and stops holding it |
-| **Amazon SQS** | ✅ Available | The first family with no address to type: a connection is a region and an AWS credential, and the SDK resolves the rest. Queues with what they are holding split three ways — available, in flight and delayed, which are three different problems; creating, editing, purging and deleting them, standard or FIFO; browsing, which goes through ReceiveMessage and carries the caveat that says so; sending with named attributes, a delay, a repeat, and the group and deduplication ids a FIFO queue requires; and dead letters found by walking every queue's redrive policy backwards. No consumer groups and no cluster, because SQS has neither |
-| **Google Pub/Sub** | ✅ Available | The second family with no address to type: a connection is a project and a Google credential. The first whose objects come in two kinds — a topic holds nothing and fans a publish out to whatever subscribes at that instant, so the topics board leads with a subscription count and a topic with none is the fault it marks. Subscriptions as objects in their own right, with the whole of the delivery configuration on them: ack deadline, retention, retry backoff, filters, ordering, and where they give up to; creating and deleting either; browsing a subscription, which goes through Pull and carries the caveat that says so; publishing with attributes and an ordering key; restore points, and moving a subscription to one or to a moment in time; and dead letters found by inverting every subscription's policy. No backlog figure, because that one lives in Cloud Monitoring |
-| **Azure Service Bus** | ✅ Available | The third hosted family and the first of them reached by dialling something: a namespace is a real address, so this one has an endpoint field where SQS has a region and Pub/Sub a project. Queues and topics on one board, because they are the same thing to create, configure and delete — a queue holds its messages and a topic holds none, copying each send into the subscriptions whose rules let it through. Subscriptions with the whole delivery contract on them, and rules on the routing page: objects with names, several to a subscription, each a SQL or correlation filter and optionally an action that rewrites the message on the way in. Browsing is a peek, so it is the one messages page here with no caveat at all — nothing is taken, nothing is locked, no delivery count moves, and a scheduled or deferred message no consumer would be offered shows up anyway. Sending with a subject, properties, a session key and a real delay; and dead letters read from the $DeadLetterQueue every queue and subscription is created with, and put back one at a time |
-| **Amazon Kinesis** | ✅ Available | The fourth hosted family, back to a region and an AWS credential with no address to type. The one family whose central object the canonical pages had no room for: a shard is not a partition number, so it gets a page of its own — every shard a stream has, open or closed, with the slice of the hash space that decides which records land on it, the parent it was split from or the two it was merged out of, and the closed ones kept in the listing because they still hold their records until retention expires. Streams with their open shard count, capacity mode and retention; creating, resizing and deleting them, provisioned or on demand. Browsing that takes nothing at all — no record is hidden, consumed or marked, and any number of readers can read the same one — carrying instead the caveat that it spends the shard's read allowance, which every consumer on that shard shares. Sending with the partition key that places a record and the explicit hash key that aims it at a shard by name. Registered fan-out consumers, which are the only readers a stream knows about. No backlog, because nothing anywhere in the service keeps a reader's position |
-| **IBM MQ** | ✅ Available | The first enterprise family, and the second reached through a vendor's own HTTP management plane rather than a wire client — everything here goes over the two REST interfaces the mqweb server hosts, so no build of this app needs IBM's native client libraries. Channels get a page of their own, because nothing in the canonical vocabulary is shaped like one: a channel is a definition that exists with nothing connected, it is what decides whether an application may connect at all, and one of them carries a running instance per connected client. Queues and topics on one board, with the alias and remote definitions a message passes through on its way somewhere else; creating and deleting either. Browsing that genuinely takes nothing — the depth is the same afterwards — carrying instead the caveat that the server returns character data only, so a dead letter is listed and cannot be opened. Sending to a queue with the descriptor an MQ message actually carries. Subscriptions whose backlog is the depth of the queue they deliver to, and dead letters found by walking the queue manager's own DEADQ and every queue's backout queue backwards |
-| **Solace PubSub+** 10.x | ✅ Available | The second enterprise family and the last driver on the roadmap, reached entirely over SEMP v2 - plain HTTP with JSON, so no build of this app needs Solace's native client. A Message VPN is a scope rather than an address: one broker hosts many, every object lives inside one, and the sidebar re-points the whole connection at another without editing the profile. Queues with what they are actually holding, which is not the field that looks like it - spooledMsgCount is a lifetime statistic, so the depth is read from the message collection's own count; creating and deleting them, with the access type that decides whether one consumer takes everything or several share it. Routing gets a page, and this family has the strongest claim to one: a publisher never names a queue at all, so what has subscribed is the whole of what decides where a message lands - topic subscriptions added and removed on a queue, and topic endpoints whose name is their subscription. Browsing that takes nothing - the queue is byte-for-byte the same afterwards - carrying instead the caveat that SEMP returns no message payload at any version, so a message is listed with its sizes and delivery count and there is no body to open. Sending through the REST messaging interface on its own port, to a queue by name or to a topic to be matched, with the dead-message flag that decides whether a message given up on is moved or discarded. Dead messages found by inverting every endpoint's pointer - including the pointer every endpoint ships with, at a queue no broker creates, which is what makes an unconfigured Message VPN discard silently. The broker with its version and the spool this VPN is using, and who is connected |
-| More drivers | 📋 On request | Wire-compatible systems and scope below |
+| RocketMQ | 4.x / 5.x | NameServer address; trace, offset reset and clone, ACL |
+| Kafka | 3.x / 4.x | Offset resets, ACLs, SCRAM users, quotas, reassignment |
+| RabbitMQ | 3.x / 4.x | Management API plus AMQP; browsing requeues what it reads |
+| Pulsar | 3.x / 4.x | Tenants and namespaces, cursor moves, role grants |
+| Redis Stream | 6.0+ | Pending entries, claim and ack; sentinel and cluster |
+| MQTT | 3.1.1 / 5.0 | Live subscribe; sessions through EMQX-style management APIs |
+| NATS | 2.x | JetStream streams and consumers, a core subjects workbench |
+| ActiveMQ | Classic 5.x / 6.x<br>Artemis 2.x | Both products, told apart on connect; browsing takes nothing |
+| NSQ | 1.x | Topics and channels across every nsqd; no browse, no DLQ |
+| Amazon SQS | managed | Standard and FIFO; browsing goes through ReceiveMessage |
+| Google Pub/Sub | managed | Subscriptions, snapshots and seek; no backlog figure |
+| Azure Service Bus | managed | Queues, topics and subscription rules; browsing is a peek |
+| Amazon Kinesis | managed | Shards and their lineage; no backlog, browsing uses quota |
+| IBM MQ | 9.1+ | Queues, topics and channels over mqweb REST; text bodies only |
+| Solace PubSub+ | 10.x | Message VPNs and subscriptions over SEMP v2; no payloads |
 
-<details>
-<summary><strong>Planned drivers, wire-compatible systems, and scope</strong></summary>
-<br>
-
-| Driver | Status | Notes |
-| --- | --- | --- |
-| _None yet_ | 📋 Planned | Every driver on the roadmap has landed. A request through the [driver request](https://github.com/amigoer/mq-studio/issues/new?template=5-driver-request.yml) form is what picks the next one |
-
-**Covered by an existing driver.** Wire-compatible systems do not get a driver of their own:
-Redpanda, AutoMQ, WarpStream, Confluent, Amazon MSK, and Azure Event Hubs connect as Kafka;
-EMQX, Mosquitto, HiveMQ, and VerneMQ as MQTT; Amazon MQ as ActiveMQ or RabbitMQ; Alibaba Cloud
-and Tencent Cloud RocketMQ as RocketMQ. Each driver declares what its family can do and the
-pages are drawn from that; probing an endpoint to narrow it per deployment is not built yet.
-
-**Out of scope.** ZeroMQ and nanomsg have no broker and therefore no management plane. Celery,
-Sidekiq, and BullMQ are application-level job queues layered on Redis or RabbitMQ rather than
-message brokers.
-
-</details>
-
-ACL and some advanced operations depend on the broker version and configuration. The capability
-model behind this table is described in [the multi-MQ design](docs/MULTI_MQ_DESIGN.md).
-
-## Roadmap
-
-Drivers land one at a time. Each one is taken to the depth RocketMQ already has — topics,
-consumers, messages, cluster, and alerts — before the next one starts, so no driver ships as a
-half-wired set of pages.
-
-| Phase | Scope | Status |
-| --- | --- | --- |
-| 1 | RocketMQ 4.x / 5.x | ✅ Done |
-| 2 | RabbitMQ | ✅ Done |
-| 3 | Kafka | ✅ Done |
-| 4 | Redis Stream | ✅ Done |
-| 5 | Pulsar | ✅ Done |
-| 6 | MQTT | ✅ Done |
-| 7 | NATS | ✅ Done |
-| 8 | ActiveMQ Classic / Artemis | ✅ Done |
-| 9 | NSQ | ✅ Done |
-| 10 | Amazon SQS | ✅ Done |
-| 11 | Google Cloud Pub/Sub | ✅ Done |
-| 12 | Azure Service Bus | ✅ Done |
-| 13 | Amazon Kinesis | ✅ Done |
-| 14 | IBM MQ | ✅ Done |
-| 15 | Solace PubSub+ | ✅ Done |
-| 16 | Agent features | ✅ Done |
-
-Every driver the roadmap named has landed, and so has the agent work: the same binary runs as
-an MCP server, handing these families to an external agent. Each driver already declares what
-the connected broker can actually do, and that capability model is the foundation it works
-across brokers on, without offering operations the broker cannot perform. See
-[For agents (MCP)](#for-agents-mcp).
-
-A further driver is a request rather than a plan now. The
-[driver request](https://github.com/amigoer/mq-studio/issues/new?template=5-driver-request.yml)
-form asks the one question that decides whether one is possible at all: what the app can reach
-from a desktop, and how.
+[docs/DRIVERS.md](docs/DRIVERS.md) describes what each driver covers, the wire-compatible
+systems that connect through an existing one, and how to ask for another.
 
 ## Download
 
-**[mq-studio.amigoer.com](https://mq-studio.amigoer.com/en/)** is the shortest way in: the
-download button on that page already points at the build for the system you are on, and the menu
-beside it lists every other one.
+Get the build for your system at **[mq-studio.amigoer.com](https://mq-studio.amigoer.com/en/)**,
+or from [GitHub Releases](https://github.com/amigoer/mq-studio/releases), which also carries
+`SHA256SUMS.txt` and every earlier version.
 
-| Platform | Package | Requires |
+| System | Packages | Requires |
 | --- | --- | --- |
-| macOS Apple Silicon / Intel | `-mac-arm64.dmg` / `-mac-amd64.dmg` | macOS 12+ |
-| Windows x64 / ARM64 | `-windows-amd64.exe` / `-windows-arm64.exe` | Windows 10+ |
-| Debian / Ubuntu | `-linux-amd64.deb` / `-linux-arm64.deb` | GTK 4, WebKitGTK 6.0 |
-| Fedora / RHEL | `-linux-amd64.rpm` / `-linux-arm64.rpm` | GTK 4, WebKitGTK 6.0 |
-| Any Linux | `-linux-amd64.AppImage` / `-linux-arm64.AppImage` | GTK 4, WebKitGTK 6.0 |
-
-The Linux packages are built against the GTK 4 stack, which means Ubuntu 24.04 or later,
-Debian 13 or later, and equivalent releases elsewhere. Earlier distributions ship
-WebKit2GTK 4.1 and cannot run these packages.
-
-Packages are named `mq-studio-<version>-<os>-<arch>.<ext>`, where `os` is `mac`, `windows`, or
-`linux` and `arch` is `amd64` or `arm64`. On a Mac, About This Mac tells you whether to take
-`arm64` or `amd64`.
+| macOS | `.dmg` for Apple silicon and Intel | macOS 12+ |
+| Windows | `.exe` for x64 and ARM64 | Windows 10+ |
+| Linux | `.deb`, `.rpm` and `.AppImage` for x64 and ARM64 | GTK 4 and WebKitGTK 6.0: Ubuntu 24.04+, Debian 13+ |
 
 macOS builds are not signed by a registered Apple developer yet, so the first launch needs one
-extra step — the disk image ships a helper for it. See **[INSTALL](docs/INSTALL.md)** for that
-and for the per-platform install steps.
+extra step. [The install guide](docs/INSTALL.md) covers it, and every platform's install steps.
 
-[GitHub Releases](https://github.com/amigoer/mq-studio/releases) carries the same files, plus the
-`SHA256SUMS.txt` to verify a download against and every earlier version.
+## Use it from an agent
 
-## Quick start
-
-1. Open MQ Studio and create a connection.
-2. Pick the protocol, then enter the endpoints and credentials the form asks for.
-3. Save, connect, and choose a feature from the sidebar.
-
-Your profiles and settings stay in the local user configuration directory. Configuration
-exports contain plaintext credentials and should be stored securely.
-
-## For agents (MCP)
-
-The same binary runs as an [MCP](https://modelcontextprotocol.io) server, so an agent such as
-Claude Code can work these connections. It reads the application's own profiles, so there are no
-endpoints or credentials to enter a second time, and the window does not need to be open:
+The same binary is an [MCP](https://modelcontextprotocol.io) server, so an agent can work the
+connections you have already saved:
 
 ```bash
 claude mcp add mq-studio -- "/Applications/MQ Studio.app/Contents/MacOS/mq-studio" mcp
 ```
 
-A client configured by file takes the same two things, the executable and the argument `mcp`. In
-the `mcpServers` form most of them read:
+It is read-only unless you allow more when you start it:
 
-```json
-{
-  "mcpServers": {
-    "mq-studio": {
-      "command": "/Applications/MQ Studio.app/Contents/MacOS/mq-studio",
-      "args": ["mcp"]
-    }
-  }
-}
-```
+- `--allow mutate` adds creating, publishing and moving offsets; `--allow destructive` adds
+  emptying and deleting.
+- `--allow scratch=destructive` raises one connection alone, by the name the window shows.
+- Emptying and deleting ask a person through the client first, and every write is logged to
+  `agent-audit.jsonl`.
 
-**Read-only by default.** Writing is allowed at startup, as a ceiling rather than a list of
-switches:
+[docs/MCP.md](docs/MCP.md) has the details, the setup for other clients, and every tool.
 
-| Started with | What it adds |
-| --- | --- |
-| nothing | List connections, namespaces, destinations and subscriptions; browse messages, read one by id or trace where one went; read the cluster, its health checks, partitions, routing, dead letters and consume progress; list the clients connected and their channels; read Kinesis shards and IBM MQ channels |
-| `--allow mutate` | Create a destination, publish or append a stream entry, resend a dead letter, move a read position |
-| `--allow destructive` | Empty a destination, delete a destination |
-
-Anything above the ceiling is left out of the tool list entirely - a model cannot call a tool it
-was never told about. The decision therefore belongs to whoever starts the server, at the moment
-they start it, rather than to a switch in the application somebody set weeks ago.
-
-A ceiling can also be raised on one connection alone, named as the window shows it, so that
-emptying a scratch queue does not also allow emptying production:
-
-```bash
-claude mcp add mq-studio -- "/Applications/MQ Studio.app/Contents/MacOS/mq-studio" mcp --allow scratch=destructive
-```
-
-Every other connection stays at read, or at what a bare `--allow` gives it, and a tool above that
-is refused there before anything is dialled; `connections_list` tells the agent how far each
-connection may go. A name is pinned, when the server starts, to the connection it names then: one
-saved later under the same name is not covered, and one pointed at another broker or given other
-credentials in the window stops being covered. A name that matches no stored connection, or
-several, is refused at startup rather than quietly granting nothing.
-
-**Emptying and deleting are confirmed by a person.** Before either is done, the server puts the
-question to you through the agent client - the destination, its connection, how many messages it
-holds and any consequence its family carries, as the window's own dialog does - and only an
-explicit yes goes ahead. A client that cannot ask (one that did not offer MCP elicitation when it
-connected) is refused both outright. A no is final for that call, and a connection pointed
-elsewhere in the window while you read is left alone.
-
-Have the agent call `capabilities_describe` first: **what a connection can do is the endpoint's
-own answer**, two endpoints of one family can differ, and an operation the broker cannot perform
-is never offered. Operations with a consequence return it - browsing a RabbitMQ queue alters
-that queue's state, and emptying a Kafka topic leaves its offsets counting. A namespace is taken
-only by a family that keeps destinations apart by one; anywhere else it is refused rather than
-ignored.
-
-It never writes the application's profiles: the window rewrites that file whole, and two writers
-would lose each other's edits. It reads them again before every call instead, so a connection
-saved in the window is usable by the agent's next one.
-
-**Every write is recorded.** Each one the agent asks for - done, failed, or refused by the
-ceiling - is appended to `agent-audit.jsonl` in the application's data directory (Settings →
-Data and backup → Open directory), one JSON object per line: when, which client, which tool on
-which connection, with what arguments, and what changed - and for emptying and deleting, the
-question the person was shown and their answer. A write is recorded before it is made, and one
-that cannot be recorded is not made, so a start with no outcome after it means the server stopped
-before the broker answered. Message bodies are kept as a size and a SHA-256 digest, not copied.
-Reads are not recorded.
-
-## Development
+## Build from source
 
 Requires Go (the version `go.mod` pins), Node.js 20.19+ or 22.12+, npm, and the
 [Wails 3 CLI](https://v3.wails.io).
@@ -324,18 +138,14 @@ make install
 make dev
 ```
 
-Use `make check` to run project checks, `make package` to build a distributable, and
-`make help` to list all commands.
+`make check` runs what CI runs. [CONTRIBUTING.md](CONTRIBUTING.md) covers the live tests and
+how a driver is added.
 
-## Docs
+## More
 
-[Architecture](docs/ARCHITECTURE.md) · [Install](docs/INSTALL.md) · [Contributing](CONTRIBUTING.md) · [Changelog](CHANGELOG.md) · [Releasing](RELEASE.md) · [Roadmap](docs/ROADMAP.md)
-
-## Community
-
-Questions, requests, or thoughts on which driver should come next:
-[GitHub Issues](https://github.com/amigoer/mq-studio/issues) · [linux.do](https://linux.do) (in Chinese)
-
-## License
+[Architecture](docs/ARCHITECTURE.md) · [Roadmap](docs/ROADMAP.md) · [Changelog](CHANGELOG.md) ·
+[Releasing](RELEASE.md) · Questions and requests go to
+[GitHub Issues](https://github.com/amigoer/mq-studio/issues) or
+[linux.do](https://linux.do) (in Chinese).
 
 [Apache-2.0](LICENSE) © 2026 [amigoer](https://github.com/amigoer)

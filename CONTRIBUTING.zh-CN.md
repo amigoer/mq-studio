@@ -169,7 +169,9 @@ ci/changelog-reference-gate
 | `docs/ROADMAP.md` | `docs/ROADMAP.zh-CN.md` |
 | `frontend/src/i18n/locales/en.json` | `frontend/src/i18n/locales/zh.json` |
 | `website/src/i18n/en.ts` | `website/src/i18n/zh.ts` |
-| `docs/images/hero-{light,dark}.svg` | `docs/images/hero-{light,dark}.zh-CN.svg` |
+| `docs/DRIVERS.md` | `docs/DRIVERS.zh-CN.md` |
+| `docs/MCP.md` | `docs/MCP.zh-CN.md` |
+| `docs/images/readme/<页面>.en.png` | `docs/images/readme/<页面>.png` |
 
 ## 新增一个驱动
 
@@ -182,12 +184,13 @@ capability，画出来的页面看着不像「诚实」，而像「坏了」。
 新增一个家族之后，下面这些全都要改：
 
 - `internal/model/mqkind.go` —— 新的 kind 和它的展示名。
-- `README.md` 与 `README.zh-CN.md` —— hero 的 `alt` 文案、「目前可用的驱动」那句话、
-  驱动支持表格，以及开发计划表格。
+- `README.md` 与 `README.zh-CN.md` —— 支持的中间件表格。
+- `docs/DRIVERS.md` 与 `docs/DRIVERS.zh-CN.md` —— 为这个家族加一节。
 - `docs/ROADMAP.md` 与 `docs/ROADMAP.zh-CN.md`。
 - `docs/ARCHITECTURE.md` —— 仓库结构树里的驱动包和 e2e 环境。
-- `docs/images/hero-{light,dark}{,.zh-CN}.svg` —— 里面的 `<desc>`、驱动数量徽标，
-  以及每个家族一条的示意泳道。四个文件，而且是要重新排版，不是改几个字。
+- `docs/images/hero-{light,dark}.svg` —— `<desc>` 里加上家族名，`families` 那一排加上
+  它的图标：每个家族一个嵌套的 `<svg>`，间距 64，整排居中，所以加一个就要把每个图标左移 32。
+  深色那份用图标的深色主题颜色。
 - `website/src/i18n/en.ts` 与 `zh.ts` —— `meta.description`、`banner.text`、
   `hero.subtitle`、`drivers.supported`、`drivers.planned` 与 `roadmap.stages`。
   `planned` 最危险：不改它就会一直声称一个已经发布的驱动还没做。

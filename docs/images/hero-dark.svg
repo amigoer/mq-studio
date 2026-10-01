@@ -1,178 +1,35 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360" role="img" aria-labelledby="t d">
-  <title id="t">MQ Studio</title>
-  <desc id="d">MQ Studio — see inside your message queues. One local-first desktop app for RocketMQ, RabbitMQ, Kafka, Pulsar, Redis Stream, MQTT, NATS, ActiveMQ, NSQ, Amazon SQS, Google Pub/Sub, Azure Service Bus, Amazon Kinesis, IBM MQ, and Solace PubSub+, with no web console to deploy.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="290" viewBox="0 0 1200 290" role="img" aria-labelledby="title desc">
+  <title id="title">MQ Studio</title>
+  <desc id="desc">The MQ Studio app icon and name above the fifteen message brokers it connects to: RocketMQ, Kafka, RabbitMQ, Pulsar, Redis Stream, MQTT, NATS, ActiveMQ, NSQ, Amazon SQS, Google Pub/Sub, Azure Service Bus, Amazon Kinesis, IBM MQ, Solace PubSub+.</desc>
 
-  <!-- eyebrow -->
-  <text x="10" y="50" font-family="ui-monospace,'SF Mono',Menlo,Consolas,monospace" font-size="16.5" letter-spacing="3" fill="#9B9BA3">LOCAL-FIRST · NOTHING TO DEPLOY · OPEN SOURCE</text>
-
-  <!-- logo tile + wordmark -->
   <g id="lockup">
-    <rect x="10" y="76" width="88" height="88" rx="19.8" fill="#EC3013"/>
-    <g transform="translate(18.757 84.757) scale(0.70485)">
-      <path d="M50 14A36 36 0 0 1 74.9 24H25.1A36 36 0 0 1 50 14ZM20.407 29.5H79.593A36 36 0 0 1 84.435 39.5H15.565A36 36 0 0 1 20.407 29.5ZM15.565 60.5H84.435A36 36 0 0 1 79.593 70.5H20.407A36 36 0 0 1 15.565 60.5ZM25.1 76H74.9A36 36 0 0 1 50 86A36 36 0 0 1 25.1 76ZM14.349 45H28A5 5 0 0 1 28 55H14.349A36 36 0 0 1 14.349 45ZM72 45H85.651A36 36 0 0 1 85.651 55H72A5 5 0 0 1 72 45Z" fill="#F3F2F2"/>
-      <rect x="39" y="45" width="22" height="10" rx="5" fill="#201E1D"/>
+    <g transform="translate(330 36) scale(0.13106796116504854) translate(-100 -100)">
+      <rect x="100" y="100" width="824" height="824" rx="185" fill="#ec3013"/>
+      <g transform="translate(182 182) scale(6.6)">
+      <path d="M50 14A36 36 0 0 1 74.9 24H25.1A36 36 0 0 1 50 14ZM20.407 29.5H79.593A36 36 0 0 1 84.435 39.5H15.565A36 36 0 0 1 20.407 29.5ZM15.565 60.5H84.435A36 36 0 0 1 79.593 70.5H20.407A36 36 0 0 1 15.565 60.5ZM25.1 76H74.9A36 36 0 0 1 50 86A36 36 0 0 1 25.1 76ZM14.349 45H28A5 5 0 0 1 28 55H14.349A36 36 0 0 1 14.349 45ZM72 45H85.651A36 36 0 0 1 85.651 55H72A5 5 0 0 1 72 45Z" fill="#f3f2f2"/>
+      <rect x="39" y="45" width="22" height="10" rx="5" fill="#201e1d"/>
+      </g>
     </g>
-    <text x="126" y="142" font-family="-apple-system,'PingFang SC','Segoe UI','Microsoft YaHei',system-ui,sans-serif" font-size="60" font-weight="800" letter-spacing="-1" fill="#F4F4F5">MQ Studio</text>
+    <text x="468" y="118.0" textLength="402" lengthAdjust="spacingAndGlyphs"
+      font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif"
+      font-size="80" font-weight="700" letter-spacing="-1.5" fill="#f3f2f2">MQ Studio</text>
   </g>
 
-  <!-- value -->
-  <text x="10" y="219" font-family="-apple-system,'PingFang SC','Segoe UI','Microsoft YaHei',system-ui,sans-serif" font-size="28" font-weight="600" fill="#C8C8CE">See inside your message queues.</text>
-  <text x="10" y="255" font-family="-apple-system,'PingFang SC','Segoe UI','Microsoft YaHei',system-ui,sans-serif" font-size="20.5" fill="#9B9BA3">One desktop app for clusters, topics, consumers, and messages.</text>
-
-  <!-- metadata -->
-  <g id="meta">
-    <rect x="10" y="286" width="244" height="36" rx="18" fill="none" stroke="#2E2E33" stroke-width="1.5"/>
-    <circle cx="32" cy="304" r="4.5" fill="#3DBB81"/>
-    <text x="46" y="310" font-family="ui-monospace,'SF Mono',Menlo,Consolas,monospace" font-size="16.5" fill="#B4B4BC">15 drivers available</text>
-    <text x="282" y="310" font-family="ui-monospace,'SF Mono',Menlo,Consolas,monospace" font-size="16.5" fill="#9B9BA3">macOS · Windows · Linux&#160;&#160;·&#160;&#160;Apache-2.0</text>
-  </g>
-
-  <!-- one client, a driver per broker: each lane carries its own messages -->
-  <g id="drivers">
-    <rect x="700" y="168" width="44" height="44" rx="9.9" fill="#EC3013"/>
-    <g transform="translate(704.379 172.379) scale(0.35243)">
-      <path d="M50 14A36 36 0 0 1 74.9 24H25.1A36 36 0 0 1 50 14ZM20.407 29.5H79.593A36 36 0 0 1 84.435 39.5H15.565A36 36 0 0 1 20.407 29.5ZM15.565 60.5H84.435A36 36 0 0 1 79.593 70.5H20.407A36 36 0 0 1 15.565 60.5ZM25.1 76H74.9A36 36 0 0 1 50 86A36 36 0 0 1 25.1 76ZM14.349 45H28A5 5 0 0 1 28 55H14.349A36 36 0 0 1 14.349 45ZM72 45H85.651A36 36 0 0 1 85.651 55H72A5 5 0 0 1 72 45Z" fill="#F3F2F2"/>
-      <rect x="39" y="45" width="22" height="10" rx="5" fill="#201E1D"/>
-    </g>
-    <line x1="744" y1="190" x2="768" y2="190" stroke="#3A3A40" stroke-width="1.5"/>
-    <line x1="768" y1="32" x2="768" y2="340" stroke="#3A3A40" stroke-width="1.5"/>
-    <line x1="776" y1="32" x2="842" y2="32" stroke="#3A3A40" stroke-width="1.5"/>
-    <text x="928" y="37" text-anchor="end" font-family="ui-monospace,'SF Mono',Menlo,Consolas,monospace" font-size="15" fill="#B4B4BC">RocketMQ</text>
-    <line x1="940" y1="32" x2="1178" y2="32" stroke="#2A2A2E" stroke-width="1.5"/>
-    <circle cx="768" cy="32" r="4.5" fill="#9B9BA3"/>
-    <circle cx="1178" cy="32" r="5.5" fill="none" stroke="#9B9BA3" stroke-width="2"/>
-    <rect x="962" y="22" width="30" height="20" rx="8" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <rect x="1016" y="22" width="30" height="20" rx="8" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <rect x="1070" y="22" width="30" height="20" rx="8" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <rect x="1124" y="22" width="30" height="20" rx="8" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <line x1="776" y1="54" x2="842" y2="54" stroke="#3A3A40" stroke-width="1.5"/>
-    <text x="928" y="59" text-anchor="end" font-family="ui-monospace,'SF Mono',Menlo,Consolas,monospace" font-size="15" fill="#B4B4BC">RabbitMQ</text>
-    <line x1="940" y1="54" x2="1178" y2="54" stroke="#2A2A2E" stroke-width="1.5"/>
-    <circle cx="768" cy="54" r="4.5" fill="#9B9BA3"/>
-    <circle cx="1178" cy="54" r="5.5" fill="none" stroke="#9B9BA3" stroke-width="2"/>
-    <rect x="954" y="44" width="30" height="20" rx="8" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <rect x="1008" y="44" width="30" height="20" rx="8" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <rect x="1100" y="44" width="30" height="20" rx="8" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <line x1="776" y1="76" x2="869" y2="76" stroke="#3A3A40" stroke-width="1.5"/>
-    <text x="928" y="81" text-anchor="end" font-family="ui-monospace,'SF Mono',Menlo,Consolas,monospace" font-size="15" fill="#B4B4BC">Kafka</text>
-    <line x1="940" y1="76" x2="1178" y2="76" stroke="#2A2A2E" stroke-width="1.5"/>
-    <circle cx="768" cy="76" r="4.5" fill="#9B9BA3"/>
-    <circle cx="1178" cy="76" r="5.5" fill="none" stroke="#9B9BA3" stroke-width="2"/>
-    <rect x="950" y="66" width="30" height="20" rx="8" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <rect x="1004" y="66" width="30" height="20" rx="8" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <rect x="1110" y="66" width="30" height="20" rx="8" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <rect x="1045" y="66" width="30" height="20" rx="8" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <line x1="776" y1="98" x2="860" y2="98" stroke="#3A3A40" stroke-width="1.5"/>
-    <text x="928" y="103" text-anchor="end" font-family="ui-monospace,'SF Mono',Menlo,Consolas,monospace" font-size="15" fill="#B4B4BC">Pulsar</text>
-    <line x1="940" y1="98" x2="1178" y2="98" stroke="#2A2A2E" stroke-width="1.5"/>
-    <circle cx="768" cy="98" r="4.5" fill="#9B9BA3"/>
-    <circle cx="1178" cy="98" r="5.5" fill="none" stroke="#9B9BA3" stroke-width="2"/>
-    <rect x="968" y="88" width="30" height="20" rx="8" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <rect x="1022" y="88" width="30" height="20" rx="8" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <rect x="1120" y="88" width="30" height="20" rx="8" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <line x1="776" y1="120" x2="806" y2="120" stroke="#3A3A40" stroke-width="1.5"/>
-    <text x="928" y="125" text-anchor="end" font-family="ui-monospace,'SF Mono',Menlo,Consolas,monospace" font-size="15" fill="#B4B4BC">Redis Stream</text>
-    <line x1="940" y1="120" x2="1178" y2="120" stroke="#2A2A2E" stroke-width="1.5"/>
-    <circle cx="768" cy="120" r="4.5" fill="#9B9BA3"/>
-    <circle cx="1178" cy="120" r="5.5" fill="none" stroke="#9B9BA3" stroke-width="2"/>
-    <rect x="958" y="110" width="30" height="20" rx="8" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <rect x="1012" y="110" width="30" height="20" rx="8" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <rect x="1066" y="110" width="30" height="20" rx="8" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <rect x="1132" y="110" width="30" height="20" rx="8" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <line x1="776" y1="142" x2="878" y2="142" stroke="#3A3A40" stroke-width="1.5"/>
-    <text x="928" y="147" text-anchor="end" font-family="ui-monospace,'SF Mono',Menlo,Consolas,monospace" font-size="15" fill="#B4B4BC">MQTT</text>
-    <line x1="940" y1="142" x2="1178" y2="142" stroke="#2A2A2E" stroke-width="1.5"/>
-    <circle cx="768" cy="142" r="4.5" fill="#9B9BA3"/>
-    <circle cx="1178" cy="142" r="5.5" fill="none" stroke="#9B9BA3" stroke-width="2"/>
-    <rect x="976" y="132" width="30" height="20" rx="8" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <rect x="1030" y="132" width="30" height="20" rx="8" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <rect x="1108" y="132" width="30" height="20" rx="8" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <line x1="776" y1="164" x2="826" y2="164" stroke="#3A3A40" stroke-width="1.5"/>
-    <text x="928" y="169" text-anchor="end" font-family="ui-monospace,'SF Mono',Menlo,Consolas,monospace" font-size="15" fill="#B4B4BC">NATS</text>
-    <line x1="940" y1="164" x2="1178" y2="164" stroke="#2A2A2E" stroke-width="1.5"/>
-    <circle cx="768" cy="164" r="4.5" fill="#9B9BA3"/>
-    <circle cx="1178" cy="164" r="5.5" fill="none" stroke="#9B9BA3" stroke-width="2"/>
-    <rect x="944" y="154" width="30" height="20" rx="8" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <rect x="998" y="154" width="30" height="20" rx="8" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <rect x="1088" y="154" width="30" height="20" rx="8" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <rect x="1128" y="154" width="30" height="20" rx="8" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <line x1="776" y1="186" x2="826" y2="186" stroke="#3A3A40" stroke-width="1.5"/>
-    <text x="928" y="191" text-anchor="end" font-family="ui-monospace,'SF Mono',Menlo,Consolas,monospace" font-size="15" fill="#B4B4BC">ActiveMQ</text>
-    <line x1="940" y1="186" x2="1178" y2="186" stroke="#2A2A2E" stroke-width="1.5"/>
-    <circle cx="768" cy="186" r="4.5" fill="#9B9BA3"/>
-    <circle cx="1178" cy="186" r="5.5" fill="none" stroke="#9B9BA3" stroke-width="2"/>
-    <rect x="944" y="176" width="30" height="20" rx="8" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <rect x="998" y="176" width="30" height="20" rx="8" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <rect x="1088" y="176" width="30" height="20" rx="8" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <rect x="1128" y="176" width="30" height="20" rx="8" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <line x1="776" y1="208" x2="872" y2="208" stroke="#3A3A40" stroke-width="1.5"/>
-    <text x="928" y="213" text-anchor="end" font-family="ui-monospace,'SF Mono',Menlo,Consolas,monospace" font-size="15" fill="#B4B4BC">NSQ</text>
-    <line x1="940" y1="208" x2="1178" y2="208" stroke="#2A2A2E" stroke-width="1.5"/>
-    <circle cx="768" cy="208" r="4.5" fill="#9B9BA3"/>
-    <circle cx="1178" cy="208" r="5.5" fill="none" stroke="#9B9BA3" stroke-width="2"/>
-    <rect x="952" y="198" width="30" height="20" rx="8" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <rect x="1006" y="198" width="30" height="20" rx="8" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <rect x="1078" y="198" width="30" height="20" rx="8" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <rect x="1132" y="198" width="30" height="20" rx="8" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <line x1="776" y1="230" x2="862" y2="230" stroke="#3A3A40" stroke-width="1.5"/>
-    <text x="928" y="235" text-anchor="end" font-family="ui-monospace,'SF Mono',Menlo,Consolas,monospace" font-size="15" fill="#B4B4BC">Amazon SQS</text>
-    <line x1="940" y1="230" x2="1178" y2="230" stroke="#2A2A2E" stroke-width="1.5"/>
-    <circle cx="768" cy="230" r="4.5" fill="#9B9BA3"/>
-    <circle cx="1178" cy="230" r="5.5" fill="none" stroke="#9B9BA3" stroke-width="2"/>
-    <rect x="946" y="220" width="30" height="20" rx="8" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <rect x="1000" y="220" width="30" height="20" rx="8" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <rect x="1054" y="220" width="30" height="20" rx="8" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <rect x="1120" y="220" width="30" height="20" rx="8" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <line x1="776" y1="252" x2="852" y2="252" stroke="#3A3A40" stroke-width="1.5"/>
-    <text x="928" y="257" text-anchor="end" font-family="ui-monospace,'SF Mono',Menlo,Consolas,monospace" font-size="15" fill="#B4B4BC">Google Pub/Sub</text>
-    <line x1="940" y1="252" x2="1178" y2="252" stroke="#2A2A2E" stroke-width="1.5"/>
-    <circle cx="768" cy="252" r="4.5" fill="#9B9BA3"/>
-    <circle cx="1178" cy="252" r="5.5" fill="none" stroke="#9B9BA3" stroke-width="2"/>
-    <rect x="958" y="242" width="30" height="20" rx="8" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <rect x="1012" y="242" width="30" height="20" rx="8" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <rect x="1084" y="242" width="30" height="20" rx="8" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <rect x="1138" y="242" width="30" height="20" rx="8" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <line x1="776" y1="274" x2="836" y2="274" stroke="#3A3A40" stroke-width="1.5"/>
-    <text x="928" y="279" text-anchor="end" font-family="ui-monospace,'SF Mono',Menlo,Consolas,monospace" font-size="15" fill="#B4B4BC">Azure Service Bus</text>
-    <line x1="940" y1="274" x2="1178" y2="274" stroke="#2A2A2E" stroke-width="1.5"/>
-    <circle cx="768" cy="274" r="4.5" fill="#9B9BA3"/>
-    <circle cx="1178" cy="274" r="5.5" fill="none" stroke="#9B9BA3" stroke-width="2"/>
-    <rect x="968" y="264" width="30" height="20" rx="8" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <rect x="1022" y="264" width="30" height="20" rx="8" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <rect x="1076" y="264" width="30" height="20" rx="8" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <rect x="1130" y="264" width="30" height="20" rx="8" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <line x1="776" y1="296" x2="788" y2="296" stroke="#3A3A40" stroke-width="1.5"/>
-    <text x="928" y="301" text-anchor="end" font-family="ui-monospace,'SF Mono',Menlo,Consolas,monospace" font-size="15" fill="#B4B4BC">Amazon Kinesis</text>
-    <line x1="940" y1="296" x2="1178" y2="296" stroke="#2A2A2E" stroke-width="1.5"/>
-    <circle cx="768" cy="296" r="4.5" fill="#9B9BA3"/>
-    <circle cx="1178" cy="296" r="5.5" fill="none" stroke="#9B9BA3" stroke-width="2"/>
-    <rect x="946" y="286" width="30" height="20" rx="8" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <rect x="1000" y="286" width="30" height="20" rx="8" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <rect x="1072" y="286" width="30" height="20" rx="8" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <rect x="1126" y="286" width="30" height="20" rx="8" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <line x1="776" y1="318" x2="812" y2="318" stroke="#3A3A40" stroke-width="1.5"/>
-    <text x="928" y="323" text-anchor="end" font-family="ui-monospace,'SF Mono',Menlo,Consolas,monospace" font-size="15" fill="#B4B4BC">IBM MQ</text>
-    <line x1="940" y1="318" x2="1178" y2="318" stroke="#2A2A2E" stroke-width="1.5"/>
-    <circle cx="768" cy="318" r="4.5" fill="#9B9BA3"/>
-    <circle cx="1178" cy="318" r="5.5" fill="none" stroke="#9B9BA3" stroke-width="2"/>
-    <rect x="958" y="308" width="30" height="20" rx="8" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <rect x="1012" y="308" width="30" height="20" rx="8" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <rect x="1066" y="308" width="30" height="20" rx="8" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <rect x="1120" y="308" width="30" height="20" rx="8" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <line x1="776" y1="340" x2="800" y2="340" stroke="#3A3A40" stroke-width="1.5"/>
-    <text x="928" y="345" text-anchor="end" font-family="ui-monospace,'SF Mono',Menlo,Consolas,monospace" font-size="15" fill="#B4B4BC">Solace</text>
-    <line x1="940" y1="340" x2="1178" y2="340" stroke="#2A2A2E" stroke-width="1.5"/>
-    <circle cx="768" cy="340" r="4.5" fill="#9B9BA3"/>
-    <circle cx="1178" cy="340" r="5.5" fill="none" stroke="#9B9BA3" stroke-width="2"/>
-    <rect x="964" y="330" width="30" height="20" rx="8" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <rect x="1018" y="330" width="30" height="20" rx="8" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <rect x="1072" y="330" width="30" height="20" rx="8" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-    <rect x="1126" y="330" width="30" height="20" rx="8" fill="#1B1B1F" stroke="#3A3A40" stroke-width="1.5"/>
-  </g>
-
-  <!-- the mark's lens over one lane: any driver, same inspection -->
-  <g id="inspect">
-    <rect x="1042" y="176" width="30" height="20" rx="8" fill="#EC3013"/>
-    <circle cx="1057" cy="186" r="21" fill="none" stroke="#E4E4E7" stroke-width="3"/>
+  <g id="families" transform="translate(0 216)">
+    <svg x="133" y="0" width="38" height="38" viewBox="0 0 24 24" fill="rgb(215, 115, 16)" stroke="rgb(215, 115, 16)" stroke-width="0"><title>RocketMQ</title><path d="M11.438 23.467c-.517-.638-1.106-1.89-1.217-2.587l-.082-.511h1.835c1.435 0 1.835.036 1.835.165 0 .352-.412 1.553-.709 2.066-.333.577-1.021 1.41-1.155 1.4-.043-.004-.272-.244-.507-.533zm-4.532-4.193c-1.251-3.005-1.231-6.784.056-10.63.786-2.35 2.652-5.689 4.413-7.9L11.967 0l.422.493c.763.893 2.612 3.731 3.28 5.036 1.32 2.578 2.055 4.993 2.264 7.438.197 2.302-.176 4.837-.962 6.533l-.338.731-.727-.433-.727-.433H11.95c-2.466 0-3.287.039-3.476.166-.136.091-.453.29-.705.441l-.458.276-.405-.974zm9.338-1.79c.779-2.623.532-6.253-.635-9.344-.683-1.81-2.085-4.319-3.211-5.747-.357-.452-.387-.466-.609-.265-.441.398-1.854 2.622-2.544 4.002-1.927 3.856-2.484 7.995-1.521 11.308l.196.672h8.138l.186-.626zM3.311 19.835c.037-.155.108-.565.157-.909.079-.549.189-.729.885-1.443l.795-.815.002.507c.003.641.302 1.799.631 2.445l.254.498H4.64c-1.384-.001-1.396-.003-1.329-.283zm14.944-.376c.271-.613.529-1.616.606-2.352.031-.299.066-.282.762.379s.738.735.908 1.631c.098.516.179.952.179.97 0 .017-.618.031-1.373.031h-1.373l.291-.659zm-6.477-4.504a2.173 2.173 0 0 1-2.17-2.17c0-1.196.973-2.17 2.17-2.17s2.17.973 2.17 2.17-.973 2.17-2.17 2.17zm0-3.865c-.935 0-1.696.761-1.696 1.695s.761 1.696 1.696 1.696c.935 0 1.696-.761 1.696-1.696s-.761-1.695-1.696-1.695zM9.455 9.457a.657.657 0 1 1 0 1.314.657.657 0 0 1 0-1.314zm-.357 4.665a.8.8 0 1 1 0 1.6.8.8 0 0 1 0-1.6zm5.212-5.18a1.069 1.069 0 1 1 0 2.138 1.069 1.069 0 0 1 0-2.138zm0 5.75a1.418 1.418 0 1 1 0 2.836 1.418 1.418 0 0 1 0-2.836zM9.447 10.68l.491-.491.729.729-.491.491-.729-.729zm4.066-.336l.539.539-.729.729-.539-.539.729-.729zm-3.572 3.362l.491.491-.729.729-.491-.491.729-.729zm2.721 1.064l.61-.59.779.754-.61.59-.779-.754zm-1.717-2.167a.277.277 0 1 1 0 .554.277.277 0 0 1 0-.554zm.794 0a.277.277 0 1 1 0 .554.277.277 0 0 1 0-.554zm.794 0a.277.277 0 1 1 0 .554.277.277 0 0 1 0-.554z" fill="rgb(215, 115, 16)" stroke="rgb(215, 115, 16)"></path></svg>
+    <svg x="197" y="0" width="38" height="38" viewBox="0 0 24 24" fill="rgb(228, 228, 231)" stroke="rgb(228, 228, 231)" stroke-width="0"><title>Kafka</title><path d="M9.71 2.136a1.43 1.43 0 0 0-2.047 0h-.007a1.48 1.48 0 0 0-.421 1.042c0 .41.161.777.422 1.039l.007.007c.257.264.616.426 1.019.426.404 0 .766-.162 1.027-.426l.003-.007c.261-.262.421-.629.421-1.039 0-.408-.159-.777-.421-1.042H9.71zM8.683 22.295c.404 0 .766-.167 1.027-.429l.003-.008c.261-.261.421-.631.421-1.036 0-.41-.159-.778-.421-1.044H9.71a1.42 1.42 0 0 0-1.027-.432 1.4 1.4 0 0 0-1.02.432h-.007c-.26.266-.422.634-.422 1.044 0 .406.161.775.422 1.036l.007.008c.258.262.617.429 1.02.429zm7.89-4.462c.359-.096.683-.33.882-.684l.027-.052a1.47 1.47 0 0 0 .114-1.067 1.454 1.454 0 0 0-.675-.896l-.021-.014a1.425 1.425 0 0 0-1.078-.132c-.36.091-.684.335-.881.686-.2.349-.241.75-.146 1.119.099.363.33.691.675.896h.002c.346.203.737.239 1.101.144zm-6.405-7.342a2.083 2.083 0 0 0-1.485-.627c-.58 0-1.103.242-1.482.627-.378.385-.612.916-.612 1.507s.233 1.124.612 1.514a2.08 2.08 0 0 0 2.967 0c.379-.39.612-.923.612-1.514s-.233-1.122-.612-1.507zm-.835-2.51c.843.141 1.6.552 2.178 1.144h.004c.092.093.182.196.265.299l1.446-.851a3.176 3.176 0 0 1-.047-1.808 3.149 3.149 0 0 1 1.456-1.926l.025-.016a3.062 3.062 0 0 1 2.345-.306c.77.21 1.465.721 1.898 1.482v.002c.431.757.518 1.626.313 2.408a3.145 3.145 0 0 1-1.456 1.928l-.198.118h-.02a3.095 3.095 0 0 1-2.154.201 3.127 3.127 0 0 1-1.514-.944l-1.444.848a4.162 4.162 0 0 1 0 2.879l1.444.846c.413-.47.939-.789 1.514-.944a3.041 3.041 0 0 1 2.371.319l.048.023v.002a3.17 3.17 0 0 1 1.408 1.906 3.215 3.215 0 0 1-.313 2.405l-.026.053-.003-.005a3.147 3.147 0 0 1-1.867 1.436 3.096 3.096 0 0 1-2.371-.318v-.006a3.156 3.156 0 0 1-1.456-1.927 3.175 3.175 0 0 1 .047-1.805l-1.446-.848a3.905 3.905 0 0 1-.265.294l-.004.005a3.938 3.938 0 0 1-2.178 1.138v1.699a3.09 3.09 0 0 1 1.56.862l.002.004c.565.572.914 1.368.914 2.243 0 .873-.35 1.664-.914 2.239l-.002.009a3.1 3.1 0 0 1-2.21.931 3.1 3.1 0 0 1-2.206-.93h-.002v-.009a3.186 3.186 0 0 1-.916-2.239c0-.875.35-1.672.916-2.243v-.004h.002a3.1 3.1 0 0 1 1.558-.862v-1.699a3.926 3.926 0 0 1-2.176-1.138l-.006-.005a4.098 4.098 0 0 1-1.173-2.874c0-1.122.452-2.136 1.173-2.872h.006a3.947 3.947 0 0 1 2.176-1.144V6.289a3.137 3.137 0 0 1-1.558-.864h-.002v-.004a3.192 3.192 0 0 1-.916-2.243c0-.871.35-1.669.916-2.243l.002-.002A3.084 3.084 0 0 1 8.683 0c.861 0 1.641.355 2.21.932v.002h.002c.565.574.914 1.372.914 2.243 0 .876-.35 1.667-.914 2.243l-.002.005a3.142 3.142 0 0 1-1.56.864v1.692zm8.121-1.129l-.012-.019a1.452 1.452 0 0 0-.87-.668 1.43 1.43 0 0 0-1.103.146h.002c-.347.2-.58.529-.677.896-.095.365-.054.768.146 1.119l.007.009c.2.347.519.579.874.673.357.103.755.059 1.098-.144l.019-.009a1.47 1.47 0 0 0 .657-.885 1.493 1.493 0 0 0-.141-1.118" fill="rgb(228, 228, 231)" stroke="rgb(228, 228, 231)"></path></svg>
+    <svg x="261" y="0" width="38" height="38" viewBox="0 0 24 24" fill="rgb(255, 102, 0)" stroke="rgb(255, 102, 0)" stroke-width="0"><title>RabbitMQ</title><path d="M23.035 9.601h-7.677a.956.956 0 01-.962-.962V.962a.956.956 0 00-.962-.956H10.56a.956.956 0 00-.962.956V8.64a.956.956 0 01-.962.962H5.762a.956.956 0 01-.961-.962V.962A.956.956 0 003.839 0H.959a.956.956 0 00-.956.962v22.076A.956.956 0 00.965 24h22.07a.956.956 0 00.962-.962V10.58a.956.956 0 00-.962-.98zm-3.86 8.152a1.437 1.437 0 01-1.437 1.443h-1.924a1.437 1.437 0 01-1.436-1.443v-1.917a1.437 1.437 0 011.436-1.443h1.924a1.437 1.437 0 011.437 1.443z" fill="rgb(255, 102, 0)" stroke="rgb(255, 102, 0)"></path></svg>
+    <svg x="325" y="0" width="38" height="38" viewBox="0 0 24 24" fill="rgb(24, 143, 255)" stroke="rgb(24, 143, 255)" stroke-width="0"><title>Pulsar</title><path d="M24 8.925h-5.866c-1.586-3.041-3.262-5.402-5.544-5.402-2.97 0-4.367 2.593-5.717 5.115l-.118.22H0v1.5h3.934c1.39 0 1.673.468 1.673.468-1.09 1.691-2.4 3.363-4.584 3.363H0v1.574h1.03c4.234 0 6.083-3.434 7.567-6.193 1.361-2.541 2.31-4.08 3.993-4.08 1.747 0 3.584 3.801 5.201 7.157.237.488.477.988.72 1.483-6.2.197-9.155 1.649-11.559 2.833-1.759.866-3.147 1.94-5.433 1.94H0v1.574h1.507c2.754 0 4.47-.85 6.295-1.751 2.53-1.243 5.398-2.652 12.157-2.652h3.907V14.5H21.66a1.18 1.18 0 01-.972-.393 70.83 70.83 0 01-1.133-2.321l-.511-1.047s.366-.393 1.38-.393H24Z" fill="rgb(24, 143, 255)" stroke="rgb(24, 143, 255)"></path></svg>
+    <svg x="389" y="0" width="38" height="38" viewBox="0 0 24 24" fill="rgb(255, 68, 56)" stroke="rgb(255, 68, 56)" stroke-width="0"><title>Redis Stream</title><path d="M22.71 13.145c-1.66 2.092-3.452 4.483-7.038 4.483-3.203 0-4.397-2.825-4.48-5.12.701 1.484 2.073 2.685 4.214 2.63 4.117-.133 6.94-3.852 6.94-7.239 0-4.05-3.022-6.972-8.268-6.972-3.752 0-8.4 1.428-11.455 3.685C2.59 6.937 3.885 9.958 4.35 9.626c2.648-1.904 4.748-3.13 6.784-3.744C8.12 9.244.886 17.05 0 18.425c.1 1.261 1.66 4.648 2.424 4.648.232 0 .431-.133.664-.365a100.49 100.49 0 0 0 5.54-6.765c.222 3.104 1.748 6.898 6.014 6.898 3.819 0 7.604-2.756 9.33-8.965.2-.764-.73-1.361-1.261-.73zm-4.349-5.013c0 1.959-1.926 2.922-3.685 2.922-.941 0-1.664-.247-2.235-.568 1.051-1.592 2.092-3.225 3.21-4.973 1.972.334 2.71 1.43 2.71 2.619z" fill="rgb(255, 68, 56)" stroke="rgb(255, 68, 56)"></path></svg>
+    <svg x="453" y="0" width="38" height="38" viewBox="0 0 24 24" fill="rgb(196, 181, 253)" stroke="rgb(196, 181, 253)" stroke-width="0"><title>MQTT</title><path d="M10.657 23.994h-9.45A1.212 1.212 0 0 1 0 22.788v-9.18h.071c5.784 0 10.504 4.65 10.586 10.386Zm7.606 0h-4.045C14.135 16.246 7.795 9.977 0 9.942V6.038h.071c9.983 0 18.121 8.044 18.192 17.956Zm4.53 0h-.97C21.754 12.071 11.995 2.407 0 2.372v-1.16C0 .55.544.006 1.207.006h7.64C15.733 2.49 21.257 7.789 24 14.508v8.291c0 .663-.544 1.195-1.207 1.195ZM16.713.006h6.092A1.19 1.19 0 0 1 24 1.2v5.914c-.91-1.242-2.046-2.65-3.158-3.762C19.588 2.11 18.122.987 16.714.005Z" fill="rgb(196, 181, 253)" stroke="rgb(196, 181, 253)"></path></svg>
+    <svg x="517" y="0" width="38" height="38" viewBox="0 0 24 24" fill="rgb(39, 170, 225)" stroke="rgb(39, 170, 225)" stroke-width="0"><title>NATS</title><path d="M12.004 0H.404v18.807h9.938l1.714 1.602v-.026L15.966 24v-5.193h7.63V0H12.003zm7.578 14.45H15.38L6.898 6.519v7.93H4.116V4.376h4.349l8.344 7.784V4.375h2.773V14.45z" fill="rgb(39, 170, 225)" stroke="rgb(39, 170, 225)"></path></svg>
+    <svg x="581" y="0" width="38" height="38" viewBox="0 0 24 24" fill="rgb(210, 33, 40)" stroke="rgb(210, 33, 40)" stroke-width="0"><title>ActiveMQ</title><path d="M17.805 2.197v.066h.156v.44h.072v-.44h.156v-.066zm.9 0l-.175.353-.172-.353h-.087v.506h.067V2.3l.172.35h.045l.172-.35v.404h.066v-.506zm-4.257 1c-.204.31-.424.66-.66 1.06l-.04.062a44.457 44.457 0 00-1.265 2.29c-.187.36-.38.742-.577 1.146l2.267-.25c.66-.302.955-.578 1.242-.976a15.5 15.5 0 00.23-.342c.23-.363.46-.763.663-1.16.197-.386.37-.767.505-1.11.083-.22.15-.422.198-.6.042-.158.074-.307.1-.45-.884.15-1.965.295-2.668.33zM11.894 7.78l-.077.16c-.078.16-.157.32-.236.488-.086.18-.172.364-.26.552l-.132.287a75.265 75.265 0 00-1.427 3.3c-.163.397-.327.807-.493 1.23-.15.38-.297.765-.45 1.164l-.02.06c-.15.396-.3.802-.453 1.22l-.01.027.72-.08a.213.213 0 01-.042-.006c.863-.106 2.01-.75 2.75-1.547.342-.367.652-.8.94-1.306.213-.377.413-.795.604-1.258.168-.405.328-.843.48-1.318-.196.105-.423.18-.673.235a2.184 2.184 0 01-.273.046c.806-.31 1.314-.905 1.683-1.64a2.816 2.816 0 01-.968.428c-.06.012-.116.022-.174.03l-.043.006h.002c.278-.118.514-.248.718-.403a2.571 2.571 0 00.637-.698l.063-.104.077-.154a8.107 8.107 0 00.367-.85l.03-.088a3.04 3.04 0 00.123-.463.733.733 0 01-.094.065c-.243.145-.66.277-.996.34l.663-.074-.664.073h-.017l-.1.017c.006-.003.01-.006.017-.008l-2.265.25-.013.022zM8.27 16.45c-.117.323-.236.654-.355.992l-.005.015c-.016.046-.032.094-.05.142-.08.227-.15.432-.31.9.264.12.475.435.675.793a1.44 1.44 0 00-.466-.99c1.293.06 2.41-.27 2.99-1.217.05-.084.096-.173.14-.268-.26.333-.59.474-1.2.44 0 0-.004 0-.005.002l.004-.002c.9-.404 1.354-.79 1.754-1.433.094-.153.186-.32.28-.503-.788.81-1.702 1.04-2.664.865l-.72.078a6.43 6.43 0 00-.067.183zM15.42.112c-.376.222-1 .85-1.748 1.763l.686 1.294c.48-.687.97-1.307 1.462-1.836l.058-.062c-.02.02-.04.04-.057.062-.16.176-.644.74-1.375 1.863.703-.035 1.784-.18 2.666-.33.262-1.47-.258-2.142-.258-2.142s-.66-1.07-1.436-.61zm-3.084 6.402a40.253 40.253 0 011.306-2.26l.04-.064c.224-.352.45-.693.677-1.02l-.685-1.293-.157.192c-.197.245-.403.51-.613.79a39.853 39.853 0 00-2.016 2.97l-.022.038.893 1.763c.19-.378.38-.752.575-1.118zm-3.73 8.32c.158-.406.319-.81.483-1.225.156-.394.32-.79.484-1.19a91.133 91.133 0 011.6-3.604l.205-.424c.12-.243.237-.485.36-.724a.125.125 0 01.02-.04l-.895-1.763-.044.07c-.207.34-.414.687-.617 1.042a38.056 38.056 0 00-1.092 2.04l-.094.193a24.573 24.573 0 00-1.258 3.087 18.492 18.492 0 00-.52 1.997l.896 1.77c.117-.317.24-.638.364-.963zm-1.376-.476a13.38 13.38 0 00-.234 1.692c0 .02-.004.04-.005.06-.28-.45-1.03-.888-1.026-.884.537.778.944 1.55 1.005 2.31-.29.058-.684-.027-1.14-.195.475.436.83.556.97.588-.434.03-.89.328-1.346.67.668-.27 1.21-.38 1.596-.29-.61 1.74-1.23 3.655-1.843 5.69a.538.538 0 00.364-.354c.11-.368.84-2.786 1.978-5.965l.097-.27.028-.078c.12-.332.246-.672.374-1.02l.09-.237v-.004L7.24 14.3c-.003.02-.01.04-.012.06z" fill="rgb(210, 33, 40)" stroke="rgb(210, 33, 40)"></path></svg>
+    <svg x="645" y="0" width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="rgb(103, 232, 249)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><title>NSQ</title><circle cx="4" cy="12" r="2.5" fill="rgb(103, 232, 249)" stroke="none"></circle><circle cx="20" cy="4" r="2" fill="none" stroke="rgb(103, 232, 249)"></circle><circle cx="20" cy="12" r="2" fill="none" stroke="rgb(103, 232, 249)"></circle><circle cx="20" cy="20" r="2" fill="none" stroke="rgb(103, 232, 249)"></circle><path d="M6.5 12h4M10.5 12 18 4.6M10.5 12H18M10.5 12 18 19.4" fill="none" stroke="rgb(103, 232, 249)"></path></svg>
+    <svg x="709" y="0" width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="rgb(249, 168, 212)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><title>Amazon SQS</title><rect x="2" y="8" width="4" height="8" rx="1" fill="none" stroke="rgb(249, 168, 212)"></rect><rect x="8" y="8" width="4" height="8" rx="1" fill="none" stroke="rgb(249, 168, 212)"></rect><rect x="14" y="8" width="4" height="8" rx="1" fill="rgb(249, 168, 212)" stroke="none"></rect><path d="M20 12h2M20.5 9.5 23 12l-2.5 2.5" fill="none" stroke="rgb(249, 168, 212)"></path></svg>
+    <svg x="773" y="0" width="38" height="38" viewBox="0 0 24 24" fill="rgb(174, 203, 250)" stroke="rgb(174, 203, 250)" stroke-width="0"><title>Google Pub/Sub</title><path d="M18.3 7.452a2.064 2.064 0 1 1 4.128 0 2.064 2.064 0 0 1-4.128 0zM3.636 9.516a2.064 2.064 0 1 0 0-4.128 2.064 2.064 0 0 0 0 4.128zM12 19.872A2.064 2.064 0 1 0 12 24a2.064 2.064 0 0 0 0-4.128zm-5.774-3.151a2.591 2.591 0 0 0-.118-.48c0-.002 0-.004-.002-.006a2.595 2.595 0 0 0-.2-.436l-.004-.008a2.618 2.618 0 0 0-.276-.39l-.001-.001a2.622 2.622 0 0 0-.346-.336 2.603 2.603 0 0 0-1.643-.592A2.628 2.628 0 1 0 6.264 17.1c0-.13-.02-.254-.038-.38zm8.499-2.53c.033-.047.063-.097.094-.147a3.32 3.32 0 0 0 .201-.37c.026-.055.052-.108.074-.164a3.301 3.301 0 0 0 .242-1.234c0-1.51-1.01-2.772-2.388-3.183a3.277 3.277 0 0 0-.42-.1A2.882 2.882 0 0 0 12 8.94c-.183 0-.359.021-.532.054a3.272 3.272 0 0 0-.428.103 3.325 3.325 0 0 0-2.376 3.179c0 .567.155 1.093.405 1.561.028.054.055.108.086.16.062.102.13.198.201.292.039.051.08.099.12.147a3.314 3.314 0 0 0 4.885.196c.135-.135.254-.284.364-.44zm-8.987.608c.473.433.818 1.002.956 1.651l2.575-1.486a3.83 3.83 0 0 1-.946-1.657L5.738 14.8zm5.302-9.21v2.988A3.79 3.79 0 0 1 12 8.44c.329 0 .643.055.948.133v-2.98c-.3.097-.615.163-.948.163-.337 0-.656-.067-.96-.166zm7.317 9.132L15.711 13.2a3.818 3.818 0 0 1-.914 1.683l2.542 1.46a3.115 3.115 0 0 1 1.018-1.622zm2.007-.249c-.58 0-1.112.194-1.547.513a2.633 2.633 0 0 0-.662.701l-.013.024c-.082.13-.155.265-.212.409-.008.02-.012.041-.02.061a2.588 2.588 0 0 0-.124.421 2.628 2.628 0 1 0 2.578-2.129zm-8.862-9.266a2.52 2.52 0 0 0 .99 0A2.626 2.626 0 0 0 12 0a2.627 2.627 0 0 0-.498 5.206z" fill="rgb(174, 203, 250)" stroke="rgb(174, 203, 250)"></path></svg>
+    <svg x="837" y="0" width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="rgb(108, 184, 240)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><title>Azure Service Bus</title><path d="M3 4h18l-7 8v5.5l-4 2V12z" fill="none" stroke="rgb(108, 184, 240)"></path><circle cx="12" cy="22" r="1.6" fill="rgb(108, 184, 240)" stroke="none"></circle></svg>
+    <svg x="901" y="0" width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="rgb(196, 181, 253)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><title>Amazon Kinesis</title><path d="M2 12h6" fill="none" stroke="rgb(196, 181, 253)"></path><path d="M8 12c4 0 4-6 8-6h6" fill="none" stroke="rgb(196, 181, 253)"></path><path d="M8 12c4 0 4 6 8 6h6" fill="none" stroke="rgb(196, 181, 253)"></path><circle cx="8" cy="12" r="1.6" fill="rgb(196, 181, 253)" stroke="none"></circle></svg>
+    <svg x="965" y="0" width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="rgb(120, 169, 255)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><title>IBM MQ</title><rect x="2" y="7" width="6" height="10" rx="1.5" fill="none" stroke="rgb(120, 169, 255)"></rect><rect x="16" y="7" width="6" height="10" rx="1.5" fill="none" stroke="rgb(120, 169, 255)"></rect><path d="M8 12h8" fill="none" stroke="rgb(120, 169, 255)"></path><path d="M13 9.5 16 12l-3 2.5" fill="none" stroke="rgb(120, 169, 255)"></path></svg>
+    <svg x="1029" y="0" width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="rgb(0, 200, 149)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><title>Solace PubSub+</title><circle cx="4" cy="12" r="2" fill="none" stroke="rgb(0, 200, 149)"></circle><circle cx="20" cy="5" r="2" fill="none" stroke="rgb(0, 200, 149)"></circle><circle cx="20" cy="12" r="2" fill="none" stroke="rgb(0, 200, 149)"></circle><circle cx="20" cy="19" r="2" fill="none" stroke="rgb(0, 200, 149)"></circle><path d="M6 11.3 18 5.7" fill="none" stroke="rgb(0, 200, 149)"></path><path d="M6 12h12" fill="none" stroke="rgb(0, 200, 149)"></path><path d="M6 12.7 18 18.3" fill="none" stroke="rgb(0, 200, 149)"></path></svg>
   </g>
 </svg>
