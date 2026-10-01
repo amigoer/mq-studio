@@ -131,7 +131,7 @@ Publishing is also what updates <https://mq-studio.amigoer.com>. Cloudflare
 builds the site from its own git integration, which only ever sees a push, and
 publishing a release is not one - it flips a flag on a tag that already exists.
 So `website.yml` closes the gap: on `release: published` it rewrites
-`website/src/data/release.json` from the published manifest and commits it to
+`website/data/release.json` from the published manifest and commits it to
 `main`, and that commit is the push Cloudflare reacts to. It retries for a
 couple of minutes, because it runs on the same event as `promote.yml` and the
 preferred mirror serves the previous release until that finishes.
