@@ -1,0 +1,3 @@
+# Addresses the Astro site published that the Kite one does not.
+/sitemap-index.xml /sitemap.xml 301
+/sitemap-0.xml /sitemap.xml 301

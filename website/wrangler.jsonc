@@ -1,10 +1,13 @@
 {
   // Assets-only: there is no Worker script, so every request is served straight
-  // from dist/ and none of them are billed. `_headers` in public/ still applies,
-  // because that rule only stops at responses a Worker generates.
+  // from dist/ and none of them are billed. `_headers` and `_redirects` from
+  // static/ still apply, because those rules only stop at responses a Worker
+  // generates. A missing page gets the nearest 404.html, so an address under
+  // /en/ is answered in English.
   "name": "mq-studio",
   "compatibility_date": "2026-09-02",
   "assets": {
-    "directory": "./dist"
+    "directory": "./dist",
+    "not_found_handling": "404-page"
   }
 }

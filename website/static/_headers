@@ -1,0 +1,24 @@
+# Response headers on Cloudflare. Later, more specific rules override the
+# headers they repeat, so the catch-all sets the safe default.
+
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: DENY
+  # Pages are served without a file extension (/changelog/, not .html), so this
+  # is where the HTML policy has to live: revalidate, or a new release would
+  # keep serving the old download links.
+  Cache-Control: public, max-age=0, must-revalidate
+
+# The pages link the theme's stylesheet and script with a hash of their
+# contents, so a given URL's bytes never change. A font that changes has to
+# change its name.
+/mq-studio/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Screenshots keep their names when they are taken again.
+/shots/*
+  Cache-Control: public, max-age=86400
+
+/images/*
+  Cache-Control: public, max-age=86400

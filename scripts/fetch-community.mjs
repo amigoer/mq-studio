@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /*
- * Writes website/src/data/community.json and downloads contributor avatars into
- * website/src/assets/avatars so the page makes no third-party request.
+ * Writes website/data/community.json and downloads contributor avatars into
+ * website/data/avatars so the page makes no third-party request.
  *
  * Never fails the build: both the JSON and the avatars are committed, so an
  * offline or rate-limited build falls back to the last known-good copy.
@@ -11,9 +11,9 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const REPO = 'amigoer/mq-studio';
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', 'website', 'src');
-const OUT = join(ROOT, 'data', 'community.json');
-const AVATARS = join(ROOT, 'assets', 'avatars');
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', 'website', 'data');
+const OUT = join(ROOT, 'community.json');
+const AVATARS = join(ROOT, 'avatars');
 
 const warn = (m) => process.stderr.write(`[fetch-community] ${m}\n`);
 

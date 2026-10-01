@@ -1,0 +1,206 @@
+# The English site, served under /en/. scripts/build.mjs stages it with the
+# docs and changelog this repo already has, fills site.params from the release
+# and community data, and merges it under the Chinese site.
+site:
+  title: MQ Studio
+  description: "MQ Studio is a local-first desktop client for message queues. RocketMQ, RabbitMQ, Kafka, Pulsar, Redis Stream, MQTT, NATS, ActiveMQ, NSQ, Amazon SQS, Google Pub/Sub, Azure Service Bus, Amazon Kinesis, IBM MQ, and Solace PubSub+ share one interface and one workflow, with no web console to deploy or keep alive. macOS, Windows, and Linux. Apache-2.0."
+  baseURL: https://mq-studio.amigoer.com/en/
+  language: en
+  author: amigoer
+  timezone: Asia/Shanghai
+  params: {}  # filled in by scripts/build.mjs
+
+content:
+  types:
+    - kind: doc
+      label: Doc
+      dir: docs
+      route: /docs/:slug
+      layout: single
+      order: weight
+    - kind: release
+      label: Release
+      dir: changelog
+      route: /changelog/:slug
+      layout: single
+      order: date
+      feed: true
+
+build:
+  output: public
+  pagination: {list: 0}
+
+menus:
+  main:
+    - {name: Features, url: "/#features"}
+    - {name: Product tour, url: "/#tour"}
+    - {name: Docs, url: /docs/}
+    - {name: Changelog, url: /changelog/}
+
+theme:
+  name: mq-studio
+  settings:
+    tagline: One interface for every message queue
+    favicon: /favicon.svg
+    favicon_png: /favicon.png
+    share_image: /images/og.en.jpg
+    github: https://github.com/amigoer/mq-studio
+    alternate: /
+    alternate_label: 中文
+
+    announcement: true
+    announcement_id: v0.2.0
+    announcement_text: "MQ Studio 0.2.0 is out — it now runs as an MCP server, so an agent can use your connections"
+    announcement_link: /changelog/v0.2.0/
+
+    badge_text: is out · Apache-2.0
+    hero_title: One interface for every message queue
+    hero_text: "MQ Studio is a local-first desktop client for message queues — RocketMQ, RabbitMQ, Kafka, Pulsar, Redis Stream, MQTT, NATS, ActiveMQ, NSQ, Amazon SQS, Google Pub/Sub, Azure Service Bus, Amazon Kinesis, IBM MQ, and Solace PubSub+ behind the same pages and the same workflow, with no web console to deploy or keep alive."
+    hero_note: "Detects your system · Free and open source · macOS 12+ / Windows 10+ / Linux (GTK 4)"
+    install_label: Install guide
+    install_url: /docs/install/
+
+    showcase_label: At a glance
+    showcase_title: Connect, and the whole cluster is on one screen
+    showcase_text: "Cluster health, live throughput, consumer lag and broker state at a glance. Press ⌘J and an assistant opens beside the page, reading the broker to find out why."
+    showcase_image: overview.en
+    showcase_image_dark: overview.en.dark
+    showcase_alt: "MQ Studio showing a live RocketMQ cluster: brokers, topics, consumer groups, produce rate and total backlog, a throughput chart, broker health and the busiest topics"
+    showcase_image2: assistant.en
+    showcase_alt2: "The assistant beside the consumer groups page, asked why legacy-sync is behind: it found no consumer online, and waits for approval to move the read position"
+    showcase_note: Press ⌘J and ask
+    showcase_note_text: Nothing changes until you approve it
+
+    brokers_label: Available
+    brokers_title: Fifteen brokers, one interface
+    brokers_text: "Every driver the roadmap named has landed, and agents can work them too: an assistant beside every page in the window, or any MCP client through the same binary."
+    brokers:
+      - {name: RocketMQ, versions: 4.x / 5.x}
+      - {name: RabbitMQ, versions: 3.x / 4.x}
+      - {name: Kafka, versions: 3.x / 4.x}
+      - {name: Pulsar, versions: 3.x / 4.x}
+      - {name: Redis Stream, versions: 6.0+}
+      - {name: MQTT, versions: 3.1.1 / 5.0}
+      - {name: NATS, versions: 2.x}
+      - {name: ActiveMQ, versions: Classic 5.x / 6.x · Artemis 2.x}
+      - {name: NSQ, versions: 1.x}
+      - {name: Amazon SQS, versions: managed}
+      - {name: Google Pub/Sub, versions: managed}
+      - {name: Azure Service Bus, versions: managed}
+      - {name: Amazon Kinesis, versions: managed}
+      - {name: IBM MQ, versions: "9.1+"}
+      - {name: Solace PubSub+, versions: 10.x}
+
+    features_label: Features
+    features_title: Why MQ Studio
+    features_text: "Every message queue arrives with a console of its own — different interfaces, different vocabulary, and every one of them a service to deploy and keep alive. MQ Studio is one client for all of them."
+    features:
+      - icon: layers
+        title: One interface, every broker
+        text: Each broker is reached through a driver behind the same interface, so the pages and the workflow stay the same whichever system you are connected to.
+      - icon: shield
+        title: Honest about what it connects to
+        text: "Every connection reports what its endpoint can actually do, and the pages are drawn from that — never an action the broker cannot perform."
+      - icon: zap
+        title: Ready to use
+        text: Download, connect, work. There is no server component to deploy, secure, or keep alive.
+      - icon: lock
+        title: Private by default
+        text: Configuration stays on your device and credentials are encrypted at rest; import and export stay under your control.
+      - icon: sparkles
+        title: An assistant beside every page
+        text: "Ask why a group is behind and it reads the broker to find out, on a model service you choose. It changes nothing until you approve it."
+      - icon: code
+        title: Open source, auditable
+        text: Apache-2.0 licensed with the source fully public, and every release ships SHA256 checksums to verify your download.
+
+    tour_label: Product tour
+    tour_title: From topics to alerts, in one client
+    tour_text: "Every driver is taken to the same depth — below is the real interface on a RocketMQ connection."
+    tour:
+      - image: connections.en
+        title: Connections
+        note: "Every cluster in one list, whatever the broker; each opens in its own tab."
+        alt: "The connection list with RocketMQ, Kafka, RabbitMQ, Redis Stream, NATS, MQTT and NSQ clusters, all online"
+      - image: topics.en
+        title: Topics
+        note: "Throughput, queues and subscribers for every topic, read from the broker itself."
+        alt: "Topics sorted by produce rate, with one topic open: its throughput, subscribed groups, and the offsets of every queue"
+      - image: consumers.en
+        title: Consumer lag
+        note: "See why a group is behind: backlog per queue, who is connected, and offsets to reset or clone."
+        alt: "Consumer groups sorted by backlog, with a lagging group open: no online clients, and the backlog of every queue it reads"
+      - image: messages.en
+        title: Messages
+        note: "Query by key, tag or id, open the body, and see which consumer groups have read it."
+        alt: "Querying messages on a RocketMQ topic, with one order message open and its JSON body formatted"
+      - image: cluster
+        title: Cluster
+        note: "Broker roles, throughput, disk water level, and messages in and out today, refreshed live."
+        alt: The MQ Studio cluster monitoring page
+      - image: alerts
+        title: Alerts
+        note: "Active alerts derived from live cluster metrics, with the rules behind them under your control and a desktop notification when one fires."
+        alt: The MQ Studio alerts page
+
+    news_title: Latest releases
+    news_text: What changed in every release is in the changelog.
+
+    download_title: Download MQ Studio
+    download_text: "Current release {version} · every release ships a {checksums}"
+    mac_requirement: macOS 12 and later
+    windows_requirement: Windows 10 and later
+    linux_requirement: GTK 4 · WebKitGTK 6.0
+    download_note_mac: "The macOS build is not signed with a developer certificate yet, so the first launch takes one extra step; the disk image ships a script for it — see the"
+    download_note_mac_link: /docs/install/
+    download_note_linux: "Linux packages need Ubuntu 24.04+ / Debian 13+ or the equivalent elsewhere · earlier versions are under"
+
+    more_title: Built in the open
+    more_text: "The source is public and the discussion happens on GitHub. If something gets in your way, or a driver you need is missing, open an issue."
+    more:
+      - title: Docs
+        text: "Installing, the brokers it reaches, the assistant and the MCP server, in full."
+        link: /docs/
+        link_label: Read the docs
+      - title: Changelog
+        text: "What changed in every release, newest first."
+        link: /changelog/
+        link_label: See the changelog
+      - title: GitHub
+        text: "Open an issue, or read the source."
+        link: "https://github.com/amigoer/mq-studio"
+        link_label: Browse the source
+
+    sidebar:
+      - title: Getting started
+        pages:
+          - {label: Install, url: /docs/install/}
+          - {label: Brokers, url: /docs/drivers/}
+      - title: Using it
+        pages:
+          - {label: The assistant, url: /docs/assistant/}
+          - {label: For agents (MCP), url: /docs/mcp/}
+      - title: The project
+        pages:
+          - {label: Architecture, url: /docs/architecture/}
+          - {label: Roadmap, url: /docs/roadmap/}
+
+    footer_columns:
+      - title: Product
+        links:
+          - {label: Features, url: "/#features"}
+          - {label: Product tour, url: "/#tour"}
+          - {label: Download, url: "/#download"}
+          - {label: Changelog, url: /changelog/}
+      - title: Docs
+        links:
+          - {label: Install guide, url: /docs/install/}
+          - {label: The assistant, url: /docs/assistant/}
+          - {label: For agents, url: /docs/mcp/}
+          - {label: Roadmap, url: /docs/roadmap/}
+      - title: Community
+        links:
+          - {label: GitHub, url: "https://github.com/amigoer/mq-studio"}
+          - {label: Issues, url: "https://github.com/amigoer/mq-studio/issues"}
+    footer_text: A local-first desktop client for message queues.
+    copyright: © 2026 amigoer · Apache-2.0

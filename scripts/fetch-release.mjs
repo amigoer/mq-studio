@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /*
- * Writes website/src/data/release.json from the published release manifest so
+ * Writes website/data/release.json from the published release manifest so
  * the download cards can name real files, sizes and checksums at build time.
  *
  * It reads the same manifest the app does, through the same mirrors in the same
@@ -18,7 +18,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { MIRRORS, REPOSITORY } from './mirrors.mjs';
 
-const OUT = join(dirname(fileURLToPath(import.meta.url)), '..', 'website', 'src', 'data', 'release.json');
+const OUT = join(dirname(fileURLToPath(import.meta.url)), '..', 'website', 'data', 'release.json');
 
 // mq-studio-<version>-<os>-<arch>.<ext>, the scheme package.yml normalises onto.
 const ASSET = /^mq-studio-(.+?)-(mac|windows|linux)-(amd64|arm64)\.(dmg|exe|deb|rpm|AppImage)$/;

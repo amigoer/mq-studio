@@ -1,0 +1,168 @@
+# The Chinese site, served at the root. scripts/build.mjs stages it with the
+# docs and changelog this repo already has, fills site.params from the release
+# and community data, and merges it with the English site under /en/.
+site:
+  title: MQ Studio
+  description: "MQ Studio 是本地优先的消息队列桌面客户端，RocketMQ、RabbitMQ、Kafka、Pulsar、Redis Stream、MQTT、NATS、ActiveMQ、NSQ、Amazon SQS、Google Pub/Sub、Azure Service Bus、Amazon Kinesis、IBM MQ 与 Solace PubSub+ 共用同一套界面和操作，无需部署和值守 Web 控制台。支持 macOS、Windows、Linux，Apache-2.0 开源。"
+  baseURL: https://mq-studio.amigoer.com
+  language: zh-CN
+  author: amigoer
+  timezone: Asia/Shanghai
+  params: {}  # filled in by scripts/build.mjs
+
+content:
+  types:
+    - kind: doc
+      label: 文档
+      dir: docs
+      route: /docs/:slug
+      layout: single
+      order: weight
+    - kind: release
+      label: 版本
+      dir: changelog
+      route: /changelog/:slug
+      layout: single
+      order: date
+      feed: true
+
+build:
+  output: public
+  pagination: {list: 0}
+
+menus:
+  main:
+    - {name: 功能, url: "/#features"}
+    - {name: 产品一览, url: "/#tour"}
+    - {name: 文档, url: /docs/}
+    - {name: 更新日志, url: /changelog/}
+
+theme:
+  name: mq-studio
+  settings:
+    tagline: 一套界面，连接所有消息队列
+    favicon: /favicon.svg
+    favicon_png: /favicon.png
+    share_image: /images/og.jpg
+    github: https://github.com/amigoer/mq-studio
+    alternate: /en/
+    alternate_label: English
+
+    announcement: true
+    announcement_id: v0.2.0
+    announcement_text: "MQ Studio 0.2.0 已发布 —— 现在可以作为 MCP server 运行，让 agent 直接用你的连接"
+    announcement_link: /changelog/v0.2.0/
+
+    badge_text: 现已发布 · Apache-2.0 开源
+    hero_title: 一套界面，连接所有消息队列
+    hero_text: "MQ Studio 是本地优先的消息队列桌面客户端 —— RocketMQ、RabbitMQ、Kafka、Pulsar、Redis Stream、MQTT、NATS、ActiveMQ、NSQ、Amazon SQS、Google Pub/Sub、Azure Service Bus、Amazon Kinesis、IBM MQ 与 Solace PubSub+ 同一套界面、同一套操作，无需部署和值守 Web 控制台。"
+    hero_note: 自动识别当前系统 · 免费开源 · macOS 12+ / Windows 10+ / Linux（GTK 4）
+    install_label: 安装说明
+    install_url: /docs/install/
+
+    showcase_label: 一眼看清
+    showcase_title: 连上集群，状态都在一屏里
+    showcase_text: 集群健康、实时吞吐、消费堆积与 Broker 状态一眼可见；按 ⌘J，AI 助手就在当前页面旁边，替你读 broker、查原因。
+    showcase_image: overview
+    showcase_image_dark: overview.dark
+    showcase_alt: MQ Studio 连接一个运行中的 RocketMQ 集群：Broker、Topic、消费组、生产速率与总堆积，吞吐趋势图、Broker 健康状况与最活跃的 Topic
+    showcase_image2: assistant
+    showcase_alt2: 消费组页面旁的 AI 助手：被问到 legacy-sync 为什么堆积，它发现没有在线消费者，正等待批准移动位点
+    showcase_note: 按 ⌘J 提问
+    showcase_note_text: 改动之前都先等你批准
+
+    brokers_label: 已支持
+    brokers_title: 15 种消息中间件，同一套界面
+    brokers_text: 路线图上列出的驱动都已落地，agent 也用得上它们：窗口里每个页面旁边都有 AI 助手，外部的 MCP 客户端也能通过同一个二进制使用它们。
+    brokers:
+      - {name: RocketMQ, versions: 4.x / 5.x}
+      - {name: RabbitMQ, versions: 3.x / 4.x}
+      - {name: Kafka, versions: 3.x / 4.x}
+      - {name: Pulsar, versions: 3.x / 4.x}
+      - {name: Redis Stream, versions: 6.0+}
+      - {name: MQTT, versions: 3.1.1 / 5.0}
+      - {name: NATS, versions: 2.x}
+      - {name: ActiveMQ, versions: Classic 5.x / 6.x · Artemis 2.x}
+      - {name: NSQ, versions: 1.x}
+      - {name: Amazon SQS, versions: 托管}
+      - {name: Google Pub/Sub, versions: 托管}
+      - {name: Azure Service Bus, versions: 托管}
+      - {name: Amazon Kinesis, versions: 托管}
+      - {name: IBM MQ, versions: "9.1+"}
+      - {name: Solace PubSub+, versions: 10.x}
+
+    features_label: 特性
+    features_title: 为什么用 MQ Studio
+    features_text: 每一种消息队列都自带一个控制台，界面不同、叫法不同，还都是要部署、要值守的服务。MQ Studio 是它们共同的客户端。
+    features:
+      - {icon: layers, title: 一套界面，所有中间件, text: 每种中间件通过驱动接入同一套接口，不管连的是哪个系统，页面和操作方式都是同一套。}
+      - {icon: shield, title: 如实呈现所连端点, text: "每个连接上报它究竟能做什么，界面据此绘制 —— 不会给出中间件本身做不到的操作。"}
+      - {icon: zap, title: 安装即用, text: "下载、连接、开工 —— 没有需要部署、加固和值守的服务端组件。"}
+      - {icon: lock, title: 数据留在本机, text: 配置保存在当前设备，凭证加密存储；导入导出由你掌控。}
+      - {icon: sparkles, title: 每个页面旁都有 AI 助手, text: 问它某个消费组为什么落后，它会自己去 broker 上查；模型服务由你选，改动什么都先等你批准。}
+      - {icon: code, title: 开源可审计, text: Apache-2.0 许可，代码完全公开，附 SHA256 校验文件核对下载完整性。}
+
+    tour_label: 产品一览
+    tour_title: 从 Topic 到告警，都在一个客户端里
+    tour_text: "每个驱动都做到同样的深度 —— 下面是 RocketMQ 连接下的真实界面。"
+    tour:
+      - {image: connections, title: 连接, note: 不管哪种中间件，所有集群都在一个列表里，每个都在自己的标签页中打开。, alt: 连接列表：RocketMQ、Kafka、RabbitMQ、Redis Stream、NATS、MQTT 与 NSQ 集群，全部在线}
+      - {image: topics, title: Topic, note: 每个 Topic 的吞吐、队列与订阅关系，直接读自 Broker。, alt: 按生产 TPS 排序的 Topic 列表，打开其中一个：吞吐、订阅它的消费组，以及每个队列的位点}
+      - {image: consumers, title: 消费积压, note: 查清一个组为什么落后：逐队列的积压、在线的客户端，以及可以重置或克隆的位点。, alt: 按积压排序的消费组列表，打开一个落后的组：没有在线客户端，以及它读的每个队列的积压}
+      - {image: messages, title: 消息, note: 按 Key、Tag 或 ID 查询，打开消息体，看哪些消费组已经消费。, alt: 在一个 RocketMQ Topic 上查询消息，打开其中一条订单消息，JSON 消息体已经格式化}
+      - {image: cluster, title: 集群, note: Broker 角色、吞吐、磁盘水位与今日进出消息量，实时刷新。, alt: MQ Studio 集群监控界面}
+      - {image: alerts, title: 告警, note: 基于实时集群指标的活跃告警，背后的规则可自行配置，触发时发送桌面通知。, alt: MQ Studio 告警界面}
+
+    news_title: 最新版本
+    news_text: 每个版本改了什么，都写在更新日志里。
+
+    download_title: 下载 MQ Studio
+    download_text: 当前版本 {version} · 每个版本附 {checksums} 校验文件
+    mac_requirement: macOS 12 及以上
+    windows_requirement: Windows 10 及以上
+    linux_requirement: GTK 4 · WebKitGTK 6.0
+    download_note_mac: "macOS 版尚未使用开发者证书签名，首次打开需多一步操作，磁盘映像内附处理脚本 —— 见"
+    download_note_mac_link: /docs/install/
+    download_note_linux: Linux 包需要 Ubuntu 24.04+ / Debian 13+ 或其他发行版的同期版本 · 历史版本见
+
+    more_title: 开源共建
+    more_text: 代码完全公开，Issue 与讨论都在 GitHub 上。用得不顺手、缺了什么驱动，欢迎直接开一个 Issue。
+    more:
+      - {title: 文档, text: 安装、支持的中间件、AI 助手和 MCP server 的完整说明。, link: /docs/, link_label: 阅读文档}
+      - {title: 更新日志, text: 每个版本改了什么，最新的在前。, link: /changelog/, link_label: 查看更新日志}
+      - {title: GitHub, text: 提一个 Issue，或者直接看源码。, link: "https://github.com/amigoer/mq-studio", link_label: 查看源码}
+
+    sidebar:
+      - title: 开始使用
+        pages:
+          - {label: 安装, url: /docs/install/}
+          - {label: 支持的中间件, url: /docs/drivers/}
+      - title: 使用
+        pages:
+          - {label: AI 助手, url: /docs/assistant/}
+          - {label: 给 agent 用（MCP）, url: /docs/mcp/}
+      - title: 项目
+        pages:
+          - {label: 架构, url: /docs/architecture/}
+          - {label: 路线图, url: /docs/roadmap/}
+    untranslated: 这一页还没有中文版，下面是英文原文。
+
+    footer_columns:
+      - title: 产品
+        links:
+          - {label: 功能, url: "/#features"}
+          - {label: 产品一览, url: "/#tour"}
+          - {label: 下载, url: "/#download"}
+          - {label: 更新日志, url: /changelog/}
+      - title: 文档
+        links:
+          - {label: 安装说明, url: /docs/install/}
+          - {label: AI 助手, url: /docs/assistant/}
+          - {label: 给 agent 用, url: /docs/mcp/}
+          - {label: 路线图, url: /docs/roadmap/}
+      - title: 社区
+        links:
+          - {label: GitHub, url: "https://github.com/amigoer/mq-studio"}
+          - {label: Issues, url: "https://github.com/amigoer/mq-studio/issues"}
+    footer_text: 本地优先的消息队列桌面客户端。
+    copyright: © 2026 amigoer · Apache-2.0
