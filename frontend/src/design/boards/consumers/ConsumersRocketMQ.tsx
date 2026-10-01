@@ -766,8 +766,11 @@ function GroupSheet({
                     {/* The last-consumed label belongs here, not on every row:
                         repeated per queue it cost more width than the
                         timestamps it introduced, and pushed the table into a
-                        horizontal scroll inside a panel this narrow. */}
-                    <TableHead style={R}>
+                        horizontal scroll inside a panel this narrow. The
+                        column may wrap for the same reason: a busy broker's
+                        offsets run to ten digits, and held to one line they
+                        push the action column out of the 500px panel. */}
+                    <TableHead className="whitespace-normal" style={R}>
                       {t("board.consumers.rocketmq.position")}
                       <span className="mt-0.5 block text-[10.5px] font-normal">
                         {t("board.consumers.rocketmq.lastConsumed")}
@@ -802,11 +805,18 @@ function GroupSheet({
                       </TableRow>
                       {block.queues.map((queue) => (
                         <TableRow key={`${queue.brokerName}-${queue.queueId}`}>
-                          <TableCell className="mono3" style={{ paddingLeft: "20px" }}>
-                            {queue.brokerName} q{queue.queueId}
+                          {/* Breaks between broker and queue, never at the
+                              hyphen inside a broker name. */}
+                          <TableCell className="mono3 whitespace-normal" style={{ paddingLeft: "20px" }}>
+                            <span className="whitespace-nowrap">{queue.brokerName}</span>{" "}
+                            <span className="whitespace-nowrap">q{queue.queueId}</span>
                           </TableCell>
-                          <TableCell className="mono3" style={{ ...R, color: "var(--c-mono-dim)" }}>
-                            {queue.consumerOffset.toLocaleString()} /{" "}
+                          <TableCell
+                            className="mono3 whitespace-normal"
+                            style={{ ...R, color: "var(--c-mono-dim)" }}
+                          >
+                            {queue.consumerOffset.toLocaleString()}
+                            {" / "}
                             {queue.brokerOffset.toLocaleString()}
                             {/* When the queue last moved, which is the
                                 difference between a slow consumer and a

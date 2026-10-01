@@ -277,8 +277,13 @@ export function TopicsKafka() {
                             <TableHead style={R}>P</TableHead>
                             <TableHead style={R}>Leader</TableHead>
                             <TableHead>ISR</TableHead>
-                            <TableHead style={R}>{t("board.topics.kafka.startOffset")}</TableHead>
-                            <TableHead style={R}>{t("board.topics.kafka.endOffset")}</TableHead>
+                            {/* One column free to wrap after the slash, not two:
+                                a busy partition's offsets run to ten digits,
+                                and two such columns held to one line push the
+                                Move button out of the 430px panel. */}
+                            <TableHead className="whitespace-normal" style={R}>
+                              {t("board.topics.kafka.startOffset")} / {t("board.topics.kafka.endOffset")}
+                            </TableHead>
                             <TableHead />
                           </TableRow>
                         </TableHeader>
@@ -324,10 +329,9 @@ export function TopicsKafka() {
                                   </span>
                                 )}
                               </TableCell>
-                              <TableCell className="mono3" style={R}>
+                              <TableCell className="mono3 whitespace-normal" style={R}>
                                 {partition.startOffset}
-                              </TableCell>
-                              <TableCell className="mono3" style={R}>
+                                {" / "}
                                 {partition.endOffset}
                               </TableCell>
                               <TableCell style={R}>

@@ -114,6 +114,13 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   driver is tested against 4.x; MQTT read 3.1, a protocol the driver does not
   speak, where the form beside it offers 3.1.1 and 5.0.
 
+- A busy cluster's numbers no longer push buttons out of a detail panel. A
+  consumer group's per-queue progress and a Kafka topic's partitions held every
+  cell to one line, so offsets running to ten digits pushed Set offset and Move
+  past the panel's edge - in Chinese as well, though English showed it first
+  with its longer labels. The offsets now wrap after the slash, and Kafka's
+  start and end offsets share one column.
+
 ## [0.1.2] - 2026-09-20
 
 The connections page gains bulk work and a way into a form from the welcome
