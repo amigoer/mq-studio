@@ -32,7 +32,7 @@ func definitions() []Tool {
 		// cannot use any of the rest.
 		define("connections_list", "List connections", "",
 			"List the broker connections this installation has stored, with the family "+
-				"each speaks and how far this server may go on each. Start here: every other tool "+
+				"each speaks and how far the tools may go on each. Start here: every other tool "+
 				"takes one of these ids.",
 			(*Env).listConnections),
 		define("capabilities_describe", "Describe a connection", "",
@@ -208,7 +208,7 @@ type connectionSummary struct {
 	Endpoints string `json:"endpoints,omitempty"`
 	Group     string `json:"group,omitempty"`
 	Remark    string `json:"remark,omitempty"`
-	Allow     string `json:"allow" jsonschema:"how far this server may go on this connection: read, mutate or destructive"`
+	Allow     string `json:"allow" jsonschema:"how far the tools may go on this connection: read, mutate or destructive"`
 }
 
 type connectionsOutput struct {
@@ -280,7 +280,7 @@ type absence struct {
 
 type describeOutput struct {
 	Family      string             `json:"family"`
-	Allow       string             `json:"allow" jsonschema:"how far this server may go on this connection: read, mutate or destructive"`
+	Allow       string             `json:"allow" jsonschema:"how far the tools may go on this connection: read, mutate or destructive"`
 	Operations  []operationSummary `json:"operations"`
 	Unavailable []absence          `json:"unavailable,omitempty"`
 }

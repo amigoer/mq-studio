@@ -96,6 +96,20 @@ func (e *Env) held(ctx context.Context, id int, kind model.MQKind, ref model.Des
 	return destination.Depth, destination.Depth >= 0, nil
 }
 
+// Consequence is what a write would leave behind on the connection it names,
+// as the connection declares it, for a person approving it to read. A write
+// that could not be made there at all is refused here instead, before anybody
+// is asked about it.
+func (e *Env) Consequence(tool Tool, input any) (string, error) {
+	target, targeted := input.(Targeted)
+	operation, known := catalog.Find(tool.Operation)
+	if !targeted || !known {
+		return "", fmt.Errorf("%s names no connection to check", tool.Name)
+	}
+	_, caveat, err := e.capable(target.Target(), operation.Capability)
+	return caveat, err
+}
+
 // ChangedSince refuses a write whose connection was pointed elsewhere after
 // the person agreed to it: what they agreed to is the broker they were shown.
 func (e *Env) ChangedSince(id int, agreed model.ConnectionProfile) error {
