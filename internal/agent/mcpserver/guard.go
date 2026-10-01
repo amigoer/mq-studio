@@ -91,14 +91,14 @@ func guarded(s *server, tool toolset.Tool, gated, confirmed bool) mcp.ToolHandle
 		if confirmed {
 			reply, token, answering := answerOf(request)
 			if !answering {
-				call = s.journal.next()
+				call = s.journal.Next()
 				entry := s.entry(request, tool.Name, operation, id, input, call)
 				question, profile, err := s.question(ctx, request, tool, gated, id, input)
 				if err == nil {
-					err = s.journal.before(entry.asked(question))
+					err = s.journal.Before(entry.Asked(question))
 				}
 				if err != nil {
-					s.journal.keep(entry.refused(err))
+					s.journal.Keep(entry.Refused(err))
 					return nil, nil, err
 				}
 				return s.confirmations.ask(question, agreement{
@@ -109,18 +109,18 @@ func guarded(s *server, tool toolset.Tool, gated, confirmed bool) mcp.ToolHandle
 
 			asked, err := s.confirmations.take(token, tool.Name, toolset.Canonical(input))
 			if call = asked.call; call == 0 {
-				call = s.journal.next()
+				call = s.journal.Next()
 			}
 			if err == nil {
 				err = verdict(reply)
 			}
 			if err != nil {
-				s.journal.keep(s.entry(request, tool.Name, operation, id, input, call).refused(err))
+				s.journal.Keep(s.entry(request, tool.Name, operation, id, input, call).Refused(err))
 				return nil, nil, err
 			}
 			agreed = &asked
 		} else {
-			call = s.journal.next()
+			call = s.journal.Next()
 		}
 
 		if gated || confirmed {
@@ -131,23 +131,23 @@ func guarded(s *server, tool toolset.Tool, gated, confirmed bool) mcp.ToolHandle
 		entry := s.entry(request, tool.Name, operation, id, input, call)
 		if gated {
 			if err := s.reaches(id, tool.Name, operation.Blast); err != nil {
-				s.journal.keep(entry.refused(err))
+				s.journal.Keep(entry.Refused(err))
 				return nil, nil, err
 			}
 		}
 		if agreed != nil {
 			if err := s.env.ChangedSince(id, agreed.profile); err != nil {
-				s.journal.keep(entry.refused(err))
+				s.journal.Keep(entry.Refused(err))
 				return nil, nil, err
 			}
 		}
-		if err := s.journal.before(entry.started(agreed != nil)); err != nil {
+		if err := s.journal.Before(entry.Started(agreed != nil)); err != nil {
 			return nil, nil, err
 		}
 
 		began := time.Now()
 		output, err := tool.Run(s.caller(ctx, request), s.env, input)
-		s.journal.keep(entry.finished(output, err, time.Since(began)))
+		s.journal.Keep(entry.Finished(output, err, time.Since(began)))
 		return nil, output, err
 	}
 }

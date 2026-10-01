@@ -27,6 +27,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
+	"github.com/amigoer/mq-studio/internal/agent/audit"
 	"github.com/amigoer/mq-studio/internal/agent/catalog"
 	"github.com/amigoer/mq-studio/internal/agent/toolset"
 	"github.com/amigoer/mq-studio/internal/app"
@@ -66,8 +67,10 @@ type server struct {
 	env *toolset.Env
 	// grants is how far each connection may go.
 	grants Grants
-	// journal is the audit log every write is recorded in.
-	journal *journal
+	// journal is the audit log every write is recorded in, and session tells
+	// this server's records there from every other writer's.
+	journal *audit.Journal
+	session string
 	// confirmations are the questions put to a person and not yet answered.
 	confirmations confirmations
 	/*
@@ -94,7 +97,8 @@ func New(
 	s := &server{
 		services: services,
 		grants:   grants,
-		journal:  newJournal(auditPath(services)),
+		journal:  audit.Open(auditPath(services)),
+		session:  audit.NewSession(),
 	}
 	s.env = &toolset.Env{
 		Services:  services,

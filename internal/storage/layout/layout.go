@@ -16,7 +16,8 @@ type Layout struct {
 	ConnectionsFile string
 	TPSHistoryFile  string
 	SecretKeyFile   string
-	// AgentAuditFile is appended to by the MCP server and never by the window.
+	// AgentAuditFile is appended to by the MCP server and by the window's
+	// assistant, one whole line per record, and rewritten by nothing.
 	AgentAuditFile string
 	// AgentFile holds the window assistant's model services, their keys
 	// encrypted, and how it is set up. Only the window reads or writes it.

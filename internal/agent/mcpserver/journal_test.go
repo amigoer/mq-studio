@@ -4,17 +4,15 @@ import (
 	"bufio"
 	"encoding/json"
 	"os"
-	"path/filepath"
-	"runtime"
 	"strings"
-	"sync"
 	"testing"
 
+	"github.com/amigoer/mq-studio/internal/agent/audit"
 	"github.com/amigoer/mq-studio/internal/agent/catalog"
 )
 
 // audited is every record in an audit log, in the order written.
-func audited(t *testing.T, path string) []auditRecord {
+func audited(t *testing.T, path string) []audit.Record {
 	t.Helper()
 	file, err := os.Open(path)
 	if os.IsNotExist(err) {
@@ -25,10 +23,10 @@ func audited(t *testing.T, path string) []auditRecord {
 	}
 	defer file.Close()
 
-	var records []auditRecord
+	var records []audit.Record
 	lines := bufio.NewScanner(file)
 	for lines.Scan() {
-		var record auditRecord
+		var record audit.Record
 		if err := json.Unmarshal(lines.Bytes(), &record); err != nil {
 			t.Fatalf("a line of the audit log is not a record: %v\n%s", err, lines.Text())
 		}
@@ -66,7 +64,7 @@ func TestEveryWriteIsRecordedBeforeAndAfter(t *testing.T) {
 	asked, started, done, resent, failed, refused := records[0], records[1], records[2], records[3],
 		records[4], records[5]
 
-	if asked.Phase != phaseAsked || started.Phase != phaseStarted || done.Phase != phaseDone ||
+	if asked.Phase != audit.PhaseAsked || started.Phase != audit.PhaseStarted || done.Phase != audit.PhaseDone ||
 		asked.Call != started.Call || started.Call != done.Call || started.Session != done.Session {
 		t.Errorf("the delete is not a question, a start and its outcome: %+v / %+v / %+v", asked, started, done)
 	}
@@ -78,7 +76,7 @@ func TestEveryWriteIsRecordedBeforeAndAfter(t *testing.T) {
 		started.Blast != string(catalog.BlastDestructive) || started.Allow != string(catalog.BlastDestructive) {
 		t.Errorf("the start does not say what was asked for: %+v", started)
 	}
-	if started.Connection != (auditConnection{ID: scratch, Name: "scratch", Family: "rabbitmq"}) {
+	if started.Connection != (audit.Connection{ID: scratch, Name: "scratch", Family: "rabbitmq"}) {
 		t.Errorf("the start names connection %+v", started.Connection)
 	}
 	if !strings.Contains(string(started.Arguments), `"name":"orders"`) {
@@ -91,12 +89,12 @@ func TestEveryWriteIsRecordedBeforeAndAfter(t *testing.T) {
 		t.Errorf("the outcome does not say what changed and how long it took: %+v", done)
 	}
 
-	if resent.Phase != phaseStarted || failed.Phase != phaseFailed || failed.Call != resent.Call ||
+	if resent.Phase != audit.PhaseStarted || failed.Phase != audit.PhaseFailed || failed.Call != resent.Call ||
 		!strings.Contains(failed.Error, "no concept") {
 		t.Errorf("a write the family cannot do is not a start and a failure: %+v / %+v", resent, failed)
 	}
 
-	if refused.Phase != phaseRefused || refused.Allow != string(catalog.BlastRead) ||
+	if refused.Phase != audit.PhaseRefused || refused.Allow != string(catalog.BlastRead) ||
 		refused.Connection.Name != "production" || !strings.Contains(refused.Error, "no further than read") {
 		t.Errorf("the refusal on production reads %+v", refused)
 	}
@@ -162,47 +160,17 @@ func TestEveryWriteToolIsRecordedWhateverTheAllowance(t *testing.T) {
 			t.Fatalf("%s left %d records", tool.Name, len(records))
 		}
 		start, outcome := records[len(records)-2], records[len(records)-1]
-		if start.Tool != tool.Name || start.Phase != phaseStarted ||
-			outcome.Call != start.Call || (outcome.Phase != phaseDone && outcome.Phase != phaseFailed) {
+		if start.Tool != tool.Name || start.Phase != audit.PhaseStarted ||
+			outcome.Call != start.Call || (outcome.Phase != audit.PhaseDone && outcome.Phase != audit.PhaseFailed) {
 			t.Errorf("%s was not recorded as a start and an outcome: %+v / %+v", tool.Name, start, outcome)
 		}
 		if destructive := tool.Annotations.DestructiveHint; destructive != nil && *destructive {
-			if asked := records[len(records)-3]; asked.Phase != phaseAsked || asked.Call != start.Call {
+			if asked := records[len(records)-3]; asked.Phase != audit.PhaseAsked || asked.Call != start.Call {
 				t.Errorf("%s destroys and was made without a question first: %+v", tool.Name, asked)
 			}
 		}
 	}
 	if written < 6 {
 		t.Fatalf("found %d tools that write, and the server has at least six", written)
-	}
-}
-
-// Calls run at once, and each record has to arrive as a whole line.
-func TestRecordsWrittenAtOnceStayWholeLines(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "agent-audit.jsonl")
-	audit := newJournal(path)
-
-	var writers sync.WaitGroup
-	for call := range 64 {
-		writers.Go(func() {
-			if err := audit.append(auditRecord{Call: int64(call), Phase: phaseStarted,
-				Arguments: json.RawMessage(`{"body":"` + strings.Repeat("x", 2048) + `"}`)}); err != nil {
-				t.Error(err)
-			}
-		})
-	}
-	writers.Wait()
-
-	if records := audited(t, path); len(records) != 64 {
-		t.Fatalf("64 records came back as %d", len(records))
-	}
-	if runtime.GOOS != "windows" {
-		info, err := os.Stat(path)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if mode := info.Mode().Perm(); mode != 0o600 {
-			t.Errorf("the audit log is %v, readable by more than its owner", mode)
-		}
 	}
 }

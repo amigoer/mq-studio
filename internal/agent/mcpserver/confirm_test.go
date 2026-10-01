@@ -10,6 +10,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
+	"github.com/amigoer/mq-studio/internal/agent/audit"
 	"github.com/amigoer/mq-studio/internal/agent/catalog"
 	"github.com/amigoer/mq-studio/internal/model"
 )
@@ -85,8 +86,8 @@ func TestADestructiveWriteWaitsForAPersonsYes(t *testing.T) {
 			}
 
 			records := audited(t, world.paths.AgentAuditFile)
-			if len(records) != 3 || records[0].Phase != phaseAsked || records[1].Phase != phaseStarted ||
-				records[2].Phase != phaseDone || records[0].Call != records[2].Call {
+			if len(records) != 3 || records[0].Phase != audit.PhaseAsked || records[1].Phase != audit.PhaseStarted ||
+				records[2].Phase != audit.PhaseDone || records[0].Call != records[2].Call {
 				t.Fatalf("the log does not read as a question, a start and an outcome: %+v", records)
 			}
 			if records[0].Question != asked[0] || !records[1].Confirmed {
@@ -115,7 +116,7 @@ func TestADeclinedWriteIsNotMade(t *testing.T) {
 				t.Fatalf("purged %v after the person said no", world.conn.purged)
 			}
 			records := audited(t, world.paths.AgentAuditFile)
-			if len(records) != 2 || records[0].Phase != phaseAsked || records[1].Phase != phaseRefused ||
+			if len(records) != 2 || records[0].Phase != audit.PhaseAsked || records[1].Phase != audit.PhaseRefused ||
 				records[0].Call != records[1].Call {
 				t.Fatalf("the log does not read as a question and its refusal: %+v", records)
 			}
