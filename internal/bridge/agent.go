@@ -30,6 +30,8 @@ type AgentSettingsView struct {
 	BodyBytes int    `json:"bodyBytes"`
 	// BodyLimits are the caps the page offers for BodyBytes.
 	BodyLimits []int `json:"bodyLimits"`
+	// Consented names the providers the person agreed to send data to.
+	Consented []string `json:"consented"`
 }
 
 // AgentProviderView is a model service with its key replaced by whether one
@@ -115,6 +117,15 @@ func (s *AgentSettingsService) Get() (*AgentSettingsView, error) {
 // SaveProvider adds a model service, or changes the one input.ID names.
 func (s *AgentSettingsService) SaveProvider(input AgentProviderInput) (*AgentSettingsView, error) {
 	if _, err := s.store.SaveProvider(input.provider(), assistant.KeyChange(input.APIKeyMode)); err != nil {
+		return nil, err
+	}
+	return s.Get()
+}
+
+// Consent records that the person agreed to what is sent to a model service,
+// which the assistant waits for before it sends anything there.
+func (s *AgentSettingsService) Consent(id string) (*AgentSettingsView, error) {
+	if err := s.store.Consent(id); err != nil {
 		return nil, err
 	}
 	return s.Get()
@@ -230,6 +241,7 @@ func viewOf(settings assistant.Settings) *AgentSettingsView {
 		Writes:     string(settings.Writes),
 		BodyBytes:  settings.BodyBytes,
 		BodyLimits: append([]int(nil), assistant.BodyLimits...),
+		Consented:  append([]string{}, settings.Consented...),
 	}
 	for _, p := range settings.Providers {
 		view.Providers = append(view.Providers, AgentProviderView{
