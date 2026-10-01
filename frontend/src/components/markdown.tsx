@@ -2,16 +2,17 @@ import { type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Info, Lightbulb, MessageSquareWarning, OctagonAlert, TriangleAlert } from "lucide-react";
 import { openExternal } from "@/api/platform";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 
 /**
- * The subset of Markdown the release notes are written in.
+ * The subset of Markdown the release notes and the assistant's answers are
+ * written in.
  *
  * Notes come from the GitHub release body, which `scripts/release-notes.mjs`
- * builds from CHANGELOG.zh-CN.md -- so the syntax is bounded by what this
- * repository generates rather than by what Markdown allows. That is what makes
- * a renderer this small honest: headings, lists, emphasis, links, GitHub's
- * alert blocks, rules and fences are the whole of it. Anything else degrades to
+ * builds from CHANGELOG.zh-CN.md, and answers from a model told to keep to
+ * plain Markdown. Headings, lists, emphasis, links, GitHub's alert blocks,
+ * rules, fences and pipe tables are the whole of it. Anything else degrades to
  * a paragraph rather than showing its markers, which is the failure mode that
  * matters -- a reader must never be handed raw `**` and `](`.
  *
@@ -21,10 +22,6 @@ import { cn } from "@/lib/utils";
  *     only safe parser is one that cannot emit HTML at all.
  *   - Links open in the system browser. The webview has no back button, so
  *     navigating it away from the app strands the user.
- *
- * Tables are the known gap. If notes ever start carrying them, replace the
- * innards of this file with react-markdown -- `Markdown` is the only export
- * anything imports, so nothing else has to move.
  */
 
 const ALERT_KINDS = ["note", "tip", "important", "warning", "caution"] as const;
@@ -33,12 +30,15 @@ type AlertKind = (typeof ALERT_KINDS)[number];
 
 type ListItem = { text: string; depth: number };
 
+type Align = "left" | "center" | "right" | null;
+
 export type Block =
   | { kind: "heading"; text: string }
   | { kind: "paragraph"; text: string }
   | { kind: "list"; ordered: boolean; items: ListItem[] }
   | { kind: "quote"; alert: AlertKind | null; text: string }
   | { kind: "code"; text: string }
+  | { kind: "table"; header: string[]; align: Align[]; rows: string[][] }
   | { kind: "rule" };
 
 const FENCE = /^\s*(?:```|~~~)/;
@@ -47,6 +47,53 @@ const HEADING = /^\s{0,3}(#{1,6})\s+(.*?)\s*#*\s*$/;
 const QUOTE = /^\s{0,3}>\s?(.*)$/;
 const ALERT_MARKER = /^\[!(note|tip|important|warning|caution)\]\s*$/i;
 const ITEM = /^(\s*)(?:[-*+]|\d+[.)])\s+(.*)$/;
+const DELIMITER_CELL = /^:?-+:?$/;
+
+/**
+ * A table row's cells. A pipe inside inline code or escaped with a backslash
+ * is part of its cell, which is how a model writes `a|b` in one.
+ */
+function cellsOf(line: string): string[] {
+  let text = line.trim();
+  if (text.startsWith("|")) text = text.slice(1);
+  if (text.endsWith("|") && !text.endsWith("\\|")) text = text.slice(0, -1);
+  const cells: string[] = [];
+  let cell = "";
+  let code = false;
+  for (let index = 0; index < text.length; index += 1) {
+    const char = text[index];
+    if (char === "\\" && text[index + 1] === "|") {
+      cell += "|";
+      index += 1;
+      continue;
+    }
+    if (char === "`") code = !code;
+    if (char === "|" && !code) {
+      cells.push(cell.trim());
+      cell = "";
+      continue;
+    }
+    cell += char;
+  }
+  cells.push(cell.trim());
+  return cells;
+}
+
+/** The alignments a delimiter row sets, or null when the line is not one. */
+function delimiterOf(line: string, columns: number): Align[] | null {
+  if (!line.includes("-")) return null;
+  const cells = cellsOf(line);
+  if (cells.length !== columns || !cells.every((cell) => DELIMITER_CELL.test(cell))) return null;
+  return cells.map((cell) =>
+    cell.startsWith(":") && cell.endsWith(":")
+      ? "center"
+      : cell.endsWith(":")
+        ? "right"
+        : cell.startsWith(":")
+          ? "left"
+          : null,
+  );
+}
 
 /**
  * A soft line break between two CJK characters is a space in HTML, and a space
@@ -177,6 +224,26 @@ export function parseBlocks(source: string): Block[] {
       continue;
     }
 
+    // A row of pipes followed by a row of dashes with as many cells is a
+    // table; anything less is a paragraph that happens to contain a pipe.
+    if (line.includes("|")) {
+      const header = cellsOf(line);
+      const align = delimiterOf(at(index + 1), header.length);
+      if (align != null) {
+        flush();
+        const rows: string[][] = [];
+        index += 2;
+        while (index < lines.length && at(index).trim() !== "" && at(index).includes("|")) {
+          const cells = cellsOf(at(index));
+          rows.push(header.map((_, column) => cells[column] ?? ""));
+          index += 1;
+        }
+        index -= 1;
+        blocks.push({ kind: "table", header, align, rows });
+        continue;
+      }
+    }
+
     paragraph.push(line.trim());
   }
 
@@ -303,13 +370,32 @@ const ALERT_TONE: Record<AlertKind, { icon: typeof Info; wrap: string; label: st
   },
 };
 
-const PARAGRAPH = "text-[13px] leading-[1.8] text-(--c-fg-2)";
+/* Release notes are read beside the app's own text; an answer is the text. */
+const PARAGRAPH = {
+  notes: "text-[13px] leading-[1.8] text-(--c-fg-2)",
+  answer: "text-[13px] leading-[1.7] text-(--c-fg)",
+};
 
-/** Renders the release notes. `source` is Markdown; the output is never HTML. */
-export function Markdown({ source, className }: { source: string; className?: string }) {
+const ALIGN_CLASS: Record<Exclude<Align, null>, string> = {
+  left: "text-left",
+  center: "text-center",
+  right: "text-right",
+};
+
+/** Renders Markdown. `source` is Markdown; the output is never HTML. */
+export function Markdown({
+  source,
+  className,
+  tone = "notes",
+}: {
+  source: string;
+  className?: string;
+  tone?: keyof typeof PARAGRAPH;
+}) {
   const { t } = useTranslation();
   const blocks = parseBlocks(source);
   if (blocks.length === 0) return null;
+  const paragraphClass = PARAGRAPH[tone];
 
   return (
     <div className={cn("min-w-0", className)}>
@@ -363,7 +449,7 @@ export function Markdown({ source, className }: { source: string; className?: st
                     <span className="text-[12px] font-medium">{t(`markdown.alert.${alert}`)}</span>
                   </div>
                 )}
-                <p className={PARAGRAPH}>{inline(block.text, key)}</p>
+                <p className={paragraphClass}>{inline(block.text, key)}</p>
               </div>
             );
           }
@@ -378,16 +464,52 @@ export function Markdown({ source, className }: { source: string; className?: st
                     <span className="flex-none text-[13px] leading-[1.8] text-(--c-muted-2)">
                       {block.ordered ? `${position + 1}.` : "·"}
                     </span>
-                    <span className={cn("min-w-0", PARAGRAPH)}>
+                    <span className={cn("min-w-0", paragraphClass)}>
                       {inline(item.text, `${key}-${position}`)}
                     </span>
                   </li>
                 ))}
               </ul>
             );
+          case "table":
+            return (
+              <div key={key} className="mb-3 overflow-hidden rounded-lg border">
+                <Table className="text-[12px]">
+                  <TableHeader className="bg-(--c-bar)">
+                    <TableRow className="hover:bg-transparent">
+                      {block.header.map((cell, column) => (
+                        <TableHead
+                          key={column}
+                          className={cn("h-7 px-2.5 whitespace-normal", ALIGN_CLASS[block.align[column] ?? "left"])}
+                        >
+                          {inline(cell, `${key}-h${column}`)}
+                        </TableHead>
+                      ))}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {block.rows.map((row, position) => (
+                      <TableRow key={position} className="hover:bg-transparent">
+                        {row.map((cell, column) => (
+                          <TableCell
+                            key={column}
+                            className={cn(
+                              "px-2.5 py-1.5 align-top whitespace-normal tabular-nums",
+                              ALIGN_CLASS[block.align[column] ?? "left"],
+                            )}
+                          >
+                            {inline(cell, `${key}-${position}-${column}`)}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            );
           default:
             return (
-              <p key={key} className={cn("mb-3", PARAGRAPH)}>
+              <p key={key} className={cn("mb-3", paragraphClass)}>
                 {inline(block.text, key)}
               </p>
             );
