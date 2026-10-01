@@ -9,7 +9,7 @@ export const zh: Content = {
     ogAlt: 'MQ Studio 集群概览界面',
   },
   banner: {
-    text: 'Solace PubSub+ 驱动已支持\u00a0—— 第十五个驱动，也是路线图上列出的最后一个',
+    text: 'MQ Studio 0.2.0 已发布\u00a0—— 现在可以作为 MCP server 运行，让 agent 直接用你的连接',
     linkLabel: '更新日志',
     dismiss: '关闭公告',
   },

@@ -5,4 +5,4 @@
  * `banner.text` without changing it and everyone who closed the last
  * announcement never sees the new one.
  */
-export const ANNOUNCEMENT_ID = 'solace-pubsub';
+export const ANNOUNCEMENT_ID = 'v0.2.0';

@@ -9,7 +9,7 @@ export const en: Content = {
     ogAlt: 'The MQ Studio cluster overview',
   },
   banner: {
-    text: 'Solace PubSub+ has landed — the fifteenth driver, and the last one the roadmap named',
+    text: 'MQ Studio 0.2.0 is out — it now runs as an MCP server, so an agent can use your connections',
     linkLabel: 'Changelog',
     dismiss: 'Dismiss announcement',
   },
