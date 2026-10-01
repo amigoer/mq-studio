@@ -9,6 +9,15 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-01
+
+The last stage on the roadmap lands: the same binary now runs as an MCP
+server, so an agent can work the connections this installation already holds.
+It is read-only unless whoever starts it allows more, asks a person before
+emptying or deleting, and records every write. The app also wears its new
+mark, and detail panels keep their buttons in view once a busy cluster's
+offsets run to ten digits.
+
 ### Added
 
 - The same binary runs as an MCP server, so an agent such as Claude Code can
@@ -88,6 +97,14 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   a connection re-pointed in the window while the person reads is left alone.
   Clients on the current protocol answer through input requests, older ones
   through elicitation.
+
+### Changed
+
+- The app has a new mark. The two letters in a tile read as a placeholder; the
+  new one draws message lanes seen through a lens, with the message in focus
+  picked out, on the same red tile. It replaces the app icon, the tray icons
+  and the favicon. The macOS menu bar keeps a one-colour version of the glyph,
+  as the system requires of a template icon.
 
 ### Fixed
 
