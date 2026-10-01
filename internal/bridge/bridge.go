@@ -7,7 +7,9 @@
 package bridge
 
 import (
+	"github.com/amigoer/mq-studio/internal/agent/assistant"
 	"github.com/amigoer/mq-studio/internal/app"
+	"github.com/amigoer/mq-studio/internal/storage/layout"
 	"github.com/amigoer/mq-studio/internal/update"
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"github.com/wailsapp/wails/v3/pkg/services/notifications"
@@ -32,6 +34,10 @@ func Services(
 		application.NewService(shell),
 		application.NewService(&ConnectionService{service: services.Connections, scopes: services.Scopes}),
 		application.NewService(&SettingsService{service: services.Settings}),
+		// Built here rather than in app.Services, which the MCP process
+		// assembles too: that process has no business with these keys.
+		application.NewService(NewAgentSettingsService(
+			assistant.NewStore(layout.In(services.Settings.DataDirectory()).AgentFile))),
 		application.NewService(&ClusterService{service: services.Cluster}),
 		application.NewService(&TopicService{service: services.Topics}),
 		application.NewService(&ConsumerService{service: services.Consumers}),

@@ -12,7 +12,7 @@ import {
 } from "@/components";
 import { cn } from "@/lib/utils";
 
-const HINT = "text-[11px] leading-[1.6] text-pretty text-(--c-muted-2)";
+export const HINT = "text-[11px] leading-[1.6] text-pretty text-(--c-muted-2)";
 
 /**
  * One field: the label, the control under it, the grey explanation under that.
@@ -23,7 +23,7 @@ const HINT = "text-[11px] leading-[1.6] text-pretty text-(--c-muted-2)";
  * every label and every control starts on the dialog's left edge and ends on
  * its right one.
  */
-function Fld({
+export function Fld({
   label,
   hint,
   children,
@@ -48,7 +48,7 @@ function Fld({
   );
 }
 
-const ROWS = "flex flex-col gap-4";
+export const ROWS = "flex flex-col gap-4";
 
 /**
  * Two short fields that answer one question - a key and its secret, a name and
@@ -58,7 +58,7 @@ const ROWS = "flex flex-col gap-4";
  * it wraps to a paragraph in half the width, and leaves the other field an
  * empty band the height of it.
  */
-function Pair({ hint, children }: { hint?: ReactNode; children: ReactNode }) {
+export function Pair({ hint, children }: { hint?: ReactNode; children: ReactNode }) {
   return (
     <div className="flex min-w-0 flex-col gap-1.5">
       <div className="grid grid-cols-2 items-start gap-x-3">{children}</div>
@@ -67,10 +67,10 @@ function Pair({ hint, children }: { hint?: ReactNode; children: ReactNode }) {
   );
 }
 
-const MONO = { fontSize: "11.5px" } as const;
+export const MONO = { fontSize: "11.5px" } as const;
 
 /** The disclosure that opens a form's advanced fields, on a rule above them. */
-function Advanced({
+export function Advanced({
   open,
   onToggle,
   label,
@@ -101,7 +101,7 @@ function Advanced({
 }
 
 /** Layout for a switch and its explanation on one row. */
-const SWITCH_ROW: CSSProperties = {
+export const SWITCH_ROW: CSSProperties = {
   display: "flex",
   alignItems: "center",
   gap: "8px",

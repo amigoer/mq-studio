@@ -496,6 +496,351 @@ export class ActiveMQSubscriptionInput {
 }
 
 /**
+ *  * AgentFailure is why a call to a model service failed.
+ *  *
+ *  * Reason is one of provider.Reason, or "invalid" for a form the call could
+ *  * not even be made from, so the page can say what to do about it in the
+ *  * reader's language. Detail is the service's own words, for the rest.
+ */
+export class AgentFailure {
+    "reason": string;
+    "status": number;
+    "detail": string;
+
+    /** Creates a new AgentFailure instance. */
+    constructor($$source: Partial<AgentFailure> = {}) {
+        if (!("reason" in $$source)) {
+            this["reason"] = "";
+        }
+        if (!("status" in $$source)) {
+            this["status"] = 0;
+        }
+        if (!("detail" in $$source)) {
+            this["detail"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new AgentFailure instance from a string or object.
+     */
+    static createFrom($$source: any = {}): AgentFailure {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new AgentFailure($$parsedSource as Partial<AgentFailure>);
+    }
+}
+
+/**
+ * AgentModel is one model a service offers.
+ */
+export class AgentModel {
+    "id": string;
+    "name"?: string;
+
+    /** Creates a new AgentModel instance. */
+    constructor($$source: Partial<AgentModel> = {}) {
+        if (!("id" in $$source)) {
+            this["id"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new AgentModel instance from a string or object.
+     */
+    static createFrom($$source: any = {}): AgentModel {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new AgentModel($$parsedSource as Partial<AgentModel>);
+    }
+}
+
+/**
+ * AgentModels is a service's model listing, or why there is none.
+ */
+export class AgentModels {
+    "models": AgentModel[];
+    "failure"?: AgentFailure | null;
+
+    /** Creates a new AgentModels instance. */
+    constructor($$source: Partial<AgentModels> = {}) {
+        if (!("models" in $$source)) {
+            this["models"] = [];
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new AgentModels instance from a string or object.
+     */
+    static createFrom($$source: any = {}): AgentModels {
+        const $$createField0_0 = $$createType11;
+        const $$createField1_0 = $$createType13;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("models" in $$parsedSource) {
+            $$parsedSource["models"] = $$createField0_0($$parsedSource["models"]);
+        }
+        if ("failure" in $$parsedSource) {
+            $$parsedSource["failure"] = $$createField1_0($$parsedSource["failure"]);
+        }
+        return new AgentModels($$parsedSource as Partial<AgentModels>);
+    }
+}
+
+/**
+ * AgentPreferencesInput is everything on the page that is not a provider.
+ */
+export class AgentPreferencesInput {
+    "default": string;
+    "effort": string;
+    "writes": string;
+    "bodyBytes": number;
+
+    /** Creates a new AgentPreferencesInput instance. */
+    constructor($$source: Partial<AgentPreferencesInput> = {}) {
+        if (!("default" in $$source)) {
+            this["default"] = "";
+        }
+        if (!("effort" in $$source)) {
+            this["effort"] = "";
+        }
+        if (!("writes" in $$source)) {
+            this["writes"] = "";
+        }
+        if (!("bodyBytes" in $$source)) {
+            this["bodyBytes"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new AgentPreferencesInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): AgentPreferencesInput {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new AgentPreferencesInput($$parsedSource as Partial<AgentPreferencesInput>);
+    }
+}
+
+/**
+ * AgentProbe is what a test of a model service found.
+ */
+export class AgentProbe {
+    "ok": boolean;
+    "model": string;
+    "elapsedMs": number;
+    "failure"?: AgentFailure | null;
+
+    /** Creates a new AgentProbe instance. */
+    constructor($$source: Partial<AgentProbe> = {}) {
+        if (!("ok" in $$source)) {
+            this["ok"] = false;
+        }
+        if (!("model" in $$source)) {
+            this["model"] = "";
+        }
+        if (!("elapsedMs" in $$source)) {
+            this["elapsedMs"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new AgentProbe instance from a string or object.
+     */
+    static createFrom($$source: any = {}): AgentProbe {
+        const $$createField3_0 = $$createType13;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("failure" in $$parsedSource) {
+            $$parsedSource["failure"] = $$createField3_0($$parsedSource["failure"]);
+        }
+        return new AgentProbe($$parsedSource as Partial<AgentProbe>);
+    }
+}
+
+/**
+ * AgentProviderInput is a model service form submission, and what a test or
+ * a model listing is run with before anything is saved.
+ */
+export class AgentProviderInput {
+    /**
+     * ID is empty for a service not saved yet.
+     */
+    "id": string;
+    "name": string;
+    "kind": string;
+    "baseURL": string;
+    "model": string;
+    "proxy": string;
+    "fallback": boolean;
+    "apiKey": string;
+
+    /**
+     * APIKeyMode is preserve, replace or clear. Preserve keeps the stored key
+     * of the service ID names, and is no key at all for a new one.
+     */
+    "apiKeyMode": string;
+
+    /** Creates a new AgentProviderInput instance. */
+    constructor($$source: Partial<AgentProviderInput> = {}) {
+        if (!("id" in $$source)) {
+            this["id"] = "";
+        }
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("kind" in $$source)) {
+            this["kind"] = "";
+        }
+        if (!("baseURL" in $$source)) {
+            this["baseURL"] = "";
+        }
+        if (!("model" in $$source)) {
+            this["model"] = "";
+        }
+        if (!("proxy" in $$source)) {
+            this["proxy"] = "";
+        }
+        if (!("fallback" in $$source)) {
+            this["fallback"] = false;
+        }
+        if (!("apiKey" in $$source)) {
+            this["apiKey"] = "";
+        }
+        if (!("apiKeyMode" in $$source)) {
+            this["apiKeyMode"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new AgentProviderInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): AgentProviderInput {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new AgentProviderInput($$parsedSource as Partial<AgentProviderInput>);
+    }
+}
+
+/**
+ * AgentProviderView is a model service with its key replaced by whether one
+ * is set.
+ */
+export class AgentProviderView {
+    "id": string;
+    "name": string;
+    "kind": string;
+    "baseURL": string;
+    "model": string;
+    "proxy": string;
+    "fallback": boolean;
+    "apiKeyConfigured": boolean;
+
+    /** Creates a new AgentProviderView instance. */
+    constructor($$source: Partial<AgentProviderView> = {}) {
+        if (!("id" in $$source)) {
+            this["id"] = "";
+        }
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("kind" in $$source)) {
+            this["kind"] = "";
+        }
+        if (!("baseURL" in $$source)) {
+            this["baseURL"] = "";
+        }
+        if (!("model" in $$source)) {
+            this["model"] = "";
+        }
+        if (!("proxy" in $$source)) {
+            this["proxy"] = "";
+        }
+        if (!("fallback" in $$source)) {
+            this["fallback"] = false;
+        }
+        if (!("apiKeyConfigured" in $$source)) {
+            this["apiKeyConfigured"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new AgentProviderView instance from a string or object.
+     */
+    static createFrom($$source: any = {}): AgentProviderView {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new AgentProviderView($$parsedSource as Partial<AgentProviderView>);
+    }
+}
+
+/**
+ * AgentSettingsView is the assistant's set-up as the settings page shows it.
+ */
+export class AgentSettingsView {
+    "providers": AgentProviderView[];
+
+    /**
+     * Default is the provider a new conversation runs on; empty is the first.
+     */
+    "default": string;
+    "effort": string;
+    "writes": string;
+    "bodyBytes": number;
+
+    /**
+     * BodyLimits are the caps the page offers for BodyBytes.
+     */
+    "bodyLimits": number[];
+
+    /** Creates a new AgentSettingsView instance. */
+    constructor($$source: Partial<AgentSettingsView> = {}) {
+        if (!("providers" in $$source)) {
+            this["providers"] = [];
+        }
+        if (!("default" in $$source)) {
+            this["default"] = "";
+        }
+        if (!("effort" in $$source)) {
+            this["effort"] = "";
+        }
+        if (!("writes" in $$source)) {
+            this["writes"] = "";
+        }
+        if (!("bodyBytes" in $$source)) {
+            this["bodyBytes"] = 0;
+        }
+        if (!("bodyLimits" in $$source)) {
+            this["bodyLimits"] = [];
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new AgentSettingsView instance from a string or object.
+     */
+    static createFrom($$source: any = {}): AgentSettingsView {
+        const $$createField0_0 = $$createType15;
+        const $$createField5_0 = $$createType16;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("providers" in $$parsedSource) {
+            $$parsedSource["providers"] = $$createField0_0($$parsedSource["providers"]);
+        }
+        if ("bodyLimits" in $$parsedSource) {
+            $$parsedSource["bodyLimits"] = $$createField5_0($$parsedSource["bodyLimits"]);
+        }
+        return new AgentSettingsView($$parsedSource as Partial<AgentSettingsView>);
+    }
+}
+
+/**
  * AutoClaimInput moves whatever has been idle too long, without naming ids.
  */
 export class AutoClaimInput {
@@ -859,7 +1204,7 @@ export class AzureServiceBusSendResult {
      * Creates a new AzureServiceBusSendResult instance from a string or object.
      */
     static createFrom($$source: any = {}): AzureServiceBusSendResult {
-        const $$createField1_0 = $$createType10;
+        const $$createField1_0 = $$createType17;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("sequenceNumbers" in $$parsedSource) {
             $$parsedSource["sequenceNumbers"] = $$createField1_0($$parsedSource["sequenceNumbers"]);
@@ -1102,9 +1447,9 @@ export class ClusterView {
      * Creates a new ClusterView instance from a string or object.
      */
     static createFrom($$source: any = {}): ClusterView {
-        const $$createField0_0 = $$createType11;
-        const $$createField1_0 = $$createType14;
-        const $$createField2_0 = $$createType14;
+        const $$createField0_0 = $$createType18;
+        const $$createField1_0 = $$createType21;
+        const $$createField2_0 = $$createType21;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("overview" in $$parsedSource) {
             $$parsedSource["overview"] = $$createField0_0($$parsedSource["overview"]);
@@ -1346,7 +1691,7 @@ export class DefinitionsPreview {
      * Creates a new DefinitionsPreview instance from a string or object.
      */
     static createFrom($$source: any = {}): DefinitionsPreview {
-        const $$createField2_0 = $$createType15;
+        const $$createField2_0 = $$createType22;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("counts" in $$parsedSource) {
             $$parsedSource["counts"] = $$createField2_0($$parsedSource["counts"]);
@@ -1428,7 +1773,7 @@ export class EntryInput {
      * Creates a new EntryInput instance from a string or object.
      */
     static createFrom($$source: any = {}): EntryInput {
-        const $$createField1_0 = $$createType17;
+        const $$createField1_0 = $$createType24;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("fields" in $$parsedSource) {
             $$parsedSource["fields"] = $$createField1_0($$parsedSource["fields"]);
@@ -2342,8 +2687,8 @@ export class LogDirView {
      * Creates a new LogDirView instance from a string or object.
      */
     static createFrom($$source: any = {}): LogDirView {
-        const $$createField0_0 = $$createType20;
-        const $$createField1_0 = $$createType23;
+        const $$createField0_0 = $$createType27;
+        const $$createField1_0 = $$createType30;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("dirs" in $$parsedSource) {
             $$parsedSource["dirs"] = $$createField0_0($$parsedSource["dirs"]);
@@ -2506,7 +2851,7 @@ export class MQTTSubscribeInput {
      * Creates a new MQTTSubscribeInput instance from a string or object.
      */
     static createFrom($$source: any = {}): MQTTSubscribeInput {
-        const $$createField0_0 = $$createType25;
+        const $$createField0_0 = $$createType32;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("filters" in $$parsedSource) {
             $$parsedSource["filters"] = $$createField0_0($$parsedSource["filters"]);
@@ -3118,7 +3463,7 @@ export class OffsetResetInput {
      * Creates a new OffsetResetInput instance from a string or object.
      */
     static createFrom($$source: any = {}): OffsetResetInput {
-        const $$createField2_0 = $$createType26;
+        const $$createField2_0 = $$createType33;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("partitions" in $$parsedSource) {
             $$parsedSource["partitions"] = $$createField2_0($$parsedSource["partitions"]);
@@ -3935,7 +4280,7 @@ export class QuotaView {
      * Creates a new QuotaView instance from a string or object.
      */
     static createFrom($$source: any = {}): QuotaView {
-        const $$createField0_0 = $$createType29;
+        const $$createField0_0 = $$createType36;
         const $$createField1_0 = $$createType0;
         const $$createField2_0 = $$createType0;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
@@ -5254,7 +5599,7 @@ export class TransactionView {
      * Creates a new TransactionView instance from a string or object.
      */
     static createFrom($$source: any = {}): TransactionView {
-        const $$createField0_0 = $$createType32;
+        const $$createField0_0 = $$createType39;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("transactions" in $$parsedSource) {
             $$parsedSource["transactions"] = $$createField0_0($$parsedSource["transactions"]);
@@ -5333,26 +5678,33 @@ const $$createType6 = model$0.AccessPrincipal.createFrom;
 const $$createType7 = $Create.Nullable($$createType6);
 const $$createType8 = $Create.Array($$createType7);
 const $$createType9 = $Create.Map($Create.Any, $Create.Any);
-const $$createType10 = $Create.Array($Create.Any);
-const $$createType11 = model$0.ClusterOverview.createFrom;
-const $$createType12 = model$0.Node.createFrom;
+const $$createType10 = AgentModel.createFrom;
+const $$createType11 = $Create.Array($$createType10);
+const $$createType12 = AgentFailure.createFrom;
 const $$createType13 = $Create.Nullable($$createType12);
-const $$createType14 = $Create.Array($$createType13);
-const $$createType15 = $Create.Map($Create.Any, $Create.Any);
-const $$createType16 = model$0.StreamField.createFrom;
-const $$createType17 = $Create.Array($$createType16);
-const $$createType18 = model$0.LogDirSummary.createFrom;
-const $$createType19 = $Create.Nullable($$createType18);
-const $$createType20 = $Create.Array($$createType19);
-const $$createType21 = model$0.LogDirPartition.createFrom;
-const $$createType22 = $Create.Nullable($$createType21);
-const $$createType23 = $Create.Array($$createType22);
-const $$createType24 = MQTTFilterInput.createFrom;
-const $$createType25 = $Create.Array($$createType24);
-const $$createType26 = $Create.Array($Create.Any);
-const $$createType27 = model$0.ClientQuota.createFrom;
-const $$createType28 = $Create.Nullable($$createType27);
-const $$createType29 = $Create.Array($$createType28);
-const $$createType30 = model$0.Transaction.createFrom;
-const $$createType31 = $Create.Nullable($$createType30);
+const $$createType14 = AgentProviderView.createFrom;
+const $$createType15 = $Create.Array($$createType14);
+const $$createType16 = $Create.Array($Create.Any);
+const $$createType17 = $Create.Array($Create.Any);
+const $$createType18 = model$0.ClusterOverview.createFrom;
+const $$createType19 = model$0.Node.createFrom;
+const $$createType20 = $Create.Nullable($$createType19);
+const $$createType21 = $Create.Array($$createType20);
+const $$createType22 = $Create.Map($Create.Any, $Create.Any);
+const $$createType23 = model$0.StreamField.createFrom;
+const $$createType24 = $Create.Array($$createType23);
+const $$createType25 = model$0.LogDirSummary.createFrom;
+const $$createType26 = $Create.Nullable($$createType25);
+const $$createType27 = $Create.Array($$createType26);
+const $$createType28 = model$0.LogDirPartition.createFrom;
+const $$createType29 = $Create.Nullable($$createType28);
+const $$createType30 = $Create.Array($$createType29);
+const $$createType31 = MQTTFilterInput.createFrom;
 const $$createType32 = $Create.Array($$createType31);
+const $$createType33 = $Create.Array($Create.Any);
+const $$createType34 = model$0.ClientQuota.createFrom;
+const $$createType35 = $Create.Nullable($$createType34);
+const $$createType36 = $Create.Array($$createType35);
+const $$createType37 = model$0.Transaction.createFrom;
+const $$createType38 = $Create.Nullable($$createType37);
+const $$createType39 = $Create.Array($$createType38);
