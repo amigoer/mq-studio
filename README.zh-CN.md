@@ -19,6 +19,7 @@
     <a href="https://mq-studio.amigoer.com/"><strong>下载</strong></a>&nbsp;&nbsp;·&nbsp;&nbsp;
     <a href="docs/INSTALL.zh-CN.md">安装说明</a>&nbsp;&nbsp;·&nbsp;&nbsp;
     <a href="docs/DRIVERS.zh-CN.md">支持的中间件</a>&nbsp;&nbsp;·&nbsp;&nbsp;
+    <a href="docs/ASSISTANT.zh-CN.md">AI 助手</a>&nbsp;&nbsp;·&nbsp;&nbsp;
     <a href="docs/MCP.zh-CN.md">给 agent 用</a>&nbsp;&nbsp;·&nbsp;&nbsp;
     <a href="README.md">English</a>
   </p>
@@ -38,6 +39,7 @@
 - **无需部署。** macOS、Windows、Linux 桌面应用，连接配置留在本机，凭证加密存储。
 - **一套流程走遍所有中间件。** Topic、消费者、消息、集群与告警，不管连的是哪一种，用法都一样。
 - **如实呈现每个中间件。** 每个连接都会上报端点真正能做什么，中间件没有的功能会说明原因，而不是假装有。
+- **每个页面旁都有 AI 助手。** 问它某个消费组为什么落后，它会自己去 broker 上查；模型服务由你选，要改动什么都先等你批准。
 - **也能交给 agent。** 同一个二进制通过 MCP 提供这些连接：默认只读，清空、删除要人确认，每个写操作都有记录。
 
 ## 细节一览
@@ -64,6 +66,18 @@
     </td>
   </tr>
 </table>
+
+## 问 AI 助手
+
+<img src="docs/images/readme/assistant.png" width="100%" alt="消费组页面旁的 AI 助手：被问到 legacy-sync 为什么堆积，它发现没有在线消费者，对比了同一个 Topic 上跟得上的消费组，正等待批准移动 legacy-sync 的位点">
+
+按 <kbd>⌘J</kbd>，问眼前看到的东西。AI 助手用和 MCP server 同一套工具读取 broker，根据读到的东西回答。
+
+- **模型由你选。** Anthropic 的 API、任意 OpenAI 兼容服务（DeepSeek、通义千问、Kimi 等），或者通过 Ollama、LM Studio 跑在本机的模型。你同意之前，什么都不会发出去。
+- **写操作等你批准。** 创建、发送、重投和移动位点会停在一张卡片上等你批准；清空和删除每次都要确认。每个写操作都有记录。
+- **对话留在本机。** 加密保存，默认 30 天，可以在侧栏里搜索、重命名和导出。
+
+设置方法、哪些东西会离开这台机器，以及出错时检查什么，见 [docs/ASSISTANT.zh-CN.md](docs/ASSISTANT.zh-CN.md)。
 
 ## 支持的中间件
 
