@@ -41,6 +41,7 @@ func Services(
 		Translate: translate,
 		Journal:   audit.Open(paths.AgentAuditFile),
 		Client:    "MQ Studio " + version,
+		Archive:   assistant.OpenArchive(paths.AgentSessionsDir),
 		Emit: func(event assistant.Event) {
 			// Nil until application.New has run, which is before anybody
 			// can send a message.
@@ -56,7 +57,7 @@ func Services(
 		application.NewService(shell),
 		application.NewService(&ConnectionService{service: services.Connections, scopes: services.Scopes}),
 		application.NewService(&SettingsService{service: services.Settings}),
-		application.NewService(NewAgentSettingsService(agentStore)),
+		application.NewService(NewAgentSettingsService(agentStore, agent.Prune)),
 		application.NewService(NewAgentService(agent)),
 		application.NewService(&ClusterService{service: services.Cluster}),
 		application.NewService(&TopicService{service: services.Topics}),

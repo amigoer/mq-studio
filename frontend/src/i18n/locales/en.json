@@ -694,7 +694,8 @@
       "sendFailed": "Could not send",
       "stopFailed": "Could not stop",
       "answerFailed": "Could not hand in your answer",
-      "consentFailed": "Could not record your agreement"
+      "consentFailed": "Could not record your agreement",
+      "placeholderServiceGone": "The model service this conversation ran on was removed; start a new one"
     },
     "context": {
       "namespace": "Namespace {{name}}"
@@ -797,6 +798,31 @@
       "limit": "Paused after {{count}} tool calls",
       "retry": "Retry",
       "carryOn": "Continue"
+    },
+    "history": {
+      "open": "History",
+      "title": "Conversations",
+      "back": "Back to the conversation",
+      "search": "Search conversations",
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "earlier": "Earlier",
+      "empty": "No conversations yet",
+      "noMatch": "No conversation matches",
+      "rename": "Rename",
+      "export": "Export as Markdown",
+      "delete": "Delete",
+      "deleteTitle": "Delete “{{title}}”?",
+      "deleteDesc": "The conversation is deleted from this machine and cannot be brought back.",
+      "kept": "Kept encrypted on this machine, cleared after {{days}} days",
+      "notKept": "Conversations are not kept: they go when the application closes",
+      "settings": "Settings",
+      "exported": "Conversation exported",
+      "failed": "That did not work"
+    },
+    "transcript": {
+      "you": "You",
+      "assistant": "Assistant"
     }
   },
   "markdown": {
@@ -1452,6 +1478,17 @@
         "bodyHint": "What a tool reads of each message body is sent to the model, cut at this size",
         "bodyNone": "Don't send",
         "bodyLimit": "Up to {{size}} each",
+        "retention": "Conversations",
+        "retentionHint": "Kept encrypted on this machine and deleted when they expire; not keeping them deletes the ones kept so far",
+        "retentionNone": "Don't keep",
+        "retentionDays": "{{days}} days",
+        "clear": "Clear conversations",
+        "clearHint": "Deletes every conversation, kept on this machine or open in the window",
+        "clearTitle": "Clear all conversations?",
+        "clearDesc": "Every conversation is deleted and cannot be brought back. One that is answering is kept.",
+        "clearConfirm": "Clear",
+        "cleared": "Conversations cleared",
+        "clearFailed": "Could not clear the conversations",
         "audit": "Write log",
         "auditHint": "records every write, shared with the MCP server",
         "form": {

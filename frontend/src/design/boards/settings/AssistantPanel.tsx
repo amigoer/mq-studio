@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Ellipsis, FolderOpen, Plus, Server, Sparkles } from "lucide-react";
+import { Ellipsis, FolderOpen, Plus, Server, Sparkles, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Panel, SettingRow, useConfirm, useToast } from "@/components";
 import { revealDataDirectory } from "@/api/platform";
-import type { AgentProviderView } from "@/api/agent";
+import { clearConversations, type AgentProviderView } from "@/api/agent";
 import { useAgentSettings } from "@/hooks/useAgentSettings";
 import { formatErrorMessage } from "@/lib/utils";
 import { draftOf, hostOf, type ProviderDraft } from "./assistantForm";
@@ -48,6 +48,7 @@ export function AssistantPanel() {
     effort: view.effort,
     writes: view.writes,
     bodyBytes: view.bodyBytes,
+    retention: view.retention,
   };
   const prefer = (change: Partial<typeof preferences>) =>
     void savePreferences({ ...preferences, ...change }).catch((reason: unknown) =>
@@ -65,6 +66,21 @@ export function AssistantPanel() {
     deleteProvider(provider.id).catch((reason: unknown) =>
       toast.error(t("page.settings.assistant.saveFailed"), { description: formatErrorMessage(reason) }),
     );
+  };
+
+  const clear = async () => {
+    const confirmed = await confirm({
+      title: t("page.settings.assistant.clearTitle"),
+      description: t("page.settings.assistant.clearDesc"),
+      confirmLabel: t("page.settings.assistant.clearConfirm"),
+      danger: true,
+    });
+    if (!confirmed) return;
+    clearConversations()
+      .then(() => toast.success(t("page.settings.assistant.cleared")))
+      .catch((reason: unknown) =>
+        toast.error(t("page.settings.assistant.clearFailed"), { description: formatErrorMessage(reason) }),
+      );
   };
 
   const reveal = () =>
@@ -167,6 +183,25 @@ export function AssistantPanel() {
               }))}
               onChange={(next) => prefer({ bodyBytes: next })}
             />
+          </SettingRow>
+          <SettingRow label={t("page.settings.assistant.retention")} hint={t("page.settings.assistant.retentionHint")}>
+            <Dropdown
+              value={view.retention}
+              options={(view.retentions ?? []).map((days) => ({
+                value: days,
+                label:
+                  days === 0
+                    ? t("page.settings.assistant.retentionNone")
+                    : t("page.settings.assistant.retentionDays", { days }),
+              }))}
+              onChange={(next) => prefer({ retention: next })}
+            />
+          </SettingRow>
+          <SettingRow label={t("page.settings.assistant.clear")} hint={t("page.settings.assistant.clearHint")}>
+            <Button variant="outline" onClick={() => void clear()}>
+              <Trash2 size={13} aria-hidden />
+              {t("page.settings.assistant.clearConfirm")}
+            </Button>
           </SettingRow>
           <SettingRow
             label={t("page.settings.assistant.audit")}

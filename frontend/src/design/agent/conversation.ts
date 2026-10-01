@@ -13,6 +13,7 @@ import type {
 export type Conversation = {
   session: string;
   seq: number;
+  title: string;
   running: boolean;
   model: string;
   items: AgentItem[];
@@ -23,13 +24,14 @@ export const NO_USAGE: AgentUsage = { input: 0, output: 0 };
 
 /** A conversation nothing has happened in yet. */
 export function opened(session: string, model: string): Conversation {
-  return { session, seq: 0, running: false, model, items: [], usage: NO_USAGE };
+  return { session, seq: 0, title: "", running: false, model, items: [], usage: NO_USAGE };
 }
 
 export function fromSnapshot(snapshot: AgentSnapshot): Conversation {
   return {
     session: snapshot.session,
     seq: snapshot.seq,
+    title: snapshot.title ?? "",
     running: snapshot.running,
     model: snapshot.model,
     items: snapshot.items ?? [],
@@ -71,9 +73,18 @@ export function applyEvent(state: Conversation, event: AgentEvent): Conversation
       if (event.model != null && event.model !== "") next.model = event.model;
       if (event.usage != null) next.usage = event.usage;
       return next;
+    case "title":
+      next.title = event.text ?? "";
+      return next;
     default:
       return next;
   }
+}
+
+/** What a conversation is called: the title it was given, or its first question. */
+export function titleOf(conversation: Conversation): string {
+  if (conversation.title !== "") return conversation.title;
+  return conversation.items.find((item) => item.kind === "user")?.text?.split("\n")[0] ?? "";
 }
 
 /** What the dock draws, in order: an item each, except reads in a row. */

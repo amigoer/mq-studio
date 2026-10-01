@@ -237,6 +237,7 @@ export class Selection {
 export class Snapshot {
     "session": string;
     "seq": number;
+    "title": string;
     "running": boolean;
     "model": string;
     "items": Item[];
@@ -249,6 +250,9 @@ export class Snapshot {
         }
         if (!("seq" in $$source)) {
             this["seq"] = 0;
+        }
+        if (!("title" in $$source)) {
+            this["title"] = "";
         }
         if (!("running" in $$source)) {
             this["running"] = false;
@@ -270,14 +274,14 @@ export class Snapshot {
      * Creates a new Snapshot instance from a string or object.
      */
     static createFrom($$source: any = {}): Snapshot {
-        const $$createField4_0 = $$createType10;
-        const $$createField5_0 = $$createType4;
+        const $$createField5_0 = $$createType10;
+        const $$createField6_0 = $$createType4;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("items" in $$parsedSource) {
-            $$parsedSource["items"] = $$createField4_0($$parsedSource["items"]);
+            $$parsedSource["items"] = $$createField5_0($$parsedSource["items"]);
         }
         if ("usage" in $$parsedSource) {
-            $$parsedSource["usage"] = $$createField5_0($$parsedSource["usage"]);
+            $$parsedSource["usage"] = $$createField6_0($$parsedSource["usage"]);
         }
         return new Snapshot($$parsedSource as Partial<Snapshot>);
     }
@@ -295,7 +299,24 @@ export class Summary {
      */
     "provider": string;
     "model": string;
+
+    /**
+     * Connection is the one its first question was about, named as it was.
+     */
+    "connection"?: audit$0.Connection | null;
+    "created": string;
+
+    /**
+     * Updated is when the conversation last answered or changed.
+     */
+    "updated": string;
     "running": boolean;
+
+    /**
+     * Open is a conversation this run of the application holds, as against
+     * one only on disk.
+     */
+    "open": boolean;
 
     /** Creates a new Summary instance. */
     constructor($$source: Partial<Summary> = {}) {
@@ -311,8 +332,17 @@ export class Summary {
         if (!("model" in $$source)) {
             this["model"] = "";
         }
+        if (!("created" in $$source)) {
+            this["created"] = "0001-01-01T00:00:00.000Z";
+        }
+        if (!("updated" in $$source)) {
+            this["updated"] = "0001-01-01T00:00:00.000Z";
+        }
         if (!("running" in $$source)) {
             this["running"] = false;
+        }
+        if (!("open" in $$source)) {
+            this["open"] = false;
         }
 
         Object.assign(this, $$source);
@@ -322,7 +352,11 @@ export class Summary {
      * Creates a new Summary instance from a string or object.
      */
     static createFrom($$source: any = {}): Summary {
+        const $$createField4_0 = $$createType12;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("connection" in $$parsedSource) {
+            $$parsedSource["connection"] = $$createField4_0($$parsedSource["connection"]);
+        }
         return new Summary($$parsedSource as Partial<Summary>);
     }
 }

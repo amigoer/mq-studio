@@ -7,6 +7,7 @@ import {
   fromSnapshot,
   opened,
   targetOf,
+  titleOf,
   tokensOf,
   waitingAsk,
   type Conversation,
@@ -58,6 +59,7 @@ describe("applyEvent", () => {
     const snapshot = fromSnapshot({
       session: "s1",
       seq: 4,
+      title: "",
       running: true,
       model: "m",
       items: [{ id: "1", kind: "text", text: "Hel" } as AgentItem],
@@ -67,6 +69,16 @@ describe("applyEvent", () => {
     expect(applyEvent(snapshot, event(6, { kind: "delta", itemId: "1", text: "x" }))).toBe("gap");
     // A delta for an item it never saw is a gap too, whatever its number says.
     expect(applyEvent(snapshot, event(5, { kind: "delta", itemId: "9", text: "x" }))).toBe("gap");
+  });
+
+  it("takes the title a conversation is renamed to, and falls back to its first question", () => {
+    const asked = play(opened("s1", "m"), [
+      event(1, { kind: "item", item: { id: "1", kind: "user", text: "Why is orders behind?\nIt was fine." } as AgentItem }),
+    ]) as Conversation;
+    expect(titleOf(asked)).toBe("Why is orders behind?");
+    const renamed = applyEvent(asked, event(2, { kind: "title", text: "orders backlog" })) as Conversation;
+    expect(renamed.title).toBe("orders backlog");
+    expect(titleOf(renamed)).toBe("orders backlog");
   });
 
   it("ignores another conversation's events", () => {

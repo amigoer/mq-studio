@@ -29,7 +29,7 @@ func TestMain(m *testing.M) {
 
 func agentSettings(t *testing.T) *AgentSettingsService {
 	t.Helper()
-	return NewAgentSettingsService(assistant.NewStore(filepath.Join(t.TempDir(), "agent.json")))
+	return NewAgentSettingsService(assistant.NewStore(filepath.Join(t.TempDir(), "agent.json")), nil)
 }
 
 func savedService(t *testing.T, service *AgentSettingsService, base string) AgentProviderView {

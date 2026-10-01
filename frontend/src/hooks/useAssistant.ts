@@ -4,20 +4,25 @@ import {
   consentAgentProvider,
   continueConversation,
   conversationSnapshot,
+  deleteConversation,
   getAgentSettings,
   listConversations,
   onAgentEvent,
+  renameConversation,
+  saveTranscript,
   sendToConversation,
   startConversation,
   stopConversation,
   type AgentContext,
   type AgentProviderView,
   type AgentSettingsView,
+  type AgentSummary,
 } from "@/api/agent";
 import {
   applyEvent,
   fromSnapshot,
   opened,
+  titleOf,
   type Conversation,
 } from "@/design/agent/conversation";
 
@@ -39,6 +44,8 @@ export function useAssistant() {
   // have stopped calling the default.
   const [providerId, setProviderId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
+  // The history list, read when it is opened; null until then.
+  const [sessions, setSessions] = useState<AgentSummary[] | null>(null);
   const current = useRef<Conversation | null>(null);
   const reading = useRef(false);
 
@@ -66,6 +73,14 @@ export function useAssistant() {
   useEffect(
     () =>
       onAgentEvent((event) => {
+        if (event.kind === "gone") {
+          setSessions((list) => list?.filter((one) => one.id !== event.session) ?? null);
+          if (current.current?.session === event.session) {
+            setProviderId(null);
+            commit(null);
+          }
+          return;
+        }
         const state = current.current;
         if (state == null || event.session !== state.session) return;
         const next = applyEvent(state, event);
@@ -81,13 +96,17 @@ export function useAssistant() {
     return next;
   }, []);
 
-  // A window that reloads finds the conversation it had, which Go kept.
+  /*
+   * A window that reloads finds the conversation it had, which Go still
+   * holds. One only on disk is not reopened unasked: the window opening is
+   * not a reason to put last month's conversation in front of somebody.
+   */
   useEffect(() => {
     let cancelled = false;
     refresh().catch(() => {});
     listConversations()
       .then(async (summaries) => {
-        const newest = summaries?.[0];
+        const newest = summaries?.find((summary) => summary.open);
         if (cancelled || newest == null || current.current != null) return;
         const snapshot = await conversationSnapshot(newest.id);
         if (cancelled || current.current != null) return;
@@ -106,6 +125,15 @@ export function useAssistant() {
     return settings.providers.find((one) => one.id === id) ?? null;
   })();
   const consented = provider != null && (settings?.consented ?? []).includes(provider.id);
+  // A conversation goes on on the service it began on; one deleted since
+  // leaves it with nowhere to go.
+  const serviceGone = settings != null && providerId != null && provider == null;
+
+  const listSessions = useCallback(async () => {
+    const list = await listConversations();
+    setSessions(list);
+    return list;
+  }, []);
 
   const session = () => current.current?.session;
 
@@ -114,9 +142,41 @@ export function useAssistant() {
     conversation,
     provider,
     consented,
+    serviceGone,
     draft,
     setDraft,
     refresh,
+    sessions,
+    listSessions,
+    /** Puts a conversation in the dock, read back from disk if need be. */
+    open: useCallback(
+      async (summary: AgentSummary) => {
+        const snapshot = await conversationSnapshot(summary.id);
+        setProviderId(summary.provider);
+        commit(fromSnapshot(snapshot));
+      },
+      [commit],
+    ),
+    rename: useCallback(
+      async (id: string, title: string) => {
+        await renameConversation(id, title);
+        await listSessions();
+      },
+      [listSessions],
+    ),
+    remove: useCallback(
+      async (id: string) => {
+        await deleteConversation(id);
+        await listSessions();
+      },
+      [listSessions],
+    ),
+    /** Writes a conversation to a file the person picks; null when they cancel. */
+    exportTranscript: useCallback(async (id: string, markdownOf: (conversation: Conversation) => string) => {
+      const conversation =
+        current.current?.session === id ? current.current : fromSnapshot(await conversationSnapshot(id));
+      return saveTranscript(titleOf(conversation), markdownOf(conversation));
+    }, []),
     consent: useCallback(async () => {
       if (provider == null) return;
       setSettings(await consentAgentProvider(provider.id));

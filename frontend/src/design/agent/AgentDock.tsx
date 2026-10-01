@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { ArrowUp, Info, MessageSquare, Plus, Settings2, Sparkles, Square, X } from "lucide-react";
+import { ArrowUp, History as HistoryIcon, Info, MessageSquare, Plus, Settings2, Sparkles, Square, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,7 +15,9 @@ import { hostOf } from "@/design/boards/settings/assistantForm";
 import type { Assistant } from "@/hooks/useAssistant";
 import { cn } from "@/lib/utils";
 import { Answer, Notice, Reads, Thinking, UserMessage, Write } from "./Blocks";
-import { blocksOf, compactCount, tokensOf, waitingAsk } from "./conversation";
+import { blocksOf, compactCount, titleOf, tokensOf, waitingAsk } from "./conversation";
+import { History } from "./History";
+import { Chip, IconAction } from "./parts";
 import { useSelection, type Selected } from "./selection";
 
 /** Where the person is, as the dock shows it and a message carries it. */
@@ -43,65 +45,6 @@ export function contextOf(where: Whereabouts, leftOut: ReadonlySet<Part>): Agent
 /** Enter sends and Shift+Enter breaks the line; an Enter that picks an IME candidate does neither. */
 export const sends = (event: { key: string; shiftKey: boolean; isComposing?: boolean; keyCode?: number }) =>
   event.key === "Enter" && !event.shiftKey && event.isComposing !== true && event.keyCode !== 229;
-
-function Chip({
-  children,
-  icon,
-  onRemove,
-  removeLabel,
-}: {
-  children: ReactNode;
-  icon?: ReactNode;
-  onRemove?: () => void;
-  removeLabel?: string;
-}) {
-  return (
-    <span className="inline-flex max-w-[180px] items-center gap-1 rounded-md border bg-background px-1.5 py-0.5 text-[11.5px] text-(--c-fg-2)">
-      {icon}
-      <span className="truncate">{children}</span>
-      {onRemove != null && (
-        <button
-          type="button"
-          aria-label={removeLabel}
-          className="-mr-0.5 rounded text-muted-foreground hover:text-foreground"
-          onClick={onRemove}
-        >
-          <X className="size-3" />
-        </button>
-      )}
-    </span>
-  );
-}
-
-function IconAction({
-  label,
-  onClick,
-  disabled,
-  children,
-}: {
-  label: string;
-  onClick: () => void;
-  disabled?: boolean;
-  children: ReactNode;
-}) {
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          aria-label={label}
-          disabled={disabled}
-          className="size-7 text-muted-foreground"
-          onClick={onClick}
-        >
-          {children}
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent>{label}</TooltipContent>
-    </Tooltip>
-  );
-}
 
 /**
  * The assistant's dock: the conversation, what will go with the next
@@ -135,7 +78,8 @@ export function AgentDock({
 }) {
   const { t } = useTranslation();
   const toast = useToast();
-  const { settings, conversation, provider, consented, draft, setDraft } = assistant;
+  const { settings, conversation, provider, consented, serviceGone, draft, setDraft } = assistant;
+  const [view, setView] = useState<"chat" | "history">("chat");
   const selected = useSelection();
   const here: Whereabouts = selected == null ? where : { ...where, selected };
   const input = useRef<HTMLTextAreaElement>(null);
@@ -194,8 +138,7 @@ export function AgentDock({
     onAsked?.();
   }, [ask]);
 
-  const title =
-    items.find((item) => item.kind === "user")?.text?.split("\n")[0] ?? t("agent.dock.untitled");
+  const title = (conversation != null ? titleOf(conversation) : "") || t("agent.dock.untitled");
 
   const chipsOf = (context: AgentContext | null | undefined) => {
     if (context == null) return null;
@@ -273,8 +216,9 @@ export function AgentDock({
     );
   })();
 
-  const placeholder =
-    provider == null
+  const placeholder = serviceGone
+    ? t("agent.composer.placeholderServiceGone")
+    : provider == null
       ? t("agent.composer.placeholderNoService")
       : !consented
         ? t("agent.composer.placeholderConsent")
@@ -290,102 +234,116 @@ export function AgentDock({
         aria-label={t("agent.dock.label")}
         className="flex h-full w-full min-w-0 flex-col bg-background select-text"
       >
-        <div className="flex h-11 flex-none items-center gap-1 border-b pr-1.5 pl-3.5">
-          <Sparkles className="size-3.5 flex-none text-muted-foreground" />
-          <span className="min-w-0 flex-1 truncate pl-1 text-[13px] font-medium">{title}</span>
-          <IconAction
-            label={t("agent.dock.newConversation")}
-            disabled={running || items.length === 0}
-            onClick={assistant.startOver}
-          >
-            <Plus />
-          </IconAction>
-          <IconAction label={t("agent.dock.settings")} onClick={onOpenSettings}>
-            <Settings2 />
-          </IconAction>
-          <IconAction label={t("agent.dock.close")} onClick={onClose}>
-            <X />
-          </IconAction>
-        </div>
-
-        <ScrollArea
-          className="min-h-0 flex-1"
-          onScrollCapture={(event) => {
-            const viewport = event.target as HTMLElement;
-            following.current = viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < 48;
-          }}
-        >
-          {body}
-          {settings != null && settings.providers.length > 0 && provider != null && !consented && (
-            <Consent assistant={assistant} onReview={onOpenSettings} onFail={fail("agent.composer.consentFailed")} />
-          )}
-          <div ref={end} />
-        </ScrollArea>
-
-        <div className="flex-none p-2.5 pt-0">
-          <div className="rounded-xl border bg-background shadow-xs focus-within:border-ring">
-            <ContextChips where={here} parts={parts} onLeaveOut={leaveOut} />
-            <Textarea
-              ref={input}
-              value={draft}
-              rows={1}
-              disabled={!ready}
-              placeholder={placeholder}
-              aria-label={t("shell.palette.ask")}
-              className="max-h-40 min-h-10 resize-none border-0 bg-transparent px-3 py-2 text-[13px] shadow-none focus-visible:ring-0 dark:bg-transparent"
-              onChange={(event) => setDraft(event.target.value)}
-              onKeyDown={(event) => {
-                if (!sends({ ...event, isComposing: event.nativeEvent.isComposing })) return;
-                event.preventDefault();
-                send(draft);
-              }}
-            />
-            <div className="flex items-center gap-2 px-2.5 pb-2">
-              <span className="min-w-0 flex-1 truncate text-[11.5px] text-muted-foreground">
-                {provider != null && (
-                  <>
-                    <span className="mono3">{conversation?.model ?? provider.model}</span>
-                    {settings != null && <> · {t(`page.settings.assistant.effort.${settings.effort}`)}</>}
-                  </>
-                )}
-              </span>
-              {usage != null && tokensOf(usage) > 0 && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="mono3 flex-none text-[11px] text-muted-foreground">
-                      {t("agent.composer.tokens", { amount: compactCount(tokensOf(usage)) })}
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    {t("agent.composer.usage", {
-                      input: compactCount(usage.input),
-                      cache: compactCount((usage.cacheRead ?? 0) + (usage.cacheWrite ?? 0)),
-                      output: compactCount(usage.output),
-                    })}
-                  </TooltipContent>
-                </Tooltip>
-              )}
-              {running ? (
-                <Button
-                  size="icon-xs"
-                  aria-label={t("agent.composer.stop")}
-                  onClick={() => void assistant.stop().catch(fail("agent.composer.stopFailed"))}
-                >
-                  <Square className="size-2.5 fill-current" />
-                </Button>
-              ) : (
-                <Button
-                  size="icon-xs"
-                  aria-label={t("agent.composer.send")}
-                  disabled={!ready || draft.trim() === ""}
-                  onClick={() => send(draft)}
-                >
-                  <ArrowUp />
-                </Button>
-              )}
+        {view === "history" ? (
+          <History
+            assistant={assistant}
+            onBack={() => setView("chat")}
+            onClose={onClose}
+            onOpenSettings={onOpenSettings}
+          />
+        ) : (
+          <>
+            <div className="flex h-11 flex-none items-center gap-1 border-b pr-1.5 pl-3.5">
+              <Sparkles className="size-3.5 flex-none text-muted-foreground" />
+              <span className="min-w-0 flex-1 truncate pl-1 text-[13px] font-medium">{title}</span>
+              <IconAction
+                label={t("agent.dock.newConversation")}
+                disabled={running || items.length === 0}
+                onClick={assistant.startOver}
+              >
+                <Plus />
+              </IconAction>
+              <IconAction label={t("agent.history.open")} onClick={() => setView("history")}>
+                <HistoryIcon />
+              </IconAction>
+              <IconAction label={t("agent.dock.settings")} onClick={onOpenSettings}>
+                <Settings2 />
+              </IconAction>
+              <IconAction label={t("agent.dock.close")} onClick={onClose}>
+                <X />
+              </IconAction>
             </div>
-          </div>
-        </div>
+
+            <ScrollArea
+              className="min-h-0 flex-1"
+              onScrollCapture={(event) => {
+                const viewport = event.target as HTMLElement;
+                following.current = viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < 48;
+              }}
+            >
+              {body}
+              {settings != null && settings.providers.length > 0 && provider != null && !consented && (
+                <Consent assistant={assistant} onReview={onOpenSettings} onFail={fail("agent.composer.consentFailed")} />
+              )}
+              <div ref={end} />
+            </ScrollArea>
+
+            <div className="flex-none p-2.5 pt-0">
+              <div className="rounded-xl border bg-background shadow-xs focus-within:border-ring">
+                <ContextChips where={here} parts={parts} onLeaveOut={leaveOut} />
+                <Textarea
+                  ref={input}
+                  value={draft}
+                  rows={1}
+                  disabled={!ready}
+                  placeholder={placeholder}
+                  aria-label={t("shell.palette.ask")}
+                  className="max-h-40 min-h-10 resize-none border-0 bg-transparent px-3 py-2 text-[13px] shadow-none focus-visible:ring-0 dark:bg-transparent"
+                  onChange={(event) => setDraft(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (!sends({ ...event, isComposing: event.nativeEvent.isComposing })) return;
+                    event.preventDefault();
+                    send(draft);
+                  }}
+                />
+                <div className="flex items-center gap-2 px-2.5 pb-2">
+                  <span className="min-w-0 flex-1 truncate text-[11.5px] text-muted-foreground">
+                    {provider != null && (
+                      <>
+                        <span className="mono3">{conversation?.model ?? provider.model}</span>
+                        {settings != null && <> · {t(`page.settings.assistant.effort.${settings.effort}`)}</>}
+                      </>
+                    )}
+                  </span>
+                  {usage != null && tokensOf(usage) > 0 && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="mono3 flex-none text-[11px] text-muted-foreground">
+                          {t("agent.composer.tokens", { amount: compactCount(tokensOf(usage)) })}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        {t("agent.composer.usage", {
+                          input: compactCount(usage.input),
+                          cache: compactCount((usage.cacheRead ?? 0) + (usage.cacheWrite ?? 0)),
+                          output: compactCount(usage.output),
+                        })}
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                  {running ? (
+                    <Button
+                      size="icon-xs"
+                      aria-label={t("agent.composer.stop")}
+                      onClick={() => void assistant.stop().catch(fail("agent.composer.stopFailed"))}
+                    >
+                      <Square className="size-2.5 fill-current" />
+                    </Button>
+                  ) : (
+                    <Button
+                      size="icon-xs"
+                      aria-label={t("agent.composer.send")}
+                      disabled={!ready || draft.trim() === ""}
+                      onClick={() => send(draft)}
+                    >
+                      <ArrowUp />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </>
+        )}
       </aside>
     </TooltipProvider>
   );
