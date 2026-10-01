@@ -137,7 +137,10 @@ write waits for the person to approve it, once or for the conversation, and a
 destruction is confirmed every time with the MCP server's question; both are
 recorded in the MCP server's audit log, with how they were let through. The
 tools reach only the connections the window has open: a dial from there would
-record no status and queue behind the person's own connects.
+record no status and queue behind the person's own connects. The renderer draws
+the conversation in a dock beside the page (`frontend/src/design/agent`),
+folding the events into its copy with a reducer that a snapshot can always
+replace, and nothing is sent to a model service the person has not agreed to.
 
 ## Frontend seams
 
