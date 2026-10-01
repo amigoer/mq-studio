@@ -421,7 +421,8 @@
       "github": "GitHub",
       "notifications": "通知",
       "notificationsUnread": "通知 · {{count}} 未读",
-      "settings": "设置"
+      "settings": "设置",
+      "assistant": "AI 助手 ⌘J"
     },
     "tabs": {
       "new": "新建连接",
@@ -466,7 +467,10 @@
       "navigation": "导航",
       "hintSelect": "↑↓ 选择",
       "hintOpen": "↵ 打开",
-      "results": "{{count}} 个结果"
+      "results": "{{count}} 个结果",
+      "ask": "问 AI 助手",
+      "askAbout": "问 AI 助手：{{question}}",
+      "assistant": "AI 助手"
     },
     "notifications": {
       "title": "通知",
@@ -644,6 +648,154 @@
         "cluster": "Broker",
         "alerts": "告警"
       }
+    }
+  },
+  "agent": {
+    "dock": {
+      "label": "AI 助手",
+      "untitled": "新对话",
+      "newConversation": "新对话",
+      "settings": "AI 助手设置",
+      "close": "关闭",
+      "copy": "复制",
+      "copied": "已复制"
+    },
+    "welcome": {
+      "askAbout": "问问 {{name}}",
+      "askAnything": "问问你的连接",
+      "intro": "我能读取这个连接上的 Topic、消费组、消息和集群状态。要改动什么，都会先停下来等你批准。",
+      "introAll": "我能读取窗口里已连接的 Topic、消费组、消息和集群状态。要改动什么，都会先停下来等你批准。",
+      "suggestLag": "哪些消费组堆积最多？为什么？",
+      "suggestDead": "有没有死信？是怎么来的？",
+      "suggestHealth": "集群现在健康吗？",
+      "suggestConnections": "我有哪些连接？哪些在线？",
+      "noServiceTitle": "还没有模型服务",
+      "noServiceHint": "在设置里添加一个模型服务就可以开始提问：Anthropic，或者任何 OpenAI 兼容接口，包括本机的 Ollama、LM Studio。",
+      "openSettings": "去设置"
+    },
+    "consent": {
+      "title": "开始之前",
+      "body": "你的问题、当前页面的上下文，以及工具读到的集群数据会发送到你配置的模型服务 {{service}}（{{host}}）。消息正文{{bodies}}。API Key 只保存在本机。",
+      "bodiesNone": "不会发送",
+      "bodiesLimit": "每条最多发送 {{size}}",
+      "agree": "同意并开始",
+      "review": "查看设置"
+    },
+    "composer": {
+      "placeholder": "问点什么… ⏎ 发送，⇧⏎ 换行",
+      "placeholderWaiting": "等待你确认…",
+      "placeholderConsent": "同意之后就可以提问",
+      "placeholderNoService": "先添加一个模型服务",
+      "send": "发送",
+      "stop": "停止",
+      "leaveOut": "不附带「{{name}}」",
+      "tokens": "{{amount}} tokens",
+      "usage": "输入 {{input}} · 缓存 {{cache}} · 输出 {{output}}",
+      "sendFailed": "没有发出去",
+      "stopFailed": "没能停下",
+      "answerFailed": "没能提交你的决定",
+      "consentFailed": "没能记下你的同意"
+    },
+    "context": {
+      "namespace": "命名空间 {{name}}"
+    },
+    "thinking": {
+      "label": "思考过程",
+      "live": "正在思考"
+    },
+    "tools": {
+      "called": "调用了 {{count}} 个工具",
+      "calling": "正在调用：{{name}}",
+      "input": "参数",
+      "output": "结果"
+    },
+    "tool": {
+      "connections_list": "列出连接",
+      "capabilities_describe": "查看连接能力",
+      "destinations_list": "列出目标",
+      "destination_detail": "读取目标详情",
+      "subscriptions_list": "列出订阅",
+      "messages_browse": "浏览消息",
+      "cluster_topology": "读取集群拓扑",
+      "messages_dead_letters": "读取死信",
+      "messages_retry_queue": "读取重试队列",
+      "dead_letter_queues": "查找死信队列",
+      "subscription_lag": "读取消费进度",
+      "subscription_consumers": "查询在线消费者",
+      "subscription_pending_summary": "汇总未确认消息",
+      "subscription_pending_entries": "列出未确认消息",
+      "subscription_group_consumers": "列出组内消费者",
+      "message_by_id": "按 ID 读取消息",
+      "namespaces_list": "列出命名空间",
+      "routing_exchanges": "列出交换机",
+      "routing_bindings": "列出绑定",
+      "destination_partitions": "读取分区",
+      "message_track": "追踪消息",
+      "cluster_health": "检查集群健康",
+      "client_connections": "列出客户端连接",
+      "client_channels": "列出客户端通道",
+      "destination_shards": "列出分片",
+      "channels_list": "列出通道",
+      "destination_create": "创建目标",
+      "message_publish": "发送消息",
+      "message_add_entry": "追加 Stream 条目",
+      "message_resend": "重投死信",
+      "subscription_reset_offset": "移动消费位点",
+      "destination_purge": "清空目标",
+      "destination_delete": "删除目标"
+    },
+    "state": {
+      "running": "执行中",
+      "done": "完成",
+      "failed": "失败",
+      "declined": "已拒绝",
+      "skipped": "没有执行"
+    },
+    "write": {
+      "waiting": "等待你批准",
+      "confirm": "需要确认",
+      "tagWrite": "写操作",
+      "tagIrreversible": "不可撤销",
+      "connection": "连接",
+      "remember": "本会话内不再询问",
+      "approve": "批准",
+      "decline": "拒绝",
+      "cancel": "取消",
+      "everyTime": "破坏性操作每次都要确认",
+      "destroy": "确认",
+      "approvedOnce": "已批准",
+      "approvedSession": "本会话内已批准",
+      "approvedConfirmed": "已确认",
+      "purge": "清空",
+      "delete": "删除"
+    },
+    "field": {
+      "name": "名称",
+      "namespace": "命名空间",
+      "partitions": "分区数",
+      "attributes": "属性",
+      "destination": "目标",
+      "body": "消息体",
+      "tags": "Tags",
+      "keys": "Keys",
+      "group": "消费组",
+      "messageId": "消息 ID",
+      "clientId": "客户端",
+      "timestamp": "移动到",
+      "force": "强制",
+      "fields": "字段",
+      "id": "条目 ID",
+      "count": "次数"
+    },
+    "notice": {
+      "stopped": "已停止",
+      "failed": "模型服务出错了",
+      "refused": "模型拒绝回答这个问题",
+      "length": "回答太长，被截断了",
+      "context": "对话太长，模型装不下了。开个新对话吧。",
+      "limit": "已经调用了 {{count}} 个工具，先停下来",
+      "retry": "重试",
+      "carryOn": "继续"
     }
   },
   "markdown": {

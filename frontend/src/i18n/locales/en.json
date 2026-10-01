@@ -421,7 +421,8 @@
       "github": "GitHub",
       "notifications": "Notifications",
       "notificationsUnread": "Notifications · {{count}} unread",
-      "settings": "Settings"
+      "settings": "Settings",
+      "assistant": "Assistant ⌘J"
     },
     "tabs": {
       "new": "New connection",
@@ -466,7 +467,10 @@
       "navigation": "Navigation",
       "hintSelect": "↑↓ Select",
       "hintOpen": "↵ Open",
-      "results": "{{count}} results"
+      "results": "{{count}} results",
+      "ask": "Ask the assistant",
+      "askAbout": "Ask the assistant: {{question}}",
+      "assistant": "Assistant"
     },
     "notifications": {
       "title": "Notifications",
@@ -644,6 +648,155 @@
         "cluster": "Broker",
         "alerts": "Alerts"
       }
+    }
+  },
+  "agent": {
+    "dock": {
+      "label": "Assistant",
+      "untitled": "New conversation",
+      "newConversation": "New conversation",
+      "settings": "Assistant settings",
+      "close": "Close",
+      "copy": "Copy",
+      "copied": "Copied"
+    },
+    "welcome": {
+      "askAbout": "Ask about {{name}}",
+      "askAnything": "Ask about your connections",
+      "intro": "I can read the topics, consumer groups, messages and cluster state on this connection. Before changing anything, I stop and wait for your approval.",
+      "introAll": "I can read the topics, consumer groups, messages and cluster state on the connections open in this window. Before changing anything, I stop and wait for your approval.",
+      "suggestLag": "Which consumer groups are furthest behind, and why?",
+      "suggestDead": "Are there dead letters? Where did they come from?",
+      "suggestHealth": "Is the cluster healthy right now?",
+      "suggestConnections": "Which connections do I have, and which are online?",
+      "noServiceTitle": "No model service yet",
+      "noServiceHint": "Add a model service in Settings to start asking: Anthropic, or any OpenAI-compatible service, including Ollama or LM Studio on this machine.",
+      "openSettings": "Open settings"
+    },
+    "consent": {
+      "title": "Before you start",
+      "body": "Your questions, the context of the page you are on, and the cluster data the tools read are sent to the model service you configured, {{service}} ({{host}}). Message bodies: {{bodies}}. The API key stays on this machine.",
+      "bodiesNone": "not sent",
+      "bodiesLimit": "up to {{size}} each",
+      "agree": "Agree and start",
+      "review": "Review settings"
+    },
+    "composer": {
+      "placeholder": "Ask something… ⏎ to send, ⇧⏎ for a new line",
+      "placeholderWaiting": "Waiting for your answer…",
+      "placeholderConsent": "Agree first to start asking",
+      "placeholderNoService": "Add a model service first",
+      "send": "Send",
+      "stop": "Stop",
+      "leaveOut": "Leave out {{name}}",
+      "tokens": "{{amount}} tokens",
+      "usage": "In {{input}} · cached {{cache}} · out {{output}}",
+      "sendFailed": "Could not send",
+      "stopFailed": "Could not stop",
+      "answerFailed": "Could not hand in your answer",
+      "consentFailed": "Could not record your agreement"
+    },
+    "context": {
+      "namespace": "Namespace {{name}}"
+    },
+    "thinking": {
+      "label": "Thinking",
+      "live": "Thinking"
+    },
+    "tools": {
+      "called": "Called {{count}} tools",
+      "called_one": "Called 1 tool",
+      "calling": "Calling: {{name}}",
+      "input": "Arguments",
+      "output": "Result"
+    },
+    "tool": {
+      "connections_list": "List connections",
+      "capabilities_describe": "Describe a connection",
+      "destinations_list": "List destinations",
+      "destination_detail": "Read a destination",
+      "subscriptions_list": "List subscriptions",
+      "messages_browse": "Browse messages",
+      "cluster_topology": "Read the cluster",
+      "messages_dead_letters": "Read dead letters",
+      "messages_retry_queue": "Read the retry backlog",
+      "dead_letter_queues": "Find dead-letter queues",
+      "subscription_lag": "Read consume progress",
+      "subscription_consumers": "Ask the consumers",
+      "subscription_pending_summary": "Summarise unacknowledged work",
+      "subscription_pending_entries": "List unacknowledged work",
+      "subscription_group_consumers": "List a group's consumers",
+      "message_by_id": "Read one message",
+      "namespaces_list": "List namespaces",
+      "routing_exchanges": "List exchanges",
+      "routing_bindings": "List bindings",
+      "destination_partitions": "Read partitions",
+      "message_track": "Trace one message",
+      "cluster_health": "Check the broker's health",
+      "client_connections": "List client connections",
+      "client_channels": "List client channels",
+      "destination_shards": "List a stream's shards",
+      "channels_list": "List channels",
+      "destination_create": "Create a destination",
+      "message_publish": "Publish a message",
+      "message_add_entry": "Append a stream entry",
+      "message_resend": "Resend a dead letter",
+      "subscription_reset_offset": "Move a read position",
+      "destination_purge": "Empty a destination",
+      "destination_delete": "Delete a destination"
+    },
+    "state": {
+      "running": "Running",
+      "done": "Done",
+      "failed": "Failed",
+      "declined": "Declined",
+      "skipped": "Not run"
+    },
+    "write": {
+      "waiting": "Waiting for your approval",
+      "confirm": "Confirm",
+      "tagWrite": "Write",
+      "tagIrreversible": "Irreversible",
+      "connection": "Connection",
+      "remember": "Don't ask again in this conversation",
+      "approve": "Approve",
+      "decline": "Decline",
+      "cancel": "Cancel",
+      "everyTime": "Destructive operations are confirmed every time",
+      "destroy": "Confirm",
+      "approvedOnce": "Approved",
+      "approvedSession": "Approved for this conversation",
+      "approvedConfirmed": "Confirmed",
+      "purge": "Empty",
+      "delete": "Delete"
+    },
+    "field": {
+      "name": "Name",
+      "namespace": "Namespace",
+      "partitions": "Partitions",
+      "attributes": "Attributes",
+      "destination": "Destination",
+      "body": "Body",
+      "tags": "Tags",
+      "keys": "Keys",
+      "group": "Group",
+      "messageId": "Message ID",
+      "clientId": "Client",
+      "timestamp": "Move to",
+      "force": "Force",
+      "fields": "Fields",
+      "id": "Entry ID",
+      "count": "Times"
+    },
+    "notice": {
+      "stopped": "Stopped",
+      "failed": "The model service failed",
+      "refused": "The model declined to answer this",
+      "length": "The answer was cut off at its length limit",
+      "context": "This conversation is longer than the model can take. Start a new one.",
+      "limit": "Paused after {{count}} tool calls",
+      "retry": "Retry",
+      "carryOn": "Continue"
     }
   },
   "markdown": {
