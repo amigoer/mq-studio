@@ -32,10 +32,23 @@ func (m *Manager) run(ctx context.Context, s *session) {
 	ended := m.converse(ctx, s)
 
 	m.mu.Lock()
-	defer m.mu.Unlock()
 	if ended != nil {
 		m.addLocked(s, Item{Kind: ItemNotice, Notice: ended.notice, Text: ended.detail, Reason: ended.reason})
 	}
+	s.updated = m.now()
+	if s.chat != nil {
+		if history, err := s.chat.History(); err == nil {
+			s.history = history
+		}
+	}
+	kept := m.recordLocked(s)
+	m.mu.Unlock()
+	// Written before the run is said to end, so whatever reads it next - the
+	// history list, a window opened again - finds it written.
+	m.keep(kept)
+
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	s.cancel()
 	s.cancel, m.running = nil, nil
 	usage := s.usage
@@ -224,6 +237,20 @@ func (m *Manager) ready(
 		return chat, nil
 	}
 
+	if s.chat == nil {
+		// Read back from disk: the history takes up where the last run left
+		// it, on the model it was written for.
+		m.mu.Lock()
+		history, model := s.history, s.model
+		m.mu.Unlock()
+		chat, err := m.newChat(ctx, endpoint, provider.Options{
+			Model: model, System: system, Tools: run.offered, Effort: string(effort), History: history,
+		})
+		if err != nil {
+			return nil, err
+		}
+		s.chat, s.endpoint = chat, endpoint
+	}
 	for _, text := range queue {
 		s.chat.User(text)
 	}

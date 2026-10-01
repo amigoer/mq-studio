@@ -477,3 +477,75 @@ func TestAChatCompletionRetriesWhatWaitingCanFix(t *testing.T) {
 		t.Errorf("a refused key was sent %d times", sent)
 	}
 }
+
+/*
+ * A conversation saved and taken up again sends the service exactly what the
+ * original would have: the thinking with its signature, the call and its
+ * result. The service refuses a thinking block that comes back altered.
+ */
+func TestAConversationIsTakenUpAgainExactly(t *testing.T) {
+	_, base := serveStream(t, answerJSON(200, capableModel), toolTurn, endTurn)
+	chat, _ := NewChat(context.Background(), Endpoint{Kind: Anthropic, BaseURL: base, APIKey: "k"},
+		Options{Model: "claude-opus-5-5", System: "You work brokers.", Tools: []Tool{lagTool}})
+	chat.User("Why is legacy-sync behind?")
+	if _, err := chat.Next(context.Background(), func(Delta) {}); err != nil {
+		t.Fatal(err)
+	}
+	chat.Results([]Result{{CallID: "toolu_1", Content: `{"progress":{}}`}})
+	if _, err := chat.Next(context.Background(), func(Delta) {}); err != nil {
+		t.Fatal(err)
+	}
+	saved, err := chat.History()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	service, again := serveStream(t, answerJSON(200, capableModel), endTurn)
+	restored, err := NewChat(context.Background(), Endpoint{Kind: Anthropic, BaseURL: again, APIKey: "k"},
+		Options{Model: "claude-opus-5-5", System: "You work brokers.", Tools: []Tool{lagTool}, History: saved})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if read, _ := restored.History(); string(read) != string(saved) {
+		t.Fatalf("read back\n%s\nfrom\n%s", read, saved)
+	}
+	restored.User("And now?")
+	if _, err := restored.Next(context.Background(), func(Delta) {}); err != nil {
+		t.Fatal(err)
+	}
+	sent := service.body(t, 1)["messages"].([]any)
+	thinking := sent[1].(map[string]any)["content"].([]any)[0].(map[string]any)
+	if len(sent) != 5 || thinking["signature"] != "sig-abc" {
+		t.Errorf("sent %d messages, the thinking as %v", len(sent), thinking)
+	}
+
+	completions, completionsBase := serveStream(t, chatTurn, chatEnd, chatEnd)
+	open, _ := NewChat(context.Background(), Endpoint{Kind: OpenAI, BaseURL: completionsBase},
+		Options{Model: "m", System: "Old prompt.", Tools: []Tool{lagTool}})
+	open.User("Why?")
+	if _, err := open.Next(context.Background(), func(Delta) {}); err != nil {
+		t.Fatal(err)
+	}
+	open.Results([]Result{{CallID: "call_a", Content: "none"}})
+	if _, err := open.Next(context.Background(), func(Delta) {}); err != nil {
+		t.Fatal(err)
+	}
+	kept, _ := open.History()
+	taken, err := NewChat(context.Background(), Endpoint{Kind: OpenAI, BaseURL: completionsBase},
+		Options{Model: "m", System: "Today's prompt.", Tools: []Tool{lagTool}, History: kept})
+	if err != nil {
+		t.Fatal(err)
+	}
+	taken.User("And now?")
+	if _, err := taken.Next(context.Background(), func(Delta) {}); err != nil {
+		t.Fatal(err)
+	}
+	messages := completions.body(t, 2)["messages"].([]any)
+	if len(messages) != 6 || messages[0].(map[string]any)["content"] != "Today's prompt." {
+		t.Errorf("sent %v", messages)
+	}
+	if _, err := NewChat(context.Background(), Endpoint{Kind: OpenAI, BaseURL: completionsBase},
+		Options{Model: "m", History: json.RawMessage(`{"not":"a list"}`)}); err == nil {
+		t.Error("a history that is not one was taken")
+	}
+}

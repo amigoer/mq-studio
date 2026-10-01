@@ -2,6 +2,7 @@ package assistant
 
 import (
 	"encoding/json"
+	"time"
 
 	"github.com/amigoer/mq-studio/internal/agent/audit"
 	"github.com/amigoer/mq-studio/internal/agent/provider"
@@ -137,6 +138,11 @@ const (
 	EventDelta = "delta"
 	// EventRun says a run started or ended.
 	EventRun = "run"
+	// EventTitle renames the conversation to Text.
+	EventTitle = "title"
+	// EventGone says the conversation was deleted, so a window showing it
+	// shows it no longer.
+	EventGone = "gone"
 )
 
 // Event is one change to a conversation.
@@ -160,6 +166,7 @@ type Event struct {
 type Snapshot struct {
 	Session string         `json:"session"`
 	Seq     int64          `json:"seq"`
+	Title   string         `json:"title"`
 	Running bool           `json:"running"`
 	Model   string         `json:"model"`
 	Items   []Item         `json:"items"`
@@ -173,7 +180,15 @@ type Summary struct {
 	// Provider is the model service it runs on.
 	Provider string `json:"provider"`
 	Model    string `json:"model"`
-	Running  bool   `json:"running"`
+	// Connection is the one its first question was about, named as it was.
+	Connection *audit.Connection `json:"connection,omitempty"`
+	Created    time.Time         `json:"created"`
+	// Updated is when the conversation last answered or changed.
+	Updated time.Time `json:"updated"`
+	Running bool      `json:"running"`
+	// Open is a conversation this run of the application holds, as against
+	// one only on disk.
+	Open bool `json:"open"`
 }
 
 // clone copies an item deep enough that the copy can be read while the

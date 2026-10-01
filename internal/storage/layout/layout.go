@@ -22,6 +22,9 @@ type Layout struct {
 	// AgentFile holds the window assistant's model services, their keys
 	// encrypted, and how it is set up. Only the window reads or writes it.
 	AgentFile string
+	// AgentSessionsDir holds the assistant's conversations, each encrypted,
+	// and their index. Only the window reads or writes it.
+	AgentSessionsDir string
 }
 
 // Default resolves the current user's MQ Studio configuration layout.
@@ -36,12 +39,13 @@ func Default() (Layout, error) {
 // In builds a configuration layout rooted at directory.
 func In(directory string) Layout {
 	return Layout{
-		Directory:       directory,
-		SettingsFile:    filepath.Join(directory, "settings.json"),
-		ConnectionsFile: filepath.Join(directory, "connections.json"),
-		TPSHistoryFile:  filepath.Join(directory, "tps-history.json"),
-		SecretKeyFile:   filepath.Join(directory, "secret.key"),
-		AgentAuditFile:  filepath.Join(directory, "agent-audit.jsonl"),
-		AgentFile:       filepath.Join(directory, "agent.json"),
+		Directory:        directory,
+		SettingsFile:     filepath.Join(directory, "settings.json"),
+		ConnectionsFile:  filepath.Join(directory, "connections.json"),
+		TPSHistoryFile:   filepath.Join(directory, "tps-history.json"),
+		SecretKeyFile:    filepath.Join(directory, "secret.key"),
+		AgentAuditFile:   filepath.Join(directory, "agent-audit.jsonl"),
+		AgentFile:        filepath.Join(directory, "agent.json"),
+		AgentSessionsDir: filepath.Join(directory, "agent", "sessions"),
 	}
 }

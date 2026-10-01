@@ -59,7 +59,8 @@ func (s *AgentService) Snapshot(session string) (assistant.Snapshot, error) {
 	return s.manager.Snapshot(session)
 }
 
-// Sessions lists the conversations, the newest first.
-func (s *AgentService) Sessions() []assistant.Summary {
+// Sessions lists the conversations held and kept, the most recently changed
+// first.
+func (s *AgentService) Sessions() ([]assistant.Summary, error) {
 	return s.manager.Sessions()
 }

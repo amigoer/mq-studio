@@ -93,6 +93,10 @@ type Chat interface {
 	Next(ctx context.Context, delta func(Delta)) (Turn, error)
 	// Offer replaces the tools the model is offered, from the next turn on.
 	Offer(tools []Tool)
+	// History is the conversation as the service keeps it, for a later
+	// NewChat to carry on from through Options.History. It is the service's
+	// own shape, and means nothing to the other protocol.
+	History() (json.RawMessage, error)
 	// Reach sends the turns after it to the service as it is set up now: a
 	// key replaced or a proxy changed since the conversation began. The model
 	// and what it was found to take stay as they were, since the history was
@@ -110,6 +114,9 @@ type Options struct {
 	Effort string
 	// MaxTokens bounds one turn's answer.
 	MaxTokens int64
+	// History is what History returned, to carry on from. The system prompt
+	// is not part of it: a conversation taken up again gets today's.
+	History json.RawMessage
 }
 
 // NewChat starts a conversation. Nothing is sent until Next.
@@ -123,9 +130,9 @@ func NewChat(ctx context.Context, endpoint Endpoint, options Options) (Chat, err
 	}
 	switch endpoint.Kind {
 	case Anthropic:
-		return newAnthropicChat(ctx, endpoint, client, options), nil
+		return newAnthropicChat(ctx, endpoint, client, options)
 	case OpenAI:
-		return newOpenAIChat(endpoint, client, options), nil
+		return newOpenAIChat(endpoint, client, options)
 	}
 	return nil, fmt.Errorf("%q is not a protocol this application speaks", endpoint.Kind)
 }

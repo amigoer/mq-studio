@@ -83,6 +83,13 @@ func (c *fakeChat) Offer(tools []provider.Tool) {
 	c.offered = append(c.offered, tools)
 }
 
+// History is what the chat was told, which is all a fake has to give back.
+func (c *fakeChat) History() (json.RawMessage, error) {
+	c.model.mu.Lock()
+	defer c.model.mu.Unlock()
+	return json.Marshal(c.said)
+}
+
 func (c *fakeChat) Reach(endpoint provider.Endpoint) error {
 	c.model.mu.Lock()
 	defer c.model.mu.Unlock()
@@ -350,6 +357,15 @@ func (w *world) decide(session string, asked Item, approve, remember bool) {
 	if err := w.manager.Decide(session, asked.Tool.Ask.ID, approve, remember); err != nil {
 		w.t.Fatal(err)
 	}
+}
+
+func (w *world) sessions() []Summary {
+	w.t.Helper()
+	summaries, err := w.manager.Sessions()
+	if err != nil {
+		w.t.Fatal(err)
+	}
+	return summaries
 }
 
 func (w *world) snapshot(session string) Snapshot {
@@ -813,7 +829,8 @@ func TestWhereThePersonWasComesWithWhatTheySaid(t *testing.T) {
 	if first.Text != "Why is it slow?" || first.Context == nil || first.Context.Selected.Name != "orders" {
 		t.Errorf("the conversation starts with %+v", first)
 	}
-	if summaries := w.manager.Sessions(); len(summaries) != 1 || summaries[0].Title != "Why is it slow?" {
+	if summaries := w.sessions(); len(summaries) != 1 || summaries[0].Title != "Why is it slow?" ||
+		summaries[0].Connection == nil || summaries[0].Connection.Name != "scratch" || !summaries[0].Open {
 		t.Errorf("listed %+v", summaries)
 	}
 	if w.model.built[0].System != system || w.model.built[0].Effort != string(EffortMedium) {
@@ -839,7 +856,8 @@ func TestOneRunGoesAtATime(t *testing.T) {
 	if err := w.manager.Send(first, "c", Context{}); err == nil || !strings.Contains(err.Error(), "still answering") {
 		t.Errorf("a conversation ran twice at once: %v", err)
 	}
-	if summaries := w.manager.Sessions(); summaries[0].ID != second.ID || !summaries[1].Running {
+	// The second has nothing said in it yet, so it is not listed.
+	if summaries := w.sessions(); len(summaries) != 1 || summaries[0].ID != first || !summaries[0].Running {
 		t.Errorf("listed %+v", summaries)
 	}
 	close(release)
