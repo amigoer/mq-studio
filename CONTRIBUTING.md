@@ -224,7 +224,9 @@ After adding a family, update all of these:
 - `website/src/i18n/en.ts` and `zh.ts` — `meta.description`, `banner.text`,
   `hero.subtitle`, `drivers.supported`, `drivers.planned` and `roadmap.stages`.
   `planned` is the dangerous one: left alone it keeps asserting that a shipped
-  driver is unbuilt.
+  driver is unbuilt. A new `banner.text` also needs a new `ANNOUNCEMENT_ID` in
+  `website/src/lib/announcement.ts`, or it stays hidden from everyone who
+  closed the last announcement.
 - `frontend/src/i18n/locales/en.json` and `zh.json` —
   `page.settings.about.blurb` names the families.
 - `frontend/src/App.tsx` and `frontend/src/mq/navigation.ts` — comments that

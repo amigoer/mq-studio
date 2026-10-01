@@ -193,7 +193,9 @@ capability，画出来的页面看着不像「诚实」，而像「坏了」。
   深色那份用图标的深色主题颜色。
 - `website/src/i18n/en.ts` 与 `zh.ts` —— `meta.description`、`banner.text`、
   `hero.subtitle`、`drivers.supported`、`drivers.planned` 与 `roadmap.stages`。
-  `planned` 最危险：不改它就会一直声称一个已经发布的驱动还没做。
+  `planned` 最危险：不改它就会一直声称一个已经发布的驱动还没做。换了 `banner.text`
+  还要同时换 `website/src/lib/announcement.ts` 里的 `ANNOUNCEMENT_ID`，否则关过上一条
+  公告的人永远看不到新的。
 - `frontend/src/i18n/locales/en.json` 与 `zh.json` ——
   `page.settings.about.blurb` 里点了各个家族的名字。
 - `frontend/src/App.tsx` 与 `frontend/src/mq/navigation.ts` —— 注释里对家族数量的计数。
