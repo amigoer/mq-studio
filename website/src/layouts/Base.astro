@@ -3,6 +3,7 @@ import '@/styles/global.css';
 import { getImage } from 'astro:assets';
 import { t, localePath, HREFLANG, LOCALES, type Locale } from '@/i18n';
 import { RELEASE, REPO_URL } from '@/lib/downloads';
+import { ANNOUNCEMENT_ID } from '@/lib/announcement';
 import overview from '@shots/overview.png';
 
 interface Props {
@@ -105,7 +106,7 @@ const jsonLd = {
       Blocking on purpose, and before the stylesheet: deferring this would paint
       the light theme first and flash it at everyone who prefers dark.
     -->
-    <script is:inline>
+    <script is:inline define:vars={{ announcement: ANNOUNCEMENT_ID }}>
       (function () {
         try {
           var stored = localStorage.getItem('mq-studio:theme');
@@ -114,8 +115,9 @@ const jsonLd = {
             (stored !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
           if (dark) document.documentElement.classList.add('dark');
           // Same reason: hiding the announcement after first paint would
-          // shift the whole page up under a returning visitor.
-          if (localStorage.getItem('mq-studio:announcement-dismissed') === '1') {
+          // shift the whole page up under a returning visitor. Only the one
+          // they closed stays hidden; a new one shows again.
+          if (localStorage.getItem('mq-studio:announcement-dismissed') === announcement) {
             document.documentElement.classList.add('no-announcement');
           }
         } catch (error) {

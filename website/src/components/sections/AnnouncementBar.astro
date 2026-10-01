@@ -1,5 +1,6 @@
 ---
 import { t, localePath, type Locale } from '@/i18n';
+import { ANNOUNCEMENT_ID } from '@/lib/announcement';
 
 interface Props {
   locale: Locale;
@@ -10,12 +11,13 @@ const c = t(locale);
 
 <div
   id="announcement"
+  data-announcement={ANNOUNCEMENT_ID}
   class="relative bg-banner py-2 pl-6 pr-11 text-center text-ui text-banner-foreground"
 >
   {c.banner.text}&nbsp;&nbsp;
   <a
     href={localePath(locale, 'changelog')}
-    class="text-banner-muted underline underline-offset-[3px] transition-colors hover:text-banner-foreground"
+    class="whitespace-nowrap text-banner-muted underline underline-offset-[3px] transition-colors hover:text-banner-foreground"
     >{c.banner.linkLabel} →</a
   >
   <button
@@ -39,7 +41,7 @@ const c = t(locale);
     bar.querySelector('[data-dismiss]')?.addEventListener('click', () => {
       bar.hidden = true;
       try {
-        localStorage.setItem(KEY, '1');
+        localStorage.setItem(KEY, bar.dataset.announcement ?? '');
       } catch {
         // Nothing to persist to; the bar still closes for this page view.
       }
