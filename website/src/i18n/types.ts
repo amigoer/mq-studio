@@ -5,7 +5,7 @@ export interface NavLink {
 
 export interface ModuleTab {
   /** Matches a screenshot basename in docs/images/readme. */
-  id: 'connections' | 'topics' | 'consumers' | 'cluster' | 'alerts';
+  id: 'connections' | 'topics' | 'consumers' | 'cluster' | 'alerts' | 'assistant';
   label: string;
   title: string;
   desc: string;

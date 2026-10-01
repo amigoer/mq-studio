@@ -85,8 +85,8 @@ jobs:
           set -eu
           for page in website/dist/index.html website/dist/en/index.html; do
             panels=$(grep -o 'role="tabpanel"' "$page" | wc -l | tr -d ' ' || true)
-            if [ "$panels" -ne 5 ]; then
-              echo "expected 5 pre-rendered tab panels in ${page}, found ${panels}" >&2
+            if [ "$panels" -ne 6 ]; then
+              echo "expected 6 pre-rendered tab panels in ${page}, found ${panels}" >&2
               echo "the product tour must render every panel at build time" >&2
               exit 1
             fi
