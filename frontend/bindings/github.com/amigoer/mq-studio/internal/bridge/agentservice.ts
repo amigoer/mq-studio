@@ -16,6 +16,14 @@ import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Cr
 import * as assistant$0 from "../agent/assistant/models.js";
 
 /**
+ * Continue runs a conversation again from where a failed, stopped or limited
+ * run left it, without anything new said.
+ */
+export function Continue(session: string): $CancellablePromise<void> {
+    return $Call.ByID(3384787239, session);
+}
+
+/**
  * Decide answers a question a run is waiting on.
  */
 export function Decide(session: string, ask: string, approve: boolean, remember: boolean): $CancellablePromise<void> {

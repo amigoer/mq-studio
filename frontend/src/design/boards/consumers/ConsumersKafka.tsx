@@ -42,6 +42,7 @@ import {
   totalLag,
 } from "@/mq/kafka/subscriptions";
 import { ResetOffsetDialogKafka } from "./ResetOffsetDialogKafka";
+import { useReportSelection } from "@/design/agent/selection";
 
 const R = { textAlign: "right" } as const;
 const MONO11 = { fontSize: "11px" } as const;
@@ -76,6 +77,7 @@ export function ConsumersKafka() {
   const [search, setSearch] = useState("");
   const [lagOnly, setLagOnly] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
+  useReportSelection("group", selected);
   const [tab, setTab] = useState<string>(TAB_ASSIGNMENT);
   const [resetting, setResetting] = useState(false);
 

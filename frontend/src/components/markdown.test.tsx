@@ -202,13 +202,26 @@ describe("refusing what it should not render", () => {
     expect(text(html)).toContain("hi");
   });
 
-  /* Tables are the known gap. Degrading to text is acceptable; emitting broken
-     markup, or the pipes-and-dashes of a half-parsed table, is not. */
-  it("degrades a table to text instead of breaking", async () => {
+  /* The assistant answers figures across several objects in a table; a pipe
+     inside code stays in its cell, and the pipes and dashes never show. */
+  it("draws a pipe table as a table", async () => {
     await useLanguage("zh");
-    const html = render("| a | b |\n| --- | --- |\n| 1 | 2 |");
+    const html = render(
+      "消费组的堆积：\n\n| 消费组 | 堆积 |\n| :--- | ---: |\n| `legacy-sync` | 83,930 |\n| `a|b` | 39 |",
+    );
+    expect(html).toContain("<table");
+    expect(html.match(/<td/g)).toHaveLength(4);
+    expect(html).toContain("text-right");
+    expect(text(html)).toContain("a|b");
+    expect(text(html)).not.toContain("---");
+    expect(text(html)).toContain("消费组的堆积");
+  });
+
+  it("keeps a line with a pipe and no delimiter row as a paragraph", async () => {
+    await useLanguage("zh");
+    const html = render("a | b\nc | d");
     expect(html).not.toContain("<table");
-    expect(text(html)).toContain("| a | b |");
+    expect(text(html)).toContain("a | b");
   });
 
   it("renders nothing at all for empty notes", async () => {

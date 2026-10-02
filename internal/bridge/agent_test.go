@@ -63,6 +63,13 @@ func TestTheSettingsViewNeverCarriesAKey(t *testing.T) {
 	if view.Effort != "medium" || view.Writes != "approve" || len(view.BodyLimits) == 0 {
 		t.Errorf("view %+v", view)
 	}
+	if view.Consented == nil || len(view.Consented) != 0 {
+		t.Errorf("a service nobody agreed to reads as %#v", view.Consented)
+	}
+	agreed, err := service.Consent(saved.ID)
+	if err != nil || len(agreed.Consented) != 1 || agreed.Consented[0] != saved.ID {
+		t.Errorf("after agreeing: %+v, %v", agreed, err)
+	}
 }
 
 // A form editing a saved service never has its key, so a test run from it

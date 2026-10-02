@@ -43,6 +43,7 @@ import { parsePartitions } from "@/mq/pulsar/destinations";
 import { formatBytes, formatCount } from "@/lib/format";
 import { formatErrorMessage } from "@/lib/utils";
 import { TopicDialogPulsar, type PulsarTopicForm } from "./TopicDialogPulsar";
+import { useReportSelection } from "@/design/agent/selection";
 
 const R = { textAlign: "right" } as const;
 
@@ -76,6 +77,7 @@ export function TopicsPulsar() {
   const [namespace, setNamespace] = useState("");
   const [includeInternal, setIncludeInternal] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
+  useReportSelection("topic", selected);
   const [creating, setCreating] = useState(false);
 
   const scope = namespace || (namespaces.data?.[0]?.name ?? "");

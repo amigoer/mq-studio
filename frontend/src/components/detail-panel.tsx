@@ -15,12 +15,20 @@ import { cn } from "@/lib/utils";
 const INTERACTIVE =
   'button, a, input, textarea, select, label, [role="tab"], [role="switch"], [role="menuitem"], [role="option"], [role="checkbox"], [role="combobox"], [role="dialog"], [data-slot="popover-content"], [data-slot="select-content"], [data-slot="dropdown-menu-content"]';
 
+/*
+ * Regions beside the page rather than in it - the assistant's dock. What a
+ * person does there, Esc in its composer included, is not about the panel.
+ */
+export const BESIDE_THE_PAGE = "data-beside-page";
+const beside = (target: EventTarget | null) =>
+  target instanceof Element && target.closest(`[${BESIDE_THE_PAGE}]`) != null;
+
 /**
  * The docked master-detail inspector. Deliberately not the modal shadcn Sheet:
  * it must stay non-modal so clicking another row retargets the panel instead
  * of first dismissing an overlay. It is absolutely positioned against the
- * shell body, so it overlays the page header too rather than squeezing the
- * table's column widths.
+ * shell's content area, so it overlays the page header too rather than
+ * squeezing the table's column widths, and stops short of the dock.
  */
 export function DetailPanel({
   width = 380,
@@ -55,10 +63,11 @@ export function DetailPanel({
       if (ref.current?.contains(target)) return;
       if (target.closest("tbody tr") != null) return;
       if (target.closest(INTERACTIVE) != null) return;
+      if (beside(target)) return;
       dismiss.current?.();
     };
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") dismiss.current?.();
+      if (event.key === "Escape" && !beside(event.target)) dismiss.current?.();
     };
     document.addEventListener("click", onClick);
     window.addEventListener("keydown", onKey);

@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { Plug, Plus, RefreshCw, Settings, type LucideIcon } from "lucide-react";
+import { Plug, Plus, RefreshCw, Settings, Sparkles, type LucideIcon } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Command,
@@ -51,6 +51,7 @@ export function CommandPalette({
   onNewConnection,
   onOpenSettings,
   onCheckUpdate,
+  onAsk,
   onClose,
 }: {
   open: boolean;
@@ -64,6 +65,8 @@ export function CommandPalette({
   onNewConnection?: () => void;
   onOpenSettings?: () => void;
   onCheckUpdate?: () => void;
+  /** Opens the assistant, putting to it whatever was typed here. */
+  onAsk?: (question: string) => void;
   onClose?: () => void;
 }) {
   const { t } = useTranslation();
@@ -118,6 +121,21 @@ export function CommandPalette({
       { key: "openSettings", name: t("shell.palette.openSettings"), icon: Settings, run: onOpenSettings },
       { key: "checkUpdate", name: t("shell.palette.checkUpdate"), icon: RefreshCw, run: onCheckUpdate },
     ];
+    // Whatever was typed is a question as much as a search, so the ask is
+    // offered for any of it, and comes first when nothing else matched.
+    if (onAsk != null) {
+      const question = query.trim();
+      if (question !== "" || matches(t("shell.palette.ask"))) {
+        out.push({
+          key: "command:ask",
+          group: t("shell.palette.commands"),
+          name: question === "" ? t("shell.palette.ask") : t("shell.palette.askAbout", { question }),
+          meta: t("shell.palette.assistant"),
+          icon: Sparkles,
+          run: () => onAsk(question),
+        });
+      }
+    }
     for (const command of commands) {
       if (!matches(command.name)) continue;
       out.push({
@@ -133,6 +151,7 @@ export function CommandPalette({
   }, [
     connections,
     nav,
+    onAsk,
     onCheckUpdate,
     onNewConnection,
     onOpenConnection,

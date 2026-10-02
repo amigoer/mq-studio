@@ -6,7 +6,8 @@
 import { Create as $Create } from "@wailsio/runtime";
 
 /**
- * Usage is what a turn cost, in tokens, where the service says.
+ * Usage is what a turn cost, in tokens, where the service says. Input is
+ * what was not read from the cache, in both protocols.
  */
 export class Usage {
     "input": number;

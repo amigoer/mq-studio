@@ -79,6 +79,10 @@ type Settings struct {
 	Effort    Effort
 	Writes    Writes
 	BodyBytes int
+	// Consented names the providers a person agreed to send their questions
+	// and their brokers' data to. Agreeing is per service: one that runs on
+	// this machine and one on the internet are not the same decision.
+	Consented []string
 }
 
 // Preferences is the part of Settings that is not a provider.
@@ -210,6 +214,24 @@ func (s *Store) SaveProvider(next Provider, key KeyChange) (Provider, error) {
 	return next, nil
 }
 
+// Consent records that a person agreed to use a provider.
+func (s *Store) Consent(id string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if err := s.loadLocked(); err != nil {
+		return err
+	}
+	if s.settings.index(id) < 0 {
+		return fmt.Errorf("there is no model service %q to agree to", id)
+	}
+	if slices.Contains(s.settings.Consented, id) {
+		return nil
+	}
+	updated := s.settings.clone()
+	updated.Consented = append(updated.Consented, id)
+	return s.saveLocked(updated)
+}
+
 // DeleteProvider removes a provider, and its key with it. A default that named
 // it falls back to the first that is left.
 func (s *Store) DeleteProvider(id string) error {
@@ -227,6 +249,8 @@ func (s *Store) DeleteProvider(id string) error {
 	if updated.Default == id {
 		updated.Default = ""
 	}
+	// A service added again later is a new decision.
+	updated.Consented = slices.DeleteFunc(updated.Consented, func(one string) bool { return one == id })
 	return s.saveLocked(updated)
 }
 
@@ -297,6 +321,7 @@ func (s Settings) index(id string) int {
 
 func (s Settings) clone() Settings {
 	s.Providers = slices.Clone(s.Providers)
+	s.Consented = slices.Clone(s.Consented)
 	return s
 }
 
@@ -322,6 +347,7 @@ type file struct {
 	Effort    Effort           `json:"effort"`
 	Writes    Writes           `json:"writes"`
 	BodyBytes int              `json:"bodyBytes"`
+	Consented []string         `json:"consented,omitempty"`
 }
 
 type storedProvider struct {
@@ -380,6 +406,11 @@ func (s *Store) loadLocked() error {
 	if settings.index(settings.Default) < 0 {
 		settings.Default = ""
 	}
+	for _, id := range stored.Consented {
+		if settings.index(id) >= 0 && !slices.Contains(settings.Consented, id) {
+			settings.Consented = append(settings.Consented, id)
+		}
+	}
 	s.settings, s.loaded = settings, true
 	return nil
 }
@@ -394,6 +425,7 @@ func (s *Store) saveLocked(updated Settings) error {
 		Effort:    updated.Effort,
 		Writes:    updated.Writes,
 		BodyBytes: updated.BodyBytes,
+		Consented: updated.Consented,
 	}
 	for _, p := range updated.Providers {
 		key, err := crypto.Encrypt(p.APIKey, keyField(p.ID))

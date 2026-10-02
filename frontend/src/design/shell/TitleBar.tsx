@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { CircleFadingArrowUp, LoaderCircle, Settings } from "lucide-react";
+import { CircleFadingArrowUp, LoaderCircle, Settings, Sparkles } from "lucide-react";
 import { SiGithub } from "react-icons/si";
 import { AppLogo } from "@/design/icons/AppLogo";
 import { Button } from "@/components/ui/button";
@@ -27,7 +27,9 @@ export function TitleBar({
   dimmed = false,
   checking = false,
   updateAvailable = null,
+  assistantOpen = false,
   onHome,
+  onAssistant,
   onSearch,
   onUpdate,
   onGithub,
@@ -44,7 +46,10 @@ export function TitleBar({
   checking?: boolean;
   /** The pending release, or null when there is nothing to offer. */
   updateAvailable?: string | null;
+  /** Whether the assistant's dock is open, which its button shows pressed. */
+  assistantOpen?: boolean;
   onHome?: () => void;
+  onAssistant?: () => void;
   onSearch?: () => void;
   /** Opens the pending release, or starts a check when there is none. */
   onUpdate?: () => void;
@@ -109,6 +114,21 @@ export function TitleBar({
        * one group -- and the border still gives it the weight a ghost icon
        * has not.
        */}
+      {onAssistant != null && (
+        <Button
+          variant="outline"
+          size="sm"
+          aria-pressed={assistantOpen}
+          className={cn(
+            "h-7 flex-none gap-1.5 bg-background px-2.5 text-[12.5px] font-normal text-muted-foreground",
+            assistantOpen && "border-(--c-border-strong) bg-(--c-fill) text-foreground",
+          )}
+          onClick={onAssistant}
+        >
+          <Sparkles className="size-3.5" aria-hidden />
+          {t("shell.titleBar.assistant")}
+        </Button>
+      )}
       <Button
         variant="outline"
         size="sm"

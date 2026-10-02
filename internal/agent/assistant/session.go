@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -170,6 +171,10 @@ func (m *Manager) Send(sessionID, text string, where Context) error {
 	}
 	// Composed outside the lock: it reads the connection store.
 	composed := m.compose(text, where)
+	settings, err := m.store.Settings()
+	if err != nil {
+		return err
+	}
 
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -177,6 +182,49 @@ func (m *Manager) Send(sessionID, text string, where Context) error {
 	if err != nil {
 		return err
 	}
+	if err := m.readyLocked(s, settings); err != nil {
+		return err
+	}
+	if s.title == "" {
+		s.title = titleOf(text)
+	}
+	m.addLocked(s, Item{Kind: ItemUser, Text: text, Context: &where})
+	s.queue = append(s.queue, composed)
+	m.startLocked(s)
+	return nil
+}
+
+// Continue runs a conversation again from where its last run ended without
+// an answer: a service that failed, a stop, or the tool limit. Nothing new is
+// said; the model takes up the history as it stands.
+func (m *Manager) Continue(sessionID string) error {
+	settings, err := m.store.Settings()
+	if err != nil {
+		return err
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	s, err := m.sessionLocked(sessionID)
+	if err != nil {
+		return err
+	}
+	if err := m.readyLocked(s, settings); err != nil {
+		return err
+	}
+	if n := len(s.items); n == 0 || !slices.Contains(continuable, s.items[n-1].Notice) {
+		return errors.New("this conversation has nothing to carry on with; say something instead")
+	}
+	m.startLocked(s)
+	return nil
+}
+
+// continuable are the notices a run can be carried on from. One cut off at
+// its length or refused would only be asked the same thing again.
+var continuable = []string{NoticeFailed, NoticeStopped, NoticeLimit}
+
+// readyLocked refuses a run that may not start: another is going, or the
+// person has not agreed to send anything to this conversation's service.
+func (m *Manager) readyLocked(s *session, settings Settings) error {
 	switch m.running {
 	case nil:
 	case s:
@@ -184,17 +232,17 @@ func (m *Manager) Send(sessionID, text string, where Context) error {
 	default:
 		return errors.New("another conversation is answering; stop it or wait for it")
 	}
-	if s.title == "" {
-		s.title = titleOf(text)
+	if !slices.Contains(settings.Consented, s.provider) {
+		return errors.New("nothing is sent to a model service before the person agrees to it")
 	}
-	m.addLocked(s, Item{Kind: ItemUser, Text: text, Context: &where})
-	s.queue = append(s.queue, composed)
+	return nil
+}
 
+func (m *Manager) startLocked(s *session) {
 	ctx, cancel := context.WithCancel(context.Background())
 	s.cancel, m.running = cancel, s
 	m.emitLocked(s, Event{Kind: EventRun, Running: true, Model: s.model})
 	go m.run(ctx, s)
-	return nil
 }
 
 // Stop ends a conversation's run. A write already under way is let finish,

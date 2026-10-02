@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 	"testing"
 
@@ -221,6 +222,38 @@ func TestDeletingTheDefaultFallsBackToNone(t *testing.T) {
 	}
 	if err := store.DeleteProvider(second.ID); err == nil {
 		t.Error("a provider was deleted twice")
+	}
+}
+
+// Agreeing to one service is not agreeing to another, and a service deleted
+// and added again has to be agreed to again.
+func TestConsentIsPerServiceAndGoesWithIt(t *testing.T) {
+	store, path := storeIn(t)
+	cloud, _ := store.SaveProvider(messagesService(), KeyReplace)
+	local, _ := store.SaveProvider(Provider{Name: "Ollama", Kind: provider.OpenAI, Model: "qwen3:14b"}, KeyClear)
+	if err := store.Consent(local.ID); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.Consent(local.ID); err != nil {
+		t.Fatalf("agreeing twice: %v", err)
+	}
+	if err := store.Consent("nonesuch"); err == nil {
+		t.Error("agreed to a service that does not exist")
+	}
+	settings, err := NewStore(path).Settings()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Equal(settings.Consented, []string{local.ID}) {
+		t.Fatalf("read back %v, want only %s and not %s", settings.Consented, local.ID, cloud.ID)
+	}
+
+	if err := store.DeleteProvider(local.ID); err != nil {
+		t.Fatal(err)
+	}
+	again, _ := store.SaveProvider(Provider{Name: "Ollama", Kind: provider.OpenAI, Model: "qwen3:14b"}, KeyClear)
+	if settings, _ := NewStore(path).Settings(); len(settings.Consented) != 0 {
+		t.Errorf("after deleting it and adding %s again, still agreed to %v", again.ID, settings.Consented)
 	}
 }
 

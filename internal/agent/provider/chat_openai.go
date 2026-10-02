@@ -214,8 +214,11 @@ func (c *openAIChat) Next(ctx context.Context, delta func(Delta)) (Turn, error) 
 				}
 				if piece.Usage != nil {
 					turn.Usage.Input, turn.Usage.Output = piece.Usage.PromptTokens, piece.Usage.CompletionTokens
-					if piece.Usage.PromptTokensDetails != nil {
-						turn.Usage.CacheRead = piece.Usage.PromptTokensDetails.CachedTokens
+					// The prompt count includes what was read from the cache,
+					// which the Messages API reports beside it instead.
+					if details := piece.Usage.PromptTokensDetails; details != nil {
+						turn.Usage.CacheRead = min(details.CachedTokens, piece.Usage.PromptTokens)
+						turn.Usage.Input -= turn.Usage.CacheRead
 					}
 				}
 				for _, choice := range piece.Choices {

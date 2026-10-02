@@ -29,11 +29,48 @@
      the title bar off screen. What overflows scrolls in its own pane. */
   overflow: hidden;
   /*
-   * Boards adapt to the room the shell has in drawn px, which the document zoom
+   * Boards adapt to the room they have in drawn px, which the document zoom
    * changes and the viewport does not -- so the breakpoints below are container
    * queries and not media queries, which would still be reading the window.
    */
   container: shell / inline-size;
+}
+
+/*
+ * Beside the assistant's dock: the navigation and the page. A page's own
+ * breakpoints measure the page (`page`), and the navigation's measures the
+ * room the dock leaves (`main`), so opening the dock reflows both as a
+ * narrower window would.
+ */
+.mqs-main {
+  flex: 1;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  container: main / inline-size;
+}
+.mqs-content {
+  /* What the detail sheets anchor to, so they stop at the dock. */
+  position: relative;
+  flex: 1;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  container: page / inline-size;
+}
+
+/* The dock over the page, where the window is too narrow to set it beside. */
+.mqs-dock-over {
+  position: absolute;
+  inset-block: 0;
+  right: 0;
+  z-index: 20;
+  display: flex;
+  border-left: 1px solid var(--c-border);
+  background: var(--c-bg);
+  box-shadow:
+    -10px 0 28px -14px rgba(0, 0, 0, 0.22),
+    -24px 0 48px -24px rgba(0, 0, 0, 0.08);
 }
 .mono3 {
   font-family: var(--app-monospace-font, 'JetBrains Mono', ui-monospace, Menlo, monospace);
@@ -1130,7 +1167,7 @@ button.ni.on { background: var(--c-fg); color: var(--c-bg); }
   height: 240px;
   flex: none;
 }
-@container shell (max-width: 940px) {
+@container page (max-width: 720px) {
   .mqs-chartrow {
     grid-template-columns: 1fr;
     grid-auto-rows: 240px;
@@ -1144,7 +1181,7 @@ button.ni.on { background: var(--c-fg); color: var(--c-bg); }
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
-@container shell (max-width: 780px) {
+@container page (max-width: 720px) {
   .mqs-nodegrid {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -1154,9 +1191,10 @@ button.ni.on { background: var(--c-fg); color: var(--c-bg); }
  * Past this the sidebar costs more of the page than the page can spare, so it
  * takes the rail it already has a state for. `.side3--rail` is still the user's
  * own choice: this overrides the width without touching it, so the nav goes back
- * to whatever they had once there is room again.
+ * to whatever they had once there is room again. The room is what the dock
+ * leaves, not the window.
  */
-@container shell (max-width: 860px) {
+@container main (max-width: 860px) {
   .side3 {
     width: 57px;
   }

@@ -16,6 +16,16 @@ import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Cr
 import * as $models from "./models.js";
 
 /**
+ * Consent records that the person agreed to what is sent to a model service,
+ * which the assistant waits for before it sends anything there.
+ */
+export function Consent(id: string): $CancellablePromise<$models.AgentSettingsView | null> {
+    return $Call.ByID(275671911, id).then(($result: any) => {
+        return $$createType1($result);
+    });
+}
+
+/**
  * DeleteProvider removes a model service and its key.
  */
 export function DeleteProvider(id: string): $CancellablePromise<$models.AgentSettingsView | null> {

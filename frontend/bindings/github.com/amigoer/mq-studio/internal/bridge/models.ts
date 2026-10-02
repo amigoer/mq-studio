@@ -799,6 +799,11 @@ export class AgentSettingsView {
      */
     "bodyLimits": number[];
 
+    /**
+     * Consented names the providers the person agreed to send data to.
+     */
+    "consented": string[];
+
     /** Creates a new AgentSettingsView instance. */
     constructor($$source: Partial<AgentSettingsView> = {}) {
         if (!("providers" in $$source)) {
@@ -819,6 +824,9 @@ export class AgentSettingsView {
         if (!("bodyLimits" in $$source)) {
             this["bodyLimits"] = [];
         }
+        if (!("consented" in $$source)) {
+            this["consented"] = [];
+        }
 
         Object.assign(this, $$source);
     }
@@ -829,12 +837,16 @@ export class AgentSettingsView {
     static createFrom($$source: any = {}): AgentSettingsView {
         const $$createField0_0 = $$createType15;
         const $$createField5_0 = $$createType16;
+        const $$createField6_0 = $$createType0;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("providers" in $$parsedSource) {
             $$parsedSource["providers"] = $$createField0_0($$parsedSource["providers"]);
         }
         if ("bodyLimits" in $$parsedSource) {
             $$parsedSource["bodyLimits"] = $$createField5_0($$parsedSource["bodyLimits"]);
+        }
+        if ("consented" in $$parsedSource) {
+            $$parsedSource["consented"] = $$createField6_0($$parsedSource["consented"]);
         }
         return new AgentSettingsView($$parsedSource as Partial<AgentSettingsView>);
     }

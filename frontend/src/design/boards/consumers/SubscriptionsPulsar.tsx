@@ -53,6 +53,7 @@ import {
   type PulsarSubscriptionForm,
 } from "./SubscriptionDialogPulsar";
 import { ResetCursorDialogPulsar } from "./ResetCursorDialogPulsar";
+import { useReportSelection } from "@/design/agent/selection";
 
 const R = { textAlign: "right" } as const;
 
@@ -82,6 +83,7 @@ export function SubscriptionsPulsar() {
 
   const state = usePulsarSubscriptions();
   const [selected, setSelected] = useState<{ topic: string; name: string } | null>(null);
+  useReportSelection("subscription", selected?.name);
   const [creating, setCreating] = useState(false);
   const [resetting, setResetting] = useState(false);
 

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type JSX } from "react";
+import { useCallback, useEffect, useRef, useState, type JSX } from "react";
 import { useTranslation } from "react-i18next";
 import {
   AppShell,
@@ -25,6 +25,7 @@ import { latencyLabel, useConnectionProfiles } from "@/hooks/useConnectionProfil
 import { ConnectionScopeProvider } from "@/mq/ConnectionScope";
 import { CapabilitiesProvider } from "@/mq/capabilities";
 import { useConfirm, useToast } from "@/components";
+import { BESIDE_THE_PAGE } from "@/components/detail-panel";
 import { exportAllConfigToFile, importAllConfigFromFile } from "@/api/settings";
 import {
   probeConnection as probeDraft,
@@ -38,6 +39,10 @@ import { ConnectionsEmpty } from "@/design/boards/connections/ConnectionsEmpty";
 import { NewConnectionDialog } from "@/design/boards/connections/NewConnectionDialog";
 import { UpdateDialog } from "@/design/shell/UpdateDialog";
 import { Settings, type SectionId } from "@/design/boards/settings/Settings";
+import { AgentDock } from "@/design/agent/AgentDock";
+import { readDockPrefs, writeDockPrefs } from "@/design/agent/dockPrefs";
+import { SelectionProvider } from "@/design/agent/selection";
+import { useAssistant } from "@/hooks/useAssistant";
 
 /** Global views sit beside the connection tabs rather than inside one. */
 type View =
@@ -124,6 +129,21 @@ export function DesignApp(): JSX.Element {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [paletteQuery, setPaletteQuery] = useState("");
 
+  // The assistant lives here rather than in its dock, so closing the dock
+  // loses nothing. The dock itself is window state, kept per machine.
+  const assistant = useAssistant();
+  const [dock, setDock] = useState(readDockPrefs);
+  const [ask, setAsk] = useState<{ seq: number; text: string } | null>(null);
+  const asked = useRef(0);
+  useEffect(() => writeDockPrefs(dock), [dock]);
+  const toggleDock = useCallback(() => setDock((current) => ({ ...current, open: !current.open })), []);
+  const closeDock = useCallback(() => setDock((current) => ({ ...current, open: false })), []);
+  const askAssistant = useCallback((text: string) => {
+    setDock((current) => ({ ...current, open: true }));
+    asked.current += 1;
+    setAsk({ seq: asked.current, text });
+  }, []);
+
   /*
    * The session names profiles, so it can only be restored once they have
    * loaded: a tab whose profile is gone must not reopen. Reopening on the
@@ -163,7 +183,12 @@ export function DesignApp(): JSX.Element {
     [],
   );
 
-  // ⌘K / Ctrl+K opens the palette from anywhere (9d); ⌘B collapses the sidebar.
+  /*
+   * ⌘K / Ctrl+K opens the palette from anywhere (9d), its own input included.
+   * ⌘B collapses the sidebar and ⌘J toggles the assistant, but neither while
+   * a field has the keyboard - except ⌘J in the dock's own composer, which
+   * closes the dock it is typing in.
+   */
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!e.metaKey && !e.ctrlKey) return;
@@ -171,14 +196,23 @@ export function DesignApp(): JSX.Element {
       if (key === "k") {
         e.preventDefault();
         setPaletteOpen((open) => !open);
-      } else if (key === "b") {
-        e.preventDefault();
-        setNavCollapsed((collapsed) => !collapsed);
+        return;
       }
+      if (key !== "b" && key !== "j") return;
+      if (typingIn(e.target) && !(key === "j" && inDock(e.target))) return;
+      e.preventDefault();
+      if (key === "b") setNavCollapsed((collapsed) => !collapsed);
+      else toggleDock();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [toggleDock]);
+
+  // The set-up may have changed in Settings while the dock was shut.
+  const refreshAssistant = assistant.refresh;
+  useEffect(() => {
+    if (dock.open) refreshAssistant().catch(() => {});
+  }, [dock.open, refreshAssistant, view.kind]);
 
   const openTab = useCallback((key: string) => {
     setOpenTabs((tabs) => (tabs.includes(key) ? tabs : [...tabs, key]));
@@ -491,6 +525,17 @@ export function DesignApp(): JSX.Element {
 
   const online = connections.filter((c) => c.status === "online").length;
 
+  // Where the person is, for the assistant. What the page has selected it
+  // reports to the dock itself.
+  const where = {
+    connection:
+      onConnection && connection != null
+        ? { id: connection.id, name: connection.name, protocol: connection.protocol }
+        : undefined,
+    page: onConnection && protocol != null ? { id: page, label: t(labelOf(protocol, page)) } : undefined,
+    namespace: onConnection ? connection?.scope : undefined,
+  };
+
   /*
    * The page transition. Everything the key names already remounts the column
    * on its own -- a different board is a different component, a different tab
@@ -521,6 +566,8 @@ export function DesignApp(): JSX.Element {
       titleBar={
         <TitleBar
           homeActive={atHome}
+          assistantOpen={dock.open}
+          onAssistant={toggleDock}
           dimmed={connections.length === 0}
           checking={updateChecking}
           updateAvailable={updateAvailable}
@@ -557,6 +604,25 @@ export function DesignApp(): JSX.Element {
         />
       }
       sidebar={sidebar}
+      dock={{
+        open: dock.open,
+        width: dock.width,
+        onWidthChange: (width) => setDock((current) => ({ ...current, width })),
+        onClose: closeDock,
+        content: (
+          <AgentDock
+            assistant={assistant}
+            where={where}
+            connections={connections}
+            pageLabel={(of, id) => t(labelOf(of, id as PageId))}
+            onClose={closeDock}
+            onOpenSettings={() => goto({ kind: "settings", section: "assistant" })}
+            focusKey={ask?.seq}
+            ask={ask}
+            onAsked={() => setAsk(null)}
+          />
+        ),
+      }}
       overlays={
         <>
           <NewConnectionDialog
@@ -585,6 +651,7 @@ export function DesignApp(): JSX.Element {
             }}
             onOpenSettings={() => goto({ kind: "settings" })}
             onCheckUpdate={() => void checkUpdate()}
+            onAsk={askAssistant}
             onClose={() => setPaletteOpen(false)}
           />
           {/* Opens over whatever is on screen: the release is announced by the
@@ -614,7 +681,18 @@ export function DesignApp(): JSX.Element {
 
   return (
     <ConnectionScopeProvider profile={scopedProfile}>
-      <CapabilitiesProvider>{shell}</CapabilitiesProvider>
+      <CapabilitiesProvider>
+        <SelectionProvider>{shell}</SelectionProvider>
+      </CapabilitiesProvider>
     </ConnectionScopeProvider>
   );
 }
+
+/** A field that takes typing: a shortcut there belongs to the text. */
+function typingIn(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  return target.isContentEditable || target.closest("input, textarea, select") != null;
+}
+
+const inDock = (target: EventTarget | null): boolean =>
+  target instanceof Element && target.closest(`[${BESIDE_THE_PAGE}]`) != null;

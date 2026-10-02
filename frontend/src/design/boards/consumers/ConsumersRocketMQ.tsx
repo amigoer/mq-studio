@@ -53,6 +53,7 @@ import {
   subscriptionsOf,
   type GroupSubscription,
 } from "@/mq/rocketmq/subscriptions";
+import { useReportSelection } from "@/design/agent/selection";
 
 /** One row of the group's per-queue consume progress. */
 interface QueueProgress {
@@ -156,6 +157,7 @@ export function ConsumersRocketMQ() {
 
   const [backlogOnly, setBacklogOnly] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
+  useReportSelection("group", selected);
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<Sort>("backlog");
 

@@ -261,6 +261,9 @@ func newWorld(t *testing.T) *world {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if err := store.Consent(chosen.ID); err != nil {
+		t.Fatal(err)
+	}
 
 	w := &world{
 		t: t, model: &fakeModel{}, store: store, services: services, conn: conn, id: saved.ID,
@@ -898,5 +901,60 @@ func TestTheEventsBuildWhatTheSnapshotHolds(t *testing.T) {
 	}
 	if ended.Usage == nil || ended.Usage.Input != 7 || snapshot.Usage.Output != 3 {
 		t.Errorf("spent %+v", ended.Usage)
+	}
+}
+
+func TestNothingIsSentBeforeThePersonAgrees(t *testing.T) {
+	w := newWorld(t)
+	other, err := w.store.SaveProvider(Provider{Name: "cloud", Kind: provider.OpenAI, Model: "m"}, KeyPreserve)
+	if err != nil {
+		t.Fatal(err)
+	}
+	summary, err := w.manager.Start(other.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := w.manager.Send(summary.ID, "hello", Context{}); err == nil || !strings.Contains(err.Error(), "agrees") {
+		t.Errorf("sent before the person agreed: %v", err)
+	}
+	if len(w.model.built) != 0 {
+		t.Errorf("a chat was built: %+v", w.model.built)
+	}
+}
+
+/*
+ * A run that ended without an answer - the service failed, the person
+ * stopped it, the tool limit - is carried on from where it was, without
+ * anything new said. One that answered is not: there is nothing to carry on.
+ */
+func TestARunIsCarriedOnFromWhereItEnded(t *testing.T) {
+	w := newWorld(t)
+	w.plays(func(context.Context, func(provider.Delta)) (provider.Turn, error) {
+		return provider.Turn{}, &provider.Failure{Reason: provider.ReasonRateLimited, Detail: "slow down"}
+	}, says("Here it is."))
+	session := w.send("How deep is orders?", Context{})
+	w.ended()
+	if err := w.manager.Continue(session); err != nil {
+		t.Fatal(err)
+	}
+	w.ended()
+
+	if last := w.last(session); last.Text != "Here it is." {
+		t.Fatalf("the conversation ends with %+v", last)
+	}
+	if said := w.model.chat(t, 1).said; len(said) != 1 || !strings.HasSuffix(said[0], "How deep is orders?") {
+		t.Errorf("the second chat was told %q", said)
+	}
+	users := 0
+	for _, item := range w.snapshot(session).Items {
+		if item.Kind == ItemUser {
+			users++
+		}
+	}
+	if users != 1 {
+		t.Errorf("carrying on said something: %d messages from the person", users)
+	}
+	if err := w.manager.Continue(session); err == nil {
+		t.Error("an answered conversation was carried on")
 	}
 }
