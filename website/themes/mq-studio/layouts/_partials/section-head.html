@@ -1,0 +1,15 @@
+{{- /* The head of a section of the home page: a small heading, a title and a
+       sentence, each left out when it is empty. */ -}}
+{{- if or .label .title .text }}
+<div class="section-head">
+  {{- with .label }}
+  <p class="eyebrow">{{ . }}</p>
+  {{- end }}
+  {{- with .title }}
+  <h2 class="section-title">{{ . }}</h2>
+  {{- end }}
+  {{- with .text }}
+  <p class="section-lead">{{ . }}</p>
+  {{- end }}
+</div>
+{{- end }}

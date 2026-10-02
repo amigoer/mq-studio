@@ -1,0 +1,71 @@
+theme:
+  title: MQ Studio
+
+skip: 跳到正文
+menu: 菜单
+main_nav: 主导航
+docs: 文档
+search_label: 搜索文档
+search_placeholder: 按标题查找页面
+search_empty: 没有标题相符的页面
+theme_auto: 自动模式
+theme_dark: 深色模式
+theme_light: 浅色模式
+theme_switch_to: 点击切换至
+on_this_page: 本页目录
+prev: 上一篇
+next: 下一篇
+newer: 较新
+older: 较早
+top: 回到顶部
+copy: 复制
+copied: 已复制
+anchor: 这一节的链接
+terminal: 终端
+new_tab: （在新标签页打开）
+close: 关闭
+date_format: "2006 年 1 月 2 日"
+updated: "更新于 {{ .Date }}"
+minutes:
+  other: "约 {{ .Count }} 分钟读完"
+edit: 在 GitHub 上编辑此页
+read_in: "阅读{{ .Language }}版"
+docs_lead: 怎么安装 MQ Studio、它能连哪些中间件，以及怎么交给 AI 助手或 agent 来用。
+notfound: 页面不存在
+notfound_body: 这个地址下没有内容，它可能已经移到了别处。
+back_home: 回到首页
+
+changelog: 更新日志
+changelog_lead: 每个版本改了什么，最新的在前。版本号遵循语义化版本。
+releases: 版本
+latest: 最新
+all_releases: 全部版本
+release_count:
+  other: "共 {{ .Count }} 个版本"
+newer_release: 较新的版本
+older_release: 较早的版本
+view_on_github: 在 GitHub 上查看
+
+download: 下载
+download_fallback: 下载 MQ Studio
+download_for: "下载 {{ .Platform }} 版"
+more_downloads: 更多下载选项
+select_arch: 选择架构
+select_format: 选择格式
+arch_apple: Apple 芯片
+arch_intel: Intel / x64
+arch_x64: x64
+arch_arm64: ARM64
+mirror: 备用地址
+install_guide: 安装说明
+all_github_releases: 全部 Releases
+cta_mac: 下载 .dmg
+cta_windows: 下载 .exe
+cta_linux: 下载 Linux 版
+
+stars: Star
+forks: Fork
+contributors: 贡献者
+maintained_by: 维护者
+powered_pre: "由 "
+powered_post: " 构建"

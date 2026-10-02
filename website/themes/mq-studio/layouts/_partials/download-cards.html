@@ -1,0 +1,57 @@
+{{- /* A card per platform: pick the architecture, and the format on Linux,
+       and the button follows. Every package is in the markup, so the cards
+       work before - and without - the script, on the default choice. Called
+       with the page's context. */ -}}
+{{- $s := .Site.ThemeSettings -}}
+{{- $r := .Site.Params.release -}}
+{{- $x64 := T "arch_x64" -}}
+{{- $arm := T "arch_arm64" -}}
+{{- $cards := slice
+    (dict "id" "mac" "name" "macOS" "icon" "apple" "requirement" $s.mac_requirement "cta" (T "cta_mac")
+      "segments" (slice (dict "label" (T "select_arch") "options" (slice (dict "value" "arm64" "label" (T "arch_apple")) (dict "value" "amd64" "label" (T "arch_intel")))))
+      "variants" (slice (dict "key" "arm64" "file" $r.mac.arm64) (dict "key" "amd64" "file" $r.mac.amd64)))
+    (dict "id" "windows" "name" "Windows" "icon" "windows" "requirement" $s.windows_requirement "cta" (T "cta_windows")
+      "segments" (slice (dict "label" (T "select_arch") "options" (slice (dict "value" "amd64" "label" $x64) (dict "value" "arm64" "label" $arm))))
+      "variants" (slice (dict "key" "amd64" "file" $r.windows.amd64) (dict "key" "arm64" "file" $r.windows.arm64)))
+    (dict "id" "linux" "name" "Linux" "icon" "linux" "requirement" $s.linux_requirement "cta" (T "cta_linux")
+      "segments" (slice
+        (dict "label" (T "select_format") "options" (slice (dict "value" "deb" "label" ".deb") (dict "value" "rpm" "label" ".rpm") (dict "value" "AppImage" "label" "AppImage")))
+        (dict "label" (T "select_arch") "options" (slice (dict "value" "amd64" "label" $x64) (dict "value" "arm64" "label" $arm))))
+      "variants" (slice
+        (dict "key" "deb:amd64" "file" $r.linux.deb.amd64) (dict "key" "deb:arm64" "file" $r.linux.deb.arm64)
+        (dict "key" "rpm:amd64" "file" $r.linux.rpm.amd64) (dict "key" "rpm:arm64" "file" $r.linux.rpm.arm64)
+        (dict "key" "AppImage:amd64" "file" $r.linux.AppImage.amd64) (dict "key" "AppImage:arm64" "file" $r.linux.AppImage.arm64))) -}}
+<div class="platforms">
+  {{- range $cards }}
+  {{- $default := index .variants 0 }}
+  <div class="platform" data-picker>
+    <div class="platform-head">
+      <span class="platform-icon">{{ partial "icon.html" .icon }}</span>
+      <div>
+        <p class="platform-name">{{ .name }}</p>
+        {{- with .requirement }}<p class="platform-requirement">{{ . }}</p>{{ end }}
+      </div>
+    </div>
+    <div class="segments">
+      {{- range $i, $segment := .segments }}
+      <div class="segment" role="radiogroup" aria-label="{{ $segment.label }}" data-segment="{{ $i }}">
+        {{- range $j, $option := $segment.options }}
+        <button type="button" role="radio" value="{{ $option.value }}" aria-checked="{{ if eq $j 0 }}true{{ else }}false{{ end }}" tabindex="{{ if eq $j 0 }}0{{ else }}-1{{ end }}">{{ $option.label }}</button>
+        {{- end }}
+      </div>
+      {{- end }}
+    </div>
+    <a class="button primary platform-link" href="{{ $default.file.url }}" data-picker-link>{{ partial "icon.html" "download" }}{{ .cta }}</a>
+    <p class="platform-file">
+      <span class="file-name" data-picker-file title="{{ $default.file.name }}">{{ $default.file.name }}</span>
+      <span class="file-size" data-picker-size>{{ $default.file.size }}</span>
+      <a class="file-alternate" href="{{ or $default.file.alternate "#" }}" data-picker-alt{{ if not $default.file.alternate }} hidden{{ end }}>{{ T "mirror" }}</a>
+    </p>
+    <ul class="platform-variants" hidden>
+      {{- range .variants }}
+      <li data-key="{{ .key }}" data-url="{{ .file.url }}" data-name="{{ .file.name }}" data-size="{{ .file.size }}" data-alternate="{{ .file.alternate }}"></li>
+      {{- end }}
+    </ul>
+  </div>
+  {{- end }}
+</div>

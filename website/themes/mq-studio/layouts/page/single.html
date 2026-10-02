@@ -1,0 +1,18 @@
+{{ define "main" }}
+{{- $toc := partial "toc-count.html" .Page -}}
+<div class="doc{{ if $toc }} with-toc{{ end }}">
+  <article class="doc-body">
+    <header class="doc-header">
+      <h1>{{ .Page.Title }}</h1>
+      {{- with .Page.Description }}
+      <p class="lead">{{ . }}</p>
+      {{- end }}
+    </header>
+    {{- if $toc }}{{ partial "toc.html" (dict "page" .Page "inline" true) }}{{ end }}
+    <div class="prose">{{ .Page.Content }}</div>
+  </article>
+  {{- if $toc }}
+  <aside class="doc-aside">{{ partial "toc.html" (dict "page" .Page) }}</aside>
+  {{- end }}
+</div>
+{{ end }}

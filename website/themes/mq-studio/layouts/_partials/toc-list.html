@@ -1,0 +1,8 @@
+{{- /* Called with a page. */ -}}
+<ul>
+  {{- range .TableOfContents }}
+    {{- if and .ID (ge .Level 2) (le .Level 3) }}
+  <li class="level-{{ .Level }}"><a href="#{{ .ID }}">{{ .Text }}</a></li>
+    {{- end }}
+  {{- end }}
+</ul>

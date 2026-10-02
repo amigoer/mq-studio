@@ -1,0 +1,55 @@
+{{- /* The split button under the headline. The server draws the release page
+       and a neutral label, which is right before - and without - a script;
+       the script then points it at the reader's own build. The menu lists
+       every package either way, so a wrong guess costs one click. Called with
+       the page's context. */ -}}
+{{- $r := .Site.Params.release -}}
+{{- $macArm := T "download_for" (dict "Platform" "macOS · Apple") -}}
+{{- $macIntel := T "download_for" (dict "Platform" "macOS · Intel") -}}
+{{- $windows := T "download_for" (dict "Platform" "Windows") -}}
+{{- $linux := T "download_for" (dict "Platform" "Linux") -}}
+{{- $groups := slice
+    (dict "name" "macOS" "icon" "apple" "rows" (slice
+      (dict "label" (T "arch_apple") "file" $r.mac.arm64)
+      (dict "label" (T "arch_intel") "file" $r.mac.amd64)))
+    (dict "name" "Windows" "icon" "windows" "rows" (slice
+      (dict "label" (T "arch_x64") "file" $r.windows.amd64)
+      (dict "label" (T "arch_arm64") "file" $r.windows.arm64)))
+    (dict "name" "Linux" "icon" "linux" "rows" (slice
+      (dict "label" (printf ".deb · %s" (T "arch_x64")) "file" $r.linux.deb.amd64)
+      (dict "label" (printf ".rpm · %s" (T "arch_x64")) "file" $r.linux.rpm.amd64)
+      (dict "label" (printf "AppImage · %s" (T "arch_x64")) "file" $r.linux.AppImage.amd64))) -}}
+<div class="download-menu" data-menu>
+  {{- /* Attribute names are written out: html/template refuses to build one. */}}
+  <a class="button primary download-main" href="{{ $r.url }}" data-menu-primary
+    data-mac-arm="{{ $r.mac.arm64.url }}" data-mac-arm-label="{{ $macArm }}"
+    data-mac-intel="{{ $r.mac.amd64.url }}" data-mac-intel-label="{{ $macIntel }}"
+    data-windows="{{ $r.windows.amd64.url }}" data-windows-label="{{ $windows }}"
+    data-linux="{{ $r.linux.deb.amd64.url }}" data-linux-label="{{ $linux }}">
+    <span class="download-icons">
+      <span data-menu-icon="default">{{ partial "icon.html" "download" }}</span>
+      {{- range slice "apple" "windows" "linux" }}
+      <span data-menu-icon="{{ . }}" hidden>{{ partial "icon.html" . }}</span>
+      {{- end }}
+    </span>
+    {{- /* One grid cell holds every label it can show, so the button is sized
+           for the widest and never moves when the script changes it. */}}
+    <span class="download-labels">
+      {{- range slice $macArm $macIntel $windows $linux }}<span aria-hidden="true">{{ . }}</span>{{ end }}
+      <span data-menu-label>{{ T "download_fallback" }}</span>
+    </span>
+  </a>
+  <button type="button" class="button primary download-more" data-menu-trigger aria-expanded="false" aria-haspopup="true" aria-controls="download-list" aria-label="{{ T "more_downloads" }}">{{ partial "icon.html" "chevron-down" }}</button>
+  <div class="download-list" id="download-list" role="menu" aria-label="{{ T "more_downloads" }}" data-menu-list hidden>
+    <div class="download-list-inner">
+      {{- range $groups }}
+      <div class="download-group" role="group" aria-label="{{ .name }}">
+        <p class="download-group-title">{{ partial "icon.html" .icon }}{{ .name }}</p>
+        {{- range .rows }}
+        <a role="menuitem" href="{{ .file.url }}"><span class="row-label">{{ .label }}</span><span class="row-file">{{ .file.name }}</span><span class="row-size">{{ .file.size }}</span></a>
+        {{- end }}
+      </div>
+      {{- end }}
+    </div>
+  </div>
+</div>

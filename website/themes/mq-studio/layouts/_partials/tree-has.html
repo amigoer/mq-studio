@@ -1,0 +1,15 @@
+{{- /* Whether a link is one of the pages in the docs tree. Called as:
+       partial "tree-has.html" (dict "site" .Site "url" LINK), with LINK as
+       url.Rel or .RelPermalink writes it. It says 1 when it is and nothing
+       when it is not. An address written without its closing slash counts. */ -}}
+{{- $want := .url -}}
+{{- $found := false -}}
+{{- range .site.ThemeSettings.sidebar }}
+  {{- range .pages }}
+    {{- if and .label .url (not $found) }}
+      {{- $u := url.Rel .url }}
+      {{- if or (eq $u $want) (eq (printf "%s/" $u) $want) }}{{ $found = true }}{{ end }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+{{- if $found }}1{{ end -}}

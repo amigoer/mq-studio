@@ -1,0 +1,7 @@
+{{- /* Says 1 when a page has enough sections for a table of contents, and
+       nothing otherwise: a contents list with one entry helps nobody. The
+       count is a float because that is what math.Add returns. Called with
+       a page. */ -}}
+{{- $count := 0.0 -}}
+{{- range .TableOfContents }}{{ if and .ID (ge .Level 2) (le .Level 3) }}{{ $count = math.Add $count 1 }}{{ end }}{{ end -}}
+{{- if ge $count 2.0 }}1{{ end -}}

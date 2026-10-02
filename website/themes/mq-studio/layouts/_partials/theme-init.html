@@ -1,0 +1,123 @@
+{{- /* The reader's light or dark, and the toggle in the header. It runs
+       before the first paint, so a stored choice never flashes the other
+       scheme, and so a closed announcement never shows and then jumps away.
+
+       The toggle steps through automatic (the system's scheme), dark and
+       light. The key is the one the site used before it moved to Kite, so a
+       returning reader keeps their choice. A click spreads the new scheme
+       from the toggle through the View Transitions API, and switches at once
+       when the reader asks for less motion or the browser has none. */ -}}
+{{- $s := .Site.ThemeSettings -}}
+<script>
+  (function () {
+    var root = document.documentElement;
+    var site = root.getAttribute("data-theme") || "auto";
+    var KEY = "mq-studio:theme";
+    var read = function () {
+      try {
+        var saved = localStorage.getItem(KEY);
+        if (saved === "auto" || saved === "light" || saved === "dark") return saved;
+      } catch (e) {}
+      return site;
+    };
+    {{- if and $s.announcement $s.announcement_id }}
+    try {
+      if (localStorage.getItem("mq-studio:announcement-dismissed") === {{ $s.announcement_id }}) {
+        root.classList.add("no-announcement");
+      }
+    } catch (e) {}
+    {{- end }}
+    var mode = read();
+    var prefers = function (query) { return window.matchMedia(query).matches; };
+    var shown = function () {
+      return mode !== "auto" ? mode : prefers("(prefers-color-scheme: dark)") ? "dark" : "light";
+    };
+
+    // The browser's own bars follow a chosen scheme too.
+    var metas = document.querySelectorAll('meta[name="theme-color"]');
+    var own = function (meta) { return /dark/.test(meta.media) ? "dark" : "light"; };
+    var tint = {};
+    for (var i = 0; i < metas.length; i++) tint[own(metas[i])] = metas[i].content;
+
+    var apply = function () {
+      if (mode === "auto") root.removeAttribute("data-theme");
+      else root.setAttribute("data-theme", mode);
+      for (var i = 0; i < metas.length; i++) {
+        metas[i].content = tint[mode === "auto" ? own(metas[i]) : mode];
+      }
+      var next = mode === "auto" ? "dark" : mode === "dark" ? "light" : "auto";
+      var buttons = document.querySelectorAll("[data-theme-toggle]");
+      for (var j = 0; j < buttons.length; j++) {
+        var b = buttons[j];
+        var label = b.getAttribute("data-" + mode) + " · " + b.getAttribute("data-switch-to") + b.getAttribute("data-" + next);
+        b.setAttribute("title", label);
+        b.setAttribute("aria-label", label);
+      }
+    };
+    var reload = function () { mode = read(); apply(); };
+
+    root.setAttribute("data-js", "");
+    apply();
+    document.addEventListener("DOMContentLoaded", apply);
+    // Another tab, or a page restored from the back-forward cache, may be
+    // behind the latest choice.
+    window.addEventListener("storage", function (event) {
+      if (event.key === KEY || event.key === null) reload();
+    });
+    window.addEventListener("pageshow", function (event) {
+      if (event.persisted) reload();
+    });
+
+    // While data-theme-changing is set nothing fades on its own; a newer
+    // click may start before an older one ends.
+    var changing = 0;
+    var settle = function () {
+      if (--changing === 0) root.removeAttribute("data-theme-changing");
+    };
+    var toggleAt = function (event) {
+      var target = event.target;
+      var button = target.closest && target.closest("[data-theme-toggle]");
+      // During a view transition every click lands on <html>, so a quick
+      // second click is found by where it was.
+      if (button || target !== root || !changing) return button;
+      var x = event.clientX;
+      var y = event.clientY;
+      var buttons = document.querySelectorAll("[data-theme-toggle]");
+      for (var i = 0; i < buttons.length; i++) {
+        var r = buttons[i].getBoundingClientRect();
+        if (x >= r.left && x < r.right && y >= r.top && y < r.bottom) return buttons[i];
+      }
+      return null;
+    };
+    document.addEventListener("click", function (event) {
+      var button = toggleAt(event);
+      if (!button) return;
+      var before = shown();
+      mode = mode === "auto" ? "dark" : mode === "dark" ? "light" : "auto";
+      try { localStorage.setItem(KEY, mode); } catch (e) {}
+      // Lets the new icon turn in without animating the first paint.
+      root.setAttribute("data-theme-switched", "");
+      root.setAttribute("data-theme-changing", "");
+      changing++;
+      if (shown() === before || prefers("(prefers-reduced-motion: reduce)") || !document.startViewTransition) {
+        apply();
+        // Takes the new colors in before transitions come back.
+        void root.offsetWidth;
+        settle();
+        return;
+      }
+      var box = button.getBoundingClientRect();
+      var x = box.left + box.width / 2;
+      var y = box.top + box.height / 2;
+      var radius = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
+      var transition = document.startViewTransition(apply);
+      transition.ready.then(function () {
+        root.animate(
+          { clipPath: ["circle(0px at " + x + "px " + y + "px)", "circle(" + radius + "px at " + x + "px " + y + "px)"] },
+          { duration: 450, easing: "cubic-bezier(0.4, 0, 0.2, 1)", pseudoElement: "::view-transition-new(root)" }
+        );
+      }, function () {});
+      transition.finished.then(settle, settle);
+    });
+  })();
+</script>

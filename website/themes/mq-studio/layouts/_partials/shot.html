@@ -1,0 +1,19 @@
+{{- /* A screenshot by name, at the widths the build renders, and its dark
+       version when there is one. Called as: partial "shot.html" (dict "site"
+       .Site "name" N "dark" D "alt" A "sizes" S), with "eager" for one in
+       the first screen. */ -}}
+{{- $p := .site.Params -}}
+{{- $root := or $p.root "/" -}}
+{{- $shot := $p.shot -}}
+{{- $sizes := or .sizes "100vw" -}}
+{{- $loading := "lazy" }}{{ if .eager }}{{ $loading = "eager" }}{{ end -}}
+{{- range $i, $name := slice .name .dark }}
+  {{- if $name }}
+    {{- $set := "" }}
+    {{- range $j, $w := $shot.widths }}
+      {{- if $j }}{{ $set = printf "%s, " $set }}{{ end }}
+      {{- $set = printf "%s%sshots/%s-%v.webp %vw" $set $root $name $w $w }}
+    {{- end }}
+<img{{ if $.dark }} class="{{ if eq $i 0 }}only-light{{ else }}only-dark{{ end }}"{{ end }} src="{{ $root }}shots/{{ $name }}-1280.webp" srcset="{{ $set }}" sizes="{{ $sizes }}" width="{{ $shot.width }}" height="{{ $shot.height }}" alt="{{ $.alt }}" loading="{{ $loading }}" decoding="async">
+  {{- end }}
+{{- end -}}

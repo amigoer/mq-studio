@@ -1,0 +1,50 @@
+{{- /* Beside a doc, the docs tree; beside a release, the list of releases.
+       On a narrow screen this is the drawer the menu button opens, with the
+       header links above the tree, on every page. The docs tree is always
+       here, hidden where it is not drawn, because search reads its links. */ -}}
+{{- $s := .Site.ThemeSettings -}}
+{{- $here := .Page.RelPermalink -}}
+{{- $kind := printf "%s" .Page.Kind -}}
+<aside class="sidebar" id="sidebar">
+  {{- if .Site.Menus.main }}
+  <nav class="drawer-nav" aria-label="{{ T "main_nav" }}">
+    {{- partial "nav-links.html" $ }}
+  </nav>
+  {{- end }}
+  {{- if and (eq $kind "single") (eq .Page.Type "release") }}
+  <nav class="tree rail" aria-label="{{ T "releases" }}">
+    <div class="group">
+      <p class="group-title">{{ T "releases" }}</p>
+      <ul>
+        {{- range $i, $r := .Site.Params.releases }}
+          {{- $u := url.Rel $r.url }}
+        <li><a href="{{ $u }}"{{ if eq $u $here }} aria-current="page"{{ end }}><span class="rail-version">{{ $r.version }}</span>{{ if eq $i 0 }}<span class="rail-latest">{{ T "latest" }}</span>{{ end }}<time datetime="{{ $r.date }}">{{ $r.date }}</time></a></li>
+        {{- end }}
+      </ul>
+    </div>
+  </nav>
+  {{- end }}
+  {{- with $s.sidebar }}
+  <nav class="tree docs-tree" aria-label="{{ T "docs" }}">
+    {{- range . }}
+      {{- $listed := false }}
+      {{- range .pages }}{{ if and .label .url }}{{ $listed = true }}{{ end }}{{ end }}
+      {{- if $listed }}
+    <div class="group">
+      {{- with .title }}
+      <p class="group-title">{{ . }}</p>
+      {{- end }}
+      <ul>
+        {{- range .pages }}
+          {{- if and .label .url }}
+          {{- $u := url.Rel .url }}
+        <li><a href="{{ $u }}"{{ if or (eq $u $here) (eq (printf "%s/" $u) $here) }} aria-current="page"{{ end }}>{{ .label }}</a></li>
+          {{- end }}
+        {{- end }}
+      </ul>
+    </div>
+      {{- end }}
+    {{- end }}
+  </nav>
+  {{- end }}
+</aside>

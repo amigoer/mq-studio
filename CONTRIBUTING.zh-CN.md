@@ -168,7 +168,7 @@ ci/changelog-reference-gate
 | `docs/INSTALL.md` | `docs/INSTALL.zh-CN.md` |
 | `docs/ROADMAP.md` | `docs/ROADMAP.zh-CN.md` |
 | `frontend/src/i18n/locales/en.json` | `frontend/src/i18n/locales/zh.json` |
-| `website/src/i18n/en.ts` | `website/src/i18n/zh.ts` |
+| `website/sites/en/kite.yaml` | `website/sites/zh/kite.yaml` |
 | `docs/DRIVERS.md` | `docs/DRIVERS.zh-CN.md` |
 | `docs/MCP.md` | `docs/MCP.zh-CN.md` |
 | `docs/images/readme/<页面>.en.png` | `docs/images/readme/<页面>.png` |
@@ -191,11 +191,9 @@ capability，画出来的页面看着不像「诚实」，而像「坏了」。
 - `docs/images/hero-{light,dark}.svg` —— `<desc>` 里加上家族名，`families` 那一排加上
   它的图标：每个家族一个嵌套的 `<svg>`，间距 64，整排居中，所以加一个就要把每个图标左移 32。
   深色那份用图标的深色主题颜色。
-- `website/src/i18n/en.ts` 与 `zh.ts` —— `meta.description`、`banner.text`、
-  `hero.subtitle`、`drivers.supported`、`drivers.planned` 与 `roadmap.stages`。
-  `planned` 最危险：不改它就会一直声称一个已经发布的驱动还没做。换了 `banner.text`
-  还要同时换 `website/src/lib/announcement.ts` 里的 `ANNOUNCEMENT_ID`，否则关过上一条
-  公告的人永远看不到新的。
+- `website/sites/en/kite.yaml` 与 `zh/kite.yaml` —— `site.description`、`hero_text`、
+  `brokers` 与 `brokers_text`。换了 `announcement_text` 还要同时换旁边的
+  `announcement_id`，否则关过上一条公告的人永远看不到新的。
 - `frontend/src/i18n/locales/en.json` 与 `zh.json` ——
   `page.settings.about.blurb` 里点了各个家族的名字。
 - `frontend/src/App.tsx` 与 `frontend/src/mq/navigation.ts` —— 注释里对家族数量的计数。
@@ -279,8 +277,8 @@ grep -rn '^\s*model\.Cap<X>,\s*$' internal/driver/*/*.go
 PR 上会报告四项检查：
 
 - **Check**（`ci.yml`）—— 起全部服务端环境并跑完整道关。这一项是你的。
-- **Build**（`website.yml`）—— 官网。它在构建时会渲染本仓库自己的 markdown，
-  所以改一句 changelog 的措辞就可能把它弄挂。
+- **Build**（`website.yml`）—— 官网。Kite 用本仓库自己的文档和更新日志构建它，
+  所以改一句文档或 changelog 的措辞就可能把它弄挂。
 - **Package** —— PR 上按设计就是跳过的。
 - **Workers Builds** —— 在任何 PR 分支上都会失败，**和你的改动无关**。
   这个账号没有开预览部署，只有从 `main` 出去的那次部署才可能变绿。忽略它即可。

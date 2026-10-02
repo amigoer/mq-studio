@@ -193,7 +193,7 @@ forgotten:
 | `docs/INSTALL.md` | `docs/INSTALL.zh-CN.md` |
 | `docs/ROADMAP.md` | `docs/ROADMAP.zh-CN.md` |
 | `frontend/src/i18n/locales/en.json` | `frontend/src/i18n/locales/zh.json` |
-| `website/src/i18n/en.ts` | `website/src/i18n/zh.ts` |
+| `website/sites/en/kite.yaml` | `website/sites/zh/kite.yaml` |
 | `docs/DRIVERS.md` | `docs/DRIVERS.zh-CN.md` |
 | `docs/MCP.md` | `docs/MCP.zh-CN.md` |
 | `docs/images/readme/<page>.en.png` | `docs/images/readme/<page>.png` |
@@ -221,12 +221,10 @@ After adding a family, update all of these:
   its icon in the `families` row: one nested `<svg>` per family, 64 units
   apart and centred, so adding one moves every icon 32 units left. The dark
   file takes the icon's dark-theme colour.
-- `website/src/i18n/en.ts` and `zh.ts` — `meta.description`, `banner.text`,
-  `hero.subtitle`, `drivers.supported`, `drivers.planned` and `roadmap.stages`.
-  `planned` is the dangerous one: left alone it keeps asserting that a shipped
-  driver is unbuilt. A new `banner.text` also needs a new `ANNOUNCEMENT_ID` in
-  `website/src/lib/announcement.ts`, or it stays hidden from everyone who
-  closed the last announcement.
+- `website/sites/en/kite.yaml` and `zh/kite.yaml` — `site.description`,
+  `hero_text`, `brokers` and `brokers_text`. A new `announcement_text` also needs
+  a new `announcement_id` beside it, or it stays hidden from everyone who closed
+  the last announcement.
 - `frontend/src/i18n/locales/en.json` and `zh.json` —
   `page.settings.about.blurb` names the families.
 - `frontend/src/App.tsx` and `frontend/src/mq/navigation.ts` — comments that
@@ -343,9 +341,8 @@ Four checks report on a pull request:
 
 - **Check** (`ci.yml`) — starts every broker environment and runs the full
   gate. This one is yours.
-- **Build** (`website.yml`) — the marketing site, which renders this
-  repository's own markdown at build time. A copy edit to a changelog can break
-  it.
+- **Build** (`website.yml`) — the marketing site, which Kite builds from this
+  repository's own docs and changelogs. A copy edit to either can break it.
 - **Package** — skipped on pull requests by design.
 - **Workers Builds** — fails on every pull request branch and is **not** caused
   by your change. Preview deployments are not enabled on the account, so only

@@ -1,0 +1,35 @@
+{{ define "main" }}
+{{- $latest := "" -}}
+{{- with .Site.Params.releases }}{{ $latest = (index . 0).slug }}{{ end -}}
+<div class="doc release">
+  <article class="doc-body">
+    <p class="crumb"><a href="{{ url.Rel "changelog/" }}">{{ T "changelog" }}</a></p>
+    <header class="doc-header">
+      <h1>{{ .Page.Title }}{{ if eq .Page.Slug $latest }}<span class="title-tag">{{ T "latest" }}</span>{{ end }}</h1>
+      <p class="doc-meta">
+        {{- if not (time.IsZero .Page.PublishDate) }}
+        <time datetime="{{ time.Format "2006-01-02" .Page.PublishDate }}">{{ time.Format (T "date_format") .Page.PublishDate }}</time>
+        {{- end }}
+        {{- with .Page.Params.source }}
+        <span class="sep" aria-hidden="true">·</span><a href="{{ . }}" target="_blank" rel="noopener">{{ T "view_on_github" }}</a>
+        {{- end }}
+      </p>
+    </header>
+    <div class="prose">{{ .Page.Content }}</div>
+    {{- /* Releases are listed newest first, so Prev is the older neighbour
+           and Next the newer: time runs left to right. */}}
+    {{- if or .Page.Prev .Page.Next }}
+    <footer class="doc-footer">
+      <nav class="pager">
+        {{- with .Page.Prev }}
+        <a class="pager-link prev" rel="prev" href="{{ .RelPermalink }}"><span class="pager-dir">{{ partial "icon.html" "prev" }}{{ T "older_release" }}</span><span class="pager-title">{{ .Title }}</span></a>
+        {{- end }}
+        {{- with .Page.Next }}
+        <a class="pager-link next" rel="next" href="{{ .RelPermalink }}"><span class="pager-dir">{{ T "newer_release" }}{{ partial "icon.html" "next" }}</span><span class="pager-title">{{ .Title }}</span></a>
+        {{- end }}
+      </nav>
+    </footer>
+    {{- end }}
+  </article>
+</div>
+{{ end }}

@@ -1,0 +1,72 @@
+# The words the theme's pages say in English, the language a word falls back
+# to. A count picks the plural form; dates are written with date_format.
+skip: Skip to content
+menu: Menu
+main_nav: Main
+docs: Docs
+search_label: Search the docs
+search_placeholder: Find a page by its title
+search_empty: No page has a title like that
+theme_auto: Automatic mode
+theme_dark: Dark mode
+theme_light: Light mode
+theme_switch_to: "Switch to "
+on_this_page: On this page
+prev: Previous
+next: Next
+newer: Newer
+older: Older
+top: Back to top
+copy: Copy
+copied: Copied
+anchor: Link to this section
+terminal: Terminal
+new_tab: " (opens in a new tab)"
+close: Close
+date_format: "January 2, 2006"
+updated: "Updated {{ .Date }}"
+minutes:
+  one: "{{ .Count }} min read"
+  other: "{{ .Count }} min read"
+edit: Edit this page on GitHub
+read_in: "Read in {{ .Language }}"
+docs_lead: How to install MQ Studio, which brokers it reaches, and how to work it with an assistant or an agent.
+notfound: Page not found
+notfound_body: Nothing lives at this address. It may have moved.
+back_home: Back home
+
+changelog: Changelog
+changelog_lead: What changed in every release, newest first. Versions follow Semantic Versioning.
+releases: Releases
+latest: Latest
+all_releases: All releases
+release_count:
+  one: "{{ .Count }} release"
+  other: "{{ .Count }} releases"
+newer_release: Newer release
+older_release: Older release
+view_on_github: View on GitHub
+
+download: Download
+download_fallback: Download MQ Studio
+download_for: "Download for {{ .Platform }}"
+more_downloads: More download options
+select_arch: Select architecture
+select_format: Select format
+arch_apple: Apple silicon
+arch_intel: Intel / x64
+arch_x64: x64
+arch_arm64: ARM64
+mirror: Alternate
+install_guide: install guide
+all_github_releases: all releases
+cta_mac: Download .dmg
+cta_windows: Download .exe
+cta_linux: Download for Linux
+
+stars: Stars
+forks: Forks
+contributors: Contributors
+maintained_by: Maintained by
+powered_pre: "Built with "
+powered_post: ""

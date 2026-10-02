@@ -1,0 +1,12 @@
+{{ define "main" }}
+<div class="listing">
+  <header class="listing-header">
+    <h1>{{ .Page.Title }}</h1>
+  </header>
+  <ul class="term-cloud">
+    {{- range .Terms }}
+    <li><a class="chip" href="{{ .RelPermalink }}">{{ .Name }}<span class="count">{{ .Count }}</span></a></li>
+    {{- end }}
+  </ul>
+</div>
+{{ end }}

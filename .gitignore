@@ -11,7 +11,8 @@ node_modules/
 # out of docs/images/readme through an alias, so there is no copy to ignore.
 website/node_modules/
 website/dist/
-website/.astro/
+website/.build/
+website/.cache/
 
 # Go coverage profiles, written by `npm run test:cover` and by CI
 coverage*.out
