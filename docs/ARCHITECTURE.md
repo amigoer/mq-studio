@@ -110,6 +110,19 @@ to race: each record is a single append, synced before the write it announces.
 
 `docs/AGENT_PLAN.md` carries the scope and the decisions behind it.
 
+The window is getting an assistant of its own, which runs the same tools in its
+own process (`docs/AGENT_IN_APP_PLAN.md`). What it runs on is set up in
+Settings and kept in `agent.json`: the model services, each key encrypted with
+the same `secret.key` as the connection secrets and bound to the service it
+belongs to, and how writes are treated. It is not in `settings.json`, which the
+renderer reads redacted, the export writes in plain text and the MCP process
+re-reads before every call; only the window reads it, the bridge sends a key in
+and never back out, and an export can never be written over it.
+`internal/agent/provider` reaches the services: the Messages API through the
+official SDK, and the OpenAI-compatible protocol over plain HTTP. Neither takes
+anything from the environment - no key, base URL or header that another tool
+exported - so a call carries only what was configured in the window.
+
 ## Frontend seams
 
 The UI never calls a binding directly. Two modules sit in between:

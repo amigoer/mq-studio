@@ -1,6 +1,6 @@
 # 应用内 Agent 设计稿
 
-> 状态：设计已确认（2026-10-01，见第 8 节）。A1 已完成，在 `refactor/agent-toolset` 分支上。上一轮（MCP server）的计划见
+> 状态：设计已确认（2026-10-01，见第 8 节）。A1 已完成（PR #108），A2 已完成，在 `feat/agent-providers` 分支上，和设计稿不同的地方见 3.4 和 2.6。上一轮（MCP server）的计划见
 > [AGENT_PLAN.md](AGENT_PLAN.md)；本文就是它第 5 节留到「另起一轮」的那部分：
 > 应用内对话助手、provider 配置、API key 存储。
 
@@ -90,9 +90,9 @@ v1 不做：
 - **默认。** 默认模型和思考强度（低 / 中 / 高）放在同一行；写操作分为逐次批准（默认）和只读两档，选只读时 agent 拿不到写工具。
 - **隐私与审计。**
   - 消息正文：每条的上限默认 2 KB，也可以选不发；
-  - 会话保存：默认 30 天，也可以选不保存；
+  - 会话保存：默认 30 天，也可以选不保存（随 A5 一起上，现在还没有会话可存）；
   - 写操作记录：说明记在 `agent-audit.jsonl`，按钮打开所在目录；
-  - 清空会话。
+  - 清空会话（同样随 A5 一起上）。
 - **API Key 的交互和现有凭证一样。** 只显示「已配置」，输入框留空，填了才替换；有单独的「保存」和「清除」。
 
 ![设置里的 AI 助手分区](images/agent/settings.png)
@@ -198,19 +198,32 @@ type Provider interface {
 - 用 Opus 5.5 时默认带上 server-side fallback（`fallbacks: "default"`，beta）：模型因安全策略拒答时，由服务端换一个模型接着答。只有官方 API 支持这个参数，所以 Base URL 指向网关或代理时要能关掉。
 - 工具输入开 `eager_input_streaming`，解析后按 schema 校验。
 
-**OpenAI 兼容。** 用官方 `github.com/openai/openai-go`，走 Chat Completions 加 function calling，Base URL 可配：
+**OpenAI 兼容。** 直接用 net/http 实现，走 Chat Completions 加 function calling，Base URL 可配。原计划用官方 `openai-go`，A2 实测后改掉了，原因有两条：
+
+- 它会让发布版大 9.1 MB，而这里只用到三个接口；
+- 它读 `OPENAI_*` 环境变量，又没有公开的开关可以关掉。
+
+覆盖范围：
 
 - 覆盖 OpenAI、DeepSeek、通义千问（兼容模式）、Kimi、智谱、SiliconFlow、OpenRouter、Ollama、LM Studio。
 - 各家工具调用的质量和字段不一样（例如 DeepSeek 的 `reasoning_content`），所以「测试连接」会实际验证一次工具调用。
 
 **网络：**
 
-- 每个模型服务一个 `http.Client`。默认走系统代理（`ProxyFromEnvironment`），也可以单独填代理。
-- 不设 `Client.Timeout`，它会掐断长的流式响应；改用拨号、TLS 握手、响应头三段超时。SDK 默认重试 2 次。
+- 每个模型服务一个 `http.Client`。默认读 `HTTPS_PROXY` 这类环境变量（`ProxyFromEnvironment`；Go 不读 macOS 系统设置里的代理），也可以单独填代理，支持 http、https、socks5。
+- 不设 `Client.Timeout`，它会掐断长的流式响应；改用拨号、TLS 握手、响应头三段超时。设置页的测试和取列表不重试，因为人在等着，Key 错了要马上说；对话请求要不要重试到 A3 再定。
 
-**环境变量。** 两个 SDK 默认都会读环境变量里的 Key（`ANTHROPIC_API_KEY`、`OPENAI_API_KEY`）。一律显式传参，只认应用里配置的那个 Key，免得悄悄花掉别处的额度。
+**环境变量。** Anthropic SDK 默认会读环境变量（`ANTHROPIC_API_KEY`、`ANTHROPIC_AUTH_TOKEN`、`ANTHROPIC_BASE_URL`）和它自己的配置文件。实现上逐个构造用到的服务，不经过 `NewClient`，所以这些一个都不读，只认应用里配置的那个 Key，免得悄悄花掉别处的额度。测试里会把这些环境变量都设上，断言请求里一个都没有带出去。
 
-**依赖体积。** anthropic-sdk-go 的根包会带进 invopop/jsonschema、gjson / sjson 等；openai-go 只带 gjson / sjson。按上一轮的经验，在真实二进制上量加入前后的差值再定，不在空模块里量。
+**依赖体积。** A2 在真实二进制上量过：darwin/arm64，发布版参数 `-trimpath -ldflags="-s -w"`。
+
+| 构建 | 大小 |
+| --- | --- |
+| A1 | 57.4 MB |
+| A1 + 两个 SDK | 75.4 MB |
+| 只加 Anthropic SDK（最终方案） | 65.2 MB，+7.8 MB |
+
+Anthropic SDK 的体积主要来自请求类型本身，只构造用到的服务只省了 0.2 MB。另外，加入它会按最小版本选择抬高共用的 AWS SDK（1.46→1.47）和 Azure azcore（1.18→1.23），SQS、Kinesis、Service Bus 驱动会跟着用上新版本。
 
 ### 3.5 事件与流式
 
@@ -270,7 +283,7 @@ type Provider interface {
 | 编号 | 内容 | 交付 |
 | --- | --- | --- |
 | A1 | 工具集抽离（已完成） | 界面无变化；MCP 测试全绿；`connections_list` 带在线状态 |
-| A2 | 模型服务配置 | agent.json、Key 加密、设置页「AI 助手」、测试连接、获取模型列表 |
+| A2 | 模型服务配置（已完成） | agent.json、Key 加密、设置页「AI 助手」、测试连接、获取模型列表 |
 | A3 | Agent 循环 | 两个 provider，批准 / 确认 / 审计，事件，停止；假 provider 测试 |
 | A4 | 侧栏 | 停靠布局、对话渲染、工具卡片、批准卡片、上下文 chip、快捷键和命令面板 |
 | A5 | 会话管理 | 加密保存、历史、续聊、重命名、删除、导出、按天清理 |

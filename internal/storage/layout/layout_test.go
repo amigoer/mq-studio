@@ -23,4 +23,7 @@ func TestInBuildsAllPersistentPaths(t *testing.T) {
 	if paths.AgentAuditFile != filepath.Join(directory, "agent-audit.jsonl") {
 		t.Fatalf("agent audit path = %q", paths.AgentAuditFile)
 	}
+	if paths.AgentFile != filepath.Join(directory, "agent.json") {
+		t.Fatalf("agent settings path = %q", paths.AgentFile)
+	}
 }

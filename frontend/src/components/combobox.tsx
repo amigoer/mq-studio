@@ -33,6 +33,7 @@ export function Combobox({
   emptyText,
   prefix,
   moreText,
+  customText,
   disabled,
   className,
   contentClassName,
@@ -48,6 +49,11 @@ export function Combobox({
   prefix?: ReactNode;
   /** Rendered when the search matched more than the popover will draw. */
   moreText?: (hidden: number) => ReactNode;
+  /**
+   * Offers what was typed as a value of its own, for a list that is a
+   * suggestion rather than the whole of what is allowed.
+   */
+  customText?: (typed: string) => ReactNode;
   disabled?: boolean;
   className?: string;
   contentClassName?: string;
@@ -60,6 +66,13 @@ export function Combobox({
   const current = normalized.find((option) => option.value === value);
   const byValue = new Map(normalized.map((option) => [option.value, option]));
   const filtered = filterOptions(normalized.map((option) => option.value), query);
+  const typed = query.trim();
+  const offerTyped = customText != null && typed !== "" && !byValue.has(typed);
+  const choose = (next: string) => {
+    onValueChange?.(next);
+    setQuery("");
+    setOpen(false);
+  };
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -96,17 +109,18 @@ export function Combobox({
             onValueChange={setQuery}
           />
           <CommandList>
-            <CommandEmpty>{emptyText}</CommandEmpty>
+            {!offerTyped && <CommandEmpty>{emptyText}</CommandEmpty>}
             <CommandGroup>
+              {offerTyped && (
+                <CommandItem value={`typed:${typed}`} onSelect={() => choose(typed)}>
+                  <span className="truncate">{customText(typed)}</span>
+                </CommandItem>
+              )}
               {filtered.items.map((optionValue) => (
                 <CommandItem
                   key={optionValue}
                   value={optionValue}
-                  onSelect={() => {
-                    onValueChange?.(optionValue);
-                    setQuery("");
-                    setOpen(false);
-                  }}
+                  onSelect={() => choose(optionValue)}
                 >
                   <span className="truncate">
                     {byValue.get(optionValue)?.label ?? optionValue}
