@@ -1,4 +1,4 @@
-package mcpserver
+package toolset
 
 import (
 	"context"
@@ -37,16 +37,16 @@ func TestAMessageThatIsNotThereIsSaidToBeAbsent(t *testing.T) {
 	conns := func(int) (driver.Conn, error) { return conn, nil }
 	services.Conns = conns
 	services.Messages = message.New(conns, requestTimeout{})
-	s := &server{services: services, translate: testPhrases}
+	e := &Env{Services: services, Translate: testPhrases}
 
 	ctx := context.Background()
 	lookup := messageByIDInput{Destination: "orders", MessageID: "orders-0-42"}
-	if _, _, err := s.messageByID(ctx, nil, lookup); err == nil || !strings.Contains(err.Error(), "no message") {
+	if _, err := e.messageByID(ctx, lookup); err == nil || !strings.Contains(err.Error(), "no message") {
 		t.Fatalf("a message that is not there came back as %v", err)
 	}
 
 	conn.found = &model.MessageItem{MessageID: "orders-0-42", Body: "hello"}
-	_, found, err := s.messageByID(ctx, nil, lookup)
+	found, err := e.messageByID(ctx, lookup)
 	if err != nil || found.Message == nil || found.Message.Body != "hello" {
 		t.Fatalf("found %+v, %v", found.Message, err)
 	}

@@ -1,10 +1,8 @@
-package mcpserver
+package toolset
 
 import (
 	"context"
 	"fmt"
-
-	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/amigoer/mq-studio/internal/driver"
 	"github.com/amigoer/mq-studio/internal/model"
@@ -28,16 +26,16 @@ import (
 
 // port resolves a capability and the interface behind it in one step, for an
 // operation the application has no family-neutral service method for.
-func port[T any](s *server, connID int, capability model.Capability) (T, string, error) {
-	api, _, caveat, err := portOf[T](s, connID, capability)
+func port[T any](e *Env, connID int, capability model.Capability) (T, string, error) {
+	api, _, caveat, err := portOf[T](e, connID, capability)
 	return api, caveat, err
 }
 
 // portOf is port for a caller that also needs the family - to check what came
 // back against the namespace it asked for.
-func portOf[T any](s *server, connID int, capability model.Capability) (T, model.MQKind, string, error) {
+func portOf[T any](e *Env, connID int, capability model.Capability) (T, model.MQKind, string, error) {
 	var zero T
-	conn, caveat, err := s.capable(connID, capability)
+	conn, caveat, err := e.capable(connID, capability)
 	if err != nil {
 		return zero, "", "", err
 	}
@@ -61,47 +59,34 @@ type messagesOutput struct {
 	Caveat   string               `json:"caveat,omitempty"`
 }
 
-func (s *server) deadLetters(
-	ctx context.Context, _ *mcp.CallToolRequest, input deadLetterInput,
-) (*mcp.CallToolResult, messagesOutput, error) {
-	_, caveat, err := s.capable(input.Connection, model.CapDLQ)
+func (e *Env) deadLetters(ctx context.Context, input deadLetterInput) (messagesOutput, error) {
+	_, caveat, err := e.capable(input.Connection, model.CapDLQ)
 	if err != nil {
-		return nil, messagesOutput{}, err
+		return messagesOutput{}, err
 	}
-	ctx, cancel := s.withTimeout(ctx)
+	ctx, cancel := e.withTimeout(ctx)
 	defer cancel()
 
-	messages, err := s.services.Messages.DLQ(ctx, input.Connection, input.Group, s.limit(input.MaxResults))
+	messages, err := e.Services.Messages.DLQ(ctx, input.Connection, input.Group, e.limit(input.MaxResults))
 	if err != nil {
-		return nil, messagesOutput{}, err
+		return messagesOutput{}, err
 	}
-	return nil, messagesOutput{Messages: messages, Caveat: caveat}, nil
+	return messagesOutput{Messages: messages, Caveat: caveat}, nil
 }
 
-func (s *server) retryQueue(
-	ctx context.Context, _ *mcp.CallToolRequest, input deadLetterInput,
-) (*mcp.CallToolResult, messagesOutput, error) {
-	_, caveat, err := s.capable(input.Connection, model.CapDLQ)
+func (e *Env) retryQueue(ctx context.Context, input deadLetterInput) (messagesOutput, error) {
+	_, caveat, err := e.capable(input.Connection, model.CapDLQ)
 	if err != nil {
-		return nil, messagesOutput{}, err
+		return messagesOutput{}, err
 	}
-	ctx, cancel := s.withTimeout(ctx)
+	ctx, cancel := e.withTimeout(ctx)
 	defer cancel()
 
-	messages, err := s.services.Messages.Retry(ctx, input.Connection, input.Group, s.limit(input.MaxResults))
+	messages, err := e.Services.Messages.Retry(ctx, input.Connection, input.Group, e.limit(input.MaxResults))
 	if err != nil {
-		return nil, messagesOutput{}, err
+		return messagesOutput{}, err
 	}
-	return nil, messagesOutput{Messages: messages, Caveat: caveat}, nil
-}
-
-// limit falls back to the page size the application itself reads with, so a
-// caller that does not care gets the same amount a person would see.
-func (s *server) limit(requested int) int {
-	if requested > 0 {
-		return requested
-	}
-	return s.services.Messages.FetchLimit()
+	return messagesOutput{Messages: messages, Caveat: caveat}, nil
 }
 
 type namespaceInput struct {
@@ -114,21 +99,19 @@ type deadLetterQueuesOutput struct {
 	Caveat string                   `json:"caveat,omitempty"`
 }
 
-func (s *server) deadLetterQueues(
-	ctx context.Context, _ *mcp.CallToolRequest, input namespaceInput,
-) (*mcp.CallToolResult, deadLetterQueuesOutput, error) {
-	api, caveat, err := port[driver.DeadLetterTopology](s, input.Connection, model.CapDeadLetterTopology)
+func (e *Env) deadLetterQueues(ctx context.Context, input namespaceInput) (deadLetterQueuesOutput, error) {
+	api, caveat, err := port[driver.DeadLetterTopology](e, input.Connection, model.CapDeadLetterTopology)
 	if err != nil {
-		return nil, deadLetterQueuesOutput{}, err
+		return deadLetterQueuesOutput{}, err
 	}
-	ctx, cancel := s.withTimeout(ctx)
+	ctx, cancel := e.withTimeout(ctx)
 	defer cancel()
 
 	queues, err := api.DeadLetterQueues(ctx, input.Namespace)
 	if err != nil {
-		return nil, deadLetterQueuesOutput{}, err
+		return deadLetterQueuesOutput{}, err
 	}
-	return nil, deadLetterQueuesOutput{Queues: queues, Caveat: caveat}, nil
+	return deadLetterQueuesOutput{Queues: queues, Caveat: caveat}, nil
 }
 
 type subscriptionInput struct {
@@ -158,21 +141,19 @@ type lagOutput struct {
  * would pass on all twelve, so the port is what separates "ask the listing"
  * from "there is more detail here".
  */
-func (s *server) subscriptionLag(
-	ctx context.Context, _ *mcp.CallToolRequest, input subscriptionInput,
-) (*mcp.CallToolResult, lagOutput, error) {
-	api, caveat, err := port[driver.SubscriptionStats](s, input.Connection, model.CapSubscriptionLag)
+func (e *Env) subscriptionLag(ctx context.Context, input subscriptionInput) (lagOutput, error) {
+	api, caveat, err := port[driver.SubscriptionStats](e, input.Connection, model.CapSubscriptionLag)
 	if err != nil {
-		return nil, lagOutput{}, err
+		return lagOutput{}, err
 	}
-	ctx, cancel := s.withTimeout(ctx)
+	ctx, cancel := e.withTimeout(ctx)
 	defer cancel()
 
 	progress, err := api.SubscriptionStats(ctx, input.ref())
 	if err != nil {
-		return nil, lagOutput{}, err
+		return lagOutput{}, err
 	}
-	return nil, lagOutput{Progress: progress, Caveat: caveat}, nil
+	return lagOutput{Progress: progress, Caveat: caveat}, nil
 }
 
 type subscriptionClientsOutput struct {
@@ -180,21 +161,19 @@ type subscriptionClientsOutput struct {
 	Caveat  string                      `json:"caveat,omitempty"`
 }
 
-func (s *server) subscriptionConsumers(
-	ctx context.Context, _ *mcp.CallToolRequest, input subscriptionInput,
-) (*mcp.CallToolResult, subscriptionClientsOutput, error) {
-	_, caveat, err := s.capable(input.Connection, model.CapSubscriptionRuntime)
+func (e *Env) subscriptionConsumers(ctx context.Context, input subscriptionInput) (subscriptionClientsOutput, error) {
+	_, caveat, err := e.capable(input.Connection, model.CapSubscriptionRuntime)
 	if err != nil {
-		return nil, subscriptionClientsOutput{}, err
+		return subscriptionClientsOutput{}, err
 	}
-	ctx, cancel := s.withTimeout(ctx)
+	ctx, cancel := e.withTimeout(ctx)
 	defer cancel()
 
-	clients, err := s.services.Consumers.Clients(ctx, input.Connection, input.ref())
+	clients, err := e.Services.Consumers.Clients(ctx, input.Connection, input.ref())
 	if err != nil {
-		return nil, subscriptionClientsOutput{}, err
+		return subscriptionClientsOutput{}, err
 	}
-	return nil, subscriptionClientsOutput{Clients: clients, Caveat: caveat}, nil
+	return subscriptionClientsOutput{Clients: clients, Caveat: caveat}, nil
 }
 
 type pendingSummaryOutput struct {
@@ -202,21 +181,19 @@ type pendingSummaryOutput struct {
 	Caveat  string                `json:"caveat,omitempty"`
 }
 
-func (s *server) pendingSummary(
-	ctx context.Context, _ *mcp.CallToolRequest, input subscriptionInput,
-) (*mcp.CallToolResult, pendingSummaryOutput, error) {
-	api, caveat, err := port[driver.PendingEntryReader](s, input.Connection, model.CapPendingEntries)
+func (e *Env) pendingSummary(ctx context.Context, input subscriptionInput) (pendingSummaryOutput, error) {
+	api, caveat, err := port[driver.PendingEntryReader](e, input.Connection, model.CapPendingEntries)
 	if err != nil {
-		return nil, pendingSummaryOutput{}, err
+		return pendingSummaryOutput{}, err
 	}
-	ctx, cancel := s.withTimeout(ctx)
+	ctx, cancel := e.withTimeout(ctx)
 	defer cancel()
 
 	summary, err := api.PendingSummary(ctx, input.ref())
 	if err != nil {
-		return nil, pendingSummaryOutput{}, err
+		return pendingSummaryOutput{}, err
 	}
-	return nil, pendingSummaryOutput{Summary: summary, Caveat: caveat}, nil
+	return pendingSummaryOutput{Summary: summary, Caveat: caveat}, nil
 }
 
 type pendingEntriesInput struct {
@@ -233,14 +210,12 @@ type pendingEntriesOutput struct {
 	Caveat  string                `json:"caveat,omitempty"`
 }
 
-func (s *server) pendingEntries(
-	ctx context.Context, _ *mcp.CallToolRequest, input pendingEntriesInput,
-) (*mcp.CallToolResult, pendingEntriesOutput, error) {
-	api, caveat, err := port[driver.PendingEntryReader](s, input.Connection, model.CapPendingEntries)
+func (e *Env) pendingEntries(ctx context.Context, input pendingEntriesInput) (pendingEntriesOutput, error) {
+	api, caveat, err := port[driver.PendingEntryReader](e, input.Connection, model.CapPendingEntries)
 	if err != nil {
-		return nil, pendingEntriesOutput{}, err
+		return pendingEntriesOutput{}, err
 	}
-	ctx, cancel := s.withTimeout(ctx)
+	ctx, cancel := e.withTimeout(ctx)
 	defer cancel()
 
 	entries, err := api.PendingEntries(ctx, model.PendingQuery{
@@ -250,9 +225,9 @@ func (s *server) pendingEntries(
 		Count:     input.Count,
 	})
 	if err != nil {
-		return nil, pendingEntriesOutput{}, err
+		return pendingEntriesOutput{}, err
 	}
-	return nil, pendingEntriesOutput{Entries: entries, Caveat: caveat}, nil
+	return pendingEntriesOutput{Entries: entries, Caveat: caveat}, nil
 }
 
 type groupConsumersOutput struct {
@@ -260,21 +235,19 @@ type groupConsumersOutput struct {
 	Caveat    string                 `json:"caveat,omitempty"`
 }
 
-func (s *server) groupConsumers(
-	ctx context.Context, _ *mcp.CallToolRequest, input subscriptionInput,
-) (*mcp.CallToolResult, groupConsumersOutput, error) {
-	api, caveat, err := port[driver.PendingEntryReader](s, input.Connection, model.CapPendingEntries)
+func (e *Env) groupConsumers(ctx context.Context, input subscriptionInput) (groupConsumersOutput, error) {
+	api, caveat, err := port[driver.PendingEntryReader](e, input.Connection, model.CapPendingEntries)
 	if err != nil {
-		return nil, groupConsumersOutput{}, err
+		return groupConsumersOutput{}, err
 	}
-	ctx, cancel := s.withTimeout(ctx)
+	ctx, cancel := e.withTimeout(ctx)
 	defer cancel()
 
 	consumers, err := api.GroupConsumers(ctx, input.ref())
 	if err != nil {
-		return nil, groupConsumersOutput{}, err
+		return groupConsumersOutput{}, err
 	}
-	return nil, groupConsumersOutput{Consumers: consumers, Caveat: caveat}, nil
+	return groupConsumersOutput{Consumers: consumers, Caveat: caveat}, nil
 }
 
 type messageByIDInput struct {
@@ -288,27 +261,25 @@ type messageOutput struct {
 	Caveat  string             `json:"caveat,omitempty"`
 }
 
-func (s *server) messageByID(
-	ctx context.Context, _ *mcp.CallToolRequest, input messageByIDInput,
-) (*mcp.CallToolResult, messageOutput, error) {
-	conn, caveat, err := s.capable(input.Connection, model.CapMessageByID)
+func (e *Env) messageByID(ctx context.Context, input messageByIDInput) (messageOutput, error) {
+	conn, caveat, err := e.capable(input.Connection, model.CapMessageByID)
 	if err != nil {
-		return nil, messageOutput{}, err
+		return messageOutput{}, err
 	}
-	ctx, cancel := s.withTimeout(ctx)
+	ctx, cancel := e.withTimeout(ctx)
 	defer cancel()
 
-	message, err := s.services.Messages.ByID(ctx, input.Connection, input.Destination, input.MessageID)
+	message, err := e.Services.Messages.ByID(ctx, input.Connection, input.Destination, input.MessageID)
 	if err != nil {
-		return nil, messageOutput{}, err
+		return messageOutput{}, err
 	}
 	// An empty answer is a finding, and has to read as one rather than as a
 	// successful call that happened to carry nothing.
 	if message == nil {
-		return nil, messageOutput{}, fmt.Errorf(
+		return messageOutput{}, fmt.Errorf(
 			"%s holds no message %q in %s", conn.Kind(), input.MessageID, input.Destination)
 	}
-	return nil, messageOutput{Message: message, Caveat: caveat}, nil
+	return messageOutput{Message: message, Caveat: caveat}, nil
 }
 
 type trackInput struct {
@@ -324,19 +295,17 @@ type trackOutput struct {
 	Caveat string                    `json:"caveat,omitempty"`
 }
 
-func (s *server) trackMessage(
-	ctx context.Context, _ *mcp.CallToolRequest, input trackInput,
-) (*mcp.CallToolResult, trackOutput, error) {
-	_, caveat, err := s.capable(input.Connection, model.CapMessageTrack)
+func (e *Env) trackMessage(ctx context.Context, input trackInput) (trackOutput, error) {
+	_, caveat, err := e.capable(input.Connection, model.CapMessageTrack)
 	if err != nil {
-		return nil, trackOutput{}, err
+		return trackOutput{}, err
 	}
-	ctx, cancel := s.withTimeout(ctx)
+	ctx, cancel := e.withTimeout(ctx)
 	defer cancel()
 
-	groups, err := s.services.Messages.Track(ctx, input.Connection, input.Destination, input.MessageID)
+	groups, err := e.Services.Messages.Track(ctx, input.Connection, input.Destination, input.MessageID)
 	if err != nil {
-		return nil, trackOutput{}, err
+		return trackOutput{}, err
 	}
-	return nil, trackOutput{Groups: groups, Caveat: caveat}, nil
+	return trackOutput{Groups: groups, Caveat: caveat}, nil
 }

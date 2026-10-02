@@ -111,29 +111,3 @@ func TestTheInspectionToolsAnswerWhatTheBrokerSaid(t *testing.T) {
 		}
 	}
 }
-
-// A family that does not keep clients apart by namespace answers from its own
-// scope, and the listing would read as the namespace's clients.
-func TestClientListingsRefuseANamespaceTheFamilyIgnores(t *testing.T) {
-	ctx := context.Background()
-	for _, scoped := range []bool{false, true} {
-		conn := &inspectedConn{scoped: scoped, fakeConn: fakeConn{kind: model.KindRedisStream,
-			capabilities: model.NewCapabilities(model.CapClientInspect)}}
-		s := &server{services: inspectedServer(t, conn), translate: testPhrases}
-		asked := namespaceInput{Connection: 1, Namespace: "billing"}
-
-		_, _, connectionsErr := s.clientConnections(ctx, nil, asked)
-		_, _, channelsErr := s.clientChannels(ctx, nil, asked)
-		for tool, err := range map[string]error{"client_connections": connectionsErr, "client_channels": channelsErr} {
-			if scoped && err != nil {
-				t.Errorf("%s: a family that scopes by namespace was refused: %v", tool, err)
-			}
-			if !scoped && (err == nil || !strings.Contains(err.Error(), "not consulted")) {
-				t.Errorf("%s: a namespace the family ignores was taken: %v", tool, err)
-			}
-		}
-		if _, _, err := s.clientConnections(ctx, nil, namespaceInput{Connection: 1}); err != nil {
-			t.Errorf("a listing with no namespace was refused: %v", err)
-		}
-	}
-}

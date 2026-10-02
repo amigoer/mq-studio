@@ -24,14 +24,13 @@ import (
 	"context"
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/amigoer/mq-studio/internal/agent/catalog"
+	"github.com/amigoer/mq-studio/internal/agent/toolset"
 	"github.com/amigoer/mq-studio/internal/app"
 	"github.com/amigoer/mq-studio/internal/driver"
-	"github.com/amigoer/mq-studio/internal/model"
 )
 
 // Name is what the server calls itself in the initialize handshake.
@@ -57,15 +56,14 @@ const instructions = "Work the message brokers this installation has connections
 	"Emptying or deleting anything first puts a question to the person at your client, and is " +
 	"refused where the client cannot ask one; when they decline, do not try again unless they ask."
 
-// server holds what the tools need. The domain services do the work; this
-// only resolves connections and turns a refusal into something a caller can
-// act on.
+// server holds what the tools need around them. The toolset does the work;
+// this decides how far it may go, asks before anything is destroyed, and
+// records every write.
 type server struct {
 	services *app.Services
-	// translate resolves the i18n keys the capability model carries into the
-	// language the application is set to. Injected because the translations
-	// live with the renderer's, and only the composition root can reach them.
-	translate func(string) string
+	// env is what the tools run against: connections dialled read-only on
+	// demand, and the allowance as how far each may go.
+	env *toolset.Env
 	// grants is how far each connection may go.
 	grants Grants
 	// journal is the audit log every write is recorded in.
@@ -76,19 +74,13 @@ type server struct {
 	 * refreshMu is held for writing by the refresh before every call, and for
 	 * reading by a call a grant was checked for, until it returns.
 	 *
-	 * The check reads the stored profile and the handler then dials by id, so
-	 * a refresh landing in between - another call's, since calls run at once -
+	 * The check reads the stored profile and the tool then dials by id, so a
+	 * refresh landing in between - another call's, since calls run at once -
 	 * could swap in a profile the window re-pointed, and the dial would go
 	 * where the check never looked. Nothing may wait on the client while
 	 * holding it: the client's next call would be waiting on this one.
 	 */
 	refreshMu sync.RWMutex
-	// offered maps a catalogue operation to the tool that performs it, for
-	// the tools this server actually registered. capabilities_describe reads
-	// it, so what it names is what the caller can really call - an operation
-	// the allowance kept out is reported as available on the endpoint and
-	// reachable by no tool, which is the truth.
-	offered map[string]string
 }
 
 // New builds the MCP server offering every tool some connection may use.
@@ -100,11 +92,19 @@ func New(
 	services *app.Services, version string, grants Grants, translate func(string) string,
 ) *mcp.Server {
 	s := &server{
-		services:  services,
-		translate: translate,
-		grants:    grants,
-		journal:   newJournal(auditPath(services)),
-		offered:   offeredTools(grants.widest()),
+		services: services,
+		grants:   grants,
+		journal:  newJournal(auditPath(services)),
+	}
+	s.env = &toolset.Env{
+		Services:  services,
+		Translate: translate,
+		Open:      s.conn,
+		Allow:     s.allowed,
+		// What capabilities_describe names is what the caller can really
+		// call: an operation the allowance kept out is reported as available
+		// on the endpoint and reachable by no tool, which is the truth.
+		Offered: offeredTools(grants.widest()),
 	}
 	mcpServer := mcp.NewServer(&mcp.Implementation{
 		Name:    Name,
@@ -181,64 +181,3 @@ func (s *server) conn(id int) (driver.Conn, error) {
 	}
 	return conn, nil
 }
-
-/*
- * capable resolves a connection and checks one capability on it.
- *
- * The three states the application draws have to survive the trip out. A
- * supported capability answers. One the endpoint cannot do answers with the
- * driver's own reason, because "this RocketMQ endpoint is a Proxy, which has
- * no topic listing" is something a caller can act on and "unsupported" is not.
- * One the family has no concept of says that instead, so a caller stops
- * looking for it rather than retrying.
- *
- * The caveat comes back beside the connection rather than as an error: it is
- * a consequence of the operation succeeding, and it travels in the result.
- */
-func (s *server) capable(id int, capability model.Capability) (driver.Conn, string, error) {
-	conn, err := s.conn(id)
-	if err != nil {
-		return nil, "", err
-	}
-	capabilities := conn.Capabilities()
-	if capabilities.Has(capability) {
-		caveat, _ := capabilities.Caveat(capability)
-		return conn, s.say(caveat), nil
-	}
-	if reason, degraded := capabilities.DegradedReason(capability); degraded {
-		return nil, "", fmt.Errorf(
-			"this %s endpoint cannot do %s: %s", conn.Kind(), capability, s.say(reason))
-	}
-	return nil, "", fmt.Errorf(
-		"%s has no concept of %s, so there is nothing to ask it for", conn.Kind(), capability)
-}
-
-/*
- * say resolves what a driver declared into something a caller can read.
- *
- * Every caveat and every degraded reason in this application is an i18n key,
- * because the window has to show them in the reader's language. A caller with
- * no window would otherwise be handed mq.rabbitmq.caveat.browseAltersQueue and
- * have no way to find out that it means the browse alters the queue.
- */
-func (s *server) say(key string) string {
-	if key == "" || s.translate == nil {
-		return key
-	}
-	return s.translate(key)
-}
-
-// withTimeout bounds one tool call the way the application bounds one page
-// load: the user's own request timeout, read fresh so a change in the window
-// reaches a server that has been running for days.
-func (s *server) withTimeout(ctx context.Context) (context.Context, context.CancelFunc) {
-	milliseconds := s.services.Settings.GetSettings().RequestTimeoutMs
-	if milliseconds <= 0 {
-		milliseconds = int(defaultRequestTimeout / time.Millisecond)
-	}
-	return context.WithTimeout(ctx, time.Duration(milliseconds)*time.Millisecond)
-}
-
-// defaultRequestTimeout applies only when the stored settings carry none,
-// which normalisation should prevent.
-const defaultRequestTimeout = 30 * time.Second

@@ -1,9 +1,7 @@
-package mcpserver
+package toolset
 
 import (
 	"context"
-
-	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/amigoer/mq-studio/internal/driver"
 	"github.com/amigoer/mq-studio/internal/model"
@@ -24,21 +22,19 @@ type healthOutput struct {
 	Caveat string              `json:"caveat,omitempty"`
 }
 
-func (s *server) clusterHealth(
-	ctx context.Context, _ *mcp.CallToolRequest, input connectionInput,
-) (*mcp.CallToolResult, healthOutput, error) {
-	api, caveat, err := port[driver.HealthInspector](s, input.Connection, model.CapClusterHealth)
+func (e *Env) clusterHealth(ctx context.Context, input connectionInput) (healthOutput, error) {
+	api, caveat, err := port[driver.HealthInspector](e, input.Connection, model.CapClusterHealth)
 	if err != nil {
-		return nil, healthOutput{}, err
+		return healthOutput{}, err
 	}
-	ctx, cancel := s.withTimeout(ctx)
+	ctx, cancel := e.withTimeout(ctx)
 	defer cancel()
 
 	health, err := api.Health(ctx)
 	if err != nil {
-		return nil, healthOutput{}, err
+		return healthOutput{}, err
 	}
-	return nil, healthOutput{Health: health, Caveat: caveat}, nil
+	return healthOutput{Health: health, Caveat: caveat}, nil
 }
 
 type clientConnectionsOutput struct {
@@ -46,28 +42,26 @@ type clientConnectionsOutput struct {
 	Caveat      string                    `json:"caveat,omitempty"`
 }
 
-func (s *server) clientConnections(
-	ctx context.Context, _ *mcp.CallToolRequest, input namespaceInput,
-) (*mcp.CallToolResult, clientConnectionsOutput, error) {
-	api, kind, caveat, err := portOf[driver.ClientInspector](s, input.Connection, model.CapClientInspect)
+func (e *Env) clientConnections(ctx context.Context, input namespaceInput) (clientConnectionsOutput, error) {
+	api, kind, caveat, err := portOf[driver.ClientInspector](e, input.Connection, model.CapClientInspect)
 	if err != nil {
-		return nil, clientConnectionsOutput{}, err
+		return clientConnectionsOutput{}, err
 	}
-	ctx, cancel := s.withTimeout(ctx)
+	ctx, cancel := e.withTimeout(ctx)
 	defer cancel()
 
 	connections, err := api.ListClientConnections(ctx, input.Namespace)
 	if err != nil {
-		return nil, clientConnectionsOutput{}, err
+		return clientConnectionsOutput{}, err
 	}
 	answered := make([]string, 0, len(connections))
 	for _, connection := range connections {
 		answered = append(answered, connection.Namespace)
 	}
 	if err := consulted(kind, input.Namespace, answered...); err != nil {
-		return nil, clientConnectionsOutput{}, err
+		return clientConnectionsOutput{}, err
 	}
-	return nil, clientConnectionsOutput{Connections: connections, Caveat: caveat}, nil
+	return clientConnectionsOutput{Connections: connections, Caveat: caveat}, nil
 }
 
 type clientChannelsOutput struct {
@@ -75,26 +69,24 @@ type clientChannelsOutput struct {
 	Caveat   string                 `json:"caveat,omitempty"`
 }
 
-func (s *server) clientChannels(
-	ctx context.Context, _ *mcp.CallToolRequest, input namespaceInput,
-) (*mcp.CallToolResult, clientChannelsOutput, error) {
-	api, kind, caveat, err := portOf[driver.ClientInspector](s, input.Connection, model.CapClientInspect)
+func (e *Env) clientChannels(ctx context.Context, input namespaceInput) (clientChannelsOutput, error) {
+	api, kind, caveat, err := portOf[driver.ClientInspector](e, input.Connection, model.CapClientInspect)
 	if err != nil {
-		return nil, clientChannelsOutput{}, err
+		return clientChannelsOutput{}, err
 	}
-	ctx, cancel := s.withTimeout(ctx)
+	ctx, cancel := e.withTimeout(ctx)
 	defer cancel()
 
 	channels, err := api.ListClientChannels(ctx, input.Namespace)
 	if err != nil {
-		return nil, clientChannelsOutput{}, err
+		return clientChannelsOutput{}, err
 	}
 	answered := make([]string, 0, len(channels))
 	for _, channel := range channels {
 		answered = append(answered, channel.Namespace)
 	}
 	if err := consulted(kind, input.Namespace, answered...); err != nil {
-		return nil, clientChannelsOutput{}, err
+		return clientChannelsOutput{}, err
 	}
-	return nil, clientChannelsOutput{Channels: channels, Caveat: caveat}, nil
+	return clientChannelsOutput{Channels: channels, Caveat: caveat}, nil
 }

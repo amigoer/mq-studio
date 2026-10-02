@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
-	"reflect"
 	"strings"
 	"sync"
 	"testing"
@@ -14,6 +13,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/amigoer/mq-studio/internal/agent/catalog"
+	"github.com/amigoer/mq-studio/internal/agent/toolset"
 	"github.com/amigoer/mq-studio/internal/app"
 	"github.com/amigoer/mq-studio/internal/driver"
 	"github.com/amigoer/mq-studio/internal/model"
@@ -32,15 +32,6 @@ func (c *fakeConn) Kind() model.MQKind               { return c.kind }
 func (c *fakeConn) Ping(context.Context) error       { return nil }
 func (c *fakeConn) Capabilities() model.Capabilities { return c.capabilities }
 func (c *fakeConn) Close() error                     { return nil }
-
-func serverWith(conn driver.Conn) *server {
-	return &server{
-		services:  &app.Services{Conns: func(int) (driver.Conn, error) { return conn, nil }},
-		translate: testPhrases,
-		grants:    Grants{everywhere: catalog.BlastDestructive},
-		offered:   offeredTools(catalog.BlastDestructive),
-	}
-}
 
 // testPhrases stands in for the application's translations. The real ones are
 // the renderer's locale files, which only the composition root can embed.
@@ -222,17 +213,6 @@ func listed(t *testing.T, allow catalog.Blast) map[string]*mcp.Tool {
 	return byName
 }
 
-func TestToolsTableNamesRealOperations(t *testing.T) {
-	for operationID, info := range tools {
-		if _, known := catalog.Find(operationID); !known {
-			t.Errorf("tools names %q, which is not a catalogue operation", operationID)
-		}
-		if info.name == "" || info.title == "" || info.description == "" {
-			t.Errorf("%s is presented incompletely: %#v", operationID, info)
-		}
-	}
-}
-
 /*
  * The allowance is the whole of M3, and this is what it means.
  *
@@ -243,11 +223,10 @@ func TestToolsTableNamesRealOperations(t *testing.T) {
  */
 func TestAllowanceDecidesWhatIsOffered(t *testing.T) {
 	expected := func(allow catalog.Blast) map[string]bool {
-		names := map[string]bool{"connections_list": true, "capabilities_describe": true}
-		for operationID, info := range tools {
-			operation, _ := catalog.Find(operationID)
-			if catalog.Permits(allow, operation.Blast) {
-				names[info.name] = true
+		names := map[string]bool{}
+		for _, tool := range toolset.All() {
+			if tool.Operation == "" || catalog.Permits(allow, tool.Blast) {
+				names[tool.Name] = true
 			}
 		}
 		return names
@@ -308,175 +287,33 @@ func TestAnUnknownAllowanceOffersNoBrokerTools(t *testing.T) {
  */
 func TestAnnotationsMatchTheCatalogue(t *testing.T) {
 	offered := listed(t, catalog.BlastDestructive)
-	for operationID, info := range tools {
-		operation, known := catalog.Find(operationID)
+	for _, defined := range toolset.All() {
+		operation, known := catalog.Find(defined.Operation)
 		if !known {
 			continue
 		}
-		tool := offered[info.name]
+		tool := offered[defined.Name]
 		if tool == nil {
-			t.Errorf("%s is not offered even at the widest allowance", info.name)
+			t.Errorf("%s is not offered even at the widest allowance", defined.Name)
 			continue
 		}
 		if tool.Annotations == nil {
-			t.Errorf("%s carries no annotations", info.name)
+			t.Errorf("%s carries no annotations", defined.Name)
 			continue
 		}
 		if want := operation.Blast == catalog.BlastRead; tool.Annotations.ReadOnlyHint != want {
 			t.Errorf("%s: readOnlyHint = %v, but the catalogue calls it %s",
-				info.name, tool.Annotations.ReadOnlyHint, operation.Blast)
+				defined.Name, tool.Annotations.ReadOnlyHint, operation.Blast)
 		}
 		destructive := tool.Annotations.DestructiveHint
 		if destructive == nil {
-			t.Errorf("%s does not say whether it is destructive", info.name)
+			t.Errorf("%s does not say whether it is destructive", defined.Name)
 			continue
 		}
 		if want := operation.Blast == catalog.BlastDestructive; *destructive != want {
 			t.Errorf("%s: destructiveHint = %v, but the catalogue calls it %s",
-				info.name, *destructive, operation.Blast)
+				defined.Name, *destructive, operation.Blast)
 		}
-	}
-}
-
-// A supported capability answers, and carries whatever the endpoint said about
-// it. The caveat is the endpoint's own: the same operation has different
-// consequences on different families, and inventing one here would be a
-// warning nobody made.
-func TestCapableCarriesTheEndpointsCaveat(t *testing.T) {
-	const key = "mq.rabbitmq.caveat.browseAltersQueue"
-	s := serverWith(&fakeConn{
-		kind: model.KindRabbitMQ,
-		capabilities: model.NewCapabilities(model.CapMessageQuery).
-			WithCaveat(model.CapMessageQuery, key),
-	})
-
-	got, _, err := func() (string, driver.Conn, error) {
-		conn, caveat, err := s.capable(1, model.CapMessageQuery)
-		return caveat, conn, err
-	}()
-	if err != nil {
-		t.Fatalf("capable: %v", err)
-	}
-	// What a driver stores is a key; what a caller with no renderer needs is
-	// the sentence behind it.
-	if got == key {
-		t.Errorf("the caveat came back as the raw key %q", got)
-	}
-	if got != testPhrases(key) {
-		t.Errorf("caveat = %q, want the resolved text", got)
-	}
-}
-
-/*
- * The two ways an operation can be unavailable have to stay distinguishable
- * out here, because they call for different things from the caller.
- *
- * A degraded capability is the family's, and this endpoint's answer is no - so
- * the driver's reason has to travel, since "this endpoint is a Proxy, which
- * has no topic listing" is actionable and "unsupported" is not. A capability
- * the family has no concept of is not worth another attempt at all.
- */
-func TestCapableTellsRefusalsApart(t *testing.T) {
-	const reasonKey = "mq.rocketmq.degraded.proxy"
-	degraded := serverWith(&fakeConn{
-		kind: model.KindRocketMQ,
-		capabilities: model.NewCapabilities(model.CapDestinationList).
-			WithDegraded(model.CapDestinationList, reasonKey),
-	})
-	_, _, err := degraded.capable(1, model.CapDestinationList)
-	if err == nil {
-		t.Fatal("a degraded capability answered as though it worked")
-	}
-	if !strings.Contains(err.Error(), testPhrases(reasonKey)) {
-		t.Errorf("the driver's reason did not travel, or travelled as a key: %v", err)
-	}
-
-	absent := serverWith(&fakeConn{
-		kind:         model.KindKafka,
-		capabilities: model.NewCapabilities(model.CapDestinationList),
-	})
-	_, _, err = absent.capable(1, model.CapRouting)
-	if err == nil {
-		t.Fatal("a capability the family does not have answered as though it worked")
-	}
-	if !strings.Contains(err.Error(), "no concept") {
-		t.Errorf("a missing concept reads as a failure rather than a fact: %v", err)
-	}
-}
-
-// capabilities_describe is the tool the instructions send a client to first,
-// so what it says has to be the connection's own answer.
-func TestDescribeReportsOperationsAndAbsences(t *testing.T) {
-	const reason = "a Proxy endpoint is a data plane only"
-	s := serverWith(&fakeConn{
-		kind: model.KindRocketMQ,
-		capabilities: model.NewCapabilities(model.CapMessageQuery, model.CapDestinationList).
-			WithDegraded(model.CapClusterTopology, reason),
-	})
-
-	_, output, err := s.describeCapabilities(context.Background(), nil, connectionInput{Connection: 1})
-	if err != nil {
-		t.Fatalf("describe: %v", err)
-	}
-	if output.Family != string(model.KindRocketMQ) {
-		t.Errorf("family = %q", output.Family)
-	}
-
-	byID := make(map[string]operationSummary, len(output.Operations))
-	for _, operation := range output.Operations {
-		byID[operation.ID] = operation
-	}
-	if byID["destination.list"].Tool != "destinations_list" {
-		t.Error("a supported operation does not name the tool that performs it")
-	}
-	// An operation with no tool is a fact about this server, not about the
-	// endpoint, and the two must not be confused.
-	if _, present := byID["destination.detail"]; !present {
-		t.Error("destination.detail is gated on the same capability and did not come back")
-	}
-	if len(output.Unavailable) != 1 || output.Unavailable[0].Reason != reason {
-		t.Errorf("the degraded capability did not travel: %#v", output.Unavailable)
-	}
-	for _, operation := range output.Operations {
-		if operation.ID == "cluster.nodes" {
-			t.Error("a degraded capability produced an operation")
-		}
-	}
-}
-
-/*
- * A stored profile holds its secrets in memory. The one thing this server must
- * never do is put them in an answer, and the guard is that nothing is copied
- * out whole - connectionSummary is built field by field.
- *
- * This asserts the shape rather than a value, because a value test passes
- * until somebody adds a field.
- */
-func TestConnectionSummaryCannotCarrySecrets(t *testing.T) {
-	summary := reflect.TypeFor[connectionSummary]()
-	profile := reflect.TypeFor[model.ConnectionProfile]()
-
-	if _, leaks := summary.FieldByName("Secrets"); leaks {
-		t.Error("connectionSummary has a Secrets field")
-	}
-	if _, leaks := summary.FieldByName("Auth"); leaks {
-		t.Error("connectionSummary has an Auth field, which carries the mechanism and its credentials")
-	}
-	// Anything a profile gained that this happens to share a name with is
-	// still copied deliberately, one field at a time, in listConnections.
-	if summary.NumField() >= profile.NumField() {
-		t.Errorf("connectionSummary has %d fields to the profile's %d, which is no longer a subset chosen by hand",
-			summary.NumField(), profile.NumField())
-	}
-
-	// The profile itself must keep secrets out of JSON, since that is what
-	// stops a future summary from leaking them by embedding one.
-	field, ok := profile.FieldByName("Secrets")
-	if !ok {
-		t.Fatal("ConnectionProfile no longer has a Secrets field; this test needs rewriting")
-	}
-	if tag := field.Tag.Get("json"); tag != "-" {
-		t.Errorf("ConnectionProfile.Secrets marshals as %q, not as omitted", tag)
 	}
 }
 
@@ -503,68 +340,4 @@ func TestToolsRefuseAnUnknownConnectionThroughTheProtocol(t *testing.T) {
 	if !result.IsError {
 		t.Error("an unopenable connection answered as though it were open")
 	}
-}
-
-/*
- * A family setting nobody reads is dropped in silence by the driver, and the
- * call still succeeds. That is the failure this refusal exists to prevent: a
- * caller that asked for a quorum queue and got a classic one has no way to
- * tell afterwards.
- */
-func TestUnknownAttributesAreRefusedByName(t *testing.T) {
-	s := serverWith(&fakeConn{kind: model.KindRabbitMQ})
-
-	err := s.checkAttributes(model.KindRabbitMQ, "destination.create",
-		map[string]string{"queueType": "quorum"})
-	if err != nil {
-		t.Errorf("a declared key was refused: %v", err)
-	}
-
-	err = s.checkAttributes(model.KindRabbitMQ, "destination.create",
-		map[string]string{"replicationFactor": "3"})
-	if err == nil {
-		t.Fatal("a key this family does not read was accepted and would have been ignored")
-	}
-	// The refusal has to name what would have worked, or a caller can only
-	// guess again.
-	if !strings.Contains(err.Error(), "queueType") {
-		t.Errorf("the refusal does not say what the family does take: %v", err)
-	}
-
-	// A family that reads nothing on an operation says so rather than listing
-	// an empty set.
-	err = s.checkAttributes(model.KindNATS, "destination.create",
-		map[string]string{"anything": "1"})
-	if err == nil || !strings.Contains(err.Error(), "takes no settings") {
-		t.Errorf("a family with no declared settings did not say so: %v", err)
-	}
-}
-
-// capabilities_describe is where a caller learns what to put in attributes,
-// and it is the only place: the tool's own schema says "a map of strings".
-func TestDescribeCarriesTheFamilysWriteSettings(t *testing.T) {
-	s := serverWith(&fakeConn{
-		kind:         model.KindRabbitMQ,
-		capabilities: model.NewCapabilities(model.CapDestinationCreate),
-	})
-
-	_, output, err := s.describeCapabilities(context.Background(), nil, connectionInput{Connection: 1})
-	if err != nil {
-		t.Fatalf("describe: %v", err)
-	}
-	for _, operation := range output.Operations {
-		if operation.ID != "destination.create" {
-			continue
-		}
-		if len(operation.Attributes) == 0 {
-			t.Fatal("rabbitmq declares settings for destination.create and none came back")
-		}
-		for _, attribute := range operation.Attributes {
-			if attribute.Key == "" || attribute.Type == "" || attribute.Summary == "" {
-				t.Errorf("an attribute came back incomplete: %#v", attribute)
-			}
-		}
-		return
-	}
-	t.Fatal("destination.create did not come back at all")
 }

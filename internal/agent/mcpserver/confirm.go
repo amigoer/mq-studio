@@ -4,20 +4,16 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"maps"
-	"strconv"
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"github.com/amigoer/mq-studio/internal/agent/catalog"
+	"github.com/amigoer/mq-studio/internal/agent/toolset"
 	"github.com/amigoer/mq-studio/internal/model"
-	"github.com/amigoer/mq-studio/internal/service/connection"
 )
 
 /*
@@ -47,18 +43,6 @@ const confirmationKey = "confirm"
 // confirmationTTL is how long a question waits. A person may take a while; an
 // answer after this is to a question nobody is still asking.
 const confirmationTTL = 15 * time.Minute
-
-// questions is what a person is asked before each destructive operation. The
-// keys resolve in the application's language, because the question is for
-// the person at the client, not for the model.
-var questions = map[string]string{
-	"destination.purge":  "mcp.confirm.purge",
-	"destination.delete": "mcp.confirm.delete",
-}
-
-// confirmable is the input of a tool a person confirms. It names the
-// destination that would be destroyed, which is what the question is about.
-type confirmable interface{ destination() model.DestinationRef }
 
 // agreement is a question put to a person and not yet answered.
 type agreement struct {
@@ -171,104 +155,21 @@ func verdict(reply *mcp.ElicitResult) error {
 
 /*
  * question is what a destructive call puts to the person, and the connection
- * as it stands while they read it. Whatever would be refused anyway is refused
- * here instead: there is no point in a question whose yes leads nowhere.
+ * as it stands while they read it. A call the allowance refuses, or one from a
+ * client that cannot ask anybody, is refused here instead: there is no point
+ * in a question whose yes leads nowhere.
  */
 func (s *server) question(
-	ctx context.Context, request *mcp.CallToolRequest, tool string, operation catalog.Operation,
-	gated bool, id int, input any,
+	ctx context.Context, request *mcp.CallToolRequest, tool toolset.Tool, gated bool, id int, input any,
 ) (string, model.ConnectionProfile, error) {
 	if gated {
-		if err := s.reaches(id, tool, operation.Blast); err != nil {
+		if err := s.reaches(id, tool.Name, tool.Blast); err != nil {
 			return "", model.ConnectionProfile{}, err
 		}
 	}
 	if !canConfirm(request) {
 		return "", model.ConnectionProfile{}, fmt.Errorf("%s needs a person to confirm it, and this "+
-			"client cannot ask one: it did not offer elicitation when it connected", tool)
+			"client cannot ask one: it did not offer elicitation when it connected", tool.Name)
 	}
-	conn, caveat, err := s.capable(id, operation.Capability)
-	if err != nil {
-		return "", model.ConnectionProfile{}, err
-	}
-	profile, err := s.services.Connections.GetConnection(id)
-	if err != nil {
-		return "", model.ConnectionProfile{}, err
-	}
-
-	ref := input.(confirmable).destination()
-	lines := []string{fill(s.say(questions[operation.ID]), map[string]string{
-		"destination": describeRef(ref),
-		"connection":  profile.Name,
-		"family":      string(conn.Kind()),
-	})}
-	held, known, err := s.held(ctx, id, conn.Kind(), ref)
-	if err != nil {
-		return "", model.ConnectionProfile{}, err
-	}
-	if known {
-		lines = append(lines, fill(s.say("mcp.confirm.depth"),
-			map[string]string{"count": strconv.FormatInt(held, 10)}))
-	}
-	if caveat != "" {
-		lines = append(lines, fill(s.say("mcp.confirm.caveat"), map[string]string{"caveat": caveat}))
-	}
-	return strings.Join(lines, "\n\n"), *profile.Clone(), nil
-}
-
-/*
- * held is how many messages the destination holds, for the question - the
- * number the person is about to lose, which the window's dialog shows too.
- *
- * Best effort: a family that reports no depth, or a read that fails, leaves
- * the count out rather than the question unasked. One thing does refuse: an
- * answer from another namespace than the one named, which is the target the
- * write would miss.
- */
-func (s *server) held(ctx context.Context, id int, kind model.MQKind, ref model.DestinationRef) (int64, bool, error) {
-	ctx, cancel := s.withTimeout(ctx)
-	defer cancel()
-	destination, err := s.services.Topics.Detail(ctx, id, ref)
-	if err != nil || destination == nil {
-		return 0, false, nil
-	}
-	if err := consulted(kind, ref.Namespace, destination.Ref.Namespace); err != nil {
-		return 0, false, err
-	}
-	return destination.Depth, destination.Depth >= 0, nil
-}
-
-// changedSince refuses a write whose connection was pointed elsewhere after
-// the person agreed to it: what they agreed to is the broker they were shown.
-func (s *server) changedSince(id int, agreed model.ConnectionProfile) error {
-	current, err := s.services.Connections.GetConnection(id)
-	if err != nil {
-		return fmt.Errorf("not done: connection %d is no longer stored", id)
-	}
-	if connection.Repointed(agreed, *current) {
-		return errors.New("not done: the connection was pointed at another broker or given other " +
-			"credentials in the window after the person agreed to this, so it is not what they agreed to")
-	}
-	return nil
-}
-
-// canonical is a call's arguments as an answer is checked against them. The
-// input is a struct, so its fields always marshal in the same order.
-func canonical(input any) string {
-	encoded, err := json.Marshal(input)
-	if err != nil {
-		return ""
-	}
-	return string(encoded)
-}
-
-// fill puts values where the window's i18next would, into {{name}}
-// placeholders. Replacement is one pass, so a value that looks like a
-// placeholder stays as written.
-func fill(template string, values map[string]string) string {
-	pairs := make([]string, 0, 2*len(values))
-	for name, value := range values {
-		pairs = append(pairs, "{{"+name+"}}", value)
-	}
-	return strings.NewReplacer(pairs...).Replace(template)
+	return s.env.Question(ctx, tool, input)
 }
