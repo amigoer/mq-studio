@@ -9,7 +9,7 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
-## [0.3.0] - 2026-10-01
+## [0.3.0] - 2026-10-03
 
 An assistant now opens beside every page. Ask it why a group is behind or where
 dead letters came from, and it reads the broker with the same tools the MCP
