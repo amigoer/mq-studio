@@ -404,10 +404,11 @@ This is the delivery plan. The contract it delivers against is
   a request rather than a plan now. The
   [driver request](https://github.com/amigoer/mq-studio/issues/new?template=5-driver-request.yml)
   form asks the one question that decides whether one is possible at all: what the app can
-  reach from a desktop, and how. What came after the drivers is agent work, and it has
-  shipped: the same binary runs as an MCP server, resting on the capability each driver
-  already declares. Its scope and the decisions behind it are in
-  [AGENT_PLAN.md](AGENT_PLAN.md).
+  reach from a desktop, and how. What came after the drivers is agent work, and both halves
+  have shipped: the same binary runs as an MCP server, resting on the capability each driver
+  already declares, and the window carries an assistant that works the same tools on a model
+  service the user chooses. Their scope and the decisions behind them are in
+  [AGENT_PLAN.md](AGENT_PLAN.md) and [AGENT_IN_APP_PLAN.md](AGENT_IN_APP_PLAN.md).
 
 ## Delivery order
 

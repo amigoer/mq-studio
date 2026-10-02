@@ -9,6 +9,65 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-01
+
+An assistant now opens beside every page. Ask it why a group is behind or where
+dead letters came from, and it reads the broker with the same tools the MCP
+server offers, on a model service you configure, then answers from what it
+found. It changes nothing until you approve it, and its conversations stay on
+this machine, encrypted.
+
+### Added
+
+- An assistant docks beside the page you are on. It opens from the title bar,
+  with Cmd+J (Ctrl+J on Windows and Linux), or from the command palette: type
+  the question and choose to ask the assistant. It uses the connections already
+  open in the window and never dials one itself. The connection, the page, the
+  namespace and whatever the detail panel has open go with each message, shown
+  above the input, and any of them can be left out. Reads run at once and fold
+  into one line that opens to every call's arguments and answer; answers come
+  as Markdown, tables included. In a narrow window the dock is laid over the
+  page rather than squeezing it.
+
+- Writes wait for a person. Creating, publishing, resending and moving a read
+  position stop on a card that names the connection, the arguments and what
+  the connection says the change leaves behind. It can be approved once or for
+  the rest of the conversation, and a no is final. Emptying and deleting are
+  confirmed every time, with the question the MCP server asks. Set to read
+  only, the assistant offers the model no write at all, and every write is
+  recorded in `agent-audit.jsonl` beside the MCP server's, with how it was let
+  through.
+
+- The settings gain an Assistant section for model services, of two kinds: the
+  Messages API through its official SDK, and anything speaking chat
+  completions - OpenAI, DeepSeek, Qwen, Kimi, Zhipu, OpenRouter, and Ollama or
+  LM Studio on this machine. The model list can be fetched, and the test sends
+  one small request carrying a tool, so a model that cannot call tools is
+  caught there rather than in the first question. Each service can have a
+  proxy of its own. Its key is encrypted with the key the connection secrets
+  use, never leaves the Go process and is left out of an export, and nothing
+  is read from environment variables.
+
+- Nothing reaches a model service before you agree to it. The first use of
+  each service says what will be sent and where: your questions, the context
+  of the page, and what the tools read, with message bodies cut at the size the
+  settings allow - none, 2, 8 or 32 KB.
+
+- Conversations are kept on this machine, encrypted, for 30 days by default;
+  7 or 90 days, or none, can be chosen, and they can be cleared at once. The
+  dock's history lists them by the day each last changed, and each can be
+  searched for, carried on with the service and model it began on, renamed,
+  exported as Markdown or deleted.
+
+- A run can be stopped, and one that failed, was stopped or reached its 25
+  tool calls can be retried or carried on. A failure says why in the words the
+  settings test uses, once rate limits and server errors have been retried
+  twice.
+
+### Fixed
+
+- The status bar of the English interface says "1 tab" rather than "1 tabs".
+
 ## [0.2.0] - 2026-10-01
 
 The last stage on the roadmap lands: the same binary now runs as an MCP

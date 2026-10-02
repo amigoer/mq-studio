@@ -62,7 +62,7 @@ export const en: Content = {
       'IBM MQ',
       'Solace PubSub+ 10.x',
     ],
-    planned: 'Every driver the roadmap named has landed, and the same binary now runs as an MCP server so an agent can work them too.',
+    planned: 'Every driver the roadmap named has landed, and agents can work them too: an assistant beside every page in the window, or any MCP client through the same binary.',
   },
   features: {
     title: 'Why MQ Studio',
@@ -158,6 +158,18 @@ export const en: Content = {
         ],
         alt: 'The MQ Studio alerts page',
       },
+      {
+        id: 'assistant',
+        label: 'Assistant',
+        title: 'An assistant beside every page',
+        desc: 'Press ⌘J or Ctrl+J and ask why a group is behind or where dead letters came from. It reads the broker with the same tools the MCP server offers, and answers from what it found.',
+        points: [
+          'Anthropic, any OpenAI-compatible service, or a model on this machine',
+          'Writes wait for your approval; emptying and deleting are confirmed every time',
+          'Conversations encrypted on this machine, kept for 30 days by default',
+        ],
+        alt: 'The MQ Studio assistant beside the consumer groups page, waiting for approval to move a read position',
+      },
     ],
   },
   roadmap: {
@@ -180,7 +192,8 @@ export const en: Content = {
       { label: 'Amazon Kinesis', done: true },
       { label: 'IBM MQ', done: true },
       { label: 'Solace PubSub+', done: true },
-      { label: 'Agent', done: true },
+      { label: 'MCP server', done: true },
+      { label: 'Assistant', done: true },
     ],
   },
   changelog: {

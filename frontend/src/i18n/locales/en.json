@@ -437,7 +437,8 @@
       "collapseItem": "Collapse"
     },
     "status": {
-      "tabs": "{{tabs}} tabs · {{online}} online"
+      "tabs": "{{count}} tabs · {{online}} online",
+      "tabs_one": "1 tab · {{online}} online"
     },
     "scope": {
       "label": "Namespace: {{scope}}",

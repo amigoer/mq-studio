@@ -18,9 +18,8 @@ const trigger =
 ---
 
 <div data-tabs>
-  <!-- The five labels come to within a few px of a 375px viewport, and a
-       translation or a different font would push them over; scrolling the strip
-       is better than letting it break the layout. -->
+  <!-- The labels overrun a 375px viewport; scrolling the strip is better than
+       letting it break the layout. -->
   <div class="mb-6 flex justify-start overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
     <div class={list} role="tablist">
       {

@@ -19,6 +19,7 @@
     <a href="https://mq-studio.amigoer.com/en/"><strong>Download</strong></a>&nbsp;&nbsp;·&nbsp;&nbsp;
     <a href="docs/INSTALL.md">Install guide</a>&nbsp;&nbsp;·&nbsp;&nbsp;
     <a href="docs/DRIVERS.md">Brokers</a>&nbsp;&nbsp;·&nbsp;&nbsp;
+    <a href="docs/ASSISTANT.md">Assistant</a>&nbsp;&nbsp;·&nbsp;&nbsp;
     <a href="docs/MCP.md">For agents</a>&nbsp;&nbsp;·&nbsp;&nbsp;
     <a href="README.zh-CN.md">简体中文</a>
   </p>
@@ -42,6 +43,8 @@ service to deploy and keep alive. MQ Studio puts all of them behind the same pag
   same way whichever broker you connect to.
 - **Honest about each broker.** Every connection reports what its endpoint can actually do, so
   a feature the broker lacks is explained rather than faked.
+- **An assistant beside every page.** Ask why a group is behind and it reads the broker to find
+  out, on a model service you choose. It changes nothing until you approve it.
 - **Open to agents.** The same binary serves your connections over MCP: read-only by default,
   destructive steps confirmed by a person, every write recorded.
 
@@ -69,6 +72,24 @@ service to deploy and keep alive. MQ Studio puts all of them behind the same pag
     </td>
   </tr>
 </table>
+
+## Ask the assistant
+
+<img src="docs/images/readme/assistant.en.png" width="100%" alt="The assistant beside the consumer groups page, asked why legacy-sync is behind: it found no consumer online, compared a group that keeps up on the same topic, and waits for approval to move legacy-sync's read position">
+
+Press <kbd>⌘J</kbd> and ask about what is on screen. The assistant reads the broker with the same
+tools the MCP server offers, and answers from what it found.
+
+- **Your choice of model.** Anthropic's API, any OpenAI-compatible service (OpenAI, DeepSeek,
+  Qwen, Kimi and more), or a model on this machine through Ollama or LM Studio. Nothing is sent
+  before you agree to what goes where.
+- **Writes wait for you.** Creating, publishing, resending and moving offsets stop on a card for
+  your approval; emptying and deleting are confirmed every time. Every write is logged.
+- **Conversations stay on this machine.** Encrypted, kept for 30 days by default, and searchable,
+  renamable and exportable from the dock.
+
+[docs/ASSISTANT.md](docs/ASSISTANT.md) covers the setup, what leaves the machine, and what to check
+when a run fails.
 
 ## Supported brokers
 

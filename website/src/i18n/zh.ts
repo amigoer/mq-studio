@@ -61,7 +61,7 @@ export const zh: Content = {
       'IBM MQ',
       'Solace PubSub+ 10.x',
     ],
-    planned: '路线图上列出的驱动都已落地；同一个二进制现在还能作为 MCP server 运行，让 agent 也用得上它们。',
+    planned: '路线图上列出的驱动都已落地，agent 也用得上它们：窗口里每个页面旁边都有 AI 助手，外部的 MCP 客户端也能通过同一个二进制使用它们。',
   },
   features: {
     title: '为什么用 MQ Studio',
@@ -137,6 +137,14 @@ export const zh: Content = {
         points: ['规则由你定义，阈值可调', '触发时发送桌面通知', '与集群指标同源，无需额外采集'],
         alt: 'MQ Studio 告警界面',
       },
+      {
+        id: 'assistant',
+        label: 'AI 助手',
+        title: '每个页面旁都有 AI 助手',
+        desc: '按 ⌘J 或 Ctrl+J，问它某个消费组为什么落后、死信是怎么来的。它用和 MCP server 同一套工具读取 broker，根据读到的东西回答。',
+        points: ['Anthropic、任意 OpenAI 兼容服务，或本机上的模型', '写操作等你批准，清空和删除每次都要确认', '对话加密保存在本机，默认保留 30 天'],
+        alt: 'MQ Studio 的 AI 助手在消费组页面旁，正等待批准移动一个消费组的位点',
+      },
     ],
   },
   roadmap: {
@@ -159,7 +167,8 @@ export const zh: Content = {
       { label: 'Amazon Kinesis', done: true },
       { label: 'IBM MQ', done: true },
       { label: 'Solace PubSub+', done: true },
-      { label: 'Agent', done: true },
+      { label: 'MCP server', done: true },
+      { label: 'AI 助手', done: true },
     ],
   },
   changelog: {

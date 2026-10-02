@@ -1,9 +1,14 @@
 ---
 import connections from '@shots/connections.png';
+import connectionsEn from '@shots/connections.en.png';
 import topics from '@shots/topics.png';
+import topicsEn from '@shots/topics.en.png';
 import consumers from '@shots/consumers.png';
+import consumersEn from '@shots/consumers.en.png';
 import cluster from '@shots/cluster.png';
 import alerts from '@shots/alerts.png';
+import assistant from '@shots/assistant.png';
+import assistantEn from '@shots/assistant.en.png';
 import { t, type Locale } from '@/i18n';
 import ModuleTabs from '@/components/widgets/ModuleTabs.astro';
 
@@ -13,7 +18,11 @@ interface Props {
 const { locale } = Astro.props;
 const c = t(locale);
 
-const images = { connections, topics, consumers, cluster, alerts };
+// Cluster and alerts have no English capture yet, so both pages share theirs.
+const images =
+  locale === 'en'
+    ? { connections: connectionsEn, topics: topicsEn, consumers: consumersEn, cluster, alerts, assistant: assistantEn }
+    : { connections, topics, consumers, cluster, alerts, assistant };
 ---
 
 <section id="modules" class="mx-auto max-w-page px-6 py-20 sm:py-28" data-reveal>

@@ -230,7 +230,7 @@ export function TabStatusBar({
       {scope != null && <span className="mono3">{scope}</span>}
       {latency != null && <span className="mono3">{latency}</span>}
       <span style={{ flex: 1 }} />
-      <span>{t("shell.status.tabs", { tabs: tabCount, online: onlineCount })}</span>
+      <span>{t("shell.status.tabs", { count: tabCount, online: onlineCount })}</span>
     </div>
   );
 }

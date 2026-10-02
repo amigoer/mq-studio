@@ -437,7 +437,7 @@
       "collapseItem": "收起"
     },
     "status": {
-      "tabs": "{{tabs}} 个标签 · {{online}} 在线"
+      "tabs": "{{count}} 个标签 · {{online}} 在线"
     },
     "scope": {
       "label": "命名空间：{{scope}}",
