@@ -49,14 +49,16 @@ func (t Tool) Run(ctx context.Context, env *Env, input any) (any, error) {
 }
 
 /*
- * Call checks arguments as a model sent them and performs the tool.
+ * Check reads arguments as a model sent them into the tool's input: defaults
+ * applied, then the whole value validated, the way the MCP SDK checks them
+ * before a handler there sees a call. Every input schema is closed, so a
+ * property the input does not declare is refused rather than decoded into
+ * nothing.
  *
- * It is what the MCP SDK does before a handler there sees a call - defaults
- * applied, then the whole value validated - for a caller with no SDK in
- * between. Every input schema is closed, so a property the input does not
- * declare is refused here rather than decoded into nothing.
+ * It is separate from running so a caller can look at what a write would do,
+ * and ask a person about it, before anything is done.
  */
-func (t Tool) Call(ctx context.Context, env *Env, arguments json.RawMessage) (any, error) {
+func (t Tool) Check(arguments json.RawMessage) (any, error) {
 	value := map[string]any{}
 	if len(arguments) > 0 {
 		if err := json.Unmarshal(arguments, &value); err != nil {
@@ -78,7 +80,12 @@ func (t Tool) Call(ctx context.Context, env *Env, arguments json.RawMessage) (an
 	if err != nil {
 		return nil, err
 	}
-	input, err := t.Decode(encoded)
+	return t.Decode(encoded)
+}
+
+// Call checks arguments as a model sent them and performs the tool.
+func (t Tool) Call(ctx context.Context, env *Env, arguments json.RawMessage) (any, error) {
+	input, err := t.Check(arguments)
 	if err != nil {
 		return nil, err
 	}

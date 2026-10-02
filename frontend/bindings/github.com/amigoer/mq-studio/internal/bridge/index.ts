@@ -3,6 +3,7 @@
 
 import * as ACLService from "./aclservice.js";
 import * as ActiveMQService from "./activemqservice.js";
+import * as AgentService from "./agentservice.js";
 import * as AgentSettingsService from "./agentsettingsservice.js";
 import * as AzureServiceBusService from "./azureservicebusservice.js";
 import * as ClusterService from "./clusterservice.js";
@@ -32,6 +33,7 @@ import * as WindowService from "./windowservice.js";
 export {
     ACLService,
     ActiveMQService,
+    AgentService,
     AgentSettingsService,
     AzureServiceBusService,
     ClusterService,

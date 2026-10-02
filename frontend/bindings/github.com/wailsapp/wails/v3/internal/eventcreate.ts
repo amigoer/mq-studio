@@ -6,4 +6,17 @@
 // @ts-ignore: Unused imports
 import { Create as $Create } from "@wailsio/runtime";
 
-Object.freeze($Create.Events);
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as assistant$0 from "../../../../amigoer/mq-studio/internal/agent/assistant/models.js";
+
+function configure() {
+    Object.freeze(Object.assign($Create.Events, {
+        "agent:event": $$createType0,
+    }));
+}
+
+// Private type creation functions
+const $$createType0 = assistant$0.Event.createFrom;
+
+configure();
