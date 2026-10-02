@@ -32,7 +32,8 @@ function useToolName() {
   return (tool: AgentToolItem) => t(`agent.tool.${tool.name}`, { defaultValue: tool.title });
 }
 
-const familyOf = (kind: string | undefined): string => {
+/** A broker family's own name, from the kind Go records it by. */
+export const familyOf = (kind: string | undefined): string => {
   const protocol = kind == null ? null : protocolOfKind(kind as Parameters<typeof protocolOfKind>[0]);
   return protocol != null ? PROTOCOLS[protocol].name : (kind ?? "");
 };

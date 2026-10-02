@@ -80,6 +80,13 @@ func (s *Service) ExportAllConfigToFile(targetPath string) (string, error) {
 			return "", fmt.Errorf("不能用导出文件覆盖应用配置: %s", targetPath)
 		}
 	}
+	inside, err := withinProtectedDirectory(targetAbsolute, s.layout.AgentSessionsDir)
+	if err != nil {
+		return "", fmt.Errorf("检查应用配置路径失败: %w", err)
+	}
+	if inside {
+		return "", fmt.Errorf("不能用导出文件覆盖应用配置: %s", targetPath)
+	}
 
 	content, err := s.ExportAllConfig()
 	if err != nil {
@@ -116,6 +123,24 @@ func sameProtectedPath(targetPath, protectedPath string) (bool, error) {
 		return strings.EqualFold(targetPath, protectedPath), nil
 	}
 	return targetPath == protectedPath, nil
+}
+
+// withinProtectedDirectory reports whether targetPath lies inside directory,
+// through symlinked parents, and in any case where the file system ignores it.
+func withinProtectedDirectory(targetPath, directory string) (bool, error) {
+	target, err := resolveSymlinkParents(targetPath)
+	if err != nil {
+		return false, err
+	}
+	resolved, err := resolveExistingAncestor(directory)
+	if err != nil {
+		return false, err
+	}
+	prefix := filepath.Clean(resolved) + string(filepath.Separator)
+	if runtime.GOOS == "darwin" || runtime.GOOS == "windows" {
+		return strings.HasPrefix(strings.ToLower(target), strings.ToLower(prefix)), nil
+	}
+	return strings.HasPrefix(target, prefix), nil
 }
 
 // resolveSymlinkParents resolves symlinks in the longest existing ancestor and

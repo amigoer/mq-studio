@@ -694,7 +694,8 @@
       "sendFailed": "没有发出去",
       "stopFailed": "没能停下",
       "answerFailed": "没能提交你的决定",
-      "consentFailed": "没能记下你的同意"
+      "consentFailed": "没能记下你的同意",
+      "placeholderServiceGone": "这个对话用的模型服务已经删除，开个新对话吧"
     },
     "context": {
       "namespace": "命名空间 {{name}}"
@@ -796,6 +797,31 @@
       "limit": "已经调用了 {{count}} 个工具，先停下来",
       "retry": "重试",
       "carryOn": "继续"
+    },
+    "history": {
+      "open": "历史会话",
+      "title": "历史会话",
+      "back": "返回对话",
+      "search": "搜索会话",
+      "today": "今天",
+      "yesterday": "昨天",
+      "earlier": "更早",
+      "empty": "还没有对话",
+      "noMatch": "没有匹配的对话",
+      "rename": "重命名",
+      "export": "导出 Markdown",
+      "delete": "删除",
+      "deleteTitle": "删除「{{title}}」？",
+      "deleteDesc": "这个对话会从本机删除，无法恢复。",
+      "kept": "加密保存在本机，{{days}} 天后自动清理",
+      "notKept": "对话不保存，关掉应用就没有了",
+      "settings": "设置",
+      "exported": "已导出对话",
+      "failed": "没有完成"
+    },
+    "transcript": {
+      "you": "你",
+      "assistant": "AI 助手"
     }
   },
   "markdown": {
@@ -1451,6 +1477,17 @@
         "bodyHint": "工具读到的消息正文会发给模型，超出部分截断",
         "bodyNone": "不发送",
         "bodyLimit": "每条最多 {{size}}",
+        "retention": "会话保存",
+        "retentionHint": "对话加密保存在本机，到期自动删除；选「不保存」会删掉已经保存的",
+        "retentionNone": "不保存",
+        "retentionDays": "{{days}} 天",
+        "clear": "清空会话",
+        "clearHint": "删除所有对话，包括保存在本机的和窗口里打开着的",
+        "clearTitle": "清空所有会话？",
+        "clearDesc": "所有对话都会删除，无法恢复。正在回答的那一个会保留。",
+        "clearConfirm": "清空",
+        "cleared": "已清空会话",
+        "clearFailed": "没能清空会话",
         "audit": "写操作记录",
         "auditHint": "记录每一次写操作，与 MCP 共用一份",
         "form": {

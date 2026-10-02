@@ -80,6 +80,13 @@ export const answerAsk = (
 export const conversationSnapshot = (session: string): Promise<AgentSnapshot> =>
   AgentService.Snapshot(session);
 export const listConversations = (): Promise<AgentSummary[]> => AgentService.Sessions();
+export const renameConversation = (session: string, title: string): Promise<void> =>
+  AgentService.Rename(session, title);
+export const deleteConversation = (session: string): Promise<void> => AgentService.Delete(session);
+export const clearConversations = (): Promise<void> => AgentService.Clear();
+/** Resolves to the path written, or null when the person cancelled. */
+export const saveTranscript = (title: string, markdown: string): Promise<string | null> =>
+  AgentService.SaveTranscript(title, markdown).then((path) => path || null);
 
 /**
  * Subscribes to every change to every conversation. Keep the name in step

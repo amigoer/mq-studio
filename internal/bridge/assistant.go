@@ -1,6 +1,11 @@
 package bridge
 
 import (
+	"fmt"
+	"os"
+	"strings"
+	"time"
+
 	"github.com/wailsapp/wails/v3/pkg/application"
 
 	"github.com/amigoer/mq-studio/internal/agent/assistant"
@@ -59,7 +64,56 @@ func (s *AgentService) Snapshot(session string) (assistant.Snapshot, error) {
 	return s.manager.Snapshot(session)
 }
 
-// Sessions lists the conversations, the newest first.
-func (s *AgentService) Sessions() []assistant.Summary {
+// Sessions lists the conversations held and kept, the most recently changed
+// first.
+func (s *AgentService) Sessions() ([]assistant.Summary, error) {
 	return s.manager.Sessions()
+}
+
+// Rename gives a conversation a title of the person's choosing.
+func (s *AgentService) Rename(session, title string) error {
+	return s.manager.Rename(session, title)
+}
+
+// Delete forgets a conversation, here and on disk.
+func (s *AgentService) Delete(session string) error {
+	return s.manager.Delete(session)
+}
+
+// Clear forgets every conversation but one answering.
+func (s *AgentService) Clear() error {
+	return s.manager.Clear()
+}
+
+/*
+ * SaveTranscript prompts for a file and writes a conversation to it. The
+ * renderer writes the Markdown, in the reader's language, and this only puts
+ * it where the person chose. It returns the path, or an empty string when the
+ * person cancels.
+ */
+func (s *AgentService) SaveTranscript(title, markdown string) (string, error) {
+	name := strings.Map(func(r rune) rune {
+		if strings.ContainsRune(`/\:*?"<>|`, r) || r < ' ' {
+			return '-'
+		}
+		return r
+	}, strings.TrimSpace(title))
+	if name == "" {
+		name = "conversation"
+	}
+	target, err := application.Get().Dialog.SaveFile().
+		SetMessage("Export the conversation").
+		SetFilename(fmt.Sprintf("%s %s.md", name, time.Now().Format("2006-01-02"))).
+		AddFilter("Markdown", "*.md").
+		PromptForSingleSelection()
+	if err != nil {
+		return "", err
+	}
+	if target == "" {
+		return "", nil
+	}
+	if err := os.WriteFile(target, []byte(markdown), 0o600); err != nil {
+		return "", fmt.Errorf("write the conversation: %w", err)
+	}
+	return target, nil
 }

@@ -16,6 +16,13 @@ import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Cr
 import * as assistant$0 from "../agent/assistant/models.js";
 
 /**
+ * Clear forgets every conversation but one answering.
+ */
+export function Clear(): $CancellablePromise<void> {
+    return $Call.ByID(2644255263);
+}
+
+/**
  * Continue runs a conversation again from where a failed, stopped or limited
  * run left it, without anything new said.
  */
@@ -31,6 +38,30 @@ export function Decide(session: string, ask: string, approve: boolean, remember:
 }
 
 /**
+ * Delete forgets a conversation, here and on disk.
+ */
+export function Delete(session: string): $CancellablePromise<void> {
+    return $Call.ByID(4232141433, session);
+}
+
+/**
+ * Rename gives a conversation a title of the person's choosing.
+ */
+export function Rename(session: string, title: string): $CancellablePromise<void> {
+    return $Call.ByID(519478248, session, title);
+}
+
+/**
+ *  * SaveTranscript prompts for a file and writes a conversation to it. The
+ *  * renderer writes the Markdown, in the reader's language, and this only puts
+ *  * it where the person chose. It returns the path, or an empty string when the
+ *  * person cancels.
+ */
+export function SaveTranscript(title: string, markdown: string): $CancellablePromise<string> {
+    return $Call.ByID(3958009901, title, markdown);
+}
+
+/**
  * Send adds what the person said, and where they were, and starts the run
  * that answers it. What the run does arrives as events.
  */
@@ -39,7 +70,8 @@ export function Send(session: string, text: string, where: assistant$0.Context):
 }
 
 /**
- * Sessions lists the conversations, the newest first.
+ * Sessions lists the conversations held and kept, the most recently changed
+ * first.
  */
 export function Sessions(): $CancellablePromise<assistant$0.Summary[]> {
     return $Call.ByID(3277491683).then(($result: any) => {

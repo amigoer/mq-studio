@@ -2,8 +2,11 @@ package assistant
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
+	"os"
 	"slices"
 	"strconv"
 	"strings"
@@ -30,6 +33,8 @@ type Config struct {
 	// held, which is what keeps the events in order, so it must neither block
 	// nor call back in.
 	Emit func(Event)
+	// Archive keeps conversations on disk. Nil keeps none.
+	Archive *Archive
 }
 
 /*
@@ -38,7 +43,10 @@ type Config struct {
  * One run goes at a time in the whole window. Two would put questions to the
  * person side by side about writes neither knows the other is making, and
  * their reads would queue behind each other on the same connections anyway.
- * Conversations are kept in memory only.
+ *
+ * A conversation is written to the archive each time a run ends, as far as
+ * the retention the person chose keeps any, and read back the first time it
+ * is asked for after the window opens.
  */
 type Manager struct {
 	store     *Store
@@ -47,6 +55,7 @@ type Manager struct {
 	journal   *audit.Journal
 	client    string
 	emit      func(Event)
+	archive   *Archive
 	newChat   func(context.Context, provider.Endpoint, provider.Options) (provider.Chat, error)
 	now       func() time.Time
 	limit     int
@@ -81,6 +90,7 @@ func NewManager(config Config) *Manager {
 		journal:   journal,
 		client:    config.Client,
 		emit:      config.Emit,
+		archive:   config.Archive,
 		newChat:   provider.NewChat,
 		now:       time.Now,
 		limit:     maxCalls,
@@ -104,7 +114,14 @@ type session struct {
 	cancel context.CancelFunc
 	asks   map[string]chan decision
 	// queue is what the person said since the last run took it.
-	queue []string
+	queue   []string
+	created time.Time
+	updated time.Time
+	// connection is the one the first question was about.
+	connection *audit.Connection
+	// history is the conversation in the service's own shape as the last run
+	// left it, which a conversation read back from disk is built again from.
+	history json.RawMessage
 
 	// Owned by the run going.
 	chat     provider.Chat
@@ -132,10 +149,13 @@ func (m *Manager) Start(providerID string) (Summary, error) {
 	if err != nil {
 		return Summary{}, err
 	}
+	now := m.now()
 	s := &session{
 		id:         audit.NewSession(),
 		provider:   chosen.ID,
 		model:      chosen.Model,
+		created:    now,
+		updated:    now,
 		asks:       make(map[string]chan decision),
 		remembered: make(map[string]bool),
 	}
@@ -171,15 +191,23 @@ func (m *Manager) Send(sessionID, text string, where Context) error {
 	}
 	// Composed outside the lock: it reads the connection store.
 	composed := m.compose(text, where)
+	var about *audit.Connection
+	if where.Connection != 0 {
+		connection := m.auditConnection(where.Connection)
+		about = &connection
+	}
 	settings, err := m.store.Settings()
+	if err != nil {
+		return err
+	}
+	s, err := m.open(sessionID)
 	if err != nil {
 		return err
 	}
 
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	s, err := m.sessionLocked(sessionID)
-	if err != nil {
+	if err := m.heldLocked(s); err != nil {
 		return err
 	}
 	if err := m.readyLocked(s, settings); err != nil {
@@ -188,6 +216,10 @@ func (m *Manager) Send(sessionID, text string, where Context) error {
 	if s.title == "" {
 		s.title = titleOf(text)
 	}
+	if s.connection == nil {
+		s.connection = about
+	}
+	s.updated = m.now()
 	m.addLocked(s, Item{Kind: ItemUser, Text: text, Context: &where})
 	s.queue = append(s.queue, composed)
 	m.startLocked(s)
@@ -202,10 +234,13 @@ func (m *Manager) Continue(sessionID string) error {
 	if err != nil {
 		return err
 	}
+	s, err := m.open(sessionID)
+	if err != nil {
+		return err
+	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	s, err := m.sessionLocked(sessionID)
-	if err != nil {
+	if err := m.heldLocked(s); err != nil {
 		return err
 	}
 	if err := m.readyLocked(s, settings); err != nil {
@@ -280,12 +315,15 @@ func (m *Manager) Decide(sessionID, askID string, approve, remember bool) error 
 	return nil
 }
 
-// Snapshot is a conversation as it stands.
+// Snapshot is a conversation as it stands, read back from disk if need be.
 func (m *Manager) Snapshot(sessionID string) (Snapshot, error) {
+	s, err := m.open(sessionID)
+	if err != nil {
+		return Snapshot{}, err
+	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	s, err := m.sessionLocked(sessionID)
-	if err != nil {
+	if err := m.heldLocked(s); err != nil {
 		return Snapshot{}, err
 	}
 	items := make([]Item, len(s.items))
@@ -293,23 +331,235 @@ func (m *Manager) Snapshot(sessionID string) (Snapshot, error) {
 		items[i] = item.clone()
 	}
 	return Snapshot{
-		Session: s.id, Seq: s.seq, Running: m.running == s, Model: s.model, Items: items, Usage: s.usage,
+		Session: s.id, Seq: s.seq, Title: s.title, Running: m.running == s, Model: s.model,
+		Items: items, Usage: s.usage,
 	}, nil
 }
 
-// Sessions lists the conversations, the newest first.
-func (m *Manager) Sessions() []Summary {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	summaries := make([]Summary, 0, len(m.order))
-	for i := len(m.order) - 1; i >= 0; i-- {
-		summaries = append(summaries, m.summaryLocked(m.order[i]))
+// Sessions lists the conversations this window holds and the ones kept on
+// disk, the most recently changed first.
+func (m *Manager) Sessions() ([]Summary, error) {
+	if err := m.Prune(); err != nil {
+		log.Printf("[agent] could not clear out old conversations: %v", err)
 	}
-	return summaries
+	var kept []Summary
+	if m.archive != nil {
+		listed, err := m.archive.List()
+		if err != nil {
+			return nil, err
+		}
+		kept = listed
+	}
+
+	m.mu.Lock()
+	summaries := make([]Summary, 0, len(m.order)+len(kept))
+	held := make(map[string]bool, len(m.order))
+	for _, s := range m.order {
+		// One nobody has said anything in is not a conversation yet.
+		if len(s.items) == 0 {
+			continue
+		}
+		held[s.id] = true
+		summaries = append(summaries, m.summaryLocked(s))
+	}
+	m.mu.Unlock()
+	for _, summary := range kept {
+		if !held[summary.ID] {
+			summaries = append(summaries, summary)
+		}
+	}
+	slices.SortFunc(summaries, func(left, right Summary) int {
+		if order := right.Updated.Compare(left.Updated); order != 0 {
+			return order
+		}
+		return strings.Compare(left.ID, right.ID)
+	})
+	return summaries, nil
 }
 
 func (m *Manager) summaryLocked(s *session) Summary {
-	return Summary{ID: s.id, Title: s.title, Provider: s.provider, Model: s.model, Running: m.running == s}
+	return Summary{
+		ID: s.id, Title: s.title, Provider: s.provider, Model: s.model, Connection: s.connection,
+		Created: s.created, Updated: s.updated, Running: m.running == s, Open: true,
+	}
+}
+
+// Rename gives a conversation the title a person chose.
+func (m *Manager) Rename(sessionID, title string) error {
+	title = strings.Join(strings.Fields(title), " ")
+	if title == "" {
+		return errors.New("a conversation needs a title")
+	}
+	if runes := []rune(title); len(runes) > maxTitle {
+		title = string(runes[:maxTitle])
+	}
+	s, err := m.open(sessionID)
+	if err != nil {
+		return err
+	}
+	m.mu.Lock()
+	if err := m.heldLocked(s); err != nil {
+		m.mu.Unlock()
+		return err
+	}
+	s.title = title
+	m.emitLocked(s, Event{Kind: EventTitle, Text: title})
+	// A run going writes the conversation when it ends, title and all.
+	keep := m.running != s && len(s.items) > 0
+	kept := m.recordLocked(s)
+	m.mu.Unlock()
+	if keep {
+		m.keep(kept)
+	}
+	return nil
+}
+
+// maxTitle bounds a title a person types, to what a list can show.
+const maxTitle = 80
+
+// Delete forgets a conversation, here and on disk. One that is answering
+// has to be stopped first.
+func (m *Manager) Delete(sessionID string) error {
+	m.mu.Lock()
+	if s, held := m.sessions[sessionID]; held {
+		if m.running == s {
+			m.mu.Unlock()
+			return errors.New("this conversation is still answering; stop it first")
+		}
+		m.forgetLocked(s)
+	}
+	m.mu.Unlock()
+	if m.archive == nil {
+		return nil
+	}
+	return m.archive.Delete(sessionID)
+}
+
+// Clear forgets every conversation, here and on disk, but the one answering.
+func (m *Manager) Clear() error {
+	m.mu.Lock()
+	running := m.running
+	for _, s := range slices.Clone(m.order) {
+		if s != running {
+			m.forgetLocked(s)
+		}
+	}
+	m.mu.Unlock()
+	if m.archive == nil {
+		return nil
+	}
+	return m.archive.Prune(forever, func(id string) bool { return running != nil && running.id == id })
+}
+
+// forever is a cutoff no conversation was changed after.
+var forever = time.Unix(1<<40, 0)
+
+func (m *Manager) forgetLocked(s *session) {
+	m.emitLocked(s, Event{Kind: EventGone})
+	delete(m.sessions, s.id)
+	m.order = slices.DeleteFunc(m.order, func(one *session) bool { return one == s })
+}
+
+// Prune deletes the conversations kept on disk past the retention the
+// person chose, all of them when it keeps none.
+func (m *Manager) Prune() error {
+	if m.archive == nil {
+		return nil
+	}
+	settings, err := m.store.Settings()
+	if err != nil {
+		return err
+	}
+	cutoff := m.now().AddDate(0, 0, -settings.Retention)
+	if settings.Retention == 0 {
+		cutoff = forever
+	}
+	m.mu.Lock()
+	running := m.running
+	m.mu.Unlock()
+	return m.archive.Prune(cutoff, func(id string) bool { return running != nil && running.id == id })
+}
+
+// keep writes a conversation to disk, as far as the settings keep any.
+func (m *Manager) keep(kept record) {
+	if m.archive == nil {
+		return
+	}
+	settings, err := m.store.Settings()
+	if err != nil || settings.Retention == 0 {
+		return
+	}
+	if err := m.archive.Save(kept); err != nil {
+		log.Printf("[agent] could not keep conversation %s: %v", kept.ID, err)
+	}
+}
+
+// recordLocked is a conversation as the archive writes it. Answered and said
+// are the run's own, read here only once it has ended or before one starts.
+func (m *Manager) recordLocked(s *session) record {
+	items := make([]Item, len(s.items))
+	for i, item := range s.items {
+		items[i] = item.clone()
+	}
+	return record{
+		ID: s.id, Title: s.title, Provider: s.provider, Model: s.model, Connection: s.connection,
+		Created: s.created, Updated: s.updated, Items: items, Usage: s.usage,
+		Answered: s.answered, Said: slices.Clone(s.said), History: s.history, Seq: s.seq,
+	}
+}
+
+// open is a conversation, read back from disk if this window has not held
+// it yet.
+func (m *Manager) open(id string) (*session, error) {
+	m.mu.Lock()
+	s, held := m.sessions[id]
+	m.mu.Unlock()
+	if held {
+		return s, nil
+	}
+	if m.archive == nil {
+		return nil, fmt.Errorf("there is no conversation %q", id)
+	}
+	kept, err := m.archive.Load(id)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil, fmt.Errorf("there is no conversation %q", id)
+	}
+	if err != nil {
+		return nil, err
+	}
+	restored := fromRecord(kept)
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if s, held := m.sessions[id]; held {
+		return s, nil
+	}
+	m.sessions[id] = restored
+	m.order = append(m.order, restored)
+	return restored, nil
+}
+
+func fromRecord(kept record) *session {
+	next := 0
+	for _, item := range kept.Items {
+		if n, err := strconv.Atoi(item.ID); err == nil && n > next {
+			next = n
+		}
+	}
+	return &session{
+		id: kept.ID, provider: kept.Provider, model: kept.Model, title: kept.Title,
+		seq: kept.Seq, next: next, items: kept.Items, usage: kept.Usage,
+		created: kept.Created, updated: kept.Updated, connection: kept.Connection, history: kept.History,
+		answered: kept.Answered, said: kept.Said,
+		asks: make(map[string]chan decision), remembered: make(map[string]bool),
+	}
+}
+
+// heldLocked refuses a conversation deleted since it was opened.
+func (m *Manager) heldLocked(s *session) error {
+	if m.sessions[s.id] != s {
+		return fmt.Errorf("there is no conversation %q", s.id)
+	}
+	return nil
 }
 
 func (m *Manager) sessionLocked(id string) (*session, error) {

@@ -27,6 +27,8 @@ type View = {
   writes: string;
   bodyBytes: number;
   bodyLimits: number[];
+  retention: number;
+  retentions: number[];
 };
 
 const configured: View = {
@@ -57,6 +59,8 @@ const configured: View = {
   writes: "approve",
   bodyBytes: 2048,
   bodyLimits: [0, 2048, 8192, 32768],
+  retention: 30,
+  retentions: [0, 7, 30, 90],
 };
 
 let markupOf: (view: View) => string;
@@ -139,6 +143,13 @@ describe("the assistant section", () => {
     const html = markupOf(configured);
     expect(html.indexOf("Default</span>")).toBeGreaterThan(html.indexOf("Anthropic"));
     expect(html.indexOf("Default</span>")).toBeLessThan(html.indexOf("Ollama"));
+  });
+
+  it("offers how long conversations are kept, and a way to clear them", async () => {
+    await useLanguage("en");
+    const html = markupOf(configured);
+    expect(html).toContain("30 days");
+    expect(html).toContain("Clear conversations");
   });
 
   it("offers the way in when there is no service", async () => {

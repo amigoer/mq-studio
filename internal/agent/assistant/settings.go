@@ -50,6 +50,10 @@ const (
 // a tool hands the model. Zero sends none of it.
 var BodyLimits = []int{0, 2048, 8192, 32768}
 
+// Retentions are how many days a person can keep conversations for. Zero
+// keeps none on disk.
+var Retentions = []int{0, 7, 30, 90}
+
 // Provider is one model service the assistant can run on.
 type Provider struct {
 	ID   string
@@ -79,6 +83,9 @@ type Settings struct {
 	Effort    Effort
 	Writes    Writes
 	BodyBytes int
+	// Retention is how many days a conversation is kept after it last
+	// changed. Zero keeps none.
+	Retention int
 	// Consented names the providers a person agreed to send their questions
 	// and their brokers' data to. Agreeing is per service: one that runs on
 	// this machine and one on the internet are not the same decision.
@@ -91,6 +98,7 @@ type Preferences struct {
 	Effort    Effort
 	Writes    Writes
 	BodyBytes int
+	Retention int
 }
 
 // KeyChange is what a save does to a provider's stored key: an edit form
@@ -106,7 +114,7 @@ const (
 )
 
 func defaults() Settings {
-	return Settings{Effort: EffortMedium, Writes: WritesApprove, BodyBytes: 2048}
+	return Settings{Effort: EffortMedium, Writes: WritesApprove, BodyBytes: 2048, Retention: 30}
 }
 
 // Store keeps the settings in agent.json. Only the window writes it.
@@ -277,9 +285,12 @@ func (s *Store) SavePreferences(next Preferences) error {
 	if !slices.Contains(BodyLimits, next.BodyBytes) {
 		return fmt.Errorf("%d is not a body limit this application offers: %v", next.BodyBytes, BodyLimits)
 	}
+	if !slices.Contains(Retentions, next.Retention) {
+		return fmt.Errorf("%d days is not a retention this application offers: %v", next.Retention, Retentions)
+	}
 	updated := s.settings.clone()
-	updated.Default, updated.Effort, updated.Writes, updated.BodyBytes =
-		next.Default, next.Effort, next.Writes, next.BodyBytes
+	updated.Default, updated.Effort, updated.Writes, updated.BodyBytes, updated.Retention =
+		next.Default, next.Effort, next.Writes, next.BodyBytes, next.Retention
 	return s.saveLocked(updated)
 }
 
@@ -347,7 +358,10 @@ type file struct {
 	Effort    Effort           `json:"effort"`
 	Writes    Writes           `json:"writes"`
 	BodyBytes int              `json:"bodyBytes"`
-	Consented []string         `json:"consented,omitempty"`
+	// Retention is a pointer because zero is a choice: keep nothing. A file
+	// without it predates the setting, and keeps the default.
+	Retention *int     `json:"retention,omitempty"`
+	Consented []string `json:"consented,omitempty"`
 }
 
 type storedProvider struct {
@@ -393,6 +407,9 @@ func (s *Store) loadLocked() error {
 	if slices.Contains(BodyLimits, stored.BodyBytes) {
 		settings.BodyBytes = stored.BodyBytes
 	}
+	if stored.Retention != nil && slices.Contains(Retentions, *stored.Retention) {
+		settings.Retention = *stored.Retention
+	}
 	for _, entry := range stored.Providers {
 		key, err := crypto.Decrypt(entry.APIKey, keyField(entry.ID))
 		if err != nil {
@@ -425,6 +442,7 @@ func (s *Store) saveLocked(updated Settings) error {
 		Effort:    updated.Effort,
 		Writes:    updated.Writes,
 		BodyBytes: updated.BodyBytes,
+		Retention: &updated.Retention,
 		Consented: updated.Consented,
 	}
 	for _, p := range updated.Providers {

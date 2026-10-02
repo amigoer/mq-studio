@@ -257,13 +257,37 @@ func TestConsentIsPerServiceAndGoesWithIt(t *testing.T) {
 	}
 }
 
+// Keeping nothing is a choice, and is not the same as a file written before
+// there was a choice, which keeps the default.
+func TestRetentionKeepsItsZero(t *testing.T) {
+	store, path := storeIn(t)
+	if settings, _ := store.Settings(); settings.Retention != 30 {
+		t.Errorf("a new store keeps %d days", settings.Retention)
+	}
+	if err := os.WriteFile(path, []byte(`{"version":1,"providers":[],"effort":"low","writes":"approve","bodyBytes":0}`),
+		0o600); err != nil {
+		t.Fatal(err)
+	}
+	if settings, _ := NewStore(path).Settings(); settings.Retention != 30 || settings.Effort != EffortLow {
+		t.Errorf("a file from before the setting keeps %d days", settings.Retention)
+	}
+	store = NewStore(path)
+	if err := store.SavePreferences(Preferences{Effort: EffortLow, Writes: WritesApprove, Retention: 0}); err != nil {
+		t.Fatal(err)
+	}
+	if settings, _ := NewStore(path).Settings(); settings.Retention != 0 {
+		t.Errorf("keeping nothing read back as %d days", settings.Retention)
+	}
+}
+
 func TestPreferencesAreOnlyWhatIsOffered(t *testing.T) {
 	store, _ := storeIn(t)
 	for name, preferences := range map[string]Preferences{
-		"an unknown default": {Default: "nonesuch", Effort: EffortLow, Writes: WritesApprove, BodyBytes: 2048},
-		"an unknown effort":  {Effort: "max", Writes: WritesApprove, BodyBytes: 2048},
-		"an unknown writes":  {Effort: EffortLow, Writes: "always", BodyBytes: 2048},
-		"an unoffered limit": {Effort: EffortLow, Writes: WritesApprove, BodyBytes: 1000},
+		"an unknown default":     {Default: "nonesuch", Effort: EffortLow, Writes: WritesApprove, BodyBytes: 2048},
+		"an unknown effort":      {Effort: "max", Writes: WritesApprove, BodyBytes: 2048},
+		"an unknown writes":      {Effort: EffortLow, Writes: "always", BodyBytes: 2048},
+		"an unoffered limit":     {Effort: EffortLow, Writes: WritesApprove, BodyBytes: 1000},
+		"an unoffered retention": {Effort: EffortLow, Writes: WritesApprove, BodyBytes: 2048, Retention: 45},
 	} {
 		if err := store.SavePreferences(preferences); err == nil {
 			t.Errorf("%s was saved", name)

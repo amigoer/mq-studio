@@ -597,6 +597,7 @@ export class AgentPreferencesInput {
     "effort": string;
     "writes": string;
     "bodyBytes": number;
+    "retention": number;
 
     /** Creates a new AgentPreferencesInput instance. */
     constructor($$source: Partial<AgentPreferencesInput> = {}) {
@@ -611,6 +612,9 @@ export class AgentPreferencesInput {
         }
         if (!("bodyBytes" in $$source)) {
             this["bodyBytes"] = 0;
+        }
+        if (!("retention" in $$source)) {
+            this["retention"] = 0;
         }
 
         Object.assign(this, $$source);
@@ -800,6 +804,16 @@ export class AgentSettingsView {
     "bodyLimits": number[];
 
     /**
+     * Retention is how many days a conversation is kept; zero keeps none.
+     */
+    "retention": number;
+
+    /**
+     * Retentions are the choices the page offers for Retention.
+     */
+    "retentions": number[];
+
+    /**
      * Consented names the providers the person agreed to send data to.
      */
     "consented": string[];
@@ -824,6 +838,12 @@ export class AgentSettingsView {
         if (!("bodyLimits" in $$source)) {
             this["bodyLimits"] = [];
         }
+        if (!("retention" in $$source)) {
+            this["retention"] = 0;
+        }
+        if (!("retentions" in $$source)) {
+            this["retentions"] = [];
+        }
         if (!("consented" in $$source)) {
             this["consented"] = [];
         }
@@ -837,7 +857,8 @@ export class AgentSettingsView {
     static createFrom($$source: any = {}): AgentSettingsView {
         const $$createField0_0 = $$createType15;
         const $$createField5_0 = $$createType16;
-        const $$createField6_0 = $$createType0;
+        const $$createField7_0 = $$createType16;
+        const $$createField8_0 = $$createType0;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("providers" in $$parsedSource) {
             $$parsedSource["providers"] = $$createField0_0($$parsedSource["providers"]);
@@ -845,8 +866,11 @@ export class AgentSettingsView {
         if ("bodyLimits" in $$parsedSource) {
             $$parsedSource["bodyLimits"] = $$createField5_0($$parsedSource["bodyLimits"]);
         }
+        if ("retentions" in $$parsedSource) {
+            $$parsedSource["retentions"] = $$createField7_0($$parsedSource["retentions"]);
+        }
         if ("consented" in $$parsedSource) {
-            $$parsedSource["consented"] = $$createField6_0($$parsedSource["consented"]);
+            $$parsedSource["consented"] = $$createField8_0($$parsedSource["consented"]);
         }
         return new AgentSettingsView($$parsedSource as Partial<AgentSettingsView>);
     }

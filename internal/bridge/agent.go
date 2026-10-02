@@ -13,11 +13,15 @@ import (
 // runs on and how it treats writes. A key goes in and never comes back out.
 type AgentSettingsService struct {
 	store *assistant.Store
+	// prune clears out the conversations a new retention no longer keeps,
+	// as soon as it is chosen rather than at the next list.
+	prune func() error
 }
 
-// NewAgentSettingsService fronts the assistant settings kept in store.
-func NewAgentSettingsService(store *assistant.Store) *AgentSettingsService {
-	return &AgentSettingsService{store: store}
+// NewAgentSettingsService fronts the assistant settings kept in store. Prune
+// may be nil.
+func NewAgentSettingsService(store *assistant.Store, prune func() error) *AgentSettingsService {
+	return &AgentSettingsService{store: store, prune: prune}
 }
 
 // AgentSettingsView is the assistant's set-up as the settings page shows it.
@@ -30,6 +34,10 @@ type AgentSettingsView struct {
 	BodyBytes int    `json:"bodyBytes"`
 	// BodyLimits are the caps the page offers for BodyBytes.
 	BodyLimits []int `json:"bodyLimits"`
+	// Retention is how many days a conversation is kept; zero keeps none.
+	Retention int `json:"retention"`
+	// Retentions are the choices the page offers for Retention.
+	Retentions []int `json:"retentions"`
 	// Consented names the providers the person agreed to send data to.
 	Consented []string `json:"consented"`
 }
@@ -70,6 +78,7 @@ type AgentPreferencesInput struct {
 	Effort    string `json:"effort"`
 	Writes    string `json:"writes"`
 	BodyBytes int    `json:"bodyBytes"`
+	Retention int    `json:"retention"`
 }
 
 // AgentProbe is what a test of a model service found.
@@ -146,8 +155,14 @@ func (s *AgentSettingsService) SavePreferences(input AgentPreferencesInput) (*Ag
 		Effort:    assistant.Effort(input.Effort),
 		Writes:    assistant.Writes(input.Writes),
 		BodyBytes: input.BodyBytes,
+		Retention: input.Retention,
 	}); err != nil {
 		return nil, err
+	}
+	if s.prune != nil {
+		if err := s.prune(); err != nil {
+			return nil, err
+		}
 	}
 	return s.Get()
 }
@@ -241,6 +256,8 @@ func viewOf(settings assistant.Settings) *AgentSettingsView {
 		Writes:     string(settings.Writes),
 		BodyBytes:  settings.BodyBytes,
 		BodyLimits: append([]int(nil), assistant.BodyLimits...),
+		Retention:  settings.Retention,
+		Retentions: append([]int(nil), assistant.Retentions...),
 		Consented:  append([]string{}, settings.Consented...),
 	}
 	for _, p := range settings.Providers {

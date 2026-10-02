@@ -141,6 +141,10 @@ record no status and queue behind the person's own connects. The renderer draws
 the conversation in a dock beside the page (`frontend/src/design/agent`),
 folding the events into its copy with a reducer that a snapshot can always
 replace, and nothing is sent to a model service the person has not agreed to.
+Conversations are kept in `agent/sessions`, one file each and an index, all
+encrypted with `secret.key`, for as many days as the person chose. A
+conversation keeps the model service's own history, so one taken up again
+after a restart carries on exactly where it stopped.
 
 ## Frontend seams
 

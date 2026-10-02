@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -26,8 +27,14 @@ func conversationOptions(endpoint Endpoint, client *http.Client) []option.Reques
 	return append(anthropicOptions(endpoint, client), option.WithMaxRetries(2))
 }
 
-func newAnthropicChat(ctx context.Context, endpoint Endpoint, client *http.Client, options Options) *anthropicChat {
+func newAnthropicChat(ctx context.Context, endpoint Endpoint, client *http.Client, options Options) (*anthropicChat, error) {
 	requestOptions := conversationOptions(endpoint, client)
+	var history []anthropic.BetaMessageParam
+	if len(options.History) > 0 {
+		if err := json.Unmarshal(options.History, &history); err != nil {
+			return nil, fmt.Errorf("the conversation could not be read back: %w", err)
+		}
+	}
 
 	params := anthropic.BetaMessageNewParams{
 		Model:     anthropic.Model(options.Model),
@@ -47,9 +54,13 @@ func newAnthropicChat(ctx context.Context, endpoint Endpoint, client *http.Clien
 	if effort := anthropic.BetaOutputConfigEffort(options.Effort); capabilities.efforts[options.Effort] {
 		params.OutputConfig = anthropic.BetaOutputConfigParam{Effort: effort}
 	}
-	chat := &anthropicChat{messages: anthropic.NewBetaMessageService(requestOptions...), params: params}
+	chat := &anthropicChat{messages: anthropic.NewBetaMessageService(requestOptions...), params: params, history: history}
 	chat.fallBack(endpoint)
-	return chat
+	return chat, nil
+}
+
+func (c *anthropicChat) History() (json.RawMessage, error) {
+	return json.Marshal(c.history)
 }
 
 // fallBack asks for the server-side fallback where the endpoint wants it and

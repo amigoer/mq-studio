@@ -288,6 +288,31 @@ func TestExportRejectsReservedPathThroughSymlinkParent(t *testing.T) {
 	}
 }
 
+// A conversation is a file in a directory of them, so the whole directory is
+// out of an export's reach, as each of the other application files is.
+func TestExportRejectsAPathInsideTheSessionsDirectory(t *testing.T) {
+	paths := layout.In(t.TempDir())
+	if err := os.MkdirAll(paths.AgentSessionsDir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	service := New(paths, &fakeSettings{current: model.DefaultSettings()}, &fakeConnections{})
+	for _, target := range []string{
+		filepath.Join(paths.AgentSessionsDir, "0123456789ab.json"),
+		filepath.Join(paths.AgentSessionsDir, "index.json"),
+	} {
+		if _, err := service.ExportAllConfigToFile(target); err == nil {
+			t.Errorf("exported into %s", target)
+		}
+		if _, err := os.Stat(target); !errors.Is(err, os.ErrNotExist) {
+			t.Errorf("%s was written: %v", target, err)
+		}
+	}
+	beside := filepath.Join(paths.Directory, "agent", "sessions-export.json")
+	if _, err := service.ExportAllConfigToFile(beside); err != nil {
+		t.Errorf("a file beside the directory was refused: %v", err)
+	}
+}
+
 func TestClearCacheRemovesOnlyEligibleTemporaryFiles(t *testing.T) {
 	paths := layout.In(t.TempDir())
 	service := New(paths, &fakeSettings{current: model.DefaultSettings()}, nil)

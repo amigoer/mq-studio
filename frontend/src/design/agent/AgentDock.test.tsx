@@ -29,6 +29,8 @@ const settings = (consented: string[], providers = [service]): AgentSettingsView
   writes: "approve",
   bodyBytes: 2048,
   bodyLimits: [0, 2048, 8192, 32768],
+  retention: 30,
+  retentions: [0, 7, 30, 90],
   consented,
 });
 
@@ -42,6 +44,7 @@ const tool = (id: string, name: string, blast: string, state: string, extra: obj
 const everything: Conversation = {
   session: "s1",
   seq: 12,
+  title: "",
   running: false,
   model: "qwen3:14b",
   usage: { input: 900, output: 120, cacheRead: 3600 },
@@ -73,6 +76,7 @@ let markupOf: (state: {
 let useLanguage: (lang: "zh" | "en") => Promise<void>;
 let dock: typeof import("./AgentDock");
 let blocks: typeof import("./Blocks");
+let historyOf: (retention: number) => string;
 
 beforeAll(async () => {
   const storage = { getItem: () => null, setItem() {}, removeItem() {} };
@@ -85,14 +89,38 @@ beforeAll(async () => {
   });
   vi.stubGlobal("localStorage", storage);
 
-  const [{ renderToStaticMarkup }, loadedDock, loadedBlocks, i18n] = await Promise.all([
+  const [{ renderToStaticMarkup }, loadedDock, loadedBlocks, history, ui, tooltip, i18n] = await Promise.all([
     import("react-dom/server"),
     import("./AgentDock"),
     import("./Blocks"),
+    import("./History"),
+    import("@/components"),
+    import("@/components/ui/tooltip"),
     import("@/i18n"),
   ]);
   dock = loadedDock;
   blocks = loadedBlocks;
+  historyOf = (retention) => {
+    const today = new Date();
+    const assistant = {
+      settings: { ...settings(["p1"]), retention },
+      sessions: [
+        { id: "a", title: "legacy-sync backlog", provider: "p1", model: "qwen3", created: today.toISOString(),
+          updated: today.toISOString(), running: true, open: true,
+          connection: { id: 1, name: "orders", family: "rocketmq" } },
+        { id: "b", title: "", provider: "p1", model: "qwen3", created: "2026-09-01T09:00:00Z",
+          updated: "2026-09-01T09:00:00Z", running: false, open: false, connection: null },
+      ],
+      listSessions: () => Promise.resolve([]),
+    } as unknown as import("@/hooks/useAssistant").Assistant;
+    return renderToStaticMarkup(
+      <ui.ConfirmProvider>
+        <tooltip.TooltipProvider>
+          <history.History assistant={assistant} onBack={() => {}} onClose={() => {}} onOpenSettings={() => {}} />
+        </tooltip.TooltipProvider>
+      </ui.ConfirmProvider>,
+    );
+  };
   markupOf = (state) => {
     const provider = state.settings?.providers[0] ?? null;
     const assistant = {
@@ -232,5 +260,29 @@ describe("fieldsOf", () => {
     expect(fields[1]?.[1]).toBe(new Date(1_790_000_000_000).toLocaleString());
     expect(fields[2]?.[1]).toHaveLength(241);
     expect(blocks.fieldsOf("{\"connection\": 1, \"na")).toEqual([]);
+  });
+});
+
+describe.each(["zh", "en"] as const)("the history in %s", (lang) => {
+  it.each([30, 0])("resolves every key it renders when keeping %i days", async (retention) => {
+    await useLanguage(lang);
+    expect(historyOf(retention).match(/\b(agent|page|shell)\.[a-zA-Z][\w.]*/g)).toBeNull();
+  });
+});
+
+describe("the history", () => {
+  it("lists the conversations under their day, with what each was about", async () => {
+    await useLanguage("en");
+    const html = historyOf(30);
+    for (const text of ["Today", "Earlier", "legacy-sync backlog", "orders · RocketMQ ·", "New conversation"]) {
+      expect(html).toContain(text);
+    }
+    expect(html).toContain("cleared after 30 days");
+    expect(html.replace(/<[^>]*>/g, "").match(/[一-鿿]+/g)).toBeNull();
+  });
+
+  it("says when nothing is kept", async () => {
+    await useLanguage("en");
+    expect(historyOf(0)).toContain("Conversations are not kept");
   });
 });

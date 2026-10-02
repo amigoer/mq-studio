@@ -28,13 +28,29 @@ type openAIChat struct {
 // openAIRetries matches what the Messages client is set up with.
 const openAIRetries = 2
 
-func newOpenAIChat(endpoint Endpoint, client *http.Client, options Options) *openAIChat {
+func newOpenAIChat(endpoint Endpoint, client *http.Client, options Options) (*openAIChat, error) {
 	chat := &openAIChat{endpoint: endpoint, client: client, model: options.Model, backoff: time.Second}
 	if options.System != "" {
 		chat.history = append(chat.history, map[string]any{"role": "system", "content": options.System})
 	}
+	if len(options.History) > 0 {
+		var history []map[string]any
+		if err := json.Unmarshal(options.History, &history); err != nil {
+			return nil, fmt.Errorf("the conversation could not be read back: %w", err)
+		}
+		chat.history = append(chat.history, history...)
+	}
 	chat.Offer(options.Tools)
-	return chat
+	return chat, nil
+}
+
+// History leaves the system prompt out, which a later chat sets afresh.
+func (c *openAIChat) History() (json.RawMessage, error) {
+	messages := c.history
+	if len(messages) > 0 && messages[0]["role"] == "system" {
+		messages = messages[1:]
+	}
+	return json.Marshal(messages)
 }
 
 func (c *openAIChat) Offer(tools []Tool) {
