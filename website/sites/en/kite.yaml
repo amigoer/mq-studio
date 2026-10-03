@@ -49,9 +49,9 @@ theme:
     alternate_label: 中文
 
     announcement: true
-    announcement_id: v0.2.0
-    announcement_text: "MQ Studio 0.2.0 is out — it now runs as an MCP server, so an agent can use your connections"
-    announcement_link: /changelog/v0.2.0/
+    announcement_id: v0.3.0
+    announcement_text: "MQ Studio 0.3.0 is out — an assistant opens beside every page and answers from your brokers"
+    announcement_link: /changelog/v0.3.0/
 
     badge_text: is out · Apache-2.0
     hero_title: One interface for every message queue

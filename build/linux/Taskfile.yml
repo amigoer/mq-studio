@@ -180,6 +180,11 @@ tasks:
     # "wails", omits Comment, and has no StartupWMClass field at all - so the
     # launcher shows "mq-studio" with no description and will not group the
     # app's window onto its icon. build/linux/desktop is the source of truth.
+    #
+    # Both `build` and the create:* tasks depend on this, and Task runs deps in
+    # parallel: on a fresh checkout the two `cp`s race and one fails with
+    # "File exists". `once` makes the second caller wait for the first.
+    run: once
     cmds:
       - mkdir -p {{.ROOT_DIR}}/build/linux/appimage
       - cp {{.ROOT_DIR}}/build/linux/desktop {{.OUTPUTFILE}}

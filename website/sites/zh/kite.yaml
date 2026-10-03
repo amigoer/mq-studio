@@ -49,9 +49,9 @@ theme:
     alternate_label: English
 
     announcement: true
-    announcement_id: v0.2.0
-    announcement_text: "MQ Studio 0.2.0 已发布 —— 现在可以作为 MCP server 运行，让 agent 直接用你的连接"
-    announcement_link: /changelog/v0.2.0/
+    announcement_id: v0.3.0
+    announcement_text: "MQ Studio 0.3.0 已发布 —— 每个页面旁边都能打开助手，它读取 broker 再回答你的问题"
+    announcement_link: /changelog/v0.3.0/
 
     badge_text: 现已发布 · Apache-2.0 开源
     hero_title: 一套界面，连接所有消息队列
