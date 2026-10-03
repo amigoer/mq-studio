@@ -4,6 +4,9 @@ tasks:
   go:mod:tidy:
     summary: Runs `go mod tidy`
     internal: true
+    # Each platform's build reaches this twice in parallel: directly and via
+    # build:frontend -> generate:bindings.
+    run: once
     cmds:
       - go mod tidy
 
