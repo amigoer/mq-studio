@@ -300,6 +300,7 @@ export function Producer({ protocol, nav }: { protocol: ProtocolId } & BoardProp
                 on. */}
             <CodeEditor
               className="min-h-0 flex-1"
+              framed={false}
               language={format}
               value={body}
               onValueChange={setBody}

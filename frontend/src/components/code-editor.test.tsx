@@ -52,4 +52,23 @@ describe("CodeEditor", () => {
     expect(textarea).not.toMatch(/\babsolute\b/);
     expect(textarea).toMatch(/rows="8"/);
   });
+
+  /**
+   * Only the RocketMQ board has a panel to act as the editor's frame. Anywhere
+   * else an unframed editor is blank space under a label, with nothing to say
+   * where to click or that it has focus (#116).
+   */
+  it("draws its own frame and focus ring unless the page frames it", () => {
+    const wrapper = (html: string) => /^<div[^>]*>/.exec(html)?.[0] ?? "";
+    const framed = wrapper(render("json"));
+    expect(framed).toMatch(/\bborder-input\b/);
+    expect(framed).toMatch(/\bfocus-within:ring-/);
+
+    const bare = wrapper(
+      renderToStaticMarkup(
+        <CodeEditor value={BODY} onValueChange={() => {}} framed={false} />,
+      ),
+    );
+    expect(bare).not.toMatch(/border-input|focus-within:/);
+  });
 });

@@ -45,12 +45,15 @@ export function CodeEditor({
   onValueChange,
   language = "text",
   rows = 8,
+  framed = true,
   className,
   ...props
 }: {
   value: string;
   onValueChange: (next: string) => void;
   language?: "json" | "text";
+  /** The border and focus ring of an input. Off where the page frames the editor itself. */
+  framed?: boolean;
 } & Omit<ComponentProps<"textarea">, "value" | "onChange" | "style">) {
   const input = useRef<HTMLTextAreaElement>(null);
   const ghost = useRef<HTMLPreElement>(null);
@@ -72,7 +75,15 @@ export function CodeEditor({
   useLayoutEffect(follow, [follow, tokens]);
 
   return (
-    <div className={cn("relative flex flex-col overflow-hidden", className)}>
+    <div
+      className={cn(
+        "relative flex flex-col overflow-hidden",
+        // On the box rather than the textarea, whose metrics the copy must match.
+        framed &&
+          "rounded-md border border-input bg-transparent shadow-xs transition-[color,box-shadow] focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50 dark:bg-input/30",
+        className,
+      )}
+    >
       {tokens != null && (
         <pre
           ref={ghost}
