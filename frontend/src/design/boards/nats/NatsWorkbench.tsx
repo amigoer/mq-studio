@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { NOTICE_PANE, Notice } from "@/design/boards/BoardState";
 import { Page, PageHeader, Toolbar } from "@/design/shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -124,27 +125,29 @@ export function NatsWorkbench() {
         </div>
       )}
 
-      <div style={{ flex: 1, overflow: "auto", padding: "8px 12px" }}>
+      <div
+        style={{
+          flex: 1,
+          overflow: "auto",
+          padding: "8px 12px",
+          ...(stream.error == null && stream.messages.length === 0 ? NOTICE_PANE : {}),
+        }}
+      >
         {stream.error != null ? (
           <Panel style={{ padding: "10px 12px", fontSize: "11.5px", color: "var(--c-err)" }}>
             {stream.error}
           </Panel>
         ) : stream.messages.length === 0 ? (
-          <div
-            style={{
-              padding: "24px",
-              fontSize: "11.5px",
-              color: "var(--c-muted)",
-              textAlign: "center",
-            }}
-          >
-            {/* Three different empty pages, and they must not read the same. */}
-            {!stream.running
-              ? t("board.subscribe.nats.notStarted")
-              : stream.live
-                ? t("board.subscribe.nats.waiting")
-                : t("board.subscribe.nats.disconnected")}
-          </div>
+          /* Three different empty pages, and they must not read the same. */
+          <Notice
+            title={
+              !stream.running
+                ? t("board.subscribe.nats.notStarted")
+                : stream.live
+                  ? t("board.subscribe.nats.waiting")
+                  : t("board.subscribe.nats.disconnected")
+            }
+          />
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
             {stream.messages.map((message) => (

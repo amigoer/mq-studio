@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Page, PageBody, PageHeader, RefreshButton } from "@/design/shell";
 import { Button } from "@/components/ui/button";
@@ -140,14 +141,15 @@ export function RulesAzureServiceBus() {
               placeholder={t("board.azure-servicebus.rules.search")}
               onChange={(event) => setSearch(event.target.value)}
             />
-            <Button size="sm" onClick={() => setFormOpen(true)}>
-              {t("board.azure-servicebus.rules.create")}
-            </Button>
             <RefreshButton
               refreshing={state.refreshing}
               online={state.online}
               onClick={() => void state.refresh()}
             />
+            <Button size="sm" onClick={() => setFormOpen(true)}>
+              <Plus aria-hidden />
+              {t("board.azure-servicebus.rules.create")}
+            </Button>
           </div>
         }
       />

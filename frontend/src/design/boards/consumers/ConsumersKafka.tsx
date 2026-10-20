@@ -24,7 +24,7 @@ import {
   useConfirm,
   useToast,
 } from "@/components";
-import { BoardState } from "@/design/boards/BoardState";
+import { BoardState, Notice } from "@/design/boards/BoardState";
 import { useConnectionScope } from "@/mq/ConnectionScope";
 import { useKafkaGroupDetail, useKafkaGroups } from "@/hooks/kafka/useKafkaGroups";
 import { deleteKafkaGroup } from "@/api/kafka";
@@ -169,10 +169,9 @@ export function ConsumersKafka() {
                     <TableCell>
                       <GroupState group={group} />
                     </TableCell>
-                    <TableCell className="mono3" style={R}>{group.members}</TableCell>
-                    <TableCell className="mono3" style={R}>{group.destinations}</TableCell>
+                    <TableCell style={R}>{group.members}</TableCell>
+                    <TableCell style={R}>{group.destinations}</TableCell>
                     <TableCell
-                      className="mono3"
                       style={{ ...R, color: (totalLag(group) ?? 0) > 0 ? "var(--c-warn-text)" : undefined }}
                     >
                       {reported(totalLag(group))}
@@ -234,7 +233,7 @@ export function ConsumersKafka() {
                             {partitions.map((row) => (
                               <TableRow key={`${row.topic}/${row.partition}`}>
                                 <TableCell className="mono3" style={MONO11}>{row.topic}</TableCell>
-                                <TableCell className="mono3" style={R}>{row.partition}</TableCell>
+                                <TableCell style={R}>{row.partition}</TableCell>
                                 <TableCell className="mono3" style={MONO11}>
                                   {row.member === "" ? (
                                     <span style={{ color: "var(--c-muted)" }}>
@@ -257,7 +256,6 @@ export function ConsumersKafka() {
                                 </TableCell>
                                 <TableCell className="mono3" style={R}>{row.end}</TableCell>
                                 <TableCell
-                                  className="mono3"
                                   style={{ ...R, color: row.lag > 0 ? "var(--c-warn-text)" : undefined }}
                                 >
                                   {row.lag < 0 ? "—" : row.lag}
@@ -302,7 +300,7 @@ export function ConsumersKafka() {
                                   <TableCell className="mono3" style={MONO11}>
                                     {member.clientHost}
                                   </TableCell>
-                                  <TableCell className="mono3" style={R}>
+                                  <TableCell style={R}>
                                     {member.assigned.length}
                                   </TableCell>
                                 </TableRow>
@@ -365,9 +363,5 @@ function GroupState({ group }: { group: import("@/api/models").Subscription }) {
 
 function Empty() {
   const { t } = useTranslation();
-  return (
-    <div style={{ padding: "24px", fontSize: "12px", color: "var(--c-muted)" }}>
-      {t("board.consumers.kafka.empty")}
-    </div>
-  );
+  return <Notice title={t("board.consumers.kafka.empty")} />;
 }

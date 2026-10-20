@@ -167,10 +167,10 @@ export function AccountsNats() {
                         </Status>
                       )}
                     </TableCell>
-                    <TableCell className="mono3" style={RIGHT}>
+                    <TableCell style={RIGHT}>
                       <Metric value={connections(account)} />
                     </TableCell>
-                    <TableCell className="mono3" style={RIGHT}>
+                    <TableCell style={RIGHT}>
                       <Metric value={subscriptions(account)} />
                     </TableCell>
                     <TableCell style={MONO11}>
@@ -215,38 +215,38 @@ export function AccountsNats() {
                   rows={[
                     [
                       t("board.vhosts.nats.connections"),
-                      <span className="mono3" style={MONO11}>
+                      <span className="tabular-nums">
                         <Metric value={connections(panel)} />
                       </span>,
                     ],
                     [
                       t("board.vhosts.nats.leafNodes"),
-                      <span className="mono3" style={MONO11}>
+                      <span className="tabular-nums">
                         <Metric value={leafNodes(panel)} />
                       </span>,
                     ],
                     [
                       t("board.vhosts.nats.subscriptions"),
-                      <span className="mono3" style={MONO11}>
+                      <span className="tabular-nums">
                         <Metric value={subscriptions(panel)} />
                       </span>,
                     ],
                     [
                       t("board.vhosts.nats.slowConsumers"),
-                      <span className="mono3" style={MONO11}>
+                      <span className="tabular-nums">
                         <Metric value={slowConsumers(panel)} />
                       </span>,
                     ],
                     [
                       t("board.vhosts.nats.messages"),
-                      <span className="mono3" style={MONO11}>
+                      <span className="tabular-nums">
                         <Metric value={messagesIn(panel)} /> ↓ <Metric value={messagesOut(panel)} />{" "}
                         ↑
                       </span>,
                     ],
                     [
                       t("board.vhosts.nats.bytes"),
-                      <span className="mono3" style={MONO11}>
+                      <span className="tabular-nums">
                         <Metric value={bytesIn(panel)} format={formatBytes} /> ↓{" "}
                         <Metric value={bytesOut(panel)} format={formatBytes} /> ↑
                       </span>,
@@ -296,7 +296,7 @@ export function AccountsNats() {
                         ],
                         [
                           t("board.vhosts.nats.apiRequests"),
-                          <span className="mono3" style={MONO11}>
+                          <span className="tabular-nums">
                             <Metric value={apiRequests(panel)} />
                             {(apiErrors(panel) ?? 0) > 0 && (
                               <span style={{ color: "var(--c-warn)", marginLeft: "6px" }}>
@@ -341,7 +341,7 @@ function Usage({
   const percent = usedPercent(used, cap);
   if (percent == null) {
     return (
-      <span className="mono3" style={MONO11}>
+      <span className="tabular-nums">
         {formatBytes(used)}{" "}
         <span style={{ color: "var(--c-muted)" }}>{t("board.vhosts.nats.uncapped")}</span>
       </span>
@@ -349,7 +349,7 @@ function Usage({
   }
   return (
     <div>
-      <div className="mono3" style={{ ...MONO11, marginBottom: "3px" }}>
+      <div className="tabular-nums" style={{ marginBottom: "3px" }}>
         {formatBytes(used)} / {formatBytes(cap ?? 0)}
       </div>
       <Bar value={percent} color={percent >= 90 ? "var(--c-err)" : "var(--c-ok)"} />

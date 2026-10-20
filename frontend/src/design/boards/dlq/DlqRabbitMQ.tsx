@@ -24,7 +24,7 @@ import {
   toast,
   useConfirm,
 } from "@/components";
-import { BoardState } from "@/design/boards/BoardState";
+import { BoardState, Notice, isBlocked, NOTICE_PANE } from "@/design/boards/BoardState";
 import { useRabbitDeadLetters } from "@/hooks/rabbitmq/useRabbitDeadLetters";
 import { useRabbitMessages } from "@/hooks/rabbitmq/useRabbitMessages";
 import { formatCount } from "@/lib/format";
@@ -205,10 +205,10 @@ export function DlqRabbitMQ() {
         onSubmit={republish}
       />
       <ListArea>
-        <ListPane>
+        <ListPane style={isBlocked(topology) || queues.length === 0 ? NOTICE_PANE : undefined}>
           <BoardState
             state={topology}
-            empty={queues.length === 0 ? t("board.dlq.rabbitmq.none") : undefined}
+            empty={queues.length === 0 ? <Notice title={t("board.dlq.rabbitmq.none")} /> : undefined}
           >
             <div style={{ display: "flex", flexDirection: "column", gap: "10px", padding: "10px" }}>
               {queues.map((found) => (
@@ -266,7 +266,7 @@ export function DlqRabbitMQ() {
                             <TableCell>
                               <ReasonTag reason={deathReason(message)} />
                             </TableCell>
-                            <TableCell className="mono3" style={{ textAlign: "right" }}>
+                            <TableCell style={{ textAlign: "right" }}>
                               {deathCount(message) ?? "-"}
                             </TableCell>
                             <TableCell className="mono3" style={MONO11}>
@@ -319,7 +319,7 @@ function DeadLetterCard({
           {queue.namespace}
         </span>
         <span
-          className="mono3"
+          className="tabular-nums"
           style={{
             fontSize: "12px",
             color: queue.depth > 0 ? "var(--c-err-text)" : "var(--c-muted)",

@@ -167,16 +167,16 @@ export function ClusterNsq() {
                         <TableCell className="mono3" style={MONO11}>
                           {entry.version}
                         </TableCell>
-                        <TableCell className="num mono3" style={MONO11}>
+                        <TableCell className="num">
                           {count(entry.topics)}
                         </TableCell>
-                        <TableCell className="num mono3" style={MONO11}>
+                        <TableCell className="num">
                           {count(entry.channels)}
                         </TableCell>
-                        <TableCell className="num mono3" style={MONO11}>
+                        <TableCell className="num">
                           {count(entry.clients)}
                         </TableCell>
-                        <TableCell className="num mono3" style={MONO11}>
+                        <TableCell className="num">
                           {count(entry.depth)}
                         </TableCell>
                       </TableRow>
@@ -266,10 +266,10 @@ function DirectoryTable({ directory }: { directory: NsqDirectoryNode[] }) {
             <TableCell className="mono3" style={MONO11}>
               {entry.version}
             </TableCell>
-            <TableCell className="num mono3" style={MONO11}>
+            <TableCell className="num">
               {count(entry.producers)}
             </TableCell>
-            <TableCell className="num mono3" style={MONO11}>
+            <TableCell className="num">
               {count(entry.topics)}
             </TableCell>
             <TableCell className="mono3" style={MONO11}>

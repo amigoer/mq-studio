@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Page, PageBody, PageHeader, RefreshButton } from "@/design/shell";
 import { Button } from "@/components/ui/button";
@@ -166,14 +167,15 @@ export function ChannelsNsq() {
               placeholder={t("board.nsq.channels.search")}
               onChange={(event) => setSearch(event.target.value)}
             />
-            <Button size="sm" onClick={() => setCreating(true)}>
-              {t("board.nsq.channels.create")}
-            </Button>
             <RefreshButton
               refreshing={state.refreshing}
               online={state.online}
               onClick={() => void state.refresh()}
             />
+            <Button size="sm" onClick={() => setCreating(true)}>
+              <Plus aria-hidden />
+              {t("board.nsq.channels.create")}
+            </Button>
           </div>
         }
       />
@@ -232,24 +234,16 @@ export function ChannelsNsq() {
                         </span>
                       </TableCell>
                       <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {count(entry.backlog)}
-                        </span>
+                        {count(entry.backlog)}
                       </TableCell>
                       <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {count(entry.inFlight)}
-                        </span>
+                        {count(entry.inFlight)}
                       </TableCell>
                       <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {count(entry.deferred)}
-                        </span>
+                        {count(entry.deferred)}
                       </TableCell>
                       <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {entry.clients}
-                        </span>
+                        {entry.clients}
                       </TableCell>
                     </TableRow>
                   ))}

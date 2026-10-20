@@ -154,14 +154,10 @@ export function DlqSolace() {
                         </span>
                       </TableCell>
                       <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {count(entry.consumers)}
-                        </span>
+                        {count(entry.consumers)}
                       </TableCell>
                       <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {(entry.sources ?? []).length}
-                        </span>
+                        {(entry.sources ?? []).length}
                       </TableCell>
                     </TableRow>
                   ))}

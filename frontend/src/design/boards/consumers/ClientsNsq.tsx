@@ -134,13 +134,13 @@ export function ClientsNsq() {
                       <TableCell className="mono3" style={MONO11}>
                         {entry.channel || DASH}
                       </TableCell>
-                      <TableCell className="num mono3" style={MONO11}>
+                      <TableCell className="num">
                         {count(entry.ready)}
                       </TableCell>
-                      <TableCell className="num mono3" style={MONO11}>
+                      <TableCell className="num">
                         {count(entry.inFlight)}
                       </TableCell>
-                      <TableCell className="num mono3" style={MONO11}>
+                      <TableCell className="num">
                         {count(entry.finished)}
                       </TableCell>
                       <TableCell className="mono3" style={MONO11}>

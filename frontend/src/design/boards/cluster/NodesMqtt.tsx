@@ -10,7 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { KV, Panel, PanelHeader, SectionLabel, StatTile, Status } from "@/components";
-import { BoardState } from "@/design/boards/BoardState";
+import { BoardState, Notice, NOTICE_PANE } from "@/design/boards/BoardState";
 import { useMqttBroker } from "@/hooks/mqtt/useMqttBroker";
 import { brokerStats, formatUptimeSeconds, nodeDetail } from "@/mq/mqtt/cluster";
 import { formatCount } from "@/lib/format";
@@ -139,7 +139,7 @@ export function NodesMqtt() {
                         </TableCell>
                         <TableCell style={MONO11}>{reportedText(node.version)}</TableCell>
                         <TableCell style={MONO11}>{reportedText(fields.role)}</TableCell>
-                        <TableCell className="mono3" style={MONO11}>
+                        <TableCell>
                           {reported(fields.connections)}
                         </TableCell>
                         <TableCell>
@@ -156,12 +156,16 @@ export function NodesMqtt() {
               </Table>
             </Panel>
 
-            <Panel style={{ width: "280px", flex: "none" }}>
+            <Panel
+              style={{
+                width: "280px",
+                flex: "none",
+                ...(detail == null || detailFields == null ? NOTICE_PANE : {}),
+              }}
+            >
               <PanelHeader title={t("board.cluster.mqtt.detail")} />
               {detail == null || detailFields == null ? (
-                <div style={{ padding: "14px", fontSize: "12px", color: "var(--c-muted)" }}>
-                  {t("board.cluster.mqtt.noNode")}
-                </div>
+                <Notice title={t("board.cluster.mqtt.noNode")} />
               ) : (
                 <div style={{ padding: "12px 14px", display: "flex", flexDirection: "column", gap: "10px" }}>
                   <KV

@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Page, PageBody, PageHeader, RefreshButton } from "@/design/shell";
 import { Button } from "@/components/ui/button";
@@ -134,6 +135,11 @@ export function SubscriptionsAzureServiceBus() {
               placeholder={t("board.azure-servicebus.subscriptions.search")}
               onChange={(event) => setSearch(event.target.value)}
             />
+            <RefreshButton
+              refreshing={state.refreshing}
+              online={state.online}
+              onClick={() => void state.refresh()}
+            />
             <Button
               size="sm"
               onClick={() => {
@@ -141,13 +147,9 @@ export function SubscriptionsAzureServiceBus() {
                 setFormOpen(true);
               }}
             >
+              <Plus aria-hidden />
               {t("board.azure-servicebus.subscriptions.create")}
             </Button>
-            <RefreshButton
-              refreshing={state.refreshing}
-              online={state.online}
-              onClick={() => void state.refresh()}
-            />
           </div>
         }
       />
@@ -202,14 +204,10 @@ export function SubscriptionsAzureServiceBus() {
                         </span>
                       </TableCell>
                       <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {count(row.backlog)}
-                        </span>
+                        {count(row.backlog)}
                       </TableCell>
                       <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {count(row.deadLetterCount)}
-                        </span>
+                        {count(row.deadLetterCount)}
                       </TableCell>
                       <TableCell>
                         <span className="mono3" style={MONO11}>

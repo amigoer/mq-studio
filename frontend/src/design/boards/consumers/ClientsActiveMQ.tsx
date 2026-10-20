@@ -154,9 +154,7 @@ export function ClientsActiveMQ() {
                             : t("board.activemq.clients.running")}
                       </TableCell>
                       <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {formatCount(entry.sessions)}
-                        </span>
+                        {formatCount(entry.sessions)}
                       </TableCell>
                     </TableRow>
                   ))}

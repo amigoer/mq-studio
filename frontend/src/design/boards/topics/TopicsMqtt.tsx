@@ -12,7 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { KV, Panel, PanelHeader, SectionLabel } from "@/components";
-import { BoardState } from "@/design/boards/BoardState";
+import { BoardState, Notice, NOTICE_PANE } from "@/design/boards/BoardState";
 import { useMqttTopics } from "@/hooks/mqtt/useMqttBroker";
 import { topic as readTopic, topicTree, type MqttTopic, type TopicNode } from "@/mq/mqtt/destinations";
 import { formatBytes, formatCount } from "@/lib/format";
@@ -64,7 +64,7 @@ function Branch({
         {isLeaf ? <span style={{ width: "12px" }} /> : <Caret size={12} aria-hidden />}
         {node.label === "" ? <em>{"(empty)"}</em> : node.label}
         {!isLeaf && (
-          <span className="mono3" style={{ ...MONO11, marginLeft: "auto", color: "var(--c-muted-2)" }}>
+          <span className="tabular-nums" style={{ marginLeft: "auto", color: "var(--c-muted-2)" }}>
             {node.total}
           </span>
         )}
@@ -211,7 +211,7 @@ export function TopicsMqtt() {
                       <TableCell className="mono3" style={MONO11}>
                         {entry.qos == null ? "—" : entry.qos}
                       </TableCell>
-                      <TableCell className="mono3" style={{ ...MONO11, textAlign: "right" }}>
+                      <TableCell style={{ textAlign: "right" }}>
                         {entry.retainedBytes == null ? "—" : formatBytes(entry.retainedBytes)}
                       </TableCell>
                     </TableRow>
@@ -220,12 +220,12 @@ export function TopicsMqtt() {
               </Table>
             </Panel>
 
-            <Panel style={{ width: "260px", flex: "none" }}>
+            <Panel
+              style={{ width: "260px", flex: "none", ...(detail == null ? NOTICE_PANE : {}) }}
+            >
               <PanelHeader title={t("board.topics.mqtt.detail")} />
               {detail == null ? (
-                <div style={{ padding: "14px", fontSize: "12px", color: "var(--c-muted)" }}>
-                  {t("board.topics.mqtt.none")}
-                </div>
+                <Notice title={t("board.topics.mqtt.none")} />
               ) : (
                 <div style={{ padding: "12px 14px", display: "flex", flexDirection: "column", gap: "10px" }}>
                   <KV

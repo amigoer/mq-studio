@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from "react";
+import { Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -129,7 +130,18 @@ export function RedisPanel() {
         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
           <FieldPair name="orderId" value="ORD-TEST-001" />
           <FieldPair name="amount" value="1.00" />
-          <div style={{ fontSize: "11px", color: "var(--c-ok)" }}>{t("board.producer.addField")}</div>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "4px",
+              fontSize: "11px",
+              color: "var(--c-ok)",
+            }}
+          >
+            <Plus size={12} aria-hidden />
+            {t("board.producer.addField")}
+          </div>
         </div>
       </div>
       <Note>{t("board.producer.noteXadd")}</Note>

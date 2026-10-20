@@ -22,7 +22,7 @@ import {
   toast,
   useConfirm,
 } from "@/components";
-import { BoardState } from "@/design/boards/BoardState";
+import { BoardState, Notice } from "@/design/boards/BoardState";
 import { useNatsClients } from "@/hooks/nats/useNatsClients";
 import { useConnectionScope } from "@/mq/ConnectionScope";
 import * as natsApi from "@/api/nats";
@@ -165,22 +165,13 @@ export function ClientsNats() {
         state={state}
         empty={
           rows.length === 0 ? (
-            <ListArea>
-              <ListPane>
-                <div
-                  style={{
-                    padding: "24px",
-                    fontSize: "11.5px",
-                    color: "var(--c-muted)",
-                    textAlign: "center",
-                  }}
-                >
-                  {connections.length === 0
-                    ? t("board.clients.nats.noClients")
-                    : t("board.clients.nats.noMatches")}
-                </div>
-              </ListPane>
-            </ListArea>
+            <Notice
+              title={
+                connections.length === 0
+                  ? t("board.clients.nats.noClients")
+                  : t("board.clients.nats.noMatches")
+              }
+            />
           ) : undefined
         }
       >
@@ -224,13 +215,13 @@ export function ClientsNats() {
                     <TableCell className="mono3" style={MONO11}>
                       <SubjectSummary connection={connection} />
                     </TableCell>
-                    <TableCell className="mono3" style={RIGHT}>
+                    <TableCell style={RIGHT}>
                       <Metric value={inMessages(connection)} />
                     </TableCell>
-                    <TableCell className="mono3" style={RIGHT}>
+                    <TableCell style={RIGHT}>
                       <Metric value={outMessages(connection)} />
                     </TableCell>
-                    <TableCell className="mono3" style={RIGHT}>
+                    <TableCell style={RIGHT}>
                       <Pending connection={connection} />
                     </TableCell>
                     <TableCell style={MONO11}>
@@ -282,11 +273,17 @@ export function ClientsNats() {
                       </span>,
                     ],
                     [t("board.clients.nats.since"), mono(connectedAt(panel))],
-                    [t("board.clients.nats.idle"), mono(idleFor(panel))],
-                    [t("board.clients.nats.rtt"), mono(roundTrip(panel))],
+                    [
+                      t("board.clients.nats.idle"),
+                      <span className="tabular-nums">{idleFor(panel) ?? "—"}</span>,
+                    ],
+                    [
+                      t("board.clients.nats.rtt"),
+                      <span className="tabular-nums">{roundTrip(panel) ?? "—"}</span>,
+                    ],
                     [
                       t("board.clients.nats.bytes"),
-                      <span className="mono3" style={MONO11}>
+                      <span className="tabular-nums">
                         {formatBytes(receivedBytes(panel))} ↓ {formatBytes(sentBytes(panel))} ↑
                       </span>,
                     ],

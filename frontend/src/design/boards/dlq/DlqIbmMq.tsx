@@ -140,14 +140,10 @@ export function DlqIbmMq() {
                         </span>
                       </TableCell>
                       <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {entry.consumers}
-                        </span>
+                        {entry.consumers}
                       </TableCell>
                       <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {entry.sources?.length ?? 0}
-                        </span>
+                        {entry.sources?.length ?? 0}
                       </TableCell>
                     </TableRow>
                   ))}

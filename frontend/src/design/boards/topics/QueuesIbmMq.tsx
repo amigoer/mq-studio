@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Page, PageBody, PageHeader, RefreshButton } from "@/design/shell";
 import { Button } from "@/components/ui/button";
@@ -134,14 +135,15 @@ export function QueuesIbmMq() {
               placeholder={t("board.ibmmq.queues.search")}
               onChange={(event) => setSearch(event.target.value)}
             />
-            <Button size="sm" onClick={() => setFormOpen(true)}>
-              {t("board.ibmmq.queues.create")}
-            </Button>
             <RefreshButton
               refreshing={state.refreshing}
               online={state.online}
               onClick={() => void state.refresh()}
             />
+            <Button size="sm" onClick={() => setFormOpen(true)}>
+              <Plus aria-hidden />
+              {t("board.ibmmq.queues.create")}
+            </Button>
           </div>
         }
       />
@@ -192,19 +194,13 @@ export function QueuesIbmMq() {
                         </span>
                       </TableCell>
                       <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {count(entry.depth)}
-                        </span>
+                        {count(entry.depth)}
                       </TableCell>
                       <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {count(entry.openInput)}
-                        </span>
+                        {count(entry.openInput)}
                       </TableCell>
                       <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {count(entry.subscribers)}
-                        </span>
+                        {count(entry.subscribers)}
                       </TableCell>
                     </TableRow>
                   ))}

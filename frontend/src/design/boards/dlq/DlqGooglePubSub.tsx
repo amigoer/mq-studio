@@ -105,9 +105,7 @@ export function DlqGooglePubSub() {
                         )}
                       </TableCell>
                       <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {count(entry.consumers)}
-                        </span>
+                        {count(entry.consumers)}
                       </TableCell>
                       <TableCell>
                         <span className="mono3" style={MONO11}>

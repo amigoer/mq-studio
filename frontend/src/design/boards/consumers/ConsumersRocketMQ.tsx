@@ -1,5 +1,6 @@
 import { Fragment, useCallback, useMemo, useState, type CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
+import { Plus } from "lucide-react";
 import type { TFunction } from "i18next";
 import { ListArea, ListPane, Page, PageHeader, RefreshButton, Toolbar } from "@/design/shell";
 import { Button } from "@/components/ui/button";
@@ -248,6 +249,7 @@ export function ConsumersRocketMQ() {
               onClick={() => void state.refresh()}
             />
             <Button disabled={!state.online} onClick={() => setDialog({ editing: null })}>
+              <Plus aria-hidden />
               {t("board.consumers.rocketmq.form.newAction")}
             </Button>
           </>
@@ -304,21 +306,19 @@ export function ConsumersRocketMQ() {
                       <TableCell style={dim}>
                         {offline ? name : <b style={{ fontWeight: 500 }}>{name}</b>}
                       </TableCell>
-                      <TableCell className="mono3" style={{ ...R, ...dim }}>
+                      <TableCell style={{ ...R, ...dim }}>
                         {metric(group.destinations)}
                       </TableCell>
                       <TableCell style={dim}>{modeText(group, t)}</TableCell>
-                      <TableCell className="mono3" style={{ ...R, ...dim }}>
+                      <TableCell style={{ ...R, ...dim }}>
                         {metric(group.members)}
                       </TableCell>
                       <TableCell
-                        className="mono3"
                         style={{ ...R, ...dim, ...(alerting ? { color: "var(--c-warn-text)" } : {}) }}
                       >
                         {metric(backlog)}
                       </TableCell>
                       <TableCell
-                        className="mono3"
                         style={{ ...R, ...dim, ...(dlqCount(group) > 0 ? { color: "var(--c-err-text)" } : {}) }}
                       >
                         {dlqCount(group).toLocaleString()}
@@ -721,7 +721,7 @@ function GroupSheet({
                           <TableCell className="mono3" style={R}>
                             {client.version}
                           </TableCell>
-                          <TableCell className="mono3" style={R}>
+                          <TableCell style={R}>
                             {runtimeClient == null
                               ? "—"
                               : runtimeClient.assignments.length.toLocaleString()}
@@ -798,7 +798,7 @@ function GroupSheet({
                           </span>
                         </TableCell>
                         <TableCell
-                          className="mono3 py-1.5"
+                          className="py-1.5"
                           style={{ ...R, ...(block.backlog > 0 ? { color: "var(--c-warn-text)" } : {}) }}
                         >
                           {block.backlog.toLocaleString()}
@@ -832,7 +832,6 @@ function GroupSheet({
                             </span>
                           </TableCell>
                           <TableCell
-                            className="mono3"
                             style={{ ...R, ...(queue.backlog > 0 ? { color: "var(--c-warn-text)" } : {}) }}
                           >
                             {Math.max(0, queue.backlog).toLocaleString()}

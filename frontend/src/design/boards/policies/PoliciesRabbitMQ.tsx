@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Plus } from "lucide-react";
 import { ListArea, ListPane, Page, PageHeader, RefreshButton, Toolbar } from "@/design/shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,7 +26,7 @@ import {
   toast,
   useConfirm,
 } from "@/components";
-import { BoardState, isBlocked } from "@/design/boards/BoardState";
+import { BoardState, isBlocked, Notice, NOTICE_PANE } from "@/design/boards/BoardState";
 import { useRabbitPolicies } from "@/hooks/rabbitmq/useRabbitPolicies";
 import { useRabbitNamespaces } from "@/hooks/rabbitmq/useRabbitNamespaces";
 import { useConnectionScope } from "@/mq/ConnectionScope";
@@ -152,14 +153,15 @@ export function PoliciesRabbitMQ() {
         subtitle={t("board.policies.rabbitmq.subtitle")}
         actions={
           <>
-            <Button disabled={!state.online} onClick={() => setCreating(true)}>
-              {t("board.policies.rabbitmq.new")}
-            </Button>
             <RefreshButton
               refreshing={state.refreshing}
               online={state.online}
               onClick={state.refresh}
             />
+            <Button disabled={!state.online} onClick={() => setCreating(true)}>
+              <Plus aria-hidden />
+              {t("board.policies.rabbitmq.new")}
+            </Button>
           </>
         }
       />
@@ -197,13 +199,19 @@ export function PoliciesRabbitMQ() {
         </Toolbar>
       )}
       <ListArea>
-        <ListPane>
+        <ListPane
+          style={
+            isBlocked(state) || (tab === "policies" && policies.length === 0)
+              ? NOTICE_PANE
+              : undefined
+          }
+        >
           <BoardState
             state={state}
             empty={
-              tab === "policies" && policies.length === 0
-                ? t("board.policies.rabbitmq.none")
-                : undefined
+              tab === "policies" && policies.length === 0 ? (
+                <Notice title={t("board.policies.rabbitmq.none")} />
+              ) : undefined
             }
           >
             {tab === "policies" ? (
@@ -237,7 +245,7 @@ export function PoliciesRabbitMQ() {
                         {policy.pattern}
                       </TableCell>
                       <TableCell>{policy.applyTo}</TableCell>
-                      <TableCell className="mono3" style={{ textAlign: "right" }}>
+                      <TableCell style={{ textAlign: "right" }}>
                         {policy.priority}
                       </TableCell>
                       <TableCell>

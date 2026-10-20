@@ -1457,7 +1457,7 @@ html[data-animations='off'] .mqs-toaster [data-sonner-toast] {
 
 /*
  * 界面过渡动画. useUIPrefs writes the attribute (and tells Motion, through
- * lib/motion's setAnimations); everything else that moves answers to it here
+ * lib/motion's setMotionEnabled); everything else that moves answers to it here
  * rather than each rule testing for itself. Movement is dropped rather than
  * shortened, so a transition cannot be caught mid-way.
  *

@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Plus } from "lucide-react";
 import { ListArea, ListPane, Page, PageHeader, RefreshButton, Toolbar } from "@/design/shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,7 +24,7 @@ import {
   toast,
   useConfirm,
 } from "@/components";
-import { BoardState } from "@/design/boards/BoardState";
+import { BoardState, Notice } from "@/design/boards/BoardState";
 import { ConsumerDialogNats } from "./ConsumerDialogNats";
 import { useNatsConsumers } from "@/hooks/nats/useNatsConsumers";
 import { useNatsStreams } from "@/hooks/nats/useNatsStreams";
@@ -183,6 +184,11 @@ export function ConsumersNats() {
         subtitle={t("board.consumers.nats.subtitle")}
         actions={
           <>
+            <RefreshButton
+              refreshing={state.refreshing}
+              online={state.online}
+              onClick={() => void state.refresh()}
+            />
             <Button
               // Nothing to declare a consumer on until a stream exists, and a
               // dialog that opened onto an empty stream picker would be a
@@ -193,13 +199,9 @@ export function ConsumersNats() {
                 setDialogOpen(true);
               }}
             >
+              <Plus aria-hidden />
               {t("board.consumers.nats.newConsumerAction")}
             </Button>
-            <RefreshButton
-              refreshing={state.refreshing}
-              online={state.online}
-              onClick={() => void state.refresh()}
-            />
           </>
         }
       />
@@ -220,22 +222,13 @@ export function ConsumersNats() {
         state={state}
         empty={
           rows.length === 0 ? (
-            <ListArea>
-              <ListPane>
-                <div
-                  style={{
-                    padding: "24px",
-                    fontSize: "11.5px",
-                    color: "var(--c-muted)",
-                    textAlign: "center",
-                  }}
-                >
-                  {consumers.length === 0
-                    ? t("board.consumers.nats.noConsumers")
-                    : t("board.consumers.nats.noMatches")}
-                </div>
-              </ListPane>
-            </ListArea>
+            <Notice
+              title={
+                consumers.length === 0
+                  ? t("board.consumers.nats.noConsumers")
+                  : t("board.consumers.nats.noMatches")
+              }
+            />
           ) : undefined
         }
       >
@@ -283,16 +276,16 @@ export function ConsumersNats() {
                           : t("board.consumers.nats.pull")}
                       </Status>
                     </TableCell>
-                    <TableCell className="mono3" style={RIGHT}>
+                    <TableCell style={RIGHT}>
                       {formatCount(backlog(consumer))}
                     </TableCell>
-                    <TableCell className="mono3" style={RIGHT}>
+                    <TableCell style={RIGHT}>
                       <Metric value={ackPending(consumer)} />
                     </TableCell>
-                    <TableCell className="mono3" style={RIGHT}>
+                    <TableCell style={RIGHT}>
                       <Metric value={redelivered(consumer)} />
                     </TableCell>
-                    <TableCell className="mono3" style={RIGHT}>
+                    <TableCell style={RIGHT}>
                       {/* Null for a pull consumer, and it has to read as "no
                           answer" rather than as none attached. */}
                       <Metric value={members(consumer)} />
@@ -323,7 +316,7 @@ export function ConsumersNats() {
                       {t("board.consumers.nats.backlog")}
                     </div>
                     <div
-                      className="mono3"
+                      className="tabular-nums"
                       style={{ fontSize: "15px", fontWeight: 600, marginTop: "2px" }}
                     >
                       {formatCount(backlog(panel))}
@@ -334,7 +327,7 @@ export function ConsumersNats() {
                       {t("board.consumers.nats.unacked")}
                     </div>
                     <div
-                      className="mono3"
+                      className="tabular-nums"
                       style={{ fontSize: "15px", fontWeight: 600, marginTop: "2px" }}
                     >
                       <Metric value={ackPending(panel)} />
@@ -365,11 +358,14 @@ export function ConsumersNats() {
                     ],
                     [t("board.consumers.nats.startAt"), mono(deliverPolicy(panel))],
                     [t("board.consumers.nats.ackPolicy"), mono(ackPolicy(panel))],
-                    [t("board.consumers.nats.ackWait"), mono(ackWait(panel))],
+                    [
+                      t("board.consumers.nats.ackWait"),
+                      <span className="tabular-nums">{ackWait(panel) ?? "—"}</span>,
+                    ],
                     [t("board.consumers.nats.replay"), mono(replayPolicy(panel))],
                     [
                       t("board.consumers.nats.maxDeliver"),
-                      <span className="mono3" style={MONO11}>
+                      <span className="tabular-nums">
                         {maxDeliver(panel) ?? (
                           <span style={{ color: "var(--c-muted-2)" }}>
                             {t("board.consumers.nats.unlimited")}
@@ -379,7 +375,7 @@ export function ConsumersNats() {
                     ],
                     [
                       t("board.consumers.nats.maxAckPending"),
-                      <span className="mono3" style={MONO11}>
+                      <span className="tabular-nums">
                         <Metric value={maxAckPending(panel)} />
                       </span>,
                     ],
@@ -424,7 +420,7 @@ export function ConsumersNats() {
                       : [
                           [
                             t("board.consumers.nats.waiting"),
-                            <span className="mono3" style={MONO11}>
+                            <span className="tabular-nums">
                               <Metric value={waitingRequests(panel)} />
                             </span>,
                           ],

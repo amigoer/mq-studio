@@ -475,7 +475,7 @@ function MessageSheet({
             ],
             [
               t("board.messages.rocketmq.retry"),
-              <span className="mono3 text-xs">{message.retryTimes}</span>,
+              <span className="text-xs tabular-nums">{message.retryTimes}</span>,
             ],
           ]}
         />

@@ -13,7 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Status, toast, useConfirm } from "@/components";
-import { BoardState } from "@/design/boards/BoardState";
+import { BoardState, Notice } from "@/design/boards/BoardState";
 import { useRedisClients } from "@/hooks/redis/useRedisClients";
 import { useConnectionScope } from "@/mq/ConnectionScope";
 import * as redisApi from "@/api/redis";
@@ -153,22 +153,13 @@ export function ClientsRedis() {
         state={state}
         empty={
           rows.length === 0 ? (
-            <ListArea>
-              <ListPane>
-                <div
-                  style={{
-                    padding: "24px",
-                    fontSize: "11.5px",
-                    color: "var(--c-muted)",
-                    textAlign: "center",
-                  }}
-                >
-                  {clients.length === 0
-                    ? t("board.clients.redis.none")
-                    : t("board.clients.redis.noMatches")}
-                </div>
-              </ListPane>
-            </ListArea>
+            <Notice
+              title={
+                clients.length === 0
+                  ? t("board.clients.redis.none")
+                  : t("board.clients.redis.noMatches")
+              }
+            />
           ) : undefined
         }
       >
@@ -233,16 +224,16 @@ export function ClientsRedis() {
                           </Status>
                         )}
                       </TableCell>
-                      <TableCell className="mono3" style={RIGHT}>
+                      <TableCell style={RIGHT}>
                         <Metric
                           value={idleSeconds(client)}
                           render={(v) => formatIdle(v * 1000)}
                         />
                       </TableCell>
-                      <TableCell className="mono3" style={RIGHT}>
+                      <TableCell style={RIGHT}>
                         <Metric value={ageSeconds(client)} render={(v) => formatIdle(v * 1000)} />
                       </TableCell>
-                      <TableCell className="mono3" style={RIGHT}>
+                      <TableCell style={RIGHT}>
                         {formatBytes(bytesIn(client))} / {formatBytes(bytesOut(client))}
                         {totalCommands(client) != null && (
                           <span style={{ marginLeft: "6px", color: "var(--c-muted-2)" }}>

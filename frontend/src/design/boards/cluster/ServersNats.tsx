@@ -166,19 +166,19 @@ export function ServersNats() {
                     <TableCell className="mono3" style={MONO11}>
                       {node.version}
                     </TableCell>
-                    <TableCell className="mono3" style={RIGHT}>
+                    <TableCell style={RIGHT}>
                       <Metric value={connections(node)} />
                     </TableCell>
-                    <TableCell className="mono3" style={RIGHT}>
+                    <TableCell style={RIGHT}>
                       <Metric value={subscriptions(node)} />
                     </TableCell>
-                    <TableCell className="mono3" style={RIGHT}>
+                    <TableCell style={RIGHT}>
                       {/* Peers rather than routes: NATS opens a pool per peer,
                           so eight routes to two peers is ordinary and only the
                           peer count answers "has the cluster formed". */}
                       <Metric value={remotes(node)} />
                     </TableCell>
-                    <TableCell className="mono3" style={RIGHT}>
+                    <TableCell style={RIGHT}>
                       <SlowCount node={node} />
                     </TableCell>
                     <TableCell style={MONO11}>
@@ -217,7 +217,7 @@ export function ServersNats() {
                       {t("board.cluster.nats.connections")}
                     </div>
                     <div
-                      className="mono3"
+                      className="tabular-nums"
                       style={{ fontSize: "15px", fontWeight: 600, marginTop: "2px" }}
                     >
                       <Metric value={connections(panel)} />
@@ -228,7 +228,7 @@ export function ServersNats() {
                       {t("board.cluster.nats.memory")}
                     </div>
                     <div
-                      className="mono3"
+                      className="tabular-nums"
                       style={{ fontSize: "15px", fontWeight: 600, marginTop: "2px" }}
                     >
                       <Metric value={memoryBytes(panel)} format={formatBytes} />
@@ -240,18 +240,21 @@ export function ServersNats() {
                   rows={[
                     [t("board.cluster.nats.address"), mono(panel.address)],
                     [t("board.cluster.nats.serverId"), mono(serverId(panel))],
-                    [t("board.cluster.nats.uptime"), mono(uptime(panel))],
+                    [
+                      t("board.cluster.nats.uptime"),
+                      <span className="tabular-nums">{uptime(panel) ?? "—"}</span>,
+                    ],
                     [t("board.cluster.nats.go"), mono(goVersion(panel))],
                     [
                       t("board.cluster.nats.cpu"),
-                      <span className="mono3" style={MONO11}>
+                      <span className="tabular-nums">
                         <Metric value={cpuPercent(panel)} />
                         {cores(panel) != null && ` · ${cores(panel)} cores`}
                       </span>,
                     ],
                     [
                       t("board.cluster.nats.totalConnections"),
-                      <span className="mono3" style={MONO11}>
+                      <span className="tabular-nums">
                         <Metric value={totalConnections(panel)} />
                         {maxConnections(panel) != null && (
                           <span style={{ color: "var(--c-muted)" }}>
@@ -263,7 +266,7 @@ export function ServersNats() {
                     ],
                     [
                       t("board.cluster.nats.routes"),
-                      <span className="mono3" style={MONO11}>
+                      <span className="tabular-nums">
                         {/* Both numbers, because a pool of routes to two peers
                             is ordinary and only one of them is a health
                             figure. */}
@@ -273,13 +276,13 @@ export function ServersNats() {
                     ],
                     [
                       t("board.cluster.nats.leafNodes"),
-                      <span className="mono3" style={MONO11}>
+                      <span className="tabular-nums">
                         <Metric value={leafNodes(panel)} />
                       </span>,
                     ],
                     [
                       t("board.cluster.nats.maxPayload"),
-                      <span className="mono3" style={MONO11}>
+                      <span className="tabular-nums">
                         <Metric value={maxPayload(panel)} format={formatBytes} />
                       </span>,
                     ],
@@ -304,13 +307,13 @@ export function ServersNats() {
                       rows={[
                         [
                           t("board.cluster.nats.jsMemory"),
-                          <span className="mono3" style={MONO11}>
+                          <span className="tabular-nums">
                             <Metric value={jetStreamMemory(panel)} format={formatBytes} />
                           </span>,
                         ],
                         [
                           t("board.cluster.nats.jsStorage"),
-                          <span className="mono3" style={MONO11}>
+                          <span className="tabular-nums">
                             <Metric value={jetStreamStorage(panel)} format={formatBytes} />
                           </span>,
                         ],

@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Page, PageBody, PageHeader, RefreshButton } from "@/design/shell";
 import { Button } from "@/components/ui/button";
@@ -162,14 +163,15 @@ export function TopicsNsq() {
               placeholder={t("board.nsq.topics.search")}
               onChange={(event) => setSearch(event.target.value)}
             />
-            <Button size="sm" onClick={() => setCreating(true)}>
-              {t("board.nsq.topics.create")}
-            </Button>
             <RefreshButton
               refreshing={state.refreshing}
               online={state.online}
               onClick={() => void state.refresh()}
             />
+            <Button size="sm" onClick={() => setCreating(true)}>
+              <Plus aria-hidden />
+              {t("board.nsq.topics.create")}
+            </Button>
           </div>
         }
       />
@@ -214,34 +216,22 @@ export function TopicsNsq() {
                         )}
                       </TableCell>
                       <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {count(entry.depth)}
-                        </span>
+                        {count(entry.depth)}
                       </TableCell>
                       <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {entry.channels.length}
-                        </span>
+                        {entry.channels.length}
                       </TableCell>
                       <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {count(entry.inFlight)}
-                        </span>
+                        {count(entry.inFlight)}
                       </TableCell>
                       <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {count(entry.deferred)}
-                        </span>
+                        {count(entry.deferred)}
                       </TableCell>
                       <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {count(entry.messages)}
-                        </span>
+                        {count(entry.messages)}
                       </TableCell>
                       <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {entry.nodes.length}
-                        </span>
+                        {entry.nodes.length}
                       </TableCell>
                     </TableRow>
                   ))}

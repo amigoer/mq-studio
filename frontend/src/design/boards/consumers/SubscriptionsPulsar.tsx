@@ -143,15 +143,15 @@ export function SubscriptionsPulsar() {
         title={t("board.consumers.pulsar.title")}
         actions={
           <>
-            <Button size="sm" onClick={() => setCreating(true)} disabled={!state.online}>
-              <Plus size={14} aria-hidden />
-              {t("board.consumers.pulsar.new")}
-            </Button>
             <RefreshButton
               refreshing={state.refreshing}
               online={state.online}
               onClick={() => void state.refresh()}
             />
+            <Button size="sm" onClick={() => setCreating(true)} disabled={!state.online}>
+              <Plus size={14} aria-hidden />
+              {t("board.consumers.pulsar.new")}
+            </Button>
           </>
         }
       />

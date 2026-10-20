@@ -26,7 +26,7 @@ import {
   Status,
   WarnBanner,
 } from "@/components";
-import { BoardState } from "@/design/boards/BoardState";
+import { BoardState, Notice, isBlocked, NOTICE_PANE } from "@/design/boards/BoardState";
 import { useRabbitMessages } from "@/hooks/rabbitmq/useRabbitMessages";
 import { useRabbitQueues } from "@/hooks/rabbitmq/useRabbitQueues";
 import { formatCount } from "@/lib/format";
@@ -161,15 +161,17 @@ export function MessagesRabbitMQ() {
         )}
       </Toolbar>
       <ListArea>
-        <ListPane>
+        <ListPane
+          style={isBlocked(messages.state) || rows.length === 0 ? NOTICE_PANE : undefined}
+        >
           <BoardState
             state={messages.state}
             empty={
-              messages.lastCount === 0
-                ? t("board.messages.rabbitmq.nothingMatched")
-                : messages.lastCount == null
-                  ? t("board.messages.rabbitmq.pickAQueue")
-                  : undefined
+              messages.lastCount === 0 ? (
+                <Notice title={t("board.messages.rabbitmq.nothingMatched")} />
+              ) : messages.lastCount == null ? (
+                <Notice title={t("board.messages.rabbitmq.pickAQueue")} />
+              ) : undefined
             }
           >
             <Table inset>

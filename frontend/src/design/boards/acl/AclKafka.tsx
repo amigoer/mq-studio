@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Plus } from "lucide-react";
 import { ListArea, ListPane, Page, PageHeader, RefreshButton, Toolbar } from "@/design/shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,7 +25,7 @@ import {
   useConfirm,
   useToast,
 } from "@/components";
-import { BoardState } from "@/design/boards/BoardState";
+import { BoardState, NOTICE_PANE, Notice } from "@/design/boards/BoardState";
 import { useConnectionScope } from "@/mq/ConnectionScope";
 import { useKafkaAccess } from "@/hooks/kafka/useKafkaAccess";
 import { removeKafkaAccessRule, removeKafkaPrincipal } from "@/api/kafka";
@@ -80,6 +81,7 @@ export function AclKafka() {
   }, [principals, search]);
 
   const current = visibleRules.find((rule) => rule.subject === selected) ?? null;
+  const listIsEmpty = (tab === "rules" ? visibleRules : visibleUsers).length === 0;
 
   const removeRule = async (subject: string) => {
     const ok = await confirm({
@@ -130,6 +132,7 @@ export function AclKafka() {
             />
             {enabled && (
               <Button onClick={() => (tab === "rules" ? setEditingRule(true) : setEditingUser(true))}>
+                <Plus aria-hidden />
                 {tab === "rules" ? t("board.acl.kafka.newRule") : t("board.acl.kafka.newUser")}
               </Button>
             )}
@@ -167,8 +170,16 @@ export function AclKafka() {
           </div>
         ) : (
           <ListArea>
-            <ListPane>
-              {tab === "rules" ? (
+            <ListPane style={listIsEmpty ? NOTICE_PANE : undefined}>
+              {tab === "rules" && visibleRules.length === 0 ? (
+                <Notice
+                  title={t(rules.length === 0 ? "board.acl.kafka.noRules" : "board.common.noMatch")}
+                />
+              ) : tab === "users" && visibleUsers.length === 0 ? (
+                <Notice
+                  title={t(principals.length === 0 ? "board.acl.kafka.noUsers" : "board.common.noMatch")}
+                />
+              ) : tab === "rules" ? (
                 <Table inset>
                   <TableHeader>
                     <TableRow>
@@ -189,13 +200,6 @@ export function AclKafka() {
                         </TableCell>
                       </TableRow>
                     ))}
-                    {visibleRules.length === 0 && (
-                      <TableRow>
-                        <TableCell colSpan={2} style={{ padding: "18px", color: "var(--c-muted)" }}>
-                          {t("board.acl.kafka.noRules")}
-                        </TableCell>
-                      </TableRow>
-                    )}
                   </TableBody>
                 </Table>
               ) : (
@@ -223,13 +227,6 @@ export function AclKafka() {
                         </TableCell>
                       </TableRow>
                     ))}
-                    {visibleUsers.length === 0 && (
-                      <TableRow>
-                        <TableCell colSpan={3} style={{ padding: "18px", color: "var(--c-muted)" }}>
-                          {t("board.acl.kafka.noUsers")}
-                        </TableCell>
-                      </TableRow>
-                    )}
                   </TableBody>
                 </Table>
               )}

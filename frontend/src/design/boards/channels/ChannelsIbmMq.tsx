@@ -146,14 +146,10 @@ export function ChannelsIbmMq() {
                         </span>
                       </TableCell>
                       <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {entry.instances}
-                        </span>
+                        {entry.instances}
                       </TableCell>
                       <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {count(metric(entry.messages))}
-                        </span>
+                        {count(metric(entry.messages))}
                       </TableCell>
                     </TableRow>
                   ))}

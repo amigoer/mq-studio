@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { NOTICE_PANE, Notice } from "@/design/boards/BoardState";
 import { Page, PageBody, PageHeader, RefreshButton } from "@/design/shell";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
@@ -112,16 +113,21 @@ export function DlqAzureServiceBus() {
       />
       <PageBody>
         <div style={{ display: "flex", gap: "12px", minHeight: 0, flex: 1 }}>
-          <Panel style={{ width: "280px", flex: "none", overflow: "auto" }}>
+          <Panel
+            style={{
+              width: "280px",
+              flex: "none",
+              overflow: "auto",
+              ...(dead.storesError != null || dead.stores.length === 0 ? NOTICE_PANE : {}),
+            }}
+          >
             <PanelHeader title={t("board.azure-servicebus.dlq.stores")} />
             {dead.storesError != null ? (
-              <div style={{ padding: "16px", fontSize: "11.5px", color: "var(--c-err)" }}>
+              <Notice title={t("board.state.failed")} tone="var(--c-err)">
                 {dead.storesError}
-              </div>
+              </Notice>
             ) : dead.stores.length === 0 ? (
-              <div style={{ padding: "16px", fontSize: "11.5px", color: "var(--c-muted)" }}>
-                {t("board.azure-servicebus.dlq.noEntities")}
-              </div>
+              <Notice title={t("board.azure-servicebus.dlq.noEntities")} />
             ) : (
               <Table>
                 <TableHeader>
@@ -146,9 +152,7 @@ export function DlqAzureServiceBus() {
                         </span>
                       </TableCell>
                       <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {count(row.count)}
-                        </span>
+                        {count(row.count)}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -157,7 +161,13 @@ export function DlqAzureServiceBus() {
             )}
           </Panel>
 
-          <Panel style={{ flex: 1, overflow: "auto" }}>
+          <Panel
+            style={{
+              flex: 1,
+              overflow: "auto",
+              ...(dead.error != null || dead.messages.length === 0 ? NOTICE_PANE : {}),
+            }}
+          >
             <PanelHeader
               title={
                 store == null
@@ -170,22 +180,17 @@ export function DlqAzureServiceBus() {
                 <Spinner />
               </div>
             ) : dead.error != null ? (
-              <div style={{ padding: "24px", fontSize: "11.5px", color: "var(--c-err)" }}>
+              <Notice title={t("board.state.failed")} tone="var(--c-err)">
                 {dead.error}
-              </div>
+              </Notice>
             ) : dead.messages.length === 0 ? (
-              <div
-                style={{
-                  padding: "24px",
-                  fontSize: "11.5px",
-                  color: "var(--c-muted)",
-                  textAlign: "center",
-                }}
-              >
-                {dead.searched
-                  ? t("board.azure-servicebus.dlq.nothingGivenUp")
-                  : t("board.azure-servicebus.dlq.startHere")}
-              </div>
+              <Notice
+                title={
+                  dead.searched
+                    ? t("board.azure-servicebus.dlq.nothingGivenUp")
+                    : t("board.azure-servicebus.dlq.startHere")
+                }
+              />
             ) : (
               <Table>
                 <TableHeader>
@@ -219,9 +224,7 @@ export function DlqAzureServiceBus() {
                         </span>
                       </TableCell>
                       <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {deliveryCount(message) ?? DASH}
-                        </span>
+                        {deliveryCount(message) ?? DASH}
                       </TableCell>
                       <TableCell>
                         <span className="mono3" style={MONO11}>

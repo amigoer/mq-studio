@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Page, PageBody, PageHeader, RefreshButton } from "@/design/shell";
 import { Button } from "@/components/ui/button";
@@ -207,6 +208,11 @@ export function SubscriptionsGooglePubSub() {
               placeholder={t("board.google-pubsub.subscriptions.search")}
               onChange={(event) => setSearch(event.target.value)}
             />
+            <RefreshButton
+              refreshing={state.refreshing}
+              online={state.online}
+              onClick={() => void state.refresh()}
+            />
             <Button
               size="sm"
               onClick={() => {
@@ -214,13 +220,9 @@ export function SubscriptionsGooglePubSub() {
                 setFormOpen(true);
               }}
             >
+              <Plus aria-hidden />
               {t("board.google-pubsub.subscriptions.create")}
             </Button>
-            <RefreshButton
-              refreshing={state.refreshing}
-              online={state.online}
-              onClick={() => void state.refresh()}
-            />
           </div>
         }
       />
@@ -279,9 +281,7 @@ export function SubscriptionsGooglePubSub() {
                         </span>
                       </TableCell>
                       <TableCell>
-                        <span className="mono3" style={MONO11}>
-                          {duration(entry.ackDeadlineSec)}
-                        </span>
+                        {duration(entry.ackDeadlineSec)}
                       </TableCell>
                       <TableCell>
                         <span className="mono3" style={MONO11}>

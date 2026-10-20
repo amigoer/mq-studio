@@ -13,7 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { KV, Panel, PanelHeader, SectionLabel, Status, WarnBanner, useConfirm } from "@/components";
-import { BoardState } from "@/design/boards/BoardState";
+import { BoardState, Notice, NOTICE_PANE } from "@/design/boards/BoardState";
 import { useMqttClients } from "@/hooks/mqtt/useMqttBroker";
 import { clientSession, isOrphanedSession } from "@/mq/mqtt/clients";
 import { kickMqttClient } from "@/api/mqtt";
@@ -147,7 +147,7 @@ export function ClientsMqtt() {
                           {client.peerHost}:{client.peerPort}
                         </TableCell>
                         <TableCell style={MONO11}>{client.protocol}</TableCell>
-                        <TableCell className="mono3" style={MONO11}>
+                        <TableCell>
                           {reported(session.subscriptions)}
                         </TableCell>
                         <TableCell>
@@ -167,7 +167,9 @@ export function ClientsMqtt() {
               </Table>
             </Panel>
 
-            <Panel style={{ width: "300px", flex: "none" }}>
+            <Panel
+              style={{ width: "300px", flex: "none", ...(detail == null ? NOTICE_PANE : {}) }}
+            >
               <PanelHeader
                 title={t("board.consumers.mqtt.session")}
                 action={
@@ -180,9 +182,7 @@ export function ClientsMqtt() {
                 }
               />
               {detail == null ? (
-                <div style={{ padding: "14px", fontSize: "12px", color: "var(--c-muted)" }}>
-                  {t("board.consumers.mqtt.noClients")}
-                </div>
+                <Notice title={t("board.consumers.mqtt.noClients")} />
               ) : (
                 <div style={{ padding: "12px 14px", display: "flex", flexDirection: "column", gap: "10px" }}>
                   <SectionLabel>{t("board.consumers.mqtt.session")}</SectionLabel>

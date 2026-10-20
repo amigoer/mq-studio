@@ -2970,7 +2970,7 @@
           "done": "已把 {{queue}} 的位点设为 {{offset}}"
         },
         "form": {
-          "newAction": "+ 新建消费组",
+          "newAction": "新建消费组",
           "newTitle": "新建消费组",
           "editTitle": "编辑消费组",
           "nameLabel": "消费组名称",
@@ -3490,7 +3490,7 @@
       "noteProps": "properties 走通用属性区 · Schema 校验失败会拒发",
       "autoId": "*（自动）",
       "fields": "字段 · field / value",
-      "addField": "+ 添加字段",
+      "addField": "添加字段",
       "noteXadd": "* = 自动生成 ID · maxlen ~ 为近似裁剪（高性能）",
       "messageExpiry": "消息过期",
       "responseTopic": "响应主题",
@@ -3498,7 +3498,7 @@
       "protocolSpecific": "协议专属 ·",
       "subtitle": "构造并发送测试消息 · 草稿自动保存",
       "send": "发送",
-      "add": "+ 添加",
+      "add": "添加",
       "sent": "发送成功",
       "options": "发送选项",
       "count": "发送次数",

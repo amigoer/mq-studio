@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Page, PageBody, PageHeader, RefreshButton } from "@/design/shell";
 import { Button } from "@/components/ui/button";
@@ -152,6 +153,11 @@ export function EntitiesAzureServiceBus() {
               placeholder={t("board.azure-servicebus.entities.search")}
               onChange={(event) => setSearch(event.target.value)}
             />
+            <RefreshButton
+              refreshing={state.refreshing}
+              online={state.online}
+              onClick={() => void state.refresh()}
+            />
             <Button
               size="sm"
               onClick={() => {
@@ -159,13 +165,9 @@ export function EntitiesAzureServiceBus() {
                 setFormOpen(true);
               }}
             >
+              <Plus aria-hidden />
               {t("board.azure-servicebus.entities.create")}
             </Button>
-            <RefreshButton
-              refreshing={state.refreshing}
-              online={state.online}
-              onClick={() => void state.refresh()}
-            />
           </div>
         }
       />
@@ -226,19 +228,13 @@ export function EntitiesAzureServiceBus() {
                         </span>
                       </TableCell>
                       <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {count(row.depth)}
-                        </span>
+                        {count(row.depth)}
                       </TableCell>
                       <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {count(row.deadLetterCount)}
-                        </span>
+                        {count(row.deadLetterCount)}
                       </TableCell>
                       <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {count(row.subscribers)}
-                        </span>
+                        {count(row.subscribers)}
                       </TableCell>
                       <TableCell>
                         <span

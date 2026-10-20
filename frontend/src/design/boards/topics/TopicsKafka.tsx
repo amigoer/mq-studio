@@ -26,7 +26,7 @@ import {
   useConfirm,
   useToast,
 } from "@/components";
-import { BoardState } from "@/design/boards/BoardState";
+import { BoardState, Notice } from "@/design/boards/BoardState";
 import { useConnectionScope } from "@/mq/ConnectionScope";
 import { useKafkaTopicDetail, useKafkaTopics } from "@/hooks/kafka/useKafkaTopics";
 import {
@@ -244,14 +244,14 @@ export function TopicsKafka() {
                         </Status>
                       )}
                     </TableCell>
-                    <TableCell className="mono3" style={R}>{topic.partitions}</TableCell>
-                    <TableCell className="mono3" style={R}>
+                    <TableCell style={R}>{topic.partitions}</TableCell>
+                    <TableCell style={R}>
                       {reported(replicationFactor(topic))}
                     </TableCell>
-                    <TableCell className="mono3" style={R}>
+                    <TableCell style={R}>
                       {reported(minInsyncReplicas(topic))}
                     </TableCell>
-                    <TableCell className="mono3" style={R}>
+                    <TableCell style={R}>
                       {reported(readableRecords(topic))}
                     </TableCell>
                     <TableCell className="mono3" style={MONO11}>
@@ -303,10 +303,10 @@ export function TopicsKafka() {
                                   : undefined
                               }
                             >
-                              <TableCell className="mono3" style={R}>
+                              <TableCell style={R}>
                                 {partition.partition}
                               </TableCell>
-                              <TableCell className="mono3" style={R}>
+                              <TableCell style={R}>
                                 {/* -1 is Kafka's "no leader", and this
                                     partition is neither readable nor writable
                                     while that is true. It must not render as
@@ -320,7 +320,6 @@ export function TopicsKafka() {
                                 )}
                               </TableCell>
                               <TableCell
-                                className="mono3"
                                 style={
                                   partition.underReplicated
                                     ? { color: "var(--c-warn-text)" }
@@ -406,9 +405,5 @@ export function TopicsKafka() {
 
 function Empty() {
   const { t } = useTranslation();
-  return (
-    <div style={{ padding: "24px", fontSize: "12px", color: "var(--c-muted)" }}>
-      {t("board.topics.kafka.empty")}
-    </div>
-  );
+  return <Notice title={t("board.topics.kafka.empty")} />;
 }

@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Page, PageBody, PageHeader, RefreshButton } from "@/design/shell";
 import { Button } from "@/components/ui/button";
@@ -140,14 +141,15 @@ export function SubscriptionsActiveMQ() {
               placeholder={t("board.activemq.subscriptions.search")}
               onChange={(event) => setSearch(event.target.value)}
             />
-            <Button size="sm" onClick={() => setCreating(true)}>
-              {t("board.activemq.subscriptions.create")}
-            </Button>
             <RefreshButton
               refreshing={state.refreshing}
               online={state.online}
               onClick={() => void state.refresh()}
             />
+            <Button size="sm" onClick={() => setCreating(true)}>
+              <Plus aria-hidden />
+              {t("board.activemq.subscriptions.create")}
+            </Button>
           </div>
         }
       />
@@ -210,19 +212,13 @@ export function SubscriptionsActiveMQ() {
                             : t("board.activemq.subscriptions.waiting")}
                       </TableCell>
                       <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {count(entry.backlog)}
-                        </span>
+                        {count(entry.backlog)}
                       </TableCell>
                       <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {count(entry.pendingAck)}
-                        </span>
+                        {count(entry.pendingAck)}
                       </TableCell>
                       <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {count(entry.consumed)}
-                        </span>
+                        {count(entry.consumed)}
                       </TableCell>
                     </TableRow>
                   ))}

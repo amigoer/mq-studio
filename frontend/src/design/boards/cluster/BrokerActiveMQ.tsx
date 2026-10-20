@@ -137,19 +137,13 @@ export function BrokerActiveMQ() {
                       <TableCell>{entry.version === "" ? DASH : entry.version}</TableCell>
                       <TableCell>{entry.uptime ?? DASH}</TableCell>
                       <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {count(entry.totalMessages)}
-                        </span>
+                        {count(entry.totalMessages)}
                       </TableCell>
                       <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {count(entry.connections)}
-                        </span>
+                        {count(entry.connections)}
                       </TableCell>
                       <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {percent(entry.diskUsage)}
-                        </span>
+                        {percent(entry.diskUsage)}
                       </TableCell>
                     </TableRow>
                   ))}

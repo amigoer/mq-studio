@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Page, PageBody, PageHeader, RefreshButton } from "@/design/shell";
 import { Button } from "@/components/ui/button";
@@ -135,14 +136,15 @@ export function QueuesSolace() {
               placeholder={t("board.solace.queues.search")}
               onChange={(event) => setSearch(event.target.value)}
             />
-            <Button size="sm" onClick={() => setFormOpen(true)}>
-              {t("board.solace.queues.create")}
-            </Button>
             <RefreshButton
               refreshing={state.refreshing}
               online={state.online}
               onClick={() => void state.refresh()}
             />
+            <Button size="sm" onClick={() => setFormOpen(true)}>
+              <Plus aria-hidden />
+              {t("board.solace.queues.create")}
+            </Button>
           </div>
         }
       />
@@ -191,19 +193,13 @@ export function QueuesSolace() {
                         </span>
                       </TableCell>
                       <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {count(entry.depth)}
-                        </span>
+                        {count(entry.depth)}
                       </TableCell>
                       <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {count(entry.boundConsumers)}
-                        </span>
+                        {count(entry.boundConsumers)}
                       </TableCell>
                       <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {count(entry.rateIn)}
-                        </span>
+                        {count(entry.rateIn)}
                       </TableCell>
                     </TableRow>
                   ))}

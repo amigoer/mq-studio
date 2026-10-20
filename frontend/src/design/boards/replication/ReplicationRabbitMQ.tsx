@@ -11,7 +11,7 @@ import {
   toast,
   useConfirm,
 } from "@/components";
-import { BoardState } from "@/design/boards/BoardState";
+import { BoardState, Notice } from "@/design/boards/BoardState";
 import { useRabbitReplication } from "@/hooks/rabbitmq/useRabbitReplication";
 import { useConnectionScope } from "@/mq/ConnectionScope";
 import { formatErrorMessage } from "@/lib/utils";
@@ -127,7 +127,7 @@ export function ReplicationRabbitMQ() {
           />
 
           {tab === "shovels" ? (
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px", flex: 1 }}>
               <span style={{ fontSize: "11px", color: "var(--c-muted)" }}>
                 {t("board.replication.rabbitmq.shovelHint")}
               </span>
@@ -139,13 +139,11 @@ export function ReplicationRabbitMQ() {
                 />
               ))}
               {shovels.length === 0 && (
-                <Panel style={{ padding: "12px 16px", fontSize: "11.5px", color: "var(--c-muted)" }}>
-                  {t("board.replication.rabbitmq.noShovels")}
-                </Panel>
+                <Notice title={t("board.replication.rabbitmq.noShovels")} />
               )}
             </div>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px", flex: 1 }}>
               <span style={{ fontSize: "11px", color: "var(--c-muted)" }}>
                 {t("board.replication.rabbitmq.federationHint")}
               </span>
@@ -157,9 +155,7 @@ export function ReplicationRabbitMQ() {
                 />
               ))}
               {upstreams.length === 0 && (
-                <Panel style={{ padding: "12px 16px", fontSize: "11.5px", color: "var(--c-muted)" }}>
-                  {t("board.replication.rabbitmq.noUpstreams")}
-                </Panel>
+                <Notice title={t("board.replication.rabbitmq.noUpstreams")} />
               )}
             </div>
           )}

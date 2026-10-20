@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Page, PageBody, PageHeader, RefreshButton } from "@/design/shell";
 import { Button } from "@/components/ui/button";
@@ -130,6 +131,11 @@ export function StreamsKinesis() {
               placeholder={t("board.kinesis.streams.search")}
               onChange={(event) => setSearch(event.target.value)}
             />
+            <RefreshButton
+              refreshing={state.refreshing}
+              online={state.online}
+              onClick={() => void state.refresh()}
+            />
             <Button
               size="sm"
               onClick={() => {
@@ -137,13 +143,9 @@ export function StreamsKinesis() {
                 setFormOpen(true);
               }}
             >
+              <Plus aria-hidden />
               {t("board.kinesis.streams.create")}
             </Button>
-            <RefreshButton
-              refreshing={state.refreshing}
-              online={state.online}
-              onClick={() => void state.refresh()}
-            />
           </div>
         }
       />
@@ -197,19 +199,13 @@ export function StreamsKinesis() {
                         </span>
                       </TableCell>
                       <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {count(entry.openShards)}
-                        </span>
+                        {count(entry.openShards)}
                       </TableCell>
                       <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {count(entry.consumers)}
-                        </span>
+                        {count(entry.consumers)}
                       </TableCell>
                       <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {retention(entry.retentionHours) ?? DASH}
-                        </span>
+                        {retention(entry.retentionHours) ?? DASH}
                       </TableCell>
                     </TableRow>
                   ))}

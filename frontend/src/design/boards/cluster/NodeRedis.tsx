@@ -86,7 +86,7 @@ function clusterRows(
     ],
     [
       t("board.cluster.redis.slots"),
-      <span className="mono3" style={MONO11}>
+      <span className="tabular-nums">
         {ownedSlots(node) ?? t("board.cluster.redis.noSlots")}
       </span>,
     ],
@@ -97,7 +97,7 @@ function Stat({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div>
       <div style={{ fontSize: "10.5px", color: "var(--c-muted)" }}>{label}</div>
-      <div className="mono3" style={{ fontSize: "15px", fontWeight: 600, marginTop: "2px" }}>
+      <div className="tabular-nums" style={{ fontSize: "15px", fontWeight: 600, marginTop: "2px" }}>
         {value}
       </div>
     </div>
@@ -364,7 +364,7 @@ export function NodeRedis() {
                             <TableCell className="mono3" style={MONO11}>
                               {entry.command.join(" ")}
                             </TableCell>
-                            <TableCell className="mono3" style={RIGHT}>
+                            <TableCell style={RIGHT}>
                               {/* Microseconds, because the threshold that
                                   captured the entry is set in them and
                                   rounding to milliseconds puts most at zero. */}

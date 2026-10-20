@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Plus } from "lucide-react";
 import { ListPane, Page, PageHeader, RefreshButton, Toolbar } from "@/design/shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,7 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Status, useConfirm, useToast } from "@/components";
-import { BoardState } from "@/design/boards/BoardState";
+import { BoardState, Notice } from "@/design/boards/BoardState";
 import { useConnectionScope } from "@/mq/ConnectionScope";
 import { useKafkaQuotas } from "@/hooks/kafka/useKafkaQuotas";
 import { removeKafkaQuota } from "@/api/kafka";
@@ -92,7 +93,10 @@ export function QuotasKafka() {
               online={state.online}
               onClick={() => void state.refresh()}
             />
-            <Button onClick={() => setCreating(true)}>{t("board.quotas.kafka.newQuota")}</Button>
+            <Button onClick={() => setCreating(true)}>
+              <Plus aria-hidden />
+              {t("board.quotas.kafka.newQuota")}
+            </Button>
           </>
         }
       />
@@ -106,7 +110,16 @@ export function QuotasKafka() {
         <span className="flex-1" />
       </Toolbar>
 
-      <BoardState state={state}>
+      <BoardState
+        state={state}
+        empty={
+          rows.length === 0 ? (
+            <Notice
+              title={t(search.trim() === "" ? "board.quotas.kafka.empty" : "board.common.noMatch")}
+            />
+          ) : undefined
+        }
+      >
         <ListPane>
           <Table inset>
             <TableHeader>
@@ -141,7 +154,7 @@ export function QuotasKafka() {
                     {limitKeys.map((key) => {
                       const value = quota.limits?.[key];
                       return (
-                        <TableCell key={key} className="mono3" style={R}>
+                        <TableCell key={key} style={R}>
                           {/* Absent is not zero: zero throttles a client to
                               nothing, and no limit lets it run. */}
                           {value == null ? (
@@ -164,16 +177,6 @@ export function QuotasKafka() {
                   </TableRow>
                 );
               })}
-              {rows.length === 0 && (
-                <TableRow>
-                  <TableCell
-                    colSpan={limitKeys.length + 2}
-                    style={{ padding: "18px", color: "var(--c-muted)" }}
-                  >
-                    {t("board.quotas.kafka.empty")}
-                  </TableCell>
-                </TableRow>
-              )}
             </TableBody>
           </Table>
         </ListPane>

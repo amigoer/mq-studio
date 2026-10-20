@@ -96,15 +96,15 @@ export function NamespacesPulsar() {
         subtitle={scopeTenant}
         actions={
           <>
-            <Button size="sm" onClick={() => setCreating(true)} disabled={!state.online}>
-              <Plus size={14} aria-hidden />
-              {t("board.vhosts.pulsar.new")}
-            </Button>
             <RefreshButton
               refreshing={state.refreshing}
               online={state.online}
               onClick={() => void state.refresh()}
             />
+            <Button size="sm" onClick={() => setCreating(true)} disabled={!state.online}>
+              <Plus size={14} aria-hidden />
+              {t("board.vhosts.pulsar.new")}
+            </Button>
           </>
         }
       />

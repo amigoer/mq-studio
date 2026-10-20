@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Plus } from "lucide-react";
 import { ListArea, ListPane, Page, PageHeader, RefreshButton, Toolbar } from "@/design/shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,7 +24,7 @@ import {
   toast,
   useConfirm,
 } from "@/components";
-import { BoardState, isBlocked } from "@/design/boards/BoardState";
+import { BoardState, isBlocked, Notice, NOTICE_PANE } from "@/design/boards/BoardState";
 import { useRabbitNamespaces } from "@/hooks/rabbitmq/useRabbitNamespaces";
 import { useConnectionScope } from "@/mq/ConnectionScope";
 import { formatCount } from "@/lib/format";
@@ -137,14 +138,15 @@ export function VhostsRabbitMQ() {
         subtitle={t("board.vhosts.rabbitmq.subtitle", { count: namespaces.length })}
         actions={
           <>
-            <Button disabled={!state.online} onClick={() => setCreating(true)}>
-              {t("board.vhosts.rabbitmq.new")}
-            </Button>
             <RefreshButton
               refreshing={state.refreshing}
               online={state.online}
               onClick={state.refresh}
             />
+            <Button disabled={!state.online} onClick={() => setCreating(true)}>
+              <Plus aria-hidden />
+              {t("board.vhosts.rabbitmq.new")}
+            </Button>
           </>
         }
       />
@@ -168,10 +170,12 @@ export function VhostsRabbitMQ() {
         </Toolbar>
       )}
       <ListArea>
-        <ListPane>
+        <ListPane style={isBlocked(state) || namespaces.length === 0 ? NOTICE_PANE : undefined}>
           <BoardState
             state={state}
-            empty={namespaces.length === 0 ? t("board.vhosts.rabbitmq.none") : undefined}
+            empty={
+              namespaces.length === 0 ? <Notice title={t("board.vhosts.rabbitmq.none")} /> : undefined
+            }
           >
             <Table inset>
               <TableHeader>
@@ -209,7 +213,6 @@ export function VhostsRabbitMQ() {
                         : t("board.vhosts.rabbitmq.brokerDefault")}
                     </TableCell>
                     <TableCell
-                      className="mono3"
                       style={{
                         textAlign: "right",
                         color: vhost.ready > 0 ? "var(--c-warn-text)" : undefined,
@@ -217,7 +220,7 @@ export function VhostsRabbitMQ() {
                     >
                       {formatCount(vhost.ready)}
                     </TableCell>
-                    <TableCell className="mono3" style={{ textAlign: "right" }}>
+                    <TableCell style={{ textAlign: "right" }}>
                       {formatCount(vhost.unacknowledged)}
                     </TableCell>
                     <TableCell className="mono3" style={MONO11}>

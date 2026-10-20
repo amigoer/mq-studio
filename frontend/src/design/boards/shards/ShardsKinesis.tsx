@@ -153,9 +153,7 @@ export function ShardsKinesis() {
                         </span>
                       </TableCell>
                       <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {share(keyShare(entry))}
-                        </span>
+                        {share(keyShare(entry))}
                       </TableCell>
                       <TableCell>
                         <span className="mono3" style={MONO11}>

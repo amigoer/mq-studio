@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Page, PageBody, PageHeader, RefreshButton } from "@/design/shell";
 import { Button } from "@/components/ui/button";
@@ -135,6 +136,11 @@ export function TopicsGooglePubSub() {
               placeholder={t("board.google-pubsub.topics.search")}
               onChange={(event) => setSearch(event.target.value)}
             />
+            <RefreshButton
+              refreshing={state.refreshing}
+              online={state.online}
+              onClick={() => void state.refresh()}
+            />
             <Button
               size="sm"
               onClick={() => {
@@ -142,13 +148,9 @@ export function TopicsGooglePubSub() {
                 setFormOpen(true);
               }}
             >
+              <Plus aria-hidden />
               {t("board.google-pubsub.topics.create")}
             </Button>
-            <RefreshButton
-              refreshing={state.refreshing}
-              online={state.online}
-              onClick={() => void state.refresh()}
-            />
           </div>
         }
       />
@@ -196,14 +198,10 @@ export function TopicsGooglePubSub() {
                         )}
                       </TableCell>
                       <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {formatCount(entry.subscribers)}
-                        </span>
+                        {formatCount(entry.subscribers)}
                       </TableCell>
                       <TableCell>
-                        <span className="mono3" style={MONO11}>
-                          {duration(entry.retentionSec)}
-                        </span>
+                        {duration(entry.retentionSec)}
                       </TableCell>
                       <TableCell>
                         <span className="mono3" style={MONO11}>

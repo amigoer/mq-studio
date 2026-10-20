@@ -126,17 +126,13 @@ export function DlqActiveMQ() {
                         </span>
                       </TableCell>
                       <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {formatCount(Number(queue.depth))}
-                        </span>
+                        {formatCount(Number(queue.depth))}
                       </TableCell>
                       <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {formatCount(queue.consumers)}
-                        </span>
+                        {formatCount(queue.consumers)}
                       </TableCell>
                       <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
+                        <span className="tabular-nums">
                           {/*
                             Blank rather than 0 on Classic: nothing was
                             counted, as against nothing pointing here.

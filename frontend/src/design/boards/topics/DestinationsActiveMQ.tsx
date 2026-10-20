@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Plus } from "lucide-react";
 import { Page, PageBody, PageHeader, RefreshButton } from "@/design/shell";
 import { Input } from "@/components/ui/input";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -48,7 +49,7 @@ function count(value: number | null): string {
 
 function Cell({ value }: { value: number | null }) {
   return (
-    <span className="mono3" style={MONO11}>
+    <span className="tabular-nums">
       {count(value)}
     </span>
   );
@@ -205,14 +206,15 @@ export function DestinationsActiveMQ() {
               placeholder={t("board.activemq.destinations.search")}
               onChange={(event) => setSearch(event.target.value)}
             />
-            <Button size="sm" onClick={() => setCreating(true)}>
-              {t("board.activemq.destinations.create")}
-            </Button>
             <RefreshButton
               refreshing={state.refreshing}
               online={state.online}
               onClick={() => void state.refresh()}
             />
+            <Button size="sm" onClick={() => setCreating(true)}>
+              <Plus aria-hidden />
+              {t("board.activemq.destinations.create")}
+            </Button>
           </div>
         }
       />

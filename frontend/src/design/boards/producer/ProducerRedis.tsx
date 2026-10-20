@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Spinner } from "@/components/ui/spinner";
 import { Panel, SectionLabel, SelectField, Status, toast } from "@/components";
-import { BoardState } from "@/design/boards/BoardState";
+import { BoardState, Notice } from "@/design/boards/BoardState";
 import { useRedisStreams } from "@/hooks/redis/useRedisStreams";
 import { useConnectionScope } from "@/mq/ConnectionScope";
 import * as redisApi from "@/api/redis";
@@ -85,15 +85,7 @@ export function ProducerRedis() {
       <BoardState
         state={streams}
         empty={
-          streamKeys.length === 0 ? (
-            <PageBody>
-              <div
-                style={{ padding: "24px", fontSize: "11.5px", color: "var(--c-muted)" }}
-              >
-                {t("board.producer.redis.noStreams")}
-              </div>
-            </PageBody>
-          ) : undefined
+          streamKeys.length === 0 ? <Notice title={t("board.producer.redis.noStreams")} /> : undefined
         }
       >
         <PageBody>

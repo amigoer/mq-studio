@@ -130,7 +130,7 @@ export function BrokersKafka() {
                       selected={selected === node.address}
                       onClick={() => setSelected(node.address)}
                     >
-                      <TableCell className="mono3" style={R}>{nodeID(node)}</TableCell>
+                      <TableCell style={R}>{nodeID(node)}</TableCell>
                       <TableCell className="mono3" style={MONO11}>{node.address}</TableCell>
                       <TableCell className="mono3" style={MONO11}>
                         {rack(node) === "" ? "—" : rack(node)}
@@ -215,15 +215,15 @@ export function BrokersKafka() {
                   <TableBody>
                     {dirs.map((dir) => (
                       <TableRow key={`${dir?.broker}/${dir?.path}`}>
-                        <TableCell className="mono3" style={R}>{dir?.broker}</TableCell>
+                        <TableCell style={R}>{dir?.broker}</TableCell>
                         <TableCell className="mono3" style={MONO11}>
                           {dir?.path}
                           {dir?.err !== "" && (
                             <span style={{ color: "var(--c-err-text)" }}> · {dir?.err}</span>
                           )}
                         </TableCell>
-                        <TableCell className="mono3" style={R}>{dir?.partitions}</TableCell>
-                        <TableCell className="mono3" style={R}>
+                        <TableCell style={R}>{dir?.partitions}</TableCell>
+                        <TableCell style={R}>
                           {dir?.err === "" ? formatBytes(dir?.size ?? 0) : "—"}
                         </TableCell>
                       </TableRow>
@@ -258,9 +258,9 @@ export function BrokersKafka() {
                             </Status>
                           )}
                         </TableCell>
-                        <TableCell className="mono3" style={R}>{partition?.partition}</TableCell>
-                        <TableCell className="mono3" style={R}>{partition?.broker}</TableCell>
-                        <TableCell className="mono3" style={R}>
+                        <TableCell style={R}>{partition?.partition}</TableCell>
+                        <TableCell style={R}>{partition?.broker}</TableCell>
+                        <TableCell style={R}>
                           {formatBytes(partition?.size ?? 0)}
                         </TableCell>
                       </TableRow>
@@ -348,12 +348,12 @@ export function KafkaTransactionsPanel({
                       </Status>
                     )}
                   </TableCell>
-                  <TableCell className="mono3" style={R}>{txn.coordinator}</TableCell>
+                  <TableCell style={R}>{txn.coordinator}</TableCell>
                   <TableCell className="mono3" style={R}>
                     {txn.producerId}
                     <span style={{ color: "var(--c-muted)" }}>/{txn.producerEpoch}</span>
                   </TableCell>
-                  <TableCell className="mono3" style={R}>
+                  <TableCell style={R}>
                     {transactionAge(txn.startedAt, now)}
                   </TableCell>
                   <TableCell className="mono3" style={MONO11}>

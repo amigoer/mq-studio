@@ -138,10 +138,10 @@ export function ClientsSolace() {
                       <TableCell className="mono3" style={MONO11}>
                         {entry.username || DASH}
                       </TableCell>
-                      <TableCell className="num mono3" style={MONO11}>
+                      <TableCell className="num">
                         {formatCount(entry.binds)}
                       </TableCell>
-                      <TableCell className="num mono3" style={MONO11}>
+                      <TableCell className="num">
                         {duration(entry.uptimeSec)}
                       </TableCell>
                     </TableRow>

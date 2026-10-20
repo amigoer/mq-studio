@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Page, PageBody, PageHeader, RefreshButton } from "@/design/shell";
 import { Button } from "@/components/ui/button";
@@ -158,6 +159,11 @@ export function QueuesSqs() {
               placeholder={t("board.sqs.queues.search")}
               onChange={(event) => setSearch(event.target.value)}
             />
+            <RefreshButton
+              refreshing={state.refreshing}
+              online={state.online}
+              onClick={() => void state.refresh()}
+            />
             <Button
               size="sm"
               onClick={() => {
@@ -165,13 +171,9 @@ export function QueuesSqs() {
                 setFormOpen(true);
               }}
             >
+              <Plus aria-hidden />
               {t("board.sqs.queues.create")}
             </Button>
-            <RefreshButton
-              refreshing={state.refreshing}
-              online={state.online}
-              onClick={() => void state.refresh()}
-            />
           </div>
         }
       />
@@ -215,24 +217,16 @@ export function QueuesSqs() {
                         )}
                       </TableCell>
                       <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {count(entry.visible)}
-                        </span>
+                        {count(entry.visible)}
                       </TableCell>
                       <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {count(entry.inFlight)}
-                        </span>
+                        {count(entry.inFlight)}
                       </TableCell>
                       <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {count(entry.delayed)}
-                        </span>
+                        {count(entry.delayed)}
                       </TableCell>
                       <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {count(entry.depth)}
-                        </span>
+                        {count(entry.depth)}
                       </TableCell>
                       <TableCell>
                         <span className="mono3" style={MONO11}>

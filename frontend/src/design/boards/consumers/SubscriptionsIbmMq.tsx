@@ -142,9 +142,7 @@ export function SubscriptionsIbmMq() {
                         </span>
                       </TableCell>
                       <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {count(entry.messagesReceived)}
-                        </span>
+                        {count(entry.messagesReceived)}
                       </TableCell>
                     </TableRow>
                   ))}

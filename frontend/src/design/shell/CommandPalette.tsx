@@ -221,8 +221,8 @@ export function CommandPalette({
                     ) : (
                       <Plug aria-hidden />
                     )}
-                    <span className="mono3 text-sm">{hit.name}</span>
-                    <span className="text-[10.5px] text-muted-foreground">{hit.meta}</span>
+                    <span className="text-sm">{hit.name}</span>
+                    <span className="truncate text-[11px] text-muted-foreground">{hit.meta}</span>
                   </CommandItem>
                 ))}
               </CommandGroup>

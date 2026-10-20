@@ -2972,7 +2972,7 @@
           "done": "Set {{queue}} to offset {{offset}}"
         },
         "form": {
-          "newAction": "+ New group",
+          "newAction": "New group",
           "newTitle": "New consumer group",
           "editTitle": "Edit consumer group",
           "nameLabel": "Group name",
@@ -3492,7 +3492,7 @@
       "noteProps": "Properties go in the shared block · a failed schema check rejects the send",
       "autoId": "* (automatic)",
       "fields": "Fields · field / value",
-      "addField": "+ Add field",
+      "addField": "Add field",
       "noteXadd": "* generates the ID · maxlen ~ trims approximately, which is faster",
       "messageExpiry": "Message expiry",
       "responseTopic": "Response topic",
@@ -3500,7 +3500,7 @@
       "protocolSpecific": "Protocol-specific ·",
       "subtitle": "Compose and send a test message · drafts save themselves",
       "send": "Send",
-      "add": "+ Add",
+      "add": "Add",
       "sent": "Sent",
       "options": "Send options",
       "count": "Repeat",

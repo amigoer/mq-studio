@@ -93,9 +93,7 @@ export function DlqSqs() {
                         </span>
                       </TableCell>
                       <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {count(entry.depth)}
-                        </span>
+                        {count(entry.depth)}
                       </TableCell>
                       <TableCell>
                         <span className="mono3" style={MONO11}>

@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Plus } from "lucide-react";
 import { ListArea, ListPane, Page, PageHeader, RefreshButton, Toolbar } from "@/design/shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Status, toast, useConfirm } from "@/components";
-import { BoardState } from "@/design/boards/BoardState";
+import { BoardState, Notice } from "@/design/boards/BoardState";
 import { GroupDialog } from "./GroupDialog";
 import { PositionDialog } from "./PositionDialog";
 import { useRedisGroups } from "@/hooks/redis/useRedisGroups";
@@ -165,14 +166,15 @@ export function ConsumersRedis() {
         subtitle={t("board.consumers.redis.subtitle")}
         actions={
           <>
-            <Button disabled={streamKeys.length === 0} onClick={() => setDeclaring(true)}>
-              {t("board.consumers.redis.newGroup")}
-            </Button>
             <RefreshButton
               refreshing={state.refreshing}
               online={state.online}
               onClick={() => void state.refresh()}
             />
+            <Button disabled={streamKeys.length === 0} onClick={() => setDeclaring(true)}>
+              <Plus aria-hidden />
+              {t("board.consumers.redis.newGroup")}
+            </Button>
           </>
         }
       />
@@ -205,22 +207,13 @@ export function ConsumersRedis() {
         state={state}
         empty={
           rows.length === 0 ? (
-            <ListArea>
-              <ListPane>
-                <div
-                  style={{
-                    padding: "24px",
-                    fontSize: "11.5px",
-                    color: "var(--c-muted)",
-                    textAlign: "center",
-                  }}
-                >
-                  {groups.length === 0
-                    ? t("board.consumers.redis.noGroups")
-                    : t("board.consumers.redis.noMatches")}
-                </div>
-              </ListPane>
-            </ListArea>
+            <Notice
+              title={
+                groups.length === 0
+                  ? t("board.consumers.redis.noGroups")
+                  : t("board.consumers.redis.noMatches")
+              }
+            />
           ) : undefined
         }
       >
@@ -253,21 +246,21 @@ export function ConsumersRedis() {
                       <TableCell className="mono3" style={MONO11}>
                         {groupStream(group)}
                       </TableCell>
-                      <TableCell className="mono3" style={RIGHT}>
+                      <TableCell style={RIGHT}>
                         <Status tone={TONE[condition]}>
                           {consumerCount(group)} · {t(`board.consumers.redis.health.${condition}`)}
                         </Status>
                       </TableCell>
-                      <TableCell className="mono3" style={RIGHT}>
+                      <TableCell style={RIGHT}>
                         <Metric value={held} />
                       </TableCell>
                       <TableCell className="mono3" style={MONO11}>
                         {lastDeliveredId(group) ?? "—"}
                       </TableCell>
-                      <TableCell className="mono3" style={RIGHT}>
+                      <TableCell style={RIGHT}>
                         <Metric value={entriesRead(group)} />
                       </TableCell>
-                      <TableCell className="mono3" style={RIGHT}>
+                      <TableCell style={RIGHT}>
                         {/* Null is not zero. Redis stops being able to count
                             the lag once entries a group had not read are
                             deleted, and a zero there would report a group that

@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Page, PageBody, PageHeader, RefreshButton } from "@/design/shell";
 import { Button } from "@/components/ui/button";
@@ -121,14 +122,15 @@ export function ConsumersKinesis() {
               placeholder={t("board.kinesis.consumers.search")}
               onChange={(event) => setSearch(event.target.value)}
             />
-            <Button size="sm" onClick={() => setFormOpen(true)}>
-              {t("board.kinesis.consumers.register")}
-            </Button>
             <RefreshButton
               refreshing={state.refreshing}
               online={state.online}
               onClick={() => void state.refresh()}
             />
+            <Button size="sm" onClick={() => setFormOpen(true)}>
+              <Plus aria-hidden />
+              {t("board.kinesis.consumers.register")}
+            </Button>
           </div>
         }
       />

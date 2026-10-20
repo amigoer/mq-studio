@@ -673,7 +673,7 @@ function StatusCell({ connection, error }: { connection: Connection; error?: str
         <Status tone="ok" dot>
           {t("page.connections.online")}
         </Status>{" "}
-        <span className="mono3" style={{ fontSize: "10px", color: "var(--c-muted)" }}>
+        <span className="tabular-nums" style={{ fontSize: "10px", color: "var(--c-muted)" }}>
           {connection.latency}
         </span>
       </>

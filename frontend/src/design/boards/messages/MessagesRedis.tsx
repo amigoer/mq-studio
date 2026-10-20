@@ -23,7 +23,7 @@ import {
   toast,
   useConfirm,
 } from "@/components";
-import { BoardState } from "@/design/boards/BoardState";
+import { BoardState, Notice } from "@/design/boards/BoardState";
 import { useRedisEntries } from "@/hooks/redis/useRedisEntries";
 import { useRedisStreams } from "@/hooks/redis/useRedisStreams";
 import { useConnectionScope } from "@/mq/ConnectionScope";
@@ -163,22 +163,13 @@ export function MessagesRedis() {
         state={entries.state}
         empty={
           entries.items.length === 0 ? (
-            <ListArea>
-              <ListPane>
-                <div
-                  style={{
-                    padding: "24px",
-                    fontSize: "11.5px",
-                    color: "var(--c-muted)",
-                    textAlign: "center",
-                  }}
-                >
-                  {entries.lastCount === null
-                    ? t("board.messages.redis.pickAStream")
-                    : t("board.messages.redis.nothingRead")}
-                </div>
-              </ListPane>
-            </ListArea>
+            <Notice
+              title={
+                entries.lastCount === null
+                  ? t("board.messages.redis.pickAStream")
+                  : t("board.messages.redis.nothingRead")
+              }
+            />
           ) : undefined
         }
       >
@@ -201,7 +192,7 @@ export function MessagesRedis() {
                       <TableCell className="mono3" style={MONO11}>
                         {id}
                       </TableCell>
-                      <TableCell className="mono3" style={RIGHT}>
+                      <TableCell style={RIGHT}>
                         {fieldCount(item)}
                       </TableCell>
                       <TableCell className="mono3" style={MONO11}>

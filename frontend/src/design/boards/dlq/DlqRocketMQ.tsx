@@ -240,7 +240,7 @@ export function DlqRocketMQ() {
                       <TableCell className="mono3" style={{ ...MONO11, color: dim }}>
                         {row.keys || "—"}
                       </TableCell>
-                      <TableCell className="mono3" style={{ ...R, color: dim }}>
+                      <TableCell style={{ ...R, color: dim }}>
                         {row.retryTimes}
                       </TableCell>
                       <TableCell className="mono3" style={{ ...MONO11, color: dim }}>
