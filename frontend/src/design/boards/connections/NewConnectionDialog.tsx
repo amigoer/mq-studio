@@ -26,6 +26,8 @@ import {
   type ProtocolId,
 } from "@/design/data/protocols";
 import { cn, formatErrorMessage } from "@/lib/utils";
+import { AnimatePresence, motion } from "motion/react";
+import { markIn, probeIn, reveal } from "@/lib/motion";
 import type { ConnectionDraft, CredentialsMode } from "@/api/connection";
 import type { Connection as ConnectionProfile } from "@/api/models";
 import {
@@ -513,9 +515,9 @@ export function NewConnectionDialog({
             </DialogFooter>
           ) : (
             <>
-              {verdict?.kind === "failed" && (
-                <div className="mqs-probe-reveal">
-                  <div>
+              <AnimatePresence>
+                {verdict?.kind === "failed" && (
+                  <motion.div key="reason" {...reveal} className="overflow-hidden">
                     {/* Shown, not hovered: a title attribute is no tooltip on
                         WKWebView, and this is what the test exists to produce.
                         Dimmed rather than dropped once the form moves on, because
@@ -530,9 +532,9 @@ export function NewConnectionDialog({
                         {verdict.message}
                       </AlertDescription>
                     </Alert>
-                  </div>
-                </div>
-              )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
               {/* Two groups pushed to the two gutters: the test and its answer,
                   then the way out and the way forward. */}
               <DialogFooter className="m-0 items-center gap-3 px-6 sm:justify-between">
@@ -591,21 +593,25 @@ function ProbeStatus({ probing, verdict }: { probing: boolean; verdict: ProbeVer
   return (
     <span role="status" className="inline-flex items-center whitespace-nowrap *:ml-2">
       {probing ? (
-        <span className="mqs-probe-in inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+        <motion.span key="probing" {...probeIn} className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
           <LoaderCircle className="mqs-turning size-3.5" aria-hidden />
           {t("page.connections.testing")}
-        </span>
+        </motion.span>
       ) : verdict?.kind === "ok" ? (
-        <span className="mqs-probe-in inline-flex h-6 items-center gap-1.5 rounded-full bg-(--c-ok-tint) px-2.5 text-xs font-medium text-(--c-ok-text)">
-          <Check className="mqs-probe-mark size-3.5" strokeWidth={2.5} aria-hidden />
+        <motion.span key="ok" {...probeIn} className="inline-flex h-6 items-center gap-1.5 rounded-full bg-(--c-ok-tint) px-2.5 text-xs font-medium text-(--c-ok-text)">
+          <motion.span {...markIn} className="inline-flex">
+            <Check className="size-3.5" strokeWidth={2.5} aria-hidden />
+          </motion.span>
           {t("page.connections.probeOkShort")}
           <span className="font-normal tabular-nums opacity-70">{verdict.latency}</span>
-        </span>
+        </motion.span>
       ) : verdict?.kind === "failed" ? (
-        <span className="mqs-probe-in inline-flex h-6 items-center gap-1.5 rounded-full bg-(--c-err-bg) px-2.5 text-xs font-medium text-(--c-err-text)">
-          <X className="mqs-probe-mark size-3.5" strokeWidth={2.5} aria-hidden />
+        <motion.span key="failed" {...probeIn} className="inline-flex h-6 items-center gap-1.5 rounded-full bg-(--c-err-bg) px-2.5 text-xs font-medium text-(--c-err-text)">
+          <motion.span {...markIn} className="inline-flex">
+            <X className="size-3.5" strokeWidth={2.5} aria-hidden />
+          </motion.span>
           {t("page.connections.probeFailed")}
-        </span>
+        </motion.span>
       ) : null}
     </span>
   );

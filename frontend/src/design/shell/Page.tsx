@@ -1,5 +1,6 @@
-import type { CSSProperties, ReactNode } from "react";
+import { Children, type CSSProperties, type ReactNode } from "react";
 import { RefreshCw } from "lucide-react";
+import { AnimatePresence } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "react-i18next";
 
@@ -140,7 +141,9 @@ export function PageBody({
 export function ListArea({ children, style }: { children: ReactNode; style?: CSSProperties }) {
   return (
     <div style={{ position: "relative", flex: 1, display: "flex", minHeight: 0, ...style }}>
-      {children}
+      {/* Lets the detail sheet leave after its host drops it. `toArray` keys
+          the children by position, which presence tracking needs. */}
+      <AnimatePresence>{Children.toArray(children)}</AnimatePresence>
     </div>
   );
 }

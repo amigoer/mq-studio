@@ -219,6 +219,7 @@
   /*
    * Motion. Every duration in the shell is one of these, so 界面过渡动画 has a
    * single place to turn them off -- see the switch at the foot of the file.
+   * lib/motion.ts carries the same numbers for Motion components.
    * Three lengths: `fast` for a colour under the cursor, `base` for anything
    * that enters or leaves, `slow` for the detail sheet, which crosses its own
    * width to get there.
@@ -372,46 +373,6 @@
 /* Anything else waiting on Go turns the same way, at the same speed. */
 .mqs-turning {
   animation: mqs-turn var(--mo-turn) linear infinite;
-}
-/*
- * 测试连接's answer slides out from the button rather than swapping in place,
- * so a second test that gets the same answer still visibly got one.
- */
-.mqs-probe-in {
-  animation: mqs-probe-in var(--mo-base) var(--mo-ease-out);
-}
-@keyframes mqs-probe-in {
-  from {
-    opacity: 0;
-    transform: translateX(-4px);
-  }
-}
-.mqs-probe-mark {
-  animation: mqs-probe-mark var(--mo-base) var(--mo-ease-out);
-}
-@keyframes mqs-probe-mark {
-  from {
-    transform: scale(0.4);
-  }
-}
-/*
- * A failed test's reason opens rather than appears: the dialog is centred, so a
- * block arriving at full height would jolt the whole form by half of it.
- */
-.mqs-probe-reveal {
-  display: grid;
-  grid-template-rows: 1fr;
-  animation: mqs-probe-reveal var(--mo-base) var(--mo-ease-out);
-}
-.mqs-probe-reveal > * {
-  min-height: 0;
-  overflow: hidden;
-}
-@keyframes mqs-probe-reveal {
-  from {
-    grid-template-rows: 0fr;
-    opacity: 0;
-  }
 }
 /*
  * A control small enough to live inside a field's grey hint line. It borrows
@@ -1483,46 +1444,7 @@ html[data-animations='off'] .mqs-toaster [data-sonner-toast] {
   transition: none;
 }
 
-/*
- * The detail sheet, coming in off the right edge it is docked to. It carries a
- * `data-state` that lib/motion's useEnter flips one frame after mount, so the
- * transition has a start value to run from, and that useLeave's copy flips
- * back to leave on.
- *
- * The whole way in from the edge, rather than the 16px nudge this was: across
- * 440px of panel the nudge was lost and what was left was a fade, which reads
- * as the sheet appearing rather than arriving. In on the decelerating curve,
- * out faster on the accelerating one. The fade comes along so that the
- * shadow's tail is not sitting at the window's edge before the panel is.
- *
- * The last of what was once a set: a scrim, a modal that rose into the middle
- * and a menu that dropped from its trigger went with the move to shadcn, whose
- * overlays bring their own. This one stayed because the sheet is ours.
- */
-.mqs-slide-right {
-  opacity: 0;
-  transform: translateX(100%);
-  transition:
-    opacity var(--mo-base) var(--mo-ease-in),
-    transform var(--mo-base) var(--mo-ease-in);
-}
-.mqs-slide-right[data-state='open'] {
-  opacity: 1;
-  transform: none;
-  transition:
-    opacity var(--mo-fast) linear,
-    transform var(--mo-slow) var(--mo-ease);
-}
-
-/*
- * The connection list's footer and its selection bar, taking turns in one
- * slot. Both stay mounted in a single grid cell, so the swap runs both ways on
- * transitions alone and the slot never changes height under the table.
- *
- * The bar rises from the window's edge rather than fading in where the footer
- * was: arriving is what ties it to the tick that summoned it. The footer only
- * fades, since a second thing moving would read as the whole strip jumping.
- */
+/* The connection list's footer and its selection bar, stacked in one grid cell. */
 .mqs-footer-swap {
   flex: none;
   display: grid;
@@ -1531,104 +1453,13 @@ html[data-animations='off'] .mqs-toaster [data-sonner-toast] {
 .mqs-footer-swap > * {
   grid-area: 1 / 1;
   min-width: 0;
-  transition:
-    opacity var(--mo-base) var(--mo-ease-out),
-    transform var(--mo-base) var(--mo-ease-out);
-}
-.mqs-footer-swap > [data-layer='bulk'] {
-  opacity: 0;
-  transform: translateY(100%);
-}
-.mqs-footer-swap[data-state='open'] > [data-layer='bulk'] {
-  opacity: 1;
-  transform: none;
-}
-.mqs-footer-swap[data-state='open'] > [data-layer='status'] {
-  opacity: 0;
 }
 
 /*
- * A tick lands rather than appears. Bound to the slot for the reason the
- * popover rule below gives; only the checked state, so a partial header box
- * filling up to a full one pops as well.
- */
-[data-slot='checkbox-indicator'][data-state='checked'] {
-  animation: mqs-tick var(--mo-fast) var(--mo-ease-out);
-}
-@keyframes mqs-tick {
-  from {
-    opacity: 0;
-    transform: scale(0.5);
-  }
-}
-
-/*
- * Every popover panel, on the same ladder as everything else that moves: the
- * notification centre, each Combobox, the namespace switcher.
- *
- * It replaces what tw-animate-css draws by default -- a 150ms literal, a plain
- * `ease` and a 5% zoom -- which was a second motion vocabulary beside the
- * `--mo-*` durations the rest of the shell is built on. This file is imported
- * unlayered, so it wins over the utilities without either side having to grow
- * a specificity fight, and it answers the 界面过渡动画 switch through the
- * variables rather than through the blanket at the foot of the file.
- *
- * Bound to the slot rather than to a class of our own, because the class would
- * have to be threaded through every call site and the shadcn primitive that
- * stamps this attribute is regenerated from a registry: an edit there is lost
- * on the next `shadcn add`. The five other primitives carrying the same
- * defaults -- dialog, sheet, select, dropdown-menu, alert-dialog -- are still
- * on the library's own numbers.
- *
- * The origin is left to Radix, which measures where the panel actually landed:
- * flipped above its trigger for want of room, it has to grow from the bottom.
- */
-[data-slot='popover-content'][data-state='open'] {
-  animation: mqs-menu-in var(--mo-fast) var(--mo-ease-out);
-}
-[data-slot='popover-content'][data-state='closed'] {
-  animation: mqs-menu-out var(--mo-fast) var(--mo-ease-out);
-}
-@keyframes mqs-menu-in {
-  from {
-    opacity: 0;
-    transform: translateY(-4px) scale(0.98);
-  }
-}
-@keyframes mqs-menu-out {
-  to {
-    opacity: 0;
-    transform: translateY(-4px) scale(0.98);
-  }
-}
-
-/*
- * Page transition: the content column when the view, the tab or the page under
- * it changes. Opacity alone -- a transform here would become the containing
- * block for the detail sheet, which is positioned against the shell body and
- * not against the page.
- */
-.mqs-view {
-  animation: view-in var(--mo-base) var(--mo-ease-out);
-}
-/*
- * A little travel, not just a fade. Opacity alone changes the whole column at
- * once and reads as a flash; 6px of rise gives the eye something to follow, so
- * the same 180ms reads as the page arriving. The ease-out spends most of that
- * distance early, which is what keeps it from feeling slow on a page somebody
- * clicks through quickly.
- */
-@keyframes view-in {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-}
-
-/*
- * 界面过渡动画. useUIPrefs writes the attribute; everything that moves answers
- * to it here rather than each rule testing for itself. Motion is dropped rather
- * than shortened, so a transition cannot be caught mid-way.
+ * 界面过渡动画. useUIPrefs writes the attribute (and tells Motion, through
+ * lib/motion's setAnimations); everything else that moves answers to it here
+ * rather than each rule testing for itself. Movement is dropped rather than
+ * shortened, so a transition cannot be caught mid-way.
  *
  * The variables are the switch proper -- they carry every duration in the file
  * and turning them off leaves each element resting exactly where it was drawn.

@@ -88,7 +88,11 @@ boxes.
 ## Motion
 
 Use Motion for anything that enters, leaves or changes layout:
-`AnimatePresence` for exits, `motion.*` for enters, `layout` for reflow. Keep
-it short (120-280ms, the `--mo-*` durations) and decelerating on the way in.
-CSS transitions are fine for a colour or a border under the cursor. The
-"界面过渡动画" setting turns every animation off through `MotionConfig`.
+`AnimatePresence` for exits, `motion.*` for enters, `layout` for reflow. Take
+durations and curves from `lib/motion.ts` (`DURATION`, `EASE`, and presets
+such as `viewIn` and `reveal`), which mirror the `--mo-*` variables: short
+(120-280ms) and decelerating on the way in. A detail sheet needs nothing
+extra: `ListArea` already lets it leave. CSS transitions are fine for a colour
+or a border under the cursor, and shadcn's overlays keep their own
+animations. The "界面过渡动画" setting turns all of it off: the variables
+collapse to 0s and `setAnimations` makes Motion skip to each end state.

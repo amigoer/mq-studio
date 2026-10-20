@@ -29,7 +29,8 @@ import {
   Status,
 } from "@/components";
 import { ProtocolIcon } from "@/design/icons/ProtocolIcon";
-import { useHeld } from "@/lib/motion";
+import { motion } from "motion/react";
+import { DURATION, EASE, useHeld } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import type { Connection, ConnectionStatus } from "@/design/data/connections";
 import type { ConnectionOp } from "@/hooks/useConnectionProfiles";
@@ -506,10 +507,19 @@ export function ConnectionsList({
         )}
       </div>
 
-      {/* The footer and the selection bar take turns in one slot; tokens.css
-          has the swap. The one not showing is inert, so it cannot be tabbed to. */}
+      {/* The footer and the selection bar take turns in one grid cell, both
+          mounted, so the slot never changes height under the table. The bar
+          rises from the window's edge, which ties it to the tick that summoned
+          it; the footer only fades, or the whole strip would seem to jump. The
+          one not showing is inert, so it cannot be tabbed to. */}
       <div className="mqs-footer-swap" data-state={barOpen ? "open" : "closed"}>
-        <div data-layer="status" inert={barOpen}>
+        <motion.div
+          data-layer="status"
+          inert={barOpen}
+          initial={false}
+          animate={{ opacity: barOpen ? 0 : 1 }}
+          transition={{ duration: DURATION.base, ease: EASE.out }}
+        >
           <StatusBar
             left={
               <span>
@@ -532,8 +542,14 @@ export function ConnectionsList({
               </span>
             }
           />
-        </div>
-        <div data-layer="bulk" inert={!barOpen}>
+        </motion.div>
+        <motion.div
+          data-layer="bulk"
+          inert={!barOpen}
+          initial={false}
+          animate={barOpen ? { opacity: 1, y: 0 } : { opacity: 0, y: "100%" }}
+          transition={{ duration: DURATION.base, ease: EASE.out }}
+        >
           <SelectionBar
             selection={bar.selection}
             pending={pending}
@@ -542,7 +558,7 @@ export function ConnectionsList({
             onClear={() => setSelected(new Set())}
             onStop={onStopBulk}
           />
-        </div>
+        </motion.div>
       </div>
     </Page>
   );

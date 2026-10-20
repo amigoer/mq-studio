@@ -1,10 +1,11 @@
 import { useEffect, useLayoutEffect, useRef, type CSSProperties, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { X } from "lucide-react";
+import { motion, useIsPresent } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useEnter, useLeave } from "@/lib/motion";
+import { DURATION, EASE } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
 /*
@@ -26,9 +27,9 @@ const beside = (target: EventTarget | null) =>
 /**
  * The docked master-detail inspector. Deliberately not the modal shadcn Sheet:
  * it must stay non-modal so clicking another row retargets the panel instead
- * of first dismissing an overlay. It is absolutely positioned against the
- * shell's content area, so it overlays the page header too rather than
- * squeezing the table's column widths, and stops short of the dock.
+ * of first dismissing an overlay. It is positioned against its `ListArea`,
+ * beside the rows, and leaves through the `AnimatePresence` there: hosts
+ * render it behind `selected &&`.
  */
 export function DetailPanel({
   width = 380,
@@ -50,23 +51,22 @@ export function DetailPanel({
   style?: CSSProperties;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  const state = useEnter();
-  useLeave(ref);
+  const present = useIsPresent();
 
   /*
    * Tells the list beside the sheet how much room to give up (`.mqs-listpane`
    * reads it), so the sheet sits next to the rows instead of over their last
-   * columns. Set before paint and cleared on removal, so the list slides back
-   * while the sheet's exit copy slides out.
+   * columns. Set before paint and given back as the sheet starts to leave, so
+   * the list slides back while the sheet slides out.
    */
   useLayoutEffect(() => {
     const parent = ref.current?.parentElement;
-    if (parent == null) return;
+    if (parent == null || !present) return;
     parent.style.setProperty("--mqs-sheet-w", `${width}px`);
     return () => {
       parent.style.removeProperty("--mqs-sheet-w");
     };
-  }, [width]);
+  }, [width, present]);
 
   const dismiss = useRef(onDismiss);
   dismiss.current = onDismiss;
@@ -94,19 +94,34 @@ export function DetailPanel({
   }, []);
 
   return (
-    <div
+    <motion.div
       ref={ref}
       className={cn(
         /* Two tight layers rather than one 44px blur, which laid a grey band a
            finger wide across whatever list the sheet was describing. */
-        "mqs-slide-right absolute inset-y-0 right-0 z-10 flex flex-col overflow-hidden border-l bg-background shadow-[-10px_0_28px_-14px_rgba(0,0,0,0.22),-24px_0_48px_-24px_rgba(0,0,0,0.08)]",
+        "absolute inset-y-0 right-0 z-10 flex flex-col overflow-hidden border-l bg-background shadow-[-10px_0_28px_-14px_rgba(0,0,0,0.22),-24px_0_48px_-24px_rgba(0,0,0,0.08)]",
         className,
       )}
-      data-state={state}
+      /*
+       * The whole way in from the edge it is docked to: a short nudge across
+       * the panel's width reads as appearing rather than arriving. The fade
+       * keeps the shadow's tail from reaching the edge before the panel does.
+       */
+      initial={{ x: "100%", opacity: 0 }}
+      animate={{
+        x: 0,
+        opacity: 1,
+        transition: {
+          x: { duration: DURATION.slow, ease: EASE.standard },
+          opacity: { duration: DURATION.fast, ease: "linear" },
+        },
+      }}
+      exit={{ x: "100%", opacity: 0, transition: { duration: DURATION.base, ease: EASE.in } }}
+      inert={!present}
       style={{ width: `${width}px`, ...style }}
     >
       {children}
-    </div>
+    </motion.div>
   );
 }
 
