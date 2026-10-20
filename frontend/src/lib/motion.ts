@@ -4,7 +4,7 @@
  * numbers. Keep the two in step.
  *
  * The 界面过渡动画 switch reaches both: the variables collapse to 0s, and
- * `setAnimations` tells Motion to skip straight to each end state.
+ * `setMotionEnabled` tells Motion to skip straight to each end state.
  */
 
 import { useEffect, useState } from "react";
@@ -19,7 +19,7 @@ export const EASE = {
 } as const;
 
 /** Dropped rather than shortened, so nothing can be caught mid-way. */
-export function setAnimations(on: boolean): void {
+export function setMotionEnabled(on: boolean): void {
   MotionGlobalConfig.skipAnimations = !on;
 }
 

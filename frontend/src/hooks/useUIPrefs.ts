@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { setAnimations } from "@/lib/motion";
+import { setMotionEnabled } from "@/lib/motion";
 
 export interface UIPrefs {
   animations: boolean;
@@ -59,7 +59,7 @@ function applyPrefs(p: UIPrefs) {
   const root = document.documentElement;
   clearLegacyAccent();
   root.setAttribute("data-animations", p.animations ? "on" : "off");
-  setAnimations(p.animations);
+  setMotionEnabled(p.animations);
 }
 
 export function useUIPrefs() {

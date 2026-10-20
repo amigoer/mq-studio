@@ -96,4 +96,4 @@ such as `viewIn` and `reveal`), which mirror the `--mo-*` variables: short
 extra: `ListArea` already lets it leave. CSS transitions are fine for a colour
 or a border under the cursor, and shadcn's overlays keep their own
 animations. The "界面过渡动画" setting turns all of it off: the variables
-collapse to 0s and `setAnimations` makes Motion skip to each end state.
+collapse to 0s and `setMotionEnabled` makes Motion skip to each end state.

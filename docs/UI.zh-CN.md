@@ -48,4 +48,4 @@ MQ Studio 的界面怎么搭、应该长什么样。新增页面、对话框或�
 
 ## 动画
 
-凡是进场、退场或布局变化都用 Motion：退场用 `AnimatePresence`，进场用 `motion.*`，重排用 `layout`。时长和曲线取自 `lib/motion.ts`（`DURATION`、`EASE`，以及 `viewIn`、`reveal` 等预设），它们与 `--mo-*` 变量一一对应：简短（120-280ms），进场用减速曲线。详情面板无需额外处理，`ListArea` 已经负责它的退场。鼠标悬停时颜色或边框的变化可以用 CSS transition，shadcn 的浮层沿用它们自带的动画。设置里的“界面过渡动画”会关闭全部动画：CSS 变量归零，`setAnimations` 让 Motion 直接跳到终态。
+凡是进场、退场或布局变化都用 Motion：退场用 `AnimatePresence`，进场用 `motion.*`，重排用 `layout`。时长和曲线取自 `lib/motion.ts`（`DURATION`、`EASE`，以及 `viewIn`、`reveal` 等预设），它们与 `--mo-*` 变量一一对应：简短（120-280ms），进场用减速曲线。详情面板无需额外处理，`ListArea` 已经负责它的退场。鼠标悬停时颜色或边框的变化可以用 CSS transition，shadcn 的浮层沿用它们自带的动画。设置里的“界面过渡动画”会关闭全部动画：CSS 变量归零，`setMotionEnabled` 让 Motion 直接跳到终态。
