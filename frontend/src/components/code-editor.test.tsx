@@ -41,4 +41,34 @@ describe("CodeEditor", () => {
   it("draws no colour layer for a body that is not JSON", () => {
     expect(ghostText(render("text"))).toBeNull();
   });
+
+  /**
+   * The textarea is what gives the editor a height. Laid out absolute, like
+   * the colour layer, it left the box with none, and a caller that set no
+   * height of its own drew the body editor zero pixels tall (#116).
+   */
+  it("keeps the textarea in flow, so the editor has a height of its own", () => {
+    const textarea = /<textarea[^>]*>/.exec(render("json"))?.[0] ?? "";
+    expect(textarea).not.toMatch(/\babsolute\b/);
+    expect(textarea).toMatch(/rows="8"/);
+  });
+
+  /**
+   * Only the RocketMQ board has a panel to act as the editor's frame. Anywhere
+   * else an unframed editor is blank space under a label, with nothing to say
+   * where to click or that it has focus (#116).
+   */
+  it("draws its own frame and focus ring unless the page frames it", () => {
+    const wrapper = (html: string) => /^<div[^>]*>/.exec(html)?.[0] ?? "";
+    const framed = wrapper(render("json"));
+    expect(framed).toMatch(/\bborder-input\b/);
+    expect(framed).toMatch(/\bfocus-within:ring-/);
+
+    const bare = wrapper(
+      renderToStaticMarkup(
+        <CodeEditor value={BODY} onValueChange={() => {}} framed={false} />,
+      ),
+    );
+    expect(bare).not.toMatch(/border-input|focus-within:/);
+  });
 });
