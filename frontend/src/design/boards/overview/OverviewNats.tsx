@@ -1,7 +1,8 @@
 import { useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { Page, PageHeader, RefreshButton } from "@/design/shell";
-import { Bar, Panel, SectionLabel, StatTile, Status } from "@/components";
+import { Cable, Server, Turtle, Users } from "lucide-react";
+import { Page, PageBody, PageHeader, RefreshButton } from "@/design/shell";
+import { Bar, Panel, PanelHeader, StatTile, Status } from "@/components";
 import { BoardState } from "@/design/boards/BoardState";
 import { useBrokerData } from "@/hooks/useBrokerData";
 import { useNatsCluster } from "@/hooks/nats/useNatsCluster";
@@ -10,12 +11,8 @@ import { formatBytes, formatCount } from "@/lib/format";
 import { connections, metaLeader, slowConsumers, subscriptions } from "@/mq/nats/cluster";
 import type { AccountUsage } from "@bindings/driver/nats/models";
 import type { BrokerHealth, HealthCheck } from "@bindings/model/models";
+import { KPI_GRID } from "./_shared";
 
-const KPI_GRID = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
-  gap: "8px",
-} as const;
 
 /**
  * What this connection is looking at.
@@ -64,10 +61,12 @@ export function OverviewNats() {
         }
       />
       <BoardState state={cluster}>
-        <div style={{ padding: "12px", display: "flex", flexDirection: "column", gap: "12px" }}>
-          <div style={KPI_GRID}>
+        <PageBody>
+          <div className={KPI_GRID}>
             <StatTile
               label={t("board.overview.nats.servers")}
+              icon={Server}
+              tone="slate"
               value={String(nodes.length)}
               hint={
                 overview != null && metaLeader(overview) != null
@@ -77,48 +76,54 @@ export function OverviewNats() {
             />
             <StatTile
               label={t("board.overview.nats.connections")}
+              icon={Cable}
+              tone="blue"
               value={reported(overview == null ? null : connections(overview))}
             />
             <StatTile
               label={t("board.overview.nats.subscriptions")}
+              icon={Users}
+              tone="teal"
               value={reported(overview == null ? null : subscriptions(overview))}
             />
             <StatTile
               label={t("board.overview.nats.slow")}
+              icon={Turtle}
+              tone="orange"
               value={reported(overview == null ? null : slowConsumers(overview))}
               hint={t("board.overview.nats.slowHint")}
             />
           </div>
 
-          <Panel style={{ padding: "12px" }}>
-            <SectionLabel style={{ marginBottom: "8px" }}>
-              {t("board.overview.nats.storage")}
-            </SectionLabel>
-            {usage.error != null ? (
-              /* JetStream can be absent while everything above still works,
-                 so its failure belongs in its own panel rather than taking
-                 the page down. */
-              <div style={{ fontSize: "11.5px", color: "var(--c-muted)" }}>{usage.error}</div>
-            ) : usage.data == null ? (
-              <div style={{ fontSize: "11.5px", color: "var(--c-muted)" }}>
-                {t("board.state.loading")}
+          <div className="mqs-tablerow">
+            <Panel>
+              <PanelHeader title={t("board.overview.nats.storage")} />
+              <div className="p-4">
+                {usage.error != null ? (
+                  /* JetStream can be absent while everything above still works,
+                     so its failure belongs in its own panel rather than taking
+                     the page down. */
+                  <p className="text-xs text-muted-foreground">{usage.error}</p>
+                ) : usage.data == null ? (
+                  <p className="text-xs text-muted-foreground">{t("board.state.loading")}</p>
+                ) : (
+                  <Usage usage={usage.data} />
+                )}
               </div>
-            ) : (
-              <Usage usage={usage.data} />
-            )}
-          </Panel>
+            </Panel>
 
-          <Panel style={{ padding: "12px" }}>
-            <SectionLabel style={{ marginBottom: "8px" }}>
-              {t("board.overview.nats.health")}
-            </SectionLabel>
-            {health.error != null ? (
-              <div style={{ fontSize: "11.5px", color: "var(--c-muted)" }}>{health.error}</div>
-            ) : (
-              <Health health={health.data} />
-            )}
-          </Panel>
-        </div>
+            <Panel>
+              <PanelHeader title={t("board.overview.nats.health")} />
+              <div className="p-4">
+                {health.error != null ? (
+                  <p className="text-xs text-muted-foreground">{health.error}</p>
+                ) : (
+                  <Health health={health.data} />
+                )}
+              </div>
+            </Panel>
+          </div>
+        </PageBody>
       </BoardState>
     </Page>
   );
@@ -156,12 +161,12 @@ function Usage({ usage }: { usage: AccountUsage }) {
       <div style={{ display: "flex", gap: "16px", fontSize: "11px", color: "var(--c-muted)" }}>
         <span>
           {t("board.overview.nats.streams")}{" "}
-          <b className="mono3">{formatCount(usage.streams)}</b>
+          <b className="text-(--c-fg-2) tabular-nums">{formatCount(usage.streams)}</b>
           {usage.streamLimit > 0 && ` / ${formatCount(usage.streamLimit)}`}
         </span>
         <span>
           {t("board.overview.nats.consumers")}{" "}
-          <b className="mono3">{formatCount(usage.consumers)}</b>
+          <b className="text-(--c-fg-2) tabular-nums">{formatCount(usage.consumers)}</b>
           {usage.consumerLimit > 0 && ` / ${formatCount(usage.consumerLimit)}`}
         </span>
         {usage.domain !== "" && (
@@ -198,7 +203,7 @@ function Gauge({
         }}
       >
         <span style={{ color: "var(--c-muted)" }}>{label}</span>
-        <span className="mono3">
+        <span className="text-(--c-fg-2) tabular-nums">
           {format(used)}
           {capped ? (
             ` / ${format(limit)}`

@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { Activity, Cable, CircleSlash, Pin, Users } from "lucide-react";
 import { Page, PageBody, PageHeader, RefreshButton } from "@/design/shell";
 import {
   Table,
@@ -8,12 +9,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Panel, PanelHeader, StatTile } from "@/components";
+import { MiniStat, Panel, PanelHeader, StatTile } from "@/components";
 import { BoardState } from "@/design/boards/BoardState";
 import { useMqttBroker } from "@/hooks/mqtt/useMqttBroker";
 import { brokerStats, formatUptimeSeconds, sysTopics } from "@/mq/mqtt/cluster";
 import { formatBytes, formatCount } from "@/lib/format";
-import { KPI_GRID, TABLE_CARD } from "./_shared";
+import { KPI_GRID } from "./_shared";
 
 /** A figure the broker did not report, drawn as absent rather than as zero. */
 function reported(value: number | null): string {
@@ -69,6 +70,8 @@ export function OverviewMqtt() {
           <div className={KPI_GRID}>
             <StatTile
               label={t("board.overview.mqtt.onlineClients")}
+              icon={Cable}
+              tone="slate"
               value={reported(stats?.clientsConnected ?? null)}
               hint={
                 stats?.clientsMaximum != null
@@ -80,6 +83,8 @@ export function OverviewMqtt() {
             />
             <StatTile
               label={t("board.overview.mqtt.subscriptions")}
+              icon={Users}
+              tone="teal"
               value={reported(stats?.subscriptions ?? null)}
               hint={
                 stats?.sharedSubscriptions != null
@@ -89,11 +94,15 @@ export function OverviewMqtt() {
             />
             <StatTile
               label={t("board.overview.mqtt.retained")}
+              icon={Pin}
+              tone="violet"
               value={reported(stats?.retained ?? null)}
               hint={t("board.overview.mqtt.retainedHint")}
             />
             <StatTile
               label={t("board.overview.mqtt.messagesIn")}
+              icon={Activity}
+              tone="blue"
               value={reported(stats?.messagesReceived ?? null)}
               hint={t("board.overview.mqtt.messagesOut", {
                 count: stats?.messagesSent ?? 0,
@@ -101,47 +110,37 @@ export function OverviewMqtt() {
             />
             <StatTile
               label={t("board.overview.mqtt.dropped")}
+              icon={CircleSlash}
+              tone="orange"
               value={reported(stats?.messagesDropped ?? null)}
               hint={t("board.overview.mqtt.droppedHint")}
             />
           </div>
 
-          <Panel style={TABLE_CARD}>
+          <Panel>
             <PanelHeader title={t("board.overview.mqtt.broker")} />
-            <Table>
-              <TableBody>
-                <TableRow>
-                  <TableCell>{t("board.overview.mqtt.uptime")}</TableCell>
-                  <TableCell className="mono3">
-                    {formatUptimeSeconds(stats?.uptimeSeconds ?? null)}
-                  </TableCell>
-                  <TableCell>{t("board.overview.mqtt.topics")}</TableCell>
-                  <TableCell className="mono3">
-                    {/* MQTT cannot enumerate topics; only a management API can
-                        count them, so this is blank on a plain broker. */}
-                    {reported(stats?.topics ?? null)}
-                  </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>{t("board.overview.mqtt.bytesIn")}</TableCell>
-                  <TableCell className="mono3">
-                    {reportedBytes(stats?.bytesReceived ?? null)}
-                  </TableCell>
-                  <TableCell>{t("board.overview.mqtt.bytesOut")}</TableCell>
-                  <TableCell className="mono3">
-                    {reportedBytes(stats?.bytesSent ?? null)}
-                  </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>{t("board.overview.mqtt.sessions")}</TableCell>
-                  <TableCell className="mono3">{reported(stats?.clientsTotal ?? null)}</TableCell>
-                  <TableCell>{t("board.overview.mqtt.heap")}</TableCell>
-                  <TableCell className="mono3">
-                    {reportedBytes(stats?.heapBytes ?? null)}
-                  </TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
+            <div className="grid grid-cols-3 gap-2 p-4">
+              <MiniStat
+                label={t("board.overview.mqtt.uptime")}
+                value={formatUptimeSeconds(stats?.uptimeSeconds ?? null)}
+              />
+              {/* MQTT cannot enumerate topics; only a management API can
+                  count them, so this is blank on a plain broker. */}
+              <MiniStat label={t("board.overview.mqtt.topics")} value={reported(stats?.topics ?? null)} />
+              <MiniStat
+                label={t("board.overview.mqtt.sessions")}
+                value={reported(stats?.clientsTotal ?? null)}
+              />
+              <MiniStat
+                label={t("board.overview.mqtt.bytesIn")}
+                value={reportedBytes(stats?.bytesReceived ?? null)}
+              />
+              <MiniStat
+                label={t("board.overview.mqtt.bytesOut")}
+                value={reportedBytes(stats?.bytesSent ?? null)}
+              />
+              <MiniStat label={t("board.overview.mqtt.heap")} value={reportedBytes(stats?.heapBytes ?? null)} />
+            </div>
           </Panel>
 
           {/*
@@ -151,11 +150,11 @@ export function OverviewMqtt() {
             `mosquitto_sub -t '$SYS/#'`: a broker publishes counters this app
             has never heard of, and the ones it does know are already above.
           */}
-          <Panel style={TABLE_CARD}>
+          <Panel className="overflow-hidden">
             <PanelHeader
               title={t("board.overview.mqtt.sysMetrics")}
               action={
-                <span style={{ fontSize: "11.5px", color: "var(--c-muted)" }}>
+                <span className="text-xs text-muted-foreground">
                   {tree.length > 0
                     ? t("board.overview.mqtt.sysCount", { count: tree.length })
                     : t("board.overview.mqtt.sysAbsent")}
@@ -163,7 +162,7 @@ export function OverviewMqtt() {
               }
             />
             {tree.length > 0 && (
-              <Table>
+              <Table inset="card">
                 <TableHeader>
                   <TableRow>
                     <TableHead>{t("board.common.metrics")}</TableHead>
@@ -173,9 +172,7 @@ export function OverviewMqtt() {
                 <TableBody>
                   {tree.map((entry) => (
                     <TableRow key={entry.topic}>
-                      <TableCell className="mono3" style={{ fontSize: "11px" }}>
-                        {entry.topic}
-                      </TableCell>
+                      <TableCell className="mono3 text-xs">{entry.topic}</TableCell>
                       <TableCell className="mono3" style={{ textAlign: "right" }}>
                         {entry.value}
                       </TableCell>

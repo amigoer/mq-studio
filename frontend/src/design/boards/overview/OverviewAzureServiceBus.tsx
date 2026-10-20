@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { Ban, CirclePause, CircleSlash, Layers, Radio, Users } from "lucide-react";
 import { Page, PageBody, PageHeader, RefreshButton } from "@/design/shell";
 import { Panel, PanelHeader, StatTile } from "@/components";
 import {
@@ -23,7 +24,6 @@ import { useConnectionProfiles } from "@/hooks/useConnectionProfiles";
 import { formatCount } from "@/lib/format";
 import { KPI_GRID } from "./_shared";
 
-const MONO11 = { fontSize: "11px" } as const;
 const DASH = "—";
 
 /**
@@ -113,33 +113,45 @@ export function OverviewAzureServiceBus() {
           <div className={KPI_GRID}>
             <StatTile
               label={t("board.azure-servicebus.overview.queues")}
+              icon={Layers}
+              tone="violet"
               value={formatCount(queues)}
               hint={t("board.azure-servicebus.overview.queuesHint")}
             />
             <StatTile
               label={t("board.azure-servicebus.overview.topics")}
+              icon={Radio}
+              tone="blue"
               value={formatCount(topics)}
               hint={t("board.azure-servicebus.overview.topicsHint")}
             />
             <StatTile
               label={t("board.azure-servicebus.overview.subscriptions")}
+              icon={Users}
+              tone="teal"
               value={formatCount(subscriptions.length)}
               hint={t("board.azure-servicebus.overview.subscriptionsHint")}
             />
             <StatTile
               label={t("board.azure-servicebus.overview.unsubscribed")}
+              icon={CircleSlash}
+              tone="orange"
               value={formatCount(unsubscribed)}
               hint={t("board.azure-servicebus.overview.unsubscribedHint")}
               valueColor={unsubscribed > 0 ? "var(--c-warn-text)" : undefined}
             />
             <StatTile
               label={t("board.azure-servicebus.overview.unroutable")}
+              icon={Ban}
+              tone="pink"
               value={formatCount(unroutable)}
               hint={t("board.azure-servicebus.overview.unroutableHint")}
               valueColor={unroutable > 0 ? "var(--c-warn-text)" : undefined}
             />
             <StatTile
               label={t("board.azure-servicebus.overview.disabled")}
+              icon={CirclePause}
+              tone="slate"
               value={formatCount(disabled)}
               hint={t("board.azure-servicebus.overview.disabledHint")}
               valueColor={disabled > 0 ? "var(--c-warn-text)" : undefined}
@@ -148,7 +160,7 @@ export function OverviewAzureServiceBus() {
 
           <Panel>
             <PanelHeader title={t("board.azure-servicebus.overview.busiest")} />
-            <Table>
+            <Table inset="card">
               <TableHeader>
                 <TableRow>
                   <TableHead>{t("board.azure-servicebus.entities.name")}</TableHead>
@@ -161,21 +173,9 @@ export function OverviewAzureServiceBus() {
               <TableBody>
                 {busiest.map((row) => (
                   <TableRow key={row.name}>
-                    <TableCell>
-                      <span className="mono3" style={MONO11}>
-                        {row.name}
-                      </span>
-                    </TableCell>
-                    <TableCell className="num">
-                      <span className="mono3" style={MONO11}>
-                        {formatCount(row.subscribers ?? 0)}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <span className="mono3" style={MONO11}>
-                        {row.subscriptionNames.join(", ") || DASH}
-                      </span>
-                    </TableCell>
+                    <TableCell className="select-text">{row.name}</TableCell>
+                    <TableCell className="num">{formatCount(row.subscribers ?? 0)}</TableCell>
+                    <TableCell className="select-text">{row.subscriptionNames.join(", ") || DASH}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

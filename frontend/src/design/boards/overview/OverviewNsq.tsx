@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { CirclePause, Hourglass, Inbox, Layers, Timer, Waypoints } from "lucide-react";
 import { Page, PageBody, PageHeader, RefreshButton } from "@/design/shell";
 import {
   Panel,
@@ -26,7 +27,6 @@ import { present } from "@/api/client";
 import { formatCount } from "@/lib/format";
 import { KPI_GRID } from "./_shared";
 
-const MONO11 = { fontSize: "11px" } as const;
 
 /**
  * The NSQ overview.
@@ -105,42 +105,54 @@ export function OverviewNsq() {
           <div className={KPI_GRID}>
             <StatTile
               label={t("board.nsq.overview.topics")}
+              icon={Layers}
+              tone="violet"
               value={formatCount(topics.length)}
             />
             <StatTile
               label={t("board.nsq.overview.channels")}
+              icon={Waypoints}
+              tone="blue"
               value={formatCount(channels.length)}
             />
             <StatTile
               label={t("board.nsq.overview.backlog")}
+              icon={Inbox}
+              tone="orange"
               value={formatCount(backlog)}
               hint={t("board.nsq.overview.backlogHint")}
             />
             <StatTile
               label={t("board.nsq.overview.undrained")}
+              icon={Hourglass}
+              tone="pink"
               value={formatCount(undrained)}
               hint={t("board.nsq.overview.undrainedHint")}
             />
             <StatTile
               label={t("board.nsq.overview.held")}
+              icon={Timer}
+              tone="teal"
               value={formatCount(held)}
               hint={t("board.nsq.overview.heldHint")}
             />
             <StatTile
               label={t("board.nsq.overview.paused")}
+              icon={CirclePause}
+              tone="slate"
               value={formatCount(paused)}
               hint={t("board.nsq.overview.pausedHint")}
             />
           </div>
 
-          <Panel style={{ overflow: "auto" }}>
+          <Panel className="overflow-auto">
             <PanelHeader title={t("board.nsq.overview.busiest")} />
             {busiest.length === 0 ? (
-              <p style={{ padding: "0 12px 12px", fontSize: "11.5px", color: "var(--c-muted)" }}>
+              <p className="p-4 text-xs text-muted-foreground">
                 {t("board.nsq.overview.nothingWaiting")}
               </p>
             ) : (
-              <Table>
+              <Table inset="card">
                 <TableHeader>
                   <TableRow>
                     <TableHead>{t("board.nsq.overview.channel")}</TableHead>
@@ -153,9 +165,7 @@ export function OverviewNsq() {
                   {busiest.map((entry) => (
                     <TableRow key={channelKey(entry)}>
                       <TableCell>
-                        <span className="mono3" style={MONO11}>
-                          {channelKey(entry)}
-                        </span>
+                        <span className="select-text">{channelKey(entry)}</span>
                         {entry.paused && (
                           <Status tone="warn" style={{ fontSize: "10px", marginLeft: "6px" }}>
                             {t("board.nsq.overview.pausedBadge")}
@@ -167,13 +177,13 @@ export function OverviewNsq() {
                           </Status>
                         )}
                       </TableCell>
-                      <TableCell className="num mono3" style={MONO11}>
+                      <TableCell className="num">
                         {formatCount(entry.backlog ?? 0)}
                       </TableCell>
-                      <TableCell className="num mono3" style={MONO11}>
+                      <TableCell className="num">
                         {formatCount(entry.inFlight ?? 0)}
                       </TableCell>
-                      <TableCell className="num mono3" style={MONO11}>
+                      <TableCell className="num">
                         {entry.clients}
                       </TableCell>
                     </TableRow>

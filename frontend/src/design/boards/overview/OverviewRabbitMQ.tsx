@@ -1,5 +1,6 @@
-import { useMemo, type ReactNode } from "react";
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { Cable, Inbox, Layers, Server, Waypoints } from "lucide-react";
 import { Page, PageBody, PageHeader, RefreshButton } from "@/design/shell";
 import {
   Table,
@@ -9,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { KV, MeterRow, Panel, PanelHeader, StatTile, Status } from "@/components";
+import { MeterRow, MiniStat, Panel, PanelHeader, StatTile, Status } from "@/components";
 import { BoardState } from "@/design/boards/BoardState";
 import { useRabbitOverview } from "@/hooks/rabbitmq/useRabbitOverview";
 import { formatBytes, formatCount, formatRateWithUnit } from "@/lib/format";
@@ -27,7 +28,7 @@ import {
   partitions,
 } from "@/mq/rabbitmq/nodes";
 import type { Node } from "@/api/models";
-import { CHART_CARD, CHART_ROW, KPI_GRID, NAME_CELL, TABLE_CARD } from "./_shared";
+import { KPI_GRID } from "./_shared";
 
 /** How many rows a summary table shows before it stops being a summary. */
 const TOP_ROWS = 6;
@@ -120,6 +121,8 @@ export function OverviewRabbitMQ() {
               <div className={KPI_GRID}>
                 <StatTile
                   label={t("board.common.node")}
+                  icon={Server}
+                  tone="slate"
                   value={`${online} / ${nodes.length}`}
                   hint={
                     split.length > 0
@@ -130,21 +133,29 @@ export function OverviewRabbitMQ() {
                 />
                 <StatTile
                   label={t("board.common.queue")}
+                  icon={Layers}
+                  tone="violet"
                   value={formatCount(census.queues)}
                   hint={byType}
                 />
                 <StatTile
                   label={t("board.common.exchange")}
+                  icon={Waypoints}
+                  tone="pink"
                   value={formatCount(census.exchanges)}
                   hint={t("board.overview.rabbitmq.consumers", { count: census.consumers })}
                 />
                 <StatTile
                   label={t("board.overview.rabbitmq.connChannels")}
+                  icon={Cable}
+                  tone="blue"
                   value={`${formatCount(census.connections)} / ${formatCount(census.channels)}`}
                   hint={t("board.overview.rabbitmq.connChannelsHint")}
                 />
                 <StatTile
                   label={t("board.overview.rabbitmq.ready")}
+                  icon={Inbox}
+                  tone="orange"
                   value={formatCount(census.ready)}
                   valueColor={census.ready > 0 ? "var(--c-warn-text)" : undefined}
                   hint={t("board.overview.rabbitmq.unacked", {
@@ -153,49 +164,47 @@ export function OverviewRabbitMQ() {
                 />
               </div>
 
-              <div className={CHART_ROW}>
-                <Panel style={CHART_CARD}>
-                  <b style={{ fontSize: "12.5px" }}>{t("board.common.messageRate")}</b>
+              <div className="mqs-tablerow">
+                <Panel>
+                  <PanelHeader title={t("board.common.messageRate")} />
                   {/* Current rates rather than a chart. The broker computes
                       these over its own window; nothing here records a series
                       for them, and drawing a placeholder box would promise a
                       history that does not exist. */}
-                  <KV
-                    rows={[
-                      ["publish", formatRateWithUnit(census.rates.publish)],
-                      ["deliver", formatRateWithUnit(census.rates.deliver)],
-                      ["ack", formatRateWithUnit(census.rates.ack)],
-                      [
-                        "redeliver",
-                        <Tone key="redeliver" bad={census.rates.redeliver > 0} tone="warn">
-                          {formatRateWithUnit(census.rates.redeliver)}
-                        </Tone>,
-                      ],
-                      [
-                        t("board.overview.rabbitmq.unroutable"),
-                        <Tone key="unroutable" bad={census.rates.unroutable > 0} tone="err">
-                          {formatRateWithUnit(census.rates.unroutable)}
-                        </Tone>,
-                      ],
-                    ]}
-                  />
+                  <div className="grid grid-cols-3 gap-2 p-4">
+                    <MiniStat label="publish" value={formatRateWithUnit(census.rates.publish)} />
+                    <MiniStat label="deliver" value={formatRateWithUnit(census.rates.deliver)} />
+                    <MiniStat label="ack" value={formatRateWithUnit(census.rates.ack)} />
+                    <MiniStat
+                      label="redeliver"
+                      value={formatRateWithUnit(census.rates.redeliver)}
+                      color={census.rates.redeliver > 0 ? "var(--c-warn-text)" : undefined}
+                    />
+                    <MiniStat
+                      label={t("board.overview.rabbitmq.unroutable")}
+                      value={formatRateWithUnit(census.rates.unroutable)}
+                      color={census.rates.unroutable > 0 ? "var(--c-err-text)" : undefined}
+                    />
+                  </div>
                 </Panel>
-                <Panel style={CHART_CARD}>
-                  <b style={{ fontSize: "12.5px" }}>{t("board.overview.rabbitmq.watermarks")}</b>
-                  {nodes.map((node) => (
-                    <NodeWatermarks key={node.name} node={node} />
-                  ))}
-                  {nodes.length === 0 && (
-                    <span style={{ fontSize: "11px", color: "var(--c-muted)" }}>
-                      {t("board.overview.rabbitmq.noNodes")}
-                    </span>
-                  )}
+                <Panel>
+                  <PanelHeader title={t("board.overview.rabbitmq.watermarks")} />
+                  <div className="flex flex-col gap-2 p-4">
+                    {nodes.map((node) => (
+                      <NodeWatermarks key={node.name} node={node} />
+                    ))}
+                    {nodes.length === 0 && (
+                      <span className="text-xs text-muted-foreground">
+                        {t("board.overview.rabbitmq.noNodes")}
+                      </span>
+                    )}
+                  </div>
                 </Panel>
               </div>
 
-              <Panel style={TABLE_CARD}>
+              <Panel className="overflow-hidden">
                 <PanelHeader title={t("board.overview.rabbitmq.busiest")} />
-                <Table>
+                <Table inset="card">
                   <TableHeader>
                     <TableRow>
                       <TableHead>{t("board.common.queue")}</TableHead>
@@ -215,13 +224,10 @@ export function OverviewRabbitMQ() {
                       const unacked = messagesUnacknowledged(queue);
                       return (
                         <TableRow key={`${queue.ref.namespace}/${queue.ref.name}`}>
-                          <TableCell>{queue.ref.name}</TableCell>
-                          <TableCell className="mono3" style={NAME_CELL}>
-                            {vhost(queue)}
-                          </TableCell>
+                          <TableCell className="select-text">{queue.ref.name}</TableCell>
+                          <TableCell className="text-muted-foreground">{vhost(queue)}</TableCell>
                           <TableCell>{queueType(queue)}</TableCell>
                           <TableCell
-                            className="mono3"
                             style={{
                               textAlign: "right",
                               color: ready > 0 ? "var(--c-warn-text)" : undefined,
@@ -229,10 +235,8 @@ export function OverviewRabbitMQ() {
                           >
                             {formatCount(ready)}
                           </TableCell>
-                          <TableCell className="mono3" style={{ textAlign: "right" }}>
-                            {formatCount(unacked)}
-                          </TableCell>
-                          <TableCell className="mono3" style={{ textAlign: "right" }}>
+                          <TableCell style={{ textAlign: "right" }}>{formatCount(unacked)}</TableCell>
+                          <TableCell style={{ textAlign: "right" }}>
                             {formatCount(queue.subscribers)}
                           </TableCell>
                           <TableCell>
@@ -259,19 +263,6 @@ export function OverviewRabbitMQ() {
   );
 }
 
-/** Colours a figure only when it is telling you something. */
-function Tone({
-  bad,
-  tone,
-  children,
-}: {
-  bad: boolean;
-  tone: "warn" | "err";
-  children: ReactNode;
-}) {
-  return <span style={bad ? { color: `var(--c-${tone}-text)` } : undefined}>{children}</span>;
-}
-
 /**
  * One node's two limits.
  *
@@ -288,31 +279,36 @@ function NodeWatermarks({ node }: { node: Node }) {
   const stranded = partitions(node);
 
   return (
-    <>
-      {memory != null && (
-        <MeterRow
-          label={`${node.name} mem`}
-          value={memory}
-          color={memoryAlarm(node) ? "var(--c-err)" : memory >= 80 ? "var(--c-warn)" : undefined}
-        />
-      )}
-      {disk != null && (
-        <MeterRow
-          label={`${node.name} disk`}
-          value={disk}
-          display={formatBytes(node.attributes?.diskFree)}
-          color={diskFreeAlarm(node) ? "var(--c-err)" : disk >= 80 ? "var(--c-warn)" : undefined}
-        />
-      )}
+    <div className="rounded-lg bg-(--c-fill-soft) px-3 py-2.5 ring-1 ring-(--c-rule) ring-inset">
+      <div className="mb-2 truncate text-[12.5px] font-medium select-text">{node.name}</div>
+      <div className="flex flex-col gap-1.5">
+        {memory != null && (
+          <MeterRow
+            label={t("board.common.memory")}
+            labelWidth={36}
+            value={memory}
+            color={memoryAlarm(node) ? "var(--c-err)" : memory >= 80 ? "var(--c-warn)" : undefined}
+          />
+        )}
+        {disk != null && (
+          <MeterRow
+            label={t("board.common.disk")}
+            labelWidth={36}
+            value={disk}
+            display={formatBytes(node.attributes?.diskFree)}
+            color={diskFreeAlarm(node) ? "var(--c-err)" : disk >= 80 ? "var(--c-warn)" : undefined}
+          />
+        )}
+      </div>
       {stranded.length > 0 && (
-        <div style={{ fontSize: "10.5px", color: "var(--c-err-text)" }}>
+        <div className="mt-2 text-[11px] text-(--c-err-text)">
           {t("board.overview.rabbitmq.partitionWarn", {
             node: node.name,
             peers: stranded.join(", "),
           })}
         </div>
       )}
-    </>
+    </div>
   );
 }
 
