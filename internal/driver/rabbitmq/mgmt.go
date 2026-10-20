@@ -152,6 +152,31 @@ func (m *mgmt) deleteWith(ctx context.Context, path string, headers map[string]s
 	return nil
 }
 
+// getJSON reads a management resource into a shape rabbit-hole does not
+// decode. A failure status comes back as rabbit-hole's own ErrorResponse, so
+// statusOf reads it like any other call's.
+func (m *mgmt) getJSON(ctx context.Context, path string, out any) error {
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, m.endpoint+path, nil)
+	if err != nil {
+		return err
+	}
+	request.SetBasicAuth(m.username, m.password)
+
+	client := &http.Client{Transport: m.transport, Timeout: m.budget(ctx)}
+	response, err := client.Do(request)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = response.Body.Close() }()
+
+	if response.StatusCode >= http.StatusBadRequest {
+		failure := rabbithole.ErrorResponse{StatusCode: response.StatusCode}
+		_ = json.NewDecoder(response.Body).Decode(&failure)
+		return failure
+	}
+	return json.NewDecoder(response.Body).Decode(out)
+}
+
 // postJSON sends a management request rabbit-hole does not wrap. The message
 // endpoints are the ones that need it; the API is REST either way, and what is
 // lost is only the typed wrapper.

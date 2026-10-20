@@ -2158,8 +2158,7 @@ func TestLiveIdentityLifecycle(t *testing.T) {
 	if len(created.Tags) != 1 || created.Tags[0] != "management" {
 		t.Errorf("tags = %v, want management", created.Tags)
 	}
-	// The password never comes back; the hash being present is the only thing
-	// that says one exists.
+	// The password never comes back, only whether one exists.
 	if !created.HasPassword {
 		t.Error("a user created with a password reports having none")
 	}
@@ -2182,6 +2181,21 @@ func TestLiveIdentityLifecycle(t *testing.T) {
 	}
 	if !updated.HasPassword {
 		t.Error("updating tags with an empty password wiped the stored password")
+	}
+	// Kept means the same password, not merely one: a hash sent back under the
+	// wrong algorithm still reads as present and logs nobody in.
+	request, err := http.NewRequest(http.MethodGet, liveEndpoint+"/api/whoami", nil)
+	if err != nil {
+		t.Fatalf("build whoami request: %v", err)
+	}
+	request.SetBasicAuth(name, "s3cret")
+	response, err := http.DefaultClient.Do(request)
+	if err != nil {
+		t.Fatalf("whoami: %v", err)
+	}
+	_ = response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		t.Errorf("the original password after a tags update: %s, want 200 OK", response.Status)
 	}
 
 	if err := conn.RemoveIdentity(ctx, name); err != nil {

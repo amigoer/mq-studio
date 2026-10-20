@@ -2,8 +2,10 @@ package rabbitmq
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 
 	rabbithole "github.com/michaelklishin/rabbit-hole/v3"
 
@@ -16,10 +18,8 @@ import (
 // one call, and asking per user would be a request each on a cluster with
 // fifty of them.
 func (c *Conn) ListIdentities(ctx context.Context) ([]*model.Identity, error) {
-	users, err := call(ctx, c.mgmt, func(client *rabbithole.Client) ([]rabbithole.UserInfo, error) {
-		return client.ListUsers()
-	})
-	if err != nil {
+	var users []userRecord
+	if err := c.mgmt.getJSON(ctx, "/api/users", &users); err != nil {
 		return nil, fmt.Errorf("list users: %w", err)
 	}
 
@@ -43,15 +43,34 @@ func (c *Conn) ListIdentities(ctx context.Context) ([]*model.Identity, error) {
 	identities := make([]*model.Identity, 0, len(users))
 	for _, user := range users {
 		identities = append(identities, &model.Identity{
-			Name: user.Name,
-			Tags: user.Tags,
-			// The password itself never comes back; the hash being present is
-			// the only thing that says one exists.
-			HasPassword: user.PasswordHash != "",
+			Name:        user.Name,
+			Tags:        user.Tags,
+			HasPassword: user.hasPassword(),
 			Permissions: byUser[user.Name],
 		})
 	}
 	return identities, nil
+}
+
+// userRecord is a user as the management API reports it.
+//
+// rabbit-hole's UserInfo predates RabbitMQ 4.4, which stopped returning
+// password_hash from the user endpoints and reports has_password instead.
+type userRecord struct {
+	Name             string                      `json:"name"`
+	Tags             rabbithole.UserTags         `json:"tags"`
+	HasPassword      *bool                       `json:"has_password"`
+	PasswordHash     string                      `json:"password_hash"`
+	HashingAlgorithm rabbithole.HashingAlgorithm `json:"hashing_algorithm"`
+}
+
+// hasPassword reads has_password, or the hash being present on a broker
+// older than 4.4. The password itself never comes back.
+func (u userRecord) hasPassword() bool {
+	if u.HasPassword != nil {
+		return *u.HasPassword
+	}
+	return u.PasswordHash != ""
 }
 
 // SaveIdentity creates a user or updates one.
@@ -77,16 +96,12 @@ func (c *Conn) SaveIdentity(ctx context.Context, spec model.IdentitySpec) error 
 	case spec.Password != "":
 		settings.Password = spec.Password
 	default:
-		// Keeping what is there. A user that does not exist yet has nothing to
-		// keep, and the request then creates one with no password - which is
-		// the only reading of "create me a user and set no password".
-		existing, err := call(ctx, c.mgmt, func(client *rabbithole.Client) (*rabbithole.UserInfo, error) {
-			return client.GetUser(spec.Name)
-		})
-		if err == nil && existing != nil && existing.PasswordHash != "" {
-			settings.PasswordHash = existing.PasswordHash
-			settings.HashingAlgorithm = existing.HashingAlgorithm
+		stored, err := c.storedPassword(ctx, spec.Name)
+		if err != nil {
+			return fmt.Errorf("save user %q: %w", spec.Name, err)
 		}
+		settings.PasswordHash = stored.PasswordHash
+		settings.HashingAlgorithm = stored.HashingAlgorithm
 	}
 
 	err := exec(ctx, c.mgmt, func(client *rabbithole.Client) (*http.Response, error) {
@@ -99,6 +114,48 @@ func (c *Conn) SaveIdentity(ctx context.Context, spec model.IdentitySpec) error 
 		return fmt.Errorf("save user %q: %w", spec.Name, err)
 	}
 	return nil
+}
+
+// storedPassword is the hash and algorithm a save must send back to keep a
+// user's password, or neither for a user with none to keep.
+//
+// A user that does not exist yet has nothing to keep, and the request then
+// creates one with no password - which is the only reading of "create me a
+// user and set no password". Any other failure to read is an error: carrying
+// on would send no hash, and the broker would remove the password.
+//
+// RabbitMQ 4.4 no longer returns the hash from the user endpoints. The
+// whole-broker definitions export still carries it, because restoring users
+// from one needs it, so that is where it comes from there - a large read on a
+// big broker, paid only by an edit that keeps a password.
+func (c *Conn) storedPassword(ctx context.Context, name string) (userRecord, error) {
+	var user userRecord
+	if err := c.mgmt.getJSON(ctx, "/api/users/"+url.PathEscape(name), &user); err != nil {
+		if statusOf(err) == http.StatusNotFound {
+			return userRecord{}, nil
+		}
+		return userRecord{}, fmt.Errorf("read the stored password: %w", err)
+	}
+	if !user.hasPassword() {
+		return userRecord{}, nil
+	}
+	if user.PasswordHash != "" {
+		return user, nil
+	}
+
+	var definitions struct {
+		Users []userRecord `json:"users"`
+	}
+	if err := c.mgmt.getJSON(ctx, "/api/definitions", &definitions); err != nil {
+		return userRecord{}, fmt.Errorf("read the stored password from the definitions export: %w", err)
+	}
+	for _, exported := range definitions.Users {
+		if exported.Name == name && exported.PasswordHash != "" {
+			return exported, nil
+		}
+	}
+	return userRecord{}, errors.New(
+		"the broker did not report the stored password, so saving without one would remove it; enter the password to save")
 }
 
 // RemoveIdentity deletes a user.

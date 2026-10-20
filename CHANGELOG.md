@@ -18,6 +18,16 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   broker, but nothing showed. It is now eight lines tall unless the page gives
   it more, and has the border and focus ring of the fields around it. (#116)
 
+- Editing a user's tags on RabbitMQ 4.4 no longer removes its password.
+  RabbitMQ 4.4 stopped returning password hashes from its user endpoints, so
+  every user read as having no password, and saving tags with the password
+  field left blank sent no hash back, which the broker takes as an instruction
+  to remove the password. The users page now reads whether a password is set
+  from the broker's own flag, and a save that keeps the password takes the
+  stored hash from the definitions export instead. When the stored password
+  cannot be read, the save stops and asks for the password rather than going
+  ahead without it.
+
 ## [0.3.0] - 2026-10-03
 
 An assistant now opens beside every page. Ask it why a group is behind or where
