@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { Plus, RotateCcw, Search, Send } from "lucide-react";
+import { ChevronRight, Plus, RotateCcw, Search, Send } from "lucide-react";
 import { Page, PageBody, PageHeader, RefreshButton } from "@/design/shell";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,13 +12,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  MeterRow,
+  Bar,
+  LineChart,
   Panel,
   PanelHeader,
+  SeriesLegend,
   StatTile,
   Status,
 } from "@/components";
-import { LineChart } from "@/components";
 import { BoardState, Notice, isBlocked } from "@/design/boards/BoardState";
 import { useOverview } from "@/hooks/useOverview";
 import { useSettings } from "@/hooks/useSettings";
@@ -31,7 +32,7 @@ import { topicName } from "@/mq/rocketmq/destinations";
 import { groupName, subscriptionsOf } from "@/mq/rocketmq/subscriptions";
 import type { BoardProps } from "@/design/registry";
 import type { PageId } from "@/design/data/protocols";
-import { CHART_CARD, CHART_ROW, KPI_GRID, NAME_CELL, TABLE_CARD } from "./_shared";
+import { CHART_CARD, CHART_ROW, KPI_GRID } from "./_shared";
 
 const UNKNOWN = -1;
 
@@ -197,7 +198,7 @@ export function OverviewRocketMQ({ nav }: BoardProps = {}) {
               <Button
                 key={shortcut.key}
                 variant="outline"
-                className="h-auto justify-start gap-2 px-3 py-2.5 text-xs font-normal"
+                className="h-10 justify-start gap-2.5 rounded-lg px-2.5 text-[12.5px] font-normal text-(--c-fg-2) hover:text-foreground"
                 disabled={!state.online || nav?.onOpenPage == null}
                 onClick={() =>
                   nav?.onOpenPage?.(
@@ -206,7 +207,9 @@ export function OverviewRocketMQ({ nav }: BoardProps = {}) {
                   )
                 }
               >
-                <shortcut.icon size={14} aria-hidden />
+                <span className="flex size-6 flex-none items-center justify-center rounded-md bg-(--c-fill) text-muted-foreground">
+                  <shortcut.icon className="size-3.5" aria-hidden />
+                </span>
                 {t(`board.overview.rocketmq.shortcut.${shortcut.key}`)}
               </Button>
             ))}
@@ -214,7 +217,11 @@ export function OverviewRocketMQ({ nav }: BoardProps = {}) {
 
           <div className={CHART_ROW}>
             <Panel style={CHART_CARD}>
-              <b style={{ fontSize: "12.5px" }}>{t("board.common.throughput")}</b>
+              <div className="flex items-center gap-3">
+                <b className="text-[13px] font-semibold">{t("board.common.throughput")}</b>
+                <span className="flex-1" />
+                {history.timestamps.length > 0 && <SeriesLegend series={series} />}
+              </div>
               {history.timestamps.length === 0 ? (
                 <Notice title={t("board.overview.rocketmq.noHistory")} />
               ) : (
@@ -228,21 +235,36 @@ export function OverviewRocketMQ({ nav }: BoardProps = {}) {
               )}
             </Panel>
             <Panel style={CHART_CARD}>
-              <b style={{ fontSize: "12.5px" }}>{t("board.overview.rocketmq.brokerHealth")}</b>
-              {nodes.map((node) => {
-                const disk = commitLogDiskUsage(node);
-                const label = `${brokerName(node)}${brokerId(node) !== 0 ? `-${brokerId(node)}` : ""}`;
-                return (
-                  <MeterRow
-                    key={label}
-                    label={label}
-                    value={disk === UNKNOWN ? 0 : disk}
-                    color={disk >= diskThreshold ? "var(--c-warn)" : undefined}
-                  />
-                );
-              })}
+              <div className="flex items-center gap-3">
+                <b className="text-[13px] font-semibold">{t("board.overview.rocketmq.brokerHealth")}</b>
+                <span className="flex-1" />
+                <span className="text-xs text-muted-foreground tabular-nums">
+                  {t("board.overview.rocketmq.brokersOnline", {
+                    online: onlineBrokers,
+                    total: nodes.length,
+                  })}
+                </span>
+              </div>
+              <div className="mqs-scroll -mx-1 flex min-h-0 flex-1 flex-col gap-2 px-1">
+                {nodes.map((node) => {
+                  const disk = commitLogDiskUsage(node);
+                  const label = `${brokerName(node)}${brokerId(node) !== 0 ? `-${brokerId(node)}` : ""}`;
+                  return (
+                    <BrokerRow
+                      key={label}
+                      label={label}
+                      address={node.address}
+                      online={node.status === "online"}
+                      disk={disk}
+                      over={disk !== UNKNOWN && disk >= diskThreshold}
+                      rateIn={node.rateIn}
+                      rateOut={node.rateOut}
+                    />
+                  );
+                })}
+              </div>
               {overDisk.length > 0 && (
-                <div style={{ fontSize: "10.5px", color: "var(--c-warn-text)" }}>
+                <div className="text-[11px] text-(--c-warn-text)">
                   {t("board.overview.rocketmq.diskOver", {
                     count: overDisk.length,
                     threshold: diskThreshold,
@@ -252,102 +274,188 @@ export function OverviewRocketMQ({ nav }: BoardProps = {}) {
             </Panel>
           </div>
 
-          <Panel style={CHART_CARD}>
-            <b style={{ fontSize: "12.5px" }}>{t("board.overview.rocketmq.activeTopics")}</b>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Topic</TableHead>
-                  <TableHead style={{ textAlign: "right" }}>{t("board.common.produceTps")}</TableHead>
-                  <TableHead style={{ textAlign: "right" }}>{t("board.topics.rocketmq.queueRW")}</TableHead>
-                  <TableHead style={{ textAlign: "right" }}>{t("board.common.consumerGroup")}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {activeTopics.map((topic) => (
-                  <TableRow key={topicName(topic)}>
-                    <TableCell className="mono3" style={NAME_CELL}>
-                      {topicName(topic)}
-                    </TableCell>
-                    <TableCell className="mono3" style={{ textAlign: "right" }}>
-                      {count(topic.rateIn)}
-                    </TableCell>
-                    <TableCell className="mono3" style={{ textAlign: "right" }}>
-                      {count(topic.partitions)}
-                    </TableCell>
-                    <TableCell className="mono3" style={{ textAlign: "right" }}>
-                      {count(topic.subscribers)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {activeTopics.length === 0 && (
+          <div className="mqs-tablerow">
+            <Panel className="overflow-hidden">
+              <PanelHeader
+                title={t("board.overview.rocketmq.activeTopics")}
+                action={
+                  <ViewAll
+                    disabled={nav?.onOpenPage == null}
+                    onClick={() => nav?.onOpenPage?.("topics")}
+                  />
+                }
+              />
+              <Table inset="card">
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={4} style={{ padding: "20px", textAlign: "center", color: "var(--c-muted)" }}>
-                      {t("board.overview.rocketmq.noTopics")}
-                    </TableCell>
+                    <TableHead>Topic</TableHead>
+                    <TableHead style={{ textAlign: "right" }}>{t("board.common.produceTps")}</TableHead>
+                    <TableHead style={{ textAlign: "right" }}>{t("board.topics.rocketmq.queueRW")}</TableHead>
+                    <TableHead style={{ textAlign: "right" }}>{t("board.common.consumerGroup")}</TableHead>
                   </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </Panel>
-
-          <Panel style={TABLE_CARD}>
-            <PanelHeader title={t("board.common.topBacklogGroups")} />
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t("board.common.consumerGroup")}</TableHead>
-                  <TableHead>Topic</TableHead>
-                  <TableHead style={{ textAlign: "right" }}>{t("board.common.backlog")}</TableHead>
-                  <TableHead style={{ textAlign: "right" }}>{t("board.common.consumeTps")}</TableHead>
-                  <TableHead>{t("board.common.status")}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {backlogged.map((group) => {
-                  const backlog = group.backlog ?? 0;
-                  const alerting = backlog > lagThreshold;
-                  const reads = subscriptionsOf(group)
-                    .map((one) => one.topic)
-                    .join(", ");
-                  return (
-                    <TableRow key={groupName(group)}>
-                      <TableCell>{groupName(group)}</TableCell>
-                      <TableCell className="mono3" style={NAME_CELL}>
-                        {reads || "—"}
+                </TableHeader>
+                <TableBody>
+                  {activeTopics.map((topic) => (
+                    <TableRow key={topicName(topic)}>
+                      <TableCell className="max-w-56 truncate font-medium select-text">
+                        {topicName(topic)}
                       </TableCell>
-                      <TableCell
-                        className="mono3"
-                        style={{
-                          textAlign: "right",
-                          color: alerting ? "var(--c-warn-text)" : undefined,
-                        }}
-                      >
-                        {backlog.toLocaleString()}
+                      <TableCell style={{ textAlign: "right" }}>{count(topic.rateIn)}</TableCell>
+                      <TableCell className="text-muted-foreground" style={{ textAlign: "right" }}>
+                        {count(topic.partitions)}
                       </TableCell>
-                      <TableCell className="mono3" style={{ textAlign: "right" }}>
-                        {count(group.rateOut)}
-                      </TableCell>
-                      <TableCell>
-                        <Status tone={alerting ? "warn" : "ok"}>
-                          {t(alerting ? "board.common.backlogAlert" : "board.common.healthy")}
-                        </Status>
+                      <TableCell className="text-muted-foreground" style={{ textAlign: "right" }}>
+                        {count(topic.subscribers)}
                       </TableCell>
                     </TableRow>
-                  );
-                })}
-                {backlogged.length === 0 && (
+                  ))}
+                  {activeTopics.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={4} style={{ padding: "26px", textAlign: "center", color: "var(--c-muted)" }}>
+                        {t("board.overview.rocketmq.noTopics")}
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </Panel>
+
+            <Panel className="overflow-hidden">
+              <PanelHeader
+                title={t("board.common.topBacklogGroups")}
+                action={
+                  <ViewAll
+                    disabled={nav?.onOpenPage == null}
+                    onClick={() => nav?.onOpenPage?.("consumers")}
+                  />
+                }
+              />
+              <Table inset="card">
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={5} style={{ padding: "26px", textAlign: "center", color: "var(--c-muted)" }}>
-                      {t("board.overview.rocketmq.noBacklog")}
-                    </TableCell>
+                    <TableHead>{t("board.common.consumerGroup")}</TableHead>
+                    <TableHead>Topic</TableHead>
+                    <TableHead style={{ textAlign: "right" }}>{t("board.common.backlog")}</TableHead>
+                    <TableHead>{t("board.common.status")}</TableHead>
                   </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </Panel>
+                </TableHeader>
+                <TableBody>
+                  {backlogged.map((group) => {
+                    const backlog = group.backlog ?? 0;
+                    const alerting = backlog > lagThreshold;
+                    const reads = subscriptionsOf(group)
+                      .map((one) => one.topic)
+                      .join(", ");
+                    return (
+                      <TableRow key={groupName(group)}>
+                        <TableCell className="max-w-44 truncate font-medium select-text">
+                          {groupName(group)}
+                        </TableCell>
+                        <TableCell className="max-w-40 truncate text-muted-foreground select-text">
+                          {reads || "—"}
+                        </TableCell>
+                        <TableCell
+                          style={{
+                            textAlign: "right",
+                            color: alerting ? "var(--c-warn-text)" : undefined,
+                          }}
+                        >
+                          {backlog.toLocaleString()}
+                        </TableCell>
+                        <TableCell>
+                          <Status tone={alerting ? "warn" : "ok"} dot>
+                            {t(alerting ? "board.common.backlogAlert" : "board.common.healthy")}
+                          </Status>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                  {backlogged.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={4} style={{ padding: "26px", textAlign: "center", color: "var(--c-muted)" }}>
+                        {t("board.overview.rocketmq.noBacklog")}
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </Panel>
+          </div>
         </PageBody>
       )}
     </Page>
+  );
+}
+
+/** The link from a ranking card to the page that holds the whole list. */
+function ViewAll({ disabled, onClick }: { disabled: boolean; onClick: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <Button
+      variant="ghost"
+      size="xs"
+      className="-mr-1.5 gap-0.5 font-normal text-muted-foreground"
+      disabled={disabled}
+      onClick={onClick}
+    >
+      {t("board.overview.rocketmq.viewAll")}
+      <ChevronRight aria-hidden />
+    </Button>
+  );
+}
+
+/**
+ * One broker in the health card: whether it answers, how full its CommitLog
+ * disk is against the alert threshold, and what is moving through it.
+ */
+function BrokerRow({
+  label,
+  address,
+  online,
+  disk,
+  over,
+  rateIn,
+  rateOut,
+}: {
+  label: string;
+  address: string;
+  online: boolean;
+  disk: number;
+  over: boolean;
+  rateIn: number;
+  rateOut: number;
+}) {
+  const { t } = useTranslation();
+  return (
+    <div className="rounded-lg bg-(--c-fill-soft) px-3 py-2.5 ring-1 ring-(--c-rule) ring-inset">
+      <div className="flex items-center gap-2">
+        <span
+          className="size-1.5 flex-none rounded-full"
+          style={{ background: online ? "var(--c-ok)" : "var(--c-muted-2)" }}
+          aria-hidden
+        />
+        <span className="text-[12.5px] font-medium select-text">{label}</span>
+        <span className="mono3 ml-auto truncate text-[11px] text-muted-foreground">{address}</span>
+      </div>
+      <div className="mt-2.5 flex items-center gap-2.5 text-[11px] text-muted-foreground">
+        <span className="flex-none">{t("board.overview.rocketmq.commitLog")}</span>
+        <Bar
+          value={disk === UNKNOWN ? 0 : disk}
+          color={over ? "var(--c-warn)" : "var(--c-ok)"}
+          className="flex-1"
+        />
+        <span className="w-8 flex-none text-right text-(--c-fg-2) tabular-nums">
+          {disk === UNKNOWN ? "—" : `${disk}%`}
+        </span>
+      </div>
+      <div className="mt-1.5 flex gap-4 text-[11px] text-muted-foreground tabular-nums">
+        <span>
+          {t("board.common.in")} <span className="text-(--c-fg-2)">{count(rateIn)}/s</span>
+        </span>
+        <span>
+          {t("board.common.out")} <span className="text-(--c-fg-2)">{count(rateOut)}/s</span>
+        </span>
+      </div>
+    </div>
   );
 }

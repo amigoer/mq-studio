@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Destination } from "@bindings/model/models";
-import { TopicKind, routes, subscribers, topicKind } from "./destinations";
+import { TopicKind, byName, routes, subscribers, topicKind } from "./destinations";
 
 function topic(name: string, attributes: Record<string, string> = {}): Destination {
   return {
@@ -36,6 +36,16 @@ describe("topicKind", () => {
 
   it("does not mistake a name that merely contains the prefix", () => {
     expect(topicKind(topic("ORDER_RETRY%QUEUE"))).toBe(TopicKind.Normal);
+  });
+});
+
+describe("byName", () => {
+  it("lists retry and dead-letter topics after the topics they derive from", () => {
+    const names = ["%RETRY%billing", "order-create", "%DLQ%billing", "audit-log", "RETRY%cart"]
+      .map((name) => topic(name))
+      .sort(byName)
+      .map((one) => one.ref.name);
+    expect(names).toEqual(["audit-log", "order-create", "%DLQ%billing", "%RETRY%billing", "RETRY%cart"]);
   });
 });
 

@@ -104,6 +104,20 @@ export function topicKind(destination: Destination): TopicKind {
   return TopicKind.Normal;
 }
 
+const derived = (destination: Destination): number => {
+  const kind = topicKind(destination);
+  return kind === TopicKind.Retry || kind === TopicKind.DLQ ? 1 : 0;
+};
+
+/**
+ * Name order for a topic list. Retry and dead-letter topics follow the topics
+ * they derive from: their `%` prefix would otherwise sort every one of them
+ * above the topics somebody actually created.
+ */
+export function byName(left: Destination, right: Destination): number {
+  return derived(left) - derived(right) || topicName(left).localeCompare(topicName(right));
+}
+
 /**
  * The per-broker route table.
  *

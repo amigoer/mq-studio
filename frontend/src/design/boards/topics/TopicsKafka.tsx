@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Plus } from "lucide-react";
 import { ListArea, ListPane, Page, PageHeader, RefreshButton, Toolbar } from "@/design/shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -188,7 +189,10 @@ export function TopicsKafka() {
             <Button variant="outline" onClick={() => void rebalance()}>
               {t("board.topics.kafka.rebalance")}
             </Button>
-            <Button onClick={() => setCreating(true)}>{t("board.common.newTopic")}</Button>
+            <Button onClick={() => setCreating(true)}>
+              <Plus aria-hidden />
+              {t("board.common.newTopic")}
+            </Button>
           </>
         }
       />

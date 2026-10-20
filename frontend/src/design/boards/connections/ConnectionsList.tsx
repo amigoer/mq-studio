@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Trans, useTranslation } from "react-i18next";
-import { Ellipsis, RefreshCw, Star } from "lucide-react";
+import { Ellipsis, Plus, RefreshCw, Star } from "lucide-react";
 import { Page, PageHeader, Toolbar, StatusBar } from "@/design/shell";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -217,6 +217,7 @@ export function ConnectionsList({
             <Button variant="outline" onClick={onImport}>{t("page.connections.import")}</Button>
             <Button variant="outline" onClick={onExport}>{t("page.connections.export")}</Button>
             <Button onClick={onNewConnection}>
+              <Plus aria-hidden />
               {t("page.connections.new")}
             </Button>
           </>
@@ -734,7 +735,7 @@ function Chip({
       aria-label={label}
       title={label}
       onPressedChange={() => onClick?.()}
-      className="h-auto gap-1 rounded-full bg-background px-2.5 py-[3px] text-xs font-normal text-(--c-mono-dim) data-[state=on]:border-foreground data-[state=on]:bg-(--c-bar) data-[state=on]:font-medium data-[state=on]:text-foreground"
+      className="h-7 min-w-0 gap-1.5 rounded-full bg-background px-2.5 text-xs font-normal text-(--c-fg-2) shadow-none tabular-nums hover:bg-(--c-fill-soft) data-[state=on]:border-(--c-border-strong) data-[state=on]:bg-(--c-fill) data-[state=on]:font-medium data-[state=on]:text-foreground"
     >
       {children}
     </Toggle>

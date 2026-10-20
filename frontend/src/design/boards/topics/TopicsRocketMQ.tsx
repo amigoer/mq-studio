@@ -1,5 +1,6 @@
 import { Fragment, useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Plus } from "lucide-react";
 import { ListArea, ListPane, Page, PageHeader, RefreshButton, Toolbar } from "@/design/shell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -44,6 +45,7 @@ import {
   TopicKind,
   TopicPerm,
   UNKNOWN_METRIC,
+  byName,
   cluster,
   consumerGroups,
   description,
@@ -155,7 +157,7 @@ export function TopicsRocketMQ({ nav }: BoardProps = {}) {
     });
     return [...matched].sort((left, right) => {
       if (sort === "produce") return right.rateIn - left.rateIn;
-      return topicName(left).localeCompare(topicName(right));
+      return byName(left, right);
     });
   }, [kind, kinds, query, sort, topics]);
 
@@ -211,6 +213,7 @@ export function TopicsRocketMQ({ nav }: BoardProps = {}) {
               onClick={() => void state.refresh()}
             />
             <Button disabled={!online} onClick={() => setDialog({ editing: null })}>
+              <Plus aria-hidden />
               {t("board.common.newTopic")}
             </Button>
           </>
@@ -270,22 +273,22 @@ export function TopicsRocketMQ({ nav }: BoardProps = {}) {
                   const dim = derived ? { color: "var(--c-muted)" } : undefined;
                   return (
                     <TableRow key={name} selected={selected === name} onClick={() => setSelected(name)}>
-                      <TableCell style={dim}>
+                      <TableCell className="select-text" style={dim}>
                         {derived ? name : <b style={{ fontWeight: 500 }}>{name}</b>}
                       </TableCell>
                       <TableCell style={dim}>
                         {t(`board.topics.rocketmq.kindOf.${rowKind}`)}
                       </TableCell>
-                      <TableCell className="mono3" style={{ textAlign: "right", ...dim }}>
+                      <TableCell style={{ textAlign: "right", ...dim }}>
                         {metric(readQueue(topic))} / {metric(writeQueue(topic))}
                       </TableCell>
                       <TableCell>
                         <Status tone={PERM_TONE[perm(topic)] ?? "off"}>{perm(topic)}</Status>
                       </TableCell>
-                      <TableCell className="mono3" style={{ textAlign: "right", ...dim }}>
+                      <TableCell style={{ textAlign: "right", ...dim }}>
                         {metric(topic.rateIn)}
                       </TableCell>
-                      <TableCell className="mono3" style={{ textAlign: "right", ...dim }}>
+                      <TableCell style={{ textAlign: "right", ...dim }}>
                         {metric(consumerGroups(topic))}
                       </TableCell>
                     </TableRow>
@@ -489,7 +492,7 @@ function TopicSheet({
               {groups.map((group) => (
                 <span
                   key={group}
-                  className="mono3 rounded-md border px-2 py-0.5 text-[11px] text-(--c-mono-dim)"
+                  className="rounded-md bg-(--c-fill) px-2 py-0.5 text-xs text-(--c-fg-2) select-text"
                 >
                   {group}
                 </span>
@@ -517,7 +520,7 @@ function TopicSheet({
             <Notice title={t("board.topics.rocketmq.noRoute")} />
           ) : (
             <Card className="gap-0 overflow-hidden rounded-lg py-0">
-              <Table className="text-xs [&_td]:px-2.5 [&_th]:px-2.5">
+              <Table size="compact">
                 <TableHeader>
                   <TableRow>
                     <TableHead>{t("board.common.queue")}</TableHead>
@@ -530,15 +533,15 @@ function TopicSheet({
                 <TableBody>
                   {blocks.map((block) => (
                     <Fragment key={block.broker}>
-                      <TableRow className="bg-muted/40 hover:bg-muted/40">
-                        <TableCell colSpan={3} className="py-1.5">
+                      <TableRow className="bg-(--c-fill-soft) hover:bg-(--c-fill-soft)">
+                        <TableCell colSpan={3} className="py-2">
                           <span className="flex items-center gap-1.5">
-                            <b className="mono3 font-medium">{block.broker}</b>
+                            <b className="font-medium select-text">{block.broker}</b>
                             {block.perm !== "" && (
                               <Status tone={PERM_TONE[block.perm] ?? "off"}>{block.perm}</Status>
                             )}
                             <span className="flex-1" />
-                            <span className="mono3 text-(--c-mono-dim)">
+                            <span className="text-muted-foreground">
                               {metric(block.readQueue)} / {metric(block.writeQueue)}
                             </span>
                           </span>
@@ -551,13 +554,13 @@ function TopicSheet({
                       </TableRow>
                       {block.queues.map((queue) => (
                         <TableRow key={queue.queueId}>
-                          <TableCell className="mono3" style={{ paddingLeft: "20px" }}>
+                          <TableCell className="text-muted-foreground" style={{ paddingLeft: "20px" }}>
                             q{queue.queueId}
                           </TableCell>
-                          <TableCell className="mono3" style={{ textAlign: "right" }}>
+                          <TableCell className="text-(--c-fg-2)" style={{ textAlign: "right" }}>
                             {queue.minOffset.toLocaleString()} – {queue.maxOffset.toLocaleString()}
                           </TableCell>
-                          <TableCell className="mono3" style={{ textAlign: "right" }}>
+                          <TableCell style={{ textAlign: "right" }}>
                             {queue.messages.toLocaleString()}
                           </TableCell>
                         </TableRow>
