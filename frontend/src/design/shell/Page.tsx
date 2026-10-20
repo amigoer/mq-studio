@@ -1,6 +1,7 @@
-import { Children, type CSSProperties, type ReactNode } from "react";
+import { Children, Fragment, useEffect, useRef, type CSSProperties, type ReactNode } from "react";
 import { RefreshCw } from "lucide-react";
 import { AnimatePresence } from "motion/react";
+import { SheetRetarget } from "@/components/detail-panel";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "react-i18next";
 
@@ -139,11 +140,25 @@ export function PageBody({
  * under it, out of reach until it was closed.
  */
 export function ListArea({ children, style }: { children: ReactNode; style?: CSSProperties }) {
+  const items = Children.toArray(children);
+  const open = items.length > 1;
+  const wasOpen = useRef(false);
+  useEffect(() => {
+    wasOpen.current = open;
+  });
+
   return (
     <div style={{ position: "relative", flex: 1, display: "flex", minHeight: 0, ...style }}>
-      {/* Lets the detail sheet leave after its host drops it. `toArray` keys
-          the children by position, which presence tracking needs. */}
-      <AnimatePresence>{Children.toArray(children)}</AnimatePresence>
+      <SheetRetarget.Provider value={wasOpen.current && open}>
+        {/* Lets the detail sheet leave after its host drops it. Keyed by slot
+            rather than by the host's own key, so clicking another row retargets
+            the open sheet instead of sending one out and another in. */}
+        <AnimatePresence>
+          {items.map((item, slot) => (
+            <Fragment key={slot}>{item}</Fragment>
+          ))}
+        </AnimatePresence>
+      </SheetRetarget.Provider>
     </div>
   );
 }

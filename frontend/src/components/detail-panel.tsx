@@ -1,4 +1,12 @@
-import { useEffect, useLayoutEffect, useRef, type CSSProperties, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { X } from "lucide-react";
 import { motion, useIsPresent } from "motion/react";
@@ -23,6 +31,14 @@ const INTERACTIVE =
 export const BESIDE_THE_PAGE = "data-beside-page";
 const beside = (target: EventTarget | null) =>
   target instanceof Element && target.closest(`[${BESIDE_THE_PAGE}]`) != null;
+
+/**
+ * True while the list area already had a sheet open in the commit before. A
+ * sheet mounting then is the same slot showing another row (hosts key their
+ * sheet by row to reset its state), so it appears in place instead of sliding
+ * in again.
+ */
+export const SheetRetarget = createContext(false);
 
 /**
  * The docked master-detail inspector. Deliberately not the modal shadcn Sheet:
@@ -52,6 +68,7 @@ export function DetailPanel({
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const present = useIsPresent();
+  const retarget = useContext(SheetRetarget);
 
   /*
    * Tells the list beside the sheet how much room to give up (`.mqs-listpane`
@@ -107,7 +124,7 @@ export function DetailPanel({
        * the panel's width reads as appearing rather than arriving. The fade
        * keeps the shadow's tail from reaching the edge before the panel does.
        */
-      initial={{ x: "100%", opacity: 0 }}
+      initial={retarget ? false : { x: "100%", opacity: 0 }}
       animate={{
         x: 0,
         opacity: 1,
