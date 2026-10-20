@@ -41,4 +41,15 @@ describe("CodeEditor", () => {
   it("draws no colour layer for a body that is not JSON", () => {
     expect(ghostText(render("text"))).toBeNull();
   });
+
+  /**
+   * The textarea is what gives the editor a height. Laid out absolute, like
+   * the colour layer, it left the box with none, and a caller that set no
+   * height of its own drew the body editor zero pixels tall (#116).
+   */
+  it("keeps the textarea in flow, so the editor has a height of its own", () => {
+    const textarea = /<textarea[^>]*>/.exec(render("json"))?.[0] ?? "";
+    expect(textarea).not.toMatch(/\babsolute\b/);
+    expect(textarea).toMatch(/rows="8"/);
+  });
 });

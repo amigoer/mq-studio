@@ -9,6 +9,15 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Fixed
+
+- The body editor on the RabbitMQ and NATS send pages, and the definition field
+  of the RabbitMQ policy dialog, can be seen and typed in again. The editor took
+  its height from the page around it, and those three gave it none, so it was
+  drawn zero pixels tall: text typed into it after a Tab still reached the
+  broker, but nothing showed. It is now eight lines tall unless the page gives
+  it more. (#116)
+
 ## [0.3.0] - 2026-10-03
 
 An assistant now opens beside every page. Ask it why a group is behind or where

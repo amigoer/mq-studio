@@ -34,11 +34,17 @@ const METRICS: CSSProperties = {
  * usual pair: a transparent textarea over a tokenised copy of the same string,
  * scrolled together. `language` decides only whether the copy is drawn - the
  * two modes share every metric, so switching between them moves nothing.
+ *
+ * The textarea is the one in flow, so the editor always has a height: `rows`
+ * tall on its own, or whatever a caller gives it with `flex-1`. Only the copy
+ * is laid over it. With both layers absolute the box had no height of its
+ * own, and a caller that set none drew an editor zero pixels tall.
  */
 export function CodeEditor({
   value,
   onValueChange,
   language = "text",
+  rows = 8,
   className,
   ...props
 }: {
@@ -66,7 +72,7 @@ export function CodeEditor({
   useLayoutEffect(follow, [follow, tokens]);
 
   return (
-    <div className={cn("relative overflow-hidden", className)}>
+    <div className={cn("relative flex flex-col overflow-hidden", className)}>
       {tokens != null && (
         <pre
           ref={ghost}
@@ -86,12 +92,15 @@ export function CodeEditor({
       )}
       <Textarea
         ref={input}
+        spellCheck={false}
         {...props}
+        rows={rows}
         value={value}
         onChange={(event) => onValueChange(event.target.value)}
         onScroll={follow}
         className={cn(
-          "mono3 mqs-scroll absolute inset-0 size-full field-sizing-fixed min-h-0 resize-none",
+          // relative keeps it painted above the absolute copy, as before.
+          "mono3 mqs-scroll relative min-h-0 flex-1 field-sizing-fixed resize-none",
           "border-transparent shadow-none focus-visible:border-transparent focus-visible:ring-0",
           // Textarea eases its colour, and here that colour is the difference
           // between showing the text and showing the layer under it: switching
