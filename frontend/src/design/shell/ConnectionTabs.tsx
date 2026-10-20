@@ -28,8 +28,8 @@ const BASE: CSSProperties = {
   /* Held by every tab so selecting one does not grow it past its neighbours. */
   border: "1px solid transparent",
   borderRadius: "8px",
-  padding: "5px 11px",
-  fontSize: "12px",
+  padding: "4px 11px",
+  fontSize: "12.5px",
   whiteSpace: "nowrap",
   flex: "0 1 auto",
 };
@@ -43,7 +43,8 @@ const ACTIVE: CSSProperties = {
   ...BASE,
   background: "var(--c-bg)",
   border: "1px solid var(--c-border)",
-  boxShadow: "0 1px 2px rgba(0,0,0,.05)",
+  boxShadow: "0 1px 2px rgba(28,25,23,.06)",
+  fontWeight: 500,
 };
 
 const IDLE: CSSProperties = {

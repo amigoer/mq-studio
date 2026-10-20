@@ -18,7 +18,7 @@ export function SectionLabel({
   return (
     <div
       className={cn(
-        "flex items-center text-[10.5px] font-semibold tracking-[0.08em] text-muted-foreground uppercase",
+        "flex items-center text-[11.5px] font-medium tracking-[0.01em] text-muted-foreground",
         className,
       )}
       style={style}

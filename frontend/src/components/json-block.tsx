@@ -24,7 +24,9 @@ export function JsonBlock({
   return (
     <Card
       className={cn(
-        "mono3 block gap-0 rounded-xl px-3 py-2.5 text-xs leading-[1.7] whitespace-pre-wrap text-(--c-fg-2) shadow-none",
+        // `wrap-anywhere`: a payload is often one unbroken token (base64, a
+        // hex dump) that pre-wrap alone would run straight out of the sheet.
+        "mono3 block gap-0 rounded-lg border-(--c-rule) bg-(--c-fill-soft) px-3 py-2.5 text-xs leading-[1.7] whitespace-pre-wrap wrap-anywhere text-(--c-fg-2)",
         className,
       )}
       style={style}

@@ -28,7 +28,7 @@ export function Status({
 } & HTMLAttributes<HTMLSpanElement>) {
   return (
     <Badge
-      className={cn("rounded-full border-transparent px-2 font-normal", TONES[tone], className)}
+      className={cn("h-5 gap-1.5 rounded-full border-transparent px-2 py-0 text-[11px] font-medium", TONES[tone], className)}
       {...props}
     >
       {dot && <span className="size-1.5 rounded-full bg-current" aria-hidden />}

@@ -415,14 +415,14 @@
     "titleBar": {
       "homeLabel": "MQ Studio home",
       "home": "Home",
-      "search": "Search ⌘K",
+      "search": "Search…",
       "checkUpdate": "Check for updates",
       "updateAvailable": "Version {{version}} is available — click to see it",
       "github": "GitHub",
       "notifications": "Notifications",
       "notificationsUnread": "Notifications · {{count}} unread",
       "settings": "Settings",
-      "assistant": "Assistant ⌘J"
+      "assistant": "Assistant"
     },
     "tabs": {
       "new": "New connection",
@@ -886,7 +886,7 @@
       "subtitle": "Double-click a row to open it in a new tab · Credentials are encrypted on this machine",
       "import": "Import",
       "export": "Export",
-      "new": "+ New connection",
+      "new": "New connection",
       "searchPlaceholder": "Search connections…",
       "all": "All {{count}}",
       "sort": {
@@ -1657,7 +1657,7 @@
       "deleteGroup": "Delete group",
       "byTime": "By time",
       "byKey": "By key",
-      "newTopic": "+ New topic",
+      "newTopic": "New topic",
       "trace": "Trace",
       "redeliver": "Redeliver",
       "dlqRetry": "Dead letter / retry",
@@ -1781,9 +1781,12 @@
       "rocketmq": {
         "systemHidden": "System topics hidden",
         "consume": "Consume 3 118",
-        "produceMsg": "— produce msg/s",
-        "consumeMsg": "— consume msg/s",
+        "produceMsg": "Produce",
+        "consumeMsg": "Consume",
         "brokerHealth": "Broker health",
+        "viewAll": "View all",
+        "commitLog": "CommitLog disk",
+        "brokersOnline": "{{online}} / {{total}} online",
         "liveSubtitle": "Cluster {{cluster}}",
         "online": "{{count}} online",
         "consumeRate": "Consuming {{rate}}/s",

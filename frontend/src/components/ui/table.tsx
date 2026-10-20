@@ -7,8 +7,13 @@ import { cn } from "@/lib/utils"
 function Table({
   className,
   inset,
+  size,
   ...props
-}: React.ComponentProps<"table"> & { inset?: boolean }) {
+}: React.ComponentProps<"table"> & {
+  inset?: boolean | "card"
+  /** `compact` is the dense grid a detail sheet nests: partitions, queues, bindings. */
+  size?: "compact"
+}) {
   return (
     <div
       data-slot="table-container"
@@ -19,8 +24,13 @@ function Table({
         className={cn(
           "w-full caption-bottom text-sm",
           // Full-bleed tables keep the page's 20px gutter on their edge cells.
-          inset &&
+          inset === true &&
             "[&_td:first-child]:pl-5 [&_td:last-child]:pr-5 [&_th:first-child]:pl-5 [&_th:last-child]:pr-5",
+          // A table filling a card keeps the card header's 16px edge instead.
+          inset === "card" &&
+            "[&_td:first-child]:pl-4 [&_td:last-child]:pr-4 [&_th:first-child]:pl-4 [&_th:last-child]:pr-4",
+          size === "compact" &&
+            "text-xs [&_td]:px-2.5 [&_td]:py-1.5 [&_th]:h-8 [&_th]:px-2.5 [&_th]:text-[11px]",
           className
         )}
         {...props}
@@ -33,7 +43,7 @@ function TableHeader({ className, ...props }: React.ComponentProps<"thead">) {
   return (
     <thead
       data-slot="table-header"
-      className={cn("[&_tr]:border-b", className)}
+      className={cn("[&_tr]:border-b [&_tr]:border-border [&_tr]:hover:bg-transparent", className)}
       {...props}
     />
   )
@@ -64,7 +74,9 @@ function TableRow({
       data-slot="table-row"
       data-state={selected ? "selected" : undefined}
       className={cn(
-        "border-b transition-colors hover:bg-muted/50 has-aria-expanded:bg-muted/50 data-[state=selected]:bg-muted",
+        "border-b border-(--c-rule) transition-colors hover:bg-(--c-fill-soft) has-aria-expanded:bg-(--c-fill-soft) data-[state=selected]:bg-(--c-fill)",
+        // The selected row carries the mark's red capsule on its leading edge.
+        "data-[state=selected]:[&>td:first-child]:shadow-[inset_2px_0_0_var(--c-mark)]",
         activatable &&
           "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/40",
         className
@@ -90,7 +102,7 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
     <th
       data-slot="table-head"
       className={cn(
-        "h-8 px-3.5 text-left align-middle text-xs font-medium whitespace-nowrap text-muted-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
+        "h-9 px-3.5 text-left align-middle text-[11.5px] font-medium whitespace-nowrap text-muted-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
         className
       )}
       {...props}
@@ -103,7 +115,7 @@ function TableCell({ className, ...props }: React.ComponentProps<"td">) {
     <td
       data-slot="table-cell"
       className={cn(
-        "px-3.5 py-[7px] align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
+        "px-3.5 py-2 align-middle whitespace-nowrap tabular-nums [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
         className
       )}
       {...props}

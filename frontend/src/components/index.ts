@@ -18,6 +18,6 @@ export { Bar, MeterRow } from "./meter";
 export { JsonBlock, JsonText, JSON_TOKEN_COLOR, Timeline } from "./json-block";
 export { CodeEditor } from "./code-editor";
 export { WarnBanner } from "./warn-banner";
-export { LineChart } from "./line-chart";
+export { LineChart, SeriesLegend } from "./line-chart";
 export { toast, useToast, type ToastId, type ToastTone } from "./toast";
 export { Toaster } from "./sonner";

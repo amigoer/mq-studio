@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
  */
 export function Panel({ className, ...props }: ComponentProps<typeof Card>) {
   return (
-    <Card className={cn("block flex-row gap-0 rounded-xl py-0 shadow-xs", className)} {...props} />
+    <Card className={cn("block flex-row gap-0 rounded-[10px] py-0 shadow-none", className)} {...props} />
   );
 }
 
@@ -32,8 +32,8 @@ export function PanelHeader({
   className?: string;
 }) {
   return (
-    <div className={cn("flex items-center border-b px-4 py-[11px]", className)} style={style}>
-      <b className="text-[12.5px] font-semibold">{title}</b>
+    <div className={cn("flex min-h-11 items-center gap-3 border-b px-4 py-2", className)} style={style}>
+      <b className="text-[13px] font-semibold">{title}</b>
       <span className="flex-1" />
       {action}
     </div>

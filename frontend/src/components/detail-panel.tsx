@@ -113,9 +113,13 @@ export function DetailPanelHeader({
 }) {
   const { t } = useTranslation();
   return (
-    <div className="px-4 pt-3">
-      <div className="flex items-center gap-2">
-        <b className="mono3 text-base font-semibold">{title}</b>
+    <div className="px-5 pt-4">
+      <div className="flex min-h-7 items-center gap-2">
+        {/* Selectable, since the title is a name somebody copies, but in the
+            UI face: a monospaced headline shouted over the sheet it heads. */}
+        <b className="min-w-0 cursor-text truncate text-[15px] font-semibold tracking-[-0.01em] select-text">
+          {title}
+        </b>
         {badge}
         <span className="flex-1" />
         <Button
@@ -129,7 +133,7 @@ export function DetailPanelHeader({
         </Button>
       </div>
       {tabs != null && (
-        <Tabs value={activeTab} onValueChange={(tab) => onTabChange?.(tab)} className="mt-1.5">
+        <Tabs value={activeTab} onValueChange={(tab) => onTabChange?.(tab)} className="mt-2.5">
           <TabsList variant="line" className="h-auto gap-3.5 border-b p-0">
             {tabs.map((tab) => (
               <TabsTrigger
@@ -171,7 +175,7 @@ export function DetailPanelBody({
 }) {
   return (
     <ScrollArea className="min-h-0 flex-1">
-      <div className={cn("flex flex-col gap-3 px-4 py-3", className)} style={style}>
+      <div className={cn("flex flex-col gap-4 px-5 py-4", className)} style={style}>
         {children}
       </div>
     </ScrollArea>
@@ -179,5 +183,5 @@ export function DetailPanelBody({
 }
 
 export function DetailPanelFooter({ children }: { children: ReactNode }) {
-  return <div className="flex gap-2 border-t bg-background px-4 py-3">{children}</div>;
+  return <div className="flex gap-2 border-t bg-(--c-panel) px-5 py-3">{children}</div>;
 }

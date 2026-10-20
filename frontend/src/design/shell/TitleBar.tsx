@@ -1,9 +1,10 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { CircleFadingArrowUp, LoaderCircle, Settings, Sparkles } from "lucide-react";
+import { CircleFadingArrowUp, LoaderCircle, Search, Settings, Sparkles } from "lucide-react";
 import { SiGithub } from "react-icons/si";
 import { AppLogo } from "@/design/icons/AppLogo";
 import { Button } from "@/components/ui/button";
+import { Kbd } from "@/components/ui/kbd";
 import { Badge, ICON_CLASS, IconBtn } from "./IconBtn";
 import { NotificationBell } from "./NotificationCenter";
 import { cn } from "@/lib/utils";
@@ -83,7 +84,6 @@ export function TitleBar({
   return (
     <div
       className={mac ? "tb2 tb2--mac" : "tb2"}
-      style={{ background: "var(--c-bar)" }}
     >
       {/*
        * Mark only — the wordmark it sat next to was traded for tab width — and
@@ -116,29 +116,38 @@ export function TitleBar({
        */}
       {onAssistant != null && (
         <Button
-          variant="outline"
+          variant="ghost"
           size="sm"
           aria-pressed={assistantOpen}
           className={cn(
-            "h-7 flex-none gap-1.5 bg-background px-2.5 text-[12.5px] font-normal text-muted-foreground",
-            assistantOpen && "border-(--c-border-strong) bg-(--c-fill) text-foreground",
+            "h-7 flex-none gap-1.5 px-2 text-[12.5px] font-normal text-(--c-fg-2) hover:bg-(--c-fill-mute)",
+            assistantOpen && "bg-(--c-fill-mute) text-foreground",
           )}
           onClick={onAssistant}
         >
           <Sparkles className="size-3.5" aria-hidden />
           {t("shell.titleBar.assistant")}
+          <Kbd className="h-[18px] bg-transparent px-0 text-[11px] font-normal text-muted-foreground">
+            {mac ? "⌘J" : "Ctrl J"}
+          </Kbd>
         </Button>
       )}
+      {/* Drawn as the field it opens, so it reads as "type here" rather than
+          as one more button in a row of them. */}
       <Button
         variant="outline"
         size="sm"
         className={cn(
-          "h-7 flex-none bg-background px-2.5 text-[12.5px] font-normal text-muted-foreground",
+          "h-7 w-44 flex-none justify-start gap-2 bg-background px-2 text-[12.5px] font-normal text-muted-foreground",
           dimmed && "text-(--c-disabled)",
         )}
         onClick={onSearch}
       >
+        <Search className="size-3.5" aria-hidden />
         {t("shell.titleBar.search")}
+        <Kbd className="ml-auto h-[18px] border bg-(--c-fill-soft) text-[10.5px] font-normal">
+          {mac ? "⌘K" : "Ctrl K"}
+        </Kbd>
       </Button>
       <IconBtn
         style={{ position: "relative" }}

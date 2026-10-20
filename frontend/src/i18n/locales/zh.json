@@ -415,14 +415,14 @@
     "titleBar": {
       "homeLabel": "MQ Studio 首页",
       "home": "首页",
-      "search": "搜索 ⌘K",
+      "search": "搜索…",
       "checkUpdate": "检查更新",
       "updateAvailable": "有新版本 {{version}}，点击查看",
       "github": "GitHub",
       "notifications": "通知",
       "notificationsUnread": "通知 · {{count}} 未读",
       "settings": "设置",
-      "assistant": "AI 助手 ⌘J"
+      "assistant": "AI 助手"
     },
     "tabs": {
       "new": "新建连接",
@@ -884,7 +884,7 @@
       "subtitle": "双击一行在新标签中打开 · 凭证加密存储在本机",
       "import": "导入",
       "export": "导出",
-      "new": "+ 新建连接",
+      "new": "新建连接",
       "searchPlaceholder": "搜索连接…",
       "all": "全部 {{count}}",
       "sort": {
@@ -1655,7 +1655,7 @@
       "deleteGroup": "删除组",
       "byTime": "按时间",
       "byKey": "按 Key",
-      "newTopic": "+ 新建 Topic",
+      "newTopic": "新建 Topic",
       "trace": "消费轨迹",
       "redeliver": "重投递",
       "dlqRetry": "死信 / 重试",
@@ -1779,9 +1779,12 @@
       "rocketmq": {
         "systemHidden": "系统 Topic 已隐藏",
         "consume": "消费 3 118",
-        "produceMsg": "— 生产 msg/s",
-        "consumeMsg": "— 消费 msg/s",
+        "produceMsg": "生产",
+        "consumeMsg": "消费",
         "brokerHealth": "Broker 健康",
+        "viewAll": "查看全部",
+        "commitLog": "CommitLog 磁盘",
+        "brokersOnline": "{{online}} / {{total}} 在线",
         "liveSubtitle": "集群 {{cluster}}",
         "online": "{{count}} 在线",
         "consumeRate": "消费 {{rate}}/s",

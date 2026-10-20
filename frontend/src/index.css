@@ -31,7 +31,7 @@
   --info: var(--c-accent-blue);
   --border: var(--c-border);
   --input: var(--c-border);
-  --ring: var(--c-fg);
+  --ring: var(--c-muted-2);
   --chart-1: var(--c-series-1);
   --chart-2: var(--c-series-2);
   --chart-3: var(--c-ok);
@@ -76,14 +76,14 @@
 
   /*
    * Type scale mapped to the design ramp at the 13px root: text-sm is the
-   * 12px body size, text-xs the 11px mono/meta size. Stock component classes
+   * 12.5px body size, text-xs the 11px mono/meta size. Stock component classes
    * therefore land on the drawn sizes, and everything follows the 设置 font
    * size control because the values are rem.
    */
   --text-xs: 0.8462rem;
   --text-xs--line-height: 1.45;
-  --text-sm: 0.9231rem;
-  --text-sm--line-height: 1.45;
+  --text-sm: 0.9615rem;
+  --text-sm--line-height: 1.5;
   --text-base: 1rem;
   --text-base--line-height: 1.5;
   --text-lg: 1.0769rem;

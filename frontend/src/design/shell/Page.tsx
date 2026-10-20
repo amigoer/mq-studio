@@ -90,10 +90,10 @@ export function StatusBar({ left, right }: { left?: ReactNode; right?: ReactNode
         display: "flex",
         alignItems: "center",
         gap: "14px",
-        padding: "9px 20px",
+        padding: "8px 20px",
         borderTop: "1px solid var(--c-border)",
         background: "var(--c-panel)",
-        fontSize: "11px",
+        fontSize: "11.5px",
         color: "var(--c-muted)",
       }}
     >
@@ -118,10 +118,10 @@ export function PageBody({
       style={{
         flex: 1,
         minHeight: 0,
-        padding: "16px 20px",
+        padding: "20px",
         display: "flex",
         flexDirection: "column",
-        gap: "14px",
+        gap: "16px",
         ...style,
       }}
     >
@@ -216,9 +216,11 @@ export function TabStatusBar({
         display: "flex",
         alignItems: "center",
         gap: "14px",
-        padding: "7px 20px",
+        height: "30px",
+        padding: "0 20px",
         borderTop: "1px solid var(--c-border)",
-        fontSize: "10.5px",
+        background: "var(--c-panel)",
+        fontSize: "11px",
         color: "var(--c-muted)",
       }}
     >

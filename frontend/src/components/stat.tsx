@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { Card } from "@/components/ui/card";
 
 /** The five-across KPI tile from the overview boards. */
 export function StatTile({
@@ -16,20 +15,22 @@ export function StatTile({
   hintColor?: string;
 }) {
   return (
-    <Card className="gap-0 px-3.5 py-3">
-      <div className="text-xs text-muted-foreground">{label}</div>
+    <div data-slot="stat-tile" className="flex min-w-0 flex-col bg-card px-4 pt-3.5 pb-3">
+      <div className="truncate text-xs text-muted-foreground">{label}</div>
       <div
-        className="mt-0.5 text-[1.615rem] leading-tight font-semibold tracking-tight"
+        className="mt-1.5 truncate text-[1.75rem] leading-none font-semibold tracking-[-0.02em] tabular-nums"
         style={{ color: valueColor }}
       >
         {value}
       </div>
-      {hint != null && (
-        <div className="mt-0.5 text-[10.5px]" style={{ color: hintColor ?? "var(--c-muted)" }}>
-          {hint}
-        </div>
-      )}
-    </Card>
+      {/* Held open when empty, so a row of tiles keeps one baseline. */}
+      <div
+        className="mt-2 min-h-[1.45em] truncate text-[11px]"
+        style={{ color: hintColor ?? "var(--c-muted)" }}
+      >
+        {hint}
+      </div>
+    </div>
   );
 }
 
@@ -47,14 +48,14 @@ export function MiniStat({
   size?: number;
 }) {
   return (
-    <Card className="gap-0 rounded-lg px-3 py-2">
-      <div className="text-[10.5px] text-muted-foreground">{label}</div>
+    <div data-slot="mini-stat" className="min-w-0 rounded-lg bg-(--c-fill-soft) px-3 py-2.5 ring-1 ring-(--c-rule) ring-inset">
+      <div className="truncate text-[11px] text-muted-foreground">{label}</div>
       <div
-        className="mono3 mt-0.5 font-semibold"
-        style={{ fontSize: `${size / 13}rem`, color }}
+        className="mt-1 truncate leading-tight font-semibold tracking-[-0.01em] tabular-nums"
+        style={{ fontSize: `${(size + 1) / 13}rem`, color }}
       >
         {value}
       </div>
-    </Card>
+    </div>
   );
 }
