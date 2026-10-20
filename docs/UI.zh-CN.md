@@ -19,7 +19,7 @@ MQ Studio 的界面怎么搭、应该长什么样。新增页面、对话框或�
 
 以下例外各有原因：
 
-- **品牌标志**（协议 Logo、GitHub、操作系统图标）来自 `react-icons`（Simple Icons、Font Awesome 品牌图标）：Lucide 不提供品牌图标。
+- **品牌标志**（协议 Logo、GitHub、操作系统图标）来自 `react-icons`（Simple Icons、Font Awesome 品牌图标）：Lucide 不提供品牌图标。两个语言旗帜在 `FlagIcon` 里手绘，因为这两个库都没有旗帜。
 - **详情面板**（`DetailPanel`）不是 shadcn 的 `Sheet`：它是非模态的、停靠在列表旁边，点击另一行可以直接切换内容。它的动画同样用 Motion。
 - **消息体编辑器**是叠在高亮副本上的 textarea；上面列出的库没有文本编辑能力。
 

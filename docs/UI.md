@@ -25,7 +25,8 @@ comment where you do.
 Exceptions, each for a reason:
 
 - **Brand marks** (protocol logos, GitHub, OS logos) come from `react-icons`
-  (Simple Icons, Font Awesome brands): Lucide ships no brand icons.
+  (Simple Icons, Font Awesome brands): Lucide ships no brand icons. The two
+  language flags are drawn in `FlagIcon`, as neither library has flags.
 - **The detail sheet** (`DetailPanel`) is not the shadcn `Sheet`: it is
   non-modal and docked beside the list, so clicking another row retargets it.
   It still animates through Motion.
