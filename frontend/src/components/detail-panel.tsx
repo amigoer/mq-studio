@@ -1,4 +1,4 @@
-import { useEffect, useRef, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, type CSSProperties, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -52,6 +52,22 @@ export function DetailPanel({
   const ref = useRef<HTMLDivElement>(null);
   const state = useEnter();
   useLeave(ref);
+
+  /*
+   * Tells the list beside the sheet how much room to give up (`.mqs-listpane`
+   * reads it), so the sheet sits next to the rows instead of over their last
+   * columns. Set before paint and cleared on removal, so the list slides back
+   * while the sheet's exit copy slides out.
+   */
+  useLayoutEffect(() => {
+    const parent = ref.current?.parentElement;
+    if (parent == null) return;
+    parent.style.setProperty("--mqs-sheet-w", `${width}px`);
+    return () => {
+      parent.style.removeProperty("--mqs-sheet-w");
+    };
+  }, [width]);
+
   const dismiss = useRef(onDismiss);
   dismiss.current = onDismiss;
 
@@ -134,25 +150,12 @@ export function DetailPanelHeader({
       </div>
       {tabs != null && (
         <Tabs value={activeTab} onValueChange={(tab) => onTabChange?.(tab)} className="mt-2.5">
-          <TabsList variant="line" className="h-auto gap-3.5 border-b p-0">
+          <TabsList variant="line" className="w-full justify-start gap-3 border-b">
             {tabs.map((tab) => (
               <TabsTrigger
                 key={tab.id}
                 value={tab.id}
-                className={cn(
-                  /*
-                   * `after:hidden` is load-bearing. The `line` variant already
-                   * draws its own active bar as an ::after at bottom -5px, so
-                   * adding an underline here as well produced two rules: one
-                   * flush on the strip's baseline and one floating five pixels
-                   * under it, with the strip's own border in between.
-                   *
-                   * The border is the one kept, because a tab underline should
-                   * sit on the strip's baseline rather than hover below it.
-                   */
-                  "rounded-none border-0 border-b-2 border-transparent px-0.5 pt-0 pb-1.5 text-sm font-normal text-muted-foreground after:hidden",
-                  "data-[state=active]:border-foreground data-[state=active]:bg-transparent data-[state=active]:font-medium data-[state=active]:text-foreground data-[state=active]:shadow-none",
-                )}
+                className="flex-none px-0.5 font-normal data-active:font-medium after:bg-(--c-primary)"
               >
                 {tab.label}
               </TabsTrigger>

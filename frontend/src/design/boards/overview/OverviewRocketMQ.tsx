@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { ChevronRight, Plus, RotateCcw, Search, Send } from "lucide-react";
+import { Activity, ChevronRight, Inbox, Layers, Plus, RotateCcw, Search, Send, Server, Users } from "lucide-react";
 import { Page, PageBody, PageHeader, RefreshButton } from "@/design/shell";
 import { Button } from "@/components/ui/button";
 import {
@@ -169,25 +169,35 @@ export function OverviewRocketMQ({ nav }: BoardProps = {}) {
           <div className={KPI_GRID}>
             <StatTile
               label="Broker"
+              icon={Server}
+              tone="slate"
               value={count(nodes.length)}
               hint={t("board.overview.rocketmq.online", { count: onlineBrokers })}
             />
             <StatTile
               label="Topic"
+              icon={Layers}
+              tone="violet"
               value={count(topics.length)}
               hint={t("board.overview.rocketmq.systemHidden")}
             />
             <StatTile
               label={t("board.common.consumerGroup")}
+              icon={Users}
+              tone="teal"
               value={count(groups.length)}
             />
             <StatTile
               label={t("board.common.produceTps")}
+              icon={Activity}
+              tone="blue"
               value={count(produceTps)}
               hint={t("board.overview.rocketmq.consumeRate", { rate: consumeTps.toLocaleString() })}
             />
             <StatTile
               label={t("board.common.totalBacklog")}
+              icon={Inbox}
+              tone="orange"
               value={count(totalBacklog)}
               valueColor={totalBacklog > lagThreshold ? "var(--c-warn-text)" : undefined}
             />
@@ -207,7 +217,7 @@ export function OverviewRocketMQ({ nav }: BoardProps = {}) {
                   )
                 }
               >
-                <span className="flex size-6 flex-none items-center justify-center rounded-md bg-(--c-fill) text-muted-foreground">
+                <span className="flex size-6 flex-none items-center justify-center rounded-md bg-(--c-primary-soft) text-(--c-primary)">
                   <shortcut.icon className="size-3.5" aria-hidden />
                 </span>
                 {t(`board.overview.rocketmq.shortcut.${shortcut.key}`)}
@@ -394,7 +404,7 @@ function ViewAll({ disabled, onClick }: { disabled: boolean; onClick: () => void
     <Button
       variant="ghost"
       size="xs"
-      className="-mr-1.5 gap-0.5 font-normal text-muted-foreground"
+      className="-mr-1.5 gap-0.5 font-normal text-(--c-primary-text) hover:text-(--c-primary-text)"
       disabled={disabled}
       onClick={onClick}
     >

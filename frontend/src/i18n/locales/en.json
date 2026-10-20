@@ -883,7 +883,11 @@
   "page": {
     "connections": {
       "title": "Connections",
-      "subtitle": "Double-click a row to open it in a new tab · Credentials are encrypted on this machine",
+      "subtitle": "Double-click to open in a new tab · Credentials are encrypted on this machine",
+      "view": {
+        "grid": "Card view",
+        "list": "List view"
+      },
       "import": "Import",
       "export": "Export",
       "new": "New connection",

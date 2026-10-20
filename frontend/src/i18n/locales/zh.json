@@ -881,7 +881,11 @@
   "page": {
     "connections": {
       "title": "连接",
-      "subtitle": "双击一行在新标签中打开 · 凭证加密存储在本机",
+      "subtitle": "双击即可在新标签中打开 · 凭证加密存储在本机",
+      "view": {
+        "grid": "卡片视图",
+        "list": "列表视图"
+      },
       "import": "导入",
       "export": "导出",
       "new": "新建连接",

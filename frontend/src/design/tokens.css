@@ -105,40 +105,64 @@
   /*
    * surfaces. A warm stone scale drawn from the brand mark's paper and ink:
    * the chrome (title bar and sidebar) sits on `--c-chrome`, and the page is a
-   * white sheet laid on it.
+   * white sheet laid on it, a clear step lighter so the two read as layers.
    */
   --c-bg: #fff;
-  --c-chrome: #f4f3f1;
-  --c-panel: #fbfaf9;
-  --c-bar: #f7f6f4;
-  --c-fill: #f3f2f0;
-  --c-fill-soft: #f8f7f6;
-  --c-fill-mute: #edebe8;
-  --c-fill-zinc: #f3f2f0;
+  --c-chrome: #eeece8;
+  --c-panel: #faf9f7;
+  --c-bar: #f6f5f2;
+  --c-fill: #f2f0ed;
+  --c-fill-soft: #f8f7f5;
+  --c-fill-mute: #e6e3de;
+  --c-fill-zinc: #f2f0ed;
   /* The hairline between rows of one card, lighter than the card's own edge. */
-  --c-rule: #f0eeec;
+  --c-rule: #efece8;
 
   /* borders */
-  --c-border: #e7e5e2;
-  --c-border-soft: #e2dfdc;
-  --c-border-dash: #d9d6d2;
-  --c-border-strong: #d1cdc8;
+  --c-border: #e3e0db;
+  --c-border-soft: #dedad5;
+  --c-border-dash: #d4d0ca;
+  --c-border-strong: #c9c4bd;
 
   /* text, darkest first */
   --c-fg: #1c1917;
-  --c-fg-2: #44403c;
+  --c-fg-2: #3f3a36;
   --c-mono-dim: #57534e;
-  --c-muted: #78716c;
-  --c-muted-zinc: #78716c;
-  --c-muted-2: #a29b95;
+  --c-muted: #736c66;
+  --c-muted-zinc: #736c66;
+  --c-muted-2: #9d968f;
   --c-muted-3: #b5aea7;
-  --c-disabled: #cdc8c3;
+  --c-disabled: #cbc6c0;
 
   /*
-   * The brand red. It marks the one thing in focus -- the page, the tab, the
-   * row -- the way the capsule in the mark is the message in focus, and is
-   * never a state colour or a button.
+   * The action colour: primary buttons, the page you are on, the selected
+   * row, ticks, switches and links. A cobalt across the wheel from the brand
+   * mark's red, so the two sit together without either reading as a state.
    */
+  --c-primary: #2f6bf0;
+  --c-primary-hover: #2459d6;
+  --c-primary-soft: #ebf1ff;
+  --c-primary-text: #2155cc;
+
+  /*
+   * Tones for the small icon tiles that tell figures apart at a glance. Hues
+   * only, kept clear of the state greens, ambers and reds so a tile never reads
+   * as a warning.
+   */
+  --c-tone-blue: #2f6bf0;
+  --c-tone-blue-bg: #ebf1ff;
+  --c-tone-violet: #7c4ddb;
+  --c-tone-violet-bg: #f2edfd;
+  --c-tone-teal: #0f8a8a;
+  --c-tone-teal-bg: #e4f5f4;
+  --c-tone-orange: #d4561c;
+  --c-tone-orange-bg: #fdefe7;
+  --c-tone-pink: #c23a7a;
+  --c-tone-pink-bg: #fcecf3;
+  --c-tone-slate: #55606e;
+  --c-tone-slate-bg: #eef0f3;
+
+  /* The brand red, for the mark itself. Never a state colour or a button. */
   --c-mark: #ec3013;
 
   /* states */
@@ -164,8 +188,8 @@
    * as "produce". The pair is checked for colour-vision separation against the
    * page background, which is why it is two hues rather than two greys.
    */
-  --c-series-1: #0b64f4;
-  --c-series-2: #a21caf;
+  --c-series-1: #2f6bf0;
+  --c-series-2: #8b5cf6;
 
   /* marks that have to read on either ground */
   --c-github-mark: #181717;
@@ -222,29 +246,47 @@
  * The class is set by lib/theme, which resolves "跟随系统" against the OS.
  */
 :root.dark {
-  --c-bg: #1a1918;
+  --c-bg: #1c1b1a;
   --c-chrome: #121110;
-  --c-panel: #1d1c1b;
-  --c-bar: #161514;
-  --c-fill: #252321;
-  --c-fill-soft: #1f1e1c;
-  --c-fill-mute: #2b2926;
-  --c-fill-zinc: #252321;
-  --c-rule: #24221f;
+  --c-panel: #201f1d;
+  --c-bar: #171615;
+  --c-fill: #282624;
+  --c-fill-soft: #222120;
+  --c-fill-mute: #302e2b;
+  --c-fill-zinc: #282624;
+  --c-rule: #272523;
 
-  --c-border: #2d2b28;
-  --c-border-soft: #33302d;
-  --c-border-dash: #3a3734;
-  --c-border-strong: #4a4643;
+  --c-border: #312f2c;
+  --c-border-soft: #36332f;
+  --c-border-dash: #3e3b37;
+  --c-border-strong: #4f4b46;
 
-  --c-fg: #f3f1ef;
-  --c-fg-2: #d6d2ce;
-  --c-mono-dim: #aaa49e;
-  --c-muted: #948d87;
-  --c-muted-zinc: #948d87;
+  --c-fg: #f4f2f0;
+  --c-fg-2: #d8d4d0;
+  --c-mono-dim: #aca69f;
+  --c-muted: #979089;
+  --c-muted-zinc: #979089;
   --c-muted-2: #6f6964;
   --c-muted-3: #6b655e;
   --c-disabled: #4d4844;
+
+  --c-primary: #5b8cff;
+  --c-primary-hover: #7aa2ff;
+  --c-primary-soft: rgba(91, 140, 255, 0.16);
+  --c-primary-text: #8fb0ff;
+
+  --c-tone-blue: #7aa2ff;
+  --c-tone-blue-bg: rgba(91, 140, 255, 0.16);
+  --c-tone-violet: #b197f5;
+  --c-tone-violet-bg: rgba(139, 92, 246, 0.18);
+  --c-tone-teal: #4fd1c5;
+  --c-tone-teal-bg: rgba(45, 180, 170, 0.16);
+  --c-tone-orange: #ff9a6a;
+  --c-tone-orange-bg: rgba(240, 110, 50, 0.16);
+  --c-tone-pink: #f08cbf;
+  --c-tone-pink-bg: rgba(220, 80, 150, 0.16);
+  --c-tone-slate: #aab4c2;
+  --c-tone-slate-bg: rgba(140, 155, 175, 0.16);
 
   --c-mark: #ff563c;
 
@@ -266,8 +308,8 @@
   --c-accent-blue: #5b9bff;
   /* Re-stepped for the dark surface, not flipped: the light pair sits too
      bright against #0a0a0a to keep its separation. */
-  --c-series-1: #3b82f6;
-  --c-series-2: #c026d3;
+  --c-series-1: #5b8cff;
+  --c-series-2: #a78bfa;
 
   --c-github-mark: #f0f6fc;
   --c-brand-kafka: #e4e4e7;
@@ -383,7 +425,7 @@
   border-radius: 5px;
   background: none;
   font: inherit;
-  color: var(--c-ok);
+  color: var(--c-primary-text);
   cursor: default;
   transition: background var(--mo-fast);
 }
@@ -500,33 +542,15 @@
   font-size: 13px;
   position: relative;
 }
-/*
- * The page you are on is lifted onto the sheet's own white, and the mark's red
- * capsule sits in the gutter beside it -- the one place in the sidebar that
- * colour is spent.
- */
+/* The page you are on takes the action colour, the strongest thing in the sidebar. */
 .ni.on {
-  background: var(--c-bg);
-  color: var(--c-fg);
-  font-weight: 500;
-  box-shadow:
-    0 0 0 1px var(--c-border),
-    0 1px 2px rgba(28, 25, 23, 0.06);
-}
-.ni.on::before {
-  content: '';
-  position: absolute;
-  left: -10px;
-  top: 50%;
-  width: 3px;
-  height: 14px;
-  margin-top: -7px;
-  border-radius: 0 3px 3px 0;
-  background: var(--c-mark);
+  background: var(--c-primary-soft);
+  color: var(--c-primary-text);
+  font-weight: 600;
 }
 .ni.on .nic {
   opacity: 1;
-  color: var(--c-fg);
+  color: var(--c-primary);
 }
 /* A page this endpoint cannot open. It stays in the list because the reason
    sits on it, and a missing entry explains nothing. */
@@ -552,7 +576,7 @@
 }
 /* The selected row wins its colour back: a limited page can be the one you are on. */
 .ni.lim.on {
-  color: var(--c-fg);
+  color: var(--c-primary-text);
 }
 .nidot {
   position: absolute;
@@ -980,7 +1004,7 @@ button.ni {
   color: var(--c-fg-2);
   width: 100%;
 }
-button.ni.on { background: var(--c-bg); color: var(--c-fg); }
+button.ni.on { background: var(--c-primary-soft); color: var(--c-primary-text); }
 
 /* The compact table used inside detail sheets (partition lists, bindings…). */
 
@@ -1245,6 +1269,58 @@ button.ni.on { background: var(--c-bg); color: var(--c-fg); }
     grid-auto-rows: 260px;
     height: auto;
   }
+}
+
+/*
+ * A list with a detail sheet open beside it gives up the sheet's width (set by
+ * DetailPanel), so no column sits hidden under the sheet. Where that would
+ * leave the list too narrow to read, the sheet goes back to overlaying it.
+ */
+.mqs-listpane {
+  margin-right: var(--mqs-sheet-w, 0px);
+  transition: margin-right var(--mo-slow) var(--mo-ease);
+}
+@container page (max-width: 860px) {
+  .mqs-listpane {
+    margin-right: 0;
+  }
+}
+
+/* The connection grid: as many 280px cards as the sheet holds, sharing the slack. */
+.mqs-conngrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+  padding: 16px 20px 20px;
+}
+/* The last tile adds one, so an empty slot in the row is never just empty. */
+.mqs-conngrid-new {
+  min-height: 156px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px dashed var(--c-border-strong);
+  border-radius: 12px;
+  background: transparent;
+  font: inherit;
+  font-size: 12.5px;
+  color: var(--c-muted);
+  cursor: default;
+  transition:
+    background-color var(--mo-fast) ease,
+    color var(--mo-fast) ease,
+    border-color var(--mo-fast) ease;
+}
+.mqs-conngrid-new:hover {
+  background: var(--c-fill-soft);
+  border-color: var(--c-muted-2);
+  color: var(--c-fg);
+}
+.mqs-conngrid-new:focus-visible {
+  outline: 2px solid var(--c-fg);
+  outline-offset: 1px;
 }
 
 /* The overview's two ranking tables, side by side until the page is too narrow. */

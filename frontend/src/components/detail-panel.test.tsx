@@ -7,7 +7,7 @@ import { beforeAll, describe, expect, it, vi } from "vitest";
  * `bottom: -5px`, so underlining the trigger as well produces two rules - one
  * flush on the strip's baseline, one floating five pixels below it, with the
  * strip's own border between them. Nothing about the markup looks wrong; it
- * only shows once both are painted.
+ * only shows once both are painted. The variant's bar is the one kept.
  *
  * This is the second time a shadcn base style has doubled up with a hand-added
  * one (see panel.test.tsx), which is why it is pinned rather than just fixed.
@@ -40,9 +40,9 @@ const TABS = [
 ];
 
 function triggerClasses(html: string): string[] {
-  return [...html.matchAll(/class="([^"]*)"/g)]
-    .map((match) => match[1] ?? "")
-    .filter((classes) => classes.includes("border-b-2"));
+  return [...html.matchAll(/<button[^>]*data-slot="tabs-trigger"[^>]*>/g)].map(
+    (match) => /class="([^"]*)"/.exec(match[0])?.[1] ?? "",
+  );
 }
 
 describe("the detail panel's tab strip", () => {
@@ -54,9 +54,8 @@ describe("the detail panel's tab strip", () => {
     expect(triggers.length, "expected the tab triggers to be found").toBeGreaterThan(0);
 
     for (const classes of triggers) {
-      // The border is the underline that is kept; the variant's floating bar
-      // has to be suppressed, or both paint.
-      expect(classes, "the line variant's ::after bar must be hidden").toContain("after:hidden");
+      expect(classes, "the line variant's ::after bar must stay").not.toContain("after:hidden");
+      expect(classes, "a border underline would paint a second bar").not.toMatch(/\bborder-b(-\d)?\b/);
     }
   });
 });

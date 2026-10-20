@@ -10,8 +10,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 
 /**
  * The question asked before an action that cannot be taken back: clearing the
@@ -73,15 +71,9 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
             <AlertDialogCancel onClick={() => settle(false)}>
               {request?.cancelLabel ?? t("common.cancel")}
             </AlertDialogCancel>
-            {/* Solid here, where the soft destructive buttons that open this
-                dialog lead: confirming is the act itself. */}
             <AlertDialogAction
               autoFocus
-              className={
-                request?.danger === true
-                  ? cn(buttonVariants({ variant: "destructive" }), "bg-destructive text-white hover:bg-destructive/90 dark:bg-destructive/80")
-                  : undefined
-              }
+              variant={request?.danger === true ? "destructive" : "default"}
               onClick={() => settle(true)}
             >
               {request?.confirmLabel ?? t("common.confirm")}

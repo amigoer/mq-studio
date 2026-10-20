@@ -43,7 +43,7 @@ function TableHeader({ className, ...props }: React.ComponentProps<"thead">) {
   return (
     <thead
       data-slot="table-header"
-      className={cn("[&_tr]:border-b [&_tr]:border-border [&_tr]:hover:bg-transparent", className)}
+      className={cn("bg-(--c-panel) [&_tr]:border-b [&_tr]:border-border [&_tr]:hover:bg-transparent", className)}
       {...props}
     />
   )
@@ -74,9 +74,9 @@ function TableRow({
       data-slot="table-row"
       data-state={selected ? "selected" : undefined}
       className={cn(
-        "border-b border-(--c-rule) transition-colors hover:bg-(--c-fill-soft) has-aria-expanded:bg-(--c-fill-soft) data-[state=selected]:bg-(--c-fill)",
-        // The selected row carries the mark's red capsule on its leading edge.
-        "data-[state=selected]:[&>td:first-child]:shadow-[inset_2px_0_0_var(--c-mark)]",
+        "border-b border-(--c-rule) transition-colors hover:bg-(--c-fill-soft) has-aria-expanded:bg-(--c-fill-soft) data-[state=selected]:bg-(--c-primary-soft)",
+        // The selected row carries the action colour on its leading edge too.
+        "data-[state=selected]:[&>td:first-child]:shadow-[inset_2px_0_0_var(--c-primary)]",
         activatable &&
           "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/40",
         className

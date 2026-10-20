@@ -306,11 +306,12 @@ export function ProviderDialog({
           )}
         </div>
 
-        <div className="rounded-b-[calc(var(--radius-lg)-1px)] border-t border-(--c-border) bg-(--c-bar) px-6 py-3.5">
+        {/* The footer bleeds into a padded dialog by default; this one is unpadded. */}
+        <div>
           {verdict?.kind === "failed" && (
             <div className="mqs-probe-reveal">
               <div>
-                <Alert className="mb-3.5 border-transparent bg-(--c-err-bg) px-3 py-2">
+                <Alert className="mx-6 mb-3.5 w-auto border-transparent bg-(--c-err-bg) px-3 py-2">
                   <AlertDescription className="text-xs text-(--c-err-text) [overflow-wrap:anywhere]">
                     {t(failureKey(verdict.failure), { detail: verdict.failure.detail })}
                     {verdict.failure.detail !== "" &&
@@ -325,7 +326,7 @@ export function ProviderDialog({
               </div>
             </div>
           )}
-          <DialogFooter className="items-center gap-3 sm:justify-between">
+          <DialogFooter className="m-0 items-center gap-3 px-6 sm:justify-between">
             <div className="flex shrink-0 items-center">
               <Button
                 variant="outline"

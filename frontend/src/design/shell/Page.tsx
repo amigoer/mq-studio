@@ -130,15 +130,25 @@ export function PageBody({
   );
 }
 
-/** The row that holds the list and the detail sheet (3c and every list board). */
+/**
+ * The row that holds the list and the detail sheet (3c and every list board).
+ *
+ * It is the sheet's containing block, so an open sheet sits beside the rows and
+ * leaves the header and filter row above it whole - their buttons used to sit
+ * under it, out of reach until it was closed.
+ */
 export function ListArea({ children, style }: { children: ReactNode; style?: CSSProperties }) {
-  return <div style={{ flex: 1, display: "flex", minHeight: 0, ...style }}>{children}</div>;
+  return (
+    <div style={{ position: "relative", flex: 1, display: "flex", minHeight: 0, ...style }}>
+      {children}
+    </div>
+  );
 }
 
 /** The scrolling list column next to a sheet. */
 export function ListPane({ children, style }: { children: ReactNode; style?: CSSProperties }) {
   return (
-    <div className="mqs-scroll" style={{ flex: 1, minWidth: 0, overflow: "auto", ...style }}>
+    <div className="mqs-scroll mqs-listpane" style={{ flex: 1, minWidth: 0, overflow: "auto", ...style }}>
       {children}
     </div>
   );

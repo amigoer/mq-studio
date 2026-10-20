@@ -1,4 +1,8 @@
 import type { ReactNode } from "react";
+import type { LucideIcon } from "lucide-react";
+
+/** The hue of a tile's icon: kept apart from the state colours on purpose. */
+export type StatTone = "blue" | "violet" | "teal" | "orange" | "pink" | "slate";
 
 /** The five-across KPI tile from the overview boards. */
 export function StatTile({
@@ -7,18 +11,33 @@ export function StatTile({
   hint,
   valueColor,
   hintColor,
+  icon: Icon,
+  tone = "slate",
 }: {
   label: ReactNode;
   value: ReactNode;
   hint?: ReactNode;
   valueColor?: string;
   hintColor?: string;
+  /** A glyph for what the figure counts, set in a tile of `tone`. */
+  icon?: LucideIcon;
+  tone?: StatTone;
 }) {
   return (
     <div data-slot="stat-tile" className="flex min-w-0 flex-col bg-card px-4 pt-3.5 pb-3">
-      <div className="truncate text-xs text-muted-foreground">{label}</div>
+      <div className="flex min-w-0 items-center gap-2">
+        {Icon != null && (
+          <span
+            className="flex size-6 flex-none items-center justify-center rounded-md"
+            style={{ background: `var(--c-tone-${tone}-bg)`, color: `var(--c-tone-${tone})` }}
+          >
+            <Icon className="size-3.5" aria-hidden />
+          </span>
+        )}
+        <span className="truncate text-xs text-muted-foreground">{label}</span>
+      </div>
       <div
-        className="mt-1.5 truncate text-[1.75rem] leading-none font-semibold tracking-[-0.02em] tabular-nums"
+        className="mt-2.5 truncate text-[1.75rem] leading-none font-semibold tracking-[-0.02em] tabular-nums"
         style={{ color: valueColor }}
       >
         {value}

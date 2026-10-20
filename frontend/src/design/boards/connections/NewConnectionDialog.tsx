@@ -502,10 +502,11 @@ export function NewConnectionDialog({
         </div>
 
         {/* One box with the footer, so the dialog's gap opens with the reason
-            instead of arriving at full size before it. */}
-        <div className="rounded-b-[calc(var(--radius-lg)-1px)] border-t border-(--c-border) bg-(--c-bar) px-6 py-3.5">
+            instead of arriving at full size before it. The footer bleeds into
+            a padded dialog by default; this one is unpadded. */}
+        <div>
           {step === "protocol" ? (
-            <DialogFooter>
+            <DialogFooter className="m-0 px-6">
               <Button variant="outline" onClick={onClose}>
                 {t("common.cancel")}
               </Button>
@@ -521,7 +522,7 @@ export function NewConnectionDialog({
                         it is what somebody reads while correcting it. */}
                     <Alert
                       className={cn(
-                        "mb-3.5 border-transparent bg-(--c-err-bg) px-3 py-2 transition-opacity duration-(--mo-base)",
+                        "mx-6 mb-3.5 w-auto border-transparent bg-(--c-err-bg) px-3 py-2 transition-opacity duration-(--mo-base)",
                         (probing || current == null) && "opacity-50",
                       )}
                     >
@@ -534,7 +535,7 @@ export function NewConnectionDialog({
               )}
               {/* Two groups pushed to the two gutters: the test and its answer,
                   then the way out and the way forward. */}
-              <DialogFooter className="items-center gap-3 sm:justify-between">
+              <DialogFooter className="m-0 items-center gap-3 px-6 sm:justify-between">
                 <div className="flex shrink-0 items-center">
                   <Button
                     variant="outline"
