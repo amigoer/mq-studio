@@ -9,6 +9,12 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-10-21
+
+Two fixes. The body editor on the RabbitMQ and NATS send pages, and in the
+RabbitMQ policy dialog, can be seen and typed in again, and editing a user's
+tags on RabbitMQ 4.4 no longer removes its password.
+
 ### Fixed
 
 - The body editor on the RabbitMQ and NATS send pages, and the definition field
@@ -16,7 +22,8 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   its height from the page around it, and those three gave it none, so it was
   drawn zero pixels tall: text typed into it after a Tab still reached the
   broker, but nothing showed. It is now eight lines tall unless the page gives
-  it more, and has the border and focus ring of the fields around it. (#116)
+  it more, and has the border and focus ring of the fields around it. (#116,
+  #117)
 
 - Editing a user's tags on RabbitMQ 4.4 no longer removes its password.
   RabbitMQ 4.4 stopped returning password hashes from its user endpoints, so
@@ -26,7 +33,7 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   from the broker's own flag, and a save that keeps the password takes the
   stored hash from the definitions export instead. When the stored password
   cannot be read, the save stops and asks for the password rather than going
-  ahead without it.
+  ahead without it. (#118)
 
 ## [0.3.0] - 2026-10-03
 
