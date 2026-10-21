@@ -1,7 +1,8 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { Hourglass, Inbox, Layers, Radio, Unlink, Users } from "lucide-react";
 import { Page, PageBody, PageHeader, RefreshButton } from "@/design/shell";
-import { KV, Panel, PanelHeader, StatTile } from "@/components";
+import { MiniStat, Panel, PanelHeader, StatTile } from "@/components";
 import { BoardState } from "@/design/boards/BoardState";
 import { useActiveMQNodes } from "@/hooks/activemq/useActiveMQCluster";
 import { useActiveMQDestinations } from "@/hooks/activemq/useActiveMQDestinations";
@@ -92,62 +93,81 @@ export function OverviewActiveMQ() {
           <div className={KPI_GRID}>
             <StatTile
               label={t("board.activemq.overview.queues")}
+              icon={Layers}
+              tone="violet"
               value={formatCount(queues.length)}
             />
             <StatTile
               label={t("board.activemq.overview.topics")}
+              icon={Radio}
+              tone="blue"
               value={formatCount(topics.length)}
             />
             <StatTile
               label={t("board.activemq.overview.held")}
+              icon={Inbox}
+              tone="orange"
               value={formatCount(held)}
             />
             <StatTile
               label={t("board.activemq.overview.undrained")}
+              icon={Hourglass}
+              tone="pink"
               value={formatCount(undrained)}
               hint={t("board.activemq.overview.undrainedHint")}
             />
             <StatTile
               label={t("board.activemq.overview.subscriptions")}
+              icon={Users}
+              tone="teal"
               value={formatCount(subscriptions.length)}
             />
             <StatTile
               label={t("board.activemq.overview.detached")}
+              icon={Unlink}
+              tone="slate"
               value={formatCount(detached)}
               hint={t("board.activemq.overview.detachedHint")}
             />
           </div>
 
           {broker != null && (
-            <Panel style={{ overflow: "auto" }}>
-              <PanelHeader title={broker.name} />
-              <div style={{ padding: "0 12px 12px" }}>
-                <KV
-                  rows={[
-                    [t("board.activemq.overview.version"), broker.version || DASH],
-                    [t("board.activemq.overview.uptime"), broker.uptime ?? DASH],
-                    [
-                      t("board.activemq.overview.connections"),
-                      reported(broker.connections),
-                    ],
-                    [t("board.activemq.overview.consumers"), reported(broker.consumers)],
-                    [
-                      t("board.activemq.overview.disk"),
-                      broker.diskUsage == null ? DASH : `${broker.diskUsage}%`,
-                    ],
-                    [
-                      t("board.activemq.overview.memory"),
-                      broker.memoryPercent == null ? DASH : `${broker.memoryPercent}%`,
-                    ],
-                    [
-                      t("board.activemq.overview.persistent"),
-                      broker.persistent == null
-                        ? DASH
-                        : broker.persistent
-                          ? t("common.yes")
-                          : t("common.no"),
-                    ],
-                  ]}
+            <Panel>
+              <PanelHeader
+                title={broker.name}
+                action={
+                  <span className="text-xs text-muted-foreground">
+                    {t("board.activemq.overview.version")} {broker.version || DASH}
+                  </span>
+                }
+              />
+              <div className="grid grid-cols-3 gap-2 p-4">
+                <MiniStat label={t("board.activemq.overview.uptime")} value={broker.uptime ?? DASH} />
+                <MiniStat
+                  label={t("board.activemq.overview.connections")}
+                  value={reported(broker.connections)}
+                />
+                <MiniStat
+                  label={t("board.activemq.overview.consumers")}
+                  value={reported(broker.consumers)}
+                />
+                <MiniStat
+                  label={t("board.activemq.overview.disk")}
+                  value={broker.diskUsage == null ? DASH : `${broker.diskUsage}%`}
+                />
+                <MiniStat
+                  label={t("board.activemq.overview.memory")}
+                  value={broker.memoryPercent == null ? DASH : `${broker.memoryPercent}%`}
+                />
+                <MiniStat
+                  label={t("board.activemq.overview.persistent")}
+                  value={
+                    broker.persistent == null
+                      ? DASH
+                      : broker.persistent
+                        ? t("common.yes")
+                        : t("common.no")
+                  }
                 />
               </div>
             </Panel>

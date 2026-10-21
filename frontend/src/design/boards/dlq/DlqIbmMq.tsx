@@ -1,6 +1,13 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Page, PageBody, PageHeader, RefreshButton } from "@/design/shell";
+import {
+  ListArea,
+  ListPane,
+  Page,
+  PageHeader,
+  RefreshButton,
+  StatusBar,
+} from "@/design/shell";
 import {
   Table,
   TableBody,
@@ -9,13 +16,20 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { KV, Panel, PanelHeader, SectionLabel } from "@/components";
-import { BoardState } from "@/design/boards/BoardState";
+import {
+  DetailPanel,
+  DetailPanelBody,
+  DetailPanelHeader,
+  KV,
+  MiniStat,
+  SectionLabel,
+} from "@/components";
+import { BoardState, isBlocked } from "@/design/boards/BoardState";
 import { useIbmMqDeadLetters } from "@/hooks/ibmmq/useIbmMqDeadLetters";
 import { formatCount } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import type { DeadLetterQueue } from "@bindings/model/models";
 
-const MONO11 = { fontSize: "11px" } as const;
 const DASH = "—";
 
 /** The attribute names the driver puts in a source's exchange field. */
@@ -84,10 +98,7 @@ export function DlqIbmMq() {
   const [selected, setSelected] = useState<string | null>(null);
 
   const queues = useMemo(() => state.data ?? [], [state.data]);
-  const detail = useMemo(
-    () => queues.find((entry) => entry.name === selected) ?? queues[0] ?? null,
-    [queues, selected],
-  );
+  const current = queues.find((entry) => entry.name === selected) ?? null;
 
   return (
     <Page>
@@ -102,86 +113,88 @@ export function DlqIbmMq() {
           />
         }
       />
-      <BoardState state={state}>
-        <PageBody>
-          <div style={{ display: "flex", gap: "12px", minHeight: 0, flex: 1 }}>
-            <Panel style={{ flex: 1, overflow: "auto" }}>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t("board.ibmmq.dlq.queue")}</TableHead>
-                    <TableHead className="num">{t("board.ibmmq.dlq.depth")}</TableHead>
-                    <TableHead className="num">{t("board.ibmmq.dlq.consumers")}</TableHead>
-                    <TableHead className="num">{t("board.ibmmq.dlq.sources")}</TableHead>
+      {isBlocked(state) ? (
+        <BoardState state={state} />
+      ) : (
+        <ListArea>
+          <ListPane>
+            <Table inset>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("board.ibmmq.dlq.queue")}</TableHead>
+                  <TableHead className="num">{t("board.ibmmq.dlq.depth")}</TableHead>
+                  <TableHead className="num">{t("board.ibmmq.dlq.consumers")}</TableHead>
+                  <TableHead className="num">{t("board.ibmmq.dlq.sources")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {queues.map((entry) => (
+                  <TableRow
+                    key={entry.name}
+                    selected={selected === entry.name}
+                    onClick={() => setSelected(entry.name)}
+                  >
+                    <TableCell className="select-text">{entry.name}</TableCell>
+                    <TableCell className={cn("num", entry.depth > 0 && "text-(--c-warn-text)")}>
+                      {count(entry.depth)}
+                    </TableCell>
+                    <TableCell className="num">{entry.consumers}</TableCell>
+                    <TableCell className="num">{entry.sources?.length ?? 0}</TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {queues.map((entry) => (
-                    <TableRow
-                      key={entry.name}
-                      data-state={detail?.name === entry.name ? "selected" : undefined}
-                      onClick={() => setSelected(entry.name)}
-                      style={{ cursor: "pointer" }}
-                    >
-                      <TableCell>
-                        <span className="mono3" style={MONO11}>
-                          {entry.name}
-                        </span>
-                      </TableCell>
-                      <TableCell className="num">
-                        <span
-                          className="mono3"
-                          style={{
-                            ...MONO11,
-                            color: entry.depth > 0 ? "var(--c-warn)" : undefined,
-                          }}
-                        >
-                          {count(entry.depth)}
-                        </span>
-                      </TableCell>
-                      <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {entry.consumers}
-                        </span>
-                      </TableCell>
-                      <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {entry.sources?.length ?? 0}
-                        </span>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Panel>
+                ))}
+                {queues.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={4} className="py-8 text-center text-muted-foreground">
+                      {t("board.ibmmq.dlq.none")}
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </ListPane>
 
-            {detail != null && (
-              <Panel style={{ width: "320px", overflow: "auto" }}>
-                <PanelHeader title={detail.name} />
-                <div style={{ padding: "10px 12px", display: "grid", gap: "8px" }}>
-                  <KV
-                    rows={[
-                      [t("board.ibmmq.dlq.depth"), count(detail.depth)],
-                      [t("board.ibmmq.dlq.consumers"), String(detail.consumers)],
-                    ]}
-                  />
-                  {detail.depth > 0 && detail.consumers === 0 && (
-                    <div style={{ fontSize: "11px", color: "var(--c-warn)" }}>
-                      {t("board.ibmmq.dlq.nobodyDraining")}
-                    </div>
-                  )}
-
-                  <SectionLabel>{t("board.ibmmq.dlq.section.sources")}</SectionLabel>
-                  <KV rows={sourceRows(detail, t)} />
-                </div>
-              </Panel>
-            )}
-          </div>
-          <div style={{ fontSize: "11px", color: "var(--c-muted)", paddingTop: "8px" }}>
-            {t("board.ibmmq.dlq.note")}
-          </div>
-        </PageBody>
-      </BoardState>
+          {current != null && (
+            <DeadLetterSheet
+              key={current.name}
+              entry={current}
+              onClose={() => setSelected(null)}
+            />
+          )}
+        </ListArea>
+      )}
+      {!isBlocked(state) && <StatusBar left={<span>{t("board.ibmmq.dlq.note")}</span>} />}
     </Page>
+  );
+}
+
+export function DeadLetterSheet({
+  entry,
+  onClose,
+}: {
+  entry: DeadLetterQueue;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <DetailPanel width={380} onDismiss={onClose}>
+      <DetailPanelHeader title={entry.name} onClose={onClose} />
+      <DetailPanelBody>
+        <div className="grid grid-cols-2 gap-2">
+          <MiniStat label={t("board.ibmmq.dlq.depth")} value={count(entry.depth)} />
+          <MiniStat label={t("board.ibmmq.dlq.consumers")} value={entry.consumers} />
+        </div>
+
+        {entry.depth > 0 && entry.consumers === 0 && (
+          <p className="text-xs leading-relaxed text-(--c-warn-text)">
+            {t("board.ibmmq.dlq.nobodyDraining")}
+          </p>
+        )}
+
+        <div>
+          <SectionLabel className="mb-1.5">{t("board.ibmmq.dlq.section.sources")}</SectionLabel>
+          <KV rows={sourceRows(entry, t)} />
+        </div>
+      </DetailPanelBody>
+    </DetailPanel>
   );
 }

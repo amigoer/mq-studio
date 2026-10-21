@@ -81,7 +81,7 @@ export function ReplicaDialog({
                 {replicas.map((replica) => (
                   <TableRow key={replica.address}>
                     <TableCell className="mono3">{replica.address}</TableCell>
-                    <TableCell className="mono3" style={{ textAlign: "right" }}>
+                    <TableCell style={{ textAlign: "right" }}>
                       {replica.behindBytes < 0
                         ? "—"
                         : t("board.cluster.rocketmq.replicas.bytes", {

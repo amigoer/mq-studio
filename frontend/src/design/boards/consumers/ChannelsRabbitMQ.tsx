@@ -24,7 +24,7 @@ import {
   toast,
   useConfirm,
 } from "@/components";
-import { BoardState, isBlocked } from "@/design/boards/BoardState";
+import { BoardState, isBlocked, Notice, NOTICE_PANE } from "@/design/boards/BoardState";
 import { useRabbitClients } from "@/hooks/rabbitmq/useRabbitClients";
 import { formatBytes, formatCount } from "@/lib/format";
 import { useConnectionScope } from "@/mq/ConnectionScope";
@@ -160,10 +160,14 @@ export function ChannelsRabbitMQ() {
         </Toolbar>
       )}
       <ListArea>
-        <ListPane>
+        <ListPane style={isBlocked(state) || connections.length === 0 ? NOTICE_PANE : undefined}>
           <BoardState
             state={state}
-            empty={connections.length === 0 ? t("board.consumers.rabbitmq.none") : undefined}
+            empty={
+              connections.length === 0 ? (
+                <Notice title={t("board.consumers.rabbitmq.none")} />
+              ) : undefined
+            }
           >
             <Table inset>
               <TableHeader>
@@ -209,11 +213,10 @@ export function ChannelsRabbitMQ() {
                       <TableCell className="mono3" style={MONO11}>
                         {connection.protocol}
                       </TableCell>
-                      <TableCell className="mono3" style={{ textAlign: "right" }}>
+                      <TableCell style={{ textAlign: "right" }}>
                         {formatCount(connection.channels)}
                       </TableCell>
                       <TableCell
-                        className="mono3"
                         style={{
                           textAlign: "right",
                           color: unacked > 0 ? "var(--c-warn-text)" : undefined,
@@ -221,7 +224,7 @@ export function ChannelsRabbitMQ() {
                       >
                         {formatCount(unacked)}
                       </TableCell>
-                      <TableCell className="mono3" style={{ textAlign: "right" }}>
+                      <TableCell style={{ textAlign: "right" }}>
                         {formatBytes(connection.recvByteRate)}/s /{" "}
                         {formatBytes(connection.sendByteRate)}/s
                       </TableCell>

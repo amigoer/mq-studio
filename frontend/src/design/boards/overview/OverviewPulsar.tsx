@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { Layers, Package, Send, Server, Users } from "lucide-react";
 import { Page, PageBody, PageHeader, RefreshButton } from "@/design/shell";
 import {
   Table,
@@ -25,7 +26,7 @@ import {
   producerCount,
   topicCount,
 } from "@/mq/pulsar/cluster";
-import { KPI_GRID, TABLE_CARD } from "./_shared";
+import { KPI_GRID } from "./_shared";
 
 /** A count the cluster did not report, drawn as absent rather than as zero. */
 function reported(value: number | null): string {
@@ -77,6 +78,8 @@ export function OverviewPulsar() {
           <div className={KPI_GRID}>
             <StatTile
               label="Broker"
+              icon={Server}
+              tone="slate"
               value={reported(nodes.length === 0 ? null : nodes.length)}
               hint={
                 leader != null
@@ -86,51 +89,61 @@ export function OverviewPulsar() {
             />
             <StatTile
               label={t("board.overview.pulsar.bundles")}
+              icon={Package}
+              tone="pink"
               value={reported(sum(described.map(bundleCount)))}
               hint={t("board.overview.pulsar.bundlesHint")}
             />
             <StatTile
               label="Topic"
+              icon={Layers}
+              tone="violet"
               value={reported(sum(described.map(topicCount)))}
               hint={t("board.overview.pulsar.topicsHint")}
             />
             <StatTile
               label={t("board.overview.pulsar.producers")}
+              icon={Send}
+              tone="blue"
               value={reported(sum(described.map(producerCount)))}
               hint={t("board.overview.pulsar.clientsHint")}
             />
             <StatTile
               label={t("board.overview.pulsar.consumers")}
+              icon={Users}
+              tone="teal"
               value={reported(sum(described.map(consumerCount)))}
               hint={t("board.overview.pulsar.clientsHint")}
             />
           </div>
 
           {overview != null && (
-            <Panel style={{ padding: "13px 16px", display: "flex", flexDirection: "column", gap: "10px" }}>
+            <Panel>
               <PanelHeader title={t("board.overview.pulsar.endpoints")} />
-              <KV
-                rows={[
-                  [
-                    t("board.overview.pulsar.brokerServiceUrl"),
-                    <span className="mono3">{clusterBrokerServiceURL(overview) || "—"}</span>,
-                  ],
-                  [
-                    t("board.overview.pulsar.webServiceUrl"),
-                    <span className="mono3">{clusterServiceURL(overview) || "—"}</span>,
-                  ],
-                  [
-                    t("board.overview.pulsar.metadataStore"),
-                    <span className="mono3">{metadataStore(overview) || "—"}</span>,
-                  ],
-                ]}
-              />
+              <div className="px-4 py-3">
+                <KV
+                  rows={[
+                    [
+                      t("board.overview.pulsar.brokerServiceUrl"),
+                      <span className="mono3">{clusterBrokerServiceURL(overview) || "—"}</span>,
+                    ],
+                    [
+                      t("board.overview.pulsar.webServiceUrl"),
+                      <span className="mono3">{clusterServiceURL(overview) || "—"}</span>,
+                    ],
+                    [
+                      t("board.overview.pulsar.metadataStore"),
+                      <span className="mono3">{metadataStore(overview) || "—"}</span>,
+                    ],
+                  ]}
+                />
+              </div>
             </Panel>
           )}
 
-          <Panel style={TABLE_CARD}>
+          <Panel className="overflow-hidden">
             <PanelHeader title={t("board.overview.pulsar.brokers")} />
-            <Table>
+            <Table inset="card">
               <TableHeader>
                 <TableRow>
                   <TableHead>{t("board.common.address")}</TableHead>
@@ -143,7 +156,7 @@ export function OverviewPulsar() {
               <TableBody>
                 {nodes.map((node) => (
                   <TableRow key={node.address}>
-                    <TableCell className="mono3">
+                    <TableCell className="mono3 text-xs">
                       {node.address}
                       {isLeader(node) && (
                         <span className="ml-2 text-(--c-muted)">
@@ -154,7 +167,7 @@ export function OverviewPulsar() {
                     <TableCell>
                       <Status tone="ok">{t("board.common.online")}</Status>
                     </TableCell>
-                    <TableCell className="mono3">{brokerVersion(node) || "—"}</TableCell>
+                    <TableCell>{brokerVersion(node) || "—"}</TableCell>
                     <TableCell className="text-right">{reported(bundleCount(node))}</TableCell>
                     <TableCell className="text-right">{reported(topicCount(node))}</TableCell>
                   </TableRow>

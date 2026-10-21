@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { Ban, Cable, Inbox, Layers, Radio, TriangleAlert } from "lucide-react";
 import { Page, PageBody, PageHeader, RefreshButton } from "@/design/shell";
 import { Panel, PanelHeader, StatTile } from "@/components";
 import {
@@ -20,7 +21,6 @@ import { useConnectionProfiles } from "@/hooks/useConnectionProfiles";
 import { formatCount } from "@/lib/format";
 import { KPI_GRID } from "./_shared";
 
-const MONO11 = { fontSize: "11px" } as const;
 
 /**
  * The IBM MQ overview.
@@ -112,32 +112,44 @@ export function OverviewIbmMq() {
           <div className={KPI_GRID}>
             <StatTile
               label={t("board.ibmmq.overview.queues")}
+              icon={Layers}
+              tone="violet"
               value={formatCount(queues.length)}
               hint={t("board.ibmmq.overview.queuesHint")}
             />
             <StatTile
               label={t("board.ibmmq.overview.depth")}
+              icon={Inbox}
+              tone="orange"
               value={formatCount(depth)}
               hint={t("board.ibmmq.overview.depthHint")}
             />
             <StatTile
               label={t("board.ibmmq.overview.topics")}
+              icon={Radio}
+              tone="blue"
               value={formatCount(topics.length)}
               hint={t("board.ibmmq.overview.topicsHint")}
             />
             <StatTile
               label={t("board.ibmmq.overview.runningChannels")}
+              icon={Cable}
+              tone="teal"
               value={formatCount(runningChannels)}
               hint={t("board.ibmmq.overview.runningChannelsHint")}
             />
             <StatTile
               label={t("board.ibmmq.overview.troubledChannels")}
+              icon={TriangleAlert}
+              tone="pink"
               value={formatCount(troubled)}
               hint={t("board.ibmmq.overview.troubledChannelsHint")}
               valueColor={troubled > 0 ? "var(--c-warn-text)" : undefined}
             />
             <StatTile
               label={t("board.ibmmq.overview.inhibited")}
+              icon={Ban}
+              tone="slate"
               value={formatCount(blocked)}
               hint={t("board.ibmmq.overview.inhibitedHint")}
               valueColor={blocked > 0 ? "var(--c-warn-text)" : undefined}
@@ -146,7 +158,7 @@ export function OverviewIbmMq() {
 
           <Panel>
             <PanelHeader title={t("board.ibmmq.overview.deepest")} />
-            <Table>
+            <Table inset="card">
               <TableHeader>
                 <TableRow>
                   <TableHead>{t("board.ibmmq.queues.name")}</TableHead>
@@ -159,26 +171,10 @@ export function OverviewIbmMq() {
               <TableBody>
                 {notable.map((entry) => (
                   <TableRow key={entry.name}>
-                    <TableCell>
-                      <span className="mono3" style={MONO11}>
-                        {entry.name}
-                      </span>
-                    </TableCell>
-                    <TableCell className="num">
-                      <span className="mono3" style={MONO11}>
-                        {formatCount(entry.depth ?? 0)}
-                      </span>
-                    </TableCell>
-                    <TableCell className="num">
-                      <span className="mono3" style={MONO11}>
-                        {formatCount(entry.maxDepth ?? 0)}
-                      </span>
-                    </TableCell>
-                    <TableCell className="num">
-                      <span className="mono3" style={MONO11}>
-                        {formatCount(entry.openInput ?? 0)}
-                      </span>
-                    </TableCell>
+                    <TableCell className="select-text">{entry.name}</TableCell>
+                    <TableCell className="num">{formatCount(entry.depth ?? 0)}</TableCell>
+                    <TableCell className="num">{formatCount(entry.maxDepth ?? 0)}</TableCell>
+                    <TableCell className="num">{formatCount(entry.openInput ?? 0)}</TableCell>
                     <TableCell>
                       <span style={{ fontSize: "11px", color: "var(--c-muted)" }}>
                         {entry.deadLetterQueue

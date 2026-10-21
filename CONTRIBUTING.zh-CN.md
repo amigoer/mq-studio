@@ -58,7 +58,8 @@ make dev
 ```
 
 `make help` 会列出全部命令。进程模型与仓库结构见
-[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)。
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)；每个界面都遵循的组件库、视觉语言和页面模式见
+[docs/UI.zh-CN.md](docs/UI.zh-CN.md)。
 
 ## 推送之前
 
@@ -171,6 +172,7 @@ ci/changelog-reference-gate
 | `website/sites/en/kite.yaml` | `website/sites/zh/kite.yaml` |
 | `docs/DRIVERS.md` | `docs/DRIVERS.zh-CN.md` |
 | `docs/MCP.md` | `docs/MCP.zh-CN.md` |
+| `docs/UI.md` | `docs/UI.zh-CN.md` |
 | `docs/images/readme/<页面>.en.png` | `docs/images/readme/<页面>.png` |
 
 ## 新增一个驱动

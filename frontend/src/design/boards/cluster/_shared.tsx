@@ -89,7 +89,7 @@ export function NodeCard({
 export function Metric({ label, value }: { label: ReactNode; value: string }) {
   return (
     <span>
-      {label} <b className="mono3">{value}</b>
+      {label} <b className="tabular-nums">{value}</b>
     </span>
   );
 }

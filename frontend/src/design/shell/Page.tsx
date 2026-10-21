@@ -1,5 +1,7 @@
-import type { CSSProperties, ReactNode } from "react";
+import { Children, Fragment, useEffect, useRef, type CSSProperties, type ReactNode } from "react";
 import { RefreshCw } from "lucide-react";
+import { AnimatePresence } from "motion/react";
+import { SheetRetarget } from "@/components/detail-panel";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "react-i18next";
 
@@ -90,10 +92,10 @@ export function StatusBar({ left, right }: { left?: ReactNode; right?: ReactNode
         display: "flex",
         alignItems: "center",
         gap: "14px",
-        padding: "9px 20px",
+        padding: "8px 20px",
         borderTop: "1px solid var(--c-border)",
         background: "var(--c-panel)",
-        fontSize: "11px",
+        fontSize: "11.5px",
         color: "var(--c-muted)",
       }}
     >
@@ -114,14 +116,14 @@ export function PageBody({
 }) {
   return (
     <div
-      className="mqs-scroll"
+      className="mqs-scroll mqs-pagebody"
       style={{
         flex: 1,
         minHeight: 0,
-        padding: "16px 20px",
+        padding: "20px",
         display: "flex",
         flexDirection: "column",
-        gap: "14px",
+        gap: "16px",
         ...style,
       }}
     >
@@ -130,15 +132,41 @@ export function PageBody({
   );
 }
 
-/** The row that holds the list and the detail sheet (3c and every list board). */
+/**
+ * The row that holds the list and the detail sheet (3c and every list board).
+ *
+ * It is the sheet's containing block, so an open sheet sits beside the rows and
+ * leaves the header and filter row above it whole - their buttons used to sit
+ * under it, out of reach until it was closed.
+ */
 export function ListArea({ children, style }: { children: ReactNode; style?: CSSProperties }) {
-  return <div style={{ flex: 1, display: "flex", minHeight: 0, ...style }}>{children}</div>;
+  const items = Children.toArray(children);
+  const open = items.length > 1;
+  const wasOpen = useRef(false);
+  useEffect(() => {
+    wasOpen.current = open;
+  });
+
+  return (
+    <div style={{ position: "relative", flex: 1, display: "flex", minHeight: 0, ...style }}>
+      <SheetRetarget.Provider value={wasOpen.current && open}>
+        {/* Lets the detail sheet leave after its host drops it. Keyed by slot
+            rather than by the host's own key, so clicking another row retargets
+            the open sheet instead of sending one out and another in. */}
+        <AnimatePresence>
+          {items.map((item, slot) => (
+            <Fragment key={slot}>{item}</Fragment>
+          ))}
+        </AnimatePresence>
+      </SheetRetarget.Provider>
+    </div>
+  );
 }
 
 /** The scrolling list column next to a sheet. */
 export function ListPane({ children, style }: { children: ReactNode; style?: CSSProperties }) {
   return (
-    <div className="mqs-scroll" style={{ flex: 1, minWidth: 0, overflow: "auto", ...style }}>
+    <div className="mqs-scroll mqs-listpane" style={{ flex: 1, minWidth: 0, overflow: "auto", ...style }}>
       {children}
     </div>
   );
@@ -216,9 +244,11 @@ export function TabStatusBar({
         display: "flex",
         alignItems: "center",
         gap: "14px",
-        padding: "7px 20px",
+        height: "30px",
+        padding: "0 20px",
         borderTop: "1px solid var(--c-border)",
-        fontSize: "10.5px",
+        background: "var(--c-panel)",
+        fontSize: "11px",
         color: "var(--c-muted)",
       }}
     >

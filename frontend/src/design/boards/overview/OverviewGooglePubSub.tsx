@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { CircleSlash, Layers, TriangleAlert, Unlink, Users } from "lucide-react";
 import { Page, PageBody, PageHeader, RefreshButton } from "@/design/shell";
 import { Panel, PanelHeader, StatTile } from "@/components";
 import {
@@ -20,7 +21,6 @@ import { useConnectionProfiles } from "@/hooks/useConnectionProfiles";
 import { formatCount } from "@/lib/format";
 import { KPI_GRID } from "./_shared";
 
-const MONO11 = { fontSize: "11px" } as const;
 
 /**
  * The Google Pub/Sub overview.
@@ -97,28 +97,38 @@ export function OverviewGooglePubSub() {
           <div className={KPI_GRID}>
             <StatTile
               label={t("board.google-pubsub.overview.topics")}
+              icon={Layers}
+              tone="violet"
               value={formatCount(topics.length)}
               hint={t("board.google-pubsub.overview.topicsHint")}
             />
             <StatTile
               label={t("board.google-pubsub.overview.subscriptions")}
+              icon={Users}
+              tone="teal"
               value={formatCount(subscriptions.length)}
               hint={t("board.google-pubsub.overview.subscriptionsHint")}
             />
             <StatTile
               label={t("board.google-pubsub.overview.unsubscribed")}
+              icon={CircleSlash}
+              tone="orange"
               value={formatCount(unsubscribed)}
               hint={t("board.google-pubsub.overview.unsubscribedHint")}
               valueColor={unsubscribed > 0 ? "var(--c-warn-text)" : undefined}
             />
             <StatTile
               label={t("board.google-pubsub.overview.orphaned")}
+              icon={Unlink}
+              tone="pink"
               value={formatCount(orphaned)}
               hint={t("board.google-pubsub.overview.orphanedHint")}
               valueColor={orphaned > 0 ? "var(--c-warn-text)" : undefined}
             />
             <StatTile
               label={t("board.google-pubsub.overview.withDeadLetters")}
+              icon={TriangleAlert}
+              tone="slate"
               value={formatCount(withDeadLetters)}
               hint={t("board.google-pubsub.overview.withDeadLettersHint")}
             />
@@ -126,7 +136,7 @@ export function OverviewGooglePubSub() {
 
           <Panel>
             <PanelHeader title={t("board.google-pubsub.overview.busiest")} />
-            <Table>
+            <Table inset="card">
               <TableHeader>
                 <TableRow>
                   <TableHead>{t("board.google-pubsub.topics.name")}</TableHead>
@@ -139,21 +149,9 @@ export function OverviewGooglePubSub() {
               <TableBody>
                 {busiest.map((entry) => (
                   <TableRow key={entry.name}>
-                    <TableCell>
-                      <span className="mono3" style={MONO11}>
-                        {entry.name}
-                      </span>
-                    </TableCell>
-                    <TableCell className="num">
-                      <span className="mono3" style={MONO11}>
-                        {formatCount(entry.subscribers)}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <span className="mono3" style={MONO11}>
-                        {entry.subscriptionNames.join(", ")}
-                      </span>
-                    </TableCell>
+                    <TableCell className="select-text">{entry.name}</TableCell>
+                    <TableCell className="num">{formatCount(entry.subscribers)}</TableCell>
+                    <TableCell className="select-text">{entry.subscriptionNames.join(", ")}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

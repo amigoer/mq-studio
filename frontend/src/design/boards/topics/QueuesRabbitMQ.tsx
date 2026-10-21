@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Plus } from "lucide-react";
 import { ListArea, ListPane, Page, PageHeader, RefreshButton, Toolbar } from "@/design/shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,7 +27,7 @@ import {
   toast,
   useConfirm,
 } from "@/components";
-import { BoardState, isBlocked } from "@/design/boards/BoardState";
+import { BoardState, isBlocked, Notice, NOTICE_PANE } from "@/design/boards/BoardState";
 import { StreamClientsPanel } from "./StreamClientsPanel";
 import { useRabbitQueues } from "@/hooks/rabbitmq/useRabbitQueues";
 import { formatBytes, formatCount, formatRate } from "@/lib/format";
@@ -220,19 +221,20 @@ export function QueuesRabbitMQ() {
         subtitle={t("board.topics.rabbitmq.queueSubtitle", { count: queues.length })}
         actions={
           <>
+            <RefreshButton
+              refreshing={state.refreshing}
+              online={state.online}
+              onClick={state.refresh}
+            />
             {/* Leaders pile up on whichever node was available when each queue
                 was declared, and nothing spreads them back on its own. */}
             <Button variant="outline" disabled={!state.online} onClick={() => void rebalance()}>
               {t("board.topics.rabbitmq.rebalanceAction")}
             </Button>
             <Button disabled={!state.online} onClick={() => setDeclaring(true)}>
+              <Plus aria-hidden />
               {t("board.topics.rabbitmq.newQueue")}
             </Button>
-            <RefreshButton
-              refreshing={state.refreshing}
-              online={state.online}
-              onClick={state.refresh}
-            />
           </>
         }
       />
@@ -289,10 +291,12 @@ export function QueuesRabbitMQ() {
         </Toolbar>
       )}
       <ListArea>
-        <ListPane>
+        <ListPane style={isBlocked(state) || queues.length === 0 ? NOTICE_PANE : undefined}>
           <BoardState
             state={state}
-            empty={queues.length === 0 ? t("board.topics.rabbitmq.noQueues") : undefined}
+            empty={
+              queues.length === 0 ? <Notice title={t("board.topics.rabbitmq.noQueues")} /> : undefined
+            }
           >
             <Table inset>
               <TableHeader>
@@ -334,7 +338,6 @@ export function QueuesRabbitMQ() {
                       </TableCell>
                       <TableCell>{queueType(queue)}</TableCell>
                       <TableCell
-                        className="mono3"
                         style={{
                           textAlign: "right",
                           color: ready > 0 ? "var(--c-warn-text)" : undefined,
@@ -342,11 +345,10 @@ export function QueuesRabbitMQ() {
                       >
                         {formatCount(ready)}
                       </TableCell>
-                      <TableCell className="mono3" style={{ textAlign: "right" }}>
+                      <TableCell style={{ textAlign: "right" }}>
                         {formatCount(unacked)}
                       </TableCell>
                       <TableCell
-                        className="mono3"
                         style={{
                           textAlign: "right",
                           color:
@@ -355,7 +357,7 @@ export function QueuesRabbitMQ() {
                       >
                         {formatCount(queue.subscribers)}
                       </TableCell>
-                      <TableCell className="mono3" style={{ textAlign: "right" }}>
+                      <TableCell style={{ textAlign: "right" }}>
                         {formatRate(queue.rateIn)} / {formatRate(queue.rateOut)}
                       </TableCell>
                       <TableCell>
@@ -530,7 +532,7 @@ function Counter({ label, value, tone }: { label: string; value: string; tone?: 
     <Panel style={{ padding: "9px 12px" }}>
       <div style={{ fontSize: "10.5px", color: "var(--c-muted)" }}>{label}</div>
       <div
-        className="mono3"
+        className="tabular-nums"
         style={{
           fontSize: "16px",
           fontWeight: 600,

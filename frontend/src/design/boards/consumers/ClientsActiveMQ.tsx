@@ -1,7 +1,15 @@
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { Page, PageBody, PageHeader, RefreshButton } from "@/design/shell";
+import {
+  ListArea,
+  ListPane,
+  Page,
+  PageHeader,
+  RefreshButton,
+  StatusBar,
+  Toolbar,
+} from "@/design/shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -12,8 +20,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { KV, Panel, PanelHeader, SectionLabel, useConfirm } from "@/components";
-import { BoardState } from "@/design/boards/BoardState";
+import {
+  DetailPanel,
+  DetailPanelBody,
+  DetailPanelFooter,
+  DetailPanelHeader,
+  KV,
+  SectionLabel,
+  useConfirm,
+} from "@/components";
+import { BoardState, isBlocked } from "@/design/boards/BoardState";
 import { useActiveMQConnections } from "@/hooks/activemq/useActiveMQCluster";
 import {
   connection as readConnection,
@@ -24,7 +40,6 @@ import { formatErrorMessage } from "@/lib/utils";
 import { useConnectionScope } from "@/mq/ConnectionScope";
 import * as activemqApi from "@/api/activemq";
 
-const MONO11 = { fontSize: "11px" } as const;
 const DASH = "—";
 
 /**
@@ -66,10 +81,7 @@ export function ClientsActiveMQ() {
     );
   }, [connections, search]);
 
-  const detail = useMemo(
-    () => shown.find((entry) => entry.name === selected) ?? shown[0] ?? null,
-    [shown, selected],
-  );
+  const current = shown.find((entry) => entry.name === selected) ?? null;
 
   const close = useCallback(
     async (entry: ActiveMQConnection) => {
@@ -100,116 +112,131 @@ export function ClientsActiveMQ() {
         title={t("shell.nav.activemq.clients")}
         subtitle={t("board.activemq.clients.count", { count: connections.length })}
         actions={
-          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-            <Input
-              style={{ width: "200px" }}
-              value={search}
-              placeholder={t("board.activemq.clients.search")}
-              onChange={(event) => setSearch(event.target.value)}
-            />
-            <RefreshButton
-              refreshing={state.refreshing}
-              online={state.online}
-              onClick={() => void state.refresh()}
-            />
-          </div>
+          <RefreshButton
+            refreshing={state.refreshing}
+            online={state.online}
+            onClick={() => void state.refresh()}
+          />
         }
       />
-      <BoardState state={state}>
-        <PageBody>
-          <div style={{ display: "flex", gap: "12px", minHeight: 0, flex: 1 }}>
-            <Panel style={{ flex: 1, overflow: "auto" }}>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t("board.activemq.clients.peer")}</TableHead>
-                    <TableHead>{t("board.activemq.clients.protocol")}</TableHead>
-                    <TableHead>{t("board.activemq.clients.user")}</TableHead>
-                    <TableHead>{t("board.activemq.clients.state")}</TableHead>
-                    <TableHead className="num">
-                      {t("board.activemq.clients.sessions")}
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {shown.map((entry) => (
-                    <TableRow
-                      key={entry.name}
-                      data-state={detail?.name === entry.name ? "selected" : undefined}
-                      onClick={() => setSelected(entry.name)}
-                      style={{ cursor: "pointer" }}
-                    >
-                      <TableCell>
-                        <span className="mono3" style={MONO11}>
-                          {entry.peer}
-                        </span>
-                      </TableCell>
-                      <TableCell>{entry.protocol === "" ? DASH : entry.protocol}</TableCell>
-                      <TableCell>{entry.user === "" ? DASH : entry.user}</TableCell>
-                      <TableCell>
-                        {entry.blocked === true
-                          ? t("board.activemq.clients.blocked")
-                          : entry.slow === true
-                            ? t("board.activemq.clients.slow")
-                            : t("board.activemq.clients.running")}
-                      </TableCell>
-                      <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {formatCount(entry.sessions)}
-                        </span>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Panel>
-
-            {detail != null && (
-              <Panel style={{ width: "300px", flex: "none", overflow: "auto" }}>
-                <PanelHeader title={detail.peer} />
-                <div style={{ padding: "0 12px 12px" }}>
-                  <SectionLabel>{t("board.activemq.clients.section.identity")}</SectionLabel>
-                  <KV
-                    rows={[
-                      [t("board.activemq.clients.connectionId"), detail.name],
-                      [
-                        t("board.activemq.clients.clientId"),
-                        detail.clientName === "" ? DASH : detail.clientName,
-                      ],
-                      [t("board.activemq.clients.user"), detail.user === "" ? DASH : detail.user],
-                      [t("board.activemq.clients.protocol"), detail.protocol || DASH],
-                      // Classic's is the connector that accepted the socket,
-                      // which is where its protocol comes from; Artemis has no
-                      // connector on a connection and this is blank.
-                      [t("board.activemq.clients.connector"), detail.connector ?? DASH],
-                      [t("board.activemq.clients.created"), detail.created ?? DASH],
-                      [t("board.activemq.clients.sessions"), formatCount(detail.sessions)],
-                    ]}
-                  />
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    style={{ marginTop: "12px" }}
-                    onClick={() => void close(detail)}
+      <Toolbar>
+        <Input
+          className="w-60 flex-none"
+          value={search}
+          placeholder={t("board.activemq.clients.search")}
+          onChange={(event) => setSearch(event.target.value)}
+        />
+      </Toolbar>
+      {isBlocked(state) ? (
+        <BoardState state={state} />
+      ) : (
+        <ListArea>
+          <ListPane>
+            <Table inset>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("board.activemq.clients.peer")}</TableHead>
+                  <TableHead>{t("board.activemq.clients.protocol")}</TableHead>
+                  <TableHead>{t("board.activemq.clients.user")}</TableHead>
+                  <TableHead>{t("board.activemq.clients.state")}</TableHead>
+                  <TableHead className="num">{t("board.activemq.clients.sessions")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {shown.map((entry) => (
+                  <TableRow
+                    key={entry.name}
+                    selected={selected === entry.name}
+                    onClick={() => setSelected(entry.name)}
                   >
-                    {t("board.activemq.clients.close")}
-                  </Button>
-                </div>
-              </Panel>
-            )}
-          </div>
-          <p
-            style={{
-              margin: "0 20px",
-              fontSize: "11.5px",
-              color: "var(--c-muted)",
-              flex: "none",
-            }}
-          >
-            {t("board.activemq.clients.sessionNote")}
-          </p>
-        </PageBody>
-      </BoardState>
+                    <TableCell className="mono3 text-xs">{entry.peer}</TableCell>
+                    <TableCell>{entry.protocol === "" ? DASH : entry.protocol}</TableCell>
+                    <TableCell className="select-text">
+                      {entry.user === "" ? DASH : entry.user}
+                    </TableCell>
+                    <TableCell>
+                      {entry.blocked === true
+                        ? t("board.activemq.clients.blocked")
+                        : entry.slow === true
+                          ? t("board.activemq.clients.slow")
+                          : t("board.activemq.clients.running")}
+                    </TableCell>
+                    <TableCell className="num">{formatCount(entry.sessions)}</TableCell>
+                  </TableRow>
+                ))}
+                {shown.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
+                      {connections.length === 0
+                        ? t("board.activemq.clients.none")
+                        : t("board.common.noMatch")}
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </ListPane>
+
+          {current != null && (
+            <ConnectionSheet
+              key={current.name}
+              entry={current}
+              onClose={() => setSelected(null)}
+              onDisconnect={() => void close(current)}
+            />
+          )}
+        </ListArea>
+      )}
+      {!isBlocked(state) && (
+        <StatusBar left={<span>{t("board.activemq.clients.sessionNote")}</span>} />
+      )}
     </Page>
+  );
+}
+
+function ConnectionSheet({
+  entry,
+  onClose,
+  onDisconnect,
+}: {
+  entry: ActiveMQConnection;
+  onClose: () => void;
+  onDisconnect: () => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <DetailPanel width={380} onDismiss={onClose}>
+      <DetailPanelHeader title={entry.peer} onClose={onClose} />
+      <DetailPanelBody>
+        <div>
+          <SectionLabel className="mb-1.5">
+            {t("board.activemq.clients.section.identity")}
+          </SectionLabel>
+          <KV
+            rows={[
+              [t("board.activemq.clients.connectionId"), entry.name],
+              [
+                t("board.activemq.clients.clientId"),
+                entry.clientName === "" ? DASH : entry.clientName,
+              ],
+              [t("board.activemq.clients.user"), entry.user === "" ? DASH : entry.user],
+              [t("board.activemq.clients.protocol"), entry.protocol || DASH],
+              // Classic's is the connector that accepted the socket,
+              // which is where its protocol comes from; Artemis has no
+              // connector on a connection and this is blank.
+              [t("board.activemq.clients.connector"), entry.connector ?? DASH],
+              [t("board.activemq.clients.created"), entry.created ?? DASH],
+              [t("board.activemq.clients.sessions"), formatCount(entry.sessions)],
+            ]}
+          />
+        </div>
+      </DetailPanelBody>
+      <DetailPanelFooter>
+        <span className="flex-1" />
+        <Button variant="destructive" onClick={onDisconnect}>
+          {t("board.activemq.clients.close")}
+        </Button>
+      </DetailPanelFooter>
+    </DetailPanel>
   );
 }

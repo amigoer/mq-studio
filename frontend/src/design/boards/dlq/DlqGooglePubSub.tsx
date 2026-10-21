@@ -1,6 +1,13 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Page, PageBody, PageHeader, RefreshButton } from "@/design/shell";
+import {
+  ListArea,
+  ListPane,
+  Page,
+  PageHeader,
+  RefreshButton,
+  StatusBar,
+} from "@/design/shell";
 import {
   Table,
   TableBody,
@@ -9,13 +16,20 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { KV, Panel, PanelHeader, SectionLabel } from "@/components";
-import { BoardState } from "@/design/boards/BoardState";
+import {
+  DetailPanel,
+  DetailPanelBody,
+  DetailPanelHeader,
+  KV,
+  MiniStat,
+  SectionLabel,
+  Status,
+} from "@/components";
+import { BoardState, isBlocked } from "@/design/boards/BoardState";
 import { useGooglePubSubDeadLetters } from "@/hooks/googlepubsub/useGooglePubSubDeadLetters";
 import { formatCount } from "@/lib/format";
 import type { DeadLetterQueue, DeadLetterSource } from "@bindings/model/models";
 
-const MONO11 = { fontSize: "11px" } as const;
 const DASH = "—";
 
 function count(value: number): string {
@@ -54,10 +68,7 @@ export function DlqGooglePubSub() {
   const [selected, setSelected] = useState<string | null>(null);
 
   const topics = useMemo(() => state.data ?? [], [state.data]);
-  const detail = useMemo(
-    () => topics.find((entry) => entry.name === selected) ?? topics[0] ?? null,
-    [topics, selected],
-  );
+  const current = topics.find((entry) => entry.name === selected) ?? null;
 
   return (
     <Page>
@@ -72,109 +83,115 @@ export function DlqGooglePubSub() {
           />
         }
       />
-      <BoardState state={state}>
-        <PageBody>
-          <div style={{ display: "flex", gap: "12px", minHeight: 0, flex: 1 }}>
-            <Panel style={{ flex: 1, overflow: "auto" }}>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t("board.google-pubsub.dlq.name")}</TableHead>
-                    <TableHead className="num">{t("board.google-pubsub.dlq.readers")}</TableHead>
-                    <TableHead>{t("board.google-pubsub.dlq.sources")}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {topics.map((entry) => (
-                    <TableRow
-                      key={entry.name}
-                      data-state={detail?.name === entry.name ? "selected" : undefined}
-                      onClick={() => setSelected(entry.name)}
-                      style={{ cursor: "pointer" }}
-                    >
-                      <TableCell>
-                        <span className="mono3" style={MONO11}>
-                          {entry.name}
-                        </span>
+      {isBlocked(state) ? (
+        <BoardState state={state} />
+      ) : (
+        <ListArea>
+          <ListPane>
+            <Table inset>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("board.google-pubsub.dlq.name")}</TableHead>
+                  <TableHead className="num">{t("board.google-pubsub.dlq.readers")}</TableHead>
+                  <TableHead>{t("board.google-pubsub.dlq.sources")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {topics.map((entry) => (
+                  <TableRow
+                    key={entry.name}
+                    selected={selected === entry.name}
+                    onClick={() => setSelected(entry.name)}
+                  >
+                    <TableCell>
+                      <span className="flex items-center gap-1.5">
+                        <span className="truncate select-text">{entry.name}</span>
                         {/* Nothing reads it, so every dead letter that arrives
                             is thrown away on the spot. */}
                         {entry.consumers === 0 && (
-                          <span className="pb pGPS" style={{ marginLeft: "6px" }}>
+                          <Status tone="warn">
                             {t("board.google-pubsub.dlq.noReaderBadge")}
-                          </span>
+                          </Status>
                         )}
-                      </TableCell>
-                      <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {count(entry.consumers)}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <span className="mono3" style={MONO11}>
-                          {sourcesOf(entry).length === 0
-                            ? t("board.google-pubsub.dlq.noSources")
-                            : sourcesOf(entry)
-                                .map((source) => `${source.queue} · ${source.subscription}`)
-                                .join(", ")}
-                        </span>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Panel>
+                      </span>
+                    </TableCell>
+                    <TableCell className="num">{count(entry.consumers)}</TableCell>
+                    <TableCell className="select-text">
+                      {sourcesOf(entry).length === 0
+                        ? t("board.google-pubsub.dlq.noSources")
+                        : sourcesOf(entry)
+                            .map((source) => `${source.queue} · ${source.subscription}`)
+                            .join(", ")}
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {topics.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={3} className="py-8 text-center text-muted-foreground">
+                      {t("board.google-pubsub.dlq.none")}
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </ListPane>
 
-            {detail != null && (
-              <Panel style={{ width: "320px", flex: "none", overflow: "auto" }}>
-                <PanelHeader title={detail.name} />
-                <div style={{ padding: "0 12px 12px" }}>
-                  <KV
-                    rows={[
-                      [t("board.google-pubsub.dlq.readers"), count(detail.consumers)],
-                      [
-                        t("board.google-pubsub.dlq.sourceCount"),
-                        String(sourcesOf(detail).length),
-                      ],
-                    ]}
-                  />
-
-                  {detail.consumers === 0 && (
-                    <p style={{ fontSize: "11px", color: "var(--c-warn-text)", margin: "8px 0 0" }}>
-                      {t("board.google-pubsub.dlq.noReaderNote")}
-                    </p>
-                  )}
-
-                  <SectionLabel>{t("board.google-pubsub.dlq.sources")}</SectionLabel>
-                  {sourcesOf(detail).length === 0 ? (
-                    <p style={{ fontSize: "11px", color: "var(--c-warn-text)", margin: 0 }}>
-                      {/* The state worth naming: nothing points here any more,
-                          so it will never receive anything again. */}
-                      {t("board.google-pubsub.dlq.orphaned")}
-                    </p>
-                  ) : (
-                    <KV
-                      rows={sourcesOf(detail).map((source) => [
-                        source.subscription,
-                        t("board.google-pubsub.dlq.givesUpFrom", { topic: source.queue }),
-                      ])}
-                    />
-                  )}
-                </div>
-              </Panel>
-            )}
-          </div>
-          <p
-            style={{
-              margin: "0 20px",
-              fontSize: "11.5px",
-              color: "var(--c-muted)",
-              flex: "none",
-            }}
-          >
-            {t("board.google-pubsub.dlq.note")}
-          </p>
-        </PageBody>
-      </BoardState>
+          {current != null && (
+            <DeadLetterTopicSheet
+              key={current.name}
+              entry={current}
+              onClose={() => setSelected(null)}
+            />
+          )}
+        </ListArea>
+      )}
+      {!isBlocked(state) && <StatusBar left={<span>{t("board.google-pubsub.dlq.note")}</span>} />}
     </Page>
+  );
+}
+
+export function DeadLetterTopicSheet({
+  entry,
+  onClose,
+}: {
+  entry: DeadLetterQueue;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation();
+  const sources = sourcesOf(entry);
+  return (
+    <DetailPanel width={380} onDismiss={onClose}>
+      <DetailPanelHeader title={entry.name} onClose={onClose} />
+      <DetailPanelBody>
+        <div className="grid grid-cols-2 gap-2">
+          <MiniStat label={t("board.google-pubsub.dlq.readers")} value={count(entry.consumers)} />
+          <MiniStat label={t("board.google-pubsub.dlq.sourceCount")} value={sources.length} />
+        </div>
+
+        {entry.consumers === 0 && (
+          <p className="text-xs leading-relaxed text-(--c-warn-text)">
+            {t("board.google-pubsub.dlq.noReaderNote")}
+          </p>
+        )}
+
+        <div>
+          <SectionLabel className="mb-1.5">{t("board.google-pubsub.dlq.sources")}</SectionLabel>
+          {sources.length === 0 ? (
+            <p className="text-xs leading-relaxed text-(--c-warn-text)">
+              {/* The state worth naming: nothing points here any more, so it
+                  will never receive anything again. */}
+              {t("board.google-pubsub.dlq.orphaned")}
+            </p>
+          ) : (
+            <KV
+              rows={sources.map((source) => [
+                source.subscription,
+                t("board.google-pubsub.dlq.givesUpFrom", { topic: source.queue }),
+              ])}
+            />
+          )}
+        </div>
+      </DetailPanelBody>
+    </DetailPanel>
   );
 }

@@ -131,6 +131,9 @@ export function isBlocked(
   return !state.online || state.loading || state.error != null;
 }
 
+/** Lets a Notice fill a pane that is not a flex column by itself. */
+export const NOTICE_PANE = { display: "flex", flexDirection: "column" } as const;
+
 export function Notice({
   icon,
   title,

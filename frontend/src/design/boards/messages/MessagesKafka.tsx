@@ -29,6 +29,7 @@ import { useKafkaTopics } from "@/hooks/kafka/useKafkaTopics";
 import { useKafkaRead, useKafkaTail } from "@/hooks/kafka/useKafkaMessages";
 import { formatCount } from "@/lib/format";
 import { isI18nKey } from "@/lib/utils";
+import { NOTICE_PANE, Notice } from "@/design/boards/BoardState";
 import { isInternal } from "@/mq/kafka/destinations";
 import {
   formatValue,
@@ -226,58 +227,59 @@ export function MessagesKafka() {
       )}
 
       <ListArea>
-        <ListPane>
-          <Table inset>
-            <TableHeader>
-              <TableRow>
-                <TableHead style={R}>{t("board.common.partition")}</TableHead>
-                <TableHead style={R}>Offset</TableHead>
-                <TableHead>Key</TableHead>
-                <TableHead>{t("board.messages.kafka.valueSummary")}</TableHead>
-                <TableHead style={R}>Headers</TableHead>
-                <TableHead>{t("board.common.timestamp")}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows.map((record) => (
-                <TableRow
-                  key={record.messageId}
-                  selected={selected === record.messageId}
-                  onClick={() => setSelected(record.messageId)}
-                >
-                  <TableCell className="mono3" style={R}>{record.queueId}</TableCell>
-                  <TableCell className="mono3" style={R}>{record.queueOffset}</TableCell>
-                  <TableCell className="mono3" style={MONO11}>
-                    {/* A record with no key at all is not one with an empty
-                        key: Kafka spreads the first and pins the second. */}
-                    {hasKey(record) ? (
-                      keyOf(record)
-                    ) : (
-                      <span style={{ color: "var(--c-muted)" }}>
-                        {t("board.messages.kafka.noKey")}
-                      </span>
-                    )}
-                  </TableCell>
-                  <TableCell className="mono3" style={{ ...MONO11, color: "var(--c-mono-dim)" }}>
-                    <ValueSummary record={record} />
-                  </TableCell>
-                  <TableCell className="mono3" style={R}>{headerCount(record)}</TableCell>
-                  <TableCell className="mono3" style={MONO11}>{record.storeTime}</TableCell>
-                </TableRow>
-              ))}
-              {rows.length === 0 && (
+        <ListPane style={rows.length === 0 ? NOTICE_PANE : undefined}>
+          {rows.length === 0 ? (
+            <Notice
+              title={
+                panel === "tail"
+                  ? t("board.messages.kafka.tailWaiting")
+                  : read.ran
+                    ? t("board.messages.kafka.noneFound")
+                    : t("board.messages.kafka.pickAndQuery")
+              }
+            />
+          ) : (
+            <Table inset>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={6} style={{ padding: "18px", color: "var(--c-muted)" }}>
-                    {panel === "tail"
-                      ? t("board.messages.kafka.tailWaiting")
-                      : read.ran
-                        ? t("board.messages.kafka.noneFound")
-                        : t("board.messages.kafka.pickAndQuery")}
-                  </TableCell>
+                  <TableHead style={R}>{t("board.common.partition")}</TableHead>
+                  <TableHead style={R}>Offset</TableHead>
+                  <TableHead>Key</TableHead>
+                  <TableHead>{t("board.messages.kafka.valueSummary")}</TableHead>
+                  <TableHead style={R}>Headers</TableHead>
+                  <TableHead>{t("board.common.timestamp")}</TableHead>
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {rows.map((record) => (
+                  <TableRow
+                    key={record.messageId}
+                    selected={selected === record.messageId}
+                    onClick={() => setSelected(record.messageId)}
+                  >
+                    <TableCell style={R}>{record.queueId}</TableCell>
+                    <TableCell className="mono3" style={R}>{record.queueOffset}</TableCell>
+                    <TableCell className="mono3" style={MONO11}>
+                      {/* A record with no key at all is not one with an empty
+                          key: Kafka spreads the first and pins the second. */}
+                      {hasKey(record) ? (
+                        keyOf(record)
+                      ) : (
+                        <span style={{ color: "var(--c-muted)" }}>
+                          {t("board.messages.kafka.noKey")}
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell className="mono3" style={{ ...MONO11, color: "var(--c-mono-dim)" }}>
+                      <ValueSummary record={record} />
+                    </TableCell>
+                    <TableCell style={R}>{headerCount(record)}</TableCell>
+                    <TableCell className="mono3" style={MONO11}>{record.storeTime}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </ListPane>
 
         {current != null && (

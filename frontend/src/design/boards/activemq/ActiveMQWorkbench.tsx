@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { NOTICE_PANE, Notice } from "@/design/boards/BoardState";
 import { Page, PageHeader, Toolbar } from "@/design/shell";
 import { Button } from "@/components/ui/button";
 import { Panel, SectionLabel, SelectField, Status } from "@/components";
@@ -87,7 +88,7 @@ export function ActiveMQWorkbench() {
                 : t("board.activemq.subscribe.dropped")
               : t("board.activemq.subscribe.stopped")}
           </Status>
-          <span className="mono3" style={{ ...MONO11, color: "var(--c-muted)" }}>
+          <span className="tabular-nums" style={{ color: "var(--c-muted)" }}>
             {t("board.activemq.subscribe.counts", {
               received: stream.received,
               lost: stream.dropped,
@@ -100,14 +101,23 @@ export function ActiveMQWorkbench() {
           {stream.error}
         </p>
       )}
-      <Panel style={{ flex: 1, margin: "0 20px 12px", overflow: "auto" }}>
+      <Panel
+        style={{
+          flex: 1,
+          margin: "0 20px 12px",
+          overflow: "auto",
+          ...(stream.messages.length === 0 ? NOTICE_PANE : {}),
+        }}
+      >
         <SectionLabel>{t("board.activemq.subscribe.arrivals")}</SectionLabel>
         {stream.messages.length === 0 ? (
-          <p style={{ padding: "8px 12px", fontSize: "11px", color: "var(--c-muted)" }}>
-            {stream.running
-              ? t("board.activemq.subscribe.waiting")
-              : t("board.activemq.subscribe.notStarted")}
-          </p>
+          <Notice
+            title={
+              stream.running
+                ? t("board.activemq.subscribe.waiting")
+                : t("board.activemq.subscribe.notStarted")
+            }
+          />
         ) : (
           <div style={{ padding: "0 12px 12px" }}>
             {stream.messages

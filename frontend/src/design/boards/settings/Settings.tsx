@@ -64,6 +64,8 @@ import {
 import type { ThemeMode } from "@/lib/theme";
 import { FONT_SIZES, type UIScaleSetting } from "@/lib/uiScale";
 import { cn } from "@/lib/utils";
+import { motion } from "motion/react";
+import { viewIn } from "@/lib/motion";
 
 /**
  * Settings, laid out as the shipped app draws it rather than as board 3g does:
@@ -1183,9 +1185,9 @@ export function Settings({
               </span>
             </div>
 
-            <div key={section} className="mqs-view">
+            <motion.div key={section} {...viewIn}>
               {panel[section]}
-            </div>
+            </motion.div>
           </div>
         </div>
       </div>

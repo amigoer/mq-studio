@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Plus } from "lucide-react";
 import { ListArea, ListPane, Page, PageHeader, RefreshButton, Toolbar } from "@/design/shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,7 +26,7 @@ import {
   toast,
   useConfirm,
 } from "@/components";
-import { BoardState, isBlocked } from "@/design/boards/BoardState";
+import { BoardState, isBlocked, Notice, NOTICE_PANE } from "@/design/boards/BoardState";
 import { useRabbitRouting } from "@/hooks/rabbitmq/useRabbitRouting";
 import { formatCount, formatRate } from "@/lib/format";
 import {
@@ -201,14 +201,15 @@ export function ExchangesRabbitMQ() {
         })}
         actions={
           <>
-            <Button disabled={!state.online} onClick={() => setDeclaring(true)}>
-              {t("board.topics.rabbitmq.newExchange")}
-            </Button>
             <RefreshButton
               refreshing={state.refreshing}
               online={state.online}
               onClick={state.refresh}
             />
+            <Button disabled={!state.online} onClick={() => setDeclaring(true)}>
+              <Plus aria-hidden />
+              {t("board.topics.rabbitmq.newExchange")}
+            </Button>
           </>
         }
       />
@@ -256,10 +257,14 @@ export function ExchangesRabbitMQ() {
         </Toolbar>
       )}
       <ListArea>
-        <ListPane>
+        <ListPane style={isBlocked(state) || exchanges.length === 0 ? NOTICE_PANE : undefined}>
           <BoardState
             state={state}
-            empty={exchanges.length === 0 ? t("board.topics.rabbitmq.noExchanges") : undefined}
+            empty={
+              exchanges.length === 0 ? (
+                <Notice title={t("board.topics.rabbitmq.noExchanges")} />
+              ) : undefined
+            }
           >
             <Table inset>
               <TableHeader>
@@ -295,13 +300,13 @@ export function ExchangesRabbitMQ() {
                         </b>
                       </TableCell>
                       <TableCell>{exchangeType(exchange)}</TableCell>
-                      <TableCell className="mono3" style={{ textAlign: "right" }}>
+                      <TableCell style={{ textAlign: "right" }}>
                         {/* Every queue is bound to the default exchange by its
                             own name, and those bindings are implicit - the
                             broker lists none of them. */}
                         {exchange.ref.name === "" ? "-" : formatCount(outgoing.length)}
                       </TableCell>
-                      <TableCell className="mono3" style={{ textAlign: "right" }}>
+                      <TableCell style={{ textAlign: "right" }}>
                         {formatRate(exchange.rateIn)} / {formatRate(exchange.rateOut)}
                       </TableCell>
                       <TableCell>

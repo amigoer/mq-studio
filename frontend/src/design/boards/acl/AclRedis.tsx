@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Plus } from "lucide-react";
 import { ListArea, ListPane, Page, PageHeader, RefreshButton, Toolbar } from "@/design/shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,7 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Panel, Status, toast, useConfirm } from "@/components";
-import { BoardState } from "@/design/boards/BoardState";
+import { BoardState, Notice } from "@/design/boards/BoardState";
 import { AclUserDialog } from "./AclUserDialog";
 import { useRedisAcl } from "@/hooks/redis/useRedisAcl";
 import { useConnectionScope } from "@/mq/ConnectionScope";
@@ -131,12 +132,15 @@ export function AclRedis() {
         subtitle={t("board.acl.redis.subtitle")}
         actions={
           <>
-            <Button onClick={() => setCreating(true)}>{t("board.acl.redis.newUser")}</Button>
             <RefreshButton
               refreshing={state.refreshing}
               online={state.online}
               onClick={() => void state.refresh()}
             />
+            <Button onClick={() => setCreating(true)}>
+              <Plus aria-hidden />
+              {t("board.acl.redis.newUser")}
+            </Button>
           </>
         }
       />
@@ -158,22 +162,13 @@ export function AclRedis() {
         state={state}
         empty={
           rows.length === 0 ? (
-            <ListArea>
-              <ListPane>
-                <div
-                  style={{
-                    padding: "24px",
-                    fontSize: "11.5px",
-                    color: "var(--c-muted)",
-                    textAlign: "center",
-                  }}
-                >
-                  {users.length === 0
-                    ? t("board.acl.redis.none")
-                    : t("board.acl.redis.noMatches")}
-                </div>
-              </ListPane>
-            </ListArea>
+            <Notice
+              title={
+                users.length === 0
+                  ? t("board.acl.redis.none")
+                  : t("board.acl.redis.noMatches")
+              }
+            />
           ) : undefined
         }
       >

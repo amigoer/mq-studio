@@ -9,7 +9,7 @@ export {
   DetailPanelFooter,
 } from "./detail-panel";
 export { ConfirmProvider, useConfirm, type ConfirmRequest } from "./confirm";
-export { StatTile, MiniStat } from "./stat";
+export { StatTile, MiniStat, type StatTone } from "./stat";
 export { Panel, PanelHeader } from "./panel";
 export { SettingRow } from "./setting-row";
 export { KV } from "./kv";
@@ -18,6 +18,6 @@ export { Bar, MeterRow } from "./meter";
 export { JsonBlock, JsonText, JSON_TOKEN_COLOR, Timeline } from "./json-block";
 export { CodeEditor } from "./code-editor";
 export { WarnBanner } from "./warn-banner";
-export { LineChart } from "./line-chart";
+export { LineChart, SeriesLegend } from "./line-chart";
 export { toast, useToast, type ToastId, type ToastTone } from "./toast";
 export { Toaster } from "./sonner";

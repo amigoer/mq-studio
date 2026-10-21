@@ -1,9 +1,7 @@
-import type { CSSProperties } from "react";
-import { CartesianGrid, Line, LineChart as RechartsLineChart, XAxis, YAxis } from "recharts";
+import { useId, type CSSProperties } from "react";
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import {
   ChartContainer,
-  ChartLegend,
-  ChartLegendContent,
   ChartTooltip,
   ChartTooltipContent,
   type ChartConfig,
@@ -26,6 +24,10 @@ interface Series {
  * moved anywhere relative to the other by choosing the scales. A window the
  * collector never sampled stays null and breaks the line rather than being
  * bridged or plotted as zero.
+ *
+ * Each line carries a faint wash down to the axis, which is what lets two
+ * lines that sit on top of each other still read as two volumes. The legend is
+ * not drawn here: the card puts `SeriesLegend` beside its own title.
  */
 export function LineChart({
   series,
@@ -52,6 +54,7 @@ export function LineChart({
   const config = Object.fromEntries(
     series.map((one, key) => [`s${key}`, { label: one.label, color: one.color }]),
   ) satisfies ChartConfig;
+  const gradient = useId().replace(/:/g, "");
 
   return (
     <ChartContainer
@@ -59,8 +62,16 @@ export function LineChart({
       className={cn("aspect-auto min-h-0 w-full", className)}
       style={style}
     >
-      <RechartsLineChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
-        <CartesianGrid vertical={false} strokeDasharray="3 3" />
+      <AreaChart data={data} margin={{ top: 8, right: 4, bottom: 0, left: 0 }}>
+        <defs>
+          {series.map((_, key) => (
+            <linearGradient key={key} id={`${gradient}-${key}`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={`var(--color-s${key})`} stopOpacity={0.14} />
+              <stop offset="100%" stopColor={`var(--color-s${key})`} stopOpacity={0} />
+            </linearGradient>
+          ))}
+        </defs>
+        <CartesianGrid vertical={false} stroke="var(--c-rule)" />
         <XAxis
           dataKey="ts"
           tickLine={false}
@@ -70,8 +81,10 @@ export function LineChart({
           fontSize={11}
           tickFormatter={(value: number) => formatTime(value)}
         />
+        {/* Sized to its longest label: at a fixed 48px, "24,000/s" lost its
+            leading digit and the axis read 4,000 above 8,000. */}
         <YAxis
-          width={48}
+          width="auto"
           tickLine={false}
           axisLine={false}
           fontSize={11}
@@ -101,20 +114,41 @@ export function LineChart({
             />
           }
         />
-        <ChartLegend content={<ChartLegendContent />} />
         {series.map((_, key) => (
-          <Line
+          <Area
             key={key}
             dataKey={`s${key}`}
-            type="linear"
+            type="monotone"
             stroke={`var(--color-s${key})`}
-            strokeWidth={2}
+            strokeWidth={1.75}
+            fill={`url(#${gradient}-${key})`}
             dot={false}
+            activeDot={{ r: 3, strokeWidth: 0 }}
             connectNulls={false}
             isAnimationActive={false}
           />
         ))}
-      </RechartsLineChart>
+      </AreaChart>
     </ChartContainer>
+  );
+}
+
+/** The key to a chart's series, set in the card header beside its title. */
+export function SeriesLegend({
+  series,
+  className,
+}: {
+  series: readonly Pick<Series, "label" | "color">[];
+  className?: string;
+}) {
+  return (
+    <div className={cn("flex items-center gap-3.5 text-xs text-muted-foreground", className)}>
+      {series.map((one) => (
+        <span key={one.label} className="inline-flex items-center gap-1.5">
+          <span className="size-2 rounded-full" style={{ background: one.color }} aria-hidden />
+          {one.label}
+        </span>
+      ))}
+    </div>
   );
 }

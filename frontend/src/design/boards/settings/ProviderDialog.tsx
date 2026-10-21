@@ -25,6 +25,8 @@ import {
   type AgentProviderInput,
 } from "@/api/agent";
 import { cn, formatErrorMessage } from "@/lib/utils";
+import { AnimatePresence, motion } from "motion/react";
+import { markIn, probeIn, reveal } from "@/lib/motion";
 import { Advanced, Fld, HINT, MONO, ROWS, SWITCH_ROW } from "../connections/ConnectionForms";
 import {
   DEFAULT_BASE_URL,
@@ -306,11 +308,12 @@ export function ProviderDialog({
           )}
         </div>
 
-        <div className="rounded-b-[calc(var(--radius-lg)-1px)] border-t border-(--c-border) bg-(--c-bar) px-6 py-3.5">
-          {verdict?.kind === "failed" && (
-            <div className="mqs-probe-reveal">
-              <div>
-                <Alert className="mb-3.5 border-transparent bg-(--c-err-bg) px-3 py-2">
+        {/* The footer bleeds into a padded dialog by default; this one is unpadded. */}
+        <div>
+          <AnimatePresence>
+            {verdict?.kind === "failed" && (
+              <motion.div key="reason" {...reveal} className="overflow-hidden">
+                <Alert className="mx-6 mb-3.5 w-auto border-transparent bg-(--c-err-bg) px-3 py-2">
                   <AlertDescription className="text-xs text-(--c-err-text) [overflow-wrap:anywhere]">
                     {t(failureKey(verdict.failure), { detail: verdict.failure.detail })}
                     {verdict.failure.detail !== "" &&
@@ -322,10 +325,10 @@ export function ProviderDialog({
                       : ""}
                   </AlertDescription>
                 </Alert>
-              </div>
-            </div>
-          )}
-          <DialogFooter className="items-center gap-3 sm:justify-between">
+              </motion.div>
+            )}
+          </AnimatePresence>
+          <DialogFooter className="m-0 items-center gap-3 px-6 sm:justify-between">
             <div className="flex shrink-0 items-center">
               <Button
                 variant="outline"
@@ -338,20 +341,24 @@ export function ProviderDialog({
               </Button>
               <span role="status" className="inline-flex items-center whitespace-nowrap *:ml-2">
                 {probing ? (
-                  <span className="mqs-probe-in inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <motion.span key="probing" {...probeIn} className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
                     <LoaderCircle className="mqs-turning size-3.5" aria-hidden />
                     {t("page.settings.assistant.form.testing")}
-                  </span>
+                  </motion.span>
                 ) : verdict?.kind === "ok" ? (
-                  <span className="mqs-probe-in inline-flex h-6 items-center gap-1.5 rounded-full bg-(--c-ok-tint) px-2.5 text-xs font-medium text-(--c-ok-text)">
-                    <Check className="mqs-probe-mark size-3.5" strokeWidth={2.5} aria-hidden />
+                  <motion.span key="ok" {...probeIn} className="inline-flex h-6 items-center gap-1.5 rounded-full bg-(--c-ok-tint) px-2.5 text-xs font-medium text-(--c-ok-text)">
+                    <motion.span {...markIn} className="inline-flex">
+                      <Check className="size-3.5" strokeWidth={2.5} aria-hidden />
+                    </motion.span>
                     {t("page.settings.assistant.form.testOk", { seconds: verdict.seconds })}
-                  </span>
+                  </motion.span>
                 ) : verdict?.kind === "failed" ? (
-                  <span className="mqs-probe-in inline-flex h-6 items-center gap-1.5 rounded-full bg-(--c-err-bg) px-2.5 text-xs font-medium text-(--c-err-text)">
-                    <X className="mqs-probe-mark size-3.5" strokeWidth={2.5} aria-hidden />
+                  <motion.span key="failed" {...probeIn} className="inline-flex h-6 items-center gap-1.5 rounded-full bg-(--c-err-bg) px-2.5 text-xs font-medium text-(--c-err-text)">
+                    <motion.span {...markIn} className="inline-flex">
+                      <X className="size-3.5" strokeWidth={2.5} aria-hidden />
+                    </motion.span>
                     {t("page.settings.assistant.form.testFailed")}
-                  </span>
+                  </motion.span>
                 ) : null}
               </span>
             </div>

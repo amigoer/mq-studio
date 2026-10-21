@@ -121,6 +121,7 @@ export function MessagesActiveMQ() {
       <Toolbar>
         <SelectField
           value={chosen ?? ""}
+          placeholder={t("board.activemq.messages.pickDestination")}
           options={options}
           onValueChange={(next) => {
             setTarget(next);

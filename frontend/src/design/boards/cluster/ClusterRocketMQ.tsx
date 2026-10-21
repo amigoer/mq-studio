@@ -220,19 +220,19 @@ export function ClusterRocketMQ() {
                       {node.address}
                     </TableCell>
                     <TableCell>{role(node)}</TableCell>
-                    <TableCell className="mono3" style={{ textAlign: "right" }}>
+                    <TableCell style={{ textAlign: "right" }}>
                       {metric(topicCount(node))}
                     </TableCell>
-                    <TableCell className="mono3" style={{ textAlign: "right" }}>
+                    <TableCell style={{ textAlign: "right" }}>
                       {metric(groupCount(node))}
                     </TableCell>
-                    <TableCell className="mono3" style={{ textAlign: "right" }}>
+                    <TableCell style={{ textAlign: "right" }}>
                       {metric(msgInToday(node))}
                     </TableCell>
-                    <TableCell className="mono3" style={{ textAlign: "right" }}>
+                    <TableCell style={{ textAlign: "right" }}>
                       {metric(msgOutToday(node))}
                     </TableCell>
-                    <TableCell className="mono3" style={{ textAlign: "right" }}>
+                    <TableCell style={{ textAlign: "right" }}>
                       {consumeQueueDiskUsage(node) === UNKNOWN
                         ? "—"
                         : `${consumeQueueDiskUsage(node)}%`}

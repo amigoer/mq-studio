@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
-import { RefreshCw } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { BulkBar, ListPane, Page, PageHeader, Toolbar } from "@/design/shell";
 import { Button } from "@/components/ui/button";
 import {
@@ -181,9 +181,8 @@ export function DlqRocketMQ() {
             void runQuery(next);
           }}
         />
-        <span className="flex-1" />
         <Button disabled={group === "" || querying || !online} onClick={() => void runQuery()}>
-          {querying && <RefreshCw size={12} className="mqs-turning" aria-hidden />}
+          {querying && <Spinner />}
           {t("board.common.query")}
         </Button>
       </Toolbar>
@@ -240,7 +239,7 @@ export function DlqRocketMQ() {
                       <TableCell className="mono3" style={{ ...MONO11, color: dim }}>
                         {row.keys || "—"}
                       </TableCell>
-                      <TableCell className="mono3" style={{ ...R, color: dim }}>
+                      <TableCell style={{ ...R, color: dim }}>
                         {row.retryTimes}
                       </TableCell>
                       <TableCell className="mono3" style={{ ...MONO11, color: dim }}>
@@ -331,7 +330,7 @@ export function DlqRocketMQ() {
               <span className="flex-1" />
               <Button variant="outline" onClick={() => setConfirming(false)}>{t("board.common.cancel")}</Button>
               <Button disabled={resending} onClick={() => void resend()}>
-                {resending && <RefreshCw size={12} className="mqs-turning" aria-hidden />}
+                {resending && <Spinner />}
                 {t("board.dlq.rocketmq.confirmAction")}
               </Button>
             </div>

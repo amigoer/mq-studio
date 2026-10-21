@@ -404,8 +404,8 @@ function MessageSheet({
 
   return (
     <DetailPanel width={440} onDismiss={onClose}>
-      <div className="flex items-center gap-2 border-b bg-background px-4 py-3">
-        <b className="text-base font-semibold">{t("board.common.messageDetail")}</b>
+      <div className="flex items-center gap-2 border-b bg-background px-5 py-3">
+        <b className="text-[15px] font-semibold tracking-[-0.01em]">{t("board.common.messageDetail")}</b>
         <ProtoBadge protocol="rocketmq" label="RMQ" />
         <span className="flex-1" />
         <Button variant="outline" size="sm" onClick={() => setReplaying(true)}>
@@ -434,12 +434,12 @@ function MessageSheet({
           rows={[
             [
               "MsgId",
-              <span className="mono3 inline-flex items-center gap-1.5 text-xs">
+              <span className="mono3 text-xs break-all">
                 {message.messageId}
                 <Button
                   variant="ghost"
                   size="icon-xs"
-                  className="text-muted-foreground"
+                  className="ml-1 align-middle text-muted-foreground"
                   aria-label={t("board.common.copy")}
                   onClick={() => copy(message.messageId)}
                 >
@@ -475,7 +475,7 @@ function MessageSheet({
             ],
             [
               t("board.messages.rocketmq.retry"),
-              <span className="mono3 text-xs">{message.retryTimes}</span>,
+              <span className="text-xs tabular-nums">{message.retryTimes}</span>,
             ],
           ]}
         />
@@ -523,8 +523,8 @@ function MessageSheet({
             <KV
               className="grid-cols-[130px_1fr]"
               rows={properties.map(([key, value]) => [
-                <span className="mono3 break-all">{key}</span>,
-                <span className="mono3 break-all">{value || "—"}</span>,
+                <span className="mono3 text-xs break-all">{key}</span>,
+                <span className="mono3 text-xs break-all">{value || "—"}</span>,
               ])}
             />
           )}

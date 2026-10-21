@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Page, PageBody, PageHeader, RefreshButton } from "@/design/shell";
 import { KV, Panel, PanelHeader, SectionLabel, Status } from "@/components";
-import { BoardState } from "@/design/boards/BoardState";
+import { BoardState, Notice } from "@/design/boards/BoardState";
 import { useSolaceBroker } from "@/hooks/solace/useSolaceCluster";
 import { broker as readBroker, msgVpnServing } from "@/mq/solace/cluster";
 import { formatBytes, formatCount } from "@/lib/format";
@@ -63,9 +63,7 @@ export function BrokerSolace() {
       <BoardState state={state}>
         <PageBody>
           {broker == null ? (
-            <div style={{ padding: "24px", fontSize: "11.5px", color: "var(--c-muted)" }}>
-              {t("board.solace.cluster.nothing")}
-            </div>
+            <Notice title={t("board.solace.cluster.nothing")} />
           ) : (
             <Panel style={{ maxWidth: "560px" }}>
               <PanelHeader

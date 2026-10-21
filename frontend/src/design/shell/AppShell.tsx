@@ -18,9 +18,10 @@ export const DOCK_MAX = 560;
 /*
  * Below this much room beside the dock, the page would be squeezed past use
  * even with the navigation down to its rail, so the dock goes over the page
- * instead of beside it: the rail's 57px and the narrowest page worth showing.
+ * instead of beside it: the rail's 56px, the sheet's 8px gutter and the
+ * narrowest page worth showing.
  */
-const BESIDE_THE_DOCK = 57 + 680;
+const BESIDE_THE_DOCK = 56 + 8 + 680;
 
 /**
  * `.m3` — the whole window. The body wrapper is the positioning context for

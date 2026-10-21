@@ -10,7 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { KV, MeterRow, Panel, PanelHeader, Segmented, Status } from "@/components";
-import { BoardState } from "@/design/boards/BoardState";
+import { BoardState, Notice } from "@/design/boards/BoardState";
 import { useRabbitCluster } from "@/hooks/rabbitmq/useRabbitCluster";
 import { formatBytes, formatCount } from "@/lib/format";
 import {
@@ -93,7 +93,9 @@ export function NodesRabbitMQ() {
       <PageBody>
         <BoardState
           state={state}
-          empty={nodes.length === 0 ? t("board.cluster.rabbitmq.noNodes") : undefined}
+          empty={
+            nodes.length === 0 ? <Notice title={t("board.cluster.rabbitmq.noNodes")} /> : undefined
+          }
         >
           {/* A partition outranks everything else this page has to say: the
               cluster is running as two halves that each believe they are

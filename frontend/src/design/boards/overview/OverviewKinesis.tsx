@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { Hourglass, InfinityIcon, Layers, Rows3, Users } from "lucide-react";
 import { Page, PageBody, PageHeader, RefreshButton } from "@/design/shell";
 import { Panel, PanelHeader, StatTile } from "@/components";
 import {
@@ -20,7 +21,6 @@ import { useConnectionProfiles } from "@/hooks/useConnectionProfiles";
 import { formatCount } from "@/lib/format";
 import { KPI_GRID } from "./_shared";
 
-const MONO11 = { fontSize: "11px" } as const;
 const DASH = "—";
 
 /**
@@ -105,26 +105,36 @@ export function OverviewKinesis() {
           <div className={KPI_GRID}>
             <StatTile
               label={t("board.kinesis.overview.streams")}
+              icon={Layers}
+              tone="violet"
               value={formatCount(streams.length)}
               hint={t("board.kinesis.overview.streamsHint")}
             />
             <StatTile
               label={t("board.kinesis.overview.openShards")}
+              icon={Rows3}
+              tone="blue"
               value={formatCount(openShards)}
               hint={t("board.kinesis.overview.openShardsHint")}
             />
             <StatTile
               label={t("board.kinesis.overview.onDemand")}
+              icon={InfinityIcon}
+              tone="slate"
               value={formatCount(onDemand)}
               hint={t("board.kinesis.overview.onDemandHint")}
             />
             <StatTile
               label={t("board.kinesis.overview.consumers")}
+              icon={Users}
+              tone="teal"
               value={formatCount(consumers.length)}
               hint={t("board.kinesis.overview.consumersHint")}
             />
             <StatTile
               label={t("board.kinesis.overview.settling")}
+              icon={Hourglass}
+              tone="orange"
               value={formatCount(unsettled)}
               hint={t("board.kinesis.overview.settlingHint")}
               valueColor={unsettled > 0 ? "var(--c-warn-text)" : undefined}
@@ -133,7 +143,7 @@ export function OverviewKinesis() {
 
           <Panel>
             <PanelHeader title={t("board.kinesis.overview.widest")} />
-            <Table>
+            <Table inset="card">
               <TableHeader>
                 <TableRow>
                   <TableHead>{t("board.kinesis.streams.name")}</TableHead>
@@ -146,26 +156,10 @@ export function OverviewKinesis() {
               <TableBody>
                 {notable.map((entry) => (
                   <TableRow key={entry.name}>
-                    <TableCell>
-                      <span className="mono3" style={MONO11}>
-                        {entry.name}
-                      </span>
-                    </TableCell>
-                    <TableCell className="num">
-                      <span className="mono3" style={MONO11}>
-                        {formatCount(entry.openShards ?? 0)}
-                      </span>
-                    </TableCell>
-                    <TableCell className="num">
-                      <span className="mono3" style={MONO11}>
-                        {formatCount(consumersOf(entry.name))}
-                      </span>
-                    </TableCell>
-                    <TableCell className="num">
-                      <span className="mono3" style={MONO11}>
-                        {retention(entry.retentionHours) ?? DASH}
-                      </span>
-                    </TableCell>
+                    <TableCell className="select-text">{entry.name}</TableCell>
+                    <TableCell className="num">{formatCount(entry.openShards ?? 0)}</TableCell>
+                    <TableCell className="num">{formatCount(consumersOf(entry.name))}</TableCell>
+                    <TableCell className="num">{retention(entry.retentionHours) ?? DASH}</TableCell>
                     <TableCell>
                       <span style={{ fontSize: "11px", color: "var(--c-muted)" }}>
                         {settling(entry)

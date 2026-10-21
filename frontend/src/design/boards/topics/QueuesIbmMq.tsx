@@ -1,7 +1,16 @@
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
-import { Page, PageBody, PageHeader, RefreshButton } from "@/design/shell";
+import {
+  ListArea,
+  ListPane,
+  Page,
+  PageHeader,
+  RefreshButton,
+  StatusBar,
+  Toolbar,
+} from "@/design/shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -12,8 +21,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { KV, Panel, PanelHeader, SectionLabel, useConfirm } from "@/components";
-import { BoardState } from "@/design/boards/BoardState";
+import {
+  DetailPanel,
+  DetailPanelBody,
+  DetailPanelFooter,
+  DetailPanelHeader,
+  KV,
+  MiniStat,
+  OutlineTag,
+  SectionLabel,
+  useConfirm,
+} from "@/components";
+import { BoardState, isBlocked } from "@/design/boards/BoardState";
 import { useIbmMqDestinations } from "@/hooks/ibmmq/useIbmMqDestinations";
 import {
   destination as readDestination,
@@ -21,12 +40,10 @@ import {
   type IbmMqDestination,
 } from "@/mq/ibmmq/destinations";
 import { formatCount } from "@/lib/format";
-import { formatErrorMessage } from "@/lib/utils";
+import { cn, formatErrorMessage } from "@/lib/utils";
 import { useConnectionScope } from "@/mq/ConnectionScope";
 import * as ibmmqApi from "@/api/ibmmq";
 import { QueueDialogIbmMq } from "./QueueDialogIbmMq";
-
-const MONO11 = { fontSize: "11px" } as const;
 
 /** A dash, not a zero: an absent figure and a measured zero are not alike. */
 const DASH = "—";
@@ -75,10 +92,7 @@ export function QueuesIbmMq() {
     );
   }, [destinations, search]);
 
-  const detail = useMemo(
-    () => shown.find((entry) => entry.name === selected) ?? shown[0] ?? null,
-    [shown, selected],
-  );
+  const current = shown.find((entry) => entry.name === selected) ?? null;
 
   const create = useCallback(
     async (input: ibmmqApi.IBMMQDestinationInput) => {
@@ -127,182 +141,193 @@ export function QueuesIbmMq() {
         title={t("shell.nav.ibmmq.topics")}
         subtitle={t("board.ibmmq.queues.count", { count: destinations.length })}
         actions={
-          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-            <Input
-              style={{ width: "200px" }}
-              value={search}
-              placeholder={t("board.ibmmq.queues.search")}
-              onChange={(event) => setSearch(event.target.value)}
-            />
-            <Button size="sm" onClick={() => setFormOpen(true)}>
-              {t("board.ibmmq.queues.create")}
-            </Button>
+          <>
             <RefreshButton
               refreshing={state.refreshing}
               online={state.online}
               onClick={() => void state.refresh()}
             />
-          </div>
+            <Button disabled={!state.online} onClick={() => setFormOpen(true)}>
+              <Plus aria-hidden />
+              {t("board.ibmmq.queues.create")}
+            </Button>
+          </>
         }
       />
+      <Toolbar>
+        <Input
+          className="w-60 flex-none"
+          value={search}
+          placeholder={t("board.ibmmq.queues.search")}
+          onChange={(event) => setSearch(event.target.value)}
+        />
+      </Toolbar>
       <QueueDialogIbmMq open={formOpen} onOpenChange={setFormOpen} onSubmit={create} />
-      <BoardState state={state}>
-        <PageBody>
-          <div style={{ display: "flex", gap: "12px", minHeight: 0, flex: 1 }}>
-            <Panel style={{ flex: 1, overflow: "auto" }}>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t("board.ibmmq.queues.name")}</TableHead>
-                    <TableHead>{t("board.ibmmq.queues.type")}</TableHead>
-                    <TableHead className="num">{t("board.ibmmq.queues.depth")}</TableHead>
-                    <TableHead className="num">{t("board.ibmmq.queues.openInput")}</TableHead>
-                    <TableHead className="num">{t("board.ibmmq.queues.subscribers")}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {shown.map((entry) => (
-                    <TableRow
-                      key={entry.name}
-                      data-state={detail?.name === entry.name ? "selected" : undefined}
-                      onClick={() => setSelected(entry.name)}
-                      style={{ cursor: "pointer" }}
-                    >
-                      <TableCell>
-                        <span className="mono3" style={MONO11}>
-                          {entry.name}
-                        </span>
+      {isBlocked(state) ? (
+        <BoardState state={state} />
+      ) : (
+        <ListArea>
+          <ListPane>
+            <Table inset>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("board.ibmmq.queues.name")}</TableHead>
+                  <TableHead>{t("board.ibmmq.queues.type")}</TableHead>
+                  <TableHead className="num">{t("board.ibmmq.queues.depth")}</TableHead>
+                  <TableHead className="num">{t("board.ibmmq.queues.openInput")}</TableHead>
+                  <TableHead className="num">{t("board.ibmmq.queues.subscribers")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {shown.map((entry) => (
+                  <TableRow
+                    key={entry.name}
+                    selected={selected === entry.name}
+                    onClick={() => setSelected(entry.name)}
+                  >
+                    <TableCell>
+                      <span className="flex items-center gap-1.5">
+                        <span className="truncate select-text">{entry.name}</span>
                         {entry.deadLetterQueue && (
-                          <span className="pb pIMQ" style={{ marginLeft: "6px" }}>
-                            {t("board.ibmmq.queues.deadLetterBadge")}
-                          </span>
+                          <OutlineTag>{t("board.ibmmq.queues.deadLetterBadge")}</OutlineTag>
                         )}
-                      </TableCell>
-                      <TableCell>
-                        <span
-                          className="mono3"
-                          style={{
-                            ...MONO11,
-                            color: inhibited(entry) ? "var(--c-warn)" : undefined,
-                          }}
-                        >
-                          {entry.kind === "topic"
-                            ? t("board.ibmmq.queues.kindTopic")
-                            : (entry.queueType ?? DASH)}
-                        </span>
-                      </TableCell>
-                      <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {count(entry.depth)}
-                        </span>
-                      </TableCell>
-                      <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {count(entry.openInput)}
-                        </span>
-                      </TableCell>
-                      <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {count(entry.subscribers)}
-                        </span>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Panel>
+                      </span>
+                    </TableCell>
+                    <TableCell className={cn(inhibited(entry) && "text-(--c-warn-text)")}>
+                      {entry.kind === "topic"
+                        ? t("board.ibmmq.queues.kindTopic")
+                        : (entry.queueType ?? DASH)}
+                    </TableCell>
+                    <TableCell className="num">{count(entry.depth)}</TableCell>
+                    <TableCell className="num">{count(entry.openInput)}</TableCell>
+                    <TableCell className="num">{count(entry.subscribers)}</TableCell>
+                  </TableRow>
+                ))}
+                {shown.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
+                      {destinations.length === 0
+                        ? t("board.ibmmq.queues.none")
+                        : t("board.common.noMatch")}
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </ListPane>
 
-            {detail != null && (
-              <Panel style={{ width: "320px", overflow: "auto" }}>
-                <PanelHeader
-                  title={detail.name}
-                  action={
-                    <Button size="sm" variant="outline" onClick={() => void remove(detail)}>
-                      {t("common.delete")}
-                    </Button>
-                  }
-                />
-                <div style={{ padding: "10px 12px", display: "grid", gap: "8px" }}>
-                  <SectionLabel>{t("board.ibmmq.queues.section.definition")}</SectionLabel>
-                  <KV
-                    rows={[
-                      [
-                        t("board.ibmmq.queues.type"),
-                        detail.kind === "topic"
-                          ? t("board.ibmmq.queues.kindTopic")
-                          : (detail.queueType ?? DASH),
-                      ],
-                      ...(detail.kind === "topic"
-                        ? ([
-                            [t("board.ibmmq.queues.topicString"), detail.topicString ?? DASH],
-                            [t("board.ibmmq.queues.topicType"), detail.topicType ?? DASH],
-                          ] as const)
-                        : ([
-                            [t("board.ibmmq.queues.maxDepth"), count(detail.maxDepth)],
-                            [
-                              t("board.ibmmq.queues.maxMessageLength"),
-                              count(detail.maxMessageLength),
-                            ],
-                            [t("board.ibmmq.queues.cluster"), detail.cluster ?? DASH],
-                          ] as const)),
-                      [t("board.ibmmq.queues.description"), detail.description ?? DASH],
-                      [t("board.ibmmq.queues.altered"), detail.altered ?? DASH],
-                    ]}
-                  />
-
-                  {detail.kind === "queue" && (
-                    <>
-                      <SectionLabel>{t("board.ibmmq.queues.section.runtime")}</SectionLabel>
-                      <KV
-                        rows={[
-                          [t("board.ibmmq.queues.depth"), count(detail.depth)],
-                          [t("board.ibmmq.queues.openInput"), count(detail.openInput)],
-                          [t("board.ibmmq.queues.openOutput"), count(detail.openOutput)],
-                          [t("board.ibmmq.queues.uncommitted"), count(detail.uncommitted)],
-                          [
-                            t("board.ibmmq.queues.oldestMessage"),
-                            detail.oldestMessageAgeSec == null
-                              ? DASH
-                              : t("board.ibmmq.queues.seconds", {
-                                  count: detail.oldestMessageAgeSec,
-                                }),
-                          ],
-                          [t("board.ibmmq.queues.lastPut"), detail.lastPut ?? DASH],
-                          [t("board.ibmmq.queues.lastGet"), detail.lastGet ?? DASH],
-                        ]}
-                      />
-
-                      <SectionLabel>{t("board.ibmmq.queues.section.handling")}</SectionLabel>
-                      <KV
-                        rows={[
-                          [t("board.ibmmq.queues.backoutQueue"), detail.backoutQueue ?? DASH],
-                          [
-                            t("board.ibmmq.queues.backoutThreshold"),
-                            count(detail.backoutThreshold),
-                          ],
-                        ]}
-                      />
-                    </>
-                  )}
-
-                  {inhibited(detail) && (
-                    <div style={{ fontSize: "11px", color: "var(--c-warn)" }}>
-                      {t("board.ibmmq.queues.inhibited", {
-                        what: detail.inhibitPut
-                          ? t("board.ibmmq.queues.inhibitPut")
-                          : t("board.ibmmq.queues.inhibitGet"),
-                      })}
-                    </div>
-                  )}
-                </div>
-              </Panel>
-            )}
-          </div>
-          <div style={{ fontSize: "11px", color: "var(--c-muted)", paddingTop: "8px" }}>
-            {t("board.ibmmq.queues.note")}
-          </div>
-        </PageBody>
-      </BoardState>
+          {current != null && (
+            <QueueSheet
+              key={current.name}
+              entry={current}
+              onDelete={() => void remove(current)}
+              onClose={() => setSelected(null)}
+            />
+          )}
+        </ListArea>
+      )}
+      {!isBlocked(state) && <StatusBar left={<span>{t("board.ibmmq.queues.note")}</span>} />}
     </Page>
+  );
+}
+
+export function QueueSheet({
+  entry,
+  onDelete,
+  onClose,
+}: {
+  entry: IbmMqDestination;
+  onDelete: () => void;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <DetailPanel width={380} onDismiss={onClose}>
+      <DetailPanelHeader title={entry.name} onClose={onClose} />
+      <DetailPanelBody>
+        {entry.kind === "queue" && (
+          <div className="grid grid-cols-2 gap-2">
+            <MiniStat label={t("board.ibmmq.queues.depth")} value={count(entry.depth)} />
+            <MiniStat label={t("board.ibmmq.queues.openInput")} value={count(entry.openInput)} />
+          </div>
+        )}
+
+        <div>
+          <SectionLabel className="mb-1.5">{t("board.ibmmq.queues.section.definition")}</SectionLabel>
+          <KV
+            rows={[
+              [
+                t("board.ibmmq.queues.type"),
+                entry.kind === "topic"
+                  ? t("board.ibmmq.queues.kindTopic")
+                  : (entry.queueType ?? DASH),
+              ],
+              ...(entry.kind === "topic"
+                ? ([
+                    [t("board.ibmmq.queues.topicString"), entry.topicString ?? DASH],
+                    [t("board.ibmmq.queues.topicType"), entry.topicType ?? DASH],
+                  ] as const)
+                : ([
+                    [t("board.ibmmq.queues.maxDepth"), count(entry.maxDepth)],
+                    [t("board.ibmmq.queues.maxMessageLength"), count(entry.maxMessageLength)],
+                    [t("board.ibmmq.queues.cluster"), entry.cluster ?? DASH],
+                  ] as const)),
+              [t("board.ibmmq.queues.description"), entry.description ?? DASH],
+              [t("board.ibmmq.queues.altered"), entry.altered ?? DASH],
+            ]}
+          />
+        </div>
+
+        {entry.kind === "queue" && (
+          <>
+            <div>
+              <SectionLabel className="mb-1.5">{t("board.ibmmq.queues.section.runtime")}</SectionLabel>
+              <KV
+                rows={[
+                  [t("board.ibmmq.queues.openOutput"), count(entry.openOutput)],
+                  [t("board.ibmmq.queues.uncommitted"), count(entry.uncommitted)],
+                  [
+                    t("board.ibmmq.queues.oldestMessage"),
+                    entry.oldestMessageAgeSec == null
+                      ? DASH
+                      : t("board.ibmmq.queues.seconds", {
+                          count: entry.oldestMessageAgeSec,
+                        }),
+                  ],
+                  [t("board.ibmmq.queues.lastPut"), entry.lastPut ?? DASH],
+                  [t("board.ibmmq.queues.lastGet"), entry.lastGet ?? DASH],
+                ]}
+              />
+            </div>
+
+            <div>
+              <SectionLabel className="mb-1.5">{t("board.ibmmq.queues.section.handling")}</SectionLabel>
+              <KV
+                rows={[
+                  [t("board.ibmmq.queues.backoutQueue"), entry.backoutQueue ?? DASH],
+                  [t("board.ibmmq.queues.backoutThreshold"), count(entry.backoutThreshold)],
+                ]}
+              />
+            </div>
+          </>
+        )}
+
+        {inhibited(entry) && (
+          <p className="text-xs leading-relaxed text-(--c-warn-text)">
+            {t("board.ibmmq.queues.inhibited", {
+              what: entry.inhibitPut
+                ? t("board.ibmmq.queues.inhibitPut")
+                : t("board.ibmmq.queues.inhibitGet"),
+            })}
+          </p>
+        )}
+      </DetailPanelBody>
+      <DetailPanelFooter>
+        <span className="flex-1" />
+        <Button variant="destructive" onClick={onDelete}>
+          {t("common.delete")}
+        </Button>
+      </DetailPanelFooter>
+    </DetailPanel>
   );
 }

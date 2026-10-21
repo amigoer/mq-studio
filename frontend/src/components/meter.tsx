@@ -42,12 +42,12 @@ export function MeterRow({
   labelWidth?: number;
 }) {
   return (
-    <div className="flex items-center gap-2 text-xs">
-      <span className="mono3 flex-none" style={{ flexBasis: `${labelWidth}px` }}>
+    <div className="flex items-center gap-2.5 text-xs">
+      <span className="flex-none truncate text-muted-foreground" style={{ flexBasis: `${labelWidth}px` }}>
         {label}
       </span>
       <Bar value={value} color={color} className="flex-1" />
-      <span className="mono3 flex-none text-muted-foreground">{display ?? `${value}%`}</span>
+      <span className="flex-none text-right text-(--c-fg-2) tabular-nums">{display ?? `${value}%`}</span>
     </div>
   );
 }

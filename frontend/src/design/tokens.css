@@ -19,7 +19,7 @@
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: var(--c-bg);
+  background: var(--c-chrome);
   color: var(--c-fg);
   /* The fallback is the canvas's own stack, for the frames before the
      interface font setting has loaded. See lib/fonts. */
@@ -57,6 +57,21 @@
   min-width: 0;
   min-height: 0;
   container: page / inline-size;
+  /*
+   * The page is a sheet laid on the chrome rather than a region ruled off
+   * from it: the title bar and the sidebar stay on the ground, and what they
+   * navigate is the one white surface in the window.
+   */
+  margin: 0 8px 8px 0;
+  border: 1px solid var(--c-border);
+  border-radius: 10px;
+  background: var(--c-bg);
+  box-shadow: 0 1px 2px rgba(28, 25, 23, 0.04);
+  overflow: hidden;
+}
+/* No sidebar to its left (the connection list): the gutter goes on both sides. */
+.mqs-main > .mqs-content:first-child {
+  margin-left: 8px;
 }
 
 /* The dock over the page, where the window is too narrow to set it beside. */
@@ -87,32 +102,68 @@
  * those are pictures of a theme, not the theme itself, and must not follow it.
  */
 :root {
-  /* surfaces */
+  /*
+   * surfaces. A warm stone scale drawn from the brand mark's paper and ink:
+   * the chrome (title bar and sidebar) sits on `--c-chrome`, and the page is a
+   * white sheet laid on it, a clear step lighter so the two read as layers.
+   */
   --c-bg: #fff;
-  --c-panel: #fcfcfc;
-  --c-bar: #fafafa;
-  --c-fill: #f5f5f5;
-  --c-fill-soft: #f8f8f8;
-  --c-fill-mute: #f0f0f0;
-  --c-fill-zinc: #f4f4f5;
+  --c-chrome: #eeece8;
+  --c-panel: #faf9f7;
+  --c-bar: #f6f5f2;
+  --c-fill: #f2f0ed;
+  --c-fill-soft: #f8f7f5;
+  --c-fill-mute: #e6e3de;
+  --c-fill-zinc: #f2f0ed;
   /* The hairline between rows of one card, lighter than the card's own edge. */
-  --c-rule: #f4f4f4;
+  --c-rule: #efece8;
 
   /* borders */
-  --c-border: #ebebeb;
-  --c-border-soft: #e4e4e7;
-  --c-border-dash: #e0e0e0;
-  --c-border-strong: #d4d4d8;
+  --c-border: #e3e0db;
+  --c-border-soft: #dedad5;
+  --c-border-dash: #d4d0ca;
+  --c-border-strong: #c9c4bd;
 
   /* text, darkest first */
-  --c-fg: #171717;
-  --c-fg-2: #525252;
-  --c-mono-dim: #666;
-  --c-muted: #8a8a8a;
-  --c-muted-zinc: #71717a;
-  --c-muted-2: #a3a3a3;
-  --c-muted-3: #b5b1aa;
-  --c-disabled: #c9c9c9;
+  --c-fg: #1c1917;
+  --c-fg-2: #3f3a36;
+  --c-mono-dim: #57534e;
+  --c-muted: #736c66;
+  --c-muted-zinc: #736c66;
+  --c-muted-2: #9d968f;
+  --c-muted-3: #b5aea7;
+  --c-disabled: #cbc6c0;
+
+  /*
+   * The action colour: primary buttons, the page you are on, the selected
+   * row, ticks, switches and links. A cobalt across the wheel from the brand
+   * mark's red, so the two sit together without either reading as a state.
+   */
+  --c-primary: #2f6bf0;
+  --c-primary-hover: #2459d6;
+  --c-primary-soft: #ebf1ff;
+  --c-primary-text: #2155cc;
+
+  /*
+   * Tones for the small icon tiles that tell figures apart at a glance. Hues
+   * only, kept clear of the state greens, ambers and reds so a tile never reads
+   * as a warning.
+   */
+  --c-tone-blue: #2f6bf0;
+  --c-tone-blue-bg: #ebf1ff;
+  --c-tone-violet: #7c4ddb;
+  --c-tone-violet-bg: #f2edfd;
+  --c-tone-teal: #0f8a8a;
+  --c-tone-teal-bg: #e4f5f4;
+  --c-tone-orange: #d4561c;
+  --c-tone-orange-bg: #fdefe7;
+  --c-tone-pink: #c23a7a;
+  --c-tone-pink-bg: #fcecf3;
+  --c-tone-slate: #55606e;
+  --c-tone-slate-bg: #eef0f3;
+
+  /* The brand red, for the mark itself. Never a state colour or a button. */
+  --c-mark: #ec3013;
 
   /* states */
   --c-ok: #29915d;
@@ -137,8 +188,8 @@
    * as "produce". The pair is checked for colour-vision separation against the
    * page background, which is why it is two hues rather than two greys.
    */
-  --c-series-1: #0b64f4;
-  --c-series-2: #a21caf;
+  --c-series-1: #2f6bf0;
+  --c-series-2: #8b5cf6;
 
   /* marks that have to read on either ground */
   --c-github-mark: #181717;
@@ -168,6 +219,7 @@
   /*
    * Motion. Every duration in the shell is one of these, so 界面过渡动画 has a
    * single place to turn them off -- see the switch at the foot of the file.
+   * lib/motion.ts carries the same numbers for Motion components.
    * Three lengths: `fast` for a colour under the cursor, `base` for anything
    * that enters or leaves, `slow` for the detail sheet, which crosses its own
    * width to get there.
@@ -195,28 +247,49 @@
  * The class is set by lib/theme, which resolves "跟随系统" against the OS.
  */
 :root.dark {
-  --c-bg: #0a0a0a;
-  --c-panel: #121212;
-  --c-bar: #141414;
-  --c-fill: #1f1f1f;
-  --c-fill-soft: #171717;
-  --c-fill-mute: #242424;
-  --c-fill-zinc: #1f1f22;
-  --c-rule: #1e1e1e;
+  --c-bg: #1c1b1a;
+  --c-chrome: #121110;
+  --c-panel: #201f1d;
+  --c-bar: #171615;
+  --c-fill: #282624;
+  --c-fill-soft: #222120;
+  --c-fill-mute: #302e2b;
+  --c-fill-zinc: #282624;
+  --c-rule: #272523;
 
-  --c-border: #262626;
-  --c-border-soft: #2c2c2c;
-  --c-border-dash: #333;
-  --c-border-strong: #454545;
+  --c-border: #312f2c;
+  --c-border-soft: #36332f;
+  --c-border-dash: #3e3b37;
+  --c-border-strong: #4f4b46;
 
-  --c-fg: #fafafa;
-  --c-fg-2: #d4d4d4;
-  --c-mono-dim: #a1a1a1;
-  --c-muted: #8f8f8f;
-  --c-muted-zinc: #8b8b93;
-  --c-muted-2: #6f6f6f;
-  --c-muted-3: #6b665e;
-  --c-disabled: #4a4a4a;
+  --c-fg: #f4f2f0;
+  --c-fg-2: #d8d4d0;
+  --c-mono-dim: #aca69f;
+  --c-muted: #979089;
+  --c-muted-zinc: #979089;
+  --c-muted-2: #6f6964;
+  --c-muted-3: #6b655e;
+  --c-disabled: #4d4844;
+
+  --c-primary: #5b8cff;
+  --c-primary-hover: #7aa2ff;
+  --c-primary-soft: rgba(91, 140, 255, 0.16);
+  --c-primary-text: #8fb0ff;
+
+  --c-tone-blue: #7aa2ff;
+  --c-tone-blue-bg: rgba(91, 140, 255, 0.16);
+  --c-tone-violet: #b197f5;
+  --c-tone-violet-bg: rgba(139, 92, 246, 0.18);
+  --c-tone-teal: #4fd1c5;
+  --c-tone-teal-bg: rgba(45, 180, 170, 0.16);
+  --c-tone-orange: #ff9a6a;
+  --c-tone-orange-bg: rgba(240, 110, 50, 0.16);
+  --c-tone-pink: #f08cbf;
+  --c-tone-pink-bg: rgba(220, 80, 150, 0.16);
+  --c-tone-slate: #aab4c2;
+  --c-tone-slate-bg: rgba(140, 155, 175, 0.16);
+
+  --c-mark: #ff563c;
 
   --c-ok: #3fb07a;
   --c-ok-text: #6ee7a8;
@@ -236,8 +309,8 @@
   --c-accent-blue: #5b9bff;
   /* Re-stepped for the dark surface, not flipped: the light pair sits too
      bright against #0a0a0a to keep its separation. */
-  --c-series-1: #3b82f6;
-  --c-series-2: #c026d3;
+  --c-series-1: #5b8cff;
+  --c-series-2: #a78bfa;
 
   --c-github-mark: #f0f6fc;
   --c-brand-kafka: #e4e4e7;
@@ -262,8 +335,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 0 14px;
-  border-bottom: 1px solid var(--c-border);
+  padding: 0 14px 0 10px;
   /* The bar is the window's drag handle; see the opt-out below. */
   --wails-draggable: drag;
 }
@@ -303,46 +375,6 @@
   animation: mqs-turn var(--mo-turn) linear infinite;
 }
 /*
- * 测试连接's answer slides out from the button rather than swapping in place,
- * so a second test that gets the same answer still visibly got one.
- */
-.mqs-probe-in {
-  animation: mqs-probe-in var(--mo-base) var(--mo-ease-out);
-}
-@keyframes mqs-probe-in {
-  from {
-    opacity: 0;
-    transform: translateX(-4px);
-  }
-}
-.mqs-probe-mark {
-  animation: mqs-probe-mark var(--mo-base) var(--mo-ease-out);
-}
-@keyframes mqs-probe-mark {
-  from {
-    transform: scale(0.4);
-  }
-}
-/*
- * A failed test's reason opens rather than appears: the dialog is centred, so a
- * block arriving at full height would jolt the whole form by half of it.
- */
-.mqs-probe-reveal {
-  display: grid;
-  grid-template-rows: 1fr;
-  animation: mqs-probe-reveal var(--mo-base) var(--mo-ease-out);
-}
-.mqs-probe-reveal > * {
-  min-height: 0;
-  overflow: hidden;
-}
-@keyframes mqs-probe-reveal {
-  from {
-    grid-template-rows: 0fr;
-    opacity: 0;
-  }
-}
-/*
  * A control small enough to live inside a field's grey hint line. It borrows
  * the hint's own size so the line keeps its rhythm, and only colour and the
  * underline say it is pressable.
@@ -354,7 +386,7 @@
   border-radius: 5px;
   background: none;
   font: inherit;
-  color: var(--c-ok);
+  color: var(--c-primary-text);
   cursor: default;
   transition: background var(--mo-fast);
 }
@@ -444,11 +476,10 @@
 .side3 {
   width: 198px;
   flex: none;
-  border-right: 1px solid var(--c-border);
   display: flex;
   flex-direction: column;
-  padding: 10px;
-  gap: 2px;
+  padding: 2px 10px 10px;
+  gap: 1px;
   /* Labels leave by being clipped, not by wrapping into the narrowing rail.
      This makes the other axis `auto`, which the 750px MinHeight never needs. */
   overflow-x: hidden;
@@ -456,30 +487,31 @@
   transition: width var(--mo-base) var(--mo-ease);
 }
 .gl {
-  padding: 8px 10px 4px;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  color: var(--c-muted);
-  text-transform: uppercase;
+  padding: 14px 10px 5px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--c-muted-2);
 }
 .ni {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 5.5px 10px;
-  border-radius: 8px;
+  gap: 9px;
+  padding: 6px 10px;
+  border-radius: 7px;
   color: var(--c-fg-2);
-  font-size: 12.5px;
+  font-size: 13px;
   position: relative;
 }
+/* The page you are on takes the action colour, the strongest thing in the sidebar. */
 .ni.on {
-  background: var(--c-fg);
-  color: var(--c-bg);
-  font-weight: 500;
+  background: var(--c-primary-soft);
+  color: var(--c-primary-text);
+  font-weight: 600;
 }
 .ni.on .nic {
-  opacity: 0.9;
+  opacity: 1;
+  color: var(--c-primary);
 }
 /* A page this endpoint cannot open. It stays in the list because the reason
    sits on it, and a missing entry explains nothing. */
@@ -503,10 +535,9 @@
 .ni.lim .nic {
   opacity: 0.6;
 }
-/* The selected row wins its colour back: muted text on the dark fill is
-   unreadable, and a limited page can be the one you are on. */
+/* The selected row wins its colour back: a limited page can be the one you are on. */
 .ni.lim.on {
-  color: var(--c-bg);
+  color: var(--c-primary-text);
 }
 .nidot {
   position: absolute;
@@ -516,6 +547,7 @@
   height: 5px;
   border-radius: 9999px;
   background: var(--c-warn);
+  box-shadow: 0 0 0 1.5px var(--c-chrome);
 }
 /*
  * Holds the canvas's 16px icon column now that what sits in it is an SVG and
@@ -528,19 +560,19 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  opacity: 0.7;
+  opacity: 0.75;
   flex: none;
 }
 
 /*
  * The rail is the label column taken off 198px: 10px of panel padding, the
- * item's own 10px and the 16px icon, that padding pair again on the other
- * side, and the 1px border. The icon keeps the x it had expanded, so nothing
- * slides sideways while the width animates -- the labels are all that go, and
- * the icon lands centred in what is left of the active item's pill.
+ * item's own 10px and the 16px icon, and that padding pair again on the other
+ * side. The icon keeps the x it had expanded, so nothing slides sideways while
+ * the width animates -- the labels are all that go, and the icon lands centred
+ * in what is left of the active item's pill.
  */
 .side3--rail {
-  width: 57px;
+  width: 56px;
 }
 .nil {
   white-space: nowrap;
@@ -579,15 +611,16 @@
  * while the width animates.
  */
 .side3 .side3-scope {
-  margin-bottom: 8px;
+  margin-bottom: 4px;
   /* The border eats into the content box, so the padding gives that pixel
      back: without it the glyph sits one px right of every page icon below,
      which is visible in a rail that is nothing but a column of glyphs. */
   padding-left: 9px;
   padding-right: 9px;
   border: 1px solid var(--c-border);
-  background: var(--c-panel);
+  background: var(--c-bg);
   color: var(--c-fg-2);
+  box-shadow: 0 1px 2px rgba(28, 25, 23, 0.04);
   overflow: hidden;
   transition:
     background-color var(--mo-fast) ease,
@@ -600,7 +633,7 @@
 /* Held open while its panel is: a control that gives nothing back once it is
    clicked reads as one that did not take the click. */
 .side3 .side3-scope[data-state='open'] {
-  background: var(--c-fill);
+  background: var(--c-bg);
   border-color: var(--c-border-strong);
   color: var(--c-fg);
 }
@@ -640,23 +673,30 @@
 .hd3 {
   flex: none;
   display: flex;
-  align-items: flex-start;
-  gap: 12px;
+  align-items: center;
+  gap: 8px;
   row-gap: 8px;
   /* Single rows by design. Wrapping only engages where the row would otherwise
      run past the window, which is the one case the canvas never drew. */
   flex-wrap: wrap;
-  padding: 14px 20px 12px;
+  min-height: 60px;
+  padding: 12px 20px;
   border-bottom: 1px solid var(--c-border);
+}
+/* A filter row reads as the header's second line, so the rule moves under it. */
+.hd3:has(+ .tbar3) {
+  border-bottom: 0;
+  padding-bottom: 8px;
 }
 .hd3 h2 {
   margin: 0;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
+  line-height: 1.3;
   letter-spacing: -0.01em;
 }
 .hd3 .sub {
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--c-muted);
   margin-top: 2px;
 }
@@ -664,12 +704,16 @@
   flex: none;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   row-gap: 8px;
   /* See .hd3: the filter row wraps rather than losing its last control. */
   flex-wrap: wrap;
   padding: 10px 20px;
   border-bottom: 1px solid var(--c-border);
+}
+.hd3 + .tbar3 {
+  padding-top: 0;
+  padding-bottom: 12px;
 }
 
 /* controls */
@@ -797,26 +841,29 @@
 }
 .ptile {
   border: 1px solid var(--c-border);
-  border-radius: 8px;
-  padding: 8px 4px;
+  border-radius: 10px;
+  padding: 12px 6px 10px;
   text-align: center;
-  font-size: 10.5px;
-  color: var(--c-fg-2);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--c-fg);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
 }
 .ptile img,
-.ptile svg { width: 18px; height: 18px; object-fit: contain; }
+.ptile svg { width: 22px; height: 22px; object-fit: contain; margin-bottom: 2px; }
+/* A focus ring rather than a heavier border, so choosing a tile never resizes it. */
 .ptile.sel {
-  border: 1.5px solid var(--c-fg);
-  background: var(--c-bar);
-  font-weight: 500;
-  color: var(--c-fg);
-  padding: 7.5px 3.5px;
+  border-color: var(--c-fg);
+  background: var(--c-bg);
+  box-shadow: 0 0 0 3px rgba(28, 25, 23, 0.08);
 }
-.pv { font-size: 9.5px; color: var(--c-muted-2); font-weight: 400; }
+:root.dark .ptile.sel {
+  box-shadow: 0 0 0 3px rgba(243, 241, 239, 0.12);
+}
+.pv { font-size: 10.5px; color: var(--c-muted); font-weight: 400; }
 /* Protocols with no driver yet: drawn, greyed, not selectable. */
 .ptile:disabled { color: var(--c-muted); cursor: not-allowed; }
 .ptile:disabled svg { filter: grayscale(1); opacity: 0.4; }
@@ -864,8 +911,8 @@
     color var(--mo-fast) ease;
 }
 
-.ni:not(.on):not(:disabled):hover { background: var(--c-fill); }
-.ptile:not(.sel):not(:disabled):hover { background: var(--c-bar); }
+.ni:not(.on):not(:disabled):hover { background: var(--c-fill-mute); }
+.ptile:not(.sel):not(:disabled):hover { background: var(--c-fill-soft); border-color: var(--c-border-strong); }
 
 button.mqs-tab-home {
   font-family: inherit;
@@ -886,6 +933,12 @@ button.btn3:focus-visible,
 .mqs-scroll { overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--c-border-soft) transparent; }
 .mqs-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
 .mqs-scroll::-webkit-scrollbar-thumb { background: var(--c-border-soft); border-radius: 99px; }
+
+/* PageBody scrolls, so its blocks keep their height instead of shrinking: a
+   Card clips its overflow and would otherwise collapse to a sliver once the
+   page outgrows the window. Zero specificity, so a child that asks to flex
+   (flex-1, an inline flex) still can. */
+:where(.mqs-pagebody) > * { flex-shrink: 0; }
 .mqs-scroll::-webkit-scrollbar-track { background: transparent; }
 
 /*
@@ -914,11 +967,11 @@ button.mqs-tab,
   appearance: none;
 }
 button.ni {
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--c-fg-2);
   width: 100%;
 }
-button.ni.on { background: var(--c-fg); color: var(--c-bg); }
+button.ni.on { background: var(--c-primary-soft); color: var(--c-primary-text); }
 
 /* The compact table used inside detail sheets (partition lists, bindings…). */
 
@@ -990,7 +1043,7 @@ button.ni.on { background: var(--c-fg); color: var(--c-bg); }
    * close ×'s fade have to disappear into it, so the three states are declared
    * here once instead of being restated by everything that must match them.
    */
-  --mqs-tab-bg: var(--c-bar);
+  --mqs-tab-bg: var(--c-chrome);
 }
 .mqs-tab[aria-selected='true'] {
   --mqs-tab-bg: var(--c-bg);
@@ -1100,24 +1153,24 @@ button.ni.on { background: var(--c-fg); color: var(--c-bg); }
   color: var(--c-fg);
 }
 
-/* The dashed ＋ that opens the new-connection dialog. */
+/* The ＋ that opens the new-connection dialog. */
 .mqs-tab-add {
   flex: none;
   /* Held explicitly: the height used to come from the glyph's line box. */
   height: 26px;
+  width: 26px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0 9px;
-  border: 1px dashed var(--c-border-strong);
-  border-radius: 8px;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
   background: transparent;
   color: var(--c-muted);
 }
 .mqs-tab-add:hover {
   background: var(--c-fill-mute);
-  border-color: var(--c-disabled);
-  color: var(--c-fg-2);
+  color: var(--c-fg);
 }
 
 /*
@@ -1137,7 +1190,17 @@ button.ni.on { background: var(--c-fg); color: var(--c-bg); }
 .mqs-kpis {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
-  gap: 12px;
+  /*
+   * One card ruled into cells rather than five cards: the figures are read
+   * across as a single line. The rules are the card's own border colour
+   * showing through a 1px gap, so they stay continuous when the row wraps.
+   */
+  gap: 1px;
+  background: var(--c-border);
+  border: 1px solid var(--c-border);
+  border-radius: 10px;
+  overflow: hidden;
+  flex: none;
 }
 
 /*
@@ -1164,14 +1227,79 @@ button.ni.on { background: var(--c-fg); color: var(--c-bg); }
   display: grid;
   grid-template-columns: 1.7fr 1fr;
   gap: 12px;
-  height: 240px;
+  height: 260px;
   flex: none;
 }
 @container page (max-width: 720px) {
   .mqs-chartrow {
     grid-template-columns: 1fr;
-    grid-auto-rows: 240px;
+    grid-auto-rows: 260px;
     height: auto;
+  }
+}
+
+/*
+ * A list with a detail sheet open beside it gives up the sheet's width (set by
+ * DetailPanel), so no column sits hidden under the sheet. Where that would
+ * leave the list too narrow to read, the sheet goes back to overlaying it.
+ */
+.mqs-listpane {
+  margin-right: var(--mqs-sheet-w, 0px);
+  transition: margin-right var(--mo-slow) var(--mo-ease);
+}
+@container page (max-width: 860px) {
+  .mqs-listpane {
+    margin-right: 0;
+  }
+}
+
+/* The connection grid: as many 280px cards as the sheet holds, sharing the slack. */
+.mqs-conngrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+  padding: 16px 20px 20px;
+}
+/* The last tile adds one, so an empty slot in the row is never just empty. */
+.mqs-conngrid-new {
+  min-height: 156px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px dashed var(--c-border-strong);
+  border-radius: 12px;
+  background: transparent;
+  font: inherit;
+  font-size: 12.5px;
+  color: var(--c-muted);
+  cursor: default;
+  transition:
+    background-color var(--mo-fast) ease,
+    color var(--mo-fast) ease,
+    border-color var(--mo-fast) ease;
+}
+.mqs-conngrid-new:hover {
+  background: var(--c-fill-soft);
+  border-color: var(--c-muted-2);
+  color: var(--c-fg);
+}
+.mqs-conngrid-new:focus-visible {
+  outline: 2px solid var(--c-fg);
+  outline-offset: 1px;
+}
+
+/* The overview's two ranking tables, side by side until the page is too narrow. */
+.mqs-tablerow {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+@container page (max-width: 900px) {
+  .mqs-tablerow {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -1196,7 +1324,7 @@ button.ni.on { background: var(--c-fg); color: var(--c-bg); }
  */
 @container main (max-width: 860px) {
   .side3 {
-    width: 57px;
+    width: 56px;
   }
   .side3 .nil {
     opacity: 0;
@@ -1322,46 +1450,7 @@ html[data-animations='off'] .mqs-toaster [data-sonner-toast] {
   transition: none;
 }
 
-/*
- * The detail sheet, coming in off the right edge it is docked to. It carries a
- * `data-state` that lib/motion's useEnter flips one frame after mount, so the
- * transition has a start value to run from, and that useLeave's copy flips
- * back to leave on.
- *
- * The whole way in from the edge, rather than the 16px nudge this was: across
- * 440px of panel the nudge was lost and what was left was a fade, which reads
- * as the sheet appearing rather than arriving. In on the decelerating curve,
- * out faster on the accelerating one. The fade comes along so that the
- * shadow's tail is not sitting at the window's edge before the panel is.
- *
- * The last of what was once a set: a scrim, a modal that rose into the middle
- * and a menu that dropped from its trigger went with the move to shadcn, whose
- * overlays bring their own. This one stayed because the sheet is ours.
- */
-.mqs-slide-right {
-  opacity: 0;
-  transform: translateX(100%);
-  transition:
-    opacity var(--mo-base) var(--mo-ease-in),
-    transform var(--mo-base) var(--mo-ease-in);
-}
-.mqs-slide-right[data-state='open'] {
-  opacity: 1;
-  transform: none;
-  transition:
-    opacity var(--mo-fast) linear,
-    transform var(--mo-slow) var(--mo-ease);
-}
-
-/*
- * The connection list's footer and its selection bar, taking turns in one
- * slot. Both stay mounted in a single grid cell, so the swap runs both ways on
- * transitions alone and the slot never changes height under the table.
- *
- * The bar rises from the window's edge rather than fading in where the footer
- * was: arriving is what ties it to the tick that summoned it. The footer only
- * fades, since a second thing moving would read as the whole strip jumping.
- */
+/* The connection list's footer and its selection bar, stacked in one grid cell. */
 .mqs-footer-swap {
   flex: none;
   display: grid;
@@ -1370,104 +1459,13 @@ html[data-animations='off'] .mqs-toaster [data-sonner-toast] {
 .mqs-footer-swap > * {
   grid-area: 1 / 1;
   min-width: 0;
-  transition:
-    opacity var(--mo-base) var(--mo-ease-out),
-    transform var(--mo-base) var(--mo-ease-out);
-}
-.mqs-footer-swap > [data-layer='bulk'] {
-  opacity: 0;
-  transform: translateY(100%);
-}
-.mqs-footer-swap[data-state='open'] > [data-layer='bulk'] {
-  opacity: 1;
-  transform: none;
-}
-.mqs-footer-swap[data-state='open'] > [data-layer='status'] {
-  opacity: 0;
 }
 
 /*
- * A tick lands rather than appears. Bound to the slot for the reason the
- * popover rule below gives; only the checked state, so a partial header box
- * filling up to a full one pops as well.
- */
-[data-slot='checkbox-indicator'][data-state='checked'] {
-  animation: mqs-tick var(--mo-fast) var(--mo-ease-out);
-}
-@keyframes mqs-tick {
-  from {
-    opacity: 0;
-    transform: scale(0.5);
-  }
-}
-
-/*
- * Every popover panel, on the same ladder as everything else that moves: the
- * notification centre, each Combobox, the namespace switcher.
- *
- * It replaces what tw-animate-css draws by default -- a 150ms literal, a plain
- * `ease` and a 5% zoom -- which was a second motion vocabulary beside the
- * `--mo-*` durations the rest of the shell is built on. This file is imported
- * unlayered, so it wins over the utilities without either side having to grow
- * a specificity fight, and it answers the 界面过渡动画 switch through the
- * variables rather than through the blanket at the foot of the file.
- *
- * Bound to the slot rather than to a class of our own, because the class would
- * have to be threaded through every call site and the shadcn primitive that
- * stamps this attribute is regenerated from a registry: an edit there is lost
- * on the next `shadcn add`. The five other primitives carrying the same
- * defaults -- dialog, sheet, select, dropdown-menu, alert-dialog -- are still
- * on the library's own numbers.
- *
- * The origin is left to Radix, which measures where the panel actually landed:
- * flipped above its trigger for want of room, it has to grow from the bottom.
- */
-[data-slot='popover-content'][data-state='open'] {
-  animation: mqs-menu-in var(--mo-fast) var(--mo-ease-out);
-}
-[data-slot='popover-content'][data-state='closed'] {
-  animation: mqs-menu-out var(--mo-fast) var(--mo-ease-out);
-}
-@keyframes mqs-menu-in {
-  from {
-    opacity: 0;
-    transform: translateY(-4px) scale(0.98);
-  }
-}
-@keyframes mqs-menu-out {
-  to {
-    opacity: 0;
-    transform: translateY(-4px) scale(0.98);
-  }
-}
-
-/*
- * Page transition: the content column when the view, the tab or the page under
- * it changes. Opacity alone -- a transform here would become the containing
- * block for the detail sheet, which is positioned against the shell body and
- * not against the page.
- */
-.mqs-view {
-  animation: view-in var(--mo-base) var(--mo-ease-out);
-}
-/*
- * A little travel, not just a fade. Opacity alone changes the whole column at
- * once and reads as a flash; 6px of rise gives the eye something to follow, so
- * the same 180ms reads as the page arriving. The ease-out spends most of that
- * distance early, which is what keeps it from feeling slow on a page somebody
- * clicks through quickly.
- */
-@keyframes view-in {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-}
-
-/*
- * 界面过渡动画. useUIPrefs writes the attribute; everything that moves answers
- * to it here rather than each rule testing for itself. Motion is dropped rather
- * than shortened, so a transition cannot be caught mid-way.
+ * 界面过渡动画. useUIPrefs writes the attribute (and tells Motion, through
+ * lib/motion's setMotionEnabled); everything else that moves answers to it here
+ * rather than each rule testing for itself. Movement is dropped rather than
+ * shortened, so a transition cannot be caught mid-way.
  *
  * The variables are the switch proper -- they carry every duration in the file
  * and turning them off leaves each element resting exactly where it was drawn.

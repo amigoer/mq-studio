@@ -10,7 +10,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { buttonVariants } from "@/components/ui/button";
 
 /**
  * The question asked before an action that cannot be taken back: clearing the
@@ -74,9 +73,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
             </AlertDialogCancel>
             <AlertDialogAction
               autoFocus
-              className={
-                request?.danger === true ? buttonVariants({ variant: "destructive" }) : undefined
-              }
+              variant={request?.danger === true ? "destructive" : "default"}
               onClick={() => settle(true)}
             >
               {request?.confirmLabel ?? t("common.confirm")}

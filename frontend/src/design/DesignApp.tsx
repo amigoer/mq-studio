@@ -43,6 +43,8 @@ import { AgentDock } from "@/design/agent/AgentDock";
 import { readDockPrefs, writeDockPrefs } from "@/design/agent/dockPrefs";
 import { SelectionProvider } from "@/design/agent/selection";
 import { useAssistant } from "@/hooks/useAssistant";
+import { motion } from "motion/react";
+import { viewIn } from "@/lib/motion";
 
 /** Global views sit beside the connection tabs rather than inside one. */
 type View =
@@ -556,9 +558,9 @@ export function DesignApp(): JSX.Element {
   ].join(":");
 
   const column = (
-    <div key={viewKey} className="mqs-view" style={{ flex: 1, display: "flex", minWidth: 0 }}>
+    <motion.div key={viewKey} {...viewIn} style={{ flex: 1, display: "flex", minWidth: 0 }}>
       {content}
-    </div>
+    </motion.div>
   );
 
   const shell = (

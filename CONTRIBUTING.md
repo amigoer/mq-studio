@@ -68,7 +68,8 @@ make dev
 ```
 
 `make help` lists every target. [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
-has the process model and the repository layout.
+has the process model and the repository layout, and [docs/UI.md](docs/UI.md)
+the libraries, visual language and page patterns every screen follows.
 
 ## Before you push
 
@@ -196,6 +197,7 @@ forgotten:
 | `website/sites/en/kite.yaml` | `website/sites/zh/kite.yaml` |
 | `docs/DRIVERS.md` | `docs/DRIVERS.zh-CN.md` |
 | `docs/MCP.md` | `docs/MCP.zh-CN.md` |
+| `docs/UI.md` | `docs/UI.zh-CN.md` |
 | `docs/images/readme/<page>.en.png` | `docs/images/readme/<page>.png` |
 
 ## Adding a driver

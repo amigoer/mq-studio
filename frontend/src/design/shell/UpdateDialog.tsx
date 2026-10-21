@@ -45,8 +45,9 @@ export function UpdateDialog() {
     <Dialog open={dialogOpen} onOpenChange={(next) => !next && closeDialog()}>
       {/* Clipped to the dialog's own radius: the header and footer bars run
           edge to edge, and their square corners would otherwise paint over
-          the rounded ones. The footer carries the radius itself as well --
-          see the note on it. */}
+          the rounded ones. The footer carries the radius itself as well:
+          WebKit drops a radius clip on a transformed, animated box whose
+          subtree scrolls. */}
       <DialogContent
         className="gap-0 overflow-hidden p-0 sm:max-w-[560px]"
         showCloseButton={false}
@@ -160,13 +161,8 @@ export function UpdatePanel() {
         </div>
       )}
 
-      {/* Rounded itself, not only clipped by the dialog: WebKit drops a
-          border-radius clip on a transformed, animated box whose subtree
-          scrolls, which is every one of DialogContent's own classes. This is
-          the only bar with an opaque background, so it is the only one that
-          shows through when the clip goes. Inset by the 1px border, as the
-          dialog's own radius is measured from outside it. */}
-      <DialogFooter className="items-center rounded-b-[calc(var(--radius-lg)-1px)] border-t border-(--c-border) bg-(--c-bar) px-[18px] py-3 sm:justify-start">
+      {/* The footer bleeds into a padded dialog by default; this one is unpadded. */}
+      <DialogFooter className="m-0 items-center px-[18px] py-3 sm:justify-start">
         {/* Always reachable: if the notes render poorly, the changelog on the
             site carries the same text in full. */}
         <Button

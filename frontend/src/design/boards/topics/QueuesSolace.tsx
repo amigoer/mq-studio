@@ -1,7 +1,16 @@
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
-import { Page, PageBody, PageHeader, RefreshButton } from "@/design/shell";
+import {
+  ListArea,
+  ListPane,
+  Page,
+  PageHeader,
+  RefreshButton,
+  StatusBar,
+  Toolbar,
+} from "@/design/shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -12,8 +21,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { KV, Panel, PanelHeader, SectionLabel, useConfirm } from "@/components";
-import { BoardState } from "@/design/boards/BoardState";
+import {
+  DetailPanel,
+  DetailPanelBody,
+  DetailPanelFooter,
+  DetailPanelHeader,
+  KV,
+  MiniStat,
+  OutlineTag,
+  SectionLabel,
+  useConfirm,
+} from "@/components";
+import { BoardState, isBlocked } from "@/design/boards/BoardState";
 import { useSolaceDestinations } from "@/hooks/solace/useSolaceDestinations";
 import {
   destination as readDestination,
@@ -22,12 +41,10 @@ import {
   type SolaceDestination,
 } from "@/mq/solace/destinations";
 import { formatBytes, formatCount } from "@/lib/format";
-import { formatErrorMessage } from "@/lib/utils";
+import { cn, formatErrorMessage } from "@/lib/utils";
 import { useConnectionScope } from "@/mq/ConnectionScope";
 import * as solaceApi from "@/api/solace";
 import { QueueDialogSolace } from "./QueueDialogSolace";
-
-const MONO11 = { fontSize: "11px" } as const;
 
 /** A dash, not a zero: an absent figure and a measured zero are not alike. */
 const DASH = "—";
@@ -71,10 +88,7 @@ export function QueuesSolace() {
     );
   }, [destinations, search]);
 
-  const detail = useMemo(
-    () => shown.find((entry) => entry.name === selected) ?? shown[0] ?? null,
-    [shown, selected],
-  );
+  const current = shown.find((entry) => entry.name === selected) ?? null;
 
   const create = useCallback(
     async (input: solaceApi.SolaceQueueInput) => {
@@ -128,169 +142,184 @@ export function QueuesSolace() {
         title={t("shell.nav.solace.topics")}
         subtitle={t("board.solace.queues.count", { count: destinations.length })}
         actions={
-          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-            <Input
-              style={{ width: "200px" }}
-              value={search}
-              placeholder={t("board.solace.queues.search")}
-              onChange={(event) => setSearch(event.target.value)}
-            />
-            <Button size="sm" onClick={() => setFormOpen(true)}>
-              {t("board.solace.queues.create")}
-            </Button>
+          <>
             <RefreshButton
               refreshing={state.refreshing}
               online={state.online}
               onClick={() => void state.refresh()}
             />
-          </div>
+            <Button disabled={!state.online} onClick={() => setFormOpen(true)}>
+              <Plus aria-hidden />
+              {t("board.solace.queues.create")}
+            </Button>
+          </>
         }
       />
+      <Toolbar>
+        <Input
+          className="w-60 flex-none"
+          value={search}
+          placeholder={t("board.solace.queues.search")}
+          onChange={(event) => setSearch(event.target.value)}
+        />
+      </Toolbar>
       <QueueDialogSolace open={formOpen} onOpenChange={setFormOpen} onSubmit={create} />
-      <BoardState state={state}>
-        <PageBody>
-          <div style={{ display: "flex", gap: "12px", minHeight: 0, flex: 1 }}>
-            <Panel style={{ flex: 1, overflow: "auto" }}>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t("board.solace.queues.name")}</TableHead>
-                    <TableHead>{t("board.solace.queues.accessType")}</TableHead>
-                    <TableHead className="num">{t("board.solace.queues.spooled")}</TableHead>
-                    <TableHead className="num">{t("board.solace.queues.bound")}</TableHead>
-                    <TableHead className="num">{t("board.solace.queues.rateIn")}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {shown.map((entry) => (
-                    <TableRow
-                      key={entry.name}
-                      data-state={detail?.name === entry.name ? "selected" : undefined}
-                      onClick={() => setSelected(entry.name)}
-                      style={{ cursor: "pointer" }}
-                    >
-                      <TableCell>
-                        <span className="mono3" style={MONO11}>
-                          {entry.name}
-                        </span>
+      {isBlocked(state) ? (
+        <BoardState state={state} />
+      ) : (
+        <ListArea>
+          <ListPane>
+            <Table inset>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("board.solace.queues.name")}</TableHead>
+                  <TableHead>{t("board.solace.queues.accessType")}</TableHead>
+                  <TableHead className="num">{t("board.solace.queues.spooled")}</TableHead>
+                  <TableHead className="num">{t("board.solace.queues.bound")}</TableHead>
+                  <TableHead className="num">{t("board.solace.queues.rateIn")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {shown.map((entry) => (
+                  <TableRow
+                    key={entry.name}
+                    selected={selected === entry.name}
+                    onClick={() => setSelected(entry.name)}
+                  >
+                    <TableCell>
+                      <span className="flex items-center gap-1.5">
+                        <span className="truncate select-text">{entry.name}</span>
                         {hasDeadMsgQueue(entry) && (
-                          <span className="pb pSOL" style={{ marginLeft: "6px" }}>
-                            {t("board.solace.queues.dmqBadge")}
-                          </span>
+                          <OutlineTag>{t("board.solace.queues.dmqBadge")}</OutlineTag>
                         )}
-                      </TableCell>
-                      <TableCell>
-                        <span
-                          className="mono3"
-                          style={{
-                            ...MONO11,
-                            color: halted(entry) ? "var(--c-warn)" : undefined,
-                          }}
-                        >
-                          {entry.accessType ?? DASH}
-                        </span>
-                      </TableCell>
-                      <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {count(entry.depth)}
-                        </span>
-                      </TableCell>
-                      <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {count(entry.boundConsumers)}
-                        </span>
-                      </TableCell>
-                      <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {count(entry.rateIn)}
-                        </span>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Panel>
+                      </span>
+                    </TableCell>
+                    <TableCell className={cn(halted(entry) && "text-(--c-warn-text)")}>
+                      {entry.accessType ?? DASH}
+                    </TableCell>
+                    <TableCell className="num">{count(entry.depth)}</TableCell>
+                    <TableCell className="num">{count(entry.boundConsumers)}</TableCell>
+                    <TableCell className="num">{count(entry.rateIn)}</TableCell>
+                  </TableRow>
+                ))}
+                {shown.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
+                      {destinations.length === 0
+                        ? t("board.solace.queues.none")
+                        : t("board.common.noMatch")}
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </ListPane>
 
-            {detail != null && (
-              <Panel style={{ width: "320px", overflow: "auto" }}>
-                <PanelHeader
-                  title={detail.name}
-                  action={
-                    <Button size="sm" variant="outline" onClick={() => void remove(detail)}>
-                      {t("common.delete")}
-                    </Button>
-                  }
-                />
-                <div style={{ padding: "10px 12px", display: "grid", gap: "8px" }}>
-                  <SectionLabel>{t("board.solace.queues.section.definition")}</SectionLabel>
-                  <KV
-                    rows={[
-                      [t("board.solace.queues.accessType"), detail.accessType ?? DASH],
-                      [t("board.solace.queues.permission"), detail.permission ?? DASH],
-                      [t("board.solace.queues.owner"), detail.owner ?? DASH],
-                      [
-                        t("board.solace.queues.maxSpool"),
-                        detail.maxSpoolUsageMb == null
-                          ? DASH
-                          : formatBytes(detail.maxSpoolUsageMb * 1024 * 1024),
-                      ],
-                      [
-                        t("board.solace.queues.maxMsgSize"),
-                        detail.maxMsgSizeBytes == null ? DASH : formatBytes(detail.maxMsgSizeBytes),
-                      ],
-                      [t("board.solace.queues.partitions"), count(detail.partitionCount)],
-                    ]}
-                  />
-
-                  <SectionLabel>{t("board.solace.queues.section.runtime")}</SectionLabel>
-                  <KV
-                    rows={[
-                      [t("board.solace.queues.spooled"), count(detail.depth)],
-                      [
-                        t("board.solace.queues.spoolUsage"),
-                        detail.spoolUsageBytes == null ? DASH : formatBytes(detail.spoolUsageBytes),
-                      ],
-                      [t("board.solace.queues.bound"), count(detail.boundConsumers)],
-                      [t("board.solace.queues.unacked"), count(detail.unackedMsgCount)],
-                      [t("board.solace.queues.redelivered"), count(detail.redeliveredMsgCount)],
-                      [t("board.solace.queues.spooledTotal"), count(detail.spooledTotal)],
-                    ]}
-                  />
-
-                  <SectionLabel>{t("board.solace.queues.section.handling")}</SectionLabel>
-                  <KV
-                    rows={[
-                      [t("board.solace.queues.deadMsgQueue"), detail.deadMsgQueue ?? DASH],
-                      [t("board.solace.queues.maxRedelivery"), count(detail.maxRedeliveryCount)],
-                      [
-                        t("board.solace.queues.maxTtl"),
-                        detail.maxTtlSec == null || detail.maxTtlSec === 0
-                          ? DASH
-                          : t("board.solace.queues.seconds", { count: detail.maxTtlSec }),
-                      ],
-                      [t("board.solace.queues.toDmqTtl"), count(detail.ttlExpiredToDmq)],
-                      [t("board.solace.queues.toDmqRetry"), count(detail.redeliveryExceededToDmq)],
-                    ]}
-                  />
-
-                  {halted(detail) && (
-                    <div style={{ fontSize: "11px", color: "var(--c-warn)" }}>
-                      {t("board.solace.queues.halted", {
-                        what: !detail.ingressEnabled
-                          ? t("board.solace.queues.ingress")
-                          : t("board.solace.queues.egress"),
-                      })}
-                    </div>
-                  )}
-                </div>
-              </Panel>
-            )}
-          </div>
-          <div style={{ fontSize: "11px", color: "var(--c-muted)", paddingTop: "8px" }}>
-            {t("board.solace.queues.note")}
-          </div>
-        </PageBody>
-      </BoardState>
+          {current != null && (
+            <QueueSheet
+              key={current.name}
+              entry={current}
+              onDelete={() => void remove(current)}
+              onClose={() => setSelected(null)}
+            />
+          )}
+        </ListArea>
+      )}
+      {!isBlocked(state) && <StatusBar left={<span>{t("board.solace.queues.note")}</span>} />}
     </Page>
+  );
+}
+
+export function QueueSheet({
+  entry,
+  onDelete,
+  onClose,
+}: {
+  entry: SolaceDestination;
+  onDelete: () => void;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <DetailPanel width={380} onDismiss={onClose}>
+      <DetailPanelHeader title={entry.name} onClose={onClose} />
+      <DetailPanelBody>
+        <div className="grid grid-cols-2 gap-2">
+          <MiniStat label={t("board.solace.queues.spooled")} value={count(entry.depth)} />
+          <MiniStat label={t("board.solace.queues.bound")} value={count(entry.boundConsumers)} />
+        </div>
+
+        <div>
+          <SectionLabel className="mb-1.5">{t("board.solace.queues.section.definition")}</SectionLabel>
+          <KV
+            rows={[
+              [t("board.solace.queues.accessType"), entry.accessType ?? DASH],
+              [t("board.solace.queues.permission"), entry.permission ?? DASH],
+              [t("board.solace.queues.owner"), entry.owner ?? DASH],
+              [
+                t("board.solace.queues.maxSpool"),
+                entry.maxSpoolUsageMb == null
+                  ? DASH
+                  : formatBytes(entry.maxSpoolUsageMb * 1024 * 1024),
+              ],
+              [
+                t("board.solace.queues.maxMsgSize"),
+                entry.maxMsgSizeBytes == null ? DASH : formatBytes(entry.maxMsgSizeBytes),
+              ],
+              [t("board.solace.queues.partitions"), count(entry.partitionCount)],
+            ]}
+          />
+        </div>
+
+        <div>
+          <SectionLabel className="mb-1.5">{t("board.solace.queues.section.runtime")}</SectionLabel>
+          <KV
+            rows={[
+              [
+                t("board.solace.queues.spoolUsage"),
+                entry.spoolUsageBytes == null ? DASH : formatBytes(entry.spoolUsageBytes),
+              ],
+              [t("board.solace.queues.unacked"), count(entry.unackedMsgCount)],
+              [t("board.solace.queues.redelivered"), count(entry.redeliveredMsgCount)],
+              [t("board.solace.queues.spooledTotal"), count(entry.spooledTotal)],
+            ]}
+          />
+        </div>
+
+        <div>
+          <SectionLabel className="mb-1.5">{t("board.solace.queues.section.handling")}</SectionLabel>
+          <KV
+            rows={[
+              [t("board.solace.queues.deadMsgQueue"), entry.deadMsgQueue ?? DASH],
+              [t("board.solace.queues.maxRedelivery"), count(entry.maxRedeliveryCount)],
+              [
+                t("board.solace.queues.maxTtl"),
+                entry.maxTtlSec == null || entry.maxTtlSec === 0
+                  ? DASH
+                  : t("board.solace.queues.seconds", { count: entry.maxTtlSec }),
+              ],
+              [t("board.solace.queues.toDmqTtl"), count(entry.ttlExpiredToDmq)],
+              [t("board.solace.queues.toDmqRetry"), count(entry.redeliveryExceededToDmq)],
+            ]}
+          />
+        </div>
+
+        {halted(entry) && (
+          <p className="text-xs leading-relaxed text-(--c-warn-text)">
+            {t("board.solace.queues.halted", {
+              what: !entry.ingressEnabled
+                ? t("board.solace.queues.ingress")
+                : t("board.solace.queues.egress"),
+            })}
+          </p>
+        )}
+      </DetailPanelBody>
+      <DetailPanelFooter>
+        <span className="flex-1" />
+        <Button variant="destructive" onClick={onDelete}>
+          {t("common.delete")}
+        </Button>
+      </DetailPanelFooter>
+    </DetailPanel>
   );
 }

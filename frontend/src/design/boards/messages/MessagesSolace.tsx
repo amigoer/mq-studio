@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { NOTICE_PANE, Notice } from "@/design/boards/BoardState";
 import { ListArea, ListPane, Page, PageHeader, Toolbar } from "@/design/shell";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
@@ -134,24 +135,21 @@ export function MessagesSolace() {
       </div>
 
       <ListArea>
-        <ListPane>
+        <ListPane
+          style={browse.error != null || browse.messages.length === 0 ? NOTICE_PANE : undefined}
+        >
           {browse.error != null ? (
-            <div style={{ padding: "24px", fontSize: "11.5px", color: "var(--c-err)" }}>
+            <Notice title={t("board.state.failed")} tone="var(--c-err)">
               {browse.error}
-            </div>
+            </Notice>
           ) : browse.messages.length === 0 ? (
-            <div
-              style={{
-                padding: "24px",
-                fontSize: "11.5px",
-                color: "var(--c-muted)",
-                textAlign: "center",
-              }}
-            >
-              {browse.searched
-                ? t("board.solace.messages.nothingThere")
-                : t("board.solace.messages.startHere")}
-            </div>
+            <Notice
+              title={
+                browse.searched
+                  ? t("board.solace.messages.nothingThere")
+                  : t("board.solace.messages.startHere")
+              }
+            />
           ) : (
             <Table inset>
               <TableHeader>
@@ -176,10 +174,10 @@ export function MessagesSolace() {
                     <TableCell className="mono3" style={MONO11}>
                       {message.storeTime}
                     </TableCell>
-                    <TableCell className="num mono3" style={MONO11}>
+                    <TableCell className="num">
                       {size(attachmentSizeOf(message))}
                     </TableCell>
-                    <TableCell className="num mono3" style={MONO11}>
+                    <TableCell className="num">
                       {redeliveryCountOf(message) ?? DASH}
                     </TableCell>
                     <TableCell className="mono3" style={MONO11}>

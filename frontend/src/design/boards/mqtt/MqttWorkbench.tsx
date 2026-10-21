@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Notice } from "@/design/boards/BoardState";
 import { CirclePause, CirclePlay, Trash2 } from "lucide-react";
 import { Page, PageBody, PageHeader } from "@/design/shell";
 import { Button } from "@/components/ui/button";
@@ -218,9 +219,7 @@ export function MqttWorkbench() {
           <Panel style={{ width: "300px", flex: "none", display: "flex", flexDirection: "column" }}>
             <PanelHeader title={t("board.mqtt.detail")} />
             {detail == null ? (
-              <div style={{ padding: "14px", fontSize: "12px", color: "var(--c-muted)" }}>
-                {stream.running ? t("board.mqtt.waiting") : t("board.mqtt.startToSee")}
-              </div>
+              <Notice title={stream.running ? t("board.mqtt.waiting") : t("board.mqtt.startToSee")} />
             ) : (
               <div style={{ padding: "12px 14px", display: "flex", flexDirection: "column", gap: "10px" }}>
                 <KV

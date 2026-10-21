@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { Layers, Rows3, Server, ShieldAlert, Users } from "lucide-react";
 import { Page, PageBody, PageHeader, RefreshButton } from "@/design/shell";
 import {
   Table,
@@ -8,7 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { KV, Panel, PanelHeader, StatTile, Status } from "@/components";
+import { MiniStat, Panel, PanelHeader, StatTile, Status } from "@/components";
 import { BoardState } from "@/design/boards/BoardState";
 import { useKafkaCluster } from "@/hooks/kafka/useKafkaCluster";
 import { formatCount } from "@/lib/format";
@@ -27,7 +28,7 @@ import {
   topicCount,
   underReplicatedPartitions,
 } from "@/mq/kafka/cluster";
-import { KPI_GRID, TABLE_CARD } from "./_shared";
+import { KPI_GRID } from "./_shared";
 
 /** A count the cluster did not report, drawn as absent rather than as zero. */
 function reported(value: number | null): string {
@@ -81,6 +82,8 @@ export function OverviewKafka() {
           <div className={KPI_GRID}>
             <StatTile
               label="Broker"
+              icon={Server}
+              tone="slate"
               value={reported(nodes.length === 0 ? null : nodes.length)}
               hint={
                 overview != null && controllerNode(overview) !== ""
@@ -90,6 +93,8 @@ export function OverviewKafka() {
             />
             <StatTile
               label="Topic"
+              icon={Layers}
+              tone="violet"
               value={reported(overview ? topicCount(overview) : null)}
               hint={
                 internal == null
@@ -99,83 +104,97 @@ export function OverviewKafka() {
             />
             <StatTile
               label={t("board.common.partition")}
+              icon={Rows3}
+              tone="blue"
               value={reported(overview ? partitionCount(overview) : null)}
               hint={t("board.overview.kafka.acrossAllTopics")}
             />
             <StatTile
               label={t("board.common.consumerGroup")}
+              icon={Users}
+              tone="teal"
               value={reported(overview ? consumerGroupCount(overview) : null)}
               hint={t("board.overview.kafka.groupsHint")}
             />
             <StatTile
               label={t("board.overview.kafka.underReplicated")}
+              icon={ShieldAlert}
+              tone="orange"
               value={reported(underReplicated)}
               valueColor={underReplicated ? "var(--c-warn-text)" : undefined}
               hint={t("board.overview.kafka.underReplicatedHint")}
             />
           </div>
 
-          <Panel style={{ padding: "13px 16px", display: "flex", flexDirection: "column", gap: "10px" }}>
-            <PanelHeader
-              title={t("board.overview.kafka.partitionHealth")}
-              action={
-                healthy ? (
-                  <Status tone="ok">{t("board.overview.kafka.allInSync")}</Status>
-                ) : (
-                  <Status tone="warn">{t("board.overview.kafka.needsAttention")}</Status>
-                )
-              }
-            />
-            {/* Three counters rather than one health badge: they are three
-                different failures with three different fixes, and collapsing
-                them would lose which one is happening. */}
-            <KV
-              rows={[
-                [t("board.overview.kafka.underReplicated"), reported(underReplicated)],
-                [t("board.overview.kafka.offline"), reported(offline)],
-                [t("board.overview.kafka.leaderless"), reported(leaderless)],
-              ]}
-            />
-            <span style={{ fontSize: "11px", color: "var(--c-muted)" }}>
-              {t("board.overview.kafka.healthNote")}
-            </span>
-          </Panel>
+          <div className="mqs-tablerow">
+            <Panel>
+              <PanelHeader
+                title={t("board.overview.kafka.partitionHealth")}
+                action={
+                  healthy ? (
+                    <Status tone="ok">{t("board.overview.kafka.allInSync")}</Status>
+                  ) : (
+                    <Status tone="warn">{t("board.overview.kafka.needsAttention")}</Status>
+                  )
+                }
+              />
+              {/* Three counters rather than one health badge: they are three
+                  different failures with three different fixes, and collapsing
+                  them would lose which one is happening. */}
+              <div className="grid grid-cols-3 gap-2 px-4 pt-4">
+                <MiniStat
+                  label={t("board.overview.kafka.underReplicated")}
+                  value={reported(underReplicated)}
+                  color={underReplicated ? "var(--c-warn-text)" : undefined}
+                />
+                <MiniStat
+                  label={t("board.overview.kafka.offline")}
+                  value={reported(offline)}
+                  color={offline ? "var(--c-err-text)" : undefined}
+                />
+                <MiniStat
+                  label={t("board.overview.kafka.leaderless")}
+                  value={reported(leaderless)}
+                  color={leaderless ? "var(--c-err-text)" : undefined}
+                />
+              </div>
+              <p className="px-4 pt-3 pb-4 text-[11px] leading-relaxed text-muted-foreground">
+                {t("board.overview.kafka.healthNote")}
+              </p>
+            </Panel>
 
-          <Panel style={TABLE_CARD}>
-            <PanelHeader title={t("board.overview.kafka.brokers")} />
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead style={{ textAlign: "right" }}>ID</TableHead>
-                  <TableHead>{t("board.common.address")}</TableHead>
-                  <TableHead>Rack</TableHead>
-                  <TableHead>{t("board.common.status")}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {nodes.map((node) => (
-                  <TableRow key={node.id}>
-                    <TableCell className="mono3" style={{ textAlign: "right" }}>
-                      {nodeID(node)}
-                    </TableCell>
-                    <TableCell className="mono3" style={{ fontSize: "11px" }}>
-                      {node.address}
-                    </TableCell>
-                    <TableCell className="mono3" style={{ fontSize: "11px", color: "var(--c-mono-dim)" }}>
-                      {rack(node) === "" ? "—" : rack(node)}
-                    </TableCell>
-                    <TableCell>
-                      {isController(node) ? (
-                        <Status tone="ok">{t("board.overview.kafka.controller")}</Status>
-                      ) : (
-                        <Status tone="off">{t("board.overview.kafka.broker")}</Status>
-                      )}
-                    </TableCell>
+            <Panel className="overflow-hidden">
+              <PanelHeader title={t("board.overview.kafka.brokers")} />
+              <Table inset="card">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>ID</TableHead>
+                    <TableHead>{t("board.common.address")}</TableHead>
+                    <TableHead>Rack</TableHead>
+                    <TableHead>{t("board.common.status")}</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </Panel>
+                </TableHeader>
+                <TableBody>
+                  {nodes.map((node) => (
+                    <TableRow key={node.id}>
+                      <TableCell>{nodeID(node)}</TableCell>
+                      <TableCell className="mono3 text-xs">{node.address}</TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {rack(node) === "" ? "—" : rack(node)}
+                      </TableCell>
+                      <TableCell>
+                        {isController(node) ? (
+                          <Status tone="ok">{t("board.overview.kafka.controller")}</Status>
+                        ) : (
+                          <Status tone="off">{t("board.overview.kafka.broker")}</Status>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </Panel>
+          </div>
         </PageBody>
       </BoardState>
     </Page>

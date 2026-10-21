@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Plus } from "lucide-react";
 import { ListArea, ListPane, Page, PageHeader, RefreshButton, Toolbar } from "@/design/shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,7 +25,7 @@ import {
   toast,
   useConfirm,
 } from "@/components";
-import { BoardState } from "@/design/boards/BoardState";
+import { BoardState, Notice } from "@/design/boards/BoardState";
 import { StreamDialog } from "./StreamDialog";
 import { TrimDialog } from "./TrimDialog";
 import { useConnectionScope } from "@/mq/ConnectionScope";
@@ -168,14 +169,15 @@ export function StreamsRedis() {
         subtitle={t("board.topics.redis.subtitle")}
         actions={
           <>
-            <Button onClick={() => setCreating(true)}>
-              {t("board.topics.redis.newStream")}
-            </Button>
             <RefreshButton
               refreshing={state.refreshing}
               online={state.online}
               onClick={() => void state.refresh()}
             />
+            <Button onClick={() => setCreating(true)}>
+              <Plus aria-hidden />
+              {t("board.topics.redis.newStream")}
+            </Button>
           </>
         }
       />
@@ -208,22 +210,13 @@ export function StreamsRedis() {
         state={state}
         empty={
           rows.length === 0 ? (
-            <ListArea>
-              <ListPane>
-                <div
-                  style={{
-                    padding: "24px",
-                    fontSize: "11.5px",
-                    color: "var(--c-muted)",
-                    textAlign: "center",
-                  }}
-                >
-                  {streams.length === 0
-                    ? t("board.topics.redis.noStreams")
-                    : t("board.topics.redis.noMatches")}
-                </div>
-              </ListPane>
-            </ListArea>
+            <Notice
+              title={
+                streams.length === 0
+                  ? t("board.topics.redis.noStreams")
+                  : t("board.topics.redis.noMatches")
+              }
+            />
           ) : undefined
         }
       >
@@ -254,19 +247,19 @@ export function StreamsRedis() {
                           {key}
                         </b>
                       </TableCell>
-                      <TableCell className="mono3" style={RIGHT}>
+                      <TableCell style={RIGHT}>
                         {formatCount(length(stream))}
                       </TableCell>
-                      <TableCell className="mono3" style={RIGHT}>
+                      <TableCell style={RIGHT}>
                         {groupCount(stream)}
                       </TableCell>
                       <TableCell className="mono3" style={MONO11}>
                         {lastGeneratedId(stream) ?? "—"}
                       </TableCell>
-                      <TableCell className="mono3" style={RIGHT}>
+                      <TableCell style={RIGHT}>
                         <Metric value={memoryBytes(stream)} format={formatBytes} />
                       </TableCell>
-                      <TableCell className="mono3" style={RIGHT}>
+                      <TableCell style={RIGHT}>
                         <Metric value={trimmedAway(stream)} />
                       </TableCell>
                     </TableRow>
@@ -292,7 +285,7 @@ export function StreamsRedis() {
                   <Panel style={{ padding: "9px 12px" }}>
                     <div style={{ fontSize: "10.5px", color: "var(--c-muted)" }}>XLEN</div>
                     <div
-                      className="mono3"
+                      className="tabular-nums"
                       style={{ fontSize: "15px", fontWeight: 600, marginTop: "2px" }}
                     >
                       {formatCount(length(panel))}
@@ -303,7 +296,7 @@ export function StreamsRedis() {
                       {t("board.topics.redis.entriesAdded")}
                     </div>
                     <div
-                      className="mono3"
+                      className="tabular-nums"
                       style={{ fontSize: "15px", fontWeight: 600, marginTop: "2px" }}
                     >
                       <Metric value={entriesAdded(panel)} />
@@ -335,7 +328,7 @@ export function StreamsRedis() {
                     ],
                     [
                       "radix-tree",
-                      <span className="mono3" style={MONO11}>
+                      <span className="tabular-nums">
                         {radixTreeKeys(panel) == null || radixTreeNodes(panel) == null ? (
                           "—"
                         ) : (
@@ -348,7 +341,7 @@ export function StreamsRedis() {
                     ],
                     [
                       t("board.common.memory"),
-                      <span className="mono3" style={MONO11}>
+                      <span className="tabular-nums">
                         <Metric value={memoryBytes(panel)} format={formatBytes} />
                       </span>,
                     ],

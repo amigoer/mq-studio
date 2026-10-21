@@ -1,7 +1,16 @@
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
-import { Page, PageBody, PageHeader, RefreshButton } from "@/design/shell";
+import {
+  ListArea,
+  ListPane,
+  Page,
+  PageHeader,
+  RefreshButton,
+  StatusBar,
+  Toolbar,
+} from "@/design/shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -12,8 +21,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { KV, Panel, PanelHeader, SectionLabel, useConfirm } from "@/components";
-import { BoardState } from "@/design/boards/BoardState";
+import {
+  DetailPanel,
+  DetailPanelBody,
+  DetailPanelFooter,
+  DetailPanelHeader,
+  KV,
+  SectionLabel,
+  Status,
+  useConfirm,
+} from "@/components";
+import { BoardState, isBlocked } from "@/design/boards/BoardState";
 import { useKinesisConsumers } from "@/hooks/kinesis/useKinesisConsumers";
 import {
   consumer as readConsumer,
@@ -25,8 +43,6 @@ import { formatErrorMessage } from "@/lib/utils";
 import { useConnectionScope } from "@/mq/ConnectionScope";
 import * as kinesisApi from "@/api/kinesis";
 import { ConsumerDialogKinesis } from "./ConsumerDialogKinesis";
-
-const MONO11 = { fontSize: "11px" } as const;
 
 /** A dash, not a zero: an absent figure and a measured zero are not alike. */
 const DASH = "—";
@@ -71,10 +87,7 @@ export function ConsumersKinesis() {
 
   // Keyed by the pair, because a name is unique only within its stream.
   const keyOf = (entry: KinesisConsumer) => `${entry.stream}/${entry.name}`;
-  const detail = useMemo(
-    () => shown.find((entry) => keyOf(entry) === selected) ?? shown[0] ?? null,
-    [shown, selected],
-  );
+  const current = shown.find((entry) => keyOf(entry) === selected) ?? null;
 
   const register = useCallback(
     async (stream: string, name: string) => {
@@ -114,137 +127,135 @@ export function ConsumersKinesis() {
         title={t("shell.nav.kinesis.consumers")}
         subtitle={t("board.kinesis.consumers.count", { count: consumers.length })}
         actions={
-          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-            <Input
-              style={{ width: "200px" }}
-              value={search}
-              placeholder={t("board.kinesis.consumers.search")}
-              onChange={(event) => setSearch(event.target.value)}
-            />
-            <Button size="sm" onClick={() => setFormOpen(true)}>
-              {t("board.kinesis.consumers.register")}
-            </Button>
+          <>
             <RefreshButton
               refreshing={state.refreshing}
               online={state.online}
               onClick={() => void state.refresh()}
             />
-          </div>
+            <Button disabled={!state.online} onClick={() => setFormOpen(true)}>
+              <Plus aria-hidden />
+              {t("board.kinesis.consumers.register")}
+            </Button>
+          </>
         }
       />
+      <Toolbar>
+        <Input
+          className="w-60 flex-none"
+          value={search}
+          placeholder={t("board.kinesis.consumers.search")}
+          onChange={(event) => setSearch(event.target.value)}
+        />
+      </Toolbar>
       <ConsumerDialogKinesis open={formOpen} onOpenChange={setFormOpen} onSubmit={register} />
-      <BoardState state={state}>
-        <PageBody>
-          <div style={{ display: "flex", gap: "12px", minHeight: 0, flex: 1 }}>
-            <Panel style={{ flex: 1, overflow: "auto" }}>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t("board.kinesis.consumers.name")}</TableHead>
-                    <TableHead>{t("board.kinesis.consumers.stream")}</TableHead>
-                    <TableHead>{t("board.kinesis.consumers.status")}</TableHead>
-                    <TableHead>{t("board.kinesis.consumers.registeredAt")}</TableHead>
+      {isBlocked(state) ? (
+        <BoardState state={state} />
+      ) : (
+        <ListArea>
+          <ListPane>
+            <Table inset>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("board.kinesis.consumers.name")}</TableHead>
+                  <TableHead>{t("board.kinesis.consumers.stream")}</TableHead>
+                  <TableHead>{t("board.kinesis.consumers.status")}</TableHead>
+                  <TableHead>{t("board.kinesis.consumers.registeredAt")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {shown.map((entry) => (
+                  <TableRow
+                    key={keyOf(entry)}
+                    selected={selected === keyOf(entry)}
+                    onClick={() => setSelected(keyOf(entry))}
+                  >
+                    <TableCell className="select-text">{entry.name}</TableCell>
+                    <TableCell className="select-text">{entry.stream}</TableCell>
+                    <TableCell>
+                      <ConsumerStatus entry={entry} />
+                    </TableCell>
+                    <TableCell>{formatMessageTime(entry.registeredAtMs)}</TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {shown.map((entry) => (
-                    <TableRow
-                      key={keyOf(entry)}
-                      data-state={detail != null && keyOf(detail) === keyOf(entry) ? "selected" : undefined}
-                      onClick={() => setSelected(keyOf(entry))}
-                      style={{ cursor: "pointer" }}
-                    >
-                      <TableCell>
-                        <span className="mono3" style={MONO11}>
-                          {entry.name}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <span className="mono3" style={MONO11}>
-                          {entry.stream}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <span
-                          className="mono3"
-                          style={{
-                            ...MONO11,
-                            color: settling(entry) ? "var(--c-warn)" : undefined,
-                          }}
-                        >
-                          {entry.status ?? DASH}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <span className="mono3" style={MONO11}>
-                          {formatMessageTime(entry.registeredAtMs)}
-                        </span>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Panel>
+                ))}
+                {shown.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={4} className="py-8 text-center text-muted-foreground">
+                      {consumers.length === 0
+                        ? t("board.kinesis.consumers.none")
+                        : t("board.common.noMatch")}
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </ListPane>
 
-            {detail != null && (
-              <ConsumerDetail entry={detail} onDeregister={() => void deregister(detail)} />
-            )}
-          </div>
-          <p
-            style={{
-              margin: "0 20px",
-              fontSize: "11.5px",
-              color: "var(--c-muted)",
-              flex: "none",
-            }}
-          >
-            {t("board.kinesis.consumers.note")}
-          </p>
-        </PageBody>
-      </BoardState>
+          {current != null && (
+            <ConsumerSheet
+              key={keyOf(current)}
+              entry={current}
+              onDeregister={() => void deregister(current)}
+              onClose={() => setSelected(null)}
+            />
+          )}
+        </ListArea>
+      )}
+      {!isBlocked(state) && <StatusBar left={<span>{t("board.kinesis.consumers.note")}</span>} />}
     </Page>
   );
 }
 
-function ConsumerDetail({
+function ConsumerStatus({ entry }: { entry: KinesisConsumer }) {
+  if (entry.status == null) return <Status tone="off">{DASH}</Status>;
+  return <Status tone={settling(entry) ? "warn" : "ok"}>{entry.status}</Status>;
+}
+
+function ConsumerSheet({
   entry,
   onDeregister,
+  onClose,
 }: {
   entry: KinesisConsumer;
   onDeregister: () => void;
+  onClose: () => void;
 }) {
   const { t } = useTranslation();
   return (
-    <Panel style={{ width: "320px", flex: "none", overflow: "auto" }}>
-      <PanelHeader title={entry.name} />
-      <div style={{ padding: "0 12px 12px" }}>
-        <SectionLabel>{t("board.kinesis.consumers.section.registration")}</SectionLabel>
-        <KV
-          rows={[
-            [t("board.kinesis.consumers.stream"), entry.stream],
-            [t("board.kinesis.consumers.status"), entry.status ?? DASH],
-            [
-              t("board.kinesis.consumers.registeredAt"),
-              formatMessageTime(entry.registeredAtMs),
-            ],
-            [t("board.kinesis.consumers.arn"), entry.arn ?? DASH],
-          ]}
-        />
-
-        <div style={{ display: "flex", gap: "6px", marginTop: "12px" }}>
-          <Button size="sm" variant="destructive" onClick={onDeregister}>
-            {t("board.kinesis.consumers.deregisterAction")}
-          </Button>
-        </div>
-
+    <DetailPanel width={380} onDismiss={onClose}>
+      <DetailPanelHeader
+        title={entry.name}
+        badge={<ConsumerStatus entry={entry} />}
+        onClose={onClose}
+      />
+      <DetailPanelBody>
         {/* Said where the row is: an application pointed at a consumer that is
             not ACTIVE fails with an error about the consumer, not the stream. */}
         {settling(entry) && (
-          <p style={{ marginTop: "10px", fontSize: "11px", color: "var(--c-warn)" }}>
+          <p className="text-xs leading-relaxed text-muted-foreground">
             {t("board.kinesis.consumers.settling", { status: entry.status })}
           </p>
         )}
-      </div>
-    </Panel>
+
+        <div>
+          <SectionLabel className="mb-1.5">
+            {t("board.kinesis.consumers.section.registration")}
+          </SectionLabel>
+          <KV
+            rows={[
+              [t("board.kinesis.consumers.stream"), entry.stream],
+              [t("board.kinesis.consumers.registeredAt"), formatMessageTime(entry.registeredAtMs)],
+              [t("board.kinesis.consumers.arn"), entry.arn ?? DASH],
+            ]}
+          />
+        </div>
+      </DetailPanelBody>
+      <DetailPanelFooter>
+        <span className="flex-1" />
+        <Button variant="destructive" onClick={onDeregister}>
+          {t("board.kinesis.consumers.deregisterAction")}
+        </Button>
+      </DetailPanelFooter>
+    </DetailPanel>
   );
 }

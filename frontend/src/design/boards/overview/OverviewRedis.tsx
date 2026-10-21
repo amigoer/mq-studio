@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { Page, PageBody } from "@/design/shell";
+import { Inbox, Layers, MemoryStick, Server, Users } from "lucide-react";
+import { Page, PageBody, PageHeader, RefreshButton } from "@/design/shell";
 import {
   Table,
   TableBody,
@@ -9,9 +10,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { MeterRow, Panel, PanelHeader, StatTile, Status } from "@/components";
+import { MeterRow, MiniStat, Panel, PanelHeader, StatTile, Status } from "@/components";
 import { BoardState } from "@/design/boards/BoardState";
-import { CHART_CARD, CHART_ROW, KPI_GRID, OverviewHeader, TABLE_CARD } from "./_shared";
+import { KPI_GRID } from "./_shared";
 import { useRedisGroups } from "@/hooks/redis/useRedisGroups";
 import { useRedisServers } from "@/hooks/redis/useRedisNodes";
 import { useRedisStreams } from "@/hooks/redis/useRedisStreams";
@@ -30,7 +31,6 @@ import {
   usedMemoryBytes,
 } from "@/mq/redis/nodes";
 
-const MONO11 = { fontSize: "11px" } as const;
 const RIGHT = { textAlign: "right" } as const;
 
 /** How many of the busiest streams the table shows. */
@@ -91,7 +91,21 @@ export function OverviewRedis() {
 
   return (
     <Page>
-      <OverviewHeader subtitle={t("board.overview.redis.subtitle")} />
+      <PageHeader
+        title={t("board.common.overview")}
+        subtitle={t("board.overview.redis.subtitle")}
+        actions={
+          <RefreshButton
+            refreshing={servers.refreshing || streams.refreshing || groups.refreshing}
+            online={servers.online}
+            onClick={() => {
+              void servers.refresh();
+              void streams.refresh();
+              void groups.refresh();
+            }}
+          />
+        }
+      />
       <PageBody>
         <BoardState state={servers}>
           {node != null && (
@@ -99,6 +113,8 @@ export function OverviewRedis() {
               <div className={KPI_GRID}>
                 <StatTile
                   label={t("board.common.mode")}
+                  icon={Server}
+                  tone="slate"
                   value={mode(node) ?? "—"}
                   hint={
                     uptimeSeconds(node) == null
@@ -110,6 +126,8 @@ export function OverviewRedis() {
                 />
                 <StatTile
                   label="Stream"
+                  icon={Layers}
+                  tone="violet"
                   value={formatCount(streamRows.length)}
                   /* Found, not held: SCAN is a cursor and the walk is capped,
                      so this is what the listing saw. */
@@ -117,6 +135,8 @@ export function OverviewRedis() {
                 />
                 <StatTile
                   label={t("board.common.consumerGroup")}
+                  icon={Users}
+                  tone="teal"
                   value={formatCount(groupRows.length)}
                   hint={
                     stalled > 0
@@ -127,6 +147,8 @@ export function OverviewRedis() {
                 />
                 <StatTile
                   label={t("board.common.memory")}
+                  icon={MemoryStick}
+                  tone="pink"
                   value={formatBytes(usedMemoryBytes(node) ?? 0)}
                   hint={
                     maxMemoryBytes(node) == null
@@ -138,25 +160,27 @@ export function OverviewRedis() {
                 />
                 <StatTile
                   label={t("board.overview.redis.pel")}
+                  icon={Inbox}
+                  tone="orange"
                   value={formatCount(owed)}
                   valueColor={owed > 0 ? "var(--c-warn-text)" : undefined}
                   hint={t("board.overview.redis.pelHint")}
                 />
               </div>
 
-              <div className={CHART_ROW}>
-                <Panel style={CHART_CARD}>
-                  <b style={{ fontSize: "12.5px" }}>{t("board.overview.redis.throughput")}</b>
+              <div className="mqs-tablerow">
+                <Panel>
+                  <PanelHeader title={t("board.overview.redis.throughput")} />
                   {/* The instantaneous figures the server reports, not a
                       series. Nothing in this app records one for Redis, and a
                       chart drawn from a single reading would be a line through
                       one point. */}
-                  <div style={{ display: "flex", gap: "26px", marginTop: "10px" }}>
-                    <Figure
+                  <div className="grid grid-cols-3 gap-2 p-4">
+                    <MiniStat
                       label={t("board.cluster.redis.ops")}
                       value={opsPerSec(node) == null ? "—" : formatCount(opsPerSec(node) ?? 0)}
                     />
-                    <Figure
+                    <MiniStat
                       label={t("board.common.connections")}
                       value={
                         connectedClients(node) == null
@@ -164,44 +188,47 @@ export function OverviewRedis() {
                           : formatCount(connectedClients(node) ?? 0)
                       }
                     />
-                    <Figure
+                    <MiniStat
                       label={t("board.cluster.redis.hitRate")}
                       value={hitRatePercent(node) == null ? "—" : `${hitRatePercent(node)}%`}
                     />
                   </div>
                 </Panel>
-                <Panel style={CHART_CARD}>
-                  <b style={{ fontSize: "12.5px" }}>{t("board.cluster.redis.memory")}</b>
-                  <div style={{ marginTop: "12px" }}>
-                    {memoryPercent != null ? (
-                      <MeterRow
-                        label={`${formatBytes(usedMemoryBytes(node) ?? 0)} / ${formatBytes(maxMemoryBytes(node) ?? 0)}`}
-                        value={memoryPercent}
-                      />
-                    ) : (
-                      <div style={{ fontSize: "11.5px", color: "var(--c-muted)" }}>
-                        {t("board.cluster.redis.memoryNoCap", {
-                          used: formatBytes(usedMemoryBytes(node) ?? 0),
-                        })}
-                      </div>
-                    )}
+                <Panel>
+                  <PanelHeader title={t("board.cluster.redis.memory")} />
+                  <div className="p-4">
+                    <div className="rounded-lg bg-(--c-fill-soft) px-3 py-2.5 ring-1 ring-(--c-rule) ring-inset">
+                      {memoryPercent != null ? (
+                        <MeterRow
+                          label={`${formatBytes(usedMemoryBytes(node) ?? 0)} / ${formatBytes(maxMemoryBytes(node) ?? 0)}`}
+                          labelWidth={120}
+                          value={memoryPercent}
+                        />
+                      ) : (
+                        <p className="text-xs leading-relaxed text-muted-foreground">
+                          {t("board.cluster.redis.memoryNoCap", {
+                            used: formatBytes(usedMemoryBytes(node) ?? 0),
+                          })}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </Panel>
               </div>
 
-              <Panel style={TABLE_CARD}>
+              <Panel className="overflow-hidden">
                 <PanelHeader title={t("board.overview.redis.topLength")} />
                 <BoardState
                   state={streams}
                   empty={
                     busiest.length === 0 ? (
-                      <div style={{ padding: "16px", fontSize: "11.5px", color: "var(--c-muted)" }}>
+                      <p className="p-4 text-xs text-muted-foreground">
                         {t("board.topics.redis.noStreams")}
-                      </div>
+                      </p>
                     ) : undefined
                   }
                 >
-                  <Table inset>
+                  <Table inset="card">
                     <TableHeader>
                       <TableRow>
                         <TableHead>Stream</TableHead>
@@ -213,20 +240,16 @@ export function OverviewRedis() {
                     <TableBody>
                       {busiest.map((stream) => (
                         <TableRow key={streamKey(stream)}>
-                          <TableCell className="mono3" style={MONO11}>
-                            {streamKey(stream)}
-                          </TableCell>
-                          <TableCell className="mono3" style={RIGHT}>
-                            {formatCount(length(stream))}
-                          </TableCell>
-                          <TableCell className="mono3" style={RIGHT}>
+                          <TableCell className="mono3 text-xs">{streamKey(stream)}</TableCell>
+                          <TableCell style={RIGHT}>{formatCount(length(stream))}</TableCell>
+                          <TableCell style={RIGHT}>
                             {groupCount(stream) === 0 ? (
                               <Status tone="off">{t("board.overview.redis.noGroup")}</Status>
                             ) : (
                               groupCount(stream)
                             )}
                           </TableCell>
-                          <TableCell className="mono3" style={MONO11}>
+                          <TableCell className="mono3 text-xs text-muted-foreground">
                             {lastGeneratedId(stream) ?? "—"}
                           </TableCell>
                         </TableRow>
@@ -240,16 +263,5 @@ export function OverviewRedis() {
         </BoardState>
       </PageBody>
     </Page>
-  );
-}
-
-function Figure({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <div style={{ fontSize: "10.5px", color: "var(--c-muted)" }}>{label}</div>
-      <div className="mono3" style={{ fontSize: "17px", fontWeight: 600, marginTop: "2px" }}>
-        {value}
-      </div>
-    </div>
   );
 }

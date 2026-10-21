@@ -1,7 +1,16 @@
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
-import { Page, PageBody, PageHeader, RefreshButton } from "@/design/shell";
+import {
+  ListArea,
+  ListPane,
+  Page,
+  PageHeader,
+  RefreshButton,
+  StatusBar,
+  Toolbar,
+} from "@/design/shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -12,8 +21,19 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { KV, Panel, PanelHeader, SectionLabel, useConfirm } from "@/components";
-import { BoardState } from "@/design/boards/BoardState";
+import {
+  DetailPanel,
+  DetailPanelBody,
+  DetailPanelFooter,
+  DetailPanelHeader,
+  KV,
+  MiniStat,
+  OutlineTag,
+  SectionLabel,
+  Status,
+  useConfirm,
+} from "@/components";
+import { BoardState, isBlocked } from "@/design/boards/BoardState";
 import { useServiceBusEntities } from "@/hooks/azureservicebus/useServiceBusEntities";
 import {
   discardsEverything,
@@ -26,8 +46,6 @@ import { formatErrorMessage } from "@/lib/utils";
 import { useConnectionScope } from "@/mq/ConnectionScope";
 import * as serviceBusApi from "@/api/azureservicebus";
 import { EntityDialogAzureServiceBus } from "./EntityDialogAzureServiceBus";
-
-const MONO11 = { fontSize: "11px" } as const;
 
 /** A dash, not a zero: an absent figure and a measured zero are not alike. */
 const DASH = "—";
@@ -85,10 +103,7 @@ export function EntitiesAzureServiceBus() {
     return entities.filter((row) => needle === "" || row.name.toLowerCase().includes(needle));
   }, [entities, search]);
 
-  const detail = useMemo(
-    () => shown.find((row) => row.name === selected) ?? shown[0] ?? null,
-    [shown, selected],
-  );
+  const current = shown.find((row) => row.name === selected) ?? null;
 
   const save = useCallback(
     async (input: serviceBusApi.AzureServiceBusEntityInput) => {
@@ -145,234 +160,266 @@ export function EntitiesAzureServiceBus() {
           topics: entities.filter((row) => row.kind === "topic").length,
         })}
         actions={
-          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-            <Input
-              style={{ width: "200px" }}
-              value={search}
-              placeholder={t("board.azure-servicebus.entities.search")}
-              onChange={(event) => setSearch(event.target.value)}
-            />
-            <Button
-              size="sm"
-              onClick={() => {
-                setEditing(null);
-                setFormOpen(true);
-              }}
-            >
-              {t("board.azure-servicebus.entities.create")}
-            </Button>
+          <>
             <RefreshButton
               refreshing={state.refreshing}
               online={state.online}
               onClick={() => void state.refresh()}
             />
-          </div>
+            <Button
+              disabled={!state.online}
+              onClick={() => {
+                setEditing(null);
+                setFormOpen(true);
+              }}
+            >
+              <Plus aria-hidden />
+              {t("board.azure-servicebus.entities.create")}
+            </Button>
+          </>
         }
       />
+      <Toolbar>
+        <Input
+          className="w-60 flex-none"
+          value={search}
+          placeholder={t("board.azure-servicebus.entities.search")}
+          onChange={(event) => setSearch(event.target.value)}
+        />
+      </Toolbar>
       <EntityDialogAzureServiceBus
         open={formOpen}
         editing={editing}
         onOpenChange={setFormOpen}
         onSubmit={save}
       />
-      <BoardState state={state}>
-        <PageBody>
-          <div style={{ display: "flex", gap: "12px", minHeight: 0, flex: 1 }}>
-            <Panel style={{ flex: 1, overflow: "auto" }}>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t("board.azure-servicebus.entities.name")}</TableHead>
-                    <TableHead>{t("board.azure-servicebus.entities.kind")}</TableHead>
-                    <TableHead className="num">
-                      {t("board.azure-servicebus.entities.depth")}
-                    </TableHead>
-                    <TableHead className="num">
-                      {t("board.azure-servicebus.entities.deadLetters")}
-                    </TableHead>
-                    <TableHead className="num">
-                      {t("board.azure-servicebus.entities.subscribers")}
-                    </TableHead>
-                    <TableHead>{t("board.azure-servicebus.entities.status")}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {shown.map((row) => (
-                    <TableRow
-                      key={row.name}
-                      data-state={detail?.name === row.name ? "selected" : undefined}
-                      onClick={() => setSelected(row.name)}
-                      style={{ cursor: "pointer" }}
-                    >
-                      <TableCell>
-                        <span className="mono3" style={MONO11}>
-                          {row.name}
-                        </span>
+      {isBlocked(state) ? (
+        <BoardState state={state} />
+      ) : (
+        <ListArea>
+          <ListPane>
+            <Table inset>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("board.azure-servicebus.entities.name")}</TableHead>
+                  <TableHead>{t("board.azure-servicebus.entities.kind")}</TableHead>
+                  <TableHead className="num">
+                    {t("board.azure-servicebus.entities.depth")}
+                  </TableHead>
+                  <TableHead className="num">
+                    {t("board.azure-servicebus.entities.deadLetters")}
+                  </TableHead>
+                  <TableHead className="num">
+                    {t("board.azure-servicebus.entities.subscribers")}
+                  </TableHead>
+                  <TableHead>{t("board.azure-servicebus.entities.status")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {shown.map((row) => (
+                  <TableRow
+                    key={row.name}
+                    selected={selected === row.name}
+                    onClick={() => setSelected(row.name)}
+                  >
+                    <TableCell>
+                      <span className="flex items-center gap-1.5">
+                        <span className="truncate select-text">{row.name}</span>
                         {/* Said on the row rather than only in the panel: it
                             is the one state that looks healthy everywhere
                             else, because a discarded message leaves no
                             backlog behind it. */}
                         {discardsEverything(row) && (
-                          <span className="pb pASB" style={{ marginLeft: "6px" }}>
+                          <Status tone="warn">
                             {t("board.azure-servicebus.entities.noSubscriberBadge")}
-                          </span>
+                          </Status>
                         )}
-                      </TableCell>
-                      <TableCell>
-                        <span className="mono3" style={MONO11}>
-                          {row.kind === "topic"
-                            ? t("board.azure-servicebus.entities.kindTopic")
-                            : t("board.azure-servicebus.entities.kindQueue")}
-                        </span>
-                      </TableCell>
-                      <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {count(row.depth)}
-                        </span>
-                      </TableCell>
-                      <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {count(row.deadLetterCount)}
-                        </span>
-                      </TableCell>
-                      <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {count(row.subscribers)}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <span
-                          className="mono3"
-                          style={{
-                            ...MONO11,
-                            color: isDisabled(row) ? "var(--c-warn)" : undefined,
-                          }}
-                        >
-                          {row.status ?? DASH}
-                        </span>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Panel>
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      {row.kind === "topic"
+                        ? t("board.azure-servicebus.entities.kindTopic")
+                        : t("board.azure-servicebus.entities.kindQueue")}
+                    </TableCell>
+                    <TableCell className="num">{count(row.depth)}</TableCell>
+                    <TableCell className="num">{count(row.deadLetterCount)}</TableCell>
+                    <TableCell className="num">{count(row.subscribers)}</TableCell>
+                    <TableCell>
+                      {isDisabled(row) ? (
+                        <Status tone="warn">{row.status}</Status>
+                      ) : (
+                        (row.status ?? DASH)
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {shown.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
+                      {entities.length === 0
+                        ? t("board.azure-servicebus.entities.none")
+                        : t("board.common.noMatch")}
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </ListPane>
 
-            {detail != null && (
-              <EntityDetail
-                entry={detail}
-                onEdit={() => {
-                  setEditing(detail);
-                  setFormOpen(true);
-                }}
-                onRemove={() => void remove(detail)}
-              />
-            )}
-          </div>
-          <p
-            style={{
-              margin: "0 20px",
-              fontSize: "11.5px",
-              color: "var(--c-muted)",
-              flex: "none",
-            }}
-          >
-            {t("board.azure-servicebus.entities.note")}
-          </p>
-        </PageBody>
-      </BoardState>
+          {current != null && (
+            <EntitySheet
+              key={current.name}
+              entry={current}
+              onEdit={() => {
+                setEditing(current);
+                setFormOpen(true);
+              }}
+              onRemove={() => void remove(current)}
+              onClose={() => setSelected(null)}
+            />
+          )}
+        </ListArea>
+      )}
+      {!isBlocked(state) && (
+        <StatusBar left={<span>{t("board.azure-servicebus.entities.note")}</span>} />
+      )}
     </Page>
   );
 }
 
-function EntityDetail({
+export function EntitySheet({
   entry,
   onEdit,
   onRemove,
+  onClose,
 }: {
   entry: ServiceBusEntity;
   onEdit: () => void;
   onRemove: () => void;
+  onClose: () => void;
 }) {
   const { t } = useTranslation();
   const isTopic = entry.kind === "topic";
 
   return (
-    <Panel style={{ width: "300px", flex: "none", overflow: "auto" }}>
-      <PanelHeader title={entry.name} />
-      <div style={{ padding: "0 12px 12px" }}>
-        <SectionLabel>{t("board.azure-servicebus.entities.section.holding")}</SectionLabel>
-        <KV
-          rows={
-            isTopic
-              ? [
-                  [t("board.azure-servicebus.entities.subscribers"), count(entry.subscribers)],
-                  [
-                    t("board.azure-servicebus.entities.subscriptionNames"),
-                    entry.subscriptionNames.join(", ") || DASH,
-                  ],
-                  [t("board.azure-servicebus.entities.scheduled"), count(entry.scheduledCount)],
-                ]
-              : [
-                  [t("board.azure-servicebus.entities.depth"), count(entry.depth)],
-                  [t("board.azure-servicebus.entities.deadLetters"), count(entry.deadLetterCount)],
-                  [t("board.azure-servicebus.entities.scheduled"), count(entry.scheduledCount)],
-                ]
-          }
-        />
-
-        <SectionLabel>{t("board.azure-servicebus.entities.section.delivery")}</SectionLabel>
-        <KV
-          rows={[
-            [t("board.azure-servicebus.entities.status"), entry.status ?? DASH],
-            [t("board.azure-servicebus.entities.lockDuration"), duration(entry.lockDurationSec)],
-            [t("board.azure-servicebus.entities.maxDelivery"), count(entry.maxDeliveryCount)],
-            [t("board.azure-servicebus.entities.ttl"), duration(entry.ttlSec)],
-            [
-              t("board.azure-servicebus.entities.autoDelete"),
-              duration(entry.autoDeleteOnIdleSec),
-            ],
-          ]}
-        />
-
-        <SectionLabel>{t("board.azure-servicebus.entities.section.shape")}</SectionLabel>
-        <KV
-          rows={[
-            [
-              t("board.azure-servicebus.entities.maxSize"),
-              entry.maxSizeMb == null ? DASH : `${formatCount(entry.maxSizeMb)} MB`,
-            ],
-            [t("board.azure-servicebus.entities.sessions"), yesNo(t, entry.requiresSession)],
-            [
-              t("board.azure-servicebus.entities.duplicateDetection"),
-              yesNo(t, entry.requiresDuplicateDetection),
-            ],
-            [t("board.azure-servicebus.entities.partitioned"), yesNo(t, entry.partitioned)],
-            [t("board.azure-servicebus.entities.forwardTo"), entry.forwardTo ?? DASH],
-            [
-              t("board.azure-servicebus.entities.forwardDeadLettersTo"),
-              entry.forwardDeadLettersTo ?? DASH,
-            ],
-          ]}
-        />
-
-        <div style={{ display: "flex", gap: "6px", marginTop: "12px" }}>
-          <Button size="sm" variant="outline" onClick={onEdit}>
-            {t("common.edit")}
-          </Button>
-          <Button size="sm" variant="destructive" onClick={onRemove}>
-            {t("common.delete")}
-          </Button>
+    <DetailPanel width={380} onDismiss={onClose}>
+      <DetailPanelHeader
+        title={entry.name}
+        badge={
+          <OutlineTag>
+            {isTopic
+              ? t("board.azure-servicebus.entities.kindTopic")
+              : t("board.azure-servicebus.entities.kindQueue")}
+          </OutlineTag>
+        }
+        onClose={onClose}
+      />
+      <DetailPanelBody>
+        <div className="grid grid-cols-2 gap-2">
+          {isTopic ? (
+            <>
+              <MiniStat
+                label={t("board.azure-servicebus.entities.subscribers")}
+                value={count(entry.subscribers)}
+              />
+              <MiniStat
+                label={t("board.azure-servicebus.entities.scheduled")}
+                value={count(entry.scheduledCount)}
+              />
+            </>
+          ) : (
+            <>
+              <MiniStat
+                label={t("board.azure-servicebus.entities.depth")}
+                value={count(entry.depth)}
+              />
+              <MiniStat
+                label={t("board.azure-servicebus.entities.deadLetters")}
+                value={count(entry.deadLetterCount)}
+              />
+            </>
+          )}
         </div>
 
         {/* Said where the number is, because a topic nothing subscribes to
             reports success on every send and leaves nothing behind. */}
         {discardsEverything(entry) && (
-          <p style={{ marginTop: "10px", fontSize: "11px", color: "var(--c-warn)" }}>
+          <p className="text-xs leading-relaxed text-(--c-warn-text)">
             {t("board.azure-servicebus.entities.noSubscriberNote")}
           </p>
         )}
-      </div>
-    </Panel>
+
+        <div>
+          <SectionLabel className="mb-1.5">
+            {t("board.azure-servicebus.entities.section.holding")}
+          </SectionLabel>
+          <KV
+            rows={
+              isTopic
+                ? [
+                    [
+                      t("board.azure-servicebus.entities.subscriptionNames"),
+                      entry.subscriptionNames.join(", ") || DASH,
+                    ],
+                  ]
+                : [[t("board.azure-servicebus.entities.scheduled"), count(entry.scheduledCount)]]
+            }
+          />
+        </div>
+
+        <div>
+          <SectionLabel className="mb-1.5">
+            {t("board.azure-servicebus.entities.section.delivery")}
+          </SectionLabel>
+          <KV
+            rows={[
+              [t("board.azure-servicebus.entities.status"), entry.status ?? DASH],
+              [t("board.azure-servicebus.entities.lockDuration"), duration(entry.lockDurationSec)],
+              [t("board.azure-servicebus.entities.maxDelivery"), count(entry.maxDeliveryCount)],
+              [t("board.azure-servicebus.entities.ttl"), duration(entry.ttlSec)],
+              [
+                t("board.azure-servicebus.entities.autoDelete"),
+                duration(entry.autoDeleteOnIdleSec),
+              ],
+            ]}
+          />
+        </div>
+
+        <div>
+          <SectionLabel className="mb-1.5">
+            {t("board.azure-servicebus.entities.section.shape")}
+          </SectionLabel>
+          <KV
+            rows={[
+              [
+                t("board.azure-servicebus.entities.maxSize"),
+                entry.maxSizeMb == null ? DASH : `${formatCount(entry.maxSizeMb)} MB`,
+              ],
+              [t("board.azure-servicebus.entities.sessions"), yesNo(t, entry.requiresSession)],
+              [
+                t("board.azure-servicebus.entities.duplicateDetection"),
+                yesNo(t, entry.requiresDuplicateDetection),
+              ],
+              [t("board.azure-servicebus.entities.partitioned"), yesNo(t, entry.partitioned)],
+              [t("board.azure-servicebus.entities.forwardTo"), entry.forwardTo ?? DASH],
+              [
+                t("board.azure-servicebus.entities.forwardDeadLettersTo"),
+                entry.forwardDeadLettersTo ?? DASH,
+              ],
+            ]}
+          />
+        </div>
+      </DetailPanelBody>
+      <DetailPanelFooter>
+        <Button variant="outline" onClick={onEdit}>
+          {t("common.edit")}
+        </Button>
+        <span className="flex-1" />
+        <Button variant="destructive" onClick={onRemove}>
+          {t("common.delete")}
+        </Button>
+      </DetailPanelFooter>
+    </DetailPanel>
   );
 }
 

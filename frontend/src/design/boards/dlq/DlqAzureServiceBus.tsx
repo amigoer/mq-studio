@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Page, PageBody, PageHeader, RefreshButton } from "@/design/shell";
+import { NOTICE_PANE, Notice } from "@/design/boards/BoardState";
+import { ListArea, ListPane, Page, PageHeader, RefreshButton, StatusBar } from "@/design/shell";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import {
@@ -11,7 +12,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { JsonBlock, KV, Panel, PanelHeader, SectionLabel, toast, useConfirm } from "@/components";
+import {
+  DetailPanel,
+  DetailPanelBody,
+  DetailPanelFooter,
+  DetailPanelHeader,
+  JsonBlock,
+  KV,
+  PanelHeader,
+  SectionLabel,
+  toast,
+  useConfirm,
+} from "@/components";
 import { useServiceBusDeadLetters } from "@/hooks/azureservicebus/useServiceBusDeadLetters";
 import {
   deadLetterDescription,
@@ -24,9 +36,8 @@ import {
 import { count } from "@/design/boards/topics/EntitiesAzureServiceBus";
 import { formatMessageTime } from "@/lib/time";
 import { formatErrorMessage } from "@/lib/utils";
+import type { MessageItem } from "@bindings/model/models";
 
-const MONO11 = { fontSize: "11px" } as const;
-const RIGHT = { textAlign: "right" } as const;
 const DASH = "—";
 const READ_LIMIT = 100;
 
@@ -61,8 +72,11 @@ export function DlqAzureServiceBus() {
     () => dead.stores.find((row) => row.path === chosen) ?? null,
     [dead.stores, chosen],
   );
-  const panel = useMemo(
-    () => dead.messages.find((message) => sequenceNumber(message) === selected) ?? null,
+  const current = useMemo(
+    () =>
+      selected == null
+        ? null
+        : (dead.messages.find((message) => sequenceNumber(message) === selected) ?? null),
     [dead.messages, selected],
   );
 
@@ -73,8 +87,8 @@ export function DlqAzureServiceBus() {
   };
 
   const putBack = async () => {
-    if (store == null || panel == null || resending) return;
-    const sequence = sequenceNumber(panel);
+    if (store == null || current == null || resending) return;
+    const sequence = sequenceNumber(current);
     if (sequence == null) return;
     const ok = await confirm({
       title: t("board.azure-servicebus.dlq.resendTitle", { sequence }),
@@ -110,54 +124,52 @@ export function DlqAzureServiceBus() {
           />
         }
       />
-      <PageBody>
-        <div style={{ display: "flex", gap: "12px", minHeight: 0, flex: 1 }}>
-          <Panel style={{ width: "280px", flex: "none", overflow: "auto" }}>
+      <ListArea>
+        <ListPane style={{ display: "flex", overflow: "hidden" }}>
+          <div
+            className="mqs-scroll w-[280px] flex-none border-r"
+            style={dead.storesError != null ? NOTICE_PANE : undefined}
+          >
             <PanelHeader title={t("board.azure-servicebus.dlq.stores")} />
             {dead.storesError != null ? (
-              <div style={{ padding: "16px", fontSize: "11.5px", color: "var(--c-err)" }}>
+              <Notice title={t("board.state.failed")} tone="var(--c-err)">
                 {dead.storesError}
-              </div>
-            ) : dead.stores.length === 0 ? (
-              <div style={{ padding: "16px", fontSize: "11.5px", color: "var(--c-muted)" }}>
-                {t("board.azure-servicebus.dlq.noEntities")}
-              </div>
+              </Notice>
             ) : (
-              <Table>
+              <Table inset="card">
                 <TableHeader>
                   <TableRow>
                     <TableHead>{t("board.azure-servicebus.dlq.entity")}</TableHead>
-                    <TableHead className="num">
-                      {t("board.azure-servicebus.dlq.held")}
-                    </TableHead>
+                    <TableHead className="num">{t("board.azure-servicebus.dlq.held")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {dead.stores.map((row) => (
                     <TableRow
                       key={row.path}
-                      data-state={chosen === row.path ? "selected" : undefined}
+                      selected={chosen === row.path}
                       onClick={() => open(row.path)}
-                      style={{ cursor: "pointer" }}
                     >
-                      <TableCell>
-                        <span className="mono3" style={MONO11}>
-                          {row.path}
-                        </span>
-                      </TableCell>
-                      <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {count(row.count)}
-                        </span>
-                      </TableCell>
+                      <TableCell className="select-text">{row.path}</TableCell>
+                      <TableCell className="num">{count(row.count)}</TableCell>
                     </TableRow>
                   ))}
+                  {dead.stores.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={2} className="py-8 text-center text-muted-foreground">
+                        {t("board.azure-servicebus.dlq.noEntities")}
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
             )}
-          </Panel>
+          </div>
 
-          <Panel style={{ flex: 1, overflow: "auto" }}>
+          <div
+            className="mqs-scroll min-w-0 flex-1"
+            style={dead.error != null && !dead.reading ? NOTICE_PANE : undefined}
+          >
             <PanelHeader
               title={
                 store == null
@@ -166,146 +178,146 @@ export function DlqAzureServiceBus() {
               }
             />
             {dead.reading ? (
-              <div style={{ padding: "24px", textAlign: "center" }}>
+              <div className="p-6 text-center">
                 <Spinner />
               </div>
             ) : dead.error != null ? (
-              <div style={{ padding: "24px", fontSize: "11.5px", color: "var(--c-err)" }}>
+              <Notice title={t("board.state.failed")} tone="var(--c-err)">
                 {dead.error}
-              </div>
-            ) : dead.messages.length === 0 ? (
-              <div
-                style={{
-                  padding: "24px",
-                  fontSize: "11.5px",
-                  color: "var(--c-muted)",
-                  textAlign: "center",
-                }}
-              >
-                {dead.searched
-                  ? t("board.azure-servicebus.dlq.nothingGivenUp")
-                  : t("board.azure-servicebus.dlq.startHere")}
-              </div>
+              </Notice>
             ) : (
-              <Table>
+              <Table inset="card">
                 <TableHeader>
                   <TableRow>
-                    <TableHead style={RIGHT}>{t("board.azure-servicebus.dlq.sequence")}</TableHead>
+                    <TableHead className="num">{t("board.azure-servicebus.dlq.sequence")}</TableHead>
                     <TableHead>{t("board.azure-servicebus.dlq.reason")}</TableHead>
-                    <TableHead style={RIGHT}>
-                      {t("board.azure-servicebus.dlq.deliveries")}
-                    </TableHead>
+                    <TableHead className="num">{t("board.azure-servicebus.dlq.deliveries")}</TableHead>
                     <TableHead>{t("board.azure-servicebus.dlq.enqueued")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {dead.messages.map((message) => (
-                    <TableRow
-                      key={sequenceNumber(message) ?? message.messageId}
-                      data-state={
-                        selected === sequenceNumber(message) ? "selected" : undefined
-                      }
-                      onClick={() => setSelected(sequenceNumber(message))}
-                      style={{ cursor: "pointer" }}
-                    >
-                      <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {sequenceNumber(message) ?? DASH}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <span className="mono3" style={MONO11}>
+                  {dead.messages.map((message) => {
+                    const sequence = sequenceNumber(message);
+                    return (
+                      <TableRow
+                        key={sequence ?? message.messageId}
+                        selected={selected != null && selected === sequence}
+                        onClick={() => setSelected(sequence)}
+                      >
+                        <TableCell className="num mono3 select-text">{sequence ?? DASH}</TableCell>
+                        <TableCell className="select-text">
                           {deadLetterReason(message) ?? DASH}
-                        </span>
-                      </TableCell>
-                      <TableCell className="num">
-                        <span className="mono3" style={MONO11}>
-                          {deliveryCount(message) ?? DASH}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <span className="mono3" style={MONO11}>
-                          {formatMessageTime(message.storeTimestamp)}
-                        </span>
+                        </TableCell>
+                        <TableCell className="num">{deliveryCount(message) ?? DASH}</TableCell>
+                        <TableCell>{formatMessageTime(message.storeTimestamp)}</TableCell>
+                      </TableRow>
+                    );
+                  })}
+                  {dead.messages.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={4} className="py-8 text-center text-muted-foreground">
+                        {dead.searched
+                          ? t("board.azure-servicebus.dlq.nothingGivenUp")
+                          : t("board.azure-servicebus.dlq.startHere")}
                       </TableCell>
                     </TableRow>
-                  ))}
+                  )}
                 </TableBody>
               </Table>
             )}
-          </Panel>
+          </div>
+        </ListPane>
 
-          {panel != null && (
-            <Panel style={{ width: "320px", flex: "none", overflow: "auto" }}>
-              <PanelHeader title={String(sequenceNumber(panel) ?? panel.messageId)} />
-              <div style={{ padding: "0 12px 12px" }}>
-                <SectionLabel>{t("board.azure-servicebus.dlq.section.whyItStopped")}</SectionLabel>
-                <KV
-                  rows={[
-                    [t("board.azure-servicebus.dlq.reason"), deadLetterReason(panel) ?? DASH],
-                    [
-                      t("board.azure-servicebus.dlq.description"),
-                      deadLetterDescription(panel) ?? DASH,
-                    ],
-                    [
-                      t("board.azure-servicebus.dlq.deliveries"),
-                      deliveryCount(panel) == null ? DASH : String(deliveryCount(panel)),
-                    ],
-                    [
-                      t("board.azure-servicebus.dlq.enqueued"),
-                      formatMessageTime(panel.storeTimestamp),
-                    ],
-                    [t("board.azure-servicebus.dlq.subject"), panel.tags || DASH],
-                  ]}
-                />
-
-                {/* Only set when the message arrived here by forwarding, and
-                    then it names where it actually failed - which is not the
-                    store it is sitting in. */}
-                {deadLetterSource(panel) != null && (
-                  <p style={{ fontSize: "11px", color: "var(--c-muted)" }}>
-                    {t("board.azure-servicebus.dlq.forwardedFrom", {
-                      source: deadLetterSource(panel),
-                    })}
-                  </p>
-                )}
-
-                {senderProperties(panel).length > 0 && (
-                  <>
-                    <SectionLabel>
-                      {t("board.azure-servicebus.dlq.section.properties")}
-                    </SectionLabel>
-                    <KV rows={senderProperties(panel)} />
-                  </>
-                )}
-
-                <SectionLabel>{t("board.azure-servicebus.dlq.body")}</SectionLabel>
-                <JsonBlock>{panel.body}</JsonBlock>
-
-                <Button
-                  size="sm"
-                  style={{ marginTop: "12px" }}
-                  disabled={resending}
-                  onClick={() => void putBack()}
-                >
-                  {resending && <Spinner className="size-3.5" />}
-                  {t("board.azure-servicebus.dlq.resend")}
-                </Button>
-              </div>
-            </Panel>
-          )}
-        </div>
-        <p
-          style={{
-            margin: "0 20px",
-            fontSize: "11.5px",
-            color: "var(--c-muted)",
-            flex: "none",
-          }}
-        >
-          {t("board.azure-servicebus.dlq.note")}
-        </p>
-      </PageBody>
+        {current != null && (
+          <DeadLetterSheet
+            key={sequenceNumber(current) ?? current.messageId}
+            message={current}
+            resending={resending}
+            onPutBack={() => void putBack()}
+            onClose={() => setSelected(null)}
+          />
+        )}
+      </ListArea>
+      <StatusBar left={<span>{t("board.azure-servicebus.dlq.note")}</span>} />
     </Page>
+  );
+}
+
+function DeadLetterSheet({
+  message,
+  resending,
+  onPutBack,
+  onClose,
+}: {
+  message: MessageItem;
+  resending: boolean;
+  onPutBack: () => void;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation();
+  const properties = senderProperties(message);
+  return (
+    <DetailPanel width={380} onDismiss={onClose}>
+      <DetailPanelHeader
+        title={String(sequenceNumber(message) ?? message.messageId)}
+        onClose={onClose}
+      />
+      <DetailPanelBody>
+        <div>
+          <SectionLabel className="mb-1.5">
+            {t("board.azure-servicebus.dlq.section.whyItStopped")}
+          </SectionLabel>
+          <KV
+            rows={[
+              [t("board.azure-servicebus.dlq.reason"), deadLetterReason(message) ?? DASH],
+              [
+                t("board.azure-servicebus.dlq.description"),
+                deadLetterDescription(message) ?? DASH,
+              ],
+              [
+                t("board.azure-servicebus.dlq.deliveries"),
+                deliveryCount(message) == null ? DASH : String(deliveryCount(message)),
+              ],
+              [
+                t("board.azure-servicebus.dlq.enqueued"),
+                formatMessageTime(message.storeTimestamp),
+              ],
+              [t("board.azure-servicebus.dlq.subject"), message.tags || DASH],
+            ]}
+          />
+        </div>
+
+        {/* Only set when the message arrived here by forwarding, and then it
+            names where it actually failed - which is not the store it is
+            sitting in. */}
+        {deadLetterSource(message) != null && (
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            {t("board.azure-servicebus.dlq.forwardedFrom", {
+              source: deadLetterSource(message),
+            })}
+          </p>
+        )}
+
+        {properties.length > 0 && (
+          <div>
+            <SectionLabel className="mb-1.5">
+              {t("board.azure-servicebus.dlq.section.properties")}
+            </SectionLabel>
+            <KV rows={properties} />
+          </div>
+        )}
+
+        <div>
+          <SectionLabel className="mb-1.5">{t("board.azure-servicebus.dlq.body")}</SectionLabel>
+          <JsonBlock>{message.body}</JsonBlock>
+        </div>
+      </DetailPanelBody>
+      <DetailPanelFooter>
+        <Button variant="outline" disabled={resending} onClick={onPutBack}>
+          {resending && <Spinner className="size-3.5" />}
+          {t("board.azure-servicebus.dlq.resend")}
+        </Button>
+      </DetailPanelFooter>
+    </DetailPanel>
   );
 }

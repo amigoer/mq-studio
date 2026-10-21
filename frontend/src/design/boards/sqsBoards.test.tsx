@@ -1,4 +1,5 @@
 import { beforeAll, describe, expect, it, vi } from "vitest";
+import type { Destination } from "@bindings/model/models";
 
 /**
  * Every SQS board, through the states it can be in.
@@ -53,8 +54,11 @@ vi.mock("@/hooks/sqs/useSqsMessages", () => ({
 
 let render: (element: React.ReactElement) => string;
 let QueuesSqs: typeof import("./topics/QueuesSqs").QueuesSqs;
+let QueueSheet: typeof import("./topics/QueuesSqs").QueueSheet;
+let readQueue: typeof import("@/mq/sqs/destinations").queue;
 let MessagesSqs: typeof import("./messages/MessagesSqs").MessagesSqs;
 let DlqSqs: typeof import("./dlq/DlqSqs").DlqSqs;
+let DeadLetterSheet: typeof import("./dlq/DlqSqs").DeadLetterSheet;
 let ProducerSqs: typeof import("./producer/ProducerSqs").ProducerSqs;
 let OverviewSqs: typeof import("./overview/OverviewSqs").OverviewSqs;
 
@@ -69,19 +73,31 @@ beforeAll(async () => {
   });
   vi.stubGlobal("localStorage", storage);
 
-  const [server, queues, messages, dlq, producer, overview, ui, i18n, settings, profiles] =
-    await Promise.all([
-      import("react-dom/server"),
-      import("./topics/QueuesSqs"),
-      import("./messages/MessagesSqs"),
-      import("./dlq/DlqSqs"),
-      import("./producer/ProducerSqs"),
-      import("./overview/OverviewSqs"),
-      import("@/components"),
-      import("@/i18n"),
-      import("@/hooks/useSettings"),
-      import("@/hooks/useConnectionProfiles"),
-    ]);
+  const [
+    server,
+    queues,
+    messages,
+    dlq,
+    producer,
+    overview,
+    destinations,
+    ui,
+    i18n,
+    settings,
+    profiles,
+  ] = await Promise.all([
+    import("react-dom/server"),
+    import("./topics/QueuesSqs"),
+    import("./messages/MessagesSqs"),
+    import("./dlq/DlqSqs"),
+    import("./producer/ProducerSqs"),
+    import("./overview/OverviewSqs"),
+    import("@/mq/sqs/destinations"),
+    import("@/components"),
+    import("@/i18n"),
+    import("@/hooks/useSettings"),
+    import("@/hooks/useConnectionProfiles"),
+  ]);
   await i18n.default.changeLanguage("zh");
   render = (node) =>
     server.renderToStaticMarkup(
@@ -92,11 +108,27 @@ beforeAll(async () => {
       </ui.ConfirmProvider>,
     );
   QueuesSqs = queues.QueuesSqs;
+  QueueSheet = queues.QueueSheet;
+  readQueue = destinations.queue;
   MessagesSqs = messages.MessagesSqs;
   DlqSqs = dlq.DlqSqs;
+  DeadLetterSheet = dlq.DeadLetterSheet;
   ProducerSqs = producer.ProducerSqs;
   OverviewSqs = overview.OverviewSqs;
 });
+
+/** The sheet a row click opens, which the board no longer draws on its own. */
+function renderSheet(row: unknown): string {
+  return render(
+    <QueueSheet
+      entry={readQueue(row as Destination)}
+      onEdit={() => {}}
+      onPurge={() => {}}
+      onRemove={() => {}}
+      onClose={() => {}}
+    />,
+  );
+}
 
 /** A standard queue with a backlog, as internal/driver/sqs/destination.go sends one. */
 const orders = {
@@ -251,16 +283,18 @@ describe("the SQS queues board", () => {
     const html = render(<QueuesSqs />);
     expect(html).toContain("MQS-SEED-orders");
     expect(html).toContain("MQS-SEED-orders-dlq");
+    expect(renderSheet(orders)).toContain("MQS-SEED-orders-dlq");
   });
 
   /*
-   * The FIFO detail panel is a different set of rows, and it is where the
+   * The FIFO detail sheet is a different set of rows, and it is where the
    * three settings only a FIFO queue carries are read - which is the path a
    * renamed attribute key throws on.
    */
   it("renders the FIFO settings a standard queue does not have", () => {
     queuesState.current = stateOf({ data: [fifo] });
     expect(() => render(<QueuesSqs />)).not.toThrow();
+    expect(() => renderSheet(fifo)).not.toThrow();
   });
 
   /*
@@ -271,6 +305,7 @@ describe("the SQS queues board", () => {
   it("explains a queue whose whole depth is in flight", () => {
     queuesState.current = stateOf({ data: [stalled] });
     expect(() => render(<QueuesSqs />)).not.toThrow();
+    expect(() => renderSheet(stalled)).not.toThrow();
   });
 
   // A queue whose optional attributes are all absent still has to render: the
@@ -278,6 +313,7 @@ describe("the SQS queues board", () => {
   it("renders a queue the listing could describe only partly", () => {
     queuesState.current = stateOf({ data: [bare] });
     expect(() => render(<QueuesSqs />)).not.toThrow();
+    expect(() => renderSheet(bare)).not.toThrow();
   });
 });
 
@@ -371,6 +407,9 @@ describe("the SQS dead letters board", () => {
     const html = render(<DlqSqs />);
     expect(html).toContain("MQS-SEED-orders-dlq");
     expect(html).toContain("MQS-SEED-orders");
+    expect(
+      render(<DeadLetterSheet entry={deadLetter} onClose={() => {}} />),
+    ).toContain("MQS-SEED-orders");
   });
 
   /*
@@ -381,6 +420,9 @@ describe("the SQS dead letters board", () => {
   it("says when nothing feeds a dead-letter queue any more", () => {
     deadLetterState.current = stateOf({ data: [orphaned] });
     expect(() => render(<DlqSqs />)).not.toThrow();
+    expect(() =>
+      render(<DeadLetterSheet entry={orphaned} onClose={() => {}} />),
+    ).not.toThrow();
   });
 });
 

@@ -85,10 +85,18 @@ let render: (element: React.ReactElement) => string;
 let EntitiesAzureServiceBus: typeof import(
   "./topics/EntitiesAzureServiceBus"
 ).EntitiesAzureServiceBus;
+let EntitySheet: typeof import("./topics/EntitiesAzureServiceBus").EntitySheet;
 let RulesAzureServiceBus: typeof import("./topics/RulesAzureServiceBus").RulesAzureServiceBus;
+let RuleSheet: typeof import("./topics/RulesAzureServiceBus").RuleSheet;
 let SubscriptionsAzureServiceBus: typeof import(
   "./consumers/SubscriptionsAzureServiceBus"
 ).SubscriptionsAzureServiceBus;
+let SubscriptionSheet: typeof import(
+  "./consumers/SubscriptionsAzureServiceBus"
+).SubscriptionSheet;
+let readEntity: typeof import("@/mq/azureservicebus/entities").entity;
+let readRule: typeof import("@/mq/azureservicebus/rules").rule;
+let readSubscription: typeof import("@/mq/azureservicebus/subscriptions").subscription;
 let MessagesAzureServiceBus: typeof import(
   "./messages/MessagesAzureServiceBus"
 ).MessagesAzureServiceBus;
@@ -124,6 +132,9 @@ beforeAll(async () => {
     i18n,
     settings,
     profiles,
+    entityReader,
+    ruleReader,
+    subscriptionReader,
   ] = await Promise.all([
     import("react-dom/server"),
     import("./topics/EntitiesAzureServiceBus"),
@@ -137,6 +148,9 @@ beforeAll(async () => {
     import("@/i18n"),
     import("@/hooks/useSettings"),
     import("@/hooks/useConnectionProfiles"),
+    import("@/mq/azureservicebus/entities"),
+    import("@/mq/azureservicebus/rules"),
+    import("@/mq/azureservicebus/subscriptions"),
   ]);
   await i18n.default.changeLanguage("zh");
   render = (node) =>
@@ -148,13 +162,37 @@ beforeAll(async () => {
       </ui.ConfirmProvider>,
     );
   EntitiesAzureServiceBus = entities.EntitiesAzureServiceBus;
+  EntitySheet = entities.EntitySheet;
   RulesAzureServiceBus = rules.RulesAzureServiceBus;
+  RuleSheet = rules.RuleSheet;
   SubscriptionsAzureServiceBus = subscriptions.SubscriptionsAzureServiceBus;
+  SubscriptionSheet = subscriptions.SubscriptionSheet;
+  readEntity = entityReader.entity;
+  readRule = ruleReader.rule;
+  readSubscription = subscriptionReader.subscription;
   MessagesAzureServiceBus = messages.MessagesAzureServiceBus;
   DlqAzureServiceBus = dlq.DlqAzureServiceBus;
   ProducerAzureServiceBus = producer.ProducerAzureServiceBus;
   OverviewAzureServiceBus = overview.OverviewAzureServiceBus;
 });
+
+const noop = () => {};
+
+/** The detail sheet a row opens, rendered directly: rows start unselected. */
+const entitySheet = (row: Parameters<typeof readEntity>[0]) =>
+  render(<EntitySheet entry={readEntity(row)} onEdit={noop} onRemove={noop} onClose={noop} />);
+// The fixtures spell status as a plain string, which the generated type narrows.
+const subscriptionSheet = (row: object) =>
+  render(
+    <SubscriptionSheet
+      entry={readSubscription(row as Parameters<typeof readSubscription>[0])}
+      onEdit={noop}
+      onRemove={noop}
+      onClose={noop}
+    />,
+  );
+const ruleSheet = (row: Parameters<typeof readRule>[0]) =>
+  render(<RuleSheet entry={readRule(row)} onRemove={noop} onClose={noop} />);
 
 /**
  * A queue against a real namespace, as
@@ -447,11 +485,10 @@ describe("the Service Bus entities board", () => {
     expect(html).toContain("主题");
   });
 
-  // A topic's subscriptions are named in the panel rather than on the row,
+  // A topic's subscriptions are named in the sheet rather than on the row,
   // because a topic may have thousands and the row is not the place for them.
   it("names a topic's subscriptions when the topic is the selected row", () => {
-    entitiesState.current = stateOf({ data: [events] });
-    expect(render(<EntitiesAzureServiceBus />)).toContain("mqs-seed-events-red");
+    expect(entitySheet(events)).toContain("mqs-seed-events-red");
   });
 
   /*
@@ -462,21 +499,25 @@ describe("the Service Bus entities board", () => {
   it("renders an entity whose counts the endpoint does not report", () => {
     entitiesState.current = stateOf({ data: [uncountedQueue] });
     expect(() => render(<EntitiesAzureServiceBus />)).not.toThrow();
+    expect(() => entitySheet(uncountedQueue)).not.toThrow();
   });
 
   it("marks a topic nothing subscribes to", () => {
     entitiesState.current = stateOf({ data: [orphanedTopic] });
     expect(() => render(<EntitiesAzureServiceBus />)).not.toThrow();
+    expect(() => entitySheet(orphanedTopic)).not.toThrow();
   });
 
   it("renders an entity that has been switched off", () => {
     entitiesState.current = stateOf({ data: [disabledQueue] });
     expect(render(<EntitiesAzureServiceBus />)).toContain("SendDisabled");
+    expect(entitySheet(disabledQueue)).toContain("SendDisabled");
   });
 
   it("renders an entity the listing could describe only partly", () => {
     entitiesState.current = stateOf({ data: [bareEntity] });
     expect(() => render(<EntitiesAzureServiceBus />)).not.toThrow();
+    expect(() => entitySheet(bareEntity)).not.toThrow();
   });
 });
 
@@ -506,6 +547,7 @@ describe("the Service Bus subscriptions board", () => {
     const html = render(<SubscriptionsAzureServiceBus />);
     expect(html).toContain("mqs-seed-events-red");
     expect(html).toContain("red-only");
+    expect(subscriptionSheet(worker)).toContain("red-only");
   });
 
   /*
@@ -515,11 +557,13 @@ describe("the Service Bus subscriptions board", () => {
   it("marks a subscription whose rules have all been deleted", () => {
     subscriptionsState.current = stateOf({ data: [unroutableSubscription] });
     expect(() => render(<SubscriptionsAzureServiceBus />)).not.toThrow();
+    expect(() => subscriptionSheet(unroutableSubscription)).not.toThrow();
   });
 
   it("renders a subscription whose backlog the endpoint does not report", () => {
     subscriptionsState.current = stateOf({ data: [uncountedSubscription] });
     expect(() => render(<SubscriptionsAzureServiceBus />)).not.toThrow();
+    expect(() => subscriptionSheet(uncountedSubscription)).not.toThrow();
   });
 });
 
@@ -552,12 +596,14 @@ describe("the Service Bus rules board", () => {
     expect(html).toContain("$Default");
     expect(html).toContain("colour = &#x27;red&#x27;");
     expect(html).toContain("orders-only");
+    expect(ruleSheet(defaultRule)).toContain("$Default");
   });
 
   // Legal, and almost never what was meant.
   it("marks a rule that can never match", () => {
     routingState.current = stateOf({ data: { topics: [events], rules: [neverRule] } });
     expect(render(<RulesAzureServiceBus />)).toContain("1=0");
+    expect(ruleSheet(neverRule)).toContain("1=0");
   });
 });
 

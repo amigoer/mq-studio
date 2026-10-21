@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Plus } from "lucide-react";
 import { Page, PageBody, PageHeader, RefreshButton, Toolbar } from "@/design/shell";
 import { Button } from "@/components/ui/button";
 import {
@@ -140,15 +141,6 @@ export function Acl() {
         subtitle={subtitle}
         actions={
           <>
-            {tab !== "plain" && directory && (
-              <Button
-                onClick={() =>
-                  tab === "principals" ? setPrincipalDialog({}) : setRuleDialog({})
-                }
-              >
-                {t(tab === "principals" ? "board.acl.principal.create" : "board.acl.rule.create")}
-              </Button>
-            )}
             <RefreshButton
               refreshing={state.refreshing}
               online={state.online}
@@ -158,6 +150,16 @@ export function Acl() {
                 void rules.refresh();
               }}
             />
+            {tab !== "plain" && directory && (
+              <Button
+                onClick={() =>
+                  tab === "principals" ? setPrincipalDialog({}) : setRuleDialog({})
+                }
+              >
+                <Plus aria-hidden />
+                {t(tab === "principals" ? "board.acl.principal.create" : "board.acl.rule.create")}
+              </Button>
+            )}
           </>
         }
       />

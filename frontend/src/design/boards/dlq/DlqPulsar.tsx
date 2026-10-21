@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/table";
 import { OutlineTag, Panel, SelectField, Status, WarnBanner } from "@/components";
 import { Page, PageBody, PageHeader, RefreshButton, Toolbar } from "@/design/shell";
-import { BoardState } from "@/design/boards/BoardState";
+import { BoardState, Notice } from "@/design/boards/BoardState";
 import { usePulsarNamespaces } from "@/hooks/pulsar/usePulsarNamespaces";
 import { usePulsarDeadLetters } from "@/hooks/pulsar/usePulsarDeadLetters";
 import {
@@ -85,11 +85,7 @@ export function DlqPulsar() {
       </Toolbar>
       <BoardState
         state={state}
-        empty={
-          <PageBody>
-            <p className="text-xs text-muted-foreground">{t("board.dlq.pulsar.none")}</p>
-          </PageBody>
-        }
+        empty={queues.length === 0 ? <Notice title={t("board.dlq.pulsar.none")} /> : undefined}
       >
         <PageBody>
           {orphans > 0 && (

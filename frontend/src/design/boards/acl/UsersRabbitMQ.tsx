@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Plus } from "lucide-react";
 import { ListArea, ListPane, Page, PageHeader, RefreshButton, Toolbar } from "@/design/shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,7 +24,7 @@ import {
   toast,
   useConfirm,
 } from "@/components";
-import { BoardState, isBlocked } from "@/design/boards/BoardState";
+import { BoardState, isBlocked, Notice, NOTICE_PANE } from "@/design/boards/BoardState";
 import { useRabbitIdentities } from "@/hooks/rabbitmq/useRabbitIdentities";
 import { useRabbitNamespaces } from "@/hooks/rabbitmq/useRabbitNamespaces";
 import { useConnectionScope } from "@/mq/ConnectionScope";
@@ -163,14 +164,15 @@ export function UsersRabbitMQ() {
         subtitle={t("board.acl.rabbitmq.subtitle")}
         actions={
           <>
-            <Button disabled={!state.online} onClick={() => setCreating(true)}>
-              {t("board.acl.rabbitmq.new")}
-            </Button>
             <RefreshButton
               refreshing={state.refreshing}
               online={state.online}
               onClick={state.refresh}
             />
+            <Button disabled={!state.online} onClick={() => setCreating(true)}>
+              <Plus aria-hidden />
+              {t("board.acl.rabbitmq.new")}
+            </Button>
           </>
         }
       />
@@ -202,10 +204,12 @@ export function UsersRabbitMQ() {
         </Toolbar>
       )}
       <ListArea>
-        <ListPane>
+        <ListPane style={isBlocked(state) || identities.length === 0 ? NOTICE_PANE : undefined}>
           <BoardState
             state={state}
-            empty={identities.length === 0 ? t("board.acl.rabbitmq.none") : undefined}
+            empty={
+              identities.length === 0 ? <Notice title={t("board.acl.rabbitmq.none")} /> : undefined
+            }
           >
             <Table inset>
               <TableHeader>
@@ -244,7 +248,7 @@ export function UsersRabbitMQ() {
                         </span>
                       )}
                     </TableCell>
-                    <TableCell className="mono3" style={{ textAlign: "right" }}>
+                    <TableCell style={{ textAlign: "right" }}>
                       {(identity.permissions ?? []).length}
                     </TableCell>
                     <TableCell>

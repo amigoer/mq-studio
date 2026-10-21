@@ -1,4 +1,5 @@
 import { beforeAll, describe, expect, it, vi } from "vitest";
+import type { Channel } from "@bindings/model/models";
 
 /**
  * Every IBM MQ board, through the states it can be in.
@@ -72,10 +73,12 @@ vi.mock("@/hooks/ibmmq/useIbmMqBrowse", () => ({
 let render: (element: React.ReactElement) => string;
 let QueuesIbmMq: typeof import("./topics/QueuesIbmMq").QueuesIbmMq;
 let ChannelsIbmMq: typeof import("./channels/ChannelsIbmMq").ChannelsIbmMq;
+let ChannelSheet: typeof import("./channels/ChannelsIbmMq").ChannelSheet;
 let SubscriptionsIbmMq: typeof import("./consumers/SubscriptionsIbmMq").SubscriptionsIbmMq;
 let MessagesIbmMq: typeof import("./messages/MessagesIbmMq").MessagesIbmMq;
 let ProducerIbmMq: typeof import("./producer/ProducerIbmMq").ProducerIbmMq;
 let DlqIbmMq: typeof import("./dlq/DlqIbmMq").DlqIbmMq;
+let DeadLetterSheet: typeof import("./dlq/DlqIbmMq").DeadLetterSheet;
 let OverviewIbmMq: typeof import("./overview/OverviewIbmMq").OverviewIbmMq;
 
 beforeAll(async () => {
@@ -127,10 +130,12 @@ beforeAll(async () => {
     );
   QueuesIbmMq = queues.QueuesIbmMq;
   ChannelsIbmMq = channels.ChannelsIbmMq;
+  ChannelSheet = channels.ChannelSheet;
   SubscriptionsIbmMq = subscriptions.SubscriptionsIbmMq;
   MessagesIbmMq = messages.MessagesIbmMq;
   ProducerIbmMq = producer.ProducerIbmMq;
   DlqIbmMq = dlq.DlqIbmMq;
+  DeadLetterSheet = dlq.DeadLetterSheet;
   OverviewIbmMq = overview.OverviewIbmMq;
 });
 
@@ -479,11 +484,12 @@ describe("the IBM MQ channels board", () => {
     expect(html).toContain("retrying");
   });
 
-  // The configured address is on the panel, which opens on the first row - so
-  // the retrying channel is rendered alone to reach it.
+  // The configured address is on the sheet, which opens on a row click - so
+  // the sheet is rendered directly for the retrying channel.
   it("keeps the configured address on a channel that cannot connect", () => {
-    channelsState.current = stateOf({ data: [retrying] });
-    expect(render(<ChannelsIbmMq />)).toContain("192.0.2.10(1414)");
+    expect(render(<ChannelSheet entry={retrying as Channel} onClose={() => {}} />)).toContain(
+      "192.0.2.10(1414)",
+    );
   });
 });
 
@@ -545,17 +551,19 @@ describe("the IBM MQ dead-letter board", () => {
     const html = render(<DlqIbmMq />);
     expect(html).toContain("DEV.DEAD.LETTER.QUEUE");
     expect(html).toContain("MQS.SEED.BACKOUT");
-    // The panel opens on the first row, and its source is the queue manager
-    // rather than a queue - there is nothing else to name in its place.
-    expect(html).toContain("QM1");
+    // The sheet is rendered directly, since it opens on a row click. Its
+    // source is the queue manager rather than a queue - there is nothing else
+    // to name in its place.
+    expect(
+      render(<DeadLetterSheet entry={managersDeadLetter} onClose={() => {}} />),
+    ).toContain("QM1");
   });
 
-  // The other pointer, rendered alone because the panel opens on the first
-  // row: a backout queue names the queue that points at it and the threshold
+  // The other pointer, rendered through the sheet since it opens on a row
+  // click: a backout queue names the queue that points at it and the threshold
   // that decides whether anything ever travels the pointer.
   it("names the queue and the threshold behind a backout queue", () => {
-    deadLettersState.current = stateOf({ data: [backout] });
-    const html = render(<DlqIbmMq />);
+    const html = render(<DeadLetterSheet entry={backout} onClose={() => {}} />);
     expect(html).toContain("MQS.SEED.AUDIT");
     expect(html).toContain("3");
   });

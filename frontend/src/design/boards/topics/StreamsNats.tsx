@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Plus } from "lucide-react";
 import { ListArea, ListPane, Page, PageHeader, RefreshButton, Toolbar } from "@/design/shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,7 +24,7 @@ import {
   toast,
   useConfirm,
 } from "@/components";
-import { BoardState } from "@/design/boards/BoardState";
+import { BoardState, Notice } from "@/design/boards/BoardState";
 import { StreamDialogNats } from "./StreamDialogNats";
 import { PurgeDialogNats } from "./PurgeDialogNats";
 import { useConnectionScope } from "@/mq/ConnectionScope";
@@ -221,19 +222,20 @@ export function StreamsNats() {
         subtitle={t("board.topics.nats.subtitle")}
         actions={
           <>
+            <RefreshButton
+              refreshing={state.refreshing}
+              online={state.online}
+              onClick={() => void state.refresh()}
+            />
             <Button
               onClick={() => {
                 setEditing(null);
                 setDialogOpen(true);
               }}
             >
+              <Plus aria-hidden />
               {t("board.topics.nats.newStream")}
             </Button>
-            <RefreshButton
-              refreshing={state.refreshing}
-              online={state.online}
-              onClick={() => void state.refresh()}
-            />
           </>
         }
       />
@@ -254,22 +256,13 @@ export function StreamsNats() {
         state={state}
         empty={
           rows.length === 0 ? (
-            <ListArea>
-              <ListPane>
-                <div
-                  style={{
-                    padding: "24px",
-                    fontSize: "11.5px",
-                    color: "var(--c-muted)",
-                    textAlign: "center",
-                  }}
-                >
-                  {streams.length === 0
-                    ? t("board.topics.nats.noStreams")
-                    : t("board.topics.nats.noMatches")}
-                </div>
-              </ListPane>
-            </ListArea>
+            <Notice
+              title={
+                streams.length === 0
+                  ? t("board.topics.nats.noStreams")
+                  : t("board.topics.nats.noMatches")
+              }
+            />
           ) : undefined
         }
       >
@@ -304,13 +297,13 @@ export function StreamsNats() {
                       <TableCell className="mono3" style={MONO11}>
                         <SubjectList stream={stream} />
                       </TableCell>
-                      <TableCell className="mono3" style={RIGHT}>
+                      <TableCell style={RIGHT}>
                         {formatCount(messages(stream))}
                       </TableCell>
-                      <TableCell className="mono3" style={RIGHT}>
+                      <TableCell style={RIGHT}>
                         <Metric value={bytes(stream)} format={formatBytes} />
                       </TableCell>
-                      <TableCell className="mono3" style={RIGHT}>
+                      <TableCell style={RIGHT}>
                         {consumerCount(stream)}
                       </TableCell>
                       <TableCell style={MONO11}>
@@ -344,7 +337,7 @@ export function StreamsNats() {
                       {t("board.topics.nats.messages")}
                     </div>
                     <div
-                      className="mono3"
+                      className="tabular-nums"
                       style={{ fontSize: "15px", fontWeight: 600, marginTop: "2px" }}
                     >
                       {formatCount(messages(panel))}
@@ -355,7 +348,7 @@ export function StreamsNats() {
                       {t("board.topics.nats.size")}
                     </div>
                     <div
-                      className="mono3"
+                      className="tabular-nums"
                       style={{ fontSize: "15px", fontWeight: 600, marginTop: "2px" }}
                     >
                       <Metric value={bytes(panel)} format={formatBytes} />
@@ -414,13 +407,13 @@ export function StreamsNats() {
                     ],
                     [
                       t("board.topics.nats.subjectCount"),
-                      <span className="mono3" style={MONO11}>
+                      <span className="tabular-nums">
                         <Metric value={subjectCount(panel)} />
                       </span>,
                     ],
                     [
                       t("board.topics.nats.deleted"),
-                      <span className="mono3" style={MONO11}>
+                      <span className="tabular-nums">
                         <Metric value={deletedCount(panel)} />
                       </span>,
                     ],
@@ -452,31 +445,31 @@ export function StreamsNats() {
                     rows={[
                       [
                         t("board.topics.nats.maxMessages"),
-                        <span className="mono3" style={MONO11}>
+                        <span className="tabular-nums">
                           <Limit value={maxMessages(panel)} />
                         </span>,
                       ],
                       [
                         t("board.topics.nats.maxBytes"),
-                        <span className="mono3" style={MONO11}>
+                        <span className="tabular-nums">
                           <Limit value={maxBytes(panel)} format={formatBytes} />
                         </span>,
                       ],
                       [
                         t("board.topics.nats.maxPerSubject"),
-                        <span className="mono3" style={MONO11}>
+                        <span className="tabular-nums">
                           <Limit value={maxMessagesPerSubject(panel)} />
                         </span>,
                       ],
                       [
                         t("board.topics.nats.maxMessageSize"),
-                        <span className="mono3" style={MONO11}>
+                        <span className="tabular-nums">
                           <Limit value={maxMessageSize(panel)} format={formatBytes} />
                         </span>,
                       ],
                       [
                         t("board.topics.nats.maxAge"),
-                        <span className="mono3" style={MONO11}>
+                        <span className="tabular-nums">
                           {maxAge(panel) ?? (
                             <span style={{ color: "var(--c-muted-2)" }}>
                               {t("board.topics.nats.unlimited")}
@@ -486,7 +479,7 @@ export function StreamsNats() {
                       ],
                       [
                         t("board.topics.nats.duplicates"),
-                        <span className="mono3" style={MONO11}>
+                        <span className="tabular-nums">
                           {duplicateWindow(panel) ?? "—"}
                         </span>,
                       ],

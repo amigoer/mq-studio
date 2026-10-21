@@ -1,5 +1,6 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
 @import './design/tokens.css';
 
 @custom-variant dark (&:is(.dark *));
@@ -16,8 +17,8 @@
   --card-foreground: var(--c-fg);
   --popover: var(--c-bg);
   --popover-foreground: var(--c-fg);
-  --primary: var(--c-fg);
-  --primary-foreground: var(--c-bg);
+  --primary: var(--c-primary);
+  --primary-foreground: #fff;
   --secondary: var(--c-fill);
   --secondary-foreground: var(--c-fg);
   --muted: var(--c-fill);
@@ -28,10 +29,10 @@
   --destructive-foreground: #fff;
   --success: var(--c-ok);
   --warning: var(--c-warn);
-  --info: var(--c-accent-blue);
+  --info: var(--c-primary);
   --border: var(--c-border);
   --input: var(--c-border);
-  --ring: var(--c-fg);
+  --ring: var(--c-primary);
   --chart-1: var(--c-series-1);
   --chart-2: var(--c-series-2);
   --chart-3: var(--c-ok);
@@ -76,14 +77,14 @@
 
   /*
    * Type scale mapped to the design ramp at the 13px root: text-sm is the
-   * 12px body size, text-xs the 11px mono/meta size. Stock component classes
+   * 12.5px body size, text-xs the 11px mono/meta size. Stock component classes
    * therefore land on the drawn sizes, and everything follows the 设置 font
    * size control because the values are rem.
    */
   --text-xs: 0.8462rem;
   --text-xs--line-height: 1.45;
-  --text-sm: 0.9231rem;
-  --text-sm--line-height: 1.45;
+  --text-sm: 0.9615rem;
+  --text-sm--line-height: 1.5;
   --text-base: 1rem;
   --text-base--line-height: 1.5;
   --text-lg: 1.0769rem;

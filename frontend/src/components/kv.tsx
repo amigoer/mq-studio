@@ -26,7 +26,7 @@ export function KV({
   return (
     <div
       className={cn(
-        "grid grid-cols-[fit-content(60%)_1fr] items-baseline gap-x-2.5 gap-y-[5px] text-xs",
+        "grid grid-cols-[fit-content(60%)_1fr] items-baseline gap-x-4 gap-y-2 text-sm",
         className,
       )}
       style={style}
@@ -35,7 +35,7 @@ export function KV({
         <Fragment key={i}>
           {/* An explicit min-width, not min-w-0: it is the column's floor, and
               it keeps an unbreakable label from pushing past the ceiling. */}
-          <span className="min-w-[92px] break-words text-muted-foreground">{key}</span>
+          <span className="min-w-[80px] break-words text-muted-foreground">{key}</span>
           <span className="min-w-0 break-words">{value}</span>
         </Fragment>
       ))}

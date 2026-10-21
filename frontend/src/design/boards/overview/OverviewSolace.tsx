@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { CirclePause, HardDrive, Inbox, Layers, Trash2, Users } from "lucide-react";
 import { Page, PageBody, PageHeader, RefreshButton } from "@/design/shell";
 import { Panel, PanelHeader, StatTile } from "@/components";
 import {
@@ -22,7 +23,6 @@ import { broker as readBroker } from "@/mq/solace/cluster";
 import { formatCount } from "@/lib/format";
 import { KPI_GRID } from "./_shared";
 
-const MONO11 = { fontSize: "11px" } as const;
 
 /**
  * The Solace overview.
@@ -106,21 +106,29 @@ export function OverviewSolace() {
           <div className={KPI_GRID}>
             <StatTile
               label={t("board.solace.overview.queues")}
+              icon={Layers}
+              tone="violet"
               value={formatCount(queues.length)}
               hint={t("board.solace.overview.queuesHint")}
             />
             <StatTile
               label={t("board.solace.overview.spooled")}
+              icon={Inbox}
+              tone="orange"
               value={formatCount(spooled)}
               hint={t("board.solace.overview.spooledHint")}
             />
             <StatTile
               label={t("board.solace.overview.bound")}
+              icon={Users}
+              tone="teal"
               value={formatCount(bound)}
               hint={t("board.solace.overview.boundHint")}
             />
             <StatTile
               label={t("board.solace.overview.spool")}
+              icon={HardDrive}
+              tone="blue"
               value={broker?.spoolPercent == null ? "—" : `${broker.spoolPercent}%`}
               hint={t("board.solace.overview.spoolHint")}
               valueColor={
@@ -129,12 +137,16 @@ export function OverviewSolace() {
             />
             <StatTile
               label={t("board.solace.overview.discarding")}
+              icon={Trash2}
+              tone="pink"
               value={formatCount(discarding)}
               hint={t("board.solace.overview.discardingHint")}
               valueColor={discarding > 0 ? "var(--c-warn-text)" : undefined}
             />
             <StatTile
               label={t("board.solace.overview.stopped")}
+              icon={CirclePause}
+              tone="slate"
               value={formatCount(stopped)}
               hint={t("board.solace.overview.stoppedHint")}
               valueColor={stopped > 0 ? "var(--c-warn-text)" : undefined}
@@ -143,7 +155,7 @@ export function OverviewSolace() {
 
           <Panel>
             <PanelHeader title={t("board.solace.overview.deepest")} />
-            <Table>
+            <Table inset="card">
               <TableHeader>
                 <TableRow>
                   <TableHead>{t("board.solace.queues.name")}</TableHead>
@@ -155,21 +167,9 @@ export function OverviewSolace() {
               <TableBody>
                 {notable.map((entry) => (
                   <TableRow key={entry.name}>
-                    <TableCell>
-                      <span className="mono3" style={MONO11}>
-                        {entry.name}
-                      </span>
-                    </TableCell>
-                    <TableCell className="num">
-                      <span className="mono3" style={MONO11}>
-                        {formatCount(entry.depth ?? 0)}
-                      </span>
-                    </TableCell>
-                    <TableCell className="num">
-                      <span className="mono3" style={MONO11}>
-                        {formatCount(entry.boundConsumers ?? 0)}
-                      </span>
-                    </TableCell>
+                    <TableCell className="select-text">{entry.name}</TableCell>
+                    <TableCell className="num">{formatCount(entry.depth ?? 0)}</TableCell>
+                    <TableCell className="num">{formatCount(entry.boundConsumers ?? 0)}</TableCell>
                     <TableCell>
                       <span style={{ fontSize: "11px", color: "var(--c-muted)" }}>
                         {halted(entry)

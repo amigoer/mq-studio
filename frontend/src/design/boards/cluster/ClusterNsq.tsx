@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Page, PageBody, PageHeader, RefreshButton } from "@/design/shell";
+import { ListArea, ListPane, Page, PageHeader, RefreshButton } from "@/design/shell";
 import {
   Table,
   TableBody,
@@ -9,19 +9,28 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { KV, Panel, PanelHeader, SectionLabel, StatTile, Status, WarnBanner } from "@/components";
-import { BoardState } from "@/design/boards/BoardState";
+import {
+  DetailPanel,
+  DetailPanelBody,
+  DetailPanelHeader,
+  KV,
+  SectionLabel,
+  StatTile,
+  Status,
+  WarnBanner,
+} from "@/components";
+import { BoardState, isBlocked } from "@/design/boards/BoardState";
+import { KPI_GRID } from "@/design/boards/overview/_shared";
 import { useNsqCluster, useNsqNodeConfig } from "@/hooks/nsq/useNsqCluster";
 import {
   advertisesSomethingElse,
   directoryNode as readDirectoryNode,
   node as readNode,
   type NsqDirectoryNode,
+  type NsqNode,
 } from "@/mq/nsq/cluster";
 import { formatBytes, formatCount } from "@/lib/format";
 import { present } from "@/api/client";
-
-const MONO11 = { fontSize: "11px" } as const;
 
 /** A dash, not a zero: an absent figure and a measured zero are not alike. */
 const DASH = "—";
@@ -62,11 +71,7 @@ export function ClusterNsq() {
   );
   const overview = state.data?.overview;
 
-  const detail = useMemo(
-    () => nodes.find((entry) => entry.address === selected) ?? nodes[0] ?? null,
-    [nodes, selected],
-  );
-  const config = useNsqNodeConfig(detail?.address ?? null);
+  const current = nodes.find((entry) => entry.address === selected) ?? null;
 
   const unreachable = useMemo(
     () => advertisesSomethingElse(directory, nodes),
@@ -89,165 +94,181 @@ export function ClusterNsq() {
           />
         }
       />
-      <BoardState state={state}>
-        <PageBody>
-          {unreachable.length > 0 && (
-            <WarnBanner>
-              {t("board.nsq.cluster.advertiseMismatch", { addresses: unreachable.join(", ") })}
-            </WarnBanner>
-          )}
+      {isBlocked(state) ? (
+        <BoardState state={state} />
+      ) : (
+        <>
+          <div className="flex flex-none flex-col gap-3 pt-4 pb-4">
+            {unreachable.length > 0 && (
+              <WarnBanner>
+                {t("board.nsq.cluster.advertiseMismatch", { addresses: unreachable.join(", ") })}
+              </WarnBanner>
+            )}
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(6, minmax(0, 1fr))",
-              gap: "12px",
-              flex: "none",
-            }}
-          >
-            <StatTile
-              label={t("board.nsq.cluster.nodes")}
-              value={String(overview?.totalNodes ?? 0)}
-            />
-            <StatTile
-              label={t("board.nsq.cluster.online")}
-              value={String(overview?.onlineNodes ?? 0)}
-            />
-            <StatTile
-              label={t("board.nsq.cluster.topics")}
-              value={formatCount(overview?.destinations ?? 0)}
-            />
-            <StatTile
-              label={t("board.nsq.cluster.channels")}
-              value={formatCount(overview?.subscriptions ?? 0)}
-            />
-            <StatTile
-              label={t("board.nsq.cluster.depth")}
-              value={formatCount(Number(overview?.attributes?.depth ?? 0))}
-            />
-            <StatTile
-              label={t("board.nsq.cluster.clients")}
-              value={formatCount(Number(overview?.attributes?.clientCount ?? 0))}
-            />
+            <div className="px-5">
+              <div className={KPI_GRID}>
+                <StatTile
+                  label={t("board.nsq.cluster.nodes")}
+                  value={String(overview?.totalNodes ?? 0)}
+                />
+                <StatTile
+                  label={t("board.nsq.cluster.online")}
+                  value={String(overview?.onlineNodes ?? 0)}
+                />
+                <StatTile
+                  label={t("board.nsq.cluster.topics")}
+                  value={formatCount(overview?.destinations ?? 0)}
+                />
+                <StatTile
+                  label={t("board.nsq.cluster.channels")}
+                  value={formatCount(overview?.subscriptions ?? 0)}
+                />
+                <StatTile
+                  label={t("board.nsq.cluster.depth")}
+                  value={formatCount(Number(overview?.attributes?.depth ?? 0))}
+                />
+                <StatTile
+                  label={t("board.nsq.cluster.clients")}
+                  value={formatCount(Number(overview?.attributes?.clientCount ?? 0))}
+                />
+              </div>
+            </div>
           </div>
 
-          <div style={{ display: "flex", gap: "12px", minHeight: 0, flex: 1 }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: "12px", flex: 1, minWidth: 0 }}>
-              <Panel style={{ overflow: "auto" }}>
-                <PanelHeader title={t("board.nsq.cluster.nsqd")} />
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>{t("board.nsq.cluster.address")}</TableHead>
-                      <TableHead>{t("board.nsq.cluster.version")}</TableHead>
-                      <TableHead className="num">{t("board.nsq.cluster.topics")}</TableHead>
-                      <TableHead className="num">{t("board.nsq.cluster.channels")}</TableHead>
-                      <TableHead className="num">{t("board.nsq.cluster.clients")}</TableHead>
-                      <TableHead className="num">{t("board.nsq.cluster.depth")}</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {nodes.map((entry) => (
-                      <TableRow
-                        key={entry.address}
-                        data-state={detail?.address === entry.address ? "selected" : undefined}
-                        onClick={() => setSelected(entry.address)}
-                        style={{ cursor: "pointer" }}
-                      >
-                        <TableCell>
-                          <span className="mono3" style={MONO11}>
-                            {entry.address}
-                          </span>
+          <ListArea>
+            <ListPane>
+              <SectionLabel className="px-5 pb-2">{t("board.nsq.cluster.nsqd")}</SectionLabel>
+              <Table inset>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t("board.nsq.cluster.address")}</TableHead>
+                    <TableHead>{t("board.nsq.cluster.version")}</TableHead>
+                    <TableHead className="num">{t("board.nsq.cluster.topics")}</TableHead>
+                    <TableHead className="num">{t("board.nsq.cluster.channels")}</TableHead>
+                    <TableHead className="num">{t("board.nsq.cluster.clients")}</TableHead>
+                    <TableHead className="num">{t("board.nsq.cluster.depth")}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {nodes.map((entry) => (
+                    <TableRow
+                      key={entry.address}
+                      selected={selected === entry.address}
+                      onClick={() => setSelected(entry.address)}
+                    >
+                      <TableCell>
+                        <span className="flex items-center gap-1.5">
+                          <span className="mono3 text-xs">{entry.address}</span>
                           {entry.status !== "online" && (
-                            <Status tone="warn" style={{ fontSize: "10px", marginLeft: "6px" }}>
+                            <Status tone="warn">
                               {entry.health || t("board.nsq.cluster.unhealthy")}
                             </Status>
                           )}
-                        </TableCell>
-                        <TableCell className="mono3" style={MONO11}>
-                          {entry.version}
-                        </TableCell>
-                        <TableCell className="num mono3" style={MONO11}>
-                          {count(entry.topics)}
-                        </TableCell>
-                        <TableCell className="num mono3" style={MONO11}>
-                          {count(entry.channels)}
-                        </TableCell>
-                        <TableCell className="num mono3" style={MONO11}>
-                          {count(entry.clients)}
-                        </TableCell>
-                        <TableCell className="num mono3" style={MONO11}>
-                          {count(entry.depth)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </Panel>
+                        </span>
+                      </TableCell>
+                      <TableCell>{entry.version}</TableCell>
+                      <TableCell className="num">{count(entry.topics)}</TableCell>
+                      <TableCell className="num">{count(entry.channels)}</TableCell>
+                      <TableCell className="num">{count(entry.clients)}</TableCell>
+                      <TableCell className="num">{count(entry.depth)}</TableCell>
+                    </TableRow>
+                  ))}
+                  {nodes.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
+                        {t("board.nsq.cluster.noNodes")}
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
 
-              <Panel style={{ overflow: "auto" }}>
-                <PanelHeader title={t("board.nsq.cluster.lookupd")} />
-                {directory.length === 0 ? (
-                  <p style={{ padding: "0 12px 12px", fontSize: "11.5px", color: "var(--c-muted)" }}>
-                    {t("board.nsq.cluster.noLookupd")}
-                  </p>
-                ) : (
-                  <DirectoryTable directory={directory} />
-                )}
-              </Panel>
-            </div>
+              <SectionLabel className="px-5 pt-6 pb-2">
+                {t("board.nsq.cluster.lookupd")}
+              </SectionLabel>
+              {directory.length === 0 ? (
+                <p className="px-5 pb-6 text-xs leading-relaxed text-muted-foreground">
+                  {t("board.nsq.cluster.noLookupd")}
+                </p>
+              ) : (
+                <DirectoryTable directory={directory} />
+              )}
+            </ListPane>
 
-            {detail != null && (
-              <Panel style={{ width: "320px", flex: "none", overflow: "auto" }}>
-                <PanelHeader title={detail.address} />
-                <div style={{ padding: "0 12px 12px" }}>
-                  <SectionLabel>{t("board.nsq.cluster.section.identity")}</SectionLabel>
-                  <KV
-                    rows={[
-                      [t("board.nsq.cluster.hostname"), detail.hostname || DASH],
-                      [t("board.nsq.cluster.broadcast"), detail.broadcastAddress || DASH],
-                      [t("board.nsq.cluster.tcpPort"), detail.tcpPort || DASH],
-                      [t("board.nsq.cluster.httpPort"), detail.httpPort || DASH],
-                      [t("board.nsq.cluster.health"), detail.health || DASH],
-                    ]}
-                  />
-
-                  <SectionLabel>{t("board.nsq.cluster.section.memory")}</SectionLabel>
-                  <KV
-                    rows={[
-                      [
-                        t("board.nsq.cluster.heapInUse"),
-                        detail.heapInUse == null ? DASH : formatBytes(detail.heapInUse),
-                      ],
-                      [t("board.nsq.cluster.heapObjects"), count(detail.heapObjects)],
-                      [t("board.nsq.cluster.gcRuns"), count(detail.gcRuns)],
-                    ]}
-                  />
-
-                  <SectionLabel>{t("board.nsq.cluster.section.config")}</SectionLabel>
-                  <KV
-                    rows={Object.entries(config.data ?? {}).map(([key, value]) => [
-                      key,
-                      value ?? DASH,
-                    ])}
-                  />
-                  <p style={{ marginTop: "10px", fontSize: "11px", color: "var(--c-muted)" }}>
-                    {t("board.nsq.cluster.configNote")}
-                  </p>
-                </div>
-              </Panel>
+            {current != null && (
+              <NodeSheet
+                key={current.address}
+                entry={current}
+                onClose={() => setSelected(null)}
+              />
             )}
-          </div>
-        </PageBody>
-      </BoardState>
+          </ListArea>
+        </>
+      )}
     </Page>
+  );
+}
+
+export function NodeSheet({ entry, onClose }: { entry: NsqNode; onClose: () => void }) {
+  const { t } = useTranslation();
+  const config = useNsqNodeConfig(entry.address);
+  return (
+    <DetailPanel width={380} onDismiss={onClose}>
+      <DetailPanelHeader
+        title={entry.address}
+        badge={
+          entry.status !== "online" ? (
+            <Status tone="warn">{entry.health || t("board.nsq.cluster.unhealthy")}</Status>
+          ) : undefined
+        }
+        onClose={onClose}
+      />
+      <DetailPanelBody>
+        <div>
+          <SectionLabel className="mb-1.5">{t("board.nsq.cluster.section.identity")}</SectionLabel>
+          <KV
+            rows={[
+              [t("board.nsq.cluster.hostname"), entry.hostname || DASH],
+              [t("board.nsq.cluster.broadcast"), entry.broadcastAddress || DASH],
+              [t("board.nsq.cluster.tcpPort"), entry.tcpPort || DASH],
+              [t("board.nsq.cluster.httpPort"), entry.httpPort || DASH],
+              [t("board.nsq.cluster.health"), entry.health || DASH],
+            ]}
+          />
+        </div>
+
+        <div>
+          <SectionLabel className="mb-1.5">{t("board.nsq.cluster.section.memory")}</SectionLabel>
+          <KV
+            rows={[
+              [
+                t("board.nsq.cluster.heapInUse"),
+                entry.heapInUse == null ? DASH : formatBytes(entry.heapInUse),
+              ],
+              [t("board.nsq.cluster.heapObjects"), count(entry.heapObjects)],
+              [t("board.nsq.cluster.gcRuns"), count(entry.gcRuns)],
+            ]}
+          />
+        </div>
+
+        <div>
+          <SectionLabel className="mb-1.5">{t("board.nsq.cluster.section.config")}</SectionLabel>
+          <KV
+            rows={Object.entries(config.data ?? {}).map(([key, value]) => [key, value ?? DASH])}
+          />
+          <p className="mt-2.5 text-xs leading-relaxed text-muted-foreground">
+            {t("board.nsq.cluster.configNote")}
+          </p>
+        </div>
+      </DetailPanelBody>
+    </DetailPanel>
   );
 }
 
 function DirectoryTable({ directory }: { directory: NsqDirectoryNode[] }) {
   const { t } = useTranslation();
   return (
-    <Table>
+    <Table inset>
       <TableHeader>
         <TableRow>
           <TableHead>{t("board.nsq.cluster.address")}</TableHead>
@@ -260,21 +281,11 @@ function DirectoryTable({ directory }: { directory: NsqDirectoryNode[] }) {
       <TableBody>
         {directory.map((entry) => (
           <TableRow key={entry.address}>
-            <TableCell className="mono3" style={MONO11}>
-              {entry.address}
-            </TableCell>
-            <TableCell className="mono3" style={MONO11}>
-              {entry.version}
-            </TableCell>
-            <TableCell className="num mono3" style={MONO11}>
-              {count(entry.producers)}
-            </TableCell>
-            <TableCell className="num mono3" style={MONO11}>
-              {count(entry.topics)}
-            </TableCell>
-            <TableCell className="mono3" style={MONO11}>
-              {entry.advertises.join(", ") || DASH}
-            </TableCell>
+            <TableCell className="mono3 text-xs">{entry.address}</TableCell>
+            <TableCell>{entry.version}</TableCell>
+            <TableCell className="num">{count(entry.producers)}</TableCell>
+            <TableCell className="num">{count(entry.topics)}</TableCell>
+            <TableCell className="mono3 text-xs">{entry.advertises.join(", ") || DASH}</TableCell>
           </TableRow>
         ))}
       </TableBody>

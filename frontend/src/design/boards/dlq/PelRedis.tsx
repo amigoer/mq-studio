@@ -12,7 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Panel, SectionLabel, SelectField, Status, toast, useConfirm } from "@/components";
-import { BoardState } from "@/design/boards/BoardState";
+import { BoardState, Notice } from "@/design/boards/BoardState";
 import { ClaimDialog } from "./ClaimDialog";
 import { useRedisGroups } from "@/hooks/redis/useRedisGroups";
 import { useRedisPending } from "@/hooks/redis/useRedisPending";
@@ -231,24 +231,15 @@ export function PelRedis() {
         state={pending}
         empty={
           entries.length === 0 ? (
-            <ListArea>
-              <ListPane>
-                <div
-                  style={{
-                    padding: "24px",
-                    fontSize: "11.5px",
-                    color: "var(--c-muted)",
-                    textAlign: "center",
-                  }}
-                >
-                  {groupRows.length === 0
-                    ? t("board.dlq.redis.noGroups")
-                    : minIdleMs > 0
-                      ? t("board.dlq.redis.nothingIdle")
-                      : t("board.dlq.redis.nothingPending")}
-                </div>
-              </ListPane>
-            </ListArea>
+            <Notice
+              title={
+                groupRows.length === 0
+                  ? t("board.dlq.redis.noGroups")
+                  : minIdleMs > 0
+                    ? t("board.dlq.redis.nothingIdle")
+                    : t("board.dlq.redis.nothingPending")
+              }
+            />
           ) : undefined
         }
       >
@@ -338,11 +329,10 @@ export function PelRedis() {
                       <TableCell className="mono3" style={MONO11}>
                         {entry.consumer}
                       </TableCell>
-                      <TableCell className="mono3" style={RIGHT}>
+                      <TableCell style={RIGHT}>
                         {formatIdle(entry.idleMs)}
                       </TableCell>
                       <TableCell
-                        className="mono3"
                         style={{
                           ...RIGHT,
                           // Climbing deliveries are the closest thing Redis has

@@ -415,14 +415,14 @@
     "titleBar": {
       "homeLabel": "MQ Studio home",
       "home": "Home",
-      "search": "Search ⌘K",
+      "search": "Search…",
       "checkUpdate": "Check for updates",
       "updateAvailable": "Version {{version}} is available — click to see it",
       "github": "GitHub",
       "notifications": "Notifications",
       "notificationsUnread": "Notifications · {{count}} unread",
       "settings": "Settings",
-      "assistant": "Assistant ⌘J"
+      "assistant": "Assistant"
     },
     "tabs": {
       "new": "New connection",
@@ -883,10 +883,14 @@
   "page": {
     "connections": {
       "title": "Connections",
-      "subtitle": "Double-click a row to open it in a new tab · Credentials are encrypted on this machine",
+      "subtitle": "Double-click to open in a new tab · Credentials are encrypted on this machine",
+      "view": {
+        "grid": "Card view",
+        "list": "List view"
+      },
       "import": "Import",
       "export": "Export",
-      "new": "+ New connection",
+      "new": "New connection",
       "searchPlaceholder": "Search connections…",
       "all": "All {{count}}",
       "sort": {
@@ -1633,6 +1637,7 @@
       "cancel": "Cancel",
       "topic": "Topic",
       "memory": "Memory",
+      "disk": "Disk",
       "target": "Target",
       "exchange": "Exchange",
       "features": "Features",
@@ -1657,7 +1662,7 @@
       "deleteGroup": "Delete group",
       "byTime": "By time",
       "byKey": "By key",
-      "newTopic": "+ New topic",
+      "newTopic": "New topic",
       "trace": "Trace",
       "redeliver": "Redeliver",
       "dlqRetry": "Dead letter / retry",
@@ -1781,9 +1786,12 @@
       "rocketmq": {
         "systemHidden": "System topics hidden",
         "consume": "Consume 3 118",
-        "produceMsg": "— produce msg/s",
-        "consumeMsg": "— consume msg/s",
+        "produceMsg": "Produce",
+        "consumeMsg": "Consume",
         "brokerHealth": "Broker health",
+        "viewAll": "View all",
+        "commitLog": "CommitLog disk",
+        "brokersOnline": "{{online}} / {{total}} online",
         "liveSubtitle": "Cluster {{cluster}}",
         "online": "{{count}} online",
         "consumeRate": "Consuming {{rate}}/s",
@@ -2026,7 +2034,6 @@
         }
       },
       "mqtt": {
-        "title": "Nodes",
         "node": "Node",
         "nodes": "Nodes",
         "role": "Role",
@@ -2038,13 +2045,12 @@
         "memory": "Memory used / total",
         "load": "Load (1m)",
         "uptime": "Uptime",
-        "detail": "Node",
-        "noNode": "No node selected",
         "fromApi": "named by the broker's api",
         "fromSession": "the broker this session is on",
         "enumerated": "the cluster's own list",
         "oneSocket": "a session is one socket, so this is the only broker it knows about",
-        "sessionOnly": "MQTT says nothing about how a broker is deployed. Without a management API there is one broker to report — the one this session is connected to — and nothing further about it."
+        "sessionOnly": "MQTT says nothing about how a broker is deployed. Without a management API there is one broker to report — the one this session is connected to — and nothing further about it.",
+        "none": "No nodes"
       },
       "nats": {
         "title": "Servers",
@@ -2842,11 +2848,18 @@
         "expiry": "Session expiry (s)",
         "listener": "Listener",
         "queueDropped": "Queue dropped",
-        "noClients": "No session selected",
         "kickTitle": "Disconnect {{client}}?",
-        "kickDesc": "Most clients reconnect at once, so this is a nudge rather than an eviction. On a persistent session the queued messages stay behind."
+        "kickDesc": "Most clients reconnect at once, so this is a nudge rather than an eviction. On a persistent session the queued messages stay behind.",
+        "none": "No sessions yet"
       },
       "kafka": {
+        "col": {
+          "member": "Member",
+          "committed": "Committed",
+          "end": "End",
+          "lag": "Lag",
+          "host": "Host"
+        },
         "subtitle": "Groups the cluster holds committed offsets for",
         "lagOnly": "Only groups with lag",
         "totalLag": "Total lag",
@@ -2964,7 +2977,7 @@
           "done": "Set {{queue}} to offset {{offset}}"
         },
         "form": {
-          "newAction": "+ New group",
+          "newAction": "New group",
           "newTitle": "New consumer group",
           "editTitle": "Edit consumer group",
           "nameLabel": "Group name",
@@ -3484,7 +3497,7 @@
       "noteProps": "Properties go in the shared block · a failed schema check rejects the send",
       "autoId": "* (automatic)",
       "fields": "Fields · field / value",
-      "addField": "+ Add field",
+      "addField": "Add field",
       "noteXadd": "* generates the ID · maxlen ~ trims approximately, which is faster",
       "messageExpiry": "Message expiry",
       "responseTopic": "Response topic",
@@ -3492,7 +3505,7 @@
       "protocolSpecific": "Protocol-specific ·",
       "subtitle": "Compose and send a test message · drafts save themselves",
       "send": "Send",
-      "add": "+ Add",
+      "add": "Add",
       "sent": "Sent",
       "options": "Send options",
       "count": "Repeat",
@@ -3989,6 +4002,13 @@
         "found": "{{count}} open",
         "none": "Nothing is connected, which cannot include this connection - try refreshing.",
         "noMatches": "No connection matches the search.",
+        "col": {
+          "database": "DB",
+          "command": "Last command",
+          "idle": "Idle",
+          "age": "Age",
+          "traffic": "In / out"
+        },
         "unnamed": "unnamed",
         "thisApp": "this app",
         "close": "Kill",
@@ -4086,6 +4106,7 @@
         "deadLetterAddress": "Dead letters to",
         "expiryAddress": "Expired to",
         "filter": "Filter",
+        "none": "No destinations yet",
         "deadLetterBadge": "DLQ",
         "pausedBadge": "Paused",
         "section": {
@@ -4151,10 +4172,12 @@
           "state": "Progress",
           "identity": "Identity and rules"
         },
-        "note": "A subscription with nothing attached is not a fault — the broker is holding messages for a client that has gone away, which is what durable means."
+        "note": "A subscription with nothing attached is not a fault — the broker is holding messages for a client that has gone away, which is what durable means.",
+        "none": "No durable subscriptions yet"
       },
       "messages": {
         "count": "{{count}} messages",
+        "pickDestination": "Pick a destination",
         "browse": "Browse",
         "id": "Message id",
         "body": "Body",
@@ -4194,9 +4217,9 @@
         "noSourcesClassic": "Classic decides where a dead letter goes by a broker-wide policy and keeps no record of what fed this destination. Naming the sources from the destination list would be a guess.",
         "noSourcesArtemis": "Nothing points here any more. Whatever is holding will stay: no queue names this address, so it will never receive anything again.",
         "section": {
-          "state": "State",
           "sources": "Fed by"
-        }
+        },
+        "none": "No dead-letter destinations yet"
       },
       "producer": {
         "title": "Send a message",
@@ -4261,7 +4284,8 @@
           "storage": "Storage",
           "availability": "Availability",
           "settings": "Effective settings"
-        }
+        },
+        "none": "No broker could be read"
       },
       "clients": {
         "count": "{{count}} connections",
@@ -4286,7 +4310,8 @@
         "sessionNote": "Sessions are not channels. A channel has its own prefetch and flow control and can be closed on its own; a JMS session is a unit of work inside the connection and has none of that, which is why it is a column here rather than a page.",
         "section": {
           "identity": "Connection"
-        }
+        },
+        "none": "No client is connected to this broker"
       },
       "overview": {
         "subtitle": "{{product}} {{version}}",
@@ -4377,7 +4402,8 @@
         "deleteTitle": "Delete {{name}}?",
         "deleteDesc": "The topic, its channels and everything they hold go, on every nsqd and in the discovery tier. There is no undo.",
         "deleted": "Deleted {{name}}",
-        "deleteFailed": "Could not delete the topic"
+        "deleteFailed": "Could not delete the topic",
+        "none": "No topics yet"
       },
       "channels": {
         "count": "{{count}} channels",
@@ -4421,7 +4447,8 @@
         "deleted": "Deleted {{name}}",
         "deleteFailed": "Could not delete the channel",
         "stalled": "{{count}} messages are waiting because this channel is paused. Its consumers are connected and asking for work; nsqd is sending none until the pause is lifted.",
-        "note": "A channel is this family's consumer group: every channel under a topic receives a copy of every message, and its depth is the backlog. There is no offset behind that depth, so nothing here moves a read position — a backlog is consumed or emptied, and there is no third way. In flight and deferred sit outside it."
+        "note": "A channel is this family's consumer group: every channel under a topic receives a copy of every message, and its depth is the backlog. There is no offset behind that depth, so nothing here moves a read position — a backlog is consumed or emptied, and there is no third way. In flight and deferred sit outside it.",
+        "none": "No channels yet"
       },
       "producer": {
         "subtitle": "One body, to one nsqd",
@@ -4482,7 +4509,8 @@
           "config": "Settings"
         },
         "configNote": "What this daemon is running with, as it reports itself. nsqd exposes only these — everything else it was started with is a flag it does not report.",
-        "advertiseMismatch": "nsqlookupd is advertising {{addresses}}, which this connection cannot reach. Consumers that find their nsqd through discovery are being sent there; check each daemon's --broadcast-address."
+        "advertiseMismatch": "nsqlookupd is advertising {{addresses}}, which this connection cannot reach. Consumers that find their nsqd through discovery are being sent there; check each daemon's --broadcast-address.",
+        "noNodes": "No nsqd could be read"
       },
       "clients": {
         "count": "{{count}} connected",
@@ -4517,7 +4545,8 @@
           "consumer": "Consumer",
           "producer": "Producer"
         },
-        "published": "Published"
+        "published": "Published",
+        "none": "Nothing is connected"
       },
       "overview": {
         "subtitle": "{{nodes}} nsqd and {{directory}} nsqlookupd, on {{version}}",
@@ -4567,7 +4596,6 @@
         "createdAt": "Created",
         "modified": "Last changed",
         "section": {
-          "messages": "Messages",
           "settings": "Settings",
           "fifo": "FIFO",
           "identity": "Identity"
@@ -4601,7 +4629,8 @@
         "deleteTitle": "Delete {{name}}?",
         "deleteDesc": "The queue and every message in it go, and there is no undo. SQS refuses the name for 60 seconds afterwards, so it cannot be recreated straight away.",
         "deleted": "Deleted {{name}}",
-        "deleteFailed": "Could not delete the queue"
+        "deleteFailed": "Could not delete the queue",
+        "none": "No queues yet"
       },
       "messages": {
         "title": "Messages",
@@ -4670,7 +4699,8 @@
         "noSources": "nothing",
         "redrivesHere": "redrives here",
         "orphaned": "Nothing redrives into this queue any more. Whatever is in it will stay there: the queues that pointed here were deleted or reconfigured, and no consumer of theirs is coming back for it.",
-        "note": "Nothing marks a dead-letter queue in SQS — it is an ordinary queue another queue's redrive policy points at, so these were found by walking backwards from the queues this connection can see. Read one on the messages page; the receive limit that fills it is on the queue's own row."
+        "note": "Nothing marks a dead-letter queue in SQS — it is an ordinary queue another queue's redrive policy points at, so these were found by walking backwards from the queues this connection can see. Read one on the messages page; the receive limit that fills it is on the queue's own row.",
+        "none": "No dead-letter queues yet"
       },
       "overview": {
         "subtitle": "{{region}} · {{queues}} queues",
@@ -4734,7 +4764,8 @@
         "retentionHint": "Seconds to keep a published message available for a subscription to seek back into. Zero keeps it only until every subscription has acknowledged it.",
         "retentionRange": "Retention is between 600 seconds and 31 days, or zero to leave it unset.",
         "labels": "Labels",
-        "labelsHint": "One key=value per line. The whole set is replaced on save, because the API replaces the field rather than one key."
+        "labelsHint": "One key=value per line. The whole set is replaced on save, because the API replaces the field rather than one key.",
+        "none": "No topics yet"
       },
       "subscriptions": {
         "count": "{{count}} subscriptions",
@@ -4809,7 +4840,8 @@
           "identity": "Identity",
           "labels": "Labels",
           "snapshots": "Restore points"
-        }
+        },
+        "none": "No subscriptions yet"
       },
       "messages": {
         "title": "Messages",
@@ -4868,7 +4900,8 @@
         "noReaderBadge": "no subscription",
         "noReaderNote": "Nothing subscribes to this topic, so every dead letter that arrives is discarded on the spot. The messages a system gave up on are the ones nobody notices disappearing.",
         "orphaned": "No subscription points here any more. It will never receive another dead letter, and whatever it holds is waiting on subscriptions that no longer exist.",
-        "note": "A dead-letter topic is an ordinary topic a subscription's policy points at. The policy is on the subscription, so each source names both the topic and the reader that stopped trying."
+        "note": "A dead-letter topic is an ordinary topic a subscription's policy points at. The policy is on the subscription, so each source names both the topic and the reader that stopped trying.",
+        "none": "No dead-letter topics yet"
       },
       "overview": {
         "subtitle": "{{project}} · {{topics}} topics",
@@ -4944,7 +4977,8 @@
           "charset": "Letters, digits and - . _ ~ only, with / between path segments.",
           "reserved": "A name starting with $ addresses a sub-entity such as $DeadLetterQueue, which has a page of its own.",
           "separator": "A / separates path segments, so a name cannot start or end with one."
-        }
+        },
+        "none": "No queues or topics yet"
       },
       "subscriptions": {
         "count": "{{count}} subscription(s)",
@@ -4988,7 +5022,8 @@
           "reserved": "A name starting with $ addresses a sub-entity such as $DeadLetterQueue, which has a page of its own.",
           "separator": "A subscription name cannot start or end with a separator."
         },
-        "note": "A subscription is where a topic's messages actually are: each send is copied into every subscription whose rules let it through. Nothing registers as a consumer, so there is no reader count to show."
+        "note": "A subscription is where a topic's messages actually are: each send is copied into every subscription whose rules let it through. Nothing registers as a consumer, so there is no reader count to show.",
+        "none": "No subscriptions yet"
       },
       "messages": {
         "title": "Messages",
@@ -5121,7 +5156,8 @@
           "filter": "What it matches",
           "action": "What it changes"
         },
-        "note": "A rule is an object rather than a setting: it has a name, several may sit on one subscription, and each is a filter plus an optional action. A subscription with no rules receives nothing while still reporting itself Active."
+        "note": "A rule is an object rather than a setting: it has a name, several may sit on one subscription, and each is a filter plus an optional action. A subscription with no rules receives nothing while still reporting itself Active.",
+        "none": "No rules yet"
       },
       "overview": {
         "subtitle": "{{namespace}} · {{entities}} queue(s) and topic(s)",
@@ -5189,7 +5225,8 @@
         "retentionProblem": {
           "tooShort": "Kinesis keeps a record for at least 24 hours.",
           "tooLong": "Kinesis keeps a record for at most 8760 hours, which is a year."
-        }
+        },
+        "none": "No streams yet"
       },
       "shards": {
         "count": "{{open}} open, {{closed}} closed",
@@ -5211,7 +5248,8 @@
           "lineage": "Lineage"
         },
         "closedNote": "This shard takes no more writes, and it is not empty: it keeps the records written before the split or merge until the retention period expires. A consumer that jumped straight to the children skipped them.",
-        "note": "Shards are split and merged rather than resized, so a resized stream lists more shards than it has open. Key share is the slice of the hash space a shard takes — records land on the shard whose range covers the hash of their partition key."
+        "note": "Shards are split and merged rather than resized, so a resized stream lists more shards than it has open. Key share is the slice of the hash space a shard takes — records land on the shard whose range covers the hash of their partition key.",
+        "none": "No shards"
       },
       "messages": {
         "title": "Records",
@@ -5283,7 +5321,8 @@
         "section": {
           "registration": "Registration"
         },
-        "note": "Enhanced fan-out consumers only, because they are the only readers a stream knows about. Anything else reading — the KCL, a Lambda event source, any call to GetRecords — registers nothing and keeps its position in a DynamoDB table this connection never sees, which is also why there is no backlog here."
+        "note": "Enhanced fan-out consumers only, because they are the only readers a stream knows about. Anything else reading — the KCL, a Lambda event source, any call to GetRecords — registers nothing and keeps its position in a DynamoDB table this connection never sees, which is also why there is no backlog here.",
+        "none": "No registered consumers yet"
       },
       "overview": {
         "subtitle": "{{region}} · {{streams}} streams",
@@ -5359,7 +5398,8 @@
         "deleteTitle": "Delete {{name}}?",
         "deleteDesc": "The definition is removed. A queue an application currently has open is refused by the queue manager.",
         "deleteHolding": "This queue holds {{count}} messages and they go with it. They are discarded rather than moved to the dead-letter queue, and there is no undo.",
-        "deleteFailed": "Could not delete"
+        "deleteFailed": "Could not delete",
+        "none": "No queues or topics yet"
       },
       "channels": {
         "count": "{{count}} channels",
@@ -5392,7 +5432,8 @@
           "definition": "Definition",
           "runtime": "Runtime"
         },
-        "note": "Definitions, not connections: a channel is listed whether or not anything is using it, because it is what decides whether anything may. An empty status is a real answer — a channel nobody has started has none, and a client-connection definition is one this queue manager holds on behalf of clients and never runs. The counters are one instance's totals since it started and reset when it restarts."
+        "note": "Definitions, not connections: a channel is listed whether or not anything is using it, because it is what decides whether anything may. An empty status is a real answer — a channel nobody has started has none, and a client-connection definition is one this queue manager holds on behalf of clients and never runs. The counters are one instance's totals since it started and reset when it restarts.",
+        "none": "No channels yet"
       },
       "messages": {
         "title": "Messages",
@@ -5462,7 +5503,8 @@
         "threshold": "After",
         "thresholdNone": "never — the backout threshold is zero",
         "nobodyDraining": "Nothing has this queue open for input. A dead-letter queue with a depth and no handler is a backlog nobody is looking at.",
-        "note": "Nothing here is marked as a dead-letter queue: what makes one is the queue manager's DEADQ attribute or another queue's backout queue pointing at it. The two are filled by different things — the queue manager fills its own DEADQ with whatever it could not deliver, and a backout queue is filled by whichever application gave up after the threshold. Message bodies are on the messages page, where every dead letter is listed and none can be opened: a dead letter carries a dead-letter header, and the REST interface returns character data only."
+        "note": "Nothing here is marked as a dead-letter queue: what makes one is the queue manager's DEADQ attribute or another queue's backout queue pointing at it. The two are filled by different things — the queue manager fills its own DEADQ with whatever it could not deliver, and a backout queue is filled by whichever application gave up after the threshold. Message bodies are on the messages page, where every dead letter is listed and none can be opened: a dead letter carries a dead-letter header, and the REST interface returns character data only.",
+        "none": "No dead-letter queues yet"
       },
       "subscriptions": {
         "count": "{{count}} subscriptions",
@@ -5495,7 +5537,8 @@
           "runtime": "Runtime"
         },
         "unread": "Publications are collecting on {{queue}} and nothing is reading it. A subscription with no reader fills its destination queue until the queue is full, and then the queue manager starts dead-lettering.",
-        "note": "Two numbers, and they mean different things: received is how many publications the subscription has ever taken, and waiting is how many are still on the queue it delivers to. \"Subscriber attached\" is usually no and usually fine — an operator-defined subscription has nothing attached by design, and whichever application reads its destination queue is the consumer."
+        "note": "Two numbers, and they mean different things: received is how many publications the subscription has ever taken, and waiting is how many are still on the queue it delivers to. \"Subscriber attached\" is usually no and usually fine — an operator-defined subscription has nothing attached by design, and whichever application reads its destination queue is the consumer.",
+        "none": "No subscriptions yet"
       },
       "overview": {
         "subtitle": "{{qmgr}} · {{queues}} queues",
@@ -5576,7 +5619,8 @@
         "deleteDesc": "The queue and its topic subscriptions go. This cannot be undone.",
         "deleteHolding": "The queue holds {{count}} messages. They are discarded with it — not moved to a dead message queue — and this cannot be undone.",
         "deleted": "Deleted {{name}}",
-        "deleteFailed": "Could not delete the queue"
+        "deleteFailed": "Could not delete the queue",
+        "none": "No queues yet"
       },
       "messages": {
         "title": "Messages",
@@ -5666,7 +5710,8 @@
         "section": {
           "sources": "Pointed at by"
         },
-        "note": "Nothing on this broker marks a queue as a dead message queue. Every row here is an ordinary queue that another endpoint names."
+        "note": "Nothing on this broker marks a queue as a dead message queue. Every row here is an ordinary queue that another endpoint names.",
+        "none": "No dead-letter queues yet"
       },
       "routing": {
         "count": "{{subscriptions}} subscriptions · {{endpoints}} topic endpoints",
@@ -5727,7 +5772,8 @@
           "library": "Client library",
           "limits": "Profiles and traffic"
         },
-        "note": "Sessions marked \"broker\" are the appliance talking to itself. They hold real resources, so they are listed rather than hidden. Binds are flows to endpoints, not channels: this protocol has none."
+        "note": "Sessions marked \"broker\" are the appliance talking to itself. They hold real resources, so they are listed rather than hidden. Binds are flows to endpoints, not channels: this protocol has none.",
+        "none": "No client sessions yet"
       },
       "cluster": {
         "nothing": "The broker did not answer for itself.",

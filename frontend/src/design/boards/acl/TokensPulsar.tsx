@@ -144,15 +144,15 @@ export function TokensPulsar() {
         subtitle={scope}
         actions={
           <>
-            <Button size="sm" onClick={() => setGranting(true)} disabled={!grants.online}>
-              <Plus size={14} aria-hidden />
-              {t("board.acl.pulsar.grant")}
-            </Button>
             <RefreshButton
               refreshing={grants.refreshing}
               online={grants.online}
               onClick={() => void refreshAll()}
             />
+            <Button size="sm" onClick={() => setGranting(true)} disabled={!grants.online}>
+              <Plus size={14} aria-hidden />
+              {t("board.acl.pulsar.grant")}
+            </Button>
           </>
         }
       />

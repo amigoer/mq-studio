@@ -1,4 +1,5 @@
 import { beforeAll, describe, expect, it, vi } from "vitest";
+import type { ClientConnection, Destination } from "@bindings/model/models";
 
 /**
  * Every Solace board, through the states it can be in.
@@ -76,11 +77,16 @@ vi.mock("@/hooks/solace/useSolaceBrowse", () => ({
 
 let render: (element: React.ReactElement) => string;
 let QueuesSolace: typeof import("./topics/QueuesSolace").QueuesSolace;
+let QueueSheet: typeof import("./topics/QueuesSolace").QueueSheet;
+let readDestination: typeof import("@/mq/solace/destinations").destination;
+let readClient: typeof import("@/mq/solace/clients").client;
 let RoutingSolace: typeof import("./topics/RoutingSolace").RoutingSolace;
 let MessagesSolace: typeof import("./messages/MessagesSolace").MessagesSolace;
 let ProducerSolace: typeof import("./producer/ProducerSolace").ProducerSolace;
 let DlqSolace: typeof import("./dlq/DlqSolace").DlqSolace;
+let DeadLetterSheet: typeof import("./dlq/DlqSolace").DeadLetterSheet;
 let ClientsSolace: typeof import("./consumers/ClientsSolace").ClientsSolace;
+let ClientSheet: typeof import("./consumers/ClientsSolace").ClientSheet;
 let BrokerSolace: typeof import("./cluster/BrokerSolace").BrokerSolace;
 let OverviewSolace: typeof import("./overview/OverviewSolace").OverviewSolace;
 
@@ -105,6 +111,8 @@ beforeAll(async () => {
     clients,
     cluster,
     overview,
+    destinations,
+    clientModel,
     ui,
     i18n,
     settings,
@@ -119,6 +127,8 @@ beforeAll(async () => {
     import("./consumers/ClientsSolace"),
     import("./cluster/BrokerSolace"),
     import("./overview/OverviewSolace"),
+    import("@/mq/solace/destinations"),
+    import("@/mq/solace/clients"),
     import("@/components"),
     import("@/i18n"),
     import("@/hooks/useSettings"),
@@ -134,11 +144,16 @@ beforeAll(async () => {
       </ui.ConfirmProvider>,
     );
   QueuesSolace = queues.QueuesSolace;
+  QueueSheet = queues.QueueSheet;
+  readDestination = destinations.destination;
+  readClient = clientModel.client;
   RoutingSolace = routing.RoutingSolace;
   MessagesSolace = messages.MessagesSolace;
   ProducerSolace = producer.ProducerSolace;
   DlqSolace = dlq.DlqSolace;
+  DeadLetterSheet = dlq.DeadLetterSheet;
   ClientsSolace = clients.ClientsSolace;
+  ClientSheet = clients.ClientSheet;
   BrokerSolace = cluster.BrokerSolace;
   OverviewSolace = overview.OverviewSolace;
 });
@@ -469,9 +484,17 @@ describe("the Solace queues board", () => {
     destinationsState.current = stateOf({ data: [audit] });
     const html = render(<QueuesSolace />);
     expect(html).toContain("mqstudio/seed/audit");
-    // The detail panel opens on the first row and shows both, so what is
-    // checked is that the lifetime figure is labelled rather than absent.
-    expect(html).toContain("累计入队");
+    // The sheet opens on a row click and shows both, so it is rendered
+    // directly: what is checked is that the lifetime figure is labelled
+    // rather than absent.
+    const sheet = render(
+      <QueueSheet
+        entry={readDestination(audit as Destination)}
+        onDelete={() => {}}
+        onClose={() => {}}
+      />,
+    );
+    expect(sheet).toContain("累计入队");
   });
 
   it("marks a queue that names a dead message queue", () => {
@@ -617,6 +640,10 @@ describe("the Solace dead messages board", () => {
     expect(html).toContain("#DEAD_MSG_QUEUE");
     expect(html).toContain("未创建");
     expect(html).toContain("mqstudio/seed/dmq");
+    // The sheet opens on a row click, so both rows are rendered through it.
+    for (const entry of [realDeadLetter, missingDeadLetter]) {
+      expect(render(<DeadLetterSheet entry={entry} onClose={() => {}} />)).toContain(entry.name);
+    }
   });
 });
 
@@ -649,6 +676,16 @@ describe("the Solace clients board", () => {
     expect(html).toContain("orders-service/1");
     expect(html).toContain("#client");
     expect(html).toContain("Broker");
+    // The sheet opens on a row click, so both sessions are rendered through it.
+    for (const session of [application, internal]) {
+      const sheet = render(
+        <ClientSheet
+          entry={readClient(session as unknown as ClientConnection)}
+          onClose={() => {}}
+        />,
+      );
+      expect(sheet).toContain(session.name);
+    }
   });
 });
 

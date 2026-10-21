@@ -41,6 +41,8 @@ const stylesheets: Record<string, string> = Object.fromEntries(
 const DEFINED_IN_CSS = /(--[a-zA-Z][\w-]*)\s*:/g;
 // Set from script: style.setProperty("--x", ...) or a style object's "--x" key.
 const DEFINED_IN_SCRIPT = /(?:setProperty\(\s*|[{,]\s*)["'](--[a-zA-Z][\w-]*)["']/g;
+// Tailwind's arbitrary property: [--card-spacing:--spacing(4)].
+const DEFINED_BY_UTILITY = /\[(--[a-zA-Z][\w-]*):/g;
 
 // What follows the name tells a bare read from a template or a fallback.
 const READ_BY_VAR = /var\(\s*(--[a-zA-Z][\w-]*)(\$\{)?\s*(,)?/g;
@@ -60,6 +62,7 @@ function definedNames(): Set<string> {
   for (const [pattern, files] of [
     [DEFINED_IN_CSS, stylesheets],
     [DEFINED_IN_SCRIPT, scripts],
+    [DEFINED_BY_UTILITY, scripts],
   ] as const) {
     for (const source of Object.values(files)) {
       for (const match of source.matchAll(pattern)) {

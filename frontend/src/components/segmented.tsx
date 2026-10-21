@@ -42,7 +42,7 @@ export function Segmented<T extends string>({
     >
       <TabsList
         className={cn(
-          soft ? "gap-0.5 bg-(--c-fill)" : "h-auto gap-0.5 border bg-background p-0.5",
+          soft ? "gap-0.5 bg-(--c-fill)" : "h-auto gap-0.5 bg-(--c-fill-mute) p-0.5",
           block && "w-full",
         )}
       >
@@ -57,7 +57,9 @@ export function Segmented<T extends string>({
                 ? // The dark chip is lighter than its track, where the light one is
                   // whiter: raised reads as brighter on either ground.
                   "text-(--c-fg-2) data-[state=active]:font-medium dark:data-[state=active]:bg-(--c-border-strong)"
-                : "py-[3px] data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-none",
+                : // A raised chip on a sunken track, as a native segmented
+                  // control draws it; inverted ink was as loud as a primary button.
+                  "py-[3px] text-(--c-fg-2) data-[state=active]:bg-background data-[state=active]:font-medium data-[state=active]:text-foreground data-[state=active]:shadow-[0_1px_2px_rgba(28,25,23,0.08),0_0_0_0.5px_rgba(28,25,23,0.06)] dark:data-[state=active]:bg-(--c-border-strong)",
             )}
           >
             {option.label}

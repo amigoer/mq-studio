@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { NOTICE_PANE, Notice } from "@/design/boards/BoardState";
 import { ListArea, ListPane, Page, PageHeader, Toolbar } from "@/design/shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -153,24 +154,21 @@ export function MessagesNats() {
       )}
 
       <ListArea>
-        <ListPane>
+        <ListPane
+          style={browse.error != null || browse.messages.length === 0 ? NOTICE_PANE : undefined}
+        >
           {browse.error != null ? (
-            <div style={{ padding: "24px", fontSize: "11.5px", color: "var(--c-err)" }}>
+            <Notice title={t("board.state.failed")} tone="var(--c-err)">
               {browse.error}
-            </div>
+            </Notice>
           ) : browse.messages.length === 0 ? (
-            <div
-              style={{
-                padding: "24px",
-                fontSize: "11.5px",
-                color: "var(--c-muted)",
-                textAlign: "center",
-              }}
-            >
-              {browse.searched
-                ? t("board.messages.nats.noMatches")
-                : t("board.messages.nats.startHere")}
-            </div>
+            <Notice
+              title={
+                browse.searched
+                  ? t("board.messages.nats.noMatches")
+                  : t("board.messages.nats.startHere")
+              }
+            />
           ) : (
             <Table inset>
               <TableHeader>

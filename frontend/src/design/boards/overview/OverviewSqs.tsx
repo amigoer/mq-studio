@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { ArrowRightLeft, Clock, Inbox, Layers, TriangleAlert } from "lucide-react";
 import { Page, PageBody, PageHeader, RefreshButton } from "@/design/shell";
 import { Panel, PanelHeader, StatTile } from "@/components";
 import {
@@ -18,7 +19,6 @@ import { useConnectionProfiles } from "@/hooks/useConnectionProfiles";
 import { formatCount } from "@/lib/format";
 import { KPI_GRID } from "./_shared";
 
-const MONO11 = { fontSize: "11px" } as const;
 
 /**
  * The Amazon SQS overview.
@@ -103,26 +103,36 @@ export function OverviewSqs() {
           <div className={KPI_GRID}>
             <StatTile
               label={t("board.sqs.overview.queues")}
+              icon={Layers}
+              tone="violet"
               value={formatCount(queues.length)}
               hint={t("board.sqs.overview.queuesHint")}
             />
             <StatTile
               label={t("board.sqs.overview.visible")}
+              icon={Inbox}
+              tone="orange"
               value={formatCount(visible)}
               hint={t("board.sqs.overview.visibleHint")}
             />
             <StatTile
               label={t("board.sqs.overview.inFlight")}
+              icon={ArrowRightLeft}
+              tone="blue"
               value={formatCount(inFlight)}
               hint={t("board.sqs.overview.inFlightHint")}
             />
             <StatTile
               label={t("board.sqs.overview.delayed")}
+              icon={Clock}
+              tone="slate"
               value={formatCount(delayed)}
               hint={t("board.sqs.overview.delayedHint")}
             />
             <StatTile
               label={t("board.sqs.overview.deadLettered")}
+              icon={TriangleAlert}
+              tone="pink"
               value={formatCount(deadLettered)}
               hint={t("board.sqs.overview.deadLetteredHint")}
               valueColor={deadLettered > 0 ? "var(--c-warn-text)" : undefined}
@@ -131,7 +141,7 @@ export function OverviewSqs() {
 
           <Panel>
             <PanelHeader title={t("board.sqs.overview.busiest")} />
-            <Table>
+            <Table inset="card">
               <TableHeader>
                 <TableRow>
                   <TableHead>{t("board.sqs.queues.name")}</TableHead>
@@ -144,26 +154,10 @@ export function OverviewSqs() {
               <TableBody>
                 {busiest.map((entry) => (
                   <TableRow key={entry.name}>
-                    <TableCell>
-                      <span className="mono3" style={MONO11}>
-                        {entry.name}
-                      </span>
-                    </TableCell>
-                    <TableCell className="num">
-                      <span className="mono3" style={MONO11}>
-                        {formatCount(entry.visible ?? 0)}
-                      </span>
-                    </TableCell>
-                    <TableCell className="num">
-                      <span className="mono3" style={MONO11}>
-                        {formatCount(entry.inFlight ?? 0)}
-                      </span>
-                    </TableCell>
-                    <TableCell className="num">
-                      <span className="mono3" style={MONO11}>
-                        {formatCount(entry.delayed ?? 0)}
-                      </span>
-                    </TableCell>
+                    <TableCell className="select-text">{entry.name}</TableCell>
+                    <TableCell className="num">{formatCount(entry.visible ?? 0)}</TableCell>
+                    <TableCell className="num">{formatCount(entry.inFlight ?? 0)}</TableCell>
+                    <TableCell className="num">{formatCount(entry.delayed ?? 0)}</TableCell>
                     <TableCell>
                       <span style={{ fontSize: "11px", color: "var(--c-muted)" }}>
                         {deadLetterTargets.has(entry.name)

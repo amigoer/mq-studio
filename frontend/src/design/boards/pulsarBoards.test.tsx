@@ -39,11 +39,19 @@ function stateOf<T>(over: Partial<BrokerState<T>>): BrokerState<T> {
 const clusterState = vi.hoisted(() => ({ current: null as unknown }));
 const configState = vi.hoisted(() => ({ current: null as unknown }));
 const metadataState = vi.hoisted(() => ({ current: null as unknown }));
+const namespacesState = vi.hoisted(() => ({ current: null as unknown }));
+const deadLettersState = vi.hoisted(() => ({ current: null as unknown }));
 
 vi.mock("@/hooks/pulsar/usePulsarCluster", () => ({
   usePulsarCluster: () => clusterState.current,
   usePulsarBrokerConfig: () => configState.current,
   usePulsarMetadataStore: () => metadataState.current,
+}));
+vi.mock("@/hooks/pulsar/usePulsarNamespaces", () => ({
+  usePulsarNamespaces: () => namespacesState.current,
+}));
+vi.mock("@/hooks/pulsar/usePulsarDeadLetters", () => ({
+  usePulsarDeadLetters: () => deadLettersState.current,
 }));
 vi.mock("@/mq/ConnectionScope", () => ({
   useConnectionScope: () => ({ id: 1, kind: "pulsar", key: "p1", online: true }),
@@ -52,6 +60,7 @@ vi.mock("@/mq/ConnectionScope", () => ({
 let render: (element: React.ReactElement) => string;
 let OverviewPulsar: typeof import("./overview/OverviewPulsar").OverviewPulsar;
 let BrokersPulsar: typeof import("./cluster/BrokersPulsar").BrokersPulsar;
+let DlqPulsar: typeof import("./dlq/DlqPulsar").DlqPulsar;
 
 beforeAll(async () => {
   const storage = { getItem: () => null, setItem() {}, removeItem() {} };
@@ -64,10 +73,11 @@ beforeAll(async () => {
   });
   vi.stubGlobal("localStorage", storage);
 
-  const [server, overview, brokers, ui, i18n, settings] = await Promise.all([
+  const [server, overview, brokers, dlq, ui, i18n, settings] = await Promise.all([
     import("react-dom/server"),
     import("./overview/OverviewPulsar"),
     import("./cluster/BrokersPulsar"),
+    import("./dlq/DlqPulsar"),
     import("@/components"),
     import("@/i18n"),
     import("@/hooks/useSettings"),
@@ -81,6 +91,7 @@ beforeAll(async () => {
     );
   OverviewPulsar = overview.OverviewPulsar;
   BrokersPulsar = brokers.BrokersPulsar;
+  DlqPulsar = dlq.DlqPulsar;
 });
 
 /**
@@ -251,5 +262,44 @@ describe("the Pulsar brokers board", () => {
     const html = render(<BrokersPulsar />);
 
     expect(html.split("leader").length - 1).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe("the Pulsar dead-letter board", () => {
+  const none = "这个命名空间里没有符合死信命名约定的主题。";
+
+  function setDeadLetters(state: Partial<BrokerState<unknown>>) {
+    namespacesState.current = stateOf({ data: [{ name: "public/default" }] });
+    deadLettersState.current = stateOf(state);
+  }
+
+  it("says there are none only when the listing is empty", () => {
+    setDeadLetters({ data: [] });
+    expect(render(<DlqPulsar />)).toContain(none);
+  });
+
+  it("lists the dead-letter topics it found", () => {
+    setDeadLetters({
+      data: [
+        {
+          namespace: "public/default",
+          name: "persistent://public/default/orders-billing-DLQ",
+          depth: 12,
+          consumers: 0,
+          sources: [
+            {
+              queue: "persistent://public/default/orders",
+              subscription: "billing",
+              exchange: "",
+              routingKey: "",
+            },
+          ],
+        },
+      ],
+    });
+    const html = render(<DlqPulsar />);
+    expect(html).toContain("orders-billing-DLQ");
+    expect(html).toContain("billing");
+    expect(html).not.toContain(none);
   });
 });
