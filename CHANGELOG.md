@@ -9,6 +9,62 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-21
+
+The interface has been redesigned. Colours are deeper and more consistent, every
+list page now opens its details in a panel beside the list, and a number of
+pages that cut off, squeezed or mislabelled their content are fixed.
+
+### Changed
+
+- A new look across the app. The title bar and sidebar sit on a warm grey frame
+  and each page is a white sheet laid on it; the current page, the selected row
+  and the primary buttons share one blue; figures line up in columns; and the
+  names of topics, queues and groups use the interface font and can be selected
+  and copied. Dark mode uses the same palette. (#119)
+
+- Every list page works the same way. Search and filters sit in a row under the
+  page title. Clicking a row opens its details in a panel beside the list, which
+  makes room for it rather than covering a column; clicking another row changes
+  the panel in place, and Escape closes it. The ActiveMQ, NSQ, MQTT, Amazon SQS,
+  Google Pub/Sub, Azure Service Bus, Kinesis, IBM MQ and Solace pages used to
+  open the first row in a fixed column; they now wait for you to pick one.
+  (#119)
+
+- Connections open as a card grid, with a list view beside it, and the protocol
+  filters show how many connections each one has. (#119)
+
+- Overview pages share one layout: the key figures in one card, each with an
+  icon, then the details and the busiest topics, queues or groups. (#119)
+
+- The RocketMQ topic list shows business topics before retry and dead-letter
+  topics, which used to sort first because of their leading %. (#119)
+
+### Fixed
+
+- The Pulsar dead-letter page said a namespace had no dead-letter topics even
+  when it had some. (#119)
+
+- On a page longer than the window, the first cards could shrink to a thin empty
+  strip, as they did on the Redis node page. (#119)
+
+- The axis of the RocketMQ overview's throughput chart cut "24,000/s" down to
+  "4,000/s". (#119)
+
+- Table headers that showed raw field names on the Redis clients page, or
+  English in the Chinese interface on the Kafka consumer group panel, are
+  translated. The Redis clients table fits the page again, and the Kafka
+  partition table no longer cuts off its lag column. (#119)
+
+- Kafka broker configuration keys wrap at their dots instead of in the middle of
+  a word. (#119)
+
+- On the Redis send page, the field value box was squeezed to nothing beside the
+  field name. (#119)
+
+- The ActiveMQ messages page showed an empty picker when no destination was
+  chosen; it now asks you to pick one. (#119)
+
 ## [0.3.1] - 2026-10-21
 
 Two fixes. The body editor on the RabbitMQ and NATS send pages, and in the

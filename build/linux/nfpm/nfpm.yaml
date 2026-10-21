@@ -6,7 +6,7 @@
 name: "mq-studio"
 arch: ${GOARCH}
 platform: "linux"
-version: "0.3.1"
+version: "0.4.0"
 section: "default"
 priority: "extra"
 maintainer: "amigoer <i@amigoer.com>"
